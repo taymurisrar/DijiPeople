@@ -142,4 +142,3 @@ documentation drift — and that is all that was done.
 [[monorepo-application-map]] · [[landing-website]] · [[landing-architecture]] ·
 [[desktop-agent]] · [[desktop-agent-architecture]] ·
 [[desktop-api-gateway-relationship]] · [[docs-application]]
-</content>

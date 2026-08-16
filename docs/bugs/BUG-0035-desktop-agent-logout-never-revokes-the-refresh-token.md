@@ -155,4 +155,3 @@ undeclared field, which is the documented behaviour of this codebase.
 - 2026-08-16 — Architect triage: `FIX_NOW`. Small, bounded, and it restores a
   revocation control that everyone reasonably assumes already works — which is
   what makes it worse than its size suggests.
-</content>

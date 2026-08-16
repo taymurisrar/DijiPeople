@@ -185,4 +185,3 @@ combined with a full-batch requeue.
 - 2026-08-16 — Architect triage: `PLAN_REQUIRED`. Client contract, schema
   migration and aggregate semantics must change together; doing any one alone
   leaves the totals wrong.
-</content>

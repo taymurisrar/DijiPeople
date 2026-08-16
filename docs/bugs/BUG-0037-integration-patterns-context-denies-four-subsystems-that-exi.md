@@ -169,4 +169,3 @@ Verified by re-reading each corrected file against the directory listings and
   which permits correcting verified documentation drift, and the correction was
   required to answer the question the task was asked.
 - 2026-08-16 — Fixed and verified in the same change.
-</content>

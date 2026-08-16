@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getApiBaseUrl } from "@/lib/auth";
+import { forwardedClientHeaders } from "@/lib/forwarded-headers";
 
 export async function POST(request: Request) {
   const body = await request.json();
@@ -8,6 +9,7 @@ export async function POST(request: Request) {
     const response = await fetch(`${getApiBaseUrl()}/auth/activate-account`, {
       method: "POST",
       headers: {
+        ...forwardedClientHeaders(request),
         "Content-Type": "application/json",
       },
       body: JSON.stringify(body),

@@ -2,7 +2,7 @@
 ID: BUG-0033
 aliases: [BUG-0033]
 Title: Desktop agent login is unthrottled and enumerates users across every tenant
-Status: OPEN
+Status: FIXED
 Severity: HIGH
 Priority: P1
 Type: SECURITY
@@ -19,7 +19,7 @@ RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-16
 UpdatedAt: 2026-08-16
-ResolvedAt:
+ResolvedAt: 2026-08-16
 ---
 
 # BUG-0033 — Desktop agent login is unthrottled and enumerates users across every tenant
@@ -153,13 +153,50 @@ this and the two before it.
 
 ## Resolution
 
-Not resolved. Found by an audit; no product code changed by that task.
+Fixed. All three facts this record identified are closed, and a fourth defect
+found in the same handler is closed with them.
+
+- **Unthrottled** — `POST /agent/auth/login`, `/refresh` and `/logout` now
+  carry `PublicRateLimitGuard`, and the ITEM-0013 invariant built for BUG-0031
+  fails the build if that regresses.
+- **Distinguishable messages** — "user was not found" and "password does not
+  match" are both now `Invalid credentials.`, matching what
+  `AuthService.validateCredentials` has always returned.
+- **Timing** — a missing address used to skip bcrypt entirely and answer in
+  microseconds, which enumerates exactly as well as the message did. It now
+  compares against a fixed hash. The cost factor is part of the fix: user
+  passwords are hashed at cost 12, and measured here a cost-12 comparison takes
+  ~261 ms against ~67 ms for cost 10, so equalising with a cheaper hash would
+  have left a four-fold gap. The first draft used a cost-10 constant and would
+  have done exactly that.
+- **Cross-tenant lookup (new)** — `findFirst({ where: { email } })` was not
+  merely tenant-blind, it was **non-deterministic**. `User` is unique on
+  `[tenantId, email]`, not on `email`, so someone employed by two tenants — a
+  contractor, an outsourced accountant — has two rows, and the handler resolved
+  to whichever the database returned first. They could be refused their own
+  account, or land in the wrong workspace, depending on query plan. The desktop
+  agent sends no workspace (`AgentLoginDto` carries only e-mail, password and
+  device fields), so the password disambiguates: candidates are fetched and the
+  one whose hash matches is the account.
+
+The two remaining specific messages — inactive account, no linked employee — are
+deliberately left specific and commented as such. Both are reachable only after a
+correct password, so they confirm nothing an attacker did not already know, and
+collapsing them would send a legitimate employee to reset a password that is
+fine. This mirrors the reasoning already documented in `AuthService.login`.
 
 ## QA Retest
 
-Not applicable — not yet fixed. Verified by reading the controller, the service,
-the DTOs and the absence of any global guard at `78072d2`. **No request was
-executed against a running API** — the finding is by inspection.
+`services/api/src/modules/agent/agent-login-enumeration.spec.ts` — 5
+assertions: identical message for both outcomes, no reason named in the message,
+bcrypt time spent on a non-existent address, correct account selected when one
+address exists in two tenants, and lookup that does not assume global e-mail
+uniqueness.
+
+Verified to fail against the defect: restoring the original `findFirst` +
+two-message shape fails **4 of the 5**.
+
+Full API suite as CI runs it: 155 suites, 1107 tests, all passing.
 
 ## History
 
@@ -168,4 +205,6 @@ executed against a running API** — the finding is by inspection.
 - 2026-08-16 — Architect triage: `FIX_NOW`. Both halves are small, bounded and
   need no design work, and the endpoint is internet-reachable. Sequenced ahead of
   BUG-0031 because this one leaks information as well as lacking a limit.
-</content>
+- 2026-08-16 — fixed. Throttling closed via the BUG-0031 invariant; enumeration
+  closed via uniform message plus timing equalisation; a non-deterministic
+  cross-tenant account resolution was found in the same handler and fixed.

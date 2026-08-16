@@ -2,7 +2,7 @@
 ID: BUG-0032
 aliases: [BUG-0032]
 Title: Landing proxies collapse every visitor into one rate limit bucket
-Status: OPEN
+Status: FIXED
 Severity: HIGH
 Priority: P1
 Type: SECURITY
@@ -19,7 +19,7 @@ RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-16
 UpdatedAt: 2026-08-16
-ResolvedAt:
+ResolvedAt: 2026-08-16
 ---
 
 # BUG-0032 — Landing proxies collapse every visitor into one rate limit bucket
@@ -155,15 +155,55 @@ silently undermines) · [[BUG-0031-public-subscribe-endpoint-has-no-rate-limitin
 
 ## Resolution
 
-Not resolved. Found by an audit; no product code changed by that task.
+Fixed, and the scope was larger than this record found.
+
+The record identified the four `apps/landing` route handlers. Auditing for the
+fix showed the same defect in `apps/web` and `apps/admin`: **20 route handlers
+across all three apps** proxy to the API, and none forwarded the visitor's
+address. `apps/web/app/api/auth/login/route.ts` mattered most — once
+BUG-0031's guard was applied to `POST /auth/login`, an unfixed proxy would have
+throttled *every tenant login in the product* to 20 attempts per 10 minutes
+globally. The two bugs had to land together; fixing BUG-0031 alone would have
+caused an outage.
+
+Both halves live in one module, `packages/config/client-ip.js`, so the sender
+and the reader cannot drift apart:
+
+- `buildForwardedClientHeaders` — what a proxy sends. Re-exported per app as
+  `apps/<app>/lib/forwarded-headers.ts` and spread into all 20 outbound
+  `fetch()` calls.
+- `readForwardedForClientIp` — how the chain is read: the **first** entry, the
+  client-closest, so no intermediate hop can present itself as the client.
+- `services/api/src/common/security/client-ip.ts` — `resolveClientIp`, which
+  the guard now keys on instead of `request.ip`.
+
+The forwarded chain is believed only where a proxy we control is actually in
+front. That decision already existed in
+`modules/tenant-domains/request-hostname.ts`; it was **extracted** to
+`common/security/proxy-trust.ts` and is now shared rather than duplicated, so a
+deployment cannot end up trusting the forwarded host while ignoring the
+forwarded address.
+
+`scripts/check-proxy-forwards-client-ip.mjs` makes it mechanical, and is a
+required CI step. It counts `...forwardedClientHeaders(` call sites against
+`fetch(` call sites per file: an earlier version tested only that the
+identifier appeared, which the *import line alone* satisfied — deleting the
+spread from the one place it mattered left the check green.
 
 ## QA Retest
 
-Not applicable — not yet fixed. Verified by reading all four proxies, the guard
-and the proxy-trust handling in `main.ts` at `78072d2`. The two-client
-reproduction was **not executed** — it needs two distinct public IPs, which the
-audit environment did not have. The code path is unambiguous, but the
-observation is by inspection, not by execution.
+- `npm run check:proxy-forwards-client-ip` — 20 handlers pass. Verified to
+  fail: removing the spread from `apps/landing/app/api/leads/route.ts` reports
+  `(0/1 fetches covered)` and exits 1.
+- `services/api/src/common/security/client-ip.spec.ts` — 6 assertions covering
+  both directions: the visitor is read behind a trusted proxy, two visitors on
+  one egress address get separate identities, a forged chain is ignored when no
+  proxy is trusted, and the identity is never empty.
+- `public-rate-limit.guard.spec.ts` gained the behavioural assertion: one
+  visitor exhausting the limit no longer affects another behind the same proxy.
+  Confirmed to fail against the old `request.ip` key.
+- Typecheck passes for `web`, `admin`, `landing` and `api`; app suites
+  391 / 71 / 49 tests all passing.
 
 ## History
 
@@ -172,4 +212,6 @@ observation is by inspection, not by execution.
 - 2026-08-16 — Architect triage: `PLAN_REQUIRED`. The obvious fix — forward
   `X-Forwarded-For` — creates a spoofable limit if applied without deciding the
   trust boundary, so this may not be taken as a one-line change.
-</content>
+- 2026-08-16 — fixed. Scope widened from 4 landing handlers to 20 across three
+  apps after finding that the tenant login proxy shared the defect and would have
+  turned BUG-0031's fix into a global login outage.

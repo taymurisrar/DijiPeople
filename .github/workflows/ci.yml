@@ -201,6 +201,12 @@ jobs:
         # The other half of the same defect: a hardcoded literal never consults
         # an environment variable, so environment validation cannot see it.
         run: npm run check:no-hardcoded-urls
+      - name: Proxy route handlers forward the client IP
+        # BUG-0032. Every public form is proxied by a Next route handler, so a
+        # handler that does not carry the visitor's address forward silently
+        # collapses the whole world into one rate limit bucket. The feature
+        # still works, which is why this needs a machine to notice.
+        run: npm run check:proxy-forwards-client-ip
 
   database-migration:
     name: Database migration gate

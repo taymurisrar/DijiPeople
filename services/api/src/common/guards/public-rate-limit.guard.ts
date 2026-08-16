@@ -5,6 +5,7 @@ import {
   Injectable,
 } from '@nestjs/common';
 import type { Request } from 'express';
+import { resolveClientIp } from '../security/client-ip';
 
 const windows = new Map<string, { count: number; resetsAt: number }>();
 
@@ -13,7 +14,9 @@ export class PublicRateLimitGuard implements CanActivate {
   canActivate(context: ExecutionContext) {
     const request = context.switchToHttp().getRequest<Request>();
     const now = Date.now();
-    const key = `${request.ip ?? 'unknown'}:${request.path}`;
+    // Not `request.ip`: behind the Next route handlers that proxy every public
+    // form, that is one address for the whole world. See client-ip.ts.
+    const key = `${resolveClientIp(request)}:${request.path}`;
     const current = windows.get(key);
     const limit = request.method === 'GET' ? 120 : 20;
     if (!current || current.resetsAt <= now) {

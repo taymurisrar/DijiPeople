@@ -115,4 +115,3 @@ either component's code.
 [[multi-tenancy]] · [[authentication]] · [[deployment-architecture]] ·
 [[BUG-0034-desktop-agent-auto-update-points-at-an-endpoint-that-does-no]] ·
 [[ITEM-0026]]
-</content>

@@ -50,6 +50,26 @@ export declare const REQUIRED_APP_URLS: Readonly<
   Record<DijiPeopleApp, readonly DijiPeopleApp[]>
 >;
 
+export declare const FORWARDED_FOR_HEADER: "x-forwarded-for";
+
+/**
+ * The client-closest address in an `X-Forwarded-For` chain, or null when the
+ * header is absent or empty. Callers must decide whether the chain is
+ * trustworthy before believing the result.
+ */
+export declare function readForwardedForClientIp(
+  headerValue: string | string[] | undefined | null,
+): string | null;
+
+/**
+ * Headers a first-party proxy merges into its outbound request so the API can
+ * still identify the visitor rather than the proxy. Returns an empty object when
+ * there is no incoming chain to carry.
+ */
+export declare function buildForwardedClientHeaders(
+  incomingHeaders: { get(name: string): string | null } | Headers,
+): Record<string, string>;
+
 /**
  * Every canonical app URL resolved from one env object. The only supported way
  * for application code to answer "where does the <x> app live" — call sites
@@ -74,7 +94,9 @@ export declare function isLoopbackUrl(value: string): boolean;
 
 export declare function getApiBaseUrl(env?: NodeJS.ProcessEnv): string;
 
-export declare function getAllowedCorsOrigins(env?: NodeJS.ProcessEnv): string[];
+export declare function getAllowedCorsOrigins(
+  env?: NodeJS.ProcessEnv,
+): string[];
 
 export declare function getLocalArchitecture(env?: NodeJS.ProcessEnv): {
   landing: string;
@@ -99,9 +121,7 @@ export declare function validateDeploymentEnv(
   allowedCorsOrigins: string[];
 };
 
-export type SystemWidgetAdapterMethod =
-  | "getTimelineEntries"
-  | "getWidgetData";
+export type SystemWidgetAdapterMethod = "getTimelineEntries" | "getWidgetData";
 
 export interface SystemWidgetDefinition {
   readonly widgetKey: string;

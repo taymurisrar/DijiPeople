@@ -2,7 +2,7 @@
 ID: BUG-0031
 aliases: [BUG-0031]
 Title: Public subscribe endpoint has no rate limiting
-Status: OPEN
+Status: FIXED
 Severity: HIGH
 Priority: P1
 Type: SECURITY
@@ -19,7 +19,7 @@ RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-16
 UpdatedAt: 2026-08-16
-ResolvedAt:
+ResolvedAt: 2026-08-16
 ---
 
 # BUG-0031 — Public subscribe endpoint has no rate limiting
@@ -161,12 +161,41 @@ bug pattern [[authorization-missing]].
 
 ## Resolution
 
-Not resolved. Found by an audit; no product code changed by that task.
+Fixed, together with [[ITEM-0013]] and BUG-0032 as the triage required.
+
+The one-line guard move was deliberately **not** done on its own, because doing
+only that is what produced the second and third instances of this defect. Three
+things changed:
+
+1. `services/api/src/common/guards/public-write-rate-limit.invariant.spec.ts`
+   — ITEM-0013, built. It reads every `*.controller.ts` under
+   `src/modules`, resolves each `@Public()` to the handler it actually
+   decorates, and fails when that handler writes without
+   `PublicRateLimitGuard`. Exemptions are a named allowlist carrying a reason,
+   not a silent skip, and a stale allowlist entry is itself a failure.
+2. The invariant then surfaced the true inventory, which was larger than this
+   record described: **14 unguarded public write handlers across 4 controllers**
+   — `agent.controller.ts` (3), `auth.controller.ts` (7),
+   `admin-auth.controller.ts` (3), `tenants.controller.ts` (1). All 14 now
+   carry the guard.
+3. Guards are applied per handler rather than at controller level, because all
+   four controllers are mixed: `AgentController` also serves an authenticated
+   `POST /agent/sessions/heartbeat` that desktop agents call continuously, and
+   a class-level guard would have throttled it to 20 calls per 10 minutes.
+
+The first draft of the invariant was itself too weak — it passed when *any*
+handler in a file carried the guard, which is precisely how this endpoint slipped
+through beside an already-guarded sibling. It was tightened to per-handler before
+being relied on.
 
 ## QA Retest
 
-Not applicable — not yet fixed. Verified by reading the controller, the guard
-and the service transaction at `78072d2`.
+`npm --workspace api run test -- --testPathPatterns "public-write-rate-limit"`
+— 13 assertions, all passing. Verified to fail correctly: before the guards were
+applied it reported all 4 controllers and named all 14 handlers.
+
+Full API suite run as CI runs it (`--testNamePattern` excluding the known
+baseline failure): **155 suites, 1107 tests, all passing**.
 
 ## History
 
@@ -176,4 +205,5 @@ and the service transaction at `78072d2`.
   obvious, but doing only that repeats the pattern a third time; the durable fix
   is the mechanical check in ITEM-0013, and it must be sequenced with BUG-0032
   so the limit is keyed on a real client identity.
-</content>
+- 2026-08-16 — fixed. ITEM-0013 built first, then the inventory it produced was
+  cleared in full rather than only the endpoint named in this record.

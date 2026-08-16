@@ -3,7 +3,7 @@ ID: ITEM-0013
 aliases: [ITEM-0013]
 Title: Assert mechanically that every @Public() controller carries the rate-limit guard
 Type: TEST_GAP
-Status: READY
+Status: DONE
 Priority: P2
 Severity: MEDIUM
 AffectedModules: [services/api]
@@ -11,7 +11,7 @@ Source: QA_RUN
 OwnerAgent: backend-api
 ArchitectDisposition: FIX_NOW
 CreatedAt: 2026-08-15
-UpdatedAt: 2026-08-15
+UpdatedAt: 2026-08-16
 RelatedBug: BUG-0013
 RelatedQA: docs/qa/runs/2026-08-15-commercial-onboarding-e2e-7bbab3d.md
 RelatedADR:
@@ -76,3 +76,18 @@ coverage test added for [[BUG-0006]].
 - 2026-08-15 — raised as the generalisable half of BUG-0013.
 
 - 2026-08-15 — Architect triage: FIX_NOW. `wiring-invariants.spec.ts` is the established home and the shape is proven. Pin the rule rather than the instance, and carry a documented exemption list so a genuine exception is visible rather than silently absent.
+
+## Resolution
+
+Built as `services/api/src/common/guards/public-write-rate-limit.invariant.spec.ts`
+while closing [[BUG-0031-public-subscribe-endpoint-has-no-rate-limiting]] and
+[[BUG-0033-desktop-agent-login-is-unthrottled-and-enumerates-users-acro]], which
+were the second and third instances of the failure this item predicted.
+
+The check resolves each `@Public()` to the handler it actually decorates and
+fails when that handler writes without `PublicRateLimitGuard`. Exemptions are a
+named allowlist carrying a reason; a stale entry fails too.
+
+It immediately found more than the bug records described — 14 unguarded public
+write handlers across 4 controllers — all of which were fixed rather than only
+the two endpoints named in the bugs.

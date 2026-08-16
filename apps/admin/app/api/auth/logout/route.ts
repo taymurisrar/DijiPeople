@@ -11,9 +11,10 @@ import {
   sanitizeAdminNextPath,
 } from "@/lib/auth-config";
 import { getClearAuthCookieOptions } from "@/lib/auth-cookies";
+import { forwardedClientHeaders } from "@/lib/forwarded-headers";
 
-export async function POST() {
-  await revokeApiSession();
+export async function POST(request: Request) {
+  await revokeApiSession(request);
 
   const response = NextResponse.json({ ok: true }, { status: 200 });
   clearAuthCookies(response);
@@ -32,7 +33,7 @@ export async function GET(request: Request) {
   const reason = requestUrl.searchParams.get("reason");
   const rawNextPath = requestUrl.searchParams.get("next");
 
-  await revokeApiSession();
+  await revokeApiSession(request);
 
   const redirectUrl = new URL(LOGIN_ROUTE, requestUrl.origin);
   if (reason) {
@@ -52,7 +53,7 @@ export async function GET(request: Request) {
  * from `X-DijiPeople-App` and reads the refresh token from the forwarded Cookie
  * header, so both must be present or the session stays live server-side.
  */
-async function revokeApiSession() {
+async function revokeApiSession(request: Request) {
   const cookieStore = await cookies();
   const accessToken = cookieStore.get(ACCESS_TOKEN_COOKIE)?.value;
   const refreshToken = cookieStore.get(REFRESH_TOKEN_COOKIE)?.value;
@@ -78,6 +79,7 @@ async function revokeApiSession() {
     await fetch(`${getApiBaseUrl()}/auth/logout`, {
       method: "POST",
       headers: {
+        ...forwardedClientHeaders(request),
         "Content-Type": "application/json",
         "X-DijiPeople-App": AUTH_APP_CLIENT_ID,
         ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),

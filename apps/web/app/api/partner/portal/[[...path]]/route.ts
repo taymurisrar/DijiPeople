@@ -6,6 +6,7 @@ import {
   PARTNER_REFRESH_COOKIE,
   partnerCookieOptions,
 } from "@/lib/partner-auth";
+import { forwardedClientHeaders } from "@/lib/forwarded-headers";
 
 type Context = { params: Promise<{ path?: string[] }> };
 
@@ -22,7 +23,7 @@ async function forward(request: Request, context: Context, method: string) {
       { status: 401 },
     );
 
-  let response = await callApi(accessToken, suffix, url.search, method, body);
+  let response = await callApi(request, accessToken, suffix, url.search, method, body);
   let refreshed: {
     accessToken: string;
     refreshToken: string;
@@ -35,7 +36,7 @@ async function forward(request: Request, context: Context, method: string) {
         `${getApiBaseUrl()}/partner-auth/refresh`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { ...forwardedClientHeaders(request), "Content-Type": "application/json" },
           body: JSON.stringify({ refreshToken }),
           cache: "no-store",
         },
@@ -43,7 +44,7 @@ async function forward(request: Request, context: Context, method: string) {
       if (refreshResponse.ok) {
         refreshed = await refreshResponse.json();
         accessToken = refreshed!.accessToken;
-        response = await callApi(accessToken, suffix, url.search, method, body);
+        response = await callApi(request, accessToken, suffix, url.search, method, body);
       }
     }
   }
@@ -75,6 +76,7 @@ async function forward(request: Request, context: Context, method: string) {
 }
 
 function callApi(
+  request: Request,
   token: string,
   suffix: string,
   search: string,
@@ -86,6 +88,7 @@ function callApi(
     {
       method,
       headers: {
+        ...forwardedClientHeaders(request),
         Authorization: `Bearer ${token}`,
         ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
       },

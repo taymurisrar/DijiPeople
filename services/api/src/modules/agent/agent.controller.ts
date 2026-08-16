@@ -39,6 +39,7 @@ import {
 } from './dto/agent-session.dto';
 import { UpdateAgentSettingsDto } from './dto/update-agent-settings.dto';
 import { AgentHistoryQueryDto } from './dto/agent-history-query.dto';
+import { PublicRateLimitGuard } from '../../common/guards/public-rate-limit.guard';
 
 @Controller('agent')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -46,18 +47,21 @@ export class AgentController {
   constructor(private readonly agentService: AgentService) {}
 
   @Public()
+  @UseGuards(PublicRateLimitGuard)
   @Post('auth/login')
   login(@Body() dto: AgentLoginDto) {
     return this.agentService.login(dto);
   }
 
   @Public()
+  @UseGuards(PublicRateLimitGuard)
   @Post('auth/refresh')
   refresh(@Body() dto: AgentRefreshDto) {
     return this.agentService.refresh(dto);
   }
 
   @Public()
+  @UseGuards(PublicRateLimitGuard)
   @Post('auth/logout')
   logout(@Body() dto: AgentLogoutDto) {
     return this.agentService.logout(dto);

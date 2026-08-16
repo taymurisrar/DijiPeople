@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getApiBaseUrl } from "@/lib/auth";
+import { forwardedClientHeaders } from "@/lib/forwarded-headers";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -17,6 +18,7 @@ export async function GET(request: Request) {
       `${getApiBaseUrl()}/auth/invitation-status?token=${encodeURIComponent(token)}`,
       {
         method: "GET",
+        headers: { ...forwardedClientHeaders(request) },
         cache: "no-store",
       },
     );

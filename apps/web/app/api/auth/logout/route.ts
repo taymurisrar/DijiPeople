@@ -13,11 +13,12 @@ import { getApiBaseUrl } from "@/lib/auth";
 import { sanitizeLocalNextPath } from "@/lib/routes";
 import { getTenantHintFromRequest } from "@/lib/tenant-resolution";
 import { buildTenantLoginUrl } from "@/lib/tenant-url";
+import { forwardedClientHeaders } from "@/lib/forwarded-headers";
 
 export async function POST(request: Request) {
   const requestUrl = new URL(request.url);
   const tenantSlug = await resolveLogoutTenantSlug(request);
-  await revokeApiSession();
+  await revokeApiSession(request);
 
   const response = NextResponse.json({
     ok: true,
@@ -34,7 +35,7 @@ export async function GET(request: Request) {
   const tenantSlug = await resolveLogoutTenantSlug(request, {
     skipSessionLookup: reason === "session-expired",
   });
-  await revokeApiSession();
+  await revokeApiSession(request);
 
   const redirectUrl = new URL(
     buildLogoutLoginUrl(requestUrl, tenantSlug, reason ? nextPath : null),
@@ -56,7 +57,7 @@ async function resolveLogoutTenantSlug(
   const requestUrl = new URL(request.url);
   const sessionTenantSlug = options.skipSessionLookup
     ? ""
-    : await getSessionTenantSlug().catch(() => "");
+    : await getSessionTenantSlug(request).catch(() => "");
 
   if (sessionTenantSlug) {
     return sessionTenantSlug;
@@ -89,7 +90,7 @@ function buildLogoutLoginUrl(
   return url.toString();
 }
 
-async function getSessionTenantSlug() {
+async function getSessionTenantSlug(request: Request) {
   const cookieStore = await cookies();
   const accessToken = cookieStore.get(ACCESS_TOKEN_COOKIE)?.value;
   const refreshToken = cookieStore.get(REFRESH_TOKEN_COOKIE)?.value;
@@ -101,6 +102,7 @@ async function getSessionTenantSlug() {
   const response = await fetch(`${getApiBaseUrl()}/auth/me`, {
     method: "GET",
     headers: {
+      ...forwardedClientHeaders(request),
       "X-DijiPeople-App": AUTH_APP_CLIENT_ID,
       Cookie: [
         accessToken
@@ -126,7 +128,7 @@ async function getSessionTenantSlug() {
   return typeof data?.tenant?.slug === "string" ? data.tenant.slug : "";
 }
 
-async function revokeApiSession() {
+async function revokeApiSession(request: Request) {
   const cookieStore = await cookies();
   const accessToken = cookieStore.get(ACCESS_TOKEN_COOKIE)?.value;
   const refreshToken = cookieStore.get(REFRESH_TOKEN_COOKIE)?.value;
@@ -151,6 +153,7 @@ async function revokeApiSession() {
     await fetch(`${getApiBaseUrl()}/auth/logout`, {
       method: "POST",
       headers: {
+        ...forwardedClientHeaders(request),
         "X-DijiPeople-App": AUTH_APP_CLIENT_ID,
         Cookie: cookieHeader,
       },

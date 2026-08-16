@@ -105,4 +105,3 @@ shares the plan.
 - 2026-08-16 — created at `78072d2` during the `apps/agent-desktop` deep
   documentation audit (TASK-0002).
 - 2026-08-16 — Architect triage: `PLAN_REQUIRED`, sequenced with BUG-0036.
-</content>

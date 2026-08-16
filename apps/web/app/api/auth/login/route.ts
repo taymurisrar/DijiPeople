@@ -13,6 +13,7 @@ import {
   REFRESH_TOKEN_MAX_AGE_SECONDS,
 } from "@/lib/auth-cookies";
 import { getApiBaseUrl } from "@/lib/auth";
+import { forwardedClientHeaders } from "@/lib/forwarded-headers";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -39,6 +40,7 @@ export async function POST(request: Request) {
     const response = await fetch(`${apiBaseUrl}/auth/login`, {
       method: "POST",
       headers: {
+        ...forwardedClientHeaders(request),
         "Content-Type": "application/json",
         "X-DijiPeople-App": AUTH_APP_CLIENT_ID,
       },

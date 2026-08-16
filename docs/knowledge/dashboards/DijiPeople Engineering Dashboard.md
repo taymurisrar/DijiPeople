@@ -9,11 +9,11 @@
 |---|---|
 | Open CRITICAL | **2** |
 | Open HIGH | **11** |
-| Open total | 48 |
+| Open total | 47 |
 | Blocked | 0 |
 | Awaiting a product decision | 3 |
 | Deferred | 2 |
-| Completed | 14 |
+| Completed | 15 |
 | Awaiting Architect triage | 0 |
 
 ## Open Critical Bugs
@@ -31,9 +31,9 @@
 | [[BUG-0016-partner-onboarding-review-has-no-state-machine|BUG-0016]] | Partner onboarding review has no state machine | STATE_MACHINE | HIGH | FIXED | api:partner-experience | FIX_NOW |
 | [[BUG-0019-partner-inquiry-and-onboarding-review-screens-are-unreachable|BUG-0019]] | Partner inquiry and onboarding review screens have no inbound link | UX | HIGH | OPEN | apps/admin | PLAN_REQUIRED |
 | [[BUG-0026-public-login-and-tenant-email-links-resolved-to-localhost-in|BUG-0026]] | Public Login and tenant email links resolved to localhost in production | INFRA | HIGH | FIXED | apps/landing, apps/web, apps/admin, services/api, pkg:config | FIX_NOW |
-| [[BUG-0031-public-subscribe-endpoint-has-no-rate-limiting|BUG-0031]] | Public subscribe endpoint has no rate limiting | SECURITY | HIGH | OPEN | api:billing, apps/landing | PLAN_REQUIRED |
-| [[BUG-0032-landing-proxies-collapse-every-visitor-into-one-rate-limit-b|BUG-0032]] | Landing proxies collapse every visitor into one rate limit bucket | SECURITY | HIGH | OPEN | apps/landing, services/api/src/common | PLAN_REQUIRED |
-| [[BUG-0033-desktop-agent-login-is-unthrottled-and-enumerates-users-acro|BUG-0033]] | Desktop agent login is unthrottled and enumerates users across every tenant | SECURITY | HIGH | OPEN | api:agent, apps/agent-desktop | FIX_NOW |
+| [[BUG-0031-public-subscribe-endpoint-has-no-rate-limiting|BUG-0031]] | Public subscribe endpoint has no rate limiting | SECURITY | HIGH | FIXED | api:billing, apps/landing | PLAN_REQUIRED |
+| [[BUG-0032-landing-proxies-collapse-every-visitor-into-one-rate-limit-b|BUG-0032]] | Landing proxies collapse every visitor into one rate limit bucket | SECURITY | HIGH | FIXED | apps/landing, services/api/src/common | PLAN_REQUIRED |
+| [[BUG-0033-desktop-agent-login-is-unthrottled-and-enumerates-users-acro|BUG-0033]] | Desktop agent login is unthrottled and enumerates users across every tenant | SECURITY | HIGH | FIXED | api:agent, apps/agent-desktop | FIX_NOW |
 | [[BUG-0034-desktop-agent-auto-update-points-at-an-endpoint-that-does-no|BUG-0034]] | Desktop agent auto update points at an endpoint that does not exist | INTEGRATION | HIGH | OPEN | apps/agent-desktop, api:agent, api:app-releases | PLAN_REQUIRED |
 | [[BUG-0035-desktop-agent-logout-never-revokes-the-refresh-token|BUG-0035]] | Desktop agent logout never revokes the refresh token | SECURITY | HIGH | OPEN | apps/agent-desktop, api:agent | FIX_NOW |
 | [[BUG-0036-agent-heartbeat-has-no-idempotency-so-retries-double-count-p|BUG-0036]] | Agent heartbeat has no idempotency so retries double count productivity | DATA_INTEGRITY | HIGH | OPEN | api:agent, services/api/prisma, apps/agent-desktop | PLAN_REQUIRED |
@@ -59,7 +59,6 @@ _None._
 | [[ITEM-0002-no-live-api-session-test-harness|ITEM-0002]] | No harness exists for testing against a running API with real sessions | TEST_GAP | MEDIUM | READY | services/api, apps/admin | FIX_NOW |
 | [[ITEM-0003-tenant-erasure-never-exercised-against-a-database|ITEM-0003]] | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | READY | api:tenant-control-plane | FIX_NOW |
 | [[ITEM-0012-cross-check-route-methods-against-their-callers|ITEM-0012]] | Cross-check app/api route methods against the hrefs that target them | TEST_GAP | MEDIUM | READY | apps/web, apps/admin | FIX_NOW |
-| [[ITEM-0013-assert-every-public-controller-is-rate-limited|ITEM-0013]] | Assert mechanically that every @Public() controller carries the rate-limit guard | TEST_GAP | MEDIUM | READY | services/api | FIX_NOW |
 | [[ITEM-0028-apps-agent-desktop-has-no-agents-md-and-no-test-coverage|ITEM-0028]] | apps/agent-desktop has no AGENTS.md and no test coverage | TEST_GAP | MEDIUM | READY | apps/agent-desktop, api:agent | FIX_NOW |
 | [[ITEM-0021-mechanical-guard-against-country-and-currency-literals-in-fr|ITEM-0021]] | Mechanical guard against country and currency literals in frontends | TEST_GAP | LOW | READY | scripts, apps/landing, apps/web, apps/admin | DEFER |
 
@@ -91,6 +90,9 @@ _None._
 | [[BUG-0015-a-tenant-that-fails-before-identities-and-billing-is-unrecoverable|BUG-0015]] | A tenant that fails before identities-and-billing is permanently unrecoverable | STATE_MACHINE | HIGH | FIXED | api:tenant-control-plane | FIX_NOW |
 | [[BUG-0016-partner-onboarding-review-has-no-state-machine|BUG-0016]] | Partner onboarding review has no state machine | STATE_MACHINE | HIGH | FIXED | api:partner-experience | FIX_NOW |
 | [[BUG-0026-public-login-and-tenant-email-links-resolved-to-localhost-in|BUG-0026]] | Public Login and tenant email links resolved to localhost in production | INFRA | HIGH | FIXED | apps/landing, apps/web, apps/admin, services/api, pkg:config | FIX_NOW |
+| [[BUG-0031-public-subscribe-endpoint-has-no-rate-limiting|BUG-0031]] | Public subscribe endpoint has no rate limiting | SECURITY | HIGH | FIXED | api:billing, apps/landing | PLAN_REQUIRED |
+| [[BUG-0032-landing-proxies-collapse-every-visitor-into-one-rate-limit-b|BUG-0032]] | Landing proxies collapse every visitor into one rate limit bucket | SECURITY | HIGH | FIXED | apps/landing, services/api/src/common | PLAN_REQUIRED |
+| [[BUG-0033-desktop-agent-login-is-unthrottled-and-enumerates-users-acro|BUG-0033]] | Desktop agent login is unthrottled and enumerates users across every tenant | SECURITY | HIGH | FIXED | api:agent, apps/agent-desktop | FIX_NOW |
 | [[BUG-0009-session-revocation-depended-on-the-refresh-cookie|BUG-0009]] | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | FIXED | app:admin, api:auth | FIX_NOW |
 | [[BUG-0010-unguarded-cookie-options-could-turn-sign-out-into-a-500|BUG-0010]] | Unguarded cookie options could turn admin sign-out into a 500 | INFRA | MEDIUM | FIXED | app:admin | FIX_NOW |
 | [[BUG-0013-public-lead-endpoint-had-no-rate-limiting|BUG-0013]] | The public lead endpoint had no rate limiting | SECURITY | MEDIUM | VERIFIED | api:leads | DONE |
@@ -154,7 +156,6 @@ _None. Nothing has been deployed through the release process._
 | [[ITEM-0006-adr-one-source-of-truth-for-the-tenant-base-domain|ITEM-0006]] | ADR needed — one source of truth for the tenant base domain | ARCHITECTURE | MEDIUM | READY | pkg:config, services/api, apps/web, apps/admin, apps/landing | PLAN_REQUIRED |
 | [[ITEM-0010-deployed-sha-is-not-exposed|ITEM-0010]] | The running system does not expose its deployed SHA | INFRA | MEDIUM | READY | services/api | FIX_NOW |
 | [[ITEM-0012-cross-check-route-methods-against-their-callers|ITEM-0012]] | Cross-check app/api route methods against the hrefs that target them | TEST_GAP | MEDIUM | READY | apps/web, apps/admin | FIX_NOW |
-| [[ITEM-0013-assert-every-public-controller-is-rate-limited|ITEM-0013]] | Assert mechanically that every @Public() controller carries the rate-limit guard | TEST_GAP | MEDIUM | READY | services/api | FIX_NOW |
 | [[ITEM-0019-no-market-or-region-model-maps-countries-to-plans-currencies|ITEM-0019]] | No market or region model maps countries to plans, currencies and legal sets | ARCHITECTURE | MEDIUM | VALIDATING | services/api/prisma, api:super-admin, apps/admin, apps/landing | FIX_NOW |
 | [[ITEM-0020-contract-phase-drop-legacy-plan-pricing-columns|ITEM-0020]] | Contract phase: drop legacy Plan pricing columns | TECH_DEBT | MEDIUM | READY | services/api/prisma, api:super-admin, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur|ITEM-0022]] | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | READY | api:super-admin, apps/admin | PLAN_REQUIRED |

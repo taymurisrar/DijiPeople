@@ -119,4 +119,3 @@ None. This is the item that makes the other agent-desktop records cheaper to fix
   needs a decision. Prioritised because four separate defects in this app were
   found by reading it once, which is what an absent instruction file and absent
   tests look like from the outside.
-</content>
