@@ -13,11 +13,11 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 35 |
+| Open (active work) | 34 |
 | Blocked | 0 |
 | Deferred | 2 |
 | Awaiting a product decision | 1 |
-| Completed / closed | 50 |
+| Completed / closed | 51 |
 | **Open CRITICAL** | **3** |
 | **Open HIGH** | **8** |
 | **Awaiting Architect triage** | **0** |
@@ -28,7 +28,7 @@ see [`README.md`](README.md) for why.
 |---|---|
 | CRITICAL | 3 |
 | HIGH | 8 |
-| MEDIUM | 22 |
+| MEDIUM | 21 |
 | LOW | 2 |
 
 ## Open by type
@@ -43,7 +43,7 @@ see [`README.md`](README.md) for why.
 | INFRA | 2 |
 | INTEGRATION | 1 |
 | SECURITY | 4 |
-| TECH_DEBT | 6 |
+| TECH_DEBT | 5 |
 | TENANT_ISOLATION | 1 |
 | TEST_GAP | 5 |
 | UX | 3 |
@@ -57,10 +57,10 @@ see [`README.md`](README.md) for why.
 | PRODUCT_DECISION | 1 |
 | FIXED | 1 |
 | VERIFIED | 31 |
-| READY | 20 |
+| READY | 19 |
 | DEFERRED | 2 |
 | PRODUCT_DECISION | 1 |
-| DONE | 19 |
+| DONE | 20 |
 
 ## All records
 
@@ -138,7 +138,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0035](../../docs/backlog/items/ITEM-0035-web-route-handlers-flatten-upstream-error-status-to-500.md) | Web route handlers flatten upstream error status to 500 | TECH_DEBT | MEDIUM | P2 | READY | apps/web | FIX_NOW |
 | [ITEM-0036](../../docs/backlog/items/ITEM-0036-decide-the-fate-of-the-inert-runtime-registries-in-apps-web.md) | Decide the fate of the inert runtime registries in apps/web | ARCHITECTURE | MEDIUM | P2 | READY | apps/web | PLAN_REQUIRED |
 | [ITEM-0037](../../docs/backlog/items/ITEM-0037-apps-web-depends-on-lucide-react-without-declaring-it.md) | apps/web depends on lucide-react without declaring it | TECH_DEBT | MEDIUM | P2 | READY | apps/web | FIX_NOW |
-| [ITEM-0038](../../docs/backlog/items/ITEM-0038-record-ids-collide-between-concurrent-branches.md) | Record ids collide between concurrent branches | TECH_DEBT | MEDIUM | P2 | READY | scripts, docs/bugs, docs/backlog | FIX_NOW |
+| [ITEM-0038](../../docs/backlog/items/ITEM-0038-record-ids-collide-between-concurrent-branches.md) | Record ids collide between concurrent branches | TECH_DEBT | MEDIUM | P2 | DONE | scripts, docs/bugs, docs/backlog | DONE |
 | [ITEM-0039](../../docs/backlog/items/ITEM-0039-promote-the-csp-from-report-only-to-enforced.md) | Promote the CSP from report-only to enforced | SECURITY | MEDIUM | P2 | READY | pkg:config, apps/web, apps/admin, apps/landing | DEFER |
 | [ITEM-0040](../../docs/backlog/items/ITEM-0040-develop-branch-protection-is-not-applied.md) | develop branch protection is not applied | INFRA | MEDIUM | P2 | READY | .github | BLOCKED_EXTERNAL |
 | [ITEM-0021](../../docs/backlog/items/ITEM-0021-mechanical-guard-against-country-and-currency-literals-in-fr.md) | Mechanical guard against country and currency literals in frontends | TEST_GAP | LOW | P2 | DONE | scripts, apps/landing, apps/web, apps/admin | DEFER |

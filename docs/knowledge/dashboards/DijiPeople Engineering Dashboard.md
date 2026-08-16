@@ -9,11 +9,11 @@
 |---|---|
 | Open CRITICAL | **3** |
 | Open HIGH | **8** |
-| Open total | 35 |
+| Open total | 34 |
 | Blocked | 0 |
 | Awaiting a product decision | 1 |
 | Deferred | 2 |
-| Completed | 50 |
+| Completed | 51 |
 | Awaiting Architect triage | 0 |
 
 ## Open Critical Bugs
@@ -128,7 +128,7 @@ _None._
 - [[2026-08-16-lead-partner-acquisition-wave3-ca18353|Engineering History — Wave 3: Lead + Partner Acquisition]]
 - [[2026-08-16-hotfix-plan-list-hidden-write-ee1acec|Engineering History — Hotfix: Plan list GET mutates commercial pricing (BUG-0030)]]
 - [[2026-08-16-framework-orchestration-f38a6bf|Engineering History — Framework orchestration]]
-- [[2026-08-16-commercial-config-wave1-7b5aeaa|Engineering History — Wave 1: Commercial Configuration Foundation]]
+- [[2026-08-16-framework-autonomous-v2-da018c4|Engineering History — Framework autonomous v2]]
 
 ## Recent Releases
 
@@ -157,7 +157,6 @@ _None. Nothing has been deployed through the release process._
 | [[ITEM-0035-web-route-handlers-flatten-upstream-error-status-to-500|ITEM-0035]] | Web route handlers flatten upstream error status to 500 | TECH_DEBT | MEDIUM | READY | apps/web | FIX_NOW |
 | [[ITEM-0036-decide-the-fate-of-the-inert-runtime-registries-in-apps-web|ITEM-0036]] | Decide the fate of the inert runtime registries in apps/web | ARCHITECTURE | MEDIUM | READY | apps/web | PLAN_REQUIRED |
 | [[ITEM-0037-apps-web-depends-on-lucide-react-without-declaring-it|ITEM-0037]] | apps/web depends on lucide-react without declaring it | TECH_DEBT | MEDIUM | READY | apps/web | FIX_NOW |
-| [[ITEM-0038-record-ids-collide-between-concurrent-branches|ITEM-0038]] | Record ids collide between concurrent branches | TECH_DEBT | MEDIUM | READY | scripts, docs/bugs, docs/backlog | FIX_NOW |
 | [[ITEM-0039-promote-the-csp-from-report-only-to-enforced|ITEM-0039]] | Promote the CSP from report-only to enforced | SECURITY | MEDIUM | READY | pkg:config, apps/web, apps/admin, apps/landing | DEFER |
 | [[ITEM-0040-develop-branch-protection-is-not-applied|ITEM-0040]] | develop branch protection is not applied | INFRA | MEDIUM | READY | .github | BLOCKED_EXTERNAL |
 | [[ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning|ITEM-0023]] | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | READY | services/api/prisma, api:tenant-control-plane | DEFER |
@@ -180,7 +179,7 @@ _None. Nothing has been deployed through the release process._
 | Backlog items | 41 |
 | Known bug patterns | 19 |
 | QA runs | 11 |
-| Engineering history records | 10 |
+| Engineering history records | 11 |
 | Release records | 0 |
 | Module notes | 19 |
 | Architecture notes | 18 |
