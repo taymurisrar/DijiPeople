@@ -34,7 +34,12 @@ describe('public lead acquisition', () => {
     };
 
     const prisma = {
-      lead: { findUnique: jest.fn().mockResolvedValue(null) },
+      lead: {
+        findUnique: jest.fn().mockResolvedValue(null),
+        // ITEM-0007 — the 24h same-company duplicate window. Null here means
+        // "no recent duplicate", which is what every case below assumes.
+        findFirst: jest.fn().mockResolvedValue(null),
+      },
       $transaction: jest.fn(async (fn: (tx: unknown) => unknown) => fn(prisma)),
       partnerReferralLink: { update: jest.fn(), findUnique: jest.fn() },
       partnerTimeline: { create: jest.fn() },
@@ -316,6 +321,92 @@ describe('public lead acquisition', () => {
         }),
       }),
     );
+  });
+  // ---------------------------------------------------------------------
+  // ITEM-0007 — the same-company duplicate window
+  // ---------------------------------------------------------------------
+
+  /*
+   * The decision: a website enquiry from the same company and address inside 24
+   * hours is one conversation, matching the partner inquiry form on the same
+   * public surface. Before this, the two forms behaved differently and nothing
+   * recorded which was intended — so the next person to touch either would have
+   * made them consistent in whichever direction they happened to prefer.
+   */
+  describe('duplicate window', () => {
+    it('returns the existing lead instead of creating a second row', async () => {
+      const { service, created, prisma } = buildService();
+      prisma.lead.findFirst.mockResolvedValue({ id: 'lead-earlier' });
+
+      const result = await service.submitLead(baseDto());
+
+      expect(result).toEqual({ submitted: true, id: 'lead-earlier' });
+      // The whole point: nothing new is written.
+      expect(created).toHaveLength(0);
+    });
+
+    it('matches on company and address together, not either alone', async () => {
+      const { service, prisma } = buildService();
+
+      await service.submitLead(baseDto());
+
+      const where = prisma.lead.findFirst.mock.calls[0][0].where;
+      expect(where.workEmail).toEqual({
+        equals: 'aisha@acme.example',
+        mode: 'insensitive',
+      });
+      expect(where.companyName).toEqual({
+        equals: 'acme textiles',
+        mode: 'insensitive',
+      });
+    });
+
+    it('looks back exactly 24 hours', async () => {
+      const { service, prisma } = buildService();
+      const before = Date.now();
+
+      await service.submitLead(baseDto());
+
+      const where = prisma.lead.findFirst.mock.calls[0][0].where;
+      const windowStart = (where.createdAt.gte as Date).getTime();
+      const lookback = before - windowStart;
+
+      // Allow a second of execution drift either side of 24h.
+      expect(lookback).toBeGreaterThan(24 * 60 * 60 * 1000 - 1000);
+      expect(lookback).toBeLessThan(24 * 60 * 60 * 1000 + 1000);
+    });
+
+    it('never absorbs an enquiry into a lead that has already been worked', async () => {
+      /*
+       * Returning a CONVERTED or disqualified id would attach fresh intent to a
+       * closed record and lose it — worse than the duplicate this prevents. The
+       * query is therefore restricted to NEW.
+       */
+      const { service, prisma } = buildService();
+
+      await service.submitLead(baseDto());
+
+      const where = prisma.lead.findFirst.mock.calls[0][0].where;
+      expect(where.status).toBe('NEW');
+    });
+
+    it('still creates a lead when nothing recent matches', async () => {
+      const { service, created, prisma } = buildService();
+      prisma.lead.findFirst.mockResolvedValue(null);
+
+      await service.submitLead(baseDto());
+
+      expect(created).toHaveLength(1);
+    });
+
+    it('does not query the window when the visitor gave no company', async () => {
+      // Matching on a blank company would collapse unrelated enquiries.
+      const { service, prisma } = buildService();
+
+      await service.submitLead(baseDto({ companyName: '   ' }));
+
+      expect(prisma.lead.findFirst).not.toHaveBeenCalled();
+    });
   });
 });
 

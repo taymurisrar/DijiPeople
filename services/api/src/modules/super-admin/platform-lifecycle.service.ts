@@ -9,6 +9,7 @@ import {
   BillingCycle,
   ContractStatus,
   CustomerAccountStatus,
+  CustomerOriginChannel,
   CustomerOnboardingStatus,
   DiscountType,
   LeadStatus,
@@ -55,6 +56,7 @@ import { TenantIdentitiesProvisioningService } from './tenant-identities-provisi
 import { PlatformEventsService } from '../platform-events/platform-events.service';
 import { TenantProvisioningRunService } from '../tenant-control-plane/tenant-provisioning-run.service';
 import { TenantDomainService } from '../tenant-domains/tenant-domain.service';
+import { resolveOriginChannel } from './origin-channel';
 
 @Injectable()
 export class PlatformLifecycleService {
@@ -169,6 +171,10 @@ export class PlatformLifecycleService {
       const createdCustomer = await tx.customerAccount.create({
         data: {
           companyName: dto.companyName?.trim() ?? lead.companyName,
+          // ITEM-0008 — channel is denormalised here, the way attribution
+          // already was, so a report grouping customers by channel needs no
+          // join and a later change to the lead cannot rewrite history.
+          originChannel: resolveOriginChannel(lead.source),
           // The lead's confirmed contracting identity is the default; an
           // explicit override on the conversion request still wins.
           legalCompanyName:
@@ -736,6 +742,9 @@ export class PlatformLifecycleService {
         ) as Prisma.CustomerAccountUncheckedCreateInput),
         assignedToUserId,
         accountManagerUserId,
+        // Created straight in the admin console: there is no lead, and that
+        // is the channel, not a missing value (ITEM-0008).
+        originChannel: CustomerOriginChannel.DIRECT,
         contactEmail: (dto.contactEmail ?? dto.primaryContactEmail)
           .trim()
           .toLowerCase(),

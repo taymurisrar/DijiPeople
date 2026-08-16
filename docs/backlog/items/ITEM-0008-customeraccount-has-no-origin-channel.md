@@ -3,15 +3,15 @@ ID: ITEM-0008
 aliases: [ITEM-0008]
 Title: Product decision — CustomerAccount carries no origin channel
 Type: PRODUCT_DECISION
-Status: PRODUCT_DECISION
+Status: DONE
 Priority: P3
 Severity: LOW
 AffectedModules: [services/api/prisma, services/api/src/modules/super-admin]
 Source: QA_RUN
 OwnerAgent: architect
-ArchitectDisposition: PRODUCT_DECISION
+ArchitectDisposition: FIX_NOW
 CreatedAt: 2026-08-15
-UpdatedAt: 2026-08-15
+UpdatedAt: 2026-08-17
 RelatedBug:
 RelatedQA: docs/qa/runs/2026-08-15-commercial-onboarding-e2e-7bbab3d.md
 RelatedADR:
@@ -71,3 +71,44 @@ requirement [[requirement-commercial-onboarding|Commercial Onboarding]] · [[ITE
 ## History
 
 - 2026-08-15 — imported from the commercial onboarding E2E observations.
+
+## Resolution
+
+**Decided by the product owner on 2026-08-17: yes, channel is a reporting
+dimension the platform owns.** Added as an additive column with a backfill.
+
+`CustomerAccount.originChannel` is a new `CustomerOriginChannel` enum —
+`WEBSITE`, `PARTNER_REFERRAL`, `DIRECT`, `OTHER` — indexed, because grouping
+customers by channel is the query this exists to serve. Channel is now
+denormalised the same way attribution already was, so the two similar things are
+treated the same way.
+
+**The values are grounded, not invented.** `submitLead` writes exactly "Website"
+or "Partner Referral"; a customer created directly in admin has no lead, which is
+what `DIRECT` records; and `Lead.source` is admin-editable free text, so
+anything unrecognised becomes `OTHER`.
+
+`OTHER` is the load-bearing part. Mapping an unrecognised source to `WEBSITE`
+because most leads are website leads would put a confident wrong value into a
+commercial report, indistinguishable from a correct one. `OTHER` says "arrived
+some way we do not model", which a reader can act on.
+
+**The column is nullable and the backfill is deliberately incomplete.** Every
+customer that still has a lead is classified from it. A customer whose lead was
+deleted (`leadId` is `ON DELETE SET NULL`) cannot be distinguished from one
+created directly, so those stay NULL — "not known" — rather than being asserted
+as `DIRECT`. The blanket `WHERE leadId IS NULL → DIRECT` statement is written
+into the migration and left commented, with the reason, so the next person sees
+the decision instead of rediscovering the trap.
+
+## Verification
+
+- Migration `20260817090000_customer_origin_channel` — enum, nullable column,
+  index, and a backfill joined through `sourceLead`.
+- `origin-channel.spec.ts` — 5 assertions: both platform-issued sources map,
+  case and whitespace are ignored, an unrecognised source goes to `OTHER`,
+  a missing source never infers `DIRECT`, and `DIRECT` is never derived from a
+  lead at all.
+- Verified to fail without the fix: mapping the default arm to `WEBSITE` fails
+  2 of the 5.
+- `npm run prisma:validate` passes; API suite 160 suites / 1142 tests.

@@ -11,9 +11,9 @@
 | Open HIGH | **2** |
 | Open total | 26 |
 | Blocked | 0 |
-| Awaiting a product decision | 3 |
+| Awaiting a product decision | 0 |
 | Deferred | 2 |
-| Completed | 38 |
+| Completed | 41 |
 | Awaiting Architect triage | 0 |
 
 ## Open Critical Bugs
@@ -29,11 +29,7 @@ _None. Nothing open at CRITICAL._
 
 ## Product Decisions Needed
 
-| ID | Title | Type | Severity | Status | Affected | Architect |
-|---|---|---|---|---|---|---|
-| [[ITEM-0016-product-decision-partner-onboarding-review-re-opening-and-po|ITEM-0016]] | Product decision — partner review re-opening and post-activation demotion | PRODUCT_DECISION | MEDIUM | PRODUCT_DECISION | api:partner-experience, api:partners | PRODUCT_DECISION |
-| [[ITEM-0007-should-duplicate-website-leads-be-deduplicated|ITEM-0007]] | Product decision — should duplicate website leads be deduplicated? | PRODUCT_DECISION | LOW | PRODUCT_DECISION | api:leads, apps/landing | PRODUCT_DECISION |
-| [[ITEM-0008-customeraccount-has-no-origin-channel|ITEM-0008]] | Product decision — CustomerAccount carries no origin channel | PRODUCT_DECISION | LOW | PRODUCT_DECISION | services/api/prisma, api:super-admin | PRODUCT_DECISION |
+_None. Every known question has an answer._
 
 ## Blocked Items
 

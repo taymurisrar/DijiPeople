@@ -216,6 +216,28 @@ enum CustomerAccountStatus {
   ARCHIVED
 }
 
+/// Where a customer came from, as a reporting dimension the platform owns.
+///
+/// ITEM-0008. Partner *attribution* — who gets paid — was already denormalised
+/// onto the customer as `originatingPartnerId`, while *channel* was reachable
+/// only by joining back through `sourceLead`. Two similar things treated
+/// differently, so any report grouping customers by channel needed a join, and a
+/// customer created without a lead had no channel at all.
+///
+/// The values are grounded in what the platform actually produces rather than
+/// invented: `submitLead` writes exactly "Website" or "Partner Referral", a
+/// customer created directly in admin has no lead, and `Lead.source` is
+/// admin-editable free text — so anything unrecognised becomes OTHER rather than
+/// being forced into a channel it may not belong to.
+enum CustomerOriginChannel {
+  WEBSITE
+  PARTNER_REFERRAL
+  /// Created directly in the admin console, with no originating lead.
+  DIRECT
+  /// The originating lead carried a source this platform does not issue.
+  OTHER
+}
+
 // Why a visitor contacted DijiPeople. Deliberately distinct from which modules
 // interest them (Lead.interestAreas): "pricing inquiry" and "attendance,
 // payroll" answer different questions, and collapsing them loses the one Sales
@@ -2493,6 +2515,14 @@ model TenantErasureReceipt {
 model CustomerAccount {
   id                         String                      @id @default(uuid())
   companyName                String
+  /// Where this customer came from. See CustomerOriginChannel (ITEM-0008).
+  ///
+  /// Nullable because rows created before this existed cannot all be classified:
+  /// the migration backfills every customer that has a lead to read from, and
+  /// leaves the rest NULL rather than guessing DIRECT for a customer whose lead
+  /// was deleted. NULL therefore means "not known", which is a different and
+  /// more honest statement than "direct".
+  originChannel              CustomerOriginChannel?
   legalCompanyName           String?
   registrationNumber         String?
   taxId                      String?
@@ -2551,6 +2581,8 @@ model CustomerAccount {
   payrollCostAllocationLines PayrollCostAllocationLine[]
   promotions                 Promotion[]
 
+  // ITEM-0008 — commercial reports group customers by channel.
+  @@index([originChannel])
   @@index([status])
   @@index([subStatus])
   @@index([assignedToUserId])

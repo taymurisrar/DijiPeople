@@ -3,15 +3,15 @@ ID: ITEM-0007
 aliases: [ITEM-0007]
 Title: Product decision — should duplicate website leads be deduplicated?
 Type: PRODUCT_DECISION
-Status: PRODUCT_DECISION
+Status: DONE
 Priority: P3
 Severity: LOW
 AffectedModules: [services/api/src/modules/leads, apps/landing]
 Source: QA_RUN
 OwnerAgent: architect
-ArchitectDisposition: PRODUCT_DECISION
+ArchitectDisposition: FIX_NOW
 CreatedAt: 2026-08-15
-UpdatedAt: 2026-08-15
+UpdatedAt: 2026-08-17
 RelatedBug: BUG-0021
 RelatedQA: docs/qa/runs/2026-08-15-commercial-onboarding-e2e-7bbab3d.md
 RelatedADR:
@@ -79,3 +79,40 @@ half-designed forms.
 ## History
 
 - 2026-08-15 — imported from the commercial onboarding E2E observations.
+
+## Resolution
+
+**Decided by the product owner on 2026-08-17: deduplicate within a 24-hour
+window on work e-mail and company** — the partner inquiry form's behaviour. The
+asymmetry was the actual problem, and it is now resolved in the direction of
+consistency.
+
+Implemented in `LeadsService.submitLead` as a rolling window, **in addition to**
+the existing `submissionHash`, not instead of it. The two answer different
+questions and both are kept:
+
+- `submissionHash` is a **unique constraint**, so it survives two *concurrent*
+  identical submissions. A read-then-write window cannot.
+- The 24-hour window is the **business** rule, and catches what the hash misses:
+  the same company enquiring twice in a day from two people, or with slightly
+  different wording, which hashes differently and used to become two rows nobody
+  could tell apart from genuine demand.
+
+Rolling rather than a day bucket, deliberately: a bucket would treat 23:59 and
+00:01 as distinct while collapsing 00:01 and 23:59, and at 24-hour granularity
+that boundary is far more visible than it is at one hour.
+
+**A lead that has already been worked is never absorbed.** The query is
+restricted to `NEW`. Returning a `CONVERTED` or disqualified id would attach a
+fresh enquiry to a closed record and lose the new intent — worse than the
+duplicate this prevents.
+
+## Verification
+
+- `public-lead-acquisition.spec.ts` — 6 assertions covering the window:
+  the existing lead is returned and nothing new is written; matching is on
+  company **and** address; the lookback is 24 hours; a worked lead is never
+  absorbed; a genuine enquiry still creates a lead; and a blank company skips the
+  query entirely rather than collapsing unrelated enquiries.
+- Verified to fail without the fix: removing the window fails 4 of the 6.
+- API suite 160 suites / 1142 tests passing.
