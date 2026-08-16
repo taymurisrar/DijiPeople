@@ -64,7 +64,9 @@ function price(overrides: Partial<ResolvablePrice> = {}): ResolvablePrice {
   };
 }
 
-function resolve(overrides: Partial<Parameters<typeof resolveCommercialOffer>[0]> = {}) {
+function resolve(
+  overrides: Partial<Parameters<typeof resolveCommercialOffer>[0]> = {},
+) {
   return resolveCommercialOffer({
     plan: plan(),
     market: market(),
@@ -110,12 +112,13 @@ describe('resolveCommercialOffer', () => {
 
   it('refuses a DRAFT price', () => {
     const result = resolve({
-      prices: [
-        price({ publicationStatus: CommercialPublicationStatus.DRAFT }),
-      ],
+      prices: [price({ publicationStatus: CommercialPublicationStatus.DRAFT })],
     });
 
-    expect(result).toMatchObject({ available: false, reason: 'NO_PUBLISHED_PRICE' });
+    expect(result).toMatchObject({
+      available: false,
+      reason: 'NO_PUBLISHED_PRICE',
+    });
   });
 
   it('refuses an ARCHIVED price for a new purchase', () => {
@@ -125,7 +128,10 @@ describe('resolveCommercialOffer', () => {
       ],
     });
 
-    expect(result).toMatchObject({ available: false, reason: 'NO_PUBLISHED_PRICE' });
+    expect(result).toMatchObject({
+      available: false,
+      reason: 'NO_PUBLISHED_PRICE',
+    });
   });
 
   it('refuses a DRAFT plan even when its price is published', () => {
@@ -133,7 +139,10 @@ describe('resolveCommercialOffer', () => {
       plan: plan({ publicationStatus: CommercialPublicationStatus.DRAFT }),
     });
 
-    expect(result).toMatchObject({ available: false, reason: 'PLAN_NOT_PUBLISHED' });
+    expect(result).toMatchObject({
+      available: false,
+      reason: 'PLAN_NOT_PUBLISHED',
+    });
   });
 
   // ---------------------------------------------------------------------
@@ -145,13 +154,19 @@ describe('resolveCommercialOffer', () => {
       market: market({ launchStatus: MarketLaunchStatus.PLANNED }),
     });
 
-    expect(result).toMatchObject({ available: false, reason: 'MARKET_NOT_LAUNCHED' });
+    expect(result).toMatchObject({
+      available: false,
+      reason: 'MARKET_NOT_LAUNCHED',
+    });
   });
 
   it('refuses when no market resolves for the visitor', () => {
     const result = resolve({ market: null });
 
-    expect(result).toMatchObject({ available: false, reason: 'MARKET_NOT_FOUND' });
+    expect(result).toMatchObject({
+      available: false,
+      reason: 'MARKET_NOT_FOUND',
+    });
   });
 
   it('refuses self-service when the market disables it, but stays sellable by an operator', () => {
@@ -180,7 +195,9 @@ describe('resolveCommercialOffer', () => {
   });
 
   it('distinguishes an unscoped price from no price at all', () => {
-    expect(resolve({ prices: [] })).toMatchObject({ reason: 'NO_PUBLISHED_PRICE' });
+    expect(resolve({ prices: [] })).toMatchObject({
+      reason: 'NO_PUBLISHED_PRICE',
+    });
     expect(resolve({ prices: [price({ marketId: null })] })).toMatchObject({
       reason: 'PRICE_NOT_MARKET_SCOPED',
     });
@@ -277,7 +294,10 @@ describe('resolveCommercialOffer', () => {
       prices: [price({ effectiveFrom: new Date('2027-01-01T00:00:00.000Z') })],
     });
 
-    expect(result).toMatchObject({ available: false, reason: 'PRICE_NOT_EFFECTIVE' });
+    expect(result).toMatchObject({
+      available: false,
+      reason: 'PRICE_NOT_EFFECTIVE',
+    });
   });
 
   // ---------------------------------------------------------------------
@@ -321,7 +341,10 @@ describe('resolveCommercialOffer', () => {
     const result = resolve({
       plan: plan({ salesModel: CommercialSalesModel.SALES_ASSISTED }),
     });
-    expect(result).toMatchObject({ available: false, reason: 'SALES_ASSISTED_ONLY' });
+    expect(result).toMatchObject({
+      available: false,
+      reason: 'SALES_ASSISTED_ONLY',
+    });
   });
 
   it('lets a price narrow the plan sales model but never widen it', () => {
@@ -330,15 +353,22 @@ describe('resolveCommercialOffer', () => {
       plan: plan({ salesModel: CommercialSalesModel.CUSTOM_ONLY }),
       prices: [price({ salesModel: CommercialSalesModel.SELF_SERVICE })],
     });
-    expect(result).toMatchObject({ available: false, reason: 'CUSTOM_CONTRACT_ONLY' });
+    expect(result).toMatchObject({
+      available: false,
+      reason: 'CUSTOM_CONTRACT_ONLY',
+    });
   });
 });
 
 describe('narrowestSalesModel', () => {
   it('always returns the more restrictive of the two', () => {
     const { SELF_SERVICE, SALES_ASSISTED, CUSTOM_ONLY } = CommercialSalesModel;
-    expect(narrowestSalesModel(SELF_SERVICE, SALES_ASSISTED)).toBe(SALES_ASSISTED);
-    expect(narrowestSalesModel(SALES_ASSISTED, SELF_SERVICE)).toBe(SALES_ASSISTED);
+    expect(narrowestSalesModel(SELF_SERVICE, SALES_ASSISTED)).toBe(
+      SALES_ASSISTED,
+    );
+    expect(narrowestSalesModel(SALES_ASSISTED, SELF_SERVICE)).toBe(
+      SALES_ASSISTED,
+    );
     expect(narrowestSalesModel(CUSTOM_ONLY, SELF_SERVICE)).toBe(CUSTOM_ONLY);
     expect(narrowestSalesModel(SELF_SERVICE, SELF_SERVICE)).toBe(SELF_SERVICE);
   });
@@ -347,7 +377,10 @@ describe('narrowestSalesModel', () => {
 describe('selectEffectivePrice', () => {
   it('ignores unpublished, inactive and unscoped candidates', () => {
     const candidates = [
-      price({ id: 'draft', publicationStatus: CommercialPublicationStatus.DRAFT }),
+      price({
+        id: 'draft',
+        publicationStatus: CommercialPublicationStatus.DRAFT,
+      }),
       price({ id: 'inactive', isActive: false }),
       price({ id: 'unscoped', marketId: null }),
       price({ id: 'good' }),
@@ -364,7 +397,9 @@ describe('selectEffectivePrice', () => {
     const boundary = new Date('2026-10-01T00:00:00.000Z');
     const expiring = price({ effectiveTo: boundary });
 
-    expect(selectEffectivePrice([expiring], new Date(boundary.getTime() - 1))).not.toBeNull();
+    expect(
+      selectEffectivePrice([expiring], new Date(boundary.getTime() - 1)),
+    ).not.toBeNull();
     expect(selectEffectivePrice([expiring], boundary)).toBeNull();
   });
 });

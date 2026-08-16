@@ -57,7 +57,9 @@ export class CommercialConfigService {
       where: {
         publicationStatus: CommercialPublicationStatus.PUBLISHED,
         isEnabled: true,
-        launchStatus: { in: [MarketLaunchStatus.LAUNCHED, MarketLaunchStatus.PILOT] },
+        launchStatus: {
+          in: [MarketLaunchStatus.LAUNCHED, MarketLaunchStatus.PILOT],
+        },
       },
       orderBy: { sortOrder: 'asc' },
     });
@@ -224,9 +226,19 @@ export class CommercialConfigService {
   }
 
   /** Exposed for Admin so an operator can see what a market currently resolves. */
-  async previewEffectivePrice(planId: string, marketId: string, currency: string, billingInterval: BillingInterval) {
+  async previewEffectivePrice(
+    planId: string,
+    marketId: string,
+    currency: string,
+    billingInterval: BillingInterval,
+  ) {
     const prices = await this.prisma.planPrice.findMany({
-      where: { planId, marketId, currency: currency.toUpperCase(), billingInterval },
+      where: {
+        planId,
+        marketId,
+        currency: currency.toUpperCase(),
+        billingInterval,
+      },
     });
     return selectEffectivePrice(prices.map(toResolvablePrice), new Date());
   }

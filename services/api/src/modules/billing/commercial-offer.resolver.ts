@@ -129,7 +129,9 @@ export type CommercialOfferUnavailable = {
   message: string;
 };
 
-export type CommercialOfferResult = CommercialOffer | CommercialOfferUnavailable;
+export type CommercialOfferResult =
+  | CommercialOffer
+  | CommercialOfferUnavailable;
 
 const REASON_MESSAGES: Record<CommercialUnavailableReason, string> = {
   PLAN_NOT_FOUND: 'Plan was not found.',
@@ -139,13 +141,15 @@ const REASON_MESSAGES: Record<CommercialUnavailableReason, string> = {
   MARKET_NOT_PUBLISHED: 'Market configuration is not published.',
   MARKET_DISABLED: 'Market is not enabled.',
   MARKET_NOT_LAUNCHED: 'Market has not launched.',
-  SELF_SERVICE_DISABLED: 'This plan is not available to buy online in your region.',
+  SELF_SERVICE_DISABLED:
+    'This plan is not available to buy online in your region.',
   CURRENCY_NOT_SUPPORTED: 'Currency is not supported in this market.',
   NO_PUBLISHED_PRICE: 'No published price is available.',
   PRICE_NOT_EFFECTIVE: 'No price is in force for the requested date.',
   PRICE_NOT_MARKET_SCOPED: 'Price is not scoped to a market.',
   SEATS_BELOW_MINIMUM: 'Team size is below the minimum for this plan.',
-  SEATS_ABOVE_MAXIMUM: 'Team size exceeds the self-service maximum for this plan.',
+  SEATS_ABOVE_MAXIMUM:
+    'Team size exceeds the self-service maximum for this plan.',
   SALES_ASSISTED_ONLY: 'This plan is arranged with our team.',
   CUSTOM_CONTRACT_ONLY: 'This plan is provided under a custom agreement.',
 };
@@ -235,7 +239,8 @@ export type ResolveOfferInput = {
 export function resolveCommercialOffer(
   input: ResolveOfferInput,
 ): CommercialOfferResult {
-  const { plan, market, billingInterval, quantity, effectiveAt, channel } = input;
+  const { plan, market, billingInterval, quantity, effectiveAt, channel } =
+    input;
 
   if (!plan) return unavailable('PLAN_NOT_FOUND');
   if (plan.publicationStatus !== CommercialPublicationStatus.PUBLISHED)
@@ -278,7 +283,9 @@ export function resolveCommercialOffer(
     const unscoped = input.prices.some(
       (price) => price.planId === plan.id && price.marketId === null,
     );
-    return unavailable(unscoped ? 'PRICE_NOT_MARKET_SCOPED' : 'NO_PUBLISHED_PRICE');
+    return unavailable(
+      unscoped ? 'PRICE_NOT_MARKET_SCOPED' : 'NO_PUBLISHED_PRICE',
+    );
   }
 
   const price = selectEffectivePrice(candidates, effectiveAt);
@@ -287,7 +294,9 @@ export function resolveCommercialOffer(
       (candidate) =>
         candidate.publicationStatus === CommercialPublicationStatus.PUBLISHED,
     );
-    return unavailable(anyPublished ? 'PRICE_NOT_EFFECTIVE' : 'NO_PUBLISHED_PRICE');
+    return unavailable(
+      anyPublished ? 'PRICE_NOT_EFFECTIVE' : 'NO_PUBLISHED_PRICE',
+    );
   }
 
   // The price's sales model narrows the plan's, never widens it: a plan under a
@@ -312,7 +321,8 @@ export function resolveCommercialOffer(
 
   const isPerSeat = price.billingModel === 'PER_SEAT';
   if (isPerSeat) {
-    if (quantity < price.minimumSeats) return unavailable('SEATS_BELOW_MINIMUM');
+    if (quantity < price.minimumSeats)
+      return unavailable('SEATS_BELOW_MINIMUM');
     if (price.maximumSeats !== null && quantity > price.maximumSeats)
       return unavailable('SEATS_ABOVE_MAXIMUM');
   }
