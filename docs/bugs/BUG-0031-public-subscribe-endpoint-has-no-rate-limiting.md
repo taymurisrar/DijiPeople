@@ -2,7 +2,7 @@
 ID: BUG-0031
 aliases: [BUG-0031]
 Title: Public subscribe endpoint has no rate limiting
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: SECURITY
@@ -13,7 +13,7 @@ AffectedModules: [services/api/src/modules/billing, apps/landing]
 OwnerAgent: backend-api
 ArchitectDisposition: PLAN_REQUIRED
 QAReport: docs/qa/runs/2026-08-16-monorepo-app-documentation-78072d2.md
-RegressionId:
+RegressionId: REG-023
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:

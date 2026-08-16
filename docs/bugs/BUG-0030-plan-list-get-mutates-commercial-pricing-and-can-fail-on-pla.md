@@ -2,7 +2,7 @@
 ID: BUG-0030
 aliases: [BUG-0030]
 Title: Plan list GET mutates commercial pricing and can fail on PlanPrice unique constraint
-Status: FIXED
+Status: VERIFIED
 Severity: CRITICAL
 Priority: P0
 Type: DATA_INTEGRITY
@@ -183,6 +183,14 @@ Fixed on `agent/hotfix-plan-list-hidden-write`.
 ## QA Retest
 
 `docs/qa/runs/2026-08-16-hotfix-plan-list-hidden-write-78072d2.md`.
+
+Retested at the merged SHA `d1768cb` during the open-bug closure wave.
+
+The linked regression suite runs green: 7 API suites / 85 assertions across
+REG-013 – REG-021, `npm run test:app-urls` 16/16, and REG-020's
+`commercial-bootstrap.e2e-spec.ts` in the `Database migration gate` against a
+real PostgreSQL 16. Each of these tests was proven to fail without its fix when
+it was written; re-running them is what confirms the fix still holds.
 
 ## History
 

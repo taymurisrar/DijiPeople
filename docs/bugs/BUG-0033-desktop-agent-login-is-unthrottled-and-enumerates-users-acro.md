@@ -2,7 +2,7 @@
 ID: BUG-0033
 aliases: [BUG-0033]
 Title: Desktop agent login is unthrottled and enumerates users across every tenant
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: SECURITY
@@ -13,7 +13,7 @@ AffectedModules: [services/api/src/modules/agent, apps/agent-desktop]
 OwnerAgent: backend-api
 ArchitectDisposition: FIX_NOW
 QAReport: docs/qa/runs/2026-08-16-monorepo-app-documentation-78072d2.md
-RegressionId:
+RegressionId: REG-025
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:

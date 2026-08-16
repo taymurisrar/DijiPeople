@@ -2,7 +2,7 @@
 ID: BUG-0017
 aliases: [BUG-0017]
 Title: The admin-editable tenant base domain does not drive hostname issuance
-Status: FIXED
+Status: VERIFIED
 Severity: MEDIUM
 Priority: P2
 Type: INTEGRATION
@@ -13,7 +13,7 @@ AffectedModules: [packages/config, services/api/src/modules/tenant-control-plane
 OwnerAgent: architect
 ArchitectDisposition: PLAN_REQUIRED
 QAReport: docs/qa/runs/2026-08-15-commercial-onboarding-e2e-7bbab3d.md
-RegressionId:
+RegressionId: REG-027
 RelatedBacklogItem: ITEM-0006
 RelatedDecision:
 RelatedImplementation:

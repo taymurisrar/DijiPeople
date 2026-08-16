@@ -2,7 +2,7 @@
 ID: BUG-0036
 aliases: [BUG-0036]
 Title: Agent heartbeat has no idempotency so retries double count productivity
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: DATA_INTEGRITY
@@ -13,7 +13,7 @@ AffectedModules: [services/api/src/modules/agent, services/api/prisma, apps/agen
 OwnerAgent: integration
 ArchitectDisposition: PLAN_REQUIRED
 QAReport: docs/qa/runs/2026-08-16-monorepo-app-documentation-78072d2.md
-RegressionId:
+RegressionId: REG-031
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:

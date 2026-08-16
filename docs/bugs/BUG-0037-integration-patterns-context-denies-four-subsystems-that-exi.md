@@ -2,7 +2,7 @@
 ID: BUG-0037
 aliases: [BUG-0037]
 Title: Integration patterns context denies four subsystems that exist
-Status: FIXED
+Status: VERIFIED
 Severity: MEDIUM
 Priority: P2
 Type: DOCUMENTATION
@@ -158,8 +158,15 @@ same change.
 
 ## QA Retest
 
-Verified by re-reading each corrected file against the directory listings and
-`git ls-files` counts quoted under Evidence. No runtime behaviour is involved.
+Verified against the repository at `d1768cb`:
+
+- `.agent/context/integration-patterns.md` carries `Last verified: 2026-08-16`
+  and describes the four subsystems as present.
+- The subsystems it previously denied exist on disk — `attendance-integrations`,
+  `app-releases`, `gateway/`, `tools/zkteco-poc`.
+
+No regression test, for the same reason as BUG-0023: the artefact is a document.
+The recurring failure mode is covered by the `doc-code-drift` bug pattern.
 
 ## History
 

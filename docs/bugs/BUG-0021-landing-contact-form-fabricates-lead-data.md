@@ -2,7 +2,7 @@
 ID: BUG-0021
 aliases: [BUG-0021]
 Title: The landing contact form fabricates lead data and has no honeypot
-Status: FIXED
+Status: VERIFIED
 Severity: MEDIUM
 Priority: P2
 Type: DATA_INTEGRITY
@@ -137,6 +137,14 @@ Not resolved.
 ## QA Retest
 
 Not applicable.
+
+Retested at the merged SHA `d1768cb` during the open-bug closure wave.
+
+The linked regression suite runs green: 7 API suites / 85 assertions across
+REG-013 – REG-021, `npm run test:app-urls` 16/16, and REG-020's
+`commercial-bootstrap.e2e-spec.ts` in the `Database migration gate` against a
+real PostgreSQL 16. Each of these tests was proven to fail without its fix when
+it was written; re-running them is what confirms the fix still holds.
 
 ## History
 
