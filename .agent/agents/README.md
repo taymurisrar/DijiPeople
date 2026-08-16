@@ -7,13 +7,19 @@ the agent's instructions alongside the repository's `AGENTS.md` files and the
 Full orchestration:
 [`docs/development/agent-orchestration.md`](../../docs/development/agent-orchestration.md).
 
+A prompt beginning `DijiPeople Task:` activates the whole framework. Routing —
+which keyword or inferred intent leads to which role — is in
+[`../context/task-router.md`](../context/task-router.md); sizing, work packages
+and automatic continuation are in
+[`../context/task-orchestration.md`](../context/task-orchestration.md).
+
 ---
 
 ## The roles
 
 | Role | File | Writes code? | Owns |
 |---|---|---|---|
-| **Architect** | [architect.md](architect.md) | No | Requirement → verified ExecPlan, agent selection, task classification |
+| **Architect** | [architect.md](architect.md) | No | **Task orchestration**: routing, sizing, ExecPlan, decomposition, continuation, triage |
 | **Backend / API** | [backend-api.md](backend-api.md) | Yes | NestJS controllers, services, DTOs, authorization wiring, audit |
 | **Frontend** | [frontend.md](frontend.md) | Yes | Next.js routes, runtime specs/adapters, components, UI states |
 | **UI/UX** | [ui-ux.md](ui-ux.md) | **No** (read-only by default) | Experience specification and acceptance criteria |
@@ -21,8 +27,8 @@ Full orchestration:
 | **Integration** | [integration.md](integration.md) | Yes | Connectors, gateway contract, webhooks, queues, idempotency |
 | **QA** | [qa.md](qa.md) | Tests only | Scenario design, execution, QA runs, regression register |
 | **Reviewer** | [reviewer.md](reviewer.md) | **No** | Independent technical and security assessment |
-| **Integrator** | [integrator.md](integrator.md) | Git only | Branches, worktrees, conflict resolution, merges, cleanup |
-| **Release / DevOps** | [release-devops.md](release-devops.md) | Config/infra only | Readiness, environments, deployment, rollback, smoke, release records |
+| **Integrator** | [integrator.md](integrator.md) | Git only | Branches, worktrees, conflicts, **PR lifecycle**, merges, **protected-branch recovery**, cleanup |
+| **Release / DevOps** | [release-devops.md](release-devops.md) | Config/infra only | **Repository health**, readiness, environments, deployment, rollback, smoke, release records |
 
 ---
 
@@ -39,6 +45,15 @@ it exists to provide.
   coverage. **Both can block.**
 - **Reviewer does not edit.** A reviewer that fixes what it finds is no longer
   independent.
+
+A fifth was added with repository-health ownership:
+
+- **Release/DevOps detects and classifies repository state; the Integrator
+  acts on it.** A role that diagnoses and then acts on its own diagnosis has no
+  check on a wrong diagnosis — which matters most in exactly the situation this
+  separation covers: a push has just been rejected, local `main` is ahead, and
+  the tempting single-step "fix" is a force push. `scripts/repo-health.mjs`
+  therefore reports and never mutates.
 
 A fourth separation was added with the durable bug and backlog systems:
 

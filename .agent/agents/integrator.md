@@ -139,6 +139,124 @@ work in another worktree. Never stash, reset or commit on the user's behalf.
 
 ---
 
+## Protected `main`, and recovering from a rejected push
+
+`main` is protected with `enforce_admins: true` — **there is no administrative
+bypass, including for the repository owner.** A direct push to `main` fails for
+everybody. Verified state and the full recovery:
+[`../context/repository-health.md`](../context/repository-health.md).
+
+A push rejected with `GH006`, "Protected branch update failed", "Changes must be
+made through a pull request" or "Required status check … is expected" is
+classified:
+
+```
+PROTECTED_BRANCH_REQUIRES_PR
+```
+
+**This is a recoverable policy outcome, not an error and not a terminal
+failure.** Do not ask the user what to do. Do not retry the same push. Do not
+leave local `main` stuck `AHEAD`. Branch protection working correctly is not an
+incident — failing to recover from it is.
+
+Direct pushing to `main` is **not** the workflow; a task branch and a PR is. The
+recovery below exists for when commits have already reached local `main` by
+accident.
+
+### Recovery, in order
+
+1. Capture the current local `main` SHA — every later check is against it.
+2. `git fetch origin`.
+3. `git log --oneline origin/main..main` — the local-only commits.
+4. **Read them.** A commit nobody can account for is neither pushed nor
+   discarded; it is reported.
+5. `git branch agent/<task>-recovery main` — a branch, **not** a cherry-pick, so
+   the commits and their parents are preserved exactly.
+6. Push the recovery branch.
+7. Open a PR.
+8. Required CI starts on push.
+9. Wait for the verdict **on the exact SHA**.
+10. Merge through the protected-branch flow.
+11. `git fetch origin`.
+12. Fast-forward local `main` to `origin/main`.
+13. Verify nothing was lost:
+    ```bash
+    git log --oneline <captured-sha>..origin/main
+    git rev-list --left-right --count origin/main...main   # must be 0 0
+    ```
+14. Clean up the recovery branch and worktree.
+15. **Record the event in engineering history** — the attempt, the rejection
+    code, the commit count, the recovery branch, the PR, the CI run, the final
+    SHAs and that zero commits were lost.
+
+### Prohibited during recovery
+
+- **Never force-push `main`.** Protection blocks it, and needing it means the
+  diagnosis was wrong.
+- **Never cherry-pick blindly** — it rewrites commits and loses parents.
+- **Never `reset --hard` away commits not verified as already on the remote.**
+- **Never discard a commit to make the state tidy.**
+
+### `MAIN_SYNC_STATUS`
+
+Computed from refs, never inferred from what a push printed:
+
+```
+SYNCED · AHEAD · BEHIND · DIVERGED · PUSH_BLOCKED_BY_POLICY
+PUSH_FAILED · FETCH_FAILED · MERGE_PENDING · UNKNOWN
+```
+
+`node scripts/repo-health.mjs` reports it. The **only** acceptable terminal
+state after a completed substantial task is `SYNCED`, with:
+
+```
+local main SHA == origin/main SHA == the expected merged SHA
+```
+
+All three — comparing only the first two passes happily when the merge that
+landed was somebody else's.
+
+`AHEAD` → establish *why* before acting. `BEHIND` → `git merge --ff-only`.
+`DIVERGED` → the Integrator reconciles per policy, never by force push, and
+**re-runs tests and CI after semantic reconciliation**; a clean textual merge is
+not evidence that the combined behaviour is correct.
+
+**Do not begin new work while `main` is mid-merge, mid-rebase, mid-cherry-pick
+or mid-revert.** Complete or abort it based on evidence, and document which.
+
+---
+
+## PR lifecycle — owned automatically
+
+For any protected or shared branch:
+
+```
+task branch → push → PR → CI → exact-SHA PASS → merge → verify target
+```
+
+**The user never creates or merges a PR by hand, and is never asked to.** `gh`
+is available here — see
+[`../../docs/development/agent-tooling-matrix.md`](../../docs/development/agent-tooling-matrix.md).
+
+### Waiting for CI is not a place to stop
+
+"Waiting on CI" is a status, not an outcome. Capture the exact SHA, find its
+run, and watch it:
+
+```bash
+gh run list --branch <branch> --limit 5
+gh run watch <RUN_ID> --exit-status
+```
+
+or poll a bounded number of times. If CI fails: diagnose, fix, push, wait again.
+If the runner infrastructure is genuinely unavailable, record `BLOCKED_EXTERNAL`
+or `BLOCKED_CI_TIMEOUT` — and **continue any independent work package** instead
+of stopping the task.
+
+The shared-target rule is unchanged by any of this.
+
+---
+
 ## Merge gates
 
 Merge into the target branch only when **all** hold:
@@ -293,6 +411,9 @@ At the end of every task that touched tracked files, work this sequence. Steps
 that do not apply are recorded as `NOT_REQUIRED` with a reason; none is skipped
 in silence.
 
+0. **`node scripts/repo-health.mjs`** — `POST_TASK_REPO_HEALTH`. It reports
+   `MAIN_SYNC_STATUS`, unfinished Git operations, stale worktrees and branch
+   cleanup candidates. Reports only; every action below stays the Integrator's.
 1. **Inspect** the current task branch and worktree.
 2. **Verify every task change is committed** — an uncommitted file at this point
    is the exact failure this sequence exists to catch.
@@ -310,7 +431,12 @@ in silence.
 13. **Delete safely merged local task branches**, where policy permits.
 14. **Report every SHA**: base, final task, merge, final target, and both remote
     refs.
-15. **Write the engineering-history record** — see below. Not optional.
+15. **Re-run `node scripts/repo-health.mjs`** and confirm the terminal
+    invariant: `MAIN_SYNC_STATUS = SYNCED` and `POST_TASK_REPO_HEALTH = PASS`.
+    No stuck push, unfinished merge or rebase, unexpected local-`main` commit or
+    unverified divergence may remain.
+16. **Write the engineering-history record** — see below. Not optional. A
+    protected-branch recovery, if one happened, is recorded there too.
 
 `node scripts/finalize-agent-task.mjs` collects the facts for steps 1–5 and
 11–14 in one pass. It reports only — it never merges, pushes or deletes, because

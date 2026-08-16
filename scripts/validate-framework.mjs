@@ -727,6 +727,18 @@ if (existsSync(join(ROOT, REPORT_TEMPLATE))) {
     'OBSIDIAN_SYNC',
     'WORKTREE_CLEANUP',
     'BRANCH_CLEANUP',
+    'PARENT_TASK_STATUS',
+    'WORK_PACKAGE_STATUS',
+    'PRE_TASK_REPO_HEALTH',
+    'POST_TASK_REPO_HEALTH',
+    'MAIN_SYNC_STATUS',
+    'LOCAL_MAIN_SHA',
+    'ORIGIN_MAIN_SHA',
+    'PR_STATUS',
+    'DEPLOYMENT_STATUS',
+    'DEPLOYMENT_DRIFT_STATUS',
+    'STALE_WORKTREES',
+    'STALE_BRANCHES',
   ]) {
     check(`report template requires ${field}`, template.includes(field));
   }
@@ -1139,6 +1151,7 @@ if (existsSync(join(ROOT, MAPPINGS))) {
     'docs/qa/runs',
     'docs/qa/regressions',
     'docs/qa/known-bug-patterns',
+    'docs/tasks',
   ]) {
     check(`Obsidian sync maps ${source}`, mappings.includes(`'${source}'`));
   }
@@ -1266,6 +1279,692 @@ if (existsSync(join(ROOT, `${DASHBOARD_DIR}/DijiPeople Engineering Dashboard.md`
     warn(
       `${unresolved.size} unresolved wikilink target(s) — ` +
         worst.map(([t, n]) => `${t} (${n})`).join(', '),
+    );
+  }
+}
+
+// ------------------------------------------ routing, orchestration, repo health
+
+/*
+ * The framework gained keyword routing, parent-task decomposition, automatic
+ * continuation between work packages, and protected-branch recovery.
+ *
+ * Prose alone would not have caught the specific failure these exist to
+ * prevent: an orchestrator that stops after one work package to ask permission,
+ * or one that treats a GH006 push rejection as terminal and leaves local main
+ * stuck ahead. So the structural checks below are paired with **behavioural
+ * simulations** further down — a rule that has never been executed is a rule
+ * nobody has tested.
+ */
+
+const ROUTER = '.agent/context/task-router.md';
+const ORCHESTRATION = '.agent/context/task-orchestration.md';
+const REPO_HEALTH = '.agent/context/repository-health.md';
+
+for (const path of [ROUTER, ORCHESTRATION, REPO_HEALTH]) {
+  check(`required path present: ${path}`, existsSync(join(ROOT, path)));
+}
+
+/* Every keyword the user can type must route to something. */
+const TASK_KEYWORDS = [
+  'BUG',
+  'FEATURE',
+  'UI/UX',
+  'QA',
+  'E2E',
+  'ARCHITECTURE',
+  'DATABASE',
+  'INTEGRATION',
+  'SECURITY',
+  'PERFORMANCE',
+  'RELEASE',
+  'DEPLOY',
+  'HOTFIX',
+  'BACKLOG',
+  'KNOWLEDGE',
+  'FRAMEWORK',
+  'AUDIT',
+];
+
+if (existsSync(join(ROOT, ROUTER))) {
+  const router = read(ROUTER);
+
+  for (const keyword of TASK_KEYWORDS) {
+    check(`router handles the ${keyword} keyword`, router.includes(`\`${keyword}\``));
+  }
+
+  /*
+   * Prose wraps. These patterns tolerate whitespace between words for the same
+   * reason the contract checks do: matching a contiguous sentence fails the
+   * moment somebody reflows a paragraph, which teaches agents to fight the
+   * validator rather than to keep the rule.
+   */
+  check(
+    'router states that DijiPeople Task: activates the whole framework',
+    /DijiPeople Task:/.test(router) &&
+      /complete\s+DijiPeople\s+autonomous\s+engineering\s+framework/i.test(router),
+  );
+  check(
+    'router keeps one unified lifecycle rather than per-keyword workflows',
+    /not.{0,40}separate workflows?|↛\s*a different lifecycle|one unified lifecycle/i.test(router),
+    'per-keyword workflows are how a hotfix path ends up skipping CI',
+  );
+  check(
+    'router infers a type when no keyword is given',
+    /[Nn]atural language inference/.test(router) && /Infer/.test(router),
+  );
+  check(
+    'router tolerates an unrecognised keyword',
+    /unrecognised keyword is not an error/i.test(router),
+    'rejecting an unknown keyword forces the user to memorise the table',
+  );
+  check(
+    'router states that a keyword never weakens a gate',
+    /What routing never changes/i.test(router) && /HOTFIX/.test(router),
+  );
+  check('router defines a per-type definition of done', /Definition of done, by task type/i.test(router));
+
+  /* The two routing examples the request named explicitly. */
+  check(
+    'router routes "fix the tenant provisioning retry" to BUG',
+    /tenant provisioning retry[^|]*\|\s*`BUG`/.test(router),
+  );
+  check(
+    'router routes "improve payroll UI" to UI/UX + FEATURE',
+    /improve payroll UI[^|]*\|\s*`UI\/UX`\s*\+\s*`FEATURE`/.test(router),
+  );
+}
+
+if (existsSync(join(ROOT, ORCHESTRATION))) {
+  const orchestration = read(ORCHESTRATION);
+
+  for (const size of ['SMALL', 'MEDIUM', 'LARGE', 'PROGRAM']) {
+    check(`orchestration defines task size ${size}`, orchestration.includes(size));
+  }
+  check(
+    'orchestration forbids sizing by file count',
+    /never by file count|not.{0,20}file count/i.test(orchestration),
+  );
+  for (const status of ['NOT_STARTED', 'READY', 'IN_PROGRESS', 'QA', 'CI', 'MERGING', 'DONE', 'BLOCKED']) {
+    check(`orchestration defines work package status ${status}`, orchestration.includes(status));
+  }
+  for (const reason of [
+    'OWNER_DECISION_REQUIRED',
+    'BLOCKED_EXTERNAL',
+    'UNRECOVERABLE_TOOL_FAILURE',
+    'SAFETY_BLOCK',
+  ]) {
+    check(`orchestration defines block reason ${reason}`, orchestration.includes(reason));
+  }
+  check(
+    'orchestration forbids asking permission to continue',
+    /[Dd]o not ask.{0,40}would you like me to continue/is.test(orchestration),
+    'this is the specific phrasing that turns a task into a conversation',
+  );
+  check(
+    'orchestration continues independent work when one package blocks',
+    /never stops an independent one/i.test(orchestration),
+  );
+  check('orchestration declares SCOPE_EXPANSION_DETECTED', orchestration.includes('SCOPE_EXPANSION_DETECTED'));
+  check(
+    'orchestration defines the assumption register',
+    ['ASSUMPTION_ID', 'STATEMENT', 'EVIDENCE', 'CONFIDENCE', 'IMPACT_IF_WRONG'].every((field) =>
+      orchestration.includes(field),
+    ),
+  );
+  check(
+    'orchestration keeps verifiable facts out of owner decisions',
+    /assumption\s+to\s+be\s+verified,\s+not\s+a\s+question\s+to\s+be\s+asked/i.test(orchestration),
+  );
+  check(
+    'orchestration defines the concise progress format',
+    /DijiPeople Task Progress/.test(orchestration) &&
+      ['Completed:', 'Current:', 'Next:', 'Blocked:', 'Owner decisions:', 'Main:', 'Deployment:'].every(
+        (heading) => orchestration.includes(heading),
+      ),
+  );
+  check(
+    'orchestration keeps the database single-writer',
+    /[Dd]atabase.{0,40}single.?writer|single writer/i.test(orchestration),
+  );
+  for (const field of [
+    'IMPLEMENTED',
+    'CHANGED_BEHAVIOR',
+    'RISK_AREAS',
+    'KNOWN_MISTAKES_AVOIDED',
+    'TESTS_ADDED',
+    'TEST_HOOKS',
+    'UNRESOLVED',
+  ]) {
+    check(`orchestration defines handoff field ${field}`, orchestration.includes(field));
+  }
+}
+
+if (existsSync(join(ROOT, REPO_HEALTH))) {
+  const health = read(REPO_HEALTH);
+
+  for (const state of [
+    'SYNCED',
+    'AHEAD',
+    'BEHIND',
+    'DIVERGED',
+    'PUSH_BLOCKED_BY_POLICY',
+    'PUSH_FAILED',
+    'FETCH_FAILED',
+    'MERGE_PENDING',
+    'UNKNOWN',
+  ]) {
+    check(`repository health defines MAIN_SYNC_STATUS ${state}`, health.includes(state));
+  }
+  check(
+    'repository health declares PROTECTED_BRANCH_REQUIRES_PR',
+    health.includes('PROTECTED_BRANCH_REQUIRES_PR'),
+  );
+  check(
+    'repository health treats a protected-branch rejection as recoverable',
+    /recoverable policy outcome, not an error/i.test(health),
+    'treating GH006 as terminal is what leaves local main stuck ahead',
+  );
+  check('repository health recognises the GH006 rejection', /GH006/.test(health));
+  check(
+    'repository health forbids force-pushing the protected branch',
+    /[Nn]ever force.?push/i.test(health),
+  );
+  check(
+    'repository health forbids blind cherry-picking during recovery',
+    /[Nn]ever cherry-pick blindly/i.test(health),
+  );
+  check(
+    'repository health requires verifying no commits were lost',
+    /no commits were lost|commits were lost/i.test(health),
+  );
+  check(
+    'repository health requires SYNCED as the terminal state',
+    /only acceptable terminal state/i.test(health),
+  );
+  for (const field of [
+    'PRE_TASK_REPO_HEALTH',
+    'POST_TASK_REPO_HEALTH',
+    'STALE_WORKTREES',
+    'DEPLOYMENT_DRIFT',
+  ]) {
+    check(`repository health declares ${field}`, health.includes(field));
+  }
+  for (const drift of [
+    'IN_SYNC',
+    'RELEASE_PENDING',
+    'DRIFT_DETECTED',
+    'DEPLOY_FAILED',
+    'ROLLBACK_REQUIRED',
+  ]) {
+    check(`repository health classifies deployment drift ${drift}`, health.includes(drift));
+  }
+  check(
+    'repository health forbids inferring deployed state from a merge',
+    /[Nn]ever report an environment as current|a merge is Git state, not deployed state/i.test(health),
+  );
+  check(
+    'repository health protects unmerged and human branches from cleanup',
+    /Never delete/i.test(health) && /unmerged/i.test(health),
+  );
+}
+
+/* The contract must carry the new fields, and the terminal invariant. */
+if (contractExists) {
+  const contract = read(CONTRACT);
+  for (const field of [
+    'PARENT_TASK_STATUS',
+    'WORK_PACKAGE_STATUS',
+    'PRE_TASK_REPO_HEALTH',
+    'POST_TASK_REPO_HEALTH',
+    'MAIN_SYNC_STATUS',
+    'PR_STATUS',
+    'DEPLOYMENT_STATUS',
+    'DEPLOYMENT_DRIFT_STATUS',
+  ]) {
+    check(`contract requires ${field}`, contract.includes(field));
+  }
+  check(
+    'contract requires MAIN_SYNC_STATUS = SYNCED after a substantial task',
+    /MAIN_SYNC_STATUS\s*=?\s*`?SYNCED/.test(contract),
+  );
+  check(
+    'contract forbids leaving repository state unresolved silently',
+    /may remain silently|remain silently/i.test(contract),
+  );
+}
+
+/* The roles that must actually perform this behaviour. */
+if (existsSync(join(ROOT, '.agent/agents/architect.md'))) {
+  const architect = read('.agent/agents/architect.md');
+  check('architect declares TASK_ROUTING', architect.includes('TASK_ROUTING'));
+  check('architect is named the task orchestrator', /main task orchestrator/i.test(architect));
+  check(
+    'architect declares WORK_PACKAGE_DECOMPOSITION',
+    architect.includes('WORK_PACKAGE_DECOMPOSITION'),
+  );
+  check('architect declares ASSUMPTION_REGISTER', architect.includes('ASSUMPTION_REGISTER'));
+  check(
+    'architect must not ask permission to continue',
+    /[Dd]o not ask.{0,40}would you like me to continue/is.test(architect),
+  );
+  check('architect declares SCOPE_EXPANSION_DETECTED', architect.includes('SCOPE_EXPANSION_DETECTED'));
+}
+
+if (existsSync(join(ROOT, '.agent/agents/integrator.md'))) {
+  const integrator = read('.agent/agents/integrator.md');
+  check(
+    'integrator declares PROTECTED_BRANCH_REQUIRES_PR',
+    integrator.includes('PROTECTED_BRANCH_REQUIRES_PR'),
+  );
+  check('integrator declares MAIN_SYNC_STATUS', integrator.includes('MAIN_SYNC_STATUS'));
+  check(
+    'integrator owns the PR lifecycle without being asked',
+    /never creates or merges a PR by hand|PR lifecycle — owned automatically/i.test(integrator),
+  );
+  check(
+    'integrator does not stop at "waiting on CI"',
+    /not a place to stop|is a status, not an outcome/i.test(integrator),
+  );
+  check(
+    'integrator never force-pushes during recovery',
+    /[Nn]ever force-push `?main/i.test(integrator),
+  );
+}
+
+if (existsSync(join(ROOT, '.agent/agents/release-devops.md'))) {
+  const release = read('.agent/agents/release-devops.md');
+  check(
+    'release/devops owns repository hygiene on every substantial task',
+    /Repository hygiene is mandatory/i.test(release),
+  );
+  for (const field of [
+    'PRE_TASK_REPO_HEALTH',
+    'POST_TASK_REPO_HEALTH',
+    'MAIN_SYNC_STATUS',
+    'STALE_BRANCHES',
+    'STALE_WORKTREES',
+    'UNFINISHED_GIT_OPERATIONS',
+    'DEPLOYMENT_DRIFT',
+  ]) {
+    check(`release/devops declares ${field}`, release.includes(field));
+  }
+  check(
+    'release/devops detects but does not act on repository state',
+    /detects and classifies; the Integrator acts/i.test(release),
+    'a role that acts on its own diagnosis has no check on a wrong diagnosis',
+  );
+  check(
+    'release/devops declares DEPLOYMENT_DRIFT_STATUS',
+    release.includes('DEPLOYMENT_DRIFT_STATUS'),
+  );
+  check(
+    'release/devops refuses to invent deployment APIs',
+    /do\s+not\s+invent\s+deployment\s+APIs/i.test(release),
+  );
+}
+
+const TASK_SYSTEM_PATHS = [
+  'docs/tasks/README.md',
+  'docs/tasks/index.md',
+  'docs/tasks/active.md',
+  'docs/tasks/blocked.md',
+  'docs/tasks/completed.md',
+  'scripts/new-task.mjs',
+  'scripts/rebuild-tasks.mjs',
+  'scripts/repo-health.mjs',
+  'scripts/lib/task-records.mjs',
+];
+
+for (const path of TASK_SYSTEM_PATHS) {
+  check(`required path present: ${path}`, existsSync(join(ROOT, path)));
+}
+
+for (const script of ['scripts/new-task.mjs', 'scripts/rebuild-tasks.mjs', 'scripts/repo-health.mjs', 'scripts/lib/task-records.mjs']) {
+  if (!existsSync(join(ROOT, script))) continue;
+  const body = read(script);
+  check(`${script} is an ES module`, body.includes('import ') || body.includes('export '));
+  check(`${script} is not truncated`, body.trimEnd().length > 200);
+}
+
+/* repo-health.mjs must stay a reporter. An acting diagnostic is the hazard. */
+if (existsSync(join(ROOT, 'scripts/repo-health.mjs'))) {
+  const health = read('scripts/repo-health.mjs');
+  check(
+    'repo-health reports rather than acts',
+    /\*\*reports only\*\*|It \*\*reports only\*\*/i.test(health),
+  );
+  for (const forbidden of [
+    /execFileSync\('git', \['push'/,
+    /execFileSync\('git', \['reset'/,
+    /execFileSync\('git', \['merge'/,
+    /execFileSync\('git', \['branch', '-[dD]'/,
+    /execFileSync\('git', \['worktree', 'remove'/,
+  ]) {
+    check(
+      `repo-health does not mutate the repository (${forbidden.source.slice(0, 40)})`,
+      !forbidden.test(health),
+      'every mutation stays with the Integrator, which reads the evidence first',
+    );
+  }
+  check('repo-health computes MAIN_SYNC_STATUS', health.includes('MAIN_SYNC_STATUS'));
+  check(
+    'repo-health never proposes deleting an unmerged branch',
+    /unmergedBranches/.test(health) && /NEVER delete/.test(health),
+  );
+}
+
+if (existsSync(join(ROOT, 'scripts/rebuild-tasks.mjs'))) {
+  const result = runScript('scripts/rebuild-tasks.mjs', ['--check']);
+  check(
+    'task records are valid and the indexes are current',
+    result.ok,
+    result.output.split('\n').filter(Boolean).slice(0, 6).join(' | '),
+  );
+}
+
+// ------------------------------------------------- behavioural simulations
+
+/*
+ * Structural checks prove the rules are *written*. These prove they are
+ * *executable*: build throwaway task records and confirm the loader rejects the
+ * states that would silently break automatic continuation, and that the
+ * continuation calculation itself picks the right next package.
+ *
+ * Asserting that the source merely *mentions* dependency resolution would pass
+ * just as happily after somebody inverted the comparison.
+ */
+if (existsSync(join(ROOT, 'scripts/lib/task-records.mjs'))) {
+  const { loadTasks, readyPackages, isFullyBlocked, parseWorkPackages } = await import(
+    './lib/task-records.mjs'
+  );
+
+  const sandbox = mkdtempSync(join(tmpdir(), 'dijipeople-tasks-'));
+  const taskDir = join(sandbox, 'docs/tasks');
+  mkdirSync(taskDir, { recursive: true });
+
+  const WP_HEADER = [
+    '| WP_ID | TITLE | STATUS | DEPENDENCIES | AGENTS | BRANCH | SHA | QA_STATUS | BUGS | CI_STATUS | MERGE_STATUS |',
+    '|---|---|---|---|---|---|---|---|---|---|---|',
+  ];
+
+  const taskRecord = (id, packages, overrides = {}) =>
+    [
+      '---',
+      `TASK_ID: ${id}`,
+      'TITLE: probe',
+      `TYPE: ${overrides.type ?? 'FEATURE'}`,
+      `SIZE: ${overrides.size ?? 'LARGE'}`,
+      `STATUS: ${overrides.status ?? 'IN_PROGRESS'}`,
+      'PRIORITY: P1',
+      'CREATED_AT: 2026-01-01',
+      'AFFECTED_MODULES: []',
+      'AGENTS: [architect]',
+      'DEPENDENCIES:',
+      `CURRENT_PACKAGE: ${overrides.current ?? ''}`,
+      `COMPLETED_PACKAGES: [${(overrides.completed ?? []).join(', ')}]`,
+      'BLOCKED_PACKAGES: []',
+      'OWNER_DECISIONS: 0',
+      `FINAL_STATUS: ${overrides.finalStatus ?? ''}`,
+      '---',
+      '',
+      `# ${id} — probe`,
+      '',
+      '## Work Packages',
+      '',
+      ...WP_HEADER,
+      ...packages,
+      '',
+      '## History',
+      '',
+      '- 2026-01-01 — probe.',
+      '',
+    ].join('\n');
+
+  const wp = (id, status, dependencies = '—') =>
+    `| ${id} | probe ${id} | ${status} | ${dependencies} | architect | agent/probe | — | — | — | — | — |`;
+
+  /* 4 — a LARGE task must carry a decomposition. */
+  writeFileSync(join(taskDir, 'TASK-9001-probe.md'), taskRecord('TASK-9001', []));
+  check(
+    'a LARGE task with no work packages is rejected',
+    loadTasks(sandbox).errors.some((e) => /requires a decomposed Work Packages table/.test(e)),
+    'an undecomposed large task cannot be continued automatically',
+  );
+
+  writeFileSync(
+    join(taskDir, 'TASK-9001-probe.md'),
+    taskRecord('TASK-9001', [wp('WP-01', 'DONE'), wp('WP-02', 'NOT_STARTED', 'WP-01')], {
+      completed: ['WP-01'],
+      current: 'WP-02',
+    }),
+  );
+  const loaded = loadTasks(sandbox);
+  check('a well-formed task record loads cleanly', loaded.errors.length === 0, loaded.errors.join(' | '));
+
+  /* 5 — continuation picks the dependency-satisfied package, and only that. */
+  {
+    const task = loaded.tasks[0];
+    check('work packages parse out of the body table', task.packages.length === 2);
+    const ready = readyPackages(task);
+    check(
+      'continuation selects the next dependency-satisfied package',
+      ready.length === 1 && ready[0].id === 'WP-02',
+      `got ${ready.map((p) => p.id).join(', ') || 'nothing'}`,
+    );
+    check('a task with ready work is not reported as fully blocked', !isFullyBlocked(task));
+  }
+
+  /*
+   * A package whose dependency is unfinished must NOT become READY.
+   *
+   * WP-01 is IN_PROGRESS — already running, so not "ready to start" either.
+   * The correct result is that nothing is ready: WP-02 waits, and the
+   * orchestrator does not start a second package on top of an unfinished
+   * dependency.
+   */
+  {
+    const task = {
+      packages: parseWorkPackages(
+        ['## Work Packages', '', ...WP_HEADER, wp('WP-01', 'IN_PROGRESS'), wp('WP-02', 'NOT_STARTED', 'WP-01')].join(
+          '\n',
+        ),
+      ),
+    };
+    const ready = readyPackages(task);
+    check(
+      'a package whose dependency is unfinished is not READY',
+      !ready.some((p) => p.id === 'WP-02'),
+      `WP-02 became ready while WP-01 was still IN_PROGRESS`,
+    );
+    check(
+      'an already-running package is not offered as ready to start',
+      !ready.some((p) => p.id === 'WP-01'),
+      `got ${ready.map((p) => p.id).join(', ') || 'nothing'}`,
+    );
+  }
+
+  /* 7 — one blocked package must not stall an independent one. */
+  {
+    const task = {
+      packages: parseWorkPackages(
+        ['## Work Packages', '', ...WP_HEADER, wp('WP-01', 'BLOCKED'), wp('WP-02', 'NOT_STARTED')].join('\n'),
+      ),
+    };
+    check(
+      'an independent package stays runnable while another is blocked',
+      readyPackages(task).some((p) => p.id === 'WP-02'),
+    );
+    check('a task with one blocked and one runnable package is not fully blocked', !isFullyBlocked(task));
+  }
+
+  /* Only when everything unfinished is blocked does the task genuinely stop. */
+  {
+    const task = {
+      packages: parseWorkPackages(
+        ['## Work Packages', '', ...WP_HEADER, wp('WP-01', 'DONE'), wp('WP-02', 'BLOCKED')].join('\n'),
+      ),
+    };
+    check('a task whose every remaining package is blocked is fully blocked', isFullyBlocked(task));
+  }
+
+  /* The record and the orchestrator must not disagree about what is left. */
+  writeFileSync(
+    join(taskDir, 'TASK-9001-probe.md'),
+    taskRecord('TASK-9001', [wp('WP-01', 'IN_PROGRESS')], { completed: ['WP-01'] }),
+  );
+  check(
+    'COMPLETED_PACKAGES disagreeing with the table is rejected',
+    loadTasks(sandbox).errors.some((e) => /COMPLETED_PACKAGES lists WP-01 but its status is/.test(e)),
+  );
+
+  writeFileSync(
+    join(taskDir, 'TASK-9001-probe.md'),
+    taskRecord('TASK-9001', [wp('WP-01', 'IN_PROGRESS')], { status: 'COMPLETE', finalStatus: 'COMPLETE' }),
+  );
+  check(
+    'a COMPLETE task with unfinished packages is rejected',
+    loadTasks(sandbox).errors.some((e) => /STATUS COMPLETE while WP-01/.test(e)),
+  );
+
+  writeFileSync(
+    join(taskDir, 'TASK-9001-probe.md'),
+    taskRecord('TASK-9001', [wp('WP-01', 'NOT_STARTED', 'WP-99')]),
+  );
+  check(
+    'a dependency on an unknown work package is rejected',
+    loadTasks(sandbox).errors.some((e) => /depends on unknown work package WP-99/.test(e)),
+    'it would block forever and look like ordinary waiting',
+  );
+
+  writeFileSync(
+    join(taskDir, 'TASK-9001-probe.md'),
+    taskRecord('TASK-9001', [wp('WP-01', 'WIBBLE')]),
+  );
+  check(
+    'an unknown work package status is rejected',
+    loadTasks(sandbox).errors.some((e) => /STATUS = "WIBBLE"/.test(e)),
+  );
+
+  /* An id that disagrees with its filename cannot be found by id. */
+  writeFileSync(join(taskDir, 'TASK-9001-probe.md'), taskRecord('TASK-9002', [wp('WP-01', 'DONE')]));
+  check(
+    'a TASK_ID that disagrees with its filename is rejected',
+    loadTasks(sandbox).errors.some((e) => /filename must start with/.test(e)),
+  );
+
+  rmSync(sandbox, { recursive: true, force: true });
+}
+
+/*
+ * 6, 9, 10 — protected-main behaviour, simulated against a throwaway repository
+ * rather than asserted about prose. This is the flow that was previously left to
+ * an agent's judgement at the exact moment its push had just failed.
+ */
+{
+  const sandbox = mkdtempSync(join(tmpdir(), 'dijipeople-protected-'));
+  const upstream = join(sandbox, 'upstream.git');
+  const clone = join(sandbox, 'clone');
+
+  const run = (args, cwd) => execFileSync('git', args, { cwd, stdio: 'pipe', encoding: 'utf8' });
+
+  let simulated = false;
+  try {
+    mkdirSync(upstream, { recursive: true });
+    run(['init', '--bare', '--initial-branch=main', '.'], upstream);
+    run(['clone', upstream, clone], sandbox);
+    run(['config', 'user.email', 'probe@example.com'], clone);
+    run(['config', 'user.name', 'probe'], clone);
+
+    writeFileSync(join(clone, 'base.txt'), 'base\n');
+    run(['add', '.'], clone);
+    run(['commit', '-m', 'base'], clone);
+    run(['push', '-u', 'origin', 'main'], clone);
+
+    const baseSha = run(['rev-parse', 'HEAD'], clone).trim();
+
+    /* Commits land on local main — the accident the recovery exists for. */
+    writeFileSync(join(clone, 'work.txt'), 'work\n');
+    run(['add', '.'], clone);
+    run(['commit', '-m', 'intended task commit'], clone);
+    const aheadSha = run(['rev-parse', 'HEAD'], clone).trim();
+
+    const counts = run(['rev-list', '--left-right', '--count', 'origin/main...main'], clone).trim();
+    check('simulation: local main is detected as AHEAD', counts === '0\t1' || counts === '0 1', `counts = ${counts}`);
+
+    const localOnly = run(['log', '--oneline', 'origin/main..main'], clone).trim().split('\n').filter(Boolean);
+    check('simulation: the local-only commit is identified', localOnly.length === 1);
+
+    /*
+     * The recovery: a BRANCH at those commits, never a cherry-pick. The commits
+     * must survive byte-identical, parents included.
+     */
+    run(['branch', 'agent/probe-recovery', 'main'], clone);
+    const recoverySha = run(['rev-parse', 'agent/probe-recovery'], clone).trim();
+    check(
+      'simulation: the recovery branch preserves the exact commit',
+      recoverySha === aheadSha,
+      'a cherry-pick would produce a different SHA and lose the parent',
+    );
+
+    run(['push', 'origin', 'agent/probe-recovery'], clone);
+
+    /* The merge a PR would perform, then local main fast-forwards to it. */
+    run(['push', 'origin', 'agent/probe-recovery:main'], clone);
+    run(['fetch', 'origin'], clone);
+    run(['merge', '--ff-only', 'origin/main'], clone);
+
+    const finalLocal = run(['rev-parse', 'main'], clone).trim();
+    const finalRemote = run(['rev-parse', 'origin/main'], clone).trim();
+
+    check('simulation: local main ends SYNCED with origin/main', finalLocal === finalRemote);
+    check(
+      'simulation: the recovered work is present on the target',
+      run(['log', '--oneline', `${baseSha}..origin/main`], clone).includes('intended task commit'),
+    );
+    check(
+      'simulation: no commits were lost',
+      run(['rev-list', '--left-right', '--count', 'origin/main...main'], clone).trim().replace(/\s+/g, ' ') ===
+        '0 0',
+    );
+
+    simulated = true;
+  } catch (error) {
+    /*
+     * Git being unavailable is an environment limitation, not a framework
+     * failure — warn rather than fail, exactly as the Obsidian sync does.
+     */
+    warn(`protected-branch simulation could not run — ${String(error.message).split('\n')[0]}`);
+  } finally {
+    rmSync(sandbox, { recursive: true, force: true });
+  }
+
+  if (simulated) checks += 1;
+}
+
+/* 9 — nothing in the framework may authorise force-pushing a shared branch. */
+const FORCE_PUSH_PHRASINGS = [
+  /force[- ]push(?:ing)?\s+(?:to\s+)?`?main`?\s+(?:is\s+)?(?:permitted|allowed|acceptable|fine)/i,
+  /may\s+force[- ]push\s+(?:the\s+)?(?:shared|protected|main)/i,
+  /use\s+`?git push --force`?\s+(?:on|to)\s+`?main/i,
+];
+
+for (const file of [
+  '.agent/context/repository-health.md',
+  '.agent/context/task-completion-contract.md',
+  '.agent/agents/integrator.md',
+  '.agent/agents/release-devops.md',
+  'docs/development/agent-orchestration.md',
+  'docs/development/branch-protection.md',
+  'AGENTS.md',
+]) {
+  if (!existsSync(join(ROOT, file))) continue;
+  const body = read(file);
+  for (const pattern of FORCE_PUSH_PHRASINGS) {
+    check(
+      `${file} does not permit force-pushing a protected branch`,
+      !pattern.test(body),
+      `matched ${pattern}`,
     );
   }
 }

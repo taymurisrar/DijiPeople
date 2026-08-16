@@ -1,9 +1,29 @@
 # Agent Role — Architect
 
-Turns a request into a verified, executable plan for **this** repository.
+Turns a request into a verified, executable plan for **this** repository, and
+**orchestrates it to completion**.
 
 The Architect's output is an ExecPlan per [`PLANS.md`](../../PLANS.md), plus an
 explicit statement of which specialist agents the work actually needs.
+
+**The Architect is the main task orchestrator.** For every `DijiPeople Task:` it
+runs, in order:
+
+```
+1. classify intent          .agent/context/task-router.md
+2. classify size            SMALL | MEDIUM | LARGE | PROGRAM
+3. retrieve knowledge       RELEVANT_KNOWLEDGE_RETRIEVAL      (Step 0)
+4. inspect the backlog      BACKLOG_PRECHECK                  (Step 0b)
+5. choose agents            those the work needs — and say which it does not
+6. create the plan          ExecPlan per PLANS.md
+7. execute automatically
+8. continue until complete or genuinely blocked
+```
+
+Step 8 is not a flourish. **An orchestrator that finishes a work package and
+then asks whether to continue has turned a task into a conversation**, and the
+user pays for the round trip every time. See
+[`.agent/context/task-orchestration.md`](../context/task-orchestration.md).
 
 ---
 
@@ -11,6 +31,12 @@ explicit statement of which specialist agents the work actually needs.
 
 Always read:
 
+- [`.agent/context/task-router.md`](../context/task-router.md)
+  — **before planning anything**: what the keyword or the bare description
+  routes to, and what that type adds to the definition of done
+- [`.agent/context/task-orchestration.md`](../context/task-orchestration.md)
+  — sizing, work packages, automatic continuation, the assumption register and
+  the concise progress format
 - [`.agent/context/task-completion-contract.md`](../context/task-completion-contract.md)
   — the lifecycle the plan must schedule through to finalization, not to
   implementation
@@ -48,6 +74,42 @@ and components in scope. Every claim in the plan must trace to something you
 read in this repository, at this commit.
 
 ---
+
+## Step 0a — `TASK_ROUTING`
+
+**Runs first, before retrieval.** It decides what to retrieve.
+
+State three things explicitly in the plan:
+
+```
+TASK_TYPE     the routed keyword(s) — from the prompt, or inferred
+TASK_SIZE     SMALL | MEDIUM | LARGE | PROGRAM
+ROUTING_BASIS why — the keyword given, or the phrase that implied the type
+```
+
+Rules that keep routing honest:
+
+- **A keyword is a hint, not a cap.** If the description implies a broader type
+  than the keyword given, the broader one wins and the plan says so. A `BUG`
+  whose fix needs a migration is `BUG` **and** `DATABASE`.
+- **More than one type is normal.** "Improve payroll UI" is genuinely `UI/UX`
+  *and* `FEATURE`. Routing it as one loses either the experience analysis or the
+  implementation.
+- **An unrecognised keyword is not an error.** Treat the line as a description
+  and infer.
+- **Size is dependency and architectural scope, never file count.** A 40-file
+  rename is `SMALL`; a three-file change to `PermissionsGuard`, `rbac-matrix.ts`
+  and a seed is not. Between two sizes, take the larger.
+
+`LARGE` and `PROGRAM` require a durable parent task record **before
+implementation starts**:
+
+```bash
+node scripts/new-task.mjs "<title>" --type <TYPE> --size LARGE
+```
+
+Full rules: [`../context/task-router.md`](../context/task-router.md) and
+[`../context/task-orchestration.md`](../context/task-orchestration.md).
 
 ## Step 0 — `RELEVANT_KNOWLEDGE_RETRIEVAL`
 
@@ -197,6 +259,74 @@ a surprise.
 A task cannot report `COMPLETE` while any finding it produced is still
 `TRIAGE_REQUIRED` — `ARCHITECT_TRIAGE_STATUS` in
 [`../context/task-completion-contract.md`](../context/task-completion-contract.md).
+
+## Step 0d — `WORK_PACKAGE_DECOMPOSITION`
+
+For `LARGE` and `PROGRAM` tasks, decompose into work packages whose boundaries
+follow **ownership and dependency**:
+
+```
+schema · backend · frontend · security · integration
+migration · QA · browser E2E · deployment
+```
+
+Never `files 1-10`. The test: a good package can be **reviewed on its own** and
+has one owning specialist. If describing the boundary requires listing files, it
+is not a boundary — it is a split.
+
+Record each with `WP_ID`, `TITLE`, `STATUS`, `DEPENDENCIES`, `AGENTS`,
+`BRANCH`, `SHA`, `QA_STATUS`, `BUGS`, `CI_STATUS`, `MERGE_STATUS` in the parent
+record, then `node scripts/rebuild-tasks.mjs`.
+
+### Automatic continuation
+
+When a package reaches `DONE`: recompute which packages are now `READY` (every
+dependency `DONE`), set `CURRENT_PACKAGE`, and **start it**.
+
+**Do not ask "would you like me to continue?"** The only stop condition is that
+*every* remaining package is blocked by `OWNER_DECISION_REQUIRED`,
+`BLOCKED_EXTERNAL`, `UNRECOVERABLE_TOOL_FAILURE` or `SAFETY_BLOCK` — and then
+every block is reported at once, so the user answers in one pass.
+
+**One blocked package never stops an independent one.**
+
+### Parallelism
+
+Run independent packages concurrently only where ownership does not conflict.
+**Never** parallelise two `schema.prisma` writers, database work with the API
+work that needs its regenerated client, or two writers of `permissions.ts` /
+`rbac-matrix.ts`. Database stays single-writer. Prefer sequential when conflict
+risk is meaningful — see
+[`../../docs/development/parallel-work.md`](../../docs/development/parallel-work.md).
+
+### `SCOPE_EXPANSION_DETECTED`
+
+When implementation touches substantially more modules or architectural areas
+than planned — a new single-writer file, an unplanned migration, an
+authorization change, a contract the gateway consumes — **re-decompose
+automatically**: add packages, update `DEPENDENCIES`, continue.
+
+Do not ask the user, unless the expansion introduces a genuine product question.
+Silently absorbing expansion produces a "small fix" that rewrote authorization;
+silently stopping on it produces a half-migrated schema.
+
+## Step 0e — `ASSUMPTION_REGISTER`
+
+`LARGE` and `PROGRAM` tasks record what the plan rests on:
+
+```
+ASSUMPTION_ID · STATEMENT · EVIDENCE · CONFIDENCE · IMPACT_IF_WRONG
+```
+
+**LOW confidence + high impact must be verified before work depends on it** —
+read the code, run the query, check the config. That combination is exactly what
+produces a task that was internally consistent and entirely wrong.
+
+**An assumption is not an owner question.** `OWNER_DECISION_REQUIRED` is for
+genuine product uncertainty — what the business wants. Anything establishable by
+reading this repository is an assumption to verify, not a question to ask.
+Escalating verifiable facts is how a user ends up answering things the code
+already answered.
 
 ## Staleness Rule
 
@@ -352,3 +482,11 @@ id, its severity, and the disposition chosen.
 - **Resolving an open `PRODUCT_DECISION` by implementing one side of it.**
 - Leaving a QA finding at `TRIAGE_REQUIRED` and calling the task done.
 - Deferring a CRITICAL.
+- **Asking the user whether to start the next work package.** Continuation is
+  mechanical: recompute `READY`, take the next, start it.
+- **Stopping the whole task because one package is blocked** while another was
+  independent and could have run.
+- Decomposing by file range instead of by ownership.
+- Escalating an `OWNER_DECISION_REQUIRED` for something the repository answers —
+  that is an assumption to verify.
+- Routing silently: a classification the plan does not state cannot be corrected.

@@ -144,6 +144,10 @@ them against
 
 ```
 TASK_STATUS:
+PARENT_TASK:
+PARENT_TASK_STATUS:
+WORK_PACKAGE_STATUS:
+PRE_TASK_REPO_HEALTH:
 TARGET_BRANCH:
 SHARED_TARGET:
 TASK_BRANCH:
@@ -152,10 +156,20 @@ FINAL_TASK_SHA:
 MERGE_SHA:
 FINAL_TARGET_SHA:
 REMOTE_PUSH:
+PR_STATUS:
+PR_NUMBER:
 REMOTE_CI:
 CI_RUN_ID:
 MERGE_AUTHORIZATION:
 POST_MERGE_VALIDATION:
+MAIN_SYNC_STATUS:
+LOCAL_MAIN_SHA:
+ORIGIN_MAIN_SHA:
+POST_TASK_REPO_HEALTH:
+STALE_WORKTREES:
+STALE_BRANCHES:
+DEPLOYMENT_STATUS:
+DEPLOYMENT_DRIFT_STATUS:
 QA_REPORT:
 QA_FINDINGS_CLASSIFIED:
 BUG_RECORD_STATUS:
@@ -172,6 +186,20 @@ BRANCH_CLEANUP:
 **If any field is unresolved, explain why** — in the field itself, not in a
 footnote. An unresolved field is a legitimate outcome; an omitted one is a false
 report.
+
+`MAIN_SYNC_STATUS`, `LOCAL_MAIN_SHA`, `ORIGIN_MAIN_SHA` and
+`POST_TASK_REPO_HEALTH` record the state the task **left the repository in**.
+For a completed substantial task the invariant is:
+
+```
+MAIN_SYNC_STATUS      = SYNCED
+POST_TASK_REPO_HEALTH = PASS
+LOCAL_MAIN_SHA == ORIGIN_MAIN_SHA == the expected merged SHA
+```
+
+Collect them with `node scripts/repo-health.mjs`. Local `main` left `AHEAD` is
+not untidiness — it means work exists in one place only, and the next person to
+push will collide with it.
 
 `SHARED_TARGET` and `MERGE_AUTHORIZATION` are what make the CI gate auditable
 after the fact. Where `SHARED_TARGET: true`, `MERGE_AUTHORIZATION` must read

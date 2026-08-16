@@ -136,6 +136,21 @@ history — bugs, backlog, regressions and patterns — without reading everythi
 Work through those that apply; for each finding give file, line, the defect,
 and what goes wrong in practice.
 
+### On a `SECURITY` task, review harder
+
+When the task routed to `SECURITY`
+([`../context/task-router.md`](../context/task-router.md)), treat every item
+in the [`AGENTS.md` security checklist](../../AGENTS.md#security) as **violated
+until disproven**, rather than looking for evidence that one was. The two
+postures find different things: searching for violations finds the ones the
+implementer did not think to hide, while disproving each in turn finds the ones
+nobody thought about at all.
+
+Give explicit verdicts on authorization, authentication, tenant isolation,
+sensitive-data exposure, negative paths and abuse prevention — including the
+ones that are fine, so the report shows what was actually examined. **The
+Reviewer can block a `SECURITY` task alone**, without a QA failure.
+
 **Correctness** — requirement met; edge cases: empty results, nulls, timezones
 and DST, period boundaries, zero/negative amounts, concurrent actors, partial
 failure.
