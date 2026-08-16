@@ -99,6 +99,7 @@ _None._
 
 ## Recent Engineering History
 
+- [[2026-08-16-production-url-integrity-344a832|Engineering History — Production url integrity]]
 - [[2026-08-15-knowledge-backlog-framework-986ab10|Engineering History — Operational knowledge-management layer]]
 - [[2026-08-15-autonomous-framework-triage-b2ba383|Engineering History — Autonomous framework triage, provisioning recovery and browser E2E]]
 
@@ -146,7 +147,7 @@ _None. Nothing has been deployed through the release process._
 | Backlog items | 17 |
 | Known bug patterns | 18 |
 | QA runs | 5 |
-| Engineering history records | 2 |
+| Engineering history records | 3 |
 | Release records | 0 |
 | Module notes | 19 |
 | Architecture notes | 12 |
