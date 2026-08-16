@@ -1,36 +1,51 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# `apps/web` — the tenant product
 
-## Getting Started
+The application a tenant's own people use: employees, managers, HR, payroll
+operators and tenant admins. Next.js App Router, port **3001**.
 
-First, run the development server:
+This is the largest application in the monorepo. Read
+[`AGENTS.md`](AGENTS.md) before changing anything in it — the short version is
+that **screens here are declared, not hand-written**, and a bespoke CRUD page
+beside the runtime is the primary architectural defect in this codebase.
+
+## Running it
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm --workspace web run dev          # http://localhost:3001
+npm --workspace web run test         # jest
+npm --workspace web run check-types  # next typegen && tsc --noEmit
+npm --workspace web run lint
+npm --workspace web run build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Port **3001**, overridable with `WEB_PORT`. It needs the API on port 4000 —
+start it with `npm run dev:api`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Where things are
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Path | What |
+|---|---|
+| `app/(authenticated)/` | The product. Everything behind a tenant session |
+| `app/(public)/` | Login and other unauthenticated surfaces |
+| `app/api/` | Route handlers — **thin proxies only**. The API is the authority on authorization and tenant scope |
+| `app/components/` | The shared kit — `ui/`, `data-table/`, `runtime/`, `metadata/` |
+| `lib/runtime/` | The metadata-driven module runtime: registries, adapters, resolvers |
+| `lib/server-api.ts` | The sanctioned way to reach the API from server code |
+| `proxy.ts` | Request interception |
 
-## Learn More
+Durable knowledge, kept current with verification metadata:
+[`docs/knowledge/modules/tenant-application.md`](../../docs/knowledge/modules/tenant-application.md)
+and
+[`docs/knowledge/architecture/web-architecture.md`](../../docs/knowledge/architecture/web-architecture.md).
 
-To learn more about Next.js, take a look at the following resources:
+## Why this README was rewritten
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+It was unedited `create-next-app` boilerplate. It told the reader to open
+**port 3000**, which is `apps/landing` — a different application — so anyone
+following it would conclude the tenant product was serving the marketing site.
+It also offered `yarn` / `pnpm` / `bun` commands in a repository that pins
+`npm@11.9.0` and uses npm workspaces with Turborepo.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+`apps/docs` and `apps/admin` carried the identical defect; all three are
+corrected.
+</content>

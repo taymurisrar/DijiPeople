@@ -59,6 +59,7 @@ _None outstanding._
 
 ## Recent Product Changes
 
+- [[2026-08-17-web-app-documentation|2026-08-17 — Documenting `apps/web`, the tenant product]]
 - [[2026-08-16-monorepo-app-documentation|2026-08-16 — Documenting `apps/docs`, `apps/landing` and `apps/agent-desktop`]]
 - [[2026-08-15-database-ci-and-gh-access|Database CI, GitHub access, and the first four framework merges]]
 - [[2026-08-14-tenant-control-plane|Tenant Control Plane]]
@@ -67,6 +68,9 @@ _None outstanding._
 
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
+| [[BUG-0039-employee-payslip-and-bank-account-proxies-return-the-callers|BUG-0039]] | Employee payslip and bank account proxies return the callers own data on 403 | DATA_INTEGRITY | HIGH | OPEN | apps/web, api:payroll, api:employees | FIX_NOW |
+| [[BUG-0043-web-dialogs-have-no-focus-trap-and-filter-controls-are-unlab|BUG-0043]] | Web dialogs have no focus trap and filter controls are unlabelled | UX | MEDIUM | OPEN | apps/web | PLAN_REQUIRED |
+| [[BUG-0046-tenant-theme-mode-and-runtime-settings-saves-do-not-take-eff|BUG-0046]] | Tenant theme mode and runtime settings saves do not take effect | UX | MEDIUM | OPEN | apps/web | FIX_NOW |
 | [[ITEM-0031-replace-remaining-native-prompts-for-governed-input|ITEM-0031]] | Replace remaining native prompts for governed input | UX | MEDIUM | READY | apps/admin, apps/web | DEFER |
 
 ## How to read this
