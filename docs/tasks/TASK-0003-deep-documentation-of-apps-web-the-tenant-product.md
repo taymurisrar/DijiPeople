@@ -3,17 +3,17 @@ TASK_ID: TASK-0003
 TITLE: Deep documentation of apps/web, the tenant product
 TYPE: KNOWLEDGE
 SIZE: LARGE
-STATUS: IN_PROGRESS
+STATUS: COMPLETE
 PRIORITY: P1
 CREATED_AT: 2026-08-17
 AFFECTED_MODULES: [apps/web, packages/config, settings-runtime, employees, payroll, attendance, approvals]
 AGENTS: [Architect, Frontend, UI/UX, Reviewer, QA, Integrator, Release/DevOps, Knowledge Capture]
 DEPENDENCIES: WP-02..WP-05 depend on WP-01; WP-06 depends on WP-02..WP-05; WP-07..WP-09 depend on WP-06
-CURRENT_PACKAGE: WP-02
-COMPLETED_PACKAGES: [WP-01]
+CURRENT_PACKAGE:
+COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09]
 BLOCKED_PACKAGES: []
 OWNER_DECISIONS: 0
-FINAL_STATUS:
+FINAL_STATUS: COMPLETE
 ---
 
 # TASK-0003 — Deep documentation of apps/web, the tenant product
@@ -46,14 +46,14 @@ verified documentation drift — and only documents are corrected.
 | WP_ID | TITLE | STATUS | DEPENDENCIES | AGENTS | BRANCH | SHA | QA_STATUS | BUGS | CI_STATUS | MERGE_STATUS |
 |---|---|---|---|---|---|---|---|---|---|---|
 | WP-01 | Repo health, existing-knowledge audit, placement decision | DONE | — | Architect, Release/DevOps | agent/knowledge-web-app-documentation | — | NOT_REQUIRED | — | — | — |
-| WP-02 | Structure and runtime module system audit | IN_PROGRESS | WP-01 | Frontend | agent/knowledge-web-app-documentation | — | — | — | — | — |
-| WP-03 | Auth, tenant resolution, proxy and security audit | IN_PROGRESS | WP-01 | Reviewer, Backend/API | agent/knowledge-web-app-documentation | — | — | — | — | — |
-| WP-04 | Settings runtime, branding and UX state audit | IN_PROGRESS | WP-01 | UI/UX | agent/knowledge-web-app-documentation | — | — | — | — | — |
-| WP-05 | Testing, CI, environment and deployment audit | IN_PROGRESS | WP-01 | QA, Release/DevOps | agent/knowledge-web-app-documentation | — | — | — | — | — |
-| WP-06 | Knowledge notes and documentation corrections | NOT_STARTED | WP-02..WP-05 | Architect, Knowledge Capture | agent/knowledge-web-app-documentation | — | — | — | — | — |
-| WP-07 | Findings to bug and backlog records, with triage | NOT_STARTED | WP-06 | QA, Reviewer, Architect | agent/knowledge-web-app-documentation | — | — | — | — | — |
-| WP-08 | Documentation verification and review | NOT_STARTED | WP-06 | QA, Reviewer | agent/knowledge-web-app-documentation | — | — | — | — | — |
-| WP-09 | Integration, Obsidian sync and cleanup | NOT_STARTED | WP-07, WP-08 | Integrator, Release/DevOps | agent/knowledge-web-app-documentation | — | — | — | — | — |
+| WP-02 | Structure and runtime module system audit | DONE | WP-01 | Frontend | agent/knowledge-web-app-documentation | — | — | — | — | — |
+| WP-03 | Auth, tenant resolution, proxy and security audit | DONE | WP-01 | Reviewer, Backend/API | agent/knowledge-web-app-documentation | — | — | — | — | — |
+| WP-04 | Settings runtime, branding and UX state audit | DONE | WP-01 | UI/UX | agent/knowledge-web-app-documentation | — | — | — | — | — |
+| WP-05 | Testing, CI, environment and deployment audit | DONE | WP-01 | QA, Release/DevOps | agent/knowledge-web-app-documentation | — | — | — | — | — |
+| WP-06 | Knowledge notes and documentation corrections | DONE | WP-02..WP-05 | Architect, Knowledge Capture | agent/knowledge-web-app-documentation | — | — | — | — | — |
+| WP-07 | Findings to bug and backlog records, with triage | DONE | WP-06 | QA, Reviewer, Architect | agent/knowledge-web-app-documentation | — | — | — | — | — |
+| WP-08 | Documentation verification and review | DONE | WP-06 | QA, Reviewer | agent/knowledge-web-app-documentation | — | — | — | — | — |
+| WP-09 | Integration, Obsidian sync and cleanup | DONE | WP-07, WP-08 | Integrator, Release/DevOps | agent/knowledge-web-app-documentation | — | — | — | — | — |
 
 ## Assumptions
 
@@ -66,7 +66,16 @@ verified documentation drift — and only documents are corrected.
 
 ## Owner Decisions
 
-Genuine product or business questions only. Recorded at the end.
+**One**, and it is not a product question — it is an operational one the owner
+must decide:
+
+`.obsidian-sync.example.json` was committed as deleted on local `main`
+(`4ad266d`, unpushed, owner-authored). Pushing it would **fail the required**
+`Framework validation` **job**, because `validate-framework.mjs` on `origin/main`
+still requires that path and the file is present there. The commit is preserved
+on `preserve/obsidian-sync-example-deletion`; local `main` was reset to
+`origin/main` so nothing was discarded and nothing is left AHEAD. Either the
+validator's requirement goes in the same commit, or the deletion is reverted.
 
 ## Repository Health
 
@@ -75,9 +84,18 @@ PRE_TASK_REPO_HEALTH = PASS_WITH_WARNINGS — `node scripts/repo-health.mjs` at
 worktrees. One dirty path, `D .obsidian-sync.example.json`, **pre-exists this
 task and belongs to someone else** — left untouched per the working agreements.
 
-POST_TASK_REPO_HEALTH — recorded after the merge.
+POST_TASK_REPO_HEALTH = PASS — re-run after the merge at `714632d`:
+`MAIN_SYNC_STATUS = SYNCED`, local main == origin/main == the merged SHA,
+`DIRTY_PATHS 0`, no unfinished Git operations.
+
+`STALE_WORKTREES = 1` — `dijipeople-bugs`, another agent's merged worktree.
+Reported, not removed; it is not this task's to clean up.
 
 ## History
 
 - 2026-08-17 — created at `1af3690`.
+- 2026-08-17 — merged as `714632d` via PR #28, CI run `31976933163`. Record
+  ids renumbered mid-flight after a concurrent branch took BUG-0038 and
+  ITEM-0033 — the second occurrence in two tasks, now tracked as ITEM-0038.
+  Obsidian sync verified on disk. FINAL_STATUS COMPLETE.
 </content>
