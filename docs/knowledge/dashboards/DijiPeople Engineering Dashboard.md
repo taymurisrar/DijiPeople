@@ -162,7 +162,7 @@ _None. Nothing has been deployed through the release process._
 | [[ITEM-0026-desktop-agent-windows-installer-is-unsigned|ITEM-0026]] | Desktop agent Windows installer is unsigned | SECURITY | MEDIUM | READY | apps/agent-desktop | PLAN_REQUIRED |
 | [[ITEM-0027-desktop-agent-has-no-retry-backoff-and-no-bounded-give-up|ITEM-0027]] | Desktop agent has no retry backoff and no bounded give up | TECH_DEBT | MEDIUM | READY | apps/agent-desktop, api:agent | PLAN_REQUIRED |
 | [[ITEM-0028-apps-agent-desktop-has-no-agents-md-and-no-test-coverage|ITEM-0028]] | apps/agent-desktop has no AGENTS.md and no test coverage | TEST_GAP | MEDIUM | READY | apps/agent-desktop, api:agent | FIX_NOW |
-| [[ITEM-0030-partner-inquiry-form-does-not-yet-capture-partnership-model|ITEM-0030]] | Partner inquiry form does not yet capture partnership model | FOLLOW_UP | MEDIUM | READY | apps/landing, api:partners | FIX_NOW |
+| [[ITEM-0030-partner-inquiry-form-does-not-yet-capture-partnership-model|ITEM-0030]] | Partner inquiry form does not yet capture partnership model | FOLLOW_UP | MEDIUM | VALIDATING | apps/landing, api:partners | FIX_NOW |
 | [[ITEM-0021-mechanical-guard-against-country-and-currency-literals-in-fr|ITEM-0021]] | Mechanical guard against country and currency literals in frontends | TEST_GAP | LOW | READY | scripts, apps/landing, apps/web, apps/admin | DEFER |
 | [[ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning|ITEM-0023]] | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | READY | services/api/prisma, api:tenant-control-plane | DEFER |
 | [[ITEM-0024-landing-depends-on-lucide-react-without-declaring-it|ITEM-0024]] | Landing depends on lucide-react without declaring it | TECH_DEBT | LOW | READY | apps/landing | DEFER |

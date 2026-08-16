@@ -39,6 +39,7 @@ import {
   ReviewPartnerOnboardingDto,
   SubmitPartnerOnboardingDto,
 } from './dto/partner-experience.dto';
+import { CURRENT_PRIVACY_NOTICE_VERSION } from '../leads/acquisition.catalog';
 
 @Injectable()
 export class PartnerExperienceService {
@@ -148,7 +149,24 @@ export class PartnerExperienceService {
           country: normalized.country,
           website: normalized.website,
           message: normalized.message,
+          // The commercial relationship, distinct from the entity type above.
+          partnershipModel: dto.partnershipModel ?? null,
+          // Privacy notice acknowledgement, plus the version the server had.
+          // A client-supplied version could claim any notice at all.
           consentAcceptedAt: submittedAt,
+          privacyNoticeVersion: CURRENT_PRIVACY_NOTICE_VERSION,
+          // Optional and separate: a partnership inquiry is submittable
+          // without agreeing to marketing.
+          marketingConsent: dto.marketingConsent === true,
+          marketingConsentAt:
+            dto.marketingConsent === true ? submittedAt : null,
+          // Attribution, captured not typed. Absent stays absent.
+          sourcePage: dto.sourcePage ?? null,
+          referrerUrl: dto.referrerUrl ?? null,
+          utmSource: dto.utmSource ?? null,
+          utmMedium: dto.utmMedium ?? null,
+          utmCampaign: dto.utmCampaign ?? null,
+          correlationId: correlationId ?? null,
           source: normalized.source,
           submissionHash,
           originalSubmission: normalized as Prisma.InputJsonValue,

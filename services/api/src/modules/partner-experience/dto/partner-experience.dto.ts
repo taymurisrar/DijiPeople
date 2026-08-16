@@ -8,24 +8,60 @@ import {
   IsObject,
   IsOptional,
   IsString,
+  IsUrl,
   IsUUID,
   MaxLength,
   Min,
   MinLength,
 } from 'class-validator';
-import { PartnerType } from '@prisma/client';
+import { PartnerType, PartnershipModel } from '@prisma/client';
 
 export class CreatePartnerInquiryDto {
+  /** Contracting entity type. Not the partnership model — see below. */
   @IsEnum(PartnerType) type!: PartnerType;
+
+  /**
+   * The commercial relationship being proposed.
+   *
+   * `type` is INDIVIDUAL/COMPANY, which is the contracting entity and cannot
+   * express whether someone wants to refer, resell, implement or integrate.
+   * Before this existed every partnership inquiry arrived commercially
+   * indistinguishable from every other (ITEM-0030).
+   *
+   * Optional so inquiries submitted before the form offered it stay valid.
+   */
+  @IsOptional() @IsEnum(PartnershipModel) partnershipModel?: PartnershipModel;
+
   @IsOptional() @IsString() @MaxLength(160) companyName?: string;
   @IsString() @MaxLength(100) contactFirstName!: string;
   @IsString() @MaxLength(100) contactLastName!: string;
   @IsEmail() email!: string;
   @IsOptional() @IsString() @MaxLength(40) phone?: string;
   @IsOptional() @IsString() @MaxLength(120) country?: string;
-  @IsOptional() @IsString() @MaxLength(240) website?: string;
+  /** Validated as a URL rather than free text — it is displayed as a link. */
+  @IsOptional()
+  @IsUrl({ require_protocol: false, require_tld: true })
+  @MaxLength(240)
+  website?: string;
   @IsOptional() @IsString() @MaxLength(3000) message?: string;
+
+  /** Privacy notice acknowledgement. Required to submit. */
   @IsBoolean() consentAccepted!: boolean;
+
+  /**
+   * Marketing consent — optional, separate, and never a condition of
+   * submitting. The notice *version* is not accepted from the client: the
+   * server records which notice was in force when it accepted the submission.
+   */
+  @IsOptional() @IsBoolean() marketingConsent?: boolean;
+
+  // Attribution, captured by the page rather than typed. Absent stays absent.
+  @IsOptional() @IsString() @MaxLength(200) sourcePage?: string;
+  @IsOptional() @IsString() @MaxLength(500) referrerUrl?: string;
+  @IsOptional() @IsString() @MaxLength(120) utmSource?: string;
+  @IsOptional() @IsString() @MaxLength(120) utmMedium?: string;
+  @IsOptional() @IsString() @MaxLength(120) utmCampaign?: string;
+
   @IsOptional() @IsString() @MaxLength(120) source?: string;
 }
 
