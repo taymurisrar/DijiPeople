@@ -97,12 +97,12 @@ _None._
 
 - [[2026-08-16-public-commercial-wave2-7686bb0|QA Run — Wave 2: Public Plans + Features Experience]]
 - [[2026-08-16-production-url-integrity-344a832|QA Run — Production URL integrity (BUG-0026)]]
+- [[2026-08-16-lead-partner-acquisition-wave3-1695167|QA Run — Wave 3: Lead + Partner Acquisition]]
 - [[2026-08-16-hotfix-plan-list-hidden-write-78072d2|QA Run — Hotfix: Plan list GET mutates commercial pricing (BUG-0030)]]
 - [[2026-08-16-commercial-config-wave1-a525896|QA Run — Wave 1: Commercial Configuration Foundation]]
 - [[2026-08-15-commercial-onboarding-e2e-7bbab3d|QA Run — Commercial onboarding lifecycle E2E (website lead and partner journeys)]]
 - [[2026-08-15-browser-e2e-and-provisioning-recovery-572a3b8|QA Run — First browser E2E, and provisioning recovery against a real database]]
 - [[2026-08-14-tenant-control-plane-ba1e818|QA Run — tenant-control-plane]]
-- [[2026-08-14-admin-session-expired-logout-cbc2db8|QA Run — admin-session-expired-logout]]
 
 ## Recent Implementations
 
@@ -173,7 +173,7 @@ _None. Nothing has been deployed through the release process._
 | Bug records | 30 |
 | Backlog items | 26 |
 | Known bug patterns | 19 |
-| QA runs | 8 |
+| QA runs | 9 |
 | Engineering history records | 7 |
 | Release records | 0 |
 | Module notes | 19 |
