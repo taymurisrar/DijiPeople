@@ -138,6 +138,12 @@ const REPO_SOURCES = [
    */
   ['open bugs', 'docs/bugs', 3],
   ['backlog', 'docs/backlog/items', 3],
+  /*
+   * Parent tasks answer a question none of the others do: "is somebody already
+   * working on this, and where did they get to?" A specialist that misses an
+   * in-flight task on the same modules duplicates its work or conflicts with it.
+   */
+  ['parent tasks', 'docs/tasks', 3],
   ['regression register', 'docs/qa/regressions', 4],
   ['known bug patterns', 'docs/qa/known-bug-patterns', 5],
   ['QA runs', 'docs/qa/runs', 5],
@@ -148,9 +154,19 @@ const REPO_SOURCES = [
   ['decisions', 'docs/decisions', 6],
 ];
 
+/*
+ * Generated indexes are tables of contents, not knowledge. `docs/backlog/items`
+ * avoids this by searching the record directory rather than the bucket pages;
+ * task records sit alongside their indexes, so they are excluded by name. A hit
+ * that answers a query with "here is a list of everything" is worse than no hit
+ * — it occupies a relevance slot a real record wanted.
+ */
+const GENERATED_INDEX = /[/\\](index|active|blocked|completed|README)\.md$/i;
+
 const results = [];
 for (const [label, rel, authority] of REPO_SOURCES) {
-  results.push(...collect(label, join(ROOT, rel), { authority }));
+  const hits = collect(label, join(ROOT, rel), { authority });
+  results.push(...(rel === 'docs/tasks' ? hits.filter((h) => !GENERATED_INDEX.test(h.path)) : hits));
 }
 
 // ---------------------------------------------------------------- obsidian
