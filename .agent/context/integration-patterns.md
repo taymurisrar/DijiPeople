@@ -1,8 +1,8 @@
 # Integration Patterns
 
-> **Last verified:** 2026-08-14
-> **Verified against commit:** 8682dc1
-> **Key source files:** services/api/src/main.ts, services/api/src/modules/billing/, services/api/src/modules/agent/, services/api/src/modules/notifications/email/, services/api/src/common/mailer/mailer.service.ts, services/api/src/common/security/secret-encryption.service.ts, services/api/src/modules/partner-experience/partner-auth.guard.ts, apps/agent-desktop/src/main/, render.yaml
+> **Last verified:** 2026-08-16
+> **Verified against commit:** 78072d2
+> **Key source files:** services/api/src/main.ts, services/api/src/modules/billing/, services/api/src/modules/agent/, services/api/src/modules/attendance-integrations/, services/api/src/modules/attendance-integrations/gateways/gateway-auth.guard.ts, services/api/src/modules/notifications/email/, services/api/src/common/mailer/mailer.service.ts, services/api/src/common/security/secret-encryption.service.ts, services/api/src/modules/partner-experience/partner-auth.guard.ts, apps/agent-desktop/src/main/, gateway/DijiPeople.Gateway.sln, tools/zkteco-poc/, render.yaml
 >
 > This document describes the repository, it is not authority over it. If the
 > code disagrees, the code is current truth — report the discrepancy and
@@ -163,20 +163,38 @@ Other non-`PermissionsGuard` guards: `common/guards/roles.guard.ts`,
 
 ## Known exceptions
 
-- **There is no connector registry and no `attendance-integrations` module.**
-  `services/api/src/modules/attendance/` contains only controller, module,
-  repository, service, spec and `dto/`. The `connectors / devices / gateways /
-  ingestion / mapping / operations / provisioning / work-sites` structure
-  described in root `AGENTS.md` does not exist at this commit.
-- **There is no `gateway/` .NET solution and no `gateway-auth.guard.ts`.**
-  `git ls-files | grep -i gateway` returns nothing. The comment in
-  `wiring-invariants.spec.ts` mentioning "the gateway guard" is aspirational.
-  There is no gateway runtime service, and no `gateway:build` / `gateway:test`
-  npm scripts.
-- **There is no `tools/zkteco-poc/`.** Device-adjacent code that does exist is
-  `apps/agent-desktop/src/renderer/device-permissions.*` and
-  `modules/agent/dto/agent-device.dto.ts` — an Electron permission prompt, not a
-  hardware connector.
+> **Four absence claims that used to sit here were all false and have been
+> removed** (2026-08-16, verified at `78072d2`). They asserted that the
+> `attendance-integrations` module, the `gateway/` .NET solution,
+> `gateway-auth.guard.ts` and `tools/zkteco-poc/` did not exist. All four exist,
+> and three of them are substantial. An agent following this file would have
+> concluded there was nothing to extend and either rebuilt it or refused the
+> work. This is the second recorded instance of the same failure mode in the
+> context layer — see [[BUG-0036-integration-patterns-context-denies-four-subsystems-that-exi]],
+> the earlier [[BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist]],
+> and the generalised guard in [[ITEM-0011]]. Absence claims age worse than any
+> other kind, because nothing breaks when they become false.
+
+- **The `attendance-integrations` module exists**, with exactly the structure
+  root `AGENTS.md` describes: `connectors/`, `devices/`, `gateways/`,
+  `ingestion/`, `integrations/`, `mapping/`, `operations/`, `provisioning/`,
+  `work-sites/`. `gateway-auth.guard.ts`, `gateway-runtime.service.ts`,
+  `gateway-credential.service.ts` and `gateway-configuration.service.ts` are all
+  present under `gateways/`, several with specs. The "gateway guard" comment in
+  `wiring-invariants.spec.ts` is **not** aspirational.
+- **The `gateway/` .NET solution exists** — `DijiPeople.Gateway.sln` with
+  `src/`, `tests/`, `packaging/` and `artifacts/`, 1,387 tracked files — and
+  `gateway:build`, `gateway:test` and `gateway:package` are all real npm
+  scripts in the root `package.json`.
+- **`tools/zkteco-poc/` exists** (35 tracked files), with its own npm scripts
+  under the `zkteco:*` prefix.
+- **The desktop agent is not part of any of this.** `apps/agent-desktop`
+  contains zero references to a gateway or a device connector, and the gateway
+  contains zero references to the desktop agent. Physical attendance devices
+  reach the platform through the on-premise gateway; the Electron agent reports
+  workstation activity directly to `modules/agent`. They are two unrelated
+  ingestion paths that both end at the API — see
+  [[desktop-api-gateway-relationship]].
 - `MailerService` cannot actually send mail; `MAIL_DELIVERY_MODE` has one
   working value.
 - `EMAIL_*`, `STRIPE_*`, `SECRET_ENCRYPTION_KEY`, `MAIL_DELIVERY_MODE` are **not
@@ -196,8 +214,11 @@ Other non-`PermissionsGuard` guards: `common/guards/roles.guard.ts`,
   `assertOwnDevice` / `getLinkedEmployee` exist for that reason.
 - Reusing the `web` JWT secret or cookie name for a new client. Add a client id
   and its full env set instead.
-- Writing code that assumes `gateway/`, `attendance-integrations` or a connector
-  registry exists.
+- Building a second device-integration surface beside `attendance-integrations`
+  instead of extending it. It exists, and root `AGENTS.md`'s "extend the
+  existing architecture; never build a competing one" applies to it.
+- Treating the Electron agent and the on-premise gateway as one integration.
+  They share no code, no contract and no data path.
 
 ## TARGET (required going forward)
 
@@ -213,8 +234,10 @@ Other non-`PermissionsGuard` guards: `common/guards/roles.guard.ts`,
    `PlatformEventsService` with a `correlationId` traceable to the provider.
 5. Client-side retry uses a bounded, durable queue with atomic writes; the server
    side must be idempotent because the client will resend.
-6. If a device-gateway integration is genuinely required, it needs an ExecPlan
-   per `PLANS.md` — it does not exist to extend today.
+6. Device-gateway work extends `services/api/src/modules/attendance-integrations`
+   and the `gateway/` solution. A change to the gateway contract is a breaking
+   change for on-premise installations nobody can see, so version or extend
+   additively — never repurpose a field.
 
 ## What the specialist agent MUST verify before changing this
 
@@ -226,7 +249,8 @@ Other non-`PermissionsGuard` guards: `common/guards/roles.guard.ts`,
   provider selection; the tenant→env→dev→null order is load-bearing in production.
 - Read `services/api/src/common/config/auth.config.ts` end to end before adding
   or changing a client id; the agent-desktop branches are scattered.
-- Confirm with `ls services/api/src/modules/attendance` and
-  `git ls-files | grep -i gateway` that the integration surface you are about to
-  extend actually exists.
+- Re-derive the shape of the integration surface before extending it — list
+  `services/api/src/modules/attendance-integrations/` and `gateway/src/` rather
+  than trusting this file's description of them. Both move quickly, and the
+  removed absence claims above are what happens when that is skipped.
 - Check `turbo.json` `globalEnv` and `render.yaml` for any env var you add.

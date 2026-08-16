@@ -1,10 +1,12 @@
 # Deployment Runtime
 
-> **Last verified:** 2026-08-14
-> **Verified against commit:** 78716c4
+> **Last verified:** 2026-08-16
+> **Verified against commit:** 78072d2
 > **Key source files:** render.yaml, package.json, services/api/src/main.ts,
 > services/api/src/config/env.validation.ts, packages/config/index.js,
 > turbo.json, scripts/smoke-deployment.mjs, scripts/next-with-port.mjs,
+> .github/workflows/ci.yml, .github/workflows/release-app.yml,
+> apps/agent-desktop/electron-builder.yml, scripts/lib/release-apps.mjs,
 > DEPLOYMENT_CHECKLIST.md, docs/environment-variables.md
 >
 > This document describes the repository, it is not authority over it. If the
@@ -29,8 +31,14 @@
 | 8 | **Database** | — | PostgreSQL (Neon, per `DEPLOYMENT_CHECKLIST.md`) | — | — | — | private | Managed |
 
 **Only component 1 has committed deployment configuration.** There is no
-`vercel.json`, no Dockerfile, no docker-compose, and **no `.github/` CI** —
-all verified by inspection, not assumption.
+`vercel.json`, no Dockerfile and no docker-compose — verified by inspection at
+`78072d2`.
+
+> This paragraph used to end "and **no `.github/` CI**". That is false:
+> `.github/workflows/ci.yml` exists with ten required jobs behind the
+> `CI required gate` check, plus `.github/workflows/release-app.yml`. Corrected
+> 2026-08-16 — see
+> [[BUG-0036-integration-patterns-context-denies-four-subsystems-that-exi]].
 
 ### Dependency graph
 
@@ -130,8 +138,16 @@ committed.
 - `apps/landing` has no `release` script, unlike web and admin.
 - Health checks verify no dependencies.
 - No deployed-SHA visibility.
-- **No CI** — nothing validates a commit before it reaches a deployment target.
+- **CI validates a commit; nothing validates a deployment.** Ten required jobs
+  gate a merge, but no pipeline deploys anything — every deployment is manual
+  and unverified against the merged SHA. This bullet previously read "**No CI**",
+  which was false and is corrected.
 - `npm run build` runs `--concurrency=1` and is slow.
+- **The desktop agent's auto-update feed points at a route that does not exist**
+  — [[BUG-0033-desktop-agent-auto-update-points-at-an-endpoint-that-does-no]] —
+  and its installer is unsigned ([[ITEM-0025]]). "Manual distribution" in the
+  component table above understates it: `release-app.yml` offers `agent-desktop`
+  as a choice but cannot package it.
 
 ## Anti-patterns to avoid
 
@@ -154,9 +170,11 @@ committed.
    report `degraded` instead of `ok`.
 3. **Deployed SHA in the health payload**, injected at build time, so a release
    record can be verified against a running system.
-4. **CI**, per `docs/development/ci-recommendation.md`.
-5. **A staging environment** — the repository currently describes only local and
+4. **A staging environment** — the repository currently describes only local and
    production topology.
+5. **A working, authenticated update channel for the desktop agent**, decided
+   together with code signing — [[BUG-0033-desktop-agent-auto-update-points-at-an-endpoint-that-does-no]]
+   and [[ITEM-0025]].
 
 ## What the specialist agent MUST verify before changing this
 

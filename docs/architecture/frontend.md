@@ -226,7 +226,13 @@ helpers. `testEnvironment: "node"`, `*.spec.ts` only, `@/*` → app root.
 **jsdom and a rendering library are not installed**, so component render tests
 are not possible today. Extract logic and test that instead.
 
-`apps/landing` has no test configuration.
+`apps/landing` **has** a jest configuration — `apps/landing/jest.config.js`,
+with `lib/plan-presentation.spec.ts` and `lib/subscribe-selection.spec.ts`, run
+by the required `test-landing` CI job. This line previously read "`apps/landing`
+has no test configuration"; corrected 2026-08-16 at `78072d2`.
+
+`apps/docs` has none and needs none — it is a stock starter. `apps/agent-desktop`
+has none, which is [[ITEM-0027]].
 
 Both jest configs carry a comment explaining why they exist: `tsc` does not
 catch an unreachable fallback, a merge that drops a property, or a rule that

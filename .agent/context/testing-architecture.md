@@ -1,8 +1,8 @@
 # Testing Architecture
 
-> **Last verified:** 2026-08-15
-> **Verified against commit:** b2ba383
-> **Key source files:** .github/workflows/ci.yml, services/api/package.json, services/api/tsconfig.json, services/api/tsconfig.build.json, services/api/test/jest-e2e.json, services/api/src/common/constants/wiring-invariants.spec.ts, apps/web/jest.config.js, apps/admin/jest.config.js, package.json, turbo.json, packages/config/platform-runtime-schema.test.js
+> **Last verified:** 2026-08-16
+> **Verified against commit:** 78072d2
+> **Key source files:** .github/workflows/ci.yml, services/api/package.json, services/api/tsconfig.json, services/api/tsconfig.build.json, services/api/test/jest-e2e.json, services/api/src/common/constants/wiring-invariants.spec.ts, apps/web/jest.config.js, apps/admin/jest.config.js, apps/landing/jest.config.js, e2e/package.json, e2e/playwright.config.ts, package.json, turbo.json, packages/config/platform-runtime-schema.test.js
 >
 > This document describes the repository, it is not authority over it. If the
 > code disagrees, the code is current truth — report the discrepancy and
@@ -10,9 +10,14 @@
 
 ## CURRENT
 
-**CI exists** at `.github/workflows/ci.yml`: eight required jobs aggregated into
-a single `CI required gate` check, plus two non-gating known baselines. See
-[`../../docs/development/ci.md`](../../docs/development/ci.md).
+**CI exists** at `.github/workflows/ci.yml`: **ten** required jobs aggregated
+into a single `CI required gate` check, plus **four** non-gating report-only
+jobs. See [`../../docs/development/ci.md`](../../docs/development/ci.md).
+
+The ten, from the gate's own `needs` list: `validate`, `typecheck`, `lint`,
+`test-api`, `test-web`, `test-admin`, `test-landing`, `test-runtime`,
+`database-migration`, `build`. The four report-only: `database-e2e-report`,
+`lint-api-report`, `security-invariant-report`, `browser-e2e-report`.
 
 Two consequences, both load-bearing:
 
@@ -27,17 +32,23 @@ Two consequences, both load-bearing:
 
 | Type | Tooling | Status |
 |---|---|---|
-| `UNIT` | jest (api, web, admin) | **Available** |
-| `INTEGRATION` | jest + a real database | **Blocked** — no isolated database reachable |
-| `API` | supertest; 9 `*.e2e-spec.ts` under `services/api/test/` | **Blocked** — the suites need a live database |
-| `BROWSER_E2E` | — | **Not installed** — no Playwright, Cypress or Puppeteer in any workspace |
+| `UNIT` | jest (api, web, admin, **landing**) | **Available** |
+| `INTEGRATION` | jest + a real database | **Available in CI** — ephemeral `postgres:16-alpine` service container |
+| `API` | supertest; `*.e2e-spec.ts` under `services/api/test/` | **Available in CI**, report-only (`database-e2e-report`). List the directory — the set changes |
+| `BROWSER_E2E` | **Playwright, in the `e2e` workspace** | **Installed** — `@playwright/test`, two journey specs; runs in CI as `browser-e2e-report`, **report-only, not a gate** |
 | `MANUAL_VISUAL` | a human | Available |
 | `DEPLOYMENT_SMOKE` | `scripts/smoke-deployment.mjs`, `docs/deployment/smoke-tests.md` | Available against a reachable environment |
 
-Verified at this commit: no browser-automation dependency exists in any
-`package.json`, and web/admin jest run in a **node** environment with no jsdom,
-so component *rendering* cannot be tested either. Extract the logic and test
-that.
+> The `BROWSER_E2E` row previously read "**Not installed** — no Playwright,
+> Cypress or Puppeteer in any workspace", and the paragraph below it said the
+> same. Both became false when the `e2e` workspace landed and closed
+> [[ITEM-0001]]. Corrected 2026-08-16 at `78072d2` — see
+> [[BUG-0036-integration-patterns-context-denies-four-subsystems-that-exi]].
+
+Verified at `78072d2`: web, admin and landing jest all run in a **node**
+environment with no jsdom, so component *rendering* still cannot be unit-tested.
+Extract the logic and test that; use the `e2e` workspace when the thing under
+test genuinely needs a browser.
 
 ### Isolated test databases
 
@@ -187,20 +198,29 @@ The header comments carry the design rationale:
   logic — RBAC helpers and the module registry. **Rendering tests would need
   jsdom, which is not installed**."
 
-**Component render tests are impossible in both apps.** jsdom and
-`@testing-library/*` are absent from both `package.json` files. Do not write one
-without adding the dependencies as an explicit decision.
+**Component render tests are impossible in all three apps.** jsdom and
+`@testing-library/*` are absent from every frontend `package.json`. Do not write
+one without adding the dependencies as an explicit decision.
 
-Existing frontend specs (9 total): web — `app/(authenticated)/_components/navigation.spec.ts`,
-`app/components/branding/tenant-logo-resolution.spec.ts`,
-`lib/runtime/command-catalog.spec.ts`,
-`lib/runtime/modules/standard-module-views.spec.ts`,
-`lib/runtime/visibility.resolver.spec.ts`; admin — `lib/auth-config.spec.ts`,
-`lib/platform-appearance.spec.ts`, `lib/platform-rbac.spec.ts`,
-`lib/runtime/runtime-lookups.spec.ts`.
+**Frontend spec count at `78072d2`: 28 — web 17, admin 9, landing 2.** Do not
+copy that number forward; count them. A previous version of this file said "9
+total" and named them individually, which stayed accurate for exactly as long as
+nobody added a spec.
 
-`apps/landing` has **no jest config and no `test` script**. `apps/docs` has none.
-`apps/agent-desktop` has no test script (only `check-types`).
+Per app:
+
+- **`apps/landing` has a jest config and a `test` script** — `jest.config.js`,
+  `lib/plan-presentation.spec.ts`, `lib/subscribe-selection.spec.ts`, gated by
+  the required `test-landing` CI job. This file previously said it had neither;
+  so did `frontend-architecture.md`, `docs/architecture/frontend.md` and
+  `apps/landing/AGENTS.md`. **Four documents agreed with each other and all four
+  were wrong** — which is the most dangerous shape of drift, because consensus
+  reads as confirmation. Corrected 2026-08-16.
+- **`apps/docs`** has no test script and nothing to test — a stock starter. See
+  [[docs-application]].
+- **`apps/agent-desktop`** has no test script and no tests, and neither does the
+  `agent` API module that serves it. That gap is tracked as [[ITEM-0027]] and is
+  how [[BUG-0034-desktop-agent-logout-never-revokes-the-refresh-token]] survived.
 
 ### packages/config
 
@@ -288,8 +308,12 @@ npm --workspace admin run test | check-types | lint | build | dev | start | rele
 #   admin has no test:watch; web/admin check-types is `next typegen && tsc --noEmit`
 ```
 
-`apps/landing`: `dev`, `build`, `check-types`, `start`, `lint` — **no `test`, no
-`release`.** There are **no `gateway:build` / `gateway:test` scripts**.
+`apps/landing`: `dev`, `build`, `check-types`, `start`, `lint`, **`test`** — no
+`release`, unlike web and admin.
+
+`gateway:build`, `gateway:test` and `gateway:package` **do exist** in the root
+`package.json`, alongside `zkteco:*`, `release:app`, `test:browser` and
+`test:release-cli`. This paragraph previously denied the first two.
 
 ## Key abstractions
 

@@ -1,8 +1,8 @@
 # Repository Map
 
-> **Last verified:** 2026-08-14
-> **Verified against commit:** 8682dc1
-> **Key source files:** package.json, turbo.json, services/api/src/common/, apps/web/lib/runtime/, apps/admin/lib/, packages/config/index.js, packages/ui/src/, scripts/, docs/README.md
+> **Last verified:** 2026-08-16
+> **Verified against commit:** 78072d2
+> **Key source files:** package.json, turbo.json, services/api/src/common/, apps/web/lib/runtime/, apps/admin/lib/, packages/config/index.js, packages/ui/src/, gateway/, tools/zkteco-poc/, e2e/, scripts/, docs/README.md
 >
 > This document describes the repository, it is not authority over it. If the
 > code disagrees, the code is current truth — report the discrepancy and
@@ -15,7 +15,7 @@
 Root `package.json`:
 
 ```json
-"workspaces": ["apps/*", "packages/*", "services/*"]
+"workspaces": ["apps/*", "packages/*", "services/*", "e2e"]
 ```
 
 Actual workspace members at this commit:
@@ -59,8 +59,15 @@ DEPLOYMENT_CHECKLIST.md
 .agent/agents/     agent role definitions (architect, implementer, reviewer)
 ```
 
-There is **no `gateway/` and no `tools/`** directory at this commit
-(`git ls-files gateway tools` → 0 entries).
+`gateway/` and `tools/` **both exist** — `git ls-files gateway tools` returns
+**1,422 entries** at `78072d2` (gateway 1,387, tools 35).
+
+> This paragraph previously read "There is **no `gateway/` and no `tools/`**
+> directory at this commit (`git ls-files gateway tools` → 0 entries)." It was
+> true when written and is now false. See
+> [[BUG-0036-integration-patterns-context-denies-four-subsystems-that-exi]] —
+> absence claims are the documentation that ages worst, because nothing breaks
+> when they stop being true.
 
 ### Shared code — where it actually lives
 

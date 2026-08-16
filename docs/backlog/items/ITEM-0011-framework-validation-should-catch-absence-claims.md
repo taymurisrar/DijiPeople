@@ -74,6 +74,22 @@ architecture [[agent-engineering-architecture|Agent Engineering Architecture]].
 
 ## History
 
+- 2026-08-16 — **second occurrence recorded, and much larger than the first.**
+  [[BUG-0036-integration-patterns-context-denies-four-subsystems-that-exi]]
+  found false absence claims across four context documents at once:
+  `integration-patterns.md` denied the `attendance-integrations` module,
+  `gateway-auth.guard.ts`, the `gateway/` .NET solution (1,387 tracked files),
+  the `gateway:*` npm scripts and `tools/zkteco-poc/`; `system-overview.md`
+  denied five subsystems; `repo-map.md` denied `gateway/` and `tools/`;
+  `testing-architecture.md` denied Playwright in any workspace and a jest config
+  in `apps/landing`. All corrected in TASK-0002.
+
+  This is no longer a hypothetical worth guarding against — it is the dominant
+  failure mode of the context layer, and it recurs precisely because nothing
+  breaks when an absence claim becomes false. The record's own warning still
+  binds: keep the check narrow, because a validator that interprets prose
+  produces false failures and gets bypassed.
+
 - 2026-08-15 — raised alongside BUG-0023 as the generalisable half of it.
 
 - 2026-08-15 — Architect triage: FIX_NOW, with the record own warning treated as binding: keep it narrow. A validator that tries to interpret prose will produce false failures, and a validation nobody trusts gets bypassed. Implement the explicit-marker form or the `Last verified` refresh requirement — not an English parser.

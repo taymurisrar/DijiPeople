@@ -13,11 +13,22 @@ on-premise .NET gateway.
 apps/landing   :3000  public site — marketing, leads, partner enquiry, plans
 apps/web       :3001  tenant product — employees, managers, HR, payroll, admins
 apps/admin     :3002  platform admin — DijiPeople's own SaaS operations
-apps/agent-desktop     Electron attendance agent, its own auth client
-services/api   :4000  NestJS 11, global prefix /api, 63 modules
+apps/docs      :3003  stock create-turbo starter — NOT part of the product
+apps/agent-desktop     Electron workstation activity agent, its own auth client
+services/api   :4000  NestJS 11, global prefix /api
 packages/config        @repo/config — plain JS, no build step
 gateway/               .NET on-premise integration gateway
+tools/zkteco-poc/      ZKTeco device POC + .NET worker
+e2e/                   Playwright browser journeys
 ```
+
+Per-application detail: [[monorepo-application-map]].
+
+Two corrections worth carrying, both verified at `78072d2`: `apps/docs` was
+absent from this list entirely, and `agent-desktop` is an **activity** agent,
+not an attendance one — it writes no attendance data at all
+([[desktop-api-gateway-relationship]]). Module and model counts are deliberately
+not quoted here; they go stale within days, so re-derive them.
 
 Node 22, npm 11, npm workspaces + Turborepo.
 
@@ -60,7 +71,9 @@ and it is already enforced by convention rather than by the database.
 [[database-architecture]] · [[runtime-module-system]] ·
 [[tenant-workspace-routing]] · [[deployment-architecture]] ·
 [[integration-architecture]] · [[qa-and-ci-architecture]] ·
-[[agent-engineering-architecture]]
+[[agent-engineering-architecture]] · [[monorepo-application-map]] ·
+[[landing-architecture]] · [[desktop-agent-architecture]] ·
+[[desktop-api-gateway-relationship]] · [[docs-application]]
 
 Source: root `AGENTS.md`, `.agent/context/system-overview.md`,
 `.agent/context/repo-map.md`, `docs/architecture/`.

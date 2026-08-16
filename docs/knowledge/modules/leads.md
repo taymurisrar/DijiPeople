@@ -11,8 +11,15 @@ or a partner referral, is qualified, and converts to a `CustomerAccount`.
 ## Frontend surfaces
 
 Two public forms in `apps/landing` — `/request-demo` and `/contact` — plus the
-admin lead list and record. `/request-demo` carries a honeypot; `/contact` does
-not.
+admin lead list and record. `/request-demo` carries a honeypot and captures the
+`?ref` referral code; `/contact` does **neither**, so a partner link landing on
+`/contact` loses attribution silently. See [[landing-website]].
+
+A **third** creator exists and is easy to miss: the public `/subscribe` checkout
+creates a `Lead` server-side in `billing.service.ts`, with `source
+'DijiPeople Public Subscribe'` and `status QUALIFIED`. It fabricates `industry`,
+`companySize` and a `lastName` default, which widens
+[[BUG-0021-landing-contact-form-fabricates-lead-data]] beyond the form it names.
 
 ## Main API / services
 
@@ -65,4 +72,4 @@ REG-011 — `public-leads.rate-limit.spec.ts`.
 
 [[customers]] · [[partners]] · [[contracts-and-agreements]] ·
 [[commercial-onboarding-lifecycle]] · [[requirement-lead-conversion]] ·
-[[authentication]]
+[[authentication]] · [[landing-website]] · [[landing-architecture]]

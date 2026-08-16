@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**53 records** — 29 bugs under [`docs/bugs/`](../bugs/), 24 non-bug items under [`items/`](items/).
+**63 records** — 36 bugs under [`docs/bugs/`](../bugs/), 27 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,13 +13,13 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 34 |
+| Open (active work) | 44 |
 | Blocked | 0 |
 | Deferred | 2 |
 | Awaiting a product decision | 3 |
 | Completed / closed | 14 |
 | **Open CRITICAL** | **1** |
-| **Open HIGH** | **5** |
+| **Open HIGH** | **11** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
@@ -27,8 +27,8 @@ see [`README.md`](README.md) for why.
 | Severity | Count |
 |---|---|
 | CRITICAL | 1 |
-| HIGH | 5 |
-| MEDIUM | 20 |
+| HIGH | 11 |
+| MEDIUM | 24 |
 | LOW | 8 |
 
 ## Open by type
@@ -37,27 +37,27 @@ see [`README.md`](README.md) for why.
 |---|---|
 | ARCHITECTURE | 3 |
 | BUG | 1 |
-| DATA_INTEGRITY | 2 |
-| DOCUMENTATION | 2 |
+| DATA_INTEGRITY | 3 |
+| DOCUMENTATION | 3 |
 | FOLLOW_UP | 3 |
 | INFRA | 3 |
-| INTEGRATION | 2 |
-| SECURITY | 1 |
+| INTEGRATION | 3 |
+| SECURITY | 6 |
 | STATE_MACHINE | 3 |
-| TECH_DEBT | 5 |
-| TEST_GAP | 6 |
+| TECH_DEBT | 6 |
+| TEST_GAP | 7 |
 | UX | 3 |
 
 ## All records by status
 
 | Status | Count |
 |---|---|
-| OPEN | 6 |
+| OPEN | 12 |
 | DEFERRED | 2 |
 | PRODUCT_DECISION | 3 |
-| FIXED | 10 |
+| FIXED | 11 |
 | VERIFIED | 12 |
-| READY | 16 |
+| READY | 19 |
 | DEFERRED | 2 |
 | PRODUCT_DECISION | 3 |
 | VALIDATING | 2 |
@@ -83,6 +83,12 @@ see [`README.md`](README.md) for why.
 | [BUG-0016](../../docs/bugs/BUG-0016-partner-onboarding-review-has-no-state-machine.md) | Partner onboarding review has no state machine | STATE_MACHINE | HIGH | P1 | FIXED | api:partner-experience | FIX_NOW |
 | [BUG-0019](../../docs/bugs/BUG-0019-partner-inquiry-and-onboarding-review-screens-are-unreachable.md) | Partner inquiry and onboarding review screens have no inbound link | UX | HIGH | P1 | OPEN | apps/admin | PLAN_REQUIRED |
 | [BUG-0026](../../docs/bugs/BUG-0026-public-login-and-tenant-email-links-resolved-to-localhost-in.md) | Public Login and tenant email links resolved to localhost in production | INFRA | HIGH | P1 | FIXED | apps/landing, apps/web, apps/admin, services/api, pkg:config | FIX_NOW |
+| [BUG-0030](../../docs/bugs/BUG-0030-public-subscribe-endpoint-has-no-rate-limiting.md) | Public subscribe endpoint has no rate limiting | SECURITY | HIGH | P1 | OPEN | api:billing, apps/landing | PLAN_REQUIRED |
+| [BUG-0031](../../docs/bugs/BUG-0031-landing-proxies-collapse-every-visitor-into-one-rate-limit-b.md) | Landing proxies collapse every visitor into one rate limit bucket | SECURITY | HIGH | P1 | OPEN | apps/landing, services/api/src/common | PLAN_REQUIRED |
+| [BUG-0032](../../docs/bugs/BUG-0032-desktop-agent-login-is-unthrottled-and-enumerates-users-acro.md) | Desktop agent login is unthrottled and enumerates users across every tenant | SECURITY | HIGH | P1 | OPEN | api:agent, apps/agent-desktop | FIX_NOW |
+| [BUG-0033](../../docs/bugs/BUG-0033-desktop-agent-auto-update-points-at-an-endpoint-that-does-no.md) | Desktop agent auto update points at an endpoint that does not exist | INTEGRATION | HIGH | P1 | OPEN | apps/agent-desktop, api:agent, api:app-releases | PLAN_REQUIRED |
+| [BUG-0034](../../docs/bugs/BUG-0034-desktop-agent-logout-never-revokes-the-refresh-token.md) | Desktop agent logout never revokes the refresh token | SECURITY | HIGH | P1 | OPEN | apps/agent-desktop, api:agent | FIX_NOW |
+| [BUG-0035](../../docs/bugs/BUG-0035-agent-heartbeat-has-no-idempotency-so-retries-double-count-p.md) | Agent heartbeat has no idempotency so retries double count productivity | DATA_INTEGRITY | HIGH | P1 | OPEN | api:agent, services/api/prisma, apps/agent-desktop | PLAN_REQUIRED |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | READY | api:tenant-control-plane | FIX_NOW |
 | [ITEM-0018](../../docs/backlog/items/ITEM-0018-plans-and-prices-have-no-draft-publish-or-archive-lifecycle.md) | Plans and prices have no draft, publish or archive lifecycle | ARCHITECTURE | MEDIUM | P1 | VALIDATING | services/api/prisma, api:super-admin, apps/admin, apps/landing | FIX_NOW |
@@ -96,6 +102,7 @@ see [`README.md`](README.md) for why.
 | [BUG-0025](../../docs/bugs/BUG-0025-a-live-partner-could-be-demoted-through-the-generic-partner-.md) | A live partner could be demoted through the generic partner update | STATE_MACHINE | MEDIUM | P2 | FIXED | api:partners | FIX_NOW |
 | [BUG-0028](../../docs/bugs/BUG-0028-country-to-currency-mapping-is-hardcoded-in-the-landing-fron.md) | Country to currency mapping is hardcoded in the landing frontend | INTEGRATION | MEDIUM | P2 | FIXED | apps/landing | PLAN_REQUIRED |
 | [BUG-0029](../../docs/bugs/BUG-0029-public-features-page-advertised-capabilities-the-product-doe.md) | Public features page advertised capabilities the product does not gate and omitted ones it does | DOCUMENTATION | MEDIUM | P2 | FIXED | apps/landing | FIX_NOW |
+| [BUG-0036](../../docs/bugs/BUG-0036-integration-patterns-context-denies-four-subsystems-that-exi.md) | Integration patterns context denies four subsystems that exist | DOCUMENTATION | MEDIUM | P2 | FIXED | .agent/context | FIX_NOW |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | No harness exists for testing against a running API with real sessions | TEST_GAP | MEDIUM | P2 | READY | services/api, apps/admin | FIX_NOW |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | READY | api:tenant-control-plane | FIX_NOW |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | READY | services/api/prisma, api:super-admin | PLAN_REQUIRED |
@@ -109,6 +116,9 @@ see [`README.md`](README.md) for why.
 | [ITEM-0019](../../docs/backlog/items/ITEM-0019-no-market-or-region-model-maps-countries-to-plans-currencies.md) | No market or region model maps countries to plans, currencies and legal sets | ARCHITECTURE | MEDIUM | P2 | VALIDATING | services/api/prisma, api:super-admin, apps/admin, apps/landing | FIX_NOW |
 | [ITEM-0020](../../docs/backlog/items/ITEM-0020-contract-phase-drop-legacy-plan-pricing-columns.md) | Contract phase: drop legacy Plan pricing columns | TECH_DEBT | MEDIUM | P2 | READY | services/api/prisma, api:super-admin, apps/admin | PLAN_REQUIRED |
 | [ITEM-0022](../../docs/backlog/items/ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur.md) | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | P2 | READY | api:super-admin, apps/admin | PLAN_REQUIRED |
+| [ITEM-0025](../../docs/backlog/items/ITEM-0025-desktop-agent-windows-installer-is-unsigned.md) | Desktop agent Windows installer is unsigned | SECURITY | MEDIUM | P2 | READY | apps/agent-desktop | PLAN_REQUIRED |
+| [ITEM-0026](../../docs/backlog/items/ITEM-0026-desktop-agent-has-no-retry-backoff-and-no-bounded-give-up.md) | Desktop agent has no retry backoff and no bounded give up | TECH_DEBT | MEDIUM | P2 | READY | apps/agent-desktop, api:agent | PLAN_REQUIRED |
+| [ITEM-0027](../../docs/backlog/items/ITEM-0027-apps-agent-desktop-has-no-agents-md-and-no-test-coverage.md) | apps/agent-desktop has no AGENTS.md and no test coverage | TEST_GAP | MEDIUM | P2 | READY | apps/agent-desktop, api:agent | FIX_NOW |
 | [ITEM-0021](../../docs/backlog/items/ITEM-0021-mechanical-guard-against-country-and-currency-literals-in-fr.md) | Mechanical guard against country and currency literals in frontends | TEST_GAP | LOW | P2 | READY | scripts, apps/landing, apps/web, apps/admin | DEFER |
 | [ITEM-0023](../../docs/backlog/items/ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning.md) | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | P2 | READY | services/api/prisma, api:tenant-control-plane | DEFER |
 | [ITEM-0024](../../docs/backlog/items/ITEM-0024-landing-depends-on-lucide-react-without-declaring-it.md) | Landing depends on lucide-react without declaring it | TECH_DEBT | LOW | P2 | READY | apps/landing | DEFER |

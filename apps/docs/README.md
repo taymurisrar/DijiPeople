@@ -1,36 +1,47 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/create-next-app).
+# `apps/docs`
 
-## Getting Started
+**This is an unmodified `create-turbo` starter. It is not part of the DijiPeople
+product and ships nothing to any user.**
 
-First, run the development server:
+It has one route, no API calls, no authentication, no content system and no
+deployment target. The name is the only thing about it that suggests
+documentation — repository documentation lives in [`docs/`](../../docs/) and is
+not served by any application.
+
+Durable notes on what it costs and what depends on it:
+[`docs/knowledge/architecture/docs-application.md`](../../docs/knowledge/architecture/docs-application.md).
+
+## Running it
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm --workspace docs run dev     # http://localhost:3003
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Port **3003**, overridable with `DOCS_PORT`. Note that this is the one
+application whose port is **not** resolved from `@repo/config` —
+`DEFAULT_LOCAL_PORTS` has no `docs` key, so 3003 is hardcoded in this
+workspace's `package.json`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Two things to know before changing it
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load Inter, a custom Google Font.
+- **It is the only consumer of `@repo/ui` in the monorepo.** Removing this app
+  leaves that package with zero consumers, so the two decisions are one
+  decision. `@repo/ui` is three demo components and is explicitly *not* the
+  design system.
+- **CI builds and typechecks it on every commit, but never lints it.** The
+  `lint` job names `apps/web`, `apps/admin` and `apps/landing` only, while
+  `typecheck` and `build` run across all workspaces through Turborepo.
 
-## Learn More
+## Why this README was rewritten
 
-To learn more about Next.js, take a look at the following resources:
+It was `create-next-app` boilerplate, and three of its statements were wrong:
+it directed the reader to **port 3000** — which is `apps/landing`, a different
+application — claimed the app loads the **Inter** font when
+[`app/layout.tsx`](app/layout.tsx) loads Geist, and offered `yarn` / `pnpm` /
+`bun` commands in a repository that pins `npm@11.9.0` and uses npm workspaces
+with Turborepo.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Its `<title>` is still `Create Next App`. That is left alone deliberately: this
+file now describes the app honestly, and changing the app itself is a product
+decision nobody has taken.
+</content>
