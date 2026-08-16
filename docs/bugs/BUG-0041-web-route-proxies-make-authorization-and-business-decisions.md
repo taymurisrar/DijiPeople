@@ -1,6 +1,6 @@
 ---
-ID: BUG-0040
-aliases: [BUG-0040]
+ID: BUG-0041
+aliases: [BUG-0041]
 Title: Web route proxies make authorization and business decisions
 Status: OPEN
 Severity: MEDIUM
@@ -22,7 +22,7 @@ UpdatedAt: 2026-08-17
 ResolvedAt:
 ---
 
-# BUG-0040 — Web route proxies make authorization and business decisions
+# BUG-0041 — Web route proxies make authorization and business decisions
 
 ## Summary
 
@@ -31,7 +31,7 @@ logic. **No authorization decisions.**" Both halves are violated. One handler
 denies access on its own authority; several others compute, reshape or invent
 data the API never returned.
 
-`BUG-0038` covers the two most severe instances separately, because their
+`BUG-0039` covers the two most severe instances separately, because their
 failure mode is data substitution rather than policy drift.
 
 ## Expected Behavior
@@ -141,13 +141,13 @@ handler the day it landed.
 
 ## Dependencies
 
-[[BUG-0038-employee-payslip-and-bank-account-proxies-return-the-callers]] —
+[[BUG-0039-employee-payslip-and-bank-account-proxies-return-the-callers]] —
 same layer, same absent guard; fix the check once.
 
 ## Related Items
 
-[[BUG-0038-employee-payslip-and-bank-account-proxies-return-the-callers]] ·
-[[web-architecture]] · [[tenant-application]] · [[ITEM-0033]] ·
+[[BUG-0039-employee-payslip-and-bank-account-proxies-return-the-callers]] ·
+[[web-architecture]] · [[tenant-application]] · [[ITEM-0034]] ·
 bug pattern [[service-authorization-hidden]] · bug pattern [[divergent-duplicate-guard]].
 
 ## Resolution

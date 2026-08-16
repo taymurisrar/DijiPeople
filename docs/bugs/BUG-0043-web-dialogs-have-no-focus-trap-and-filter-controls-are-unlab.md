@@ -1,6 +1,6 @@
 ---
-ID: BUG-0042
-aliases: [BUG-0042]
+ID: BUG-0043
+aliases: [BUG-0043]
 Title: Web dialogs have no focus trap and filter controls are unlabelled
 Status: OPEN
 Severity: MEDIUM
@@ -22,7 +22,7 @@ UpdatedAt: 2026-08-17
 ResolvedAt:
 ---
 
-# BUG-0042 — Web dialogs have no focus trap and filter controls are unlabelled
+# BUG-0043 — Web dialogs have no focus trap and filter controls are unlabelled
 
 ## Summary
 
@@ -110,11 +110,11 @@ reachable; add `eslint-plugin-jsx-a11y` so the class cannot silently return.
 
 **None**, and component tests are impossible under the current jest config
 (`testEnvironment: node`, no jsdom). The realistic guard is the lint rule plus
-browser coverage — which `apps/web` does not have at all ([[ITEM-0033]]).
+browser coverage — which `apps/web` does not have at all ([[ITEM-0034]]).
 
 ## Related Items
 
-[[web-architecture]] · [[tenant-application]] · [[ITEM-0033]] ·
+[[web-architecture]] · [[tenant-application]] · [[ITEM-0034]] ·
 [[runtime-module-system]] · [[ITEM-0031]].
 
 ## Resolution

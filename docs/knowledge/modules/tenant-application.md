@@ -38,7 +38,7 @@ Shared kit under `app/components/` — `data-table/`, `runtime/`, `ui/`
 (`Button`, `EmptyState`, `FormControl`'s named fields, `SectionCard`,
 `StatusPill`) and `metadata/`. **There is no `Card`, `Badge`, `Tabs` or
 `Dialog`** — documents that name them are wrong
-([[BUG-0044-the-canonical-settings-and-branding-contract-is-materially-s]]).
+([[BUG-0045-the-canonical-settings-and-branding-contract-is-materially-s]]).
 
 ## What is done well, and worth not breaking
 
@@ -66,13 +66,13 @@ Shared kit under `app/components/` — `data-table/`, `runtime/`, `ui/`
 - **Route handlers must decide nothing.** The rule is violated in five places —
   including two that turn a `403` into a `200` containing the caller's own
   payslips or bank details
-  ([[BUG-0038-employee-payslip-and-bank-account-proxies-return-the-callers]]).
+  ([[BUG-0039-employee-payslip-and-bank-account-proxies-return-the-callers]]).
   Before adding a handler, read
-  [[BUG-0040-web-route-proxies-make-authorization-and-business-decisions]].
+  [[BUG-0041-web-route-proxies-make-authorization-and-business-decisions]].
 - **Nothing is cached and nothing can be invalidated.** Every fetch is
   `no-store` and every render is dynamic. A "stale settings" symptom is a
   provider-refresh bug, not a cache one
-  ([[BUG-0045-tenant-theme-mode-and-runtime-settings-saves-do-not-take-eff]]).
+  ([[BUG-0046-tenant-theme-mode-and-runtime-settings-saves-do-not-take-eff]]).
 - **`moduleKey` string equality** selects command handlers and derives the API
   path. Renaming a spec's key silently changes both.
 
@@ -95,22 +95,22 @@ Jest runs in a **node environment with no jsdom**, and `testMatch` is
 `**/*.spec.ts` — **`.spec.tsx` is not matched**. Component render tests are
 impossible; extract the logic and test the resolver, merge or catalog instead.
 
-**`apps/web` also has zero browser coverage** ([[ITEM-0033]]), so pages, client
+**`apps/web` also has zero browser coverage** ([[ITEM-0034]]), so pages, client
 components, `proxy.ts` and all 416 handlers have no test mechanism at all. That
 is the single largest quality gap in the repository, and [[ITEM-0001]]'s `DONE`
 should not be read as covering this app.
 
 ## Known records
 
-[[BUG-0038-employee-payslip-and-bank-account-proxies-return-the-callers]] ·
-[[BUG-0039-apps-web-sets-no-security-response-headers]] ·
-[[BUG-0040-web-route-proxies-make-authorization-and-business-decisions]] ·
-[[BUG-0041-apps-web-reads-21-environment-variables-unregistered-in-turb]] ·
-[[BUG-0042-web-dialogs-have-no-focus-trap-and-filter-controls-are-unlab]] ·
-[[BUG-0044-the-canonical-settings-and-branding-contract-is-materially-s]] ·
-[[BUG-0045-tenant-theme-mode-and-runtime-settings-saves-do-not-take-eff]] ·
+[[BUG-0039-employee-payslip-and-bank-account-proxies-return-the-callers]] ·
+[[BUG-0040-apps-web-sets-no-security-response-headers]] ·
+[[BUG-0041-web-route-proxies-make-authorization-and-business-decisions]] ·
+[[BUG-0042-apps-web-reads-21-environment-variables-unregistered-in-turb]] ·
+[[BUG-0043-web-dialogs-have-no-focus-trap-and-filter-controls-are-unlab]] ·
+[[BUG-0045-the-canonical-settings-and-branding-contract-is-materially-s]] ·
+[[BUG-0046-tenant-theme-mode-and-runtime-settings-saves-do-not-take-eff]] ·
 [[BUG-0020-window-prompt-used-for-governed-reasons]] (VERIFIED) ·
-[[ITEM-0033]] · [[ITEM-0034]] · [[ITEM-0035]] · [[ITEM-0036]] · [[ITEM-0012]]
+[[ITEM-0034]] · [[ITEM-0035]] · [[ITEM-0036]] · [[ITEM-0037]] · [[ITEM-0012]]
 
 ## Related
 

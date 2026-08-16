@@ -1,6 +1,6 @@
 ---
-ID: ITEM-0034
-aliases: [ITEM-0034]
+ID: ITEM-0035
+aliases: [ITEM-0035]
 Title: Web route handlers flatten upstream error status to 500
 Type: TECH_DEBT
 Status: READY
@@ -12,7 +12,7 @@ OwnerAgent: frontend
 ArchitectDisposition: FIX_NOW
 CreatedAt: 2026-08-17
 UpdatedAt: 2026-08-17
-RelatedBug: BUG-0040
+RelatedBug: BUG-0041
 RelatedQA: docs/qa/runs/2026-08-17-web-app-documentation-1af3690.md
 RelatedADR:
 RelatedImplementation:
@@ -20,7 +20,7 @@ TargetMilestone:
 BlockedBy:
 ---
 
-# ITEM-0034 — Web route handlers flatten upstream error status to 500
+# ITEM-0035 — Web route handlers flatten upstream error status to 500
 
 ## Summary
 
@@ -81,12 +81,12 @@ if a file under `app/api/**` contains a literal `status: 500` without an
 ## Dependencies
 
 None. Independent of
-[[BUG-0040-web-route-proxies-make-authorization-and-business-decisions]], though
+[[BUG-0041-web-route-proxies-make-authorization-and-business-decisions]], though
 both touch the same layer and could share one sweep.
 
 ## Related Items
 
-[[BUG-0040-web-route-proxies-make-authorization-and-business-decisions]] ·
+[[BUG-0041-web-route-proxies-make-authorization-and-business-decisions]] ·
 [[web-architecture]] · [[api-architecture]] · [[ITEM-0012]] ·
 bug pattern [[silent-config-fallback]].
 

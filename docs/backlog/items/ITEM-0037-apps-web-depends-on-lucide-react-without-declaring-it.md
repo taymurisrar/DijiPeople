@@ -1,6 +1,6 @@
 ---
-ID: ITEM-0036
-aliases: [ITEM-0036]
+ID: ITEM-0037
+aliases: [ITEM-0037]
 Title: apps/web depends on lucide-react without declaring it
 Type: TECH_DEBT
 Status: READY
@@ -20,7 +20,7 @@ TargetMilestone:
 BlockedBy:
 ---
 
-# ITEM-0036 — apps/web depends on lucide-react without declaring it
+# ITEM-0037 — apps/web depends on lucide-react without declaring it
 
 ## Summary
 
@@ -68,7 +68,7 @@ The durable half is a check: fail when a bare import in a workspace resolves to
 a package that workspace does not declare. That is the generalisable form of
 this item and of [[ITEM-0024]], and it would have caught both.
 
-Note this interacts with [[BUG-0042-web-dialogs-have-no-focus-trap-and-filter-controls-are-unlab]]:
+Note this interacts with [[BUG-0043-web-dialogs-have-no-focus-trap-and-filter-controls-are-unlab]]:
 if a headless dialog library is adopted, it must be declared here rather than
 relying on the same hoisting.
 

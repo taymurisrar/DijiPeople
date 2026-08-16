@@ -1,5 +1,6 @@
 ---
 ID: ITEM-0032
+aliases: [ITEM-0032]
 Title: Recompute productivity totals inflated by heartbeat replays
 Type: DATA_MIGRATION
 Status: READY

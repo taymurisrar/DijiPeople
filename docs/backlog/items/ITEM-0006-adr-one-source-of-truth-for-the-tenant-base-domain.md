@@ -3,7 +3,7 @@ ID: ITEM-0006
 aliases: [ITEM-0006]
 Title: ADR needed — one source of truth for the tenant base domain
 Type: ARCHITECTURE
-Status: READY
+Status: DONE
 Priority: P2
 Severity: MEDIUM
 AffectedModules: [packages/config, services/api, apps/web, apps/admin, apps/landing]
@@ -11,7 +11,7 @@ Source: QA_RUN
 OwnerAgent: architect
 ArchitectDisposition: PLAN_REQUIRED
 CreatedAt: 2026-08-15
-UpdatedAt: 2026-08-15
+UpdatedAt: 2026-08-17
 RelatedBug: BUG-0017
 RelatedQA: docs/qa/runs/2026-08-15-commercial-onboarding-e2e-7bbab3d.md
 RelatedADR:
@@ -80,3 +80,34 @@ requirement [[requirement-tenant-workspace-domains|Tenant Workspace Domains]] ·
   from the defect it must resolve.
 
 - 2026-08-15 — Architect triage: PLAN_REQUIRED. This one genuinely is an architecture decision and not a defect: a frontend has no Prisma client, so it cannot read a PlatformSetting, and any answer changes four deployables. The ADR is the work item. It blocks BUG-0017 and nothing else.
+
+## Resolution
+
+Written as
+[ADR-0002 — Configuration is the single source of the tenant base domain](../../decisions/ADR-0002-tenant-base-domain-single-source.md).
+
+The decision itself was already implemented (BUG-0017); what was missing was the
+*reasoning*, and specifically why the more attractive-looking option was
+rejected. An operator-editable base domain sounds like the more flexible design,
+and without a record of why it was not chosen, the next architecture review would
+have proposed it again.
+
+The reason is recorded plainly: **the edge router resolves hostnames with no
+database access.** A request is matched to a tenant by hostname before any tenant
+context exists, so a value the router reads on every request cannot live behind a
+lookup it is not in a position to make. Making the setting authoritative would
+need either a database dependency on the hot path or a cache that can disagree
+with its source — which is the original defect in a new place.
+
+The corollary is accepted deliberately rather than hidden: changing the tenant
+base domain is a **deployment-time** change. It also invalidates every existing
+workspace hostname, so it is not an action that belongs one click away in a
+console.
+
+Two alternatives are recorded as rejected with reasons — making the setting
+authoritative, and keeping both with a synchroniser — because "two sources plus a
+synchroniser" is three things to get wrong instead of two.
+
+## Verification
+
+ADR present, linked from BUG-0017 and ITEM-0017. Framework validation passes.

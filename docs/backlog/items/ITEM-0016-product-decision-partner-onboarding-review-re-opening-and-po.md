@@ -3,15 +3,15 @@ ID: ITEM-0016
 aliases: [ITEM-0016]
 Title: Product decision — partner review re-opening and post-activation demotion
 Type: PRODUCT_DECISION
-Status: PRODUCT_DECISION
+Status: DONE
 Priority: P2
 Severity: MEDIUM
 AffectedModules: [services/api/src/modules/partner-experience, services/api/src/modules/partners]
 Source: ARCHITECT
 OwnerAgent: architect
-ArchitectDisposition: PRODUCT_DECISION
+ArchitectDisposition: FIX_NOW
 CreatedAt: 2026-08-15
-UpdatedAt: 2026-08-15
+UpdatedAt: 2026-08-17
 RelatedBug: BUG-0016
 RelatedQA: docs/qa/runs/2026-08-15-commercial-onboarding-e2e-7bbab3d.md
 RelatedADR:
@@ -120,3 +120,58 @@ and covered by regression tests.
 - 2026-08-15 — split out of BUG-0016 during autonomous triage, so the two thirds
   of that record that were engineering inconsistencies could be fixed without
   the remaining third holding a HIGH defect open indefinitely.
+
+## Resolution
+
+**Both questions decided by the product owner on 2026-08-17, and both confirm
+the behaviour already implemented.** No code changed; what changed is that the
+behaviour is now a decision rather than an accident — which is precisely what
+this item said was missing.
+
+### 1. May an `APPROVED` application be re-opened? — **No. Option A.**
+
+Kept closed. `APPROVED` and `REJECTED` stay absent from
+`PARTNER_ONBOARDING_REVIEWABLE_STATUSES`. One decision per application, which
+keeps the audit story clean and — the reason that actually matters — keeps the
+activation gate **monotonic**: it reads
+`onboardingApplications[0].status === APPROVED`, and allowing that to go
+backwards underneath an already-activated partner is the same class of defect
+fixed in BUG-0016.
+
+A mistaken approval is handled as a partner-lifecycle action — `suspend` — plus
+a new application. That path already exists in `partnerTransition`.
+
+### 2. A demoted partner's in-flight attributed leads? — **Freeze. Option A.**
+
+Attribution is a historical fact: the lead *was* referred by that partner.
+Existing `Lead.partnerId`, `CustomerAccount.originatingPartnerId` and
+`Tenant.originatingPartnerId` snapshots are left untouched, and
+`LeadsService` continues to refuse *new* attribution while the partner is not
+`ACTIVE`. Commission eligibility is a separate question answered at payout time.
+
+Option B — detaching in-flight leads — was rejected as destructive: it erases a
+commercial fact and a reactivated partner cannot get its pipeline back.
+
+### 3. `required_approving_review_count`
+
+Not a partner question and not decided here. It stays at 0 because the repository
+has a single maintainer and GitHub does not permit self-approval, so requiring
+one would block every merge. Raise it the moment a second reviewer exists.
+
+## Verification
+
+Verified against the code at `1af3690` — both decisions describe what the
+implementation already does, so the acceptance is that the decision is recorded
+and the code matches it:
+
+- `PARTNER_ONBOARDING_REVIEWABLE_STATUSES` excludes `APPROVED` and
+  `REJECTED`; covered by REG-014
+  (`partner-onboarding.state-machine.spec.ts`).
+- `partnerTransition` owns `suspend` / `deactivate` / `reactivate` and
+  declares `reject` illegal from `ACTIVE`; covered by REG-015
+  (`partner-lifecycle-guards.spec.ts`).
+- Attribution snapshots survive conversion; covered by REG-021
+  (`public-lead-acquisition.spec.ts`) and QA scenario B7.04.
+
+No new test: nothing changed. A test asserting "we chose not to build
+re-opening" would pin the absence of a feature rather than a behaviour.

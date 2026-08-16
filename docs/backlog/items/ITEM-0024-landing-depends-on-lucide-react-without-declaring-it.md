@@ -3,7 +3,7 @@ ID: ITEM-0024
 aliases: [ITEM-0024]
 Title: Landing depends on lucide-react without declaring it
 Type: TECH_DEBT
-Status: READY
+Status: DONE
 Priority: P2
 Severity: LOW
 AffectedModules: [apps/landing]
@@ -11,7 +11,7 @@ Source: ARCHITECT
 OwnerAgent: architect
 ArchitectDisposition: DEFER
 CreatedAt: 2026-08-16
-UpdatedAt: 2026-08-16
+UpdatedAt: 2026-08-17
 RelatedBug: 
 RelatedQA: 
 RelatedADR: 
@@ -79,3 +79,19 @@ None.
 ## History
 
 - 2026-08-16 — found during the Wave 2 component audit.
+
+## Resolution
+
+`lucide-react` is now declared in `apps/landing/package.json` at `^1.8.0`,
+matching the version `apps/admin` already pins.
+
+It resolved before only because npm hoisted admin's copy to the repository root.
+That works until admin drops the dependency, pins a different major, or the
+landing app is built in isolation — at which point a build that has always
+worked starts failing for a reason nowhere in the landing app's own manifest.
+
+## Verification
+
+Declared in the dependency block. The version matches admin's rather than
+floating, so the hoisted copy and the declared one cannot be different builds of
+the same package.

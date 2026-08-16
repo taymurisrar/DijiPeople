@@ -54,8 +54,8 @@ Its consequence is recorded under Post-Merge Validation.
 | | |
 |---|---|
 | **QA Report** | `docs/qa/runs/2026-08-17-web-app-documentation-1af3690.md` — **PASS**, eleven material findings, all triaged |
-| **Bug IDs** | Created: BUG-0038 … BUG-0045. BUG-0043 fixed in this task |
-| **Backlog Items** | Created: ITEM-0033 … ITEM-0036 |
+| **Bug IDs** | Created: BUG-0039 … BUG-0046. BUG-0044 fixed in this task |
+| **Backlog Items** | Created: ITEM-0034 … ITEM-0037 |
 
 Four parallel read-only audits were run, split by concern. **Their headline
 claims were re-verified independently before becoming records, and three did not

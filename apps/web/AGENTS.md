@@ -89,7 +89,7 @@ lib/runtime/
 > and third; that step has no effect. `getEntityMetadata` *is* called twice but
 > the map is never populated, so it always returns `null` and callers fall
 > through to a default. Corrected 2026-08-17 at `1af3690` —
-> see `BUG-0043` and `ITEM-0035`.
+> see `BUG-0044` and `ITEM-0036`.
 >
 > The **only live registry** in this app is
 > `app/(authenticated)/settings/_lib/settings-adapter-registry.ts`, which holds
@@ -110,7 +110,7 @@ Workflow for a new module screen — the steps that actually work:
    `navigation.spec.ts`).
 6. Add a data adapter only if the standard adapter cannot serve it. Note it
    already carries nine hardcoded `moduleKey` branches — adding a tenth is the
-   accretion `ITEM-0035` exists to stop.
+   accretion `ITEM-0036` exists to stop.
 
 Write a bespoke page **only** when the runtime genuinely cannot express the
 requirement, and state that explicitly in the plan. Do not create a second CRUD
@@ -223,7 +223,7 @@ instead.
 > config cannot reach any page, any client component, `proxy.ts`,
 > `lib/server-api.ts` or any of the 416 route handlers — and `apps/web` has
 > **zero browser coverage**, so those surfaces have no test mechanism at all.
-> See `ITEM-0033`. Do not read `ITEM-0001` (browser tooling, `DONE`) as coverage
+> See `ITEM-0034`. Do not read `ITEM-0001` (browser tooling, `DONE`) as coverage
 > of this app.
 
 Existing examples:

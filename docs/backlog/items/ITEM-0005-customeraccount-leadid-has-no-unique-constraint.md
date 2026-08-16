@@ -3,7 +3,7 @@ ID: ITEM-0005
 aliases: [ITEM-0005]
 Title: CustomerAccount.leadId has no unique constraint, so double conversion is unprevented
 Type: TECH_DEBT
-Status: READY
+Status: DONE
 Priority: P2
 Severity: MEDIUM
 AffectedModules: [services/api/prisma, services/api/src/modules/super-admin]
@@ -11,7 +11,7 @@ Source: QA_RUN
 OwnerAgent: database
 ArchitectDisposition: PLAN_REQUIRED
 CreatedAt: 2026-08-15
-UpdatedAt: 2026-08-15
+UpdatedAt: 2026-08-17
 RelatedBug:
 RelatedQA: docs/qa/runs/2026-08-15-commercial-onboarding-e2e-7bbab3d.md
 RelatedADR:
@@ -81,3 +81,46 @@ requirement [[requirement-lead-conversion|Lead Conversion]] · [[BUG-0012]] (the
 - 2026-08-15 — imported from the commercial onboarding E2E's residual risks.
 
 - 2026-08-15 — Architect triage: PLAN_REQUIRED, as the record itself argues. Adding `@@unique([leadId])` can fail on existing data, so it needs a duplicate check and a backfill decision before the constraint is added — expand, verify, contract. That is the change class PLANS.md names, and the plan is cheap compared with a migration that fails on a customer database.
+
+## Resolution
+
+Fixed. `CustomerAccount.leadId` is now `@@unique`, so the database — not a
+pre-check — decides that one lead becomes at most one customer.
+
+The pre-check ran **outside** the conversion transaction, so two concurrent
+conversions of the same lead both passed it and both created a customer, each
+carrying its own subscription and first invoice.
+
+**Treated as the destructive-class change this item said it was.** The migration
+does not simply create the index and hope. It queries for leads already holding
+more than one customer and, if any exist, **raises with their ids** and refuses:
+
+> cannot add the unique constraint — these leads already have more than one
+> CustomerAccount: … Decide which customer survives for each, merge or archive
+> the others, then re-run this migration.
+
+The duplicates are deliberately **not** resolved by the migration. Choosing which
+of two real customers survives — each with a subscription, invoices and possibly
+a live tenant — is a commercial decision with an owner. A bare index-build
+failure would name nothing and leave whoever is on the deploy guessing.
+
+NULLs are distinct in a PostgreSQL unique index, so any number of customers
+created without a lead stay legal; only a *second* customer for the same lead is
+refused.
+
+The constraint violation is translated into the same `409 Lead has already been
+converted.` the single-threaded path returns, which is what the idempotency
+scenario (A6.06) expects. Only a `leadId` conflict is translated — any other
+unique violation is rethrown, because reporting "already converted" for an
+unrelated failure would send an operator hunting a customer that does not
+exist.
+
+## Verification
+
+Migration `20260817110000_customer_lead_unique` — duplicate pre-check that
+raises with ids, then the unique index, then the now-redundant plain index
+dropped.
+
+`npm run prisma:validate` passes. API suite 162 suites / 1149 tests. The
+migration is exercised by the `Database migration gate` against an empty
+PostgreSQL 16.

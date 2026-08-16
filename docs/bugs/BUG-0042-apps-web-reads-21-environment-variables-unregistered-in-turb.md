@@ -1,6 +1,6 @@
 ---
-ID: BUG-0041
-aliases: [BUG-0041]
+ID: BUG-0042
+aliases: [BUG-0042]
 Title: apps/web reads 21 environment variables unregistered in turbo globalEnv
 Status: OPEN
 Severity: MEDIUM
@@ -22,7 +22,7 @@ UpdatedAt: 2026-08-17
 ResolvedAt:
 ---
 
-# BUG-0041 — apps/web reads 21 environment variables unregistered in turbo globalEnv
+# BUG-0042 — apps/web reads 21 environment variables unregistered in turbo globalEnv
 
 ## Summary
 

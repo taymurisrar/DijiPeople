@@ -55,12 +55,7 @@ See [[dijipeople-platform-overview|DijiPeople Platform Overview]] for the full p
 
 ## Open Product Decisions
 
-Questions where the engineering is understood and the **product answer**
-**is not**. No agent may resolve one by implementing a side of it.
-
-- [[ITEM-0016-product-decision-partner-onboarding-review-re-opening-and-po|ITEM-0016]] — **Product decision — partner review re-opening and post-activation demotion** (MEDIUM)
-- [[ITEM-0007-should-duplicate-website-leads-be-deduplicated|ITEM-0007]] — **Product decision — should duplicate website leads be deduplicated?** (LOW)
-- [[ITEM-0008-customeraccount-has-no-origin-channel|ITEM-0008]] — **Product decision — CustomerAccount carries no origin channel** (LOW)
+_None outstanding._
 
 ## Recent Product Changes
 
@@ -73,9 +68,9 @@ Questions where the engineering is understood and the **product answer**
 
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
-| [[BUG-0038-employee-payslip-and-bank-account-proxies-return-the-callers|BUG-0038]] | Employee payslip and bank account proxies return the callers own data on 403 | DATA_INTEGRITY | HIGH | OPEN | apps/web, api:payroll, api:employees | FIX_NOW |
-| [[BUG-0042-web-dialogs-have-no-focus-trap-and-filter-controls-are-unlab|BUG-0042]] | Web dialogs have no focus trap and filter controls are unlabelled | UX | MEDIUM | OPEN | apps/web | PLAN_REQUIRED |
-| [[BUG-0045-tenant-theme-mode-and-runtime-settings-saves-do-not-take-eff|BUG-0045]] | Tenant theme mode and runtime settings saves do not take effect | UX | MEDIUM | OPEN | apps/web | FIX_NOW |
+| [[BUG-0039-employee-payslip-and-bank-account-proxies-return-the-callers|BUG-0039]] | Employee payslip and bank account proxies return the callers own data on 403 | DATA_INTEGRITY | HIGH | OPEN | apps/web, api:payroll, api:employees | FIX_NOW |
+| [[BUG-0043-web-dialogs-have-no-focus-trap-and-filter-controls-are-unlab|BUG-0043]] | Web dialogs have no focus trap and filter controls are unlabelled | UX | MEDIUM | OPEN | apps/web | PLAN_REQUIRED |
+| [[BUG-0046-tenant-theme-mode-and-runtime-settings-saves-do-not-take-eff|BUG-0046]] | Tenant theme mode and runtime settings saves do not take effect | UX | MEDIUM | OPEN | apps/web | FIX_NOW |
 | [[ITEM-0031-replace-remaining-native-prompts-for-governed-input|ITEM-0031]] | Replace remaining native prompts for governed input | UX | MEDIUM | READY | apps/admin, apps/web | DEFER |
 
 ## How to read this

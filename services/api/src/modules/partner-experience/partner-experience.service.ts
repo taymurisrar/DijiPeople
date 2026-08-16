@@ -117,6 +117,8 @@ export class PartnerExperienceService {
             data: {
               code: partnerReference(),
               type: dto.type,
+              // ITEM-0030 — the proposed relationship survives conversion.
+              partnershipModel: dto.partnershipModel ?? null,
               displayName:
                 normalized.companyName ||
                 `${normalized.contactFirstName} ${normalized.contactLastName}`,
@@ -278,6 +280,8 @@ export class PartnerExperienceService {
             data: {
               code: partnerReference(),
               type: inquiry.type,
+              // ITEM-0030 — carried from the inquiry rather than dropped.
+              partnershipModel: inquiry.partnershipModel ?? null,
               displayName:
                 inquiry.companyName ||
                 `${inquiry.contactFirstName} ${inquiry.contactLastName}`,

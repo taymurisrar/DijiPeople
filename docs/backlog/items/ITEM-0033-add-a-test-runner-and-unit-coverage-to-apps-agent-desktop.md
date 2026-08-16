@@ -1,0 +1,72 @@
+---
+ID: ITEM-0033
+aliases: [ITEM-0033]
+Title: Add a test runner and unit coverage to apps/agent-desktop
+Type: TEST_GAP
+Status: READY
+Priority: P2
+Severity: MEDIUM
+AffectedModules: [apps/agent-desktop]
+Source: ARCHITECT
+OwnerAgent: architect
+ArchitectDisposition: DEFER
+CreatedAt: 2026-08-16
+UpdatedAt: 2026-08-16
+RelatedBug: BUG-0036
+RelatedQA: 
+RelatedADR: 
+RelatedImplementation:
+TargetMilestone: 
+BlockedBy: 
+---
+
+# ITEM-0033 — Add a test runner and unit coverage to apps/agent-desktop
+
+## Summary
+
+The open half of [[ITEM-0028]]. `apps/agent-desktop` has no test runner at all —
+no jest config, no test script, not a single spec. `tsc --noEmit` is the only
+automated signal in the workspace.
+
+## Why It Matters
+
+This is the app with native OS capabilities the employee cannot observe: it reads
+active window titles, captures geolocation, holds a refresh token in the OS
+credential vault, and runs unattended from login.
+
+The API side is now covered — four specs added while closing BUG-0031, BUG-0033,
+BUG-0035 and BUG-0036 — but every one of those asserts the *server*. Nothing
+exercises this app's own logic, and its most dangerous code is the code no
+test touches.
+
+BUG-0036 is the illustration: the offline queue re-sending whole batches was the
+cause, the fix landed on the server, and the queue itself still has no test
+saying what it is supposed to re-send.
+
+## Evidence
+
+`apps/agent-desktop/package.json` declares no `test` script.
+`apps/agent-desktop/AGENTS.md` records the current coverage in a table — every
+entry points at `services/api`.
+
+## Proposed Approach
+
+Start with the modules that have **no Electron dependency**, because they need no
+harness beyond ts-jest and they are where a defect is most expensive:
+
+- `offline-queue` — what is re-sent, in what order, and what is dropped when
+  bounded. Directly under BUG-0036.
+- `config-manager` — how a malformed or partial config from the server is
+  merged with defaults.
+- `activity-tracker` sanitisation — the title-trimming path, which decides what
+  leaves the machine.
+
+Electron-dependent modules (`secure-store`, `tray`, `main`) need a heavier
+harness and should not block the three above.
+
+## Acceptance Criteria
+
+- `npm --workspace agent-desktop run test` exists and runs in CI.
+- `offline-queue` has a test asserting a failed batch is re-sent exactly once
+  per event.
+- The coverage table in `apps/agent-desktop/AGENTS.md` lists desktop-side entries.

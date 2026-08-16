@@ -1,6 +1,6 @@
 ---
-ID: BUG-0043
-aliases: [BUG-0043]
+ID: BUG-0044
+aliases: [BUG-0044]
 Title: The documented new module workflow for apps/web cannot be followed
 Status: FIXED
 Severity: MEDIUM
@@ -22,7 +22,7 @@ UpdatedAt: 2026-08-17
 ResolvedAt: 2026-08-17
 ---
 
-# BUG-0043 — The documented new module workflow for apps/web cannot be followed
+# BUG-0044 — The documented new module workflow for apps/web cannot be followed
 
 ## Summary
 
@@ -91,7 +91,7 @@ API path derivation.
 Correct `apps/web/AGENTS.md` to describe the spec-object workflow, name the
 inert files as inert, and point at `settings-adapter-registry.ts` as the live
 registry. Do **not** delete the scaffolding as part of a documentation task —
-whether to revive or remove it is a design decision, recorded as [[ITEM-0035]].
+whether to revive or remove it is a design decision, recorded as [[ITEM-0036]].
 
 ## Acceptance Criteria
 
@@ -108,7 +108,7 @@ noted there rather than duplicated.
 ## Related Items
 
 [[web-architecture]] · [[runtime-module-system]] · [[tenant-application]] ·
-[[ITEM-0035]] · [[ITEM-0011]] · bug pattern [[doc-code-drift]] ·
+[[ITEM-0036]] · [[ITEM-0011]] · bug pattern [[doc-code-drift]] ·
 bug pattern [[declared-but-unwired-step]].
 
 ## Resolution
@@ -116,7 +116,7 @@ bug pattern [[declared-but-unwired-step]].
 Fixed on `agent/knowledge-web-app-documentation` (TASK-0003).
 `apps/web/AGENTS.md` now documents the spec-object workflow, marks the five
 inert modules, and names `settingsAdapterRegistry` as the only live registry.
-The scaffolding itself is untouched — that decision is [[ITEM-0035]].
+The scaffolding itself is untouched — that decision is [[ITEM-0036]].
 
 ## QA Retest
 

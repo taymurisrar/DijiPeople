@@ -1,6 +1,6 @@
 ---
-ID: ITEM-0033
-aliases: [ITEM-0033]
+ID: ITEM-0034
+aliases: [ITEM-0034]
 Title: apps/web has zero browser E2E coverage
 Type: TEST_GAP
 Status: READY
@@ -12,7 +12,7 @@ OwnerAgent: qa
 ArchitectDisposition: PLAN_REQUIRED
 CreatedAt: 2026-08-17
 UpdatedAt: 2026-08-17
-RelatedBug: BUG-0042
+RelatedBug: BUG-0043
 RelatedQA: docs/qa/runs/2026-08-17-web-app-documentation-1af3690.md
 RelatedADR:
 RelatedImplementation:
@@ -20,7 +20,7 @@ TargetMilestone:
 BlockedBy:
 ---
 
-# ITEM-0033 — apps/web has zero browser E2E coverage
+# ITEM-0034 — apps/web has zero browser E2E coverage
 
 ## Summary
 
@@ -39,8 +39,8 @@ available way to test 253 pages, 209 client components, `proxy.ts`'s request
 flow and every accessibility requirement in `apps/web/AGENTS.md`.
 
 Several findings from TASK-0003 are unguardable without it —
-[[BUG-0042-web-dialogs-have-no-focus-trap-and-filter-controls-are-unlab]] and
-[[BUG-0045-tenant-theme-mode-and-runtime-settings-saves-do-not-take-eff]] both
+[[BUG-0043-web-dialogs-have-no-focus-trap-and-filter-controls-are-unlab]] and
+[[BUG-0046-tenant-theme-mode-and-runtime-settings-saves-do-not-take-eff]] both
 record "no regression possible" for this reason.
 
 **[[ITEM-0001]] is misleading as it stands.** It is titled "No browser E2E
@@ -73,7 +73,7 @@ Cover the journeys where a silent failure is most expensive, in this order:
 sign-in and workspace resolution (the tenant-isolation path); a runtime list →
 record → edit → save round trip on one module, which exercises the machinery
 231 pages share; and a settings save, which is where
-[[BUG-0045-tenant-theme-mode-and-runtime-settings-saves-do-not-take-eff]] lives.
+[[BUG-0046-tenant-theme-mode-and-runtime-settings-saves-do-not-take-eff]] lives.
 
 Start `apps/web` in the CI job and consume `BASE_URLS.web`, or remove that key
 so the config stops implying coverage that does not exist.
@@ -91,9 +91,9 @@ None blocking. The suite, the job and the fixtures all exist; this extends them.
 
 ## Related Items
 
-[[ITEM-0001]] · [[BUG-0042-web-dialogs-have-no-focus-trap-and-filter-controls-are-unlab]] ·
-[[BUG-0045-tenant-theme-mode-and-runtime-settings-saves-do-not-take-eff]] ·
-[[BUG-0038-employee-payslip-and-bank-account-proxies-return-the-callers]] ·
+[[ITEM-0001]] · [[BUG-0043-web-dialogs-have-no-focus-trap-and-filter-controls-are-unlab]] ·
+[[BUG-0046-tenant-theme-mode-and-runtime-settings-saves-do-not-take-eff]] ·
+[[BUG-0039-employee-payslip-and-bank-account-proxies-return-the-callers]] ·
 [[web-architecture]] · [[qa-and-ci-architecture]].
 
 ## History

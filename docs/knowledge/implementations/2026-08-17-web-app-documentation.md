@@ -104,8 +104,8 @@ missing `workspace/` segment, the testing scope), `apps/web/README.md` and
 `apps/admin/README.md` (both were `create-next-app` boilerplate pointing at port
 3000, which is landing — the same defect fixed in `apps/docs` by TASK-0002).
 
-**Records** — BUG-0038 … BUG-0045 created (BUG-0043 fixed here);
-ITEM-0033 … ITEM-0036 created.
+**Records** — BUG-0039 … BUG-0046 created (BUG-0044 fixed here);
+ITEM-0034 … ITEM-0037 created.
 
 ### Regenerate generated artefacts last, not when it feels done
 
@@ -139,9 +139,9 @@ Two durable points:
   materially stale — but two of its errors imply product decisions (which of two
   live user-management surfaces wins; where a permission fallback should point).
   Correcting a canonical document by guessing at those is worse than leaving it
-  recorded. Owned by BUG-0044.
-- **The inert registries themselves.** BUG-0043 fixed the documentation; whether
-  to revive or delete the code is an architectural choice, ITEM-0035.
+  recorded. Owned by BUG-0045.
+- **The inert registries themselves.** BUG-0044 fixed the documentation; whether
+  to revive or delete the code is an architectural choice, ITEM-0036.
 
 ## Related
 

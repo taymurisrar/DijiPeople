@@ -1,6 +1,6 @@
 ---
-ID: BUG-0038
-aliases: [BUG-0038]
+ID: BUG-0039
+aliases: [BUG-0039]
 Title: Employee payslip and bank account proxies return the callers own data on 403
 Status: OPEN
 Severity: HIGH
@@ -22,7 +22,7 @@ UpdatedAt: 2026-08-17
 ResolvedAt:
 ---
 
-# BUG-0038 — Employee payslip and bank account proxies return the callers own data on 403
+# BUG-0039 — Employee payslip and bank account proxies return the callers own data on 403
 
 ## Summary
 
@@ -142,7 +142,7 @@ state (`module-access-denied-state.tsx` already exists) rather than an error.
 **None today**, and none is possible with the current test setup — no spec
 covers any of the 416 route handlers, and `jest.config.js` is `testEnvironment:
 node` with `testMatch: **/*.spec.ts`. The regression needs a handler-level test,
-which is the gap recorded in [[ITEM-0033]].
+which is the gap recorded in [[ITEM-0034]].
 
 ## Dependencies
 
@@ -151,8 +151,8 @@ None.
 ## Related Items
 
 [[web-architecture]] · [[tenant-application]] ·
-[[BUG-0040-web-route-proxies-make-authorization-and-business-decisions]] ·
-[[ITEM-0033]] · [[ITEM-0012]] · bug pattern [[fail-open-scope]] ·
+[[BUG-0041-web-route-proxies-make-authorization-and-business-decisions]] ·
+[[ITEM-0034]] · [[ITEM-0012]] · bug pattern [[fail-open-scope]] ·
 bug pattern [[service-authorization-hidden]].
 
 ## Resolution

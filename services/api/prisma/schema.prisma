@@ -216,6 +216,28 @@ enum CustomerAccountStatus {
   ARCHIVED
 }
 
+/// Where a customer came from, as a reporting dimension the platform owns.
+///
+/// ITEM-0008. Partner *attribution* — who gets paid — was already denormalised
+/// onto the customer as `originatingPartnerId`, while *channel* was reachable
+/// only by joining back through `sourceLead`. Two similar things treated
+/// differently, so any report grouping customers by channel needed a join, and a
+/// customer created without a lead had no channel at all.
+///
+/// The values are grounded in what the platform actually produces rather than
+/// invented: `submitLead` writes exactly "Website" or "Partner Referral", a
+/// customer created directly in admin has no lead, and `Lead.source` is
+/// admin-editable free text — so anything unrecognised becomes OTHER rather than
+/// being forced into a channel it may not belong to.
+enum CustomerOriginChannel {
+  WEBSITE
+  PARTNER_REFERRAL
+  /// Created directly in the admin console, with no originating lead.
+  DIRECT
+  /// The originating lead carried a source this platform does not issue.
+  OTHER
+}
+
 // Why a visitor contacted DijiPeople. Deliberately distinct from which modules
 // interest them (Lead.interestAreas): "pricing inquiry" and "attendance,
 // payroll" answer different questions, and collapsing them loses the one Sales
@@ -2493,6 +2515,14 @@ model TenantErasureReceipt {
 model CustomerAccount {
   id                         String                      @id @default(uuid())
   companyName                String
+  /// Where this customer came from. See CustomerOriginChannel (ITEM-0008).
+  ///
+  /// Nullable because rows created before this existed cannot all be classified:
+  /// the migration backfills every customer that has a lead to read from, and
+  /// leaves the rest NULL rather than guessing DIRECT for a customer whose lead
+  /// was deleted. NULL therefore means "not known", which is a different and
+  /// more honest statement than "direct".
+  originChannel              CustomerOriginChannel?
   legalCompanyName           String?
   registrationNumber         String?
   taxId                      String?
@@ -2551,12 +2581,18 @@ model CustomerAccount {
   payrollCostAllocationLines PayrollCostAllocationLine[]
   promotions                 Promotion[]
 
+  // ITEM-0008 — commercial reports group customers by channel.
+  @@index([originChannel])
   @@index([status])
   @@index([subStatus])
   @@index([assignedToUserId])
   @@index([accountManagerUserId])
   @@index([primaryOwnerUserId])
-  @@index([leadId])
+  // ITEM-0005 — one lead becomes at most one customer, enforced by the
+  // database rather than by a pre-check that runs outside the transaction.
+  // Nullable, and PostgreSQL treats NULLs as distinct, so any number of
+  // customers created without a lead remain legal.
+  @@unique([leadId])
   @@index([originatingPartnerId])
   @@index([originatingReferralLinkId])
   @@index([selectedPlanId])
@@ -2733,6 +2769,18 @@ model Partner {
   id                     String                         @id @default(uuid())
   code                   String                         @unique
   type                   PartnerType                    @default(COMPANY)
+  /// The commercial relationship this partner was taken on under (ITEM-0030).
+  ///
+  /// Distinct from `type`, which is the contracting entity — INDIVIDUAL or
+  /// COMPANY — and says nothing about the partnership. `PartnerInquiry` has
+  /// captured this since Wave 3, and converting an inquiry used to discard it,
+  /// so the one field an operator triages on did not survive the moment the
+  /// relationship actually began.
+  ///
+  /// Nullable: partners created before this existed were taken on under a model
+  /// nobody recorded, and inventing one for them would be a fabricated
+  /// commercial fact.
+  partnershipModel       PartnershipModel?
   displayName            String
   legalName              String?
   companyName            String?
@@ -2770,6 +2818,8 @@ model Partner {
   correctedAttributions  LeadAttributionCorrection[]    @relation("CorrectedAttributionPartner")
   timeline               PartnerTimeline[]
 
+  // ITEM-0030 — partner reporting groups by the commercial relationship.
+  @@index([partnershipModel])
   @@index([status, createdAt])
   @@index([displayName])
   @@index([email])

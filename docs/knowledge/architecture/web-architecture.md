@@ -30,8 +30,8 @@ server actions — every mutation goes through `app/api/**`.
 **Not by registration.** `apps/web/AGENTS.md` used to say a new module is
 registered in `module-registry.ts` and `command-registry.ts`; those registries
 have **zero call sites** and are inert
-([[BUG-0043-the-documented-new-module-workflow-for-apps-web-cannot-be-fo]],
-fixed; the code decision is [[ITEM-0035]]).
+([[BUG-0044-the-documented-new-module-workflow-for-apps-web-cannot-be-fo]],
+fixed; the code decision is [[ITEM-0036]]).
 
 A module is a **`StandardModuleRuntimeSpec` object** imported directly by the
 route file and converted per render:
@@ -72,16 +72,16 @@ a **single** retry, and `ApiRequestError` normalisation.
 `cache: "no-store"` and calls `await cookies()`, which opts every enclosing
 render into dynamic rendering. Freshness is guaranteed; there is **no
 cache-invalidation surface at all**, which is why the settings-save staleness in
-[[BUG-0045-tenant-theme-mode-and-runtime-settings-saves-do-not-take-eff]] is a
+[[BUG-0046-tenant-theme-mode-and-runtime-settings-saves-do-not-take-eff]] is a
 provider problem rather than a cache one.
 
 The 416 route handlers are mostly thin — 357 use `proxyApiJsonResponse`. The
 exceptions are recorded:
-[[BUG-0038-employee-payslip-and-bank-account-proxies-return-the-callers]] (two
+[[BUG-0039-employee-payslip-and-bank-account-proxies-return-the-callers]] (two
 handlers substitute the caller's own data on a 403) and
-[[BUG-0040-web-route-proxies-make-authorization-and-business-decisions]]
+[[BUG-0041-web-route-proxies-make-authorization-and-business-decisions]]
 (one authorization decision, several business-logic sites). **125 of 416 flatten
-the upstream status to 500** — [[ITEM-0034]].
+the upstream status to 500** — [[ITEM-0035]].
 
 ## Tenant isolation — the part that is done well
 
@@ -125,7 +125,7 @@ file that exists on disk.
 What cannot be tested at all under this config: every page, every client
 component, `proxy.ts`'s decision flow, `lib/server-api.ts`, and all 416 route
 handlers. **And `apps/web` has zero browser coverage** — the Playwright suite
-never opens port 3001 ([[ITEM-0033]]). So the largest application has no
+never opens port 3001 ([[ITEM-0034]]). So the largest application has no
 mechanism that can test its largest surfaces.
 
 CI covers it through six required jobs (`lint`, `typecheck`, `test-web`,
@@ -142,7 +142,7 @@ Note CI never sets `APP_ENV`/`VERCEL`/`RENDER`, so **the production branch of
 that validation never runs in CI** — a missing URL passes CI and fails on Vercel.
 
 **21 variables are read but unregistered in `turbo.json` globalEnv**
-([[BUG-0041-apps-web-reads-21-environment-variables-unregistered-in-turb]]),
+([[BUG-0042-apps-web-reads-21-environment-variables-unregistered-in-turb]]),
 including three `NEXT_PUBLIC_*` flags inlined at build time. Four registered
 variables are read nowhere.
 
@@ -159,14 +159,14 @@ hierarchy. None is asserted by any test.
 
 | Record | What it means |
 |---|---|
-| [[BUG-0038-employee-payslip-and-bank-account-proxies-return-the-callers]] | A denied read returns the caller's own payslips or bank details as a 200 |
-| [[BUG-0039-apps-web-sets-no-security-response-headers]] | No CSP, no framing protection |
-| [[BUG-0040-web-route-proxies-make-authorization-and-business-decisions]] | The thin-proxy rule is violated in five places |
-| [[BUG-0041-apps-web-reads-21-environment-variables-unregistered-in-turb]] | Stale build cache can ship an old flag value |
-| [[BUG-0042-web-dialogs-have-no-focus-trap-and-filter-controls-are-unlab]] | No focus trap anywhere; unlabelled controls; click-only rows |
-| [[BUG-0044-the-canonical-settings-and-branding-contract-is-materially-s]] | The canonical settings doc names ~20 routes that 404 |
-| [[BUG-0045-tenant-theme-mode-and-runtime-settings-saves-do-not-take-eff]] | Tenant theme ignored; runtime saves don't refresh |
-| [[ITEM-0033]] · [[ITEM-0034]] · [[ITEM-0035]] · [[ITEM-0036]] | Browser coverage, error flattening, inert registries, undeclared dependency |
+| [[BUG-0039-employee-payslip-and-bank-account-proxies-return-the-callers]] | A denied read returns the caller's own payslips or bank details as a 200 |
+| [[BUG-0040-apps-web-sets-no-security-response-headers]] | No CSP, no framing protection |
+| [[BUG-0041-web-route-proxies-make-authorization-and-business-decisions]] | The thin-proxy rule is violated in five places |
+| [[BUG-0042-apps-web-reads-21-environment-variables-unregistered-in-turb]] | Stale build cache can ship an old flag value |
+| [[BUG-0043-web-dialogs-have-no-focus-trap-and-filter-controls-are-unlab]] | No focus trap anywhere; unlabelled controls; click-only rows |
+| [[BUG-0045-the-canonical-settings-and-branding-contract-is-materially-s]] | The canonical settings doc names ~20 routes that 404 |
+| [[BUG-0046-tenant-theme-mode-and-runtime-settings-saves-do-not-take-eff]] | Tenant theme ignored; runtime saves don't refresh |
+| [[ITEM-0034]] · [[ITEM-0035]] · [[ITEM-0036]] · [[ITEM-0037]] | Browser coverage, error flattening, inert registries, undeclared dependency |
 
 ## Related
 

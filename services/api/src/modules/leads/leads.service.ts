@@ -50,6 +50,17 @@ import {
   leadAgreementScope,
 } from '../contracts/governing-agreement';
 
+/**
+ * How long a website enquiry from the same company and address is treated as the
+ * same enquiry (ITEM-0007).
+ *
+ * 24 hours is a product decision, not a technical one — it says "the same
+ * company asking again today is one conversation, asking again next week is
+ * two". It matches the partner inquiry form on the same public surface, which is
+ * the asymmetry the item was raised about.
+ */
+const LEAD_DUPLICATE_WINDOW_MS = 24 * 60 * 60 * 1000;
+
 @Injectable()
 export class LeadsService {
   constructor(
@@ -84,6 +95,32 @@ export class LeadsService {
       // to the caller: a visitor who double-clicked should see success, not an
       // error about a duplicate.
       return { submitted: true, id: existing.id };
+    }
+
+    /*
+     * ITEM-0007 — the *business* duplicate, decided rather than inferred.
+     *
+     * The hash above only absorbs a transport duplicate: identical content in
+     * the same hour. It leaves the case sales actually complained about — the
+     * same company enquiring twice in a day, from two people or with slightly
+     * different wording — as two rows nobody can tell apart from genuine
+     * demand. The partner inquiry form on the same public surface already
+     * deduplicated and this one did not, and nothing recorded which behaviour
+     * was intended.
+     *
+     * The decision is a 24-hour window keyed on work e-mail and company, which
+     * is the partner form's behaviour. A rolling window rather than a wider
+     * bucket: a day bucket would treat 23:59 and 00:01 as distinct while
+     * collapsing 00:01 and 23:59, and at 24-hour granularity that boundary is
+     * far more visible than it is at one hour.
+     *
+     * This does not replace the hash. The hash is a unique constraint and so
+     * survives two *concurrent* identical submissions; a read-then-write window
+     * cannot. They answer different questions and both are kept.
+     */
+    const duplicate = await this.findRecentDuplicateLead(dto, submittedAt);
+    if (duplicate) {
+      return { submitted: true, id: duplicate.id };
     }
 
     const referral = await this.resolveReferral(dto.referralCode);
@@ -209,6 +246,41 @@ export class LeadsService {
    * than rejected: a stale bookmark or an old cached page should not stop
    * someone contacting us, and the rest of the inquiry is still worth having.
    */
+  /**
+   * A lead from the same company and address inside the decision window
+   * (ITEM-0007), or null.
+   *
+   * Matching is on work e-mail **and** company, both normalised, because either
+   * alone is wrong: one address can legitimately enquire for two companies, and
+   * two colleagues at one company enquiring the same day is exactly the case
+   * being collapsed.
+   *
+   * A lead that has already been worked is never absorbed. Returning an id that
+   * is now `CONVERTED` — or disqualified — would silently attach a fresh
+   * enquiry to a closed record and lose the new intent, which is worse than the
+   * duplicate this exists to prevent.
+   */
+  private async findRecentDuplicateLead(dto: SubmitLeadDto, submittedAt: Date) {
+    const workEmail = dto.workEmail?.trim().toLowerCase();
+    const companyName = dto.companyName?.trim().toLowerCase();
+    if (!workEmail || !companyName) return null;
+
+    const windowStart = new Date(
+      submittedAt.getTime() - LEAD_DUPLICATE_WINDOW_MS,
+    );
+
+    return this.prisma.lead.findFirst({
+      where: {
+        workEmail: { equals: workEmail, mode: 'insensitive' },
+        companyName: { equals: companyName, mode: 'insensitive' },
+        createdAt: { gte: windowStart },
+        status: LeadStatus.NEW,
+      },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true },
+    });
+  }
+
   private normalizeInterestAreas(interestAreas?: string[]): string[] {
     if (!interestAreas?.length) return [];
 

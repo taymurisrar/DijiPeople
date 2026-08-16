@@ -1,6 +1,6 @@
 ---
-ID: BUG-0045
-aliases: [BUG-0045]
+ID: BUG-0046
+aliases: [BUG-0046]
 Title: Tenant theme mode and runtime settings saves do not take effect
 Status: OPEN
 Severity: MEDIUM
@@ -22,7 +22,7 @@ UpdatedAt: 2026-08-17
 ResolvedAt:
 ---
 
-# BUG-0045 — Tenant theme mode and runtime settings saves do not take effect
+# BUG-0046 — Tenant theme mode and runtime settings saves do not take effect
 
 ## Summary
 
@@ -66,7 +66,7 @@ the canonical path is the one that does not invalidate.
 All call sites and line numbers above verified at `1af3690`. The behaviour
 contradicts `docs/architecture/settings-and-branding.md:26-27` and `:493`
 ("Private setting saves refresh the relevant provider/cache") — tracked as part
-of [[BUG-0044-the-canonical-settings-and-branding-contract-is-materially-s]].
+of [[BUG-0045-the-canonical-settings-and-branding-contract-is-materially-s]].
 
 Related but filed here as context, not as a separate record: `StatusPill`'s
 `good`/`danger`/`info` tones use `-700` text weights and `bg-sky-50`, which
@@ -115,13 +115,13 @@ invalidates by construction rather than by remembering.
 
 **None**, and unit tests cannot reach it — this is DOM behaviour and
 `jest.config.js` is `testEnvironment: node` with no jsdom. Browser coverage would
-be the honest guard, and `apps/web` has none ([[ITEM-0033]]).
+be the honest guard, and `apps/web` has none ([[ITEM-0034]]).
 
 ## Related Items
 
 [[web-architecture]] · [[settings]] · [[tenant-application]] ·
-[[BUG-0044-the-canonical-settings-and-branding-contract-is-materially-s]] ·
-[[ITEM-0033]].
+[[BUG-0045-the-canonical-settings-and-branding-contract-is-materially-s]] ·
+[[ITEM-0034]].
 
 ## Resolution
 

@@ -432,3 +432,17 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Proven to fail without the fix** | Both defects restored independently — a guard at the call site, a guard as an early return inside the function, and unwrapping the throwing variant — each fails its assertion. The first draft caught only the call-site shape and was strengthened. |
 | **Fixed** | 2026-08-16, branch `agent/bug-closure-stabilization` |
 | **Active** | yes |
+
+### REG-033 — A caller and its route agree on HTTP method
+
+| | |
+|---|---|
+| **Bug class** | `route-method-mismatch` |
+| **Module** | `apps/admin`, `apps/web`, `apps/landing` |
+| **Bug record** | BUG-0008 · BUG-0038 |
+| **Root cause** | Each side individually correct, the pair wrong, and nothing comparing pairs. A link is always a GET; a fetch with no method is a GET. A route exporting only POST answers 405, and the calling UI reports it as a generic failure. |
+| **Regression test** | `scripts/check-route-method-callers.mjs` (CI: `npm run check:route-method-callers`) |
+| **Scenario** | Point an `<a href>` or a `fetch()` at a same-app `/api/...` route using a method that route does not export → the check names the file, line, method sent and methods exported, and exits 1. |
+| **Proven to fail without the fix** | Reported BUG-0038 on its first run, before it was known to exist. |
+| **Fixed** | 2026-08-17, branch `agent/bug-closure-stabilization` |
+| **Active** | yes |

@@ -212,6 +212,16 @@ jobs:
         # record is unlabelled, unvalidated and untestable. The allowlist counts
         # the known remaining call sites (ITEM-0031) so the debt stays visible.
         run: npm run check:no-native-prompt
+      - name: No country-derived currency in frontend source
+        # BUG-0028 was a country-to-currency table compiled into the landing
+        # bundle. The frontend renders what the API resolved from Market
+        # configuration; it never decides. A comment is not a gate (ITEM-0021).
+        run: npm run check:no-commercial-literals
+      - name: Callers and routes agree on HTTP method
+        # BUG-0008 and BUG-0038 — each side individually correct, the pair
+        # wrong, and nothing comparing pairs. A link is always a GET
+        # (ITEM-0012).
+        run: npm run check:route-method-callers
 
   database-migration:
     name: Database migration gate

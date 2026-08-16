@@ -1,6 +1,6 @@
 ---
-ID: BUG-0044
-aliases: [BUG-0044]
+ID: BUG-0045
+aliases: [BUG-0045]
 Title: The canonical settings and branding contract is materially stale
 Status: OPEN
 Severity: MEDIUM
@@ -22,7 +22,7 @@ UpdatedAt: 2026-08-17
 ResolvedAt:
 ---
 
-# BUG-0044 — The canonical settings and branding contract is materially stale
+# BUG-0045 — The canonical settings and branding contract is materially stale
 
 ## Summary
 
@@ -56,7 +56,7 @@ Verified at `1af3690`:
 
 4. **`:26-27` and `:493` claim setting saves invalidate the relevant
    provider/cache.** They do not on the runtime path — see
-   [[BUG-0045-tenant-theme-mode-and-runtime-settings-saves-do-not-take-eff]].
+   [[BUG-0046-tenant-theme-mode-and-runtime-settings-saves-do-not-take-eff]].
 
 5. **`:156-157` says `/settings/access/users` redirects to
    `/settings/security-access/users`.** It does not: `access/users/page.tsx` is a
@@ -111,8 +111,8 @@ turning the enumeration from a liability into a checked artifact.
 ## Related Items
 
 [[web-architecture]] · [[settings]] ·
-[[BUG-0045-tenant-theme-mode-and-runtime-settings-saves-do-not-take-eff]] ·
-[[BUG-0043-the-documented-new-module-workflow-for-apps-web-cannot-be-fo]] ·
+[[BUG-0046-tenant-theme-mode-and-runtime-settings-saves-do-not-take-eff]] ·
+[[BUG-0044-the-documented-new-module-workflow-for-apps-web-cannot-be-fo]] ·
 bug pattern [[doc-code-drift]] · bug pattern [[divergent-duplicate-guard]].
 
 ## Resolution

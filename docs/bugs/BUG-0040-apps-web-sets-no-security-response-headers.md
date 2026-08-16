@@ -1,6 +1,6 @@
 ---
-ID: BUG-0039
-aliases: [BUG-0039]
+ID: BUG-0040
+aliases: [BUG-0040]
 Title: apps/web sets no security response headers
 Status: OPEN
 Severity: MEDIUM
@@ -22,7 +22,7 @@ UpdatedAt: 2026-08-17
 ResolvedAt:
 ---
 
-# BUG-0039 — apps/web sets no security response headers
+# BUG-0040 — apps/web sets no security response headers
 
 ## Summary
 
@@ -109,7 +109,7 @@ None.
 ## Related Items
 
 [[web-architecture]] · [[tenant-application]] ·
-[[BUG-0040-web-route-proxies-make-authorization-and-business-decisions]].
+[[BUG-0041-web-route-proxies-make-authorization-and-business-decisions]].
 
 ## Resolution
 

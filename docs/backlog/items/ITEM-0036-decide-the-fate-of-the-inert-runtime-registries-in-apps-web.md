@@ -1,6 +1,6 @@
 ---
-ID: ITEM-0035
-aliases: [ITEM-0035]
+ID: ITEM-0036
+aliases: [ITEM-0036]
 Title: Decide the fate of the inert runtime registries in apps/web
 Type: ARCHITECTURE
 Status: READY
@@ -12,7 +12,7 @@ OwnerAgent: architect
 ArchitectDisposition: PLAN_REQUIRED
 CreatedAt: 2026-08-17
 UpdatedAt: 2026-08-17
-RelatedBug: BUG-0043
+RelatedBug: BUG-0044
 RelatedQA: docs/qa/runs/2026-08-17-web-app-documentation-1af3690.md
 RelatedADR:
 RelatedImplementation:
@@ -20,7 +20,7 @@ TargetMilestone:
 BlockedBy:
 ---
 
-# ITEM-0035 — Decide the fate of the inert runtime registries in apps/web
+# ITEM-0036 — Decide the fate of the inert runtime registries in apps/web
 
 ## Summary
 
@@ -29,7 +29,7 @@ Five modules in `apps/web/lib/runtime/` are scaffolding with zero call sites:
 `module-runtime.resolver.ts`, `metadata-layer-resolver.ts`. Modules are declared
 as spec objects imported directly by route files instead. Either revive them or
 remove them — leaving them is what made
-[[BUG-0043-the-documented-new-module-workflow-for-apps-web-cannot-be-fo]]
+[[BUG-0044-the-documented-new-module-workflow-for-apps-web-cannot-be-fo]]
 possible.
 
 ## Why It Matters
@@ -89,19 +89,19 @@ an architectural decision.
 
 ## Dependencies
 
-None. [[BUG-0043-the-documented-new-module-workflow-for-apps-web-cannot-be-fo]]
+None. [[BUG-0044-the-documented-new-module-workflow-for-apps-web-cannot-be-fo]]
 already corrected the documentation, so nothing is blocked on this — it is the
 underlying design question that record deliberately did not answer.
 
 ## Related Items
 
-[[BUG-0043-the-documented-new-module-workflow-for-apps-web-cannot-be-fo]] ·
+[[BUG-0044-the-documented-new-module-workflow-for-apps-web-cannot-be-fo]] ·
 [[runtime-module-system]] · [[web-architecture]] · [[tenant-application]] ·
 bug pattern [[declared-but-unwired-step]].
 
 ## History
 
 - 2026-08-17 — raised by the `apps/web` deep documentation audit (TASK-0003),
-  as the design half of BUG-0043. That record fixed the documentation; this one
+  as the design half of BUG-0044. That record fixed the documentation; this one
   owns the code decision it deliberately left alone.
 </content>
