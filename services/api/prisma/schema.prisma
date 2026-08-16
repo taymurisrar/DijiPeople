@@ -154,6 +154,44 @@ enum DiscountType {
   FLAT
 }
 
+// Publication lifecycle for commercial configuration — plans, prices, markets.
+//
+// Deliberately separate from `isActive` and from the effectiveFrom/effectiveTo
+// pair that already exists on PlanPrice, because they answer different
+// questions. Publication is "has this been released for sale"; effectivity is
+// "is it in force on this date". A price can be PUBLISHED and not yet
+// effective (next quarter's pricing, staged deliberately), and it can be
+// ARCHIVED while still being the price a live subscription was sold under.
+//
+// Before this existed, `isActive` carried both meanings at once, so there was
+// no way to prepare a commercial change without it going live the moment it
+// was saved.
+enum CommercialPublicationStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+// How a plan or price may be bought. Enterprise is NOT hardcoded to "Contact
+// sales" anywhere — a standard published Enterprise plan stays self-service,
+// and only configuration moves it to sales-assisted.
+enum CommercialSalesModel {
+  SELF_SERVICE
+  SALES_ASSISTED
+  CUSTOM_ONLY
+}
+
+// Commercial readiness of a market, tracked separately from whether it is
+// enabled. A market can be modelled and priced (PLANNED) long before anyone is
+// allowed to buy in it — which is what lets US/GCC exist in configuration
+// without implying they are open for business.
+enum MarketLaunchStatus {
+  PLANNED
+  PILOT
+  LAUNCHED
+  SUSPENDED
+}
+
 enum PromotionDuration {
   ONCE
   REPEATING
@@ -3642,9 +3680,22 @@ model Plan {
   stripeProductId       String?              @unique
   isPublic              Boolean              @default(true)
   metadataJson          Json?
+  // DEPRECATED — legacy plan-level pricing. PlanPrice is the authoritative
+  // price. These three columns are retained only so already-deployed clients
+  // and in-flight data keep working during the migration described in
+  // docs/bugs/BUG-0027-*.md; nothing may read them to decide what a customer
+  // pays. `legacyPricingMigratedAt` records when a plan's legacy values were
+  // backfilled into PlanPrice, so the contract phase can prove zero live
+  // consumers before the columns are dropped.
   monthlyBasePrice      Decimal              @default(0) @db.Decimal(12, 2)
   annualBasePrice       Decimal              @default(0) @db.Decimal(12, 2)
   currency              String               @default("USD")
+  legacyPricingMigratedAt DateTime?
+  publicationStatus     CommercialPublicationStatus @default(DRAFT)
+  salesModel            CommercialSalesModel        @default(SELF_SERVICE)
+  publishedAt           DateTime?
+  publishedById         String?
+  archivedAt            DateTime?
   sortOrder             Int                  @default(0)
   createdAt             DateTime             @default(now())
   updatedAt             DateTime             @updatedAt
@@ -3659,6 +3710,7 @@ model Plan {
   agreedByLeads         Lead[]               @relation("AgreedLeadPlan")
   promotions            Promotion[]
 
+  @@index([publicationStatus, isActive, sortOrder])
   @@index([tenantId])
   @@index([isActive, sortOrder])
   @@index([stripeProductId])
@@ -3708,9 +3760,27 @@ model PlanPrice {
   stripeVerifiedAt        DateTime?
   stripeVerificationError String?
   isActive                Boolean            @default(true)
+  // Market scoping. Nullable because the expand phase must not invalidate
+  // prices that existed before markets did — a null market means "not yet
+  // scoped", and resolution treats it as unavailable for self-service rather
+  // than as a wildcard. Failing closed is the point: an unscoped price must
+  // not silently become purchasable in every country.
+  marketId                String?
+  publicationStatus       CommercialPublicationStatus @default(DRAFT)
+  salesModel              CommercialSalesModel        @default(SELF_SERVICE)
+  publishedAt             DateTime?
+  publishedById           String?
+  archivedAt              DateTime?
+  // Set when this row was created by the legacy-pricing backfill rather than
+  // authored in Admin, so the contract phase can tell generated rows from
+  // deliberate ones. See docs/bugs/BUG-0027-*.md.
+  backfilledFromLegacyAt  DateTime?
   createdAt               DateTime           @default(now())
   updatedAt               DateTime           @updatedAt
+  createdById             String?
+  updatedById             String?
   plan                    Plan               @relation(fields: [planId], references: [id], onDelete: Cascade)
+  market                  Market?            @relation(fields: [marketId], references: [id], onDelete: Restrict)
   subscriptions           Subscription[]
   promotions              Promotion[]
   supersedes              PlanPrice?         @relation("PlanPriceVersions", fields: [supersedesPriceId], references: [id], onDelete: SetNull)
@@ -3723,6 +3793,73 @@ model PlanPrice {
   @@index([stripeSyncStatus, stripeEnvironment])
   @@index([effectiveFrom, isActive])
   @@index([supersedesPriceId])
+  // The resolution path: plan + market + currency + interval, filtered by
+  // publication, then ordered by effective date.
+  @@index([planId, marketId, currency, billingInterval, publicationStatus])
+  @@index([marketId])
+  @@index([publicationStatus, effectiveFrom])
+}
+
+// A commercial market: which countries are served together, in which currency,
+// under which legal and tax treatment, and whether anyone may buy there yet.
+//
+// This exists because country-to-currency was previously a literal table inside
+// the shipped landing bundle (docs/bugs/BUG-0028-*.md), which meant opening a
+// market was a frontend deploy and could not be audited. Commercial truth
+// belongs in configuration that Admin governs.
+//
+// Not tenant-owned: markets are DijiPeople's own commercial configuration, not
+// a per-tenant setting, so there is deliberately no tenantId here.
+model Market {
+  id                  String                      @id @default(uuid())
+  code                String                      @unique
+  name                String
+  description         String?
+  publicationStatus   CommercialPublicationStatus @default(DRAFT)
+  launchStatus        MarketLaunchStatus          @default(PLANNED)
+  // isEnabled and selfServiceEnabled are separate on purpose. A market can be
+  // enabled for sales-assisted deals while self-service checkout stays closed
+  // — which is the honest state for a market whose tax registration or legal
+  // documents are not yet in place.
+  isEnabled           Boolean                     @default(false)
+  selfServiceEnabled  Boolean                     @default(false)
+  defaultCurrency     String
+  supportedCurrencies String[]
+  // Deliberately nullable references rather than invented values. A market
+  // with no configured tax profile or legal document set is a market that
+  // must not claim one publicly.
+  dataRegion          String?
+  taxProfileRef       String?
+  legalDocumentSetRef String?
+  supportTierRef      String?
+  sortOrder           Int                         @default(0)
+  publishedAt         DateTime?
+  publishedById       String?
+  archivedAt          DateTime?
+  createdAt           DateTime                    @default(now())
+  updatedAt           DateTime                    @updatedAt
+  createdById         String?
+  updatedById         String?
+  countries           MarketCountry[]
+  prices              PlanPrice[]
+
+  @@index([publicationStatus, isEnabled, sortOrder])
+  @@index([launchStatus])
+}
+
+// Country-to-market mapping. A country belongs to exactly one market, enforced
+// by the unique constraint on countryCode — otherwise a visitor could resolve
+// to two markets with different currencies and the answer would depend on row
+// order.
+model MarketCountry {
+  id          String   @id @default(uuid())
+  marketId    String
+  countryCode String   @unique
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  market      Market   @relation(fields: [marketId], references: [id], onDelete: Cascade)
+
+  @@index([marketId])
 }
 
 model Subscription {

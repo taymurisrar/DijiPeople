@@ -3,19 +3,19 @@ ID: ITEM-0019
 aliases: [ITEM-0019]
 Title: No market or region model maps countries to plans, currencies and legal sets
 Type: ARCHITECTURE
-Status: READY
+Status: VALIDATING
 Priority: P2
 Severity: MEDIUM
 AffectedModules: [services/api/prisma, api:super-admin, apps/admin, apps/landing]
 Source: ARCHITECT
 OwnerAgent: architect
-ArchitectDisposition: PLAN_REQUIRED
+ArchitectDisposition: FIX_NOW
 CreatedAt: 2026-08-16
 UpdatedAt: 2026-08-16
 RelatedBug: BUG-0028
 RelatedQA:
 RelatedADR:
-RelatedImplementation:
+RelatedImplementation: agent/commercial-config-wave1
 TargetMilestone:
 BlockedBy:
 ---
@@ -104,6 +104,27 @@ means scoping a price model that is about to change.
 [[BUG-0028]] — hardcoded currency mapping, blocked on this.
 [[ITEM-0018]] — publication lifecycle, shares the publish mechanism.
 [[BUG-0027]] — duplicate price source of truth.
+
+## Delivered — Wave 1
+
+`Market` and `MarketCountry` exist. A market carries code, name, publication
+status, launch status, enabled, self-service-enabled, default and supported
+currencies, and nullable references for data region, tax profile and legal
+document set. `MarketCountry.countryCode` is globally unique, so a country
+resolves to exactly one market rather than depending on row order.
+
+- `PlanPrice.marketId` scopes prices to a market. Null means *not yet scoped*
+  and resolution treats it as unavailable — a null market is never a wildcard.
+- Pakistan is seeded as the only enabled, launched, self-service market. US and
+  GCC exist as `PLANNED`, disabled, unpriced configuration.
+- `dataRegion`, `taxProfileRef` and `legalDocumentSetRef` are seeded **null**
+  everywhere. Nothing claims a tax registration, legal entity or residency
+  guarantee that does not exist.
+- Currency resolution moved out of the landing bundle entirely — see [[BUG-0028]].
+
+**Not delivered, deliberately:** `Tenant.dataRegion` and provisioning-time
+population of it. That belongs with the provisioning wave, and adding an unused
+column now would be a field with no writer. Recorded as [[ITEM-0023]].
 
 ## History
 

@@ -2,9 +2,9 @@
 ID: BUG-0027
 aliases: [BUG-0027]
 Title: Admin plan pricing and checkout pricing come from different models
-Status: OPEN
-Severity: HIGH
-Priority: P1
+Status: FIXED
+Severity: CRITICAL
+Priority: P0
 Type: DATA_INTEGRITY
 Source: REVIEWER
 DetectedDate: 2026-08-16
@@ -12,14 +12,14 @@ DetectedInSha: 45d00cf
 AffectedModules: [services/api/prisma, apps/admin, apps/landing]
 OwnerAgent: architect
 ArchitectDisposition: PLAN_REQUIRED
-QAReport:
-RegressionId:
+QAReport: docs/qa/runs/2026-08-16-commercial-config-wave1-a525896.md
+RegressionId: REG-017
 RelatedBacklogItem: ITEM-0018
 RelatedDecision:
-RelatedImplementation:
+RelatedImplementation: agent/commercial-config-wave1
 CreatedAt: 2026-08-16
 UpdatedAt: 2026-08-16
-ResolvedAt:
+ResolvedAt: 2026-08-16
 ---
 
 # BUG-0027 — Admin plan pricing and checkout pricing come from different models
@@ -99,10 +99,32 @@ advertise "Contact sales" for a plan Admin shows as priced, or advertise a figur
 that differs from what Stripe charges. This is a money-path correctness defect,
 not a display bug.
 
-**Not** currently a live mischarge: checkout only proceeds against a `PlanPrice`
-that passes `deriveCheckoutReadiness` (`billing-seat-pricing.ts:70-99`), so a
-customer cannot be charged the Admin number. The exposure is a wrong *advertised*
-price and operator confusion — which is why this is HIGH and not CRITICAL.
+### Correction — this was worse than first recorded
+
+The original assessment said the legacy columns were a display problem because
+Stripe self-service checkout requires a verified `PlanPrice`. That was true of
+**one** path and wrong about the system.
+
+`SuperAdminBillingService.calculateSubscriptionPricing` ended in:
+
+```ts
+const basePrice = planPrice
+  ? Number(planPrice.unitAmount) * quantity
+  : billingCycle === BillingCycle.ANNUAL
+    ? Number(plan.annualBasePrice)
+    : Number(plan.monthlyBasePrice);
+```
+
+and `upsertSubscription` writes that straight into `Subscription.basePrice` and
+`Subscription.finalPrice`. So an **operator-created subscription** with no
+explicit `planPriceId` was billed from the legacy columns — and because the seed
+created plans with **no `PlanPrice` at all**, that fallback was the normal path,
+not an edge case. `Subscription.planPriceId` is nullable, so those subscriptions
+also carried no reference to any price version, leaving them with no historical
+commercial context at all.
+
+That is a live money path driven by a value no longer shown as authoritative
+anywhere. Re-rated **CRITICAL / P0**.
 
 ## Affected Areas
 
@@ -135,8 +157,14 @@ screens, so one plan avoids migrating that UI twice.
 
 ## Regression Coverage
 
-None yet. Required: a test pinning that one plan resolves to exactly one price
-per (currency, cycle), and that Admin and checkout agree.
+`services/api/src/modules/super-admin/billing.legacy-pricing.spec.ts` — REG-017.
+Six assertions pinning that the legacy columns are never read, that a plan with
+no published price fails closed, that the error names the plan and cycle, and
+that resolution filters on publication and orders by effective date.
+
+`services/api/src/modules/billing/commercial-offer.resolver.spec.ts` — 26
+assertions covering publication, market gating, effective dating, seat bounds
+and sales-model narrowing.
 
 ## Dependencies
 
@@ -148,12 +176,34 @@ per (currency, cycle), and that Admin and checkout agree.
 
 ## Resolution
 
-Not yet fixed.
+Fixed on `agent/commercial-config-wave1` (Wave 1 — Commercial Configuration
+Foundation).
+
+- The legacy fallback is gone. `calculateSubscriptionPricing` now resolves the
+  published, in-force `PlanPrice` and **fails closed** with an actionable
+  message when none exists, rather than billing an amount nobody chose.
+- `resolveEffectivePlanPrice` orders by `effectiveFrom` then `version`, so a
+  price staged for a future date cannot displace the one in force.
+- The seed now creates published, market-scoped `PlanPrice` rows for every
+  seeded plan, using the existing repository amounts unchanged. A freshly
+  seeded system no longer has plans that Admin prices and the public site
+  cannot.
+- Platform Admin no longer leads with the legacy columns: the plans list shows
+  publication status and sales model, and the plan detail page derives its
+  figures from `PlanPrice`, showing "Not configured" instead of a legacy number.
+- The migration backfills legacy amounts into `PlanPrice` as **inert DRAFT**
+  rows — never overwriting an existing price, never inventing one for a zero
+  amount, and never publishing automatically.
+
+The legacy columns still exist and are **deliberately not dropped**. Removing
+them is a contract phase with its own evidence requirement — see [[ITEM-0020]].
 
 ## QA Retest
 
-Not yet retested.
+`docs/qa/runs/2026-08-16-commercial-config-wave1-a525896.md` — scenarios A–E.
 
 ## History
 
 - 2026-08-16 — found during commercial-configuration discovery at `45d00cf`.
+
+- 2026-08-16 — re-rated CRITICAL after finding the operator subscription path; fixed in Wave 1.

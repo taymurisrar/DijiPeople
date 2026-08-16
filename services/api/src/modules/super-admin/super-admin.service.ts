@@ -14,6 +14,8 @@ import {
   BillingCycle,
   BillingInterval,
   BillingModel,
+  CommercialPublicationStatus,
+  CommercialSalesModel,
   CustomerAccountStatus,
   DiscountType,
   InvoiceStatus,
@@ -75,6 +77,11 @@ import { UpdateTenantSlugDto } from '../tenants/dto/update-tenant-slug.dto';
 import { CreateInvoiceFromSubscriptionDto } from './dto/create-invoice-from-subscription.dto';
 import { PlansRepository } from './plans.repository';
 import { DEFAULT_PLAN_DEFINITIONS } from './plans.catalog';
+import {
+  DEFAULT_MARKET_DEFINITIONS,
+  DEFAULT_PLAN_SALES_MODELS,
+  SEEDED_PRICE_MARKET_CODE,
+} from './markets.catalog';
 import { PlatformLifecycleService } from './platform-lifecycle.service';
 import { PlatformOnboardingService } from './platform-onboarding.service';
 import { PaymentsService } from './payments.service';
@@ -3988,6 +3995,142 @@ export class SuperAdminService {
           monthlyBasePrice: definition.monthlyBasePrice,
           annualBasePrice: definition.annualBasePrice,
           currency: definition.currency,
+        });
+      }
+    }
+
+    await this.ensureDefaultMarkets();
+    await this.ensureAuthoritativePlanPrices();
+  }
+
+  /**
+   * Seed the commercial markets. Idempotent, and deliberately non-destructive:
+   * an existing market is never overwritten, because after the first run its
+   * values are operator decisions rather than seed defaults.
+   */
+  private async ensureDefaultMarkets() {
+    for (const definition of DEFAULT_MARKET_DEFINITIONS) {
+      const existing = await this.prisma.market.findUnique({
+        where: { code: definition.code },
+      });
+
+      if (existing) continue;
+
+      await this.prisma.market.create({
+        data: {
+          code: definition.code,
+          name: definition.name,
+          description: definition.description,
+          launchStatus: definition.launchStatus,
+          isEnabled: definition.isEnabled,
+          selfServiceEnabled: definition.selfServiceEnabled,
+          publicationStatus: definition.published
+            ? CommercialPublicationStatus.PUBLISHED
+            : CommercialPublicationStatus.DRAFT,
+          publishedAt: definition.published ? new Date() : null,
+          defaultCurrency: definition.defaultCurrency,
+          supportedCurrencies: [...definition.supportedCurrencies],
+          dataRegion: definition.dataRegion,
+          taxProfileRef: definition.taxProfileRef,
+          legalDocumentSetRef: definition.legalDocumentSetRef,
+          sortOrder: definition.sortOrder,
+          countries: {
+            create: definition.countryCodes.map((countryCode) => ({
+              countryCode,
+            })),
+          },
+        },
+      });
+    }
+  }
+
+  /**
+   * Give every seeded plan a published, market-scoped PlanPrice.
+   *
+   * This is the seed half of BUG-0027. The seed previously wrote only the
+   * legacy `Plan.monthlyBasePrice` columns and created no PlanPrice at all, so
+   * a freshly seeded system had plans that Platform Admin displayed with a
+   * price and the public site rendered as "Contact sales" — the two models
+   * disagreeing from the very first run.
+   *
+   * The amounts are the existing repository values, unchanged. They are seeded
+   * as FLAT because that is what those figures actually are: flat per-plan
+   * monthly and annual amounts, not per-active-employee rates. Converting them
+   * to a per-seat schedule is a commercial decision, not a migration — see the
+   * OWNER_DECISION_REQUIRED note in markets.catalog.ts.
+   */
+  private async ensureAuthoritativePlanPrices() {
+    const market = await this.prisma.market.findUnique({
+      where: { code: SEEDED_PRICE_MARKET_CODE },
+    });
+
+    if (!market) return;
+
+    for (const definition of DEFAULT_PLAN_DEFINITIONS) {
+      const plan = await this.plansRepository.findByKey(definition.key);
+      if (!plan) continue;
+
+      const currency = market.defaultCurrency.toUpperCase();
+
+      const cycles = [
+        {
+          billingCycle: BillingCycle.MONTHLY,
+          billingInterval: BillingInterval.MONTH,
+          unitAmount: definition.monthlyBasePrice,
+        },
+        {
+          billingCycle: BillingCycle.ANNUAL,
+          billingInterval: BillingInterval.YEAR,
+          unitAmount: definition.annualBasePrice,
+        },
+      ];
+
+      for (const cycle of cycles) {
+        if (cycle.unitAmount <= 0) continue;
+
+        // Never overwrite a price an operator authored, and never create a
+        // second one for the same slot — this runs on every seed.
+        const existing = await this.prisma.planPrice.findFirst({
+          where: {
+            planId: plan.id,
+            marketId: market.id,
+            currency,
+            billingInterval: cycle.billingInterval,
+          },
+        });
+
+        if (existing) continue;
+
+        await this.prisma.planPrice.create({
+          data: {
+            planId: plan.id,
+            marketId: market.id,
+            billingCycle: cycle.billingCycle,
+            billingInterval: cycle.billingInterval,
+            billingModel: BillingModel.FLAT,
+            currency,
+            unitAmount: cycle.unitAmount,
+            minimumSeats: 1,
+            includedSeats: 0,
+            publicationStatus: CommercialPublicationStatus.PUBLISHED,
+            salesModel:
+              DEFAULT_PLAN_SALES_MODELS[definition.key] ??
+              CommercialSalesModel.SELF_SERVICE,
+            publishedAt: new Date(),
+            isActive: true,
+          },
+        });
+      }
+
+      // Publish the plan itself. Without this every seeded plan would sit in
+      // DRAFT and the public catalogue would be empty after a fresh install.
+      if (plan.publicationStatus !== CommercialPublicationStatus.PUBLISHED) {
+        await this.plansRepository.update(plan.id, {
+          publicationStatus: CommercialPublicationStatus.PUBLISHED,
+          publishedAt: new Date(),
+          salesModel:
+            DEFAULT_PLAN_SALES_MODELS[definition.key] ??
+            CommercialSalesModel.SELF_SERVICE,
         });
       }
     }

@@ -3106,15 +3106,17 @@ const definitions: PlatformModuleDefinition[] = [
       "revenue",
       [
         col("name", "Plan", 220),
-        col("isActive", "Status", 110, "status"),
-        {
-          ...col("monthlyBasePrice", "Monthly base", 150, "currency"),
-          currencyField: "currency",
-        },
-        {
-          ...col("annualBasePrice", "Annual base", 150, "currency"),
-          currencyField: "currency",
-        },
+        // Publication, not `isActive`, is what decides whether a plan reaches
+        // the public catalogue. Leading with it shows an operator the state
+        // that actually governs what customers can buy.
+        col("publicationStatus", "Publication", 130, "status"),
+        col("isActive", "Active", 100, "status"),
+        col("salesModel", "Sales model", 140, "status"),
+        // The legacy monthlyBasePrice / annualBasePrice columns used to sit
+        // here, so the first amount an operator saw was the one checkout does
+        // not use — BUG-0027. Authoritative amounts live on PlanPrice, per
+        // market and currency; the list shows how many are configured and the
+        // record page shows them.
         col("prices", "Prices", 90, "number"),
         col("features", "Features", 100, "number"),
         col("subscriptions", "Subscriptions", 120, "number"),
