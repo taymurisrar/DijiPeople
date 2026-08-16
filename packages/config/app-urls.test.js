@@ -67,6 +67,28 @@ test("a frontend configured with only NEXT_PUBLIC_API_BASE_URL resolves", () => 
   assert.doesNotThrow(() => validateDeploymentEnv(env, { app: "landing" }));
 });
 
+// REGRESSION — resolveAppUrls resolved eagerly, so reading *any* property
+// required *every* app URL. validateDeploymentEnv does not require the admin URL
+// for landing (the landing site emits no admin links), so a correctly
+// configured landing build passed validation and then threw at module
+// evaluation — from a different place than the validator. Resolution is lazy so
+// REQUIRED_APP_URLS stays the single declaration of what must be configured.
+test("resolveAppUrls only requires the URLs actually read", () => {
+  const env = productionEnv();
+  delete env.NEXT_PUBLIC_ADMIN_APP_URL;
+  delete env.ADMIN_APP_URL;
+
+  const urls = resolveAppUrls(env);
+
+  // Landing reads the workspace URL. That must not drag in the admin URL.
+  assert.equal(urls.web, "https://app.dijipeople.com");
+  assert.equal(urls.landing, "https://www.dijipeople.com");
+  assert.doesNotThrow(() => validateDeploymentEnv(env, { app: "landing" }));
+
+  // Reading the unconfigured one still fails, loudly.
+  assert.throws(() => urls.admin, /must be configured in production/);
+});
+
 test("resolveAppUrls returns every canonical origin", () => {
   const urls = resolveAppUrls(productionEnv());
   assert.deepEqual(
@@ -181,6 +203,30 @@ test("a non-http scheme is rejected", () => {
       ),
     /must use http or https/,
   );
+});
+
+// REGRESSION — validateDeploymentEnv eagerly computed allowedCorsOrigins, which
+// needs all three frontend origins. next.config.ts calls this, so a landing
+// build demanded the admin URL that the validator itself had deliberately not
+// required. CORS is an API concern; a frontend never reads it.
+test("validation requires exactly what REQUIRED_APP_URLS declares", () => {
+  const env = productionEnv();
+  delete env.NEXT_PUBLIC_ADMIN_APP_URL;
+  delete env.ADMIN_APP_URL;
+
+  const result = validateDeploymentEnv(env, { app: "landing" });
+  assert.equal(result.productionLike, true);
+  assert.equal(result.apiBaseUrl, "https://api.dijipeople.com/api");
+
+  // An explicit CORS_ALLOWED_ORIGINS is returned as configured, without
+  // deriving any app origin.
+  assert.deepEqual(result.allowedCorsOrigins, ["https://www.dijipeople.com"]);
+
+  // Without it the list is derived from the three frontend origins, which does
+  // need the admin URL — and still fails loudly when it is read.
+  delete env.CORS_ALLOWED_ORIGINS;
+  const derived = validateDeploymentEnv(env, { app: "landing" });
+  assert.throws(() => derived.allowedCorsOrigins, /must be configured/);
 });
 
 test("a fully configured production environment validates for every app", () => {

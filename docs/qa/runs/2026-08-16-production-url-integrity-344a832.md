@@ -39,6 +39,7 @@ The reported symptom, its root cause, and the whole defect class it belongs to
 | B4 | No loopback href survives in the built artifact | **PASS** — the only remaining `localhost:3001` in the bundle is the `buildWorkspaceUrl` code-path fallback, not an emitted href. Recorded as ITEM-0017 |
 | B5 | Loopback, malformed and non-HTTP values are rejected in production | **PASS** — `npm run test:app-urls`, 14/14 |
 | B6 | A frontend configured with only `NEXT_PUBLIC_API_BASE_URL` (no `API_ORIGIN`) builds | **PASS** — after the fix described under Findings |
+| B6b | A landing build configured with exactly what `REQUIRED_APP_URLS` declares — no admin URL — succeeds | **PASS** — after F3/F4 below. Verified by building with `NEXT_PUBLIC_ADMIN_APP_URL` unset: exit 0, and `https://app.dijipeople.com/login` still present in the output |
 | B7 | Local `npm run build` and CI, which set neither `APP_ENV` nor `VERCEL`, still build | **PASS** — full `npm run build` green, 6/6 tasks |
 | B8 | The API mailer path refuses a loopback fallback in production | **PASS** — `services/api/src/common/config/tenant-url.config.spec.ts` |
 | B9 | A reintroduced loopback literal is caught | **PASS** — probe file added, `check:no-hardcoded-urls` exits 1; removed, exits 0 |
@@ -84,6 +85,37 @@ Caught by scenario B2 — running the real build, not by the unit tests that
 existed at that point, all of which passed. The API origin is now derived from
 the resolved base URL. Covered by a named regression test.
 
+### F3 — `resolveAppUrls` resolved eagerly, requiring URLs the caller never reads — **FIXED**
+
+Severity MEDIUM (introduced within this run; never on `main`).
+
+`resolveAppUrls` resolved all origins on call, so reading `.web` also required
+`.admin` to be configured. `REQUIRED_APP_URLS` deliberately does **not** require
+the admin URL for landing — the landing site emits no admin links — so a
+correctly-configured landing production build passed validation and then threw
+at module evaluation.
+
+This is the same failure shape the whole change exists to remove: an error
+raised somewhere other than the validator, about a variable the validator said
+was unnecessary. Resolution is now lazy, so `REQUIRED_APP_URLS` is the single
+declaration of what a deployment must configure.
+
+Two speculative unused fields (`landingEnv.adminUrl`, `adminEnv.landingUrl`)
+were removed at the same time — they were the only reason those origins were
+read at all.
+
+### F4 — `validateDeploymentEnv` eagerly computed `allowedCorsOrigins` — **FIXED**
+
+Severity MEDIUM (introduced within this run; never on `main`).
+
+Fixing F3 was not sufficient: the landing build still failed. The returned
+`allowedCorsOrigins` was computed eagerly, and deriving it needs all three
+frontend origins. `next.config.ts` calls `validateDeploymentEnv`, so every
+frontend build paid for a value only the API ever reads. Now lazy.
+
+Found by re-running scenario B6b after F3 rather than trusting that F3 had
+settled it — the unit tests passed at that point and the build still did not.
+
 ### F2 — `buildWorkspaceUrl` retains an internal loopback fallback — **DEFERRED**
 
 Severity LOW. `packages/config/platform-domains.js:337`. Unreachable from
@@ -103,7 +135,17 @@ Recorded as ITEM-0017 with the reasoning and acceptance criteria.
 |---|---|---|
 | Reported defect (login → localhost) | `FIXED` | BUG-0026, REG-016 |
 | F1 — `API_ORIGIN` over-requirement | `FIXED` | REG-016 (named test) |
+| F3 — eager `resolveAppUrls` | `FIXED` | REG-016 (named test) |
+| F4 — eager `allowedCorsOrigins` | `FIXED` | REG-016 (named test) |
 | F2 — `buildWorkspaceUrl` fallback | `DEFERRED` | ITEM-0017 |
+
+> F1, F3 and F4 share one lesson worth stating plainly: **all three were
+> introduced by this change, passed every unit test at the moment they existed,
+> and were caught only by running a real production build.** A validator that
+> demands more than the deployment needs fails exactly as loudly as one that
+> demands too little, and unit tests over a hand-built env object cannot see the
+> difference. Scenario B1/B2/B6b — build it for real, with and without — is the
+> check that matters here.
 
 ## Follow-up required
 

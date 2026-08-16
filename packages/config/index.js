@@ -186,29 +186,48 @@ function isLoopbackUrl(value) {
 }
 
 /**
- * Resolve every canonical app URL from one env object.
+ * Resolve the canonical app URLs from one env object.
  *
  * This is the only function application code should use to answer "where does
  * the <x> app live". It never invents a loopback answer in production: the
  * underlying getAppOrigin throws, and validateDeploymentEnv has already failed
  * the build/boot by the time anything calls this.
+ *
+ * **Resolution is lazy, and that is load-bearing.** Each property resolves when
+ * it is read, so a caller that never reads `.admin` never requires the admin URL
+ * to be configured. An eager version failed a *correctly* configured landing
+ * build: validateDeploymentEnv does not require the admin URL for landing — the
+ * landing site emits no admin links — but eager resolution demanded it anyway,
+ * and threw from a different place than the validator, which is precisely the
+ * confusing failure this whole change exists to remove. What each deployment
+ * must configure is declared once, in REQUIRED_APP_URLS, and nowhere else.
  */
 function resolveAppUrls(env = process.env) {
+  const lazy = {};
+
+  for (const app of ["landing", "web", "admin"]) {
+    Object.defineProperty(lazy, app, {
+      enumerable: true,
+      get: () => getAppOrigin(app, env),
+    });
+  }
+
   // The API origin is derived from the resolved base URL rather than read from
   // API_ORIGIN directly. A browser-facing deployment configures
   // NEXT_PUBLIC_API_BASE_URL and has no reason to also set API_ORIGIN, so
   // requiring the latter here would fail a correctly-configured frontend build.
   // getApiBaseUrl still falls back to getAppOrigin("api"), which throws in
   // production when neither is configured.
-  const apiBaseUrl = getApiBaseUrl(env);
-
-  return Object.freeze({
-    landing: getAppOrigin("landing", env),
-    web: getAppOrigin("web", env),
-    admin: getAppOrigin("admin", env),
-    api: new URL(apiBaseUrl).origin,
-    apiBaseUrl,
+  Object.defineProperty(lazy, "apiBaseUrl", {
+    enumerable: true,
+    get: () => getApiBaseUrl(env),
   });
+  Object.defineProperty(lazy, "api", {
+    enumerable: true,
+    get: () => new URL(getApiBaseUrl(env)).origin,
+  });
+
+  return Object.freeze(lazy);
 }
 
 /**
@@ -356,12 +375,24 @@ function validateDeploymentEnv(env = process.env, options = {}) {
     throw new Error(`Deployment environment validation failed:\n- ${errors.join("\n- ")}`);
   }
 
-  return {
-    app,
-    productionLike,
-    apiBaseUrl: getApiBaseUrl(env),
-    allowedCorsOrigins: getAllowedCorsOrigins(env),
-  };
+  // `allowedCorsOrigins` is resolved lazily because computing it needs all three
+  // frontend origins — CORS is an API concern, and a Next frontend calling this
+  // from next.config.ts never reads it. Computing it eagerly made a landing
+  // build demand the admin URL that validation above had deliberately not
+  // required, failing a correctly-configured deployment from a line nowhere
+  // near the validator.
+  const result = { app, productionLike };
+
+  Object.defineProperty(result, "apiBaseUrl", {
+    enumerable: true,
+    get: () => getApiBaseUrl(env),
+  });
+  Object.defineProperty(result, "allowedCorsOrigins", {
+    enumerable: true,
+    get: () => getAllowedCorsOrigins(env),
+  });
+
+  return result;
 }
 
 function getLocalArchitecture(env = process.env) {

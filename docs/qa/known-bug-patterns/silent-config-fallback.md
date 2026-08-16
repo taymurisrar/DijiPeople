@@ -69,6 +69,32 @@ Two, because they catch different halves:
 `packages/config/app-urls.test.js` and `scripts/check-no-hardcoded-urls.mjs`
 are the reference implementations; both run in CI.
 
+## The opposite failure, which is just as real
+
+Tightening this pattern has its own failure mode: **requiring more than the
+deployment actually needs.** Three separate instances appeared while fixing
+[[BUG-0026]], each of which failed a *correctly configured* build:
+
+- A helper resolved every app origin eagerly, so reading one required all of
+  them — including one the validator had deliberately not required.
+- A validator's return value computed a CORS origin list eagerly, so every
+  frontend build paid for a value only the API reads.
+- A resolver demanded `API_ORIGIN` from browser-facing deployments, which
+  configure `NEXT_PUBLIC_API_BASE_URL` instead.
+
+All three passed every unit test that existed when they were written. Unit tests
+over a hand-built env object cannot tell "correctly strict" from "too strict" —
+only building the app with exactly the documented variables can.
+
+Two rules follow:
+
+1. **One declaration of what is required.** If a table says which variables a
+   deployment needs, nothing else may quietly need more. Resolve lazily so a
+   value that is never read is never required.
+2. **Verify both directions.** A validation change is not tested until you have
+   built the app *without* the variable (must fail) **and** with exactly the
+   documented set and nothing more (must succeed).
+
 ## Agent responsible
 Integration / Release-DevOps, with the owning frontend or backend agent.
 

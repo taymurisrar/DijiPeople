@@ -15,6 +15,5 @@ export const landingEnv = {
   appOrigin: process.env.NEXT_PUBLIC_APP_ORIGIN?.trim() || appUrls.landing,
   /** The tenant workspace this site sends visitors to for sign-in. */
   workspaceUrl: appUrls.web,
-  adminUrl: appUrls.admin,
   apiBaseUrl: getSharedApiBaseUrl(process.env),
 };

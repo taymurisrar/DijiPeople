@@ -12,7 +12,6 @@ export const adminEnv = {
   appOrigin: process.env.NEXT_PUBLIC_APP_ORIGIN?.trim() || appUrls.admin,
   /** The tenant workspace operators deep-link into. */
   workspaceUrl: appUrls.web,
-  landingUrl: appUrls.landing,
   apiBaseUrl: getSharedApiBaseUrl(process.env),
   sessionIdleTimeoutSeconds: readNumber(
     process.env.SESSION_IDLE_TIMEOUT_SECONDS,
