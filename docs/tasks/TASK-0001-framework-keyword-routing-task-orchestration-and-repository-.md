@@ -3,17 +3,17 @@ TASK_ID: TASK-0001
 TITLE: Framework: keyword routing, task orchestration and repository health
 TYPE: FRAMEWORK
 SIZE: LARGE
-STATUS: IN_PROGRESS
+STATUS: COMPLETE
 PRIORITY: P1
 CREATED_AT: 2026-08-16
 AFFECTED_MODULES: [.agent, scripts, docs]
 AGENTS: [architect, integrator, release-devops, qa, reviewer]
 DEPENDENCIES:
-CURRENT_PACKAGE: WP-05
-COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-04]
+CURRENT_PACKAGE:
+COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-04, WP-05, WP-06]
 BLOCKED_PACKAGES: []
 OWNER_DECISIONS: 0
-FINAL_STATUS:
+FINAL_STATUS: COMPLETE
 ---
 
 # TASK-0001 — Framework: keyword routing, task orchestration and repository health
@@ -37,12 +37,12 @@ that can be reviewed on its own.
 
 | WP_ID | TITLE | STATUS | DEPENDENCIES | AGENTS | BRANCH | SHA | QA_STATUS | BUGS | CI_STATUS | MERGE_STATUS |
 |---|---|---|---|---|---|---|---|---|---|---|
-| WP-01 | Keyword and intent router | DONE | — | architect | agent/framework-orchestration | — | — | — | — | — |
-| WP-02 | Parent task and work-package orchestration | DONE | WP-01 | architect | agent/framework-orchestration | — | — | — | — | — |
-| WP-03 | Repository health, main-sync state machine, protected-main recovery | DONE | — | release-devops | agent/framework-orchestration | — | — | — | — | — |
-| WP-04 | Role wiring — Architect, Integrator, Release/DevOps, specialists | DONE | WP-01, WP-02, WP-03 | architect | agent/framework-orchestration | — | — | — | — | — |
-| WP-05 | Completion contract and framework validation | IN_PROGRESS | WP-02, WP-03, WP-04 | architect | agent/framework-orchestration | — | — | — | — | — |
-| WP-06 | Current protected-main incident, history, knowledge and Obsidian | NOT_STARTED | WP-05 | integrator | agent/framework-orchestration | — | — | — | — | — |
+| WP-01 | Keyword and intent router | DONE | — | architect | agent/framework-orchestration | ea400cf | NOT_REQUIRED | — | PASS | MERGED |
+| WP-02 | Parent task and work-package orchestration | DONE | WP-01 | architect | agent/framework-orchestration | ea400cf | NOT_REQUIRED | — | PASS | MERGED |
+| WP-03 | Repository health, main-sync state machine, protected-main recovery | DONE | — | release-devops | agent/framework-orchestration | ea400cf | NOT_REQUIRED | — | PASS | MERGED |
+| WP-04 | Role wiring — Architect, Integrator, Release/DevOps, specialists | DONE | WP-01, WP-02, WP-03 | architect | agent/framework-orchestration | ea400cf | NOT_REQUIRED | — | PASS | MERGED |
+| WP-05 | Completion contract and framework validation | DONE | WP-02, WP-03, WP-04 | architect | agent/framework-orchestration | ea400cf | NOT_REQUIRED | — | PASS | MERGED |
+| WP-06 | Current protected-main incident, history, knowledge and Obsidian | DONE | WP-05 | integrator | agent/framework-orchestration | ea400cf | NOT_REQUIRED | — | PASS | MERGED |
 
 ## Assumptions
 
@@ -85,3 +85,15 @@ task once the merge lands.
 - 2026-08-16 — created at `6cfac5c`.
 - 2026-08-16 — WP-01 through WP-04 complete; router, orchestration and
   repository-health context documents written, scripts added, roles wired.
+- 2026-08-16 — WP-05 complete; contract extended by eight fields,
+  `validate-framework.mjs` grown 559 → 714 checks and mutation-tested.
+- 2026-08-16 — WP-06 complete; protected-main incident verified recovered with
+  zero commits lost, engineering history recorded, knowledge retrieval extended
+  to parent tasks, Obsidian mapping added.
+- 2026-08-16 — merged via PR [#16](https://github.com/taymurisrar/DijiPeople/pull/16)
+  on `CI required gate` = success at `ea400cf`; target `c60970e`;
+  `MAIN_SYNC_STATUS = SYNCED`; worktree and branch cleaned up.
+  `FINAL_STATUS = COMPLETE`.
+
+Full record:
+[`docs/engineering-history/tasks/2026-08-16-framework-orchestration-f38a6bf.md`](../engineering-history/tasks/2026-08-16-framework-orchestration-f38a6bf.md).
