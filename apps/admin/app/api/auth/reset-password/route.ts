@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { AUTH_APP_CLIENT_ID, getApiBaseUrl } from "@/lib/auth-config";
+import { forwardedClientHeaders } from "@/lib/forwarded-headers";
 
 export async function POST(request: Request) {
   let body: unknown;
@@ -12,6 +13,7 @@ export async function POST(request: Request) {
     const response = await fetch(`${getApiBaseUrl()}/admin/auth/reset-password`, {
       method: "POST",
       headers: {
+        ...forwardedClientHeaders(request),
         "Content-Type": "application/json",
         "X-DijiPeople-App": AUTH_APP_CLIENT_ID,
       },

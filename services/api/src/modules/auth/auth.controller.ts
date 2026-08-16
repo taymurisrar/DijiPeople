@@ -27,6 +27,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
+import { PublicRateLimitGuard } from '../../common/guards/public-rate-limit.guard';
 
 @Controller('auth')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -37,12 +38,14 @@ export class AuthController {
   ) {}
 
   @Public()
+  @UseGuards(PublicRateLimitGuard)
   @Post('signup')
   signup(@Body() dto: SignupDto) {
     return this.authService.signup(dto);
   }
 
   @Public()
+  @UseGuards(PublicRateLimitGuard)
   @Post('login')
   async login(
     @Body() dto: LoginDto,
@@ -67,6 +70,7 @@ export class AuthController {
   }
 
   @Public()
+  @UseGuards(PublicRateLimitGuard)
   @Post('refresh')
   async refresh(
     @Body() dto: RefreshTokenDto,
@@ -99,18 +103,21 @@ export class AuthController {
   }
 
   @Public()
+  @UseGuards(PublicRateLimitGuard)
   @Post('activate-account')
   activateAccount(@Body() dto: ActivateAccountDto) {
     return this.authService.activateAccount(dto.token, dto.password);
   }
 
   @Public()
+  @UseGuards(PublicRateLimitGuard)
   @Post('forgot-password')
   forgotPassword(@Body() dto: ForgotPasswordDto) {
     return this.authService.requestPasswordReset(dto);
   }
 
   @Public()
+  @UseGuards(PublicRateLimitGuard)
   @Post('reset-password')
   resetPassword(@Body() dto: ResetPasswordDto) {
     return this.authService.resetPassword(dto.token, dto.password);
@@ -128,6 +135,7 @@ export class AuthController {
   }
 
   @Public()
+  @UseGuards(PublicRateLimitGuard)
   @Post('logout')
   async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     await this.authService.logout(req, res);

@@ -104,7 +104,10 @@ function getAppPort(app, env = process.env) {
 
 function getAppOrigin(app, env = process.env) {
   if (app === "api") {
-    const configured = firstDefined(env, ["API_ORIGIN", "NEXT_PUBLIC_API_ORIGIN"]);
+    const configured = firstDefined(env, [
+      "API_ORIGIN",
+      "NEXT_PUBLIC_API_ORIGIN",
+    ]);
     if (configured) return configured;
     if (isProductionLike(env))
       throw new Error("API_ORIGIN must be configured in production.");
@@ -163,7 +166,9 @@ function parseHttpUrl(value, label) {
   try {
     parsed = new URL(String(value));
   } catch {
-    throw new Error(`${label} must be a valid absolute URL (received "${value}").`);
+    throw new Error(
+      `${label} must be a valid absolute URL (received "${value}").`,
+    );
   }
 
   if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
@@ -275,7 +280,9 @@ function getAllowedCorsOrigins(env = process.env) {
 }
 
 function normalizeApiBaseUrl(value) {
-  const trimmed = String(value || "").trim().replace(/\/+$/, "");
+  const trimmed = String(value || "")
+    .trim()
+    .replace(/\/+$/, "");
   if (!trimmed) return trimmed;
   return trimmed.endsWith("/api") ? trimmed : `${trimmed}/api`;
 }
@@ -364,15 +371,21 @@ function validateDeploymentEnv(env = process.env, options = {}) {
     const accessSecret = env.JWT_ACCESS_SECRET;
     const refreshSecret = env.JWT_REFRESH_SECRET;
     if (accessSecret && accessSecret.length < 32) {
-      errors.push("JWT_ACCESS_SECRET must be at least 32 characters in production.");
+      errors.push(
+        "JWT_ACCESS_SECRET must be at least 32 characters in production.",
+      );
     }
     if (refreshSecret && refreshSecret.length < 32) {
-      errors.push("JWT_REFRESH_SECRET must be at least 32 characters in production.");
+      errors.push(
+        "JWT_REFRESH_SECRET must be at least 32 characters in production.",
+      );
     }
   }
 
   if (errors.length > 0) {
-    throw new Error(`Deployment environment validation failed:\n- ${errors.join("\n- ")}`);
+    throw new Error(
+      `Deployment environment validation failed:\n- ${errors.join("\n- ")}`,
+    );
   }
 
   // `allowedCorsOrigins` is resolved lazily because computing it needs all three
@@ -440,11 +453,20 @@ const {
   suggestWorkspaceSlug,
 } = require("./platform-domains");
 
+const {
+  FORWARDED_FOR_HEADER,
+  readForwardedForClientIp,
+  buildForwardedClientHeaders,
+} = require("./client-ip");
+
 module.exports = {
   DEFAULT_LOCAL_PORTS,
   PRODUCTION_APP_URLS,
   LOOPBACK_HOSTNAMES,
   REQUIRED_APP_URLS,
+  FORWARDED_FOR_HEADER,
+  readForwardedForClientIp,
+  buildForwardedClientHeaders,
   getAppPort,
   getAppOrigin,
   resolveAppUrls,

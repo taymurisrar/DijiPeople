@@ -132,4 +132,3 @@ decision — [[ITEM-0028]].
 [[docs-application]] · [[system-architecture]] · [[deployment-architecture]] ·
 [[integration-architecture]] · [[qa-and-ci-architecture]] ·
 [[tenant-application]] · [[platform-admin]]
-</content>

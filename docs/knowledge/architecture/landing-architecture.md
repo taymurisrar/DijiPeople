@@ -174,4 +174,3 @@ decides whether that is latent or fatal.
 [[landing-website]] · [[monorepo-application-map]] · [[system-architecture]] ·
 [[api-architecture]] · [[deployment-architecture]] · [[qa-and-ci-architecture]] ·
 [[leads]] · [[partners]] · [[contracts-and-agreements]] · [[billing]]
-</content>

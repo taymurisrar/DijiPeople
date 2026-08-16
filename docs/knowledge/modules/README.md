@@ -17,4 +17,3 @@ Published to `03 - Modules/Generated` in the Obsidian vault by
 Application-level knowledge does **not** live here — an application gets a
 `product/` note for what it is and an `architecture/` note for how it is built.
 See [[monorepo-application-map]] for the set.
-</content>

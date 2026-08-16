@@ -5,12 +5,13 @@ import {
   PARTNER_REFRESH_COOKIE,
   partnerCookieOptions,
 } from "@/lib/partner-auth";
+import { forwardedClientHeaders } from "@/lib/forwarded-headers";
 
 export async function POST(request: Request) {
   try {
     const response = await fetch(`${getApiBaseUrl()}/partner-auth/login`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { ...forwardedClientHeaders(request), "Content-Type": "application/json" },
       body: await request.text(),
       cache: "no-store",
     });

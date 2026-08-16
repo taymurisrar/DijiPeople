@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
 import { getApiBaseUrl } from "../../../../lib/api";
+import { forwardedClientHeaders } from "@/lib/forwarded-headers";
 
 export async function POST(request: Request) {
   try {
     const response = await fetch(`${getApiBaseUrl()}/public/subscribe`, {
       method: "POST",
       headers: {
+        ...forwardedClientHeaders(request),
         "Content-Type": "application/json",
         "cf-ipcountry": request.headers.get("cf-ipcountry") ?? "",
         "x-vercel-ip-country": request.headers.get("x-vercel-ip-country") ?? "",

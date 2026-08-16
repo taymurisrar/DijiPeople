@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getApiBaseUrl } from "../../../../lib/api";
+import { forwardedClientHeaders } from "@/lib/forwarded-headers";
 type Context = { params: Promise<{ path?: string[] }> };
 async function forward(request: Request, context: Context, method: string) {
   try {
@@ -9,6 +10,7 @@ async function forward(request: Request, context: Context, method: string) {
       {
         method,
         headers: {
+          ...forwardedClientHeaders(request),
           "Content-Type": "application/json",
           "X-Request-Id":
             request.headers.get("x-request-id") ?? crypto.randomUUID(),

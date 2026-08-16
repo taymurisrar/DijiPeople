@@ -153,4 +153,3 @@ guessed at.
 
 [[system-architecture]] · [[monorepo-application-map]] · [[landing-architecture]]
 · [[desktop-agent-architecture]]
-</content>

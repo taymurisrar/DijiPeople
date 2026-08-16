@@ -121,4 +121,3 @@ ITEM-0026 … ITEM-0028 created.
 
 [[monorepo-application-map]] · [[landing-website]] · [[desktop-agent]] ·
 [[docs-application]] · [[desktop-api-gateway-relationship]]
-</content>

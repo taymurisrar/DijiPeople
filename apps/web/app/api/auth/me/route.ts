@@ -13,8 +13,9 @@ import {
   REFRESH_TOKEN_MAX_AGE_SECONDS,
 } from "@/lib/auth-cookies";
 import { getApiBaseUrl } from "@/lib/auth";
+import { forwardedClientHeaders } from "@/lib/forwarded-headers";
 
-export async function GET() {
+export async function GET(request: Request) {
   const cookieStore = await cookies();
   const accessToken = cookieStore.get(ACCESS_TOKEN_COOKIE)?.value;
   const refreshToken = cookieStore.get(REFRESH_TOKEN_COOKIE)?.value;
@@ -29,6 +30,7 @@ export async function GET() {
     const response = await fetch(`${apiBaseUrl}/auth/me`, {
       method: "GET",
       headers: {
+        ...forwardedClientHeaders(request),
         "X-DijiPeople-App": AUTH_APP_CLIENT_ID,
         Cookie: [
           accessToken

@@ -8,6 +8,7 @@ import type { AuthenticatedUser } from '../../common/interfaces/authenticated-re
 import { TenantSignupDto } from './dto/tenant-signup.dto';
 import { UpdateTenantSlugDto } from './dto/update-tenant-slug.dto';
 import { TenantsService } from './tenants.service';
+import { PublicRateLimitGuard } from '../../common/guards/public-rate-limit.guard';
 
 @Controller('tenants')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -15,6 +16,7 @@ export class TenantsController {
   constructor(private readonly tenantsService: TenantsService) {}
 
   @Public()
+  @UseGuards(PublicRateLimitGuard)
   @Post('signup')
   signup(@Body() dto: TenantSignupDto) {
     return this.tenantsService.signup(dto);

@@ -1,5 +1,6 @@
 import { AgentActivityState } from '@prisma/client';
 import {
+  ArrayMaxSize,
   IsArray,
   IsDateString,
   IsEnum,
@@ -141,8 +142,23 @@ export class HeartbeatDto {
   @IsDateString()
   occurredAt?: string;
 
+  /**
+   * The server's own bound on a heartbeat batch.
+   *
+   * `apps/agent-desktop` caps its batches at 1000 and refuses to send more, but
+   * that cap lived only in the client — the server accepted an array of any
+   * length and processed it one event at a time, each with several writes. A
+   * caller holding a valid agent token could post an arbitrarily large batch and
+   * hold a connection open indefinitely.
+   *
+   * 1000 matches `MAX_HEARTBEAT_BATCH_SIZE` in `apps/agent-desktop/src/main/
+   * api-client.ts` deliberately: a legitimate agent is never refused, and the
+   * limit stops being a client-side courtesy. If that constant moves, this must
+   * move with it.
+   */
   @IsOptional()
   @IsArray()
+  @ArrayMaxSize(1000)
   @ValidateNested({ each: true })
   @Type(() => HeartbeatEventDto)
   events?: HeartbeatEventDto[];

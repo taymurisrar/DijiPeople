@@ -96,6 +96,25 @@ const DEFAULT_AGENT_SETTINGS = {
 };
 
 const AGENT_RETENTION_CLEANUP_INTERVAL_MS = 60 * 60 * 1000;
+
+/**
+ * A real bcrypt hash of a value nothing can log in with, compared against when
+ * no account matched so that a rejected address costs the same time as a
+ * rejected password (BUG-0033).
+ *
+ * It is a constant rather than a generated hash because generating one per call
+ * would itself cost a full bcrypt round on top of the comparison, doubling the
+ * time for exactly the case being disguised.
+ *
+ * THE COST FACTOR IS PART OF THE FIX. User passwords are hashed at cost 12
+ * (`auth.service.ts`, `user-invitations.service.ts`). Measured on the CI-class
+ * hardware this was written on, a cost-12 comparison takes ~261 ms and a cost-10
+ * one ~67 ms — so equalising with a cheaper hash would leave a four-fold gap
+ * that enumerates accounts just as well as the message used to. If password
+ * hashing ever moves off cost 12, regenerate this at the new factor.
+ */
+const TIMING_EQUALISATION_HASH =
+  '$2b$12$LPx7pI50rcgcWOzXn9PTBe9f/A2VC4yjOFiWC.FnF26ArQ6E9YYwG';
 // Desktop machines have no GPS. Windows Location Services positions them from
 // Wi-Fi and network data, which realistically lands between 20 m and 2 km, so a
 // tighter bound rejected every genuine capture. Anything looser than this is
@@ -130,30 +149,64 @@ export class AgentService {
   ) {}
 
   async login(dto: AgentLoginDto) {
-    const user = await this.prisma.user.findFirst({
-      where: { email: dto.email.trim().toLowerCase() },
+    /*
+     * BUG-0033. This handler is `@Public()` and reachable by anyone, so every
+     * observable difference between "no such address" and "wrong password" is an
+     * account-enumeration oracle covering every tenant at once. Three channels
+     * leaked it and all three are closed here:
+     *
+     *   1. the message  — both outcomes now return the same `Invalid
+     *      credentials.` the tenant login has always returned;
+     *   2. the timing   — a missing user used to skip bcrypt entirely and answer
+     *      in microseconds, which enumerates just as well as the message did, so
+     *      a comparison against a dummy hash is run instead;
+     *   3. the identity — `findFirst` by e-mail alone is non-deterministic,
+     *      because `User` is unique on `[tenantId, email]`, not on `email`.
+     *
+     * (3) is a correctness defect as much as a security one. Someone employed by
+     * two tenants — a contractor, an outsourced accountant — resolved to
+     * whichever row the database happened to return, so they could be refused
+     * their own account or land in the wrong workspace depending on plan order.
+     * The desktop agent sends no workspace (see `AgentLoginDto`), so the
+     * password is what disambiguates: the candidate whose hash matches is the
+     * account being logged into.
+     */
+    const email = dto.email.trim().toLowerCase();
+    const candidates = await this.prisma.user.findMany({
+      where: { email },
       include: {
         tenant: true,
         employee: true,
       },
+      orderBy: { createdAt: 'asc' },
     });
+
+    let user: (typeof candidates)[number] | null = null;
+    for (const candidate of candidates) {
+      if (await bcrypt.compare(dto.password, candidate.passwordHash)) {
+        user = candidate;
+        break;
+      }
+    }
+
     if (!user) {
-      throw new UnauthorizedException(
-        'Agent login failed: user was not found.',
-      );
+      // Spend comparable time on a rejected address so the response time does
+      // not answer the question the message refuses to.
+      if (candidates.length === 0) {
+        await bcrypt.compare(dto.password, TIMING_EQUALISATION_HASH);
+      }
+      throw new UnauthorizedException('Invalid credentials.');
     }
 
-    const passwordMatches = await bcrypt.compare(
-      dto.password,
-      user.passwordHash,
-    );
-
-    if (!passwordMatches) {
-      throw new UnauthorizedException(
-        'Agent login failed: password does not match.',
-      );
-    }
-
+    /*
+     * These two stay specific on purpose, and are not part of the enumeration
+     * closed above: both are only reachable by a caller who has already produced
+     * the correct password, so they confirm nothing an attacker did not already
+     * know. Collapsing them into `Invalid credentials.` would send a legitimate
+     * employee to reset a password that is fine, when the actual answer is that
+     * their workspace is suspended or their profile is not linked. This mirrors
+     * the reasoning in `AuthService.login`.
+     */
     if (
       user.status !== UserStatus.ACTIVE ||
       String(user.tenant.status).toUpperCase() !== 'ACTIVE'

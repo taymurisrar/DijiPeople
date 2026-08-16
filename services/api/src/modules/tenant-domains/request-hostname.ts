@@ -1,5 +1,6 @@
 import type { Request } from 'express';
 import { normalizeHostname } from '@repo/config';
+import { isProxyTrusted } from '../../common/security/proxy-trust';
 
 /**
  * The hostname a request actually arrived on.
@@ -28,25 +29,6 @@ export function resolveRequestHostname(request: Request): string | null {
   }
 
   return normalizeHostname(firstHeaderValue(request.headers.host)) || null;
-}
-
-/**
- * Whether the forwarded headers on this request can be believed.
- *
- * Explicit configuration wins so a deployment can state the truth about its own
- * topology; otherwise Express's `trust proxy` setting is used, which is what the
- * hosting platform configuration already sets.
- */
-function isProxyTrusted(request: Request): boolean {
-  const configured = process.env.TRUST_PROXY_HEADERS;
-  if (typeof configured === 'string' && configured.trim()) {
-    const value = configured.trim().toLowerCase();
-    if (['1', 'true', 'yes', 'on'].includes(value)) return true;
-    if (['0', 'false', 'no', 'off'].includes(value)) return false;
-  }
-
-  const setting: unknown = request.app?.get?.('trust proxy');
-  return Boolean(setting);
 }
 
 /**

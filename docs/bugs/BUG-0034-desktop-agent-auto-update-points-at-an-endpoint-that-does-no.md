@@ -183,4 +183,3 @@ though nothing in `render.yaml` provides one.
 - 2026-08-16 — Architect triage: `PLAN_REQUIRED`. There is no one-line fix; the
   decision is which of three distribution models the product wants, and it is
   inseparable from the signing decision in ITEM-0026.
-</content>

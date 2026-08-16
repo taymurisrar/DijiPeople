@@ -233,4 +233,3 @@ Its env vars are **not registered in `turbo.json` `globalEnv`**, which root
 [[monorepo-application-map]] · [[system-architecture]] ·
 [[integration-architecture]] · [[authentication]] · [[multi-tenancy]] ·
 [[deployment-architecture]] · [[attendance]]
-</content>

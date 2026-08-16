@@ -261,4 +261,3 @@ this record's completion, the six alias fixes and [[ITEM-0029]] — the merge SH
 cannot be written into the commit that produces it, and `main` is protected, so
 finalization is necessarily a follow-up PR. Same pattern as `952997a` for
 TASK-0001.
-</content>

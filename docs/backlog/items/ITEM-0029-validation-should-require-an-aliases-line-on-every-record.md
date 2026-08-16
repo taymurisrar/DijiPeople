@@ -94,4 +94,3 @@ bug pattern [[doc-code-drift]] · [[monorepo-application-map]].
   this item is the guard that stops them recurring.
 - 2026-08-16 — Architect triage: `FIX_NOW`. Small, mechanical, and it protects
   the navigability that is the entire reason records are published.
-</content>

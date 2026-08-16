@@ -20,6 +20,7 @@
     "test:platform-domains": "node --test packages/config/platform-domains.test.js",
     "test:app-urls": "node --test packages/config/app-urls.test.js",
     "check:no-hardcoded-urls": "node scripts/check-no-hardcoded-urls.mjs",
+    "check:proxy-forwards-client-ip": "node scripts/check-proxy-forwards-client-ip.mjs",
     "prisma:validate": "npm --workspace api run prisma:validate",
     "prisma:generate": "npm --workspace api run prisma:generate",
     "prisma:migrate:status": "npm --workspace api run prisma:migrate:status",

@@ -7,6 +7,7 @@ import { AuthService } from './auth.service';
 import { AdminLoginDto } from './dto/admin-login.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { PublicRateLimitGuard } from '../../common/guards/public-rate-limit.guard';
 
 @Controller('admin/auth')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -14,6 +15,7 @@ export class AdminAuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Public()
+  @UseGuards(PublicRateLimitGuard)
   @Post('login')
   async login(
     @Body() dto: AdminLoginDto,
@@ -37,12 +39,14 @@ export class AdminAuthController {
   }
 
   @Public()
+  @UseGuards(PublicRateLimitGuard)
   @Post('forgot-password')
   forgotPassword(@Body() dto: ForgotPasswordDto) {
     return this.authService.requestAdminPasswordReset(dto);
   }
 
   @Public()
+  @UseGuards(PublicRateLimitGuard)
   @Post('reset-password')
   resetPassword(@Body() dto: ResetPasswordDto) {
     return this.authService.resetAdminPassword(dto.token, dto.password);

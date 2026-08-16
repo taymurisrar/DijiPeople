@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { forwardedClientHeaders } from "@/lib/forwarded-headers";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -19,6 +20,7 @@ export async function GET(request: Request) {
       )}&lon=${encodeURIComponent(longitude)}&zoom=16&addressdetails=1`,
       {
         headers: {
+          ...forwardedClientHeaders(request),
           Accept: "application/json",
           "User-Agent": "DijiPeople/1.0 attendance-reverse-geocode",
         },

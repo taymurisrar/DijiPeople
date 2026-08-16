@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getApiBaseUrl } from "@/lib/auth";
+import { forwardedClientHeaders } from "@/lib/forwarded-headers";
 
 export async function POST(request: Request) {
   const body = await request.json();
@@ -7,7 +8,7 @@ export async function POST(request: Request) {
   try {
     const response = await fetch(`${getApiBaseUrl()}/auth/forgot-password`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { ...forwardedClientHeaders(request), "Content-Type": "application/json" },
       body: JSON.stringify(body),
       cache: "no-store",
     });

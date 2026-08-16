@@ -107,4 +107,3 @@ outside engineering's control, which is the realistic blocker.
   after auto-update starts working is a live remote-code-execution channel, and
   the certificate has a procurement lead time that makes late a bad time to
   start.
-</content>

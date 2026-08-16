@@ -139,4 +139,3 @@ questions in the TASK-0002 report.
 [[monorepo-application-map]] · [[attendance]] · [[integration-architecture]] ·
 [[authentication]] · [[multi-tenancy]] · [[platform-admin]] ·
 [[tenant-application]]
-</content>
