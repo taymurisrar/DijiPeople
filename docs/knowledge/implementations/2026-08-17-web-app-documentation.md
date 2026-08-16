@@ -107,6 +107,32 @@ missing `workspace/` segment, the testing scope), `apps/web/README.md` and
 **Records** — BUG-0038 … BUG-0045 created (BUG-0043 fixed here);
 ITEM-0033 … ITEM-0036 created.
 
+### Regenerate generated artefacts last, not when it feels done
+
+The `Framework validation` CI job failed on this branch because the Obsidian
+dashboards were stale. The cause was ordering: `generate-dashboards.mjs` ran,
+and *then* the engineering-history record was written — and the dashboards count
+those records.
+
+Locally the failure was invisible, because `validate-framework` was already
+failing on an unrelated foreign deletion in the working tree
+(`.obsidian-sync.example.json`, deleted-but-unstaged by someone else). **A check
+that is already red hides the next thing that breaks it.** The local run said
+"1 of 713"; the real state was two, and only CI — which checks out the commit,
+without the foreign deletion — separated them.
+
+Two durable points:
+
+- **Run every generator after the last file is written**, not after the last
+  *record* is written. `rebuild-backlog`, `rebuild-tasks` and
+  `generate-dashboards` are cheap and idempotent; running them once more costs
+  nothing and running them too early costs a CI round trip.
+- **When a validation is already failing for a known reason, it has stopped
+  being a signal.** Either resolve the known failure or verify against a clean
+  tree before trusting a count. The check was working correctly here — a
+  generated artefact that disagrees with its sources is exactly what it exists
+  to catch.
+
 ## Not actioned here, deliberately
 
 - **`docs/architecture/settings-and-branding.md`** is declared *canonical* and is
