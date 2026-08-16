@@ -114,12 +114,14 @@ _None._
 
 ## Recent Implementations
 
+- [[2026-08-17-web-app-documentation|2026-08-17 — Documenting `apps/web`, the tenant product]]
 - [[2026-08-16-monorepo-app-documentation|2026-08-16 — Documenting `apps/docs`, `apps/landing` and `apps/agent-desktop`]]
 - [[2026-08-15-database-ci-and-gh-access|Database CI, GitHub access, and the first four framework merges]]
 - [[2026-08-14-tenant-control-plane|Tenant Control Plane]]
 
 ## Recent Engineering History
 
+- [[2026-08-16-web-app-documentation-1af3690|Engineering History — Web app documentation]]
 - [[2026-08-16-public-commercial-wave2-301a397|Engineering History — Wave 2: Public Plans + Features Experience]]
 - [[2026-08-16-production-url-integrity-344a832|Engineering History — Production url integrity]]
 - [[2026-08-16-monorepo-app-documentation-78072d2|Engineering History — Monorepo app documentation]]
@@ -127,7 +129,6 @@ _None._
 - [[2026-08-16-hotfix-plan-list-hidden-write-ee1acec|Engineering History — Hotfix: Plan list GET mutates commercial pricing (BUG-0030)]]
 - [[2026-08-16-framework-orchestration-f38a6bf|Engineering History — Framework orchestration]]
 - [[2026-08-16-commercial-config-wave1-7b5aeaa|Engineering History — Wave 1: Commercial Configuration Foundation]]
-- [[2026-08-15-knowledge-backlog-framework-986ab10|Engineering History — Operational knowledge-management layer]]
 
 ## Recent Releases
 
@@ -188,12 +189,12 @@ _None. Nothing has been deployed through the release process._
 | Backlog items | 36 |
 | Known bug patterns | 19 |
 | QA runs | 11 |
-| Engineering history records | 9 |
+| Engineering history records | 10 |
 | Release records | 0 |
 | Module notes | 19 |
 | Architecture notes | 18 |
 | Decision notes (ADR + generated) | 5 |
-| Implementation records | 3 |
+| Implementation records | 4 |
 
 **Awaiting Architect triage: 0.** A record nobody has
 triaged is work nobody has decided about — the number that should stay near
