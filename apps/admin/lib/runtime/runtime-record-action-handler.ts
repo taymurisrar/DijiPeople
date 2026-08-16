@@ -24,6 +24,23 @@ export async function executeRuntimeRecordAction(input: {
   enterEditMode(): void;
   leaveEditMode(): void;
   openSignatureDialog(): void;
+  /**
+   * Collect a governed reason through the design system.
+   *
+   * Injected rather than called directly because this module is not a
+   * component and cannot render — which is exactly why `window.prompt` was
+   * used here, and why the reasons it collected reached audited records
+   * unlabelled and unvalidated (BUG-0020). Resolves to null when cancelled.
+   */
+  requestReason(request: {
+    title: string;
+    description?: string;
+    label: string;
+    hint?: string;
+    confirmLabel: string;
+    tone?: "default" | "danger";
+    minLength?: number;
+  }): Promise<string | null>;
 }): Promise<ActionResult> {
   const {
     action,
@@ -39,6 +56,7 @@ export async function executeRuntimeRecordAction(input: {
     enterEditMode,
     leaveEditMode,
     openSignatureDialog,
+    requestReason,
   } = input;
 
   if (action.key === "back") return router.push(routeBase);
@@ -77,12 +95,19 @@ export async function executeRuntimeRecordAction(input: {
     return result;
   }
   if (moduleKey === "leads" && action.key === "disqualify") {
-    const reason = window.prompt("Disqualification reason");
-    if (!reason?.trim()) return;
+    const reason = await requestReason({
+      title: "Disqualify lead",
+      description:
+        "The reason is stored on the lead and is read later by whoever reviews why it was not pursued.",
+      label: "Disqualification reason",
+      confirmLabel: "Disqualify lead",
+      tone: "danger",
+    });
+    if (!reason) return;
     const result = await adapter.changeStatus(
       record.id,
       "UNQUALIFIED",
-      reason.trim(),
+      reason,
     );
     await reloadRecord();
     return result;
@@ -111,10 +136,19 @@ export async function executeRuntimeRecordAction(input: {
     ["stage-back", "stage-forward"].includes(action.key)
   ) {
     const backward = action.key === "stage-back";
-    const reason = backward
-      ? window.prompt("Reason for moving this contract backward")
-      : undefined;
-    if (backward && !reason) return;
+    let reason: string | undefined;
+    if (backward) {
+      const entered = await requestReason({
+        title: "Move contract backward",
+        description:
+          "Moving a contract back a stage is recorded against it. The reason explains the reversal to anyone auditing the agreement later.",
+        label: "Reason for moving this contract backward",
+        confirmLabel: "Move backward",
+        tone: "danger",
+      });
+      if (!entered) return;
+      reason = entered;
+    }
     await postContractAction(record.id, "transition", {
       direction: backward ? "backward" : "forward",
       reason,

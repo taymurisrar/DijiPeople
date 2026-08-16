@@ -20,6 +20,7 @@ import type {
 import { getRuntimeSchema } from "@repo/config";
 import { executeRuntimeRecordAction } from "@/lib/runtime/runtime-record-action-handler";
 import { ModuleActionBar } from "./module-action-bar";
+import { useReasonPrompt } from "./use-reason-prompt";
 import {
   PlanPriceManager,
   type PlanPriceRecord,
@@ -139,6 +140,11 @@ function RuntimeRecordEditor({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [timeline, setTimeline] = useState<Array<Record<string, unknown>>>([]);
   const [signatureOpen, setSignatureOpen] = useState(false);
+  /*
+   * Governed reasons are collected here rather than by `window.prompt` in the
+   * action handler, which is a plain module and cannot render (BUG-0020).
+   */
+  const { requestReason, reasonDialog } = useReasonPrompt();
   /*
    * Tenant lifecycle and access actions live in the tab panels that own the
    * data they change. The action bar only asks for them; this hook routes the
@@ -330,6 +336,7 @@ function RuntimeRecordEditor({
       enterEditMode: () => setMode("edit"),
       leaveEditMode: () => setMode("read"),
       openSignatureDialog: () => setSignatureOpen(true),
+      requestReason,
     });
   }
 
@@ -573,6 +580,7 @@ function RuntimeRecordEditor({
           onComplete={reloadRecord}
         />
       ) : null}
+      {reasonDialog}
     </main>
   );
 }

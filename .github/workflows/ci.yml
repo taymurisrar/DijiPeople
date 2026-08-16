@@ -207,6 +207,11 @@ jobs:
         # collapses the whole world into one rate limit bucket. The feature
         # still works, which is why this needs a machine to notice.
         run: npm run check:proxy-forwards-client-ip
+      - name: No native prompts for governed input
+        # BUG-0020. A window.prompt collecting a reason that lands in an audited
+        # record is unlabelled, unvalidated and untestable. The allowlist counts
+        # the known remaining call sites (ITEM-0031) so the debt stays visible.
+        run: npm run check:no-native-prompt
 
   database-migration:
     name: Database migration gate

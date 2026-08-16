@@ -85,6 +85,10 @@ const navSections = [
   section("Partners", [
     moduleItem("partners"),
     moduleItem("partner-inquiries"),
+    // BUG-0019 — the onboarding compliance review had no entry here, and its
+    // list route redirected to a Partner list, so the step was unperformable
+    // through the product however you navigated to it.
+    moduleItem("partner-onboarding", "Onboarding reviews"),
   ]),
   section("Agreements", [
     moduleItem("contracts"),

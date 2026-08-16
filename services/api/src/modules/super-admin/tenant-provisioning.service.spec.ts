@@ -1,3 +1,4 @@
+import { getPlatformDomainConfig } from '@repo/config';
 import { TenantProvisioningService } from './tenant-provisioning.service';
 
 describe('TenantProvisioningService', () => {
@@ -83,5 +84,49 @@ describe('TenantProvisioningService', () => {
     await expect(
       service.provisionSystemDomain({ tenantId: 'tenant-1', slug: 'acme' }),
     ).rejects.toThrow(/already assigned/i);
+  });
+  /*
+   * BUG-0017 — the tenant base domain must have exactly one source.
+   *
+   * It was once editable in the admin UI and stored in the `tenant-provisioning`
+   * PlatformSetting, while hostname issuance read environment configuration, so
+   * the operator control was inert: changing it did nothing, and provisioning
+   * still failed unless TENANT_BASE_DOMAIN was set in the API environment.
+   *
+   * The resolution kept configuration as the single source, because the edge
+   * router matches hostnames with no database access and must be able to read it
+   * — so the *setting* was retired rather than wired up. That makes a stored
+   * value a stale leftover, and reading one again would silently restore the
+   * divergence. This pins the direction: whatever is in the row, configuration
+   * wins.
+   */
+  it('ignores a stored tenant base domain in favour of configuration', async () => {
+    const service = new TenantProvisioningService(
+      {
+        platformSetting: {
+          findUnique: jest.fn().mockResolvedValue({
+            value: {
+              wildcardDnsReady: true,
+              // A retired key left behind by an older save.
+              tenantBaseDomain: 'stale.example.invalid',
+              defaultProtocol: 'http',
+            },
+          }),
+        },
+      } as never,
+      { createSystemDomain: jest.fn() } as never,
+      { record: jest.fn() } as never,
+    );
+
+    const settings = await service.settings();
+
+    const fromConfig = getPlatformDomainConfig();
+    expect(settings.tenantBaseDomain).not.toBe('stale.example.invalid');
+    expect(settings.tenantBaseDomain).toBe(fromConfig.tenantBaseDomain);
+    expect(settings.defaultProtocol).toBe(
+      fromConfig.protocol === 'http' ? 'http' : 'https',
+    );
+    // The one key that is genuinely stored is still read.
+    expect(settings.wildcardDnsReady).toBe(true);
   });
 });
