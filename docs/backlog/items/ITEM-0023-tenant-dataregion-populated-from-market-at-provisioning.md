@@ -1,0 +1,73 @@
+---
+ID: ITEM-0023
+Title: Tenant.dataRegion populated from market at provisioning
+Type: FOLLOW_UP
+Status: READY
+Priority: P2
+Severity: LOW
+AffectedModules: [services/api/prisma, api:tenant-control-plane]
+Source: ARCHITECT
+OwnerAgent: architect
+ArchitectDisposition: DEFER
+CreatedAt: 2026-08-16
+UpdatedAt: 2026-08-16
+RelatedBug: 
+RelatedQA: 
+RelatedADR: 
+RelatedImplementation:
+TargetMilestone: 
+BlockedBy: 
+---
+
+# ITEM-0023 — Tenant.dataRegion populated from market at provisioning
+
+## Summary
+
+`Market.dataRegion` exists as of Wave 1 and is seeded null everywhere. `Tenant`
+has no `dataRegion`, and nothing copies the market's onto a tenant at
+provisioning.
+
+## Why It Matters
+
+Data region is a customer-visible promise, so it needs to be a real recorded
+property of a tenant rather than something inferred later. It is low priority
+only because **nothing currently claims residency** — no public page states a
+region, and every seeded market has `dataRegion: null`. The moment a market
+declares one, a tenant needs to record which region it was provisioned into, or
+the claim cannot be substantiated per customer.
+
+## Why it was NOT done in Wave 1
+
+Adding `Tenant.dataRegion` now would create a column with no writer and no
+reader — the provisioning flow that would populate it is a later wave. A
+nullable field that nothing sets is indistinguishable from a field nobody
+implemented, and invites exactly the false-confidence this backlog exists to
+prevent.
+
+## Proposed Approach
+
+Do this with the provisioning wave, not before:
+
+1. Add `Tenant.dataRegion`, nullable.
+2. Populate it from the resolved `Market.dataRegion` at provisioning.
+3. Backfill existing tenants only where a market is unambiguous; leave the rest
+   null rather than guessing.
+4. Surface it in Admin's tenant record.
+
+## Acceptance Criteria
+
+- A tenant provisioned in a market with a configured `dataRegion` records it.
+- A tenant provisioned in a market with none records null, not a default.
+- No public surface states a region for a tenant whose value is null.
+
+## Dependencies
+
+The tenant provisioning wave.
+
+## Related Items
+
+[[ITEM-0019]] · [[ITEM-0018]]
+
+## History
+
+- 2026-08-16 — created during Wave 1, deferred to the provisioning wave.

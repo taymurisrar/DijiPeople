@@ -3,19 +3,19 @@ ID: ITEM-0018
 aliases: [ITEM-0018]
 Title: Plans and prices have no draft, publish or archive lifecycle
 Type: ARCHITECTURE
-Status: READY
+Status: VALIDATING
 Priority: P1
 Severity: MEDIUM
 AffectedModules: [services/api/prisma, api:super-admin, apps/admin, apps/landing]
 Source: ARCHITECT
 OwnerAgent: architect
-ArchitectDisposition: PLAN_REQUIRED
+ArchitectDisposition: FIX_NOW
 CreatedAt: 2026-08-16
 UpdatedAt: 2026-08-16
 RelatedBug: BUG-0027
 RelatedQA:
 RelatedADR:
-RelatedImplementation:
+RelatedImplementation: agent/commercial-config-wave1
 TargetMilestone:
 BlockedBy:
 ---
@@ -107,6 +107,28 @@ None blocking. Should be planned together with [[BUG-0027]].
 [[BUG-0027]] — duplicate price source of truth, same models.
 [[ITEM-0019]] — market model; markets gate which published plans are offered.
 [[BUG-0028]] — hardcoded currency mapping.
+
+## Delivered — Wave 1
+
+`CommercialPublicationStatus` (`DRAFT` / `PUBLISHED` / `ARCHIVED`) now exists on
+`Plan`, `PlanPrice` and `Market`, with `publishedAt`, `publishedById` and
+`archivedAt`. The existing `PlanPrice` version lineage was **reused unchanged**,
+as this record required — publication and effectivity are modelled as separate
+questions rather than one flag.
+
+- Only `PUBLISHED` plans and prices leave the public API at all, so unpublished
+  configuration is not merely hidden by the UI.
+- `deriveCheckoutReadiness`'s successor, `resolveCommercialOffer`, requires
+  publication; a DRAFT or ARCHIVED price cannot be bought.
+- The migration backfills existing rows from the booleans that previously
+  carried this meaning, so nothing live went dark on deploy: active + public
+  became `PUBLISHED`, inactive became `ARCHIVED`.
+- Admin's plan list now leads with publication status rather than `isActive`.
+
+**Not delivered, deliberately:** explicit Publish / Archive *actions* with audit
+events in Admin, and the create-new-version-on-edit flow. The state and the
+enforcement exist; the governed UI transitions are a follow-up, recorded as
+[[ITEM-0022]]. Editing a published price is still a direct edit today.
 
 ## History
 

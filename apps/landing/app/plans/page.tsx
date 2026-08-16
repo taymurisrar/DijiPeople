@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { PlanCards } from "../_components/plan-cards";
 import { PageShell } from "../_components/site-shell";
-import { resolveDefaultCurrency } from "../../lib/plans";
-import { getDetectedCountry, getPublicPlans } from "../../lib/plans-server";
+import { getCommercialConfig } from "../../lib/commercial-config";
+import { resolveDisplayCurrency } from "../../lib/plans";
+import { getPublicPlans } from "../../lib/plans-server";
 
 export const metadata: Metadata = {
   title: "Plans and Pricing | DijiPeople",
@@ -11,10 +12,16 @@ export const metadata: Metadata = {
 };
 
 export default async function PlansPage() {
-  const plansResponse = await getPublicPlans();
+  const [plansResponse, commercialConfig] = await Promise.all([
+    getPublicPlans(),
+    getCommercialConfig(),
+  ]);
   const plans = plansResponse.plans;
-  const country = await getDetectedCountry();
-  const defaultCurrency = resolveDefaultCurrency(plans, country);
+  // The market's published currency, not a country guessed in this bundle.
+  const defaultCurrency = resolveDisplayCurrency(
+    plans,
+    commercialConfig.currency,
+  );
 
   return (
     <PageShell>
@@ -26,12 +33,11 @@ export default async function PlansPage() {
           Subscribe to the plan that matches your HR operating model.
         </h1>
         <p className="mt-4 text-base leading-7 text-muted">
-          Pricing, billing cycle, currency, and checkout availability come from
-          active PlanPrice records managed in the DijiPeople admin portal.
+          Prices are shown in your region’s currency. Pick the billing cycle
+          that suits you — annual plans are billed once a year.
         </p>
       </section>
       <PlanCards
-        availableCurrencies={plansResponse.availableCurrencies}
         defaultCurrency={defaultCurrency}
         error={plansResponse.error}
         plans={plans}

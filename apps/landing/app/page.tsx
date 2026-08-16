@@ -1,33 +1,42 @@
 import Link from "next/link";
 import { PlanCards } from "./_components/plan-cards";
 import { PageShell } from "./_components/site-shell";
-import { resolveDefaultCurrency } from "../lib/plans";
+import { resolveDisplayCurrency } from "../lib/plans";
 import Image from "next/image";
-import { getDetectedCountry, getPublicPlans } from "../lib/plans-server";
+import { getCommercialConfig } from "../lib/commercial-config";
+import { getPublicPlans } from "../lib/plans-server";
 
+// Customer-facing copy. "Stripe webhook" and "PlanPrice record" are how this is
+// built, not what a buyer is choosing between — internal vocabulary on a public
+// page reads as unfinished and answers a question nobody asked.
 const faqs = [
   {
     question: "Can DijiPeople support multiple companies or workspaces?",
     answer:
-      "Yes. DijiPeople is built as a multi-tenant platform with tenant-level branding, access, features, and billing records.",
+      "Yes. DijiPeople is built as a multi-tenant platform, so each organization gets its own workspace with separate branding, access, and billing.",
   },
   {
-    question: "Are prices managed by the admin team?",
+    question: "Who controls the pricing shown here?",
     answer:
-      "Yes. Public pricing is pulled from active admin-managed plans and active Stripe-ready plan prices.",
+      "DijiPeople does. Published prices come from our commercial configuration, so the price you see is the price you are charged.",
   },
   {
-    question: "When does a public signup become active?",
+    question: "When does my workspace become available?",
     answer:
-      "The workspace remains inactive until Stripe confirms payment through the webhook.",
+      "We begin preparing your workspace as soon as your payment is confirmed, and email you as soon as it is ready.",
   },
 ];
 
 export default async function HomePage() {
-  const plansResponse = await getPublicPlans();
+  const [plansResponse, commercialConfig] = await Promise.all([
+    getPublicPlans(),
+    getCommercialConfig(),
+  ]);
   const plans = plansResponse.plans;
-  const country = await getDetectedCountry();
-  const defaultCurrency = resolveDefaultCurrency(plans, country);
+  const defaultCurrency = resolveDisplayCurrency(
+    plans,
+    commercialConfig.currency,
+  );
 
   return (
     <PageShell>
@@ -100,11 +109,10 @@ export default async function HomePage() {
             Pricing preview
           </p>
           <h2 className="mt-2 text-3xl font-semibold text-foreground">
-            Real plans from the DijiPeople admin system.
+            Simple pricing, published by us.
           </h2>
         </div>
         <PlanCards
-          availableCurrencies={plansResponse.availableCurrencies}
           defaultCurrency={defaultCurrency}
           error={plansResponse.error}
           plans={plans}
@@ -122,7 +130,7 @@ export default async function HomePage() {
           </h2>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
-          {["Webhook-only activation", "Stripe-backed subscriptions", "Role-based access", "Audit-friendly lifecycle"].map((item) => (
+          {["Your data stays separated", "Secure card payments", "Role-based access", "Full change history"].map((item) => (
             <div className="rounded-2xl border border-border bg-white p-4 text-sm font-semibold text-foreground" key={item}>
               {item}
             </div>
@@ -145,8 +153,8 @@ export default async function HomePage() {
       <section className="my-8 rounded-[28px] bg-foreground p-6 text-white sm:p-8">
         <h2 className="text-2xl font-semibold">Ready to launch cleaner HR operations?</h2>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-white/72">
-          Choose a live plan, submit company details, and continue through
-          secure Stripe Checkout.
+          Choose a plan, tell us about your company, and continue to secure
+          payment.
         </p>
         <Link className="mt-5 inline-flex rounded-xl bg-white px-5 py-3 text-sm font-semibold text-foreground" href="/subscribe">
           Start subscription

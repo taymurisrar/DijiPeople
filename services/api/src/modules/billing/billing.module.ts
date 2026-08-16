@@ -8,6 +8,7 @@ import { PublicBillingController } from './controllers/public-billing.controller
 import { StripeWebhookController } from './controllers/stripe-webhook.controller';
 import { STRIPE_CLIENT } from './constants/stripe.constants';
 import { BillingService } from './services/billing.service';
+import { CommercialConfigService } from './services/commercial-config.service';
 import {
   createStripeClient,
   StripeBillingService,
@@ -29,10 +30,16 @@ import { WebhookService } from './services/webhook.service';
     },
     StripeBillingService,
     BillingService,
+    CommercialConfigService,
     WebhookService,
     JwtAuthGuard,
     RolesGuard,
   ],
-  exports: [BillingService, StripeBillingService, WebhookService],
+  exports: [
+    BillingService,
+    CommercialConfigService,
+    StripeBillingService,
+    WebhookService,
+  ],
 })
 export class BillingModule {}

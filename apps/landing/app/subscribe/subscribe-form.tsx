@@ -1,43 +1,31 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useState } from "react";
 import {
   BillingCycle,
   PublicPlan,
   findPlanPrice,
   formatPlanPrice,
-  getAvailableCurrenciesFromPlans,
   isCheckoutReady,
 } from "../../lib/plans";
 
 export function SubscribeForm({
   plans,
   defaultCurrency,
-  availableCurrencies,
   error,
   initialPlanPriceId,
 }: {
   plans: PublicPlan[];
   defaultCurrency: string;
-  availableCurrencies?: string[];
   error?: string;
   initialPlanPriceId?: string;
 }) {
-  const currencies = useMemo(
-    () =>
-      availableCurrencies?.length
-        ? availableCurrencies
-        : getAvailableCurrenciesFromPlans(plans),
-    [availableCurrencies, plans],
-  );
   const initialSelection = findInitialSelection(plans, initialPlanPriceId);
   const [planId, setPlanId] = useState(initialSelection.planId);
   const [billingCycle, setBillingCycle] = useState<BillingCycle>(
     initialSelection.billingCycle,
   );
-  const [currency, setCurrency] = useState(
-    initialSelection.currency || defaultCurrency,
-  );
+  const currency = initialSelection.currency || defaultCurrency;
   const [seatQuantity, setSeatQuantity] = useState(
     initialSelection.minimumSeats,
   );
@@ -154,20 +142,18 @@ export function SubscribeForm({
               <option value="ANNUAL">Annual</option>
             </select>
           </label>
-          <label className="text-sm font-medium text-foreground">
+          {/*
+            No currency selector. Currency follows the visitor's market, which
+            the backend resolves from published configuration — a buyer choosing
+            a currency their market has no price in can only be shown a
+            fallback in a different currency than the one they picked.
+          */}
+          <div className="text-sm font-medium text-foreground">
             Currency
-            <select
-              className="mt-2 w-full rounded-xl border border-border px-3 py-2"
-              onChange={(event) => setCurrency(event.target.value)}
-              value={currency}
-            >
-              {currencies.map((code) => (
-                <option key={code} value={code}>
-                  {code}
-                </option>
-              ))}
-            </select>
-          </label>
+            <p className="mt-2 rounded-xl border border-border bg-surface-muted px-3 py-2 font-semibold">
+              {currency}
+            </p>
+          </div>
         </div>
         <div className="mt-5 rounded-2xl bg-surface-muted p-4">
           <p className="text-3xl font-semibold text-foreground">
@@ -176,12 +162,12 @@ export function SubscribeForm({
           <p className="mt-1 text-sm text-muted">
             {selectedPrice?.billingModel === "PER_SEAT"
               ? `${effectiveSeatQuantity} purchased seat${effectiveSeatQuantity === 1 ? "" : "s"} · estimated ${new Intl.NumberFormat("en-US", { style: "currency", currency: selectedPrice.currency }).format(selectedPrice.unitAmount * effectiveSeatQuantity)} per month.`
-              : "Secure subscription checkout is handled by Stripe."}
+              : "Billed as one subscription."}
           </p>
-          {selectedPrice && selectedPrice.currency !== currency ? (
+          {!selectedPrice ? (
             <p className="mt-2 text-xs text-warning">
-              {currency} is unavailable for this plan. Showing{" "}
-              {selectedPrice.currency.toUpperCase()} price.
+              This plan has no published price for your region yet. Contact us
+              and we will arrange it.
             </p>
           ) : null}
           {selectedPrice && !canCheckout ? (

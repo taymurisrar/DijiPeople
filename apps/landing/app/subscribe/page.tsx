@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { PageShell } from "../_components/site-shell";
-import { resolveDefaultCurrency } from "../../lib/plans";
-import { getDetectedCountry, getPublicPlans } from "../../lib/plans-server";
+import { getCommercialConfig } from "../../lib/commercial-config";
+import { resolveDisplayCurrency } from "../../lib/plans";
+import { getPublicPlans } from "../../lib/plans-server";
 import { SubscribeForm } from "./subscribe-form";
 
 export const metadata: Metadata = {
@@ -17,13 +18,16 @@ export default async function SubscribePage({
 }: {
   searchParams: SearchParams;
 }) {
-  const [{ planPriceId }, plansResponse, country] = await Promise.all([
+  const [{ planPriceId }, plansResponse, commercialConfig] = await Promise.all([
     searchParams,
     getPublicPlans(),
-    getDetectedCountry(),
+    getCommercialConfig(),
   ]);
   const plans = plansResponse.plans;
-  const defaultCurrency = resolveDefaultCurrency(plans, country);
+  const defaultCurrency = resolveDisplayCurrency(
+    plans,
+    commercialConfig.currency,
+  );
 
   return (
     <PageShell>
@@ -35,12 +39,11 @@ export default async function SubscribePage({
           Create your workspace and continue to secure checkout.
         </h1>
         <p className="mt-4 text-base leading-7 text-muted">
-          DijiPeople creates a pending workspace, links it to Stripe Checkout,
-          and activates it only after payment is confirmed by webhook.
+          Tell us about your company, then continue to secure payment. We start
+          preparing your workspace as soon as your payment is confirmed.
         </p>
       </section>
       <SubscribeForm
-        availableCurrencies={plansResponse.availableCurrencies}
         defaultCurrency={defaultCurrency}
         error={plansResponse.error}
         initialPlanPriceId={planPriceId}
