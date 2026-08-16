@@ -107,6 +107,7 @@ _None._
 
 ## Recent Engineering History
 
+- [[2026-08-16-public-commercial-wave2-301a397|Engineering History — Wave 2: Public Plans + Features Experience]]
 - [[2026-08-16-production-url-integrity-344a832|Engineering History — Production url integrity]]
 - [[2026-08-16-commercial-config-wave1-7b5aeaa|Engineering History — Wave 1: Commercial Configuration Foundation]]
 - [[2026-08-15-knowledge-backlog-framework-986ab10|Engineering History — Operational knowledge-management layer]]
@@ -165,7 +166,7 @@ _None. Nothing has been deployed through the release process._
 | Backlog items | 24 |
 | Known bug patterns | 18 |
 | QA runs | 7 |
-| Engineering history records | 4 |
+| Engineering history records | 5 |
 | Release records | 0 |
 | Module notes | 19 |
 | Architecture notes | 12 |
