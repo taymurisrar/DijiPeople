@@ -105,6 +105,7 @@ maps to a screen a customer can reach.
 | `npm run test:app-urls` | **PASS** — 16, no BUG-0026 regression |
 | `npm run check:no-hardcoded-urls` | **PASS** |
 | `node scripts/validate-framework.mjs` | **PASS** — 503 checks |
+| CI `Landing tests` job | **ADDED** — the new suite is wired into the required gate, so it actually protects something |
 
 ---
 
