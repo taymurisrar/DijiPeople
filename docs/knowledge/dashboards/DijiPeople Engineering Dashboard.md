@@ -123,11 +123,11 @@ _None._
 - [[2026-08-16-public-commercial-wave2-301a397|Engineering History — Wave 2: Public Plans + Features Experience]]
 - [[2026-08-16-production-url-integrity-344a832|Engineering History — Production url integrity]]
 - [[2026-08-16-monorepo-app-documentation-78072d2|Engineering History — Monorepo app documentation]]
+- [[2026-08-16-lead-partner-acquisition-wave3-ca18353|Engineering History — Wave 3: Lead + Partner Acquisition]]
 - [[2026-08-16-hotfix-plan-list-hidden-write-ee1acec|Engineering History — Hotfix: Plan list GET mutates commercial pricing (BUG-0030)]]
 - [[2026-08-16-framework-orchestration-f38a6bf|Engineering History — Framework orchestration]]
 - [[2026-08-16-commercial-config-wave1-7b5aeaa|Engineering History — Wave 1: Commercial Configuration Foundation]]
 - [[2026-08-15-knowledge-backlog-framework-986ab10|Engineering History — Operational knowledge-management layer]]
-- [[2026-08-15-autonomous-framework-triage-b2ba383|Engineering History — Autonomous framework triage, provisioning recovery and browser E2E]]
 
 ## Recent Releases
 
@@ -189,7 +189,7 @@ _None. Nothing has been deployed through the release process._
 | Backlog items | 30 |
 | Known bug patterns | 19 |
 | QA runs | 10 |
-| Engineering history records | 8 |
+| Engineering history records | 9 |
 | Release records | 0 |
 | Module notes | 19 |
 | Architecture notes | 17 |
