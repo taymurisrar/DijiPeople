@@ -216,6 +216,44 @@ enum CustomerAccountStatus {
   ARCHIVED
 }
 
+// Why a visitor contacted DijiPeople. Deliberately distinct from which modules
+// interest them (Lead.interestAreas): "pricing inquiry" and "attendance,
+// payroll" answer different questions, and collapsing them loses the one Sales
+// acts on first.
+//
+// Nullable on Lead: historical leads predate this field and no honest value can
+// be inferred for them. UNKNOWN would assert that someone chose it.
+enum LeadInquiryIntent {
+  REQUEST_DEMO
+  PRICING
+  PRODUCT_FEATURES
+  IMPLEMENTATION
+  PAYROLL
+  ATTENDANCE_INTEGRATION
+  DATA_MIGRATION
+  INTEGRATION
+  PARTNERSHIP
+  EXISTING_CUSTOMER_SUPPORT
+  GENERAL
+  OTHER
+}
+
+// How an organisation wants to work with DijiPeople.
+//
+// PartnerType ({ INDIVIDUAL, COMPANY }) is the contracting entity type and
+// answers a different question entirely, so a referral partner and a reseller
+// were previously indistinguishable in the data. This is the commercial
+// relationship; PartnerType stays what it is.
+enum PartnershipModel {
+  REFERRAL
+  RESELLER
+  IMPLEMENTATION
+  TECHNOLOGY
+  STRATEGIC
+  CONSULTANT
+  OTHER
+}
+
 enum LeadStatus {
   NEW
   CONTACTED
@@ -2583,8 +2621,12 @@ model Lead {
   workEmail              String
   phoneNumber            String?
   companyWebsite         String?
-  industry               String
-  companySize            String
+  // Nullable since Wave 3. Both were required, and the public contact form does
+  // not ask for either — so it invented values ("General HR operations",
+  // "Unknown") to satisfy the column, which is BUG-0021. A Lead now records
+  // what the visitor actually said and nothing else.
+  industry               String?
+  companySize            String?
   country                String?
   stateProvince          String?
   city                   String?
@@ -2628,6 +2670,36 @@ model Lead {
   convertedAt            DateTime?
   message                String?
   interestedPlan         String?
+  // Why they got in touch, and which capabilities they named. Separate on
+  // purpose — see LeadInquiryIntent.
+  inquiryIntent          LeadInquiryIntent?
+  interestAreas          String[]
+  // Acquisition attribution, captured rather than typed by the visitor. All
+  // nullable: an absent UTM parameter means the visitor arrived without one,
+  // and inventing a value would corrupt campaign reporting.
+  sourcePage             String?
+  referrerUrl            String?
+  utmSource              String?
+  utmMedium              String?
+  utmCampaign            String?
+  utmContent             String?
+  utmTerm                String?
+  marketCode             String?
+  correlationId          String?
+  // Privacy notice acknowledgement and marketing consent, deliberately separate
+  // columns. Acknowledging that we will process an inquiry is not agreement to
+  // be marketed to, and storing one boolean for both makes the distinction
+  // unrecoverable. Versioned now so the Wave 4 legal-document system can adopt
+  // these without a data migration.
+  privacyNoticeVersion   String?
+  privacyNoticeAcceptedAt DateTime?
+  marketingConsent       Boolean                     @default(false)
+  marketingConsentAt     DateTime?
+  marketingConsentWithdrawnAt DateTime?
+  // Transport-duplicate guard. Mirrors PartnerInquiry.submissionHash, which
+  // already solved this. Scoped to a short window by the hash input, so a
+  // genuine repeat inquiry months later is still a new Lead.
+  submissionHash         String?                     @unique
   source                 String
   status                 LeadStatus                  @default(NEW)
   createdAt              DateTime                    @default(now())
@@ -2645,6 +2717,8 @@ model Lead {
 
   @@index([status, createdAt])
   @@index([subStatus, createdAt])
+  @@index([inquiryIntent, createdAt])
+  @@index([marketCode, createdAt])
   @@index([workEmail])
   @@index([companyName])
   @@index([source, createdAt])
@@ -3322,6 +3396,10 @@ model PartnerInquiry {
   status             PartnerInquiryStatus @default(NEW)
   partnerId          String?
   type               PartnerType
+  // The commercial relationship being proposed. `type` above is the contracting
+  // entity type (INDIVIDUAL/COMPANY) and cannot express it, so before Wave 3 a
+  // referral partner and a reseller were indistinguishable once submitted.
+  partnershipModel   PartnershipModel?
   companyName        String?
   contactFirstName   String
   contactLastName    String
@@ -3330,7 +3408,21 @@ model PartnerInquiry {
   country            String?
   website            String?
   message            String?
+  // Privacy notice acknowledgement. Required, and required to submit.
   consentAcceptedAt  DateTime
+  privacyNoticeVersion String?
+  // Marketing consent is optional and separate: a partnership inquiry must be
+  // submittable without agreeing to marketing.
+  marketingConsent   Boolean              @default(false)
+  marketingConsentAt DateTime?
+  marketingConsentWithdrawnAt DateTime?
+  // Attribution, captured not typed.
+  sourcePage         String?
+  referrerUrl        String?
+  utmSource          String?
+  utmMedium          String?
+  utmCampaign        String?
+  correlationId      String?
   source             String?
   submissionHash     String?              @unique
   originalSubmission Json

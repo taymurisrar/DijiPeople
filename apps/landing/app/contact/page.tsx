@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
+
 import { PageShell } from "../_components/site-shell";
+import { getCommercialConfig } from "../../lib/commercial-config";
+import { resolveIntentParam } from "../../lib/acquisition-options";
 import { ContactForm } from "./contact-form";
 
 export const metadata: Metadata = {
@@ -8,7 +11,21 @@ export const metadata: Metadata = {
     "Contact DijiPeople for product questions, sales qualification, implementation discussions, and HR operations support.",
 };
 
-export default function ContactPage() {
+export default async function ContactPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ intent?: string }>;
+}) {
+  const { intent } = await searchParams;
+  // Interest areas come from the feature catalogue the product gates modules
+  // on. The form previously offered its own list of display strings, which was
+  // a second stale module list and did not match any real module key.
+  const config = await getCommercialConfig();
+  const interestAreas = config.featureCatalog.map((feature) => ({
+    key: feature.key,
+    label: feature.label,
+  }));
+
   return (
     <PageShell>
       <section className="grid gap-8 py-8 lg:grid-cols-[0.85fr_1.15fr]">
@@ -20,19 +37,24 @@ export default function ContactPage() {
             Tell us what your HR operation needs next.
           </h1>
           <p className="text-base leading-7 text-muted">
-            Submit the form and your request will create a real lead record in
-            the DijiPeople admin system for follow-up and qualification.
+            Tell us what you&rsquo;re looking for and we&rsquo;ll connect you
+            with the right next step.
           </p>
           <div className="rounded-[24px] border border-border bg-white p-5 text-sm leading-6 text-muted">
-            <p className="font-semibold text-foreground">Sales qualification</p>
+            <p className="font-semibold text-foreground">
+              What helps us answer quickly
+            </p>
             <p className="mt-2">
-              Helpful details include team size, current HR tools, payroll
-              region, implementation timeline, and the modules you want to roll
+              Your team size, the HR tools you use today, where you run payroll,
+              when you&rsquo;d like to be live, and which areas you want to sort
               out first.
             </p>
           </div>
         </div>
-        <ContactForm />
+        <ContactForm
+          initialIntent={resolveIntentParam(intent)}
+          interestAreas={interestAreas}
+        />
       </section>
     </PageShell>
   );
