@@ -236,12 +236,15 @@ was omitted, and not that it was assumed.
 
 ```
 PRE_TASK_REPO_HEALTH
+SESSION_STATUS
 PARENT_TASK_STATUS
 WORK_PACKAGE_STATUS
+REQUIRED_AGENTS_STATUS
 IMPLEMENTATION_STATUS
 LOCAL_VALIDATION_STATUS
 QA_STATUS
 QA_FINDINGS_CLASSIFIED_STATUS
+QA_SCENARIO_PROMOTION_STATUS
 BUG_RECORD_STATUS
 ARCHITECT_TRIAGE_STATUS
 BACKLOG_UPDATE_STATUS
@@ -249,8 +252,11 @@ REVIEW_STATUS
 PR_STATUS
 REMOTE_CI_STATUS
 MERGE_STATUS
+DEVELOP_INTEGRATION_STATUS
+DEVELOP_SYNC_STATUS
 POST_MERGE_VALIDATION_STATUS
 MAIN_SYNC_STATUS
+MAIN_CHANGE_STATUS
 POST_TASK_REPO_HEALTH
 DEPLOYMENT_STATUS
 DEPLOYMENT_DRIFT_STATUS
@@ -258,8 +264,56 @@ ENGINEERING_HISTORY_STATUS
 FEEDBACK_PROMOTION_STATUS
 KNOWLEDGE_CAPTURE_STATUS
 OBSIDIAN_SYNC_STATUS
+CONTROL_CENTER_STATUS
 CLEANUP_STATUS
 ```
+
+### The multi-session gates
+
+Two Architect chats can run at once, so a task now has to say what it held and
+whether it let go of it. See [`multi-session.md`](multi-session.md).
+
+| Field | Resolved when | May be `NOT_REQUIRED` when |
+|---|---|---|
+| `SESSION_STATUS` | A `docs/sessions/` record exists, `node scripts/session.mjs finish` released every lease, and `rebuild-sessions.mjs --check` is clean | The task registered no session — only legitimate for a trivial, single-file change |
+| `REQUIRED_AGENTS_STATUS` | Every row of the required-agent matrix is `PASS` or `NOT_REQUIRED` with a reason | Never. `UNKNOWN` means nobody checked |
+
+**A session that ends holding a lease blocks the next task that needs it**, and
+nothing will tell the next agent why. `SESSION_STATUS` is what makes that
+visible rather than mysterious.
+
+`REQUIRED_AGENTS_STATUS` is a different question from the rest of this contract.
+Every other field asks *did this phase produce its output*; this one asks *did
+each agent that should have run actually run, and did the next stage accept its
+handoff*. A task can satisfy every other field while a required specialist was
+never dispatched. See [`agent-handoffs.md`](agent-handoffs.md).
+
+### The branch-model gates
+
+`develop` integrates and `main` deploys — [`branch-model.md`](branch-model.md).
+
+| Field | Resolved when | May be `NOT_REQUIRED` when |
+|---|---|---|
+| `DEVELOP_INTEGRATION_STATUS` | The work is on `origin/develop`, verified by reading the ref | The task modified no Git-tracked files, or it is a `RELEASE`/`DEPLOY` targeting `main` |
+| `DEVELOP_SYNC_STATUS` | Computed from refs by `repo-health.mjs` | Never; `REMOTE_ONLY` and `UNKNOWN` are values, not omissions |
+| `MAIN_CHANGE_STATUS` | `repo-health.mjs --main-baseline <sha>` reports `UNTOUCHED`, or the task is a production type and the change is intended | Never |
+
+**The production invariant.** For a completed *ordinary* task:
+
+```
+MAIN_CHANGE_STATUS   = UNTOUCHED
+MAIN_SYNC_STATUS     = SYNCED
+DEVELOP_SYNC_STATUS  = SYNCED        (where a local develop exists)
+```
+
+`MAIN_CHANGE_STATUS = CHANGED` on anything other than a `RELEASE`, `DEPLOY` or
+`HOTFIX_PRODUCTION` is a **failed** task, not an untidy one: any mutation of
+`main` may trigger a production deployment, and the user did not ask for one.
+
+`MAIN_CHANGE_STATUS` is reported `UNKNOWN` unless a baseline SHA was recorded at
+task start and passed to the check. That is deliberate — deriving `UNTOUCHED`
+from "main looks synced" would report clean for a task that merged into `main`
+and pushed, which is the exact event the field exists to catch.
 
 ### The repository-state gates
 
@@ -333,7 +387,16 @@ defect that gets found again, at full cost, by someone who had no way to know.
 | `BUG_RECORD_STATUS` | Every finding needing a durable record has one under `docs/bugs/`, with evidence and reproduction — or an existing record was updated | No finding required a record; state which findings were considered and why not |
 | `ARCHITECT_TRIAGE_STATUS` | No record produced by this task is still `ArchitectDisposition: TRIAGE_REQUIRED` | No new records |
 | `BACKLOG_UPDATE_STATUS` | `node scripts/rebuild-backlog.mjs` ran clean and the indexes are current | The task created and changed no record |
+| `QA_SCENARIO_PROMOTION_STATUS` | Every new scenario with durable value is under `docs/qa/scenarios/`, and `node scripts/rebuild-qa.mjs --check` is clean | QA designed no scenario worth keeping — name the ones considered |
 | `ENGINEERING_HISTORY_STATUS` | A record exists under `docs/engineering-history/tasks/` with no unresolved TODO | The task modified no Git-tracked files |
+
+`QA_SCENARIO_PROMOTION_STATUS` exists for the same reason as
+`BUG_RECORD_STATUS`, one level up: a scenario that lives only in a run file is
+re-invented by the next agent, at full cost. A scenario earns promotion when it
+guards a fixed defect, covers a security or tenant-isolation case, or is a state
+transition somebody will get wrong again — **not** merely because it was run.
+Promoting everything turns the registry into noise nobody re-runs. See
+[`qa-persistence.md`](qa-persistence.md).
 
 **`QA_STATUS = PASS` is not permitted while `QA_FINDINGS_CLASSIFIED_STATUS` is
 unresolved.** A run may pass with recorded, dispositioned defects — frequently it
@@ -363,7 +426,13 @@ values: `DONE`, `NOT_REQUIRED` (with a reason), `BLOCKED`. See
 | `BLOCKED_<REASON>` | Attempted and prevented, e.g. `BLOCKED_BY_ACCESS`, `BLOCKED_BY_POLICY`, `BLOCKED_BY_CONFLICT`, `BLOCKED_CI_UNVERIFIED` |
 | `FAILED` | Ran and failed |
 
-`SKIPPED_NO_LOCAL_CONFIG` is additionally allowed for `OBSIDIAN_SYNC_STATUS`.
+`SKIPPED_NO_LOCAL_CONFIG` is additionally allowed for `OBSIDIAN_SYNC_STATUS` and
+`CONTROL_CENTER_STATUS`.
+
+`UNTOUCHED` and `CHANGED` are the values of `MAIN_CHANGE_STATUS`; the
+`DEVELOP_SYNC_STATUS` and `MAIN_SYNC_STATUS` vocabularies are in
+[`repository-health.md`](repository-health.md) and
+[`branch-model.md`](branch-model.md).
 
 **`NOT_REQUIRED` needs a reason.** "QA_STATUS = NOT_REQUIRED" on a task that
 changed an API response is a false gate, not an exemption.
@@ -395,6 +464,13 @@ agent cannot evaluate is `BLOCKED_<REASON>`, which is honest and visible.
 | `DEPLOYMENT_STATUS` | Nothing was deployed — state why |
 | `DEPLOYMENT_DRIFT_STATUS` | No environment is configured for the component |
 | `POST_TASK_REPO_HEALTH` | The task modified no Git-tracked files |
+| `SESSION_STATUS` | No session was registered — only for a trivial single-file change |
+| `DEVELOP_INTEGRATION_STATUS` | Nothing was integrated, or the task is a `RELEASE`/`DEPLOY` targeting `main` |
+| `QA_SCENARIO_PROMOTION_STATUS` | No scenario had durable value — name the ones considered |
+| `CONTROL_CENTER_STATUS` | Use `SKIPPED_NO_LOCAL_CONFIG` where no vault is configured; the repository-side note is regenerated regardless |
+| `REQUIRED_AGENTS_STATUS` | **Never** |
+| `MAIN_CHANGE_STATUS` | **Never** |
+| `DEVELOP_SYNC_STATUS` | **Never** — `REMOTE_ONLY` and `UNKNOWN` are values |
 
 `PRE_TASK_REPO_HEALTH` and `MAIN_SYNC_STATUS` are never `NOT_REQUIRED` on a task
 that creates a branch. `MAIN_SYNC_STATUS` has `UNKNOWN` for the case where the

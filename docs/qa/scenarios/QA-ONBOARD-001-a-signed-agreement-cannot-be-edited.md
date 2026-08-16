@@ -1,0 +1,37 @@
+---
+SCENARIO_ID: QA-ONBOARD-001
+aliases: [QA-ONBOARD-001]
+TITLE: A signed agreement cannot be edited
+AREA: commercial-onboarding
+MODULE: services/api/src/modules/contracts
+TYPE: API
+RISK: HIGH
+AUTOMATION_STATUS: AUTOMATED
+TEST_REFERENCE: services/api/src/modules/contracts/contracts.agreement-immutability.spec.ts
+RELATED_BUGS: [BUG-0011]
+RELATED_REGRESSIONS: [REG-009]
+LAST_RUN: 2026-08-16
+LAST_RESULT: PASS
+CREATED_AT: 2026-08-16
+UPDATED_AT: 2026-08-16
+---
+
+# QA-ONBOARD-001 — A signed agreement cannot be edited
+
+## Preconditions
+
+An agreement in `SIGNED`.
+
+## Steps
+
+1. Update a commercial field on the signed agreement.
+2. Update it through every route that reaches the same service method.
+3. Update an unsigned agreement as a control.
+
+## Expected Result
+
+Both edit attempts on the signed agreement are refused; the unsigned one succeeds. Immutability lives in the service, so no route can route around it.
+
+## Notes
+
+The original defect was a second guard that disagreed with the first — the `divergent-duplicate-guard` pattern.

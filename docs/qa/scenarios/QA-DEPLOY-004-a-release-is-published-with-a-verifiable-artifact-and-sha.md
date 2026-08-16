@@ -1,0 +1,36 @@
+---
+SCENARIO_ID: QA-DEPLOY-004
+aliases: [QA-DEPLOY-004]
+TITLE: A release is published with a verifiable artifact and SHA
+AREA: deployment-release
+MODULE: services/api/src/modules/app-releases
+TYPE: UNIT
+RISK: MEDIUM
+AUTOMATION_STATUS: AUTOMATED
+TEST_REFERENCE: services/api/src/modules/app-releases/release-publisher.service.spec.ts
+RELATED_BUGS: []
+RELATED_REGRESSIONS: []
+LAST_RUN: 2026-08-16
+LAST_RESULT: PASS
+CREATED_AT: 2026-08-16
+UPDATED_AT: 2026-08-16
+---
+
+# QA-DEPLOY-004 — A release is published with a verifiable artifact and SHA
+
+## Preconditions
+
+A release candidate artifact.
+
+## Steps
+
+1. Publish a release.
+2. Publish without a SHA, and with a malformed artifact reference.
+
+## Expected Result
+
+Only a release with a resolvable artifact and SHA is published; the others are refused. The desktop agent updates from this channel, so a bad release reaches installed clients.
+
+## Notes
+
+Pairs with `release-publish-token.guard.spec.ts`, which protects the publishing route itself.

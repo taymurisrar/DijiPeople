@@ -875,11 +875,19 @@ check(
  */
 function runScript(relative, args = []) {
   try {
-    execFileSync(process.execPath, [join(ROOT, relative), ...args], {
+    /*
+     * stdout is returned on success as well as on failure. It used to be
+     * discarded, which made every check that inspected a successful script's
+     * output fail against an empty string — a false negative that looks exactly
+     * like the script being broken.
+     */
+    const stdout = execFileSync(process.execPath, [join(ROOT, relative), ...args], {
       cwd: ROOT,
       stdio: 'pipe',
+      encoding: 'utf8',
+      maxBuffer: 16 * 1024 * 1024,
     });
-    return { ok: true, output: '' };
+    return { ok: true, output: String(stdout ?? '') };
   } catch (error) {
     return { ok: false, output: String(error.stdout ?? '') + String(error.stderr ?? '') };
   }
@@ -1265,8 +1273,15 @@ if (existsSync(join(ROOT, `${DASHBOARD_DIR}/DijiPeople Engineering Dashboard.md`
     for (const file of markdownFilesIn(dir)) {
       for (const match of read(file).matchAll(/\[\[([^\]|#]+)(?:\|[^\]]*)?\]\]/g)) {
         const target = match[1].trim().toLowerCase();
-        // Record ids resolve through the `aliases:` frontmatter in the vault.
-        if (/^(bug|item)-\d{4}$/.test(target)) continue;
+        /*
+         * Record ids resolve through the `aliases:` frontmatter in the vault.
+         * Task, session, plan and scenario records emit the same alias line, so
+         * they resolve the same way — the filename carries a slug the id does
+         * not, and linking by id is what keeps a rename from breaking a link.
+         */
+        if (/^(bug|item|task|session|plan)-\d{3,4}$/.test(target)) continue;
+        if (/^qa-[a-z0-9]+-\d{3}$/.test(target)) continue;
+        if (/^reg-\d{3}$/.test(target)) continue;
         if (noteNames.has(target)) continue;
         unresolved.set(target, (unresolved.get(target) ?? 0) + 1);
       }
@@ -2058,6 +2073,941 @@ for (const file of [
       !pattern.test(body),
       `matched ${pattern}`,
     );
+  }
+}
+
+// ================================================================================
+// Autonomous framework v2 — multi-session, develop integration, persistent QA
+// ================================================================================
+
+/*
+ * Everything below covers the capabilities added by TASK-0004. The structural
+ * checks prove the rules are written; the simulations further down prove they
+ * are executable.
+ *
+ * The distinction is not academic here. A check asserting that
+ * `multi-session.md` mentions "lease" passes just as happily after somebody
+ * inverts the comparison in `acquireLease`, which is the exact class of failure
+ * this framework has already recorded against itself.
+ */
+
+// -------------------------------------------------- v2 structure and wiring
+
+const V2_CONTEXT = [
+  '.agent/context/multi-session.md',
+  '.agent/context/branch-model.md',
+  '.agent/context/agent-handoffs.md',
+  '.agent/context/qa-persistence.md',
+];
+
+const V2_SCRIPTS = [
+  'scripts/lib/agent-state.mjs',
+  'scripts/lib/id-allocator.mjs',
+  'scripts/lib/session-registry.mjs',
+  'scripts/lib/session-records.mjs',
+  'scripts/lib/qa-records.mjs',
+  'scripts/allocate-id.mjs',
+  'scripts/session.mjs',
+  'scripts/rebuild-sessions.mjs',
+  'scripts/rebuild-qa.mjs',
+  'scripts/qa-select.mjs',
+  'scripts/new-qa-scenario.mjs',
+  'scripts/new-test-plan.mjs',
+  'scripts/backlog-review.mjs',
+  'scripts/verify-branch-policy.mjs',
+];
+
+const V2_DOCS = [
+  'docs/sessions/README.md',
+  'docs/sessions/index.md',
+  'docs/sessions/active.md',
+  'docs/sessions/completed.md',
+  'docs/qa/test-plans/index.md',
+  'docs/qa/scenarios/index.md',
+  'docs/qa/coverage-matrix.md',
+  'docs/knowledge/dashboards/Engineering Control Center.md',
+];
+
+for (const path of [...V2_CONTEXT, ...V2_SCRIPTS, ...V2_DOCS]) {
+  check(`required path present: ${path}`, existsSync(join(ROOT, path)));
+}
+
+for (const script of V2_SCRIPTS) {
+  if (!existsSync(join(ROOT, script))) continue;
+  const body = read(script);
+  check(`${script} is an ES module`, body.includes('import ') || body.includes('export '));
+  check(`${script} is not truncated`, body.trimEnd().length > 400);
+}
+
+/* 1, 3 — multi-session rules must be stated before they can be relied on. */
+if (existsSync(join(ROOT, '.agent/context/multi-session.md'))) {
+  const body = read('.agent/context/multi-session.md');
+  for (const classification of [
+    'SAFE_PARALLEL',
+    'SERIALIZE',
+    'DEPENDENCY_WAIT',
+    'SHARED_FILE_CONFLICT',
+    'REBASE_REQUIRED',
+    'BLOCKED_BY_ACTIVE_SESSION',
+  ]) {
+    check(`multi-session defines overlap class ${classification}`, body.includes(classification));
+  }
+  for (const field of [
+    'SESSION_ID',
+    'TASK_BRANCH',
+    'BASE_SHA',
+    'WRITE_LEASES',
+    'SCHEMA_WRITE',
+    'LAST_HEARTBEAT',
+  ]) {
+    check(`multi-session declares session field ${field}`, body.includes(field));
+  }
+  check(
+    'multi-session keeps the database single-writer across all sessions',
+    /single-writer across all sessions|single writer across ALL/i.test(body),
+  );
+  check('multi-session names DATABASE_WRITER', body.includes('DATABASE_WRITER'));
+  check(
+    'multi-session forbids reusing an id',
+    /never lowered and never expire|gap in a sequence/i.test(body),
+  );
+  check(
+    'multi-session reports rather than reaps a stale session',
+    /reported, never reaped|never reaped/i.test(body),
+  );
+  check(
+    'multi-session tells a blocked session to run other work rather than wait',
+    /never stops an independent work package/i.test(body),
+  );
+  check('multi-session defines the merge queue statuses', ['QUEUED', 'INTEGRATING', 'VALIDATING', 'DONE'].every((s) => body.includes(s)));
+}
+
+/* 14, 15, 16, 19, 20 — the branch model. */
+if (existsSync(join(ROOT, '.agent/context/branch-model.md'))) {
+  const body = read('.agent/context/branch-model.md');
+  check('branch model sets develop as the default target', /DEFAULT_TARGET_BRANCH\s*=\s*develop/.test(body));
+  check('branch model declares MAIN_MUTATION_FORBIDDEN', body.includes('MAIN_MUTATION_FORBIDDEN'));
+  check(
+    'branch model states that any mutation of main may deploy production',
+    /mutation of `?main`? may trigger a production deployment/i.test(body),
+  );
+  check('branch model makes develop PR optional', /DEVELOP_PR_REQUIRED\s*=\s*false/.test(body));
+  check(
+    'branch model still requires validation on develop',
+    /DEVELOP_VALIDATION_REQUIRED\s*=\s*true/.test(body),
+  );
+  for (const state of ['SYNCED', 'AHEAD', 'BEHIND', 'DIVERGED', 'NOT_PRESENT', 'REMOTE_ONLY', 'UNKNOWN']) {
+    check(`branch model defines DEVELOP_SYNC_STATUS ${state}`, body.includes(state));
+  }
+  check('branch model defines MAIN_CHANGE_STATUS UNTOUCHED', /MAIN_CHANGE_STATUS[\s\S]{0,400}UNTOUCHED/.test(body));
+  check(
+    'branch model requires a recorded baseline to claim UNTOUCHED',
+    /only against a recorded baseline|--main-baseline/i.test(body),
+  );
+  check(
+    'branch model requires a hotfix to reconcile develop',
+    /reconciled so it contains the production fix|`develop` must be reconciled/i.test(body),
+  );
+  check(
+    'branch model refuses to weaken main',
+    /None of that is weakened|does not make touching it easier/i.test(body),
+  );
+  check(
+    'branch model records that only the Integrator writes a shared branch',
+    /[Oo]nly the Integrator writes/i.test(body),
+  );
+}
+
+/* 9, 25 — handoffs and the required-agent matrix. */
+if (existsSync(join(ROOT, '.agent/context/agent-handoffs.md'))) {
+  const body = read('.agent/context/agent-handoffs.md');
+  for (const field of [
+    'AGENT_STATUS',
+    'IMPLEMENTED',
+    'CHANGED_BEHAVIOR',
+    'FILES_CHANGED',
+    'RISK_AREAS',
+    'KNOWN_MISTAKES_AVOIDED',
+    'TESTS_ADDED',
+    'VALIDATION_RUN',
+    'UNRESOLVED',
+    'HANDOFF_READY',
+  ]) {
+    check(`handoff contract declares ${field}`, body.includes(field));
+  }
+  for (const acceptance of [
+    'QA_ACCEPTED_IMPLEMENTATION',
+    'REVIEWER_ACCEPTED_QA',
+    'INTEGRATOR_ACCEPTED_REVIEW',
+    'RELEASE_DEVOPS_ACCEPTED_INTEGRATION',
+  ]) {
+    check(`handoff contract declares ${acceptance}`, body.includes(acceptance));
+  }
+  for (const status of ['PASS', 'NOT_REQUIRED', 'BLOCKED', 'FAILED', 'HANDOFF_REJECTED', 'UNKNOWN']) {
+    check(`required-agent matrix defines status ${status}`, body.includes(status));
+  }
+  check(
+    'a task cannot complete while a required agent is not PASS',
+    /may not reach `?COMPLETE`? while a required agent is not `?PASS/i.test(body),
+  );
+  check(
+    'handoff rejection routes rework rather than ending the task',
+    /routes the work back|routes back to/i.test(body),
+  );
+  check(
+    'the user never selects a specialist',
+    /user talks only to the Architect|never have to name a specialist/i.test(body),
+  );
+  check(
+    'rework re-runs the impacted scenarios, not everything',
+    /impacted scenarios/i.test(body) && /qa-select/.test(body),
+  );
+}
+
+/* 10, 11, 12, 13, 16, 17 — QA persistence. */
+if (existsSync(join(ROOT, '.agent/context/qa-persistence.md'))) {
+  const body = read('.agent/context/qa-persistence.md');
+  check('QA persistence points at the scenario registry', body.includes('docs/qa/scenarios'));
+  check('QA persistence points at the test plans', body.includes('docs/qa/test-plans'));
+  check('QA persistence points at the coverage matrix', body.includes('docs/qa/coverage-matrix.md'));
+  check('QA persistence describes selection before design', /qa-select/.test(body));
+  check(
+    'QA persistence keeps selection a starting point rather than a boundary',
+    /starting point and \*\*never a boundary\*\*|never a boundary/i.test(body),
+  );
+  check('QA persistence defines scenario promotion', /[Pp]romotion/.test(body));
+  check(
+    'QA persistence refuses to promote every one-off check',
+    /one-off check stays in the run file|Promoting everything/i.test(body),
+  );
+  check(
+    'QA persistence states the regression rule in both directions',
+    /FAILS on the unfixed code/i.test(body) && /PASSES on the fixed code/i.test(body),
+  );
+  check(
+    'QA persistence makes a coverage gap pull work into scope',
+    /becomes part of that task's scope/i.test(body),
+  );
+  for (const dimension of ['UNIT', 'API', 'DATABASE', 'INTEGRATION', 'E2E', 'BROWSER', 'SECURITY', 'PERFORMANCE']) {
+    check(`coverage matrix declares dimension ${dimension}`, body.includes(dimension));
+  }
+  for (const status of ['GOOD', 'PARTIAL', 'GAP', 'NOT_APPLICABLE']) {
+    check(`coverage matrix declares status ${status}`, body.includes(status));
+  }
+}
+
+/* 2, 6, 7, 8 — the router must carry the short trigger and its aliases. */
+if (existsSync(join(ROOT, ROUTER))) {
+  const router = read(ROUTER);
+  check('router recognises the DP: short trigger', /`DP:`/.test(router));
+  check(
+    'router states that DP: is the same framework',
+    /`DP:`\s*\*\*is\*\*\s*`DijiPeople Task:`|activates \*\*exactly\*\* the same framework/i.test(router),
+  );
+  for (const shorthand of ['DP FIX:', 'DP UI:', 'DP TEST:', 'DP DB:', 'DP ARCH:', 'DP DOC:', 'DP CLEANUP:']) {
+    check(`router lists the ${shorthand} shorthand`, router.includes(shorthand));
+  }
+  check(
+    'router states that a shorthand never selects a weaker workflow',
+    /shorthand never selects a weaker workflow/i.test(router),
+  );
+  check(
+    'router routes "DP FIX: agent logout" to BUG + SECURITY',
+    /DP FIX: agent logout[\s\S]{0,200}BUG \+ SECURITY/.test(router),
+  );
+  check(
+    'router routes a production-readiness request to LARGE with work packages',
+    /production ready[\s\S]{0,300}SIZE\s*=\s*LARGE/.test(router),
+  );
+  check('router declares an integration target per keyword', /Target/.test(router) && /`develop`/.test(router));
+  check(
+    'router keeps main as production control',
+    /`main` as production control|RELEASE.{0,40}DEPLOY.{0,40}HOTFIX_PRODUCTION/i.test(router),
+  );
+}
+
+/* The contract must carry the v2 fields. */
+if (contractExists) {
+  const contract = read(CONTRACT);
+  for (const field of [
+    'SESSION_STATUS',
+    'REQUIRED_AGENTS_STATUS',
+    'DEVELOP_INTEGRATION_STATUS',
+    'DEVELOP_SYNC_STATUS',
+    'MAIN_CHANGE_STATUS',
+    'QA_SCENARIO_PROMOTION_STATUS',
+    'CONTROL_CENTER_STATUS',
+  ]) {
+    check(`contract requires ${field}`, contract.includes(field));
+  }
+  check(
+    'contract requires MAIN_CHANGE_STATUS = UNTOUCHED for an ordinary task',
+    /MAIN_CHANGE_STATUS\s*=\s*UNTOUCHED/.test(contract),
+  );
+  check(
+    'contract treats a changed main on an ordinary task as failure, not untidiness',
+    /is a \*\*failed\*\* task/i.test(contract),
+  );
+  check(
+    'contract never allows REQUIRED_AGENTS_STATUS to be NOT_REQUIRED',
+    /`REQUIRED_AGENTS_STATUS`\s*\|\s*\*\*Never\*\*/.test(contract),
+  );
+}
+
+/* repo-health must compute the new fields and still never mutate. */
+if (existsSync(join(ROOT, 'scripts/repo-health.mjs'))) {
+  const health = read('scripts/repo-health.mjs');
+  check('repo-health computes DEVELOP_SYNC_STATUS', health.includes('DEVELOP_SYNC_STATUS'));
+  check('repo-health computes MAIN_CHANGE_STATUS', health.includes('MAIN_CHANGE_STATUS'));
+  check('repo-health reports DEVELOP_BEHIND_MAIN', health.includes('developBehindMain'));
+  check(
+    'repo-health requires a baseline before claiming main is untouched',
+    /MAIN_BASELINE/.test(health) && /return 'UNKNOWN'/.test(health),
+  );
+}
+
+/* The branch-policy verifier must stay read-only. */
+if (existsSync(join(ROOT, 'scripts/verify-branch-policy.mjs'))) {
+  const body = read('scripts/verify-branch-policy.mjs');
+  check(
+    'verify-branch-policy declares itself read-only',
+    /\*\*Read-only, by design/i.test(body),
+  );
+  for (const forbidden of [/'-X',\s*'PUT'/, /'-X',\s*'POST'/, /'-X',\s*'DELETE'/, /'-X',\s*'PATCH'/]) {
+    check(
+      `verify-branch-policy performs no write (${forbidden.source.slice(0, 20)})`,
+      !forbidden.test(body),
+      'a script that can relax protection eventually will, to make a merge easier',
+    );
+  }
+}
+
+/* The id allocator must not have quietly reverted to a working-tree scan. */
+if (existsSync(join(ROOT, 'scripts/lib/id-allocator.mjs'))) {
+  const body = read('scripts/lib/id-allocator.mjs');
+  check(
+    'the id allocator scans every ref, not just the working tree',
+    /'log',\s*'--all'/.test(body),
+    'a working-tree scan cannot see an id a sibling branch already took',
+  );
+  check('the id allocator reserves under a lock', /withLock\(/.test(body));
+  check(
+    'the id allocator never lowers the ceiling when pruning',
+    /Only \*\*consumed\*\* reservations are pruned|known\.has\(entry\.id\)/.test(body),
+  );
+}
+
+// ------------------------------- BUG-0047: records must match the branch
+
+/*
+ * The prevention half of BUG-0047.
+ *
+ * Six records read `VERIFIED` while the commits implementing them sat on
+ * branches that never merged, and five regression entries marked `Active: yes`
+ * named test files absent from the integration branch. Two of those records were
+ * CRITICAL. Every view derived from them — the open backlog, the dashboards, a
+ * future BACKLOG_PRECHECK — reported protection the branch did not have.
+ *
+ * Both checks below fail against that state and pass against a corrected one,
+ * which is the fails-without-the-fix property a regression needs.
+ */
+{
+  const registerPath = 'docs/qa/regressions/index.md';
+  if (existsSync(join(ROOT, registerPath))) {
+    const register = read(registerPath);
+    const entries = register.split(/(?=^### REG-)/m).filter((entry) => entry.startsWith('### REG-'));
+
+    for (const entry of entries) {
+      const id = (/^### (REG-\d{3})/.exec(entry) ?? [])[1] ?? 'REG-???';
+      const active = /\|\s*\*\*Active\*\*\s*\|\s*yes\s*\|/i.test(entry);
+      if (!active) continue;
+
+      const testMatch = /\|\s*\*\*Regression test\*\*\s*\|\s*`([^`]+)`/.exec(entry);
+      check(
+        `${id} names a regression test`,
+        Boolean(testMatch),
+        'an active regression entry with no named test guards nothing',
+      );
+      if (!testMatch) continue;
+
+      for (const path of testMatch[1].split(/\s*(?:,|and)\s*/).map((p) => p.trim()).filter(Boolean)) {
+        check(
+          `${id} regression test exists: ${path}`,
+          existsSync(join(ROOT, path)),
+          'the entry says Active: yes — a test that is not on this branch protects nothing here',
+        );
+      }
+    }
+  }
+
+  /* A closed bug whose regression test is absent is a closure nobody can trust. */
+  const bugDir = join(ROOT, 'docs/bugs');
+  if (existsSync(bugDir)) {
+    const register = existsSync(join(ROOT, 'docs/qa/regressions/index.md'))
+      ? read('docs/qa/regressions/index.md')
+      : '';
+
+    for (const name of readdirSync(bugDir)) {
+      if (!name.endsWith('.md') || name === 'README.md') continue;
+      const body = read(`docs/bugs/${name}`);
+      /*
+       * `[^\S\r\n]` rather than `\s`: `\s` matches a newline, so a trailing
+       * `\s*$` on an empty value silently ran on to capture the *next* line's
+       * key. That reported `RelatedBacklogItem:` as a regression id.
+       */
+      const status = (/^Status:[^\S\r\n]*(\S+)[^\S\r\n]*$/m.exec(body) ?? [])[1] ?? '';
+      const regression = (/^RegressionId:[^\S\r\n]*(REG-\d{3})[^\S\r\n]*$/m.exec(body) ?? [])[1] ?? '';
+      if (!['VERIFIED', 'CLOSED'].includes(status) || !regression) continue;
+
+      const entry = register
+        .split(/(?=^### REG-)/m)
+        .find((section) => section.startsWith(`### ${regression} `));
+
+      check(
+        `${name.slice(0, 8)} is ${status} and its ${regression} entry is active`,
+        Boolean(entry) && /\|\s*\*\*Active\*\*\s*\|\s*yes\s*\|/i.test(entry ?? ''),
+        'a record closed on a regression that is not active on this branch overstates its own protection',
+      );
+    }
+  }
+}
+
+// ------------------------------------------- v2 behavioural simulations
+
+/*
+ * Simulations 1-29 from the TASK-0004 request, run against throwaway state.
+ *
+ * Where a rule can be executed it is executed. Where it genuinely cannot be —
+ * a real deployment, a live Obsidian vault — the structural check above stands
+ * in and says so rather than pretending.
+ */
+
+if (existsSync(join(ROOT, 'scripts/lib/session-registry.mjs'))) {
+  const registry = await import('./lib/session-registry.mjs');
+  const allocator = await import('./lib/id-allocator.mjs');
+  const sessionRecords = await import('./lib/session-records.mjs');
+  const qaRecords = await import('./lib/qa-records.mjs');
+
+  const sandbox = mkdtempSync(join(tmpdir(), 'dijipeople-v2-'));
+
+  const git = (args, cwd = sandbox) =>
+    execFileSync('git', args, { cwd, stdio: 'pipe', encoding: 'utf8' }).trim();
+
+  let gitAvailable = true;
+  try {
+    git(['init', '--initial-branch=main', '.']);
+    git(['config', 'user.email', 'probe@example.com']);
+    git(['config', 'user.name', 'probe']);
+    mkdirSync(join(sandbox, 'docs/bugs'), { recursive: true });
+    writeFileSync(join(sandbox, 'docs/bugs/BUG-0001-probe.md'), '# probe\n');
+    git(['add', '.']);
+    git(['commit', '-m', 'base']);
+  } catch (error) {
+    gitAvailable = false;
+    warn(`v2 simulations could not initialise a sandbox repository — ${String(error.message).split('\n')[0]}`);
+  }
+
+  if (gitAvailable) {
+    /* 1 — two sessions starting concurrently get distinct ids. */
+    const first = allocator.allocateId(sandbox, 'session', { note: 'session A' });
+    const second = allocator.allocateId(sandbox, 'session', { note: 'session B' });
+    check(
+      'simulation 1: two Architect sessions receive distinct ids',
+      first !== second,
+      `both received ${first}`,
+    );
+
+    /* 4, 5 — duplicate BUG and ITEM allocation must be impossible. */
+    for (const [kind, label] of [['bug', 'BUG'], ['item', 'ITEM']]) {
+      const ids = new Set();
+      for (let i = 0; i < 8; i += 1) ids.add(allocator.allocateId(sandbox, kind, {}));
+      check(
+        `simulation ${kind === 'bug' ? '4' : '5'}: eight ${label} allocations produce eight distinct ids`,
+        ids.size === 8,
+        `got ${ids.size} distinct from 8`,
+      );
+    }
+
+    /*
+     * 4b — the case that actually failed twice: an id used on another branch.
+     * The working tree never sees it, so a directory scan hands it out again.
+     */
+    git(['checkout', '-q', '-b', 'sibling']);
+    writeFileSync(join(sandbox, 'docs/bugs/BUG-0900-on-a-sibling-branch.md'), '# probe\n');
+    git(['add', '.']);
+    git(['commit', '-m', 'record on a sibling branch']);
+    git(['checkout', '-q', 'main']);
+
+    check(
+      'simulation 4b: an id allocated on a sibling branch is not handed out again',
+      allocator.highestAllocated(sandbox, 'bug') >= 900,
+      `ceiling was ${allocator.highestAllocated(sandbox, 'bug')} — a working-tree scan would report far less`,
+    );
+
+    /* Reservations must survive: allocating twice never returns the same id. */
+    const reserved = allocator.allocateId(sandbox, 'bug', {});
+    check(
+      'simulation 4c: a reservation is visible before its record exists',
+      allocator.readReservations(sandbox).some((entry) => entry.id === reserved),
+    );
+    check(
+      'simulation 4d: the next allocation is above the reservation',
+      allocator.allocateId(sandbox, 'bug', {}) !== reserved,
+    );
+
+    /* 2 — independent sessions proceed. */
+    registry.registerSession(sandbox, {
+      sessionId: 'SESSION-9001',
+      title: 'probe A',
+      branch: 'agent/probe-a',
+      target: 'develop',
+      paths: ['apps/web/app/page.tsx'],
+    });
+    registry.registerSession(sandbox, {
+      sessionId: 'SESSION-9002',
+      title: 'probe B',
+      branch: 'agent/probe-b',
+      target: 'develop',
+      paths: ['services/api/src/modules/leave/leave.service.ts'],
+    });
+
+    check(
+      'simulation 2: two sessions on unrelated files are SAFE_PARALLEL',
+      registry.classifyOverlap(sandbox, {
+        sessionId: 'SESSION-9002',
+        paths: ['services/api/src/modules/leave/leave.service.ts'],
+      }).classification === 'SAFE_PARALLEL',
+    );
+
+    /* 3 — the Prisma writer serialises across sessions. */
+    const firstLease = registry.acquireLease(sandbox, {
+      resource: 'schema',
+      sessionId: 'SESSION-9001',
+      reason: 'add a model',
+    });
+    const secondLease = registry.acquireLease(sandbox, {
+      resource: 'schema',
+      sessionId: 'SESSION-9002',
+      reason: 'add another model',
+    });
+
+    check('simulation 3: the first session receives the schema lease', firstLease.granted);
+    check(
+      'simulation 3: the second session is refused the schema lease',
+      !secondLease.granted && secondLease.lease?.sessionId === 'SESSION-9001',
+      'the database must stay single-writer across all sessions',
+    );
+    check(
+      'simulation 3: a contended schema write classifies as BLOCKED_BY_ACTIVE_SESSION',
+      registry.classifyOverlap(sandbox, {
+        sessionId: 'SESSION-9002',
+        paths: ['services/api/prisma/schema.prisma'],
+      }).classification === 'BLOCKED_BY_ACTIVE_SESSION',
+    );
+
+    /* A non-global resource serialises rather than blocking outright. */
+    registry.acquireLease(sandbox, { resource: 'permissions', sessionId: 'SESSION-9001', reason: 'probe' });
+    check(
+      'simulation 3b: a contended non-global resource classifies as SERIALIZE',
+      registry.classifyOverlap(sandbox, {
+        sessionId: 'SESSION-9002',
+        paths: ['services/api/src/common/constants/permissions.ts'],
+      }).classification === 'SERIALIZE',
+    );
+
+    /* Reads are never blocked. */
+    check(
+      'simulation 3c: a read is granted even while a write lease is held',
+      registry.acquireLease(sandbox, {
+        resource: 'schema',
+        sessionId: 'SESSION-9002',
+        mode: 'read',
+      }).granted,
+    );
+
+    /* Two sessions editing one ordinary file is one work item, not a race. */
+    check(
+      'simulation 2b: two sessions editing one file classify as SHARED_FILE_CONFLICT',
+      registry.classifyOverlap(sandbox, {
+        sessionId: 'SESSION-9002',
+        paths: ['apps/web/app/page.tsx'],
+      }).classification === 'SHARED_FILE_CONFLICT',
+    );
+
+    /* 18 — concurrent completions serialise through the merge queue. */
+    registry.enqueue(sandbox, { sessionId: 'SESSION-9001', branch: 'agent/probe-a', sha: 'aaa' });
+    registry.enqueue(sandbox, { sessionId: 'SESSION-9002', branch: 'agent/probe-b', sha: 'bbb' });
+
+    const firstReady = registry.nextIntegration(sandbox);
+    check(
+      'simulation 18: the queue offers exactly one branch to integrate',
+      firstReady.ready?.branch === 'agent/probe-a' && firstReady.inFlight === null,
+    );
+
+    registry.updateQueueEntry(sandbox, 'agent/probe-a', { status: 'INTEGRATING' });
+    const whileBusy = registry.nextIntegration(sandbox);
+    check(
+      'simulation 18: no second branch may integrate while one is in flight',
+      whileBusy.ready === null && whileBusy.inFlight?.branch === 'agent/probe-a',
+      'two sessions writing develop at once is the failure the lock exists to prevent',
+    );
+
+    registry.updateQueueEntry(sandbox, 'agent/probe-a', { status: 'DONE' });
+    check(
+      'simulation 18: the next branch integrates once the lock is released',
+      registry.nextIntegration(sandbox).ready?.branch === 'agent/probe-b',
+    );
+
+    /* A finished session must not leave a lease behind. */
+    const finished = registry.finishSession(sandbox, 'SESSION-9001');
+    check(
+      'simulation 27: finishing a session releases every lease it held',
+      finished.releasedLeases.includes('schema') && registry.liveLeases(sandbox).every((l) => l.sessionId !== 'SESSION-9001'),
+    );
+    check(
+      'simulation 27: finishing a session removes it from the merge queue',
+      registry.readQueue(sandbox).every((entry) => entry.sessionId !== 'SESSION-9001'),
+    );
+
+    /* 14, 15, 16 — the session record enforces the branch model. */
+    const sessionDir = join(sandbox, 'docs/sessions');
+    mkdirSync(sessionDir, { recursive: true });
+
+    const sessionRecord = (id, { type = 'FEATURE', target = 'develop', branch = 'agent/probe' } = {}) =>
+      [
+        '---',
+        `SESSION_ID: ${id}`,
+        'TASK_ID: TASK-0001',
+        'TITLE: probe',
+        'ARCHITECT_INTENT: probe',
+        'STATUS: ACTIVE',
+        `TASK_TYPE: ${type}`,
+        'TASK_SIZE: MEDIUM',
+        'BASE_BRANCH: origin/develop',
+        'BASE_SHA: abc1234',
+        `TASK_BRANCH: ${branch}`,
+        `TARGET_BRANCH: ${target}`,
+        'WORKTREE: /tmp/probe',
+        'AFFECTED_MODULES: []',
+        'WRITE_LEASES: []',
+        'ACTIVE_WORK_PACKAGES: []',
+        'SCHEMA_WRITE: NO',
+        'CI_STATUS: NOT_RUN',
+        'MERGE_STATUS: NOT_STARTED',
+        'STARTED_AT: 2026-01-01T00:00:00.000Z',
+        'LAST_HEARTBEAT: 2026-01-01T00:00:00.000Z',
+        'BLOCKERS: none',
+        '---',
+        '',
+        `# ${id} — probe`,
+        '',
+        '## Intent',
+        '',
+        'probe',
+        '',
+      ].join('\n');
+
+    writeFileSync(join(sessionDir, 'SESSION-9101-probe.md'), sessionRecord('SESSION-9101'));
+    check(
+      'simulation 14: an ordinary session targeting develop is accepted',
+      sessionRecords.loadSessions(sandbox).errors.length === 0,
+      sessionRecords.loadSessions(sandbox).errors.join(' | '),
+    );
+
+    writeFileSync(
+      join(sessionDir, 'SESSION-9101-probe.md'),
+      sessionRecord('SESSION-9101', { target: 'main' }),
+    );
+    check(
+      'simulation 15: an ordinary session targeting main is rejected',
+      sessionRecords.loadSessions(sandbox).errors.some((e) => /main is the production deployment branch/.test(e)),
+      'an ordinary task that merges into main may trigger a production deployment nobody asked for',
+    );
+
+    writeFileSync(
+      join(sessionDir, 'SESSION-9101-probe.md'),
+      sessionRecord('SESSION-9101', { type: 'RELEASE', target: 'main' }),
+    );
+    check(
+      'simulation 16: a RELEASE session may target main',
+      sessionRecords.loadSessions(sandbox).errors.length === 0,
+      sessionRecords.loadSessions(sandbox).errors.join(' | '),
+    );
+
+    writeFileSync(
+      join(sessionDir, 'SESSION-9101-probe.md'),
+      sessionRecord('SESSION-9101', { type: 'HOTFIX', target: 'main' }),
+    );
+    check(
+      'simulation 17: a HOTFIX session may target main',
+      sessionRecords.loadSessions(sandbox).errors.length === 0,
+    );
+
+    /* Two live sessions on one branch is two agents overwriting each other. */
+    writeFileSync(join(sessionDir, 'SESSION-9101-probe.md'), sessionRecord('SESSION-9101'));
+    writeFileSync(join(sessionDir, 'SESSION-9102-probe.md'), sessionRecord('SESSION-9102'));
+    check(
+      'simulation 1b: two active sessions on one branch are rejected',
+      sessionRecords.loadSessions(sandbox).errors.some((e) => /two active sessions share the branch/.test(e)),
+    );
+    rmSync(join(sessionDir, 'SESSION-9102-probe.md'));
+
+    /* 13 — a coverage claim with nothing behind it is rejected. */
+    const planDir = join(sandbox, 'docs/qa/test-plans');
+    const scenarioDir = join(sandbox, 'docs/qa/scenarios');
+    mkdirSync(planDir, { recursive: true });
+    mkdirSync(scenarioDir, { recursive: true });
+
+    const DIMENSIONS = Object.keys(qaRecords.COVERAGE_DIMENSIONS);
+    const planRecord = (coverage = {}) =>
+      [
+        '---',
+        'PLAN_ID: PLAN-901',
+        'TITLE: probe',
+        'AREA: probe-area',
+        'STATUS: CURRENT',
+        'MODULES: [services/api/src/modules/probe]',
+        'RISK: HIGH',
+        ...DIMENSIONS.map((d) => `COVERAGE_${d}: ${coverage[d] ?? 'GAP'}`),
+        'RELATED_BUGS: []',
+        'RELATED_REGRESSIONS: []',
+        'CREATED_AT: 2026-01-01',
+        'UPDATED_AT: 2026-01-01',
+        'VERIFIED_AGAINST_SHA: abc1234',
+        '---',
+        '',
+        '# PLAN-901 — probe',
+        '',
+        ...qaRecords.loadQaRecords ? [] : [],
+        ...['Scope', 'Risks', 'Preconditions', 'Test Types', 'Data Requirements', 'Security Cases', 'Negative Cases', 'State Transitions', 'Integration Cases', 'Browser Cases', 'Regression Links'].flatMap(
+          (section) => [`## ${section}`, '', 'probe', ''],
+        ),
+      ].join('\n');
+
+    const scenarioRecord = (id, { type = 'UNIT', automation = 'MANUAL', test = '', area = 'probe-area' } = {}) =>
+      [
+        '---',
+        `SCENARIO_ID: ${id}`,
+        'TITLE: probe',
+        `AREA: ${area}`,
+        'MODULE: services/api/src/modules/probe',
+        `TYPE: ${type}`,
+        'RISK: HIGH',
+        `AUTOMATION_STATUS: ${automation}`,
+        `TEST_REFERENCE: ${test}`,
+        'RELATED_BUGS: []',
+        'RELATED_REGRESSIONS: []',
+        'LAST_RUN:',
+        'LAST_RESULT: NOT_RUN',
+        'CREATED_AT: 2026-01-01',
+        'UPDATED_AT: 2026-01-01',
+        '---',
+        '',
+        `# ${id} — probe`,
+        '',
+        '## Preconditions',
+        '',
+        'probe',
+        '',
+        '## Steps',
+        '',
+        '1. probe',
+        '',
+        '## Expected Result',
+        '',
+        'probe',
+        '',
+        '## Notes',
+        '',
+        'probe',
+        '',
+      ].join('\n');
+
+    writeFileSync(join(planDir, 'PLAN-901-probe-area.md'), planRecord({ SECURITY: 'GOOD' }));
+    check(
+      'simulation 13: declaring coverage with no scenario behind it is rejected',
+      qaRecords
+        .loadQaRecords(sandbox)
+        .errors.some((e) => /COVERAGE_SECURITY = GOOD but no SECURITY scenario exists/.test(e)),
+      'a matrix cell with nothing behind it reports coverage nobody has',
+    );
+
+    writeFileSync(
+      join(scenarioDir, 'QA-PROBE-001-probe.md'),
+      scenarioRecord('QA-PROBE-001', { type: 'SECURITY', automation: 'BLOCKED_INFRASTRUCTURE' }),
+    );
+    check(
+      'simulation 13b: coverage that cannot run may not be declared GOOD',
+      qaRecords
+        .loadQaRecords(sandbox)
+        .errors.some((e) => /every SECURITY scenario is BLOCKED_INFRASTRUCTURE/.test(e)),
+    );
+
+    /* 12 — an automated scenario must name a test that exists. */
+    writeFileSync(join(planDir, 'PLAN-901-probe-area.md'), planRecord());
+    writeFileSync(
+      join(scenarioDir, 'QA-PROBE-001-probe.md'),
+      scenarioRecord('QA-PROBE-001', { automation: 'AUTOMATED', test: 'services/api/src/does-not-exist.spec.ts' }),
+    );
+    check(
+      'simulation 12: an AUTOMATED scenario naming a missing test is rejected',
+      qaRecords.loadQaRecords(sandbox).errors.some((e) => /does not exist/.test(e)),
+      'this is the check that surfaced BUG-0047',
+    );
+
+    /* A scenario belonging to no plan is a scenario nothing ever selects. */
+    writeFileSync(
+      join(scenarioDir, 'QA-PROBE-001-probe.md'),
+      scenarioRecord('QA-PROBE-001', { area: 'no-such-area' }),
+    );
+    check(
+      'simulation 10b: a scenario outside every test plan is rejected',
+      qaRecords.loadQaRecords(sandbox).errors.some((e) => /has no test plan/.test(e)),
+    );
+
+    /* 10 — selection returns the durable scenarios for a changed module. */
+    writeFileSync(join(scenarioDir, 'QA-PROBE-001-probe.md'), scenarioRecord('QA-PROBE-001'));
+    writeFileSync(
+      join(scenarioDir, 'QA-PROBE-002-probe.md'),
+      scenarioRecord('QA-PROBE-002', { type: 'SECURITY' }),
+    );
+
+    const loaded = qaRecords.loadQaRecords(sandbox);
+    check('simulation 10: the probe QA records load cleanly', loaded.errors.length === 0, loaded.errors.join(' | '));
+
+    const selection = qaRecords.selectForModules(loaded, ['services/api/src/modules/probe']);
+    check(
+      'simulation 10: a change selects the durable scenarios for its module',
+      selection.scenarios.length === 2 && selection.plans.length === 1,
+      `got ${selection.scenarios.length} scenario(s), ${selection.plans.length} plan(s)`,
+    );
+    check(
+      'simulation 10c: security scenarios are surfaced as mandatory',
+      selection.mandatory.some((scenario) => scenario.id === 'QA-PROBE-002'),
+      'security and cross-tenant failures are silent, so they are never risk-weighted down',
+    );
+
+    /* 26 — a stale record is surfaced for revalidation. */
+    const reviewOutput = runScript('scripts/backlog-review.mjs', ['--json']);
+    check(
+      'simulation 26: backlog review computes aging and revalidation',
+      reviewOutput.ok && /"dueForRevalidation"/.test(reviewOutput.output),
+      reviewOutput.output.split('\n').slice(0, 3).join(' | '),
+    );
+    check(
+      'simulation 26b: backlog review reports a revalidation policy per severity',
+      /"CRITICAL":\s*0/.test(reviewOutput.output),
+      'a critical record is reverified by every task that goes near it, not on a timer',
+    );
+
+    /* 24 — the Control Center regenerates and is stable. */
+    const controlCenter = runScript('scripts/generate-dashboards.mjs', ['--check']);
+    check(
+      'simulation 24: the Engineering Control Center is current',
+      controlCenter.ok,
+      controlCenter.output.split('\n').filter(Boolean).slice(0, 4).join(' | '),
+    );
+
+    /* 6 — QA records are valid and their indexes current. */
+    const qaCheck = runScript('scripts/rebuild-qa.mjs', ['--check']);
+    check(
+      'simulation 11: QA plans, scenarios and the coverage matrix are valid and current',
+      qaCheck.ok,
+      qaCheck.output.split('\n').filter(Boolean).slice(0, 4).join(' | '),
+    );
+
+    /* Session records and indexes. */
+    const sessionCheck = runScript('scripts/rebuild-sessions.mjs', ['--check']);
+    check(
+      'simulation 1c: session records are valid and their indexes current',
+      sessionCheck.ok,
+      sessionCheck.output.split('\n').filter(Boolean).slice(0, 4).join(' | '),
+    );
+
+    /* 28, 29 — repo-health reports the branch-model fields honestly. */
+    const healthOutput = runScript('scripts/repo-health.mjs', ['--json']);
+    if (healthOutput.ok) {
+      let report = null;
+      try {
+        report = JSON.parse(healthOutput.output);
+      } catch {
+        /* handled below */
+      }
+      check('simulation 29: repo-health emits machine-readable state', report !== null);
+      if (report) {
+        check(
+          'simulation 29: repo-health reports DEVELOP_SYNC_STATUS',
+          typeof report.DEVELOP_SYNC_STATUS === 'string' && report.DEVELOP_SYNC_STATUS.length > 0,
+        );
+        check(
+          'simulation 28: MAIN_CHANGE_STATUS is UNKNOWN without a recorded baseline',
+          report.MAIN_CHANGE_STATUS === 'UNKNOWN',
+          `got ${report.MAIN_CHANGE_STATUS} — claiming UNTOUCHED with no baseline would pass a task that merged into main`,
+        );
+        check(
+          'simulation 27: repo-health reports unfinished Git operations',
+          Array.isArray(report.unfinishedOperations),
+        );
+      }
+    }
+  }
+
+  rmSync(sandbox, { recursive: true, force: true });
+}
+
+/*
+ * 21, 22, 23 — the Obsidian relationship.
+ *
+ * The vault is a per-developer capability and is absent in CI, so these are
+ * checks on the *mechanism* rather than on a live vault. That limitation is
+ * stated rather than papered over: a green run here does not prove any vault is
+ * correct, only that the code which would verify one exists and is wired.
+ */
+if (existsSync(join(ROOT, 'scripts/retrieve-knowledge.mjs'))) {
+  const body = read('scripts/retrieve-knowledge.mjs');
+  check('inbound retrieval reports OBSIDIAN_CONTEXT_USED', body.includes('OBSIDIAN_CONTEXT_USED'));
+  for (const folder of ['04 - Requirements', '09 - Meetings', '10 - Client Feedback', '01 - Product', '05 - Decisions']) {
+    check(`inbound retrieval knows the manual intent folder "${folder}"`, body.includes(folder));
+  }
+  check(
+    'inbound retrieval never bulk-loads the vault',
+    /never returns the whole vault|Bulk loading/i.test(body),
+  );
+  for (const classification of [
+    'EXPECTED_CHANGE',
+    'STALE_OBSIDIAN_NOTE',
+    'STALE_REPOSITORY_DOC',
+    'UNIMPLEMENTED_REQUIREMENT',
+    'PRODUCT_DECISION_REQUIRED',
+    'UNCLEAR_CONFLICT',
+  ]) {
+    check(`retrieval names the conflict class ${classification}`, body.includes(classification));
+  }
+}
+
+if (existsSync(join(ROOT, 'scripts/sync-obsidian.mjs'))) {
+  const body = read('scripts/sync-obsidian.mjs');
+  check('the sync offers a --verify mode', body.includes('--verify'));
+  check(
+    'verification checks that expected notes exist',
+    /expected note is absent from the vault/.test(body),
+  );
+  check('verification checks that published notes carry substance', /empty of substance/.test(body));
+  check('verification resolves generated wikilinks', /resolves to no note in the vault/.test(body));
+  check(
+    'verification refuses to trust an exit code',
+    /not trusting the last exit code|must mean the vault is actually right/i.test(body),
+  );
+  check(
+    'verification leaves manual notes untouched',
+    /MANUAL_NOTES_UNTOUCHED/.test(body),
+  );
+}
+
+if (existsSync(join(ROOT, 'scripts/lib/obsidian-mappings.mjs'))) {
+  const body = read('scripts/lib/obsidian-mappings.mjs');
+  for (const source of ['docs/sessions', 'docs/qa/test-plans', 'docs/qa/scenarios']) {
+    check(`the vault publishes ${source}`, body.includes(source));
   }
 }
 

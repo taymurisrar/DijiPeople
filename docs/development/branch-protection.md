@@ -1,4 +1,91 @@
-# Branch Protection on `main`
+# Branch Protection — `main` and `develop`
+
+> **Verify, do not read.** `node scripts/verify-branch-policy.mjs` reads the
+> live protection objects and reports drift against the intended policy. It is
+> read-only by design: a script that could relax protection is one that will
+> eventually relax it to make a merge easier.
+
+## The branch model
+
+```
+main        production deployment branch   ← RELEASE / DEPLOY / HOTFIX_PRODUCTION
+develop     autonomous integration branch  ← every ordinary task
+agent/*     isolated implementation branches
+```
+
+Rules and rationale:
+[`../../.agent/context/branch-model.md`](../../.agent/context/branch-model.md).
+
+---
+
+## `develop` — intended configuration
+
+```
+required_status_checks         null    no required check on a direct push
+required_pull_request_reviews  null    no PR, no approvals
+enforce_admins                 true    so the two prohibitions below bind everyone
+allow_force_pushes             false
+allow_deletions                false
+required_linear_history        false
+```
+
+Applied with:
+
+```bash
+gh api -X PUT repos/taymurisrar/DijiPeople/branches/develop/protection \
+  --input docs/development/develop-protection.json
+```
+
+**Why `required_status_checks` is null.** A required status check on a branch
+with no pull-request requirement blocks direct pushes outright — the commit
+being pushed has no completed check yet — which would reimpose the mandatory-PR
+workflow by the back door. Validation before integrating is enforced by the
+framework instead (`DEVELOP_VALIDATION_REQUIRED = true`), and CI still runs on
+every push, because `.github/workflows/ci.yml` triggers on `'**'` and lists
+`develop` under `pull_request`.
+
+**Why `enforce_admins` is true.** With no required checks and no PR requirement,
+the only rules on the branch are "no force push" and "no deletion". Those should
+bind everyone, admins included, and enforcing them costs nothing — an ordinary
+fast-forward push is unaffected.
+
+### Current state — not yet applied
+
+`develop` is presently **unprotected**. The `PUT` above was refused in the
+environment that authored this model: the agent tooling blocks GitHub protection
+mutations, which is a sensible guardrail rather than a repository problem. Reads
+work; writes do not.
+
+Until it is applied, `develop` can be force-pushed and deleted. Everything else
+in the model is already in force, because the framework enforces it rather than
+the platform. `node scripts/verify-branch-policy.mjs` reports it as `HIGH` drift
+on every run, so it cannot be forgotten.
+
+### The inert ruleset
+
+The repository carries one ruleset, **"No push"** (id `15523234`, enforcement
+`active`), declaring a pull-request rule with
+`required_approving_review_count: 1`. Its ref condition is:
+
+```json
+"include": ["refs/heads/\"main\", \"develop\""]
+```
+
+That is a literal string, not a ref pattern, so it **matches no branch** and the
+ruleset does nothing. `main` is protected solely by the classic branch
+protection described below.
+
+It is reported rather than repaired, deliberately. Fixing the pattern would
+impose a one-approval requirement on `main` that does not exist today — and that
+a single-maintainer repository cannot satisfy, since GitHub forbids
+self-approval — and on `develop`, where this model explicitly excludes it.
+Deleting it is equally a policy decision, not a cleanup.
+`verify-branch-policy.mjs` surfaces it on every run so it cannot quietly begin
+matching after a rename.
+
+---
+
+## Branch protection on `main`
 
 > **Status: APPLIED on 2026-08-15** and verified by reading the protection
 > object back from the GitHub API. This file used to say the settings were *not*

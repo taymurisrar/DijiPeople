@@ -17,6 +17,8 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join, basename } from 'node:path';
 
+import { allocateId } from './id-allocator.mjs';
+
 // ------------------------------------------------------------------ vocabulary
 
 /** Bug lifecycle. See docs/bugs/README.md for what each means operationally. */
@@ -467,15 +469,21 @@ export function compareRecords(a, b) {
   return a.id.localeCompare(b.id);
 }
 
-/** Highest allocated numeric suffix for a prefix, so ids are never reused. */
-export function nextId(root, prefix) {
-  const dir = prefix === 'BUG' ? BUG_DIR : ITEM_DIR;
-  let highest = 0;
-  for (const file of recordFilesIn(root, dir)) {
-    const match = new RegExp(`^${prefix}-(\\d{4})-`).exec(file.name);
-    if (match) highest = Math.max(highest, Number(match[1]));
-  }
-  return `${prefix}-${String(highest + 1).padStart(4, '0')}`;
+/**
+ * Reserve the next id for a prefix — atomically, and across every branch.
+ *
+ * This was `max(ids visible in the working tree) + 1`, which is right for one
+ * agent on one branch and wrong for every other case: two concurrent sessions
+ * on two branches both see the same highest id and both take the next one. That
+ * collision has landed twice — see the commits titled "renumber colliding
+ * record ids" and "(second occurrence)".
+ *
+ * `allocateId` scans every ref and holds a cross-worktree lock while it
+ * reserves, so a second caller sees the first caller's reservation even before
+ * the record file exists. See scripts/lib/id-allocator.mjs.
+ */
+export function nextId(root, prefix, { sessionId = '', note = '' } = {}) {
+  return allocateId(root, prefix === 'BUG' ? 'bug' : 'item', { sessionId, note });
 }
 
 export function slugify(text) {

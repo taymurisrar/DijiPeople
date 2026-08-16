@@ -32,6 +32,14 @@ export const DEFAULT_MAPPINGS = [
   { from: 'docs/qa/regressions', to: '11 - Agent Knowledge/QA/Regressions' },
   { from: 'docs/qa/known-bug-patterns', to: '11 - Agent Knowledge/QA/Bug Patterns' },
   { from: 'docs/qa/test-strategy', to: '11 - Agent Knowledge/QA/Test Strategy' },
+  /*
+   * Test plans and scenarios are the durable half of QA — what must always be
+   * true about an area, and the reusable cases that prove it. Runs are history;
+   * these are what somebody reads to find out what the product is supposed to
+   * guarantee, so they belong beside the runs rather than buried under them.
+   */
+  { from: 'docs/qa/test-plans', to: '11 - Agent Knowledge/QA/Test Plans' },
+  { from: 'docs/qa/scenarios', to: '11 - Agent Knowledge/QA/Scenarios' },
   { from: 'docs/engineering-history/tasks', to: '11 - Agent Knowledge/Engineering History' },
   /*
    * Parent tasks carry live orchestration state — which work packages are done,
@@ -40,6 +48,12 @@ export const DEFAULT_MAPPINGS = [
    * vault expects to find it.
    */
   { from: 'docs/tasks', to: '00 - Home/Generated/Tasks' },
+  /*
+   * Sessions answer "who was working on what, from which base, holding which
+   * leases" — a question that only becomes interesting once several Architect
+   * chats run at once, and one nothing else in the vault records.
+   */
+  { from: 'docs/sessions', to: '00 - Home/Generated/Sessions' },
 ];
 
 export const mappingKey = (mapping) => `${mapping.from}→${mapping.to}`;

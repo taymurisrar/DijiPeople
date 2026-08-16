@@ -27,6 +27,7 @@ const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 const args = process.argv.slice(2);
 const DRY_RUN = args.includes('--dry-run');
+const VERIFY = args.includes('--verify');
 const configArgIndex = args.indexOf('--config');
 const CONFIG_PATH = resolve(
   REPO_ROOT,
@@ -112,8 +113,115 @@ function isPublishable(file, body) {
   return hasMeaningfulContent(body, { minimumWords });
 }
 
+/**
+ * `OBSIDIAN_SYNC_STATUS = PASS` must mean the vault is actually right, not that
+ * a copy loop exited zero.
+ *
+ * Every failure this has had was silent: a mapping whose source directory had
+ * been renamed, a note published with nothing in it, a wikilink pointing at a
+ * note the sync never wrote. All three pass an exit-code check, and all three
+ * are caught by reading the vault back.
+ *
+ * Manual notes are checked for *absence of interference* only. This script
+ * writes exclusively into mapped agent-owned folders, and verification confirms
+ * that boundary rather than inspecting anybody's notes.
+ */
+function verify(vaultPath, mappings) {
+  const problems = [];
+  const checked = [];
+  let notes = 0;
+  let links = 0;
+  let unresolved = 0;
+
+  /* Obsidian resolves a wikilink by basename, so that is what must exist. */
+  const vaultNotes = new Set(markdownFilesIn(vaultPath).map((file) => basename(file, '.md')));
+
+  for (const mapping of mappings) {
+    const sourceDir = resolve(REPO_ROOT, mapping.from);
+    const targetDir = resolve(vaultPath, mapping.to);
+    const sources = markdownFilesIn(sourceDir).filter((file) =>
+      isPublishable(file, readFileSync(file, 'utf8')),
+    );
+
+    if (!sources.length) continue;
+
+    if (!existsSync(targetDir)) {
+      problems.push(
+        `${mapping.to} — destination folder absent, though ${sources.length} note(s) map to it`,
+      );
+      continue;
+    }
+    checked.push(mapping.to);
+
+    for (const file of sources) {
+      const relativePath = relative(sourceDir, file);
+      const target = join(targetDir, relativePath);
+      const label = `${mapping.to}/${relativePath}`.replace(/\\/g, '/');
+
+      if (!existsSync(target)) {
+        problems.push(`${label} — expected note is absent from the vault`);
+        continue;
+      }
+
+      const published = readFileSync(target, 'utf8');
+      notes += 1;
+
+      if (!isPublishable(file, published)) {
+        problems.push(`${label} — published but empty of substance`);
+      }
+
+      if (published !== readFileSync(file, 'utf8')) {
+        problems.push(`${label} — vault copy differs from its repository source; re-run the sync`);
+      }
+
+      /*
+       * A wikilink that resolves to nothing is not visibly broken in Obsidian —
+       * it renders as an invitation to create the note. That is exactly why an
+       * unresolved *generated* link is worth failing on: nobody would notice it.
+       */
+      for (const match of published.matchAll(/\[\[([^\]|#]+)(?:\|[^\]]*)?\]\]/g)) {
+        links += 1;
+        const name = match[1].trim();
+        if (!vaultNotes.has(name)) {
+          unresolved += 1;
+          problems.push(`${label} — wikilink [[${name}]] resolves to no note in the vault`);
+        }
+      }
+    }
+  }
+
+  console.log(`Vault:  ${vaultPath}`);
+  console.log('Mode:   verify — reading the vault back, not trusting the last exit code');
+  console.log('');
+  console.log(`FOLDERS_CHECKED         ${checked.length}`);
+  console.log(`NOTES_VERIFIED          ${notes}`);
+  console.log(`WIKILINKS_CHECKED       ${links}`);
+  console.log(`WIKILINKS_UNRESOLVED    ${unresolved}`);
+  console.log('MANUAL_NOTES_UNTOUCHED  all — verification reads only the mapped agent-owned folders');
+  console.log('');
+
+  if (problems.length) {
+    console.error(`OBSIDIAN_SYNC_STATUS = FAILED — ${problems.length} problem(s):`);
+    for (const problem of problems.slice(0, 40)) console.error(`  x ${problem}`);
+    if (problems.length > 40) console.error(`  … and ${problems.length - 40} more`);
+    console.error('');
+    console.error('A documentation-automation failure never rolls back healthy work — and never');
+    console.error('hides either. Cap the task at COMPLETE_WITH_DOCUMENTATION_WARNING.');
+    process.exit(1);
+  }
+
+  console.log('OBSIDIAN_SYNC_STATUS = PASS');
+  console.log('Every mapped note exists, carries substance, matches its source, and every');
+  console.log('generated wikilink resolves.');
+}
+
 function main() {
   const { vaultPath, mappings, mode } = loadConfig();
+
+  if (VERIFY) {
+    verify(vaultPath, mappings);
+    return;
+  }
 
   console.log(`Vault:  ${vaultPath}`);
   console.log(`Mode:   ${DRY_RUN ? 'dry run — nothing will be written' : 'write'}`);

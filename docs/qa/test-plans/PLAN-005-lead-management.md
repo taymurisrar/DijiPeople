@@ -1,0 +1,74 @@
+---
+PLAN_ID: PLAN-005
+aliases: [PLAN-005]
+TITLE: Lead Management and Public Acquisition
+AREA: lead-management
+STATUS: CURRENT
+MODULES: [services/api/src/modules/leads, services/api/src/common/guards, services/api/src/common/security, apps/landing]
+RISK: HIGH
+COVERAGE_UNIT: GOOD
+COVERAGE_API: GOOD
+COVERAGE_DATABASE: GAP
+COVERAGE_INTEGRATION: GAP
+COVERAGE_E2E: GAP
+COVERAGE_BROWSER: GAP
+COVERAGE_SECURITY: GOOD
+COVERAGE_PERFORMANCE: NOT_APPLICABLE
+RELATED_BUGS: [BUG-0013, BUG-0018, BUG-0021, BUG-0031, BUG-0032]
+RELATED_REGRESSIONS: [REG-011, REG-021, REG-023, REG-024]
+CREATED_AT: 2026-08-16
+UPDATED_AT: 2026-08-16
+VERIFIED_AGAINST_SHA: 714632d
+---
+
+# PLAN-005 — Lead Management and Public Acquisition
+
+## Scope
+
+The public lead surfaces on the landing site, the endpoints behind them, and the lead lifecycle inside the product up to conversion.
+
+## Risks
+
+- An unauthenticated write endpoint with no rate limiting (`BUG-0013`,
+  `BUG-0031`).
+- Rate limiting keyed on the proxy rather than the visitor, collapsing every
+  visitor into one bucket (`BUG-0032`).
+- A frontend fabricating required fields to satisfy a DTO (`BUG-0021`), which
+  puts invented data in the CRM.
+- A bulk action unreachable by every role (`BUG-0018`).
+
+## Preconditions
+
+The landing app and API running; no authentication.
+
+## Test Types
+
+`UNIT`, `API` and `SECURITY` all run today. This is the best-covered area in the repository.
+
+## Data Requirements
+
+Synthetic contact details only. A lead created by a test is real data in the CRM — clean it up.
+
+## Security Cases
+
+Every public write handler must carry `PublicRateLimitGuard`, and the limiter must identify the visitor. Both are invariant tests, not per-route tests.
+
+## Negative Cases
+
+Missing required field · oversized payload · unknown field (`forbidNonWhitelisted` makes it a 400) · repeated submission from one visitor · submission through a proxy.
+
+## State Transitions
+
+Lead status transitions are explicit; an illegal transition is rejected rather than clamped.
+
+## Integration Cases
+
+Referral attribution links a lead to a partner; a bad referral code must not silently drop attribution.
+
+## Browser Cases
+
+The landing contact form is the highest-value browser case in the product. No tooling exists.
+
+## Regression Links
+
+`REG-011` · `REG-021` · `REG-023` · `REG-024`

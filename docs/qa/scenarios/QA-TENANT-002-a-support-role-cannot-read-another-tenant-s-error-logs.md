@@ -1,0 +1,37 @@
+---
+SCENARIO_ID: QA-TENANT-002
+aliases: [QA-TENANT-002]
+TITLE: A support role cannot read another tenant's error logs
+AREA: tenant-isolation
+MODULE: services/api/src/modules/error-logs
+TYPE: UNIT
+RISK: CRITICAL
+AUTOMATION_STATUS: AUTOMATED
+TEST_REFERENCE: services/api/src/modules/error-logs/error-logs.service.spec.ts
+RELATED_BUGS: [BUG-0005]
+RELATED_REGRESSIONS: [REG-005]
+LAST_RUN: 2026-08-16
+LAST_RESULT: PASS
+CREATED_AT: 2026-08-16
+UPDATED_AT: 2026-08-16
+---
+
+# QA-TENANT-002 — A support role cannot read another tenant's error logs
+
+## Preconditions
+
+Error logs written under two tenants, plus one platform-scoped log.
+
+## Steps
+
+1. As a tenant support user, list error logs.
+2. Request a foreign tenant's log by id.
+3. Confirm platform-scoped logs are reachable only on the platform path.
+
+## Expected Result
+
+Only the caller's own tenant's logs are returned, and the foreign id is refused. A support role is still a tenant role.
+
+## Notes
+
+CRITICAL — this was a cross-tenant read reachable by an ordinary support user. Per `BUG-0047` the fix is not on `main`.

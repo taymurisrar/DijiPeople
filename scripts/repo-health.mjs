@@ -31,6 +31,16 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const json = process.argv.includes('--json');
 const doFetch = process.argv.includes('--fetch');
 
+/*
+ * The SHA `main` sat at when this task started. Supplying it turns
+ * MAIN_CHANGE_STATUS from a guess into a fact: an ordinary task must leave the
+ * production branch exactly where it found it, and only a comparison against a
+ * recorded baseline can prove that. Without it the field reports UNKNOWN rather
+ * than a comforting default.
+ */
+const mainBaselineIndex = process.argv.indexOf('--main-baseline');
+const MAIN_BASELINE = mainBaselineIndex === -1 ? '' : (process.argv[mainBaselineIndex + 1] ?? '');
+
 function git(args, fallback = null) {
   try {
     return execFileSync('git', args, { cwd: ROOT, encoding: 'utf8' }).trim();
@@ -131,6 +141,94 @@ const syncStatus = mainSyncStatus();
  */
 const localOnlyCommits = ahead > 0 ? gitLines(['log', '--oneline', `${REMOTE_TARGET}..${TARGET}`]) : [];
 const remoteOnlyCommits = behind > 0 ? gitLines(['log', '--oneline', `${TARGET}..${REMOTE_TARGET}`]) : [];
+
+// ------------------------------------------------- the integration branch
+/*
+ * `develop` is the autonomous integration branch and `main` is the production
+ * deployment branch. Ordinary tasks merge into develop and leave main untouched,
+ * because any mutation of main may trigger a production deployment.
+ *
+ * That split means repository health has two sync questions, not one. Reporting
+ * only MAIN_SYNC_STATUS was correct while main was the integration target; it is
+ * now the field that says "production is where we left it", and a separate one
+ * has to say "did the work actually land".
+ */
+const INTEGRATION = 'develop';
+const REMOTE_INTEGRATION = `origin/${INTEGRATION}`;
+
+const localIntegration = git(['rev-parse', '--verify', '--quiet', INTEGRATION], null);
+const remoteIntegration = git(['rev-parse', '--verify', '--quiet', REMOTE_INTEGRATION], null);
+
+let integrationAhead = 0;
+let integrationBehind = 0;
+if (localIntegration && remoteIntegration) {
+  const counts = git(
+    ['rev-list', '--left-right', '--count', `${REMOTE_INTEGRATION}...${INTEGRATION}`],
+    null,
+  );
+  if (counts) {
+    const [remoteOnly, localOnly] = counts.split(/\s+/).map(Number);
+    integrationBehind = remoteOnly || 0;
+    integrationAhead = localOnly || 0;
+  }
+}
+
+/*
+ * DEVELOP_SYNC_STATUS. `NOT_PRESENT` and `REMOTE_ONLY` are real states worth
+ * naming: most task worktrees never check develop out, and reporting UNKNOWN for
+ * that ordinary case would train everybody to ignore the field.
+ */
+function developSyncStatus() {
+  if (fetchStatus === 'FAILED') return 'FETCH_FAILED';
+  if (!hasRemote) return 'UNKNOWN';
+  if (!remoteIntegration) return 'NOT_PRESENT';
+  if (!localIntegration) return 'REMOTE_ONLY';
+  if (localIntegration === remoteIntegration) return 'SYNCED';
+  if (integrationAhead > 0 && integrationBehind > 0) return 'DIVERGED';
+  if (integrationAhead > 0) return 'AHEAD';
+  if (integrationBehind > 0) return 'BEHIND';
+  return 'UNKNOWN';
+}
+
+const developStatus = developSyncStatus();
+
+/*
+ * How far behind `main` the integration branch is. A develop that is hundreds
+ * of commits behind main is not an integration branch — it is an abandoned one,
+ * and cutting work from it would resurrect a tree nobody has run in months.
+ */
+const developBehindMain = remoteIntegration && remoteTarget
+  ? Number(
+      (git(['rev-list', '--count', `${REMOTE_INTEGRATION}..${REMOTE_TARGET}`], '0') || '0').trim(),
+    )
+  : 0;
+
+/*
+ * MAIN_CHANGE_STATUS — the production-safety field.
+ *
+ * `UNTOUCHED` is only reported against a supplied baseline. Deriving it from
+ * "main looks synced" would report UNTOUCHED for a task that merged into main
+ * and pushed, which is precisely the event this field exists to catch.
+ */
+function mainChangeStatus() {
+  if (!MAIN_BASELINE) return 'UNKNOWN';
+  if (!remoteTarget) return 'UNKNOWN';
+  const baseline = git(['rev-parse', '--verify', '--quiet', MAIN_BASELINE], MAIN_BASELINE);
+  if (baseline === remoteTarget && (!localTarget || localTarget === remoteTarget)) return 'UNTOUCHED';
+  return 'CHANGED';
+}
+
+const mainChange = mainChangeStatus();
+
+/* The live integration lock, so a health report says whether develop is busy. */
+let integrationLock = { holder: null, queued: 0 };
+try {
+  const { nextIntegration, readQueue } = await import('./lib/session-registry.mjs');
+  const { inFlight } = nextIntegration(ROOT);
+  integrationLock = { holder: inFlight?.branch ?? null, queued: readQueue(ROOT).length };
+} catch {
+  /* The registry is optional state; its absence is not a health failure. */
+}
 
 // --------------------------------------------------------------- worktrees
 
@@ -275,10 +373,42 @@ if (syncStatus === 'AHEAD') {
 if (syncStatus === 'FETCH_FAILED') blockers.push('remote state could not be read');
 if (syncStatus === 'UNKNOWN') blockers.push('sync status could not be determined');
 
+if (mainChange === 'CHANGED') {
+  blockers.push(
+    `${TARGET} has moved from the recorded baseline ${MAIN_BASELINE.slice(0, 7)} — ` +
+      'main is the production deployment branch and an ordinary task must leave it UNTOUCHED',
+  );
+}
+if (developStatus === 'DIVERGED') {
+  blockers.push(`${INTEGRATION} has diverged from ${REMOTE_INTEGRATION} — the Integrator must reconcile before integrating`);
+}
+
 const warningList = [];
 if (syncStatus === 'BEHIND') warningList.push(`${TARGET} is ${behind} commit(s) behind — fast-forward before branching`);
 if (porcelain.length && currentBranch === TARGET) {
   warningList.push(`${TARGET} is dirty (${porcelain.length} path(s)) — work in a separate worktree`);
+}
+if (developStatus === 'NOT_PRESENT') {
+  warningList.push(
+    `${REMOTE_INTEGRATION} does not exist — ordinary tasks have no integration target and would ` +
+      'fall back to main, which is production. Create it from the current shared baseline.',
+  );
+}
+if (developBehindMain > 0) {
+  warningList.push(
+    `${REMOTE_INTEGRATION} is ${developBehindMain} commit(s) behind ${REMOTE_TARGET} — ` +
+      'an integration branch behind production produces conflicts that have nothing to do with the task',
+  );
+}
+if (developStatus === 'AHEAD') {
+  warningList.push(
+    `${INTEGRATION} is ${integrationAhead} commit(s) ahead of ${REMOTE_INTEGRATION} — integrated work has not been pushed`,
+  );
+}
+if (integrationLock.holder) {
+  warningList.push(
+    `${integrationLock.holder} holds the ${INTEGRATION} integration lock — no other session may write it`,
+  );
 }
 
 const health = blockers.length ? 'FAIL' : warningList.length ? 'PASS_WITH_WARNINGS' : 'PASS';
@@ -286,8 +416,18 @@ const health = blockers.length ? 'FAIL' : warningList.length ? 'PASS_WITH_WARNIN
 const report = {
   health,
   target: TARGET,
+  integrationBranch: INTEGRATION,
   currentBranch,
   MAIN_SYNC_STATUS: syncStatus,
+  MAIN_CHANGE_STATUS: mainChange,
+  MAIN_BASELINE: MAIN_BASELINE || null,
+  DEVELOP_SYNC_STATUS: developStatus,
+  localIntegrationSha: localIntegration,
+  remoteIntegrationSha: remoteIntegration,
+  integrationAhead,
+  integrationBehind,
+  developBehindMain,
+  integrationLock,
   localTargetSha: localTarget,
   remoteTargetSha: remoteTarget,
   ahead,
@@ -320,11 +460,18 @@ const line = (label, value) => console.log(`  ${label.padEnd(22)} ${value}`);
 console.log('');
 console.log(`Repository health — ${health}`);
 console.log('');
-line('TARGET', TARGET);
+line('PRODUCTION_BRANCH', TARGET);
+line('INTEGRATION_BRANCH', INTEGRATION);
 line('CURRENT_BRANCH', currentBranch);
 line('MAIN_SYNC_STATUS', syncStatus);
+line('MAIN_CHANGE_STATUS', mainChange + (MAIN_BASELINE ? ` (baseline ${MAIN_BASELINE.slice(0, 7)})` : ' — pass --main-baseline <sha> to prove it'));
+line('DEVELOP_SYNC_STATUS', developStatus);
 line('LOCAL_TARGET_SHA', localTarget ?? 'UNKNOWN');
 line('REMOTE_TARGET_SHA', remoteTarget ?? 'UNKNOWN');
+line('LOCAL_DEVELOP_SHA', localIntegration ?? 'not checked out here');
+line('REMOTE_DEVELOP_SHA', remoteIntegration ?? 'UNKNOWN');
+line('DEVELOP_BEHIND_MAIN', String(developBehindMain));
+line('INTEGRATION_LOCK', integrationLock.holder ?? `free (${integrationLock.queued} queued)`);
 line('AHEAD', String(ahead));
 line('BEHIND', String(behind));
 line('DIVERGED', String(syncStatus === 'DIVERGED'));

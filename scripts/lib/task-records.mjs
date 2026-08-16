@@ -18,6 +18,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { basename } from 'node:path';
 
+import { allocateId } from './id-allocator.mjs';
 import {
   PRIORITIES,
   recordFilesIn,
@@ -412,14 +413,15 @@ export function progressOf(task) {
   return { done, total: task.packages.length };
 }
 
-/** Highest allocated numeric suffix, so ids are never reused. */
-export function nextTaskId(root) {
-  let highest = 0;
-  for (const file of recordFilesIn(root, TASK_DIR)) {
-    const match = /^TASK-(\d{4})-/.exec(file.name);
-    if (match) highest = Math.max(highest, Number(match[1]));
-  }
-  return `TASK-${String(highest + 1).padStart(4, '0')}`;
+/**
+ * Reserve the next task id — atomically, and across every branch.
+ *
+ * Same reasoning as `nextId` in `backlog-records.mjs`: a working-tree scan
+ * cannot see an id a sibling session already took on another branch. See
+ * scripts/lib/id-allocator.mjs.
+ */
+export function nextTaskId(root, { sessionId = '', note = '' } = {}) {
+  return allocateId(root, 'task', { sessionId, note });
 }
 
 export function taskExists(root, id) {

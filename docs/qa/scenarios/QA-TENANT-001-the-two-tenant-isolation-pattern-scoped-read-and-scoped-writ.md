@@ -1,0 +1,39 @@
+---
+SCENARIO_ID: QA-TENANT-001
+aliases: [QA-TENANT-001]
+TITLE: The two-tenant isolation pattern: scoped read and scoped write
+AREA: tenant-isolation
+MODULE: services/api/test
+TYPE: SECURITY
+RISK: CRITICAL
+AUTOMATION_STATUS: BLOCKED_INFRASTRUCTURE
+TEST_REFERENCE: 
+RELATED_BUGS: []
+RELATED_REGRESSIONS: []
+LAST_RUN: 
+LAST_RESULT: BLOCKED
+CREATED_AT: 2026-08-16
+UPDATED_AT: 2026-08-16
+---
+
+# QA-TENANT-001 — The two-tenant isolation pattern: scoped read and scoped write
+
+## Preconditions
+
+A live PostgreSQL and two fixture tenants carrying a per-run id.
+
+## Steps
+
+1. Write a record under tenant A.
+2. From a tenant B session, read it by id.
+3. From a tenant B session, update it by id.
+4. From tenant B, list the model and search for A's record.
+5. Clean up both fixtures.
+
+## Expected Result
+
+Steps 2 and 3 fail; step 4 returns nothing belonging to A. Absence from a list is not sufficient on its own — the direct read by id is the case that catches a missing filter.
+
+## Notes
+
+`services/api/test/tenant-isolation-pattern.e2e-spec.ts` is the template module-specific tests copy. It needs a database, so it is blocked here.

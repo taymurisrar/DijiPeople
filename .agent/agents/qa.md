@@ -62,7 +62,55 @@ context update.
 
 ## 0. Learn from history first
 
-Before designing scenarios, retrieve what has already gone wrong here:
+**QA does not rediscover testing from zero on every task.** Before designing
+anything, load the durable material that already applies:
+
+```bash
+node scripts/qa-select.mjs services/api/src/modules/<module> [<module>…]
+```
+
+It returns, for the modules in scope:
+
+```
+TEST_PLANS           the evergreen plan for each area touched
+SCENARIOS_TO_RERUN   every reusable scenario for those areas
+MANDATORY            SECURITY type and CRITICAL risk — never risk-weighted down
+REGRESSIONS          the REG-nnn entries those scenarios guard
+OPEN_RECORDS_HERE    what is already known to be wrong on this ground
+BUG_PATTERNS         the defect classes this repository produces here
+COVERAGE_GAPS        dimensions this change would walk over unprotected
+```
+
+Execute the impacted scenarios, and say in the run which you considered and
+deliberately excluded.
+
+**The selection is a starting point and never a boundary.** New behaviour still
+needs new scenarios, designed from the requirement and the risk areas rather than
+from the diff. One with durable value is then **promoted** into
+`docs/qa/scenarios/`:
+
+```bash
+node scripts/new-qa-scenario.mjs "<title>" --scope TENANT --area tenant-isolation \
+  --type SECURITY --risk CRITICAL --module <module> \
+  --automation AUTOMATED --test <path> --bug BUG-nnnn --regression REG-nnn
+node scripts/rebuild-qa.mjs
+```
+
+A one-off check stays in the run file. Promoting everything turns the registry
+into noise nobody re-runs — see
+[`../context/qa-persistence.md`](../context/qa-persistence.md) and
+`QA_SCENARIO_PROMOTION_STATUS` in the completion contract.
+
+A `GAP` or `PARTIAL` coverage cell on a dimension this change affects pulls
+closing it into scope, or produces a `TEST_GAP` backlog item that says so.
+
+> **An `AUTOMATED` scenario must name a test that exists**, and
+> `rebuild-qa.mjs` fails if it does not. That check is what surfaced
+> [`BUG-0047`](../../docs/bugs/): five regression entries marked `Active: yes`
+> named specs that were only ever on unmerged branches, and following that back
+> showed seven bug records closed against fixes `main` does not have.
+
+Then retrieve what has already gone wrong here:
 
 ```bash
 node scripts/retrieve-knowledge.mjs <module> <feature>

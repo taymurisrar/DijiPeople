@@ -1,0 +1,76 @@
+---
+PLAN_ID: PLAN-010
+aliases: [PLAN-010]
+TITLE: Payroll
+AREA: payroll
+STATUS: CURRENT
+MODULES: [services/api/src/modules/payroll, services/api/src/modules/compensation, services/api/src/modules/payslips, services/api/src/modules/pay-components, services/api/src/modules/benefits]
+RISK: CRITICAL
+COVERAGE_UNIT: GOOD
+COVERAGE_API: GAP
+COVERAGE_DATABASE: GAP
+COVERAGE_INTEGRATION: GAP
+COVERAGE_E2E: GAP
+COVERAGE_BROWSER: GAP
+COVERAGE_SECURITY: PARTIAL
+COVERAGE_PERFORMANCE: GAP
+RELATED_BUGS: [BUG-0001, BUG-0039]
+RELATED_REGRESSIONS: [REG-001]
+CREATED_AT: 2026-08-16
+UPDATED_AT: 2026-08-16
+VERIFIED_AGAINST_SHA: 714632d
+---
+
+# PLAN-010 — Payroll
+
+## Scope
+
+Period generation, run execution, pay components, compensation formulas, loans and claims feeding a run, journal and cost allocation, payslip production and delivery.
+
+## Risks
+
+- Money computed from client-supplied values rather than derived server-side.
+- Compensation and bank data reachable behind an employee-record read
+  (`BUG-0001`) — and per `BUG-0047` that fix is **not on `main`**.
+- A proxy returning the caller's own payslip or bank account for a different
+  employee id (`BUG-0039`).
+- Date handling that shifts a period boundary by a timezone.
+- A run executed twice producing two sets of payslips.
+
+## Preconditions
+
+A tenant with employees on compensation packages, an open period, and at least one loan and one claim in scope.
+
+## Test Types
+
+`UNIT` is strong across the calculation surface. `E2E` and `PERFORMANCE` are genuine gaps — no full run is exercised end to end, and no run has a timing baseline.
+
+## Data Requirements
+
+Employees across pay grades, one with a loan, one with a claim, one mid-period joiner.
+
+## Security Cases
+
+Compensation, bank details, tax identifiers and payslips each need
+authorization independent of employee-record read. The right permission for the
+entity is not the right permission for the data returned.
+
+## Negative Cases
+
+Run a closed period · run twice · negative amounts · a component referencing a deleted pay element · read another employee's payslip.
+
+## State Transitions
+
+`DRAFT → CALCULATED → APPROVED → POSTED`. A posted run is immutable.
+
+## Integration Cases
+
+Journal export to accounting formats; a malformed export must fail loudly rather than exporting partial figures.
+
+## Browser Cases
+
+Payslip viewing and the run screen.
+
+## Regression Links
+
+`REG-001` — **inactive on `main`**, see `BUG-0047`.

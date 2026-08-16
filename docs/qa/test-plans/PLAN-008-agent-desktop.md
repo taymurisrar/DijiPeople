@@ -1,0 +1,79 @@
+---
+PLAN_ID: PLAN-008
+aliases: [PLAN-008]
+TITLE: Agent Desktop
+AREA: agent-desktop
+STATUS: CURRENT
+MODULES: [services/api/src/modules/agent, apps/agent-desktop]
+RISK: HIGH
+COVERAGE_UNIT: GAP
+COVERAGE_API: GAP
+COVERAGE_DATABASE: GAP
+COVERAGE_INTEGRATION: GOOD
+COVERAGE_E2E: GAP
+COVERAGE_BROWSER: NOT_APPLICABLE
+COVERAGE_SECURITY: PARTIAL
+COVERAGE_PERFORMANCE: NOT_APPLICABLE
+RELATED_BUGS: [BUG-0033, BUG-0034, BUG-0035, BUG-0036]
+RELATED_REGRESSIONS: [REG-025, REG-026, REG-031]
+CREATED_AT: 2026-08-16
+UPDATED_AT: 2026-08-16
+VERIFIED_AGAINST_SHA: 714632d
+---
+
+# PLAN-008 — Agent Desktop
+
+## Scope
+
+The Electron attendance agent and the `agent` API module it talks to: its own
+auth client, heartbeat ingestion, and the auto-update channel. The desktop app
+is a **deployed client** — its contract cannot be changed unilaterally.
+
+## Risks
+
+- Login responses that distinguish "no such user" from "wrong password", which
+  enumerates accounts across tenants (`BUG-0033`).
+- Logout that does not revoke the refresh token (`BUG-0035`), which matters more
+  here than on the web because the device is often shared.
+- Heartbeats replayed on retry being counted twice (`BUG-0036`) — attendance
+  minutes are payroll input.
+- The desktop sending a payload the DTO rejects, or the DTO changing under a
+  deployed client (`BUG-0034`, `REG-026`).
+
+## Preconditions
+
+An agent-desktop client id and secret, and an enrolled device.
+
+## Test Types
+
+`INTEGRATION` covers the contract and idempotency today. `BROWSER_E2E` is `NOT_APPLICABLE` — this is an Electron client, not a web surface.
+
+## Data Requirements
+
+One enrolled device per tenant, with a synthetic device identifier.
+
+## Security Cases
+
+No account enumeration, no cross-tenant device visibility, and token revocation on logout.
+
+## Negative Cases
+
+Unknown user · wrong password · replayed heartbeat · heartbeat for another tenant's device · payload with an unknown field.
+
+## State Transitions
+
+`ENROLLED → ACTIVE → REVOKED`. A revoked device cannot heartbeat.
+
+## Integration Cases
+
+This is the integration area. `forbidNonWhitelisted` makes an unknown field a
+400, so any DTO change is a breaking change for whatever version is installed on
+somebody's laptop.
+
+## Browser Cases
+
+Not applicable — Electron.
+
+## Regression Links
+
+`REG-025` · `REG-026` · `REG-031`

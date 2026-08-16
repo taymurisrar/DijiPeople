@@ -1,0 +1,41 @@
+---
+SCENARIO_ID: QA-AUTH-001
+aliases: [QA-AUTH-001]
+TITLE: Every caller and its auth route agree on HTTP method
+AREA: authentication
+MODULE: services/api/src/modules/auth
+TYPE: API
+RISK: HIGH
+AUTOMATION_STATUS: AUTOMATED
+TEST_REFERENCE: scripts/check-route-method-callers.mjs
+RELATED_BUGS: [BUG-0008]
+RELATED_REGRESSIONS: [REG-008, REG-033]
+LAST_RUN: 2026-08-16
+LAST_RESULT: PASS
+CREATED_AT: 2026-08-16
+UPDATED_AT: 2026-08-16
+---
+
+# QA-AUTH-001 — Every caller and its auth route agree on HTTP method
+
+## Preconditions
+
+The repository checked out. No runtime required — this is a static contract check.
+
+## Steps
+
+1. Run `node scripts/check-route-method-callers.mjs`.
+2. For each frontend caller of an auth route, compare the method it issues with
+   the method the route handler declares.
+
+## Expected Result
+
+Every caller's method matches its handler. A caller issuing `POST` to a
+`@Get()` handler fails the check rather than returning 405 to a user who has
+just been told their session expired.
+
+## Notes
+
+`BUG-0008` shipped because the "Sign in again" control posted to a GET route.
+The same class recurred as `REG-033`, which is why this is a static invariant
+rather than a test of one route.

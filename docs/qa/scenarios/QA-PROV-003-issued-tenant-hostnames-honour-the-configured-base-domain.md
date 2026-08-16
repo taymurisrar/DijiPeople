@@ -1,0 +1,37 @@
+---
+SCENARIO_ID: QA-PROV-003
+aliases: [QA-PROV-003]
+TITLE: Issued tenant hostnames honour the configured base domain
+AREA: tenant-provisioning
+MODULE: services/api/src/common/config
+TYPE: UNIT
+RISK: HIGH
+AUTOMATION_STATUS: AUTOMATED
+TEST_REFERENCE: services/api/src/common/config/tenant-url.config.spec.ts
+RELATED_BUGS: [BUG-0017, BUG-0026]
+RELATED_REGRESSIONS: [REG-016, REG-027]
+LAST_RUN: 2026-08-16
+LAST_RESULT: PASS
+CREATED_AT: 2026-08-16
+UPDATED_AT: 2026-08-16
+---
+
+# QA-PROV-003 — Issued tenant hostnames honour the configured base domain
+
+## Preconditions
+
+The base-domain setting configured, and separately absent.
+
+## Steps
+
+1. Issue a hostname with the setting configured.
+2. Issue one with it absent.
+3. Generate a tenant email link in each case.
+
+## Expected Result
+
+The configured base domain is used, and its absence is an error rather than a silent fall back to localhost. A production email containing a localhost link is the failure this guards.
+
+## Notes
+
+`ADR-0002` makes the base domain a single source of truth. The `silent-config-fallback` pattern is what made it necessary.

@@ -1,0 +1,37 @@
+---
+SCENARIO_ID: QA-RUNTIME-002
+aliases: [QA-RUNTIME-002]
+TITLE: Entity scope resolution never falls back to unscoped
+AREA: runtime-modules
+MODULE: services/api/src/modules/data
+TYPE: SECURITY
+RISK: CRITICAL
+AUTOMATION_STATUS: AUTOMATED
+TEST_REFERENCE: services/api/src/modules/data/entity-scope.resolver.spec.ts
+RELATED_BUGS: []
+RELATED_REGRESSIONS: []
+LAST_RUN: 2026-08-16
+LAST_RESULT: PASS
+CREATED_AT: 2026-08-16
+UPDATED_AT: 2026-08-16
+---
+
+# QA-RUNTIME-002 — Entity scope resolution never falls back to unscoped
+
+## Preconditions
+
+Roles at each access level against a runtime entity.
+
+## Steps
+
+1. Resolve scope for each access level.
+2. Resolve for a role with no matching privilege.
+3. Resolve for an entity with no scope configuration.
+
+## Expected Result
+
+An unresolvable scope denies rather than returns everything. The generic data API has no tenant middleware behind it, so a fail-open here is a whole-model disclosure.
+
+## Notes
+
+The highest-leverage unit test in the runtime: one resolver decides visibility for every runtime entity.

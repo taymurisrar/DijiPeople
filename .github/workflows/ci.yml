@@ -46,10 +46,24 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22.x'
-      # No dependencies needed — this job is pure repository-structure checks
-      # and is the fastest signal that something is structurally wrong.
+      # No dependencies needed — these are pure repository-structure checks and
+      # the fastest signal that something is structurally wrong.
       - name: Validate agent framework
         run: node scripts/validate-framework.mjs
+
+      # The generated indexes must agree with the records they summarise. Each is
+      # its own step so a red build names the system that drifted rather than
+      # reporting "framework validation failed" and leaving somebody to bisect it.
+      - name: Backlog records and indexes
+        run: node scripts/rebuild-backlog.mjs --check
+      - name: Parent task records and indexes
+        run: node scripts/rebuild-tasks.mjs --check
+      - name: Session records and indexes
+        run: node scripts/rebuild-sessions.mjs --check
+      - name: QA plans, scenarios and coverage matrix
+        run: node scripts/rebuild-qa.mjs --check
+      - name: Dashboards and the Engineering Control Center
+        run: node scripts/generate-dashboards.mjs --check
 
   typecheck:
     name: Typecheck

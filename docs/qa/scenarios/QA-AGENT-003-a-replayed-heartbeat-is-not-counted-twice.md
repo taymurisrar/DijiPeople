@@ -1,0 +1,37 @@
+---
+SCENARIO_ID: QA-AGENT-003
+aliases: [QA-AGENT-003]
+TITLE: A replayed heartbeat is not counted twice
+AREA: agent-desktop
+MODULE: services/api/src/modules/agent
+TYPE: INTEGRATION
+RISK: CRITICAL
+AUTOMATION_STATUS: AUTOMATED
+TEST_REFERENCE: services/api/src/modules/agent/heartbeat-idempotency.spec.ts
+RELATED_BUGS: [BUG-0036]
+RELATED_REGRESSIONS: [REG-031]
+LAST_RUN: 2026-08-16
+LAST_RESULT: PASS
+CREATED_AT: 2026-08-16
+UPDATED_AT: 2026-08-16
+---
+
+# QA-AGENT-003 — A replayed heartbeat is not counted twice
+
+## Preconditions
+
+An enrolled, active device.
+
+## Steps
+
+1. Send a heartbeat and record the accumulated presence.
+2. Send the identical heartbeat again, as a retry would.
+3. Send a genuinely new heartbeat.
+
+## Expected Result
+
+The replay adds nothing; the new heartbeat adds once. Presence minutes feed payroll, so double-counting a retry is a pay error.
+
+## Notes
+
+The `non-idempotent-retry` pattern. Network retries are normal on a laptop agent, not exceptional.

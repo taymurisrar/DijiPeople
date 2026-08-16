@@ -1,0 +1,75 @@
+---
+PLAN_ID: PLAN-007
+aliases: [PLAN-007]
+TITLE: Tenant Provisioning
+AREA: tenant-provisioning
+STATUS: CURRENT
+MODULES: [services/api/src/modules/super-admin, services/api/src/modules/tenant-control-plane, services/api/src/modules/tenants, services/api/src/common/config]
+RISK: CRITICAL
+COVERAGE_UNIT: GOOD
+COVERAGE_API: GAP
+COVERAGE_DATABASE: GAP
+COVERAGE_INTEGRATION: GAP
+COVERAGE_E2E: PARTIAL
+COVERAGE_BROWSER: GAP
+COVERAGE_SECURITY: GAP
+COVERAGE_PERFORMANCE: NOT_APPLICABLE
+RELATED_BUGS: [BUG-0014, BUG-0015, BUG-0017, BUG-0022]
+RELATED_REGRESSIONS: [REG-012, REG-013, REG-027, REG-030]
+CREATED_AT: 2026-08-16
+UPDATED_AT: 2026-08-16
+VERIFIED_AGAINST_SHA: 714632d
+---
+
+# PLAN-007 — Tenant Provisioning
+
+## Scope
+
+Creating a tenant: database records, identities, billing, hostname issuance, and recovery when any step fails partway.
+
+## Risks
+
+- A failure leaving a tenant that cannot be retried (`BUG-0014`) or cannot be
+  recovered at all (`BUG-0015`).
+- A step that is not idempotent inside a flow that will be retried
+  (`REG-013`) — retrying then double-creates.
+- Double submission creating two tenants (`BUG-0022`, `REG-030`) — the
+  `check-then-act` pattern.
+- Hostname issuance not honouring the configured base domain (`BUG-0017`),
+  which produced localhost URLs in production email.
+
+## Preconditions
+
+Platform admin authentication, a plan, and Stripe in test mode.
+
+## Test Types
+
+`UNIT` covers retry, idempotency and URL configuration today. Full `E2E` recovery needs a live database.
+
+## Data Requirements
+
+Disposable tenant names carrying a per-run id. Never reuse a name across runs.
+
+## Security Cases
+
+Provisioning is platform-only. Confirm no tenant role reaches any provisioning route.
+
+## Negative Cases
+
+Provision twice · provision with a taken hostname · fail at each step and retry · retry a tenant already active.
+
+## State Transitions
+
+`REQUESTED → PROVISIONING → ACTIVE`, with `FAILED` reachable from any step and retryable back into `PROVISIONING`.
+
+## Integration Cases
+
+Stripe customer and subscription creation. A Stripe failure must leave a retryable state, never a tenant with no billing.
+
+## Browser Cases
+
+The admin provisioning screen, including its confirmation step — `BUG-0022` was that it had none.
+
+## Regression Links
+
+`REG-012` · `REG-013` · `REG-027` · `REG-030`

@@ -1,0 +1,37 @@
+---
+SCENARIO_ID: QA-ATT-004
+aliases: [QA-ATT-004]
+TITLE: Raw device ingestion is idempotent under replay
+AREA: attendance
+MODULE: services/api/src/modules/attendance-integrations
+TYPE: INTEGRATION
+RISK: CRITICAL
+AUTOMATION_STATUS: AUTOMATED
+TEST_REFERENCE: services/api/src/modules/attendance-integrations/ingestion/raw-attendance-ingestion.service.spec.ts
+RELATED_BUGS: []
+RELATED_REGRESSIONS: [REG-031]
+LAST_RUN: 2026-08-16
+LAST_RESULT: PASS
+CREATED_AT: 2026-08-16
+UPDATED_AT: 2026-08-16
+---
+
+# QA-ATT-004 — Raw device ingestion is idempotent under replay
+
+## Preconditions
+
+A configured gateway and a batch of raw punches.
+
+## Steps
+
+1. Ingest a batch.
+2. Ingest the identical batch again.
+3. Ingest an overlapping batch containing one new punch.
+
+## Expected Result
+
+The replay adds nothing and the overlap adds only the new punch. Devices and gateways retry as normal behaviour.
+
+## Notes
+
+Shares its failure mode with `QA-AGENT-003`: retries are the common case in device ingestion.

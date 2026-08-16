@@ -1,0 +1,37 @@
+---
+SCENARIO_ID: QA-LEAD-001
+aliases: [QA-LEAD-001]
+TITLE: The public lead endpoint is rate limited
+AREA: lead-management
+MODULE: services/api/src/modules/leads
+TYPE: SECURITY
+RISK: HIGH
+AUTOMATION_STATUS: AUTOMATED
+TEST_REFERENCE: services/api/src/modules/leads/public-leads.rate-limit.spec.ts
+RELATED_BUGS: [BUG-0013]
+RELATED_REGRESSIONS: [REG-011]
+LAST_RUN: 2026-08-16
+LAST_RESULT: PASS
+CREATED_AT: 2026-08-16
+UPDATED_AT: 2026-08-16
+---
+
+# QA-LEAD-001 — The public lead endpoint is rate limited
+
+## Preconditions
+
+No authentication.
+
+## Steps
+
+1. Submit the configured number of leads from one visitor.
+2. Submit one more.
+3. Submit from a different visitor identity.
+
+## Expected Result
+
+The over-limit submission is refused, and the second visitor is unaffected. The error reveals nothing about existing records.
+
+## Notes
+
+A public write endpoint with no limiter is a free database-growth API.

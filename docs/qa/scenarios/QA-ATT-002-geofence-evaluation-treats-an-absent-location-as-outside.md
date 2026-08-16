@@ -1,0 +1,37 @@
+---
+SCENARIO_ID: QA-ATT-002
+aliases: [QA-ATT-002]
+TITLE: Geofence evaluation treats an absent location as outside
+AREA: attendance
+MODULE: services/api/src/modules/attendance-engine
+TYPE: UNIT
+RISK: HIGH
+AUTOMATION_STATUS: AUTOMATED
+TEST_REFERENCE: services/api/src/modules/attendance-engine/attendance-geofence.service.spec.ts
+RELATED_BUGS: []
+RELATED_REGRESSIONS: []
+LAST_RUN: 2026-08-16
+LAST_RESULT: PASS
+CREATED_AT: 2026-08-16
+UPDATED_AT: 2026-08-16
+---
+
+# QA-ATT-002 — Geofence evaluation treats an absent location as outside
+
+## Preconditions
+
+A site with a configured radius.
+
+## Steps
+
+1. Punch inside the radius, and just outside it.
+2. Punch with no location supplied.
+3. Punch with a location whose accuracy is worse than the radius.
+
+## Expected Result
+
+Absent or unusably imprecise location is not treated as inside. A geofence that fails open is not a geofence.
+
+## Notes
+
+The `fail-open-scope` pattern applied to physical location.

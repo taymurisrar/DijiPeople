@@ -1,0 +1,37 @@
+---
+SCENARIO_ID: QA-AUTH-003
+aliases: [QA-AUTH-003]
+TITLE: Repeated failed sign-ins lock the account
+AREA: authentication
+MODULE: services/api/src/modules/auth
+TYPE: UNIT
+RISK: HIGH
+AUTOMATION_STATUS: AUTOMATED
+TEST_REFERENCE: services/api/src/modules/auth/login-lockout.service.spec.ts
+RELATED_BUGS: []
+RELATED_REGRESSIONS: []
+LAST_RUN: 2026-08-16
+LAST_RESULT: PASS
+CREATED_AT: 2026-08-16
+UPDATED_AT: 2026-08-16
+---
+
+# QA-AUTH-003 — Repeated failed sign-ins lock the account
+
+## Preconditions
+
+A user with a known password and a clean attempt counter.
+
+## Steps
+
+1. Submit the configured number of wrong passwords.
+2. Submit the correct password immediately afterwards.
+3. Wait out the lockout window and retry.
+
+## Expected Result
+
+The account locks at the threshold, the correct password is refused while locked, and access returns after the window — without revealing whether the password was right.
+
+## Notes
+
+Lockout is the only rate control on authenticated sign-in; public surfaces use `PublicRateLimitGuard` instead.

@@ -23,13 +23,35 @@ Planning rules live in [`PLANS.md`](PLANS.md). Agent role definitions live in
 
 ---
 
-## `DijiPeople Task:` — the framework activates itself
+## The operating model, in nine lines
 
-A prompt beginning **`DijiPeople Task:`** means *"use the complete DijiPeople
-autonomous engineering framework"* — the entire lifecycle in
+```
+The user talks only to the Architect.       Nobody names a specialist.
+`DP:` and `DijiPeople Task:` are the same.  Both mean the whole framework.
+Ordinary work integrates into `develop`.    `main` deploys production.
+Several Architect chats may run at once.    Sessions, leases, one id allocator.
+QA reuses durable plans and scenarios.      It adapts; it never starts from zero.
+The backlog is maintained, not merely kept. Nothing stays TRIAGE_REQUIRED.
+Obsidian runs in both directions.           Intent in, verified truth out.
+Release/DevOps owns deployment and health.  The Integrator owns Git.
+A required agent that did not pass          blocks completion.
+```
+
+**The user must never have to paste the framework again.** Everything below and
+in [`.agent/context/`](.agent/context/) is the standing instruction set.
+
+---
+
+## `DP:` — the framework activates itself
+
+A prompt beginning **`DP:`** or **`DijiPeople Task:`** means *"use the complete
+DijiPeople autonomous engineering framework"* — the entire lifecycle in
 [`.agent/context/task-completion-contract.md`](.agent/context/task-completion-contract.md),
-from knowledge retrieval through merge, knowledge capture, Obsidian sync and
-cleanup.
+from knowledge retrieval through integration, knowledge capture, Obsidian sync
+and cleanup.
+
+The two triggers are identical. `DP:` is shorter to type, and that is the whole
+of the difference.
 
 **The user never restates these rules.** Being asked to repeat them means this
 section was not read, which is a framework defect and not a user preference.
@@ -38,19 +60,20 @@ An optional keyword after the colon is an **intent hint**, not a separate
 workflow — the lifecycle stays one and unified:
 
 ```
-DijiPeople Task:            DijiPeople Task: SECURITY      DijiPeople Task: RELEASE
-DijiPeople Task: BUG        DijiPeople Task: PERFORMANCE   DijiPeople Task: DEPLOY
-DijiPeople Task: FEATURE    DijiPeople Task: DATABASE      DijiPeople Task: HOTFIX
-DijiPeople Task: UI/UX      DijiPeople Task: INTEGRATION   DijiPeople Task: BACKLOG
-DijiPeople Task: QA         DijiPeople Task: ARCHITECTURE  DijiPeople Task: KNOWLEDGE
-DijiPeople Task: E2E        DijiPeople Task: AUDIT         DijiPeople Task: FRAMEWORK
+DP:            DP BUG:      DP FIX:       DP FEATURE:    DP UI:        DP UX:
+DP QA:         DP TEST:     DP E2E:       DP SECURITY:   DP DB:        DP DATABASE:
+DP ARCH:       DP ARCHITECTURE:           DP INTEGRATION:              DP PERFORMANCE:
+DP DOC:        DP KNOWLEDGE:              DP BACKLOG:    DP AUDIT:     DP CLEANUP:
+DP RELEASE:    DP DEPLOY:   DP HOTFIX:    DP FRAMEWORK:
 ```
 
 **Keywords are optional.** With none — or with one not in the list — the
 Architect infers the type from the description and states what it inferred.
-`DijiPeople Task: fix the tenant provisioning retry` is a `BUG`;
-`improve payroll UI` is `UI/UX` + `FEATURE`; `test complete onboarding` is
-`E2E`/`QA`. Routing, inference and the per-type definition of done live in
+`DP: fix the tenant provisioning retry` is a `BUG`; `improve payroll UI` is
+`UI/UX` + `FEATURE`; `DP FIX: agent logout` is `BUG` + `SECURITY`;
+`DP: make tenant provisioning production ready` is a `LARGE` `FEATURE` that
+decomposes into work packages before any code is written. Routing, inference,
+the shorthand aliases and the per-type definition of done live in
 [`.agent/context/task-router.md`](.agent/context/task-router.md) — **the
 Architect reads it before planning.**
 
@@ -62,9 +85,69 @@ drift live in
 [`.agent/context/repository-health.md`](.agent/context/repository-health.md).
 
 **No keyword weakens a gate** — not the shared-target CI rule, not branch
-protection, not tenant isolation, not the requirement that findings become
-durable records. `HOTFIX` is the one most often read as an exception. It is not:
-urgency narrows scope, never evidence.
+protection, not tenant isolation, not `main` as production control, not the
+requirement that findings become durable records. `HOTFIX` is the one most often
+read as an exception. It is not: urgency narrows scope, never evidence.
+
+---
+
+## The Architect is the only user-facing agent
+
+The user should never need to invoke Backend/API, Frontend, UI/UX, Database,
+Integration, QA, the Reviewer, the Integrator or Release/DevOps. The Architect
+selects them from impact analysis, sequences them, validates each handoff,
+routes rework when a stage rejects one, and refuses to report completion while a
+required agent is not `PASS`.
+
+Full rules — the handoff contract, the required-agent matrix, the acceptance
+tokens and rework routing — are in
+[`.agent/context/agent-handoffs.md`](.agent/context/agent-handoffs.md).
+
+---
+
+## Branches: `develop` integrates, `main` deploys
+
+```
+main        production deployment branch   ← RELEASE / DEPLOY / HOTFIX_PRODUCTION only
+  ↑
+develop     autonomous integration branch  ← every ordinary task
+  ↑
+agent/*     isolated implementation branches
+```
+
+**Any mutation of `main` may trigger a production deployment**, so ordinary
+tasks — `BUG`, `FEATURE`, `UI/UX`, `QA`, `E2E`, `ARCHITECTURE`, `DATABASE`,
+`INTEGRATION`, `SECURITY`, `PERFORMANCE`, `KNOWLEDGE`, `FRAMEWORK`, `BACKLOG`,
+`AUDIT` — target `develop` and finish with `MAIN_CHANGE_STATUS = UNTOUCHED`.
+
+Integration into `develop` needs no PR and no human approval; it still needs
+validation. Only the Integrator writes a shared branch, and concurrent
+integrations serialise through a merge queue. `main` keeps every protection it
+has. See [`.agent/context/branch-model.md`](.agent/context/branch-model.md).
+
+---
+
+## Several Architect chats may run at once
+
+Two or three sessions working concurrently is expected, not exceptional. Before
+planning, and before changing any file:
+
+```bash
+node scripts/session.mjs list                    # who is running, what they hold
+node scripts/session.mjs check --paths <paths>   # classify the proposed work
+```
+
+Every substantial task registers a session, takes write leases on the high-risk
+shared resources it will write, and releases them when it finishes. Durable ids
+come from one allocator that scans every branch and reserves before the record
+exists — never from counting files in a directory.
+
+```bash
+node scripts/allocate-id.mjs bug --session SESSION-nnnn
+```
+
+The database stays **single-writer across all sessions**. Full rules:
+[`.agent/context/multi-session.md`](.agent/context/multi-session.md).
 
 ---
 
@@ -413,12 +496,32 @@ npm run backlog:check        # records valid, indexes current — fails on drift
 npm run backlog:rebuild      # regenerate every backlog index
 npm run backlog:new-bug -- "<title>" --severity HIGH --type AUTHORIZATION
 npm run backlog:new-item -- "<title>" --type TEST_GAP
+npm run backlog:review       # aging, revalidation, duplicate candidates
 npm run tasks:check          # parent-task records valid, indexes current
 npm run tasks:rebuild        # regenerate the parent-task indexes
 npm run tasks:new -- "<title>" --type FEATURE --size LARGE
+
+npm run session -- list                          # active sessions, leases, merge queue
+npm run session -- check --paths <a,b>           # classify work against what is in flight
+npm run session -- start "<title>" --type FEATURE --size LARGE --branch agent/<x>
+npm run session -- lease acquire schema --session SESSION-nnnn --reason "<why>"
+npm run session -- queue add --session SESSION-nnnn --branch agent/<x>
+npm run session -- finish SESSION-nnnn
+npm run sessions:check       # session records valid, indexes current
+npm run allocate:id -- bug   # atomic id, safe across branches and sessions
+
+npm run qa:select -- <module> [<module>…]        # plans, scenarios, regressions to re-run
+npm run qa:check             # QA records valid, coverage matrix current
+npm run qa:rebuild           # regenerate the QA indexes and coverage matrix
+npm run qa:new-scenario -- "<title>" --scope AUTH --area authentication
+npm run qa:new-plan -- "<title>" --area <area>
+npm run qa:new-run -- <feature-slug>
+
+npm run branch:policy        # verify main/develop protection — read-only
 npm run knowledge:retrieve -- <module> <feature>
-npm run knowledge:dashboards # regenerate the two Obsidian dashboards
+npm run knowledge:dashboards # dashboards + the Engineering Control Center
 npm run knowledge:sync       # publish into the vault (needs a local config)
+npm run knowledge:verify     # read the vault back — notes, substance, wikilinks
 npm run history:new -- <task-slug>
 ```
 
@@ -520,29 +623,45 @@ Completion is defined by
 which `scripts/validate-framework.mjs` enforces. Every field must be resolved:
 
 ```
-IMPLEMENTATION_STATUS           REVIEW_STATUS                 ENGINEERING_HISTORY_STATUS
-LOCAL_VALIDATION_STATUS         REMOTE_CI_STATUS              FEEDBACK_PROMOTION_STATUS
-QA_STATUS                       PR_STATUS                     KNOWLEDGE_CAPTURE_STATUS
-QA_FINDINGS_CLASSIFIED_STATUS   MERGE_STATUS                  OBSIDIAN_SYNC_STATUS
-BUG_RECORD_STATUS               POST_MERGE_VALIDATION_STATUS  CLEANUP_STATUS
-ARCHITECT_TRIAGE_STATUS         MAIN_SYNC_STATUS
-BACKLOG_UPDATE_STATUS           POST_TASK_REPO_HEALTH
-PRE_TASK_REPO_HEALTH            DEPLOYMENT_STATUS
-PARENT_TASK_STATUS              DEPLOYMENT_DRIFT_STATUS
-WORK_PACKAGE_STATUS
+PRE_TASK_REPO_HEALTH            REVIEW_STATUS                 ENGINEERING_HISTORY_STATUS
+SESSION_STATUS                  PR_STATUS                     FEEDBACK_PROMOTION_STATUS
+PARENT_TASK_STATUS              REMOTE_CI_STATUS              KNOWLEDGE_CAPTURE_STATUS
+WORK_PACKAGE_STATUS             MERGE_STATUS                  OBSIDIAN_SYNC_STATUS
+REQUIRED_AGENTS_STATUS          DEVELOP_INTEGRATION_STATUS    CONTROL_CENTER_STATUS
+IMPLEMENTATION_STATUS           DEVELOP_SYNC_STATUS           CLEANUP_STATUS
+LOCAL_VALIDATION_STATUS         POST_MERGE_VALIDATION_STATUS
+QA_STATUS                       MAIN_SYNC_STATUS
+QA_FINDINGS_CLASSIFIED_STATUS   MAIN_CHANGE_STATUS
+QA_SCENARIO_PROMOTION_STATUS    POST_TASK_REPO_HEALTH
+BUG_RECORD_STATUS               DEPLOYMENT_STATUS
+ARCHITECT_TRIAGE_STATUS         DEPLOYMENT_DRIFT_STATUS
+BACKLOG_UPDATE_STATUS
 ```
 
 Resolved means `PASS`, `DONE`, `NOT_REQUIRED` (with a reason),
 `BLOCKED_<REASON>` or `FAILED`. **Never `ASSUMED_PASS`; never omitted.**
 
-Two of these are terminal invariants rather than ordinary fields: after a
-completed substantial task, **`MAIN_SYNC_STATUS` must be `SYNCED`** and
-**`POST_TASK_REPO_HEALTH` must be `PASS`**. No stuck push, unfinished merge,
-unfinished rebase, unexpected local-`main` commit or unverified divergence may
-remain — see
-[`.agent/context/repository-health.md`](.agent/context/repository-health.md).
+Four of these are terminal invariants rather than ordinary fields. After a
+completed **ordinary** task:
 
-A prompt beginning `DijiPeople Task:` requests the whole lifecycle — historical
+```
+MAIN_SYNC_STATUS      = SYNCED
+MAIN_CHANGE_STATUS    = UNTOUCHED     ← production is where the task found it
+DEVELOP_SYNC_STATUS   = SYNCED        ← where a local develop exists
+POST_TASK_REPO_HEALTH = PASS
+```
+
+No stuck push, unfinished merge, unfinished rebase, unexpected local-`main`
+commit or unverified divergence may remain — see
+[`.agent/context/repository-health.md`](.agent/context/repository-health.md).
+`MAIN_CHANGE_STATUS = CHANGED` on anything but a `RELEASE`, `DEPLOY` or
+`HOTFIX_PRODUCTION` is a **failed** task, not an untidy one.
+
+`REQUIRED_AGENTS_STATUS` is the fifth invariant and is never `NOT_REQUIRED`: a
+task may not complete while an agent the work needed is not `PASS`. See
+[`.agent/context/agent-handoffs.md`](.agent/context/agent-handoffs.md).
+
+A prompt beginning `DP:` or `DijiPeople Task:` requests the whole lifecycle — historical
 knowledge retrieval, regression awareness, durable handling of your corrections,
 Git finalization and knowledge sync included. Nobody should have to add "push
 it", "merge it", "sync Obsidian", "clean the worktree", "remember this", "don't
@@ -619,6 +738,22 @@ Collect the facts with `node scripts/finalize-agent-task.mjs`.
   > module, migration, ten replaced components — was reported as finished while
   > entirely uncommitted. Committing *your task's* output is now required;
   > touching anything else still is not.
+- **Ordinary tasks integrate into `develop` and leave `main` untouched.** Any
+  mutation of `main` may trigger a production deployment, so only a `RELEASE`,
+  `DEPLOY` or `HOTFIX_PRODUCTION` task may target it — and the Architect may not
+  reclassify a normal task into one of those because integration would be
+  simpler. `node scripts/rebuild-sessions.mjs --check` enforces this on the
+  session record. See
+  [`.agent/context/branch-model.md`](.agent/context/branch-model.md).
+- **Register a session before planning, and check what else is in flight.**
+  `node scripts/session.mjs list` and `… check --paths <paths>`. Take a write
+  lease for any high-risk shared resource you will write, and release it when
+  you finish. The database is single-writer across **all** sessions. See
+  [`.agent/context/multi-session.md`](.agent/context/multi-session.md).
+- **Never allocate a durable id by counting files.** `node
+  scripts/allocate-id.mjs <kind>` scans every branch and reserves before the
+  record exists. A directory scan cannot see an id a sibling session already
+  took, which is how this repository twice had to renumber colliding records.
 - **`main` is protected, and there is no admin bypass** (`enforce_admins: true`).
   A direct push fails with `GH006` / "Changes must be made through a pull
   request". That is `PROTECTED_BRANCH_REQUIRES_PR` — a recoverable policy
@@ -629,8 +764,9 @@ Collect the facts with `node scripts/finalize-agent-task.mjs`.
   state.** The full recovery is in
   [`.agent/context/repository-health.md`](.agent/context/repository-health.md).
 - **Run `npm run repo:health` before creating a branch and again before the
-  final report.** A task worktree is never cut from a stale `main`, and a task
-  never ends leaving the repository for a human to clean up.
+  final report**, passing `--main-baseline <sha>` so `MAIN_CHANGE_STATUS` is a
+  fact rather than a guess. A task worktree is never cut from a stale base, and
+  a task never ends leaving the repository for a human to clean up.
 - The working tree may already contain unrelated in-flight changes. Check
   `git status` before you start and never revert, stage or commit files you did
   not touch. **Other people's uncommitted work remains untouchable** — if the

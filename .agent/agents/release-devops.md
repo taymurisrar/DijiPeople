@@ -20,14 +20,39 @@ It owns these fields:
 
 ```
 PRE_TASK_REPO_HEALTH      POST_TASK_REPO_HEALTH     MAIN_SYNC_STATUS
-REMOTE_STATE              STALE_BRANCHES            STALE_WORKTREES
-UNFINISHED_GIT_OPERATIONS DEPLOYMENT_DRIFT
+MAIN_CHANGE_STATUS        DEVELOP_SYNC_STATUS       REMOTE_STATE
+STALE_BRANCHES            STALE_WORKTREES           STALE_LEASES
+UNFINISHED_GIT_OPERATIONS DEPLOYMENT_DRIFT          INTEGRATION_LOCK
 ```
 
 ```bash
 node scripts/repo-health.mjs            # or npm run repo:health
 node scripts/repo-health.mjs --fetch    # refresh remote state first
+node scripts/repo-health.mjs --main-baseline <sha-at-task-start>
+node scripts/session.mjs list           # sessions, leases, DATABASE_WRITER, queue
+node scripts/verify-branch-policy.mjs   # main/develop protection — read-only
 ```
+
+### The production-safety field
+
+`develop` integrates and `main` deploys, so repository health answers two
+questions rather than one:
+
+| Field | Question |
+|---|---|
+| `MAIN_SYNC_STATUS` | Is local `main` in step with `origin/main`? |
+| `MAIN_CHANGE_STATUS` | Did **this task** move production? |
+
+An ordinary task must finish `UNTOUCHED`, and that is reported **only against a
+recorded baseline**. Without `--main-baseline` the field is `UNKNOWN`, because
+deriving it from "main looks synced" would report clean for a task that merged
+into `main` and pushed — the exact event it exists to catch. See
+[`../context/branch-model.md`](../context/branch-model.md).
+
+`repo-health.mjs` also reports `DEVELOP_BEHIND_MAIN`. An integration branch far
+behind production is not an integration branch: work cut from it conflicts for
+reasons that have nothing to do with the task. This repository has been in that
+state — `develop` sat 201 commits behind `main`, untouched since 2026-05-08.
 
 **Release/DevOps detects and classifies; the Integrator acts.** A role that both
 diagnoses repository state and acts on its own diagnosis has no check on a wrong

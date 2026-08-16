@@ -226,9 +226,57 @@ or mid-revert.** Complete or abort it based on evidence, and document which.
 
 ---
 
+## The integration target is `develop`
+
+**Ordinary tasks integrate into `develop`, not `main`.** Any mutation of `main`
+may trigger a production deployment, so only a `RELEASE`, `DEPLOY` or
+`HOTFIX_PRODUCTION` task may target it. Full rules:
+[`../context/branch-model.md`](../context/branch-model.md).
+
+Integration into `develop` needs **no PR and no human approval**. It still needs
+validation: run the gates relevant to the change before pushing, and remember
+that CI runs on every push because the workflow triggers on `'**'`. Open a PR
+anyway — it needs no approval — for security, database, architecture or large
+cross-module work, or where a contested conflict resolution has audit value.
+
+### Only the Integrator writes a shared branch, and only one at a time
+
+Several sessions can finish concurrently. Two pushing `develop` at the same
+moment either reject noisily, which is recoverable, or fast-forward over a state
+the other had already validated against — which is silent, and means that
+validation was about different code.
+
+```bash
+node scripts/session.mjs queue add --session SESSION-nnnn --branch agent/<x> --sha <sha>
+node scripts/session.mjs queue next            # exits 1 while another branch is in flight
+node scripts/session.mjs queue claim --branch agent/<x>   # this IS the integration lock
+node scripts/session.mjs queue validating --branch agent/<x>
+node scripts/session.mjs queue done --branch agent/<x> --sha <merged>
+```
+
+While holding the claim:
+
+```
+fetch develop → verify the target SHA → integrate → resolve conflicts
+  → targeted validation → push develop → verify origin/develop by reading the ref
+  → release the claim → next queued branch
+```
+
+`DEVELOP_SYNC_STATUS = SYNCED` and `MAIN_CHANGE_STATUS = UNTOUCHED` are both
+completion-contract fields. Prove the second with a baseline:
+
+```bash
+node scripts/repo-health.mjs --main-baseline <sha-at-task-start>
+```
+
+Without the baseline it reports `UNKNOWN`, deliberately — deriving `UNTOUCHED`
+from "main looks synced" would pass a task that merged into `main` and pushed.
+
+---
+
 ## PR lifecycle — owned automatically
 
-For any protected or shared branch:
+For `main`, and for any branch policy marks protected:
 
 ```
 task branch → push → PR → CI → exact-SHA PASS → merge → verify target

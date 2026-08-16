@@ -1,0 +1,37 @@
+---
+SCENARIO_ID: QA-PROV-001
+aliases: [QA-PROV-001]
+TITLE: A tenant that failed provisioning can be retried
+AREA: tenant-provisioning
+MODULE: services/api/src/modules/tenant-control-plane
+TYPE: UNIT
+RISK: CRITICAL
+AUTOMATION_STATUS: AUTOMATED
+TEST_REFERENCE: services/api/src/modules/tenant-control-plane/tenant-provisioning-retry.spec.ts
+RELATED_BUGS: [BUG-0014]
+RELATED_REGRESSIONS: [REG-012]
+LAST_RUN: 2026-08-16
+LAST_RESULT: PASS
+CREATED_AT: 2026-08-16
+UPDATED_AT: 2026-08-16
+---
+
+# QA-PROV-001 — A tenant that failed provisioning can be retried
+
+## Preconditions
+
+A tenant left in `FAILED` at each distinct step.
+
+## Steps
+
+1. For each failure point, invoke retry.
+2. Confirm the retry resumes rather than restarting from zero.
+3. Confirm a successful retry reaches ACTIVE.
+
+## Expected Result
+
+Every failure state is retryable and no retry duplicates work already done. A flow that can fail must have a route back.
+
+## Notes
+
+The `declared-but-unwired-step` pattern: retry existed in the design and had no caller.

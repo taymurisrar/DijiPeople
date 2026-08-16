@@ -1,0 +1,36 @@
+---
+SCENARIO_ID: QA-LEAD-004
+aliases: [QA-LEAD-004]
+TITLE: The public contact form never fabricates lead data
+AREA: lead-management
+MODULE: services/api/src/modules/leads
+TYPE: API
+RISK: HIGH
+AUTOMATION_STATUS: AUTOMATED
+TEST_REFERENCE: services/api/src/modules/leads/public-lead-acquisition.spec.ts
+RELATED_BUGS: [BUG-0021]
+RELATED_REGRESSIONS: [REG-021]
+LAST_RUN: 2026-08-16
+LAST_RESULT: PASS
+CREATED_AT: 2026-08-16
+UPDATED_AT: 2026-08-16
+---
+
+# QA-LEAD-004 — The public contact form never fabricates lead data
+
+## Preconditions
+
+The public acquisition DTO and the landing form payload.
+
+## Steps
+
+1. Submit only the fields the form actually collects.
+2. Inspect the persisted lead for values the visitor never supplied.
+
+## Expected Result
+
+Every persisted value traces to something the visitor entered or something the server legitimately derived. A required DTO field the form cannot collect is a contract defect, not a reason to invent a value.
+
+## Notes
+
+The frontend had been filling required fields with placeholders to get past `forbidNonWhitelisted`.

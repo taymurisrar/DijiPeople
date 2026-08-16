@@ -1,0 +1,37 @@
+---
+SCENARIO_ID: QA-PAY-003
+aliases: [QA-PAY-003]
+TITLE: An outstanding loan deducts exactly once per run
+AREA: payroll
+MODULE: services/api/src/modules/payroll
+TYPE: UNIT
+RISK: CRITICAL
+AUTOMATION_STATUS: AUTOMATED
+TEST_REFERENCE: services/api/src/modules/payroll/payroll-run.loan.spec.ts
+RELATED_BUGS: []
+RELATED_REGRESSIONS: []
+LAST_RUN: 2026-08-16
+LAST_RESULT: PASS
+CREATED_AT: 2026-08-16
+UPDATED_AT: 2026-08-16
+---
+
+# QA-PAY-003 — An outstanding loan deducts exactly once per run
+
+## Preconditions
+
+An employee with an active loan and a schedule.
+
+## Steps
+
+1. Execute a run and read the deduction.
+2. Re-execute the same period.
+3. Execute the following period.
+
+## Expected Result
+
+One deduction per period, the schedule advances once, and re-running does not deduct twice.
+
+## Notes
+
+Re-running a period is an ordinary operational action, so idempotency is a requirement rather than an edge case.

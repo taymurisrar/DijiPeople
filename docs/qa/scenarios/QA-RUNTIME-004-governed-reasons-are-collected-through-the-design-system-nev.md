@@ -1,0 +1,36 @@
+---
+SCENARIO_ID: QA-RUNTIME-004
+aliases: [QA-RUNTIME-004]
+TITLE: Governed reasons are collected through the design system, never a native prompt
+AREA: runtime-modules
+MODULE: apps/web
+TYPE: UNIT
+RISK: MEDIUM
+AUTOMATION_STATUS: AUTOMATED
+TEST_REFERENCE: scripts/check-no-native-prompt.mjs
+RELATED_BUGS: [BUG-0020]
+RELATED_REGRESSIONS: [REG-029]
+LAST_RUN: 2026-08-16
+LAST_RESULT: PASS
+CREATED_AT: 2026-08-16
+UPDATED_AT: 2026-08-16
+---
+
+# QA-RUNTIME-004 — Governed reasons are collected through the design system, never a native prompt
+
+## Preconditions
+
+None — static check across the frontends.
+
+## Steps
+
+1. Scan for `window.prompt`, `confirm` and `alert`.
+2. Confirm every governed reason is collected through a design-system control.
+
+## Expected Result
+
+No native prompt collects a value that is stored, audited or governed. A native prompt has no label, no validation, no focus trap and no tenant theme.
+
+## Notes
+
+An accessibility and an audit-quality defect at once — the value reached an audit record with no validation.

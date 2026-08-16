@@ -44,6 +44,8 @@ keyword  →  lead agent + risk emphasis + additional definition of done
 |---|---|
 | `DijiPeople Task: <keyword> <description>` | Full framework, with the keyword's emphasis |
 | `DijiPeople Task: <description>` | Full framework; the Architect **infers** the type |
+| `DP: <description>` | Identical. `DP:` **is** `DijiPeople Task:` |
+| `DP <KEYWORD>: <description>` | Identical, with the keyword's emphasis |
 | `DijiPeople Task:` alone | Full framework; ask what the task is — this is the one legitimate blocking question |
 
 The keyword is **optional and case-insensitive**. A user who writes
@@ -55,6 +57,58 @@ retry`.
 language description and infer, exactly as if no keyword had been given. Never
 reject a prompt because its keyword is not in the table below.
 
+### `DP:` — the short trigger
+
+`DP:` is the canonical shorthand and activates **exactly** the same framework:
+the whole lifecycle, every gate, the Architect as sole orchestrator. It is
+shorter to type, and that is its only difference.
+
+```
+DP:            DP BUG:      DP FIX:       DP FEATURE:    DP UI:        DP UX:
+DP QA:         DP TEST:     DP E2E:       DP SECURITY:   DP DB:        DP DATABASE:
+DP ARCH:       DP ARCHITECTURE:           DP INTEGRATION:               DP PERFORMANCE:
+DP DOC:        DP KNOWLEDGE:              DP BACKLOG:    DP AUDIT:     DP CLEANUP:
+DP RELEASE:    DP DEPLOY:   DP HOTFIX:    DP FRAMEWORK:
+```
+
+Aliases resolve to the canonical types below:
+
+| Shorthand | Routes to |
+|---|---|
+| `DP FIX:` | `BUG` — plus `SECURITY` when the description names auth, permission, tenant or session behaviour |
+| `DP UI:` / `DP UX:` | `UI/UX` |
+| `DP TEST:` | `QA` |
+| `DP DB:` | `DATABASE` |
+| `DP ARCH:` | `ARCHITECTURE` |
+| `DP DOC:` | `KNOWLEDGE` |
+| `DP CLEANUP:` | `BACKLOG` + repository hygiene — stale branches, stale worktrees, zombie records, index drift |
+
+**A shorthand never selects a weaker workflow.** `DP FIX:` is not a fast path
+around QA, and `DP HOTFIX:` is not a fast path around CI. The keyword changes
+which specialist leads and which risks are assumed present; it changes nothing
+about the contract. See [What routing never changes](#what-routing-never-changes).
+
+Two worked examples the framework is expected to handle without further input:
+
+```
+DP FIX: agent logout
+  → TYPE  = BUG + SECURITY        (logout is session revocation; BUG-0035 is the
+                                   recorded precedent on this exact surface)
+  → SIZE  = SMALL
+  → AGENTS  Backend/API · QA · Reviewer · Integrator · Release/DevOps
+  → TARGET  develop
+
+DP: make tenant provisioning production ready
+  → TYPE  = FEATURE + HARDENING + E2E
+  → SIZE  = LARGE            → parent task record required, decomposed
+  → AGENTS  Architect · Backend/API · Database · Integration · QA · Reviewer
+            · Integrator · Release/DevOps
+  → TARGET  develop
+```
+
+The Architect states the inferred type, size and routing basis in the plan. A
+classification the plan does not state cannot be corrected by the user.
+
 ---
 
 ## Supported keywords
@@ -62,6 +116,33 @@ reject a prompt because its keyword is not in the table below.
 Each row states the **lead**, what the task **prioritises**, and what its
 [definition of done](#definition-of-done-by-task-type) adds beyond the standard
 contract.
+
+Every row also states its **integration target**. Ordinary work targets
+`develop`; only the three production types may target `main`. See
+[`branch-model.md`](branch-model.md).
+
+| Keyword | Lead | Target | Prioritises |
+|---|---|---|---|
+| *(none)* | Architect | `develop` | Classify the type first, then route as below |
+| `BUG` / `FIX` | Architect → owning specialist | `develop` | reproduction → regression → root cause → fix → QA → merge → knowledge |
+| `FEATURE` | Architect | `develop` | requirements → architecture → implementation → QA → integration → release impact |
+| `UI/UX` | UI/UX | `develop` | Experience analysis leads; Frontend implements what UI/UX verified |
+| `QA` / `TEST` | QA | `develop` | Establishing what is true; **no product change** without a verified defect |
+| `E2E` | QA | `develop` | Whole-journey execution with real evidence |
+| `ARCHITECTURE` | Architect | `develop` | Durable structural decisions, captured as ADRs |
+| `DATABASE` | Database | `develop` | Schema and migration correctness against a real PostgreSQL |
+| `INTEGRATION` | Integration | `develop` | External boundaries: idempotency, retry, failure handling |
+| `SECURITY` | Reviewer + Backend/API | `develop` | authorization · authentication · tenant isolation · sensitive data · negative paths · abuse |
+| `PERFORMANCE` | Architect → owning specialist | `develop` | **Baseline first.** No optimisation without measurement |
+| `RELEASE` | Release/DevOps | **`main`** | Release readiness — not necessarily a deployment |
+| `DEPLOY` | Release/DevOps | **`main`** | The full deployment lifecycle |
+| `HOTFIX` | Architect → owning specialist | **`main`** + `develop` reconciliation | Minimal blast radius, regression proof, **CI and branch protection still apply** |
+| `BACKLOG` / `CLEANUP` | Architect | `develop` | Reviewing and technically acting on the backlog, and repository hygiene |
+| `KNOWLEDGE` | Architect | `develop` | Knowledge only — no product code |
+| `FRAMEWORK` | Architect | `develop` | The agent framework itself — no unrelated product work |
+| `AUDIT` | Architect | `develop` | **Read-only by default**; findings become durable records |
+
+The full per-keyword detail, unchanged:
 
 | Keyword | Lead | Prioritises |
 |---|---|---|
@@ -181,7 +262,9 @@ These are **additive**. Every task also satisfies
 | `PERFORMANCE` | A before measurement and an after measurement, both reproducible |
 | `FRAMEWORK` | `node scripts/validate-framework.mjs` passes, and the new behaviour is **simulated**, not merely documented |
 | `AUDIT` | Durable records for every material finding, each triaged |
-| `HOTFIX` | Everything `BUG` requires, plus an explicit statement of the blast radius considered |
+| `HOTFIX` | Everything `BUG` requires, plus an explicit statement of the blast radius considered, **plus `develop` reconciled** so the production fix is not lost by the next ordinary integration |
+| `RELEASE` | A readiness verdict computed from all six inputs, and `main` promoted only by Release/DevOps |
+| `BACKLOG` / `CLEANUP` | Zero ordinary records left `TRIAGE_REQUIRED`, stale records reverified, indexes current |
 
 `FRAMEWORK`'s simulation requirement is the one that stops this document from
 being decorative: a rule that only exists as prose is a rule that has never been
@@ -197,11 +280,18 @@ answered, not obeyed:
 
 - the shared-target CI gate — `MERGE requires REMOTE_CI_STATUS = PASS`
 - branch protection, and the prohibition on force-pushing a protected branch
+- **`main` as production control** — no keyword except `RELEASE`, `DEPLOY` or
+  `HOTFIX_PRODUCTION` authorises a mutation of `main`
 - tenant isolation checks on any query that touches tenant-owned data
 - the requirement that every material QA finding becomes a durable record
 - the separation between QA (establishes truth) and the Architect (decides
   priority)
+- **the required-agent matrix** — a task cannot complete while a required agent
+  is not `PASS` ([`agent-handoffs.md`](agent-handoffs.md))
 - the completion contract's fields, or the honesty of their values
 
 `HOTFIX` is the keyword most likely to be read as an exception to this list. It
 is not one. Urgency changes scope, never evidence.
+
+The shorthand forms are the second most likely. `DP FIX:` is four characters
+shorter than `DijiPeople Task: BUG`, and that is the whole of the difference.

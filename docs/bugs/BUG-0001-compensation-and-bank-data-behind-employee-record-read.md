@@ -2,7 +2,7 @@
 ID: BUG-0001
 aliases: [BUG-0001]
 Title: Compensation and bank data returned behind an employee-record read
-Status: VERIFIED
+Status: OPEN
 Severity: HIGH
 Priority: P1
 Type: AUTHORIZATION
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-14
 DetectedInSha: 13e720e
 AffectedModules: [services/api/src/modules/employees]
 OwnerAgent: backend-api
-ArchitectDisposition: DONE
+ArchitectDisposition: PLAN_REQUIRED
 QAReport:
 RegressionId: REG-001
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-15
-UpdatedAt: 2026-08-15
-ResolvedAt: 2026-08-14
+UpdatedAt: 2026-08-16
+ResolvedAt:
 ---
 
 # BUG-0001 — Compensation and bank data returned behind an employee-record read
@@ -106,3 +106,4 @@ Verified by the regression spec; the register records it `Active: yes`.
 
 - 2026-08-14 — found, fixed, regression added as REG-001.
 - 2026-08-15 — imported into the durable bug system from the regression register.
+- 2026-08-16 — **reopened.** The fix and its regression test are on `agent/authz-batch0-compensation`, which has never merged: no commit implementing them is an ancestor of `origin/main`. The record had said VERIFIED since 2026-08-14, so every view derived from it — `docs/backlog/open.md`, the dashboards, a future `BACKLOG_PRECHECK` — reported protection that the integration branch does not have. Evidence and the prevention check are in [[BUG-0047]].

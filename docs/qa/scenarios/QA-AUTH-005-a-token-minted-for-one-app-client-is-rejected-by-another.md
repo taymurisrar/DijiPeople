@@ -1,0 +1,37 @@
+---
+SCENARIO_ID: QA-AUTH-005
+aliases: [QA-AUTH-005]
+TITLE: A token minted for one app client is rejected by another
+AREA: authentication
+MODULE: services/api/src/common/guards
+TYPE: SECURITY
+RISK: CRITICAL
+AUTOMATION_STATUS: AUTOMATED
+TEST_REFERENCE: services/api/src/common/guards/jwt-auth.guard.spec.ts
+RELATED_BUGS: []
+RELATED_REGRESSIONS: []
+LAST_RUN: 2026-08-16
+LAST_RESULT: PASS
+CREATED_AT: 2026-08-16
+UPDATED_AT: 2026-08-16
+---
+
+# QA-AUTH-005 — A token minted for one app client is rejected by another
+
+## Preconditions
+
+Distinct per-client JWT secrets configured for `web`, `admin` and `agent-desktop`.
+
+## Steps
+
+1. Mint a token as `agent-desktop` and present it to a `web` route.
+2. Mint a token as `web` and present it to an `admin` route.
+3. Present a well-formed token whose session row has been revoked.
+
+## Expected Result
+
+Each is rejected before any access context is loaded. The audience/`appClientId` check is not advisory — a desktop credential must not reach the tenant product.
+
+## Notes
+
+This is the boundary that makes three clients safe on one API. It has no bug record because it has not failed — which is the reason to keep testing it.

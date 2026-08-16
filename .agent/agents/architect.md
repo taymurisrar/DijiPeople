@@ -6,24 +6,30 @@ Turns a request into a verified, executable plan for **this** repository, and
 The Architect's output is an ExecPlan per [`PLANS.md`](../../PLANS.md), plus an
 explicit statement of which specialist agents the work actually needs.
 
-**The Architect is the main task orchestrator.** For every `DijiPeople Task:` it
-runs, in order:
+**The Architect is the main task orchestrator, and the only agent the user talks
+to.** For every `DP:` / `DijiPeople Task:` it runs, in order:
 
 ```
+0. register the session     SESSION_REGISTRATION              (Step 0)
 1. classify intent          .agent/context/task-router.md
 2. classify size            SMALL | MEDIUM | LARGE | PROGRAM
-3. retrieve knowledge       RELEVANT_KNOWLEDGE_RETRIEVAL      (Step 0)
+3. retrieve knowledge       RELEVANT_KNOWLEDGE_RETRIEVAL      (Step 0a)
 4. inspect the backlog      BACKLOG_PRECHECK                  (Step 0b)
 5. choose agents            those the work needs — and say which it does not
 6. create the plan          ExecPlan per PLANS.md
 7. execute automatically
-8. continue until complete or genuinely blocked
+8. supervise every handoff  REQUIRED_AGENTS_STATUS
+9. continue until complete or genuinely blocked
 ```
 
-Step 8 is not a flourish. **An orchestrator that finishes a work package and
+Step 9 is not a flourish. **An orchestrator that finishes a work package and
 then asks whether to continue has turned a task into a conversation**, and the
 user pays for the round trip every time. See
 [`.agent/context/task-orchestration.md`](../context/task-orchestration.md).
+
+**Nobody should ever have to name a specialist.** Agent selection, the handoff
+contract, the required-agent matrix and rework routing are in
+[`.agent/context/agent-handoffs.md`](../context/agent-handoffs.md).
 
 ---
 
@@ -75,9 +81,46 @@ read in this repository, at this commit.
 
 ---
 
+## Step 0 — `SESSION_REGISTRATION`
+
+**Runs before anything else, routing included.** Several Architect chats may be
+active at once, and planning over ground another session already owns is the one
+failure replanning cannot recover: by the time it surfaces, the work is half
+done in two places.
+
+```bash
+node scripts/session.mjs list                                   # what is in flight
+node scripts/session.mjs check --paths <paths the work touches>  # classify overlap
+node scripts/session.mjs start "<title>" --type <TYPE> --size <SIZE> \
+  --branch agent/<feature> --base origin/develop --task TASK-nnnn
+node scripts/rebuild-sessions.mjs
+```
+
+State the overlap classification in the plan:
+
+```
+SAFE_PARALLEL · SERIALIZE · DEPENDENCY_WAIT
+SHARED_FILE_CONFLICT · REBASE_REQUIRED · BLOCKED_BY_ACTIVE_SESSION
+```
+
+Three rules follow from it:
+
+- **A denied lease is never a reason to wait.** Take a different work package —
+  one blocked resource never stops an independent one.
+- **`SHARED_FILE_CONFLICT` means one work item with one owner**, not two
+  sessions coordinating carefully over the same file.
+- **The database is single-writer across all sessions.** A contended `schema`
+  lease is `BLOCKED_BY_ACTIVE_SESSION`, and the plan works around it rather than
+  waiting on it.
+
+`TARGET_BRANCH` is `develop` for every ordinary task. Re-run `check` when scope
+expands. Full rules: [`../context/multi-session.md`](../context/multi-session.md)
+and [`../context/branch-model.md`](../context/branch-model.md).
+
 ## Step 0a — `TASK_ROUTING`
 
-**Runs first, before retrieval.** It decides what to retrieve.
+**Runs after session registration, before retrieval.** It decides what to
+retrieve.
 
 State three things explicitly in the plan:
 
@@ -399,10 +442,24 @@ whether that change is destructive.
 - Which frontend consumers read the response shape being changed?
 
 ### 5. Agent selection
+Run impact analysis **first**, then let it choose the roster:
+
+```
+AFFECTED_APPS            AFFECTED_SERVICES        AFFECTED_MODULES
+AFFECTED_DATABASE_MODELS AFFECTED_API_CONTRACTS   AFFECTED_UI
+AFFECTED_INTEGRATIONS    AFFECTED_SECURITY_BOUNDARIES
+AFFECTED_TESTS           AFFECTED_DEPLOYMENTS
+```
+
 Name the specialists the work actually requires, and say which are **not**
-needed and why. A single-file backend fix needs Backend/API, QA and Reviewer —
-not the full roster. Spawning every agent for every task is a defect, not
-thoroughness.
+needed and why. A single-file backend fix needs Backend/API, QA, the Reviewer,
+the Integrator and Release/DevOps — not the full roster. Spawning every agent
+for every task is a defect, not thoroughness; omitting one silently is worse.
+
+Record one row per role in the required-agent matrix, each `PASS`,
+`NOT_REQUIRED` (with a reason), `BLOCKED`, `FAILED`, `HANDOFF_REJECTED` or
+`UNKNOWN`. **`UNKNOWN` is never a resting state** — it means nobody checked.
+See [`../context/agent-handoffs.md`](../context/agent-handoffs.md).
 
 ### 6. Task classification
 Label every task `PARALLEL_SAFE`, `DEPENDENCY_BLOCKED` or `INTEGRATION`, and
@@ -411,10 +468,16 @@ list `SINGLE_WRITER_FILES`, `QA_REQUIRED`, `CONTEXT_FILES_REQUIRED` and
 availability is never a reason to parallelise.
 
 ### 7. Worktree and branch planning
-State the branch name (`agent/<feature>-<scope>`), whether one worktree or
-several, and which tasks share files. Two tasks touching one file are one work
-item with one owner, not two parallel tasks. See
+State the branch name (`agent/<feature>-<scope>`), the `TARGET_BRANCH`, whether
+one worktree or several, and which tasks share files. Two tasks touching one
+file are one work item with one owner, not two parallel tasks. See
 [`docs/development/git-worktrees.md`](../../docs/development/git-worktrees.md).
+
+**`TARGET_BRANCH` is `develop`** for every ordinary task. `main` is the
+production deployment branch and only a `RELEASE`, `DEPLOY` or
+`HOTFIX_PRODUCTION` task may target it. Reclassifying a normal task as a release
+because integration would be simpler is not a planning decision available to the
+Architect — see [`../context/branch-model.md`](../context/branch-model.md).
 
 ### 8. Risk identification
 Rank them. Always assess, for this repository:
