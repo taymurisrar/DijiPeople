@@ -133,8 +133,14 @@ committed.
 
 ## Known exceptions
 
-- **Frontend deployment is not reproducible from the repository.** No committed
-  config for web, admin or landing.
+- **Frontend deployment is not reproducible from the repository — but the target
+  is now confirmed.** Web, admin and landing deploy to **Vercel** via a GitHub
+  integration: pull-request checks report `Vercel – diji-people-web`,
+  `Vercel – diji-people-admin` and `Vercel – diji-people-landing`, each with a
+  deployment under the `taimurisrar806-2915s-projects` account. Verified from
+  PR #19's checks on 2026-08-16, not from anything committed here. The install
+  scope, build command and environment values live in the Vercel dashboard and
+  cannot be read from a clean clone. `apps/docs` has no Vercel project.
 - `apps/landing` has no `release` script, unlike web and admin.
 - Health checks verify no dependencies.
 - No deployed-SHA visibility.

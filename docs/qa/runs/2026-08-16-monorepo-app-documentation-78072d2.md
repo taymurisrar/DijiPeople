@@ -82,7 +82,8 @@ Everything else was verified by reading source at `78072d2`.
 | D2 | The CI required-job count in the docs matches `ci.yml` | **FAILED** — three documents said "eight"; the gate's `needs` list has **ten**. `ci.md` said "nine" and omitted `test-landing` |
 | D3 | The workspace list is accurate | **FAILED** — two context files omitted the `e2e` workspace |
 | D4 | Schema/module counts are accurate | **FAILED** — measured 65 modules, 12,211 lines, 292 models, 264 enums, 194 migrations. Both `AGENTS.md` and `system-overview.md` were stale; replaced with an instruction to re-derive rather than a new number to go stale |
-| D5 | Every path referenced by the new knowledge notes exists | **PASS** — see Validation below |
+| D5 | Every path referenced by the new knowledge notes exists | **PASS** — every backticked repo path in the seven new notes resolved |
+| D6 | The frontend deployment target is genuinely unknown | **REFUTED, late.** The repository is silent, but PR #19's own checks report `Vercel – diji-people-landing`, `– diji-people-web` and `– diji-people-admin` deploying on push. `apps/docs` has no Vercel project. Recorded as confirmed-from-CI, not from the repository — the build configuration still cannot be read from a clean clone |
 
 ## Findings
 

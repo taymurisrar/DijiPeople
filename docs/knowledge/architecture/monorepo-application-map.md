@@ -38,17 +38,20 @@ login URL from `@repo/config`, and that is the whole of it.
 
 ## The five applications
 
-| App | Port | Audience | Auth | Deployed from repo | CI gates |
+| App | Port | Audience | Auth | Deployment target | CI gates |
 |---|---|---|---|---|---|
-| `landing` | 3000 | public visitors | **none** — public only | no config committed | lint, test-landing, typecheck, build |
-| `web` | 3001 | tenant users | tenant JWT (`web` client) | no config committed | lint, test-web, typecheck, build |
-| `admin` | 3002 | platform operators | platform JWT (`admin` client) | no config committed | lint, test-admin, typecheck, build |
+| `landing` | 3000 | public visitors | **none** — public only | Vercel (`diji-people-landing`) | lint, test-landing, typecheck, build |
+| `web` | 3001 | tenant users | tenant JWT (`web` client) | Vercel (`diji-people-web`) | lint, test-web, typecheck, build |
+| `admin` | 3002 | platform operators | platform JWT (`admin` client) | Vercel (`diji-people-admin`) | lint, test-admin, typecheck, build |
 | `agent-desktop` | n/a | employees, on their workstation | agent JWT (`agent-desktop` client) | manual, unsigned installer | typecheck, build **only** |
-| `docs` | 3003 | **nobody** | none | not deployed | typecheck, build **only** |
+| `docs` | 3003 | **nobody** | none | **none** | typecheck, build **only** |
 
 Only `services/api` has committed deployment configuration (`render.yaml`).
-Frontend deployment is not reproducible from a clean clone — see
-[[deployment-architecture]].
+**The three Vercel targets are confirmed from the GitHub pull-request checks**,
+not from anything in this repository — a Vercel integration deploys all three
+frontends on every push, and their build configuration lives in the Vercel
+dashboard where nobody can read it from a clean clone. `apps/docs` has no Vercel
+project. See [[deployment-architecture]].
 
 ## Three auth clients, one API
 

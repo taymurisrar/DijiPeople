@@ -137,12 +137,31 @@ tests for any of the four proxies; **`/contact` is untested at every level**; an
 
 ## Deployment
 
-**Not reproducible from this repository.** `render.yaml` defines exactly one
-service, `dijipeople-api`; there is no `vercel.json`, no Dockerfile, and landing
-has no `release` script (unlike web and admin). `.env.production.example` points
-at a `*.vercel.app` host, which is evidence consistent with Vercel but is an
-example file, not configuration. `docs/deployment/environments.md` states the
-same and records the missing config as an open finding.
+**Vercel — confirmed, but still not reproducible from this repository.**
+
+The repository itself is silent: `render.yaml` defines only `dijipeople-api`,
+there is no `vercel.json`, no Dockerfile, and landing has no `release` script
+(unlike web and admin). `docs/deployment/environments.md` therefore records the
+target as "presumed Vercel, not in-repo".
+
+**The presumption is now confirmed from outside the repository.** The GitHub
+pull-request checks on this branch include three Vercel deployments —
+`Vercel – diji-people-landing`, `Vercel – diji-people-web` and
+`Vercel – diji-people-admin` — each reporting a deployment under the
+`taimurisrar806-2915s-projects` Vercel account. A Vercel GitHub integration is
+therefore building and deploying all three frontends on every push.
+
+Two consequences worth carrying:
+
+- **`apps/docs` has no Vercel project**, consistent with it not being deployed
+  anywhere.
+- The build configuration — install scope, build command, env values — lives in
+  the Vercel dashboard and **cannot be read from here**. That is what makes
+  [[ITEM-0024]] (undeclared `lucide-react`) undecidable from the repository: if
+  Vercel installs the whole workspace it resolves by hoisting; if it installs
+  only `apps/landing` the build fails. The integration builds successfully
+  today, which is evidence for the former — but it is inference, not
+  configuration anyone can read.
 
 One consequence is undecidable from here and matters: `lucide-react` is imported
 by a marketing component but **not declared** in `apps/landing/package.json`
