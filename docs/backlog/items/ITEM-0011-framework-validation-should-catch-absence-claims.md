@@ -3,7 +3,7 @@ ID: ITEM-0011
 aliases: [ITEM-0011]
 Title: Framework validation should catch false absence claims in context documents
 Type: TECH_DEBT
-Status: READY
+Status: DONE
 Priority: P3
 Severity: LOW
 AffectedModules: [.agent/context, scripts]
@@ -11,7 +11,7 @@ Source: QA_RUN
 OwnerAgent: architect
 ArchitectDisposition: FIX_NOW
 CreatedAt: 2026-08-15
-UpdatedAt: 2026-08-15
+UpdatedAt: 2026-08-17
 RelatedBug: BUG-0023
 RelatedQA: docs/qa/runs/2026-08-15-commercial-onboarding-e2e-7bbab3d.md
 RelatedADR:
@@ -93,3 +93,40 @@ architecture [[agent-engineering-architecture|Agent Engineering Architecture]].
 - 2026-08-15 — raised alongside BUG-0023 as the generalisable half of it.
 
 - 2026-08-15 — Architect triage: FIX_NOW, with the record own warning treated as binding: keep it narrow. A validator that tries to interpret prose will produce false failures, and a validation nobody trusts gets bypassed. Implement the explicit-marker form or the `Last verified` refresh requirement — not an English parser.
+
+## Resolution
+
+Implemented as the marker convention this item proposed, and kept as narrow as
+it insisted.
+
+A document that wants to assert a file is absent declares it:
+
+```
+<!-- absent: services/api/test/some-suite.e2e-spec.ts -->
+```
+
+and validation fails the moment that path exists.
+
+**No English is parsed.** The item was explicit that "a check that tries to
+interpret prose will produce false failures, and a validation nobody trusts gets
+bypassed — which is worse than not having it." So prose stays prose; only the
+marker is load-bearing.
+
+The consequence is stated plainly rather than hidden: an absence claim written
+without a marker is **not checked**. That is the same coverage as before this
+existed, never worse, and it makes the check something a reader can rely on
+completely within its stated scope — which a fuzzy prose matcher could not be.
+
+This closes the inverse of a check that already existed: validation fails when a
+document *references* a missing file, and was blind to a document *denying* a
+file that is present. BUG-0023 was that failure — the testing-architecture
+context stated two e2e suites did not exist while both did.
+
+## Verification
+
+`npm run validate:framework` — 716 checks passing.
+
+Verified to fail: adding
+`<!-- absent: services/api/test/permission-propagation.e2e-spec.ts -->` to the
+testing-architecture context fails *No document claims a file is absent while it
+exists*, naming both the document and the path.

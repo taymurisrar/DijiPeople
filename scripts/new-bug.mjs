@@ -113,6 +113,10 @@ if (existsSync(path)) {
 const frontmatter = [
   '---',
   `ID: ${id}`,
+  // See the note in new-backlog-item.mjs — Obsidian resolves the bare-id
+  // wikilink form only through this line (ITEM-0029). Existing bug records
+  // carry it because it was added by hand; emitting it removes that step.
+  `aliases: [${id}]`,
   `Title: ${title}`,
   `Status: ${status}`,
   `Severity: ${severity}`,

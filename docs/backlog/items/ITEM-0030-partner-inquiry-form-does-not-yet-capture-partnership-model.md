@@ -1,5 +1,6 @@
 ---
 ID: ITEM-0030
+aliases: [ITEM-0030]
 Title: Partner inquiry form does not yet capture partnership model
 Type: FOLLOW_UP
 Status: DONE

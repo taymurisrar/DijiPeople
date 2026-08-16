@@ -334,7 +334,24 @@ function buildWorkspaceUrl(slug, options = {}) {
     : buildWorkspaceHostname(slug, env);
 
   if (!hostname) {
-    const origin = options.developmentOrigin ?? "http://localhost:3001";
+    /*
+     * ITEM-0017 — the last hardcoded loopback left in shipped source.
+     *
+     * This branch is the development path: with no wildcard DNS there is no
+     * workspace hostname, so the tenant app is addressed by slug on the local
+     * web origin. The literal `http://localhost:3001` made it a *silent*
+     * fallback in production too — a deployment reaching here with no tenant
+     * base domain configured would hand a customer a loopback link instead of
+     * failing, which is exactly the defect class of BUG-0026.
+     *
+     * `getAppOrigin("web")` returns the same answer in development and throws
+     * in production when the web URL is unconfigured, so this now fails closed.
+     * Required lazily because `index.js` requires this module at load time;
+     * requiring it back at the top would be a cycle, and by the time anything
+     * calls this both modules are loaded.
+     */
+    const origin =
+      options.developmentOrigin ?? require("./index").getAppOrigin("web", env);
     const url = new URL(path.startsWith("/") ? path : `/${path}`, origin);
     if (slug) url.searchParams.set("workspace", String(slug).toLowerCase());
     return url.toString();
