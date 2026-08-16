@@ -3,7 +3,7 @@ ID: ITEM-0021
 aliases: [ITEM-0021]
 Title: Mechanical guard against country and currency literals in frontends
 Type: TEST_GAP
-Status: READY
+Status: DONE
 Priority: P2
 Severity: LOW
 AffectedModules: [scripts, apps/landing, apps/web, apps/admin]
@@ -11,7 +11,7 @@ Source: ARCHITECT
 OwnerAgent: architect
 ArchitectDisposition: DEFER
 CreatedAt: 2026-08-16
-UpdatedAt: 2026-08-16
+UpdatedAt: 2026-08-17
 RelatedBug: BUG-0028
 RelatedQA: 
 RelatedADR: 
@@ -73,3 +73,38 @@ None.
 ## History
 
 - 2026-08-16 — created during Wave 1 after deleting the hardcoded mapping.
+
+## Resolution
+
+Implemented as `scripts/check-no-commercial-literals.mjs`, a required CI step.
+
+BUG-0028 was a country-to-currency table compiled into the landing bundle — a
+visitor in the UAE quoted in AED because an array in a React component said so,
+while the authoritative answer lived in `Market`. The table is gone and a
+comment says not to bring it back, but as this item put it: a comment is not a
+gate.
+
+What makes this checkable at all is that **the frontend has no legitimate reason
+to decide a currency**. It renders what the API resolved from market
+configuration. So a currency code sitting next to a country code in shipped
+frontend source is the defect on its own, with no interpretation required — which
+is what keeps the check from being the untrustworthy prose-matcher ITEM-0011
+warns about.
+
+Two patterns are matched: a map literal keyed by country code with a currency
+value, and a country comparison on a line that also names a currency. Comment
+lines are stripped, so the comment warning against the practice does not trip it.
+
+**The allowlist is empty**, and that is a finding rather than an oversight. It was
+drafted with two test files exempted; the check reported them as *stale entries*,
+because the patterns are precise enough that neither actually matches. An
+exemption nothing needs is removed rather than kept for comfort.
+
+## Verification
+
+`npm run check:no-commercial-literals` — 1441 files scanned, 0 offenders,
+0 allowlisted.
+
+Verified to fail: a probe file containing
+`const table = { AE: "AED", SA: "SAR", US: "USD" }` and
+`if (country === "AE") return "AED"` is reported by file and line, exit 1.

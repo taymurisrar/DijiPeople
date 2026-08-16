@@ -2588,7 +2588,11 @@ model CustomerAccount {
   @@index([assignedToUserId])
   @@index([accountManagerUserId])
   @@index([primaryOwnerUserId])
-  @@index([leadId])
+  // ITEM-0005 — one lead becomes at most one customer, enforced by the
+  // database rather than by a pre-check that runs outside the transaction.
+  // Nullable, and PostgreSQL treats NULLs as distinct, so any number of
+  // customers created without a lead remain legal.
+  @@unique([leadId])
   @@index([originatingPartnerId])
   @@index([originatingReferralLinkId])
   @@index([selectedPlanId])
