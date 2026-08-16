@@ -45,7 +45,7 @@ A tenant with at least one runtime-declared module and a custom entity.
 
 ## Test Types
 
-`UNIT` covers the registries and resolvers. `BROWSER_E2E` is where this area most needs coverage and has none.
+`UNIT` covers the registries and resolvers. `BROWSER_E2E` is where this area most needs coverage, is now runnable, and still has none.
 
 ## Data Requirements
 

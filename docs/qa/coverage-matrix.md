@@ -12,9 +12,9 @@ only scenarios that cannot run here, fails `node scripts/rebuild-qa.mjs`.
 **part of that task's scope** — or, when that is too large, a `TEST_GAP` backlog
 item. See [`README.md`](README.md).
 
-**Areas: 12** · scenarios: 56 · automated: 44 · blocked by infrastructure: 10
+**Areas: 12** · scenarios: 58 · automated: 46 · blocked by infrastructure: 9
 
-**Open gaps: 56** · partial: 16
+**Open gaps: 54** · partial: 18
 
 | Area | UNIT | API | DATABASE | INTEGRATION | E2E | BROWSER | SECURITY | PERFORMANCE |
 |---|---|---|---|---|---|---|---|---|
@@ -22,10 +22,10 @@ item. See [`README.md`](README.md).
 | [attendance](../../docs/qa/test-plans/PLAN-009-attendance.md) | GOOD | **GAP** | **GAP** | PARTIAL | PARTIAL | **GAP** | **GAP** | **GAP** |
 | [authentication](../../docs/qa/test-plans/PLAN-001-authentication.md) | GOOD | PARTIAL | **GAP** | **GAP** | **GAP** | **GAP** | PARTIAL | n/a |
 | [authorization](../../docs/qa/test-plans/PLAN-002-authorization.md) | GOOD | **GAP** | **GAP** | **GAP** | PARTIAL | **GAP** | GOOD | n/a |
-| [commercial-onboarding](../../docs/qa/test-plans/PLAN-004-commercial-onboarding.md) | **GAP** | PARTIAL | **GAP** | **GAP** | PARTIAL | **GAP** | **GAP** | n/a |
+| [commercial-onboarding](../../docs/qa/test-plans/PLAN-004-commercial-onboarding.md) | **GAP** | PARTIAL | **GAP** | **GAP** | PARTIAL | PARTIAL | **GAP** | n/a |
 | [deployment-release](../../docs/qa/test-plans/PLAN-012-deployment-release.md) | GOOD | **GAP** | PARTIAL | **GAP** | **GAP** | **GAP** | **GAP** | n/a |
 | [lead-management](../../docs/qa/test-plans/PLAN-005-lead-management.md) | GOOD | GOOD | **GAP** | **GAP** | **GAP** | **GAP** | GOOD | n/a |
-| [partner-lifecycle](../../docs/qa/test-plans/PLAN-006-partner-lifecycle.md) | **GAP** | GOOD | **GAP** | **GAP** | **GAP** | **GAP** | **GAP** | n/a |
+| [partner-lifecycle](../../docs/qa/test-plans/PLAN-006-partner-lifecycle.md) | **GAP** | GOOD | **GAP** | **GAP** | **GAP** | PARTIAL | **GAP** | n/a |
 | [payroll](../../docs/qa/test-plans/PLAN-010-payroll.md) | GOOD | **GAP** | **GAP** | **GAP** | **GAP** | **GAP** | PARTIAL | **GAP** |
 | [runtime-modules](../../docs/qa/test-plans/PLAN-011-runtime-modules.md) | GOOD | **GAP** | **GAP** | **GAP** | **GAP** | **GAP** | PARTIAL | n/a |
 | [tenant-isolation](../../docs/qa/test-plans/PLAN-003-tenant-isolation.md) | PARTIAL | **GAP** | PARTIAL | **GAP** | PARTIAL | **GAP** | PARTIAL | n/a |

@@ -53,8 +53,9 @@ session-revocation path needs one.
 ## Test Types
 
 `UNIT` and `API` run today. `E2E` needs a live PostgreSQL and is therefore
-`BLOCKED_INFRASTRUCTURE` in this checkout. `BROWSER_E2E` has no tooling in this
-repository at all — no Playwright, Cypress or Puppeteer in any workspace.
+`BLOCKED_INFRASTRUCTURE` in this checkout. `BROWSER_E2E` is runnable —
+Playwright is installed in the `e2e` workspace — but no authentication journey
+spec exists yet.
 
 ## Data Requirements
 
@@ -83,8 +84,14 @@ its own contract cases live in `agent-desktop`.
 
 ## Browser Cases
 
-Sign-in, expired-session recovery and sign-out would be the three browser cases.
-**None can run here.** Recorded as a Known Limitation, never as a pass.
+Sign-in, expired-session recovery and sign-out are the three browser cases, and
+they are now runnable: Playwright is **installed**, in the `e2e` workspace — `@playwright/test` with
+two journey specs, run in CI as `browser-e2e-report` (report-only, not a gate).
+`npm run test:browser`, and `npm run test:browser:install` first.
+
+None of the three is covered by the two existing journey specs, so the dimension
+stays `GAP` — the tooling is present and the tests are not, which is a
+different and more actionable statement than "no tooling".
 
 ## Regression Links
 

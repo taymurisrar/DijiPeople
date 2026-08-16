@@ -236,6 +236,16 @@ jobs:
         # wrong, and nothing comparing pairs. A link is always a GET
         # (ITEM-0012).
         run: npm run check:route-method-callers
+      - name: Proxies forward refusals
+        # BUG-0039 — two proxies converted a 403 into a 200 carrying a
+        # different employee's payslips and bank accounts. A proxy makes no
+        # authorization decisions.
+        run: npm run check:proxies-forward-refusals
+      - name: Security response headers
+        # BUG-0040 — all three Next apps shipped none. Pins that the CSP stays
+        # report-only until observed, and that frame protection is not deferred
+        # with it.
+        run: npm run test:security-headers
 
   database-migration:
     name: Database migration gate

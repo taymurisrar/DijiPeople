@@ -6,12 +6,12 @@ AREA: runtime-modules
 MODULE: apps/web/lib/runtime
 TYPE: BROWSER_E2E
 RISK: HIGH
-AUTOMATION_STATUS: BLOCKED_INFRASTRUCTURE
+AUTOMATION_STATUS: MANUAL
 TEST_REFERENCE: 
 RELATED_BUGS: []
 RELATED_REGRESSIONS: [REG-028]
 LAST_RUN: 
-LAST_RESULT: BLOCKED
+LAST_RESULT: NOT_RUN
 CREATED_AT: 2026-08-16
 UPDATED_AT: 2026-08-16
 ---
@@ -20,7 +20,7 @@ UPDATED_AT: 2026-08-16
 
 ## Preconditions
 
-Browser automation, which does not exist in this repository.
+Playwright, installed in the `e2e` workspace, and a running web app.
 
 ## Steps
 
@@ -34,8 +34,9 @@ Every declared module renders, and each state renders rather than throwing.
 
 ## Notes
 
-**No browser tooling exists in any workspace** — no Playwright, Cypress or
-Puppeteer — and web/admin jest run in a node environment with no jsdom, so
-component rendering is not testable either. This scenario is recorded so the
-gap is visible and so it becomes runnable the day tooling lands.
-`scripts/admin-runtime-smoke.mjs` is the nearest available substitute.
+Playwright **is** installed — `e2e/`, run in CI as `browser-e2e-report`
+(report-only). No spec covers a runtime module yet, so this is a manual check
+rather than a blocked one: the blocker is an unwritten test, not missing
+tooling. Web and admin jest still run in a node environment with no jsdom, so
+component rendering remains untestable there.
+`scripts/admin-runtime-smoke.mjs` is the nearest automated substitute.

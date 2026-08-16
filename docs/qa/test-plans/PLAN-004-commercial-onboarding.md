@@ -11,7 +11,7 @@ COVERAGE_API: PARTIAL
 COVERAGE_DATABASE: GAP
 COVERAGE_INTEGRATION: GAP
 COVERAGE_E2E: PARTIAL
-COVERAGE_BROWSER: GAP
+COVERAGE_BROWSER: PARTIAL
 COVERAGE_SECURITY: GAP
 COVERAGE_PERFORMANCE: NOT_APPLICABLE
 RELATED_BUGS: [BUG-0011, BUG-0012, BUG-0024]
@@ -42,7 +42,7 @@ A lead in a convertible state, a plan with current pricing, and the seeded platf
 
 ## Test Types
 
-`API` runs today. `E2E` bootstrap needs a live database.
+`API` runs today. `E2E` bootstrap needs a live database. `BROWSER_E2E` runs — `flow-a-commercial-onboarding.spec.ts`.
 
 ## Data Requirements
 
@@ -66,7 +66,14 @@ Stripe is reached during bootstrap; failures there must leave a retryable state 
 
 ## Browser Cases
 
-The admin conversion screens would be the browser case. No tooling exists.
+`e2e/tests/flow-a-commercial-onboarding.spec.ts` walks this journey in a real
+browser. Playwright is **installed**, in the `e2e` workspace — `@playwright/test` with
+two journey specs, run in CI as `browser-e2e-report` (report-only, not a gate).
+`npm run test:browser`, and `npm run test:browser:install` first.
+
+It covers the happy path only; the negative cases in this plan — converting a
+lead twice, editing a signed agreement through the UI — are not yet scripted,
+which is why the dimension is `PARTIAL` rather than `GOOD`.
 
 ## Regression Links
 

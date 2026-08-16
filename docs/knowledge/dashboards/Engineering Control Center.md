@@ -8,16 +8,16 @@
 | | |
 |---|---|
 | Active sessions | **1** |
-| Active parent tasks | 2 |
-| Active work packages | 5 |
+| Active parent tasks | 1 |
+| Active work packages | 1 |
 | Blocked work packages | 0 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **3** |
-| Open HIGH | 9 |
+| Open HIGH | 8 |
 | Awaiting Architect triage | 0 |
-| Owner decisions pending | 0 |
-| QA coverage gaps | 56 |
-| Scenarios blocked by infrastructure | 10 |
+| Owner decisions pending | 1 |
+| QA coverage gaps | 54 |
+| Scenarios blocked by infrastructure | 9 |
 
 ## Active Sessions
 
@@ -29,7 +29,6 @@
 
 | Task | Title | Type | Size | Progress | Current | Ready next | Blocked |
 |---|---|---|---|---|---|---|---|
-| [[TASK-0003-deep-documentation-of-apps-web-the-tenant-product|TASK-0003]] | Deep documentation of apps/web, the tenant product | KNOWLEDGE | LARGE | 1/9 | WP-02 | WP-06 | — |
 | [[TASK-0004-autonomous-framework-v2-architect-only-orchestration-multi-s|TASK-0004]] | Autonomous framework v2 — Architect-only orchestration, multi-session safety, develop integration, persistent QA | FRAMEWORK | PROGRAM | 2/11 | WP-03 | WP-04, WP-05, WP-07 | — |
 
 ## Branch model
@@ -77,7 +76,10 @@ what they own, and what the backlog and QA systems currently say.
 
 ## Owner Decisions Pending
 
-_None outstanding._
+Questions where the engineering is understood and the **product answer is**
+**not**. No agent may resolve one by implementing a side of it.
+
+- [[ITEM-0041-repository-ruleset-no-push-matches-no-branch-and-is-inert|ITEM-0041]] — **Repository ruleset No push matches no branch and is inert**
 
 ## QA Coverage Gaps
 
@@ -100,7 +102,6 @@ gap into scope — or files a `TEST_GAP` item and says so.
 | [[PLAN-004-commercial-onboarding|commercial-onboarding]] | UNIT |
 | [[PLAN-004-commercial-onboarding|commercial-onboarding]] | DATABASE |
 | [[PLAN-004-commercial-onboarding|commercial-onboarding]] | INTEGRATION |
-| [[PLAN-004-commercial-onboarding|commercial-onboarding]] | BROWSER |
 | [[PLAN-004-commercial-onboarding|commercial-onboarding]] | SECURITY |
 | [[PLAN-005-lead-management|lead-management]] | DATABASE |
 | [[PLAN-005-lead-management|lead-management]] | INTEGRATION |
@@ -110,7 +111,6 @@ gap into scope — or files a `TEST_GAP` item and says so.
 | [[PLAN-006-partner-lifecycle|partner-lifecycle]] | DATABASE |
 | [[PLAN-006-partner-lifecycle|partner-lifecycle]] | INTEGRATION |
 | [[PLAN-006-partner-lifecycle|partner-lifecycle]] | E2E |
-| [[PLAN-006-partner-lifecycle|partner-lifecycle]] | BROWSER |
 | [[PLAN-006-partner-lifecycle|partner-lifecycle]] | SECURITY |
 | [[PLAN-007-tenant-provisioning|tenant-provisioning]] | API |
 | [[PLAN-007-tenant-provisioning|tenant-provisioning]] | DATABASE |
@@ -147,10 +147,10 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 34 |
+| Open total | 35 |
 | Blocked | 0 |
 | Deferred | 2 |
-| Awaiting a product decision | 0 |
+| Awaiting a product decision | 1 |
 | Awaiting Architect triage | 0 |
 
 Every ordinary record carries a disposition.

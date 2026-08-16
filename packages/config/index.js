@@ -454,6 +454,12 @@ const {
 } = require("./platform-domains");
 
 const {
+  securityHeadersForApp,
+  baselineSecurityHeaders,
+  contentSecurityPolicy,
+} = require("./security-headers");
+
+const {
   FORWARDED_FOR_HEADER,
   readForwardedForClientIp,
   buildForwardedClientHeaders,
@@ -467,6 +473,9 @@ module.exports = {
   FORWARDED_FOR_HEADER,
   readForwardedForClientIp,
   buildForwardedClientHeaders,
+  securityHeadersForApp,
+  baselineSecurityHeaders,
+  contentSecurityPolicy,
   getAppPort,
   getAppOrigin,
   resolveAppUrls,

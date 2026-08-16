@@ -144,7 +144,7 @@ conflating them is how "tested" comes to mean less than it sounds:
 | `UNIT` | A function or service behaves in isolation | Available — jest |
 | `INTEGRATION` | Modules work together against real infrastructure | Needs a database — see [`../context/testing-architecture.md`](../context/testing-architecture.md) |
 | `API` | The HTTP contract behaves, authorization included | supertest; the 9 e2e suites need a live DB |
-| `BROWSER_E2E` | A real user flow works in a real browser | **Not available** — no browser tooling installed |
+| `BROWSER_E2E` | A real user flow works in a real browser | **Installed** — Playwright in the `e2e` workspace; `browser-e2e-report` in CI is **report-only, not a gate** |
 | `MANUAL_VISUAL` | A human looked at it | Always available; always say when it is all you did |
 | `DEPLOYMENT_SMOKE` | The deployed system responds | [`../../docs/deployment/smoke-tests.md`](../../docs/deployment/smoke-tests.md) |
 
@@ -271,16 +271,32 @@ Verdict is one of:
   environment)
 - **FAIL** — a scenario failed, or coverage was not achievable
 
-## 3a. Browser QA, when it becomes available
+## 3a. Browser QA
 
-**Status: no browser automation exists in this repository** — no Playwright, no
-Cypress, no Puppeteer, in any workspace. Web and admin jest run in a node
-environment with no jsdom, so component rendering is not testable either. For UI
-work today, `BROWSER_E2E` is `BLOCKED_INFRASTRUCTURE`, and that goes in Known
-Limitations.
+**Status: Playwright is installed**, in the `e2e` workspace, with two journey
+specs — `flow-a-commercial-onboarding` and `flow-b-partner-journey`. It runs in
+CI as `browser-e2e-report`, which is **report-only and not a gate**.
 
-When browser automation is introduced, prefer it for UI tasks, covering — where
-applicable:
+```bash
+npm run test:browser:install   # once, downloads chromium
+npm run test:browser
+```
+
+> This section previously read "no browser automation exists in this repository
+> — no Playwright, no Cypress, no Puppeteer, in any workspace". That became false
+> while it was still being read as current, which is the `doc-code-drift` shape.
+> Re-derive the tooling state from `e2e/package.json` before repeating any claim
+> about what cannot be tested.
+
+Web and admin jest still run in a node environment with **no jsdom**, so
+component rendering is not testable there — extract the logic and test that.
+
+`BROWSER_E2E` is therefore no longer `BLOCKED_INFRASTRUCTURE` by default. When a
+UI scenario has no spec, the honest status is `MANUAL`: the blocker is an
+unwritten test, not absent tooling, and those are different pieces of
+information for whoever reads the coverage matrix.
+
+Prefer browser coverage for UI tasks, covering — where applicable:
 
 route loading · authentication · role-based UI · navigation · tabs · forms ·
 field types · required and read-only · lookups · option sets · validation ·

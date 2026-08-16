@@ -6,10 +6,17 @@ export async function GET(
   { params }: { params: Promise<{ employeeId: string }> },
 ) {
   const { employeeId } = await params;
-  let response = await apiRequest(`/employees/${employeeId}/bank-accounts`);
-  if (response.status === 403) {
-    response = await apiRequest("/me/bank-accounts");
-  }
+
+  /*
+   * BUG-0039. Identical to the payslips proxy: a 403 was converted into a 200
+   * carrying the caller's *own* bank accounts under a URL naming a different
+   * employee. Bank details are among the most sensitive fields in the product,
+   * and the substitution was silent.
+   *
+   * The 403 is forwarded. See `apps/web/AGENTS.md` — a proxy makes no
+   * authorization decisions.
+   */
+  const response = await apiRequest(`/employees/${employeeId}/bank-accounts`);
   const data = await response.json().catch(() => null);
   if (!response.ok || !data || typeof data !== "object") {
     return NextResponse.json(data ?? { message: response.statusText }, {

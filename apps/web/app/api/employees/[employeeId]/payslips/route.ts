@@ -17,12 +17,23 @@ export async function GET(
   { params }: { params: Promise<{ employeeId: string }> },
 ) {
   const { employeeId } = await params;
-  let response = await apiRequest(
+
+  /*
+   * BUG-0039. This used to re-request `/me/payslips` when the API answered 403
+   * and return it as 200 — so a refusal became a success containing a *different
+   * employee's* payslips, under a URL naming the employee that was asked for.
+   * The caller could not tell, and nothing logged the substitution.
+   *
+   * `apps/web/AGENTS.md` states the rule this broke twice over: "No
+   * authorization decisions. Never decide 'this user may do X' here… A proxy
+   * that filters or permits is a second source of truth and a security hole."
+   *
+   * The 403 is forwarded. A screen that wants the caller's own payslips asks
+   * for `/me/payslips` explicitly.
+   */
+  const response = await apiRequest(
     `/payslips?employeeId=${encodeURIComponent(employeeId)}`,
   );
-  if (response.status === 403) {
-    response = await apiRequest("/me/payslips");
-  }
   const data = await response.json().catch(() => null);
   if (!response.ok) {
     return NextResponse.json(data ?? { message: response.statusText }, {

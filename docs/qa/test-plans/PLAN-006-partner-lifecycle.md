@@ -11,7 +11,7 @@ COVERAGE_API: GOOD
 COVERAGE_DATABASE: GAP
 COVERAGE_INTEGRATION: GAP
 COVERAGE_E2E: GAP
-COVERAGE_BROWSER: GAP
+COVERAGE_BROWSER: PARTIAL
 COVERAGE_SECURITY: GAP
 COVERAGE_PERFORMANCE: NOT_APPLICABLE
 RELATED_BUGS: [BUG-0016, BUG-0019, BUG-0025]
@@ -43,7 +43,7 @@ A partner enquiry in each review state, and one activated partner.
 
 ## Test Types
 
-`API` runs today and covers the state machine and its guards.
+`API` runs today and covers the state machine and its guards. `BROWSER_E2E` runs — `flow-b-partner-journey.spec.ts`.
 
 ## Data Requirements
 
