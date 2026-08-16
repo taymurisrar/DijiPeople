@@ -137,7 +137,7 @@ describe('every public write handler is rate limited', () => {
   it.each(publicWriteControllers.map((c) => [c.name, c]))(
     '%s rate limits every public write',
     (_name, controller) => {
-      const { name, source } = controller as (typeof publicWriteControllers)[0];
+      const { name, source } = controller;
 
       if (ALLOWLIST.has(name)) {
         // Named exemption. The reason is the assertion — an entry with an empty

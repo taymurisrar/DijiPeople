@@ -168,15 +168,56 @@ None blocking. Shares a plan with the retry/backoff gap recorded in
 
 ## Resolution
 
-Not resolved. Found by an audit; no product code changed by that task.
+**Not resolved. Still OPEN, and deliberately not half-fixed.**
+
+Investigated while closing
+[[BUG-0035-desktop-agent-logout-never-revokes-the-refresh-token]]. Two tempting
+partial fixes were considered and rejected, and one adjacent defect was fixed.
+
+**Rejected — wrap the batch in a transaction.** This closes the reproduction as
+written (a mid-batch failure would commit nothing, so the replay is the first
+successful write) but it is not the fix and it introduces a worse problem. The
+agent sends up to 1000 events per batch and the server writes several rows per
+event; one interactive transaction over that easily exceeds Prisma's default 5 s
+timeout, so large-backlog recovery — the exact case the offline queue exists for
+— would begin failing permanently. That trades a data-integrity defect for an
+availability one.
+
+It also would not close the real gap. A batch that **succeeds** but whose HTTP
+response is lost gets replayed too, and a transaction does nothing about that.
+The record is right that the fix is a dedupe key, not atomicity.
+
+**Rejected — check-then-create without a constraint.** Reading for an existing
+`ActivityEvent` on `(tenantId, sessionId, occurredAt)` before inserting is
+racy, and is precisely the check/constraint divergence recorded as a bug pattern
+in [[BUG-0030-plan-list-get-mutates-commercial-pricing-and-can-fail-on-pla]]. Reintroducing a known
+pattern is a repeat, not a fix.
+
+**The correct fix** is a unique index on
+`ActivityEvent (tenantId, sessionId, occurredAt)` — one sample per session per
+instant, which is what the agent's interval sampler produces — with the insert
+tolerating the duplicate and skipping the counter increments. Under
+[PLANS.md](../../PLANS.md) that is a change to a unique constraint and needs an ExecPlan,
+because existing production rows almost certainly already contain the duplicates
+this bug has been creating: the index cannot be created until they are
+identified and reconciled, and `WorkSession.totalActiveSeconds` and
+`DailyProductivitySummary` are already inflated by them. A backfill that
+recomputes those totals from the deduplicated event rows is part of the work, not
+a follow-up to it.
+
+**Fixed in passing:** `HeartbeatDto.events` had no server-side size bound. The
+agent caps a batch at 1000 but that cap lived only in the client, so any holder
+of a valid agent token could post an arbitrarily large batch.
+`@ArrayMaxSize(1000)` now matches the client's own cap. This is unbounded-input
+hardening, independent of the idempotency defect, and does **not** close this
+record.
 
 ## QA Retest
 
-Not applicable — not yet fixed. Verified by reading the batch loop, the create
-call, the increment updates, the `ActivityEvent` model and the client requeue
-path at `78072d2`. **The duplication was not executed against a live database** —
-it follows from an unconditional `create` on a table with no unique constraint,
-combined with a full-batch requeue.
+Not applicable — not fixed. The rejected approaches above were evaluated by
+reading `AgentService.heartbeat`, `saveHeartbeatEvent` and
+`upsertDailySummary`, and by confirming the client's batch cap of 1000 in
+`apps/agent-desktop/src/main/api-client.ts`.
 
 ## History
 
@@ -185,3 +226,7 @@ combined with a full-batch requeue.
 - 2026-08-16 — Architect triage: `PLAN_REQUIRED`. Client contract, schema
   migration and aggregate semantics must change together; doing any one alone
   leaves the totals wrong.
+- 2026-08-16 — investigated during the open-bug closure wave. Left OPEN: the
+  fix needs a unique index plus a backfill of already-inflated totals, which
+  requires an ExecPlan. Two partial fixes were rejected with reasons rather
+  than applied. An unbounded heartbeat batch found alongside it was fixed.

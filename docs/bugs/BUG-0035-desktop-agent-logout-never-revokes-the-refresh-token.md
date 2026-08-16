@@ -2,7 +2,7 @@
 ID: BUG-0035
 aliases: [BUG-0035]
 Title: Desktop agent logout never revokes the refresh token
-Status: OPEN
+Status: FIXED
 Severity: HIGH
 Priority: P1
 Type: SECURITY
@@ -19,7 +19,7 @@ RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-16
 UpdatedAt: 2026-08-16
-ResolvedAt:
+ResolvedAt: 2026-08-16
 ---
 
 # BUG-0035 — Desktop agent logout never revokes the refresh token
@@ -139,14 +139,56 @@ None.
 
 ## Resolution
 
-Not resolved. Found by an audit; no product code changed by that task.
+Fixed on the server side, and the drift is now pinned by a contract test.
+
+`AgentLogoutDto` declares the optional `deviceFingerprint` the desktop agent
+has always sent. **The server is the side that changed, deliberately**: deployed
+agents already send the field, so tightening the client instead would leave every
+installed copy unable to sign out until it updated — and
+[[BUG-0034-desktop-agent-auto-update-points-at-an-endpoint-that-does-no]] records
+that the agent's update feed does not exist, so many never would.
+
+The field is optional rather than required, because the device is read from the
+refresh token payload and revocation does not depend on it. Sign-out must not
+fail over a field it does not need.
+
+The handler itself was already correct once reached — it verifies the token and
+revokes by user, device and token — so nothing changed there. The bug was
+entirely that the request never arrived.
+
+**The durable fix is the contract test.** The two sides drifted because they are
+validated in different workspaces and no test crossed the boundary.
+`agent-client-contract.spec.ts` validates the real payloads that
+`apps/agent-desktop/src/main/api-client.ts` sends against the DTOs that receive
+them, through a `ValidationPipe` built with the same options as `main.ts` —
+so a field the production pipe would reject is rejected there too. A further
+assertion reads the agent's own source and fails if it sends a body field no
+payload in the test covers, so the test cannot quietly describe a client that no
+longer exists.
+
+While covering the same client, `HeartbeatDto.events` was found to have **no
+server-side size bound at all**. The agent caps a batch at 1000
+(`MAX_HEARTBEAT_BATCH_SIZE`) but that cap lived only in the client, so any
+holder of a valid agent token could post an arbitrarily large batch and hold a
+connection open while the server processed it one event at a time.
+`@ArrayMaxSize(1000)` now matches the client's cap: a legitimate agent is never
+refused, and the limit stops being a courtesy.
 
 ## QA Retest
 
-Not applicable — not yet fixed. Verified by reading the client payload, the DTO
-and the global pipe configuration at `78072d2`. **The 400 was not observed
-against a running API**; it follows from `forbidNonWhitelisted: true` and an
-undeclared field, which is the documented behaviour of this codebase.
+`npm --workspace api run test -- --testPathPatterns "agent-client-contract"`
+— 10 assertions covering login, refresh, refresh-with-new-session, logout, device
+registration, session start, and the heartbeat batch bound in both directions.
+
+Verified to fail against the defect it pins:
+
+- removing `deviceFingerprint` from the DTO fails
+  *POST /agent/auth/logout accepts what the desktop agent sends*;
+- removing `@ArrayMaxSize(1000)` fails
+  *refuses a batch larger than any agent sends*.
+
+Full API suite as CI runs it: **157 suites, 1122 tests, all passing.** ESLint
+clean across every file touched.
 
 ## History
 
@@ -155,3 +197,6 @@ undeclared field, which is the documented behaviour of this codebase.
 - 2026-08-16 — Architect triage: `FIX_NOW`. Small, bounded, and it restores a
   revocation control that everyone reasonably assumes already works — which is
   what makes it worse than its size suggests.
+- 2026-08-16 — fixed by declaring the field the client already sends, and
+  pinned with a cross-workspace contract test so the two sides cannot drift
+  again. An unbounded heartbeat batch was found and bounded in the same pass.
