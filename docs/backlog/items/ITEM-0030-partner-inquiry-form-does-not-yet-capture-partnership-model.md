@@ -1,5 +1,5 @@
 ---
-ID: ITEM-0026
+ID: ITEM-0030
 Title: Partner inquiry form does not yet capture partnership model
 Type: FOLLOW_UP
 Status: READY
@@ -19,7 +19,7 @@ TargetMilestone:
 BlockedBy: 
 ---
 
-# ITEM-0026 — Partner inquiry form does not yet capture partnership model
+# ITEM-0030 — Partner inquiry form does not yet capture partnership model
 
 ## Summary
 

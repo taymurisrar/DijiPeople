@@ -62,7 +62,19 @@ dashboard, inbox, reports.
 What makes one codebase serve many tenants without forking. → [[settings]],
 [[runtime-module-system]], [[platform-admin]]
 
+## The applications these areas are delivered through
+
+Product areas are not applications. The five applications, what each is for and
+where they stop, are mapped in [[monorepo-application-map]]:
+
+- [[landing-website]] — the public acquisition surface. Area 6, Commercial.
+- [[desktop-agent]] — workstation utilisation telemetry. **Not** attendance;
+  it writes to `WorkSession` / `ActivityEvent` and touches area 2 only by
+  association. See [[desktop-api-gateway-relationship]].
+- [[docs-application]] — a stock starter, no product identity, no area.
+- `apps/web` → [[tenant-application]]; `apps/admin` → [[platform-admin]].
+
 ## Related
 
 [[dijipeople-platform-overview]] · [[employee-hr-platform]] ·
-[[system-architecture]]
+[[system-architecture]] · [[monorepo-application-map]]

@@ -67,15 +67,35 @@ goes through the API's public surface.
 
 ## Testing
 
-There is **no jest configuration in this app**. Validation is:
+This app **has** a jest configuration — `jest.config.js`, modelled on
+`apps/web/jest.config.js`, with jest and ts-jest hoisted at the repository root
+so nothing is added to this workspace's dependencies.
 
 ```bash
+npm --workspace landing run test          # jest --config jest.config.js
 npm --workspace landing run check-types   # next typegen && tsc --noEmit
 npm --workspace landing run lint
 npm --workspace landing run build
 ```
 
-If you add pure logic worth testing (a plan-shaping function, a form
-normaliser), put it in `lib/`, and add a jest config modelled on
-`apps/web/jest.config.js` as part of that change rather than leaving it
-untested.
+> This section previously read "There is **no jest configuration in this app**"
+> and told agents to create one. It was true when written and became false at
+> `6c38b94`; three other documents repeated it. Because this file takes
+> precedence in its own directory, an agent adding testable logic here was being
+> instructed to build a config that already existed — the `doc-code-drift`
+> pattern, in the file most likely to be trusted. Corrected 2026-08-16 at
+> `78072d2`.
+
+`testMatch` is `**/*.spec.ts` — **`.ts` only**, in a `node` environment with no
+jsdom. Component rendering cannot be tested here; extract the logic and test
+that. Current specs are `lib/plan-presentation.spec.ts` and
+`lib/subscribe-selection.spec.ts`.
+
+CI runs four required jobs over this app — `lint`, `test-landing`, `typecheck`
+and `build` — plus the cross-app URL rules in `test-runtime`. Browser coverage
+exists in the `e2e/` workspace and starts on landing, but that job is
+**report-only and does not gate**.
+
+**Untested at every level today:** the `/contact` form, all four
+`app/api/**/route.ts` proxies, and the `/subscribe`, `/sign/[token]` and partner
+token journeys.

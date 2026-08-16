@@ -6,7 +6,7 @@
 | **Base SHA** | `1695167` |
 | **Branch** | `agent/lead-partner-acquisition-wave3` |
 | **Scope** | Public contact form, public lead intake API, Lead schema, acquisition attribution, consent separation, PartnerInquiry schema |
-| **Records** | BUG-0021 (closed), ITEM-0026 |
+| **Records** | BUG-0021 (closed), ITEM-0030 |
 | **Result** | PASS — Lead path complete; partner form deferred with a record |
 
 ---
@@ -40,10 +40,10 @@ and marketing consent.
 | Website field | DTO | DB column | Status |
 |---|---|---|---|
 | Partner type | `type` | `PartnerInquiry.type` (`INDIVIDUAL`/`COMPANY`) | Working — but this is the **entity type** |
-| — | — | `PartnerInquiry.partnershipModel` | **Column added, form not yet wired — ITEM-0026** |
+| — | — | `PartnerInquiry.partnershipModel` | **Column added, form not yet wired — ITEM-0030** |
 | Company, names, email, phone, country, website, message | existing | existing | Working |
 | Notice acknowledgement | `consentAcceptedAt` | existing, required | Working |
-| — | — | `privacyNoticeVersion`, `marketingConsent*`, `sourcePage`, `utm*` | **Columns added, form not yet wired — ITEM-0026** |
+| — | — | `privacyNoticeVersion`, `marketingConsent*`, `sourcePage`, `utm*` | **Columns added, form not yet wired — ITEM-0030** |
 
 Existing and **not rebuilt**: `submissionHash` (unique) already gave partner
 intake idempotency, `referenceNumber`, `originalSubmission`, and a
@@ -104,7 +104,7 @@ Root cause was schema-driven: three columns were `NOT NULL` that the form never
 asked about. Fixed by making them nullable rather than by inventing better
 defaults.
 
-### F2 — Partner form not yet wired to the new columns — **DEFERRED (ITEM-0026)**
+### F2 — Partner form not yet wired to the new columns — **DEFERRED (ITEM-0030)**
 
 `PartnershipModel`, marketing consent, notice version and attribution columns
 landed on `PartnerInquiry`, and the option list is exported and tested. The form
@@ -124,7 +124,7 @@ existing column is in use.
 | Finding | Disposition | Record |
 |---|---|---|
 | F1 — BUG-0021 | `FIXED` | BUG-0021, REG-021 |
-| F2 — partner form | `DEFERRED` | ITEM-0026 |
+| F2 — partner form | `DEFERRED` | ITEM-0030 |
 | F3 — partner typing | `FIXED` (schema) | This run |
 
 ## Not observed
@@ -137,7 +137,7 @@ existing column is in use.
   group, `role="alert"` + `aria-live` on errors, `role="status"` on success and
   `aria-busy` while sending, but that is structure rather than a rendered check.
 - `ADMIN_DISPLAY = NOT_OBSERVED` — the new Lead fields are not yet added to the
-  Admin runtime form or list. Recorded as part of ITEM-0026's scope.
+  Admin runtime form or list. Recorded as part of ITEM-0030's scope.
 - `PRODUCTION_DEPLOYMENT = NOT_OBSERVED`.
 - `BUG_0030_DEPLOYMENT = DEPLOY_REQUIRED` — merged to `main`, not observed in
   production. Wave 3 is on a separate branch and does not depend on it.

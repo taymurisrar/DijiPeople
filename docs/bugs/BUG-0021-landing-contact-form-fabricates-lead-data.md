@@ -52,6 +52,35 @@ QA run, UI / UX section, rated MEDIUM. The contrast is with `/request-demo`,
 which does carry a honeypot — verified working by scenario A1.08 (honeypot
 submissions are silently dropped with no row and no id leaked).
 
+**Re-verified unchanged at `78072d2`** (TASK-0002 documentation audit). All
+three fabrications are present verbatim at
+`apps/landing/app/contact/contact-form.tsx:48,52,53`, the honeypot is still
+absent from that file, and the API side is also unchanged —
+`services/api/src/modules/leads/dto/submit-lead.dto.ts:66-74` still requires
+`industry` and `companySize` with no `@IsOptional()` and no channel
+discriminator.
+
+The same re-verification found **two facts the original record does not
+capture**, both of which widen the fix:
+
+1. **`industry` is not merely invented — it is populated with a wrong-kind
+   value.** `contact-form.tsx:52` falls back to `form.interestArea`, chosen from
+   a picker whose options are product areas (`:85`), so `industry` receives
+   values like `Payroll`. The same choice is simultaneously written to
+   `interestArea` (`:55`), and `leads.service.ts:76` maps `interestArea` onto
+   `interestedPlan`. One visitor selection therefore lands in three unrelated
+   columns, one of which is semantically wrong. A fix that only makes the field
+   optional leaves the mis-typing in place for visitors who do choose an
+   interest area.
+
+2. **A third fabrication site exists, server-side, that this record does not
+   mention.** `services/api/src/modules/billing/services/billing.service.ts:263`
+   defaults `lastName` to `'Owner'`, and `:278-279` and `:301-302` write
+   `industry: 'Unknown'` and `companySize: 'Unknown'` onto both the `Lead` and
+   the `CustomerAccount` created by the public `/subscribe` checkout. Any fix
+   scoped to `/contact` alone leaves the fabrication class partly live on the
+   revenue path.
+
 ## Root Cause
 
 Required DTO fields on the shared lead endpoint, satisfied by the form rather
@@ -113,6 +142,15 @@ Not applicable.
 
 - 2026-08-15 — found during the commercial onboarding E2E UI/UX assessment.
 - 2026-08-15 — recorded as OPEN, awaiting Architect triage.
+
+- 2026-08-16 — re-verified unchanged at `78072d2` by the TASK-0002 documentation
+  audit. Scope widened with two new evidence items: `industry` receives a
+  product-area value rather than an industry, and a third fabrication site
+  exists in the public subscribe path (`billing.service.ts`). Severity and
+  disposition unchanged — still MEDIUM / FIX_NOW — because neither new fact
+  changes who is harmed or how badly; they change how much of the codebase the
+  fix must cover. The acceptance criteria now under-specify the fix and should
+  be extended when it is picked up.
 
 - 2026-08-15 — Architect triage: FIX_NOW. Bounded and technical — make the fabricated fields optional on the public lead DTO, or add a channel discriminator, and add the honeypot the sibling form already has. Explicitly not waiting on the product question the record raises: whether `/contact` should collect industry and company size is a conversion decision, but fabricating them is wrong under either answer, so the fix does not depend on it. Browser scenario A2 now proves the `/request-demo` honeypot works end to end, which gives the `/contact` fix a green reference to match.
 

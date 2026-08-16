@@ -52,4 +52,12 @@ isolation on the ingestion path.
 ## Related
 
 [[rbac]] · [[approvals]] · [[employees]] · [[payroll]] ·
-[[integration-architecture]] · patterns [[self-approval]], [[fail-open-scope]]
+[[integration-architecture]] · [[desktop-api-gateway-relationship]] ·
+[[monorepo-application-map]] · patterns [[self-approval]], [[fail-open-scope]]
+
+> **The Electron desktop agent does not feed attendance.** It writes only to
+> `WorkSession`, `ActivityEvent` and `DailyProductivitySummary`, and
+> `agent.service.ts` contains no reference to attendance at all. Device-sourced
+> attendance arrives through the on-premise `gateway/` and
+> `modules/attendance-integrations/`. The two are unrelated despite both being
+> called "the agent" in places — [[desktop-api-gateway-relationship]].

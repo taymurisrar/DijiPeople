@@ -65,16 +65,30 @@ up.
 Persist the external system's identifier alongside the local record; without it,
 reconciliation after an incident is guesswork.
 
+## Two device paths, not one
+
+The on-premise gateway and the Electron desktop agent are **unrelated**. They
+share no code, no contract and no data path, and the desktop agent writes no
+attendance data at all. Establish which one a task means before designing
+against either — [[desktop-api-gateway-relationship]].
+
 ## Current state
 
-Stripe billing is a **stub in code** and was not testable in the 2026-08-15 E2E.
-Partner-portal lead submission routes are permanent 403 stubs. Both are recorded
-as untested rather than as working.
+Stripe billing on the **public subscribe path is real, not a stub** — verified
+at `78072d2`: `POST /public/subscribe` creates a Stripe Customer and a Checkout
+Session through the live SDK, and activation genuinely waits on the webhook. The
+"stub in code" note above predates that work and is corrected here. It carries
+no rate limit, which is
+[[BUG-0031-public-subscribe-endpoint-has-no-rate-limiting]].
+
+Partner-portal lead submission routes are permanent 403 stubs.
 
 ## Related
 
 [[system-architecture]] · [[api-architecture]] · [[multi-tenancy]] ·
-[[deployment-architecture]] · [[billing]]
+[[deployment-architecture]] · [[billing]] ·
+[[desktop-api-gateway-relationship]] · [[desktop-agent-architecture]] ·
+[[monorepo-application-map]] · [[landing-architecture]]
 
 Source: `.agent/context/integration-patterns.md`,
 `.agent/agents/integration.md`, root `AGENTS.md`, QA run 2026-08-15.

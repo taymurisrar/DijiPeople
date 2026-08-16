@@ -1,5 +1,6 @@
 ---
 ID: ITEM-0024
+aliases: [ITEM-0024]
 Title: Landing depends on lucide-react without declaring it
 Type: TECH_DEBT
 Status: READY

@@ -16,13 +16,36 @@ Published by `node scripts/sync-obsidian.mjs`.
 
 ## Structure
 
-| Folder | Contains | Lifecycle |
-|---|---|---|
-| `modules/` | Durable per-module knowledge: rules, constraints, gotchas | **Evergreen** — updated in place |
-| `decisions/` | Decision records produced by implementation work | **Evergreen** |
-| `implementations/` | What shipped, when, on which branch, with which QA run | **History** — append only |
-| `regressions/` | Regression narratives too long for the register | **Evergreen** |
-| `releases/` | Release summaries | **History** — append only |
+| Folder | Contains | Vault destination | Lifecycle |
+|---|---|---|---|
+| `product/` | What a product area or application **is**, and who it serves | `01 - Product/Generated` | **Evergreen** |
+| `architecture/` | How a subsystem or application is **built** | `02 - Architecture/Generated` | **Evergreen** |
+| `modules/` | Durable per-module knowledge: rules, constraints, gotchas | `03 - Modules/Generated` | **Evergreen** — updated in place |
+| `requirements/` | Requirements derived from repository evidence | `04 - Requirements/Generated` | **Evergreen** |
+| `decisions/` | Decision records produced by implementation work | `05 - Decisions/Generated` | **Evergreen** |
+| `implementations/` | What shipped, when, on which branch, with which QA run | `06 - Implementation Plans/Generated` | **History** — append only |
+| `regressions/` | Regression narratives too long for the register | `11 - Agent Knowledge/Regressions/Generated` | **Evergreen** |
+| `releases/` | Release summaries | `08 - Releases/Generated` | **History** — append only |
+| `dashboards/` | **Generated** by `scripts/generate-dashboards.mjs` — never hand-edit | `00 - Home/Generated` | Regenerated |
+
+The vault destinations come from `DEFAULT_MAPPINGS` in
+[`scripts/lib/obsidian-mappings.mjs`](../../scripts/lib/obsidian-mappings.mjs).
+**A folder with no mapping is written but never published**, so a new top-level
+folder here needs a mapping added there — and that file is shared with
+`retrieve-knowledge.mjs`, so a missing mapping also causes duplicate search hits.
+
+> This table previously listed only `modules/`, `decisions/`,
+> `implementations/`, `regressions/` and `releases/`, while `product/`,
+> `architecture/`, `requirements/` and `dashboards/` all existed on disk. The
+> index was behind its own folder. Corrected 2026-08-16.
+
+### Where application knowledge goes
+
+An application gets **at most two** notes: what it is (`product/`) and how it is
+built (`architecture/`). Do not create a `docs/knowledge/apps/` folder — it has
+no vault mapping, and the existing split already carries the distinction.
+Withhold the `product/` note entirely when an application has no product
+identity to describe, rather than writing a placeholder.
 
 Evergreen files update in place so the sync maps one source file to one vault
 note forever. History files carry a date in the filename and accumulate.
