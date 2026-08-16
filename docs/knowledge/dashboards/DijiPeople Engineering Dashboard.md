@@ -9,7 +9,7 @@
 |---|---|
 | Open CRITICAL | **2** |
 | Open HIGH | **11** |
-| Open total | 48 |
+| Open total | 49 |
 | Blocked | 0 |
 | Awaiting a product decision | 3 |
 | Deferred | 2 |
@@ -36,7 +36,7 @@
 | [[BUG-0033-desktop-agent-login-is-unthrottled-and-enumerates-users-acro|BUG-0033]] | Desktop agent login is unthrottled and enumerates users across every tenant | SECURITY | HIGH | FIXED | api:agent, apps/agent-desktop | FIX_NOW |
 | [[BUG-0034-desktop-agent-auto-update-points-at-an-endpoint-that-does-no|BUG-0034]] | Desktop agent auto update points at an endpoint that does not exist | INTEGRATION | HIGH | OPEN | apps/agent-desktop, api:agent, api:app-releases | PLAN_REQUIRED |
 | [[BUG-0035-desktop-agent-logout-never-revokes-the-refresh-token|BUG-0035]] | Desktop agent logout never revokes the refresh token | SECURITY | HIGH | FIXED | apps/agent-desktop, api:agent | FIX_NOW |
-| [[BUG-0036-agent-heartbeat-has-no-idempotency-so-retries-double-count-p|BUG-0036]] | Agent heartbeat has no idempotency so retries double count productivity | DATA_INTEGRITY | HIGH | OPEN | api:agent, services/api/prisma, apps/agent-desktop | PLAN_REQUIRED |
+| [[BUG-0036-agent-heartbeat-has-no-idempotency-so-retries-double-count-p|BUG-0036]] | Agent heartbeat has no idempotency so retries double count productivity | DATA_INTEGRITY | HIGH | FIXED | api:agent, services/api/prisma, apps/agent-desktop | PLAN_REQUIRED |
 | [[ITEM-0004-tenant-activation-never-proven-end-to-end|ITEM-0004]] | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | READY | api:tenant-control-plane | FIX_NOW |
 
 ## Product Decisions Needed
@@ -95,12 +95,14 @@ _None._
 | [[BUG-0032-landing-proxies-collapse-every-visitor-into-one-rate-limit-b|BUG-0032]] | Landing proxies collapse every visitor into one rate limit bucket | SECURITY | HIGH | FIXED | apps/landing, services/api/src/common | PLAN_REQUIRED |
 | [[BUG-0033-desktop-agent-login-is-unthrottled-and-enumerates-users-acro|BUG-0033]] | Desktop agent login is unthrottled and enumerates users across every tenant | SECURITY | HIGH | FIXED | api:agent, apps/agent-desktop | FIX_NOW |
 | [[BUG-0035-desktop-agent-logout-never-revokes-the-refresh-token|BUG-0035]] | Desktop agent logout never revokes the refresh token | SECURITY | HIGH | FIXED | apps/agent-desktop, api:agent | FIX_NOW |
+| [[BUG-0036-agent-heartbeat-has-no-idempotency-so-retries-double-count-p|BUG-0036]] | Agent heartbeat has no idempotency so retries double count productivity | DATA_INTEGRITY | HIGH | FIXED | api:agent, services/api/prisma, apps/agent-desktop | PLAN_REQUIRED |
 | [[BUG-0009-session-revocation-depended-on-the-refresh-cookie|BUG-0009]] | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | FIXED | app:admin, api:auth | FIX_NOW |
 | [[BUG-0010-unguarded-cookie-options-could-turn-sign-out-into-a-500|BUG-0010]] | Unguarded cookie options could turn admin sign-out into a 500 | INFRA | MEDIUM | FIXED | app:admin | FIX_NOW |
 | [[BUG-0013-public-lead-endpoint-had-no-rate-limiting|BUG-0013]] | The public lead endpoint had no rate limiting | SECURITY | MEDIUM | VERIFIED | api:leads | DONE |
 | [[BUG-0017-tenant-base-domain-setting-does-not-drive-hostname-issuance|BUG-0017]] | The admin-editable tenant base domain does not drive hostname issuance | INTEGRATION | MEDIUM | FIXED | pkg:config, api:tenant-control-plane | PLAN_REQUIRED |
 | [[BUG-0020-window-prompt-used-for-governed-reasons|BUG-0020]] | window.prompt collects governed reasons instead of the design system dialog | UX | MEDIUM | FIXED | apps/admin, apps/web | PLAN_REQUIRED |
 | [[BUG-0021-landing-contact-form-fabricates-lead-data|BUG-0021]] | The landing contact form fabricates lead data and has no honeypot | DATA_INTEGRITY | MEDIUM | FIXED | apps/landing, api:leads | FIX_NOW |
+| [[BUG-0022-provision-tenant-has-no-confirmation-step|BUG-0022]] | "Provision tenant" has no confirmation step and no idempotency key | UX | MEDIUM | FIXED | apps/admin, api:tenant-control-plane | FIX_NOW |
 | [[BUG-0025-a-live-partner-could-be-demoted-through-the-generic-partner-|BUG-0025]] | A live partner could be demoted through the generic partner update | STATE_MACHINE | MEDIUM | FIXED | api:partners | FIX_NOW |
 | [[BUG-0028-country-to-currency-mapping-is-hardcoded-in-the-landing-fron|BUG-0028]] | Country to currency mapping is hardcoded in the landing frontend | INTEGRATION | MEDIUM | FIXED | apps/landing | PLAN_REQUIRED |
 | [[BUG-0029-public-features-page-advertised-capabilities-the-product-doe|BUG-0029]] | Public features page advertised capabilities the product does not gate and omitted ones it does | DOCUMENTATION | MEDIUM | FIXED | apps/landing | FIX_NOW |
@@ -150,7 +152,7 @@ _None. Nothing has been deployed through the release process._
 | [[BUG-0017-tenant-base-domain-setting-does-not-drive-hostname-issuance|BUG-0017]] | The admin-editable tenant base domain does not drive hostname issuance | INTEGRATION | MEDIUM | FIXED | pkg:config, api:tenant-control-plane | PLAN_REQUIRED |
 | [[BUG-0020-window-prompt-used-for-governed-reasons|BUG-0020]] | window.prompt collects governed reasons instead of the design system dialog | UX | MEDIUM | FIXED | apps/admin, apps/web | PLAN_REQUIRED |
 | [[BUG-0021-landing-contact-form-fabricates-lead-data|BUG-0021]] | The landing contact form fabricates lead data and has no honeypot | DATA_INTEGRITY | MEDIUM | FIXED | apps/landing, api:leads | FIX_NOW |
-| [[BUG-0022-provision-tenant-has-no-confirmation-step|BUG-0022]] | "Provision tenant" has no confirmation step and no idempotency key | UX | MEDIUM | OPEN | apps/admin, api:tenant-control-plane | FIX_NOW |
+| [[BUG-0022-provision-tenant-has-no-confirmation-step|BUG-0022]] | "Provision tenant" has no confirmation step and no idempotency key | UX | MEDIUM | FIXED | apps/admin, api:tenant-control-plane | FIX_NOW |
 | [[BUG-0025-a-live-partner-could-be-demoted-through-the-generic-partner-|BUG-0025]] | A live partner could be demoted through the generic partner update | STATE_MACHINE | MEDIUM | FIXED | api:partners | FIX_NOW |
 | [[BUG-0028-country-to-currency-mapping-is-hardcoded-in-the-landing-fron|BUG-0028]] | Country to currency mapping is hardcoded in the landing frontend | INTEGRATION | MEDIUM | FIXED | apps/landing | PLAN_REQUIRED |
 | [[BUG-0029-public-features-page-advertised-capabilities-the-product-doe|BUG-0029]] | Public features page advertised capabilities the product does not gate and omitted ones it does | DOCUMENTATION | MEDIUM | FIXED | apps/landing | FIX_NOW |
@@ -170,6 +172,7 @@ _None. Nothing has been deployed through the release process._
 | [[ITEM-0028-apps-agent-desktop-has-no-agents-md-and-no-test-coverage|ITEM-0028]] | apps/agent-desktop has no AGENTS.md and no test coverage | TEST_GAP | MEDIUM | READY | apps/agent-desktop, api:agent | FIX_NOW |
 | [[ITEM-0030-partner-inquiry-form-does-not-yet-capture-partnership-model|ITEM-0030]] | Partner inquiry form does not yet capture partnership model | FOLLOW_UP | MEDIUM | VALIDATING | apps/landing, api:partners | FIX_NOW |
 | [[ITEM-0031-replace-remaining-native-prompts-for-governed-input|ITEM-0031]] | Replace remaining native prompts for governed input | UX | MEDIUM | READY | apps/admin, apps/web | DEFER |
+| [[ITEM-0032-recompute-productivity-totals-inflated-by-heartbeat-replays|ITEM-0032]] | Recompute productivity totals inflated by heartbeat replays | DATA_MIGRATION | MEDIUM | READY | api:agent | PRODUCT_DECISION |
 | [[ITEM-0021-mechanical-guard-against-country-and-currency-literals-in-fr|ITEM-0021]] | Mechanical guard against country and currency literals in frontends | TEST_GAP | LOW | READY | scripts, apps/landing, apps/web, apps/admin | DEFER |
 | [[ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning|ITEM-0023]] | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | READY | services/api/prisma, api:tenant-control-plane | DEFER |
 | [[ITEM-0024-landing-depends-on-lucide-react-without-declaring-it|ITEM-0024]] | Landing depends on lucide-react without declaring it | TECH_DEBT | LOW | READY | apps/landing | DEFER |
@@ -193,7 +196,7 @@ _None. Nothing has been deployed through the release process._
 | Knowledge | Count |
 |---|---|
 | Bug records | 37 |
-| Backlog items | 31 |
+| Backlog items | 32 |
 | Known bug patterns | 19 |
 | QA runs | 10 |
 | Engineering history records | 9 |

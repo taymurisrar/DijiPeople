@@ -1005,6 +1005,31 @@ export class AgentService {
     });
   }
 
+  /**
+   * Create one activity event, or return null if that sample already exists.
+   *
+   * The unique index on `dedupeKey` is the authority. A P2002 here means another
+   * request — or an earlier attempt at this same batch — already recorded this
+   * sample, which is success from the caller's point of view: the event is
+   * stored exactly once. Any other error is rethrown, because silently treating
+   * a database failure as "already done" would lose telemetry while reporting
+   * that it was accepted.
+   */
+  private async createActivityEventIdempotently(input: {
+    dedupeKey: string;
+    data: Prisma.ActivityEventUncheckedCreateInput;
+  }) {
+    try {
+      return await this.prisma.activityEvent.create({ data: input.data });
+    } catch (error) {
+      const isDuplicate =
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002';
+      if (!isDuplicate) throw error;
+      return null;
+    }
+  }
+
   private async saveHeartbeatEvent(
     currentUser: AuthenticatedUser,
     employeeId: string,
@@ -1032,8 +1057,29 @@ export class AgentService {
     }
 
     const occurredAt = new Date(event.occurredAt);
-    const savedEvent = await this.prisma.activityEvent.create({
+
+    /*
+     * BUG-0036 — one sample per session per instant.
+     *
+     * The agent re-sends a whole batch when a send fails, and this used to
+     * create every event unconditionally and then *increment* the session and
+     * daily totals. A replayed batch therefore permanently inflated
+     * `totalActiveSeconds` and `DailyProductivitySummary`, which is what
+     * `utilizationPercent` is computed from — the numbers a manager reads.
+     *
+     * The key is the natural one: the same session cannot legitimately produce
+     * two samples at the same instant, because the agent samples on an interval.
+     * It is enforced by a unique index and NOT by reading first: a
+     * check-then-create is racy under exactly the concurrent retry this exists
+     * to survive, and is the divergence already recorded as a bug pattern in
+     * BUG-0030.
+     */
+    const dedupeKey = `${currentUser.tenantId}:${session.id}:${occurredAt.toISOString()}`;
+
+    const savedEvent = await this.createActivityEventIdempotently({
+      dedupeKey,
       data: {
+        dedupeKey,
         tenantId: currentUser.tenantId,
         employeeId,
         userId: currentUser.userId,
@@ -1064,6 +1110,16 @@ export class AgentService {
         occurredAt,
       },
     });
+
+    if (savedEvent === null) {
+      /*
+       * A replay of an event already recorded. The batch is accepted — the agent
+       * is behaving correctly by retrying — but none of the counters below run,
+       * which is the entire point: the double count came from the increments,
+       * not from the row.
+       */
+      return null;
+    }
 
     const incrementSeconds = Math.max(
       1,
