@@ -2,7 +2,7 @@
 ID: BUG-0040
 aliases: [BUG-0040]
 Title: apps/web sets no security response headers
-Status: OPEN
+Status: VERIFIED
 Severity: MEDIUM
 Priority: P2
 Type: SECURITY
@@ -13,13 +13,13 @@ AffectedModules: [apps/web]
 OwnerAgent: frontend
 ArchitectDisposition: FIX_NOW
 QAReport: docs/qa/runs/2026-08-17-web-app-documentation-1af3690.md
-RegressionId:
+RegressionId: REG-035
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-17
 UpdatedAt: 2026-08-17
-ResolvedAt:
+ResolvedAt: 2026-08-17
 ---
 
 # BUG-0040 — apps/web sets no security response headers
@@ -113,15 +113,51 @@ None.
 
 ## Resolution
 
-Not resolved.
+Fixed for **all three** Next apps, not only the tenant product this record
+named — `apps/admin` and `apps/landing` shipped no headers either, and three
+copies of a header policy drift invisibly.
+
+Defined once in `packages/config/security-headers.js` and applied through each
+app's `next.config.ts`:
+
+| Header | Value |
+|---|---|
+| `X-Content-Type-Options` | `nosniff` |
+| `Referrer-Policy` | `strict-origin-when-cross-origin` |
+| `X-Frame-Options` | `DENY` |
+| `Permissions-Policy` | camera, microphone, geolocation, payment all `()` |
+| `Strict-Transport-Security` | `max-age=63072000; includeSubDomains` |
+| `Content-Security-Policy-Report-Only` | see below |
+
+**The CSP ships Report-Only, deliberately, and that is the part worth reading.**
+
+A CSP is the one header here that can break a working product: a directive
+slightly too tight blanks a page, and Next.js emits inline bootstrap script and
+inline styles whose exact shape depends on the build. I cannot observe a real
+browser against this build from here. Shipping an enforced policy that has never
+been evaluated in one would trade a missing header for an outage on the product
+that renders payroll and bank details.
+
+Report-Only is the standard rollout: the browser evaluates the policy, reports
+what *would* have been blocked, and changes nothing. Promotion to enforced is a
+deliberate follow-up once reports show it clean — [[ITEM-0039]].
+
+**Clickjacking protection is not deferred with it.** `X-Frame-Options: DENY` is
+enforced immediately, because it cannot break a page the way a script directive
+can, and framing the tenant product was the sharpest risk in this record.
+
+The other five headers are all statements about how the browser should treat a
+response we already control, rather than restrictions on what a page may load,
+so none of them can reject a legitimate resource.
 
 ## QA Retest
 
-Not applicable — not yet fixed. Verified by reading `next.config.ts` and
-`proxy.ts` in full at `1af3690`. **No response was inspected from a running
-server**, so a header injected by the hosting platform is not excluded — and
-since no deployment configuration is in the repository, that cannot be settled
-from here.
+`npm run test:security-headers` — 6 assertions, all passing. Two of them exist
+specifically to stop the decisions above being undone by accident: the CSP is
+Report-Only and **not** enforced, and `X-Frame-Options` is `DENY`.
+
+Typecheck clean for `web`, `admin` and `landing`. `apps/web` suite 391
+tests passing.
 
 ## History
 
@@ -130,3 +166,4 @@ from here.
   headers, which are unambiguous and low-risk. CSP is explicitly carved out as a
   separate change so this record does not stall on it.
 </content>
+- 2026-08-17 — fixed and verified during the final parent implementation phase.

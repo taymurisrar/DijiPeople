@@ -4,34 +4,33 @@ type Context = { params: Promise<{ id: string }> };
 
 export async function GET(_request: Request, context: Context) {
   const { id } = await context.params;
-  let response = await apiRequest(`/employee-bank-accounts/${id}`);
-  if (response.status !== 403) {
-    return proxyApiJsonResponse(response);
-  }
 
-  response = await apiRequest("/me/bank-accounts");
-  const data = await response.json().catch(() => null);
-  if (!response.ok) {
-    return NextResponse.json(data ?? { message: response.statusText }, {
-      status: response.status,
-    });
-  }
-
-  const items = Array.isArray(data)
-    ? data
-    : Array.isArray(data?.items)
-      ? data.items
-      : [];
-  const record = items.find(
-    (item: unknown) =>
-      item && typeof item === "object" && (item as { id?: unknown }).id === id,
+  /*
+   * BUG-0039, third instance — found by the check written for the first two
+   * rather than by the record, which named only the payslips and the
+   * bank-accounts-by-employee proxies.
+   *
+   * This one fetched `/me/bank-accounts` on 403 and returned whichever row's id
+   * matched. Because the substitute came from `/me/*` it did not leak another
+   * person's data, which is why it read as harmless — but it still answered
+   * around an authorization refusal the API had already made, converting a 403
+   * into a 200 or a 404 on the proxy's own judgement. The API decides whether
+   * this caller may read this account, and it said no.
+   *
+   * The refusal is forwarded. A screen that wants the caller's own accounts
+   * asks `/me/bank-accounts` directly.
+   */
+  return proxyApiJsonResponse(
+    await apiRequest(`/employee-bank-accounts/${id}`),
   );
-  return record
-    ? NextResponse.json(record)
-    : NextResponse.json(
-        { message: "Employee bank account was not found." },
-        { status: 404 },
-      );
 }
 
-export async function PATCH(request: Request, context: Context) { const { id } = await context.params; return proxyApiJsonResponse(await apiRequest(`/employee-bank-accounts/${id}`, { method: "PATCH", body: await request.text() })); }
+export async function PATCH(request: Request, context: Context) {
+  const { id } = await context.params;
+  return proxyApiJsonResponse(
+    await apiRequest(`/employee-bank-accounts/${id}`, {
+      method: "PATCH",
+      body: await request.text(),
+    }),
+  );
+}

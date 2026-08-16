@@ -52,6 +52,28 @@ export declare const REQUIRED_APP_URLS: Readonly<
 
 export declare const FORWARDED_FOR_HEADER: "x-forwarded-for";
 
+export interface NextSecurityHeaderRule {
+  source: string;
+  headers: { key: string; value: string }[];
+}
+
+/**
+ * Security response headers for a Next app (BUG-0040). The CSP is emitted as
+ * Content-Security-Policy-Report-Only; frame protection is enforced.
+ */
+export declare function securityHeadersForApp(options?: {
+  apiOrigin?: string;
+  frameable?: boolean;
+}): NextSecurityHeaderRule[];
+
+export declare function baselineSecurityHeaders(options?: {
+  frameable?: boolean;
+}): { key: string; value: string }[];
+
+export declare function contentSecurityPolicy(options?: {
+  apiOrigin?: string;
+}): string;
+
 /**
  * The client-closest address in an `X-Forwarded-For` chain, or null when the
  * header is absent or empty. Callers must decide whether the chain is

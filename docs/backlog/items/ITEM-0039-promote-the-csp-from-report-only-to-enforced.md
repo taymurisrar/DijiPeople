@@ -1,0 +1,68 @@
+---
+ID: ITEM-0039
+aliases: [ITEM-0039]
+Title: Promote the CSP from report-only to enforced
+Type: SECURITY
+Status: READY
+Priority: P2
+Severity: MEDIUM
+AffectedModules: [packages/config, apps/web, apps/admin, apps/landing]
+Source: ARCHITECT
+OwnerAgent: architect
+ArchitectDisposition: DEFER
+CreatedAt: 2026-08-16
+UpdatedAt: 2026-08-16
+RelatedBug: BUG-0040
+RelatedQA: 
+RelatedADR: 
+RelatedImplementation:
+TargetMilestone: 
+BlockedBy: 
+---
+
+# ITEM-0039 — Promote the CSP from report-only to enforced
+
+## Summary
+
+BUG-0040 shipped a Content Security Policy to all three Next apps as
+`Content-Security-Policy-Report-Only`. The browser evaluates it and reports what
+*would* have been blocked, but blocks nothing. Enforcement is the remaining step.
+
+## Why It Matters
+
+Report-only is a real improvement — it makes violations visible — but it stops
+no attack. Until the header is enforced, an injected script still executes.
+
+It was shipped report-only for a reason that has not gone away on its own: a CSP
+is the one security header that can break a working product. A directive
+slightly too tight blanks a page, and Next.js emits inline bootstrap script and
+inline styles whose exact shape depends on the build. The policy has never been
+evaluated by a real browser against this build.
+
+## Evidence
+
+`packages/config/security-headers.js` — `contentSecurityPolicy()`, emitted
+under the report-only header name by `securityHeadersForApp()`.
+`packages/config/security-headers.test.js` asserts it stays report-only, so
+promoting it is a deliberate act rather than a silent edit.
+
+## Proposed Approach
+
+1. Deploy and **collect real reports** for a meaningful period across all three
+   apps. Without a report endpoint the current header produces console warnings
+   only; add a `report-uri`/`report-to` destination first, or read them from
+   browser devtools during a deliberate QA pass.
+2. Remove `unsafe-inline` from `script-src` using a nonce or hash — this is the
+   directive that actually matters and the one most likely to break Next.
+3. Promote to `Content-Security-Policy` **one app at a time**, starting with
+   `apps/landing`, which is the simplest and where a mistake costs least.
+   `apps/web` goes last: it is the tenant product.
+4. Update the two assertions in `security-headers.test.js` as each app moves,
+   so the test tracks the real state rather than being deleted.
+
+## Acceptance Criteria
+
+- `script-src` no longer contains `unsafe-inline`.
+- The enforced policy has been observed clean in a browser for each app before
+  that app is promoted.
+- `X-Frame-Options` remains enforced throughout — it was never deferred.
