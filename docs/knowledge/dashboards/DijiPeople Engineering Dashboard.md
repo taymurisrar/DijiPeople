@@ -9,7 +9,7 @@
 |---|---|
 | Open CRITICAL | **1** |
 | Open HIGH | **5** |
-| Open total | 32 |
+| Open total | 34 |
 | Blocked | 0 |
 | Awaiting a product decision | 3 |
 | Deferred | 2 |
@@ -87,10 +87,12 @@ _None._
 | [[BUG-0013-public-lead-endpoint-had-no-rate-limiting|BUG-0013]] | The public lead endpoint had no rate limiting | SECURITY | MEDIUM | VERIFIED | api:leads | DONE |
 | [[BUG-0025-a-live-partner-could-be-demoted-through-the-generic-partner-|BUG-0025]] | A live partner could be demoted through the generic partner update | STATE_MACHINE | MEDIUM | FIXED | api:partners | FIX_NOW |
 | [[BUG-0028-country-to-currency-mapping-is-hardcoded-in-the-landing-fron|BUG-0028]] | Country to currency mapping is hardcoded in the landing frontend | INTEGRATION | MEDIUM | FIXED | apps/landing | PLAN_REQUIRED |
+| [[BUG-0029-public-features-page-advertised-capabilities-the-product-doe|BUG-0029]] | Public features page advertised capabilities the product does not gate and omitted ones it does | DOCUMENTATION | MEDIUM | FIXED | apps/landing | FIX_NOW |
 | [[BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist|BUG-0023]] | The testing-architecture context claims two e2e specs do not exist | DOCUMENTATION | LOW | FIXED | .agent/context | FIX_NOW |
 
 ## Recent QA Runs
 
+- [[2026-08-16-public-commercial-wave2-7686bb0|QA Run — Wave 2: Public Plans + Features Experience]]
 - [[2026-08-16-production-url-integrity-344a832|QA Run — Production URL integrity (BUG-0026)]]
 - [[2026-08-16-commercial-config-wave1-a525896|QA Run — Wave 1: Commercial Configuration Foundation]]
 - [[2026-08-15-commercial-onboarding-e2e-7bbab3d|QA Run — Commercial onboarding lifecycle E2E (website lead and partner journeys)]]
@@ -127,6 +129,7 @@ _None. Nothing has been deployed through the release process._
 | [[BUG-0022-provision-tenant-has-no-confirmation-step|BUG-0022]] | "Provision tenant" has no confirmation step and no idempotency key | UX | MEDIUM | OPEN | apps/admin, api:tenant-control-plane | FIX_NOW |
 | [[BUG-0025-a-live-partner-could-be-demoted-through-the-generic-partner-|BUG-0025]] | A live partner could be demoted through the generic partner update | STATE_MACHINE | MEDIUM | FIXED | api:partners | FIX_NOW |
 | [[BUG-0028-country-to-currency-mapping-is-hardcoded-in-the-landing-fron|BUG-0028]] | Country to currency mapping is hardcoded in the landing frontend | INTEGRATION | MEDIUM | FIXED | apps/landing | PLAN_REQUIRED |
+| [[BUG-0029-public-features-page-advertised-capabilities-the-product-doe|BUG-0029]] | Public features page advertised capabilities the product does not gate and omitted ones it does | DOCUMENTATION | MEDIUM | FIXED | apps/landing | FIX_NOW |
 | [[ITEM-0002-no-live-api-session-test-harness|ITEM-0002]] | No harness exists for testing against a running API with real sessions | TEST_GAP | MEDIUM | READY | services/api, apps/admin | FIX_NOW |
 | [[ITEM-0003-tenant-erasure-never-exercised-against-a-database|ITEM-0003]] | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | READY | api:tenant-control-plane | FIX_NOW |
 | [[ITEM-0005-customeraccount-leadid-has-no-unique-constraint|ITEM-0005]] | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | READY | services/api/prisma, api:super-admin | PLAN_REQUIRED |
@@ -139,6 +142,7 @@ _None. Nothing has been deployed through the release process._
 | [[ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur|ITEM-0022]] | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | READY | api:super-admin, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0021-mechanical-guard-against-country-and-currency-literals-in-fr|ITEM-0021]] | Mechanical guard against country and currency literals in frontends | TEST_GAP | LOW | READY | scripts, apps/landing, apps/web, apps/admin | DEFER |
 | [[ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning|ITEM-0023]] | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | READY | services/api/prisma, api:tenant-control-plane | DEFER |
+| [[ITEM-0024-landing-depends-on-lucide-react-without-declaring-it|ITEM-0024]] | Landing depends on lucide-react without declaring it | TECH_DEBT | LOW | READY | apps/landing | DEFER |
 | [[BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist|BUG-0023]] | The testing-architecture context claims two e2e specs do not exist | DOCUMENTATION | LOW | FIXED | .agent/context | FIX_NOW |
 | [[BUG-0024-start-onboarding-api-and-proxy-have-no-caller|BUG-0024]] | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | OPEN | apps/admin, api:super-admin | FIX_NOW |
 | [[ITEM-0011-framework-validation-should-catch-absence-claims|ITEM-0011]] | Framework validation should catch false absence claims in context documents | TECH_DEBT | LOW | READY | .agent/context, scripts | FIX_NOW |
@@ -157,10 +161,10 @@ _None. Nothing has been deployed through the release process._
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 28 |
-| Backlog items | 23 |
+| Bug records | 29 |
+| Backlog items | 24 |
 | Known bug patterns | 18 |
-| QA runs | 6 |
+| QA runs | 7 |
 | Engineering history records | 4 |
 | Release records | 0 |
 | Module notes | 19 |

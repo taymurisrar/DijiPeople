@@ -11,14 +11,19 @@ export const metadata: Metadata = {
     "Start a public DijiPeople subscription through a secure Stripe Checkout flow.",
 };
 
-type SearchParams = Promise<{ planPriceId?: string }>;
+type SearchParams = Promise<{
+  planPriceId?: string;
+  plan?: string;
+  billingInterval?: string;
+  teamSize?: string;
+}>;
 
 export default async function SubscribePage({
   searchParams,
 }: {
   searchParams: SearchParams;
 }) {
-  const [{ planPriceId }, plansResponse, commercialConfig] = await Promise.all([
+  const [selectionParams, plansResponse, commercialConfig] = await Promise.all([
     searchParams,
     getPublicPlans(),
     getCommercialConfig(),
@@ -46,8 +51,8 @@ export default async function SubscribePage({
       <SubscribeForm
         defaultCurrency={defaultCurrency}
         error={plansResponse.error}
-        initialPlanPriceId={planPriceId}
         plans={plans}
+        selectionParams={selectionParams}
       />
     </PageShell>
   );

@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+
+import { landingEnv } from "../lib/env";
 import { Fraunces, Manrope } from "next/font/google";
 import { SiteFooter, SiteHeader } from "./_components/site-shell";
 import "./globals.css";
@@ -14,7 +16,9 @@ const fraunces = Fraunces({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://dijipeople.com"),
+  // Resolves the relative canonical/OpenGraph URLs the pages declare. Taken
+  // from configuration so a preview deployment does not claim production URLs.
+  metadataBase: new URL(landingEnv.appOrigin),
   icons: {
     icon: [
       { url: "/favicon.ico" },

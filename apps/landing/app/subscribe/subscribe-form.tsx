@@ -8,26 +8,32 @@ import {
   formatPlanPrice,
   isCheckoutReady,
 } from "../../lib/plans";
+import {
+  resolveSubscribeSelection,
+  type SubscribeSelectionParams,
+} from "../../lib/subscribe-selection";
 
 export function SubscribeForm({
   plans,
   defaultCurrency,
   error,
-  initialPlanPriceId,
+  selectionParams,
 }: {
   plans: PublicPlan[];
   defaultCurrency: string;
   error?: string;
-  initialPlanPriceId?: string;
+  selectionParams?: SubscribeSelectionParams;
 }) {
-  const initialSelection = findInitialSelection(plans, initialPlanPriceId);
+  // Resolved by the shared helper so /plans -> /subscribe continuity is
+  // testable; see lib/subscribe-selection.spec.ts.
+  const initialSelection = resolveSubscribeSelection(plans, selectionParams);
   const [planId, setPlanId] = useState(initialSelection.planId);
   const [billingCycle, setBillingCycle] = useState<BillingCycle>(
     initialSelection.billingCycle,
   );
   const currency = initialSelection.currency || defaultCurrency;
   const [seatQuantity, setSeatQuantity] = useState(
-    initialSelection.minimumSeats,
+    initialSelection.seatQuantity,
   );
   const [form, setForm] = useState({
     companyName: "",
@@ -311,25 +317,3 @@ function Field({
   );
 }
 
-function findInitialSelection(plans: PublicPlan[], planPriceId?: string) {
-  for (const plan of plans) {
-    const price = plan.prices.find((item) => item.id === planPriceId);
-    if (price) {
-      return {
-        planId: plan.id,
-        billingCycle: price.billingCycle,
-        currency: price.currency,
-        minimumSeats: price.minimumSeats ?? 1,
-      };
-    }
-  }
-
-  const firstPlan = plans[0];
-  const firstPrice = firstPlan?.prices[0];
-  return {
-    planId: firstPlan?.id ?? "",
-    billingCycle: firstPrice?.billingCycle ?? "MONTHLY",
-    currency: firstPrice?.currency ?? "",
-    minimumSeats: firstPrice?.minimumSeats ?? 1,
-  };
-}

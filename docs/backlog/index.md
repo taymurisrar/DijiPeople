@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**51 records** — 28 bugs under [`docs/bugs/`](../bugs/), 23 non-bug items under [`items/`](items/).
+**53 records** — 29 bugs under [`docs/bugs/`](../bugs/), 24 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,7 +13,7 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 32 |
+| Open (active work) | 34 |
 | Blocked | 0 |
 | Deferred | 2 |
 | Awaiting a product decision | 3 |
@@ -28,8 +28,8 @@ see [`README.md`](README.md) for why.
 |---|---|
 | CRITICAL | 1 |
 | HIGH | 5 |
-| MEDIUM | 19 |
-| LOW | 7 |
+| MEDIUM | 20 |
+| LOW | 8 |
 
 ## Open by type
 
@@ -38,13 +38,13 @@ see [`README.md`](README.md) for why.
 | ARCHITECTURE | 3 |
 | BUG | 1 |
 | DATA_INTEGRITY | 2 |
-| DOCUMENTATION | 1 |
+| DOCUMENTATION | 2 |
 | FOLLOW_UP | 3 |
 | INFRA | 3 |
 | INTEGRATION | 2 |
 | SECURITY | 1 |
 | STATE_MACHINE | 3 |
-| TECH_DEBT | 4 |
+| TECH_DEBT | 5 |
 | TEST_GAP | 6 |
 | UX | 3 |
 
@@ -55,9 +55,9 @@ see [`README.md`](README.md) for why.
 | OPEN | 6 |
 | DEFERRED | 2 |
 | PRODUCT_DECISION | 3 |
-| FIXED | 9 |
+| FIXED | 10 |
 | VERIFIED | 12 |
-| READY | 15 |
+| READY | 16 |
 | DEFERRED | 2 |
 | PRODUCT_DECISION | 3 |
 | VALIDATING | 2 |
@@ -95,6 +95,7 @@ see [`README.md`](README.md) for why.
 | [BUG-0022](../../docs/bugs/BUG-0022-provision-tenant-has-no-confirmation-step.md) | "Provision tenant" has no confirmation step and no idempotency key | UX | MEDIUM | P2 | OPEN | apps/admin, api:tenant-control-plane | FIX_NOW |
 | [BUG-0025](../../docs/bugs/BUG-0025-a-live-partner-could-be-demoted-through-the-generic-partner-.md) | A live partner could be demoted through the generic partner update | STATE_MACHINE | MEDIUM | P2 | FIXED | api:partners | FIX_NOW |
 | [BUG-0028](../../docs/bugs/BUG-0028-country-to-currency-mapping-is-hardcoded-in-the-landing-fron.md) | Country to currency mapping is hardcoded in the landing frontend | INTEGRATION | MEDIUM | P2 | FIXED | apps/landing | PLAN_REQUIRED |
+| [BUG-0029](../../docs/bugs/BUG-0029-public-features-page-advertised-capabilities-the-product-doe.md) | Public features page advertised capabilities the product does not gate and omitted ones it does | DOCUMENTATION | MEDIUM | P2 | FIXED | apps/landing | FIX_NOW |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | No harness exists for testing against a running API with real sessions | TEST_GAP | MEDIUM | P2 | READY | services/api, apps/admin | FIX_NOW |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | READY | api:tenant-control-plane | FIX_NOW |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | READY | services/api/prisma, api:super-admin | PLAN_REQUIRED |
@@ -110,6 +111,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0022](../../docs/backlog/items/ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur.md) | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | P2 | READY | api:super-admin, apps/admin | PLAN_REQUIRED |
 | [ITEM-0021](../../docs/backlog/items/ITEM-0021-mechanical-guard-against-country-and-currency-literals-in-fr.md) | Mechanical guard against country and currency literals in frontends | TEST_GAP | LOW | P2 | READY | scripts, apps/landing, apps/web, apps/admin | DEFER |
 | [ITEM-0023](../../docs/backlog/items/ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning.md) | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | P2 | READY | services/api/prisma, api:tenant-control-plane | DEFER |
+| [ITEM-0024](../../docs/backlog/items/ITEM-0024-landing-depends-on-lucide-react-without-declaring-it.md) | Landing depends on lucide-react without declaring it | TECH_DEBT | LOW | P2 | READY | apps/landing | DEFER |
 | [BUG-0018](../../docs/bugs/BUG-0018-bulk-lead-delete-is-unreachable-for-every-role.md) | Bulk lead delete is unreachable for every role, including SUPER_ADMIN | AUTHORIZATION | LOW | P3 | DEFERRED | api:platform-auth, api:super-admin | DEFER |
 | [BUG-0023](../../docs/bugs/BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist.md) | The testing-architecture context claims two e2e specs do not exist | DOCUMENTATION | LOW | P3 | FIXED | .agent/context | FIX_NOW |
 | [BUG-0024](../../docs/bugs/BUG-0024-start-onboarding-api-and-proxy-have-no-caller.md) | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | P3 | OPEN | apps/admin, api:super-admin | FIX_NOW |

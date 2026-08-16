@@ -151,6 +151,22 @@ jobs:
       - run: npm ci
       - run: npm --workspace admin run test
 
+  test-landing:
+    name: Landing tests
+    runs-on: ubuntu-latest
+    # The public site had no test coverage until Wave 2, which is how a
+    # country-to-currency table (BUG-0028) and a "Popular" badge decided by
+    # array position both shipped. The suite covers the rules that decide what
+    # a customer is quoted and where a buy button leads, so it gates.
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: npm
+      - run: npm ci
+      - run: npm --workspace landing run test
+
   test-runtime:
     name: Runtime schema tests
     runs-on: ubuntu-latest
@@ -533,7 +549,7 @@ jobs:
     # so adding a job later does not require reconfiguring the merge policy.
     # security-invariant-report is deliberately absent from `needs`.
     needs:
-      [validate, typecheck, lint, test-api, test-web, test-admin, test-runtime, database-migration, build]
+      [validate, typecheck, lint, test-api, test-web, test-admin, test-landing, test-runtime, database-migration, build]
     if: always()
     steps:
       - name: Verify all required jobs passed
