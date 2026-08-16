@@ -9,7 +9,7 @@
 |---|---|
 | Open CRITICAL | **2** |
 | Open HIGH | **11** |
-| Open total | 46 |
+| Open total | 47 |
 | Blocked | 0 |
 | Awaiting a product decision | 3 |
 | Deferred | 2 |
@@ -169,6 +169,7 @@ _None. Nothing has been deployed through the release process._
 | [[ITEM-0011-framework-validation-should-catch-absence-claims|ITEM-0011]] | Framework validation should catch false absence claims in context documents | TECH_DEBT | LOW | READY | .agent/context, scripts | FIX_NOW |
 | [[ITEM-0015-make-the-tenant-readiness-assertion-auditable|ITEM-0015]] | Make the tenant readiness() authorization assertion auditable | FOLLOW_UP | LOW | READY | api:tenant-control-plane | FIX_NOW |
 | [[ITEM-0017-buildworkspaceurl-still-carries-an-internal-loopback-fallbac|ITEM-0017]] | buildWorkspaceUrl still carries an internal loopback fallback | TECH_DEBT | LOW | READY | pkg:config | DEFER |
+| [[ITEM-0029-validation-should-require-an-aliases-line-on-every-record|ITEM-0029]] | Validation should require an aliases line on every record | TECH_DEBT | LOW | READY | scripts, docs/backlog, docs/bugs | FIX_NOW |
 
 ## Key Architecture Decisions
 
@@ -183,7 +184,7 @@ _None. Nothing has been deployed through the release process._
 | Knowledge | Count |
 |---|---|
 | Bug records | 37 |
-| Backlog items | 28 |
+| Backlog items | 29 |
 | Known bug patterns | 19 |
 | QA runs | 9 |
 | Engineering history records | 8 |

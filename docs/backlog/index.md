@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**65 records** — 37 bugs under [`docs/bugs/`](../bugs/), 28 non-bug items under [`items/`](items/).
+**66 records** — 37 bugs under [`docs/bugs/`](../bugs/), 29 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,7 +13,7 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 46 |
+| Open (active work) | 47 |
 | Blocked | 0 |
 | Deferred | 2 |
 | Awaiting a product decision | 3 |
@@ -29,7 +29,7 @@ see [`README.md`](README.md) for why.
 | CRITICAL | 2 |
 | HIGH | 11 |
 | MEDIUM | 25 |
-| LOW | 8 |
+| LOW | 9 |
 
 ## Open by type
 
@@ -44,7 +44,7 @@ see [`README.md`](README.md) for why.
 | INTEGRATION | 3 |
 | SECURITY | 6 |
 | STATE_MACHINE | 3 |
-| TECH_DEBT | 7 |
+| TECH_DEBT | 8 |
 | TEST_GAP | 7 |
 | UX | 3 |
 
@@ -57,7 +57,7 @@ see [`README.md`](README.md) for why.
 | PRODUCT_DECISION | 3 |
 | FIXED | 12 |
 | VERIFIED | 12 |
-| READY | 20 |
+| READY | 21 |
 | DEFERRED | 2 |
 | PRODUCT_DECISION | 3 |
 | VALIDATING | 2 |
@@ -132,6 +132,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0011](../../docs/backlog/items/ITEM-0011-framework-validation-should-catch-absence-claims.md) | Framework validation should catch false absence claims in context documents | TECH_DEBT | LOW | P3 | READY | .agent/context, scripts | FIX_NOW |
 | [ITEM-0015](../../docs/backlog/items/ITEM-0015-make-the-tenant-readiness-assertion-auditable.md) | Make the tenant readiness() authorization assertion auditable | FOLLOW_UP | LOW | P3 | READY | api:tenant-control-plane | FIX_NOW |
 | [ITEM-0017](../../docs/backlog/items/ITEM-0017-buildworkspaceurl-still-carries-an-internal-loopback-fallbac.md) | buildWorkspaceUrl still carries an internal loopback fallback | TECH_DEBT | LOW | P3 | READY | pkg:config | DEFER |
+| [ITEM-0029](../../docs/backlog/items/ITEM-0029-validation-should-require-an-aliases-line-on-every-record.md) | Validation should require an aliases line on every record | TECH_DEBT | LOW | P3 | READY | scripts, docs/backlog, docs/bugs | FIX_NOW |
 
 ## Views
 

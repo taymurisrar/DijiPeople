@@ -1,5 +1,6 @@
 ---
 ID: ITEM-0021
+aliases: [ITEM-0021]
 Title: Mechanical guard against country and currency literals in frontends
 Type: TEST_GAP
 Status: READY

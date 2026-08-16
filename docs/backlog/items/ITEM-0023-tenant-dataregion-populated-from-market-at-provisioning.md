@@ -1,5 +1,6 @@
 ---
 ID: ITEM-0023
+aliases: [ITEM-0023]
 Title: Tenant.dataRegion populated from market at provisioning
 Type: FOLLOW_UP
 Status: READY

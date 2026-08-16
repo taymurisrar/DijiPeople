@@ -1,5 +1,6 @@
 ---
 ID: ITEM-0020
+aliases: [ITEM-0020]
 Title: Contract phase: drop legacy Plan pricing columns
 Type: TECH_DEBT
 Status: READY

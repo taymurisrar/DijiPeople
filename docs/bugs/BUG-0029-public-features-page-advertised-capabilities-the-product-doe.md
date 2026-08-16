@@ -1,5 +1,6 @@
 ---
 ID: BUG-0029
+aliases: [BUG-0029]
 Title: Public features page advertised capabilities the product does not gate and omitted ones it does
 Status: FIXED
 Severity: MEDIUM

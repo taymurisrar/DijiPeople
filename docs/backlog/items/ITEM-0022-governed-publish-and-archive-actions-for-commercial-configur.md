@@ -1,5 +1,6 @@
 ---
 ID: ITEM-0022
+aliases: [ITEM-0022]
 Title: Governed publish and archive actions for commercial configuration
 Type: FOLLOW_UP
 Status: READY
