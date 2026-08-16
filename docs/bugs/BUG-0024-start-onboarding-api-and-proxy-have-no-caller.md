@@ -2,7 +2,7 @@
 ID: BUG-0024
 aliases: [BUG-0024]
 Title: The start-onboarding API endpoint and its proxy have no caller
-Status: OPEN
+Status: FIXED
 Severity: LOW
 Priority: P3
 Type: BUG
@@ -18,8 +18,8 @@ RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-15
-UpdatedAt: 2026-08-15
-ResolvedAt:
+UpdatedAt: 2026-08-16
+ResolvedAt: 2026-08-16
 ---
 
 # BUG-0024 — The start-onboarding API endpoint and its proxy have no caller
@@ -100,11 +100,31 @@ Modules [[customer-onboarding|Customer Onboarding]], [[customers|Customers]], [[
 
 ## Resolution
 
-Not resolved.
+Fixed by removing the unreachable path, which is what this record's proposed
+resolution called for: `/onboarding/new` is the product's answer, so the
+endpoint built for the abandoned direct-action form goes.
+
+Removed:
+
+- `apps/admin/app/api/super-admin/customers/[customerId]/start-onboarding/route.ts`
+- `POST customers/:customerAccountId/start-onboarding` in `super-admin.controller.ts`
+- `SuperAdminService.startCustomerOnboarding`
+
+Kept, deliberately: `PlatformLifecycleService.createOnboardingFromCustomer`. It
+is **not** dead — `createCustomerOnboarding` calls it, and that is the working
+`/onboarding/new` path. Removing it because its other caller went would have
+broken the journey this record says is the intended one.
+
+Also kept: the `start-onboarding` record action and its `router.push`. The
+navigation works and is the intended flow; the action was never the problem.
 
 ## QA Retest
 
-Not applicable.
+`grep -rn "startCustomerOnboarding" services/api/src` → no matches.
+`grep -rn "start-onboarding" apps services` → only the record action and its
+`router.push`, plus stale `.next` build artefacts.
+
+API typecheck clean; API suite 157 suites / 1122 tests passing.
 
 ## History
 
@@ -112,3 +132,6 @@ Not applicable.
 - 2026-08-15 — re-verified against `main` `ad8f77f` and recorded as OPEN.
 
 - 2026-08-15 — Architect triage: FIX_NOW. The product question the record poses is already answered by the code: `convertLeadToCustomer` creates the onboarding in the primary journey and the record action navigates to `/onboarding/new`, so the navigation-first form is what the product does. The direct-action endpoint and its proxy are dead and should be removed. Small, and it removes an API surface a reader would reasonably assume is live.
+- 2026-08-16 — resolved by deletion. Confirmed first that the underlying
+  lifecycle method has a live second caller, so only the unreachable wrapper
+  chain was removed.

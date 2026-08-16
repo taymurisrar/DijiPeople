@@ -174,19 +174,6 @@ export class SuperAdminController {
     return this.superAdminService.bulkDeleteCustomers(user, dto);
   }
 
-  @Post('customers/:customerAccountId/start-onboarding')
-  startCustomerOnboarding(
-    @CurrentUser() user: AuthenticatedUser,
-    @Param('customerAccountId', new ParseUUIDPipe()) customerAccountId: string,
-    @Body() dto?: Partial<CreateCustomerOnboardingRecordDto>,
-  ) {
-    return this.superAdminService.startCustomerOnboarding(
-      user,
-      customerAccountId,
-      dto,
-    );
-  }
-
   @Get('customer-onboarding')
   listCustomerOnboardings(
     @CurrentUser() user: AuthenticatedUser,

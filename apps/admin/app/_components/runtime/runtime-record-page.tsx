@@ -20,6 +20,8 @@ import type {
 import { getRuntimeSchema } from "@repo/config";
 import { executeRuntimeRecordAction } from "@/lib/runtime/runtime-record-action-handler";
 import { ModuleActionBar } from "./module-action-bar";
+import { useConfirmAction } from "./use-confirm-action";
+import { useReasonPrompt } from "./use-reason-prompt";
 import {
   PlanPriceManager,
   type PlanPriceRecord,
@@ -139,6 +141,11 @@ function RuntimeRecordEditor({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [timeline, setTimeline] = useState<Array<Record<string, unknown>>>([]);
   const [signatureOpen, setSignatureOpen] = useState(false);
+  /*
+   * Governed reasons are collected here rather than by `window.prompt` in the
+   * action handler, which is a plain module and cannot render (BUG-0020).
+   */
+  const { requestReason, reasonDialog } = useReasonPrompt();
   /*
    * Tenant lifecycle and access actions live in the tab panels that own the
    * data they change. The action bar only asks for them; this hook routes the
@@ -330,6 +337,7 @@ function RuntimeRecordEditor({
       enterEditMode: () => setMode("edit"),
       leaveEditMode: () => setMode("read"),
       openSignatureDialog: () => setSignatureOpen(true),
+      requestReason,
     });
   }
 
@@ -573,6 +581,7 @@ function RuntimeRecordEditor({
           onComplete={reloadRecord}
         />
       ) : null}
+      {reasonDialog}
     </main>
   );
 }
@@ -1452,6 +1461,7 @@ function CustomerAgreementPanel({
   const [provisioning, setProvisioning] = useState(false);
   const [provisionMessage, setProvisionMessage] = useState("");
   const [environmentType, setEnvironmentType] = useState("PRODUCTION");
+  const { confirmAction, confirmDialog } = useConfirmAction();
   const plannedSlug = String(record.plannedTenantSlug ?? "");
   const workspace = useWorkspacePreview(plannedSlug);
   const contracts = Array.isArray(record.contracts)
@@ -1461,6 +1471,31 @@ function CustomerAgreementPanel({
     ["FULLY_SIGNED", "FULLY_EXECUTED", "ACTIVE"].includes(String(item.status)),
   );
   async function provisionTenant() {
+    const customerName = String(
+      (record.customer as Record<string, unknown> | undefined)?.companyName ??
+        record.customerName ??
+        "this customer",
+    );
+
+    /*
+     * BUG-0022 — the most consequential create in the commercial lifecycle
+     * was a single unconfirmed click. The dialog names what it produces
+     * rather than asking whether the operator is sure, because a content-free
+     * confirmation just teaches people to click through it.
+     */
+    const confirmed = await confirmAction({
+      title: "Provision tenant",
+      description: `A workspace for ${customerName} at ${plannedSlug}. This cannot be undone from here.`,
+      creates: [
+        `The tenant workspace ${plannedSlug}`,
+        "An owner invitation to the primary contact",
+        "A subscription on the selected plan",
+        "A first invoice for that subscription",
+      ],
+      confirmLabel: "Provision tenant",
+    });
+    if (!confirmed) return;
+
     setProvisioning(true);
     setProvisionMessage("");
     const customer = record.customer as Record<string, unknown> | undefined;
@@ -1538,6 +1573,7 @@ function CustomerAgreementPanel({
               {provisioning ? "Provisioning…" : "Provision tenant"}
             </button>
           )}
+          {confirmDialog}
         </div>
       </div>
       {!record.tenantId ? (

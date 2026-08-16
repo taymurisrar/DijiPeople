@@ -2,7 +2,7 @@
 ID: BUG-0017
 aliases: [BUG-0017]
 Title: The admin-editable tenant base domain does not drive hostname issuance
-Status: OPEN
+Status: FIXED
 Severity: MEDIUM
 Priority: P2
 Type: INTEGRATION
@@ -18,8 +18,8 @@ RelatedBacklogItem: ITEM-0006
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-15
-UpdatedAt: 2026-08-15
-ResolvedAt:
+UpdatedAt: 2026-08-16
+ResolvedAt: 2026-08-16
 ---
 
 # BUG-0017 — The admin-editable tenant base domain does not drive hostname issuance
@@ -114,13 +114,50 @@ Architecture [[tenant-workspace-routing|Tenant Workspace Routing]]. Requirement 
 
 ## Resolution
 
-Not resolved.
+Fixed — and it was already fixed in the code before this wave. The record was
+stale, which is itself worth recording.
+
+Verified at `1fd0f65`:
+
+- `TenantProvisioningService.settings()` resolves `tenantBaseDomain` from
+  `getPlatformDomainConfig()` — configuration — and no longer reads it from the
+  `tenant-provisioning` PlatformSetting.
+- The admin screen shows the base domain as a **read-only** row. Its form submits
+  exactly one key, `wildcardDnsReady`, with a comment explaining that seeding
+  from the whole stored object would carry the retired values forward.
+
+So the resolution chosen was the second half of this record's own expected
+behaviour — *"otherwise the control should not exist"*. Configuration stays the
+single source, because the edge router matches hostnames with no database access
+and must be able to read it; the operator control was retired rather than wired
+up.
+
+**What was missing is a test.** Nothing prevented a future reader from noticing a
+`tenantBaseDomain` key sitting in the stored JSON and helpfully reading it
+again, which would silently restore the divergence — the row still exists in
+deployments that saved it before the change. `tenant-provisioning.service.spec.ts`
+now stores a stale `tenantBaseDomain` and `defaultProtocol` in the setting and
+asserts configuration wins, while the one genuinely stored key,
+`wildcardDnsReady`, is still read.
 
 ## QA Retest
 
-Not applicable.
+`npm --workspace api run test -- --testPathPatterns "tenant-provisioning.service"`
+— 4 assertions, all passing.
+
+Verified to fail against the defect: reintroducing
+`stored.tenantBaseDomain || config.tenantBaseDomain` fails
+*ignores a stored tenant base domain in favour of configuration*.
+
+The first draft of the assertion was wrong rather than the code — it asserted the
+protocol was not `http`, which is simply what configuration returns in a
+development environment. It now compares against `getPlatformDomainConfig()`
+directly.
 
 ## History
 
 - 2026-08-15 — found during the commercial onboarding E2E.
 - 2026-08-15 — re-verified against `main` `ad8f77f` and recorded as OPEN.
+- 2026-08-16 — confirmed already fixed in code by later work and pinned with a
+  regression test. The record had stayed OPEN after the fix landed, so the
+  divergence looked live for longer than it was.

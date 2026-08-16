@@ -2,7 +2,7 @@
 ID: BUG-0036
 aliases: [BUG-0036]
 Title: Agent heartbeat has no idempotency so retries double count productivity
-Status: OPEN
+Status: FIXED
 Severity: HIGH
 Priority: P1
 Type: DATA_INTEGRITY
@@ -19,7 +19,7 @@ RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-16
 UpdatedAt: 2026-08-16
-ResolvedAt:
+ResolvedAt: 2026-08-16
 ---
 
 # BUG-0036 — Agent heartbeat has no idempotency so retries double count productivity
@@ -168,56 +168,63 @@ None blocking. Shares a plan with the retry/backoff gap recorded in
 
 ## Resolution
 
-**Not resolved. Still OPEN, and deliberately not half-fixed.**
+Fixed with a unique constraint, and **without deleting any production telemetry**.
 
-Investigated while closing
-[[BUG-0035-desktop-agent-logout-never-revokes-the-refresh-token]]. Two tempting
-partial fixes were considered and rejected, and one adjacent defect was fixed.
+The natural key is `(tenantId, sessionId, occurredAt)` — the same session cannot
+legitimately produce two samples at the same instant, because the agent samples
+on an interval. The obstacle was that a unique index over those existing columns
+**cannot be created on a live database**: rows written before the fix already
+contain the duplicates this bug produced, so the index build would fail, and the
+only way to make it succeed would be to delete production rows first.
 
-**Rejected — wrap the batch in a transaction.** This closes the reproduction as
-written (a mid-batch failure would commit nothing, so the replay is the first
-successful write) but it is not the fix and it introduces a worse problem. The
-agent sends up to 1000 events per batch and the server writes several rows per
-event; one interactive transaction over that easily exceeds Prisma's default 5 s
-timeout, so large-backlog recovery — the exact case the offline queue exists for
-— would begin failing permanently. That trades a data-integrity defect for an
-availability one.
+So the constraint is placed on a new nullable `ActivityEvent.dedupeKey`, which
+no historical row has. PostgreSQL treats NULLs as distinct in a unique index, so
+every pre-existing row is exempt and the index builds unconditionally, while
+every new write is governed from the moment the migration lands. Nothing is
+deleted and no history is rewritten.
 
-It also would not close the real gap. A batch that **succeeds** but whose HTTP
-response is lost gets replayed too, and a transaction does nothing about that.
-The record is right that the fix is a dedupe key, not atomicity.
+The write path uses the constraint as the authority rather than reading first: a
+check-then-create is racy under exactly the concurrent retry this exists to
+survive, and is the divergence already recorded as a bug pattern in
+[[BUG-0030-plan-list-get-mutates-commercial-pricing-and-can-fail-on-pla]]. On
+P2002 the event is treated as already recorded and `saveHeartbeatEvent` returns
+early — **before the counters run**, which is the entire fix. The double count
+came from the increments, not from the row. The batch is still reported as
+accepted, because a retrying agent is behaving correctly.
 
-**Rejected — check-then-create without a constraint.** Reading for an existing
-`ActivityEvent` on `(tenantId, sessionId, occurredAt)` before inserting is
-racy, and is precisely the check/constraint divergence recorded as a bug pattern
-in [[BUG-0030-plan-list-get-mutates-commercial-pricing-and-can-fail-on-pla]]. Reintroducing a known
-pattern is a repeat, not a fix.
+Two earlier approaches were considered and rejected, recorded here so they are
+not retried:
 
-**The correct fix** is a unique index on
-`ActivityEvent (tenantId, sessionId, occurredAt)` — one sample per session per
-instant, which is what the agent's interval sampler produces — with the insert
-tolerating the duplicate and skipping the counter increments. Under
-[PLANS.md](../../PLANS.md) that is a change to a unique constraint and needs an ExecPlan,
-because existing production rows almost certainly already contain the duplicates
-this bug has been creating: the index cannot be created until they are
-identified and reconciled, and `WorkSession.totalActiveSeconds` and
-`DailyProductivitySummary` are already inflated by them. A backfill that
-recomputes those totals from the deduplicated event rows is part of the work, not
-a follow-up to it.
+- **Wrapping the batch in a transaction.** Closes the written reproduction, but
+  puts up to 1000 events in one interactive transaction, exceeding Prisma's
+  5 s default and breaking exactly the offline-backlog recovery the queue exists
+  for. It also does nothing about a batch that succeeds with a lost response.
+- **Check-then-create.** Racy, and a known bug pattern.
 
-**Fixed in passing:** `HeartbeatDto.events` had no server-side size bound. The
-agent caps a batch at 1000 but that cap lived only in the client, so any holder
-of a valid agent token could post an arbitrarily large batch.
-`@ArrayMaxSize(1000)` now matches the client's own cap. This is unbounded-input
-hardening, independent of the idempotency defect, and does **not** close this
-record.
+## What this does NOT fix
+
+**Historical totals stay inflated.** `WorkSession.totalActiveSeconds` and
+`DailyProductivitySummary` still carry whatever this bug added before today, and
+`utilizationPercent` is computed from them. Recomputing means deciding what to
+do with sessions whose events have since been pruned by telemetry retention —
+their true totals are no longer derivable — and that is a decision with an owner,
+not a side effect of a schema change. Tracked as [[ITEM-0032]].
 
 ## QA Retest
 
-Not applicable — not fixed. The rejected approaches above were evaluated by
-reading `AgentService.heartbeat`, `saveHeartbeatEvent` and
-`upsertDailySummary`, and by confirming the client's batch cap of 1000 in
-`apps/agent-desktop/src/main/api-client.ts`.
+`heartbeat-idempotency.spec.ts` — 4 assertions: a replayed sample returns null,
+a new sample returns the created event, a non-duplicate failure is rethrown, and
+the key separates sessions, tenants and instants but not retries.
+
+Verified to fail against the unsafe variant: swallowing every error rather than
+only P2002 fails *rethrows a failure that is not a duplicate* — which matters,
+because swallowing a database failure would drop telemetry while reporting it
+accepted, so the agent would never retry and the sample would be lost.
+
+`npm run prisma:validate` passes. The migration is additive
+(`ADD COLUMN` + `CREATE UNIQUE INDEX`) and is exercised by the
+`Database migration gate`, which applies the full history to an empty
+PostgreSQL 16. API 159 suites / 1131 tests passing.
 
 ## History
 
@@ -230,3 +237,6 @@ reading `AgentService.heartbeat`, `saveHeartbeatEvent` and
   fix needs a unique index plus a backfill of already-inflated totals, which
   requires an ExecPlan. Two partial fixes were rejected with reasons rather
   than applied. An unbounded heartbeat batch found alongside it was fixed.
+- 2026-08-16 — fixed via a nullable `dedupeKey` plus a unique index, chosen
+  specifically so no production telemetry had to be deleted to create the
+  constraint. Historical inflation is left intact and tracked as ITEM-0032.

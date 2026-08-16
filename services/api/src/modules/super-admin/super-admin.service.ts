@@ -745,18 +745,6 @@ export class SuperAdminService {
     return this.platformLifecycleService.bulkDeleteCustomers(actor, dto.ids);
   }
 
-  startCustomerOnboarding(
-    actor: AuthenticatedUser,
-    customerId: string,
-    dto?: Partial<CreateCustomerOnboardingRecordDto>,
-  ) {
-    return this.platformLifecycleService.createOnboardingFromCustomer(
-      actor,
-      customerId,
-      dto,
-    );
-  }
-
   listCustomerOnboardings(
     actor: AuthenticatedUser,
     query: CustomerOnboardingQueryDto,

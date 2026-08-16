@@ -2,7 +2,7 @@
 ID: BUG-0019
 aliases: [BUG-0019]
 Title: Partner inquiry and onboarding review screens have no inbound link
-Status: OPEN
+Status: FIXED
 Severity: HIGH
 Priority: P1
 Type: UX
@@ -18,8 +18,8 @@ RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-15
-UpdatedAt: 2026-08-15
-ResolvedAt:
+UpdatedAt: 2026-08-16
+ResolvedAt: 2026-08-16
 ---
 
 # BUG-0019 — Partner inquiry and onboarding review screens have no inbound link
@@ -109,12 +109,44 @@ about permissions; the surface simply cannot be reached.
 
 ## Resolution
 
-Not resolved.
+Fixed. The cause was narrower and stranger than "routing was never completed":
+**both runtime modules already existed, fully defined**, and their list routes
+redirected away from them.
+
+`apps/admin/app/(internal)/partner-inquiries/page.tsx` was
+`redirect("/partners?viewId=partner-inquiries")` and the partner-onboarding page
+was the equivalent. So a reviewer was sent to a **Partner** list — a different
+entity — whose rows link to `/partners/{partnerId}`, an id the detail screens
+cannot resolve. Every individual piece was present and correct; only the route
+that joined them navigated somewhere else.
+
+Both pages now render their own module. `partner-inquiries` was already in the
+sidebar and had simply been redirecting; `partner-onboarding` had no entry at
+all and now has one.
+
+**Sequencing satisfied.** This record warned that fixing it makes
+[[BUG-0016-partner-onboarding-review-has-no-state-machine]] reachable by ordinary
+users, and that the two should land together. BUG-0016 is FIXED, so the state
+machine is in place before the screens became reachable.
+
+**A third instance was found by the invariant, not by the report.**
+`/signature-requests` redirected to `/contracts?viewId=awaiting-external-signature`
+while the `signature-requests` module is defined over SignatureRequest rows —
+recipients, expiry, completion — which a Contract list cannot show. Fixed the
+same way.
 
 ## QA Retest
 
-Not applicable. All UI findings in the source run are code-read, not observed in
-a browser.
+`apps/admin/lib/runtime/module-routes.invariant.spec.ts` — 20 assertions. For
+every module declaring a `routeBase`, the page at that route must render the
+module rather than navigate away.
+
+It found all three instances on its first run, including the one no record
+mentioned. Admin suite: 10 suites, 91 tests passing; typecheck and ESLint clean.
+
+The check strips comment lines before matching, because an earlier draft flagged
+the *fix's own doc comment* — which quotes the old `redirect(...)` — as the
+defect.
 
 ## History
 
@@ -123,3 +155,6 @@ a browser.
   awaiting Architect triage.
 
 - 2026-08-15 — Architect triage: PLAN_REQUIRED. The sequencing dependency on BUG-0016 is now discharged — the review endpoint refuses illegal transitions, so making the screens reachable no longer exposes an ungoverned endpoint. The fix itself is not a navigation tweak: the `partner-inquiries` runtime view is bound to **Partner** rows and must be re-pointed at `PartnerInquiry`, which changes what its columns, filters and row actions mean. That is a runtime-registry change with three consumers and warrants a plan. Browser scenario B4 now carries the reachability assertion, marked `fixme`, so the gap appears in every report instead of being absent.
+- 2026-08-16 — fixed by pointing both routes at the modules that already
+  existed, plus a missing sidebar entry. An invariant written for the two
+  reported instances immediately found a third (`signature-requests`).

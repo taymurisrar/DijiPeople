@@ -165,16 +165,64 @@ bug pattern [[declared-but-unwired-step]].
 
 ## Resolution
 
-Not resolved. Found by an audit; no product code changed by that task.
+**Partially fixed. Still OPEN — the feed does not exist yet.**
+
+Two of the three defects in this record are fixed. The third is a feature build
+that turns on unattended software installation on employee machines, and it
+carries a decision I should not make silently.
+
+## Fixed
+
+- **The failure was invisible.** `checkForUpdates` logged
+  `agent.update.check_failed` with **no reason attached**, so a feed answering
+  404 on every check for months looked exactly like a transient network blip in
+  the agent's own logs — the one place anyone would look. The reason is now
+  captured and logged, bounded and whitespace-collapsed.
+- **The forced-update path was a dead end.** "Check for updates" called
+  `checkForUpdates`, which failed silently, and the dialog simply closed —
+  leaving the employee blocked from tracking with no information and no next
+  step. The only button that did anything was Quit. It now reports that the
+  update service could not be reached, quotes the reason, and names the installed
+  and required versions so an IT administrator can act on it.
+
+## Not fixed, and what it needs
+
+`electron-updater`'s generic provider requests `<url>/latest.yml`, whose entries
+must carry a **sha512** of the artefact. `ApplicationRelease` stores
+`checksumSha256`. So the feed needs:
+
+1. an additive `checksumSha512` column and a publisher change to compute it —
+   `ReleasePublisherService` already receives the artefact as a buffer, so this
+   part is straightforward;
+2. a feed endpoint rendering `latest.yml` from the latest active STABLE release
+   for the requesting platform;
+3. an artefact route the updater can fetch.
+
+**The decision.** `GET app-releases/:id/download` is gated behind
+`appDownloads.read`. A generic-provider feed is fetched with no session, so
+serving it the same way would make the agent installer publicly downloadable —
+an exposure change to a deliberate design, not an oversight to correct.
+
+There is a good answer: `autoUpdater.requestHeaders` lets the agent send its own
+`Authorization` header, so the feed can stay authenticated. That should be
+confirmed as the intended design rather than assumed by me.
+
+**And it cannot be verified here.** There is no published artefact and no storage
+backend in this environment, so an implementation would be unrunnable code
+shipped into an auto-update path. That is the wrong thing to guess at.
+
+Needs an ExecPlan under [PLANS.md](../../PLANS.md) covering the column, the
+publisher change, the two endpoints, the agent's `requestHeaders`, and a staging
+verification against a real artefact.
 
 ## QA Retest
 
-Not applicable — not yet fixed. Verified by enumerating `AgentController`'s
-routes, grepping the API for `agent/updates`, and reading
-`electron-builder.yml`, `update-manager.ts` and `app-release.controller.ts` at
-`78072d2`. **No network request was made to the production host**, so the
-possibility of a rewrite configured outside this repository is not excluded —
-though nothing in `render.yaml` provides one.
+The two agent-side fixes typecheck (`npx tsc --noEmit` in
+`apps/agent-desktop`, exit 0). `apps/agent-desktop` has no test runner —
+recorded separately as ITEM-0028 — so neither is covered by an automated
+assertion, which is stated here rather than implied.
+
+The feed remains unverified because it remains unbuilt.
 
 ## History
 
@@ -183,3 +231,8 @@ though nothing in `render.yaml` provides one.
 - 2026-08-16 — Architect triage: `PLAN_REQUIRED`. There is no one-line fix; the
   decision is which of three distribution models the product wants, and it is
   inseparable from the signing decision in ITEM-0026.
+- 2026-08-16 — the silent failure and the dead-end forced-update dialog are
+  fixed. The feed itself stays open: it needs a sha512 column, two endpoints, and
+  a decision about whether the artefact is served publicly or behind
+  `autoUpdater.requestHeaders`. Left unbuilt rather than guessed at, because it
+  installs software on employee machines and cannot be verified here.

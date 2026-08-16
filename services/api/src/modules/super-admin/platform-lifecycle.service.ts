@@ -1306,6 +1306,54 @@ export class PlatformLifecycleService {
     return { deletedCount: result.count };
   }
 
+  /**
+   * Create the tenant row, treating a lost slug race as the duplicate submit it
+   * almost always is (BUG-0022).
+   *
+   * `Tenant.slug` is `@unique`, and both requests in a double-submit resolve the
+   * same slug from `onboarding.plannedTenantSlug`, so the database already
+   * refuses the second tenant. This does not add a second guard on top of that —
+   * it reports the one that exists. The distinction matters: inventing an
+   * application-level lock here would be a check where a constraint already
+   * decides, which is the divergence recorded in BUG-0030.
+   *
+   * A P2002 is only translated when the onboarding has since gained a tenant.
+   * Any other cause — a slug legitimately held by an unrelated tenant — is
+   * rethrown untouched, because reporting that as success would tell an operator
+   * a workspace exists when it does not.
+   */
+  private async createTenantRowIdempotently(input: {
+    onboardingId: string;
+    customerId: string;
+    data: Prisma.TenantCreateInput | Prisma.TenantUncheckedCreateInput;
+  }) {
+    try {
+      return await this.prisma.tenant.create({
+        data: input.data as Prisma.TenantUncheckedCreateInput,
+      });
+    } catch (error) {
+      const isUniqueViolation =
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002';
+      if (!isUniqueViolation) throw error;
+
+      const winner = await this.prisma.customerOnboarding.findUnique({
+        where: { id: input.onboardingId },
+        select: { tenantId: true },
+      });
+      if (!winner?.tenantId) throw error;
+
+      return {
+        alreadyExists: {
+          tenantId: winner.tenantId,
+          customerId: input.customerId,
+          onboardingId: input.onboardingId,
+          alreadyExists: true as const,
+        },
+      };
+    }
+  }
+
   async createTenantFromOnboarding(
     actor: AuthenticatedUser,
     onboardingId: string,
@@ -1434,7 +1482,28 @@ export class PlatformLifecycleService {
       );
     }
 
-    const createdTenant = await this.prisma.tenant.create({
+    /*
+     * BUG-0022 — the last gap in double-submit protection.
+     *
+     * Two guards already stand in front of this create: the check above returns
+     * the existing tenant when `onboarding.tenantId` is set, and `Tenant.slug`
+     * is `@unique`, so a second create for the same onboarding cannot succeed.
+     *
+     * What was missing is the *race*: two requests that both read the onboarding
+     * before either writes both pass the check, and the loser hit a raw P2002 —
+     * surfacing to an operator as an unexplained failure on the most expensive
+     * create in the product, with no way to tell "your click was duplicated"
+     * from "provisioning is broken".
+     *
+     * The constraint stays the authority; only the reporting changes. On P2002
+     * the onboarding is re-read, and if the winner has since linked its tenant
+     * the loser returns that same result. It does NOT assume — if the row still
+     * has no tenant, the conflict is something else (a slug genuinely taken by
+     * an unrelated tenant) and the original error is rethrown.
+     */
+    const createdTenant = await this.createTenantRowIdempotently({
+      onboardingId,
+      customerId: onboarding.customerId,
       data: {
         customerAccountId: onboarding.customerId,
         originatingPartnerId: onboarding.customer.originatingPartnerId,
@@ -1469,6 +1538,13 @@ export class PlatformLifecycleService {
         },
       },
     });
+
+    if ('alreadyExists' in createdTenant) {
+      // The concurrent request won and has already linked its tenant. Return
+      // the same shape the pre-check returns, so a duplicated click is
+      // indistinguishable from a single one to the caller.
+      return createdTenant.alreadyExists;
+    }
 
     /*
      * Link the onboarding to the tenant before anything else can fail.

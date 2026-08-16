@@ -10374,6 +10374,23 @@ model ActivityEvent {
   occurredAt      DateTime
   receivedAt      DateTime           @default(now())
   createdAt       DateTime           @default(now())
+  /// Idempotency key for one heartbeat sample: tenant + session + instant.
+  ///
+  /// BUG-0036. The desktop agent re-sends a whole batch when a send fails, and
+  /// the server created every event unconditionally while *incrementing* running
+  /// totals — so a replayed batch permanently inflated
+  /// `WorkSession.totalActiveSeconds` and `DailyProductivitySummary`, which is
+  /// what `utilizationPercent` is computed from.
+  ///
+  /// A separate nullable column rather than `@@unique([tenantId, sessionId,
+  /// occurredAt])` over the existing fields, because rows written before this
+  /// fix already contain the duplicates the bug created: a unique index across
+  /// those columns could not be created without first deleting production
+  /// telemetry. Historical rows keep NULL, PostgreSQL excludes NULLs from a
+  /// unique index, so the constraint governs new writes from the moment it
+  /// exists while destroying nothing. Correcting the already-inflated historical
+  /// totals is a separate, explicit decision — see the bug record.
+  dedupeKey       String?            @unique
   tenant          Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   employee        Employee           @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
