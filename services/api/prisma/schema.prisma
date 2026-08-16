@@ -2765,6 +2765,18 @@ model Partner {
   id                     String                         @id @default(uuid())
   code                   String                         @unique
   type                   PartnerType                    @default(COMPANY)
+  /// The commercial relationship this partner was taken on under (ITEM-0030).
+  ///
+  /// Distinct from `type`, which is the contracting entity — INDIVIDUAL or
+  /// COMPANY — and says nothing about the partnership. `PartnerInquiry` has
+  /// captured this since Wave 3, and converting an inquiry used to discard it,
+  /// so the one field an operator triages on did not survive the moment the
+  /// relationship actually began.
+  ///
+  /// Nullable: partners created before this existed were taken on under a model
+  /// nobody recorded, and inventing one for them would be a fabricated
+  /// commercial fact.
+  partnershipModel       PartnershipModel?
   displayName            String
   legalName              String?
   companyName            String?
@@ -2802,6 +2814,8 @@ model Partner {
   correctedAttributions  LeadAttributionCorrection[]    @relation("CorrectedAttributionPartner")
   timeline               PartnerTimeline[]
 
+  // ITEM-0030 — partner reporting groups by the commercial relationship.
+  @@index([partnershipModel])
   @@index([status, createdAt])
   @@index([displayName])
   @@index([email])
