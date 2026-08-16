@@ -446,3 +446,31 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Proven to fail without the fix** | Reported BUG-0038 on its first run, before it was known to exist. |
 | **Fixed** | 2026-08-17, branch `agent/bug-closure-stabilization` |
 | **Active** | yes |
+
+### REG-034 — A route proxy forwards a refusal and never answers around one
+
+| | |
+|---|---|
+| **Bug class** | `proxy-authorization-decision` |
+| **Module** | `apps/web` |
+| **Bug record** | BUG-0039 |
+| **Root cause** | Three proxies re-requested `/me/*` when the API answered 403 and returned it as 200, so a refusal became a success carrying different data under a URL naming the record that was asked for. Nothing logged the substitution and the caller could not tell. |
+| **Regression test** | `scripts/check-proxies-forward-refusals.mjs` (CI: `npm run check:proxies-forward-refusals`) |
+| **Scenario** | Branch on a 401/403 in a route handler and issue another upstream request → the check names the file and branch and exits 1. Refreshing a token and retrying the same request is allowlisted with its reason. |
+| **Proven to fail without the fix** | Found a third instance the bug record did not name, on its first run; restoring the `/me/payslips` fallback fails it. |
+| **Fixed** | 2026-08-17, branch `agent/final-parent-implementation` |
+| **Active** | yes |
+
+### REG-035 — The Next apps ship security response headers
+
+| | |
+|---|---|
+| **Bug class** | `missing-security-header` |
+| **Module** | `packages/config`, all three Next apps |
+| **Bug record** | BUG-0040 |
+| **Root cause** | No CSP, no frame protection, no HSTS, no nosniff, no referrer policy in any of the three apps. The tenant product renders payroll and bank details and could be framed by any site. |
+| **Regression test** | `packages/config/security-headers.test.js` (CI: `npm run test:security-headers`) |
+| **Scenario** | Every path gets the five baseline headers; the CSP is emitted as Content-Security-Policy-Report-Only and never as an enforced Content-Security-Policy; X-Frame-Options is DENY. |
+| **Proven to fail without the fix** | The report-only and frame-protection assertions fail if either decision is reversed — which is the accident they exist to catch, since promoting the CSP looks like an improvement. |
+| **Fixed** | 2026-08-17, branch `agent/final-parent-implementation` |
+| **Active** | yes |
