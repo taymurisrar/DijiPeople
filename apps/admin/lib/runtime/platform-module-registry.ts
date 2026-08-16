@@ -782,6 +782,109 @@ const definitions: PlatformModuleDefinition[] = [
           ...field("message", "Website message", "longText", "requirement"),
           readOnly: true,
         },
+        // Wave 3 acquisition context. All read-only: these record what the
+        // visitor told us and what the page captured, so an operator editing
+        // them would be rewriting the inquiry rather than working it.
+        {
+          ...field("inquiryIntent", "Inquiry intent", "option", "requirement"),
+          readOnly: true,
+        },
+        {
+          ...field(
+            "interestAreas",
+            "Interest areas",
+            "multiSelect",
+            "requirement",
+          ),
+          readOnly: true,
+        },
+        {
+          ...field("sourcePage", "Submitted from", "text", "acquisition"),
+          readOnly: true,
+        },
+        {
+          ...field("referrerUrl", "Referrer", "text", "acquisition"),
+          readOnly: true,
+        },
+        {
+          ...field("utmSource", "Campaign source", "text", "acquisition"),
+          readOnly: true,
+        },
+        {
+          ...field("utmMedium", "Campaign medium", "text", "acquisition"),
+          readOnly: true,
+        },
+        {
+          ...field("utmCampaign", "Campaign", "text", "acquisition"),
+          readOnly: true,
+        },
+        {
+          ...field("utmContent", "Campaign content", "text", "acquisition"),
+          readOnly: true,
+        },
+        {
+          ...field("utmTerm", "Campaign term", "text", "acquisition"),
+          readOnly: true,
+        },
+        {
+          ...field("marketCode", "Market", "text", "acquisition"),
+          readOnly: true,
+        },
+        {
+          ...field("correlationId", "Correlation ID", "text", "acquisition"),
+          readOnly: true,
+        },
+        // Consent evidence. Read-only by design: a consent record an operator
+        // can edit is not evidence of anything.
+        {
+          ...field(
+            "privacyNoticeVersion",
+            "Privacy notice version",
+            "text",
+            "acquisition",
+          ),
+          readOnly: true,
+        },
+        {
+          ...field(
+            "privacyNoticeAcceptedAt",
+            "Notice acknowledged",
+            "dateTime",
+            "acquisition",
+          ),
+          readOnly: true,
+        },
+        {
+          ...field(
+            "marketingConsent",
+            "Marketing consent",
+            "boolean",
+            "acquisition",
+          ),
+          readOnly: true,
+        },
+        {
+          ...field(
+            "marketingConsentAt",
+            "Marketing consent given",
+            "dateTime",
+            "acquisition",
+          ),
+          readOnly: true,
+        },
+        {
+          ...field(
+            "marketingConsentWithdrawnAt",
+            "Marketing consent withdrawn",
+            "dateTime",
+            "acquisition",
+          ),
+          readOnly: true,
+        },
+        {
+          ...field("submissionHash", "Submission key", "text", "acquisition"),
+          readOnly: true,
+        },
         field(
           "interestedPlan",
           "Interested product or plan",
@@ -1652,8 +1755,13 @@ const definitions: PlatformModuleDefinition[] = [
       [
         col("referenceNumber", "Inquiry", 170),
         col("companyName", "Partner or company", 230),
-        col("email", "Business email", 220),
-        col("type", "Partner type", 140),
+        // The commercial relationship being proposed. Leading with it because
+        // it is what an operator triages on — `type` is INDIVIDUAL/COMPANY,
+        // the contracting entity, and says nothing about the partnership.
+        col("partnershipModel", "Partnership", 190, "status"),
+        col("email", "Work email", 220),
+        col("country", "Country", 130),
+        col("type", "Entity type", 130, "status"),
         col("status", "Status", 150, "status"),
         col("createdAt", "Received", 170, "dateTime"),
       ],

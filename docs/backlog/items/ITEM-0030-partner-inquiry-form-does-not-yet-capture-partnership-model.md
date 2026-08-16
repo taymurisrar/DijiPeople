@@ -2,7 +2,7 @@
 ID: ITEM-0030
 Title: Partner inquiry form does not yet capture partnership model
 Type: FOLLOW_UP
-Status: READY
+Status: VALIDATING
 Priority: P2
 Severity: MEDIUM
 AffectedModules: [apps/landing, api:partners]
@@ -14,7 +14,7 @@ UpdatedAt: 2026-08-16
 RelatedBug: BUG-0019
 RelatedQA: 
 RelatedADR: 
-RelatedImplementation:
+RelatedImplementation: agent/final-consolidation
 TargetMilestone: 
 BlockedBy: 
 ---
@@ -88,3 +88,32 @@ None. The schema landed in Wave 3.
 
 - 2026-08-16 — created during Wave 3, which completed the Lead path and left the
   partner form for a focused follow-up.
+
+## Delivered — Final Consolidation Wave
+
+Completed end to end.
+
+- **Public form** now asks "How would you like to partner with DijiPeople?" and
+  submits `partnershipModel`. The entity-type question is preserved separately
+  and reworded ("A company or organization" / "An individual") so the two are
+  visibly different questions rather than the same one twice.
+- **Country** is a bound select persisting an ISO code; it was free text.
+- **Website** is validated as a URL in the DTO, since Admin renders it as a link.
+- **Consent split** — acknowledgement wording now describes evaluating the
+  partnership inquiry, with a separate optional marketing checkbox. The privacy
+  notice *version* is recorded by the server, matching the Lead path.
+- **Attribution** — `sourcePage`, `referrerUrl` and UTM values captured and
+  persisted; absent values stay null.
+- **Admin** — the inquiry list leads with Partnership, then work email, country
+  and entity type. Partnership is what an operator triages on; entity type is
+  not.
+
+`PartnerInquiry.submissionHash` already provided idempotency and was reused
+unchanged, as was the `PartnerInquiryStatus` lifecycle.
+
+## Regression coverage
+
+`services/api/src/modules/partner-experience/partner-inquiry-acquisition.spec.ts`
+— six assertions, including an explicit check that `PartnerType` and
+`PartnershipModel` share no values, so neither can be overloaded into the other
+later.
