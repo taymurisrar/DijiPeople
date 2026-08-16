@@ -9,7 +9,7 @@
 |---|---|
 | Open CRITICAL | **0** |
 | Open HIGH | **4** |
-| Open total | 26 |
+| Open total | 27 |
 | Blocked | 0 |
 | Awaiting a product decision | 0 |
 | Deferred | 2 |
@@ -152,6 +152,7 @@ _None. Nothing has been deployed through the release process._
 | [[ITEM-0035-web-route-handlers-flatten-upstream-error-status-to-500|ITEM-0035]] | Web route handlers flatten upstream error status to 500 | TECH_DEBT | MEDIUM | READY | apps/web | FIX_NOW |
 | [[ITEM-0036-decide-the-fate-of-the-inert-runtime-registries-in-apps-web|ITEM-0036]] | Decide the fate of the inert runtime registries in apps/web | ARCHITECTURE | MEDIUM | READY | apps/web | PLAN_REQUIRED |
 | [[ITEM-0037-apps-web-depends-on-lucide-react-without-declaring-it|ITEM-0037]] | apps/web depends on lucide-react without declaring it | TECH_DEBT | MEDIUM | READY | apps/web | FIX_NOW |
+| [[ITEM-0038-record-ids-collide-between-concurrent-branches|ITEM-0038]] | Record ids collide between concurrent branches | TECH_DEBT | MEDIUM | READY | scripts, docs/bugs, docs/backlog | FIX_NOW |
 | [[ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning|ITEM-0023]] | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | READY | services/api/prisma, api:tenant-control-plane | DEFER |
 | [[ITEM-0015-make-the-tenant-readiness-assertion-auditable|ITEM-0015]] | Make the tenant readiness() authorization assertion auditable | FOLLOW_UP | LOW | READY | api:tenant-control-plane | FIX_NOW |
 
@@ -169,7 +170,7 @@ _None. Nothing has been deployed through the release process._
 | Knowledge | Count |
 |---|---|
 | Bug records | 46 |
-| Backlog items | 37 |
+| Backlog items | 38 |
 | Known bug patterns | 19 |
 | QA runs | 11 |
 | Engineering history records | 10 |

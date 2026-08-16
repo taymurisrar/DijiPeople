@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**83 records** — 46 bugs under [`docs/bugs/`](../bugs/), 37 non-bug items under [`items/`](items/).
+**84 records** — 46 bugs under [`docs/bugs/`](../bugs/), 38 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,7 +13,7 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 26 |
+| Open (active work) | 27 |
 | Blocked | 0 |
 | Deferred | 2 |
 | Awaiting a product decision | 0 |
@@ -27,7 +27,7 @@ see [`README.md`](README.md) for why.
 | Severity | Count |
 |---|---|
 | HIGH | 4 |
-| MEDIUM | 20 |
+| MEDIUM | 21 |
 | LOW | 2 |
 
 ## Open by type
@@ -42,7 +42,7 @@ see [`README.md`](README.md) for why.
 | INFRA | 1 |
 | INTEGRATION | 1 |
 | SECURITY | 3 |
-| TECH_DEBT | 5 |
+| TECH_DEBT | 6 |
 | TEST_GAP | 5 |
 | UX | 3 |
 
@@ -54,7 +54,7 @@ see [`README.md`](README.md) for why.
 | DEFERRED | 2 |
 | FIXED | 1 |
 | VERIFIED | 36 |
-| READY | 17 |
+| READY | 18 |
 | DEFERRED | 2 |
 | DONE | 19 |
 
@@ -133,6 +133,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0035](../../docs/backlog/items/ITEM-0035-web-route-handlers-flatten-upstream-error-status-to-500.md) | Web route handlers flatten upstream error status to 500 | TECH_DEBT | MEDIUM | P2 | READY | apps/web | FIX_NOW |
 | [ITEM-0036](../../docs/backlog/items/ITEM-0036-decide-the-fate-of-the-inert-runtime-registries-in-apps-web.md) | Decide the fate of the inert runtime registries in apps/web | ARCHITECTURE | MEDIUM | P2 | READY | apps/web | PLAN_REQUIRED |
 | [ITEM-0037](../../docs/backlog/items/ITEM-0037-apps-web-depends-on-lucide-react-without-declaring-it.md) | apps/web depends on lucide-react without declaring it | TECH_DEBT | MEDIUM | P2 | READY | apps/web | FIX_NOW |
+| [ITEM-0038](../../docs/backlog/items/ITEM-0038-record-ids-collide-between-concurrent-branches.md) | Record ids collide between concurrent branches | TECH_DEBT | MEDIUM | P2 | READY | scripts, docs/bugs, docs/backlog | FIX_NOW |
 | [ITEM-0021](../../docs/backlog/items/ITEM-0021-mechanical-guard-against-country-and-currency-literals-in-fr.md) | Mechanical guard against country and currency literals in frontends | TEST_GAP | LOW | P2 | DONE | scripts, apps/landing, apps/web, apps/admin | DEFER |
 | [ITEM-0023](../../docs/backlog/items/ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning.md) | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | P2 | READY | services/api/prisma, api:tenant-control-plane | DEFER |
 | [ITEM-0024](../../docs/backlog/items/ITEM-0024-landing-depends-on-lucide-react-without-declaring-it.md) | Landing depends on lucide-react without declaring it | TECH_DEBT | LOW | P2 | DONE | apps/landing | DEFER |
