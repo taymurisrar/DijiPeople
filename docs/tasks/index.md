@@ -8,9 +8,9 @@ graph and the block reasons. See
 
 | Bucket | Count |
 |---|---|
-| [Active](active.md) | 1 |
+| [Active](active.md) | 0 |
 | [Blocked](blocked.md) | 0 |
-| [Completed](completed.md) | 0 |
+| [Completed](completed.md) | 1 |
 
 ## Next ready work package
 
@@ -24,4 +24,4 @@ Nothing. No outstanding owner decisions, no fully blocked tasks.
 
 | ID | Title | Type | Size | Priority | Status | Packages | Current |
 |---|---|---|---|---|---|---|---|
-| [TASK-0001](TASK-0001-framework-keyword-routing-task-orchestration-and-repository-.md) | Framework: keyword routing, task orchestration and repository health | FRAMEWORK | LARGE | P1 | IN_PROGRESS | 4/6 | WP-05 |
+| [TASK-0001](TASK-0001-framework-keyword-routing-task-orchestration-and-repository-.md) | Framework: keyword routing, task orchestration and repository health | FRAMEWORK | LARGE | P1 | COMPLETE | 6/6 | — |

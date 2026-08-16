@@ -16,10 +16,10 @@
 | **Base Branch** | `origin/main` |
 | **Task Branch** | `agent/framework-orchestration` |
 | **Base SHA** | `6cfac5cee9515d7da1695796c3e819d0e2b83eec` |
-| **Final Task SHA** | `f38a6bf5ec8ea0da23df1175445f9a2f8ae9740e` |
+| **Final Task SHA** | `ea400cf3017b979fea70bfb28b83db58ce517ab3` |
 | **Target Branch** | `main` |
-| **Merge Commit** | TODO — filled after the merge |
-| **Final Target SHA** | TODO — filled after the target is pushed |
+| **Merge Commit** | `c60970e7353709dcf14474fd2a21dbade9be178d` (PR [#16](https://github.com/taymurisrar/DijiPeople/pull/16)) |
+| **Final Target SHA** | `c60970e7353709dcf14474fd2a21dbade9be178d` |
 
 ### Commits
 
@@ -208,16 +208,44 @@ mutation was applied, the suite run, and the mutation reverted:
 
 | | |
 |---|---|
-| **CI Run ID** | TODO — the run whose `CI required gate` verdict authorised the merge |
-| **CI Result** | TODO — PASS / FAILED / PENDING / BLOCKED_BY_ACCESS / UNAVAILABLE |
+| **CI Run ID** | `31952397460` and `31952395344`, both on `ea400cf` |
+| **CI Result** | **PASS** — `CI required gate` = success on `ea400cf`, the exact SHA merged |
 
 A verdict must be read **on the exact SHA being merged**. A verdict from an
 earlier commit on the same branch is a verdict about different code.
 
 ## Post-Merge Validation
 
-TODO — the commands actually run against the **merged** SHA, and their results.
-Tests that passed on the task branch prove the branch, not the integrated result.
+Run against the **merged** SHA `c60970e`, in the primary checkout on `main`:
+
+| Command | Result |
+|---|---|
+| `node scripts/validate-framework.mjs` | **PASS** — 714 checks |
+| `node scripts/rebuild-tasks.mjs --check` | **PASS** — 1 task, indexes current |
+| `node scripts/rebuild-backlog.mjs --check` | **PASS** — 53 records, 0 structural errors |
+| `node scripts/generate-dashboards.mjs --check` | **PASS** — dashboards current |
+| `node scripts/repo-health.mjs` | **PASS** — `MAIN_SYNC_STATUS = SYNCED` |
+
+`npm run build`, `npm run typecheck` and the workspace test suites were **not**
+re-run locally post-merge: this task changes no build input, no TypeScript and no
+runtime code, and CI ran all of them on `ea400cf` — the exact SHA merged — where
+`CI required gate` reported success. Post-merge CI on `c60970e` is run
+`31952821558`.
+
+### Terminal invariant
+
+```
+MAIN_SYNC_STATUS      = SYNCED
+POST_TASK_REPO_HEALTH = PASS
+
+local main   c60970e7353709dcf14474fd2a21dbade9be178d
+origin/main  c60970e7353709dcf14474fd2a21dbade9be178d
+merge SHA    c60970e7353709dcf14474fd2a21dbade9be178d
+ahead 0 · behind 0 · unfinished Git operations: none
+```
+
+All three SHAs match. Comparing only local against remote would have passed just
+as happily had the merge that landed been somebody else's.
 
 ## Release / Deployment Impact
 
