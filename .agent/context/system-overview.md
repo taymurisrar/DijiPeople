@@ -1,7 +1,7 @@
 # System Overview
 
-> **Last verified:** 2026-08-14
-> **Verified against commit:** 8682dc1
+> **Last verified:** 2026-08-16
+> **Verified against commit:** 78072d2
 > **Key source files:** package.json, turbo.json, render.yaml, services/api/src/main.ts, services/api/src/app.module.ts, services/api/src/common/config/auth.config.ts, packages/config/index.js, services/api/prisma/schema.prisma, AGENTS.md
 >
 > This document describes the repository, it is not authority over it. If the
@@ -14,7 +14,9 @@ DijiPeople is a **multi-tenant SaaS HRM and business platform**: one codebase,
 one PostgreSQL database, many tenants. Turborepo + npm workspaces monorepo.
 
 Root `package.json` declares `engines: { node: "22.x", npm: "11.x" }`,
-`packageManager: npm@11.9.0`, and workspaces `["apps/*", "packages/*", "services/*"]`.
+`packageManager: npm@11.9.0`, and workspaces
+`["apps/*", "packages/*", "services/*", "e2e"]` — `e2e` is the Playwright
+browser-journey workspace and is easy to miss.
 
 ### Surfaces
 
@@ -95,17 +97,19 @@ not by row-level security and not by Prisma middleware.
 
 ## Known exceptions
 
-- **`gateway/` (.NET solution) and `tools/zkteco-poc/` do NOT exist at this
-  commit.** `git ls-files gateway tools` returns zero entries and neither
-  directory is present or gitignored. Root `AGENTS.md` still describes them.
-- **`attendance-engine` and `attendance-integrations` modules do NOT exist.**
-  `services/api/src/modules/attendance/` contains only controller, module,
-  repository, service, spec and `dto/`. Root `AGENTS.md` lists both.
-- **`app-releases` module does not exist**; `agent`, `dashboard`, `inbox`,
-  `reports` exist and are absent from the `AGENTS.md` table.
-- Schema/migration counts in root `AGENTS.md` (285 models, 255 enums, 191
-  migrations, ~11,800 lines) are **higher than reality at this commit**
-  (266 / 222 / 184 / 10,436).
+> **Five "does not exist" claims that used to sit here have been removed** —
+> every one of them had become false. They denied `gateway/`,
+> `tools/zkteco-poc/`, `attendance-engine`, `attendance-integrations` and
+> `app-releases`. All five exist. Corrected 2026-08-16 at `78072d2`; see
+> [[BUG-0037-integration-patterns-context-denies-four-subsystems-that-exi]] and
+> the generalised guard in [[ITEM-0011]].
+
+- **Re-derive counts; do not trust them here or in root `AGENTS.md`.** Measured
+  at `78072d2`: **65** modules under `services/api/src/modules/`, and
+  `schema.prisma` at **12,211 lines, 292 models, 264 enums**, with **194**
+  migrations. Root `AGENTS.md` states 63 / 11,802 / 285 / 255 / 191, measured at
+  `78716c4`. Neither set is wrong for its commit; both go stale within days.
+  This repository moves fast enough that a count is a timestamp, not a fact.
 - `@Public()` appears **24 times across 10 controllers**, not the four routes
   root `AGENTS.md` claims: `agent` (3), `auth` (9), `admin-auth` (3),
   `public-billing` (2), `stripe-webhook` (1), `public-leads` (1),

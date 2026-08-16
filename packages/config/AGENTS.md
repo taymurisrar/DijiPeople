@@ -37,7 +37,11 @@ Rules:
 
 `index.js` is the single source of truth for local ports and app URLs:
 
-- `DEFAULT_LOCAL_PORTS` — landing 3000, web 3001, admin 3002, docs 3003, api 4000
+- `DEFAULT_LOCAL_PORTS` — landing 3000, web 3001, admin 3002, api 4000.
+  **There is no `docs` key**, and none in `PRODUCTION_APP_URLS` either, so
+  `apps/docs` is the one application whose port (3003) is hardcoded in its own
+  `package.json` rather than resolved from here. This line previously listed
+  "docs 3003" as a member; corrected 2026-08-16 at `78072d2`.
 - `PRODUCTION_APP_URLS`, `APP_PORT_ENV_KEYS`, `APP_URL_ENV_KEYS`
 - `getAppPort`, `getAppOrigin`, `getApiBaseUrl`, `getAllowedCorsOrigins`,
   `getAppStage`, `isProductionLike`, `getLocalArchitecture`

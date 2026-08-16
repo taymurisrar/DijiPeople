@@ -19,7 +19,7 @@ other's working tree.
   [`branch-protection.md`](branch-protection.md), and
   [`../../.agent/context/repository-health.md`](../../.agent/context/repository-health.md)
   for recovering commits that reached local `main` by accident.
-- **CI exists** — `.github/workflows/ci.yml`, eight required jobs behind the
+- **CI exists** — `.github/workflows/ci.yml`, **ten** required jobs behind the
   single `CI required gate` check. See [`ci.md`](ci.md).
   > These two bullets previously read "No CI — there is no `.github/`
   > directory". Both CI and branch protection were added afterwards, and the

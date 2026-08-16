@@ -1,8 +1,8 @@
 # Frontend Architecture
 
-> **Last verified:** 2026-08-14
-> **Verified against commit:** 8682dc1
-> **Key source files:** apps/web/app/(authenticated)/layout.tsx, apps/web/lib/server-api.ts, apps/web/lib/auth-config.ts, apps/web/lib/auth.ts, apps/web/lib/tenant-resolution.ts, apps/web/proxy.ts, apps/admin/proxy.ts, apps/admin/app/(internal)/layout.tsx, apps/admin/lib/server-api.ts, apps/admin/lib/auth-config.ts, apps/web/app/api/auth/login/route.ts, apps/web/app/api/teams/route.ts, apps/web/app/api/tenant-settings/branding-assets/route.ts, apps/web/jest.config.js, apps/admin/jest.config.js, scripts/next-with-port.mjs, packages/config/index.js
+> **Last verified:** 2026-08-16
+> **Verified against commit:** 78072d2
+> **Key source files:** apps/web/app/(authenticated)/layout.tsx, apps/web/lib/server-api.ts, apps/web/lib/auth-config.ts, apps/web/lib/auth.ts, apps/web/lib/tenant-resolution.ts, apps/web/proxy.ts, apps/admin/proxy.ts, apps/admin/app/(internal)/layout.tsx, apps/admin/lib/server-api.ts, apps/admin/lib/auth-config.ts, apps/web/app/api/auth/login/route.ts, apps/web/app/api/teams/route.ts, apps/web/app/api/tenant-settings/branding-assets/route.ts, apps/web/jest.config.js, apps/admin/jest.config.js, apps/landing/jest.config.js, scripts/next-with-port.mjs, packages/config/index.js
 >
 > This document describes the repository, it is not authority over it. If the
 > code disagrees, the code is current truth — report the discrepancy and
@@ -270,18 +270,21 @@ it is the `"jest"` block in `services/api/package.json:111-130`, also `node`
 (`:129`).
 
 **jsdom is not used and not installed.** The only occurrences of the string in
-any config are the two comments explaining its absence
-(`apps/web/jest.config.js:10`, `apps/admin/jest.config.js:9`). **`apps/landing`
-has no jest config and no `test` script.**
+any config are the comments explaining its absence.
 
-Actual frontend tests: **9 files, all `.spec.ts`.** Web (5):
-`app/(authenticated)/_components/navigation.spec.ts`,
-`app/components/branding/tenant-logo-resolution.spec.ts`,
-`lib/runtime/command-catalog.spec.ts`,
-`lib/runtime/modules/standard-module-views.spec.ts`,
-`lib/runtime/visibility.resolver.spec.ts`. Admin (4): `lib/auth-config.spec.ts`,
-`lib/platform-appearance.spec.ts`, `lib/platform-rbac.spec.ts`,
-`lib/runtime/runtime-lookups.spec.ts`.
+**All three frontends have a jest config and a `test` script** — web, admin and
+landing. `apps/landing/jest.config.js` exists and its header records that it was
+added because [[BUG-0028-country-to-currency-mapping-is-hardcoded-in-the-landing-fron]]
+shipped without it; a required `test-landing` CI job runs it.
+
+> This paragraph previously read "**`apps/landing` has no jest config and no
+> `test` script.**" and listed "**9 files**" by name. Both became false and were
+> corrected 2026-08-16 at `78072d2`. The named-file list is deliberately not
+> reinstated — an enumeration is a snapshot that goes stale the next time
+> somebody adds a spec, which is exactly how this went wrong.
+
+Frontend spec count at `78072d2`: **28 — web 17, admin 9, landing 2.** Count
+them rather than trusting this number.
 
 ## Key abstractions
 
@@ -366,4 +369,7 @@ Actual frontend tests: **9 files, all `.spec.ts`.** Web (5):
 - If you add a header, verify no collision with the JWT `aud`/`appClientId`
   checks at `apps/web/proxy.ts:270-277`.
 - Run `npm --workspace web run check-types`, `npm --workspace web run test` and
-  the admin equivalents. **There is no CI** — nothing runs these for you.
+  the admin and landing equivalents. **CI exists** and runs them on push —
+  `lint`, `typecheck`, `test-web`, `test-admin`, `test-landing` and `build` are
+  all required jobs — but it runs on push, not on your machine, and a local pass
+  is not a CI pass.

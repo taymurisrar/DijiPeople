@@ -1,8 +1,13 @@
 # CI
 
-**Platform: GitHub Actions.** The remote is GitHub and no other CI system was
-configured — verified: no `.github/`, no `.gitlab-ci.yml`, `Jenkinsfile`,
+**Platform: GitHub Actions.** The remote is GitHub and no other CI system is
+configured — verified at `78072d2`: no `.gitlab-ci.yml`, `Jenkinsfile`,
 `.circleci`, `azure-pipelines.yml`, `.travis.yml` or `bitbucket-pipelines.yml`.
+`.github/workflows/` holds `ci.yml` and `release-app.yml`.
+
+> This sentence used to include "no `.github/`" in that list, which contradicted
+> the very next line pointing at `.github/workflows/ci.yml`. Left over from
+> before CI existed; corrected 2026-08-16.
 
 Workflow: [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml).
 Branch protection: [`branch-protection.md`](branch-protection.md).
@@ -35,13 +40,15 @@ production or staging credentials exist in the workflow.
 | `test-api` | `npm --workspace api run test` (one test excluded by name) | ✅ |
 | `test-web` | `npm --workspace web run test` | ✅ |
 | `test-admin` | `npm --workspace admin run test` | ✅ |
-| `test-runtime` | `npm run test:runtime-schema` | ✅ |
+| `test-landing` | `npm --workspace landing run test` | ✅ |
+| `test-runtime` | runtime schema, platform domains, release CLI, app URLs, no-hardcoded-URLs | ✅ |
 | `database-migration` | Ephemeral PostgreSQL → `node scripts/verify-database.mjs` | ✅ |
 | `build` | `npm run build` (needs typecheck + test-api) | ✅ |
-| `ci-required` | Aggregates the nine above | ✅ **the one to require** |
-| `database-e2e-report` | The 9 e2e suites against an ephemeral PostgreSQL | ❌ report only |
+| `ci-required` | Aggregates the **ten** above | ✅ **the one to require** |
+| `database-e2e-report` | The e2e suites against an ephemeral PostgreSQL | ❌ report only |
 | `lint-api-report` | `npx eslint` in services/api | ❌ report only |
 | `security-invariant-report` | Dual-permission wiring invariant | ❌ report only |
+| `browser-e2e-report` | Playwright journeys (`e2e/`) against API + landing + admin | ❌ report only |
 
 `validate` runs without installing dependencies, so a structural break in the
 agent framework fails in seconds rather than minutes.

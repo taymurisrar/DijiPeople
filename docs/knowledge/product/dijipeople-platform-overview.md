@@ -20,8 +20,12 @@ name. See [[settings]].
 |---|---|
 | **[[tenant-application]]** (`apps/web`) | A tenant's employees, managers, HR, payroll operators and admins |
 | **[[platform-admin]]** (`apps/admin`) | DijiPeople's own staff, operating the SaaS across all tenants |
-| **Agent desktop** (`apps/agent-desktop`) | An Electron attendance agent with its own auth client |
-| **Landing** (`apps/landing`) | The public: marketing, demo requests, partner enquiry, plan browsing |
+| **[[desktop-agent]]** (`apps/agent-desktop`) | Employees, on their own workstation. An Electron **workstation-activity** agent with its own auth client — it produces utilisation data, **not** attendance |
+| **[[landing-website]]** (`apps/landing`) | The public: marketing, demo requests, partner enquiry, plan browsing, self-service checkout, contract signing |
+
+A fifth workspace, `apps/docs`, is a stock `create-turbo` starter and is **not a
+product surface** — see [[docs-application]]. It is listed here only so its
+absence from the table is not read as an omission.
 
 ## Two businesses in one repository
 
