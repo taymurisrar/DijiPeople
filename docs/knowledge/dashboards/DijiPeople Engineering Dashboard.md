@@ -8,8 +8,8 @@
 | | |
 |---|---|
 | Open CRITICAL | **0** |
-| Open HIGH | **5** |
-| Open total | 24 |
+| Open HIGH | **6** |
+| Open total | 28 |
 | Blocked | 0 |
 | Awaiting a product decision | 3 |
 | Deferred | 2 |
@@ -28,6 +28,7 @@ _None. Nothing open at CRITICAL._
 | [[BUG-0016-partner-onboarding-review-has-no-state-machine|BUG-0016]] | Partner onboarding review has no state machine | STATE_MACHINE | HIGH | FIXED | api:partner-experience | FIX_NOW |
 | [[BUG-0019-partner-inquiry-and-onboarding-review-screens-are-unreachable|BUG-0019]] | Partner inquiry and onboarding review screens have no inbound link | UX | HIGH | OPEN | apps/admin | PLAN_REQUIRED |
 | [[BUG-0026-public-login-and-tenant-email-links-resolved-to-localhost-in|BUG-0026]] | Public Login and tenant email links resolved to localhost in production | INFRA | HIGH | FIXED | apps/landing, apps/web, apps/admin, services/api, pkg:config | FIX_NOW |
+| [[BUG-0027-admin-plan-pricing-and-checkout-pricing-come-from-different-|BUG-0027]] | Admin plan pricing and checkout pricing come from different models | DATA_INTEGRITY | HIGH | OPEN | services/api/prisma, apps/admin, apps/landing | PLAN_REQUIRED |
 | [[ITEM-0004-tenant-activation-never-proven-end-to-end|ITEM-0004]] | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | READY | api:tenant-control-plane | FIX_NOW |
 
 ## Product Decisions Needed
@@ -111,6 +112,7 @@ _None. Nothing has been deployed through the release process._
 
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
+| [[ITEM-0018-plans-and-prices-have-no-draft-publish-or-archive-lifecycle|ITEM-0018]] | Plans and prices have no draft, publish or archive lifecycle | ARCHITECTURE | MEDIUM | READY | services/api/prisma, api:super-admin, apps/admin, apps/landing | PLAN_REQUIRED |
 | [[BUG-0009-session-revocation-depended-on-the-refresh-cookie|BUG-0009]] | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | FIXED | app:admin, api:auth | FIX_NOW |
 | [[BUG-0010-unguarded-cookie-options-could-turn-sign-out-into-a-500|BUG-0010]] | Unguarded cookie options could turn admin sign-out into a 500 | INFRA | MEDIUM | FIXED | app:admin | FIX_NOW |
 | [[BUG-0017-tenant-base-domain-setting-does-not-drive-hostname-issuance|BUG-0017]] | The admin-editable tenant base domain does not drive hostname issuance | INTEGRATION | MEDIUM | OPEN | pkg:config, api:tenant-control-plane | PLAN_REQUIRED |
@@ -118,6 +120,7 @@ _None. Nothing has been deployed through the release process._
 | [[BUG-0021-landing-contact-form-fabricates-lead-data|BUG-0021]] | The landing contact form fabricates lead data and has no honeypot | DATA_INTEGRITY | MEDIUM | OPEN | apps/landing, api:leads | FIX_NOW |
 | [[BUG-0022-provision-tenant-has-no-confirmation-step|BUG-0022]] | "Provision tenant" has no confirmation step and no idempotency key | UX | MEDIUM | OPEN | apps/admin, api:tenant-control-plane | FIX_NOW |
 | [[BUG-0025-a-live-partner-could-be-demoted-through-the-generic-partner-|BUG-0025]] | A live partner could be demoted through the generic partner update | STATE_MACHINE | MEDIUM | FIXED | api:partners | FIX_NOW |
+| [[BUG-0028-country-to-currency-mapping-is-hardcoded-in-the-landing-fron|BUG-0028]] | Country to currency mapping is hardcoded in the landing frontend | INTEGRATION | MEDIUM | OPEN | apps/landing | PLAN_REQUIRED |
 | [[ITEM-0002-no-live-api-session-test-harness|ITEM-0002]] | No harness exists for testing against a running API with real sessions | TEST_GAP | MEDIUM | READY | services/api, apps/admin | FIX_NOW |
 | [[ITEM-0003-tenant-erasure-never-exercised-against-a-database|ITEM-0003]] | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | READY | api:tenant-control-plane | FIX_NOW |
 | [[ITEM-0005-customeraccount-leadid-has-no-unique-constraint|ITEM-0005]] | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | READY | services/api/prisma, api:super-admin | PLAN_REQUIRED |
@@ -125,6 +128,7 @@ _None. Nothing has been deployed through the release process._
 | [[ITEM-0010-deployed-sha-is-not-exposed|ITEM-0010]] | The running system does not expose its deployed SHA | INFRA | MEDIUM | READY | services/api | FIX_NOW |
 | [[ITEM-0012-cross-check-route-methods-against-their-callers|ITEM-0012]] | Cross-check app/api route methods against the hrefs that target them | TEST_GAP | MEDIUM | READY | apps/web, apps/admin | FIX_NOW |
 | [[ITEM-0013-assert-every-public-controller-is-rate-limited|ITEM-0013]] | Assert mechanically that every @Public() controller carries the rate-limit guard | TEST_GAP | MEDIUM | READY | services/api | FIX_NOW |
+| [[ITEM-0019-no-market-or-region-model-maps-countries-to-plans-currencies|ITEM-0019]] | No market or region model maps countries to plans, currencies and legal sets | ARCHITECTURE | MEDIUM | READY | services/api/prisma, api:super-admin, apps/admin, apps/landing | PLAN_REQUIRED |
 | [[BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist|BUG-0023]] | The testing-architecture context claims two e2e specs do not exist | DOCUMENTATION | LOW | FIXED | .agent/context | FIX_NOW |
 | [[BUG-0024-start-onboarding-api-and-proxy-have-no-caller|BUG-0024]] | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | OPEN | apps/admin, api:super-admin | FIX_NOW |
 | [[ITEM-0011-framework-validation-should-catch-absence-claims|ITEM-0011]] | Framework validation should catch false absence claims in context documents | TECH_DEBT | LOW | READY | .agent/context, scripts | FIX_NOW |
@@ -143,8 +147,8 @@ _None. Nothing has been deployed through the release process._
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 26 |
-| Backlog items | 17 |
+| Bug records | 28 |
+| Backlog items | 19 |
 | Known bug patterns | 18 |
 | QA runs | 5 |
 | Engineering history records | 3 |
