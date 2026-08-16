@@ -6,6 +6,7 @@ import {
   MarketLaunchStatus,
 } from '@prisma/client';
 import { PrismaService } from '../../../common/prisma/prisma.service';
+import { TENANT_FEATURE_DEFINITIONS } from '../../tenant-settings/tenant-settings.catalog';
 import {
   isPublicSafeReason,
   resolveCommercialOffer,
@@ -177,6 +178,13 @@ export class CommercialConfigService {
       currency: market.defaultCurrency.toUpperCase(),
       billingIntervals: [BillingInterval.MONTH, BillingInterval.YEAR],
       plans: publicPlans,
+      // The feature catalogue travels with the config so the public site can
+      // render a plan comparison without holding its own copy of what each plan
+      // includes. `TENANT_FEATURE_DEFINITIONS` is the same catalogue the product
+      // gates on, so the comparison cannot drift from the entitlements — which
+      // is the failure this deliberately prevents: a marketing matrix that
+      // slowly stops matching what customers actually get.
+      featureCatalog: buildPublicFeatureCatalog(),
     };
   }
 
@@ -339,4 +347,37 @@ function toPublicOffer(result: CommercialOfferResult) {
       ? result.message
       : 'Pricing for this plan is arranged with our team.',
   };
+}
+
+/**
+ * The public view of the tenant feature catalogue.
+ *
+ * Derived from `TENANT_FEATURE_DEFINITIONS` — the same list the product gates
+ * modules on — rather than a marketing copy of it. A feature that is not in the
+ * catalogue cannot be advertised, and a feature whose entitlement changes
+ * changes here too, so the public comparison cannot quietly drift out of step
+ * with what a customer actually receives.
+ *
+ * Only `isVisible` features are exposed. Ordering is the catalogue's own
+ * category and sort order, so the public page reflects deliberate product
+ * grouping rather than schema order.
+ */
+function buildPublicFeatureCatalog() {
+  return TENANT_FEATURE_DEFINITIONS.filter((feature) => feature.isVisible)
+    .map((feature) => ({
+      key: feature.key,
+      label: feature.label,
+      description: feature.description,
+      categoryKey: feature.categoryKey,
+      categoryLabel: feature.categoryLabel,
+      categoryOrder: feature.categoryOrder,
+      sortOrder: feature.sortOrder,
+      icon: feature.icon,
+    }))
+    .sort(
+      (a, b) =>
+        a.categoryOrder - b.categoryOrder ||
+        a.sortOrder - b.sortOrder ||
+        a.label.localeCompare(b.label),
+    );
 }

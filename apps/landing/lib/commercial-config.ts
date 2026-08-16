@@ -46,6 +46,24 @@ export type CommercialPlanView = {
   offers: CommercialOfferView[];
 };
 
+/**
+ * A feature as the product defines it, not as marketing describes it.
+ *
+ * Comes from the same catalogue the product gates modules on, so the public page
+ * cannot advertise a capability that does not exist, and a feature whose
+ * entitlement changes changes here too.
+ */
+export type CommercialFeatureView = {
+  key: string;
+  label: string;
+  description: string;
+  categoryKey: string;
+  categoryLabel: string;
+  categoryOrder: number;
+  sortOrder: number;
+  icon: string | null;
+};
+
 export type CommercialConfigView = {
   market: {
     code: string;
@@ -56,6 +74,7 @@ export type CommercialConfigView = {
   currency: string | null;
   billingIntervals: Array<"MONTH" | "YEAR">;
   plans: CommercialPlanView[];
+  featureCatalog: CommercialFeatureView[];
 };
 
 const EMPTY_CONFIG: CommercialConfigView = {
@@ -63,6 +82,7 @@ const EMPTY_CONFIG: CommercialConfigView = {
   currency: null,
   billingIntervals: [],
   plans: [],
+  featureCatalog: [],
 };
 
 /**
