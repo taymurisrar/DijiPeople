@@ -3,7 +3,7 @@ ID: ITEM-0019
 aliases: [ITEM-0019]
 Title: No market or region model maps countries to plans, currencies and legal sets
 Type: ARCHITECTURE
-Status: VALIDATING
+Status: DONE
 Priority: P2
 Severity: MEDIUM
 AffectedModules: [services/api/prisma, api:super-admin, apps/admin, apps/landing]
@@ -11,7 +11,7 @@ Source: ARCHITECT
 OwnerAgent: architect
 ArchitectDisposition: FIX_NOW
 CreatedAt: 2026-08-16
-UpdatedAt: 2026-08-16
+UpdatedAt: 2026-08-17
 RelatedBug: BUG-0028
 RelatedQA:
 RelatedADR:
@@ -129,3 +129,38 @@ column now would be a field with no writer. Recorded as [[ITEM-0023]].
 ## History
 
 - 2026-08-16 — created during commercial-configuration discovery at `45d00cf`.
+
+## Resolution
+
+Done. Verified criterion by criterion at `ec6f189`.
+
+- **Opening or closing a market is configuration, not a deploy.** `Market` and
+  `MarketCountry` exist, with `launchStatus`, `isEnabled`,
+  `selfServiceEnabled`, `defaultCurrency` and `dataRegion`.
+- **A disabled market is never offered self-service checkout.**
+  `selfServiceEnabled` is deliberately separate from `isEnabled`, so a market
+  can be visible without being buyable. `CommercialOfferResolver` fails closed
+  with a typed `CommercialUnavailableReason`; covered by REG-018.
+- **The quoted currency comes from configuration.**
+  `resolveCommercialOffer` reads `sellableMarket.defaultCurrency`; a country
+  with no configured market gets the configured default, not a literal. The
+  hardcoded country-to-currency table this item was raised against is gone
+  (BUG-0028, REG-018).
+- **No residency or availability claim is rendered publicly unless the
+  configuration is present.** `dataRegion` is nullable and the public feature
+  catalogue is built from `TENANT_FEATURE_DEFINITIONS` rather than prose
+  (BUG-0029, REG-019).
+
+**Residual, delegated not dropped:** *"`Tenant.dataRegion` is set at
+provisioning from the market"* is [[ITEM-0023]], which exists for exactly that
+and stays open. The market model this item is about exists and is authoritative;
+threading it into provisioning is the next step.
+
+## Verification
+
+Covered by the regression suites already linked to the bugs this item's model
+resolved — REG-017 (pricing authority), REG-018 (market gating and currency),
+REG-019 (public feature catalogue) — all re-run green at the merged SHA.
+
+No new test written: every acceptance criterion here is asserted by one of those,
+and a fourth suite restating them would duplicate coverage rather than add it.

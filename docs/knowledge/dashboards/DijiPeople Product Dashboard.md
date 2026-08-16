@@ -55,12 +55,7 @@ See [[dijipeople-platform-overview|DijiPeople Platform Overview]] for the full p
 
 ## Open Product Decisions
 
-Questions where the engineering is understood and the **product answer**
-**is not**. No agent may resolve one by implementing a side of it.
-
-- [[ITEM-0016-product-decision-partner-onboarding-review-re-opening-and-po|ITEM-0016]] — **Product decision — partner review re-opening and post-activation demotion** (MEDIUM)
-- [[ITEM-0007-should-duplicate-website-leads-be-deduplicated|ITEM-0007]] — **Product decision — should duplicate website leads be deduplicated?** (LOW)
-- [[ITEM-0008-customeraccount-has-no-origin-channel|ITEM-0008]] — **Product decision — CustomerAccount carries no origin channel** (LOW)
+_None outstanding._
 
 ## Recent Product Changes
 

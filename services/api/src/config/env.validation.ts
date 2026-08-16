@@ -166,12 +166,52 @@ function matchesWildcardOrigin(origin: string, configuredOrigins: string[]) {
   });
 }
 
+/**
+ * The commit actually serving traffic, or `'unknown'`.
+ *
+ * ITEM-0010. Every release record had to *assert* the deployed SHA from the
+ * deployment process rather than observe it from the deployed system, so a
+ * partial or failed deploy looked identical to a successful one from outside,
+ * and the smoke suite could not say what it had smoke-tested.
+ *
+ * Host platforms inject this under their own names; `GIT_COMMIT_SHA` is the
+ * explicit override for anywhere that does not.
+ *
+ * **`'unknown'` is deliberate and must not become a guess.** Reading the local
+ * git HEAD here would report the commit of whatever machine asked, which for a
+ * running deployment is nothing at all — and a confident wrong SHA is worse than
+ * an honest absence, because a release record would then carry it as fact.
+ */
+export function resolveDeployedCommit(env: NodeJS.ProcessEnv): string {
+  const candidates = [
+    env.GIT_COMMIT_SHA,
+    env.RENDER_GIT_COMMIT,
+    env.VERCEL_GIT_COMMIT_SHA,
+    env.GITHUB_SHA,
+    env.SOURCE_VERSION,
+  ];
+
+  for (const candidate of candidates) {
+    if (typeof candidate === 'string' && candidate.trim()) {
+      return candidate.trim();
+    }
+  }
+
+  return 'unknown';
+}
+
 export function getRuntimeHealthPayload(env: NodeJS.ProcessEnv) {
+  const commit = resolveDeployedCommit(env);
+
   return {
     app: 'dijipeople-api',
     status: 'ok',
     environment: env.NODE_ENV || 'development',
     version: env.npm_package_version || '0.0.1',
+    // Full and short: a release record wants the full SHA, a human reading a
+    // smoke-test log wants the short one.
+    commit,
+    commitShort: commit === 'unknown' ? 'unknown' : commit.slice(0, 7),
     apiBaseUrl: getApiBaseUrl(env),
     timestamp: new Date().toISOString(),
   };

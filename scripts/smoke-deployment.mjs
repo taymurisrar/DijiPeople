@@ -55,6 +55,33 @@ await check("API health endpoint", async () => {
   if (!response.ok) throw new Error(`Expected 2xx, got ${response.status}`);
 });
 
+/*
+ * ITEM-0010 — report which commit answered, so this suite can say what it
+ * smoke-tested rather than only that something answered.
+ *
+ * Deliberately not a failure when the commit is unknown: a deployment given no
+ * commit variable is misconfigured for release *reporting*, not unhealthy, and
+ * failing the run would conflate the two. It is printed loudly instead, because
+ * a release record reading "unknown" is a prompt to fix the deploy config.
+ */
+await check("API reports the commit it is serving", async () => {
+  const response = await request("/health");
+  if (!response.ok) throw new Error(`Expected 2xx, got ${response.status}`);
+
+  const payload = await response.json().catch(() => null);
+  const commit = payload?.commit ?? "unknown";
+
+  if (commit === "unknown") {
+    console.log(
+      "    ! commit: unknown — set GIT_COMMIT_SHA (or deploy on a platform " +
+        "that injects one) so release records can observe the deployed SHA " +
+        "rather than assert it.",
+    );
+  } else {
+    console.log(`    commit: ${payload?.commitShort ?? commit}`);
+  }
+});
+
 await check("protected profile rejects unauthenticated request", async () => {
   const response = await request("/auth/me");
   if (![401, 403].includes(response.status)) {

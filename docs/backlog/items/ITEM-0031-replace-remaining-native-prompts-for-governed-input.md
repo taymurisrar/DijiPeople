@@ -1,5 +1,6 @@
 ---
 ID: ITEM-0031
+aliases: [ITEM-0031]
 Title: Replace remaining native prompts for governed input
 Type: UX
 Status: READY

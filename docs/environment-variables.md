@@ -261,6 +261,26 @@ DIJIPEOPLE_AGENT_UPDATE_URL=https://dijipeople.onrender.com/api/agent/updates
 AGENT_AUTO_UPDATE_ENABLED=true
 ```
 
+## Deployed commit (ITEM-0010)
+
+`GET /api/health` reports the commit actually serving traffic, as `commit` and
+`commitShort`, so a release record can **observe** the deployed SHA rather than
+assert it from the deploy process. `npm run smoke:deployment` prints it.
+
+| Variable | Required | Notes |
+|---|---|---|
+| `GIT_COMMIT_SHA` | optional | Explicit override. Set it on any host that does not inject a commit variable of its own. |
+
+The resolver also reads `RENDER_GIT_COMMIT`, `VERCEL_GIT_COMMIT_SHA`,
+`GITHUB_SHA` and `SOURCE_VERSION`, in that order after the override, because
+those hosts populate them for git-backed services.
+
+When none is present the endpoint reports **`unknown`**, deliberately. It never
+falls back to reading local git state: in a running deployment that reports the
+commit of whatever machine asked, and a confident wrong SHA in a release record
+is worse than an honest absence. `unknown` means the deployment needs a commit
+variable — not that the deploy failed.
+
 ## Troubleshooting
 
 - `INVALID_CREDENTIALS` from web but not admin: verify `NEXT_PUBLIC_API_BASE_URL`, tenant slug/header behavior, and that the web user belongs to the expected tenant and is active.

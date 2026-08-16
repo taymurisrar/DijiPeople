@@ -1,8 +1,9 @@
 ---
 ID: ITEM-0030
+aliases: [ITEM-0030]
 Title: Partner inquiry form does not yet capture partnership model
 Type: FOLLOW_UP
-Status: VALIDATING
+Status: DONE
 Priority: P2
 Severity: MEDIUM
 AffectedModules: [apps/landing, api:partners]
@@ -10,7 +11,7 @@ Source: ARCHITECT
 OwnerAgent: architect
 ArchitectDisposition: FIX_NOW
 CreatedAt: 2026-08-16
-UpdatedAt: 2026-08-16
+UpdatedAt: 2026-08-17
 RelatedBug: BUG-0019
 RelatedQA: 
 RelatedADR: 
@@ -117,3 +118,44 @@ unchanged, as was the `PartnerInquiryStatus` lifecycle.
 — six assertions, including an explicit check that `PartnerType` and
 `PartnershipModel` share no values, so neither can be overloaded into the other
 later.
+
+## Resolution
+
+Done. Three of the four criteria were already met by Wave 3; the fourth was not,
+and was the one that mattered most.
+
+Already in place: the public partner form submits `partnershipModel` and
+carries marketing consent as a separate optional field, and the Admin runtime
+renders the model as a label rather than a raw enum.
+
+**Missing: conversion discarded it.** `Partner` had no `partnershipModel` at
+all, so the moment an inquiry became a partner — the moment the commercial
+relationship actually began — the field an operator triages on was gone,
+recoverable only by going back to the inquiry if one still existed.
+
+`Partner.partnershipModel` is added, indexed for reporting, and carried at both
+conversion sites: from the request DTO where an operator creates a partner
+directly, and **from the inquiry** where an existing inquiry is converted. That
+distinction is the subtle part — passing the DTO on the inquiry path would
+compile, look right, and silently record the wrong relationship for every partner
+converted by an operator who did not retype it.
+
+Nullable and **not backfilled**. Partners taken on before this existed were taken
+on under a model nobody recorded; deriving one from their inquiry would be wrong
+wherever the inquiry was edited after conversion, and inventing one where there
+is no inquiry would be a fabricated commercial fact. NULL reads as "not
+recorded", which is true.
+
+## Verification
+
+Migration `20260817100000_partner_partnership_model`.
+
+`partnership-model-conversion.spec.ts` — 4 assertions: both creation sites
+exist, the model is carried on every partner created, it is taken from
+`inquiry.partnershipModel` on the conversion path and `dto.partnershipModel`
+on the direct path, and it is never hardcoded.
+
+Verified to fail against the defect: changing the inquiry path to read the DTO
+fails *takes it from the inquiry, not from a default*.
+
+`npm run prisma:validate` passes; API typecheck clean.

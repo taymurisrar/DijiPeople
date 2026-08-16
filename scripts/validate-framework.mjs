@@ -1281,6 +1281,98 @@ if (existsSync(join(ROOT, `${DASHBOARD_DIR}/DijiPeople Engineering Dashboard.md`
         worst.map(([t, n]) => `${t} (${n})`).join(', '),
     );
   }
+
+  /*
+   * ITEM-0029 — every record carries the `aliases:` line that makes its bare-id
+   * wikilink resolve.
+   *
+   * The check above deliberately skips `[[BUG-0031]]`-style targets, because
+   * those resolve through frontmatter rather than a filename. That skip is what
+   * made this invisible: a record missing its `aliases:` line has every
+   * short-form link to it dead in the vault, and a dead wikilink renders as
+   * ordinary text rather than announcing itself.
+   *
+   * Both generators now emit the line, so this guards hand-written records and
+   * any future edit to either template.
+   */
+  const withoutAliases = [];
+  for (const dir of ['docs/bugs', 'docs/backlog/items']) {
+    for (const file of markdownFilesIn(dir)) {
+      const name = file.split(/[\\/]/).pop() ?? '';
+      const idMatch = /^(BUG|ITEM)-\d{4}/.exec(name);
+      if (!idMatch) continue;
+
+      const source = read(file);
+      const declared = /^aliases: \[([^\]]*)\]/m.exec(source);
+      if (!declared) {
+        withoutAliases.push(`${name} — no aliases line`);
+        continue;
+      }
+      // Present but wrong is worse than absent, because it looks deliberate.
+      if (!declared[1].split(',').some((alias) => alias.trim() === idMatch[0])) {
+        withoutAliases.push(`${name} — aliases does not list ${idMatch[0]}`);
+      }
+    }
+  }
+
+  check(
+    'Every bug and backlog record is reachable by its bare id in Obsidian',
+    withoutAliases.length === 0,
+    withoutAliases.slice(0, 6).join('; '),
+  );
+
+  /*
+   * ITEM-0011 — an absence claim that has stopped being true.
+   *
+   * Validation already fails when a context document *references* a file that
+   * does not exist. The inverse is invisible, and has already happened: the
+   * testing-architecture context stated that two e2e suites did not exist while
+   * both did (BUG-0023), and nothing noticed for weeks.
+   *
+   * The item is explicit that this must stay narrow — "a check that tries to
+   * interpret prose will produce false failures, and a validation nobody trusts
+   * gets bypassed, which is worse than not having it." So no English is parsed.
+   * A document that wants to assert absence declares it:
+   *
+   *     <!-- absent: services/api/test/some-suite.e2e-spec.ts -->
+   *
+   * and this fails the moment that path appears. Prose stays prose; only the
+   * marker is load-bearing, and a claim with no marker is simply not checked —
+   * which is the same coverage as today, never worse.
+   */
+  const brokenAbsenceClaims = [];
+  for (const dir of ['.agent/context', 'docs']) {
+    for (const file of markdownFilesIn(dir)) {
+      /*
+       * Code spans are stripped first — fenced blocks and inline backticks
+       * both. A document explaining the marker convention has to show one, and
+       * matching that would make documenting the check trip the check. Which is
+       * exactly what happened when this landed: ITEM-0011's own record failed
+       * validation twice, once for a fenced example and once for an inline one.
+       *
+       * So a marker only counts as a claim when it is written as a real HTML
+       * comment in the document body, which is the only place it does anything.
+       */
+      const prose = read(file)
+        .replace(/```[\s\S]*?```/g, '')
+        .replace(/`[^`\n]*`/g, '');
+
+      for (const match of prose.matchAll(/<!--\s*absent:\s*([^\s>]+)\s*-->/g)) {
+        const claimed = match[1].trim();
+        if (existsSync(join(ROOT, claimed))) {
+          brokenAbsenceClaims.push(
+            `${file.split(/[\\/]/).pop()} claims ${claimed} is absent, but it exists`,
+          );
+        }
+      }
+    }
+  }
+
+  check(
+    'No document claims a file is absent while it exists',
+    brokenAbsenceClaims.length === 0,
+    brokenAbsenceClaims.slice(0, 5).join('; '),
+  );
 }
 
 // ------------------------------------------ routing, orchestration, repo health

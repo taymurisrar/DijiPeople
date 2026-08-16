@@ -111,6 +111,11 @@ try {
 const frontmatter = [
   '---',
   `ID: ${id}`,
+  // Records are filed under a long slug but referred to everywhere by the bare
+  // id. Obsidian resolves that short form only through this line, so a record
+  // without it has every short-form link pointing at it dead in the vault —
+  // silently, because a dead wikilink renders as ordinary text (ITEM-0029).
+  `aliases: [${id}]`,
   `Title: ${title}`,
   `Type: ${type}`,
   `Status: ${status}`,

@@ -9,6 +9,7 @@ import {
   BillingCycle,
   ContractStatus,
   CustomerAccountStatus,
+  CustomerOriginChannel,
   CustomerOnboardingStatus,
   DiscountType,
   LeadStatus,
@@ -55,6 +56,7 @@ import { TenantIdentitiesProvisioningService } from './tenant-identities-provisi
 import { PlatformEventsService } from '../platform-events/platform-events.service';
 import { TenantProvisioningRunService } from '../tenant-control-plane/tenant-provisioning-run.service';
 import { TenantDomainService } from '../tenant-domains/tenant-domain.service';
+import { resolveOriginChannel } from './origin-channel';
 
 @Injectable()
 export class PlatformLifecycleService {
@@ -165,155 +167,186 @@ export class PlatformLifecycleService {
       'Account manager',
     );
 
-    const customer = await this.prisma.$transaction(async (tx) => {
-      const createdCustomer = await tx.customerAccount.create({
-        data: {
-          companyName: dto.companyName?.trim() ?? lead.companyName,
-          // The lead's confirmed contracting identity is the default; an
-          // explicit override on the conversion request still wins.
-          legalCompanyName:
-            dto.legalCompanyName?.trim() || lead.legalCompanyName || null,
-          registrationNumber:
-            dto.registrationNumber?.trim() || lead.registrationNumber || null,
-          taxId: dto.taxId?.trim() || lead.taxId || null,
-          primaryContactFirstName:
-            dto.primaryContactFirstName?.trim() ||
-            lead.contactFirstName ||
-            null,
-          primaryContactLastName:
-            dto.primaryContactLastName?.trim() || lead.contactLastName || null,
-          primaryContactEmail:
-            dto.primaryContactEmail?.trim().toLowerCase() || lead.workEmail,
-          primaryContactPhone:
-            dto.primaryContactPhone?.trim() || lead.phoneNumber || null,
-          contactEmail:
-            dto.primaryContactEmail?.trim().toLowerCase() || lead.workEmail,
-          contactPhone:
-            dto.primaryContactPhone?.trim() || lead.phoneNumber || null,
-          billingContactEmail:
-            dto.billingContactEmail?.trim().toLowerCase() ||
-            lead.billingContactEmail ||
-            null,
-          financeContactName:
-            dto.financeContactName?.trim() || lead.billingContactName || null,
-          financeContactEmail:
-            dto.financeContactEmail?.trim().toLowerCase() ||
-            lead.billingContactEmail ||
-            null,
-          industry: dto.industry?.trim() ?? lead.industry,
-          companySize: dto.companySize?.trim() ?? lead.companySize,
-          country:
-            dto.country?.trim() ??
-            lead.countryOfRegistration ??
-            lead.country ??
-            'United States',
-          stateProvince:
-            dto.stateProvince?.trim() || lead.stateProvince || null,
-          city: dto.city?.trim() || lead.city || null,
-          addressLine1:
-            dto.addressLine1?.trim() || lead.registeredAddress || null,
-          addressLine2: dto.addressLine2?.trim() || null,
-          website: dto.website?.trim() || lead.companyWebsite || null,
-          estimatedEmployeeCount:
-            dto.estimatedEmployeeCount ?? lead.estimatedEmployeeCount ?? null,
-          selectedPlanId: dto.selectedPlanId ?? lead.agreedPlanId ?? null,
-          preferredBillingCycle:
-            dto.preferredBillingCycle ?? lead.billingCycle ?? null,
-          customPricingFlag: dto.customPricingFlag ?? false,
-          discountApproved: dto.discountApproved ?? false,
-          leadId,
-          originatingPartnerId: lead.partnerId,
-          originatingReferralLinkId: lead.partnerReferralLinkId,
-          referralCodeSnapshot: lead.referralCodeSnapshot,
-          status: dto.status ?? CustomerAccountStatus.PROSPECT,
-          subStatus: dto.subStatus ?? 'Commercial review',
-          assignedToUserId,
-          accountManagerUserId,
-        },
-      });
-
-      await tx.lead.update({
-        where: { id: leadId },
-        data: {
-          status: LeadStatus.CONVERTED,
-          subStatus: dto.leadSubStatus ?? 'Converted to customer',
-          isQualified: true,
-          convertedAt: new Date(),
-        },
-      });
-
-      /*
-       * The confirmed commercial terms carry into onboarding so the agreed
-       * plan, price and billing cycle survive the handover. The subscription
-       * itself is created later by tenant provisioning, which owns that record.
-       */
-      await tx.customerOnboarding.create({
-        data: {
-          customerId: createdCustomer.id,
-          leadId,
-          selectedPlanId: lead.agreedPlanId,
-          billingCycle: lead.billingCycle,
-          agreedPrice: lead.agreedPrice,
-          agreedSeats: lead.agreedSeats,
-          primaryOwnerFirstName:
-            lead.authorizedSignerName?.split(' ')[0] ||
-            lead.contactFirstName ||
-            createdCustomer.primaryContactFirstName ||
-            createdCustomer.companyName,
-          primaryOwnerLastName:
-            lead.authorizedSignerName?.split(' ').slice(1).join(' ') ||
-            lead.contactLastName ||
-            createdCustomer.primaryContactLastName ||
-            '',
-          primaryOwnerWorkEmail: lead.authorizedSignerEmail ?? lead.workEmail,
-          primaryOwnerPhone: lead.phoneNumber,
-          contractSigned: true,
-          status: CustomerOnboardingStatus.NOT_STARTED,
-          /*
-           * Must be one of CUSTOMER_ONBOARDING_SUB_STATUS_OPTIONS[NOT_STARTED].
-           * This seeded 'Agreement executed', which is not in that list, so
-           * assertCustomerSubStatus rejected every later PATCH — including a
-           * notes-only edit — and the onboarding created by conversion could
-           * not be progressed at all without also changing status in the same
-           * request. The executed agreement is already recorded by
-           * contractSigned above, so the sub-status does not need to restate it.
-           */
-          subStatus:
-            getDefaultSubStatus(
-              'customerOnboarding',
-              CustomerOnboardingStatus.NOT_STARTED,
-            ) ?? undefined,
-          notes: lead.requirementsSummary,
-        },
-      });
-
-      const leadContracts = await tx.contract.findMany({
-        where: { relatedLeadId: leadId },
-        select: { id: true },
-      });
-      if (leadContracts.length) {
-        await tx.contract.updateMany({
-          where: { relatedLeadId: leadId },
+    const customer = await this.prisma
+      .$transaction(async (tx) => {
+        const createdCustomer = await tx.customerAccount.create({
           data: {
-            customerAccountId: createdCustomer.id,
-            counterpartyType: 'CUSTOMER',
-            partnerId: lead.partnerId,
+            companyName: dto.companyName?.trim() ?? lead.companyName,
+            // ITEM-0008 — channel is denormalised here, the way attribution
+            // already was, so a report grouping customers by channel needs no
+            // join and a later change to the lead cannot rewrite history.
+            originChannel: resolveOriginChannel(lead.source),
+            // The lead's confirmed contracting identity is the default; an
+            // explicit override on the conversion request still wins.
+            legalCompanyName:
+              dto.legalCompanyName?.trim() || lead.legalCompanyName || null,
+            registrationNumber:
+              dto.registrationNumber?.trim() || lead.registrationNumber || null,
+            taxId: dto.taxId?.trim() || lead.taxId || null,
+            primaryContactFirstName:
+              dto.primaryContactFirstName?.trim() ||
+              lead.contactFirstName ||
+              null,
+            primaryContactLastName:
+              dto.primaryContactLastName?.trim() ||
+              lead.contactLastName ||
+              null,
+            primaryContactEmail:
+              dto.primaryContactEmail?.trim().toLowerCase() || lead.workEmail,
+            primaryContactPhone:
+              dto.primaryContactPhone?.trim() || lead.phoneNumber || null,
+            contactEmail:
+              dto.primaryContactEmail?.trim().toLowerCase() || lead.workEmail,
+            contactPhone:
+              dto.primaryContactPhone?.trim() || lead.phoneNumber || null,
+            billingContactEmail:
+              dto.billingContactEmail?.trim().toLowerCase() ||
+              lead.billingContactEmail ||
+              null,
+            financeContactName:
+              dto.financeContactName?.trim() || lead.billingContactName || null,
+            financeContactEmail:
+              dto.financeContactEmail?.trim().toLowerCase() ||
+              lead.billingContactEmail ||
+              null,
+            industry: dto.industry?.trim() ?? lead.industry,
+            companySize: dto.companySize?.trim() ?? lead.companySize,
+            country:
+              dto.country?.trim() ??
+              lead.countryOfRegistration ??
+              lead.country ??
+              'United States',
+            stateProvince:
+              dto.stateProvince?.trim() || lead.stateProvince || null,
+            city: dto.city?.trim() || lead.city || null,
+            addressLine1:
+              dto.addressLine1?.trim() || lead.registeredAddress || null,
+            addressLine2: dto.addressLine2?.trim() || null,
+            website: dto.website?.trim() || lead.companyWebsite || null,
+            estimatedEmployeeCount:
+              dto.estimatedEmployeeCount ?? lead.estimatedEmployeeCount ?? null,
+            selectedPlanId: dto.selectedPlanId ?? lead.agreedPlanId ?? null,
+            preferredBillingCycle:
+              dto.preferredBillingCycle ?? lead.billingCycle ?? null,
+            customPricingFlag: dto.customPricingFlag ?? false,
+            discountApproved: dto.discountApproved ?? false,
+            leadId,
+            originatingPartnerId: lead.partnerId,
+            originatingReferralLinkId: lead.partnerReferralLinkId,
+            referralCodeSnapshot: lead.referralCodeSnapshot,
+            status: dto.status ?? CustomerAccountStatus.PROSPECT,
+            subStatus: dto.subStatus ?? 'Commercial review',
+            assignedToUserId,
+            accountManagerUserId,
           },
         });
-        await tx.contractRelatedRecord.createMany({
-          data: leadContracts.map((contract) => ({
-            contractId: contract.id,
-            entityType: 'CustomerAccount',
-            entityId: createdCustomer.id,
-            relationshipType: 'CONVERTED_CUSTOMER',
-            createdById: actor.userId,
-          })),
-          skipDuplicates: true,
-        });
-      }
 
-      return createdCustomer;
-    });
+        await tx.lead.update({
+          where: { id: leadId },
+          data: {
+            status: LeadStatus.CONVERTED,
+            subStatus: dto.leadSubStatus ?? 'Converted to customer',
+            isQualified: true,
+            convertedAt: new Date(),
+          },
+        });
+
+        /*
+         * The confirmed commercial terms carry into onboarding so the agreed
+         * plan, price and billing cycle survive the handover. The subscription
+         * itself is created later by tenant provisioning, which owns that record.
+         */
+        await tx.customerOnboarding.create({
+          data: {
+            customerId: createdCustomer.id,
+            leadId,
+            selectedPlanId: lead.agreedPlanId,
+            billingCycle: lead.billingCycle,
+            agreedPrice: lead.agreedPrice,
+            agreedSeats: lead.agreedSeats,
+            primaryOwnerFirstName:
+              lead.authorizedSignerName?.split(' ')[0] ||
+              lead.contactFirstName ||
+              createdCustomer.primaryContactFirstName ||
+              createdCustomer.companyName,
+            primaryOwnerLastName:
+              lead.authorizedSignerName?.split(' ').slice(1).join(' ') ||
+              lead.contactLastName ||
+              createdCustomer.primaryContactLastName ||
+              '',
+            primaryOwnerWorkEmail: lead.authorizedSignerEmail ?? lead.workEmail,
+            primaryOwnerPhone: lead.phoneNumber,
+            contractSigned: true,
+            status: CustomerOnboardingStatus.NOT_STARTED,
+            /*
+             * Must be one of CUSTOMER_ONBOARDING_SUB_STATUS_OPTIONS[NOT_STARTED].
+             * This seeded 'Agreement executed', which is not in that list, so
+             * assertCustomerSubStatus rejected every later PATCH — including a
+             * notes-only edit — and the onboarding created by conversion could
+             * not be progressed at all without also changing status in the same
+             * request. The executed agreement is already recorded by
+             * contractSigned above, so the sub-status does not need to restate it.
+             */
+            subStatus:
+              getDefaultSubStatus(
+                'customerOnboarding',
+                CustomerOnboardingStatus.NOT_STARTED,
+              ) ?? undefined,
+            notes: lead.requirementsSummary,
+          },
+        });
+
+        const leadContracts = await tx.contract.findMany({
+          where: { relatedLeadId: leadId },
+          select: { id: true },
+        });
+        if (leadContracts.length) {
+          await tx.contract.updateMany({
+            where: { relatedLeadId: leadId },
+            data: {
+              customerAccountId: createdCustomer.id,
+              counterpartyType: 'CUSTOMER',
+              partnerId: lead.partnerId,
+            },
+          });
+          await tx.contractRelatedRecord.createMany({
+            data: leadContracts.map((contract) => ({
+              contractId: contract.id,
+              entityType: 'CustomerAccount',
+              entityId: createdCustomer.id,
+              relationshipType: 'CONVERTED_CUSTOMER',
+              createdById: actor.userId,
+            })),
+            skipDuplicates: true,
+          });
+        }
+
+        return createdCustomer;
+      })
+      .catch((error: unknown) => {
+        /*
+         * ITEM-0005 — the "already converted?" pre-check above runs *outside*
+         * this transaction, so two concurrent conversions of the same lead both
+         * pass it and both reach here. `CustomerAccount.leadId` is now unique, so
+         * the database refuses the second; this turns that refusal into the same
+         * 409 the single-threaded path returns, which is what the idempotency
+         * scenario already expects.
+         *
+         * Only a `leadId` conflict is translated. Any other unique violation, or
+         * any other error, is rethrown — reporting "already converted" for an
+         * unrelated failure would send an operator hunting for a customer that
+         * does not exist.
+         */
+        const isLeadConflict =
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === 'P2002' &&
+          JSON.stringify(error.meta?.target ?? '').includes('leadId');
+
+        if (isLeadConflict) {
+          throw new ConflictException('Lead has already been converted.');
+        }
+        throw error;
+      });
 
     await this.auditService.log({
       tenantId: actor.tenantId,
@@ -736,6 +769,9 @@ export class PlatformLifecycleService {
         ) as Prisma.CustomerAccountUncheckedCreateInput),
         assignedToUserId,
         accountManagerUserId,
+        // Created straight in the admin console: there is no lead, and that
+        // is the channel, not a missing value (ITEM-0008).
+        originChannel: CustomerOriginChannel.DIRECT,
         contactEmail: (dto.contactEmail ?? dto.primaryContactEmail)
           .trim()
           .toLowerCase(),

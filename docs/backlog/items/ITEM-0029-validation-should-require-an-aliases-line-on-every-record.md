@@ -3,7 +3,7 @@ ID: ITEM-0029
 aliases: [ITEM-0029]
 Title: Validation should require an aliases line on every record
 Type: TECH_DEBT
-Status: READY
+Status: DONE
 Priority: P3
 Severity: LOW
 AffectedModules: [scripts, docs/backlog, docs/bugs]
@@ -11,7 +11,7 @@ Source: QA_RUN
 OwnerAgent: architect
 ArchitectDisposition: FIX_NOW
 CreatedAt: 2026-08-16
-UpdatedAt: 2026-08-16
+UpdatedAt: 2026-08-17
 RelatedBug:
 RelatedQA: docs/qa/runs/2026-08-16-monorepo-app-documentation-78072d2.md
 RelatedADR:
@@ -94,3 +94,33 @@ bug pattern [[doc-code-drift]] · [[monorepo-application-map]].
   this item is the guard that stops them recurring.
 - 2026-08-16 — Architect triage: `FIX_NOW`. Small, mechanical, and it protects
   the navigability that is the entire reason records are published.
+
+## Resolution
+
+Fixed at the source rather than in the records.
+
+The three records still missing `aliases:` were a symptom: **neither generator
+emitted the line**. `new-bug.mjs` and `new-backlog-item.mjs` both now do, so
+the next record cannot be born without it — the six records this item counted got
+theirs added by hand, which is why the problem kept coming back.
+
+The three affected records were backfilled, and `validate-framework.mjs` gained
+a check that every `BUG-*` / `ITEM-*` record carries an `aliases:` line
+listing its own id.
+
+The check tests the id is actually *in* the list, not merely that a line exists.
+An `aliases:` line naming the wrong id is worse than a missing one, because it
+looks deliberate to a reader and still leaves every short-form link dead.
+
+Why this was invisible: the existing wikilink validation deliberately **skips**
+`[[BUG-0031]]`-style targets, because they resolve through frontmatter rather
+than a filename. That skip is what hid it — and a dead wikilink in Obsidian
+renders as ordinary text rather than announcing itself.
+
+## Verification
+
+`npm run validate:framework` — 716 checks passing (was 714).
+
+Verified to fail: removing the `aliases:` line from ITEM-0031 fails
+*Every bug and backlog record is reachable by its bare id in Obsidian*, naming
+the file.
