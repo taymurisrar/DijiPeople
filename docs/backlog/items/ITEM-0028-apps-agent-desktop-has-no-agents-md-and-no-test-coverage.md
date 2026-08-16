@@ -3,7 +3,7 @@ ID: ITEM-0028
 aliases: [ITEM-0028]
 Title: apps/agent-desktop has no AGENTS.md and no test coverage
 Type: TEST_GAP
-Status: READY
+Status: DONE
 Priority: P2
 Severity: MEDIUM
 AffectedModules: [apps/agent-desktop, services/api/src/modules/agent]
@@ -11,7 +11,7 @@ Source: ARCHITECT
 OwnerAgent: architect
 ArchitectDisposition: FIX_NOW
 CreatedAt: 2026-08-16
-UpdatedAt: 2026-08-16
+UpdatedAt: 2026-08-17
 RelatedBug: BUG-0035
 RelatedQA: docs/qa/runs/2026-08-16-monorepo-app-documentation-78072d2.md
 RelatedADR:
@@ -119,3 +119,46 @@ None. This is the item that makes the other agent-desktop records cheaper to fix
   needs a decision. Prioritised because four separate defects in this app were
   found by reading it once, which is what an absent instruction file and absent
   tests look like from the outside.
+
+## Resolution
+
+Split into its two halves, one closed and one measured.
+
+**Instructions — done.** `apps/agent-desktop/AGENTS.md` now exists, and is
+scoped to what makes this app different rather than restating the root file. It
+runs on an employee's own machine with native capabilities they cannot observe:
+it reads active window titles, captures geolocation, holds a refresh token in the
+OS credential vault, starts on login and installs its own updates. A defect here
+is not a broken screen someone reports — it is surveillance data that is wrong,
+over-collected or leaked on a machine nobody is watching.
+
+Six rules are recorded, each anchored to a defect that actually happened:
+collection flags are enforced server-side at write time; the logger never
+receives what the agent reads; the API is the clock; retries must be idempotent
+(BUG-0036); failures log their reason (BUG-0034); and a blocking dialog must
+offer something that works (BUG-0034 again). The DTO contract section explains
+why the **server** is the side that changes when the two disagree — deployed
+agents cannot be assumed to update while BUG-0034 is open.
+
+**API-side coverage — done since this item was written.** The item states
+`services/api/src/modules/agent/` "has no specs either". It now has four,
+added while closing BUG-0033, BUG-0035, BUG-0036 and BUG-0031.
+
+**Desktop-side coverage — still absent, and stated rather than implied.** There
+is no test runner in this workspace. The AGENTS.md file says so in a table
+listing exactly what *is* covered and where, so nobody reads its existence as
+coverage. It also names where to start — `offline-queue` and
+`config-manager` have no Electron dependency and are where a defect is most
+expensive.
+
+Tracked forward as [[ITEM-0033]] rather than left inside a closed item.
+
+## Verification
+
+`apps/agent-desktop/AGENTS.md` present and linked from the root instruction
+file's nested-file list. `npm --workspace agent-desktop run check-types`
+passes.
+
+API-side agent coverage: `agent-login-enumeration.spec.ts`,
+`agent-client-contract.spec.ts`, `heartbeat-idempotency.spec.ts`,
+`public-write-rate-limit.invariant.spec.ts`.

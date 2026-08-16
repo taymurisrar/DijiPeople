@@ -14,6 +14,7 @@ their directory:
 - [`apps/web/AGENTS.md`](apps/web/AGENTS.md) — tenant product frontend
 - [`apps/admin/AGENTS.md`](apps/admin/AGENTS.md) — platform admin frontend
 - [`apps/landing/AGENTS.md`](apps/landing/AGENTS.md) — public site
+- [`apps/agent-desktop/AGENTS.md`](apps/agent-desktop/AGENTS.md) — Electron attendance agent
 - [`packages/config/AGENTS.md`](packages/config/AGENTS.md) — shared runtime config
 
 Planning rules live in [`PLANS.md`](PLANS.md). Agent role definitions live in
