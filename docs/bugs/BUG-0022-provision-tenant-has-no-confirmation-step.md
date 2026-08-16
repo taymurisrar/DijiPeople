@@ -2,7 +2,7 @@
 ID: BUG-0022
 aliases: [BUG-0022]
 Title: "Provision tenant" has no confirmation step and no idempotency key
-Status: FIXED
+Status: VERIFIED
 Severity: MEDIUM
 Priority: P2
 Type: UX
@@ -13,7 +13,7 @@ AffectedModules: [apps/admin, services/api/src/modules/tenant-control-plane]
 OwnerAgent: frontend
 ArchitectDisposition: FIX_NOW
 QAReport: docs/qa/runs/2026-08-15-commercial-onboarding-e2e-7bbab3d.md
-RegressionId:
+RegressionId: REG-030
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:

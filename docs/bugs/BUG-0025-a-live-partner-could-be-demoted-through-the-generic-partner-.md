@@ -2,7 +2,7 @@
 ID: BUG-0025
 aliases: [BUG-0025]
 Title: A live partner could be demoted through the generic partner update
-Status: FIXED
+Status: VERIFIED
 Severity: MEDIUM
 Priority: P2
 Type: STATE_MACHINE
@@ -18,7 +18,7 @@ RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-15
-UpdatedAt: 2026-08-15
+UpdatedAt: 2026-08-16
 ResolvedAt: 2026-08-15
 ---
 
@@ -125,6 +125,14 @@ Modules [[partners|Partners]].
 Unit-level. The generic update path has no browser coverage — the partner
 surfaces that would exercise it are themselves partly unreachable
 ([[BUG-0019-partner-inquiry-and-onboarding-review-screens-are-unreachable]]).
+
+Retested at the merged SHA `d1768cb` during the open-bug closure wave.
+
+The linked regression suite runs green: 7 API suites / 85 assertions across
+REG-013 – REG-021, `npm run test:app-urls` 16/16, and REG-020's
+`commercial-bootstrap.e2e-spec.ts` in the `Database migration gate` against a
+real PostgreSQL 16. Each of these tests was proven to fail without its fix when
+it was written; re-running them is what confirms the fix still holds.
 
 ## History
 

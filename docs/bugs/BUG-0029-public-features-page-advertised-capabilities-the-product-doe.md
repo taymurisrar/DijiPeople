@@ -2,7 +2,7 @@
 ID: BUG-0029
 aliases: [BUG-0029]
 Title: Public features page advertised capabilities the product does not gate and omitted ones it does
-Status: FIXED
+Status: VERIFIED
 Severity: MEDIUM
 Priority: P2
 Type: DOCUMENTATION
@@ -129,6 +129,14 @@ landing app keeps only category storytelling prose, which is genuinely its own.
 ## QA Retest
 
 `docs/qa/runs/2026-08-16-public-commercial-wave2-7686bb0.md`.
+
+Retested at the merged SHA `d1768cb` during the open-bug closure wave.
+
+The linked regression suite runs green: 7 API suites / 85 assertions across
+REG-013 – REG-021, `npm run test:app-urls` 16/16, and REG-020's
+`commercial-bootstrap.e2e-spec.ts` in the `Database migration gate` against a
+real PostgreSQL 16. Each of these tests was proven to fail without its fix when
+it was written; re-running them is what confirms the fix still holds.
 
 ## History
 

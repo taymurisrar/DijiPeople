@@ -2,7 +2,7 @@
 ID: BUG-0024
 aliases: [BUG-0024]
 Title: The start-onboarding API endpoint and its proxy have no caller
-Status: FIXED
+Status: VERIFIED
 Severity: LOW
 Priority: P3
 Type: BUG
@@ -120,11 +120,26 @@ navigation works and is the intended flow; the action was never the problem.
 
 ## QA Retest
 
-`grep -rn "startCustomerOnboarding" services/api/src` → no matches.
-`grep -rn "start-onboarding" apps services` → only the record action and its
-`router.push`, plus stale `.next` build artefacts.
+Verified against the repository at the merged SHA, one check per artefact this
+record named:
 
-API typecheck clean; API suite 157 suites / 1122 tests passing.
+- `grep -rn "start-onboarding|startCustomerOnboarding" services/api/src` → **0
+  matches**. The controller route and the service wrapper are gone.
+- `apps/admin/app/api/super-admin/customers/[customerId]/start-onboarding/` → the
+  directory no longer exists.
+- The only remaining references are the intended ones: the record action in
+  `platform-module-registry.ts` and its `router.push` in
+  `runtime-record-action-handler.ts`. (`apps/web`'s `StartOnboardingButton` is a
+  different recruitment feature and was never part of this record.)
+
+That satisfies the acceptance criterion — *no unreferenced `start-onboarding`
+route remains in either workspace*.
+
+**No automated guard, deliberately.** A permanent test asserting the absence of a
+specific deleted symbol would pin a decision rather than a behaviour, and would
+need deleting the day the endpoint is legitimately reintroduced. The general
+failure mode — a surface nothing reaches — is covered by REG-028, which
+checks that every runtime module's route renders that module.
 
 ## History
 
@@ -135,3 +150,5 @@ API typecheck clean; API suite 157 suites / 1122 tests passing.
 - 2026-08-16 — resolved by deletion. Confirmed first that the underlying
   lifecycle method has a live second caller, so only the unreachable wrapper
   chain was removed.
+- 2026-08-16 — verified: every artefact named in the record is gone, and the
+  intended navigation path is intact.

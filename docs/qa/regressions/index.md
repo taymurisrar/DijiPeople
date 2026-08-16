@@ -292,3 +292,143 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Scenario** | `PartnerType` and `PartnershipModel` are asserted to share no values in either direction, so neither can be overloaded into the other later. Every model the public form offers is one the enum can store, and every enum value is offered, so no option is unreachable. `isPartnershipModel` rejects `'COMPANY'` and `'INDIVIDUAL'` explicitly — the precise confusion the field exists to prevent. Every option carries a human label rather than a raw enum name. |
 | **Fixed** | 2026-08-16, branch `agent/final-consolidation` |
 | **Active** | yes |
+
+### REG-023 — Every public write handler is rate limited
+
+| | |
+|---|---|
+| **Bug class** | `authorization-missing` |
+| **Module** | `services/api/src/common/guards` |
+| **Bug record** | BUG-0031 |
+| **Root cause** | The rate limit was applied per controller by hand with no mechanical check that a `@Public()` write path had one. Three separate endpoints shipped without it (BUG-0013, BUG-0031, BUG-0033) before the check existed. |
+| **Regression test** | `services/api/src/common/guards/public-write-rate-limit.invariant.spec.ts` (13 assertions) |
+| **Scenario** | Add a `@Public()` `@Post()` handler to any controller under `src/modules` without `PublicRateLimitGuard` → the suite names the file and the handler signature and fails. |
+| **Proven to fail without the fix** | Before the guards were applied it reported all 4 offending controllers and all 14 handlers. |
+| **Fixed** | 2026-08-16, branch `agent/bug-closure-stabilization` |
+| **Active** | yes |
+
+### REG-024 — Public rate limiting identifies the visitor, not the proxy
+
+| | |
+|---|---|
+| **Bug class** | `shared-identity-bucket` |
+| **Module** | `packages/config`, `services/api/src/common/security`, all three Next apps |
+| **Bug record** | BUG-0032 |
+| **Root cause** | `PublicRateLimitGuard` keyed on `request.ip`, but all 20 Next route handlers that proxy to the API call `fetch()` server-side without forwarding the visitor, so the API saw one address for the entire world. One visitor could 429 everybody, and the limit could not tell an attacker from a customer. |
+| **Regression test** | `services/api/src/common/security/client-ip.spec.ts` (6) · `services/api/src/common/guards/public-rate-limit.guard.spec.ts` (bucket separation) · `scripts/check-proxy-forwards-client-ip.mjs` (CI) |
+| **Scenario** | Two visitors behind one proxy hit the same public write path; one exhausts its 20-per-10-minutes allowance → the other is still served. And: delete `...forwardedClientHeaders(request)` from any proxy handler → the CI script reports `(0/1 fetches covered)` and exits 1. |
+| **Proven to fail without the fix** | The guard assertion fails against the old `request.ip` key; the CI script fails with the spread removed. |
+| **Fixed** | 2026-08-16, branch `agent/bug-closure-stabilization` |
+| **Active** | yes |
+
+### REG-025 — Desktop agent login does not enumerate accounts
+
+| | |
+|---|---|
+| **Bug class** | `account-enumeration` |
+| **Module** | `services/api/src/modules/agent` |
+| **Bug record** | BUG-0033 |
+| **Root cause** | `POST /agent/auth/login` returned different messages for 'no such user' and 'wrong password', skipped bcrypt entirely when the address did not exist (a timing oracle), and resolved the account with `findFirst({ where: { email } })` although `User` is unique on `[tenantId, email]`. |
+| **Regression test** | `services/api/src/modules/agent/agent-login-enumeration.spec.ts` (5 assertions) |
+| **Scenario** | Post a login for an address that does not exist and one that does with a wrong password → identical `Invalid credentials.`, and the non-existent address still costs a bcrypt comparison (>50 ms). An address present in two tenants resolves to the account whose password matches. |
+| **Proven to fail without the fix** | Restoring the original `findFirst` + two-message shape fails 4 of the 5. |
+| **Fixed** | 2026-08-16, branch `agent/bug-closure-stabilization` |
+| **Active** | yes |
+
+### REG-026 — Desktop agent request payloads satisfy the DTOs that receive them
+
+| | |
+|---|---|
+| **Bug class** | `cross-workspace-contract-drift` |
+| **Module** | `services/api/src/modules/agent`, `apps/agent-desktop` |
+| **Bug record** | BUG-0035 |
+| **Root cause** | The agent sent `deviceFingerprint` on logout and `AgentLogoutDto` never declared it. With `forbidNonWhitelisted: true` an undeclared field is a 400, so every logout failed, the agent swallowed it, and the refresh token stayed live for its full TTL. The two sides are validated in different workspaces and no test crossed the boundary. |
+| **Regression test** | `services/api/src/modules/agent/agent-client-contract.spec.ts` (10 assertions) |
+| **Scenario** | Validate the exact bodies `apps/agent-desktop/src/main/api-client.ts` sends against their DTOs through a `ValidationPipe` built with `main.ts`'s options → all accepted; a field no agent sends is still refused. A heartbeat batch of 1000 is accepted and 1001 refused. |
+| **Proven to fail without the fix** | Removing `deviceFingerprint` from the DTO fails the logout case; removing `@ArrayMaxSize(1000)` fails the batch bound. |
+| **Fixed** | 2026-08-16, branch `agent/bug-closure-stabilization` |
+| **Active** | yes |
+
+### REG-027 — Tenant base domain has one source of truth
+
+| | |
+|---|---|
+| **Bug class** | `duplicate-source-of-truth` |
+| **Module** | `services/api/src/modules/super-admin` |
+| **Bug record** | BUG-0017 |
+| **Root cause** | The base domain was editable in the admin UI and stored in the `tenant-provisioning` PlatformSetting while hostname issuance read environment configuration, so the operator control was inert. Configuration was kept as the single source — the edge router matches hostnames with no database access — and the setting retired, leaving a stale key in stored JSON that a future reader could helpfully read again. |
+| **Regression test** | `services/api/src/modules/super-admin/tenant-provisioning.service.spec.ts` |
+| **Scenario** | Store `tenantBaseDomain` and `defaultProtocol` in the `tenant-provisioning` setting → `settings()` returns the values from `getPlatformDomainConfig()`, while the one genuinely stored key `wildcardDnsReady` is still read. |
+| **Proven to fail without the fix** | Reintroducing `stored.tenantBaseDomain || config.tenantBaseDomain` fails the assertion. |
+| **Fixed** | 2026-08-16, branch `agent/bug-closure-stabilization` |
+| **Active** | yes |
+
+### REG-028 — A runtime module's route renders that module
+
+| | |
+|---|---|
+| **Bug class** | `unreachable-surface` |
+| **Module** | `apps/admin` |
+| **Bug record** | BUG-0019 |
+| **Root cause** | `partner-inquiries` and `partner-onboarding` were fully defined runtime modules whose list routes `redirect()`ed to `/partners?viewId=…` — a different entity, whose row ids the detail screens cannot resolve. The partner compliance review step was unperformable through the product while every individual piece looked correct. |
+| **Regression test** | `apps/admin/lib/runtime/module-routes.invariant.spec.ts` (20 assertions) |
+| **Scenario** | For every module declaring a `routeBase`, the page at that route must render the module rather than call `redirect()`. |
+| **Proven to fail without the fix** | It found all three instances on its first run — including `/signature-requests`, which no bug record mentioned. |
+| **Fixed** | 2026-08-16, branch `agent/bug-closure-stabilization` |
+| **Active** | yes |
+
+### REG-029 — Governed reasons are collected through the design system
+
+| | |
+|---|---|
+| **Bug class** | `ungoverned-input` |
+| **Module** | `apps/admin`, `apps/web` |
+| **Bug record** | BUG-0020 |
+| **Root cause** | `window.prompt` collected reasons for lead disqualification and moving a contract backward — values that land in an audited record — unstyled, unlabelled, unvalidated and untestable. The action handler is a plain module that cannot render, which is why a native prompt was reached for. |
+| **Regression test** | `scripts/check-no-native-prompt.mjs` (CI) · `apps/admin/app/_components/runtime/use-reason-prompt.tsx` |
+| **Scenario** | Introduce a `window.prompt` into any file under `apps/*` that is not in the named allowlist → the check reports the file and exits 1. A stale allowlist entry also fails. |
+| **Proven to fail without the fix** | Reintroducing a prompt into `runtime-record-action-handler.ts` reports it and exits 1. Six known call sites remain, named in the allowlist and tracked as ITEM-0031. |
+| **Fixed** | 2026-08-16, branch `agent/bug-closure-stabilization` |
+| **Active** | yes |
+
+### REG-030 — Tenant provisioning is safe to submit twice
+
+| | |
+|---|---|
+| **Bug class** | `check-then-act` |
+| **Module** | `services/api/src/modules/super-admin` |
+| **Bug record** | BUG-0022 |
+| **Root cause** | Two guards existed — the `onboarding.tenantId` pre-check and `Tenant.slug @unique` — but two requests that both read before either wrote both passed the pre-check, and the loser surfaced a raw P2002 on the most expensive create in the product, indistinguishable from provisioning being broken. |
+| **Regression test** | `services/api/src/modules/super-admin/tenant-provisioning-idempotency.spec.ts` (4 assertions) |
+| **Scenario** | A P2002 on tenant create where the onboarding has since gained a tenant → the winner's tenant is returned as `alreadyExists`. Where it has not → the error is rethrown, because the slug belongs to an unrelated tenant. |
+| **Proven to fail without the fix** | Removing the `if (!winner?.tenantId) throw error` guard — assuming every P2002 is a duplicate submit — fails the unrelated-slug case. |
+| **Fixed** | 2026-08-16, branch `agent/bug-closure-stabilization` |
+| **Active** | yes |
+
+### REG-031 — A replayed heartbeat is not counted twice
+
+| | |
+|---|---|
+| **Bug class** | `non-idempotent-retry` |
+| **Module** | `services/api/src/modules/agent` |
+| **Bug record** | BUG-0036 |
+| **Root cause** | The agent re-sends a whole batch when a send fails. The server created every `ActivityEvent` unconditionally and then *incremented* session and daily totals, so a replayed batch permanently inflated `totalActiveSeconds` and `DailyProductivitySummary` — what `utilizationPercent` is computed from. |
+| **Regression test** | `services/api/src/modules/agent/heartbeat-idempotency.spec.ts` (4 assertions) |
+| **Scenario** | Re-send an already-recorded sample → the unique `dedupeKey` index refuses it, the handler returns before the counters run, and the batch is still reported accepted. A non-duplicate database failure is rethrown rather than treated as already-done. |
+| **Proven to fail without the fix** | Swallowing every error rather than only P2002 fails the rethrow case — which matters, because that would drop telemetry while reporting it accepted. |
+| **Fixed** | 2026-08-16, branch `agent/bug-closure-stabilization` |
+| **Active** | yes |
+
+### REG-032 — Admin sign-out always revokes, and never 500s while clearing cookies
+
+| | |
+|---|---|
+| **Bug class** | `incomplete-signout` |
+| **Module** | `apps/admin` |
+| **Bug record** | BUG-0009 · BUG-0010 |
+| **Root cause** | Revocation was called only when the refresh cookie was still present, so signing out after it expired cleared the browser and left the platform session live server-side. Separately, `getClearAuthCookieOptions()` throws on a rejected cookie configuration — an `ADMIN_COOKIE_DOMAIN` not matching a `.vercel.app` host — and was called unguarded, turning every operator's sign-out into a 500. |
+| **Regression test** | `apps/admin/app/api/auth/logout/logout-route.spec.ts` (10 assertions) |
+| **Scenario** | `revokeApiSession` is called from both handlers and neither the call site nor the function body skips it when the refresh cookie is absent; cookies are cleared only through the try/catch wrapper, whose fallback still expires the cookie. |
+| **Proven to fail without the fix** | Both defects restored independently — a guard at the call site, a guard as an early return inside the function, and unwrapping the throwing variant — each fails its assertion. The first draft caught only the call-site shape and was strengthened. |
+| **Fixed** | 2026-08-16, branch `agent/bug-closure-stabilization` |
+| **Active** | yes |

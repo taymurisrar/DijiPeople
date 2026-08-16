@@ -2,7 +2,7 @@
 ID: BUG-0032
 aliases: [BUG-0032]
 Title: Landing proxies collapse every visitor into one rate limit bucket
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: SECURITY
@@ -13,7 +13,7 @@ AffectedModules: [apps/landing, services/api/src/common]
 OwnerAgent: backend-api
 ArchitectDisposition: PLAN_REQUIRED
 QAReport: docs/qa/runs/2026-08-16-monorepo-app-documentation-78072d2.md
-RegressionId:
+RegressionId: REG-024
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:

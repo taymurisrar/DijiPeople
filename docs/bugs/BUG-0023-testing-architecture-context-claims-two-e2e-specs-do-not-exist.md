@@ -2,7 +2,7 @@
 ID: BUG-0023
 aliases: [BUG-0023]
 Title: The testing-architecture context claims two e2e specs do not exist
-Status: FIXED
+Status: VERIFIED
 Severity: LOW
 Priority: P3
 Type: DOCUMENTATION
@@ -18,7 +18,7 @@ RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-15
-UpdatedAt: 2026-08-15
+UpdatedAt: 2026-08-16
 ResolvedAt: 2026-08-15
 ---
 
@@ -114,11 +114,27 @@ Generalised guard: [[ITEM-0011]].
 
 ## Resolution
 
-Not resolved.
+Fixed. The Resolution section still read "Not resolved" long after the fix
+landed — a stale leftover, corrected here, and the reason this record sat FIXED
+without anyone being able to tell what had been done.
+
+`.agent/context/testing-architecture.md` no longer claims the two suites are
+absent. It documents **13 `*.e2e-spec.ts` suites** under `services/api/test/`,
+describes the jest-e2e configuration, and links this record.
 
 ## QA Retest
 
-Not applicable — verified by reading the file and the directory.
+Verified against the repository at `d1768cb`, not against the record:
+
+- `services/api/test/permission-propagation.e2e-spec.ts` — exists.
+- `services/api/test/attendance-integrations-isolation.e2e-spec.ts` — exists.
+- `ls services/api/test/*.e2e-spec.ts` returns 13 suites, matching what the
+  context now states.
+- The link the context carries to this record resolves to the real filename.
+
+No regression test: the artefact is a document, and the drift class it belongs to
+is already covered by the `doc-code-drift` bug pattern, which instructs a reader
+to re-derive counts rather than trust them.
 
 ## History
 

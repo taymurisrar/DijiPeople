@@ -2,7 +2,7 @@
 ID: BUG-0019
 aliases: [BUG-0019]
 Title: Partner inquiry and onboarding review screens have no inbound link
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: UX
@@ -13,7 +13,7 @@ AffectedModules: [apps/admin]
 OwnerAgent: frontend
 ArchitectDisposition: PLAN_REQUIRED
 QAReport: docs/qa/runs/2026-08-15-commercial-onboarding-e2e-7bbab3d.md
-RegressionId:
+RegressionId: REG-028
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:

@@ -2,7 +2,7 @@
 ID: BUG-0016
 aliases: [BUG-0016]
 Title: Partner onboarding review has no state machine
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: STATE_MACHINE
@@ -18,7 +18,7 @@ RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-15
-UpdatedAt: 2026-08-15
+UpdatedAt: 2026-08-16
 ResolvedAt: 2026-08-15
 ---
 
@@ -124,6 +124,14 @@ Not resolved.
 
 Not applicable. The QA run records `PARTNER_FLOW` as `PASS_WITH_RISKS` because of
 this record.
+
+Retested at the merged SHA `d1768cb` during the open-bug closure wave.
+
+The linked regression suite runs green: 7 API suites / 85 assertions across
+REG-013 – REG-021, `npm run test:app-urls` 16/16, and REG-020's
+`commercial-bootstrap.e2e-spec.ts` in the `Database migration gate` against a
+real PostgreSQL 16. Each of these tests was proven to fail without its fix when
+it was written; re-running them is what confirms the fix still holds.
 
 ## History
 
