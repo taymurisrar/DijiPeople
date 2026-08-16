@@ -55,4 +55,28 @@ describe('tenant URL config', () => {
       }),
     ).toBe('http://localhost:3001/activate?tenant=abc-cpa&token=token-1');
   });
+
+  // REGRESSION — these URLs are mailed to customers as activation, invitation
+  // and sign-in links. The fallback used to be a literal 'http://localhost:3001',
+  // so a production deployment that had not configured the workspace URL sent
+  // every new tenant owner a link to their own machine. It now refuses instead.
+  describe('production without a configured workspace URL', () => {
+    const originalEnv = process.env;
+
+    afterEach(() => {
+      process.env = originalEnv;
+    });
+
+    it('refuses to build a loopback workspace URL', () => {
+      // A production-like environment with no app URLs configured at all.
+      process.env = { APP_ENV: 'production' } as NodeJS.ProcessEnv;
+
+      expect(() =>
+        buildTenantLoginUrl(
+          { get: () => undefined } as unknown as ConfigService,
+          { slug: 'abc-cpa' },
+        ),
+      ).toThrow(/must be configured in production/);
+    });
+  });
 });

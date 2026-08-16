@@ -8,8 +8,8 @@
 | | |
 |---|---|
 | Open CRITICAL | **0** |
-| Open HIGH | **4** |
-| Open total | 22 |
+| Open HIGH | **5** |
+| Open total | 24 |
 | Blocked | 0 |
 | Awaiting a product decision | 3 |
 | Deferred | 2 |
@@ -27,6 +27,7 @@ _None. Nothing open at CRITICAL._
 | [[BUG-0015-a-tenant-that-fails-before-identities-and-billing-is-unrecoverable|BUG-0015]] | A tenant that fails before identities-and-billing is permanently unrecoverable | STATE_MACHINE | HIGH | FIXED | api:tenant-control-plane | FIX_NOW |
 | [[BUG-0016-partner-onboarding-review-has-no-state-machine|BUG-0016]] | Partner onboarding review has no state machine | STATE_MACHINE | HIGH | FIXED | api:partner-experience | FIX_NOW |
 | [[BUG-0019-partner-inquiry-and-onboarding-review-screens-are-unreachable|BUG-0019]] | Partner inquiry and onboarding review screens have no inbound link | UX | HIGH | OPEN | apps/admin | PLAN_REQUIRED |
+| [[BUG-0026-public-login-and-tenant-email-links-resolved-to-localhost-in|BUG-0026]] | Public Login and tenant email links resolved to localhost in production | INFRA | HIGH | FIXED | apps/landing, apps/web, apps/admin, services/api, pkg:config | FIX_NOW |
 | [[ITEM-0004-tenant-activation-never-proven-end-to-end|ITEM-0004]] | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | READY | api:tenant-control-plane | FIX_NOW |
 
 ## Product Decisions Needed
@@ -55,6 +56,7 @@ _None._
 
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
+| [[BUG-0026-public-login-and-tenant-email-links-resolved-to-localhost-in|BUG-0026]] | Public Login and tenant email links resolved to localhost in production | INFRA | HIGH | FIXED | apps/landing, apps/web, apps/admin, services/api, pkg:config | FIX_NOW |
 | [[BUG-0010-unguarded-cookie-options-could-turn-sign-out-into-a-500|BUG-0010]] | Unguarded cookie options could turn admin sign-out into a 500 | INFRA | MEDIUM | FIXED | app:admin | FIX_NOW |
 | [[ITEM-0010-deployed-sha-is-not-exposed|ITEM-0010]] | The running system does not expose its deployed SHA | INFRA | MEDIUM | READY | services/api | FIX_NOW |
 
@@ -75,6 +77,7 @@ _None._
 | [[BUG-0014-no-tenant-that-failed-provisioning-could-be-retried|BUG-0014]] | No tenant that failed provisioning could be retried | STATE_MACHINE | HIGH | VERIFIED | api:tenant-control-plane | DONE |
 | [[BUG-0015-a-tenant-that-fails-before-identities-and-billing-is-unrecoverable|BUG-0015]] | A tenant that fails before identities-and-billing is permanently unrecoverable | STATE_MACHINE | HIGH | FIXED | api:tenant-control-plane | FIX_NOW |
 | [[BUG-0016-partner-onboarding-review-has-no-state-machine|BUG-0016]] | Partner onboarding review has no state machine | STATE_MACHINE | HIGH | FIXED | api:partner-experience | FIX_NOW |
+| [[BUG-0026-public-login-and-tenant-email-links-resolved-to-localhost-in|BUG-0026]] | Public Login and tenant email links resolved to localhost in production | INFRA | HIGH | FIXED | apps/landing, apps/web, apps/admin, services/api, pkg:config | FIX_NOW |
 | [[BUG-0009-session-revocation-depended-on-the-refresh-cookie|BUG-0009]] | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | FIXED | app:admin, api:auth | FIX_NOW |
 | [[BUG-0010-unguarded-cookie-options-could-turn-sign-out-into-a-500|BUG-0010]] | Unguarded cookie options could turn admin sign-out into a 500 | INFRA | MEDIUM | FIXED | app:admin | FIX_NOW |
 | [[BUG-0013-public-lead-endpoint-had-no-rate-limiting|BUG-0013]] | The public lead endpoint had no rate limiting | SECURITY | MEDIUM | VERIFIED | api:leads | DONE |
@@ -83,6 +86,7 @@ _None._
 
 ## Recent QA Runs
 
+- [[2026-08-16-production-url-integrity-344a832|QA Run — Production URL integrity (BUG-0026)]]
 - [[2026-08-15-commercial-onboarding-e2e-7bbab3d|QA Run — Commercial onboarding lifecycle E2E (website lead and partner journeys)]]
 - [[2026-08-15-browser-e2e-and-provisioning-recovery-572a3b8|QA Run — First browser E2E, and provisioning recovery against a real database]]
 - [[2026-08-14-tenant-control-plane-ba1e818|QA Run — tenant-control-plane]]
@@ -95,6 +99,7 @@ _None._
 
 ## Recent Engineering History
 
+- [[2026-08-16-production-url-integrity-344a832|Engineering History — Production url integrity]]
 - [[2026-08-15-knowledge-backlog-framework-986ab10|Engineering History — Operational knowledge-management layer]]
 - [[2026-08-15-autonomous-framework-triage-b2ba383|Engineering History — Autonomous framework triage, provisioning recovery and browser E2E]]
 
@@ -124,6 +129,7 @@ _None. Nothing has been deployed through the release process._
 | [[BUG-0024-start-onboarding-api-and-proxy-have-no-caller|BUG-0024]] | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | OPEN | apps/admin, api:super-admin | FIX_NOW |
 | [[ITEM-0011-framework-validation-should-catch-absence-claims|ITEM-0011]] | Framework validation should catch false absence claims in context documents | TECH_DEBT | LOW | READY | .agent/context, scripts | FIX_NOW |
 | [[ITEM-0015-make-the-tenant-readiness-assertion-auditable|ITEM-0015]] | Make the tenant readiness() authorization assertion auditable | FOLLOW_UP | LOW | READY | api:tenant-control-plane | FIX_NOW |
+| [[ITEM-0017-buildworkspaceurl-still-carries-an-internal-loopback-fallbac|ITEM-0017]] | buildWorkspaceUrl still carries an internal loopback fallback | TECH_DEBT | LOW | READY | pkg:config | DEFER |
 
 ## Key Architecture Decisions
 
@@ -137,11 +143,11 @@ _None. Nothing has been deployed through the release process._
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 25 |
-| Backlog items | 16 |
-| Known bug patterns | 17 |
-| QA runs | 4 |
-| Engineering history records | 2 |
+| Bug records | 26 |
+| Backlog items | 17 |
+| Known bug patterns | 18 |
+| QA runs | 5 |
+| Engineering history records | 3 |
 | Release records | 0 |
 | Module notes | 19 |
 | Architecture notes | 12 |

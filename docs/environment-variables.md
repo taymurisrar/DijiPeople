@@ -9,6 +9,51 @@ Environment is app-scoped. Do not share cookies, JWT secrets, or app origins bet
 - Store production database and JWT secrets only in Render/Vercel environment variables.
 - Do not commit `.env` files containing real secrets.
 
+## Canonical app URLs — required in production
+
+Every surface links to at least one other: the landing header links to the
+tenant workspace, the API mails activation links into it, Admin deep-links
+operators into a customer's workspace.
+
+**These are mandatory in production and validated at build/boot time.** A
+production-like build that omits one, or points one at a loopback host, now
+fails with an explicit error rather than silently shipping a dead link — see
+[BUG-0026](bugs/BUG-0026-public-login-and-tenant-email-links-resolved-to-localhost-in.md),
+where exactly that put `http://localhost:3001/dashboard` behind the public
+"Login" button.
+
+| Deployment | Must configure | Because it emits links to |
+|---|---|---|
+| `apps/landing` | `NEXT_PUBLIC_LANDING_APP_URL`, `NEXT_PUBLIC_WEB_APP_URL` | itself, and the workspace (sign-in) |
+| `apps/web` | `NEXT_PUBLIC_WEB_APP_URL` | itself — absolute links and tenant addressing |
+| `apps/admin` | `NEXT_PUBLIC_ADMIN_APP_URL`, `NEXT_PUBLIC_WEB_APP_URL` | itself, and tenant workspaces |
+| `services/api` | `LANDING_APP_URL`, `WEB_APP_URL`, `ADMIN_APP_URL` | activation, invitation, reset and public-site links |
+
+Each accepts the aliases listed in `APP_URL_ENV_KEYS`
+(`packages/config/index.js`) — e.g. `WEB_APP_URL` or `NEXT_PUBLIC_WEB_URL` also
+satisfy the workspace URL.
+
+Validation rules, enforced by `validateDeploymentEnv`:
+
+- **Present** — a missing value is a build failure, not a loopback default.
+- **Absolute, `http` or `https`** — `app.dijipeople.com` with no scheme is
+  rejected.
+- **Not loopback** — `localhost`, `127.0.0.1`, `0.0.0.0` and `::1` are rejected.
+- The resolved API base URL is checked for loopback too.
+
+> **What counts as production.** `isProductionLike()` is deliberately narrow:
+> `APP_ENV` / `NEXT_PUBLIC_APP_ENV` / `DIJIPEOPLE_ENV` set to `production`, or
+> `VERCEL=1`, or `RENDER=true`. Bare `NODE_ENV=production` does **not** trigger
+> it, so a local `npm run build` and the CI build job keep working against
+> loopback defaults. **If you deploy anywhere other than Vercel or Render, set
+> `APP_ENV=production` explicitly** — otherwise these checks stay disarmed.
+
+Application code resolves these through `@repo/config` — `resolveAppUrls()`,
+`getAppOrigin()` or `buildAppUrl()` — never by reading `process.env` with its
+own fallback. `npm run check:no-hardcoded-urls` fails on a loopback literal in
+shipped source and `npm run test:app-urls` covers the validation rules; both run
+in CI.
+
 ## Workspace routing
 
 These decide which tenant a hostname resolves to, so they must be set to the

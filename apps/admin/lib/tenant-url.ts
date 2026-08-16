@@ -1,3 +1,5 @@
+import { getAppOrigin } from "@repo/config";
+
 type QueryValue = string | number | boolean | null | undefined;
 
 export function buildTenantLoginUrl(slug: string) {
@@ -50,12 +52,14 @@ export function buildTenantPortalUrl(
 }
 
 export function resolveTenantAppBaseUrl() {
+  // Operators follow these links into a customer's live workspace, so a
+  // loopback fallback here does not degrade gracefully — it produces an
+  // unreachable link that looks correct. getAppOrigin throws in production
+  // rather than inventing one, and admin's next.config.ts has already run
+  // validateDeploymentEnv, which requires the workspace URL to be configured.
   return (
-    process.env.NEXT_PUBLIC_WEB_APP_URL ??
-    process.env.NEXT_PUBLIC_APP_BASE_URL ??
-    process.env.NEXT_PUBLIC_WEB_URL ??
-    process.env.NEXT_PUBLIC_APP_URL ??
-    "http://localhost:3001"
+    process.env.NEXT_PUBLIC_APP_BASE_URL?.trim() ||
+    getAppOrigin("web", process.env)
   );
 }
 

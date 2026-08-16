@@ -37,10 +37,40 @@ export declare function getAppPort(
   env?: NodeJS.ProcessEnv,
 ): number;
 
+export type DijiPeopleApp = "landing" | "web" | "admin" | "api";
+
 export declare function getAppOrigin(
-  app: "landing" | "web" | "admin" | "api",
+  app: DijiPeopleApp,
   env?: NodeJS.ProcessEnv,
 ): string;
+
+export declare const LOOPBACK_HOSTNAMES: readonly string[];
+
+export declare const REQUIRED_APP_URLS: Readonly<
+  Record<DijiPeopleApp, readonly DijiPeopleApp[]>
+>;
+
+/**
+ * Every canonical app URL resolved from one env object. The only supported way
+ * for application code to answer "where does the <x> app live" — call sites
+ * must not re-derive an origin with their own loopback fallback.
+ */
+export declare function resolveAppUrls(env?: NodeJS.ProcessEnv): Readonly<{
+  landing: string;
+  web: string;
+  admin: string;
+  api: string;
+  apiBaseUrl: string;
+}>;
+
+/** Absolute URL into one of the apps, joined without concatenation hazards. */
+export declare function buildAppUrl(
+  app: DijiPeopleApp,
+  path?: string,
+  env?: NodeJS.ProcessEnv,
+): string;
+
+export declare function isLoopbackUrl(value: string): boolean;
 
 export declare function getApiBaseUrl(env?: NodeJS.ProcessEnv): string;
 

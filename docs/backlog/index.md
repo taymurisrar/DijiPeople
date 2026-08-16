@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**41 records** — 25 bugs under [`docs/bugs/`](../bugs/), 16 non-bug items under [`items/`](items/).
+**43 records** — 26 bugs under [`docs/bugs/`](../bugs/), 17 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,22 +13,22 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 22 |
+| Open (active work) | 24 |
 | Blocked | 0 |
 | Deferred | 2 |
 | Awaiting a product decision | 3 |
 | Completed / closed | 14 |
 | **Open CRITICAL** | **0** |
-| **Open HIGH** | **4** |
+| **Open HIGH** | **5** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
 
 | Severity | Count |
 |---|---|
-| HIGH | 4 |
+| HIGH | 5 |
 | MEDIUM | 14 |
-| LOW | 4 |
+| LOW | 5 |
 
 ## Open by type
 
@@ -39,11 +39,11 @@ see [`README.md`](README.md) for why.
 | DATA_INTEGRITY | 1 |
 | DOCUMENTATION | 1 |
 | FOLLOW_UP | 1 |
-| INFRA | 2 |
+| INFRA | 3 |
 | INTEGRATION | 1 |
 | SECURITY | 1 |
 | STATE_MACHINE | 3 |
-| TECH_DEBT | 2 |
+| TECH_DEBT | 3 |
 | TEST_GAP | 5 |
 | UX | 3 |
 
@@ -54,9 +54,9 @@ see [`README.md`](README.md) for why.
 | OPEN | 6 |
 | DEFERRED | 2 |
 | PRODUCT_DECISION | 3 |
-| FIXED | 6 |
+| FIXED | 7 |
 | VERIFIED | 12 |
-| READY | 10 |
+| READY | 11 |
 | DEFERRED | 2 |
 | PRODUCT_DECISION | 3 |
 | DONE | 2 |
@@ -79,6 +79,7 @@ see [`README.md`](README.md) for why.
 | [BUG-0015](../../docs/bugs/BUG-0015-a-tenant-that-fails-before-identities-and-billing-is-unrecoverable.md) | A tenant that fails before identities-and-billing is permanently unrecoverable | STATE_MACHINE | HIGH | P1 | FIXED | api:tenant-control-plane | FIX_NOW |
 | [BUG-0016](../../docs/bugs/BUG-0016-partner-onboarding-review-has-no-state-machine.md) | Partner onboarding review has no state machine | STATE_MACHINE | HIGH | P1 | FIXED | api:partner-experience | FIX_NOW |
 | [BUG-0019](../../docs/bugs/BUG-0019-partner-inquiry-and-onboarding-review-screens-are-unreachable.md) | Partner inquiry and onboarding review screens have no inbound link | UX | HIGH | P1 | OPEN | apps/admin | PLAN_REQUIRED |
+| [BUG-0026](../../docs/bugs/BUG-0026-public-login-and-tenant-email-links-resolved-to-localhost-in.md) | Public Login and tenant email links resolved to localhost in production | INFRA | HIGH | P1 | FIXED | apps/landing, apps/web, apps/admin, services/api, pkg:config | FIX_NOW |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | READY | api:tenant-control-plane | FIX_NOW |
 | [BUG-0009](../../docs/bugs/BUG-0009-session-revocation-depended-on-the-refresh-cookie.md) | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | P2 | FIXED | app:admin, api:auth | FIX_NOW |
@@ -106,6 +107,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0008](../../docs/backlog/items/ITEM-0008-customeraccount-has-no-origin-channel.md) | Product decision — CustomerAccount carries no origin channel | PRODUCT_DECISION | LOW | P3 | PRODUCT_DECISION | services/api/prisma, api:super-admin | PRODUCT_DECISION |
 | [ITEM-0011](../../docs/backlog/items/ITEM-0011-framework-validation-should-catch-absence-claims.md) | Framework validation should catch false absence claims in context documents | TECH_DEBT | LOW | P3 | READY | .agent/context, scripts | FIX_NOW |
 | [ITEM-0015](../../docs/backlog/items/ITEM-0015-make-the-tenant-readiness-assertion-auditable.md) | Make the tenant readiness() authorization assertion auditable | FOLLOW_UP | LOW | P3 | READY | api:tenant-control-plane | FIX_NOW |
+| [ITEM-0017](../../docs/backlog/items/ITEM-0017-buildworkspaceurl-still-carries-an-internal-loopback-fallbac.md) | buildWorkspaceUrl still carries an internal loopback fallback | TECH_DEBT | LOW | P3 | READY | pkg:config | DEFER |
 
 ## Views
 
