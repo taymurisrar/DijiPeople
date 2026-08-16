@@ -1,3 +1,5 @@
+import { getAppOrigin } from "@repo/config";
+
 export type TenantHint = {
   type: "slug" | "domain" | "tenantCode" | "generic";
   value: string | null;
@@ -164,14 +166,16 @@ export function getDefaultTenantSlug() {
 }
 
 export function getAppBaseUrl() {
+  // Deployment-specific overrides stay ahead of the shared resolution so a
+  // single deployment can be addressed by a non-canonical origin, but the
+  // fallback is getAppOrigin — which throws in production rather than
+  // returning a loopback URL that would silently break every absolute link
+  // this app emits.
   return (
-    process.env.NEXT_PUBLIC_APP_BASE_URL ??
-    process.env.APP_BASE_URL ??
-    process.env.NEXT_PUBLIC_APP_ORIGIN ??
-    process.env.NEXT_PUBLIC_WEB_APP_URL ??
-    process.env.NEXT_PUBLIC_APP_URL ??
-    process.env.WEB_APP_URL ??
-    "http://localhost:3001"
+    process.env.NEXT_PUBLIC_APP_BASE_URL?.trim() ||
+    process.env.APP_BASE_URL?.trim() ||
+    process.env.NEXT_PUBLIC_APP_ORIGIN?.trim() ||
+    getAppOrigin("web", process.env)
   );
 }
 

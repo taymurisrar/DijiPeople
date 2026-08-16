@@ -175,6 +175,16 @@ jobs:
         # decide what reaches customers, and neither is exercised by any other
         # suite, so a break here would otherwise only surface during a release.
         run: npm run test:release-cli
+      - name: Cross-app URL rules
+        # The public "Login" button shipped pointing at http://localhost:3001
+        # because nothing required NEXT_PUBLIC_WEB_APP_URL and the call site
+        # carried its own loopback fallback. These assert that a production
+        # build now fails on a missing, malformed or loopback app URL.
+        run: npm run test:app-urls
+      - name: No loopback URLs in shipped source
+        # The other half of the same defect: a hardcoded literal never consults
+        # an environment variable, so environment validation cannot see it.
+        run: npm run check:no-hardcoded-urls
 
   database-migration:
     name: Database migration gate
