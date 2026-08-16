@@ -11,8 +11,32 @@ docs/bugs/
 ```
 
 Create one with `node scripts/new-bug.mjs "<title>" --severity HIGH --type …`.
-Never hand-allocate an id — the script reads the highest existing one, so two
-agents cannot collide.
+**Never hand-allocate an id.**
+
+> This paragraph used to end "the script reads the highest existing one, so two
+> agents cannot collide". That was false, and expensively so: reading the
+> highest id *in the working tree* cannot see one a sibling branch already took,
+> and this repository renumbered colliding records twice in two consecutive days
+> ([[ITEM-0038]]).
+
+The script now delegates to `scripts/lib/id-allocator.mjs`, which scans **every
+ref** in one `git log --all` pass, holds a cross-worktree lock, and reserves the
+id before the record file exists — closing the window between deciding on an id
+and writing it. Reservations are never lowered and never reused: a gap in the
+sequence costs nothing, and a reused id costs a merge conflict in a durable
+record plus a renumber that invalidates every link pointing at it.
+
+Allocate directly when you need an id without a record:
+
+```bash
+node scripts/allocate-id.mjs bug --session SESSION-nnnn --note "<why>"
+node scripts/allocate-id.mjs --list      # outstanding reservations
+```
+
+`node scripts/rebuild-backlog.mjs --check` additionally fails when two records
+share an `ID`, so a collision that somehow reaches a branch is caught at merge
+rather than by somebody reading a directory listing. See
+[`.agent/context/multi-session.md`](../../.agent/context/multi-session.md).
 
 ---
 
