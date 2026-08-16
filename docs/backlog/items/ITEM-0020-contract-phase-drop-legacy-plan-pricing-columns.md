@@ -1,0 +1,90 @@
+---
+ID: ITEM-0020
+Title: Contract phase: drop legacy Plan pricing columns
+Type: TECH_DEBT
+Status: READY
+Priority: P2
+Severity: MEDIUM
+AffectedModules: [services/api/prisma, api:super-admin, apps/admin]
+Source: ARCHITECT
+OwnerAgent: architect
+ArchitectDisposition: PLAN_REQUIRED
+CreatedAt: 2026-08-16
+UpdatedAt: 2026-08-16
+RelatedBug: BUG-0027
+RelatedQA: 
+RelatedADR: 
+RelatedImplementation: agent/commercial-config-wave1
+TargetMilestone: 
+BlockedBy: 
+---
+
+# ITEM-0020 — Contract phase: drop legacy Plan pricing columns
+
+## Summary
+
+Wave 1 removed `Plan.monthlyBasePrice` / `annualBasePrice` / `currency` as a
+*pricing authority* but deliberately left the columns in place. This is the
+contract phase: prove zero live consumers, then drop them.
+
+## Why It Matters
+
+They are the residue of [[BUG-0027]], which was CRITICAL — the columns silently
+priced operator-created subscriptions. The authority is gone, but the columns
+remain readable, and a future change can reintroduce a read without anything
+objecting. The expand/backfill/switch phases have landed; leaving the contract
+phase undone indefinitely is how the second source of truth grows back.
+
+## Why it was NOT done in Wave 1
+
+Dropping a column is irreversible in a forward-only migration history, and the
+evidence that no consumer remains is not yet complete:
+
+- `apps/admin/app/_components/plan-form.tsx` still **writes** both columns.
+- `apps/admin/app/_components/subscription-form.tsx:187-188` still computes a
+  displayed base price from them.
+- `super-admin` create/update plan DTOs still accept them
+  (`create-plan.dto.ts:36,40`, `update-plan.dto.ts:39,44`).
+- `tenants.service.ts:154-155` writes them when auto-creating the default plan.
+- `billing/services/billing.service.ts:103-104` still returns them in the public
+  plan payload.
+- They appear in `packages/config/platform-runtime-schema.generated.json`.
+
+Every one is now a `LEGACY_WRITE` or `DERIVED_DISPLAY` rather than an
+authority — but a drop must remove the writers first, in that order.
+
+## Proposed Approach
+
+**Needs an ExecPlan** — destructive schema change, expand/backfill/contract per
+[`PLANS.md`](../../../PLANS.md).
+
+1. Remove the legacy fields from the plan form, the plan DTOs and the public
+   plan payload; migrate `subscription-form.tsx` onto `PlanPrice`.
+2. Make `tenants.service.ts` create a default plan with a `PlanPrice`.
+3. Run `node scripts/report-legacy-price-conflicts.mjs` against production data
+   and resolve every `AMOUNT_CONFLICT` and `UNIT_MISMATCH_FLAT_VS_PER_SEAT`
+   deliberately in Admin.
+4. Confirm `Plan.legacyPricingMigratedAt` is set for every plan holding legacy
+   amounts.
+5. Only then drop the three columns, and remove `legacyPricingMigratedAt` and
+   `PlanPrice.backfilledFromLegacyAt` with them.
+
+## Acceptance Criteria
+
+- No code path reads or writes the three columns.
+- `report-legacy-price-conflicts.mjs` reports zero high-severity rows.
+- The columns are dropped and the runtime schema regenerated.
+- Existing subscriptions are unchanged, proven by a before/after assertion.
+
+## Dependencies
+
+[[BUG-0027]] — landed. This is its remaining phase.
+
+## Related Items
+
+[[BUG-0027]] · [[ITEM-0018]] · [[ITEM-0019]]
+
+## History
+
+- 2026-08-16 — created during Wave 1, which deliberately stopped before the
+  contract phase.

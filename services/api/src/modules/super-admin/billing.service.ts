@@ -6,6 +6,7 @@ import {
 import {
   BillingCycle,
   BillingModel,
+  CommercialPublicationStatus,
   DiscountType,
   InvoiceStatus,
   PaymentMethod,
@@ -39,6 +40,9 @@ export class BillingService {
       throw new NotFoundException('Plan not found.');
     }
 
+    // An explicitly chosen price wins. Otherwise resolve the published price in
+    // force for the requested cycle, rather than falling through to the legacy
+    // Plan columns — see below.
     const planPrice = input.planPriceId
       ? await this.prisma.planPrice.findFirst({
           where: {
@@ -47,7 +51,11 @@ export class BillingService {
             isActive: true,
           },
         })
-      : null;
+      : await this.resolveEffectivePlanPrice(
+          input.planId,
+          input.billingCycle,
+          input.currency,
+        );
     if (input.planPriceId && !planPrice)
       throw new BadRequestException('Selected plan price is not available.');
     if (
@@ -70,11 +78,25 @@ export class BillingService {
       planPrice?.billingModel === BillingModel.PER_SEAT
         ? (input.purchasedSeats ?? 1)
         : 1;
-    const basePrice = planPrice
-      ? Number(planPrice.unitAmount) * quantity
-      : billingCycle === BillingCycle.ANNUAL
-        ? Number(plan.annualBasePrice)
-        : Number(plan.monthlyBasePrice);
+    // BUG-0027 — this used to fall back to Plan.annualBasePrice /
+    // Plan.monthlyBasePrice when no PlanPrice resolved, and the result was
+    // written straight into Subscription.basePrice and finalPrice. That made
+    // the legacy columns an independent pricing authority in a real money path,
+    // not merely a display value: a plan with no PlanPrice (which is what the
+    // seed produced) billed the legacy number.
+    //
+    // It now fails closed. An operator who sees this needs to configure a
+    // published price for the plan, which is a deliberate commercial act — the
+    // alternative is charging an amount nobody chose.
+    if (!planPrice) {
+      throw new BadRequestException(
+        `Plan "${plan.key}" has no published ${billingCycle.toLowerCase()} price` +
+          `${input.currency ? ` in ${input.currency.toUpperCase()}` : ''}. ` +
+          'Configure and publish a price for this plan before creating a subscription.',
+      );
+    }
+
+    const basePrice = Number(planPrice.unitAmount) * quantity;
     const discountType = input.discountType ?? DiscountType.NONE;
     const discountValue = input.discountValue ?? 0;
 
@@ -121,6 +143,36 @@ export class BillingService {
         plan.currency
       ).toUpperCase(),
     };
+  }
+
+  /**
+   * The published price in force for a plan and billing cycle.
+   *
+   * Ordered by `effectiveFrom` descending, not by `version`: versions record
+   * authoring order while effective dates record commercial intent, so a v3
+   * staged for next quarter must not displace the v2 in force today. Matches
+   * `selectEffectivePrice` in the billing module's commercial-offer resolver —
+   * this is the operator-channel path, which is market-agnostic because an
+   * operator arranging a deal is not bound by self-service market gating.
+   */
+  private async resolveEffectivePlanPrice(
+    planId: string,
+    billingCycle: BillingCycle,
+    currency?: string,
+    effectiveAt: Date = new Date(),
+  ) {
+    return this.prisma.planPrice.findFirst({
+      where: {
+        planId,
+        billingCycle,
+        isActive: true,
+        publicationStatus: CommercialPublicationStatus.PUBLISHED,
+        effectiveFrom: { lte: effectiveAt },
+        OR: [{ effectiveTo: null }, { effectiveTo: { gt: effectiveAt } }],
+        ...(currency ? { currency: currency.toUpperCase() } : {}),
+      },
+      orderBy: [{ effectiveFrom: 'desc' }, { version: 'desc' }],
+    });
   }
 
   resolveRenewalDate(startDate: Date, billingCycle: BillingCycle) {

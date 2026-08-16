@@ -57,8 +57,25 @@ export default async function PlanDetailPage({
     ),
   ]);
 
-  const monthlyAnnualized = plan.monthlyBasePrice * 12;
-  const annualSaving = Math.max(monthlyAnnualized - plan.annualBasePrice, 0);
+  // BUG-0027 — these cards used to read Plan.monthlyBasePrice /
+  // annualBasePrice, so Admin displayed one number while checkout charged
+  // another. They now derive from the authoritative PlanPrice rows, which is
+  // what a customer is actually billed. A plan with no published price shows
+  // "Not configured" rather than a legacy figure nobody charges.
+  const monthlyPrice =
+    plan.prices.find(
+      (price) => price.billingCycle === "MONTHLY" && price.isActive,
+    ) ?? null;
+  const annualPrice =
+    plan.prices.find(
+      (price) => price.billingCycle === "ANNUAL" && price.isActive,
+    ) ?? null;
+
+  const monthlyAnnualized = (monthlyPrice?.unitAmount ?? 0) * 12;
+  const annualSaving =
+    annualPrice && monthlyAnnualized > 0
+      ? Math.max(monthlyAnnualized - annualPrice.unitAmount, 0)
+      : 0;
   const annualSavingPercent =
     monthlyAnnualized > 0
       ? Math.round((annualSaving / monthlyAnnualized) * 100)
@@ -67,15 +84,22 @@ export default async function PlanDetailPage({
   const summaryCards = [
     {
       label: "Monthly price",
-      value: formatCurrency(plan.monthlyBasePrice, plan.currency),
-      description: "Base recurring monthly charge.",
+      value: monthlyPrice
+        ? formatCurrency(monthlyPrice.unitAmount, monthlyPrice.currency)
+        : "Not configured",
+      description: monthlyPrice
+        ? "Authoritative price used by checkout."
+        : "No published monthly price. Customers cannot buy this plan monthly.",
       icon: CircleDollarSign,
     },
     {
       label: "Annual price",
-      value: formatCurrency(plan.annualBasePrice, plan.currency),
-      description:
-        annualSaving > 0
+      value: annualPrice
+        ? formatCurrency(annualPrice.unitAmount, annualPrice.currency)
+        : "Not configured",
+      description: !annualPrice
+        ? "No published annual price."
+        : annualSaving > 0
           ? `${annualSavingPercent}% saving versus monthly billing.`
           : "No annual discount configured.",
       icon: CalendarDays,
@@ -141,7 +165,9 @@ export default async function PlanDetailPage({
             </p>
 
             <p className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">
-              {formatCurrency(plan.monthlyBasePrice, plan.currency)}
+              {monthlyPrice
+                ? formatCurrency(monthlyPrice.unitAmount, monthlyPrice.currency)
+                : "Not configured"}
               <span className="text-sm font-medium text-slate-500">
                 {" "}
                 / month
@@ -149,14 +175,16 @@ export default async function PlanDetailPage({
             </p>
 
             <p className="mt-2 text-sm text-slate-600">
-              {formatCurrency(plan.annualBasePrice, plan.currency)} / year
+              {annualPrice
+                ? `${formatCurrency(annualPrice.unitAmount, annualPrice.currency)} / year`
+                : "No published annual price"}
             </p>
 
             <div className="mt-5 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700">
-              {annualSaving > 0 ? (
+              {annualSaving > 0 && annualPrice ? (
                 <>
                   <span className="font-semibold text-slate-950">
-                    {formatCurrency(annualSaving, plan.currency)}
+                    {formatCurrency(annualSaving, annualPrice.currency)}
                   </span>{" "}
                   annual saving for customers.
                 </>

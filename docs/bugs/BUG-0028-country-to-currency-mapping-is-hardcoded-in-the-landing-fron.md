@@ -2,7 +2,7 @@
 ID: BUG-0028
 aliases: [BUG-0028]
 Title: Country to currency mapping is hardcoded in the landing frontend
-Status: OPEN
+Status: FIXED
 Severity: MEDIUM
 Priority: P2
 Type: INTEGRATION
@@ -12,14 +12,14 @@ DetectedInSha: 45d00cf
 AffectedModules: [apps/landing]
 OwnerAgent: architect
 ArchitectDisposition: PLAN_REQUIRED
-QAReport:
-RegressionId:
+QAReport: docs/qa/runs/2026-08-16-commercial-config-wave1-a525896.md
+RegressionId: REG-018
 RelatedBacklogItem: ITEM-0019
 RelatedDecision:
-RelatedImplementation:
+RelatedImplementation: agent/commercial-config-wave1
 CreatedAt: 2026-08-16
 UpdatedAt: 2026-08-16
-ResolvedAt:
+ResolvedAt: 2026-08-16
 ---
 
 # BUG-0028 — Country to currency mapping is hardcoded in the landing frontend
@@ -90,12 +90,7 @@ server-side without flicker.
 
 ## Proposed Resolution
 
-Blocked on [[ITEM-0019]] — there is nowhere to move the mapping *to* until a
-market model exists. Once it does: resolve currency server-side from the
-visitor's country against published market configuration, and delete
-`detectRegionCurrency` and `europeanCountries`.
-
-Until then, do not extend the table — adding a country here deepens the defect.
+Was blocked on [[ITEM-0019]]; both landed together in Wave 1.
 
 ## Acceptance Criteria
 
@@ -108,8 +103,14 @@ Until then, do not extend the table — adding a country here deepens the defect
 
 ## Regression Coverage
 
-None yet. Required: adding a market in configuration changes the quoted currency
-with no frontend change.
+`services/api/src/modules/billing/commercial-offer.resolver.spec.ts` — REG-018.
+Covers market gating, the market default currency always being sellable, refusal
+of an unsupported currency, and refusal of an unscoped price rather than treating
+a null market as a wildcard.
+
+`scripts/check-no-hardcoded-urls.mjs` is the analogous guard for BUG-0026; an
+equivalent mechanical check for country/currency literals in the frontend is
+recorded as [[ITEM-0021]].
 
 ## Dependencies
 
@@ -122,12 +123,32 @@ belongs in configuration compiled into a shipped bundle.
 
 ## Resolution
 
-Not yet fixed.
+Fixed on `agent/commercial-config-wave1`, together with [[ITEM-0019]].
+
+- `detectRegionCurrency` and the hardcoded `europeanCountries` set are **deleted**
+  from `apps/landing/lib/plans.ts`, with a comment at the site recording why they
+  must not come back.
+- Currency now comes from published `Market` configuration. The API resolves the
+  visitor's market from edge country headers via `CommercialConfigService` and
+  returns it from `GET /api/public/commercial-config`.
+- Resolution happens **server-side**, so there is no flicker between an initial
+  guessed currency and a corrected one — the flicker was the visible symptom of
+  the decision being made in the wrong place.
+- `resolveDefaultCurrency` is replaced by `resolveDisplayCurrency`, which takes
+  the market's currency as authoritative and never re-derives one from a country.
+- `findPlanPrice` no longer falls back to a USD price when the market currency
+  has none. Quoting a plan in a currency the visitor's market does not use is a
+  wrong number presented as a right one; the plan now shows no public price.
+- The public currency dropdown is not rendered (multi-currency support is
+  intact underneath), so a visitor cannot select a currency their market has no
+  price in and then be shown a fallback.
 
 ## QA Retest
 
-Not yet retested.
+`docs/qa/runs/2026-08-16-commercial-config-wave1-a525896.md` — scenario E.
 
 ## History
 
 - 2026-08-16 — found during commercial-configuration discovery at `45d00cf`.
+
+- 2026-08-16 — fixed in Wave 1 alongside the market model.

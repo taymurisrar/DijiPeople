@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import {
   BillingCycle,
   PublicPlan,
   findPlanPrice,
+  formatBillingUnit,
   formatPlanPrice,
-  getAvailableCurrenciesFromPlans,
   getDisplayFeatures,
   humanizeFeature,
   isCheckoutReady,
@@ -16,25 +16,18 @@ import {
 export function PlanCards({
   plans,
   defaultCurrency,
-  availableCurrencies,
   error,
   compact = false,
 }: {
   plans: PublicPlan[];
   defaultCurrency: string;
-  availableCurrencies?: string[];
   error?: string;
   compact?: boolean;
 }) {
   const [billingCycle, setBillingCycle] = useState<BillingCycle>("MONTHLY");
-  const currencies = useMemo(
-    () =>
-      availableCurrencies?.length
-        ? availableCurrencies
-        : getAvailableCurrenciesFromPlans(plans),
-    [availableCurrencies, plans],
-  );
-  const [currency, setCurrency] = useState(defaultCurrency);
+  // The market's currency, resolved server-side from published configuration.
+  // Not selectable here — see the note where the selector used to be.
+  const currency = defaultCurrency;
 
   if (error) {
     return (
@@ -72,31 +65,33 @@ export function PlanCards({
           ))}
         </div>
 
-        <label className="w-full text-sm font-medium text-muted sm:w-56">
-          Currency
-          <select
-            className="mt-1 w-full rounded-xl border border-border bg-white px-3 py-2 text-foreground"
-            onChange={(event) => setCurrency(event.target.value)}
-            value={currency}
-          >
-            {currencies.map((code) => (
-              <option key={code} value={code}>
-                {code}
-              </option>
-            ))}
-          </select>
-        </label>
+        {/*
+          The currency selector is deliberately not rendered.
+          Currency is a property of the visitor's market, resolved server-side
+          from published configuration. Letting a visitor pick one invites
+          choosing a currency their market has no price in, and then being
+          quoted a fallback in a different currency than the one they picked.
+          Multi-currency support is intact underneath — `currency` here is the
+          market's, and `availableCurrencies` still arrives from the backend.
+        */}
+        {currency ? (
+          <p className="text-sm text-muted">
+            Prices shown in <span className="font-semibold">{currency}</span>
+          </p>
+        ) : null}
       </div>
 
       <div className={compact ? "grid gap-4 lg:grid-cols-3" : "grid gap-5 lg:grid-cols-3"}>
-        {plans.map((plan, index) => {
+        {plans.map((plan) => {
           const price = findPlanPrice(plan, currency, billingCycle);
           const canCheckout = isCheckoutReady(price);
-          const usingFallback =
-            price && price.currency.toUpperCase() !== currency.toUpperCase();
           const features = getDisplayFeatures(plan);
-          const isHighlighted =
-            plan.isPopular || plan.isRecommended || (!compact && index === 1);
+          // Which plan is highlighted is a commercial decision, so it comes
+          // from plan configuration only. This used to fall back to
+          // `index === 1`, which made whichever plan happened to be second
+          // "Popular" regardless of what anyone configured — and silently
+          // changed the highlighted plan whenever sortOrder changed.
+          const isHighlighted = Boolean(plan.isPopular || plan.isRecommended);
           const contactHref = `/contact?plan=${encodeURIComponent(plan.key)}`;
 
           return (
@@ -128,11 +123,14 @@ export function PlanCards({
                   {formatPlanPrice(price)}
                 </p>
                 <p className="mt-1 text-sm text-muted">
-                  {price ? `per ${billingCycle === "MONTHLY" ? "month" : "year"}` : "Custom pricing"}
+                  {price
+                    ? (formatBillingUnit(price) ??
+                      `per ${billingCycle === "MONTHLY" ? "month" : "year"}`)
+                    : "Custom pricing"}
                 </p>
-                {usingFallback ? (
-                  <p className="mt-2 text-xs text-warning">
-                    {currency} is unavailable for this plan. Showing {price.currency.toUpperCase()} price.
+                {price && formatBillingUnit(price) ? (
+                  <p className="mt-1 text-xs text-muted">
+                    Billed {billingCycle === "MONTHLY" ? "monthly" : "annually"}
                   </p>
                 ) : null}
                 {price && !canCheckout ? (
