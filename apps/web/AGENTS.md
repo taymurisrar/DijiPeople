@@ -25,11 +25,18 @@ app/
   activate-account/   account activation flow
   partner/            partner-facing experience
   t/                  tenant-resolved entry routes
+  workspace/          workspace-state pages — proxy.ts rewrites here when a
+                      hostname cannot be resolved to a live tenant
   api/                Next route handlers — thin proxies to services/api
   components/         shared components (see below)
   dashboard/          dashboard entry
-lib/                  client/server helpers, runtime registries, auth, tenant
+lib/                  client/server helpers, runtime specs, auth, tenant
 ```
+
+`workspace/` was missing from this listing until 2026-08-17. It is not
+incidental: workspace resolution is the **first** thing `proxy.ts` does, and
+these pages are what a request gets when it fails closed. Read `proxy.ts` and
+`lib/workspace-context.ts` before changing anything in that path.
 
 ---
 
@@ -64,28 +71,46 @@ New tenant-product modules are **declared, not hand-written**. The pieces:
 
 ```
 lib/runtime/
-  module-registry.ts            which modules exist
-  module-runtime.resolver.ts    resolves a module's runtime shape
-  metadata-registry.ts          field/entity metadata
-  metadata-layer-resolver.ts    layered metadata (system → tenant → user)
-  command-registry.ts           commands available on lists/records
   command-execution.service.ts  how a command runs
+  visibility.resolver.ts        rule-based visibility (fails closed)
   modules/
-    standard-module-specs.ts        declarative specs for standard modules
-    standard-module-data.adapter.ts generic data adapter
-    standard-module-runtime.ts      shared runtime wiring
-    <domain>.adapter.ts             per-domain data/metadata adapters
+    standard-module-specs.ts             11 specs
+    payroll-foundation-runtime-specs.ts  12 specs
+    standard-module-runtime.ts           the engine — buildStandardModuleRuntimeContext
+    standard-module-route-helpers.ts     buildStandardRouteRuntime, the route glue
+    standard-module-data.adapter.ts      generic data adapter (write/command path)
+    employee-*.ts                        the one bespoke domain, by design
 ```
 
-Workflow for a new module screen:
+> **These five modules are inert scaffolding — do not "register" anything in
+> them.** `module-registry.ts`, `metadata-registry.ts`, `command-registry.ts`,
+> `module-runtime.resolver.ts` and `metadata-layer-resolver.ts` have **zero call
+> sites**. This section previously told you to register a module in the first
+> and third; that step has no effect. `getEntityMetadata` *is* called twice but
+> the map is never populated, so it always returns `null` and callers fall
+> through to a default. Corrected 2026-08-17 at `1af3690` —
+> see `BUG-0043` and `ITEM-0035`.
+>
+> The **only live registry** in this app is
+> `app/(authenticated)/settings/_lib/settings-adapter-registry.ts`, which holds
+> 82 of the app's 105 module specs and validates itself at module load.
 
-1. Add or extend the spec in `lib/runtime/modules/standard-module-specs.ts`.
-2. Add a data adapter only if the standard adapter cannot serve it.
-3. Register in `module-registry.ts` and, if it needs commands, in
-   `command-registry.ts`.
-4. Route file renders `StandardModuleListPage` / `StandardModuleRecordPage`.
+Workflow for a new module screen — the steps that actually work:
+
+1. Add or extend the spec in `lib/runtime/modules/standard-module-specs.ts` (or
+   `payroll-foundation-runtime-specs.ts`). `moduleKey` must match `routeBase` —
+   the adapter derives `"/api" + routeBase` when `apiPath` is absent, and
+   command handlers are selected by `moduleKey` **string equality**.
+2. Add the Next route handlers under `app/api/<resource>/` — thin proxies.
+3. List page: fetch with `apiRequestJson`, build with `buildStandardRouteRuntime`,
+   render `StandardModuleListPage`.
+4. Record pages (`[id]`, `[id]/edit`, `new`): `buildStandardRouteRuntime` +
+   `resolveStandardActiveForm`, render `StandardModuleRecordPage`.
 5. Add navigation in `app/(authenticated)/_components/navigation.ts` (and extend
    `navigation.spec.ts`).
+6. Add a data adapter only if the standard adapter cannot serve it. Note it
+   already carries nine hardcoded `moduleKey` branches — adding a tenth is the
+   accretion `ITEM-0035` exists to stop.
 
 Write a bespoke page **only** when the runtime genuinely cannot express the
 requirement, and state that explicitly in the plan. Do not create a second CRUD
@@ -189,9 +214,19 @@ npm --workspace web run lint
 ```
 
 `jest.config.js` is deliberately scoped to **pure logic**: resolvers, merges,
-catalogs, registries — `*.spec.ts` only, `testEnvironment: "node"`. jsdom and a
-rendering library are **not installed**, so do not write component render tests
-here; extract the logic and test that instead. Existing examples:
+catalogs, registries — `*.spec.ts` only (**`.spec.tsx` is not matched**),
+`testEnvironment: "node"`. jsdom and a rendering library are **not installed**,
+so do not write component render tests here; extract the logic and test that
+instead.
+
+> **Know what this leaves uncovered before relying on it.** 17 specs exist. The
+> config cannot reach any page, any client component, `proxy.ts`,
+> `lib/server-api.ts` or any of the 416 route handlers — and `apps/web` has
+> **zero browser coverage**, so those surfaces have no test mechanism at all.
+> See `ITEM-0033`. Do not read `ITEM-0001` (browser tooling, `DONE`) as coverage
+> of this app.
+
+Existing examples:
 `lib/runtime/command-catalog.spec.ts`,
 `lib/runtime/modules/standard-module-views.spec.ts`,
 `app/(authenticated)/_components/navigation.spec.ts`,

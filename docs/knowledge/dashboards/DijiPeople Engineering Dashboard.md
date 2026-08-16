@@ -8,8 +8,8 @@
 | | |
 |---|---|
 | Open CRITICAL | **0** |
-| Open HIGH | **2** |
-| Open total | 26 |
+| Open HIGH | **4** |
+| Open total | 38 |
 | Blocked | 0 |
 | Awaiting a product decision | 3 |
 | Deferred | 2 |
@@ -25,7 +25,9 @@ _None. Nothing open at CRITICAL._
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
 | [[BUG-0034-desktop-agent-auto-update-points-at-an-endpoint-that-does-no|BUG-0034]] | Desktop agent auto update points at an endpoint that does not exist | INTEGRATION | HIGH | OPEN | apps/agent-desktop, api:agent, api:app-releases | PLAN_REQUIRED |
+| [[BUG-0038-employee-payslip-and-bank-account-proxies-return-the-callers|BUG-0038]] | Employee payslip and bank account proxies return the callers own data on 403 | DATA_INTEGRITY | HIGH | OPEN | apps/web, api:payroll, api:employees | FIX_NOW |
 | [[ITEM-0004-tenant-activation-never-proven-end-to-end|ITEM-0004]] | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | READY | api:tenant-control-plane | FIX_NOW |
+| [[ITEM-0033-apps-web-has-zero-browser-e2e-coverage|ITEM-0033]] | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | READY | apps/web, e2e | PLAN_REQUIRED |
 
 ## Product Decisions Needed
 
@@ -44,6 +46,7 @@ _None._
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
 | [[ITEM-0004-tenant-activation-never-proven-end-to-end|ITEM-0004]] | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | READY | api:tenant-control-plane | FIX_NOW |
+| [[ITEM-0033-apps-web-has-zero-browser-e2e-coverage|ITEM-0033]] | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | READY | apps/web, e2e | PLAN_REQUIRED |
 | [[ITEM-0002-no-live-api-session-test-harness|ITEM-0002]] | No harness exists for testing against a running API with real sessions | TEST_GAP | MEDIUM | READY | services/api, apps/admin | FIX_NOW |
 | [[ITEM-0003-tenant-erasure-never-exercised-against-a-database|ITEM-0003]] | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | READY | api:tenant-control-plane | FIX_NOW |
 | [[ITEM-0012-cross-check-route-methods-against-their-callers|ITEM-0012]] | Cross-check app/api route methods against the hrefs that target them | TEST_GAP | MEDIUM | READY | apps/web, apps/admin | FIX_NOW |
@@ -54,6 +57,7 @@ _None._
 
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
+| [[BUG-0041-apps-web-reads-21-environment-variables-unregistered-in-turb|BUG-0041]] | apps/web reads 21 environment variables unregistered in turbo globalEnv | INFRA | MEDIUM | OPEN | apps/web, pkg:config | FIX_NOW |
 | [[ITEM-0010-deployed-sha-is-not-exposed|ITEM-0010]] | The running system does not expose its deployed SHA | INFRA | MEDIUM | READY | services/api | FIX_NOW |
 
 ## Recently Fixed Bugs
@@ -93,11 +97,13 @@ _None._
 | [[BUG-0028-country-to-currency-mapping-is-hardcoded-in-the-landing-fron|BUG-0028]] | Country to currency mapping is hardcoded in the landing frontend | INTEGRATION | MEDIUM | VERIFIED | apps/landing | PLAN_REQUIRED |
 | [[BUG-0029-public-features-page-advertised-capabilities-the-product-doe|BUG-0029]] | Public features page advertised capabilities the product does not gate and omitted ones it does | DOCUMENTATION | MEDIUM | VERIFIED | apps/landing | FIX_NOW |
 | [[BUG-0037-integration-patterns-context-denies-four-subsystems-that-exi|BUG-0037]] | Integration patterns context denies four subsystems that exist | DOCUMENTATION | MEDIUM | VERIFIED | .agent/context | FIX_NOW |
+| [[BUG-0043-the-documented-new-module-workflow-for-apps-web-cannot-be-fo|BUG-0043]] | The documented new module workflow for apps/web cannot be followed | DOCUMENTATION | MEDIUM | FIXED | apps/web | FIX_NOW |
 | [[BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist|BUG-0023]] | The testing-architecture context claims two e2e specs do not exist | DOCUMENTATION | LOW | VERIFIED | .agent/context | FIX_NOW |
 | [[BUG-0024-start-onboarding-api-and-proxy-have-no-caller|BUG-0024]] | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | VERIFIED | apps/admin, api:super-admin | FIX_NOW |
 
 ## Recent QA Runs
 
+- [[2026-08-17-web-app-documentation-1af3690|QA Run — apps/web documentation audit (TASK-0003)]]
 - [[2026-08-16-public-commercial-wave2-7686bb0|QA Run — Wave 2: Public Plans + Features Experience]]
 - [[2026-08-16-production-url-integrity-344a832|QA Run — Production URL integrity (BUG-0026)]]
 - [[2026-08-16-monorepo-app-documentation-78072d2|QA Run — Monorepo application documentation audit (TASK-0002)]]
@@ -105,7 +111,6 @@ _None._
 - [[2026-08-16-hotfix-plan-list-hidden-write-78072d2|QA Run — Hotfix: Plan list GET mutates commercial pricing (BUG-0030)]]
 - [[2026-08-16-commercial-config-wave1-a525896|QA Run — Wave 1: Commercial Configuration Foundation]]
 - [[2026-08-15-commercial-onboarding-e2e-7bbab3d|QA Run — Commercial onboarding lifecycle E2E (website lead and partner journeys)]]
-- [[2026-08-15-browser-e2e-and-provisioning-recovery-572a3b8|QA Run — First browser E2E, and provisioning recovery against a real database]]
 
 ## Recent Implementations
 
@@ -133,6 +138,13 @@ _None. Nothing has been deployed through the release process._
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
 | [[ITEM-0018-plans-and-prices-have-no-draft-publish-or-archive-lifecycle|ITEM-0018]] | Plans and prices have no draft, publish or archive lifecycle | ARCHITECTURE | MEDIUM | VALIDATING | services/api/prisma, api:super-admin, apps/admin, apps/landing | FIX_NOW |
+| [[BUG-0039-apps-web-sets-no-security-response-headers|BUG-0039]] | apps/web sets no security response headers | SECURITY | MEDIUM | OPEN | apps/web | FIX_NOW |
+| [[BUG-0040-web-route-proxies-make-authorization-and-business-decisions|BUG-0040]] | Web route proxies make authorization and business decisions | SECURITY | MEDIUM | OPEN | apps/web | PLAN_REQUIRED |
+| [[BUG-0041-apps-web-reads-21-environment-variables-unregistered-in-turb|BUG-0041]] | apps/web reads 21 environment variables unregistered in turbo globalEnv | INFRA | MEDIUM | OPEN | apps/web, pkg:config | FIX_NOW |
+| [[BUG-0042-web-dialogs-have-no-focus-trap-and-filter-controls-are-unlab|BUG-0042]] | Web dialogs have no focus trap and filter controls are unlabelled | UX | MEDIUM | OPEN | apps/web | PLAN_REQUIRED |
+| [[BUG-0043-the-documented-new-module-workflow-for-apps-web-cannot-be-fo|BUG-0043]] | The documented new module workflow for apps/web cannot be followed | DOCUMENTATION | MEDIUM | FIXED | apps/web | FIX_NOW |
+| [[BUG-0044-the-canonical-settings-and-branding-contract-is-materially-s|BUG-0044]] | The canonical settings and branding contract is materially stale | DOCUMENTATION | MEDIUM | OPEN | apps/web, docs/architecture | PLAN_REQUIRED |
+| [[BUG-0045-tenant-theme-mode-and-runtime-settings-saves-do-not-take-eff|BUG-0045]] | Tenant theme mode and runtime settings saves do not take effect | UX | MEDIUM | OPEN | apps/web | FIX_NOW |
 | [[ITEM-0002-no-live-api-session-test-harness|ITEM-0002]] | No harness exists for testing against a running API with real sessions | TEST_GAP | MEDIUM | READY | services/api, apps/admin | FIX_NOW |
 | [[ITEM-0003-tenant-erasure-never-exercised-against-a-database|ITEM-0003]] | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | READY | api:tenant-control-plane | FIX_NOW |
 | [[ITEM-0005-customeraccount-leadid-has-no-unique-constraint|ITEM-0005]] | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | READY | services/api/prisma, api:super-admin | PLAN_REQUIRED |
@@ -149,6 +161,9 @@ _None. Nothing has been deployed through the release process._
 | [[ITEM-0030-partner-inquiry-form-does-not-yet-capture-partnership-model|ITEM-0030]] | Partner inquiry form does not yet capture partnership model | FOLLOW_UP | MEDIUM | VALIDATING | apps/landing, api:partners | FIX_NOW |
 | [[ITEM-0031-replace-remaining-native-prompts-for-governed-input|ITEM-0031]] | Replace remaining native prompts for governed input | UX | MEDIUM | READY | apps/admin, apps/web | DEFER |
 | [[ITEM-0032-recompute-productivity-totals-inflated-by-heartbeat-replays|ITEM-0032]] | Recompute productivity totals inflated by heartbeat replays | DATA_MIGRATION | MEDIUM | READY | api:agent | PRODUCT_DECISION |
+| [[ITEM-0034-web-route-handlers-flatten-upstream-error-status-to-500|ITEM-0034]] | Web route handlers flatten upstream error status to 500 | TECH_DEBT | MEDIUM | READY | apps/web | FIX_NOW |
+| [[ITEM-0035-decide-the-fate-of-the-inert-runtime-registries-in-apps-web|ITEM-0035]] | Decide the fate of the inert runtime registries in apps/web | ARCHITECTURE | MEDIUM | READY | apps/web | PLAN_REQUIRED |
+| [[ITEM-0036-apps-web-depends-on-lucide-react-without-declaring-it|ITEM-0036]] | apps/web depends on lucide-react without declaring it | TECH_DEBT | MEDIUM | READY | apps/web | FIX_NOW |
 | [[ITEM-0021-mechanical-guard-against-country-and-currency-literals-in-fr|ITEM-0021]] | Mechanical guard against country and currency literals in frontends | TEST_GAP | LOW | READY | scripts, apps/landing, apps/web, apps/admin | DEFER |
 | [[ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning|ITEM-0023]] | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | READY | services/api/prisma, api:tenant-control-plane | DEFER |
 | [[ITEM-0024-landing-depends-on-lucide-react-without-declaring-it|ITEM-0024]] | Landing depends on lucide-react without declaring it | TECH_DEBT | LOW | READY | apps/landing | DEFER |
@@ -169,14 +184,14 @@ _None. Nothing has been deployed through the release process._
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 37 |
-| Backlog items | 32 |
+| Bug records | 45 |
+| Backlog items | 36 |
 | Known bug patterns | 19 |
-| QA runs | 10 |
+| QA runs | 11 |
 | Engineering history records | 9 |
 | Release records | 0 |
 | Module notes | 19 |
-| Architecture notes | 17 |
+| Architecture notes | 18 |
 | Decision notes (ADR + generated) | 5 |
 | Implementation records | 3 |
 

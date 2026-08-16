@@ -72,6 +72,9 @@ Questions where the engineering is understood and the **product answer**
 
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
+| [[BUG-0038-employee-payslip-and-bank-account-proxies-return-the-callers|BUG-0038]] | Employee payslip and bank account proxies return the callers own data on 403 | DATA_INTEGRITY | HIGH | OPEN | apps/web, api:payroll, api:employees | FIX_NOW |
+| [[BUG-0042-web-dialogs-have-no-focus-trap-and-filter-controls-are-unlab|BUG-0042]] | Web dialogs have no focus trap and filter controls are unlabelled | UX | MEDIUM | OPEN | apps/web | PLAN_REQUIRED |
+| [[BUG-0045-tenant-theme-mode-and-runtime-settings-saves-do-not-take-eff|BUG-0045]] | Tenant theme mode and runtime settings saves do not take effect | UX | MEDIUM | OPEN | apps/web | FIX_NOW |
 | [[ITEM-0031-replace-remaining-native-prompts-for-governed-input|ITEM-0031]] | Replace remaining native prompts for governed input | UX | MEDIUM | READY | apps/admin, apps/web | DEFER |
 
 ## How to read this
