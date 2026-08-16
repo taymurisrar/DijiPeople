@@ -76,6 +76,7 @@ import { UpdateTenantDto } from './dto/update-tenant.dto';
 import { UpdateTenantSlugDto } from '../tenants/dto/update-tenant-slug.dto';
 import { CreateInvoiceFromSubscriptionDto } from './dto/create-invoice-from-subscription.dto';
 import { PlansRepository } from './plans.repository';
+import { bootstrapCommercialDefaults } from './commercial-bootstrap';
 import { DEFAULT_PLAN_DEFINITIONS } from './plans.catalog';
 import {
   DEFAULT_MARKET_DEFINITIONS,
@@ -1697,8 +1698,13 @@ export class SuperAdminService {
     return this.getEnabledFeatures(tenantId);
   }
 
+  /**
+   * Read-only. BUG-0030: this used to call `ensureDefaultPlans()`, so opening
+   * the Admin Plans screen created Plans, Markets and PlanPrices — and a
+   * production GET returned 409 when the insert hit the partial unique index
+   * on PlanPrice. Bootstrap is now explicit; see commercial-bootstrap.ts.
+   */
   async listPlans() {
-    await this.ensureDefaultPlans();
     const plans = await this.plansRepository.findMany();
     return plans.map((plan) => this.mapPlan(plan));
   }
@@ -1711,8 +1717,8 @@ export class SuperAdminService {
     }));
   }
 
+  /** Read-only — see the note on listPlans. */
   async getPlanDetail(planId: string) {
-    await this.ensureDefaultPlans();
     const plan = await this.plansRepository.findById(planId);
 
     if (!plan) {
@@ -1723,8 +1729,6 @@ export class SuperAdminService {
   }
 
   async createPlan(actor: AuthenticatedUser, dto: CreatePlanDto) {
-    await this.ensureDefaultPlans();
-
     const key = normalizeTenantSlug(dto.key);
     const existingPlan = await this.plansRepository.findByKey(key);
 
@@ -1763,7 +1767,6 @@ export class SuperAdminService {
     planId: string,
     dto: UpdatePlanDto,
   ) {
-    await this.ensureDefaultPlans();
     const existingPlan = await this.plansRepository.findById(planId);
 
     if (!existingPlan) {
@@ -3963,177 +3966,20 @@ export class SuperAdminService {
     };
   }
 
-  private async ensureDefaultPlans() {
-    for (const definition of DEFAULT_PLAN_DEFINITIONS) {
-      const existingPlan = await this.plansRepository.findByKey(definition.key);
-
-      if (!existingPlan) {
-        await this.plansRepository.create({
-          key: definition.key,
-          name: definition.name,
-          description: definition.description,
-          sortOrder: definition.sortOrder,
-          isActive: true,
-          monthlyBasePrice: definition.monthlyBasePrice,
-          annualBasePrice: definition.annualBasePrice,
-          currency: definition.currency,
-          features: {
-            create: definition.enabledFeatureKeys.map((featureKey) => ({
-              featureKey,
-              isEnabled: true,
-            })),
-          },
-        });
-        continue;
-      }
-
-      if (
-        Number(existingPlan.monthlyBasePrice) === 0 &&
-        Number(existingPlan.annualBasePrice) === 0
-      ) {
-        await this.plansRepository.update(existingPlan.id, {
-          monthlyBasePrice: definition.monthlyBasePrice,
-          annualBasePrice: definition.annualBasePrice,
-          currency: definition.currency,
-        });
-      }
-    }
-
-    await this.ensureDefaultMarkets();
-    await this.ensureAuthoritativePlanPrices();
-  }
-
   /**
-   * Seed the commercial markets. Idempotent, and deliberately non-destructive:
-   * an existing market is never overwritten, because after the first run its
-   * values are operator decisions rather than seed defaults.
-   */
-  private async ensureDefaultMarkets() {
-    for (const definition of DEFAULT_MARKET_DEFINITIONS) {
-      const existing = await this.prisma.market.findUnique({
-        where: { code: definition.code },
-      });
-
-      if (existing) continue;
-
-      await this.prisma.market.create({
-        data: {
-          code: definition.code,
-          name: definition.name,
-          description: definition.description,
-          launchStatus: definition.launchStatus,
-          isEnabled: definition.isEnabled,
-          selfServiceEnabled: definition.selfServiceEnabled,
-          publicationStatus: definition.published
-            ? CommercialPublicationStatus.PUBLISHED
-            : CommercialPublicationStatus.DRAFT,
-          publishedAt: definition.published ? new Date() : null,
-          defaultCurrency: definition.defaultCurrency,
-          supportedCurrencies: [...definition.supportedCurrencies],
-          dataRegion: definition.dataRegion,
-          taxProfileRef: definition.taxProfileRef,
-          legalDocumentSetRef: definition.legalDocumentSetRef,
-          sortOrder: definition.sortOrder,
-          countries: {
-            create: definition.countryCodes.map((countryCode) => ({
-              countryCode,
-            })),
-          },
-        },
-      });
-    }
-  }
-
-  /**
-   * Give every seeded plan a published, market-scoped PlanPrice.
+   * Explicit commercial bootstrap, for an operator action or a deployment step.
    *
-   * This is the seed half of BUG-0027. The seed previously wrote only the
-   * legacy `Plan.monthlyBasePrice` columns and created no PlanPrice at all, so
-   * a freshly seeded system had plans that Platform Admin displayed with a
-   * price and the public site rendered as "Contact sales" — the two models
-   * disagreeing from the very first run.
+   * BUG-0030: the logic this replaces ran as a side effect of reading the Plans
+   * list, which meant serving a page created Plans, Markets and PlanPrices —
+   * and hit a unique constraint in production. The implementation now lives in
+   * commercial-bootstrap.ts, is idempotent and concurrency-safe, and is invoked
+   * from `seed:config` (so `npm run release:api` runs it) or from here.
    *
-   * The amounts are the existing repository values, unchanged. They are seeded
-   * as FLAT because that is what those figures actually are: flat per-plan
-   * monthly and annual amounts, not per-active-employee rates. Converting them
-   * to a per-seat schedule is a commercial decision, not a migration — see the
-   * OWNER_DECISION_REQUIRED note in markets.catalog.ts.
+   * It returns what it did, including warnings, so a caller can tell "nothing
+   * needed doing" from "something already occupies that slot".
    */
-  private async ensureAuthoritativePlanPrices() {
-    const market = await this.prisma.market.findUnique({
-      where: { code: SEEDED_PRICE_MARKET_CODE },
-    });
-
-    if (!market) return;
-
-    for (const definition of DEFAULT_PLAN_DEFINITIONS) {
-      const plan = await this.plansRepository.findByKey(definition.key);
-      if (!plan) continue;
-
-      const currency = market.defaultCurrency.toUpperCase();
-
-      const cycles = [
-        {
-          billingCycle: BillingCycle.MONTHLY,
-          billingInterval: BillingInterval.MONTH,
-          unitAmount: definition.monthlyBasePrice,
-        },
-        {
-          billingCycle: BillingCycle.ANNUAL,
-          billingInterval: BillingInterval.YEAR,
-          unitAmount: definition.annualBasePrice,
-        },
-      ];
-
-      for (const cycle of cycles) {
-        if (cycle.unitAmount <= 0) continue;
-
-        // Never overwrite a price an operator authored, and never create a
-        // second one for the same slot — this runs on every seed.
-        const existing = await this.prisma.planPrice.findFirst({
-          where: {
-            planId: plan.id,
-            marketId: market.id,
-            currency,
-            billingInterval: cycle.billingInterval,
-          },
-        });
-
-        if (existing) continue;
-
-        await this.prisma.planPrice.create({
-          data: {
-            planId: plan.id,
-            marketId: market.id,
-            billingCycle: cycle.billingCycle,
-            billingInterval: cycle.billingInterval,
-            billingModel: BillingModel.FLAT,
-            currency,
-            unitAmount: cycle.unitAmount,
-            minimumSeats: 1,
-            includedSeats: 0,
-            publicationStatus: CommercialPublicationStatus.PUBLISHED,
-            salesModel:
-              DEFAULT_PLAN_SALES_MODELS[definition.key] ??
-              CommercialSalesModel.SELF_SERVICE,
-            publishedAt: new Date(),
-            isActive: true,
-          },
-        });
-      }
-
-      // Publish the plan itself. Without this every seeded plan would sit in
-      // DRAFT and the public catalogue would be empty after a fresh install.
-      if (plan.publicationStatus !== CommercialPublicationStatus.PUBLISHED) {
-        await this.plansRepository.update(plan.id, {
-          publicationStatus: CommercialPublicationStatus.PUBLISHED,
-          publishedAt: new Date(),
-          salesModel:
-            DEFAULT_PLAN_SALES_MODELS[definition.key] ??
-            CommercialSalesModel.SELF_SERVICE,
-        });
-      }
-    }
+  async bootstrapCommercialDefaults() {
+    return bootstrapCommercialDefaults(this.prisma);
   }
 
   private mapPlan(
