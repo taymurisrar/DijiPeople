@@ -1,6 +1,6 @@
 ---
-ID: BUG-0036
-aliases: [BUG-0036]
+ID: BUG-0037
+aliases: [BUG-0037]
 Title: Integration patterns context denies four subsystems that exist
 Status: FIXED
 Severity: MEDIUM
@@ -22,7 +22,7 @@ UpdatedAt: 2026-08-16
 ResolvedAt: 2026-08-16
 ---
 
-# BUG-0036 — Integration patterns context denies four subsystems that exist
+# BUG-0037 — Integration patterns context denies four subsystems that exist
 
 ## Summary
 

@@ -1,6 +1,6 @@
 ---
-ID: ITEM-0025
-aliases: [ITEM-0025]
+ID: ITEM-0026
+aliases: [ITEM-0026]
 Title: Desktop agent Windows installer is unsigned
 Type: SECURITY
 Status: READY
@@ -12,7 +12,7 @@ OwnerAgent: release-devops
 ArchitectDisposition: PLAN_REQUIRED
 CreatedAt: 2026-08-16
 UpdatedAt: 2026-08-16
-RelatedBug: BUG-0033
+RelatedBug: BUG-0034
 RelatedQA: docs/qa/runs/2026-08-16-monorepo-app-documentation-78072d2.md
 RelatedADR:
 RelatedImplementation:
@@ -20,7 +20,7 @@ TargetMilestone:
 BlockedBy:
 ---
 
-# ITEM-0025 — Desktop agent Windows installer is unsigned
+# ITEM-0026 — Desktop agent Windows installer is unsigned
 
 ## Summary
 
@@ -50,7 +50,7 @@ Three costs, in increasing order of seriousness.
    installs and runs as the employee.
 
 Point 3 is why this is filed as `SECURITY` rather than polish, and why it must
-be settled **together with** [[BUG-0033-desktop-agent-auto-update-points-at-an-endpoint-that-does-no]].
+be settled **together with** [[BUG-0034-desktop-agent-auto-update-points-at-an-endpoint-that-does-no]].
 Today the feed URL is dead, so the exposure is latent; the moment somebody makes
 auto-update work without solving signing, it becomes live.
 
@@ -68,7 +68,7 @@ auto-update work without solving signing, it becomes live.
 
 ## Proposed Approach
 
-**Needs an ExecPlan**, jointly with BUG-0033 — an update channel and its
+**Needs an ExecPlan**, jointly with BUG-0034 — an update channel and its
 authenticity control are one decision, and solving either alone produces a worse
 outcome than solving neither.
 
@@ -88,21 +88,21 @@ lands.
 
 ## Dependencies
 
-[[BUG-0033-desktop-agent-auto-update-points-at-an-endpoint-that-does-no]] —
+[[BUG-0034-desktop-agent-auto-update-points-at-an-endpoint-that-does-no]] —
 same decision. Acquiring a code-signing certificate is a purchasing action
 outside engineering's control, which is the realistic blocker.
 
 ## Related Items
 
-[[BUG-0033-desktop-agent-auto-update-points-at-an-endpoint-that-does-no]] ·
+[[BUG-0034-desktop-agent-auto-update-points-at-an-endpoint-that-does-no]] ·
 [[desktop-agent-architecture]] · [[desktop-agent]] ·
-[[deployment-architecture]] · [[ITEM-0027]].
+[[deployment-architecture]] · [[ITEM-0028]].
 
 ## History
 
 - 2026-08-16 — created at `78072d2` during the `apps/agent-desktop` deep
   documentation audit (TASK-0002).
-- 2026-08-16 — Architect triage: `PLAN_REQUIRED`, sequenced with BUG-0033.
+- 2026-08-16 — Architect triage: `PLAN_REQUIRED`, sequenced with BUG-0034.
   Deliberately not `DEFER` despite the latent exposure: the cost of doing this
   after auto-update starts working is a live remote-code-execution channel, and
   the certificate has a procurement lead time that makes late a bad time to

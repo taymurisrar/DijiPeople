@@ -38,7 +38,7 @@
 > `.github/workflows/ci.yml` exists with ten required jobs behind the
 > `CI required gate` check, plus `.github/workflows/release-app.yml`. Corrected
 > 2026-08-16 — see
-> [[BUG-0036-integration-patterns-context-denies-four-subsystems-that-exi]].
+> [[BUG-0037-integration-patterns-context-denies-four-subsystems-that-exi]].
 
 ### Dependency graph
 
@@ -150,8 +150,8 @@ committed.
   which was false and is corrected.
 - `npm run build` runs `--concurrency=1` and is slow.
 - **The desktop agent's auto-update feed points at a route that does not exist**
-  — [[BUG-0033-desktop-agent-auto-update-points-at-an-endpoint-that-does-no]] —
-  and its installer is unsigned ([[ITEM-0025]]). "Manual distribution" in the
+  — [[BUG-0034-desktop-agent-auto-update-points-at-an-endpoint-that-does-no]] —
+  and its installer is unsigned ([[ITEM-0026]]). "Manual distribution" in the
   component table above understates it: `release-app.yml` offers `agent-desktop`
   as a choice but cannot package it.
 
@@ -179,8 +179,8 @@ committed.
 4. **A staging environment** — the repository currently describes only local and
    production topology.
 5. **A working, authenticated update channel for the desktop agent**, decided
-   together with code signing — [[BUG-0033-desktop-agent-auto-update-points-at-an-endpoint-that-does-no]]
-   and [[ITEM-0025]].
+   together with code signing — [[BUG-0034-desktop-agent-auto-update-points-at-an-endpoint-that-does-no]]
+   and [[ITEM-0026]].
 
 ## What the specialist agent MUST verify before changing this
 

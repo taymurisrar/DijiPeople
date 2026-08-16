@@ -79,7 +79,7 @@ at `78072d2`: `POST /public/subscribe` creates a Stripe Customer and a Checkout
 Session through the live SDK, and activation genuinely waits on the webhook. The
 "stub in code" note above predates that work and is corrected here. It carries
 no rate limit, which is
-[[BUG-0030-public-subscribe-endpoint-has-no-rate-limiting]].
+[[BUG-0031-public-subscribe-endpoint-has-no-rate-limiting]].
 
 Partner-portal lead submission routes are permanent 403 stubs.
 

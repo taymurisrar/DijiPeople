@@ -43,7 +43,7 @@ Two consequences, both load-bearing:
 > Cypress or Puppeteer in any workspace", and the paragraph below it said the
 > same. Both became false when the `e2e` workspace landed and closed
 > [[ITEM-0001]]. Corrected 2026-08-16 at `78072d2` — see
-> [[BUG-0036-integration-patterns-context-denies-four-subsystems-that-exi]].
+> [[BUG-0037-integration-patterns-context-denies-four-subsystems-that-exi]].
 
 Verified at `78072d2`: web, admin and landing jest all run in a **node**
 environment with no jsdom, so component *rendering* still cannot be unit-tested.
@@ -219,8 +219,8 @@ Per app:
 - **`apps/docs`** has no test script and nothing to test — a stock starter. See
   [[docs-application]].
 - **`apps/agent-desktop`** has no test script and no tests, and neither does the
-  `agent` API module that serves it. That gap is tracked as [[ITEM-0027]] and is
-  how [[BUG-0034-desktop-agent-logout-never-revokes-the-refresh-token]] survived.
+  `agent` API module that serves it. That gap is tracked as [[ITEM-0028]] and is
+  how [[BUG-0035-desktop-agent-logout-never-revokes-the-refresh-token]] survived.
 
 ### packages/config
 

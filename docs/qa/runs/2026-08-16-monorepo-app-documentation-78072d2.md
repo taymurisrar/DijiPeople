@@ -46,8 +46,8 @@ Everything else was verified by reading source at `78072d2`.
 |---|---|---|
 | B1 | Every `app/api/**/route.ts` proxy's upstream exists and is public | **PASS** — four proxies, all upstreams found, none guarded |
 | B2 | No proxy makes an authorization or tenant decision locally | **PASS** — all four are pure forwarders |
-| B3 | `POST /public/subscribe` is rate limited | **FAILED** → [[BUG-0030-public-subscribe-endpoint-has-no-rate-limiting]] |
-| B4 | The API can distinguish landing visitors for rate-limit purposes | **FAILED** → [[BUG-0031-landing-proxies-collapse-every-visitor-into-one-rate-limit-b]] |
+| B3 | `POST /public/subscribe` is rate limited | **FAILED** → [[BUG-0031-public-subscribe-endpoint-has-no-rate-limiting]] |
+| B4 | The API can distinguish landing visitors for rate-limit purposes | **FAILED** → [[BUG-0032-landing-proxies-collapse-every-visitor-into-one-rate-limit-b]] |
 | B5 | BUG-0021 (`/contact` fabricates lead data) is still reproducible | **CONFIRMED unchanged** — all three fabrications present verbatim; API DTO also unchanged. Scope **widened**: `industry` receives a product-area value, and a third fabrication site exists in `billing.service.ts` |
 | B6 | BUG-0028 (hardcoded country→currency) is fixed | **PASS** — `detectRegionCurrency`, `europeanCountries`, `resolveDefaultCurrency` all absent; tombstone comment and regression in place |
 | B7 | BUG-0026 (loopback URLs) is fixed | **PASS for the reported defect.** Two same-class residues survive that neither guard can see, because neither is a loopback literal: hardcoded production URLs in `app/robots.ts` and `app/layout.tsx` |
@@ -65,20 +65,20 @@ Everything else was verified by reading source at `78072d2`.
 | C3 | A renderer can forge a `deviceId` | **REFUTED** — overridden by the main process |
 | C4 | The app can assert a tenant | **REFUTED** — it never holds or sends a `tenantId`. Tenant isolation is correct by construction |
 | C5 | Privacy denials are server-overridable | **REFUTED** — `allowScreenshots`/`allowClipboard`/`allowKeylogging` hardcoded `false` at both type and runtime level |
-| C6 | Every desktop API call has a serving route | **FAILED on one** — the `electron-updater` feed → [[BUG-0033-desktop-agent-auto-update-points-at-an-endpoint-that-does-no]] |
-| C7 | Agent auth endpoints are rate limited | **FAILED** → [[BUG-0032-desktop-agent-login-is-unthrottled-and-enumerates-users-acro]]. Also confirmed **no global guard exists** (`APP_GUARD`/`useGlobalGuards`: zero matches) |
-| C8 | Logout revokes the refresh token | **FAILED** → [[BUG-0034-desktop-agent-logout-never-revokes-the-refresh-token]] |
-| C9 | Heartbeat ingestion is idempotent | **FAILED** → [[BUG-0035-agent-heartbeat-has-no-idempotency-so-retries-double-count-p]] |
+| C6 | Every desktop API call has a serving route | **FAILED on one** — the `electron-updater` feed → [[BUG-0034-desktop-agent-auto-update-points-at-an-endpoint-that-does-no]] |
+| C7 | Agent auth endpoints are rate limited | **FAILED** → [[BUG-0033-desktop-agent-login-is-unthrottled-and-enumerates-users-acro]]. Also confirmed **no global guard exists** (`APP_GUARD`/`useGlobalGuards`: zero matches) |
+| C8 | Logout revokes the refresh token | **FAILED** → [[BUG-0035-desktop-agent-logout-never-revokes-the-refresh-token]] |
+| C9 | Heartbeat ingestion is idempotent | **FAILED** → [[BUG-0036-agent-heartbeat-has-no-idempotency-so-retries-double-count-p]] |
 | C10 | `.env` or `release/` are committed | **REFUTED** — both gitignored; only `.env*.example` tracked. **A subagent claimed otherwise and was wrong**; verified with `git ls-files` and `git check-ignore` |
-| C11 | The installer is signed | **FAILED** — `signAndEditExecutable: false` → [[ITEM-0025]] |
+| C11 | The installer is signed | **FAILED** — `signAndEditExecutable: false` → [[ITEM-0026]] |
 | C12 | `release-app.yml` can publish this app | **FAILED** — offers it as a choice, but `packageCommand`/`artifactDirectory` are `null` and no `--artifact` is passed |
-| C13 | Tests exist on either side | **FAILED** — none in the app, none in the `agent` API module, none in `services/api/test/` → [[ITEM-0027]] |
+| C13 | Tests exist on either side | **FAILED** — none in the app, none in the `agent` API module, none in `services/api/test/` → [[ITEM-0028]] |
 
 ### D — Documentation drift (Phase 13 mechanical verification)
 
 | id | Scenario | Result |
 |---|---|---|
-| D1 | Context documents' absence claims hold | **FAILED** → [[BUG-0036-integration-patterns-context-denies-four-subsystems-that-exi]]. Nine false claims across four files |
+| D1 | Context documents' absence claims hold | **FAILED** → [[BUG-0037-integration-patterns-context-denies-four-subsystems-that-exi]]. Nine false claims across four files |
 | D2 | The CI required-job count in the docs matches `ci.yml` | **FAILED** — three documents said "eight"; the gate's `needs` list has **ten**. `ci.md` said "nine" and omitted `test-landing` |
 | D3 | The workspace list is accurate | **FAILED** — two context files omitted the `e2e` workspace |
 | D4 | Schema/module counts are accurate | **FAILED** — measured 65 modules, 12,211 lines, 292 models, 264 enums, 194 migrations. Both `AGENTS.md` and `system-overview.md` were stale; replaced with an instruction to re-derive rather than a new number to go stale |
@@ -91,16 +91,16 @@ Seven material findings, all recorded and all triaged. Four are `HIGH`.
 
 | Finding | Record | Disposition |
 |---|---|---|
-| `/public/subscribe` unthrottled | BUG-0030 | `PLAN_REQUIRED` |
-| Landing proxies collapse the rate-limit key | BUG-0031 | `PLAN_REQUIRED` |
-| Agent login unthrottled + cross-tenant enumeration | BUG-0032 | `FIX_NOW` |
-| Agent auto-update feed does not exist | BUG-0033 | `PLAN_REQUIRED` |
-| Agent logout never revokes | BUG-0034 | `FIX_NOW` |
-| Heartbeat double-counts on retry | BUG-0035 | `PLAN_REQUIRED` |
-| Context documents deny nine things that exist | BUG-0036 | `FIX_NOW` — **fixed in this task** |
+| `/public/subscribe` unthrottled | BUG-0031 | `PLAN_REQUIRED` |
+| Landing proxies collapse the rate-limit key | BUG-0032 | `PLAN_REQUIRED` |
+| Agent login unthrottled + cross-tenant enumeration | BUG-0033 | `FIX_NOW` |
+| Agent auto-update feed does not exist | BUG-0034 | `PLAN_REQUIRED` |
+| Agent logout never revokes | BUG-0035 | `FIX_NOW` |
+| Heartbeat double-counts on retry | BUG-0036 | `PLAN_REQUIRED` |
+| Context documents deny nine things that exist | BUG-0037 | `FIX_NOW` — **fixed in this task** |
 
-Plus three backlog items: [[ITEM-0025]] (unsigned installer), [[ITEM-0026]] (no
-backoff or give-up), [[ITEM-0027]] (no `AGENTS.md`, no tests).
+Plus three backlog items: [[ITEM-0026]] (unsigned installer), [[ITEM-0027]] (no
+backoff or give-up), [[ITEM-0028]] (no `AGENTS.md`, no tests).
 
 [[BUG-0021-landing-contact-form-fabricates-lead-data]] was **updated, not
 re-filed** — it is still open and its scope is now known to be wider.
@@ -109,10 +109,10 @@ re-filed** — it is still open and its scope is now known to be wider.
 
 Stated plainly, because the bug records depend on it:
 
-- **No request was executed against a running API.** BUG-0030, BUG-0031,
-  BUG-0032, BUG-0034 and BUG-0035 are established by reading source. Each
+- **No request was executed against a running API.** BUG-0031, BUG-0032,
+  BUG-0033, BUG-0035 and BUG-0036 are established by reading source. Each
   record's mechanism is unambiguous, but none was observed failing.
-- **BUG-0031's two-client reproduction needs two distinct public IPs**, which
+- **BUG-0032's two-client reproduction needs two distinct public IPs**, which
   this environment did not have.
 - **The desktop agent was not built or run.** No packaging, no installer, no
   Electron runtime. `keytar`'s native rebuild for Electron 39 is unverified.

@@ -37,7 +37,7 @@ data model and the wrong deployment story.
 | Auth | gateway credentials, `gateway-auth.guard.ts` | `agent-desktop` JWT client, own secrets and TTLs |
 | Writes to | attendance models | `WorkSession`, `ActivityEvent`, `DailyProductivitySummary` |
 | Produces | **attendance** — punches, shifts | **utilisation** — active/idle/away seconds |
-| Upgrade cadence | on the customer's schedule, unobservable | auto-update — currently broken, [[BUG-0033-desktop-agent-auto-update-points-at-an-endpoint-that-does-no]] |
+| Upgrade cadence | on the customer's schedule, unobservable | auto-update — currently broken, [[BUG-0034-desktop-agent-auto-update-points-at-an-endpoint-that-does-no]] |
 
 ## The desktop agent produces no attendance data
 
@@ -75,7 +75,7 @@ The two cannot simply be joined, for two reasons that are easy to miss:
 
 So "just point the updater at `app-releases`" is not a fix — it is a design
 decision with three viable answers, which is why
-[[BUG-0033-desktop-agent-auto-update-points-at-an-endpoint-that-does-no]] is
+[[BUG-0034-desktop-agent-auto-update-points-at-an-endpoint-that-does-no]] is
 `PLAN_REQUIRED` rather than a one-line change.
 
 ## Tenant resolution differs, and both are correct
@@ -102,7 +102,7 @@ symmetric:
   Version or extend additively; never repurpose a field.
 - **Desktop agent** — nominally auto-updating, so a contract change *should* be
   recoverable. **It currently is not**, because the update feed is dead. Until
-  BUG-0033 is resolved, treat the agent's contract as being as frozen as the
+  BUG-0034 is resolved, treat the agent's contract as being as frozen as the
   gateway's: there is no mechanism to move an installed agent forward.
 
 That last point is the practically important one, and it is not obvious from
@@ -113,6 +113,6 @@ either component's code.
 [[desktop-agent]] · [[desktop-agent-architecture]] ·
 [[monorepo-application-map]] · [[integration-architecture]] · [[attendance]] ·
 [[multi-tenancy]] · [[authentication]] · [[deployment-architecture]] ·
-[[BUG-0033-desktop-agent-auto-update-points-at-an-endpoint-that-does-no]] ·
-[[ITEM-0025]]
+[[BUG-0034-desktop-agent-auto-update-points-at-an-endpoint-that-does-no]] ·
+[[ITEM-0026]]
 </content>

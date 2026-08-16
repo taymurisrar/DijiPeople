@@ -252,6 +252,19 @@ jobs:
         # can reset the database.
         run: node scripts/verify-database.mjs
 
+      - name: Commercial bootstrap and PlanPrice uniqueness (real PostgreSQL)
+        # BUG-0030 was a disagreement between an application-level existence
+        # check and a PARTIAL UNIQUE INDEX, plus a check-then-create race. A
+        # mocked Prisma cannot see either — which is how it reached production.
+        #
+        # Promoted into this gate rather than left in the report-only e2e job,
+        # because the whole fix rests on constraint behaviour that only a real
+        # database demonstrates. Scoped to one spec so it does not inherit the
+        # wider e2e suite's known flakiness.
+        run: >
+          npm --workspace api run test:e2e --
+          --testPathPatterns "commercial-bootstrap"
+
   database-e2e-report:
     name: Database e2e (report only — NOT a gate)
     runs-on: ubuntu-latest

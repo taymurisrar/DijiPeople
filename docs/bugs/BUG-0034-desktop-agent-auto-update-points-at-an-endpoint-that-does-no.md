@@ -1,6 +1,6 @@
 ---
-ID: BUG-0033
-aliases: [BUG-0033]
+ID: BUG-0034
+aliases: [BUG-0034]
 Title: Desktop agent auto update points at an endpoint that does not exist
 Status: OPEN
 Severity: HIGH
@@ -22,7 +22,7 @@ UpdatedAt: 2026-08-16
 ResolvedAt:
 ---
 
-# BUG-0033 — Desktop agent auto update points at an endpoint that does not exist
+# BUG-0034 — Desktop agent auto update points at an endpoint that does not exist
 
 ## Summary
 
@@ -112,7 +112,7 @@ Note the adjacent, separate risk: `electron-builder.yml:24` sets
 provider performs no publisher verification. The `sha512` in `latest.yml` proves
 only that the bytes match what the feed claimed. Whoever ends up serving this
 path becomes a code-execution trust root. That is tracked separately as
-[[ITEM-0025]] because it is a decision about signing, not this wiring defect.
+[[ITEM-0026]] because it is a decision about signing, not this wiring defect.
 
 ## Affected Areas
 
@@ -154,12 +154,12 @@ a declared route would have caught this and is the generalisable guard.
 
 ## Dependencies
 
-[[ITEM-0025]] — code signing, which shares the decision.
+[[ITEM-0026]] — code signing, which shares the decision.
 
 ## Related Items
 
 [[desktop-agent-architecture]] · [[desktop-agent]] ·
-[[desktop-api-gateway-relationship]] · [[ITEM-0025]] ·
+[[desktop-api-gateway-relationship]] · [[ITEM-0026]] ·
 [[deployment-architecture]] · bug pattern [[doc-code-drift]] ·
 bug pattern [[declared-but-unwired-step]].
 
@@ -182,5 +182,5 @@ though nothing in `render.yaml` provides one.
   (TASK-0002) and verified against source at `78072d2`.
 - 2026-08-16 — Architect triage: `PLAN_REQUIRED`. There is no one-line fix; the
   decision is which of three distribution models the product wants, and it is
-  inseparable from the signing decision in ITEM-0025.
+  inseparable from the signing decision in ITEM-0026.
 </content>

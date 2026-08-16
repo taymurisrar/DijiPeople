@@ -1,6 +1,6 @@
 ---
-ID: BUG-0034
-aliases: [BUG-0034]
+ID: BUG-0035
+aliases: [BUG-0035]
 Title: Desktop agent logout never revokes the refresh token
 Status: OPEN
 Severity: HIGH
@@ -22,7 +22,7 @@ UpdatedAt: 2026-08-16
 ResolvedAt:
 ---
 
-# BUG-0034 — Desktop agent logout never revokes the refresh token
+# BUG-0035 — Desktop agent logout never revokes the refresh token
 
 ## Summary
 
@@ -134,8 +134,8 @@ None.
 ## Related Items
 
 [[desktop-agent-architecture]] · [[desktop-agent]] · [[authentication]] ·
-[[BUG-0032-desktop-agent-login-is-unthrottled-and-enumerates-users-acro]] ·
-[[ITEM-0026]] · bug pattern [[declared-but-unwired-step]].
+[[BUG-0033-desktop-agent-login-is-unthrottled-and-enumerates-users-acro]] ·
+[[ITEM-0027]] · bug pattern [[declared-but-unwired-step]].
 
 ## Resolution
 

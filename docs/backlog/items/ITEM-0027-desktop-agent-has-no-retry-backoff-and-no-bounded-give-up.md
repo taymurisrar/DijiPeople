@@ -1,6 +1,6 @@
 ---
-ID: ITEM-0026
-aliases: [ITEM-0026]
+ID: ITEM-0027
+aliases: [ITEM-0027]
 Title: Desktop agent has no retry backoff and no bounded give up
 Type: TECH_DEBT
 Status: READY
@@ -12,7 +12,7 @@ OwnerAgent: integration
 ArchitectDisposition: PLAN_REQUIRED
 CreatedAt: 2026-08-16
 UpdatedAt: 2026-08-16
-RelatedBug: BUG-0035
+RelatedBug: BUG-0036
 RelatedQA: docs/qa/runs/2026-08-16-monorepo-app-documentation-78072d2.md
 RelatedADR:
 RelatedImplementation:
@@ -20,7 +20,7 @@ TargetMilestone:
 BlockedBy:
 ---
 
-# ITEM-0026 — Desktop agent has no retry backoff and no bounded give up
+# ITEM-0027 — Desktop agent has no retry backoff and no bounded give up
 
 ## Summary
 
@@ -70,7 +70,7 @@ Two concrete costs:
 ## Proposed Approach
 
 **Needs an ExecPlan**, jointly with
-[[BUG-0035-agent-heartbeat-has-no-idempotency-so-retries-double-count-p]] —
+[[BUG-0036-agent-heartbeat-has-no-idempotency-so-retries-double-count-p]] —
 give-up behaviour and idempotency are the same design conversation, and a
 backoff added without idempotency just spaces out the double-counting.
 
@@ -92,17 +92,17 @@ for.
 
 ## Dependencies
 
-[[BUG-0035-agent-heartbeat-has-no-idempotency-so-retries-double-count-p]] —
+[[BUG-0036-agent-heartbeat-has-no-idempotency-so-retries-double-count-p]] —
 shares the plan.
 
 ## Related Items
 
-[[BUG-0035-agent-heartbeat-has-no-idempotency-so-retries-double-count-p]] ·
-[[desktop-agent-architecture]] · [[integration-architecture]] · [[ITEM-0027]].
+[[BUG-0036-agent-heartbeat-has-no-idempotency-so-retries-double-count-p]] ·
+[[desktop-agent-architecture]] · [[integration-architecture]] · [[ITEM-0028]].
 
 ## History
 
 - 2026-08-16 — created at `78072d2` during the `apps/agent-desktop` deep
   documentation audit (TASK-0002).
-- 2026-08-16 — Architect triage: `PLAN_REQUIRED`, sequenced with BUG-0035.
+- 2026-08-16 — Architect triage: `PLAN_REQUIRED`, sequenced with BUG-0036.
 </content>

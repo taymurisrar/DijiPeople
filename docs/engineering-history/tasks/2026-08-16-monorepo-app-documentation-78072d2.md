@@ -68,12 +68,12 @@ Not applicable — there were no conflicts.
 | | |
 |---|---|
 | **QA Report** | `docs/qa/runs/2026-08-16-monorepo-app-documentation-78072d2.md` — **PASS**, seven material findings, all triaged |
-| **Bug IDs** | Created: BUG-0030, BUG-0031, BUG-0032, BUG-0033, BUG-0034, BUG-0035, BUG-0036. Updated: BUG-0021 (scope widened, still OPEN) |
-| **Backlog Items** | Created: ITEM-0025, ITEM-0026, ITEM-0027. Updated: ITEM-0011 (second occurrence recorded) |
+| **Bug IDs** | Created: BUG-0031, BUG-0032, BUG-0033, BUG-0034, BUG-0035, BUG-0036, BUG-0037. Updated: BUG-0021 (scope widened, still OPEN) |
+| **Backlog Items** | Created: ITEM-0026, ITEM-0027, ITEM-0028. Updated: ITEM-0011 (second occurrence recorded) |
 
 Six of the seven new records are `HIGH`; none was fixed, because `KNOWLEDGE`
 routing forbids product change and the Architect triaged four of them
-`PLAN_REQUIRED` rather than pretending they were one-line fixes. BUG-0036 is the
+`PLAN_REQUIRED` rather than pretending they were one-line fixes. BUG-0037 is the
 exception — verified documentation drift, which `KNOWLEDGE` explicitly permits
 correcting, and it was fixed in this change.
 

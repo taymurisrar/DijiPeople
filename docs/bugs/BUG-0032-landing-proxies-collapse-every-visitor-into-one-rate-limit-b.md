@@ -1,6 +1,6 @@
 ---
-ID: BUG-0031
-aliases: [BUG-0031]
+ID: BUG-0032
+aliases: [BUG-0032]
 Title: Landing proxies collapse every visitor into one rate limit bucket
 Status: OPEN
 Severity: HIGH
@@ -22,7 +22,7 @@ UpdatedAt: 2026-08-16
 ResolvedAt:
 ---
 
-# BUG-0031 — Landing proxies collapse every visitor into one rate limit bucket
+# BUG-0032 — Landing proxies collapse every visitor into one rate limit bucket
 
 ## Summary
 
@@ -142,14 +142,14 @@ them.
 
 ## Dependencies
 
-[[BUG-0030-public-subscribe-endpoint-has-no-rate-limiting]] — fixing that one
+[[BUG-0031-public-subscribe-endpoint-has-no-rate-limiting]] — fixing that one
 first yields a throttle keyed on the wrong identity. Sequence them together.
 [[ITEM-0013]] — the mechanical coverage check.
 
 ## Related Items
 
 [[BUG-0013-public-lead-endpoint-had-no-rate-limiting]] (the fix this defect
-silently undermines) · [[BUG-0030-public-subscribe-endpoint-has-no-rate-limiting]] ·
+silently undermines) · [[BUG-0031-public-subscribe-endpoint-has-no-rate-limiting]] ·
 [[ITEM-0013]] · [[landing-architecture]] · [[leads]] · [[partners]] ·
 [[contracts-and-agreements]].
 

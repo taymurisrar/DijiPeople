@@ -61,7 +61,7 @@ forge a device.
 | Location poll | piggybacks on every heartbeat |
 
 The jitter spreads steady-state load but does nothing during an outage — see
-[[ITEM-0026]].
+[[ITEM-0027]].
 
 ### Build model, and its hazard
 
@@ -76,7 +76,7 @@ build = clean && build:main && build:renderer && copy:renderer
 Running a build therefore leaves deleted tracked files in the working tree —
 which collides directly with this repository's `POST_TASK_REPO_HEALTH`
 invariant. An agent that builds this app and then reports repository health will
-see a dirty tree it did not intend to create. Tracked in [[ITEM-0027]].
+see a dirty tree it did not intend to create. Tracked in [[ITEM-0028]].
 
 `copy-renderer.mjs` copies the whole `src/renderer` directory, so the `.ts`
 sources ship inside `app.asar` alongside the `.js`.
@@ -125,9 +125,9 @@ heartbeat failure). Every refresh rotates and revokes.
 
 Two defects live here: the auth endpoints are unthrottled and disclose whether
 an address belongs to a user
-([[BUG-0032-desktop-agent-login-is-unthrottled-and-enumerates-users-acro]]), and
+([[BUG-0033-desktop-agent-login-is-unthrottled-and-enumerates-users-acro]]), and
 logout is a guaranteed `400` whose failure is swallowed
-([[BUG-0034-desktop-agent-logout-never-revokes-the-refresh-token]]).
+([[BUG-0035-desktop-agent-logout-never-revokes-the-refresh-token]]).
 
 A third, subtler risk: refresh **rotates before the new token is persisted**.
 The server revokes the presented token before returning, and the client then
@@ -153,7 +153,7 @@ handler anywhere in the API**.
 
 Known contract mismatches beyond the logout defect: the heartbeat DTO caps
 `activeApp` at 200 characters while the client truncates at 300, so a long
-application name rejects the whole batch permanently ([[ITEM-0026]]); and
+application name rejects the whole batch permanently ([[ITEM-0027]]); and
 `capturedAt` is validated as a bare string then passed to `new Date()`.
 
 ## Data and observability
@@ -194,7 +194,7 @@ tenant's own attendance or timesheet day.
 
 `npm run dist:win`, on Windows, with a hand-authored `.env`. Artefact
 `DijiPeople-Agent-Setup-<version>.exe`, ~95 MB, unsigned
-(`signAndEditExecutable: false`, [[ITEM-0025]]). `release/` is gitignored.
+(`signAndEditExecutable: false`, [[ITEM-0026]]). `release/` is gitignored.
 
 `clean-release.mjs` carries three Windows-specific behaviours, each documented
 in its own header: it deletes the *contents* of `release/` rather than the
@@ -221,7 +221,7 @@ participates indirectly:
   `check-types` and `build`, so Turborepo includes it;
 - **not covered** by `lint` — that job names web, admin and landing only, and
   this app has no `lint` script and no ESLint config;
-- **no tests exist** on either side of the boundary ([[ITEM-0027]]).
+- **no tests exist** on either side of the boundary ([[ITEM-0028]]).
 
 Its env vars are **not registered in `turbo.json` `globalEnv`**, which root
 `AGENTS.md` requires. They are desktop-only and never reach the server, so

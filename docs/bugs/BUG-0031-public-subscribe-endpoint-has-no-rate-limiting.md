@@ -1,6 +1,6 @@
 ---
-ID: BUG-0030
-aliases: [BUG-0030]
+ID: BUG-0031
+aliases: [BUG-0031]
 Title: Public subscribe endpoint has no rate limiting
 Status: OPEN
 Severity: HIGH
@@ -22,7 +22,7 @@ UpdatedAt: 2026-08-16
 ResolvedAt:
 ---
 
-# BUG-0030 — Public subscribe endpoint has no rate limiting
+# BUG-0031 — Public subscribe endpoint has no rate limiting
 
 ## Summary
 
@@ -129,7 +129,7 @@ later inherits it rather than needing to remember it.
 Needs an ExecPlan only if the fix is widened to the mechanical guard in
 [[ITEM-0013]] — which is the durable fix, and is where the effort belongs. A
 per-IP limit is also a weak control for this endpoint specifically while
-[[BUG-0031-landing-proxies-collapse-every-visitor-into-one-rate-limit-b]]
+[[BUG-0032-landing-proxies-collapse-every-visitor-into-one-rate-limit-b]]
 is open, because the API cannot see the visitor's IP through the landing proxy.
 The two should be resolved together, or the throttle will be measured against
 the wrong identity.
@@ -150,7 +150,7 @@ mirroring `public-leads.rate-limit.spec.ts` (REG-011).
 ## Dependencies
 
 [[ITEM-0013]] — the mechanical check that would have caught this.
-[[BUG-0031-landing-proxies-collapse-every-visitor-into-one-rate-limit-b]] —
+[[BUG-0032-landing-proxies-collapse-every-visitor-into-one-rate-limit-b]] —
 without it, the limit keys on the wrong identity.
 
 ## Related Items
@@ -174,6 +174,6 @@ and the service transaction at `78072d2`.
   (TASK-0002) and verified directly against source at `78072d2`.
 - 2026-08-16 — Architect triage: `PLAN_REQUIRED`. The one-line guard move is
   obvious, but doing only that repeats the pattern a third time; the durable fix
-  is the mechanical check in ITEM-0013, and it must be sequenced with BUG-0031
+  is the mechanical check in ITEM-0013, and it must be sequenced with BUG-0032
   so the limit is keyed on a real client identity.
 </content>

@@ -79,7 +79,7 @@ workstation silently.
 | Attendance module | **None.** See above |
 | `gateway/` (.NET on-prem) | **None.** Zero references in either direction. The gateway is a separate product for physical ZKTeco devices |
 | `tools/zkteco-poc` | **None** |
-| `app-releases` catalogue | **None from the app.** The catalogue registers `AGENT_DESKTOP` and serves the human download in `apps/web`, but the agent itself never calls it — see [[BUG-0033-desktop-agent-auto-update-points-at-an-endpoint-that-does-no]] |
+| `app-releases` catalogue | **None from the app.** The catalogue registers `AGENT_DESKTOP` and serves the human download in `apps/web`, but the agent itself never calls it — see [[BUG-0034-desktop-agent-auto-update-points-at-an-endpoint-that-does-no]] |
 
 The desktop agent talks **only** to the NestJS API, under its own auth client
 (`agent-desktop`) with its own JWT secrets and TTLs.
@@ -107,13 +107,13 @@ the runtime logic:
 
 | Record | What it means |
 |---|---|
-| [[BUG-0032-desktop-agent-login-is-unthrottled-and-enumerates-users-acro]] | Unthrottled login, distinct failure messages, global user lookup |
-| [[BUG-0033-desktop-agent-auto-update-points-at-an-endpoint-that-does-no]] | The agent cannot update itself; the feed URL has no server route |
-| [[BUG-0034-desktop-agent-logout-never-revokes-the-refresh-token]] | Sign-out is silently a no-op server-side, for up to 90 days |
-| [[BUG-0035-agent-heartbeat-has-no-idempotency-so-retries-double-count-p]] | Retried batches permanently inflate utilisation figures |
-| [[ITEM-0025]] | The installer is unsigned |
-| [[ITEM-0026]] | No retry backoff, no bounded give-up |
-| [[ITEM-0027]] | No `AGENTS.md`, no tests anywhere on either side |
+| [[BUG-0033-desktop-agent-login-is-unthrottled-and-enumerates-users-acro]] | Unthrottled login, distinct failure messages, global user lookup |
+| [[BUG-0034-desktop-agent-auto-update-points-at-an-endpoint-that-does-no]] | The agent cannot update itself; the feed URL has no server route |
+| [[BUG-0035-desktop-agent-logout-never-revokes-the-refresh-token]] | Sign-out is silently a no-op server-side, for up to 90 days |
+| [[BUG-0036-agent-heartbeat-has-no-idempotency-so-retries-double-count-p]] | Retried batches permanently inflate utilisation figures |
+| [[ITEM-0026]] | The installer is unsigned |
+| [[ITEM-0027]] | No retry backoff, no bounded give-up |
+| [[ITEM-0028]] | No `AGENTS.md`, no tests anywhere on either side |
 
 ## Privacy posture — stated, because nothing else states it
 

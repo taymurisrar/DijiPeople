@@ -42,7 +42,7 @@ workspace and `app-releases`.
 This is the **second** recorded instance of the pattern after BUG-0023. It
 recurs because nothing breaks when an absence claim becomes false — a broken
 link gets noticed, a phantom absence just quietly misleads. Recorded as
-[[BUG-0036-integration-patterns-context-denies-four-subsystems-that-exi]] and
+[[BUG-0037-integration-patterns-context-denies-four-subsystems-that-exi]] and
 used to raise the evidence on [[ITEM-0011]].
 
 **The durable lesson, applied throughout this task's corrections: replace an
@@ -61,10 +61,10 @@ cross-checking two documents would have been *more* confident and equally wrong.
 
 `PublicRateLimitGuard` keys on `request.ip`, but no landing proxy forwards the
 client IP, so every visitor shares one bucket
-([[BUG-0031-landing-proxies-collapse-every-visitor-into-one-rate-limit-b]]).
+([[BUG-0032-landing-proxies-collapse-every-visitor-into-one-rate-limit-b]]).
 Separately, the most expensive public write — `/public/subscribe`, which creates
 a Tenant and real Stripe objects — carries no guard at all
-([[BUG-0030-public-subscribe-endpoint-has-no-rate-limiting]]).
+([[BUG-0031-public-subscribe-endpoint-has-no-rate-limiting]]).
 
 That is now **three** instances of "a public write path missed the guard" after
 BUG-0013. The mechanical check in [[ITEM-0013]] is the fix; applying the guard by
@@ -102,8 +102,8 @@ person does not have to derive it.
 `docs/architecture/frontend.md`, `docs/development/ci.md`,
 `docs/development/git-worktrees.md`.
 
-**Records** — BUG-0030 … BUG-0036 created, BUG-0021 and ITEM-0011 updated,
-ITEM-0025 … ITEM-0027 created.
+**Records** — BUG-0031 … BUG-0037 created, BUG-0021 and ITEM-0011 updated,
+ITEM-0026 … ITEM-0028 created.
 
 ## Context-update recommendations not actioned here
 
@@ -111,7 +111,7 @@ ITEM-0025 … ITEM-0027 created.
   files still name `/api/agent/updates`. Left in place deliberately: changing
   them without deciding the update model would replace a visibly wrong value
   with a differently wrong one. Owned by
-  [[BUG-0033-desktop-agent-auto-update-points-at-an-endpoint-that-does-no]].
+  [[BUG-0034-desktop-agent-auto-update-points-at-an-endpoint-that-does-no]].
 - `docs/environment-variables.md` describes `apps/landing` as reading
   `NEXT_PUBLIC_LANDING_APP_URL` and `NEXT_PUBLIC_WEB_APP_URL` directly. It reads
   `NEXT_PUBLIC_APP_NAME` and `NEXT_PUBLIC_APP_ORIGIN`; the others are consumed

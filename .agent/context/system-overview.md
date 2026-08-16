@@ -101,7 +101,7 @@ not by row-level security and not by Prisma middleware.
 > every one of them had become false. They denied `gateway/`,
 > `tools/zkteco-poc/`, `attendance-engine`, `attendance-integrations` and
 > `app-releases`. All five exist. Corrected 2026-08-16 at `78072d2`; see
-> [[BUG-0036-integration-patterns-context-denies-four-subsystems-that-exi]] and
+> [[BUG-0037-integration-patterns-context-denies-four-subsystems-that-exi]] and
 > the generalised guard in [[ITEM-0011]].
 
 - **Re-derive counts; do not trust them here or in root `AGENTS.md`.** Measured

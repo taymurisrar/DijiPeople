@@ -123,7 +123,7 @@ decisions are one decision — see [[docs-application]].
 
 `apps/docs` has no `AGENTS.md` because there is nothing to instruct.
 `apps/agent-desktop` has none because nobody wrote one, which is a gap, not a
-decision — [[ITEM-0027]].
+decision — [[ITEM-0028]].
 
 ## Related
 

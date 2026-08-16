@@ -1,6 +1,6 @@
 ---
-ID: BUG-0035
-aliases: [BUG-0035]
+ID: BUG-0036
+aliases: [BUG-0036]
 Title: Agent heartbeat has no idempotency so retries double count productivity
 Status: OPEN
 Severity: HIGH
@@ -22,7 +22,7 @@ UpdatedAt: 2026-08-16
 ResolvedAt:
 ---
 
-# BUG-0035 — Agent heartbeat has no idempotency so retries double count productivity
+# BUG-0036 — Agent heartbeat has no idempotency so retries double count productivity
 
 ## Summary
 
@@ -158,13 +158,13 @@ still double-increment if the counters stayed blind.
 ## Dependencies
 
 None blocking. Shares a plan with the retry/backoff gap recorded in
-[[ITEM-0026]].
+[[ITEM-0027]].
 
 ## Related Items
 
 [[desktop-agent-architecture]] · [[desktop-agent]] ·
 [[desktop-api-gateway-relationship]] · [[integration-architecture]] ·
-[[attendance]] · [[ITEM-0026]] · bug pattern [[declared-but-unwired-step]].
+[[attendance]] · [[ITEM-0027]] · bug pattern [[declared-but-unwired-step]].
 
 ## Resolution
 

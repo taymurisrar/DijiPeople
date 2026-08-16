@@ -65,7 +65,7 @@ DEPLOYMENT_CHECKLIST.md
 > This paragraph previously read "There is **no `gateway/` and no `tools/`**
 > directory at this commit (`git ls-files gateway tools` → 0 entries)." It was
 > true when written and is now false. See
-> [[BUG-0036-integration-patterns-context-denies-four-subsystems-that-exi]] —
+> [[BUG-0037-integration-patterns-context-denies-four-subsystems-that-exi]] —
 > absence claims are the documentation that ages worst, because nothing breaks
 > when they stop being true.
 

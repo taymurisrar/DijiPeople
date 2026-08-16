@@ -1,6 +1,6 @@
 ---
-ID: BUG-0032
-aliases: [BUG-0032]
+ID: BUG-0033
+aliases: [BUG-0033]
 Title: Desktop agent login is unthrottled and enumerates users across every tenant
 Status: OPEN
 Severity: HIGH
@@ -22,7 +22,7 @@ UpdatedAt: 2026-08-16
 ResolvedAt:
 ---
 
-# BUG-0032 — Desktop agent login is unthrottled and enumerates users across every tenant
+# BUG-0033 — Desktop agent login is unthrottled and enumerates users across every tenant
 
 ## Summary
 
@@ -79,7 +79,7 @@ controller did not get the same treatment.
 
 Established for the throttling half: rate limiting is applied per controller by
 hand and nothing verifies that a `@Public()` route has it —
-the same root cause as [[BUG-0030-public-subscribe-endpoint-has-no-rate-limiting]]
+the same root cause as [[BUG-0031-public-subscribe-endpoint-has-no-rate-limiting]]
 and the unbuilt check in [[ITEM-0013]]. This is the third instance.
 
 The enumeration half is a separate cause: the messages were written to be
@@ -146,7 +146,7 @@ this and the two before it.
 
 ## Related Items
 
-[[BUG-0030-public-subscribe-endpoint-has-no-rate-limiting]] ·
+[[BUG-0031-public-subscribe-endpoint-has-no-rate-limiting]] ·
 [[BUG-0013-public-lead-endpoint-had-no-rate-limiting]] · [[ITEM-0013]] ·
 [[desktop-agent-architecture]] · [[desktop-agent]] · [[authentication]] ·
 [[multi-tenancy]] · bug pattern [[authorization-missing]].
@@ -167,5 +167,5 @@ executed against a running API** — the finding is by inspection.
   (TASK-0002) and verified directly against source at `78072d2`.
 - 2026-08-16 — Architect triage: `FIX_NOW`. Both halves are small, bounded and
   need no design work, and the endpoint is internet-reachable. Sequenced ahead of
-  BUG-0030 because this one leaks information as well as lacking a limit.
+  BUG-0031 because this one leaks information as well as lacking a limit.
 </content>

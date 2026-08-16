@@ -91,9 +91,9 @@ landing traffic shares one bucket. Both consequences are real:
 - on landing-proxied paths the guard cannot distinguish an attacker from a
   customer, so it is not an abuse control there at all.
 
-Recorded as [[BUG-0031-landing-proxies-collapse-every-visitor-into-one-rate-limit-b]].
+Recorded as [[BUG-0032-landing-proxies-collapse-every-visitor-into-one-rate-limit-b]].
 Separately, `POST /public/subscribe` carries no guard at all —
-[[BUG-0030-public-subscribe-endpoint-has-no-rate-limiting]].
+[[BUG-0031-public-subscribe-endpoint-has-no-rate-limiting]].
 
 The guard's state is also a module-level `Map`, so limits multiply by instance
 count and reset on every deploy.

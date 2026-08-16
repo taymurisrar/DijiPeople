@@ -1,6 +1,6 @@
 ---
-ID: ITEM-0027
-aliases: [ITEM-0027]
+ID: ITEM-0028
+aliases: [ITEM-0028]
 Title: apps/agent-desktop has no AGENTS.md and no test coverage
 Type: TEST_GAP
 Status: READY
@@ -12,7 +12,7 @@ OwnerAgent: architect
 ArchitectDisposition: FIX_NOW
 CreatedAt: 2026-08-16
 UpdatedAt: 2026-08-16
-RelatedBug: BUG-0034
+RelatedBug: BUG-0035
 RelatedQA: docs/qa/runs/2026-08-16-monorepo-app-documentation-78072d2.md
 RelatedADR:
 RelatedImplementation:
@@ -20,7 +20,7 @@ TargetMilestone:
 BlockedBy:
 ---
 
-# ITEM-0027 — apps/agent-desktop has no AGENTS.md and no test coverage
+# ITEM-0028 — apps/agent-desktop has no AGENTS.md and no test coverage
 
 ## Summary
 
@@ -51,7 +51,7 @@ one does not, so nothing tells an agent working here:
 - what may be written to the plaintext offline queue, given it already holds
   window titles and browser tab titles.
 
-The testing gap is what let [[BUG-0034-desktop-agent-logout-never-revokes-the-refresh-token]]
+The testing gap is what let [[BUG-0035-desktop-agent-logout-never-revokes-the-refresh-token]]
 survive: a request whose payload the server rejects on **every single call**,
 with the client swallowing the error. One contract test at any layer would have
 caught it. There was no layer.
@@ -105,10 +105,10 @@ None. This is the item that makes the other agent-desktop records cheaper to fix
 
 ## Related Items
 
-[[BUG-0034-desktop-agent-logout-never-revokes-the-refresh-token]] ·
-[[BUG-0032-desktop-agent-login-is-unthrottled-and-enumerates-users-acro]] ·
-[[BUG-0035-agent-heartbeat-has-no-idempotency-so-retries-double-count-p]] ·
-[[ITEM-0025]] · [[ITEM-0026]] · [[desktop-agent-architecture]] ·
+[[BUG-0035-desktop-agent-logout-never-revokes-the-refresh-token]] ·
+[[BUG-0033-desktop-agent-login-is-unthrottled-and-enumerates-users-acro]] ·
+[[BUG-0036-agent-heartbeat-has-no-idempotency-so-retries-double-count-p]] ·
+[[ITEM-0026]] · [[ITEM-0027]] · [[desktop-agent-architecture]] ·
 [[desktop-agent]] · bug pattern [[doc-code-drift]].
 
 ## History

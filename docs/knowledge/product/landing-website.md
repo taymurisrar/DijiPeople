@@ -87,8 +87,8 @@ with disposition `FIX_NOW`, and re-verified unchanged at `78072d2`.
 | Record | State |
 |---|---|
 | [[BUG-0021-landing-contact-form-fabricates-lead-data]] | **OPEN** · FIX_NOW · scope now known to be wider than recorded |
-| [[BUG-0030-public-subscribe-endpoint-has-no-rate-limiting]] | **OPEN** · the most expensive public write has no throttle |
-| [[BUG-0031-landing-proxies-collapse-every-visitor-into-one-rate-limit-b]] | **OPEN** · the throttle that exists cannot see visitors |
+| [[BUG-0031-public-subscribe-endpoint-has-no-rate-limiting]] | **OPEN** · the most expensive public write has no throttle |
+| [[BUG-0032-landing-proxies-collapse-every-visitor-into-one-rate-limit-b]] | **OPEN** · the throttle that exists cannot see visitors |
 | [[ITEM-0024]] | `lucide-react` imported but undeclared · DEFER |
 | [[ITEM-0007]] | lead deduplication · awaiting a product decision |
 | [[ITEM-0019]], [[ITEM-0018]] | market model and plan lifecycle · in validation |

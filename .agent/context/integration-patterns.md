@@ -170,7 +170,7 @@ Other non-`PermissionsGuard` guards: `common/guards/roles.guard.ts`,
 > and three of them are substantial. An agent following this file would have
 > concluded there was nothing to extend and either rebuilt it or refused the
 > work. This is the second recorded instance of the same failure mode in the
-> context layer — see [[BUG-0036-integration-patterns-context-denies-four-subsystems-that-exi]],
+> context layer — see [[BUG-0037-integration-patterns-context-denies-four-subsystems-that-exi]],
 > the earlier [[BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist]],
 > and the generalised guard in [[ITEM-0011]]. Absence claims age worse than any
 > other kind, because nothing breaks when they become false.

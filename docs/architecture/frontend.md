@@ -232,7 +232,7 @@ by the required `test-landing` CI job. This line previously read "`apps/landing`
 has no test configuration"; corrected 2026-08-16 at `78072d2`.
 
 `apps/docs` has none and needs none — it is a stock starter. `apps/agent-desktop`
-has none, which is [[ITEM-0027]].
+has none, which is [[ITEM-0028]].
 
 Both jest configs carry a comment explaining why they exist: `tsc` does not
 catch an unreachable fallback, a merge that drops a property, or a rule that

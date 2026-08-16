@@ -75,7 +75,7 @@ architecture [[agent-engineering-architecture|Agent Engineering Architecture]].
 ## History
 
 - 2026-08-16 — **second occurrence recorded, and much larger than the first.**
-  [[BUG-0036-integration-patterns-context-denies-four-subsystems-that-exi]]
+  [[BUG-0037-integration-patterns-context-denies-four-subsystems-that-exi]]
   found false absence claims across four context documents at once:
   `integration-patterns.md` denied the `attendance-integrations` module,
   `gateway-auth.guard.ts`, the `gateway/` .NET solution (1,387 tracked files),
