@@ -9,7 +9,7 @@
 |---|---|
 | Open CRITICAL | **2** |
 | Open HIGH | **11** |
-| Open total | 47 |
+| Open total | 48 |
 | Blocked | 0 |
 | Awaiting a product decision | 3 |
 | Deferred | 2 |
@@ -94,6 +94,7 @@ _None._
 | [[BUG-0009-session-revocation-depended-on-the-refresh-cookie|BUG-0009]] | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | FIXED | app:admin, api:auth | FIX_NOW |
 | [[BUG-0010-unguarded-cookie-options-could-turn-sign-out-into-a-500|BUG-0010]] | Unguarded cookie options could turn admin sign-out into a 500 | INFRA | MEDIUM | FIXED | app:admin | FIX_NOW |
 | [[BUG-0013-public-lead-endpoint-had-no-rate-limiting|BUG-0013]] | The public lead endpoint had no rate limiting | SECURITY | MEDIUM | VERIFIED | api:leads | DONE |
+| [[BUG-0021-landing-contact-form-fabricates-lead-data|BUG-0021]] | The landing contact form fabricates lead data and has no honeypot | DATA_INTEGRITY | MEDIUM | FIXED | apps/landing, api:leads | FIX_NOW |
 | [[BUG-0025-a-live-partner-could-be-demoted-through-the-generic-partner-|BUG-0025]] | A live partner could be demoted through the generic partner update | STATE_MACHINE | MEDIUM | FIXED | api:partners | FIX_NOW |
 | [[BUG-0028-country-to-currency-mapping-is-hardcoded-in-the-landing-fron|BUG-0028]] | Country to currency mapping is hardcoded in the landing frontend | INTEGRATION | MEDIUM | FIXED | apps/landing | PLAN_REQUIRED |
 | [[BUG-0029-public-features-page-advertised-capabilities-the-product-doe|BUG-0029]] | Public features page advertised capabilities the product does not gate and omitted ones it does | DOCUMENTATION | MEDIUM | FIXED | apps/landing | FIX_NOW |
@@ -105,11 +106,11 @@ _None._
 - [[2026-08-16-public-commercial-wave2-7686bb0|QA Run — Wave 2: Public Plans + Features Experience]]
 - [[2026-08-16-production-url-integrity-344a832|QA Run — Production URL integrity (BUG-0026)]]
 - [[2026-08-16-monorepo-app-documentation-78072d2|QA Run — Monorepo application documentation audit (TASK-0002)]]
+- [[2026-08-16-lead-partner-acquisition-wave3-1695167|QA Run — Wave 3: Lead + Partner Acquisition]]
 - [[2026-08-16-hotfix-plan-list-hidden-write-78072d2|QA Run — Hotfix: Plan list GET mutates commercial pricing (BUG-0030)]]
 - [[2026-08-16-commercial-config-wave1-a525896|QA Run — Wave 1: Commercial Configuration Foundation]]
 - [[2026-08-15-commercial-onboarding-e2e-7bbab3d|QA Run — Commercial onboarding lifecycle E2E (website lead and partner journeys)]]
 - [[2026-08-15-browser-e2e-and-provisioning-recovery-572a3b8|QA Run — First browser E2E, and provisioning recovery against a real database]]
-- [[2026-08-14-tenant-control-plane-ba1e818|QA Run — tenant-control-plane]]
 
 ## Recent Implementations
 
@@ -141,7 +142,7 @@ _None. Nothing has been deployed through the release process._
 | [[BUG-0010-unguarded-cookie-options-could-turn-sign-out-into-a-500|BUG-0010]] | Unguarded cookie options could turn admin sign-out into a 500 | INFRA | MEDIUM | FIXED | app:admin | FIX_NOW |
 | [[BUG-0017-tenant-base-domain-setting-does-not-drive-hostname-issuance|BUG-0017]] | The admin-editable tenant base domain does not drive hostname issuance | INTEGRATION | MEDIUM | OPEN | pkg:config, api:tenant-control-plane | PLAN_REQUIRED |
 | [[BUG-0020-window-prompt-used-for-governed-reasons|BUG-0020]] | window.prompt collects governed reasons instead of the design system dialog | UX | MEDIUM | OPEN | apps/admin, apps/web | PLAN_REQUIRED |
-| [[BUG-0021-landing-contact-form-fabricates-lead-data|BUG-0021]] | The landing contact form fabricates lead data and has no honeypot | DATA_INTEGRITY | MEDIUM | OPEN | apps/landing, api:leads | FIX_NOW |
+| [[BUG-0021-landing-contact-form-fabricates-lead-data|BUG-0021]] | The landing contact form fabricates lead data and has no honeypot | DATA_INTEGRITY | MEDIUM | FIXED | apps/landing, api:leads | FIX_NOW |
 | [[BUG-0022-provision-tenant-has-no-confirmation-step|BUG-0022]] | "Provision tenant" has no confirmation step and no idempotency key | UX | MEDIUM | OPEN | apps/admin, api:tenant-control-plane | FIX_NOW |
 | [[BUG-0025-a-live-partner-could-be-demoted-through-the-generic-partner-|BUG-0025]] | A live partner could be demoted through the generic partner update | STATE_MACHINE | MEDIUM | FIXED | api:partners | FIX_NOW |
 | [[BUG-0028-country-to-currency-mapping-is-hardcoded-in-the-landing-fron|BUG-0028]] | Country to currency mapping is hardcoded in the landing frontend | INTEGRATION | MEDIUM | FIXED | apps/landing | PLAN_REQUIRED |
@@ -161,6 +162,7 @@ _None. Nothing has been deployed through the release process._
 | [[ITEM-0026-desktop-agent-windows-installer-is-unsigned|ITEM-0026]] | Desktop agent Windows installer is unsigned | SECURITY | MEDIUM | READY | apps/agent-desktop | PLAN_REQUIRED |
 | [[ITEM-0027-desktop-agent-has-no-retry-backoff-and-no-bounded-give-up|ITEM-0027]] | Desktop agent has no retry backoff and no bounded give up | TECH_DEBT | MEDIUM | READY | apps/agent-desktop, api:agent | PLAN_REQUIRED |
 | [[ITEM-0028-apps-agent-desktop-has-no-agents-md-and-no-test-coverage|ITEM-0028]] | apps/agent-desktop has no AGENTS.md and no test coverage | TEST_GAP | MEDIUM | READY | apps/agent-desktop, api:agent | FIX_NOW |
+| [[ITEM-0030-partner-inquiry-form-does-not-yet-capture-partnership-model|ITEM-0030]] | Partner inquiry form does not yet capture partnership model | FOLLOW_UP | MEDIUM | READY | apps/landing, api:partners | FIX_NOW |
 | [[ITEM-0021-mechanical-guard-against-country-and-currency-literals-in-fr|ITEM-0021]] | Mechanical guard against country and currency literals in frontends | TEST_GAP | LOW | READY | scripts, apps/landing, apps/web, apps/admin | DEFER |
 | [[ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning|ITEM-0023]] | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | READY | services/api/prisma, api:tenant-control-plane | DEFER |
 | [[ITEM-0024-landing-depends-on-lucide-react-without-declaring-it|ITEM-0024]] | Landing depends on lucide-react without declaring it | TECH_DEBT | LOW | READY | apps/landing | DEFER |
@@ -184,9 +186,9 @@ _None. Nothing has been deployed through the release process._
 | Knowledge | Count |
 |---|---|
 | Bug records | 37 |
-| Backlog items | 29 |
+| Backlog items | 30 |
 | Known bug patterns | 19 |
-| QA runs | 9 |
+| QA runs | 10 |
 | Engineering history records | 8 |
 | Release records | 0 |
 | Module notes | 19 |

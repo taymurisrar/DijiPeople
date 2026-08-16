@@ -2,7 +2,7 @@
 ID: BUG-0021
 aliases: [BUG-0021]
 Title: The landing contact form fabricates lead data and has no honeypot
-Status: OPEN
+Status: FIXED
 Severity: MEDIUM
 Priority: P2
 Type: DATA_INTEGRITY
@@ -13,13 +13,13 @@ AffectedModules: [apps/landing, services/api/src/modules/leads]
 OwnerAgent: frontend
 ArchitectDisposition: FIX_NOW
 QAReport: docs/qa/runs/2026-08-15-commercial-onboarding-e2e-7bbab3d.md
-RegressionId:
+RegressionId: REG-021
 RelatedBacklogItem:
 RelatedDecision:
-RelatedImplementation:
+RelatedImplementation: agent/lead-partner-acquisition-wave3
 CreatedAt: 2026-08-15
 UpdatedAt: 2026-08-16
-ResolvedAt:
+ResolvedAt: 2026-08-16
 ---
 
 # BUG-0021 — The landing contact form fabricates lead data and has no honeypot
@@ -153,3 +153,53 @@ Not applicable.
   be extended when it is picked up.
 
 - 2026-08-15 — Architect triage: FIX_NOW. Bounded and technical — make the fabricated fields optional on the public lead DTO, or add a channel discriminator, and add the honeypot the sibling form already has. Explicitly not waiting on the product question the record raises: whether `/contact` should collect industry and company size is a conversion decision, but fabricating them is wrong under either answer, so the fix does not depend on it. Browser scenario A2 now proves the `/request-demo` honeypot works end to end, which gives the `/contact` fix a green reference to match.
+
+## Resolution — Wave 3
+
+Fixed on `agent/lead-partner-acquisition-wave3`.
+
+### It was worse than first recorded
+
+The original record named three fabricated values. A fourth was found during
+Wave 3, and it was the most damaging:
+
+```ts
+industry: form.interestArea || "General HR operations",
+```
+
+The form was writing the visitor's **interest area** into the `industry` column.
+So a Lead whose contact cared about payroll was recorded as being in the payroll
+*industry*, and the actual interest was lost. `LeadsService` then wrote
+`interestArea` into `interestedPlan` as well, conflating "which modules interest
+you" with "which plan do you want".
+
+A fifth: `subStatus: 'Demo requested'` was hardcoded on **every** lead, including
+contact-form inquiries that were nothing of the kind — which made the column
+worthless, since it said the same thing regardless.
+
+### Root cause
+
+`Lead.industry` and `Lead.companySize` were `NOT NULL`, and the contact form does
+not ask for either. The form invented values because the schema demanded them.
+`lastName` was required for the same reason, hence `"Contact"`.
+
+### What changed
+
+- `industry`, `companySize` and `contactLastName` are nullable. A field the form
+  does not ask for is no longer mandatory at the boundary.
+- The form sends no `industry` at all, and nothing derives one.
+- Interest areas have their own column (`Lead.interestAreas`), validated against
+  the feature catalogue the product gates modules on — so the public form cannot
+  invent a module either.
+- `inquiryIntent` is a typed enum, separate from interest areas.
+- `subStatus` is derived from the stated intent, or null when none was given.
+
+Historical rows keep their fabricated values: rewriting them would be inventing
+history in the other direction. The migration is additive and backfills nothing.
+
+## Regression Coverage — Wave 3
+
+`services/api/src/modules/leads/public-lead-acquisition.spec.ts` — REG-021,
+21 assertions. Includes explicit checks that the two named fabrications
+(`'General HR operations'`, `'Unknown'`) are no longer produced, and that
+`subStatus` is not `'Demo requested'` by default.

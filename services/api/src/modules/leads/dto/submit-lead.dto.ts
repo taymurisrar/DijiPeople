@@ -1,11 +1,17 @@
 import { Transform } from 'class-transformer';
 import {
+  ArrayMaxSize,
+  IsArray,
+  IsBoolean,
   IsEmail,
+  IsEnum,
   IsOptional,
   IsString,
+  IsUrl,
   MaxLength,
   Matches,
 } from 'class-validator';
+import { LeadInquiryIntent } from '@prisma/client';
 
 function trimToUndefined({ value }: { value: unknown }) {
   if (typeof value !== 'string') {
@@ -39,10 +45,13 @@ export class SubmitLeadDto {
   @MaxLength(100)
   firstName!: string;
 
+  // Optional: a visitor with a single name is legitimate, and requiring a
+  // surname is what made the form invent "Contact" as one — BUG-0021.
+  @IsOptional()
   @Transform(trimToUndefined)
   @IsString()
   @MaxLength(100)
-  lastName!: string;
+  lastName?: string;
 
   @Transform(trimToUndefined)
   @IsString()
@@ -63,15 +72,20 @@ export class SubmitLeadDto {
   })
   phoneNumber?: string;
 
+  // Optional since Wave 3. Both were required, so the contact form invented
+  // values to satisfy them — BUG-0021. A field the form does not ask for must
+  // not be mandatory at the boundary.
+  @IsOptional()
   @Transform(trimToUndefined)
   @IsString()
   @MaxLength(80)
-  industry!: string;
+  industry?: string;
 
+  @IsOptional()
   @Transform(trimToUndefined)
   @IsString()
   @MaxLength(40)
-  companySize!: string;
+  companySize?: string;
 
   @IsOptional()
   @Transform(trimToUndefined)
@@ -96,6 +110,91 @@ export class SubmitLeadDto {
   @IsString()
   @MaxLength(120)
   interestArea?: string;
+
+  /**
+   * Why they are getting in touch. Validated against the enum, so a value the
+   * database cannot store is rejected at the boundary rather than at insert.
+   */
+  @IsOptional()
+  @IsEnum(LeadInquiryIntent)
+  inquiryIntent?: LeadInquiryIntent;
+
+  /**
+   * Which capabilities interest them — module keys from the feature catalogue.
+   *
+   * Kept separate from `inquiryIntent`: "pricing" and "attendance, payroll"
+   * answer different questions. Bounded so a public caller cannot post an
+   * unbounded array. Membership is checked in the service against the live
+   * catalogue rather than a copy frozen here.
+   */
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(20)
+  @IsString({ each: true })
+  @MaxLength(64, { each: true })
+  interestAreas?: string[];
+
+  // --- Attribution -------------------------------------------------------
+  // Captured by the page, not typed by the visitor. Every one is optional: an
+  // absent UTM parameter means they arrived without one, and defaulting it
+  // would corrupt campaign reporting.
+
+  @IsOptional()
+  @Transform(trimToUndefined)
+  @IsString()
+  @MaxLength(200)
+  sourcePage?: string;
+
+  @IsOptional()
+  @Transform(trimToUndefined)
+  @IsString()
+  @MaxLength(500)
+  referrerUrl?: string;
+
+  @IsOptional()
+  @Transform(trimToUndefined)
+  @IsString()
+  @MaxLength(120)
+  utmSource?: string;
+
+  @IsOptional()
+  @Transform(trimToUndefined)
+  @IsString()
+  @MaxLength(120)
+  utmMedium?: string;
+
+  @IsOptional()
+  @Transform(trimToUndefined)
+  @IsString()
+  @MaxLength(120)
+  utmCampaign?: string;
+
+  @IsOptional()
+  @Transform(trimToUndefined)
+  @IsString()
+  @MaxLength(120)
+  utmContent?: string;
+
+  @IsOptional()
+  @Transform(trimToUndefined)
+  @IsString()
+  @MaxLength(120)
+  utmTerm?: string;
+
+  // --- Consent -----------------------------------------------------------
+
+  /**
+   * Marketing consent. Optional, defaults to false, and never a condition of
+   * submitting — a visitor must be able to ask a question without agreeing to
+   * be marketed to.
+   *
+   * The privacy notice acknowledgement is NOT accepted from the client: the
+   * server records which notice version was in force when it accepted the
+   * submission. A client-supplied version could claim any notice at all.
+   */
+  @IsOptional()
+  @IsBoolean()
+  marketingConsent?: boolean;
 
   @IsOptional()
   @Transform(trimToUndefined)

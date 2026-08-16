@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import {
   LeadAttributionStatus,
+  LeadInquiryIntent,
   LeadStatus,
   PartnerReferralLinkStatus,
   PartnerStatus,
@@ -23,6 +24,12 @@ import {
   UpdateAdminLeadDto,
 } from './dto/admin-lead.dto';
 import { SubmitLeadDto } from './dto/submit-lead.dto';
+import {
+  CURRENT_PRIVACY_NOTICE_VERSION,
+  LEAD_INQUIRY_INTENT_OPTIONS,
+} from './acquisition.catalog';
+import { TENANT_FEATURE_DEFINITIONS } from '../tenant-settings/tenant-settings.catalog';
+import { createHash } from 'node:crypto';
 import { LeadsRepository } from './leads.repository';
 import {
   getDefaultSubStatus,
@@ -58,25 +65,78 @@ export class LeadsService {
       return { submitted: true };
     }
 
+    const submittedAt = new Date();
+    const interestAreas = this.normalizeInterestAreas(dto.interestAreas);
+
+    // Transport-duplicate guard. A double click or a client retry produces the
+    // same hash within the window and is absorbed; the same person asking a
+    // different question, or the same question months later, hashes differently
+    // and is a genuinely new inquiry.
+    const submissionHash = buildSubmissionHash(dto, submittedAt);
+
+    const existing = await this.prisma.lead.findUnique({
+      where: { submissionHash },
+      select: { id: true },
+    });
+
+    if (existing) {
+      // Idempotent, and deliberately indistinguishable from a first submission
+      // to the caller: a visitor who double-clicked should see success, not an
+      // error about a duplicate.
+      return { submitted: true, id: existing.id };
+    }
+
     const referral = await this.resolveReferral(dto.referralCode);
     const lead = await this.prisma.$transaction(async (tx) => {
       const created = await this.leadsRepository.create(
         {
           contactFirstName: dto.firstName.trim(),
-          contactLastName: dto.lastName.trim(),
-          fullName: `${dto.firstName.trim()} ${dto.lastName.trim()}`.trim(),
+          // Null rather than a placeholder. The form used to send "Contact" as
+          // a surname for anyone who gave a single name.
+          contactLastName: dto.lastName?.trim() || null,
+          fullName: [dto.firstName.trim(), dto.lastName?.trim()]
+            .filter(Boolean)
+            .join(' '),
           companyName: dto.companyName,
           workEmail: dto.workEmail,
           phoneNumber: dto.phoneNumber ?? null,
-          industry: dto.industry,
-          companySize: dto.companySize,
+          // Passed through as given. These used to be required, so the contact
+          // form invented "General HR operations" and "Unknown" to satisfy them
+          // — BUG-0021. A field the visitor did not fill in stays null.
+          industry: dto.industry ?? null,
+          companySize: dto.companySize ?? null,
           country: dto.country ?? null,
           requirementsSummary: dto.message ?? null,
           message: dto.message ?? null,
-          interestedPlan: dto.interestArea ?? dto.interestedPlan ?? null,
+          // `interestArea` used to be written here, which conflated "which
+          // modules interest you" with "which plan do you want". They are
+          // different questions and now have different columns.
+          interestedPlan: dto.interestedPlan ?? null,
+          inquiryIntent: dto.inquiryIntent ?? null,
+          interestAreas: interestAreas,
+          sourcePage: dto.sourcePage ?? null,
+          referrerUrl: dto.referrerUrl ?? null,
+          utmSource: dto.utmSource ?? null,
+          utmMedium: dto.utmMedium ?? null,
+          utmCampaign: dto.utmCampaign ?? null,
+          utmContent: dto.utmContent ?? null,
+          utmTerm: dto.utmTerm ?? null,
+          correlationId: correlationId ?? null,
+          // The server records which notice was in force. A client-supplied
+          // version could claim any notice at all.
+          privacyNoticeVersion: CURRENT_PRIVACY_NOTICE_VERSION,
+          privacyNoticeAcceptedAt: submittedAt,
+          // Optional and separate. Submitting an inquiry never requires it.
+          marketingConsent: dto.marketingConsent === true,
+          marketingConsentAt:
+            dto.marketingConsent === true ? submittedAt : null,
+          submissionHash,
           source: referral.partnerId ? 'Partner Referral' : 'Website',
           status: LeadStatus.NEW,
-          subStatus: 'Demo requested',
+          // Derived from what they actually asked for. This was hardcoded to
+          // 'Demo requested' for every lead, including contact-form inquiries
+          // that were nothing of the kind.
+          subStatus: describeIntent(dto.inquiryIntent),
           partnerId: referral.partnerId,
           partnerReferralLinkId: referral.linkId,
           referralCodeSnapshot: referral.code,
@@ -125,6 +185,13 @@ export class LeadsService {
         source: lead.source,
         attributionStatus: lead.attributionStatus,
         partnerAttributed: Boolean(referral.partnerId),
+        inquiryIntent: lead.inquiryIntent,
+        interestAreas: lead.interestAreas,
+        sourcePage: lead.sourcePage,
+        utmSource: lead.utmSource,
+        utmCampaign: lead.utmCampaign,
+        country: lead.country,
+        marketingConsent: lead.marketingConsent,
       },
     });
 
@@ -132,6 +199,32 @@ export class LeadsService {
       submitted: true,
       id: lead.id,
     };
+  }
+
+  /**
+   * Keep only interest areas that name a real DijiPeople capability.
+   *
+   * Checked against the live feature catalogue — the same list the product
+   * gates modules on — rather than a copy. An unknown key is dropped rather
+   * than rejected: a stale bookmark or an old cached page should not stop
+   * someone contacting us, and the rest of the inquiry is still worth having.
+   */
+  private normalizeInterestAreas(interestAreas?: string[]): string[] {
+    if (!interestAreas?.length) return [];
+
+    const known = new Set<string>(
+      TENANT_FEATURE_DEFINITIONS.filter((feature) => feature.isVisible).map(
+        (feature) => feature.key,
+      ),
+    );
+
+    return [
+      ...new Set(
+        interestAreas
+          .map((area) => area.trim())
+          .filter((area) => known.has(area)),
+      ),
+    ];
   }
 
   private async resolveReferral(referralCode?: string) {
@@ -934,4 +1027,47 @@ function definedOnly<T extends Record<string, unknown>>(values: T) {
   return Object.fromEntries(
     Object.entries(values).filter(([, value]) => value !== undefined),
   ) as Partial<T>;
+}
+
+/**
+ * A short human label for the inquiry, used as the Lead sub-status so Sales can
+ * see the topic in a list without opening the record.
+ *
+ * Returns null when no intent was given, rather than a placeholder. The previous
+ * code hardcoded 'Demo requested' on every lead, which made the column
+ * worthless: it said the same thing whether or not anyone wanted a demo.
+ */
+function describeIntent(intent?: LeadInquiryIntent | null): string | null {
+  if (!intent) return null;
+  return (
+    LEAD_INQUIRY_INTENT_OPTIONS.find((option) => option.value === intent)
+      ?.label ?? null
+  );
+}
+
+/**
+ * Identify a *transport* duplicate — the same submission arriving twice.
+ *
+ * The hash covers who submitted, what they asked, and the hour they asked it.
+ * That distinguishes the two cases the requirement calls out: a double click or
+ * a retry lands in the same hour with identical content and is absorbed, while
+ * the same person asking about payroll six months after asking about pricing
+ * hashes differently and is correctly a new inquiry.
+ *
+ * An hour bucket rather than a rolling window because it needs no extra state
+ * and no cleanup job. The cost is that two genuinely distinct but identical
+ * submissions inside one hour collapse — which is the safer error.
+ */
+function buildSubmissionHash(dto: SubmitLeadDto, submittedAt: Date): string {
+  const hourBucket = new Date(submittedAt).toISOString().slice(0, 13);
+
+  const parts = [
+    dto.workEmail?.trim().toLowerCase() ?? '',
+    dto.companyName?.trim().toLowerCase() ?? '',
+    dto.inquiryIntent ?? '',
+    (dto.message ?? '').trim().toLowerCase(),
+    hourBucket,
+  ];
+
+  return createHash('sha256').update(parts.join('|')).digest('hex');
 }

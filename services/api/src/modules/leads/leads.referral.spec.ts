@@ -25,6 +25,10 @@ function setup(referral: unknown) {
     partnerTimeline: { create: jest.fn() },
   };
   const prisma = {
+    // Wave 3 added a transport-duplicate lookup before the lead is created.
+    // Returning null keeps these cases as first-time submissions, which is what
+    // they were testing all along.
+    lead: { findUnique: jest.fn(async () => null) },
     partnerReferralLink: { findUnique: jest.fn(async () => referral) },
     platformUser: { findMany: jest.fn(async () => []) },
     $transaction: jest.fn(async (callback) => callback(tx)),

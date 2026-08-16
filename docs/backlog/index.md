@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**66 records** — 37 bugs under [`docs/bugs/`](../bugs/), 29 non-bug items under [`items/`](items/).
+**67 records** — 37 bugs under [`docs/bugs/`](../bugs/), 30 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,7 +13,7 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 47 |
+| Open (active work) | 48 |
 | Blocked | 0 |
 | Deferred | 2 |
 | Awaiting a product decision | 3 |
@@ -28,7 +28,7 @@ see [`README.md`](README.md) for why.
 |---|---|
 | CRITICAL | 2 |
 | HIGH | 11 |
-| MEDIUM | 25 |
+| MEDIUM | 26 |
 | LOW | 9 |
 
 ## Open by type
@@ -39,7 +39,7 @@ see [`README.md`](README.md) for why.
 | BUG | 1 |
 | DATA_INTEGRITY | 4 |
 | DOCUMENTATION | 3 |
-| FOLLOW_UP | 3 |
+| FOLLOW_UP | 4 |
 | INFRA | 3 |
 | INTEGRATION | 3 |
 | SECURITY | 6 |
@@ -52,12 +52,12 @@ see [`README.md`](README.md) for why.
 
 | Status | Count |
 |---|---|
-| OPEN | 12 |
+| OPEN | 11 |
 | DEFERRED | 2 |
 | PRODUCT_DECISION | 3 |
-| FIXED | 12 |
+| FIXED | 13 |
 | VERIFIED | 12 |
-| READY | 21 |
+| READY | 22 |
 | DEFERRED | 2 |
 | PRODUCT_DECISION | 3 |
 | VALIDATING | 2 |
@@ -98,7 +98,7 @@ see [`README.md`](README.md) for why.
 | [BUG-0013](../../docs/bugs/BUG-0013-public-lead-endpoint-had-no-rate-limiting.md) | The public lead endpoint had no rate limiting | SECURITY | MEDIUM | P2 | VERIFIED | api:leads | DONE |
 | [BUG-0017](../../docs/bugs/BUG-0017-tenant-base-domain-setting-does-not-drive-hostname-issuance.md) | The admin-editable tenant base domain does not drive hostname issuance | INTEGRATION | MEDIUM | P2 | OPEN | pkg:config, api:tenant-control-plane | PLAN_REQUIRED |
 | [BUG-0020](../../docs/bugs/BUG-0020-window-prompt-used-for-governed-reasons.md) | window.prompt collects governed reasons instead of the design system dialog | UX | MEDIUM | P2 | OPEN | apps/admin, apps/web | PLAN_REQUIRED |
-| [BUG-0021](../../docs/bugs/BUG-0021-landing-contact-form-fabricates-lead-data.md) | The landing contact form fabricates lead data and has no honeypot | DATA_INTEGRITY | MEDIUM | P2 | OPEN | apps/landing, api:leads | FIX_NOW |
+| [BUG-0021](../../docs/bugs/BUG-0021-landing-contact-form-fabricates-lead-data.md) | The landing contact form fabricates lead data and has no honeypot | DATA_INTEGRITY | MEDIUM | P2 | FIXED | apps/landing, api:leads | FIX_NOW |
 | [BUG-0022](../../docs/bugs/BUG-0022-provision-tenant-has-no-confirmation-step.md) | "Provision tenant" has no confirmation step and no idempotency key | UX | MEDIUM | P2 | OPEN | apps/admin, api:tenant-control-plane | FIX_NOW |
 | [BUG-0025](../../docs/bugs/BUG-0025-a-live-partner-could-be-demoted-through-the-generic-partner-.md) | A live partner could be demoted through the generic partner update | STATE_MACHINE | MEDIUM | P2 | FIXED | api:partners | FIX_NOW |
 | [BUG-0028](../../docs/bugs/BUG-0028-country-to-currency-mapping-is-hardcoded-in-the-landing-fron.md) | Country to currency mapping is hardcoded in the landing frontend | INTEGRATION | MEDIUM | P2 | FIXED | apps/landing | PLAN_REQUIRED |
@@ -121,6 +121,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0026](../../docs/backlog/items/ITEM-0026-desktop-agent-windows-installer-is-unsigned.md) | Desktop agent Windows installer is unsigned | SECURITY | MEDIUM | P2 | READY | apps/agent-desktop | PLAN_REQUIRED |
 | [ITEM-0027](../../docs/backlog/items/ITEM-0027-desktop-agent-has-no-retry-backoff-and-no-bounded-give-up.md) | Desktop agent has no retry backoff and no bounded give up | TECH_DEBT | MEDIUM | P2 | READY | apps/agent-desktop, api:agent | PLAN_REQUIRED |
 | [ITEM-0028](../../docs/backlog/items/ITEM-0028-apps-agent-desktop-has-no-agents-md-and-no-test-coverage.md) | apps/agent-desktop has no AGENTS.md and no test coverage | TEST_GAP | MEDIUM | P2 | READY | apps/agent-desktop, api:agent | FIX_NOW |
+| [ITEM-0030](../../docs/backlog/items/ITEM-0030-partner-inquiry-form-does-not-yet-capture-partnership-model.md) | Partner inquiry form does not yet capture partnership model | FOLLOW_UP | MEDIUM | P2 | READY | apps/landing, api:partners | FIX_NOW |
 | [ITEM-0021](../../docs/backlog/items/ITEM-0021-mechanical-guard-against-country-and-currency-literals-in-fr.md) | Mechanical guard against country and currency literals in frontends | TEST_GAP | LOW | P2 | READY | scripts, apps/landing, apps/web, apps/admin | DEFER |
 | [ITEM-0023](../../docs/backlog/items/ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning.md) | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | P2 | READY | services/api/prisma, api:tenant-control-plane | DEFER |
 | [ITEM-0024](../../docs/backlog/items/ITEM-0024-landing-depends-on-lucide-react-without-declaring-it.md) | Landing depends on lucide-react without declaring it | TECH_DEBT | LOW | P2 | READY | apps/landing | DEFER |
