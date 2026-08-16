@@ -17,6 +17,7 @@ import { randomBytes } from 'node:crypto';
 import {
   buildWorkspaceHostname,
   buildWorkspaceUrl,
+  getAppOrigin,
   getPlatformDomainConfig,
   isPlatformHostname,
   isReservedHostLabel,
@@ -594,11 +595,18 @@ export class TenantDomainService {
     return domain;
   }
 
+  /**
+   * The workspace origin used when no workspace hostname can be built — i.e.
+   * local development, or a production deployment that has not configured
+   * TENANT_BASE_DOMAIN yet.
+   *
+   * This used to end in a literal 'http://localhost:3001'. That is harmless in
+   * development and not harmless in production: getWorkspaceUrl feeds
+   * provisioning results and customer-facing links, so an unconfigured base
+   * domain silently handed tenants a loopback workspace URL. getAppOrigin
+   * throws in production-like environments instead.
+   */
   private developmentWebOrigin() {
-    return (
-      process.env.WEB_APP_URL ??
-      process.env.NEXT_PUBLIC_WEB_APP_URL ??
-      'http://localhost:3001'
-    );
+    return getAppOrigin('web', process.env);
   }
 }

@@ -207,3 +207,15 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Scenario** | Both directions are pinned — the generic update cannot activate a partner and cannot move a live one to `REJECTED`, `TERMINATED`, `SUSPENDED` or `INACTIVE`; the refusal names the governed actions; ordinary edits and early-stage status moves that no governed action owns still succeed, so the guard cannot be "simplified" into refusing legitimate work. |
 | **Fixed** | 2026-08-15, branch `agent/autonomous-framework-triage` |
 | **Active** | yes |
+
+### REG-016 — Public "Login" and tenant email links resolved to localhost in production
+
+| | |
+|---|---|
+| **Bug class** | `silent-config-fallback` |
+| **Module** | `pkg:config`, `apps/landing`, `apps/web`, `apps/admin`, `services/api` |
+| **Root cause** | Seven call sites resolved another app's URL themselves and ended in a hardcoded loopback literal, bypassing `getAppOrigin`, which already threw in production. `validateDeploymentEnv` required only `NEXT_PUBLIC_API_BASE_URL` for frontends, so nothing forced the cross-app URLs to be set — a production build succeeded and Next inlined `http://localhost:3001/dashboard` into the shipped HTML. The landing header additionally fell through `NEXT_PUBLIC_APP_PORTAL_URL`, a variable defined nowhere in the repository, so the literal was always the effective value. The same class put loopback URLs into tenant activation and invitation **emails** via `tenant-url.config.ts`. |
+| **Regression test** | `packages/config/app-urls.test.js` (14 assertions, CI: `npm run test:app-urls`) · `scripts/check-no-hardcoded-urls.mjs` (CI: `npm run check:no-hardcoded-urls`) · `services/api/src/common/config/tenant-url.config.spec.ts` |
+| **Scenario** | A production-like build of `landing`, `web`, `admin` or `api` fails when a canonical app URL is missing, loopback, malformed or non-HTTP — proved end to end by building `apps/landing` with `VERCEL=1` and no `NEXT_PUBLIC_WEB_APP_URL` (fails), then with it set (succeeds, and the built output carries `https://app.dijipeople.com/login`). A local `npm run build` and CI, which set neither `APP_ENV` nor `VERCEL`, still build against loopback defaults. |
+| **Fixed** | 2026-08-16, branch `agent/production-url-integrity` |
+| **Active** | yes |

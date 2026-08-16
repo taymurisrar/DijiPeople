@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { getApiBaseUrl as getSharedApiBaseUrl } from "@repo/config";
 import {
   ACCESS_TOKEN_COOKIE,
   AUTH_APP_CLIENT_ID,
@@ -564,13 +565,12 @@ function buildRequestCookieHeader(
 }
 
 function getApiBaseUrl() {
+  // API_INTERNAL_URL stays first: a deployment may reach the API over a private
+  // network address that is deliberately not the public one. Everything after
+  // it resolves through @repo/config, which refuses to invent a loopback URL in
+  // production instead of silently proxying to nothing.
   const value =
-    process.env.API_INTERNAL_URL ??
-    process.env.NEXT_PUBLIC_API_BASE_URL ??
-    process.env.NEXT_PUBLIC_API_URL ??
-    process.env.API_BASE_URL ??
-    process.env.API_URL ??
-    "http://localhost:4000/api";
+    process.env.API_INTERNAL_URL?.trim() || getSharedApiBaseUrl(process.env);
 
   return value.replace(/\/+$/, "");
 }

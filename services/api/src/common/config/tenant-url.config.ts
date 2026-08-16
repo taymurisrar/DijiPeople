@@ -1,4 +1,5 @@
 import { ConfigService } from '@nestjs/config';
+import { getAppOrigin } from '@repo/config';
 
 type QueryValue = string | number | boolean | null | undefined;
 
@@ -51,12 +52,22 @@ export function buildTenantPortalUrl(
     process.env.NODE_ENV ??
     'development';
 
+  // These URLs are mailed to customers as activation, invitation and sign-in
+  // links. A loopback fallback here does not degrade — it sends every new
+  // tenant owner a link to their own machine. getAppOrigin throws in
+  // production-like environments instead, and validateDeploymentEnv in main.ts
+  // already requires the workspace URL at boot, so an unconfigured production
+  // deployment fails to start rather than mailing dead links.
+  // The ConfigService chain is preserved in full: it is the API's configuration
+  // authority and may be backed by more than process.env. Only the final
+  // fallback changed — it used to be the literal 'http://localhost:3001'.
   const appUrl =
-    configService.get<string>('APP_BASE_URL') ??
-    configService.get<string>('NEXT_PUBLIC_APP_BASE_URL') ??
-    configService.get<string>('WEB_APP_URL') ??
-    configService.get<string>('NEXT_PUBLIC_APP_URL') ??
-    'http://localhost:3001';
+    configService.get<string>('APP_BASE_URL')?.trim() ||
+    configService.get<string>('NEXT_PUBLIC_APP_BASE_URL')?.trim() ||
+    configService.get<string>('WEB_APP_URL')?.trim() ||
+    configService.get<string>('NEXT_PUBLIC_WEB_APP_URL')?.trim() ||
+    configService.get<string>('NEXT_PUBLIC_APP_URL')?.trim() ||
+    getAppOrigin('web', process.env);
 
   const parsedAppUrl = new URL(appUrl);
   const hostname = parsedAppUrl.hostname;

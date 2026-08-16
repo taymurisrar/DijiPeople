@@ -1,6 +1,8 @@
 import Link from "next/link";
 import Image from "next/image";
 
+import { landingEnv } from "@/lib/env";
+
 const navItems = [
   { href: "/", label: "Home" },
   { href: "/features", label: "Features" },
@@ -10,10 +12,13 @@ const navItems = [
   { href: "/partners", label: "Partners" },
 ];
 
-const loginHref =
-  process.env.NEXT_PUBLIC_WEB_APP_URL ||
-  process.env.NEXT_PUBLIC_APP_PORTAL_URL ||
-  "http://localhost:3001/dashboard";
+// Sign-in lives in the tenant workspace app, not here. This used to read
+// NEXT_PUBLIC_WEB_APP_URL directly, fall through to NEXT_PUBLIC_APP_PORTAL_URL
+// — a variable defined nowhere in this repository, so always undefined — and
+// then to a hardcoded http://localhost:3001/dashboard, which is the value
+// production actually served. landingEnv.workspaceUrl resolves through
+// @repo/config, which fails the build rather than emitting a loopback URL.
+const loginHref = `${landingEnv.workspaceUrl.replace(/\/+$/, "")}/login`;
 
 export function SiteHeader() {
   return (
