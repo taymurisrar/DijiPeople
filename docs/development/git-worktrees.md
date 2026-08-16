@@ -12,12 +12,24 @@ other's working tree.
 - Other branches: `develop`, `feature/<Name>/<topic>`
   (e.g. `feature/Taimur/employees-enhancement`,
   `feature/Fizza/admin-bug-fixes`)
-- **No worktrees are currently in use** — `git worktree list` shows only the
-  main checkout.
-- **No CI** — there is no `.github/` directory. Nothing validates a branch
-  automatically.
+- **`main` is protected**, with `enforce_admins: true` — a required
+  `CI required gate` status check, PR required, force pushes and deletion
+  prohibited. **There is no admin bypass; a direct push to `main` fails for
+  everyone**, including the repository owner. See
+  [`branch-protection.md`](branch-protection.md), and
+  [`../../.agent/context/repository-health.md`](../../.agent/context/repository-health.md)
+  for recovering commits that reached local `main` by accident.
+- **CI exists** — `.github/workflows/ci.yml`, eight required jobs behind the
+  single `CI required gate` check. See [`ci.md`](ci.md).
+  > These two bullets previously read "No CI — there is no `.github/`
+  > directory". Both CI and branch protection were added afterwards, and the
+  > stale text stayed — the `doc-code-drift` pattern in the framework's own
+  > documentation. An agent reading it would have concluded nothing validated
+  > its branch, and that a direct push to `main` was available.
 - The main checkout frequently carries **substantial uncommitted work**. Check
-  `git status` before doing anything.
+  `git status` before doing anything — or run `npm run repo:health`, which
+  reports that alongside sync state, unfinished Git operations, stale worktrees
+  and branch-cleanup candidates.
 
 ---
 

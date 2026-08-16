@@ -33,6 +33,13 @@ export const DEFAULT_MAPPINGS = [
   { from: 'docs/qa/known-bug-patterns', to: '11 - Agent Knowledge/QA/Bug Patterns' },
   { from: 'docs/qa/test-strategy', to: '11 - Agent Knowledge/QA/Test Strategy' },
   { from: 'docs/engineering-history/tasks', to: '11 - Agent Knowledge/Engineering History' },
+  /*
+   * Parent tasks carry live orchestration state — which work packages are done,
+   * which are blocked and why. Publishing them puts "what is in flight" beside
+   * the backlog and the engineering history, which is where somebody reading the
+   * vault expects to find it.
+   */
+  { from: 'docs/tasks', to: '00 - Home/Generated/Tasks' },
 ];
 
 export const mappingKey = (mapping) => `${mapping.from}→${mapping.to}`;

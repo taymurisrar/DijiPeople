@@ -22,6 +22,51 @@ Planning rules live in [`PLANS.md`](PLANS.md). Agent role definitions live in
 
 ---
 
+## `DijiPeople Task:` — the framework activates itself
+
+A prompt beginning **`DijiPeople Task:`** means *"use the complete DijiPeople
+autonomous engineering framework"* — the entire lifecycle in
+[`.agent/context/task-completion-contract.md`](.agent/context/task-completion-contract.md),
+from knowledge retrieval through merge, knowledge capture, Obsidian sync and
+cleanup.
+
+**The user never restates these rules.** Being asked to repeat them means this
+section was not read, which is a framework defect and not a user preference.
+
+An optional keyword after the colon is an **intent hint**, not a separate
+workflow — the lifecycle stays one and unified:
+
+```
+DijiPeople Task:            DijiPeople Task: SECURITY      DijiPeople Task: RELEASE
+DijiPeople Task: BUG        DijiPeople Task: PERFORMANCE   DijiPeople Task: DEPLOY
+DijiPeople Task: FEATURE    DijiPeople Task: DATABASE      DijiPeople Task: HOTFIX
+DijiPeople Task: UI/UX      DijiPeople Task: INTEGRATION   DijiPeople Task: BACKLOG
+DijiPeople Task: QA         DijiPeople Task: ARCHITECTURE  DijiPeople Task: KNOWLEDGE
+DijiPeople Task: E2E        DijiPeople Task: AUDIT         DijiPeople Task: FRAMEWORK
+```
+
+**Keywords are optional.** With none — or with one not in the list — the
+Architect infers the type from the description and states what it inferred.
+`DijiPeople Task: fix the tenant provisioning retry` is a `BUG`;
+`improve payroll UI` is `UI/UX` + `FEATURE`; `test complete onboarding` is
+`E2E`/`QA`. Routing, inference and the per-type definition of done live in
+[`.agent/context/task-router.md`](.agent/context/task-router.md) — **the
+Architect reads it before planning.**
+
+Sizing, work-package decomposition, automatic continuation between packages,
+the assumption register and the concise progress format live in
+[`.agent/context/task-orchestration.md`](.agent/context/task-orchestration.md).
+Repository health, `MAIN_SYNC_STATUS`, protected-branch recovery and deployment
+drift live in
+[`.agent/context/repository-health.md`](.agent/context/repository-health.md).
+
+**No keyword weakens a gate** — not the shared-target CI rule, not branch
+protection, not tenant isolation, not the requirement that findings become
+durable records. `HOTFIX` is the one most often read as an exception. It is not:
+urgency narrows scope, never evidence.
+
+---
+
 ## Product Context
 
 DijiPeople is a **multi-tenant SaaS HRM and business platform**. One codebase,
@@ -362,10 +407,14 @@ npm run prisma:migrate:status
 npm run smoke:deployment     # scripts/smoke-deployment.mjs
 
 npm run validate:framework   # structural validation of the agent framework
+npm run repo:health          # PRE/POST_TASK_REPO_HEALTH — sync, worktrees, branches
 npm run backlog:check        # records valid, indexes current — fails on drift
 npm run backlog:rebuild      # regenerate every backlog index
 npm run backlog:new-bug -- "<title>" --severity HIGH --type AUTHORIZATION
 npm run backlog:new-item -- "<title>" --type TEST_GAP
+npm run tasks:check          # parent-task records valid, indexes current
+npm run tasks:rebuild        # regenerate the parent-task indexes
+npm run tasks:new -- "<title>" --type FEATURE --size LARGE
 npm run knowledge:retrieve -- <module> <feature>
 npm run knowledge:dashboards # regenerate the two Obsidian dashboards
 npm run knowledge:sync       # publish into the vault (needs a local config)
@@ -470,15 +519,25 @@ which `scripts/validate-framework.mjs` enforces. Every field must be resolved:
 ```
 IMPLEMENTATION_STATUS           REVIEW_STATUS                 ENGINEERING_HISTORY_STATUS
 LOCAL_VALIDATION_STATUS         REMOTE_CI_STATUS              FEEDBACK_PROMOTION_STATUS
-QA_STATUS                       MERGE_STATUS                  KNOWLEDGE_CAPTURE_STATUS
-QA_FINDINGS_CLASSIFIED_STATUS   POST_MERGE_VALIDATION_STATUS  OBSIDIAN_SYNC_STATUS
-BUG_RECORD_STATUS                                             CLEANUP_STATUS
-ARCHITECT_TRIAGE_STATUS
-BACKLOG_UPDATE_STATUS
+QA_STATUS                       PR_STATUS                     KNOWLEDGE_CAPTURE_STATUS
+QA_FINDINGS_CLASSIFIED_STATUS   MERGE_STATUS                  OBSIDIAN_SYNC_STATUS
+BUG_RECORD_STATUS               POST_MERGE_VALIDATION_STATUS  CLEANUP_STATUS
+ARCHITECT_TRIAGE_STATUS         MAIN_SYNC_STATUS
+BACKLOG_UPDATE_STATUS           POST_TASK_REPO_HEALTH
+PRE_TASK_REPO_HEALTH            DEPLOYMENT_STATUS
+PARENT_TASK_STATUS              DEPLOYMENT_DRIFT_STATUS
+WORK_PACKAGE_STATUS
 ```
 
 Resolved means `PASS`, `DONE`, `NOT_REQUIRED` (with a reason),
 `BLOCKED_<REASON>` or `FAILED`. **Never `ASSUMED_PASS`; never omitted.**
+
+Two of these are terminal invariants rather than ordinary fields: after a
+completed substantial task, **`MAIN_SYNC_STATUS` must be `SYNCED`** and
+**`POST_TASK_REPO_HEALTH` must be `PASS`**. No stuck push, unfinished merge,
+unfinished rebase, unexpected local-`main` commit or unverified divergence may
+remain — see
+[`.agent/context/repository-health.md`](.agent/context/repository-health.md).
 
 A prompt beginning `DijiPeople Task:` requests the whole lifecycle — historical
 knowledge retrieval, regression awareness, durable handling of your corrections,
@@ -557,6 +616,18 @@ Collect the facts with `node scripts/finalize-agent-task.mjs`.
   > module, migration, ten replaced components — was reported as finished while
   > entirely uncommitted. Committing *your task's* output is now required;
   > touching anything else still is not.
+- **`main` is protected, and there is no admin bypass** (`enforce_admins: true`).
+  A direct push fails with `GH006` / "Changes must be made through a pull
+  request". That is `PROTECTED_BRANCH_REQUIRES_PR` — a recoverable policy
+  outcome, **not** a terminal error and not a question for the user. The
+  Integrator preserves the commits on a task branch, opens a PR, waits for the
+  exact-SHA `CI required gate` verdict, merges, and fast-forwards local `main`.
+  **Never force-push `main`. Never discard an unverified commit to tidy the
+  state.** The full recovery is in
+  [`.agent/context/repository-health.md`](.agent/context/repository-health.md).
+- **Run `npm run repo:health` before creating a branch and again before the
+  final report.** A task worktree is never cut from a stale `main`, and a task
+  never ends leaving the repository for a human to clean up.
 - The working tree may already contain unrelated in-flight changes. Check
   `git status` before you start and never revert, stage or commit files you did
   not touch. **Other people's uncommitted work remains untouchable** — if the

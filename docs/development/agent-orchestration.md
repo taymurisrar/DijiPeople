@@ -101,7 +101,70 @@ Neither runs on a task whose QA verdict is FAIL.
 ## What `DijiPeople Task:` means
 
 A prompt beginning `DijiPeople Task:` requests the **complete engineering
-lifecycle**. It implicitly means all of:
+lifecycle** — the framework activates itself. **The user never restates these
+rules.**
+
+### Keyword routing
+
+An optional keyword after the colon is an **intent hint**, not a separate
+workflow. The lifecycle above stays one and unified; what a keyword changes is
+which specialist leads, which risks are assumed present until disproven, and
+what the definition of done additionally requires.
+
+```
+BUG · FEATURE · UI/UX · QA · E2E · ARCHITECTURE · DATABASE · INTEGRATION
+SECURITY · PERFORMANCE · RELEASE · DEPLOY · HOTFIX · BACKLOG · KNOWLEDGE
+FRAMEWORK · AUDIT
+```
+
+**Keywords are optional, and an unrecognised one is not an error.** With none,
+the Architect infers the type from the description and states what it inferred:
+"fix the tenant provisioning retry" → `BUG`; "improve payroll UI" → `UI/UX` +
+`FEATURE`; "test complete onboarding" → `E2E`/`QA`.
+
+Full table, inference rules and per-type definitions of done:
+[`../../.agent/context/task-router.md`](../../.agent/context/task-router.md).
+
+**No keyword weakens a gate** — not the shared-target CI rule, not branch
+protection, not tenant isolation, not durable findings. `HOTFIX` is the one most
+often read as an exception; urgency narrows scope, never evidence.
+
+### Sizing, work packages and automatic continuation
+
+The Architect classifies size — `SMALL`, `MEDIUM`, `LARGE`, `PROGRAM` — by
+dependency and architectural scope, never by file count. `LARGE` and `PROGRAM`
+get a durable parent record under [`../tasks/`](../tasks/), decomposed into work
+packages whose boundaries follow ownership (schema, backend, frontend, security,
+integration, migration, QA, browser E2E, deployment) — never file ranges.
+
+When a package reaches `DONE`, the Architect recomputes what is `READY` and
+**starts the next one without asking.** A task stops only when *every* remaining
+package is blocked by `OWNER_DECISION_REQUIRED`, `BLOCKED_EXTERNAL`,
+`UNRECOVERABLE_TOOL_FAILURE` or `SAFETY_BLOCK` — and it then reports every block
+at once. **One blocked package never stops an independent one.**
+
+Rules:
+[`../../.agent/context/task-orchestration.md`](../../.agent/context/task-orchestration.md).
+
+### Progress reporting
+
+Large tasks emit concise checkpoints when a package changes state — not
+engineering logs, and not on a timer. Detailed evidence stays in the repository:
+QA runs, bug records, engineering history, the task record. The format includes
+`Main:` (`MAIN_SYNC_STATUS`) and `Deployment:` so repository and environment
+drift surface early rather than at the end.
+
+### Repository health
+
+Release/DevOps runs `npm run repo:health` **before** a branch is created and
+**after** the merge, on every substantial task — including tasks that deploy
+nothing. `main` is protected with no admin bypass; a rejected direct push is
+`PROTECTED_BRANCH_REQUIRES_PR`, which the Integrator recovers automatically via
+a task branch, a PR and the exact-SHA CI verdict, ending with local `main`
+synchronised. See
+[`../../.agent/context/repository-health.md`](../../.agent/context/repository-health.md).
+
+### It also implicitly means all of
 
 - **retrieve relevant historical knowledge** before planning
   (`RELEVANT_KNOWLEDGE_RETRIEVAL` — see
@@ -119,10 +182,13 @@ lifecycle**. It implicitly means all of:
 
 The user should never have to append "push it", "merge it", "sync Obsidian",
 "clean the worktree", "remember this", "don't make this mistake again", "check
-previous bugs" or "look at Obsidian". Those are phases of the task, not extras.
+previous bugs", "look at Obsidian", "open a PR", "wait for CI", "continue with
+the next part" or "fix main being ahead". Those are phases of the task, not
+extras.
 
 The Integrator runs because the task **modified Git-tracked files**, never
-because the prompt asked for Git operations.
+because the prompt asked for Git operations. Release/DevOps runs because the
+task was substantial, never because the prompt mentioned deployment.
 
 ## Completion is defined by the contract
 
@@ -138,16 +204,24 @@ one of these is resolved:
 
 ```
 IMPLEMENTATION_STATUS           REVIEW_STATUS                 ENGINEERING_HISTORY_STATUS
-LOCAL_VALIDATION_STATUS         REMOTE_CI_STATUS              FEEDBACK_PROMOTION_STATUS
-QA_STATUS                       MERGE_STATUS                  KNOWLEDGE_CAPTURE_STATUS
-QA_FINDINGS_CLASSIFIED_STATUS   POST_MERGE_VALIDATION_STATUS  OBSIDIAN_SYNC_STATUS
-BUG_RECORD_STATUS                                             CLEANUP_STATUS
-ARCHITECT_TRIAGE_STATUS
-BACKLOG_UPDATE_STATUS
+LOCAL_VALIDATION_STATUS         PR_STATUS                     FEEDBACK_PROMOTION_STATUS
+QA_STATUS                       REMOTE_CI_STATUS              KNOWLEDGE_CAPTURE_STATUS
+QA_FINDINGS_CLASSIFIED_STATUS   MERGE_STATUS                  OBSIDIAN_SYNC_STATUS
+BUG_RECORD_STATUS               POST_MERGE_VALIDATION_STATUS  CLEANUP_STATUS
+ARCHITECT_TRIAGE_STATUS         MAIN_SYNC_STATUS
+BACKLOG_UPDATE_STATUS           POST_TASK_REPO_HEALTH
+PRE_TASK_REPO_HEALTH            DEPLOYMENT_STATUS
+PARENT_TASK_STATUS              DEPLOYMENT_DRIFT_STATUS
+WORK_PACKAGE_STATUS
 ```
 
 Resolved means `PASS`, `DONE`, `NOT_REQUIRED` (with a stated reason),
 `BLOCKED_<REASON>` or `FAILED`. Never `ASSUMED_PASS`, and never omitted.
+
+Two are terminal invariants rather than ordinary fields: after a completed
+substantial task, **`MAIN_SYNC_STATUS` must be `SYNCED`** and
+**`POST_TASK_REPO_HEALTH` must be `PASS`** — no stuck push, unfinished merge or
+rebase, unexpected local-`main` commit, or unverified divergence left behind.
 
 Until the contract has been evaluated, the phrasing is
 **`IMPLEMENTATION COMPLETE — FINALIZATION PENDING`** — not "done".

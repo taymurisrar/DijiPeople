@@ -21,6 +21,7 @@ something that was already written down.
 | **QA runs** | *What behaviour was actually tested?* | Scenarios, environment, commands, manual checks, regression evidence, failures, limitations |
 | **`docs/bugs/*`** | *What is wrong, and what state is that in?* | Defects: evidence, severity, status, disposition, resolution |
 | **`docs/backlog/*`** | *What is outstanding, and what did we decide about it?* | Priorities, dispositions, blocked work, open product decisions. Indexes are **generated** |
+| **`docs/tasks/*`** | *What is in flight right now, and what can start next?* | Live orchestration state for LARGE/PROGRAM tasks: work packages, dependencies, block reasons. Indexes are **generated** |
 | **`docs/engineering-history/*`** | *How did a task actually run, start to finish?* | Branches, worktrees, conflicts and their resolutions, merge SHA, CI run |
 | **`.agent/context/*`** | *How does DijiPeople currently work?* | Agent-facing technical architecture — the primary context |
 | **`docs/knowledge/*`** | *What did we learn, in a Git-tracked form?* | Durable module rules, decisions, implementation history. Agent-owned |
@@ -45,6 +46,16 @@ pattern that stops the next one. Each carries something the others do not.
 
 - **Git is not replaced by notes.** A note saying "we changed X" is not evidence;
   `git log` is. Never use Obsidian as source control.
+- **A parent task record is not engineering history.** `docs/tasks/` is *live
+  state* — what is left, what can start next — and it is edited in place as work
+  progresses. `docs/engineering-history/` is *what happened*, written once and
+  never revised. Writing one in place of the other loses either the ability to
+  resume or the ability to look back.
+- **A merge is not a deployment.** Git ancestry proves code reached a branch and
+  nothing more. Deployed state lives in
+  [`../../docs/deployment/release-history/`](../../docs/deployment/release-history/),
+  and this repository cannot currently read a deployed SHA at all — so `UNKNOWN`
+  is frequently the only honest answer.
 - **CI is not replaced by a local run.** See
   [`task-completion-contract.md`](task-completion-contract.md).
 - **QA is not replaced by a chat message.** Validation that exists only in a

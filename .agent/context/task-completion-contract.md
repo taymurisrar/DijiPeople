@@ -235,6 +235,9 @@ resolved. "Resolved" means it carries one of the allowed values — not that it
 was omitted, and not that it was assumed.
 
 ```
+PRE_TASK_REPO_HEALTH
+PARENT_TASK_STATUS
+WORK_PACKAGE_STATUS
 IMPLEMENTATION_STATUS
 LOCAL_VALIDATION_STATUS
 QA_STATUS
@@ -243,15 +246,79 @@ BUG_RECORD_STATUS
 ARCHITECT_TRIAGE_STATUS
 BACKLOG_UPDATE_STATUS
 REVIEW_STATUS
+PR_STATUS
 REMOTE_CI_STATUS
 MERGE_STATUS
 POST_MERGE_VALIDATION_STATUS
+MAIN_SYNC_STATUS
+POST_TASK_REPO_HEALTH
+DEPLOYMENT_STATUS
+DEPLOYMENT_DRIFT_STATUS
 ENGINEERING_HISTORY_STATUS
 FEEDBACK_PROMOTION_STATUS
 KNOWLEDGE_CAPTURE_STATUS
 OBSIDIAN_SYNC_STATUS
 CLEANUP_STATUS
 ```
+
+### The repository-state gates
+
+Five of these concern the **state the task leaves the repository in**, which was
+previously nobody's field. A task could pass every other gate while local `main`
+sat three commits ahead of a protected remote, and nothing in the contract
+noticed — the human noticed, later, when their next push failed.
+
+| Field | Resolved when | May be `NOT_REQUIRED` when |
+|---|---|---|
+| `PRE_TASK_REPO_HEALTH` | `node scripts/repo-health.mjs` ran **before** the branch was created, and the task started from the current shared-target SHA | Never, for a task that creates a branch |
+| `POST_TASK_REPO_HEALTH` | The same check ran after the merge and reports `PASS` | The task modified no Git-tracked files |
+| `MAIN_SYNC_STATUS` | Computed from refs — see [`repository-health.md`](repository-health.md) | Never; `UNKNOWN` is a value, not an omission |
+| `DEPLOYMENT_STATUS` | The deployment state machine reached a terminal state | Nothing was deployed — state the reason |
+| `DEPLOYMENT_DRIFT_STATUS` | `EXPECTED_SHA` vs `DEPLOYED_SHA` classified | No environment is configured for this component |
+
+**The terminal invariant.** For a completed substantial task:
+
+```
+MAIN_SYNC_STATUS      = SYNCED
+POST_TASK_REPO_HEALTH = PASS
+
+local main SHA == origin/main SHA == the expected merged SHA
+```
+
+None of the following may remain silently:
+
+```
+a stuck push · a stuck pull · an unfinished merge · an unfinished rebase
+an unfinished cherry-pick · unexpected local-main commits · unverified divergence
+```
+
+`MAIN_SYNC_STATUS = AHEAD` after a task is not a cosmetic untidiness. It means
+work exists in exactly one place, on one machine, and the next person to touch
+the branch will collide with it.
+
+### `PR_STATUS`
+
+`main` is protected with no admin bypass, so a PR is the **only** path onto it.
+The Integrator owns that lifecycle automatically; the user is never asked to
+open or merge one.
+
+Allowed values: `MERGED`, `OPEN`, `DRAFT`, `CLOSED`, `NOT_REQUIRED` (nothing
+targeted a protected branch), `BLOCKED_<REASON>`.
+
+A rejected direct push (`GH006`, "Changes must be made through a pull request")
+is classified `PROTECTED_BRANCH_REQUIRES_PR` and recovered — see
+[`repository-health.md`](repository-health.md). **It is recoverable, not
+terminal**, and it is never a question for the user.
+
+### The parent-task gates
+
+| Field | Resolved when | May be `NOT_REQUIRED` when |
+|---|---|---|
+| `PARENT_TASK_STATUS` | The `docs/tasks/` record reflects the real end state, and `node scripts/rebuild-tasks.mjs --check` is clean | `SIZE` is `SMALL` or `MEDIUM` — no parent record was required |
+| `WORK_PACKAGE_STATUS` | Every package is `DONE`, or carries an explicit block reason | No decomposition was required |
+
+A `LARGE` task whose record still says `IN_PROGRESS` has not finished; it has
+stopped. The distinction is the entire point of keeping the record.
 
 ### The finding-classification gates
 
@@ -322,6 +389,17 @@ agent cannot evaluate is `BLOCKED_<REASON>`, which is honest and visible.
 | `KNOWLEDGE_CAPTURE_STATUS` | Nothing durable was learned — an explicitly valid outcome |
 | `OBSIDIAN_SYNC_STATUS` | Use `SKIPPED_NO_LOCAL_CONFIG`, not `NOT_REQUIRED` |
 | `CLEANUP_STATUS` | No temporary worktree or branch was created |
+| `PARENT_TASK_STATUS` | `SIZE` is `SMALL` or `MEDIUM` |
+| `WORK_PACKAGE_STATUS` | No decomposition was required |
+| `PR_STATUS` | Nothing targeted a protected or shared branch |
+| `DEPLOYMENT_STATUS` | Nothing was deployed — state why |
+| `DEPLOYMENT_DRIFT_STATUS` | No environment is configured for the component |
+| `POST_TASK_REPO_HEALTH` | The task modified no Git-tracked files |
+
+`PRE_TASK_REPO_HEALTH` and `MAIN_SYNC_STATUS` are never `NOT_REQUIRED` on a task
+that creates a branch. `MAIN_SYNC_STATUS` has `UNKNOWN` for the case where the
+state genuinely could not be read — which is honest, and visible, in a way that
+omitting the field is not.
 
 `IMPLEMENTATION_STATUS` and `LOCAL_VALIDATION_STATUS` are never
 `NOT_REQUIRED` on a task that changed a file.

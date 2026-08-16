@@ -107,6 +107,38 @@ never silently omitted, and never phrased so it reads as having run.
 
 ## 1. Test design
 
+### The specialist handoff
+
+Each specialist hands off with `IMPLEMENTED`, `CHANGED_BEHAVIOR`, `RISK_AREAS`,
+`KNOWN_MISTAKES_AVOIDED`, `TESTS_ADDED`, `TEST_HOOKS` and `UNRESOLVED` — see
+[`../context/task-orchestration.md`](../context/task-orchestration.md).
+
+Use it to **target** validation, never as a boundary on it. A risk the handoff
+omits is not thereby untested; QA designs its own scenarios and
+`CHANGED_BEHAVIOR` is one input among several. The handoff's value is that it
+says where the implementer already knows the code is thin — which is where QA
+effort pays best.
+
+### Depth matches risk
+
+QA depth follows the risk of the change, not the size of the diff:
+
+| Risk present | QA must include |
+|---|---|
+| `SECURITY` | Negative authorization **and** cross-tenant isolation — **mandatory**, never risk-based |
+| `DATABASE` | Real PostgreSQL, migrations applied forward, constraints exercised |
+| `STATE_MACHINE` | Legal transitions **and** illegal ones rejected |
+| `TENANT` | Cross-tenant read, write and enumeration attempts |
+| `PUBLIC_API` | Validation, abuse, rate limiting, idempotency |
+| `UI` | Browser validation where available; error, loading and empty states |
+| `DEPLOYMENT` | Smoke, health, rollback readiness verified before promotion |
+
+The first two rows are mandatory rather than risk-weighted because their
+failures are **silent**: nothing in the product surfaces a cross-tenant leak or
+an accepted illegal transition until somebody outside the team finds it.
+
+### Scenarios
+
 Derive scenarios from the requirement and the risk areas, not from the diff.
 Cover, where each applies:
 
