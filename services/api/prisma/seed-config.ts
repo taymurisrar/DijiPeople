@@ -14,6 +14,7 @@ import {
 } from '@prisma/client';
 import type { ApprovalActorType, ApprovalModuleKey } from '@prisma/client';
 import { createPrismaClient } from './create-prisma-client';
+import { bootstrapCommercialDefaults } from '../src/modules/super-admin/commercial-bootstrap';
 import { PermissionBootstrapService } from '../src/modules/permissions/permission-bootstrap.service';
 import { NOTIFICATION_EVENT_CATALOG } from '../src/modules/notifications/notification-events.catalog';
 import { SYSTEM_EMAIL_TEMPLATE_PLACEHOLDERS } from '../src/modules/notifications/notification-events.catalog';
@@ -441,6 +442,19 @@ export async function runSeedConfig() {
     `Found ${tenants.length} tenant(s) for notification config seeding.`,
   );
 
+  // DijiPeople's own commercial configuration — plans, markets and their
+  // authoritative prices.
+  //
+  // BUG-0030: this used to happen as a side effect of reading the Admin Plans
+  // list, so a production GET created rows and hit a unique constraint. It now
+  // runs here, which means it runs on every deployment via `npm run release:api`
+  // (migrate:deploy -> seed:config -> seed:verify -> seed:admin) and nowhere in
+  // the request path. It is idempotent and safe to run concurrently.
+  const commercial = await bootstrapCommercialDefaults(prisma);
+  for (const warning of commercial.warnings) {
+    console.warn(`Commercial bootstrap: ${warning}`);
+  }
+
   await seedNotificationConfig(prisma);
   await seedSystemEmailTemplates(prisma);
   await seedPlatformOperationalSettings(prisma);
@@ -486,6 +500,12 @@ export async function runSeedConfig() {
 
   await verifyRequiredSeedData(prisma, tenants);
 
+  console.log(
+    `Commercial defaults: ${commercial.plansCreated} plan(s), ` +
+      `${commercial.marketsCreated} market(s), ${commercial.pricesCreated} price(s) created; ` +
+      `${commercial.pricesSkippedExisting} slot(s) already served, ` +
+      `${commercial.pricesSkippedRace} lost a concurrent race.`,
+  );
   console.log(`Core reference data created/updated: ${referenceDataCount}`);
   console.log(
     `Tenant workforce reference data created/updated: ${workforceReferenceCount}`,

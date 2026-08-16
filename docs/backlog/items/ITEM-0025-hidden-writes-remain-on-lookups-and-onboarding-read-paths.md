@@ -1,0 +1,92 @@
+---
+ID: ITEM-0025
+aliases: [ITEM-0025]
+Title: Hidden writes remain on lookups and onboarding read paths
+Type: TECH_DEBT
+Status: READY
+Priority: P2
+Severity: MEDIUM
+AffectedModules: [api:lookups, api:onboarding]
+Source: ARCHITECT
+OwnerAgent: architect
+ArchitectDisposition: PLAN_REQUIRED
+CreatedAt: 2026-08-16
+UpdatedAt: 2026-08-16
+RelatedBug: BUG-0030
+RelatedQA: docs/qa/runs/2026-08-16-hotfix-plan-list-hidden-write-78072d2.md
+RelatedADR:
+RelatedImplementation:
+TargetMilestone:
+BlockedBy:
+---
+
+# ITEM-0025 — Hidden writes remain on lookups and onboarding read paths
+
+## Summary
+
+The `ensure*`-on-read audit run for [[BUG-0030]] found the same pattern in five
+other read methods. None is currently failing, and none was changed in the
+hotfix.
+
+## Findings
+
+| Read method | Initializer | Classification |
+|---|---|---|
+| `LookupsService.listCurrencies` | `ensureCurrencyDefaults` | `UNSAFE_HIDDEN_WRITE` |
+| `LookupsService.listRelationTypes` | `ensureRelationTypeDefaults` | `UNSAFE_HIDDEN_WRITE` |
+| `LookupsService.listDocumentTypes` | `ensureDocumentTypeDefaults` | `UNSAFE_HIDDEN_WRITE` |
+| `LookupsService.listDocumentCategories` | `ensureDocumentCategoryDefaults` | `UNSAFE_HIDDEN_WRITE` |
+| `OnboardingService.findTemplates` | `ensurePredefinedTemplates` | `UNSAFE_HIDDEN_WRITE` |
+
+Also reviewed and **not** defects: `ensureEmployeeBelongsToTenant`,
+`ensureLeavePolicyExists`, `ensureLeaveTypeExists` and similar are
+`SAFE_READ_ONLY` — authorization and existence assertions that throw rather than
+initializers that write. The `payroll-defaults.service` and `customization`
+`ensure*` methods run from explicit user actions, classified
+`ADMIN_ACTION_ONLY`.
+
+## Why It Matters
+
+Same shape as the P0: a GET creates rows, so concurrent reads race and a
+constraint can turn a read into a 409.
+
+Lower severity than [[BUG-0030]] for two reasons — these are tenant-scoped
+rather than platform-wide, and no production failure has been observed against
+them.
+
+It is not zero risk. `ensureCurrencyDefaults` runs on a list endpoint tenants hit
+often, and currency rows are exactly the kind of reference data that carries a
+uniqueness rule.
+
+## Why it was NOT fixed in the hotfix
+
+A P0 hotfix should change what it must and no more. Relocating five initializers
+across two modules means deciding, per module, where the legitimate bootstrap
+belongs — tenant provisioning, seed, or an explicit action. That is design work,
+not an emergency fix, and each carries its own risk of leaving a tenant without
+its defaults.
+
+## Proposed Approach
+
+**Needs an ExecPlan.** Per module: establish where defaults belong, relocate
+them, make each idempotent and concurrency-safe, and add the read-path purity
+guard used for plans.
+
+## Acceptance Criteria
+
+- No `list*` / `find*` / `get*` method calls an initializer that writes.
+- Each relocated bootstrap is idempotent under concurrency.
+- A tenant created after the change still receives its defaults.
+- Read-path purity coverage equivalent to `plan-read-path-purity.spec.ts`.
+
+## Dependencies
+
+None. Independent of [[BUG-0030]], which has landed.
+
+## Related Items
+
+[[BUG-0030]] · the `hidden-write-on-read` bug pattern.
+
+## History
+
+- 2026-08-16 — created from the audit run during the BUG-0030 hotfix.

@@ -7,9 +7,9 @@
 
 | | |
 |---|---|
-| Open CRITICAL | **1** |
+| Open CRITICAL | **2** |
 | Open HIGH | **5** |
-| Open total | 34 |
+| Open total | 36 |
 | Blocked | 0 |
 | Awaiting a product decision | 3 |
 | Deferred | 2 |
@@ -21,6 +21,7 @@
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
 | [[BUG-0027-admin-plan-pricing-and-checkout-pricing-come-from-different-|BUG-0027]] | Admin plan pricing and checkout pricing come from different models | DATA_INTEGRITY | CRITICAL | FIXED | services/api/prisma, apps/admin, apps/landing | PLAN_REQUIRED |
+| [[BUG-0030-plan-list-get-mutates-commercial-pricing-and-can-fail-on-pla|BUG-0030]] | Plan list GET mutates commercial pricing and can fail on PlanPrice unique constraint | DATA_INTEGRITY | CRITICAL | FIXED | services/api, services/api/prisma | FIX_NOW |
 
 ## Open High Bugs
 
@@ -70,6 +71,7 @@ _None._
 | [[BUG-0005-cross-tenant-error-log-read-via-support-role|BUG-0005]] | A support-role user could read another tenant's error log | TENANT_ISOLATION | CRITICAL | VERIFIED | api:error-logs | DONE |
 | [[BUG-0006-organization-structure-mutable-by-any-authenticated-user|BUG-0006]] | Organization and business-unit structure was mutable by any authenticated user | AUTHORIZATION | CRITICAL | VERIFIED | api:organization | DONE |
 | [[BUG-0027-admin-plan-pricing-and-checkout-pricing-come-from-different-|BUG-0027]] | Admin plan pricing and checkout pricing come from different models | DATA_INTEGRITY | CRITICAL | FIXED | services/api/prisma, apps/admin, apps/landing | PLAN_REQUIRED |
+| [[BUG-0030-plan-list-get-mutates-commercial-pricing-and-can-fail-on-pla|BUG-0030]] | Plan list GET mutates commercial pricing and can fail on PlanPrice unique constraint | DATA_INTEGRITY | CRITICAL | FIXED | services/api, services/api/prisma | FIX_NOW |
 | [[BUG-0001-compensation-and-bank-data-behind-employee-record-read|BUG-0001]] | Compensation and bank data returned behind an employee-record read | AUTHORIZATION | HIGH | VERIFIED | api:employees | DONE |
 | [[BUG-0002-self-approval-of-attendance-corrections|BUG-0002]] | A manager could file and approve their own attendance correction | AUTHORIZATION | HIGH | VERIFIED | api:attendance | DONE |
 | [[BUG-0003-readteam-granted-tenant-wide-visibility|BUG-0003]] | readTeam permissions granted tenant-wide visibility | AUTHORIZATION | HIGH | VERIFIED | api:attendance, api:approvals | DONE |
@@ -94,6 +96,7 @@ _None._
 
 - [[2026-08-16-public-commercial-wave2-7686bb0|QA Run — Wave 2: Public Plans + Features Experience]]
 - [[2026-08-16-production-url-integrity-344a832|QA Run — Production URL integrity (BUG-0026)]]
+- [[2026-08-16-hotfix-plan-list-hidden-write-78072d2|QA Run — Hotfix: Plan list GET mutates commercial pricing (BUG-0030)]]
 - [[2026-08-16-commercial-config-wave1-a525896|QA Run — Wave 1: Commercial Configuration Foundation]]
 - [[2026-08-15-commercial-onboarding-e2e-7bbab3d|QA Run — Commercial onboarding lifecycle E2E (website lead and partner journeys)]]
 - [[2026-08-15-browser-e2e-and-provisioning-recovery-572a3b8|QA Run — First browser E2E, and provisioning recovery against a real database]]
@@ -142,6 +145,7 @@ _None. Nothing has been deployed through the release process._
 | [[ITEM-0019-no-market-or-region-model-maps-countries-to-plans-currencies|ITEM-0019]] | No market or region model maps countries to plans, currencies and legal sets | ARCHITECTURE | MEDIUM | VALIDATING | services/api/prisma, api:super-admin, apps/admin, apps/landing | FIX_NOW |
 | [[ITEM-0020-contract-phase-drop-legacy-plan-pricing-columns|ITEM-0020]] | Contract phase: drop legacy Plan pricing columns | TECH_DEBT | MEDIUM | READY | services/api/prisma, api:super-admin, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur|ITEM-0022]] | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | READY | api:super-admin, apps/admin | PLAN_REQUIRED |
+| [[ITEM-0025-hidden-writes-remain-on-lookups-and-onboarding-read-paths|ITEM-0025]] | Hidden writes remain on lookups and onboarding read paths | TECH_DEBT | MEDIUM | READY | api:lookups, api:onboarding | PLAN_REQUIRED |
 | [[ITEM-0021-mechanical-guard-against-country-and-currency-literals-in-fr|ITEM-0021]] | Mechanical guard against country and currency literals in frontends | TEST_GAP | LOW | READY | scripts, apps/landing, apps/web, apps/admin | DEFER |
 | [[ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning|ITEM-0023]] | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | READY | services/api/prisma, api:tenant-control-plane | DEFER |
 | [[ITEM-0024-landing-depends-on-lucide-react-without-declaring-it|ITEM-0024]] | Landing depends on lucide-react without declaring it | TECH_DEBT | LOW | READY | apps/landing | DEFER |
@@ -163,10 +167,10 @@ _None. Nothing has been deployed through the release process._
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 29 |
-| Backlog items | 24 |
-| Known bug patterns | 18 |
-| QA runs | 7 |
+| Bug records | 30 |
+| Backlog items | 25 |
+| Known bug patterns | 19 |
+| QA runs | 8 |
 | Engineering history records | 6 |
 | Release records | 0 |
 | Module notes | 19 |

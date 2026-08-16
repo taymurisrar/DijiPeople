@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**53 records** — 29 bugs under [`docs/bugs/`](../bugs/), 24 non-bug items under [`items/`](items/).
+**55 records** — 30 bugs under [`docs/bugs/`](../bugs/), 25 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,12 +13,12 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 34 |
+| Open (active work) | 36 |
 | Blocked | 0 |
 | Deferred | 2 |
 | Awaiting a product decision | 3 |
 | Completed / closed | 14 |
-| **Open CRITICAL** | **1** |
+| **Open CRITICAL** | **2** |
 | **Open HIGH** | **5** |
 | **Awaiting Architect triage** | **0** |
 
@@ -26,9 +26,9 @@ see [`README.md`](README.md) for why.
 
 | Severity | Count |
 |---|---|
-| CRITICAL | 1 |
+| CRITICAL | 2 |
 | HIGH | 5 |
-| MEDIUM | 20 |
+| MEDIUM | 21 |
 | LOW | 8 |
 
 ## Open by type
@@ -37,14 +37,14 @@ see [`README.md`](README.md) for why.
 |---|---|
 | ARCHITECTURE | 3 |
 | BUG | 1 |
-| DATA_INTEGRITY | 2 |
+| DATA_INTEGRITY | 3 |
 | DOCUMENTATION | 2 |
 | FOLLOW_UP | 3 |
 | INFRA | 3 |
 | INTEGRATION | 2 |
 | SECURITY | 1 |
 | STATE_MACHINE | 3 |
-| TECH_DEBT | 5 |
+| TECH_DEBT | 6 |
 | TEST_GAP | 6 |
 | UX | 3 |
 
@@ -55,9 +55,9 @@ see [`README.md`](README.md) for why.
 | OPEN | 6 |
 | DEFERRED | 2 |
 | PRODUCT_DECISION | 3 |
-| FIXED | 10 |
+| FIXED | 11 |
 | VERIFIED | 12 |
-| READY | 16 |
+| READY | 17 |
 | DEFERRED | 2 |
 | PRODUCT_DECISION | 3 |
 | VALIDATING | 2 |
@@ -70,6 +70,7 @@ see [`README.md`](README.md) for why.
 | [BUG-0005](../../docs/bugs/BUG-0005-cross-tenant-error-log-read-via-support-role.md) | A support-role user could read another tenant's error log | TENANT_ISOLATION | CRITICAL | P0 | VERIFIED | api:error-logs | DONE |
 | [BUG-0006](../../docs/bugs/BUG-0006-organization-structure-mutable-by-any-authenticated-user.md) | Organization and business-unit structure was mutable by any authenticated user | AUTHORIZATION | CRITICAL | P0 | VERIFIED | api:organization | DONE |
 | [BUG-0027](../../docs/bugs/BUG-0027-admin-plan-pricing-and-checkout-pricing-come-from-different-.md) | Admin plan pricing and checkout pricing come from different models | DATA_INTEGRITY | CRITICAL | P0 | FIXED | services/api/prisma, apps/admin, apps/landing | PLAN_REQUIRED |
+| [BUG-0030](../../docs/bugs/BUG-0030-plan-list-get-mutates-commercial-pricing-and-can-fail-on-pla.md) | Plan list GET mutates commercial pricing and can fail on PlanPrice unique constraint | DATA_INTEGRITY | CRITICAL | P0 | FIXED | services/api, services/api/prisma | FIX_NOW |
 | [BUG-0001](../../docs/bugs/BUG-0001-compensation-and-bank-data-behind-employee-record-read.md) | Compensation and bank data returned behind an employee-record read | AUTHORIZATION | HIGH | P1 | VERIFIED | api:employees | DONE |
 | [BUG-0002](../../docs/bugs/BUG-0002-self-approval-of-attendance-corrections.md) | A manager could file and approve their own attendance correction | AUTHORIZATION | HIGH | P1 | VERIFIED | api:attendance | DONE |
 | [BUG-0003](../../docs/bugs/BUG-0003-readteam-granted-tenant-wide-visibility.md) | readTeam permissions granted tenant-wide visibility | AUTHORIZATION | HIGH | P1 | VERIFIED | api:attendance, api:approvals | DONE |
@@ -109,6 +110,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0019](../../docs/backlog/items/ITEM-0019-no-market-or-region-model-maps-countries-to-plans-currencies.md) | No market or region model maps countries to plans, currencies and legal sets | ARCHITECTURE | MEDIUM | P2 | VALIDATING | services/api/prisma, api:super-admin, apps/admin, apps/landing | FIX_NOW |
 | [ITEM-0020](../../docs/backlog/items/ITEM-0020-contract-phase-drop-legacy-plan-pricing-columns.md) | Contract phase: drop legacy Plan pricing columns | TECH_DEBT | MEDIUM | P2 | READY | services/api/prisma, api:super-admin, apps/admin | PLAN_REQUIRED |
 | [ITEM-0022](../../docs/backlog/items/ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur.md) | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | P2 | READY | api:super-admin, apps/admin | PLAN_REQUIRED |
+| [ITEM-0025](../../docs/backlog/items/ITEM-0025-hidden-writes-remain-on-lookups-and-onboarding-read-paths.md) | Hidden writes remain on lookups and onboarding read paths | TECH_DEBT | MEDIUM | P2 | READY | api:lookups, api:onboarding | PLAN_REQUIRED |
 | [ITEM-0021](../../docs/backlog/items/ITEM-0021-mechanical-guard-against-country-and-currency-literals-in-fr.md) | Mechanical guard against country and currency literals in frontends | TEST_GAP | LOW | P2 | READY | scripts, apps/landing, apps/web, apps/admin | DEFER |
 | [ITEM-0023](../../docs/backlog/items/ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning.md) | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | P2 | READY | services/api/prisma, api:tenant-control-plane | DEFER |
 | [ITEM-0024](../../docs/backlog/items/ITEM-0024-landing-depends-on-lucide-react-without-declaring-it.md) | Landing depends on lucide-react without declaring it | TECH_DEBT | LOW | P2 | READY | apps/landing | DEFER |
