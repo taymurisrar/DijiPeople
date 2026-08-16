@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("DijiPeople")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("2.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("2.0.0+cbc2db8e372040efb81832d2c647dbe297f8b19e")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("2.0.0+089c18719f2a9bfbb7d306ddcf54d32689f722d3")]
 [assembly: System.Reflection.AssemblyProductAttribute("DijiPeople Integration Gateway")]
 [assembly: System.Reflection.AssemblyTitleAttribute("DijiPeople.Gateway")]
 [assembly: System.Reflection.AssemblyVersionAttribute("2.0.0.0")]
