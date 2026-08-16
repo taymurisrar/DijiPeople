@@ -32,14 +32,23 @@ export const LEAD_INQUIRY_INTENT_OPTIONS: readonly AcquisitionOption[] = [
   { value: LeadInquiryIntent.REQUEST_DEMO, label: 'Request a demo' },
   { value: LeadInquiryIntent.PRICING, label: 'Pricing or subscription' },
   { value: LeadInquiryIntent.PRODUCT_FEATURES, label: 'Product or features' },
-  { value: LeadInquiryIntent.IMPLEMENTATION, label: 'Implementation or onboarding' },
+  {
+    value: LeadInquiryIntent.IMPLEMENTATION,
+    label: 'Implementation or onboarding',
+  },
   { value: LeadInquiryIntent.PAYROLL, label: 'Payroll' },
   {
     value: LeadInquiryIntent.ATTENDANCE_INTEGRATION,
     label: 'Attendance or biometric devices',
   },
-  { value: LeadInquiryIntent.DATA_MIGRATION, label: 'Moving our existing data' },
-  { value: LeadInquiryIntent.INTEGRATION, label: 'Integrating with our systems' },
+  {
+    value: LeadInquiryIntent.DATA_MIGRATION,
+    label: 'Moving our existing data',
+  },
+  {
+    value: LeadInquiryIntent.INTEGRATION,
+    label: 'Integrating with our systems',
+  },
   { value: LeadInquiryIntent.PARTNERSHIP, label: 'Partnership' },
   {
     value: LeadInquiryIntent.EXISTING_CUSTOMER_SUPPORT,
@@ -59,7 +68,10 @@ export const PARTNERSHIP_MODEL_OPTIONS: readonly AcquisitionOption[] = [
     label: 'Technology or integration partner',
   },
   { value: PartnershipModel.STRATEGIC, label: 'Strategic partner' },
-  { value: PartnershipModel.CONSULTANT, label: 'Consultant or independent advisor' },
+  {
+    value: PartnershipModel.CONSULTANT,
+    label: 'Consultant or independent advisor',
+  },
   { value: PartnershipModel.OTHER, label: 'Something else' },
 ] as const;
 
@@ -85,7 +97,9 @@ const PARTNERSHIP_VALUES = new Set<string>(
   PARTNERSHIP_MODEL_OPTIONS.map((option) => option.value),
 );
 
-export function isLeadInquiryIntent(value: unknown): value is LeadInquiryIntent {
+export function isLeadInquiryIntent(
+  value: unknown,
+): value is LeadInquiryIntent {
   return typeof value === 'string' && INTENT_VALUES.has(value);
 }
 

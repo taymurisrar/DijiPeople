@@ -111,7 +111,6 @@ export class SubmitLeadDto {
   @MaxLength(120)
   interestArea?: string;
 
-
   /**
    * Why they are getting in touch. Validated against the enum, so a value the
    * database cannot store is rejected at the boundary rather than at insert.

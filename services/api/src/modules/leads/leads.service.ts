@@ -128,7 +128,8 @@ export class LeadsService {
           privacyNoticeAcceptedAt: submittedAt,
           // Optional and separate. Submitting an inquiry never requires it.
           marketingConsent: dto.marketingConsent === true,
-          marketingConsentAt: dto.marketingConsent === true ? submittedAt : null,
+          marketingConsentAt:
+            dto.marketingConsent === true ? submittedAt : null,
           submissionHash,
           source: referral.partnerId ? 'Partner Referral' : 'Website',
           status: LeadStatus.NEW,
@@ -199,7 +200,6 @@ export class LeadsService {
       id: lead.id,
     };
   }
-
 
   /**
    * Keep only interest areas that name a real DijiPeople capability.

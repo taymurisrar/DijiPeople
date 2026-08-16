@@ -206,14 +206,18 @@ describe('public lead acquisition', () => {
       'corr-10',
     );
 
-    expect(created[0].privacyNoticeVersion).toBe(CURRENT_PRIVACY_NOTICE_VERSION);
+    expect(created[0].privacyNoticeVersion).toBe(
+      CURRENT_PRIVACY_NOTICE_VERSION,
+    );
     expect(created[0].privacyNoticeAcceptedAt).toBeInstanceOf(Date);
   });
 
   it('submits successfully without marketing consent', async () => {
     const { service, created } = buildService();
 
-    await expect(service.submitLead(baseDto(), 'corr-11')).resolves.toMatchObject({
+    await expect(
+      service.submitLead(baseDto(), 'corr-11'),
+    ).resolves.toMatchObject({
       submitted: true,
     });
 
@@ -233,7 +237,10 @@ describe('public lead acquisition', () => {
   it('treats a missing marketing flag as declined, never as consent', async () => {
     const { service, created } = buildService();
 
-    await service.submitLead(baseDto({ marketingConsent: undefined }), 'corr-13');
+    await service.submitLead(
+      baseDto({ marketingConsent: undefined }),
+      'corr-13',
+    );
 
     expect(created[0].marketingConsent).toBe(false);
   });
