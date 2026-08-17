@@ -21,7 +21,6 @@ import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { UpdateTenantFeaturesDto } from './dto/update-tenant-features.dto';
 import { UpdateTenantSettingsDto } from './dto/update-tenant-settings.dto';
-import { ActiveOrganizationService } from './active-organization.service';
 import { TenantSettingsService } from './tenant-settings.service';
 
 const SETTINGS_READ_PERMISSION = 'settings.read';
@@ -30,10 +29,7 @@ const SETTINGS_UPDATE_PERMISSION = 'settings.update';
 @Controller('tenant-settings')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class TenantSettingsController {
-  constructor(
-    private readonly service: TenantSettingsService,
-    private readonly activeOrganizationService: ActiveOrganizationService,
-  ) {}
+  constructor(private readonly service: TenantSettingsService) {}
 
   @Get()
   @Permissions(SETTINGS_READ_PERMISSION)
@@ -43,30 +39,13 @@ export class TenantSettingsController {
   }
 
   @Get('resolved')
+  @Permissions(PERMISSION_KEYS.TENANT_SETTINGS_RESOLVED_READ)
+  @RequirePermission(ENTITY_KEYS.TENANT_SETTINGS_RESOLVED, 'read')
   async getResolvedSettings(
     @CurrentUser() user: AuthenticatedUser,
     @Query('organizationId') organizationId?: string,
   ) {
-    // Settings admins can preview another organization; everyone else resolves
-    // to their own, derived from their business unit.
-    const requestedOrganizationId = organizationId?.trim()
-      ? await this.service.assertOrganizationInTenant(
-          user.tenantId,
-          organizationId.trim(),
-        )
-      : undefined;
-
-    const activeOrganizationId =
-      requestedOrganizationId ??
-      (await this.activeOrganizationService.resolveForUser(
-        user.tenantId,
-        user.userId,
-      ));
-
-    return this.service.getResolvedSettings(
-      user.tenantId,
-      activeOrganizationId,
-    );
+    return this.service.getResolvedSettingsForUser(user, organizationId);
   }
 
   @Public()
@@ -158,6 +137,7 @@ export class TenantSettingsController {
    */
   @Get('features/availability')
   @Permissions(PERMISSION_KEYS.TENANT_SETTINGS_RESOLVED_READ)
+  @RequirePermission(ENTITY_KEYS.TENANT_SETTINGS_RESOLVED, 'read')
   async getFeatureAvailability(@CurrentUser() user: AuthenticatedUser) {
     const { items, enabledKeys } = await this.service.getTenantFeatures(
       user.tenantId,

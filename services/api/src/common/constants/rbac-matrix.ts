@@ -77,6 +77,8 @@ export const ENTITY_KEYS = {
   DOCUMENTS: 'documents',
   PROJECTS: 'projects',
   SETTINGS: 'settings',
+  TENANT_SETTINGS_RESOLVED: 'tenant-settings-resolved',
+  USER_PREFERENCES: 'user-preferences',
   REPORTS: 'reports',
   CUSTOMIZATION: 'customization',
   HIERARCHY: 'hierarchy',
@@ -92,6 +94,7 @@ export const MISC_PERMISSION_KEYS = {
   TENANT_SETTINGS_MANAGE: 'tenant.settings.manage',
   BRANDING_MANAGE: 'branding.manage',
   BILLING_VIEW: 'billing.view',
+  BILLING_MANAGE: 'billing.manage',
   INTEGRATIONS_MANAGE: 'integrations.manage',
   API_TOKENS_MANAGE: 'api-tokens.manage',
   AUDIT_VIEW: 'audit.view',
@@ -296,6 +299,16 @@ export const RBAC_ENTITIES: RbacEntityDefinition[] = [
   { key: ENTITY_KEYS.DOCUMENTS, label: 'Documents', category: 'Operations' },
   { key: ENTITY_KEYS.PROJECTS, label: 'Projects', category: 'Operations' },
   { key: ENTITY_KEYS.SETTINGS, label: 'Settings', category: 'Administration' },
+  {
+    key: ENTITY_KEYS.TENANT_SETTINGS_RESOLVED,
+    label: 'Resolved tenant settings',
+    category: 'Administration',
+  },
+  {
+    key: ENTITY_KEYS.USER_PREFERENCES,
+    label: 'User preferences',
+    category: 'Security',
+  },
   { key: ENTITY_KEYS.REPORTS, label: 'Reports', category: 'Administration' },
   {
     key: ENTITY_KEYS.CUSTOMIZATION,
@@ -337,6 +350,12 @@ export const MISC_PERMISSION_DEFINITIONS: MiscPermissionDefinition[] = [
     key: MISC_PERMISSION_KEYS.BILLING_VIEW,
     label: 'View billing',
     description: 'View subscription and billing status.',
+    category: 'Tenant Administration',
+  },
+  {
+    key: MISC_PERMISSION_KEYS.BILLING_MANAGE,
+    label: 'Manage billing',
+    description: 'Create billing sessions and reconcile subscriptions.',
     category: 'Tenant Administration',
   },
   {
@@ -609,6 +628,9 @@ export const SYSTEM_ROLE_PRIVILEGES: Record<
     }),
   },
   [ROLE_KEYS.SYSTEM_CUSTOMIZER]: matrix(SecurityAccessLevel.NONE, {
+    'user-preferences:READ': SecurityAccessLevel.SELF,
+    'user-preferences:WRITE': SecurityAccessLevel.SELF,
+    'tenant-settings-resolved:READ': SecurityAccessLevel.TENANT,
     'settings:READ': SecurityAccessLevel.TENANT,
     'settings:CONFIGURE': SecurityAccessLevel.TENANT,
     'customization:READ': SecurityAccessLevel.TENANT,
@@ -618,13 +640,19 @@ export const SYSTEM_ROLE_PRIVILEGES: Record<
     'customization:MANAGE': SecurityAccessLevel.TENANT,
     'customization:CONFIGURE': SecurityAccessLevel.TENANT,
     'customization:CUSTOMIZE': SecurityAccessLevel.TENANT,
+    'customization:EXPORT': SecurityAccessLevel.TENANT,
     'settings:CUSTOMIZE': SecurityAccessLevel.TENANT,
+    'documents:READ': SecurityAccessLevel.TENANT,
+    'documents:CONFIGURE': SecurityAccessLevel.TENANT,
     'custom-records:READ': SecurityAccessLevel.TENANT,
     'custom-records:CREATE': SecurityAccessLevel.TENANT,
     'custom-records:WRITE': SecurityAccessLevel.TENANT,
     'custom-records:DELETE': SecurityAccessLevel.TENANT,
   }),
   [ROLE_KEYS.CEO]: matrix(SecurityAccessLevel.NONE, {
+    'user-preferences:READ': SecurityAccessLevel.SELF,
+    'user-preferences:WRITE': SecurityAccessLevel.SELF,
+    'tenant-settings-resolved:READ': SecurityAccessLevel.TENANT,
     'custom-records:READ': SecurityAccessLevel.TENANT,
     'employees:READ': SecurityAccessLevel.TENANT,
     'attendance:READ': SecurityAccessLevel.TENANT,
@@ -635,6 +663,8 @@ export const SYSTEM_ROLE_PRIVILEGES: Record<
     'projects:READ': SecurityAccessLevel.TENANT,
     'reports:READ': SecurityAccessLevel.TENANT,
     'reports:EXPORT': SecurityAccessLevel.TENANT,
+    'tenant-administration:READ': SecurityAccessLevel.TENANT,
+    'hierarchy:READ': SecurityAccessLevel.TENANT,
   }),
   /**
    * A manager owns the operational data of their reporting line: they may
@@ -643,6 +673,10 @@ export const SYSTEM_ROLE_PRIVILEGES: Record<
    * records stays with HR and the administrator roles.
    */
   [ROLE_KEYS.MANAGER]: matrix(SecurityAccessLevel.NONE, {
+    'user-preferences:READ': SecurityAccessLevel.SELF,
+    'user-preferences:WRITE': SecurityAccessLevel.SELF,
+    'tenant-settings-resolved:READ':
+      SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
     'custom-records:READ': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
     'custom-records:CREATE': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
     'custom-records:WRITE': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
@@ -654,6 +688,8 @@ export const SYSTEM_ROLE_PRIVILEGES: Record<
     'attendance:READ': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
     'attendance:CREATE': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
     'attendance:WRITE': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
+    'attendance:APPROVE': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
+    'attendance:REJECT': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
     'attendance:EXPORT': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
     'timesheets:READ': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
     'timesheets:CREATE': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
@@ -674,6 +710,13 @@ export const SYSTEM_ROLE_PRIVILEGES: Record<
     'projects:READ': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
     'projects:CREATE': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
     'projects:WRITE': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
+    // Read only. A manager reaches no settings mutation route — it holds none
+    // of the `settings.update` / `approval-matrices.*` legacy keys those routes
+    // also demand — so CREATE/WRITE/DELETE here would have been privilege the
+    // role can never legitimately exercise, sitting one missing legacy key away
+    // from deleting tenant configuration. The dual permission system is the
+    // defence-in-depth; do not widen one half past what the other allows.
+    'settings:READ': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
     'business-trips:READ': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
     'business-trips:CREATE': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
     'business-trips:WRITE': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
@@ -686,6 +729,9 @@ export const SYSTEM_ROLE_PRIVILEGES: Record<
     'reports:READ': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
   }),
   [ROLE_KEYS.HR]: matrix(SecurityAccessLevel.NONE, {
+    'user-preferences:READ': SecurityAccessLevel.SELF,
+    'user-preferences:WRITE': SecurityAccessLevel.SELF,
+    'tenant-settings-resolved:READ': SecurityAccessLevel.ORGANIZATION,
     'custom-records:READ': SecurityAccessLevel.ORGANIZATION,
     'custom-records:CREATE': SecurityAccessLevel.ORGANIZATION,
     'custom-records:WRITE': SecurityAccessLevel.ORGANIZATION,
@@ -694,6 +740,7 @@ export const SYSTEM_ROLE_PRIVILEGES: Record<
     'employees:CREATE': SecurityAccessLevel.ORGANIZATION,
     'employees:WRITE': SecurityAccessLevel.ORGANIZATION,
     'employees:DELETE': SecurityAccessLevel.ORGANIZATION,
+    'employees:MANAGE': SecurityAccessLevel.ORGANIZATION,
     // HR owns employee records and data migration, so it may export the same
     // rows it can already list. Export reuses the scoped query, so this grants
     // no visibility beyond the read scope above.
@@ -701,19 +748,45 @@ export const SYSTEM_ROLE_PRIVILEGES: Record<
     'employee-levels:READ': SecurityAccessLevel.ORGANIZATION,
     'employee-levels:MANAGE': SecurityAccessLevel.ORGANIZATION,
     'attendance:READ': SecurityAccessLevel.ORGANIZATION,
+    'attendance:CREATE': SecurityAccessLevel.ORGANIZATION,
     'attendance:WRITE': SecurityAccessLevel.ORGANIZATION,
+    'attendance:APPROVE': SecurityAccessLevel.ORGANIZATION,
+    'attendance:REJECT': SecurityAccessLevel.ORGANIZATION,
+    'attendance:IMPORT': SecurityAccessLevel.ORGANIZATION,
     'attendance:EXPORT': SecurityAccessLevel.ORGANIZATION,
+    'attendance:MANAGE': SecurityAccessLevel.ORGANIZATION,
     'agent:READ': SecurityAccessLevel.ORGANIZATION,
     'agent:CONFIGURE': SecurityAccessLevel.ORGANIZATION,
     'agent:MANAGE': SecurityAccessLevel.ORGANIZATION,
     'timesheets:READ': SecurityAccessLevel.ORGANIZATION,
+    'timesheets:WRITE': SecurityAccessLevel.ORGANIZATION,
+    'timesheets:APPROVE': SecurityAccessLevel.ORGANIZATION,
+    'timesheets:REJECT': SecurityAccessLevel.ORGANIZATION,
+    'timesheets:IMPORT': SecurityAccessLevel.ORGANIZATION,
+    'timesheets:EXPORT': SecurityAccessLevel.ORGANIZATION,
+    'timesheets:CONFIGURE': SecurityAccessLevel.ORGANIZATION,
+    'timesheets:MANAGE': SecurityAccessLevel.ORGANIZATION,
     'leave-requests:READ': SecurityAccessLevel.ORGANIZATION,
+    'leave-requests:CREATE': SecurityAccessLevel.ORGANIZATION,
+    'leave-requests:WRITE': SecurityAccessLevel.ORGANIZATION,
     'leave-requests:APPROVE': SecurityAccessLevel.ORGANIZATION,
     'leave-requests:REJECT': SecurityAccessLevel.ORGANIZATION,
+    'leave-requests:DELETE': SecurityAccessLevel.ORGANIZATION,
     'documents:READ': SecurityAccessLevel.ORGANIZATION,
     'documents:CREATE': SecurityAccessLevel.ORGANIZATION,
     'documents:WRITE': SecurityAccessLevel.ORGANIZATION,
     'settings:READ': SecurityAccessLevel.ORGANIZATION,
+    'settings:CREATE': SecurityAccessLevel.ORGANIZATION,
+    'settings:WRITE': SecurityAccessLevel.ORGANIZATION,
+    'settings:DELETE': SecurityAccessLevel.ORGANIZATION,
+    'settings:MANAGE': SecurityAccessLevel.ORGANIZATION,
+    'settings:CONFIGURE': SecurityAccessLevel.ORGANIZATION,
+    'roles:READ': SecurityAccessLevel.ORGANIZATION,
+    'custom-records:IMPORT': SecurityAccessLevel.ORGANIZATION,
+    'custom-records:EXPORT': SecurityAccessLevel.ORGANIZATION,
+    'custom-records:MANAGE': SecurityAccessLevel.ORGANIZATION,
+    'hierarchy:READ': SecurityAccessLevel.ORGANIZATION,
+    'hierarchy:MANAGE': SecurityAccessLevel.ORGANIZATION,
     'policies:READ': SecurityAccessLevel.ORGANIZATION,
     'policies:MANAGE': SecurityAccessLevel.ORGANIZATION,
     'benefits:READ': SecurityAccessLevel.ORGANIZATION,
@@ -744,9 +817,13 @@ export const SYSTEM_ROLE_PRIVILEGES: Record<
     'payroll-journal:READ': SecurityAccessLevel.ORGANIZATION,
     'payroll-journal:CREATE': SecurityAccessLevel.ORGANIZATION,
     'payroll-journal:EXPORT': SecurityAccessLevel.ORGANIZATION,
+    'payroll-journal:MANAGE': SecurityAccessLevel.ORGANIZATION,
     'reports:READ': SecurityAccessLevel.ORGANIZATION,
   }),
   [ROLE_KEYS.RECRUITER]: matrix(SecurityAccessLevel.NONE, {
+    'user-preferences:READ': SecurityAccessLevel.SELF,
+    'user-preferences:WRITE': SecurityAccessLevel.SELF,
+    'tenant-settings-resolved:READ': SecurityAccessLevel.BUSINESS_UNIT,
     'custom-records:READ': SecurityAccessLevel.BUSINESS_UNIT,
     'custom-records:CREATE': SecurityAccessLevel.BUSINESS_UNIT,
     'custom-records:WRITE': SecurityAccessLevel.BUSINESS_UNIT,
@@ -761,8 +838,12 @@ export const SYSTEM_ROLE_PRIVILEGES: Record<
     'onboarding:WRITE': SecurityAccessLevel.BUSINESS_UNIT,
     'documents:READ': SecurityAccessLevel.BUSINESS_UNIT,
     'documents:CREATE': SecurityAccessLevel.BUSINESS_UNIT,
+    'hierarchy:READ': SecurityAccessLevel.BUSINESS_UNIT,
   }),
   [ROLE_KEYS.PAYROLL_MANAGER]: matrix(SecurityAccessLevel.NONE, {
+    'user-preferences:READ': SecurityAccessLevel.SELF,
+    'user-preferences:WRITE': SecurityAccessLevel.SELF,
+    'tenant-settings-resolved:READ': SecurityAccessLevel.ORGANIZATION,
     'custom-records:READ': SecurityAccessLevel.ORGANIZATION,
     'custom-records:CREATE': SecurityAccessLevel.ORGANIZATION,
     'custom-records:WRITE': SecurityAccessLevel.ORGANIZATION,
@@ -770,6 +851,7 @@ export const SYSTEM_ROLE_PRIVILEGES: Record<
     'employees:READ': SecurityAccessLevel.ORGANIZATION,
     'timesheets:READ': SecurityAccessLevel.ORGANIZATION,
     'timesheets:EXPORT': SecurityAccessLevel.ORGANIZATION,
+    'timesheets:MANAGE': SecurityAccessLevel.ORGANIZATION,
     'payroll:READ': SecurityAccessLevel.ORGANIZATION,
     'payroll:CREATE': SecurityAccessLevel.ORGANIZATION,
     'payroll:WRITE': SecurityAccessLevel.ORGANIZATION,
@@ -790,6 +872,7 @@ export const SYSTEM_ROLE_PRIVILEGES: Record<
     'payslips:CREATE': SecurityAccessLevel.ORGANIZATION,
     'payslips:APPROVE': SecurityAccessLevel.ORGANIZATION,
     'payslips:DELETE': SecurityAccessLevel.ORGANIZATION,
+    'payslips:MANAGE': SecurityAccessLevel.ORGANIZATION,
     'claim-types:READ': SecurityAccessLevel.ORGANIZATION,
     'claim-types:MANAGE': SecurityAccessLevel.ORGANIZATION,
     'claims:READ': SecurityAccessLevel.ORGANIZATION,
@@ -845,8 +928,12 @@ export const SYSTEM_ROLE_PRIVILEGES: Record<
     'policies:MANAGE': SecurityAccessLevel.ORGANIZATION,
     'reports:READ': SecurityAccessLevel.ORGANIZATION,
     'reports:EXPORT': SecurityAccessLevel.ORGANIZATION,
+    'hierarchy:READ': SecurityAccessLevel.ORGANIZATION,
   }),
   [ROLE_KEYS.EMPLOYEE]: matrix(SecurityAccessLevel.NONE, {
+    'user-preferences:READ': SecurityAccessLevel.SELF,
+    'user-preferences:WRITE': SecurityAccessLevel.SELF,
+    'tenant-settings-resolved:READ': SecurityAccessLevel.SELF,
     'custom-records:READ': SecurityAccessLevel.SELF,
     'custom-records:CREATE': SecurityAccessLevel.SELF,
     'custom-records:WRITE': SecurityAccessLevel.SELF,
@@ -866,6 +953,7 @@ export const SYSTEM_ROLE_PRIVILEGES: Record<
     'business-trips:READ': SecurityAccessLevel.SELF,
     'business-trips:CREATE': SecurityAccessLevel.SELF,
     'business-trips:DELETE': SecurityAccessLevel.SELF,
+    'hierarchy:READ': SecurityAccessLevel.SELF,
   }),
 };
 
@@ -1070,6 +1158,7 @@ export const SYSTEM_ROLE_MISC_PERMISSIONS: Record<SystemRoleKey, string[]> = {
     'payroll-runs.finalize',
     'payroll-bank-export.generate',
     'payroll-runs.disburse',
+    'payroll-journal.manage',
     'payslips.deliver',
     'payslips.download',
     // Backs the payroll banking, regions and subscription settings pages, which
@@ -1160,6 +1249,7 @@ export function matrixPrivilegeToPermissionKey(
   const normalizedPrivilege = privilege.toLowerCase();
 
   const explicit: Record<string, string> = {
+    'tenant-settings-resolved:read': 'tenant-settings.resolved.read',
     'hierarchy:read': 'hierarchy.read',
     'hierarchy:write': 'hierarchy.update',
     'hierarchy:manage': 'hierarchy.update',
@@ -1270,7 +1360,7 @@ export function matrixPrivilegeToPermissionKey(
     'payroll-journal:create': 'payroll-journal.generate',
     'payroll-journal:write': 'payroll-journal.generate',
     'payroll-journal:export': 'payroll-journal.export',
-    'payroll-journal:manage': 'payroll-journal.generate',
+    'payroll-journal:manage': 'payroll-journal.manage',
     'pay-components:create': 'pay-components.manage',
     'pay-components:write': 'pay-components.manage',
     'pay-components:delete': 'pay-components.manage',
@@ -1343,5 +1433,494 @@ export function matrixPrivilegeToPermissionKey(
   return (
     explicit[`${entityKey}:${normalizedPrivilege}`] ??
     `${entityKey}.${normalizedPrivilege}`
+  );
+}
+
+export type MatrixPrivilegeRequirement = {
+  entityKey: string;
+  privilege: SecurityPrivilege;
+};
+
+/** Derive missing matrix rows for a legacy-granted custom role. */
+export function legacyPermissionToMatrixPrivileges(
+  permissionKey: string,
+): MatrixPrivilegeRequirement[] {
+  const aliases: Record<string, MatrixPrivilegeRequirement[]> = {
+    'attendance.checkin': [
+      {
+        entityKey: ENTITY_KEYS.ATTENDANCE,
+        privilege: SecurityPrivilege.CREATE,
+      },
+    ],
+    'attendance.checkout': [
+      {
+        entityKey: ENTITY_KEYS.ATTENDANCE,
+        privilege: SecurityPrivilege.CREATE,
+      },
+    ],
+    'attendance.override': [
+      {
+        entityKey: ENTITY_KEYS.ATTENDANCE,
+        privilege: SecurityPrivilege.MANAGE,
+      },
+    ],
+    'documents.upload': [
+      { entityKey: ENTITY_KEYS.DOCUMENTS, privilege: SecurityPrivilege.CREATE },
+    ],
+    'documents.update': [
+      { entityKey: ENTITY_KEYS.DOCUMENTS, privilege: SecurityPrivilege.WRITE },
+    ],
+    'documents.delete': [
+      { entityKey: ENTITY_KEYS.DOCUMENTS, privilege: SecurityPrivilege.DELETE },
+    ],
+    'documents.types.manage': [
+      {
+        entityKey: ENTITY_KEYS.DOCUMENTS,
+        privilege: SecurityPrivilege.CONFIGURE,
+      },
+    ],
+    'documents.categories.manage': [
+      {
+        entityKey: ENTITY_KEYS.DOCUMENTS,
+        privilege: SecurityPrivilege.CONFIGURE,
+      },
+    ],
+    'billing.view': [
+      {
+        entityKey: ENTITY_KEYS.TENANT_ADMINISTRATION,
+        privilege: SecurityPrivilege.READ,
+      },
+    ],
+    'billing.manage': [
+      {
+        entityKey: ENTITY_KEYS.TENANT_ADMINISTRATION,
+        privilege: SecurityPrivilege.MANAGE,
+      },
+    ],
+    'organization.manage': [
+      { entityKey: ENTITY_KEYS.HIERARCHY, privilege: SecurityPrivilege.MANAGE },
+    ],
+    'business-units.read': [
+      { entityKey: ENTITY_KEYS.HIERARCHY, privilege: SecurityPrivilege.READ },
+    ],
+    'departments.read': [
+      { entityKey: ENTITY_KEYS.HIERARCHY, privilege: SecurityPrivilege.READ },
+    ],
+    'departments.create': [
+      { entityKey: ENTITY_KEYS.HIERARCHY, privilege: SecurityPrivilege.MANAGE },
+    ],
+    'departments.update': [
+      { entityKey: ENTITY_KEYS.HIERARCHY, privilege: SecurityPrivilege.MANAGE },
+    ],
+    'designations.read': [
+      { entityKey: ENTITY_KEYS.HIERARCHY, privilege: SecurityPrivilege.READ },
+    ],
+    'designations.create': [
+      { entityKey: ENTITY_KEYS.HIERARCHY, privilege: SecurityPrivilege.MANAGE },
+    ],
+    'designations.update': [
+      { entityKey: ENTITY_KEYS.HIERARCHY, privilege: SecurityPrivilege.MANAGE },
+    ],
+    'locations.read': [
+      { entityKey: ENTITY_KEYS.HIERARCHY, privilege: SecurityPrivilege.READ },
+    ],
+    'locations.create': [
+      { entityKey: ENTITY_KEYS.HIERARCHY, privilege: SecurityPrivilege.MANAGE },
+    ],
+    'locations.update': [
+      { entityKey: ENTITY_KEYS.HIERARCHY, privilege: SecurityPrivilege.MANAGE },
+    ],
+    'timesheets.read.team': [
+      { entityKey: ENTITY_KEYS.TIMESHEETS, privilege: SecurityPrivilege.READ },
+    ],
+    'timesheets.settings.read': [
+      { entityKey: ENTITY_KEYS.TIMESHEETS, privilege: SecurityPrivilege.READ },
+    ],
+    'timesheets.policy.resolution.read': [
+      { entityKey: ENTITY_KEYS.TIMESHEETS, privilege: SecurityPrivilege.READ },
+    ],
+    'timesheets.submit': [
+      { entityKey: ENTITY_KEYS.TIMESHEETS, privilege: SecurityPrivilege.WRITE },
+    ],
+    'timesheets.withdraw': [
+      { entityKey: ENTITY_KEYS.TIMESHEETS, privilege: SecurityPrivilege.WRITE },
+    ],
+    'timesheets.reopen': [
+      { entityKey: ENTITY_KEYS.TIMESHEETS, privilege: SecurityPrivilege.WRITE },
+    ],
+    'timesheets.override': [
+      {
+        entityKey: ENTITY_KEYS.TIMESHEETS,
+        privilege: SecurityPrivilege.MANAGE,
+      },
+    ],
+    'timesheets.payroll.handoff': [
+      {
+        entityKey: ENTITY_KEYS.TIMESHEETS,
+        privilege: SecurityPrivilege.MANAGE,
+      },
+    ],
+    'timesheets.jobs.run': [
+      {
+        entityKey: ENTITY_KEYS.TIMESHEETS,
+        privilege: SecurityPrivilege.MANAGE,
+      },
+    ],
+    'timesheets.template.export': [
+      {
+        entityKey: ENTITY_KEYS.TIMESHEETS,
+        privilege: SecurityPrivilege.EXPORT,
+      },
+    ],
+    'timesheets.policy.configure': [
+      {
+        entityKey: ENTITY_KEYS.TIMESHEETS,
+        privilege: SecurityPrivilege.CONFIGURE,
+      },
+    ],
+    'payroll.settings.read': [
+      { entityKey: ENTITY_KEYS.SETTINGS, privilege: SecurityPrivilege.READ },
+      { entityKey: ENTITY_KEYS.PAYROLL, privilege: SecurityPrivilege.READ },
+    ],
+    'payroll.settings.update': [
+      { entityKey: ENTITY_KEYS.PAYROLL, privilege: SecurityPrivilege.WRITE },
+    ],
+    'payroll.finalize': [
+      { entityKey: ENTITY_KEYS.PAYROLL, privilege: SecurityPrivilege.MANAGE },
+    ],
+    'payroll-tax.calculate': [
+      { entityKey: ENTITY_KEYS.PAYROLL, privilege: SecurityPrivilege.MANAGE },
+    ],
+    'payroll-operations.dashboard': [
+      {
+        entityKey: ENTITY_KEYS.PAYROLL_RUNS,
+        privilege: SecurityPrivilege.READ,
+      },
+    ],
+    'payroll-exceptions.read': [
+      {
+        entityKey: ENTITY_KEYS.PAYROLL_RUNS,
+        privilege: SecurityPrivilege.READ,
+      },
+    ],
+    'payroll-exceptions.export': [
+      { entityKey: ENTITY_KEYS.PAYROLL, privilege: SecurityPrivilege.EXPORT },
+    ],
+    'payroll-bank-export.generate': [
+      { entityKey: ENTITY_KEYS.PAYROLL, privilege: SecurityPrivilege.EXPORT },
+    ],
+    'payroll-runs.manage': [
+      {
+        entityKey: ENTITY_KEYS.PAYROLL_RUNS,
+        privilege: SecurityPrivilege.MANAGE,
+      },
+    ],
+    'payroll-runs.finalize': [
+      {
+        entityKey: ENTITY_KEYS.PAYROLL_RUNS,
+        privilege: SecurityPrivilege.MANAGE,
+      },
+    ],
+    'payroll-runs.disburse': [
+      {
+        entityKey: ENTITY_KEYS.PAYROLL_RUNS,
+        privilege: SecurityPrivilege.MANAGE,
+      },
+    ],
+    'claims.read-own': [
+      { entityKey: ENTITY_KEYS.CLAIMS, privilege: SecurityPrivilege.READ },
+    ],
+    'claims.cancel': [
+      { entityKey: ENTITY_KEYS.CLAIMS, privilege: SecurityPrivilege.WRITE },
+    ],
+    'benefits.read-own': [
+      { entityKey: ENTITY_KEYS.BENEFITS, privilege: SecurityPrivilege.READ },
+    ],
+    'approvals.readAssigned': [
+      { entityKey: ENTITY_KEYS.BENEFITS, privilege: SecurityPrivilege.APPROVE },
+    ],
+    'loans.read-own': [
+      { entityKey: ENTITY_KEYS.LOANS, privilege: SecurityPrivilege.READ },
+    ],
+    'banks.read': [
+      {
+        entityKey: ENTITY_KEYS.EMPLOYEE_BANK_ACCOUNTS,
+        privilege: SecurityPrivilege.READ,
+      },
+    ],
+    'banks.manage': [
+      {
+        entityKey: ENTITY_KEYS.EMPLOYEE_BANK_ACCOUNTS,
+        privilege: SecurityPrivilege.MANAGE,
+      },
+    ],
+    'employee-bank-accounts.read-own': [
+      {
+        entityKey: ENTITY_KEYS.EMPLOYEE_BANK_ACCOUNTS,
+        privilege: SecurityPrivilege.READ,
+      },
+    ],
+    'business-trips.read-own': [
+      {
+        entityKey: ENTITY_KEYS.BUSINESS_TRIPS,
+        privilege: SecurityPrivilege.READ,
+      },
+    ],
+    'payslips.read-own': [
+      { entityKey: ENTITY_KEYS.PAYSLIPS, privilege: SecurityPrivilege.READ },
+    ],
+    'payslips.download': [
+      { entityKey: ENTITY_KEYS.PAYSLIPS, privilege: SecurityPrivilege.READ },
+    ],
+    'payslips.deliver': [
+      { entityKey: ENTITY_KEYS.PAYSLIPS, privilege: SecurityPrivilege.MANAGE },
+    ],
+  };
+  const requirements = [...(aliases[permissionKey] ?? [])];
+  const bridgeAliases: Array<
+    [permissionKeys: string[], entityKey: string, privilege: SecurityPrivilege]
+  > = [
+    [
+      ['dashboard.view', 'inbox.read', 'notifications.read'],
+      ENTITY_KEYS.USER_PREFERENCES,
+      SecurityPrivilege.READ,
+    ],
+    [
+      ['inbox.markRead', 'inbox.dismiss', 'inbox.archive'],
+      ENTITY_KEYS.USER_PREFERENCES,
+      SecurityPrivilege.WRITE,
+    ],
+    [
+      ['tenant.update'],
+      ENTITY_KEYS.TENANT_ADMINISTRATION,
+      SecurityPrivilege.MANAGE,
+    ],
+    [['permissions.read'], ENTITY_KEYS.ROLES, SecurityPrivilege.READ],
+    [['appDownloads.read'], ENTITY_KEYS.AGENT, SecurityPrivilege.READ],
+    [['appDownloads.manage'], ENTITY_KEYS.AGENT, SecurityPrivilege.MANAGE],
+    [
+      ['approval-matrices.read', 'sla.read', 'workflows.read'],
+      ENTITY_KEYS.SETTINGS,
+      SecurityPrivilege.READ,
+    ],
+    [
+      ['approval-matrices.create'],
+      ENTITY_KEYS.SETTINGS,
+      SecurityPrivilege.CREATE,
+    ],
+    [
+      ['approval-matrices.update'],
+      ENTITY_KEYS.SETTINGS,
+      SecurityPrivilege.WRITE,
+    ],
+    [
+      ['approval-matrices.delete'],
+      ENTITY_KEYS.SETTINGS,
+      SecurityPrivilege.DELETE,
+    ],
+    [['workflows.manage'], ENTITY_KEYS.SETTINGS, SecurityPrivilege.MANAGE],
+    [
+      ['notification.templates.read', 'notification.providers.read'],
+      ENTITY_KEYS.SETTINGS,
+      SecurityPrivilege.READ,
+    ],
+    [
+      ['notification.templates.manage', 'notification.providers.manage'],
+      ENTITY_KEYS.SETTINGS,
+      SecurityPrivilege.CONFIGURE,
+    ],
+    [
+      ['notification.logs.read', 'notification.diagnostics.read', 'audit.read'],
+      ENTITY_KEYS.REPORTS,
+      SecurityPrivilege.READ,
+    ],
+    [
+      ['data-management.view', 'data-management.template.download'],
+      ENTITY_KEYS.CUSTOM_RECORDS,
+      SecurityPrivilege.READ,
+    ],
+    [
+      ['data-management.import.validate', 'data-management.import.execute'],
+      ENTITY_KEYS.CUSTOM_RECORDS,
+      SecurityPrivilege.IMPORT,
+    ],
+    [
+      ['data-management.export'],
+      ENTITY_KEYS.CUSTOM_RECORDS,
+      SecurityPrivilege.EXPORT,
+    ],
+    [
+      ['data-management.import.cancel'],
+      ENTITY_KEYS.CUSTOM_RECORDS,
+      SecurityPrivilege.MANAGE,
+    ],
+    [
+      [
+        'attendance.read',
+        'attendanceDevices.read',
+        'attendanceMappings.read',
+        'attendanceProvisioning.read',
+        'gateways.read',
+        'integrations.read',
+      ],
+      ENTITY_KEYS.ATTENDANCE,
+      SecurityPrivilege.READ,
+    ],
+    [
+      [
+        'attendance.integration.manage',
+        'attendanceDevices.manage',
+        'attendanceMappings.manage',
+        'attendanceProvisioning.manage',
+        'gateways.manage',
+        'integrations.manage',
+      ],
+      ENTITY_KEYS.ATTENDANCE,
+      SecurityPrivilege.MANAGE,
+    ],
+    [
+      [
+        'attendance.correction.read',
+        'attendance.correction.readOwn',
+        'attendance.correction.readTeam',
+      ],
+      ENTITY_KEYS.ATTENDANCE,
+      SecurityPrivilege.READ,
+    ],
+    [
+      ['attendance.correction.create'],
+      ENTITY_KEYS.ATTENDANCE,
+      SecurityPrivilege.CREATE,
+    ],
+    [
+      ['attendance.correction.approve'],
+      ENTITY_KEYS.ATTENDANCE,
+      SecurityPrivilege.APPROVE,
+    ],
+    [
+      ['attendance.correction.reject'],
+      ENTITY_KEYS.ATTENDANCE,
+      SecurityPrivilege.REJECT,
+    ],
+    [
+      ['attendance.correction.cancel'],
+      ENTITY_KEYS.ATTENDANCE,
+      SecurityPrivilege.DELETE,
+    ],
+    [
+      ['attendance.correction.manage'],
+      ENTITY_KEYS.ATTENDANCE,
+      SecurityPrivilege.MANAGE,
+    ],
+    [
+      ['customers.read', 'timeline.read'],
+      ENTITY_KEYS.PROJECTS,
+      SecurityPrivilege.READ,
+    ],
+    [['customers.create'], ENTITY_KEYS.PROJECTS, SecurityPrivilege.CREATE],
+    [['customers.write'], ENTITY_KEYS.PROJECTS, SecurityPrivilege.WRITE],
+    [
+      ['customization.modules.manage'],
+      ENTITY_KEYS.CUSTOMIZATION,
+      SecurityPrivilege.MANAGE,
+    ],
+    [
+      ['employee-levels.read'],
+      ENTITY_KEYS.EMPLOYEE_LEVELS,
+      SecurityPrivilege.READ,
+    ],
+    [
+      [
+        'employees.read.self',
+        'employees.documents.read.self',
+        'employees.history.read.self',
+        'employees.education.read.self',
+      ],
+      ENTITY_KEYS.EMPLOYEES,
+      SecurityPrivilege.READ,
+    ],
+    [
+      [
+        'employees.update.self',
+        'employees.documents.upload.self',
+        'employees.documents.delete.self',
+        'employees.education.create.self',
+        'employees.education.update.self',
+        'employees.education.delete.self',
+        'employees.history.create',
+      ],
+      ENTITY_KEYS.EMPLOYEES,
+      SecurityPrivilege.WRITE,
+    ],
+    [['employment-types.read'], ENTITY_KEYS.EMPLOYEES, SecurityPrivilege.READ],
+    [
+      ['employment-types.manage'],
+      ENTITY_KEYS.EMPLOYEES,
+      SecurityPrivilege.MANAGE,
+    ],
+    [
+      [
+        'leave-types.read',
+        'leave-policies.read',
+        'leave-policy-assignments.read',
+      ],
+      ENTITY_KEYS.LEAVE_REQUESTS,
+      SecurityPrivilege.READ,
+    ],
+    [
+      [
+        'leave-types.create',
+        'leave-policies.create',
+        'leave-policy-assignments.create',
+      ],
+      ENTITY_KEYS.LEAVE_REQUESTS,
+      SecurityPrivilege.CREATE,
+    ],
+    [
+      [
+        'leave-types.update',
+        'leave-policies.update',
+        'leave-policy-assignments.update',
+      ],
+      ENTITY_KEYS.LEAVE_REQUESTS,
+      SecurityPrivilege.WRITE,
+    ],
+    [
+      ['leave-policy-assignments.delete', 'leave-requests.cancel'],
+      ENTITY_KEYS.LEAVE_REQUESTS,
+      SecurityPrivilege.DELETE,
+    ],
+    [['locations.read'], ENTITY_KEYS.HIERARCHY, SecurityPrivilege.READ],
+    [['onboarding.read'], ENTITY_KEYS.ONBOARDING, SecurityPrivilege.READ],
+    [['onboarding.create'], ENTITY_KEYS.ONBOARDING, SecurityPrivilege.CREATE],
+    [['onboarding.update'], ENTITY_KEYS.ONBOARDING, SecurityPrivilege.WRITE],
+    [['onboarding.delete'], ENTITY_KEYS.ONBOARDING, SecurityPrivilege.DELETE],
+    [['projects.read'], ENTITY_KEYS.PROJECTS, SecurityPrivilege.READ],
+    [['projects.create'], ENTITY_KEYS.PROJECTS, SecurityPrivilege.CREATE],
+    [['projects.update'], ENTITY_KEYS.PROJECTS, SecurityPrivilege.WRITE],
+    [['recruitment.advance'], ENTITY_KEYS.CANDIDATES, SecurityPrivilege.WRITE],
+    [['recruitment.delete'], ENTITY_KEYS.CANDIDATES, SecurityPrivilege.DELETE],
+  ];
+
+  for (const [permissionKeys, entityKey, privilege] of bridgeAliases) {
+    if (permissionKeys.includes(permissionKey)) {
+      requirements.push({ entityKey, privilege });
+    }
+  }
+
+  for (const entity of RBAC_ENTITIES) {
+    for (const privilege of RBAC_PRIVILEGES) {
+      if (
+        matrixPrivilegeToPermissionKey(entity.key, privilege) === permissionKey
+      ) {
+        requirements.push({ entityKey: entity.key, privilege });
+      }
+    }
+  }
+
+  return Array.from(
+    new Map(
+      requirements.map((item) => [`${item.entityKey}:${item.privilege}`, item]),
+    ).values(),
   );
 }

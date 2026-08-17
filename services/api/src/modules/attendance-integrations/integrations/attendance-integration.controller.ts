@@ -24,7 +24,11 @@ import {
 import { Type } from 'class-transformer';
 
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
-import { Permissions } from '../../../common/decorators/permissions.decorator';
+import { ENTITY_KEYS } from '../../../common/constants/rbac-matrix';
+import {
+  Permissions,
+  RequirePermission,
+} from '../../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../../common/interfaces/authenticated-request.interface';
@@ -83,6 +87,7 @@ export class AttendanceIntegrationController {
 
   @Get()
   @Permissions('integrations.read')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'read')
   list(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: ListIntegrationsDto,
@@ -92,6 +97,7 @@ export class AttendanceIntegrationController {
 
   @Get(':id')
   @Permissions('integrations.read')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'read')
   findOne(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -101,6 +107,7 @@ export class AttendanceIntegrationController {
 
   @Post()
   @Permissions('integrations.manage')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'manage')
   create(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateIntegrationDto,
@@ -110,6 +117,7 @@ export class AttendanceIntegrationController {
 
   @Patch(':id')
   @Permissions('integrations.manage')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'manage')
   update(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -121,6 +129,7 @@ export class AttendanceIntegrationController {
   /** Schema validation. Does not contact hardware — see the service docs. */
   @Post(':id/validate-configuration')
   @Permissions('integrations.manage')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'manage')
   validateConfiguration(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -130,6 +139,7 @@ export class AttendanceIntegrationController {
 
   @Get(':id/readiness')
   @Permissions('integrations.read')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'read')
   readiness(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -139,6 +149,7 @@ export class AttendanceIntegrationController {
 
   @Post(':id/activate')
   @Permissions('integrations.manage')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'manage')
   activate(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -148,6 +159,7 @@ export class AttendanceIntegrationController {
 
   @Post(':id/disable')
   @Permissions('integrations.manage')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'manage')
   disable(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,

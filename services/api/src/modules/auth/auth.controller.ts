@@ -25,7 +25,12 @@ import {
   getAuthCookieNames,
 } from '../../common/config/auth.config';
 import { ConfigService } from '@nestjs/config';
+import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import {
+  Permissions,
+  RequirePermission,
+} from '../../common/decorators/permissions.decorator';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { PublicRateLimitGuard } from '../../common/guards/public-rate-limit.guard';
 
@@ -130,6 +135,8 @@ export class AuthController {
   }
 
   @Post('activity')
+  @Permissions('user-preferences.write')
+  @RequirePermission(ENTITY_KEYS.USER_PREFERENCES, 'write')
   activity(@CurrentUser() user: AuthenticatedUser) {
     return this.authService.recordActivity(user);
   }

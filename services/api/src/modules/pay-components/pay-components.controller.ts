@@ -10,8 +10,10 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Permissions } from '../../common/decorators/permissions.decorator';
+import { RequirePermission } from '../../common/decorators/require-permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
@@ -27,6 +29,7 @@ export class PayComponentsController {
 
   @Get()
   @Permissions('pay-components.read')
+  @RequirePermission(ENTITY_KEYS.PAY_COMPONENTS, 'read')
   findAll(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: ListPayComponentsDto,
@@ -36,6 +39,7 @@ export class PayComponentsController {
 
   @Get(':id')
   @Permissions('pay-components.read')
+  @RequirePermission(ENTITY_KEYS.PAY_COMPONENTS, 'read')
   findOne(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -45,6 +49,7 @@ export class PayComponentsController {
 
   @Post()
   @Permissions('pay-components.manage')
+  @RequirePermission(ENTITY_KEYS.PAY_COMPONENTS, 'manage')
   create(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreatePayComponentDto,
@@ -54,6 +59,7 @@ export class PayComponentsController {
 
   @Patch(':id')
   @Permissions('pay-components.manage')
+  @RequirePermission(ENTITY_KEYS.PAY_COMPONENTS, 'manage')
   update(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -64,6 +70,7 @@ export class PayComponentsController {
 
   @Delete(':id')
   @Permissions('pay-components.manage')
+  @RequirePermission(ENTITY_KEYS.PAY_COMPONENTS, 'manage')
   deactivate(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,

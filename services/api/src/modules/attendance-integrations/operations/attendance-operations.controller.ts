@@ -29,7 +29,11 @@ import {
 } from 'class-validator';
 
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
-import { Permissions } from '../../../common/decorators/permissions.decorator';
+import { ENTITY_KEYS } from '../../../common/constants/rbac-matrix';
+import {
+  Permissions,
+  RequirePermission,
+} from '../../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../../common/interfaces/authenticated-request.interface';
@@ -92,6 +96,7 @@ export class AttendanceOperationsController {
 
   @Get('employees/:employeeId/work-sites')
   @Permissions('attendanceDevices.read')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'read')
   listWorkSites(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -101,6 +106,7 @@ export class AttendanceOperationsController {
 
   @Post('employees/:employeeId/work-sites')
   @Permissions('attendanceDevices.manage')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'manage')
   assignWorkSite(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -111,6 +117,7 @@ export class AttendanceOperationsController {
 
   @Post('employees/:employeeId/work-sites/primary')
   @Permissions('attendanceDevices.manage')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'manage')
   setPrimaryWorkSite(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -121,6 +128,7 @@ export class AttendanceOperationsController {
 
   @Delete('employees/:employeeId/work-sites/:locationId')
   @Permissions('attendanceDevices.manage')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'manage')
   removeWorkSite(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -133,6 +141,7 @@ export class AttendanceOperationsController {
 
   @Get('external-users')
   @Permissions('attendanceMappings.read')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'read')
   listExternalUsers(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: ListExternalUsersDto,
@@ -142,6 +151,7 @@ export class AttendanceOperationsController {
 
   @Get('external-users/:id')
   @Permissions('attendanceMappings.read')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'read')
   findExternalUser(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -152,6 +162,7 @@ export class AttendanceOperationsController {
   /** Read-only identity trail. Superseded mappings are never removed. */
   @Get('external-users/:id/history')
   @Permissions('attendanceMappings.read')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'read')
   mappingHistory(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -162,6 +173,7 @@ export class AttendanceOperationsController {
   /** Suggestions only — nothing is mapped by calling this. */
   @Get('external-users/:id/suggestions')
   @Permissions('attendanceMappings.read')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'read')
   suggestMapping(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -172,6 +184,7 @@ export class AttendanceOperationsController {
   /** Also used to change an existing mapping; history is superseded, not deleted. */
   @Post('external-users/:id/map')
   @Permissions('attendanceMappings.manage')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'manage')
   confirmMapping(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -182,6 +195,7 @@ export class AttendanceOperationsController {
 
   @Post('external-users/:id/ignore')
   @Permissions('attendanceMappings.manage')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'manage')
   ignore(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -191,6 +205,7 @@ export class AttendanceOperationsController {
 
   @Post('external-users/:id/unignore')
   @Permissions('attendanceMappings.manage')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'manage')
   unignore(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -202,6 +217,7 @@ export class AttendanceOperationsController {
 
   @Get('runs')
   @Permissions('integrations.read')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'read')
   listRuns(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: ListRunsDto,
@@ -211,6 +227,7 @@ export class AttendanceOperationsController {
 
   @Get('runs/:id')
   @Permissions('integrations.read')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'read')
   findRun(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -222,6 +239,7 @@ export class AttendanceOperationsController {
 
   @Get('provisioning-jobs')
   @Permissions('attendanceProvisioning.read')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'read')
   listProvisioningJobs(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: ListProvisioningJobsDto,
@@ -231,6 +249,7 @@ export class AttendanceOperationsController {
 
   @Get('provisioning-jobs/:id')
   @Permissions('attendanceProvisioning.read')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'read')
   findProvisioningJob(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -241,6 +260,7 @@ export class AttendanceOperationsController {
   /** Requeues only. No device is contacted synchronously. */
   @Post('provisioning-jobs/:id/retry')
   @Permissions('attendanceProvisioning.manage')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'manage')
   retryProvisioningJob(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -250,6 +270,7 @@ export class AttendanceOperationsController {
 
   @Post('provisioning-jobs/:id/cancel')
   @Permissions('attendanceProvisioning.manage')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'manage')
   cancelProvisioningJob(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,

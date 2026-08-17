@@ -1,0 +1,37 @@
+---
+SCENARIO_ID: QA-BILLING-001
+aliases: [QA-BILLING-001]
+TITLE: Billing reads and writes require distinct capabilities
+AREA: authorization
+MODULE: services/api/src/modules/billing
+TYPE: SECURITY
+RISK: CRITICAL
+AUTOMATION_STATUS: AUTOMATED
+TEST_REFERENCE: services/api/src/modules/billing/billing-authorization.spec.ts
+RELATED_BUGS: [BUG-0056]
+RELATED_REGRESSIONS: [REG-043]
+LAST_RUN: 2026-08-17
+LAST_RESULT: PASS
+CREATED_AT: 2026-08-17
+UPDATED_AT: 2026-08-17
+---
+
+# QA-BILLING-001 — Billing reads and writes require distinct capabilities
+
+## Preconditions
+
+A billing reader, billing manager and unprivileged tenant user.
+
+## Steps
+
+1. Request plans, health, subscription and invoice reads with each user.
+2. Attempt checkout, portal and reconciliation writes with each user.
+
+## Expected Result
+
+Read capability opens reads only; `billing.manage` plus tenant-administration
+MANAGE is required for writes; the unprivileged user is denied throughout.
+
+## Notes
+
+The API, not frontend role labels, remains the authorization authority.

@@ -18,8 +18,12 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { DocumentEntityType } from '@prisma/client';
 import type { Response } from 'express';
+import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { Permissions } from '../../common/decorators/permissions.decorator';
+import {
+  Permissions,
+  RequirePermission,
+} from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
@@ -44,15 +48,17 @@ export class DocumentsController {
 
   @Get()
   @Permissions('documents.read')
+  @RequirePermission(ENTITY_KEYS.DOCUMENTS, 'read')
   findAll(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: DocumentQueryDto,
   ) {
-    return this.documentsService.findByTenant(user.tenantId, query);
+    return this.documentsService.findByTenant(user, query);
   }
 
   @Get('entity/:entityType/:entityId')
   @Permissions('documents.read')
+  @RequirePermission(ENTITY_KEYS.DOCUMENTS, 'read')
   findByEntity(
     @CurrentUser() user: AuthenticatedUser,
     @Param('entityType', new ParseEnumPipe(DocumentEntityType))
@@ -64,12 +70,14 @@ export class DocumentsController {
 
   @Get('types')
   @Permissions('documents.read')
+  @RequirePermission(ENTITY_KEYS.DOCUMENTS, 'read')
   listTypes(@CurrentUser() user: AuthenticatedUser) {
     return this.documentsService.listDocumentTypes(user.tenantId);
   }
 
   @Post('types')
   @Permissions('documents.types.manage')
+  @RequirePermission(ENTITY_KEYS.DOCUMENTS, 'configure')
   createType(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateDocumentTypeDto,
@@ -79,12 +87,14 @@ export class DocumentsController {
 
   @Get('categories')
   @Permissions('documents.read')
+  @RequirePermission(ENTITY_KEYS.DOCUMENTS, 'read')
   listCategories(@CurrentUser() user: AuthenticatedUser) {
     return this.documentsService.listDocumentCategories(user.tenantId);
   }
 
   @Get('categories/:id')
   @Permissions('documents.read')
+  @RequirePermission(ENTITY_KEYS.DOCUMENTS, 'read')
   findCategory(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -94,6 +104,7 @@ export class DocumentsController {
 
   @Post('categories')
   @Permissions('documents.categories.manage')
+  @RequirePermission(ENTITY_KEYS.DOCUMENTS, 'configure')
   createCategory(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateDocumentCategoryDto,
@@ -103,6 +114,7 @@ export class DocumentsController {
 
   @Patch('categories/:id')
   @Permissions('documents.categories.manage')
+  @RequirePermission(ENTITY_KEYS.DOCUMENTS, 'configure')
   updateCategory(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -113,6 +125,7 @@ export class DocumentsController {
 
   @Delete('categories/:id')
   @Permissions('documents.categories.manage')
+  @RequirePermission(ENTITY_KEYS.DOCUMENTS, 'configure')
   deactivateCategory(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -122,6 +135,7 @@ export class DocumentsController {
 
   @Post('upload')
   @Permissions('documents.upload')
+  @RequirePermission(ENTITY_KEYS.DOCUMENTS, 'create')
   @UseInterceptors(FileInterceptor('file'))
   upload(
     @CurrentUser() user: AuthenticatedUser,
@@ -133,22 +147,24 @@ export class DocumentsController {
 
   @Get(':documentId')
   @Permissions('documents.read')
+  @RequirePermission(ENTITY_KEYS.DOCUMENTS, 'read')
   findOne(
     @CurrentUser() user: AuthenticatedUser,
     @Param('documentId', new ParseUUIDPipe()) documentId: string,
   ) {
-    return this.documentsService.findById(user.tenantId, documentId);
+    return this.documentsService.findById(user, documentId);
   }
 
   @Get(':documentId/view')
   @Permissions('documents.read')
+  @RequirePermission(ENTITY_KEYS.DOCUMENTS, 'read')
   async view(
     @CurrentUser() user: AuthenticatedUser,
     @Param('documentId', new ParseUUIDPipe()) documentId: string,
     @Res({ passthrough: true }) response: Response,
   ) {
     const { document, file } = await this.documentsService.openForView(
-      user.tenantId,
+      user,
       documentId,
     );
     response.setHeader(
@@ -164,13 +180,14 @@ export class DocumentsController {
 
   @Get(':documentId/download')
   @Permissions('documents.read')
+  @RequirePermission(ENTITY_KEYS.DOCUMENTS, 'read')
   async download(
     @CurrentUser() user: AuthenticatedUser,
     @Param('documentId', new ParseUUIDPipe()) documentId: string,
     @Res({ passthrough: true }) response: Response,
   ) {
     const { document, file } = await this.documentsService.openForDownload(
-      user.tenantId,
+      user,
       documentId,
     );
     response.setHeader(
@@ -186,6 +203,7 @@ export class DocumentsController {
 
   @Patch(':documentId')
   @Permissions('documents.update')
+  @RequirePermission(ENTITY_KEYS.DOCUMENTS, 'write')
   update(
     @CurrentUser() user: AuthenticatedUser,
     @Param('documentId', new ParseUUIDPipe()) documentId: string,
@@ -196,6 +214,7 @@ export class DocumentsController {
 
   @Delete(':documentId')
   @Permissions('documents.delete')
+  @RequirePermission(ENTITY_KEYS.DOCUMENTS, 'delete')
   remove(
     @CurrentUser() user: AuthenticatedUser,
     @Param('documentId', new ParseUUIDPipe()) documentId: string,

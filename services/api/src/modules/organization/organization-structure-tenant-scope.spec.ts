@@ -1,4 +1,6 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { SecurityAccessLevel, SecurityPrivilege } from '@prisma/client';
+import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { OrganizationService } from './organization.service';
 
@@ -23,20 +25,49 @@ const currentUser: AuthenticatedUser = {
   roleIds: [],
   roleKeys: ['hr'],
   permissionKeys: ['organization.manage'],
+  /*
+   * The authorization half described above has since been filled in: the
+   * structure mutations resolve their target through the RBAC scope filter
+   * rather than a bare tenant-keyed lookup. This caller is therefore given
+   * tenant-wide hierarchy management explicitly, so that the assertions below
+   * keep testing *tenant isolation* — a caller who is allowed to reshape this
+   * tenant still cannot reach another one — instead of silently passing
+   * because authorization denied the request before isolation was exercised.
+   */
+  rolePrivileges: [
+    {
+      entityKey: ENTITY_KEYS.HIERARCHY,
+      privilege: SecurityPrivilege.MANAGE,
+      accessLevel: SecurityAccessLevel.TENANT,
+    },
+    {
+      entityKey: ENTITY_KEYS.HIERARCHY,
+      privilege: SecurityPrivilege.READ,
+      accessLevel: SecurityAccessLevel.TENANT,
+    },
+  ],
 };
 
 type RepositoryStub = {
+  findOrganizations: jest.Mock;
   findOrganizationById: jest.Mock;
+  findBusinessUnits: jest.Mock;
   findBusinessUnitById: jest.Mock;
   createBusinessUnit: jest.Mock;
 };
 
 function createService(overrides: Partial<RepositoryStub> = {}) {
   const organizationRepository: RepositoryStub = {
+    // Tenant-keyed: the repository only ever returns this tenant's rows, which
+    // is what makes a foreign identifier unresolvable rather than merely denied.
+    findOrganizations: jest.fn(async () => [
+      { id: 'org-1', tenantId: 'tenant-1' },
+    ]),
     findOrganizationById: jest.fn(async () => ({
       id: 'org-1',
       tenantId: 'tenant-1',
     })),
+    findBusinessUnits: jest.fn(async () => []),
     findBusinessUnitById: jest.fn(async () => null),
     createBusinessUnit: jest.fn(async () => ({ id: 'bu-new' })),
     ...overrides,
@@ -58,10 +89,9 @@ function createService(overrides: Partial<RepositoryStub> = {}) {
 
 describe('OrganizationService structure mutations stay tenant scoped', () => {
   it('rejects a business unit created against another tenant organization', async () => {
-    // The repository is tenant-keyed, so a foreign organization simply is not found.
-    const { service, organizationRepository } = createService({
-      findOrganizationById: jest.fn(async () => null),
-    });
+    // The repository is tenant-keyed, so a foreign organization is never among
+    // the rows the scope filter can select from -- it simply is not found.
+    const { service, organizationRepository } = createService();
 
     await expect(
       service.createBusinessUnit(currentUser, {
@@ -70,17 +100,18 @@ describe('OrganizationService structure mutations stay tenant scoped', () => {
       } as never),
     ).rejects.toBeInstanceOf(NotFoundException);
 
-    expect(organizationRepository.findOrganizationById).toHaveBeenCalledWith(
+    expect(organizationRepository.findOrganizations).toHaveBeenCalledWith(
       'tenant-1',
-      'org-from-tenant-2',
     );
   });
 
   it('rejects a parent business unit from another tenant', async () => {
-    const { service, organizationRepository } = createService({
-      // Tenant-keyed lookup returns nothing for a foreign parent.
-      findBusinessUnitById: jest.fn(async () => null),
-    });
+    // Tenant-keyed listing returns nothing for a foreign parent. This now
+    // surfaces as NotFound rather than BadRequest, because the parent is
+    // resolved through the scoped lookup before the parent-validity rules run
+    // -- a strictly earlier rejection, and one that leaks less about whether
+    // the identifier exists in some other tenant.
+    const { service, organizationRepository } = createService();
 
     await expect(
       service.createBusinessUnit(currentUser, {
@@ -88,21 +119,25 @@ describe('OrganizationService structure mutations stay tenant scoped', () => {
         organizationId: 'org-1',
         parentBusinessUnitId: 'bu-from-tenant-2',
       } as never),
-    ).rejects.toBeInstanceOf(BadRequestException);
+    ).rejects.toBeInstanceOf(NotFoundException);
 
-    expect(organizationRepository.findBusinessUnitById).toHaveBeenCalledWith(
+    expect(organizationRepository.findBusinessUnits).toHaveBeenCalledWith(
       'tenant-1',
-      'bu-from-tenant-2',
+      {},
     );
   });
 
   it('rejects a parent business unit from a different organization', async () => {
+    const parent = {
+      id: 'bu-other',
+      tenantId: 'tenant-1',
+      organizationId: 'org-2',
+    };
     const { service } = createService({
-      findBusinessUnitById: jest.fn(async () => ({
-        id: 'bu-other',
-        tenantId: 'tenant-1',
-        organizationId: 'org-2',
-      })),
+      // In tenant and within scope, so it survives the scoped lookup and is
+      // rejected by the same-organization rule instead.
+      findBusinessUnits: jest.fn(async () => [parent]),
+      findBusinessUnitById: jest.fn(async () => parent),
     });
 
     await expect(

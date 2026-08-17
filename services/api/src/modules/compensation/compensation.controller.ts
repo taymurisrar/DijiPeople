@@ -10,7 +10,11 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { Permissions } from '../../common/decorators/permissions.decorator';
+import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
+import {
+  Permissions,
+  RequirePermission,
+} from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
@@ -31,6 +35,7 @@ export class CompensationController {
 
   @Get('compensation-history')
   @Permissions('compensation.read')
+  @RequirePermission(ENTITY_KEYS.COMPENSATION, 'read')
   listHistory(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -40,6 +45,7 @@ export class CompensationController {
 
   @Post('compensation-history')
   @Permissions('compensation.manage')
+  @RequirePermission(ENTITY_KEYS.COMPENSATION, 'manage')
   createHistory(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -50,6 +56,7 @@ export class CompensationController {
 
   @Post('compensation-history/assign-package')
   @Permissions('compensation.manage')
+  @RequirePermission(ENTITY_KEYS.COMPENSATION, 'manage')
   assignSalaryPackage(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -60,6 +67,7 @@ export class CompensationController {
 
   @Get('compensation-history/:id')
   @Permissions('compensation.read')
+  @RequirePermission(ENTITY_KEYS.COMPENSATION, 'read')
   getHistory(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -70,6 +78,7 @@ export class CompensationController {
 
   @Patch('compensation-history/:id')
   @Permissions('compensation.manage')
+  @RequirePermission(ENTITY_KEYS.COMPENSATION, 'manage')
   updateHistory(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -81,6 +90,7 @@ export class CompensationController {
 
   @Post('compensation-history/:id/revisions')
   @Permissions('compensation.manage')
+  @RequirePermission(ENTITY_KEYS.COMPENSATION, 'manage')
   createRevision(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -92,6 +102,7 @@ export class CompensationController {
 
   @Get('active-compensation')
   @Permissions('compensation.read')
+  @RequirePermission(ENTITY_KEYS.COMPENSATION, 'read')
   getActive(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -101,6 +112,7 @@ export class CompensationController {
 
   @Post('compensation-history/:id/components')
   @Permissions('compensation.manage')
+  @RequirePermission(ENTITY_KEYS.COMPENSATION, 'manage')
   createComponent(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -112,6 +124,7 @@ export class CompensationController {
 
   @Patch('compensation-history/:id/components/:componentId')
   @Permissions('compensation.manage')
+  @RequirePermission(ENTITY_KEYS.COMPENSATION, 'manage')
   updateComponent(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -130,6 +143,7 @@ export class CompensationController {
 
   @Delete('compensation-history/:id/components/:componentId')
   @Permissions('compensation.manage')
+  @RequirePermission(ENTITY_KEYS.COMPENSATION, 'manage')
   deleteComponent(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,

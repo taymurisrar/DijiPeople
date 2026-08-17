@@ -11,7 +11,11 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { Permissions } from '../../common/decorators/permissions.decorator';
+import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
+import {
+  Permissions,
+  RequirePermission,
+} from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
@@ -29,6 +33,7 @@ export class ApprovalMatricesController {
 
   @Get()
   @Permissions('approval-matrices.read')
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'read')
   list(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: ListApprovalMatricesDto,
@@ -38,6 +43,7 @@ export class ApprovalMatricesController {
 
   @Get(':id')
   @Permissions('approval-matrices.read')
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'read')
   detail(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -47,6 +53,7 @@ export class ApprovalMatricesController {
 
   @Post()
   @Permissions('approval-matrices.create')
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'create')
   create(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateApprovalMatrixDto,
@@ -56,6 +63,7 @@ export class ApprovalMatricesController {
 
   @Patch(':id')
   @Permissions('approval-matrices.update')
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'write')
   update(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -66,6 +74,7 @@ export class ApprovalMatricesController {
 
   @Delete(':id')
   @Permissions('approval-matrices.delete')
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'delete')
   deactivate(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,

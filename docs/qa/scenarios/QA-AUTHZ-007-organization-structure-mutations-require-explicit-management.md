@@ -7,9 +7,9 @@ MODULE: services/api/src/modules/organization
 TYPE: SECURITY
 RISK: CRITICAL
 AUTOMATION_STATUS: AUTOMATED
-TEST_REFERENCE: services/api/src/modules/organization/organization-structure-authorization.spec.ts services/api/src/modules/organization/organization-structure-tenant-scope.spec.ts
-RELATED_BUGS: [BUG-0006, BUG-0047]
-RELATED_REGRESSIONS: [REG-006]
+TEST_REFERENCE: services/api/src/modules/organization/organization-structure-authorization.spec.ts services/api/src/modules/organization/organization-structure-tenant-scope.spec.ts services/api/src/modules/organization/organization-read-scope.spec.ts
+RELATED_BUGS: [BUG-0006, BUG-0047, BUG-0058]
+RELATED_REGRESSIONS: [REG-006, REG-045]
 LAST_RUN: 2026-08-17
 LAST_RESULT: PASS
 CREATED_AT: 2026-08-17
@@ -26,12 +26,15 @@ An ordinary tenant employee and an HR actor holding `organization.manage`.
 
 1. Attempt create, update and delete on organizations and business units as the ordinary employee.
 2. Repeat each operation as the authorized HR actor.
-3. Check controller metadata for every organization-structure mutation.
+3. Attempt sibling organization, business-unit and department reads/mutations with scoped matrix privileges.
+4. Attempt root creation below TENANT management scope.
+5. Check controller metadata for every organization-structure mutation.
 
 ## Expected Result
 
 The ordinary employee receives 403 on all six mutation routes. The authorized
-actor succeeds, and every new mutation must declare the same permission family.
+actor succeeds only inside matrix scope, root creation requires TENANT scope,
+and every new mutation declares both permission families.
 
 ## Notes
 

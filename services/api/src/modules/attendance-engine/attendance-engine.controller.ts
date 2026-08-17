@@ -27,7 +27,11 @@ import {
 } from 'class-validator';
 
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { Permissions } from '../../common/decorators/permissions.decorator';
+import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
+import {
+  Permissions,
+  RequirePermission,
+} from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
@@ -138,6 +142,7 @@ export class AttendanceEngineController {
    */
   @Get('days/:employeeId/:date')
   @Permissions('attendance.read')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'read')
   getDay(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -148,6 +153,7 @@ export class AttendanceEngineController {
 
   @Get('days')
   @Permissions('attendance.read')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'read')
   listDays(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: DayRangeDto,
@@ -160,6 +166,7 @@ export class AttendanceEngineController {
    */
   @Get('exceptions/summary')
   @Permissions('attendance.read')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'read')
   exceptionSummary(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: SummaryQueryDto,
@@ -177,6 +184,7 @@ export class AttendanceEngineController {
    */
   @Get('location-evidence')
   @Permissions('attendance.read')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'read')
   listLocationEvidence(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: DayRangeDto,
@@ -186,6 +194,7 @@ export class AttendanceEngineController {
 
   @Get('exceptions')
   @Permissions('attendance.read')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'read')
   listExceptions(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: ExceptionQueryDto,
@@ -201,6 +210,7 @@ export class AttendanceEngineController {
    */
   @Get('exceptions/:id')
   @Permissions('attendance.read')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'read')
   getException(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -211,6 +221,7 @@ export class AttendanceEngineController {
   /** Reconciled days across the caller's team, with the review views. */
   @Get('team-days')
   @Permissions('attendance.read')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'read')
   listTeamDays(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: TeamDayQueryDto,
@@ -220,6 +231,7 @@ export class AttendanceEngineController {
 
   @Post('exceptions/:id/resolve')
   @Permissions('attendance.manage')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'manage')
   resolveException(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -236,6 +248,7 @@ export class AttendanceEngineController {
    */
   @Post('days/lock')
   @Permissions('attendance.manage')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'manage')
   setLock(@CurrentUser() user: AuthenticatedUser, @Body() dto: LockDayDto) {
     return this.service.setDayLock(user, dto);
   }
@@ -243,6 +256,7 @@ export class AttendanceEngineController {
   /** Queues a range for recalculation. Returns once queued, not once done. */
   @Post('reconcile')
   @Permissions('attendance.manage')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'manage')
   reconcile(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: ReconcileRangeDto,
@@ -253,6 +267,7 @@ export class AttendanceEngineController {
   /** Reconciles a single day inline, for support and for verification. */
   @Post('reconcile/day')
   @Permissions('attendance.manage')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'manage')
   reconcileDay(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: ReconcileDayDto,

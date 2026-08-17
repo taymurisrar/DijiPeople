@@ -34,7 +34,11 @@ import {
 } from 'class-validator';
 
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
-import { Permissions } from '../../../common/decorators/permissions.decorator';
+import { ENTITY_KEYS } from '../../../common/constants/rbac-matrix';
+import {
+  Permissions,
+  RequirePermission,
+} from '../../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../../common/interfaces/authenticated-request.interface';
@@ -147,6 +151,7 @@ export class AttendanceDeviceController {
 
   @Get('devices')
   @Permissions('attendanceDevices.read')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'read')
   listDevices(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: ListDevicesDto,
@@ -156,6 +161,7 @@ export class AttendanceDeviceController {
 
   @Get('devices/:id')
   @Permissions('attendanceDevices.read')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'read')
   findDevice(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -165,6 +171,7 @@ export class AttendanceDeviceController {
 
   @Post('devices')
   @Permissions('attendanceDevices.manage')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'manage')
   createDevice(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateDeviceDto,
@@ -174,6 +181,7 @@ export class AttendanceDeviceController {
 
   @Patch('devices/:id')
   @Permissions('attendanceDevices.manage')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'manage')
   updateDevice(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -184,6 +192,7 @@ export class AttendanceDeviceController {
 
   @Post('devices/:id/enable')
   @Permissions('attendanceDevices.manage')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'manage')
   enableDevice(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -194,6 +203,7 @@ export class AttendanceDeviceController {
 
   @Post('devices/:id/disable')
   @Permissions('attendanceDevices.manage')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'manage')
   disableDevice(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -211,6 +221,7 @@ export class AttendanceDeviceController {
    */
   @Post('devices/:id/sync-now')
   @Permissions('attendanceDevices.manage')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'manage')
   requestSync(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -222,6 +233,7 @@ export class AttendanceDeviceController {
 
   @Get('devices/:id/scopes')
   @Permissions('attendanceDevices.read')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'read')
   listScopes(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -231,6 +243,7 @@ export class AttendanceDeviceController {
 
   @Post('devices/:id/scopes')
   @Permissions('attendanceDevices.manage')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'manage')
   addScope(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -241,6 +254,7 @@ export class AttendanceDeviceController {
 
   @Delete('devices/:id/scopes/:scopeId')
   @Permissions('attendanceDevices.manage')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'manage')
   removeScope(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -253,12 +267,14 @@ export class AttendanceDeviceController {
 
   @Get('sync-policies')
   @Permissions('integrations.read')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'read')
   listSyncPolicies(@CurrentUser() user: AuthenticatedUser) {
     return this.service.listSyncPolicies(user.tenantId);
   }
 
   @Get('sync-policies/:id')
   @Permissions('integrations.read')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'read')
   findSyncPolicy(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -268,6 +284,7 @@ export class AttendanceDeviceController {
 
   @Post('sync-policies')
   @Permissions('integrations.manage')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'manage')
   createSyncPolicy(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: UpsertSyncPolicyDto,
@@ -277,6 +294,7 @@ export class AttendanceDeviceController {
 
   @Patch('sync-policies/:id')
   @Permissions('integrations.manage')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'manage')
   updateSyncPolicy(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,

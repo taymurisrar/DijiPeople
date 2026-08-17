@@ -44,6 +44,8 @@ export class UsersController {
   }
 
   @Get('me')
+  @Permissions('user-preferences.read')
+  @RequirePermission(ENTITY_KEYS.USER_PREFERENCES, 'read')
   findMe(@CurrentUser() currentUser: AuthenticatedUser): Promise<unknown> {
     return this.usersService.findCurrentProfile(
       currentUser.tenantId,

@@ -11,7 +11,11 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { Permissions } from '../../common/decorators/permissions.decorator';
+import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
+import {
+  Permissions,
+  RequirePermission,
+} from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
@@ -30,6 +34,7 @@ export class SalaryPackageRulesController {
 
   @Get()
   @Permissions('settings.read', 'compensation.read')
+  @RequirePermission(ENTITY_KEYS.COMPENSATION, 'read')
   list(
     @CurrentUser() user: AuthenticatedUser,
     @Query('page') page?: string,
@@ -45,6 +50,7 @@ export class SalaryPackageRulesController {
 
   @Post()
   @Permissions('settings.update', 'compensation.manage')
+  @RequirePermission(ENTITY_KEYS.COMPENSATION, 'manage')
   create(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateSalaryPackageRuleDto,
@@ -54,6 +60,7 @@ export class SalaryPackageRulesController {
 
   @Get(':id')
   @Permissions('settings.read', 'compensation.read')
+  @RequirePermission(ENTITY_KEYS.COMPENSATION, 'read')
   detail(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -63,6 +70,7 @@ export class SalaryPackageRulesController {
 
   @Patch(':id')
   @Permissions('settings.update', 'compensation.manage')
+  @RequirePermission(ENTITY_KEYS.COMPENSATION, 'manage')
   update(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -73,6 +81,7 @@ export class SalaryPackageRulesController {
 
   @Get(':id/components')
   @Permissions('settings.read', 'compensation.read')
+  @RequirePermission(ENTITY_KEYS.COMPENSATION, 'read')
   async components(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -86,6 +95,7 @@ export class SalaryPackageRulesController {
 
   @Post(':id/components')
   @Permissions('settings.update', 'compensation.manage')
+  @RequirePermission(ENTITY_KEYS.COMPENSATION, 'manage')
   createComponent(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -96,6 +106,7 @@ export class SalaryPackageRulesController {
 
   @Patch(':id/components/:componentId')
   @Permissions('settings.update', 'compensation.manage')
+  @RequirePermission(ENTITY_KEYS.COMPENSATION, 'manage')
   updateComponent(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -107,6 +118,7 @@ export class SalaryPackageRulesController {
 
   @Delete(':id/components/:componentId')
   @Permissions('settings.update', 'compensation.manage')
+  @RequirePermission(ENTITY_KEYS.COMPENSATION, 'manage')
   removeComponent(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -117,6 +129,7 @@ export class SalaryPackageRulesController {
 
   @Get(':id/assignments')
   @Permissions('settings.read', 'compensation.read')
+  @RequirePermission(ENTITY_KEYS.COMPENSATION, 'read')
   assignments(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,

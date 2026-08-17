@@ -4,19 +4,19 @@ Bulk import and export for tenant modules, reached from **Settings → Data Mana
 
 ## What exists today
 
-| Capability | State |
-| --- | --- |
-| Metadata-driven templates (.xlsx) | Done |
-| Upload, parse, auto column mapping | Done |
-| Validation that predicts execution | Done |
-| Import execution, all four modes | Done (employees) |
-| Import as a background job | Done (queue, worker, progress polling) |
-| Export as a background job | Done (employees, attendance) |
-| Import history | Done |
-| Downloadable error file | Done |
-| Cancellation | Done (between chunks) |
-| Saved mapping profiles | Deliberately not built; `DataMappingProfile` model retained unused |
-| Attendance import execution | Done (shift and work-site rules predicted) |
+| Capability                         | State                                                              |
+| ---------------------------------- | ------------------------------------------------------------------ |
+| Metadata-driven templates (.xlsx)  | Done                                                               |
+| Upload, parse, auto column mapping | Done                                                               |
+| Validation that predicts execution | Done                                                               |
+| Import execution, all four modes   | Done (employees)                                                   |
+| Import as a background job         | Done (queue, worker, progress polling)                             |
+| Export as a background job         | Done (employees, attendance)                                       |
+| Import history                     | Done                                                               |
+| Downloadable error file            | Done                                                               |
+| Cancellation                       | Done (between chunks)                                              |
+| Saved mapping profiles             | Deliberately not built; `DataMappingProfile` model retained unused |
+| Attendance import execution        | Done (shift and work-site rules predicted)                         |
 
 ## How it fits together
 
@@ -123,17 +123,17 @@ through `StorageService` and only the storage key is kept on the job.
 
 ## Permissions
 
-| Key | Grants |
-| --- | --- |
-| `data-management.view` | See the page and history |
-| `data-management.template.download` | Download templates |
-| `data-management.import.validate` | Upload and check a file |
-| `data-management.import.execute` | Run an import |
-| `data-management.import.cancel` | Cancel a running import |
-| `data-management.export` | Queue and download exports |
-| `data-management.jobs.readAll` | See other users' jobs |
-| `data-management.import.retry` | Retry a failed import |
-| `data-management.mappings.manage` | Manage saved mappings (unused) |
+| Key                                 | Grants                         |
+| ----------------------------------- | ------------------------------ |
+| `data-management.view`              | See the page and history       |
+| `data-management.template.download` | Download templates             |
+| `data-management.import.validate`   | Upload and check a file        |
+| `data-management.import.execute`    | Run an import                  |
+| `data-management.import.cancel`     | Cancel a running import        |
+| `data-management.export`            | Queue and download exports     |
+| `data-management.jobs.readAll`      | See other users' jobs          |
+| `data-management.import.retry`      | Retry a failed import          |
+| `data-management.mappings.manage`   | Manage saved mappings (unused) |
 
 Held by global-admin, system-admin and HR. Validate and execute are separate on
 purpose: checking a file is safe, writing records is not.

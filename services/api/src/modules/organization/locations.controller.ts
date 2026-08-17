@@ -11,7 +11,11 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { Permissions } from '../../common/decorators/permissions.decorator';
+import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
+import {
+  Permissions,
+  RequirePermission,
+} from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
@@ -27,6 +31,8 @@ export class LocationsController {
   constructor(private readonly organizationService: OrganizationService) {}
 
   @Get()
+  @Permissions('locations.read')
+  @RequirePermission(ENTITY_KEYS.HIERARCHY, 'read')
   findAll(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: ListMasterDataDto,
@@ -39,6 +45,7 @@ export class LocationsController {
 
   @Get(':id')
   @Permissions('locations.read')
+  @RequirePermission(ENTITY_KEYS.HIERARCHY, 'read')
   findOne(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -48,6 +55,7 @@ export class LocationsController {
 
   @Post()
   @Permissions('locations.create')
+  @RequirePermission(ENTITY_KEYS.HIERARCHY, 'manage')
   create(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateLocationDto,
@@ -57,6 +65,7 @@ export class LocationsController {
 
   @Patch(':id')
   @Permissions('locations.update')
+  @RequirePermission(ENTITY_KEYS.HIERARCHY, 'manage')
   update(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -67,6 +76,7 @@ export class LocationsController {
 
   @Delete(':id')
   @Permissions('locations.update')
+  @RequirePermission(ENTITY_KEYS.HIERARCHY, 'manage')
   delete(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,

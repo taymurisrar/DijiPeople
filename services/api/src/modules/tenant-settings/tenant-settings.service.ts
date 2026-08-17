@@ -1,6 +1,15 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+} from '@nestjs/common';
+import { Prisma, SecurityAccessLevel, SecurityPrivilege } from '@prisma/client';
+import {
+  ENTITY_KEYS,
+  SECURITY_ACCESS_LEVEL_WEIGHT,
+} from '../../common/constants/rbac-matrix';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
+import { resolveEffectiveAccessLevel } from '../../common/security/rbac-query-scope';
 import { AuditService } from '../audit/audit.service';
 import { PublicTenantCacheService } from '../tenants/public-tenant-cache.service';
 import { UpdateTenantFeaturesDto } from './dto/update-tenant-features.dto';
@@ -14,6 +23,7 @@ import {
 } from './tenant-settings.catalog';
 import { TenantSettingsRepository } from './tenant-settings.repository';
 import { TenantSettingsResolverService } from './tenant-settings-resolver.service';
+import { ActiveOrganizationService } from './active-organization.service';
 
 type SettingsMap = Record<string, Record<string, Prisma.JsonValue>>;
 
@@ -84,7 +94,48 @@ export class TenantSettingsService {
     private readonly featureAccessService: FeatureAccessService,
     private readonly auditService: AuditService,
     private readonly publicTenantCacheService: PublicTenantCacheService,
+    private readonly activeOrganizationService: ActiveOrganizationService,
   ) {}
+
+  async getResolvedSettingsForUser(
+    currentUser: AuthenticatedUser,
+    requestedOrganizationId?: string,
+  ) {
+    const ownOrganizationId =
+      await this.activeOrganizationService.resolveForUser(
+        currentUser.tenantId,
+        currentUser.userId,
+      );
+    const requested = requestedOrganizationId?.trim();
+    let organizationId = ownOrganizationId;
+
+    if (requested && requested !== ownOrganizationId) {
+      const accessLevel = resolveEffectiveAccessLevel(
+        currentUser,
+        ENTITY_KEYS.SETTINGS,
+        SecurityPrivilege.READ,
+      );
+      const canPreviewOrganization =
+        SECURITY_ACCESS_LEVEL_WEIGHT[accessLevel] >=
+          SECURITY_ACCESS_LEVEL_WEIGHT[SecurityAccessLevel.ORGANIZATION] &&
+        (accessLevel === SecurityAccessLevel.TENANT ||
+          requested === currentUser.accessContext?.organizationId);
+
+      if (!canPreviewOrganization) {
+        throw new ForbiddenException({
+          code: 'ACCESS_DENIED',
+          message: 'You do not have permission to preview this organization.',
+        });
+      }
+
+      organizationId = await this.assertOrganizationInTenant(
+        currentUser.tenantId,
+        requested,
+      );
+    }
+
+    return this.getResolvedSettings(currentUser.tenantId, organizationId);
+  }
 
   async getTenantSettings(tenantId: string): Promise<SettingsResponse> {
     const [tenant, persistedSettings] = await Promise.all([

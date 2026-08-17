@@ -9,9 +9,15 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { MISC_PERMISSION_KEYS } from '../../common/constants/rbac-matrix';
+import {
+  ENTITY_KEYS,
+  MISC_PERMISSION_KEYS,
+} from '../../common/constants/rbac-matrix';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { Permissions } from '../../common/decorators/permissions.decorator';
+import {
+  Permissions,
+  RequirePermission,
+} from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
@@ -42,44 +48,55 @@ export class OrganizationsController {
   constructor(private readonly organizationService: OrganizationService) {}
 
   @Get()
+  @Permissions('hierarchy.read')
+  @RequirePermission(ENTITY_KEYS.HIERARCHY, 'read')
   findAll(@CurrentUser() user: AuthenticatedUser) {
-    return this.organizationService.findOrganizations(user.tenantId);
+    return this.organizationService.findOrganizationsForUser(user);
   }
 
   @Get(':id')
+  @Permissions('hierarchy.read')
+  @RequirePermission(ENTITY_KEYS.HIERARCHY, 'read')
   findOne(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
   ) {
-    return this.organizationService.findOrganizationById(user.tenantId, id);
+    return this.organizationService.findOrganizationForUser(user, id);
   }
 
   @Get(':id/children')
+  @Permissions('hierarchy.read')
+  @RequirePermission(ENTITY_KEYS.HIERARCHY, 'read')
   getChildren(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
   ) {
-    return this.organizationService.getChildOrganizations(user.tenantId, id);
+    return this.organizationService.getChildOrganizationsForUser(user, id);
   }
 
   @Get(':id/parents')
+  @Permissions('hierarchy.read')
+  @RequirePermission(ENTITY_KEYS.HIERARCHY, 'read')
   getParents(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
   ) {
-    return this.organizationService.getParentOrganizations(user.tenantId, id);
+    return this.organizationService.getParentOrganizationsForUser(user, id);
   }
 
   @Get(':id/subtree')
+  @Permissions('hierarchy.read')
+  @RequirePermission(ENTITY_KEYS.HIERARCHY, 'read')
   getSubtree(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
   ) {
-    return this.organizationService.fetchOrganizationSubtree(user.tenantId, id);
+    return this.organizationService.fetchOrganizationSubtreeForUser(user, id);
   }
 
   @Post()
   @Permissions(MISC_PERMISSION_KEYS.ORGANIZATION_MANAGE)
+  @RequirePermission(ENTITY_KEYS.HIERARCHY, 'manage')
   create(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateOrganizationDto,
@@ -89,6 +106,7 @@ export class OrganizationsController {
 
   @Patch(':id')
   @Permissions(MISC_PERMISSION_KEYS.ORGANIZATION_MANAGE)
+  @RequirePermission(ENTITY_KEYS.HIERARCHY, 'manage')
   update(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -99,6 +117,7 @@ export class OrganizationsController {
 
   @Delete(':id')
   @Permissions(MISC_PERMISSION_KEYS.ORGANIZATION_MANAGE)
+  @RequirePermission(ENTITY_KEYS.HIERARCHY, 'manage')
   remove(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,

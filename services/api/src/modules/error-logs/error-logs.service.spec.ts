@@ -121,6 +121,21 @@ describe('ErrorLogsService.findForUser tenant isolation', () => {
     expect(log).toBeNull();
   });
 
+  it.each([null, 'platform'])(
+    'denies a tenant support user a platform-scope log (%s)',
+    async (tenantId) => {
+      const service = buildService({ tenantId, userId: 'platform-user' });
+
+      const log = await service.findForUser('trace-1', {
+        userId: 'support-user',
+        tenantId: 'tenant-a',
+        roleKeys: supportRoles,
+      });
+
+      expect(log).toBeNull();
+    },
+  );
+
   it('reports a foreign trace exactly as it reports a missing one', async () => {
     const foreign = await buildService({
       tenantId: 'tenant-b',

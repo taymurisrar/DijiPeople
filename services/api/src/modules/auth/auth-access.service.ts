@@ -5,6 +5,7 @@ import { AuthenticatedUser } from '../../common/interfaces/authenticated-request
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { hasElevatedTenantRole } from '../../common/security/elevated-tenant-roles';
 import { platformAccessForRole } from '../platform-auth/platform-permissions';
+import { buildDirectPermissionPrivileges } from './direct-permission-privileges';
 
 @Injectable()
 export class AuthAccessService {
@@ -217,14 +218,22 @@ export class AuthAccessService {
       ]),
     );
     const teamIds = user.teamMemberships.map((membership) => membership.teamId);
-    const rolePrivileges = effectiveRoles.flatMap((role) =>
-      role.rolePrivileges.map((privilege) => ({
-        entityKey: privilege.entityKey,
-        privilege: privilege.privilege,
-        accessLevel: privilege.accessLevel,
-        roleId: role.id,
-      })),
-    );
+    const rolePrivileges = [
+      ...effectiveRoles.flatMap((role) =>
+        role.rolePrivileges.map((privilege) => ({
+          entityKey: privilege.entityKey,
+          privilege: privilege.privilege,
+          accessLevel: privilege.accessLevel,
+          roleId: role.id,
+        })),
+      ),
+      ...buildDirectPermissionPrivileges(
+        user.userPermissions.map(
+          (userPermission) => userPermission.permission.key,
+        ),
+        effectiveRoles,
+      ),
+    ];
     const miscPermissions = effectiveRoles.flatMap((role) =>
       role.miscPermissions
         .filter((permission) => permission.enabled)

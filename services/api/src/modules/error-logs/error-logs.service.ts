@@ -195,12 +195,12 @@ export class ErrorLogsService implements OnModuleInit, OnModuleDestroy {
      * stays indistinguishable from one that does not exist.
      *
      * Logs with no tenantId are platform-scope records (a failed sign-in that
-     * never resolved a tenant, for example). Their existing visibility is left
-     * unchanged so this remains a fix for the cross-tenant leak rather than a
-     * wider behaviour change.
+     * never resolved a tenant, for example). They are intentionally excluded
+     * from this tenant endpoint and remain available only through the
+     * platform-monitoring path.
      */
     const belongsToCallerTenant =
-      !log.tenantId || log.tenantId === user.tenantId;
+      Boolean(log.tenantId) && log.tenantId === user.tenantId;
 
     if (belongsToCallerTenant && this.isSupportUser(user)) {
       return log;

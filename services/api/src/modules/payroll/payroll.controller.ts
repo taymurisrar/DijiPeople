@@ -12,7 +12,12 @@ import {
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { Permissions } from '../../common/decorators/permissions.decorator';
+import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
+import {
+  Permissions,
+  RequireAnyPermission,
+  RequirePermission,
+} from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
@@ -36,18 +41,24 @@ export class PayrollController {
 
   @Get('configuration/health')
   @Permissions('payroll.settings.read')
+  @RequireAnyPermission(
+    { entityKey: ENTITY_KEYS.SETTINGS, action: 'read' },
+    { entityKey: ENTITY_KEYS.PAYROLL, action: 'read' },
+  )
   configurationHealth(@CurrentUser() user: AuthenticatedUser) {
     return this.payrollDefaults.health(user.tenantId);
   }
 
   @Post('configuration/initialize-defaults')
   @Permissions('payroll.settings.update')
+  @RequirePermission(ENTITY_KEYS.PAYROLL, 'write')
   initializeDefaults(@CurrentUser() user: AuthenticatedUser) {
     return this.payrollDefaults.initialize(user);
   }
 
   @Get('cycles')
   @Permissions('payroll.read')
+  @RequirePermission(ENTITY_KEYS.PAYROLL, 'read')
   listCycles(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: PayrollCycleQueryDto,
@@ -57,6 +68,7 @@ export class PayrollController {
 
   @Get('cycles/:cycleId')
   @Permissions('payroll.read')
+  @RequirePermission(ENTITY_KEYS.PAYROLL, 'read')
   getCycleById(
     @CurrentUser() user: AuthenticatedUser,
     @Param('cycleId', new ParseUUIDPipe()) cycleId: string,
@@ -66,6 +78,7 @@ export class PayrollController {
 
   @Post('cycles')
   @Permissions('payroll.write')
+  @RequirePermission(ENTITY_KEYS.PAYROLL, 'write')
   createCycle(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreatePayrollCycleDto,
@@ -75,6 +88,7 @@ export class PayrollController {
 
   @Patch('cycles/:cycleId')
   @Permissions('payroll.write')
+  @RequirePermission(ENTITY_KEYS.PAYROLL, 'write')
   updateCycle(
     @CurrentUser() user: AuthenticatedUser,
     @Param('cycleId', new ParseUUIDPipe()) cycleId: string,
@@ -85,6 +99,7 @@ export class PayrollController {
 
   @Post('cycles/:cycleId/generate-periods')
   @Permissions('payroll-periods.manage')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_PERIODS, 'manage')
   generatePeriods(
     @CurrentUser() user: AuthenticatedUser,
     @Param('cycleId', new ParseUUIDPipe()) cycleId: string,
@@ -95,6 +110,7 @@ export class PayrollController {
 
   @Post('cycles/:cycleId/generate-drafts')
   @Permissions('payroll.run')
+  @RequirePermission(ENTITY_KEYS.PAYROLL, 'manage')
   generateDrafts(
     @CurrentUser() user: AuthenticatedUser,
     @Param('cycleId', new ParseUUIDPipe()) cycleId: string,
@@ -104,6 +120,7 @@ export class PayrollController {
 
   @Get('cycles/:cycleId/preview')
   @Permissions('payroll.read')
+  @RequirePermission(ENTITY_KEYS.PAYROLL, 'read')
   previewGeneration(
     @CurrentUser() user: AuthenticatedUser,
     @Param('cycleId', new ParseUUIDPipe()) cycleId: string,
@@ -113,6 +130,7 @@ export class PayrollController {
 
   @Post('cycles/:cycleId/review')
   @Permissions('payroll.review')
+  @RequirePermission(ENTITY_KEYS.PAYROLL, 'approve')
   reviewDrafts(
     @CurrentUser() user: AuthenticatedUser,
     @Param('cycleId', new ParseUUIDPipe()) cycleId: string,
@@ -122,6 +140,7 @@ export class PayrollController {
 
   @Post('cycles/:cycleId/finalize')
   @Permissions('payroll.finalize')
+  @RequirePermission(ENTITY_KEYS.PAYROLL, 'manage')
   finalizeCycle(
     @CurrentUser() user: AuthenticatedUser,
     @Param('cycleId', new ParseUUIDPipe()) cycleId: string,
@@ -131,6 +150,7 @@ export class PayrollController {
 
   @Get('cycles/:cycleId/export')
   @Permissions('payroll.export')
+  @RequirePermission(ENTITY_KEYS.PAYROLL, 'export')
   async exportCycle(
     @CurrentUser() user: AuthenticatedUser,
     @Param('cycleId', new ParseUUIDPipe()) cycleId: string,
@@ -150,12 +170,14 @@ export class PayrollController {
 
   @Get('compensations')
   @Permissions('payroll.read')
+  @RequirePermission(ENTITY_KEYS.PAYROLL, 'read')
   listCompensations(@CurrentUser() user: AuthenticatedUser) {
     return this.payrollService.listCompensations(user.tenantId);
   }
 
   @Get('compensations/:compensationId')
   @Permissions('payroll.read')
+  @RequirePermission(ENTITY_KEYS.PAYROLL, 'read')
   getCompensation(
     @CurrentUser() user: AuthenticatedUser,
     @Param('compensationId', new ParseUUIDPipe()) compensationId: string,
@@ -165,6 +187,7 @@ export class PayrollController {
 
   @Post('compensations')
   @Permissions('payroll.write')
+  @RequirePermission(ENTITY_KEYS.PAYROLL, 'write')
   createCompensation(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateEmployeeCompensationDto,
@@ -174,6 +197,7 @@ export class PayrollController {
 
   @Patch('compensations/:compensationId')
   @Permissions('payroll.write')
+  @RequirePermission(ENTITY_KEYS.PAYROLL, 'write')
   updateCompensation(
     @CurrentUser() user: AuthenticatedUser,
     @Param('compensationId', new ParseUUIDPipe()) compensationId: string,

@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../../common/guards/roles.guard';
+import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { AuthModule } from '../auth/auth.module';
 import { BillingController } from './controllers/billing.controller';
 import { PublicBillingController } from './controllers/public-billing.controller';
@@ -33,7 +33,7 @@ import { WebhookService } from './services/webhook.service';
     CommercialConfigService,
     WebhookService,
     JwtAuthGuard,
-    RolesGuard,
+    PermissionsGuard,
   ],
   exports: [
     BillingService,

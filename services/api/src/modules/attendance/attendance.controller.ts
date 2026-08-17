@@ -19,8 +19,11 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import type { Request, Response } from 'express';
 import { setCsvDownloadHeaders } from '../../common/utils/csv-response.util';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { Permissions } from '../../common/decorators/permissions.decorator';
-import { RequireAnyPermission } from '../../common/decorators/require-permissions.decorator';
+import {
+  Permissions,
+  RequirePermission,
+  RequireAnyPermission,
+} from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
@@ -58,6 +61,7 @@ export class AttendanceController {
   ) {}
 
   @Post('check-in')
+  @Permissions('attendance.checkin')
   @RequireAnyPermission({ entityKey: ENTITY_KEYS.ATTENDANCE, action: 'create' })
   checkIn(
     @CurrentUser() user: AuthenticatedUser,
@@ -71,6 +75,7 @@ export class AttendanceController {
   }
 
   @Post('check-out')
+  @Permissions('attendance.checkout')
   @RequireAnyPermission(
     { entityKey: ENTITY_KEYS.ATTENDANCE, action: 'create' },
     { entityKey: ENTITY_KEYS.ATTENDANCE, action: 'write' },
@@ -88,6 +93,7 @@ export class AttendanceController {
 
   @Get('mine')
   @Permissions('attendance.read')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'read')
   listMine(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: AttendanceQueryDto,
@@ -97,24 +103,28 @@ export class AttendanceController {
 
   @Get('mine/active')
   @Permissions('attendance.read')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'read')
   getMyActiveAttendance(@CurrentUser() user: AuthenticatedUser) {
     return this.attendanceService.getMyActiveAttendance(user);
   }
 
   @Get('mine/today')
   @Permissions('attendance.read')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'read')
   getTodayAttendance(@CurrentUser() user: AuthenticatedUser) {
     return this.attendanceService.getTodayAttendance(user);
   }
 
   @Get('runtime-context')
   @Permissions('attendance.read')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'read')
   getSelfServiceRuntimeContext(@CurrentUser() user: AuthenticatedUser) {
     return this.attendanceService.getSelfServiceRuntimeContext(user);
   }
 
   @Delete(':entryId')
   @Permissions('attendance.manage')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'manage')
   deleteAttendanceEntry(
     @CurrentUser() user: AuthenticatedUser,
     @Param('entryId', new ParseUUIDPipe()) entryId: string,
@@ -124,6 +134,10 @@ export class AttendanceController {
 
   @Get(':entryId/timeline')
   @Permissions('attendance.read', 'timeline.read')
+  @RequireAnyPermission(
+    { entityKey: ENTITY_KEYS.ATTENDANCE, action: 'read' },
+    { entityKey: ENTITY_KEYS.PROJECTS, action: 'read' },
+  )
   async getTimeline(
     @CurrentUser() user: AuthenticatedUser,
     @Param('entryId', new ParseUUIDPipe()) entryId: string,
@@ -139,6 +153,7 @@ export class AttendanceController {
 
   @Get('mine/summary')
   @Permissions('attendance.read')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'read')
   mySummary(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: AttendanceSummaryQueryDto,
@@ -148,6 +163,7 @@ export class AttendanceController {
 
   @Get('team')
   @Permissions('attendance.read')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'read')
   listTeam(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: AttendanceQueryDto,
@@ -157,6 +173,7 @@ export class AttendanceController {
 
   @Get('team/summary')
   @Permissions('attendance.read')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'read')
   teamSummary(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: AttendanceSummaryQueryDto,
@@ -166,6 +183,7 @@ export class AttendanceController {
 
   @Post('manual')
   @Permissions('attendance.manage')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'manage')
   createManualEntry(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateManualAttendanceEntryDto,
@@ -175,6 +193,7 @@ export class AttendanceController {
 
   @Patch('manual/:entryId')
   @Permissions('attendance.manage')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'manage')
   updateManualEntry(
     @CurrentUser() user: AuthenticatedUser,
     @Param('entryId', new ParseUUIDPipe()) entryId: string,
@@ -184,6 +203,8 @@ export class AttendanceController {
   }
 
   @Get('correction-requests')
+  @Permissions('dashboard.view')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'read')
   listCorrectionRequests(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: AttendanceCorrectionQueryDto,
@@ -192,6 +213,8 @@ export class AttendanceController {
   }
 
   @Post('correction-requests')
+  @Permissions('attendance.correction.create')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'create')
   createCorrectionRequest(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateAttendanceCorrectionRequestDto,
@@ -200,6 +223,8 @@ export class AttendanceController {
   }
 
   @Get('correction-requests/:id')
+  @Permissions('dashboard.view')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'read')
   getCorrectionRequest(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -208,6 +233,8 @@ export class AttendanceController {
   }
 
   @Post('correction-requests/:id/approve')
+  @Permissions('attendance.correction.approve')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'approve')
   approveCorrectionRequest(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -217,6 +244,8 @@ export class AttendanceController {
   }
 
   @Post('correction-requests/:id/reject')
+  @Permissions('attendance.correction.reject')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'reject')
   rejectCorrectionRequest(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -227,6 +256,7 @@ export class AttendanceController {
 
   @Get('export')
   @Permissions('attendance.export')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'export')
   async exportAttendance(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: AttendanceQueryDto,
@@ -243,6 +273,7 @@ export class AttendanceController {
 
   @Get('export-template')
   @Permissions('attendance.import')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'import')
   exportAttendanceTemplate(@Res({ passthrough: true }) response: Response) {
     const file = this.attendanceService.exportAttendanceTemplate();
     setCsvDownloadHeaders(response, file.filename);
@@ -251,6 +282,7 @@ export class AttendanceController {
 
   @Post('import')
   @Permissions('attendance.import')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'import')
   @UseInterceptors(FileInterceptor('file'))
   importAttendance(
     @CurrentUser() user: AuthenticatedUser,
@@ -262,18 +294,21 @@ export class AttendanceController {
 
   @Get('policy')
   @Permissions('attendance.manage')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'manage')
   getPolicy(@CurrentUser() user: AuthenticatedUser) {
     return this.attendanceService.getPolicy(user);
   }
 
   @Get('configuration')
   @Permissions('attendance.read')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'read')
   getRuntimeConfiguration(@CurrentUser() user: AuthenticatedUser) {
     return this.attendanceService.getRuntimeConfiguration(user);
   }
 
   @Patch('policy')
   @Permissions('attendance.manage')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'manage')
   updatePolicy(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: UpdateAttendancePolicyDto,
@@ -283,24 +318,28 @@ export class AttendanceController {
 
   @Get('locations')
   @Permissions('attendance.read')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'read')
   listOfficeLocations(@CurrentUser() user: AuthenticatedUser) {
     return this.attendanceService.listOfficeLocations(user);
   }
 
   @Get('shifts')
   @Permissions('attendance.read')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'read')
   listShiftTemplates(@CurrentUser() user: AuthenticatedUser) {
     return this.attendanceService.listShiftTemplates(user);
   }
 
   @Get('integrations')
   @Permissions('attendance.integration.manage')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'manage')
   listIntegrations(@CurrentUser() user: AuthenticatedUser) {
     return this.attendanceService.listIntegrationConfigs(user);
   }
 
   @Post('integrations')
   @Permissions('attendance.integration.manage')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'manage')
   createIntegration(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateAttendanceIntegrationDto,
@@ -310,6 +349,7 @@ export class AttendanceController {
 
   @Patch('integrations/:integrationId')
   @Permissions('attendance.integration.manage')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'manage')
   updateIntegration(
     @CurrentUser() user: AuthenticatedUser,
     @Param('integrationId', new ParseUUIDPipe()) integrationId: string,
@@ -324,6 +364,7 @@ export class AttendanceController {
 
   @Get(':entryId')
   @Permissions('attendance.read')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'read')
   getAttendanceEntry(
     @CurrentUser() user: AuthenticatedUser,
     @Param('entryId', new ParseUUIDPipe()) entryId: string,
@@ -332,6 +373,7 @@ export class AttendanceController {
   }
 
   @Patch(':entryId/override')
+  @Permissions('attendance.override')
   @RequireAnyPermission(
     { entityKey: ENTITY_KEYS.ATTENDANCE, action: 'write' },
     { entityKey: ENTITY_KEYS.ATTENDANCE, action: 'manage' },

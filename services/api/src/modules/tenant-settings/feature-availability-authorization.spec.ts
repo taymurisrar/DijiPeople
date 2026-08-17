@@ -1,6 +1,8 @@
 import { ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { SecurityAccessLevel, SecurityPrivilege } from '@prisma/client';
 import { PERMISSION_KEYS } from '../../common/constants/permissions';
+import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { TenantSettingsController } from './tenant-settings.controller';
@@ -32,6 +34,17 @@ function buildUser(
     roleIds: [],
     roleKeys,
     permissionKeys,
+    rolePrivileges: permissionKeys.includes(
+      PERMISSION_KEYS.TENANT_SETTINGS_RESOLVED_READ,
+    )
+      ? [
+          {
+            entityKey: ENTITY_KEYS.TENANT_SETTINGS_RESOLVED,
+            privilege: SecurityPrivilege.READ,
+            accessLevel: SecurityAccessLevel.SELF,
+          },
+        ]
+      : [],
   };
 }
 

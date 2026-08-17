@@ -9,7 +9,11 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { Permissions } from '../../common/decorators/permissions.decorator';
+import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
+import {
+  Permissions,
+  RequirePermission,
+} from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
@@ -24,27 +28,39 @@ import { SettingsRuntimeService } from './settings-runtime.service';
 export class SettingsRuntimeController {
   constructor(private readonly service: SettingsRuntimeService) {}
 
-  @Get(':settingKey') @Permissions('settings.read') list(
+  @Get(':settingKey')
+  @Permissions('settings.read')
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'read')
+  list(
     @CurrentUser() user: AuthenticatedUser,
     @Param('settingKey') key: string,
   ) {
     return this.service.list(user, key);
   }
-  @Get(':settingKey/:id') @Permissions('settings.read') detail(
+  @Get(':settingKey/:id')
+  @Permissions('settings.read')
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'read')
+  detail(
     @CurrentUser() user: AuthenticatedUser,
     @Param('settingKey') key: string,
     @Param('id') id: string,
   ) {
     return this.service.detail(user, key, id);
   }
-  @Post(':settingKey') @Permissions('settings.update') create(
+  @Post(':settingKey')
+  @Permissions('settings.update')
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'write')
+  create(
     @CurrentUser() user: AuthenticatedUser,
     @Param('settingKey') key: string,
     @Body() dto: CreateConfigurationRecordDto,
   ) {
     return this.service.create(user, key, dto);
   }
-  @Patch(':settingKey/:id') @Permissions('settings.update') update(
+  @Patch(':settingKey/:id')
+  @Permissions('settings.update')
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'write')
+  update(
     @CurrentUser() user: AuthenticatedUser,
     @Param('settingKey') key: string,
     @Param('id') id: string,
@@ -52,7 +68,10 @@ export class SettingsRuntimeController {
   ) {
     return this.service.update(user, key, id, dto);
   }
-  @Delete(':settingKey/:id') @Permissions('settings.update') archive(
+  @Delete(':settingKey/:id')
+  @Permissions('settings.update')
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'write')
+  archive(
     @CurrentUser() user: AuthenticatedUser,
     @Param('settingKey') key: string,
     @Param('id') id: string,

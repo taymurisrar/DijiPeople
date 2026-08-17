@@ -552,3 +552,101 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Proven to fail without the fix** | The unfixed browser run showed `website must be a URL address` and zero created inquiries. |
 | **Fixed** | 2026-08-17, branch `agent/framework-remediation` |
 | **Active** | yes |
+
+### REG-040 — Every tenant PermissionsGuard route declares both authorization families
+
+| | |
+|---|---|
+| **Bug class** | `missing-authorization-metadata` |
+| **Module** | `services/api/src` |
+| **Bug record** | BUG-0049 · ITEM-0043 |
+| **Root cause** | Legacy and matrix authorization evolved independently, leaving 796 guarded handlers with incomplete metadata and no required invariant. |
+| **Regression test** | `services/api/src/common/constants/wiring-invariants.spec.ts` |
+| **Scenario** | Discover every controller route; every non-public handler behind `PermissionsGuard` must expose non-empty legacy and matrix metadata, while every alternate guard/service-authorized surface must be explicitly reviewed. |
+| **Proven to fail without the fix** | The baseline test reported 796 violations: 3 legacy-only gaps, 715 matrix-only gaps and 78 dual-missing routes. |
+| **Fixed** | 2026-08-17, branch `agent/remediation-authorization` |
+| **Active** | yes |
+
+### REG-041 — Document authorization follows the owning employee
+
+| | |
+|---|---|
+| **Bug class** | `object-authorization-bypass` |
+| **Module** | `services/api/src/modules/documents` |
+| **Bug record** | BUG-0053 |
+| **Root cause** | General list/id/file and mutation paths filtered only by tenant even when the caller's document and employee matrix scope was SELF or a business-unit subtree. |
+| **Regression test** | `services/api/src/modules/documents/documents-object-authorization.spec.ts` |
+| **Scenario** | A SELF-scoped caller cannot list, open, update, archive or upload against another employee's document or employee id; a tenant-scoped reader retains tenant access. |
+| **Proven to fail without the fix** | The original service never called an owning-employee scope assertion on general reads, update, archive or upload. |
+| **Fixed** | 2026-08-17, branch `agent/remediation-authorization` |
+| **Active** | yes |
+
+### REG-042 — Partner operations use platform capabilities, not tenant role aliases
+
+| | |
+|---|---|
+| **Bug class** | `authorization-domain-confusion` |
+| **Module** | `services/api/src/modules/partners` |
+| **Bug record** | BUG-0055 |
+| **Root cause** | Platform routes used tenant `RolesGuard` aliases, allowing a platform MEMBER to inherit `system-customizer` while denying legitimate partner platform roles. |
+| **Regression test** | `services/api/src/modules/partners/partners-platform-authorization.spec.ts` |
+| **Scenario** | MEMBER and tenant JWT callers are denied; PARTNER_MANAGER can read/manage; PRESALES is read-only. |
+| **Proven to fail without the fix** | The former controller accepted role aliases and most service methods received no actor with which to assert a platform capability. |
+| **Fixed** | 2026-08-17, branch `agent/remediation-authorization` |
+| **Active** | yes |
+
+### REG-043 — Billing reads and writes require distinct capabilities
+
+| | |
+|---|---|
+| **Bug class** | `role-capability-mismatch` |
+| **Module** | `services/api/src/modules/billing` |
+| **Bug record** | BUG-0056 |
+| **Root cause** | Billing routes used coarse role aliases, so a system customizer could mutate billing without a billing capability while a CEO holding `billing.view` was refused. |
+| **Regression test** | `services/api/src/modules/billing/billing-authorization.spec.ts` |
+| **Scenario** | Billing readers can use read routes, unprivileged users are denied, and writes require `billing.manage` plus tenant-administration MANAGE. |
+| **Proven to fail without the fix** | The former controller used only `RolesGuard` and declared no billing permission metadata. |
+| **Fixed** | 2026-08-17, branch `agent/remediation-authorization` |
+| **Active** | yes |
+
+### REG-044 — Resolved settings cannot preview arbitrary organization context
+
+| | |
+|---|---|
+| **Bug class** | `client-selected-authorization-scope` |
+| **Module** | `services/api/src/modules/tenant-settings` |
+| **Bug record** | BUG-0057 |
+| **Root cause** | `dashboard.view` was treated as authority to resolve client-selected organization, business-unit, employee and project ids; explicit organization preview checked tenant membership only. |
+| **Regression test** | `services/api/src/modules/tenant-settings/settings-context-authorization.spec.ts` |
+| **Scenario** | SELF callers ignore arbitrary context ids; organization readers may preview only validated ids within their matrix scope; cross-tenant ids are hidden. |
+| **Proven to fail without the fix** | Both controllers forwarded arbitrary query ids directly into the resolver without an access-level check. |
+| **Fixed** | 2026-08-17, branch `agent/remediation-authorization` |
+| **Active** | yes |
+
+### REG-045 — Hierarchy reads and mutations stay inside matrix scope
+
+| | |
+|---|---|
+| **Bug class** | `object-authorization-bypass` |
+| **Module** | `services/api/src/modules/organization` |
+| **Bug record** | BUG-0058 |
+| **Root cause** | Organization, business-unit and department services accepted only `tenantId`, so scoped matrix privileges were never applied to sibling objects or root creation. |
+| **Regression test** | `services/api/src/modules/organization/organization-read-scope.spec.ts` · `services/api/src/modules/organization/organization-structure-authorization.spec.ts` |
+| **Scenario** | Organization/BU/department lists, detail, traversal and mutations hide sibling scope; only TENANT management scope can create or move a root organization. |
+| **Proven to fail without the fix** | The previous controller/service contracts forwarded tenant id only and the focused test's sibling records remained visible. |
+| **Fixed** | 2026-08-17, branch `agent/remediation-authorization` |
+| **Active** | yes |
+
+### REG-046 — Legacy custom-role and direct-user grants survive matrix enforcement
+
+| | |
+|---|---|
+| **Bug class** | `authorization-migration-lockout` |
+| **Module** | `services/api/src/modules/permissions`, `services/api/src/modules/auth` |
+| **Bug record** | BUG-0049 · ITEM-0043 |
+| **Root cause** | Adding matrix metadata would deny legacy-only custom roles and direct `UserPermission` grants because only system roles had `RolePrivilege` rows and no user-privilege model exists. |
+| **Regression test** | `services/api/src/modules/permissions/permission-bootstrap-custom-role.spec.ts` · `services/api/src/modules/auth/direct-permission-privileges.spec.ts` |
+| **Scenario** | Bootstrap adds only missing custom-role matrix rows at the role scope; direct grants synthesize only corresponding privileges at the user's highest assigned role scope, defaulting to SELF. |
+| **Proven to fail without the fix** | Before the compatibility bridge, neither path contributed a matching entry to `AuthenticatedUser.rolePrivileges`. |
+| **Fixed** | 2026-08-17, branch `agent/remediation-authorization` |
+| **Active** | yes |

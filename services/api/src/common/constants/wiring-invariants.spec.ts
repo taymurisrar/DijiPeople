@@ -473,4 +473,67 @@ describe('permission wiring invariants', () => {
 
     expect({ violations }).toEqual({ violations: [] });
   }, 600_000);
+
+  it('keeps every non-PermissionsGuard route on an explicit reviewed authorization surface', async () => {
+    const reflector = new Reflector();
+    const handlers = await collectRouteHandlers();
+    const serviceAuthorizedControllers = new Set([
+      'ContractsController',
+      'ContractTemplatesController',
+      'SignatureRequestsController',
+      'PlatformApprovalsController',
+      'PartnerExperienceAdminController',
+      'PlatformEventsController',
+      'PlatformMonitoringController',
+      'PlatformRuntimeController',
+      'PlatformUsersController',
+      'SupportCasesController',
+      'TenantControlPlaneController',
+      'PartnersController',
+      'CustomizationRuntimeController',
+      'DataController',
+      'MetadataController',
+      'ErrorLogsController',
+      'OrganizationAccessController',
+      'OrganizationHierarchyController',
+      'WorkspaceController',
+      'AppController',
+    ]);
+    const approvedAlternativeGuards = new Set([
+      'PlatformPermissionsGuard',
+      'PartnerAuthGuard',
+      'GatewayAuthGuard',
+      'PublicRateLimitGuard',
+    ]);
+    const violations: string[] = [];
+
+    for (const handler of handlers) {
+      const lookup = [handler.target, handler.controllerClass] as Parameters<
+        Reflector['getAllAndOverride']
+      >[1];
+      if (
+        reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, lookup) === true ||
+        usesPermissionsGuard(handler.guards)
+      ) {
+        continue;
+      }
+
+      const guardNames = (handler.guards as { name?: string }[]).map(
+        (guard) => guard?.name ?? 'anonymous',
+      );
+      if (
+        serviceAuthorizedControllers.has(handler.controller) ||
+        guardNames.some((name) => approvedAlternativeGuards.has(name))
+      ) {
+        continue;
+      }
+
+      violations.push(
+        `${handler.controller}.${handler.handler} [${handler.httpMethod} ${handler.route}] ` +
+          `has unreviewed guards: ${guardNames.join('+') || '(none)'} (${handler.file})`,
+      );
+    }
+
+    expect({ violations: violations.sort() }).toEqual({ violations: [] });
+  }, 600_000);
 });

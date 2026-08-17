@@ -11,6 +11,7 @@ import { EnterpriseConfigurationController } from './enterprise-configuration.co
 import { FieldSecurityController } from './field-security.controller';
 import { EnterpriseConfigurationService } from './enterprise-configuration.service';
 import { SettingsContextController } from './settings-context.controller';
+import { SettingsContextService } from './settings-context.service';
 import { TenantSettingsController } from './tenant-settings.controller';
 import { TenantBrandingController } from './tenant-branding.controller';
 import { TenantSettingsResolverService } from './tenant-settings-resolver.service';
@@ -29,6 +30,7 @@ import { TenantSettingsService } from './tenant-settings.service';
   providers: [
     ActiveOrganizationService,
     ConfigurationResolverService,
+    SettingsContextService,
     EnterpriseConfigurationService,
     TenantSettingsRepository,
     TenantSettingsService,

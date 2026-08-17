@@ -11,7 +11,11 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { Permissions } from '../../common/decorators/permissions.decorator';
+import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
+import {
+  Permissions,
+  RequirePermission,
+} from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
@@ -29,6 +33,7 @@ export class OnboardingController {
 
   @Get()
   @Permissions('onboarding.read')
+  @RequirePermission(ENTITY_KEYS.ONBOARDING, 'read')
   findAll(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: OnboardingQueryDto,
@@ -38,12 +43,14 @@ export class OnboardingController {
 
   @Get('templates')
   @Permissions('onboarding.read')
+  @RequirePermission(ENTITY_KEYS.ONBOARDING, 'read')
   findTemplates(@CurrentUser() user: AuthenticatedUser) {
     return this.onboardingService.findTemplates(user.tenantId);
   }
 
   @Get(':onboardingId')
   @Permissions('onboarding.read')
+  @RequirePermission(ENTITY_KEYS.ONBOARDING, 'read')
   findOne(
     @CurrentUser() user: AuthenticatedUser,
     @Param('onboardingId', new ParseUUIDPipe()) onboardingId: string,
@@ -56,6 +63,7 @@ export class OnboardingController {
 
   @Post('templates')
   @Permissions('onboarding.create')
+  @RequirePermission(ENTITY_KEYS.ONBOARDING, 'create')
   createTemplate(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateOnboardingTemplateDto,
@@ -65,6 +73,7 @@ export class OnboardingController {
 
   @Patch('templates/:templateId')
   @Permissions('onboarding.update')
+  @RequirePermission(ENTITY_KEYS.ONBOARDING, 'write')
   updateTemplate(
     @CurrentUser() user: AuthenticatedUser,
     @Param('templateId', new ParseUUIDPipe()) templateId: string,
@@ -75,6 +84,7 @@ export class OnboardingController {
 
   @Delete()
   @Permissions('onboarding.delete')
+  @RequirePermission(ENTITY_KEYS.ONBOARDING, 'delete')
   deleteMany(
     @CurrentUser() user: AuthenticatedUser,
     @Body() body: { recordIds?: string[]; ids?: string[] },
@@ -87,6 +97,7 @@ export class OnboardingController {
 
   @Delete(':onboardingId')
   @Permissions('onboarding.update')
+  @RequirePermission(ENTITY_KEYS.ONBOARDING, 'write')
   deleteOne(
     @CurrentUser() user: AuthenticatedUser,
     @Param('onboardingId', new ParseUUIDPipe()) onboardingId: string,
@@ -96,6 +107,7 @@ export class OnboardingController {
 
   @Post('from-candidate')
   @Permissions('onboarding.create')
+  @RequirePermission(ENTITY_KEYS.ONBOARDING, 'create')
   createFromCandidate(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateEmployeeOnboardingDto,
@@ -105,6 +117,7 @@ export class OnboardingController {
 
   @Patch(':onboardingId/tasks/:taskId')
   @Permissions('onboarding.update')
+  @RequirePermission(ENTITY_KEYS.ONBOARDING, 'write')
   updateTask(
     @CurrentUser() user: AuthenticatedUser,
     @Param('onboardingId', new ParseUUIDPipe()) onboardingId: string,
@@ -116,6 +129,7 @@ export class OnboardingController {
 
   @Post(':onboardingId/convert-to-employee')
   @Permissions('onboarding.update', 'employees.create')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'create')
   convertToEmployee(
     @CurrentUser() user: AuthenticatedUser,
     @Param('onboardingId', new ParseUUIDPipe()) onboardingId: string,
@@ -125,6 +139,7 @@ export class OnboardingController {
 
   @Post(':onboardingId/draft-employee')
   @Permissions('onboarding.update', 'employees.create')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'create')
   ensureDraftEmployee(
     @CurrentUser() user: AuthenticatedUser,
     @Param('onboardingId', new ParseUUIDPipe()) onboardingId: string,

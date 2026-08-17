@@ -1,16 +1,20 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { PartnerStatus, Prisma } from '@prisma/client';
 import { randomBytes } from 'crypto';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
+import { userHasPlatformPermission } from '../platform-auth/platform-permissions';
 import {
   CreatePartnerCommissionDto,
   CreatePartnerDto,
   CreatePartnerReferralLinkDto,
   PartnerLifecycleActionDto,
+  PartnerReferralLinkActionDto,
   PartnerQueryDto,
   UpdatePartnerCommissionDto,
   UpdatePartnerDto,
@@ -19,6 +23,89 @@ import {
 @Injectable()
 export class PartnersService {
   constructor(private readonly prisma: PrismaService) {}
+
+  listForUser(user: AuthenticatedUser, query: PartnerQueryDto) {
+    this.assertRead(user);
+    return this.list(query);
+  }
+
+  getForUser(user: AuthenticatedUser, id: string) {
+    this.assertRead(user);
+    return this.get(id);
+  }
+
+  createForUser(user: AuthenticatedUser, dto: CreatePartnerDto) {
+    this.assertWrite(user);
+    return this.create(dto);
+  }
+
+  updateForUser(user: AuthenticatedUser, id: string, dto: UpdatePartnerDto) {
+    this.assertWrite(user);
+    return this.update(id, dto);
+  }
+
+  lifecycleActionForUser(
+    user: AuthenticatedUser,
+    id: string,
+    dto: PartnerLifecycleActionDto,
+  ) {
+    this.assertWrite(user);
+    return this.lifecycleAction(id, user.userId, dto);
+  }
+
+  createReferralLinkForUser(
+    user: AuthenticatedUser,
+    id: string,
+    dto: CreatePartnerReferralLinkDto,
+  ) {
+    this.assertWrite(user);
+    return this.createReferralLink(id, dto, user.userId);
+  }
+
+  referralLinkActionForUser(
+    user: AuthenticatedUser,
+    id: string,
+    linkId: string,
+    action: PartnerReferralLinkActionDto['action'],
+  ) {
+    this.assertWrite(user);
+    return this.referralLinkAction(id, linkId, action, user.userId);
+  }
+
+  createCommissionForUser(
+    user: AuthenticatedUser,
+    id: string,
+    dto: CreatePartnerCommissionDto,
+  ) {
+    this.assertWrite(user);
+    return this.createCommission(id, dto);
+  }
+
+  updateCommissionForUser(
+    user: AuthenticatedUser,
+    id: string,
+    commissionId: string,
+    dto: UpdatePartnerCommissionDto,
+  ) {
+    this.assertWrite(user);
+    return this.updateCommission(id, commissionId, dto);
+  }
+
+  private assertRead(user: AuthenticatedUser) {
+    if (!user.platform?.id) {
+      throw new ForbiddenException('Platform access is required.');
+    }
+    if (!userHasPlatformPermission(user, 'partners.read')) {
+      throw new ForbiddenException('Partner read access is required.');
+    }
+  }
+
+  private assertWrite(user: AuthenticatedUser) {
+    this.assertRead(user);
+    if (!userHasPlatformPermission(user, 'partners.manage')) {
+      throw new ForbiddenException('Partner management access is required.');
+    }
+  }
   async list(
     query: PartnerQueryDto,
     runtime?: {

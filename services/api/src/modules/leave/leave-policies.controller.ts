@@ -11,7 +11,11 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { Permissions } from '../../common/decorators/permissions.decorator';
+import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
+import {
+  Permissions,
+  RequirePermission,
+} from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
@@ -31,6 +35,7 @@ export class LeavePoliciesController {
 
   @Get()
   @Permissions('leave-policies.read')
+  @RequirePermission(ENTITY_KEYS.LEAVE_REQUESTS, 'read')
   findAll(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: ListLeaveConfigDto,
@@ -40,12 +45,14 @@ export class LeavePoliciesController {
 
   @Get('assignments')
   @Permissions('leave-policy-assignments.read')
+  @RequirePermission(ENTITY_KEYS.LEAVE_REQUESTS, 'read')
   listAssignments(@CurrentUser() user: AuthenticatedUser) {
     return this.leaveService.listLeavePolicyAssignments(user);
   }
 
   @Post('assignments')
   @Permissions('leave-policy-assignments.create')
+  @RequirePermission(ENTITY_KEYS.LEAVE_REQUESTS, 'create')
   createAssignment(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateLeavePolicyAssignmentDto,
@@ -55,6 +62,7 @@ export class LeavePoliciesController {
 
   @Patch('assignments/:assignmentId')
   @Permissions('leave-policy-assignments.update')
+  @RequirePermission(ENTITY_KEYS.LEAVE_REQUESTS, 'write')
   updateAssignment(
     @CurrentUser() user: AuthenticatedUser,
     @Param('assignmentId', new ParseUUIDPipe()) assignmentId: string,
@@ -69,6 +77,7 @@ export class LeavePoliciesController {
 
   @Delete('assignments/:assignmentId')
   @Permissions('leave-policy-assignments.delete')
+  @RequirePermission(ENTITY_KEYS.LEAVE_REQUESTS, 'delete')
   deleteAssignment(
     @CurrentUser() user: AuthenticatedUser,
     @Param('assignmentId', new ParseUUIDPipe()) assignmentId: string,
@@ -78,6 +87,7 @@ export class LeavePoliciesController {
 
   @Get(':id')
   @Permissions('leave-policies.read')
+  @RequirePermission(ENTITY_KEYS.LEAVE_REQUESTS, 'read')
   findOne(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -87,6 +97,7 @@ export class LeavePoliciesController {
 
   @Post()
   @Permissions('leave-policies.create')
+  @RequirePermission(ENTITY_KEYS.LEAVE_REQUESTS, 'create')
   create(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateLeavePolicyDto,
@@ -96,6 +107,7 @@ export class LeavePoliciesController {
 
   @Patch(':id')
   @Permissions('leave-policies.update')
+  @RequirePermission(ENTITY_KEYS.LEAVE_REQUESTS, 'write')
   update(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -106,6 +118,7 @@ export class LeavePoliciesController {
 
   @Delete(':id')
   @Permissions('leave-policies.update')
+  @RequirePermission(ENTITY_KEYS.LEAVE_REQUESTS, 'write')
   deactivate(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -115,6 +128,7 @@ export class LeavePoliciesController {
 
   @Get(':policyId/rules')
   @Permissions('leave-policies.read')
+  @RequirePermission(ENTITY_KEYS.LEAVE_REQUESTS, 'read')
   listPolicyRules(
     @CurrentUser() user: AuthenticatedUser,
     @Param('policyId', new ParseUUIDPipe()) policyId: string,
@@ -124,6 +138,7 @@ export class LeavePoliciesController {
 
   @Get(':policyId/assignments')
   @Permissions('leave-policy-assignments.read')
+  @RequirePermission(ENTITY_KEYS.LEAVE_REQUESTS, 'read')
   listPolicyAssignments(
     @CurrentUser() user: AuthenticatedUser,
     @Param('policyId', new ParseUUIDPipe()) policyId: string,
@@ -136,6 +151,7 @@ export class LeavePoliciesController {
 
   @Post(':policyId/rules')
   @Permissions('leave-policies.update')
+  @RequirePermission(ENTITY_KEYS.LEAVE_REQUESTS, 'write')
   createPolicyRule(
     @CurrentUser() user: AuthenticatedUser,
     @Param('policyId', new ParseUUIDPipe()) policyId: string,
@@ -146,6 +162,7 @@ export class LeavePoliciesController {
 
   @Patch(':policyId/rules/:ruleId')
   @Permissions('leave-policies.update')
+  @RequirePermission(ENTITY_KEYS.LEAVE_REQUESTS, 'write')
   updatePolicyRule(
     @CurrentUser() user: AuthenticatedUser,
     @Param('policyId', new ParseUUIDPipe()) policyId: string,
@@ -157,6 +174,7 @@ export class LeavePoliciesController {
 
   @Delete(':policyId/rules/:ruleId')
   @Permissions('leave-policies.update')
+  @RequirePermission(ENTITY_KEYS.LEAVE_REQUESTS, 'write')
   deletePolicyRule(
     @CurrentUser() user: AuthenticatedUser,
     @Param('policyId', new ParseUUIDPipe()) policyId: string,

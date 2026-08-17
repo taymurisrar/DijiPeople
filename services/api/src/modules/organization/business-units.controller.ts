@@ -10,9 +10,15 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { MISC_PERMISSION_KEYS } from '../../common/constants/rbac-matrix';
+import {
+  ENTITY_KEYS,
+  MISC_PERMISSION_KEYS,
+} from '../../common/constants/rbac-matrix';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { Permissions } from '../../common/decorators/permissions.decorator';
+import {
+  Permissions,
+  RequirePermission,
+} from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
@@ -39,47 +45,58 @@ export class BusinessUnitsController {
   constructor(private readonly organizationService: OrganizationService) {}
 
   @Get()
+  @Permissions('hierarchy.read')
+  @RequirePermission(ENTITY_KEYS.HIERARCHY, 'read')
   findAll(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: ListMasterDataDto,
   ) {
-    return this.organizationService.findBusinessUnits(user.tenantId, query);
+    return this.organizationService.findBusinessUnitsForUser(user, query);
   }
 
   @Get(':id')
+  @Permissions('hierarchy.read')
+  @RequirePermission(ENTITY_KEYS.HIERARCHY, 'read')
   findOne(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
   ) {
-    return this.organizationService.findBusinessUnitById(user.tenantId, id);
+    return this.organizationService.findBusinessUnitForUser(user, id);
   }
 
   @Get(':id/children')
+  @Permissions('hierarchy.read')
+  @RequirePermission(ENTITY_KEYS.HIERARCHY, 'read')
   getChildren(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
   ) {
-    return this.organizationService.getChildBusinessUnits(user.tenantId, id);
+    return this.organizationService.getChildBusinessUnitsForUser(user, id);
   }
 
   @Get(':id/parents')
+  @Permissions('hierarchy.read')
+  @RequirePermission(ENTITY_KEYS.HIERARCHY, 'read')
   getParents(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
   ) {
-    return this.organizationService.getParentBusinessUnits(user.tenantId, id);
+    return this.organizationService.getParentBusinessUnitsForUser(user, id);
   }
 
   @Get(':id/subtree')
+  @Permissions('hierarchy.read')
+  @RequirePermission(ENTITY_KEYS.HIERARCHY, 'read')
   getSubtree(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
   ) {
-    return this.organizationService.fetchBusinessUnitSubtree(user.tenantId, id);
+    return this.organizationService.fetchBusinessUnitSubtreeForUser(user, id);
   }
 
   @Post()
   @Permissions(MISC_PERMISSION_KEYS.ORGANIZATION_MANAGE)
+  @RequirePermission(ENTITY_KEYS.HIERARCHY, 'manage')
   create(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateBusinessUnitDto,
@@ -91,6 +108,7 @@ export class BusinessUnitsController {
   // parentBusinessUnitId, so a move is an update and needs the same authority.
   @Patch(':id')
   @Permissions(MISC_PERMISSION_KEYS.ORGANIZATION_MANAGE)
+  @RequirePermission(ENTITY_KEYS.HIERARCHY, 'manage')
   update(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -101,6 +119,7 @@ export class BusinessUnitsController {
 
   @Delete(':id')
   @Permissions(MISC_PERMISSION_KEYS.ORGANIZATION_MANAGE)
+  @RequirePermission(ENTITY_KEYS.HIERARCHY, 'manage')
   remove(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,

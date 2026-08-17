@@ -16,7 +16,11 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { DataImportMode } from '@prisma/client';
 import type { Response } from 'express';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { Permissions } from '../../common/decorators/permissions.decorator';
+import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
+import {
+  Permissions,
+  RequirePermission,
+} from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
@@ -70,6 +74,7 @@ export class DataManagementController {
   /** Modules available for import and export, used to populate the wizard. */
   @Get('modules')
   @Permissions(VIEW_PERMISSION)
+  @RequirePermission(ENTITY_KEYS.CUSTOM_RECORDS, 'read')
   listModules() {
     return this.registry.listModules().map((module) => ({
       moduleKey: module.moduleKey,
@@ -86,12 +91,14 @@ export class DataManagementController {
   /** Full field metadata for one module, used by mapping and validation. */
   @Get('modules/:moduleKey/fields')
   @Permissions(VIEW_PERMISSION)
+  @RequirePermission(ENTITY_KEYS.CUSTOM_RECORDS, 'read')
   getModuleFields(@Param('moduleKey') moduleKey: string) {
     return this.registry.getModule(moduleKey);
   }
 
   @Get('modules/:moduleKey/template')
   @Permissions(TEMPLATE_PERMISSION)
+  @RequirePermission(ENTITY_KEYS.CUSTOM_RECORDS, 'read')
   async downloadTemplate(
     @CurrentUser() user: AuthenticatedUser,
     @Param('moduleKey') moduleKey: string,
@@ -122,6 +129,7 @@ export class DataManagementController {
    */
   @Post('modules/:moduleKey/imports/analyse')
   @Permissions(VALIDATE_PERMISSION)
+  @RequirePermission(ENTITY_KEYS.CUSTOM_RECORDS, 'import')
   @UseInterceptors(FileInterceptor('file'))
   analyseImport(
     @CurrentUser() user: AuthenticatedUser,
@@ -139,6 +147,7 @@ export class DataManagementController {
   /** Queues an export; the worker produces the file. */
   @Post('exports')
   @Permissions(EXPORT_PERMISSION)
+  @RequirePermission(ENTITY_KEYS.CUSTOM_RECORDS, 'export')
   queueExport(
     @CurrentUser() user: AuthenticatedUser,
     @Body('moduleKey') moduleKey: string,
@@ -153,6 +162,7 @@ export class DataManagementController {
 
   @Get('exports/:jobId/status')
   @Permissions(EXPORT_PERMISSION)
+  @RequirePermission(ENTITY_KEYS.CUSTOM_RECORDS, 'export')
   getExportStatus(
     @CurrentUser() user: AuthenticatedUser,
     @Param('jobId') jobId: string,
@@ -162,6 +172,7 @@ export class DataManagementController {
 
   @Get('exports/:jobId/download')
   @Permissions(EXPORT_PERMISSION)
+  @RequirePermission(ENTITY_KEYS.CUSTOM_RECORDS, 'export')
   async downloadExport(
     @CurrentUser() user: AuthenticatedUser,
     @Param('jobId') jobId: string,
@@ -181,6 +192,7 @@ export class DataManagementController {
   /** Import history for this tenant. */
   @Get('imports')
   @Permissions(VIEW_PERMISSION)
+  @RequirePermission(ENTITY_KEYS.CUSTOM_RECORDS, 'read')
   listImports(
     @CurrentUser() user: AuthenticatedUser,
     @Query('moduleKey') moduleKey?: string,
@@ -191,6 +203,7 @@ export class DataManagementController {
   /** Queues the validated rows; the worker writes them through the module. */
   @Post('imports/:jobId/execute')
   @Permissions(EXECUTE_PERMISSION)
+  @RequirePermission(ENTITY_KEYS.CUSTOM_RECORDS, 'import')
   executeImport(
     @CurrentUser() user: AuthenticatedUser,
     @Param('jobId') jobId: string,
@@ -201,6 +214,7 @@ export class DataManagementController {
   /** Progress for a running or finished import, for polling. */
   @Get('imports/:jobId/status')
   @Permissions(VIEW_PERMISSION)
+  @RequirePermission(ENTITY_KEYS.CUSTOM_RECORDS, 'read')
   getImportStatus(
     @CurrentUser() user: AuthenticatedUser,
     @Param('jobId') jobId: string,
@@ -210,6 +224,7 @@ export class DataManagementController {
 
   @Post('imports/:jobId/cancel')
   @Permissions(CANCEL_PERMISSION)
+  @RequirePermission(ENTITY_KEYS.CUSTOM_RECORDS, 'manage')
   cancelImport(
     @CurrentUser() user: AuthenticatedUser,
     @Param('jobId') jobId: string,
@@ -220,6 +235,7 @@ export class DataManagementController {
   /** Workbook of the rows that failed, for correction and re-upload. */
   @Get('imports/:jobId/errors')
   @Permissions(VALIDATE_PERMISSION)
+  @RequirePermission(ENTITY_KEYS.CUSTOM_RECORDS, 'import')
   async downloadErrors(
     @CurrentUser() user: AuthenticatedUser,
     @Param('jobId') jobId: string,
@@ -242,6 +258,7 @@ export class DataManagementController {
   /** Mapping, counts and the invalid rows for a previously analysed upload. */
   @Get('imports/:jobId')
   @Permissions(VALIDATE_PERMISSION)
+  @RequirePermission(ENTITY_KEYS.CUSTOM_RECORDS, 'import')
   getImportJob(
     @CurrentUser() user: AuthenticatedUser,
     @Param('jobId') jobId: string,

@@ -52,6 +52,7 @@ import { platformAccessForRole } from '../platform-auth/platform-permissions';
 import { AdminLoginDto } from './dto/admin-login.dto';
 import { PlatformCommunicationsService } from '../platform-communications/platform-communications.service';
 import { TenantDomainService } from '../tenant-domains/tenant-domain.service';
+import { buildDirectPermissionPrivileges } from './direct-permission-privileges';
 
 type UserWithAccess = Prisma.UserGetPayload<{
   include: {
@@ -2084,14 +2085,22 @@ export class AuthService {
       roleKeys,
       roles,
       permissionKeys,
-      rolePrivileges: effectiveRoles.flatMap((role) =>
-        role.rolePrivileges.map((privilege) => ({
-          entityKey: privilege.entityKey,
-          privilege: privilege.privilege,
-          accessLevel: privilege.accessLevel,
-          roleId: role.id,
-        })),
-      ),
+      rolePrivileges: [
+        ...effectiveRoles.flatMap((role) =>
+          role.rolePrivileges.map((privilege) => ({
+            entityKey: privilege.entityKey,
+            privilege: privilege.privilege,
+            accessLevel: privilege.accessLevel,
+            roleId: role.id,
+          })),
+        ),
+        ...buildDirectPermissionPrivileges(
+          user.userPermissions.map(
+            (userPermission) => userPermission.permission.key,
+          ),
+          effectiveRoles,
+        ),
+      ],
       miscPermissions: effectiveRoles.flatMap((role) =>
         role.miscPermissions
           .filter((permission) => permission.enabled)

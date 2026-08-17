@@ -1,6 +1,10 @@
 import { Controller, Get, Param, UseGuards } from '@nestjs/common';
 
-import { Permissions } from '../../../common/decorators/permissions.decorator';
+import { ENTITY_KEYS } from '../../../common/constants/rbac-matrix';
+import {
+  Permissions,
+  RequirePermission,
+} from '../../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { AttendanceConnectorRegistry } from './connector.registry';
@@ -69,6 +73,7 @@ export class AttendanceConnectorsController {
 
   @Get()
   @Permissions('integrations.read')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'read')
   list(): { connectors: ConnectorSummaryResponse[] } {
     return {
       connectors: this.registry
@@ -79,6 +84,7 @@ export class AttendanceConnectorsController {
 
   @Get(':connectorType')
   @Permissions('integrations.read')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'read')
   findOne(
     @Param('connectorType') connectorType: string,
   ): ConnectorDetailResponse {

@@ -2,7 +2,7 @@
 ID: BUG-0005
 aliases: [BUG-0005]
 Title: A support-role user could read another tenant's error log
-Status: VERIFIED
+Status: IN_PROGRESS
 Severity: CRITICAL
 Priority: P0
 Type: TENANT_ISOLATION
@@ -11,7 +11,7 @@ DetectedDate: 2026-08-14
 DetectedInSha: 13e720e
 AffectedModules: [services/api/src/modules/error-logs]
 OwnerAgent: backend-api
-ArchitectDisposition: DONE
+ArchitectDisposition: FIX_NOW
 QAReport:
 RegressionId: REG-005
 RelatedBacklogItem:
@@ -19,7 +19,7 @@ RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-15
 UpdatedAt: 2026-08-17
-ResolvedAt: 2026-08-17
+ResolvedAt:
 ---
 
 # BUG-0005 — A support-role user could read another tenant's error log
@@ -38,8 +38,9 @@ legitimate cross-tenant path is the explicitly platform-guarded one.
 
 ## Actual Behavior
 
-A foreign traceId returned the other tenant's log, including whatever the log
-payload carried.
+A foreign tenant traceId was fixed, but a null/platform-scope log still passed
+the same support-role branch because `!log.tenantId` was treated as belonging
+to every tenant caller.
 
 ## Reproduction
 
@@ -67,14 +68,14 @@ only boundary.
 
 ## Proposed Resolution
 
-Resolved: compare `tenantId` on the support branch, and return `null`
-indistinguishably from a traceId that does not exist, so the endpoint cannot be
-used to probe for foreign records.
+Require exact tenant equality on the tenant endpoint. Return `null`
+indistinguishably for foreign, null/platform-scope, and nonexistent trace IDs;
+platform logs remain available only through platform monitoring.
 
 ## Acceptance Criteria
 
-A support-role user in tenant A requesting a tenant B traceId receives `null`,
-identical to an unknown traceId.
+A support-role user in tenant A requesting a tenant B, null-scope, or platform
+traceId receives `null`, identical to an unknown traceId.
 
 ## Regression Coverage
 
@@ -91,13 +92,18 @@ Module [[audit-and-events|Audit and Events]].
 
 ## Resolution
 
-Fixed 2026-08-14 on branch `agent/authz-batch0-errorlogs`.
+WP-03 correction in progress; the earlier fix covered foreign tenant ids but
+not null/platform-scope records.
 
 ## QA Retest
 
-Verified by the regression spec.
+Pending WP-03 retest of the expanded regression cases.
 
 ## History
+
+- 2026-08-17 - reopened in WP-03 after the unguarded-route audit proved the
+  tenant endpoint still exposed null/platform-scope logs to tenant support
+  roles; exact-equality fix and regression cases added.
 
 - 2026-08-14 — found, fixed, REG-005 added.
 - 2026-08-15 — imported into the durable bug system.

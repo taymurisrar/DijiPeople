@@ -10,8 +10,10 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Permissions } from '../../common/decorators/permissions.decorator';
+import { RequirePermission } from '../../common/decorators/require-permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
@@ -29,6 +31,7 @@ export class PoliciesController {
 
   @Get()
   @Permissions('policies.read')
+  @RequirePermission(ENTITY_KEYS.POLICIES, 'read')
   findAll(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: ListPoliciesDto,
@@ -38,6 +41,7 @@ export class PoliciesController {
 
   @Get('assignments')
   @Permissions('policies.read')
+  @RequirePermission(ENTITY_KEYS.POLICIES, 'read')
   findAssignments(
     @CurrentUser() user: AuthenticatedUser,
     @Query('policyId') policyId?: string,
@@ -47,6 +51,7 @@ export class PoliciesController {
 
   @Get(':id')
   @Permissions('policies.read')
+  @RequirePermission(ENTITY_KEYS.POLICIES, 'read')
   findOne(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -56,12 +61,14 @@ export class PoliciesController {
 
   @Post()
   @Permissions('policies.manage')
+  @RequirePermission(ENTITY_KEYS.POLICIES, 'manage')
   create(@CurrentUser() user: AuthenticatedUser, @Body() dto: CreatePolicyDto) {
     return this.policiesService.create(user, dto);
   }
 
   @Patch(':id')
   @Permissions('policies.manage')
+  @RequirePermission(ENTITY_KEYS.POLICIES, 'manage')
   update(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -72,6 +79,7 @@ export class PoliciesController {
 
   @Delete(':id')
   @Permissions('policies.manage')
+  @RequirePermission(ENTITY_KEYS.POLICIES, 'manage')
   deactivate(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -81,6 +89,7 @@ export class PoliciesController {
 
   @Post('assignments')
   @Permissions('policies.manage')
+  @RequirePermission(ENTITY_KEYS.POLICIES, 'manage')
   createAssignment(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreatePolicyAssignmentDto,
@@ -90,6 +99,7 @@ export class PoliciesController {
 
   @Patch('assignments/:id')
   @Permissions('policies.manage')
+  @RequirePermission(ENTITY_KEYS.POLICIES, 'manage')
   updateAssignment(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -100,6 +110,7 @@ export class PoliciesController {
 
   @Delete('assignments/:id')
   @Permissions('policies.manage')
+  @RequirePermission(ENTITY_KEYS.POLICIES, 'manage')
   deactivateAssignment(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,

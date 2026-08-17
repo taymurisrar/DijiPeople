@@ -9,7 +9,11 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { Permissions } from '../../common/decorators/permissions.decorator';
+import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
+import {
+  Permissions,
+  RequirePermission,
+} from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
@@ -23,6 +27,7 @@ export class WorkflowsController {
 
   @Get()
   @Permissions('workflows.read')
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'read')
   list(@CurrentUser() user: AuthenticatedUser) {
     return this.workflowsService.list(user);
   }
@@ -30,24 +35,28 @@ export class WorkflowsController {
   /* Registered before :id so it is not read as a workflow id. */
   @Get('builder-options')
   @Permissions('workflows.read')
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'read')
   builderOptions(@CurrentUser() user: AuthenticatedUser) {
     return this.workflowsService.builderOptions(user);
   }
 
   @Get(':id')
   @Permissions('workflows.read')
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'read')
   get(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
     return this.workflowsService.get(user, id);
   }
 
   @Get(':id/runs')
   @Permissions('workflows.read')
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'read')
   listRuns(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
     return this.workflowsService.listRuns(user, id);
   }
 
   @Post()
   @Permissions('workflows.manage')
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'manage')
   create(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateWorkflowDto,
@@ -57,6 +66,7 @@ export class WorkflowsController {
 
   @Patch(':id')
   @Permissions('workflows.manage')
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'manage')
   update(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
@@ -67,6 +77,7 @@ export class WorkflowsController {
 
   @Delete(':id')
   @Permissions('workflows.manage')
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'manage')
   remove(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
     return this.workflowsService.remove(user, id);
   }

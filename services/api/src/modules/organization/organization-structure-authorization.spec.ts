@@ -1,6 +1,8 @@
 import { ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { SecurityAccessLevel, SecurityPrivilege } from '@prisma/client';
 import {
+  ENTITY_KEYS,
   MISC_PERMISSION_KEYS,
   ROLE_KEYS,
 } from '../../common/constants/rbac-matrix';
@@ -32,6 +34,11 @@ function buildUser(
   permissionKeys: string[],
   roleKeys: string[] = [],
 ): AuthenticatedUser {
+  const accessLevel = roleKeys.includes(ROLE_KEYS.HR)
+    ? SecurityAccessLevel.ORGANIZATION
+    : roleKeys.includes(ROLE_KEYS.MANAGER)
+      ? SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT
+      : SecurityAccessLevel.SELF;
   return {
     userId: 'user-1',
     tenantId: 'tenant-1',
@@ -39,6 +46,22 @@ function buildUser(
     roleIds: [],
     roleKeys,
     permissionKeys,
+    rolePrivileges: [
+      {
+        entityKey: ENTITY_KEYS.HIERARCHY,
+        privilege: SecurityPrivilege.READ,
+        accessLevel,
+      },
+      ...(roleKeys.includes(ROLE_KEYS.HR)
+        ? [
+            {
+              entityKey: ENTITY_KEYS.HIERARCHY,
+              privilege: SecurityPrivilege.MANAGE,
+              accessLevel: SecurityAccessLevel.ORGANIZATION,
+            },
+          ]
+        : []),
+    ],
   };
 }
 
@@ -75,7 +98,10 @@ const READ_ROUTES = [
 ] as const;
 
 const ORDINARY_EMPLOYEE = () =>
-  buildUser(['dashboard.view', 'employees.read'], [ROLE_KEYS.EMPLOYEE]);
+  buildUser(
+    ['dashboard.view', 'employees.read', 'hierarchy.read'],
+    [ROLE_KEYS.EMPLOYEE],
+  );
 
 // The seeded HR role receives organization.manage through
 // SYSTEM_ROLE_MISC_PERMISSIONS, which PermissionBootstrapService writes to

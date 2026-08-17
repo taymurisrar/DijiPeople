@@ -55,11 +55,11 @@ export class DocumentsRepository {
   async findByTenant(
     tenantId: string,
     query: DocumentQueryDto,
+    scopeWhere: Prisma.DocumentWhereInput = {},
     db: PrismaDb = this.prisma,
   ) {
     const where: Prisma.DocumentWhereInput = {
-      tenantId,
-      isArchived: false,
+      AND: [{ tenantId, isArchived: false }, scopeWhere],
     };
 
     if (query.documentTypeId) {

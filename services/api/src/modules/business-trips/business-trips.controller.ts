@@ -11,7 +11,11 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { Permissions } from '../../common/decorators/permissions.decorator';
+import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
+import {
+  Permissions,
+  RequirePermission,
+} from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
@@ -37,6 +41,7 @@ export class BusinessTripsController {
 
   @Post('business-trips')
   @Permissions('business-trips.create')
+  @RequirePermission(ENTITY_KEYS.BUSINESS_TRIPS, 'create')
   createTrip(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateBusinessTripDto,
@@ -46,6 +51,7 @@ export class BusinessTripsController {
 
   @Get('business-trips')
   @Permissions('business-trips.read-all')
+  @RequirePermission(ENTITY_KEYS.BUSINESS_TRIPS, 'read')
   listTrips(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: BusinessTripQueryDto,
@@ -55,6 +61,7 @@ export class BusinessTripsController {
 
   @Get('business-trips/:id')
   @Permissions('business-trips.read-all')
+  @RequirePermission(ENTITY_KEYS.BUSINESS_TRIPS, 'read')
   getTrip(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -64,6 +71,7 @@ export class BusinessTripsController {
 
   @Patch('business-trips/:id')
   @Permissions('business-trips.update')
+  @RequirePermission(ENTITY_KEYS.BUSINESS_TRIPS, 'write')
   updateTrip(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -74,6 +82,7 @@ export class BusinessTripsController {
 
   @Post('business-trips/:id/submit')
   @Permissions('business-trips.update')
+  @RequirePermission(ENTITY_KEYS.BUSINESS_TRIPS, 'write')
   submitTrip(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -83,6 +92,7 @@ export class BusinessTripsController {
 
   @Post('business-trips/:id/approve')
   @Permissions('business-trips.approve')
+  @RequirePermission(ENTITY_KEYS.BUSINESS_TRIPS, 'approve')
   approveTrip(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -93,6 +103,7 @@ export class BusinessTripsController {
 
   @Post('business-trips/:id/reject')
   @Permissions('business-trips.reject')
+  @RequirePermission(ENTITY_KEYS.BUSINESS_TRIPS, 'reject')
   rejectTrip(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -103,6 +114,7 @@ export class BusinessTripsController {
 
   @Post('business-trips/:id/cancel')
   @Permissions('business-trips.cancel')
+  @RequirePermission(ENTITY_KEYS.BUSINESS_TRIPS, 'delete')
   cancelTrip(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -112,6 +124,7 @@ export class BusinessTripsController {
 
   @Post('business-trips/:id/calculate-allowance')
   @Permissions('business-trips.update')
+  @RequirePermission(ENTITY_KEYS.BUSINESS_TRIPS, 'write')
   calculateAllowance(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -121,12 +134,14 @@ export class BusinessTripsController {
 
   @Get('me/business-trips')
   @Permissions('business-trips.read-own')
+  @RequirePermission(ENTITY_KEYS.BUSINESS_TRIPS, 'read')
   listMyTrips(@CurrentUser() user: AuthenticatedUser) {
     return this.service.listMyTrips(user);
   }
 
   @Post('me/business-trips')
   @Permissions('business-trips.create')
+  @RequirePermission(ENTITY_KEYS.BUSINESS_TRIPS, 'create')
   createMyTrip(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateBusinessTripDto,
@@ -136,6 +151,7 @@ export class BusinessTripsController {
 
   @Get('me/business-trips/:id')
   @Permissions('business-trips.read-own')
+  @RequirePermission(ENTITY_KEYS.BUSINESS_TRIPS, 'read')
   getMyTrip(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -145,6 +161,7 @@ export class BusinessTripsController {
 
   @Patch('me/business-trips/:id')
   @Permissions('business-trips.create')
+  @RequirePermission(ENTITY_KEYS.BUSINESS_TRIPS, 'create')
   updateMyTrip(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -155,6 +172,7 @@ export class BusinessTripsController {
 
   @Post('me/business-trips/:id/submit')
   @Permissions('business-trips.create')
+  @RequirePermission(ENTITY_KEYS.BUSINESS_TRIPS, 'create')
   submitMyTrip(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -164,6 +182,7 @@ export class BusinessTripsController {
 
   @Post('me/business-trips/:id/cancel')
   @Permissions('business-trips.cancel')
+  @RequirePermission(ENTITY_KEYS.BUSINESS_TRIPS, 'delete')
   cancelMyTrip(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -173,6 +192,7 @@ export class BusinessTripsController {
 
   @Post('travel-allowance-policies')
   @Permissions('tada-policies.manage')
+  @RequirePermission(ENTITY_KEYS.TADA_POLICIES, 'manage')
   createPolicy(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateTravelAllowancePolicyDto,
@@ -182,12 +202,14 @@ export class BusinessTripsController {
 
   @Get('travel-allowance-policies')
   @Permissions('tada-policies.read')
+  @RequirePermission(ENTITY_KEYS.TADA_POLICIES, 'read')
   listPolicies(@CurrentUser() user: AuthenticatedUser) {
     return this.service.listPolicies(user);
   }
 
   @Get('travel-allowance-policies/:id')
   @Permissions('tada-policies.read')
+  @RequirePermission(ENTITY_KEYS.TADA_POLICIES, 'read')
   getPolicy(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -197,6 +219,7 @@ export class BusinessTripsController {
 
   @Patch('travel-allowance-policies/:id')
   @Permissions('tada-policies.manage')
+  @RequirePermission(ENTITY_KEYS.TADA_POLICIES, 'manage')
   updatePolicy(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -207,6 +230,7 @@ export class BusinessTripsController {
 
   @Delete('travel-allowance-policies/:id')
   @Permissions('tada-policies.manage')
+  @RequirePermission(ENTITY_KEYS.TADA_POLICIES, 'manage')
   deactivatePolicy(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -216,6 +240,7 @@ export class BusinessTripsController {
 
   @Post('travel-allowance-policies/:id/rules')
   @Permissions('tada-policies.manage')
+  @RequirePermission(ENTITY_KEYS.TADA_POLICIES, 'manage')
   createRule(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -226,6 +251,7 @@ export class BusinessTripsController {
 
   @Patch('travel-allowance-policies/:id/rules/:ruleId')
   @Permissions('tada-policies.manage')
+  @RequirePermission(ENTITY_KEYS.TADA_POLICIES, 'manage')
   updateRule(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -237,6 +263,7 @@ export class BusinessTripsController {
 
   @Delete('travel-allowance-policies/:id/rules/:ruleId')
   @Permissions('tada-policies.manage')
+  @RequirePermission(ENTITY_KEYS.TADA_POLICIES, 'manage')
   deactivateRule(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
