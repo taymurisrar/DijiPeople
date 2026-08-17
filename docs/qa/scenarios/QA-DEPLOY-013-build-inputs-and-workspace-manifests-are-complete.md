@@ -1,0 +1,74 @@
+---
+SCENARIO_ID: QA-DEPLOY-013
+aliases: [QA-DEPLOY-013]
+TITLE: Build inputs and workspace manifests are complete
+AREA: deployment-release
+MODULE: turbo.json
+TYPE: DEPLOYMENT_SMOKE
+RISK: HIGH
+AUTOMATION_STATUS: AUTOMATED
+TEST_REFERENCE: scripts/check-env-registered.mjs scripts/check-declared-dependencies.mjs
+RELATED_BUGS: [BUG-0042, ITEM-0037, ITEM-0024]
+RELATED_REGRESSIONS: [REG-051, REG-052]
+LAST_RUN: 2026-08-17
+LAST_RESULT: PASS
+CREATED_AT: 2026-08-17
+UPDATED_AT: 2026-08-17
+---
+
+# QA-DEPLOY-013 — Build inputs and workspace manifests are complete
+
+## Preconditions
+
+A checked-out repository with `turbo.json` and the four Next workspaces present.
+
+## Why this scenario exists
+
+Both halves are failures that **succeed locally and fail on deploy**, which is
+the worst shape a build defect can have — nothing is red until it is red in the
+place that matters.
+
+*Cache inputs.* Turborepo invalidates the build cache only for variables in
+`globalEnv`, and a `NEXT_PUBLIC_*` value is inlined into the bundle at build
+time. An unregistered one can be changed, rebuilt, and still ship the old value
+compiled in — served from cache, with no error. 37 reads had drifted out.
+
+*Manifests.* npm workspaces hoist, so a package declared by one workspace
+resolves from all of them. An undeclared import works on a full-repo install and
+fails on a per-project one, which is how `apps/web` deploys. This recurred:
+2 files in landing (ITEM-0024), then 59 in web (ITEM-0037), the same package
+both times, resolving only because `apps/admin` happened to declare it.
+
+## Steps
+
+1. `npm run check:env-registered`
+2. `npm run check:declared-dependencies`
+
+## Expected Result
+
+Both exit 0. Every `process.env.*` read in the three Next apps is in
+`globalEnv`, no secret is exposed through a `NEXT_PUBLIC_*` name, and every bare
+package import is declared by the workspace importing it.
+
+## Negative Case
+
+Removing `NEXT_PUBLIC_APP_BASE_URL` from `globalEnv` fails the first check
+naming the variable and its read sites. Removing `lucide-react` from
+`apps/web/package.json` fails the second naming 59 files. Both pass on restore.
+Verified 2026-08-17.
+
+## Notes
+
+The dependency check found three imports neither record mentioned —
+`@dnd-kit/core`, `@dnd-kit/sortable` and `@dnd-kit/utilities`, declared only at
+the repository root. That is the argument for a check over a third record: the
+list in a bug report is a snapshot, and this class of drift is silent.
+
+`services/api` is deliberately outside the env check. It reads configuration at
+runtime and inlines nothing, so a missing entry cannot bake a stale value into an
+artifact — a different risk, carried by [[ITEM-0049]].
+
+## Related Items
+
+[[BUG-0042]] · [[ITEM-0037]] · [[ITEM-0049]] ·
+[REG-051](../regressions/index.md) · [[TASK-0005]]

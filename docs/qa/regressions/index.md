@@ -679,6 +679,34 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fixed** | 2026-08-17, branch `agent/prisma-client-freshness` |
 | **Active** | yes |
 
+### REG-051 — Every environment variable a Next app reads is registered for cache invalidation
+
+| | |
+|---|---|
+| **Bug class** | `unregistered-build-input` |
+| **Module** | `apps/web`, `apps/admin`, `apps/landing`, `turbo.json` |
+| **Bug record** | BUG-0042 |
+| **Root cause** | Turborepo invalidates the build cache only for variables listed in `globalEnv`. A `NEXT_PUBLIC_*` value is inlined into the client bundle at build time, so an unregistered one can be changed, rebuilt from cache, and still ship the old value compiled in. The rule was documented in `docs/deployment/environments.md` and enforced nowhere; 37 reads across the three apps had drifted out of the list. |
+| **Regression test** | `scripts/check-env-registered.mjs` (CI: `npm run check:env-registered`) |
+| **Scenario** | Every `process.env.*` read under `apps/web`, `apps/admin` and `apps/landing` appears in `turbo.json` `globalEnv`, and no secret is exposed through a `NEXT_PUBLIC_*` name. |
+| **Proven to fail without the fix** | Removing `NEXT_PUBLIC_APP_BASE_URL` from `globalEnv` fails the check naming that variable and its read sites; restoring it passes. |
+| **Fixed** | 2026-08-17, branch `agent/web-config-correctness` |
+| **Active** | yes |
+
+### REG-052 — A workspace declares every package it imports
+
+| | |
+|---|---|
+| **Bug class** | `undeclared-hoisted-dependency` |
+| **Module** | `apps/web`, `apps/admin`, `apps/landing`, `apps/docs` |
+| **Bug record** | ITEM-0037 · ITEM-0024 |
+| **Root cause** | npm workspaces hoist to the root `node_modules`, so a package declared by one workspace resolves from all of them. An undeclared import therefore works on a full-repo install and fails on a per-project one — which is how `apps/web` deploys. It recurred: ITEM-0024 for landing at 2 files, then ITEM-0037 for web at 59, both `lucide-react`, both resolving only because `apps/admin` declared it. |
+| **Regression test** | `scripts/check-declared-dependencies.mjs` (CI: `npm run check:declared-dependencies`) |
+| **Scenario** | Every bare package import in a Next workspace is declared by that workspace's own manifest. Relative paths, aliases and Node builtins are excluded; `react`, `react-dom` and `next` are framework-ambient. |
+| **Proven to fail without the fix** | The check found three undeclared imports the record never listed — `@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities`, declared only at the repository root. Removing `lucide-react` from `apps/web` fails the check naming 59 files; restoring it passes. |
+| **Fixed** | 2026-08-17, branch `agent/web-config-correctness` |
+| **Active** | yes |
+
 ### REG-050 — Record status, disposition and evidence cannot contradict each other
 
 | | |

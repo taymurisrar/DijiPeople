@@ -254,6 +254,18 @@ jobs:
         # different employee's payslips and bank accounts. A proxy makes no
         # authorization decisions.
         run: npm run check:proxies-forward-refusals
+      - name: Environment variables are registered for cache invalidation
+        # BUG-0042 — 37 variables across the three Next apps were read but
+        # absent from turbo globalEnv, so Turborepo could serve a cached build
+        # with an old NEXT_PUBLIC_* value already inlined into the bundle. The
+        # rule was documented and unenforced.
+        run: npm run check:env-registered
+      - name: Workspaces declare what they import
+        # ITEM-0024 then ITEM-0037 — the same undeclared lucide-react, in
+        # landing and then in web at 59 files, resolving only by workspace
+        # hoisting from admin. A per-project install (how apps/web deploys)
+        # would not resolve it. Twice is a pattern, so it gets a gate.
+        run: npm run check:declared-dependencies
       - name: Security response headers
         # BUG-0040 — all three Next apps shipped none. Pins that the CSP stays
         # report-only until observed, and that frame protection is not deferred

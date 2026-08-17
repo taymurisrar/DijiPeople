@@ -2,7 +2,7 @@
 ID: BUG-0042
 aliases: [BUG-0042]
 Title: apps/web reads 21 environment variables unregistered in turbo globalEnv
-Status: OPEN
+Status: VERIFIED
 Severity: MEDIUM
 Priority: P2
 Type: INFRA
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-17
 DetectedInSha: 1af3690
 AffectedModules: [apps/web, packages/config]
 OwnerAgent: release-devops
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: docs/qa/runs/2026-08-17-web-app-documentation-1af3690.md
-RegressionId:
+RegressionId: REG-051
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-17
 UpdatedAt: 2026-08-17
-ResolvedAt:
+ResolvedAt: 2026-08-17
 ---
 
 # BUG-0042 — apps/web reads 21 environment variables unregistered in turbo globalEnv
@@ -135,17 +135,54 @@ bug pattern [[silent-config-fallback]].
 
 ## Resolution
 
-Not resolved.
+Fixed 2026-08-17.
+
+Re-derived the set rather than trusting the record: **20** unregistered reads in
+`apps/web` at this SHA, not the 21 originally listed. The scan also showed the
+defect was never confined to `apps/web` — `apps/admin` had 16 and `apps/landing`
+1, the same build-time inlining risk in the same class of app. Fixing only the
+record's stated scope would have left two apps exposed for no reason, so all
+**37** are now in `turbo.json` `globalEnv` (105 → 134 entries).
+
+`scripts/check-env-registered.mjs` enforces it across the three Next apps, wired
+as `npm run check:env-registered` and run in the required `lint` job beside the
+repository's other invariants.
+
+`services/api` reads a further 26 that remain unregistered, deliberately. It
+resolves configuration at runtime and inlines nothing, so a missing entry cannot
+bake a stale value into an artifact — and registering variables like
+`DATABASE_URL`, which differs between every local, CI and deployment context,
+would defeat build caching wholesale. That is a rule decision rather than a list,
+and it is carried by [[ITEM-0049]].
+
+Audited every `NEXT_PUBLIC_*` entry while here: 35 of them, all URLs, hosts,
+names, feature flags and timings. No secret is exposed.
+`NEXT_PUBLIC_AUTH_CLIENT_ID` is a public client identifier, which is what it
+should be.
 
 ## QA Retest
 
-Not applicable — not yet fixed. Verified by grepping every `process.env` read in
-`apps/web` and diffing against `turbo.json` `globalEnv` at `1af3690`. **A stale
-cache was not reproduced**; the consequence is quoted from the repository's own
-deployment documentation.
+Pass.
+
+```text
+check:env-registered   65 variables across 3 apps, all registered
+apps/web check-types   PASS
+apps/web tests         17 suites, 391 tests, all passing
+```
+
+Negative case: removing `NEXT_PUBLIC_APP_BASE_URL` from `globalEnv` fails the
+check naming that variable and its read sites; restoring it passes.
+
+The original record noted that a stale cache was never reproduced, and that
+remains true. What this closes is the **unenforced rule**, which is what the
+record is about; reproducing a Turborepo cache hit across an environment change
+would need two deploy contexts and would not change the fix.
 
 ## History
 
+- 2026-08-17 — fixed and verified. 37 variables registered across the three Next
+  apps and gated by `check:env-registered`; the `services/api` scope question
+  split to ITEM-0049.
 - 2026-08-17 — found during the `apps/web` deep documentation audit (TASK-0003).
 - 2026-08-17 — Architect triage: `FIX_NOW`. Registration is mechanical and
   cheap; the check is the part worth planning, and it can follow.

@@ -3,13 +3,13 @@ ID: ITEM-0037
 aliases: [ITEM-0037]
 Title: apps/web depends on lucide-react without declaring it
 Type: TECH_DEBT
-Status: READY
+Status: DONE
 Priority: P2
 Severity: MEDIUM
 AffectedModules: [apps/web]
 Source: QA_RUN
 OwnerAgent: frontend
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 CreatedAt: 2026-08-17
 UpdatedAt: 2026-08-17
 RelatedBug:
@@ -94,3 +94,14 @@ the same check.
 - 2026-08-17 — Architect triage: `FIX_NOW`. Declaring the dependency is one
   line; leaving it means the largest app's build depends on a sibling app's
   package.json, which nobody editing that sibling would know.
+
+## Resolution
+
+Done 2026-08-17. `apps/web/package.json` now declares `lucide-react` (59
+importing files, up from the 57 the record counted) and, found by the new check
+rather than by the record, `@dnd-kit/core`, `@dnd-kit/sortable` and
+`@dnd-kit/utilities` — all three declared only at the repository root.
+
+`scripts/check-declared-dependencies.mjs` gates it in CI. [[ITEM-0024]] is the
+same defect in `apps/landing` and is closed by the same check, as this record
+anticipated.

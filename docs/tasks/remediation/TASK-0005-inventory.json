@@ -6,14 +6,14 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 107,
+    "total_records": 108,
     "bugs": 59,
-    "backlog_items": 48,
-    "open_bucket": 32,
+    "backlog_items": 49,
+    "open_bucket": 31,
     "blocked_bucket": 0,
     "deferred_bucket": 1,
     "product_decision_bucket": 1,
-    "completed_bucket": 73,
+    "completed_bucket": 75,
     "parser_structural_errors": 0,
     "active_session_conflict": "NONE",
     "discovered_findings_total": 34,
@@ -2345,13 +2345,13 @@
         "detected_in_sha": "1af3690",
         "created_at": "2026-08-17",
         "updated_at": "2026-08-17",
-        "resolved_at": ""
+        "resolved_at": "2026-08-17"
       },
       "type": "INFRA",
       "title": "apps/web reads 21 environment variables unregistered in turbo globalEnv",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
+      "current_status": "VERIFIED",
       "current_evidence": {
         "paths": [
           "docs/bugs/BUG-0042-apps-web-reads-21-environment-variables-unregistered-in-turb.md",
@@ -2371,14 +2371,18 @@
       "related_backlog": [
         "ITEM-0006"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-051"
+      ],
+      "qa_scenarios": [
+        "QA-DEPLOY-013"
+      ],
       "test_plan": [
         "PLAN-012"
       ],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "VERIFIED",
         "classification": "ACTIVE_AS_DOCUMENTED",
@@ -4305,8 +4309,12 @@
         "BUG-0029"
       ],
       "related_backlog": [],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-052"
+      ],
+      "qa_scenarios": [
+        "QA-DEPLOY-013"
+      ],
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
@@ -4931,7 +4939,7 @@
       "title": "apps/web depends on lucide-react without declaring it",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "READY",
+      "current_status": "DONE",
       "current_evidence": {
         "paths": [
           "docs/backlog/items/ITEM-0037-apps-web-depends-on-lucide-react-without-declaring-it.md",
@@ -4952,12 +4960,16 @@
       "related_backlog": [
         "ITEM-0024"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-052"
+      ],
+      "qa_scenarios": [
+        "QA-DEPLOY-013"
+      ],
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "VERIFIED",
         "classification": "ACTIVE_AS_DOCUMENTED",
@@ -5436,6 +5448,31 @@
         "apps/agent-desktop",
         "services/api/src/common/excel",
         "package-lock.json"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": []
+    },
+    {
+      "record_id": "ITEM-0049",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0049-register-services-api-environment-reads-or-scope-the-rule.md",
+        "provenance": "IMPLEMENTATION",
+        "detected_in_sha": "",
+        "created_at": "2026-08-17",
+        "updated_at": "2026-08-17",
+        "resolved_at": ""
+      },
+      "type": "INFRA",
+      "title": "Register services/api environment reads or scope the rule to build inputs",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "READY",
+      "architect_disposition": "PLAN_REQUIRED",
+      "affected_modules": [
+        "services/api",
+        "turbo.json",
+        "docs/deployment"
       ],
       "regressions": [],
       "qa_scenarios": [],
