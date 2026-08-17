@@ -6,14 +6,14 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 98,
-    "bugs": 52,
+    "total_records": 103,
+    "bugs": 57,
     "backlog_items": 46,
-    "open_bucket": 36,
+    "open_bucket": 39,
     "blocked_bucket": 0,
     "deferred_bucket": 1,
     "product_decision_bucket": 1,
-    "completed_bucket": 60,
+    "completed_bucket": 62,
     "parser_structural_errors": 0,
     "active_session_conflict": "NONE",
     "discovered_findings_total": 34,
@@ -247,13 +247,13 @@
         "detected_in_sha": "13e720e",
         "created_at": "2026-08-15",
         "updated_at": "2026-08-17",
-        "resolved_at": "2026-08-17"
+        "resolved_at": ""
       },
       "type": "TENANT_ISOLATION",
       "title": "A support-role user could read another tenant's error log",
       "severity": "CRITICAL",
       "priority": "P0",
-      "current_status": "VERIFIED",
+      "current_status": "IN_PROGRESS",
       "current_evidence": {
         "paths": [
           "docs/bugs/BUG-0005-cross-tenant-error-log-read-via-support-role.md",
@@ -283,7 +283,7 @@
       ],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "DONE",
+      "architect_disposition": "FIX_NOW",
       "verification_result": {
         "result": "PRELIMINARY",
         "classification": "TERMINAL_AS_DOCUMENTED",
@@ -2753,9 +2753,14 @@
       "related_backlog": [
         "ITEM-0043"
       ],
-      "regressions": [],
+      "regressions": [
+        "REG-040",
+        "REG-046"
+      ],
       "qa_scenarios": [
-        "QA-ATT-007"
+        "QA-ATT-007",
+        "QA-AUTHZ-001",
+        "QA-AUTHZ-006"
       ],
       "test_plan": [],
       "active_session_conflict": "NONE",
@@ -2766,6 +2771,289 @@
         "classification": "ACTIVE_AS_DOCUMENTED",
         "finding_ids": []
       }
+    },
+    {
+      "record_id": "BUG-0050",
+      "source": {
+        "record_path": "docs/bugs/BUG-0050-notification-settings-offer-email-providers-whose-backend-al.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "0051180",
+        "created_at": "2026-08-17",
+        "updated_at": "2026-08-17",
+        "resolved_at": ""
+      },
+      "type": "INTEGRATION",
+      "title": "Notification settings offer email providers whose backend always fails",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "current_evidence": {
+        "paths": [
+          "docs/bugs/BUG-0050-notification-settings-offer-email-providers-whose-backend-al.md",
+          "docs/qa/runs/2026-08-17-web-app-documentation-1af3690.md"
+        ],
+        "verification_scope": "PRELIMINARY: canonical metadata inventoried after record creation; implementation tests not re-run."
+      },
+      "affected_modules": [
+        "apps/web",
+        "services/api/src/modules/notifications"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": "No external dependency for hiding/rejecting unsupported choices. Actual vendor implementations require separate credentials and integration plans."
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "FIX_NOW",
+      "verification_result": {
+        "result": "PRELIMINARY",
+        "classification": "ACTIVE_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0051",
+      "source": {
+        "record_path": "docs/bugs/BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "0051180",
+        "created_at": "2026-08-17",
+        "updated_at": "2026-08-17",
+        "resolved_at": ""
+      },
+      "type": "INFRA",
+      "title": "Backlog and QA validators accept contradictory record state",
+      "severity": "MEDIUM",
+      "priority": "P1",
+      "current_status": "OPEN",
+      "current_evidence": {
+        "paths": [
+          "docs/bugs/BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state.md"
+        ],
+        "verification_scope": "PRELIMINARY: canonical metadata inventoried after record creation; implementation tests not re-run."
+      },
+      "affected_modules": [
+        "scripts/lib/backlog-records.mjs",
+        "scripts/lib/qa-records.mjs",
+        "docs/bugs",
+        "docs/backlog",
+        "docs/qa"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": "Requires the `framework` and `record-indexes` leases during implementation."
+      },
+      "related_bugs": [
+        "BUG-0015",
+        "BUG-0048"
+      ],
+      "related_backlog": [
+        "ITEM-0004",
+        "ITEM-0023",
+        "ITEM-0032"
+      ],
+      "regressions": [],
+      "qa_scenarios": [
+        "QA-DEPLOY-008"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "FIX_NOW",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "ACTIVE_AS_DOCUMENTED",
+        "finding_ids": [
+          "TASK-0005-RF-014"
+        ]
+      }
+    },
+    {
+      "record_id": "BUG-0052",
+      "source": {
+        "record_path": "docs/bugs/BUG-0052-production-dependency-graph-carries-critical-and-high-securi.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "0051180",
+        "created_at": "2026-08-17",
+        "updated_at": "2026-08-17",
+        "resolved_at": ""
+      },
+      "type": "SECURITY",
+      "title": "Production dependency graph carries critical and high security advisories",
+      "severity": "HIGH",
+      "priority": "P0",
+      "current_status": "OPEN",
+      "current_evidence": {
+        "paths": [
+          "docs/bugs/BUG-0052-production-dependency-graph-carries-critical-and-high-securi.md"
+        ],
+        "verification_scope": "PRELIMINARY: canonical metadata inventoried after record creation; implementation tests not re-run."
+      },
+      "affected_modules": [
+        "package-lock.json",
+        "apps/agent-desktop",
+        "apps/web",
+        "apps/admin",
+        "apps/landing",
+        "services/api"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": "Requires the exclusive `workspace` lease and Node 22 validation. Some packages may require architecture decisions if no maintained safe version exists."
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "FIX_NOW",
+      "verification_result": {
+        "result": "PRELIMINARY",
+        "classification": "ACTIVE_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0053",
+      "source": {
+        "record_path": "docs/bugs/BUG-0053-documents-self-scoped-users-can-read-tenant-wide-documents.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "3f9063f",
+        "created_at": "2026-08-17",
+        "updated_at": "2026-08-17",
+        "resolved_at": ""
+      },
+      "type": "AUTHORIZATION",
+      "title": "Self-scoped document readers can list and open tenant-wide documents",
+      "severity": "HIGH",
+      "priority": "P0",
+      "current_status": "IN_PROGRESS",
+      "architect_disposition": "FIX_NOW",
+      "affected_modules": [
+        "services/api/src/modules/documents"
+      ],
+      "regressions": [
+        "REG-041"
+      ],
+      "qa_scenarios": [
+        "QA-AUTHZ-009"
+      ],
+      "test_plan": []
+    },
+    {
+      "record_id": "BUG-0055",
+      "source": {
+        "record_path": "docs/bugs/BUG-0055-partner-routes-use-tenant-role-aliases-instead-of-platform-permissions.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "3f9063f",
+        "created_at": "2026-08-17",
+        "updated_at": "2026-08-17",
+        "resolved_at": ""
+      },
+      "type": "AUTHORIZATION",
+      "title": "Partner administration routes use tenant role aliases instead of platform permissions",
+      "severity": "HIGH",
+      "priority": "P0",
+      "current_status": "IN_PROGRESS",
+      "architect_disposition": "FIX_NOW",
+      "affected_modules": [
+        "services/api/src/modules/partners"
+      ],
+      "regressions": [
+        "REG-042"
+      ],
+      "qa_scenarios": [
+        "QA-PARTNER-006"
+      ],
+      "test_plan": []
+    },
+    {
+      "record_id": "BUG-0056",
+      "source": {
+        "record_path": "docs/bugs/BUG-0056-billing-routes-authorize-by-role-instead-of-billing-capability.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "3f9063f",
+        "created_at": "2026-08-17",
+        "updated_at": "2026-08-17",
+        "resolved_at": ""
+      },
+      "type": "AUTHORIZATION",
+      "title": "Billing routes authorize by role instead of billing capability",
+      "severity": "HIGH",
+      "priority": "P0",
+      "current_status": "IN_PROGRESS",
+      "architect_disposition": "FIX_NOW",
+      "affected_modules": [
+        "services/api/src/modules/billing"
+      ],
+      "regressions": [
+        "REG-043"
+      ],
+      "qa_scenarios": [
+        "QA-BILLING-001"
+      ],
+      "test_plan": []
+    },
+    {
+      "record_id": "BUG-0057",
+      "source": {
+        "record_path": "docs/bugs/BUG-0057-settings-context-allows-arbitrary-organization-preview.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "3f9063f",
+        "created_at": "2026-08-17",
+        "updated_at": "2026-08-17",
+        "resolved_at": ""
+      },
+      "type": "AUTHORIZATION",
+      "title": "Self-service settings context allows arbitrary organization preview",
+      "severity": "HIGH",
+      "priority": "P0",
+      "current_status": "IN_PROGRESS",
+      "architect_disposition": "FIX_NOW",
+      "affected_modules": [
+        "services/api/src/modules/tenant-settings"
+      ],
+      "regressions": [
+        "REG-044"
+      ],
+      "qa_scenarios": [
+        "QA-SETTINGS-001"
+      ],
+      "test_plan": []
+    },
+    {
+      "record_id": "BUG-0058",
+      "source": {
+        "record_path": "docs/bugs/BUG-0058-organization-structure-reads-ignore-caller-scope.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "3f9063f",
+        "created_at": "2026-08-17",
+        "updated_at": "2026-08-17",
+        "resolved_at": ""
+      },
+      "type": "AUTHORIZATION",
+      "title": "Organization structure reads ignore caller scope",
+      "severity": "HIGH",
+      "priority": "P0",
+      "current_status": "IN_PROGRESS",
+      "architect_disposition": "FIX_NOW",
+      "affected_modules": [
+        "services/api/src/modules/organization"
+      ],
+      "regressions": [
+        "REG-045"
+      ],
+      "qa_scenarios": [
+        "QA-AUTHZ-007"
+      ],
+      "test_plan": []
     },
     {
       "record_id": "ITEM-0001",
@@ -4833,50 +5121,6 @@
       }
     },
     {
-      "record_id": "BUG-0050",
-      "source": {
-        "record_path": "docs/bugs/BUG-0050-notification-settings-offer-email-providers-whose-backend-al.md",
-        "provenance": "QA_RUN",
-        "detected_in_sha": "0051180",
-        "created_at": "2026-08-17",
-        "updated_at": "2026-08-17",
-        "resolved_at": ""
-      },
-      "type": "INTEGRATION",
-      "title": "Notification settings offer email providers whose backend always fails",
-      "severity": "MEDIUM",
-      "priority": "P2",
-      "current_status": "OPEN",
-      "current_evidence": {
-        "paths": [
-          "docs/bugs/BUG-0050-notification-settings-offer-email-providers-whose-backend-al.md",
-          "docs/qa/runs/2026-08-17-web-app-documentation-1af3690.md"
-        ],
-        "verification_scope": "PRELIMINARY: canonical metadata inventoried after record creation; implementation tests not re-run."
-      },
-      "affected_modules": [
-        "apps/web",
-        "services/api/src/modules/notifications"
-      ],
-      "dependencies": {
-        "record_ids": [],
-        "note": "No external dependency for hiding/rejecting unsupported choices. Actual vendor implementations require separate credentials and integration plans."
-      },
-      "related_bugs": [],
-      "related_backlog": [],
-      "regressions": [],
-      "qa_scenarios": [],
-      "test_plan": [],
-      "active_session_conflict": "NONE",
-      "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
-      "verification_result": {
-        "result": "PRELIMINARY",
-        "classification": "ACTIVE_AS_DOCUMENTED",
-        "finding_ids": []
-      }
-    },
-    {
       "record_id": "ITEM-0043",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0043-promote-the-security-invariant-job-to-a-required-gate.md",
@@ -4911,8 +5155,14 @@
       "related_backlog": [
         "ITEM-0042"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-040",
+        "REG-046"
+      ],
+      "qa_scenarios": [
+        "QA-AUTHZ-001",
+        "QA-AUTHZ-006"
+      ],
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
@@ -5037,110 +5287,6 @@
       "dependencies": {
         "record_ids": [],
         "note": ""
-      },
-      "related_bugs": [],
-      "related_backlog": [],
-      "regressions": [],
-      "qa_scenarios": [],
-      "test_plan": [],
-      "active_session_conflict": "NONE",
-      "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
-      "verification_result": {
-        "result": "PRELIMINARY",
-        "classification": "ACTIVE_AS_DOCUMENTED",
-        "finding_ids": []
-      }
-    },
-    {
-      "record_id": "BUG-0051",
-      "source": {
-        "record_path": "docs/bugs/BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state.md",
-        "provenance": "ARCHITECT",
-        "detected_in_sha": "0051180",
-        "created_at": "2026-08-17",
-        "updated_at": "2026-08-17",
-        "resolved_at": ""
-      },
-      "type": "INFRA",
-      "title": "Backlog and QA validators accept contradictory record state",
-      "severity": "MEDIUM",
-      "priority": "P1",
-      "current_status": "OPEN",
-      "current_evidence": {
-        "paths": [
-          "docs/bugs/BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state.md"
-        ],
-        "verification_scope": "PRELIMINARY: canonical metadata inventoried after record creation; implementation tests not re-run."
-      },
-      "affected_modules": [
-        "scripts/lib/backlog-records.mjs",
-        "scripts/lib/qa-records.mjs",
-        "docs/bugs",
-        "docs/backlog",
-        "docs/qa"
-      ],
-      "dependencies": {
-        "record_ids": [],
-        "note": "Requires the `framework` and `record-indexes` leases during implementation."
-      },
-      "related_bugs": [
-        "BUG-0015",
-        "BUG-0048"
-      ],
-      "related_backlog": [
-        "ITEM-0004",
-        "ITEM-0023",
-        "ITEM-0032"
-      ],
-      "regressions": [],
-      "qa_scenarios": [
-        "QA-DEPLOY-008"
-      ],
-      "test_plan": [],
-      "active_session_conflict": "NONE",
-      "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
-      "verification_result": {
-        "result": "VERIFIED",
-        "classification": "ACTIVE_AS_DOCUMENTED",
-        "finding_ids": [
-          "TASK-0005-RF-014"
-        ]
-      }
-    },
-    {
-      "record_id": "BUG-0052",
-      "source": {
-        "record_path": "docs/bugs/BUG-0052-production-dependency-graph-carries-critical-and-high-securi.md",
-        "provenance": "ARCHITECT",
-        "detected_in_sha": "0051180",
-        "created_at": "2026-08-17",
-        "updated_at": "2026-08-17",
-        "resolved_at": ""
-      },
-      "type": "SECURITY",
-      "title": "Production dependency graph carries critical and high security advisories",
-      "severity": "HIGH",
-      "priority": "P0",
-      "current_status": "OPEN",
-      "current_evidence": {
-        "paths": [
-          "docs/bugs/BUG-0052-production-dependency-graph-carries-critical-and-high-securi.md"
-        ],
-        "verification_scope": "PRELIMINARY: canonical metadata inventoried after record creation; implementation tests not re-run."
-      },
-      "affected_modules": [
-        "package-lock.json",
-        "apps/agent-desktop",
-        "apps/web",
-        "apps/admin",
-        "apps/landing",
-        "services/api"
-      ],
-      "dependencies": {
-        "record_ids": [],
-        "note": "Requires the exclusive `workspace` lease and Node 22 validation. Some packages may require architecture decisions if no maintained safe version exists."
       },
       "related_bugs": [],
       "related_backlog": [],

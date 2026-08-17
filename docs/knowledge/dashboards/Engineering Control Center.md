@@ -12,8 +12,8 @@
 | Active work packages | 1 |
 | Blocked work packages | 0 |
 | Sessions declaring a schema write | 0 |
-| Open CRITICAL | **0** |
-| Open HIGH | 5 |
+| Open CRITICAL | **1** |
+| Open HIGH | 10 |
 | Awaiting Architect triage | 0 |
 | Owner decisions pending | 1 |
 | QA coverage gaps | 53 |
@@ -68,7 +68,9 @@ what they own, and what the backlog and QA systems currently say.
 
 ## Open Critical
 
-_None. Nothing open at CRITICAL._
+| ID | Title | Type | Severity | Status | Affected | Architect |
+|---|---|---|---|---|---|---|
+| [[BUG-0005-cross-tenant-error-log-read-via-support-role|BUG-0005]] | A support-role user could read another tenant's error log | TENANT_ISOLATION | CRITICAL | IN_PROGRESS | api:error-logs | FIX_NOW |
 
 ## Owner Decisions Pending
 
@@ -142,7 +144,7 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 36 |
+| Open total | 42 |
 | Blocked | 0 |
 | Deferred | 1 |
 | Awaiting a product decision | 1 |

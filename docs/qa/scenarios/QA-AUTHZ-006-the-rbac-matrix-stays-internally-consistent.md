@@ -8,7 +8,7 @@ TYPE: UNIT
 RISK: HIGH
 AUTOMATION_STATUS: AUTOMATED
 TEST_REFERENCE: services/api/src/common/constants/rbac-matrix.spec.ts services/api/src/modules/permissions/permission-bootstrap-custom-role.spec.ts services/api/src/modules/auth/direct-permission-privileges.spec.ts
-RELATED_BUGS: [BUG-0049]
+RELATED_BUGS: [BUG-0049, ITEM-0043]
 RELATED_REGRESSIONS: [REG-046]
 LAST_RUN: 2026-08-17
 LAST_RESULT: PASS

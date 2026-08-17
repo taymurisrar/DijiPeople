@@ -15,7 +15,9 @@ _None._
 
 ## CRITICAL
 
-_None._
+| ID | Title | Type | Severity | Priority | Status | Affected | Architect |
+|---|---|---|---|---|---|---|---|
+| [BUG-0005](../../docs/bugs/BUG-0005-cross-tenant-error-log-read-via-support-role.md) | A support-role user could read another tenant's error log | TENANT_ISOLATION | CRITICAL | P0 | IN_PROGRESS | api:error-logs | FIX_NOW |
 
 ## HIGH
 
@@ -23,6 +25,11 @@ _None._
 |---|---|---|---|---|---|---|---|
 | [BUG-0049](../../docs/bugs/BUG-0049-report-only-ci-jobs-swallow-security-and-database-e2e-failur.md) | Report-only CI jobs swallow security and database E2E failures | INFRA | HIGH | P0 | OPEN | .github/workflows, services/api/src/common/constants, services/api/test, docs/qa | FIX_NOW |
 | [BUG-0052](../../docs/bugs/BUG-0052-production-dependency-graph-carries-critical-and-high-securi.md) | Production dependency graph carries critical and high security advisories | SECURITY | HIGH | P0 | OPEN | package-lock.json, apps/agent-desktop, apps/web, apps/admin, apps/landing, services/api | FIX_NOW |
+| [BUG-0053](../../docs/bugs/BUG-0053-documents-self-scoped-users-can-read-tenant-wide-documents.md) | Self-scoped document readers can list and open tenant-wide documents | AUTHORIZATION | HIGH | P0 | IN_PROGRESS | api:documents | FIX_NOW |
+| [BUG-0055](../../docs/bugs/BUG-0055-partner-routes-use-tenant-role-aliases-instead-of-platform-permissions.md) | Partner administration routes use tenant role aliases instead of platform permissions | AUTHORIZATION | HIGH | P0 | IN_PROGRESS | api:partners | FIX_NOW |
+| [BUG-0056](../../docs/bugs/BUG-0056-billing-routes-authorize-by-role-instead-of-billing-capability.md) | Billing routes authorize by role instead of billing capability | AUTHORIZATION | HIGH | P0 | IN_PROGRESS | api:billing | FIX_NOW |
+| [BUG-0057](../../docs/bugs/BUG-0057-settings-context-allows-arbitrary-organization-preview.md) | Self-service settings context allows arbitrary organization preview | AUTHORIZATION | HIGH | P0 | IN_PROGRESS | api:tenant-settings | FIX_NOW |
+| [BUG-0058](../../docs/bugs/BUG-0058-organization-structure-reads-ignore-caller-scope.md) | Organization structure reads ignore caller scope | AUTHORIZATION | HIGH | P0 | IN_PROGRESS | api:organization | FIX_NOW |
 | [BUG-0034](../../docs/bugs/BUG-0034-desktop-agent-auto-update-points-at-an-endpoint-that-does-no.md) | Desktop agent auto update points at an endpoint that does not exist | INTEGRATION | HIGH | P1 | OPEN | apps/agent-desktop, api:agent, api:app-releases | PLAN_REQUIRED |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | READY | api:tenant-control-plane | FIX_NOW |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | READY | apps/web, e2e | PLAN_REQUIRED |

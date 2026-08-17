@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**98 records** — 52 bugs under [`docs/bugs/`](../bugs/), 46 non-bug items under [`items/`](items/).
+**103 records** — 57 bugs under [`docs/bugs/`](../bugs/), 46 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,20 +13,21 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 36 |
+| Open (active work) | 42 |
 | Blocked | 0 |
 | Deferred | 1 |
 | Awaiting a product decision | 1 |
-| Completed / closed | 60 |
-| **Open CRITICAL** | **0** |
-| **Open HIGH** | **5** |
+| Completed / closed | 59 |
+| **Open CRITICAL** | **1** |
+| **Open HIGH** | **10** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
 
 | Severity | Count |
 |---|---|
-| HIGH | 5 |
+| CRITICAL | 1 |
+| HIGH | 10 |
 | MEDIUM | 27 |
 | LOW | 4 |
 
@@ -35,12 +36,14 @@ see [`README.md`](README.md) for why.
 | Type | Count |
 |---|---|
 | ARCHITECTURE | 1 |
+| AUTHORIZATION | 5 |
 | DOCUMENTATION | 3 |
 | FOLLOW_UP | 3 |
 | INFRA | 5 |
 | INTEGRATION | 2 |
 | SECURITY | 6 |
 | TECH_DEBT | 6 |
+| TENANT_ISOLATION | 1 |
 | TEST_GAP | 6 |
 | UX | 4 |
 
@@ -49,10 +52,11 @@ see [`README.md`](README.md) for why.
 | Status | Count |
 |---|---|
 | OPEN | 10 |
+| IN_PROGRESS | 6 |
 | DEFERRED | 1 |
 | PRODUCT_DECISION | 1 |
 | FIXED | 3 |
-| VERIFIED | 38 |
+| VERIFIED | 37 |
 | READY | 23 |
 | DONE | 22 |
 
@@ -60,13 +64,18 @@ see [`README.md`](README.md) for why.
 
 | ID | Title | Type | Severity | Priority | Status | Affected | Architect |
 |---|---|---|---|---|---|---|---|
-| [BUG-0005](../../docs/bugs/BUG-0005-cross-tenant-error-log-read-via-support-role.md) | A support-role user could read another tenant's error log | TENANT_ISOLATION | CRITICAL | P0 | VERIFIED | api:error-logs | DONE |
+| [BUG-0005](../../docs/bugs/BUG-0005-cross-tenant-error-log-read-via-support-role.md) | A support-role user could read another tenant's error log | TENANT_ISOLATION | CRITICAL | P0 | IN_PROGRESS | api:error-logs | FIX_NOW |
 | [BUG-0006](../../docs/bugs/BUG-0006-organization-structure-mutable-by-any-authenticated-user.md) | Organization and business-unit structure was mutable by any authenticated user | AUTHORIZATION | CRITICAL | P0 | VERIFIED | api:organization | DONE |
 | [BUG-0027](../../docs/bugs/BUG-0027-admin-plan-pricing-and-checkout-pricing-come-from-different-.md) | Admin plan pricing and checkout pricing come from different models | DATA_INTEGRITY | CRITICAL | P0 | VERIFIED | services/api/prisma, apps/admin, apps/landing | DONE |
 | [BUG-0030](../../docs/bugs/BUG-0030-plan-list-get-mutates-commercial-pricing-and-can-fail-on-pla.md) | Plan list GET mutates commercial pricing and can fail on PlanPrice unique constraint | DATA_INTEGRITY | CRITICAL | P0 | VERIFIED | services/api, services/api/prisma | DONE |
 | [BUG-0047](../../docs/bugs/BUG-0047-seven-bug-records-are-verified-while-their-fixes-exist-only.md) | Seven bug records are VERIFIED while their fixes exist only on unmerged branches | SECURITY | CRITICAL | P0 | VERIFIED | api:organization, api:error-logs, api:employees, api:attendance, docs/qa/regressions | DONE |
 | [BUG-0049](../../docs/bugs/BUG-0049-report-only-ci-jobs-swallow-security-and-database-e2e-failur.md) | Report-only CI jobs swallow security and database E2E failures | INFRA | HIGH | P0 | OPEN | .github/workflows, services/api/src/common/constants, services/api/test, docs/qa | FIX_NOW |
 | [BUG-0052](../../docs/bugs/BUG-0052-production-dependency-graph-carries-critical-and-high-securi.md) | Production dependency graph carries critical and high security advisories | SECURITY | HIGH | P0 | OPEN | package-lock.json, apps/agent-desktop, apps/web, apps/admin, apps/landing, services/api | FIX_NOW |
+| [BUG-0053](../../docs/bugs/BUG-0053-documents-self-scoped-users-can-read-tenant-wide-documents.md) | Self-scoped document readers can list and open tenant-wide documents | AUTHORIZATION | HIGH | P0 | IN_PROGRESS | api:documents | FIX_NOW |
+| [BUG-0055](../../docs/bugs/BUG-0055-partner-routes-use-tenant-role-aliases-instead-of-platform-permissions.md) | Partner administration routes use tenant role aliases instead of platform permissions | AUTHORIZATION | HIGH | P0 | IN_PROGRESS | api:partners | FIX_NOW |
+| [BUG-0056](../../docs/bugs/BUG-0056-billing-routes-authorize-by-role-instead-of-billing-capability.md) | Billing routes authorize by role instead of billing capability | AUTHORIZATION | HIGH | P0 | IN_PROGRESS | api:billing | FIX_NOW |
+| [BUG-0057](../../docs/bugs/BUG-0057-settings-context-allows-arbitrary-organization-preview.md) | Self-service settings context allows arbitrary organization preview | AUTHORIZATION | HIGH | P0 | IN_PROGRESS | api:tenant-settings | FIX_NOW |
+| [BUG-0058](../../docs/bugs/BUG-0058-organization-structure-reads-ignore-caller-scope.md) | Organization structure reads ignore caller scope | AUTHORIZATION | HIGH | P0 | IN_PROGRESS | api:organization | FIX_NOW |
 | [BUG-0001](../../docs/bugs/BUG-0001-compensation-and-bank-data-behind-employee-record-read.md) | Compensation and bank data returned behind an employee-record read | AUTHORIZATION | HIGH | P1 | VERIFIED | api:employees | DONE |
 | [BUG-0002](../../docs/bugs/BUG-0002-self-approval-of-attendance-corrections.md) | A manager could file and approve their own attendance correction | AUTHORIZATION | HIGH | P1 | VERIFIED | api:attendance | DONE |
 | [BUG-0003](../../docs/bugs/BUG-0003-readteam-granted-tenant-wide-visibility.md) | readTeam permissions granted tenant-wide visibility | AUTHORIZATION | HIGH | P1 | VERIFIED | api:attendance, api:approvals | DONE |
