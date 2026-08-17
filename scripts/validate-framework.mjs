@@ -3514,17 +3514,39 @@ for (const file of ['AGENTS.md', 'PLANS.md']) {
   );
 }
 
-/* -- 2. Every referenced agent role file must exist --------------------------
- * PLANS.md linked `.agent/agents/implementer.md` for weeks after that role was
- * deliberately deleted as superseded by the five specialists. Only *links* are
- * checked: prose and code spans naming the deleted file are deliberate history
- * (see integrator.md's delete/modify case) and must stay. */
+/* -- 2 & 8. Every tracked markdown relative link must resolve ----------------
+ * Five were broken when the audit ran: a deleted agent role, two paths one
+ * level too deep, a generated filename whose truncation the hand-written link
+ * did not match, and a document that had moved directory.
+ *
+ * A link into `.agent/agents/` gets its own wording, because that failure has a
+ * specific cause worth naming: PLANS.md routed step 3 of the plan lifecycle to
+ * `implementer.md` for weeks after that role was deliberately deleted. Only
+ * *links* are checked — prose and code spans naming the deleted file are
+ * deliberate history (see integrator.md's delete/modify case) and must stay.
+ *
+ * Both live in one pass over the file list: reading 461 files twice to report
+ * the same broken link under two descriptions is cost without information. */
 if (trackedFiles) {
   for (const file of trackedFiles.filter((f) => f.endsWith('.md'))) {
     const body = readFileSync(join(ROOT, file), 'utf8');
-    for (const [, target] of body.matchAll(/\]\(([^)\s]*\.agent\/agents\/[a-z0-9-]+\.md)\)/g)) {
-      const resolved = resolve(dirname(join(ROOT, file)), target.split('#')[0]);
-      check(`${file} → ${target} resolves`, existsSync(resolved), 'referenced agent role does not exist');
+    for (const [, target] of body.matchAll(/\[[^\]]*\]\(([^)\s]+)\)/g)) {
+      if (/^(https?:|mailto:|#)/.test(target)) continue;
+      let path = target.split('#')[0];
+      if (!path) continue;
+      try {
+        path = decodeURIComponent(path);
+      } catch {
+        /* a literal % in a filename is not an encoding error */
+      }
+      const resolved = path.startsWith('/') ? join(ROOT, path) : resolve(dirname(join(ROOT, file)), path);
+      check(
+        `${file} → ${target} resolves`,
+        existsSync(resolved),
+        /\.agent\/agents\/[a-z0-9-]+\.md$/.test(path)
+          ? 'referenced agent role does not exist'
+          : 'broken relative link',
+      );
     }
   }
 }
@@ -3607,7 +3629,11 @@ if (existsSync(join(ROOT, CI_WORKFLOW_PATH))) {
       .map((s) => s.trim())
       .filter(Boolean);
 
-    const jobKeys = [...workflow.matchAll(/^ {2}([a-z0-9-]+):$/gm)].map((m) => m[1]);
+    /* Scoped to the `jobs:` block. Matching two-space keys across the whole
+     * file also collects `push:` from the `on:` trigger, which would let a
+     * document claim a job named "push" and pass. */
+    const jobsBlock = workflow.slice(workflow.search(/^jobs:$/m));
+    const jobKeys = [...jobsBlock.matchAll(/^ {2}([a-z0-9-]+):$/gm)].map((m) => m[1]);
     for (const job of requiredJobs) {
       check(`required job "${job}" is defined in ${CI_WORKFLOW_PATH}`, jobKeys.includes(job));
     }
@@ -3655,40 +3681,23 @@ for (const file of markdownFilesIn('docs/engineering-history/tasks')) {
   );
 }
 
-/* -- 8. Tracked markdown relative links must resolve -------------------------
- * Five were broken at the time of the audit: a deleted role, two paths one
- * level too deep, a generated filename whose truncation the hand-written link
- * did not match, and a document that had moved directory. */
-if (trackedFiles) {
-  for (const file of trackedFiles.filter((f) => f.endsWith('.md'))) {
-    const body = readFileSync(join(ROOT, file), 'utf8');
-    for (const [, target] of body.matchAll(/\[[^\]]*\]\(([^)\s]+)\)/g)) {
-      if (/^(https?:|mailto:|#)/.test(target)) continue;
-      let path = target.split('#')[0];
-      if (!path) continue;
-      try {
-        path = decodeURIComponent(path);
-      } catch {
-        /* a literal % in a filename is not an encoding error */
-      }
-      const resolved = path.startsWith('/') ? join(ROOT, path) : resolve(dirname(join(ROOT, file)), path);
-      check(`${file} → ${target} resolves`, existsSync(resolved), 'broken relative link');
-    }
-  }
-}
-
 /* -- 9. Obsidian parity must be a verified field, not an assumed one ---------
  * The vault was 40 generated files behind while every task reported its sync
  * done. Syncing and *verifying the sync* are different acts. */
 {
   const contract = read('.agent/context/task-completion-contract.md');
+  /* Anchored to a line of its own, which is how the contract lists a field.
+   * `includes()` alone passed while the field was deleted from the list,
+   * because the prose below it still mentioned the name — a check that cannot
+   * fail is worse than no check, since it reads as coverage. */
+  const declaresField = (name) => new RegExp(`^${name}\\s*$`, 'm').test(contract);
   check(
     'completion contract declares OBSIDIAN_SYNC_STATUS',
-    contract.includes('OBSIDIAN_SYNC_STATUS'),
+    declaresField('OBSIDIAN_SYNC_STATUS'),
   );
   check(
     'completion contract declares OBSIDIAN_VERIFICATION_STATUS',
-    contract.includes('OBSIDIAN_VERIFICATION_STATUS'),
+    declaresField('OBSIDIAN_VERIFICATION_STATUS'),
     'a sync that was run but never verified is how the vault fell 40 files behind',
   );
   check(
