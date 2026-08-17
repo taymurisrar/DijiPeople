@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 80** · automated: 74 · manual: 4 · blocked by infrastructure: 0
+**Scenarios: 81** · automated: 75 · manual: 4 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -87,6 +87,7 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-RUNTIME-004](../../../docs/qa/scenarios/QA-RUNTIME-004-governed-reasons-are-collected-through-the-design-system-nev.md) | Governed reasons are collected through the design system, never a native prompt | runtime-modules | UNIT | MEDIUM | AUTOMATED | `scripts/check-no-native-prompt.mjs` | BUG-0020 | REG-029 |
 | [QA-RUNTIME-005](../../../docs/qa/scenarios/QA-RUNTIME-005-a-runtime-module-renders-in-a-real-browser-for-each-access-l.md) | A runtime module renders in a real browser for each access level | runtime-modules | BROWSER_E2E | HIGH | MANUAL | — | — | REG-028 |
 | [QA-RUNTIME-006](../../../docs/qa/scenarios/QA-RUNTIME-006-module-workflow-documentation-names-the-live-runtime-path.md) | Module workflow documentation names the live runtime path | runtime-modules | INTEGRATION | MEDIUM | MANUAL | — | BUG-0044 | REG-037 |
+| [QA-RUNTIME-010](../../../docs/qa/scenarios/QA-RUNTIME-010-theme-precedence-and-proxy-neutrality.md) | Theme precedence holds and web route handlers decide nothing | runtime-modules | UNIT | MEDIUM | AUTOMATED | `apps/web/lib/theme-precedence.spec.ts` | BUG-0046, BUG-0041, BUG-0039 | REG-054, REG-055 |
 | [QA-SETTINGS-001](../../../docs/qa/scenarios/QA-SETTINGS-001-resolved-settings-reject-arbitrary-context-preview.md) | Resolved settings reject arbitrary context preview | authorization | SECURITY | CRITICAL | AUTOMATED | `services/api/src/modules/tenant-settings/settings-context-authorization.spec.ts` | BUG-0057 | REG-044 |
 | [QA-SETTINGS-002](../../../docs/qa/scenarios/QA-SETTINGS-002-email-providers-offered-are-providers-implemented.md) | Email providers offered are email providers implemented | runtime-modules | UNIT | MEDIUM | AUTOMATED | `services/api/src/modules/notifications/email/email-provider-support.spec.ts` | BUG-0050 | REG-053 |
 | [QA-TENANT-001](../../../docs/qa/scenarios/QA-TENANT-001-the-two-tenant-isolation-pattern-scoped-read-and-scoped-writ.md) | The two-tenant isolation pattern: scoped read and scoped write | tenant-isolation | SECURITY | CRITICAL | AUTOMATED | `services/api/test/tenant-isolation-pattern.e2e-spec.ts` | — | — |

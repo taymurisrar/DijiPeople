@@ -1,6 +1,7 @@
 "use client";
 
 import type { ModuleDataAdapter } from "@/lib/runtime/module-data-adapter.types";
+import { notifyTenantSettingsChanged } from "@/lib/settings-events";
 
 export function createTenantSettingsRuntimeAdapter({
   canEditTenantSlug = false,
@@ -79,6 +80,19 @@ export function createTenantSettingsRuntimeAdapter({
           ? payload.message
           : "Unable to save settings.",
       );
+    /*
+     * BUG-0046(b) — this path wrote to the database and told the running app
+     * nothing, so date format, timezone, currency, density and theme changed and
+     * then sat there until a full page reload.
+     *
+     * `settings-form.tsx` has always announced its saves on this event and the
+     * providers have always listened; this adapter simply never joined in, which
+     * is why the same setting appeared to work from one screen and not another.
+     * It reports the categories that actually changed, so a listener can decide
+     * whether it cares rather than refetching everything on every save.
+     */
+    notifyTenantSettingsChanged(updates.map((update) => update.category));
+
     const settingsPayload =
       payload.settings &&
       typeof payload.settings === "object" &&

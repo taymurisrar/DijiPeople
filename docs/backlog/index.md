@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**108 records** — 59 bugs under [`docs/bugs/`](../bugs/), 49 non-bug items under [`items/`](items/).
+**109 records** — 59 bugs under [`docs/bugs/`](../bugs/), 50 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -17,7 +17,7 @@ see [`README.md`](README.md) for why.
 | Blocked | 0 |
 | Deferred | 1 |
 | Awaiting a product decision | 1 |
-| Completed / closed | 76 |
+| Completed / closed | 77 |
 | **Open CRITICAL** | **0** |
 | **Open HIGH** | **6** |
 | **Awaiting Architect triage** | **0** |
@@ -40,19 +40,19 @@ see [`README.md`](README.md) for why.
 | INFRA | 2 |
 | INTEGRATION | 1 |
 | SECURITY | 6 |
-| TECH_DEBT | 5 |
+| TECH_DEBT | 6 |
 | TEST_GAP | 6 |
-| UX | 4 |
+| UX | 3 |
 
 ## All records by status
 
 | Status | Count |
 |---|---|
-| OPEN | 6 |
+| OPEN | 5 |
 | DEFERRED | 1 |
 | PRODUCT_DECISION | 1 |
-| VERIFIED | 52 |
-| READY | 24 |
+| VERIFIED | 53 |
+| READY | 25 |
 | DONE | 24 |
 
 ## All records
@@ -119,7 +119,7 @@ see [`README.md`](README.md) for why.
 | [BUG-0043](../../docs/bugs/BUG-0043-web-dialogs-have-no-focus-trap-and-filter-controls-are-unlab.md) | Web dialogs have no focus trap and filter controls are unlabelled | UX | MEDIUM | P2 | OPEN | apps/web | PLAN_REQUIRED |
 | [BUG-0044](../../docs/bugs/BUG-0044-the-documented-new-module-workflow-for-apps-web-cannot-be-fo.md) | The documented new module workflow for apps/web cannot be followed | DOCUMENTATION | MEDIUM | P2 | VERIFIED | apps/web | DONE |
 | [BUG-0045](../../docs/bugs/BUG-0045-the-canonical-settings-and-branding-contract-is-materially-s.md) | The canonical settings and branding contract is materially stale | DOCUMENTATION | MEDIUM | P2 | OPEN | apps/web, docs/architecture | PLAN_REQUIRED |
-| [BUG-0046](../../docs/bugs/BUG-0046-tenant-theme-mode-and-runtime-settings-saves-do-not-take-eff.md) | Tenant theme mode and runtime settings saves do not take effect | UX | MEDIUM | P2 | OPEN | apps/web | FIX_NOW |
+| [BUG-0046](../../docs/bugs/BUG-0046-tenant-theme-mode-and-runtime-settings-saves-do-not-take-eff.md) | Tenant theme mode and runtime settings saves do not take effect | UX | MEDIUM | P2 | VERIFIED | apps/web | DONE |
 | [BUG-0050](../../docs/bugs/BUG-0050-notification-settings-offer-email-providers-whose-backend-al.md) | Notification settings offer email providers whose backend always fails | INTEGRATION | MEDIUM | P2 | VERIFIED | apps/web, api:notifications | DONE |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | READY | services/api, apps/admin | FIX_NOW |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | READY | api:tenant-control-plane | FIX_NOW |
@@ -150,6 +150,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0040](../../docs/backlog/items/ITEM-0040-develop-branch-protection-is-not-applied.md) | develop branch protection is not applied | INFRA | MEDIUM | P2 | DONE | .github | DONE |
 | [ITEM-0043](../../docs/backlog/items/ITEM-0043-promote-the-security-invariant-job-to-a-required-gate.md) | Promote the security invariant job to a required gate | TEST_GAP | MEDIUM | P2 | DONE | services/api | DONE |
 | [ITEM-0046](../../docs/backlog/items/ITEM-0046-add-landing-loading-error-and-not-found-boundaries.md) | Add landing loading error and not-found boundaries | UX | MEDIUM | P2 | READY | apps/landing | FIX_NOW |
+| [ITEM-0050](../../docs/backlog/items/ITEM-0050-move-payroll-derivation-and-branding-upload-orchestration-out.md) | Move payroll derivation and branding upload orchestration out of web proxies | TECH_DEBT | MEDIUM | P2 | READY | apps/web, api:compensation, api:tenant-settings | PLAN_REQUIRED |
 | [ITEM-0021](../../docs/backlog/items/ITEM-0021-mechanical-guard-against-country-and-currency-literals-in-fr.md) | Mechanical guard against country and currency literals in frontends | TEST_GAP | LOW | P2 | DONE | scripts, apps/landing, apps/web, apps/admin | DONE |
 | [ITEM-0023](../../docs/backlog/items/ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning.md) | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | P2 | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
 | [ITEM-0024](../../docs/backlog/items/ITEM-0024-landing-depends-on-lucide-react-without-declaring-it.md) | Landing depends on lucide-react without declaring it | TECH_DEBT | LOW | P2 | DONE | apps/landing | DONE |

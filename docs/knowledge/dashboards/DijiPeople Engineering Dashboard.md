@@ -13,7 +13,7 @@
 | Blocked | 0 |
 | Awaiting a product decision | 1 |
 | Deferred | 1 |
-| Completed | 76 |
+| Completed | 77 |
 | Awaiting Architect triage | 0 |
 
 ## Open Critical Bugs
@@ -111,6 +111,7 @@ _None._
 | [[BUG-0040-apps-web-sets-no-security-response-headers|BUG-0040]] | apps/web sets no security response headers | SECURITY | MEDIUM | VERIFIED | apps/web | DONE |
 | [[BUG-0042-apps-web-reads-21-environment-variables-unregistered-in-turb|BUG-0042]] | apps/web reads 21 environment variables unregistered in turbo globalEnv | INFRA | MEDIUM | VERIFIED | apps/web, pkg:config | DONE |
 | [[BUG-0044-the-documented-new-module-workflow-for-apps-web-cannot-be-fo|BUG-0044]] | The documented new module workflow for apps/web cannot be followed | DOCUMENTATION | MEDIUM | VERIFIED | apps/web | DONE |
+| [[BUG-0046-tenant-theme-mode-and-runtime-settings-saves-do-not-take-eff|BUG-0046]] | Tenant theme mode and runtime settings saves do not take effect | UX | MEDIUM | VERIFIED | apps/web | DONE |
 | [[BUG-0050-notification-settings-offer-email-providers-whose-backend-al|BUG-0050]] | Notification settings offer email providers whose backend always fails | INTEGRATION | MEDIUM | VERIFIED | apps/web, api:notifications | DONE |
 | [[BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist|BUG-0023]] | The testing-architecture context claims two e2e specs do not exist | DOCUMENTATION | LOW | VERIFIED | .agent/context | DONE |
 | [[BUG-0024-start-onboarding-api-and-proxy-have-no-caller|BUG-0024]] | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | VERIFIED | apps/admin, api:super-admin | DONE |
@@ -157,7 +158,6 @@ _None. Nothing has been deployed through the release process._
 | [[BUG-0041-web-route-proxies-make-authorization-and-business-decisions|BUG-0041]] | Web route proxies make authorization and business decisions | SECURITY | MEDIUM | OPEN | apps/web | PLAN_REQUIRED |
 | [[BUG-0043-web-dialogs-have-no-focus-trap-and-filter-controls-are-unlab|BUG-0043]] | Web dialogs have no focus trap and filter controls are unlabelled | UX | MEDIUM | OPEN | apps/web | PLAN_REQUIRED |
 | [[BUG-0045-the-canonical-settings-and-branding-contract-is-materially-s|BUG-0045]] | The canonical settings and branding contract is materially stale | DOCUMENTATION | MEDIUM | OPEN | apps/web, docs/architecture | PLAN_REQUIRED |
-| [[BUG-0046-tenant-theme-mode-and-runtime-settings-saves-do-not-take-eff|BUG-0046]] | Tenant theme mode and runtime settings saves do not take effect | UX | MEDIUM | OPEN | apps/web | FIX_NOW |
 | [[ITEM-0002-no-live-api-session-test-harness|ITEM-0002]] | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | READY | services/api, apps/admin | FIX_NOW |
 | [[ITEM-0003-tenant-erasure-never-exercised-against-a-database|ITEM-0003]] | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | READY | api:tenant-control-plane | FIX_NOW |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
@@ -172,6 +172,7 @@ _None. Nothing has been deployed through the release process._
 | [[ITEM-0036-decide-the-fate-of-the-inert-runtime-registries-in-apps-web|ITEM-0036]] | Decide the fate of the inert runtime registries in apps/web | ARCHITECTURE | MEDIUM | READY | apps/web | PLAN_REQUIRED |
 | [[ITEM-0039-promote-the-csp-from-report-only-to-enforced|ITEM-0039]] | Promote the CSP from report-only to enforced | SECURITY | MEDIUM | READY | pkg:config, apps/web, apps/admin, apps/landing | PLAN_REQUIRED |
 | [[ITEM-0046-add-landing-loading-error-and-not-found-boundaries|ITEM-0046]] | Add landing loading error and not-found boundaries | UX | MEDIUM | READY | apps/landing | FIX_NOW |
+| [[ITEM-0050-move-payroll-derivation-and-branding-upload-orchestration-out|ITEM-0050]] | Move payroll derivation and branding upload orchestration out of web proxies | TECH_DEBT | MEDIUM | READY | apps/web, api:compensation, api:tenant-settings | PLAN_REQUIRED |
 | [[ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning|ITEM-0023]] | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
 | [[ITEM-0015-make-the-tenant-readiness-assertion-auditable|ITEM-0015]] | Make the tenant readiness() authorization assertion auditable | FOLLOW_UP | LOW | READY | api:tenant-control-plane | FIX_NOW |
 | [[ITEM-0042-burn-down-the-services-api-eslint-warning-baseline|ITEM-0042]] | Burn down the services/api ESLint warning baseline | TECH_DEBT | LOW | READY | services/api | FIX_NOW |
@@ -192,7 +193,7 @@ _None. Nothing has been deployed through the release process._
 | Knowledge | Count |
 |---|---|
 | Bug records | 59 |
-| Backlog items | 49 |
+| Backlog items | 50 |
 | Known bug patterns | 19 |
 | QA runs | 15 |
 | Engineering history records | 12 |

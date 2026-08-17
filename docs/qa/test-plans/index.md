@@ -6,7 +6,7 @@ One evergreen plan per product area: scope, risks, the cases that must always
 be covered, and the declared coverage per dimension. QA loads the plan for
 every area a change touches **before** designing anything new.
 
-**Plans: 12** · scenarios across them: 80
+**Plans: 12** · scenarios across them: 81
 
 | Plan | Area | Risk | Status | Scenarios | Related bugs | Verified against |
 |---|---|---|---|---|---|---|
@@ -19,6 +19,6 @@ every area a change touches **before** designing anything new.
 | [PLAN-005](../../../docs/qa/test-plans/PLAN-005-lead-management.md) | lead-management | HIGH | NEEDS_REVIEW | 5 | BUG-0013, BUG-0018, BUG-0021, BUG-0031, BUG-0032 | `714632d` |
 | [PLAN-006](../../../docs/qa/test-plans/PLAN-006-partner-lifecycle.md) | partner-lifecycle | HIGH | NEEDS_REVIEW | 5 | BUG-0016, BUG-0019, BUG-0025, BUG-0048 | `714632d` |
 | [PLAN-010](../../../docs/qa/test-plans/PLAN-010-payroll.md) | payroll | CRITICAL | NEEDS_REVIEW | 6 | BUG-0001, BUG-0039 | `714632d` |
-| [PLAN-011](../../../docs/qa/test-plans/PLAN-011-runtime-modules.md) | runtime-modules | HIGH | NEEDS_REVIEW | 7 | BUG-0019, BUG-0020, BUG-0044 | `714632d` |
+| [PLAN-011](../../../docs/qa/test-plans/PLAN-011-runtime-modules.md) | runtime-modules | HIGH | NEEDS_REVIEW | 8 | BUG-0019, BUG-0020, BUG-0044 | `714632d` |
 | [PLAN-003](../../../docs/qa/test-plans/PLAN-003-tenant-isolation.md) | tenant-isolation | CRITICAL | NEEDS_REVIEW | 5 | BUG-0005 | `714632d` |
 | [PLAN-007](../../../docs/qa/test-plans/PLAN-007-tenant-provisioning.md) | tenant-provisioning | CRITICAL | NEEDS_REVIEW | 4 | BUG-0014, BUG-0015, BUG-0017, BUG-0022 | `714632d` |

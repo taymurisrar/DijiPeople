@@ -2,19 +2,27 @@ import { NextResponse } from "next/server";
 import type { DashboardSummary } from "@/app/components/dashboard/types";
 import { ApiRequestError, apiRequestJson } from "@/lib/server-api";
 
-const DEFAULT_DASHBOARD_OPTION = {
-  id: "admin",
-  name: "Administration",
-  subtitle: "Default administration dashboard",
-};
-
+/**
+ * Dashboard view options for the settings picker.
+ *
+ * BUG-0041 — this handler used to hold a `DEFAULT_DASHBOARD_OPTION` constant
+ * (`admin` / "Administration") and return it whenever the API call failed for
+ * any reason other than 401, or whenever the API returned no visible views.
+ *
+ * That is the BUG-0039 shape: a refusal converted into a `200`. A caller the API
+ * denied with 403 received a fabricated administration dashboard the API had
+ * never offered them, and a tenant that genuinely has no visible views was told
+ * it had one. Both look identical to a successful response, so nothing
+ * downstream could tell an answer from a guess.
+ *
+ * The handler now reshapes what the API returned and forwards what the API
+ * refused. An empty list is a real answer and is returned as one.
+ */
 export async function GET() {
   try {
-    const summary = await apiRequestJson<DashboardSummary>(
-      "/dashboard/summary",
-    );
-    const visibleViews = summary.views.filter((view) => view.visible);
-    const options = visibleViews
+    const summary = await apiRequestJson<DashboardSummary>("/dashboard/summary");
+    const options = summary.views
+      .filter((view) => view.visible)
       .map((view) => ({
         id: view.key,
         name: view.label,
@@ -26,62 +34,19 @@ export async function GET() {
         return 0;
       });
 
-    if (options.length > 0) {
-      logDashboardLookup("resolved", {
-        status: 200,
-        defaultView: summary.defaultView,
-        optionCount: options.length,
-      });
-      return NextResponse.json({ options, source: "resolved" });
-    }
-
-    logDashboardLookup("defaulted", {
-      status: 200,
-      fallback: DEFAULT_DASHBOARD_OPTION.id,
-      reason: "no-visible-views",
-    });
+    return NextResponse.json({ options, source: "resolved" });
   } catch (error) {
-    if (error instanceof ApiRequestError && error.status === 401) {
+    if (error instanceof ApiRequestError) {
       return NextResponse.json(
         {
-          errorCode: error.errorCode ?? "SESSION_EXPIRED",
+          errorCode: error.errorCode ?? "DASHBOARD_VIEWS_UNAVAILABLE",
           message: error.message,
           traceId: error.traceId,
         },
-        { status: 401 },
+        { status: error.status },
       );
     }
 
-    logDashboardLookup("defaulted", {
-      status: errorStatus(error),
-      fallback: DEFAULT_DASHBOARD_OPTION.id,
-      error: error instanceof Error ? error.message : "Unknown error",
-    });
+    throw error;
   }
-
-  return NextResponse.json({
-    options: [DEFAULT_DASHBOARD_OPTION],
-    source: "default",
-  });
-}
-
-function errorStatus(error: unknown) {
-  if (
-    error &&
-    typeof error === "object" &&
-    "status" in error &&
-    typeof error.status === "number"
-  ) {
-    return error.status;
-  }
-
-  return "unknown";
-}
-
-function logDashboardLookup(
-  result: "resolved" | "defaulted",
-  details: Record<string, unknown>,
-) {
-  if (process.env.NODE_ENV !== "development") return;
-  console.debug(`[settings/dashboard-views] ${result}`, details);
 }

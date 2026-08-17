@@ -2,7 +2,7 @@
 ID: BUG-0046
 aliases: [BUG-0046]
 Title: Tenant theme mode and runtime settings saves do not take effect
-Status: OPEN
+Status: VERIFIED
 Severity: MEDIUM
 Priority: P2
 Type: UX
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-17
 DetectedInSha: 1af3690
 AffectedModules: [apps/web]
 OwnerAgent: frontend
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: docs/qa/runs/2026-08-17-web-app-documentation-1af3690.md
-RegressionId:
+RegressionId: REG-054
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-17
-UpdatedAt: 2026-08-17
-ResolvedAt:
+UpdatedAt: 2026-08-18
+ResolvedAt: 2026-08-18
 ---
 
 # BUG-0046 — Tenant theme mode and runtime settings saves do not take effect
@@ -148,15 +148,55 @@ invalidation fix is independent and ready.
 
 ## Resolution
 
-Not resolved.
+Fixed 2026-08-18, both halves.
+
+**(a) One precedence order, one writer.** The two inputs had been sharing a
+slot: `data-theme` is the *resolved answer* the stylesheet keys on, and the
+tenant default was written straight into it. They are now separate —
+`data-tenant-theme` carries the tenant default, and `applyTheme` remains the only
+writer of `data-theme`.
+
+`effectiveThemeChoice()` in `lib/theme.ts` states the order once:
+**user choice → tenant default → device.** The MutationObserver in
+`theme-applier.tsx` re-asserts *that* instead of
+`readStoredThemeChoice() ?? "system"`, which is the expression that made a tenant
+default unreachable — it was written, observed, and immediately overwritten with
+the device preference. `tenant-branding-client.ts` and
+`resolved-settings-provider.tsx` now publish the tenant value and delegate rather
+than writing the answer themselves.
+
+That also closes the quieter half of (a): a themeMode of `SYSTEM` used to reach
+the document as a literal `data-theme="system"`, which matches no rule in
+`globals.css` and so read as light whatever the device preferred. `applyTheme`
+has always resolved to a concrete `light`/`dark` — the direct writers were
+bypassing it.
+
+**(b) The runtime save now announces itself.** `settings-form.tsx` has always
+emitted `notifyTenantSettingsChanged` and the providers have always listened;
+`tenant-settings-runtime.adapter.ts` simply never joined in, which is why the
+same setting appeared to work from one screen and not from another. It now emits
+the categories that actually changed, so a listener can decide whether it cares
+rather than refetching everything on every save.
 
 ## QA Retest
 
-Not applicable — not yet fixed. **Reasoned from source, not observed in a
-browser.** The three writers and the observer are certain; the resulting
-execution order, and whether React effect ordering ever lets a tenant default
-survive, was not tested at runtime. That uncertainty is why (a) is rated MEDIUM
-rather than HIGH.
+Pass.
+
+```text
+apps/web/lib/theme-precedence.spec.ts   6 tests
+apps/web                                18 suites, 397 tests; check-types PASS
+```
+
+The original record noted that (a) was **reasoned from source, not observed in a
+browser**, and that the uncertainty was why it was rated MEDIUM. The precedence
+is now pinned by a test rather than by reading: reverting `effectiveThemeChoice()`
+to the original `readStoredThemeChoice() ?? "system"` fails `uses the tenant
+default when the user has chosen nothing`; restoring it passes.
+
+What is still unobserved is React's *effect ordering* — whether some hydration
+path could interleave the writers differently. That is no longer load-bearing:
+with one writer and one order, interleaving changes when the answer is written,
+not what it is.
 
 ## History
 

@@ -679,6 +679,34 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fixed** | 2026-08-17, branch `agent/prisma-client-freshness` |
 | **Active** | yes |
 
+### REG-054 — Theme precedence is user choice, then tenant default, then device
+
+| | |
+|---|---|
+| **Bug class** | `competing-writers` |
+| **Module** | `apps/web/lib/theme.ts` |
+| **Bug record** | BUG-0046 |
+| **Root cause** | Three writers competed for `data-theme` — the branding client, the resolved-settings provider and the theme applier — and the applier installed a MutationObserver that reverted anything it had not written back to `readStoredThemeChoice() ?? "system"`. On a browser with no stored choice a tenant default of DARK was written, observed and immediately overwritten with the device preference, so the setting saved and did nothing. The branding client could also write a literal `data-theme="system"`, which matches no rule in `globals.css`. |
+| **Regression test** | `apps/web/lib/theme-precedence.spec.ts` |
+| **Scenario** | `effectiveThemeChoice()` resolves user choice, then tenant default, then device; the tenant default is published to `data-tenant-theme` and only `applyTheme` writes `data-theme`, always as a concrete `light`/`dark`. |
+| **Proven to fail without the fix** | Reverting `effectiveThemeChoice()` to `readStoredThemeChoice() ?? "system"` — the original expression — fails `uses the tenant default when the user has chosen nothing`; restoring it passes. |
+| **Fixed** | 2026-08-18, branch `agent/web-ux-authz-fixes` |
+| **Active** | yes |
+
+### REG-055 — A web route handler decides nothing
+
+| | |
+|---|---|
+| **Bug class** | `proxy-makes-decisions` |
+| **Module** | `apps/web/app/api` |
+| **Bug record** | BUG-0041 · BUG-0039 |
+| **Root cause** | `apps/web/AGENTS.md` says a route handler forwards the request, forwards the response and decides nothing. Three handlers did otherwise: `teams` read `permissionKeys` and returned a fabricated `200 { items: [] }` without calling the API; `lookups/dashboard-views` substituted an invented "Administration" option on any non-401 failure, converting a refusal into a success; `attendance/reverse-geocode` called `nominatim.openstreetmap.org` directly and spread `forwardedClientHeaders` into that request, sending the visitor's IP to a third party alongside their punch coordinates. |
+| **Regression test** | `scripts/check-proxies-forward-refusals.mjs` (CI: `npm run check:proxies-forward-refusals`) · `scripts/check-proxy-forwards-client-ip.mjs` (CI: `npm run check:proxy-forwards-client-ip`) |
+| **Scenario** | No handler reads permissions to decide access, substitutes data the API did not return, or forwards client headers anywhere but to the API. |
+| **Proven to fail without the fix** | The three handlers are the proof: each decision was unconditional in source and each is now removed. `teams` no longer imports `getSessionUser`; `dashboard-views` forwards `error.status`; `reverse-geocode` calls the shared server-side `reverseGeocode` helper, which sends no client headers. |
+| **Fixed** | 2026-08-18, branch `agent/web-ux-authz-fixes` — partial; see ITEM-0050 |
+| **Active** | yes |
+
 ### REG-053 — The email providers offered are the email providers implemented
 
 | | |

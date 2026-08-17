@@ -6,14 +6,14 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 108,
+    "total_records": 109,
     "bugs": 59,
-    "backlog_items": 49,
+    "backlog_items": 50,
     "open_bucket": 30,
     "blocked_bucket": 0,
     "deferred_bucket": 1,
     "product_decision_bucket": 1,
-    "completed_bucket": 76,
+    "completed_bucket": 77,
     "parser_structural_errors": 0,
     "active_session_conflict": "NONE",
     "discovered_findings_total": 34,
@@ -2210,11 +2210,13 @@
         "ITEM-0034"
       ],
       "regressions": [
-        "REG-034"
+        "REG-034",
+        "REG-055"
       ],
       "qa_scenarios": [
         "QA-AUTHZ-008",
-        "QA-PAY-006"
+        "QA-PAY-006",
+        "QA-RUNTIME-010"
       ],
       "test_plan": [
         "PLAN-010"
@@ -2293,7 +2295,7 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "1af3690",
         "created_at": "2026-08-17",
-        "updated_at": "2026-08-17",
+        "updated_at": "2026-08-18",
         "resolved_at": ""
       },
       "type": "SECURITY",
@@ -2323,8 +2325,12 @@
       "related_backlog": [
         "ITEM-0034"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-055"
+      ],
+      "qa_scenarios": [
+        "QA-RUNTIME-010"
+      ],
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
@@ -2554,14 +2560,14 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "1af3690",
         "created_at": "2026-08-17",
-        "updated_at": "2026-08-17",
-        "resolved_at": ""
+        "updated_at": "2026-08-18",
+        "resolved_at": "2026-08-18"
       },
       "type": "UX",
       "title": "Tenant theme mode and runtime settings saves do not take effect",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
+      "current_status": "VERIFIED",
       "current_evidence": {
         "paths": [
           "docs/bugs/BUG-0046-tenant-theme-mode-and-runtime-settings-saves-do-not-take-eff.md",
@@ -2582,12 +2588,16 @@
       "related_backlog": [
         "ITEM-0034"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-054"
+      ],
+      "qa_scenarios": [
+        "QA-RUNTIME-010"
+      ],
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "VERIFIED",
         "classification": "ACTIVE_AS_DOCUMENTED",
@@ -5477,6 +5487,31 @@
         "services/api",
         "turbo.json",
         "docs/deployment"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": []
+    },
+    {
+      "record_id": "ITEM-0050",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0050-move-payroll-derivation-and-branding-upload-orchestration-out.md",
+        "provenance": "IMPLEMENTATION",
+        "detected_in_sha": "",
+        "created_at": "2026-08-18",
+        "updated_at": "2026-08-18",
+        "resolved_at": ""
+      },
+      "type": "TECH_DEBT",
+      "title": "Move payroll derivation and branding upload orchestration out of web proxies",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "READY",
+      "architect_disposition": "PLAN_REQUIRED",
+      "affected_modules": [
+        "apps/web",
+        "services/api/src/modules/compensation",
+        "services/api/src/modules/tenant-settings"
       ],
       "regressions": [],
       "qa_scenarios": [],

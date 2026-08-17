@@ -17,6 +17,11 @@ import {
 } from "@/lib/settings-events";
 import { useTenantSettings } from "@/app/components/settings/tenant-settings-provider";
 import { resolveTenantBranding } from "@/lib/branding";
+import {
+  applyTheme as applyThemeChoice,
+  effectiveThemeChoice,
+  TENANT_THEME_ATTRIBUTE,
+} from "@/lib/theme";
 
 export type ResolvedSettingsContextValue = {
   timezone: string;
@@ -192,16 +197,19 @@ export function SystemPreferencesProvider({
       ? "rtl"
       : "ltr";
     const systemTheme = window.matchMedia("(prefers-color-scheme: dark)");
+    /*
+     * BUG-0046 — this was the third writer competing for `data-theme`, and it
+     * resolved "system" with its own copy of the matchMedia branch.
+     *
+     * It now publishes the resolved tenant value to `data-tenant-theme` and lets
+     * `applyThemeChoice` decide, so user choice still wins over the tenant
+     * default and there is exactly one place that writes the answer. It keeps
+     * ownership of `color-scheme`, which is a paint concern rather than a
+     * precedence one.
+     */
     const applyTheme = () => {
-      const configuredTheme = value.themeMode.toLowerCase();
-      const effectiveTheme =
-        configuredTheme === "system"
-          ? systemTheme.matches
-            ? "dark"
-            : "light"
-          : configuredTheme;
-
-      root.dataset.theme = effectiveTheme;
+      root.setAttribute(TENANT_THEME_ATTRIBUTE, value.themeMode.toLowerCase());
+      const effectiveTheme = applyThemeChoice(effectiveThemeChoice());
       root.style.colorScheme = effectiveTheme === "dark" ? "dark" : "light";
     };
 
