@@ -128,13 +128,14 @@ races from product failures. Promote only after deterministic zero-failure runs.
 
 ## Regression Coverage
 
-[[REG-047]] — `validate-framework` requires every job named "report only" to
-publish an explicit `RESULT:` verdict carrying PASS or FAIL, not counts alone.
-Mutation-tested by deleting the `RESULT:` line from `database-e2e-report`.
+[REG-047](../qa/regressions/index.md) — `validate-framework` requires every job
+named "report only" to publish an explicit `RESULT:` verdict carrying PASS or
+FAIL, not counts alone. Mutation-tested by deleting the `RESULT:` line from
+`database-e2e-report`.
 
-[[REG-040]] covers the other half: the dual-permission invariant itself, which
-now runs inside the required `test-api` job rather than a job that could conclude
-success while reporting 796 violations.
+[REG-040](../qa/regressions/index.md) covers the other half: the dual-permission
+invariant itself, which now runs inside the required `test-api` job rather than a
+job that could conclude success while reporting 796 violations.
 
 ## Dependencies
 

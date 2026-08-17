@@ -61,4 +61,5 @@ a red job that reads as a pass.
 
 ## Related Items
 
-[[BUG-0049]] · [[REG-047]] · [[ITEM-0047]] · [[qa-and-ci-architecture]]
+[[BUG-0049]] · [REG-047](../regressions/index.md) · [[ITEM-0047]] ·
+[[qa-and-ci-architecture]]
