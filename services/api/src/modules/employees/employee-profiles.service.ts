@@ -8,11 +8,7 @@ import { getAppOrigin } from '@repo/config';
 import { extname } from 'path';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import {
-  Prisma,
-  SecurityAccessLevel,
-  SecurityPrivilege,
-} from '@prisma/client';
+import { Prisma, SecurityAccessLevel, SecurityPrivilege } from '@prisma/client';
 import { normalizeEmail } from '../../common/utils/email.util';
 import { getAccessTokenSecret } from '../../common/config/auth.config';
 import { PERMISSION_KEYS } from '../../common/constants/permissions';

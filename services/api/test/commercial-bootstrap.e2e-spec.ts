@@ -69,13 +69,22 @@ describeWithDatabase()('Commercial bootstrap (DB-backed)', () => {
 
   async function makeMarket(code: string) {
     const market = await prisma.market.create({
-      data: { code, name: code, defaultCurrency: 'USD', supportedCurrencies: ['USD'] },
+      data: {
+        code,
+        name: code,
+        defaultCurrency: 'USD',
+        supportedCurrencies: ['USD'],
+      },
     });
     created.markets.push(market.id);
     return market;
   }
 
-  function activePrice(planId: string, marketId: string | null, overrides = {}) {
+  function activePrice(
+    planId: string,
+    marketId: string | null,
+    overrides = {},
+  ) {
     return {
       planId,
       marketId,
@@ -216,7 +225,9 @@ describeWithDatabase()('Commercial bootstrap (DB-backed)', () => {
 
     await bootstrapCommercialDefaults(prisma);
 
-    const after = await prisma.planPrice.findUnique({ where: { id: draft.id } });
+    const after = await prisma.planPrice.findUnique({
+      where: { id: draft.id },
+    });
     expect(after?.isActive).toBe(false);
     expect(after?.publicationStatus).toBe('DRAFT');
   });

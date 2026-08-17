@@ -73,11 +73,12 @@ function createService(
       count: jest.fn(async () => 0),
     },
     approvalAssignment: {
-      findFirst: jest.fn(async (args: { where: { assignedToUserId: string } }) =>
-        options.pendingAssignmentFor &&
-        args.where.assignedToUserId === options.pendingAssignmentFor
-          ? { id: 'assignment-1' }
-          : null,
+      findFirst: jest.fn(
+        async (args: { where: { assignedToUserId: string } }) =>
+          options.pendingAssignmentFor &&
+          args.where.assignedToUserId === options.pendingAssignmentFor
+            ? { id: 'assignment-1' }
+            : null,
       ),
     },
   };

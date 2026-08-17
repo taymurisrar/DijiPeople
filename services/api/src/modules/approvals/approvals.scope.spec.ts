@@ -76,9 +76,7 @@ describe('ApprovalsService read scope', () => {
   it('limits approvals.readTeam to own, assigned and direct reports', async () => {
     const where = await capturedWhere(['approvals.readTeam']);
 
-    expect(where.AND).toEqual([
-      { OR: [...OWN_SCOPE, DIRECT_REPORT_SCOPE] },
-    ]);
+    expect(where.AND).toEqual([{ OR: [...OWN_SCOPE, DIRECT_REPORT_SCOPE] }]);
   });
 
   it('does not let approvals.readTeam reach the whole tenant', async () => {

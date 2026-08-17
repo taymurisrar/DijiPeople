@@ -28,11 +28,13 @@ describe('plan read paths are free of commercial writes', () => {
   function methodBody(name: string) {
     const signature = new RegExp(`\\n  (?:async )?${name}\\s*\\(`);
     const match = signature.exec(source);
-    if (!match) throw new Error(`Method ${name} not found in super-admin.service.ts`);
+    if (!match)
+      throw new Error(`Method ${name} not found in super-admin.service.ts`);
 
     const start = match.index;
     // Next method at the same indentation level.
-    const next = /\n  (?:private |public |protected )?(?:async )?[a-zA-Z]\w*\s*\(/g;
+    const next =
+      /\n {2}(?:private |public |protected )?(?:async )?[a-zA-Z]\w*\s*\(/g;
     next.lastIndex = start + match[0].length;
     const following = next.exec(source);
 

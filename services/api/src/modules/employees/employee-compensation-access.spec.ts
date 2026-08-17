@@ -181,8 +181,12 @@ describe('EmployeeProfilesService compensation access', () => {
   });
 
   it('is indistinguishable from having no compensation record', async () => {
-    const denied = await createService('MANAGER_READONLY').service
-      .getCurrentCompensation(buildUser(['employees.read']), 'employee-1');
+    const denied = await createService(
+      'MANAGER_READONLY',
+    ).service.getCurrentCompensation(
+      buildUser(['employees.read']),
+      'employee-1',
+    );
 
     const { service, findFirst } = createService('SELF');
     findFirst.mockResolvedValueOnce(null as never);

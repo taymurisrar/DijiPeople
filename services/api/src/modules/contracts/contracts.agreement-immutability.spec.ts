@@ -23,7 +23,21 @@ import { ContractsService } from './contracts.service';
  * against the unfixed code and prove nothing.
  */
 
-const update = ContractsService.prototype.update;
+/*
+ * Taken off the prototype through a structural cast, the same shape
+ * `partner-lifecycle-guards.spec.ts` and `tenant-provisioning-retry.spec.ts`
+ * use. Reading the method directly trips `@typescript-eslint/unbound-method` —
+ * correctly, since update() does use `this` — and the cast states the intent
+ * instead of suppressing the rule: the immutability check is being exercised
+ * against a deliberately minimal `this`, which is the whole point of the test.
+ */
+const { update } = ContractsService.prototype as unknown as {
+  update: (
+    user: unknown,
+    id: string,
+    dto: Record<string, unknown>,
+  ) => Promise<unknown>;
+};
 
 /**
  * Minimal `this` for update(): everything it touches before the immutability
@@ -82,7 +96,13 @@ const attemptEdit = async (status: string, dto: Record<string, unknown>) => {
 
 describe('PATCH /contracts/:id immutability after signing begins', () => {
   /* The five statuses the old inline list in update() forgot. */
-  const DRIFTED = ['SENT', 'VIEWED', 'FULLY_EXECUTED', 'SUPERSEDED', 'TERMINATED'];
+  const DRIFTED = [
+    'SENT',
+    'VIEWED',
+    'FULLY_EXECUTED',
+    'SUPERSEDED',
+    'TERMINATED',
+  ];
 
   it.each(DRIFTED)(
     'refuses to edit a %s agreement (regression: absent from the old inline list)',
@@ -115,13 +135,16 @@ describe('PATCH /contracts/:id immutability after signing begins', () => {
     expect(contractUpdate).not.toHaveBeenCalled();
   });
 
-  it.each(['SIGNATURE_IN_PROGRESS', 'PARTIALLY_SIGNED', 'FULLY_SIGNED', 'ACTIVE', 'ARCHIVED'])(
-    'still refuses to edit a %s agreement',
-    async (status) => {
-      const { thrown } = await attemptEdit(status, { title: 'x' });
-      expect(thrown).toBeInstanceOf(BadRequestException);
-    },
-  );
+  it.each([
+    'SIGNATURE_IN_PROGRESS',
+    'PARTIALLY_SIGNED',
+    'FULLY_SIGNED',
+    'ACTIVE',
+    'ARCHIVED',
+  ])('still refuses to edit a %s agreement', async (status) => {
+    const { thrown } = await attemptEdit(status, { title: 'x' });
+    expect(thrown).toBeInstanceOf(BadRequestException);
+  });
 
   /*
    * The fix must not over-block: everything before dispatch is a working draft
