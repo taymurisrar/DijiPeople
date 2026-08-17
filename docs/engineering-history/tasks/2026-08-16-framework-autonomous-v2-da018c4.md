@@ -17,8 +17,8 @@
 | **Base SHA** | `b90f33e00c3845439797b51ef1ceb3ed7820a620` |
 | **Final Task SHA** | `da018c43c175608fd6c0cc7223c2f01b2bb7e133` |
 | **Target Branch** | `develop` — this task is what makes that the default; `main` is untouched |
-| **Merge Commit** | TODO — filled after the merge |
-| **Final Target SHA** | TODO — filled after the target is pushed |
+| **Merge Commit** | NOT_APPLICABLE — integrated by fast-forward, not a merge commit. `develop` was created at this task's tip: the first commit after it, `9e437fae2c995d918ab06650732f27f25feff1d9`, has `da018c4` as its sole parent. |
+| **Final Target SHA** | `08a04b3e9468385851249ead23176aec6e7187ef` — `develop` at task close, "chore: close SESSION-0001 and finalize TASK-0004" |
 
 ### Commits
 
@@ -254,17 +254,33 @@ scenarios under `docs/qa/`, which are the artefact rather than a by-product.
 
 | | |
 |---|---|
-| **CI Run ID** | TODO — the run whose `CI required gate` verdict authorised the merge |
-| **CI Result** | TODO — PASS / FAILED / PENDING / BLOCKED_BY_ACCESS / UNAVAILABLE |
+| **CI Run ID** | `31982441049` on `08a04b3` (`develop`). Earlier green runs on the same integration sequence: `31981397052` on `cc346b7`, `31981992386` on `c77933f`. |
+| **CI Result** | **PASS** — `CI required gate` green on `08a04b3`. **With a stated gap:** no workflow run exists for `da018c4` itself, so the task tip was never independently verified; the first verdict covering this work is `cc346b7`, three commits later. |
 
 A verdict must be read **on the exact SHA being merged**. A verdict from an
 earlier commit on the same branch is a verdict about different code.
 
+> **Finalized 2026-08-17.** The gap recorded above is the honest reading of
+> `gh run list --commit da018c43c175608fd6c0cc7223c2f01b2bb7e133`, which returns
+> no runs. Because integration was a fast-forward rather than a PR merge, no
+> pull-request event fired and the tip was never built on its own. This is
+> precisely the case the rule under this table warns about, and it is left
+> visible rather than smoothed over with a later SHA's green.
+
 ## Post-Merge Validation
 
-TODO — QA. The commands actually run against the **merged** SHA, and their
-results. Tests that passed on the task branch prove the branch, not the
-integrated result.
+Validation against the **merged** SHA, `08a04b3`:
+
+| Check | Result | Evidence |
+|---|---|---|
+| `CI required gate` (all 11 required jobs) | PASS | run `31982441049`, `conclusion: success` |
+| Preceding integration commits `cc346b7`, `c77933f` | PASS | runs `31981397052`, `31981992386` |
+
+No local post-merge command log was captured at the time, and it cannot be
+reconstructed after the fact — `LOCAL_POST_MERGE_EVIDENCE = NOT_RECOVERABLE`.
+The CI verdict on the merged SHA is the whole of the post-merge evidence for
+this task. Recording that plainly is the point; inventing a command log to fill
+the row would be worse than the gap.
 
 ## Release / Deployment Impact
 
@@ -294,7 +310,7 @@ Four new context documents, which are the durable knowledge this task produced:
 | [`.agent/context/agent-handoffs.md`](../../../.agent/context/agent-handoffs.md) | `PROCESS_RULE` — handoff contract, required-agent matrix |
 | [`.agent/context/qa-persistence.md`](../../../.agent/context/qa-persistence.md) | `PROCESS_RULE` — durable plans, scenarios, coverage |
 
-Plus [`docs/development/git-ci-cost.md`](../git-ci-cost.md), which measures what
+Plus [`docs/development/git-ci-cost.md`](../../development/git-ci-cost.md), which measures what
 the branch model changes rather than asserting it is faster.
 
 The lesson worth carrying forward is in `BUG-0047`: **a record closed on

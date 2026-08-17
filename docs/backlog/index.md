@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**103 records** — 57 bugs under [`docs/bugs/`](../bugs/), 46 non-bug items under [`items/`](items/).
+**104 records** — 58 bugs under [`docs/bugs/`](../bugs/), 46 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,14 +13,14 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 42 |
+| Open (active work) | 43 |
 | Blocked | 0 |
 | Deferred | 1 |
 | Awaiting a product decision | 1 |
 | Completed / closed | 59 |
 | **Open CRITICAL** | **1** |
 | **Open HIGH** | **10** |
-| **Awaiting Architect triage** | **0** |
+| **Awaiting Architect triage** | **1** |
 
 ## Open by severity
 
@@ -29,7 +29,7 @@ see [`README.md`](README.md) for why.
 | CRITICAL | 1 |
 | HIGH | 10 |
 | MEDIUM | 27 |
-| LOW | 4 |
+| LOW | 5 |
 
 ## Open by type
 
@@ -37,7 +37,7 @@ see [`README.md`](README.md) for why.
 |---|---|
 | ARCHITECTURE | 1 |
 | AUTHORIZATION | 5 |
-| DOCUMENTATION | 3 |
+| DOCUMENTATION | 4 |
 | FOLLOW_UP | 3 |
 | INFRA | 5 |
 | INTEGRATION | 2 |
@@ -51,7 +51,7 @@ see [`README.md`](README.md) for why.
 
 | Status | Count |
 |---|---|
-| OPEN | 10 |
+| OPEN | 11 |
 | IN_PROGRESS | 6 |
 | DEFERRED | 1 |
 | PRODUCT_DECISION | 1 |
@@ -158,6 +158,7 @@ see [`README.md`](README.md) for why.
 | [BUG-0018](../../docs/bugs/BUG-0018-bulk-lead-delete-is-unreachable-for-every-role.md) | Bulk lead delete is unreachable for every role, including SUPER_ADMIN | AUTHORIZATION | LOW | P3 | DEFERRED | api:platform-auth, api:super-admin | DEFER |
 | [BUG-0023](../../docs/bugs/BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist.md) | The testing-architecture context claims two e2e specs do not exist | DOCUMENTATION | LOW | P3 | VERIFIED | .agent/context | DONE |
 | [BUG-0024](../../docs/bugs/BUG-0024-start-onboarding-api-and-proxy-have-no-caller.md) | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | P3 | VERIFIED | apps/admin, api:super-admin | DONE |
+| [BUG-0059](../../docs/bugs/BUG-0059-vault-wikilinks-to-task-records-and-four-module-notes-resolv.md) | Vault wikilinks to task records and four module notes resolve to nothing | DOCUMENTATION | LOW | P3 | OPEN | scripts, docs/tasks, docs/knowledge | TRIAGE_REQUIRED |
 | [ITEM-0007](../../docs/backlog/items/ITEM-0007-should-duplicate-website-leads-be-deduplicated.md) | Product decision — should duplicate website leads be deduplicated? | PRODUCT_DECISION | LOW | P3 | DONE | api:leads, apps/landing | DONE |
 | [ITEM-0008](../../docs/backlog/items/ITEM-0008-customeraccount-has-no-origin-channel.md) | Product decision — CustomerAccount carries no origin channel | PRODUCT_DECISION | LOW | P3 | DONE | services/api/prisma, api:super-admin | DONE |
 | [ITEM-0011](../../docs/backlog/items/ITEM-0011-framework-validation-should-catch-absence-claims.md) | Framework validation should catch false absence claims in context documents | TECH_DEBT | LOW | P3 | DONE | .agent/context, scripts | DONE |

@@ -14,7 +14,7 @@
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **1** |
 | Open HIGH | 10 |
-| Awaiting Architect triage | 0 |
+| Awaiting Architect triage | 1 |
 | Owner decisions pending | 1 |
 | QA coverage gaps | 53 |
 | Scenarios blocked by infrastructure | 0 |
@@ -144,13 +144,13 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 42 |
+| Open total | 43 |
 | Blocked | 0 |
 | Deferred | 1 |
 | Awaiting a product decision | 1 |
-| Awaiting Architect triage | 0 |
+| Awaiting Architect triage | 1 |
 
-Every ordinary record carries a disposition.
+**A record nobody has triaged is work nobody has decided about.** No ordinary record may stay `TRIAGE_REQUIRED` at the end of a task.
 
 ## Deployment
 

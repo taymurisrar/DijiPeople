@@ -88,7 +88,7 @@ operator sees is the number a customer is charged.
 (`version`, `effectiveFrom`, `effectiveTo`, `supersedesPriceId`), Stripe linkage
 and seat rules — but the older `Plan`-level base price columns were never
 removed, and Admin was never migrated onto `PlanPrice`. Two sources of truth for
-one fact, which the root [`AGENTS.md`](../../../AGENTS.md) architecture principle
+one fact, which the root [`AGENTS.md`](../../AGENTS.md) architecture principle
 4 explicitly forbids.
 
 ## Impact
@@ -134,7 +134,7 @@ form, the public plans and subscribe pages, `super-admin` plan services.
 ## Proposed Resolution
 
 **Needs an ExecPlan.** Dropping columns is a destructive schema change requiring
-expand/backfill/contract staging per [`PLANS.md`](../../../PLANS.md).
+expand/backfill/contract staging per [`PLANS.md`](../../PLANS.md).
 
 Direction: make `PlanPrice` the only price. Backfill a `PlanPrice` per (plan,
 cycle, currency) from the existing base prices, migrate Admin and the plan form
