@@ -28,6 +28,7 @@
     "check:proxy-forwards-client-ip": "node scripts/check-proxy-forwards-client-ip.mjs",
     "prisma:validate": "npm --workspace api run prisma:validate",
     "prisma:generate": "npm --workspace api run prisma:generate",
+    "check:prisma-client": "node scripts/check-prisma-client-fresh.mjs",
     "prisma:migrate:status": "npm --workspace api run prisma:migrate:status",
     "prisma:seed": "npm --workspace api run prisma:seed",
     "seed:system": "npm --workspace api run seed:system",

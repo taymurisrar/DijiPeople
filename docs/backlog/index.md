@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**105 records** — 58 bugs under [`docs/bugs/`](../bugs/), 47 non-bug items under [`items/`](items/).
+**106 records** — 59 bugs under [`docs/bugs/`](../bugs/), 47 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -17,7 +17,7 @@ see [`README.md`](README.md) for why.
 | Blocked | 0 |
 | Deferred | 1 |
 | Awaiting a product decision | 1 |
-| Completed / closed | 67 |
+| Completed / closed | 68 |
 | **Open CRITICAL** | **0** |
 | **Open HIGH** | **5** |
 | **Awaiting Architect triage** | **0** |
@@ -52,7 +52,7 @@ see [`README.md`](README.md) for why.
 | DEFERRED | 1 |
 | PRODUCT_DECISION | 1 |
 | FIXED | 3 |
-| VERIFIED | 44 |
+| VERIFIED | 45 |
 | READY | 23 |
 | DONE | 23 |
 
@@ -93,6 +93,7 @@ see [`README.md`](README.md) for why.
 | [BUG-0036](../../docs/bugs/BUG-0036-agent-heartbeat-has-no-idempotency-so-retries-double-count-p.md) | Agent heartbeat has no idempotency so retries double count productivity | DATA_INTEGRITY | HIGH | P1 | VERIFIED | api:agent, services/api/prisma, apps/agent-desktop | DONE |
 | [BUG-0039](../../docs/bugs/BUG-0039-employee-payslip-and-bank-account-proxies-return-the-callers.md) | Employee payslip and bank account proxies return the callers own data on 403 | DATA_INTEGRITY | HIGH | P1 | VERIFIED | apps/web, api:payroll, api:employees | DONE |
 | [BUG-0048](../../docs/bugs/BUG-0048-partner-inquiry-form-rejects-every-submission-that-leaves-th.md) | Partner inquiry form rejects every submission that leaves the optional website blank | BUG | HIGH | P1 | VERIFIED | apps/landing, api:partner-experience | DONE |
+| [BUG-0060](../../docs/bugs/BUG-0060-stale-generated-prisma-client-breaks-local-api-development.md) | A stale generated Prisma client breaks local API development with 60 misleading errors | INFRA | HIGH | P1 | VERIFIED | services/api, scripts, package.json | DONE |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | READY | api:tenant-control-plane | FIX_NOW |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | READY | apps/web, e2e | PLAN_REQUIRED |

@@ -664,3 +664,17 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Proven to fail without the fix** | Removing the `RESULT:` line from `database-e2e-report` fails the check "report-only job \"database-e2e-report\" publishes an explicit PASS/FAIL verdict"; restoring it passes. |
 | **Fixed** | 2026-08-17, branch `agent/remediation-authorization` |
 | **Active** | yes |
+
+### REG-048 — A stale generated Prisma client is named, not left to look like 60 code errors
+
+| | |
+|---|---|
+| **Bug class** | `stale-generated-artifact` |
+| **Module** | `services/api`, `scripts` |
+| **Bug record** | BUG-0060 |
+| **Root cause** | `build` and CI regenerate the Prisma client, but `start:dev` and `check-types` did not, so the two commands a developer runs all day could read a client older than `schema.prisma`. The failure surfaced as 60 TypeScript errors accusing correct application code, plus a runtime crash on an undefined enum. |
+| **Regression test** | `scripts/check-prisma-client-fresh.mjs` (CI: `npm run check:prisma-client`) |
+| **Scenario** | Every enum `schema.prisma` declares must be exported by the generated client, and every model must have a delegate. A mismatch fails with the missing symbol named and `npm run prisma:generate` as the fix. |
+| **Proven to fail without the fix** | Deleting the `LeadInquiryIntent` export from `node_modules/.prisma/client/index.js` makes the check exit 1 reporting `Missing enums (1): LeadInquiryIntent`; restoring it passes. |
+| **Fixed** | 2026-08-17, branch `agent/prisma-client-freshness` |
+| **Active** | yes |

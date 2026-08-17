@@ -1,0 +1,74 @@
+---
+SCENARIO_ID: QA-DEPLOY-010
+aliases: [QA-DEPLOY-010]
+TITLE: The generated Prisma client matches the schema
+AREA: deployment-release
+MODULE: services/api
+TYPE: DEPLOYMENT_SMOKE
+RISK: HIGH
+AUTOMATION_STATUS: AUTOMATED
+TEST_REFERENCE: scripts/check-prisma-client-fresh.mjs
+RELATED_BUGS: [BUG-0060]
+RELATED_REGRESSIONS: [REG-048]
+LAST_RUN: 2026-08-17
+LAST_RESULT: PASS
+CREATED_AT: 2026-08-17
+UPDATED_AT: 2026-08-17
+---
+
+# QA-DEPLOY-010 — The generated Prisma client matches the schema
+
+## Preconditions
+
+`services/api/prisma/schema.prisma` exists and `@prisma/client` is installed.
+
+## Why this scenario exists
+
+The generated client is a build artefact living in `node_modules`, so it is not
+version controlled and nothing about a `git pull` updates it. `build` and CI
+regenerate it; `start:dev` and `check-types` did not. A developer who pulled a
+branch adding an enum therefore compiled against a client that predated it.
+
+What made this worth a permanent scenario is the *shape* of the failure. It does
+not say "your client is stale". It says `Module '"@prisma/client"' has no
+exported member 'LeadInquiryIntent'` sixty times across six modules, plus a
+runtime crash on an undefined enum — all of it accusing application code that
+was correct. The tempting fixes are casts, `any`, local enum copies or widened
+types, every one of which writes a real defect into the repository to appease a
+stale artefact. See BUG-0060.
+
+## Steps
+
+1. `npm run check:prisma-client`.
+2. It compares every `enum` and `model` declared in `schema.prisma` against what
+   the generated client exports, and — when `DATABASE_URL` is set — every model
+   delegate.
+
+## Expected Result
+
+Exit 0 with `prisma freshness: OK — <n> enums reachable on the generated client.`
+
+When stale, exit 1 naming the missing symbols and `npm run prisma:generate` as
+the fix, rather than deferring to the compiler to produce sixty misleading
+errors.
+
+## Negative Case
+
+Delete the `LeadInquiryIntent` export from `node_modules/.prisma/client/index.js`
+and re-run: exits 1 with `Missing enums (1): LeadInquiryIntent`. Restore and it
+passes. Verified 2026-08-17.
+
+## Notes
+
+Two designs were rejected. Comparing the schema byte-for-byte against the copy
+Prisma writes into the client directory does not work — Prisma reformats it, so
+they always differ. Comparing mtimes is fragile across checkouts and rebases.
+Symbol reachability is the question the failure actually asks.
+
+Regeneration was deliberately **not** added to `start:dev`: ~20s on every watch
+restart taxes every developer on every reload to cover a rare event, whereas the
+check costs about a second and names the fix.
+
+## Related Items
+
+[[BUG-0060]] · [REG-048](../regressions/index.md) · [[TASK-0005]]
