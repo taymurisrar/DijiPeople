@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 77** · automated: 71 · manual: 4 · blocked by infrastructure: 0
+**Scenarios: 78** · automated: 72 · manual: 4 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -50,6 +50,7 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-DEPLOY-008](../../../docs/qa/scenarios/QA-DEPLOY-008-terminal-bugs-reference-active-regressions-on-the-current-branch.md) | Terminal Bugs reference active regressions on the current branch | deployment-release | INTEGRATION | CRITICAL | AUTOMATED | `scripts/validate-framework.mjs` | BUG-0047, BUG-0051 | REG-038 |
 | [QA-DEPLOY-010](../../../docs/qa/scenarios/QA-DEPLOY-010-generated-prisma-client-matches-the-schema.md) | The generated Prisma client matches the schema | deployment-release | DEPLOYMENT_SMOKE | HIGH | AUTOMATED | `scripts/check-prisma-client-fresh.mjs` | BUG-0060 | REG-048 |
 | [QA-DEPLOY-011](../../../docs/qa/scenarios/QA-DEPLOY-011-every-record-id-resolves-as-a-bare-wikilink-in-the-vault.md) | Every record id resolves as a bare wikilink in the vault | deployment-release | DEPLOYMENT_SMOKE | MEDIUM | AUTOMATED | `scripts/validate-framework.mjs` | BUG-0059, ITEM-0029 | REG-049 |
+| [QA-DEPLOY-012](../../../docs/qa/scenarios/QA-DEPLOY-012-record-status-disposition-and-evidence-agree.md) | Record status, disposition and evidence agree | deployment-release | DEPLOYMENT_SMOKE | MEDIUM | AUTOMATED | `scripts/lib/backlog-records.mjs` | BUG-0051 | REG-050 |
 | [QA-LEAD-001](../../../docs/qa/scenarios/QA-LEAD-001-the-public-lead-endpoint-is-rate-limited.md) | The public lead endpoint is rate limited | lead-management | SECURITY | HIGH | AUTOMATED | `services/api/src/modules/leads/public-leads.rate-limit.spec.ts` | BUG-0013 | REG-011 |
 | [QA-LEAD-002](../../../docs/qa/scenarios/QA-LEAD-002-every-public-write-handler-carries-a-rate-limit-guard.md) | Every public write handler carries a rate-limit guard | lead-management | SECURITY | HIGH | AUTOMATED | `services/api/src/common/guards/public-write-rate-limit.invariant.spec.ts` | BUG-0031 | REG-023 |
 | [QA-LEAD-003](../../../docs/qa/scenarios/QA-LEAD-003-rate-limiting-identifies-the-visitor-not-the-proxy.md) | Rate limiting identifies the visitor, not the proxy | lead-management | UNIT | HIGH | AUTOMATED | `services/api/src/common/security/client-ip.spec.ts` | BUG-0032 | REG-024 |

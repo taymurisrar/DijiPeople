@@ -2,7 +2,7 @@
 ID: BUG-0044
 aliases: [BUG-0044]
 Title: The documented new module workflow for apps/web cannot be followed
-Status: FIXED
+Status: VERIFIED
 Severity: MEDIUM
 Priority: P2
 Type: DOCUMENTATION
@@ -11,7 +11,7 @@ DetectedDate: 2026-08-17
 DetectedInSha: 1af3690
 AffectedModules: [apps/web]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: docs/qa/runs/2026-08-17-web-app-documentation-1af3690.md
 RegressionId: REG-037
 RelatedBacklogItem:

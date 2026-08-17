@@ -2,7 +2,7 @@
 ID: BUG-0010
 aliases: [BUG-0010]
 Title: Unguarded cookie options could turn admin sign-out into a 500
-Status: FIXED
+Status: VERIFIED
 Severity: MEDIUM
 Priority: P2
 Type: INFRA
@@ -11,7 +11,7 @@ DetectedDate: 2026-08-15
 DetectedInSha: cbc2db8
 AffectedModules: [apps/admin/app/api/auth/logout]
 OwnerAgent: frontend
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: docs/qa/runs/2026-08-14-admin-session-expired-logout-cbc2db8.md
 RegressionId: REG-032
 RelatedBacklogItem:
@@ -19,7 +19,7 @@ RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-15
 UpdatedAt: 2026-08-17
-ResolvedAt:
+ResolvedAt: 2026-08-17
 ---
 
 # BUG-0010 — Unguarded cookie options could turn admin sign-out into a 500

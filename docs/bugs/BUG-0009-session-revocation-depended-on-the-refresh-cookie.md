@@ -2,7 +2,7 @@
 ID: BUG-0009
 aliases: [BUG-0009]
 Title: Server-side session revocation depended on the refresh cookie surviving
-Status: FIXED
+Status: VERIFIED
 Severity: MEDIUM
 Priority: P2
 Type: SECURITY
@@ -11,7 +11,7 @@ DetectedDate: 2026-08-15
 DetectedInSha: cbc2db8
 AffectedModules: [apps/admin/app/api/auth/logout, services/api/src/modules/auth]
 OwnerAgent: frontend
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: docs/qa/runs/2026-08-14-admin-session-expired-logout-cbc2db8.md
 RegressionId: REG-032
 RelatedBacklogItem:
@@ -19,7 +19,7 @@ RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-15
 UpdatedAt: 2026-08-17
-ResolvedAt:
+ResolvedAt: 2026-08-17
 ---
 
 # BUG-0009 — Server-side session revocation depended on the refresh cookie surviving

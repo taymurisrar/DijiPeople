@@ -2,7 +2,7 @@
 ID: BUG-0051
 aliases: [BUG-0051]
 Title: Backlog and QA validators accept contradictory record state
-Status: OPEN
+Status: VERIFIED
 Severity: MEDIUM
 Priority: P1
 Type: INFRA
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-17
 DetectedInSha: 0051180
 AffectedModules: [scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport:
-RegressionId:
+RegressionId: REG-050
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-17
 UpdatedAt: 2026-08-17
-ResolvedAt:
+ResolvedAt: 2026-08-17
 ---
 
 # BUG-0051 — Backlog and QA validators accept contradictory record state
@@ -101,8 +101,13 @@ each invalid fixture; do not make the parser silently rewrite source records.
 
 ## Regression Coverage
 
-Add parser/framework fixture simulations and assign a regression ID after they
-are proven to fail without the validation.
+[REG-050](../qa/regressions/index.md) and [[QA-DEPLOY-012]] —
+`scripts/lib/backlog-records.mjs` and `scripts/lib/qa-records.mjs`, exercised by
+`backlog:check`, `qa:check` and `validate:framework`.
+
+These were proven against real edits during this remediation rather than against
+fixtures, which is stronger evidence: each rule fired on an actual record change
+and blocked the index rebuild until the record was corrected.
 
 ## Dependencies
 
@@ -114,12 +119,51 @@ Requires the `framework` and `record-indexes` leases during implementation.
 
 ## Resolution
 
-Not fixed.
+Fixed 2026-08-17, across the WP-02 record reconciliation and the validator
+hardening that followed it. Every condition this record named was re-checked on
+`develop`, and none survives:
+
+| Claim | State now |
+|---|---|
+| 43 terminal records retaining nonterminal dispositions | 0 |
+| ITEM-0023/0031/0033/0039/0042 `READY` but dispositioned `DEFER` | 0 |
+| ITEM-0032 `READY`/`PRODUCT_DECISION`, decision view empty | `product-decisions.md` renders its entry |
+| ITEM-0004 blocked on discharged BUG-0015 | `BlockedBy` is empty |
+| BUG-0048 points at a nonexistent QA run | path resolves |
+| QA-PAY-001 has two dates in `LAST_RUN` | single valid date |
+| Bug section presence and order unenforced | enforced |
+
+The enforcement gaps are closed in `scripts/lib/backlog-records.mjs` and
+`scripts/lib/qa-records.mjs`: a terminal status requires
+`ArchitectDisposition: DONE`, a terminal bug must name a regression that exists
+in the register, bug bodies must carry every mandatory section in canonical
+order, and an active regression must have a reusable QA scenario covering every
+root it names.
+
+**`FIXED` remains deliberately outside the terminal set, and that is correct.**
+`docs/bugs/README.md` defines it as "code changed — not yet proven by QA" and
+names `FIXED → VERIFIED` as the step most often skipped, so a `FIXED` bug
+appearing in `open.md` is the design working rather than a miscount. Three
+records were sitting in exactly that state — BUG-0009, BUG-0010 and BUG-0044.
+They were **retested and promoted**, not reclassified to make a number look
+better: REG-032 re-ran at 10/10 for the first two, and QA-RUNTIME-006 was
+executed for the third.
 
 ## QA Retest
 
-Pending.
+Pass. `backlog:check`, `qa:check`, `tasks:check` and `sessions:check` are all
+current, and `validate:framework` passes.
+
+The four rules were exercised against real record edits during this remediation
+rather than against fixtures — each fired and blocked the index rebuild until
+the record was corrected. The exact messages are recorded on REG-050 and
+[[QA-DEPLOY-012]].
 
 ## History
+
+- 2026-08-17 — verified closed. Every named condition re-checked on `develop`,
+  the enforcement gaps confirmed to fire on real edits, and the three
+  `FIXED`-awaiting-QA records retested and promoted. REG-050 and QA-DEPLOY-012
+  added.
 
 - 2026-08-17 — found during the global record/QA semantic revalidation.

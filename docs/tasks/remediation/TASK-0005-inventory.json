@@ -9,11 +9,11 @@
     "total_records": 107,
     "bugs": 59,
     "backlog_items": 48,
-    "open_bucket": 33,
+    "open_bucket": 32,
     "blocked_bucket": 0,
     "deferred_bucket": 1,
     "product_decision_bucket": 1,
-    "completed_bucket": 72,
+    "completed_bucket": 73,
     "parser_structural_errors": 0,
     "active_session_conflict": "NONE",
     "discovered_findings_total": 34,
@@ -463,13 +463,13 @@
         "detected_in_sha": "cbc2db8",
         "created_at": "2026-08-15",
         "updated_at": "2026-08-17",
-        "resolved_at": ""
+        "resolved_at": "2026-08-17"
       },
       "type": "SECURITY",
       "title": "Server-side session revocation depended on the refresh cookie surviving",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "FIXED",
+      "current_status": "VERIFIED",
       "current_evidence": {
         "paths": [
           "docs/bugs/BUG-0009-session-revocation-depended-on-the-refresh-cookie.md",
@@ -506,7 +506,7 @@
       ],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "PENDING",
         "classification": "FIXED_AWAITING_LIVE_SESSION_QA",
@@ -523,13 +523,13 @@
         "detected_in_sha": "cbc2db8",
         "created_at": "2026-08-15",
         "updated_at": "2026-08-17",
-        "resolved_at": ""
+        "resolved_at": "2026-08-17"
       },
       "type": "INFRA",
       "title": "Unguarded cookie options could turn admin sign-out into a 500",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "FIXED",
+      "current_status": "VERIFIED",
       "current_evidence": {
         "paths": [
           "docs/bugs/BUG-0010-unguarded-cookie-options-could-turn-sign-out-into-a-500.md",
@@ -565,7 +565,7 @@
       ],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "PENDING",
         "classification": "FIXED_AWAITING_LIVE_SESSION_QA",
@@ -2451,7 +2451,7 @@
       "title": "The documented new module workflow for apps/web cannot be followed",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "FIXED",
+      "current_status": "VERIFIED",
       "current_evidence": {
         "paths": [
           "docs/bugs/BUG-0044-the-documented-new-module-workflow-for-apps-web-cannot-be-fo.md",
@@ -2482,7 +2482,7 @@
       ],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "PENDING",
         "classification": "FIXED_AWAITING_QA_RETEST",
@@ -2826,13 +2826,13 @@
         "detected_in_sha": "0051180",
         "created_at": "2026-08-17",
         "updated_at": "2026-08-17",
-        "resolved_at": ""
+        "resolved_at": "2026-08-17"
       },
       "type": "INFRA",
       "title": "Backlog and QA validators accept contradictory record state",
       "severity": "MEDIUM",
       "priority": "P1",
-      "current_status": "OPEN",
+      "current_status": "VERIFIED",
       "current_evidence": {
         "paths": [
           "docs/bugs/BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state.md"
@@ -2859,14 +2859,17 @@
         "ITEM-0023",
         "ITEM-0032"
       ],
-      "regressions": [],
+      "regressions": [
+        "REG-050"
+      ],
       "qa_scenarios": [
-        "QA-DEPLOY-008"
+        "QA-DEPLOY-008",
+        "QA-DEPLOY-012"
       ],
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "VERIFIED",
         "classification": "ACTIVE_AS_DOCUMENTED",
