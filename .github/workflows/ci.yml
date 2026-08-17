@@ -141,18 +141,18 @@ jobs:
       - run: npm ci
       - run: npm run prisma:generate
       - name: API unit tests
-        # Excludes exactly one test by NAME — the dual-permission wiring
-        # invariant, a known baseline failure reported by the non-blocking job
-        # below.
+        # Runs the whole suite, dual-permission wiring invariant included.
         #
-        # Excluding it by *path* would have been easier and wrong: the same file
-        # holds four other wiring invariants that currently pass (permissions
-        # granted to a role, settings menu wiring, filter operators). Dropping
-        # the file would silently stop gating those too. The negative lookahead
-        # keeps all four in this required gate.
-        run: >
-          npm --workspace api run test --
-          --testNamePattern "^(?!.*declares both permission systems).*$"
+        # That invariant used to be excluded here by NAME while a separate
+        # report-only job carried its baseline. WP-03 took the baseline from 796
+        # violations to 0, so on 2026-08-17 the exclusion and the report-only
+        # job were both removed and the invariant gates like every other test.
+        #
+        # A failure here is now a real regression: a route went in behind
+        # PermissionsGuard declaring only one of the two permission families.
+        # Fix the route. Do not reintroduce the exclusion — restoring it would
+        # re-open BUG-0049, which is exactly how the baseline reached 796.
+        run: npm --workspace api run test
 
   test-web:
     name: Web tests
@@ -405,16 +405,30 @@ jobs:
           echo "exit_code=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
       - name: Summarise
         if: always()
+        # BUG-0049 — this job stays non-gating, but its RESULT line must say what
+        # actually happened. Previously the summary printed the counts and left
+        # the reader to infer, while the job concluded success; a QA run then
+        # copied "all jobs green" from the conclusion and recorded a pass over
+        # 136 failed tests. A report-only job is evidence, and evidence that
+        # rounds itself up is worse than no job at all.
         run: |
+          code='${{ steps.e2e.outputs.exit_code }}'
+          if [ "$code" = "0" ]; then result='PASS'; else result="FAIL (jest exit $code)"; fi
           {
             echo "### Database e2e — baseline report"
             echo ""
-            echo "Non-blocking. Promoted per the criteria in this workflow."
+            echo "RESULT: $result"
+            echo ""
+            echo "Non-blocking, and NOT a gate. Do not read this job's green"
+            echo "conclusion as a pass — read the RESULT line above."
             echo ""
             echo '```'
             grep -E "Tests:|Test Suites:|✕|Cannot find|timeout" e2e-report.txt | head -60 || echo "no summary lines found"
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$code" != "0" ]; then
+            echo "::warning title=Database e2e failed::Non-gating, but this run is RED — jest exited $code. Do not record it as a pass."
+          fi
       - name: Upload report
         if: always()
         uses: actions/upload-artifact@v4
@@ -451,62 +465,20 @@ jobs:
   # extra errors later. That gap is the argument for exit criteria: a report-only
   # job does not hold a baseline still, it only stops anyone noticing it grow.
 
-  security-invariant-report:
-    name: Security invariant (report only — NOT a gate)
-    runs-on: ubuntu-latest
-    # Runs the dual-permission wiring invariant and reports its inventory
-    # WITHOUT blocking the pipeline.
-    #
-    # Why it does not gate: the invariant currently fails against a large,
-    # pre-existing inventory of handlers declaring only one of the two
-    # permission families. Gating on it would block every unrelated PR on
-    # accumulated debt, which trains people to bypass CI.
-    #
-    # The invariant is NOT weakened, skipped or edited. It runs in full here and
-    # its output is uploaded.
-    #
-    # Promotion criteria — all four, measured on `develop`:
-    #   1. the reported inventory of single-family handlers reaches zero;
-    #   2. `services/api` tests pass without the --testNamePattern exclusion in
-    #      the required `test-api` job;
-    #   3. two consecutive green runs;
-    #   4. tracked as ITEM-0043, which carries the current count.
-    # Until then this stays report-only, and its red status is expected rather
-    # than ignored — the final task report classifies it explicitly.
-    continue-on-error: true
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22.x'
-          cache: npm
-      - run: npm ci
-      - run: npm run prisma:generate
-      - name: Dual-permission wiring invariant
-        id: invariant
-        run: |
-          set +e
-          npm --workspace api run test -- --testPathPatterns "wiring-invariants" 2>&1 | tee invariant-report.txt
-          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
-      - name: Summarise inventory
-        if: always()
-        run: |
-          {
-            echo "### Dual-permission invariant — baseline report"
-            echo ""
-            echo "Non-blocking. Promoted to a required gate when violations reach 0."
-            echo ""
-            echo '```'
-            grep -E "total route handlers|public handlers|not behind|in scope|compliant|violations|missing @" invariant-report.txt || echo "inventory not found in output"
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
-      - name: Upload report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: security-invariant-report
-          path: invariant-report.txt
-          retention-days: 30
+  # security-invariant-report was PROMOTED on 2026-08-17 and no longer exists.
+  #
+  # Its four promotion criteria were all met: WP-03 took the dual-permission
+  # inventory from 796 violations to 0, the API suite passes without the
+  # --testNamePattern exclusion, develop went green twice consecutively, and
+  # ITEM-0043 tracked the count throughout. The invariant now runs inside the
+  # required "test-api" job, so a duplicate report-only copy would double the
+  # runtime and report the same result twice.
+  #
+  # It is also the job BUG-0049 was filed against. It read jest's status from
+  # "$?" after a "| tee" pipeline, which is tee's status and therefore always 0,
+  # so the job concluded success while its own report showed 796 violations.
+  # Promotion removes that false green rather than repairing it: a required job
+  # cannot round its own result up.
 
   browser-e2e:
     name: Browser e2e

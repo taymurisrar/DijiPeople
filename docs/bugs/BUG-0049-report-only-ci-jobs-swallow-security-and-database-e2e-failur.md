@@ -2,7 +2,7 @@
 ID: BUG-0049
 aliases: [BUG-0049]
 Title: Report-only CI jobs swallow security and database E2E failures
-Status: OPEN
+Status: VERIFIED
 Severity: HIGH
 Priority: P0
 Type: INFRA
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-17
 DetectedInSha: 0051180
 AffectedModules: [.github/workflows, services/api/src/common/constants, services/api/test, docs/qa]
 OwnerAgent: release-devops
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: docs/qa/runs/2026-08-17-record-state-reconciliation-d919e1a.md
-RegressionId:
+RegressionId: REG-047
 RelatedBacklogItem: ITEM-0043
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-17
 UpdatedAt: 2026-08-17
-ResolvedAt:
+ResolvedAt: 2026-08-17
 ---
 
 # BUG-0049 — Report-only CI jobs swallow security and database E2E failures
@@ -128,9 +128,13 @@ races from product failures. Promote only after deterministic zero-failure runs.
 
 ## Regression Coverage
 
-Add a framework/CI invariant that feeds a non-zero synthetic report into the
-summary path and requires the durable verdict to be FAIL. Link a regression ID
-when implemented.
+[[REG-047]] — `validate-framework` requires every job named "report only" to
+publish an explicit `RESULT:` verdict carrying PASS or FAIL, not counts alone.
+Mutation-tested by deleting the `RESULT:` line from `database-e2e-report`.
+
+[[REG-040]] covers the other half: the dual-permission invariant itself, which
+now runs inside the required `test-api` job rather than a job that could conclude
+success while reporting 796 violations.
 
 ## Dependencies
 
@@ -144,14 +148,41 @@ authorization and DB defects discovered after isolation become separate records.
 
 ## Resolution
 
-Not fixed. The failure is reproduced on current `develop`.
+Fixed 2026-08-17. Both false-green mechanisms are gone, and the security half
+was promoted rather than repaired.
+
+**Security invariant.** WP-03 took the dual-permission inventory from 796
+violations to 0, so the report-only job was deleted outright and the
+`--testNamePattern` exclusion was removed from the required `test-api` job. The
+invariant now gates like any other test. Repairing the job in place would have
+been the smaller change and the wrong one — it read jest's status from `$?`
+after a `| tee` pipeline, which is tee's status and therefore always 0, and a
+job that can report 796 violations while concluding success should not survive
+its own baseline reaching zero.
+
+**Database e2e.** Stays non-gating, because its baseline is genuinely red, but
+its summary now opens with an explicit `RESULT: PASS` or
+`RESULT: FAIL (jest exit N)` line, raises a CI warning annotation when red, and
+says in plain text not to read the job conclusion as a pass. Its captured exit
+code was already correct via `PIPESTATUS`; nothing consumed it.
+
+**Scope note.** The suite failures themselves — 7 of 15 suites, 148 of 227
+tests — are a different defect from swallowing them, and are carried by
+[[ITEM-0047]] with a serial-rerun and classification plan. This record covers
+the swallowing and the promotion only, which is what its title claims.
 
 ## QA Retest
 
-Pending. Baseline evidence comes from run `32009837400` and re-audit of the
-linked QA run.
+Verified on the exact SHA. The required gate now includes the dual-permission
+invariant through `test-api`, and the API suite passes unexcluded: 178 suites,
+1,334 tests. `docs/development/ci.md` was corrected in the same change — and
+`validate-framework` proved its own worth here by failing on the stale
+`security-invariant-report` reference until the document matched the workflow.
 
 ## History
 
+- 2026-08-17 — fixed and verified. Security invariant promoted into the required
+  gate, database e2e reporting made truthful, [[ITEM-0047]] opened for the
+  residual suite failures.
 - 2026-08-17 — created by TASK-0005 after reading the internal logs of the
   latest `develop` CI run rather than trusting its green job conclusions.

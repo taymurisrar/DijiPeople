@@ -1,0 +1,64 @@
+---
+SCENARIO_ID: QA-CI-001
+aliases: [QA-CI-001]
+TITLE: Report-only CI jobs publish an explicit PASS/FAIL verdict
+AREA: deployment-release
+MODULE: .github/workflows
+TYPE: DEPLOYMENT_SMOKE
+RISK: HIGH
+AUTOMATION_STATUS: AUTOMATED
+TEST_REFERENCE: scripts/validate-framework.mjs
+RELATED_BUGS: [BUG-0049]
+RELATED_REGRESSIONS: [REG-047]
+LAST_RUN: 2026-08-17
+LAST_RESULT: PASS
+CREATED_AT: 2026-08-17
+UPDATED_AT: 2026-08-17
+---
+
+# QA-CI-001 — Report-only CI jobs publish an explicit PASS/FAIL verdict
+
+## Preconditions
+
+`.github/workflows/ci.yml` contains at least one job whose `name` includes the
+phrase "report only".
+
+## Why this scenario exists
+
+A report-only job concludes `success` whatever its tests did — that is the point
+of it being non-gating. The consequence is that its job badge, its conclusion in
+`gh run view`, and the aggregate required gate all say nothing about whether it
+passed. The summary is the only place the real verdict can live.
+
+Both report-only jobs used to print counts and stop there. A durable QA run then
+read "all jobs green" off the conclusions and recorded a pass over 136 failed
+database tests and 796 authorization violations. That is BUG-0049: the failure
+was never hidden, it was merely never *stated*, and every consumer inferred the
+optimistic reading.
+
+## Steps
+
+1. Run `npm run validate:framework`.
+2. For each job whose name contains "report only", the checks
+   `report-only job "<id>" states a promotion path` and
+   `report-only job "<id>" publishes an explicit PASS/FAIL verdict` must pass.
+
+## Expected Result
+
+Every report-only job body contains a `RESULT:` token and the literal `FAIL`, so
+its summary states a verdict rather than leaving one to be inferred from counts.
+
+## Negative Case
+
+Deleting the `echo "RESULT: $result"` line from `database-e2e-report` fails the
+check by name. Restoring it passes. Verified 2026-08-17.
+
+## Notes
+
+This scenario asserts that a verdict is *published*, not that it is green. A red
+report-only job is expected while its baseline is red; what is not acceptable is
+a red job that reads as a pass.
+
+## Related Items
+
+[[BUG-0049]] · [[REG-047]] · [[ITEM-0047]] · [[qa-and-ci-architecture]]

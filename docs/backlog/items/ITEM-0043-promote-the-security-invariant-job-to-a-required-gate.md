@@ -3,13 +3,13 @@ ID: ITEM-0043
 aliases: [ITEM-0043]
 Title: Promote the security invariant job to a required gate
 Type: TEST_GAP
-Status: READY
+Status: DONE
 Priority: P2
 Severity: MEDIUM
 AffectedModules: [services/api]
 Source: ARCHITECT
 OwnerAgent: backend-api
-ArchitectDisposition: PLAN_REQUIRED
+ArchitectDisposition: DONE
 CreatedAt: 2026-08-17
 UpdatedAt: 2026-08-17
 RelatedBug:

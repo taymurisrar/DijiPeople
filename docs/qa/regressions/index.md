@@ -650,3 +650,17 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Proven to fail without the fix** | Before the compatibility bridge, neither path contributed a matching entry to `AuthenticatedUser.rolePrivileges`. |
 | **Fixed** | 2026-08-17, branch `agent/remediation-authorization` |
 | **Active** | yes |
+
+### REG-047 — A report-only CI job publishes an explicit PASS/FAIL verdict
+
+| | |
+|---|---|
+| **Bug class** | `false-success-state` |
+| **Module** | `.github/workflows` |
+| **Bug record** | BUG-0049 |
+| **Root cause** | A report-only job concludes `success` whatever its tests did, so a summary that prints only counts gets read as a pass. The security invariant job compounded it by reading jest's status from `$?` after a `\| tee` pipeline — tee's status, always 0. |
+| **Regression test** | `scripts/validate-framework.mjs` (CI: `npm run validate:framework`) |
+| **Scenario** | Every job whose name contains "report only" must publish an explicit `RESULT:` verdict carrying PASS or FAIL, not counts alone. |
+| **Proven to fail without the fix** | Removing the `RESULT:` line from `database-e2e-report` fails the check "report-only job \"database-e2e-report\" publishes an explicit PASS/FAIL verdict"; restoring it passes. |
+| **Fixed** | 2026-08-17, branch `agent/remediation-authorization` |
+| **Active** | yes |

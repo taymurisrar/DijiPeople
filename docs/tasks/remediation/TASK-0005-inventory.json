@@ -6,14 +6,14 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 104,
+    "total_records": 105,
     "bugs": 58,
-    "backlog_items": 46,
-    "open_bucket": 34,
+    "backlog_items": 47,
+    "open_bucket": 33,
     "blocked_bucket": 0,
     "deferred_bucket": 1,
     "product_decision_bucket": 1,
-    "completed_bucket": 68,
+    "completed_bucket": 70,
     "parser_structural_errors": 0,
     "active_session_conflict": "NONE",
     "discovered_findings_total": 34,
@@ -2723,13 +2723,13 @@
         "detected_in_sha": "0051180",
         "created_at": "2026-08-17",
         "updated_at": "2026-08-17",
-        "resolved_at": ""
+        "resolved_at": "2026-08-17"
       },
       "type": "INFRA",
       "title": "Report-only CI jobs swallow security and database E2E failures",
       "severity": "HIGH",
       "priority": "P0",
-      "current_status": "OPEN",
+      "current_status": "VERIFIED",
       "current_evidence": {
         "paths": [
           "docs/bugs/BUG-0049-report-only-ci-jobs-swallow-security-and-database-e2e-failur.md",
@@ -2755,17 +2755,19 @@
       ],
       "regressions": [
         "REG-040",
-        "REG-046"
+        "REG-046",
+        "REG-047"
       ],
       "qa_scenarios": [
         "QA-ATT-007",
         "QA-AUTHZ-001",
-        "QA-AUTHZ-006"
+        "QA-AUTHZ-006",
+        "QA-CI-001"
       ],
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "PRELIMINARY",
         "classification": "ACTIVE_AS_DOCUMENTED",
@@ -5184,7 +5186,7 @@
       "title": "Promote the security invariant job to a required gate",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "READY",
+      "current_status": "DONE",
       "current_evidence": {
         "paths": [
           "docs/backlog/items/ITEM-0043-promote-the-security-invariant-job-to-a-required-gate.md"
@@ -5216,7 +5218,7 @@
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "PLAN_REQUIRED",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "PRELIMINARY",
         "classification": "ACTIVE_AS_DOCUMENTED",
@@ -5351,6 +5353,30 @@
         "classification": "ACTIVE_AS_DOCUMENTED",
         "finding_ids": []
       }
+    },
+    {
+      "record_id": "ITEM-0047",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0047-database-e2e-suites-fail-against-an-ephemeral-postgresql.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "",
+        "created_at": "2026-08-17",
+        "updated_at": "2026-08-17",
+        "resolved_at": ""
+      },
+      "type": "TEST_GAP",
+      "title": "Database e2e suites fail against an ephemeral PostgreSQL",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "READY",
+      "architect_disposition": "PLAN_REQUIRED",
+      "affected_modules": [
+        "services/api/test",
+        ".github/workflows"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": []
     }
   ],
   "discovered_findings": [

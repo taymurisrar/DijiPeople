@@ -3475,6 +3475,20 @@ if (existsSync(join(ROOT, '.github/workflows/ci.yml'))) {
       ),
       'report-only without an exit criterion is permanent red CI nobody reads',
     );
+
+    /*
+     * BUG-0049 — a report-only job concludes `success` no matter what its tests
+     * did, so its summary is the only place its real verdict can live. Both
+     * report-only jobs used to print counts and stop there; a QA run then read
+     * "all jobs green" off the conclusions and recorded a pass over 136 failed
+     * tests. Requiring an explicit verdict token makes the summary say PASS or
+     * FAIL rather than leaving the reader to infer it from a wall of output.
+     */
+    check(
+      `report-only job "${jobId}" publishes an explicit PASS/FAIL verdict`,
+      /RESULT:/.test(body) && /\bFAIL\b/.test(body),
+      'a report-only job that only prints counts gets read as green — BUG-0049',
+    );
   }
 }
 

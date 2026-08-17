@@ -37,7 +37,7 @@ production or staging credentials exist in the workflow.
 | `validate` | `node scripts/validate-framework.mjs` | ✅ |
 | `typecheck` | `npm run prisma:generate` → `prisma:validate` → `npm run typecheck` | ✅ |
 | `lint` | `npx eslint` in web, admin, landing + mutation guard | ✅ |
-| `test-api` | `npm --workspace api run test` (one test excluded by name) | ✅ |
+| `test-api` | `npm --workspace api run test` — whole suite, nothing excluded, dual-permission invariant included | ✅ |
 | `test-web` | `npm --workspace web run test` | ✅ |
 | `test-admin` | `npm --workspace admin run test` | ✅ |
 | `test-landing` | `npm --workspace landing run test` | ✅ |
@@ -46,8 +46,7 @@ production or staging credentials exist in the workflow.
 | `build` | `npm run build` (needs typecheck + test-api) | ✅ |
 | `browser-e2e` | Playwright journeys (`e2e/`) against API + landing + admin | ⚠️ named by `ci-required`, but fail-open through `continue-on-error: true` |
 | `ci-required` | Aggregates the **eleven** jobs above | ✅ **the one to require** |
-| `database-e2e-report` | The e2e suites against an ephemeral PostgreSQL | ❌ report only |
-| `security-invariant-report` | Dual-permission wiring invariant | ❌ report only |
+| `database-e2e-report` | The e2e suites against an ephemeral PostgreSQL | ❌ report only — read its `RESULT:` line, not its conclusion |
 
 `validate` runs without installing dependencies, so a structural break in the
 agent framework fails in seconds rather than minutes.
@@ -121,49 +120,50 @@ it is the next step for this job.
 
 ---
 
-## The one excluded test, and why it is excluded by name
+## The excluded test that no longer is
 
-`test-api` runs:
+`test-api` now runs the whole suite:
 
 ```
-npm --workspace api run test -- \
-  --testNamePattern "^(?!.*declares both permission systems).*$"
+npm --workspace api run test
 ```
 
-This excludes exactly one test: the dual-permission wiring invariant.
+Until 2026-08-17 it carried a negative lookahead excluding exactly one test by
+name — the dual-permission wiring invariant — because that invariant failed
+against a large pre-existing inventory. It was excluded by *name* rather than by
+*path* on purpose: `wiring-invariants.spec.ts` holds four other invariants that
+did pass, and dropping the file would have silently stopped gating those too.
 
-**It is excluded by name, not by path, on purpose.** The same file
-(`wiring-invariants.spec.ts`) holds four other invariants that currently pass —
-permissions granted to a role, role grants being defined permissions, settings
-menu wiring, and filter-operator support. Excluding the *file* would have been
-easier and would have silently stopped gating those four as well.
+**WP-03 removed the reason.** The inventory went from 796 violations to 0, so
+the exclusion and the separate `security-invariant-report` job were both deleted
+and the invariant became an ordinary required test. See BUG-0049 and ITEM-0043.
 
-At the latest audited SHA, discovery found 1,198 handlers: 29 public, 275 not
-behind `PermissionsGuard`, and 894 in scope for the dual-permission invariant.
-
-The excluded invariant still runs in full in `security-invariant-report`, which
-uploads its inventory as an artifact and writes it to the job summary.
+If it fails now, a route was added behind `PermissionsGuard` declaring only one
+of the two permission families. Fix the route; do not restore the exclusion.
 
 ---
 
 ## Known baselines
 
-Two checks report without gating. Neither is weakened.
+One check reports without gating, and it is not weakened.
 
-**Dual-permission invariant** — 796 violations across 894 in-scope handlers:
-3 missing only legacy `@Permissions`, 715 missing only matrix
-`@RequirePermission`, and 78 missing both.
-Gating would block every unrelated PR on pre-existing debt. Promote when the
-count reaches zero.
+**`database-e2e-report`** — the fifteen database-backed e2e suites. Non-gating
+while its baseline is red, but as of BUG-0049 its summary opens with an explicit
+`RESULT: PASS` / `RESULT: FAIL (jest exit N)` line and annotates a warning when
+red. **Read that line, never the job conclusion** — the job concludes `success`
+regardless, and a QA run once copied "all jobs green" from that conclusion over
+136 failed tests. Promote when the suites pass.
 
-**`services/api` lint** — 2 pre-existing errors, both
-`@typescript-eslint/unbound-method` in `src/modules/auth/auth.service.spec.ts`
-lines 120 and 125, plus ~815 warnings. Fix the two errors and the step moves
-into the required `lint` job.
+Both former baselines have now been promoted:
 
-Both are tracked in [`ci-recommendation.md`](ci-recommendation.md). A baseline
-that is never promoted becomes permanent debt — these should be revisited, not
-inherited.
+- **Dual-permission invariant** — was 796 violations across 894 in-scope
+  handlers. WP-03 took it to 0; it runs inside required `test-api` since
+  2026-08-17.
+- **`services/api` lint** — was 2 `@typescript-eslint/unbound-method` errors;
+  promoted into the required `lint` job on 2026-08-17.
+
+A baseline that is never promoted becomes permanent debt, and a report-only job
+does not hold a baseline still — it only stops anyone noticing it grow.
 
 ---
 

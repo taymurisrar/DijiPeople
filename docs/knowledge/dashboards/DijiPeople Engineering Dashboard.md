@@ -9,11 +9,11 @@
 |---|---|
 | Open CRITICAL | **0** |
 | Open HIGH | **5** |
-| Open total | 37 |
+| Open total | 36 |
 | Blocked | 0 |
 | Awaiting a product decision | 1 |
 | Deferred | 1 |
-| Completed | 65 |
+| Completed | 67 |
 | Awaiting Architect triage | 0 |
 
 ## Open Critical Bugs
@@ -24,11 +24,11 @@ _None. Nothing open at CRITICAL._
 
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
-| [[BUG-0049-report-only-ci-jobs-swallow-security-and-database-e2e-failur|BUG-0049]] | Report-only CI jobs swallow security and database E2E failures | INFRA | HIGH | OPEN | .github/workflows, services/api/src/common/constants, services/api/test, docs/qa | FIX_NOW |
 | [[BUG-0052-production-dependency-graph-carries-critical-and-high-securi|BUG-0052]] | Production dependency graph carries critical and high security advisories | SECURITY | HIGH | OPEN | package-lock.json, apps/agent-desktop, apps/web, apps/admin, apps/landing, services/api | FIX_NOW |
 | [[BUG-0034-desktop-agent-auto-update-points-at-an-endpoint-that-does-no|BUG-0034]] | Desktop agent auto update points at an endpoint that does not exist | INTEGRATION | HIGH | OPEN | apps/agent-desktop, api:agent, api:app-releases | PLAN_REQUIRED |
 | [[ITEM-0004-tenant-activation-never-proven-end-to-end|ITEM-0004]] | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | READY | api:tenant-control-plane | FIX_NOW |
 | [[ITEM-0034-apps-web-has-zero-browser-e2e-coverage|ITEM-0034]] | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | READY | apps/web, e2e | PLAN_REQUIRED |
+| [[ITEM-0047-database-e2e-suites-fail-against-an-ephemeral-postgresql|ITEM-0047]] | Database e2e suites fail against an ephemeral PostgreSQL | TEST_GAP | HIGH | READY | services/api/test, .github/workflows | PLAN_REQUIRED |
 
 ## Product Decisions Needed
 
@@ -46,16 +46,15 @@ _None._
 |---|---|---|---|---|---|---|
 | [[ITEM-0004-tenant-activation-never-proven-end-to-end|ITEM-0004]] | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | READY | api:tenant-control-plane | FIX_NOW |
 | [[ITEM-0034-apps-web-has-zero-browser-e2e-coverage|ITEM-0034]] | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | READY | apps/web, e2e | PLAN_REQUIRED |
+| [[ITEM-0047-database-e2e-suites-fail-against-an-ephemeral-postgresql|ITEM-0047]] | Database e2e suites fail against an ephemeral PostgreSQL | TEST_GAP | HIGH | READY | services/api/test, .github/workflows | PLAN_REQUIRED |
 | [[ITEM-0002-no-live-api-session-test-harness|ITEM-0002]] | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | READY | services/api, apps/admin | FIX_NOW |
 | [[ITEM-0003-tenant-erasure-never-exercised-against-a-database|ITEM-0003]] | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | READY | api:tenant-control-plane | FIX_NOW |
 | [[ITEM-0033-add-a-test-runner-and-unit-coverage-to-apps-agent-desktop|ITEM-0033]] | Add a test runner and unit coverage to apps/agent-desktop | TEST_GAP | MEDIUM | READY | apps/agent-desktop | FIX_NOW |
-| [[ITEM-0043-promote-the-security-invariant-job-to-a-required-gate|ITEM-0043]] | Promote the security invariant job to a required gate | TEST_GAP | MEDIUM | READY | services/api | PLAN_REQUIRED |
 
 ## Current Infrastructure Gaps
 
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
-| [[BUG-0049-report-only-ci-jobs-swallow-security-and-database-e2e-failur|BUG-0049]] | Report-only CI jobs swallow security and database E2E failures | INFRA | HIGH | OPEN | .github/workflows, services/api/src/common/constants, services/api/test, docs/qa | FIX_NOW |
 | [[BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state|BUG-0051]] | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | OPEN | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | FIX_NOW |
 | [[BUG-0010-unguarded-cookie-options-could-turn-sign-out-into-a-500|BUG-0010]] | Unguarded cookie options could turn admin sign-out into a 500 | INFRA | MEDIUM | FIXED | app:admin | FIX_NOW |
 | [[BUG-0042-apps-web-reads-21-environment-variables-unregistered-in-turb|BUG-0042]] | apps/web reads 21 environment variables unregistered in turbo globalEnv | INFRA | MEDIUM | OPEN | apps/web, pkg:config | FIX_NOW |
@@ -70,6 +69,7 @@ _None._
 | [[BUG-0027-admin-plan-pricing-and-checkout-pricing-come-from-different-|BUG-0027]] | Admin plan pricing and checkout pricing come from different models | DATA_INTEGRITY | CRITICAL | VERIFIED | services/api/prisma, apps/admin, apps/landing | DONE |
 | [[BUG-0030-plan-list-get-mutates-commercial-pricing-and-can-fail-on-pla|BUG-0030]] | Plan list GET mutates commercial pricing and can fail on PlanPrice unique constraint | DATA_INTEGRITY | CRITICAL | VERIFIED | services/api, services/api/prisma | DONE |
 | [[BUG-0047-seven-bug-records-are-verified-while-their-fixes-exist-only|BUG-0047]] | Seven bug records are VERIFIED while their fixes exist only on unmerged branches | SECURITY | CRITICAL | VERIFIED | api:organization, api:error-logs, api:employees, api:attendance, docs/qa/regressions | DONE |
+| [[BUG-0049-report-only-ci-jobs-swallow-security-and-database-e2e-failur|BUG-0049]] | Report-only CI jobs swallow security and database E2E failures | INFRA | HIGH | VERIFIED | .github/workflows, services/api/src/common/constants, services/api/test, docs/qa | DONE |
 | [[BUG-0053-documents-self-scoped-users-can-read-tenant-wide-documents|BUG-0053]] | Self-scoped document readers can list and open tenant-wide documents | AUTHORIZATION | HIGH | VERIFIED | api:documents | DONE |
 | [[BUG-0055-partner-routes-use-tenant-role-aliases-instead-of-platform-permissions|BUG-0055]] | Partner administration routes use tenant role aliases instead of platform permissions | AUTHORIZATION | HIGH | VERIFIED | api:partners | DONE |
 | [[BUG-0056-billing-routes-authorize-by-role-instead-of-billing-capability|BUG-0056]] | Billing routes authorize by role instead of billing capability | AUTHORIZATION | HIGH | VERIFIED | api:billing | DONE |
@@ -174,7 +174,6 @@ _None. Nothing has been deployed through the release process._
 | [[ITEM-0036-decide-the-fate-of-the-inert-runtime-registries-in-apps-web|ITEM-0036]] | Decide the fate of the inert runtime registries in apps/web | ARCHITECTURE | MEDIUM | READY | apps/web | PLAN_REQUIRED |
 | [[ITEM-0037-apps-web-depends-on-lucide-react-without-declaring-it|ITEM-0037]] | apps/web depends on lucide-react without declaring it | TECH_DEBT | MEDIUM | READY | apps/web | FIX_NOW |
 | [[ITEM-0039-promote-the-csp-from-report-only-to-enforced|ITEM-0039]] | Promote the CSP from report-only to enforced | SECURITY | MEDIUM | READY | pkg:config, apps/web, apps/admin, apps/landing | PLAN_REQUIRED |
-| [[ITEM-0043-promote-the-security-invariant-job-to-a-required-gate|ITEM-0043]] | Promote the security invariant job to a required gate | TEST_GAP | MEDIUM | READY | services/api | PLAN_REQUIRED |
 | [[ITEM-0046-add-landing-loading-error-and-not-found-boundaries|ITEM-0046]] | Add landing loading error and not-found boundaries | UX | MEDIUM | READY | apps/landing | FIX_NOW |
 | [[ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning|ITEM-0023]] | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
 | [[BUG-0059-vault-wikilinks-to-task-records-and-four-module-notes-resolv|BUG-0059]] | Vault wikilinks to task records and four module notes resolve to nothing | DOCUMENTATION | LOW | OPEN | scripts, docs/tasks, docs/knowledge | PLAN_REQUIRED |
@@ -196,7 +195,7 @@ _None. Nothing has been deployed through the release process._
 | Knowledge | Count |
 |---|---|
 | Bug records | 58 |
-| Backlog items | 46 |
+| Backlog items | 47 |
 | Known bug patterns | 19 |
 | QA runs | 15 |
 | Engineering history records | 12 |
