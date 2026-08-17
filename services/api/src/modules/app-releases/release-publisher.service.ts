@@ -261,7 +261,7 @@ export class ReleasePublisherService {
     await this.verifyRegistration(created.id, {
       ...identity,
       checksumSha256: checksum,
-          checksumSha512,
+      checksumSha512,
       fileSizeBytes,
     });
 
@@ -272,7 +272,7 @@ export class ReleasePublisherService {
       {
         ...identity,
         checksumSha256: checksum,
-          checksumSha512,
+        checksumSha512,
         fileSizeBytes,
         fileName,
         environment,

@@ -14,23 +14,22 @@ import { PrismaService } from '../../common/prisma/prisma.service';
  * swallows that failure, which is why a permanently dead feed looked like a
  * transient blip for months.
  *
- * Three constraints shape this, and each one is load-bearing:
+ * Two constraints shape what this will serve, and both are load-bearing:
  *
- * 1. **It is unauthenticated.** The updater fetches the feed from the Electron
- *    main process with no session — the agent may not be logged in, and an
- *    update is most needed when it is broken. So this serves only what a
- *    published installer already reveals: a version number, a filename, a size
- *    and a digest. No tenant data is reachable from here.
+ * 1. **Only STABLE.** `allowPrerelease` is false in the agent, so advertising a
+ *    BETA build would be an update the client downloads and then refuses.
  *
- * 2. **Only STABLE.** `allowPrerelease` is false in the agent, so advertising a
- *    BETA build would be a downloadable update the client then refuses.
- *
- * 3. **sha512 or nothing.** electron-updater verifies the downloaded artefact
+ * 2. **sha512 or nothing.** electron-updater verifies the downloaded artefact
  *    against the digest in the feed and aborts the install on a mismatch. A
  *    release without `checksumSha512` is therefore skipped rather than
  *    advertised — offering it would produce a download that always fails
- *    verification, which is a worse failure than no update at all because it
- *    retries forever.
+ *    verification, which is worse than no update at all, because the updater
+ *    retries.
+ *
+ * Authentication is `UpdateFeedController`'s concern, and it is *not* public —
+ * see the reasoning there. Both queries below apply the same publishable
+ * conditions, so the filename lookup cannot reach a build the feed would refuse
+ * to advertise.
  */
 @Injectable()
 export class UpdateFeedService {
@@ -103,7 +102,9 @@ export class UpdateFeedService {
     const fileName = release.fileName ?? '';
     const sha512 = release.checksumSha512 ?? '';
     const size = release.fileSizeBytes ?? 0;
-    const releaseDate = (release.publishedAt ?? release.createdAt).toISOString();
+    const releaseDate = (
+      release.publishedAt ?? release.createdAt
+    ).toISOString();
 
     return [
       `version: ${quote(release.version)}`,

@@ -60,10 +60,7 @@ export class UpdateFeedController {
   @Header('Content-Type', 'text/yaml; charset=utf-8')
   @Header('Cache-Control', 'no-store')
   async latestYml(@Param('appKey') appKey: string): Promise<string> {
-    const body = await this.feed.latestYml(
-      appKey,
-      ApplicationPlatform.WINDOWS,
-    );
+    const body = await this.feed.latestYml(appKey, ApplicationPlatform.WINDOWS);
 
     if (!body) {
       /*
