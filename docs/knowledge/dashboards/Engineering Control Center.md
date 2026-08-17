@@ -7,13 +7,13 @@
 
 | | |
 |---|---|
-| Active sessions | **0** |
-| Active parent tasks | 0 |
-| Active work packages | 0 |
+| Active sessions | **1** |
+| Active parent tasks | 1 |
+| Active work packages | 1 |
 | Blocked work packages | 0 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **0** |
-| Open HIGH | 3 |
+| Open HIGH | 5 |
 | Awaiting Architect triage | 0 |
 | Owner decisions pending | 0 |
 | QA coverage gaps | 53 |
@@ -21,11 +21,15 @@
 
 ## Active Sessions
 
-_No session is currently registered as active._
+| Session | Task | Title | Status | Branch | Target | Leases | Schema |
+|---|---|---|---|---|---|---|---|
+| [[SESSION-0003-dijipeople-global-technical-remediation|SESSION-0003]] | TASK-0005 | DijiPeople Global Technical Remediation | ACTIVE | `agent/global-remediation-program` | `develop` | — | NO |
 
 ## Active Tasks and Work Packages
 
-_No parent task is active._
+| Task | Title | Type | Size | Progress | Current | Ready next | Blocked |
+|---|---|---|---|---|---|---|---|
+| [[TASK-0005-dijipeople-global-technical-remediation|TASK-0005]] | DijiPeople Global Technical Remediation | BUG | PROGRAM | 0/11 | WP-01 | — | — |
 
 ## Branch model
 
@@ -135,7 +139,7 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 27 |
+| Open total | 34 |
 | Blocked | 0 |
 | Deferred | 2 |
 | Awaiting a product decision | 0 |
