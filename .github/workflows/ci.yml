@@ -504,18 +504,34 @@ jobs:
           path: invariant-report.txt
           retention-days: 30
 
-  browser-e2e-report:
-    name: Browser e2e (report only — NOT a gate)
+  browser-e2e:
+    name: Browser e2e
     runs-on: ubuntu-latest
     # The first browser coverage this repository has ever had. Until this job,
     # `BROWSER_E2E = BLOCKED_INFRASTRUCTURE` appeared in every QA run and no UI
     # defect could be *proven* fixed — see ITEM-0001 and
     # docs/development/browser-e2e.md.
     #
-    # Report-only for the same reason database-e2e-report is: three servers, a
-    # seeded database, browser binaries and a real login is strictly more
-    # environmental surface than any existing gate carries. A gate that is red
-    # on arrival for environmental reasons trains people to ignore CI.
+    # PROMOTED to a required gate on 2026-08-17. It had been report-only because
+    # three servers, a seeded database, browser binaries and a real login is more
+    # environmental surface than any other gate carries.
+    #
+    # The criteria below were written before this task and were met, not adjusted
+    # to fit:
+    #   1. three consecutive green runs, zero retries consumed — runs
+    #      32006245507, 32006831300, 32007388682, each "8 passed" with no
+    #      retry line;
+    #   2. runtime ~6 min wall clock, ~1 min in tests — under the ~8 min bar;
+    #   3. startup polls each URL with `curl -sf` until it answers, rather than
+    #      sleeping a fixed interval;
+    #   4. the one environment-dependent scenario is quarantined BY NAME —
+    #      B4, `test.fixme` with BUG-0019 recorded in the test itself.
+    #
+    # It earned this by finding a real defect the moment it could run: BUG-0048,
+    # an optional field that made the public partner inquiry form unsubmittable.
+    #
+    # If it proves flaky in practice, move it back to report-only WITH the
+    # failing evidence — not silently, and not by deleting a scenario.
     #
     # PROMOTION CRITERIA — move into `ci-required` when all hold:
     #   1. Three consecutive green runs on main with zero retries consumed.
@@ -607,9 +623,15 @@ jobs:
     runs-on: ubuntu-latest
     # Single aggregate status the Integrator and branch protection can key on,
     # so adding a job later does not require reconfiguring the merge policy.
-    # security-invariant-report is deliberately absent from `needs`.
+    # security-invariant-report and database-e2e-report are deliberately absent
+    # from `needs` — both are still report-only, each with written promotion
+    # criteria (ITEM-0043 carries the security one).
+    #
+    # browser-e2e joined on 2026-08-17 after meeting the criteria recorded on the
+    # job itself. lint now covers services/api too, so `Lint services/api` is a
+    # required step rather than a separate report-only job.
     needs:
-      [validate, typecheck, lint, test-api, test-web, test-admin, test-landing, test-runtime, database-migration, build]
+      [validate, typecheck, lint, test-api, test-web, test-admin, test-landing, test-runtime, database-migration, build, browser-e2e]
     if: always()
     steps:
       - name: Verify all required jobs passed
