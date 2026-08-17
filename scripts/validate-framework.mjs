@@ -3471,6 +3471,263 @@ if (existsSync(join(ROOT, '.github/workflows/ci.yml'))) {
   }
 }
 
+/* ===================================================================
+ * Drift classes found by the 2026-08-17 documentation audit.
+ *
+ * Every check below corresponds to a defect that was real, that no test or
+ * validator could see, and that survived precisely because nothing failed when
+ * it went stale. The audit found both validators green while AGENTS.md claimed
+ * 63 modules and listed 61, PLANS.md routed work to a role file deleted weeks
+ * earlier, and 1,104 compiled build outputs sat in the index.
+ *
+ * The rule these encode: a documented claim about the repository must be
+ * *derivable* from the repository. Prose that cannot be checked is prose that
+ * will drift.
+ * =================================================================== */
+
+const trackedFiles = (() => {
+  try {
+    return execFileSync('git', ['ls-files'], { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })
+      .split('\n')
+      .filter(Boolean);
+  } catch {
+    return null;
+  }
+})();
+
+/* -- 1. The two top-tier instruction files must carry provenance -------------
+ * Every .agent/context/ document already records what commit it was verified
+ * against, which is what made the audit's findings triageable by age. AGENTS.md
+ * and PLANS.md — which outrank all of them — carried nothing, and produced both
+ * high-severity findings. */
+for (const file of ['AGENTS.md', 'PLANS.md']) {
+  const body = read(file);
+  check(
+    `${file} records Last verified`,
+    body.includes('**Last verified:**'),
+    'the highest-authority files must date their claims like every context document does',
+  );
+  check(
+    `${file} records Verified against commit`,
+    body.includes('**Verified against commit:**'),
+    'a date without a commit cannot be re-derived',
+  );
+}
+
+/* -- 2 & 8. Every tracked markdown relative link must resolve ----------------
+ * Five were broken when the audit ran: a deleted agent role, two paths one
+ * level too deep, a generated filename whose truncation the hand-written link
+ * did not match, and a document that had moved directory.
+ *
+ * A link into `.agent/agents/` gets its own wording, because that failure has a
+ * specific cause worth naming: PLANS.md routed step 3 of the plan lifecycle to
+ * `implementer.md` for weeks after that role was deliberately deleted. Only
+ * *links* are checked — prose and code spans naming the deleted file are
+ * deliberate history (see integrator.md's delete/modify case) and must stay.
+ *
+ * Both live in one pass over the file list: reading 461 files twice to report
+ * the same broken link under two descriptions is cost without information. */
+if (trackedFiles) {
+  for (const file of trackedFiles.filter((f) => f.endsWith('.md'))) {
+    const body = readFileSync(join(ROOT, file), 'utf8');
+    for (const [, target] of body.matchAll(/\[[^\]]*\]\(([^)\s]+)\)/g)) {
+      if (/^(https?:|mailto:|#)/.test(target)) continue;
+      let path = target.split('#')[0];
+      if (!path) continue;
+      try {
+        path = decodeURIComponent(path);
+      } catch {
+        /* a literal % in a filename is not an encoding error */
+      }
+      const resolved = path.startsWith('/') ? join(ROOT, path) : resolve(dirname(join(ROOT, file)), path);
+      check(
+        `${file} → ${target} resolves`,
+        existsSync(resolved),
+        /\.agent\/agents\/[a-z0-9-]+\.md$/.test(path)
+          ? 'referenced agent role does not exist'
+          : 'broken relative link',
+      );
+    }
+  }
+}
+
+/* -- 3 & 4. The module inventory must match the filesystem -------------------
+ * AGENTS.md claimed 63 modules, enumerated 61, and omitted `auth` and
+ * `notifications` — while mandating, by name, that notifications route through
+ * the module its own table did not list. */
+const MODULES_DIR = 'services/api/src/modules';
+if (existsSync(join(ROOT, MODULES_DIR))) {
+  const agentsBody = read('AGENTS.md');
+  const moduleDirs = readdirSync(join(ROOT, MODULES_DIR), { withFileTypes: true })
+    .filter((e) => e.isDirectory())
+    .map((e) => e.name)
+    .sort();
+
+  const stated = /\*\*(\d+) modules\*\* under `services\/api\/src\/modules\/`/.exec(agentsBody);
+  check('AGENTS.md states a module count', Boolean(stated), 'the Domains section must state a count');
+  if (stated) {
+    check(
+      `AGENTS.md module count (${stated[1]}) matches ${MODULES_DIR} (${moduleDirs.length})`,
+      Number(stated[1]) === moduleDirs.length,
+      're-derive with: ls services/api/src/modules | wc -l',
+    );
+  }
+
+  /* Gathered line-by-line rather than by slicing to the next blank line: these
+   * files use CRLF, so an indexOf('\n\n') finds nothing and the "table" would
+   * swallow the rest of the document — every backticked word in AGENTS.md then
+   * reads as a claimed module. */
+  const agentsLines = agentsBody.split(/\r?\n/);
+  const tableStart = agentsLines.findIndex((line) => line.startsWith('| Area | Modules |'));
+  check('AGENTS.md carries the module inventory table', tableStart !== -1);
+  if (tableStart !== -1) {
+    const tableLines = [];
+    for (let i = tableStart; i < agentsLines.length && agentsLines[i].startsWith('|'); i += 1) {
+      tableLines.push(agentsLines[i]);
+    }
+    const table = tableLines.join('\n');
+
+    for (const dir of moduleDirs) {
+      check(`module "${dir}" appears in the AGENTS.md inventory`, table.includes(`\`${dir}\``));
+    }
+
+    /* The reverse direction catches a module renamed in the tree but left
+     * standing in the table. Only lowercase-kebab tokens are considered, so
+     * class names such as `JwtAuthGuard` in the same cells are not mistaken
+     * for modules. */
+    for (const [, token] of table.matchAll(/`([a-z][a-z0-9-]*)`/g)) {
+      check(
+        `inventory entry "${token}" is a real module directory`,
+        moduleDirs.includes(token),
+        `${MODULES_DIR}/${token} does not exist`,
+      );
+    }
+
+    /* Modules AGENTS.md names as the *only* sanctioned route for a capability.
+     * If one is missing from the inventory, the file mandates a destination it
+     * does not acknowledge exists — exactly the `notifications` case. */
+    const MANDATORY_ROUTING_MODULES = ['auth', 'notifications', 'audit', 'permissions', 'settings-runtime'];
+    for (const name of MANDATORY_ROUTING_MODULES) {
+      check(`mandatory routing target "${name}" exists`, moduleDirs.includes(name));
+      check(`mandatory routing target "${name}" is in the inventory`, table.includes(`\`${name}\``));
+    }
+  }
+}
+
+/* -- 5 & 6. Documented CI must match the workflow ---------------------------
+ * The gate gained browser-e2e on 2026-08-17; AGENTS.md and ci.md both still
+ * said ten, and ci.md documented lint-api-report, promoted away the same day. */
+const CI_WORKFLOW_PATH = '.github/workflows/ci.yml';
+if (existsSync(join(ROOT, CI_WORKFLOW_PATH))) {
+  const workflow = read(CI_WORKFLOW_PATH);
+  const needsMatch = /ci-required:[\s\S]*?needs:\s*\n?\s*\[([^\]]+)\]/.exec(workflow);
+  check('ci.yml declares the required-gate needs list', Boolean(needsMatch));
+
+  if (needsMatch) {
+    const requiredJobs = needsMatch[1]
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    /* Scoped to the `jobs:` block. Matching two-space keys across the whole
+     * file also collects `push:` from the `on:` trigger, which would let a
+     * document claim a job named "push" and pass. */
+    const jobsBlock = workflow.slice(workflow.search(/^jobs:$/m));
+    const jobKeys = [...jobsBlock.matchAll(/^ {2}([a-z0-9-]+):$/gm)].map((m) => m[1]);
+    for (const job of requiredJobs) {
+      check(`required job "${job}" is defined in ${CI_WORKFLOW_PATH}`, jobKeys.includes(job));
+    }
+
+    const NUMBER_WORDS = {
+      seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11,
+      twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15,
+    };
+    const documentedCount = (body, label) => {
+      const m = /\*\*(\w+)\*\*\s+jobs|Aggregates the \*\*(\w+)\*\*\s+jobs|\*\*(\w+)\*\* required jobs/.exec(body);
+      if (!m) return warn(`${label} states no CI job count to check`);
+      const word = (m[1] || m[2] || m[3]).toLowerCase();
+      const value = NUMBER_WORDS[word] ?? Number(word);
+      check(
+        `${label} CI job count (${word}) equals the gate's needs list (${requiredJobs.length})`,
+        value === requiredJobs.length,
+        'count them in ci-required.needs rather than editing one document',
+      );
+    };
+    documentedCount(read('AGENTS.md'), 'AGENTS.md');
+    if (existsSync(join(ROOT, 'docs/development/ci.md'))) {
+      const ciDoc = read('docs/development/ci.md');
+      documentedCount(ciDoc, 'docs/development/ci.md');
+
+      /* Every job named in the ci.md table must exist in the workflow. This is
+       * what would have caught lint-api-report surviving its own promotion. */
+      for (const [, name] of ciDoc.matchAll(/^\|\s*`([a-z0-9-]+)`\s*\|/gm)) {
+        check(`ci.md documents job "${name}", which exists in the workflow`, jobKeys.includes(name));
+      }
+    }
+  }
+}
+
+/* -- 7. Engineering-history records must be finalized ------------------------
+ * Two records sat with literal "TODO —" in Merge Commit, Final Target SHA and
+ * CI Result, while the generator that writes them prints "Every TODO must be
+ * resolved before the task reports COMPLETE." The generator template itself
+ * legitimately contains them, so only the records are checked. */
+for (const file of markdownFilesIn('docs/engineering-history/tasks')) {
+  const body = read(file);
+  check(
+    `${file} has no unresolved TODO`,
+    !body.includes('TODO —'),
+    'a history record filed before the merge must be returned to and completed with real Git/CI evidence',
+  );
+}
+
+/* -- 9. Obsidian parity must be a verified field, not an assumed one ---------
+ * The vault was 40 generated files behind while every task reported its sync
+ * done. Syncing and *verifying the sync* are different acts. */
+{
+  const contract = read('.agent/context/task-completion-contract.md');
+  /* Anchored to a line of its own, which is how the contract lists a field.
+   * `includes()` alone passed while the field was deleted from the list,
+   * because the prose below it still mentioned the name — a check that cannot
+   * fail is worse than no check, since it reads as coverage. */
+  const declaresField = (name) => new RegExp(`^${name}\\s*$`, 'm').test(contract);
+  check(
+    'completion contract declares OBSIDIAN_SYNC_STATUS',
+    declaresField('OBSIDIAN_SYNC_STATUS'),
+  );
+  check(
+    'completion contract declares OBSIDIAN_VERIFICATION_STATUS',
+    declaresField('OBSIDIAN_VERIFICATION_STATUS'),
+    'a sync that was run but never verified is how the vault fell 40 files behind',
+  );
+  check(
+    'completion contract names the verification command',
+    contract.includes('knowledge:verify'),
+    'the field needs a command that produces its value',
+  );
+}
+
+/* -- 10. No tracked build output --------------------------------------------
+ * 1,104 files — 977 compiled .dll/.exe under bin/ and 127 under obj/, 11 MB —
+ * were tracked under gateway/. They regenerate on every `dotnet build`, so a
+ * clean checkout always reported them modified and every agent began in a dirty
+ * tree it was told not to touch. Nothing consumed them. */
+if (trackedFiles) {
+  const BUILD_OUTPUT = /(^|\/)(bin|obj)\//;
+  /* Deliberate exceptions go here with a reason. Empty is the correct state. */
+  const BUILD_OUTPUT_ALLOWLIST = [];
+  const tracked = trackedFiles.filter(
+    (f) => BUILD_OUTPUT.test(f) && !BUILD_OUTPUT_ALLOWLIST.some((a) => f.startsWith(a)),
+  );
+  check(
+    'no compiler build output is tracked',
+    tracked.length === 0,
+    tracked.length
+      ? `${tracked.length} tracked, e.g. ${tracked[0]} — untrack with "git rm -r --cached" and confirm .gitignore covers it`
+      : '',
+  );
+}
+
 // ------------------------------------------------------------------- reporting
 
 if (warnings.length) {

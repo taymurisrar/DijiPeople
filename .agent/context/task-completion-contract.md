@@ -264,9 +264,26 @@ ENGINEERING_HISTORY_STATUS
 FEEDBACK_PROMOTION_STATUS
 KNOWLEDGE_CAPTURE_STATUS
 OBSIDIAN_SYNC_STATUS
+OBSIDIAN_VERIFICATION_STATUS
 CONTROL_CENTER_STATUS
 CLEANUP_STATUS
 ```
+
+### Syncing is not verifying
+
+`OBSIDIAN_SYNC_STATUS` records that `npm run knowledge:sync` **ran**.
+`OBSIDIAN_VERIFICATION_STATUS` records that `npm run knowledge:verify` then
+reported the vault and the repository **identical**. They are separate fields
+because they failed separately: the 2026-08-17 drift audit found forty
+generated files whose vault copy differed from its repository source — bug
+records, backlog items and `Backlog/open.md` among them — while every task in
+that window had reported its sync done.
+
+A task is **knowledge-changing** if it writes to `docs/bugs/`,
+`docs/backlog/`, `docs/knowledge/`, `docs/qa/` or `docs/engineering-history/`.
+Such a task must resolve **both** fields. `SKIPPED_NO_LOCAL_CONFIG` remains
+available to both where no vault is configured locally — that is a real state,
+and it is not the same as `PASS`.
 
 ### The multi-session gates
 

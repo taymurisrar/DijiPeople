@@ -94,8 +94,10 @@ jobs:
       - name: Generate Prisma client
         # ESLint's type-aware rules resolve @prisma/client types.
         run: npm run prisma:generate
-      # services/api is NOT linted here — it carries 2 pre-existing errors on
-      # main and runs in the non-blocking lint-api-report job instead. See that
+      # services/api IS linted here, as a required step — see the note above the
+      # "ESLint — services/api" step below. This comment previously said the
+      # opposite and pointed at the lint-api-report job, which was promoted away
+      # on 2026-08-17; it contradicted the note 10 lines further down.
       - name: ESLint — apps/web
         working-directory: apps/web
         run: npx eslint

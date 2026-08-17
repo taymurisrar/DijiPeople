@@ -70,7 +70,7 @@ click away in a console.
 - `buildWorkspaceUrl()` no longer carries a loopback literal for its development
   branch; it resolves through `getAppOrigin("web")`, which throws in production
   when unconfigured rather than silently emitting a localhost link
-  ([`ITEM-0017`](../backlog/items/ITEM-0017-buildworkspaceurl-still-carries-an-internal-loopback-fallback.md)).
+  ([`ITEM-0017`](../backlog/items/ITEM-0017-buildworkspaceurl-still-carries-an-internal-loopback-fallbac.md)).
 
 ## Alternatives considered
 

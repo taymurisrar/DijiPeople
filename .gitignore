@@ -61,6 +61,20 @@ apps/agent-desktop/dist/
 electron-builder.env
 
 # =========================================================
+# .NET Build Outputs (gateway/, tools/)
+# 1,104 of these were tracked — 127 under obj/ and 977 under bin/, 11 MB
+# including compiled .dll and .exe. They regenerate on every `dotnet build`, so
+# a clean checkout reported them as modified and every agent started in a dirty
+# tree it was instructed not to touch. Nothing consumes them: gateway:build,
+# gateway:test and gateway:package all build from source.
+# scripts/validate-framework.mjs now fails if tracked build output returns.
+# =========================================================
+gateway/**/bin/
+gateway/**/obj/
+tools/**/bin/
+tools/**/obj/
+
+# =========================================================
 # Logs / Debug
 # =========================================================
 logs/
