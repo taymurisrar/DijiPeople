@@ -48,7 +48,9 @@ export class CreatePartnerInquiryDto {
    * the landing form does too, but this endpoint is public and that form is not
    * its only possible client.
    */
-  @Transform(({ value }) => (typeof value === 'string' && value.trim() === '' ? undefined : value))
+  @Transform(({ value }) =>
+    typeof value === 'string' && value.trim() === '' ? undefined : value,
+  )
   @IsOptional()
   @IsUrl({ require_protocol: false, require_tld: true })
   @MaxLength(240)
