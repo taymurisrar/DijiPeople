@@ -10,10 +10,10 @@ AUTOMATION_STATUS: AUTOMATED
 TEST_REFERENCE: apps/admin/app/api/auth/logout/logout-route.spec.ts
 RELATED_BUGS: [BUG-0009, BUG-0010]
 RELATED_REGRESSIONS: [REG-032]
-LAST_RUN: 2026-08-16
+LAST_RUN: 2026-08-17
 LAST_RESULT: PASS
 CREATED_AT: 2026-08-16
-UPDATED_AT: 2026-08-16
+UPDATED_AT: 2026-08-17
 ---
 
 # QA-AUTH-002 — Sign-out always revokes the session and never 500s while clearing cookies

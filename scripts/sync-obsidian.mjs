@@ -22,6 +22,7 @@ import { join, resolve, relative, dirname, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { resolveMappings, hasMeaningfulContent } from './lib/obsidian-mappings.mjs';
+import { describeResolution, resolveObsidianConfig } from './lib/obsidian-config.mjs';
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -29,10 +30,8 @@ const args = process.argv.slice(2);
 const DRY_RUN = args.includes('--dry-run');
 const VERIFY = args.includes('--verify');
 const configArgIndex = args.indexOf('--config');
-const CONFIG_PATH = resolve(
-  REPO_ROOT,
-  configArgIndex !== -1 ? args[configArgIndex + 1] : '.obsidian-sync.local.json',
-);
+const EXPLICIT_CONFIG =
+  configArgIndex !== -1 ? resolve(REPO_ROOT, args[configArgIndex + 1]) : null;
 
 /*
  * The mapping table lives in scripts/lib/obsidian-mappings.mjs, shared with
@@ -42,52 +41,54 @@ const CONFIG_PATH = resolve(
  */
 
 function loadConfig() {
-  if (!existsSync(CONFIG_PATH)) {
-    /*
-     * Absent config is not an error: most checkouts have no vault, and an
-     * agent chaining this after a deployment must not have the chain abort
-     * because documentation sync was never configured. Exit 0 with the token
-     * the framework expects. Genuine misconfiguration below still exits 1.
-     */
-    console.log(
-      [
-        'OBSIDIAN_SYNC = SKIPPED_NO_LOCAL_CONFIG',
-        '',
-        `No config at ${relative(REPO_ROOT, CONFIG_PATH)} — nothing to sync.`,
-        '',
-        'To enable:',
-        '  cp .obsidian-sync.example.json .obsidian-sync.local.json',
-        '',
-        'then set "vaultPath". The .local.json file is gitignored, so your path',
-        'never reaches the repository.',
-      ].join('\n'),
-    );
-    process.exit(0);
-  }
+  /*
+   * Resolution spans worktrees — see scripts/lib/obsidian-config.mjs. Reading
+   * only this worktree's config is why every task worktree reported
+   * SKIPPED_NO_LOCAL_CONFIG while a configured vault sat in the primary
+   * checkout, for two consecutive framework tasks.
+   */
+  const resolution = EXPLICIT_CONFIG
+    ? resolveObsidianConfig(REPO_ROOT, { env: { DIJIPEOPLE_OBSIDIAN_CONFIG: EXPLICIT_CONFIG } })
+    : resolveObsidianConfig(REPO_ROOT);
 
-  const config = JSON.parse(readFileSync(CONFIG_PATH, 'utf8'));
-
-  if (!config.vaultPath || config.vaultPath.startsWith('<')) {
-    console.error(`Set "vaultPath" in ${relative(REPO_ROOT, CONFIG_PATH)} first.`);
-    process.exit(1);
-  }
-  if (!existsSync(config.vaultPath)) {
-    console.error(`Vault not found: ${config.vaultPath}`);
-    process.exit(1);
+  if (resolution.status !== 'NOT_CONFIGURED' && resolution.status !== 'INVALID') {
+    console.log(describeResolution(resolution));
+    console.log('');
+    const { mappings, mode } = resolveMappings(resolution.config);
+    return { vaultPath: resolution.vaultPath, mappings, mode, resolution };
   }
 
   /*
-   * Config mappings ADD to the defaults; they do not replace them.
-   *
-   * The previous behaviour was replace-on-present, and it had exactly the
-   * failure you would expect: a local config pins the mappings that existed
-   * when it was written, so every mapping added afterwards silently never syncs
-   * — for the one person who actually configured a vault. A stale local file
-   * must not be able to un-publish knowledge.
+   * Absent config is not an error: a fresh clone has no vault, and an agent
+   * chaining this after a deployment must not abort because documentation sync
+   * was never configured. Exit 0 with the token the framework expects — but
+   * print every place that was searched, because "not configured" was
+   * previously indistinguishable from "configured somewhere I did not look".
    */
-  const { mappings, mode } = resolveMappings(config);
-  return { vaultPath: config.vaultPath, mappings, mode };
+  console.log('OBSIDIAN_SYNC = SKIPPED_NO_LOCAL_CONFIG');
+  console.log('');
+  console.log(describeResolution(resolution));
+  console.log('');
+  console.log('To enable, in any worktree:');
+  console.log('  cp .obsidian-sync.example.json .obsidian-sync.local.json');
+  console.log('');
+  console.log('then set "vaultPath". `.obsidian-sync.local.json` is gitignored, so your');
+  console.log('path never reaches the repository; `.obsidian-sync.example.json` is the');
+  console.log('tracked template and is never read as runtime configuration.');
+  console.log('');
+  console.log('A config in the primary checkout, in the shared Git directory, or in');
+  console.log('DIJIPEOPLE_OBSIDIAN_VAULT is found automatically from every worktree.');
+  process.exit(0);
 }
+
+/*
+ * `resolveMappings` (above, in loadConfig) merges rather than replaces: config
+ * mappings ADD to the defaults. The previous behaviour was replace-on-present,
+ * which had exactly the failure you would expect — a local config pins the
+ * mappings that existed when it was written, so every mapping added afterwards
+ * silently never syncs, for the one person who actually configured a vault. A
+ * stale local file must not be able to un-publish knowledge.
+ */
 
 /** Markdown files only. Never copies anything else out of the repository. */
 function markdownFilesIn(dir) {
@@ -133,8 +134,33 @@ function verify(vaultPath, mappings) {
   let links = 0;
   let unresolved = 0;
 
-  /* Obsidian resolves a wikilink by basename, so that is what must exist. */
-  const vaultNotes = new Set(markdownFilesIn(vaultPath).map((file) => basename(file, '.md')));
+  /*
+   * Obsidian resolves a wikilink by note name **or by an alias** declared in
+   * frontmatter. Every record here is named `BUG-0047-<slug>.md` and carries
+   * `aliases: [BUG-0047]` precisely so `[[BUG-0047]]` works — that is why
+   * `new-bug.mjs` emits the alias line at all (ITEM-0029).
+   *
+   * The first version of this check resolved by basename alone and reported 300+
+   * "unresolved" links that Obsidian resolves perfectly well. A verifier that
+   * cries wolf is worse than none: it trains people to skip the output, which is
+   * exactly what a verification step must never do.
+   */
+  const vaultNotes = new Set();
+  for (const file of markdownFilesIn(vaultPath)) {
+    vaultNotes.add(basename(file, '.md'));
+    let head;
+    try {
+      head = readFileSync(file, 'utf8').slice(0, 2048);
+    } catch {
+      continue;
+    }
+    const aliases = /^aliases:\s*\[([^\]]*)\]\s*$/m.exec(head);
+    if (!aliases) continue;
+    for (const alias of aliases[1].split(',')) {
+      const name = alias.trim().replace(/^["']|["']$/g, '');
+      if (name) vaultNotes.add(name);
+    }
+  }
 
   for (const mapping of mappings) {
     const sourceDir = resolve(REPO_ROOT, mapping.from);
@@ -178,8 +204,18 @@ function verify(vaultPath, mappings) {
        * A wikilink that resolves to nothing is not visibly broken in Obsidian —
        * it renders as an invitation to create the note. That is exactly why an
        * unresolved *generated* link is worth failing on: nobody would notice it.
+       *
+       * Code is stripped first. This repository's documentation writes *about*
+       * wikilinks — "use `[[wikilinks]]`, not relative paths" — and Obsidian
+       * does not render a link inside a code span, so flagging those is a false
+       * positive. Two of them were the entire remaining failure list, and a
+       * verifier that cries wolf gets skipped.
        */
-      for (const match of published.matchAll(/\[\[([^\]|#]+)(?:\|[^\]]*)?\]\]/g)) {
+      const linkable = published
+        .replace(/```[\s\S]*?```/g, '')
+        .replace(/`[^`\n]*`/g, '');
+
+      for (const match of linkable.matchAll(/\[\[([^\]|#]+)(?:\|[^\]]*)?\]\]/g)) {
         links += 1;
         const name = match[1].trim();
         if (!vaultNotes.has(name)) {

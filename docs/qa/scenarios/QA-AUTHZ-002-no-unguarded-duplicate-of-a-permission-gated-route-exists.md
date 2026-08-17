@@ -10,10 +10,10 @@ AUTOMATION_STATUS: AUTOMATED
 TEST_REFERENCE: services/api/src/common/constants/wiring-invariants.spec.ts
 RELATED_BUGS: [BUG-0007]
 RELATED_REGRESSIONS: [REG-007]
-LAST_RUN: 2026-08-16
+LAST_RUN: 2026-08-17
 LAST_RESULT: PASS
 CREATED_AT: 2026-08-16
-UPDATED_AT: 2026-08-16
+UPDATED_AT: 2026-08-17
 ---
 
 # QA-AUTHZ-002 — No unguarded duplicate of a permission-gated route exists

@@ -28,6 +28,7 @@ import {
   agentOwnedVaultPaths,
   hasMeaningfulContent,
 } from './lib/obsidian-mappings.mjs';
+import { resolveObsidianConfig } from './lib/obsidian-config.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -177,19 +178,27 @@ for (const [label, rel, authority] of REPO_SOURCES) {
  * repository is self-sufficient by design.
  */
 let obsidianContext = 'UNAVAILABLE';
-let obsidianDetail = 'no .obsidian-sync.local.json — vault path unknown';
+let obsidianDetail = 'no vault configuration found in any worktree';
 /* Every vault note this retrieval drew on, reported as OBSIDIAN_CONTEXT_USED. */
 const obsidianUsed = [];
-const configPath = join(ROOT, '.obsidian-sync.local.json');
 
-if (existsSync(configPath)) {
-  try {
-    const config = JSON.parse(readFileSync(configPath, 'utf8'));
-    const { vaultPath } = config;
+/*
+ * Resolution spans worktrees — see scripts/lib/obsidian-config.mjs. Reading only
+ * this worktree's config made inbound retrieval silently vault-less in every
+ * task worktree, which is precisely where planning happens.
+ */
+const resolution = resolveObsidianConfig(ROOT);
+const configPath = resolution.configPath;
+
+{
+  {
+    const config = resolution.config ?? {};
+    const { vaultPath } = resolution;
     if (!vaultPath) {
-      obsidianDetail = 'config has no vaultPath';
-    } else if (!existsSync(vaultPath)) {
-      obsidianDetail = `vault path does not exist: ${vaultPath}`;
+      obsidianDetail =
+        resolution.status === 'INVALID'
+          ? `configuration found but unusable — ${resolution.attempts.map((a) => a.result).join('; ')}`
+          : 'no vault configuration found in this worktree, the primary checkout, the shared Git directory or the environment';
     } else {
       obsidianContext = 'AVAILABLE';
       obsidianDetail = vaultPath;
@@ -276,8 +285,6 @@ if (existsSync(configPath)) {
         obsidianDetail = `${vaultPath} — readable, but no manual notes matched (the vault currently holds only generated knowledge and scaffolding)`;
       }
     }
-  } catch (error) {
-    obsidianDetail = `config unreadable: ${String(error.message).split('\n')[0]}`;
   }
 }
 

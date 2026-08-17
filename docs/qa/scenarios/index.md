@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 58** · automated: 46 · manual: 3 · blocked by infrastructure: 9
+**Scenarios: 58** · automated: 47 · manual: 2 · blocked by infrastructure: 9
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -22,7 +22,7 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-ATT-003](../../../docs/qa/scenarios/QA-ATT-003-impossible-travel-between-punches-is-detected.md) | Impossible travel between punches is detected | attendance | UNIT | MEDIUM | AUTOMATED | `services/api/src/modules/attendance-engine/impossible-travel-detector.service.spec.ts` | — | — |
 | [QA-ATT-004](../../../docs/qa/scenarios/QA-ATT-004-raw-device-ingestion-is-idempotent-under-replay.md) | Raw device ingestion is idempotent under replay | attendance | INTEGRATION | CRITICAL | AUTOMATED | `services/api/src/modules/attendance-integrations/ingestion/raw-attendance-ingestion.service.spec.ts` | — | REG-031 |
 | [QA-ATT-005](../../../docs/qa/scenarios/QA-ATT-005-the-attendance-engine-produces-sessions-end-to-end.md) | The attendance engine produces sessions end to end | attendance | E2E | HIGH | BLOCKED_INFRASTRUCTURE | — | — | — |
-| [QA-ATT-006](../../../docs/qa/scenarios/QA-ATT-006-an-employee-cannot-approve-their-own-attendance-correction.md) | An employee cannot approve their own attendance correction | attendance | SECURITY | HIGH | MANUAL | — | BUG-0002, BUG-0047 | REG-002 |
+| [QA-ATT-006](../../../docs/qa/scenarios/QA-ATT-006-an-employee-cannot-approve-their-own-attendance-correction.md) | An employee cannot approve their own attendance correction | attendance | SECURITY | HIGH | AUTOMATED | `services/api/src/modules/attendance/attendance.correction-authorization.spec.ts` | BUG-0002, BUG-0047 | REG-002 |
 | [QA-AUTH-001](../../../docs/qa/scenarios/QA-AUTH-001-every-caller-and-its-auth-route-agree-on-http-method.md) | Every caller and its auth route agree on HTTP method | authentication | API | HIGH | AUTOMATED | `scripts/check-route-method-callers.mjs` | BUG-0008 | REG-008, REG-033 |
 | [QA-AUTH-002](../../../docs/qa/scenarios/QA-AUTH-002-sign-out-always-revokes-the-session-and-never-500s-while-cle.md) | Sign-out always revokes the session and never 500s while clearing cookies | authentication | API | HIGH | AUTOMATED | `apps/admin/app/api/auth/logout/logout-route.spec.ts` | BUG-0009, BUG-0010 | REG-032 |
 | [QA-AUTH-003](../../../docs/qa/scenarios/QA-AUTH-003-repeated-failed-sign-ins-lock-the-account.md) | Repeated failed sign-ins lock the account | authentication | UNIT | HIGH | AUTOMATED | `services/api/src/modules/auth/login-lockout.service.spec.ts` | — | — |

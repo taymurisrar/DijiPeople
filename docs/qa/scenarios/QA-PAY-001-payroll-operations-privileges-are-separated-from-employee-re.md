@@ -10,7 +10,7 @@ AUTOMATION_STATUS: AUTOMATED
 TEST_REFERENCE: services/api/src/common/constants/rbac-matrix.payroll-operations.spec.ts
 RELATED_BUGS: [BUG-0001]
 RELATED_REGRESSIONS: [REG-001]
-LAST_RUN: 2026-08-16
+LAST_RUN: 2026-08-17 2026-08-16
 LAST_RESULT: PASS
 CREATED_AT: 2026-08-16
 UPDATED_AT: 2026-08-16
@@ -34,4 +34,4 @@ Payroll privileges stand alone. A manager who can see a report can not thereby s
 
 ## Notes
 
-The matrix half of `BUG-0001`. The service-level half is `employee-compensation-access.spec.ts`, which is not on `main` — see `BUG-0047`.
+The matrix half of `BUG-0001`. The service-level half is `services/api/src/modules/employees/employee-compensation-access.spec.ts`, on the integration branch since 2026-08-17 — see `BUG-0047`.

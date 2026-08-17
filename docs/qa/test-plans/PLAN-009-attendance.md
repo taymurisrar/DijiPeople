@@ -12,7 +12,7 @@ COVERAGE_DATABASE: GAP
 COVERAGE_INTEGRATION: PARTIAL
 COVERAGE_E2E: PARTIAL
 COVERAGE_BROWSER: GAP
-COVERAGE_SECURITY: GAP
+COVERAGE_SECURITY: PARTIAL
 COVERAGE_PERFORMANCE: GAP
 RELATED_BUGS: [BUG-0002, BUG-0047]
 RELATED_REGRESSIONS: [REG-002]
@@ -29,9 +29,10 @@ Punch interpretation, session building, geofencing, impossible-travel detection,
 
 ## Risks
 
-- Self-approval of one's own correction (`BUG-0002`) — and per `BUG-0047` the
-  regression test for it is **not on `main`**, which is why SECURITY is declared
-  `GAP` here rather than covered.
+- Self-approval of one's own correction (`BUG-0002`). Its regression test reached
+  the integration branch on 2026-08-17 (`BUG-0047`); before that it existed only
+  on an unmerged branch, which is why this area's SECURITY coverage read `GAP`
+  while the defect was believed fixed.
 - Punch pairing across midnight, shift boundaries and daylight-saving changes.
 - Geofence evaluation treating a missing location as inside.
 - Ingestion counting a replayed device batch twice.
@@ -70,4 +71,4 @@ The daily attendance and correction screens.
 
 ## Regression Links
 
-`REG-002` — **inactive on `main`**, see `BUG-0047`.
+`REG-002` — active on the integration branch since 2026-08-17, see `BUG-0047`.

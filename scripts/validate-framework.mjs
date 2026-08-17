@@ -3052,6 +3052,152 @@ if (existsSync(join(ROOT, 'scripts/lib/obsidian-mappings.mjs'))) {
   }
 }
 
+// ============================ TASK-0005 remediation gaps ====================
+
+/*
+ * Only the gaps this remediation actually closed. Each check exists because the
+ * corresponding mistake was made and cost something, not to raise a count.
+ */
+
+/* The Obsidian config must be findable from a worktree that has no copy. */
+if (existsSync(join(ROOT, 'scripts/lib/obsidian-config.mjs'))) {
+  const body = read('scripts/lib/obsidian-config.mjs');
+
+  for (const status of ['FOUND_WORKTREE', 'FOUND_PRIMARY', 'FOUND_SHARED', 'FOUND_ENV', 'NOT_CONFIGURED']) {
+    check(`obsidian config declares ${status}`, body.includes(status));
+  }
+  check(
+    'obsidian config resolves from the primary checkout, not only this worktree',
+    /primaryCheckout/.test(body) && /git-common-dir/.test(body),
+    'every task runs in its own worktree; a CWD-only lookup reported SKIPPED for two whole tasks',
+  );
+  check(
+    'the example config is never treated as runtime configuration',
+    /never\*\* a source of runtime configuration|is \*\*never\*\*/i.test(body) && /isPlaceholder/.test(body),
+    'a placeholder vaultPath would "sync" into a directory named <absolute path to your vault>',
+  );
+
+  const { resolveObsidianConfig } = await import('./lib/obsidian-config.mjs');
+
+  /* A placeholder must never resolve, whatever file it sits in. */
+  const sandbox = mkdtempSync(join(tmpdir(), 'dijipeople-obsidian-'));
+  writeFileSync(
+    join(sandbox, '.obsidian-sync.local.json'),
+    JSON.stringify({ vaultPath: '<absolute path to your Obsidian vault>' }),
+  );
+  const placeholder = resolveObsidianConfig(sandbox, { env: {} });
+  check(
+    'simulation: a placeholder vaultPath resolves to NOT_CONFIGURED',
+    placeholder.status === 'NOT_CONFIGURED',
+    `got ${placeholder.status}`,
+  );
+
+  writeFileSync(
+    join(sandbox, '.obsidian-sync.local.json'),
+    JSON.stringify({ vaultPath: join(sandbox, 'no-such-vault') }),
+  );
+  const missingVault = resolveObsidianConfig(sandbox, { env: {} });
+  check(
+    'simulation: a configured but absent vault does not resolve',
+    missingVault.status === 'NOT_CONFIGURED',
+    'a vault path that does not exist is not configuration',
+  );
+  rmSync(sandbox, { recursive: true, force: true });
+}
+
+/* Verification must resolve aliases and ignore code — both were false alarms. */
+if (existsSync(join(ROOT, 'scripts/sync-obsidian.mjs'))) {
+  const body = read('scripts/sync-obsidian.mjs');
+  check(
+    'vault verification resolves wikilinks through frontmatter aliases',
+    /aliases:/.test(body) && /vaultNotes\.add/.test(body),
+    'records are named <ID>-<slug>.md and linked as [[ID]]; basename-only resolution reported 300+ false failures',
+  );
+  check(
+    'vault verification ignores wikilinks inside code',
+    /replace\(\/```/.test(body),
+    'documentation about wikilinks is not a wikilink',
+  );
+  check(
+    'the sync resolves its config across worktrees',
+    /resolveObsidianConfig/.test(body),
+  );
+}
+
+if (existsSync(join(ROOT, 'scripts/retrieve-knowledge.mjs'))) {
+  check(
+    'inbound retrieval resolves its config across worktrees',
+    /resolveObsidianConfig/.test(read('scripts/retrieve-knowledge.mjs')),
+    'planning happens in a task worktree, which is exactly where the vault was invisible',
+  );
+}
+
+/* `develop` must contain `main`, or the integration branch is behind production. */
+{
+  const contains = (() => {
+    try {
+      execFileSync('git', ['merge-base', '--is-ancestor', 'origin/main', 'origin/develop'], {
+        cwd: ROOT,
+        stdio: 'pipe',
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  })();
+
+  /*
+   * Only meaningful where both refs are actually fetched. A shallow or
+   * single-branch checkout — CI's default for a PR — has neither, and failing
+   * there would be a check about the checkout rather than about the branches.
+   */
+  const hasRef = (ref) => {
+    try {
+      execFileSync('git', ['rev-parse', '--verify', '--quiet', ref], { cwd: ROOT, stdio: 'pipe' });
+      return true;
+    } catch {
+      return false;
+    }
+  };
+  const haveBoth = hasRef('refs/remotes/origin/main') && hasRef('refs/remotes/origin/develop');
+
+  if (haveBoth) {
+    check(
+      'DEVELOP_CONTAINS_MAIN — origin/develop contains origin/main',
+      contains,
+      'an integration branch behind production produces conflicts unrelated to any task; reconcile main into develop',
+    );
+  } else {
+    warn('DEVELOP_CONTAINS_MAIN could not be checked — origin/main or origin/develop is not fetched here');
+  }
+}
+
+/* A report-only CI job must carry a written exit criterion, not run forever. */
+if (existsSync(join(ROOT, '.github/workflows/ci.yml'))) {
+  const workflow = read('.github/workflows/ci.yml');
+  const reportOnly = [...workflow.matchAll(/^ {2}([a-z0-9-]+):\s*\n\s*name: ([^\n]*report only[^\n]*)$/gim)];
+
+  for (const [, jobId] of reportOnly) {
+    /*
+     * The job's own block, bounded by the next top-level job key. Slicing to
+     * `steps:` does not work — it is indented four spaces, not two — and an
+     * off-by-indent there silently truncated every job to its first line.
+     */
+    const start = workflow.indexOf(`\n  ${jobId}:`);
+    const rest = workflow.slice(start + 1);
+    const nextJob = /\n {2}[a-z0-9-]+:\n/.exec(rest);
+    const body = nextJob ? rest.slice(0, nextJob.index) : rest;
+
+    check(
+      `report-only job "${jobId}" states a promotion path`,
+      /promotion path|promotion criteri|promote (?:this job |it )?when|becomes required|move (?:this step |it )?into/i.test(
+        body,
+      ),
+      'report-only without an exit criterion is permanent red CI nobody reads',
+    );
+  }
+}
+
 // ------------------------------------------------------------------- reporting
 
 if (warnings.length) {

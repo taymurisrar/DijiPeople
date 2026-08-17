@@ -31,7 +31,9 @@ Period generation, run execution, pay components, compensation formulas, loans a
 
 - Money computed from client-supplied values rather than derived server-side.
 - Compensation and bank data reachable behind an employee-record read
-  (`BUG-0001`) — and per `BUG-0047` that fix is **not on `main`**.
+  (`BUG-0001`). Fixed, and on the integration branch since 2026-08-17
+  (`BUG-0047`) — it had read `VERIFIED` for three days while the fix sat on an
+  unmerged branch.
 - A proxy returning the caller's own payslip or bank account for a different
   employee id (`BUG-0039`).
 - Date handling that shifts a period boundary by a timezone.
@@ -73,4 +75,4 @@ Payslip viewing and the run screen.
 
 ## Regression Links
 
-`REG-001` — **inactive on `main`**, see `BUG-0047`.
+`REG-001` — active on the integration branch since 2026-08-17, see `BUG-0047`.

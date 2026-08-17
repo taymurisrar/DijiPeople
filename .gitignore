@@ -93,6 +93,11 @@ tmp-*/
 tmp/
 temp/
 *.tmp
+# Dev-server capture logs. `.tmp-landing-err.log` and `.tmp-landing-out.log`
+# were tracked for four months — a UTF-16 npm ENOENT from a run in April, kept
+# in Git because `*.tmp` does not match `.tmp-*.log`.
+.tmp-*.log
+.tmp-*/
 
 # =========================================================
 # Security / Certificates

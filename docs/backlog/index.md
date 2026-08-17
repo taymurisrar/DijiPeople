@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**88 records** — 47 bugs under [`docs/bugs/`](../bugs/), 41 non-bug items under [`items/`](items/).
+**90 records** — 47 bugs under [`docs/bugs/`](../bugs/), 43 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,51 +13,48 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 34 |
+| Open (active work) | 28 |
 | Blocked | 0 |
 | Deferred | 2 |
 | Awaiting a product decision | 1 |
-| Completed / closed | 51 |
-| **Open CRITICAL** | **3** |
-| **Open HIGH** | **8** |
+| Completed / closed | 59 |
+| **Open CRITICAL** | **0** |
+| **Open HIGH** | **3** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
 
 | Severity | Count |
 |---|---|
-| CRITICAL | 3 |
-| HIGH | 8 |
-| MEDIUM | 21 |
-| LOW | 2 |
+| HIGH | 3 |
+| MEDIUM | 22 |
+| LOW | 3 |
 
 ## Open by type
 
 | Type | Count |
 |---|---|
 | ARCHITECTURE | 1 |
-| AUTHORIZATION | 6 |
 | DATA_MIGRATION | 1 |
 | DOCUMENTATION | 2 |
 | FOLLOW_UP | 3 |
 | INFRA | 2 |
 | INTEGRATION | 1 |
-| SECURITY | 4 |
-| TECH_DEBT | 5 |
-| TENANT_ISOLATION | 1 |
-| TEST_GAP | 5 |
+| SECURITY | 3 |
+| TECH_DEBT | 6 |
+| TEST_GAP | 6 |
 | UX | 3 |
 
 ## All records by status
 
 | Status | Count |
 |---|---|
-| OPEN | 14 |
+| OPEN | 6 |
 | DEFERRED | 2 |
 | PRODUCT_DECISION | 1 |
 | FIXED | 1 |
-| VERIFIED | 31 |
-| READY | 19 |
+| VERIFIED | 39 |
+| READY | 21 |
 | DEFERRED | 2 |
 | PRODUCT_DECISION | 1 |
 | DONE | 20 |
@@ -66,16 +63,16 @@ see [`README.md`](README.md) for why.
 
 | ID | Title | Type | Severity | Priority | Status | Affected | Architect |
 |---|---|---|---|---|---|---|---|
-| [BUG-0005](../../docs/bugs/BUG-0005-cross-tenant-error-log-read-via-support-role.md) | A support-role user could read another tenant's error log | TENANT_ISOLATION | CRITICAL | P0 | OPEN | api:error-logs | PLAN_REQUIRED |
-| [BUG-0006](../../docs/bugs/BUG-0006-organization-structure-mutable-by-any-authenticated-user.md) | Organization and business-unit structure was mutable by any authenticated user | AUTHORIZATION | CRITICAL | P0 | OPEN | api:organization | PLAN_REQUIRED |
+| [BUG-0005](../../docs/bugs/BUG-0005-cross-tenant-error-log-read-via-support-role.md) | A support-role user could read another tenant's error log | TENANT_ISOLATION | CRITICAL | P0 | VERIFIED | api:error-logs | DONE |
+| [BUG-0006](../../docs/bugs/BUG-0006-organization-structure-mutable-by-any-authenticated-user.md) | Organization and business-unit structure was mutable by any authenticated user | AUTHORIZATION | CRITICAL | P0 | VERIFIED | api:organization | DONE |
 | [BUG-0027](../../docs/bugs/BUG-0027-admin-plan-pricing-and-checkout-pricing-come-from-different-.md) | Admin plan pricing and checkout pricing come from different models | DATA_INTEGRITY | CRITICAL | P0 | VERIFIED | services/api/prisma, apps/admin, apps/landing | PLAN_REQUIRED |
 | [BUG-0030](../../docs/bugs/BUG-0030-plan-list-get-mutates-commercial-pricing-and-can-fail-on-pla.md) | Plan list GET mutates commercial pricing and can fail on PlanPrice unique constraint | DATA_INTEGRITY | CRITICAL | P0 | VERIFIED | services/api, services/api/prisma | FIX_NOW |
-| [BUG-0047](../../docs/bugs/BUG-0047-seven-bug-records-are-verified-while-their-fixes-exist-only.md) | Seven bug records are VERIFIED while their fixes exist only on unmerged branches | SECURITY | CRITICAL | P0 | OPEN | api:organization, api:error-logs, api:employees, api:attendance, docs/qa/regressions | PLAN_REQUIRED |
-| [BUG-0001](../../docs/bugs/BUG-0001-compensation-and-bank-data-behind-employee-record-read.md) | Compensation and bank data returned behind an employee-record read | AUTHORIZATION | HIGH | P1 | OPEN | api:employees | PLAN_REQUIRED |
-| [BUG-0002](../../docs/bugs/BUG-0002-self-approval-of-attendance-corrections.md) | A manager could file and approve their own attendance correction | AUTHORIZATION | HIGH | P1 | OPEN | api:attendance | PLAN_REQUIRED |
-| [BUG-0003](../../docs/bugs/BUG-0003-readteam-granted-tenant-wide-visibility.md) | readTeam permissions granted tenant-wide visibility | AUTHORIZATION | HIGH | P1 | OPEN | api:attendance, api:approvals | PLAN_REQUIRED |
-| [BUG-0004](../../docs/bugs/BUG-0004-search-filter-overwrote-the-access-scope.md) | A search filter silently overwrote the access scope | AUTHORIZATION | HIGH | P1 | OPEN | api:approvals | PLAN_REQUIRED |
-| [BUG-0007](../../docs/bugs/BUG-0007-unguarded-duplicate-of-a-permission-gated-route.md) | An unguarded duplicate route aliased a permission-gated one | AUTHORIZATION | HIGH | P1 | OPEN | api:tenant-settings | PLAN_REQUIRED |
+| [BUG-0047](../../docs/bugs/BUG-0047-seven-bug-records-are-verified-while-their-fixes-exist-only.md) | Seven bug records are VERIFIED while their fixes exist only on unmerged branches | SECURITY | CRITICAL | P0 | VERIFIED | api:organization, api:error-logs, api:employees, api:attendance, docs/qa/regressions | DONE |
+| [BUG-0001](../../docs/bugs/BUG-0001-compensation-and-bank-data-behind-employee-record-read.md) | Compensation and bank data returned behind an employee-record read | AUTHORIZATION | HIGH | P1 | VERIFIED | api:employees | DONE |
+| [BUG-0002](../../docs/bugs/BUG-0002-self-approval-of-attendance-corrections.md) | A manager could file and approve their own attendance correction | AUTHORIZATION | HIGH | P1 | VERIFIED | api:attendance | DONE |
+| [BUG-0003](../../docs/bugs/BUG-0003-readteam-granted-tenant-wide-visibility.md) | readTeam permissions granted tenant-wide visibility | AUTHORIZATION | HIGH | P1 | VERIFIED | api:attendance, api:approvals | DONE |
+| [BUG-0004](../../docs/bugs/BUG-0004-search-filter-overwrote-the-access-scope.md) | A search filter silently overwrote the access scope | AUTHORIZATION | HIGH | P1 | VERIFIED | api:approvals | DONE |
+| [BUG-0007](../../docs/bugs/BUG-0007-unguarded-duplicate-of-a-permission-gated-route.md) | An unguarded duplicate route aliased a permission-gated one | AUTHORIZATION | HIGH | P1 | VERIFIED | api:tenant-settings | DONE |
 | [BUG-0008](../../docs/bugs/BUG-0008-session-expired-sign-in-again-returned-405.md) | Session-expired "Sign in again" returned 405 and stranded admin operators | BUG | HIGH | P1 | VERIFIED | app:admin, app:admin | DONE |
 | [BUG-0011](../../docs/bugs/BUG-0011-signed-agreement-editable-defeating-the-lead-conversion-gate.md) | Signed agreements were editable, defeating the lead-conversion gate | STATE_MACHINE | HIGH | P1 | VERIFIED | api:contracts | DONE |
 | [BUG-0012](../../docs/bugs/BUG-0012-onboarding-created-by-lead-conversion-was-born-uneditable.md) | Every onboarding created by lead conversion was born un-editable | STATE_MACHINE | HIGH | P1 | VERIFIED | api:super-admin | DONE |
@@ -141,6 +138,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0038](../../docs/backlog/items/ITEM-0038-record-ids-collide-between-concurrent-branches.md) | Record ids collide between concurrent branches | TECH_DEBT | MEDIUM | P2 | DONE | scripts, docs/bugs, docs/backlog | DONE |
 | [ITEM-0039](../../docs/backlog/items/ITEM-0039-promote-the-csp-from-report-only-to-enforced.md) | Promote the CSP from report-only to enforced | SECURITY | MEDIUM | P2 | READY | pkg:config, apps/web, apps/admin, apps/landing | DEFER |
 | [ITEM-0040](../../docs/backlog/items/ITEM-0040-develop-branch-protection-is-not-applied.md) | develop branch protection is not applied | INFRA | MEDIUM | P2 | READY | .github | BLOCKED_EXTERNAL |
+| [ITEM-0043](../../docs/backlog/items/ITEM-0043-promote-the-security-invariant-job-to-a-required-gate.md) | Promote the security invariant job to a required gate | TEST_GAP | MEDIUM | P2 | READY | services/api | PLAN_REQUIRED |
 | [ITEM-0021](../../docs/backlog/items/ITEM-0021-mechanical-guard-against-country-and-currency-literals-in-fr.md) | Mechanical guard against country and currency literals in frontends | TEST_GAP | LOW | P2 | DONE | scripts, apps/landing, apps/web, apps/admin | DEFER |
 | [ITEM-0023](../../docs/backlog/items/ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning.md) | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | P2 | READY | services/api/prisma, api:tenant-control-plane | DEFER |
 | [ITEM-0024](../../docs/backlog/items/ITEM-0024-landing-depends-on-lucide-react-without-declaring-it.md) | Landing depends on lucide-react without declaring it | TECH_DEBT | LOW | P2 | DONE | apps/landing | DEFER |
@@ -154,6 +152,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0017](../../docs/backlog/items/ITEM-0017-buildworkspaceurl-still-carries-an-internal-loopback-fallbac.md) | buildWorkspaceUrl still carries an internal loopback fallback | TECH_DEBT | LOW | P3 | DONE | pkg:config | DEFER |
 | [ITEM-0029](../../docs/backlog/items/ITEM-0029-validation-should-require-an-aliases-line-on-every-record.md) | Validation should require an aliases line on every record | TECH_DEBT | LOW | P3 | DONE | scripts, docs/backlog, docs/bugs | FIX_NOW |
 | [ITEM-0041](../../docs/backlog/items/ITEM-0041-repository-ruleset-no-push-matches-no-branch-and-is-inert.md) | Repository ruleset No push matches no branch and is inert | INFRA | LOW | P3 | PRODUCT_DECISION | .github | PRODUCT_DECISION |
+| [ITEM-0042](../../docs/backlog/items/ITEM-0042-burn-down-the-services-api-eslint-warning-baseline.md) | Burn down the services/api ESLint warning baseline | TECH_DEBT | LOW | P3 | READY | services/api | DEFER |
 
 ## Views
 

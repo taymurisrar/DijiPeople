@@ -6,14 +6,14 @@ AREA: attendance
 MODULE: services/api/src/modules/attendance
 TYPE: SECURITY
 RISK: HIGH
-AUTOMATION_STATUS: MANUAL
-TEST_REFERENCE: 
+AUTOMATION_STATUS: AUTOMATED
+TEST_REFERENCE: services/api/src/modules/attendance/attendance.correction-authorization.spec.ts
 RELATED_BUGS: [BUG-0002, BUG-0047]
 RELATED_REGRESSIONS: [REG-002]
-LAST_RUN: 
-LAST_RESULT: NOT_RUN
+LAST_RUN: 2026-08-17
+LAST_RESULT: PASS
 CREATED_AT: 2026-08-16
-UPDATED_AT: 2026-08-16
+UPDATED_AT: 2026-08-17
 ---
 
 # QA-ATT-006 — An employee cannot approve their own attendance correction
@@ -34,8 +34,11 @@ Step 2 is refused and step 3 succeeds. Holding the approval permission is not th
 
 ## Notes
 
-**This scenario has no active automated test on `main`.**
-`REG-002` names `attendance.correction-authorization.spec.ts`, which exists only
-on the unmerged `agent/authz-batch0-attendance` branch — see `BUG-0047`. Until
-that lands this is a manual check, and the area's SECURITY coverage is declared
-`GAP` rather than covered.
+Automated since 2026-08-17. `REG-002`'s test previously existed only on the
+unmerged `agent/authz-batch0-attendance` branch, which is what made this a manual
+check and the area's SECURITY coverage a `GAP` — see `BUG-0047`. The fix and its
+spec were cherry-picked onto `develop` and both now pass there.
+
+The failure this guards is not "the approver lacks the permission" — it is that
+holding it does not make them entitled to approve *this* record. An
+object-level check, not a permission check.

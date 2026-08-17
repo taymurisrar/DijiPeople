@@ -38,7 +38,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Regression test** | `services/api/src/modules/employees/employee-compensation-access.spec.ts` |
 | **Scenario** | A reporting manager with `employees.read` but no compensation/payroll permission requests a report's compensation → receives `null`, and `basicSalary` / `bankAccountNumber` / `bankIban` / `bankRoutingNumber` / `taxIdentifier` appear nowhere in the response. |
 | **Fixed** | 2026-08-14, branch `agent/authz-batch0-compensation` |
-| **Active** | **no — the test is not on the integration branch.** See [[BUG-0047]] |
+| **Active** | yes |
 
 ### REG-002 — Self-approval of attendance corrections
 
@@ -50,7 +50,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Regression test** | `services/api/src/modules/attendance/attendance.correction-authorization.spec.ts` |
 | **Scenario** | A manager holding approve/reject files a correction for themselves → approve and reject both 403. Also blocked when they filed it on someone else's behalf, and when they are the subject but someone else filed it. A manager acting on a subordinate's correction still succeeds. |
 | **Fixed** | 2026-08-14, branch `agent/authz-batch0-attendance` |
-| **Active** | **no — the test is not on the integration branch.** See [[BUG-0047]] |
+| **Active** | yes |
 
 ### REG-003 — `readTeam` granted tenant-wide visibility
 
@@ -59,10 +59,10 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Bug class** | `fail-open-scope` |
 | **Module** | `services/api/src/modules/attendance`, `services/api/src/modules/approvals` |
 | **Root cause** | `attendance.correction.readTeam` and `approvals.readTeam` were both bundled into a branch returning `{}` — an unrestricted `where` — making each a synonym for its `manage` permission. Two independent occurrences of the same misreading. |
-| **Regression test** | `attendance.correction-authorization.spec.ts`, `approvals.scope.spec.ts` |
+| **Regression test** | `services/api/src/modules/attendance/attendance.correction-authorization.spec.ts`, `services/api/src/modules/approvals/approvals.scope.spec.ts` |
 | **Scenario** | A user holding only `*.readTeam` lists records → the query carries a scope predicate limited to own + direct reports, never `{}`. `manage` still yields tenant-wide. |
-| **Fixed** | 2026-08-14, branches `agent/authz-batch0-attendance`, `agent/authz-batch0-readteam` |
-| **Active** | **no — the test is not on the integration branch.** See [[BUG-0047]] |
+| **Fixed** | 2026-08-14 on `agent/authz-batch0-attendance` and `agent/authz-batch0-readteam`; landed on `develop` 2026-08-17 |
+| **Active** | yes |
 
 ### REG-004 — Search filter overwrote the access scope
 
@@ -74,7 +74,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Regression test** | `services/api/src/modules/approvals/approvals.scope.spec.ts` |
 | **Scenario** | A plain `approvals.read` user lists with `?search=` → the emitted `where` still contains the own/assigned scope predicate alongside the search clause. |
 | **Fixed** | 2026-08-14, branch `agent/authz-batch0-readteam` |
-| **Active** | **no — the test is not on the integration branch.** See [[BUG-0047]] |
+| **Active** | yes |
 
 ### REG-005 — Cross-tenant error-log read via support role
 
@@ -98,7 +98,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Regression test** | `services/api/src/modules/organization/organization-structure-authorization.spec.ts`, `organization-structure-tenant-scope.spec.ts` |
 | **Scenario** | An ordinary employee attempts create/update/delete on an organization or business unit → 403 on all six routes. HR holding `organization.manage` still succeeds. A newly added mutating route with no `@Permissions` declaration fails the coverage test. |
 | **Fixed** | 2026-08-14, branch `agent/authz-org-bu` |
-| **Active** | **no — the test is not on the integration branch.** See [[BUG-0047]] |
+| **Active** | yes |
 
 ### REG-007 — Unguarded duplicate of a permission-gated route
 
@@ -110,7 +110,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Regression test** | `services/api/src/modules/tenant-settings/feature-availability-authorization.spec.ts` |
 | **Scenario** | An authenticated user without `tenant-settings.resolved.read` → 403; the four ordinary roles still succeed; the response contains no `subscription` block; the two routes remain on deliberately different keys. |
 | **Fixed** | 2026-08-14, branch `agent/authz-feature-availability` |
-| **Active** | **no — the test is not on the integration branch.** See [[BUG-0047]] |
+| **Active** | yes |
 
 ### REG-008 — Session-expired "Sign in again" returned 405
 

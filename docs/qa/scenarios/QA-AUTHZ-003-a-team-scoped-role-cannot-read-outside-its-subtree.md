@@ -10,10 +10,10 @@ AUTOMATION_STATUS: AUTOMATED
 TEST_REFERENCE: services/api/src/modules/employees/employee-access.service.spec.ts
 RELATED_BUGS: [BUG-0003]
 RELATED_REGRESSIONS: [REG-003]
-LAST_RUN: 2026-08-16
+LAST_RUN: 2026-08-17
 LAST_RESULT: PASS
 CREATED_AT: 2026-08-16
-UPDATED_AT: 2026-08-16
+UPDATED_AT: 2026-08-17
 ---
 
 # QA-AUTHZ-003 — A TEAM-scoped role cannot read outside its subtree

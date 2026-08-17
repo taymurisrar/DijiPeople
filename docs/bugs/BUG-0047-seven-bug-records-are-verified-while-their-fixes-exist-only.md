@@ -2,7 +2,7 @@
 ID: BUG-0047
 aliases: [BUG-0047]
 Title: Seven bug records are VERIFIED while their fixes exist only on unmerged branches
-Status: OPEN
+Status: VERIFIED
 Severity: CRITICAL
 Priority: P0
 Type: SECURITY
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-16
 DetectedInSha: 714632d
 AffectedModules: [services/api/src/modules/organization, services/api/src/modules/error-logs, services/api/src/modules/employees, services/api/src/modules/attendance, docs/qa/regressions]
 OwnerAgent: architect
-ArchitectDisposition: PLAN_REQUIRED
+ArchitectDisposition: DONE
 QAReport:
 RegressionId:
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-16
-UpdatedAt: 2026-08-16
-ResolvedAt:
+UpdatedAt: 2026-08-17
+ResolvedAt: 2026-08-17
 ---
 
 # BUG-0047 — Seven bug records are VERIFIED while their fixes exist only on unmerged branches
@@ -191,15 +191,54 @@ on none of them.
 
 ## Resolution
 
-Prevention landed on `agent/framework-autonomous-v2`. Remediation outstanding.
+**Both halves landed.**
+
+*Prevention* — `agent/framework-autonomous-v2`, merged into `develop`. Two checks
+in `scripts/validate-framework.mjs`: an `Active: yes` regression entry must name
+a test that exists, and a `VERIFIED`/`CLOSED` bug's `RegressionId` must resolve
+to an active entry.
+
+*Remediation* — `agent/framework-remediation`. All six fix commits cherry-picked
+onto `develop` from the `agent/authz-*` branches that never merged:
+
+```
+e7bc51a  error-logs      support-role log reads scoped to the caller's tenant  (BUG-0005, CRITICAL)
+2e73488  organization    organization.manage required for structure mutations  (BUG-0006, CRITICAL)
+13e720e  employees       compensation visibility split from employee-record read (BUG-0001)
+3670b91  attendance      self-approval barred; readTeam no longer tenant-wide  (BUG-0002, BUG-0003)
+d10e7c5  approvals       approvals.readTeam scoped to direct reports           (BUG-0003)
+7f5eacd  tenant-settings tenant-settings.resolved.read required                (BUG-0007)
+```
+
+Every one applied cleanly. `BUG-0004` needed no port — its fix and
+`employees.service.spec.ts` were already on the integration branch; only its
+record was wrong.
+
+Two record-quality defects were corrected alongside: `REG-003` named its two
+tests by bare filename where every other entry uses a repo-relative path, so it
+failed the new check despite both tests existing; and the `Fixed` lines now name
+the branch a fix landed on rather than the branch it was written on.
 
 ## QA Retest
 
-Pending — the retest is the six original regression scenarios, run against the
-integration branch rather than against the branches that fixed them.
+`services/api` suite on the integrated tree: **169 suites, 1251 passed,
+1 skipped, 0 failed** — including all five previously-absent regression specs.
+`npm run typecheck`: 8/8 workspaces. API lint: 0 errors.
+
+Verified directly against the code rather than against the records:
+
+- `organizations.controller.ts` now carries `@UseGuards(JwtAuthGuard, PermissionsGuard)`
+  and `@Permissions(ORGANIZATION_MANAGE)` on POST, PATCH and DELETE.
+- `error-logs.service.ts` `findForUser` compares `tenantId` on the support
+  branch, and returns `null` rather than throwing so a foreign traceId stays
+  indistinguishable from one that does not exist.
 
 ## History
 
 - 2026-08-16 — found while deriving durable QA test plans for TASK-0004: the
   `AUTOMATED` scenarios needed real test paths, and five of the register's did
   not resolve. Following that back showed the fixes themselves had not merged.
+- 2026-08-17 — remediated. The two CRITICALs were confirmed **still live on
+  `develop`** by reading the current source, not the records — which is the
+  whole point of the reverification. All seven records now closed on evidence
+  from the integration branch.

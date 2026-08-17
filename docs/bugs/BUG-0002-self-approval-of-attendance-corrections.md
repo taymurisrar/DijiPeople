@@ -2,7 +2,7 @@
 ID: BUG-0002
 aliases: [BUG-0002]
 Title: A manager could file and approve their own attendance correction
-Status: OPEN
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: AUTHORIZATION
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-14
 DetectedInSha: 13e720e
 AffectedModules: [services/api/src/modules/attendance]
 OwnerAgent: backend-api
-ArchitectDisposition: PLAN_REQUIRED
+ArchitectDisposition: DONE
 QAReport:
 RegressionId: REG-002
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-15
-UpdatedAt: 2026-08-16
-ResolvedAt:
+UpdatedAt: 2026-08-17
+ResolvedAt: 2026-08-17
 ---
 
 # BUG-0002 — A manager could file and approve their own attendance correction
@@ -102,3 +102,4 @@ Verified by the regression spec; register records `Active: yes`.
 - 2026-08-14 — found, fixed, regression added as REG-002.
 - 2026-08-15 — imported into the durable bug system.
 - 2026-08-16 — **reopened.** The fix and its regression test are on `agent/authz-batch0-attendance`, which has never merged: no commit implementing them is an ancestor of `origin/main`. The record had said VERIFIED since 2026-08-14, so every view derived from it — `docs/backlog/open.md`, the dashboards, a future `BACKLOG_PRECHECK` — reported protection that the integration branch does not have. Evidence and the prevention check are in [[BUG-0047]].
+- 2026-08-17 — **re-verified and closed against the integration branch.** The fix was ported onto `develop` by TASK-0005 (cherry-picked from the original `agent/authz-*` branch, which had never merged), and `services/api/src/modules/attendance/attendance.correction-authorization.spec.ts` now exists and passes there. Previously this record read VERIFIED on branch-level evidence alone — see [[BUG-0047]], which is what caught it, and the two validator checks that now make the same drift a red build.

@@ -86,4 +86,4 @@ UI gating is cosmetic and never a substitute; a browser case would only confirm 
 
 ## Regression Links
 
-`REG-003` · `REG-004` · `REG-006` · `REG-007` — note `REG-003` and `REG-006` name tests absent from `main`, per `BUG-0047`.
+`REG-003` · `REG-004` · `REG-006` · `REG-007` — all active on the integration branch since 2026-08-17 (`BUG-0047`).

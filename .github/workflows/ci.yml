@@ -96,7 +96,6 @@ jobs:
         run: npm run prisma:generate
       # services/api is NOT linted here — it carries 2 pre-existing errors on
       # main and runs in the non-blocking lint-api-report job instead. See that
-      # job for the promotion path.
       - name: ESLint — apps/web
         working-directory: apps/web
         run: npx eslint
@@ -106,6 +105,18 @@ jobs:
       - name: ESLint — apps/landing
         working-directory: apps/landing
         run: npx eslint
+      # services/api joined the required gate on 2026-08-17. It had been
+      # report-only because of a real error baseline — 2 errors when this
+      # pipeline was written, 15 by the time it was measured again, since a
+      # non-blocking job does not stop new ones arriving. All 15 are fixed:
+      # 11 prettier, 3 unbound-method, 1 no-regex-spaces.
+      #
+      # --max-warnings=10000 against ~910 actual warnings. That is a ceiling
+      # against a flood, not a target; the burn-down is ITEM-0042. Warnings do
+      # not gate, errors do.
+      - name: ESLint — services/api
+        working-directory: services/api
+        run: npx eslint "{src,test}/**/*.ts" --max-warnings=10000
       - name: Fail if lint modified the checkout
         # Defence in depth: if any lint step ever regains --fix, this catches it
         # rather than letting CI silently "pass" against rewritten files.
@@ -425,32 +436,16 @@ jobs:
       - name: Monorepo build
         run: npm run build
 
-  lint-api-report:
-    name: Lint services/api (report only — NOT a gate)
-    runs-on: ubuntu-latest
-    # services/api has 2 pre-existing ESLint errors on main, both
-    # @typescript-eslint/unbound-method in
-    # src/modules/auth/auth.service.spec.ts (lines 120 and 125), alongside ~815
-    # warnings.
-    #
-    # Gating on it today would make CI red on arrival for reasons unrelated to
-    # any incoming change, which trains people to ignore or bypass it.
-    #
-    # Promotion path: fix those two errors, then move this step into the
-    # required `lint` job. The rule is not disabled and nothing is suppressed —
-    # the check runs in full here every time.
-    continue-on-error: true
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22.x'
-          cache: npm
-      - run: npm ci
-      - run: npm run prisma:generate
-      - name: ESLint — services/api (check only, never --fix)
-        working-directory: services/api
-        run: npx eslint "{src,test}/**/*.ts" --max-warnings=10000
+  # lint-api-report was PROMOTED on 2026-08-17 and no longer exists.
+  #
+  # Its error baseline is zero, so it now runs as a required step inside the
+  # `lint` job. Keeping a duplicate report-only copy would double the runtime and
+  # report the same result twice.
+  #
+  # The promotion path it documented — "fix those two errors, then move this step
+  # into the required lint job" — was followed exactly, three days and thirteen
+  # extra errors later. That gap is the argument for exit criteria: a report-only
+  # job does not hold a baseline still, it only stops anyone noticing it grow.
 
   security-invariant-report:
     name: Security invariant (report only — NOT a gate)
@@ -463,10 +458,17 @@ jobs:
     # permission families. Gating on it would block every unrelated PR on
     # accumulated debt, which trains people to bypass CI.
     #
-    # The invariant is NOT weakened, skipped or edited. It runs in full here,
-    # its output is uploaded, and the intent is to promote this job to a
-    # required gate once the inventory reaches zero. Progress is tracked in
-    # docs/qa/regressions/index.md and docs/development/ci-recommendation.md.
+    # The invariant is NOT weakened, skipped or edited. It runs in full here and
+    # its output is uploaded.
+    #
+    # Promotion criteria — all four, measured on `develop`:
+    #   1. the reported inventory of single-family handlers reaches zero;
+    #   2. `services/api` tests pass without the --testNamePattern exclusion in
+    #      the required `test-api` job;
+    #   3. two consecutive green runs;
+    #   4. tracked as ITEM-0043, which carries the current count.
+    # Until then this stays report-only, and its red status is expected rather
+    # than ignored — the final task report classifies it explicitly.
     continue-on-error: true
     steps:
       - uses: actions/checkout@v4

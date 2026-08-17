@@ -6,11 +6,13 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 0** · completed: 1
+**Active: 1** · completed: 1
 
 ## Active
 
-_None. No session is currently running._
+| Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
+|---|---|---|---|---|---|---|---|
+| [SESSION-0002](../../docs/sessions/SESSION-0002-final-framework-remediation-and-ci-debt.md) | — | Final framework remediation and CI debt | ACTIVE | `agent/framework-remediation` | `develop` | — | 2026-08-17T06:18:36.527Z |
 
 ## Completed
 

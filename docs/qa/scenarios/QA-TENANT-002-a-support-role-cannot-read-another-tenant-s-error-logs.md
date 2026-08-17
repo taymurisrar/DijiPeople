@@ -10,10 +10,10 @@ AUTOMATION_STATUS: AUTOMATED
 TEST_REFERENCE: services/api/src/modules/error-logs/error-logs.service.spec.ts
 RELATED_BUGS: [BUG-0005]
 RELATED_REGRESSIONS: [REG-005]
-LAST_RUN: 2026-08-16
+LAST_RUN: 2026-08-17
 LAST_RESULT: PASS
 CREATED_AT: 2026-08-16
-UPDATED_AT: 2026-08-16
+UPDATED_AT: 2026-08-17
 ---
 
 # QA-TENANT-002 — A support role cannot read another tenant's error logs
