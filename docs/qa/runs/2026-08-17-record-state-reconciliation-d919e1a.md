@@ -132,16 +132,20 @@ For each material bug, run the loop in [`../README.md`](../README.md).
 ## Exact-SHA CI Evidence
 
 Task commits `47b127fb50ef2bd828af5901628f5e3079186662` and final candidate
-`03f30cb74efb6fa12f5f8044eb85590f2361a532` completed GitHub Actions runs
-`32020076245` and `32021401010` with green `CI required gate` jobs. The
-underlying fail-open jobs were inspected independently:
+`03f30cb74efb6fa12f5f8044eb85590f2361a532`, plus merge commit
+`c554f45e127c189bbd5e124d85869675c3ba6216`, completed GitHub Actions runs
+`32020076245`, `32021401010` and `32022417483` with green `CI required gate`
+jobs. The underlying fail-open jobs were inspected independently:
 
 - security invariant: 1 failed / 4 passed tests; 796 violations across 894
   in-scope handlers (3 missing legacy only, 715 missing matrix only, 78 missing
   both);
-- database E2E: the same 7 failed / 8 passed suites in both runs; totals varied
-  from 148 failed / 79 passed to 147 failed / 80 passed tests;
-  `attendance-operational` failed both and is now durable `QA-ATT-007`;
+- database E2E: the task-SHA runs had the same 7 failed / 8 passed suites and
+  varied from 148 failed / 79 passed to 147 failed / 80 passed tests; the merge
+  run shifted to 5 failed / 10 passed suites and 128 failed / 99 passed tests.
+  `attendance-review` and `attendance-operational` passed only in the merge run,
+  proving nondeterminism rather than terminal closure; `QA-ATT-007` preserves
+  the unstable operational scenario;
 - browser E2E: 8 passed / 1 skipped; the BUG-0019 assertion remains skipped.
 
 The GitHub `CI required gate` itself concluded `success`. WP-02's QA verdict is
@@ -154,9 +158,10 @@ report-only/fail-open suites passed.
 
 WP-02's record, QA-registry, generated-view, inventory and validator scope is
 internally consistent and all relevant local gates pass. Risks are explicit and
-not converted into false completion: seven DB E2E suites fail, BUG-0019 browser
-coverage is skipped, 12 plans need substantive re-review, and two manual doc
-regressions are not yet automated.
+not converted into false completion: five DB E2E suites still fail and two more
+changed from FAIL to PASS only on the merge run, BUG-0019 browser coverage is
+skipped, 12 plans need substantive re-review, and two manual doc regressions are
+not yet automated.
 
 ## Independent Review
 
@@ -172,7 +177,8 @@ package's completed evidence and remain follow-up gates.
 ## Follow-up
 
 - WP-03: remediate the 796 dual-permission violations.
-- WP-04: classify and fix the seven failing database E2E suites.
+- WP-04: classify the five stable failures plus the two run-variable database
+  E2E suites, then fix application, fixture or infrastructure causes.
 - WP-07: execute the stale BUG-0019 browser assertion.
 - WP-09: remove fail-open CI behavior after relevant suites are green.
 - WP-10 / ITEM-0011: automate documentation absence-claim checks and close the

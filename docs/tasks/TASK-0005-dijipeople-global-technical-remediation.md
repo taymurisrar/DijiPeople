@@ -9,8 +9,8 @@ CREATED_AT: 2026-08-17
 AFFECTED_MODULES: [global, framework, qa, ci, api, web, admin, landing, agent-desktop, gateway]
 AGENTS: [Architect, Backend/API, Frontend, UI/UX, Database, Integration, QA, Reviewer, Integrator, Release/DevOps]
 DEPENDENCIES: current origin/develop, readable repository records, configured CI
-CURRENT_PACKAGE: WP-02
-COMPLETED_PACKAGES: [WP-01]
+CURRENT_PACKAGE: WP-03
+COMPLETED_PACKAGES: [WP-01, WP-02]
 BLOCKED_PACKAGES: []
 OWNER_DECISIONS: 1
 FINAL_STATUS:
@@ -83,8 +83,8 @@ exact-SHA CI, `develop` containing `main`, and `main` untouched.
 | WP_ID | TITLE | STATUS | DEPENDENCIES | AGENTS | BRANCH | SHA | QA_STATUS | BUGS | CI_STATUS | MERGE_STATUS |
 |---|---|---|---|---|---|---|---|---|---|---|
 | WP-01 | Global inventory and evidence triage | DONE | — | Architect, QA, Reviewer, Integrator, Release/DevOps | agent/global-remediation-program | d919e1a | PASS_WITH_RISKS | BUG-0049–0052, ITEM-0044–0046 | PASS | DONE |
-| WP-02 | Record-state, validator and QA-registry reconciliation | MERGING | WP-01 | Architect, QA, Reviewer | agent/remediation-record-reconciliation | 03f30cb | PASS_WITH_RISKS | BUG-0051 | PASS_WITH_RISKS | PENDING_POST_MERGE_CI |
-| WP-03 | Authorization invariant audit and module remediation | NOT_STARTED | WP-01 | Backend/API, Integration, QA, Reviewer | agent/remediation-authorization | — | NOT_RUN | ITEM-0043 | NOT_RUN | NOT_STARTED |
+| WP-02 | Record-state, validator and QA-registry reconciliation | DONE | WP-01 | Architect, QA, Reviewer | agent/remediation-record-reconciliation | c554f45 | PASS_WITH_RISKS | BUG-0051 | PASS_WITH_RISKS | DONE |
+| WP-03 | Authorization invariant audit and module remediation | IN_PROGRESS | WP-01 | Backend/API, Integration, QA, Reviewer | agent/remediation-authorization | c554f45 | NOT_RUN | ITEM-0043 | NOT_RUN | NOT_STARTED |
 | WP-04 | Database E2E isolation and residual defect proof | NOT_STARTED | WP-01 | Database, Backend/API, QA, Reviewer | agent/remediation-database-e2e | — | NOT_RUN | BUG-0049 | NOT_RUN | NOT_STARTED |
 | WP-05 | Tenant provisioning and lifecycle proof | NOT_STARTED | WP-01, WP-04 | Backend/API, Database, QA, Reviewer | agent/remediation-tenant-lifecycle | — | NOT_RUN | ITEM-0004 | NOT_RUN | NOT_STARTED |
 | WP-06 | Desktop agent distribution, security and reliability | NOT_STARTED | WP-01 | Integration, Backend/API, QA, Reviewer | agent/remediation-agent-desktop | — | NOT_RUN | BUG-0034 | NOT_RUN | NOT_STARTED |
@@ -152,6 +152,7 @@ queue. **POST_TASK_REPO_HEALTH = PENDING.**
 - 2026-08-17 — after rework, independent Reviewer returned `APPROVE` and `REVIEWER_ACCEPTED_QA`: zero blocking findings; record/QA/regression/inventory/CI-document truth and lease compliance all passed. WP-02 advanced to exact-SHA CI.
 - 2026-08-17 — WP-02 task SHA `47b127f` completed exact-SHA CI run `32020076245`: required aggregate PASS, security report 796 violations, browser 8 PASS / 1 SKIP, database E2E 7 suites / 148 tests FAIL. The new `attendance-operational` failure is durable as QA-ATT-007; WP-02 remains `PASS_WITH_RISKS` pending integration.
 - 2026-08-17 — final WP-02 task SHA `03f30cb` passed exact-SHA CI run `32021401010`. Security remained 796 violations and browser 8 PASS / 1 SKIP; the same seven DB suites failed with 147 failed / 80 passed tests, a one-test variance from the prior run that WP-04 must classify.
+- 2026-08-17 — WP-02 merged through the serialized queue as `c554f45` and passed post-merge CI run `32022417483` on `develop`. The required gate passed; security remained at 796 violations and browser remained 8 PASS / 1 SKIP. Database E2E shifted to 5 failed / 10 passed suites and 128 failed / 99 passed tests, with `attendance-review` and `attendance-operational` passing after both had failed on the two task-SHA runs. WP-04 therefore owns nondeterminism/root-cause classification rather than a fixed seven-suite assumption.
 
 ## Business requirement
 

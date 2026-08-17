@@ -23,13 +23,13 @@
 
 | Session | Task | Title | Status | Branch | Target | Leases | Schema |
 |---|---|---|---|---|---|---|---|
-| [[SESSION-0003-dijipeople-global-technical-remediation|SESSION-0003]] | TASK-0005 | DijiPeople Global Technical Remediation | ACTIVE | `agent/remediation-record-reconciliation` | `develop` | framework, record-indexes, ci | NO |
+| [[SESSION-0003-dijipeople-global-technical-remediation|SESSION-0003]] | TASK-0005 | DijiPeople Global Technical Remediation | ACTIVE | `agent/remediation-authorization` | `develop` | permissions, record-indexes | NO |
 
 ## Active Tasks and Work Packages
 
 | Task | Title | Type | Size | Progress | Current | Ready next | Blocked |
 |---|---|---|---|---|---|---|---|
-| [[TASK-0005-dijipeople-global-technical-remediation|TASK-0005]] | DijiPeople Global Technical Remediation | BUG | PROGRAM | 1/11 | WP-02 | WP-03, WP-04, WP-06, WP-07, WP-08, WP-10 | — |
+| [[TASK-0005-dijipeople-global-technical-remediation|TASK-0005]] | DijiPeople Global Technical Remediation | BUG | PROGRAM | 2/11 | WP-03 | WP-04, WP-06, WP-07, WP-08, WP-10 | — |
 
 ## Branch model
 

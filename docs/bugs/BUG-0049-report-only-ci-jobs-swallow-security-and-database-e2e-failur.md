@@ -78,6 +78,12 @@ and required aggregate still concluded success.
   `03f30cb74efb6fa12f5f8044eb85590f2361a532` — the same 7 DB suites failed,
   with 147 failed / 80 passed tests; security and browser results were unchanged;
   required aggregate again concluded success.
+- GitHub run `32022417483`, merge SHA
+  `c554f45e127c189bbd5e124d85869675c3ba6216` — the required aggregate passed,
+  security remained at 796 violations and browser at 8 passed / 1 skipped. DB
+  E2E remained red but shifted to 5 failed / 10 passed suites and 128 failed /
+  99 passed tests; `attendance-review` and `attendance-operational` passed after
+  failing on both task-SHA runs, exposing additional nondeterminism.
 - `docs/qa/runs/2026-08-17-framework-remediation-e6a173d.md` — incorrectly
   treats green job conclusions as passing report-only evidence.
 

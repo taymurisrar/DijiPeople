@@ -9,17 +9,17 @@ TASK_TYPE: BUG
 TASK_SIZE: PROGRAM
 BASE_BRANCH: origin/develop
 BASE_SHA: 00511803ebb0e1343ff35535996df1af98c95834
-TASK_BRANCH: agent/remediation-record-reconciliation
+TASK_BRANCH: agent/remediation-authorization
 TARGET_BRANCH: develop
-WORKTREE: D:/My Work/hrm-dijipeople/dijipeople-record-reconciliation
+WORKTREE: D:/My Work/hrm-dijipeople/dijipeople-remediation-authorization
 AFFECTED_MODULES: [global-remediation]
-WRITE_LEASES: [framework, record-indexes, ci]
-ACTIVE_WORK_PACKAGES: [WP-02]
+WRITE_LEASES: [permissions, record-indexes]
+ACTIVE_WORK_PACKAGES: [WP-03]
 SCHEMA_WRITE: NO
-CI_STATUS: WP-01 PASS; WP-02 TASK_SHA_REQUIRED_PASS_REPORT_ONLY_FAILURES
-MERGE_STATUS: WP-01 DONE; WP-02 INTEGRATING_POST_MERGE_CI_PENDING
+CI_STATUS: WP-01 PASS; WP-02 POST_MERGE_REQUIRED_PASS_REPORT_ONLY_FAILURES; WP-03 NOT_RUN
+MERGE_STATUS: WP-01 DONE; WP-02 DONE; WP-03 IMPLEMENTING
 STARTED_AT: 2026-08-17T08:42:25.949Z
-LAST_HEARTBEAT: 2026-08-17T13:05:21.362+03:00
+LAST_HEARTBEAT: 2026-08-17T14:12:24.722+03:00
 BLOCKERS: none
 ---
 
@@ -49,3 +49,5 @@ package-specific leases before each implementation package.
 - 2026-08-17 — WP-02 independent Reviewer returned `APPROVE` and `REVIEWER_ACCEPTED_QA` with no blocking findings; exact-SHA remote CI is the next gate.
 - 2026-08-17 — WP-02 exact-SHA CI run `32020076245` passed its required aggregate at `47b127f`; report-only evidence remains red (security 796 violations; database E2E 7 suites / 148 tests failed) and browser remains 8 PASS / 1 SKIP.
 - 2026-08-17 — final task SHA `03f30cb` passed exact-SHA run `32021401010`; the same seven DB suites failed with 147 failed / 80 passed tests. The serialized merge queue was claimed and post-merge CI remains required.
+- 2026-08-17 — WP-02 merged to `develop` as `c554f45`; post-merge run `32022417483` passed the required gate. The hidden security result remained 796 violations and browser remained 8 PASS / 1 SKIP; database E2E varied to 5 failed / 10 passed suites and 128 failed / 99 passed tests, so WP-04 must classify the instability. WP-02 is complete and WP-03 is the active package.
+- 2026-08-17 — the WP-02 merge queue entry was closed at `c554f45`. WP-03 started on real branch `agent/remediation-authorization` in `dijipeople-remediation-authorization`; stale WP-02 `ci`/`framework` leases were released, the `permissions` lease was acquired before authorization-source changes, and the program-wide `record-indexes` lease was renewed for durable record updates.

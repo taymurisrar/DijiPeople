@@ -12,7 +12,7 @@ see [`README.md`](README.md) for how they stay out of each other's way.
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
-| [SESSION-0003](../../docs/sessions/SESSION-0003-dijipeople-global-technical-remediation.md) | TASK-0005 | DijiPeople Global Technical Remediation | ACTIVE | `agent/remediation-record-reconciliation` | `develop` | framework, record-indexes, ci | 2026-08-17T13:05:21.362+03:00 |
+| [SESSION-0003](../../docs/sessions/SESSION-0003-dijipeople-global-technical-remediation.md) | TASK-0005 | DijiPeople Global Technical Remediation | ACTIVE | `agent/remediation-authorization` | `develop` | permissions, record-indexes | 2026-08-17T14:12:24.722+03:00 |
 
 ## Completed
 

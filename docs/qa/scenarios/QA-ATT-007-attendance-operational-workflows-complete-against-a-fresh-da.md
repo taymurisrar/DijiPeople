@@ -11,7 +11,7 @@ TEST_REFERENCE: services/api/test/attendance-operational.e2e-spec.ts
 RELATED_BUGS: [BUG-0049]
 RELATED_REGRESSIONS: []
 LAST_RUN: 2026-08-17
-LAST_RESULT: FAIL
+LAST_RESULT: PASS_WITH_RISKS
 CREATED_AT: 2026-08-17
 UPDATED_AT: 2026-08-17
 ---
@@ -43,5 +43,7 @@ handle failures.
 Exact task-branch CI runs `32020076245` at `47b127f` and `32021401010` at
 `03f30cb` both failed this suite while the report-only jobs concluded green.
 Both had 7 failed / 8 passed suites; test totals varied from 148/79 to 147/80.
-WP-04 owns root-cause isolation; this scenario must remain `FAIL` until a later
-exact run executes it successfully.
+Post-merge run `32022417483` at `c554f45` passed this suite while five other
+suites still failed; the overall totals were 128 failed / 99 passed. One pass
+after two failures does not establish a stable fix, so the scenario is
+`PASS_WITH_RISKS` and WP-04 owns root-cause and repeatability proof.

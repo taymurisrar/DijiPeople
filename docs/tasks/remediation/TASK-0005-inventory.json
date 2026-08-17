@@ -5549,10 +5549,10 @@
         "docs/bugs/BUG-0049-report-only-ci-jobs-swallow-security-and-database-e2e-failur.md:56-57 records GitHub job 95327538057: 6 suites failed, 9 passed, 136 tests failed and 91 passed.",
         "docs/bugs/BUG-0049-report-only-ci-jobs-swallow-security-and-database-e2e-failur.md:70-72 ties the 6/15 suite and 136/227 test result to exact SHA 00511803ebb0e1343ff35535996df1af98c95834.",
         ".github/workflows/ci.yml:324-418 provides the ephemeral-PostgreSQL database-e2e-report infrastructure but does not propagate a failing test verdict to the required gate.",
-        "Exact WP-02 runs 32020076245 at 47b127f and 32021401010 at final task SHA 03f30cb both had the same 7 failed / 8 passed suites; test totals varied from 148/79 to 147/80. Attendance-operational failed both and is preserved as QA-ATT-007."
+        "Exact WP-02 runs 32020076245 at 47b127f and 32021401010 at final task SHA 03f30cb both had the same 7 failed / 8 passed suites; test totals varied from 148/79 to 147/80. Post-merge run 32022417483 at c554f45 shifted to 5 failed / 10 passed suites and 128 failed / 99 passed tests; attendance-review and attendance-operational passed after failing twice, so QA-ATT-007 is PASS_WITH_RISKS pending repeatability proof."
       ],
-      "verification_result": "VERIFIED_AND_REPRODUCED_WORSE_AT_WP02_SHA",
-      "recommended_remediation": "Classify the seven current suite failures by application defect, fixture drift and infrastructure, retain the raw exit status, and do not infer PASS from the green report-only job."
+      "verification_result": "VERIFIED_AND_RUN_VARIABLE_THROUGH_POST_MERGE_CI",
+      "recommended_remediation": "Classify the five stable suite failures and two run-variable suites by application defect, fixture drift and infrastructure, retain the raw exit status, and do not infer PASS from the green report-only job."
     },
     {
       "finding_id": "TASK-0005-QF-003",
@@ -5789,7 +5789,7 @@
         "landing_spec_files": 3,
         "browser_spec_files": 2,
         "latest_executed_api": "169 suites; 1251 passed; 1 skipped",
-        "latest_database_e2e": "15 suites; the same 7 failed and 8 passed in runs 32020076245/32021401010; 227 tests; totals varied from 148 failed/79 passed to 147 failed/80 passed",
+        "latest_database_e2e": "15 suites; task runs 32020076245/32021401010 had the same 7 failed / 8 passed and 147–148 failed / 79–80 passed tests; post-merge run 32022417483 had 5 failed / 10 passed suites and 128 failed / 99 passed tests",
         "latest_browser_e2e": "8 passed; 1 skipped"
       },
       "evidence": [
@@ -6006,7 +6006,7 @@
     "wp01_final_checks": "PASS: backlog:check, tasks:check, qa:check, sessions:check, knowledge:dashboards:check, validate:framework, inventory uniqueness and git diff --check.",
     "write_scope": "WP-01 created the inventory and discovery records. WP-02 reconciled canonical records, QA sources, generated views, framework validators, maintained documentation and this inventory on reconciliation base d919e1a.",
     "wp02_record_reconciliation": "PASS: canonical metadata and inventory agree; 43 terminal dispositions normalized; deliberate defer/product-decision states aligned; dangling blockers, evidence paths, date inversions, malformed wrappers and Bug body structure repaired.",
-    "wp02_qa_reconciliation": "PASS WITH RISKS: 70 scenarios; authentication logout coverage is PARTIAL because its source-shape spec does not execute a live session; three mapped database scenarios remain FAIL, seven database suites fail overall, and BUG-0019 browser reachability remains skipped.",
+    "wp02_qa_reconciliation": "PASS WITH RISKS: 70 scenarios; authentication logout coverage is PARTIAL because its source-shape spec does not execute a live session; two mapped database scenarios remain FAIL, QA-ATT-007 is PASS_WITH_RISKS after failing twice then passing post-merge, five database suites still fail and two are run-variable, and BUG-0019 browser reachability remains skipped.",
     "wp02_semantic_validators": "PASS: backlog, QA and framework checks reject state/disposition contradictions, date/order/path defects, incomplete Bug bodies, inactive or mismatched regression roots, active regressions without matching reusable scenarios, and canonical inventory metadata/backlink drift."
   },
   "relationship_policy": {

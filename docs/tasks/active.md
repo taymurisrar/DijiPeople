@@ -6,4 +6,4 @@ Parent tasks currently in flight. `Current` is the work package executing now.
 
 | ID | Title | Type | Size | Priority | Status | Packages | Current |
 |---|---|---|---|---|---|---|---|
-| [TASK-0005](TASK-0005-dijipeople-global-technical-remediation.md) | DijiPeople Global Technical Remediation | BUG | PROGRAM | P0 | IN_PROGRESS | 1/11 | WP-02 |
+| [TASK-0005](TASK-0005-dijipeople-global-technical-remediation.md) | DijiPeople Global Technical Remediation | BUG | PROGRAM | P0 | IN_PROGRESS | 2/11 | WP-03 |

@@ -17,13 +17,14 @@ design evidence and the current execution snapshot below is authoritative.
 10 suites failed, 190 tests failed, 0 passed.
 
 **Current observed runs:** GitHub Actions runs `32020076245` at `47b127f` and
-`32021401010` at final task SHA `03f30cb` — both executed 15 suites / 227 tests
-with 8 suites passing and the same 7 failing. Test totals varied by one:
-79–80 passed and 147–148 failed. `attendance-operational` regressed from the
-discovery run's PASS in both, so
-`QA-ATT-007` now preserves it as a failing reusable scenario. The job is still
-report-only. Its green job conclusion does not mean the Jest suite passed; that
-evidence-integrity defect is `BUG-0049`.
+`32021401010` at final task SHA `03f30cb` both executed 15 suites / 227 tests
+with 8 suites passing and the same 7 failing; totals varied from 79–80 passed
+and 147–148 failed. Post-merge run `32022417483` at `c554f45` shifted to 10
+suites / 99 tests passing and 5 suites / 128 tests failing because
+`attendance-review` and `attendance-operational` passed. This is run-variable
+evidence, not proof of a stable fix; `QA-ATT-007` preserves the latter as
+`PASS_WITH_RISKS`. The job is still report-only. Its green job conclusion does
+not mean the Jest suite passed; that evidence-integrity defect is `BUG-0049`.
 
 | Current suite | Exact-base result |
 |---|---|
@@ -31,8 +32,8 @@ evidence-integrity defect is `BUG-0049`.
 | `attendance-engine` | FAIL |
 | `attendance-integrations-http` | FAIL |
 | `attendance-integrations-isolation` | FAIL |
-| `attendance-operational` | FAIL |
-| `attendance-review` | FAIL |
+| `attendance-operational` | PASS_WITH_RISKS — failed twice, then passed post-merge |
+| `attendance-review` | PASS_WITH_RISKS — failed twice, then passed post-merge |
 | `commercial-bootstrap` | PASS |
 | `gateway-runtime` | FAIL |
 | `permission-propagation` | PASS |
