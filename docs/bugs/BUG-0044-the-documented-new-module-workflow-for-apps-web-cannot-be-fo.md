@@ -13,7 +13,7 @@ AffectedModules: [apps/web]
 OwnerAgent: architect
 ArchitectDisposition: FIX_NOW
 QAReport: docs/qa/runs/2026-08-17-web-app-documentation-1af3690.md
-RegressionId:
+RegressionId: REG-037
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation: docs/knowledge/implementations/2026-08-17-web-app-documentation.md
@@ -65,6 +65,12 @@ registry in the app is `settingsAdapterRegistry` in
 self-validates at module load — the pattern `module-registry.ts` was evidently
 meant to become.
 
+## Reproduction
+
+Follow the pre-fix `apps/web/AGENTS.md` instruction by registering a module in
+`module-registry.ts`, then trace its consumers. No runtime path reads the
+registration.
+
 ## Evidence
 
 Counts above measured directly at `1af3690`.
@@ -86,6 +92,11 @@ Bounded but pointed: it misleads exactly the reader who is doing the right thing
 which is that `moduleKey` string equality drives command handler selection and
 API path derivation.
 
+## Affected Areas
+
+`apps/web/AGENTS.md` and the inert runtime registry files it previously
+presented as the live module workflow.
+
 ## Proposed Resolution
 
 Correct `apps/web/AGENTS.md` to describe the spec-object workflow, name the
@@ -104,6 +115,11 @@ whether to revive or remove it is a design decision, recorded as [[ITEM-0036]].
 None mechanical. The generalisable guard — a check that a documented function
 name has call sites — is close to [[ITEM-0011]]'s absence-claim guard and is
 noted there rather than duplicated.
+
+## Dependencies
+
+None for the documentation correction. [[ITEM-0036]] separately owns the
+architectural fate of the inert scaffolding.
 
 ## Related Items
 
@@ -125,7 +141,9 @@ counts. No runtime behaviour is involved.
 
 ## History
 
+- 2026-08-17 — linked to active regression `REG-037` during TASK-0005
+  record/QA reconciliation.
+
 - 2026-08-17 — found during the `apps/web` deep documentation audit (TASK-0003).
 - 2026-08-17 — Architect triage: `FIX_NOW`; in scope for a `KNOWLEDGE` task,
   which permits correcting verified documentation drift. Fixed the same day.
-</content>

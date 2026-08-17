@@ -10,10 +10,10 @@ AUTOMATION_STATUS: AUTOMATED
 TEST_REFERENCE: e2e/tests/flow-a-commercial-onboarding.spec.ts
 RELATED_BUGS: []
 RELATED_REGRESSIONS: []
-LAST_RUN:
-LAST_RESULT: NOT_RUN
+LAST_RUN: 2026-08-17
+LAST_RESULT: PASS
 CREATED_AT: 2026-08-16
-UPDATED_AT: 2026-08-16
+UPDATED_AT: 2026-08-17
 ---
 
 # QA-ONBOARD-004 — The commercial onboarding journey completes in a real browser
@@ -36,6 +36,6 @@ cannot be navigated to fails here and passes every unit test.
 
 ## Notes
 
-Runs in CI as `browser-e2e-report` — **report-only, not a gate**. Promotion
-criteria are in `.github/workflows/ci.yml` and `docs/development/ci.md`.
-Covers the happy path; the negative cases in `PLAN-004` are not yet scripted.
+Runs in CI as the required `browser-e2e` job. The exact-base job in GitHub
+Actions run `32009837400` reported all five Flow A tests passed. Covers the
+happy path; the negative cases in `PLAN-004` are not yet scripted.

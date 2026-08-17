@@ -37,6 +37,12 @@ settings and the running app ignores it.
 preferences provider.** Date format, timezone, currency, density and theme
 change in the database and not in the live app until a full reload.
 
+## Expected Behavior
+
+Tenant default, user choice and device preference resolve through one documented
+precedence order, and a successful settings-runtime save updates the live app
+without a page reload.
+
 ## Actual Behavior
 
 **(a)** The writers are `lib/tenant-branding-client.ts:26`
@@ -60,6 +66,13 @@ told.
 
 Since the settings runtime is the **canonical** way to build a settings surface,
 the canonical path is the one that does not invalidate.
+
+## Reproduction
+
+With no stored user theme, configure a tenant default of `DARK` and observe the
+competing `data-theme` writers; then save a regional or appearance setting
+through the runtime record path and observe that the listening provider receives
+no settings-changed event.
 
 ## Evidence
 
@@ -92,6 +105,11 @@ user reloads, which reads as data loss even though the write succeeded.
 
 `MEDIUM`: cosmetic-to-confusing, no data at risk.
 
+## Affected Areas
+
+`apps/web` theme ownership, tenant branding, the resolved settings provider,
+and the tenant settings runtime adapter.
+
 ## Proposed Resolution
 
 **(a)** Establish one owner for `data-theme` and one precedence order — user
@@ -117,6 +135,11 @@ invalidates by construction rather than by remembering.
 `jest.config.js` is `testEnvironment: node` with no jsdom. Browser coverage would
 be the honest guard, and `apps/web` has none ([[ITEM-0034]]).
 
+## Dependencies
+
+The theme half requires an explicit precedence decision. The settings-save
+invalidation fix is independent and ready.
+
 ## Related Items
 
 [[web-architecture]] · [[settings]] · [[tenant-application]] ·
@@ -141,4 +164,3 @@ rather than HIGH.
 - 2026-08-17 — Architect triage: `FIX_NOW` for (b), which is a one-line move
   with no design question. (a) needs the precedence decision stated first but is
   small once it is.
-</content>

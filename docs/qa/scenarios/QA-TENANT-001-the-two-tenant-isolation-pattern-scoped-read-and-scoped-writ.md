@@ -6,14 +6,14 @@ AREA: tenant-isolation
 MODULE: services/api/test
 TYPE: SECURITY
 RISK: CRITICAL
-AUTOMATION_STATUS: BLOCKED_INFRASTRUCTURE
-TEST_REFERENCE: 
+AUTOMATION_STATUS: AUTOMATED
+TEST_REFERENCE: services/api/test/tenant-isolation-pattern.e2e-spec.ts
 RELATED_BUGS: []
 RELATED_REGRESSIONS: []
-LAST_RUN: 
-LAST_RESULT: BLOCKED
+LAST_RUN: 2026-08-17
+LAST_RESULT: PASS
 CREATED_AT: 2026-08-16
-UPDATED_AT: 2026-08-16
+UPDATED_AT: 2026-08-17
 ---
 
 # QA-TENANT-001 — The two-tenant isolation pattern: scoped read and scoped write
@@ -36,4 +36,5 @@ Steps 2 and 3 fail; step 4 returns nothing belonging to A. Absence from a list i
 
 ## Notes
 
-`services/api/test/tenant-isolation-pattern.e2e-spec.ts` is the template module-specific tests copy. It needs a database, so it is blocked here.
+The named suite is the template module-specific tests copy. It passed against
+ephemeral PostgreSQL in GitHub Actions run `32009837400`.

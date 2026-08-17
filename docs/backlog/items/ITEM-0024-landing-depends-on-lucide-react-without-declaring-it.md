@@ -9,7 +9,7 @@ Severity: LOW
 AffectedModules: [apps/landing]
 Source: ARCHITECT
 OwnerAgent: architect
-ArchitectDisposition: DEFER
+ArchitectDisposition: DONE
 CreatedAt: 2026-08-16
 UpdatedAt: 2026-08-17
 RelatedBug: 
@@ -77,6 +77,9 @@ None.
 [[BUG-0029]]
 
 ## History
+
+- 2026-08-17 — Architect reconciliation: terminal `DONE` status normalized to
+  `ArchitectDisposition: DONE`; no runtime behavior changed.
 
 - 2026-08-16 — found during the Wave 2 component audit.
 

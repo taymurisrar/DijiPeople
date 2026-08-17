@@ -1,0 +1,39 @@
+---
+SCENARIO_ID: QA-ONBOARD-008
+aliases: [QA-ONBOARD-008]
+TITLE: Plan read paths never bootstrap pricing
+AREA: commercial-onboarding
+MODULE: services/api/src/modules/super-admin
+TYPE: DATABASE
+RISK: HIGH
+AUTOMATION_STATUS: AUTOMATED
+TEST_REFERENCE: services/api/src/modules/super-admin/plan-read-path-purity.spec.ts services/api/test/commercial-bootstrap.e2e-spec.ts
+RELATED_BUGS: [BUG-0030]
+RELATED_REGRESSIONS: [REG-020]
+LAST_RUN: 2026-08-17
+LAST_RESULT: PASS
+CREATED_AT: 2026-08-17
+UPDATED_AT: 2026-08-17
+---
+
+# QA-ONBOARD-008 — Plan read paths never bootstrap pricing
+
+## Preconditions
+
+A disposable PostgreSQL database with published, archived and future-draft prices.
+
+## Steps
+
+1. Read plan lists repeatedly and concurrently.
+2. Verify no bootstrap call or pricing write occurs on the read path.
+3. Run explicit commercial bootstrap repeatedly and verify its uniqueness rules.
+
+## Expected Result
+
+Reads are pure. Explicit bootstrap is idempotent and preserves the intended
+per-market active-price constraints.
+
+## Notes
+
+Reusable coverage for `REG-020`. The unit spec and database-backed commercial
+bootstrap suite both passed in GitHub Actions run `32009837400`.

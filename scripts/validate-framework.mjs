@@ -918,7 +918,7 @@ if (existsSync(join(ROOT, 'scripts/generate-dashboards.mjs'))) {
  * commented them out.
  */
 if (existsSync(join(ROOT, 'scripts/lib/backlog-records.mjs'))) {
-  const { loadRecords } = await import('./lib/backlog-records.mjs');
+  const { loadRecords, BUG_SECTIONS } = await import('./lib/backlog-records.mjs');
 
   const sandbox = mkdtempSync(join(tmpdir(), 'dijipeople-framework-'));
   const bugDir = join(sandbox, 'docs/bugs');
@@ -951,10 +951,103 @@ if (existsSync(join(ROOT, 'scripts/lib/backlog-records.mjs'))) {
       '',
       '# probe',
       '',
+      ...BUG_SECTIONS.flatMap((section) => [`## ${section}`, '', 'probe', '']),
     ].join('\n');
 
   writeFileSync(join(bugDir, 'BUG-9001-probe-a.md'), valid('BUG-9001'));
   check('a well-formed record set loads cleanly', loadRecords(sandbox).errors.length === 0);
+
+  writeFileSync(
+    join(bugDir, 'BUG-9001-probe-a.md'),
+    valid('BUG-9001')
+      .replace('Status: OPEN', 'Status: VERIFIED')
+      .replace('ArchitectDisposition: TRIAGE_REQUIRED', 'ArchitectDisposition: FIX_NOW')
+      .replace('ResolvedAt:', 'ResolvedAt: 2026-01-02'),
+  );
+  check(
+    'terminal records with actionable dispositions are rejected',
+    loadRecords(sandbox).errors.some((e) => /terminal Status VERIFIED requires ArchitectDisposition DONE/.test(e)),
+  );
+
+  writeFileSync(
+    join(bugDir, 'BUG-9001-probe-a.md'),
+    valid('BUG-9001')
+      .replace('Status: OPEN', 'Status: VERIFIED')
+      .replace('ArchitectDisposition: TRIAGE_REQUIRED', 'ArchitectDisposition: DONE')
+      .replace('ResolvedAt:', 'ResolvedAt: 2026-01-02'),
+  );
+  check(
+    'fixed and verified bugs require a regression link',
+    loadRecords(sandbox).errors.some((e) => /Status VERIFIED requires RegressionId/.test(e)),
+  );
+
+  mkdirSync(join(sandbox, 'docs/qa/regressions'), { recursive: true });
+  writeFileSync(
+    join(sandbox, 'docs/qa/regressions/index.md'),
+    [
+      '### REG-901 — inactive probe',
+      '',
+      '| Field | Value |',
+      '|---|---|',
+      '| **Active** | no |',
+      '| **Bug record** | BUG-9001 |',
+    ].join('\n'),
+  );
+  writeFileSync(
+    join(bugDir, 'BUG-9001-probe-a.md'),
+    valid('BUG-9001')
+      .replace('Status: OPEN', 'Status: FIXED')
+      .replace('ArchitectDisposition: TRIAGE_REQUIRED', 'ArchitectDisposition: FIX_NOW')
+      .replace('RegressionId:', 'RegressionId: REG-901'),
+  );
+  check(
+    'fixed and terminal bugs require an active regression link',
+    loadRecords(sandbox).errors.some((e) => /Status FIXED requires RegressionId REG-901 to be active/.test(e)),
+  );
+
+  writeFileSync(
+    join(bugDir, 'BUG-9001-probe-a.md'),
+    valid('BUG-9001').replace('ArchitectDisposition: TRIAGE_REQUIRED', 'ArchitectDisposition: DEFER'),
+  );
+  check(
+    'deferred dispositions cannot remain active',
+    loadRecords(sandbox).errors.some((e) => /ArchitectDisposition DEFER requires Status DEFERRED/.test(e)),
+  );
+
+  writeFileSync(
+    join(bugDir, 'BUG-9001-probe-a.md'),
+    valid('BUG-9001').replace('QAReport:', 'QAReport: docs/qa/runs/missing.md'),
+  );
+  check(
+    'record evidence paths must resolve',
+    loadRecords(sandbox).errors.some((e) => /QAReport references missing path/.test(e)),
+  );
+
+  writeFileSync(
+    join(bugDir, 'BUG-9001-probe-a.md'),
+    valid('BUG-9001').replace('UpdatedAt: 2026-01-01', 'UpdatedAt: 2025-12-31'),
+  );
+  check(
+    'record dates cannot move backwards',
+    loadRecords(sandbox).errors.some((e) => /UpdatedAt .* predates CreatedAt/.test(e)),
+  );
+
+  writeFileSync(
+    join(bugDir, 'BUG-9001-probe-a.md'),
+    valid('BUG-9001').replace('## Root Cause\n\nprobe\n\n', ''),
+  );
+  check(
+    'bug body sections are mandatory',
+    loadRecords(sandbox).errors.some((e) => /missing required section "## Root Cause"/.test(e)),
+  );
+
+  writeFileSync(join(bugDir, 'BUG-9001-probe-a.md'), `${valid('BUG-9001')}\n</content>\n`);
+  check(
+    'record wrapper artifacts are rejected',
+    loadRecords(sandbox).errors.some((e) => /stray literal <\/content>/.test(e)),
+  );
+
+  writeFileSync(join(bugDir, 'BUG-9001-probe-a.md'), valid('BUG-9001'));
 
   // Same id, different filename — the collision two agents can create.
   writeFileSync(join(bugDir, 'BUG-9001-probe-b.md'), valid('BUG-9001'));
@@ -991,6 +1084,119 @@ if (existsSync(join(ROOT, 'scripts/lib/backlog-records.mjs'))) {
   );
 
   rmSync(sandbox, { recursive: true, force: true });
+}
+
+/*
+ * Program inventories are curated evidence, but their canonical state fields
+ * must not become a second backlog. TASK-0005 is the first such inventory, so
+ * verify its id set, canonical metadata and QA relationship fields. Discovery
+ * analysis may remain curated, but status and backlinks must never become a
+ * competing source of truth.
+ */
+const remediationInventory = join(
+  ROOT,
+  'docs/tasks/remediation/TASK-0005-inventory.json',
+);
+if (
+  existsSync(remediationInventory) &&
+  existsSync(join(ROOT, 'scripts/lib/backlog-records.mjs'))
+) {
+  const { loadRecords } = await import('./lib/backlog-records.mjs');
+  const { loadQaRecords } = await import('./lib/qa-records.mjs');
+  const inventory = JSON.parse(readFileSync(remediationInventory, 'utf8'));
+  const { records, errors } = loadRecords(ROOT);
+  const qa = loadQaRecords(ROOT);
+  const canonical = new Map(records.map((record) => [record.id, record]));
+  const rows = Array.isArray(inventory.records) ? inventory.records : [];
+  const rowIds = rows.map((row) => row.record_id);
+
+  check(
+    'remediation inventory loads with canonical records and QA relationships',
+    errors.length === 0 && qa.errors.length === 0,
+  );
+  check(
+    'remediation inventory has one row per canonical record',
+    rows.length === records.length && new Set(rowIds).size === records.length,
+    `${rows.length} inventory rows / ${records.length} canonical records`,
+  );
+  check(
+    'remediation inventory contains no missing or extra record ids',
+    rowIds.every((id) => canonical.has(id)) && records.every((record) => rowIds.includes(record.id)),
+  );
+
+  const drift = [];
+  const regressionRoots = new Map();
+  const register = read('docs/qa/regressions/index.md');
+  for (const entry of register.split(/(?=^### REG-)/m)) {
+    const regressionId = (/^### (REG-\d{3})/.exec(entry) ?? [])[1];
+    if (!regressionId) continue;
+    const rootCell =
+      (/^\|\s*\*\*Bug record\*\*\s*\|\s*(.*?)\s*\|\s*$/m.exec(entry) ?? [])[1] ?? '';
+    for (const rootId of rootCell.match(/\b(?:BUG|ITEM)-\d{4}\b/g) ?? []) {
+      const ids = regressionRoots.get(rootId) ?? [];
+      ids.push(regressionId);
+      regressionRoots.set(rootId, ids);
+    }
+  }
+  const sameIds = (actual, expected) =>
+    JSON.stringify([...(actual ?? [])].sort()) === JSON.stringify([...expected].sort());
+  for (const row of rows) {
+    const record = canonical.get(row.record_id);
+    if (!record) continue;
+    const expected = {
+      type: String(record.fields.Type ?? '').trim(),
+      title: String(record.fields.Title ?? '').trim(),
+      severity: record.severity,
+      priority: record.priority,
+      current_status: record.status,
+      architect_disposition: String(record.fields.ArchitectDisposition ?? '').trim(),
+    };
+    for (const [field, value] of Object.entries(expected)) {
+      if (row[field] !== value) drift.push(`${row.record_id}.${field}`);
+    }
+    const expectedSource = {
+      record_path: record.relative,
+      provenance: String(record.fields.Source ?? '').trim(),
+      detected_in_sha: String(record.fields.DetectedInSha ?? '').trim(),
+      created_at: String(record.fields.CreatedAt ?? '').trim(),
+      updated_at: String(record.fields.UpdatedAt ?? '').trim(),
+      resolved_at: String(record.fields.ResolvedAt ?? '').trim(),
+    };
+    for (const [field, value] of Object.entries(expectedSource)) {
+      if (row.source?.[field] !== value) drift.push(`${row.record_id}.source.${field}`);
+    }
+    if (!sameIds(row.affected_modules, record.fields.AffectedModules ?? [])) {
+      drift.push(`${row.record_id}.affected_modules`);
+    }
+    if (!sameIds(row.regressions, regressionRoots.get(record.id) ?? [])) {
+      drift.push(`${row.record_id}.regressions`);
+    }
+    const scenarioIds = qa.scenarios
+      .filter((scenario) => scenario.bugs.includes(record.id))
+      .map((scenario) => scenario.id);
+    if (!sameIds(row.qa_scenarios, scenarioIds)) drift.push(`${row.record_id}.qa_scenarios`);
+    const planIds = qa.plans.filter((plan) => plan.bugs.includes(record.id)).map((plan) => plan.id);
+    if (!sameIds(row.test_plan, planIds)) drift.push(`${row.record_id}.test_plan`);
+  }
+  check(
+    'remediation inventory canonical state matches Bug/Backlog records',
+    drift.length === 0,
+    drift.slice(0, 8).join(', '),
+  );
+  check(
+    'remediation inventory distinguishes discovery and reconciliation provenance',
+    /^[0-9a-f]{40}$/.test(inventory.discovery_source_head ?? '') &&
+      /^[0-9a-f]{40}$/.test(inventory.reconciliation_base_head ?? '') &&
+      !Object.hasOwn(inventory, 'source_head'),
+  );
+
+  const findingIds = (inventory.discovered_findings ?? []).map(
+    (finding) => finding.finding_id,
+  );
+  check(
+    'remediation inventory finding ids are unique',
+    findingIds.length === new Set(findingIds).size,
+  );
 }
 
 // ------------------------------------------------ the finding-classification loop
@@ -2789,7 +2995,18 @@ if (existsSync(join(ROOT, 'scripts/lib/session-registry.mjs'))) {
         ),
       ].join('\n');
 
-    const scenarioRecord = (id, { type = 'UNIT', automation = 'MANUAL', test = '', area = 'probe-area' } = {}) =>
+    const scenarioRecord = (
+      id,
+      {
+        type = 'UNIT',
+        automation = 'MANUAL',
+        test = '',
+        area = 'probe-area',
+        bugs = '[]',
+        regressions = '[]',
+        lastRun = '',
+      } = {},
+    ) =>
       [
         '---',
         `SCENARIO_ID: ${id}`,
@@ -2800,9 +3017,9 @@ if (existsSync(join(ROOT, 'scripts/lib/session-registry.mjs'))) {
         'RISK: HIGH',
         `AUTOMATION_STATUS: ${automation}`,
         `TEST_REFERENCE: ${test}`,
-        'RELATED_BUGS: []',
-        'RELATED_REGRESSIONS: []',
-        'LAST_RUN:',
+        `RELATED_BUGS: ${bugs}`,
+        `RELATED_REGRESSIONS: ${regressions}`,
+        `LAST_RUN: ${lastRun}`,
         'LAST_RESULT: NOT_RUN',
         'CREATED_AT: 2026-01-01',
         'UPDATED_AT: 2026-01-01',
@@ -2860,6 +3077,59 @@ if (existsSync(join(ROOT, 'scripts/lib/session-registry.mjs'))) {
       'this is the check that surfaced BUG-0047',
     );
 
+    writeFileSync(
+      join(scenarioDir, 'QA-PROBE-001-probe.md'),
+      scenarioRecord('QA-PROBE-001', { lastRun: '2026-01-01 2025-12-31' }),
+    );
+    check(
+      'scenario LAST_RUN must be one date',
+      qaRecords.loadQaRecords(sandbox).errors.some((e) => /LAST_RUN .* is not YYYY-MM-DD/.test(e)),
+    );
+
+    const regressionDir = join(sandbox, 'docs/qa/regressions');
+    const regressionTestDir = join(sandbox, 'services/api/src/modules/probe');
+    mkdirSync(regressionDir, { recursive: true });
+    mkdirSync(regressionTestDir, { recursive: true });
+    writeFileSync(join(regressionTestDir, 'probe.spec.ts'), 'export {};\n');
+    writeFileSync(
+      join(regressionDir, 'index.md'),
+      [
+        '# Regression Register',
+        '',
+        '### REG-901 â€” probe',
+        '',
+        '| | |',
+        '|---|---|',
+        '| **Bug record** | BUG-9001 |',
+        '| **Regression test** | `services/api/src/modules/probe/probe.spec.ts` |',
+        '| **Active** | yes |',
+        '',
+      ].join('\n'),
+    );
+    writeFileSync(join(scenarioDir, 'QA-PROBE-001-probe.md'), scenarioRecord('QA-PROBE-001'));
+    check(
+      'active regressions require a reusable QA scenario',
+      qaRecords.loadQaRecords(sandbox).errors.some((e) => /REG-901: active regression has no reusable QA scenario/.test(e)),
+    );
+
+    writeFileSync(
+      join(scenarioDir, 'QA-PROBE-001-probe.md'),
+      scenarioRecord('QA-PROBE-001', { regressions: '[REG-901]' }),
+    );
+    check(
+      'regression scenarios require a canonical root-cause record',
+      qaRecords.loadQaRecords(sandbox).errors.some((e) => /REG-901: reusable scenario roots do not match Bug record BUG-9001/.test(e)),
+    );
+
+    writeFileSync(
+      join(scenarioDir, 'QA-PROBE-001-probe.md'),
+      scenarioRecord('QA-PROBE-001', { bugs: '[BUG-9002]', regressions: '[REG-901]' }),
+    );
+    check(
+      'regression scenario roots must match the register root',
+      qaRecords.loadQaRecords(sandbox).errors.some((e) => /REG-901: reusable scenario roots do not match Bug record BUG-9001/.test(e)),
+    );
+
     /* A scenario belonging to no plan is a scenario nothing ever selects. */
     writeFileSync(
       join(scenarioDir, 'QA-PROBE-001-probe.md'),
@@ -2871,7 +3141,10 @@ if (existsSync(join(ROOT, 'scripts/lib/session-registry.mjs'))) {
     );
 
     /* 10 — selection returns the durable scenarios for a changed module. */
-    writeFileSync(join(scenarioDir, 'QA-PROBE-001-probe.md'), scenarioRecord('QA-PROBE-001'));
+    writeFileSync(
+      join(scenarioDir, 'QA-PROBE-001-probe.md'),
+      scenarioRecord('QA-PROBE-001', { bugs: '[BUG-9001]', regressions: '[REG-901]' }),
+    );
     writeFileSync(
       join(scenarioDir, 'QA-PROBE-002-probe.md'),
       scenarioRecord('QA-PROBE-002', { type: 'SECURITY' }),

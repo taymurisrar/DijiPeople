@@ -3,7 +3,7 @@ PLAN_ID: PLAN-008
 aliases: [PLAN-008]
 TITLE: Agent Desktop
 AREA: agent-desktop
-STATUS: CURRENT
+STATUS: NEEDS_REVIEW
 MODULES: [services/api/src/modules/agent, apps/agent-desktop]
 RISK: HIGH
 COVERAGE_UNIT: GAP
@@ -17,9 +17,13 @@ COVERAGE_PERFORMANCE: NOT_APPLICABLE
 RELATED_BUGS: [BUG-0033, BUG-0034, BUG-0035, BUG-0036]
 RELATED_REGRESSIONS: [REG-025, REG-026, REG-031]
 CREATED_AT: 2026-08-16
-UPDATED_AT: 2026-08-16
+UPDATED_AT: 2026-08-17
 VERIFIED_AGAINST_SHA: 714632d
 ---
+
+> **TASK-0005 revalidation:** `VERIFIED_AGAINST_SHA` remains historical. The
+> desktop has no dedicated test suite and its current distribution/security
+> surface was not fully re-audited in WP-02; WP-06 owns the revalidation.
 
 # PLAN-008 — Agent Desktop
 

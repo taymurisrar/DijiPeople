@@ -6,14 +6,14 @@ AREA: attendance
 MODULE: services/api/test
 TYPE: E2E
 RISK: HIGH
-AUTOMATION_STATUS: BLOCKED_INFRASTRUCTURE
-TEST_REFERENCE: 
+AUTOMATION_STATUS: AUTOMATED
+TEST_REFERENCE: services/api/test/attendance-engine.e2e-spec.ts
 RELATED_BUGS: []
 RELATED_REGRESSIONS: []
-LAST_RUN: 
-LAST_RESULT: BLOCKED
+LAST_RUN: 2026-08-17
+LAST_RESULT: FAIL
 CREATED_AT: 2026-08-16
-UPDATED_AT: 2026-08-16
+UPDATED_AT: 2026-08-17
 ---
 
 # QA-ATT-005 — The attendance engine produces sessions end to end
@@ -34,4 +34,6 @@ Sessions match the configured pattern, and worked minutes agree with the unit-le
 
 ## Notes
 
-`services/api/test/attendance-engine.e2e-spec.ts`. Blocked here for want of a database.
+The named suite is executable in CI against ephemeral PostgreSQL. It failed in
+GitHub Actions run `32009837400`; WP-04 owns fixture isolation and residual
+product-defect proof. This is an executed failure, not an infrastructure block.

@@ -2,7 +2,7 @@
 ID: BUG-0009
 aliases: [BUG-0009]
 Title: Server-side session revocation depended on the refresh cookie surviving
-Status: VERIFIED
+Status: FIXED
 Severity: MEDIUM
 Priority: P2
 Type: SECURITY
@@ -18,8 +18,8 @@ RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-15
-UpdatedAt: 2026-08-16
-ResolvedAt: 2026-08-16
+UpdatedAt: 2026-08-17
+ResolvedAt:
 ---
 
 # BUG-0009 — Server-side session revocation depended on the refresh cookie surviving
@@ -80,13 +80,14 @@ Signing out with an expired refresh cookie still results in a revoked
 
 ## Regression Coverage
 
-**None.** Not observable without a live API session — the reason this record is
-`FIXED` and not `VERIFIED`. Adding coverage depends on the live-API test
-capability tracked as [[ITEM-0002]].
+`REG-032` and partial scenario `QA-AUTH-002` name
+`apps/admin/app/api/auth/logout/logout-route.spec.ts`. That static test rejects
+the old guarded-call source shape, but does not invoke logout or prove the
+persisted token row is revoked.
 
 ## Dependencies
 
-[[ITEM-0002]] — no isolated live-API session harness exists.
+Live persistence proof remains [[ITEM-0002]].
 
 ## Related Items
 
@@ -101,12 +102,18 @@ change as BUG-0008.
 
 ## QA Retest
 
-**Outstanding.** The QA run records it as fixed but unverified at runtime,
-because the API was not running. The follow-up is named in that run: sign out
-with the refresh cookie already expired against a live API and confirm the row
-is revoked.
+Not yet verified against a live session/database. `REG-032` is useful partial
+coverage, not proof of the acceptance criterion.
 
 ## History
+
+- 2026-08-17 — Architect reconciliation: terminal `VERIFIED` status normalized
+  to `ArchitectDisposition: DONE`; the existing resolution and QA evidence are
+  unchanged.
+
+- 2026-08-17 — independent WP-02 review found that the named regression never
+  invokes logout or inspects `PlatformRefreshToken`. Corrected to `FIXED` /
+  `FIX_NOW` pending [[ITEM-0002]].
 
 - 2026-08-15 — found by auditing the BUG-0008 path; fixed in the same change.
 - 2026-08-15 — imported into the durable bug system as `FIXED`, awaiting retest.

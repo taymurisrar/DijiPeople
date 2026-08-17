@@ -163,29 +163,35 @@ Require exactly **one** check:
 CI required gate
 ```
 
-That job (`ci-required` in `.github/workflows/ci.yml`) aggregates the eight
-required jobs and fails if any did not succeed. Requiring the aggregate rather
-than the eight individually means **adding or renaming a job later does not
+That job (`ci-required` in `.github/workflows/ci.yml`) names eleven dependency
+jobs and fails if any dependency result is not `success`. The browser job is a
+current exception: job-level `continue-on-error` converts a failed browser step
+to a successful dependency result, so it remains fail-open despite being named.
+Requiring the aggregate rather than the jobs individually means **adding or
+renaming a job later does not
 require touching branch protection** — a common source of silently-unenforced
 rules.
 
-The eight it aggregates:
+The eleven jobs currently named by the aggregate:
 
 | Job | What it protects |
 |---|---|
 | `validate` | Agent framework structure and consistency |
-| `typecheck` | All 7 workspaces compile; Prisma schema valid |
-| `lint` | web, admin, landing lint clean; **checkout not mutated** |
-| `test-api` | 127 suites, 764 tests |
-| `test-web` | 16 suites, 379 tests |
-| `test-admin` | 4 suites, 23 tests |
-| `test-runtime` | Platform runtime schema contract |
+| `typecheck` | Workspace typechecks compile; Prisma schema valid |
+| `lint` | API, web, admin and landing lint checks; **checkout not mutated** |
+| `test-api` | API unit/invariant tests, excluding the named dual-permission invariant |
+| `test-web` | Tenant-web pure-logic tests |
+| `test-admin` | Admin pure-logic tests |
+| `test-landing` | Landing pure-logic tests |
+| `test-runtime` | Platform runtime/config contract tests |
+| `database-migration` | Empty-database migration and configuration-seed verification |
 | `build` | Monorepo build |
+| `browser-e2e` | Browser journeys; currently fail-open because the job retains `continue-on-error: true` |
 
-**Deliberately not required** (both `continue-on-error`, see §Known baselines):
+**Deliberately report-only** (both `continue-on-error`, see §Known baselines):
 
 - `security-invariant-report`
-- `lint-api-report`
+- `database-e2e-report`
 
 ---
 
@@ -223,18 +229,17 @@ Both run on every push and report in full. Neither is weakened, disabled or
 suppressed.
 
 **`security-invariant-report`** — the dual-permission wiring invariant fails
-against a large pre-existing inventory (780 violations of 878 in-scope handlers
-at the time of writing). Requiring it would block every unrelated PR on
+against a large pre-existing inventory (796 violations of 894 in-scope handlers
+in the latest audited run). Requiring it would block every unrelated PR on
 accumulated debt, which teaches people to bypass CI. Promote it to required once
 the inventory reaches zero; progress is tracked in
 [`ci-recommendation.md`](ci-recommendation.md).
 
-**`lint-api-report`** — `services/api` carries 2 pre-existing ESLint errors on
-`main`, both `@typescript-eslint/unbound-method` in
-`src/modules/auth/auth.service.spec.ts` (lines 120 and 125). Fix those two and
-this step can move into the required `lint` job. It is a small, self-contained
-piece of work, deliberately left out of the CI task's scope because it edits
-product test code.
+**`database-e2e-report`** — all fifteen suites now execute against ephemeral
+PostgreSQL, but the latest audited run had 6 failing suites and 136 failing
+tests. The job also swallows the Jest exit status. Fix and stabilize the suites,
+then remove the fail-open handling before promotion; [[BUG-0049]] tracks the
+evidence-integrity failure.
 
 ---
 

@@ -3,7 +3,7 @@ ID: ITEM-0032
 aliases: [ITEM-0032]
 Title: Recompute productivity totals inflated by heartbeat replays
 Type: DATA_MIGRATION
-Status: READY
+Status: PRODUCT_DECISION
 Priority: P2
 Severity: MEDIUM
 AffectedModules: [services/api/src/modules/agent]
@@ -11,7 +11,7 @@ Source: ARCHITECT
 OwnerAgent: architect
 ArchitectDisposition: PRODUCT_DECISION
 CreatedAt: 2026-08-16
-UpdatedAt: 2026-08-16
+UpdatedAt: 2026-08-17
 RelatedBug: BUG-0036
 RelatedQA: 
 RelatedADR: 
@@ -83,3 +83,9 @@ argues for an option.
 - A decision is taken and written down, including if the decision is to accept it.
 - If totals are rewritten, the previous values are preserved somewhere before
   being overwritten.
+
+## History
+
+- 2026-08-17 — status reconciled to `PRODUCT_DECISION`. TASK-0005 records the
+  three options and recommends measuring per tenant before choosing; no data
+  rewrite is authorized until that owner decision is made.

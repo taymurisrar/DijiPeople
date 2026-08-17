@@ -11,13 +11,13 @@ Source: QA_RUN
 OwnerAgent: qa
 ArchitectDisposition: FIX_NOW
 CreatedAt: 2026-08-15
-UpdatedAt: 2026-08-15
+UpdatedAt: 2026-08-17
 RelatedBug: BUG-0015
 RelatedQA: docs/qa/runs/2026-08-15-commercial-onboarding-e2e-7bbab3d.md
 RelatedADR:
 RelatedImplementation:
 TargetMilestone:
-BlockedBy: BUG-0015
+BlockedBy:
 ---
 
 # ITEM-0004 — Tenant activation to ACTIVE has never been reached in any test
@@ -51,9 +51,9 @@ Flow B stopped for the same reason after conversion and onboarding seed.
 
 ## Proposed Approach
 
-Nothing to do until [[BUG-0015]] is fixed. Then re-run scenarios A11–A17 of the
-existing run against a tenant provisioned cleanly, and record a new QA run rather
-than amending the old one — runs are history.
+[[BUG-0015]] is verified, so re-run scenarios A11–A17 of the existing run
+against a tenant provisioned cleanly, and record a new QA run rather than
+amending the old one — runs are history.
 
 ## Acceptance Criteria
 
@@ -62,8 +62,7 @@ eight tenant tabs render for that tenant.
 
 ## Dependencies
 
-`BlockedBy: BUG-0015`. This is the clearest case in the backlog of blocked
-rather than deferred: it is wanted now and cannot move.
+None. BUG-0015 discharged the former blocker; this is now ready QA work.
 
 ## Related Items
 

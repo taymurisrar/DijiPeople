@@ -9,9 +9,9 @@ Severity: LOW
 AffectedModules: [services/api/prisma, api:tenant-control-plane]
 Source: ARCHITECT
 OwnerAgent: architect
-ArchitectDisposition: DEFER
+ArchitectDisposition: PLAN_REQUIRED
 CreatedAt: 2026-08-16
-UpdatedAt: 2026-08-16
+UpdatedAt: 2026-08-17
 RelatedBug: 
 RelatedQA: 
 RelatedADR: 
@@ -72,3 +72,7 @@ The tenant provisioning wave.
 ## History
 
 - 2026-08-16 — created during Wave 1, deferred to the provisioning wave.
+
+- 2026-08-17 — reconciled to `PLAN_REQUIRED`: this is an expand/backfill
+  migration coupled to provisioning, not work that is deferred merely because
+  it belongs in a later implementation package.

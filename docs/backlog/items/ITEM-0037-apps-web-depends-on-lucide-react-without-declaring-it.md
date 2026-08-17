@@ -94,4 +94,3 @@ the same check.
 - 2026-08-17 — Architect triage: `FIX_NOW`. Declaring the dependency is one
   line; leaving it means the largest app's build depends on a sibling app's
   package.json, which nobody editing that sibling would know.
-</content>

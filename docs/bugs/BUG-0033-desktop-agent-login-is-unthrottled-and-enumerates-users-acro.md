@@ -11,14 +11,14 @@ DetectedDate: 2026-08-16
 DetectedInSha: 78072d2
 AffectedModules: [services/api/src/modules/agent, apps/agent-desktop]
 OwnerAgent: backend-api
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: docs/qa/runs/2026-08-16-monorepo-app-documentation-78072d2.md
 RegressionId: REG-025
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-16
-UpdatedAt: 2026-08-16
+UpdatedAt: 2026-08-17
 ResolvedAt: 2026-08-16
 ---
 
@@ -199,6 +199,10 @@ two-message shape fails **4 of the 5**.
 Full API suite as CI runs it: 155 suites, 1107 tests, all passing.
 
 ## History
+
+- 2026-08-17 — Architect reconciliation: terminal `VERIFIED` status normalized
+  to `ArchitectDisposition: DONE`; the existing resolution and QA evidence are
+  unchanged.
 
 - 2026-08-16 — found during the `apps/agent-desktop` deep documentation audit
   (TASK-0002) and verified directly against source at `78072d2`.

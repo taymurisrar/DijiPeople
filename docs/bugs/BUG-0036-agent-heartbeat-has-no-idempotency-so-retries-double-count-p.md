@@ -11,14 +11,14 @@ DetectedDate: 2026-08-16
 DetectedInSha: 78072d2
 AffectedModules: [services/api/src/modules/agent, services/api/prisma, apps/agent-desktop]
 OwnerAgent: integration
-ArchitectDisposition: PLAN_REQUIRED
+ArchitectDisposition: DONE
 QAReport: docs/qa/runs/2026-08-16-monorepo-app-documentation-78072d2.md
 RegressionId: REG-031
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-16
-UpdatedAt: 2026-08-16
+UpdatedAt: 2026-08-17
 ResolvedAt: 2026-08-16
 ---
 
@@ -227,6 +227,10 @@ accepted, so the agent would never retry and the sample would be lost.
 PostgreSQL 16. API 159 suites / 1131 tests passing.
 
 ## History
+
+- 2026-08-17 — Architect reconciliation: terminal `VERIFIED` status normalized
+  to `ArchitectDisposition: DONE`; the existing resolution and QA evidence are
+  unchanged.
 
 - 2026-08-16 — found during the `apps/agent-desktop` deep documentation audit
   (TASK-0002) and verified against source at `78072d2`.

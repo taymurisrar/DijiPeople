@@ -9,7 +9,7 @@ Severity: LOW
 AffectedModules: [scripts, apps/landing, apps/web, apps/admin]
 Source: ARCHITECT
 OwnerAgent: architect
-ArchitectDisposition: DEFER
+ArchitectDisposition: DONE
 CreatedAt: 2026-08-16
 UpdatedAt: 2026-08-17
 RelatedBug: BUG-0028
@@ -71,6 +71,9 @@ None.
 [[BUG-0028]] · [[BUG-0026]] · `silent-config-fallback` bug pattern.
 
 ## History
+
+- 2026-08-17 — Architect reconciliation: terminal `DONE` status normalized to
+  `ArchitectDisposition: DONE`; no runtime behavior changed.
 
 - 2026-08-16 — created during Wave 1 after deleting the hardcoded mapping.
 

@@ -4,14 +4,14 @@ aliases: [QA-AUTH-002]
 TITLE: Sign-out always revokes the session and never 500s while clearing cookies
 AREA: authentication
 MODULE: apps/admin/app/api/auth
-TYPE: API
+TYPE: UNIT
 RISK: HIGH
-AUTOMATION_STATUS: AUTOMATED
+AUTOMATION_STATUS: PARTIAL
 TEST_REFERENCE: apps/admin/app/api/auth/logout/logout-route.spec.ts
 RELATED_BUGS: [BUG-0009, BUG-0010]
 RELATED_REGRESSIONS: [REG-032]
 LAST_RUN: 2026-08-17
-LAST_RESULT: PASS
+LAST_RESULT: PASS_WITH_RISKS
 CREATED_AT: 2026-08-16
 UPDATED_AT: 2026-08-17
 ---
@@ -20,20 +20,26 @@ UPDATED_AT: 2026-08-17
 
 ## Preconditions
 
-An authenticated admin session, with and without a refresh cookie present.
+The admin logout route source and its static route-contract spec. A persisted
+platform session is not created by this scenario's current automation.
 
 ## Steps
 
-1. Sign out with a refresh cookie present.
-2. Sign out with the refresh cookie already absent.
-3. Sign out where cookie options cause the clear step to throw.
+1. Assert GET and POST handlers exist.
+2. Inspect the uncommented source for unconditional `revokeApiSession` calls
+   and for the absence of a missing-cookie early return.
+3. Inspect the safe cookie-clear wrapper and its expiry fallback.
+4. Record that live handler execution and persisted-token verification remain
+   unimplemented.
 
 ## Expected Result
 
-All three revoke the server-side session and return a success status. Revocation
-never depends on the refresh cookie being readable, and a cookie-clearing failure
-never becomes a 500 that leaves the user signed in.
+The static regression rejects the two known source shapes without claiming that
+a persisted session was revoked or that a real rejected-cookie request returned
+success. Promotion to full PASS requires [[ITEM-0002]].
 
 ## Notes
 
-Two records, one scenario: `BUG-0009` was the missed revocation and `BUG-0010` the 500.
+Two records, one partial scenario: `BUG-0009` was the missed revocation and
+`BUG-0010` the 500. Both remain `FIXED`, not `VERIFIED`, until the route and
+database assertions execute.

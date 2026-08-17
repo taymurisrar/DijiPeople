@@ -3,7 +3,7 @@ PLAN_ID: PLAN-006
 aliases: [PLAN-006]
 TITLE: Partner Lifecycle
 AREA: partner-lifecycle
-STATUS: CURRENT
+STATUS: NEEDS_REVIEW
 MODULES: [services/api/src/modules/partners, services/api/src/modules/partner-experience]
 RISK: HIGH
 COVERAGE_UNIT: GAP
@@ -14,12 +14,16 @@ COVERAGE_E2E: GAP
 COVERAGE_BROWSER: PARTIAL
 COVERAGE_SECURITY: GAP
 COVERAGE_PERFORMANCE: NOT_APPLICABLE
-RELATED_BUGS: [BUG-0016, BUG-0019, BUG-0025]
-RELATED_REGRESSIONS: [REG-014, REG-015, REG-022]
+RELATED_BUGS: [BUG-0016, BUG-0019, BUG-0025, BUG-0048]
+RELATED_REGRESSIONS: [REG-014, REG-015, REG-022, REG-028, REG-039]
 CREATED_AT: 2026-08-16
-UPDATED_AT: 2026-08-16
+UPDATED_AT: 2026-08-17
 VERIFIED_AGAINST_SHA: 714632d
 ---
+
+> **TASK-0005 revalidation:** `VERIFIED_AGAINST_SHA` remains historical. The
+> browser suite has one stale skipped BUG-0019 assertion, so WP-07 must restore
+> that proof and re-audit the lifecycle before `CURRENT` is restored.
 
 # PLAN-006 — Partner Lifecycle
 
@@ -71,4 +75,4 @@ The partner inquiry and onboarding review screens — `BUG-0019` was that they w
 
 ## Regression Links
 
-`REG-014` · `REG-015` · `REG-022`
+`REG-014` · `REG-015` · `REG-022` · `REG-028` · `REG-039`

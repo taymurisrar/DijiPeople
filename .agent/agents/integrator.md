@@ -417,7 +417,7 @@ substitute a local run. The current environment status lives in
 [`../../docs/development/agent-tooling-matrix.md`](../../docs/development/agent-tooling-matrix.md),
 where `CI_READ` is the single capability whose absence blocks task completion.
 
-The two report-only checks — `security-invariant-report` and `lint-api-report`
+The two report-only checks — `security-invariant-report` and `database-e2e-report`
 — are known baselines and do **not** block a merge. See
 [`docs/development/ci.md`](../../docs/development/ci.md).
 

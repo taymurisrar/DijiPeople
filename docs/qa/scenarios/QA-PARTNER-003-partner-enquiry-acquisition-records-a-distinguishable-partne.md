@@ -8,12 +8,12 @@ TYPE: API
 RISK: MEDIUM
 AUTOMATION_STATUS: AUTOMATED
 TEST_REFERENCE: services/api/src/modules/partner-experience/partner-inquiry-acquisition.spec.ts
-RELATED_BUGS: []
+RELATED_BUGS: [ITEM-0030]
 RELATED_REGRESSIONS: [REG-022]
 LAST_RUN: 2026-08-16
 LAST_RESULT: PASS
 CREATED_AT: 2026-08-16
-UPDATED_AT: 2026-08-16
+UPDATED_AT: 2026-08-17
 ---
 
 # QA-PARTNER-003 — Partner enquiry acquisition records a distinguishable partnership model

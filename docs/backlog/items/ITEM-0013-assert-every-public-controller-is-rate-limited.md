@@ -9,9 +9,9 @@ Severity: MEDIUM
 AffectedModules: [services/api]
 Source: QA_RUN
 OwnerAgent: backend-api
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 CreatedAt: 2026-08-15
-UpdatedAt: 2026-08-16
+UpdatedAt: 2026-08-17
 RelatedBug: BUG-0013
 RelatedQA: docs/qa/runs/2026-08-15-commercial-onboarding-e2e-7bbab3d.md
 RelatedADR:
@@ -72,6 +72,9 @@ architecture [[rbac|RBAC]]. Same "pin the rule, not the instance" shape as the
 coverage test added for [[BUG-0006]].
 
 ## History
+
+- 2026-08-17 — Architect reconciliation: terminal `DONE` status normalized to
+  `ArchitectDisposition: DONE`; no runtime behavior changed.
 
 - 2026-08-15 — raised as the generalisable half of BUG-0013.
 

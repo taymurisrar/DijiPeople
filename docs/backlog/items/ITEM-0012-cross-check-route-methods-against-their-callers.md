@@ -9,7 +9,7 @@ Severity: MEDIUM
 AffectedModules: [apps/web, apps/admin]
 Source: QA_RUN
 OwnerAgent: frontend
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 CreatedAt: 2026-08-15
 UpdatedAt: 2026-08-17
 RelatedBug: BUG-0008
@@ -72,6 +72,9 @@ None. Runs in jest's node environment, so it is unaffected by the jsdom gap.
 modules [[platform-admin|Platform Admin]], [[tenant-application|Tenant Application]].
 
 ## History
+
+- 2026-08-17 — Architect reconciliation: terminal `DONE` status normalized to
+  `ArchitectDisposition: DONE`; no runtime behavior changed.
 
 - 2026-08-15 — imported from the admin session-expired QA run's follow-up.
 

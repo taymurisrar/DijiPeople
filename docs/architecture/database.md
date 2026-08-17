@@ -176,8 +176,10 @@ Detail: [`../seed-architecture.md`](../seed-architecture.md).
 
 1. One 11,800-line schema file is the worst merge-conflict surface in the
    repository.
-2. 191 migrations with no CI — drift between environments is not detected
-   automatically. `npm run prisma:migrate:status` is the manual check.
+2. The long migration chain is checked from empty by the required
+   `database-migration` CI job. Upgrade-from-previous-schema and environment
+   drift are still not automated; `npm run prisma:migrate:status` remains the
+   local/manual status check.
 3. Multiple worktrees typically share one `DATABASE_URL`; two agents running
    `migrate dev` will corrupt each other's migration state.
 4. The Prisma-level scoping middleware reads as active defence and is not.

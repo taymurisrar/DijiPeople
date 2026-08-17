@@ -3,7 +3,7 @@ PLAN_ID: PLAN-007
 aliases: [PLAN-007]
 TITLE: Tenant Provisioning
 AREA: tenant-provisioning
-STATUS: CURRENT
+STATUS: NEEDS_REVIEW
 MODULES: [services/api/src/modules/super-admin, services/api/src/modules/tenant-control-plane, services/api/src/modules/tenants, services/api/src/common/config]
 RISK: CRITICAL
 COVERAGE_UNIT: GOOD
@@ -17,9 +17,13 @@ COVERAGE_PERFORMANCE: NOT_APPLICABLE
 RELATED_BUGS: [BUG-0014, BUG-0015, BUG-0017, BUG-0022]
 RELATED_REGRESSIONS: [REG-012, REG-013, REG-027, REG-030]
 CREATED_AT: 2026-08-16
-UPDATED_AT: 2026-08-16
+UPDATED_AT: 2026-08-17
 VERIFIED_AGAINST_SHA: 714632d
 ---
+
+> **TASK-0005 revalidation:** `VERIFIED_AGAINST_SHA` remains historical. The
+> recovery suite passed in exact-base CI, but WP-04 and WP-05 own full database
+> isolation and lifecycle proof before `CURRENT` is restored.
 
 # PLAN-007 — Tenant Provisioning
 
@@ -44,7 +48,8 @@ Platform admin authentication, a plan, and Stripe in test mode.
 
 ## Test Types
 
-`UNIT` covers retry, idempotency and URL configuration today. Full `E2E` recovery needs a live database.
+`UNIT` covers retry, idempotency and URL configuration. Full `E2E` recovery
+runs in CI against ephemeral PostgreSQL and passed in run `32009837400`.
 
 ## Data Requirements
 

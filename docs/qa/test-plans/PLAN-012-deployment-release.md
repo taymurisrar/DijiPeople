@@ -3,7 +3,7 @@ PLAN_ID: PLAN-012
 aliases: [PLAN-012]
 TITLE: Deployment and Release
 AREA: deployment-release
-STATUS: CURRENT
+STATUS: NEEDS_REVIEW
 MODULES: [scripts, services/api/src/config, services/api/src/modules/app-releases, docs/deployment]
 RISK: HIGH
 COVERAGE_UNIT: GOOD
@@ -14,12 +14,16 @@ COVERAGE_E2E: GAP
 COVERAGE_BROWSER: GAP
 COVERAGE_SECURITY: GAP
 COVERAGE_PERFORMANCE: NOT_APPLICABLE
-RELATED_BUGS: [BUG-0026, BUG-0042]
-RELATED_REGRESSIONS: [REG-016, REG-018]
+RELATED_BUGS: [BUG-0023, BUG-0026, BUG-0037, BUG-0042, BUG-0047]
+RELATED_REGRESSIONS: [REG-016, REG-018, REG-035, REG-036, REG-038]
 CREATED_AT: 2026-08-16
-UPDATED_AT: 2026-08-16
+UPDATED_AT: 2026-08-17
 VERIFIED_AGAINST_SHA: 714632d
 ---
+
+> **TASK-0005 revalidation:** `VERIFIED_AGAINST_SHA` remains historical. CI now
+> has 11 required jobs, browser E2E is required, and database/security reports
+> still need WP-09 integrity work; WP-08 through WP-10 own the full re-audit.
 
 # PLAN-012 — Deployment and Release
 
@@ -44,7 +48,8 @@ A built artifact and access to the target environment's configuration.
 
 ## Test Types
 
-`UNIT` and `DEPLOYMENT_SMOKE` run today. `DATABASE` migration verification needs a PostgreSQL instance, which CI provides and this checkout does not.
+`UNIT` and `DEPLOYMENT_SMOKE` run today. `DATABASE` migration verification runs
+in required CI against ephemeral PostgreSQL; a local checkout may not provide it.
 
 ## Data Requirements
 
@@ -72,4 +77,4 @@ Post-deployment visual confirmation of the landing and login surfaces.
 
 ## Regression Links
 
-`REG-016` · `REG-018`
+`REG-016` · `REG-018` · `REG-035` · `REG-036` · `REG-038`

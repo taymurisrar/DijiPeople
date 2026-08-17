@@ -13,7 +13,7 @@ AffectedModules: [services/api/src/modules/organization, services/api/src/module
 OwnerAgent: architect
 ArchitectDisposition: DONE
 QAReport:
-RegressionId:
+RegressionId: REG-038
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
@@ -234,6 +234,9 @@ Verified directly against the code rather than against the records:
   indistinguishable from one that does not exist.
 
 ## History
+
+- 2026-08-17 — linked to active regression `REG-038` during TASK-0005
+  record/QA reconciliation.
 
 - 2026-08-16 — found while deriving durable QA test plans for TASK-0004: the
   `AUTOMATED` scenarios needed real test paths, and five of the register's did

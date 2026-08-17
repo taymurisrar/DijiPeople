@@ -6,21 +6,21 @@ AREA: deployment-release
 MODULE: scripts
 TYPE: DATABASE
 RISK: CRITICAL
-AUTOMATION_STATUS: BLOCKED_INFRASTRUCTURE
-TEST_REFERENCE: 
+AUTOMATION_STATUS: AUTOMATED
+TEST_REFERENCE: scripts/verify-database.mjs
 RELATED_BUGS: []
 RELATED_REGRESSIONS: []
-LAST_RUN: 
-LAST_RESULT: BLOCKED
+LAST_RUN: 2026-08-17
+LAST_RESULT: PASS
 CREATED_AT: 2026-08-16
-UPDATED_AT: 2026-08-16
+UPDATED_AT: 2026-08-17
 ---
 
 # QA-DEPLOY-005 — The committed migration history applies to an empty database
 
 ## Preconditions
 
-An empty PostgreSQL instance — CI provides one; this checkout does not.
+An empty PostgreSQL instance — CI provides one; a local checkout may not.
 
 ## Steps
 
@@ -34,4 +34,7 @@ The history applies cleanly and the seeds verify. This is exactly what a new dep
 
 ## Notes
 
-The `database-migration` CI job is this scenario. `verify-database.mjs` is the entry point; never weaken a migration to make it green.
+The required `database-migration` CI job is this scenario.
+`verify-database.mjs` is the entry point; never weaken a migration to make it
+green. It passed in GitHub Actions run `32009837400` against the disposable CI
+database.

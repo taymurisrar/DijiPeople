@@ -1,15 +1,17 @@
 # CI Roadmap
 
-**Status: Phase 1 implemented.** This document is now the roadmap for what CI
-does *not* yet cover — it is no longer a proposal for CI itself.
+**Status: original roadmap substantially implemented.** The phased proposal
+below is retained as design history; [`ci.md`](ci.md) is the current contract.
 
-What shipped is described in [`ci.md`](ci.md): `.github/workflows/ci.yml`, eight
-required jobs aggregated behind a single `CI required gate` check, and two
-non-gating known baselines with written promotion paths.
+What shipped is described in [`ci.md`](ci.md): `.github/workflows/ci.yml`,
+eleven jobs named behind a single `CI required gate` check, and two non-gating
+known baselines with written promotion paths. Browser E2E is named by the gate
+but remains fail-open through `continue-on-error: true`.
 
-What remains is below: the checks deliberately left out of Phase 1 — e2e against
-an ephemeral database, migration application, the .NET gateway, Electron
-packaging — and the conditions under which each should be added.
+Database E2E and empty-database migration application now run against ephemeral
+PostgreSQL; the former remains report-only with six failing suites. Remaining
+pipeline work includes closing those failures, removing fail-open conclusions,
+the .NET gateway, Electron packaging, and deployment readiness.
 
 ---
 

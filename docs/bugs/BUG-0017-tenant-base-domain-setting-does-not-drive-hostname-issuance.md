@@ -11,14 +11,14 @@ DetectedDate: 2026-08-15
 DetectedInSha: 7bbab3d
 AffectedModules: [packages/config, services/api/src/modules/tenant-control-plane]
 OwnerAgent: architect
-ArchitectDisposition: PLAN_REQUIRED
+ArchitectDisposition: DONE
 QAReport: docs/qa/runs/2026-08-15-commercial-onboarding-e2e-7bbab3d.md
 RegressionId: REG-027
 RelatedBacklogItem: ITEM-0006
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-15
-UpdatedAt: 2026-08-16
+UpdatedAt: 2026-08-17
 ResolvedAt: 2026-08-16
 ---
 
@@ -155,6 +155,10 @@ development environment. It now compares against `getPlatformDomainConfig()`
 directly.
 
 ## History
+
+- 2026-08-17 — Architect reconciliation: terminal `VERIFIED` status normalized
+  to `ArchitectDisposition: DONE`; the existing resolution and QA evidence are
+  unchanged.
 
 - 2026-08-15 — found during the commercial onboarding E2E.
 - 2026-08-15 — re-verified against `main` `ad8f77f` and recorded as OPEN.

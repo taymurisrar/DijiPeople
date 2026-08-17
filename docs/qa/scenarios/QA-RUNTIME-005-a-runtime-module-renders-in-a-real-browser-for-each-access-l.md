@@ -34,8 +34,8 @@ Every declared module renders, and each state renders rather than throwing.
 
 ## Notes
 
-Playwright **is** installed — `e2e/`, run in CI as `browser-e2e-report`
-(report-only). No spec covers a runtime module yet, so this is a manual check
+Playwright **is** installed — `e2e/`, run in CI as the required `browser-e2e`
+job. No spec covers a runtime module yet, so this is a manual check
 rather than a blocked one: the blocker is an unwritten test, not missing
 tooling. Web and admin jest still run in a node environment with no jsdom, so
 component rendering remains untestable there.

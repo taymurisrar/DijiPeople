@@ -11,7 +11,7 @@ Source: QA_RUN
 OwnerAgent: architect
 ArchitectDisposition: DONE
 CreatedAt: 2026-08-17
-UpdatedAt: 2026-08-16
+UpdatedAt: 2026-08-17
 RelatedBug:
 RelatedQA: docs/qa/runs/2026-08-17-web-app-documentation-1af3690.md
 RelatedADR:
@@ -104,6 +104,9 @@ must keep working · bug pattern [[divergent-duplicate-guard]] ·
 
 ## History
 
+- 2026-08-17 — corrected `UpdatedAt` so it no longer predates `CreatedAt`;
+  record content and completed disposition are unchanged.
+
 - 2026-08-17 — raised after the second occurrence in two consecutive tasks.
   TASK-0002 treated the first as bad luck; two in two days is a mechanism.
 - 2026-08-17 — Architect triage: `FIX_NOW`. The detection half is small and
@@ -142,4 +145,3 @@ must keep working · bug pattern [[divergent-duplicate-guard]] ·
 
   `node scripts/allocate-id.mjs` exposes the allocator directly for every
   numbered kind: bug, item, task, session, adr, plan, scenario and regression.
-</content>

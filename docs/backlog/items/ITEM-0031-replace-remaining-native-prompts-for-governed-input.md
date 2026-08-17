@@ -9,9 +9,9 @@ Severity: MEDIUM
 AffectedModules: [apps/admin, apps/web]
 Source: ARCHITECT
 OwnerAgent: architect
-ArchitectDisposition: DEFER
+ArchitectDisposition: FIX_NOW
 CreatedAt: 2026-08-16
-UpdatedAt: 2026-08-16
+UpdatedAt: 2026-08-17
 RelatedBug: BUG-0020
 RelatedQA: 
 RelatedADR: 
@@ -83,3 +83,9 @@ fails on a stale entry, so the list cannot drift out of date.
   with only entries that are genuinely not governed input and say so.
 - Each converted surface has a test asserting the cancel path leaves the record
   unchanged, which is not possible to write today.
+
+## History
+
+- 2026-08-17 — reconciled to `FIX_NOW`: the governed-dialog pattern already
+  exists and the remaining conversions are executable product work, not a
+  dependency or product decision.

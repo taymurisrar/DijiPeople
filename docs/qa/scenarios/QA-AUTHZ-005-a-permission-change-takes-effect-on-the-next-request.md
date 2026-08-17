@@ -6,14 +6,14 @@ AREA: authorization
 MODULE: services/api/test
 TYPE: E2E
 RISK: HIGH
-AUTOMATION_STATUS: BLOCKED_INFRASTRUCTURE
-TEST_REFERENCE: 
+AUTOMATION_STATUS: AUTOMATED
+TEST_REFERENCE: services/api/test/permission-propagation.e2e-spec.ts
 RELATED_BUGS: []
 RELATED_REGRESSIONS: []
-LAST_RUN: 
-LAST_RESULT: BLOCKED
+LAST_RUN: 2026-08-17
+LAST_RESULT: PASS
 CREATED_AT: 2026-08-16
-UPDATED_AT: 2026-08-16
+UPDATED_AT: 2026-08-17
 ---
 
 # QA-AUTHZ-005 — A permission change takes effect on the next request
@@ -34,4 +34,7 @@ The route is now permitted, and revoking the grant refuses it again on the next 
 
 ## Notes
 
-`services/api/test/permission-propagation.e2e-spec.ts` implements this and needs a live database, so it cannot run in this checkout. Not a pass — the question is unanswered here.
+The named suite runs in CI against ephemeral PostgreSQL and passed in GitHub
+Actions run `32009837400`. A bare local checkout may still lack PostgreSQL;
+that is a local environment limitation, not a registry-wide infrastructure
+block.

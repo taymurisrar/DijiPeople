@@ -150,7 +150,11 @@ const pages = {
       ['Open by type', countTable(countBy(openRecords, 'type'), 'Type')],
       [
         'All records by status',
-        countTable(countBy(records, 'status'), 'Status', [...BUG_STATUSES, ...ITEM_STATUSES]),
+        countTable(
+          countBy(records, 'status'),
+          'Status',
+          [...new Set([...BUG_STATUSES, ...ITEM_STATUSES])],
+        ),
       ],
       ['All records', table(records)],
       [

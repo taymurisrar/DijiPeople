@@ -11,14 +11,14 @@ DetectedDate: 2026-08-15
 DetectedInSha: 7bbab3d
 AffectedModules: [.agent/context]
 OwnerAgent: qa
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: docs/qa/runs/2026-08-15-commercial-onboarding-e2e-7bbab3d.md
-RegressionId:
+RegressionId: REG-036
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-15
-UpdatedAt: 2026-08-16
+UpdatedAt: 2026-08-17
 ResolvedAt: 2026-08-15
 ---
 
@@ -119,7 +119,7 @@ landed — a stale leftover, corrected here, and the reason this record sat FIXE
 without anyone being able to tell what had been done.
 
 `.agent/context/testing-architecture.md` no longer claims the two suites are
-absent. It documents **13 `*.e2e-spec.ts` suites** under `services/api/test/`,
+absent. It currently documents **15 `*.e2e-spec.ts` suites** under `services/api/test/`,
 describes the jest-e2e configuration, and links this record.
 
 ## QA Retest
@@ -137,6 +137,13 @@ is already covered by the `doc-code-drift` bug pattern, which instructs a reader
 to re-derive counts rather than trust them.
 
 ## History
+
+- 2026-08-17 — linked to active regression `REG-036` during TASK-0005
+  record/QA reconciliation.
+
+- 2026-08-17 — Architect reconciliation: terminal `VERIFIED` status normalized
+  to `ArchitectDisposition: DONE`; the existing resolution and QA evidence are
+  unchanged.
 
 - 2026-08-15 — recorded by the commercial onboarding E2E under the staleness
   rule; the tooling won and the run proceeded.

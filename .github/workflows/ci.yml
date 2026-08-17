@@ -325,12 +325,14 @@ jobs:
     name: Database e2e (report only — NOT a gate)
     runs-on: ubuntu-latest
     needs: [database-migration]
-    # The 9 e2e suites have never run in CI and have not been observed passing
-    # against a fresh database. Requiring them on arrival risks a permanently
-    # red gate, which trains people to ignore CI — the exact failure the
-    # pipeline exists to prevent.
+    # All 15 e2e suites now execute in CI against a fresh database. At the
+    # initial 2026-08-17 discovery baseline, 9 suites / 91 tests passed and 6
+    # suites / 136 tests failed; WP-02 exact-SHA evidence later worsened to 8/79
+    # passing and 7/148 failing. Requiring the whole set before that inventory
+    # is burned down would make every unrelated change red.
     #
-    # PROMOTION CRITERIA — move into `ci-required` when all hold:
+    # REMAINING PROMOTION CRITERIA — remove `continue-on-error` and rely on
+    # this job as a truthful gate when all hold:
     #   1. Every suite classified READY passes three consecutive runs.
     #   2. Suites needing fixtures or environment are fixed, or quarantined by
     #      name with the reason recorded in docs/qa/.
@@ -533,12 +535,10 @@ jobs:
     # If it proves flaky in practice, move it back to report-only WITH the
     # failing evidence — not silently, and not by deleting a scenario.
     #
-    # PROMOTION CRITERIA — move into `ci-required` when all hold:
-    #   1. Three consecutive green runs on main with zero retries consumed.
-    #   2. Total runtime under ~8 minutes.
-    #   3. Server startup is deterministic — no sleep-and-hope waits.
-    #   4. Any environment-dependent scenario is quarantined BY NAME with the
-    #      reason recorded in docs/qa/.
+    # The job is already listed in `ci-required.needs`. Its remaining defect is
+    # `continue-on-error: true`, which makes that promotion fail-open. Remove
+    # the flag once the named BUG-0019 skip is replaced by a passing assertion;
+    # until then the required aggregate is not proof that every browser case ran.
     continue-on-error: true
     services:
       postgres:

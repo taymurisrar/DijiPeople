@@ -35,9 +35,10 @@
 `78072d2`.
 
 > This paragraph used to end "and **no `.github/` CI**". That is false:
-> `.github/workflows/ci.yml` exists with ten required jobs behind the
-> `CI required gate` check, plus `.github/workflows/release-app.yml`. Corrected
-> 2026-08-16 — see
+> `.github/workflows/ci.yml` exists with eleven jobs named behind the
+> `CI required gate` check, plus `.github/workflows/release-app.yml`. The
+> browser dependency remains fail-open through `continue-on-error: true`.
+> Reverified 2026-08-17 — see
 > [[BUG-0037-integration-patterns-context-denies-four-subsystems-that-exi]].
 
 ### Dependency graph

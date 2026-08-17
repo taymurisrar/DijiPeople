@@ -11,7 +11,7 @@ DetectedDate: 2026-08-16
 DetectedInSha: da72203
 AffectedModules: [apps/admin]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-033
 RelatedBacklogItem:
@@ -68,7 +68,12 @@ An operator cannot assign or change a plan from the tenant commercial panel. It
 is not a data-integrity problem, but it is a primary admin journey that has been
 silently unavailable.
 
-## Resolution
+## Affected Areas
+
+`apps/admin/app/_components/tenants/tenant-commercial-panel.tsx` and
+`apps/admin/app/api/super-admin/plans/route.ts`.
+
+## Proposed Resolution
 
 `GET` added to the proxy, forwarding to the API's existing list endpoint.
 
@@ -76,6 +81,29 @@ silently unavailable.
 `scripts/check-route-method-callers.mjs` was built to close [[ITEM-0012]] —
 raised after BUG-0008 — and reported this on its first run, before it was known
 to exist. That is the check doing the job the item asked for.
+
+## Acceptance Criteria
+
+- The admin proxy exports the method its plan-list caller sends.
+- Opening the tenant commercial panel can reach the existing API list endpoint.
+- The route-method caller check reports no mismatch for this pair.
+
+## Regression Coverage
+
+`REG-033` and `npm run check:route-method-callers`.
+
+## Dependencies
+
+None.
+
+## Related Items
+
+[[BUG-0008]] — the first instance, on the admin logout route.
+[[ITEM-0012]] — the cross-check, built because of it, which found this one.
+
+## Resolution
+
+The proxy now exports `GET` and forwards to the API's existing list endpoint.
 
 ## QA Retest
 
@@ -86,12 +114,11 @@ Verified to fail: the check reported this exact file, line and mismatch before
 the `GET` handler was added, naming both the method sent and the methods
 exported. Admin typecheck clean.
 
-## Related Items
-
-[[BUG-0008]] — the first instance, on the admin logout route.
-[[ITEM-0012]] — the cross-check, built because of it, which found this one.
-
 ## History
+
+- 2026-08-17 — Architect reconciliation: terminal `VERIFIED` status normalized
+  to `ArchitectDisposition: DONE`; the existing resolution and QA evidence are
+  unchanged.
 
 - 2026-08-17 — found by `check-route-method-callers` on its first run while
   closing ITEM-0012, fixed and verified in the same change.

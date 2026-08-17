@@ -96,4 +96,3 @@ bug pattern [[silent-config-fallback]].
 - 2026-08-17 — Architect triage: `FIX_NOW`. Mechanical, the correct pattern
   already exists in six files, and it currently defeats the platform's own error
   contract on 30% of the app's request surface.
-</content>

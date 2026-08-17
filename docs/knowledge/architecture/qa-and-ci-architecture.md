@@ -1,6 +1,6 @@
 # QA and CI Architecture
 
-> Generated from repository evidence at `ad8f77f`.
+> Reverified against repository evidence at `d919e1a` on 2026-08-17.
 
 ## Why QA is a first-class role here
 
@@ -17,20 +17,20 @@ test suite**. Every one of them shipped past green tests.
 | Type | Status |
 |---|---|
 | `UNIT` | Available — jest |
-| `INTEGRATION` / `API` | Available; the e2e suites need a live database |
-| `BROWSER_E2E` | **BLOCKED_INFRASTRUCTURE** — no Playwright, Cypress or Puppeteer anywhere |
+| `INTEGRATION` / `API` | Available; 15 suites execute against ephemeral PostgreSQL in CI, currently report-only with 6 failing suites |
+| `BROWSER_E2E` | Playwright is installed in `e2e/`; 2 journey specs run in CI, with 8 passing cases and 1 skipped assertion in the latest audited run |
 | Component render | **Not possible** — web/admin jest run in a node environment with no jsdom |
 | `DEPLOYMENT_SMOKE` | `scripts/smoke-deployment.mjs` |
 
-`BROWSER_E2E` being blocked is load-bearing: **no UI defect in this repository
-can currently be proven fixed.** Four open UX records have no regression
-coverage for that reason. [[ITEM-0001]].
+The browser job is named by the required aggregate but remains fail-open through
+job-level `continue-on-error`. Its artifact and test summary are evidence; the
+aggregate conclusion alone is not. [[BUG-0049]].
 
 ## CI
 
-`.github/workflows/ci.yml` — eight required jobs behind a single
+`.github/workflows/ci.yml` — eleven jobs named behind a single
 `CI required gate` check, plus two report-only known baselines
-(`security-invariant-report`, `lint-api-report`) that do not block.
+(`security-invariant-report`, `database-e2e-report`) that do not block.
 
 The `database-migration` job stands up an **ephemeral PostgreSQL** and applies
 the entire committed migration history to an empty database — which is exactly

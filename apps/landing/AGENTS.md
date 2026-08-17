@@ -93,8 +93,10 @@ that. Current specs are `lib/plan-presentation.spec.ts` and
 
 CI runs four required jobs over this app — `lint`, `test-landing`, `typecheck`
 and `build` — plus the cross-app URL rules in `test-runtime`. Browser coverage
-exists in the `e2e/` workspace and starts on landing, but that job is
-**report-only and does not gate**.
+exists in the `e2e/` workspace and starts on landing. That job is named by the
+required aggregate but remains fail-open through job-level
+`continue-on-error: true`; do not treat the aggregate green as proof that its
+browser step passed.
 
 **Untested at every level today:** the `/contact` form, all four
 `app/api/**/route.ts` proxies, and the `/subscribe`, `/sign/[token]` and partner

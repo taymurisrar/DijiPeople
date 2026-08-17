@@ -43,6 +43,11 @@ Changing any of the 21 and rebuilding can return a **stale cached bundle with
 the old value compiled in**. `docs/deployment/environments.md:98` states this
 consequence explicitly; the code does not comply with it.
 
+## Reproduction
+
+Compare every `process.env.*` read under `apps/web` with `globalEnv` in
+`turbo.json`; the 21 reads listed below have no matching cache input.
+
 ## Evidence
 
 Unregistered, with read sites — verified against `turbo.json` `globalEnv`:
@@ -94,6 +99,11 @@ caching limits the blast radius to one machine. `turbo.json` declares no
 `remoteCache` block, but that can be configured outside the repository, so this
 is not settled.
 
+## Affected Areas
+
+`apps/web`, root `turbo.json`, and the environment-variable documentation
+that defines deployment inputs.
+
 ## Proposed Resolution
 
 Register all 21 in `turbo.json` `globalEnv` and add the missing ones to
@@ -112,6 +122,11 @@ That would also catch the four registered-but-unread variables.
 ## Regression Coverage
 
 **None.** The check above is the regression.
+
+## Dependencies
+
+None for registering the variables. The mechanical check can follow as a
+separate framework hardening step.
 
 ## Related Items
 
@@ -134,4 +149,3 @@ deployment documentation.
 - 2026-08-17 — found during the `apps/web` deep documentation audit (TASK-0003).
 - 2026-08-17 — Architect triage: `FIX_NOW`. Registration is mechanical and
   cheap; the check is the part worth planning, and it can follow.
-</content>

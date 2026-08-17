@@ -9,7 +9,7 @@ Severity: LOW
 AffectedModules: [services/api]
 Source: ARCHITECT
 OwnerAgent: backend-api
-ArchitectDisposition: DEFER
+ArchitectDisposition: FIX_NOW
 CreatedAt: 2026-08-17
 UpdatedAt: 2026-08-17
 RelatedBug:
@@ -87,3 +87,6 @@ is real debt with no live consequence.
 - 2026-08-17 — raised when `Lint services/api` was promoted to a required gate.
   The errors are gone; this records what is left, with a burn-down that needs no
   flag day.
+
+- 2026-08-17 — reconciled to `FIX_NOW`: the ratchet and module-by-module order
+  already make this executable; effort alone is not a durable defer reason.

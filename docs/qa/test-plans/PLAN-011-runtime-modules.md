@@ -3,7 +3,7 @@ PLAN_ID: PLAN-011
 aliases: [PLAN-011]
 TITLE: Runtime Module System
 AREA: runtime-modules
-STATUS: CURRENT
+STATUS: NEEDS_REVIEW
 MODULES: [services/api/src/modules/data, services/api/src/modules/customization, apps/web/lib/runtime, apps/admin/lib/runtime]
 RISK: HIGH
 COVERAGE_UNIT: GOOD
@@ -15,11 +15,15 @@ COVERAGE_BROWSER: GAP
 COVERAGE_SECURITY: PARTIAL
 COVERAGE_PERFORMANCE: NOT_APPLICABLE
 RELATED_BUGS: [BUG-0019, BUG-0020, BUG-0044]
-RELATED_REGRESSIONS: [REG-028, REG-029]
+RELATED_REGRESSIONS: [REG-028, REG-029, REG-037]
 CREATED_AT: 2026-08-16
-UPDATED_AT: 2026-08-16
+UPDATED_AT: 2026-08-17
 VERIFIED_AGAINST_SHA: 714632d
 ---
+
+> **TASK-0005 revalidation:** `VERIFIED_AGAINST_SHA` remains historical. The
+> documented workflow now matches the live path, but browser runtime coverage
+> remains manual; WP-07 and WP-10 own the full re-audit.
 
 # PLAN-011 — Runtime Module System
 
@@ -73,4 +77,4 @@ Every runtime module's route rendering its module is the single highest-value br
 
 ## Regression Links
 
-`REG-028` · `REG-029`
+`REG-028` · `REG-029` · `REG-037`

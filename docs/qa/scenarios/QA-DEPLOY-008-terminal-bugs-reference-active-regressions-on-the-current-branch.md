@@ -1,0 +1,39 @@
+---
+SCENARIO_ID: QA-DEPLOY-008
+aliases: [QA-DEPLOY-008]
+TITLE: Terminal Bugs reference active regressions on the current branch
+AREA: deployment-release
+MODULE: scripts/validate-framework.mjs
+TYPE: INTEGRATION
+RISK: CRITICAL
+AUTOMATION_STATUS: AUTOMATED
+TEST_REFERENCE: scripts/validate-framework.mjs
+RELATED_BUGS: [BUG-0047, BUG-0051]
+RELATED_REGRESSIONS: [REG-038]
+LAST_RUN: 2026-08-17
+LAST_RESULT: PASS
+CREATED_AT: 2026-08-17
+UPDATED_AT: 2026-08-17
+---
+
+# QA-DEPLOY-008 — Terminal Bugs reference active regressions on the current branch
+
+## Preconditions
+
+Canonical Bug records and the regression register from the same checkout.
+
+## Steps
+
+1. Parse every FIXED, VERIFIED or CLOSED Bug.
+2. Resolve its `RegressionId` in the register.
+3. Confirm the entry is active and its named test exists on this branch.
+
+## Expected Result
+
+A terminal Bug cannot claim durable protection from an absent, inactive or
+unmerged regression test.
+
+## Notes
+
+Reusable prevention coverage for `BUG-0047`. The framework validator passed on
+the WP-01 exact tree; WP-02 strengthens record semantics under `BUG-0051`.

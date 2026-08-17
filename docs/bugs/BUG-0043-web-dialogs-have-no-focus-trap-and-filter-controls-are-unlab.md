@@ -29,6 +29,12 @@ ResolvedAt:
 `apps/web/AGENTS.md:178` requires "every control labelled; dialogs focus-trapped
 and dismissible with Escape; tables keyboard-navigable". None of the three holds.
 
+## Expected Behavior
+
+Dialogs contain keyboard focus, close with Escape and expose dialog semantics;
+filter controls have accessible names; interactive table rows are keyboard
+reachable.
+
 ## Actual Behavior
 
 **No focus trap exists anywhere in the app.** There is no `focus-trap`
@@ -58,6 +64,12 @@ placeholder. App-wide, `htmlFor` appears 22 times against 193 raw `<input>` and
 row navigation, the primary interaction on every runtime list, is unreachable by
 keyboard.
 
+## Reproduction
+
+Open any named runtime dialog and press Tab until focus leaves the modal, or
+inspect the named filter bars and clickable table row for the missing accessible
+names and keyboard handlers.
+
 ## Evidence
 
 All verified at `1af3690`: `focus-trap` absent from `apps/web/package.json`;
@@ -84,6 +96,11 @@ one.
 
 `MEDIUM` not `HIGH`: nothing is exposed or corrupted, and mouse users are
 unaffected — but it is the widest-reaching defect found in this audit.
+
+## Affected Areas
+
+`apps/web/app/components`, the attendance and timesheet filter bars, the
+runtime dialogs, and the shared data table.
 
 ## Proposed Resolution
 
@@ -112,6 +129,11 @@ reachable; add `eslint-plugin-jsx-a11y` so the class cannot silently return.
 (`testEnvironment: node`, no jsdom). The realistic guard is the lint rule plus
 browser coverage — which `apps/web` does not have at all ([[ITEM-0034]]).
 
+## Dependencies
+
+An ExecPlan must choose the shared dialog primitive or justified headless
+library before the modal migration starts.
+
 ## Related Items
 
 [[web-architecture]] · [[tenant-application]] · [[ITEM-0034]] ·
@@ -132,4 +154,3 @@ was performed.
 - 2026-08-17 — found during the `apps/web` deep documentation audit (TASK-0003).
 - 2026-08-17 — Architect triage: `PLAN_REQUIRED`. The dependency decision has to
   be taken before any of the migration work is meaningful.
-</content>
