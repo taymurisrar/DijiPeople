@@ -3,7 +3,7 @@ PLAN_ID: PLAN-005
 aliases: [PLAN-005]
 TITLE: Lead Management and Public Acquisition
 AREA: lead-management
-STATUS: CURRENT
+STATUS: NEEDS_REVIEW
 MODULES: [services/api/src/modules/leads, services/api/src/common/guards, services/api/src/common/security, apps/landing]
 RISK: HIGH
 COVERAGE_UNIT: GOOD
@@ -17,9 +17,13 @@ COVERAGE_PERFORMANCE: NOT_APPLICABLE
 RELATED_BUGS: [BUG-0013, BUG-0018, BUG-0021, BUG-0031, BUG-0032]
 RELATED_REGRESSIONS: [REG-011, REG-021, REG-023, REG-024]
 CREATED_AT: 2026-08-16
-UPDATED_AT: 2026-08-16
+UPDATED_AT: 2026-08-17
 VERIFIED_AGAINST_SHA: 714632d
 ---
+
+> **TASK-0005 revalidation:** `VERIFIED_AGAINST_SHA` remains historical. Lead
+> acquisition and public-surface changes were not fully re-audited in WP-02;
+> WP-07 and WP-10 own the revalidation before `CURRENT` is restored.
 
 # PLAN-005 — Lead Management and Public Acquisition
 

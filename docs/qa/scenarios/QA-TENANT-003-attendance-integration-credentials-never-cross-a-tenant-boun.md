@@ -6,14 +6,14 @@ AREA: tenant-isolation
 MODULE: services/api/src/modules/attendance-integrations
 TYPE: E2E
 RISK: CRITICAL
-AUTOMATION_STATUS: BLOCKED_INFRASTRUCTURE
-TEST_REFERENCE: 
+AUTOMATION_STATUS: AUTOMATED
+TEST_REFERENCE: services/api/test/attendance-integrations-isolation.e2e-spec.ts
 RELATED_BUGS: []
 RELATED_REGRESSIONS: []
-LAST_RUN: 
-LAST_RESULT: BLOCKED
+LAST_RUN: 2026-08-17
+LAST_RESULT: FAIL
 CREATED_AT: 2026-08-16
-UPDATED_AT: 2026-08-16
+UPDATED_AT: 2026-08-17
 ---
 
 # QA-TENANT-003 — Attendance-integration credentials never cross a tenant boundary
@@ -34,4 +34,7 @@ No gateway, credential or raw punch belonging to A is reachable from B, in any s
 
 ## Notes
 
-`services/api/test/attendance-integrations-isolation.e2e-spec.ts`. Credentials make this the highest-value isolation target outside core HR data.
+The named suite is executable in CI against ephemeral PostgreSQL. It failed in
+GitHub Actions run `32009837400`; WP-04 owns fixture isolation and residual
+tenant-isolation proof. Credentials make this the highest-value isolation
+target outside core HR data.

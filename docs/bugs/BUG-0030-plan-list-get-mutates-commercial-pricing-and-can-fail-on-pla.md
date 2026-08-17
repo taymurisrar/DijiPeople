@@ -11,14 +11,14 @@ DetectedDate: 2026-08-16
 DetectedInSha: 78072d2
 AffectedModules: [services/api, services/api/prisma]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: docs/qa/runs/2026-08-16-hotfix-plan-list-hidden-write-78072d2.md
 RegressionId: REG-020
 RelatedBacklogItem: ITEM-0025
 RelatedDecision:
 RelatedImplementation: agent/hotfix-plan-list-hidden-write
 CreatedAt: 2026-08-16
-UpdatedAt: 2026-08-16
+UpdatedAt: 2026-08-17
 ResolvedAt: 2026-08-16
 ---
 
@@ -47,6 +47,28 @@ PlatformRuntimeService.list
 
 Unique constraint failed on `(planId, billingCycle, currency)` —
 `PlanPrice_active_plan_cycle_currency_key`.
+
+## Reproduction
+
+1. A database with an active `PlanPrice` for a plan/cycle/currency whose
+   `marketId` is null or a different market.
+2. `GET /api/platform-runtime/plans`.
+3. The market-scoped check misses the row; the insert violates the index; the
+   read returns 409.
+
+Concurrent variant: two simultaneous requests against a database with no such
+row — both check, both insert, one fails.
+
+## Evidence
+
+- `super-admin.service.ts:1701` (pre-fix) — `listPlans()` awaited
+  `ensureDefaultPlans()`. Also on `getPlanDetail`, `createPlan`, `updatePlan`.
+- `super-admin.service.ts` (pre-fix) — the market-scoped existence check.
+- `prisma/migrations/20260523160000_plan_price_active_versioning/migration.sql:23`
+  — the partial index, created before markets existed.
+- `markets.catalog.ts` — PK, US and GCC all carry `defaultCurrency: 'USD'`.
+- `prisma/seed-config.ts` (pre-fix) — never invoked the commercial bootstrap, so
+  the read path was the **only** way defaults were ever created.
 
 ## Root Cause
 
@@ -99,28 +121,6 @@ already created and updated `Plan` rows on read. Wave 1 extended that chain with
 the one table with a partial unique index. The pattern was inherited; making it
 fail was introduced by Wave 1.
 
-## Reproduction
-
-1. A database with an active `PlanPrice` for a plan/cycle/currency whose
-   `marketId` is null or a different market.
-2. `GET /api/platform-runtime/plans`.
-3. The market-scoped check misses the row; the insert violates the index; the
-   read returns 409.
-
-Concurrent variant: two simultaneous requests against a database with no such
-row — both check, both insert, one fails.
-
-## Evidence
-
-- `super-admin.service.ts:1701` (pre-fix) — `listPlans()` awaited
-  `ensureDefaultPlans()`. Also on `getPlanDetail`, `createPlan`, `updatePlan`.
-- `super-admin.service.ts` (pre-fix) — the market-scoped existence check.
-- `prisma/migrations/20260523160000_plan_price_active_versioning/migration.sql:23`
-  — the partial index, created before markets existed.
-- `markets.catalog.ts` — PK, US and GCC all carry `defaultCurrency: 'USD'`.
-- `prisma/seed-config.ts` (pre-fix) — never invoked the commercial bootstrap, so
-  the read path was the **only** way defaults were ever created.
-
 ## Impact
 
 Production, operator-facing: the Admin Plans screen could not be opened.
@@ -129,6 +129,11 @@ and silent commercial writes on every successful load.
 
 No data was corrupted. The failing insert rolled back, and every write the
 bootstrap did complete was the creation of a row that did not exist.
+
+## Affected Areas
+
+`services/api/src/modules/super-admin`, commercial bootstrap seeding, the
+`PlanPrice` partial unique index, and the Admin plan-list read path.
 
 ## Proposed Resolution
 
@@ -193,5 +198,9 @@ real PostgreSQL 16. Each of these tests was proven to fail without its fix when
 it was written; re-running them is what confirms the fix still holds.
 
 ## History
+
+- 2026-08-17 — Architect reconciliation: terminal `VERIFIED` status normalized
+  to `ArchitectDisposition: DONE`; the existing resolution and QA evidence are
+  unchanged.
 
 - 2026-08-16 — reported from production; root-caused and fixed the same day.

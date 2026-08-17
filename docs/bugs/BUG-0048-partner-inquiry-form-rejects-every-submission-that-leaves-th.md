@@ -12,8 +12,8 @@ DetectedInSha: 3fe3292
 AffectedModules: [apps/landing, services/api/src/modules/partner-experience]
 OwnerAgent: architect
 ArchitectDisposition: DONE
-QAReport: docs/qa/runs/2026-08-17-framework-remediation-3fe3292.md
-RegressionId:
+QAReport: docs/qa/runs/2026-08-17-framework-remediation-e6a173d.md
+RegressionId: REG-039
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
@@ -159,6 +159,12 @@ Browser E2E on the integrated SHA — B1 must reach `Reference` in the status
 region, and B2–B4 must run rather than being skipped by B1's failure.
 
 ## History
+
+- 2026-08-17 — linked to active regression `REG-039` during TASK-0005
+  record/QA reconciliation.
+
+- 2026-08-17 — corrected `QAReport` to the existing integrated run at
+  `e6a173d`; the former `3fe3292` path did not exist.
 
 - 2026-08-17 — found by the browser suite after its selector drift was repaired.
   The drift had masked this: B1 timed out filling the form and never submitted,

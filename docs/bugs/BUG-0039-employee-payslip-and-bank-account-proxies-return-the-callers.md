@@ -11,7 +11,7 @@ DetectedDate: 2026-08-17
 DetectedInSha: 1af3690
 AffectedModules: [apps/web, services/api/src/modules/payroll, services/api/src/modules/employees]
 OwnerAgent: frontend
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: docs/qa/runs/2026-08-17-web-app-documentation-1af3690.md
 RegressionId: REG-034
 RelatedBacklogItem:
@@ -194,10 +194,13 @@ the branch, exit 1.
 
 ## History
 
+- 2026-08-17 — Architect reconciliation: terminal `VERIFIED` status normalized
+  to `ArchitectDisposition: DONE`; the existing resolution and QA evidence are
+  unchanged.
+
 - 2026-08-17 — found during the `apps/web` deep documentation audit (TASK-0003)
   and verified by direct read.
 - 2026-08-17 — Architect triage: `FIX_NOW`. The fix is a deletion, it needs no
   design decision, and the current behaviour makes a denied read indistinguishable
   from a granted one on the two most sensitive record types in the product.
-</content>
 - 2026-08-17 — fixed and verified during the final parent implementation phase.

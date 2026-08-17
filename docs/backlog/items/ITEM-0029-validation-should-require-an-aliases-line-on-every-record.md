@@ -9,7 +9,7 @@ Severity: LOW
 AffectedModules: [scripts, docs/backlog, docs/bugs]
 Source: QA_RUN
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 CreatedAt: 2026-08-16
 UpdatedAt: 2026-08-17
 RelatedBug:
@@ -87,6 +87,9 @@ None. The six known instances were fixed in the same change that raised this.
 bug pattern [[doc-code-drift]] · [[monorepo-application-map]].
 
 ## History
+
+- 2026-08-17 — Architect reconciliation: terminal `DONE` status normalized to
+  `ArchitectDisposition: DONE`; no runtime behavior changed.
 
 - 2026-08-16 — raised during the Obsidian verification step of TASK-0002, after
   link resolution was checked **in the vault** rather than assumed from a

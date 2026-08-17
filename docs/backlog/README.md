@@ -98,6 +98,12 @@ BlockedBy:
 deferred work could move and was chosen against. Collapsing the two loses the
 difference between a queue and an obstacle.
 
+Status and disposition are one decision expressed at two levels. `DONE` and
+`CANCELLED` require disposition `DONE`; `DEFERRED` requires `DEFER`;
+`PRODUCT_DECISION` requires the matching disposition; and `DUPLICATE` requires
+`DUPLICATE`. An item may not keep a terminal record in `BlockedBy`; once that
+dependency is discharged, clear the field or name the real remaining blocker.
+
 ---
 
 ## Who does what
@@ -127,7 +133,9 @@ node scripts/rebuild-backlog.mjs --json    # counts, for a dashboard
 
 The script is **idempotent** (a second run writes nothing), **strict** (a
 duplicate id, an unknown status, a dangling reference or a malformed
-frontmatter block exits non-zero and regenerates nothing) and
+frontmatter block exits non-zero and regenerates nothing), **semantic**
+(status/disposition contradictions, impossible date order, dangling evidence,
+discharged blockers and incomplete bug sections fail before generation) and
 **deterministic** (records sort by severity, then priority, then id, so two
 runs over the same input are byte-identical).
 

@@ -104,4 +104,3 @@ bug pattern [[declared-but-unwired-step]].
 - 2026-08-17 — raised by the `apps/web` deep documentation audit (TASK-0003),
   as the design half of BUG-0044. That record fixed the documentation; this one
   owns the code decision it deliberately left alone.
-</content>

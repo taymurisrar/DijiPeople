@@ -6,14 +6,14 @@ AREA: tenant-provisioning
 MODULE: services/api/test
 TYPE: E2E
 RISK: CRITICAL
-AUTOMATION_STATUS: BLOCKED_INFRASTRUCTURE
-TEST_REFERENCE: 
+AUTOMATION_STATUS: AUTOMATED
+TEST_REFERENCE: services/api/test/tenant-provisioning-recovery.e2e-spec.ts
 RELATED_BUGS: [BUG-0015]
 RELATED_REGRESSIONS: [REG-013]
-LAST_RUN: 
-LAST_RESULT: BLOCKED
+LAST_RUN: 2026-08-17
+LAST_RESULT: PASS
 CREATED_AT: 2026-08-16
-UPDATED_AT: 2026-08-16
+UPDATED_AT: 2026-08-17
 ---
 
 # QA-PROV-004 — A tenant failing before identities and billing is still recoverable
@@ -34,4 +34,6 @@ Each retry completes provisioning exactly once. Steps inside a retryable flow ar
 
 ## Notes
 
-`services/api/test/tenant-provisioning-recovery.e2e-spec.ts`. Needs a database, so blocked here.
+The named suite passed against ephemeral PostgreSQL in GitHub Actions run
+`32009837400`. A local checkout may still lack a safe database, but the durable
+scenario is automated and runnable.

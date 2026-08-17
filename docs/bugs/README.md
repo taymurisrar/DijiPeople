@@ -144,6 +144,11 @@ A substantial task cannot complete while a record it produced is still
 `TRIAGE_REQUIRED` — see
 [`.agent/context/task-completion-contract.md`](../../.agent/context/task-completion-contract.md).
 
+Status and disposition must describe the same decision. `VERIFIED` and
+`CLOSED` require `DONE`; `DEFERRED` requires `DEFER`; `PRODUCT_DECISION`
+requires the matching disposition; and the terminal duplicate, not-a-bug and
+accepted-risk states require their matching terminal dispositions.
+
 ---
 
 ## Body
@@ -181,6 +186,10 @@ They answer different questions and neither replaces the other:
 A fixed bug gets a `REG-nnn` entry and the bug's `RegressionId` points at it. A
 bug whose failure mode generalises also updates or creates a pattern. One
 defect, three records, each carrying something the others do not.
+
+`backlog:check` validates that every `FIXED`, `VERIFIED` or `CLOSED` bug names
+an existing regression entry, referenced evidence paths exist, record dates do
+not move backwards, and all mandatory body sections remain present and ordered.
 
 ---
 

@@ -9,7 +9,7 @@ Severity: MEDIUM
 AffectedModules: [apps/agent-desktop, services/api/src/modules/agent]
 Source: ARCHITECT
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 CreatedAt: 2026-08-16
 UpdatedAt: 2026-08-17
 RelatedBug: BUG-0035
@@ -112,6 +112,9 @@ None. This is the item that makes the other agent-desktop records cheaper to fix
 [[desktop-agent]] · bug pattern [[doc-code-drift]].
 
 ## History
+
+- 2026-08-17 — Architect reconciliation: terminal `DONE` status normalized to
+  `ArchitectDisposition: DONE`; no runtime behavior changed.
 
 - 2026-08-16 — created at `78072d2` during the `apps/agent-desktop` deep
   documentation audit (TASK-0002).

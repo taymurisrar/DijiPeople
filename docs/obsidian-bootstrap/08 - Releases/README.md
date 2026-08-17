@@ -40,5 +40,6 @@ Which checks were run and their results.
 - Post-deploy smoke: `npm run smoke:deployment`
 - Checklist: `DEPLOYMENT_CHECKLIST.md` in the repository
 
-**There is no CI.** Validation before a release is a human responsibility —
-record in the release note which commands were run and what they returned.
+CI runs on push, but report-only and fail-open evidence still needs explicit
+inspection. Record exact-SHA required CI, relevant report-job evidence, and
+post-deploy checks in the release note.

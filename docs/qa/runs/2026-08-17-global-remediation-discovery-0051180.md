@@ -147,3 +147,8 @@ isolates database suites and records reproducible residual defects; WP-08 owns
 dependency remediation; WP-09 promotes CI only after the underlying suites are
 green. Product/legal owner decisions remain recorded separately and do not
 block these technical packages.
+
+WP-01 integration evidence: task SHA `423a7a8` passed CI run `32015389727`;
+merge SHA `d919e1a` passed post-merge CI run `32016184547`, including the
+required aggregate. Report-only job conclusions remain governed by BUG-0049
+and are not treated as proof that their internal assertions passed.

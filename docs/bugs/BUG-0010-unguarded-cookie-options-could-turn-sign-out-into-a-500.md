@@ -2,7 +2,7 @@
 ID: BUG-0010
 aliases: [BUG-0010]
 Title: Unguarded cookie options could turn admin sign-out into a 500
-Status: VERIFIED
+Status: FIXED
 Severity: MEDIUM
 Priority: P2
 Type: INFRA
@@ -18,8 +18,8 @@ RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-15
-UpdatedAt: 2026-08-16
-ResolvedAt: 2026-08-16
+UpdatedAt: 2026-08-17
+ResolvedAt:
 ---
 
 # BUG-0010 — Unguarded cookie options could turn admin sign-out into a 500
@@ -77,12 +77,14 @@ clears every cookie it can.
 
 ## Regression Coverage
 
-**None.** Requires production-like environment validation to trigger. Tracked
-with the live-environment testing gap, [[ITEM-0002]].
+`REG-032` and partial scenario `QA-AUTH-002` name
+`apps/admin/app/api/auth/logout/logout-route.spec.ts`. The static test confirms
+the safe wrapper/fallback source shape but does not execute the route under a
+rejected cookie configuration.
 
 ## Dependencies
 
-[[ITEM-0002]].
+Executed route proof remains [[ITEM-0002]].
 
 ## Related Items
 
@@ -97,10 +99,18 @@ Fixed 2026-08-15 on branch `agent/admin-session-expired-logout-auth`.
 
 ## QA Retest
 
-**Outstanding** — needs a production-like environment. Not reachable from the
-flow the QA run covered, and strictly more defensive than the code it replaced.
+Not yet verified by executing the rejected-cookie configuration. `REG-032` is
+useful partial coverage, not proof of the redirect/non-500 acceptance criterion.
 
 ## History
+
+- 2026-08-17 — Architect reconciliation: terminal `VERIFIED` status normalized
+  to `ArchitectDisposition: DONE`; the existing resolution and QA evidence are
+  unchanged.
+
+- 2026-08-17 — independent WP-02 review found that the named regression only
+  inspects source and never executes the rejection path. Corrected to `FIXED` /
+  `FIX_NOW` pending [[ITEM-0002]].
 
 - 2026-08-15 — found by auditing the BUG-0008 path; fixed in the same change.
 - 2026-08-15 — imported into the durable bug system as `FIXED`, awaiting retest.

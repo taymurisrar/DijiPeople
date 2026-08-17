@@ -166,4 +166,3 @@ would not catch a novel one.
 - 2026-08-17 — found during the `apps/web` deep documentation audit (TASK-0003).
 - 2026-08-17 — Architect triage: `PLAN_REQUIRED`. Five independent decisions
   plus a guard; doing them piecemeal is how the rule eroded in the first place.
-</content>

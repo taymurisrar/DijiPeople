@@ -6,12 +6,12 @@ AREA: partner-lifecycle
 MODULE: apps/admin
 TYPE: BROWSER_E2E
 RISK: HIGH
-AUTOMATION_STATUS: AUTOMATED
+AUTOMATION_STATUS: PARTIAL
 TEST_REFERENCE: e2e/tests/flow-b-partner-journey.spec.ts
-RELATED_BUGS: [BUG-0048]
-RELATED_REGRESSIONS: []
+RELATED_BUGS: [BUG-0019, BUG-0048]
+RELATED_REGRESSIONS: [REG-028, REG-039]
 LAST_RUN: 2026-08-17
-LAST_RESULT: FAIL
+LAST_RESULT: PASS_WITH_RISKS
 CREATED_AT: 2026-08-16
 UPDATED_AT: 2026-08-17
 ---
@@ -35,7 +35,15 @@ transitions are offered in the order the state machine allows.
 
 ## Notes
 
-This spec is the direct answer to `BUG-0019`, where the partner inquiry and
-onboarding review screens existed and nothing routed to them. A browser journey
-fails on an unreachable screen; a unit test on the same components passes.
-Report-only in CI.
+This spec is intended to answer `BUG-0019`, where the partner inquiry and
+onboarding review screens existed and nothing routed to them. The product route
+fix is protected separately by `REG-028`, and the blank optional website defect
+is protected by `REG-039`.
+
+The exact-base browser job in GitHub Actions run `32009837400` reported eight
+passed and one skipped. Flow B's B4 assertion is still guarded by an
+unconditional `test.fixme(true)` carrying an obsolete explanation that the
+product route is broken. Therefore this durable scenario is `PARTIAL` and its
+result is `PASS_WITH_RISKS`, not `PASS`: the inquiry and navigation coverage ran,
+but the skipped BUG-0019 assertion is not evidence. Browser E2E is a required CI
+job; a skipped assertion can still coexist with a green aggregate gate.

@@ -3,7 +3,7 @@ PLAN_ID: PLAN-009
 aliases: [PLAN-009]
 TITLE: Attendance
 AREA: attendance
-STATUS: CURRENT
+STATUS: NEEDS_REVIEW
 MODULES: [services/api/src/modules/attendance, services/api/src/modules/attendance-engine, services/api/src/modules/attendance-integrations]
 RISK: CRITICAL
 COVERAGE_UNIT: GOOD
@@ -17,9 +17,13 @@ COVERAGE_PERFORMANCE: GAP
 RELATED_BUGS: [BUG-0002, BUG-0047]
 RELATED_REGRESSIONS: [REG-002]
 CREATED_AT: 2026-08-16
-UPDATED_AT: 2026-08-16
+UPDATED_AT: 2026-08-17
 VERIFIED_AGAINST_SHA: 714632d
 ---
+
+> **TASK-0005 revalidation:** `VERIFIED_AGAINST_SHA` remains historical. Exact
+> CI has failing attendance-engine and attendance-integration suites; WP-04 and
+> WP-06 must classify them before `CURRENT` is restored.
 
 # PLAN-009 — Attendance
 

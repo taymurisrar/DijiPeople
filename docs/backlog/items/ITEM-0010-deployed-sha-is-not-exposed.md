@@ -9,7 +9,7 @@ Severity: MEDIUM
 AffectedModules: [services/api]
 Source: DEPLOYMENT
 OwnerAgent: release-devops
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 CreatedAt: 2026-08-15
 UpdatedAt: 2026-08-17
 RelatedBug:
@@ -75,6 +75,9 @@ variable registered per `AGENTS.md` — `packages/config` validation,
 architecture [[deployment-architecture|Deployment Architecture]] · `docs/deployment/smoke-tests.md`.
 
 ## History
+
+- 2026-08-17 — Architect reconciliation: terminal `DONE` status normalized to
+  `ArchitectDisposition: DONE`; no runtime behavior changed.
 
 - 2026-08-15 — imported from the Release/DevOps observability gap.
 

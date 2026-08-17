@@ -9,8 +9,8 @@ CREATED_AT: 2026-08-17
 AFFECTED_MODULES: [global, framework, qa, ci, api, web, admin, landing, agent-desktop, gateway]
 AGENTS: [Architect, Backend/API, Frontend, UI/UX, Database, Integration, QA, Reviewer, Integrator, Release/DevOps]
 DEPENDENCIES: current origin/develop, readable repository records, configured CI
-CURRENT_PACKAGE: WP-01
-COMPLETED_PACKAGES: []
+CURRENT_PACKAGE: WP-02
+COMPLETED_PACKAGES: [WP-01]
 BLOCKED_PACKAGES: []
 OWNER_DECISIONS: 1
 FINAL_STATUS:
@@ -82,8 +82,8 @@ exact-SHA CI, `develop` containing `main`, and `main` untouched.
 
 | WP_ID | TITLE | STATUS | DEPENDENCIES | AGENTS | BRANCH | SHA | QA_STATUS | BUGS | CI_STATUS | MERGE_STATUS |
 |---|---|---|---|---|---|---|---|---|---|---|
-| WP-01 | Global inventory and evidence triage | IN_PROGRESS | — | Architect, QA, Reviewer | agent/global-remediation-program | — | PASS_WITH_RISKS | BUG-0049–0052, ITEM-0044–0046 | NOT_RUN | NOT_STARTED |
-| WP-02 | Record-state, validator and QA-registry reconciliation | NOT_STARTED | WP-01 | Architect, QA, Reviewer | agent/remediation-record-reconciliation | — | NOT_RUN | BUG-0051 | NOT_RUN | NOT_STARTED |
+| WP-01 | Global inventory and evidence triage | DONE | — | Architect, QA, Reviewer, Integrator, Release/DevOps | agent/global-remediation-program | d919e1a | PASS_WITH_RISKS | BUG-0049–0052, ITEM-0044–0046 | PASS | DONE |
+| WP-02 | Record-state, validator and QA-registry reconciliation | CI | WP-01 | Architect, QA, Reviewer | agent/remediation-record-reconciliation | — | PASS_WITH_RISKS | BUG-0051 | NOT_RUN | NOT_STARTED |
 | WP-03 | Authorization invariant audit and module remediation | NOT_STARTED | WP-01 | Backend/API, Integration, QA, Reviewer | agent/remediation-authorization | — | NOT_RUN | ITEM-0043 | NOT_RUN | NOT_STARTED |
 | WP-04 | Database E2E isolation and residual defect proof | NOT_STARTED | WP-01 | Database, Backend/API, QA, Reviewer | agent/remediation-database-e2e | — | NOT_RUN | BUG-0049 | NOT_RUN | NOT_STARTED |
 | WP-05 | Tenant provisioning and lifecycle proof | NOT_STARTED | WP-01, WP-04 | Backend/API, Database, QA, Reviewer | agent/remediation-tenant-lifecycle | — | NOT_RUN | ITEM-0004 | NOT_RUN | NOT_STARTED |
@@ -146,6 +146,10 @@ queue. **POST_TASK_REPO_HEALTH = PENDING.**
 - 2026-08-17 — `SESSION-0003` registered; global discovery and selective Obsidian retrieval started.
 - 2026-08-17 — inventory reconciled to 98 canonical records plus 34 cross-record findings; CI evidence exposed 796 authorization-invariant violations, 6 failing database E2E suites and 1 skipped browser assertion behind green aggregate jobs.
 - 2026-08-17 — WP-01 QA returned `PASS_WITH_RISKS`; independent Reviewer returned `APPROVE WITH FOLLOW-UPS` and `REVIEWER_ACCEPTED_QA`. The 70 nonterminal re-verifications remain explicitly assigned to later packages.
+- 2026-08-17 — WP-01 task SHA `423a7a8` passed exact-SHA CI run `32015389727`, merged through the serialized queue as `d919e1a`, and passed post-merge CI run `32016184547` on `develop`. WP-02 started from that merge.
+- 2026-08-17 — WP-02 reconciled 98 canonical records, 69 QA scenarios, 39 active regressions and 34 inventory findings; 21 discovery findings were resolved or truthfully moved to `NEEDS_REVIEW`. All record/task/QA/session/dashboard checks and 1,109 framework checks passed. QA verdict: `PASS_WITH_RISKS`; independent review pending.
+- 2026-08-17 — independent review rejected a false authentication closure and a regression-root false negative. BUG-0009/0010 returned to `FIXED`, ITEM-0002 returned to `READY/FIX_NOW`, QA-AUTH-002 became `PARTIAL`, REG-001–021 gained explicit canonical roots, REG-026/033 scenario roots were corrected, and validators gained root-matching negative fixtures.
+- 2026-08-17 — after rework, independent Reviewer returned `APPROVE` and `REVIEWER_ACCEPTED_QA`: zero blocking findings; record/QA/regression/inventory/CI-document truth and lease compliance all passed. WP-02 advanced to exact-SHA CI.
 
 ## Business requirement
 
@@ -156,13 +160,13 @@ boundaries, integrates ordinary work only into `develop`, and never modifies
 
 ## Existing behavior
 
-**FACT:** after discovery records were added, the backlog generator reports 98
-records, 34 open, 0 blocked, 2 deferred, 0 product decisions, 0 open CRITICAL
-and 5 open HIGH. **FACT:** those aggregate buckets are not wholly truthful
-because several source records have contradictory status, disposition,
-dependency or QA evidence. **FACT:** framework validation initially failed only
-the stale Engineering Control Center checks created by the new program state;
-the dashboards were regenerated before WP-01 validation.
+**FACT:** after WP-02 reconciliation and independent-review corrections, the
+backlog generator reports 98 records: 36 open, 0 blocked, 1 deferred, 1 product
+decision and 60 completed, with 0 open
+CRITICAL and 5 open HIGH. Source records, generated views and the master
+inventory now agree on these buckets. **FACT:** framework validation passes
+1,109 checks; the two unresolved-wikilink notices are non-blocking follow-up
+knowledge work.
 
 ## Existing architecture
 

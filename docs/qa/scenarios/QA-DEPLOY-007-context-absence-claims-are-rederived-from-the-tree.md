@@ -1,0 +1,41 @@
+---
+SCENARIO_ID: QA-DEPLOY-007
+aliases: [QA-DEPLOY-007]
+TITLE: Context absence claims are rederived from the repository tree
+AREA: deployment-release
+MODULE: .agent/context
+TYPE: INTEGRATION
+RISK: MEDIUM
+AUTOMATION_STATUS: MANUAL
+TEST_REFERENCE:
+RELATED_BUGS: [BUG-0023, BUG-0037]
+RELATED_REGRESSIONS: [REG-036]
+LAST_RUN: 2026-08-17
+LAST_RESULT: PASS_WITH_RISKS
+CREATED_AT: 2026-08-17
+UPDATED_AT: 2026-08-17
+---
+
+# QA-DEPLOY-007 — Context absence claims are rederived from the repository tree
+
+## Preconditions
+
+A current checkout and the context files that describe its test and integration surfaces.
+
+## Steps
+
+1. List the e2e suites, attendance integration module, gateway and device POC from the tree.
+2. Read the corresponding absence/presence statements in the context layer.
+3. Compare documented counts and capabilities with the executable sources.
+
+## Expected Result
+
+No context file denies a subsystem or suite that exists. Volatile counts are
+labelled with a verification SHA and readers are told to rederive them.
+
+## Notes
+
+Manual reusable coverage for the shared `doc-code-drift` recurrence behind
+`BUG-0023` and `BUG-0037`. Rechecked during TASK-0005 discovery. Result is
+`PASS_WITH_RISKS` because ITEM-0011's proposed mechanical absence-claim guard is
+still not implemented.

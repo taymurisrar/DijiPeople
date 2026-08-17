@@ -143,8 +143,8 @@ conflating them is how "tested" comes to mean less than it sounds:
 |---|---|---|
 | `UNIT` | A function or service behaves in isolation | Available — jest |
 | `INTEGRATION` | Modules work together against real infrastructure | Needs a database — see [`../context/testing-architecture.md`](../context/testing-architecture.md) |
-| `API` | The HTTP contract behaves, authorization included | supertest; the 9 e2e suites need a live DB |
-| `BROWSER_E2E` | A real user flow works in a real browser | **Installed** — Playwright in the `e2e` workspace; `browser-e2e-report` in CI is **report-only, not a gate** |
+| `API` | The HTTP contract behaves, authorization included | supertest; 15 e2e suites run in CI against ephemeral PostgreSQL, currently report-only with 6 failing suites |
+| `BROWSER_E2E` | A real user flow works in a real browser | **Installed** — Playwright in the `e2e` workspace; `browser-e2e` is named by the required aggregate but remains fail-open through `continue-on-error` |
 | `MANUAL_VISUAL` | A human looked at it | Always available; always say when it is all you did |
 | `DEPLOYMENT_SMOKE` | The deployed system responds | [`../../docs/deployment/smoke-tests.md`](../../docs/deployment/smoke-tests.md) |
 
@@ -275,7 +275,8 @@ Verdict is one of:
 
 **Status: Playwright is installed**, in the `e2e` workspace, with two journey
 specs — `flow-a-commercial-onboarding` and `flow-b-partner-journey`. It runs in
-CI as `browser-e2e-report`, which is **report-only and not a gate**.
+CI as `browser-e2e`. The job is named by `ci-required` but remains fail-open
+through job-level `continue-on-error`; inspect its test summary and artifacts.
 
 ```bash
 npm run test:browser:install   # once, downloads chromium

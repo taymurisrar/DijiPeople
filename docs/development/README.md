@@ -119,9 +119,9 @@ npm run release:admin
 
 ## CI
 
-`.github/workflows/ci.yml` runs eight required jobs — framework validation,
-typecheck, lint, four test suites and the build — aggregated into a single
-`CI required gate` status, plus two non-gating known baselines. Full detail in
+`.github/workflows/ci.yml` names eleven jobs behind a single `CI required gate`
+status, plus two non-gating known baselines. Browser E2E is in the dependency
+list but remains fail-open through job-level `continue-on-error`. Full detail in
 [`ci.md`](ci.md); branch-protection settings in
 [`branch-protection.md`](branch-protection.md).
 

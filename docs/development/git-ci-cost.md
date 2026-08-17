@@ -19,14 +19,14 @@ about which, because the tempting savings are the ones that must not be taken.
 and a push ref and a pull-request ref are different refs, so both runs execute.
 
 ```
-before   push agent/<task>   → run 1  (10 jobs)
-         open PR → main      → run 2  (10 jobs, on the merge commit)
-after    push agent/<task>   → run 1  (10 jobs)
+before   push agent/<task>   → run 1  (current workflow)
+         open PR → main      → run 2  (same workflow, on the merge commit)
+after    push agent/<task>   → run 1  (current workflow)
          integrate to develop directly — no PR, no second run
 ```
 
 **Halves the gate runs for an ordinary task.** Nothing is skipped: run 1 is the
-same ten jobs on the same code, and it is the run whose verdict authorises the
+same workflow on the same code, and it is the run whose verdict authorises the
 integration.
 
 A PR to `develop` is still available and still free of approval requirements —

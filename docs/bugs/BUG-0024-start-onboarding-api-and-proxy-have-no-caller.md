@@ -11,14 +11,14 @@ DetectedDate: 2026-08-15
 DetectedInSha: 7bbab3d
 AffectedModules: [apps/admin, services/api/src/modules/super-admin]
 OwnerAgent: frontend
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: docs/qa/runs/2026-08-15-commercial-onboarding-e2e-7bbab3d.md
-RegressionId:
+RegressionId: REG-028
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-15
-UpdatedAt: 2026-08-16
+UpdatedAt: 2026-08-17
 ResolvedAt: 2026-08-16
 ---
 
@@ -142,6 +142,13 @@ failure mode — a surface nothing reaches — is covered by REG-028, which
 checks that every runtime module's route renders that module.
 
 ## History
+
+- 2026-08-17 — linked to active regression `REG-028` during TASK-0005
+  record/QA reconciliation.
+
+- 2026-08-17 — Architect reconciliation: terminal `VERIFIED` status normalized
+  to `ArchitectDisposition: DONE`; the existing resolution and QA evidence are
+  unchanged.
 
 - 2026-08-15 — found during the commercial onboarding E2E UI/UX assessment.
 - 2026-08-15 — re-verified against `main` `ad8f77f` and recorded as OPEN.

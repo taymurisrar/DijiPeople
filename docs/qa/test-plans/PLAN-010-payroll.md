@@ -3,7 +3,7 @@ PLAN_ID: PLAN-010
 aliases: [PLAN-010]
 TITLE: Payroll
 AREA: payroll
-STATUS: CURRENT
+STATUS: NEEDS_REVIEW
 MODULES: [services/api/src/modules/payroll, services/api/src/modules/compensation, services/api/src/modules/payslips, services/api/src/modules/pay-components, services/api/src/modules/benefits]
 RISK: CRITICAL
 COVERAGE_UNIT: GOOD
@@ -17,9 +17,13 @@ COVERAGE_PERFORMANCE: GAP
 RELATED_BUGS: [BUG-0001, BUG-0039]
 RELATED_REGRESSIONS: [REG-001]
 CREATED_AT: 2026-08-16
-UPDATED_AT: 2026-08-16
+UPDATED_AT: 2026-08-17
 VERIFIED_AGAINST_SHA: 714632d
 ---
+
+> **TASK-0005 revalidation:** `VERIFIED_AGAINST_SHA` remains historical. WP-02
+> corrected QA-PAY-001 metadata but did not re-audit the whole payroll domain;
+> WP-10 owns the remaining plan review.
 
 # PLAN-010 — Payroll
 

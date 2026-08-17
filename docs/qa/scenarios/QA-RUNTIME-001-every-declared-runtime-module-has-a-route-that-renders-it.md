@@ -8,12 +8,12 @@ TYPE: UNIT
 RISK: HIGH
 AUTOMATION_STATUS: AUTOMATED
 TEST_REFERENCE: apps/admin/lib/runtime/module-routes.invariant.spec.ts
-RELATED_BUGS: [BUG-0019]
+RELATED_BUGS: [BUG-0019, BUG-0024]
 RELATED_REGRESSIONS: [REG-028]
-LAST_RUN: 2026-08-16
+LAST_RUN: 2026-08-17
 LAST_RESULT: PASS
 CREATED_AT: 2026-08-16
-UPDATED_AT: 2026-08-16
+UPDATED_AT: 2026-08-17
 ---
 
 # QA-RUNTIME-001 — Every declared runtime module has a route that renders it
@@ -34,4 +34,7 @@ No declared module is unreachable. A registry entry with no route is a feature t
 
 ## Notes
 
-The `unreachable-surface` pattern: `BUG-0019` was two screens nobody could navigate to.
+The `unreachable-surface` pattern: `BUG-0019` was two screens nobody could
+navigate to. `BUG-0024` removed a dead endpoint/proxy path whose intended
+navigation-first route remained; its own record names REG-028 as the reusable
+general guard. The admin invariant passed in GitHub Actions run `32009837400`.

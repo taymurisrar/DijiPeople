@@ -9,7 +9,7 @@ Severity: MEDIUM
 AffectedModules: [services/api/prisma, api:super-admin, apps/admin, apps/landing]
 Source: ARCHITECT
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 CreatedAt: 2026-08-16
 UpdatedAt: 2026-08-17
 RelatedBug: BUG-0028
@@ -127,6 +127,9 @@ population of it. That belongs with the provisioning wave, and adding an unused
 column now would be a field with no writer. Recorded as [[ITEM-0023]].
 
 ## History
+
+- 2026-08-17 — Architect reconciliation: terminal `DONE` status normalized to
+  `ArchitectDisposition: DONE`; no runtime behavior changed.
 
 - 2026-08-16 — created during commercial-configuration discovery at `45d00cf`.
 

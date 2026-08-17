@@ -11,14 +11,14 @@ DetectedDate: 2026-08-15
 DetectedInSha: 7bbab3d
 AffectedModules: [apps/admin, services/api/src/modules/tenant-control-plane]
 OwnerAgent: frontend
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: docs/qa/runs/2026-08-15-commercial-onboarding-e2e-7bbab3d.md
 RegressionId: REG-030
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-15
-UpdatedAt: 2026-08-16
+UpdatedAt: 2026-08-17
 ResolvedAt: 2026-08-16
 ---
 
@@ -156,6 +156,10 @@ duplicate submit — fails *rethrows when the slug belongs to an unrelated tenan
 API 159 suites / 1131 tests passing; admin typecheck clean.
 
 ## History
+
+- 2026-08-17 — Architect reconciliation: terminal `VERIFIED` status normalized
+  to `ArchitectDisposition: DONE`; the existing resolution and QA evidence are
+  unchanged.
 
 - 2026-08-15 — found during the commercial onboarding E2E UI/UX assessment.
 - 2026-08-15 — recorded as OPEN, awaiting Architect triage.

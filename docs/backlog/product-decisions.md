@@ -10,4 +10,6 @@ Each states the question, the options and what each option costs.
 
 ## Awaiting a product decision
 
-_None._
+| ID | Title | Type | Severity | Priority | Status | Affected | Architect |
+|---|---|---|---|---|---|---|---|
+| [ITEM-0032](../../docs/backlog/items/ITEM-0032-recompute-productivity-totals-inflated-by-heartbeat-replays.md) | Recompute productivity totals inflated by heartbeat replays | DATA_MIGRATION | MEDIUM | P2 | PRODUCT_DECISION | api:agent | PRODUCT_DECISION |

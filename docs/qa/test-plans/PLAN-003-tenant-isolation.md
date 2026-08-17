@@ -3,7 +3,7 @@ PLAN_ID: PLAN-003
 aliases: [PLAN-003]
 TITLE: Tenant Isolation
 AREA: tenant-isolation
-STATUS: CURRENT
+STATUS: NEEDS_REVIEW
 MODULES: [services/api/src/modules/error-logs, services/api/src/modules/attendance-integrations, services/api/src/modules/tenants, services/api/test]
 RISK: CRITICAL
 COVERAGE_UNIT: PARTIAL
@@ -17,9 +17,14 @@ COVERAGE_PERFORMANCE: NOT_APPLICABLE
 RELATED_BUGS: [BUG-0005]
 RELATED_REGRESSIONS: [REG-005]
 CREATED_AT: 2026-08-16
-UPDATED_AT: 2026-08-16
+UPDATED_AT: 2026-08-17
 VERIFIED_AGAINST_SHA: 714632d
 ---
+
+> **TASK-0005 revalidation:** `VERIFIED_AGAINST_SHA` remains historical. WP-04
+> owns the full database-suite audit; current evidence includes passing tenant,
+> workspace and erasure suites and a failing attendance-integration isolation
+> suite.
 
 # PLAN-003 — Tenant Isolation
 
@@ -53,7 +58,10 @@ Two fixture tenants with a per-run identifier, so a failed run that skipped clea
 
 ## Test Types
 
-`UNIT` runs today. `DATABASE` and `E2E` need a live PostgreSQL and are `BLOCKED_INFRASTRUCTURE` in this checkout — which is stated, never rounded up to a pass.
+`UNIT` runs locally. `DATABASE` and `E2E` run in CI against ephemeral
+PostgreSQL. In run `32009837400`, the generic tenant-isolation, workspace-domain
+and erasure suites passed while attendance-integration isolation failed; WP-04
+must classify that failure before this plan returns to `CURRENT`.
 
 ## Data Requirements
 

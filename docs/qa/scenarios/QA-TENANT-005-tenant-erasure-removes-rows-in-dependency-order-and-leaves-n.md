@@ -6,14 +6,14 @@ AREA: tenant-isolation
 MODULE: services/api/src/modules/tenants
 TYPE: DATABASE
 RISK: HIGH
-AUTOMATION_STATUS: BLOCKED_INFRASTRUCTURE
-TEST_REFERENCE: 
+AUTOMATION_STATUS: AUTOMATED
+TEST_REFERENCE: services/api/test/tenant-erasure-order.e2e-spec.ts services/api/test/tenant-erasure-dry-run.e2e-spec.ts
 RELATED_BUGS: []
 RELATED_REGRESSIONS: []
-LAST_RUN: 
-LAST_RESULT: BLOCKED
+LAST_RUN: 2026-08-17
+LAST_RESULT: PASS
 CREATED_AT: 2026-08-16
-UPDATED_AT: 2026-08-16
+UPDATED_AT: 2026-08-17
 ---
 
 # QA-TENANT-005 — Tenant erasure removes rows in dependency order and leaves nothing reachable
@@ -34,4 +34,6 @@ The dry run's order is the order executed, no foreign-key violation occurs, and 
 
 ## Notes
 
-`tenant-erasure-order.e2e-spec.ts` and `tenant-erasure-dry-run.e2e-spec.ts`. 424 relations use `Cascade`, so the order is derived, not guessed.
+Both named suites passed against ephemeral PostgreSQL in GitHub Actions run
+`32009837400`. The relation count is deliberately not repeated here; the order
+is derived from the current schema, not guessed from a stale count.

@@ -44,17 +44,22 @@ production or staging credentials exist in the workflow.
 | `test-runtime` | runtime schema, platform domains, release CLI, app URLs, no-hardcoded-URLs | ✅ |
 | `database-migration` | Ephemeral PostgreSQL → `node scripts/verify-database.mjs` | ✅ |
 | `build` | `npm run build` (needs typecheck + test-api) | ✅ |
-| `ci-required` | Aggregates the **ten** above | ✅ **the one to require** |
+| `browser-e2e` | Playwright journeys (`e2e/`) against API + landing + admin | ⚠️ named by `ci-required`, but fail-open through `continue-on-error: true` |
+| `ci-required` | Aggregates the **eleven** jobs above | ✅ **the one to require** |
 | `database-e2e-report` | The e2e suites against an ephemeral PostgreSQL | ❌ report only |
-| `lint-api-report` | `npx eslint` in services/api | ❌ report only |
 | `security-invariant-report` | Dual-permission wiring invariant | ❌ report only |
-| `browser-e2e-report` | Playwright journeys (`e2e/`) against API + landing + admin | ❌ report only |
 
 `validate` runs without installing dependencies, so a structural break in the
 agent framework fails in seconds rather than minutes.
 
 `build` is gated behind `typecheck` and `test-api` because it is the slowest job
 (~6 minutes locally) — an obvious break should fail fast.
+
+`browser-e2e` appears in `ci-required.needs`, but its job-level
+`continue-on-error: true` converts a failing browser step into a successful
+dependency result. It is therefore structurally listed but not yet a genuine
+blocking gate. The latest audited execution was 8 passed and 1 skipped; the
+skip is the stale BUG-0019 reachability assertion, not a passing scenario.
 
 ---
 
@@ -81,10 +86,11 @@ assert the target is disposable   scripts/assert-test-database.mjs
   → seed:config → seed:verify
 ```
 
-**`database-e2e-report` (report only)** runs the nine e2e suites against a
-second ephemeral database. It is not required **yet** because those suites have
-never run in CI and have not been observed passing here — requiring them on
-arrival risks a permanently red gate, which trains people to ignore CI.
+**`database-e2e-report` (report only)** runs all fifteen e2e suites against a
+second ephemeral database. The latest audited run had 9 passing and 6 failing
+suites (91 passing and 136 failing tests), so this job is not eligible for
+promotion. The workflow records the failing exit code but does not return it,
+which is tracked by [[BUG-0049]].
 
 **Promotion criteria** — move it into `ci-required` when all hold:
 
@@ -130,7 +136,8 @@ permissions granted to a role, role grants being defined permissions, settings
 menu wiring, and filter-operator support. Excluding the *file* would have been
 easier and would have silently stopped gating those four as well.
 
-Verified locally: **127 suites pass, 764 tests pass, 1 skipped.**
+At the latest audited SHA, discovery found 1,198 handlers: 29 public, 275 not
+behind `PermissionsGuard`, and 894 in scope for the dual-permission invariant.
 
 The excluded invariant still runs in full in `security-invariant-report`, which
 uploads its inventory as an artifact and writes it to the job summary.
@@ -141,7 +148,9 @@ uploads its inventory as an artifact and writes it to the job summary.
 
 Two checks report without gating. Neither is weakened.
 
-**Dual-permission invariant** — 780 violations across 878 in-scope handlers.
+**Dual-permission invariant** — 796 violations across 894 in-scope handlers:
+3 missing only legacy `@Permissions`, 715 missing only matrix
+`@RequirePermission`, and 78 missing both.
 Gating would block every unrelated PR on pre-existing debt. Promote when the
 count reaches zero.
 
@@ -160,8 +169,6 @@ inherited.
 
 | Check | Why not | Path forward |
 |---|---|---|
-| **e2e** (9 suites) | Require a live PostgreSQL database | Add a `postgres:16` service container, run migrations against it, then the suites. Phase 2 |
-| **Migration application** | Same | Same ephemeral database; create → migrate → verify → destroy |
 | **Gateway** (.NET) | Needs the .NET SDK; separate toolchain | `dotnet build`/`test` in a job with `actions/setup-dotnet` |
 | **Electron** | Windows-only packaging | Only if installer regressions become a real problem |
 | **Deployment readiness** | Needs environment credentials | After deployment policy is defined |

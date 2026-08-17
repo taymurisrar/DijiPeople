@@ -3,7 +3,7 @@ PLAN_ID: PLAN-001
 aliases: [PLAN-001]
 TITLE: Authentication
 AREA: authentication
-STATUS: CURRENT
+STATUS: NEEDS_REVIEW
 MODULES: [services/api/src/modules/auth, services/api/src/common/guards, apps/admin/app/api/auth]
 RISK: CRITICAL
 COVERAGE_UNIT: GOOD
@@ -17,9 +17,13 @@ COVERAGE_PERFORMANCE: NOT_APPLICABLE
 RELATED_BUGS: [BUG-0008, BUG-0009, BUG-0010]
 RELATED_REGRESSIONS: [REG-008, REG-032, REG-033]
 CREATED_AT: 2026-08-16
-UPDATED_AT: 2026-08-16
+UPDATED_AT: 2026-08-17
 VERIFIED_AGAINST_SHA: 714632d
 ---
+
+> **TASK-0005 revalidation:** `VERIFIED_AGAINST_SHA` remains historical. Auth
+> and desktop-client changes since that SHA were not fully re-audited in WP-02;
+> WP-03 and WP-06 must reverify this plan before returning it to `CURRENT`.
 
 # PLAN-001 — Authentication
 
@@ -52,8 +56,8 @@ session-revocation path needs one.
 
 ## Test Types
 
-`UNIT` and `API` run today. `E2E` needs a live PostgreSQL and is therefore
-`BLOCKED_INFRASTRUCTURE` in this checkout. `BROWSER_E2E` is runnable —
+`UNIT` and `API` run today. Database-backed `E2E` runs in CI against ephemeral
+PostgreSQL. `BROWSER_E2E` is runnable —
 Playwright is installed in the `e2e` workspace — but no authentication journey
 spec exists yet.
 
@@ -86,7 +90,7 @@ its own contract cases live in `agent-desktop`.
 
 Sign-in, expired-session recovery and sign-out are the three browser cases, and
 they are now runnable: Playwright is **installed**, in the `e2e` workspace — `@playwright/test` with
-two journey specs, run in CI as `browser-e2e-report` (report-only, not a gate).
+two journey specs, run in CI as the required `browser-e2e` job.
 `npm run test:browser`, and `npm run test:browser:install` first.
 
 None of the three is covered by the two existing journey specs, so the dimension

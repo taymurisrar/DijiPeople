@@ -3,16 +3,17 @@
   "task_id": "TASK-0005",
   "session_id": "SESSION-0003",
   "generated_on": "2026-08-17",
-  "source_head": "00511803ebb0e1343ff35535996df1af98c95834",
+  "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
+  "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
     "total_records": 98,
     "bugs": 52,
     "backlog_items": 46,
-    "open_bucket": 34,
+    "open_bucket": 36,
     "blocked_bucket": 0,
-    "deferred_bucket": 2,
-    "product_decision_bucket": 0,
-    "completed_bucket": 62,
+    "deferred_bucket": 1,
+    "product_decision_bucket": 1,
+    "completed_bucket": 60,
     "parser_structural_errors": 0,
     "active_session_conflict": "NONE",
     "discovered_findings_total": 34,
@@ -20,10 +21,12 @@
     "qa_findings": 10,
     "obsidian_findings": 2,
     "evidence_verified_during_triage": 28,
-    "preliminary_records": 69,
-    "pending_qa_retest_records": 1,
+    "preliminary_records": 67,
+    "pending_qa_retest_records": 3,
     "terminal_reverification_remaining": 70,
-    "canonical_record_count_policy": "Findings that substantiate an existing BUG/ITEM link to that canonical record and do not create a duplicate record row."
+    "canonical_record_count_policy": "Findings that substantiate an existing BUG/ITEM link to that canonical record and do not create a duplicate record row.",
+    "wp02_remediated_findings": 21,
+    "findings_remaining_for_later_packages": 13
   },
   "records": [
     {
@@ -63,8 +66,12 @@
       "regressions": [
         "REG-001"
       ],
-      "qa_scenarios": [],
-      "test_plan": [],
+      "qa_scenarios": [
+        "QA-PAY-001"
+      ],
+      "test_plan": [
+        "PLAN-010"
+      ],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
       "architect_disposition": "DONE",
@@ -111,8 +118,12 @@
       "regressions": [
         "REG-002"
       ],
-      "qa_scenarios": [],
-      "test_plan": [],
+      "qa_scenarios": [
+        "QA-ATT-006"
+      ],
+      "test_plan": [
+        "PLAN-009"
+      ],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
       "architect_disposition": "DONE",
@@ -161,8 +172,12 @@
       "regressions": [
         "REG-003"
       ],
-      "qa_scenarios": [],
-      "test_plan": [],
+      "qa_scenarios": [
+        "QA-AUTHZ-003"
+      ],
+      "test_plan": [
+        "PLAN-002"
+      ],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
       "architect_disposition": "DONE",
@@ -209,8 +224,12 @@
       "regressions": [
         "REG-004"
       ],
-      "qa_scenarios": [],
-      "test_plan": [],
+      "qa_scenarios": [
+        "QA-AUTHZ-004"
+      ],
+      "test_plan": [
+        "PLAN-002"
+      ],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
       "architect_disposition": "DONE",
@@ -256,8 +275,12 @@
       "regressions": [
         "REG-005"
       ],
-      "qa_scenarios": [],
-      "test_plan": [],
+      "qa_scenarios": [
+        "QA-TENANT-002"
+      ],
+      "test_plan": [
+        "PLAN-003"
+      ],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
       "architect_disposition": "DONE",
@@ -305,8 +328,12 @@
       "regressions": [
         "REG-006"
       ],
-      "qa_scenarios": [],
-      "test_plan": [],
+      "qa_scenarios": [
+        "QA-AUTHZ-007"
+      ],
+      "test_plan": [
+        "PLAN-002"
+      ],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
       "architect_disposition": "DONE",
@@ -354,8 +381,12 @@
       "regressions": [
         "REG-007"
       ],
-      "qa_scenarios": [],
-      "test_plan": [],
+      "qa_scenarios": [
+        "QA-AUTHZ-002"
+      ],
+      "test_plan": [
+        "PLAN-002"
+      ],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
       "architect_disposition": "DONE",
@@ -406,10 +437,15 @@
         "ITEM-0012"
       ],
       "regressions": [
-        "REG-008"
+        "REG-008",
+        "REG-033"
       ],
-      "qa_scenarios": [],
-      "test_plan": [],
+      "qa_scenarios": [
+        "QA-AUTH-001"
+      ],
+      "test_plan": [
+        "PLAN-001"
+      ],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
       "architect_disposition": "DONE",
@@ -426,14 +462,14 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "cbc2db8",
         "created_at": "2026-08-15",
-        "updated_at": "2026-08-16",
-        "resolved_at": "2026-08-16"
+        "updated_at": "2026-08-17",
+        "resolved_at": ""
       },
       "type": "SECURITY",
       "title": "Server-side session revocation depended on the refresh cookie surviving",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "VERIFIED",
+      "current_status": "FIXED",
       "current_evidence": {
         "paths": [
           "docs/bugs/BUG-0009-session-revocation-depended-on-the-refresh-cookie.md",
@@ -462,16 +498,20 @@
       "regressions": [
         "REG-032"
       ],
-      "qa_scenarios": [],
-      "test_plan": [],
+      "qa_scenarios": [
+        "QA-AUTH-002"
+      ],
+      "test_plan": [
+        "PLAN-001"
+      ],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
       "architect_disposition": "FIX_NOW",
       "verification_result": {
-        "result": "PRELIMINARY",
-        "classification": "TERMINAL_STATUS_WITH_STALE_ARCHITECT_DISPOSITION",
+        "result": "PENDING",
+        "classification": "FIXED_AWAITING_LIVE_SESSION_QA",
         "finding_ids": [
-          "TASK-0005-RF-001"
+          "TASK-0005-RF-005"
         ]
       }
     },
@@ -482,14 +522,14 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "cbc2db8",
         "created_at": "2026-08-15",
-        "updated_at": "2026-08-16",
-        "resolved_at": "2026-08-16"
+        "updated_at": "2026-08-17",
+        "resolved_at": ""
       },
       "type": "INFRA",
       "title": "Unguarded cookie options could turn admin sign-out into a 500",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "VERIFIED",
+      "current_status": "FIXED",
       "current_evidence": {
         "paths": [
           "docs/bugs/BUG-0010-unguarded-cookie-options-could-turn-sign-out-into-a-500.md",
@@ -517,16 +557,20 @@
       "regressions": [
         "REG-032"
       ],
-      "qa_scenarios": [],
-      "test_plan": [],
+      "qa_scenarios": [
+        "QA-AUTH-002"
+      ],
+      "test_plan": [
+        "PLAN-001"
+      ],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
       "architect_disposition": "FIX_NOW",
       "verification_result": {
-        "result": "PRELIMINARY",
-        "classification": "TERMINAL_STATUS_WITH_STALE_ARCHITECT_DISPOSITION",
+        "result": "PENDING",
+        "classification": "FIXED_AWAITING_LIVE_SESSION_QA",
         "finding_ids": [
-          "TASK-0005-RF-001"
+          "TASK-0005-RF-005"
         ]
       }
     },
@@ -565,8 +609,12 @@
       "regressions": [
         "REG-009"
       ],
-      "qa_scenarios": [],
-      "test_plan": [],
+      "qa_scenarios": [
+        "QA-ONBOARD-001"
+      ],
+      "test_plan": [
+        "PLAN-004"
+      ],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
       "architect_disposition": "DONE",
@@ -611,8 +659,12 @@
       "regressions": [
         "REG-010"
       ],
-      "qa_scenarios": [],
-      "test_plan": [],
+      "qa_scenarios": [
+        "QA-ONBOARD-002"
+      ],
+      "test_plan": [
+        "PLAN-004"
+      ],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
       "architect_disposition": "DONE",
@@ -661,8 +713,12 @@
       "regressions": [
         "REG-011"
       ],
-      "qa_scenarios": [],
-      "test_plan": [],
+      "qa_scenarios": [
+        "QA-LEAD-001"
+      ],
+      "test_plan": [
+        "PLAN-005"
+      ],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
       "architect_disposition": "DONE",
@@ -709,8 +765,12 @@
       "regressions": [
         "REG-012"
       ],
-      "qa_scenarios": [],
-      "test_plan": [],
+      "qa_scenarios": [
+        "QA-PROV-001"
+      ],
+      "test_plan": [
+        "PLAN-007"
+      ],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
       "architect_disposition": "DONE",
@@ -727,7 +787,7 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "7bbab3d",
         "created_at": "2026-08-15",
-        "updated_at": "2026-08-16",
+        "updated_at": "2026-08-17",
         "resolved_at": "2026-08-15"
       },
       "type": "STATE_MACHINE",
@@ -762,11 +822,15 @@
       "regressions": [
         "REG-013"
       ],
-      "qa_scenarios": [],
-      "test_plan": [],
+      "qa_scenarios": [
+        "QA-PROV-004"
+      ],
+      "test_plan": [
+        "PLAN-007"
+      ],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "PRELIMINARY",
         "classification": "TERMINAL_STATUS_WITH_STALE_ARCHITECT_DISPOSITION",
@@ -782,7 +846,7 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "7bbab3d",
         "created_at": "2026-08-15",
-        "updated_at": "2026-08-16",
+        "updated_at": "2026-08-17",
         "resolved_at": "2026-08-15"
       },
       "type": "STATE_MACHINE",
@@ -812,11 +876,15 @@
       "regressions": [
         "REG-014"
       ],
-      "qa_scenarios": [],
-      "test_plan": [],
+      "qa_scenarios": [
+        "QA-PARTNER-001"
+      ],
+      "test_plan": [
+        "PLAN-006"
+      ],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "PRELIMINARY",
         "classification": "TERMINAL_STATUS_WITH_STALE_ARCHITECT_DISPOSITION",
@@ -832,7 +900,7 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "7bbab3d",
         "created_at": "2026-08-15",
-        "updated_at": "2026-08-16",
+        "updated_at": "2026-08-17",
         "resolved_at": "2026-08-16"
       },
       "type": "INTEGRATION",
@@ -865,11 +933,16 @@
       "regressions": [
         "REG-027"
       ],
-      "qa_scenarios": [],
-      "test_plan": [],
+      "qa_scenarios": [
+        "QA-PROV-003",
+        "QA-TENANT-004"
+      ],
+      "test_plan": [
+        "PLAN-007"
+      ],
       "active_session_conflict": "NONE",
-      "owner_decision_required": "PENDING",
-      "architect_disposition": "PLAN_REQUIRED",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "PRELIMINARY",
         "classification": "TERMINAL_STATUS_WITH_STALE_ARCHITECT_DISPOSITION",
@@ -914,7 +987,9 @@
       "related_backlog": [],
       "regressions": [],
       "qa_scenarios": [],
-      "test_plan": [],
+      "test_plan": [
+        "PLAN-005"
+      ],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
       "architect_disposition": "DEFER",
@@ -931,7 +1006,7 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "7bbab3d",
         "created_at": "2026-08-15",
-        "updated_at": "2026-08-16",
+        "updated_at": "2026-08-17",
         "resolved_at": "2026-08-16"
       },
       "type": "UX",
@@ -965,11 +1040,17 @@
       "regressions": [
         "REG-028"
       ],
-      "qa_scenarios": [],
-      "test_plan": [],
+      "qa_scenarios": [
+        "QA-PARTNER-004",
+        "QA-RUNTIME-001"
+      ],
+      "test_plan": [
+        "PLAN-006",
+        "PLAN-011"
+      ],
       "active_session_conflict": "NONE",
-      "owner_decision_required": "PENDING",
-      "architect_disposition": "PLAN_REQUIRED",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "PRELIMINARY",
         "classification": "TERMINAL_STATUS_WITH_STALE_ARCHITECT_DISPOSITION",
@@ -985,7 +1066,7 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "7bbab3d",
         "created_at": "2026-08-15",
-        "updated_at": "2026-08-16",
+        "updated_at": "2026-08-17",
         "resolved_at": "2026-08-16"
       },
       "type": "UX",
@@ -1017,11 +1098,15 @@
       "regressions": [
         "REG-029"
       ],
-      "qa_scenarios": [],
-      "test_plan": [],
+      "qa_scenarios": [
+        "QA-RUNTIME-004"
+      ],
+      "test_plan": [
+        "PLAN-011"
+      ],
       "active_session_conflict": "NONE",
-      "owner_decision_required": "PENDING",
-      "architect_disposition": "PLAN_REQUIRED",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "PRELIMINARY",
         "classification": "TERMINAL_STATUS_WITH_STALE_ARCHITECT_DISPOSITION",
@@ -1037,7 +1122,7 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "7bbab3d",
         "created_at": "2026-08-15",
-        "updated_at": "2026-08-16",
+        "updated_at": "2026-08-17",
         "resolved_at": "2026-08-16"
       },
       "type": "DATA_INTEGRITY",
@@ -1071,11 +1156,15 @@
       "regressions": [
         "REG-021"
       ],
-      "qa_scenarios": [],
-      "test_plan": [],
+      "qa_scenarios": [
+        "QA-LEAD-004"
+      ],
+      "test_plan": [
+        "PLAN-005"
+      ],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "PRELIMINARY",
         "classification": "TERMINAL_STATUS_WITH_STALE_ARCHITECT_DISPOSITION",
@@ -1091,7 +1180,7 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "7bbab3d",
         "created_at": "2026-08-15",
-        "updated_at": "2026-08-16",
+        "updated_at": "2026-08-17",
         "resolved_at": "2026-08-16"
       },
       "type": "UX",
@@ -1126,11 +1215,15 @@
       "regressions": [
         "REG-030"
       ],
-      "qa_scenarios": [],
-      "test_plan": [],
+      "qa_scenarios": [
+        "QA-PROV-002"
+      ],
+      "test_plan": [
+        "PLAN-007"
+      ],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "PRELIMINARY",
         "classification": "TERMINAL_STATUS_WITH_STALE_ARCHITECT_DISPOSITION",
@@ -1146,7 +1239,7 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "7bbab3d",
         "created_at": "2026-08-15",
-        "updated_at": "2026-08-16",
+        "updated_at": "2026-08-17",
         "resolved_at": "2026-08-15"
       },
       "type": "DOCUMENTATION",
@@ -1172,12 +1265,18 @@
       "related_backlog": [
         "ITEM-0011"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
-      "test_plan": [],
+      "regressions": [
+        "REG-036"
+      ],
+      "qa_scenarios": [
+        "QA-DEPLOY-007"
+      ],
+      "test_plan": [
+        "PLAN-012"
+      ],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "PRELIMINARY",
         "classification": "TERMINAL_STATUS_WITH_STALE_ARCHITECT_DISPOSITION",
@@ -1194,7 +1293,7 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "7bbab3d",
         "created_at": "2026-08-15",
-        "updated_at": "2026-08-16",
+        "updated_at": "2026-08-17",
         "resolved_at": "2026-08-16"
       },
       "type": "BUG",
@@ -1223,12 +1322,19 @@
       "related_backlog": [
         "ITEM-0012"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
-      "test_plan": [],
+      "regressions": [
+        "REG-028"
+      ],
+      "qa_scenarios": [
+        "QA-ONBOARD-003",
+        "QA-RUNTIME-001"
+      ],
+      "test_plan": [
+        "PLAN-004"
+      ],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "PRELIMINARY",
         "classification": "TERMINAL_STATUS_WITH_STALE_ARCHITECT_DISPOSITION",
@@ -1245,7 +1351,7 @@
         "provenance": "REVIEWER",
         "detected_in_sha": "b2ba383",
         "created_at": "2026-08-15",
-        "updated_at": "2026-08-16",
+        "updated_at": "2026-08-17",
         "resolved_at": "2026-08-15"
       },
       "type": "STATE_MACHINE",
@@ -1275,11 +1381,15 @@
       "regressions": [
         "REG-015"
       ],
-      "qa_scenarios": [],
-      "test_plan": [],
+      "qa_scenarios": [
+        "QA-PARTNER-002"
+      ],
+      "test_plan": [
+        "PLAN-006"
+      ],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "PRELIMINARY",
         "classification": "TERMINAL_STATUS_WITH_STALE_ARCHITECT_DISPOSITION",
@@ -1296,7 +1406,7 @@
         "provenance": "USER_REPORT",
         "detected_in_sha": "344a832",
         "created_at": "2026-08-16",
-        "updated_at": "2026-08-16",
+        "updated_at": "2026-08-17",
         "resolved_at": "2026-08-16"
       },
       "type": "INFRA",
@@ -1334,11 +1444,16 @@
       "regressions": [
         "REG-016"
       ],
-      "qa_scenarios": [],
-      "test_plan": [],
+      "qa_scenarios": [
+        "QA-DEPLOY-002",
+        "QA-PROV-003"
+      ],
+      "test_plan": [
+        "PLAN-012"
+      ],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "PRELIMINARY",
         "classification": "TERMINAL_STATUS_WITH_STALE_ARCHITECT_DISPOSITION",
@@ -1354,7 +1469,7 @@
         "provenance": "REVIEWER",
         "detected_in_sha": "45d00cf",
         "created_at": "2026-08-16",
-        "updated_at": "2026-08-16",
+        "updated_at": "2026-08-17",
         "resolved_at": "2026-08-16"
       },
       "type": "DATA_INTEGRITY",
@@ -1393,11 +1508,15 @@
       "regressions": [
         "REG-017"
       ],
-      "qa_scenarios": [],
-      "test_plan": [],
+      "qa_scenarios": [
+        "QA-ONBOARD-005"
+      ],
+      "test_plan": [
+        "PLAN-004"
+      ],
       "active_session_conflict": "NONE",
-      "owner_decision_required": "PENDING",
-      "architect_disposition": "PLAN_REQUIRED",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "PRELIMINARY",
         "classification": "TERMINAL_STATUS_WITH_STALE_ARCHITECT_DISPOSITION",
@@ -1413,7 +1532,7 @@
         "provenance": "REVIEWER",
         "detected_in_sha": "45d00cf",
         "created_at": "2026-08-16",
-        "updated_at": "2026-08-16",
+        "updated_at": "2026-08-17",
         "resolved_at": "2026-08-16"
       },
       "type": "INTEGRATION",
@@ -1449,11 +1568,15 @@
       "regressions": [
         "REG-018"
       ],
-      "qa_scenarios": [],
-      "test_plan": [],
+      "qa_scenarios": [
+        "QA-ONBOARD-006"
+      ],
+      "test_plan": [
+        "PLAN-004"
+      ],
       "active_session_conflict": "NONE",
-      "owner_decision_required": "PENDING",
-      "architect_disposition": "PLAN_REQUIRED",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "PRELIMINARY",
         "classification": "TERMINAL_STATUS_WITH_STALE_ARCHITECT_DISPOSITION",
@@ -1469,7 +1592,7 @@
         "provenance": "REVIEWER",
         "detected_in_sha": "7686bb0",
         "created_at": "2026-08-16",
-        "updated_at": "2026-08-16",
+        "updated_at": "2026-08-17",
         "resolved_at": "2026-08-16"
       },
       "type": "DOCUMENTATION",
@@ -1502,11 +1625,15 @@
       "regressions": [
         "REG-019"
       ],
-      "qa_scenarios": [],
-      "test_plan": [],
+      "qa_scenarios": [
+        "QA-ONBOARD-007"
+      ],
+      "test_plan": [
+        "PLAN-004"
+      ],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "PRELIMINARY",
         "classification": "TERMINAL_STATUS_WITH_STALE_ARCHITECT_DISPOSITION",
@@ -1522,7 +1649,7 @@
         "provenance": "USER_REPORT",
         "detected_in_sha": "78072d2",
         "created_at": "2026-08-16",
-        "updated_at": "2026-08-16",
+        "updated_at": "2026-08-17",
         "resolved_at": "2026-08-16"
       },
       "type": "DATA_INTEGRITY",
@@ -1557,11 +1684,15 @@
       "regressions": [
         "REG-020"
       ],
-      "qa_scenarios": [],
-      "test_plan": [],
+      "qa_scenarios": [
+        "QA-ONBOARD-008"
+      ],
+      "test_plan": [
+        "PLAN-004"
+      ],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "PRELIMINARY",
         "classification": "TERMINAL_STATUS_WITH_STALE_ARCHITECT_DISPOSITION",
@@ -1578,7 +1709,7 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "78072d2",
         "created_at": "2026-08-16",
-        "updated_at": "2026-08-16",
+        "updated_at": "2026-08-17",
         "resolved_at": "2026-08-16"
       },
       "type": "SECURITY",
@@ -1615,11 +1746,15 @@
       "regressions": [
         "REG-023"
       ],
-      "qa_scenarios": [],
-      "test_plan": [],
+      "qa_scenarios": [
+        "QA-LEAD-002"
+      ],
+      "test_plan": [
+        "PLAN-005"
+      ],
       "active_session_conflict": "NONE",
-      "owner_decision_required": "PENDING",
-      "architect_disposition": "PLAN_REQUIRED",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "PRELIMINARY",
         "classification": "TERMINAL_STATUS_WITH_STALE_ARCHITECT_DISPOSITION",
@@ -1635,7 +1770,7 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "78072d2",
         "created_at": "2026-08-16",
-        "updated_at": "2026-08-16",
+        "updated_at": "2026-08-17",
         "resolved_at": "2026-08-16"
       },
       "type": "SECURITY",
@@ -1674,11 +1809,15 @@
       "regressions": [
         "REG-024"
       ],
-      "qa_scenarios": [],
-      "test_plan": [],
+      "qa_scenarios": [
+        "QA-LEAD-003"
+      ],
+      "test_plan": [
+        "PLAN-005"
+      ],
       "active_session_conflict": "NONE",
-      "owner_decision_required": "PENDING",
-      "architect_disposition": "PLAN_REQUIRED",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "PRELIMINARY",
         "classification": "TERMINAL_STATUS_WITH_STALE_ARCHITECT_DISPOSITION",
@@ -1694,7 +1833,7 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "78072d2",
         "created_at": "2026-08-16",
-        "updated_at": "2026-08-16",
+        "updated_at": "2026-08-17",
         "resolved_at": "2026-08-16"
       },
       "type": "SECURITY",
@@ -1730,11 +1869,15 @@
       "regressions": [
         "REG-025"
       ],
-      "qa_scenarios": [],
-      "test_plan": [],
+      "qa_scenarios": [
+        "QA-AGENT-001"
+      ],
+      "test_plan": [
+        "PLAN-008"
+      ],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "PRELIMINARY",
         "classification": "TERMINAL_STATUS_WITH_STALE_ARCHITECT_DISPOSITION",
@@ -1783,7 +1926,9 @@
       ],
       "regressions": [],
       "qa_scenarios": [],
-      "test_plan": [],
+      "test_plan": [
+        "PLAN-008"
+      ],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
       "architect_disposition": "PLAN_REQUIRED",
@@ -1800,7 +1945,7 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "78072d2",
         "created_at": "2026-08-16",
-        "updated_at": "2026-08-16",
+        "updated_at": "2026-08-17",
         "resolved_at": "2026-08-16"
       },
       "type": "SECURITY",
@@ -1834,11 +1979,15 @@
       "regressions": [
         "REG-026"
       ],
-      "qa_scenarios": [],
-      "test_plan": [],
+      "qa_scenarios": [
+        "QA-AGENT-002"
+      ],
+      "test_plan": [
+        "PLAN-008"
+      ],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "PRELIMINARY",
         "classification": "TERMINAL_STATUS_WITH_STALE_ARCHITECT_DISPOSITION",
@@ -1854,7 +2003,7 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "78072d2",
         "created_at": "2026-08-16",
-        "updated_at": "2026-08-16",
+        "updated_at": "2026-08-17",
         "resolved_at": "2026-08-16"
       },
       "type": "DATA_INTEGRITY",
@@ -1891,11 +2040,15 @@
       "regressions": [
         "REG-031"
       ],
-      "qa_scenarios": [],
-      "test_plan": [],
+      "qa_scenarios": [
+        "QA-AGENT-003"
+      ],
+      "test_plan": [
+        "PLAN-008"
+      ],
       "active_session_conflict": "NONE",
-      "owner_decision_required": "PENDING",
-      "architect_disposition": "PLAN_REQUIRED",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "PRELIMINARY",
         "classification": "TERMINAL_STATUS_WITH_STALE_ARCHITECT_DISPOSITION",
@@ -1911,7 +2064,7 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "78072d2",
         "created_at": "2026-08-16",
-        "updated_at": "2026-08-16",
+        "updated_at": "2026-08-17",
         "resolved_at": "2026-08-16"
       },
       "type": "DOCUMENTATION",
@@ -1939,12 +2092,18 @@
       "related_backlog": [
         "ITEM-0011"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
-      "test_plan": [],
+      "regressions": [
+        "REG-036"
+      ],
+      "qa_scenarios": [
+        "QA-DEPLOY-007"
+      ],
+      "test_plan": [
+        "PLAN-012"
+      ],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "PRELIMINARY",
         "classification": "TERMINAL_STATUS_WITH_STALE_ARCHITECT_DISPOSITION",
@@ -1992,11 +2151,13 @@
       "regressions": [
         "REG-033"
       ],
-      "qa_scenarios": [],
+      "qa_scenarios": [
+        "QA-AUTH-001"
+      ],
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "PRELIMINARY",
         "classification": "TERMINAL_STATUS_WITH_STALE_ARCHITECT_DISPOSITION",
@@ -2051,11 +2212,16 @@
       "regressions": [
         "REG-034"
       ],
-      "qa_scenarios": [],
-      "test_plan": [],
+      "qa_scenarios": [
+        "QA-AUTHZ-008",
+        "QA-PAY-006"
+      ],
+      "test_plan": [
+        "PLAN-010"
+      ],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "PRELIMINARY",
         "classification": "TERMINAL_STATUS_WITH_STALE_ARCHITECT_DISPOSITION",
@@ -2104,11 +2270,13 @@
       "regressions": [
         "REG-035"
       ],
-      "qa_scenarios": [],
+      "qa_scenarios": [
+        "QA-DEPLOY-006"
+      ],
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "PRELIMINARY",
         "classification": "TERMINAL_STATUS_WITH_STALE_ARCHITECT_DISPOSITION",
@@ -2205,7 +2373,9 @@
       ],
       "regressions": [],
       "qa_scenarios": [],
-      "test_plan": [],
+      "test_plan": [
+        "PLAN-012"
+      ],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
       "architect_disposition": "FIX_NOW",
@@ -2301,9 +2471,15 @@
         "ITEM-0011",
         "ITEM-0036"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
-      "test_plan": [],
+      "regressions": [
+        "REG-037"
+      ],
+      "qa_scenarios": [
+        "QA-RUNTIME-006"
+      ],
+      "test_plan": [
+        "PLAN-011"
+      ],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
       "architect_disposition": "FIX_NOW",
@@ -2459,9 +2635,19 @@
         "BUG-0007"
       ],
       "related_backlog": [],
-      "regressions": [],
-      "qa_scenarios": [],
-      "test_plan": [],
+      "regressions": [
+        "REG-038"
+      ],
+      "qa_scenarios": [
+        "QA-ATT-006",
+        "QA-AUTHZ-007",
+        "QA-DEPLOY-008"
+      ],
+      "test_plan": [
+        "PLAN-002",
+        "PLAN-009",
+        "PLAN-012"
+      ],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
       "architect_disposition": "DONE",
@@ -2507,12 +2693,16 @@
         "BUG-0021"
       ],
       "related_backlog": [],
-      "regressions": [],
+      "regressions": [
+        "REG-039"
+      ],
       "qa_scenarios": [
         "QA-PARTNER-004",
-        "QA-PARTNER-003"
+        "QA-PARTNER-005"
       ],
-      "test_plan": [],
+      "test_plan": [
+        "PLAN-006"
+      ],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
       "architect_disposition": "DONE",
@@ -2635,11 +2825,11 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "",
         "created_at": "2026-08-15",
-        "updated_at": "2026-08-15",
+        "updated_at": "2026-08-17",
         "resolved_at": ""
       },
       "type": "TEST_GAP",
-      "title": "No harness exists for testing against a running API with real sessions",
+      "title": "Live API session and database proof for admin sign-out",
       "severity": "MEDIUM",
       "priority": "P2",
       "current_status": "READY",
@@ -2673,7 +2863,7 @@
       "architect_disposition": "FIX_NOW",
       "verification_result": {
         "result": "VERIFIED",
-        "classification": "STALE_SCOPE_OR_COMPLETION_REVIEW_REQUIRED",
+        "classification": "STILL_REQUIRED_LIVE_SESSION_PROOF",
         "finding_ids": [
           "TASK-0005-RF-005"
         ]
@@ -2731,7 +2921,7 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "",
         "created_at": "2026-08-15",
-        "updated_at": "2026-08-15",
+        "updated_at": "2026-08-17",
         "resolved_at": ""
       },
       "type": "TEST_GAP",
@@ -2750,9 +2940,7 @@
         "services/api/src/modules/tenant-control-plane"
       ],
       "dependencies": {
-        "record_ids": [
-          "BUG-0015"
-        ],
+        "record_ids": [],
         "note": "`BlockedBy: BUG-0015`. This is the clearest case in the backlog of blocked rather than deferred: it is wanted now and cannot move."
       },
       "related_bugs": [
@@ -2812,8 +3000,8 @@
       "qa_scenarios": [],
       "test_plan": [],
       "active_session_conflict": "NONE",
-      "owner_decision_required": "PENDING",
-      "architect_disposition": "PLAN_REQUIRED",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "PRELIMINARY",
         "classification": "TERMINAL_STATUS_WITH_STALE_ARCHITECT_DISPOSITION",
@@ -2852,9 +3040,7 @@
         "apps/landing"
       ],
       "dependencies": {
-        "record_ids": [
-          "BUG-0017"
-        ],
+        "record_ids": [],
         "note": "None. Blocks [[BUG-0017]]."
       },
       "related_bugs": [
@@ -2867,8 +3053,8 @@
       "qa_scenarios": [],
       "test_plan": [],
       "active_session_conflict": "NONE",
-      "owner_decision_required": "PENDING",
-      "architect_disposition": "PLAN_REQUIRED",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "PRELIMINARY",
         "classification": "TERMINAL_STATUS_WITH_STALE_ARCHITECT_DISPOSITION",
@@ -2904,9 +3090,7 @@
         "apps/landing"
       ],
       "dependencies": {
-        "record_ids": [
-          "BUG-0021"
-        ],
+        "record_ids": [],
         "note": "None. Interacts with [[BUG-0021]], which concerns what the contact form *puts in* a lead row — decide both together and the public lead surface stops being two half-designed forms."
       },
       "related_bugs": [
@@ -2919,7 +3103,7 @@
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "PRELIMINARY",
         "classification": "TERMINAL_STATUS_WITH_STALE_ARCHITECT_DISPOSITION",
@@ -2967,7 +3151,7 @@
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "PRELIMINARY",
         "classification": "TERMINAL_STATUS_WITH_STALE_ARCHITECT_DISPOSITION",
@@ -2983,14 +3167,14 @@
         "provenance": "DEPLOYMENT",
         "detected_in_sha": "",
         "created_at": "2026-08-15",
-        "updated_at": "2026-08-15",
+        "updated_at": "2026-08-17",
         "resolved_at": ""
       },
       "type": "INFRA",
       "title": "No observability platform exists, so a release cannot be verified from outside",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "DEFERRED",
+      "current_status": "READY",
       "current_evidence": {
         "paths": [
           "docs/backlog/items/ITEM-0009-no-observability-platform-exists.md"
@@ -3003,9 +3187,7 @@
         "apps/admin"
       ],
       "dependencies": {
-        "record_ids": [
-          "ITEM-0010"
-        ],
+        "record_ids": [],
         "note": "None. [[ITEM-0010]] is the first step of this item and is tracked separately because it is independently valuable and much smaller."
       },
       "related_bugs": [],
@@ -3017,7 +3199,7 @@
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "DEFER",
+      "architect_disposition": "PLAN_REQUIRED",
       "verification_result": {
         "result": "VERIFIED",
         "classification": "DEFERRED_RATIONALE_EXPIRED_RETRIAGE_REQUIRED",
@@ -3063,7 +3245,7 @@
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "PRELIMINARY",
         "classification": "TERMINAL_STATUS_WITH_STALE_ARCHITECT_DISPOSITION",
@@ -3112,7 +3294,7 @@
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "PRELIMINARY",
         "classification": "TERMINAL_STATUS_WITH_STALE_ARCHITECT_DISPOSITION",
@@ -3164,7 +3346,7 @@
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "PRELIMINARY",
         "classification": "TERMINAL_STATUS_WITH_STALE_ARCHITECT_DISPOSITION",
@@ -3180,7 +3362,7 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "",
         "created_at": "2026-08-15",
-        "updated_at": "2026-08-16",
+        "updated_at": "2026-08-17",
         "resolved_at": ""
       },
       "type": "TEST_GAP",
@@ -3214,7 +3396,7 @@
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "PRELIMINARY",
         "classification": "TERMINAL_STATUS_WITH_STALE_ARCHITECT_DISPOSITION",
@@ -3350,7 +3532,7 @@
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "PRELIMINARY",
         "classification": "TERMINAL_STATUS_WITH_STALE_ARCHITECT_DISPOSITION",
@@ -3385,9 +3567,7 @@
         "pkg:config"
       ],
       "dependencies": {
-        "record_ids": [
-          "BUG-0026"
-        ],
+        "record_ids": [],
         "note": "None. Independent of [[BUG-0026]], which has landed."
       },
       "related_bugs": [
@@ -3402,7 +3582,7 @@
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "DEFER",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "PRELIMINARY",
         "classification": "TERMINAL_STATUS_WITH_STALE_ARCHITECT_DISPOSITION",
@@ -3439,9 +3619,7 @@
         "apps/landing"
       ],
       "dependencies": {
-        "record_ids": [
-          "BUG-0027"
-        ],
+        "record_ids": [],
         "note": "None blocking. Should be planned together with [[BUG-0027]]."
       },
       "related_bugs": [
@@ -3457,7 +3635,7 @@
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "PRELIMINARY",
         "classification": "TERMINAL_STATUS_WITH_STALE_ARCHITECT_DISPOSITION",
@@ -3494,10 +3672,7 @@
         "apps/landing"
       ],
       "dependencies": {
-        "record_ids": [
-          "BUG-0027",
-          "ITEM-0018"
-        ],
+        "record_ids": [],
         "note": "Best sequenced **after** [[BUG-0027]] and [[ITEM-0018]] — those settle what a price is and when it is live; markets then scope it. Attempting markets first means scoping a price model that is about to change."
       },
       "related_bugs": [
@@ -3514,7 +3689,7 @@
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "PRELIMINARY",
         "classification": "TERMINAL_STATUS_WITH_STALE_ARCHITECT_DISPOSITION",
@@ -3550,9 +3725,7 @@
         "apps/admin"
       ],
       "dependencies": {
-        "record_ids": [
-          "BUG-0027"
-        ],
+        "record_ids": [],
         "note": "[[BUG-0027]] — landed. This is its remaining phase."
       },
       "related_bugs": [
@@ -3617,7 +3790,7 @@
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "DEFER",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "PRELIMINARY",
         "classification": "TERMINAL_STATUS_WITH_STALE_ARCHITECT_DISPOSITION",
@@ -3652,9 +3825,7 @@
         "apps/admin"
       ],
       "dependencies": {
-        "record_ids": [
-          "ITEM-0018"
-        ],
+        "record_ids": [],
         "note": "Builds directly on [[ITEM-0018]], which landed in Wave 1."
       },
       "related_bugs": [
@@ -3683,7 +3854,7 @@
         "provenance": "ARCHITECT",
         "detected_in_sha": "",
         "created_at": "2026-08-16",
-        "updated_at": "2026-08-16",
+        "updated_at": "2026-08-17",
         "resolved_at": ""
       },
       "type": "FOLLOW_UP",
@@ -3715,7 +3886,7 @@
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "DEFER",
+      "architect_disposition": "PLAN_REQUIRED",
       "verification_result": {
         "result": "VERIFIED",
         "classification": "STATUS_DISPOSITION_BUCKET_MISMATCH_DEFERRED",
@@ -3761,7 +3932,7 @@
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "DEFER",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "PRELIMINARY",
         "classification": "TERMINAL_STATUS_WITH_STALE_ARCHITECT_DISPOSITION",
@@ -3797,9 +3968,7 @@
         "api:onboarding"
       ],
       "dependencies": {
-        "record_ids": [
-          "BUG-0030"
-        ],
+        "record_ids": [],
         "note": "None. Independent of [[BUG-0030]], which has landed."
       },
       "related_bugs": [
@@ -3844,9 +4013,7 @@
         "apps/agent-desktop"
       ],
       "dependencies": {
-        "record_ids": [
-          "BUG-0034"
-        ],
+        "record_ids": [],
         "note": "[[BUG-0034-desktop-agent-auto-update-points-at-an-endpoint-that-does-no]] — same decision. Acquiring a code-signing certificate is a purchasing action outside engineering's control, which is the realistic blocker."
       },
       "related_bugs": [
@@ -3894,9 +4061,7 @@
         "services/api/src/modules/agent"
       ],
       "dependencies": {
-        "record_ids": [
-          "BUG-0036"
-        ],
+        "record_ids": [],
         "note": "[[BUG-0036-agent-heartbeat-has-no-idempotency-so-retries-double-count-p]] — shares the plan."
       },
       "related_bugs": [
@@ -3964,7 +4129,7 @@
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "PRELIMINARY",
         "classification": "TERMINAL_STATUS_WITH_STALE_ARCHITECT_DISPOSITION",
@@ -4019,7 +4184,7 @@
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "PRELIMINARY",
         "classification": "TERMINAL_STATUS_WITH_STALE_ARCHITECT_DISPOSITION",
@@ -4062,12 +4227,16 @@
         "BUG-0021"
       ],
       "related_backlog": [],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-022"
+      ],
+      "qa_scenarios": [
+        "QA-PARTNER-003"
+      ],
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "PRELIMINARY",
         "classification": "TERMINAL_STATUS_WITH_STALE_ARCHITECT_DISPOSITION",
@@ -4083,7 +4252,7 @@
         "provenance": "ARCHITECT",
         "detected_in_sha": "",
         "created_at": "2026-08-16",
-        "updated_at": "2026-08-16",
+        "updated_at": "2026-08-17",
         "resolved_at": ""
       },
       "type": "UX",
@@ -4114,7 +4283,7 @@
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "DEFER",
+      "architect_disposition": "FIX_NOW",
       "verification_result": {
         "result": "VERIFIED",
         "classification": "STATUS_DISPOSITION_BUCKET_MISMATCH_DEFERRED",
@@ -4130,14 +4299,14 @@
         "provenance": "ARCHITECT",
         "detected_in_sha": "",
         "created_at": "2026-08-16",
-        "updated_at": "2026-08-16",
+        "updated_at": "2026-08-17",
         "resolved_at": ""
       },
       "type": "DATA_MIGRATION",
       "title": "Recompute productivity totals inflated by heartbeat replays",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "READY",
+      "current_status": "PRODUCT_DECISION",
       "current_evidence": {
         "paths": [
           "docs/backlog/items/ITEM-0032-recompute-productivity-totals-inflated-by-heartbeat-replays.md"
@@ -4176,7 +4345,7 @@
         "provenance": "ARCHITECT",
         "detected_in_sha": "",
         "created_at": "2026-08-16",
-        "updated_at": "2026-08-16",
+        "updated_at": "2026-08-17",
         "resolved_at": ""
       },
       "type": "TEST_GAP",
@@ -4211,7 +4380,7 @@
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "DEFER",
+      "architect_disposition": "FIX_NOW",
       "verification_result": {
         "result": "VERIFIED",
         "classification": "STATUS_DISPOSITION_BUCKET_MISMATCH_DEFERRED",
@@ -4298,9 +4467,7 @@
         "apps/web"
       ],
       "dependencies": {
-        "record_ids": [
-          "BUG-0041"
-        ],
+        "record_ids": [],
         "note": "None. Independent of [[BUG-0041-web-route-proxies-make-authorization-and-business-decisions]], though both touch the same layer and could share one sweep."
       },
       "related_bugs": [
@@ -4349,9 +4516,7 @@
         "apps/web"
       ],
       "dependencies": {
-        "record_ids": [
-          "BUG-0044"
-        ],
+        "record_ids": [],
         "note": "None. [[BUG-0044-the-documented-new-module-workflow-for-apps-web-cannot-be-fo]] already corrected the documentation, so nothing is blocked on this — it is the underlying design question that record deliberately did not answer."
       },
       "related_bugs": [
@@ -4398,9 +4563,7 @@
         "apps/web"
       ],
       "dependencies": {
-        "record_ids": [
-          "ITEM-0024"
-        ],
+        "record_ids": [],
         "note": "None. [[ITEM-0024]] is the same defect in `apps/landing` and should be closed by the same check."
       },
       "related_bugs": [
@@ -4430,7 +4593,7 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "",
         "created_at": "2026-08-17",
-        "updated_at": "2026-08-16",
+        "updated_at": "2026-08-17",
         "resolved_at": ""
       },
       "type": "TECH_DEBT",
@@ -4489,7 +4652,7 @@
         "provenance": "ARCHITECT",
         "detected_in_sha": "",
         "created_at": "2026-08-16",
-        "updated_at": "2026-08-16",
+        "updated_at": "2026-08-17",
         "resolved_at": ""
       },
       "type": "SECURITY",
@@ -4522,7 +4685,7 @@
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "DEFER",
+      "architect_disposition": "PLAN_REQUIRED",
       "verification_result": {
         "result": "VERIFIED",
         "classification": "STATUS_DISPOSITION_BUCKET_MISMATCH_DEFERRED",
@@ -4658,7 +4821,7 @@
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "DEFER",
+      "architect_disposition": "FIX_NOW",
       "verification_result": {
         "result": "VERIFIED",
         "classification": "STATUS_DISPOSITION_BUCKET_MISMATCH_DEFERRED",
@@ -4750,7 +4913,7 @@
       "qa_scenarios": [],
       "test_plan": [],
       "active_session_conflict": "NONE",
-      "owner_decision_required": "PENDING",
+      "owner_decision_required": "NO",
       "architect_disposition": "PLAN_REQUIRED",
       "verification_result": {
         "result": "PRELIMINARY",
@@ -4793,7 +4956,7 @@
       "qa_scenarios": [],
       "test_plan": [],
       "active_session_conflict": "NONE",
-      "owner_decision_required": "PENDING",
+      "owner_decision_required": "NO",
       "architect_disposition": "PLAN_REQUIRED",
       "verification_result": {
         "result": "PRELIMINARY",
@@ -4930,7 +5093,7 @@
       ],
       "regressions": [],
       "qa_scenarios": [
-        "QA-PAY-001"
+        "QA-DEPLOY-008"
       ],
       "test_plan": [],
       "active_session_conflict": "NONE",
@@ -5047,7 +5210,12 @@
       "evidence": [
         "43 records: 26 VERIFIED bugs and 17 DONE items."
       ],
-      "recommended_remediation": "Reaffirm evidence, then normalize disposition to DONE."
+      "recommended_remediation": "Reaffirm evidence, then normalize disposition to DONE.",
+      "remediation": {
+        "status": "RESOLVED",
+        "package": "WP-02",
+        "date": "2026-08-17"
+      }
     },
     {
       "finding_id": "TASK-0005-RF-002",
@@ -5065,7 +5233,12 @@
       "evidence": [
         "READY conflicts with DEFER; bucketing uses Status."
       ],
-      "recommended_remediation": "Set DEFERRED after revalidation or revise disposition."
+      "recommended_remediation": "Set DEFERRED after revalidation or revise disposition.",
+      "remediation": {
+        "status": "RESOLVED",
+        "package": "WP-02",
+        "date": "2026-08-17"
+      }
     },
     {
       "finding_id": "TASK-0005-RF-003",
@@ -5079,7 +5252,12 @@
       "evidence": [
         "READY/PRODUCT_DECISION leaves product-decisions.md empty."
       ],
-      "recommended_remediation": "Set Status PRODUCT_DECISION; require human decision."
+      "recommended_remediation": "Set Status PRODUCT_DECISION; require human decision.",
+      "remediation": {
+        "status": "RESOLVED",
+        "package": "WP-02",
+        "date": "2026-08-17"
+      }
     },
     {
       "finding_id": "TASK-0005-RF-004",
@@ -5094,23 +5272,33 @@
       "evidence": [
         "BlockedBy conflicts with History; BUG-0015 is VERIFIED."
       ],
-      "recommended_remediation": "Clear BlockedBy; keep READY until activation is proven."
+      "recommended_remediation": "Clear BlockedBy; keep READY until activation is proven.",
+      "remediation": {
+        "status": "RESOLVED",
+        "package": "WP-02",
+        "date": "2026-08-17"
+      }
     },
     {
       "finding_id": "TASK-0005-RF-005",
       "type": "STALE_SCOPE",
       "severity": "MEDIUM",
       "status": "VERIFIED",
-      "title": "ITEM-0002 describes a missing harness that now exists",
+      "title": "ITEM-0002 live-session proof remains absent despite static logout coverage",
       "affected_record_ids": [
         "ITEM-0002",
         "BUG-0009",
         "BUG-0010"
       ],
       "evidence": [
-        "History says harness exists; bugs are VERIFIED with REG-032."
+        "Independent WP-02 review confirmed logout-route.spec.ts reads source text and never invokes GET/POST or inspects PlatformRefreshToken."
       ],
-      "recommended_remediation": "Close or retitle to the exact remaining gap."
+      "recommended_remediation": "Keep ITEM-0002 READY/FIX_NOW and BUG-0009/0010 FIXED until persisted revocation and rejected-cookie behavior execute.",
+      "remediation": {
+        "status": "REOPENED_BY_INDEPENDENT_REVIEW",
+        "package": "WP-02",
+        "date": "2026-08-17"
+      }
     },
     {
       "finding_id": "TASK-0005-RF-006",
@@ -5125,7 +5313,12 @@
       "evidence": [
         "It says revisit after ITEM-0010; ITEM-0010 is DONE."
       ],
-      "recommended_remediation": "Re-triage; do not infer closure."
+      "recommended_remediation": "Re-triage; do not infer closure.",
+      "remediation": {
+        "status": "RESOLVED",
+        "package": "WP-02",
+        "date": "2026-08-17"
+      }
     },
     {
       "finding_id": "TASK-0005-RF-007",
@@ -5153,7 +5346,12 @@
       "evidence": [
         "Declared 3fe3292 file is missing; e6a173d run exists and names BUG-0048."
       ],
-      "recommended_remediation": "Confirm and correct QAReport."
+      "recommended_remediation": "Confirm and correct QAReport.",
+      "remediation": {
+        "status": "RESOLVED",
+        "package": "WP-02",
+        "date": "2026-08-17"
+      }
     },
     {
       "finding_id": "TASK-0005-RF-009",
@@ -5171,7 +5369,12 @@
       "evidence": [
         "docs/bugs/README.md requires REG linkage for fixed bugs."
       ],
-      "recommended_remediation": "Link or create real regression evidence."
+      "recommended_remediation": "Link or create real regression evidence.",
+      "remediation": {
+        "status": "RESOLVED",
+        "package": "WP-02",
+        "date": "2026-08-17"
+      }
     },
     {
       "finding_id": "TASK-0005-RF-010",
@@ -5192,7 +5395,12 @@
       "evidence": [
         "BUG_SECTIONS exists but validate() ignores it."
       ],
-      "recommended_remediation": "Normalize bodies and validate sections/order."
+      "recommended_remediation": "Normalize bodies and validate sections/order.",
+      "remediation": {
+        "status": "RESOLVED",
+        "package": "WP-02",
+        "date": "2026-08-17"
+      }
     },
     {
       "finding_id": "TASK-0005-RF-011",
@@ -5218,7 +5426,12 @@
       "evidence": [
         "Literal transport tags remain in record bodies."
       ],
-      "recommended_remediation": "Remove and reject them in validation."
+      "recommended_remediation": "Remove and reject them in validation.",
+      "remediation": {
+        "status": "RESOLVED",
+        "package": "WP-02",
+        "date": "2026-08-17"
+      }
     },
     {
       "finding_id": "TASK-0005-RF-012",
@@ -5232,7 +5445,12 @@
       "evidence": [
         "CreatedAt 2026-08-17; UpdatedAt 2026-08-16."
       ],
-      "recommended_remediation": "Correct and validate chronology."
+      "recommended_remediation": "Correct and validate chronology.",
+      "remediation": {
+        "status": "RESOLVED",
+        "package": "WP-02",
+        "date": "2026-08-17"
+      }
     },
     {
       "finding_id": "TASK-0005-RF-013",
@@ -5244,7 +5462,12 @@
       "evidence": [
         "BUG_STATUSES and ITEM_STATUSES are concatenated without deduplication."
       ],
-      "recommended_remediation": "Deduplicate the rendering order."
+      "recommended_remediation": "Deduplicate the rendering order.",
+      "remediation": {
+        "status": "RESOLVED",
+        "package": "WP-02",
+        "date": "2026-08-17"
+      }
     },
     {
       "finding_id": "TASK-0005-RF-014",
@@ -5262,7 +5485,12 @@
       "evidence": [
         "backlog --check reports 0 structural errors."
       ],
-      "recommended_remediation": "Validate paths, state/disposition, dates, aliases, and sections."
+      "recommended_remediation": "Validate paths, state/disposition, dates, aliases, and sections.",
+      "remediation": {
+        "status": "RESOLVED",
+        "package": "WP-02",
+        "date": "2026-08-17"
+      }
     },
     {
       "finding_id": "TASK-0005-RF-015",
@@ -5274,7 +5502,12 @@
       "evidence": [
         "validate:framework fails 2 of 1080 checks on this dashboard."
       ],
-      "recommended_remediation": "Regenerate under the record-index lease and reverify."
+      "recommended_remediation": "Regenerate under the record-index lease and reverify.",
+      "remediation": {
+        "status": "RESOLVED",
+        "package": "WP-02",
+        "date": "2026-08-17"
+      }
     },
     {
       "finding_id": "TASK-0005-QF-001",
@@ -5356,7 +5589,12 @@
         "docs/qa/scenarios/QA-PARTNER-003-partner-enquiry-acquisition-records-a-distinguishable-partne.md:12 links the reusable scenario to REG-022."
       ],
       "verification_result": "ORPHANED_FROM_BUG_RECORD_SCHEMA",
-      "recommended_remediation": "Link REG-022 explicitly to ITEM-0030 or adopt a regression metadata field that accepts canonical BUG and ITEM records without inventing a duplicate bug."
+      "recommended_remediation": "Link REG-022 explicitly to ITEM-0030 or adopt a regression metadata field that accepts canonical BUG and ITEM records without inventing a duplicate bug.",
+      "remediation": {
+        "status": "RESOLVED",
+        "package": "WP-02",
+        "date": "2026-08-17"
+      }
     },
     {
       "finding_id": "TASK-0005-QF-005",
@@ -5389,7 +5627,12 @@
         "PLAN-002 and PLAN-012 mention REG-006 and REG-018, but plan-level mention is not a scenario execution contract."
       ],
       "verification_result": "MISSING_REUSABLE_SCENARIOS",
-      "recommended_remediation": "Create or link one durable scenario per active regression, preserving the existing regression entry and canonical record relationship."
+      "recommended_remediation": "Create or link one durable scenario per active regression, preserving the existing regression entry and canonical record relationship.",
+      "remediation": {
+        "status": "RESOLVED",
+        "package": "WP-02",
+        "date": "2026-08-17"
+      }
     },
     {
       "finding_id": "TASK-0005-QF-006",
@@ -5408,7 +5651,12 @@
         "The same header declares LAST_RESULT: PASS at line 14, but the malformed date prevents a reliable single-run timestamp."
       ],
       "verification_result": "METADATA_INVALID",
-      "recommended_remediation": "Set LAST_RUN to the one evidenced execution date and extend QA validation to require one ISO date."
+      "recommended_remediation": "Set LAST_RUN to the one evidenced execution date and extend QA validation to require one ISO date.",
+      "remediation": {
+        "status": "RESOLVED",
+        "package": "WP-02",
+        "date": "2026-08-17"
+      }
     },
     {
       "finding_id": "TASK-0005-QF-007",
@@ -5434,7 +5682,12 @@
         "docs/bugs/BUG-0049-report-only-ci-jobs-swallow-security-and-database-e2e-failur.md:54-56 records the latest browser job as 8 passed and 1 skipped; the skip means a full scenario PASS must not be inferred."
       ],
       "verification_result": "RESULTS_REQUIRE_RECONCILIATION",
-      "recommended_remediation": "Map individual Playwright cases to scenario IDs, record the latest run truthfully, and retain FAIL/BLOCKED for the skipped BUG-0019 assertion rather than treating the job conclusion as PASS."
+      "recommended_remediation": "Map individual Playwright cases to scenario IDs, record the latest run truthfully, and retain FAIL/BLOCKED for the skipped BUG-0019 assertion rather than treating the job conclusion as PASS.",
+      "remediation": {
+        "status": "RESOLVED",
+        "package": "WP-02",
+        "date": "2026-08-17"
+      }
     },
     {
       "finding_id": "TASK-0005-QF-008",
@@ -5469,7 +5722,12 @@
         ".agent/context/testing-architecture.md:37-40 documents API E2E, browser E2E and deployment smoke infrastructure as available."
       ],
       "verification_result": "PARTIALLY_STALE_NOT_AUTOMATICALLY_PASSING",
-      "recommended_remediation": "Re-run each scenario and distinguish missing automation/fixtures from missing infrastructure; do not infer PASS merely because a CI service now exists."
+      "recommended_remediation": "Re-run each scenario and distinguish missing automation/fixtures from missing infrastructure; do not infer PASS merely because a CI service now exists.",
+      "remediation": {
+        "status": "RESOLVED",
+        "package": "WP-02",
+        "date": "2026-08-17"
+      }
     },
     {
       "finding_id": "TASK-0005-QF-009",
@@ -5499,7 +5757,12 @@
         "Command: git rev-parse HEAD returned 00511803ebb0e1343ff35535996df1af98c95834."
       ],
       "verification_result": "STALE_SHA",
-      "recommended_remediation": "Revalidate plan coverage and risk declarations at the integration SHA, then rebuild the generated plan index."
+      "recommended_remediation": "Revalidate plan coverage and risk declarations at the integration SHA, then rebuild the generated plan index.",
+      "remediation": {
+        "status": "RECONCILED_NEEDS_REVIEW",
+        "package": "WP-02",
+        "date": "2026-08-17"
+      }
     },
     {
       "finding_id": "TASK-0005-QF-010",
@@ -5529,10 +5792,16 @@
       "evidence": [
         "Read-only file count command: rg --files services/api/src -g '*.spec.ts' => 169; services/api/test -g '*.e2e-spec.ts' => 15; apps/web => 17; apps/admin => 10; apps/landing => 3; e2e/tests => 2.",
         "docs/qa/runs/2026-08-17-framework-remediation-e6a173d.md:39,58 records the latest full API run as 169 suites, 1,251 passed and 1 skipped.",
-        "docs/development/ci.md:84 and :133 still say nine E2E suites and 127 API suites / 764 tests; .agent/context/testing-architecture.md:137 says 13 E2E suites; docs/development/branch-protection.md:179-181 retains API 127/764, web 16/379 and admin 4/23."
+        "At discovery, docs/development/ci.md, .agent/context/testing-architecture.md and docs/development/branch-protection.md carried mutually stale counts ranging from 9 to 13 API E2E suites and 127 to 169 API unit specs.",
+        "WP-02 reconciled the maintained testing and CI documents plus the stale workflow comments to the dated source/run baseline above; historical run records were preserved as historical evidence."
       ],
       "verification_result": "COUNT_DRIFT_VERIFIED",
-      "recommended_remediation": "Replace fragile point-in-time counts with generated counts or a dated verified baseline and keep executed-test totals distinct from source-file counts."
+      "recommended_remediation": "Replace fragile point-in-time counts with generated counts or a dated verified baseline and keep executed-test totals distinct from source-file counts.",
+      "remediation": {
+        "status": "RESOLVED",
+        "package": "WP-02",
+        "date": "2026-08-17"
+      }
     },
     {
       "finding_id": "TASK-0005-RF-016",
@@ -5548,7 +5817,12 @@
         ".github/workflows/ci.yml:324,450 and 519-612 contains database, security-invariant and browser report jobs; the workflow also has a required gate."
       ],
       "verification_result": "DOCUMENT_CODE_DRIFT",
-      "recommended_remediation": "Update operational docs to distinguish required gates from report-only jobs and preserve the warning that report-only green does not mean tests passed."
+      "recommended_remediation": "Update operational docs to distinguish required gates from report-only jobs and preserve the warning that report-only green does not mean tests passed.",
+      "remediation": {
+        "status": "RESOLVED",
+        "package": "WP-02",
+        "date": "2026-08-17"
+      }
     },
     {
       "finding_id": "TASK-0005-RF-017",
@@ -5676,12 +5950,12 @@
       "canonical_record_ids": [],
       "affected_record_ids": [],
       "evidence": [
-        "docs/obsidian-bootstrap/11 - Agent Knowledge/Engineering Rules.md:81-85 says there is no CI, no .github workflows exist, and nothing runs on push.",
+        "At discovery, docs/obsidian-bootstrap/11 - Agent Knowledge/Engineering Rules.md:81-85 said there was no CI, no .github workflows and nothing running on push.",
         ".github/workflows/ci.yml exists and docs/development/ci.md:42-51 enumerates required and report-only CI jobs.",
-        "Related bootstrap drift also appears in docs/obsidian-bootstrap/02 - Architecture/Architecture Index.md:94 and docs/obsidian-bootstrap/08 - Releases/README.md:43."
+        "WP-02 corrected the repository bootstrap Engineering Rules and Releases note; the user-owned external vault remains pending a post-integration knowledge sync and read-back verification."
       ],
-      "verification_result": "MANUAL_NOTE_STALE",
-      "recommended_remediation": "Update manual/bootstrap knowledge without overwriting user-owned vault content; distinguish required CI gates from report-only jobs."
+      "verification_result": "REPOSITORY_BOOTSTRAP_RECONCILED_EXTERNAL_VAULT_PENDING",
+      "recommended_remediation": "After integration, sync and read back the external vault without overwriting unrelated user-owned content; close this finding only when the actual vault distinguishes required gates from fail-open/report-only jobs."
     },
     {
       "finding_id": "TASK-0005-OF-002",
@@ -5718,15 +5992,24 @@
   ],
   "validation": {
     "backlog_check": "INITIAL FAIL after adding discovery records because generated indexes were stale; FINAL PASS after regeneration: 98 records and 0 structural errors.",
-    "framework_check": "INITIAL FAIL: 2/1080 stale-dashboard checks; FINAL PASS: 1080/1080 after task indexes and dashboards were regenerated.",
+    "framework_check": "INITIAL FAIL: 2/1080 stale-dashboard checks; WP-02 full framework result is recorded in its QA run and revalidated after each semantic-validator change.",
     "detected_sha_resolution": "PASS: all 52 bug DetectedInSha values resolve.",
-    "metadata_path_resolution": "FAIL: BUG-0048 QAReport missing.",
+    "metadata_path_resolution": "PASS: BUG-0048 QAReport now resolves to the existing e6a173d run; every declared canonical metadata path resolves.",
     "id_and_link_integrity": "PASS: no duplicate or dangling BUG/ITEM IDs.",
-    "regression_path_inventory": "PASS: 35 Active=yes entries and paths exist; tests not run.",
+    "regression_path_inventory": "PASS: 39 Active=yes entries name existing tests, canonical roots and matching reusable scenarios; execution results remain scenario-specific.",
     "qa_discovery": "VERIFIED: 10 stable TASK-0005-QF findings cover CI result truth, QA metadata, scenario/regression coverage, stale plan SHAs and current test inventory.",
-    "obsidian_discovery": "FAIL/WARNING: TASK-0005-OF-001 confirms stale manual CI guidance; TASK-0005-OF-002 records 31 initial generated-note differences and 39 on final read-only re-verification.",
+    "obsidian_discovery": "PARTIAL: repository bootstrap CI guidance is reconciled; TASK-0005-OF-001 remains open until the actual external vault is synced and read back. TASK-0005-OF-002 preserves 31 initial generated-note differences and 39 after discovery records were added.",
     "repository_health": "PASS structurally at 0051180. Initial validation created tracked gateway build outputs and a partial dependency directory; both were removed from the task worktree. One stale worktree, one stale merged branch and preserved unique-commit branches remain Integrator cleanup candidates.",
     "wp01_final_checks": "PASS: backlog:check, tasks:check, qa:check, sessions:check, knowledge:dashboards:check, validate:framework, inventory uniqueness and git diff --check.",
-    "write_scope": "The inventory follow-up edited only docs/tasks/remediation/TASK-0005-inventory.json; WP-01 separately created the canonical records, task/session/QA records and regenerated views listed by Git."
+    "write_scope": "WP-01 created the inventory and discovery records. WP-02 reconciled canonical records, QA sources, generated views, framework validators, maintained documentation and this inventory on reconciliation base d919e1a.",
+    "wp02_record_reconciliation": "PASS: canonical metadata and inventory agree; 43 terminal dispositions normalized; deliberate defer/product-decision states aligned; dangling blockers, evidence paths, date inversions, malformed wrappers and Bug body structure repaired.",
+    "wp02_qa_reconciliation": "PASS WITH RISKS: 69 scenarios; authentication logout coverage is PARTIAL because its source-shape spec does not execute a live session; two database scenarios remain FAIL and BUG-0019 browser reachability remains skipped.",
+    "wp02_semantic_validators": "PASS: backlog, QA and framework checks reject state/disposition contradictions, date/order/path defects, incomplete Bug bodies, inactive or mismatched regression roots, active regressions without matching reusable scenarios, and canonical inventory metadata/backlink drift."
+  },
+  "relationship_policy": {
+    "regressions": "Derived from each regression register Bug record cell.",
+    "qa_scenarios": "Derived from QA scenario RELATED_BUGS; the field may name a BUG or ITEM canonical root.",
+    "test_plan": "Derived from QA plan RELATED_BUGS; the field may name a BUG or ITEM canonical root.",
+    "related_bugs_and_backlog": "Curated evidence graph captured during discovery; not canonical status metadata."
   }
 }

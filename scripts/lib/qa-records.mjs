@@ -28,7 +28,7 @@
  */
 
 import { existsSync, readFileSync } from 'node:fs';
-import { basename, join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 
 import { allocateId } from './id-allocator.mjs';
 import {
@@ -158,6 +158,27 @@ function enumCheck(errors, where, field, value, allowed, { optional = false } = 
   }
 }
 
+function validateDate(errors, where, field, value, { optional = false } = {}) {
+  const text = String(value ?? '').trim();
+  if (!text) {
+    if (!optional) errors.push(`${where}: ${field} is empty`);
+    return;
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) {
+    errors.push(`${where}: ${field} = "${text}" is not YYYY-MM-DD`);
+  }
+}
+
+function validateSectionOrder(errors, where, body, sections) {
+  let previous = -1;
+  for (const section of sections) {
+    const match = new RegExp(`^##\\s+${section.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&')}\\s*$`, 'm').exec(body);
+    if (!match) continue; // The existing required-section check emits the useful missing message.
+    if (match.index < previous) errors.push(`${where}: required section "## ${section}" is out of order`);
+    previous = Math.max(previous, match.index);
+  }
+}
+
 function parseRecords(root, dir, kind) {
   const records = [];
   const errors = [];
@@ -215,6 +236,15 @@ export function loadQaRecords(root, { knownRecordIds = null } = {}) {
 
     enumCheck(errors, relative, 'STATUS', fields.STATUS, PLAN_STATUSES);
     enumCheck(errors, relative, 'RISK', fields.RISK, RISKS);
+    validateDate(errors, relative, 'CREATED_AT', fields.CREATED_AT);
+    validateDate(errors, relative, 'UPDATED_AT', fields.UPDATED_AT);
+    if (
+      String(fields.CREATED_AT ?? '').trim() &&
+      String(fields.UPDATED_AT ?? '').trim() &&
+      String(fields.UPDATED_AT).trim() < String(fields.CREATED_AT).trim()
+    ) {
+      errors.push(`${relative}: UPDATED_AT predates CREATED_AT`);
+    }
 
     const coverage = {};
     for (const dimension of Object.keys(COVERAGE_DIMENSIONS)) {
@@ -228,6 +258,7 @@ export function loadQaRecords(root, { knownRecordIds = null } = {}) {
         errors.push(`${relative}: missing required section "## ${section}"`);
       }
     }
+    validateSectionOrder(errors, relative, record.body, PLAN_SECTIONS);
 
     return {
       ...record,
@@ -263,12 +294,23 @@ export function loadQaRecords(root, { knownRecordIds = null } = {}) {
     enumCheck(errors, relative, 'RISK', fields.RISK, RISKS);
     enumCheck(errors, relative, 'AUTOMATION_STATUS', fields.AUTOMATION_STATUS, AUTOMATION_STATUSES);
     enumCheck(errors, relative, 'LAST_RESULT', fields.LAST_RESULT, RESULTS);
+    validateDate(errors, relative, 'LAST_RUN', fields.LAST_RUN, { optional: true });
+    validateDate(errors, relative, 'CREATED_AT', fields.CREATED_AT);
+    validateDate(errors, relative, 'UPDATED_AT', fields.UPDATED_AT);
+    if (
+      String(fields.CREATED_AT ?? '').trim() &&
+      String(fields.UPDATED_AT ?? '').trim() &&
+      String(fields.UPDATED_AT).trim() < String(fields.CREATED_AT).trim()
+    ) {
+      errors.push(`${relative}: UPDATED_AT predates CREATED_AT`);
+    }
 
     for (const section of SCENARIO_SECTIONS) {
       if (!new RegExp(`^##\\s+${section}\\s*$`, 'm').test(record.body)) {
         errors.push(`${relative}: missing required section "## ${section}"`);
       }
     }
+    validateSectionOrder(errors, relative, record.body, SCENARIO_SECTIONS);
 
     const automation = String(fields.AUTOMATION_STATUS ?? '').trim();
     const reference = String(fields.TEST_REFERENCE ?? '').trim();
@@ -387,6 +429,82 @@ export function loadQaRecords(root, { knownRecordIds = null } = {}) {
         if (!/^REG-\d{3}$/.test(reference)) continue;
         if (!register.includes(reference)) {
           errors.push(`${record.relative}: RELATED_REGRESSIONS references ${reference}, absent from the register`);
+        }
+      }
+    }
+
+    const entries = register
+      .split(/(?=^### REG-)/m)
+      .filter((entry) => entry.startsWith('### REG-'));
+    const packagePath = join(root, 'package.json');
+    const rootPackage = existsSync(packagePath)
+      ? JSON.parse(readFileSync(packagePath, 'utf8'))
+      : { scripts: {} };
+    const workflowPath = join(root, '.github/workflows/ci.yml');
+    const workflow = existsSync(workflowPath) ? readFileSync(workflowPath, 'utf8') : '';
+    const seenRegressions = new Set();
+    for (const entry of entries) {
+      const id = (/^### (REG-\d{3})/.exec(entry) ?? [])[1];
+      if (!id) continue;
+      if (seenRegressions.has(id)) errors.push(`duplicate regression id ${id}`);
+      seenRegressions.add(id);
+
+      const active = (/^\|\s*\*\*Active\*\*\s*\|\s*([^|]+)\|\s*$/m.exec(entry) ?? [])[1]
+        ?.trim()
+        .toLowerCase();
+      if (active !== 'yes') continue;
+
+      const rootCell =
+        (/^\|\s*\*\*Bug record\*\*\s*\|\s*(.*?)\s*\|\s*$/m.exec(entry) ?? [])[1] ?? '';
+      const rootIds = [...rootCell.matchAll(/\b(?:BUG|ITEM)-\d{4}\b/g)].map(
+        (match) => match[0],
+      );
+      if (!rootIds.length) {
+        errors.push(`${id}: active regression has no canonical Bug/root-cause record`);
+      }
+      if (knownRecordIds) {
+        for (const rootId of rootIds) {
+          if (!knownRecordIds.has(rootId)) {
+            errors.push(`${id}: Bug record references unknown canonical record ${rootId}`);
+          }
+        }
+      }
+
+      const testCell = (/^\|\s*\*\*Regression test\*\*\s*\|\s*(.*?)\s*\|\s*$/m.exec(entry) ?? [])[1] ?? '';
+      const testReferences = [...testCell.matchAll(/`([^`]+)`/g)].map((match) => match[1].trim());
+      if (!testReferences.length) {
+        errors.push(`${id}: active regression has no named regression test`);
+      } else {
+        let previousResolved = '';
+        for (const reference of testReferences) {
+          if (reference.startsWith('npm run ')) {
+            const script = reference.slice('npm run '.length).trim().split(/\s+/)[0];
+            if (!rootPackage.scripts?.[script]) {
+              errors.push(`${id}: regression command references missing root script "${script}"`);
+            }
+            continue;
+          }
+          if (!reference.includes('/') && !reference.includes('.') && workflow.includes(reference)) {
+            continue;
+          }
+          const direct = join(root, reference);
+          const sibling = previousResolved ? join(dirname(previousResolved), reference) : '';
+          const resolved = existsSync(direct) ? direct : sibling && existsSync(sibling) ? sibling : '';
+          if (!resolved) errors.push(`${id}: regression test "${reference}" does not exist`);
+          else previousResolved = resolved;
+        }
+      }
+
+      const linkedScenarios = scenarios.filter((scenario) => scenario.regressions.includes(id));
+      if (!linkedScenarios.length) {
+        errors.push(`${id}: active regression has no reusable QA scenario`);
+      } else {
+        const scenarioRoots = new Set(linkedScenarios.flatMap((scenario) => scenario.bugs));
+        const unmatchedRoots = rootIds.filter((rootId) => !scenarioRoots.has(rootId));
+        if (unmatchedRoots.length) {
+          errors.push(
+            `${id}: reusable scenario roots do not match Bug record ${unmatchedRoots.join(', ')}`,
+          );
         }
       }
     }

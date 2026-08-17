@@ -9,7 +9,7 @@ Severity: MEDIUM
 AffectedModules: [services/api/src/modules/partner-experience, services/api/src/modules/partners]
 Source: ARCHITECT
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 CreatedAt: 2026-08-15
 UpdatedAt: 2026-08-17
 RelatedBug: BUG-0016
@@ -116,6 +116,9 @@ and covered by regression tests.
 [[partner-onboarding|Partner Onboarding]].
 
 ## History
+
+- 2026-08-17 — Architect reconciliation: terminal `DONE` status normalized to
+  `ArchitectDisposition: DONE`; no runtime behavior changed.
 
 - 2026-08-15 — split out of BUG-0016 during autonomous triage, so the two thirds
   of that record that were engineering inconsistencies could be fixed without

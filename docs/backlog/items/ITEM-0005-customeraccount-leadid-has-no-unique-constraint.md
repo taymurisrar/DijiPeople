@@ -9,7 +9,7 @@ Severity: MEDIUM
 AffectedModules: [services/api/prisma, services/api/src/modules/super-admin]
 Source: QA_RUN
 OwnerAgent: database
-ArchitectDisposition: PLAN_REQUIRED
+ArchitectDisposition: DONE
 CreatedAt: 2026-08-15
 UpdatedAt: 2026-08-17
 RelatedBug:
@@ -77,6 +77,9 @@ Modules [[leads|Leads]], [[customers|Customers]] · architecture [[database-arch
 requirement [[requirement-lead-conversion|Lead Conversion]] · [[BUG-0012]] (the other conversion-seed defect).
 
 ## History
+
+- 2026-08-17 — Architect reconciliation: terminal `DONE` status normalized to
+  `ArchitectDisposition: DONE`; no runtime behavior changed.
 
 - 2026-08-15 — imported from the commercial onboarding E2E's residual risks.
 

@@ -11,14 +11,14 @@ DetectedDate: 2026-08-15
 DetectedInSha: b2ba383
 AffectedModules: [services/api/src/modules/partners]
 OwnerAgent: backend-api
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport:
 RegressionId: REG-015
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-15
-UpdatedAt: 2026-08-16
+UpdatedAt: 2026-08-17
 ResolvedAt: 2026-08-15
 ---
 
@@ -92,7 +92,7 @@ change — but the governance gap is identical.
 `services/api/src/modules/partners` — `update()`, and the partner lifecycle
 actions it should defer to.
 
-## Resolution
+## Proposed Resolution
 
 `update()` now refuses any status change that moves a partner **out of**
 `ACTIVE`, mirroring the guard that already refused moves **into** it, and names
@@ -104,6 +104,13 @@ Deliberately narrow: it does **not** route every status transition through
 action in that table and are legitimate record edits; refusing them would break
 ordinary work in the name of governance, and a guard that breaks ordinary work
 gets reverted.
+
+## Acceptance Criteria
+
+- Generic updates cannot move a partner into or out of `ACTIVE`.
+- Governed lifecycle actions remain the only routes out of `ACTIVE`.
+- Legitimate early-stage record edits remain available.
+- The regression suite fails if either lifecycle guard is removed.
 
 ## Regression Coverage
 
@@ -120,6 +127,10 @@ None.
 shape in the review endpoint, fixed in the same task.
 Modules [[partners|Partners]].
 
+## Resolution
+
+Implemented as described in Proposed Resolution and verified by `REG-015`.
+
 ## QA Retest
 
 Unit-level. The generic update path has no browser coverage — the partner
@@ -135,6 +146,10 @@ real PostgreSQL 16. Each of these tests was proven to fail without its fix when
 it was written; re-running them is what confirms the fix still holds.
 
 ## History
+
+- 2026-08-17 — Architect reconciliation: terminal `VERIFIED` status normalized
+  to `ArchitectDisposition: DONE`; the existing resolution and QA evidence are
+  unchanged.
 
 - 2026-08-15 — found by the Reviewer while fixing BUG-0016, as the adjacent
   writer with the same defect shape. Fixed in the same task, because closing one

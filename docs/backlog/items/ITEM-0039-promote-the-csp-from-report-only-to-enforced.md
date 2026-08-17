@@ -9,9 +9,9 @@ Severity: MEDIUM
 AffectedModules: [packages/config, apps/web, apps/admin, apps/landing]
 Source: ARCHITECT
 OwnerAgent: architect
-ArchitectDisposition: DEFER
+ArchitectDisposition: PLAN_REQUIRED
 CreatedAt: 2026-08-16
-UpdatedAt: 2026-08-16
+UpdatedAt: 2026-08-17
 RelatedBug: BUG-0040
 RelatedQA: 
 RelatedADR: 
@@ -66,3 +66,9 @@ promoting it is a deliberate act rather than a silent edit.
 - The enforced policy has been observed clean in a browser for each app before
   that app is promoted.
 - `X-Frame-Options` remains enforced throughout — it was never deferred.
+
+## History
+
+- 2026-08-17 — reconciled to `PLAN_REQUIRED`: staged report collection,
+  nonce/hash design and per-app promotion are prerequisites, not an effort-based
+  reason to leave ready security work as `DEFER`.

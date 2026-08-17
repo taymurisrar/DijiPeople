@@ -6,14 +6,14 @@ AREA: commercial-onboarding
 MODULE: services/api/test
 TYPE: E2E
 RISK: HIGH
-AUTOMATION_STATUS: BLOCKED_INFRASTRUCTURE
-TEST_REFERENCE: 
+AUTOMATION_STATUS: AUTOMATED
+TEST_REFERENCE: services/api/test/commercial-bootstrap.e2e-spec.ts
 RELATED_BUGS: [BUG-0024]
 RELATED_REGRESSIONS: []
-LAST_RUN: 
-LAST_RESULT: BLOCKED
+LAST_RUN: 2026-08-17
+LAST_RESULT: PASS
 CREATED_AT: 2026-08-16
-UPDATED_AT: 2026-08-16
+UPDATED_AT: 2026-08-17
 ---
 
 # QA-ONBOARD-003 — Commercial bootstrap runs end to end from lead to provisioned customer
@@ -34,4 +34,6 @@ Each step has a real caller and leaves a consistent record set. A declared step 
 
 ## Notes
 
-`services/api/test/commercial-bootstrap.e2e-spec.ts`. `BUG-0024` was exactly a step nothing invoked.
+The named suite passed against ephemeral PostgreSQL in GitHub Actions run
+`32009837400`. `BUG-0024` was exactly a step nothing invoked; its deleted dead
+route is separately linked to `REG-028`.

@@ -1,8 +1,10 @@
 # E2E Suite Classification
 
-The nine `*.e2e-spec.ts` suites under `services/api/test/`, classified so the
-`database-e2e-report` job can be promoted to a required gate deliberately rather
-than hopefully.
+The database-backed `*.e2e-spec.ts` suites under `services/api/test/`,
+classified so the `database-e2e-report` job can be promoted to a required gate
+deliberately rather than hopefully. The original classification covered nine
+suites; the tree now contains **15**, so the old table is retained as historical
+design evidence and the current execution snapshot below is authoritative.
 
 > **First CI run: every suite failed.** The static classification below was
 > wrong in one specific way, and the run is what proved it. Both root causes
@@ -13,6 +15,29 @@ than hopefully.
 **Classified:** 2026-08-14 (static), against `0b4d90e`.
 **First observed run:** GitHub Actions run `31840528309`, SHA `f35d696` —
 10 suites failed, 190 tests failed, 0 passed.
+
+**Current observed run:** GitHub Actions run `32009837400`, SHA `0051180` — 15
+suites / 227 tests: 9 suites and 91 tests passed; 6 suites and 136 tests failed.
+The job is still report-only. Its green job conclusion does not mean the Jest
+suite passed; that evidence-integrity defect is `BUG-0049`.
+
+| Current suite | Exact-base result |
+|---|---|
+| `app` | PASS |
+| `attendance-engine` | FAIL |
+| `attendance-integrations-http` | FAIL |
+| `attendance-integrations-isolation` | FAIL |
+| `attendance-operational` | PASS |
+| `attendance-review` | FAIL |
+| `commercial-bootstrap` | PASS |
+| `gateway-runtime` | FAIL |
+| `permission-propagation` | PASS |
+| `platform-workflows` | FAIL |
+| `tenant-erasure-dry-run` | PASS |
+| `tenant-erasure-order` | PASS |
+| `tenant-isolation-pattern` | PASS |
+| `tenant-provisioning-recovery` | PASS |
+| `workspace-domain-isolation` | PASS |
 
 ## What the first run revealed
 
@@ -31,7 +56,7 @@ question as "what does booting need".**
 
 ---
 
-## Classification
+## Original static classification (2026-08-14)
 
 | Suite | Tests | Class | Basis |
 |---|---|---|---|
@@ -45,7 +70,8 @@ question as "what does booting need".**
 | `gateway-runtime` | 27 | **NEEDS_ENVIRONMENT** | Same credential-encryption dependency |
 | `platform-workflows` | 5 | **NEEDS_TEST_DATA** | Seeds itself through the public endpoint `/public/partners/onboarding/seed-horizon-onboarding`, and has **no `deleteMany` cleanup**. Safe in an ephemeral database; would leak in a reused one |
 
-**Totals:** 190 tests across 9 suites (10 including `tenant-isolation-pattern`).
+**Historical totals:** 190 tests across 9 suites (10 including
+`tenant-isolation-pattern`). These are not the current suite counts.
 **None classified `FLAKY`, `BROKEN` or `STALE`** — no skipped tests, no
 `TODO`/`FIXME` markers, and every suite reads as maintained.
 
@@ -86,7 +112,10 @@ rather than replaces.
    recorded here
 3. total runtime stays under ~10 minutes
 
-Until then it uploads its output as an artifact and writes a job summary.
+Until then it uploads its output as an artifact and writes a job summary. The
+job must also stop converting a red Jest exit into a green job conclusion;
+`BUG-0049` and WP-09 own that evidence-integrity fix after WP-04 makes the suites
+genuinely green.
 
 ## When a suite fails
 

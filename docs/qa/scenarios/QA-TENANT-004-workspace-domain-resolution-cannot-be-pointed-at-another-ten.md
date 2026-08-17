@@ -6,14 +6,14 @@ AREA: tenant-isolation
 MODULE: services/api/src/modules/tenants
 TYPE: E2E
 RISK: HIGH
-AUTOMATION_STATUS: BLOCKED_INFRASTRUCTURE
-TEST_REFERENCE: 
+AUTOMATION_STATUS: AUTOMATED
+TEST_REFERENCE: services/api/test/workspace-domain-isolation.e2e-spec.ts
 RELATED_BUGS: [BUG-0017]
 RELATED_REGRESSIONS: [REG-027]
-LAST_RUN: 
-LAST_RESULT: BLOCKED
+LAST_RUN: 2026-08-17
+LAST_RESULT: PASS
 CREATED_AT: 2026-08-16
-UPDATED_AT: 2026-08-16
+UPDATED_AT: 2026-08-17
 ---
 
 # QA-TENANT-004 — Workspace domain resolution cannot be pointed at another tenant
@@ -34,4 +34,5 @@ Hostname resolution never overrides the session's tenant, and an unknown hostnam
 
 ## Notes
 
-`services/api/test/workspace-domain-isolation.e2e-spec.ts`. The base-domain single-source decision is `ADR-0002`.
+The named suite passed against ephemeral PostgreSQL in GitHub Actions run
+`32009837400`. The base-domain single-source decision is `ADR-0002`.

@@ -26,7 +26,7 @@ BlockedBy:
 
 The Playwright suite covers `apps/landing` and `apps/admin`. **`apps/web` — the
 tenant product, 253 pages, 1,100 files, the largest application in the
-monorepo — is never opened by any test.** The `browser-e2e-report` CI job does
+monorepo — is never opened by any test.** The `browser-e2e` CI job does
 not even start it.
 
 ## Why It Matters
@@ -61,8 +61,8 @@ Verified at `1af3690`:
   web's absence cannot even produce a skip.
 - `.github/workflows/ci.yml:543-546` starts `dev:api`, `dev:landing`,
   `dev:admin`. **Port 3001 is never started and never polled.**
-- `browser-e2e-report` is `continue-on-error: true` and absent from
-  `ci-required`'s `needs` — so even the coverage that exists does not gate.
+- `browser-e2e` is present in `ci-required.needs` but retains
+  `continue-on-error: true`, so a failed browser step is still fail-open.
 
 ## Proposed Approach
 
@@ -81,7 +81,7 @@ so the config stops implying coverage that does not exist.
 ## Acceptance Criteria
 
 - At least one Playwright spec drives `apps/web` and asserts a real outcome.
-- `browser-e2e-report` starts and polls port 3001.
+- `browser-e2e` starts and polls port 3001.
 - `BASE_URLS.web` is either consumed or removed.
 - [[ITEM-0001]] is annotated so its `DONE` is not read as web coverage.
 
@@ -102,4 +102,3 @@ None blocking. The suite, the job and the fixtures all exist; this extends them.
 - 2026-08-17 — Architect triage: `PLAN_REQUIRED`, `P1`. Priority is above the
   usual for a test gap because it is the *only* possible test mechanism for the
   largest app, not merely an additional one.
-</content>

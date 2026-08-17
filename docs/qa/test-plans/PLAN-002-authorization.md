@@ -3,7 +3,7 @@ PLAN_ID: PLAN-002
 aliases: [PLAN-002]
 TITLE: Authorization and RBAC
 AREA: authorization
-STATUS: CURRENT
+STATUS: NEEDS_REVIEW
 MODULES: [services/api/src/common/constants, services/api/src/common/security, services/api/src/common/guards, services/api/src/modules/employees, services/api/src/modules/approvals]
 RISK: CRITICAL
 COVERAGE_UNIT: GOOD
@@ -15,11 +15,15 @@ COVERAGE_BROWSER: GAP
 COVERAGE_SECURITY: GOOD
 COVERAGE_PERFORMANCE: NOT_APPLICABLE
 RELATED_BUGS: [BUG-0003, BUG-0004, BUG-0006, BUG-0007, BUG-0047]
-RELATED_REGRESSIONS: [REG-003, REG-004, REG-006, REG-007]
+RELATED_REGRESSIONS: [REG-003, REG-004, REG-006, REG-007, REG-034]
 CREATED_AT: 2026-08-16
-UPDATED_AT: 2026-08-16
+UPDATED_AT: 2026-08-17
 VERIFIED_AGAINST_SHA: 714632d
 ---
+
+> **TASK-0005 revalidation:** `VERIFIED_AGAINST_SHA` remains historical. The
+> exact-base invariant reports 796 dual-permission violations, so WP-03 must
+> re-audit this plan before returning it to `CURRENT`.
 
 # PLAN-002 — Authorization and RBAC
 
@@ -46,9 +50,10 @@ distinction is where most of this area's defects live.
 - A duplicate route that reaches the same service without the guarded twin's
   decorators (`BUG-0007`).
 - Mutations with no authorization at all (`BUG-0006`).
-- **Live now:** `BUG-0047` — the fixes for four of the records above are on
-  unmerged branches, so this area's declared protection overstates what `main`
-  actually has.
+- **Historical process failure:** `BUG-0047` — fixes for four records were once
+  left on unmerged branches while their records said VERIFIED. That specific
+  drift is fixed; the current 796-violation invariant result is separate WP-03
+  evidence.
 
 ## Preconditions
 
@@ -56,7 +61,8 @@ The seeded role set, with at least one user per access level: OWN, TEAM, BUSINES
 
 ## Test Types
 
-`UNIT` and `SECURITY` run today. `E2E` permission propagation needs a live database.
+`UNIT` and `SECURITY` run today. `E2E` permission propagation runs in CI against
+ephemeral PostgreSQL and passed in run `32009837400`.
 
 ## Data Requirements
 
@@ -86,4 +92,6 @@ UI gating is cosmetic and never a substitute; a browser case would only confirm 
 
 ## Regression Links
 
-`REG-003` · `REG-004` · `REG-006` · `REG-007` — all active on the integration branch since 2026-08-17 (`BUG-0047`).
+`REG-003` · `REG-004` · `REG-006` · `REG-007` · `REG-034`. The first four are
+active on the integration branch since the `BUG-0047` remediation; the current
+global invariant failure is assigned to WP-03 rather than rounded into a pass.

@@ -336,8 +336,60 @@ function validate(record, kind, errors) {
     }
   }
 
+  const createdAt = String(fields.CreatedAt ?? '').trim();
+  const updatedAt = String(fields.UpdatedAt ?? '').trim();
+  const resolvedAt = String(fields.ResolvedAt ?? '').trim();
+  if (createdAt && updatedAt && updatedAt < createdAt) {
+    errors.push(`${where}: UpdatedAt ${updatedAt} predates CreatedAt ${createdAt}`);
+  }
+  if (createdAt && resolvedAt && resolvedAt < createdAt) {
+    errors.push(`${where}: ResolvedAt ${resolvedAt} predates CreatedAt ${createdAt}`);
+  }
+
+  const status = String(fields.Status ?? '').trim();
+  const disposition = String(fields.ArchitectDisposition ?? '').trim();
+  const terminalDisposition =
+    kind === 'bug'
+      ? {
+          VERIFIED: 'DONE',
+          CLOSED: 'DONE',
+          NOT_A_BUG: 'NOT_A_BUG',
+          DUPLICATE: 'DUPLICATE',
+          ACCEPTED_RISK: 'ACCEPTED_RISK',
+        }[status]
+      : {
+          DONE: 'DONE',
+          CANCELLED: 'DONE',
+          DUPLICATE: 'DUPLICATE',
+        }[status];
+
+  if (terminalDisposition && disposition !== terminalDisposition) {
+    errors.push(
+      `${where}: terminal Status ${status} requires ArchitectDisposition ${terminalDisposition}, got ${disposition || '(empty)'}`,
+    );
+  }
+
+  for (const [alignedStatus, alignedDisposition] of [
+    ['DEFERRED', 'DEFER'],
+    ['PRODUCT_DECISION', 'PRODUCT_DECISION'],
+  ]) {
+    if (status === alignedStatus && disposition !== alignedDisposition) {
+      errors.push(
+        `${where}: Status ${alignedStatus} requires ArchitectDisposition ${alignedDisposition}`,
+      );
+    }
+    if (disposition === alignedDisposition && status !== alignedStatus) {
+      errors.push(
+        `${where}: ArchitectDisposition ${alignedDisposition} requires Status ${alignedStatus}`,
+      );
+    }
+  }
+
+  if (record.body.split(/\r?\n/).some((line) => line.trim() === '</content>')) {
+    errors.push(`${where}: contains stray literal </content> wrapper text`);
+  }
+
   if (kind === 'bug') {
-    const status = String(fields.Status ?? '').trim();
     if (['VERIFIED', 'CLOSED'].includes(status) && !String(fields.ResolvedAt ?? '').trim()) {
       errors.push(`${where}: Status ${status} requires a ResolvedAt date`);
     }
@@ -350,6 +402,22 @@ function validate(record, kind, errors) {
       BUG_TERMINAL.has(status)
     ) {
       errors.push(`${where}: a ${status} bug cannot still be TRIAGE_REQUIRED`);
+    }
+
+    let previousSection = -1;
+    for (const section of BUG_SECTIONS) {
+      const match = new RegExp(
+        `^##\\s+${section.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&')}\\s*$`,
+        'm',
+      ).exec(record.body);
+      if (!match) {
+        errors.push(`${where}: missing required section "## ${section}"`);
+        continue;
+      }
+      if (match.index < previousSection) {
+        errors.push(`${where}: required section "## ${section}" is out of order`);
+      }
+      previousSection = Math.max(previousSection, match.index);
     }
   }
 }
@@ -428,6 +496,67 @@ export function loadRecords(root) {
         if (!known.has(reference)) {
           errors.push(`${record.relative}: ${field} references unknown record ${reference}`);
         }
+      }
+    }
+  }
+
+  /* Evidence paths and regression links are part of record truth, not prose. */
+  const registerPath = join(root, 'docs/qa/regressions/index.md');
+  const regressionRegister = existsSync(registerPath) ? readFileSync(registerPath, 'utf8') : '';
+  const regressionEntries = new Map(
+    regressionRegister
+      .split(/(?=^### REG-)/m)
+      .map((entry) => [(/^### (REG-\d{3})/.exec(entry) ?? [])[1], entry])
+      .filter(([id]) => id),
+  );
+  for (const record of records) {
+    for (const field of ['QAReport', 'RelatedQA', 'RelatedADR', 'RelatedImplementation']) {
+      for (const value of asList(record.fields[field])) {
+        if (!value.startsWith('docs/')) continue;
+        if (!existsSync(join(root, value))) {
+          errors.push(`${record.relative}: ${field} references missing path ${value}`);
+        }
+      }
+    }
+
+    if (record.kind !== 'bug') continue;
+    const regressionId = String(record.fields.RegressionId ?? '').trim();
+    if (['FIXED', 'VERIFIED', 'CLOSED'].includes(record.status) && !regressionId) {
+      errors.push(
+        `${record.relative}: Status ${record.status} requires RegressionId so the fix has durable regression coverage`,
+      );
+    }
+    if (regressionId && !regressionEntries.has(regressionId)) {
+      errors.push(`${record.relative}: RegressionId ${regressionId} is absent from the regression register`);
+    } else if (regressionId) {
+      const entry = regressionEntries.get(regressionId);
+      const active =
+        (/^\|\s*\*\*Active\*\*\s*\|\s*(.*?)\s*\|\s*$/m.exec(entry) ?? [])[1] ?? '';
+      if (['FIXED', 'VERIFIED', 'CLOSED'].includes(record.status) && active.trim().toLowerCase() !== 'yes') {
+        errors.push(
+          `${record.relative}: Status ${record.status} requires RegressionId ${regressionId} to be active`,
+        );
+      }
+      const rootCell =
+        (/^\|\s*\*\*Bug record\*\*\s*\|\s*(.*?)\s*\|\s*$/m.exec(entry) ?? [])[1] ?? '';
+      const rootIds = [...rootCell.matchAll(/\bBUG-\d{4}\b/g)].map((match) => match[0]);
+      if (!rootIds.includes(record.id)) {
+        errors.push(
+          `${record.relative}: RegressionId ${regressionId} does not name ${record.id} in its Bug record field`,
+        );
+      }
+    }
+  }
+
+  /* A completed blocker cannot still describe why active work cannot move. */
+  const byId = new Map(records.map((record) => [record.id, record]));
+  for (const record of records) {
+    for (const reference of asList(record.fields.BlockedBy)) {
+      const blocker = byId.get(reference);
+      if (blocker && isTerminal(blocker)) {
+        errors.push(
+          `${record.relative}: BlockedBy ${reference} is terminal (${blocker.status}); clear or replace the discharged dependency`,
+        );
       }
     }
   }

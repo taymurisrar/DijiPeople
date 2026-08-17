@@ -11,7 +11,7 @@ DetectedDate: 2026-08-17
 DetectedInSha: 1af3690
 AffectedModules: [apps/web]
 OwnerAgent: frontend
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: docs/qa/runs/2026-08-17-web-app-documentation-1af3690.md
 RegressionId: REG-035
 RelatedBacklogItem:
@@ -161,9 +161,12 @@ tests passing.
 
 ## History
 
+- 2026-08-17 — Architect reconciliation: terminal `VERIFIED` status normalized
+  to `ArchitectDisposition: DONE`; the existing resolution and QA evidence are
+  unchanged.
+
 - 2026-08-17 — found during the `apps/web` deep documentation audit (TASK-0003).
 - 2026-08-17 — Architect triage: `FIX_NOW` for the framing/sniffing/referrer
   headers, which are unambiguous and low-risk. CSP is explicitly carved out as a
   separate change so this record does not stall on it.
-</content>
 - 2026-08-17 — fixed and verified during the final parent implementation phase.

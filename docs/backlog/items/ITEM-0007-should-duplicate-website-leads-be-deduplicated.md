@@ -9,7 +9,7 @@ Severity: LOW
 AffectedModules: [services/api/src/modules/leads, apps/landing]
 Source: QA_RUN
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 CreatedAt: 2026-08-15
 UpdatedAt: 2026-08-17
 RelatedBug: BUG-0021
@@ -77,6 +77,9 @@ half-designed forms.
 [[BUG-0021]] · [[BUG-0013]] · module [[leads|Leads]] · requirement [[requirement-lead-conversion|Lead Conversion]].
 
 ## History
+
+- 2026-08-17 — Architect reconciliation: terminal `DONE` status normalized to
+  `ArchitectDisposition: DONE`; no runtime behavior changed.
 
 - 2026-08-15 — imported from the commercial onboarding E2E observations.
 

@@ -3,7 +3,7 @@ PLAN_ID: PLAN-004
 aliases: [PLAN-004]
 TITLE: Commercial Onboarding
 AREA: commercial-onboarding
-STATUS: CURRENT
+STATUS: NEEDS_REVIEW
 MODULES: [services/api/src/modules/contracts, services/api/src/modules/onboarding, services/api/src/modules/super-admin]
 RISK: HIGH
 COVERAGE_UNIT: GAP
@@ -14,12 +14,16 @@ COVERAGE_E2E: PARTIAL
 COVERAGE_BROWSER: PARTIAL
 COVERAGE_SECURITY: GAP
 COVERAGE_PERFORMANCE: NOT_APPLICABLE
-RELATED_BUGS: [BUG-0011, BUG-0012, BUG-0024]
-RELATED_REGRESSIONS: [REG-009, REG-010]
+RELATED_BUGS: [BUG-0011, BUG-0012, BUG-0024, BUG-0027, BUG-0028, BUG-0029, BUG-0030]
+RELATED_REGRESSIONS: [REG-009, REG-010, REG-017, REG-018, REG-019, REG-020, REG-028]
 CREATED_AT: 2026-08-16
-UPDATED_AT: 2026-08-16
+UPDATED_AT: 2026-08-17
 VERIFIED_AGAINST_SHA: 714632d
 ---
+
+> **TASK-0005 revalidation:** `VERIFIED_AGAINST_SHA` remains historical. WP-04,
+> WP-05 and WP-07 must re-audit the full lifecycle; WP-02 only reconciled its
+> executable bootstrap, pricing and browser evidence.
 
 # PLAN-004 — Commercial Onboarding
 
@@ -68,7 +72,7 @@ Stripe is reached during bootstrap; failures there must leave a retryable state 
 
 `e2e/tests/flow-a-commercial-onboarding.spec.ts` walks this journey in a real
 browser. Playwright is **installed**, in the `e2e` workspace — `@playwright/test` with
-two journey specs, run in CI as `browser-e2e-report` (report-only, not a gate).
+two journey specs, run in CI as the required `browser-e2e` job.
 `npm run test:browser`, and `npm run test:browser:install` first.
 
 It covers the happy path only; the negative cases in this plan — converting a
@@ -77,4 +81,4 @@ which is why the dimension is `PARTIAL` rather than `GOOD`.
 
 ## Regression Links
 
-`REG-009` · `REG-010`
+`REG-009` · `REG-010` · `REG-017` · `REG-018` · `REG-019` · `REG-020` · `REG-028`
