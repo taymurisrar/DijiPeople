@@ -15,16 +15,25 @@
 | **Base Branch** | `origin/main` |
 | **Task Branch** | `agent/autonomous-framework-triage` |
 | **Base SHA** | `b2ba38327854699fcb2c2efb5859936d17b40f15` |
-| **Final Task SHA** | `b2ba38327854699fcb2c2efb5859936d17b40f15` |
+| **Final Task SHA** | `93975c91589047e4aeed16fab6e1e961d765bbae` |
 | **Target Branch** | `main` |
-| **Merge Commit** | TODO — filled after the merge |
-| **Final Target SHA** | TODO — filled after the target is pushed |
+| **Merge Commit** | `a654c58dac936b677b998edb096d2e77c0b455d0` — PR #4, `agent/autonomous-framework-triage` → `main`. The lint remediation this task produced landed separately as PR #5, `703c4e31f50d1fc027b9e602b9acd4759b9e0a43`. |
+| **Final Target SHA** | `a654c58dac936b677b998edb096d2e77c0b455d0` — `main` immediately after PR #4 |
 
 ### Commits
 
 ```
-(none — the branch has no commits beyond its base)
+93975c9 docs(history,qa): record the run, and refresh the dashboards CI found stale
+572a3b8 fix(provisioning,partners): make tenant recovery convergent, govern partner review, add browser E2E
 ```
+
+> **Finalized 2026-08-17.** `Final Task SHA` previously repeated the base SHA,
+> under a commit block reading "(none — the branch has no commits beyond its
+> base)". Both were false, and both were contradicted by this record's own CI
+> section, which names `93975c9` as the SHA PR #4's verdict was read on;
+> `git log b2ba383..93975c9` returns the two commits now listed. The record was
+> filed before the merge and never returned to — the failure class
+> `validate-framework.mjs` now blocks.
 
 ### Worktrees
 

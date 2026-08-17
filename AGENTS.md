@@ -1,5 +1,15 @@
 # AGENTS.md — DijiPeople Engineering Instructions
 
+> **Last verified:** 2026-08-17
+> **Verified against commit:** 3f9063f
+>
+> This file outranks every role and context document, and until now it was the
+> only tier that carried no provenance of its own — so the two highest-severity
+> findings of the 2026-08-17 drift audit were both here. Every counted figure
+> and every module named below was re-derived at that commit. When you change a
+> claim in this file, move these two lines with it; `validate-framework.mjs`
+> requires them and checks the claims they vouch for.
+
 This is the primary instruction file for AI coding agents working in this
 repository. It describes **the repository as it actually is**, not a generic
 best-practice template. Where a rule is a convention rather than an enforced
@@ -166,10 +176,11 @@ Three authenticated surfaces plus one public one:
 
 ### Domains actually implemented
 
-**63 modules** under `services/api/src/modules/`, verified at commit 78716c4.
+**65 modules** under `services/api/src/modules/`, verified at commit 3f9063f.
 
 | Area | Modules |
 |---|---|
+| Identity | `auth` — sessions, per-client JWT issuance, `JwtAuthGuard`; the module every other row depends on |
 | People | `employees`, `employee-levels`, `employment-types`, `users`, `teams`, `organization` |
 | Time | `attendance`, `attendance-engine`, `attendance-integrations`, `timesheets`, `leave` |
 | Pay | `payroll`, `payslips`, `pay-components`, `compensation`, `tax-rules`, `loans`, `claims`, `benefits`, `business-trips`, `time-payroll` |
@@ -177,14 +188,22 @@ Three authenticated surfaces plus one public one:
 | Governance | `approvals`, `workflows`, `sla`, `audit`, `error-logs`, `permissions`, `roles` |
 | Commercial | `leads`, `partners`, `partner-experience`, `contracts`, `support-cases`, `billing`, `super-admin` (customers, plans, subscriptions, invoices, payments, tenant provisioning) |
 | Configuration | `tenant-settings`, `settings-runtime`, `customization`, `lookups`, `views`, `navigation`, `data`, `platform-runtime` |
-| Platform ops | `platform-auth`, `platform-users`, `platform-events`, `platform-monitoring`, `platform-communications`, `app-releases`, `tenants`, `demo-data`, `data-management`, `agent`, `dashboard`, `inbox`, `reports` |
+| Messaging | `notifications` — the only route for tenant notification and email; catalog → orchestrator → queue → processor |
+| Platform ops | `platform-auth`, `platform-users`, `platform-events`, `platform-monitoring`, `platform-communications`, `app-releases`, `tenants`, `tenant-control-plane`, `tenant-domains`, `demo-data`, `data-management`, `agent`, `dashboard`, `inbox`, `reports` |
 
 > **Verify counts on your branch.** The figures above were measured at commit
-> 78716c4, after the attendance-engine, attendance-integrations, app-releases,
-> `gateway/` and `tools/` work was committed. This repository moves quickly, and
-> instruction files here have previously described an uncommitted working tree
-> rather than a commit. Re-derive a number rather than trusting it if your
-> branch differs — see the `doc-code-drift` bug pattern.
+> 3f9063f. This repository moves quickly, and instruction files here have
+> previously described an uncommitted working tree rather than a commit.
+> Re-derive a number rather than trusting it if your branch differs — see the
+> `doc-code-drift` bug pattern.
+>
+> The table itself is now validated, not merely asserted:
+> `scripts/validate-framework.mjs` fails when the stated count disagrees with
+> `services/api/src/modules/`, when a directory is missing from the table, or
+> when a module this file names as a mandatory routing target is absent from it.
+> That check exists because this table once claimed 63 modules, enumerated 61,
+> and omitted `auth` and `notifications` — while the Events/notifications rule
+> below required routing through `notifications` by name.
 
 ---
 
@@ -210,12 +229,17 @@ scripts/          repo-level node scripts (ports, smoke tests, codegen)
 docs/             repository documentation (see docs/README.md)
 ```
 
-**`packages/database`, `packages/types` and `packages/utils` are empty
-directories.** They are not npm workspaces and contain no code. Do not import
-from them, do not document them as existing, and do not create them without an
-explicit decision recorded as an ADR. Shared backend code lives in
-`services/api/src/common/`; shared frontend code lives in each app's `lib/` and
-`app/components/`.
+**`packages/` contains exactly four workspaces — `config`, `ui`,
+`eslint-config`, `typescript-config` — and nothing else.** In particular there
+is no `packages/database`, `packages/types` or `packages/utils`. Do not import
+from them, and do not create them without an explicit decision recorded as an
+ADR. Shared backend code lives in `services/api/src/common/`; shared frontend
+code lives in each app's `lib/` and `app/components/`.
+
+> This paragraph previously described those three paths as "empty directories",
+> which read as a statement that they exist. They do not exist at all, and have
+> not for as long as the tree records. The instruction was right; its premise
+> was not.
 
 Node `22.x`, npm `11.x`, npm workspaces + Turborepo.
 
@@ -308,8 +332,9 @@ Node `22.x`, npm `11.x`, npm workspaces + Turborepo.
 ## Database / Prisma
 
 Prisma **7.8** with `@prisma/adapter-pg` against PostgreSQL. Single schema file:
-`services/api/prisma/schema.prisma` — **11,802 lines, 285 models, 255 enums**,
-with **191** migrations in `services/api/prisma/migrations/`. Prisma is configured
+`services/api/prisma/schema.prisma` — **12,370 lines, 292 models, 267 enums**,
+with **200** migrations in `services/api/prisma/migrations/`, all measured at
+3f9063f and drifting upward from the day they were written. Prisma is configured
 by `services/api/prisma.config.ts` — every Prisma CLI call in this repo passes
 `--config prisma.config.ts`.
 
@@ -321,14 +346,14 @@ Summary:
   relation on tenant-owned models. `PascalCase` models, `camelCase` fields,
   `SCREAMING_SNAKE_CASE` enum members. No `@@map` — Prisma names are the table
   names.
-- **Relations**: explicit `onDelete` on every relation (424 use `Cascade`).
+- **Relations**: explicit `onDelete` on every relation (430 use `Cascade`).
   Named relations where two relations connect the same pair of models.
 - **Migrations**: timestamped directories, created with
   `npm run prisma:migrate:dev` locally. **Never hand-edit an applied migration.
   Never delete one. Never run `migrate reset` or `db push` against a shared
   database.** Deployment applies them via `npm run prisma:migrate:deploy`
   (wrapped by `npm run release:api`).
-- **Indexes**: 1,080 `@@index` and 210 `@@unique` exist. Index every foreign key
+- **Indexes**: 1,105 `@@index` and 215 `@@unique` exist. Index every foreign key
   you filter on and every `(tenantId, <filter column>)` pair a list screen sorts
   or filters by.
 - **Soft delete is not universal.** Only a handful of models carry `isDeleted`
@@ -370,7 +395,7 @@ Full rules: [`services/api/AGENTS.md`](services/api/AGENTS.md). Summary:
   Do not invent ad-hoc error shapes; add a catalog entry instead.
 - **Auth**: `@UseGuards(JwtAuthGuard, PermissionsGuard)` at the controller.
   `@Public()` marks a genuinely unauthenticated route. At this baseline there
-  are **24 `@Public()` handlers across 10 controllers**, including partially
+  are **32 `@Public()` handlers across 12 controllers**, including partially
   public controllers such as `auth`, `agent`, `tenants` and `tenant-settings`
   where most handlers are guarded and a few are not. Count them on your branch;
   never assume a controller is uniformly public or uniformly guarded.
@@ -392,10 +417,12 @@ Full rules: [`services/api/AGENTS.md`](services/api/AGENTS.md). Summary:
 - **Events / notifications**: platform-side events via `PlatformEventsService`;
   tenant notifications via the `notifications` module (catalog → orchestrator →
   queue → processor). Do not send email directly from a domain service.
-- **Integrations**: `billing/` (Stripe) at this baseline. The
-  `attendance-integrations` module and the `gateway/` .NET solution exist only
-  in the uncommitted work noted in Product Context — verify presence on your
-  branch before planning against them.
+- **Integrations**: `billing/` (Stripe), the `attendance-integrations` module and
+  the `gateway/` .NET solution (`DijiPeople.Gateway.sln`). **All three are
+  committed and present** — `gateway/` and `attendance-integrations/` have been
+  tracked since 78716c4, and `npm run gateway:build` / `gateway:test` run
+  against the solution. This bullet previously called the last two "uncommitted
+  work", contradicting Product Context in the same file.
   Third-party credentials go through `SecretEncryptionService` —
   `SECRET_ENCRYPTION_KEY` is mandatory in production.
 

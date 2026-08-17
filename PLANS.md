@@ -1,5 +1,13 @@
 # PLANS.md — How substantial DijiPeople changes are planned
 
+> **Last verified:** 2026-08-17
+> **Verified against commit:** 3f9063f
+>
+> Every `.agent/agents/*.md` role referenced below was resolved against the
+> filesystem at that commit. This file previously routed step 3 of the plan
+> lifecycle to a role that had been deleted; `validate-framework.mjs` now fails
+> when a referenced role file does not exist.
+
 This file defines the planning contract for AI agents and engineers working in
 this repository. Behavioural rules live in [`AGENTS.md`](AGENTS.md); this file
 covers **what must be decided before code is written**.
@@ -323,8 +331,18 @@ Branch and worktree mechanics:
 1. **Architect** writes the ExecPlan, verifying every claim against the
    repository. See [`.agent/agents/architect.md`](.agent/agents/architect.md).
 2. A human approves it. **Implementation does not start on an unapproved plan.**
-3. **Implementers** take one labelled task each. See
-   [`.agent/agents/implementer.md`](.agent/agents/implementer.md).
+3. **Specialists** take one labelled task each, routed by the kind of work:
+   [`backend-api.md`](.agent/agents/backend-api.md),
+   [`frontend.md`](.agent/agents/frontend.md),
+   [`database.md`](.agent/agents/database.md),
+   [`integration.md`](.agent/agents/integration.md), and
+   [`ui-ux.md`](.agent/agents/ui-ux.md) (read-only by default).
+   > There is deliberately **no** generic `implementer` role. This step used to
+   > link `.agent/agents/implementer.md`, which was deleted as superseded by the
+   > five specialists above — see the delete/modify case in
+   > [`.agent/agents/integrator.md`](.agent/agents/integrator.md). The link
+   > outlived the file because nothing validated it; `validate-framework.mjs`
+   > now resolves every `.agent/agents/*.md` reference.
 4. **Reviewer** reviews the completed change against the plan and the security
    checklist, without modifying code. See
    [`.agent/agents/reviewer.md`](.agent/agents/reviewer.md).
