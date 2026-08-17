@@ -1,0 +1,141 @@
+---
+ID: BUG-0049
+aliases: [BUG-0049]
+Title: Report-only CI jobs swallow security and database E2E failures
+Status: OPEN
+Severity: HIGH
+Priority: P0
+Type: INFRA
+Source: QA_RUN
+DetectedDate: 2026-08-17
+DetectedInSha: 0051180
+AffectedModules: [.github/workflows, services/api/src/common/constants, services/api/test, docs/qa]
+OwnerAgent: release-devops
+ArchitectDisposition: FIX_NOW
+QAReport: docs/qa/runs/2026-08-17-framework-remediation-e6a173d.md
+RegressionId:
+RelatedBacklogItem: ITEM-0043
+RelatedDecision:
+RelatedImplementation:
+CreatedAt: 2026-08-17
+UpdatedAt: 2026-08-17
+ResolvedAt:
+---
+
+# BUG-0049 — Report-only CI jobs swallow security and database E2E failures
+
+## Summary
+
+The CI workflow captures failures from the dual-permission security invariant
+and the database-backed E2E suite without returning their exit codes. Both jobs
+therefore conclude `success` while their test steps are red, and the aggregate
+`CI required gate` remains green.
+
+## Expected Behavior
+
+Report-only engineering evidence may remain non-gating while it has a known
+baseline, but its recorded result must truthfully expose PASS or FAIL and must
+never be rounded up to a green job or green QA verdict.
+
+## Actual Behavior
+
+GitHub Actions run `32009837400` on `develop` SHA `0051180` concluded success.
+Inside those green jobs, the security invariant had 796 violations and database
+E2E had 6 failed suites / 136 failed tests. The durable QA run also reports all
+jobs green and browser E2E 8/0, while the actual browser result is 8 passed / 1
+skipped.
+
+## Reproduction
+
+1. `gh run view 32009837400 --json headSha,conclusion,jobs` — overall and both
+   report-only job conclusions are `success`.
+2. `gh run view 32009837400 --job 95326876583 --log` — 894 handlers in scope,
+   98 compliant, 796 violations, 1 failed suite.
+3. `gh run view 32009837400 --job 95327538057 --log` — 6 failed suites, 9
+   passed, 136 failed tests, 91 passed.
+4. `gh run view 32009837400 --job 95326876559 --log` — 8 passed, 1 skipped.
+
+## Evidence
+
+- `.github/workflows/ci.yml:324-418` — database E2E captures the test result but
+  never makes the job fail.
+- `.github/workflows/ci.yml:450-503` — the security invariant is report-only and
+  excluded from the required API suite.
+- `services/api/src/common/constants/wiring-invariants.spec.ts` — inventory of
+  1,198 handlers, 29 public, 275 outside `PermissionsGuard`, 894 in scope, 98
+  compliant and 796 violations: 3 missing only legacy permissions, 715 missing
+  only matrix permission and 78 missing both.
+- GitHub run `32009837400`, exact SHA
+  `00511803ebb0e1343ff35535996df1af98c95834` — DB result 6/15 failed suites and
+  136/227 failed tests; browser 8 passed / 1 skipped.
+- `docs/qa/runs/2026-08-17-framework-remediation-e6a173d.md` — incorrectly
+  treats green job conclusions as passing report-only evidence.
+
+## Root Cause
+
+Established: `continue-on-error` / `set +e` is used as both non-gating policy
+and result handling. The scripts retain text summaries but do not propagate the
+captured exit status or publish a machine-readable failure verdict. The
+aggregate gate checks job conclusions only, so swallowed failures become green.
+
+## Impact
+
+Security and data-integrity failures are hidden from every consumer that reads
+the aggregate check or job badge. This is false-success/lifecycle corruption:
+the current required gate can be green while hundreds of authorization wiring
+and database assertions fail. Individual violations still require verification
+before being called product exploits, but the loss of evidence is live.
+
+## Affected Areas
+
+GitHub CI, API authorization inventory, all database-backed E2E suites, QA run
+truthfulness, the Engineering Control Center and every integration decision
+that relies on `CI required gate` alone.
+
+## Proposed Resolution
+
+Keep noisy suites non-gating until stabilized, but make their internal verdict
+explicit and durable. Publish structured PASS/FAIL counts and fail an evidence
+integrity step when a report cannot be parsed. Audit the 78 missing-both routes
+first. Run DB suites serially with isolated fixtures to distinguish shared-state
+races from product failures. Promote only after deterministic zero-failure runs.
+
+## Acceptance Criteria
+
+- A failing report-only test produces a visible FAIL verdict in its summary and
+  durable QA evidence even if it does not yet block the aggregate.
+- No QA run infers PASS from a green `continue-on-error` job.
+- Security inventory is reduced by module; missing-both routes are triaged
+  before half-wired routes.
+- Database E2E is rerun serially; residual product failures get separate Bugs.
+- Gate promotion occurs only after deterministic green runs.
+
+## Regression Coverage
+
+Add a framework/CI invariant that feeds a non-zero synthetic report into the
+summary path and requires the durable verdict to be FAIL. Link a regression ID
+when implemented.
+
+## Dependencies
+
+Related to `ITEM-0043`; implementation packages require the `ci` lease. Product
+authorization and DB defects discovered after isolation become separate records.
+
+## Related Items
+
+[[ITEM-0043]] · [[premature-completion]] · [[qa-and-ci-architecture]] ·
+[[TASK-0005]]
+
+## Resolution
+
+Not fixed. The failure is reproduced on current `develop`.
+
+## QA Retest
+
+Pending. Baseline evidence comes from run `32009837400` and re-audit of the
+linked QA run.
+
+## History
+
+- 2026-08-17 — created by TASK-0005 after reading the internal logs of the
+  latest `develop` CI run rather than trusting its green job conclusions.
