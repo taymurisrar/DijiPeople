@@ -141,6 +141,7 @@ _None._
 
 ## Recent Engineering History
 
+- [[2026-08-17-landing-uiux-browser-qa-and-agent-hardening-1f6e842|Engineering History — Landing UI/UX browser QA and UI/UX agent hardening]]
 - [[2026-08-17-framework-remediation-e6a173d|Engineering History — Framework remediation]]
 - [[2026-08-16-web-app-documentation-1af3690|Engineering History — Web app documentation]]
 - [[2026-08-16-public-commercial-wave2-301a397|Engineering History — Wave 2: Public Plans + Features Experience]]
@@ -148,7 +149,6 @@ _None._
 - [[2026-08-16-monorepo-app-documentation-78072d2|Engineering History — Monorepo app documentation]]
 - [[2026-08-16-lead-partner-acquisition-wave3-ca18353|Engineering History — Wave 3: Lead + Partner Acquisition]]
 - [[2026-08-16-hotfix-plan-list-hidden-write-ee1acec|Engineering History — Hotfix: Plan list GET mutates commercial pricing (BUG-0030)]]
-- [[2026-08-16-framework-orchestration-f38a6bf|Engineering History — Framework orchestration]]
 
 ## Recent Releases
 
@@ -202,7 +202,7 @@ _None. Nothing has been deployed through the release process._
 | Backlog items | 51 |
 | Known bug patterns | 19 |
 | QA runs | 16 |
-| Engineering history records | 12 |
+| Engineering history records | 13 |
 | Release records | 0 |
 | Module notes | 22 |
 | Architecture notes | 18 |
