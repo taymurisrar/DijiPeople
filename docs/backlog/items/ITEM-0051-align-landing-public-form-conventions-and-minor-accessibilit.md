@@ -92,7 +92,38 @@ anywhere in the shell.
 `lead-form-section.tsx:209-223` renders the business email, support email and
 phone as plain text. On mobile they are not tappable.
 
-**8. Hydration mismatch on the partner activation route**
+**8. Header CTA wraps to two lines at the tablet breakpoint**
+
+At exactly 768px the header switches to the full desktop navigation — six links,
+Login, and the **Start subscription** button — and the button's label wraps onto
+two lines, leaving it taller than the bar around it. Visible in
+`screens/home--tablet.png`. The automated overflow check did not catch this
+because the layout wraps rather than overflowing; it took a look at the
+screenshot. The `md` breakpoint is where the desktop nav appears
+(`site-shell.tsx:38,50`), and it appears roughly one item too early.
+
+**9. The hero `h1` is the brand name, not the proposition**
+
+`/` renders `<h1>DijiPeople</h1>` directly below a header logo that already says
+DijiPeople, while the actual value proposition sits in the eyebrow ("PUBLIC HR
+SAAS FOR OPERATIONAL TEAMS") and the paragraph beneath. The largest text on the
+page carries the least information, and the `h1` — which is what search results
+and screen-reader page summaries lean on — restates the logo.
+
+Two smaller things travel with it: "PUBLIC" in the eyebrow is internal
+vocabulary (public site vs tenant app) leaking into marketing copy, and the
+supporting paragraph lists nine capabilities in a single unbroken sentence.
+
+**10. Competing primary CTAs in the hero and header**
+
+The hero offers three actions — **View plans** (filled), **Contact sales**
+(outline), **Start subscription** (outline) — while the header offers **Start
+subscription** as its filled primary. So the same action is styled primary in
+one place and secondary in another, and two different actions are presented as
+*the* primary depending on where the eye lands. Nothing is broken; the page
+simply does not say what it wants the visitor to do next.
+
+**11. Hydration mismatch on the partner activation route**
 
 ```
 ERROR | /partners/activate/not-a-real-token |
@@ -123,8 +154,14 @@ split into its own bug record if the cause turns out to be substantive.
 6. Privacy and terms links are reachable from the footer, or a decision is
    recorded that they do not exist yet.
 7. Email and phone in the contact block are `mailto:` and `tel:` links.
-8. The hydration warning on `/partners/activate/[token]` is diagnosed and either
-   fixed or promoted to its own record.
+8. The header CTA does not wrap at 768px — either the breakpoint moves or the
+   nav collapses one item earlier.
+9. The hero `h1` states what DijiPeople does, not what it is called, and the
+   supporting paragraph is broken up so it can be scanned.
+10. One action is visually primary per view; the same action is not styled
+    primary in one place and secondary in another.
+11. The hydration warning on `/partners/activate/[token]` is diagnosed and
+    either fixed or promoted to its own record.
 
 ## Dependencies
 
