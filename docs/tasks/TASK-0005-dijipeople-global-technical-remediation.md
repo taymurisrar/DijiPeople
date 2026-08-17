@@ -302,11 +302,11 @@ Updated 2026-08-17.
 
 ```text
 CURRENT_PROGRAM             TASK-0005 — bug-fixing mode only
-CURRENT_PACKAGE             WP-07 recommended next; WP-08 partially landed
-LAST_INTEGRATED_DEVELOP_SHA 4a265608aed63353393474fc118ec32fcf7e2eeb
+CURRENT_PACKAGE             WP-07 in progress — two packages landed
+LAST_INTEGRATED_DEVELOP_SHA 82353a405466116729a0ae6d39a4b773053f36ca
 MAIN                        b90f33e — UNTOUCHED
-OPEN_BUGS                   9   (CRITICAL 0, HIGH 2, MEDIUM 6, LOW 1)
-BACKLOG_OPEN                25 of 48
+OPEN_BUGS                   7   (CRITICAL 0, HIGH 2, MEDIUM 4, LOW 1)
+BACKLOG_OPEN                25 of 49
 ```
 
 ### Packages advanced
@@ -328,9 +328,37 @@ BACKLOG_OPEN                25 of 48
   suite failures — was split out as ITEM-0047 rather than being claimed. WP-09
   stays `IN_PROGRESS` until that half is done and the job is promoted.
 
+### Next ready package
+
+**BUG-0046** — tenant theme mode and runtime settings saves. The only remaining
+`FIX_NOW` bug that is not a dependency-replacement decision, and it shares the
+settings surface just touched by BUG-0050, so the context is warm. Pair it with
+**ITEM-0031** (replace remaining native prompts) and **ITEM-0046** (landing
+loading/error/not-found boundaries) as one `apps/web` UX package.
+
+Then, in order:
+
+1. **BUG-0052** (HIGH) — needs one fact before it can close: whether the
+   `tar`/`node-gyp` chain beneath `active-win` actually ships in a packaged
+   desktop build, or is install-time only. That single check decides whether the
+   repository's one CRITICAL is production-reachable. It is ITEM-0048's first
+   step, and the two should be done together.
+2. **BUG-0034** (HIGH, `PLAN_REQUIRED`) — desktop auto-update endpoint. Decide
+   between wiring it to the real `ApplicationRelease` API or disabling the dead
+   path with honest UX; do not guess a second URL. Pairs with ITEM-0026
+   (unsigned installer) and ITEM-0027 (no retry backoff) as a desktop package.
+3. **ITEM-0047** (HIGH) — database e2e determinism. Gates promoting that job and
+   the rest of WP-09.
+4. **BUG-0041, BUG-0043, BUG-0045** — `PLAN_REQUIRED`, all `apps/web`, each
+   needing a design decision rather than a patch. BUG-0041 is the most valuable:
+   web route proxies making authorization decisions is the same class as the
+   already-fixed BUG-0039.
+5. **ITEM-0004** and **ITEM-0034** — the two P1 test gaps.
+6. **BUG-0018** — currently `DEFERRED`; re-evaluate rather than inherit.
+
 ### Next ready bugs
 
-Nine bugs remain open. Highest value first:
+Seven bugs remain open. Highest value first:
 
 1. **BUG-0042** (MEDIUM, INFRA, `FIX_NOW`) — `apps/web` reads 21 environment
    variables unregistered in `packages/config` validation. Mechanical and
