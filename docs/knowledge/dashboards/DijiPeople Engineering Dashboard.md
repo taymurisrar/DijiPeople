@@ -109,8 +109,8 @@ _None._
 - [[2026-08-16-monorepo-app-documentation-78072d2|QA Run — Monorepo application documentation audit (TASK-0002)]]
 - [[2026-08-16-lead-partner-acquisition-wave3-1695167|QA Run — Wave 3: Lead + Partner Acquisition]]
 - [[2026-08-16-hotfix-plan-list-hidden-write-78072d2|QA Run — Hotfix: Plan list GET mutates commercial pricing (BUG-0030)]]
+- [[2026-08-16-framework-autonomous-v2-f64ba4e|QA Run — framework-autonomous-v2]]
 - [[2026-08-16-commercial-config-wave1-a525896|QA Run — Wave 1: Commercial Configuration Foundation]]
-- [[2026-08-15-commercial-onboarding-e2e-7bbab3d|QA Run — Commercial onboarding lifecycle E2E (website lead and partner journeys)]]
 
 ## Recent Implementations
 
@@ -178,7 +178,7 @@ _None. Nothing has been deployed through the release process._
 | Bug records | 47 |
 | Backlog items | 41 |
 | Known bug patterns | 19 |
-| QA runs | 11 |
+| QA runs | 12 |
 | Engineering history records | 11 |
 | Release records | 0 |
 | Module notes | 19 |

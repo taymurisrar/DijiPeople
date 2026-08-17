@@ -9,8 +9,8 @@
 |---|---|
 | Active sessions | **1** |
 | Active parent tasks | 1 |
-| Active work packages | 1 |
-| Blocked work packages | 0 |
+| Active work packages | 0 |
+| Blocked work packages | 1 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **3** |
 | Open HIGH | 8 |
@@ -29,7 +29,7 @@
 
 | Task | Title | Type | Size | Progress | Current | Ready next | Blocked |
 |---|---|---|---|---|---|---|---|
-| [[TASK-0004-autonomous-framework-v2-architect-only-orchestration-multi-s|TASK-0004]] | Autonomous framework v2 — Architect-only orchestration, multi-session safety, develop integration, persistent QA | FRAMEWORK | PROGRAM | 2/11 | WP-03 | WP-04, WP-05, WP-07 | — |
+| [[TASK-0004-autonomous-framework-v2-architect-only-orchestration-multi-s|TASK-0004]] | Autonomous framework v2 — Architect-only orchestration, multi-session safety, develop integration, persistent QA | FRAMEWORK | PROGRAM | 10/11 | — | — | WP-11 |
 
 ## Branch model
 

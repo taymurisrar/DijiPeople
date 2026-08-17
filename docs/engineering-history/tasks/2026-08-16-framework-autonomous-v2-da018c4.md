@@ -5,8 +5,8 @@
 | **Task Title** | Framework autonomous v2 |
 | **Task Type** | FRAMEWORK |
 | **Date** | 2026-08-16 |
-| **Architect Plan** | TODO — path to the ExecPlan, or NOT_APPLICABLE with a reason |
-| **Agents Used** | TODO — and which were deliberately not used |
+| **Architect Plan** | [`docs/tasks/TASK-0004`](../../tasks/TASK-0004-autonomous-framework-v2-architect-only-orchestration-multi-s.md) — parent record with 11 work packages and a 5-row assumption register |
+| **Agents Used** | Architect, QA, Reviewer, Integrator, Release/DevOps. **Not used:** Backend/API, Frontend, UI/UX, Database, Integration — a FRAMEWORK task changes `.agent/`, `scripts/` and `docs/` and touches no product code, no schema and no UI |
 
 ## Git
 
@@ -16,7 +16,7 @@
 | **Task Branch** | `agent/framework-autonomous-v2` |
 | **Base SHA** | `b90f33e00c3845439797b51ef1ceb3ed7820a620` |
 | **Final Task SHA** | `da018c43c175608fd6c0cc7223c2f01b2bb7e133` |
-| **Target Branch** | `main` |
+| **Target Branch** | `develop` — this task is what makes that the default; `main` is untouched |
 | **Merge Commit** | TODO — filled after the merge |
 | **Final Target SHA** | TODO — filled after the target is pushed |
 
@@ -181,25 +181,74 @@ A	scripts/verify-branch-policy.mjs
 
 ## Conflicts
 
-TODO — Integrator. For each conflict: the files, the type from the nine-type
-taxonomy in [`.agent/agents/integrator.md`](../../../.agent/agents/integrator.md),
-and what each side intended.
+`origin/main` advanced **twice** while this task was open, from a concurrently
+running session: `714632d → c179ea3 → b90f33e` (PRs #30 and #31). The second
+advance was merged into the task branch; four files conflicted.
 
-Write `None.` if the merge was clean. Do not omit the section.
+| Files | Type | What each side intended |
+|---|---|---|
+| `docs/backlog/index.md`, `docs/tasks/index.md`, `docs/tasks/active.md`, `docs/knowledge/dashboards/DijiPeople Engineering Dashboard.md` | **TYPE 7 — generated file** | Both sides added records and regenerated. `main` added `ITEM-0038`, `ITEM-0039`, `BUG-0039`, `BUG-0040`; this branch added `BUG-0047`, `ITEM-0040`, `ITEM-0041`, `TASK-0004`, `SESSION-0001` and reopened `BUG-0001`–`BUG-0007`. |
+
+`docs/qa/regressions/index.md` auto-merged: `main` appended new entries while
+this branch flipped `Active` on six existing ones, and the edits did not overlap.
+
+**No id collided.** `main` took `BUG-0039/0040` and `ITEM-0038/0039`; this branch
+took `BUG-0047` and `ITEM-0040/0041`. That is the first time two concurrent
+branches in this repository have not collided, and it is the direct effect of the
+allocator landed here — the previous two attempts both required renumbering.
 
 ## Conflict Resolutions
 
-TODO — Integrator. For each conflict above: what was chosen, and **what would
-have been lost by choosing the other side**. This is the field a script cannot
-fill and the reason this record is prose.
+**All four resolved by regenerating from the records, not by hand-merging.**
+
+```bash
+node scripts/rebuild-backlog.mjs
+node scripts/rebuild-tasks.mjs
+node scripts/rebuild-sessions.mjs
+node scripts/rebuild-qa.mjs
+node scripts/generate-dashboards.mjs
+```
+
+*What choosing either side would have lost:* taking `--ours` would have dropped
+`ITEM-0038`, `ITEM-0039`, `BUG-0039` and `BUG-0040` from every index while the
+record files themselves remained — the indexes would then have disagreed with
+their own inputs, and `--check` in CI would have caught it, but only after the
+merge. Taking `--theirs` would have dropped this branch's five new records the
+same way. Hand-merging the hunks would have produced an index that matched
+neither generator's output and drifted on the next rebuild.
+
+A generated file has exactly one correct resolution: run the generator. This is
+the case the nine-type taxonomy calls TYPE 7, and it is why generated indexes are
+worth having a rule for at all.
+
+### A second, non-Git conflict: the merge falsified four documents
+
+`main` brought a Playwright `e2e` workspace with two journey specs. Four test
+plans, one scenario and `.agent/agents/qa.md` all asserted that **no browser
+automation exists in any workspace** — true when written that morning, false by
+the time the branch merged.
+
+Corrected against the code per the Staleness Rule, and two scenarios added for
+the journeys that now genuinely have browser coverage (`QA-ONBOARD-004`,
+`QA-PARTNER-004`). Where the tooling now exists but no spec does,
+`AUTOMATION_STATUS` is `MANUAL` rather than `BLOCKED_INFRASTRUCTURE` — an
+unwritten test and absent tooling are different facts, and the coverage matrix is
+read as evidence of which.
+
+This is the `doc-code-drift` pattern arriving through a merge rather than through
+neglect, which is a shape worth recording: nobody edited those documents, and
+they became wrong anyway.
 
 ## QA
 
 | | |
 |---|---|
-| **QA Report** | TODO — `docs/qa/runs/…` and the verdict |
-| **Bug IDs** | TODO — `BUG-nnnn` records created or closed by this task |
-| **Backlog Items** | TODO — `ITEM-nnnn` records created, advanced or closed |
+| **QA Report** | [`docs/qa/runs/2026-08-16-framework-autonomous-v2-f64ba4e.md`](../../qa/runs/2026-08-16-framework-autonomous-v2-f64ba4e.md) — `PASS_WITH_RISKS` |
+| **Bug IDs** | `BUG-0047` created (CRITICAL). `BUG-0001`–`BUG-0007` **reopened** — they were `VERIFIED` against fixes that are not on the integration branch |
+| **Backlog Items** | `ITEM-0040`, `ITEM-0041` created. `ITEM-0038` **closed** — the id allocator resolves it |
+
+The task's own durable QA output is the twelve test plans and fifty-eight
+scenarios under `docs/qa/`, which are the artefact rather than a by-product.
 
 ## CI
 
@@ -219,20 +268,57 @@ integrated result.
 
 ## Release / Deployment Impact
 
-TODO — Release/DevOps. Whether this reaches an environment, the rollback class,
-and the release record if one exists. `None — not deployed.` is a complete
-answer.
+**None — not deployed, and `main` untouched.** Rollback class `CODE_ONLY`: the
+task changes `.agent/`, `scripts/`, `docs/` and `.github/workflows/ci.yml` and
+touches no product code, no schema and no runtime configuration.
+
+`MAIN_CHANGE_STATUS = UNTOUCHED` against baseline `714632d` — the baseline
+recorded when the branch was cut. `main` did advance twice during the task, from
+a different session; that is visible in `MAIN_SYNC_STATUS`, and is the reason the
+two fields are separate.
+
+One deployment-relevant change: `develop` was fast-forwarded from `37a7142`
+(2026-05-08, 201 commits behind) to the current shared baseline, so it is a
+usable integration branch rather than an abandoned one. Lossless — `develop` had
+zero unique commits and was a strict ancestor of `main`, verified with
+`git merge-base --is-ancestor` before the push.
 
 ## Knowledge Capture
 
-TODO — which `docs/knowledge/` files were written or updated, and their
-categories. "Nothing durable was learned" is a valid outcome; record it as one.
+Four new context documents, which are the durable knowledge this task produced:
+
+| Document | Category |
+|---|---|
+| [`.agent/context/multi-session.md`](../../../.agent/context/multi-session.md) | `ARCHITECTURE_RULE` — concurrency model, leases, id allocation |
+| [`.agent/context/branch-model.md`](../../../.agent/context/branch-model.md) | `PROCESS_RULE` — develop integrates, main deploys |
+| [`.agent/context/agent-handoffs.md`](../../../.agent/context/agent-handoffs.md) | `PROCESS_RULE` — handoff contract, required-agent matrix |
+| [`.agent/context/qa-persistence.md`](../../../.agent/context/qa-persistence.md) | `PROCESS_RULE` — durable plans, scenarios, coverage |
+
+Plus [`docs/development/git-ci-cost.md`](../git-ci-cost.md), which measures what
+the branch model changes rather than asserting it is faster.
+
+The lesson worth carrying forward is in `BUG-0047`: **a record closed on
+branch-level evidence is not closed.** Seven records read `VERIFIED` for two days
+against fixes no integration branch had, two of them CRITICAL, and every derived
+view reported protection that did not exist. The prevention is now two checks in
+`validate-framework.mjs` rather than a paragraph asking people to be careful.
 
 ## Obsidian Sync
 
-TODO — whether `node scripts/sync-obsidian.mjs` ran, and which `Generated/`
-folders changed.
+`SKIPPED_NO_LOCAL_CONFIG` — no `.obsidian-sync.local.json` exists in this
+checkout, so no vault is reachable and nothing was published.
+
+The outbound path was extended and is verifiable when a vault is configured:
+`docs/sessions`, `docs/qa/test-plans` and `docs/qa/scenarios` are now mapped, the
+Engineering Control Center publishes to `00 - Home/Generated/`, and
+`node scripts/sync-obsidian.mjs --verify` reads the vault back — checking that
+every expected note exists, carries substance, matches its source, and that every
+generated wikilink resolves. **None of that was executed against a real vault
+here**, and the validation covers the mechanism rather than any vault's contents.
 
 ## Cleanup
 
-TODO — worktree removed, local branch deleted, or the reason neither was.
+Worktree `D:/My Work/hrm-dijipeople/dijipeople-framework` and branch
+`agent/framework-autonomous-v2` retained until the integration into `develop` is
+verified by reading `origin/develop`. Session `SESSION-0001` released its
+`framework` lease and left the merge queue on finish.

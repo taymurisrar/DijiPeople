@@ -10,10 +10,10 @@ CREATED_AT: 2026-08-16
 AFFECTED_MODULES: [.agent, scripts, docs/sessions, docs/qa, docs/backlog, docs/tasks, .github/workflows, AGENTS.md]
 AGENTS: [architect, qa, reviewer, integrator, release-devops]
 DEPENDENCIES: none external
-CURRENT_PACKAGE: WP-03
-COMPLETED_PACKAGES: [WP-01, WP-02]
-BLOCKED_PACKAGES: []
-OWNER_DECISIONS: 0
+CURRENT_PACKAGE:
+COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10]
+BLOCKED_PACKAGES: [WP-11: BLOCKED_EXTERNAL — GitHub protection writes refused by this environment's tooling policy; configuration committed and verifiable; tracked as ITEM-0040]
+OWNER_DECISIONS: 1
 FINAL_STATUS:
 ---
 
@@ -40,15 +40,15 @@ A good package can be reviewed on its own and has one owning specialist.
 |---|---|---|---|---|---|---|---|---|---|---|
 | WP-01 | Atomic id allocation across sessions and branches | DONE | — | integrator | agent/framework-autonomous-v2 | — | PASS | — | — | — |
 | WP-02 | Session registry, write leases, develop merge queue | DONE | WP-01 | integrator | agent/framework-autonomous-v2 | — | PASS | — | — | — |
-| WP-03 | Branch model — develop integration, main as production control | IN_PROGRESS | WP-02 | release-devops | agent/framework-autonomous-v2 | — | — | — | — | — |
-| WP-04 | Persistent QA test plans, scenario registry, coverage matrix | NOT_STARTED | WP-01 | qa | agent/framework-autonomous-v2 | — | — | — | — | — |
-| WP-05 | Agent handoff contract and required-agent completion matrix | NOT_STARTED | WP-02 | architect | agent/framework-autonomous-v2 | — | — | — | — | — |
-| WP-06 | Architect-only operating model and DP: keyword router | NOT_STARTED | WP-03, WP-05 | architect | agent/framework-autonomous-v2 | — | — | — | — | — |
-| WP-07 | Continuous backlog management — aging and revalidation | NOT_STARTED | WP-01 | architect | agent/framework-autonomous-v2 | — | — | — | — | — |
-| WP-08 | Bidirectional Obsidian and the Engineering Control Center | NOT_STARTED | WP-04, WP-07 | architect | agent/framework-autonomous-v2 | — | — | — | — | — |
-| WP-09 | Framework validation — behavioural simulations | NOT_STARTED | WP-06, WP-08 | qa | agent/framework-autonomous-v2 | — | — | — | — | — |
-| WP-10 | Operating-model documentation and Git/CI cost analysis | NOT_STARTED | WP-09 | architect | agent/framework-autonomous-v2 | — | — | — | — | — |
-| WP-11 | GitHub develop branch configuration | NOT_STARTED | WP-03 | release-devops | agent/framework-autonomous-v2 | — | — | — | — | — |
+| WP-03 | Branch model — develop integration, main as production control | DONE | WP-02 | release-devops | agent/framework-autonomous-v2 | f64ba4e | PASS | — | PASS | — |
+| WP-04 | Persistent QA test plans, scenario registry, coverage matrix | DONE | WP-01 | qa | agent/framework-autonomous-v2 | f64ba4e | PASS | BUG-0047 | PASS | — |
+| WP-05 | Agent handoff contract and required-agent completion matrix | DONE | WP-02 | architect | agent/framework-autonomous-v2 | f64ba4e | PASS | — | PASS | — |
+| WP-06 | Architect-only operating model and DP: keyword router | DONE | WP-03, WP-05 | architect | agent/framework-autonomous-v2 | f64ba4e | PASS | — | PASS | — |
+| WP-07 | Continuous backlog management — aging and revalidation | DONE | WP-01 | architect | agent/framework-autonomous-v2 | f64ba4e | PASS | ITEM-0038 | PASS | — |
+| WP-08 | Bidirectional Obsidian and the Engineering Control Center | DONE | WP-04, WP-07 | architect | agent/framework-autonomous-v2 | f64ba4e | PASS_WITH_RISKS | — | PASS | — |
+| WP-09 | Framework validation — behavioural simulations | DONE | WP-06, WP-08 | qa | agent/framework-autonomous-v2 | f64ba4e | PASS | — | PASS | — |
+| WP-10 | Operating-model documentation and Git/CI cost analysis | DONE | WP-09 | architect | agent/framework-autonomous-v2 | f64ba4e | PASS | — | PASS | — |
+| WP-11 | GitHub develop branch configuration | BLOCKED | WP-03 | release-devops | agent/framework-autonomous-v2 | f64ba4e | — | ITEM-0040 | — | — |
 
 ## Assumptions
 
@@ -68,8 +68,18 @@ before work depends on it.
 Genuine product or business questions only. Anything an agent can establish by
 reading this repository is an assumption to verify, not a question to ask.
 
-See the record created for the develop-branch baseline question — the only item
-in this task that engineering cannot settle on its own.
+**One.** [[ITEM-0041]] — the repository ruleset **No push** declares a
+one-approving-review rule and its ref condition matches no branch, so it enforces
+nothing. Deleting it, repairing it, or accepting it as documentation-only are all
+defensible; each has a different consequence for who may merge what, and that is
+a repository-owner call rather than an engineering one. Repairing it would block
+every merge into `main` on a single-maintainer repository, since GitHub forbids
+self-approval.
+
+The develop-branch baseline question resolved itself and is **not** an owner
+decision: `origin/develop` had zero unique commits and was a strict ancestor of
+`main`, so fast-forwarding it is lossless and establishable by reading the
+repository. That is an assumption to verify, not a question to ask.
 
 ## Repository Health
 
@@ -78,7 +88,30 @@ See `node scripts/repo-health.mjs`.
 
 - PRE_TASK: `PASS` — `MAIN_SYNC_STATUS = SYNCED` at `714632d`, no unfinished Git
   operations, worktree cut from `origin/main`.
+- POST_TASK: `PASS` — `MAIN_CHANGE_STATUS = UNTOUCHED` against baseline
+  `714632d`; `DEVELOP_SYNC_STATUS` verified by reading `origin/develop`; no
+  unfinished Git operation; `SESSION-0001` released every lease and left the
+  merge queue.
+
+`main` advanced twice during the task (`714632d → c179ea3 → b90f33e`) from a
+different session. That is `MAIN_SYNC_STATUS` moving, not this task changing
+production — which is precisely why the two fields are separate.
 
 ## History
 
 - 2026-08-16 — created at `714632d`.
+- 2026-08-16 — WP-01 and WP-02 done: the id allocator and the session/lease/merge
+  -queue substrate. `simulation 4b` caught a stale per-process cache in the
+  allocator before it shipped.
+- 2026-08-16 — WP-04 in progress surfaced `BUG-0047`: writing `AUTOMATED`
+  scenarios required real test paths, five of the regression register's did not
+  resolve, and following that back showed seven bug records closed against fixes
+  the integration branch does not have. Two are CRITICAL and live.
+- 2026-08-16 — `origin/main` advanced twice mid-task from a concurrent session.
+  Merged, four TYPE 7 generated-file conflicts resolved by regeneration, and four
+  test plans corrected: the merge brought Playwright, falsifying their claim that
+  no browser automation existed.
+- 2026-08-16 — WP-11 blocked: GitHub protection writes refused by this
+  environment's tooling policy. Configuration committed, verifier written,
+  `ITEM-0040` raised. Every other package completed; one blocked package does not
+  stop the task.
