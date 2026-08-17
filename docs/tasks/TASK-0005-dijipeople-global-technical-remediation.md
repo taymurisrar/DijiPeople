@@ -10,8 +10,8 @@ CREATED_AT: 2026-08-17
 AFFECTED_MODULES: [global, framework, qa, ci, api, web, admin, landing, agent-desktop, gateway]
 AGENTS: [Architect, Backend/API, Frontend, UI/UX, Database, Integration, QA, Reviewer, Integrator, Release/DevOps]
 DEPENDENCIES: current origin/develop, readable repository records, configured CI
-CURRENT_PACKAGE: WP-03
-COMPLETED_PACKAGES: [WP-01, WP-02]
+CURRENT_PACKAGE: WP-09
+COMPLETED_PACKAGES: [WP-01, WP-02, WP-03]
 BLOCKED_PACKAGES: []
 OWNER_DECISIONS: 1
 FINAL_STATUS:
@@ -85,13 +85,13 @@ exact-SHA CI, `develop` containing `main`, and `main` untouched.
 |---|---|---|---|---|---|---|---|---|---|---|
 | WP-01 | Global inventory and evidence triage | DONE | — | Architect, QA, Reviewer, Integrator, Release/DevOps | agent/global-remediation-program | d919e1a | PASS_WITH_RISKS | BUG-0049–0052, ITEM-0044–0046 | PASS | DONE |
 | WP-02 | Record-state, validator and QA-registry reconciliation | DONE | WP-01 | Architect, QA, Reviewer | agent/remediation-record-reconciliation | c554f45 | PASS_WITH_RISKS | BUG-0051 | PASS_WITH_RISKS | DONE |
-| WP-03 | Authorization invariant audit and module remediation | IN_PROGRESS | WP-01 | Backend/API, Integration, QA, Reviewer | agent/remediation-authorization | c554f45 | NOT_RUN | ITEM-0043 | NOT_RUN | NOT_STARTED |
-| WP-04 | Database E2E isolation and residual defect proof | NOT_STARTED | WP-01 | Database, Backend/API, QA, Reviewer | agent/remediation-database-e2e | — | NOT_RUN | BUG-0049 | NOT_RUN | NOT_STARTED |
+| WP-03 | Authorization invariant audit and module remediation | DONE | WP-01 | Backend/API, Integration, QA, Reviewer | agent/remediation-authorization | 2313bef | PASS | BUG-0005, BUG-0053, BUG-0055, BUG-0056, BUG-0057, BUG-0058 | PASS | DONE |
+| WP-04 | Database E2E isolation and residual defect proof | NOT_STARTED | WP-01 | Database, Backend/API, QA, Reviewer | agent/remediation-database-e2e | — | NOT_RUN | ITEM-0047 | NOT_RUN | NOT_STARTED |
 | WP-05 | Tenant provisioning and lifecycle proof | NOT_STARTED | WP-01, WP-04 | Backend/API, Database, QA, Reviewer | agent/remediation-tenant-lifecycle | — | NOT_RUN | ITEM-0004 | NOT_RUN | NOT_STARTED |
 | WP-06 | Desktop agent distribution, security and reliability | NOT_STARTED | WP-01 | Integration, Backend/API, QA, Reviewer | agent/remediation-agent-desktop | — | NOT_RUN | BUG-0034 | NOT_RUN | NOT_STARTED |
 | WP-07 | Product-surface and integration remediation | NOT_STARTED | WP-01 | UI/UX, Frontend, Backend/API, QA, Reviewer | agent/remediation-product-surfaces | — | NOT_RUN | BUG-0050, ITEM-0044, ITEM-0045, ITEM-0046 | NOT_RUN | NOT_STARTED |
 | WP-08 | Production dependency security remediation | NOT_STARTED | WP-01 | Backend/API, Frontend, Integration, QA, Reviewer | agent/remediation-dependencies | — | NOT_RUN | BUG-0052 | NOT_RUN | NOT_STARTED |
-| WP-09 | CI evidence integrity and required-gate promotion | NOT_STARTED | WP-02, WP-03, WP-04, WP-08 | QA, Integrator, Release/DevOps, Reviewer | agent/remediation-ci-evidence | — | NOT_RUN | BUG-0049 | NOT_RUN | NOT_STARTED |
+| WP-09 | CI evidence integrity and required-gate promotion | IN_PROGRESS | WP-02, WP-03, WP-04, WP-08 | QA, Integrator, Release/DevOps, Reviewer | agent/remediation-authorization | 7c7b0fc | PASS | BUG-0049 | PASS | DONE |
 | WP-10 | Remaining medium/low debt and documentation drift | NOT_STARTED | WP-01 | Architect, owning specialists, QA, Reviewer | agent/remediation-debt-docs | — | NOT_RUN | — | NOT_RUN | NOT_STARTED |
 | WP-11 | Final reconciliation, knowledge, Obsidian and cleanup | NOT_STARTED | WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10 | Architect, Integrator, Release/DevOps | agent/remediation-final-reconciliation | — | NOT_RUN | — | NOT_RUN | NOT_STARTED |
 
@@ -293,3 +293,58 @@ from source records rather than hand-restored.
 - Bugs, Backlog, scenarios, regressions, coverage, task state, history, knowledge, dashboards and Obsidian Generated content agree.
 - `origin/develop` contains `origin/main`; `main` contains none of this program's commits.
 - Sessions release leases/queue claims and safe cleanup completes.
+
+---
+
+## Program state
+
+Updated 2026-08-17.
+
+```text
+CURRENT_PROGRAM             TASK-0005 — bug-fixing mode only
+CURRENT_PACKAGE             WP-08 recommended next; WP-09 partially landed
+LAST_INTEGRATED_DEVELOP_SHA 4386e0fcbab272b6e4f1882bf4401f83ff679bfe
+MAIN                        b90f33e — UNTOUCHED
+OPEN_BUGS                   10  (CRITICAL 0, HIGH 2, MEDIUM 7, LOW 1)
+BACKLOG_OPEN                24 of 47
+```
+
+### Packages advanced
+
+- **WP-03 — authorization remediation. DONE at `2313bef`.** Dual-permission
+  wiring restored across 30 controllers; object-level authorization fixed on
+  documents, settings, organization, partners and billing. Closed BUG-0005,
+  BUG-0053, BUG-0055, BUG-0056, BUG-0057 and BUG-0058.
+- **WP-09 — CI evidence integrity. Security half landed at `7c7b0fc`.** The
+  dual-permission invariant is now inside the required gate and the report-only
+  job is deleted; database e2e publishes an explicit verdict instead of letting
+  a green conclusion imply one. Closed BUG-0049 and ITEM-0043.
+
+  **This ran ahead of its declared dependencies (WP-04, WP-08) on purpose.** The
+  security half of BUG-0049 became fixable the moment WP-03 drove the inventory
+  to zero, and leaving a false-green gate in place for two more packages would
+  have meant every one of those packages integrating against evidence known to
+  be untrustworthy. The half that genuinely depends on WP-04 — the database e2e
+  suite failures — was split out as ITEM-0047 rather than being claimed. WP-09
+  stays `IN_PROGRESS` until that half is done and the job is promoted.
+
+### Next ready bugs
+
+Highest value first, all `FIX_NOW` unless noted:
+
+1. **BUG-0052** (HIGH, SECURITY) — dependency vulnerabilities across every
+   workspace. Self-contained; the natural next package.
+2. **BUG-0034** (HIGH, INTEGRATION, `PLAN_REQUIRED`) — agent-desktop and
+   app-releases. Needs a plan before code.
+3. **ITEM-0047** (HIGH, TEST_GAP) — the residual database e2e failures, which
+   gate promoting that job.
+4. MEDIUM cluster, mostly `apps/web`: BUG-0042, BUG-0046, BUG-0050, BUG-0051,
+   then the `PLAN_REQUIRED` ones BUG-0041, BUG-0043, BUG-0045.
+5. **BUG-0059** (LOW) — part 2 only: three module knowledge notes and a decision
+   on whether `docs/architecture/` should be a synced Obsidian mapping.
+
+### Standing caution
+
+`BUG-0005` was `VERIFIED` for three days on a branch that never merged, and was
+reopened twice. A record is terminal only when `origin/develop` contains the fix
+and the exact-SHA gate is green — not when a branch holds the code.
