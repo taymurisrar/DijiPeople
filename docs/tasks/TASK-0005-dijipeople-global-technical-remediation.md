@@ -302,11 +302,11 @@ Updated 2026-08-17.
 
 ```text
 CURRENT_PROGRAM             TASK-0005 — bug-fixing mode only
-CURRENT_PACKAGE             WP-08 recommended next; WP-09 partially landed
-LAST_INTEGRATED_DEVELOP_SHA 4386e0fcbab272b6e4f1882bf4401f83ff679bfe
+CURRENT_PACKAGE             WP-07 recommended next; WP-08 partially landed
+LAST_INTEGRATED_DEVELOP_SHA 4a265608aed63353393474fc118ec32fcf7e2eeb
 MAIN                        b90f33e — UNTOUCHED
-OPEN_BUGS                   10  (CRITICAL 0, HIGH 2, MEDIUM 7, LOW 1)
-BACKLOG_OPEN                24 of 47
+OPEN_BUGS                   9   (CRITICAL 0, HIGH 2, MEDIUM 6, LOW 1)
+BACKLOG_OPEN                25 of 48
 ```
 
 ### Packages advanced
@@ -330,18 +330,26 @@ BACKLOG_OPEN                24 of 47
 
 ### Next ready bugs
 
-Highest value first, all `FIX_NOW` unless noted:
+Nine bugs remain open. Highest value first:
 
-1. **BUG-0052** (HIGH, SECURITY) — dependency vulnerabilities across every
-   workspace. Self-contained; the natural next package.
-2. **BUG-0034** (HIGH, INTEGRATION, `PLAN_REQUIRED`) — agent-desktop and
-   app-releases. Needs a plan before code.
-3. **ITEM-0047** (HIGH, TEST_GAP) — the residual database e2e failures, which
-   gate promoting that job.
-4. MEDIUM cluster, mostly `apps/web`: BUG-0042, BUG-0046, BUG-0050, BUG-0051,
-   then the `PLAN_REQUIRED` ones BUG-0041, BUG-0043, BUG-0045.
-5. **BUG-0059** (LOW) — part 2 only: three module knowledge notes and a decision
-   on whether `docs/architecture/` should be a synced Obsidian mapping.
+1. **BUG-0042** (MEDIUM, INFRA, `FIX_NOW`) — `apps/web` reads 21 environment
+   variables unregistered in `packages/config` validation. Mechanical and
+   self-contained; the natural next package.
+2. **BUG-0046** (MEDIUM, UX, `FIX_NOW`) — tenant theme mode and runtime settings
+   saves. Single surface.
+3. **BUG-0050** (MEDIUM, INTEGRATION, `FIX_NOW`) — notification settings offer
+   email providers the backend cannot deliver. Change the offer and the delivery
+   catalogs together; see [[notifications]].
+4. **BUG-0052** (HIGH, SECURITY) — 12 residual advisories, all documented with
+   reachability. The remaining work is the two dependency replacements in
+   [[ITEM-0048]], not another `npm audit fix`.
+5. **BUG-0034** (HIGH, INTEGRATION, `PLAN_REQUIRED`) — desktop agent auto-update
+   endpoint. Needs a plan before code.
+6. **ITEM-0047** (HIGH, TEST_GAP) — the residual database e2e failures, which
+   gate promoting that job and unblock the rest of WP-09.
+7. `PLAN_REQUIRED` cluster: BUG-0041, BUG-0043, BUG-0045 — all `apps/web`, all
+   needing a design decision rather than a patch.
+8. **BUG-0018** (LOW) is `DEFERRED` with an accepted rationale; leave it.
 
 ### Standing caution
 
