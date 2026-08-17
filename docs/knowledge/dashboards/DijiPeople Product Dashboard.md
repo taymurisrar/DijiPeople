@@ -36,6 +36,7 @@ See [[dijipeople-platform-overview|DijiPeople Platform Overview]] for the full p
 - [[customers|Customers]]
 - [[employees|Employees]]
 - [[leads|Leads]]
+- [[notifications|Notifications]]
 - [[organization|Organization]]
 - [[partner-onboarding|Partner Onboarding]]
 - [[partners|Partners]]
@@ -44,7 +45,9 @@ See [[dijipeople-platform-overview|DijiPeople Platform Overview]] for the full p
 - [[settings|Settings]]
 - [[tenant-application|Tenant Application]]
 - [[tenant-control-plane]]
+- [[tenant-isolation|Tenant Isolation]]
 - [[tenant-provisioning|Tenant Provisioning]]
+- [[workspace-routing-and-domains|Workspace Routing and Domains]]
 
 ## Requirements
 

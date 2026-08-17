@@ -678,3 +678,17 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Proven to fail without the fix** | Deleting the `LeadInquiryIntent` export from `node_modules/.prisma/client/index.js` makes the check exit 1 reporting `Missing enums (1): LeadInquiryIntent`; restoring it passes. |
 | **Fixed** | 2026-08-17, branch `agent/prisma-client-freshness` |
 | **Active** | yes |
+
+### REG-049 — Every record id resolves as a bare wikilink in the vault
+
+| | |
+|---|---|
+| **Bug class** | `unresolvable-generated-link` |
+| **Module** | `scripts`, `docs/tasks`, `docs/knowledge` |
+| **Bug record** | BUG-0059 |
+| **Root cause** | Obsidian resolves a bare-id wikilink only through the `aliases:` frontmatter line. ITEM-0029 established that rule but scoped its validation to `docs/bugs` and `docs/backlog/items`, so `docs/tasks` emitted a record type no short-form link could reach. Separately, records linked module knowledge notes that had never been written, and one link named a document that is not a synced note at all. |
+| **Regression test** | `scripts/validate-framework.mjs` (CI: `npm run validate:framework`) · `scripts/sync-obsidian.mjs` (CI: `npm run knowledge:verify`) |
+| **Scenario** | Every bug, backlog and task record carries `aliases:` listing its own id, and every wikilink emitted into the vault resolves to a note in it. |
+| **Proven to fail without the fix** | Removing the `aliases:` line from `TASK-0003` fails the check "Every bug, backlog and task record is reachable by its bare id in Obsidian" by name; restoring it passes. Before the fix `knowledge:verify` reported 12 unresolved wikilinks and exited 1. |
+| **Fixed** | 2026-08-17, branch `agent/prisma-client-freshness` |
+| **Active** | yes |

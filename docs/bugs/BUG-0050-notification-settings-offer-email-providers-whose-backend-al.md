@@ -96,7 +96,7 @@ implementations require separate credentials and integration plans.
 
 ## Related Items
 
-[[notifications]] · [[settings-and-branding]] · [[TASK-0005]]
+[[notifications]] · [[settings]] · [[TASK-0005]]
 
 ## Resolution
 

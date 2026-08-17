@@ -9,11 +9,11 @@
 |---|---|
 | Open CRITICAL | **0** |
 | Open HIGH | **5** |
-| Open total | 36 |
+| Open total | 35 |
 | Blocked | 0 |
 | Awaiting a product decision | 1 |
 | Deferred | 1 |
-| Completed | 68 |
+| Completed | 69 |
 | Awaiting Architect triage | 0 |
 
 ## Open Critical Bugs
@@ -112,6 +112,7 @@ _None._
 | [[BUG-0044-the-documented-new-module-workflow-for-apps-web-cannot-be-fo|BUG-0044]] | The documented new module workflow for apps/web cannot be followed | DOCUMENTATION | MEDIUM | FIXED | apps/web | FIX_NOW |
 | [[BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist|BUG-0023]] | The testing-architecture context claims two e2e specs do not exist | DOCUMENTATION | LOW | VERIFIED | .agent/context | DONE |
 | [[BUG-0024-start-onboarding-api-and-proxy-have-no-caller|BUG-0024]] | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | VERIFIED | apps/admin, api:super-admin | DONE |
+| [[BUG-0059-vault-wikilinks-to-task-records-and-four-module-notes-resolv|BUG-0059]] | Vault wikilinks to task records and four module notes resolve to nothing | DOCUMENTATION | LOW | VERIFIED | scripts, docs/tasks, docs/knowledge | DONE |
 
 ## Recent QA Runs
 
@@ -177,7 +178,6 @@ _None. Nothing has been deployed through the release process._
 | [[ITEM-0039-promote-the-csp-from-report-only-to-enforced|ITEM-0039]] | Promote the CSP from report-only to enforced | SECURITY | MEDIUM | READY | pkg:config, apps/web, apps/admin, apps/landing | PLAN_REQUIRED |
 | [[ITEM-0046-add-landing-loading-error-and-not-found-boundaries|ITEM-0046]] | Add landing loading error and not-found boundaries | UX | MEDIUM | READY | apps/landing | FIX_NOW |
 | [[ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning|ITEM-0023]] | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
-| [[BUG-0059-vault-wikilinks-to-task-records-and-four-module-notes-resolv|BUG-0059]] | Vault wikilinks to task records and four module notes resolve to nothing | DOCUMENTATION | LOW | OPEN | scripts, docs/tasks, docs/knowledge | PLAN_REQUIRED |
 | [[ITEM-0015-make-the-tenant-readiness-assertion-auditable|ITEM-0015]] | Make the tenant readiness() authorization assertion auditable | FOLLOW_UP | LOW | READY | api:tenant-control-plane | FIX_NOW |
 | [[ITEM-0042-burn-down-the-services-api-eslint-warning-baseline|ITEM-0042]] | Burn down the services/api ESLint warning baseline | TECH_DEBT | LOW | READY | services/api | FIX_NOW |
 | [[ITEM-0045-reconcile-tenant-web-root-domain-environment-examples|ITEM-0045]] | Reconcile tenant web root-domain environment examples | DOCUMENTATION | LOW | READY | apps/web | FIX_NOW |
@@ -201,7 +201,7 @@ _None. Nothing has been deployed through the release process._
 | QA runs | 15 |
 | Engineering history records | 12 |
 | Release records | 0 |
-| Module notes | 19 |
+| Module notes | 22 |
 | Architecture notes | 18 |
 | Decision notes (ADR + generated) | 6 |
 | Implementation records | 4 |

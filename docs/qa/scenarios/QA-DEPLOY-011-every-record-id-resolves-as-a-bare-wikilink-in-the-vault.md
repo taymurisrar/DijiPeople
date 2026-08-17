@@ -1,0 +1,65 @@
+---
+SCENARIO_ID: QA-DEPLOY-011
+aliases: [QA-DEPLOY-011]
+TITLE: Every record id resolves as a bare wikilink in the vault
+AREA: deployment-release
+MODULE: scripts
+TYPE: DEPLOYMENT_SMOKE
+RISK: MEDIUM
+AUTOMATION_STATUS: AUTOMATED
+TEST_REFERENCE: scripts/validate-framework.mjs scripts/sync-obsidian.mjs
+RELATED_BUGS: [BUG-0059, ITEM-0029]
+RELATED_REGRESSIONS: [REG-049]
+LAST_RUN: 2026-08-17
+LAST_RESULT: PASS
+CREATED_AT: 2026-08-17
+UPDATED_AT: 2026-08-17
+---
+
+# QA-DEPLOY-011 — Every record id resolves as a bare wikilink in the vault
+
+## Preconditions
+
+A configured Obsidian vault and a completed `npm run knowledge:sync`.
+
+## Why this scenario exists
+
+A dead wikilink in Obsidian renders as ordinary text. It does not underline, warn
+or 404 — it simply looks like prose. So a broken `[[BUG-0053]]` is invisible to
+the person reading the note, and the graph quietly loses the edge.
+
+Two distinct causes produced the same silence here. Obsidian resolves a bare id
+only through the `aliases:` frontmatter line, and task records carried none — so
+every `[[TASK-nnnn]]` was dead. And several records linked module knowledge notes
+that had never been written. The verifier is the only thing that can see either.
+
+## Steps
+
+1. `npm run knowledge:sync`
+2. `npm run knowledge:verify`
+3. `npm run validate:framework`
+
+## Expected Result
+
+`knowledge:verify` exits 0 with `WIKILINKS_UNRESOLVED 0` and
+`OBSIDIAN_SYNC_STATUS = PASS`. `validate-framework` passes the check
+"Every bug, backlog and task record is reachable by its bare id in Obsidian",
+which now covers `docs/bugs`, `docs/backlog/items` **and** `docs/tasks`.
+
+## Negative Case
+
+Remove the `aliases:` line from `TASK-0003` and re-run `validate:framework`: it
+fails naming that file. Restore and it passes. Verified 2026-08-17.
+
+## Notes
+
+A missing link target is not automatically a missing note. One of the five
+failures was a link aimed at `settings-and-branding`, a document under
+`docs/architecture/` that is not a synced note — the fix was to point the link at
+`[[settings]]`, the module note that already exists and already cites that
+document, rather than mapping a second folder into the vault to accommodate a
+mistyped link.
+
+## Related Items
+
+[[BUG-0059]] · [[ITEM-0029]] · [REG-049](../regressions/index.md) · [[TASK-0005]]

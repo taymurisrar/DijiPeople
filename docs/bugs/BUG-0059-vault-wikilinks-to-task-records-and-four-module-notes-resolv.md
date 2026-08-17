@@ -2,7 +2,7 @@
 ID: BUG-0059
 aliases: [BUG-0059]
 Title: Vault wikilinks to task records and four module notes resolve to nothing
-Status: OPEN
+Status: VERIFIED
 Severity: LOW
 Priority: P3
 Type: DOCUMENTATION
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-17
 DetectedInSha: 7b2a51d
 AffectedModules: [scripts, docs/tasks, docs/knowledge]
 OwnerAgent: architect
-ArchitectDisposition: PLAN_REQUIRED
+ArchitectDisposition: DONE
 QAReport:
-RegressionId:
+RegressionId: REG-049
 RelatedBacklogItem: ITEM-0029
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-17
 UpdatedAt: 2026-08-17
-ResolvedAt:
+ResolvedAt: 2026-08-17
 ---
 
 # BUG-0059 — Vault wikilinks to task records and four module notes resolve to nothing
@@ -144,42 +144,51 @@ Supersedes nothing. Extends the scope that [[ITEM-0029]] closed.
 
 ## Resolution
 
-**Part 1 is fixed; part 2 is not, and needs a decision rather than a patch.**
-The record stays `OPEN` because part 2 is a real remaining defect — the schema
-has no `PARTIALLY_FIXED` status, and claiming `FIXED` for a half-closed link
-set is exactly the false-green this bug was filed about.
+Fixed 2026-08-17, both parts. Unresolved wikilinks went 12 → 5 → **0**.
 
-Part 1 — task-record aliases. `scripts/new-task.mjs` now emits
+**Part 1 — task-record aliases.** `scripts/new-task.mjs` now emits
 `aliases: [TASK-nnnn]`, the four records missing it were backfilled
 (`TASK-0004` already had one), and the `ITEM-0029` validation was widened from
 two record directories to three so a fourth record type cannot reinherit the
-gap. Unresolved wikilinks fell from 12 to 5, and all seven `TASK-0005` links
-resolve.
+gap. That resolved the seven `TASK-0005` links.
 
-Part 2 — the four missing module notes — is deliberately **not** taken here.
-`workspace-routing-and-domains`, `notifications` and `tenant-isolation` are
-knowledge that was never written, and `settings-and-branding` exists under
-`docs/architecture/`, which is not a synced mapping. Writing three module notes
-and deciding whether `docs/architecture/` should be mapped is authoring and an
-ADR, not a defect fix, and it was out of scope for the bug-remediation package
-that closed part 1.
+**Part 2 — the missing knowledge.** Three module notes were written from
+repository evidence rather than invented: `tenant-isolation.md`,
+`notifications.md` and `workspace-routing-and-domains.md`. They document what
+the code actually does, including the failures already recorded against those
+areas — the absent tenant middleware, the notifications catalog→orchestrator→
+queue→processor pipeline, and the forwarded-host trust rule.
+
+`settings-and-branding` needed **no** ADR after all, and no new synced mapping.
+The proposed resolution framed it as "should `docs/architecture/` be mapped?",
+but the link was simply aimed at the wrong target:
+`docs/knowledge/modules/settings.md` already exists, is already synced, and
+already names `docs/architecture/settings-and-branding.md` as the canonical
+contract. BUG-0050 now links `[[settings]]`, which resolves and reaches the
+architecture document in one hop. Mapping a second folder to fix a mistyped
+wikilink would have added a source of truth to avoid correcting a link.
 
 ## QA Retest
 
-Partial pass. `npm run knowledge:verify` after a real sync:
+Pass. `npm run knowledge:verify` against the configured vault after a real sync:
 
 ```
-NOTES_VERIFIED       333
-WIKILINKS_CHECKED    1480
-WIKILINKS_UNRESOLVED 5     (was 12)
-vault copy differs   0
+FOLDERS_CHECKED         20
+NOTES_VERIFIED          340
+WIKILINKS_CHECKED       1511
+WIKILINKS_UNRESOLVED    0        (was 12)
+vault copy differs      0
+OBSIDIAN_SYNC_STATUS  = PASS
 ```
 
-Still exits 1, so `OBSIDIAN_SYNC_STATUS` remains
-`COMPLETE_WITH_DOCUMENTATION_WARNING` until part 2 lands.
+Generated-node parity audited at the same time: BUG 59/59, ITEM 47/47, QA 76/76,
+TASK 5/5 — zero orphan generated notes and zero records missing from the vault.
 
 ## History
 
+- 2026-08-17 — part 2 completed; three module notes written, the
+  `settings-and-branding` link corrected to `[[settings]]`, verifier reaches 0
+  unresolved links and `OBSIDIAN_SYNC_STATUS = PASS`.
 - 2026-08-17 — triaged `PLAN_REQUIRED` and part 1 fixed during the WP-03
   authorization package; alias generation, backfill and the widened validation
   landed together. Part 2 left open with the decision it needs stated.

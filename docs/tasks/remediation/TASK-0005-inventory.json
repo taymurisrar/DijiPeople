@@ -9,11 +9,11 @@
     "total_records": 106,
     "bugs": 59,
     "backlog_items": 47,
-    "open_bucket": 33,
+    "open_bucket": 32,
     "blocked_bucket": 0,
     "deferred_bucket": 1,
     "product_decision_bucket": 1,
-    "completed_bucket": 71,
+    "completed_bucket": 72,
     "parser_structural_errors": 0,
     "active_session_conflict": "NONE",
     "discovered_findings_total": 34,
@@ -3065,13 +3065,13 @@
         "detected_in_sha": "7b2a51d",
         "created_at": "2026-08-17",
         "updated_at": "2026-08-17",
-        "resolved_at": ""
+        "resolved_at": "2026-08-17"
       },
       "type": "DOCUMENTATION",
       "title": "Vault wikilinks to task records and four module notes resolve to nothing",
       "severity": "LOW",
       "priority": "P3",
-      "current_status": "OPEN",
+      "current_status": "VERIFIED",
       "current_evidence": {
         "paths": [
           "docs/bugs/BUG-0059-vault-wikilinks-to-task-records-and-four-module-notes-resolv.md",
@@ -3095,12 +3095,16 @@
       "related_backlog": [
         "ITEM-0029"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-049"
+      ],
+      "qa_scenarios": [
+        "QA-DEPLOY-011"
+      ],
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "PLAN_REQUIRED",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "VERIFIED",
         "classification": "ACTIVE_AS_DOCUMENTED",
@@ -4551,7 +4555,9 @@
         "ITEM-0031"
       ],
       "regressions": [],
-      "qa_scenarios": [],
+      "qa_scenarios": [
+        "QA-DEPLOY-011"
+      ],
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
