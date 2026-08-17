@@ -1,10 +1,10 @@
 ---
 SESSION_ID: SESSION-0001
 aliases: [SESSION-0001]
-TASK_ID: 
+TASK_ID: TASK-0004
 TITLE: Autonomous framework v2 — multi-session, develop integration, persistent QA
 ARCHITECT_INTENT: Autonomous framework v2 — multi-session, develop integration, persistent QA
-STATUS: ACTIVE
+STATUS: COMPLETE
 TASK_TYPE: FRAMEWORK
 TASK_SIZE: PROGRAM
 BASE_BRANCH: origin/main
@@ -16,11 +16,11 @@ AFFECTED_MODULES: [.agent, scripts, docs/qa, docs/sessions, docs/backlog, docs/t
 WRITE_LEASES: []
 ACTIVE_WORK_PACKAGES: []
 SCHEMA_WRITE: NO
-CI_STATUS: NOT_RUN
-MERGE_STATUS: NOT_STARTED
+CI_STATUS: PASS
+MERGE_STATUS: INTEGRATED_TO_DEVELOP
 STARTED_AT: 2026-08-16T23:04:29.187Z
 LAST_HEARTBEAT: 2026-08-16T23:04:29.187Z
-BLOCKERS: none
+BLOCKERS: WP-11 BLOCKED_EXTERNAL — see ITEM-0040
 ---
 
 # SESSION-0001 — Autonomous framework v2 — multi-session, develop integration, persistent QA

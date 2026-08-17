@@ -7,10 +7,10 @@
 
 | | |
 |---|---|
-| Active sessions | **1** |
-| Active parent tasks | 1 |
+| Active sessions | **0** |
+| Active parent tasks | 0 |
 | Active work packages | 0 |
-| Blocked work packages | 1 |
+| Blocked work packages | 0 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **3** |
 | Open HIGH | 8 |
@@ -21,15 +21,11 @@
 
 ## Active Sessions
 
-| Session | Task | Title | Status | Branch | Target | Leases | Schema |
-|---|---|---|---|---|---|---|---|
-| [[SESSION-0001-autonomous-framework-v2-multi-session-develop-integration-pe|SESSION-0001]] | — | Autonomous framework v2 — multi-session, develop integration, persistent QA | ACTIVE | `agent/framework-autonomous-v2` | `develop` | — | NO |
+_No session is currently registered as active._
 
 ## Active Tasks and Work Packages
 
-| Task | Title | Type | Size | Progress | Current | Ready next | Blocked |
-|---|---|---|---|---|---|---|---|
-| [[TASK-0004-autonomous-framework-v2-architect-only-orchestration-multi-s|TASK-0004]] | Autonomous framework v2 — Architect-only orchestration, multi-session safety, develop integration, persistent QA | FRAMEWORK | PROGRAM | 10/11 | — | — | WP-11 |
+_No parent task is active._
 
 ## Branch model
 
