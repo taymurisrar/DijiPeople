@@ -45,9 +45,20 @@ dropped.
 
 ## Actual Behavior
 
-Eight enabled inputs, no submit control anywhere inside the `<form>`, and no
-statement that purchase is unavailable until the visitor notices the button is
-a "Contact sales" link.
+Eight enabled inputs and no submit control anywhere inside the `<form>`.
+
+To be precise about what the page *does* get right: the left-hand plan card
+states the condition plainly — "Contact sales / Billed as one subscription /
+This plan has no published price for your region yet. Contact us and we will
+arrange it." So unavailability is disclosed.
+
+The defect is what sits **beside** that disclosure. The right-hand "Company
+details" card renders six editable fields under a page heading that reads
+"Create your workspace and continue to secure checkout", and its only action is
+a "Contact sales" link. A visitor who reads the heading, starts filling the form
+on the right, and only then looks left has already done work that will be thrown
+away. The disclosure and the form disagree, and the form is the part that
+invites action.
 
 ## Reproduction
 
@@ -70,10 +81,21 @@ PROBE subscribe-form-has-submit-control :: FAIL ::
 
 Eight editable controls, zero buttons of any type inside the form element.
 
+`screens/subscribe--desktop.png` shows the split: the plan card on the left
+carries the unavailable-region notice, while the company-details card on the
+right renders six editable fields ending in a "Contact sales" link, under a page
+heading promising "continue to secure checkout".
+
 The contrasting good state on `/plans`, captured in
 `screens/plans--mobile.png`: "Pricing isn't available for your region yet. Get
 in touch and we'll set your organization up directly." with a single **Contact
-us** action and no form.
+us** action and no form at all — the same message, without an invitation to
+type into something that cannot be submitted.
+
+Separately and **not** part of this bug: the plan select displayed
+`Plan msueyrb6`, a generated seed name. That is local demo-data quality, not a
+product defect, and is noted here only so a future reader of the screenshot does
+not mistake it for one.
 
 ## Root Cause
 
