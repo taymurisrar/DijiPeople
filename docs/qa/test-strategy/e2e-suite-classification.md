@@ -16,10 +16,12 @@ design evidence and the current execution snapshot below is authoritative.
 **First observed run:** GitHub Actions run `31840528309`, SHA `f35d696` —
 10 suites failed, 190 tests failed, 0 passed.
 
-**Current observed run:** GitHub Actions run `32009837400`, SHA `0051180` — 15
-suites / 227 tests: 9 suites and 91 tests passed; 6 suites and 136 tests failed.
-The job is still report-only. Its green job conclusion does not mean the Jest
-suite passed; that evidence-integrity defect is `BUG-0049`.
+**Current observed run:** GitHub Actions run `32020076245`, SHA `47b127f` — 15
+suites / 227 tests: 8 suites and 79 tests passed; 7 suites and 148 tests failed.
+`attendance-operational` regressed from the discovery run's PASS, so
+`QA-ATT-007` now preserves it as a failing reusable scenario. The job is still
+report-only. Its green job conclusion does not mean the Jest suite passed; that
+evidence-integrity defect is `BUG-0049`.
 
 | Current suite | Exact-base result |
 |---|---|
@@ -27,7 +29,7 @@ suite passed; that evidence-integrity defect is `BUG-0049`.
 | `attendance-engine` | FAIL |
 | `attendance-integrations-http` | FAIL |
 | `attendance-integrations-isolation` | FAIL |
-| `attendance-operational` | PASS |
+| `attendance-operational` | FAIL |
 | `attendance-review` | FAIL |
 | `commercial-bootstrap` | PASS |
 | `gateway-runtime` | FAIL |

@@ -326,9 +326,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: [database-migration]
     # All 15 e2e suites now execute in CI against a fresh database. At the
-    # 2026-08-17 baseline, 9 suites / 91 tests passed and 6 suites / 136 tests
-    # failed. Requiring the whole set before that failing inventory is burned
-    # down would make every unrelated change red.
+    # initial 2026-08-17 discovery baseline, 9 suites / 91 tests passed and 6
+    # suites / 136 tests failed; WP-02 exact-SHA evidence later worsened to 8/79
+    # passing and 7/148 failing. Requiring the whole set before that inventory
+    # is burned down would make every unrelated change red.
     #
     # REMAINING PROMOTION CRITERIA — remove `continue-on-error` and rely on
     # this job as a truthful gate when all hold:

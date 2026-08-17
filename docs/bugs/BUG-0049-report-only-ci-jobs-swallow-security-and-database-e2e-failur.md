@@ -12,7 +12,7 @@ DetectedInSha: 0051180
 AffectedModules: [.github/workflows, services/api/src/common/constants, services/api/test, docs/qa]
 OwnerAgent: release-devops
 ArchitectDisposition: FIX_NOW
-QAReport: docs/qa/runs/2026-08-17-framework-remediation-e6a173d.md
+QAReport: docs/qa/runs/2026-08-17-record-state-reconciliation-d919e1a.md
 RegressionId:
 RelatedBacklogItem: ITEM-0043
 RelatedDecision:
@@ -43,7 +43,9 @@ GitHub Actions run `32009837400` on `develop` SHA `0051180` concluded success.
 Inside those green jobs, the security invariant had 796 violations and database
 E2E had 6 failed suites / 136 failed tests. The durable QA run also reports all
 jobs green and browser E2E 8/0, while the actual browser result is 8 passed / 1
-skipped.
+skipped. Exact WP-02 run `32020076245` reproduced the false-green behavior and
+worsened database evidence to 7 failed suites / 148 failed tests while the job
+and required aggregate still concluded success.
 
 ## Reproduction
 
@@ -68,6 +70,10 @@ skipped.
 - GitHub run `32009837400`, exact SHA
   `00511803ebb0e1343ff35535996df1af98c95834` — DB result 6/15 failed suites and
   136/227 failed tests; browser 8 passed / 1 skipped.
+- GitHub run `32020076245`, exact SHA
+  `47b127fb50ef2bd828af5901628f5e3079186662` — security remained 796
+  violations; DB result worsened to 7/15 failed suites and 148/227 failed tests;
+  browser remained 8 passed / 1 skipped; required aggregate concluded success.
 - `docs/qa/runs/2026-08-17-framework-remediation-e6a173d.md` — incorrectly
   treats green job conclusions as passing report-only evidence.
 

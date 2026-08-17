@@ -40,8 +40,8 @@ Expected behaviour is written **before** execution.
 | S1 | All 98 canonical records parse and generated buckets are current | contract | Zero structural or index errors | PASS | `npm run backlog:check`: 98 records, 0 errors |
 | S2 | Terminal and deliberate-decision states cannot contradict ArchitectDisposition | negative / regression | Invalid fixtures are rejected | PASS | `validate:framework` semantic simulations |
 | S3 | Evidence paths, date order, mandatory Bug sections and discharged blockers are enforced | negative / boundary | Each malformed fixture is rejected | PASS | `validate:framework`; `scripts/lib/backlog-records.mjs` |
-| S4 | Every active regression names a real test, canonical root and reusable scenario whose roots match the register | contract / regression | QA source loader has zero errors | PASS | `npm run qa:check`; 69 scenarios; mismatch negative fixture |
-| S5 | Scenario states reflect exact CI evidence rather than green job conclusions | regression | 7 DB scenarios PASS, 2 FAIL; browser partner scenario partial | PASS | scenario sources and run `32009837400` evidence |
+| S4 | Every active regression names a real test, canonical root and reusable scenario whose roots match the register | contract / regression | QA source loader has zero errors | PASS | `npm run qa:check`; 70 scenarios; mismatch negative fixture |
+| S5 | Scenario states reflect exact CI evidence rather than green job conclusions | regression | 7 mapped DB scenarios PASS, 3 FAIL; browser partner scenario partial | PASS | scenario sources and runs `32009837400`, `32020076245` |
 | S6 | Stale plan verification is not presented as current | contract | All 12 plans are `NEEDS_REVIEW` with owning follow-up package | PASS | generated test-plan index |
 | S7 | Master inventory canonical fields match every Bug/Backlog source | idempotency / contract | 98 unique rows, no missing/extra ids or state drift | PASS | framework inventory parity checks |
 | S8 | Generated backlog, QA, task, session and dashboard views are deterministic and current | idempotency | All check commands pass after rebuild | PASS | command results below |
@@ -54,7 +54,7 @@ Expected behaviour is written **before** execution.
 |---|---|---|---|---|---|
 | `npm run backlog:check` | Canonical records + generated views | 98 records | 0 | 0 | <1s |
 | `npm run tasks:check` | Durable task records + indexes | 5 tasks | 0 | 0 | <1s |
-| `npm run qa:check` | QA records + coverage views | 12 plans / 69 scenarios / 53 gaps | 0 | 0 | <1s |
+| `npm run qa:check` | QA records + coverage views | 12 plans / 70 scenarios / 53 gaps | 0 | 0 | <1s |
 | `npm run sessions:check` | Session records + indexes | 3 sessions | 0 | 0 | <1s |
 | `npm run knowledge:dashboards:check` | Generated engineering/product/control dashboards | 3 current | 0 | 0 | <1s |
 | `npm run validate:framework` | Full framework + semantic simulations | 1,109 checks | 0 | 2 warnings | ~20s |
@@ -82,7 +82,8 @@ A test that passes both ways is not a regression test.
 ## Manual Validation
 
 Inspected all changed metadata classes and compared them with canonical source
-and exact CI evidence. Verified the two database failures remain failures,
+and exact CI evidence. Verified all three mapped database scenarios remain FAIL,
+with seven failing database suites overall,
 onboarding browser Flow A is PASS, and the BUG-0019 `test.fixme` remains a risk
 rather than being converted to PASS. Confirmed the primary checkout still has
 only the user's two pre-existing landing changes and no leaked WP-02 docs edits.
@@ -115,7 +116,7 @@ For each material bug, run the loop in [`../README.md`](../README.md).
 - WP-02 changed no product runtime, so application unit, database and browser
   suites were not re-run locally; exact prior CI evidence was reconciled rather
   than relabelled.
-- Six API E2E suites still fail; two linked reusable scenarios remain FAIL and
+- Seven API E2E suites still fail; three linked reusable scenarios remain FAIL and
   are owned by WP-04.
 - BUG-0019's browser reachability assertion is still skipped; WP-07 must execute
   it before the partner journey can be a full PASS.
@@ -128,13 +129,30 @@ For each material bug, run the loop in [`../README.md`](../README.md).
   (`notifications`, `tenant-isolation`); they are non-blocking and assigned to
   later documentation/knowledge work.
 
+## Exact-SHA CI Evidence
+
+Task commit `47b127fb50ef2bd828af5901628f5e3079186662` completed GitHub Actions
+run `32020076245` with a green `CI required gate`. The underlying fail-open
+jobs were inspected independently:
+
+- security invariant: 1 failed / 4 passed tests; 796 violations across 894
+  in-scope handlers (3 missing legacy only, 715 missing matrix only, 78 missing
+  both);
+- database E2E: 7 failed / 8 passed suites and 148 failed / 79 passed tests;
+  `attendance-operational` newly failed and is now durable `QA-ATT-007`;
+- browser E2E: 8 passed / 1 skipped; the BUG-0019 assertion remains skipped.
+
+The GitHub `CI required gate` itself concluded `success`. WP-02's QA verdict is
+`PASS_WITH_RISKS`, because that green aggregate is not evidence that the
+report-only/fail-open suites passed.
+
 ## Final QA Verdict
 
 **PASS WITH RISKS**
 
 WP-02's record, QA-registry, generated-view, inventory and validator scope is
 internally consistent and all relevant local gates pass. Risks are explicit and
-not converted into false completion: six DB E2E suites fail, BUG-0019 browser
+not converted into false completion: seven DB E2E suites fail, BUG-0019 browser
 coverage is skipped, 12 plans need substantive re-review, and two manual doc
 regressions are not yet automated.
 
@@ -152,7 +170,7 @@ package's completed evidence and remain follow-up gates.
 ## Follow-up
 
 - WP-03: remediate the 796 dual-permission violations.
-- WP-04: classify and fix the six failing database E2E suites.
+- WP-04: classify and fix the seven failing database E2E suites.
 - WP-07: execute the stale BUG-0019 browser assertion.
 - WP-09: remove fail-open CI behavior after relevant suites are green.
 - WP-10 / ITEM-0011: automate documentation absence-claim checks and close the

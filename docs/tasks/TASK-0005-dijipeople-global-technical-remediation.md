@@ -147,9 +147,10 @@ queue. **POST_TASK_REPO_HEALTH = PENDING.**
 - 2026-08-17 — inventory reconciled to 98 canonical records plus 34 cross-record findings; CI evidence exposed 796 authorization-invariant violations, 6 failing database E2E suites and 1 skipped browser assertion behind green aggregate jobs.
 - 2026-08-17 — WP-01 QA returned `PASS_WITH_RISKS`; independent Reviewer returned `APPROVE WITH FOLLOW-UPS` and `REVIEWER_ACCEPTED_QA`. The 70 nonterminal re-verifications remain explicitly assigned to later packages.
 - 2026-08-17 — WP-01 task SHA `423a7a8` passed exact-SHA CI run `32015389727`, merged through the serialized queue as `d919e1a`, and passed post-merge CI run `32016184547` on `develop`. WP-02 started from that merge.
-- 2026-08-17 — WP-02 reconciled 98 canonical records, 69 QA scenarios, 39 active regressions and 34 inventory findings; 21 discovery findings were resolved or truthfully moved to `NEEDS_REVIEW`. All record/task/QA/session/dashboard checks and 1,109 framework checks passed. QA verdict: `PASS_WITH_RISKS`; independent review pending.
+- 2026-08-17 — WP-02 reconciled 98 canonical records, initially 69 QA scenarios, 39 active regressions and 34 inventory findings; 21 discovery findings were resolved or truthfully moved to `NEEDS_REVIEW`. All record/task/QA/session/dashboard checks and 1,109 framework checks passed. QA verdict: `PASS_WITH_RISKS`; exact CI later added QA-ATT-007 as scenario 70.
 - 2026-08-17 — independent review rejected a false authentication closure and a regression-root false negative. BUG-0009/0010 returned to `FIXED`, ITEM-0002 returned to `READY/FIX_NOW`, QA-AUTH-002 became `PARTIAL`, REG-001–021 gained explicit canonical roots, REG-026/033 scenario roots were corrected, and validators gained root-matching negative fixtures.
 - 2026-08-17 — after rework, independent Reviewer returned `APPROVE` and `REVIEWER_ACCEPTED_QA`: zero blocking findings; record/QA/regression/inventory/CI-document truth and lease compliance all passed. WP-02 advanced to exact-SHA CI.
+- 2026-08-17 — WP-02 task SHA `47b127f` completed exact-SHA CI run `32020076245`: required aggregate PASS, security report 796 violations, browser 8 PASS / 1 SKIP, database E2E 7 suites / 148 tests FAIL. The new `attendance-operational` failure is durable as QA-ATT-007; WP-02 remains `PASS_WITH_RISKS` pending integration.
 
 ## Business requirement
 

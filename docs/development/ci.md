@@ -87,10 +87,10 @@ assert the target is disposable   scripts/assert-test-database.mjs
 ```
 
 **`database-e2e-report` (report only)** runs all fifteen e2e suites against a
-second ephemeral database. The latest audited run had 9 passing and 6 failing
-suites (91 passing and 136 failing tests), so this job is not eligible for
-promotion. The workflow records the failing exit code but does not return it,
-which is tracked by [[BUG-0049]].
+second ephemeral database. WP-02 exact-SHA run `32020076245` had 8 passing and
+7 failing suites (79 passing and 148 failing tests), so this job is not eligible
+for promotion. The workflow records the failing exit code but does not return
+it, which is tracked by [[BUG-0049]].
 
 **Promotion criteria** — move it into `ci-required` when all hold:
 

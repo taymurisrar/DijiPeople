@@ -2733,7 +2733,7 @@
       "current_evidence": {
         "paths": [
           "docs/bugs/BUG-0049-report-only-ci-jobs-swallow-security-and-database-e2e-failur.md",
-          "docs/qa/runs/2026-08-17-framework-remediation-e6a173d.md"
+          "docs/qa/runs/2026-08-17-record-state-reconciliation-d919e1a.md"
         ],
         "verification_scope": "Metadata and named evidence paths inventoried; tests not re-run unless stated in verification_result."
       },
@@ -2754,7 +2754,9 @@
         "ITEM-0043"
       ],
       "regressions": [],
-      "qa_scenarios": [],
+      "qa_scenarios": [
+        "QA-ATT-007"
+      ],
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
@@ -5524,8 +5526,8 @@
         "ITEM-0043"
       ],
       "evidence": [
-        "docs/bugs/BUG-0049-report-only-ci-jobs-swallow-security-and-database-e2e-failur.md:52-53 records GitHub run 32009837400 job 95326876583: 894 guarded handlers in scope, 98 compliant and 796 violations.",
-        "docs/bugs/BUG-0049-report-only-ci-jobs-swallow-security-and-database-e2e-failur.md:65-67 records the full inventory: 1,198 handlers, 29 public, 275 outside PermissionsGuard, 894 in scope; violations split into 3 legacy-only missing, 715 matrix-only missing and 78 missing both.",
+        "docs/bugs/BUG-0049-report-only-ci-jobs-swallow-security-and-database-e2e-failur.md:54-55 records GitHub run 32009837400 job 95326876583: 894 guarded handlers in scope, 98 compliant and 796 violations.",
+        "docs/bugs/BUG-0049-report-only-ci-jobs-swallow-security-and-database-e2e-failur.md:66-69 records the full inventory: 1,198 handlers, 29 public, 275 outside PermissionsGuard, 894 in scope; violations split into 3 legacy-only missing, 715 matrix-only missing and 78 missing both.",
         ".github/workflows/ci.yml:450-503 defines security-invariant-report as report-only evidence rather than a required failure signal."
       ],
       "verification_result": "VERIFIED_AT_SHA_0051180",
@@ -5536,7 +5538,7 @@
       "type": "DATABASE_E2E_FAILURE",
       "severity": "HIGH",
       "status": "VERIFIED",
-      "title": "Database E2E report contains 6 failed suites and 136 failed tests",
+      "title": "Database E2E report remains red and worsened on the WP-02 task SHA",
       "canonical_record_ids": [
         "BUG-0049"
       ],
@@ -5544,12 +5546,13 @@
         "BUG-0049"
       ],
       "evidence": [
-        "docs/bugs/BUG-0049-report-only-ci-jobs-swallow-security-and-database-e2e-failur.md:54-55 records GitHub job 95327538057: 6 suites failed, 9 passed, 136 tests failed and 91 passed.",
-        "docs/bugs/BUG-0049-report-only-ci-jobs-swallow-security-and-database-e2e-failur.md:68-70 ties the 6/15 suite and 136/227 test result to exact SHA 00511803ebb0e1343ff35535996df1af98c95834.",
-        ".github/workflows/ci.yml:324-418 provides the ephemeral-PostgreSQL database-e2e-report infrastructure but does not propagate a failing test verdict to the required gate."
+        "docs/bugs/BUG-0049-report-only-ci-jobs-swallow-security-and-database-e2e-failur.md:56-57 records GitHub job 95327538057: 6 suites failed, 9 passed, 136 tests failed and 91 passed.",
+        "docs/bugs/BUG-0049-report-only-ci-jobs-swallow-security-and-database-e2e-failur.md:70-72 ties the 6/15 suite and 136/227 test result to exact SHA 00511803ebb0e1343ff35535996df1af98c95834.",
+        ".github/workflows/ci.yml:324-418 provides the ephemeral-PostgreSQL database-e2e-report infrastructure but does not propagate a failing test verdict to the required gate.",
+        "Exact WP-02 run 32020076245 at 47b127f worsened to 7 failed / 8 passed suites and 148 failed / 79 passed tests; attendance-operational newly failed and is preserved as QA-ATT-007."
       ],
-      "verification_result": "VERIFIED_FROM_CI_LOG_INVENTORY",
-      "recommended_remediation": "Classify the six suite failures by application defect, fixture drift and infrastructure, retain the raw exit status, and do not infer PASS from the green report-only job."
+      "verification_result": "VERIFIED_AND_REPRODUCED_WORSE_AT_WP02_SHA",
+      "recommended_remediation": "Classify the seven current suite failures by application defect, fixture drift and infrastructure, retain the raw exit status, and do not infer PASS from the green report-only job."
     },
     {
       "finding_id": "TASK-0005-QF-003",
@@ -5679,7 +5682,7 @@
       "evidence": [
         "docs/qa/scenarios/QA-PARTNER-004-the-partner-journey-completes-in-a-real-browser.md:13-14 remains LAST_RUN 2026-08-17 / LAST_RESULT FAIL.",
         "docs/qa/scenarios/QA-ONBOARD-004-the-commercial-onboarding-journey-completes-in-a-real-browser.md:13-14 remains blank LAST_RUN / NOT_RUN.",
-        "docs/bugs/BUG-0049-report-only-ci-jobs-swallow-security-and-database-e2e-failur.md:54-56 records the latest browser job as 8 passed and 1 skipped; the skip means a full scenario PASS must not be inferred."
+        "docs/bugs/BUG-0049-report-only-ci-jobs-swallow-security-and-database-e2e-failur.md:58 records the discovery browser job as 8 passed and 1 skipped; lines 73-76 reproduce the same result at exact WP-02 SHA. The skip means a full scenario PASS must not be inferred."
       ],
       "verification_result": "RESULTS_REQUIRE_RECONCILIATION",
       "recommended_remediation": "Map individual Playwright cases to scenario IDs, record the latest run truthfully, and retain FAIL/BLOCKED for the skipped BUG-0019 assertion rather than treating the job conclusion as PASS.",
@@ -5718,7 +5721,7 @@
       ],
       "evidence": [
         "docs/qa/scenarios/index.md:24,35,41,49,64,70,72-74 lists exactly nine BLOCKED_INFRASTRUCTURE scenarios.",
-        ".github/workflows/ci.yml:324-418 now provisions database E2E infrastructure; the current run executes 15 suites, although six fail.",
+        ".github/workflows/ci.yml:324-418 now provisions database E2E infrastructure; exact WP-02 run 32020076245 executes 15 suites, although seven fail.",
         ".agent/context/testing-architecture.md:37-40 documents API E2E, browser E2E and deployment smoke infrastructure as available."
       ],
       "verification_result": "PARTIALLY_STALE_NOT_AUTOMATICALLY_PASSING",
@@ -5786,7 +5789,7 @@
         "landing_spec_files": 3,
         "browser_spec_files": 2,
         "latest_executed_api": "169 suites; 1251 passed; 1 skipped",
-        "latest_database_e2e": "15 suites; 6 failed and 9 passed; 227 tests; 136 failed and 91 passed",
+        "latest_database_e2e": "15 suites; 7 failed and 8 passed; 227 tests; 148 failed and 79 passed (run 32020076245 at 47b127f)",
         "latest_browser_e2e": "8 passed; 1 skipped"
       },
       "evidence": [
@@ -6003,7 +6006,7 @@
     "wp01_final_checks": "PASS: backlog:check, tasks:check, qa:check, sessions:check, knowledge:dashboards:check, validate:framework, inventory uniqueness and git diff --check.",
     "write_scope": "WP-01 created the inventory and discovery records. WP-02 reconciled canonical records, QA sources, generated views, framework validators, maintained documentation and this inventory on reconciliation base d919e1a.",
     "wp02_record_reconciliation": "PASS: canonical metadata and inventory agree; 43 terminal dispositions normalized; deliberate defer/product-decision states aligned; dangling blockers, evidence paths, date inversions, malformed wrappers and Bug body structure repaired.",
-    "wp02_qa_reconciliation": "PASS WITH RISKS: 69 scenarios; authentication logout coverage is PARTIAL because its source-shape spec does not execute a live session; two database scenarios remain FAIL and BUG-0019 browser reachability remains skipped.",
+    "wp02_qa_reconciliation": "PASS WITH RISKS: 70 scenarios; authentication logout coverage is PARTIAL because its source-shape spec does not execute a live session; three mapped database scenarios remain FAIL, seven database suites fail overall, and BUG-0019 browser reachability remains skipped.",
     "wp02_semantic_validators": "PASS: backlog, QA and framework checks reject state/disposition contradictions, date/order/path defects, incomplete Bug bodies, inactive or mismatched regression roots, active regressions without matching reusable scenarios, and canonical inventory metadata/backlink drift."
   },
   "relationship_policy": {
