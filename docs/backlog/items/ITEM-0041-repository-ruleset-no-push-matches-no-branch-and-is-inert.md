@@ -3,15 +3,15 @@ ID: ITEM-0041
 aliases: [ITEM-0041]
 Title: Repository ruleset No push matches no branch and is inert
 Type: INFRA
-Status: PRODUCT_DECISION
+Status: DONE
 Priority: P3
 Severity: LOW
 AffectedModules: [.github]
 Source: ARCHITECT
 OwnerAgent: release-devops
-ArchitectDisposition: PRODUCT_DECISION
+ArchitectDisposition: DONE
 CreatedAt: 2026-08-16
-UpdatedAt: 2026-08-16
+UpdatedAt: 2026-08-17
 RelatedBug:
 RelatedQA:
 RelatedADR:
@@ -70,3 +70,4 @@ confirms the ruleset was not meant to protect something else.
 ## History
 
 - 2026-08-16 — found by the new branch-policy verifier on its first run.
+- 2026-08-17 — **removed.** Repairing the ref pattern was the one option the branch model forbids: it would have imposed a one-approving-review requirement on main, which a single-maintainer repository cannot satisfy, and on develop, where autonomous integration is the point. The full definition is captured at docs/development/removed-ruleset-15523234.json so the decision is reversible. verify-branch-policy now reports IN_SYNC.

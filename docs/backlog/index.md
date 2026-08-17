@@ -13,11 +13,11 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 28 |
+| Open (active work) | 27 |
 | Blocked | 0 |
 | Deferred | 2 |
-| Awaiting a product decision | 1 |
-| Completed / closed | 60 |
+| Awaiting a product decision | 0 |
+| Completed / closed | 62 |
 | **Open CRITICAL** | **0** |
 | **Open HIGH** | **3** |
 | **Awaiting Architect triage** | **0** |
@@ -27,7 +27,7 @@ see [`README.md`](README.md) for why.
 | Severity | Count |
 |---|---|
 | HIGH | 3 |
-| MEDIUM | 22 |
+| MEDIUM | 21 |
 | LOW | 3 |
 
 ## Open by type
@@ -38,7 +38,7 @@ see [`README.md`](README.md) for why.
 | DATA_MIGRATION | 1 |
 | DOCUMENTATION | 2 |
 | FOLLOW_UP | 3 |
-| INFRA | 2 |
+| INFRA | 1 |
 | INTEGRATION | 1 |
 | SECURITY | 3 |
 | TECH_DEBT | 6 |
@@ -51,13 +51,11 @@ see [`README.md`](README.md) for why.
 |---|---|
 | OPEN | 6 |
 | DEFERRED | 2 |
-| PRODUCT_DECISION | 1 |
 | FIXED | 1 |
 | VERIFIED | 40 |
-| READY | 21 |
+| READY | 20 |
 | DEFERRED | 2 |
-| PRODUCT_DECISION | 1 |
-| DONE | 20 |
+| DONE | 22 |
 
 ## All records
 
@@ -138,7 +136,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0037](../../docs/backlog/items/ITEM-0037-apps-web-depends-on-lucide-react-without-declaring-it.md) | apps/web depends on lucide-react without declaring it | TECH_DEBT | MEDIUM | P2 | READY | apps/web | FIX_NOW |
 | [ITEM-0038](../../docs/backlog/items/ITEM-0038-record-ids-collide-between-concurrent-branches.md) | Record ids collide between concurrent branches | TECH_DEBT | MEDIUM | P2 | DONE | scripts, docs/bugs, docs/backlog | DONE |
 | [ITEM-0039](../../docs/backlog/items/ITEM-0039-promote-the-csp-from-report-only-to-enforced.md) | Promote the CSP from report-only to enforced | SECURITY | MEDIUM | P2 | READY | pkg:config, apps/web, apps/admin, apps/landing | DEFER |
-| [ITEM-0040](../../docs/backlog/items/ITEM-0040-develop-branch-protection-is-not-applied.md) | develop branch protection is not applied | INFRA | MEDIUM | P2 | READY | .github | BLOCKED_EXTERNAL |
+| [ITEM-0040](../../docs/backlog/items/ITEM-0040-develop-branch-protection-is-not-applied.md) | develop branch protection is not applied | INFRA | MEDIUM | P2 | DONE | .github | DONE |
 | [ITEM-0043](../../docs/backlog/items/ITEM-0043-promote-the-security-invariant-job-to-a-required-gate.md) | Promote the security invariant job to a required gate | TEST_GAP | MEDIUM | P2 | READY | services/api | PLAN_REQUIRED |
 | [ITEM-0021](../../docs/backlog/items/ITEM-0021-mechanical-guard-against-country-and-currency-literals-in-fr.md) | Mechanical guard against country and currency literals in frontends | TEST_GAP | LOW | P2 | DONE | scripts, apps/landing, apps/web, apps/admin | DEFER |
 | [ITEM-0023](../../docs/backlog/items/ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning.md) | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | P2 | READY | services/api/prisma, api:tenant-control-plane | DEFER |
@@ -152,7 +150,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0015](../../docs/backlog/items/ITEM-0015-make-the-tenant-readiness-assertion-auditable.md) | Make the tenant readiness() authorization assertion auditable | FOLLOW_UP | LOW | P3 | READY | api:tenant-control-plane | FIX_NOW |
 | [ITEM-0017](../../docs/backlog/items/ITEM-0017-buildworkspaceurl-still-carries-an-internal-loopback-fallbac.md) | buildWorkspaceUrl still carries an internal loopback fallback | TECH_DEBT | LOW | P3 | DONE | pkg:config | DEFER |
 | [ITEM-0029](../../docs/backlog/items/ITEM-0029-validation-should-require-an-aliases-line-on-every-record.md) | Validation should require an aliases line on every record | TECH_DEBT | LOW | P3 | DONE | scripts, docs/backlog, docs/bugs | FIX_NOW |
-| [ITEM-0041](../../docs/backlog/items/ITEM-0041-repository-ruleset-no-push-matches-no-branch-and-is-inert.md) | Repository ruleset No push matches no branch and is inert | INFRA | LOW | P3 | PRODUCT_DECISION | .github | PRODUCT_DECISION |
+| [ITEM-0041](../../docs/backlog/items/ITEM-0041-repository-ruleset-no-push-matches-no-branch-and-is-inert.md) | Repository ruleset No push matches no branch and is inert | INFRA | LOW | P3 | DONE | .github | DONE |
 | [ITEM-0042](../../docs/backlog/items/ITEM-0042-burn-down-the-services-api-eslint-warning-baseline.md) | Burn down the services/api ESLint warning baseline | TECH_DEBT | LOW | P3 | READY | services/api | DEFER |
 
 ## Views

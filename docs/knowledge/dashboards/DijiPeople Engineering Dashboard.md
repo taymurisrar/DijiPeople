@@ -9,11 +9,11 @@
 |---|---|
 | Open CRITICAL | **0** |
 | Open HIGH | **3** |
-| Open total | 28 |
+| Open total | 27 |
 | Blocked | 0 |
-| Awaiting a product decision | 1 |
+| Awaiting a product decision | 0 |
 | Deferred | 2 |
-| Completed | 60 |
+| Completed | 62 |
 | Awaiting Architect triage | 0 |
 
 ## Open Critical Bugs
@@ -30,9 +30,7 @@ _None. Nothing open at CRITICAL._
 
 ## Product Decisions Needed
 
-| ID | Title | Type | Severity | Status | Affected | Architect |
-|---|---|---|---|---|---|---|
-| [[ITEM-0041-repository-ruleset-no-push-matches-no-branch-and-is-inert|ITEM-0041]] | Repository ruleset No push matches no branch and is inert | INFRA | LOW | PRODUCT_DECISION | .github | PRODUCT_DECISION |
+_None. Every known question has an answer._
 
 ## Blocked Items
 
@@ -54,7 +52,6 @@ _None._
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
 | [[BUG-0042-apps-web-reads-21-environment-variables-unregistered-in-turb|BUG-0042]] | apps/web reads 21 environment variables unregistered in turbo globalEnv | INFRA | MEDIUM | OPEN | apps/web, pkg:config | FIX_NOW |
-| [[ITEM-0040-develop-branch-protection-is-not-applied|ITEM-0040]] | develop branch protection is not applied | INFRA | MEDIUM | READY | .github | BLOCKED_EXTERNAL |
 
 ## Recently Fixed Bugs
 
@@ -105,13 +102,13 @@ _None._
 ## Recent QA Runs
 
 - [[2026-08-17-web-app-documentation-1af3690|QA Run — apps/web documentation audit (TASK-0003)]]
+- [[2026-08-17-framework-remediation-e6a173d|QA Run — framework-remediation]]
 - [[2026-08-16-public-commercial-wave2-7686bb0|QA Run — Wave 2: Public Plans + Features Experience]]
 - [[2026-08-16-production-url-integrity-344a832|QA Run — Production URL integrity (BUG-0026)]]
 - [[2026-08-16-monorepo-app-documentation-78072d2|QA Run — Monorepo application documentation audit (TASK-0002)]]
 - [[2026-08-16-lead-partner-acquisition-wave3-1695167|QA Run — Wave 3: Lead + Partner Acquisition]]
 - [[2026-08-16-hotfix-plan-list-hidden-write-78072d2|QA Run — Hotfix: Plan list GET mutates commercial pricing (BUG-0030)]]
 - [[2026-08-16-framework-autonomous-v2-f64ba4e|QA Run — framework-autonomous-v2]]
-- [[2026-08-16-commercial-config-wave1-a525896|QA Run — Wave 1: Commercial Configuration Foundation]]
 
 ## Recent Implementations
 
@@ -122,6 +119,7 @@ _None._
 
 ## Recent Engineering History
 
+- [[2026-08-17-framework-remediation-e6a173d|Engineering History — Framework remediation]]
 - [[2026-08-16-web-app-documentation-1af3690|Engineering History — Web app documentation]]
 - [[2026-08-16-public-commercial-wave2-301a397|Engineering History — Wave 2: Public Plans + Features Experience]]
 - [[2026-08-16-production-url-integrity-344a832|Engineering History — Production url integrity]]
@@ -129,7 +127,6 @@ _None._
 - [[2026-08-16-lead-partner-acquisition-wave3-ca18353|Engineering History — Wave 3: Lead + Partner Acquisition]]
 - [[2026-08-16-hotfix-plan-list-hidden-write-ee1acec|Engineering History — Hotfix: Plan list GET mutates commercial pricing (BUG-0030)]]
 - [[2026-08-16-framework-orchestration-f38a6bf|Engineering History — Framework orchestration]]
-- [[2026-08-16-framework-autonomous-v2-da018c4|Engineering History — Framework autonomous v2]]
 
 ## Recent Releases
 
@@ -159,7 +156,6 @@ _None. Nothing has been deployed through the release process._
 | [[ITEM-0036-decide-the-fate-of-the-inert-runtime-registries-in-apps-web|ITEM-0036]] | Decide the fate of the inert runtime registries in apps/web | ARCHITECTURE | MEDIUM | READY | apps/web | PLAN_REQUIRED |
 | [[ITEM-0037-apps-web-depends-on-lucide-react-without-declaring-it|ITEM-0037]] | apps/web depends on lucide-react without declaring it | TECH_DEBT | MEDIUM | READY | apps/web | FIX_NOW |
 | [[ITEM-0039-promote-the-csp-from-report-only-to-enforced|ITEM-0039]] | Promote the CSP from report-only to enforced | SECURITY | MEDIUM | READY | pkg:config, apps/web, apps/admin, apps/landing | DEFER |
-| [[ITEM-0040-develop-branch-protection-is-not-applied|ITEM-0040]] | develop branch protection is not applied | INFRA | MEDIUM | READY | .github | BLOCKED_EXTERNAL |
 | [[ITEM-0043-promote-the-security-invariant-job-to-a-required-gate|ITEM-0043]] | Promote the security invariant job to a required gate | TEST_GAP | MEDIUM | READY | services/api | PLAN_REQUIRED |
 | [[ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning|ITEM-0023]] | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | READY | services/api/prisma, api:tenant-control-plane | DEFER |
 | [[ITEM-0015-make-the-tenant-readiness-assertion-auditable|ITEM-0015]] | Make the tenant readiness() authorization assertion auditable | FOLLOW_UP | LOW | READY | api:tenant-control-plane | FIX_NOW |
@@ -181,8 +177,8 @@ _None. Nothing has been deployed through the release process._
 | Bug records | 48 |
 | Backlog items | 43 |
 | Known bug patterns | 19 |
-| QA runs | 12 |
-| Engineering history records | 11 |
+| QA runs | 13 |
+| Engineering history records | 12 |
 | Release records | 0 |
 | Module notes | 19 |
 | Architecture notes | 18 |

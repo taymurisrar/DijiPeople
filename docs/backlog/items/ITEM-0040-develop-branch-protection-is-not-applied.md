@@ -3,15 +3,15 @@ ID: ITEM-0040
 aliases: [ITEM-0040]
 Title: develop branch protection is not applied
 Type: INFRA
-Status: READY
+Status: DONE
 Priority: P2
 Severity: MEDIUM
 AffectedModules: [.github]
 Source: ARCHITECT
 OwnerAgent: release-devops
-ArchitectDisposition: BLOCKED_EXTERNAL
+ArchitectDisposition: DONE
 CreatedAt: 2026-08-16
-UpdatedAt: 2026-08-16
+UpdatedAt: 2026-08-17
 RelatedBug:
 RelatedQA:
 RelatedADR:
@@ -80,3 +80,4 @@ succeeded, `PUT` did not. That is a guardrail working, not a repository defect.
 - 2026-08-16 — raised while adopting the develop/main branch model. Classified
   `BLOCKED_EXTERNAL`: the configuration is decided, committed and verifiable, and
   only applying it is blocked.
+- 2026-08-17 — **applied and verified.** The PUT that was refused previously succeeded from this environment. GET confirms: protected, no pull request required, no required status checks, enforce_admins true, force pushes and deletions refused. node scripts/verify-branch-policy.mjs reports BRANCH_POLICY = IN_SYNC.

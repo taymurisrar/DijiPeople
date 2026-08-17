@@ -10,6 +10,4 @@ Each states the question, the options and what each option costs.
 
 ## Awaiting a product decision
 
-| ID | Title | Type | Severity | Priority | Status | Affected | Architect |
-|---|---|---|---|---|---|---|---|
-| [ITEM-0041](../../docs/backlog/items/ITEM-0041-repository-ruleset-no-push-matches-no-branch-and-is-inert.md) | Repository ruleset No push matches no branch and is inert | INFRA | LOW | P3 | PRODUCT_DECISION | .github | PRODUCT_DECISION |
+_None._

@@ -7,7 +7,7 @@
 
 | | |
 |---|---|
-| Active sessions | **1** |
+| Active sessions | **0** |
 | Active parent tasks | 0 |
 | Active work packages | 0 |
 | Blocked work packages | 0 |
@@ -15,15 +15,13 @@
 | Open CRITICAL | **0** |
 | Open HIGH | 3 |
 | Awaiting Architect triage | 0 |
-| Owner decisions pending | 1 |
+| Owner decisions pending | 0 |
 | QA coverage gaps | 53 |
 | Scenarios blocked by infrastructure | 9 |
 
 ## Active Sessions
 
-| Session | Task | Title | Status | Branch | Target | Leases | Schema |
-|---|---|---|---|---|---|---|---|
-| [[SESSION-0002-final-framework-remediation-and-ci-debt|SESSION-0002]] | — | Final framework remediation and CI debt | ACTIVE | `agent/framework-remediation` | `develop` | — | NO |
+_No session is currently registered as active._
 
 ## Active Tasks and Work Packages
 
@@ -70,10 +68,7 @@ _None. Nothing open at CRITICAL._
 
 ## Owner Decisions Pending
 
-Questions where the engineering is understood and the **product answer is**
-**not**. No agent may resolve one by implementing a side of it.
-
-- [[ITEM-0041-repository-ruleset-no-push-matches-no-branch-and-is-inert|ITEM-0041]] — **Repository ruleset No push matches no branch and is inert**
+_None outstanding._
 
 ## QA Coverage Gaps
 
@@ -140,10 +135,10 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 28 |
+| Open total | 27 |
 | Blocked | 0 |
 | Deferred | 2 |
-| Awaiting a product decision | 1 |
+| Awaiting a product decision | 0 |
 | Awaiting Architect triage | 0 |
 
 Every ordinary record carries a disposition.

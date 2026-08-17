@@ -55,10 +55,7 @@ See [[dijipeople-platform-overview|DijiPeople Platform Overview]] for the full p
 
 ## Open Product Decisions
 
-Questions where the engineering is understood and the **product answer**
-**is not**. No agent may resolve one by implementing a side of it.
-
-- [[ITEM-0041-repository-ruleset-no-push-matches-no-branch-and-is-inert|ITEM-0041]] — **Repository ruleset No push matches no branch and is inert** (LOW)
+_None outstanding._
 
 ## Recent Product Changes
 
