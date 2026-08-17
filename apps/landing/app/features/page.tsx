@@ -34,8 +34,11 @@ export default async function FeaturesPage() {
   // The feature list is the product's own catalogue, fetched server-side. This
   // page previously held a hardcoded array of twelve cards, which advertised
   // capabilities the catalogue does not contain and omitted ones it does.
-  const config = await getCommercialConfig();
-  const catalog = config.featureCatalog;
+const config = await getCommercialConfig();
+
+const catalog = Array.isArray(config.featureCatalog)
+  ? config.featureCatalog
+  : [];
 
   // Group by the catalogue's own categories, then order commercially. A
   // category the presentation layer does not know about still renders, using

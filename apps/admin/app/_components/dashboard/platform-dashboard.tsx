@@ -28,7 +28,7 @@ type TrendPoint = {
   label: string;
   [key: string]: string | number;
 };
-type QueueItem = { id: string; [key: string]: unknown };
+type QueueItem = { id: string;[key: string]: unknown };
 type PeriodComparison = {
   current: number;
   previous: number;
@@ -330,17 +330,25 @@ export function PlatformDashboard({
             <button
               type="button"
               onClick={() => router.refresh()}
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50"
+              aria-label="Refresh"
+              title="Refresh"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50"
             >
-              <RefreshCw className="h-4 w-4" /> Refresh
+              <RefreshCw className="h-4 w-4" />
             </button>
+
             <button
               type="button"
               aria-pressed={autoRefresh}
+              aria-label={autoRefresh ? "Disable live refresh" : "Enable live refresh"}
+              title={autoRefresh ? "Live refresh on" : "Live refresh off"}
               onClick={() => setAutoRefresh((current) => !current)}
-              className={`inline-flex h-10 items-center justify-center gap-2 rounded-xl border px-4 text-sm font-semibold shadow-sm ${autoRefresh ? "border-[var(--admin-primary)] bg-[var(--admin-surface-tint)] text-[var(--admin-primary)]" : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"}`}
+              className={`inline-flex h-10 w-10 items-center justify-center rounded-xl border shadow-sm ${autoRefresh
+                  ? "border-[var(--admin-primary)] bg-[var(--admin-surface-tint)] text-[var(--admin-primary)]"
+                  : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                }`}
             >
-              <Activity className="h-4 w-4" /> Live {autoRefresh ? "on" : "off"}
+              <Activity className="h-4 w-4" />
             </button>
           </div>
         </div>
@@ -367,18 +375,18 @@ function buildDashboardWidgets(
   widgets.push(
     content.trend
       ? {
-          id: "primary-analysis",
-          type: "time-series-chart" as const,
-          region: "analysis" as const,
-          trend: content.trend,
-        }
+        id: "primary-analysis",
+        type: "time-series-chart" as const,
+        region: "analysis" as const,
+        trend: content.trend,
+      }
       : {
-          id: "primary-analysis",
-          type: "bar-chart" as const,
-          region: "analysis" as const,
-          title: content.breakdownTitle,
-          values: content.breakdown,
-        },
+        id: "primary-analysis",
+        type: "bar-chart" as const,
+        region: "analysis" as const,
+        title: content.breakdownTitle,
+        values: content.breakdown,
+      },
   );
   widgets.push({
     id: "secondary-analysis",
@@ -653,7 +661,7 @@ function dashboardContent(view: string, context: DashboardContext) {
         m(
           "New inquiries",
           (s.partnerBreakdown.INQUIRY ?? 0) +
-            (s.partnerBreakdown.NEW_INQUIRY ?? 0),
+          (s.partnerBreakdown.NEW_INQUIRY ?? 0),
           "Public partner applications",
           "/partners?viewId=partner-inquiries",
           Handshake,
@@ -786,7 +794,7 @@ function dashboardContent(view: string, context: DashboardContext) {
         m(
           "Ready to send",
           (s.contractBreakdown.APPROVED_FOR_SENDING ?? 0) +
-            (s.contractBreakdown.READY_FOR_SIGNATURE ?? 0),
+          (s.contractBreakdown.READY_FOR_SIGNATURE ?? 0),
           "Approved signature packages",
           "/contracts?viewId=ready-to-send",
           FileSignature,
@@ -819,7 +827,7 @@ function dashboardContent(view: string, context: DashboardContext) {
         m(
           "Fully executed",
           (s.contractBreakdown.FULLY_EXECUTED ?? 0) +
-            (s.contractBreakdown.FULLY_SIGNED ?? 0),
+          (s.contractBreakdown.FULLY_SIGNED ?? 0),
           "Immutable completed agreements",
           "/contracts?viewId=fully-executed",
           FileSignature,
@@ -876,12 +884,12 @@ function dashboardContent(view: string, context: DashboardContext) {
       ],
       alerts: awaitingSignature
         ? [
-            {
-              tone: "amber",
-              label: `${awaitingSignature} agreements are awaiting signatures`,
-              href: "/contracts?viewId=awaiting-external-signature",
-            },
-          ]
+          {
+            tone: "amber",
+            label: `${awaitingSignature} agreements are awaiting signatures`,
+            href: "/contracts?viewId=awaiting-external-signature",
+          },
+        ]
         : [],
     },
     "customer-onboarding": {
@@ -941,12 +949,12 @@ function dashboardContent(view: string, context: DashboardContext) {
       ],
       alerts: awaitingSignature
         ? [
-            {
-              tone: "amber",
-              label: `${awaitingSignature} contracts awaiting signature`,
-              href: "/contracts?status=SIGNATURE_IN_PROGRESS",
-            },
-          ]
+          {
+            tone: "amber",
+            label: `${awaitingSignature} contracts awaiting signature`,
+            href: "/contracts?status=SIGNATURE_IN_PROGRESS",
+          },
+        ]
         : [],
     },
     "customer-support": {
@@ -1078,12 +1086,12 @@ function dashboardContent(view: string, context: DashboardContext) {
       ],
       alerts: s.failedPayments
         ? [
-            {
-              tone: "rose",
-              label: `${s.failedPayments} failed payments`,
-              href: "/payments?status=FAILED",
-            },
-          ]
+          {
+            tone: "rose",
+            label: `${s.failedPayments} failed payments`,
+            href: "/payments?status=FAILED",
+          },
+        ]
         : [],
     },
     "platform-administration": {
@@ -1475,12 +1483,12 @@ function OperationsQueue({
             );
             const detail = String(
               item.contractNumber ??
-                item.status ??
-                (item.expiryDate
-                  ? new Date(String(item.expiryDate)).toLocaleDateString()
-                  : item.createdAt
-                    ? new Date(String(item.createdAt)).toLocaleDateString()
-                    : ""),
+              item.status ??
+              (item.expiryDate
+                ? new Date(String(item.expiryDate)).toLocaleDateString()
+                : item.createdAt
+                  ? new Date(String(item.createdAt)).toLocaleDateString()
+                  : ""),
             );
             return (
               <Link
