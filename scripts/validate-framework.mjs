@@ -1517,10 +1517,17 @@ if (existsSync(join(ROOT, `${DASHBOARD_DIR}/DijiPeople Engineering Dashboard.md`
    * any future edit to either template.
    */
   const withoutAliases = [];
-  for (const dir of ['docs/bugs', 'docs/backlog/items']) {
+  /*
+   * BUG-0059 — this loop ran over bugs and backlog items only, which is exactly
+   * how `docs/tasks` came to hold five records no `[[TASK-nnnn]]` could reach:
+   * the rule was right, the record type was simply outside the loop. Every
+   * directory of id-addressable records belongs here, so adding a sixth record
+   * type cannot silently reintroduce the gap.
+   */
+  for (const dir of ['docs/bugs', 'docs/backlog/items', 'docs/tasks']) {
     for (const file of markdownFilesIn(dir)) {
       const name = file.split(/[\\/]/).pop() ?? '';
-      const idMatch = /^(BUG|ITEM)-\d{4}/.exec(name);
+      const idMatch = /^(BUG|ITEM|TASK)-\d{4}/.exec(name);
       if (!idMatch) continue;
 
       const source = read(file);
@@ -1537,7 +1544,7 @@ if (existsSync(join(ROOT, `${DASHBOARD_DIR}/DijiPeople Engineering Dashboard.md`
   }
 
   check(
-    'Every bug and backlog record is reachable by its bare id in Obsidian',
+    'Every bug, backlog and task record is reachable by its bare id in Obsidian',
     withoutAliases.length === 0,
     withoutAliases.slice(0, 6).join('; '),
   );

@@ -1,5 +1,6 @@
 ---
 TASK_ID: TASK-0003
+aliases: [TASK-0003]
 TITLE: Deep documentation of apps/web, the tenant product
 TYPE: KNOWLEDGE
 SIZE: LARGE

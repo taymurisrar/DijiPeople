@@ -1,5 +1,6 @@
 ---
 TASK_ID: TASK-0002
+aliases: [TASK-0002]
 TITLE: Deep documentation of apps/docs, apps/landing and apps/agent-desktop
 TYPE: KNOWLEDGE
 SIZE: LARGE

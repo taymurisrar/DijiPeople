@@ -14,7 +14,7 @@
 | Awaiting a product decision | 1 |
 | Deferred | 1 |
 | Completed | 59 |
-| Awaiting Architect triage | 1 |
+| Awaiting Architect triage | 0 |
 
 ## Open Critical Bugs
 
@@ -178,7 +178,7 @@ _None. Nothing has been deployed through the release process._
 | [[ITEM-0043-promote-the-security-invariant-job-to-a-required-gate|ITEM-0043]] | Promote the security invariant job to a required gate | TEST_GAP | MEDIUM | READY | services/api | PLAN_REQUIRED |
 | [[ITEM-0046-add-landing-loading-error-and-not-found-boundaries|ITEM-0046]] | Add landing loading error and not-found boundaries | UX | MEDIUM | READY | apps/landing | FIX_NOW |
 | [[ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning|ITEM-0023]] | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
-| [[BUG-0059-vault-wikilinks-to-task-records-and-four-module-notes-resolv|BUG-0059]] | Vault wikilinks to task records and four module notes resolve to nothing | DOCUMENTATION | LOW | OPEN | scripts, docs/tasks, docs/knowledge | TRIAGE_REQUIRED |
+| [[BUG-0059-vault-wikilinks-to-task-records-and-four-module-notes-resolv|BUG-0059]] | Vault wikilinks to task records and four module notes resolve to nothing | DOCUMENTATION | LOW | OPEN | scripts, docs/tasks, docs/knowledge | PLAN_REQUIRED |
 | [[ITEM-0015-make-the-tenant-readiness-assertion-auditable|ITEM-0015]] | Make the tenant readiness() authorization assertion auditable | FOLLOW_UP | LOW | READY | api:tenant-control-plane | FIX_NOW |
 | [[ITEM-0042-burn-down-the-services-api-eslint-warning-baseline|ITEM-0042]] | Burn down the services/api ESLint warning baseline | TECH_DEBT | LOW | READY | services/api | FIX_NOW |
 | [[ITEM-0045-reconcile-tenant-web-root-domain-environment-examples|ITEM-0045]] | Reconcile tenant web root-domain environment examples | DOCUMENTATION | LOW | READY | apps/web | FIX_NOW |
@@ -207,7 +207,7 @@ _None. Nothing has been deployed through the release process._
 | Decision notes (ADR + generated) | 6 |
 | Implementation records | 4 |
 
-**Awaiting Architect triage: 1.** A record nobody has
+**Awaiting Architect triage: 0.** A record nobody has
 triaged is work nobody has decided about — the number that should stay near
 zero between tasks.
 

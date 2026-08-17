@@ -3098,7 +3098,7 @@
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "PLAN_REQUIRED",
       "verification_result": {
         "result": "VERIFIED",
         "classification": "ACTIVE_AS_DOCUMENTED",

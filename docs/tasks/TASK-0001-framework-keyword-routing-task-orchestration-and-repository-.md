@@ -1,5 +1,6 @@
 ---
 TASK_ID: TASK-0001
+aliases: [TASK-0001]
 TITLE: Framework: keyword routing, task orchestration and repository health
 TYPE: FRAMEWORK
 SIZE: LARGE

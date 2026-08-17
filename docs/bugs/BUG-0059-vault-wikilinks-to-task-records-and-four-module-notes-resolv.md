@@ -11,7 +11,7 @@ DetectedDate: 2026-08-17
 DetectedInSha: 7b2a51d
 AffectedModules: [scripts, docs/tasks, docs/knowledge]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: PLAN_REQUIRED
 QAReport:
 RegressionId:
 RelatedBacklogItem: ITEM-0029
@@ -128,9 +128,11 @@ No ExecPlan needed for (1). (2) is a product-of-documentation decision.
 
 ## Regression Coverage
 
-None yet. The natural home is an extension of the `ITEM-0029` alias check to all
-record types, proven by generating a task record in a fixture and asserting the
-alias is present.
+`scripts/validate-framework.mjs` — "Every bug, backlog and task record is
+reachable by its bare id in Obsidian". The `ITEM-0029` alias check now runs over
+`docs/tasks` as well as `docs/bugs` and `docs/backlog/items`. Mutation-tested:
+removing the `aliases:` line from `TASK-0003` fails the check by name, and
+restoring it passes.
 
 ## Dependencies
 
@@ -142,15 +144,43 @@ Supersedes nothing. Extends the scope that [[ITEM-0029]] closed.
 
 ## Resolution
 
-Not yet fixed. Filed during the documentation-and-process drift finalization at
-`7b2a51d`, which fixed vault **parity** (40 differing files → 0) but did not
-take on link resolution: seven of the twelve failures are the unclosed half of
-an already-triaged item, and the other five require deciding what to write.
+**Part 1 is fixed; part 2 is not, and needs a decision rather than a patch.**
+The record stays `OPEN` because part 2 is a real remaining defect — the schema
+has no `PARTIALLY_FIXED` status, and claiming `FIXED` for a half-closed link
+set is exactly the false-green this bug was filed about.
+
+Part 1 — task-record aliases. `scripts/new-task.mjs` now emits
+`aliases: [TASK-nnnn]`, the four records missing it were backfilled
+(`TASK-0004` already had one), and the `ITEM-0029` validation was widened from
+two record directories to three so a fourth record type cannot reinherit the
+gap. Unresolved wikilinks fell from 12 to 5, and all seven `TASK-0005` links
+resolve.
+
+Part 2 — the four missing module notes — is deliberately **not** taken here.
+`workspace-routing-and-domains`, `notifications` and `tenant-isolation` are
+knowledge that was never written, and `settings-and-branding` exists under
+`docs/architecture/`, which is not a synced mapping. Writing three module notes
+and deciding whether `docs/architecture/` should be mapped is authoring and an
+ADR, not a defect fix, and it was out of scope for the bug-remediation package
+that closed part 1.
 
 ## QA Retest
 
-Pending.
+Partial pass. `npm run knowledge:verify` after a real sync:
+
+```
+NOTES_VERIFIED       333
+WIKILINKS_CHECKED    1480
+WIKILINKS_UNRESOLVED 5     (was 12)
+vault copy differs   0
+```
+
+Still exits 1, so `OBSIDIAN_SYNC_STATUS` remains
+`COMPLETE_WITH_DOCUMENTATION_WARNING` until part 2 lands.
 
 ## History
 
+- 2026-08-17 — triaged `PLAN_REQUIRED` and part 1 fixed during the WP-03
+  authorization package; alias generation, backfill and the widened validation
+  landed together. Part 2 left open with the decision it needs stated.
 - 2026-08-17 — created from qa run at `7b2a51d`.

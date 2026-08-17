@@ -104,6 +104,10 @@ if (existsSync(path)) {
 const frontmatter = [
   '---',
   `TASK_ID: ${id}`,
+  // Obsidian resolves a bare-id wikilink only through `aliases:`. Without this
+  // line every `[[TASK-nnnn]]` in the vault renders as ordinary text rather
+  // than announcing itself as broken — see BUG-0059.
+  `aliases: [${id}]`,
   `TITLE: ${title}`,
   `TYPE: ${type}`,
   `SIZE: ${size}`,

@@ -1,5 +1,6 @@
 ---
 TASK_ID: TASK-0005
+aliases: [TASK-0005]
 TITLE: DijiPeople Global Technical Remediation
 TYPE: BUG
 SIZE: PROGRAM
