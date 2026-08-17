@@ -2,7 +2,7 @@
 ID: BUG-0056
 aliases: [BUG-0056]
 Title: Billing routes authorize by role instead of billing capability
-Status: IN_PROGRESS
+Status: VERIFIED
 Severity: HIGH
 Priority: P0
 Type: AUTHORIZATION
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-17
 DetectedInSha: 3f9063f
 AffectedModules: [services/api/src/modules/billing]
 OwnerAgent: backend-api
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport:
-RegressionId:
+RegressionId: REG-043
 RelatedBacklogItem: ITEM-0043
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-17
 UpdatedAt: 2026-08-17
-ResolvedAt:
+ResolvedAt: 2026-08-17
 ---
 
 # BUG-0056 - Billing routes authorize by role instead of billing capability
@@ -84,13 +84,14 @@ Permission catalog and role-grant reconciliation in WP-03.
 
 ## Resolution
 
-In progress in WP-03.
+Fixed 2026-08-17, integrated into develop at 2313bef. Billing reads and writes require distinct billing capabilities rather than a role name, with billing.manage added as its own key.
 
 ## QA Retest
 
-Pending.
+Verified by the regression spec billing-authorization.spec.ts, which separates the read and manage capabilities. REG-043 records it Active: yes.
 
 ## History
 
+- 2026-08-17 — fixed and verified in WP-03; integrated into develop at 2313bef with the CI required gate green on that exact SHA.
 - 2026-08-17 - confirmed by the WP-03 alternate-guard audit and atomically
   reserved under `SESSION-0003`.

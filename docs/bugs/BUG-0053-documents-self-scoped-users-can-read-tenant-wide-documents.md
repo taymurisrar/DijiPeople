@@ -2,7 +2,7 @@
 ID: BUG-0053
 aliases: [BUG-0053]
 Title: Self-scoped document readers can list and open tenant-wide documents
-Status: IN_PROGRESS
+Status: VERIFIED
 Severity: HIGH
 Priority: P0
 Type: AUTHORIZATION
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-17
 DetectedInSha: 3f9063f
 AffectedModules: [services/api/src/modules/documents]
 OwnerAgent: backend-api
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport:
-RegressionId:
+RegressionId: REG-041
 RelatedBacklogItem: ITEM-0043
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-17
 UpdatedAt: 2026-08-17
-ResolvedAt:
+ResolvedAt: 2026-08-17
 ---
 
 # BUG-0053 — Self-scoped document readers can list and open tenant-wide documents
@@ -113,13 +113,14 @@ None. The existing employee scope builder and document link model are present.
 
 ## Resolution
 
-In progress in WP-03.
+Fixed 2026-08-17, integrated into develop at 2313bef. Document authorization resolves through the owning employee rather than tenant membership, so an OWN/TEAM-scoped reader can no longer list or open tenant-wide documents.
 
 ## QA Retest
 
-Pending implementation and negative same-tenant object-access tests.
+Verified by the regression spec documents-object-authorization.spec.ts, including negative same-tenant object-access cases. REG-041 records it Active: yes.
 
 ## History
 
+- 2026-08-17 — fixed and verified in WP-03; integrated into develop at 2313bef with the CI required gate green on that exact SHA.
 - 2026-08-17 — discovered while classifying matrix-only document routes during
   WP-03; reserved atomically as `BUG-0053` under `SESSION-0003`.

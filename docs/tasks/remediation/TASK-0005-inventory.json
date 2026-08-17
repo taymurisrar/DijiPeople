@@ -9,11 +9,11 @@
     "total_records": 104,
     "bugs": 58,
     "backlog_items": 46,
-    "open_bucket": 40,
+    "open_bucket": 34,
     "blocked_bucket": 0,
     "deferred_bucket": 1,
     "product_decision_bucket": 1,
-    "completed_bucket": 62,
+    "completed_bucket": 68,
     "parser_structural_errors": 0,
     "active_session_conflict": "NONE",
     "discovered_findings_total": 34,
@@ -247,13 +247,13 @@
         "detected_in_sha": "13e720e",
         "created_at": "2026-08-15",
         "updated_at": "2026-08-17",
-        "resolved_at": ""
+        "resolved_at": "2026-08-17"
       },
       "type": "TENANT_ISOLATION",
       "title": "A support-role user could read another tenant's error log",
       "severity": "CRITICAL",
       "priority": "P0",
-      "current_status": "IN_PROGRESS",
+      "current_status": "VERIFIED",
       "current_evidence": {
         "paths": [
           "docs/bugs/BUG-0005-cross-tenant-error-log-read-via-support-role.md",
@@ -283,7 +283,7 @@
       ],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "PRELIMINARY",
         "classification": "TERMINAL_AS_DOCUMENTED",
@@ -2928,14 +2928,14 @@
         "detected_in_sha": "3f9063f",
         "created_at": "2026-08-17",
         "updated_at": "2026-08-17",
-        "resolved_at": ""
+        "resolved_at": "2026-08-17"
       },
       "type": "AUTHORIZATION",
       "title": "Self-scoped document readers can list and open tenant-wide documents",
       "severity": "HIGH",
       "priority": "P0",
-      "current_status": "IN_PROGRESS",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "VERIFIED",
+      "architect_disposition": "DONE",
       "affected_modules": [
         "services/api/src/modules/documents"
       ],
@@ -2955,14 +2955,14 @@
         "detected_in_sha": "3f9063f",
         "created_at": "2026-08-17",
         "updated_at": "2026-08-17",
-        "resolved_at": ""
+        "resolved_at": "2026-08-17"
       },
       "type": "AUTHORIZATION",
       "title": "Partner administration routes use tenant role aliases instead of platform permissions",
       "severity": "HIGH",
       "priority": "P0",
-      "current_status": "IN_PROGRESS",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "VERIFIED",
+      "architect_disposition": "DONE",
       "affected_modules": [
         "services/api/src/modules/partners"
       ],
@@ -2982,14 +2982,14 @@
         "detected_in_sha": "3f9063f",
         "created_at": "2026-08-17",
         "updated_at": "2026-08-17",
-        "resolved_at": ""
+        "resolved_at": "2026-08-17"
       },
       "type": "AUTHORIZATION",
       "title": "Billing routes authorize by role instead of billing capability",
       "severity": "HIGH",
       "priority": "P0",
-      "current_status": "IN_PROGRESS",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "VERIFIED",
+      "architect_disposition": "DONE",
       "affected_modules": [
         "services/api/src/modules/billing"
       ],
@@ -3009,14 +3009,14 @@
         "detected_in_sha": "3f9063f",
         "created_at": "2026-08-17",
         "updated_at": "2026-08-17",
-        "resolved_at": ""
+        "resolved_at": "2026-08-17"
       },
       "type": "AUTHORIZATION",
       "title": "Self-service settings context allows arbitrary organization preview",
       "severity": "HIGH",
       "priority": "P0",
-      "current_status": "IN_PROGRESS",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "VERIFIED",
+      "architect_disposition": "DONE",
       "affected_modules": [
         "services/api/src/modules/tenant-settings"
       ],
@@ -3036,14 +3036,14 @@
         "detected_in_sha": "3f9063f",
         "created_at": "2026-08-17",
         "updated_at": "2026-08-17",
-        "resolved_at": ""
+        "resolved_at": "2026-08-17"
       },
       "type": "AUTHORIZATION",
       "title": "Organization structure reads ignore caller scope",
       "severity": "HIGH",
       "priority": "P0",
-      "current_status": "IN_PROGRESS",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "VERIFIED",
+      "architect_disposition": "DONE",
       "affected_modules": [
         "services/api/src/modules/organization"
       ],

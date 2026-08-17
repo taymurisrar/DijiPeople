@@ -2,7 +2,7 @@
 ID: BUG-0055
 aliases: [BUG-0055]
 Title: Partner administration routes use tenant role aliases instead of platform permissions
-Status: IN_PROGRESS
+Status: VERIFIED
 Severity: HIGH
 Priority: P0
 Type: AUTHORIZATION
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-17
 DetectedInSha: 3f9063f
 AffectedModules: [services/api/src/modules/partners]
 OwnerAgent: backend-api
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport:
-RegressionId:
+RegressionId: REG-042
 RelatedBacklogItem: ITEM-0043
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-17
 UpdatedAt: 2026-08-17
-ResolvedAt:
+ResolvedAt: 2026-08-17
 ---
 
 # BUG-0055 - Partner administration routes use tenant role aliases instead of platform permissions
@@ -89,13 +89,14 @@ None.
 
 ## Resolution
 
-In progress in WP-03.
+Fixed 2026-08-17, integrated into develop at 2313bef. The platform partner routes authorize on partner capabilities instead of the tenant role aliases they were keying off, and the JwtAuthGuard+RolesGuard pairing is gone from this surface.
 
 ## QA Retest
 
-Pending.
+Verified by the regression spec partners-platform-authorization.spec.ts: a platform MEMBER is denied despite its system-customizer alias, PARTNER_MANAGER may read and manage, PRESALES may read but not manage, and a tenant JWT carrying partners.read is refused. REG-042 records it Active: yes.
 
 ## History
 
+- 2026-08-17 — fixed and verified in WP-03; integrated into develop at 2313bef with the CI required gate green on that exact SHA.
 - 2026-08-17 - confirmed by the WP-03 alternate-guard audit and atomically
   reserved under `SESSION-0003`.

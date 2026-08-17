@@ -2,7 +2,7 @@
 ID: BUG-0057
 aliases: [BUG-0057]
 Title: Self-service settings context allows arbitrary organization preview
-Status: IN_PROGRESS
+Status: VERIFIED
 Severity: HIGH
 Priority: P0
 Type: AUTHORIZATION
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-17
 DetectedInSha: 3f9063f
 AffectedModules: [services/api/src/modules/tenant-settings]
 OwnerAgent: backend-api
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport:
-RegressionId:
+RegressionId: REG-044
 RelatedBacklogItem: ITEM-0043
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-17
 UpdatedAt: 2026-08-17
-ResolvedAt:
+ResolvedAt: 2026-08-17
 ---
 
 # BUG-0057 - Self-service settings context allows arbitrary organization preview
@@ -90,13 +90,14 @@ Dual permission metadata and scope-resolution tests.
 
 ## Resolution
 
-In progress in WP-03.
+Fixed 2026-08-17, integrated into develop at 2313bef. Resolved settings derive their organization from the caller instead of trusting a request-supplied id, and a scoped reader is refused a sibling or out-of-tenant organization.
 
 ## QA Retest
 
-Pending.
+Verified by the regression spec settings-context-authorization.spec.ts: arbitrary ids from a self-service user are ignored, an organization-scoped reader is denied a sibling organization, and an out-of-tenant id is denied. REG-044 records it Active: yes.
 
 ## History
 
+- 2026-08-17 — fixed and verified in WP-03; integrated into develop at 2313bef with the CI required gate green on that exact SHA.
 - 2026-08-17 - confirmed by the WP-03 missing-both audit and atomically
   reserved under `SESSION-0003`.

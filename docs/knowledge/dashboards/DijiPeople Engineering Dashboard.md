@@ -7,20 +7,18 @@
 
 | | |
 |---|---|
-| Open CRITICAL | **1** |
-| Open HIGH | **10** |
-| Open total | 43 |
+| Open CRITICAL | **0** |
+| Open HIGH | **5** |
+| Open total | 37 |
 | Blocked | 0 |
 | Awaiting a product decision | 1 |
 | Deferred | 1 |
-| Completed | 59 |
+| Completed | 65 |
 | Awaiting Architect triage | 0 |
 
 ## Open Critical Bugs
 
-| ID | Title | Type | Severity | Status | Affected | Architect |
-|---|---|---|---|---|---|---|
-| [[BUG-0005-cross-tenant-error-log-read-via-support-role|BUG-0005]] | A support-role user could read another tenant's error log | TENANT_ISOLATION | CRITICAL | IN_PROGRESS | api:error-logs | FIX_NOW |
+_None. Nothing open at CRITICAL._
 
 ## Open High Bugs
 
@@ -28,11 +26,6 @@
 |---|---|---|---|---|---|---|
 | [[BUG-0049-report-only-ci-jobs-swallow-security-and-database-e2e-failur|BUG-0049]] | Report-only CI jobs swallow security and database E2E failures | INFRA | HIGH | OPEN | .github/workflows, services/api/src/common/constants, services/api/test, docs/qa | FIX_NOW |
 | [[BUG-0052-production-dependency-graph-carries-critical-and-high-securi|BUG-0052]] | Production dependency graph carries critical and high security advisories | SECURITY | HIGH | OPEN | package-lock.json, apps/agent-desktop, apps/web, apps/admin, apps/landing, services/api | FIX_NOW |
-| [[BUG-0053-documents-self-scoped-users-can-read-tenant-wide-documents|BUG-0053]] | Self-scoped document readers can list and open tenant-wide documents | AUTHORIZATION | HIGH | IN_PROGRESS | api:documents | FIX_NOW |
-| [[BUG-0055-partner-routes-use-tenant-role-aliases-instead-of-platform-permissions|BUG-0055]] | Partner administration routes use tenant role aliases instead of platform permissions | AUTHORIZATION | HIGH | IN_PROGRESS | api:partners | FIX_NOW |
-| [[BUG-0056-billing-routes-authorize-by-role-instead-of-billing-capability|BUG-0056]] | Billing routes authorize by role instead of billing capability | AUTHORIZATION | HIGH | IN_PROGRESS | api:billing | FIX_NOW |
-| [[BUG-0057-settings-context-allows-arbitrary-organization-preview|BUG-0057]] | Self-service settings context allows arbitrary organization preview | AUTHORIZATION | HIGH | IN_PROGRESS | api:tenant-settings | FIX_NOW |
-| [[BUG-0058-organization-structure-reads-ignore-caller-scope|BUG-0058]] | Organization structure reads ignore caller scope | AUTHORIZATION | HIGH | IN_PROGRESS | api:organization | FIX_NOW |
 | [[BUG-0034-desktop-agent-auto-update-points-at-an-endpoint-that-does-no|BUG-0034]] | Desktop agent auto update points at an endpoint that does not exist | INTEGRATION | HIGH | OPEN | apps/agent-desktop, api:agent, api:app-releases | PLAN_REQUIRED |
 | [[ITEM-0004-tenant-activation-never-proven-end-to-end|ITEM-0004]] | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | READY | api:tenant-control-plane | FIX_NOW |
 | [[ITEM-0034-apps-web-has-zero-browser-e2e-coverage|ITEM-0034]] | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | READY | apps/web, e2e | PLAN_REQUIRED |
@@ -72,10 +65,16 @@ _None._
 
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
+| [[BUG-0005-cross-tenant-error-log-read-via-support-role|BUG-0005]] | A support-role user could read another tenant's error log | TENANT_ISOLATION | CRITICAL | VERIFIED | api:error-logs | DONE |
 | [[BUG-0006-organization-structure-mutable-by-any-authenticated-user|BUG-0006]] | Organization and business-unit structure was mutable by any authenticated user | AUTHORIZATION | CRITICAL | VERIFIED | api:organization | DONE |
 | [[BUG-0027-admin-plan-pricing-and-checkout-pricing-come-from-different-|BUG-0027]] | Admin plan pricing and checkout pricing come from different models | DATA_INTEGRITY | CRITICAL | VERIFIED | services/api/prisma, apps/admin, apps/landing | DONE |
 | [[BUG-0030-plan-list-get-mutates-commercial-pricing-and-can-fail-on-pla|BUG-0030]] | Plan list GET mutates commercial pricing and can fail on PlanPrice unique constraint | DATA_INTEGRITY | CRITICAL | VERIFIED | services/api, services/api/prisma | DONE |
 | [[BUG-0047-seven-bug-records-are-verified-while-their-fixes-exist-only|BUG-0047]] | Seven bug records are VERIFIED while their fixes exist only on unmerged branches | SECURITY | CRITICAL | VERIFIED | api:organization, api:error-logs, api:employees, api:attendance, docs/qa/regressions | DONE |
+| [[BUG-0053-documents-self-scoped-users-can-read-tenant-wide-documents|BUG-0053]] | Self-scoped document readers can list and open tenant-wide documents | AUTHORIZATION | HIGH | VERIFIED | api:documents | DONE |
+| [[BUG-0055-partner-routes-use-tenant-role-aliases-instead-of-platform-permissions|BUG-0055]] | Partner administration routes use tenant role aliases instead of platform permissions | AUTHORIZATION | HIGH | VERIFIED | api:partners | DONE |
+| [[BUG-0056-billing-routes-authorize-by-role-instead-of-billing-capability|BUG-0056]] | Billing routes authorize by role instead of billing capability | AUTHORIZATION | HIGH | VERIFIED | api:billing | DONE |
+| [[BUG-0057-settings-context-allows-arbitrary-organization-preview|BUG-0057]] | Self-service settings context allows arbitrary organization preview | AUTHORIZATION | HIGH | VERIFIED | api:tenant-settings | DONE |
+| [[BUG-0058-organization-structure-reads-ignore-caller-scope|BUG-0058]] | Organization structure reads ignore caller scope | AUTHORIZATION | HIGH | VERIFIED | api:organization | DONE |
 | [[BUG-0001-compensation-and-bank-data-behind-employee-record-read|BUG-0001]] | Compensation and bank data returned behind an employee-record read | AUTHORIZATION | HIGH | VERIFIED | api:employees | DONE |
 | [[BUG-0002-self-approval-of-attendance-corrections|BUG-0002]] | A manager could file and approve their own attendance correction | AUTHORIZATION | HIGH | VERIFIED | api:attendance | DONE |
 | [[BUG-0003-readteam-granted-tenant-wide-visibility|BUG-0003]] | readTeam permissions granted tenant-wide visibility | AUTHORIZATION | HIGH | VERIFIED | api:attendance, api:approvals | DONE |

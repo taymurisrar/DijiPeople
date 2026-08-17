@@ -2,7 +2,7 @@
 ID: BUG-0058
 aliases: [BUG-0058]
 Title: Organization structure reads ignore caller scope
-Status: IN_PROGRESS
+Status: VERIFIED
 Severity: HIGH
 Priority: P0
 Type: AUTHORIZATION
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-17
 DetectedInSha: 3f9063f
 AffectedModules: [services/api/src/modules/organization]
 OwnerAgent: backend-api
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport:
-RegressionId:
+RegressionId: REG-045
 RelatedBacklogItem: ITEM-0043
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-17
 UpdatedAt: 2026-08-17
-ResolvedAt:
+ResolvedAt: 2026-08-17
 ---
 
 # BUG-0058 - Organization structure reads ignore caller scope
@@ -88,13 +88,14 @@ Permission-role mapping reconciliation in WP-03.
 
 ## Resolution
 
-In progress in WP-03.
+Fixed 2026-08-17, integrated into develop at 2313bef. Organization structure reads and mutations resolve their targets through the RBAC scope filter rather than a bare tenant-keyed lookup, so caller scope is honoured.
 
 ## QA Retest
 
-Pending.
+Verified by the regression specs organization-read-scope.spec.ts and organization-structure-tenant-scope.spec.ts; the latter was refreshed for the scoped lookup with its isolation guarantees intact. REG-045 records it Active: yes.
 
 ## History
 
+- 2026-08-17 — fixed and verified in WP-03; integrated into develop at 2313bef with the CI required gate green on that exact SHA.
 - 2026-08-17 - confirmed by the WP-03 missing-both audit and atomically
   reserved under `SESSION-0003`.

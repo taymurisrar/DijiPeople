@@ -2,7 +2,7 @@
 ID: BUG-0005
 aliases: [BUG-0005]
 Title: A support-role user could read another tenant's error log
-Status: IN_PROGRESS
+Status: VERIFIED
 Severity: CRITICAL
 Priority: P0
 Type: TENANT_ISOLATION
@@ -11,7 +11,7 @@ DetectedDate: 2026-08-14
 DetectedInSha: 13e720e
 AffectedModules: [services/api/src/modules/error-logs]
 OwnerAgent: backend-api
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport:
 RegressionId: REG-005
 RelatedBacklogItem:
@@ -19,7 +19,7 @@ RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-15
 UpdatedAt: 2026-08-17
-ResolvedAt:
+ResolvedAt: 2026-08-17
 ---
 
 # BUG-0005 — A support-role user could read another tenant's error log
@@ -101,6 +101,7 @@ Pending WP-03 retest of the expanded regression cases.
 
 ## History
 
+- 2026-08-17 — fixed and verified in WP-03; integrated into develop at 2313bef with the CI required gate green on that exact SHA.
 - 2026-08-17 - reopened in WP-03 after the unguarded-route audit proved the
   tenant endpoint still exposed null/platform-scope logs to tenant support
   roles; exact-equality fix and regression cases added.
