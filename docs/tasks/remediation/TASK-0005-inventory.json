@@ -6,10 +6,10 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 106,
+    "total_records": 107,
     "bugs": 59,
-    "backlog_items": 47,
-    "open_bucket": 32,
+    "backlog_items": 48,
+    "open_bucket": 33,
     "blocked_bucket": 0,
     "deferred_bucket": 1,
     "product_decision_bucket": 1,
@@ -5408,6 +5408,31 @@
       "affected_modules": [
         "services/api/test",
         ".github/workflows"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": []
+    },
+    {
+      "record_id": "ITEM-0048",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0048-replace-or-contain-active-win-and-the-xlsx-export-path.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "",
+        "created_at": "2026-08-17",
+        "updated_at": "2026-08-17",
+        "resolved_at": ""
+      },
+      "type": "SECURITY",
+      "title": "Replace or contain active-win and the xlsx export path",
+      "severity": "HIGH",
+      "priority": "P2",
+      "current_status": "READY",
+      "architect_disposition": "PLAN_REQUIRED",
+      "affected_modules": [
+        "apps/agent-desktop",
+        "services/api/src/common/excel",
+        "package-lock.json"
       ],
       "regressions": [],
       "qa_scenarios": [],

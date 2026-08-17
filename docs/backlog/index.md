@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**106 records** — 59 bugs under [`docs/bugs/`](../bugs/), 47 non-bug items under [`items/`](items/).
+**107 records** — 59 bugs under [`docs/bugs/`](../bugs/), 48 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,20 +13,20 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 35 |
+| Open (active work) | 36 |
 | Blocked | 0 |
 | Deferred | 1 |
 | Awaiting a product decision | 1 |
 | Completed / closed | 69 |
 | **Open CRITICAL** | **0** |
-| **Open HIGH** | **5** |
+| **Open HIGH** | **6** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
 
 | Severity | Count |
 |---|---|
-| HIGH | 5 |
+| HIGH | 6 |
 | MEDIUM | 26 |
 | LOW | 4 |
 
@@ -39,7 +39,7 @@ see [`README.md`](README.md) for why.
 | FOLLOW_UP | 3 |
 | INFRA | 4 |
 | INTEGRATION | 2 |
-| SECURITY | 6 |
+| SECURITY | 7 |
 | TECH_DEBT | 6 |
 | TEST_GAP | 6 |
 | UX | 4 |
@@ -53,7 +53,7 @@ see [`README.md`](README.md) for why.
 | PRODUCT_DECISION | 1 |
 | FIXED | 3 |
 | VERIFIED | 46 |
-| READY | 23 |
+| READY | 24 |
 | DONE | 23 |
 
 ## All records
@@ -98,6 +98,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | READY | api:tenant-control-plane | FIX_NOW |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | READY | apps/web, e2e | PLAN_REQUIRED |
 | [ITEM-0047](../../docs/backlog/items/ITEM-0047-database-e2e-suites-fail-against-an-ephemeral-postgresql.md) | Database e2e suites fail against an ephemeral PostgreSQL | TEST_GAP | HIGH | P1 | READY | services/api/test, .github/workflows | PLAN_REQUIRED |
+| [ITEM-0048](../../docs/backlog/items/ITEM-0048-replace-or-contain-active-win-and-the-xlsx-export-path.md) | Replace or contain active-win and the xlsx export path | SECURITY | HIGH | P2 | READY | apps/agent-desktop, services/api/src/common/excel, package-lock.json | PLAN_REQUIRED |
 | [BUG-0051](../../docs/bugs/BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state.md) | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | P1 | OPEN | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | FIX_NOW |
 | [ITEM-0018](../../docs/backlog/items/ITEM-0018-plans-and-prices-have-no-draft-publish-or-archive-lifecycle.md) | Plans and prices have no draft, publish or archive lifecycle | ARCHITECTURE | MEDIUM | P1 | DONE | services/api/prisma, api:super-admin, apps/admin, apps/landing | DONE |
 | [ITEM-0044](../../docs/backlog/items/ITEM-0044-validate-forwarded-host-before-tenant-web-workspace-resoluti.md) | Validate forwarded host before tenant web workspace resolution | SECURITY | MEDIUM | P1 | READY | apps/web | PLAN_REQUIRED |

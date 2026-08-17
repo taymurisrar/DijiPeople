@@ -8,8 +8,8 @@
 | | |
 |---|---|
 | Open CRITICAL | **0** |
-| Open HIGH | **5** |
-| Open total | 35 |
+| Open HIGH | **6** |
+| Open total | 36 |
 | Blocked | 0 |
 | Awaiting a product decision | 1 |
 | Deferred | 1 |
@@ -29,6 +29,7 @@ _None. Nothing open at CRITICAL._
 | [[ITEM-0004-tenant-activation-never-proven-end-to-end|ITEM-0004]] | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | READY | api:tenant-control-plane | FIX_NOW |
 | [[ITEM-0034-apps-web-has-zero-browser-e2e-coverage|ITEM-0034]] | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | READY | apps/web, e2e | PLAN_REQUIRED |
 | [[ITEM-0047-database-e2e-suites-fail-against-an-ephemeral-postgresql|ITEM-0047]] | Database e2e suites fail against an ephemeral PostgreSQL | TEST_GAP | HIGH | READY | services/api/test, .github/workflows | PLAN_REQUIRED |
+| [[ITEM-0048-replace-or-contain-active-win-and-the-xlsx-export-path|ITEM-0048]] | Replace or contain active-win and the xlsx export path | SECURITY | HIGH | READY | apps/agent-desktop, services/api/src/common/excel, package-lock.json | PLAN_REQUIRED |
 
 ## Product Decisions Needed
 
@@ -196,7 +197,7 @@ _None. Nothing has been deployed through the release process._
 | Knowledge | Count |
 |---|---|
 | Bug records | 59 |
-| Backlog items | 47 |
+| Backlog items | 48 |
 | Known bug patterns | 19 |
 | QA runs | 15 |
 | Engineering history records | 12 |
