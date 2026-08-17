@@ -69,6 +69,18 @@ export class ApiClient {
     this.accessToken = token?.trim() || null;
   }
 
+  /**
+   * The current access token, for the one caller that must authenticate outside
+   * this client's own `request()` path.
+   *
+   * That caller is the updater (BUG-0034): `electron-updater` performs its own
+   * HTTP for the feed and the artefact, so the token has to be handed to it via
+   * `requestHeaders` rather than travelling through here.
+   */
+  getAccessToken(): string | null {
+    return this.accessToken;
+  }
+
   login(email: string, password: string): Promise<LoginResult> {
     const normalizedEmail = email.trim().toLowerCase();
 

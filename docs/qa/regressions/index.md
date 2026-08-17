@@ -679,6 +679,20 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fixed** | 2026-08-17, branch `agent/prisma-client-freshness` |
 | **Active** | yes |
 
+### REG-056 — The agent update feed serves only releases the updater can verify
+
+| | |
+|---|---|
+| **Bug class** | `unservable-endpoint` |
+| **Module** | `services/api/src/modules/app-releases`, `apps/agent-desktop` |
+| **Bug record** | BUG-0034 |
+| **Root cause** | `electron-updater`'s generic provider requests `<url>/latest.yml` and nothing served it, so every agent 404'd on every check for months. The updater swallows that failure, and the agent logged no reason, so a permanently dead feed was indistinguishable from a network blip. Building the feed then needed a digest the schema did not hold: electron-updater verifies against sha512 and `ApplicationRelease` stored only sha256. |
+| **Regression test** | `services/api/src/modules/app-releases/update-feed.service.spec.ts` · `services/api/src/modules/app-releases/release-publisher.service.spec.ts` |
+| **Scenario** | The feed renders the fields electron-updater reads, quotes the version so YAML cannot reinterpret `1.10` as `1.1`, and selects only an active STABLE release that has `checksumSha512`, `fileName`, `fileSizeBytes` and `publishedAt`. The publisher computes sha512 as base64 from the received bytes, carries it through `promote()`, and verifies it case-sensitively on read-back. |
+| **Proven to fail without the fix** | Removing `checksumSha512` from the read-back fixture fails `verifyRegistration` with `sha512 checksum differs` — which is how the five publisher tests failed the moment the check was added. Dropping the quoting fails `quotes the version so YAML cannot reinterpret it`. |
+| **Fixed** | 2026-08-18, branch `agent/dependency-and-desktop` — repository-controlled parts; end-to-end staging run is ITEM-0052 |
+| **Active** | yes |
+
 ### REG-054 — Theme precedence is user choice, then tenant default, then device
 
 | | |

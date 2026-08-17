@@ -1,0 +1,79 @@
+---
+ID: ITEM-0052
+aliases: [ITEM-0052]
+Title: Verify the agent update feed against a real published artefact
+Type: TEST_GAP
+Status: READY
+Priority: P2
+Severity: MEDIUM
+AffectedModules: [apps/agent-desktop, services/api/src/modules/app-releases]
+Source: IMPLEMENTATION
+OwnerAgent: release-devops
+ArchitectDisposition: PLAN_REQUIRED
+CreatedAt: 2026-08-18
+UpdatedAt: 2026-08-18
+RelatedBug: BUG-0034
+RelatedQA:
+RelatedADR:
+RelatedImplementation:
+TargetMilestone:
+BlockedBy:
+---
+
+# ITEM-0052 — Verify the agent update feed against a real published artefact
+
+## Summary
+
+BUG-0034 built the electron-updater feed: the `checksumSha512` column, the
+publisher change that computes it, the two feed routes, and the agent's
+`requestHeaders`. All of it is unit-tested. **None of it has moved a real
+installer onto a real machine**, because this environment has no published
+artefact and no storage backend.
+
+## Why It Matters
+
+Auto-update is the one path where an untested assumption installs software on
+employee machines unattended. The unit tests prove the feed renders what
+electron-updater *parses*; they cannot prove electron-updater *accepts* it.
+
+Three things can only fail in a real run, and each fails silently in a different
+way:
+
+1. **Digest encoding.** The sha512 is base64 because that is what
+   electron-updater compares against. If that is wrong, every download completes
+   and is then discarded, and the updater retries — forever, quietly.
+2. **Relative URL resolution.** electron-updater derives the artefact URL from
+   the feed URL. `files[].url` is a bare filename, which should resolve against
+   `/api/app-releases/feed/<appKey>/` — but "should" is doing work in that
+   sentence until a client has actually done it.
+3. **`requestHeaders` reaching the download.** The token is set before each
+   check. If electron-updater sends it on the feed request but not the artefact
+   request, the check succeeds and the download 401s.
+
+## Proposed Approach
+
+1. Publish a real `agent-desktop` build through `ReleasePublisherService` into a
+   staging environment with storage configured.
+2. `GET /api/app-releases/feed/agent-desktop/latest.yml` with a valid agent
+   token and confirm the document and a 200.
+3. Install an older agent, let it check, and confirm it downloads, verifies and
+   installs — the whole point.
+4. Confirm the same check with no token 401s rather than silently succeeding.
+5. Record the run as a QA run and link it from BUG-0034.
+
+## Acceptance Criteria
+
+- An older agent updates itself end-to-end in staging.
+- The unauthenticated case is confirmed to refuse rather than serve.
+- A release lacking `checksumSha512` is confirmed absent from the feed.
+
+## Dependencies
+
+Needs a staging environment with storage configured and one published artefact.
+Related to ITEM-0026 (the installer is unsigned), which is a separate decision:
+signing affects whether Windows accepts the update, not whether the feed serves
+it.
+
+## Related Items
+
+[[BUG-0034]] · [[ITEM-0026]] · [[ITEM-0033]] · [[TASK-0005]]

@@ -10,13 +10,14 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 81** · automated: 75 · manual: 4 · blocked by infrastructure: 0
+**Scenarios: 82** · automated: 76 · manual: 4 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
 | [QA-AGENT-001](../../../docs/qa/scenarios/QA-AGENT-001-desktop-login-does-not-enumerate-accounts.md) | Desktop login does not enumerate accounts | agent-desktop | SECURITY | HIGH | AUTOMATED | `services/api/src/modules/agent/agent-login-enumeration.spec.ts` | BUG-0033 | REG-025 |
 | [QA-AGENT-002](../../../docs/qa/scenarios/QA-AGENT-002-desktop-request-payloads-satisfy-the-dtos-that-receive-them.md) | Desktop request payloads satisfy the DTOs that receive them | agent-desktop | INTEGRATION | HIGH | AUTOMATED | `services/api/src/modules/agent/agent-client-contract.spec.ts` | BUG-0035 | REG-026 |
 | [QA-AGENT-003](../../../docs/qa/scenarios/QA-AGENT-003-a-replayed-heartbeat-is-not-counted-twice.md) | A replayed heartbeat is not counted twice | agent-desktop | INTEGRATION | CRITICAL | AUTOMATED | `services/api/src/modules/agent/heartbeat-idempotency.spec.ts` | BUG-0036 | REG-031 |
+| [QA-AGENT-004](../../../docs/qa/scenarios/QA-AGENT-004-the-update-feed-serves-only-verifiable-releases.md) | The agent update feed serves only verifiable releases | agent-desktop | UNIT | HIGH | AUTOMATED | `services/api/src/modules/app-releases/update-feed.service.spec.ts` | BUG-0034 | REG-056 |
 | [QA-ATT-001](../../../docs/qa/scenarios/QA-ATT-001-punch-interpretation-pairs-punches-correctly-across-shift-bo.md) | Punch interpretation pairs punches correctly across shift boundaries | attendance | UNIT | CRITICAL | AUTOMATED | `services/api/src/modules/attendance-engine/punch-interpreter.service.spec.ts` | — | — |
 | [QA-ATT-002](../../../docs/qa/scenarios/QA-ATT-002-geofence-evaluation-treats-an-absent-location-as-outside.md) | Geofence evaluation treats an absent location as outside | attendance | UNIT | HIGH | AUTOMATED | `services/api/src/modules/attendance-engine/attendance-geofence.service.spec.ts` | — | — |
 | [QA-ATT-003](../../../docs/qa/scenarios/QA-ATT-003-impossible-travel-between-punches-is-detected.md) | Impossible travel between punches is detected | attendance | UNIT | MEDIUM | AUTOMATED | `services/api/src/modules/attendance-engine/impossible-travel-detector.service.spec.ts` | — | — |

@@ -6,14 +6,14 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 109,
+    "total_records": 110,
     "bugs": 59,
-    "backlog_items": 50,
+    "backlog_items": 51,
     "open_bucket": 30,
     "blocked_bucket": 0,
     "deferred_bucket": 1,
     "product_decision_bucket": 1,
-    "completed_bucket": 77,
+    "completed_bucket": 78,
     "parser_structural_errors": 0,
     "active_session_conflict": "NONE",
     "discovered_findings_total": 34,
@@ -1893,14 +1893,14 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "78072d2",
         "created_at": "2026-08-16",
-        "updated_at": "2026-08-16",
-        "resolved_at": ""
+        "updated_at": "2026-08-18",
+        "resolved_at": "2026-08-18"
       },
       "type": "INTEGRATION",
       "title": "Desktop agent auto update points at an endpoint that does not exist",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
+      "current_status": "VERIFIED",
       "current_evidence": {
         "paths": [
           "docs/bugs/BUG-0034-desktop-agent-auto-update-points-at-an-endpoint-that-does-no.md",
@@ -1924,14 +1924,18 @@
         "ITEM-0026",
         "ITEM-0028"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-056"
+      ],
+      "qa_scenarios": [
+        "QA-AGENT-004"
+      ],
       "test_plan": [
         "PLAN-008"
       ],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "PLAN_REQUIRED",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "VERIFIED",
         "classification": "ACTIVE_AS_DOCUMENTED",
@@ -5512,6 +5516,30 @@
         "apps/web",
         "services/api/src/modules/compensation",
         "services/api/src/modules/tenant-settings"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": []
+    },
+    {
+      "record_id": "ITEM-0052",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0052-verify-the-agent-update-feed-against-a-real-published-artefact.md",
+        "provenance": "IMPLEMENTATION",
+        "detected_in_sha": "",
+        "created_at": "2026-08-18",
+        "updated_at": "2026-08-18",
+        "resolved_at": ""
+      },
+      "type": "TEST_GAP",
+      "title": "Verify the agent update feed against a real published artefact",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "READY",
+      "architect_disposition": "PLAN_REQUIRED",
+      "affected_modules": [
+        "apps/agent-desktop",
+        "services/api/src/modules/app-releases"
       ],
       "regressions": [],
       "qa_scenarios": [],

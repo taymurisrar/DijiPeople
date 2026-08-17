@@ -13,7 +13,7 @@
 | Blocked work packages | 0 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **0** |
-| Open HIGH | 6 |
+| Open HIGH | 5 |
 | Awaiting Architect triage | 0 |
 | Owner decisions pending | 1 |
 | QA coverage gaps | 53 |

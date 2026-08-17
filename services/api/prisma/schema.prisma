@@ -12039,6 +12039,18 @@ model ApplicationRelease {
   fileName                String?
   fileSizeBytes           Int?
   checksumSha256          String?
+  /// Base64 SHA-512, required by the electron-updater feed (BUG-0034).
+  ///
+  /// electron-updater verifies a downloaded artefact against the sha512 in
+  /// `latest.yml` and refuses to install on a mismatch, so `checksumSha256`
+  /// cannot serve that feed however it is re-encoded — they are different
+  /// digests, not two formats of one.
+  ///
+  /// Nullable because releases published before this column existed have no
+  /// sha512 and cannot have one computed without the original artefact. The
+  /// feed skips a release that lacks it rather than advertising one the updater
+  /// will download and then reject.
+  checksumSha512          String?
   minimumSupportedVersion String?
   releaseNotes            String?
   /// Permission a user must hold to download this artefact.
