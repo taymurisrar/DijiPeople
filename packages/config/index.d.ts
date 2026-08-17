@@ -211,3 +211,15 @@ export declare function resolveSystemWidgetAvailability(input: {
 export * from "./platform-runtime-schema";
 export * from "./platform-runtime-views";
 export * from "./platform-domains";
+
+/**
+ * Email provider types with a working implementation behind them (BUG-0050).
+ * The Prisma `EmailProviderType` enum keeps every historical value; this is the
+ * narrower set the settings UI may offer.
+ */
+export declare const SUPPORTED_EMAIL_PROVIDER_TYPES: readonly string[];
+export declare const UNIMPLEMENTED_EMAIL_PROVIDER_TYPES: readonly string[];
+export declare const ALL_EMAIL_PROVIDER_TYPES: readonly string[];
+export declare function isSupportedEmailProviderType(
+  providerType: string,
+): boolean;

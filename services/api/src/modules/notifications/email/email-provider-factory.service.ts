@@ -72,6 +72,18 @@ export class EmailProviderFactory {
     return null;
   }
 
+  /*
+   * BUG-0050 — the set of provider types this returns a real implementation for
+   * is published as `SUPPORTED_EMAIL_PROVIDER_TYPES` in `@repo/config`, which is
+   * also what the settings UI offers. Keep the two in step: the placeholder
+   * below still exists because the Prisma enum keeps every historical value and
+   * an existing row may reference one, but nothing should be able to *select*
+   * an unimplemented provider any more.
+   *
+   * `email-provider-support.spec.ts` fails if this method and that list ever
+   * disagree, which is the drift that let a tenant configure SES and silently
+   * receive no mail.
+   */
   getProvider(providerType: EmailProviderType): EmailProvider {
     if (
       providerType === EmailProviderType.CONSOLE ||

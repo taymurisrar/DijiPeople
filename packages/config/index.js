@@ -465,7 +465,18 @@ const {
   buildForwardedClientHeaders,
 } = require("./client-ip");
 
+const {
+  SUPPORTED_EMAIL_PROVIDER_TYPES,
+  UNIMPLEMENTED_EMAIL_PROVIDER_TYPES,
+  ALL_EMAIL_PROVIDER_TYPES,
+  isSupportedEmailProviderType,
+} = require("./email-providers");
+
 module.exports = {
+  SUPPORTED_EMAIL_PROVIDER_TYPES,
+  UNIMPLEMENTED_EMAIL_PROVIDER_TYPES,
+  ALL_EMAIL_PROVIDER_TYPES,
+  isSupportedEmailProviderType,
   DEFAULT_LOCAL_PORTS,
   PRODUCTION_APP_URLS,
   LOOPBACK_HOSTNAMES,

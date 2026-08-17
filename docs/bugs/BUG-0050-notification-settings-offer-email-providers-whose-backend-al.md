@@ -2,7 +2,7 @@
 ID: BUG-0050
 aliases: [BUG-0050]
 Title: Notification settings offer email providers whose backend always fails
-Status: OPEN
+Status: VERIFIED
 Severity: MEDIUM
 Priority: P2
 Type: INTEGRATION
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-17
 DetectedInSha: 0051180
 AffectedModules: [apps/web, services/api/src/modules/notifications]
 OwnerAgent: backend-api
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: docs/qa/runs/2026-08-17-web-app-documentation-1af3690.md
-RegressionId:
+RegressionId: REG-053
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-17
 UpdatedAt: 2026-08-17
-ResolvedAt:
+ResolvedAt: 2026-08-17
 ---
 
 # BUG-0050 — Notification settings offer email providers whose backend always fails
@@ -100,11 +100,53 @@ implementations require separate credentials and integration plans.
 
 ## Resolution
 
-Not fixed.
+Fixed 2026-08-17 by the record's second branch — the providers are now "clearly
+unavailable and impossible to select" rather than implemented. Implementing SES,
+SendGrid, Mailgun and Postmark is four integrations with four credential sets and
+four SDKs; that is a feature, and shipping it under a bug fix would have been the
+wrong call.
+
+The defect was never really the placeholder. It was **two catalogs with nothing
+comparing them**: the UI enumerated what the Prisma enum allowed, the factory
+decided what was actually built, and neither knew about the other. So the fix is
+one catalog.
+
+`packages/config/email-providers.js` publishes
+`SUPPORTED_EMAIL_PROVIDER_TYPES` (`CONSOLE`, `DEV`, `SMTP`) and
+`UNIMPLEMENTED_EMAIL_PROVIDER_TYPES`. Both sides consume it:
+
+- `EmailProviderFactory.getProvider()` is checked against it.
+- `email-providers-manager.tsx` offers from it.
+
+`email-provider-support.spec.ts` is the comparison that was missing. It asserts
+the published catalog equals the Prisma enum exactly, that supported and
+unimplemented do not overlap, that every supported type resolves to a real
+provider, and that every unimplemented one still resolves to the placeholder.
+Adding an enum value, or shipping an implementation without publishing it, or
+publishing one without implementing it, each turns exactly one of those red.
+
+**Existing rows keep working.** The Prisma enum retains every value — narrowing
+it would be a destructive migration, and a tenant configured before this fix may
+hold `SES`. Dropping that from the select would have made it fall back to the
+first option, so opening the row and saving anything would silently rewrite the
+provider type. The stored value is therefore re-added to the list, disabled and
+labelled `SES — not available`: the administrator can see what is stored and why
+no mail is arriving, and still cannot newly choose it.
 
 ## QA Retest
 
-Pending.
+Pass.
+
+```text
+email-provider-support.spec.ts   11 tests, all passing
+services/api notification+email   7 suites, 35 tests
+apps/web                         17 suites, 391 tests; check-types PASS
+```
+
+Negative case is built into the spec rather than run by hand: moving a provider
+between the supported and unimplemented lists without changing the factory fails
+`returns a real implementation for <type>` or
+`still resolves <type> to the placeholder`.
 
 ## History
 

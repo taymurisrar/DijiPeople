@@ -679,6 +679,20 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fixed** | 2026-08-17, branch `agent/prisma-client-freshness` |
 | **Active** | yes |
 
+### REG-053 — The email providers offered are the email providers implemented
+
+| | |
+|---|---|
+| **Bug class** | `offer-exceeds-implementation` |
+| **Module** | `services/api/src/modules/notifications/email`, `apps/web`, `packages/config` |
+| **Bug record** | BUG-0050 |
+| **Root cause** | Two catalogs with nothing comparing them. The settings UI enumerated what the Prisma `EmailProviderType` enum allowed; the factory decided what was actually built and mapped everything else to a placeholder that throws on send and on connection test. A tenant could configure SES, mark it default, and silently receive no mail. |
+| **Regression test** | `services/api/src/modules/notifications/email/email-provider-support.spec.ts` |
+| **Scenario** | `@repo/config` publishes one catalog. Its supported and unimplemented lists together equal the Prisma enum exactly and do not overlap; every supported type resolves to a real provider; every unimplemented type still resolves to the placeholder so nothing pretends it can send. |
+| **Proven to fail without the fix** | Moving a provider between the two lists without changing the factory fails `returns a real implementation for <type>` or `still resolves <type> to the placeholder`. Before the fix the UI offered five types the factory could not deliver through. |
+| **Fixed** | 2026-08-17, branch `agent/web-config-correctness` |
+| **Active** | yes |
+
 ### REG-051 — Every environment variable a Next app reads is registered for cache invalidation
 
 | | |

@@ -9,11 +9,11 @@
     "total_records": 108,
     "bugs": 59,
     "backlog_items": 49,
-    "open_bucket": 31,
+    "open_bucket": 30,
     "blocked_bucket": 0,
     "deferred_bucket": 1,
     "product_decision_bucket": 1,
-    "completed_bucket": 75,
+    "completed_bucket": 76,
     "parser_structural_errors": 0,
     "active_session_conflict": "NONE",
     "discovered_findings_total": 34,
@@ -2786,13 +2786,13 @@
         "detected_in_sha": "0051180",
         "created_at": "2026-08-17",
         "updated_at": "2026-08-17",
-        "resolved_at": ""
+        "resolved_at": "2026-08-17"
       },
       "type": "INTEGRATION",
       "title": "Notification settings offer email providers whose backend always fails",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
+      "current_status": "VERIFIED",
       "current_evidence": {
         "paths": [
           "docs/bugs/BUG-0050-notification-settings-offer-email-providers-whose-backend-al.md",
@@ -2810,12 +2810,16 @@
       },
       "related_bugs": [],
       "related_backlog": [],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-053"
+      ],
+      "qa_scenarios": [
+        "QA-SETTINGS-002"
+      ],
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "PRELIMINARY",
         "classification": "ACTIVE_AS_DOCUMENTED",

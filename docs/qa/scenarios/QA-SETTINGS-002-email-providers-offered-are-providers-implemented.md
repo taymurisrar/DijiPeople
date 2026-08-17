@@ -1,0 +1,71 @@
+---
+SCENARIO_ID: QA-SETTINGS-002
+aliases: [QA-SETTINGS-002]
+TITLE: Email providers offered are email providers implemented
+AREA: runtime-modules
+MODULE: services/api/src/modules/notifications
+TYPE: UNIT
+RISK: MEDIUM
+AUTOMATION_STATUS: AUTOMATED
+TEST_REFERENCE: services/api/src/modules/notifications/email/email-provider-support.spec.ts
+RELATED_BUGS: [BUG-0050]
+RELATED_REGRESSIONS: [REG-053]
+LAST_RUN: 2026-08-17
+LAST_RESULT: PASS
+CREATED_AT: 2026-08-17
+UPDATED_AT: 2026-08-17
+---
+
+# QA-SETTINGS-002 — Email providers offered are email providers implemented
+
+## Preconditions
+
+`@repo/config` publishes the email provider catalog and `EmailProviderFactory`
+is constructible.
+
+## Why this scenario exists
+
+A configuration surface that offers something it cannot do produces the worst
+class of failure: one where the operator did everything right. The tenant
+administrator picked SES from a list the product showed them, filled in valid
+credentials, marked it default, and got no error — because the connection test
+threw the same "not implemented" the send path did, and nothing surfaced that as
+"this provider does not exist yet".
+
+The cause was two catalogs. The UI listed what the Prisma enum allowed; the
+factory decided what was actually built. Neither referenced the other, so the
+offer drifted five providers ahead of the implementation and stayed there.
+
+## Steps
+
+1. Run `email-provider-support.spec.ts`.
+
+## Expected Result
+
+- The published catalog equals the Prisma `EmailProviderType` enum exactly, with
+  no duplicates.
+- Supported and unimplemented do not overlap.
+- Every supported type resolves to a real provider.
+- Every unimplemented type resolves to `ApiPlaceholderEmailProvider` — it must
+  keep failing loudly rather than appear to work.
+
+## Negative Case
+
+Moving a provider from the unimplemented list to the supported list without
+writing its implementation fails `returns a real implementation for <type>`.
+The reverse fails `still resolves <type> to the placeholder`. Adding a value to
+the Prisma enum without classifying it fails the enum-equality test.
+
+## Notes
+
+The Prisma enum deliberately keeps every historical value — narrowing it is a
+destructive migration, and rows configured before the fix may reference an
+unimplemented provider. The UI therefore re-adds the currently stored value as a
+**disabled** option labelled "not available", rather than hiding it: hiding it
+would make the select fall back to its first option, so opening the row and
+saving anything would silently rewrite the tenant's provider type.
+
+## Related Items
+
+[[BUG-0050]] · [[notifications]] · [[settings]] ·
+[REG-053](../regressions/index.md)
