@@ -6,7 +6,7 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 1** · completed: 2
+**Active: 1** · completed: 3
 
 ## Active
 
@@ -18,5 +18,6 @@ see [`README.md`](README.md) for how they stay out of each other's way.
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0004](../../docs/sessions/SESSION-0004-quick-landing-ui-ux-browser-qa-pass-and-ui-ux-agent-hardenin.md) | — | Quick landing UI/UX + browser QA pass and UI/UX agent hardening | COMPLETE | `agent/landing-uiux-qa` | `develop` | — | 2026-08-17T22:30:04.710Z |
 | [SESSION-0002](../../docs/sessions/SESSION-0002-final-framework-remediation-and-ci-debt.md) | — | Final framework remediation and CI debt | COMPLETE | `agent/framework-remediation` | `develop` | — | 2026-08-17T06:18:36.527Z |
 | [SESSION-0001](../../docs/sessions/SESSION-0001-autonomous-framework-v2-multi-session-develop-integration-pe.md) | TASK-0004 | Autonomous framework v2 — multi-session, develop integration, persistent QA | COMPLETE | `agent/framework-autonomous-v2` | `develop` | — | 2026-08-16T23:04:29.187Z |
