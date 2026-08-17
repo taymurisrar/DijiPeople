@@ -41,7 +41,18 @@ export function PartnerInquiryForm({
           email: data.get("email"),
           phone: data.get("phone"),
           country: data.get("country"),
-          website: data.get("website"),
+          /*
+           * An untouched <input> yields "" from FormData, not null, and
+           * class-validator's @IsOptional() only skips null/undefined. The API
+           * therefore ran @IsUrl() against "" and answered "website must be a
+           * URL address" — so **every visitor who left this optional field
+           * blank was unable to submit the form at all** (BUG-0048).
+           *
+           * Only `website` broke: the other optional fields are @IsString(),
+           * which "" satisfies. `partnershipModel` above already had this
+           * treatment, which is why it worked.
+           */
+          website: data.get("website") || undefined,
           message: data.get("message"),
           consentAccepted: data.get("consentAccepted") === "on",
           // Optional and separate — never a condition of submitting.

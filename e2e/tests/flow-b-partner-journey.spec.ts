@@ -76,6 +76,29 @@ async function fillPartnerInquiry(page: Page) {
   await page.locator('input[name="consentAccepted"]').first().check();
 }
 
+/**
+ * Assert the submission was **accepted**, not merely answered.
+ *
+ * The form renders success and failure into the same `role="status"` region, so
+ * `toBeVisible()` on it passes for "Reference PI-123" and for "website must be a
+ * URL address" alike. That is how BUG-0048 stayed invisible here: the API was
+ * rejecting every submission, this assertion passed, and the failure surfaced
+ * three statements later as a row count of 0 — with nothing in the message to
+ * say why.
+ *
+ * Asserting the reference number makes the test fail at the point of failure and
+ * puts the server's own words in the report.
+ */
+async function expectInquiryAccepted(page: Page) {
+  const status = page.locator('[role="status"]');
+  await expect(status).toBeVisible({ timeout: 30_000 });
+
+  const shown = (await status.textContent().catch(() => null)) ?? 'no status text';
+  await expect(status, `the form answered: ${shown}`).toContainText(/Reference/i, {
+    timeout: 15_000,
+  });
+}
+
 test.describe('Flow B — partner journey', () => {
   test.describe.configure({ mode: 'serial' });
 
@@ -97,8 +120,7 @@ test.describe('Flow B — partner journey', () => {
 
     await submit.click();
 
-    /* The form reports a reference number in a role=status region on success. */
-    await expect(page.locator('[role="status"]')).toBeVisible({ timeout: 30_000 });
+    await expectInquiryAccepted(page);
 
     const rows = await withDatabase((client) =>
       client.query('select id, status from "PartnerInquiry" where email = $1', [
@@ -127,7 +149,7 @@ test.describe('Flow B — partner journey', () => {
     await fillPartnerInquiry(page);
 
     await page.getByRole('button', { name: /submit partner inquiry/i }).click();
-    await expect(page.locator('[role="status"]')).toBeVisible({ timeout: 30_000 });
+    await expectInquiryAccepted(page);
 
     const rows = await withDatabase((client) =>
       client.query('select id from "PartnerInquiry" where email = $1', [
