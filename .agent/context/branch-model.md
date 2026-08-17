@@ -141,15 +141,27 @@ MAIN_SYNC_STATUS   = SYNCED
 MAIN_CHANGE_STATUS = UNTOUCHED
 ```
 
-`UNTOUCHED` is reported **only against a recorded baseline**:
-
 ```bash
-node scripts/repo-health.mjs --main-baseline <sha-at-task-start>
+node scripts/repo-health.mjs --main-baseline <sha-at-task-start> [--task-sha <sha>]
 ```
 
-Without the baseline the field is `UNKNOWN`, deliberately. Deriving it from
-"main looks synced" would report `UNTOUCHED` for a task that merged into `main`
-and pushed — precisely the event the field exists to catch.
+| Value | Meaning |
+|---|---|
+| `UNTOUCHED` | `origin/main` does not contain this task's commits. It may have *advanced* — another session merging is ordinary — and the report says by how many |
+| `CHANGED_BY_THIS_TASK` | This task's commits are on `origin/main`. **A failed ordinary task** |
+| `REWRITTEN` | `origin/main` no longer contains the recorded baseline. Nothing in this framework does that |
+| `UNKNOWN` | No baseline was supplied |
+
+**The test is containment, not equality.** The first implementation compared the
+baseline with `origin/main` and reported `CHANGED` whenever `main` had moved —
+and it fired on its own first real run, for a task that had not touched `main`
+at all, because a concurrent session merged two PRs during it. A
+production-safety field that cries wolf when a colleague merges is one people
+learn to ignore, which is worse than not having it.
+
+Without a baseline the field is `UNKNOWN`, deliberately. Deriving `UNTOUCHED`
+from "main looks synced" would pass a task that merged into `main` and pushed —
+precisely the event the field exists to catch.
 
 ---
 

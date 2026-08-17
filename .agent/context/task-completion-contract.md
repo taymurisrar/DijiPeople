@@ -306,14 +306,20 @@ MAIN_SYNC_STATUS     = SYNCED
 DEVELOP_SYNC_STATUS  = SYNCED        (where a local develop exists)
 ```
 
-`MAIN_CHANGE_STATUS = CHANGED` on anything other than a `RELEASE`, `DEPLOY` or
-`HOTFIX_PRODUCTION` is a **failed** task, not an untidy one: any mutation of
-`main` may trigger a production deployment, and the user did not ask for one.
+`MAIN_CHANGE_STATUS = CHANGED_BY_THIS_TASK` on anything other than a `RELEASE`,
+`DEPLOY` or `HOTFIX_PRODUCTION` is a **failed** task, not an untidy one: any
+mutation of `main` may trigger a production deployment, and the user did not ask
+for one.
 
-`MAIN_CHANGE_STATUS` is reported `UNKNOWN` unless a baseline SHA was recorded at
-task start and passed to the check. That is deliberate — deriving `UNTOUCHED`
-from "main looks synced" would report clean for a task that merged into `main`
-and pushed, which is the exact event the field exists to catch.
+The field tests **containment, not equality**: does `origin/main` contain this
+task's commits? `main` advancing because another session merged is ordinary and
+reports `UNTOUCHED`, with the number of commits it advanced by. `REWRITTEN` —
+`origin/main` no longer containing the recorded baseline — is a blocker in its
+own right.
+
+It is `UNKNOWN` unless a baseline SHA was recorded at task start and passed to
+the check. That is deliberate: deriving `UNTOUCHED` from "main looks synced"
+would report clean for a task that merged into `main` and pushed.
 
 ### The repository-state gates
 

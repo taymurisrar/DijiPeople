@@ -2202,7 +2202,12 @@ if (existsSync(join(ROOT, '.agent/context/branch-model.md'))) {
   check('branch model defines MAIN_CHANGE_STATUS UNTOUCHED', /MAIN_CHANGE_STATUS[\s\S]{0,400}UNTOUCHED/.test(body));
   check(
     'branch model requires a recorded baseline to claim UNTOUCHED',
-    /only against a recorded baseline|--main-baseline/i.test(body),
+    /--main-baseline/.test(body),
+  );
+  check(
+    'branch model tests containment rather than equality for MAIN_CHANGE_STATUS',
+    /containment, not equality/i.test(body) && body.includes('CHANGED_BY_THIS_TASK'),
+    'comparing baseline to origin/main reports CHANGED whenever another session merges',
   );
   check(
     'branch model requires a hotfix to reconcile develop',
@@ -2944,6 +2949,42 @@ if (existsSync(join(ROOT, 'scripts/lib/session-registry.mjs'))) {
           report.MAIN_CHANGE_STATUS === 'UNKNOWN',
           `got ${report.MAIN_CHANGE_STATUS} — claiming UNTOUCHED with no baseline would pass a task that merged into main`,
         );
+
+        /*
+         * 28b — the correction that mattered. The field asks "did THIS TASK move
+         * production", not "has main moved": a concurrent session merging a PR
+         * advances `main` through no fault of the task being audited. The first
+         * implementation compared baseline to origin/main and reported CHANGED
+         * for exactly that, on its own first real run.
+         */
+        const baselineRun = runScript('scripts/repo-health.mjs', [
+          '--json',
+          '--main-baseline',
+          'HEAD',
+          '--task-sha',
+          'HEAD',
+        ]);
+        if (baselineRun.ok) {
+          let baselineReport = null;
+          try {
+            baselineReport = JSON.parse(baselineRun.output);
+          } catch {
+            /* reported below */
+          }
+          check(
+            'simulation 28b: MAIN_CHANGE_STATUS distinguishes this task from other sessions',
+            baselineReport !== null &&
+              ['UNTOUCHED', 'CHANGED_BY_THIS_TASK', 'REWRITTEN', 'UNKNOWN'].includes(
+                baselineReport.MAIN_CHANGE_STATUS,
+              ),
+            `got ${baselineReport?.MAIN_CHANGE_STATUS} — the vocabulary must name who moved main`,
+          );
+          check(
+            'simulation 28c: repo-health reports how far others advanced main',
+            baselineReport !== null && typeof baselineReport.mainAdvancedByOthers === 'number',
+            'a field that cries wolf when a colleague merges is one people learn to ignore',
+          );
+        }
         check(
           'simulation 27: repo-health reports unfinished Git operations',
           Array.isArray(report.unfinishedOperations),

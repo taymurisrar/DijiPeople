@@ -80,6 +80,8 @@ run of that script, in CI as well as locally.
 | S27b | A finished session leaves the merge queue | concurrency | Removed | PASS | `simulation 27` |
 | S27c | Unfinished Git operations reported | repo health | Array present | PASS | `simulation 27` |
 | S28 | `MAIN_CHANGE_STATUS` with no baseline | repo health | `UNKNOWN`, never `UNTOUCHED` | PASS | `simulation 28` |
+| S28b | `MAIN_CHANGE_STATUS` distinguishes this task from other sessions | repo health | Names who moved main | PASS | `simulation 28b` — **found by running it: the first implementation reported CHANGED because a concurrent session merged** |
+| S28c | How far others advanced main is reported | repo health | Numeric | PASS | `simulation 28c` |
 | S29 | `DEVELOP_SYNC_STATUS` emitted | repo health | Non-empty string | PASS | `simulation 29` |
 | S30 | An active regression naming a missing test | contract | **Fails validation** | PASS | see Regression-test proof |
 | S31 | A `VERIFIED` bug whose regression is inactive | contract | **Fails validation** | PASS | see Regression-test proof |
@@ -91,7 +93,7 @@ are recorded as such in Known Limitations rather than claimed as executed.
 
 | Command | Suite | Pass | Fail | Skip | Duration |
 |---|---|---|---|---|---|
-| `node scripts/validate-framework.mjs` | framework structure + 29 simulations | 1042 | 0 | 0 | ~9s |
+| `node scripts/validate-framework.mjs` | framework structure + 32 simulations | 1045 | 0 | 0 | ~9s |
 | `node scripts/rebuild-backlog.mjs --check` | 88 records, 3 indexes | clean | 0 | — | <2s |
 | `node scripts/rebuild-tasks.mjs --check` | 4 task records | clean | 0 | — | <2s |
 | `node scripts/rebuild-sessions.mjs --check` | 1 session record | clean | 0 | — | <2s |
@@ -118,10 +120,12 @@ that is not a stash-and-rerun, it is the original discovery:
 |---|---|---|
 | `REG-nnn regression test exists` | PASS | **FAIL** ×5 — `employee-compensation-access.spec.ts`, `attendance.correction-authorization.spec.ts`, `approvals.scope.spec.ts`, `organization-structure-authorization.spec.ts`, `feature-availability-authorization.spec.ts` |
 | `a VERIFIED bug's regression entry is active` | PASS | **FAIL** ×1 — `BUG-0007` / `REG-007`, which the first check had not caught |
-| `simulation 4b: sibling-branch id` | PASS | **FAIL** — reproduced during development when a per-process cache made the ceiling stale; the cache was removed |
+| `simulation 4b` — sibling-branch id | PASS | **FAIL** — reproduced during development when a per-process scan cache made the ceiling stale. The cache was removed |
+| `simulation 28b` — who moved `main` | PASS | **FAIL** — the first `MAIN_CHANGE_STATUS` compared the baseline with `origin/main` and reported `CHANGED` on its own first real run, because a concurrent session merged two PRs mid-task |
 
-The third is the useful one: it caught a real defect in this task's own code
-before the code shipped.
+The last two are the useful ones: both caught real defects in **this task's own
+code**, before it shipped. A framework that cannot find its own bugs has not
+been tested, only written.
 
 ## Manual Validation
 
@@ -192,8 +196,8 @@ forbids.
 
 **PASS WITH RISKS**
 
-Every gate this task introduced is executed rather than asserted: 1042 checks
-including 29 behavioural simulations, and the two most important — an ordinary
+Every gate this task introduced is executed rather than asserted: 1045 checks
+including 32 behavioural simulations, and the two most important — an ordinary
 session may not target `main`, and an id allocated on a sibling branch is not
 handed out again — both fail against the unfixed state. The framework's own
 `FRAMEWORK` definition of done is met.

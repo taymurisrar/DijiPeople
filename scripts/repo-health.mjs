@@ -206,16 +206,54 @@ const developBehindMain = remoteIntegration && remoteTarget
 /*
  * MAIN_CHANGE_STATUS — the production-safety field.
  *
- * `UNTOUCHED` is only reported against a supplied baseline. Deriving it from
- * "main looks synced" would report UNTOUCHED for a task that merged into main
- * and pushed, which is precisely the event this field exists to catch.
+ * The question is "did **this task** move production", which is not the same as
+ * "has main moved". Several sessions run concurrently, and another session
+ * merging a PR advances `main` through no fault of the task being audited.
+ *
+ * The first implementation compared the baseline against `origin/main` and
+ * reported CHANGED for exactly that case — it fired on its own first real run,
+ * for a task that had not touched `main` at all. A production-safety field that
+ * cries wolf when a colleague merges is a field people learn to ignore.
+ *
+ * So the test is containment, not equality: does `origin/main` contain this
+ * task's commits? The baseline still matters — it distinguishes `main` moving
+ * *forward* (ordinary) from `main` being rewritten (never ordinary).
  */
+const TASK_SHA = (() => {
+  const index = process.argv.indexOf('--task-sha');
+  const supplied = index === -1 ? '' : (process.argv[index + 1] ?? '');
+  return git(['rev-parse', '--verify', '--quiet', supplied || 'HEAD'], '');
+})();
+
+let mainAdvancedBy = 0;
+
 function mainChangeStatus() {
-  if (!MAIN_BASELINE) return 'UNKNOWN';
-  if (!remoteTarget) return 'UNKNOWN';
-  const baseline = git(['rev-parse', '--verify', '--quiet', MAIN_BASELINE], MAIN_BASELINE);
-  if (baseline === remoteTarget && (!localTarget || localTarget === remoteTarget)) return 'UNTOUCHED';
-  return 'CHANGED';
+  if (!MAIN_BASELINE || !remoteTarget) return 'UNKNOWN';
+
+  const baseline = git(['rev-parse', '--verify', '--quiet', MAIN_BASELINE], '');
+  if (!baseline) return 'UNKNOWN';
+
+  /* This task's work reaching production is the event the field exists for. */
+  if (TASK_SHA) {
+    const contained = git(['merge-base', '--is-ancestor', TASK_SHA, remoteTarget], null);
+    if (contained !== null) return 'CHANGED_BY_THIS_TASK';
+  }
+
+  if (baseline === remoteTarget) return 'UNTOUCHED';
+
+  /*
+   * `main` moved and this task is not in it. Fast-forward from the baseline is
+   * somebody else's merge and is fine; anything else means the branch was
+   * rewritten, which nobody should be doing and which must not be silent.
+   */
+  if (git(['merge-base', '--is-ancestor', baseline, remoteTarget], null) !== null) {
+    mainAdvancedBy = Number(
+      (git(['rev-list', '--count', `${baseline}..${remoteTarget}`], '0') || '0').trim(),
+    );
+    return 'UNTOUCHED';
+  }
+
+  return 'REWRITTEN';
 }
 
 const mainChange = mainChangeStatus();
@@ -373,10 +411,16 @@ if (syncStatus === 'AHEAD') {
 if (syncStatus === 'FETCH_FAILED') blockers.push('remote state could not be read');
 if (syncStatus === 'UNKNOWN') blockers.push('sync status could not be determined');
 
-if (mainChange === 'CHANGED') {
+if (mainChange === 'CHANGED_BY_THIS_TASK') {
   blockers.push(
-    `${TARGET} has moved from the recorded baseline ${MAIN_BASELINE.slice(0, 7)} — ` +
-      'main is the production deployment branch and an ordinary task must leave it UNTOUCHED',
+    `this task's commits are on ${REMOTE_TARGET} — main is the production deployment ` +
+      'branch, and only a RELEASE, DEPLOY or HOTFIX_PRODUCTION task may put work there',
+  );
+}
+if (mainChange === 'REWRITTEN') {
+  blockers.push(
+    `${REMOTE_TARGET} no longer contains the recorded baseline ${MAIN_BASELINE.slice(0, 7)} — ` +
+      'the production branch has been rewritten, which nothing in this framework does',
   );
 }
 if (developStatus === 'DIVERGED') {
@@ -421,6 +465,8 @@ const report = {
   MAIN_SYNC_STATUS: syncStatus,
   MAIN_CHANGE_STATUS: mainChange,
   MAIN_BASELINE: MAIN_BASELINE || null,
+  mainAdvancedByOthers: mainAdvancedBy,
+  taskSha: TASK_SHA || null,
   DEVELOP_SYNC_STATUS: developStatus,
   localIntegrationSha: localIntegration,
   remoteIntegrationSha: remoteIntegration,
@@ -464,7 +510,13 @@ line('PRODUCTION_BRANCH', TARGET);
 line('INTEGRATION_BRANCH', INTEGRATION);
 line('CURRENT_BRANCH', currentBranch);
 line('MAIN_SYNC_STATUS', syncStatus);
-line('MAIN_CHANGE_STATUS', mainChange + (MAIN_BASELINE ? ` (baseline ${MAIN_BASELINE.slice(0, 7)})` : ' — pass --main-baseline <sha> to prove it'));
+line(
+  'MAIN_CHANGE_STATUS',
+  mainChange +
+    (MAIN_BASELINE
+      ? ` (baseline ${MAIN_BASELINE.slice(0, 7)}${mainAdvancedBy ? `, advanced ${mainAdvancedBy} commit(s) by other sessions` : ''})`
+      : ' — pass --main-baseline <sha> to prove it'),
+);
 line('DEVELOP_SYNC_STATUS', developStatus);
 line('LOCAL_TARGET_SHA', localTarget ?? 'UNKNOWN');
 line('REMOTE_TARGET_SHA', remoteTarget ?? 'UNKNOWN');
