@@ -6,12 +6,12 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 109,
-    "bugs": 59,
-    "backlog_items": 50,
-    "open_bucket": 30,
+    "total_records": 116,
+    "bugs": 65,
+    "backlog_items": 51,
+    "open_bucket": 11,
     "blocked_bucket": 0,
-    "deferred_bucket": 1,
+    "deferred_bucket": 2,
     "product_decision_bucket": 1,
     "completed_bucket": 77,
     "parser_structural_errors": 0,
@@ -21,7 +21,7 @@
     "qa_findings": 10,
     "obsidian_findings": 2,
     "evidence_verified_during_triage": 28,
-    "preliminary_records": 67,
+    "preliminary_records": 74,
     "pending_qa_retest_records": 3,
     "terminal_reverification_remaining": 70,
     "canonical_record_count_policy": "Findings that substantiate an existing BUG/ITEM link to that canonical record and do not create a duplicate record row.",
@@ -5516,6 +5516,342 @@
       "regressions": [],
       "qa_scenarios": [],
       "test_plan": []
+    },
+    {
+      "record_id": "BUG-0061",
+      "source": {
+        "record_path": "docs/bugs/BUG-0061-landing-home-and-subscribe-pages-return-500-when-the-plans-f.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "f58ee1d",
+        "created_at": "2026-08-17",
+        "updated_at": "2026-08-17",
+        "resolved_at": ""
+      },
+      "type": "BUG",
+      "title": "Landing home and subscribe pages return 500 when the plans fetch fails",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "OPEN",
+      "current_evidence": {
+        "paths": [
+          "docs/bugs/BUG-0061-landing-home-and-subscribe-pages-return-500-when-the-plans-f.md",
+          "docs/qa/runs/2026-08-17-landing-uiux-browser-qa-f58ee1d.md",
+          "apps/landing/lib/plans-server.ts"
+        ],
+        "verification_scope": "Chromium browser pass at 1440x900, 768x1024 and 390x844 with axe-core; findings observed directly and recorded with probe output."
+      },
+      "affected_modules": [
+        "apps/landing"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [
+        "BUG-0065"
+      ],
+      "related_backlog": [
+        "ITEM-0046"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "FIX_NOW",
+      "verification_result": {
+        "result": "PRELIMINARY",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0062",
+      "source": {
+        "record_path": "docs/bugs/BUG-0062-landing-mobile-navigation-menu-stays-open-after-navigating-a.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "f58ee1d",
+        "created_at": "2026-08-17",
+        "updated_at": "2026-08-17",
+        "resolved_at": ""
+      },
+      "type": "UX",
+      "title": "Landing mobile navigation menu stays open after navigating and ignores Escape",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "OPEN",
+      "current_evidence": {
+        "paths": [
+          "docs/bugs/BUG-0062-landing-mobile-navigation-menu-stays-open-after-navigating-a.md",
+          "docs/qa/runs/2026-08-17-landing-uiux-browser-qa-f58ee1d.md",
+          "apps/landing/app/_components/site-shell.tsx"
+        ],
+        "verification_scope": "Chromium browser pass at 1440x900, 768x1024 and 390x844 with axe-core; findings observed directly and recorded with probe output."
+      },
+      "affected_modules": [
+        "apps/landing"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [
+        "BUG-0064"
+      ],
+      "related_backlog": [],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "FIX_NOW",
+      "verification_result": {
+        "result": "PRELIMINARY",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0063",
+      "source": {
+        "record_path": "docs/bugs/BUG-0063-request-demo-form-blocks-submission-with-no-feedback-and-is-.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "f58ee1d",
+        "created_at": "2026-08-17",
+        "updated_at": "2026-08-17",
+        "resolved_at": ""
+      },
+      "type": "UX",
+      "title": "Request demo form blocks submission with no feedback and is unusable by assistive technology",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "OPEN",
+      "current_evidence": {
+        "paths": [
+          "docs/bugs/BUG-0063-request-demo-form-blocks-submission-with-no-feedback-and-is-.md",
+          "docs/qa/runs/2026-08-17-landing-uiux-browser-qa-f58ee1d.md",
+          "apps/landing/app/_components/marketing/lead-form-section.tsx"
+        ],
+        "verification_scope": "Chromium browser pass at 1440x900, 768x1024 and 390x844 with axe-core; findings observed directly and recorded with probe output."
+      },
+      "affected_modules": [
+        "apps/landing"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [
+        "BUG-0064"
+      ],
+      "related_backlog": [
+        "ITEM-0051"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "FIX_NOW",
+      "verification_result": {
+        "result": "PRELIMINARY",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0064",
+      "source": {
+        "record_path": "docs/bugs/BUG-0064-landing-public-pages-fail-wcag-bypass-blocks-and-text-contra.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "f58ee1d",
+        "created_at": "2026-08-17",
+        "updated_at": "2026-08-17",
+        "resolved_at": ""
+      },
+      "type": "UX",
+      "title": "Landing public pages fail WCAG bypass blocks and text contrast on every route",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "OPEN",
+      "current_evidence": {
+        "paths": [
+          "docs/bugs/BUG-0064-landing-public-pages-fail-wcag-bypass-blocks-and-text-contra.md",
+          "docs/qa/runs/2026-08-17-landing-uiux-browser-qa-f58ee1d.md",
+          "apps/landing/app/_components/site-shell.tsx",
+          "apps/landing/app/globals.css"
+        ],
+        "verification_scope": "Chromium browser pass at 1440x900, 768x1024 and 390x844 with axe-core; findings observed directly and recorded with probe output."
+      },
+      "affected_modules": [
+        "apps/landing"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [
+        "BUG-0062",
+        "BUG-0063"
+      ],
+      "related_backlog": [
+        "ITEM-0051"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "FIX_NOW",
+      "verification_result": {
+        "result": "PRELIMINARY",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0065",
+      "source": {
+        "record_path": "docs/bugs/BUG-0065-public-commercial-config-omits-featurecatalog-when-no-market.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "f58ee1d",
+        "created_at": "2026-08-17",
+        "updated_at": "2026-08-17",
+        "resolved_at": ""
+      },
+      "type": "BUG",
+      "title": "Public commercial-config omits featureCatalog when no market resolves",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "current_evidence": {
+        "paths": [
+          "docs/bugs/BUG-0065-public-commercial-config-omits-featurecatalog-when-no-market.md",
+          "docs/qa/runs/2026-08-17-landing-uiux-browser-qa-f58ee1d.md",
+          "services/api/src/modules/billing/services/commercial-config.service.ts"
+        ],
+        "verification_scope": "Chromium browser pass at 1440x900, 768x1024 and 390x844 with axe-core; findings observed directly and recorded with probe output."
+      },
+      "affected_modules": [
+        "services/api/src/modules/billing",
+        "apps/landing"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [
+        "BUG-0061",
+        "BUG-0066"
+      ],
+      "related_backlog": [
+        "ITEM-0019"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "FIX_NOW",
+      "verification_result": {
+        "result": "PRELIMINARY",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0066",
+      "source": {
+        "record_path": "docs/bugs/BUG-0066-subscribe-page-renders-an-editable-form-with-no-way-to-submi.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "f58ee1d",
+        "created_at": "2026-08-17",
+        "updated_at": "2026-08-17",
+        "resolved_at": ""
+      },
+      "type": "UX",
+      "title": "Subscribe page renders an editable form with no way to submit when checkout is unavailable",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "current_evidence": {
+        "paths": [
+          "docs/bugs/BUG-0066-subscribe-page-renders-an-editable-form-with-no-way-to-submi.md",
+          "docs/qa/runs/2026-08-17-landing-uiux-browser-qa-f58ee1d.md",
+          "apps/landing/app/subscribe/subscribe-form.tsx"
+        ],
+        "verification_scope": "Chromium browser pass at 1440x900, 768x1024 and 390x844 with axe-core; findings observed directly and recorded with probe output."
+      },
+      "affected_modules": [
+        "apps/landing"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [
+        "BUG-0065"
+      ],
+      "related_backlog": [],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "FIX_NOW",
+      "verification_result": {
+        "result": "PRELIMINARY",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "ITEM-0051",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0051-align-landing-public-form-conventions-and-minor-accessibilit.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "",
+        "created_at": "2026-08-17",
+        "updated_at": "2026-08-17",
+        "resolved_at": ""
+      },
+      "type": "UX",
+      "title": "Align landing public form conventions and minor accessibility gaps",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "DEFERRED",
+      "current_evidence": {
+        "paths": [
+          "docs/backlog/items/ITEM-0051-align-landing-public-form-conventions-and-minor-accessibilit.md",
+          "docs/qa/runs/2026-08-17-landing-uiux-browser-qa-f58ee1d.md"
+        ],
+        "verification_scope": "Chromium browser pass at 1440x900, 768x1024 and 390x844 with axe-core; findings observed directly and recorded with probe output."
+      },
+      "affected_modules": [
+        "apps/landing"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [
+        "BUG-0063",
+        "BUG-0064"
+      ],
+      "related_backlog": [
+        "ITEM-0046"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DEFER",
+      "verification_result": {
+        "result": "PRELIMINARY",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
     }
   ],
   "discovered_findings": [

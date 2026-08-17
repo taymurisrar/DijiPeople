@@ -1303,6 +1303,223 @@ for (const agent of ['backend-api', 'frontend', 'database', 'integration', 'ui-u
   );
 }
 
+/*
+ * UI/UX participation.
+ *
+ * This role was defined, was invoked, and was still invisible: it had no status
+ * on the completion contract, no row in the acceptance chain, and no schema for
+ * its output, so whatever it found reached the user — when it reached the user
+ * at all — as the sentence "UI/UX Agent reviewed". Its own role file closed by
+ * saying that invoking it "produces documentation nobody reads", which the
+ * Architect could reasonably read as licence to skip it.
+ *
+ * These checks assert the mechanism, not the vocabulary. Each is anchored to
+ * the section carrying the rule, so deleting the section fails the check rather
+ * than leaving a stray mention elsewhere in the file to satisfy it — which is
+ * the failure mode a previous audit of this validator recorded.
+ */
+function sectionOf(body, headingPattern) {
+  const lines = body.split('\n');
+  const start = lines.findIndex(
+    (line) => /^#{2,6}\s/.test(line) && headingPattern.test(line),
+  );
+  if (start === -1) return '';
+  const level = lines[start].match(/^#+/)[0].length;
+  let end = lines.length;
+  for (let i = start + 1; i < lines.length; i += 1) {
+    const heading = lines[i].match(/^(#+)\s/);
+    if (heading && heading[1].length <= level) {
+      end = i;
+      break;
+    }
+  }
+  return lines.slice(start, end).join('\n');
+}
+
+const UI_UX_AGENT_PATH = '.agent/agents/ui-ux.md';
+if (existsSync(join(ROOT, UI_UX_AGENT_PATH))) {
+  const uiux = read(UI_UX_AGENT_PATH);
+
+  /* 1. A landing/UI task requires UI/UX — the surfaces are enumerated, not implied. */
+  const requiredSurfaces = sectionOf(uiux, /When UI\/UX is required/i);
+  check(
+    'ui-ux enumerates the surfaces that require it',
+    requiredSurfaces.length > 0,
+    'without the section the Architect has nothing to check a task against',
+  );
+  for (const surface of [
+    'forms',
+    'navigation',
+    'accessibility',
+    'public landing pages',
+    'destructive actions',
+    'conversion flows',
+    'responsive',
+    'dialogs',
+  ]) {
+    check(
+      `ui-ux requires review for ${surface}`,
+      new RegExp(surface.replace(/[/\\^$*+?.()|[\]{}]/g, '\\$&'), 'i').test(requiredSurfaces),
+      'a surface absent from the required list is one the Architect may silently skip',
+    );
+  }
+
+  /* 7. NOT_REQUIRED is an exemption that has to be argued for. */
+  check(
+    'ui-ux requires a stated reason for NOT_REQUIRED',
+    /NOT_REQUIRED/.test(requiredSurfaces) &&
+      /stated reason|with a reason|with the reason/i.test(requiredSurfaces),
+    'an unreasoned NOT_REQUIRED is how this role stopped running',
+  );
+
+  /* 2. The handoff has a schema, and an empty one is not a pass. */
+  const handoff = sectionOf(uiux, /UI\/UX handoff/i);
+  check('ui-ux defines its own handoff block', handoff.length > 0);
+  for (const field of [
+    'UI_UX_AGENT_STATUS',
+    'SURFACES_REVIEWED',
+    'WHAT_WORKS_WELL',
+    'CRITICAL_FINDINGS',
+    'HIGH_FINDINGS',
+    'ACCESSIBILITY_FINDINGS',
+    'RESPONSIVE_FINDINGS',
+    'KNOWN_EXISTING_ISSUES',
+    'NEW_FINDINGS',
+    'SCREENSHOTS_OR_BROWSER_EVIDENCE',
+    'HANDOFF_READY',
+  ]) {
+    check(`ui-ux handoff carries ${field}`, handoff.includes(field));
+  }
+  check(
+    'ui-ux states that an empty handoff is not a pass',
+    /empty handoff is not a pass/i.test(handoff),
+    'otherwise a PASS with no findings is indistinguishable from no review',
+  );
+
+  /* 3 + 4. Findings are classified, and severe ones cannot stay in prose. */
+  const findings = sectionOf(uiux, /Findings/i);
+  check('ui-ux defines where findings go', findings.length > 0);
+  for (const kind of [
+    'UX_DEBT',
+    'ACCESSIBILITY',
+    'CONTENT',
+    'RESPONSIVE',
+    'CONVERSION',
+    'DESIGN_SYSTEM',
+    'GOOD_TO_HAVE',
+  ]) {
+    check(`ui-ux classifies findings as ${kind}`, findings.includes(kind));
+  }
+  check(
+    'ui-ux binds CRITICAL and HIGH findings to a bug record',
+    /CRITICAL/.test(findings) && /HIGH/.test(findings) && /docs\/bugs/.test(findings),
+    'a severe finding with nowhere to live is a finding that disappears',
+  );
+  check(
+    'ui-ux forbids a material finding existing only in a report',
+    /only in a report/i.test(findings),
+  );
+  check(
+    'ui-ux separates a bug from a recommendation',
+    /\*\*BUG\*\*/.test(findings) &&
+      /\*\*WARNING\*\*/.test(findings) &&
+      /\*\*RECOMMENDATION\*\*/.test(findings),
+    'without the distinction every preference inflates to HIGH and triage stops meaning anything',
+  );
+
+  /* 5. Frontend completion cannot bypass the post-review. */
+  const postReview = sectionOf(uiux, /Post-implementation review/i);
+  check('ui-ux defines a post-implementation review', postReview.length > 0);
+  check(
+    'ui-ux post-review carries UI_UX_POST_REVIEW_STATUS',
+    postReview.includes('UI_UX_POST_REVIEW_STATUS'),
+  );
+  check(
+    'ui-ux blocks Frontend completion on a failed or absent post-review',
+    /may not be reported complete|not be reported complete/i.test(postReview) &&
+      /FAILED/.test(postReview),
+    'a review whose verdict blocks nothing is advisory, and advisory gates do not hold',
+  );
+  check(
+    'ui-ux post-review runs against the running UI rather than the diff',
+    /running\s+UI/i.test(postReview) &&
+      /(not|rather\s+than)\s+against\s+the\s+diff|not\s+against\s+the\s+diff/i.test(postReview),
+  );
+}
+
+/* The handoff contract has to know about the role, or the role has no gate. */
+if (existsSync(join(ROOT, '.agent/context/agent-handoffs.md'))) {
+  const handoffs = read('.agent/context/agent-handoffs.md');
+  check(
+    'handoffs give UI/UX its own handoff shape',
+    /UI\/UX hands off differently/i.test(handoffs),
+    'the generic build-shaped handoff leaves a read-only role with every field empty',
+  );
+  check(
+    'handoffs place UI/UX in the acceptance chain in both directions',
+    /Frontend ← UI\/UX/.test(handoffs) && /UI\/UX ← Frontend/.test(handoffs),
+    'a stage nobody accepts or rejects is not a gate',
+  );
+  check(
+    'handoffs name the UI/UX acceptance tokens',
+    handoffs.includes('FRONTEND_ACCEPTED_UI_UX') &&
+      handoffs.includes('UI_UX_ACCEPTED_IMPLEMENTATION'),
+  );
+  check(
+    'handoffs treat an empty UI/UX handoff as an anti-pattern',
+    /`?PASS`?\s+with\s+every\s+finding\s+field\s+empty/i.test(handoffs),
+  );
+  check(
+    'handoffs require a bug id on a CRITICAL or HIGH UI/UX finding',
+    /`?(CRITICAL|HIGH)`?\s+UI\/UX\s+finding\s+with\s+no\s+bug\s+record\s+id/i.test(handoffs),
+  );
+  check(
+    'handoffs require the final report to show what UI/UX found',
+    /quotes the\s+\*\*UI\/UX handoff\*\*|quotes the\s+UI\/UX handoff/i.test(handoffs),
+  );
+}
+
+/* And the completion contract has to be able to fail on it. */
+if (existsSync(join(ROOT, '.agent/context/task-completion-contract.md'))) {
+  const contract = read('.agent/context/task-completion-contract.md');
+  for (const field of ['UI_UX_AGENT_STATUS', 'UI_UX_POST_REVIEW_STATUS']) {
+    check(`completion contract resolves ${field}`, contract.includes(field));
+  }
+  check(
+    'completion contract allows UI/UX NOT_REQUIRED only with a reason',
+    /with the reason stated/i.test(contract),
+  );
+  check(
+    'completion contract blocks completion on a failed UI/UX post-review',
+    /UI_UX_POST_REVIEW_STATUS = FAILED` blocks completion/i.test(contract),
+  );
+}
+
+/* 6. The Architect must expose the contribution, not assert it. */
+if (existsSync(join(ROOT, '.agent/agents/architect.md'))) {
+  const architectReport = sectionOf(
+    read('.agent/agents/architect.md'),
+    /Reporting the UI\/UX contribution/i,
+  );
+  check(
+    'architect reports the UI/UX contribution',
+    architectReport.length > 0,
+    'without this the roster says UI/UX ran and the report never shows a single finding',
+  );
+  for (const field of [
+    'UI_UX_AGENT_STATUS',
+    'UI_UX_POST_REVIEW_STATUS',
+    'UI_UX_FINDINGS_COUNT',
+    'SURFACES_REVIEWED',
+  ]) {
+    check(`architect report exposes ${field}`, architectReport.includes(field));
+  }
+  check(
+    'architect rejects a bare claim that UI/UX reviewed',
+    /is not a report of a review/i.test(architectReport),
+  );
+}
+
 if (existsSync(join(ROOT, '.agent/agents/reviewer.md'))) {
   const reviewer = read('.agent/agents/reviewer.md');
   check('reviewer flags REPEATED_REGRESSION', reviewer.includes('REPEATED_REGRESSION'));

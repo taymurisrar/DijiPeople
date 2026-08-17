@@ -240,6 +240,8 @@ SESSION_STATUS
 PARENT_TASK_STATUS
 WORK_PACKAGE_STATUS
 REQUIRED_AGENTS_STATUS
+UI_UX_AGENT_STATUS
+UI_UX_POST_REVIEW_STATUS
 IMPLEMENTATION_STATUS
 LOCAL_VALIDATION_STATUS
 QA_STATUS
@@ -294,6 +296,20 @@ whether it let go of it. See [`multi-session.md`](multi-session.md).
 |---|---|---|
 | `SESSION_STATUS` | A `docs/sessions/` record exists, `node scripts/session.mjs finish` released every lease, and `rebuild-sessions.mjs --check` is clean | The task registered no session — only legitimate for a trivial, single-file change |
 | `REQUIRED_AGENTS_STATUS` | Every row of the required-agent matrix is `PASS` or `NOT_REQUIRED` with a reason | Never. `UNKNOWN` means nobody checked |
+| `UI_UX_AGENT_STATUS` | The UI/UX handoff exists, names the surfaces reviewed, and every `CRITICAL`/`HIGH` finding carries a bug record id | Only when no row of the UI/UX required-surface list applies — **with the reason stated** |
+| `UI_UX_POST_REVIEW_STATUS` | UI/UX reviewed the built result against the running UI and returned a verdict | Before implementation exists, or when `UI_UX_AGENT_STATUS` is legitimately `NOT_REQUIRED` |
+
+**Why UI/UX gets two fields of its own.** The role was defined, invoked and then
+routinely invisible: it had no status on this contract, no row in the acceptance
+chain, and no schema for its output, so its findings reached the user — when
+they reached the user at all — as the sentence "UI/UX Agent reviewed". A role
+whose participation cannot be distinguished from its absence is not gated. These
+two fields are what make the difference legible, and the second one is where the
+*built* result gets judged rather than the intention.
+
+`UI_UX_POST_REVIEW_STATUS = FAILED` blocks completion the same way a failing
+required agent does. Frontend work is not complete because the diff is correct;
+it is complete when the journey works.
 
 **A session that ends holding a lease blocks the next task that needs it**, and
 nothing will tell the next agent why. `SESSION_STATUS` is what makes that

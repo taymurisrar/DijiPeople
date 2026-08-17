@@ -48,12 +48,41 @@ a `true` that the next stage discovers is wrong.
 
 ---
 
+### UI/UX hands off differently
+
+The block above is shaped for a stage that *builds* something. UI/UX is
+read-only in its default mode, so `IMPLEMENTED`, `FILES_CHANGED` and
+`TESTS_ADDED` are empty for it — and a role whose every field is empty reads as
+a role that did nothing, which is exactly how its findings used to disappear
+between the specialist and the final report.
+
+UI/UX therefore ends its stages with **its own block**, defined in
+[`../agents/ui-ux.md`](../agents/ui-ux.md): `UI_UX_AGENT_STATUS`,
+`SURFACES_REVIEWED`, `WHAT_WORKS_WELL`, the severity-banded finding fields,
+`ACCESSIBILITY_FINDINGS`, `RESPONSIVE_FINDINGS`, `KNOWN_EXISTING_ISSUES` versus
+`NEW_FINDINGS`, `SCREENSHOTS_OR_BROWSER_EVIDENCE`, `UI_UX_POST_REVIEW_STATUS`
+and `HANDOFF_READY`.
+
+Two rules travel with it:
+
+- **An empty UI/UX handoff is not a `PASS`.** Every finding field empty, with no
+  `WHAT_WORKS_WELL` and no `SURFACES_REVIEWED`, means the surface was not
+  reviewed. `BLOCKED` is the honest status.
+- **A `CRITICAL` or `HIGH` UI/UX finding carries a bug record id.** A severe
+  finding that exists only as a sentence in a report is not something the
+  project can act on, and the completion contract treats it exactly as it treats
+  any unclassified QA finding.
+
+---
+
 ## Acceptance is explicit
 
 The next stage does not merely receive a handoff. It **accepts or rejects** it,
 and says which:
 
 ```
+FRONTEND_ACCEPTED_UI_UX
+UI_UX_ACCEPTED_IMPLEMENTATION
 QA_ACCEPTED_IMPLEMENTATION
 REVIEWER_ACCEPTED_QA
 INTEGRATOR_ACCEPTED_REVIEW
@@ -69,6 +98,8 @@ no criterion is a stall, not a gate.
 
 | Stage | Accepts that… | Rejects when… |
 |---|---|---|
+| Frontend ← UI/UX | the specification is buildable: states, responsive intent and accessibility requirements are stated, and the components to reuse are named | a state is unspecified; the design needs a runtime capability that does not exist; no acceptance criteria to build against |
+| UI/UX ← Frontend (Stage 2) | the built journey matches what was specified, verified against the running UI | the journey breaks at a viewport; a specified state is missing; an accessibility requirement is unmet; the handoff claims a browser check that did not happen |
 | QA ← specialist | the change is testable and `CHANGED_BEHAVIOR` is complete enough to design against | behaviour changed that the handoff does not mention; no test hooks; the branch does not build |
 | Reviewer ← QA | validation actually happened, with durable evidence | `QA_STATUS` is `BLOCKED_INFRASTRUCTURE` rounded up to a pass; findings with no record; no run file where one is required |
 | Integrator ← Reviewer | there are no unresolved CRITICAL and no HIGH blockers | a blocker is open; a security-sensitive conflict was resolved without review |
@@ -77,6 +108,11 @@ no criterion is a stall, not a gate.
 **QA does not accept its own handoff to itself**, and the implementing
 specialist never accepts QA's. A stage that accepts its own output is not a
 gate.
+
+**Frontend does not accept its own UI/UX post-review** either, for the same
+reason. UI/UX appears twice in the table deliberately: once handing a
+specification to Frontend, and once judging what Frontend built. Without the
+second row the specification is advisory, and an advisory gate is not a gate.
 
 ---
 
@@ -89,7 +125,7 @@ The Architect maintains one row per role for every substantial task.
 | **Architect** | always |
 | **Backend/API** | an API module, service, controller, DTO or guard changes |
 | **Frontend** | an app surface changes |
-| **UI/UX** | the change alters what a user sees or how they accomplish something |
+| **UI/UX** | the change touches user-facing layout, forms, dialogs, navigation, dashboards, tables, mobile/responsive behaviour, accessibility, onboarding journeys, public landing pages, destructive actions, loading/error/empty states, visual consistency or conversion flows — see [`../agents/ui-ux.md`](../agents/ui-ux.md). Carries **two** statuses: `UI_UX_AGENT_STATUS` and, once Frontend has built, `UI_UX_POST_REVIEW_STATUS` |
 | **Database** | `schema.prisma`, a migration, a constraint or a seed changes |
 | **Integration** | a boundary changes — gateway, desktop agent, Stripe, device ingestion |
 | **QA** | always, except for copy/comment/docs-only changes |
@@ -179,7 +215,14 @@ AGENT_STATUSES         every row resolved, none UNKNOWN
 HANDOFFS               every one accepted, or its rework completed
 QA_STATUS              REVIEWER_STATUS
 INTEGRATOR_STATUS      RELEASE_DEVOPS_STATUS
+UI_UX_AGENT_STATUS     UI_UX_POST_REVIEW_STATUS
 ```
+
+For any task where UI/UX was required, the Architect's final report **quotes the
+UI/UX handoff**: surfaces reviewed, the finding counts by severity, the most
+important findings with their record ids, and the post-review verdict. "UI/UX
+Agent reviewed" is not a report of a review — it is a claim that one happened,
+and the user cannot tell the two apart.
 
 This is a distinct step from the completion contract's field list. The contract
 asks *did each phase produce its output*; this asks *did each agent that should
@@ -197,6 +240,13 @@ gap this closes.
 - Rejecting without naming what would be accepted.
 - Marking a role `NOT_REQUIRED` with no reason.
 - Leaving a role `UNKNOWN` and completing anyway.
+- Marking UI/UX `NOT_REQUIRED` on a task that changed a form, a navigation, a
+  responsive layout or a public page.
+- A UI/UX handoff that is `PASS` with every finding field empty.
+- A `CRITICAL` or `HIGH` UI/UX finding with no bug record id.
+- Reporting "UI/UX reviewed" without showing what it found.
+- Frontend reporting complete while its required UI/UX post-review is `FAILED`
+  or was never run.
 - Re-running the entire test suite on every rework instead of the impacted
   scenarios.
 - The implementing specialist deciding whether QA's finding counts.

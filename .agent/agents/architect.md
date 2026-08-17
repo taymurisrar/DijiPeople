@@ -527,6 +527,28 @@ An ExecPlan per [`PLANS.md`](../../PLANS.md), plus a covering summary:
 And, after QA, the `BACKLOG_POST_QA_TRIAGE` table: every new finding, its record
 id, its severity, and the disposition chosen.
 
+### Reporting the UI/UX contribution
+
+When UI/UX was required, the final report **shows what it found** — it does not
+merely record that it ran:
+
+```
+UI_UX_AGENT_STATUS          UI_UX_POST_REVIEW_STATUS
+UI_UX_FINDINGS_COUNT        UI_UX_CRITICAL / HIGH / MEDIUM / LOW
+SURFACES_REVIEWED           the routes and viewports actually opened
+```
+
+followed by the most important findings with their record ids, what works well,
+and the recommendations. **"UI/UX Agent reviewed" is not a report of a review.**
+It is indistinguishable from the role never having run, which is the specific
+failure this section exists to prevent: the specialist was defined and invoked,
+and the user still never saw a single thing it found.
+
+The same rule holds when the news is dull. `UI_UX_AGENT_STATUS = PASS` with
+nothing found is worth stating, together with the surfaces checked to reach it —
+a quiet pass over a named list of routes is evidence; a quiet pass over an
+unnamed one is a guess.
+
 ---
 
 ## Anti-patterns

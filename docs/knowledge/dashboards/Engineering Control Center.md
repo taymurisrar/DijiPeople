@@ -13,7 +13,7 @@
 | Blocked work packages | 0 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **0** |
-| Open HIGH | 6 |
+| Open HIGH | 10 |
 | Awaiting Architect triage | 0 |
 | Owner decisions pending | 1 |
 | QA coverage gaps | 53 |
@@ -142,9 +142,9 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 30 |
+| Open total | 36 |
 | Blocked | 0 |
-| Deferred | 1 |
+| Deferred | 2 |
 | Awaiting a product decision | 1 |
 | Awaiting Architect triage | 0 |
 
