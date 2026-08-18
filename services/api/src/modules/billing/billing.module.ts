@@ -16,6 +16,9 @@ import {
 import { WebhookService } from './services/webhook.service';
 import { ActiveEmployeeCountService } from './services/active-employee-count.service';
 import { SeatUsageService } from './services/seat-usage.service';
+import { CustomerIdentityService } from './services/customer-identity.service';
+import { TaxBasisService } from './services/tax-basis.service';
+import { SubscriptionOrderService } from './services/subscription-order.service';
 
 @Module({
   imports: [AuthModule],
@@ -36,6 +39,9 @@ import { SeatUsageService } from './services/seat-usage.service';
     WebhookService,
     ActiveEmployeeCountService,
     SeatUsageService,
+    CustomerIdentityService,
+    TaxBasisService,
+    SubscriptionOrderService,
     JwtAuthGuard,
     PermissionsGuard,
   ],

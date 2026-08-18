@@ -25,6 +25,7 @@ import {
 } from '../../../common/utils/slug.util';
 import { generateTenantCode } from '../../../common/utils/tenant-code.util';
 import { StripeBillingService } from './stripe-billing.service';
+import { SubscriptionOrderService } from './subscription-order.service';
 import {
   calculateSeatPricing,
   buildRecurringCheckoutLineItem,
@@ -41,6 +42,7 @@ export class BillingService {
     private readonly prisma: PrismaService,
     private readonly stripeBillingService: StripeBillingService,
     private readonly configService: ConfigService,
+    private readonly subscriptionOrders: SubscriptionOrderService,
   ) {}
 
   async getPublicPlans() {
@@ -266,6 +268,48 @@ export class BillingService {
     const country = input.country.trim();
     const message = input.message?.trim() || null;
 
+    /*
+     * The order is opened BEFORE anything else is written, because it is what
+     * makes this path idempotent. Previously every submission — a refresh, a
+     * double click, a retried abandoned checkout — created a fresh Lead,
+     * CustomerAccount, Tenant and Subscription, permanently consuming a tenant
+     * slug each time. openOrder deduplicates the customer and returns the
+     * existing order for a repeated submission.
+     */
+    const order = await this.subscriptionOrders.openOrder({
+      planPriceId: planPrice.id,
+      seatQuantity: purchasedSeats,
+      companyName,
+      contactName,
+      email,
+      phone: input.phone?.trim() || null,
+      country,
+      message,
+    });
+
+    // A repeated submission that already has a live Stripe session is sent
+    // back to that session rather than being given a second one.
+    if (order.reused && order.stripeCheckoutSessionId) {
+      const existingSession =
+        await this.stripeBillingService.client.checkout.sessions.retrieve(
+          order.stripeCheckoutSessionId,
+        );
+      const existingOrder =
+        await this.prisma.subscriptionOrder.findUniqueOrThrow({
+          where: { id: order.orderId },
+          select: { tenantId: true, leadId: true },
+        });
+      return {
+        submitted: true,
+        checkoutSessionId: existingSession.id,
+        url: existingSession.url,
+        tenantId: existingOrder.tenantId,
+        leadId: existingOrder.leadId,
+        orderNumber: order.orderNumber,
+        reused: true,
+      };
+    }
+
     const created = await this.prisma.$transaction(async (tx) => {
       const lead = await tx.lead.create({
         data: {
@@ -454,12 +498,28 @@ export class BillingService {
       });
     });
 
+    // The order now points at what payment will activate. Until WP-07 moves
+    // tenant creation behind the payment, the tenant already exists here; the
+    // order is still the record that survives an abandoned checkout.
+    await this.prisma.subscriptionOrder.update({
+      where: { id: order.orderId },
+      data: {
+        tenantId: created.tenant.id,
+        subscriptionId: created.subscription.id,
+        leadId: created.lead.id,
+        stripeCustomerId: stripeCustomer.id,
+        stripeCheckoutSessionId: session.id,
+      },
+    });
+
     return {
       submitted: true,
       checkoutSessionId: session.id,
       url: session.url,
       tenantId: created.tenant.id,
       leadId: created.lead.id,
+      orderNumber: order.orderNumber,
+      reused: false,
     };
   }
 

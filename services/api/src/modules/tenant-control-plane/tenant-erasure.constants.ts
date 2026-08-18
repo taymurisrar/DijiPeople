@@ -82,6 +82,19 @@ export const TENANT_ERASURE_DETACHED_MODELS: Array<{
     model: 'customerOnboarding',
     clearFields: [],
   },
+  {
+    /*
+     * What was bought, and for how much. Detached for the same reason as a
+     * contract: the order is a financial record owned by the CustomerAccount,
+     * not tenant business content, and it has to remain answerable after the
+     * workspace is gone. The subscription pointer is cleared because the
+     * Subscription
+     * cascades away with the tenant and the Restrict edge would otherwise
+     * block the whole erasure.
+     */
+    model: 'subscriptionOrder',
+    clearFields: [{ field: 'subscriptionId', via: 'subscription' }],
+  },
 ];
 
 /**
