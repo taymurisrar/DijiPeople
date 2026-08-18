@@ -12380,3 +12380,153 @@ model AttendanceLocationEvidence {
   @@index([tenantId, outcome])
   @@index([tenantId, employeeId, capturedAt])
 }
+
+// ---------------------------------------------------------------------------
+// Transactional outbox
+//
+// PlatformEvent already answers "what happened" for monitoring. It is an
+// observability record: no status, no attempt count, nothing to claim. It
+// cannot deliver anything, and a domain service that needs a side effect to
+// survive a crash has had nowhere to put it.
+//
+// OutboxEvent is that place. The rule is that a business state change and the
+// event announcing it are written in the SAME transaction, so the pair is
+// atomic: there is no window in which a subscription activates without the
+// activation being scheduled for delivery, and no window in which delivery is
+// scheduled for an activation that rolled back.
+//
+// Delivery is at-least-once. Consumers therefore have to be idempotent, and
+// OutboxEventConsumption is how they prove it — a consumer records that it
+// handled an event, and the unique index refuses the second recording rather
+// than trusting the consumer to have checked.
+// ---------------------------------------------------------------------------
+
+enum OutboxEventStatus {
+  /// Written, not yet claimed. `availableAt` decides when it becomes eligible.
+  PENDING
+  /// A dispatcher holds it. `claimedBy`/`claimedAt` say which one and since when.
+  CLAIMED
+  /// Every registered consumer for this event type succeeded.
+  PROCESSED
+  /// A consumer failed and the attempt budget is not exhausted.
+  RETRY_SCHEDULED
+  /// The attempt budget is exhausted. Requires a human decision.
+  FAILED
+  /// A consumer signalled that automation cannot resolve this one.
+  MANUAL_ACTION_REQUIRED
+  /// Deliberately abandoned by an operator, with a reason.
+  DISCARDED
+}
+
+/// Every business transition this platform is allowed to announce.
+///
+/// A closed enum rather than a free string, because the whole point of the
+/// outbox is that a consumer can be written against a known set. An untyped
+/// event dumping ground gives back exactly the coupling this replaces.
+enum DomainEventType {
+  LEAD_SUBMITTED
+  PARTNER_INQUIRY_SUBMITTED
+  CUSTOMER_CREATED
+  CUSTOMER_ACTIVATED
+  CHECKOUT_STARTED
+  PAYMENT_CONFIRMED
+  PAYMENT_FAILED
+  SUBSCRIPTION_ACTIVATED
+  SUBSCRIPTION_TERMINATED
+  ONBOARDING_REQUESTED
+  PROVISIONING_REQUESTED
+  PROVISIONING_STARTED
+  TENANT_READY
+  TENANT_PROVISIONING_FAILED
+  SEAT_OVERAGE_DETECTED
+  SEAT_CHANGE_REQUESTED
+  SEAT_CHANGE_APPLIED
+  PLAN_CHANGE_REQUESTED
+  PLAN_CHANGE_APPLIED
+  CANCELLATION_REQUESTED
+  RETENTION_STARTED
+  TENANT_DELETION_REQUESTED
+  TENANT_ERASURE_REQUESTED
+  TENANT_ERASED
+}
+
+model OutboxEvent {
+  id        String          @id @default(uuid())
+  eventType DomainEventType
+
+  /// The business identity of this transition, not a random value.
+  ///
+  /// Two writers announcing the same transition — a webhook delivered twice, a
+  /// retried activation, a reconciliation job re-deriving a state it already
+  /// derived — construct the same key, and the unique index collapses them into
+  /// one event. Emission is therefore idempotent because the database says so,
+  /// not because every caller remembered to check first.
+  idempotencyKey String @unique
+
+  /// What the event is about. `aggregateType` is the model name as written in
+  /// this schema; `aggregateId` is its primary key.
+  aggregateType String
+  aggregateId   String
+
+  /// Denormalised routing columns. Nullable because platform-level events
+  /// (a customer created before any tenant exists) genuinely have no tenant.
+  tenantId          String?
+  customerAccountId String?
+
+  /// Ties this event to the request or job that produced it, across services.
+  correlationId String
+
+  /// The event body. Immutable once written — consumers re-read it on every
+  /// retry, so rewriting it would change the meaning of an event mid-flight.
+  payload Json
+
+  status       OutboxEventStatus @default(PENDING)
+  attemptCount Int               @default(0)
+  maxAttempts  Int               @default(8)
+
+  /// Earliest time a dispatcher may claim this. Backoff moves it forward.
+  availableAt DateTime  @default(now())
+  claimedAt   DateTime?
+  /// Dispatcher instance identity, so a crashed claim can be reclaimed.
+  claimedBy   String?
+  processedAt DateTime?
+  lastError   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  consumptions OutboxEventConsumption[]
+
+  /// The dispatcher's claim query. Ordering by availableAt within status is the
+  /// hot path and it runs on every poll.
+  @@index([status, availableAt])
+  @@index([eventType, status])
+  @@index([aggregateType, aggregateId])
+  @@index([tenantId, createdAt])
+  @@index([customerAccountId, createdAt])
+  @@index([correlationId])
+}
+
+/// One row per (event, consumer) that reached a terminal outcome.
+///
+/// This is what makes at-least-once delivery safe: a consumer that is handed
+/// the same event twice finds its own row already present and does nothing the
+/// second time. The unique constraint is the enforcement — a consumer cannot
+/// opt out of it by forgetting to look.
+model OutboxEventConsumption {
+  id            String @id @default(uuid())
+  outboxEventId String
+
+  /// Stable identifier of the consumer, e.g. `provisioning.request-tenant`.
+  consumerKey String
+
+  succeeded    Boolean
+  attemptCount Int      @default(1)
+  errorMessage String?
+  processedAt  DateTime @default(now())
+
+  event OutboxEvent @relation(fields: [outboxEventId], references: [id], onDelete: Cascade)
+
+  @@unique([outboxEventId, consumerKey])
+  @@index([consumerKey, succeeded])
+}

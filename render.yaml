@@ -62,6 +62,17 @@ services:
       # not raise the limit on tenant document uploads. Default 512 MB.
       - key: RELEASE_ARTIFACT_MAX_BYTES
         sync: false
+      # The transactional outbox worker. Business state changes and the events
+      # announcing them are written together regardless of this flag; what the
+      # flag controls is whether THIS process also drains them. Exactly one
+      # deployed service should have it true — several is safe (claims use
+      # FOR UPDATE SKIP LOCKED) but none means events accumulate undelivered.
+      - key: OUTBOX_WORKER_ENABLED
+        value: "true"
+      - key: OUTBOX_WORKER_POLL_INTERVAL_MS
+        value: "5000"
+      - key: OUTBOX_WORKER_BATCH_SIZE
+        value: "25"
       # Platform and tenant email both fall back to this provider when no
       # per-tenant provider row exists. Without it resolveProvider returns null
       # in production and every outbound email fails — invitations, contract

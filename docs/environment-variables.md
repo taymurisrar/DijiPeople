@@ -162,6 +162,24 @@ SMTP_FROM_EMAIL=no-reply@example.com
 SMTP_FROM_NAME=DijiPeople
 ```
 
+## Transactional outbox worker
+
+Read by `services/api`. The outbox itself is not optional and is not
+configurable: every domain service that changes business state writes its event
+in the same transaction, always. These variables govern only whether *this
+process* also drains the resulting queue.
+
+| Variable | Where | Required | Meaning |
+|---|---|---|---|
+| `OUTBOX_WORKER_ENABLED` | API | no — defaults off | `true` starts the poll loop in this process. Off by default so tests, seeds and CLI invocations that boot the Nest container do not silently start a background worker. At least one deployed instance must set it, or events are written and never delivered. |
+| `OUTBOX_WORKER_POLL_INTERVAL_MS` | API | optional | Poll interval. Defaults to 5000, floored at 1000. |
+| `OUTBOX_WORKER_BATCH_SIZE` | API | optional | Events claimed per poll. Defaults to 25, capped at 200. |
+
+Running the worker on more than one instance is safe — claims use
+`FOR UPDATE SKIP LOCKED`, so each event goes to exactly one dispatcher — but
+running it on none is not, and nothing fails loudly when you do: the events
+accumulate in `PENDING` and the transitions they carry simply never happen.
+
 ## Application release publishing
 
 Read by `services/api` (the publisher endpoint) and by
