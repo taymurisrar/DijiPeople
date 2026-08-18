@@ -6,6 +6,7 @@ Sessions that reached a terminal state. Kept as history: the branch, the base it
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0011](../../docs/sessions/SESSION-0011-item-0047-database-e2e-determinism.md) | — | ITEM-0047 — database e2e determinism | COMPLETE | `agent/database-e2e-determinism` | `develop` | — | 2026-08-18T14:43:47.468Z |
 | [SESSION-0010](../../docs/sessions/SESSION-0010-commercial-platform-wp-08-wp-09-wp-12-cancellation-retention.md) | TASK-0007 | Commercial platform WP-08, WP-09, WP-12 — cancellation, retention, erasure, reconciliation, notifications | COMPLETE | `agent/commercial-platform-completion` | `develop` | — | 2026-08-18T13:30:33.215Z |
 | [SESSION-0009](../../docs/sessions/SESSION-0009-commercial-platform-wp-06-and-wp-07-seat-plan-change-and-pro.md) | TASK-0007 | Commercial platform WP-06 and WP-07 — seat/plan change and provisioning automation | COMPLETE | `agent/commercial-platform-completion` | `develop` | — | 2026-08-18T12:23:24.943Z |
 | [SESSION-0008](../../docs/sessions/SESSION-0008-commercial-platform-wp-05-customer-before-payment-checkout-a.md) | TASK-0007 | Commercial platform WP-05 — customer before payment, checkout authority, tax basis | COMPLETE | `agent/commercial-platform-completion` | `develop` | — | 2026-08-18T11:28:52.499Z |
