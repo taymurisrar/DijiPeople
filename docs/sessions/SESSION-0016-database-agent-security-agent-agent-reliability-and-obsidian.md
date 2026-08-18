@@ -4,7 +4,7 @@ aliases: [SESSION-0016]
 TASK_ID: 
 TITLE: Database Agent, Security Agent, agent reliability and Obsidian ownership
 ARCHITECT_INTENT: Database Agent, Security Agent, agent reliability and Obsidian ownership
-STATUS: ACTIVE
+STATUS: COMPLETE
 TASK_TYPE: FRAMEWORK
 TASK_SIZE: LARGE
 BASE_BRANCH: origin/develop
@@ -17,7 +17,7 @@ WRITE_LEASES: []
 ACTIVE_WORK_PACKAGES: []
 SCHEMA_WRITE: NO
 CI_STATUS: PASS
-MERGE_STATUS: NOT_STARTED
+MERGE_STATUS: INTEGRATED
 STARTED_AT: 2026-08-18T20:06:16.992Z
 LAST_HEARTBEAT: 2026-08-18T20:06:16.992Z
 BLOCKERS: none
@@ -47,7 +47,7 @@ future rules.
 | WP-05 | Loophole audit across eleven roles, and the check that keeps it closed | DONE |
 | WP-06 | Simulations 30–36 and 12 mutation tests | DONE |
 | WP-07 | Current DB health, security health, vault health | DONE |
-| WP-08 | Integration, knowledge capture, cleanup | IN_PROGRESS |
+| WP-08 | Integration, knowledge capture, cleanup | DONE |
 
 **Deliberately not done**
 
@@ -108,4 +108,14 @@ anything this session deliberately serialised behind another. Live state:
   migrations. All four database fields `CURRENT`, API TypeScript errors 0.
 - 2026-08-19 — vault graph orphans 102 → 0; stale 4 → 0; parity diffs 3 → 0.
 - 2026-08-19 — reverted the Playwright browser cache added the previous day; it
-  took `Install the browser` from 27s to 25m55s and failed a gate.
+  took `Install the browser` from 27s to 25m55s and failed a gate. After removal:
+  21s.
+- 2026-08-19 — `494c44de` integrated to `develop` after all twelve required jobs
+  passed on that exact SHA (run 32191037082). `main` untouched at `b90f33e`.
+- 2026-08-19 — the develop run for the same SHA (32191753874) **reused the
+  evidence**: every heavy job skipped, gate green in 17 seconds instead of ~10
+  minutes. The exact-SHA reuse built in SESSION-0014 proving itself on a real
+  integration.
+- 2026-08-19 — `DATABASE_E2E_HEALTH_STATUS = FAIL` remains open and owned under
+  [[ITEM-0047]]; it is pre-existing and outside this framework implementation,
+  and is deliberately NOT closed by this session completing.

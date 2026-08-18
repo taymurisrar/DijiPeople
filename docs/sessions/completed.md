@@ -6,6 +6,7 @@ Sessions that reached a terminal state. Kept as history: the branch, the base it
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0016](../../docs/sessions/SESSION-0016-database-agent-security-agent-agent-reliability-and-obsidian.md) | — | Database Agent, Security Agent, agent reliability and Obsidian ownership | COMPLETE | `agent/agent-framework-hardening` | `develop` | — | 2026-08-18T20:06:16.992Z |
 | [SESSION-0013](../../docs/sessions/SESSION-0013-wp-10-landing-legal-trust-and-subprocessor-surface.md) | TASK-0007 | WP-10 landing legal, trust and subprocessor surface | COMPLETE | `agent/landing-legal-surface` | `develop` | — | 2026-08-18T18:22:58.471Z |
 | [SESSION-0012](../../docs/sessions/SESSION-0012-wp-03-wp-12-wp-10-wp-16-and-item-0047-cause-d.md) | TASK-0007 | WP-03, WP-12, WP-10, WP-16 and ITEM-0047 cause D | COMPLETE | `agent/consent-legal-knowledge` | `develop` | — | 2026-08-18T16:57:12.921Z |
 | [SESSION-0011](../../docs/sessions/SESSION-0011-item-0047-database-e2e-determinism.md) | — | ITEM-0047 — database e2e determinism | COMPLETE | `agent/database-e2e-determinism` | `develop` | — | 2026-08-18T14:43:47.468Z |
