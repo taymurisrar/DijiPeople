@@ -9,14 +9,14 @@
 |---|---|
 | Active sessions | **1** |
 | Active parent tasks | 2 |
-| Active work packages | 1 |
+| Active work packages | 2 |
 | Blocked work packages | 0 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **0** |
 | Open HIGH | 5 |
 | Awaiting Architect triage | 0 |
 | Owner decisions pending | 2 |
-| QA coverage gaps | 74 |
+| QA coverage gaps | 81 |
 | Scenarios blocked by infrastructure | 0 |
 
 ## Active Sessions
@@ -30,7 +30,7 @@
 | Task | Title | Type | Size | Progress | Current | Ready next | Blocked |
 |---|---|---|---|---|---|---|---|
 | [[TASK-0005-dijipeople-global-technical-remediation|TASK-0005]] | DijiPeople Global Technical Remediation | BUG | PROGRAM | 3/11 | WP-09 | WP-04, WP-06, WP-07, WP-08, WP-10 | — |
-| [[TASK-0007-commercial-platform-completion-transactional-legal-and-lifec|TASK-0007]] | Commercial platform completion — transactional, legal and lifecycle half | FEATURE | PROGRAM | 3/16 | WP-05 | WP-03, WP-05, WP-10, WP-13 | — |
+| [[TASK-0007-commercial-platform-completion-transactional-legal-and-lifec|TASK-0007]] | Commercial platform completion — transactional, legal and lifecycle half | FEATURE | PROGRAM | 3/16 | WP-06 | WP-03, WP-10, WP-13 | — |
 
 ## Branch model
 
@@ -160,6 +160,13 @@ gap into scope — or files a `TEST_GAP` item and says so.
 | [[PLAN-016-seat-billing|seat-billing]] | E2E |
 | [[PLAN-016-seat-billing|seat-billing]] | SECURITY |
 | [[PLAN-016-seat-billing|seat-billing]] | PERFORMANCE |
+| [[PLAN-017-subscription-orders|subscription-orders]] | UNIT |
+| [[PLAN-017-subscription-orders|subscription-orders]] | API |
+| [[PLAN-017-subscription-orders|subscription-orders]] | INTEGRATION |
+| [[PLAN-017-subscription-orders|subscription-orders]] | E2E |
+| [[PLAN-017-subscription-orders|subscription-orders]] | BROWSER |
+| [[PLAN-017-subscription-orders|subscription-orders]] | SECURITY |
+| [[PLAN-017-subscription-orders|subscription-orders]] | PERFORMANCE |
 
 ## Backlog Health
 

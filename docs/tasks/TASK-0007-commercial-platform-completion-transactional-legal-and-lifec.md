@@ -10,7 +10,7 @@ CREATED_AT: 2026-08-18
 AFFECTED_MODULES: [billing, super-admin, tenant-control-plane, legal, notifications, platform-events, employees, landing, admin, web]
 AGENTS: [Architect, Database, Backend/API, Frontend, UI/UX, Integration, QA, Reviewer, Integrator, Release/DevOps]
 DEPENDENCIES: origin/develop c332992; PARENT-SCOPE-RECONCILIATION; schema and permissions leases
-CURRENT_PACKAGE: WP-05
+CURRENT_PACKAGE: WP-06
 COMPLETED_PACKAGES: [WP-01, WP-02, WP-04]
 BLOCKED_PACKAGES: []
 OWNER_DECISIONS: 2
@@ -82,7 +82,7 @@ gate.
 | WP-02 | Legal document system, versioning and publication | DONE | WP-01 | Database, Backend/API | agent/commercial-platform-completion | 2bdac3a | PASS_WITH_RISKS | PASS | DONE |
 | WP-03 | Consent — privacy acknowledgement, marketing, cookie categories | NOT_STARTED | WP-02 | Backend/API, Frontend | — | — | NOT_RUN | NOT_RUN | NOT_STARTED |
 | WP-04 | Active-employee seat engine, usage history and overage | DONE | WP-01 | Database, Backend/API | agent/commercial-platform-completion | 416996d | PASS | PASS | DONE |
-| WP-05 | Customer-before-payment, pending subscription, checkout authority, tax basis | NOT_STARTED | WP-01, WP-04 | Database, Backend/API, Integration | — | — | NOT_RUN | NOT_RUN | NOT_STARTED |
+| WP-05 | Customer-before-payment, pending subscription, checkout authority, tax basis | CI | WP-01, WP-04 | Database, Backend/API, Integration | agent/commercial-platform-completion | 2051133 | PASS | PENDING_EXACT_SHA | NOT_STARTED |
 | WP-06 | Seat change and plan change lifecycle | NOT_STARTED | WP-04, WP-05 | Backend/API, Integration | — | — | NOT_RUN | NOT_RUN | NOT_STARTED |
 | WP-07 | Payment to onboarding to provisioning automation, steps, resumability, targets | NOT_STARTED | WP-01, WP-05 | Backend/API, Database, Integration | — | — | NOT_RUN | NOT_RUN | NOT_STARTED |
 | WP-08 | Cancellation, retention, holds, deletion request and erasure orchestration | NOT_STARTED | WP-01, WP-07 | Database, Backend/API | — | — | NOT_RUN | NOT_RUN | NOT_STARTED |
@@ -154,9 +154,9 @@ Updated 2026-08-18.
 
 ```text
 CURRENT_PHASE               PHASE 2 — implementation
-CURRENT_WORK_PACKAGE        WP-05 (next ready)
+CURRENT_WORK_PACKAGE        WP-06 (next ready)
 COMPLETED_WORK_PACKAGES     WP-01, WP-02, WP-04 — all merged behind a green required gate
-NEXT_READY_WORK_PACKAGE     WP-05 — customer-before-payment and checkout authority
+NEXT_READY_WORK_PACKAGE     WP-06 — seat and plan change lifecycle
 INTEGRATED_DEVELOP_SHA      416996d — fast-forward, develop tip IS the CI-verified SHA
 BASE_DEVELOP_SHA            304bfda
 MAIN                        b90f33e — UNTOUCHED
@@ -180,6 +180,7 @@ and WP-09 all depend on. Roots before leaves.
 - 2026-08-18 — created at `c332992` as the durable record for the existing commercial parent. Reconciliation re-probed; 16 packages sequenced; WP-01 started.
 - 2026-08-18 — WP-01 implemented at `6ebde36`: outbox schema, migration `20260818090000`, emitter/dispatcher/worker, 13 tests. Rebased onto `304bfda` after a sibling session landed the landing remediation and released the `workspace` lease.
 - 2026-08-18 — WP-02 implemented at `7c97ff2`: legal document schema and migration `20260818100000`, publication lifecycle with immutability enforced, lead and partner consent wired to published versions, `Subprocessor` model. The schema-derived tenant-erasure invariant caught both new tenant-owned models before they could reach a live erasure.
+- 2026-08-18 — WP-05 implemented at `2051133`: the `SubscriptionOrder` pre-payment snapshot, conservative customer deduplication (corporate domain **and** normalised company name, generic domains excluded), server-authoritative money, and the tax chain defaulting to `NOT_DETERMINED` rather than a fabricated rate or a false `NOT_APPLICABLE`. The erasure invariant forced two design changes: the order is *detached* rather than deleted, like `Contract`, because a financial record must outlive the workspace it paid for; and its plan pointers became `SetNull`, because `Plan` is tenant-owned and a retained order's `Restrict` edge would otherwise have blocked erasure entirely. A DB-backed test caught that a permanently unique `submissionHash` would make a company and plan unbuyable forever after one abandoned checkout.
 - 2026-08-18 — BUG-0070 found by the first real-PostgreSQL run of QA-BILLING-002 and fixed: outbox deduplication aborted the caller transaction. WP-04 (active-employee seat engine) implemented with 9 DB-backed tests. Both integrated at `416996d` by fast-forward; all 13 CI jobs green. A local PostgreSQL credential was supplied mid-session, so DB-backed proof now runs locally against `dijipeople_wp_test`, which carries the full 204-migration history applied to a fresh database.
 - 2026-08-18 — WP-01 and WP-02 integrated into `develop` at `2bdac3a` by fast-forward, so the develop tip is bit-for-bit the SHA the required gate verified. All 13 CI jobs green including browser e2e and the real-PostgreSQL migration gate. `origin/main` untouched at `b90f33e`; `DEVELOP_CONTAINS_MAIN = PASS`; POST_TASK_REPO_HEALTH = PASS.
 - 2026-08-18 — first exact-SHA CI on `7c97ff2` returned `failure`: framework validation (module inventory, task indexes, dashboards) and lint. **Database migration gate passed**, which is the real-PostgreSQL proof for both migrations. Fixed at `d02ae6c` and re-run.
