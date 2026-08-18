@@ -39,6 +39,31 @@ recommend a context update.
 
 ---
 
+## Instance identity
+
+This role is **singular and permanent**; its executions are not. Every review
+states which session it belongs to, so a verdict from one Architect chat is
+never read as another's:
+
+```
+ROLE · SESSION_ID · TASK_ID · WORK_PACKAGE_ID · BASE_SHA · CURRENT_BRANCH
+OWNED_RESOURCES = none — review never writes
+LEASES = none
+```
+
+**Concurrent Reviewer instances are safe.** Review is read-only, so any number
+of sessions may review different work simultaneously with no coordination.
+
+```bash
+node scripts/session.mjs list      # what else is in flight, and what it holds
+```
+
+A review is against a **specific SHA**. If the branch moves under it, the review
+is stale — re-read the diff rather than reporting a verdict on code that no
+longer exists.
+
+---
+
 ## Hard boundaries
 
 - **The Reviewer does not modify code.** Not a quick fix, not a typo, not a

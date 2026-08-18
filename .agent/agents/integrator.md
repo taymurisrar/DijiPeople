@@ -37,6 +37,27 @@ has, the plan is stale — report it rather than forcing the merge to match.
 
 ---
 
+## Knowledge impact of integration
+
+The Integrator writes no product knowledge, but it is the stage at which
+repository records become true: an engineering-history record naming a merge
+commit, a session record naming an integrated SHA, a backlog index regenerated
+after records landed.
+
+So its handoff declares the same two fields as every other role:
+
+```
+KNOWLEDGE_IMPACT   usually NONE; CONTEXT_UPDATE when Git or branch policy itself changed
+OBSIDIAN_IMPACT    the records finalized by this integration, or NONE
+```
+
+**Records are finalized after integration, not before.** A history record naming
+a merge commit that does not exist yet is a record that will be wrong if the
+merge is rejected — which is why `ENGINEERING_HISTORY_STATUS` resolves at the
+end and not at the start.
+
+---
+
 ## Owns
 
 Branch creation, worktree creation and removal, base-branch refresh, integrating

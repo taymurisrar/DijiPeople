@@ -87,6 +87,31 @@ for (const agent of REQUIRED_AGENTS) {
   const body = read(path);
   check(`${agent} declares Required Context`, body.includes('## Required Context'));
   check(`${agent} declares a Staleness Rule`, body.includes('Staleness Rule'));
+
+  /*
+   * Two properties every permanent role must carry, because their absence is
+   * invisible until it costs something.
+   *
+   * SESSION AWARENESS. The same role runs in several Architect chats at once.
+   * A role that never names SESSION_ID cannot say which chat its evidence came
+   * from, and two sessions' results become indistinguishable in the report.
+   * Five roles were missing this until 2026-08-19.
+   *
+   * KNOWLEDGE IMPACT. The specialist is the only party that knows whether what
+   * it built changed durable behaviour. A role that never declares it leaves the
+   * Architect inferring, which is how a new invariant ends up existing only in
+   * code and a chat transcript.
+   */
+  check(
+    `${agent} is session-aware`,
+    /SESSION_ID|session\.mjs/.test(body),
+    'the same role runs in multiple chats; an execution must name its session',
+  );
+  check(
+    `${agent} declares KNOWLEDGE_IMPACT in its handoff`,
+    body.includes('KNOWLEDGE_IMPACT'),
+    'only the specialist knows whether durable behaviour changed',
+  );
 }
 
 // The generic implementer role was superseded by the five specialists. A merge

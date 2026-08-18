@@ -267,9 +267,31 @@ FEEDBACK_PROMOTION_STATUS
 KNOWLEDGE_CAPTURE_STATUS
 OBSIDIAN_SYNC_STATUS
 OBSIDIAN_VERIFICATION_STATUS
+OBSIDIAN_SOURCE_ORPHANS
+OBSIDIAN_GRAPH_ORPHANS
+OBSIDIAN_UNRESOLVED_LINKS
+OBSIDIAN_STALE_GENERATED_COUNT
+OBSIDIAN_PARITY_DIFFS
 CONTROL_CENTER_STATUS
 CLEANUP_STATUS
 ```
+
+### The five counts verification actually reports
+
+`OBSIDIAN_VERIFICATION_STATUS = PASS` is a summary of five independent counts,
+and each failed independently before it was measured:
+
+| Field | Zero means |
+|---|---|
+| `OBSIDIAN_SOURCE_ORPHANS` | No generated note has lost its canonical source |
+| `OBSIDIAN_GRAPH_ORPHANS` | No generated knowledge node is isolated in the graph, except those explicitly `STANDALONE_ALLOWED` |
+| `OBSIDIAN_UNRESOLVED_LINKS` | Every generated wikilink resolves |
+| `OBSIDIAN_STALE_GENERATED_COUNT` | No vault copy is frozen because the sync stopped publishing its source |
+| `OBSIDIAN_PARITY_DIFFS` | Every vault copy matches its repository source |
+
+A source orphan and a graph orphan are **different failures**: a note can have a
+perfectly valid source and still be unreachable in the graph. Reporting one
+number for both hides whichever is smaller.
 
 ### Syncing is not verifying
 

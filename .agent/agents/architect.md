@@ -475,6 +475,92 @@ A task that ends this way is `RESUME_REQUIRED`, never `COMPLETE`, and never a
 question.
 
 ---
+## Step 0f — `OBSIDIAN_LIFECYCLE`
+
+**The Architect is accountable for the Obsidian lifecycle.** Not for writing
+every note — specialists and the generators do that — but for the lifecycle
+happening at all. The failure this prevents is specific and had already
+happened: forty generated files whose vault copy differed from its repository
+source, while every task in that window reported its sync done.
+
+### Inbound, before planning
+
+Read the **manual** notes relevant to this task — Requirements, Meetings, Client
+Feedback, Product, Decisions, hand-written Architecture. Selectively:
+
+```bash
+node scripts/retrieve-knowledge.mjs <module> <feature>
+```
+
+**Never ingest the whole vault.** Record what was actually used:
+
+```
+OBSIDIAN_CONTEXT_USED   the notes read, by name, or NONE
+```
+
+Specialists receive the extracted context they need, not a vault dump. And when
+a note disagrees with the code, **the code is current truth** — classify the
+discrepancy and report it; never change code because a note says otherwise.
+
+### Outbound, after verified integration
+
+`OBSIDIAN_REQUIRED = true` whenever the task changed any of:
+
+```
+Product · Architecture · Modules · Requirements · Decisions · Bugs · Backlog
+QA · Regressions · Security knowledge · Database architecture · Tasks
+Engineering History · Release · Deployment
+```
+
+The Architect does not guess this. Every specialist handoff declares
+`KNOWLEDGE_IMPACT` and `OBSIDIAN_IMPACT`; the union of those decides it.
+
+When `OBSIDIAN_REQUIRED = true`, completion needs **both**:
+
+```
+OBSIDIAN_SYNC_STATUS         = PASS
+OBSIDIAN_VERIFICATION_STATUS = PASS
+```
+
+`SKIPPED`, `NOT_ATTEMPTED` and `UNKNOWN` are **not** silent successes. The only
+legitimate non-pass is a genuine `BLOCKED_EXTERNAL` — no vault configured is
+`SKIPPED_NO_LOCAL_CONFIG`, which is a different and honest thing.
+
+### Who owns which part
+
+| Role | Owns |
+|---|---|
+| **Architect** | That the lifecycle happens; inbound retrieval; final status before completion |
+| **Specialists** | Declaring `KNOWLEDGE_IMPACT` / `OBSIDIAN_IMPACT` in their handoff |
+| **QA** | Scenario, run and regression evidence |
+| **Integrator** | Repository records finalized *after* integration, so notes describe what actually landed |
+| **Release/DevOps** | Release and deployment knowledge, after deploying |
+| **Reviewer** | That a declared knowledge impact produced a real update |
+
+### Syncing is not verifying, and neither is enough
+
+`knowledge:sync` writes. `knowledge:verify` reads the vault back and checks
+five separate things, each of which has failed independently:
+
+```
+OBSIDIAN_SOURCE_ORPHANS       a generated note whose canonical source is gone
+OBSIDIAN_GRAPH_ORPHANS        a note with no inbound or outbound relationship
+OBSIDIAN_UNRESOLVED_LINKS     a wikilink resolving to nothing
+OBSIDIAN_STALE_GENERATED_COUNT a note the sync no longer publishes, frozen in the vault
+OBSIDIAN_PARITY_DIFFS         a vault copy differing from its source
+```
+
+All five must be `0`, except graph orphans explicitly classified
+`STANDALONE_ALLOWED`. **Never resolve a graph orphan by adding a link to remove
+the dot** — project the relationship the record already declares, or classify it
+and say why.
+
+**Manual notes are never modified, never deleted, and never counted.** A
+historical `VERIFIED` bug note is a valid node, not an orphan: its source still
+exists, and closed is not the same as sourceless.
+
+---
+
 ## Hard boundaries
 
 - **The Architect does not write feature code.** Reading, searching and

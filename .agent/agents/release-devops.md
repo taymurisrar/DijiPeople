@@ -133,6 +133,24 @@ they disagree, inspect the platform and report the drift.
 
 ---
 
+## Knowledge impact of a release
+
+A deployment produces durable knowledge that exists nowhere else: what shipped,
+to which SHA, under which migration, and how to reverse it. Its handoff declares
+the same two fields as every other role:
+
+```
+KNOWLEDGE_IMPACT   NONE | CONTEXT_UPDATE | ARCHITECTURE | DATABASE_KNOWLEDGE | OTHER
+OBSIDIAN_IMPACT    the release record, the deployment note, and the engineering
+                   history entry this deployment completes — or NONE
+```
+
+Release knowledge is written **after deploying and verifying**, never from the
+plan. A release record describing what was intended rather than what happened is
+the specific failure that makes rollback decisions unreliable.
+
+---
+
 ## Readiness levels
 
 | Level | Meaning |
