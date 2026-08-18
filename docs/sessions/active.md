@@ -12,5 +12,5 @@ therefore sees sibling worktrees without anybody having pushed.
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
-| [SESSION-0006](../../docs/sessions/SESSION-0006-commercial-platform-final-parent-completion.md) | TASK-0007 | Commercial platform final parent completion | ACTIVE | `agent/commercial-platform-completion` | `develop` | schema, permissions, workspace | 2026-08-17T23:15:57.480Z |
+| [SESSION-0006](../../docs/sessions/SESSION-0006-commercial-platform-final-parent-completion.md) | TASK-0007 | Commercial platform final parent completion | ACTIVE | `agent/commercial-platform-completion` | `develop` | — | 2026-08-17T23:15:57.480Z |
 | [SESSION-0003](../../docs/sessions/SESSION-0003-dijipeople-global-technical-remediation.md) | TASK-0005 | DijiPeople Global Technical Remediation | ACTIVE | `agent/remediation-authorization` | `develop` | permissions, record-indexes | 2026-08-17T14:12:24.722+03:00 |

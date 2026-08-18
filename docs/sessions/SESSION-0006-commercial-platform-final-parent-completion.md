@@ -13,11 +13,11 @@ TASK_BRANCH: agent/commercial-platform-completion
 TARGET_BRANCH: develop
 WORKTREE: D:/My Work/hrm-dijipeople/dijipeople-bugs
 AFFECTED_MODULES: [outbox, legal, leads, partner-experience, tenant-control-plane]
-WRITE_LEASES: [schema, permissions, workspace]
+WRITE_LEASES: []
 ACTIVE_WORK_PACKAGES: [WP-01, WP-02]
 SCHEMA_WRITE: YES
-CI_STATUS: RUNNING
-MERGE_STATUS: NOT_STARTED
+CI_STATUS: PASS
+MERGE_STATUS: DONE
 STARTED_AT: 2026-08-17T23:15:57.480Z
 LAST_HEARTBEAT: 2026-08-17T23:15:57.480Z
 BLOCKERS: none
@@ -31,7 +31,12 @@ Commercial platform final parent completion
 
 ## Scope
 
-_To be established during planning._
+WP-01 (transactional outbox) and WP-02 (legal document system) of TASK-0007,
+integrated into `develop` at `2bdac3a` behind a green exact-SHA required gate.
+
+The remaining 14 packages of the parent are **not** in this session. They are
+sequenced in the parent record, and the next invocation registers a new session
+and starts at WP-04.
 
 ## Concurrency
 
