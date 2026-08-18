@@ -251,13 +251,30 @@ function commandFind(options) {
     return 0;
   };
 
+  /*
+   * Deliberately NOT filtered on `run.status === 'completed'`.
+   *
+   * That filter was here first, and running it proved it wrong. The report-only
+   * `database-e2e-report` job keeps a run `in_progress` long after the required
+   * gate has passed — the same job, and the same unboundedness, behind the three
+   * misread cancellations this whole mechanism exists for. With the filter in
+   * place, develop@3f6775e found no eligible candidate and re-ran the entire
+   * pipeline against a tree that run 32178458380 had already proven, which is
+   * precisely the duplication this job is supposed to eliminate.
+   *
+   * Evidence is a property of the REQUIRED JOBS, not of the run envelope. A job
+   * conclusion is terminal once set, so eleven green required jobs mean the same
+   * thing whether or not a non-gating job is still writing its report. A job
+   * that is still running has `conclusion: null`, which is not `success`, so
+   * `evaluateRun` rejects it anyway — the safety comes from the job check, and
+   * the run-level filter only ever discarded valid evidence.
+   */
   const body = ghJson(
     `repos/${repo}/actions/runs?head_sha=${encodeURIComponent(sha)}&per_page=100`,
   );
   const candidates = (body.workflow_runs ?? [])
     .filter((run) => String(run.id) !== String(excludeRun ?? ''))
     .filter((run) => run.path === '.github/workflows/ci.yml')
-    .filter((run) => run.status === 'completed')
     .filter((run) => run.head_sha === sha)
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 

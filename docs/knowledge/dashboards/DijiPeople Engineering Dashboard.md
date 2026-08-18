@@ -149,12 +149,12 @@ _None._
 
 - [[2026-08-18-landing-uiux-remediation-ab3bc73|Engineering History — Landing UI/UX remediation]]
 - [[2026-08-18-commercial-platform-outbox-and-legal|Engineering History — Commercial platform: transactional outbox and legal documents]]
+- [[2026-08-18-ci-performance-cancellation-rca-3f6775e|Engineering History — CI performance, cancellation RCA and autonomous CI adaptation]]
 - [[2026-08-17-landing-uiux-browser-qa-and-agent-hardening-1f6e842|Engineering History — Landing UI/UX browser QA and UI/UX agent hardening]]
 - [[2026-08-17-framework-remediation-e6a173d|Engineering History — Framework remediation]]
 - [[2026-08-16-web-app-documentation-1af3690|Engineering History — Web app documentation]]
 - [[2026-08-16-public-commercial-wave2-301a397|Engineering History — Wave 2: Public Plans + Features Experience]]
 - [[2026-08-16-production-url-integrity-344a832|Engineering History — Production url integrity]]
-- [[2026-08-16-monorepo-app-documentation-78072d2|Engineering History — Monorepo app documentation]]
 
 ## Recent Releases
 
@@ -206,10 +206,10 @@ _None. Nothing has been deployed through the release process._
 | Backlog items | 56 |
 | Known bug patterns | 19 |
 | QA runs | 17 |
-| Engineering history records | 15 |
+| Engineering history records | 16 |
 | Release records | 0 |
 | Module notes | 24 |
-| Architecture notes | 18 |
+| Architecture notes | 19 |
 | Decision notes (ADR + generated) | 6 |
 | Implementation records | 4 |
 
