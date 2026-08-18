@@ -84,7 +84,9 @@ export class OutboxWorkerService implements OnModuleInit, OnModuleDestroy {
   }
 
   private batchSize(): number {
-    const raw = Number(this.configService.get<string>('OUTBOX_WORKER_BATCH_SIZE'));
+    const raw = Number(
+      this.configService.get<string>('OUTBOX_WORKER_BATCH_SIZE'),
+    );
     if (!Number.isFinite(raw) || raw <= 0) {
       return DEFAULT_BATCH_SIZE;
     }

@@ -155,7 +155,11 @@ export class LegalService {
    */
   async updateDraft(
     versionId: string,
-    data: { contentMarkdown?: string; changeSummary?: string; effectiveFrom?: Date },
+    data: {
+      contentMarkdown?: string;
+      changeSummary?: string;
+      effectiveFrom?: Date;
+    },
   ) {
     const existing = await this.prisma.legalDocumentVersion.findUnique({
       where: { id: versionId },

@@ -45,7 +45,10 @@ function setup(referral: unknown) {
     { record: jest.fn() } as never,
     // Nothing published in these specs, so the service falls back to the
     // pre-launch constant — which is what the assertions below expect.
-    { resolvePublished: jest.fn(async () => null), acknowledge: jest.fn() } as never,
+    {
+      resolvePublished: jest.fn(async () => null),
+      acknowledge: jest.fn(),
+    } as never,
   );
   return { service, create, tx };
 }

@@ -1,7 +1,4 @@
-import {
-  LegalDocumentType,
-  LegalDocumentVersionStatus,
-} from '@prisma/client';
+import { LegalDocumentType, LegalDocumentVersionStatus } from '@prisma/client';
 import { LegalService } from './legal.service';
 import type { PrismaService } from '../../common/prisma/prisma.service';
 
@@ -62,7 +59,14 @@ describe('LegalService', () => {
   describe('resolvePublished', () => {
     it('returns null when nothing is published rather than inventing a document', async () => {
       prisma.legalDocument.findMany.mockResolvedValue([
-        { id: 'doc_1', slug: 'privacy', type: LegalDocumentType.PRIVACY_POLICY, title: 'Privacy', marketId: null, versions: [] },
+        {
+          id: 'doc_1',
+          slug: 'privacy',
+          type: LegalDocumentType.PRIVACY_POLICY,
+          title: 'Privacy',
+          marketId: null,
+          versions: [],
+        },
       ]);
 
       await expect(
@@ -256,7 +260,9 @@ describe('LegalService', () => {
   describe('acknowledge', () => {
     it('writes through a caller transaction when one is given', async () => {
       const tx = {
-        legalDocumentAcknowledgement: { create: jest.fn().mockResolvedValue({}) },
+        legalDocumentAcknowledgement: {
+          create: jest.fn().mockResolvedValue({}),
+        },
       };
 
       await service.acknowledge(

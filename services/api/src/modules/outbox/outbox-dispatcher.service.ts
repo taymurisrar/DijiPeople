@@ -215,11 +215,20 @@ export class OutboxDispatcherService {
         continue;
       }
 
-      await this.recordConsumption(event, handler, true, outcome.detail ?? null);
+      await this.recordConsumption(
+        event,
+        handler,
+        true,
+        outcome.detail ?? null,
+      );
     }
 
     if (manualAction) {
-      await this.settle(event, OutboxEventStatus.MANUAL_ACTION_REQUIRED, manualAction);
+      await this.settle(
+        event,
+        OutboxEventStatus.MANUAL_ACTION_REQUIRED,
+        manualAction,
+      );
       return 'MANUAL_ACTION_REQUIRED';
     }
 

@@ -23,7 +23,10 @@ function serviceWith(prisma: Record<string, unknown>) {
     {} as never,
     {} as never,
     {} as never,
-    { resolvePublished: jest.fn(async () => null), acknowledge: jest.fn() } as never,
+    {
+      resolvePublished: jest.fn(async () => null),
+      acknowledge: jest.fn(),
+    } as never,
   );
 }
 
