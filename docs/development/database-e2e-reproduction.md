@@ -63,7 +63,17 @@ workers, so they interfere. Two runs of the identical command minutes apart gave
 5 and then 10 failing suites, with different membership — including suites that
 had just passed on their own.
 
-That is ITEM-0047 cause D and it is not fixed. Until it is:
+**Fixed on 2026-08-18** by `"maxWorkers": 1` in `test/jest-e2e.json`. It is set in
+the config rather than passed as `--runInBand` on the CI command line so that
+*every* invocation gets it — a flag on one command is a flag somebody eventually
+runs without, and the failure mode is a number that looks authoritative and
+isn't. JSON has no comments, which is why the reasoning lives here.
+
+Database-per-suite would isolate more strongly, and was rejected: 21 suites would
+mean 21 full migration deploys per CI run, and the interference being solved is
+concurrent writes to shared tables, which serialising already removes.
+
+Until the suites also stop reaching for ambient seeded data:
 
 - To judge one suite, run **only** that suite:
   `npx jest --config ./test/jest-e2e.json --testPathPatterns <name>`

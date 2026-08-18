@@ -49,6 +49,11 @@ function setup(referral: unknown) {
       resolvePublished: jest.fn(async () => null),
       acknowledge: jest.fn(),
     } as never,
+    {
+      record: jest.fn(),
+      withdraw: jest.fn(),
+      currentState: jest.fn(),
+    } as never,
   );
   return { service, create, tx };
 }

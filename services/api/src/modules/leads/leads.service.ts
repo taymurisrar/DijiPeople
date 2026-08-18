@@ -5,6 +5,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
+  ConsentState,
+  ConsentType,
   LeadAttributionStatus,
   LegalDocumentType,
   LeadInquiryIntent,
@@ -26,7 +28,9 @@ import {
 } from './dto/admin-lead.dto';
 import { SubmitLeadDto } from './dto/submit-lead.dto';
 import { LegalService } from '../legal/legal.service';
+import { ConsentService } from '../legal/consent.service';
 import {
+  CURRENT_MARKETING_CONSENT_VERSION,
   CURRENT_PRIVACY_NOTICE_VERSION,
   LEAD_INQUIRY_INTENT_OPTIONS,
 } from './acquisition.catalog';
@@ -72,6 +76,7 @@ export class LeadsService {
     private readonly communications: PlatformCommunicationsService,
     private readonly events: PlatformEventsService,
     private readonly legalService: LegalService,
+    private readonly consentService: ConsentService,
   ) {}
 
   async submitLead(dto: SubmitLeadDto, correlationId?: string) {
@@ -232,6 +237,31 @@ export class LeadsService {
           tx,
         );
       }
+
+      /*
+       * Marketing consent, recorded separately from the notice
+       * acknowledgement above. They are different agreements: being told what
+       * happens to your data is not permission to email you, and collapsing
+       * them is the bundling the brief forbids.
+       *
+       * A DECLINED row is written when the box was left unchecked, because
+       * "asked and said no" and "never asked" are different facts and only the
+       * first one means the form was compliant.
+       */
+      await this.consentService.record(
+        {
+          type: ConsentType.MARKETING_EMAIL,
+          state:
+            dto.marketingConsent === true
+              ? ConsentState.GRANTED
+              : ConsentState.DECLINED,
+          leadId: created.id,
+          subjectEmail: created.workEmail,
+          definitionVersion: CURRENT_MARKETING_CONSENT_VERSION,
+          source: 'landing:contact',
+        },
+        tx,
+      );
 
       return created;
     });

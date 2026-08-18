@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { LegalService } from './legal.service';
+import { ConsentService } from './consent.service';
 import { PublicLegalController } from './public-legal.controller';
 
 /**
@@ -10,7 +11,7 @@ import { PublicLegalController } from './public-legal.controller';
  */
 @Module({
   controllers: [PublicLegalController],
-  providers: [LegalService],
-  exports: [LegalService],
+  providers: [LegalService, ConsentService],
+  exports: [LegalService, ConsentService],
 })
 export class LegalModule {}

@@ -20,11 +20,15 @@ import { NotificationsController } from './notifications.controller';
 import { SecretEncryptionService } from '../../common/security/secret-encryption.service';
 import { NotificationsRepository } from './notifications.repository';
 import { NotificationsService } from './notifications.service';
+import { LifecycleNotificationHandler } from './lifecycle-notification.handler';
 
 @Module({
   imports: [TenantSettingsModule, forwardRef(() => WorkflowsModule)],
   controllers: [NotificationsController],
   providers: [
+    // Registers itself with the outbox dispatcher on init. See the note in
+    // BillingModule for why this is not an OUTBOX_HANDLERS provider.
+    LifecycleNotificationHandler,
     ConsoleEmailProvider,
     EmailDeliveryLogService,
     EmailExecutionService,

@@ -60,6 +60,11 @@ describe('public lead acquisition', () => {
         resolvePublished: jest.fn(async () => null),
         acknowledge: jest.fn(),
       } as never,
+      {
+        record: jest.fn(),
+        withdraw: jest.fn(),
+        currentState: jest.fn(),
+      } as never,
     );
 
     return { service, created, prisma, events, repository };

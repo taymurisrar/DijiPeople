@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { DomainEventType } from '@prisma/client';
 import type { OutboxEvent, Prisma } from '@prisma/client';
 import type {
@@ -6,6 +6,7 @@ import type {
   OutboxHandlerOutcome,
 } from '../../outbox/outbox.types';
 import { OrderActivationService } from './order-activation.service';
+import { OutboxDispatcherService } from '../../outbox/outbox-dispatcher.service';
 
 /**
  * The first real outbox consumer: a confirmed payment opens an onboarding case
@@ -21,13 +22,22 @@ import { OrderActivationService } from './order-activation.service';
  * day; both together are what makes a duplicate webhook delivery boring.
  */
 @Injectable()
-export class PaymentConfirmedHandler implements OutboxHandler {
+export class PaymentConfirmedHandler implements OutboxHandler, OnModuleInit {
   readonly consumerKey = 'billing.payment-confirmed.open-onboarding';
   readonly handles = [DomainEventType.PAYMENT_CONFIRMED];
 
   private readonly logger = new Logger(PaymentConfirmedHandler.name);
 
-  constructor(private readonly activation: OrderActivationService) {}
+  constructor(
+    private readonly activation: OrderActivationService,
+    private readonly dispatcher: OutboxDispatcherService,
+  ) {}
+
+  onModuleInit(): void {
+    // Self-registration rather than an OUTBOX_HANDLERS provider: two modules
+    // providing that token would silently drop one module's consumers.
+    this.dispatcher.register(this);
+  }
 
   async handle(
     event: OutboxEvent,

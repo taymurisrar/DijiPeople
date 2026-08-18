@@ -55,12 +55,49 @@ export class OutboxDispatcherService {
     handlers: OutboxHandler[] | undefined,
   ) {
     for (const handler of handlers ?? []) {
-      for (const eventType of handler.handles) {
-        const existing = this.handlersByType.get(eventType) ?? [];
-        existing.push(handler);
-        this.handlersByType.set(eventType, existing);
+      this.register(handler);
+    }
+  }
+
+  /**
+   * Add a consumer at runtime.
+   *
+   * WHY THIS EXISTS RATHER THAN EVERY MODULE PROVIDING `OUTBOX_HANDLERS`.
+   * A Nest injection token holds one value. Two domain modules both providing
+   * `OUTBOX_HANDLERS` do not merge — the last one loaded wins and the other
+   * module's consumers are silently dropped, with the outbox reporting every
+   * event as PROCESSED because from its point of view nobody was listening.
+   * That is a data-loss bug that looks like success, which is the worst shape a
+   * bug can have here.
+   *
+   * So handlers self-register instead. Each one calls this from its own
+   * `onModuleInit`, which also keeps the dependency pointing from the domain to
+   * the mechanism rather than the reverse.
+   *
+   * Idempotent: registering the same `consumerKey` twice is ignored, because a
+   * duplicate registration would run the consumer twice per event and the
+   * consumption record would only prove one of them.
+   */
+  register(handler: OutboxHandler): void {
+    for (const eventType of handler.handles) {
+      const existing = this.handlersByType.get(eventType) ?? [];
+      if (existing.some((known) => known.consumerKey === handler.consumerKey)) {
+        continue;
+      }
+      existing.push(handler);
+      this.handlersByType.set(eventType, existing);
+    }
+  }
+
+  /** Registered consumer keys, for diagnostics and tests. */
+  registeredConsumerKeys(): string[] {
+    const keys = new Set<string>();
+    for (const handlers of this.handlersByType.values()) {
+      for (const handler of handlers) {
+        keys.add(handler.consumerKey);
       }
     }
+    return [...keys].sort();
   }
 
   /**

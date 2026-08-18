@@ -2629,6 +2629,7 @@ model CustomerAccount {
   subscriptionOrders         SubscriptionOrder[]
   tenantProvisioningRuns     TenantProvisioningRun[]
   refundRequests             RefundRequest[]
+  consentRecords             ConsentRecord[]
 
   // ITEM-0008 — commercial reports group customers by channel.
   @@index([originChannel])
@@ -2811,6 +2812,7 @@ model Lead {
   @@index([partnerId])
   @@index([partnerReferralLinkId])
   subscriptionOrders             SubscriptionOrder[]
+  consentRecords                 ConsentRecord[]
 
   @@index([attributionStatus, referredAt])
   @@index([agreedPlanId])
@@ -13609,4 +13611,93 @@ model ReconciliationFinding {
   @@index([runId, outcome])
   @@index([entityType, entityId])
   @@index([tenantId])
+}
+
+// ---------------------------------------------------------------------------
+// Consent
+//
+// Three different things were being conflated, and the brief is explicit that
+// they must not be:
+//
+//   Privacy notice acknowledgement — "I have been told what you do with my
+//     data". Already handled: LegalDocumentAcknowledgement, pointing at an
+//     immutable published version.
+//   Marketing consent — "you may email me". OPTIONAL, and never a condition of
+//     submitting a form.
+//   Cookie consent — "you may run non-essential scripts".
+//
+// `Lead.marketingConsent` and friends already record the current state as
+// booleans. Those stay: three frontends read them. What they cannot answer is
+// *what* was agreed to and *when it changed* — a boolean has no version, no
+// source and no history, so "prove this person opted in" has no answer beyond
+// "a column says true".
+//
+// ConsentRecord is that history. The booleans remain the fast current-state
+// read; this is the evidence behind them.
+// ---------------------------------------------------------------------------
+
+enum ConsentType {
+  MARKETING_EMAIL
+  /// Cookie categories. ESSENTIAL is deliberately absent: it is not a choice,
+  /// so offering it as one would be a dark pattern — a toggle that does nothing
+  /// but imply the visitor had a say.
+  COOKIE_FUNCTIONAL
+  COOKIE_ANALYTICS
+  COOKIE_MARKETING
+}
+
+enum ConsentState {
+  GRANTED
+  /// Actively refused. Distinct from never having been asked, which is the
+  /// absence of a row.
+  DECLINED
+  /// Granted and later taken back. `withdrawnAt` says when.
+  WITHDRAWN
+}
+
+model ConsentRecord {
+  id    String       @id @default(uuid())
+  type  ConsentType
+  state ConsentState
+
+  /// Who. All nullable because consent is given at every stage of the funnel —
+  /// an anonymous visitor accepting cookies has none of these, a lead has an
+  /// email, a tenant user has all of them.
+  visitorId         String?
+  subjectEmail      String?
+  leadId            String?
+  customerAccountId String?
+  tenantId          String?
+  userId            String?
+
+  /// The wording or definition the person was actually shown. Without this,
+  /// "they consented to marketing" means nothing in two years when the copy has
+  /// changed three times.
+  definitionVersion String
+
+  /// Where it happened, e.g. `landing:contact`, `landing:cookie-banner`,
+  /// `web:preferences`. A withdrawal from the preferences page and one from an
+  /// unsubscribe link are different facts about how well the flow works.
+  source String
+
+  grantedAt   DateTime?
+  withdrawnAt DateTime?
+
+  /// Evidence of the event itself, never used to profile anyone.
+  ipAddress String?
+  userAgent String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  lead     Lead?            @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  customer CustomerAccount? @relation(fields: [customerAccountId], references: [id], onDelete: SetNull)
+
+  /// The withdrawal lookup: the current state for one subject and one type.
+  @@index([subjectEmail, type, createdAt])
+  @@index([visitorId, type])
+  @@index([leadId])
+  @@index([customerAccountId])
+  @@index([tenantId, type])
+  @@index([type, state])
 }

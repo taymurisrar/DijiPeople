@@ -58,6 +58,11 @@ function setup(
       resolvePublished: jest.fn(async () => null),
       acknowledge: jest.fn(),
     } as never,
+    {
+      record: jest.fn(),
+      withdraw: jest.fn(),
+      currentState: jest.fn(),
+    } as never,
   );
   const user = {
     userId: 'user-1',

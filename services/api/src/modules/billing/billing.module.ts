@@ -27,7 +27,6 @@ import { PaymentConfirmedHandler } from './services/payment-confirmed.handler';
 import { CancellationService } from './services/cancellation.service';
 import { RetentionHoldService } from './services/retention-hold.service';
 import { ReconciliationService } from './services/reconciliation.service';
-import { OUTBOX_HANDLERS } from '../outbox/outbox.types';
 
 @Module({
   imports: [AuthModule, AuditModule],
@@ -58,15 +57,13 @@ import { OUTBOX_HANDLERS } from '../outbox/outbox.types';
     CancellationService,
     RetentionHoldService,
     ReconciliationService,
-    {
-      // Contributed here rather than in OutboxModule so the dependency runs
-      // from the domain to the mechanism, not the other way round.
-      provide: OUTBOX_HANDLERS,
-      inject: [PaymentConfirmedHandler],
-      useFactory: (paymentConfirmed: PaymentConfirmedHandler) => [
-        paymentConfirmed,
-      ],
-    },
+    // PaymentConfirmedHandler registers itself with the dispatcher in its own
+    // onModuleInit. It used to be contributed through an OUTBOX_HANDLERS
+    // provider here, which only worked while exactly one module did that: a
+    // Nest token holds one value, so the moment `notifications` added its own
+    // handler the last module loaded would have won and the other module's
+    // consumers would have been dropped — with the outbox still reporting every
+    // event PROCESSED, because from its side nobody was listening.
     JwtAuthGuard,
     PermissionsGuard,
   ],

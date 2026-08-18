@@ -83,6 +83,21 @@ services:
         value: "100"
       - key: SEAT_OVERAGE_REVIEW_ABSOLUTE
         value: "100"
+      # Who hears about a failed payment or a broken provisioning run. There is
+      # deliberately NO fallback address: a hardcoded operator email works until
+      # that person leaves, and then critical notifications go to a mailbox
+      # nobody reads with nothing reporting that they do. Unset means the
+      # lifecycle handler marks those events MANUAL_ACTION_REQUIRED and they
+      # stay visible in the outbox instead of being silently marked delivered.
+      - key: PLATFORM_OPS_NOTIFICATION_EMAILS
+        sync: false
+      # How long tenant data is kept after access ends. The value in force is
+      # copied onto each TenantRetention row when it starts, so changing this
+      # never shortens a window a customer was already promised.
+      - key: TENANT_RETENTION_DAYS
+        value: "60"
+      - key: RETENTION_POLICY_VERSION
+        sync: false
       # Platform and tenant email both fall back to this provider when no
       # per-tenant provider row exists. Without it resolveProvider returns null
       # in production and every outbound email fails — invitations, contract

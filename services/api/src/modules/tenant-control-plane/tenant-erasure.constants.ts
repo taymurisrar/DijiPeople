@@ -198,6 +198,11 @@ export const TENANT_ERASURE_DELETE_ORDER: string[] = [
   'subscriptionCancellation',
   'tenantDeletionRequest',
   'legalDocumentAcknowledgement',
+  // Consent given by people INSIDE the tenant, deleted with it for exactly the
+  // reason the acknowledgement above is. Consent from a lead or a customer
+  // carries no tenantId, is not tenant-owned, and survives untouched — which is
+  // what keeps "did this company opt in" answerable after the workspace goes.
+  'consentRecord',
   'activityEvent',
   'agentLocationRequest',
   'agentRefreshToken',
