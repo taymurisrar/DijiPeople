@@ -178,6 +178,7 @@ export function ContactForm({
           autoComplete="given-name"
           id={`${formId}-first`}
           label="First name"
+          name="firstName"
           onChange={(value) => update("firstName", value)}
           required
           value={form.firstName}
@@ -186,6 +187,7 @@ export function ContactForm({
           autoComplete="family-name"
           id={`${formId}-last`}
           label="Last name"
+          name="lastName"
           onChange={(value) => update("lastName", value)}
           optionalHint
           value={form.lastName}
@@ -197,6 +199,7 @@ export function ContactForm({
           autoComplete="email"
           id={`${formId}-email`}
           label="Work email"
+          name="email"
           onChange={(value) => update("email", value)}
           required
           type="email"
@@ -206,6 +209,7 @@ export function ContactForm({
           autoComplete="organization"
           id={`${formId}-company`}
           label="Company or organization"
+          name="company"
           onChange={(value) => update("company", value)}
           required
           value={form.company}
@@ -217,6 +221,7 @@ export function ContactForm({
           autoComplete="tel"
           id={`${formId}-phone`}
           label="Phone number"
+          name="phone"
           onChange={(value) => update("phone", value)}
           optionalHint
           type="tel"
@@ -230,6 +235,7 @@ export function ContactForm({
           <select
             className="mt-2 w-full rounded-xl border border-border bg-white px-3 py-2 font-normal"
             id={`${formId}-country`}
+            name="country"
             onChange={(event) => update("country", event.target.value)}
             value={form.country}
           >
@@ -252,6 +258,7 @@ export function ContactForm({
           <select
             className="mt-2 w-full rounded-xl border border-border bg-white px-3 py-2 font-normal"
             id={`${formId}-intent`}
+            name="inquiryIntent"
             onChange={(event) =>
               update(
                 "inquiryIntent",
@@ -278,6 +285,7 @@ export function ContactForm({
           <select
             className="mt-2 w-full rounded-xl border border-border bg-white px-3 py-2 font-normal"
             id={`${formId}-size`}
+            name="companySize"
             onChange={(event) => update("companySize", event.target.value)}
             value={form.companySize}
           >
@@ -335,6 +343,7 @@ export function ContactForm({
         <textarea
           className="mt-2 min-h-32 w-full rounded-xl border border-border px-3 py-2 font-normal"
           id={`${formId}-message`}
+            name="message"
           maxLength={1500}
           onChange={(event) => update("message", event.target.value)}
           value={form.message}
@@ -408,6 +417,7 @@ function Field({
   autoComplete,
   id,
   label,
+  name,
   onChange,
   optionalHint,
   required,
@@ -417,6 +427,7 @@ function Field({
   autoComplete?: string;
   id: string;
   label: string;
+  name: string;
   onChange: (value: string) => void;
   optionalHint?: boolean;
   required?: boolean;
@@ -433,6 +444,7 @@ function Field({
         autoComplete={autoComplete}
         className="mt-2 w-full rounded-xl border border-border px-3 py-2 font-normal"
         id={id}
+        name={name}
         onChange={(event) => onChange(event.target.value)}
         required={required}
         type={type}

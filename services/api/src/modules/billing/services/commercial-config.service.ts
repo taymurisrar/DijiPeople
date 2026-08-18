@@ -27,6 +27,44 @@ import {
  * resolves through `resolveCommercialOffer`, so there is one set of rules and
  * one place to change them.
  */
+/**
+ * The public commercial-config response contract.
+ *
+ * Declared as a type, and applied as an explicit return type below, because the
+ * no-market branch silently omitted `featureCatalog` (BUG-0065). Both branches
+ * are structurally valid objects, so nothing caught the divergence until the
+ * landing site logged an error on six public routes. With this annotation a
+ * missing key is a compile error rather than a runtime console message.
+ */
+export type PublicCommercialConfig = {
+  market: {
+    code: string;
+    name: string;
+    selfServiceEnabled: boolean;
+    launchStatus: string;
+  } | null;
+  currency: string | null;
+  billingIntervals: BillingInterval[];
+  plans: PublicCommercialPlan[];
+  featureCatalog: PublicCommercialFeature[];
+};
+
+export type PublicCommercialFeature = ReturnType<
+  typeof buildPublicFeatureCatalog
+>[number];
+
+type PublicCommercialPlan = {
+  id: string;
+  key: string;
+  name: string;
+  description: string | null;
+  sortOrder: number;
+  salesModel: CommercialSalesModel;
+  metadata: Record<string, unknown> | null;
+  features: string[];
+  offers: unknown[];
+};
+
 @Injectable()
 export class CommercialConfigService {
   private readonly logger = new Logger(CommercialConfigService.name);
@@ -83,7 +121,7 @@ export class CommercialConfigService {
     marketCodeOverride?: string | null;
     allowMarketOverride?: boolean;
     effectiveAt?: Date;
-  }) {
+  }): Promise<PublicCommercialConfig> {
     const effectiveAt = input.effectiveAt ?? new Date();
 
     const market =
@@ -105,6 +143,11 @@ export class CommercialConfigService {
         currency: null,
         plans: [],
         billingIntervals: [],
+        // The catalogue is derived from TENANT_FEATURE_DEFINITIONS, not from the
+        // market, so it is just as available here as on the resolved path. It
+        // was omitted, which broke this endpoint's own response shape on exactly
+        // the path a freshly deployed environment takes.
+        featureCatalog: buildPublicFeatureCatalog(),
       };
     }
 

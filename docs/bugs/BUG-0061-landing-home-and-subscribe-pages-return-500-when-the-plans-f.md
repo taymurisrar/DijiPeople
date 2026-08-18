@@ -2,7 +2,7 @@
 ID: BUG-0061
 aliases: [BUG-0061]
 Title: Landing home and subscribe pages return 500 when the plans fetch fails
-Status: OPEN
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-17
 DetectedInSha: f58ee1d
 AffectedModules: [apps/landing]
 OwnerAgent: frontend
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: docs/qa/runs/2026-08-17-landing-uiux-browser-qa-f58ee1d.md
-RegressionId: 
+RegressionId: REG-057
 RelatedBacklogItem:
 RelatedDecision:
-RelatedImplementation:
+RelatedImplementation: agent/landing-uiux-remediation
 CreatedAt: 2026-08-17
-UpdatedAt: 2026-08-17
-ResolvedAt:
+UpdatedAt: 2026-08-18
+ResolvedAt: 2026-08-18
 ---
 
 # BUG-0061 — Landing home and subscribe pages return 500 when the plans fetch fails
@@ -129,12 +129,44 @@ None. Overlaps [[ITEM-0046-add-landing-loading-error-and-not-found-boundaries]].
 
 ## Resolution
 
-Not yet fixed.
+`apps/landing/lib/plans-server.ts` rewritten. The fetch is wrapped, carries an
+explicit 8s `AbortSignal.timeout`, and every outcome resolves to one of five named
+states rather than a thrown error or a single opaque message:
+
+```
+OK · EMPTY · API_UNAVAILABLE · API_ERROR · MALFORMED
+```
+
+The distinction is the point. "We could not reach our pricing service" is a
+temporary condition worth retrying; "no plans are published for your region" is
+not. Collapsing them either tells people to retry something that will never
+work, or hides an outage behind an empty state. Each failure is logged, so a
+persistent backend fault stays visible rather than silently absorbed.
+
+A structural guard drops any plan missing `id`/`key`/`name`/`prices` instead of
+letting a partial record reach a price calculation, and a non-array envelope is
+classified `MALFORMED` rather than mistaken for an empty region.
 
 ## QA Retest
 
-Pending.
+Verified with the API stopped entirely (port 4000 closed):
+
+```
+/          -> 200      (was 500)
+/subscribe -> 200      (was 500)
+/plans     -> 200
+/contact   -> 200
+/features  -> 200
+```
+
+The page rendered its shell, navigation and copy, with the degraded notice
+"We could not reach our pricing service just now. Please try again in a moment."
+No fabricated pricing appeared. Covered durably by
+`e2e/tests/flow-c-landing-public-surface.spec.ts`.
+
+QA run: `docs/qa/runs/2026-08-18-landing-uiux-remediation-verification.md`
 
 ## History
 
 - 2026-08-17 — created from qa run at `f58ee1d`.
+- 2026-08-18 — fixed and verified on `agent/landing-uiux-remediation`.

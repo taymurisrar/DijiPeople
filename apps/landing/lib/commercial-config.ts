@@ -1,4 +1,5 @@
 import { headers } from "next/headers";
+import { unstable_rethrow } from "next/navigation";
 
 import { landingEnv } from "./env";
 
@@ -98,6 +99,8 @@ const COUNTRY_HEADERS = [
   "x-country-code",
 ] as const;
 
+const COMMERCIAL_CONFIG_TIMEOUT_MS = 8000;
+
 export async function getCommercialConfig(): Promise<CommercialConfigView> {
   const requestHeaders = await headers();
 
@@ -122,6 +125,9 @@ export async function getCommercialConfig(): Promise<CommercialConfigView> {
         next: {
           revalidate: 60,
         },
+        // A server component awaiting a hung fetch blocks the whole render, so
+        // "slow forever" degrades worse than "unavailable" (BUG-0061).
+        signal: AbortSignal.timeout(COMMERCIAL_CONFIG_TIMEOUT_MS),
       },
     );
 
@@ -133,6 +139,10 @@ export async function getCommercialConfig(): Promise<CommercialConfigView> {
 
     return normalizeCommercialConfig(raw);
   } catch (error) {
+    // Same reasoning as plans-server: Next's control-flow errors must not be
+    // absorbed by a network catch.
+    unstable_rethrow(error);
+
     console.error(
       "[commercial-config] Failed to resolve commercial configuration",
       error,

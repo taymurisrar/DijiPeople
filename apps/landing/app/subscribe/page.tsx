@@ -6,7 +6,7 @@ import { getPublicPlans } from "../../lib/plans-server";
 import { SubscribeForm } from "./subscribe-form";
 
 export const metadata: Metadata = {
-  title: "Subscribe | DijiPeople",
+  title: "Subscribe",
   description:
     "Start a public DijiPeople subscription through a secure Stripe Checkout flow.",
 };

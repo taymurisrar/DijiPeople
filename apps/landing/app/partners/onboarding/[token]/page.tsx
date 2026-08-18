@@ -1,5 +1,12 @@
+import type { Metadata } from "next";
 import { PageShell } from "../../../_components/site-shell";
 import { PartnerOnboardingForm } from "./partner-onboarding-form";
+
+export const metadata: Metadata = {
+  title: "Partner onboarding",
+  description:
+    "Complete your DijiPeople partner onboarding steps.",
+};
 
 export default async function Page({
   params,

@@ -1,5 +1,12 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { PageShell } from "../../_components/site-shell";
+
+export const metadata: Metadata = {
+  title: "Checkout cancelled",
+  description:
+    "Your DijiPeople checkout was cancelled and nothing was charged.",
+};
 
 type SearchParams = Promise<{ planPriceId?: string }>;
 

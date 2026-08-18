@@ -1,5 +1,12 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { PageShell } from "../../_components/site-shell";
+
+export const metadata: Metadata = {
+  title: "Subscription confirmed",
+  description:
+    "Your DijiPeople subscription checkout completed.",
+};
 
 export default function SubscribeSuccessPage() {
   return (

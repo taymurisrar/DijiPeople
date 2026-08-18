@@ -18,7 +18,18 @@
   --accent-soft-strong: #bfe9e2;
 
   --muted: #586774;
-  --muted-soft: #7b8791;
+  /*
+   * BUG-0064 / WCAG 1.4.3. This was #7b8791, which measured 3.67:1 on white and
+   * 3.34:1 on --surface-muted — below the 4.5:1 needed for normal-size text,
+   * and it carries the "(optional)" markers and consent copy, so the least
+   * readable text on the page was the text carrying form semantics.
+   *
+   * #626c77 measures 5.34:1 on #ffffff, 4.87:1 on --surface-muted (#f2f5f4) and
+   * 4.58:1 on --accent-soft (#d8f3ef) — the three backgrounds it is actually
+   * used against. It stays lighter than --muted (5.82:1), so the two-step
+   * hierarchy between them survives the fix.
+   */
+  --muted-soft: #626c77;
 
   --danger: #b42318;
   --warning: #b54708;

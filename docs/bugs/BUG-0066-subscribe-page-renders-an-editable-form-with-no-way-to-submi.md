@@ -2,7 +2,7 @@
 ID: BUG-0066
 aliases: [BUG-0066]
 Title: Subscribe page renders an editable form with no way to submit when checkout is unavailable
-Status: OPEN
+Status: VERIFIED
 Severity: MEDIUM
 Priority: P2
 Type: UX
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-17
 DetectedInSha: f58ee1d
 AffectedModules: [apps/landing]
 OwnerAgent: frontend
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: docs/qa/runs/2026-08-17-landing-uiux-browser-qa-f58ee1d.md
-RegressionId: 
+RegressionId: REG-062
 RelatedBacklogItem:
 RelatedDecision:
-RelatedImplementation:
+RelatedImplementation: agent/landing-uiux-remediation
 CreatedAt: 2026-08-17
-UpdatedAt: 2026-08-17
-ResolvedAt:
+UpdatedAt: 2026-08-18
+ResolvedAt: 2026-08-18
 ---
 
 # BUG-0066 — Subscribe page renders an editable form with no way to submit when checkout is unavailable
@@ -159,12 +159,30 @@ Shares the no-market condition with
 
 ## Resolution
 
-Not yet fixed.
+The company-details group is wrapped in a `<fieldset disabled={!canCheckout}>`
+with an explanatory notice beside the fields it governs, linked by
+`aria-describedby`.
+
+The page already stated the condition — but on the *other* card, while the part
+that invited action said nothing. The fix keeps the disclosure and puts it where
+the effort is being asked for, which is the repository's own rule: disabled with
+a reason beats absent, and an apparently actionable dead form is worse than
+either.
 
 ## QA Retest
 
-Pending.
+With no checkout-ready price (the current local state), `/subscribe` renders the
+notice and zero enabled inputs. Verified by a durable scenario that branches on
+whether checkout is available, so it stays meaningful once a Stripe-verified
+price exists:
+
+```
+subscribe never offers an editable form it cannot submit :: PASS
+```
+
+QA run: `docs/qa/runs/2026-08-18-landing-uiux-remediation-verification.md`
 
 ## History
 
 - 2026-08-17 — created from qa run at `f58ee1d`.
+- 2026-08-18 — fixed and verified on `agent/landing-uiux-remediation`.

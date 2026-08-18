@@ -2,7 +2,7 @@
 ID: BUG-0065
 aliases: [BUG-0065]
 Title: Public commercial-config omits featureCatalog when no market resolves
-Status: OPEN
+Status: VERIFIED
 Severity: MEDIUM
 Priority: P2
 Type: BUG
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-17
 DetectedInSha: f58ee1d
 AffectedModules: [services/api/src/modules/billing, apps/landing]
 OwnerAgent: backend-api
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: docs/qa/runs/2026-08-17-landing-uiux-browser-qa-f58ee1d.md
-RegressionId: 
+RegressionId: REG-061
 RelatedBacklogItem:
 RelatedDecision:
-RelatedImplementation:
+RelatedImplementation: agent/landing-uiux-remediation
 CreatedAt: 2026-08-17
-UpdatedAt: 2026-08-17
-ResolvedAt:
+UpdatedAt: 2026-08-18
+ResolvedAt: 2026-08-18
 ---
 
 # BUG-0065 — Public commercial-config omits featureCatalog when no market resolves
@@ -135,12 +135,32 @@ which covers market/region modelling more broadly.
 
 ## Resolution
 
-Not yet fixed.
+The no-market branch of `getPublicCommercialConfig()` now returns
+`featureCatalog: buildPublicFeatureCatalog()` like the resolved path does.
+
+More importantly the handler carries an explicit `Promise<PublicCommercialConfig>`
+return type, so both branches are checked against one declared shape. Both were
+structurally valid objects before, which is why nothing caught the divergence
+until the landing site logged an error on six public routes; a missing key is now
+a compile error rather than a runtime console message.
 
 ## QA Retest
 
-Pending.
+Live response with no market published:
+
+```
+keys: market, currency, plans, billingIntervals, featureCatalog
+featureCatalog isArray: true  len: 12
+```
+
+With a market seeded: market PK, USD, 4 plans, featureCatalog 12. The
+`[commercial-config] Expected featureCatalog to be an array` console error is gone
+from all six routes that emitted it. Guarded durably by a scenario asserting no
+`commercial-config` console error on `/plans`.
+
+QA run: `docs/qa/runs/2026-08-18-landing-uiux-remediation-verification.md`
 
 ## History
 
 - 2026-08-17 — created from qa run at `f58ee1d`.
+- 2026-08-18 — fixed and verified on `agent/landing-uiux-remediation`.

@@ -1,0 +1,87 @@
+---
+ID: ITEM-0053
+aliases: [ITEM-0053]
+Title: Publish privacy policy and terms for the public landing site
+Type: PRODUCT_DECISION
+Status: PRODUCT_DECISION
+Priority: P2
+Severity: MEDIUM
+AffectedModules: [apps/landing]
+Source: QA_RUN
+OwnerAgent: architect
+ArchitectDisposition: PRODUCT_DECISION
+CreatedAt: 2026-08-18
+UpdatedAt: 2026-08-18
+RelatedBug: 
+RelatedQA: docs/qa/runs/2026-08-17-landing-uiux-browser-qa-f58ee1d.md
+RelatedADR: 
+RelatedImplementation:
+TargetMilestone: 
+BlockedBy: 
+---
+
+# ITEM-0053 — Publish privacy policy and terms for the public landing site
+
+## Summary
+
+The landing site collects names, work emails, phone numbers, company details and
+a marketing-consent flag through four public forms, and exposes no privacy
+policy or terms of service anywhere. No such route exists in `apps/landing`, and
+no legal copy exists in the repository to link to.
+
+## Why It Matters
+
+This is the one finding in the landing remediation package that engineering
+cannot close on its own. Every other footer and form issue was a code fix; this
+one needs legal text that a person with authority has to write and approve.
+
+The exposure is concrete rather than theoretical: `contact-form.tsx` records
+`privacyNoticeVersion` and `privacyNoticeAcceptedAt` against every lead, and the
+`Lead` model persists both. The product is already recording consent **against a
+notice that is not published anywhere**, which is weaker than not recording it.
+
+## Evidence
+
+- No `/privacy` or `/terms` route exists — the landing route tree is 14 routes,
+  none of them legal.
+- `services/api/prisma/schema.prisma` — `Lead.privacyNoticeVersion`,
+  `Lead.privacyNoticeAcceptedAt`, `Lead.marketingConsent`,
+  `Lead.marketingConsentAt` are all populated by public form submissions.
+- Raised as sub-finding 6 of
+  [[ITEM-0051-align-landing-public-form-conventions-and-minor-accessibilit]];
+  split out here because it is a product/legal decision, not UX debt.
+
+## Proposed Approach
+
+**Not an engineering task until the copy exists.** Legal text must not be
+drafted by an agent, and a placeholder page is worse than no page — it is a
+published statement about how personal data is handled.
+
+The interim UX chosen during the remediation is to link only to destinations
+that exist: the footer now carries product navigation plus real `mailto:` and
+`tel:` contact routes, and no link promises a policy that is not there.
+
+Once approved copy exists: add `/privacy` and `/terms` under `PageShell`, link
+them from the footer, and set `privacyNoticeVersion` to the published version so
+the consent already being recorded refers to something real.
+
+## Acceptance Criteria
+
+1. Approved privacy policy and terms copy exists, owned by a named person.
+2. `/privacy` and `/terms` render through the standard shell.
+3. Both are linked from the site footer.
+4. `privacyNoticeVersion` written on new leads matches the published version.
+
+## Dependencies
+
+Blocked on a product/legal decision, not on engineering.
+
+## Related Items
+
+[[ITEM-0051-align-landing-public-form-conventions-and-minor-accessibilit]]
+
+## History
+
+- 2026-08-17 — split out of ITEM-0051 during the landing remediation, because
+  inventing legal copy was explicitly out of scope and a placeholder would have
+  been a false statement rather than a missing one.

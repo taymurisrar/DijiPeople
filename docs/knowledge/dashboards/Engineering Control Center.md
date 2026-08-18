@@ -13,10 +13,10 @@
 | Blocked work packages | 0 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **0** |
-| Open HIGH | 9 |
+| Open HIGH | 5 |
 | Awaiting Architect triage | 0 |
-| Owner decisions pending | 1 |
-| QA coverage gaps | 53 |
+| Owner decisions pending | 2 |
+| QA coverage gaps | 60 |
 | Scenarios blocked by infrastructure | 0 |
 
 ## Active Sessions
@@ -76,6 +76,7 @@ Questions where the engineering is understood and the **product answer is**
 **not**. No agent may resolve one by implementing a side of it.
 
 - [[ITEM-0032-recompute-productivity-totals-inflated-by-heartbeat-replays|ITEM-0032]] — **Recompute productivity totals inflated by heartbeat replays**
+- [[ITEM-0053-publish-privacy-policy-and-terms-for-the-public-landing-site|ITEM-0053]] — **Publish privacy policy and terms for the public landing site**
 
 ## QA Coverage Gaps
 
@@ -137,15 +138,22 @@ gap into scope — or files a `TEST_GAP` item and says so.
 | [[PLAN-012-deployment-release|deployment-release]] | E2E |
 | [[PLAN-012-deployment-release|deployment-release]] | BROWSER |
 | [[PLAN-012-deployment-release|deployment-release]] | SECURITY |
+| [[PLAN-013-landing|landing]] | UNIT |
+| [[PLAN-013-landing|landing]] | API |
+| [[PLAN-013-landing|landing]] | DATABASE |
+| [[PLAN-013-landing|landing]] | INTEGRATION |
+| [[PLAN-013-landing|landing]] | E2E |
+| [[PLAN-013-landing|landing]] | SECURITY |
+| [[PLAN-013-landing|landing]] | PERFORMANCE |
 
 ## Backlog Health
 
 | | |
 |---|---|
-| Open total | 36 |
+| Open total | 29 |
 | Blocked | 0 |
-| Deferred | 2 |
-| Awaiting a product decision | 1 |
+| Deferred | 1 |
+| Awaiting a product decision | 2 |
 | Awaiting Architect triage | 0 |
 
 Every ordinary record carries a disposition.

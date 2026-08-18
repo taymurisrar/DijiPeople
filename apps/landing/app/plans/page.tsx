@@ -6,7 +6,7 @@ import { getCommercialConfig } from "../../lib/commercial-config";
 import { PlansExperience } from "./plans-experience";
 
 export const metadata: Metadata = {
-  title: "Plans and Pricing | DijiPeople",
+  title: "Plans and Pricing",
   description:
     "DijiPeople pricing is per active employee, shown in your region's currency. Compare Starter, Growth and Enterprise, estimate your cost, and start when you're ready.",
   alternates: { canonical: "/plans" },

@@ -2,7 +2,7 @@
 ID: BUG-0064
 aliases: [BUG-0064]
 Title: Landing public pages fail WCAG bypass blocks and text contrast on every route
-Status: OPEN
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: UX
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-17
 DetectedInSha: f58ee1d
 AffectedModules: [apps/landing]
 OwnerAgent: frontend
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: docs/qa/runs/2026-08-17-landing-uiux-browser-qa-f58ee1d.md
-RegressionId: 
+RegressionId: REG-060
 RelatedBacklogItem:
 RelatedDecision:
-RelatedImplementation:
+RelatedImplementation: agent/landing-uiux-remediation
 CreatedAt: 2026-08-17
-UpdatedAt: 2026-08-17
-ResolvedAt:
+UpdatedAt: 2026-08-18
+ResolvedAt: 2026-08-18
 ---
 
 # BUG-0064 — Landing public pages fail WCAG bypass blocks and text contrast on every route
@@ -151,12 +151,32 @@ None.
 
 ## Resolution
 
-Not yet fixed.
+**Bypass blocks.** A skip link is now the first element in the body, visually
+hidden until focused, targeting `#main-content` on the single `<main>` in
+`PageShell`. That `main` takes `tabIndex={-1}` so activating the link moves focus
+rather than only the scroll position.
+
+**Contrast.** `--muted-soft` changed from `#7b8791` to `#626c77` in
+`globals.css` — the shared token, not the individual components. Measured against
+the three backgrounds it is actually used on: 5.34:1 on `#ffffff`, 4.87:1 on
+`--surface-muted`, 4.58:1 on `--accent-soft`. It stays lighter than `--muted`
+(5.82:1), so the two-step hierarchy survives the fix.
 
 ## QA Retest
 
-Pending.
+```
+skip-link-is-first-tab  :: PASS :: {"text":"Skip to main content","href":"#main-content","visible":true}
+skip-link-moves-focus   :: PASS :: {"id":"main-content","tag":"MAIN"}
+header-focus-visible    :: PASS :: unchanged, 2px solid outline
+```
+
+axe-core across 14 routes x 3 viewports on a production build: **zero
+serious/critical violations**, down from 21 `color-contrast` nodes. Skip link
+present on 42/42 route-viewport combinations.
+
+QA run: `docs/qa/runs/2026-08-18-landing-uiux-remediation-verification.md`
 
 ## History
 
 - 2026-08-17 — created from qa run at `f58ee1d`.
+- 2026-08-18 — fixed and verified on `agent/landing-uiux-remediation`.

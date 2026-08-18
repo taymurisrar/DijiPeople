@@ -28,7 +28,14 @@ export const metadata: Metadata = {
     shortcut: "/favicon.ico",
     apple: "/apple-touch-icon-180x180.png",
   },
-  title: "DijiPeople | HRM SaaS for Growing Operational Teams",
+  // A template rather than a literal, so a route only states what it is and the
+  // brand suffix cannot drift between pages — six routes previously set no
+  // title at all and inherited this one verbatim, which made them
+  // indistinguishable in history, tabs and search results.
+  title: {
+    default: "DijiPeople | HRM SaaS for Growing Operational Teams",
+    template: "%s | DijiPeople",
+  },
   description:
     "DijiPeople is a US-based HRM SaaS platform for healthcare, IT, recruitment, staffing, and service businesses that need structured people operations.",
   openGraph: {

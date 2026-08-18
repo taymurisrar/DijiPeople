@@ -2,7 +2,7 @@
 ID: BUG-0062
 aliases: [BUG-0062]
 Title: Landing mobile navigation menu stays open after navigating and ignores Escape
-Status: OPEN
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: UX
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-17
 DetectedInSha: f58ee1d
 AffectedModules: [apps/landing]
 OwnerAgent: frontend
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: docs/qa/runs/2026-08-17-landing-uiux-browser-qa-f58ee1d.md
-RegressionId: 
+RegressionId: REG-058
 RelatedBacklogItem:
 RelatedDecision:
-RelatedImplementation:
+RelatedImplementation: agent/landing-uiux-remediation
 CreatedAt: 2026-08-17
-UpdatedAt: 2026-08-17
-ResolvedAt:
+UpdatedAt: 2026-08-18
+ResolvedAt: 2026-08-18
 ---
 
 # BUG-0062 — Landing mobile navigation menu stays open after navigating and ignores Escape
@@ -116,12 +116,35 @@ None.
 
 ## Resolution
 
-Not yet fixed.
+The bare `<details>` disclosure was replaced by a controlled client component,
+`apps/landing/app/_components/header-nav.tsx`. Open state lives in React and is
+cleared on `pathname` change — which is the actual fix, because the header sits in
+the root layout and App Router never remounts it between routes.
+
+Escape closes and returns focus to the trigger; an outside pointer-down closes;
+`aria-expanded` and `aria-controls` describe the relationship. The desktop
+breakpoint also moved from `md` to `lg`, so 768px now uses the menu instead of
+cramming six links, Login and a CTA into the bar — where the CTA wrapped.
 
 ## QA Retest
 
-Pending.
+Chromium at 390x844 and 768x1024:
+
+```
+menu-closes-on-navigate-mobile :: PASS :: panelsAfterNav=0 url=/plans
+menu-escape-mobile             :: PASS :: afterEsc=0 focusReturnedToTrigger=true
+menu-outside-click-mobile      :: PASS :: afterOutsideClick=0
+menu-closes-on-navigate-tablet :: PASS :: panelsAfterNav=0
+menu-escape-tablet             :: PASS :: afterEsc=0 focusReturnedToTrigger=true
+no-overflow-mobile/tablet      :: PASS
+```
+
+The click-outside case the original pass left inconclusive is now measured with
+the menu genuinely open. Four durable scenarios added.
+
+QA run: `docs/qa/runs/2026-08-18-landing-uiux-remediation-verification.md`
 
 ## History
 
 - 2026-08-17 — created from qa run at `f58ee1d`.
+- 2026-08-18 — fixed and verified on `agent/landing-uiux-remediation`.

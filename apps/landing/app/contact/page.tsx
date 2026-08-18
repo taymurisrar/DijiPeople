@@ -6,7 +6,7 @@ import { resolveIntentParam } from "../../lib/acquisition-options";
 import { ContactForm } from "./contact-form";
 
 export const metadata: Metadata = {
-  title: "Contact | DijiPeople",
+  title: "Contact",
   description:
     "Contact DijiPeople for product questions, sales qualification, implementation discussions, and HR operations support.",
 };

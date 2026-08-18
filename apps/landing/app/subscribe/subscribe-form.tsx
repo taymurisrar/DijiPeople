@@ -219,7 +219,38 @@ export function SubscribeForm({
         <h2 className="text-xl font-semibold text-foreground">
           Company details
         </h2>
-        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+
+        {/*
+          BUG-0066. When checkout is unavailable this card still rendered six
+          enabled fields under a heading promising "continue to secure
+          checkout", and its only action was a link that discarded whatever had
+          been typed. The unavailability was stated — but on the *other* card,
+          while the part that invited action said nothing.
+
+          The fields are now disabled with the reason attached, which is the
+          repository's own rule: disabled with a reason beats absent, and an
+          apparently actionable dead form is worse than either.
+        */}
+        {!canCheckout ? (
+          <p
+            className="mt-3 rounded-xl border border-warning/30 bg-warning/5 px-4 py-3 text-sm text-warning"
+            id="subscribe-unavailable-notice"
+            role="status"
+          >
+            Online checkout is not available for this plan in your region yet,
+            so these details cannot be submitted here. Talk to us and we will
+            set your organization up directly.
+          </p>
+        ) : null}
+
+        <fieldset
+          aria-describedby={
+            !canCheckout ? "subscribe-unavailable-notice" : undefined
+          }
+          className="m-0 border-0 p-0"
+          disabled={!canCheckout}
+        >
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <Field
             label="Company / workspace name"
             onChange={(value) => setForm({ ...form, companyName: value })}
@@ -262,6 +293,7 @@ export function SubscribeForm({
             value={form.message}
           />
         </label>
+        </fieldset>
         <p className="mt-4 text-xs leading-5 text-muted">
           Your tenant stays inactive until Stripe confirms payment through the
           webhook. The success page does not activate access.

@@ -3,7 +3,7 @@ import { LeadFormSection } from "../_components/marketing/lead-form-section";
 import { PageShell } from "../_components/site-shell";
 
 export const metadata: Metadata = {
-  title: "Request a demo | DijiPeople",
+  title: "Request a demo",
   description: "Request a tailored DijiPeople HR platform demonstration.",
 };
 

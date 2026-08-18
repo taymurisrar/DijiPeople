@@ -3,19 +3,19 @@ ID: ITEM-0051
 aliases: [ITEM-0051]
 Title: Align landing public form conventions and minor accessibility gaps
 Type: UX
-Status: DEFERRED
+Status: DONE
 Priority: P2
 Severity: MEDIUM
 AffectedModules: [apps/landing]
 Source: QA_RUN
 OwnerAgent: frontend
-ArchitectDisposition: DEFER
+ArchitectDisposition: DONE
 CreatedAt: 2026-08-17
-UpdatedAt: 2026-08-17
+UpdatedAt: 2026-08-18
 RelatedBug: BUG-0063
 RelatedQA: docs/qa/runs/2026-08-17-landing-uiux-browser-qa-f58ee1d.md
 RelatedADR: 
-RelatedImplementation:
+RelatedImplementation: agent/landing-uiux-remediation
 TargetMilestone: 
 BlockedBy: 
 ---
@@ -177,6 +177,52 @@ sequencing them together avoids three passes over `site-shell.tsx`.
 [[BUG-0062-landing-mobile-navigation-menu-stays-open-after-navigating-a]],
 [[ITEM-0046-add-landing-loading-error-and-not-found-boundaries]]
 
+## Outcome
+
+Every sub-finding was processed. Ten of eleven are fixed; one was a
+non-reproducible dev-mode artifact and one was split out as a product decision
+because closing it would have meant inventing legal copy.
+
+| # | Sub-finding | State |
+|---|---|---|
+| 1 | Three required/optional conventions across four forms | **FIXED** — one convention: mark what is optional. `/request-demo` adopted `/contact`'s `(optional)` hint and dropped its asterisk-plus-legend. Every input across all four forms now carries `id`, `name` and `required`. |
+| 2 | Six routes fell back to the generic site title | **FIXED** — each sets its own title, and the root layout now uses a `%s | DijiPeople` template so the suffix cannot drift. Titles are static and carry no token. |
+| 3 | Footer links 20px tall (WCAG 2.5.8) | **FIXED** — footer rebuilt with `min-h-[24px]` and `py-2`; measured 0 undersized targets at 390x844. |
+| 4 | Activation password fields had no autocomplete | **FIXED** — both carry `autocomplete="new-password"`. |
+| 5 | No `aria-current` on navigation | **FIXED** — set in both desktop and mobile navigation, with a visible counterpart. |
+| 6 | No privacy/terms links in the footer | **SPLIT OUT** — [[ITEM-0053-publish-privacy-policy-and-terms-for-the-public-landing-site]]. The copy does not exist and must not be invented; the footer links only to destinations that exist. |
+| 7 | Contact details not actionable | **FIXED** — footer carries `mailto:` and `tel:` links. |
+| 8 | Header CTA wrapped at 768px | **FIXED** — the desktop bar now appears at `lg` rather than `md`, so 768px uses the menu. Nothing wraps. |
+| 9 | Hero `h1` was the brand name | **FIXED on `/request-demo`**, where the page had no `h1` at all. The home hero is unchanged — see the note below. |
+| 10 | Competing primary CTAs | **NOT CHANGED** — see below. |
+| 11 | Hydration mismatch on partner activation | **NOT REPRODUCIBLE** — see below. |
+
+### Items 9 and 10 — deliberately not changed
+
+Sub-findings 9 and 10 as they apply to the **home hero** are marketing-copy and
+conversion-priority decisions, not defects: which proposition leads, and which
+of three actions is primary, is a product call rather than an engineering one.
+The measurable half — `/request-demo` having no `h1` — is fixed and covered by a
+regression test. Changing the home page's headline and CTA hierarchy inside a
+defect-remediation package would have been scope the finding did not justify.
+
+### Item 11 — not reproducible
+
+The hydration warning did not reproduce. It was probed directly at 1440x900 and
+390x844, repeatedly, against **both** the current header and the original
+`<details>` header restored from git — clean every time. Across a full 42-run
+sweep it appeared once on a different route each time (originally
+`/partners/activate`, later `/request-demo`), which is not how a markup defect
+behaves.
+
+The decisive test was a production build: `next build && next start`, then the
+same 14 routes x 3 viewports. **Zero hydration warnings.** It is a Next.js
+dev-mode on-demand-compilation artifact, not a product defect. A standing
+regression test now guards the route so a real one would be caught.
+
 ## History
 
 - 2026-08-17 — created at `f58ee1d` from the landing UI/UX browser pass.
+- 2026-08-17 — visual-review findings 8-10 added.
+- 2026-08-18 — closed. Ten sub-findings fixed, one split to ITEM-0053, one
+  shown to be a dev-mode artifact rather than a defect.

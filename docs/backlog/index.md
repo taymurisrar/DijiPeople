@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**117 records** — 65 bugs under [`docs/bugs/`](../bugs/), 52 non-bug items under [`items/`](items/).
+**118 records** — 65 bugs under [`docs/bugs/`](../bugs/), 53 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,21 +13,21 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 36 |
+| Open (active work) | 29 |
 | Blocked | 0 |
-| Deferred | 2 |
-| Awaiting a product decision | 1 |
-| Completed / closed | 78 |
+| Deferred | 1 |
+| Awaiting a product decision | 2 |
+| Completed / closed | 86 |
 | **Open CRITICAL** | **0** |
-| **Open HIGH** | **9** |
+| **Open HIGH** | **5** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
 
 | Severity | Count |
 |---|---|
-| HIGH | 9 |
-| MEDIUM | 22 |
+| HIGH | 5 |
+| MEDIUM | 19 |
 | LOW | 5 |
 
 ## Open by type
@@ -35,25 +35,24 @@ see [`README.md`](README.md) for why.
 | Type | Count |
 |---|---|
 | ARCHITECTURE | 1 |
-| BUG | 2 |
 | DOCUMENTATION | 2 |
 | FOLLOW_UP | 3 |
 | INFRA | 2 |
 | SECURITY | 6 |
 | TECH_DEBT | 6 |
 | TEST_GAP | 7 |
-| UX | 7 |
+| UX | 2 |
 
 ## All records by status
 
 | Status | Count |
 |---|---|
-| OPEN | 10 |
-| DEFERRED | 2 |
-| PRODUCT_DECISION | 1 |
-| VERIFIED | 54 |
-| READY | 26 |
-| DONE | 24 |
+| OPEN | 4 |
+| DEFERRED | 1 |
+| PRODUCT_DECISION | 2 |
+| VERIFIED | 60 |
+| READY | 25 |
+| DONE | 26 |
 
 ## All records
 
@@ -93,10 +92,10 @@ see [`README.md`](README.md) for why.
 | [BUG-0039](../../docs/bugs/BUG-0039-employee-payslip-and-bank-account-proxies-return-the-callers.md) | Employee payslip and bank account proxies return the callers own data on 403 | DATA_INTEGRITY | HIGH | P1 | VERIFIED | apps/web, api:payroll, api:employees | DONE |
 | [BUG-0048](../../docs/bugs/BUG-0048-partner-inquiry-form-rejects-every-submission-that-leaves-th.md) | Partner inquiry form rejects every submission that leaves the optional website blank | BUG | HIGH | P1 | VERIFIED | apps/landing, api:partner-experience | DONE |
 | [BUG-0060](../../docs/bugs/BUG-0060-stale-generated-prisma-client-breaks-local-api-development.md) | A stale generated Prisma client breaks local API development with 60 misleading errors | INFRA | HIGH | P1 | VERIFIED | services/api, scripts, package.json | DONE |
-| [BUG-0061](../../docs/bugs/BUG-0061-landing-home-and-subscribe-pages-return-500-when-the-plans-f.md) | Landing home and subscribe pages return 500 when the plans fetch fails | BUG | HIGH | P1 | OPEN | apps/landing | FIX_NOW |
-| [BUG-0062](../../docs/bugs/BUG-0062-landing-mobile-navigation-menu-stays-open-after-navigating-a.md) | Landing mobile navigation menu stays open after navigating and ignores Escape | UX | HIGH | P1 | OPEN | apps/landing | FIX_NOW |
-| [BUG-0063](../../docs/bugs/BUG-0063-request-demo-form-blocks-submission-with-no-feedback-and-is-.md) | Request demo form blocks submission with no feedback and is unusable by assistive technology | UX | HIGH | P1 | OPEN | apps/landing | FIX_NOW |
-| [BUG-0064](../../docs/bugs/BUG-0064-landing-public-pages-fail-wcag-bypass-blocks-and-text-contra.md) | Landing public pages fail WCAG bypass blocks and text contrast on every route | UX | HIGH | P1 | OPEN | apps/landing | FIX_NOW |
+| [BUG-0061](../../docs/bugs/BUG-0061-landing-home-and-subscribe-pages-return-500-when-the-plans-f.md) | Landing home and subscribe pages return 500 when the plans fetch fails | BUG | HIGH | P1 | VERIFIED | apps/landing | DONE |
+| [BUG-0062](../../docs/bugs/BUG-0062-landing-mobile-navigation-menu-stays-open-after-navigating-a.md) | Landing mobile navigation menu stays open after navigating and ignores Escape | UX | HIGH | P1 | VERIFIED | apps/landing | DONE |
+| [BUG-0063](../../docs/bugs/BUG-0063-request-demo-form-blocks-submission-with-no-feedback-and-is-.md) | Request demo form blocks submission with no feedback and is unusable by assistive technology | UX | HIGH | P1 | VERIFIED | apps/landing | DONE |
+| [BUG-0064](../../docs/bugs/BUG-0064-landing-public-pages-fail-wcag-bypass-blocks-and-text-contra.md) | Landing public pages fail WCAG bypass blocks and text contrast on every route | UX | HIGH | P1 | VERIFIED | apps/landing | DONE |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | READY | api:tenant-control-plane | FIX_NOW |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | READY | apps/web, e2e | PLAN_REQUIRED |
@@ -125,8 +124,8 @@ see [`README.md`](README.md) for why.
 | [BUG-0045](../../docs/bugs/BUG-0045-the-canonical-settings-and-branding-contract-is-materially-s.md) | The canonical settings and branding contract is materially stale | DOCUMENTATION | MEDIUM | P2 | OPEN | apps/web, docs/architecture | PLAN_REQUIRED |
 | [BUG-0046](../../docs/bugs/BUG-0046-tenant-theme-mode-and-runtime-settings-saves-do-not-take-eff.md) | Tenant theme mode and runtime settings saves do not take effect | UX | MEDIUM | P2 | VERIFIED | apps/web | DONE |
 | [BUG-0050](../../docs/bugs/BUG-0050-notification-settings-offer-email-providers-whose-backend-al.md) | Notification settings offer email providers whose backend always fails | INTEGRATION | MEDIUM | P2 | VERIFIED | apps/web, api:notifications | DONE |
-| [BUG-0065](../../docs/bugs/BUG-0065-public-commercial-config-omits-featurecatalog-when-no-market.md) | Public commercial-config omits featureCatalog when no market resolves | BUG | MEDIUM | P2 | OPEN | api:billing, apps/landing | FIX_NOW |
-| [BUG-0066](../../docs/bugs/BUG-0066-subscribe-page-renders-an-editable-form-with-no-way-to-submi.md) | Subscribe page renders an editable form with no way to submit when checkout is unavailable | UX | MEDIUM | P2 | OPEN | apps/landing | FIX_NOW |
+| [BUG-0065](../../docs/bugs/BUG-0065-public-commercial-config-omits-featurecatalog-when-no-market.md) | Public commercial-config omits featureCatalog when no market resolves | BUG | MEDIUM | P2 | VERIFIED | api:billing, apps/landing | DONE |
+| [BUG-0066](../../docs/bugs/BUG-0066-subscribe-page-renders-an-editable-form-with-no-way-to-submi.md) | Subscribe page renders an editable form with no way to submit when checkout is unavailable | UX | MEDIUM | P2 | VERIFIED | apps/landing | DONE |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | READY | services/api, apps/admin | FIX_NOW |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | READY | api:tenant-control-plane | FIX_NOW |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |
@@ -155,10 +154,11 @@ see [`README.md`](README.md) for why.
 | [ITEM-0039](../../docs/backlog/items/ITEM-0039-promote-the-csp-from-report-only-to-enforced.md) | Promote the CSP from report-only to enforced | SECURITY | MEDIUM | P2 | READY | pkg:config, apps/web, apps/admin, apps/landing | PLAN_REQUIRED |
 | [ITEM-0040](../../docs/backlog/items/ITEM-0040-develop-branch-protection-is-not-applied.md) | develop branch protection is not applied | INFRA | MEDIUM | P2 | DONE | .github | DONE |
 | [ITEM-0043](../../docs/backlog/items/ITEM-0043-promote-the-security-invariant-job-to-a-required-gate.md) | Promote the security invariant job to a required gate | TEST_GAP | MEDIUM | P2 | DONE | services/api | DONE |
-| [ITEM-0046](../../docs/backlog/items/ITEM-0046-add-landing-loading-error-and-not-found-boundaries.md) | Add landing loading error and not-found boundaries | UX | MEDIUM | P2 | READY | apps/landing | FIX_NOW |
+| [ITEM-0046](../../docs/backlog/items/ITEM-0046-add-landing-loading-error-and-not-found-boundaries.md) | Add landing loading error and not-found boundaries | UX | MEDIUM | P2 | DONE | apps/landing | DONE |
 | [ITEM-0050](../../docs/backlog/items/ITEM-0050-move-payroll-derivation-and-branding-upload-orchestration-out.md) | Move payroll derivation and branding upload orchestration out of web proxies | TECH_DEBT | MEDIUM | P2 | READY | apps/web, api:compensation, api:tenant-settings | PLAN_REQUIRED |
-| [ITEM-0051](../../docs/backlog/items/ITEM-0051-align-landing-public-form-conventions-and-minor-accessibilit.md) | Align landing public form conventions and minor accessibility gaps | UX | MEDIUM | P2 | DEFERRED | apps/landing | DEFER |
+| [ITEM-0051](../../docs/backlog/items/ITEM-0051-align-landing-public-form-conventions-and-minor-accessibilit.md) | Align landing public form conventions and minor accessibility gaps | UX | MEDIUM | P2 | DONE | apps/landing | DONE |
 | [ITEM-0052](../../docs/backlog/items/ITEM-0052-verify-the-agent-update-feed-against-a-real-published-artefact.md) | Verify the agent update feed against a real published artefact | TEST_GAP | MEDIUM | P2 | READY | apps/agent-desktop, api:app-releases | PLAN_REQUIRED |
+| [ITEM-0053](../../docs/backlog/items/ITEM-0053-publish-privacy-policy-and-terms-for-the-public-landing-site.md) | Publish privacy policy and terms for the public landing site | PRODUCT_DECISION | MEDIUM | P2 | PRODUCT_DECISION | apps/landing | PRODUCT_DECISION |
 | [ITEM-0021](../../docs/backlog/items/ITEM-0021-mechanical-guard-against-country-and-currency-literals-in-fr.md) | Mechanical guard against country and currency literals in frontends | TEST_GAP | LOW | P2 | DONE | scripts, apps/landing, apps/web, apps/admin | DONE |
 | [ITEM-0023](../../docs/backlog/items/ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning.md) | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | P2 | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
 | [ITEM-0024](../../docs/backlog/items/ITEM-0024-landing-depends-on-lucide-react-without-declaring-it.md) | Landing depends on lucide-react without declaring it | TECH_DEBT | LOW | P2 | DONE | apps/landing | DONE |

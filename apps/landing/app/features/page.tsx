@@ -17,7 +17,7 @@ import {
 } from "../../lib/feature-presentation";
 
 export const metadata: Metadata = {
-  title: "Features | DijiPeople",
+  title: "Features",
   description:
     "Hiring, employee records, attendance, leave, timesheets and payroll in one connected HR platform — so the same data moves through every stage instead of being retyped between tools.",
   alternates: { canonical: "/features" },

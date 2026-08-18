@@ -2865,7 +2865,15 @@ if (existsSync(join(ROOT, 'scripts/lib/id-allocator.mjs'))) {
       );
       if (!testMatch) continue;
 
-      for (const path of testMatch[1].split(/\s*(?:,|and)\s*/).map((p) => p.trim()).filter(Boolean)) {
+      /*
+       * Split on a comma, or on "and" as a *word*. The bare alternative used to
+       * be `(?:,|and)` with optional surrounding whitespace, which matches
+       * inside words: every path containing "l-and-ing" was torn in half, so no
+       * regression entry could reference anything under `apps/landing` or the
+       * landing browser spec. The check then reported two files that do not
+       * exist instead of the one that does.
+       */
+      for (const path of testMatch[1].split(/\s*,\s*|\s+and\s+/).map((p) => p.trim()).filter(Boolean)) {
         check(
           `${id} regression test exists: ${path}`,
           existsSync(join(ROOT, path)),

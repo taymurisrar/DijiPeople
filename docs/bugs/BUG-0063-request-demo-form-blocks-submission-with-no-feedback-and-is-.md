@@ -2,7 +2,7 @@
 ID: BUG-0063
 aliases: [BUG-0063]
 Title: Request demo form blocks submission with no feedback and is unusable by assistive technology
-Status: OPEN
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: UX
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-17
 DetectedInSha: f58ee1d
 AffectedModules: [apps/landing]
 OwnerAgent: frontend
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: docs/qa/runs/2026-08-17-landing-uiux-browser-qa-f58ee1d.md
-RegressionId: 
+RegressionId: REG-059
 RelatedBacklogItem:
 RelatedDecision:
-RelatedImplementation:
+RelatedImplementation: agent/landing-uiux-remediation
 CreatedAt: 2026-08-17
-UpdatedAt: 2026-08-17
-ResolvedAt:
+UpdatedAt: 2026-08-18
+ResolvedAt: 2026-08-18
 ---
 
 # BUG-0063 — Request demo form blocks submission with no feedback and is unusable by assistive technology
@@ -157,12 +157,39 @@ None.
 
 ## Resolution
 
-Not yet fixed.
+`lead-form-section.tsx` now follows the `/contact` pattern rather than a third
+convention of its own.
+
+The completeness gate on the submit button is gone, so `validate()` and its
+messages are reachable for the empty-field case they were written for. Every
+input carries `id`, `name`, `required` and an `autocomplete` token; errors are
+linked by `aria-describedby` with `aria-invalid` on the control, and moved out of
+the `<label>` so a message is the field's *description* rather than part of its
+accessible name. Submit failures announce through `role="alert"`, success through
+`role="status"`, and focus moves to the first invalid control on a failed submit.
+
+The route also gained its missing `<h1>` — the heading that already looked like
+the page title was an `<h2>` — plus a legend explaining the asterisk convention.
 
 ## QA Retest
 
-Pending.
+```
+rd-submit-enabled-on-load :: PASS :: disabled=false
+rd-empty-submit-errors    :: PASS :: invalidFields=7
+    first={"name":"firstName","describedBy":"…-firstName-error",
+           "msg":"First name is required."} focus=INPUT[firstName]
+rd-valid-submission       :: PASS :: status=201
+rd-success-announced      :: PASS :: role=status "Request received…"
+rd-console-clean          :: PASS
+```
+
+A real lead was created and confirmed in the database. Two identical submissions
+produced one row, so `submissionHash` idempotency holds. Three durable scenarios
+added.
+
+QA run: `docs/qa/runs/2026-08-18-landing-uiux-remediation-verification.md`
 
 ## History
 
 - 2026-08-17 — created from qa run at `f58ee1d`.
+- 2026-08-18 — fixed and verified on `agent/landing-uiux-remediation`.
