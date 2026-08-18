@@ -13,4 +13,5 @@ or `BLOCKED_EXTERNAL` with an explicit reason. See
 
 | ID | Title | Type | Severity | Priority | Status | Affected | Architect |
 |---|---|---|---|---|---|---|---|
+| [ITEM-0054](../../docs/backlog/items/ITEM-0054-contract-placeholder-examples-fabricate-a-saudi-legal-entity.md) | Contract placeholder examples fabricate a Saudi legal entity, CR number and tax ID | DOCUMENTATION | MEDIUM | P2 | DEFERRED | contracts | DEFER |
 | [BUG-0018](../../docs/bugs/BUG-0018-bulk-lead-delete-is-unreachable-for-every-role.md) | Bulk lead delete is unreachable for every role, including SUPER_ADMIN | AUTHORIZATION | LOW | P3 | DEFERRED | api:platform-auth, api:super-admin | DEFER |

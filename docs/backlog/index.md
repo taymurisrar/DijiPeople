@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**120 records** — 67 bugs under [`docs/bugs/`](../bugs/), 53 non-bug items under [`items/`](items/).
+**121 records** — 67 bugs under [`docs/bugs/`](../bugs/), 54 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -15,7 +15,7 @@ see [`README.md`](README.md) for why.
 |---|---|
 | Open (active work) | 29 |
 | Blocked | 0 |
-| Deferred | 1 |
+| Deferred | 2 |
 | Awaiting a product decision | 2 |
 | Completed / closed | 88 |
 | **Open CRITICAL** | **0** |
@@ -48,7 +48,7 @@ see [`README.md`](README.md) for why.
 | Status | Count |
 |---|---|
 | OPEN | 4 |
-| DEFERRED | 1 |
+| DEFERRED | 2 |
 | PRODUCT_DECISION | 2 |
 | VERIFIED | 62 |
 | READY | 25 |
@@ -161,6 +161,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0051](../../docs/backlog/items/ITEM-0051-align-landing-public-form-conventions-and-minor-accessibilit.md) | Align landing public form conventions and minor accessibility gaps | UX | MEDIUM | P2 | DONE | apps/landing | DONE |
 | [ITEM-0052](../../docs/backlog/items/ITEM-0052-verify-the-agent-update-feed-against-a-real-published-artefact.md) | Verify the agent update feed against a real published artefact | TEST_GAP | MEDIUM | P2 | READY | apps/agent-desktop, api:app-releases | PLAN_REQUIRED |
 | [ITEM-0053](../../docs/backlog/items/ITEM-0053-publish-privacy-policy-and-terms-for-the-public-landing-site.md) | Publish privacy policy and terms for the public landing site | PRODUCT_DECISION | MEDIUM | P2 | PRODUCT_DECISION | apps/landing | PRODUCT_DECISION |
+| [ITEM-0054](../../docs/backlog/items/ITEM-0054-contract-placeholder-examples-fabricate-a-saudi-legal-entity.md) | Contract placeholder examples fabricate a Saudi legal entity, CR number and tax ID | DOCUMENTATION | MEDIUM | P2 | DEFERRED | contracts | DEFER |
 | [ITEM-0021](../../docs/backlog/items/ITEM-0021-mechanical-guard-against-country-and-currency-literals-in-fr.md) | Mechanical guard against country and currency literals in frontends | TEST_GAP | LOW | P2 | DONE | scripts, apps/landing, apps/web, apps/admin | DONE |
 | [ITEM-0023](../../docs/backlog/items/ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning.md) | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | P2 | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
 | [ITEM-0024](../../docs/backlog/items/ITEM-0024-landing-depends-on-lucide-react-without-declaring-it.md) | Landing depends on lucide-react without declaring it | TECH_DEBT | LOW | P2 | DONE | apps/landing | DONE |

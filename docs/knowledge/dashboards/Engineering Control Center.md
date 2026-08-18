@@ -9,7 +9,7 @@
 |---|---|
 | Active sessions | **1** |
 | Active parent tasks | 2 |
-| Active work packages | 1 |
+| Active work packages | 3 |
 | Blocked work packages | 0 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **0** |
@@ -30,7 +30,7 @@
 | Task | Title | Type | Size | Progress | Current | Ready next | Blocked |
 |---|---|---|---|---|---|---|---|
 | [[TASK-0005-dijipeople-global-technical-remediation|TASK-0005]] | DijiPeople Global Technical Remediation | BUG | PROGRAM | 3/11 | WP-09 | WP-04, WP-06, WP-07, WP-08, WP-10 | — |
-| [[TASK-0007-commercial-platform-completion-transactional-legal-and-lifec|TASK-0007]] | Commercial platform completion — transactional, legal and lifecycle half | FEATURE | PROGRAM | 6/16 | WP-08 | WP-03, WP-08, WP-09, WP-10, WP-11, WP-12, WP-13 | — |
+| [[TASK-0007-commercial-platform-completion-transactional-legal-and-lifec|TASK-0007]] | Commercial platform completion — transactional, legal and lifecycle half | FEATURE | PROGRAM | 6/16 | WP-03 | WP-03, WP-10, WP-11, WP-12, WP-13 | — |
 
 ## Branch model
 
@@ -181,7 +181,7 @@ gap into scope — or files a `TEST_GAP` item and says so.
 |---|---|
 | Open total | 29 |
 | Blocked | 0 |
-| Deferred | 1 |
+| Deferred | 2 |
 | Awaiting a product decision | 2 |
 | Awaiting Architect triage | 0 |
 

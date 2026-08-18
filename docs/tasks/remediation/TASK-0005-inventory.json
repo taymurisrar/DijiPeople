@@ -6,12 +6,12 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 120,
+    "total_records": 121,
     "bugs": 67,
-    "backlog_items": 53,
+    "backlog_items": 54,
     "open_bucket": 4,
     "blocked_bucket": 0,
-    "deferred_bucket": 1,
+    "deferred_bucket": 2,
     "product_decision_bucket": 2,
     "completed_bucket": 88,
     "parser_structural_errors": 0,
@@ -6069,6 +6069,48 @@
       "architect_disposition": "DONE",
       "verification_result": {
         "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "ITEM-0054",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0054-contract-placeholder-examples-fabricate-a-saudi-legal-entity.md",
+        "provenance": "ARCHITECT",
+        "created_at": "2026-08-18",
+        "updated_at": "2026-08-18",
+        "detected_in_sha": "",
+        "resolved_at": ""
+      },
+      "type": "DOCUMENTATION",
+      "title": "Contract placeholder examples fabricate a Saudi legal entity, CR number and tax ID",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "DEFERRED",
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/contracts/contracts.service.ts"
+        ],
+        "verification_scope": "Read contracts.service.ts:229-252 — placeholder() sets defaultValue null and fallbackBehavior ERROR for non-signature keys, so the generation path fails closed and no contract can carry the fabricated values. The risk is presentational."
+      },
+      "affected_modules": [
+        "contracts"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": "Not blocked on OD-02: removing fabricated values does not require knowing the real ones."
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DEFER",
+      "verification_result": {
+        "result": "DEFERRED",
         "classification": "TERMINAL_AS_DOCUMENTED",
         "finding_ids": []
       }

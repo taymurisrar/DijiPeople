@@ -10,7 +10,7 @@ CREATED_AT: 2026-08-18
 AFFECTED_MODULES: [billing, super-admin, tenant-control-plane, legal, notifications, platform-events, employees, landing, admin, web]
 AGENTS: [Architect, Database, Backend/API, Frontend, UI/UX, Integration, QA, Reviewer, Integrator, Release/DevOps]
 DEPENDENCIES: origin/develop c332992; PARENT-SCOPE-RECONCILIATION; schema and permissions leases
-CURRENT_PACKAGE: WP-08
+CURRENT_PACKAGE: WP-03
 COMPLETED_PACKAGES: [WP-01, WP-02, WP-04, WP-05, WP-06, WP-07]
 BLOCKED_PACKAGES: []
 OWNER_DECISIONS: 2
@@ -85,8 +85,8 @@ gate.
 | WP-05 | Customer-before-payment, pending subscription, checkout authority, tax basis | DONE | WP-01, WP-04 | Database, Backend/API, Integration | agent/commercial-platform-completion | 68ef4d1 | PASS | PASS | DONE |
 | WP-06 | Seat change and plan change lifecycle | DONE | WP-04, WP-05 | Backend/API, Integration | agent/commercial-platform-completion | 943a826 | PASS | PASS | DONE |
 | WP-07 | Payment to onboarding to provisioning automation, steps, resumability, targets | DONE | WP-01, WP-05 | Backend/API, Database, Integration | agent/commercial-platform-completion | 943a826 | PASS | PASS | DONE |
-| WP-08 | Cancellation, retention, holds, deletion request and erasure orchestration | NOT_STARTED | WP-01, WP-07 | Database, Backend/API | — | — | NOT_RUN | NOT_RUN | NOT_STARTED |
-| WP-09 | Stripe and internal reconciliation jobs | NOT_STARTED | WP-04, WP-05, WP-07 | Backend/API, Integration | — | — | NOT_RUN | NOT_RUN | NOT_STARTED |
+| WP-08 | Cancellation, retention, holds, deletion request and erasure orchestration | CI | WP-01, WP-07 | Database, Backend/API | agent/commercial-platform-completion | 99c4b8e | PASS | PENDING_EXACT_SHA | NOT_STARTED |
+| WP-09 | Stripe and internal reconciliation jobs | CI | WP-04, WP-05, WP-07 | Backend/API, Integration | agent/commercial-platform-completion | 99c4b8e | PASS_WITH_RISKS | PENDING_EXACT_SHA | NOT_STARTED |
 | WP-10 | Landing legal, trust and subprocessor surface | NOT_STARTED | WP-02, workspace lease | Frontend, UI/UX | — | — | NOT_RUN | NOT_RUN | NOT_STARTED |
 | WP-11 | Admin dashboard, monitoring and provisioning operations UX | NOT_STARTED | WP-07, workspace lease | UI/UX, Frontend | — | — | NOT_RUN | NOT_RUN | NOT_STARTED |
 | WP-12 | Notification ownership and business-event coverage | NOT_STARTED | WP-01, WP-07 | Backend/API | — | — | NOT_RUN | NOT_RUN | NOT_STARTED |
@@ -154,9 +154,9 @@ Updated 2026-08-18.
 
 ```text
 CURRENT_PHASE               PHASE 2 — implementation
-CURRENT_WORK_PACKAGE        WP-08 (next ready)
+CURRENT_WORK_PACKAGE        WP-03 (next ready)
 COMPLETED_WORK_PACKAGES     WP-01, WP-02, WP-04, WP-05, WP-06, WP-07 — all merged behind a green required gate
-NEXT_READY_WORK_PACKAGE     WP-08 — cancellation, retention, holds and erasure requests
+NEXT_READY_WORK_PACKAGE     WP-03 — consent (cookie categories, marketing withdrawal)
 INTEGRATED_DEVELOP_SHA      943a826 — fast-forward, develop tip IS the CI-verified SHA
 BASE_DEVELOP_SHA            304bfda
 MAIN                        b90f33e — UNTOUCHED

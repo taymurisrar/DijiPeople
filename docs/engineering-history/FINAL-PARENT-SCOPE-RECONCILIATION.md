@@ -75,6 +75,12 @@ acquisition intake are intact at `304bfda`.
 | R-33 | Onboarding to provisioning automatic | DONE | PROVISIONING_REQUESTED emitted in the same transaction as the onboarding case | WP-07 |
 | R-34 | Provisioning state machine, per-step tracking, resumability | DONE (already existed) | **The original probe was wrong.** TenantProvisioningRun and TenantProvisioningStep already existed with per-step isRetryable, attempts and correlation ids. Extended with the order, customer and per-run targets rather than replaced | WP-07 |
 | R-36 | Tenant readiness separate from onboarding completion | DONE | Tenant.readinessStatus and readyAt; READY means blocking steps done, independent of CustomerOnboarding.status | WP-07 |
+| R-37 | Cancellation — renewal disable vs terminate now, paid-through | DONE | SubscriptionCancellation with CANCEL_RENEWAL and TERMINATE_NOW as distinct actions; revocable before it takes effect | WP-08 |
+| R-38 | Retention window, scheduled erasure date, policy version | DONE | TenantRetention; the configured length is copied onto the row so a later policy edit cannot shorten a promised window; a second termination does not restart the clock | WP-08 |
+| R-39 | Retention holds — legal, security, billing dispute, administrative | DONE | RetentionHold rows, not a flag; releasing one does not release another; the hold rows are the authority over the cached status | WP-08 |
+| R-40 | Tenant owner deletion request (request, not immediate erase) | DONE | TenantDeletionRequest with server-side confirmation-phrase check; approval stays a platform action feeding the existing TenantErasureService | WP-08 |
+| R-42 | Refund capability with dedicated permission and audit | DONE (model) | RefundRequest with an enum reason so refunds are reportable; the guarded route is WP-11 | WP-08 |
+| R-45 | Internal reconciliation — customer/tenant/subscription/entitlement/capacity | DONE | ReconciliationService.runInternal with five checks; auto-fix deliberately refuses ambiguous differences | WP-09 |
 | R-54 | Data region first-class on Tenant | DONE | Tenant.dataRegion, nullable — null means undeclared, and no residency claim may be inferred from it | WP-07 |
 
 ## 3. Engineering remaining — in the graph, not yet implemented
@@ -89,15 +95,9 @@ These are the rows that keep `PARENT_TASK_STATUS = INCOMPLETE`.
 | R-21 | Marketing consent unbundled, withdrawable, auditable | `PARTIAL` | `marketingConsent`/`marketingConsentAt` columns exist; no withdrawal path or definition version | WP-03 |
 | R-31 | Add-on foundation composing effective entitlement | `PARTIAL` | `FeatureAccessService`/`PlanFeature` exist; no purchasable add-on or composition | WP-06 |
 | R-35 | Provisioning targets and operations view | `PARTIAL` | Per-run targetReadyBy/escalateAt/breachedAt exist on TenantProvisioningRun; the Admin operations screen is WP-11 | WP-11 |
-| R-37 | Cancellation — renewal disable vs terminate now, paid-through | `PARTIAL` | `cancelAtPeriodEnd` exists; no request/terminate lifecycle | WP-08 |
-| R-38 | Retention window, scheduled erasure date, policy version | `NOT_STARTED` | no retention model | WP-08 |
-| R-39 | Retention holds — legal, security, billing dispute, administrative | `NOT_STARTED` | no hold model | WP-08 |
-| R-40 | Tenant owner deletion request (request, not immediate erase) | `NOT_STARTED` | erasure service exists; no request/approval flow | WP-08 |
 | R-41 | Platform admin erase with dedicated permission and confirmation | `PARTIAL` | erasure orchestration exists and is well-tested; no guarded request/confirmation surface | WP-08 |
-| R-42 | Refund capability with dedicated permission and audit | `NOT_STARTED` | no refund path | WP-08 |
 | R-43 | Backup deletion lifecycle documented honestly | `NOT_STARTED` | not documented | WP-08 |
 | R-44 | Stripe reconciliation — customer, subscription, quantity, status, price | `NOT_STARTED` | no scheduled reconciliation | WP-09 |
-| R-45 | Internal reconciliation — customer/tenant/subscription/entitlement/capacity | `NOT_STARTED` | none | WP-09 |
 | R-46 | Public legal routes (`/privacy`, `/terms`, +8) with footer navigation | `NOT_STARTED` | `ls apps/landing/app` — no legal routes | WP-10 |
 | R-47 | Trust/security page, evidence-based only | `NOT_STARTED` | route absent | WP-10 |
 | R-48 | Public subprocessor page | `NOT_STARTED` | route absent (model now exists — R-11) | WP-10 |
@@ -127,11 +127,11 @@ These are the rows that keep `PARENT_TASK_STATUS = INCOMPLETE`.
 
 ## Honest summary
 
-**26 requirements moved to `DONE` in this task, each with named evidence.
-24 engineering requirements remain**, of which 9 are `PARTIAL` and 15 are
+**32 requirements moved to `DONE` in this task, each with named evidence.
+18 engineering requirements remain**, of which 9 are `PARTIAL` and 9 are
 `NOT_STARTED`.
 
-The six delivered packages are deliberately the dependency roots rather than
+The eight delivered packages are deliberately the dependency roots rather than
 the most visible work. Every remaining lifecycle requirement — provisioning on
 payment, seat changes, cancellation, retention, erasure requests, reconciliation
 — needs a durable event that survives a crash, and none of them could be built
@@ -149,4 +149,4 @@ DB-backed proof rather than assertions.
 **`PARENT_TASK_STATUS = INCOMPLETE`**, and this document is the evidence for
 that statement rather than an estimate. The completion contract in the brief
 requires `PARTIAL_ENGINEERING_REQUIREMENTS = 0` and
-`NOT_STARTED_ENGINEERING_REQUIREMENTS = 0`; they are 9 and 15.
+`NOT_STARTED_ENGINEERING_REQUIREMENTS = 0`; they are 9 and 9.
