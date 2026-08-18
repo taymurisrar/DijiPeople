@@ -32,6 +32,7 @@
     "prisma:generate": "npm --workspace api run prisma:generate",
     "check:prisma-client": "node scripts/check-prisma-client-fresh.mjs",
     "prisma:migrate:status": "npm --workspace api run prisma:migrate:status",
+    "prisma:migrate:deploy": "npm --workspace api run prisma:migrate:deploy",
     "prisma:seed": "npm --workspace api run prisma:seed",
     "seed:system": "npm --workspace api run seed:system",
     "seed:config": "npm --workspace api run seed:config",

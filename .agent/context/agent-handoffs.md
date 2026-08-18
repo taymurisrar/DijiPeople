@@ -126,8 +126,9 @@ The Architect maintains one row per role for every substantial task.
 | **Backend/API** | an API module, service, controller, DTO or guard changes |
 | **Frontend** | an app surface changes |
 | **UI/UX** | the change touches user-facing layout, forms, dialogs, navigation, dashboards, tables, mobile/responsive behaviour, accessibility, onboarding journeys, public landing pages, destructive actions, loading/error/empty states, visual consistency or conversion flows — see [`../agents/ui-ux.md`](../agents/ui-ux.md). Carries **two** statuses: `UI_UX_AGENT_STATUS` and, once Frontend has built, `UI_UX_POST_REVIEW_STATUS` |
-| **Database** | `schema.prisma`, a migration, a constraint or a seed changes |
+| **Database** | `schema.prisma`, a migration, a constraint or a seed changes — **and additionally a preflight whenever the task merely *depends* on database shape**: a Prisma model, enum or delegate, a database field or constraint, a repository method whose types derive from Prisma, billing or provisioning persistence, auth/session persistence, or a backfill. Preflight is read-only and resolves `PRISMA_CLIENT_STATUS`, `MIGRATION_STATUS` and `LOCAL_DATABASE_STATUS` before a dependent agent writes code against a stale client |
 | **Integration** | a boundary changes — gateway, desktop agent, Stripe, device ingestion |
+| **Security** | the change touches auth, sessions, tokens, permissions, tenant scope, platform-admin actions, a public write API, proxy behaviour, Stripe or billing authority, provisioning, secrets, erasure or deletion, desktop credentials, the desktop updater, dependency vulnerabilities, security headers, CSP, or sensitive employee/payroll data — see [`../agents/security.md`](../agents/security.md). Carries **two** statuses: `SECURITY_AGENT_STATUS` and `SECURITY_POST_REVIEW_STATUS` |
 | **QA** | always, except for copy/comment/docs-only changes |
 | **Reviewer** | always for code; docs-only changes may waive it |
 | **Integrator** | **any task that modifies Git-tracked files** |
