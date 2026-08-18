@@ -44,6 +44,6 @@ role scope and default to SELF when no role exists.
 
 - Test plan — [[PLAN-002]]
 - Bugs — [[BUG-0049]], [[ITEM-0043]]
-- Regressions — [[REG-046]]
+- Regressions — REG-046 (see the regression register)
 
 <!-- GRAPH:END -->

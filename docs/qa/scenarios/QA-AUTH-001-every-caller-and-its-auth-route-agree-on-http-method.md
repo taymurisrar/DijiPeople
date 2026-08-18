@@ -46,6 +46,6 @@ rather than a test of one route.
 
 - Test plan — [[PLAN-001]]
 - Bugs — [[BUG-0008]], [[BUG-0038]]
-- Regressions — [[REG-008]], [[REG-033]]
+- Regressions — REG-008, REG-033 (see the regression register)
 
 <!-- GRAPH:END -->

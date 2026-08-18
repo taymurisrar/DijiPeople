@@ -41,6 +41,6 @@ The `silent-config-fallback` pattern produced production emails linking to local
 
 - Test plan — [[PLAN-012]]
 - Bugs — [[BUG-0026]]
-- Regressions — [[REG-016]]
+- Regressions — REG-016 (see the regression register)
 
 <!-- GRAPH:END -->

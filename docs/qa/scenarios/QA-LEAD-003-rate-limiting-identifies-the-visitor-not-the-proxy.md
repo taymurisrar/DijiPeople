@@ -42,6 +42,6 @@ The `shared-identity-bucket` pattern.
 
 - Test plan — [[PLAN-005]]
 - Bugs — [[BUG-0032]]
-- Regressions — [[REG-024]]
+- Regressions — REG-024 (see the regression register)
 
 <!-- GRAPH:END -->

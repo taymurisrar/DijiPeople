@@ -44,6 +44,6 @@ Reusable coverage for both settings context controllers and `REG-044`.
 
 - Test plan — [[PLAN-002]]
 - Bugs — [[BUG-0057]]
-- Regressions — [[REG-044]]
+- Regressions — REG-044 (see the regression register)
 
 <!-- GRAPH:END -->

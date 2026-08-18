@@ -43,6 +43,6 @@ CRITICAL — this was a cross-tenant read reachable by an ordinary support user.
 - Test plan — [[PLAN-003]]
 - Module — [[tenant-isolation]]
 - Bugs — [[BUG-0005]]
-- Regressions — [[REG-005]]
+- Regressions — REG-005 (see the regression register)
 
 <!-- GRAPH:END -->

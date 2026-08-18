@@ -84,6 +84,6 @@ The daily attendance and correction screens.
 - Scenarios — [[QA-ATT-001]], [[QA-ATT-002]], [[QA-ATT-003]], [[QA-ATT-004]], [[QA-ATT-005]], [[QA-ATT-006]], [[QA-ATT-007]]
 - Module — [[attendance]]
 - Bugs — [[BUG-0002]], [[BUG-0047]]
-- Regressions — [[REG-002]]
+- Regressions — REG-002 (see the regression register)
 
 <!-- GRAPH:END -->

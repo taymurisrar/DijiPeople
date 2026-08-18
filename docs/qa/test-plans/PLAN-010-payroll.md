@@ -88,6 +88,6 @@ Payslip viewing and the run screen.
 - Scenarios — [[QA-PAY-001]], [[QA-PAY-002]], [[QA-PAY-003]], [[QA-PAY-004]], [[QA-PAY-005]], [[QA-PAY-006]]
 - Module — [[payroll]]
 - Bugs — [[BUG-0001]], [[BUG-0039]]
-- Regressions — [[REG-001]]
+- Regressions — REG-001 (see the regression register)
 
 <!-- GRAPH:END -->

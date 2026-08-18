@@ -42,6 +42,6 @@ The original defect was a second guard that disagreed with the first — the `di
 
 - Test plan — [[PLAN-004]]
 - Bugs — [[BUG-0011]]
-- Regressions — [[REG-009]]
+- Regressions — REG-009 (see the regression register)
 
 <!-- GRAPH:END -->

@@ -79,6 +79,6 @@ were retested and promoted rather than quietly reclassified.
 
 - Test plan — [[PLAN-012]]
 - Bugs — [[BUG-0051]]
-- Regressions — [[REG-050]]
+- Regressions — REG-050 (see the regression register)
 
 <!-- GRAPH:END -->

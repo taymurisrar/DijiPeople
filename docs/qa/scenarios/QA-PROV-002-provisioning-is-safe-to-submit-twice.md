@@ -42,6 +42,6 @@ The `check-then-act` pattern — a read-then-write gap is a race under any concu
 - Test plan — [[PLAN-007]]
 - Module — [[tenant-provisioning]]
 - Bugs — [[BUG-0022]]
-- Regressions — [[REG-030]]
+- Regressions — REG-030 (see the regression register)
 
 <!-- GRAPH:END -->

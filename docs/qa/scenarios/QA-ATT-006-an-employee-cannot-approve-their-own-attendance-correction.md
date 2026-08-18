@@ -50,6 +50,6 @@ object-level check, not a permission check.
 - Test plan — [[PLAN-009]]
 - Module — [[attendance]]
 - Bugs — [[BUG-0002]], [[BUG-0047]]
-- Regressions — [[REG-002]]
+- Regressions — REG-002 (see the regression register)
 
 <!-- GRAPH:END -->

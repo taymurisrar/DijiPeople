@@ -76,6 +76,6 @@ saving anything would silently rewrite the tenant's provider type.
 
 - Test plan — [[PLAN-011]]
 - Bugs — [[BUG-0050]]
-- Regressions — [[REG-053]]
+- Regressions — REG-053 (see the regression register)
 
 <!-- GRAPH:END -->

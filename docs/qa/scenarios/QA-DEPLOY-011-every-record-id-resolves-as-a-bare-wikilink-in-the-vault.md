@@ -70,6 +70,6 @@ mistyped link.
 
 - Test plan — [[PLAN-012]]
 - Bugs — [[BUG-0059]], [[ITEM-0029]]
-- Regressions — [[REG-049]]
+- Regressions — REG-049 (see the regression register)
 
 <!-- GRAPH:END -->

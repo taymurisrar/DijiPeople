@@ -43,6 +43,6 @@ assertions introduced by `REG-042`.
 
 - Test plan — [[PLAN-002]]
 - Bugs — [[BUG-0055]]
-- Regressions — [[REG-042]]
+- Regressions — REG-042 (see the regression register)
 
 <!-- GRAPH:END -->

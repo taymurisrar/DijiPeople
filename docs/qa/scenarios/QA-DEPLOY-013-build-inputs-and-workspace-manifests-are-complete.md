@@ -79,6 +79,6 @@ artifact — a different risk, carried by [[ITEM-0049]].
 
 - Test plan — [[PLAN-012]]
 - Bugs — [[BUG-0042]], [[ITEM-0037]], [[ITEM-0024]]
-- Regressions — [[REG-051]], [[REG-052]]
+- Regressions — REG-051, REG-052 (see the regression register)
 
 <!-- GRAPH:END -->

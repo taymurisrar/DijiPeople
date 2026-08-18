@@ -46,6 +46,6 @@ component rendering remains untestable there.
 ## Related
 
 - Test plan — [[PLAN-011]]
-- Regressions — [[REG-028]]
+- Regressions — REG-028 (see the regression register)
 
 <!-- GRAPH:END -->

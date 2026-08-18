@@ -42,6 +42,6 @@ A setter with an enum column is not a state machine — the transitions have to 
 
 - Test plan — [[PLAN-006]]
 - Bugs — [[BUG-0016]]
-- Regressions — [[REG-014]]
+- Regressions — REG-014 (see the regression register)
 
 <!-- GRAPH:END -->

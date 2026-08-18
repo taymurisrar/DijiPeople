@@ -267,7 +267,15 @@ function graphBlockFor(record, kind) {
   if (moduleNoteNames.has(record.area)) rows.push(`- Module — [[${record.area}]]`);
   if (record.bugs?.length) rows.push(`- Bugs — ${record.bugs.map((id) => `[[${id}]]`).join(', ')}`);
   if (record.regressions?.length) {
-    rows.push(`- Regressions — ${record.regressions.map((id) => `[[${id}]]`).join(', ')}`);
+    /*
+     * REG ids are deliberately NOT wikilinked. Regressions are not notes — they
+     * are sections inside the single `docs/qa/regressions/index.md` register, so
+     * `[[REG-002]]` resolves to nothing. Emitting them as links produced 113
+     * broken wikilinks on first run: a checker that creates the very defect it
+     * detects is worse than no checker, so they stay as plain identifiers and
+     * the register itself carries the edge.
+     */
+    rows.push(`- Regressions — ${record.regressions.join(', ')} (see the regression register)`);
   }
 
   if (!rows.length) {

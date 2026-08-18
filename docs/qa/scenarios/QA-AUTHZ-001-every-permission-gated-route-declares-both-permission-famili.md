@@ -46,6 +46,6 @@ fails a newly introduced unreviewed alternate-guard surface.
 
 - Test plan — [[PLAN-002]]
 - Bugs — [[BUG-0049]], [[ITEM-0043]]
-- Regressions — [[REG-040]]
+- Regressions — REG-040 (see the regression register)
 
 <!-- GRAPH:END -->

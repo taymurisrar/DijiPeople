@@ -44,6 +44,6 @@ Actions run `32009837400`.
 
 - Test plan — [[PLAN-004]]
 - Bugs — [[BUG-0029]]
-- Regressions — [[REG-019]]
+- Regressions — REG-019 (see the regression register)
 
 <!-- GRAPH:END -->

@@ -89,6 +89,6 @@ had passed. See REG-064 in the regression register.
 - Test plan — [[PLAN-014]]
 - Module — [[outbox]]
 - Bugs — [[BUG-0070]]
-- Regressions — [[REG-064]]
+- Regressions — REG-064 (see the regression register)
 
 <!-- GRAPH:END -->

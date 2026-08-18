@@ -42,6 +42,6 @@ The `cross-workspace-contract-drift` pattern. The desktop app is deployed to mac
 
 - Test plan — [[PLAN-008]]
 - Bugs — [[BUG-0035]]
-- Regressions — [[REG-026]]
+- Regressions — REG-026 (see the regression register)
 
 <!-- GRAPH:END -->

@@ -45,6 +45,6 @@ documentation-to-call-site validator currently executes this scenario.
 
 - Test plan — [[PLAN-011]]
 - Bugs — [[BUG-0044]]
-- Regressions — [[REG-037]]
+- Regressions — REG-037 (see the regression register)
 
 <!-- GRAPH:END -->

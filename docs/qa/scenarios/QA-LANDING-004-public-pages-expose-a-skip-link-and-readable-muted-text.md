@@ -46,6 +46,6 @@ Created 2026-08-18 at `c332992`.
 
 - Test plan — [[PLAN-013]]
 - Bugs — [[BUG-0064]]
-- Regressions — [[REG-060]]
+- Regressions — REG-060 (see the regression register)
 
 <!-- GRAPH:END -->

@@ -48,6 +48,6 @@ Created 2026-08-18 at `c332992`.
 
 - Test plan — [[PLAN-013]]
 - Bugs — [[BUG-0065]]
-- Regressions — [[REG-061]]
+- Regressions — REG-061 (see the regression register)
 
 <!-- GRAPH:END -->

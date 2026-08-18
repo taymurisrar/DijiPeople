@@ -50,6 +50,6 @@ database assertions execute.
 
 - Test plan — [[PLAN-001]]
 - Bugs — [[BUG-0009]], [[BUG-0010]]
-- Regressions — [[REG-032]]
+- Regressions — REG-032 (see the regression register)
 
 <!-- GRAPH:END -->

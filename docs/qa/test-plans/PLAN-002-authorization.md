@@ -102,6 +102,6 @@ global invariant failure is assigned to WP-03 rather than rounded into a pass.
 
 - Scenarios — [[QA-AUTHZ-001]], [[QA-AUTHZ-002]], [[QA-AUTHZ-003]], [[QA-AUTHZ-004]], [[QA-AUTHZ-005]], [[QA-AUTHZ-006]], [[QA-AUTHZ-007]], [[QA-AUTHZ-008]], [[QA-AUTHZ-009]], [[QA-BILLING-001]], [[QA-PARTNER-006]], [[QA-SETTINGS-001]]
 - Bugs — [[BUG-0003]], [[BUG-0004]], [[BUG-0006]], [[BUG-0007]], [[BUG-0047]]
-- Regressions — [[REG-003]], [[REG-004]], [[REG-006]], [[REG-007]], [[REG-034]]
+- Regressions — REG-003, REG-004, REG-006, REG-007, REG-034 (see the regression register)
 
 <!-- GRAPH:END -->

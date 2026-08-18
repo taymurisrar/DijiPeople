@@ -79,6 +79,6 @@ published artefact is [[ITEM-0052]].
 
 - Test plan — [[PLAN-008]]
 - Bugs — [[BUG-0034]]
-- Regressions — [[REG-056]]
+- Regressions — REG-056 (see the regression register)
 
 <!-- GRAPH:END -->

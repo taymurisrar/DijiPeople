@@ -45,6 +45,6 @@ not cover Flow B's separate skipped BUG-0019 assertion.
 
 - Test plan — [[PLAN-006]]
 - Bugs — [[BUG-0048]]
-- Regressions — [[REG-039]]
+- Regressions — REG-039 (see the regression register)
 
 <!-- GRAPH:END -->

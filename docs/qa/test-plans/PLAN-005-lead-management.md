@@ -83,6 +83,6 @@ The landing contact form is the highest-value browser case in the product. No to
 
 - Scenarios — [[QA-LEAD-001]], [[QA-LEAD-002]], [[QA-LEAD-003]], [[QA-LEAD-004]], [[QA-LEAD-005]]
 - Bugs — [[BUG-0013]], [[BUG-0018]], [[BUG-0021]], [[BUG-0031]], [[BUG-0032]]
-- Regressions — [[REG-011]], [[REG-021]], [[REG-023]], [[REG-024]]
+- Regressions — REG-011, REG-021, REG-023, REG-024 (see the regression register)
 
 <!-- GRAPH:END -->

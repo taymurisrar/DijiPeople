@@ -209,7 +209,7 @@ _None. Nothing has been deployed through the release process._
 | Engineering history records | 16 |
 | Release records | 0 |
 | Module notes | 24 |
-| Architecture notes | 19 |
+| Architecture notes | 20 |
 | Decision notes (ADR + generated) | 6 |
 | Implementation records | 4 |
 

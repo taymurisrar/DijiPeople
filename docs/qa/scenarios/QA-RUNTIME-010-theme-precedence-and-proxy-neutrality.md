@@ -81,6 +81,6 @@ mechanical move.
 
 - Test plan — [[PLAN-011]]
 - Bugs — [[BUG-0046]], [[BUG-0041]], [[BUG-0039]]
-- Regressions — [[REG-054]], [[REG-055]]
+- Regressions — REG-054, REG-055 (see the regression register)
 
 <!-- GRAPH:END -->

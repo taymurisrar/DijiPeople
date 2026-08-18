@@ -45,6 +45,6 @@ general guard. The admin invariant passed in GitHub Actions run `32009837400`.
 
 - Test plan — [[PLAN-011]]
 - Bugs — [[BUG-0019]], [[BUG-0024]]
-- Regressions — [[REG-028]]
+- Regressions — REG-028 (see the regression register)
 
 <!-- GRAPH:END -->

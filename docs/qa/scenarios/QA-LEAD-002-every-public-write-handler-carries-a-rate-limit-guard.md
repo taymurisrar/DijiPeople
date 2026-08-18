@@ -41,6 +41,6 @@ The lesson `BUG-0031` taught: fix the class, not the instance.
 
 - Test plan — [[PLAN-005]]
 - Bugs — [[BUG-0031]]
-- Regressions — [[REG-023]]
+- Regressions — REG-023 (see the regression register)
 
 <!-- GRAPH:END -->

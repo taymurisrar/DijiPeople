@@ -44,6 +44,6 @@ GitHub Actions run `32009837400`.
 
 - Test plan — [[PLAN-012]]
 - Bugs — [[BUG-0040]]
-- Regressions — [[REG-035]]
+- Regressions — REG-035 (see the regression register)
 
 <!-- GRAPH:END -->

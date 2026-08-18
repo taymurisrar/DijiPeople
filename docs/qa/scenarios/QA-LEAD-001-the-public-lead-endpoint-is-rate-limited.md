@@ -42,6 +42,6 @@ A public write endpoint with no limiter is a free database-growth API.
 
 - Test plan — [[PLAN-005]]
 - Bugs — [[BUG-0013]]
-- Regressions — [[REG-011]]
+- Regressions — REG-011 (see the regression register)
 
 <!-- GRAPH:END -->

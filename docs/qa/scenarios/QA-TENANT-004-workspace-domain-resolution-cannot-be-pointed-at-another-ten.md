@@ -44,6 +44,6 @@ The named suite passed against ephemeral PostgreSQL in GitHub Actions run
 - Test plan — [[PLAN-003]]
 - Module — [[tenant-isolation]]
 - Bugs — [[BUG-0017]]
-- Regressions — [[REG-027]]
+- Regressions — REG-027 (see the regression register)
 
 <!-- GRAPH:END -->

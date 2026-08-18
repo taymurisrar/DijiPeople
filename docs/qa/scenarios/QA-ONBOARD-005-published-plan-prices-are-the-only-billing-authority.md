@@ -44,6 +44,6 @@ run `32009837400`.
 
 - Test plan — [[PLAN-004]]
 - Bugs — [[BUG-0027]]
-- Regressions — [[REG-017]]
+- Regressions — REG-017 (see the regression register)
 
 <!-- GRAPH:END -->

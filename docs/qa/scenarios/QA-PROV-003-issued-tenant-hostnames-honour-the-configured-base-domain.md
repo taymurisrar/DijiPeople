@@ -43,6 +43,6 @@ The configured base domain is used, and its absence is an error rather than a si
 - Test plan — [[PLAN-007]]
 - Module — [[tenant-provisioning]]
 - Bugs — [[BUG-0017]], [[BUG-0026]]
-- Regressions — [[REG-016]], [[REG-027]]
+- Regressions — REG-016, REG-027 (see the regression register)
 
 <!-- GRAPH:END -->

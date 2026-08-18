@@ -46,6 +46,6 @@ still not implemented.
 
 - Test plan — [[PLAN-012]]
 - Bugs — [[BUG-0023]], [[BUG-0037]]
-- Regressions — [[REG-036]]
+- Regressions — REG-036 (see the regression register)
 
 <!-- GRAPH:END -->

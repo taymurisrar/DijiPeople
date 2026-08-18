@@ -44,6 +44,6 @@ bootstrap suite both passed in GitHub Actions run `32009837400`.
 
 - Test plan — [[PLAN-004]]
 - Bugs — [[BUG-0030]]
-- Regressions — [[REG-020]]
+- Regressions — REG-020 (see the regression register)
 
 <!-- GRAPH:END -->

@@ -41,6 +41,6 @@ The frontend had been filling required fields with placeholders to get past `for
 
 - Test plan — [[PLAN-005]]
 - Bugs — [[BUG-0021]]
-- Regressions — [[REG-021]]
+- Regressions — REG-021 (see the regression register)
 
 <!-- GRAPH:END -->

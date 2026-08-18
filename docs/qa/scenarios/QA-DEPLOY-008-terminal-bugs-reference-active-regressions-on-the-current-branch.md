@@ -44,6 +44,6 @@ the WP-01 exact tree; WP-02 strengthens record semantics under `BUG-0051`.
 
 - Test plan — [[PLAN-012]]
 - Bugs — [[BUG-0047]], [[BUG-0051]]
-- Regressions — [[REG-038]]
+- Regressions — REG-038 (see the regression register)
 
 <!-- GRAPH:END -->

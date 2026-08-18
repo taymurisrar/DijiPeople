@@ -41,6 +41,6 @@ The `duplicate-route-bypass` pattern. A guarded route is worth nothing if an ung
 
 - Test plan — [[PLAN-002]]
 - Bugs — [[BUG-0007]]
-- Regressions — [[REG-007]]
+- Regressions — REG-007 (see the regression register)
 
 <!-- GRAPH:END -->

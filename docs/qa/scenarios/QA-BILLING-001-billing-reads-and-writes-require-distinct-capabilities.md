@@ -42,6 +42,6 @@ The API, not frontend role labels, remains the authorization authority.
 
 - Test plan — [[PLAN-002]]
 - Bugs — [[BUG-0056]]
-- Regressions — [[REG-043]]
+- Regressions — REG-043 (see the regression register)
 
 <!-- GRAPH:END -->

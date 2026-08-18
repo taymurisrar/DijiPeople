@@ -41,6 +41,6 @@ The list contains the subtree only, and the direct read of the peer is refused. 
 
 - Test plan — [[PLAN-002]]
 - Bugs — [[BUG-0003]]
-- Regressions — [[REG-003]]
+- Regressions — REG-003 (see the regression register)
 
 <!-- GRAPH:END -->

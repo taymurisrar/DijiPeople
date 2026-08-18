@@ -47,6 +47,6 @@ exact-base API unit job in GitHub Actions run `32009837400`.
 
 - Test plan — [[PLAN-002]]
 - Bugs — [[BUG-0006]], [[BUG-0047]], [[BUG-0058]]
-- Regressions — [[REG-006]], [[REG-045]]
+- Regressions — REG-006, REG-045 (see the regression register)
 
 <!-- GRAPH:END -->

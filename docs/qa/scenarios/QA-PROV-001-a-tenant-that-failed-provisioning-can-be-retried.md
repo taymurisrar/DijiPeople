@@ -43,6 +43,6 @@ The `declared-but-unwired-step` pattern: retry existed in the design and had no 
 - Test plan — [[PLAN-007]]
 - Module — [[tenant-provisioning]]
 - Bugs — [[BUG-0014]]
-- Regressions — [[REG-012]]
+- Regressions — REG-012 (see the regression register)
 
 <!-- GRAPH:END -->

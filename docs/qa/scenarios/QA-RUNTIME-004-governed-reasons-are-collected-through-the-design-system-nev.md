@@ -41,6 +41,6 @@ An accessibility and an audit-quality defect at once — the value reached an au
 
 - Test plan — [[PLAN-011]]
 - Bugs — [[BUG-0020]]
-- Regressions — [[REG-029]]
+- Regressions — REG-029 (see the regression register)
 
 <!-- GRAPH:END -->

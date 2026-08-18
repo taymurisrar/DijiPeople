@@ -47,6 +47,6 @@ Reusable coverage for `REG-041`; controller metadata is also covered by
 
 - Test plan — [[PLAN-002]]
 - Bugs — [[BUG-0053]]
-- Regressions — [[REG-041]]
+- Regressions — REG-041 (see the regression register)
 
 <!-- GRAPH:END -->

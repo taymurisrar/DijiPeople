@@ -41,6 +41,6 @@ The `overloaded-enum` pattern.
 
 - Test plan — [[PLAN-006]]
 - Bugs — [[ITEM-0030]]
-- Regressions — [[REG-022]]
+- Regressions — REG-022 (see the regression register)
 
 <!-- GRAPH:END -->

@@ -42,6 +42,6 @@ Shares its failure mode with `QA-AGENT-003`: retries are the common case in devi
 
 - Test plan — [[PLAN-009]]
 - Module — [[attendance]]
-- Regressions — [[REG-031]]
+- Regressions — REG-031 (see the regression register)
 
 <!-- GRAPH:END -->

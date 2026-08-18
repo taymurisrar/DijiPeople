@@ -42,6 +42,6 @@ The `non-idempotent-retry` pattern. Network retries are normal on a laptop agent
 
 - Test plan — [[PLAN-008]]
 - Bugs — [[BUG-0036]]
-- Regressions — [[REG-031]]
+- Regressions — REG-031 (see the regression register)
 
 <!-- GRAPH:END -->

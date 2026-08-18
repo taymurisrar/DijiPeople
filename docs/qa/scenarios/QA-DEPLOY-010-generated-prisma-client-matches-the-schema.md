@@ -79,6 +79,6 @@ check costs about a second and names the fix.
 
 - Test plan — [[PLAN-012]]
 - Bugs — [[BUG-0060]]
-- Regressions — [[REG-048]]
+- Regressions — REG-048 (see the regression register)
 
 <!-- GRAPH:END -->

@@ -70,6 +70,6 @@ a red job that reads as a pass.
 
 - Test plan — [[PLAN-012]]
 - Bugs — [[BUG-0049]]
-- Regressions — [[REG-047]]
+- Regressions — REG-047 (see the regression register)
 
 <!-- GRAPH:END -->

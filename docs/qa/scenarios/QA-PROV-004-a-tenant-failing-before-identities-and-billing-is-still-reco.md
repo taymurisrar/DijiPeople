@@ -45,6 +45,6 @@ scenario is automated and runnable.
 - Test plan — [[PLAN-007]]
 - Module — [[tenant-provisioning]]
 - Bugs — [[BUG-0015]]
-- Regressions — [[REG-013]]
+- Regressions — REG-013 (see the regression register)
 
 <!-- GRAPH:END -->

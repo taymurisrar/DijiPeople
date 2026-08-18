@@ -41,6 +41,6 @@ The recurring lesson across this repository: protect the write, not the route.
 
 - Test plan — [[PLAN-006]]
 - Bugs — [[BUG-0025]]
-- Regressions — [[REG-015]]
+- Regressions — REG-015 (see the regression register)
 
 <!-- GRAPH:END -->

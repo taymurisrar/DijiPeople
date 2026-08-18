@@ -42,6 +42,6 @@ The `account-enumeration` pattern.
 
 - Test plan — [[PLAN-008]]
 - Bugs — [[BUG-0033]]
-- Regressions — [[REG-025]]
+- Regressions — REG-025 (see the regression register)
 
 <!-- GRAPH:END -->

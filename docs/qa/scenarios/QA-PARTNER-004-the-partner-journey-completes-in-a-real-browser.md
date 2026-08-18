@@ -54,6 +54,6 @@ job; a skipped assertion can still coexist with a green aggregate gate.
 
 - Test plan — [[PLAN-006]]
 - Bugs — [[BUG-0019]], [[BUG-0048]]
-- Regressions — [[REG-028]], [[REG-039]]
+- Regressions — REG-028, REG-039 (see the regression register)
 
 <!-- GRAPH:END -->

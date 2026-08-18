@@ -42,6 +42,6 @@ The `unvalidated-seed-state` pattern: creation paths bypass the validation that 
 
 - Test plan — [[PLAN-004]]
 - Bugs — [[BUG-0012]]
-- Regressions — [[REG-010]]
+- Regressions — REG-010 (see the regression register)
 
 <!-- GRAPH:END -->

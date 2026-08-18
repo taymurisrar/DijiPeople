@@ -41,6 +41,6 @@ The `search-filter-scope-overwrite` pattern — the search built a new `where` i
 
 - Test plan — [[PLAN-002]]
 - Bugs — [[BUG-0004]]
-- Regressions — [[REG-004]]
+- Regressions — REG-004 (see the regression register)
 
 <!-- GRAPH:END -->

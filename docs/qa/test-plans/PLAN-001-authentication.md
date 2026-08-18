@@ -107,6 +107,6 @@ different and more actionable statement than "no tooling".
 
 - Scenarios — [[QA-AUTH-001]], [[QA-AUTH-002]], [[QA-AUTH-003]], [[QA-AUTH-004]], [[QA-AUTH-005]]
 - Bugs — [[BUG-0008]], [[BUG-0009]], [[BUG-0010]]
-- Regressions — [[REG-008]], [[REG-032]], [[REG-033]]
+- Regressions — REG-008, REG-032, REG-033 (see the regression register)
 
 <!-- GRAPH:END -->

@@ -46,6 +46,6 @@ The matrix half of `BUG-0001`. The service-level half is `services/api/src/modul
 - Test plan — [[PLAN-010]]
 - Module — [[payroll]]
 - Bugs — [[BUG-0001]]
-- Regressions — [[REG-001]]
+- Regressions — REG-001 (see the regression register)
 
 <!-- GRAPH:END -->

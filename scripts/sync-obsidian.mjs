@@ -148,8 +148,123 @@ function isPublishable(file, body) {
  * Manual notes are never touched and never counted: only the mapped,
  * agent-owned folders are traversed, and everything outside them is the user's.
  */
+const norm = (value) => value.split(sep).join('/');
+
+/*
+ * GRAPH_ORPHAN detection — a different question from SOURCE_ORPHAN.
+ *
+ *   SOURCE_ORPHAN  the generated note has no canonical source. `scanOrphans`
+ *                  answers this by walking vault -> repo.
+ *   GRAPH_ORPHAN   the note has a perfectly valid source and is still an
+ *                  isolated dot: nothing links to it, it links to nothing, and
+ *                  it is unreachable in the graph except by search.
+ *
+ * The second is invisible to every parity check, which is why a vault can pass
+ * verification and still look like scattered dust in the graph view. Measured on
+ * 2026-08-18: 102 of 294 generated nodes were isolated — 82 of them QA
+ * scenarios whose relationships were sitting in frontmatter (AREA, RELATED_BUGS,
+ * RELATED_REGRESSIONS) where Obsidian cannot see them, because a YAML value is
+ * not a wikilink.
+ *
+ * NAVIGATION AGGREGATES ARE NOT KNOWLEDGE NODES. `index.md`, `README.md`,
+ * `active.md`, `completed.md` and the dashboards are generated listing surfaces.
+ * Requiring them to carry domain relationships would mean adding links for the
+ * sake of the graph, which is the one thing this must not do — a link created to
+ * remove a dot teaches nothing and dilutes every real edge around it. They are
+ * classified STANDALONE_ALLOWED, by name and with that reason.
+ *
+ * Any individual note may also opt out by declaring `STANDALONE_ALLOWED: true`
+ * in its frontmatter, which makes the exemption explicit and greppable rather
+ * than a silent hole in the checker.
+ */
+const NAVIGATION_AGGREGATES = new Set([
+  'index',
+  'README',
+  'open',
+  'active',
+  'blocked',
+  'completed',
+  'deferred',
+  'product-decisions',
+  'coverage-matrix',
+]);
+
+/*
+ * Whole categories that are evidence or coordination records rather than
+ * knowledge nodes. Each is classified here, by mapping source and with its
+ * reason, instead of being silently skipped — an unexplained exemption is a hole
+ * in the checker, and the next person cannot tell it from an oversight.
+ *
+ * The categories that DO require a relationship are the ten knowledge kinds:
+ * bugs, backlog items, requirements, decisions, tasks, QA scenarios,
+ * regressions, releases, modules and architecture notes.
+ */
+const STANDALONE_CATEGORIES = new Map([
+  ['docs/sessions', 'a session is a runtime coordination lease, not durable knowledge'],
+  ['docs/qa/runs', 'a QA run is dated execution evidence; the scenarios it ran carry the relationships'],
+  ['docs/engineering-history/tasks', 'a history record narrates one task end to end and is reached from that task'],
+  ['docs/qa/test-strategy', 'strategy prose describing how testing is organised, not a node about a thing'],
+]);
+
+function scanGraph(mappings) {
+  const nodes = new Map();
+  const byName = new Map();
+
+  for (const mapping of mappings) {
+    const sourceDir = resolve(REPO_ROOT, mapping.from);
+    if (!existsSync(sourceDir)) continue;
+    for (const file of markdownFilesIn(sourceDir)) {
+      const body = readFileSync(file, 'utf8');
+      if (!isPublishable(file, body)) continue;
+      const name = basename(file, '.md');
+      const node = {
+        name,
+        note: `${mapping.to}/${norm(relative(sourceDir, file))}`,
+        body,
+        degree: 0,
+        standalone:
+          NAVIGATION_AGGREGATES.has(name) ||
+          STANDALONE_CATEGORIES.has(mapping.from) ||
+          /^STANDALONE_ALLOWED:\s*true\s*$/m.test(body.slice(0, 2048)),
+      };
+      nodes.set(file, node);
+      byName.set(name, node);
+      const aliases = /^aliases:\s*\[([^\]]*)\]\s*$/m.exec(body.slice(0, 2048));
+      if (aliases) {
+        for (const alias of aliases[1].split(',')) {
+          const trimmed = alias.trim().replace(/^["']|["']$/g, '');
+          if (trimmed) byName.set(trimmed, node);
+        }
+      }
+    }
+  }
+
+  // Edges are counted in BOTH directions: an inbound link makes a note reachable
+  // just as well as an outbound one does.
+  for (const node of nodes.values()) {
+    const linkable = node.body.replace(/```[\s\S]*?```/g, '').replace(/`[^`\n]*`/g, '');
+    for (const match of linkable.matchAll(/\[\[([^\]|#]+)(?:\|[^\]]*)?\]\]/g)) {
+      const target = byName.get(match[1].trim());
+      if (!target || target === node) continue;
+      node.degree += 1;
+      target.degree += 1;
+    }
+  }
+
+  const graphOrphans = [];
+  let standaloneAllowed = 0;
+  for (const node of nodes.values()) {
+    if (node.standalone) {
+      standaloneAllowed += 1;
+      continue;
+    }
+    if (node.degree === 0) graphOrphans.push(node.note);
+  }
+
+  return { graphOrphans, standaloneAllowed, graphNodes: nodes.size };
+}
+
 function scanOrphans(vaultPath, mappings) {
-  const norm = (value) => value.split(sep).join('/');
   const allTargets = mappings.map((mapping) => norm(mapping.to));
   const orphans = [];
   const stale = [];
@@ -331,6 +446,7 @@ function verify(vaultPath, mappings) {
     missing,
     vaultNotes: generatedNoteCount,
   } = scanOrphans(vaultPath, mappings);
+  const { graphOrphans, standaloneAllowed, graphNodes } = scanGraph(mappings);
 
   /*
    * An orphan is a HARD failure, not a warning. A generated note whose source no
@@ -345,6 +461,14 @@ function verify(vaultPath, mappings) {
     problems.push(
       `${orphan.note} — ORPHAN_GENERATED_NODE: no source in the repository. ` +
         'Remove the generated copy, or restore the source if the deletion was wrong.',
+    );
+  }
+  for (const note of graphOrphans) {
+    problems.push(
+      `${note} — GRAPH_ORPHAN: no inbound or outbound wikilink, so the note is ` +
+        'unreachable in the graph. Declare the relationship it already has ' +
+        '(module, bug, regression, plan, task) rather than adding a link to remove ' +
+        'the dot; or mark it STANDALONE_ALLOWED: true with a reason.',
     );
   }
   for (const entry of stale) {
@@ -362,6 +486,10 @@ function verify(vaultPath, mappings) {
   console.log(`VAULT_GENERATED_NOTES       ${generatedNoteCount}`);
   console.log(`OBSIDIAN_ORPHAN_COUNT       ${orphans.length}`);
   console.log(`OBSIDIAN_STALE_GENERATED    ${stale.length}`);
+  console.log(`OBSIDIAN_SOURCE_ORPHANS     ${orphans.length}`);
+  console.log(`OBSIDIAN_GRAPH_NODES        ${graphNodes}`);
+  console.log(`OBSIDIAN_GRAPH_ORPHANS      ${graphOrphans.length}`);
+  console.log(`OBSIDIAN_STANDALONE_ALLOWED ${standaloneAllowed}`);
   console.log(`OBSIDIAN_PARITY_DIFFS       ${missing.length}`);
   console.log('MANUAL_NOTES_UNTOUCHED      all — verification reads only the mapped agent-owned folders');
   console.log('');
