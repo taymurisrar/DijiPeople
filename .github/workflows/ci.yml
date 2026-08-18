@@ -389,6 +389,11 @@ jobs:
       STRIPE_MODE: test
       STRIPE_SECRET_KEY: sk_test_ci_placeholder_not_a_real_key
       STRIPE_API_VERSION: '2024-06-20'
+      # Synthetic, test-only. seed:admin refuses to run without them, and
+      # platform-workflows needs an ACTIVE PlatformUser that only seed:admin
+      # creates — without it that suite errored in beforeAll on every run.
+      PLATFORM_SUPER_ADMIN_EMAIL: ci-admin@example.invalid
+      PLATFORM_SUPER_ADMIN_PASSWORD: ci-test-only-password-000000
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -409,6 +414,11 @@ jobs:
         # written from here on should build their own via test/helpers/db-fixtures.ts
         # rather than growing this dependency.
         run: npm --workspace api run seed:demo
+      - name: Seed the platform super admin
+        # platform-workflows resolves an ACTIVE PlatformUser. seed:demo creates
+        # tenant-side data only, so without this the suite could never pass —
+        # ITEM-0047.
+        run: npm --workspace api run seed:admin
       - name: Run database-backed e2e suites
         id: e2e
         run: |

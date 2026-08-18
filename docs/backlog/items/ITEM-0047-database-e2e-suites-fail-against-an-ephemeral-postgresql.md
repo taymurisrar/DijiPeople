@@ -48,6 +48,73 @@ alone proves only that a *new* installation works.
 - `.github/workflows/ci.yml` — the job seeds demo data before running, which is
   the one pre-existing-data dependency in the suite set.
 
+## Diagnosis, 2026-08-18
+
+**The suites were reproduced locally for the first time.** That is what had been
+missing: the failures were only ever observed in CI, so nobody could iterate on
+them. The recipe is recorded in `docs/development/database-e2e-reproduction.md`
+and reproduces the recorded baseline exactly — 7 suites, **148 failed / 128
+passed**, matching run `32020076245` test-for-test.
+
+Four causes were found. Three are fixed; the fourth is the headline and is not.
+
+### A. The API could not boot without Stripe credentials — FIXED
+
+`createStripeClient` was an eager `useFactory` that threw during Nest dependency
+resolution. Because `BillingModule` sits in `AppModule`, **the whole API was
+un-bootable without Stripe configuration** — not just billing. Any environment
+that does not sell anything hit it: a developer machine, a seed script, a CLI
+invocation. CI masked it by setting placeholder keys, which is exactly why it
+never appeared in CI logs while blocking local reproduction.
+
+Fixed by deferring construction to first use, while keeping production
+fail-fast. Every guarantee is retained; only the moment of failure moved.
+
+### B. `attendance-integrations-isolation` needed two seeded tenants — FIXED
+
+It searched for two tenants that each already had an employee and a work site.
+`seed:demo` creates **one** tenant, so the search failed on every freshly seeded
+database and all 42 tests errored before reaching an assertion. Rewritten to
+build its own tenants through `db-fixtures` — which is what the CI job's own
+comment asks new tests to do. **42 tests recovered.**
+
+### C. `platform-workflows` depended on data no seed creates — FIXED
+
+It required a customer account literally named `Crescent Retail Group`. Nothing
+produces that name; `seed:demo` creates `DijiPeople Demo Company`. It also needs
+an ACTIVE `PlatformUser`, which only `seed:admin` creates and which the CI job
+never ran. Both fixed: the hardcoded name is gone (it was only interpolated into
+sample contract HTML) and `seed:admin` is now a CI step. **3 of 5 recovered**;
+the remaining 2 are genuine assertion failures needing their own investigation.
+
+### D. The suites share one database and run in parallel — NOT FIXED
+
+This is the real source of the nondeterminism, and it confirms the hypothesis
+this item already recorded. Two runs of the identical command, minutes apart,
+gave **5 failing suites** and then **10** — with different membership each time,
+including suites that had just passed in isolation. That is cross-suite
+interference: one database, one seeded tenant, jest running suites in parallel
+workers.
+
+It also explains the drift this item was opened over. 136, then 148, then 128
+were never three states of the product; they were three samples of one race.
+
+**Nothing should be concluded about a suite from a parallel run**, in either
+direction — a pass is as untrustworthy as a failure.
+
+## Result so far
+
+| | Suites failing | Tests failing | Tests passing |
+|---|---|---|---|
+| Recorded baseline (`32020076245`) | 7 | 148 | 79 |
+| Local reproduction of that baseline | 7 | 148 | 128 |
+| After fixes A, B and C | 5 | 86 | 190 |
+
+**62 tests recovered.** The residual 86 are a mix of the parallel-execution race
+(D) and real failures hidden behind it. They cannot be separated until D is
+addressed, which is why no further suite is being "fixed" on the strength of a
+parallel run.
+
 ## Proposed Approach
 
 ExecPlan required; this is diagnosis before repair and the causes are probably

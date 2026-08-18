@@ -27,9 +27,19 @@ describe('Platform workflow public journeys (e2e)', () => {
     );
     await app.init();
     prisma = app.get(PrismaService);
+    /*
+     * ITEM-0047 — this used to require a customer account literally named
+     * 'Crescent Retail Group'. No seed produces that name; `seed:demo` creates
+     * 'DijiPeople Demo Company'. The test was written against a developer's own
+     * database and could never pass on a freshly seeded one, so all five cases
+     * errored in `beforeAll` on every CI run.
+     *
+     * The name was never the point — it is only interpolated into sample
+     * contract HTML. Any customer account will do.
+     */
     const [customer, operator] = await Promise.all([
       prisma.customerAccount.findFirstOrThrow({
-        where: { companyName: 'Crescent Retail Group' },
+        orderBy: { createdAt: 'asc' },
       }),
       prisma.platformUser.findFirstOrThrow({ where: { status: 'ACTIVE' } }),
     ]);

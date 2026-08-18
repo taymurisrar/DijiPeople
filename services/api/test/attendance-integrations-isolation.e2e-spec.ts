@@ -11,6 +11,7 @@ import { ConnectorConfigurationValidator } from '../src/modules/attendance-integ
 import { EmployeeWorkSiteResolver } from '../src/modules/attendance-integrations/work-sites/employee-work-site-resolver.service';
 import { RequestContextModule } from '../src/common/request-context/request-context.module';
 import { PrismaService } from '../src/common/prisma/prisma.service';
+import { DbFixtures } from './helpers/db-fixtures';
 import type { AuthenticatedUser } from '../src/common/interfaces/authenticated-request.interface';
 import { AttendanceDeviceService } from '../src/modules/attendance-integrations/devices/attendance-device.service';
 import { GatewayCredentialService } from '../src/modules/attendance-integrations/gateways/gateway-credential.service';
@@ -39,6 +40,7 @@ describe('Attendance integration tenant isolation (e2e, DB-backed)', () => {
 
   let moduleRef: TestingModule;
   let prisma: PrismaService;
+  let fixtures: DbFixtures;
   let integrations: AttendanceIntegrationService;
   let devices: AttendanceDeviceService;
   let operations: AttendanceOperationsService;
@@ -241,21 +243,47 @@ describe('Attendance integration tenant isolation (e2e, DB-backed)', () => {
     ingestion = moduleRef.get(RawAttendanceIngestionService);
     mapping = moduleRef.get(EmployeeMappingService);
 
-    const tenants = await prisma.tenant.findMany({
-      where: { employees: { some: {} }, locations: { some: {} } },
-      take: 2,
-      orderBy: { createdAt: 'asc' },
-      select: { id: true },
-    });
+    /*
+     * ITEM-0047 — this suite used to go looking for two seeded tenants that
+     * each already had an employee and a work site, and threw when it could not
+     * find them. `seed:demo` creates exactly one tenant, so on any freshly
+     * seeded database — which is every CI run — the search failed and every
+     * test in this file errored before reaching the behaviour under test.
+     *
+     * It now builds what it needs. That is what `db-fixtures` is for, and the
+     * isolation property does not depend on the tenants being seeded ones: it
+     * depends on there being two of them.
+     */
+    fixtures = new DbFixtures(prisma, 'attendance-isolation');
+    const tenantA = await fixtures.createTenant('iso-a');
+    const tenantB = await fixtures.createTenant('iso-b');
 
-    if (tenants.length < 2) {
-      throw new Error(
-        'Isolation tests need two tenants that each have at least one employee and one work site.',
-      );
+    let index = 0;
+    for (const tenant of [tenantA, tenantB]) {
+      await prisma.location.create({
+        data: {
+          tenantId: tenant.id,
+          name: `Isolation site ${index}`,
+          city: 'Karachi',
+          state: 'Sindh',
+          country: 'PK',
+        },
+      });
+      await prisma.employee.create({
+        data: {
+          tenantId: tenant.id,
+          employeeCode: `ISO-${fixtures.runId}-${index}`,
+          firstName: 'Isolation',
+          lastName: `Subject${index}`,
+          phone: '+920000000000',
+          hireDate: new Date('2026-01-01'),
+        },
+      });
+      index += 1;
     }
 
-    alpha = await buildFixture(tenants[0].id, 'A');
-    beta = await buildFixture(tenants[1].id, 'B');
+    alpha = await buildFixture(tenantA.id, 'A');
+    beta = await buildFixture(tenantB.id, 'B');
   });
 
   afterAll(async () => {
@@ -299,6 +327,18 @@ describe('Attendance integration tenant isolation (e2e, DB-backed)', () => {
         where: { id: fixture.gatewayId },
       });
     }
+
+    // The two tenants this suite created, and the employees and work sites
+    // inside them. Removed after the integration rows above, because those hold
+    // Restrict references into the tenant.
+    for (const tenantId of [alpha?.tenantId, beta?.tenantId]) {
+      if (!tenantId) continue;
+      await prisma.deviceProvisioningJob.deleteMany({ where: { tenantId } });
+      await prisma.employee.deleteMany({ where: { tenantId } });
+      await prisma.location.deleteMany({ where: { tenantId } });
+    }
+    await fixtures.cleanup();
+
     await moduleRef.close();
   });
 
