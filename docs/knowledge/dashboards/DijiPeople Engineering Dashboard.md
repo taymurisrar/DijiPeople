@@ -13,7 +13,7 @@
 | Blocked | 0 |
 | Awaiting a product decision | 2 |
 | Deferred | 1 |
-| Completed | 87 |
+| Completed | 88 |
 | Awaiting Architect triage | 0 |
 
 ## Open Critical Bugs
@@ -102,6 +102,7 @@ _None._
 | [[BUG-0063-request-demo-form-blocks-submission-with-no-feedback-and-is-|BUG-0063]] | Request demo form blocks submission with no feedback and is unusable by assistive technology | UX | HIGH | VERIFIED | apps/landing | DONE |
 | [[BUG-0064-landing-public-pages-fail-wcag-bypass-blocks-and-text-contra|BUG-0064]] | Landing public pages fail WCAG bypass blocks and text contrast on every route | UX | HIGH | VERIFIED | apps/landing | DONE |
 | [[BUG-0068-prisma-client-freshness-check-is-blind-to-field-level-drift|BUG-0068]] | Prisma client freshness check is blind to field-level drift | INFRA | HIGH | VERIFIED | scripts, services/api | DONE |
+| [[BUG-0070-outbox-deduplication-aborted-the-caller-transaction-on-postg|BUG-0070]] | Outbox deduplication aborted the caller transaction on PostgreSQL | BUG | HIGH | VERIFIED | outbox | DONE |
 | [[BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state|BUG-0051]] | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |
 | [[BUG-0009-session-revocation-depended-on-the-refresh-cookie|BUG-0009]] | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | VERIFIED | app:admin, api:auth | DONE |
 | [[BUG-0010-unguarded-cookie-options-could-turn-sign-out-into-a-500|BUG-0010]] | Unguarded cookie options could turn admin sign-out into a 500 | INFRA | MEDIUM | VERIFIED | app:admin | DONE |
@@ -201,13 +202,13 @@ _None. Nothing has been deployed through the release process._
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 66 |
+| Bug records | 67 |
 | Backlog items | 53 |
 | Known bug patterns | 19 |
 | QA runs | 17 |
 | Engineering history records | 15 |
 | Release records | 0 |
-| Module notes | 22 |
+| Module notes | 24 |
 | Architecture notes | 18 |
 | Decision notes (ADR + generated) | 6 |
 | Implementation records | 4 |

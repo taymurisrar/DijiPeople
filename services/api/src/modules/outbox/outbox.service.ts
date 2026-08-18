@@ -37,46 +37,63 @@ export class OutboxService {
     const correlationId =
       input.correlationId?.trim().slice(0, 128) || `evt_${randomUUID()}`;
 
-    try {
-      const created = await tx.outboxEvent.create({
-        data: {
-          eventType: input.eventType,
-          idempotencyKey: input.idempotencyKey,
-          aggregateType: input.aggregateType.slice(0, 100),
-          aggregateId: input.aggregateId.slice(0, 160),
-          tenantId: input.tenantId ?? null,
-          customerAccountId: input.customerAccountId ?? null,
-          correlationId,
-          payload: input.payload as Prisma.InputJsonValue,
-          availableAt: input.availableAt ?? new Date(),
-          maxAttempts: input.maxAttempts ?? 8,
-        },
-        select: { id: true },
-      });
+    /*
+     * BUG-0070 — why this is `ON CONFLICT DO NOTHING` and not try/catch.
+     *
+     * The obvious implementation is `create()`, catch P2002, then read the
+     * existing row back. It passes every mocked test and it cannot work on
+     * PostgreSQL: a constraint violation **aborts the surrounding transaction**,
+     * so the read in the catch block fails with "current transaction is aborted,
+     * commands ignored until end of transaction block" — and because `emit` is
+     * required to run inside the caller's transaction, it poisons the caller's
+     * business write too. A redelivered webhook would therefore roll back the
+     * very state change it was trying to confirm.
+     *
+     * `ON CONFLICT DO NOTHING` never raises, so the transaction stays healthy.
+     * The empty `RETURNING` is how we learn it was a duplicate, and the row is
+     * then read normally. Uniqueness is still enforced by the index, not by a
+     * pre-check, so two concurrent emitters still collapse to one row.
+     */
+    const eventId = randomUUID();
+    const inserted = await tx.$queryRaw<Array<{ id: string }>>`
+      INSERT INTO "OutboxEvent" (
+        "id", "eventType", "idempotencyKey", "aggregateType", "aggregateId",
+        "tenantId", "customerAccountId", "correlationId", "payload",
+        "maxAttempts", "availableAt", "updatedAt"
+      ) VALUES (
+        ${eventId},
+        ${input.eventType}::"DomainEventType",
+        ${input.idempotencyKey},
+        ${input.aggregateType.slice(0, 100)},
+        ${input.aggregateId.slice(0, 160)},
+        ${input.tenantId ?? null},
+        ${input.customerAccountId ?? null},
+        ${correlationId},
+        ${JSON.stringify(input.payload)}::jsonb,
+        ${input.maxAttempts ?? 8},
+        ${input.availableAt ?? new Date()},
+        NOW()
+      )
+      ON CONFLICT ("idempotencyKey") DO NOTHING
+      RETURNING "id";
+    `;
 
-      return { id: created.id, deduplicated: false };
-    } catch (error) {
-      if (!isUniqueViolation(error)) {
-        // Never swallow this. The caller's transaction must roll back with it:
-        // a business change whose event could not be written is exactly the
-        // split state the outbox exists to make impossible.
-        throw error;
-      }
-
-      // The same transition was already announced. That is a success, not a
-      // conflict — but it has to be read back inside the same transaction so
-      // the caller gets a real id rather than a fabricated one.
-      const existing = await tx.outboxEvent.findUniqueOrThrow({
-        where: { idempotencyKey: input.idempotencyKey },
-        select: { id: true },
-      });
-
-      this.logger.debug(
-        `Deduplicated ${input.eventType} on key ${input.idempotencyKey}`,
-      );
-
-      return { id: existing.id, deduplicated: true };
+    if (inserted.length > 0) {
+      return { id: inserted[0].id, deduplicated: false };
     }
+
+    // The same transition was already announced. That is a success, not a
+    // conflict — but the caller gets the real id rather than a fabricated one.
+    const existing = await tx.outboxEvent.findUniqueOrThrow({
+      where: { idempotencyKey: input.idempotencyKey },
+      select: { id: true },
+    });
+
+    this.logger.debug(
+      `Deduplicated ${input.eventType} on key ${input.idempotencyKey}`,
+    );
+
+    return { id: existing.id, deduplicated: true };
   }
 
   /**
@@ -92,11 +109,4 @@ export class OutboxService {
   ): Promise<{ id: string; deduplicated: boolean }> {
     return this.prisma.$transaction((tx) => this.emit(tx, input));
   }
-}
-
-function isUniqueViolation(error: unknown): boolean {
-  return (
-    error instanceof Prisma.PrismaClientKnownRequestError &&
-    error.code === 'P2002'
-  );
 }

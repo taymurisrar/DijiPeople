@@ -888,3 +888,17 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Proven to fail without the fix** | Before: an `ApplicationRelease.checksumSha512` missing from the client printed "OK — 267 enums reachable" and exited 0, while tsc reported 8 errors on that property. After: adding a schema-only field produces "Missing fields (1): ApplicationRelease.checksumSha999Probe" and exit 1; restoring the schema returns exit 0. |
 | **Fixed** | 2026-08-18, branch `agent/prisma-freshness-fields` |
 | **Active** | yes |
+
+### REG-064 — Outbox deduplication does not abort the caller transaction
+
+| | |
+|---|---|
+| **Bug class** | `mocked-proof-of-a-database-guarantee` |
+| **Module** | `services/api` — `outbox` |
+| **Bug record** | BUG-0070 |
+| **Root cause** | Deduplication caught the unique-constraint violation and read the existing row back inside the same transaction. PostgreSQL aborts the whole transaction on any statement error and offers no statement-level rollback without an explicit SAVEPOINT, so the read could never run — and because `emit` is required to run inside the *caller's* transaction, the abort also rolled back the business change the event was announcing. The unit spec proved the behaviour against a Prisma double, which raised P2002 and then happily answered the follow-up read; no double can model a poisoned transaction. |
+| **Regression test** | `services/api/test/outbox-delivery.e2e-spec.ts` — "collapses a repeated emission to one row, by unique index rather than by a pre-check" |
+| **Scenario** | Emit the same `idempotencyKey` twice in two committed transactions against real PostgreSQL. The second returns `{ deduplicated: true }` with the first event's id, exactly one row exists, and the caller's transaction commits normally. |
+| **Proven to fail without the fix** | Before: `DriverAdapterError: current transaction is aborted, commands ignored until end of transaction block` — 1 failed, 4 passed. After: 5 passed. |
+| **Fixed** | 2026-08-18, branch `agent/commercial-platform-completion` |
+| **Active** | yes |

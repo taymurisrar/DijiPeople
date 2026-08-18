@@ -6,14 +6,14 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 119,
-    "bugs": 66,
+    "total_records": 120,
+    "bugs": 67,
     "backlog_items": 53,
     "open_bucket": 4,
     "blocked_bucket": 0,
     "deferred_bucket": 1,
     "product_decision_bucket": 2,
-    "completed_bucket": 87,
+    "completed_bucket": 88,
     "parser_structural_errors": 0,
     "active_session_conflict": "NONE",
     "discovered_findings_total": 34,
@@ -6015,6 +6015,55 @@
         "QA-DEPLOY-014"
       ],
       "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0070",
+      "source": {
+        "record_path": "docs/bugs/BUG-0070-outbox-deduplication-aborted-the-caller-transaction-on-postg.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "1fb2bf9",
+        "created_at": "2026-08-18",
+        "updated_at": "2026-08-18",
+        "resolved_at": "2026-08-18"
+      },
+      "type": "BUG",
+      "title": "Outbox deduplication aborted the caller transaction on PostgreSQL",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "VERIFIED",
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/outbox/outbox.service.ts",
+          "services/api/test/outbox-delivery.e2e-spec.ts"
+        ],
+        "verification_scope": "Proven against real PostgreSQL 18 in both directions: the pre-fix implementation fails with \"current transaction is aborted\", the ON CONFLICT DO NOTHING implementation passes 5 of 5 including the two-dispatcher concurrency case."
+      },
+      "affected_modules": [
+        "outbox"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": "Introduced and fixed inside TASK-0007 WP-01."
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [
+        "REG-064"
+      ],
+      "qa_scenarios": [
+        "QA-BILLING-002"
+      ],
+      "test_plan": [
+        "PLAN-014"
+      ],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
       "architect_disposition": "DONE",

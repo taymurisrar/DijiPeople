@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**119 records** — 66 bugs under [`docs/bugs/`](../bugs/), 53 non-bug items under [`items/`](items/).
+**120 records** — 67 bugs under [`docs/bugs/`](../bugs/), 53 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -17,7 +17,7 @@ see [`README.md`](README.md) for why.
 | Blocked | 0 |
 | Deferred | 1 |
 | Awaiting a product decision | 2 |
-| Completed / closed | 87 |
+| Completed / closed | 88 |
 | **Open CRITICAL** | **0** |
 | **Open HIGH** | **5** |
 | **Awaiting Architect triage** | **0** |
@@ -50,7 +50,7 @@ see [`README.md`](README.md) for why.
 | OPEN | 4 |
 | DEFERRED | 1 |
 | PRODUCT_DECISION | 2 |
-| VERIFIED | 61 |
+| VERIFIED | 62 |
 | READY | 25 |
 | DONE | 26 |
 
@@ -97,6 +97,7 @@ see [`README.md`](README.md) for why.
 | [BUG-0063](../../docs/bugs/BUG-0063-request-demo-form-blocks-submission-with-no-feedback-and-is-.md) | Request demo form blocks submission with no feedback and is unusable by assistive technology | UX | HIGH | P1 | VERIFIED | apps/landing | DONE |
 | [BUG-0064](../../docs/bugs/BUG-0064-landing-public-pages-fail-wcag-bypass-blocks-and-text-contra.md) | Landing public pages fail WCAG bypass blocks and text contrast on every route | UX | HIGH | P1 | VERIFIED | apps/landing | DONE |
 | [BUG-0068](../../docs/bugs/BUG-0068-prisma-client-freshness-check-is-blind-to-field-level-drift.md) | Prisma client freshness check is blind to field-level drift | INFRA | HIGH | P1 | VERIFIED | scripts, services/api | DONE |
+| [BUG-0070](../../docs/bugs/BUG-0070-outbox-deduplication-aborted-the-caller-transaction-on-postg.md) | Outbox deduplication aborted the caller transaction on PostgreSQL | BUG | HIGH | P1 | VERIFIED | outbox | DONE |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | READY | api:tenant-control-plane | FIX_NOW |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | READY | apps/web, e2e | PLAN_REQUIRED |

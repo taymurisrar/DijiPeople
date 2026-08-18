@@ -6,12 +6,12 @@ AREA: legal
 MODULE: legal
 TYPE: DATABASE
 RISK: HIGH
-AUTOMATION_STATUS: PARTIAL
-TEST_REFERENCE: services/api/src/modules/legal/legal.service.spec.ts
+AUTOMATION_STATUS: AUTOMATED
+TEST_REFERENCE: services/api/test/legal-documents.e2e-spec.ts
 RELATED_BUGS: []
 RELATED_REGRESSIONS: []
 LAST_RUN: 2026-08-18
-LAST_RESULT: PASS_WITH_RISKS
+LAST_RESULT: PASS
 CREATED_AT: 2026-08-18
 UPDATED_AT: 2026-08-18
 ---
@@ -65,10 +65,16 @@ second of the same type bound to a launched market.
 
 Created 2026-08-18 at `bd0fb36`.
 
-**`LAST_RESULT: PASS_WITH_RISKS` is deliberate.** Steps 2, 3, 5, 6 and 7 are covered by
-`legal.service.spec.ts` against Prisma doubles and pass. Steps 1, 4 and 8 depend
-on real database behaviour — transactional co-commit of lead and acknowledgement,
-and the `Restrict` foreign key — which a double cannot demonstrate. They need real
-PostgreSQL; no local credential was available when this was written.
+**Run against real PostgreSQL 18 on 2026-08-18 — 6 of 6 passed.**
 
-WP-13 owns promoting this to a real-PostgreSQL run.
+`services/api/test/legal-documents.e2e-spec.ts` proves the parts the service
+spec structurally cannot: that exactly one version is in force after a
+successor is published, that an acknowledgement keeps pointing at the version
+that was current when it was given, that `onDelete: Restrict` refuses to delete
+a cited version, and that a subject and its acknowledgement commit together or
+not at all.
+
+One assertion was corrected during the run: the Restrict violation surfaces as
+a `DriverAdapterError` from the pg adapter rather than a Prisma `P2003`, so the
+test asserts on the constraint message. The behaviour was already correct — the
+expectation was not.

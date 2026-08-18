@@ -6,12 +6,12 @@ AREA: outbox
 MODULE: outbox
 TYPE: DATABASE
 RISK: HIGH
-AUTOMATION_STATUS: PARTIAL
-TEST_REFERENCE: services/api/src/modules/outbox/outbox-dispatcher.service.spec.ts
-RELATED_BUGS: []
-RELATED_REGRESSIONS: []
+AUTOMATION_STATUS: AUTOMATED
+TEST_REFERENCE: services/api/test/outbox-delivery.e2e-spec.ts
+RELATED_BUGS: [BUG-0070]
+RELATED_REGRESSIONS: [REG-064]
 LAST_RUN: 2026-08-18
-LAST_RESULT: PASS_WITH_RISKS
+LAST_RESULT: PASS
 CREATED_AT: 2026-08-18
 UPDATED_AT: 2026-08-18
 ---
@@ -68,12 +68,16 @@ burns the budget and then misreports the cause as infrastructure.
 
 Created 2026-08-18 at `bd0fb36`.
 
-**`LAST_RESULT: PASS_WITH_RISKS` is deliberate and is not a clean pass.** Steps 1–7 are covered
-by the two unit specs against Prisma doubles and pass. Step 8, and the
-database-level guarantees behind steps 2, 5 and 7 — the unique indexes and
-`FOR UPDATE SKIP LOCKED` — are **not** proven by those specs: a double cannot
-refuse a duplicate insert or serialise a claim. They need real PostgreSQL, and no
-local credential was available in the environment this was written in.
+**Run against real PostgreSQL 18 on 2026-08-18 — 5 of 5 passed.**
 
-WP-13 owns promoting this to a real-PostgreSQL run. Until then the concurrency and
-constraint claims are designed-for, not demonstrated.
+`services/api/test/outbox-delivery.e2e-spec.ts` now proves steps 1-5 and 8
+against a real database, including the two-dispatcher concurrency case that no
+double can demonstrate. Steps 6 and 7 (backoff exhaustion and lease reclaim)
+remain covered by the unit specs, where they are fully determined by branching
+rather than by database behaviour.
+
+**This scenario found [[BUG-0070]] on its first real run.** Deduplication caught
+the unique violation and read the row back inside the same transaction;
+PostgreSQL had already aborted that transaction, so the read could never
+execute and the caller's business write rolled back with it. The mocked spec
+had passed. See [[REG-064]].

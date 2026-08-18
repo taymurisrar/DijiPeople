@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 91** · automated: 83 · manual: 4 · blocked by infrastructure: 0
+**Scenarios: 91** · automated: 85 · manual: 4 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -40,8 +40,8 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-AUTHZ-008](../../../docs/qa/scenarios/QA-AUTHZ-008-route-proxies-forward-upstream-refusals.md) | Route proxies forward upstream refusals | authorization | SECURITY | HIGH | AUTOMATED | `scripts/check-proxies-forward-refusals.mjs` | BUG-0039 | REG-034 |
 | [QA-AUTHZ-009](../../../docs/qa/scenarios/QA-AUTHZ-009-document-authorization-follows-the-owning-employee.md) | Document authorization follows the owning employee | authorization | SECURITY | CRITICAL | AUTOMATED | `services/api/src/modules/documents/documents-object-authorization.spec.ts` | BUG-0053 | REG-041 |
 | [QA-BILLING-001](../../../docs/qa/scenarios/QA-BILLING-001-billing-reads-and-writes-require-distinct-capabilities.md) | Billing reads and writes require distinct capabilities | authorization | SECURITY | CRITICAL | AUTOMATED | `services/api/src/modules/billing/billing-authorization.spec.ts` | BUG-0056 | REG-043 |
-| [QA-BILLING-002](../../../docs/qa/scenarios/QA-BILLING-002-an-outbox-event-is-delivered-at-least-once-and-consumed-exac.md) | An outbox event is delivered at least once and consumed exactly once | outbox | DATABASE | HIGH | PARTIAL | `services/api/src/modules/outbox/outbox-dispatcher.service.spec.ts` | — | — |
-| [QA-BILLING-003](../../../docs/qa/scenarios/QA-BILLING-003-a-published-legal-version-cannot-be-edited-and-acknowledgeme.md) | A published legal version cannot be edited and acknowledgements keep pointing at it | legal | DATABASE | HIGH | PARTIAL | `services/api/src/modules/legal/legal.service.spec.ts` | — | — |
+| [QA-BILLING-002](../../../docs/qa/scenarios/QA-BILLING-002-an-outbox-event-is-delivered-at-least-once-and-consumed-exac.md) | An outbox event is delivered at least once and consumed exactly once | outbox | DATABASE | HIGH | AUTOMATED | `services/api/test/outbox-delivery.e2e-spec.ts` | BUG-0070 | REG-064 |
+| [QA-BILLING-003](../../../docs/qa/scenarios/QA-BILLING-003-a-published-legal-version-cannot-be-edited-and-acknowledgeme.md) | A published legal version cannot be edited and acknowledgements keep pointing at it | legal | DATABASE | HIGH | AUTOMATED | `services/api/test/legal-documents.e2e-spec.ts` | — | — |
 | [QA-CI-001](../../../docs/qa/scenarios/QA-CI-001-report-only-jobs-publish-an-explicit-pass-fail-verdict.md) | Report-only CI jobs publish an explicit PASS/FAIL verdict | deployment-release | DEPLOYMENT_SMOKE | HIGH | AUTOMATED | `scripts/validate-framework.mjs` | BUG-0049 | REG-047 |
 | [QA-DEPLOY-001](../../../docs/qa/scenarios/QA-DEPLOY-001-deployment-smoke-checks-answer-against-the-deployed-environm.md) | Deployment smoke checks answer against the deployed environment | deployment-release | DEPLOYMENT_SMOKE | HIGH | AUTOMATED | `scripts/smoke-deployment.mjs` | — | — |
 | [QA-DEPLOY-002](../../../docs/qa/scenarios/QA-DEPLOY-002-no-url-is-hardcoded-where-configuration-is-required.md) | No URL is hardcoded where configuration is required | deployment-release | UNIT | HIGH | AUTOMATED | `scripts/check-no-hardcoded-urls.mjs` | BUG-0026 | REG-016 |

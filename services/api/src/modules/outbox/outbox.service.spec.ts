@@ -4,24 +4,17 @@ import { OutboxService } from './outbox.service';
 import { buildIdempotencyKey } from './outbox.types';
 import type { PrismaService } from '../../common/prisma/prisma.service';
 
-function uniqueViolation(): Prisma.PrismaClientKnownRequestError {
-  return new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
-    code: 'P2002',
-    clientVersion: 'test',
-  });
-}
-
 type TxDouble = {
+  $queryRaw: jest.Mock;
   outboxEvent: {
-    create: jest.Mock;
     findUniqueOrThrow: jest.Mock;
   };
 };
 
 function makeTx(): TxDouble {
   return {
+    $queryRaw: jest.fn(),
     outboxEvent: {
-      create: jest.fn(),
       findUniqueOrThrow: jest.fn(),
     },
   };
@@ -46,7 +39,7 @@ describe('OutboxService', () => {
 
   it('writes the event through the caller transaction, never its own', async () => {
     const tx = makeTx();
-    tx.outboxEvent.create.mockResolvedValue({ id: 'evt_1' });
+    tx.$queryRaw.mockResolvedValue([{ id: 'evt_1' }]);
 
     const result = await service.emit(
       tx as unknown as Prisma.TransactionClient,
@@ -54,15 +47,36 @@ describe('OutboxService', () => {
     );
 
     expect(result).toEqual({ id: 'evt_1', deduplicated: false });
-    expect(tx.outboxEvent.create).toHaveBeenCalledTimes(1);
+    expect(tx.$queryRaw).toHaveBeenCalledTimes(1);
     // The whole atomicity guarantee is that emit never opens a second
     // transaction behind the caller's back.
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
-  it('treats a duplicate idempotency key as success and returns the existing event', async () => {
+  /*
+   * BUG-0070. The original implementation used create() + catch(P2002) + read.
+   * On PostgreSQL the violation aborts the transaction, so the read in the catch
+   * block could never run and the caller's business write was poisoned too.
+   * A Prisma double cannot reproduce that, which is why the DB-backed proof in
+   * test/outbox-delivery.e2e-spec.ts is the authority for this behaviour and
+   * these unit tests only pin the shape of the query.
+   */
+  it('uses ON CONFLICT DO NOTHING so a duplicate never aborts the caller transaction', async () => {
     const tx = makeTx();
-    tx.outboxEvent.create.mockRejectedValue(uniqueViolation());
+    tx.$queryRaw.mockResolvedValue([{ id: 'evt_1' }]);
+
+    await service.emit(tx as unknown as Prisma.TransactionClient, input);
+
+    const sql = tx.$queryRaw.mock.calls[0][0].join('?');
+    expect(sql).toContain('ON CONFLICT');
+    expect(sql).toContain('DO NOTHING');
+    expect(sql).toContain('RETURNING');
+  });
+
+  it('treats an empty RETURNING as a duplicate and returns the existing event', async () => {
+    const tx = makeTx();
+    // ON CONFLICT DO NOTHING returns no rows when the key already exists.
+    tx.$queryRaw.mockResolvedValue([]);
     tx.outboxEvent.findUniqueOrThrow.mockResolvedValue({ id: 'evt_existing' });
 
     const result = await service.emit(
@@ -77,10 +91,9 @@ describe('OutboxService', () => {
     });
   });
 
-  it('propagates a non-unique failure so the caller transaction rolls back with it', async () => {
+  it('propagates a genuine failure so the caller transaction rolls back with it', async () => {
     const tx = makeTx();
-    const failure = new Error('connection reset');
-    tx.outboxEvent.create.mockRejectedValue(failure);
+    tx.$queryRaw.mockRejectedValue(new Error('connection reset'));
 
     await expect(
       service.emit(tx as unknown as Prisma.TransactionClient, input),
@@ -92,15 +105,19 @@ describe('OutboxService', () => {
 
   it('defaults the attempt budget and stamps a correlation id when none is given', async () => {
     const tx = makeTx();
-    tx.outboxEvent.create.mockResolvedValue({ id: 'evt_2' });
+    tx.$queryRaw.mockResolvedValue([{ id: 'evt_2' }]);
 
     await service.emit(tx as unknown as Prisma.TransactionClient, input);
 
-    const data = tx.outboxEvent.create.mock.calls[0][0].data;
-    expect(data.maxAttempts).toBe(8);
-    expect(typeof data.correlationId).toBe('string');
-    expect(data.correlationId.length).toBeGreaterThan(0);
-    expect(data.tenantId).toBeNull();
+    // Tagged-template call: [strings, ...values]. The values carry the payload.
+    const values = tx.$queryRaw.mock.calls[0].slice(1);
+    expect(values).toContain(8);
+    expect(
+      values.some(
+        (v: unknown) => typeof v === 'string' && v.startsWith('evt_'),
+      ),
+    ).toBe(true);
+    expect(values).toContain(null);
   });
 });
 
