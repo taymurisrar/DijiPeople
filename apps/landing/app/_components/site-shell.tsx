@@ -4,6 +4,7 @@ import Image from "next/image";
 import { landingEnv } from "@/lib/env";
 import { contactInfo } from "./marketing/content";
 import { HeaderNav, type NavItem } from "./header-nav";
+import { fetchPublishedLegalIndex } from "@/lib/legal-server";
 
 const navItems: readonly NavItem[] = [
   { href: "/", label: "Home" },
@@ -70,7 +71,17 @@ export function SiteHeader() {
 const footerLinkClass =
   "inline-flex min-h-[24px] items-center rounded-lg px-1 py-2 text-muted underline-offset-4 transition hover:text-foreground hover:underline";
 
-export function SiteFooter() {
+export async function SiteFooter() {
+  /*
+   * Only documents that are actually published are linked.
+   *
+   * The route for every legal document exists whether or not it has content,
+   * so inbound links survive a version rotation — but the footer is a claim
+   * that something is there to read. Linking to ten pages that all say "not
+   * published yet" would be the site advertising its own gaps.
+   */
+  const publishedLegal = await fetchPublishedLegalIndex();
+
   return (
     <footer className="border-t border-border bg-white/80">
       <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 text-sm text-muted sm:px-6 lg:grid-cols-[1.2fr_1fr_1fr] lg:px-8">
@@ -140,6 +151,26 @@ export function SiteFooter() {
               </a>
             </li>
           </ul>
+
+          {publishedLegal.length > 0 ? (
+            <>
+              <h2 className="mt-6 text-xs font-semibold uppercase tracking-[0.18em] text-foreground">
+                Legal
+              </h2>
+              <ul className="mt-2 grid">
+                {publishedLegal.map((document) => (
+                  <li key={document.slug}>
+                    <Link
+                      className={footerLinkClass}
+                      href={`/legal/${document.slug}`}
+                    >
+                      {document.title}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : null}
         </div>
       </div>
     </footer>
