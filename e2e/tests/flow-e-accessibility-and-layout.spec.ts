@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { BASE_URLS } from '../playwright.config';
 import { openAdmin, signInToAdmin } from '../fixtures/admin-session';
-import { probeEnvironment } from '../fixtures/environment';
+import { probeEnvironment, probePublicSurface } from '../fixtures/environment';
 import {
   auditPage,
   blocking,
@@ -32,6 +32,12 @@ import {
  * cannot gate CI. "The page body does not scroll sideways at 390px" is true or
  * false identically everywhere, and it is the assertion that catches the defect
  * that actually strands people.
+ *
+ * The public and signed-in halves carry **different preconditions**. Auditing
+ * the marketing site needs a running landing app and nothing else; auditing an
+ * admin screen needs a session and a database. Gating both on the heavier
+ * precondition means the landing audit silently skips whenever PostgreSQL is
+ * down — a green run that tested nothing, which is worse than a red one.
  */
 
 /** Public surfaces need no session. */
@@ -52,17 +58,10 @@ const ADMIN_PAGES = [
   { name: 'admin dashboard', path: '/' },
 ];
 
-test.describe('Flow E — accessibility and layout', () => {
+test.describe('Flow E — public accessibility and layout', () => {
   test.beforeAll(async () => {
-    const report = await probeEnvironment({
-      landing: BASE_URLS.landing,
-      admin: BASE_URLS.admin,
-      api: BASE_URLS.api,
-    });
-    test.skip(
-      !report.ready,
-      `Environment not ready for Flow E: ${report.missing.join('; ')}`,
-    );
+    const report = await probePublicSurface(BASE_URLS.landing);
+    test.skip(!report.ready, `Landing not reachable: ${report.missing.join('; ')}`);
   });
 
   for (const surface of PUBLIC_PAGES) {
@@ -112,6 +111,21 @@ test.describe('Flow E — accessibility and layout', () => {
       }
     });
   }
+
+});
+
+test.describe('Flow E — signed-in accessibility and layout', () => {
+  test.beforeAll(async () => {
+    const report = await probeEnvironment({
+      landing: BASE_URLS.landing,
+      admin: BASE_URLS.admin,
+      api: BASE_URLS.api,
+    });
+    test.skip(
+      !report.ready,
+      `Environment not ready for the signed-in half: ${report.missing.join('; ')}`,
+    );
+  });
 
   for (const surface of ADMIN_PAGES) {
     test(`E3 — ${surface.name} has no critical or serious accessibility violations`, async ({
