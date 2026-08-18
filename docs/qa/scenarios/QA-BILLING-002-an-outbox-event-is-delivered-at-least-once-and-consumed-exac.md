@@ -80,4 +80,4 @@ rather than by database behaviour.
 the unique violation and read the row back inside the same transaction;
 PostgreSQL had already aborted that transaction, so the read could never
 execute and the caller's business write rolled back with it. The mocked spec
-had passed. See [[REG-064]].
+had passed. See REG-064 in the regression register.

@@ -10,8 +10,8 @@ CREATED_AT: 2026-08-18
 AFFECTED_MODULES: [billing, super-admin, tenant-control-plane, legal, notifications, platform-events, employees, landing, admin, web]
 AGENTS: [Architect, Database, Backend/API, Frontend, UI/UX, Integration, QA, Reviewer, Integrator, Release/DevOps]
 DEPENDENCIES: origin/develop c332992; PARENT-SCOPE-RECONCILIATION; schema and permissions leases
-CURRENT_PACKAGE: WP-03
-COMPLETED_PACKAGES: [WP-01, WP-02, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09]
+CURRENT_PACKAGE: WP-10
+COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-12]
 BLOCKED_PACKAGES: [WP-15]
 OWNER_DECISIONS: 2
 FINAL_STATUS:
@@ -80,7 +80,7 @@ gate.
 |---|---|---|---|---|---|---|---|---|---|
 | WP-01 | Transactional outbox and typed domain events | DONE | — | Database, Backend/API | agent/commercial-platform-completion | 2bdac3a | PASS_WITH_RISKS | PASS | DONE |
 | WP-02 | Legal document system, versioning and publication | DONE | WP-01 | Database, Backend/API | agent/commercial-platform-completion | 2bdac3a | PASS_WITH_RISKS | PASS | DONE |
-| WP-03 | Consent — privacy acknowledgement, marketing, cookie categories | NOT_STARTED | WP-02 | Backend/API, Frontend | — | — | NOT_RUN | NOT_RUN | NOT_STARTED |
+| WP-03 | Consent — privacy acknowledgement, marketing, cookie categories | DONE | WP-02 | Backend/API, Frontend | agent/consent-legal-knowledge | e9cad20 | PASS | PASS | DONE |
 | WP-04 | Active-employee seat engine, usage history and overage | DONE | WP-01 | Database, Backend/API | agent/commercial-platform-completion | 416996d | PASS | PASS | DONE |
 | WP-05 | Customer-before-payment, pending subscription, checkout authority, tax basis | DONE | WP-01, WP-04 | Database, Backend/API, Integration | agent/commercial-platform-completion | 68ef4d1 | PASS | PASS | DONE |
 | WP-06 | Seat change and plan change lifecycle | DONE | WP-04, WP-05 | Backend/API, Integration | agent/commercial-platform-completion | 943a826 | PASS | PASS | DONE |
@@ -89,7 +89,7 @@ gate.
 | WP-09 | Stripe and internal reconciliation jobs | DONE | WP-04, WP-05, WP-07 | Backend/API, Integration | agent/commercial-platform-completion | 1520b67 | PASS_WITH_RISKS | PASS | DONE |
 | WP-10 | Landing legal, trust and subprocessor surface | NOT_STARTED | WP-02, workspace lease | Frontend, UI/UX | — | — | NOT_RUN | NOT_RUN | NOT_STARTED |
 | WP-11 | Admin dashboard, monitoring and provisioning operations UX | NOT_STARTED | WP-07, workspace lease | UI/UX, Frontend | — | — | NOT_RUN | NOT_RUN | NOT_STARTED |
-| WP-12 | Notification ownership and business-event coverage | NOT_STARTED | WP-01, WP-07 | Backend/API | — | — | NOT_RUN | NOT_RUN | NOT_STARTED |
+| WP-12 | Notification ownership and business-event coverage | DONE | WP-01, WP-07 | Backend/API | agent/consent-legal-knowledge | e9cad20 | PASS | PASS | DONE |
 | WP-13 | Consolidated QA, regression, security, accessibility and visual campaign | NOT_STARTED | WP-01..WP-12 | QA, Reviewer | — | — | NOT_RUN | NOT_RUN | NOT_STARTED |
 | WP-14 | Final review, exact-SHA CI, develop integration | NOT_STARTED | WP-13 | Reviewer, Integrator | — | — | NOT_RUN | NOT_RUN | NOT_STARTED |
 | WP-15 | Release, main promotion, deployment and production smoke | BLOCKED | WP-14 | Release/DevOps | — | — | NOT_RUN | NOT_RUN | BLOCKED_EXTERNAL |
@@ -167,14 +167,14 @@ Updated 2026-08-18.
 
 ```text
 CURRENT_PHASE               PHASE 2 — implementation
-CURRENT_WORK_PACKAGE        WP-03 (next ready)
-COMPLETED_WORK_PACKAGES     WP-01, WP-02, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09 — all merged behind a green required gate
-NEXT_READY_WORK_PACKAGE     WP-03 — consent (cookie categories, marketing withdrawal)
-INTEGRATED_DEVELOP_SHA      1520b67 — fast-forward, develop tip IS the CI-verified SHA
+CURRENT_WORK_PACKAGE        WP-10 (next ready)
+COMPLETED_WORK_PACKAGES     WP-01..WP-09 and WP-12 (all but WP-10, WP-11) — merged behind a green required gate
+NEXT_READY_WORK_PACKAGE     WP-10 — landing legal surface (content as DRAFT, per owner decision)
+INTEGRATED_DEVELOP_SHA      e9cad20 — fast-forward, develop tip IS the CI-verified SHA
 BASE_DEVELOP_SHA            304bfda
 MAIN                        b90f33e — UNTOUCHED
 UNCOMMITTED_STATE           none — worktree clean at every checkpoint
-LEASES_HELD                 none — SESSION-0010 finished and released them
+LEASES_HELD                 none — SESSION-0012 finished and released them
 BLOCKERS                    none — a local PostgreSQL credential was supplied; dijipeople_wp_test carries the full migration history and DB-backed proof now runs locally
 ```
 

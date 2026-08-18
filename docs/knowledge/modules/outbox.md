@@ -37,9 +37,17 @@ called.
 - `OutboxWorkerService` — the poll loop, **off by default**
   (`OUTBOX_WORKER_ENABLED`).
 
-Consumers implement `OutboxHandler` and are collected through the
-`OUTBOX_HANDLERS` token, so a domain module contributes a consumer without the
-outbox module depending on it.
+Consumers implement `OutboxHandler` and **self-register** by calling
+`dispatcher.register(this)` from their own `onModuleInit`, so a domain module
+contributes a consumer without the outbox module depending on it.
+
+They used to be collected through an `OUTBOX_HANDLERS` provider token, and that
+only worked while exactly one module did it. A Nest token holds one value: the
+moment a second module provided it, the last one loaded would win and the other
+module's consumers would vanish — while the outbox reported every event
+`PROCESSED`, because from its side nobody was listening. Data loss shaped like
+success. The token still exists as the initial (empty) set for containers that
+load no domain module at all.
 
 ## Important business rules
 
@@ -66,7 +74,7 @@ mocked test and cannot work on PostgreSQL: a constraint violation **aborts the
 surrounding transaction**, so the read in the catch block never runs, and because
 `emit` runs inside the *caller's* transaction it rolls back the business change
 too. The code uses `INSERT … ON CONFLICT DO NOTHING RETURNING` and says why
-inline. See [[REG-064]].
+inline. See REG-064 in the regression register.
 
 **Claiming must stay `FOR UPDATE SKIP LOCKED`.** A find-then-update dispatcher
 hands the same row to two workers. The two-dispatcher case in
@@ -93,10 +101,20 @@ enforces none of them.
 
 ## Current state
 
-Delivers correctly and delivers nothing: no emitter and no consumer are wired at
-this SHA. `DomainEventType` names 24 transitions; the services that emit them are
-WP-05..WP-08 of [[TASK-0007]], and the first consumer is WP-07.
+Wired and in use, as of `e9cad20`. `DomainEventType` names 24 transitions;
+emitters exist across the commercial lifecycle — checkout, seat overage, seat and
+plan changes, payment confirmation, cancellation, retention, deletion requests —
+and two consumers are registered:
+
+| Consumer key | Reacts to | Does |
+|---|---|---|
+| `billing.payment-confirmed.open-onboarding` | `PAYMENT_CONFIRMED` | opens the onboarding case and requests provisioning |
+| `notifications.lifecycle` | 12 lifecycle events | resolves who should be told, from configuration |
+
+Twelve of the 24 event types have no consumer, deliberately. A
+`SEAT_CHANGE_APPLIED` that went exactly as scheduled is not news, and such an
+event settles as `PROCESSED` rather than failing — see the business rule above.
 
 ## Related
 
-[[legal]] · [[TASK-0007]] · [[BUG-0070]] · [[REG-064]] · [[QA-BILLING-002]]
+[[legal]] · [[TASK-0007]] · [[BUG-0070]] · [[QA-BILLING-002]] · REG-064 (regression register)

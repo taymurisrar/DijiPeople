@@ -88,7 +88,7 @@ real values later.
 
 ## Related Items
 
-[[TASK-0007]] · [[contracts]]
+[[TASK-0007]] — the contracts module has no knowledge note yet
 
 ## History
 

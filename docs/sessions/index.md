@@ -6,7 +6,7 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 1** · completed: 10
+**Active: 1** · completed: 11
 
 ## Active
 
@@ -18,6 +18,7 @@ see [`README.md`](README.md) for how they stay out of each other's way.
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0012](../../docs/sessions/SESSION-0012-wp-03-wp-12-wp-10-wp-16-and-item-0047-cause-d.md) | TASK-0007 | WP-03, WP-12, WP-10, WP-16 and ITEM-0047 cause D | COMPLETE | `agent/consent-legal-knowledge` | `develop` | — | 2026-08-18T16:57:12.921Z |
 | [SESSION-0011](../../docs/sessions/SESSION-0011-item-0047-database-e2e-determinism.md) | — | ITEM-0047 — database e2e determinism | COMPLETE | `agent/database-e2e-determinism` | `develop` | — | 2026-08-18T14:43:47.468Z |
 | [SESSION-0010](../../docs/sessions/SESSION-0010-commercial-platform-wp-08-wp-09-wp-12-cancellation-retention.md) | TASK-0007 | Commercial platform WP-08, WP-09, WP-12 — cancellation, retention, erasure, reconciliation, notifications | COMPLETE | `agent/commercial-platform-completion` | `develop` | — | 2026-08-18T13:30:33.215Z |
 | [SESSION-0009](../../docs/sessions/SESSION-0009-commercial-platform-wp-06-and-wp-07-seat-plan-change-and-pro.md) | TASK-0007 | Commercial platform WP-06 and WP-07 — seat/plan change and provisioning automation | COMPLETE | `agent/commercial-platform-completion` | `develop` | — | 2026-08-18T12:23:24.943Z |
