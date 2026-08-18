@@ -88,9 +88,9 @@ gate.
 | WP-08 | Cancellation, retention, holds, deletion request and erasure orchestration | DONE | WP-01, WP-07 | Database, Backend/API | agent/commercial-platform-completion | 1520b67 | PASS | PASS | DONE |
 | WP-09 | Stripe and internal reconciliation jobs | DONE | WP-04, WP-05, WP-07 | Backend/API, Integration | agent/commercial-platform-completion | 1520b67 | PASS_WITH_RISKS | PASS | DONE |
 | WP-10 | Landing legal, trust and subprocessor surface | DONE | WP-02, workspace lease | Frontend, UI/UX | agent/landing-legal-surface | f2957ae | PASS | PASS | DONE |
-| WP-11 | Admin dashboard, monitoring and provisioning operations UX | NOT_STARTED | WP-07, workspace lease | UI/UX, Frontend | — | — | NOT_RUN | NOT_RUN | NOT_STARTED |
+| WP-11 | Admin dashboard, monitoring and provisioning operations UX | DONE | WP-07, workspace lease | UI/UX, Frontend, Backend/API | agent/provisioning-ops-and-qa | b43ee1e | PASS | PASS | PENDING_INTEGRATION |
 | WP-12 | Notification ownership and business-event coverage | DONE | WP-01, WP-07 | Backend/API | agent/consent-legal-knowledge | e9cad20 | PASS | PASS | DONE |
-| WP-13 | Consolidated QA, regression, security, accessibility and visual campaign | NOT_STARTED | WP-01..WP-12 | QA, Reviewer | — | — | NOT_RUN | NOT_RUN | NOT_STARTED |
+| WP-13 | Consolidated QA, regression, security, accessibility and visual campaign | IN_PROGRESS | WP-01..WP-12 | QA, Reviewer | agent/provisioning-ops-and-qa | b43ee1e | IN_PROGRESS | PASS | PENDING_INTEGRATION |
 | WP-14 | Final review, exact-SHA CI, develop integration | NOT_STARTED | WP-13 | Reviewer, Integrator | — | — | NOT_RUN | NOT_RUN | NOT_STARTED |
 | WP-15 | Release, main promotion, deployment and production smoke | BLOCKED | WP-14 | Release/DevOps | — | — | NOT_RUN | NOT_RUN | BLOCKED_EXTERNAL |
 | WP-16 | Knowledge, Obsidian, history and parent closure | NOT_STARTED | WP-15 | Architect | — | — | NOT_RUN | NOT_RUN | NOT_STARTED |
