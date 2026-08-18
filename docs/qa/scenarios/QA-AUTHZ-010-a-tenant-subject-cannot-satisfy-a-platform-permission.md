@@ -1,0 +1,59 @@
+---
+SCENARIO_ID: QA-AUTHZ-010
+aliases: [QA-AUTHZ-010]
+TITLE: A tenant subject cannot satisfy a platform permission
+AREA: authorization
+MODULE: services/api/src/modules/platform-auth
+TYPE: SECURITY
+RISK: CRITICAL
+AUTOMATION_STATUS: AUTOMATED
+TEST_REFERENCE: services/api/src/modules/platform-auth/platform-permissions.spec.ts
+RELATED_BUGS: [BUG-0071]
+RELATED_REGRESSIONS: [REG-065]
+LAST_RUN: 2026-08-18
+LAST_RESULT: PASS
+CREATED_AT: 2026-08-18
+UPDATED_AT: 2026-08-18
+---
+
+# QA-AUTHZ-010 — A tenant subject cannot satisfy a platform permission
+
+## Preconditions
+
+A tenant user holding the ordinary `system-admin` tenant role, and a platform
+user. `seed-demo` creates the first as `system-admin@dijipeople.local`; the
+automated form of this scenario constructs both as plain objects, because what
+is under test is the decision, not the sign-in.
+
+## Steps
+
+1. Call `userHasPlatformPermission` with a tenant subject — no `platform.id` —
+   whose `permissionKeys` contain the exact platform permission name. Repeat for
+   each of the six tenant keys that collide with a platform permission:
+   `settings.read`, `settings.manage`, `roles.manage`, `billing.manage`,
+   `onboarding.read`, `onboarding.create`.
+2. Repeat with the tenant subject holding the `platform.*` wildcard.
+3. Put the same tenant subject through `PlatformPermissionsGuard` on
+   `/super-admin/tenants`.
+4. Put an unauthenticated request through the same guard.
+5. Put a platform subject holding the route's permission through the guard.
+6. Put a platform subject through the guard on `/operators`,
+   `/feature-catalog`, `/lifecycle-options` and `/tenant-slug/availability`.
+
+## Expected Result
+
+Steps 1–4 refuse: `userHasPlatformPermission` returns `false` and the guard
+throws `PLATFORM_ACCESS_REQUIRED`. Platform identity is checked before the
+permission, so no tenant permission key — including the wildcard — can buy
+access to a surface that crosses every tenant.
+
+Steps 5–6 admit. The fix must not lock the console out: a platform subject with
+the permission passes, and the four routes that previously resolved no
+permission now resolve one and admit a platform user.
+
+## Notes
+
+Live re-verification is part of this scenario, not a substitute for it: against
+a seeded stack, every `super-admin` route returns `403` to the tenant subject
+and `200` to the platform subject. The automated form runs without a stack so it
+can gate CI; the live form is what proved the original defect.

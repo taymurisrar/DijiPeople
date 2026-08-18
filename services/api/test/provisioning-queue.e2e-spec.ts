@@ -242,9 +242,12 @@ describeWithDatabase()('Provisioning queue (DB-backed)', () => {
   });
 
   it('excludes a success older than a day but includes it on request', async () => {
-    const defaultRows = await service.listQueue(platformUser(['tenants.read']), {
-      limit: 200,
-    });
+    const defaultRows = await service.listQueue(
+      platformUser(['tenants.read']),
+      {
+        limit: 200,
+      },
+    );
     expect(defaultRows.rows.map((r) => r.runId)).not.toContain(oldSuccessRunId);
 
     const all = await service.listQueue(platformUser(['tenants.read']), {

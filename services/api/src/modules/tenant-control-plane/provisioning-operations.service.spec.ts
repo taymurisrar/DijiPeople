@@ -65,9 +65,9 @@ describe('provisioning operational state', () => {
     // `breachedAt` is stamped by whatever notices the breach. If that has not
     // run yet, the target itself is still the truth — a queue that waited for
     // the stamp would hide exactly the runs it exists to surface.
-    expect(deriveProvisioningState(run({ targetReadyBy: minutes(-1) }), NOW)).toBe(
-      'BREACHED',
-    );
+    expect(
+      deriveProvisioningState(run({ targetReadyBy: minutes(-1) }), NOW),
+    ).toBe('BREACHED');
   });
 
   it('does not call a run at risk or breached before its times arrive', () => {
@@ -102,7 +102,9 @@ describe('provisioning operational state', () => {
   it('does not mistake a just-started run with no steps yet for a stuck one', () => {
     // A run records its steps a moment after it starts. Zero steps means the
     // recorder has not caught up, not that provisioning has stalled.
-    expect(deriveProvisioningState(run({ steps: [] }), NOW)).toBe('IN_PROGRESS');
+    expect(deriveProvisioningState(run({ steps: [] }), NOW)).toBe(
+      'IN_PROGRESS',
+    );
   });
 
   it('keeps a run with a pending step in progress', () => {

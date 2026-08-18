@@ -153,7 +153,9 @@ export class ProvisioningOperationsService {
             // Recent successes stay so an operator can see what just landed.
             OR: [
               { status: { not: TenantProvisioningRunStatus.SUCCEEDED } },
-              { startedAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } },
+              {
+                startedAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+              },
             ],
           },
       orderBy: { startedAt: 'desc' },

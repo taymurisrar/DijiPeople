@@ -4,7 +4,7 @@ aliases: [PLAN-002]
 TITLE: Authorization and RBAC
 AREA: authorization
 STATUS: NEEDS_REVIEW
-MODULES: [services/api/src/common/constants, services/api/src/common/security, services/api/src/common/guards, services/api/src/modules/employees, services/api/src/modules/approvals]
+MODULES: [services/api/src/common/constants, services/api/src/common/security, services/api/src/common/guards, services/api/src/modules/employees, services/api/src/modules/approvals, services/api/src/modules/platform-auth, services/api/src/modules/super-admin]
 RISK: CRITICAL
 COVERAGE_UNIT: GOOD
 COVERAGE_API: GAP
@@ -14,10 +14,10 @@ COVERAGE_E2E: PARTIAL
 COVERAGE_BROWSER: GAP
 COVERAGE_SECURITY: GOOD
 COVERAGE_PERFORMANCE: NOT_APPLICABLE
-RELATED_BUGS: [BUG-0003, BUG-0004, BUG-0006, BUG-0007, BUG-0047]
-RELATED_REGRESSIONS: [REG-003, REG-004, REG-006, REG-007, REG-034]
+RELATED_BUGS: [BUG-0003, BUG-0004, BUG-0006, BUG-0007, BUG-0047, BUG-0071, BUG-0072]
+RELATED_REGRESSIONS: [REG-003, REG-004, REG-006, REG-007, REG-034, REG-065, REG-066]
 CREATED_AT: 2026-08-16
-UPDATED_AT: 2026-08-17
+UPDATED_AT: 2026-08-18
 VERIFIED_AGAINST_SHA: 714632d
 ---
 

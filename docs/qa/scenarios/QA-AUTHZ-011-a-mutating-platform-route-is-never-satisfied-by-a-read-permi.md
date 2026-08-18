@@ -1,0 +1,58 @@
+---
+SCENARIO_ID: QA-AUTHZ-011
+aliases: [QA-AUTHZ-011]
+TITLE: A mutating platform route is never satisfied by a read permission
+AREA: authorization
+MODULE: services/api/src/modules/platform-auth
+TYPE: SECURITY
+RISK: HIGH
+AUTOMATION_STATUS: AUTOMATED
+TEST_REFERENCE: services/api/src/modules/platform-auth/platform-permissions.spec.ts
+RELATED_BUGS: [BUG-0072]
+RELATED_REGRESSIONS: [REG-066]
+LAST_RUN: 2026-08-18
+LAST_RESULT: PASS
+CREATED_AT: 2026-08-18
+UPDATED_AT: 2026-08-18
+---
+
+# QA-AUTHZ-011 — A mutating platform route is never satisfied by a read permission
+
+## Preconditions
+
+None. The scenario reads `SuperAdminController`'s own route metadata, so it
+needs no running stack and no database.
+
+## Steps
+
+1. Enumerate every handler on `SuperAdminController`, reading its path from
+   `PATH_METADATA` and its HTTP verb from `METHOD_METADATA`. Assert the
+   enumeration found routes at all, and that it found a spread of verbs — a
+   reflection failure would otherwise make every later assertion pass vacuously.
+2. Resolve each route through `resolvePlatformPermission` using its **own**
+   verb. Collect any that resolve `null`.
+3. Collect any route whose verb is not `GET` and whose resolved permission ends
+   in `.read`.
+4. Resolve `POST`, `PATCH` and `DELETE` on `plans/:planId/prices/:priceId` and
+   check the result against `READ_ONLY_AUDITOR`.
+5. Check the same permission against `PLATFORM_ADMIN`.
+
+## Expected Result
+
+Steps 2 and 3 produce empty lists. No super-admin route is unmapped — the guard
+refuses an unresolved permission, so a gap is a route nobody can reach — and no
+mutating route can be satisfied by a read permission.
+
+Step 4 resolves `plans.manage`, which `READ_ONLY_AUDITOR` does not hold. Step 5
+confirms `PLATFORM_ADMIN` still does, so the scenario proves the auditor is
+denied without proving the administrator was disarmed.
+
+## Notes
+
+Each route is tested with its real verb rather than against all four. Asserting
+a GET-only route's `POST` mapping asserts something about a request that cannot
+be made, and an earlier draft of this scenario failed for that reason alone.
+
+The enumeration is deliberately reflective rather than a hand-written list: the
+list is what goes stale, and a route added later with no mapping must fail here
+rather than at an operator's 403.

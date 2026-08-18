@@ -411,13 +411,14 @@ export function resolvePlatformPermission(
     return 'settings.manage';
   }
 
-  if (path.includes('billing/diagnostics')) return 'billing.read';  // GET only
+  if (path.includes('billing/diagnostics')) return 'billing.read'; // GET only
   if (path.includes('billing/test-stripe-connection')) return 'billing.manage';
   // Listing webhook events reads; retrying one re-drives a payment side effect,
   // so it must not share the list's read permission.
   if (path.includes('billing/stripe-webhook-events'))
     return reads ? 'billing.read' : 'billing.manage';
-  if (path.includes('promotions')) return reads ? 'billing.read' : 'billing.manage';
+  if (path.includes('promotions'))
+    return reads ? 'billing.read' : 'billing.manage';
 
   if (path.includes('leads')) return actionFor(method, 'leads');
   // `tenant-slug` is a namespace lookup, not a tenant route: it does not contain
@@ -428,14 +429,17 @@ export function resolvePlatformPermission(
   if (path.includes('customers')) return actionFor(method, 'customers');
   if (path.includes('tenants')) return actionFor(method, 'tenants');
 
-  if (path.includes('payments')) return reads ? 'payments.read' : 'payments.manage';
+  if (path.includes('payments'))
+    return reads ? 'payments.read' : 'payments.manage';
   if (path.includes('subscriptions'))
     return reads ? 'subscriptions.read' : 'subscriptions.manage';
-  if (path.includes('invoices')) return reads ? 'invoices.read' : 'invoices.manage';
+  if (path.includes('invoices'))
+    return reads ? 'invoices.read' : 'invoices.manage';
   // The feature catalog is what plans are assembled from, so it reads with them.
   if (path.includes('feature-catalog')) return 'plans.read';
   if (path.includes('plans')) return reads ? 'plans.read' : 'plans.manage';
-  if (path.includes('billing')) return reads ? 'billing.read' : 'billing.manage';
+  if (path.includes('billing'))
+    return reads ? 'billing.read' : 'billing.manage';
 
   return null;
 }

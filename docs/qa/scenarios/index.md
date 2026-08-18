@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 94** · automated: 88 · manual: 4 · blocked by infrastructure: 0
+**Scenarios: 96** · automated: 90 · manual: 4 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -39,6 +39,8 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-AUTHZ-007](../../../docs/qa/scenarios/QA-AUTHZ-007-organization-structure-mutations-require-explicit-management.md) | Organization structure mutations require explicit management permission | authorization | SECURITY | CRITICAL | AUTOMATED | `services/api/src/modules/organization/organization-structure-authorization.spec.ts` | BUG-0006, BUG-0047, BUG-0058 | REG-006, REG-045 |
 | [QA-AUTHZ-008](../../../docs/qa/scenarios/QA-AUTHZ-008-route-proxies-forward-upstream-refusals.md) | Route proxies forward upstream refusals | authorization | SECURITY | HIGH | AUTOMATED | `scripts/check-proxies-forward-refusals.mjs` | BUG-0039 | REG-034 |
 | [QA-AUTHZ-009](../../../docs/qa/scenarios/QA-AUTHZ-009-document-authorization-follows-the-owning-employee.md) | Document authorization follows the owning employee | authorization | SECURITY | CRITICAL | AUTOMATED | `services/api/src/modules/documents/documents-object-authorization.spec.ts` | BUG-0053 | REG-041 |
+| [QA-AUTHZ-010](../../../docs/qa/scenarios/QA-AUTHZ-010-a-tenant-subject-cannot-satisfy-a-platform-permission.md) | A tenant subject cannot satisfy a platform permission | authorization | SECURITY | CRITICAL | AUTOMATED | `services/api/src/modules/platform-auth/platform-permissions.spec.ts` | BUG-0071 | REG-065 |
+| [QA-AUTHZ-011](../../../docs/qa/scenarios/QA-AUTHZ-011-a-mutating-platform-route-is-never-satisfied-by-a-read-permi.md) | A mutating platform route is never satisfied by a read permission | authorization | SECURITY | HIGH | AUTOMATED | `services/api/src/modules/platform-auth/platform-permissions.spec.ts` | BUG-0072 | REG-066 |
 | [QA-BILLING-001](../../../docs/qa/scenarios/QA-BILLING-001-billing-reads-and-writes-require-distinct-capabilities.md) | Billing reads and writes require distinct capabilities | authorization | SECURITY | CRITICAL | AUTOMATED | `services/api/src/modules/billing/billing-authorization.spec.ts` | BUG-0056 | REG-043 |
 | [QA-BILLING-002](../../../docs/qa/scenarios/QA-BILLING-002-an-outbox-event-is-delivered-at-least-once-and-consumed-exac.md) | An outbox event is delivered at least once and consumed exactly once | outbox | DATABASE | HIGH | AUTOMATED | `services/api/test/outbox-delivery.e2e-spec.ts` | BUG-0070 | REG-064 |
 | [QA-BILLING-003](../../../docs/qa/scenarios/QA-BILLING-003-a-published-legal-version-cannot-be-edited-and-acknowledgeme.md) | A published legal version cannot be edited and acknowledgements keep pointing at it | legal | DATABASE | HIGH | AUTOMATED | `services/api/test/legal-documents.e2e-spec.ts` | — | — |
