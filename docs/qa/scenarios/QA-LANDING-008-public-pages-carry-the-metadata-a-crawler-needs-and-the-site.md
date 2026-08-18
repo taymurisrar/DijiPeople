@@ -1,0 +1,59 @@
+---
+SCENARIO_ID: QA-LANDING-008
+aliases: [QA-LANDING-008]
+TITLE: Public pages carry the metadata a crawler needs and the sitemap resolves
+AREA: landing
+MODULE: apps/landing
+TYPE: BROWSER_E2E
+RISK: MEDIUM
+AUTOMATION_STATUS: AUTOMATED
+TEST_REFERENCE: e2e/tests/flow-f-public-seo.spec.ts
+RELATED_BUGS: []
+RELATED_REGRESSIONS: []
+LAST_RUN: 2026-08-19
+LAST_RESULT: PASS
+CREATED_AT: 2026-08-19
+UPDATED_AT: 2026-08-19
+---
+
+# QA-LANDING-008 — Public pages carry the metadata a crawler needs and the sitemap resolves
+
+## Preconditions
+
+The landing app running. No database, no session.
+
+## Steps
+
+1. For `/`, `/plans`, `/about`, `/contact`, `/partners` and `/features`: confirm
+   the page is served, then read its `<title>`, `meta[name="description"]`,
+   `h1` count and the `lang` attribute on `<html>`.
+2. Check no page carries `noindex` in `meta[name="robots"]`.
+3. Collect every title and check none is shared by two pages.
+4. Fetch `/robots.txt` and check it does not blanket-block the site.
+5. Fetch `/sitemap.xml`, extract every `<loc>`, and request each path against
+   the running site.
+
+## Expected Result
+
+Every page has a title, a description longer than twenty characters, exactly one
+`h1` and a document language. No marketing page is `noindex`. No two pages share
+a title. `robots.txt` is served without `Disallow: /` under a wildcard agent.
+Every sitemap URL returns below 400.
+
+## Notes
+
+The sitemap entries are **fetched**, not pattern-matched. A sitemap naming a 404
+is worse than no sitemap, because a crawler trusts it and spends its budget on
+pages that do not exist.
+
+WP-10 requires *unpublished legal documents* to carry `noindex`, which is
+correct and deliberately outside this scenario: whether a document is published
+is a database fact, so it belongs with the DB-backed suites. Step 2 checks only
+that a marketing page has not been made invisible by accident.
+
+A defect in the first draft of the automation, worth recording because the shape
+recurs: reading `meta[name="robots"]` with `getAttribute` and a trailing
+`.catch()` hung until the test timeout on every page that correctly had no such
+tag, because Playwright locators auto-wait and a timeout is not a rejection the
+`.catch()` sees. Count before reading whenever an element's *absence* is the
+expected answer.

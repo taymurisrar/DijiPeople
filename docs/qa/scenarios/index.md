@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 96** · automated: 90 · manual: 4 · blocked by infrastructure: 0
+**Scenarios: 99** · automated: 93 · manual: 4 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -67,6 +67,8 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-LANDING-004](../../../docs/qa/scenarios/QA-LANDING-004-public-pages-expose-a-skip-link-and-readable-muted-text.md) | Public pages expose a skip link and readable muted text | landing | BROWSER_E2E | HIGH | AUTOMATED | `e2e/tests/flow-c-landing-public-surface.spec.ts` | BUG-0064 | REG-060 |
 | [QA-LANDING-005](../../../docs/qa/scenarios/QA-LANDING-005-public-commercial-config-returns-one-shape-on-every-branch.md) | Public commercial config returns one shape on every branch | landing | BROWSER_E2E | HIGH | AUTOMATED | `e2e/tests/flow-c-landing-public-surface.spec.ts` | BUG-0065 | REG-061 |
 | [QA-LANDING-006](../../../docs/qa/scenarios/QA-LANDING-006-subscribe-never-presents-an-editable-form-it-cannot-submit.md) | Subscribe never presents an editable form it cannot submit | landing | BROWSER_E2E | HIGH | AUTOMATED | `e2e/tests/flow-c-landing-public-surface.spec.ts` | BUG-0066 | REG-062 |
+| [QA-LANDING-007](../../../docs/qa/scenarios/QA-LANDING-007-the-public-site-meets-wcag-2-1-aa-on-critical-and-serious-ru.md) | The public site meets WCAG 2.1 AA on critical and serious rules | landing | BROWSER_E2E | HIGH | AUTOMATED | `e2e/tests/flow-e-accessibility-and-layout.spec.ts` | — | — |
+| [QA-LANDING-008](../../../docs/qa/scenarios/QA-LANDING-008-public-pages-carry-the-metadata-a-crawler-needs-and-the-site.md) | Public pages carry the metadata a crawler needs and the sitemap resolves | landing | BROWSER_E2E | MEDIUM | AUTOMATED | `e2e/tests/flow-f-public-seo.spec.ts` | — | — |
 | [QA-LEAD-001](../../../docs/qa/scenarios/QA-LEAD-001-the-public-lead-endpoint-is-rate-limited.md) | The public lead endpoint is rate limited | lead-management | SECURITY | HIGH | AUTOMATED | `services/api/src/modules/leads/public-leads.rate-limit.spec.ts` | BUG-0013 | REG-011 |
 | [QA-LEAD-002](../../../docs/qa/scenarios/QA-LEAD-002-every-public-write-handler-carries-a-rate-limit-guard.md) | Every public write handler carries a rate-limit guard | lead-management | SECURITY | HIGH | AUTOMATED | `services/api/src/common/guards/public-write-rate-limit.invariant.spec.ts` | BUG-0031 | REG-023 |
 | [QA-LEAD-003](../../../docs/qa/scenarios/QA-LEAD-003-rate-limiting-identifies-the-visitor-not-the-proxy.md) | Rate limiting identifies the visitor, not the proxy | lead-management | UNIT | HIGH | AUTOMATED | `services/api/src/common/security/client-ip.spec.ts` | BUG-0032 | REG-024 |
@@ -92,6 +94,7 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-PAY-004](../../../docs/qa/scenarios/QA-PAY-004-period-generation-respects-boundaries-without-timezone-drift.md) | Period generation respects boundaries without timezone drift | payroll | UNIT | HIGH | AUTOMATED | `services/api/src/modules/payroll/payroll-period-generation.service.spec.ts` | — | — |
 | [QA-PAY-005](../../../docs/qa/scenarios/QA-PAY-005-payslip-notifications-reach-only-the-payslip-s-owner.md) | Payslip notifications reach only the payslip's owner | payroll | UNIT | HIGH | AUTOMATED | `services/api/src/modules/notifications/notification-events.payslip.spec.ts` | — | — |
 | [QA-PAY-006](../../../docs/qa/scenarios/QA-PAY-006-an-employee-payslip-proxy-never-returns-the-caller-s-own-rec.md) | An employee payslip proxy never returns the caller's own record for another id | payroll | API | HIGH | MANUAL | — | BUG-0039 | — |
+| [QA-PLATFORM-001](../../../docs/qa/scenarios/QA-PLATFORM-001-the-provisioning-queue-surfaces-every-stuck-run-to-an-operat.md) | The provisioning queue surfaces every stuck run to an operator | tenant-provisioning | DATABASE | HIGH | AUTOMATED | `services/api/test/provisioning-queue.e2e-spec.ts` | — | — |
 | [QA-PROV-001](../../../docs/qa/scenarios/QA-PROV-001-a-tenant-that-failed-provisioning-can-be-retried.md) | A tenant that failed provisioning can be retried | tenant-provisioning | UNIT | CRITICAL | AUTOMATED | `services/api/src/modules/tenant-control-plane/tenant-provisioning-retry.spec.ts` | BUG-0014 | REG-012 |
 | [QA-PROV-002](../../../docs/qa/scenarios/QA-PROV-002-provisioning-is-safe-to-submit-twice.md) | Provisioning is safe to submit twice | tenant-provisioning | UNIT | CRITICAL | AUTOMATED | `services/api/src/modules/super-admin/tenant-provisioning-idempotency.spec.ts` | BUG-0022 | REG-030 |
 | [QA-PROV-003](../../../docs/qa/scenarios/QA-PROV-003-issued-tenant-hostnames-honour-the-configured-base-domain.md) | Issued tenant hostnames honour the configured base domain | tenant-provisioning | UNIT | HIGH | AUTOMATED | `services/api/src/common/config/tenant-url.config.spec.ts` | BUG-0017, BUG-0026 | REG-016, REG-027 |
