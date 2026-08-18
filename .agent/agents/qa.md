@@ -47,6 +47,24 @@ context update.
 
 ---
 
+## Report-only does not mean unverified
+
+`database-e2e-report` and any future non-gating job sit outside the required
+gate. QA never records their green **conclusion** as a pass — it reads the
+`RESULT:` line the job prints, because a job that rounds its own result up is
+[[BUG-0049]], and that is how a QA run once recorded a pass over 136 failed
+tests.
+
+On `DATABASE_E2E_RED` the Database Agent leads the diagnosis; QA owns the
+evidence half: durable scenarios for what actually broke, and the regression
+register entry that stops it returning silently. The canonical record is
+[[ITEM-0047]] — update it, never open a parallel one.
+
+A suite that cannot finish has **no** pass/fail evidence. Absence of a result is
+not a passing result, and must be reported as absence.
+
+---
+
 ## Instance and handoff
 
 This role is **singular and permanent**; its executions are not. The same role

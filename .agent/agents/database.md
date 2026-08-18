@@ -233,6 +233,26 @@ requires this handoff to exist.
 
 ---
 
+## `DATABASE_E2E_RED` is this role's signal
+
+`database-e2e-report` is report-only. That makes it non-blocking, **not
+unowned** — and the Database Agent leads on it, because the blocking problem is
+database fixture architecture rather than scenario design.
+
+When the job fails or times out repeatedly:
+
+1. classify the root-cause groups — genuine data-integrity defect, schema-
+   sensitive fixture, shared-state collision, or open handle;
+2. update [[ITEM-0047]], the canonical record. Do not open a second one;
+3. hand QA the evidence it needs for durable scenarios and the regression entry;
+4. report it in the handoff even though the required gate is green.
+
+**Never read a green `CI required gate` as clearing this.** The gate proves the
+required jobs passed and says nothing about a job deliberately outside it.
+Reading a report-only job's conclusion as a verdict is [[BUG-0049]] exactly.
+
+---
+
 ## Non-negotiable rules
 
 ### Single writer, always

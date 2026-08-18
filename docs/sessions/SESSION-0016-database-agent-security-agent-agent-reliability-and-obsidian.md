@@ -58,6 +58,40 @@ future rules.
   the DB lifecycle, Security owns adversarial review, Architect owns
   orchestration and Obsidian accountability.
 
+## Database state at close
+
+The four coherence fields were driven to `CURRENT` during this session, and two
+of them can no longer be observed because the local PostgreSQL service has since
+stopped. Those are different statements and are not conflated:
+
+```
+SCHEMA_STATUS           CURRENT      re-verified at close — schema validates
+PRISMA_CLIENT_STATUS    CURRENT      re-verified at close — 295 enums, 312 models,
+                                     7293 fields reachable; API TypeScript errors 0
+MIGRATION_STATUS        UNREACHABLE  service stopped
+LOCAL_DATABASE_STATUS   UNREACHABLE  service stopped
+```
+
+```
+LAST_VERIFIED_CURRENT_AT   2026-08-18T20:20Z
+LAST_VERIFIED_SHA          27eff39
+LAST_VERIFIED_EVIDENCE     db-preflight reported MIGRATION_STATUS = CURRENT and
+                           LOCAL_DATABASE_STATUS = CURRENT — "210 migration(s),
+                           all applied", "matches the committed history" — after
+                           nine pending migrations were applied, each verified to
+                           contain zero DROP/TRUNCATE/DELETE statements first
+CURRENT_STATUS             UNREACHABLE
+```
+
+The Windows service `postgresql-x64-18` is `Stopped` and cannot be started from
+this session — `Start-Service` returns *Cannot open ... service on computer '.'*,
+which is an elevation requirement, not a database fault.
+
+**`UNREACHABLE` is not `CURRENT`.** The preflight distinguishes them deliberately
+so that "nobody could look" never reads as "everything is fine" — the same
+reasoning that makes `UNKNOWN` an unacceptable resting state. Re-run
+`node scripts/db-preflight.mjs` once the service is running to reconfirm.
+
 ## Concurrency
 
 Write leases held, overlap classification against other active sessions, and

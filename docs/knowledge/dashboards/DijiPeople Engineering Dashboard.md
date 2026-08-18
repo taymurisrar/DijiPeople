@@ -27,7 +27,7 @@ _None. Nothing open at CRITICAL._
 | [[BUG-0052-production-dependency-graph-carries-critical-and-high-securi|BUG-0052]] | Production dependency graph carries critical and high security advisories | SECURITY | HIGH | OPEN | package-lock.json, apps/agent-desktop, apps/web, apps/admin, apps/landing, services/api | FIX_NOW |
 | [[ITEM-0004-tenant-activation-never-proven-end-to-end|ITEM-0004]] | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | READY | api:tenant-control-plane | FIX_NOW |
 | [[ITEM-0034-apps-web-has-zero-browser-e2e-coverage|ITEM-0034]] | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | READY | apps/web, e2e | PLAN_REQUIRED |
-| [[ITEM-0047-database-e2e-suites-fail-against-an-ephemeral-postgresql|ITEM-0047]] | Database e2e suites fail against an ephemeral PostgreSQL | TEST_GAP | HIGH | READY | services/api/test, .github/workflows | PLAN_REQUIRED |
+| [[ITEM-0047-database-e2e-suites-fail-against-an-ephemeral-postgresql|ITEM-0047]] | Database e2e suites fail against an ephemeral PostgreSQL | TEST_GAP | HIGH | READY | services/api/test, .github/workflows, database | PLAN_REQUIRED |
 | [[ITEM-0048-replace-or-contain-active-win-and-the-xlsx-export-path|ITEM-0048]] | Replace or contain active-win and the xlsx export path | SECURITY | HIGH | READY | apps/agent-desktop, services/api/src/common/excel, package-lock.json | PLAN_REQUIRED |
 
 ## Product Decisions Needed
@@ -47,7 +47,7 @@ _None._
 |---|---|---|---|---|---|---|
 | [[ITEM-0004-tenant-activation-never-proven-end-to-end|ITEM-0004]] | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | READY | api:tenant-control-plane | FIX_NOW |
 | [[ITEM-0034-apps-web-has-zero-browser-e2e-coverage|ITEM-0034]] | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | READY | apps/web, e2e | PLAN_REQUIRED |
-| [[ITEM-0047-database-e2e-suites-fail-against-an-ephemeral-postgresql|ITEM-0047]] | Database e2e suites fail against an ephemeral PostgreSQL | TEST_GAP | HIGH | READY | services/api/test, .github/workflows | PLAN_REQUIRED |
+| [[ITEM-0047-database-e2e-suites-fail-against-an-ephemeral-postgresql|ITEM-0047]] | Database e2e suites fail against an ephemeral PostgreSQL | TEST_GAP | HIGH | READY | services/api/test, .github/workflows, database | PLAN_REQUIRED |
 | [[ITEM-0002-no-live-api-session-test-harness|ITEM-0002]] | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | READY | services/api, apps/admin | FIX_NOW |
 | [[ITEM-0003-tenant-erasure-never-exercised-against-a-database|ITEM-0003]] | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | READY | api:tenant-control-plane | FIX_NOW |
 | [[ITEM-0033-add-a-test-runner-and-unit-coverage-to-apps-agent-desktop|ITEM-0033]] | Add a test runner and unit coverage to apps/agent-desktop | TEST_GAP | MEDIUM | READY | apps/agent-desktop | FIX_NOW |

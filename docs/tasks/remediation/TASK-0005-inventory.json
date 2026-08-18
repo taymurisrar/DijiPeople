@@ -5760,7 +5760,7 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "",
         "created_at": "2026-08-17",
-        "updated_at": "2026-08-17",
+        "updated_at": "2026-08-19",
         "resolved_at": ""
       },
       "type": "TEST_GAP",
@@ -5771,7 +5771,8 @@
       "architect_disposition": "PLAN_REQUIRED",
       "affected_modules": [
         "services/api/test",
-        ".github/workflows"
+        ".github/workflows",
+        "database"
       ],
       "regressions": [],
       "qa_scenarios": [],
@@ -6121,7 +6122,7 @@
         "record_path": "docs/backlog/items/ITEM-0055-database-e2e-runs-serially-and-now-dominates-its-own-job.md",
         "provenance": "ARCHITECT",
         "created_at": "2026-08-18",
-        "updated_at": "2026-08-18",
+        "updated_at": "2026-08-19",
         "detected_in_sha": "",
         "resolved_at": ""
       },

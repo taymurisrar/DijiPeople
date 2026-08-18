@@ -196,9 +196,40 @@ CI_CANCELLED_REPEATEDLY      more than one cancellation in a session
 CI_DUPLICATED                the same SHA ran the full pipeline twice
 CI_FLAKY                     a job disagreed with itself on one commit
 CI_CRITICAL_PATH_REGRESSION  the slowest job changed identity
+DATABASE_E2E_RED             the database e2e job failed or timed out again
 ```
 
 and otherwise on a release, or when a task changes `ci.yml` itself.
+
+### `DATABASE_E2E_RED` — report-only is not ignorable
+
+`database-e2e-report` carries `continue-on-error` and sits outside the required
+gate. That makes it **non-blocking**, which is not the same as **unowned**, and
+the difference is exactly the defect BUG-0049 was filed against: a report-only
+job whose green conclusion was read as a pass over 136 failed tests.
+
+The signal fires when the job fails **or times out**, and it is not the
+Architect's to absorb:
+
+```
+DATABASE_E2E_RED
+  → Database Agent leads    fixture architecture, per-worker isolation, and
+                            whether a failure is a real data-integrity defect
+                            or a harness artefact
+  → QA owns the evidence    durable scenarios and the regression entry
+  → Architect triages       into ITEM-0047, which is the canonical record
+  → visible in the Control Center via the backlog, not as a raw log
+```
+
+**A green `CI required gate` does not clear this.** The gate proves the required
+jobs passed; it says nothing about a job deliberately kept outside it. Red
+database evidence must not persist indefinitely behind a green gate — if it is
+going to persist, it persists as an open, owned, prioritised record with a
+stated reason, never as silence.
+
+The current state is `FAIL`: [[ITEM-0047]] (6 suites / 92 tests failing at the
+last completing run) blocked by [[ITEM-0055]] (the serial suite now exceeds the
+30-minute cap on every run, so there is no completing run at all).
 
 ---
 

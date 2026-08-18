@@ -11,7 +11,7 @@ Source: ARCHITECT
 OwnerAgent: qa
 ArchitectDisposition: DEFER
 CreatedAt: 2026-08-18
-UpdatedAt: 2026-08-18
+UpdatedAt: 2026-08-19
 RelatedBug: 
 RelatedQA: 
 RelatedADR: 
@@ -59,9 +59,15 @@ cancels in-flight runs. What remains is the underlying cost.
 | 32169868091 (18:17) | 35m56s | cancelled by supersede, unfinished |
 | 32173772663 (18:59) | 10m16s | cancelled by supersede, unfinished |
 
-No post-`maxWorkers: 1` run has been observed to complete, so the true serial
-duration is **not yet known** — only that it exceeds 36 minutes on at least one
-occasion. The new 30-minute timeout will establish it.
+No post-`maxWorkers: 1` run has ever been observed to complete.
+
+**Confirmed on 2026-08-19**: the 30-minute cap is now hit on *every* run —
+32179954819 (30m17s), 32182849325 (30m25s), 32186211469 (30m17s), all cancelled
+by timeout rather than by a superseding push. The cap established what the
+unbounded runs could not: the serial suite does not finish inside 30 minutes.
+
+The consequence is that [[ITEM-0047]] has no current pass/fail evidence at all,
+which makes this item a blocker for that one rather than a parallel concern.
 
 - `services/api/test/jest-e2e.json` — `maxWorkers: 1`
 - `.github/workflows/ci.yml` — `database-e2e-report`
