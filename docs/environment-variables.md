@@ -180,6 +180,29 @@ Running the worker on more than one instance is safe — claims use
 running it on none is not, and nothing fails loudly when you do: the events
 accumulate in `PENDING` and the transitions they carry simply never happen.
 
+## Active-employee overage thresholds
+
+Read by `services/api` (`SeatUsageService`). They decide when exceeding
+purchased capacity is ordinary business, when the tenant is warned, and when a
+human must look before anything is billed.
+
+| Variable | Where | Required | Meaning |
+|---|---|---|---|
+| `SEAT_OVERAGE_WARN_PERCENT` | API | optional | Overage, as a percentage of purchased capacity, at which the episode becomes `WARNED`. Defaults to 10. |
+| `SEAT_OVERAGE_REVIEW_PERCENT` | API | optional | Percentage at which the episode becomes `REVIEW_REQUIRED`. Defaults to 100. |
+| `SEAT_OVERAGE_REVIEW_ABSOLUTE` | API | optional | Absolute overage that also forces `REVIEW_REQUIRED`, regardless of percentage. Defaults to 100. |
+
+Both an absolute and a proportional threshold exist because neither alone is
+right: 5 over on a capacity of 5 is a doubling and worth a look, while 5 over on
+a capacity of 2,000 is noise — and a large jump on a large tenant is one a
+percentage would wave through.
+
+The point of `REVIEW_REQUIRED` is the import accident. Going 20 → 22 is ordinary
+hiring. Going 20 → 900 overnight is almost always a bad CSV, and silently
+generating an invoice for 880 phantom employees is not a billing policy anyone
+would defend afterwards. Raising these thresholds makes that outcome *more*
+likely, so change them deliberately.
+
 ## Application release publishing
 
 Read by `services/api` (the publisher endpoint) and by

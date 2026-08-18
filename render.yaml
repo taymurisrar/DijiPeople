@@ -73,6 +73,16 @@ services:
         value: "5000"
       - key: OUTBOX_WORKER_BATCH_SIZE
         value: "25"
+      # When exceeding purchased capacity is ordinary, warned, or stopped for a
+      # human. The review thresholds exist for the import accident: 20 -> 22 is
+      # hiring, 20 -> 900 overnight is a bad CSV, and billing the second one
+      # silently is indefensible. Raising these makes that outcome more likely.
+      - key: SEAT_OVERAGE_WARN_PERCENT
+        value: "10"
+      - key: SEAT_OVERAGE_REVIEW_PERCENT
+        value: "100"
+      - key: SEAT_OVERAGE_REVIEW_ABSOLUTE
+        value: "100"
       # Platform and tenant email both fall back to this provider when no
       # per-tenant provider row exists. Without it resolveProvider returns null
       # in production and every outbound email fails — invitations, contract

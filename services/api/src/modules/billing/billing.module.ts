@@ -14,6 +14,8 @@ import {
   StripeBillingService,
 } from './services/stripe-billing.service';
 import { WebhookService } from './services/webhook.service';
+import { ActiveEmployeeCountService } from './services/active-employee-count.service';
+import { SeatUsageService } from './services/seat-usage.service';
 
 @Module({
   imports: [AuthModule],
@@ -32,11 +34,15 @@ import { WebhookService } from './services/webhook.service';
     BillingService,
     CommercialConfigService,
     WebhookService,
+    ActiveEmployeeCountService,
+    SeatUsageService,
     JwtAuthGuard,
     PermissionsGuard,
   ],
   exports: [
     BillingService,
+    ActiveEmployeeCountService,
+    SeatUsageService,
     CommercialConfigService,
     StripeBillingService,
     WebhookService,

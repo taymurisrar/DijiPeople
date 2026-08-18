@@ -152,6 +152,9 @@ export const TENANT_ERASURE_DELETE_ORDER: string[] = [
   // that the *company* accepted terms hangs off `customerAccountId`/`leadId`
   // with no `tenantId`, is not tenant-owned, and is untouched by this order.
   'outboxEvent',
+  'seatUsageSample',
+  'seatUsagePeriod',
+  'seatOverageEvent',
   'legalDocumentAcknowledgement',
   'activityEvent',
   'agentLocationRequest',

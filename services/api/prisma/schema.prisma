@@ -2198,6 +2198,9 @@ model Tenant {
   activityEvents                  ActivityEvent[]
   dailyProductivitySummaries      DailyProductivitySummary[]
   agentTrackingSettings           AgentTrackingSettings?
+  seatUsageSamples                SeatUsageSample[]
+  seatUsagePeriods                SeatUsagePeriod[]
+  seatOverageEvents               SeatOverageEvent[]
   auditLogs                       AuditLog[]
   documents                       Document[]
   documentLinks                   DocumentLink[]
@@ -4029,6 +4032,11 @@ model Subscription {
   stripeSubscriptionId     String?                 @unique
   stripeSubscriptionItemId String?
   purchasedSeats           Int                     @default(1)
+  /// A capacity DECREASE that takes effect at the next renewal. Null means
+  /// no change is scheduled. Increases are immediate and rewrite
+  /// purchasedSeats directly, so they never appear here.
+  scheduledSeats           Int?
+  scheduledSeatsEffectiveAt DateTime?
   stripeQuantity           Int?
   seatsLastReconciledAt    DateTime?
   lastStripeEventCreatedAt DateTime?
@@ -4054,6 +4062,9 @@ model Subscription {
   contracts                Contract[]
   promotions               Promotion[]
   promotionApplications    SubscriptionPromotion[]
+  seatUsageSamples         SeatUsageSample[]
+  seatUsagePeriods         SeatUsagePeriod[]
+  seatOverageEvents        SeatOverageEvent[]
 
   @@index([status])
   @@index([planId, status])
@@ -12733,4 +12744,178 @@ model Subprocessor {
 
   @@unique([name])
   @@index([status, category])
+}
+
+// ---------------------------------------------------------------------------
+// Active-employee billing
+//
+// The billable unit is an ACTIVE EMPLOYEE, which is not the same as a user, a
+// login, a seat someone bought, or a row in Employee. Getting that wrong in
+// either direction is a billing incident: counting auth users bills a tenant
+// for its service accounts and platform admins, and counting every Employee row
+// bills it for people who left years ago.
+//
+// `Subscription.purchasedSeats` already records what was BOUGHT. Nothing
+// recorded what was USED, so no invoice quantity could be explained after the
+// fact — the current employee count answers "how many now", never "how many
+// during the period you charged me for". These models are that history.
+// ---------------------------------------------------------------------------
+
+/// A daily measurement of one subscription's billable population.
+///
+/// Daily rather than on-change because billing needs a defensible series, not a
+/// change log: "your peak in March was 214 on the 9th" is answerable from
+/// samples and is not answerable from a stream of hire/leave deltas without
+/// replaying all of them.
+model SeatUsageSample {
+  id             String @id @default(uuid())
+  tenantId       String
+  subscriptionId String
+
+  /// Date-only, in the platform's billing timezone. One sample per day is the
+  /// invariant the unique constraint below enforces.
+  sampledOn DateTime @db.Date
+
+  /// Employees counted as billable at sample time.
+  activeEmployeeCount Int
+
+  /// Capacity in force at sample time, copied rather than joined. A later plan
+  /// change must not silently rewrite what a past day was measured against.
+  purchasedCapacity Int
+
+  /// max(0, activeEmployeeCount - purchasedCapacity), stored so overage
+  /// reporting never depends on re-deriving it with today's rules.
+  overage Int @default(0)
+
+  /// How the count was produced, so a repaired or backfilled sample is
+  /// distinguishable from one taken live.
+  source String @default("SCHEDULED")
+
+  createdAt DateTime @default(now())
+
+  tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  /// One sample per subscription per day. A retried sampler must update the
+  /// day's row, never append a second one that doubles the period's average.
+  @@unique([subscriptionId, sampledOn])
+  @@index([tenantId, sampledOn])
+  @@index([subscriptionId, sampledOn])
+  @@index([overage])
+}
+
+enum SeatUsagePeriodStatus {
+  /// The period is in progress; peak and ending counts still move.
+  OPEN
+  /// The period ended and its figures are frozen for billing.
+  CLOSED
+  /// Closed and reconciled against what the provider actually invoiced.
+  RECONCILED
+}
+
+/// One billing period's usage, frozen when the period closes.
+///
+/// This is the row that answers "why was I billed for 214 employees". It keeps
+/// the peak, the ending count and the capacity that was in force, so the
+/// question is answerable from stored facts rather than from a recomputation
+/// that today's data would give a different answer to.
+model SeatUsagePeriod {
+  id             String @id @default(uuid())
+  tenantId       String
+  subscriptionId String
+
+  periodStart DateTime
+  periodEnd   DateTime
+
+  purchasedCapacity Int
+
+  /// The highest active-employee count observed in the period, and when.
+  peakActiveEmployees Int       @default(0)
+  peakObservedOn      DateTime?
+
+  /// The count at period end — what a "current headcount" view would show.
+  endingActiveEmployees Int @default(0)
+
+  /// max(0, peak - capacity). The billable overage if the plan charges for it.
+  peakOverage Int @default(0)
+
+  /// What was actually billed, once known. Null while the period is OPEN, and
+  /// deliberately separate from peakOverage: policy may bill on peak, on
+  /// ending count, or not at all, and the record must show which happened.
+  billedQuantity Int?
+
+  status SeatUsagePeriodStatus @default(OPEN)
+
+  closedAt     DateTime?
+  reconciledAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  /// One period row per subscription per start date.
+  @@unique([subscriptionId, periodStart])
+  @@index([tenantId, periodStart])
+  @@index([status, periodEnd])
+}
+
+enum SeatOverageStatus {
+  /// Detected and inside the tolerated band. Recorded, not acted on.
+  OBSERVED
+  /// Crossed the warning threshold; the tenant is told.
+  WARNED
+  /// Crossed the abnormal threshold; a human looks before anything is billed.
+  REVIEW_REQUIRED
+  /// A human accepted it as genuine growth.
+  ACCEPTED
+  /// Resolved because the count came back within capacity.
+  RESOLVED
+}
+
+/// A distinct episode of a subscription exceeding its purchased capacity.
+///
+/// An episode, not a daily flag: a tenant 3 over capacity for a fortnight is one
+/// conversation, and fourteen rows would make it look like fourteen.
+///
+/// REVIEW_REQUIRED exists because of the import case. Going 20 → 22 is ordinary
+/// business. Going 20 → 900 overnight is almost always a bad CSV import, and
+/// billing it silently would be indefensible — so an abnormal jump stops for a
+/// human instead of quietly generating an enormous invoice.
+model SeatOverageEvent {
+  id             String @id @default(uuid())
+  tenantId       String
+  subscriptionId String
+
+  detectedAt DateTime @default(now())
+  resolvedAt DateTime?
+
+  purchasedCapacity Int
+  /// Count when the episode opened, and the worst it reached.
+  activeEmployeeCount Int
+  peakActiveEmployees Int
+
+  /// peak - capacity, and that as a share of capacity. The ratio is what
+  /// separates ordinary growth from an import accident.
+  peakOverage      Int
+  peakOveragePercent Int
+
+  status SeatOverageStatus @default(OBSERVED)
+
+  /// Set when a human dispositions a REVIEW_REQUIRED episode.
+  reviewedByPlatformUser String?
+  reviewedAt             DateTime?
+  reviewNote             String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, detectedAt])
+  @@index([status, detectedAt])
+  /// The open-episode lookup: at most one unresolved episode per subscription.
+  @@index([subscriptionId, resolvedAt])
 }
