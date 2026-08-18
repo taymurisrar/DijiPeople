@@ -7,11 +7,11 @@
 
 | | |
 |---|---|
-| Active sessions | **1** |
+| Active sessions | **2** |
 | Active parent tasks | 2 |
 | Active work packages | 3 |
 | Blocked work packages | 0 |
-| Sessions declaring a schema write | 0 |
+| Sessions declaring a schema write | 1 |
 | Open CRITICAL | **0** |
 | Open HIGH | 5 |
 | Awaiting Architect triage | 0 |
@@ -23,6 +23,7 @@
 
 | Session | Task | Title | Status | Branch | Target | Leases | Schema |
 |---|---|---|---|---|---|---|---|
+| [[SESSION-0006-commercial-platform-final-parent-completion|SESSION-0006]] | TASK-0007 | Commercial platform final parent completion | ACTIVE | `agent/commercial-platform-completion` | `develop` | schema, permissions, workspace | YES |
 | [[SESSION-0003-dijipeople-global-technical-remediation|SESSION-0003]] | TASK-0005 | DijiPeople Global Technical Remediation | ACTIVE | `agent/remediation-authorization` | `develop` | permissions, record-indexes | NO |
 
 ## Active Tasks and Work Packages
