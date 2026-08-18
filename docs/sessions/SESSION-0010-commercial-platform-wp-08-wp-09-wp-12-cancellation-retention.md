@@ -1,0 +1,52 @@
+---
+SESSION_ID: SESSION-0010
+aliases: [SESSION-0010]
+TASK_ID: TASK-0007
+TITLE: Commercial platform WP-08, WP-09, WP-12 — cancellation, retention, erasure, reconciliation, notifications
+ARCHITECT_INTENT: Commercial platform WP-08, WP-09, WP-12 — cancellation, retention, erasure, reconciliation, notifications
+STATUS: COMPLETE
+TASK_TYPE: FEATURE
+TASK_SIZE: LARGE
+BASE_BRANCH: origin/develop
+BASE_SHA: 53a2b47646964f70cb14001593801af0502bcf97
+TASK_BRANCH: agent/commercial-platform-completion
+TARGET_BRANCH: develop
+WORKTREE: D:/My Work/hrm-dijipeople/DijiPeople
+AFFECTED_MODULES: [billing, outbox, tenant-control-plane, contracts]
+WRITE_LEASES: []
+ACTIVE_WORK_PACKAGES: []
+SCHEMA_WRITE: YES
+CI_STATUS: PASS
+MERGE_STATUS: DONE
+STARTED_AT: 2026-08-18T13:30:33.215Z
+LAST_HEARTBEAT: 2026-08-18T13:30:33.215Z
+BLOCKERS: none
+---
+
+# SESSION-0010 — Commercial platform WP-08, WP-09, WP-12 — cancellation, retention, erasure, reconciliation, notifications
+
+## Intent
+
+Commercial platform WP-08, WP-09, WP-12 — cancellation, retention, erasure, reconciliation, notifications
+
+## Scope
+
+WP-08 (cancellation, retention, holds, deletion requests, refunds) and WP-09
+(internal reconciliation). Integrated at 1520b67 behind a green exact-SHA gate.
+
+A DB-backed test caught that findTenantsDueForErasure filtered on a status that
+placeHold had already changed, so its held-count was always zero and the
+guarantee held only by accident. Hold rows are now the authority.
+
+Also recorded ITEM-0054: fabricated Saudi legal identity in the contract
+placeholder examples. Deferred, because the generation path fails closed.
+
+## Concurrency
+
+Write leases held, overlap classification against other active sessions, and
+anything this session deliberately serialised behind another. Live state:
+`node scripts/session.mjs list`.
+
+## History
+
+- 2026-08-18 — session started from `origin/develop` at `53a2b47`.

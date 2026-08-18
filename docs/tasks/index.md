@@ -31,7 +31,7 @@ graph and the block reasons. See
 | ID | Title | Type | Size | Priority | Status | Packages | Current |
 |---|---|---|---|---|---|---|---|
 | [TASK-0005](TASK-0005-dijipeople-global-technical-remediation.md) | DijiPeople Global Technical Remediation | BUG | PROGRAM | P0 | IN_PROGRESS | 3/11 | WP-09 |
-| [TASK-0007](TASK-0007-commercial-platform-completion-transactional-legal-and-lifec.md) | Commercial platform completion — transactional, legal and lifecycle half | FEATURE | PROGRAM | P0 | IN_PROGRESS | 6/16 | WP-03 |
+| [TASK-0007](TASK-0007-commercial-platform-completion-transactional-legal-and-lifec.md) | Commercial platform completion — transactional, legal and lifecycle half | FEATURE | PROGRAM | P0 | IN_PROGRESS | 8/16 | WP-03 |
 | [TASK-0001](TASK-0001-framework-keyword-routing-task-orchestration-and-repository-.md) | Framework: keyword routing, task orchestration and repository health | FRAMEWORK | LARGE | P1 | COMPLETE | 6/6 | — |
 | [TASK-0002](TASK-0002-deep-documentation-of-apps-docs-apps-landing-and-apps-agent-.md) | Deep documentation of apps/docs, apps/landing and apps/agent-desktop | KNOWLEDGE | LARGE | P1 | COMPLETE | 9/9 | — |
 | [TASK-0003](TASK-0003-deep-documentation-of-apps-web-the-tenant-product.md) | Deep documentation of apps/web, the tenant product | KNOWLEDGE | LARGE | P1 | COMPLETE | 9/9 | — |
