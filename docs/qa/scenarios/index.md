@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 93** · automated: 87 · manual: 4 · blocked by infrastructure: 0
+**Scenarios: 94** · automated: 88 · manual: 4 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -44,6 +44,7 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-BILLING-003](../../../docs/qa/scenarios/QA-BILLING-003-a-published-legal-version-cannot-be-edited-and-acknowledgeme.md) | A published legal version cannot be edited and acknowledgements keep pointing at it | legal | DATABASE | HIGH | AUTOMATED | `services/api/test/legal-documents.e2e-spec.ts` | — | — |
 | [QA-BILLING-004](../../../docs/qa/scenarios/QA-BILLING-004-peak-overage-episodes-and-the-abnormal-jump-guard-behave-cor.md) | Peak, overage episodes and the abnormal-jump guard behave correctly | seat-billing | DATABASE | CRITICAL | AUTOMATED | `services/api/test/seat-usage.e2e-spec.ts` | — | — |
 | [QA-BILLING-005](../../../docs/qa/scenarios/QA-BILLING-005-a-repeated-subscribe-submission-reuses-the-customer-and-orde.md) | A repeated subscribe submission reuses the customer and order, and the server owns every money figure | subscription-orders | DATABASE | CRITICAL | AUTOMATED | `services/api/test/subscription-order.e2e-spec.ts` | — | — |
+| [QA-BILLING-006](../../../docs/qa/scenarios/QA-BILLING-006-seat-and-plan-changes-apply-immediately-upward-and-at-renewa.md) | Seat and plan changes apply immediately upward and at renewal downward | subscription-changes | DATABASE | CRITICAL | AUTOMATED | `services/api/test/seat-plan-change.e2e-spec.ts` | — | — |
 | [QA-CI-001](../../../docs/qa/scenarios/QA-CI-001-report-only-jobs-publish-an-explicit-pass-fail-verdict.md) | Report-only CI jobs publish an explicit PASS/FAIL verdict | deployment-release | DEPLOYMENT_SMOKE | HIGH | AUTOMATED | `scripts/validate-framework.mjs` | BUG-0049 | REG-047 |
 | [QA-DEPLOY-001](../../../docs/qa/scenarios/QA-DEPLOY-001-deployment-smoke-checks-answer-against-the-deployed-environm.md) | Deployment smoke checks answer against the deployed environment | deployment-release | DEPLOYMENT_SMOKE | HIGH | AUTOMATED | `scripts/smoke-deployment.mjs` | — | — |
 | [QA-DEPLOY-002](../../../docs/qa/scenarios/QA-DEPLOY-002-no-url-is-hardcoded-where-configuration-is-required.md) | No URL is hardcoded where configuration is required | deployment-release | UNIT | HIGH | AUTOMATED | `scripts/check-no-hardcoded-urls.mjs` | BUG-0026 | REG-016 |

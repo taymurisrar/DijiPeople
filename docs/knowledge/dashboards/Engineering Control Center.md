@@ -9,14 +9,14 @@
 |---|---|
 | Active sessions | **1** |
 | Active parent tasks | 2 |
-| Active work packages | 1 |
+| Active work packages | 3 |
 | Blocked work packages | 0 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **0** |
 | Open HIGH | 5 |
 | Awaiting Architect triage | 0 |
 | Owner decisions pending | 2 |
-| QA coverage gaps | 81 |
+| QA coverage gaps | 88 |
 | Scenarios blocked by infrastructure | 0 |
 
 ## Active Sessions
@@ -30,7 +30,7 @@
 | Task | Title | Type | Size | Progress | Current | Ready next | Blocked |
 |---|---|---|---|---|---|---|---|
 | [[TASK-0005-dijipeople-global-technical-remediation|TASK-0005]] | DijiPeople Global Technical Remediation | BUG | PROGRAM | 3/11 | WP-09 | WP-04, WP-06, WP-07, WP-08, WP-10 | — |
-| [[TASK-0007-commercial-platform-completion-transactional-legal-and-lifec|TASK-0007]] | Commercial platform completion — transactional, legal and lifecycle half | FEATURE | PROGRAM | 4/16 | WP-06 | WP-03, WP-06, WP-07, WP-10, WP-13 | — |
+| [[TASK-0007-commercial-platform-completion-transactional-legal-and-lifec|TASK-0007]] | Commercial platform completion — transactional, legal and lifecycle half | FEATURE | PROGRAM | 4/16 | WP-08 | WP-03, WP-10, WP-13 | — |
 
 ## Branch model
 
@@ -167,6 +167,13 @@ gap into scope — or files a `TEST_GAP` item and says so.
 | [[PLAN-017-subscription-orders|subscription-orders]] | BROWSER |
 | [[PLAN-017-subscription-orders|subscription-orders]] | SECURITY |
 | [[PLAN-017-subscription-orders|subscription-orders]] | PERFORMANCE |
+| [[PLAN-018-subscription-changes|subscription-changes]] | UNIT |
+| [[PLAN-018-subscription-changes|subscription-changes]] | API |
+| [[PLAN-018-subscription-changes|subscription-changes]] | INTEGRATION |
+| [[PLAN-018-subscription-changes|subscription-changes]] | E2E |
+| [[PLAN-018-subscription-changes|subscription-changes]] | BROWSER |
+| [[PLAN-018-subscription-changes|subscription-changes]] | SECURITY |
+| [[PLAN-018-subscription-changes|subscription-changes]] | PERFORMANCE |
 
 ## Backlog Health
 

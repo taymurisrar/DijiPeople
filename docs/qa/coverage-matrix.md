@@ -12,9 +12,9 @@ only scenarios that cannot run here, fails `node scripts/rebuild-qa.mjs`.
 **part of that task's scope** — or, when that is too large, a `TEST_GAP` backlog
 item. See [`README.md`](README.md).
 
-**Areas: 17** · scenarios: 93 · automated: 87 · blocked by infrastructure: 0
+**Areas: 18** · scenarios: 94 · automated: 88 · blocked by infrastructure: 0
 
-**Open gaps: 81** · partial: 19
+**Open gaps: 88** · partial: 19
 
 | Area | UNIT | API | DATABASE | INTEGRATION | E2E | BROWSER | SECURITY | PERFORMANCE |
 |---|---|---|---|---|---|---|---|---|
@@ -32,6 +32,7 @@ item. See [`README.md`](README.md).
 | [payroll](../../docs/qa/test-plans/PLAN-010-payroll.md) | GOOD | **GAP** | **GAP** | **GAP** | **GAP** | **GAP** | PARTIAL | **GAP** |
 | [runtime-modules](../../docs/qa/test-plans/PLAN-011-runtime-modules.md) | GOOD | **GAP** | **GAP** | **GAP** | **GAP** | **GAP** | PARTIAL | n/a |
 | [seat-billing](../../docs/qa/test-plans/PLAN-016-seat-billing.md) | **GAP** | n/a | GOOD | **GAP** | **GAP** | n/a | **GAP** | **GAP** |
+| [subscription-changes](../../docs/qa/test-plans/PLAN-018-subscription-changes.md) | **GAP** | **GAP** | GOOD | **GAP** | **GAP** | **GAP** | **GAP** | **GAP** |
 | [subscription-orders](../../docs/qa/test-plans/PLAN-017-subscription-orders.md) | **GAP** | **GAP** | GOOD | **GAP** | **GAP** | **GAP** | **GAP** | **GAP** |
 | [tenant-isolation](../../docs/qa/test-plans/PLAN-003-tenant-isolation.md) | PARTIAL | **GAP** | PARTIAL | **GAP** | PARTIAL | **GAP** | PARTIAL | n/a |
 | [tenant-provisioning](../../docs/qa/test-plans/PLAN-007-tenant-provisioning.md) | GOOD | **GAP** | **GAP** | **GAP** | PARTIAL | **GAP** | **GAP** | n/a |

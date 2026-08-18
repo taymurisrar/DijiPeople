@@ -11,6 +11,19 @@
 > Every row below was **re-probed at `304bfda`**. Nothing is carried forward on
 > the authority of the earlier document.
 
+## A correction to this document
+
+**R-34 was wrong.** The original probe reported "no provisioning-run or step
+model" and it was looking for the wrong names: `TenantProvisioningRun` and
+`TenantProvisioningStep` already existed, with per-step retryability, attempt
+counts and correlation ids. WP-07 came within one commit of shipping a second,
+competing provisioning system on the strength of that row.
+
+It is left visible rather than quietly fixed, because the failure mode is
+general: a probe that greps for a name answers "does this name exist", not
+"does this capability exist". Any remaining `NOT_STARTED` row in section 3 that
+was established by a name-based grep deserves a second look before it is built.
+
 ## Method
 
 For each requirement, a named probe was run against the current tree rather than
@@ -56,6 +69,13 @@ acquisition intake are intact at `304bfda`.
 | R-26 | Customer deduplication across refresh/abandon/double-submit | DONE | CustomerIdentityService: corporate domain AND normalised company name; generic domains excluded; submissionHash released when an order closes | WP-05 |
 | R-27 | Server-authoritative checkout; browser cannot set price/currency/total | DONE | Every money figure resolved server-side and frozen on the order, with a commercial snapshot of price version and market | WP-05 |
 | R-28 | Tax foundation — subtotal, discount, taxable basis, treatment, rate snapshot | DONE (shape) | TaxBasisService and the full column chain; defaults to NOT_DETERMINED with zero charged. Actual rates remain TAX_ACCOUNTING_REVIEW | WP-05 |
+| R-29 | Seat increase immediate; seat decrease at next cycle | DONE | SeatChangeService; increase applies now and cancels a pending decrease, decrease writes scheduledSeats and leaves paid-for capacity alone; refuses a decrease below active employees | WP-06 |
+| R-30 | Plan upgrade/downgrade self-service with consequence display | DONE | PlanChangeService with a pure preview; direction from authoritative PlanPrice, never the deprecated Plan.monthlyBasePrice; entitlementImpact frozen on the request; downgrade never deletes data | WP-06 |
+| R-32 | Payment to onboarding automatic and idempotent | DONE | OrderActivationService.confirmPayment called from the Stripe webhook; PaymentConfirmedHandler opens the onboarding; idempotent at order status, dispatcher and onboarding-existence | WP-07 |
+| R-33 | Onboarding to provisioning automatic | DONE | PROVISIONING_REQUESTED emitted in the same transaction as the onboarding case | WP-07 |
+| R-34 | Provisioning state machine, per-step tracking, resumability | DONE (already existed) | **The original probe was wrong.** TenantProvisioningRun and TenantProvisioningStep already existed with per-step isRetryable, attempts and correlation ids. Extended with the order, customer and per-run targets rather than replaced | WP-07 |
+| R-36 | Tenant readiness separate from onboarding completion | DONE | Tenant.readinessStatus and readyAt; READY means blocking steps done, independent of CustomerOnboarding.status | WP-07 |
+| R-54 | Data region first-class on Tenant | DONE | Tenant.dataRegion, nullable — null means undeclared, and no residency claim may be inferred from it | WP-07 |
 
 ## 3. Engineering remaining — in the graph, not yet implemented
 
@@ -67,14 +87,8 @@ These are the rows that keep `PARENT_TASK_STATUS = INCOMPLETE`.
 |---|---|---|---|---|
 | R-20 | Cookie consent categories and category-controlled scripts | `NOT_STARTED` | no cookie model, no banner | WP-03 |
 | R-21 | Marketing consent unbundled, withdrawable, auditable | `PARTIAL` | `marketingConsent`/`marketingConsentAt` columns exist; no withdrawal path or definition version | WP-03 |
-| R-29 | Seat increase immediate; seat decrease at next cycle | `NOT_STARTED` | `purchasedSeats` exists; no change flow, no scheduled capacity | WP-06 |
-| R-30 | Plan upgrade/downgrade self-service with consequence display | `NOT_STARTED` | no scheduled-change representation | WP-06 |
 | R-31 | Add-on foundation composing effective entitlement | `PARTIAL` | `FeatureAccessService`/`PlanFeature` exist; no purchasable add-on or composition | WP-06 |
-| R-32 | Payment → onboarding automatic and idempotent | `NOT_VERIFIED` → `PARTIAL` | `CustomerOnboarding` exists; webhook does not create it, so the trigger is absent | WP-07 |
-| R-33 | Onboarding → provisioning automatic | `PARTIAL` | `tenant-control-plane` provisions; nothing requests it from a payment | WP-07 |
-| R-34 | Provisioning state machine, per-step tracking, resumability | `NOT_STARTED` | no provisioning-run or step model | WP-07 |
-| R-35 | Provisioning targets and operations view | `NOT_STARTED` | no target model, no ops screen | WP-07, WP-11 |
-| R-36 | Tenant readiness separate from onboarding completion | `NOT_STARTED` | single status only | WP-07 |
+| R-35 | Provisioning targets and operations view | `PARTIAL` | Per-run targetReadyBy/escalateAt/breachedAt exist on TenantProvisioningRun; the Admin operations screen is WP-11 | WP-11 |
 | R-37 | Cancellation — renewal disable vs terminate now, paid-through | `PARTIAL` | `cancelAtPeriodEnd` exists; no request/terminate lifecycle | WP-08 |
 | R-38 | Retention window, scheduled erasure date, policy version | `NOT_STARTED` | no retention model | WP-08 |
 | R-39 | Retention holds — legal, security, billing dispute, administrative | `NOT_STARTED` | no hold model | WP-08 |
@@ -92,7 +106,6 @@ These are the rows that keep `PARENT_TASK_STATUS = INCOMPLETE`.
 | R-51 | Business-event coverage for the named lifecycle events | `PARTIAL` | `DomainEventType` now names them; most emitters not yet wired | WP-12 |
 | R-52 | Notification ownership/config, no hardcoded founder email | `NOT_VERIFIED` | not probed this pass — assigned rather than claimed | WP-12 |
 | R-53 | Support model tiers without published response times | `NOT_STARTED` | `supportTierRef` is a nullable text reference only | WP-12 |
-| R-54 | Data region first-class on Tenant | `PARTIAL` | `Market.dataRegion` exists; `Tenant` has no equivalent | WP-07 |
 | R-55 | Public contact address configuration | `PARTIAL` | `contactInfo` in landing content; no per-purpose aliases | WP-10 |
 | R-56 | Cross-repository duplicate/orphan audit | `PARTIAL` | landing audited in Wave 2; `web`, `admin`, `api` not swept | WP-13 |
 | R-57 | Consolidated QA, regression, security, accessibility, visual campaign | `NOT_STARTED` | gated behind the implementation graph by design | WP-13 |
@@ -114,11 +127,11 @@ These are the rows that keep `PARENT_TASK_STATUS = INCOMPLETE`.
 
 ## Honest summary
 
-**19 requirements moved to `DONE` in this task, each with named evidence.
-31 engineering requirements remain**, of which 9 are `PARTIAL` and 22 are
+**26 requirements moved to `DONE` in this task, each with named evidence.
+24 engineering requirements remain**, of which 9 are `PARTIAL` and 15 are
 `NOT_STARTED`.
 
-The four delivered packages are deliberately the dependency roots rather than
+The six delivered packages are deliberately the dependency roots rather than
 the most visible work. Every remaining lifecycle requirement — provisioning on
 payment, seat changes, cancellation, retention, erasure requests, reconciliation
 — needs a durable event that survives a crash, and none of them could be built
@@ -136,4 +149,4 @@ DB-backed proof rather than assertions.
 **`PARENT_TASK_STATUS = INCOMPLETE`**, and this document is the evidence for
 that statement rather than an estimate. The completion contract in the brief
 requires `PARTIAL_ENGINEERING_REQUIREMENTS = 0` and
-`NOT_STARTED_ENGINEERING_REQUIREMENTS = 0`; they are 9 and 22.
+`NOT_STARTED_ENGINEERING_REQUIREMENTS = 0`; they are 9 and 15.
