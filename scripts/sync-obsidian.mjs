@@ -18,7 +18,7 @@
  */
 
 import { readFileSync, existsSync, mkdirSync, readdirSync, statSync, copyFileSync } from 'node:fs';
-import { join, resolve, relative, dirname, basename } from 'node:path';
+import { join, resolve, relative, dirname, basename, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { resolveMappings, hasMeaningfulContent } from './lib/obsidian-mappings.mjs';
@@ -127,6 +127,102 @@ function isPublishable(file, body) {
  * writes exclusively into mapped agent-owned folders, and verification confirms
  * that boundary rather than inspecting anybody's notes.
  */
+/*
+ * Orphan and staleness scan — the half of verification that was missing.
+ *
+ * `verify` above walks repo -> vault: every source note must exist, match and
+ * resolve its links. Nothing walked vault -> repo, so a generated note whose
+ * source was renamed, merged or deleted stayed in the vault forever, invisible
+ * to every check and to every agent that reported OBSIDIAN_SYNC_STATUS = PASS.
+ * That is the ownership defect, not a stale note here or there: the direction
+ * that detects rot was never traversed.
+ *
+ * MAPPING TARGETS NEST, and this is the trap. `docs/knowledge/dashboards`
+ * publishes to `00 - Home/Generated`, while `docs/backlog`, `docs/tasks` and
+ * `docs/sessions` publish to folders directly beneath it. A recursive walk of
+ * the parent sees every child mapping's notes too and attributes them to a
+ * source directory that never contained them. Written naively, this scan
+ * reports 94 orphans in a vault that has exactly none — and a verifier that
+ * cries wolf gets skipped, which is precisely how the thing it verifies rots.
+ *
+ * Manual notes are never touched and never counted: only the mapped,
+ * agent-owned folders are traversed, and everything outside them is the user's.
+ */
+function scanOrphans(vaultPath, mappings) {
+  const norm = (value) => value.split(sep).join('/');
+  const allTargets = mappings.map((mapping) => norm(mapping.to));
+  const orphans = [];
+  const stale = [];
+  const missing = [];
+  let vaultNotes = 0;
+
+  const walkExcluding = (dir, base, excluded) => {
+    let found = [];
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const full = join(dir, entry.name);
+      const rel = norm(relative(base, full));
+      if (entry.isDirectory()) {
+        if (excluded.includes(rel)) continue;
+        found = found.concat(walkExcluding(full, base, excluded));
+      } else if (entry.name.endsWith('.md')) {
+        found.push(full);
+      }
+    }
+    return found;
+  };
+
+  for (const mapping of mappings) {
+    const target = norm(mapping.to);
+    const nested = allTargets
+      .filter((other) => other !== target && other.startsWith(`${target}/`))
+      .map((other) => other.slice(target.length + 1));
+
+    const sourceDir = resolve(REPO_ROOT, mapping.from);
+    const targetDir = resolve(vaultPath, mapping.to);
+    if (!existsSync(targetDir)) continue;
+
+    const sources = existsSync(sourceDir)
+      ? markdownFilesIn(sourceDir).filter((file) => isPublishable(file, readFileSync(file, 'utf8')))
+      : [];
+    const published = walkExcluding(targetDir, targetDir, nested);
+    vaultNotes += published.length;
+
+    /*
+     * Two different conditions, deliberately not collapsed into one number.
+     *
+     *   ORPHAN_GENERATED_NODE  the source file is gone from the repository
+     *                          entirely — renamed, merged or deleted.
+     *   STALE_GENERATED_NODE   the source still exists but the sync no longer
+     *                          publishes it, because `isPublishable` rejects it
+     *                          as empty of substance. The vault copy is then
+     *                          frozen at whatever it said when it last shipped,
+     *                          and nothing maintains it again.
+     *
+     * The second class is the one that actually existed here: four folder
+     * README stubs, published before the substance filter, unmaintained since.
+     * Reporting them as "orphan, source missing" would have sent someone
+     * looking for a deleted file that is sitting right there.
+     */
+    const sourceRel = new Set(sources.map((file) => norm(relative(sourceDir, file))));
+    for (const file of published) {
+      const rel = norm(relative(targetDir, file));
+      if (sourceRel.has(rel)) continue;
+      const onDisk = join(sourceDir, rel);
+      if (existsSync(onDisk)) {
+        stale.push({ note: `${mapping.to}/${rel}`, path: file, source: onDisk });
+      } else {
+        orphans.push({ note: `${mapping.to}/${rel}`, path: file, source: null });
+      }
+    }
+    const publishedRel = new Set(published.map((file) => norm(relative(targetDir, file))));
+    for (const rel of sourceRel) {
+      if (!publishedRel.has(rel)) missing.push(`${mapping.to}/${rel}`);
+    }
+  }
+
+  return { orphans, stale, missing, vaultNotes };
+}
+
 function verify(vaultPath, mappings) {
   const problems = [];
   const checked = [];
@@ -229,11 +325,45 @@ function verify(vaultPath, mappings) {
   console.log(`Vault:  ${vaultPath}`);
   console.log('Mode:   verify — reading the vault back, not trusting the last exit code');
   console.log('');
-  console.log(`FOLDERS_CHECKED         ${checked.length}`);
-  console.log(`NOTES_VERIFIED          ${notes}`);
-  console.log(`WIKILINKS_CHECKED       ${links}`);
-  console.log(`WIKILINKS_UNRESOLVED    ${unresolved}`);
-  console.log('MANUAL_NOTES_UNTOUCHED  all — verification reads only the mapped agent-owned folders');
+  const {
+    orphans,
+    stale,
+    missing,
+    vaultNotes: generatedNoteCount,
+  } = scanOrphans(vaultPath, mappings);
+
+  /*
+   * An orphan is a HARD failure, not a warning. A generated note whose source no
+   * longer exists is a statement about the engineering state that nothing in the
+   * repository backs any more — and it looks exactly as authoritative in the
+   * graph as a current one.
+   *
+   * A CLOSED bug record is NOT an orphan. Its source still exists in docs/bugs/;
+   * it is a valid historical node and stays. Orphan means the SOURCE is gone.
+   */
+  for (const orphan of orphans) {
+    problems.push(
+      `${orphan.note} — ORPHAN_GENERATED_NODE: no source in the repository. ` +
+        'Remove the generated copy, or restore the source if the deletion was wrong.',
+    );
+  }
+  for (const entry of stale) {
+    problems.push(
+      `${entry.note} — STALE_GENERATED_NODE: the source exists but is no longer ` +
+        'published (empty of substance), so the vault copy is frozen and unmaintained. ' +
+        'Remove the generated copy, or give the source real content.',
+    );
+  }
+
+  console.log(`FOLDERS_CHECKED             ${checked.length}`);
+  console.log(`NOTES_VERIFIED              ${notes}`);
+  console.log(`WIKILINKS_CHECKED           ${links}`);
+  console.log(`OBSIDIAN_UNRESOLVED_LINKS   ${unresolved}`);
+  console.log(`VAULT_GENERATED_NOTES       ${generatedNoteCount}`);
+  console.log(`OBSIDIAN_ORPHAN_COUNT       ${orphans.length}`);
+  console.log(`OBSIDIAN_STALE_GENERATED    ${stale.length}`);
+  console.log(`OBSIDIAN_PARITY_DIFFS       ${missing.length}`);
+  console.log('MANUAL_NOTES_UNTOUCHED      all — verification reads only the mapped agent-owned folders');
   console.log('');
 
   if (problems.length) {

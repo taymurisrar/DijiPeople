@@ -74,6 +74,7 @@ const REQUIRED_AGENTS = [
   'reviewer',
   'integrator',
   'release-devops',
+  'security',
 ];
 
 for (const agent of REQUIRED_AGENTS) {
