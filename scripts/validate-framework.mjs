@@ -3776,6 +3776,19 @@ for (const file of ['AGENTS.md', 'PLANS.md']) {
  * the same broken link under two descriptions is cost without information. */
 if (trackedFiles) {
   for (const file of trackedFiles.filter((f) => f.endsWith('.md'))) {
+    /*
+     * A tracked file absent from the working tree is a finding, not a crash.
+     *
+     * This threw an unhandled ENOENT when a mutation test deleted a role file:
+     * exit 1, so CI still blocked, but the output was a stack trace instead of a
+     * named check — and a stack trace hides every other result in the run. The
+     * same shape occurs in a partial checkout or a halted rebase, where the
+     * useful message is "this tracked file is missing", not a Node trace.
+     */
+    if (!existsSync(join(ROOT, file))) {
+      check(`tracked file exists in the working tree: ${file}`, false, 'tracked by Git, absent on disk');
+      continue;
+    }
     const body = readFileSync(join(ROOT, file), 'utf8');
     for (const [, target] of body.matchAll(/\[[^\]]*\]\(([^)\s]+)\)/g)) {
       if (/^(https?:|mailto:|#)/.test(target)) continue;
@@ -4025,6 +4038,243 @@ if (trackedFiles) {
     tracked.length
       ? `${tracked.length} tracked, e.g. ${tracked[0]} — untrack with "git rm -r --cached" and confirm .gitignore covers it`
       : '',
+  );
+}
+
+// ------------------------------- simulations 30-38: agents, database, Obsidian
+//
+// Each of these was written because the corresponding rule could otherwise be
+// deleted without any check noticing. Where a rule is behavioural the simulation
+// executes it; where a rule is a written boundary the check names the exact
+// sentence that carries it, so a rewrite that drops the boundary fails rather
+// than passing on a file that still merely mentions the topic.
+
+{
+  /* 30 — Architect autonomy. The loophole this task itself fell through: with
+   * dependency-ready work remaining, the Architect asked the user whether to
+   * continue. That converts an autonomous framework back into a supervised one
+   * and hands the user the job of tracking a plan the Architect chose. */
+  const architect = read('.agent/agents/architect.md');
+  const contract = read(CONTRACT);
+
+  check(
+    'simulation 30: the Architect forbids asking to continue while work remains',
+    /PARENT_TASK\s*=\s*IN_PROGRESS/.test(architect) &&
+      /NEXT_READY_WORK_PACKAGE/.test(architect) &&
+      /USER_CONFIRMATION_REQUIRED/.test(architect),
+    'architect.md must state the rule in terms of PARENT_TASK, NEXT_READY_WORK_PACKAGE and USER_CONFIRMATION_REQUIRED',
+  );
+  check(
+    'simulation 30b: the completion contract refuses USER_CONFIRMATION_REQUIRED as terminal',
+    /USER_CONFIRMATION_REQUIRED` is not a terminal state/.test(contract),
+    'a ready work package must not be endable by asking the user',
+  );
+  check(
+    'simulation 30c: capacity exhaustion is a checkpoint, not a question',
+    /RESUME_REQUIRED/.test(architect) && /NEXT_READY_WP/.test(architect),
+    'architect.md must define the persist-and-resume checkpoint',
+  );
+  /* The three legitimate stopping states must still be named, or the rule reads
+   * as "never stop", which is a different and worse defect. */
+  check(
+    'simulation 30d: the legitimate stopping states are still named',
+    /PRODUCT_DECISION/.test(architect) && /BLOCKED_EXTERNAL/.test(architect),
+    'continuing automatically must not erase the cases where stopping is correct',
+  );
+}
+
+{
+  /* 31 — Security is a first-class permanent role, routed automatically. */
+  const security = existsSync(join(ROOT, '.agent/agents/security.md'))
+    ? read('.agent/agents/security.md')
+    : '';
+  const handoffs = read('.agent/context/agent-handoffs.md');
+
+  check('simulation 31: the Security role exists', security.length > 0);
+  check(
+    'simulation 31b: Security is in the required-agent matrix with routing triggers',
+    /\*\*Security\*\*/.test(handoffs) &&
+      /tenant scope/.test(handoffs) &&
+      /SECURITY_POST_REVIEW_STATUS/.test(handoffs),
+    'the matrix row must name the triggers and both statuses',
+  );
+  check(
+    'simulation 31c: Security carries a two-stage review and a blocking post-review',
+    /SECURITY_POST_REVIEW_STATUS = FAILED\*\* blocks completion/.test(security) ||
+      /`SECURITY_POST_REVIEW_STATUS = FAILED` blocks completion/.test(security),
+    'a post-review failure must block, not advise',
+  );
+  check(
+    'simulation 31d: Security findings become records, not prose',
+    /KNOWN_SECURITY_FAILURES_TO_AVOID/.test(security) &&
+      /No material finding may exist only in a report/.test(security),
+    'CRITICAL/HIGH must route to a bug record, a fix, a negative test and a retest',
+  );
+  check(
+    'simulation 31e: Security does not replace QA or the Reviewer',
+    /Security says what must be attacked/.test(security) &&
+      /final independent technical reviewer/.test(security),
+    'merging the roles removes the check each provides',
+  );
+}
+
+{
+  /* 32 — Database preflight. Behavioural: the script must actually run and emit
+   * every field, with UNKNOWN reachable rather than silently defaulted. */
+  const preflight = runScript('scripts/db-preflight.mjs', ['--json']);
+  let fields = null;
+  try {
+    fields = JSON.parse(preflight.output.slice(preflight.output.indexOf('{')));
+  } catch {
+    /* left null; the check below reports it */
+  }
+
+  check(
+    'simulation 32: db-preflight emits the seven Database Agent fields',
+    fields !== null &&
+      [
+        'DATABASE_AGENT_STATUS',
+        'SCHEMA_STATUS',
+        'MIGRATION_STATUS',
+        'PRISMA_CLIENT_STATUS',
+        'LOCAL_DATABASE_STATUS',
+        'DATABASE_WRITE_REQUIRED',
+        'DATABASE_WRITE_LEASE_STATUS',
+      ].every((key) => key in fields),
+    preflight.output.split('\n').filter(Boolean).slice(0, 3).join(' | '),
+  );
+
+  const database = read('.agent/agents/database.md');
+  check(
+    'simulation 32b: UNKNOWN is refused as a resting state',
+    /UNKNOWN` is not an acceptable resting state/.test(database),
+    'an unresolved preflight field means nobody looked',
+  );
+  check(
+    'simulation 32c: repair is bounded — no reset, no data loss without a strategy',
+    /No reset, and no data loss, without evidence and a migration strategy/.test(database) &&
+      /MIGRATION_DRIFT` is a finding/.test(database),
+    'flattening drift destroys the evidence of how the histories diverged',
+  );
+  check(
+    'simulation 32d: Backend may request but not author a schema change',
+    /Backend\/API\s+may\s+\*request\*\s+a\s+schema\s+change\s+and\s+must\s+not\s+author\s+one/.test(database) &&
+      /Release\/DevOps\s+\*executes\*\s+migrations\s+during\s+deployment\s+and\s+does\s+not\s+design\s+them/.test(database),
+    'ownership of the database lifecycle is exclusive to the Database Agent',
+  );
+}
+
+{
+  /* 33 — Role instances. The same permanent role runs in many chats; reads are
+   * parallel, schema writes are exclusive. Simulation 3 already proves the lease
+   * behaviour; these prove the role files declare the instance model, so results
+   * from one chat cannot be mistaken for another's. */
+  const database = read('.agent/agents/database.md');
+  const security = existsSync(join(ROOT, '.agent/agents/security.md'))
+    ? read('.agent/agents/security.md')
+    : '';
+
+  for (const [label, body] of [['Database', database], ['Security', security]]) {
+    check(
+      `simulation 33: the ${label} role declares a session-scoped instance identity`,
+      /## Instance identity/.test(body) &&
+        /SESSION_ID/.test(body) &&
+        /WORK_PACKAGE_ID/.test(body),
+      'a role execution must state which session and work package it belongs to',
+    );
+  }
+  check(
+    'simulation 33b: Database reads are parallel and schema writes exclusive',
+    /\*\*Reads are parallel; writes are exclusive\.\*\*/.test(database),
+    'concurrent preflights must not serialise behind one another',
+  );
+  check(
+    'simulation 33c: Security review instances are explicitly concurrent-safe',
+    /Concurrent Security instances are safe and expected/.test(security),
+    'review is read-only, so two sessions may review at once',
+  );
+  /* No per-chat duplicates of a permanent role may exist. */
+  const duplicated = readdirSync(join(ROOT, '.agent/agents'))
+    .filter((name) => /-(\d+)\.md$/.test(name));
+  check(
+    'simulation 33d: no per-chat duplicate role files exist',
+    duplicated.length === 0,
+    duplicated.join(', '),
+  );
+}
+
+{
+  /* 34 — Obsidian ownership and the two orphan kinds. */
+  const sync = read('scripts/sync-obsidian.mjs');
+  check(
+    'simulation 34: the verifier distinguishes SOURCE_ORPHAN from GRAPH_ORPHAN',
+    /OBSIDIAN_SOURCE_ORPHANS/.test(sync) && /OBSIDIAN_GRAPH_ORPHANS/.test(sync),
+    'a note can have a valid source and still be an isolated dot',
+  );
+  check(
+    'simulation 34b: an orphan and a stale generated note are separate classifications',
+    /ORPHAN_GENERATED_NODE/.test(sync) && /STALE_GENERATED_NODE/.test(sync),
+    'source-gone and source-no-longer-published are different problems',
+  );
+  check(
+    'simulation 34c: graph exemptions are explicit and carry a reason',
+    /STANDALONE_CATEGORIES/.test(sync) && /NAVIGATION_AGGREGATES/.test(sync),
+    'an unexplained exemption is indistinguishable from an oversight',
+  );
+  check(
+    'simulation 34d: verification reads only agent-owned folders',
+    /MANUAL_NOTES_UNTOUCHED/.test(sync),
+    'manual notes must never be read, modified or counted',
+  );
+  /* The nesting trap: mapping targets nest, and a naive recursive walk reports
+   * ~94 orphans in a vault that has none. */
+  check(
+    'simulation 34e: the orphan scan excludes subtrees owned by another mapping',
+    /MAPPING TARGETS NEST/.test(sync),
+    'without this the checker cries wolf on first contact and gets skipped',
+  );
+}
+
+{
+  /* 35 — Generated relationships are projected, never invented. */
+  const qa = read('scripts/rebuild-qa.mjs');
+  const taskGen = read('scripts/rebuild-tasks.mjs');
+  check(
+    'simulation 35: QA scenarios project their existing frontmatter into links',
+    /GRAPH:BEGIN/.test(qa) && /planByArea/.test(qa),
+    'the plan edge comes from shared AREA, which loadQaRecords already validates',
+  );
+  check(
+    'simulation 35b: module links require an exact name match',
+    /EXACT match/.test(qa) || /exact match/i.test(qa),
+    'a plausible-looking wrong edge is worse than an absent one',
+  );
+  check(
+    'simulation 35c: task records link the bug and item ids they already name',
+    /GRAPH:BEGIN/.test(taskGen) && /BUG\|ITEM/.test(taskGen),
+    'the relationship exists in prose; it just was not a wikilink',
+  );
+  check(
+    'simulation 35d: REG ids are not linkified',
+    /REG ids are deliberately NOT wikilinked/.test(qa),
+    'regressions are sections in one register, so [[REG-002]] resolves to nothing',
+  );
+}
+
+{
+  /* 36 — KNOWLEDGE_IMPACT must travel with every handoff, and the Reviewer must
+   * check it. Behaviour that exists only in code and chat is behaviour that has
+   * to be rediscovered. */
+  const handoffs = read('.agent/context/agent-handoffs.md');
+  const reviewer = read('.agent/agents/reviewer.md');
+  check(
+    'simulation 36: the handoff contract carries KNOWLEDGE_IMPACT and OBSIDIAN_IMPACT',
+    /KNOWLEDGE_IMPACT/.test(handoffs) && /OBSIDIAN_IMPACT/.test(handoffs),
+  );
+  check(
+    'simulation 36b: the Reviewer rejects a declared knowledge impact with no update',
+    /KNOWLEDGE_IMPACT/.test(reviewer),
+    'a specialist declaring MODULE_KNOWLEDGE with no note is an incomplete handoff',
   );
 }
 

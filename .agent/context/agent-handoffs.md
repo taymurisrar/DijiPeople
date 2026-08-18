@@ -39,6 +39,10 @@ TESTS_ADDED              new coverage, and what it proves
 TEST_HOOKS               ids, routes, fixtures and seeds the next stage can use
 VALIDATION_RUN           the exact commands, and their results
 UNRESOLVED               what was deliberately left, and why
+KNOWLEDGE_IMPACT         NONE | CONTEXT_UPDATE | MODULE_KNOWLEDGE | ARCHITECTURE |
+                         BUG_PATTERN | REGRESSION | QA_SCENARIO | DATABASE_KNOWLEDGE |
+                         SECURITY_KNOWLEDGE | DECISION | OTHER
+OBSIDIAN_IMPACT          which durable notes must change, or NONE
 HANDOFF_READY            true | false
 ```
 
@@ -74,6 +78,21 @@ Two rules travel with it:
   any unclassified QA finding.
 
 ---
+
+### Knowledge impact travels with the handoff
+
+A specialist is the only party that knows whether what it built changed durable
+behaviour. Asking the Architect to infer it later is how a new provisioning
+state, a new authorization invariant or a new migration rule ends up existing
+only in code and in a chat transcript.
+
+So every handoff declares `KNOWLEDGE_IMPACT` and `OBSIDIAN_IMPACT`. `NONE` is a
+legitimate and common answer — most changes teach nothing durable — but it is an
+*answer*, not an omission.
+
+The Architect uses the union of these to decide `OBSIDIAN_REQUIRED`, and the
+Reviewer verifies the two agree: a handoff declaring `MODULE_KNOWLEDGE` with no
+corresponding note is an incomplete handoff, not a completed one.
 
 ## Acceptance is explicit
 

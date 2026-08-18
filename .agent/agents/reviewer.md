@@ -200,6 +200,33 @@ existing explanatory comments preserved.
 
 ---
 
+## Knowledge impact is part of the review
+
+If the implementation materially changed durable behaviour, the expected
+knowledge update must **exist**, or be explicitly `NOT_REQUIRED` with a reason.
+
+The specialist declared `KNOWLEDGE_IMPACT` in its handoff. Check the two agree:
+
+| Declared | What must exist |
+|---|---|
+| `MODULE_KNOWLEDGE` | The module note reflects the new behaviour |
+| `ARCHITECTURE` | The architecture note, and the context file if a rule changed |
+| `DATABASE_KNOWLEDGE` | Migration or schema rules recorded, not just applied |
+| `SECURITY_KNOWLEDGE` | The invariant recorded, and a negative test to prove it |
+| `BUG_PATTERN` / `REGRESSION` | The pattern or register entry, so it cannot silently return |
+| `QA_SCENARIO` | A durable scenario, not a one-off manual check |
+
+**A declared impact with no update is a `HANDOFF_REJECTED`, not a nitpick.**
+Important behaviour that exists only in code and chat has to be rediscovered by
+whoever hits it next, which is the failure this whole knowledge layer exists to
+prevent.
+
+`KNOWLEDGE_IMPACT = NONE` is fine and common. Verify it is true rather than
+assumed — a change that altered an API contract or an authorization decision and
+declared `NONE` has misread itself.
+
+---
+
 ## Severity
 
 | Severity | Meaning |

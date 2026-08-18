@@ -736,18 +736,25 @@ jobs:
         run: |
           npm --workspace api run seed:demo
           npm --workspace api run seed:admin
-      - name: Restore the Playwright browser cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/ms-playwright
-          # Keyed on the lockfile: which browser build Playwright downloads is
-          # decided by the Playwright version, and that version cannot change
-          # without the lockfile changing.
-          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
       - name: Install the browser
-        # `install --with-deps` is deliberately not used: the system libraries
-        # are already present on ubuntu-latest and could not be cached anyway.
-        # On a cache hit this step re-verifies the download and exits in seconds.
+        # A Playwright browser cache was added here on 2026-08-18 and REMOVED on
+        # 2026-08-19, because it made this step catastrophically slower rather
+        # than faster. Measured:
+        #
+        #   before the cache            27s   (run 32160472427)
+        #   with the cache, first run   6m41s (run 32178458380)
+        #   with the cache, next run    25m55s — consumed the whole 30 minute
+        #                               timeout and failed the gate (32182849325)
+        #
+        # The likely mechanism is that `~/.cache/ms-playwright` is exactly where
+        # ubuntu-latest already ships the browser. Restoring an empty or partial
+        # directory over it appears to shadow the preinstalled build, so
+        # `playwright install` stops being a fast verification and becomes a full
+        # download — the opposite of the intent.
+        #
+        # The runner image already caches this better than we can. Do not
+        # reintroduce the cache without a measurement showing it helps; the
+        # baseline to beat is 27 seconds.
         run: npm run test:browser:install
       - name: Start the API, landing and admin
         # Backgrounded with logs to files. The readiness loop is what makes this

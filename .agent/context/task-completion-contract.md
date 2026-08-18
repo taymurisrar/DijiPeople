@@ -479,6 +479,16 @@ changed an API response is a false gate, not an exemption.
 **`ASSUMED_PASS` is not a value.** Neither is leaving a field out. A field an
 agent cannot evaluate is `BLOCKED_<REASON>`, which is honest and visible.
 
+**`USER_CONFIRMATION_REQUIRED` is not a terminal state while a ready work
+package remains.** A parent task whose `NEXT_READY_WORK_PACKAGE` is set may end
+as `COMPLETE`, `RESUME_REQUIRED`, `BLOCKED_EXTERNAL` or `PRODUCT_DECISION` — and
+never by asking the user whether to continue. The user delegated the task, not
+its first work package, and a decomposition the Architect chose itself is not a
+decision point for anyone else. Running low on execution capacity is a
+checkpoint (`RESUME_REQUIRED`, with state persisted), not a question. See
+[`../agents/architect.md`](../agents/architect.md), *Continuation is not a
+question*.
+
 ### Which fields may be `NOT_REQUIRED`
 
 | Field | May be `NOT_REQUIRED` when |

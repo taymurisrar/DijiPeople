@@ -168,7 +168,7 @@ points everywhere except the cause:
   and the developer got 60 TypeScript errors naming application code, none of
   which was wrong. CI was green throughout, which made it look like a branch
   defect.
-- **BUG-0067/BUG-0068** — the freshness guard checked enums and delegates but not
+- **BUG-0068** — the freshness guard checked enums and delegates but not
   **fields**, so adding a scalar to an existing model passed the check and
   produced 8 errors saying the property does not exist. The guard reported
   healthy while the exact failure it was written to prevent was happening.

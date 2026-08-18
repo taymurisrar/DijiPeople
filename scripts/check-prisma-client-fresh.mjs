@@ -17,7 +17,9 @@
  * whether every symbol the schema declares is reachable on the client, so that
  * is what this checks — the same question the failure asks.
  *
- * BUG-0067 widened "symbol" to include *fields*. The first version checked
+ * BUG-0068 widened "symbol" to include *fields*. (This comment cited BUG-0067
+ * until 2026-08-19; that id was never allocated — the record is BUG-0068.)
+ * The first version checked
  * enums and model delegates only, which is blind to the most common schema
  * change there is: adding a scalar field to a model that already exists.
  * `ApplicationRelease.checksumSha512` landed on develop, the delegate

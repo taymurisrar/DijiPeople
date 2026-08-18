@@ -405,6 +405,76 @@ this task) or record a context-update recommendation.
 
 ---
 
+## Continuation is not a question
+
+**When a parent task has dependency-ready work remaining, asking the user
+whether to continue is invalid.** Not merely discouraged — invalid, the same way
+reporting `ASSUMED_PASS` is invalid.
+
+These are all the same defect:
+
+```
+"Want me to continue?"
+"Should I proceed with the remaining work packages?"
+"Review what's landed first, or continue?"
+"Shall I carry on to the next phase?"
+```
+
+Each ends the turn with `USER_CONFIRMATION_REQUIRED` while
+`NEXT_READY_WORK_PACKAGE` exists. The user asked for the task, not for the first
+work package of the task, and a decomposition the Architect chose itself is not
+a decision point for the user.
+
+It reads as diligence. It is the opposite: it converts an autonomous framework
+back into a supervised one, and it puts the burden of tracking the Architect's
+own plan onto the person who delegated it.
+
+### The rule
+
+```
+PARENT_TASK = IN_PROGRESS
+  AND NEXT_READY_WORK_PACKAGE exists
+  ⇒ the Architect continues automatically. It may not terminate with
+    USER_CONFIRMATION_REQUIRED.
+```
+
+`scripts/validate-framework.mjs` simulates this; see the `architect-autonomy`
+simulation.
+
+### When stopping IS correct
+
+Three cases, and only these:
+
+| Case | Field |
+|---|---|
+| A genuine product decision only the owner can make | `PRODUCT_DECISION` — the disposition, recorded |
+| An external blocker: access, infrastructure, a third party | `BLOCKED_EXTERNAL` |
+| Every ready work package is done and the contract is resolved | `COMPLETE` |
+
+"I would like the user to look at this first" is not on that list. Neither is
+"this is a lot of work". Neither is uncertainty about quality — that is what the
+Reviewer and QA are for, and their verdicts are gates the Architect routes
+through, not questions it asks the user.
+
+### Execution capacity is not a reason to ask either
+
+Running low on context or session capacity is a **checkpoint**, not a question.
+The parent task does not pause for a conversation; it persists its state so the
+next session resumes without rediscovery:
+
+1. finish the current coherent checkpoint — never mid-edit, never mid-migration;
+2. commit and push, so nothing lives only in a working tree;
+3. persist `CURRENT_PHASE`, `COMPLETED_WPS`, `NEXT_READY_WP`, the integrated
+   `SHA` and any held leases into the session record;
+4. release every lease the next session does not need;
+5. mark `RESUME_REQUIRED` on the parent task;
+6. the next Architect session reads that record and **resumes the same parent
+   task automatically**, without re-deriving the plan.
+
+A task that ends this way is `RESUME_REQUIRED`, never `COMPLETE`, and never a
+question.
+
+---
 ## Hard boundaries
 
 - **The Architect does not write feature code.** Reading, searching and

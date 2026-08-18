@@ -15,8 +15,8 @@
  *             the developer got 60 TypeScript errors naming application code,
  *             none of which was wrong. CI was green the whole time, which made a
  *             local staleness problem look like a branch defect.
- *   BUG-0067  the freshness guard checked enums and delegates but not FIELDS, so
- *   BUG-0068  adding a scalar to an existing model passed and produced 8 errors
+ *   BUG-0068  the freshness guard checked enums and delegates but not FIELDS, so
+ *             adding a scalar to an existing model passed and produced 8 errors
  *             saying the property does not exist. The guard reported healthy
  *             while the exact failure it was written to prevent was happening.
  *
@@ -102,7 +102,7 @@ function prismaClientStatus() {
   if (!existsSync(join(REPO_ROOT, 'node_modules'))) {
     // A fresh worktree has no node_modules, so the client cannot be inspected
     // from here at all. Saying UNKNOWN is the honest answer; claiming CURRENT
-    // would be exactly the false green BUG-0067 was about.
+    // would be exactly the false green BUG-0068 was about.
     return { status: 'UNKNOWN', detail: 'no node_modules in this worktree — run the preflight in a checkout that has them' };
   }
   const result = run('node', [join(REPO_ROOT, 'scripts', 'check-prisma-client-fresh.mjs')]);
@@ -295,7 +295,7 @@ if (JSON_OUT) {
   const unknowns = Object.entries(fields).filter(([, v]) => v === 'UNKNOWN');
   if (unknowns.length) {
     console.log('UNKNOWN is not an acceptable resting state for DB-affecting implementation.');
-    console.log('It means nobody looked, which is the condition BUG-0060 and BUG-0067 both');
+    console.log('It means nobody looked, which is the condition BUG-0060 and BUG-0068 both');
     console.log('started from. Resolve these before a dependent agent writes code:');
     for (const [key] of unknowns) console.log(`  ? ${key}`);
     console.log('');
