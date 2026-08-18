@@ -91,15 +91,30 @@ gate.
 | Admin provisioning status and guarded retry | `tenant-operations-panel.tsx` — `canRetry`, `retryBlockedReason`, step table | BUILT |
 | Admin domain operations | `tenant-domains-panel.tsx`, `tenant-domains-admin.service.ts` | BUILT |
 | Reconciliation jobs against Stripe | TASK-0007 WP-09 | BUILT |
+| Data-residency readiness — placement separable from hostname | `Tenant.dataRegion` and `Tenant.environmentType`; `TenantDomain` binds a hostname to a tenant, never to a placement | BUILT |
+| Canonical columns for the whole organization profile | `CustomerAccount` already carries `legalCompanyName`, `registrationNumber`, `taxId`, `industry`, `companySize`, `estimatedEmployeeCount`, `addressLine1/2`, `city`, `stateProvince`, `country`, `website` | BUILT |
+| Canonical columns for owner identity | `CustomerAccount.primaryContactFirstName` / `primaryContactLastName` / `primaryContactEmail` / `primaryContactPhone` | BUILT |
 
 ### Genuine gaps — this parent's actual scope
+
+**Corrected after reading `CustomerAccount`.** G-02 and G-04 were first written as
+though the organization and owner fields did not exist. They do — every one of
+them, on the canonical entity, unused. `resolveCustomer()` in
+`subscription-order.service.ts` even says so in a comment, and refuses to
+fabricate: *"industry and companySize are deliberately absent. The subscribe form
+does not ask for them, and writing 'Unknown' into a reportable column makes a
+fabricated value indistinguishable from a real one."*
+
+That moves both rows from *schema work* to *capture work*, and it is the whole
+difference between a migration and a form. The one column this parent genuinely
+has to add is the slug reservation in G-03.
 
 | GAP | Brief requirement | Repository truth | State |
 |---|---|---|---|
 | G-01 | Multi-step public onboarding capturing organization, workspace, owner, agreements, review | `apps/landing/app/subscribe/subscribe-form.tsx` is one 351-line form capturing only company/workspace name, contact name, email, phone, country | PARTIAL |
-| G-02 | Organization identity — legal name, registration number, tax number, industry, employee count, registered address | not collected anywhere in the public flow | ABSENT |
-| G-03 | Workspace step — slug entry, live availability, timezone, language, currency, `[slug].dijipeople.com` preview | no slug is ever collected from the customer; provisioning derives one | ABSENT |
-| G-04 | Tenant Owner step — first/last name separately, job title | only a single "Contact name" free-text field | PARTIAL |
+| G-02 | Organization identity — legal name, registration number, tax number, industry, employee count, registered address | the columns exist on `CustomerAccount` and are never written by the public path. **Capture gap, not a schema gap** | ABSENT |
+| G-03 | Workspace step — slug entry, live availability, `[slug].dijipeople.com` preview | validation is complete (`slug.util.ts`, reserved labels shared with the host parser) and `Tenant.slug` is unique — but no slug is ever *collected*, and none can be reserved before `Tenant` exists. **The one real schema change in this parent** | ABSENT |
+| G-04 | Tenant Owner step — first/last name separately, job title | `primaryContactFirstName`/`LastName` exist and are filled by splitting one "Contact name" field on whitespace; job title has no column and no canonical home yet | PARTIAL |
 | G-05 | Email verification before activating a self-service Tenant Owner | no verification subsystem in `services/api/src` — brief calls this a minimum | ABSENT |
 | G-06 | Live provisioning progress reflecting real backend state | `/subscribe/success` is a static 32-line page telling the customer to wait | ABSENT |
 | G-07 | Workspace-ready state with an "Open DijiPeople" button on the canonical domain | not present | ABSENT |
@@ -135,6 +150,11 @@ WP-01 is the root because every other package depends on the customer being
 able to *name* their workspace — which the current flow never asks. G-03 is
 therefore not a UI gap; it is a missing field on the commercial record, and the
 wizard cannot be built above it until the record can hold the answer.
+
+Its schema footprint is one nullable-unique column, not a migration of the
+organization profile. That only became clear after reading `CustomerAccount`,
+which is why the reconciliation above carries a correction rather than a tidy
+first draft.
 
 WP-06 has no dependency on the onboarding chain and is `PARALLEL_SAFE`: the
 switcher consumes `/workspaces/mine`, which already exists and already returns
@@ -199,12 +219,24 @@ before WP-01 writes `schema.prisma`.
   before planning: 33 requirements already built, 11 genuine gaps, 2 documentation
   drift findings. Nine packages sequenced from the gaps rather than from the
   brief's chapter order.
+- 2026-08-19 — BUG-0075 found and fixed at `a40f038` while reading the public
+  onboarding surface: `POST /public/subscribe` had no rate limit, and the
+  ITEM-0013 invariant written to prevent exactly that recurrence passed against
+  it because an import satisfied its class-level check. Mutation-tested in both
+  directions; REG-065 and QA-BILLING-007 carry the coverage. Not a work package —
+  it was a live defect sitting in the surface WP-01 is about to extend, and
+  building the wizard on top of an unthrottled endpoint would have widened it.
+- 2026-08-19 — reconciliation corrected against `CustomerAccount`. G-02 and G-04
+  were written as schema gaps and are capture gaps: every organization and owner
+  column the brief asks for already exists on the canonical entity and is simply
+  never written by the public path. WP-01's schema footprint drops to the single
+  `requestedSlug` column.
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-tasks.mjs; edit the record, not this block -->
 
 ## Related
 
-- Records — [[BUG-0017]]
+- Records — [[BUG-0017]], [[BUG-0075]], [[ITEM-0013]]
 - Modules — [[tenant-control-plane]], [[billing]], [[notifications]], [[legal]]
 
 <!-- GRAPH:END -->
