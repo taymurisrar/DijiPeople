@@ -57,6 +57,29 @@ async function reachable(url: string, timeoutMs = 4000) {
   }
 }
 
+/**
+ * A lighter precondition, for suites that never touch the database.
+ *
+ * `probeEnvironment` demands a disposable database, a platform session and all
+ * three apps, because the journeys it guards write rows and sign in. The public
+ * marketing surface does none of that: its pages are served to anonymous
+ * visitors and a suite that reads their metadata should not be skipped because
+ * PostgreSQL is down. Demanding more than a suite uses turns a green run into
+ * an unnoticed skip, which is the failure mode this file exists to avoid.
+ */
+export async function probePublicSurface(
+  landing: string,
+): Promise<EnvironmentReport> {
+  const missing: string[] = [];
+  const detail: Record<string, string> = {};
+
+  const landingUp = await reachable(landing);
+  if (!landingUp) missing.push(`landing app at ${landing}`);
+  detail.landing = landingUp ? 'up' : 'unreachable';
+
+  return { ready: missing.length === 0, missing, detail };
+}
+
 export async function probeEnvironment(urls: {
   landing: string;
   admin: string;
