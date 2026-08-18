@@ -16,6 +16,21 @@ export async function signInToAdmin(page: Page) {
 
   await page.goto('/login');
   /*
+   * Wait for the page to settle before touching it.
+   *
+   * Filling a field works the moment the input exists, but the submit handler
+   * is attached by React hydration — which happens later. On the first sign-in
+   * of a run, against a dev server that has just compiled the route, the click
+   * landed on a button whose handler did not exist yet: nothing submitted, the
+   * URL stayed on /login, and the assertion below timed out after 45 seconds
+   * reporting a sign-in failure that had not happened.
+   *
+   * Every subsequent sign-in in the same run passed, which is the signature of
+   * a hydration race rather than a broken login. Tolerant of a network that
+   * never goes idle, because that is a reason to proceed, not to fail here.
+   */
+  await page.waitForLoadState('networkidle').catch(() => undefined);
+  /*
    * The form fields carry ids (`admin-email`, `admin-password`) and associated
    * labels. Addressed by label rather than by CSS class because the classes are
    * Tailwind utility strings that change whenever the design does — a selector

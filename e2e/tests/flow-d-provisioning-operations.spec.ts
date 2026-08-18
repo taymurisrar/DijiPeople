@@ -21,6 +21,18 @@ import { probeEnvironment, withDatabase } from '../fixtures/environment';
 
 const RUN_MARKER = 'e2e-flow-d';
 
+/**
+ * A blocker message only this suite can produce.
+ *
+ * The first version asserted on a plausible-looking "SMTP relay refused the
+ * connection (550)", which also existed in data seeded by hand months of
+ * sessions earlier. Playwright's strict mode caught the collision — two
+ * elements matched — but the more serious problem is what a *non*-strict
+ * matcher would have done: passed while reading somebody else's row, which is
+ * how a suite comes to prove nothing at all.
+ */
+const BLOCKER_MESSAGE = `SMTP relay refused the connection (550) [${RUN_MARKER}]`;
+
 test.describe('Flow D — provisioning operations', () => {
   test.beforeAll(async () => {
     const report = await probeEnvironment({
@@ -134,7 +146,7 @@ test.describe('Flow D — provisioning operations', () => {
             'Send welcome email',
             2,
             'FAILED',
-            'SMTP relay refused the connection (550)',
+            BLOCKER_MESSAGE,
           ],
         ],
       );
@@ -211,9 +223,7 @@ test.describe('Flow D — provisioning operations', () => {
      * the run-level message is the less useful of the two — it says a step
      * failed, where the step says why.
      */
-    await expect(
-      page.getByText(/SMTP relay refused the connection \(550\)/i),
-    ).toBeVisible();
+    await expect(page.getByText(BLOCKER_MESSAGE, { exact: false })).toBeVisible();
     await expect(
       page.getByText(/Run-level message that must not win/i),
     ).toHaveCount(0);

@@ -141,7 +141,19 @@ export function ProvisioningQueue({
           make the page body scroll horizontally, which is what breaks the
           1366px laptop layout the brief calls out.
         */
-        <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div
+          /*
+           * Focusable, and named. A horizontally scrolling region is reachable
+           * with a mouse or a trackpad and — without `tabIndex` — by nothing
+           * else: a keyboard user can tab to the links inside it but can never
+           * scroll it to reach the columns that are off-screen. axe reports this
+           * as `scrollable-region-focusable`, and it fired on this very table.
+           */
+          role="region"
+          aria-label="Provisioning runs"
+          tabIndex={0}
+          className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm"
+        >
           <table className="w-full min-w-[64rem] border-collapse text-sm">
             <caption className="sr-only">
               Provisioning runs, most serious first
@@ -197,7 +209,7 @@ export function ProvisioningQueue({
                     {row.blocker ? (
                       <span className="line-clamp-3">{row.blocker}</span>
                     ) : (
-                      <span className="text-slate-400">None</span>
+                      <span className="text-slate-500">None</span>
                     )}
                   </td>
                   <td className="px-4 py-3 tabular-nums text-slate-700">
@@ -230,7 +242,7 @@ export function ProvisioningQueue({
  */
 function Unknown() {
   return (
-    <span className="text-slate-400" title="Not recorded">
+    <span className="text-slate-500" title="Not recorded">
       —
     </span>
   );

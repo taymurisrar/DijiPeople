@@ -16,7 +16,7 @@
 | Open HIGH | 5 |
 | Awaiting Architect triage | 0 |
 | Owner decisions pending | 2 |
-| QA coverage gaps | 88 |
+| QA coverage gaps | 94 |
 | Scenarios blocked by infrastructure | 0 |
 
 ## Active Sessions
@@ -174,6 +174,12 @@ gap into scope — or files a `TEST_GAP` item and says so.
 | [[PLAN-018-subscription-changes|subscription-changes]] | BROWSER |
 | [[PLAN-018-subscription-changes|subscription-changes]] | SECURITY |
 | [[PLAN-018-subscription-changes|subscription-changes]] | PERFORMANCE |
+| [[PLAN-019-platform-admin|platform-admin]] | UNIT |
+| [[PLAN-019-platform-admin|platform-admin]] | API |
+| [[PLAN-019-platform-admin|platform-admin]] | DATABASE |
+| [[PLAN-019-platform-admin|platform-admin]] | INTEGRATION |
+| [[PLAN-019-platform-admin|platform-admin]] | E2E |
+| [[PLAN-019-platform-admin|platform-admin]] | SECURITY |
 
 ## Backlog Health
 

@@ -6,8 +6,8 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 123,
-    "bugs": 69,
+    "total_records": 125,
+    "bugs": 71,
     "backlog_items": 54,
     "open_bucket": 4,
     "blocked_bucket": 0,
@@ -486,7 +486,7 @@
         "record_ids": [
           "ITEM-0002"
         ],
-        "note": "[[ITEM-0002]] — no isolated live-API session harness exists."
+        "note": "[[ITEM-0002]] \u2014 no isolated live-API session harness exists."
       },
       "related_bugs": [
         "BUG-0008",
@@ -704,7 +704,7 @@
         "record_ids": [
           "ITEM-0013"
         ],
-        "note": "None. The generalised check — a test asserting every `@Public()` controller is rate limited — is tracked as [[ITEM-0013]]."
+        "note": "None. The generalised check \u2014 a test asserting every `@Public()` controller is rate limited \u2014 is tracked as [[ITEM-0013]]."
       },
       "related_bugs": [],
       "related_backlog": [
@@ -924,7 +924,7 @@
         "record_ids": [
           "ITEM-0006"
         ],
-        "note": "[[ITEM-0006]] — the ADR."
+        "note": "[[ITEM-0006]] \u2014 the ADR."
       },
       "related_bugs": [],
       "related_backlog": [
@@ -1495,7 +1495,7 @@
         "record_ids": [
           "ITEM-0018"
         ],
-        "note": "[[ITEM-0018]] — publication lifecycle, same models and screens."
+        "note": "[[ITEM-0018]] \u2014 publication lifecycle, same models and screens."
       },
       "related_bugs": [
         "BUG-0028"
@@ -1555,7 +1555,7 @@
         "record_ids": [
           "ITEM-0019"
         ],
-        "note": "[[ITEM-0019]] — the market/region model this mapping should move into."
+        "note": "[[ITEM-0019]] \u2014 the market/region model this mapping should move into."
       },
       "related_bugs": [
         "BUG-0026",
@@ -1734,7 +1734,7 @@
           "BUG-0032",
           "ITEM-0013"
         ],
-        "note": "[[ITEM-0013]] — the mechanical check that would have caught this. [[BUG-0032-landing-proxies-collapse-every-visitor-into-one-rate-limit-b]] — without it, the limit keys on the wrong identity."
+        "note": "[[ITEM-0013]] \u2014 the mechanical check that would have caught this. [[BUG-0032-landing-proxies-collapse-every-visitor-into-one-rate-limit-b]] \u2014 without it, the limit keys on the wrong identity."
       },
       "related_bugs": [
         "BUG-0013",
@@ -1797,7 +1797,7 @@
           "BUG-0031",
           "ITEM-0013"
         ],
-        "note": "[[BUG-0031-public-subscribe-endpoint-has-no-rate-limiting]] — fixing that one first yields a throttle keyed on the wrong identity. Sequence them together. [[ITEM-0013]] — the mechanical coverage check."
+        "note": "[[BUG-0031-public-subscribe-endpoint-has-no-rate-limiting]] \u2014 fixing that one first yields a throttle keyed on the wrong identity. Sequence them together. [[ITEM-0013]] \u2014 the mechanical coverage check."
       },
       "related_bugs": [
         "BUG-0013",
@@ -1857,7 +1857,7 @@
         "record_ids": [
           "ITEM-0013"
         ],
-        "note": "[[ITEM-0013]] — the mechanical rate-limit coverage check that would have caught this and the two before it."
+        "note": "[[ITEM-0013]] \u2014 the mechanical rate-limit coverage check that would have caught this and the two before it."
       },
       "related_bugs": [
         "BUG-0013",
@@ -1917,7 +1917,7 @@
         "record_ids": [
           "ITEM-0026"
         ],
-        "note": "[[ITEM-0026]] — code signing, which shares the decision."
+        "note": "[[ITEM-0026]] \u2014 code signing, which shares the decision."
       },
       "related_bugs": [],
       "related_backlog": [
@@ -2321,7 +2321,7 @@
         "record_ids": [
           "BUG-0039"
         ],
-        "note": "[[BUG-0039-employee-payslip-and-bank-account-proxies-return-the-callers]] — same layer, same absent guard; fix the check once."
+        "note": "[[BUG-0039-employee-payslip-and-bank-account-proxies-return-the-callers]] \u2014 same layer, same absent guard; fix the check once."
       },
       "related_bugs": [
         "BUG-0039"
@@ -3751,7 +3751,7 @@
         "resolved_at": ""
       },
       "type": "ARCHITECTURE",
-      "title": "ADR needed — one source of truth for the tenant base domain",
+      "title": "ADR needed \u2014 one source of truth for the tenant base domain",
       "severity": "MEDIUM",
       "priority": "P2",
       "current_status": "DONE",
@@ -3804,7 +3804,7 @@
         "resolved_at": ""
       },
       "type": "PRODUCT_DECISION",
-      "title": "Product decision — should duplicate website leads be deduplicated?",
+      "title": "Product decision \u2014 should duplicate website leads be deduplicated?",
       "severity": "LOW",
       "priority": "P3",
       "current_status": "DONE",
@@ -3821,7 +3821,7 @@
       ],
       "dependencies": {
         "record_ids": [],
-        "note": "None. Interacts with [[BUG-0021]], which concerns what the contact form *puts in* a lead row — decide both together and the public lead surface stops being two half-designed forms."
+        "note": "None. Interacts with [[BUG-0021]], which concerns what the contact form *puts in* a lead row \u2014 decide both together and the public lead surface stops being two half-designed forms."
       },
       "related_bugs": [
         "BUG-0013",
@@ -3853,7 +3853,7 @@
         "resolved_at": ""
       },
       "type": "PRODUCT_DECISION",
-      "title": "Product decision — CustomerAccount carries no origin channel",
+      "title": "Product decision \u2014 CustomerAccount carries no origin channel",
       "severity": "LOW",
       "priority": "P3",
       "current_status": "DONE",
@@ -3964,7 +3964,7 @@
       ],
       "dependencies": {
         "record_ids": [],
-        "note": "Requires the deployment platform to supply the commit at build time, and the variable registered per `AGENTS.md` — `packages/config` validation, `turbo.json` `globalEnv`, `render.yaml` and `docs/environment-variables.md`."
+        "note": "Requires the deployment platform to supply the commit at build time, and the variable registered per `AGENTS.md` \u2014 `packages/config` validation, `turbo.json` `globalEnv`, `render.yaml` and `docs/environment-variables.md`."
       },
       "related_bugs": [],
       "related_backlog": [
@@ -4231,7 +4231,7 @@
         "resolved_at": ""
       },
       "type": "PRODUCT_DECISION",
-      "title": "Product decision — partner review re-opening and post-activation demotion",
+      "title": "Product decision \u2014 partner review re-opening and post-activation demotion",
       "severity": "MEDIUM",
       "priority": "P2",
       "current_status": "DONE",
@@ -4403,7 +4403,7 @@
       ],
       "dependencies": {
         "record_ids": [],
-        "note": "Best sequenced **after** [[BUG-0027]] and [[ITEM-0018]] — those settle what a price is and when it is live; markets then scope it. Attempting markets first means scoping a price model that is about to change."
+        "note": "Best sequenced **after** [[BUG-0027]] and [[ITEM-0018]] \u2014 those settle what a price is and when it is live; markets then scope it. Attempting markets first means scoping a price model that is about to change."
       },
       "related_bugs": [
         "BUG-0027",
@@ -4456,7 +4456,7 @@
       ],
       "dependencies": {
         "record_ids": [],
-        "note": "[[BUG-0027]] — landed. This is its remaining phase."
+        "note": "[[BUG-0027]] \u2014 landed. This is its remaining phase."
       },
       "related_bugs": [
         "BUG-0027"
@@ -4748,7 +4748,7 @@
       ],
       "dependencies": {
         "record_ids": [],
-        "note": "[[BUG-0034-desktop-agent-auto-update-points-at-an-endpoint-that-does-no]] — same decision. Acquiring a code-signing certificate is a purchasing action outside engineering's control, which is the realistic blocker."
+        "note": "[[BUG-0034-desktop-agent-auto-update-points-at-an-endpoint-that-does-no]] \u2014 same decision. Acquiring a code-signing certificate is a purchasing action outside engineering's control, which is the realistic blocker."
       },
       "related_bugs": [
         "BUG-0034"
@@ -4796,7 +4796,7 @@
       ],
       "dependencies": {
         "record_ids": [],
-        "note": "[[BUG-0036-agent-heartbeat-has-no-idempotency-so-retries-double-count-p]] — shares the plan."
+        "note": "[[BUG-0036-agent-heartbeat-has-no-idempotency-so-retries-double-count-p]] \u2014 shares the plan."
       },
       "related_bugs": [
         "BUG-0036"
@@ -5253,7 +5253,7 @@
       ],
       "dependencies": {
         "record_ids": [],
-        "note": "None. [[BUG-0044-the-documented-new-module-workflow-for-apps-web-cannot-be-fo]] already corrected the documentation, so nothing is blocked on this — it is the underlying design question that record deliberately did not answer."
+        "note": "None. [[BUG-0044-the-documented-new-module-workflow-for-apps-web-cannot-be-fo]] already corrected the documentation, so nothing is blocked on this \u2014 it is the underlying design question that record deliberately did not answer."
       },
       "related_bugs": [
         "BUG-0044"
@@ -5460,7 +5460,7 @@
       ],
       "dependencies": {
         "record_ids": [],
-        "note": "Repository admin credentials, and an environment whose tooling permits GitHub protection mutations. The environment that authored this branch model held admin rights and had protection writes blocked by its own policy layer — reads succeeded, `PUT` did not. That is a guardrail working, not a reposit"
+        "note": "Repository admin credentials, and an environment whose tooling permits GitHub protection mutations. The environment that authored this branch model held admin rights and had protection writes blocked by its own policy layer \u2014 reads succeeded, `PUT` did not. That is a guardrail working, not a reposit"
       },
       "related_bugs": [],
       "related_backlog": [
@@ -6092,7 +6092,7 @@
         "paths": [
           "services/api/src/modules/contracts/contracts.service.ts"
         ],
-        "verification_scope": "Read contracts.service.ts:229-252 — placeholder() sets defaultValue null and fallbackBehavior ERROR for non-signature keys, so the generation path fails closed and no contract can carry the fabricated values. The risk is presentational."
+        "verification_scope": "Read contracts.service.ts:229-252 \u2014 placeholder() sets defaultValue null and fallbackBehavior ERROR for non-signature keys, so the generation path fails closed and no contract can carry the fabricated values. The risk is presentational."
       },
       "affected_modules": [
         "contracts"
@@ -6215,6 +6215,108 @@
       ],
       "test_plan": [
         "PLAN-002"
+      ],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
+      "verification_result": {
+        "result": "FIXED",
+        "classification": "REMEDIATED_AND_RETESTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0073",
+      "source": {
+        "record_path": "docs/bugs/BUG-0073-small-uppercase-labels-in-slate-400-fail-wcag-aa-contrast-ac.md",
+        "provenance": "QA_RUN",
+        "created_at": "2026-08-19",
+        "updated_at": "2026-08-19",
+        "detected_in_sha": "4290c03",
+        "resolved_at": "2026-08-19"
+      },
+      "type": "UX",
+      "title": "Small uppercase labels in slate-400 fail WCAG AA contrast across admin",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "VERIFIED",
+      "current_evidence": {
+        "paths": [
+          "apps/admin/app/_components/admin-sidebar.tsx",
+          "apps/admin/app/_components/runtime/runtime-view-selector.tsx",
+          "apps/admin/app/(internal)/operations/provisioning/provisioning-queue.tsx"
+        ],
+        "verification_scope": "axe reported SERIOUS color-contrast on every admin screen: slate-400 on white is ~2.8:1 against a 4.5:1 requirement, and two of the three instances are in the shared shell. Raised to slate-500 (~4.8:1) and retested - E3 passes for both audited screens."
+      },
+      "affected_modules": [
+        "apps/admin"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": "Found in one audit; fixed together."
+      },
+      "related_bugs": [
+        "BUG-0074"
+      ],
+      "related_backlog": [],
+      "regressions": [
+        "REG-067"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-002"
+      ],
+      "test_plan": [
+        "PLAN-019"
+      ],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
+      "verification_result": {
+        "result": "FIXED",
+        "classification": "REMEDIATED_AND_RETESTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0074",
+      "source": {
+        "record_path": "docs/bugs/BUG-0074-the-provisioning-queue-scroll-container-was-unreachable-by-k.md",
+        "provenance": "QA_RUN",
+        "created_at": "2026-08-19",
+        "updated_at": "2026-08-19",
+        "detected_in_sha": "4290c03",
+        "resolved_at": "2026-08-19"
+      },
+      "type": "UX",
+      "title": "The provisioning queue scroll container was unreachable by keyboard",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "VERIFIED",
+      "current_evidence": {
+        "paths": [
+          "apps/admin/app/(internal)/operations/provisioning/provisioning-queue.tsx"
+        ],
+        "verification_scope": "axe reported SERIOUS scrollable-region-focusable: the overflow-x-auto container had no tabIndex, so the Blocker, Attempt and Correlation columns were pointer-only. Given role=region, an aria-label and tabIndex=0; E3 and E4 both pass, so the keyboard fix did not reintroduce body overflow."
+      },
+      "affected_modules": [
+        "apps/admin"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": "Found in one audit; fixed together."
+      },
+      "related_bugs": [
+        "BUG-0073"
+      ],
+      "related_backlog": [],
+      "regressions": [
+        "REG-067"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-002"
+      ],
+      "test_plan": [
+        "PLAN-019"
       ],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
@@ -6858,7 +6960,7 @@
         "landing_spec_files": 3,
         "browser_spec_files": 2,
         "latest_executed_api": "169 suites; 1251 passed; 1 skipped",
-        "latest_database_e2e": "15 suites; task runs 32020076245/32021401010 had the same 7 failed / 8 passed and 147–148 failed / 79–80 passed tests; post-merge run 32022417483 had 5 failed / 10 passed suites and 128 failed / 99 passed tests",
+        "latest_database_e2e": "15 suites; task runs 32020076245/32021401010 had the same 7 failed / 8 passed and 147\u2013148 failed / 79\u201380 passed tests; post-merge run 32022417483 had 5 failed / 10 passed suites and 128 failed / 99 passed tests",
         "latest_browser_e2e": "8 passed; 1 skipped"
       },
       "evidence": [
@@ -7010,7 +7112,7 @@
         "The 80-path dirty snapshot included gateway build outputs created by a bounded local validation attempt and a partial dependency directory. Those tracked build outputs were restored and the partial directory was moved outside the worktree; current git status contains only expected WP-01 record/generated paths."
       ],
       "verification_result": "PRESERVED_NO_DESTRUCTIVE_ACTION",
-      "owner_decision_required": "NO — this is technical repository hygiene. The Integrator must verify patch equivalence, worktree cleanliness and branch ownership before any cleanup.",
+      "owner_decision_required": "NO \u2014 this is technical repository hygiene. The Integrator must verify patch equivalence, worktree cleanliness and branch ownership before any cleanup.",
       "recommended_remediation": "Do not delete from discovery. Perform scoped cleanup under Integrator control after the active program package is integrated; preserve the human-created feature branches."
     },
     {
