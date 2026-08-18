@@ -147,6 +147,48 @@ was stopped only by a superseding push.
 change that: this job is report-only by design, and a report-only job that is
 red is a red job, not an absent one (that distinction is exactly [[BUG-0049]]).
 
+### The six failing suites, and their root-cause groups
+
+Named from run 32160472427 so the next agent starts from evidence rather than
+re-deriving it:
+
+| Suite | Group |
+|---|---|
+| `test/attendance-engine.e2e-spec.ts` | **A — shared fixture state** |
+| `test/attendance-integrations-http.e2e-spec.ts` | **A — shared fixture state** |
+| `test/attendance-review.e2e-spec.ts` | **A — shared fixture state** |
+| `test/gateway-runtime.e2e-spec.ts` | **B — environment/boundary** |
+| `test/legal-documents.e2e-spec.ts` | **C — schema-sensitive seed** |
+| `test/platform-workflows.e2e-spec.ts` | **C — schema-sensitive seed** |
+
+**Group A** is the cluster `maxWorkers: 1` was introduced to contain: three
+attendance suites sharing one seeded dataset. Serialising made them
+*deterministic*, not *passing* — a distinction worth keeping, because it is why
+[[ITEM-0055]] is a blocker here and not a fix.
+
+**Group B** depends on gateway/boundary state that CI does not provide.
+
+**Group C** relies on rows `seed:config` does not create; the workflow already
+compensates with `seed:demo` and `seed:admin`, and these are the suites that
+still want more.
+
+Grouping is from suite identity and the workflow's own notes, not from reading
+every failure — the suite has not completed since, so per-test causes cannot be
+claimed. Treat the groups as a starting hypothesis to confirm, not a diagnosis.
+
+### Open handles
+
+```
+A worker process has failed to exit gracefully and has been force exited.
+This is likely caused by tests leaking due to improper teardown.
+```
+
+`DATABASE_E2E_OPEN_HANDLES = PRESENT`. A leaked handle keeps the worker alive
+after its assertions finish, which inflates wall-clock and is a plausible
+contributor to the 30-minute overrun — the two symptoms are probably one defect.
+Run with `--detectOpenHandles` before assuming the serial mode alone explains the
+duration.
+
 ### Ownership
 
 **Database Agent leads; QA owns the evidence.** Split as the roles define it:
