@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import {
   LeadAttributionStatus,
+  LegalDocumentType,
   LeadInquiryIntent,
   LeadStatus,
   PartnerReferralLinkStatus,
@@ -24,6 +25,7 @@ import {
   UpdateAdminLeadDto,
 } from './dto/admin-lead.dto';
 import { SubmitLeadDto } from './dto/submit-lead.dto';
+import { LegalService } from '../legal/legal.service';
 import {
   CURRENT_PRIVACY_NOTICE_VERSION,
   LEAD_INQUIRY_INTENT_OPTIONS,
@@ -69,6 +71,7 @@ export class LeadsService {
     private readonly prisma: PrismaService,
     private readonly communications: PlatformCommunicationsService,
     private readonly events: PlatformEventsService,
+    private readonly legalService: LegalService,
   ) {}
 
   async submitLead(dto: SubmitLeadDto, correlationId?: string) {
@@ -124,6 +127,20 @@ export class LeadsService {
     }
 
     const referral = await this.resolveReferral(dto.referralCode);
+
+    // The notice actually in force, resolved from the published legal
+    // documents rather than from a compile-time constant. Falls back to that
+    // constant only while nothing is published, so a submission made before
+    // launch still records which wording was shown instead of recording
+    // nothing at all.
+    const publishedNotice = await this.legalService.resolvePublished(
+      LegalDocumentType.PRIVACY_POLICY,
+      null,
+    );
+    const privacyNoticeVersion = publishedNotice
+      ? `v${publishedNotice.version}`
+      : CURRENT_PRIVACY_NOTICE_VERSION;
+
     const lead = await this.prisma.$transaction(async (tx) => {
       const created = await this.leadsRepository.create(
         {
@@ -161,7 +178,7 @@ export class LeadsService {
           correlationId: correlationId ?? null,
           // The server records which notice was in force. A client-supplied
           // version could claim any notice at all.
-          privacyNoticeVersion: CURRENT_PRIVACY_NOTICE_VERSION,
+          privacyNoticeVersion,
           privacyNoticeAcceptedAt: submittedAt,
           // Optional and separate. Submitting an inquiry never requires it.
           marketingConsent: dto.marketingConsent === true,
@@ -200,6 +217,22 @@ export class LeadsService {
           },
         });
       }
+      // Written in the same transaction as the lead. A lead that exists
+      // without the acknowledgement that justified contacting them is exactly
+      // the split state that makes consent unprovable, and it is the state you
+      // get whenever the two writes are allowed to fail independently.
+      if (publishedNotice) {
+        await this.legalService.acknowledge(
+          {
+            legalDocumentVersionId: publishedNotice.versionId,
+            source: 'landing:contact',
+            leadId: created.id,
+            subjectEmail: created.workEmail,
+          },
+          tx,
+        );
+      }
+
       return created;
     });
 

@@ -140,6 +140,19 @@ export const TENANT_ERASURE_SELF_REFERENCES: Array<{
 
 /** Dependents first, parents last. See the derivation note above. */
 export const TENANT_ERASURE_DELETE_ORDER: string[] = [
+  // Nothing tenant-owned points at either of these, so they can go first.
+  //
+  // `outboxEvent` — an erased tenant must not leave undelivered transitions
+  // behind. A PENDING provisioning or seat event for a tenant that no longer
+  // exists would be claimed by the worker after the erasure committed and fail
+  // forever against a missing row.
+  //
+  // `legalDocumentAcknowledgement` — only the tenant-scoped ones are deleted
+  // here, which are acknowledgements by people inside the tenant. The evidence
+  // that the *company* accepted terms hangs off `customerAccountId`/`leadId`
+  // with no `tenantId`, is not tenant-owned, and is untouched by this order.
+  'outboxEvent',
+  'legalDocumentAcknowledgement',
   'activityEvent',
   'agentLocationRequest',
   'agentRefreshToken',

@@ -52,6 +52,7 @@ import { OrganizationModule } from './modules/organization/organization.module';
 import { PayComponentsModule } from './modules/pay-components/pay-components.module';
 import { PermissionsModule } from './modules/permissions/permissions.module';
 import { PlatformMonitoringModule } from './modules/platform-monitoring/platform-monitoring.module';
+import { LegalModule } from './modules/legal/legal.module';
 import { OutboxModule } from './modules/outbox/outbox.module';
 import { PlatformEventsModule } from './modules/platform-events/platform-events.module';
 import { PlatformUsersModule } from './modules/platform-users/platform-users.module';
@@ -140,6 +141,7 @@ import { SupportCasesModule } from './modules/support-cases/support-cases.module
     SlaModule,
     PermissionsModule,
     PlatformMonitoringModule,
+    LegalModule,
     OutboxModule,
     PlatformEventsModule,
     PlatformUsersModule,

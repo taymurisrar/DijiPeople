@@ -3984,6 +3984,10 @@ model Market {
   updatedById         String?
   countries           MarketCountry[]
   prices              PlanPrice[]
+  // legalDocumentSetRef above is a loose text reference kept for the market
+  // catalogue; this is the real relation. A market-specific legal document
+  // overrides the global one of the same type.
+  legalDocuments      LegalDocument[]
 
   @@index([publicationStatus, isEnabled, sortOrder])
   @@index([launchStatus])
@@ -12529,4 +12533,204 @@ model OutboxEventConsumption {
 
   @@unique([outboxEventId, consumerKey])
   @@index([consumerKey, succeeded])
+}
+
+// ---------------------------------------------------------------------------
+// Legal documents
+//
+// Until now the platform's only notion of a legal version was
+// CURRENT_PRIVACY_NOTICE_VERSION — a date string in a TypeScript constant that
+// leads and partner inquiries were stamped with. That records *that* a version
+// was accepted while making it impossible to answer what the person actually
+// read: the text lived on no server, changing it required a deploy, and the
+// previous wording was gone the moment it changed.
+//
+// The acknowledgement is only worth keeping if the exact text it refers to is
+// still retrievable years later, so a published version is immutable. Editing
+// one is not "correcting a typo", it is retroactively altering what every
+// person who accepted it is recorded as having agreed to. Corrections publish a
+// new version; the old one is archived, never rewritten.
+// ---------------------------------------------------------------------------
+
+enum LegalDocumentType {
+  PRIVACY_POLICY
+  TERMS_OF_SERVICE
+  SUBSCRIPTION_BILLING_TERMS
+  REFUND_CANCELLATION_POLICY
+  COOKIE_POLICY
+  ACCEPTABLE_USE_POLICY
+  DATA_PROCESSING_ADDENDUM
+  DATA_RETENTION_POLICY
+  SECURITY_NOTICE
+  SUBPROCESSOR_LIST
+}
+
+enum LegalDocumentVersionStatus {
+  /// Editable. Never served to the public and never acknowledgeable.
+  DRAFT
+  /// Immutable and publicly resolvable within its effective window.
+  PUBLISHED
+  /// Immutable and superseded. Retained because acknowledgements point at it.
+  ARCHIVED
+}
+
+/// One legal document, identified by its public slug.
+///
+/// Market is nullable and null means "applies everywhere". A market-specific
+/// document wins over the global one when both exist, which is what lets a
+/// jurisdiction get its own wording without forking the whole set.
+model LegalDocument {
+  id   String            @id @default(uuid())
+  type LegalDocumentType
+
+  /// The public path segment, e.g. `privacy`. Stable — it is what the
+  /// published URL is built from, so changing it breaks inbound links.
+  slug String @unique
+
+  title       String
+  description String?
+
+  marketId String?
+  market   Market? @relation(fields: [marketId], references: [id], onDelete: Restrict)
+
+  /// Withdraws the document from public resolution without deleting versions
+  /// that acknowledgements still refer to.
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  versions LegalDocumentVersion[]
+
+  /// One document per type per market. Two live privacy policies for the same
+  /// market is not a configuration, it is an unanswerable question about which
+  /// one a person agreed to.
+  @@unique([type, marketId])
+  @@index([type, isActive])
+  @@index([marketId])
+}
+
+model LegalDocumentVersion {
+  id              String @id @default(uuid())
+  legalDocumentId String
+
+  /// Monotonic per document. Displayed to users and written into every
+  /// acknowledgement, so it is the human-facing identity of the text.
+  version Int
+
+  status LegalDocumentVersionStatus @default(DRAFT)
+
+  /// The full text, authored as Markdown. Immutable once PUBLISHED — the
+  /// service refuses the write, because this column is the evidence behind
+  /// every acknowledgement that names this version.
+  contentMarkdown String
+
+  /// Plain-language description of what changed from the previous version.
+  changeSummary String?
+
+  /// The window in which this version is the one in force. `effectiveTo` is set
+  /// when a successor is published; a null value means "still in force".
+  effectiveFrom DateTime
+  effectiveTo   DateTime?
+
+  publishedAt             DateTime?
+  publishedByPlatformUser String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  document         LegalDocument                  @relation(fields: [legalDocumentId], references: [id], onDelete: Restrict)
+  acknowledgements LegalDocumentAcknowledgement[]
+
+  @@unique([legalDocumentId, version])
+  @@index([legalDocumentId, status, effectiveFrom])
+  @@index([status, effectiveFrom])
+}
+
+/// Proof that a specific party accepted a specific version.
+///
+/// The subject columns are all nullable and deliberately not a polymorphic
+/// (type, id) pair: a lead that later becomes a customer, and a customer whose
+/// tenant is later provisioned, should still have one row that can be joined
+/// from any of those directions rather than a string discriminator nobody can
+/// index against a foreign key.
+model LegalDocumentAcknowledgement {
+  id                     String @id @default(uuid())
+  legalDocumentVersionId String
+
+  leadId            String?
+  customerAccountId String?
+  tenantId          String?
+  userId            String?
+
+  /// Where the acceptance happened, e.g. `landing:contact`, `landing:subscribe`.
+  source String
+
+  /// Free-text identity for a party that is none of the above yet — the email
+  /// typed into a public form before any record exists for it.
+  subjectEmail String?
+
+  acknowledgedAt DateTime @default(now())
+
+  /// Retained as evidence of the acceptance event itself. Never used to
+  /// identify or profile the person.
+  ipAddress String?
+  userAgent String?
+
+  version LegalDocumentVersion @relation(fields: [legalDocumentVersionId], references: [id], onDelete: Restrict)
+
+  @@index([legalDocumentVersionId])
+  @@index([leadId])
+  @@index([customerAccountId])
+  @@index([tenantId])
+  @@index([userId])
+  @@index([subjectEmail])
+}
+
+// ---------------------------------------------------------------------------
+// Subprocessors
+//
+// Only providers that actually process customer data belong here. The list is
+// a factual disclosure, so a row exists because a provider is genuinely in the
+// path — not because it might be one day.
+// ---------------------------------------------------------------------------
+
+enum SubprocessorStatus {
+  ACTIVE
+  PLANNED
+  RETIRED
+}
+
+enum SubprocessorCategory {
+  INFRASTRUCTURE
+  DATABASE
+  EMAIL
+  PAYMENTS
+  MONITORING
+  STORAGE
+  SUPPORT
+  ANALYTICS
+}
+
+model Subprocessor {
+  id       String               @id @default(uuid())
+  name     String
+  purpose  String
+  category SubprocessorCategory
+
+  /// Where processing happens, when it is actually known. Null means unknown,
+  /// which is a different and more honest statement than naming a plausible
+  /// region — this column is published, and a guess here is a false disclosure.
+  processingRegion String?
+  websiteUrl       String?
+
+  status        SubprocessorStatus @default(ACTIVE)
+  effectiveFrom DateTime
+  effectiveTo   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([name])
+  @@index([status, category])
 }

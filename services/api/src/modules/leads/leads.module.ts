@@ -9,9 +9,15 @@ import { LeadsRepository } from './leads.repository';
 import { LeadsService } from './leads.service';
 import { PublicLeadsController } from './public-leads.controller';
 import { PlatformCommunicationsModule } from '../platform-communications/platform-communications.module';
+import { LegalModule } from '../legal/legal.module';
 
 @Module({
-  imports: [JwtModule.register({}), AuditModule, PlatformCommunicationsModule],
+  imports: [
+    JwtModule.register({}),
+    AuditModule,
+    PlatformCommunicationsModule,
+    LegalModule,
+  ],
   controllers: [PublicLeadsController, AdminLeadsController],
   providers: [
     LeadsRepository,

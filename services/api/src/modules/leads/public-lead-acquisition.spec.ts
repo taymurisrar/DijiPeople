@@ -56,6 +56,7 @@ describe('public lead acquisition', () => {
       prisma as never,
       { sendLeadSubmitted: jest.fn(), send: jest.fn() } as never,
       events as never,
+      { resolvePublished: jest.fn(async () => null), acknowledge: jest.fn() } as never,
     );
 
     return { service, created, prisma, events, repository };
