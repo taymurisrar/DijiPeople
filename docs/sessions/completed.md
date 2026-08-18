@@ -6,6 +6,7 @@ Sessions that reached a terminal state. Kept as history: the branch, the base it
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0009](../../docs/sessions/SESSION-0009-commercial-platform-wp-06-and-wp-07-seat-plan-change-and-pro.md) | TASK-0007 | Commercial platform WP-06 and WP-07 — seat/plan change and provisioning automation | COMPLETE | `agent/commercial-platform-completion` | `develop` | — | 2026-08-18T12:23:24.943Z |
 | [SESSION-0008](../../docs/sessions/SESSION-0008-commercial-platform-wp-05-customer-before-payment-checkout-a.md) | TASK-0007 | Commercial platform WP-05 — customer before payment, checkout authority, tax basis | COMPLETE | `agent/commercial-platform-completion` | `develop` | — | 2026-08-18T11:28:52.499Z |
 | [SESSION-0007](../../docs/sessions/SESSION-0007-commercial-platform-completion-wp-04-onward-with-real-postgr.md) | TASK-0007 | Commercial platform completion — WP-04 onward with real PostgreSQL | COMPLETE | `agent/commercial-platform-completion` | `develop` | — | 2026-08-18T10:28:36.111Z |
 | [SESSION-0006](../../docs/sessions/SESSION-0006-commercial-platform-final-parent-completion.md) | TASK-0007 | Commercial platform final parent completion | COMPLETE | `agent/commercial-platform-completion` | `develop` | — | 2026-08-17T23:15:57.480Z |
