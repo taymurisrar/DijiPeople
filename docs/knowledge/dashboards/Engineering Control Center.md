@@ -9,7 +9,7 @@
 |---|---|
 | Active sessions | **1** |
 | Active parent tasks | 2 |
-| Active work packages | 2 |
+| Active work packages | 3 |
 | Blocked work packages | 0 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **0** |
