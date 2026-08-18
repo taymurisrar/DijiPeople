@@ -6,14 +6,14 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 118,
-    "bugs": 65,
+    "total_records": 119,
+    "bugs": 66,
     "backlog_items": 53,
     "open_bucket": 4,
     "blocked_bucket": 0,
     "deferred_bucket": 1,
     "product_decision_bucket": 2,
-    "completed_bucket": 86,
+    "completed_bucket": 87,
     "parser_structural_errors": 0,
     "active_session_conflict": "NONE",
     "discovered_findings_total": 34,
@@ -5968,6 +5968,58 @@
       "architect_disposition": "PRODUCT_DECISION",
       "verification_result": {
         "result": "PRELIMINARY",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0068",
+      "source": {
+        "record_path": "docs/bugs/BUG-0068-prisma-client-freshness-check-is-blind-to-field-level-drift.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "304bfda",
+        "created_at": "2026-08-18",
+        "updated_at": "2026-08-18",
+        "resolved_at": "2026-08-18"
+      },
+      "type": "INFRA",
+      "title": "Prisma client freshness check is blind to field-level drift",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "VERIFIED",
+      "current_evidence": {
+        "paths": [
+          "docs/bugs/BUG-0068-prisma-client-freshness-check-is-blind-to-field-level-drift.md",
+          "scripts/check-prisma-client-fresh.mjs"
+        ],
+        "verification_scope": "Mutation-tested in both directions: a schema-only field produces exit 1 naming the field, and a restored schema produces exit 0. The eight reported TypeScript errors clear after prisma:generate."
+      },
+      "affected_modules": [
+        "scripts",
+        "services/api"
+      ],
+      "dependencies": {
+        "record_ids": [
+          "BUG-0060"
+        ],
+        "note": "Extends the BUG-0060 guard."
+      },
+      "related_bugs": [
+        "BUG-0060"
+      ],
+      "related_backlog": [],
+      "regressions": [
+        "REG-063"
+      ],
+      "qa_scenarios": [
+        "QA-DEPLOY-014"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
+      "verification_result": {
+        "result": "VERIFIED",
         "classification": "TERMINAL_AS_DOCUMENTED",
         "finding_ids": []
       }

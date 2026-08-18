@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 88** · automated: 82 · manual: 4 · blocked by infrastructure: 0
+**Scenarios: 89** · automated: 83 · manual: 4 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -53,6 +53,7 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-DEPLOY-011](../../../docs/qa/scenarios/QA-DEPLOY-011-every-record-id-resolves-as-a-bare-wikilink-in-the-vault.md) | Every record id resolves as a bare wikilink in the vault | deployment-release | DEPLOYMENT_SMOKE | MEDIUM | AUTOMATED | `scripts/validate-framework.mjs` | BUG-0059, ITEM-0029 | REG-049 |
 | [QA-DEPLOY-012](../../../docs/qa/scenarios/QA-DEPLOY-012-record-status-disposition-and-evidence-agree.md) | Record status, disposition and evidence agree | deployment-release | DEPLOYMENT_SMOKE | MEDIUM | AUTOMATED | `scripts/lib/backlog-records.mjs` | BUG-0051 | REG-050 |
 | [QA-DEPLOY-013](../../../docs/qa/scenarios/QA-DEPLOY-013-build-inputs-and-workspace-manifests-are-complete.md) | Build inputs and workspace manifests are complete | deployment-release | DEPLOYMENT_SMOKE | HIGH | AUTOMATED | `scripts/check-env-registered.mjs` | BUG-0042, ITEM-0037, ITEM-0024 | REG-051, REG-052 |
+| [QA-DEPLOY-014](../../../docs/qa/scenarios/QA-DEPLOY-014-a-stale-generated-prisma-client-is-detected-before-compilati.md) | A stale generated Prisma client is detected before compilation | deployment-release | UNIT | HIGH | AUTOMATED | `scripts/check-prisma-client-fresh.mjs` | BUG-0068 | REG-063 |
 | [QA-LANDING-001](../../../docs/qa/scenarios/QA-LANDING-001-public-pages-degrade-rather-than-500-when-the-plans-api-is-u.md) | Public pages degrade rather than 500 when the plans API is unreachable | landing | BROWSER_E2E | HIGH | AUTOMATED | `e2e/tests/flow-c-landing-public-surface.spec.ts` | BUG-0061 | REG-057 |
 | [QA-LANDING-002](../../../docs/qa/scenarios/QA-LANDING-002-mobile-navigation-dismisses-on-navigation-escape-and-outside.md) | Mobile navigation dismisses on navigation escape and outside click | landing | BROWSER_E2E | HIGH | AUTOMATED | `e2e/tests/flow-c-landing-public-surface.spec.ts` | BUG-0062 | REG-058 |
 | [QA-LANDING-003](../../../docs/qa/scenarios/QA-LANDING-003-the-demo-form-reports-validation-errors-accessibly-and-submi.md) | The demo form reports validation errors accessibly and submits | landing | BROWSER_E2E | HIGH | AUTOMATED | `e2e/tests/flow-c-landing-public-surface.spec.ts` | BUG-0063 | REG-059 |
