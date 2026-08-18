@@ -1,0 +1,78 @@
+---
+TASK_ID: TASK-0006
+aliases: [TASK-0006]
+TITLE: Landing UI/UX remediation package
+TYPE: BUG
+SIZE: LARGE
+STATUS: COMPLETE
+PRIORITY: P1
+CREATED_AT: 2026-08-17
+AFFECTED_MODULES: [apps/landing, services/api/src/modules/billing]
+AGENTS: [architect, ui-ux, frontend, backend-api, qa, reviewer, integrator, release-devops]
+DEPENDENCIES:
+CURRENT_PACKAGE:
+COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-04, WP-05]
+BLOCKED_PACKAGES: []
+OWNER_DECISIONS: 0
+FINAL_STATUS: COMPLETE
+---
+
+# TASK-0006 — Landing UI/UX remediation package
+
+## Objective
+
+Fix every documented landing finding from the 2026-08-17 UI/UX browser QA run,
+and close the two gaps that run left open: no form was ever submitted, and no
+populated pricing was ever exercised.
+
+Audit-to-implementation, not another audit. The findings already existed with
+evidence.
+
+## Work Packages
+
+| WP_ID | TITLE | STATUS | DEPENDENCIES | AGENTS | BRANCH | SHA | QA_STATUS | BUGS | CI_STATUS | MERGE_STATUS |
+|---|---|---|---|---|---|---|---|---|---|---|
+| WP-01 | Commercial resilience and the config contract | DONE | — | Frontend, Backend/API, QA, Reviewer | agent/landing-uiux-remediation | ab3bc73 | PASS | BUG-0061, BUG-0065 | PASS | DONE |
+| WP-02 | Shell, mobile navigation and accessibility | DONE | — | UI/UX, Frontend, QA, Reviewer | agent/landing-uiux-remediation | ab3bc73 | PASS | BUG-0062, BUG-0064 | PASS | DONE |
+| WP-03 | The request-demo form | DONE | WP-02 | UI/UX, Frontend, QA, Reviewer | agent/landing-uiux-remediation | ab3bc73 | PASS | BUG-0063 | PASS | DONE |
+| WP-04 | Commercial fixture and checkout initiation | DONE | WP-01 | Frontend, Backend/API, QA, Reviewer | agent/landing-uiux-remediation | ab3bc73 | PASS | BUG-0066 | PASS | DONE |
+| WP-05 | Metadata, footer, 404, hydration | DONE | WP-02 | UI/UX, Frontend, QA, Reviewer | agent/landing-uiux-remediation | ab3bc73 | PASS | ITEM-0051, ITEM-0046 | PASS | DONE |
+
+They were implemented and verified together rather than integrated separately:
+WP-02 and WP-05 both rewrite `site-shell.tsx`, and WP-01 and WP-04 both depend on
+seeded commercial data, so splitting them across commits would have meant three
+passes over the same files and three rebases against a `develop` that moved
+twice during the task.
+
+## Outcome
+
+| Record | Final state |
+|---|---|
+| BUG-0061 | VERIFIED · REG-057 |
+| BUG-0062 | VERIFIED · REG-058 |
+| BUG-0063 | VERIFIED · REG-059 |
+| BUG-0064 | VERIFIED · REG-060 |
+| BUG-0065 | VERIFIED · REG-061 |
+| BUG-0066 | VERIFIED · REG-062 |
+| ITEM-0046 | DONE |
+| ITEM-0051 | DONE — 10 of 11 sub-findings fixed |
+| ITEM-0053 | Created, `PRODUCT_DECISION` — legal copy must not be invented |
+
+New durable coverage: PLAN-013, QA-LANDING-001..006, and
+`e2e/tests/flow-c-landing-public-surface.spec.ts` (18 scenarios).
+
+## Assumptions
+
+- **Marking optional, not required, is the single form convention.** `/contact`
+  already did this and seven of nine demo-form fields are required, so marking
+  optional is two words rather than seven asterisks and a legend.
+- **The home hero's headline and CTA hierarchy are product decisions**, not
+  defects, and were left alone. The measurable half — `/request-demo` having no
+  `h1` — was fixed.
+- **A Stripe-verified test price is outside this task.** Creating one means
+  mutating an external Stripe account; the boundary is documented instead.
+
+## Final Status
+
+**COMPLETE.** Integrated to `develop` at `ab3bc73` with
+`CI required gate: success`. `main` untouched.

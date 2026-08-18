@@ -10,7 +10,7 @@ graph and the block reasons. See
 |---|---|
 | [Active](active.md) | 1 |
 | [Blocked](blocked.md) | 1 |
-| [Completed](completed.md) | 3 |
+| [Completed](completed.md) | 4 |
 
 ## Next ready work package
 
@@ -33,3 +33,4 @@ graph and the block reasons. See
 | [TASK-0002](TASK-0002-deep-documentation-of-apps-docs-apps-landing-and-apps-agent-.md) | Deep documentation of apps/docs, apps/landing and apps/agent-desktop | KNOWLEDGE | LARGE | P1 | COMPLETE | 9/9 | — |
 | [TASK-0003](TASK-0003-deep-documentation-of-apps-web-the-tenant-product.md) | Deep documentation of apps/web, the tenant product | KNOWLEDGE | LARGE | P1 | COMPLETE | 9/9 | — |
 | [TASK-0004](TASK-0004-autonomous-framework-v2-architect-only-orchestration-multi-s.md) | Autonomous framework v2 — Architect-only orchestration, multi-session safety, develop integration, persistent QA | FRAMEWORK | PROGRAM | P1 | BLOCKED | 10/11 | — |
+| [TASK-0006](TASK-0006-landing-ui-ux-remediation-package.md) | Landing UI/UX remediation package | BUG | LARGE | P1 | COMPLETE | 5/5 | — |
