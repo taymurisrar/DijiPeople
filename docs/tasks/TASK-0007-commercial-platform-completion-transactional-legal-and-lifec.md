@@ -11,7 +11,7 @@ AFFECTED_MODULES: [billing, super-admin, tenant-control-plane, legal, notificati
 AGENTS: [Architect, Database, Backend/API, Frontend, UI/UX, Integration, QA, Reviewer, Integrator, Release/DevOps]
 DEPENDENCIES: origin/develop c332992; PARENT-SCOPE-RECONCILIATION; schema and permissions leases
 CURRENT_PACKAGE: WP-06
-COMPLETED_PACKAGES: [WP-01, WP-02, WP-04]
+COMPLETED_PACKAGES: [WP-01, WP-02, WP-04, WP-05]
 BLOCKED_PACKAGES: []
 OWNER_DECISIONS: 2
 FINAL_STATUS:
@@ -82,7 +82,7 @@ gate.
 | WP-02 | Legal document system, versioning and publication | DONE | WP-01 | Database, Backend/API | agent/commercial-platform-completion | 2bdac3a | PASS_WITH_RISKS | PASS | DONE |
 | WP-03 | Consent — privacy acknowledgement, marketing, cookie categories | NOT_STARTED | WP-02 | Backend/API, Frontend | — | — | NOT_RUN | NOT_RUN | NOT_STARTED |
 | WP-04 | Active-employee seat engine, usage history and overage | DONE | WP-01 | Database, Backend/API | agent/commercial-platform-completion | 416996d | PASS | PASS | DONE |
-| WP-05 | Customer-before-payment, pending subscription, checkout authority, tax basis | CI | WP-01, WP-04 | Database, Backend/API, Integration | agent/commercial-platform-completion | 2051133 | PASS | PENDING_EXACT_SHA | NOT_STARTED |
+| WP-05 | Customer-before-payment, pending subscription, checkout authority, tax basis | DONE | WP-01, WP-04 | Database, Backend/API, Integration | agent/commercial-platform-completion | 68ef4d1 | PASS | PASS | DONE |
 | WP-06 | Seat change and plan change lifecycle | NOT_STARTED | WP-04, WP-05 | Backend/API, Integration | — | — | NOT_RUN | NOT_RUN | NOT_STARTED |
 | WP-07 | Payment to onboarding to provisioning automation, steps, resumability, targets | NOT_STARTED | WP-01, WP-05 | Backend/API, Database, Integration | — | — | NOT_RUN | NOT_RUN | NOT_STARTED |
 | WP-08 | Cancellation, retention, holds, deletion request and erasure orchestration | NOT_STARTED | WP-01, WP-07 | Database, Backend/API | — | — | NOT_RUN | NOT_RUN | NOT_STARTED |
@@ -155,13 +155,13 @@ Updated 2026-08-18.
 ```text
 CURRENT_PHASE               PHASE 2 — implementation
 CURRENT_WORK_PACKAGE        WP-06 (next ready)
-COMPLETED_WORK_PACKAGES     WP-01, WP-02, WP-04 — all merged behind a green required gate
+COMPLETED_WORK_PACKAGES     WP-01, WP-02, WP-04, WP-05 — all merged behind a green required gate
 NEXT_READY_WORK_PACKAGE     WP-06 — seat and plan change lifecycle
-INTEGRATED_DEVELOP_SHA      416996d — fast-forward, develop tip IS the CI-verified SHA
+INTEGRATED_DEVELOP_SHA      68ef4d1 — fast-forward, develop tip IS the CI-verified SHA
 BASE_DEVELOP_SHA            304bfda
 MAIN                        b90f33e — UNTOUCHED
 UNCOMMITTED_STATE           none — worktree clean at every checkpoint
-LEASES_HELD                 schema, permissions, workspace (SESSION-0007)
+LEASES_HELD                 none — SESSION-0008 finished and released them
 BLOCKERS                    none — a local PostgreSQL credential was supplied; dijipeople_wp_test carries the full migration history and DB-backed proof now runs locally
 ```
 

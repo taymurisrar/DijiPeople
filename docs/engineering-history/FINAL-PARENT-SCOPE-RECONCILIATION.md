@@ -52,6 +52,10 @@ acquisition intake are intact at `304bfda`.
 | R-22 | Active-employee seat engine — count, capacity, peak | `DONE` | `ActiveEmployeeCountService` (billable = ACTIVE/PROBATION/NOTICE, never users or soft-deleted), `SeatUsageService`; migration `20260818140000`; 9 DB-backed tests | WP-04 |
 | R-23 | Billing usage history sufficient to explain a billed quantity | `DONE` | `SeatUsageSample` (daily, upserted per day) and `SeatUsagePeriod` (peak, ending count and capacity frozen at close) | WP-04 |
 | R-24 | Seat overage detection, thresholds, abnormal-overage guard | `DONE` | `SeatOverageEvent` episodes with escalate-only severity; warn/review thresholds configurable; 20→900 becomes REVIEW_REQUIRED rather than an invoice | WP-04 |
+| R-25 | Customer created before payment; pending subscription snapshot | DONE | SubscriptionOrder + CustomerAccount in PROSPECT, both written before any provider call; migration 20260818160000 | WP-05 |
+| R-26 | Customer deduplication across refresh/abandon/double-submit | DONE | CustomerIdentityService: corporate domain AND normalised company name; generic domains excluded; submissionHash released when an order closes | WP-05 |
+| R-27 | Server-authoritative checkout; browser cannot set price/currency/total | DONE | Every money figure resolved server-side and frozen on the order, with a commercial snapshot of price version and market | WP-05 |
+| R-28 | Tax foundation — subtotal, discount, taxable basis, treatment, rate snapshot | DONE (shape) | TaxBasisService and the full column chain; defaults to NOT_DETERMINED with zero charged. Actual rates remain TAX_ACCOUNTING_REVIEW | WP-05 |
 
 ## 3. Engineering remaining — in the graph, not yet implemented
 
@@ -63,10 +67,6 @@ These are the rows that keep `PARENT_TASK_STATUS = INCOMPLETE`.
 |---|---|---|---|---|
 | R-20 | Cookie consent categories and category-controlled scripts | `NOT_STARTED` | no cookie model, no banner | WP-03 |
 | R-21 | Marketing consent unbundled, withdrawable, auditable | `PARTIAL` | `marketingConsent`/`marketingConsentAt` columns exist; no withdrawal path or definition version | WP-03 |
-| R-25 | Customer created before payment; pending subscription snapshot | `NOT_STARTED` | `Subscription.tenantId` is required and unique, so no subscription can exist pre-tenant | WP-05 |
-| R-26 | Customer deduplication across refresh/abandon/double-submit | `NOT_STARTED` | no dedupe on the subscribe path | WP-05 |
-| R-27 | Server-authoritative checkout; browser cannot set price/currency/total | `PARTIAL` | `commercial-offer.resolver.ts` is authoritative for price; the pre-checkout snapshot it would be written into does not exist | WP-05 |
-| R-28 | Tax foundation — subtotal, discount, taxable basis, treatment, rate snapshot | `NOT_STARTED` | no tax model | WP-05 |
 | R-29 | Seat increase immediate; seat decrease at next cycle | `NOT_STARTED` | `purchasedSeats` exists; no change flow, no scheduled capacity | WP-06 |
 | R-30 | Plan upgrade/downgrade self-service with consequence display | `NOT_STARTED` | no scheduled-change representation | WP-06 |
 | R-31 | Add-on foundation composing effective entitlement | `PARTIAL` | `FeatureAccessService`/`PlanFeature` exist; no purchasable add-on or composition | WP-06 |
@@ -114,11 +114,11 @@ These are the rows that keep `PARENT_TASK_STATUS = INCOMPLETE`.
 
 ## Honest summary
 
-**15 requirements moved to `DONE` in this task, each with named evidence.
-35 engineering requirements remain**, of which 12 are `PARTIAL` and 23 are
+**19 requirements moved to `DONE` in this task, each with named evidence.
+31 engineering requirements remain**, of which 9 are `PARTIAL` and 22 are
 `NOT_STARTED`.
 
-The three delivered packages are deliberately the dependency roots rather than
+The four delivered packages are deliberately the dependency roots rather than
 the most visible work. Every remaining lifecycle requirement — provisioning on
 payment, seat changes, cancellation, retention, erasure requests, reconciliation
 — needs a durable event that survives a crash, and none of them could be built
@@ -136,4 +136,4 @@ DB-backed proof rather than assertions.
 **`PARENT_TASK_STATUS = INCOMPLETE`**, and this document is the evidence for
 that statement rather than an estimate. The completion contract in the brief
 requires `PARTIAL_ENGINEERING_REQUIREMENTS = 0` and
-`NOT_STARTED_ENGINEERING_REQUIREMENTS = 0`; they are 12 and 23.
+`NOT_STARTED_ENGINEERING_REQUIREMENTS = 0`; they are 9 and 22.
