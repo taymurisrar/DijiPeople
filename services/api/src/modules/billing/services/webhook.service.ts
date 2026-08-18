@@ -23,6 +23,7 @@ import { PrismaService } from '../../../common/prisma/prisma.service';
 import { PlatformEventsService } from '../../platform-events/platform-events.service';
 import type { StripeClient, StripeEvent } from '../constants/stripe.constants';
 import { StripeBillingService } from './stripe-billing.service';
+import { OrderActivationService } from './order-activation.service';
 
 type PrismaTx = Prisma.TransactionClient;
 type StripeMetadata = Record<string, string | undefined>;
@@ -112,6 +113,7 @@ export class WebhookService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly stripeBillingService: StripeBillingService,
+    private readonly orderActivation: OrderActivationService,
     @Optional() private readonly platformEvents?: PlatformEventsService,
   ) {}
 
@@ -399,6 +401,25 @@ export class WebhookService {
         },
       });
     });
+
+    /*
+     * The chain that did not exist before WP-07. The provider event was
+     * recorded and the subscription updated, and then nothing happened —
+     * no onboarding case, no provisioning request, so a human had to notice
+     * the payment. confirmPayment marks the order paid and emits
+     * PAYMENT_CONFIRMED in one transaction; the outbox consumer opens the
+     * onboarding and requests provisioning.
+     *
+     * Outside the transaction above on purpose: Stripe redelivers, and this
+     * is idempotent on the order status, so a second delivery is a no-op
+     * rather than a second onboarding.
+     */
+    if (session.payment_status === 'paid') {
+      await this.orderActivation.confirmPayment({
+        stripeCheckoutSessionId: session.id,
+        stripeSubscriptionId,
+      });
+    }
 
     return true;
   }

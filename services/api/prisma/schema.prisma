@@ -30,6 +30,18 @@ datasource db {
 ///   DECOMMISSIONING     retirement in progress
 ///   DECOMMISSIONED      retired; data still present
 ///   ARCHIVED / CHURNED  historical terminal states
+/// Whether a workspace can be used, separate from whether onboarding finished.
+enum TenantReadinessStatus {
+  NOT_READY
+  PROVISIONING
+  /// Every blocking provisioning step succeeded. People can work.
+  READY
+  /// Usable, with a non-blocking step outstanding.
+  PARTIALLY_READY
+  /// Automation stopped and a human must act before it can be used.
+  BLOCKED
+}
+
 enum TenantStatus {
   ONBOARDING
   PENDING_SETUP
@@ -2033,6 +2045,19 @@ model Tenant {
   environmentGroupId              String?
   status                          TenantStatus                     @default(ACTIVE)
   subStatus                       String?
+  /// Whether the workspace is USABLE, which is deliberately not the same
+  /// question as whether onboarding is finished. A tenant can be READY while a
+  /// historical data import, a biometric device rollout or a custom domain is
+  /// still outstanding — none of those should keep people locked out of a
+  /// product they have paid for. CustomerOnboarding.status answers the other
+  /// question.
+  readinessStatus                 TenantReadinessStatus            @default(NOT_READY)
+  readyAt                         DateTime?
+  /// Where this workspace is hosted. First-class on the tenant rather than
+  /// only on the market, because a market is a commercial grouping and this is
+  /// an infrastructure fact. Null means undeclared — never assume a region,
+  /// and never publish a residency claim from it.
+  dataRegion                      String?
   createdAt                       DateTime                         @default(now())
   updatedAt                       DateTime                         @updatedAt
   createdById                     String?
@@ -2202,6 +2227,8 @@ model Tenant {
   seatUsagePeriods                SeatUsagePeriod[]
   seatOverageEvents               SeatOverageEvent[]
   subscriptionOrders              SubscriptionOrder[]
+  seatChangeRequests              SeatChangeRequest[]
+  planChangeRequests              PlanChangeRequest[]
   auditLogs                       AuditLog[]
   documents                       Document[]
   documentLinks                   DocumentLink[]
@@ -2405,10 +2432,22 @@ model TenantProvisioningRun {
   message        String?
   correlationId  String?
   requestedById  String?
+  /// What paid for this workspace. Null for a run started by an operator
+  /// rather than by a purchase, which is why it is not required.
+  subscriptionOrderId String?
+  customerAccountId   String?
+  /// Internal operational targets, NOT a contractual SLA. Stored per run so
+  /// changing the policy later cannot retroactively rewrite whether a past
+  /// run breached.
+  targetReadyBy  DateTime?
+  escalateAt     DateTime?
+  breachedAt     DateTime?
   createdAt      DateTime                    @default(now())
   updatedAt      DateTime                    @updatedAt
   tenant         Tenant                      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   steps          TenantProvisioningStep[]
+  subscriptionOrder SubscriptionOrder? @relation(fields: [subscriptionOrderId], references: [id], onDelete: SetNull)
+  customerAccount   CustomerAccount?   @relation(fields: [customerAccountId], references: [id], onDelete: SetNull)
 
   @@index([tenantId])
   @@index([tenantId, startedAt])
@@ -2585,6 +2624,7 @@ model CustomerAccount {
   payrollCostAllocationLines PayrollCostAllocationLine[]
   promotions                 Promotion[]
   subscriptionOrders         SubscriptionOrder[]
+  tenantProvisioningRuns     TenantProvisioningRun[]
 
   // ITEM-0008 — commercial reports group customers by channel.
   @@index([originChannel])
@@ -3862,6 +3902,8 @@ model Plan {
   @@index([publicationStatus, isActive, sortOrder])
   @@index([tenantId])
   subscriptionOrders      SubscriptionOrder[]
+  planChangesFrom         PlanChangeRequest[] @relation("PlanChangeFrom")
+  planChangesTo           PlanChangeRequest[] @relation("PlanChangeTo")
 
   @@index([isActive, sortOrder])
   @@index([stripeProductId])
@@ -4074,6 +4116,8 @@ model Subscription {
   seatUsageSamples         SeatUsageSample[]
   seatUsagePeriods         SeatUsagePeriod[]
   seatOverageEvents        SeatOverageEvent[]
+  seatChangeRequests       SeatChangeRequest[]
+  planChangeRequests       PlanChangeRequest[]
   subscriptionOrders       SubscriptionOrder[]
 
   @@index([status])
@@ -13084,6 +13128,7 @@ model SubscriptionOrder {
   plan         Plan?           @relation(fields: [planId], references: [id], onDelete: SetNull)
   planPrice    PlanPrice?      @relation(fields: [planPriceId], references: [id], onDelete: SetNull)
   market       Market?         @relation(fields: [marketId], references: [id], onDelete: Restrict)
+  provisioningRuns TenantProvisioningRun[]
   promotion    Promotion?      @relation(fields: [promotionId], references: [id], onDelete: SetNull)
 
   @@index([customerAccountId, status])
@@ -13091,4 +13136,130 @@ model SubscriptionOrder {
   @@index([tenantId])
   @@index([planPriceId])
   @@index([leadId])
+}
+
+// ---------------------------------------------------------------------------
+// Seat and plan changes
+//
+// The asymmetry between increase and decrease is a commercial rule, not an
+// implementation detail. An INCREASE is immediate: somebody hired people and
+// needs them working today, and the provider takes a proration. A DECREASE
+// takes effect at renewal — a customer who paid for the period keeps what they
+// paid for, and nobody gets a refund by editing a number downward.
+//
+// Both are recorded as requests rather than applied as bare column writes, so
+// "who reduced our capacity, when, and from what" is answerable, and so a
+// decrease can sit pending until its effective date without the current
+// capacity being wrong in the meantime.
+// ---------------------------------------------------------------------------
+
+enum SeatChangeDirection {
+  INCREASE
+  DECREASE
+}
+
+enum SeatChangeStatus {
+  /// Recorded and waiting for its effective date. Decreases live here.
+  SCHEDULED
+  /// Applied to internal capacity and to the provider.
+  APPLIED
+  /// The provider refused or errored; internal capacity was NOT changed.
+  FAILED
+  /// Withdrawn before it took effect.
+  CANCELLED
+}
+
+model SeatChangeRequest {
+  id             String @id @default(uuid())
+  tenantId       String
+  subscriptionId String
+
+  direction SeatChangeDirection
+  fromSeats Int
+  toSeats   Int
+
+  status SeatChangeStatus @default(SCHEDULED)
+
+  /// When the change takes or took effect. For an increase this is now; for a
+  /// decrease it is the renewal date.
+  effectiveAt DateTime
+  appliedAt   DateTime?
+
+  /// Provider outcome, kept separate from `status` because internal capacity
+  /// and provider quantity can legitimately disagree for a moment, and the
+  /// reconciliation job needs to see which side moved.
+  providerSynced Boolean @default(false)
+  providerError  String?
+
+  requestedByUserId String?
+  reason            String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([subscriptionId, status])
+  @@index([status, effectiveAt])
+  @@index([tenantId, createdAt])
+}
+
+enum PlanChangeDirection {
+  UPGRADE
+  DOWNGRADE
+}
+
+enum PlanChangeStatus {
+  SCHEDULED
+  APPLIED
+  FAILED
+  CANCELLED
+}
+
+/// A move between plans, with the consequences recorded before it happens.
+///
+/// A DOWNGRADE never deletes module data. It reduces entitlement, and the
+/// features that stop being reachable are listed in `entitlementImpact` so the
+/// customer is shown what they are giving up *before* they confirm — and so
+/// support can answer "where did our data go" with "it is still there".
+model PlanChangeRequest {
+  id             String @id @default(uuid())
+  tenantId       String
+  subscriptionId String
+
+  direction     PlanChangeDirection
+  fromPlanId    String
+  toPlanId      String
+  toPlanPriceId String?
+
+  status PlanChangeStatus @default(SCHEDULED)
+
+  /// Upgrades take effect immediately; downgrades at renewal, for the same
+  /// reason a seat decrease does.
+  effectiveAt DateTime
+  appliedAt   DateTime?
+
+  /// Which feature keys are gained and lost. Computed at request time from the
+  /// plan feature sets and frozen — a later plan edit must not rewrite what the
+  /// customer was shown when they agreed.
+  entitlementImpact Json?
+
+  providerSynced Boolean @default(false)
+  providerError  String?
+
+  requestedByUserId String?
+  reason            String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant       Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  fromPlan     Plan   @relation("PlanChangeFrom", fields: [fromPlanId], references: [id], onDelete: Restrict)
+  toPlan       Plan   @relation("PlanChangeTo", fields: [toPlanId], references: [id], onDelete: Restrict)
+
+  @@index([subscriptionId, status])
+  @@index([status, effectiveAt])
+  @@index([tenantId, createdAt])
 }

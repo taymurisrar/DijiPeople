@@ -168,6 +168,13 @@ export const TENANT_ERASURE_DELETE_ORDER: string[] = [
   'seatUsageSample',
   'seatUsagePeriod',
   'seatOverageEvent',
+  // Operational history of capacity and plan moves. Deleted with the tenant,
+  // unlike SubscriptionOrder: an order is a financial record owned by the
+  // customer, whereas these describe a workspace that is ceasing to exist.
+  // Both hold Restrict pointers at Plan, which is itself tenant-owned, so they
+  // must be gone before it.
+  'seatChangeRequest',
+  'planChangeRequest',
   'legalDocumentAcknowledgement',
   'activityEvent',
   'agentLocationRequest',

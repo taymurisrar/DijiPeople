@@ -19,6 +19,11 @@ import { SeatUsageService } from './services/seat-usage.service';
 import { CustomerIdentityService } from './services/customer-identity.service';
 import { TaxBasisService } from './services/tax-basis.service';
 import { SubscriptionOrderService } from './services/subscription-order.service';
+import { SeatChangeService } from './services/seat-change.service';
+import { PlanChangeService } from './services/plan-change.service';
+import { OrderActivationService } from './services/order-activation.service';
+import { PaymentConfirmedHandler } from './services/payment-confirmed.handler';
+import { OUTBOX_HANDLERS } from '../outbox/outbox.types';
 
 @Module({
   imports: [AuthModule],
@@ -42,6 +47,19 @@ import { SubscriptionOrderService } from './services/subscription-order.service'
     CustomerIdentityService,
     TaxBasisService,
     SubscriptionOrderService,
+    SeatChangeService,
+    PlanChangeService,
+    OrderActivationService,
+    PaymentConfirmedHandler,
+    {
+      // Contributed here rather than in OutboxModule so the dependency runs
+      // from the domain to the mechanism, not the other way round.
+      provide: OUTBOX_HANDLERS,
+      inject: [PaymentConfirmedHandler],
+      useFactory: (paymentConfirmed: PaymentConfirmedHandler) => [
+        paymentConfirmed,
+      ],
+    },
     JwtAuthGuard,
     PermissionsGuard,
   ],
