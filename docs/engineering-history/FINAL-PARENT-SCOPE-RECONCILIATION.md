@@ -1,7 +1,7 @@
 # DijiPeople Commercial Platform — Final Parent Scope Reconciliation
 
-> **Generated:** 2026-08-18 · **Against:** `origin/develop` `304bfda`, plus the
-> TASK-0007 branch through `7c97ff2`
+> **Generated:** 2026-08-18 · **Against:** `origin/develop` `416996d`, which is
+> where WP-01, WP-02 and WP-04 are integrated
 >
 > Supersedes [`PARENT-SCOPE-RECONCILIATION.md`](PARENT-SCOPE-RECONCILIATION.md),
 > which was written on 2026-08-16 against `45d9b01`. That document is kept: it
@@ -49,6 +49,9 @@ acquisition intake are intact at `304bfda`.
 | R-10 | Remove standalone hardcoded privacy version constants | `DONE` | `CURRENT_PRIVACY_NOTICE_VERSION` is now a pre-launch fallback only, no longer the source of truth | WP-02 |
 | R-11 | Subprocessor configuration as authoritative data | `DONE` (model half) | `Subprocessor` model; `processingRegion` nullable because null means unknown | WP-02 |
 | R-12 | Erasure covers newly added tenant-owned models | `DONE` | `TENANT_ERASURE_DELETE_ORDER` extended; schema-derived invariant spec passes | WP-02 |
+| R-22 | Active-employee seat engine — count, capacity, peak | `DONE` | `ActiveEmployeeCountService` (billable = ACTIVE/PROBATION/NOTICE, never users or soft-deleted), `SeatUsageService`; migration `20260818140000`; 9 DB-backed tests | WP-04 |
+| R-23 | Billing usage history sufficient to explain a billed quantity | `DONE` | `SeatUsageSample` (daily, upserted per day) and `SeatUsagePeriod` (peak, ending count and capacity frozen at close) | WP-04 |
+| R-24 | Seat overage detection, thresholds, abnormal-overage guard | `DONE` | `SeatOverageEvent` episodes with escalate-only severity; warn/review thresholds configurable; 20→900 becomes REVIEW_REQUIRED rather than an invoice | WP-04 |
 
 ## 3. Engineering remaining — in the graph, not yet implemented
 
@@ -60,9 +63,6 @@ These are the rows that keep `PARENT_TASK_STATUS = INCOMPLETE`.
 |---|---|---|---|---|
 | R-20 | Cookie consent categories and category-controlled scripts | `NOT_STARTED` | no cookie model, no banner | WP-03 |
 | R-21 | Marketing consent unbundled, withdrawable, auditable | `PARTIAL` | `marketingConsent`/`marketingConsentAt` columns exist; no withdrawal path or definition version | WP-03 |
-| R-22 | Active-employee seat engine — count, capacity, peak | `NOT_STARTED` | `grep activeEmployee\|peakActive` — only unrelated hits | WP-04 |
-| R-23 | Billing usage history sufficient to explain a billed quantity | `NOT_STARTED` | no usage-period model | WP-04 |
-| R-24 | Seat overage detection, thresholds, abnormal-overage guard | `NOT_STARTED` | `grep -i overage` — no overage model | WP-04 |
 | R-25 | Customer created before payment; pending subscription snapshot | `NOT_STARTED` | `Subscription.tenantId` is required and unique, so no subscription can exist pre-tenant | WP-05 |
 | R-26 | Customer deduplication across refresh/abandon/double-submit | `NOT_STARTED` | no dedupe on the subscribe path | WP-05 |
 | R-27 | Server-authoritative checkout; browser cannot set price/currency/total | `PARTIAL` | `commercial-offer.resolver.ts` is authoritative for price; the pre-checkout snapshot it would be written into does not exist | WP-05 |
@@ -108,25 +108,32 @@ These are the rows that keep `PARENT_TASK_STATUS = INCOMPLETE`.
 | Production deployment | `BLOCKED_EXTERNAL` | No deploy credentials or platform access from this environment. |
 | Email alias provisioning | `BLOCKED_EXTERNAL` | `sales@`, `privacy@`, `security@` etc. need DNS and mailbox setup. |
 | Stripe live/test credentials | `BLOCKED_EXTERNAL` | End-to-end purchase cannot be exercised without them; repository-side integration is still fully testable. |
-| Local real PostgreSQL | `BLOCKED_INFRASTRUCTURE` | PostgreSQL 18 is installed and accepting connections on 5432, but no usable credential is available in this environment and none is recorded in the repository. Migrations are therefore authored offline via `prisma migrate diff --from-schema/--to-schema` and proven against real PostgreSQL **in CI**. Providing a local `DATABASE_URL` would move real-PG evidence earlier. |
+| Local real PostgreSQL | **RESOLVED 2026-08-18** | A credential was supplied mid-session. A throwaway `dijipeople_wp_test` database now carries the **full migration history applied to a fresh database**, and DB-backed proof runs locally. This immediately paid for itself: the first real run found [[BUG-0070]], a transaction-aborting defect that every mocked test had passed. The dev database itself is never reset or pushed to. |
 
 ---
 
 ## Honest summary
 
-**12 requirements moved to `DONE` in this task, each with named evidence.
-38 engineering requirements remain**, of which 12 are `PARTIAL` and 26 are
+**15 requirements moved to `DONE` in this task, each with named evidence.
+35 engineering requirements remain**, of which 12 are `PARTIAL` and 23 are
 `NOT_STARTED`.
 
-The two delivered packages are deliberately the dependency roots rather than the
-most visible work. Every remaining lifecycle requirement — provisioning on
+The three delivered packages are deliberately the dependency roots rather than
+the most visible work. Every remaining lifecycle requirement — provisioning on
 payment, seat changes, cancellation, retention, erasure requests, reconciliation
 — needs a durable event that survives a crash, and none of them could be built
 honestly on inline side effects. The same is true of the legal surface: the
 public routes in WP-10 are a rendering job once versioned, immutable, resolvable
 documents exist, and were an unanswerable question before.
 
+**The local database changed what the evidence is worth.** Before it, every
+database-level claim in this program was designed-for. The first real run found
+[[BUG-0070]] — outbox deduplication aborting the caller transaction — which had
+passed every mocked test and would have rolled back the business change behind
+every redelivered webhook. Three of the four packages here now carry
+DB-backed proof rather than assertions.
+
 **`PARENT_TASK_STATUS = INCOMPLETE`**, and this document is the evidence for
 that statement rather than an estimate. The completion contract in the brief
 requires `PARTIAL_ENGINEERING_REQUIREMENTS = 0` and
-`NOT_STARTED_ENGINEERING_REQUIREMENTS = 0`; they are 12 and 26.
+`NOT_STARTED_ENGINEERING_REQUIREMENTS = 0`; they are 12 and 23.

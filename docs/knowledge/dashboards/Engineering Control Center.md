@@ -7,11 +7,11 @@
 
 | | |
 |---|---|
-| Active sessions | **2** |
+| Active sessions | **1** |
 | Active parent tasks | 2 |
-| Active work packages | 2 |
+| Active work packages | 1 |
 | Blocked work packages | 0 |
-| Sessions declaring a schema write | 1 |
+| Sessions declaring a schema write | 0 |
 | Open CRITICAL | **0** |
 | Open HIGH | 5 |
 | Awaiting Architect triage | 0 |
@@ -23,7 +23,6 @@
 
 | Session | Task | Title | Status | Branch | Target | Leases | Schema |
 |---|---|---|---|---|---|---|---|
-| [[SESSION-0006-commercial-platform-final-parent-completion|SESSION-0006]] | TASK-0007 | Commercial platform final parent completion | ACTIVE | `agent/commercial-platform-completion` | `develop` | — | YES |
 | [[SESSION-0003-dijipeople-global-technical-remediation|SESSION-0003]] | TASK-0005 | DijiPeople Global Technical Remediation | ACTIVE | `agent/remediation-authorization` | `develop` | permissions, record-indexes | NO |
 
 ## Active Tasks and Work Packages
@@ -31,7 +30,7 @@
 | Task | Title | Type | Size | Progress | Current | Ready next | Blocked |
 |---|---|---|---|---|---|---|---|
 | [[TASK-0005-dijipeople-global-technical-remediation|TASK-0005]] | DijiPeople Global Technical Remediation | BUG | PROGRAM | 3/11 | WP-09 | WP-04, WP-06, WP-07, WP-08, WP-10 | — |
-| [[TASK-0007-commercial-platform-completion-transactional-legal-and-lifec|TASK-0007]] | Commercial platform completion — transactional, legal and lifecycle half | FEATURE | PROGRAM | 2/16 | WP-05 | WP-03, WP-10, WP-13 | — |
+| [[TASK-0007-commercial-platform-completion-transactional-legal-and-lifec|TASK-0007]] | Commercial platform completion — transactional, legal and lifecycle half | FEATURE | PROGRAM | 3/16 | WP-05 | WP-03, WP-05, WP-10, WP-13 | — |
 
 ## Branch model
 

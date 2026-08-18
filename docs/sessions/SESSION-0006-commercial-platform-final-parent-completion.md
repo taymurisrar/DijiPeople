@@ -4,7 +4,7 @@ aliases: [SESSION-0006]
 TASK_ID: TASK-0007
 TITLE: Commercial platform final parent completion
 ARCHITECT_INTENT: Commercial platform final parent completion
-STATUS: ACTIVE
+STATUS: COMPLETE
 TASK_TYPE: FEATURE
 TASK_SIZE: PROGRAM
 BASE_BRANCH: origin/develop
