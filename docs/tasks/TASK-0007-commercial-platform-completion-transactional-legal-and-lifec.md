@@ -78,8 +78,8 @@ gate.
 
 | WP_ID | TITLE | STATUS | DEPENDENCIES | AGENTS | BRANCH | SHA | QA_STATUS | CI_STATUS | MERGE_STATUS |
 |---|---|---|---|---|---|---|---|---|---|
-| WP-01 | Transactional outbox and typed domain events | IN_PROGRESS | — | Database, Backend/API | agent/commercial-platform-completion | — | NOT_RUN | NOT_RUN | NOT_STARTED |
-| WP-02 | Legal document system, versioning and publication | NOT_STARTED | WP-01 | Database, Backend/API | agent/commercial-platform-completion | — | NOT_RUN | NOT_RUN | NOT_STARTED |
+| WP-01 | Transactional outbox and typed domain events | CI | — | Database, Backend/API | agent/commercial-platform-completion | 6ebde36 | UNIT_PASS | PENDING_EXACT_SHA | NOT_STARTED |
+| WP-02 | Legal document system, versioning and publication | CI | WP-01 | Database, Backend/API | agent/commercial-platform-completion | 7c97ff2 | UNIT_PASS | PENDING_EXACT_SHA | NOT_STARTED |
 | WP-03 | Consent — privacy acknowledgement, marketing, cookie categories | NOT_STARTED | WP-02 | Backend/API, Frontend | — | — | NOT_RUN | NOT_RUN | NOT_STARTED |
 | WP-04 | Active-employee seat engine, usage history and overage | NOT_STARTED | WP-01 | Database, Backend/API | — | — | NOT_RUN | NOT_RUN | NOT_STARTED |
 | WP-05 | Customer-before-payment, pending subscription, checkout authority, tax basis | NOT_STARTED | WP-01, WP-04 | Database, Backend/API, Integration | — | — | NOT_RUN | NOT_RUN | NOT_STARTED |
@@ -148,6 +148,36 @@ WP-10/WP-11, which is why the backend roots are sequenced first.
 - Exact-SHA CI passes and `develop` contains the work; `main` is untouched until the release package.
 - Bugs, backlog, QA, history, knowledge and Obsidian Generated content agree.
 
+## Program state
+
+Updated 2026-08-18.
+
+```text
+CURRENT_PHASE               PHASE 2 — implementation
+CURRENT_WORK_PACKAGE        WP-04 (next ready)
+COMPLETED_WORK_PACKAGES     WP-01, WP-02 — implemented and unit-green, awaiting exact-SHA CI
+NEXT_READY_WORK_PACKAGE     WP-04 — active-employee seat engine
+TASK_BRANCH                 agent/commercial-platform-completion @ d02ae6c
+BASE_DEVELOP_SHA            304bfda
+MAIN                        b90f33e — UNTOUCHED
+UNCOMMITTED_STATE           none — worktree clean at every checkpoint
+LEASES_HELD                 schema, permissions, workspace (SESSION-0006)
+BLOCKERS                    no local PostgreSQL credential; real-PG proof is CI-only
+```
+
+**Resumption contract.** The next invocation continues this same parent. It does
+not re-run discovery: the reconciliation is written, the graph is above, and the
+next package is named. Read
+[`FINAL-PARENT-SCOPE-RECONCILIATION.md`](../engineering-history/FINAL-PARENT-SCOPE-RECONCILIATION.md)
+for what remains and start at WP-04.
+
+**Why WP-04 and not WP-03.** WP-03 (cookie/marketing consent) needs the landing
+surface to be worth anything, and the seat engine is a root that WP-05, WP-06
+and WP-09 all depend on. Roots before leaves.
+
 ## History
 
 - 2026-08-18 — created at `c332992` as the durable record for the existing commercial parent. Reconciliation re-probed; 16 packages sequenced; WP-01 started.
+- 2026-08-18 — WP-01 implemented at `6ebde36`: outbox schema, migration `20260818090000`, emitter/dispatcher/worker, 13 tests. Rebased onto `304bfda` after a sibling session landed the landing remediation and released the `workspace` lease.
+- 2026-08-18 — WP-02 implemented at `7c97ff2`: legal document schema and migration `20260818100000`, publication lifecycle with immutability enforced, lead and partner consent wired to published versions, `Subprocessor` model. The schema-derived tenant-erasure invariant caught both new tenant-owned models before they could reach a live erasure.
+- 2026-08-18 — first exact-SHA CI on `7c97ff2` returned `failure`: framework validation (module inventory, task indexes, dashboards) and lint. **Database migration gate passed**, which is the real-PostgreSQL proof for both migrations. Fixed at `d02ae6c` and re-run.
