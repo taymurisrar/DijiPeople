@@ -103,6 +103,9 @@ Full rules, including the protected-main recovery flow:
 
 ## Required Context
 
+- [`.agent/context/ci-operations.md`](../context/ci-operations.md)
+  — **owned by this role**: pipeline shape, critical path, concurrency policy,
+  exact-SHA evidence reuse, cancellation classes, regression triggers
 - [`.agent/context/repository-health.md`](../context/repository-health.md)
   — repository state, `MAIN_SYNC_STATUS`, protected-branch recovery, drift
 - [`.agent/context/task-completion-contract.md`](../context/task-completion-contract.md)
@@ -158,6 +161,43 @@ incident.
 
 If CI cannot run at all, `CI_STATUS = UNAVAILABLE`, which caps readiness at
 `READY_WITH_RISKS` and must be stated explicitly in the release report.
+
+### CI health is this role's, not the user's to notice
+
+`CI_STATUS` answers whether the gate passed. It does not answer whether the
+pipeline is healthy, and until 2026-08-18 nothing did — so a doubled pipeline, a
+job that grew from 1m28s to 36 unbounded minutes, and three runs that reported
+`cancelled` while their gate had passed all persisted until a human looked at the
+GitHub UI and asked. **Release/DevOps owns that question.**
+
+```bash
+npm run ci:metrics            # rolling window, regression triggers, writes docs/ci/metrics/
+```
+
+Run it on a release, when a task changes `ci.yml`, and whenever any of these is
+observed during ordinary work:
+
+```
+CI_SLOW                      a run took materially longer than the recorded median
+CI_CANCELLED_REPEATEDLY      more than one cancellation in a session
+CI_DUPLICATED                the same SHA ran the full pipeline twice
+CI_FLAKY                     a job disagreed with itself on one commit
+CI_CRITICAL_PATH_REGRESSION  the slowest job changed identity
+```
+
+Not on every task. CI optimisation is not a per-task activity, and treating it
+as one would be its own kind of noise.
+
+A firing trigger is a **finding**, and findings do not live in reports — it
+becomes a backlog record and the Architect triages it. The full policy, the
+thresholds and what is deliberately not measured are in
+[`../context/ci-operations.md`](../context/ci-operations.md).
+
+**Forbidden as CI optimisations**, regardless of the time saved: making a
+required job report-only, adding `continue-on-error` to a gating job, dropping
+browser e2e or API lint, removing migration validation, hiding database
+failures, weakening exact-SHA semantics, or accepting a cancelled run as a pass.
+Optimise architecture, caching, parallelism and sequencing.
 
 The same verdict must also have authorised the **merge** that put this code on
 the branch. A shared branch whose last merge recorded

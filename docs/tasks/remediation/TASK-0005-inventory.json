@@ -6114,6 +6114,104 @@
         "classification": "TERMINAL_AS_DOCUMENTED",
         "finding_ids": []
       }
+    },
+    {
+      "record_id": "ITEM-0055",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0055-database-e2e-runs-serially-and-now-dominates-its-own-job.md",
+        "provenance": "ARCHITECT",
+        "created_at": "2026-08-18",
+        "updated_at": "2026-08-18",
+        "detected_in_sha": "",
+        "resolved_at": ""
+      },
+      "type": "PERFORMANCE",
+      "title": "Database e2e runs serially and now dominates its own job",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "DEFERRED",
+      "current_evidence": {
+        "paths": [
+          "services/api/test/jest-e2e.json",
+          ".github/workflows/ci.yml"
+        ],
+        "verification_scope": "CI job timings: the \"Run database-backed e2e suites\" step measured 1m28s in run 32148516356 (before maxWorkers:1) and 24m25s / 35m56s / 10m16s in runs 32167466971, 32169868091 and 32173772663 after it, none of which completed. The job is report-only and now bounded by timeout-minutes: 30, so the cost is runner time and feedback latency, not correctness."
+      },
+      "affected_modules": [
+        "api",
+        "ci"
+      ],
+      "dependencies": {
+        "record_ids": [
+          "ITEM-0047"
+        ],
+        "note": "maxWorkers:1 is the ITEM-0047 determinism fix and must not be reverted. Parallelism returns only via per-worker databases."
+      },
+      "related_bugs": [
+        "BUG-0049"
+      ],
+      "related_backlog": [
+        "ITEM-0047",
+        "ITEM-0056"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DEFER",
+      "verification_result": {
+        "result": "DEFERRED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "ITEM-0056",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0056-ci-cache-hit-rate-is-not-observable-from-the-actions-rest-ap.md",
+        "provenance": "ARCHITECT",
+        "created_at": "2026-08-18",
+        "updated_at": "2026-08-18",
+        "detected_in_sha": "",
+        "resolved_at": ""
+      },
+      "type": "INFRA",
+      "title": "CI cache hit rate is not observable from the Actions REST API",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "DEFERRED",
+      "current_evidence": {
+        "paths": [
+          "scripts/ci-metrics.mjs",
+          ".github/workflows/ci.yml"
+        ],
+        "verification_scope": "The Actions REST jobs endpoint returns step name, conclusion and timings only; actions/cache reports hit or miss in the raw step log alone. ci-metrics.mjs therefore reports cache hit rate as NOT_OBSERVABLE rather than inferring it from step duration. JOB_DURATION_REGRESSION still catches the symptom of a cache that stops hitting."
+      },
+      "affected_modules": [
+        "ci"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": "Platform limitation, not blocked on repository work."
+      },
+      "related_bugs": [
+        "BUG-0042"
+      ],
+      "related_backlog": [
+        "ITEM-0055"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DEFER",
+      "verification_result": {
+        "result": "DEFERRED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
     }
   ],
   "discovered_findings": [

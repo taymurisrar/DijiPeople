@@ -12,7 +12,7 @@
 | Open total | 29 |
 | Blocked | 0 |
 | Awaiting a product decision | 2 |
-| Deferred | 2 |
+| Deferred | 4 |
 | Completed | 88 |
 | Awaiting Architect triage | 0 |
 
@@ -203,7 +203,7 @@ _None. Nothing has been deployed through the release process._
 | Knowledge | Count |
 |---|---|
 | Bug records | 67 |
-| Backlog items | 54 |
+| Backlog items | 56 |
 | Known bug patterns | 19 |
 | QA runs | 17 |
 | Engineering history records | 15 |

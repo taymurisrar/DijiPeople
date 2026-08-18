@@ -280,6 +280,31 @@ For **every new material finding**, assign one:
 
 Also set `Priority` on each record, and run `node scripts/rebuild-backlog.mjs`.
 
+### A CI regression trigger is a finding too
+
+A firing trigger from `npm run ci:metrics` — `JOB_DURATION_REGRESSION`,
+`QUEUE_REGRESSION`, `CANCELLATION_SPIKE`, `FLAKY_JOB`, `DUPLICATE_RUN_STORM` —
+is triaged from this same table. It is not a report the Architect reads and
+moves past.
+
+The Architect does **not** optimise CI on every task; Release/DevOps owns the
+pipeline and the thresholds. But the Architect must **react** rather than wait
+for the user to notice, when any of these is observed while running ordinary
+work:
+
+```
+CI_SLOW                      a run took materially longer than the recorded median
+CI_CANCELLED_REPEATEDLY      more than one cancellation in a session
+CI_DUPLICATED                the same SHA ran the full pipeline twice
+CI_FLAKY                     a job disagreed with itself on one commit
+CI_CRITICAL_PATH_REGRESSION  the slowest job changed identity
+```
+
+Reacting means routing it to Release/DevOps and triaging what comes back — not
+absorbing the delay silently. Waiting on CI is not a passive state: see
+[`../context/ci-operations.md`](../context/ci-operations.md), and
+[`../agents/integrator.md`](integrator.md) for what to do with a cancelled run.
+
 ### Severity rules
 
 **CRITICAL** — cross-tenant exposure or mutation, authn/authz bypass, secret

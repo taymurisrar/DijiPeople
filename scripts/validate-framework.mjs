@@ -3884,6 +3884,59 @@ if (existsSync(join(ROOT, CI_WORKFLOW_PATH))) {
       check(`required job "${job}" is defined in ${CI_WORKFLOW_PATH}`, jobKeys.includes(job));
     }
 
+    /* Per-job properties. Two real defects on 2026-08-18 were invisible to
+     * every check above, because both were about HOW a job is declared rather
+     * than whether it exists:
+     *
+     *   - browser-e2e was named in ci-required.needs while carrying
+     *     `continue-on-error: true`. Such a job reports `success` to
+     *     needs.*.result even when it fails, so the aggregate gate could not
+     *     see a browser failure at all. It was named as required and was not.
+     *   - no job declared timeout-minutes, so every one inherited GitHub's
+     *     360-minute default. The report-only database e2e job then ran for 36
+     *     minutes unbounded and was stopped only by a superseding push.
+     */
+    const jobBodies = new Map();
+    {
+      const starts = [...jobsBlock.matchAll(/^ {2}([a-z0-9-]+):$/gm)];
+      starts.forEach((match, index) => {
+        const end = index + 1 < starts.length ? starts[index + 1].index : jobsBlock.length;
+        jobBodies.set(match[1], jobsBlock.slice(match.index, end));
+      });
+    }
+
+    /* The evidence resolver is what stops every ref-push integration running a
+     * second full pipeline over a byte-identical tree. */
+    check(
+      'ci-required depends on the `resolve` evidence job',
+      requiredJobs.includes('resolve'),
+      'without it every integrated SHA re-runs the whole pipeline for a tree already proven',
+    );
+
+    const failOpen = requiredJobs.filter(
+      (job) =>
+        job !== 'resolve' &&
+        /^ {4}continue-on-error:\s*true\s*$/m.test(jobBodies.get(job) ?? ''),
+    );
+    check(
+      'no required job is fail-open through continue-on-error',
+      failOpen.length === 0,
+      failOpen.length
+        ? `${failOpen.join(', ')} — reports success to needs.*.result even when it fails, so the gate cannot see the failure`
+        : '',
+    );
+
+    const unbounded = [...jobBodies.entries()]
+      .filter(([, body]) => !/^ {4}timeout-minutes:/m.test(body))
+      .map(([id]) => id);
+    check(
+      'every ci.yml job declares timeout-minutes',
+      unbounded.length === 0,
+      unbounded.length
+        ? `${unbounded.join(', ')} would inherit GitHub's 360-minute default`
+        : '',
+    );
+
     const NUMBER_WORDS = {
       seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11,
       twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15,

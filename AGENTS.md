@@ -545,6 +545,8 @@ npm run qa:new-plan -- "<title>" --area <area>
 npm run qa:new-run -- <feature-slug>
 
 npm run branch:policy        # verify main/develop protection — read-only
+npm run ci:metrics           # rolling CI metrics + regression triggers (Release/DevOps)
+npm run ci:classify -- --run <id>   # is a cancelled run still valid evidence?
 npm run knowledge:retrieve -- <module> <feature>
 npm run knowledge:dashboards # dashboards + the Engineering Control Center
 npm run knowledge:sync       # publish into the vault (needs a local config)
@@ -576,7 +578,7 @@ Seeds and release: `npm run seed:config`, `seed:admin`, `seed:demo`,
 - Run the validation that is **relevant to what you changed**, plus a repository
   typecheck for anything crossing a workspace boundary. A full `npm run build`
   is slow (`--concurrency=1`); run it when you changed build inputs.
-- **CI exists** — `.github/workflows/ci.yml`, **eleven** jobs named behind a
+- **CI exists** — `.github/workflows/ci.yml`, **twelve** jobs named behind a
   single `CI required gate` check
   ([`docs/development/ci.md`](docs/development/ci.md)). Count them in the gate's
   `needs` list rather than trusting this number. A job can still be fail-open
