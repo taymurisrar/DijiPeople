@@ -139,8 +139,22 @@ is still a disclosure.
 
 ## Related
 
-- `.agent/agents/security.md` — the role
+The boundaries above are not abstractions — each links to the record that proves
+it. These are the canonical failures this document is a map of:
+
+- Refusal converted to success — [[BUG-0039]]
+- Untrusted forwarded identity — [[BUG-0032]]
+- Missing security response headers — [[BUG-0040]]
+- A report-only job that rounded its own result up — [[BUG-0049]]
+
+Affected surfaces, as module knowledge:
+
+- [[tenant-isolation]] · [[platform-admin]] · [[billing]] · [[tenant-provisioning]]
+
+Sibling knowledge:
+
+- [[ci-architecture]] — where the security gates actually run
+- `.agent/agents/security.md` — the role that reviews against this
 - `.agent/context/tenant-context.md` · `.agent/context/auth-rbac.md`
 - `docs/qa/known-bug-patterns/` — the prevention rules
 - `docs/qa/regressions/index.md` — what must not come back
-- `docs/knowledge/architecture/ci-architecture.md` — where the security gates run
