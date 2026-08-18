@@ -8,7 +8,7 @@ graph and the block reasons. See
 
 | Bucket | Count |
 |---|---|
-| [Active](active.md) | 2 |
+| [Active](active.md) | 3 |
 | [Blocked](blocked.md) | 1 |
 | [Completed](completed.md) | 4 |
 
@@ -18,12 +18,14 @@ graph and the block reasons. See
 |---|---|---|
 | [TASK-0005](TASK-0005-dijipeople-global-technical-remediation.md) | WP-04 | Database E2E isolation and residual defect proof |
 | [TASK-0007](TASK-0007-commercial-platform-completion-transactional-legal-and-lifec.md) | WP-11 | Admin dashboard, monitoring and provisioning operations UX |
+| [TASK-0008](TASK-0008-self-service-customer-onboarding-tenant-provisioning-domain-.md) | WP-01 | Onboarding draft model, slug reservation and public availability API |
 
 ## Needs a human
 
 - [TASK-0004](TASK-0004-autonomous-framework-v2-architect-only-orchestration-multi-s.md) — 1 owner decision(s) outstanding
 - [TASK-0005](TASK-0005-dijipeople-global-technical-remediation.md) — 1 owner decision(s) outstanding
 - [TASK-0007](TASK-0007-commercial-platform-completion-transactional-legal-and-lifec.md) — 2 owner decision(s) outstanding
+- [TASK-0008](TASK-0008-self-service-customer-onboarding-tenant-provisioning-domain-.md) — 1 owner decision(s) outstanding
 - [TASK-0004](TASK-0004-autonomous-framework-v2-architect-only-orchestration-multi-s.md) — every remaining work package is blocked
 
 ## All tasks
@@ -32,6 +34,7 @@ graph and the block reasons. See
 |---|---|---|---|---|---|---|---|
 | [TASK-0005](TASK-0005-dijipeople-global-technical-remediation.md) | DijiPeople Global Technical Remediation | BUG | PROGRAM | P0 | IN_PROGRESS | 3/11 | WP-09 |
 | [TASK-0007](TASK-0007-commercial-platform-completion-transactional-legal-and-lifec.md) | Commercial platform completion — transactional, legal and lifecycle half | FEATURE | PROGRAM | P0 | IN_PROGRESS | 11/16 | WP-11 |
+| [TASK-0008](TASK-0008-self-service-customer-onboarding-tenant-provisioning-domain-.md) | Self-service customer onboarding, tenant provisioning, domain routing and central login | FEATURE | LARGE | P0 | IN_PROGRESS | 0/9 | WP-01 |
 | [TASK-0001](TASK-0001-framework-keyword-routing-task-orchestration-and-repository-.md) | Framework: keyword routing, task orchestration and repository health | FRAMEWORK | LARGE | P1 | COMPLETE | 6/6 | — |
 | [TASK-0002](TASK-0002-deep-documentation-of-apps-docs-apps-landing-and-apps-agent-.md) | Deep documentation of apps/docs, apps/landing and apps/agent-desktop | KNOWLEDGE | LARGE | P1 | COMPLETE | 9/9 | — |
 | [TASK-0003](TASK-0003-deep-documentation-of-apps-web-the-tenant-product.md) | Deep documentation of apps/web, the tenant product | KNOWLEDGE | LARGE | P1 | COMPLETE | 9/9 | — |

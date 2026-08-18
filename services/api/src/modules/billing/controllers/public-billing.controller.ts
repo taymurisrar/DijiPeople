@@ -15,6 +15,16 @@ import { PublicSubscribeDto } from '../dto/public-subscribe.dto';
 import { BillingService } from '../services/billing.service';
 import { CommercialConfigService } from '../services/commercial-config.service';
 
+/*
+ * Rate limited at the class, not per handler.
+ *
+ * The guard was previously applied to `commercial-config` alone, so
+ * `POST /public/subscribe` — which writes a SubscriptionOrder and opens a Stripe
+ * checkout session, unauthenticated — inherited nothing (BUG-0075, the same
+ * shape as BUG-0031 on the same handler). Class level is the form that survives
+ * the next handler being added beside these ones.
+ */
+@UseGuards(PublicRateLimitGuard)
 @Controller('public')
 export class PublicBillingController {
   constructor(
@@ -43,8 +53,14 @@ export class PublicBillingController {
    * enough that a publish is visible quickly. It varies by country header,
    * otherwise a CDN would serve one market's prices to every market.
    */
+  /*
+   * The guard is inherited from the class. Repeating it here would not be
+   * harmless duplication: Nest concatenates class-level and handler-level guards
+   * without deduplicating, so the same singleton's `canActivate` would run twice
+   * per request and spend two tokens from a one-request budget — halving this
+   * endpoint's limit rather than doubling its protection.
+   */
   @Public()
-  @UseGuards(PublicRateLimitGuard)
   @Get('commercial-config')
   @Header('Cache-Control', 'public, max-age=60, stale-while-revalidate=300')
   @Header('Vary', 'cf-ipcountry, x-vercel-ip-country, x-country-code')

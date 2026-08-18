@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**123 records** — 67 bugs under [`docs/bugs/`](../bugs/), 56 non-bug items under [`items/`](items/).
+**124 records** — 68 bugs under [`docs/bugs/`](../bugs/), 56 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,20 +13,20 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 29 |
+| Open (active work) | 30 |
 | Blocked | 0 |
 | Deferred | 4 |
 | Awaiting a product decision | 2 |
 | Completed / closed | 88 |
 | **Open CRITICAL** | **0** |
-| **Open HIGH** | **5** |
+| **Open HIGH** | **6** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
 
 | Severity | Count |
 |---|---|
-| HIGH | 5 |
+| HIGH | 6 |
 | MEDIUM | 19 |
 | LOW | 5 |
 
@@ -38,7 +38,7 @@ see [`README.md`](README.md) for why.
 | DOCUMENTATION | 2 |
 | FOLLOW_UP | 3 |
 | INFRA | 2 |
-| SECURITY | 6 |
+| SECURITY | 7 |
 | TECH_DEBT | 6 |
 | TEST_GAP | 7 |
 | UX | 2 |
@@ -50,6 +50,7 @@ see [`README.md`](README.md) for why.
 | OPEN | 4 |
 | DEFERRED | 4 |
 | PRODUCT_DECISION | 2 |
+| FIXED | 1 |
 | VERIFIED | 62 |
 | READY | 25 |
 | DONE | 26 |
@@ -98,6 +99,7 @@ see [`README.md`](README.md) for why.
 | [BUG-0064](../../docs/bugs/BUG-0064-landing-public-pages-fail-wcag-bypass-blocks-and-text-contra.md) | Landing public pages fail WCAG bypass blocks and text contrast on every route | UX | HIGH | P1 | VERIFIED | apps/landing | DONE |
 | [BUG-0068](../../docs/bugs/BUG-0068-prisma-client-freshness-check-is-blind-to-field-level-drift.md) | Prisma client freshness check is blind to field-level drift | INFRA | HIGH | P1 | VERIFIED | scripts, services/api | DONE |
 | [BUG-0070](../../docs/bugs/BUG-0070-outbox-deduplication-aborted-the-caller-transaction-on-postg.md) | Outbox deduplication aborted the caller transaction on PostgreSQL | BUG | HIGH | P1 | VERIFIED | outbox | DONE |
+| [BUG-0075](../../docs/bugs/BUG-0075-public-subscribe-checkout-has-no-rate-limit-and-the-invarian.md) | Public subscribe checkout has no rate limit and the invariant that should catch it is inert | SECURITY | HIGH | P1 | FIXED | billing, common/guards | FIX_NOW |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | READY | api:tenant-control-plane | FIX_NOW |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | READY | apps/web, e2e | PLAN_REQUIRED |

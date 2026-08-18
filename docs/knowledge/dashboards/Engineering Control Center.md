@@ -7,13 +7,13 @@
 
 | | |
 |---|---|
-| Active sessions | **3** |
-| Active parent tasks | 2 |
+| Active sessions | **4** |
+| Active parent tasks | 3 |
 | Active work packages | 1 |
 | Blocked work packages | 1 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **0** |
-| Open HIGH | 5 |
+| Open HIGH | 6 |
 | Awaiting Architect triage | 0 |
 | Owner decisions pending | 2 |
 | QA coverage gaps | 88 |
@@ -23,6 +23,7 @@
 
 | Session | Task | Title | Status | Branch | Target | Leases | Schema |
 |---|---|---|---|---|---|---|---|
+| [[SESSION-0018-self-service-onboarding-provisioning-domain-routing-and-cent|SESSION-0018]] | — | Self-service onboarding, provisioning, domain routing and central login | ACTIVE | `agent/self-service-onboarding-provisioning` | `develop` | — | NO |
 | [[SESSION-0016-database-agent-security-agent-agent-reliability-and-obsidian|SESSION-0016]] | — | Database Agent, Security Agent, agent reliability and Obsidian ownership | ACTIVE | `agent/agent-framework-hardening` | `develop` | — | NO |
 | [[SESSION-0014-ci-performance-cancellation-rca-and-autonomous-ci-adaptation|SESSION-0014]] | — | CI performance, cancellation RCA and autonomous CI adaptation | ACTIVE | `agent/ci-performance-adaptation` | `develop` | — | NO |
 | [[SESSION-0003-dijipeople-global-technical-remediation|SESSION-0003]] | TASK-0005 | DijiPeople Global Technical Remediation | ACTIVE | `agent/remediation-authorization` | `develop` | permissions, record-indexes | NO |
@@ -33,6 +34,7 @@
 |---|---|---|---|---|---|---|---|
 | [[TASK-0005-dijipeople-global-technical-remediation|TASK-0005]] | DijiPeople Global Technical Remediation | BUG | PROGRAM | 3/11 | WP-09 | WP-04, WP-06, WP-07, WP-08, WP-10 | — |
 | [[TASK-0007-commercial-platform-completion-transactional-legal-and-lifec|TASK-0007]] | Commercial platform completion — transactional, legal and lifecycle half | FEATURE | PROGRAM | 11/16 | WP-11 | WP-11, WP-13 | WP-15 |
+| [[TASK-0008-self-service-customer-onboarding-tenant-provisioning-domain-|TASK-0008]] | Self-service customer onboarding, tenant provisioning, domain routing and central login | FEATURE | LARGE | 0/9 | WP-01 | WP-01, WP-06, WP-07 | — |
 
 ## Branch model
 
@@ -184,7 +186,7 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 29 |
+| Open total | 30 |
 | Blocked | 0 |
 | Deferred | 4 |
 | Awaiting a product decision | 2 |
