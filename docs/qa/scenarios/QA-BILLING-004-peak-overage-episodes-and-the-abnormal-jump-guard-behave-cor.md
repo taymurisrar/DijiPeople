@@ -1,0 +1,61 @@
+---
+SCENARIO_ID: QA-BILLING-004
+aliases: [QA-BILLING-004]
+TITLE: Peak, overage episodes and the abnormal-jump guard behave correctly
+AREA: seat-billing
+MODULE: billing
+TYPE: DATABASE
+RISK: CRITICAL
+AUTOMATION_STATUS: AUTOMATED
+TEST_REFERENCE: services/api/test/seat-usage.e2e-spec.ts
+RELATED_BUGS: []
+RELATED_REGRESSIONS: []
+LAST_RUN: 2026-08-18
+LAST_RESULT: PASS
+CREATED_AT: 2026-08-18
+UPDATED_AT: 2026-08-18
+---
+
+# QA-BILLING-004 — Peak, overage episodes and the abnormal-jump guard behave correctly
+
+## Preconditions
+
+Real PostgreSQL with migrations through `20260818140000_active_employee_seat_engine`.
+One tenant with a subscription of `purchasedSeats = 20` and a period covering the
+sample dates. Overage thresholds left at their defaults (warn 10%, review 100% or
+100 absolute), or the classification steps mean nothing.
+
+## Steps
+
+1. Sample the same day twice with different counts.
+2. Sample 18, then 11, within one period.
+3. Sample 22, 23, then 21 on three consecutive days.
+4. Sample 900 on the next day.
+5. Sample 22 again.
+6. Sample 15.
+7. Create employees across every employment status, plus one soft-deleted ACTIVE.
+8. Ask for counts of a tenant with no billable employees.
+
+## Expected Result
+
+1. One sample row for that day, holding the second count. A duplicate would
+   double that day in any average.
+2. Period peak stays 18 with ending count 11. A tenant that reached 18 was an
+   18-employee tenant that month.
+3. **One** overage episode, peak 23, overage 3, status `WARNED` — 15% is
+   ordinary growth. Three episodes would make one conversation look like three.
+   Exactly one `SEAT_OVERAGE_DETECTED` outbox event exists.
+4. The same episode escalates to `REVIEW_REQUIRED` with peak 900 and 4400%.
+   Nothing is billed off this without a human.
+5. Status stays `REVIEW_REQUIRED`. De-escalating would discard the reason a
+   human was asked to look.
+6. The episode resolves (`resolvedAt` set) but keeps `REVIEW_REQUIRED` —
+   somebody still has to say what should be billed for those days.
+7. Count is 3: ACTIVE, PROBATION and NOTICE. INACTIVE, TERMINATED and the
+   soft-deleted row are excluded.
+8. The map contains the tenant with value 0. An absent key reads as "unknown"
+   at the call site and would silently skip that tenant sample.
+
+## Notes
+
+Created 2026-08-18 at `39bd665`.

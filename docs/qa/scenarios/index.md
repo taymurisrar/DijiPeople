@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 91** · automated: 85 · manual: 4 · blocked by infrastructure: 0
+**Scenarios: 92** · automated: 86 · manual: 4 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -42,6 +42,7 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-BILLING-001](../../../docs/qa/scenarios/QA-BILLING-001-billing-reads-and-writes-require-distinct-capabilities.md) | Billing reads and writes require distinct capabilities | authorization | SECURITY | CRITICAL | AUTOMATED | `services/api/src/modules/billing/billing-authorization.spec.ts` | BUG-0056 | REG-043 |
 | [QA-BILLING-002](../../../docs/qa/scenarios/QA-BILLING-002-an-outbox-event-is-delivered-at-least-once-and-consumed-exac.md) | An outbox event is delivered at least once and consumed exactly once | outbox | DATABASE | HIGH | AUTOMATED | `services/api/test/outbox-delivery.e2e-spec.ts` | BUG-0070 | REG-064 |
 | [QA-BILLING-003](../../../docs/qa/scenarios/QA-BILLING-003-a-published-legal-version-cannot-be-edited-and-acknowledgeme.md) | A published legal version cannot be edited and acknowledgements keep pointing at it | legal | DATABASE | HIGH | AUTOMATED | `services/api/test/legal-documents.e2e-spec.ts` | — | — |
+| [QA-BILLING-004](../../../docs/qa/scenarios/QA-BILLING-004-peak-overage-episodes-and-the-abnormal-jump-guard-behave-cor.md) | Peak, overage episodes and the abnormal-jump guard behave correctly | seat-billing | DATABASE | CRITICAL | AUTOMATED | `services/api/test/seat-usage.e2e-spec.ts` | — | — |
 | [QA-CI-001](../../../docs/qa/scenarios/QA-CI-001-report-only-jobs-publish-an-explicit-pass-fail-verdict.md) | Report-only CI jobs publish an explicit PASS/FAIL verdict | deployment-release | DEPLOYMENT_SMOKE | HIGH | AUTOMATED | `scripts/validate-framework.mjs` | BUG-0049 | REG-047 |
 | [QA-DEPLOY-001](../../../docs/qa/scenarios/QA-DEPLOY-001-deployment-smoke-checks-answer-against-the-deployed-environm.md) | Deployment smoke checks answer against the deployed environment | deployment-release | DEPLOYMENT_SMOKE | HIGH | AUTOMATED | `scripts/smoke-deployment.mjs` | — | — |
 | [QA-DEPLOY-002](../../../docs/qa/scenarios/QA-DEPLOY-002-no-url-is-hardcoded-where-configuration-is-required.md) | No URL is hardcoded where configuration is required | deployment-release | UNIT | HIGH | AUTOMATED | `scripts/check-no-hardcoded-urls.mjs` | BUG-0026 | REG-016 |
