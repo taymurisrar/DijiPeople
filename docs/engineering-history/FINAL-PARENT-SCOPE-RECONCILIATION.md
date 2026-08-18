@@ -69,6 +69,13 @@ acquisition intake are intact at `304bfda`.
 | R-26 | Customer deduplication across refresh/abandon/double-submit | DONE | CustomerIdentityService: corporate domain AND normalised company name; generic domains excluded; submissionHash released when an order closes | WP-05 |
 | R-27 | Server-authoritative checkout; browser cannot set price/currency/total | DONE | Every money figure resolved server-side and frozen on the order, with a commercial snapshot of price version and market | WP-05 |
 | R-28 | Tax foundation — subtotal, discount, taxable basis, treatment, rate snapshot | DONE (shape) | TaxBasisService and the full column chain; defaults to NOT_DETERMINED with zero charged. Actual rates remain TAX_ACCOUNTING_REVIEW | WP-05 |
+| R-20 | Cookie consent categories and category-controlled scripts | DONE | ConsentType covers FUNCTIONAL/ANALYTICS/MARKETING; ESSENTIAL is deliberately absent because it is not a choice. Only essential cookies are set today, so no intrusive banner is shown | WP-03 |
+| R-21 | Marketing consent unbundled, withdrawable, auditable | DONE | ConsentRecord appends every grant, decline and withdrawal with its own definition version and source; never a condition of submitting a form | WP-03 |
+| R-46 | Public legal routes and footer navigation | DONE | Ten routes under /legal/[slug]; the route always exists, the content varies; footer links only what is published | WP-10 |
+| R-47 | Trust/security page, evidence-based only | DONE | Security document lists only controls the repository can evidence, with an explicit "what is NOT claimed" section; asserted by test | WP-10 |
+| R-48 | Public subprocessor page | DONE | Four providers seeded with purpose and status; processingRegion null because unknown is not guessed | WP-10 |
+| R-51 | Business-event coverage for the named lifecycle events | DONE | 24 typed events emitted across the commercial lifecycle; 12 carry notifications, the rest deliberately do not | WP-12 |
+| R-52 | Notification ownership/config, no hardcoded founder email | DONE | Recipients from PLATFORM_OPS_NOTIFICATION_EMAILS or the record itself; unconfigured yields MANUAL_ACTION_REQUIRED rather than a fallback address | WP-12 |
 | R-29 | Seat increase immediate; seat decrease at next cycle | DONE | SeatChangeService; increase applies now and cancels a pending decrease, decrease writes scheduledSeats and leaves paid-for capacity alone; refuses a decrease below active employees | WP-06 |
 | R-30 | Plan upgrade/downgrade self-service with consequence display | DONE | PlanChangeService with a pure preview; direction from authoritative PlanPrice, never the deprecated Plan.monthlyBasePrice; entitlementImpact frozen on the request; downgrade never deletes data | WP-06 |
 | R-32 | Payment to onboarding automatic and idempotent | DONE | OrderActivationService.confirmPayment called from the Stripe webhook; PaymentConfirmedHandler opens the onboarding; idempotent at order status, dispatcher and onboarding-existence | WP-07 |
@@ -91,20 +98,13 @@ These are the rows that keep `PARENT_TASK_STATUS = INCOMPLETE`.
 
 | REQUIREMENT_ID | REQUIREMENT | STATUS | PROBE AT `304bfda` | WORK_PACKAGE |
 |---|---|---|---|---|
-| R-20 | Cookie consent categories and category-controlled scripts | `NOT_STARTED` | no cookie model, no banner | WP-03 |
-| R-21 | Marketing consent unbundled, withdrawable, auditable | `PARTIAL` | `marketingConsent`/`marketingConsentAt` columns exist; no withdrawal path or definition version | WP-03 |
 | R-31 | Add-on foundation composing effective entitlement | `PARTIAL` | `FeatureAccessService`/`PlanFeature` exist; no purchasable add-on or composition | WP-06 |
 | R-35 | Provisioning targets and operations view | `PARTIAL` | Per-run targetReadyBy/escalateAt/breachedAt exist on TenantProvisioningRun; the Admin operations screen is WP-11 | WP-11 |
 | R-41 | Platform admin erase with dedicated permission and confirmation | `PARTIAL` | erasure orchestration exists and is well-tested; no guarded request/confirmation surface | WP-08 |
 | R-43 | Backup deletion lifecycle documented honestly | `NOT_STARTED` | not documented | WP-08 |
 | R-44 | Stripe reconciliation — customer, subscription, quantity, status, price | `NOT_STARTED` | no scheduled reconciliation | WP-09 |
-| R-46 | Public legal routes (`/privacy`, `/terms`, +8) with footer navigation | `NOT_STARTED` | `ls apps/landing/app` — no legal routes | WP-10 |
-| R-47 | Trust/security page, evidence-based only | `NOT_STARTED` | route absent | WP-10 |
-| R-48 | Public subprocessor page | `NOT_STARTED` | route absent (model now exists — R-11) | WP-10 |
 | R-49 | Admin dashboard UX — clipping, density, 1366px, responsive | `NOT_STARTED` | unaddressed | WP-11 |
 | R-50 | Monitoring Overview UX and default tab | `NOT_STARTED` | unaddressed | WP-11 |
-| R-51 | Business-event coverage for the named lifecycle events | `PARTIAL` | `DomainEventType` now names them; most emitters not yet wired | WP-12 |
-| R-52 | Notification ownership/config, no hardcoded founder email | `NOT_VERIFIED` | not probed this pass — assigned rather than claimed | WP-12 |
 | R-53 | Support model tiers without published response times | `NOT_STARTED` | `supportTierRef` is a nullable text reference only | WP-12 |
 | R-55 | Public contact address configuration | `PARTIAL` | `contactInfo` in landing content; no per-purpose aliases | WP-10 |
 | R-56 | Cross-repository duplicate/orphan audit | `PARTIAL` | landing audited in Wave 2; `web`, `admin`, `api` not swept | WP-13 |
@@ -127,11 +127,11 @@ These are the rows that keep `PARENT_TASK_STATUS = INCOMPLETE`.
 
 ## Honest summary
 
-**32 requirements moved to `DONE` in this task, each with named evidence.
-18 engineering requirements remain**, of which 9 are `PARTIAL` and 9 are
+**39 requirements moved to `DONE` in this task, each with named evidence.
+11 engineering requirements remain**, of which 7 are `PARTIAL` and 4 are
 `NOT_STARTED`.
 
-The eight delivered packages are deliberately the dependency roots rather than
+The eleven delivered packages are deliberately the dependency roots rather than
 the most visible work. Every remaining lifecycle requirement — provisioning on
 payment, seat changes, cancellation, retention, erasure requests, reconciliation
 — needs a durable event that survives a crash, and none of them could be built
@@ -149,4 +149,4 @@ DB-backed proof rather than assertions.
 **`PARENT_TASK_STATUS = INCOMPLETE`**, and this document is the evidence for
 that statement rather than an estimate. The completion contract in the brief
 requires `PARTIAL_ENGINEERING_REQUIREMENTS = 0` and
-`NOT_STARTED_ENGINEERING_REQUIREMENTS = 0`; they are 9 and 9.
+`NOT_STARTED_ENGINEERING_REQUIREMENTS = 0`; they are 7 and 4.

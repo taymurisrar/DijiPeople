@@ -30,7 +30,7 @@
 | Task | Title | Type | Size | Progress | Current | Ready next | Blocked |
 |---|---|---|---|---|---|---|---|
 | [[TASK-0005-dijipeople-global-technical-remediation|TASK-0005]] | DijiPeople Global Technical Remediation | BUG | PROGRAM | 3/11 | WP-09 | WP-04, WP-06, WP-07, WP-08, WP-10 | — |
-| [[TASK-0007-commercial-platform-completion-transactional-legal-and-lifec|TASK-0007]] | Commercial platform completion — transactional, legal and lifecycle half | FEATURE | PROGRAM | 10/16 | WP-10 | WP-10, WP-11, WP-13 | WP-15 |
+| [[TASK-0007-commercial-platform-completion-transactional-legal-and-lifec|TASK-0007]] | Commercial platform completion — transactional, legal and lifecycle half | FEATURE | PROGRAM | 11/16 | WP-11 | WP-11, WP-13 | WP-15 |
 
 ## Branch model
 
