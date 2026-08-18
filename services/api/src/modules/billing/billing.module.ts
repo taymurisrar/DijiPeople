@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { AuthModule } from '../auth/auth.module';
+import { AuditModule } from '../audit/audit.module';
 import { BillingController } from './controllers/billing.controller';
 import { PublicBillingController } from './controllers/public-billing.controller';
 import { StripeWebhookController } from './controllers/stripe-webhook.controller';
@@ -23,10 +24,13 @@ import { SeatChangeService } from './services/seat-change.service';
 import { PlanChangeService } from './services/plan-change.service';
 import { OrderActivationService } from './services/order-activation.service';
 import { PaymentConfirmedHandler } from './services/payment-confirmed.handler';
+import { CancellationService } from './services/cancellation.service';
+import { RetentionHoldService } from './services/retention-hold.service';
+import { ReconciliationService } from './services/reconciliation.service';
 import { OUTBOX_HANDLERS } from '../outbox/outbox.types';
 
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, AuditModule],
   controllers: [
     BillingController,
     PublicBillingController,
@@ -51,6 +55,9 @@ import { OUTBOX_HANDLERS } from '../outbox/outbox.types';
     PlanChangeService,
     OrderActivationService,
     PaymentConfirmedHandler,
+    CancellationService,
+    RetentionHoldService,
+    ReconciliationService,
     {
       // Contributed here rather than in OutboxModule so the dependency runs
       // from the domain to the mechanism, not the other way round.

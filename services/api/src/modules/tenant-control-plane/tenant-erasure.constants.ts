@@ -95,6 +95,16 @@ export const TENANT_ERASURE_DETACHED_MODELS: Array<{
     model: 'subscriptionOrder',
     clearFields: [{ field: 'subscriptionId', via: 'subscription' }],
   },
+  {
+    /*
+     * Money that moved, and why. Detached for the same reason as the order:
+     * a refund is a financial record owned by the CustomerAccount, and
+     * "did we refund this company" must stay answerable after their workspace
+     * is gone.
+     */
+    model: 'refundRequest',
+    clearFields: [],
+  },
 ];
 
 /**
@@ -130,6 +140,10 @@ export const TENANT_ERASURE_LINK_CLEANUPS: Array<{
 export const TENANT_ERASURE_PRESERVED_MODELS = [
   'tenantErasureReceipt',
   'platformEvent',
+  // Reconciliation output is DijiPeople monitoring its own consistency. It
+  // names a tenant but is not tenant business content, and deleting it would
+  // erase the record of drift that was found before the workspace went.
+  'reconciliationFinding',
 ] as const;
 
 /**
@@ -175,6 +189,14 @@ export const TENANT_ERASURE_DELETE_ORDER: string[] = [
   // must be gone before it.
   'seatChangeRequest',
   'planChangeRequest',
+  // Cancellation and retention state describes a workspace that is ceasing to
+  // exist, so it goes with it. The durable evidence of the erasure itself is
+  // TenantErasureReceipt, which is preserved and carries no foreign key.
+  // retentionHold before tenantRetention: the hold points at it.
+  'retentionHold',
+  'tenantRetention',
+  'subscriptionCancellation',
+  'tenantDeletionRequest',
   'legalDocumentAcknowledgement',
   'activityEvent',
   'agentLocationRequest',

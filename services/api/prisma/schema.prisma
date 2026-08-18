@@ -2229,6 +2229,9 @@ model Tenant {
   subscriptionOrders              SubscriptionOrder[]
   seatChangeRequests              SeatChangeRequest[]
   planChangeRequests              PlanChangeRequest[]
+  cancellations                   SubscriptionCancellation[]
+  retention                       TenantRetention?
+  deletionRequests                TenantDeletionRequest[]
   auditLogs                       AuditLog[]
   documents                       Document[]
   documentLinks                   DocumentLink[]
@@ -2625,6 +2628,7 @@ model CustomerAccount {
   promotions                 Promotion[]
   subscriptionOrders         SubscriptionOrder[]
   tenantProvisioningRuns     TenantProvisioningRun[]
+  refundRequests             RefundRequest[]
 
   // ITEM-0008 — commercial reports group customers by channel.
   @@index([originChannel])
@@ -4118,6 +4122,7 @@ model Subscription {
   seatOverageEvents        SeatOverageEvent[]
   seatChangeRequests       SeatChangeRequest[]
   planChangeRequests       PlanChangeRequest[]
+  cancellations            SubscriptionCancellation[]
   subscriptionOrders       SubscriptionOrder[]
 
   @@index([status])
@@ -13262,4 +13267,346 @@ model PlanChangeRequest {
   @@index([subscriptionId, status])
   @@index([status, effectiveAt])
   @@index([tenantId, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Cancellation, retention and erasure requests
+//
+// `Subscription.cancelAtPeriodEnd` already existed and answered one narrow
+// question. It could not express the two things customers and operators
+// actually do, which are different actions with different consequences:
+//
+//   CANCEL_RENEWAL   — stop billing me; I keep working until the date I paid
+//                      through. The overwhelmingly common case.
+//   TERMINATE_NOW    — cut access today. Rare, deliberate, and a decision
+//                      somebody has to own, because people lose access to a
+//                      product they have already paid for.
+//
+// Collapsing those into one boolean is how a "cancel" button ends up locking a
+// company out on the day they clicked it.
+// ---------------------------------------------------------------------------
+
+enum CancellationType {
+  CANCEL_RENEWAL
+  TERMINATE_NOW
+}
+
+enum CancellationStatus {
+  /// Renewal is off; access continues to the paid-through date.
+  PENDING_PERIOD_END
+  /// Access has ended and retention has started.
+  TERMINATED
+  /// The customer changed their mind before it took effect.
+  REVOKED
+}
+
+model SubscriptionCancellation {
+  id             String @id @default(uuid())
+  tenantId       String
+  subscriptionId String
+
+  type   CancellationType
+  status CancellationStatus @default(PENDING_PERIOD_END)
+
+  /// The date access actually ends. For CANCEL_RENEWAL this is the period the
+  /// customer already paid for — it is a promise, not an estimate.
+  paidThroughDate DateTime?
+  effectiveAt     DateTime
+  terminatedAt    DateTime?
+
+  reason            String?
+  /// Free text from the customer. Kept separate from `reason` because one is a
+  /// category somebody chose and the other is what they actually said.
+  feedback          String?
+  requestedByUserId String?
+  revokedAt         DateTime?
+  revokedByUserId   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([subscriptionId, status])
+  @@index([status, effectiveAt])
+  @@index([tenantId, createdAt])
+}
+
+enum RetentionStatus {
+  /// Counting down to the scheduled erasure date.
+  RETAINING
+  /// A hold is in force; the clock is paused and erasure will not run.
+  ON_HOLD
+  /// The window elapsed and erasure has been requested.
+  ERASURE_SCHEDULED
+  ERASED
+  /// The customer came back before the window ran out.
+  RESTORED
+}
+
+/// The window between losing access and losing data.
+///
+/// Recorded as a row rather than computed on demand so the scheduled erasure
+/// date is a stored promise that survives a policy change. A customer told
+/// "your data is kept for 60 days" must not silently get 30 because somebody
+/// edited a default six weeks later.
+model TenantRetention {
+  id       String @id @default(uuid())
+  tenantId String @unique
+
+  status RetentionStatus @default(RETAINING)
+
+  retentionStartedAt DateTime
+  /// The date erasure becomes due. Stored, not derived.
+  scheduledErasureAt DateTime
+
+  /// What the customer was actually told, frozen at the time they were told it.
+  retentionDays  Int
+  policyVersion  String?
+
+  erasureRequestedAt DateTime?
+  erasedAt           DateTime?
+  restoredAt         DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  holds  RetentionHold[]
+
+  @@index([status, scheduledErasureAt])
+}
+
+enum RetentionHoldType {
+  LEGAL
+  SECURITY
+  BILLING_DISPUTE
+  ADMINISTRATIVE
+}
+
+/// A reason not to erase yet.
+///
+/// Any active hold suspends automatic erasure. Deliberately a separate table
+/// rather than a flag: several holds can exist for different reasons and
+/// different owners, and releasing one must not release the others. A single
+/// boolean is how data gets erased during litigation.
+model RetentionHold {
+  id                String @id @default(uuid())
+  tenantRetentionId String
+  tenantId          String
+
+  type   RetentionHoldType
+  reason String
+
+  placedByPlatformUser String?
+  placedAt             DateTime  @default(now())
+  releasedByPlatformUser String?
+  releasedAt           DateTime?
+  releaseReason        String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  retention TenantRetention @relation(fields: [tenantRetentionId], references: [id], onDelete: Cascade)
+
+  /// The "is anything holding this" query. `releasedAt IS NULL` means active.
+  @@index([tenantRetentionId, releasedAt])
+  @@index([tenantId, type])
+}
+
+enum DeletionRequestOrigin {
+  /// The tenant's own owner asked. This is a REQUEST, never an execution.
+  TENANT_OWNER
+  /// A platform operator initiated it.
+  PLATFORM_ADMIN
+}
+
+enum DeletionRequestStatus {
+  REQUESTED
+  /// A platform operator approved it; it is queued for the erasure orchestrator.
+  APPROVED
+  REJECTED
+  COMPLETED
+  CANCELLED
+}
+
+/// A request to erase a workspace — never the erasure itself.
+///
+/// The separation is the safety property. A tenant owner can ask; only a
+/// platform operator with the dedicated permission can approve, and the
+/// existing TenantErasureService is what actually runs. An owner-initiated
+/// deletion that erased immediately would make an angry afternoon permanent.
+model TenantDeletionRequest {
+  id       String @id @default(uuid())
+  tenantId String
+
+  origin DeletionRequestOrigin
+  status DeletionRequestStatus @default(REQUESTED)
+
+  reason String
+
+  /// The typed confirmation. Stored so the audit trail can show the operator
+  /// was asked to type the workspace name and did.
+  confirmationPhrase String?
+
+  requestedByUserId         String?
+  requestedByPlatformUser   String?
+  requestedAt               DateTime  @default(now())
+  reviewedByPlatformUser    String?
+  reviewedAt                DateTime?
+  reviewNote                String?
+  /// When erasure may run. Never immediate — the retention window applies.
+  scheduledFor              DateTime?
+  completedAt               DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, status])
+  @@index([status, scheduledFor])
+}
+
+enum RefundStatus {
+  REQUESTED
+  APPROVED
+  REJECTED
+  PROCESSED
+  FAILED
+}
+
+enum RefundReasonCode {
+  DUPLICATE_PAYMENT
+  BILLING_ERROR
+  LEGAL_REQUIREMENT
+  GOODWILL
+  MANUAL_CORRECTION
+}
+
+/// A controlled refund.
+///
+/// Ordinary voluntary refunds are not offered; every row here is one of the
+/// named exceptions, requires the dedicated permission, and is audited. The
+/// reason is an enum rather than free text so "why did we refund this" is a
+/// reportable question rather than a reading exercise.
+model RefundRequest {
+  id                String @id @default(uuid())
+  tenantId          String?
+  customerAccountId String
+  paymentId         String?
+  invoiceId         String?
+
+  amount   Decimal @db.Decimal(12, 2)
+  currency String
+
+  reasonCode RefundReasonCode
+  reason     String
+  status     RefundStatus @default(REQUESTED)
+
+  requestedByPlatformUser String?
+  approvedByPlatformUser  String?
+  approvedAt              DateTime?
+  processedAt             DateTime?
+  providerRefundId        String?
+  failureReason           String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  customer CustomerAccount @relation(fields: [customerAccountId], references: [id], onDelete: Restrict)
+
+  @@index([customerAccountId, status])
+  @@index([status, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Reconciliation
+//
+// Two systems hold the same facts — DijiPeople and Stripe — and they drift.
+// A quantity updated here but refused there, a subscription cancelled in the
+// dashboard, a plan price republished mid-flight. Drift that nobody measures is
+// drift that gets discovered by a customer.
+//
+// Auto-fix is deliberately narrow: only differences with one obviously correct
+// answer are corrected automatically, and every correction is recorded. A
+// reconciler that "helpfully" resolves ambiguous differences is a second,
+// unaudited writer of billing state.
+// ---------------------------------------------------------------------------
+
+enum ReconciliationScope {
+  STRIPE
+  INTERNAL
+}
+
+enum ReconciliationRunStatus {
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+enum ReconciliationOutcome {
+  HEALTHY
+  WARNING
+  MISMATCH
+  AUTO_FIXED
+  MANUAL_ACTION_REQUIRED
+}
+
+model ReconciliationRun {
+  id    String              @id @default(uuid())
+  scope ReconciliationScope
+
+  status ReconciliationRunStatus @default(RUNNING)
+
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  checkedCount              Int @default(0)
+  healthyCount              Int @default(0)
+  warningCount              Int @default(0)
+  mismatchCount             Int @default(0)
+  autoFixedCount            Int @default(0)
+  manualActionRequiredCount Int @default(0)
+
+  errorMessage String?
+
+  findings ReconciliationFinding[]
+
+  @@index([scope, startedAt])
+  @@index([status])
+}
+
+model ReconciliationFinding {
+  id    String @id @default(uuid())
+  runId String
+
+  outcome ReconciliationOutcome
+
+  /// What was compared, e.g. `subscription.quantity`.
+  checkKey   String
+  entityType String
+  entityId   String
+  tenantId   String?
+
+  /// Both sides, as strings, so a numeric and a status difference are stored
+  /// the same way and a report does not need per-check columns.
+  expectedValue String?
+  actualValue   String?
+
+  detail String?
+
+  /// What the reconciler did about it, when it did anything.
+  autoFixApplied Boolean   @default(false)
+  autoFixDetail  String?
+  resolvedAt     DateTime?
+
+  createdAt DateTime @default(now())
+
+  run ReconciliationRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([runId, outcome])
+  @@index([entityType, entityId])
+  @@index([tenantId])
 }
