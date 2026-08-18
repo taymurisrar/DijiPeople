@@ -16,7 +16,7 @@
 | Open HIGH | 5 |
 | Awaiting Architect triage | 0 |
 | Owner decisions pending | 2 |
-| QA coverage gaps | 60 |
+| QA coverage gaps | 69 |
 | Scenarios blocked by infrastructure | 0 |
 
 ## Active Sessions
@@ -146,6 +146,15 @@ gap into scope — or files a `TEST_GAP` item and says so.
 | [[PLAN-013-landing|landing]] | E2E |
 | [[PLAN-013-landing|landing]] | SECURITY |
 | [[PLAN-013-landing|landing]] | PERFORMANCE |
+| [[PLAN-014-outbox|outbox]] | UNIT |
+| [[PLAN-014-outbox|outbox]] | INTEGRATION |
+| [[PLAN-014-outbox|outbox]] | E2E |
+| [[PLAN-014-outbox|outbox]] | PERFORMANCE |
+| [[PLAN-015-legal|legal]] | UNIT |
+| [[PLAN-015-legal|legal]] | API |
+| [[PLAN-015-legal|legal]] | E2E |
+| [[PLAN-015-legal|legal]] | BROWSER |
+| [[PLAN-015-legal|legal]] | SECURITY |
 
 ## Backlog Health
 
