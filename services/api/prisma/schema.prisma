@@ -13134,6 +13134,25 @@ model SubscriptionOrder {
   /// provisioning re-asserts it inside its own transaction.
   requestedSlug String? @unique
 
+  /// Proof that the person buying controls the address the workspace owner will
+  /// be created at, established **before** payment.
+  ///
+  /// A card proves somebody can pay. It does not prove they typed their own
+  /// email, and the owner address is the one credential that can never be
+  /// corrected from inside the workspace — get it wrong and nobody can sign in
+  /// to fix it. Verifying first means nobody is charged for a workspace they
+  /// cannot reach, and `paidAt` implies `ownerEmailVerifiedAt`.
+  ownerEmailVerifiedAt DateTime?
+
+  /// The code is a credential and is stored hashed, never in plaintext, for the
+  /// same reason a password is. Cleared once consumed.
+  emailVerificationCodeHash String?
+  emailVerificationExpiresAt DateTime?
+  emailVerificationSentAt    DateTime?
+  /// Wrong guesses against the *current* code. Reset on reissue, capped so a
+  /// six-digit code cannot be walked.
+  emailVerificationAttempts  Int      @default(0)
+
   /// When an unpaid order stops being offered and becomes ABANDONED.
   expiresAt DateTime?
 

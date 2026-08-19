@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**129 records** — 70 bugs under [`docs/bugs/`](../bugs/), 59 non-bug items under [`items/`](items/).
+**130 records** — 70 bugs under [`docs/bugs/`](../bugs/), 60 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,20 +13,20 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 33 |
+| Open (active work) | 34 |
 | Blocked | 0 |
 | Deferred | 5 |
-| Awaiting a product decision | 3 |
-| Completed / closed | 88 |
+| Awaiting a product decision | 2 |
+| Completed / closed | 89 |
 | **Open CRITICAL** | **0** |
-| **Open HIGH** | **8** |
+| **Open HIGH** | **9** |
 | **Awaiting Architect triage** | **1** |
 
 ## Open by severity
 
 | Severity | Count |
 |---|---|
-| HIGH | 8 |
+| HIGH | 9 |
 | MEDIUM | 19 |
 | LOW | 6 |
 
@@ -34,7 +34,7 @@ see [`README.md`](README.md) for why.
 
 | Type | Count |
 |---|---|
-| ARCHITECTURE | 1 |
+| ARCHITECTURE | 2 |
 | DATA_INTEGRITY | 1 |
 | DOCUMENTATION | 2 |
 | FOLLOW_UP | 4 |
@@ -51,12 +51,12 @@ see [`README.md`](README.md) for why.
 |---|---|
 | OPEN | 4 |
 | DEFERRED | 5 |
-| PRODUCT_DECISION | 3 |
+| PRODUCT_DECISION | 2 |
 | FIXED | 3 |
 | VERIFIED | 62 |
 | NEW | 1 |
-| READY | 25 |
-| DONE | 26 |
+| READY | 26 |
+| DONE | 27 |
 
 ## All records
 
@@ -109,7 +109,8 @@ see [`README.md`](README.md) for why.
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | READY | api:tenant-control-plane | FIX_NOW |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | READY | apps/web, e2e | PLAN_REQUIRED |
 | [ITEM-0047](../../docs/backlog/items/ITEM-0047-database-e2e-suites-fail-against-an-ephemeral-postgresql.md) | Database e2e suites fail against an ephemeral PostgreSQL | TEST_GAP | HIGH | P1 | READY | services/api/test, .github/workflows, database | PLAN_REQUIRED |
-| [ITEM-0062](../../docs/backlog/items/ITEM-0062-no-multi-tenant-membership-one-user-belongs-to-one-tenant-so.md) | No multi-tenant membership — one user belongs to one tenant, so discovery and switching cannot exist | ARCHITECTURE | HIGH | P1 | PRODUCT_DECISION | auth, users, tenant-domains, web | PRODUCT_DECISION |
+| [ITEM-0062](../../docs/backlog/items/ITEM-0062-no-multi-tenant-membership-one-user-belongs-to-one-tenant-so.md) | No multi-tenant membership — one user belongs to one tenant, so discovery and switching cannot exist | ARCHITECTURE | HIGH | P1 | READY | auth, users, tenant-domains, web | PLAN_REQUIRED |
+| [ITEM-0063](../../docs/backlog/items/ITEM-0063-self-service-checkout-must-prove-the-owner-email-before-char.md) | Self-service checkout must prove the owner email before charging | SECURITY | HIGH | P1 | DONE | billing, platform-communications, landing | DONE |
 | [ITEM-0048](../../docs/backlog/items/ITEM-0048-replace-or-contain-active-win-and-the-xlsx-export-path.md) | Replace or contain active-win and the xlsx export path | SECURITY | HIGH | P2 | READY | apps/agent-desktop, services/api/src/common/excel, package-lock.json | PLAN_REQUIRED |
 | [BUG-0051](../../docs/bugs/BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state.md) | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | P1 | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |
 | [ITEM-0018](../../docs/backlog/items/ITEM-0018-plans-and-prices-have-no-draft-publish-or-archive-lifecycle.md) | Plans and prices have no draft, publish or archive lifecycle | ARCHITECTURE | MEDIUM | P1 | DONE | services/api/prisma, api:super-admin, apps/admin, apps/landing | DONE |

@@ -2,8 +2,10 @@ import {
   Body,
   Controller,
   Get,
+  BadRequestException,
   Header,
   Headers,
+  HttpCode,
   NotFoundException,
   Param,
   ParseUUIDPipe,
@@ -15,9 +17,11 @@ import { ConfigService } from '@nestjs/config';
 import { Public } from '../../../common/decorators/public.decorator';
 import { PublicRateLimitGuard } from '../../../common/guards/public-rate-limit.guard';
 import { CheckWorkspaceAddressDto } from '../dto/check-workspace-address.dto';
+import { VerifyOwnerEmailDto } from '../dto/verify-owner-email.dto';
 import { PublicSubscribeDto } from '../dto/public-subscribe.dto';
 import { BillingService } from '../services/billing.service';
 import { CommercialConfigService } from '../services/commercial-config.service';
+import { OwnerEmailVerificationService } from '../services/owner-email-verification.service';
 import { SubscriptionOrderService } from '../services/subscription-order.service';
 
 /*
@@ -37,6 +41,7 @@ export class PublicBillingController {
     private readonly commercialConfig: CommercialConfigService,
     private readonly configService: ConfigService,
     private readonly subscriptionOrders: SubscriptionOrderService,
+    private readonly ownerEmailVerification: OwnerEmailVerificationService,
   ) {}
 
   @Public()
@@ -157,6 +162,60 @@ export class PublicBillingController {
       available: result.available,
       reason: result.reason ?? null,
     };
+  }
+
+  /**
+   * Send the owner a fresh verification code.
+   *
+   * Answers the same way whether the code was sent, suppressed as too soon, or
+   * the address was already verified — a caller who can tell those apart learns
+   * whether an order exists and whether its owner has confirmed. Only a session
+   * that never existed is a 404, because the browser has to be able to tell a
+   * dead wizard from a working one.
+   */
+  @Public()
+  @Post('onboarding/:onboardingId/verification-code')
+  @HttpCode(202)
+  async sendVerificationCode(
+    @Param('onboardingId', new ParseUUIDPipe({ version: '4' }))
+    onboardingId: string,
+  ) {
+    const result = await this.ownerEmailVerification.issueCode(onboardingId);
+
+    if (!result.issued && result.reason === 'NOT_FOUND') {
+      throw new NotFoundException({
+        code: 'ONBOARDING_SESSION_NOT_FOUND',
+        message: 'This onboarding session is no longer active.',
+      });
+    }
+
+    return { accepted: true };
+  }
+
+  /** Check the code the owner typed. */
+  @Public()
+  @Post('onboarding/:onboardingId/verify-email')
+  @HttpCode(200)
+  async verifyOwnerEmail(
+    @Param('onboardingId', new ParseUUIDPipe({ version: '4' }))
+    onboardingId: string,
+    @Body() dto: VerifyOwnerEmailDto,
+  ) {
+    const result = await this.ownerEmailVerification.verifyCode(
+      onboardingId,
+      dto.code,
+    );
+
+    if (!result.ok) {
+      // 400 for every failure, including an unknown session. A 404 here would
+      // separate "no such order" from "wrong code" for an anonymous caller.
+      throw new BadRequestException({
+        code: result.code,
+        message: result.message,
+      });
+    }
+
+    return { verified: true };
   }
 
   /**

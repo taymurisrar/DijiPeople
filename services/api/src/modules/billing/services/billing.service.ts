@@ -25,6 +25,7 @@ import {
 } from '../../../common/utils/slug.util';
 import { generateTenantCode } from '../../../common/utils/tenant-code.util';
 import { StripeBillingService } from './stripe-billing.service';
+import { OwnerEmailVerificationService } from './owner-email-verification.service';
 import { SubscriptionOrderService } from './subscription-order.service';
 import {
   calculateSeatPricing,
@@ -43,6 +44,7 @@ export class BillingService {
     private readonly stripeBillingService: StripeBillingService,
     private readonly configService: ConfigService,
     private readonly subscriptionOrders: SubscriptionOrderService,
+    private readonly ownerEmailVerification: OwnerEmailVerificationService,
   ) {}
 
   async getPublicPlans() {
@@ -288,6 +290,43 @@ export class BillingService {
       message,
       requestedSlug: input.requestedSlug ?? null,
     });
+
+    /*
+     * The verification gate, and the reason this endpoint no longer returns a
+     * checkout URL on the first call.
+     *
+     * A gate that only one path respects is not a gate. If this endpoint kept
+     * creating a Stripe session directly while a separate verified route existed
+     * beside it, the unverified route would simply be the one anybody used. So
+     * the first submission opens the order, mails a code and stops; the caller
+     * verifies, then asks for checkout.
+     *
+     * Verified orders fall straight through, which is what makes a resubmission
+     * after verification — a refresh, a back-button, a retried payment — behave
+     * exactly as it did before.
+     */
+    const verifiedOrder = await this.prisma.subscriptionOrder.findUnique({
+      where: { id: order.orderId },
+      select: { ownerEmailVerifiedAt: true },
+    });
+
+    if (!verifiedOrder?.ownerEmailVerifiedAt) {
+      const issued = await this.ownerEmailVerification.issueCode(order.orderId);
+      return {
+        submitted: true,
+        verificationRequired: true as const,
+        onboardingId: order.orderId,
+        orderNumber: order.orderNumber,
+        // Present so the UI can say "we already sent one, check your inbox"
+        // rather than implying a fresh mail it did not send.
+        codeSent: issued.issued,
+        checkoutSessionId: null,
+        url: null,
+        tenantId: null,
+        leadId: null,
+        reused: order.reused,
+      };
+    }
 
     // A repeated submission that already has a live Stripe session is sent
     // back to that session rather than being given a second one.

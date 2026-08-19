@@ -10,8 +10,8 @@ CREATED_AT: 2026-08-18
 AFFECTED_MODULES: [super-admin, tenant-domains, tenant-control-plane, auth, billing, notifications, legal, landing, web, admin]
 AGENTS: [Architect, Database, Backend/API, Frontend, UI/UX, Integration, Security, QA, Reviewer, Integrator]
 DEPENDENCIES: origin/develop 494c44d; TASK-0007 WP-01..WP-10, WP-12
-CURRENT_PACKAGE: WP-02
-COMPLETED_PACKAGES: [WP-01, WP-03, WP-10]
+CURRENT_PACKAGE: WP-04
+COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-10]
 BLOCKED_PACKAGES: [WP-06]
 OWNER_DECISIONS: 4
 FINAL_STATUS:
@@ -146,7 +146,7 @@ Both are recorded here rather than silently fixed, per the retrieval contract.
 | WP_ID | TITLE | STATUS | DEPENDENCIES | AGENTS | BRANCH | SHA | QA_STATUS | CI_STATUS | MERGE_STATUS |
 |---|---|---|---|---|---|---|---|---|---|
 | WP-01 | Onboarding draft model, slug reservation and session-bound availability API | DONE | — | Database, Backend/API, Security | agent/self-service-onboarding-provisioning | pending | PASS | NOT_RUN | NOT_STARTED |
-| WP-02 | Email verification for the self-service Tenant Owner | NOT_STARTED | WP-01 | Backend/API, Security, Integration | agent/self-service-onboarding-provisioning | — | NOT_RUN | NOT_RUN | NOT_STARTED |
+| WP-02 | Email verification for the self-service Tenant Owner | DONE | WP-01 | Backend/API, Security, Integration | agent/self-service-onboarding-provisioning | pending | PASS | NOT_RUN | NOT_STARTED |
 | WP-03 | Onboarding status API for the provisioning experience | DONE | WP-01 | Backend/API | agent/self-service-onboarding-provisioning | pending | PASS | NOT_RUN | NOT_STARTED |
 | WP-04 | Public onboarding wizard — organization, workspace, owner, agreements, review | NOT_STARTED | WP-01, WP-02 | Frontend, UI/UX | agent/self-service-onboarding-provisioning | — | NOT_RUN | NOT_RUN | NOT_STARTED |
 | WP-05 | Provisioning progress and workspace-ready experience | NOT_STARTED | WP-03, WP-04 | Frontend, UI/UX | agent/self-service-onboarding-provisioning | — | NOT_RUN | NOT_RUN | NOT_STARTED |
@@ -245,7 +245,7 @@ checkout that provisions the wrong tenant. Plan:
 - **Blocked work:** WP-02 is now a gate on the checkout transition, not a
   post-provisioning step. WP-04's step order follows from it.
 
-### OD-04 — is one identity allowed to hold several workspaces? — **OPEN**
+### OD-04 — is one identity allowed to hold several workspaces? — **DECIDED**
 
 - **Question:** `User` is `@@unique([tenantId, email])` with a required
   `tenantId`. The same person in two workspaces is two rows with two passwords,
@@ -262,8 +262,18 @@ checkout that provisions the wrong tenant. Plan:
 - **Architect position:** build it, with **no automatic merging** — existing
   rows each become their own membership, and consolidation is a deliberate,
   audited act per identity. That keeps the unsafe direction closed by default.
-- Recorded as [[ITEM-0062]], with the design sketch and the invariants any
-  implementation must preserve.
+- **Owner decision, 2026-08-19: one person.** Build identity + membership,
+  sequenced **after WP-02/04/05**, and a known identity made owner of a second
+  workspace **reuses its credentials with no activation step**.
+- **The data made this cheap.** A read-only count found 5 emails spanning more
+  than one tenant and every one is a seed identity (`@dijipeople.local`, demo
+  tenant + "Maseer Tech"). No real customer shares an email across tenants, so
+  the migration is a *link*, not a *merge* — and it only gets harder once the
+  first real duplicate exists.
+- Design and invariants in [[ITEM-0062]]. The load-bearing one: the JWT stays
+  tenant-scoped, so `JwtAuthGuard` and every service reading `user.tenantId` are
+  untouched. Login gains a step in front of token issuance; nothing behind it
+  moves.
 
 ## Repository Health
 
@@ -394,12 +404,40 @@ before WP-01 writes `schema.prisma`.
   Four of this record's rows have now been withdrawn for one recurring reason:
   presence of code read as presence of behaviour. Pages that render, endpoints
   that respond, events that are emitted — none of it proves the path completes.
+- 2026-08-19 — **OD-04 answered: one person.** Build identity + membership after
+  WP-02/04/05; a known identity made owner of a second workspace reuses its
+  credentials with no activation step. A read-only count settled the risk that
+  made it a product decision: the only cross-tenant duplicate emails in the
+  database are five seed identities, so the migration is a link and not a merge.
+  [[ITEM-0062]] moves to `READY`; WP-06 stays blocked on it by sequence, not by
+  uncertainty.
+- 2026-08-19 — **WP-02 done.** `paidAt` now implies `ownerEmailVerifiedAt`. Six
+  digits from `randomInt`, stored hashed and compared in constant time, five
+  attempts per code, resends throttled per order rather than per IP — the abuse
+  it stops is one order mailing one victim repeatedly, which an IP limit would
+  not notice.
+
+  **The gate lives inside `createPublicSubscriptionCheckout`, not beside it.**
+  Adding a verified route next to the existing one would have left the
+  unverified route as the one everybody kept using; a gate with a way around it
+  is not a gate. So the first submission opens the order, mails a code and
+  returns no checkout URL, and the same request repeated after verification is
+  allowed through.
+
+  Mutation-proven: neutering the condition fails 7 of the 12 cases. The
+  load-bearing assertion is that the **Stripe session count is unchanged** —
+  returning a warning while still handing back a checkout URL would satisfy a
+  weaker test and none of the requirement. [[ITEM-0063]], [[REG-068]],
+  [[QA-BILLING-010]].
+
+  The landing form gained the verification step in the same change, so the
+  branch can still complete a purchase. WP-04 remains the full wizard.
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-tasks.mjs; edit the record, not this block -->
 
 ## Related
 
-- Records — [[BUG-0017]], [[BUG-0075]], [[BUG-0077]], [[BUG-0078]], [[ITEM-0013]], [[ITEM-0047]], [[ITEM-0060]], [[ITEM-0061]], [[ITEM-0062]]
+- Records — [[BUG-0017]], [[BUG-0075]], [[BUG-0077]], [[BUG-0078]], [[ITEM-0013]], [[ITEM-0047]], [[ITEM-0060]], [[ITEM-0061]], [[ITEM-0062]], [[ITEM-0063]]
 - Modules — [[tenant-control-plane]], [[billing]], [[notifications]], [[legal]]
 
 <!-- GRAPH:END -->

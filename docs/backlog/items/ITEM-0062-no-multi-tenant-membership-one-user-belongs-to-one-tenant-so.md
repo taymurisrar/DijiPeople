@@ -3,13 +3,13 @@ ID: ITEM-0062
 aliases: [ITEM-0062]
 Title: No multi-tenant membership — one user belongs to one tenant, so discovery and switching cannot exist
 Type: ARCHITECTURE
-Status: PRODUCT_DECISION
+Status: READY
 Priority: P1
 Severity: HIGH
 AffectedModules: [auth, users, tenant-domains, web]
 Source: ARCHITECT
 OwnerAgent: architect
-ArchitectDisposition: PRODUCT_DECISION
+ArchitectDisposition: PLAN_REQUIRED
 CreatedAt: 2026-08-19
 UpdatedAt: 2026-08-19
 RelatedBug: 
@@ -93,6 +93,66 @@ The shape, if it is approved:
 4. Discovery and switching then become the thin frontend work the brief assumes.
 
 Step 3 is the risk. Everything else is mechanical.
+
+## Owner decision — 2026-08-19
+
+**Same email in two tenants is one person.** Build identity + membership;
+sequence it after TASK-0008 WP-02/04/05; and an existing identity made owner of
+a second workspace **reuses its credentials with no activation step**.
+
+### What the data says about the migration
+
+Read-only count against the development database at the time of the decision:
+7 tenants, 19 users, and **5 emails appearing in more than one tenant — every
+one of them a seed identity**:
+
+| email | tenants |
+|---|---|
+| `ceo@dijipeople.local` | DijiPeople Demo Company *(seed-demo)*, Maseer Tech |
+| `employee@dijipeople.local` | same pair |
+| `hr@dijipeople.local` | same pair |
+| `manager@dijipeople.local` | same pair |
+| `recruiter@dijipeople.local` | same pair |
+
+**No real customer currently shares an email across tenants.** The risk that
+made this a product decision — merging two rows that might be two different
+people — does not exist in the data yet. That is the argument for doing it now
+rather than later: today the migration is a *link*, not a *merge*, and it only
+gets harder once the first real duplicate appears.
+
+Step 3 above is therefore downgraded from "the risk" to "the reason to hurry".
+
+### Why `User` stays tenant-scoped
+
+`User` carries `status`, roles, `businessUnitId` and the employee link, all
+legitimately per tenant — somebody disabled at one workspace must stay disabled
+there while active at another. Making `User` global would push every one of
+those onto a membership table anyway and change every query joining `User` by
+`tenantId`: the same end state, far larger blast radius.
+
+So the split is **credentials global, profile and authorisation per tenant**:
+
+```text
+Identity (global)              User (per tenant, unchanged in meaning)
+  id                             id
+  email          @unique         tenantId
+  passwordHash                   identityId   <- new
+  mfaSecret                      status, roles, employeeId
+  emailVerifiedAt                @@unique([tenantId, email])   kept
+```
+
+The property that makes this survivable: **the JWT stays tenant-scoped**.
+`request.user.tenantId` keeps meaning exactly one tenant, `JwtAuthGuard` is
+untouched, and no service or RBAC scope changes. Login gains a step in front of
+token issuance; nothing behind it moves.
+
+### Second workspace for an existing identity
+
+No activation token and no new password. They have already proved who they are,
+so provisioning creates the `User`, links it to the existing `Identity`, and
+sends "your new workspace is ready" — which is also what the brief asks for:
+*"If the Owner identity already exists, do not unnecessarily force password
+recreation."*
 
 ## Acceptance Criteria
 

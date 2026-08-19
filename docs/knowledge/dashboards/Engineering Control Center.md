@@ -13,9 +13,9 @@
 | Blocked work packages | 2 |
 | Sessions declaring a schema write | 1 |
 | Open CRITICAL | **0** |
-| Open HIGH | 8 |
+| Open HIGH | 9 |
 | Awaiting Architect triage | 1 |
-| Owner decisions pending | 3 |
+| Owner decisions pending | 2 |
 | QA coverage gaps | 88 |
 | Scenarios blocked by infrastructure | 0 |
 
@@ -34,7 +34,7 @@
 |---|---|---|---|---|---|---|---|
 | [[TASK-0005-dijipeople-global-technical-remediation|TASK-0005]] | DijiPeople Global Technical Remediation | BUG | PROGRAM | 3/11 | WP-09 | WP-04, WP-06, WP-07, WP-08, WP-10 | — |
 | [[TASK-0007-commercial-platform-completion-transactional-legal-and-lifec|TASK-0007]] | Commercial platform completion — transactional, legal and lifecycle half | FEATURE | PROGRAM | 10/16 | WP-11 | WP-13 | WP-15 |
-| [[TASK-0008-self-service-customer-onboarding-tenant-provisioning-domain-|TASK-0008]] | Self-service customer onboarding, tenant provisioning, domain routing and central login | FEATURE | LARGE | 3/10 | WP-02 | WP-02, WP-07 | WP-06 |
+| [[TASK-0008-self-service-customer-onboarding-tenant-provisioning-domain-|TASK-0008]] | Self-service customer onboarding, tenant provisioning, domain routing and central login | FEATURE | LARGE | 4/10 | WP-04 | WP-04, WP-07 | WP-06 |
 
 ## Branch model
 
@@ -83,7 +83,6 @@ _None. Nothing open at CRITICAL._
 Questions where the engineering is understood and the **product answer is**
 **not**. No agent may resolve one by implementing a side of it.
 
-- [[ITEM-0062-no-multi-tenant-membership-one-user-belongs-to-one-tenant-so|ITEM-0062]] — **No multi-tenant membership — one user belongs to one tenant, so discovery and switching cannot exist**
 - [[ITEM-0032-recompute-productivity-totals-inflated-by-heartbeat-replays|ITEM-0032]] — **Recompute productivity totals inflated by heartbeat replays**
 - [[ITEM-0053-publish-privacy-policy-and-terms-for-the-public-landing-site|ITEM-0053]] — **Publish privacy policy and terms for the public landing site**
 
@@ -187,10 +186,10 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 33 |
+| Open total | 34 |
 | Blocked | 0 |
 | Deferred | 5 |
-| Awaiting a product decision | 3 |
+| Awaiting a product decision | 2 |
 | Awaiting Architect triage | 1 |
 
 **A record nobody has triaged is work nobody has decided about.** No ordinary record may stay `TRIAGE_REQUIRED` at the end of a task.

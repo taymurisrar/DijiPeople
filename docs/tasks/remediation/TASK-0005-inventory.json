@@ -6482,14 +6482,14 @@
       "title": "No multi-tenant membership — one user belongs to one tenant, so discovery and switching cannot exist",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "PRODUCT_DECISION",
+      "current_status": "READY",
       "current_evidence": {
         "paths": [
           "services/api/prisma/schema.prisma",
           "services/api/src/modules/auth/auth.service.ts",
           "services/api/src/modules/tenant-domains/workspace-resolution.service.ts"
         ],
-        "verification_scope": "Verified at 7480756: User is @@unique([tenantId, email]) with a required tenantId, no membership model exists, AuthService throws AUTH_TENANT_REQUIRED without tenant context, and listWorkspacesForUser returns a one-element array by construction."
+        "verification_scope": "Owner decision taken 2026-08-19: same email in two tenants is one person; build identity + membership after WP-02/04/05. A read-only count found the only cross-tenant duplicates are five seed identities, so the migration is a link rather than a merge."
       },
       "affected_modules": [
         "auth",
@@ -6508,9 +6508,58 @@
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "YES",
-      "architect_disposition": "PRODUCT_DECISION",
+      "architect_disposition": "PLAN_REQUIRED",
       "verification_result": {
         "result": "PRODUCT_DECISION",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "ITEM-0063",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0063-self-service-checkout-must-prove-the-owner-email-before-char.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-08-19",
+        "updated_at": "2026-08-19",
+        "resolved_at": ""
+      },
+      "type": "SECURITY",
+      "title": "Self-service checkout must prove the owner email before charging",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "DONE",
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/billing/services/owner-email-verification.service.ts",
+          "services/api/test/payment-authorised-provisioning.e2e-spec.ts"
+        ],
+        "verification_scope": "Implemented and mutation-tested: neutering the gate fails 7 of 12 cases, including the assertion that no Stripe session is created."
+      },
+      "affected_modules": [
+        "billing",
+        "platform-communications",
+        "landing"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": "TASK-0008 WP-02 under owner decision OD-03."
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [
+        "REG-068"
+      ],
+      "qa_scenarios": [
+        "QA-BILLING-010"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
+      "verification_result": {
+        "result": "DONE",
         "classification": "TERMINAL_AS_DOCUMENTED",
         "finding_ids": []
       }

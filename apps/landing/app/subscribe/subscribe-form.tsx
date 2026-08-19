@@ -45,6 +45,10 @@ export function SubscribeForm({
   });
   const [status, setStatus] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Set once the first submission stops at the verification gate. Its presence
+  // is what switches this form from "enter details" to "enter code".
+  const [onboardingId, setOnboardingId] = useState<string | null>(null);
+  const [code, setCode] = useState("");
 
   const selectedPlan =
     plans.find((plan) => plan.id === planId) ?? plans[0] ?? null;
@@ -92,12 +96,97 @@ export function SubscribeForm({
     const payload = await response.json().catch(() => null);
     setIsSubmitting(false);
 
-    if (!response.ok || !payload?.url) {
+    if (!response.ok) {
+      setStatus(payload?.message ?? "Unable to start Stripe Checkout.");
+      return;
+    }
+
+    /*
+     * The owner email must be proved before anyone is charged, so the first
+     * submission returns an onboarding id instead of a checkout URL.
+     * Resubmitting after verification returns the URL — the same request, now
+     * permitted.
+     */
+    if (payload?.verificationRequired) {
+      setOnboardingId(payload.onboardingId as string);
+      setStatus(null);
+      return;
+    }
+
+    if (!payload?.url) {
       setStatus(payload?.message ?? "Unable to start Stripe Checkout.");
       return;
     }
 
     window.location.assign(payload.url);
+  }
+
+  /** Send the typed code, then re-submit to obtain the checkout URL. */
+  async function verifyCode(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!onboardingId || !selectedPrice) return;
+
+    setIsSubmitting(true);
+    setStatus(null);
+
+    const response = await fetch(
+      `/api/public/onboarding/${onboardingId}/verify-email`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code }),
+      },
+    );
+    const payload = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      setIsSubmitting(false);
+      setStatus(payload?.message ?? "That code is not correct.");
+      return;
+    }
+
+    /*
+     * Verified, so the original submission is now allowed through. Reusing the
+     * same endpoint rather than adding a separate "resume checkout" one keeps a
+     * single path to a Stripe session, which is what stops an unverified caller
+     * finding a second way in.
+     */
+    const checkout = await fetch("/api/public/subscribe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...form,
+        planPriceId: selectedPrice.id,
+        seatQuantity: effectiveSeatQuantity,
+        phone: form.phone || undefined,
+        message: form.message || undefined,
+      }),
+    });
+    const checkoutPayload = await checkout.json().catch(() => null);
+    setIsSubmitting(false);
+
+    if (!checkout.ok || !checkoutPayload?.url) {
+      setStatus(checkoutPayload?.message ?? "Unable to start Stripe Checkout.");
+      return;
+    }
+
+    window.location.assign(checkoutPayload.url);
+  }
+
+  async function resendCode() {
+    if (!onboardingId) return;
+    setStatus(null);
+    const response = await fetch(
+      `/api/public/onboarding/${onboardingId}/verification-code`,
+      { method: "POST" },
+    );
+    // Deliberately the same message either way. Telling the visitor whether a
+    // code was actually sent would confirm whether that address is mid-purchase.
+    setStatus(
+      response.ok
+        ? "If that address needs a new code, one is on its way."
+        : "Unable to send a new code right now.",
+    );
   }
 
   if (error) {
@@ -113,6 +202,75 @@ export function SubscribeForm({
       <div className="rounded-[24px] border border-dashed border-border bg-white p-5 text-sm text-muted">
         No public plans are currently active. Please contact sales.
       </div>
+    );
+  }
+
+  /*
+   * The verification step replaces the form rather than appearing beneath it.
+   * The details are already saved on the order, so leaving them editable would
+   * offer a change that the code in the customer's inbox no longer matches.
+   */
+  if (onboardingId) {
+    return (
+      <form
+        className="max-w-xl rounded-[24px] border border-border bg-white p-6 shadow-sm"
+        onSubmit={verifyCode}
+      >
+        <h2 className="text-xl font-semibold text-foreground">
+          Confirm your email
+        </h2>
+        <p className="mt-2 text-sm leading-6 text-muted">
+          We sent a six-digit code to{" "}
+          <strong className="text-foreground">{form.email}</strong>. Entering it
+          confirms the address your workspace administrator will sign in with.
+          Nothing has been charged yet.
+        </p>
+
+        <label
+          className="mt-5 block text-sm font-medium text-foreground"
+          htmlFor="verification-code"
+        >
+          Verification code
+          <input
+            aria-describedby="verification-code-hint"
+            autoComplete="one-time-code"
+            className="mt-2 w-full rounded-xl border border-border px-3 py-2 text-lg tracking-[0.4em]"
+            id="verification-code"
+            inputMode="numeric"
+            maxLength={6}
+            onChange={(event) => setCode(event.target.value)}
+            pattern="[0-9]*"
+            required
+            value={code}
+          />
+        </label>
+        <p className="mt-2 text-xs text-muted" id="verification-code-hint">
+          The code expires 15 minutes after it was sent.
+        </p>
+
+        {status ? (
+          <p className="mt-4 text-sm text-danger" role="alert">
+            {status}
+          </p>
+        ) : null}
+
+        <div className="mt-5 flex flex-wrap items-center gap-3">
+          <button
+            className="rounded-xl bg-accent px-5 py-3 text-sm font-semibold text-white disabled:opacity-60"
+            disabled={isSubmitting || code.length !== 6}
+            type="submit"
+          >
+            {isSubmitting ? "Confirming…" : "Confirm and continue to payment"}
+          </button>
+          <button
+            className="text-sm font-medium text-accent underline"
+            onClick={() => void resendCode()}
+            type="button"
+          >
+            Send a new code
+          </button>
+        </div>
+      </form>
     );
   }
 

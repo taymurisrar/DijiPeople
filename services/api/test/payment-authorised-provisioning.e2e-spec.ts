@@ -7,6 +7,7 @@ import { SubscriptionOrderService } from '../src/modules/billing/services/subscr
 import { CustomerIdentityService } from '../src/modules/billing/services/customer-identity.service';
 import { TaxBasisService } from '../src/modules/billing/services/tax-basis.service';
 import { OutboxService } from '../src/modules/outbox/outbox.service';
+import { OwnerEmailVerificationService } from '../src/modules/billing/services/owner-email-verification.service';
 import type { PrismaService } from '../src/common/prisma/prisma.service';
 
 /**
@@ -105,11 +106,53 @@ describeWithDatabase()('Payment-authorised provisioning (DB-backed)', () => {
       key === 'LANDING_APP_URL' ? 'https://landing.test' : undefined,
   } as unknown as ConfigService;
 
+  /*
+   * Mail is counted, never sent. The assertion that matters is *whether* a code
+   * was issued, and a real transport would make the suite depend on SMTP.
+   */
+  const sentEmails: Array<{
+    recipient: string;
+    eventCode: string;
+    text?: string;
+  }> = [];
+  const communications = {
+    sendEmail: (input: {
+      recipient: string;
+      eventCode: string;
+      text?: string;
+    }) => {
+      sentEmails.push(input);
+      return Promise.resolve({ sent: true, status: 'LOGGED' });
+    },
+  };
+
+  /**
+   * The code as the buyer would read it, taken out of the mail body.
+   *
+   * Reading it from the email rather than from the database is the point: the
+   * hash in the row cannot be reversed, so a test that could "verify" without
+   * the mail would be proving something the customer's path never does.
+   */
+  function lastIssuedCode() {
+    const email = [...sentEmails]
+      .reverse()
+      .find((sent) => sent.eventCode === 'ONBOARDING_EMAIL_VERIFICATION');
+    const match = /\b(\d{6})\b/.exec(email?.text ?? '');
+    if (!match) throw new Error('No verification code was emailed.');
+    return match[1];
+  }
+
+  const verification = new OwnerEmailVerificationService(
+    prisma as unknown as PrismaService,
+    communications as never,
+  );
+
   const billing = new BillingService(
     prisma as unknown as PrismaService,
     stripe.service as never,
     config,
     orders,
+    verification,
   );
 
   const runId = `pap-${Date.now()}`;
@@ -162,7 +205,8 @@ describeWithDatabase()('Payment-authorised provisioning (DB-backed)', () => {
     await prisma.$disconnect();
   });
 
-  async function subscribe(overrides: Record<string, unknown> = {}) {
+  /** One submission. The first for a buyer stops at the verification gate. */
+  async function submit(overrides: Record<string, unknown> = {}) {
     const result = (await billing.createPublicSubscriptionCheckout({
       planPriceId,
       seatQuantity: 5,
@@ -173,17 +217,46 @@ describeWithDatabase()('Payment-authorised provisioning (DB-backed)', () => {
       ...overrides,
     } as never)) as Record<string, unknown>;
 
-    const order = await prisma.subscriptionOrder.findFirst({
-      where: { stripeCheckoutSessionId: result.checkoutSessionId as string },
-      select: { id: true, customerAccountId: true },
-    });
-    if (order) {
-      createdOrderIds.push(order.id);
+    const orderId =
+      (result.onboardingId as string) ??
+      (
+        await prisma.subscriptionOrder.findFirst({
+          where: {
+            stripeCheckoutSessionId: result.checkoutSessionId as string,
+          },
+          select: { id: true },
+        })
+      )?.id;
+
+    if (orderId) {
+      const order = await prisma.subscriptionOrder.findUniqueOrThrow({
+        where: { id: orderId },
+        select: { id: true, customerAccountId: true },
+      });
+      if (!createdOrderIds.includes(order.id)) createdOrderIds.push(order.id);
       if (!createdCustomerIds.includes(order.customerAccountId)) {
         createdCustomerIds.push(order.customerAccountId);
       }
+      return { result, order };
     }
-    return { result, order };
+    return { result, order: null };
+  }
+
+  /**
+   * The whole buyer journey: submit, read the code out of the mail, verify,
+   * submit again. The second submission is the one that reaches Stripe.
+   */
+  async function subscribe(overrides: Record<string, unknown> = {}) {
+    const first = await submit(overrides);
+    if (!first.result.verificationRequired) return first;
+
+    const outcome = await verification.verifyCode(
+      first.order!.id,
+      lastIssuedCode(),
+    );
+    expect(outcome).toEqual({ ok: true });
+
+    return submit(overrides);
   }
 
   it('creates no tenant, no subscription and no lead before payment', async () => {
@@ -271,5 +344,156 @@ describeWithDatabase()('Payment-authorised provisioning (DB-backed)', () => {
       select: { stripeCustomerId: true },
     });
     expect(customer.stripeCustomerId).toBe(row.stripeCustomerId);
+  });
+
+  /*
+   * The owner-email gate — WP-02.
+   *
+   * The invariant these protect is `paidAt` implies `ownerEmailVerifiedAt`. A
+   * card proves somebody can pay; it proves nothing about whether they typed
+   * their own address, and the owner email is the one credential that cannot be
+   * corrected from inside a workspace nobody can sign in to.
+   */
+  describe('owner email verification gate', () => {
+    it('refuses to open checkout until the owner email is verified', async () => {
+      const sessionsBefore = stripe.created.sessions;
+
+      const { result, order } = await submit({
+        companyName: `Ungated ${runId}`,
+        email: `ungated@maseer-${runId}.com`,
+      });
+
+      expect(result.verificationRequired).toBe(true);
+      expect(result.url).toBeNull();
+      expect(result.checkoutSessionId).toBeNull();
+
+      // The load-bearing assertion: no Stripe session exists, so there is
+      // nothing for the buyer to pay against. A gate that returns a warning
+      // while still handing back a checkout URL is not a gate.
+      expect(stripe.created.sessions).toBe(sessionsBefore);
+
+      const row = await prisma.subscriptionOrder.findUniqueOrThrow({
+        where: { id: order!.id },
+        select: { ownerEmailVerifiedAt: true, emailVerificationSentAt: true },
+      });
+      expect(row.ownerEmailVerifiedAt).toBeNull();
+      expect(row.emailVerificationSentAt).not.toBeNull();
+    });
+
+    it('emails a code to the owner address and nowhere else', async () => {
+      const email = `codeto@maseer-${runId}.com`;
+      await submit({ companyName: `Code Recipient ${runId}`, email });
+
+      const issued = sentEmails.filter(
+        (sent) => sent.eventCode === 'ONBOARDING_EMAIL_VERIFICATION',
+      );
+      expect(issued.at(-1)?.recipient).toBe(email);
+      expect(lastIssuedCode()).toMatch(/^\d{6}$/);
+    });
+
+    it('opens checkout once the code is accepted', async () => {
+      const { result, order } = await subscribe({
+        companyName: `Gated Through ${runId}`,
+        email: `through@maseer-${runId}.com`,
+      });
+
+      expect(result.verificationRequired).toBeUndefined();
+      expect(result.url).toBeTruthy();
+
+      const row = await prisma.subscriptionOrder.findUniqueOrThrow({
+        where: { id: order!.id },
+        select: {
+          ownerEmailVerifiedAt: true,
+          emailVerificationCodeHash: true,
+          stripeCheckoutSessionId: true,
+        },
+      });
+      expect(row.ownerEmailVerifiedAt).not.toBeNull();
+      expect(row.stripeCheckoutSessionId).toBeTruthy();
+      // Consumed. A code that still works after it has been used is a
+      // credential left lying around.
+      expect(row.emailVerificationCodeHash).toBeNull();
+    });
+
+    it('rejects a wrong code and spends an attempt', async () => {
+      const { order } = await submit({
+        companyName: `Wrong Code ${runId}`,
+        email: `wrong@maseer-${runId}.com`,
+      });
+
+      const real = lastIssuedCode();
+      const wrong = real === '000000' ? '111111' : '000000';
+
+      const outcome = await verification.verifyCode(order!.id, wrong);
+      expect(outcome).toMatchObject({
+        ok: false,
+        code: 'VERIFICATION_CODE_INCORRECT',
+      });
+
+      const row = await prisma.subscriptionOrder.findUniqueOrThrow({
+        where: { id: order!.id },
+        select: {
+          emailVerificationAttempts: true,
+          ownerEmailVerifiedAt: true,
+        },
+      });
+      expect(row.emailVerificationAttempts).toBe(1);
+      expect(row.ownerEmailVerifiedAt).toBeNull();
+    });
+
+    it('burns the code after five wrong guesses', async () => {
+      const { order } = await submit({
+        companyName: `Brute Force ${runId}`,
+        email: `brute@maseer-${runId}.com`,
+      });
+      const real = lastIssuedCode();
+      const wrong = real === '000000' ? '111111' : '000000';
+
+      for (let attempt = 0; attempt < 5; attempt += 1) {
+        await verification.verifyCode(order!.id, wrong);
+      }
+
+      // Six digits is a million values; five guesses per code is what keeps
+      // that a wall rather than a speed bump. The *correct* code is refused
+      // now too — the budget belongs to the code, not to the guess.
+      const outcome = await verification.verifyCode(order!.id, real);
+      expect(outcome).toMatchObject({
+        ok: false,
+        code: 'VERIFICATION_ATTEMPTS_EXCEEDED',
+      });
+    });
+
+    it('throttles resends so the endpoint cannot mail-bomb an address', async () => {
+      const { order } = await submit({
+        companyName: `Resend ${runId}`,
+        email: `resend@maseer-${runId}.com`,
+      });
+
+      const again = await verification.issueCode(order!.id);
+      expect(again).toEqual({ issued: false, reason: 'TOO_SOON' });
+    });
+
+    it('treats verifying an already-verified order as success', async () => {
+      const { order } = await subscribe({
+        companyName: `Idempotent ${runId}`,
+        email: `idempotent@maseer-${runId}.com`,
+      });
+
+      // A double-clicked Verify button must not undo the verification or
+      // report a failure the customer cannot act on.
+      const outcome = await verification.verifyCode(order!.id, '000000');
+      expect(outcome).toEqual({ ok: true });
+    });
+
+    it('refuses a code for a session that never existed', async () => {
+      const outcome = await verification.verifyCode(
+        '00000000-0000-4000-8000-000000000000',
+        '123456',
+      );
+      expect(outcome).toMatchObject({
+        ok: false,
+        code: 'ONBOARDING_SESSION_NOT_FOUND',
+      });
+    });
   });
 });
