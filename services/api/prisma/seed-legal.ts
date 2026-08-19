@@ -16,12 +16,15 @@ import { PrismaPg } from '@prisma/adapter-pg';
  * unreviewed legal text in front of a customer. Publishing is a separate,
  * explicit act.
  *
- * TWO THINGS ARE NEVER WRITTEN HERE:
+ * THE LEGAL ENTITY IS NOW NAMED — and it is a real one. Until 2026-08-20 no
+ * document named an operator, because DijiPeople was not incorporated and a page
+ * naming a company that does not exist is worse than one naming nobody. The
+ * business has since supplied the registered details, field by field, and they
+ * appear in `OPERATOR` below. They are the only commercial facts in this file
+ * that came from outside the repository, which is why they are in one constant
+ * rather than scattered through the prose.
  *
- *   A legal entity. DijiPeople is not incorporated, so no document names an
- *   operator, a registration number, a registered office or a tax number. A
- *   page that names nobody is incomplete; a page that names a company that does
- *   not exist is false, and the second is worse.
+ * ONE THING IS STILL NEVER WRITTEN HERE:
  *
  *   A certification. No SOC 2, ISO 27001, HIPAA, GDPR certification, PCI, uptime
  *   SLA or support response time appears anywhere below, because none of them is
@@ -40,33 +43,50 @@ const REVIEW_BANNER = `> **Draft — not published, and not legal advice.**
 > lawyer. It is stored as a DRAFT version and is not served publicly until
 > somebody publishes it deliberately.
 >
-> The operator's legal identity is deliberately absent: no entity is registered
-> yet, and naming one that does not exist would be worse than naming none.`;
+> The operator's legal identity is now stated and is a real registered company.
+> Everything else still needs a lawyer: liability, indemnity, warranties and the
+> dispute clauses are absent rather than drafted, and their absence is the
+> reason this is still a draft.`;
 
 /**
- * The contracting-party clause, as fillable blanks.
+ * The operator, as supplied by the business on 2026-08-20.
  *
- * Previously the entity was simply omitted, which was honest but left the next
- * person to work out *what* was missing and *where* it belonged. These markers
- * say both, so publishing becomes filling five blanks rather than drafting a
- * clause from nothing.
+ * These are facts about a real registered company, not invented values — which
+ * is the line the rest of this file holds. They were confirmed field by field,
+ * including which of the two numbers was the SECP registration and which the
+ * NTN, because putting them the wrong way round in a contract is not a typo.
  *
- * Placeholders are only safer than omission because `LegalService.publish`
- * refuses any version that still contains one — otherwise the failure mode is
- * a live Terms of Service reading `{{LEGAL_ENTITY_NAME}}`, which is worse than
- * either. The guard and these markers are one change and must stay together.
+ * The clause below no longer contains `{{PLACEHOLDER}}` markers, so
+ * `LegalService.publish` will now accept these drafts. **That does not mean
+ * they should be published.** No lawyer has read them; the review banner still
+ * stands and publishing remains a deliberate human act.
+ */
+const OPERATOR = {
+  legalName: 'DijiPeople (SMC-PRIVATE) LIMITED',
+  /** SECP incorporation number. */
+  registrationNumber: '38252358',
+  /** National Tax Number. */
+  taxNumber: '748234783',
+  registeredOffice: 'Hasan Lodge, Block 7, F.B. Area, Karachi, Pakistan',
+  jurisdiction: 'Pakistan',
+} as const;
+
+/**
+ * The contracting-party clause.
+ *
+ * Until the entity existed this was five `{{BLANKS}}` and the publish guard
+ * refused any document still carrying one — a live Terms of Service reading
+ * `{{LEGAL_ENTITY_NAME}}` being worse than one naming nobody. The guard stays:
+ * it now protects the next document somebody drafts rather than these.
  */
 const OPERATOR_BLOCK = `## The operator
 
-This service is provided by **{{LEGAL_ENTITY_NAME}}**, a company registered in
-{{JURISDICTION}} under registration number {{COMPANY_REGISTRATION_NUMBER}}, with
-its registered office at {{REGISTERED_OFFICE_ADDRESS}} and tax registration
-{{TAX_REGISTRATION_NUMBER}}.
+This service is provided by **${OPERATOR.legalName}**, a company incorporated in
+${OPERATOR.jurisdiction} under SECP registration number
+${OPERATOR.registrationNumber}, with its registered office at
+${OPERATOR.registeredOffice} and National Tax Number ${OPERATOR.taxNumber}.
 
-These terms are governed by the laws of {{JURISDICTION}}.
-
-> Every value above is an unfilled blank. This document cannot be published
-> while any remain — see \`LegalService.publish\`.`;
+These terms are governed by the laws of ${OPERATOR.jurisdiction}.`;
 
 type DocumentSeed = {
   type: LegalDocumentType;
