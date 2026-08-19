@@ -13153,6 +13153,14 @@ model SubscriptionOrder {
   /// six-digit code cannot be walked.
   emailVerificationAttempts  Int      @default(0)
 
+  /// What the buyer does — "HR Director", not "Primary Owner".
+  ///
+  /// Carried here because `CustomerContact`, its eventual home, does not exist
+  /// until provisioning runs. `CustomerContact.role` is free text and
+  /// `isPrimaryContact` already carries the relationship, so the role column can
+  /// hold the job title without losing anything.
+  ownerJobTitle String?
+
   /// When an unpaid order stops being offered and becomes ABANDONED.
   expiresAt DateTime?
 

@@ -11,14 +11,18 @@ import {
   ParseUUIDPipe,
   Post,
   Query,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import type { Request } from 'express';
+import { resolveClientIp } from '../../../common/security/client-ip';
 import { Public } from '../../../common/decorators/public.decorator';
 import { PublicRateLimitGuard } from '../../../common/guards/public-rate-limit.guard';
 import { CheckWorkspaceAddressDto } from '../dto/check-workspace-address.dto';
 import { VerifyOwnerEmailDto } from '../dto/verify-owner-email.dto';
 import { PublicSubscribeDto } from '../dto/public-subscribe.dto';
+import { StartOnboardingDto } from '../dto/start-onboarding.dto';
 import { BillingService } from '../services/billing.service';
 import { CommercialConfigService } from '../services/commercial-config.service';
 import { OwnerEmailVerificationService } from '../services/owner-email-verification.service';
@@ -104,18 +108,43 @@ export class PublicBillingController {
   @Post('subscribe')
   createSubscriptionCheckout(
     @Body() dto: PublicSubscribeDto,
+    @Req() request: Request,
     @Headers('cf-ipcountry') cloudflareCountry?: string,
     @Headers('x-vercel-ip-country') vercelCountry?: string,
     @Headers('x-country-code') customCountry?: string,
   ) {
     return this.billingService.createPublicSubscriptionCheckout({
       ...dto,
+      /*
+       * Evidence for the legal acknowledgement, and nothing else. Resolved
+       * through `resolveClientIp` rather than read off `request.ip`, which
+       * behind the landing proxy is one address for the whole world — the same
+       * defect BUG-0032 filed against rate limiting, and it would make the
+       * acceptance record claim every customer agreed from the same machine.
+       */
+      ipAddress: resolveClientIp(request),
+      userAgent: request.headers['user-agent'] ?? null,
       detectedCountry:
         cloudflareCountry?.trim() ||
         vercelCountry?.trim() ||
         customCountry?.trim() ||
         null,
     });
+  }
+
+  /**
+   * Open a draft so the wizard's later steps have a session to bind to.
+   *
+   * No Stripe session, no verification code — a draft is somebody filling in a
+   * form. It exists because the workspace-address check refuses to answer
+   * without a live order, which is the anti-enumeration control described on
+   * that endpoint.
+   */
+  @Public()
+  @Post('onboarding')
+  @HttpCode(201)
+  startOnboarding(@Body() dto: StartOnboardingDto) {
+    return this.billingService.startPublicOnboarding(dto);
   }
 
   /**

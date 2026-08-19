@@ -16,6 +16,37 @@ import { TaxBasisService } from './tax-basis.service';
 /** How long an unpaid order stays offerable before it is abandoned. */
 const ORDER_TTL_MS = 24 * 60 * 60 * 1000;
 
+/**
+ * The organization columns the caller actually supplied.
+ *
+ * Only defined values survive, which is the difference between "not asked" and
+ * "answered as empty". A caller that collects less than a previous one must be
+ * able to reuse a customer without blanking what that customer already knows
+ * about itself, and a caller that collects nothing must produce no keys at all —
+ * otherwise a spread would overwrite good data with undefined.
+ */
+function buildOrganizationProfile(input: OpenOrderInput) {
+  const source = {
+    legalCompanyName: input.organization?.legalCompanyName,
+    registrationNumber: input.organization?.registrationNumber,
+    taxId: input.organization?.taxId,
+    industry: input.organization?.industry,
+    companySize: input.organization?.companySize,
+    estimatedEmployeeCount: input.organization?.estimatedEmployeeCount,
+    addressLine1: input.organization?.addressLine1,
+    addressLine2: input.organization?.addressLine2,
+    city: input.organization?.city,
+    stateProvince: input.organization?.stateProvince,
+    website: input.organization?.website,
+  };
+
+  return Object.fromEntries(
+    Object.entries(source).filter(
+      ([, value]) => value !== undefined && value !== null && value !== '',
+    ),
+  );
+}
+
 /** A unique-constraint violation, whichever constraint it was. */
 function isUniqueViolation(error: unknown) {
   return (
@@ -40,6 +71,33 @@ export type OpenOrderInput = {
    * is absent.
    */
   requestedSlug?: string | null;
+  /**
+   * The organization profile, when the caller collected one.
+   *
+   * Every field maps to a column that already exists on `CustomerAccount`.
+   * Undefined means "not asked", which is different from "answered as empty" —
+   * only defined values are written, so a sales-assisted caller that knows less
+   * never blanks what the wizard already established.
+   */
+  organization?: {
+    legalCompanyName?: string | null;
+    registrationNumber?: string | null;
+    taxId?: string | null;
+    industry?: string | null;
+    companySize?: string | null;
+    estimatedEmployeeCount?: number | null;
+    addressLine1?: string | null;
+    addressLine2?: string | null;
+    city?: string | null;
+    stateProvince?: string | null;
+    website?: string | null;
+  };
+  /** First and last name given separately, rather than split out of one field. */
+  owner?: {
+    firstName?: string | null;
+    lastName?: string | null;
+    jobTitle?: string | null;
+  };
   /**
    * `CHECKOUT` opens an order that is about to be sent to the provider.
    * `DRAFT` opens one that is still being assembled by the wizard.
@@ -244,6 +302,9 @@ export class SubscriptionOrderService {
                 : SubscriptionOrderStatus.PENDING_PAYMENT,
             submissionHash,
             requestedSlug,
+            // Held here only until provisioning creates the CustomerContact
+            // this actually belongs on.
+            ownerJobTitle: input.owner?.jobTitle?.trim() || null,
             expiresAt: new Date(Date.now() + ORDER_TTL_MS),
           },
           select: {
@@ -340,7 +401,21 @@ export class SubscriptionOrderService {
   ): Promise<void> {
     await this.prisma.subscriptionOrder.update({
       where: { id: orderId },
-      data: { stripeCustomerId, stripeCheckoutSessionId },
+      data: {
+        stripeCustomerId,
+        stripeCheckoutSessionId,
+        /*
+         * Gaining a checkout session **is** the transition out of DRAFT.
+         *
+         * The wizard opens a draft early so the workspace-address check has a
+         * session to bind to, and that draft is later reused by the final
+         * submission. Without this the order would carry a live Stripe session
+         * while still reading DRAFT — a status that says "nothing has been sent
+         * to the provider" about an order the provider is already holding, and
+         * a state every downstream reader would have to special-case.
+         */
+        status: SubscriptionOrderStatus.PENDING_PAYMENT,
+      },
     });
   }
 
@@ -391,15 +466,40 @@ export class SubscriptionOrderService {
       country: input.country,
     });
 
+    const profile = buildOrganizationProfile(input);
+
     if (existing) {
+      /*
+       * A returning buyer who has since filled in the wizard knows more about
+       * themselves than the record does. Only defined values are written, so
+       * this fills gaps and never blanks a field the last submission
+       * established — a second order from a caller that collects less must not
+       * erase what the first one learned.
+       */
+      if (Object.keys(profile).length > 0) {
+        await tx.customerAccount.update({
+          where: { id: existing.id },
+          data: profile,
+        });
+      }
       return existing.id;
     }
 
     const contactName = input.contactName.trim();
-    const [firstName, ...rest] = contactName.split(/\s+/);
-    // Null, not "Owner". The old path invented a surname to satisfy a column,
-    // which is the BUG-0021 fabrication pattern on a commercial record.
-    const lastName = rest.join(' ') || null;
+    const [splitFirstName, ...rest] = contactName.split(/\s+/);
+    /*
+     * The two-field name wins when the wizard collected it. Splitting a full
+     * name on whitespace is a guess that happens to work for "Ada Lovelace" and
+     * not for "Saud Al Thani", so when the buyer has been asked properly the
+     * guess is skipped rather than corrected later.
+     *
+     * Null, not "Owner", when there is no surname. The old path invented one to
+     * satisfy a column, which is the BUG-0021 fabrication pattern on a
+     * commercial record.
+     */
+    const firstName = input.owner?.firstName?.trim() || splitFirstName;
+    const lastName =
+      input.owner?.lastName?.trim() || rest.join(' ') || null;
 
     const customer = await tx.customerAccount.create({
       data: {
@@ -412,9 +512,13 @@ export class SubscriptionOrderService {
         contactPhone: input.phone ?? null,
         billingContactEmail: input.email,
         country: input.country.trim(),
-        // industry and companySize are deliberately absent. The subscribe form
-        // does not ask for them, and writing 'Unknown' into a reportable
-        // column makes a fabricated value indistinguishable from a real one.
+        /*
+         * The organization profile is spread in only when the caller collected
+         * one. It stays absent otherwise — writing 'Unknown' into a reportable
+         * column makes a fabricated value indistinguishable from a real answer,
+         * which is exactly what the pre-payment block used to do (BUG-0077).
+         */
+        ...profile,
         status: CustomerAccountStatus.PROSPECT,
         subStatus: 'Checkout started',
         leadId: input.leadId ?? null,

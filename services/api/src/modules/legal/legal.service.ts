@@ -311,4 +311,66 @@ export class LegalService {
       },
     });
   }
+
+  /**
+   * Record several acceptances arising from one act of agreeing.
+   *
+   * **Ids that are not published versions are dropped.** The list arrives from
+   * a browser, and an acknowledgement pointing at a draft — or at a version the
+   * buyer was never shown — is worse than no record, because it looks like
+   * evidence and is not. Dropped rather than thrown, because the realistic cause
+   * is a stale tab across a republish, and refusing somebody's purchase over
+   * that is a poor trade.
+   *
+   * Idempotent per subject and version. The verification gate makes
+   * resubmission the normal path now, and recording the same agreement twice
+   * would read as repeated consent that never happened.
+   */
+  async acknowledgeMany(input: {
+    legalDocumentVersionIds: string[];
+    source: string;
+    leadId?: string | null;
+    customerAccountId?: string | null;
+    tenantId?: string | null;
+    userId?: string | null;
+    subjectEmail?: string | null;
+    ipAddress?: string | null;
+    userAgent?: string | null;
+  }) {
+    const requested = [...new Set(input.legalDocumentVersionIds)];
+    if (!requested.length) return { recorded: 0, skipped: 0 };
+
+    const published = await this.prisma.legalDocumentVersion.findMany({
+      where: { id: { in: requested }, publishedAt: { not: null } },
+      select: { id: true },
+    });
+    const publishable = published.map((row) => row.id);
+
+    const already = await this.prisma.legalDocumentAcknowledgement.findMany({
+      where: {
+        legalDocumentVersionId: { in: publishable },
+        ...(input.customerAccountId
+          ? { customerAccountId: input.customerAccountId }
+          : { subjectEmail: input.subjectEmail?.toLowerCase() ?? null }),
+      },
+      select: { legalDocumentVersionId: true },
+    });
+    const seen = new Set(already.map((row) => row.legalDocumentVersionId));
+    const toRecord = publishable.filter((id) => !seen.has(id));
+
+    for (const legalDocumentVersionId of toRecord) {
+      await this.acknowledge({ ...input, legalDocumentVersionId });
+    }
+
+    if (requested.length !== publishable.length) {
+      this.logger.warn(
+        `Ignored ${requested.length - publishable.length} acknowledgement id(s) naming no published version.`,
+      );
+    }
+
+    return {
+      recorded: toRecord.length,
+      skipped: requested.length - toRecord.length,
+    };
+  }
 }

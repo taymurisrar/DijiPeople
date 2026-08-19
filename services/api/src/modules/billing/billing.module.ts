@@ -23,6 +23,7 @@ import { SubscriptionOrderService } from './services/subscription-order.service'
 import { SeatChangeService } from './services/seat-change.service';
 import { PlanChangeService } from './services/plan-change.service';
 import { OrderActivationService } from './services/order-activation.service';
+import { LegalModule } from '../legal/legal.module';
 import { PlatformCommunicationsModule } from '../platform-communications/platform-communications.module';
 import { OwnerEmailVerificationService } from './services/owner-email-verification.service';
 import { PaymentConfirmedHandler } from './services/payment-confirmed.handler';
@@ -31,7 +32,7 @@ import { RetentionHoldService } from './services/retention-hold.service';
 import { ReconciliationService } from './services/reconciliation.service';
 
 @Module({
-  imports: [AuthModule, AuditModule, PlatformCommunicationsModule],
+  imports: [AuthModule, AuditModule, PlatformCommunicationsModule, LegalModule],
   controllers: [
     BillingController,
     PublicBillingController,

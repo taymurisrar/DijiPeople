@@ -25,6 +25,7 @@ import {
 } from '../../../common/utils/slug.util';
 import { generateTenantCode } from '../../../common/utils/tenant-code.util';
 import { StripeBillingService } from './stripe-billing.service';
+import { LegalService } from '../../legal/legal.service';
 import { OwnerEmailVerificationService } from './owner-email-verification.service';
 import { SubscriptionOrderService } from './subscription-order.service';
 import {
@@ -45,6 +46,7 @@ export class BillingService {
     private readonly configService: ConfigService,
     private readonly subscriptionOrders: SubscriptionOrderService,
     private readonly ownerEmailVerification: OwnerEmailVerificationService,
+    private readonly legalService: LegalService,
   ) {}
 
   async getPublicPlans() {
@@ -217,6 +219,64 @@ export class BillingService {
     };
   }
 
+  /**
+   * Open a draft the wizard can hang its later steps off.
+   *
+   * Exists for one reason: the workspace-address check is session-bound (OD-02),
+   * so the buyer needs an order before they can be told whether `maseer` is
+   * free. Creating it after the organization step is the earliest point at which
+   * enough is known to resolve a customer and price the order honestly.
+   *
+   * It creates **no Stripe session and sends no verification code**. A draft is
+   * somebody filling in a form, and announcing a checkout they have not started
+   * would tell funnel metrics and abandoned-cart follow-up a lie.
+   *
+   * Deliberately shares `openOrder` with the final submission rather than
+   * writing a lighter row of its own: the money, the customer deduplication and
+   * the commercial snapshot must be identical, or the price quoted mid-wizard is
+   * not the price charged at the end.
+   */
+  async startPublicOnboarding(input: {
+    planPriceId: string;
+    seatQuantity: number;
+    companyName: string;
+    contactName: string;
+    email: string;
+    country: string;
+    phone?: string;
+  }) {
+    const planPrice = await this.prisma.planPrice.findUnique({
+      where: { id: input.planPriceId },
+      include: { plan: true },
+    });
+
+    if (
+      !planPrice ||
+      !planPrice.isActive ||
+      !planPrice.plan.isActive ||
+      !planPrice.plan.isPublic
+    ) {
+      throw new NotFoundException('Plan price not found.');
+    }
+
+    const order = await this.subscriptionOrders.openOrder({
+      planPriceId: planPrice.id,
+      seatQuantity: normalizePurchasedSeats(input.seatQuantity, planPrice),
+      companyName: input.companyName.trim(),
+      contactName: input.contactName.trim(),
+      email: input.email.trim().toLowerCase(),
+      phone: input.phone?.trim() || null,
+      country: input.country.trim(),
+      mode: 'DRAFT',
+    });
+
+    return {
+      onboardingId: order.orderId,
+      orderNumber: order.orderNumber,
+      status: order.status,
+    };
+  }
+
   async createPublicSubscriptionCheckout(input: {
     planPriceId: string;
     seatQuantity: number;
@@ -228,6 +288,24 @@ export class BillingService {
     message?: string;
     website?: string;
     requestedSlug?: string;
+    legalCompanyName?: string;
+    registrationNumber?: string;
+    taxId?: string;
+    industry?: string;
+    companySize?: string;
+    estimatedEmployeeCount?: number;
+    addressLine1?: string;
+    addressLine2?: string;
+    city?: string;
+    stateProvince?: string;
+    companyWebsite?: string;
+    ownerFirstName?: string;
+    ownerLastName?: string;
+    ownerJobTitle?: string;
+    acceptedLegalVersionIds?: string[];
+    /** Request evidence for the acceptance record, never used to profile. */
+    ipAddress?: string | null;
+    userAgent?: string | null;
     detectedCountry?: string | null;
   }) {
     if (input.website?.trim()) {
@@ -289,7 +367,51 @@ export class BillingService {
       country,
       message,
       requestedSlug: input.requestedSlug ?? null,
+      organization: {
+        legalCompanyName: input.legalCompanyName,
+        registrationNumber: input.registrationNumber,
+        taxId: input.taxId,
+        industry: input.industry,
+        companySize: input.companySize,
+        estimatedEmployeeCount: input.estimatedEmployeeCount,
+        addressLine1: input.addressLine1,
+        addressLine2: input.addressLine2,
+        city: input.city,
+        stateProvince: input.stateProvince,
+        // Not `input.website`: that field is the honeypot this method returns
+        // early on, so anything reaching here has it empty by definition.
+        website: input.companyWebsite,
+      },
+      owner: {
+        firstName: input.ownerFirstName,
+        lastName: input.ownerLastName,
+        jobTitle: input.ownerJobTitle,
+      },
     });
+
+    /*
+     * Record what was agreed to, against the exact version that was shown.
+     *
+     * Version ids rather than a boolean, because the brief is explicit that
+     * `accepted = true` with no document relationship is not evidence: a
+     * published version is immutable, so an acknowledgement naming one answers
+     * "what did this person actually agree to" for as long as the record exists.
+     *
+     * Recorded here rather than at the verification or payment step so the
+     * evidence exists from the moment the buyer clicked, even for an order that
+     * is abandoned before payment — the acceptance happened whether or not the
+     * purchase completed.
+     */
+    if (input.acceptedLegalVersionIds?.length) {
+      await this.legalService.acknowledgeMany({
+        legalDocumentVersionIds: input.acceptedLegalVersionIds,
+        customerAccountId: order.customerAccountId,
+        subjectEmail: email,
+        source: 'landing:subscribe',
+        ipAddress: input.ipAddress ?? null,
+        userAgent: input.userAgent ?? null,
+      });
+    }
 
     /*
      * The verification gate, and the reason this endpoint no longer returns a
