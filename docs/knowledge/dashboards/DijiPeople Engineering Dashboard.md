@@ -11,7 +11,7 @@
 | Open HIGH | **9** |
 | Open total | 35 |
 | Blocked | 0 |
-| Awaiting a product decision | 2 |
+| Awaiting a product decision | 3 |
 | Deferred | 5 |
 | Completed | 89 |
 | Awaiting Architect triage | 2 |
@@ -38,6 +38,7 @@ _None. Nothing open at CRITICAL._
 
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
+| [[BUG-0080-seeded-prices-bill-a-flat-fee-while-the-terms-say-the-billab|BUG-0080]] | Seeded prices bill a flat fee while the Terms say the billable unit is an active employee | DATA_INTEGRITY | HIGH | PRODUCT_DECISION | billing, super-admin, legal | PRODUCT_DECISION |
 | [[ITEM-0032-recompute-productivity-totals-inflated-by-heartbeat-replays|ITEM-0032]] | Recompute productivity totals inflated by heartbeat replays | DATA_MIGRATION | MEDIUM | PRODUCT_DECISION | api:agent | PRODUCT_DECISION |
 | [[ITEM-0053-publish-privacy-policy-and-terms-for-the-public-landing-site|ITEM-0053]] | Publish privacy policy and terms for the public landing site | PRODUCT_DECISION | MEDIUM | PRODUCT_DECISION | apps/landing | PRODUCT_DECISION |
 
@@ -211,7 +212,7 @@ _None. Nothing has been deployed through the release process._
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 70 |
+| Bug records | 71 |
 | Backlog items | 61 |
 | Known bug patterns | 19 |
 | QA runs | 17 |

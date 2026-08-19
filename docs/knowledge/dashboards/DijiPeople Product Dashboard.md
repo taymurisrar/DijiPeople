@@ -63,6 +63,7 @@ See [[dijipeople-platform-overview|DijiPeople Platform Overview]] for the full p
 Questions where the engineering is understood and the **product answer**
 **is not**. No agent may resolve one by implementing a side of it.
 
+- [[BUG-0080-seeded-prices-bill-a-flat-fee-while-the-terms-say-the-billab|BUG-0080]] — **Seeded prices bill a flat fee while the Terms say the billable unit is an active employee** (HIGH)
 - [[ITEM-0032-recompute-productivity-totals-inflated-by-heartbeat-replays|ITEM-0032]] — **Recompute productivity totals inflated by heartbeat replays** (MEDIUM)
 - [[ITEM-0053-publish-privacy-policy-and-terms-for-the-public-landing-site|ITEM-0053]] — **Publish privacy policy and terms for the public landing site** (MEDIUM)
 
