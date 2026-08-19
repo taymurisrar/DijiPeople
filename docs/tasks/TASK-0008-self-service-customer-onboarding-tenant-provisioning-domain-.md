@@ -10,10 +10,10 @@ CREATED_AT: 2026-08-18
 AFFECTED_MODULES: [super-admin, tenant-domains, tenant-control-plane, auth, billing, notifications, legal, landing, web, admin]
 AGENTS: [Architect, Database, Backend/API, Frontend, UI/UX, Integration, Security, QA, Reviewer, Integrator]
 DEPENDENCIES: origin/develop 494c44d; TASK-0007 WP-01..WP-10, WP-12
-CURRENT_PACKAGE: WP-01
-COMPLETED_PACKAGES: []
+CURRENT_PACKAGE: WP-02
+COMPLETED_PACKAGES: [WP-01]
 BLOCKED_PACKAGES: []
-OWNER_DECISIONS: 1
+OWNER_DECISIONS: 3
 FINAL_STATUS:
 ---
 
@@ -136,7 +136,7 @@ Both are recorded here rather than silently fixed, per the retrieval contract.
 
 | WP_ID | TITLE | STATUS | DEPENDENCIES | AGENTS | BRANCH | SHA | QA_STATUS | CI_STATUS | MERGE_STATUS |
 |---|---|---|---|---|---|---|---|---|---|
-| WP-01 | Onboarding draft model, slug reservation and public availability API | NOT_STARTED | — | Database, Backend/API, Security | agent/self-service-onboarding-provisioning | — | NOT_RUN | NOT_RUN | NOT_STARTED |
+| WP-01 | Onboarding draft model, slug reservation and session-bound availability API | DONE | — | Database, Backend/API, Security | agent/self-service-onboarding-provisioning | pending | PASS | NOT_RUN | NOT_STARTED |
 | WP-02 | Email verification for the self-service Tenant Owner | NOT_STARTED | WP-01 | Backend/API, Security, Integration | agent/self-service-onboarding-provisioning | — | NOT_RUN | NOT_RUN | NOT_STARTED |
 | WP-03 | Onboarding status API for the provisioning experience | NOT_STARTED | WP-01 | Backend/API | agent/self-service-onboarding-provisioning | — | NOT_RUN | NOT_RUN | NOT_STARTED |
 | WP-04 | Public onboarding wizard — organization, workspace, owner, agreements, review | NOT_STARTED | WP-01, WP-02 | Frontend, UI/UX | agent/self-service-onboarding-provisioning | — | NOT_RUN | NOT_RUN | NOT_STARTED |
@@ -184,6 +184,32 @@ what it needs.
   This is the brief's explicit instruction and it is buildable.
 - **Blocked work:** none. Recorded because it is a product commitment that is
   expensive to reverse, not because anything waits on it.
+- **Owner decision, 2026-08-19:** proceed as specified. Implemented in WP-01.
+
+### OD-02 — the slug availability endpoint is session-bound
+
+- **Question:** the brief asks for live availability (`✓ maseer.dijipeople.com is
+  available`) and, separately, that anonymous callers must not be able to
+  enumerate which customers exist. A public availability endpoint is exactly a
+  tenant-existence oracle: walk a list of company names and the "taken" answers
+  map the customer base.
+- **Owner decision, 2026-08-19:** session-bound. Availability answers only for a
+  caller holding a live onboarding order, so a question costs a rate-limited,
+  durably recorded row before it can be asked once.
+- **Consequence:** the wizard must open a `DRAFT` order before the workspace step
+  is interactive. That is why `openOrder` gained a `mode`, rather than a separate
+  draft path being written beside it.
+
+### OD-03 — email verification gates before payment
+
+- **Question:** the brief requires verification before a self-service Tenant
+  Owner is activated, but leaves the position open. Before payment costs
+  conversion; after payment risks a paid customer stranded unverified, which is
+  a support case rather than a form error.
+- **Owner decision, 2026-08-19:** before payment. Paid therefore implies
+  verified, and provisioning never waits on a human.
+- **Blocked work:** WP-02 is now a gate on the checkout transition, not a
+  post-provisioning step. WP-04's step order follows from it.
 
 ## Repository Health
 
@@ -231,12 +257,29 @@ before WP-01 writes `schema.prisma`.
   column the brief asks for already exists on the canonical entity and is simply
   never written by the public path. WP-01's schema footprint drops to the single
   `requestedSlug` column.
+- 2026-08-19 — **WP-01 done.** `SubscriptionOrder.requestedSlug`, nullable-unique,
+  migration `20260819090000`, proven against real PostgreSQL: a second writer
+  blocks on the uncommitted index rather than racing past it, is refused 23505
+  on commit, released holds coexist as NULL, and a released name is reclaimable
+  by exactly one. `openOrder` reserves and releases it in step with
+  `submissionHash`; `abandonExpired` releases it too, without which the sweeper
+  would age an order out of the funnel while leaving its address locked forever.
+  Session-bound availability added per OD-02. 19 DB-backed order tests, 1376 unit
+  tests, 0 lint errors.
+
+  Two things the real database taught that a mock would not have. Prisma 7 with
+  `@prisma/adapter-pg` has **no `meta.target`** on P2002 — the constraint is at
+  `meta.driverAdapterError.cause.constraint.fields` as `['"requestedSlug"']`,
+  quoted — so the collision branch now proves "taken" by querying for the holder
+  instead of parsing an undocumented internal that a patch release can move. And
+  `prisma migrate diff` returned 600 lines for a 2-line change, which is how
+  [[ITEM-0060]] was found.
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-tasks.mjs; edit the record, not this block -->
 
 ## Related
 
-- Records — [[BUG-0017]], [[BUG-0075]], [[ITEM-0013]]
+- Records — [[BUG-0017]], [[BUG-0075]], [[ITEM-0013]], [[ITEM-0060]]
 - Modules — [[tenant-control-plane]], [[billing]], [[notifications]], [[legal]]
 
 <!-- GRAPH:END -->

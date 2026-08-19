@@ -6269,6 +6269,53 @@
         "classification": "TERMINAL_AS_DOCUMENTED",
         "finding_ids": []
       }
+    },
+    {
+      "record_id": "ITEM-0060",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0060-schema-prisma-and-the-applied-migration-history-do-not-agree.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-08-19",
+        "updated_at": "2026-08-19",
+        "resolved_at": ""
+      },
+      "type": "TECH_DEBT",
+      "title": "schema.prisma and the applied migration history do not agree",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "DEFERRED",
+      "current_evidence": {
+        "paths": [
+          "services/api/prisma/schema.prisma",
+          "services/api/prisma/migrations"
+        ],
+        "verification_scope": "Reproduced against a database built purely from the 210 committed migrations: prisma migrate diff returns ~196 statements before any new change. Census recorded on the item. Not yet fixed."
+      },
+      "affected_modules": [
+        "prisma",
+        "timesheets",
+        "attendance",
+        "payroll",
+        "billing"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": "Deferred out of TASK-0008 on purpose: WP-01 needed one column, and folding an estate-wide rename into a feature migration is the mistake this record exists to prevent."
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DEFER",
+      "verification_result": {
+        "result": "DEFERRED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
     }
   ],
   "discovered_findings": [

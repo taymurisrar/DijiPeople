@@ -298,4 +298,188 @@ describeWithDatabase()('Subscription orders (DB-backed)', () => {
     expect(retry.reused).toBe(false);
     expect(retry.orderId).not.toBe(stale.orderId);
   });
+
+  /*
+   * The workspace-address reservation.
+   *
+   * WHY THIS CANNOT BE MOCKED, for the same reason `submissionHash` cannot: the
+   * guarantee is a unique index, and the failure it prevents is two buyers being
+   * told the same name is free and both paying for it. A Prisma double asked
+   * "does maseer exist?" answers from whatever the test set up; only PostgreSQL
+   * refuses the second INSERT, and only PostgreSQL treats released NULL holds as
+   * distinct rather than colliding.
+   */
+  describe('workspace address reservation', () => {
+    it('holds the requested address on the order', async () => {
+      const slug = `maseer-${runId}`.slice(0, 50);
+      const result = await open({
+        companyName: `Maseer ${runId}`,
+        email: `owner@maseer-${runId}.com`,
+        requestedSlug: slug,
+      });
+
+      const order = await prisma.subscriptionOrder.findUniqueOrThrow({
+        where: { id: result.orderId },
+        select: { requestedSlug: true },
+      });
+      expect(order.requestedSlug).toBe(slug);
+    });
+
+    it('refuses a second order for an address already held', async () => {
+      const slug = `contested-${runId}`.slice(0, 50);
+      await open({
+        companyName: `First Claimant ${runId}`,
+        email: `first@contested-${runId}.com`,
+        requestedSlug: slug,
+      });
+
+      // A different company and a different submission hash, so nothing but the
+      // slug index can be what refuses this.
+      await expect(
+        service.openOrder(
+          submission({
+            companyName: `Second Claimant ${runId}`,
+            email: `second@contested-${runId}.com`,
+            requestedSlug: slug,
+          }) as never,
+        ),
+      ).rejects.toMatchObject({
+        response: { code: 'WORKSPACE_SLUG_TAKEN' },
+      });
+    });
+
+    it('releases the address when the order is abandoned, so it can be claimed again', async () => {
+      const slug = `released-${runId}`.slice(0, 50);
+      const first = await open({
+        companyName: `Leaver ${runId}`,
+        email: `leaver@released-${runId}.com`,
+        requestedSlug: slug,
+      });
+
+      await prisma.subscriptionOrder.update({
+        where: { id: first.orderId },
+        data: { expiresAt: new Date(Date.now() - 60_000) },
+      });
+      const swept = await service.abandonExpired();
+      expect(swept).toBeGreaterThan(0);
+
+      const abandoned = await prisma.subscriptionOrder.findUniqueOrThrow({
+        where: { id: first.orderId },
+        select: { requestedSlug: true, status: true },
+      });
+      // Released together with the submission hash. A dead order keeping its
+      // claim would lock the name against everyone, including the person who
+      // abandoned it.
+      expect(abandoned.status).toBe(SubscriptionOrderStatus.ABANDONED);
+      expect(abandoned.requestedSlug).toBeNull();
+
+      const second = await open({
+        companyName: `Newcomer ${runId}`,
+        email: `new@released-${runId}.com`,
+        requestedSlug: slug,
+      });
+      const reclaimed = await prisma.subscriptionOrder.findUniqueOrThrow({
+        where: { id: second.orderId },
+        select: { requestedSlug: true },
+      });
+      expect(reclaimed.requestedSlug).toBe(slug);
+    });
+
+    it('refuses a reserved platform label outright', async () => {
+      await expect(
+        service.openOrder(
+          submission({
+            companyName: `Api Co ${runId}`,
+            email: `api@reserved-${runId}.com`,
+            requestedSlug: 'api',
+          }) as never,
+        ),
+      ).rejects.toMatchObject({
+        response: { code: 'TENANT_SLUG_RESERVED' },
+      });
+    });
+
+    it('answers availability only for a live onboarding session', async () => {
+      const slug = `session-${runId}`.slice(0, 50);
+      const session = await open({
+        companyName: `Session Co ${runId}`,
+        email: `s@session-${runId}.com`,
+      });
+
+      const free = await service.checkSlugAvailability(session.orderId, slug);
+      expect(free).toMatchObject({ session: 'VALID', available: true });
+
+      // An id naming no session is refused without saying which of the two
+      // reasons applied. That distinction is the enumeration leak.
+      const unknown = await service.checkSlugAvailability(
+        '00000000-0000-4000-8000-000000000000',
+        slug,
+      );
+      expect(unknown).toEqual({ session: 'INVALID' });
+    });
+
+    it('stops answering once the session is no longer live', async () => {
+      const expired = await open({
+        companyName: `Expired Session ${runId}`,
+        email: `e@expired-session-${runId}.com`,
+      });
+      await prisma.subscriptionOrder.update({
+        where: { id: expired.orderId },
+        data: { expiresAt: new Date(Date.now() - 60_000) },
+      });
+
+      const answer = await service.checkSlugAvailability(
+        expired.orderId,
+        `anything-${runId}`.slice(0, 50),
+      );
+      expect(answer).toEqual({ session: 'INVALID' });
+    });
+
+    it('reports an address held by another order as taken', async () => {
+      const slug = `taken-${runId}`.slice(0, 50);
+      await open({
+        companyName: `Holder ${runId}`,
+        email: `holder@taken-${runId}.com`,
+        requestedSlug: slug,
+      });
+      const asker = await open({
+        companyName: `Asker ${runId}`,
+        email: `asker@taken-${runId}.com`,
+      });
+
+      const answer = await service.checkSlugAvailability(asker.orderId, slug);
+      expect(answer).toMatchObject({ available: false, reason: 'TAKEN' });
+    });
+
+    it('does not tell a session its own held address is taken', async () => {
+      const slug = `self-${runId}`.slice(0, 50);
+      const mine = await open({
+        companyName: `Self Co ${runId}`,
+        email: `self@self-${runId}.com`,
+        requestedSlug: slug,
+      });
+
+      // The wizard re-checks on every keystroke and on reload. Reporting the
+      // buyer's own reservation back to them as unavailable would make the
+      // field impossible to complete.
+      const answer = await service.checkSlugAvailability(mine.orderId, slug);
+      expect(answer).toMatchObject({ available: true });
+    });
+
+    it('treats a malformed address as unavailable rather than erroring', async () => {
+      const asker = await open({
+        companyName: `Malformed Co ${runId}`,
+        email: `m@malformed-${runId}.com`,
+      });
+
+      const answer = await service.checkSlugAvailability(
+        asker.orderId,
+        'Not A Slug',
+      );
+      expect(answer).toMatchObject({
+        available: false,
+        reason: 'INVALID_FORMAT',
+      });
+    });
+  });
 });

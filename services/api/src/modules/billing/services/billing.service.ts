@@ -225,6 +225,7 @@ export class BillingService {
     country: string;
     message?: string;
     website?: string;
+    requestedSlug?: string;
     detectedCountry?: string | null;
   }) {
     if (input.website?.trim()) {
@@ -285,6 +286,7 @@ export class BillingService {
       phone: input.phone?.trim() || null,
       country,
       message,
+      requestedSlug: input.requestedSlug ?? null,
     });
 
     // A repeated submission that already has a live Stripe session is sent

@@ -4,6 +4,9 @@ import {
   Get,
   Header,
   Headers,
+  NotFoundException,
+  Param,
+  ParseUUIDPipe,
   Post,
   Query,
   UseGuards,
@@ -11,9 +14,11 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { Public } from '../../../common/decorators/public.decorator';
 import { PublicRateLimitGuard } from '../../../common/guards/public-rate-limit.guard';
+import { CheckWorkspaceAddressDto } from '../dto/check-workspace-address.dto';
 import { PublicSubscribeDto } from '../dto/public-subscribe.dto';
 import { BillingService } from '../services/billing.service';
 import { CommercialConfigService } from '../services/commercial-config.service';
+import { SubscriptionOrderService } from '../services/subscription-order.service';
 
 /*
  * Rate limited at the class, not per handler.
@@ -31,6 +36,7 @@ export class PublicBillingController {
     private readonly billingService: BillingService,
     private readonly commercialConfig: CommercialConfigService,
     private readonly configService: ConfigService,
+    private readonly subscriptionOrders: SubscriptionOrderService,
   ) {}
 
   @Public()
@@ -105,5 +111,51 @@ export class PublicBillingController {
         customCountry?.trim() ||
         null,
     });
+  }
+
+  /**
+   * Is this workspace address still free?
+   *
+   * **Session-bound on purpose.** The obvious design — an anonymous
+   * `GET /public/workspace-slug?value=maseer` — is a tenant-existence oracle:
+   * walk a list of company names and the "taken" answers map DijiPeople's
+   * customer base. Requiring a live onboarding session means a caller must first
+   * create a rate-limited, durably recorded order before asking anything, so the
+   * question costs them a row and leaves a trail.
+   *
+   * The answer is advisory. `openOrder` re-checks under a unique index and is
+   * allowed to disagree — see `checkSlugAvailability`.
+   */
+  @Public()
+  @Get('onboarding/:onboardingId/workspace-address')
+  @Header('Cache-Control', 'no-store')
+  async checkWorkspaceAddress(
+    @Param('onboardingId', new ParseUUIDPipe({ version: '4' }))
+    onboardingId: string,
+    @Query() query: CheckWorkspaceAddressDto,
+  ) {
+    const result = await this.subscriptionOrders.checkSlugAvailability(
+      onboardingId,
+      query.value,
+    );
+
+    /*
+     * A dead or unknown session is 404, with nothing said about which of the
+     * two it was. Returning "expired" for a real id and "not found" for a
+     * fabricated one would hand back the very distinction the session binding
+     * exists to withhold.
+     */
+    if (result.session === 'INVALID') {
+      throw new NotFoundException({
+        code: 'ONBOARDING_SESSION_NOT_FOUND',
+        message: 'This onboarding session is no longer active.',
+      });
+    }
+
+    return {
+      slug: result.slug,
+      available: result.available,
+      reason: result.reason ?? null,
+    };
   }
 }

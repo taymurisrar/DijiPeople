@@ -13117,6 +13117,23 @@ model SubscriptionOrder {
   /// distinct, so releasing it lets the same customer come back and buy.
   submissionHash String? @unique
 
+  /// The workspace slug the customer asked for, reserved from the moment they
+  /// ask rather than at provisioning time.
+  ///
+  /// Tenant.slug is already unique, but a Tenant does not exist until payment
+  /// has been confirmed — so without this column two people can both be shown
+  /// "maseer is available", both pay, and only the second one's provisioning
+  /// discovers the collision, after the money has moved. The reservation has to
+  /// outlive the availability check that promised it.
+  ///
+  /// **Nullable-unique, and released the same way submissionHash is**, for the
+  /// same reason: held permanently, one abandoned checkout would make a name
+  /// unclaimable forever. PostgreSQL treats NULLs as distinct, so clearing it on
+  /// abandonment returns the slug to circulation. Uniqueness here is a *hold*,
+  /// not the final say — Tenant.slug remains the permanent authority, and
+  /// provisioning re-asserts it inside its own transaction.
+  requestedSlug String? @unique
+
   /// When an unpaid order stops being offered and becomes ABANDONED.
   expiresAt DateTime?
 
