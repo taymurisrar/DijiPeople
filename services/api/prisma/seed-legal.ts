@@ -558,16 +558,25 @@ const SUBPROCESSORS = [
   },
 ];
 
-async function main() {
-  const connectionString = process.env.DATABASE_URL?.trim();
-  if (!connectionString) {
-    throw new Error('DATABASE_URL is required.');
-  }
-
-  const prisma = new PrismaClient({
-    adapter: new PrismaPg({ connectionString }),
-  });
-
+/**
+ * Writes the seeded legal set into the given database.
+ *
+ * Exported so it can be *called*, not only executed. `legal-seed.e2e-spec.ts`
+ * asserts what this seed produces — the ten routes, the DRAFT-only rule, the
+ * absence of a fabricated legal entity — and it used to assume some earlier CI
+ * step had run the seed for it. Nothing did: the database e2e job runs
+ * `seed:demo` and `seed:admin`, never `seed:legal`, so the suite queried an
+ * empty table and reported ten missing documents as if the seed were wrong.
+ *
+ * A test of a seed should run that seed. Everything here upserts and never
+ * rewrites a published version, so calling it twice is a no-op.
+ */
+export async function seedLegalDocuments(prisma: PrismaClient): Promise<{
+  documents: number;
+  draftsWritten: number;
+  draftsSkippedBecausePublished: number;
+  subprocessors: number;
+}> {
   const now = new Date();
   let documentsCreated = 0;
   let draftsWritten = 0;
@@ -657,25 +666,49 @@ async function main() {
     });
   }
 
-  console.log(
-    JSON.stringify(
-      {
-        documents: documentsCreated,
-        draftsWritten,
-        draftsSkippedBecausePublished: draftsSkipped,
-        subprocessors: SUBPROCESSORS.length,
-        published: 0,
-        note: 'Everything is a DRAFT. Nothing is publicly resolvable until it is published deliberately.',
-      },
-      null,
-      2,
-    ),
-  );
-
-  await prisma.$disconnect();
+  return {
+    documents: documentsCreated,
+    draftsWritten,
+    draftsSkippedBecausePublished: draftsSkipped,
+    subprocessors: SUBPROCESSORS.length,
+  };
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exit(1);
-});
+/** The CLI wrapper: owns the connection, prints the summary, disconnects. */
+async function main() {
+  const connectionString = process.env.DATABASE_URL?.trim();
+  if (!connectionString) {
+    throw new Error('DATABASE_URL is required.');
+  }
+
+  const prisma = new PrismaClient({
+    adapter: new PrismaPg({ connectionString }),
+  });
+
+  try {
+    const summary = await seedLegalDocuments(prisma);
+    console.log(
+      JSON.stringify(
+        {
+          ...summary,
+          published: 0,
+          note: 'Everything is a DRAFT. Nothing is publicly resolvable until it is published deliberately.',
+        },
+        null,
+        2,
+      ),
+    );
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
+// Only when run as a script. Importing this module — which the e2e suite does,
+// to call the seed it asserts on — must not connect to a database or exit the
+// process.
+if (require.main === module) {
+  main().catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
+}

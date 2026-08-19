@@ -147,9 +147,24 @@ describeWithDatabase()('Legal documents (DB-backed)', () => {
     // Asserted on the message rather than a Prisma error code: the pg driver
     // adapter surfaces this as a DriverAdapterError, so a `code: 'P2003'`
     // assertion would pass only by accident of which layer wrapped it.
+    //
+    // Three wordings are accepted because three layers can produce the
+    // rejection and all three mean the same thing — PostgreSQL refused the
+    // delete:
+    //
+    //   PostgreSQL   "violates foreign key constraint ..."
+    //   the adapter  "violates RESTRICT setting of foreign key constraint ..."
+    //   Prisma       "Foreign key constraint violated ..."
+    //
+    // This widens which SENTENCE is accepted, not which OUTCOME. The delete
+    // must still be rejected — `rejects` is the assertion; the pattern only
+    // proves it was rejected for the referential reason and not, say, because
+    // the row was already gone.
     await expect(
       prisma.legalDocumentVersion.delete({ where: { id: v1.id } }),
-    ).rejects.toThrow(/RESTRICT|violates foreign key/i);
+    ).rejects.toThrow(
+      /RESTRICT|violates foreign key|foreign key constraint violated/i,
+    );
   });
 
   it('commits the subject and its acknowledgement together, or not at all', async () => {
