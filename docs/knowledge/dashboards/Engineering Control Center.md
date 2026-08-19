@@ -11,7 +11,7 @@
 | Active parent tasks | 3 |
 | Active work packages | 2 |
 | Blocked work packages | 1 |
-| Sessions declaring a schema write | 0 |
+| Sessions declaring a schema write | 1 |
 | Open CRITICAL | **0** |
 | Open HIGH | 8 |
 | Awaiting Architect triage | 0 |
@@ -23,7 +23,7 @@
 
 | Session | Task | Title | Status | Branch | Target | Leases | Schema |
 |---|---|---|---|---|---|---|---|
-| [[SESSION-0018-self-service-onboarding-provisioning-domain-routing-and-cent|SESSION-0018]] | — | Self-service onboarding, provisioning, domain routing and central login | ACTIVE | `agent/self-service-onboarding-provisioning` | `develop` | — | NO |
+| [[SESSION-0018-self-service-onboarding-provisioning-domain-routing-and-cent|SESSION-0018]] | TASK-0008 | Self-service onboarding, provisioning, domain routing and central login | ACTIVE | `agent/self-service-onboarding-provisioning` | `develop` | schema | YES |
 | [[SESSION-0016-database-agent-security-agent-agent-reliability-and-obsidian|SESSION-0016]] | — | Database Agent, Security Agent, agent reliability and Obsidian ownership | ACTIVE | `agent/agent-framework-hardening` | `develop` | — | NO |
 | [[SESSION-0014-ci-performance-cancellation-rca-and-autonomous-ci-adaptation|SESSION-0014]] | — | CI performance, cancellation RCA and autonomous CI adaptation | ACTIVE | `agent/ci-performance-adaptation` | `develop` | — | NO |
 | [[SESSION-0003-dijipeople-global-technical-remediation|SESSION-0003]] | TASK-0005 | DijiPeople Global Technical Remediation | ACTIVE | `agent/remediation-authorization` | `develop` | permissions, record-indexes | NO |
