@@ -235,9 +235,12 @@ requires this handoff to exist.
 
 ## `DATABASE_E2E_RED` is this role's signal
 
-`database-e2e-report` is report-only. That makes it non-blocking, **not
-unowned** — and the Database Agent leads on it, because the blocking problem is
-database fixture architecture rather than scenario design.
+`database-e2e-report` became a **required gate** on 2026-08-20, so a red run
+now blocks the merge outright. The signal survives promotion because it answers
+a different question: the gate blocks *this* merge, while the signal says *this
+job keeps going red*, which is an ownership question. The Database Agent leads
+on it, because the recurring problem is database fixture architecture rather
+than scenario design.
 
 When the job fails or times out repeatedly:
 

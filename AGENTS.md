@@ -1,7 +1,7 @@
 # AGENTS.md — DijiPeople Engineering Instructions
 
-> **Last verified:** 2026-08-19
-> **Verified against commit:** 494c44d
+> **Last verified:** 2026-08-20
+> **Verified against commit:** ff34b92
 >
 > This file outranks every role and context document, and until now it was the
 > only tier that carried no provenance of its own — so the two highest-severity
@@ -395,7 +395,7 @@ Full rules: [`services/api/AGENTS.md`](services/api/AGENTS.md). Summary:
   Do not invent ad-hoc error shapes; add a catalog entry instead.
 - **Auth**: `@UseGuards(JwtAuthGuard, PermissionsGuard)` at the controller.
   `@Public()` marks a genuinely unauthenticated route. At this baseline there
-  are **32 `@Public()` handlers across 12 controllers**, including partially
+  are **33 `@Public()` handlers across 13 controllers**, including partially
   public controllers such as `auth`, `agent`, `tenants` and `tenant-settings`
   where most handlers are guarded and a few are not. Count them on your branch;
   never assume a controller is uniformly public or uniformly guarded.
@@ -578,12 +578,13 @@ Seeds and release: `npm run seed:config`, `seed:admin`, `seed:demo`,
 - Run the validation that is **relevant to what you changed**, plus a repository
   typecheck for anything crossing a workspace boundary. A full `npm run build`
   is slow (`--concurrency=1`); run it when you changed build inputs.
-- **CI exists** — `.github/workflows/ci.yml`, **twelve** jobs named behind a
+- **CI exists** — `.github/workflows/ci.yml`, **thirteen** jobs named behind a
   single `CI required gate` check
   ([`docs/development/ci.md`](docs/development/ci.md)). Count them in the gate's
   `needs` list rather than trusting this number. A job can still be fail-open
   through `continue-on-error`, so inspect both the dependency list and the job
-  policy; `browser-e2e` currently has that contradiction.
+  policy — no required job carries it today, and `validate-framework.mjs`
+  checks that.
   It runs on push, not locally: nothing runs these commands for you before you
   push, and a local pass is not a CI pass.
 - New backend business logic gets a colocated `*.spec.ts`. Follow the existing

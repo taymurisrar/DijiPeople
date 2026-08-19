@@ -221,10 +221,12 @@ then fixed. The result:
 | Last completing CI run (`32160472427`) | 6 failing | 92 | 184 | — |
 | Every run after that | — | — | — | **timed out at 30m** |
 | **After this task, run 1** | **0 failing / 24 total** | **0** | **295** | **644s** |
-| **After this task, run 2** | **0 failing / 24 total** | **0** | **295** | **see below** |
+| **After this task, run 2** | **0 failing / 24 total** | **0** | **295** | **714s** |
 
+Two consecutive runs, same 24 suites and same 295 tests, zero retries.
 `DATABASE_E2E_OPEN_HANDLES = 0` — no "force exited" line, no "Jest did not
-exit", under `--detectOpenHandles` on both runs.
+exit", under `--detectOpenHandles` on both. `DATABASE_E2E_FLAKINESS = 0`: no
+test changed verdict between the runs.
 
 ### It was one defect wearing six faces
 

@@ -47,8 +47,9 @@ resolve  ─┬─ validate                  ┐
           ├─ test-runtime              │
           ├─ database-migration        │
           ├─ build                     │
-          ├─ browser-e2e               ┘
-          └─ database-e2e-report          (report only — NOT in the gate)
+          ├─ browser-e2e               │
+          ├─ database-e2e-report       ┘  (display name: Database e2e)
+          └─ security-invariant-report    (report only — NOT in the gate)
                      ↓
               ci-required  ← the single check branch protection keys on
 ```
@@ -68,7 +69,7 @@ Measured across the 19 develop runs before this change:
 | Job | Median | p95 |
 |---|---:|---:|
 | **Browser e2e** | **8m01s** | **12m57s** |
-| Database e2e (report only) | 4m38s | 25m56s |
+| Database e2e (report-only at the time) | 4m38s | 25m56s |
 | Build | 4m22s | 5m15s |
 | Lint | 3m28s | 5m40s |
 | Typecheck | 2m43s | 3m51s |
@@ -154,7 +155,7 @@ and never record one as a pass, without running this.
 Each job declares `timeout-minutes`. Before 2026-08-18 none did, so every job
 inherited GitHub's 360-minute default — which is how `database-e2e-report` was
 able to run for 36 minutes and would have run for six hours had nothing
-superseded it. A report-only job must never be able to hold a runner that long.
+superseded it. No job, gating or not, may hold a runner that long.
 
 A job hitting its timeout is a real signal. Raise the limit only with evidence
 that the work legitimately grew; otherwise find out what is hanging.
@@ -241,12 +242,22 @@ E2E_FIXTURE_CONTRACT_BROKEN
 is how a fixture defect becomes twenty phantom product defects that nobody can
 close. Establish the precondition first, then re-read the counts.
 
-### `DATABASE_E2E_RED` — report-only is not ignorable
+### `DATABASE_E2E_RED` — now a blocking gate, and still an owned signal
 
-`database-e2e-report` carries `continue-on-error` and sits outside the required
-gate. That makes it **non-blocking**, which is not the same as **unowned**, and
-the difference is exactly the defect BUG-0049 was filed against: a report-only
-job whose green conclusion was read as a pass over 136 failed tests.
+**Promoted on 2026-08-20.** `database-e2e-report` no longer carries
+`continue-on-error` and is in `ci-required`'s `needs`, so a red run fails the
+gate and blocks the merge. Its job key is unchanged — it is referenced by name
+from these documents, the QA records and the regression register — but its
+display name is now `Database e2e`, because a gate should not describe itself
+as a report.
+
+This section survives promotion rather than being deleted, because the signal
+and the gate answer different questions. The gate blocks *this* merge. The
+signal says *the same job keeps going red*, which is an ownership question and
+was the whole reason a job could sit red for weeks: it was non-blocking, which
+is not the same as unowned. That distinction is the defect BUG-0049 was filed
+against — a report-only job whose green conclusion was read as a pass over 136
+failed tests.
 
 The signal fires when the job fails **or times out**, and it is not the
 Architect's to absorb:
@@ -261,15 +272,17 @@ DATABASE_E2E_RED
   → visible in the Control Center via the backlog, not as a raw log
 ```
 
-**A green `CI required gate` does not clear this.** The gate proves the required
-jobs passed; it says nothing about a job deliberately kept outside it. Red
-database evidence must not persist indefinitely behind a green gate — if it is
-going to persist, it persists as an open, owned, prioritised record with a
-stated reason, never as silence.
+**A green `CI required gate` no longer coexists with a red database e2e** — the
+gate now includes it. What remains true is the rule that produced this section:
+a job deliberately kept outside the gate is not thereby unowned, and red
+evidence must never persist as silence. `security-invariant-report` is the
+remaining report-only job, and ITEM-0043 carries its promotion criteria.
 
-The current state is `FAIL`: [[ITEM-0047]] (6 suites / 92 tests failing at the
-last completing run) blocked by [[ITEM-0055]] (the serial suite now exceeds the
-30-minute cap on every run, so there is no completing run at all).
+The current state is `PASS`: [[ITEM-0047]] is DONE — 24 of 24 suites, 295 of
+295 tests, twice consecutively, 644s at `maxWorkers: 1`. [[ITEM-0055]] is
+answered by the same evidence: serialisation was never the cost. Suites
+borrowing rows from one shared seeded tenant was, and the contention hung the
+worker — 27 minutes of wall clock for 86 seconds of CPU.
 
 ---
 

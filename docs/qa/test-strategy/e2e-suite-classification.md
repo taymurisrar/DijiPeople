@@ -1,8 +1,9 @@
 # E2E Suite Classification
 
 The database-backed `*.e2e-spec.ts` suites under `services/api/test/`,
-classified so the `database-e2e-report` job can be promoted to a required gate
-deliberately rather than hopefully. The original classification covered nine
+classified so the `database-e2e-report` job could be promoted to a required gate
+deliberately rather than hopefully. **It was promoted on 2026-08-20** — see
+Promotion to a required gate, below. The original classification covered nine
 suites; the tree now contains **15**, so the old table is retained as historical
 design evidence and the current execution snapshot below is authoritative.
 
@@ -108,19 +109,36 @@ rather than replaces.
 
 ---
 
-## Promotion to a required gate
+## Promotion to a required gate — DONE, 2026-08-20
 
-`database-e2e-report` becomes required when:
+`database-e2e-report` is a required gate. The criteria were:
 
 1. every `READY` suite passes three consecutive runs
 2. `NEEDS_*` suites are fixed, or quarantined **by name** with the reason
    recorded here
 3. total runtime stays under ~10 minutes
 
-Until then it uploads its output as an artifact and writes a job summary. The
-job must also stop converting a red Jest exit into a green job conclusion;
-`BUG-0049` and WP-09 own that evidence-integrity fix after WP-04 makes the suites
-genuinely green.
+All three hold, and none was adjusted to fit:
+
+1. **every** suite passes, not only the `READY` ones — 24 of 24, 295 of 295
+   tests;
+2. **nothing is quarantined.** There is no `NEEDS_FIXTURE` or `NEEDS_ENV` suite
+   left, because the suites that carried those labels now build their own data
+   through `test/helpers/db-fixtures.ts`. No assertion was relaxed to get there;
+3. 644 and 714 seconds for the full set at `maxWorkers: 1`.
+
+Proven twice consecutively on a fresh database, with `--detectOpenHandles`
+clean both times. See [[ITEM-0047]] and the recipe in
+[`database-e2e-reproduction.md`](../../development/database-e2e-reproduction.md).
+
+The evidence-integrity half is also closed. `BUG-0049` fixed the summary so a
+red Jest exit could not read as green; promotion goes further — a separate
+`Publish the verdict` step exits non-zero on that captured code, so the job
+conclusion and the `RESULT:` line cannot disagree at all.
+
+**The classification tables below are now historical.** They record how the
+suites were understood before they were made deterministic, and the gap between
+that understanding and what running them proved is the point of keeping them.
 
 ## When a suite fails
 

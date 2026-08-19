@@ -28,9 +28,11 @@ aggregate conclusion alone is not. [[BUG-0049]].
 
 ## CI
 
-`.github/workflows/ci.yml` — eleven jobs named behind a single
-`CI required gate` check, plus two report-only known baselines
-(`security-invariant-report`, `database-e2e-report`) that do not block.
+`.github/workflows/ci.yml` — twelve jobs named behind a single
+`CI required gate` check, plus one report-only known baseline
+(`security-invariant-report`) that does not block. `database-e2e-report` was
+the second such baseline and became a gate on 2026-08-20 ([[ITEM-0047]]).
+Count them in `ci-required.needs`; a number written here goes stale.
 
 The `database-migration` job stands up an **ephemeral PostgreSQL** and applies
 the entire committed migration history to an empty database — which is exactly
