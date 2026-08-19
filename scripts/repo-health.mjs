@@ -545,9 +545,7 @@ function classifyPrimaryPath(entry) {
   /* `XY path` — and `R  old -> new`, where the new name is what exists now. */
   const path = entry.slice(3).trim().split(' -> ').pop();
 
-  if (PRIMARY_BASELINE.has(path) || PRIMARY_BASELINE.has(entry)) {
-    return { path, owner: 'USER', classification: 'PRE_EXISTING_USER_WORK' };
-  }
+  const preExisting = PRIMARY_BASELINE.has(path) || PRIMARY_BASELINE.has(entry);
 
   /*
    * A session record for a session that is still ACTIVE belongs to that session
@@ -577,7 +575,20 @@ function classifyPrimaryPath(entry) {
     if (status === 'ACTIVE' || activeSessionIds.has(id)) {
       return { path, owner: id, classification: 'ACTIVE_SESSION_RECORD' };
     }
+    /*
+     * A stub that was already here when the task started is somebody else's
+     * mess to explain, not this task's to be blocked by. It is still named and
+     * still attributed, because "pre-existing" is a reason not to block, never
+     * a reason to stop reporting.
+     */
+    if (preExisting) {
+      return { path, owner: id, classification: 'PRE_EXISTING_ORPHANED_STUB' };
+    }
     return { path, owner: id, classification: 'ORPHANED_SESSION_STUB' };
+  }
+
+  if (preExisting) {
+    return { path, owner: 'USER', classification: 'PRE_EXISTING_USER_WORK' };
   }
 
   if (GENERATED_PATH_PATTERNS.some((pattern) => pattern.test(path))) {
@@ -609,7 +620,15 @@ function primaryWorktreeStatus() {
   if (primaryDirtyFiles.some((f) => f.classification === 'GENERATED_UNCOMMITTED')) {
     return 'DIRTY_UNEXPLAINED';
   }
-  if (primaryDirtyFiles.every((f) => f.owner === 'USER')) return 'DIRTY_USER_OWNED';
+  /*
+   * Only paths proven to predate the task are the user's. A pre-existing
+   * orphaned stub is reported under the session that left it, so it does not
+   * count towards DIRTY_USER_OWNED — the distinction tells the reader whether
+   * to ask the user or go and look at a session record.
+   */
+  if (primaryDirtyFiles.every((f) => f.classification === 'PRE_EXISTING_USER_WORK')) {
+    return 'DIRTY_USER_OWNED';
+  }
   return 'DIRTY_OTHER_SESSION_OWNED';
 }
 

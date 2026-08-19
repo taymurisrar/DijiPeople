@@ -4440,6 +4440,31 @@ if (trackedFiles) {
       'SESSION-0016 left exactly this stub in the primary checkout and the task still reported DONE',
     );
 
+    /*
+     * D2 — a stub that was already there is somebody else's mess, and must not
+     * block this task. It is still named and still attributed to its session:
+     * "pre-existing" is a reason not to block, never a reason to stop
+     * reporting.
+     */
+    const preExistingStub = health([
+      '--task-branch',
+      'agent/task',
+      '--primary-baseline',
+      'docs/sessions/SESSION-9001-stranded.md',
+    ]);
+    check(
+      'simulation 37D2: a pre-existing orphaned stub does not block the task that found it',
+      preExistingStub?.PRIMARY_WORKTREE_STATUS !== 'DIRTY_UNEXPLAINED',
+      `got ${preExistingStub?.PRIMARY_WORKTREE_STATUS}`,
+    );
+    check(
+      'simulation 37D2: it is still attributed to the session that left it, not to the user',
+      preExistingStub?.primaryDirtyFiles?.some(
+        (file) => file.owner === 'SESSION-9001' && file.classification === 'PRE_EXISTING_ORPHANED_STUB',
+      ),
+      'attributing it to USER would send somebody to ask the wrong person',
+    );
+
     /* E — an ACTIVE session's record is another chat's, and is left alone. */
     writeFileSync(
       join(primary, 'docs/sessions/SESSION-9001-stranded.md'),
