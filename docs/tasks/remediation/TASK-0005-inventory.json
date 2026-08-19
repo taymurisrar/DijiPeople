@@ -6316,6 +6316,103 @@
         "classification": "TERMINAL_AS_DOCUMENTED",
         "finding_ids": []
       }
+    },
+    {
+      "record_id": "BUG-0077",
+      "source": {
+        "record_path": "docs/bugs/BUG-0077-public-subscribe-creates-a-tenant-and-a-second-customeraccou.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "4f966ea",
+        "created_at": "2026-08-19",
+        "updated_at": "2026-08-19",
+        "resolved_at": ""
+      },
+      "type": "DATA_INTEGRITY",
+      "title": "Public subscribe creates a Tenant and a second CustomerAccount before payment",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "OPEN",
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/billing/services/billing.service.ts"
+        ],
+        "verification_scope": "Read end to end at 4f966ea. The legacy Lead/CustomerAccount/Tenant/Subscription block runs unconditionally after openOrder; the file states the defect against itself at :503. Not yet fixed — an implementation was written and reverted once BUG-0078 was found."
+      },
+      "affected_modules": [
+        "billing",
+        "super-admin",
+        "tenants"
+      ],
+      "dependencies": {
+        "record_ids": [
+          "BUG-0078"
+        ],
+        "note": "Must land with BUG-0078. Removing the pre-payment tenant without wiring the provisioning consumer would strand paying customers."
+      },
+      "related_bugs": [
+        "BUG-0078"
+      ],
+      "related_backlog": [],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "FIX_NOW",
+      "verification_result": {
+        "result": "OPEN",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0078",
+      "source": {
+        "record_path": "docs/bugs/BUG-0078-provisioning-requested-has-no-consumer-so-a-paid-self-servic.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "4f966ea",
+        "created_at": "2026-08-19",
+        "updated_at": "2026-08-19",
+        "resolved_at": ""
+      },
+      "type": "STATE_MACHINE",
+      "title": "PROVISIONING_REQUESTED has no consumer so a paid self-service customer is never provisioned",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "OPEN",
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/billing/services/order-activation.service.ts",
+          "services/api/src/modules/billing/services/payment-confirmed.handler.ts"
+        ],
+        "verification_scope": "Grepped the whole consumer registry at 4f966ea: one handler exists and it handles PAYMENT_CONFIRMED. PROVISIONING_REQUESTED is emitted and unhandled. onboardCustomer is reachable only from an authenticated Platform Admin endpoint."
+      },
+      "affected_modules": [
+        "billing",
+        "outbox",
+        "super-admin"
+      ],
+      "dependencies": {
+        "record_ids": [
+          "BUG-0077"
+        ],
+        "note": "Must land with BUG-0077."
+      },
+      "related_bugs": [
+        "BUG-0077"
+      ],
+      "related_backlog": [],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "PLAN_REQUIRED",
+      "verification_result": {
+        "result": "OPEN",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
     }
   ],
   "discovered_findings": [

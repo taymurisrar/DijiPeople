@@ -10,7 +10,7 @@ CREATED_AT: 2026-08-18
 AFFECTED_MODULES: [super-admin, tenant-domains, tenant-control-plane, auth, billing, notifications, legal, landing, web, admin]
 AGENTS: [Architect, Database, Backend/API, Frontend, UI/UX, Integration, Security, QA, Reviewer, Integrator]
 DEPENDENCIES: origin/develop 494c44d; TASK-0007 WP-01..WP-10, WP-12
-CURRENT_PACKAGE: WP-02
+CURRENT_PACKAGE: WP-10
 COMPLETED_PACKAGES: [WP-01]
 BLOCKED_PACKAGES: []
 OWNER_DECISIONS: 3
@@ -56,6 +56,15 @@ gate.
 
 ### Already built — do not rebuild
 
+> **Two rows in this table were withdrawn on 2026-08-19.** Both were read from
+> the *presence* of code — a provisioning engine exists, a webhook emits a
+> provisioning event — without following the call graph to the end. Following it
+> showed the website never reaches the engine and the event has no consumer. The
+> rows are struck through rather than deleted, because a reconciliation that
+> quietly edits its own wrong answers teaches the next reader nothing about how
+> far to trust the rest of it. The lesson generalises: *emitted* is not
+> *handled*, and *exists* is not *reached*.
+
 | Brief requirement | Evidence | State |
 |---|---|---|
 | Server-authoritative plan, market, currency, price | `super-admin/commercial-offer.resolver.ts`, `markets.catalog.ts`, `plans.catalog.ts`, `PlanPrice` | BUILT |
@@ -64,8 +73,8 @@ gate.
 | Abandoned checkout does not pollute Customers/Tenants | `SubscriptionOrder.status`, `submissionHash` released on abandonment | BUILT |
 | Double-submit / refresh absorption | `submissionHash @unique`, nullable and released — database refuses the second, not a racing pre-check | BUILT |
 | Stripe webhook authenticity, replay and idempotency | `StripeWebhookEvent` (`schema.prisma:8061`), `webhook.service.ts` | BUILT |
-| Payment confirmation authorizes provisioning, not the browser redirect | webhook-driven; `/subscribe/success` holds no authority | BUILT |
-| One provisioning engine for website and Platform Admin | `super-admin/tenant-provisioning.service.ts` invoked by both paths | BUILT |
+| ~~Payment confirmation authorizes provisioning~~ | **Withdrawn.** The webhook confirms payment and emits `PROVISIONING_REQUESTED`; nothing consumes it. Payment authorises nothing today — [[BUG-0078]] | ABSENT |
+| ~~One provisioning engine for website and Platform Admin~~ | **Withdrawn.** The engine exists and only Platform Admin reaches it. The website path never calls it; its tenant comes from a pre-payment block — [[BUG-0077]], [[BUG-0078]] | PARTIAL |
 | Durable, stateful, resumable provisioning | `TenantProvisioningRun` / `TenantProvisioningStep` (`schema.prisma:2424`, `:2466`) | BUILT |
 | Per-step retryability | `TenantProvisioningStep.isRetryable`; `tenant-provisioning-retry.spec.ts` | BUILT |
 | Provisioning idempotency | `tenant-provisioning-idempotency.spec.ts` | BUILT |
@@ -145,6 +154,7 @@ Both are recorded here rather than silently fixed, per the retrieval contract.
 | WP-07 | Security review — enumeration, abuse, rate limiting, redirect safety | NOT_STARTED | WP-01..WP-06 | Security | agent/self-service-onboarding-provisioning | — | NOT_RUN | NOT_RUN | NOT_STARTED |
 | WP-08 | QA campaign — real PostgreSQL, concurrency, browser E2E | NOT_STARTED | WP-07 | QA | agent/self-service-onboarding-provisioning | — | NOT_RUN | NOT_RUN | NOT_STARTED |
 | WP-09 | Review, exact-SHA CI, develop integration, knowledge and closure | NOT_STARTED | WP-08 | Reviewer, Integrator, Architect | agent/self-service-onboarding-provisioning | — | NOT_RUN | NOT_RUN | NOT_STARTED |
+| WP-10 | Payment-authorised provisioning — BUG-0077 and BUG-0078 | NOT_STARTED | WP-01 | Backend/API, Integration, Database, Security, QA | agent/self-service-onboarding-provisioning | — | NOT_RUN | NOT_RUN | NOT_STARTED |
 
 WP-01 is the root because every other package depends on the customer being
 able to *name* their workspace — which the current flow never asks. G-03 is
@@ -159,6 +169,30 @@ first draft.
 WP-06 has no dependency on the onboarding chain and is `PARALLEL_SAFE`: the
 switcher consumes `/workspaces/mine`, which already exists and already returns
 what it needs.
+
+**WP-10 was not in the original decomposition and is now the critical path.** It
+was found while placing WP-02's verification gate, which required reading the
+checkout function end to end. Two defects, one root — TASK-0007 WP-07 closed
+`DONE` with half its scope unbuilt:
+
+- [[BUG-0077]] — the public path still creates a `Lead`, a second
+  `CustomerAccount`, a `Tenant` and a `Subscription` *before payment*, alongside
+  the order path that replaced them. Every unpaid submission consumes a workspace
+  slug permanently, and `requestedSlug` from WP-01 is ignored because the tenant
+  is created with a derived slug.
+- [[BUG-0078]] — `PROVISIONING_REQUESTED` is emitted into the outbox and nothing
+  consumes it. The only consumer in the codebase handles `PAYMENT_CONFIRMED`.
+  Automatic provisioning has never run; the pre-payment tenant is what hides it.
+
+**They must land together, and that constraint is the reason WP-10 exists as one
+package rather than two.** Removing the pre-payment tenant without wiring the
+consumer takes the platform from "provisions the wrong way" to "does not provision
+at all". An implementation of BUG-0077 alone was written during this session and
+**reverted rather than committed**, once the missing consumer was discovered.
+
+WP-10 blocks the value of WP-01 and precedes WP-02: there is no point gating a
+checkout that provisions the wrong tenant. Plan:
+[`EXECPLAN-0001`](../plans/EXECPLAN-0001-tenant-creation-behind-confirmed-payment.md).
 
 ## Assumptions
 
@@ -274,12 +308,29 @@ before WP-01 writes `schema.prisma`.
   instead of parsing an undocumented internal that a patch release can move. And
   `prisma migrate diff` returned 600 lines for a 2-line change, which is how
   [[ITEM-0060]] was found.
+- 2026-08-19 — **WP-10 added and made the critical path.** Placing WP-02's
+  verification gate required reading `createPublicSubscriptionCheckout` end to
+  end, which exposed [[BUG-0077]]: the pre-WP-05 block that creates a Lead, a
+  second `CustomerAccount`, a `Tenant` and a `Subscription` before payment still
+  runs, beside the order path built to replace it. Implementing the removal then
+  exposed [[BUG-0078]]: `PROVISIONING_REQUESTED` has no consumer, so nothing
+  would have created the tenant instead.
+
+  **The BUG-0077 implementation was reverted rather than committed.** Removing
+  the pre-payment tenant without the consumer would strand every paying customer
+  — worse than the defect. The durable output of that work is
+  [`EXECPLAN-0001`](../plans/EXECPLAN-0001-tenant-creation-behind-confirmed-payment.md),
+  the first ExecPlan written in this repository, and the two bug records.
+
+  Two rows of this record's own reconciliation were withdrawn as a result. Both
+  had been marked BUILT from the presence of code rather than from following the
+  call graph to its end.
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-tasks.mjs; edit the record, not this block -->
 
 ## Related
 
-- Records — [[BUG-0017]], [[BUG-0075]], [[ITEM-0013]], [[ITEM-0060]]
+- Records — [[BUG-0017]], [[BUG-0075]], [[BUG-0077]], [[BUG-0078]], [[ITEM-0013]], [[ITEM-0060]]
 - Modules — [[tenant-control-plane]], [[billing]], [[notifications]], [[legal]]
 
 <!-- GRAPH:END -->
