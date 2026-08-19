@@ -737,6 +737,37 @@ jobs:
           npm --workspace api run seed:demo
           npm --workspace api run seed:admin
       - name: Install the browser
+        # Instrumented deliberately: this step is measured, not merely timed.
+        # `scripts/install-browser.mjs` reports PLAYWRIGHT_COMMAND,
+        # APT_DEPENDENCY_DURATION, CHROMIUM_DOWNLOAD_DURATION and
+        # TOTAL_BROWSER_INSTALL_DURATION into the job summary, because one step
+        # timer is what made this defect hard to diagnose — a single number
+        # cannot tell a slow download from a slow apt mirror, and the two have
+        # completely different fixes.
+        #
+        # `--with-deps` was REMOVED on 2026-08-19. It was 97% of the step and
+        # installed no browser library at all. Measured on run 32294710633:
+        #
+        #   apt-get update             74s   11.4 MB of lists @ 162 kB/s
+        #   apt-get install           229s   21.1 MB @ 93.8 kB/s — 9 FONT
+        #                                    packages; 0 libraries, every one
+        #                                    logged "already the newest version"
+        #   browser downloads         9.6s   301 MB from cdn.playwright.dev
+        #                            ─────
+        #                             314s
+        #
+        # The same command took 1555s on run 32182849325. Azure's Ubuntu mirror
+        # throughput is not ours to fix — EXTERNAL_APT_MIRROR_LATENCY — so the
+        # fix is to stop depending on it, not to point it somewhere else. The
+        # fonts it installed broaden CJK/Cyrillic/Thai glyph coverage for
+        # pixel-exact screenshots; this suite makes no visual comparison.
+        #
+        # The fast path is verified rather than assumed: the script launches the
+        # browser, and only if that fails runs `playwright install-deps` and
+        # tries again. A future runner image that stops shipping a library
+        # degrades to the old cost with a warning, instead of failing inside a
+        # journey where it would read as a product defect.
+        #
         # A Playwright browser cache was added here on 2026-08-18 and REMOVED on
         # 2026-08-19, because it made this step catastrophically slower rather
         # than faster. Measured:
@@ -754,7 +785,7 @@ jobs:
         #
         # The runner image already caches this better than we can. Do not
         # reintroduce the cache without a measurement showing it helps; the
-        # baseline to beat is 27 seconds.
+        # baseline to beat is now the browser download alone.
         run: npm run test:browser:install
       - name: Start the API, landing and admin
         # Backgrounded with logs to files. The readiness loop is what makes this

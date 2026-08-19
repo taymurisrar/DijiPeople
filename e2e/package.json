@@ -6,7 +6,7 @@
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:report": "playwright show-report",
-    "install:browsers": "playwright install --with-deps chromium",
+    "install:browsers": "node ../scripts/install-browser.mjs --browser chromium",
     "check-types": "tsc --noEmit"
   },
   "devDependencies": {
