@@ -223,6 +223,7 @@ then fixed. The result:
 | **After this task, run 1** | **0 failing / 24 total** | **0** | **295** | **644s** |
 | **After this task, run 2** | **0 failing / 24 total** | **0** | **295** | **714s** |
 | **After merging develop, run 3** | **0 failing / 25 total** | **0** | **304** | **277s** |
+| **In CI**, run 32307298504 | **0 failing / 25 total** | **0** | **304** | **92s** |
 
 Three runs. The first two are the repeatability proof — same 24 suites, same
 295 tests, zero retries. The third is after merging develop, which added
@@ -295,6 +296,34 @@ widened which *sentence* it accepts across three layers that can raise the same
 rejection; the delete must still be refused.
 
 [[BUG-0079]] was raised in the same task, and is the browser install, not this.
+
+### Confirmed in CI
+
+Run `32307298504`, job `96242923532` — the first green `Database e2e` in this
+job's existence, and the first run in which it gated anything:
+
+```
+Test Suites: 25 passed, 25 total
+Tests:       304 passed, 304 total
+Time:        92.43 s
+```
+
+The job's phases, which answer the performance question this item was also
+carrying:
+
+| Phase | Duration |
+|---|---:|
+| `POSTGRES_STARTUP` (container init) | 21s |
+| `MIGRATION_DURATION` (`verify-database.mjs`) | 86s |
+| `SEED_DURATION` (`seed:demo` + `seed:admin`) | 43s |
+| **`TEST_DURATION`** | **92s** |
+| Whole job, checkout to teardown | **5m31s** |
+
+**The database setup now costs more than the tests.** That is the answer to
+[[ITEM-0055]] and to whether the suite should run in parallel: at 92 seconds
+there is nothing left to reclaim by parallelising, and [[ITEM-0065]] records
+the two remaining borrowed-fixture lookups that would have to be fixed first
+anyway.
 
 ### Promotion
 

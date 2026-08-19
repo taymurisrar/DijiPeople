@@ -90,6 +90,9 @@ Expected behaviour written before execution.
 | `node scripts/rebuild-{backlog,tasks,sessions,qa}.mjs --check` | Record indexes | 4 | 0 | 0 | — |
 | `node scripts/generate-dashboards.mjs --check` | Dashboards | — | 0 | — | — |
 | `node scripts/install-browser.mjs --browser chromium` | Browser install | — | 0 | — | 14.6s |
+| `npx jest … --maxWorkers=4` ×3 | Concurrency probe | 304 | 0 | 0 | 150s / 114s / 112s |
+| CI run 32307298504, `Database e2e` | Database e2e in CI | 304 | 0 | 0 | 92.4s |
+| CI run 32307298504, `Browser e2e` | Browser journeys in CI | 56 | 0 | 0 | 5.5m |
 
 Runs 1 and 2 are the repeatability proof: identical suite and test counts, zero
 retries. `DATABASE_E2E_FLAKINESS = 0` — no test changed verdict between them.
@@ -157,21 +160,67 @@ the legal foreign-key wording — widened which *sentence* it accepts across the
 three layers that can raise the same rejection. The delete must still be
 refused, and `rejects` remains the assertion.
 
+## CI verification — run 32307298504
+
+Every job green, including `Database e2e` as a required gate for the first
+time in its existence.
+
+| Metric | Value |
+|---|---|
+| `Install the browser` | **12.6s** (`APT_DEPENDENCY_DURATION 0s`, download 9.8s, probe 2s, `LAUNCH_PROBE PASS`) |
+| `RUNNER_IMAGE` | Ubuntu 24.04.4 LTS · ubuntu24 · 20260816.277.1 |
+| `PLAYWRIGHT_VERSION` | 1.62.1 |
+| `Database e2e` suites | 25 passed / 25, 304 tests passed / 304, 92.43s |
+| `Browser e2e` journeys | 56 passed, 5.5m |
+| `CI required gate` | success |
+
+Database e2e phase breakdown — the answer to the performance question:
+
+| Phase | Duration |
+|---|---:|
+| `POSTGRES_STARTUP` | 21s |
+| `MIGRATION_DURATION` | 86s |
+| `SEED_DURATION` | 43s |
+| **`TEST_DURATION`** | **92s** |
+| Whole job | 5m31s |
+
+The database setup now costs more than the tests.
+
+## Concurrency — S21, added after the fact
+
+`maxWorkers: 1` was left in place, and the reasoning is worth recording because
+the expectation going in was wrong.
+
+Three `--maxWorkers=4` runs passed 25 suites / 304 tests (150s, 114s, 112s). So
+parallel execution **works**. But ITEM-0047's own lesson applies to that result:
+two identical parallel runs once gave 5 and then 10 failing suites, so a pass in
+a parallel run is as untrustworthy as a failure. Three passes mean the window is
+narrow, not closed.
+
+Reading the suites rather than the results found the actual window.
+`permission-propagation.e2e-spec.ts:56` still calls
+`customerAccount.findFirstOrThrow()` with **no filter and no ordering**, so it
+can adopt a fixture account another worker is about to delete — and
+`DbFixtures.tryDelete` warns rather than throws, so the result is a silent leak,
+not a red test. That is [[ITEM-0065]], and it is the residual instance of the
+very pattern this task named.
+
+The decision is therefore evidence-based rather than cautious-by-default: at 92
+seconds in CI there is nothing to reclaim, and the two borrows should be fixed
+because they are wrong, not because parallelism needs them.
+
 ## Known Limitations
 
-- **CI-side timings for both streams are not in this record.** They can only
-  come from a real run on the integrated SHA. Local numbers are honest for the
-  suites, and irrelevant for the apt mirror, which does not exist locally.
 - **The browser journeys were not run locally.** They need a migrated database
-  plus three dev servers. The install script was verified end to end; the
-  journeys were not. `browser-e2e` remains a required gate and will report on
-  the integrated SHA.
+  plus three dev servers. The install script was verified end to end locally,
+  and both were then verified in CI (above).
 - **The launch probe's failure path is untested.** Demonstrating it requires a
   runner image missing a Chromium library. The recovery path — warn, run
   `install-deps`, re-probe — is written and reviewed but not exercised.
-- **ITEM-0055 is answered, not separately re-measured.** The evidence that
-  serialisation was never the cost is this task's own timings, not a controlled
-  parallel-versus-serial experiment.
+- **The concurrency probe did not count leaked rows.** Three parallel runs
+  passed, but nothing checked whether `CustomerAccount` or `Tenant` rows were
+  left behind — which is the failure mode [[ITEM-0065]] describes, and it does
+  not show up as a red test. The item's acceptance criteria require that count.
 - **A `pg@9.0` deprecation warning** (`client.query()` while the client is
   already executing) appears in both runs. Pre-existing, unrelated to this
   task, not investigated here.
@@ -198,14 +247,14 @@ slow mirror is no longer on the path at all.
 
 ## Follow-up
 
-- **Confirm the CI-side numbers on the integrated SHA** — Release/DevOps. The
-  install step should report `APT_DEPENDENCY_DURATION = 0s`, and `Database e2e`
-  should conclude success as a required job for the first time.
+- **[[ITEM-0065]]** — Database Agent. The two remaining borrowed-fixture
+  lookups. DEFERRED: they are wrong, but fixing them buys ~40s of a 331s job.
 - **Re-verify QA-CI-001 against `security-invariant-report`** — QA. The check
   is written against whichever jobs declare "report only", so it did not
   narrow, but the recorded verification named the job that is now a gate.
-- **ITEM-0055 can be closed on this evidence** — Architect. Serialisation was
-  never the cost, and ITEM-0047 now says so.
+- **[[ITEM-0055]] can be closed on this evidence** — Architect. Serialisation
+  was never the cost: the suites take 92s in CI. What remains of that item is
+  ITEM-0065, and it is small.
 - **`E2E_FIXTURE_CONTRACT_BROKEN` has not yet fired in anger** — Release/DevOps.
   It is wired into the `Database e2e` summary and documented in
   `ci-operations.md`, but no run has produced a setup failure since.

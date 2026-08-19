@@ -207,8 +207,27 @@ LAUNCH_PROBE                    PASS
 
 ## QA Retest
 
-Verified in CI on the integrated SHA — see the `Browser install` table the step
-now writes into the job summary, and the `Browser e2e` job conclusion.
+Verified in CI, run `32307298504`, job `96242923626`. The step reports its own
+metrics, so this is measured rather than inferred:
+
+```
+PLAYWRIGHT_COMMAND              playwright install chromium
+APT_DEPENDENCY_DURATION         0s (skipped — runner image already satisfied the browser)
+CHROMIUM_DOWNLOAD_DURATION      9.8s
+LAUNCH_PROBE_DURATION           2s
+TOTAL_BROWSER_INSTALL_DURATION  12.6s
+RUNNER_IMAGE                    Ubuntu 24.04.4 LTS · ubuntu24 · 20260816.277.1
+PLAYWRIGHT_VERSION              Version 1.62.1
+LAUNCH_PROBE                    PASS
+```
+
+**13 seconds**, against 314s on run 32294710633 and 1555s at worst — and below
+even the 27s pre-cache baseline, because apt is gone rather than merely faster.
+
+`LAUNCH_PROBE PASS` is the part that matters most. It is not an assumption that
+`ubuntu-latest` still ships the libraries; the step started a real browser,
+opened a page and closed it. `Browser e2e` then passed 56 journeys in 5.5
+minutes.
 
 ## History
 
