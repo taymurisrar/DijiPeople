@@ -125,7 +125,7 @@ All three hold, and none was adjusted to fit:
 2. **nothing is quarantined.** There is no `NEEDS_FIXTURE` or `NEEDS_ENV` suite
    left, because the suites that carried those labels now build their own data
    through `test/helpers/db-fixtures.ts`. No assertion was relaxed to get there;
-3. 644 and 714 seconds for the full set at `maxWorkers: 1`.
+3. 644 and 714 seconds for the full set at `maxWorkers: 1`, cold cache.
 
 Proven twice consecutively on a fresh database, with `--detectOpenHandles`
 clean both times. See [[ITEM-0047]] and the recipe in

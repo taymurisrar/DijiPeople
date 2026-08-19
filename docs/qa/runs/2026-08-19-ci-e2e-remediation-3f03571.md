@@ -82,6 +82,7 @@ Expected behaviour written before execution.
 |---|---|---|---|---|---|
 | `npx jest --config ./test/jest-e2e.json --detectOpenHandles` | Full database e2e, run 1 | 295 | 0 | 0 | 644.5s |
 | `npx jest --config ./test/jest-e2e.json --detectOpenHandles` | Full database e2e, run 2 | 295 | 0 | 0 | 713.6s |
+| `npx jest --config ./test/jest-e2e.json --detectOpenHandles` | Full database e2e, run 3 — **after merging develop** | 304 | 0 | 0 | 277.1s |
 | `npx jest … --testPathPatterns db-fixtures-contract --detectOpenHandles` | Fixture contract | 5 | 0 | 0 | 14.1s |
 | `npx tsc --noEmit -p tsconfig.json` (services/api) | Typecheck | — | 0 errors | — | — |
 | `npm --workspace e2e run check-types` | Typecheck e2e | — | 0 errors | — | — |
@@ -90,8 +91,14 @@ Expected behaviour written before execution.
 | `node scripts/generate-dashboards.mjs --check` | Dashboards | — | 0 | — | — |
 | `node scripts/install-browser.mjs --browser chromium` | Browser install | — | 0 | — | 14.6s |
 
-Suite and test counts were identical across both full runs, with zero retries.
-`DATABASE_E2E_FLAKINESS = 0`: no test changed verdict between them.
+Runs 1 and 2 are the repeatability proof: identical suite and test counts, zero
+retries. `DATABASE_E2E_FLAKINESS = 0` — no test changed verdict between them.
+
+Run 3 is after merging `origin/develop`, which added
+`provisioning-queue.e2e-spec.ts` — 25 suites and 304 tests, also green, and
+that suite already builds its own data through `DbFixtures`. Its 277s is a warm
+ts-jest transform cache, not a real speed-up; **644s is the cold-cache figure**
+and the one to quote.
 
 ### Regression-test proof
 

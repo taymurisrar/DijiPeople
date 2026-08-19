@@ -458,19 +458,22 @@ jobs:
     #
     # The criteria were written before this task and were met, not adjusted to
     # fit:
-    #   1. every suite passes — 24 of 24, 295 of 295 tests, no suite quarantined
-    #      and no assertion relaxed to get there;
+    #   1. every suite passes — 24 of 24 and 295 of 295 tests before merging
+    #      develop, 25 of 25 and 304 of 304 after it added
+    #      provisioning-queue.e2e-spec.ts. No suite quarantined, no assertion
+    #      relaxed to get there;
     #   2. no suite needs fixtures or environment it does not build itself. The
     #      job still seeds, but only because `platform-workflows` reads a
     #      CustomerAccount and an ACTIVE PlatformUser; every other dependency on
     #      ambient data is gone;
     #   3. runtime 644s and 714s locally against the full set, still at
-    #      `maxWorkers: 1`.
+    #      `maxWorkers: 1`. Quote 644s: the post-merge 277s is a warm ts-jest
+    #      transform cache, not a real speed-up, and CI's cache is cold.
     #
-    # Proven twice consecutively on a fresh database — identical suite and test
-    # counts, zero retries, and `--detectOpenHandles` clean both times: no
-    # "force exited", no "Jest did not exit". Recipe in
-    # docs/development/database-e2e-reproduction.md.
+    # Proven three times on a fresh database — runs 1 and 2 with identical suite
+    # and test counts and zero retries, run 3 after merging develop — and
+    # `--detectOpenHandles` clean on all three: no "force exited", no "Jest did
+    # not exit". Recipe in docs/development/database-e2e-reproduction.md.
     #
     # What it was before: 7 suites and 148 tests failing at the WP-02 baseline,
     # 6 suites and 92 tests at the last run that completed at all, and then

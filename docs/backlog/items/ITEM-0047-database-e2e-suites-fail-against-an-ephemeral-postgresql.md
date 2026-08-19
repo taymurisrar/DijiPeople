@@ -222,8 +222,13 @@ then fixed. The result:
 | Every run after that | — | — | — | **timed out at 30m** |
 | **After this task, run 1** | **0 failing / 24 total** | **0** | **295** | **644s** |
 | **After this task, run 2** | **0 failing / 24 total** | **0** | **295** | **714s** |
+| **After merging develop, run 3** | **0 failing / 25 total** | **0** | **304** | **277s** |
 
-Two consecutive runs, same 24 suites and same 295 tests, zero retries.
+Three runs. The first two are the repeatability proof — same 24 suites, same
+295 tests, zero retries. The third is after merging develop, which added
+`provisioning-queue.e2e-spec.ts`: 25 suites and 304 tests, also green. It is
+faster (277s) because ts-jest's transform cache was warm, not because anything
+got cheaper — quote 644s as the cold-cache figure.
 `DATABASE_E2E_OPEN_HANDLES = 0` — no "force exited" line, no "Jest did not
 exit", under `--detectOpenHandles` on both. `DATABASE_E2E_FLAKINESS = 0`: no
 test changed verdict between the runs.
