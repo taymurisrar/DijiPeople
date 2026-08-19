@@ -11,9 +11,9 @@ AFFECTED_MODULES: [super-admin, tenant-domains, tenant-control-plane, auth, bill
 AGENTS: [Architect, Database, Backend/API, Frontend, UI/UX, Integration, Security, QA, Reviewer, Integrator]
 DEPENDENCIES: origin/develop 494c44d; TASK-0007 WP-01..WP-10, WP-12
 CURRENT_PACKAGE: WP-02
-COMPLETED_PACKAGES: [WP-01, WP-10]
-BLOCKED_PACKAGES: []
-OWNER_DECISIONS: 3
+COMPLETED_PACKAGES: [WP-01, WP-03, WP-10]
+BLOCKED_PACKAGES: [WP-06]
+OWNER_DECISIONS: 4
 FINAL_STATUS:
 ---
 
@@ -56,7 +56,7 @@ gate.
 
 ### Already built — do not rebuild
 
-> **Two rows in this table were withdrawn on 2026-08-19.** Both were read from
+> **Four rows in this table were withdrawn on 2026-08-19.** All were read from
 > the *presence* of code — a provisioning engine exists, a webhook emits a
 > provisioning event — without following the call graph to the end. Following it
 > showed the website never reaches the engine and the event has no consumer. The
@@ -89,8 +89,8 @@ gate.
 | Hostname is not authorization | `/workspaces/access-check` decides from the session's own tenant | BUILT |
 | Edge hostname routing for the shared deployment | `apps/web/proxy.ts` (611 lines) — resolves once, forwards unforgeable headers | BUILT |
 | Wrong-tenant denial with a safe onward path | `assertSessionMatchesWorkspace()` → `/workspace/wrong-workspace` | BUILT |
-| Central login and workspace discovery | `/workspaces/mine`; landing header Login → `workspaceUrl/login` (`site-shell.tsx:27`) | BUILT |
-| Workspace picker | `apps/web/app/workspace/choose/page.tsx` | BUILT |
+| ~~Central login and workspace discovery~~ | **Withdrawn.** The entry point exists and the landing Login link is correct, but `AuthService` refuses to authenticate without tenant context — `AUTH_TENANT_REQUIRED`. Login from the marketing site with no tenant in hand fails — [[ITEM-0062]] | PARTIAL |
+| ~~Workspace picker~~ | **Withdrawn.** The page renders, and `/workspaces/mine` returns a one-element array *by construction*: it reads `user.tenantId` from the session. There is never more than one workspace to pick — [[ITEM-0062]] | PARTIAL |
 | Unknown-workspace state | `apps/web/app/workspace/not-found/page.tsx` | BUILT |
 | Direct tenant login preserving return context | `apps/web/app/t/[tenantSlug]/login/page.tsx`; proxy redirect | BUILT |
 | Environment families for one customer | `TenantEnvironmentGroup` (`schema.prisma:2401`) | BUILT |
@@ -147,10 +147,10 @@ Both are recorded here rather than silently fixed, per the retrieval contract.
 |---|---|---|---|---|---|---|---|---|---|
 | WP-01 | Onboarding draft model, slug reservation and session-bound availability API | DONE | — | Database, Backend/API, Security | agent/self-service-onboarding-provisioning | pending | PASS | NOT_RUN | NOT_STARTED |
 | WP-02 | Email verification for the self-service Tenant Owner | NOT_STARTED | WP-01 | Backend/API, Security, Integration | agent/self-service-onboarding-provisioning | — | NOT_RUN | NOT_RUN | NOT_STARTED |
-| WP-03 | Onboarding status API for the provisioning experience | NOT_STARTED | WP-01 | Backend/API | agent/self-service-onboarding-provisioning | — | NOT_RUN | NOT_RUN | NOT_STARTED |
+| WP-03 | Onboarding status API for the provisioning experience | DONE | WP-01 | Backend/API | agent/self-service-onboarding-provisioning | pending | PASS | NOT_RUN | NOT_STARTED |
 | WP-04 | Public onboarding wizard — organization, workspace, owner, agreements, review | NOT_STARTED | WP-01, WP-02 | Frontend, UI/UX | agent/self-service-onboarding-provisioning | — | NOT_RUN | NOT_RUN | NOT_STARTED |
 | WP-05 | Provisioning progress and workspace-ready experience | NOT_STARTED | WP-03, WP-04 | Frontend, UI/UX | agent/self-service-onboarding-provisioning | — | NOT_RUN | NOT_RUN | NOT_STARTED |
-| WP-06 | Workspace switcher and last-used workspace | NOT_STARTED | — | Frontend, UI/UX, Backend/API | agent/self-service-onboarding-provisioning | — | NOT_RUN | NOT_RUN | NOT_STARTED |
+| WP-06 | Workspace switcher and last-used workspace | BLOCKED | ITEM-0062 | Frontend, UI/UX, Backend/API, Database, Security | — | — | NOT_RUN | NOT_RUN | NOT_STARTED |
 | WP-07 | Security review — enumeration, abuse, rate limiting, redirect safety | NOT_STARTED | WP-01..WP-06 | Security | agent/self-service-onboarding-provisioning | — | NOT_RUN | NOT_RUN | NOT_STARTED |
 | WP-08 | QA campaign — real PostgreSQL, concurrency, browser E2E | NOT_STARTED | WP-07 | QA | agent/self-service-onboarding-provisioning | — | NOT_RUN | NOT_RUN | NOT_STARTED |
 | WP-09 | Review, exact-SHA CI, develop integration, knowledge and closure | NOT_STARTED | WP-08 | Reviewer, Integrator, Architect | agent/self-service-onboarding-provisioning | — | NOT_RUN | NOT_RUN | NOT_STARTED |
@@ -244,6 +244,26 @@ checkout that provisions the wrong tenant. Plan:
   verified, and provisioning never waits on a human.
 - **Blocked work:** WP-02 is now a gate on the checkout transition, not a
   post-provisioning step. WP-04's step order follows from it.
+
+### OD-04 — is one identity allowed to hold several workspaces? — **OPEN**
+
+- **Question:** `User` is `@@unique([tenantId, email])` with a required
+  `tenantId`. The same person in two workspaces is two rows with two passwords,
+  and there is no membership model. Three of the brief's requirements — generic
+  login, the workspace picker, the workspace switcher — need one.
+- **What is blocked:** WP-06 entirely. Nothing else.
+- **Why this is not an Architect call.** Every other decision in this parent has
+  been an engineering judgement with a defensible default. This one changes what
+  an identity *is*, and the migration asks a question only the business can
+  answer: **when the same email exists in two tenants today, is that one person
+  or two?** Merging them if they are two is a cross-tenant data leak; keeping
+  them separate if they are one leaves the feature half-delivered for exactly
+  the customers who asked for it.
+- **Architect position:** build it, with **no automatic merging** — existing
+  rows each become their own membership, and consolidation is a deliberate,
+  audited act per identity. That keeps the unsafe direction closed by default.
+- Recorded as [[ITEM-0062]], with the design sketch and the invariants any
+  implementation must preserve.
 
 ## Repository Health
 
@@ -352,12 +372,34 @@ before WP-01 writes `schema.prisma`.
   there, but "payment authorises provisioning" is only proven end to end once a
   Stripe webhook can be delivered, and that needs credentials this environment
   does not have. WP-08 owns that.
+- 2026-08-19 — **WP-03 done.** `GET /public/onboarding/:id/status` reports the
+  provisioning state the buyer is waiting on, session-bound by the order id and
+  `no-store`. Every step it reports is read from a row: the brief forbids
+  fabricating completed steps, and the temptation is real, because a list that
+  advances on a timer looks better than one that sits still for forty seconds
+  — and then lies. `workspace` is returned only when the tenant is genuinely
+  ready and has a primary domain, so the "Open DijiPeople" button can never
+  point somewhere that does not resolve.
+- 2026-08-19 — **WP-06 blocked, and two more reconciliation rows withdrawn.**
+  WP-06 was scoped as a frontend switcher over the existing `/workspaces/mine`.
+  That endpoint reads `user.tenantId` from the session and returns a one-element
+  array by construction, because `User` is `@@unique([tenantId, email])` with a
+  required `tenantId` and **no membership model exists**. `AuthService` refuses
+  to authenticate without tenant context at all.
+
+  So the switcher has nothing to switch between, the picker has nothing to pick,
+  and generic login cannot work — not as defects, but because the identity model
+  does not have the shape those features need. [[ITEM-0062]] and OD-04.
+
+  Four of this record's rows have now been withdrawn for one recurring reason:
+  presence of code read as presence of behaviour. Pages that render, endpoints
+  that respond, events that are emitted — none of it proves the path completes.
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-tasks.mjs; edit the record, not this block -->
 
 ## Related
 
-- Records — [[BUG-0017]], [[BUG-0075]], [[BUG-0077]], [[BUG-0078]], [[ITEM-0013]], [[ITEM-0047]], [[ITEM-0060]], [[ITEM-0061]]
+- Records — [[BUG-0017]], [[BUG-0075]], [[BUG-0077]], [[BUG-0078]], [[ITEM-0013]], [[ITEM-0047]], [[ITEM-0060]], [[ITEM-0061]], [[ITEM-0062]]
 - Modules — [[tenant-control-plane]], [[billing]], [[notifications]], [[legal]]
 
 <!-- GRAPH:END -->

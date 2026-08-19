@@ -538,4 +538,165 @@ export class SubscriptionOrderService {
       reason: tenant || held ? 'TAKEN' : undefined,
     };
   }
+
+  /**
+   * What the buyer's workspace is doing right now, for the provisioning page.
+   *
+   * **Every step reported here is read from a row.** The brief is explicit that
+   * the page must not fabricate completed steps, and the temptation to do so is
+   * real: a progress list that advances on a timer looks better than one that
+   * sits on "Creating your workspace" for forty seconds. It also lies, and the
+   * customer finds out when the finished-looking page has no workspace behind
+   * it. Anything not evidenced by a row is `PENDING`.
+   *
+   * Session-bound by an unguessable order id, like the availability check, and
+   * for the same reason — this answers questions about a specific purchase.
+   */
+  async getOnboardingStatus(onboardingId: string) {
+    const order = await this.prisma.subscriptionOrder.findUnique({
+      where: { id: onboardingId },
+      select: {
+        id: true,
+        orderNumber: true,
+        status: true,
+        paidAt: true,
+        activatedAt: true,
+        failureReason: true,
+        requestedSlug: true,
+        customerAccountId: true,
+        tenant: {
+          select: {
+            id: true,
+            name: true,
+            displayName: true,
+            slug: true,
+            status: true,
+            readinessStatus: true,
+            tenantDomains: {
+              where: { isPrimary: true, disabledAt: null },
+              select: { domain: true },
+              take: 1,
+            },
+            provisioningRuns: {
+              orderBy: { startedAt: 'desc' },
+              take: 1,
+              select: {
+                status: true,
+                failedStepKey: true,
+                message: true,
+                steps: {
+                  orderBy: { sequence: 'asc' },
+                  select: { key: true, label: true, status: true },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!order) return null;
+
+    const run = order.tenant?.provisioningRuns[0] ?? null;
+    const tenantReady =
+      order.tenant?.status === 'ACTIVE' &&
+      order.tenant.readinessStatus !== 'NOT_READY';
+
+    /*
+     * Four facts the customer can see, each with a row behind it. The commercial
+     * ones are the order's own columns; the workspace ones only become true when
+     * a Tenant exists, which after BUG-0077 means only after payment.
+     */
+    const steps = [
+      {
+        key: 'customer-account',
+        label: 'Customer account created',
+        done: true,
+      },
+      {
+        key: 'payment-confirmed',
+        label: 'Payment confirmed',
+        done: Boolean(order.paidAt),
+      },
+      {
+        key: 'workspace-created',
+        label: 'Workspace created',
+        done: Boolean(order.tenant),
+      },
+      {
+        key: 'workspace-ready',
+        label: 'Finishing setup',
+        done: tenantReady,
+      },
+    ].map((step) => ({
+      key: step.key,
+      label: step.label,
+      state: step.done ? ('DONE' as const) : ('PENDING' as const),
+    }));
+
+    const primaryDomain = order.tenant?.tenantDomains[0]?.domain ?? null;
+
+    return {
+      orderNumber: order.orderNumber,
+      state: resolveOnboardingState({
+        orderStatus: order.status,
+        hasTenant: Boolean(order.tenant),
+        runStatus: run?.status ?? null,
+        tenantReady,
+      }),
+      steps,
+      /*
+       * Only when the workspace can actually be opened. Handing back a hostname
+       * that does not resolve yet produces a button that fails, which is worse
+       * than no button.
+       */
+      workspace:
+        tenantReady && primaryDomain
+          ? {
+              name: order.tenant?.displayName ?? order.tenant?.name ?? '',
+              hostname: primaryDomain,
+              url: `https://${primaryDomain}`,
+            }
+          : null,
+      /*
+       * A failure reason a customer can act on, and nothing else. The provider
+       * message and the failed step key stay in the operator's view — they name
+       * internal steps and would tell an anonymous caller how provisioning is
+       * built.
+       */
+      actionRequired:
+        order.status === SubscriptionOrderStatus.FAILED ||
+        run?.status === 'FAILED'
+          ? 'We could not finish setting up your workspace. Our team has been notified.'
+          : null,
+    };
+  }
+}
+
+/**
+ * The single state the page shows, resolved from rows rather than from a status
+ * column that could disagree with them.
+ *
+ * Ordered most-complete first: a tenant that is ready is ready whatever the
+ * order says, because the order is the commercial record and the tenant is the
+ * thing the customer is waiting for.
+ */
+function resolveOnboardingState(input: {
+  orderStatus: SubscriptionOrderStatus;
+  hasTenant: boolean;
+  runStatus: string | null;
+  tenantReady: boolean;
+}) {
+  if (input.tenantReady) return 'READY' as const;
+  if (input.runStatus === 'FAILED' || input.orderStatus === 'FAILED') {
+    return 'ACTION_REQUIRED' as const;
+  }
+  if (input.hasTenant) return 'PROVISIONING' as const;
+  if (input.orderStatus === SubscriptionOrderStatus.PAID) {
+    return 'PAYMENT_CONFIRMED' as const;
+  }
+  if (input.orderStatus === SubscriptionOrderStatus.ABANDONED) {
+    return 'EXPIRED' as const;
+  }
+  return 'AWAITING_PAYMENT' as const;
 }

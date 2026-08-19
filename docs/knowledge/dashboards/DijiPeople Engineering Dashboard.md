@@ -11,7 +11,7 @@
 | Open HIGH | **8** |
 | Open total | 33 |
 | Blocked | 0 |
-| Awaiting a product decision | 2 |
+| Awaiting a product decision | 3 |
 | Deferred | 5 |
 | Completed | 88 |
 | Awaiting Architect triage | 1 |
@@ -37,6 +37,7 @@ _None. Nothing open at CRITICAL._
 
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
+| [[ITEM-0062-no-multi-tenant-membership-one-user-belongs-to-one-tenant-so|ITEM-0062]] | No multi-tenant membership — one user belongs to one tenant, so discovery and switching cannot exist | ARCHITECTURE | HIGH | PRODUCT_DECISION | auth, users, tenant-domains, web | PRODUCT_DECISION |
 | [[ITEM-0032-recompute-productivity-totals-inflated-by-heartbeat-replays|ITEM-0032]] | Recompute productivity totals inflated by heartbeat replays | DATA_MIGRATION | MEDIUM | PRODUCT_DECISION | api:agent | PRODUCT_DECISION |
 | [[ITEM-0053-publish-privacy-policy-and-terms-for-the-public-landing-site|ITEM-0053]] | Publish privacy policy and terms for the public landing site | PRODUCT_DECISION | MEDIUM | PRODUCT_DECISION | apps/landing | PRODUCT_DECISION |
 
@@ -210,7 +211,7 @@ _None. Nothing has been deployed through the release process._
 | Knowledge | Count |
 |---|---|
 | Bug records | 70 |
-| Backlog items | 58 |
+| Backlog items | 59 |
 | Known bug patterns | 19 |
 | QA runs | 17 |
 | Engineering history records | 17 |

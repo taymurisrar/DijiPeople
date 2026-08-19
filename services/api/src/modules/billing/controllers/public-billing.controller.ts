@@ -158,4 +158,34 @@ export class PublicBillingController {
       reason: result.reason ?? null,
     };
   }
+
+  /**
+   * What the buyer's workspace is doing, for the page they wait on.
+   *
+   * Polled by the browser after checkout, so it is `no-store` — a cached
+   * "still provisioning" would leave a finished workspace looking stuck.
+   *
+   * Session-bound by the order id, which is a v4 uuid and therefore not
+   * guessable. The response carries no internal step keys, no provider
+   * identifiers and no failure detail beyond what a customer can act on.
+   */
+  @Public()
+  @Get('onboarding/:onboardingId/status')
+  @Header('Cache-Control', 'no-store')
+  async getOnboardingStatus(
+    @Param('onboardingId', new ParseUUIDPipe({ version: '4' }))
+    onboardingId: string,
+  ) {
+    const status =
+      await this.subscriptionOrders.getOnboardingStatus(onboardingId);
+
+    if (!status) {
+      throw new NotFoundException({
+        code: 'ONBOARDING_SESSION_NOT_FOUND',
+        message: 'This onboarding session is no longer active.',
+      });
+    }
+
+    return status;
+  }
 }
