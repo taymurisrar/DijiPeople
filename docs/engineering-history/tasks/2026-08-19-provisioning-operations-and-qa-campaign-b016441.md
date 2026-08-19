@@ -2063,10 +2063,27 @@ passed through its screens.
 
 ## Obsidian Sync
 
-PENDING at the time of writing — to be run after integration into `develop`, so
-the vault reflects the integrated state rather than a branch that may still
-move. `develop` brought a rewrite of `sync-obsidian.mjs` in this same merge, so
-the sync must run from the merged tree.
+Ran from the merged tree, which mattered: `develop` brought a rewrite of
+`sync-obsidian.mjs` in this same merge, so syncing from the pre-merge branch
+would have published through the old script.
+
+`node scripts/sync-obsidian.mjs` — wrote 57 notes, 373 already current, 4
+skipped as empty by the empty-note policy. `npm run knowledge:verify` reads the
+vault back:
+
+```
+OBSIDIAN_SYNC_STATUS        PASS
+VAULT_GENERATED_NOTES       430
+OBSIDIAN_UNRESOLVED_LINKS   0
+OBSIDIAN_ORPHAN_COUNT       0
+OBSIDIAN_STALE_GENERATED    0
+OBSIDIAN_PARITY_DIFFS       0
+```
+
+Zero unresolved wikilinks is the figure worth reading. This session added
+records pointing at `[[platform-auth]]`, `[[super-admin]]` and
+`[[platform-communications]]`, none of which had notes — the module notes were
+written for that reason, and the count proves no link was left dangling.
 
 ## Cleanup
 
