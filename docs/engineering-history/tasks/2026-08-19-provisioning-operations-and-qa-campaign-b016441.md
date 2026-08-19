@@ -2012,8 +2012,46 @@ sessions intact, counts recomputed rather than edited.
 
 | | |
 |---|---|
-| **CI Run ID** | `CI required gate` **success** on `b43ee1e`, read on that exact SHA. The verdict for the merged `b016441` was still running when this record was written. |
-| **CI Result** | PASS at `b43ee1e`; PENDING at `b016441`. Integration into `develop` must not proceed on the earlier verdict — `b016441` contains ten commits of other people's work that `b43ee1e` never saw. |
+| **CI Run ID** | `CI required gate` **success** on `b43ee1e`. Then three consecutive cancellations on `b016441`, `9fb3ef0` and `e850c31`. |
+| **CI Result** | See below — the first two were self-inflicted, the third was a real defect this task introduced. |
+
+The first two cancellations were mine: pushing a new commit supersedes the
+in-flight run, and I did it twice despite having written that down as a lesson.
+Ten of eleven required jobs passed on each; only `Browser e2e` was cut short.
+
+**The third was different, and worth the space.** On `e850c31` nothing was
+pushed after it, yet `Browser e2e` and `Database e2e` both ran for exactly
+thirty minutes and stopped. That is a job timeout, not a supersede, and
+`npm run ci:classify -- --run 32295738061` says what it means without
+interpretation:
+
+```
+CLASS       CANCELLED_MANUAL_OR_TIMEOUT
+IS_EVIDENCE NO
+MEANING     Cancelled with no superseding run on this ref. NOT evidence.
+```
+
+A gate that cannot be satisfied blocks integration, correctly. The cause was
+this task's own `e2e/global-setup.ts`: it warmed eight routes sequentially,
+each with its own 120-second timeout, so a cold CI runner could spend up to
+**sixteen minutes** warming before a single test ran. A warm-up written to stop
+the first test absorbing compile latency had become the largest cost in the job.
+
+Fixed two ways, and both are corrections rather than accommodations:
+
+- The warm-up now shares **one 90-second budget** across all routes, checked
+  between them and enforced per request, ordered so the compiles that actually
+  hurt come first. Measured worst case with every service down: **8 seconds**,
+  against up to 960 before.
+- `browser-e2e` `timeout-minutes` raised 30 → 45. This is not papering over the
+  bug: the suite genuinely grew from 18 tests to 48 in this task and runs at
+  `workers: 1` by deliberate choice, so 30 was tight on merit once the warm-up
+  was fixed. On `develop` the same job took 6.5 minutes for 18 tests.
+
+**On the exact-SHA rule.** It would have been easy to integrate on `b43ee1e`'s
+green gate and call the cancellations noise. That verdict describes a commit
+that never saw ten commits of other people's work, and it is exactly the
+substitution the rule exists to prevent.
 
 A verdict must be read **on the exact SHA being merged**. A verdict from an
 earlier commit on the same branch is a verdict about different code.
