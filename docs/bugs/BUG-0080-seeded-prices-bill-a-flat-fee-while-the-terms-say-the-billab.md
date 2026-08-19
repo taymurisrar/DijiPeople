@@ -2,7 +2,7 @@
 ID: BUG-0080
 aliases: [BUG-0080]
 Title: Seeded prices bill a flat fee while the Terms say the billable unit is an active employee
-Status: PRODUCT_DECISION
+Status: FIXED
 Severity: HIGH
 Priority: P1
 Type: DATA_INTEGRITY
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-20
 DetectedInSha: d4c0b00
 AffectedModules: [billing, super-admin, legal]
 OwnerAgent: architect
-ArchitectDisposition: PRODUCT_DECISION
+ArchitectDisposition: FIX_NOW
 QAReport: 
-RegressionId: 
+RegressionId: REG-069
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-20
 UpdatedAt: 2026-08-20
-ResolvedAt:
+ResolvedAt: 2026-08-20
 ---
 
 # BUG-0080 — Seeded prices bill a flat fee while the Terms say the billable unit is an active employee

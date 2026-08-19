@@ -13,20 +13,20 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 35 |
+| Open (active work) | 36 |
 | Blocked | 0 |
 | Deferred | 5 |
-| Awaiting a product decision | 3 |
+| Awaiting a product decision | 2 |
 | Completed / closed | 89 |
 | **Open CRITICAL** | **0** |
-| **Open HIGH** | **9** |
+| **Open HIGH** | **10** |
 | **Awaiting Architect triage** | **2** |
 
 ## Open by severity
 
 | Severity | Count |
 |---|---|
-| HIGH | 9 |
+| HIGH | 10 |
 | MEDIUM | 19 |
 | LOW | 7 |
 
@@ -35,7 +35,7 @@ see [`README.md`](README.md) for why.
 | Type | Count |
 |---|---|
 | ARCHITECTURE | 2 |
-| DATA_INTEGRITY | 1 |
+| DATA_INTEGRITY | 2 |
 | DOCUMENTATION | 2 |
 | FOLLOW_UP | 4 |
 | INFRA | 2 |
@@ -51,8 +51,8 @@ see [`README.md`](README.md) for why.
 |---|---|
 | OPEN | 4 |
 | DEFERRED | 5 |
-| PRODUCT_DECISION | 3 |
-| FIXED | 3 |
+| PRODUCT_DECISION | 2 |
+| FIXED | 4 |
 | VERIFIED | 62 |
 | NEW | 2 |
 | READY | 26 |
@@ -105,7 +105,7 @@ see [`README.md`](README.md) for why.
 | [BUG-0075](../../docs/bugs/BUG-0075-public-subscribe-checkout-has-no-rate-limit-and-the-invarian.md) | Public subscribe checkout has no rate limit and the invariant that should catch it is inert | SECURITY | HIGH | P1 | FIXED | billing, common/guards | FIX_NOW |
 | [BUG-0077](../../docs/bugs/BUG-0077-public-subscribe-creates-a-tenant-and-a-second-customeraccou.md) | Public subscribe creates a Tenant and a second CustomerAccount before payment | DATA_INTEGRITY | HIGH | P1 | FIXED | billing, super-admin, tenants | FIX_NOW |
 | [BUG-0078](../../docs/bugs/BUG-0078-provisioning-requested-has-no-consumer-so-a-paid-self-servic.md) | PROVISIONING_REQUESTED has no consumer so a paid self-service customer is never provisioned | STATE_MACHINE | HIGH | P1 | FIXED | billing, outbox, super-admin | FIX_NOW |
-| [BUG-0080](../../docs/bugs/BUG-0080-seeded-prices-bill-a-flat-fee-while-the-terms-say-the-billab.md) | Seeded prices bill a flat fee while the Terms say the billable unit is an active employee | DATA_INTEGRITY | HIGH | P1 | PRODUCT_DECISION | billing, super-admin, legal | PRODUCT_DECISION |
+| [BUG-0080](../../docs/bugs/BUG-0080-seeded-prices-bill-a-flat-fee-while-the-terms-say-the-billab.md) | Seeded prices bill a flat fee while the Terms say the billable unit is an active employee | DATA_INTEGRITY | HIGH | P1 | FIXED | billing, super-admin, legal | FIX_NOW |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | READY | api:tenant-control-plane | FIX_NOW |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | READY | apps/web, e2e | PLAN_REQUIRED |

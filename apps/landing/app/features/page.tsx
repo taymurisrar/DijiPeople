@@ -203,8 +203,7 @@ const catalog = Array.isArray(config.featureCatalog)
               See which plan fits your team.
             </h2>
             <p className="mt-1 text-sm leading-6 text-muted">
-              Pricing is per active employee, shown in your region&rsquo;s
-              currency.
+              One flat price per plan, shown in your region&rsquo;s currency.
             </p>
           </div>
           <Link

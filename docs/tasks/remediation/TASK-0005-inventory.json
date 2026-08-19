@@ -6616,19 +6616,19 @@
         "detected_in_sha": "d4c0b00",
         "created_at": "2026-08-20",
         "updated_at": "2026-08-20",
-        "resolved_at": ""
+        "resolved_at": "2026-08-20"
       },
       "type": "DATA_INTEGRITY",
       "title": "Seeded prices bill a flat fee while the Terms say the billable unit is an active employee",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "PRODUCT_DECISION",
+      "current_status": "FIXED",
       "current_evidence": {
         "paths": [
           "services/api/src/modules/super-admin/commercial-bootstrap.ts",
           "services/api/prisma/seed-legal.ts"
         ],
-        "verification_scope": "Proven live against the Stripe sandbox: a 5-seat Growth checkout produced amount_total 39900, the flat monthly figure, not 5x the unit amount."
+        "verification_scope": "Product decision taken: prices are flat per plan, tiered by modules. The prices were correct; the words were not. Terms, billing terms and five pieces of landing copy corrected, and billingUnitLabel now labels a flat price by period instead of returning null."
       },
       "affected_modules": [
         "billing",
@@ -6641,14 +6641,18 @@
       },
       "related_bugs": [],
       "related_backlog": [],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-069"
+      ],
+      "qa_scenarios": [
+        "QA-LANDING-009"
+      ],
       "test_plan": [],
       "active_session_conflict": "NONE",
-      "owner_decision_required": "YES",
-      "architect_disposition": "PRODUCT_DECISION",
+      "owner_decision_required": "NO",
+      "architect_disposition": "FIX_NOW",
       "verification_result": {
-        "result": "PRODUCT_DECISION",
+        "result": "FIXED",
         "classification": "TERMINAL_AS_DOCUMENTED",
         "finding_ids": []
       }

@@ -237,16 +237,32 @@ describe("estimateCost", () => {
 });
 
 describe("billingUnitLabel", () => {
-  // The billable unit is an active employee, not a login or a "seat".
-  it("names the billing unit as active employees", () => {
+  // For a per-seat price the unit is an active employee, not a login or a
+  // "seat" — a tenant admin who is not an employee does not consume one.
+  it("names active employees when the price is per seat", () => {
     expect(billingUnitLabel(offer())).toBe("per active employee / month");
     expect(billingUnitLabel(offer({ billingInterval: "YEAR" }))).toBe(
       "per active employee / year",
     );
   });
 
-  it("returns nothing for a flat price, which is not per employee", () => {
-    expect(billingUnitLabel(offer({ billingModel: "FLAT" }))).toBeNull();
+  it("names only the period when the price is flat", () => {
+    /*
+     * This used to return null, which rendered a bare figure with no unit at
+     * all. DijiPeople's public plans are flat, so that was every price on the
+     * pricing page — "$199" with nothing saying per what, beside body copy
+     * claiming the price was per employee. Saying nothing is not the same as
+     * saying nothing misleading.
+     */
+    expect(billingUnitLabel(offer({ billingModel: "FLAT" }))).toBe("per month");
+    expect(
+      billingUnitLabel(offer({ billingModel: "FLAT", billingInterval: "YEAR" })),
+    ).toBe("per year");
+  });
+
+  it("says nothing about a price that is not available", () => {
+    expect(billingUnitLabel(unavailableOffer())).toBeNull();
+    expect(billingUnitLabel(null)).toBeNull();
   });
 });
 

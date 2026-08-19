@@ -8,10 +8,10 @@
 | | |
 |---|---|
 | Open CRITICAL | **0** |
-| Open HIGH | **9** |
-| Open total | 35 |
+| Open HIGH | **10** |
+| Open total | 36 |
 | Blocked | 0 |
-| Awaiting a product decision | 3 |
+| Awaiting a product decision | 2 |
 | Deferred | 5 |
 | Completed | 89 |
 | Awaiting Architect triage | 2 |
@@ -28,6 +28,7 @@ _None. Nothing open at CRITICAL._
 | [[BUG-0075-public-subscribe-checkout-has-no-rate-limit-and-the-invarian|BUG-0075]] | Public subscribe checkout has no rate limit and the invariant that should catch it is inert | SECURITY | HIGH | FIXED | billing, common/guards | FIX_NOW |
 | [[BUG-0077-public-subscribe-creates-a-tenant-and-a-second-customeraccou|BUG-0077]] | Public subscribe creates a Tenant and a second CustomerAccount before payment | DATA_INTEGRITY | HIGH | FIXED | billing, super-admin, tenants | FIX_NOW |
 | [[BUG-0078-provisioning-requested-has-no-consumer-so-a-paid-self-servic|BUG-0078]] | PROVISIONING_REQUESTED has no consumer so a paid self-service customer is never provisioned | STATE_MACHINE | HIGH | FIXED | billing, outbox, super-admin | FIX_NOW |
+| [[BUG-0080-seeded-prices-bill-a-flat-fee-while-the-terms-say-the-billab|BUG-0080]] | Seeded prices bill a flat fee while the Terms say the billable unit is an active employee | DATA_INTEGRITY | HIGH | FIXED | billing, super-admin, legal | FIX_NOW |
 | [[ITEM-0004-tenant-activation-never-proven-end-to-end|ITEM-0004]] | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | READY | api:tenant-control-plane | FIX_NOW |
 | [[ITEM-0034-apps-web-has-zero-browser-e2e-coverage|ITEM-0034]] | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | READY | apps/web, e2e | PLAN_REQUIRED |
 | [[ITEM-0047-database-e2e-suites-fail-against-an-ephemeral-postgresql|ITEM-0047]] | Database e2e suites fail against an ephemeral PostgreSQL | TEST_GAP | HIGH | READY | services/api/test, .github/workflows, database | PLAN_REQUIRED |
@@ -38,7 +39,6 @@ _None. Nothing open at CRITICAL._
 
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
-| [[BUG-0080-seeded-prices-bill-a-flat-fee-while-the-terms-say-the-billab|BUG-0080]] | Seeded prices bill a flat fee while the Terms say the billable unit is an active employee | DATA_INTEGRITY | HIGH | PRODUCT_DECISION | billing, super-admin, legal | PRODUCT_DECISION |
 | [[ITEM-0032-recompute-productivity-totals-inflated-by-heartbeat-replays|ITEM-0032]] | Recompute productivity totals inflated by heartbeat replays | DATA_MIGRATION | MEDIUM | PRODUCT_DECISION | api:agent | PRODUCT_DECISION |
 | [[ITEM-0053-publish-privacy-policy-and-terms-for-the-public-landing-site|ITEM-0053]] | Publish privacy policy and terms for the public landing site | PRODUCT_DECISION | MEDIUM | PRODUCT_DECISION | apps/landing | PRODUCT_DECISION |
 
@@ -111,6 +111,7 @@ _None._
 | [[BUG-0075-public-subscribe-checkout-has-no-rate-limit-and-the-invarian|BUG-0075]] | Public subscribe checkout has no rate limit and the invariant that should catch it is inert | SECURITY | HIGH | FIXED | billing, common/guards | FIX_NOW |
 | [[BUG-0077-public-subscribe-creates-a-tenant-and-a-second-customeraccou|BUG-0077]] | Public subscribe creates a Tenant and a second CustomerAccount before payment | DATA_INTEGRITY | HIGH | FIXED | billing, super-admin, tenants | FIX_NOW |
 | [[BUG-0078-provisioning-requested-has-no-consumer-so-a-paid-self-servic|BUG-0078]] | PROVISIONING_REQUESTED has no consumer so a paid self-service customer is never provisioned | STATE_MACHINE | HIGH | FIXED | billing, outbox, super-admin | FIX_NOW |
+| [[BUG-0080-seeded-prices-bill-a-flat-fee-while-the-terms-say-the-billab|BUG-0080]] | Seeded prices bill a flat fee while the Terms say the billable unit is an active employee | DATA_INTEGRITY | HIGH | FIXED | billing, super-admin, legal | FIX_NOW |
 | [[BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state|BUG-0051]] | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |
 | [[BUG-0009-session-revocation-depended-on-the-refresh-cookie|BUG-0009]] | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | VERIFIED | app:admin, api:auth | DONE |
 | [[BUG-0010-unguarded-cookie-options-could-turn-sign-out-into-a-500|BUG-0010]] | Unguarded cookie options could turn admin sign-out into a 500 | INFRA | MEDIUM | VERIFIED | app:admin | DONE |

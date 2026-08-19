@@ -246,10 +246,18 @@ export function PlansExperience({ config }: { config: CommercialConfigView }) {
         <h2 className="text-lg font-semibold text-foreground">
           Estimate your cost
         </h2>
+        {/*
+          The headcount input stays, but it no longer claims to drive the price.
+          It does two real things: it flags a plan whose capacity your team would
+          exceed, and it carries through to checkout so the workspace is sized
+          correctly. `estimateCost` already refuses to multiply a flat price by
+          team size — saying "per active employee" here contradicted the number
+          shown directly beneath it.
+        */}
         <p className="mt-1 text-sm leading-6 text-muted">
-          Pricing is per active employee. Enter roughly how many people you
-          employ — this is an estimate, and the exact amount is confirmed at
-          checkout.
+          Each plan is one flat price, whatever your headcount. Enter roughly how
+          many people you employ and we will flag any plan that would not have
+          the capacity for your team.
         </p>
 
         <div className="mt-4 flex flex-wrap items-end gap-3">

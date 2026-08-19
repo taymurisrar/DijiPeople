@@ -187,10 +187,11 @@ administrators enter.
 
 ## Subscription and billing
 
-The billable unit is an **active employee**. Employees counted as active are
-those in active, probation or notice status; inactive, terminated and deleted
-records are not counted. Billing terms, capacity changes and cancellation are
-described in the Subscription and Billing Terms.
+The subscription is a **flat fee per plan**, for the billing period chosen. It
+does not vary with the number of employees in the workspace — the plans differ
+by the modules they include. Active-employee numbers are measured for capacity,
+not for billing. Billing terms, capacity changes and cancellation are described
+in the Subscription and Billing Terms.
 
 ## Customer data
 
@@ -226,14 +227,23 @@ ${OPERATOR_BLOCK}`,
 
 ${REVIEW_BANNER}
 
-## The billable unit
+## What you pay
 
-One **active employee**. An employee counts when their employment status is
-active, probation or notice. Inactive and terminated employees do not count, and
-neither do soft-deleted records.
+A **flat subscription fee per plan**, for the billing period you chose. The fee
+does not change with the number of employees in the workspace; the plans differ
+by the modules they include, not by headcount.
 
-Platform administrators, service accounts and login users that are not employees
-are **not** counted. The platform bills for staff, not for logins.
+## How employees are counted
+
+Headcount is still measured, because a plan may carry a capacity limit and
+because the usage history is what makes a capacity dispute answerable. It is
+**not** what you are billed on.
+
+An employee counts as active when their employment status is active, probation
+or notice. Inactive and terminated employees do not count, and neither do
+soft-deleted records. Platform administrators, service accounts and login users
+that are not employees are not counted either — the count is of staff, not
+logins.
 
 ## Capacity
 
