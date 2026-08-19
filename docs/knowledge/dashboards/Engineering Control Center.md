@@ -7,7 +7,7 @@
 
 | | |
 |---|---|
-| Active sessions | **4** |
+| Active sessions | **3** |
 | Active parent tasks | 2 |
 | Active work packages | 1 |
 | Blocked work packages | 1 |
@@ -23,7 +23,6 @@
 
 | Session | Task | Title | Status | Branch | Target | Leases | Schema |
 |---|---|---|---|---|---|---|---|
-| [[SESSION-0017-primary-worktree-repository-health-ownership|SESSION-0017]] | — | Primary worktree repository health ownership | ACTIVE | `agent/repo-health-primary-worktree` | `develop` | — | NO |
 | [[SESSION-0016-database-agent-security-agent-agent-reliability-and-obsidian|SESSION-0016]] | — | Database Agent, Security Agent, agent reliability and Obsidian ownership | ACTIVE | `agent/agent-framework-hardening` | `develop` | — | NO |
 | [[SESSION-0014-ci-performance-cancellation-rca-and-autonomous-ci-adaptation|SESSION-0014]] | — | CI performance, cancellation RCA and autonomous CI adaptation | ACTIVE | `agent/ci-performance-adaptation` | `develop` | — | NO |
 | [[SESSION-0003-dijipeople-global-technical-remediation|SESSION-0003]] | TASK-0005 | DijiPeople Global Technical Remediation | ACTIVE | `agent/remediation-authorization` | `develop` | permissions, record-indexes | NO |

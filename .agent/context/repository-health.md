@@ -140,6 +140,23 @@ registered from the primary checkout has its only copy sitting there untracked,
 and reading committed state instead reports another chat's live session as an
 orphan, which invites deleting it.
 
+### An untracked session record makes the indexes *look* stale
+
+`rebuild-sessions --check`, `generate-dashboards --check` and
+`validate-framework` read the **working tree**, not the commit. A session record
+that exists only as an untracked file — the ordinary state for a session
+registered from the primary checkout, or for one still in flight — makes the
+committed indexes look as though they are missing a session, in that worktree
+only.
+
+The same SHA passes in a clean checkout, which is why CI is green while the
+primary checkout reports staleness. Confirm before acting: run the check in a
+clean worktree at the identical SHA.
+
+**Do not regenerate the indexes to make it go away.** That commits another
+session's in-progress registration on its behalf, in a diff that looks like your
+own work. It resolves when that session integrates its record.
+
 ### Other sessions' worktrees are reported, never cleaned
 
 A dirty worktree belonging to another session is `DIRTY_OTHER_SESSION_OWNED`.

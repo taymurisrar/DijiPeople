@@ -4,7 +4,7 @@ aliases: [SESSION-0017]
 TASK_ID:
 TITLE: Primary worktree repository health ownership
 ARCHITECT_INTENT: Primary worktree repository health ownership
-STATUS: ACTIVE
+STATUS: COMPLETE
 TASK_TYPE: FRAMEWORK
 TASK_SIZE: LARGE
 BASE_BRANCH: origin/develop
@@ -16,8 +16,8 @@ AFFECTED_MODULES: [framework, git, landing]
 WRITE_LEASES: []
 ACTIVE_WORK_PACKAGES: []
 SCHEMA_WRITE: NO
-CI_STATUS: NOT_RUN
-MERGE_STATUS: NOT_STARTED
+CI_STATUS: PASS
+MERGE_STATUS: INTEGRATED
 STARTED_AT: 2026-08-18T23:14:32.919Z
 LAST_HEARTBEAT: 2026-08-18T23:14:32.919Z
 BLOCKERS: none
@@ -27,20 +27,67 @@ BLOCKERS: none
 
 ## Intent
 
-Primary worktree repository health ownership
+Reconcile the six uncommitted files the user found in the primary checkout on
+`develop`, and close the framework loophole that let previous tasks report
+`POST_TASK_REPO_HEALTH = PASS` and `CLEANUP_STATUS = DONE` while it was dirty.
 
 ## Scope
 
-- framework
-- git
-- landing
+- framework — `repo-health.mjs`, `session.mjs`, `validate-framework.mjs`, the
+  repository-health and completion-contract documents, Release/DevOps and
+  Architect roles, `AGENTS.md`
+- git — multi-worktree state, ownership attribution, integration
+- landing — `next-env.d.ts` only, a one-line generated-file correction
 
 ## Concurrency
 
-Write leases held, overlap classification against other active sessions, and
-anything this session deliberately serialised behind another. Live state:
-`node scripts/session.mjs list`.
+`SAFE_PARALLEL` at registration. No write leases taken; no schema write; the
+database was never touched.
+
+Two other sessions were live throughout:
+
+- **SESSION-0015** (`agent/provisioning-ops-and-qa`) — holds a stale
+  `permissions` lease and its **only** record is an untracked file in the
+  primary checkout. Classified `ACTIVE_SESSION_RECORD` /
+  `DIRTY_OTHER_SESSION_OWNED` and deliberately left untouched. It committed its
+  own work at `a28d967` mid-task.
+- **SESSION-0003** (`agent/global-remediation-program`) — no overlap.
+
+`docs/qa/regressions/index.md` and `docs/tasks/remediation/TASK-0005-inventory.json`
+are single-writer files SESSION-0015 also holds work against on an unintegrated
+branch. No conflict arose; both changes are additive and whichever integrates
+second appends.
+
+## Outcome
+
+Integrated into `develop` at `484f165` by ref-push, from the exact SHA the
+`CI required gate` passed on. `main` untouched.
+
+| | |
+|---|---|
+| Records created | [[BUG-0076]], [[ITEM-0057]], [[ITEM-0058]], [[ITEM-0059]], REG-065, [[QA-DEPLOY-015]] |
+| Preserve branch | `preserve/landing-env-domain-cutover` @ `2472df3` — kept |
+| Primary worktree at close | `DIRTY_OTHER_SESSION_OWNED` — SESSION-0015's record only |
+| Unexplained dirty files | 0 |
+
+## A note for whoever runs the checks next
+
+`rebuild-sessions --check`, `generate-dashboards --check` and
+`validate-framework` report the session indexes and the Engineering Control
+Center as **stale when run in the primary checkout**, while the identical SHA
+passes all 2742 checks in a clean checkout.
+
+That is not drift. The generators read the working tree, so SESSION-0015's
+untracked record makes the committed indexes look as though they are missing a
+session. It resolves by itself when that session integrates its record.
+
+Do not "fix" it by regenerating the indexes in the primary checkout — that would
+commit another session's in-progress registration on its behalf, and the diff
+would look like this session's work.
 
 ## History
 
 - 2026-08-18 — session started from `origin/develop` at `494c44d`.
+- 2026-08-19 — six dirty paths classified; user env work preserved at `2472df3`;
+  `repo-health.mjs` and `session.mjs` fixed; simulations 37–39 added and
+  mutation-tested; integrated at `484f165`; Obsidian verified clean.
