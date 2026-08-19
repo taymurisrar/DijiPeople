@@ -31,6 +31,15 @@ export type LegalIndexEntry = {
   slug: string;
   title: string;
   version: number;
+  /**
+   * The published version being shown, so an acceptance can name it.
+   *
+   * Null when the API supplied none, and a document without it is never offered
+   * as something to accept: an acknowledgement that cannot say *which* text was
+   * agreed to is not evidence, which is why the API takes version ids rather
+   * than a boolean.
+   */
+  versionId: string | null;
 };
 
 /**
@@ -146,6 +155,8 @@ export async function fetchPublishedLegalIndex(): Promise<LegalIndexEntry[]> {
               ? record.title
               : legalRouteTitle(slug),
           version: typeof record.version === "number" ? record.version : 1,
+          versionId:
+            typeof record.versionId === "string" ? record.versionId : null,
         },
       ];
     });
