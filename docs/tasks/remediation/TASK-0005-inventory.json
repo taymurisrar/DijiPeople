@@ -6325,18 +6325,18 @@
         "detected_in_sha": "4f966ea",
         "created_at": "2026-08-19",
         "updated_at": "2026-08-19",
-        "resolved_at": ""
+        "resolved_at": "2026-08-19"
       },
       "type": "DATA_INTEGRITY",
       "title": "Public subscribe creates a Tenant and a second CustomerAccount before payment",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
+      "current_status": "FIXED",
       "current_evidence": {
         "paths": [
           "services/api/src/modules/billing/services/billing.service.ts"
         ],
-        "verification_scope": "Read end to end at 4f966ea. The legacy Lead/CustomerAccount/Tenant/Subscription block runs unconditionally after openOrder; the file states the defect against itself at :503. Not yet fixed — an implementation was written and reverted once BUG-0078 was found."
+        "verification_scope": "Fixed and mutation-tested: the regression run against pre-fix source reproduces all four symptoms including the fabricated Unknown columns; restored, all four pass."
       },
       "affected_modules": [
         "billing",
@@ -6353,14 +6353,18 @@
         "BUG-0078"
       ],
       "related_backlog": [],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-066"
+      ],
+      "qa_scenarios": [
+        "QA-BILLING-008"
+      ],
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
       "architect_disposition": "FIX_NOW",
       "verification_result": {
-        "result": "OPEN",
+        "result": "FIXED",
         "classification": "TERMINAL_AS_DOCUMENTED",
         "finding_ids": []
       }
@@ -6373,19 +6377,19 @@
         "detected_in_sha": "4f966ea",
         "created_at": "2026-08-19",
         "updated_at": "2026-08-19",
-        "resolved_at": ""
+        "resolved_at": "2026-08-19"
       },
       "type": "STATE_MACHINE",
       "title": "PROVISIONING_REQUESTED has no consumer so a paid self-service customer is never provisioned",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
+      "current_status": "FIXED",
       "current_evidence": {
         "paths": [
           "services/api/src/modules/billing/services/order-activation.service.ts",
           "services/api/src/modules/billing/services/payment-confirmed.handler.ts"
         ],
-        "verification_scope": "Grepped the whole consumer registry at 4f966ea: one handler exists and it handles PAYMENT_CONFIRMED. PROVISIONING_REQUESTED is emitted and unhandled. onboardCustomer is reachable only from an authenticated Platform Admin endpoint."
+        "verification_scope": "Consumer added and the engine made reachable without a human actor. Invariant mutation-tested: emptying the handles array fails naming PROVISIONING_REQUESTED."
       },
       "affected_modules": [
         "billing",
@@ -6402,15 +6406,65 @@
         "BUG-0077"
       ],
       "related_backlog": [],
+      "regressions": [
+        "REG-067"
+      ],
+      "qa_scenarios": [
+        "QA-BILLING-009"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "FIX_NOW",
+      "verification_result": {
+        "result": "FIXED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "ITEM-0061",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0061-notification-coverage-is-asymmetric-seat-change-applied-and-.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-08-19",
+        "updated_at": "2026-08-19",
+        "resolved_at": ""
+      },
+      "type": "FOLLOW_UP",
+      "title": "Notification coverage is asymmetric — SEAT_CHANGE_APPLIED and SUBSCRIPTION_TERMINATED notify nobody",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "NEW",
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/notifications/platform-lifecycle-notifications.catalog.ts",
+          "services/api/src/modules/outbox/emitted-events-have-consumers.invariant.spec.ts"
+        ],
+        "verification_scope": "Surfaced by the BUG-0078 invariant on its first run: 12 events are in the notification catalog, 6 emitted events have no consumer, and 2 of those 6 have a covered counterpart. Not yet triaged as intent or oversight."
+      },
+      "affected_modules": [
+        "notifications",
+        "billing"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": "Found during TASK-0008 WP-10; not in its scope."
+      },
+      "related_bugs": [
+        "BUG-0078"
+      ],
+      "related_backlog": [],
       "regressions": [],
       "qa_scenarios": [],
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "PLAN_REQUIRED",
+      "architect_disposition": "TRIAGE_REQUIRED",
       "verification_result": {
-        "result": "OPEN",
-        "classification": "TERMINAL_AS_DOCUMENTED",
+        "result": "NEW",
+        "classification": "PRELIMINARY",
         "finding_ids": []
       }
     }

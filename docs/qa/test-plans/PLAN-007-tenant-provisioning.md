@@ -83,7 +83,7 @@ The admin provisioning screen, including its confirmation step — `BUG-0022` wa
 
 ## Related
 
-- Scenarios — [[QA-PROV-001]], [[QA-PROV-002]], [[QA-PROV-003]], [[QA-PROV-004]]
+- Scenarios — [[QA-BILLING-009]], [[QA-PROV-001]], [[QA-PROV-002]], [[QA-PROV-003]], [[QA-PROV-004]]
 - Module — [[tenant-provisioning]]
 - Bugs — [[BUG-0014]], [[BUG-0015]], [[BUG-0017]], [[BUG-0022]]
 - Regressions — REG-012, REG-013, REG-027, REG-030 (see the regression register)

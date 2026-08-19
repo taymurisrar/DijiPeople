@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 95** · automated: 89 · manual: 4 · blocked by infrastructure: 0
+**Scenarios: 97** · automated: 90 · manual: 4 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -46,6 +46,8 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-BILLING-005](../../../docs/qa/scenarios/QA-BILLING-005-a-repeated-subscribe-submission-reuses-the-customer-and-orde.md) | A repeated subscribe submission reuses the customer and order, and the server owns every money figure | subscription-orders | DATABASE | CRITICAL | AUTOMATED | `services/api/test/subscription-order.e2e-spec.ts` | — | — |
 | [QA-BILLING-006](../../../docs/qa/scenarios/QA-BILLING-006-seat-and-plan-changes-apply-immediately-upward-and-at-renewa.md) | Seat and plan changes apply immediately upward and at renewal downward | subscription-changes | DATABASE | CRITICAL | AUTOMATED | `services/api/test/seat-plan-change.e2e-spec.ts` | — | — |
 | [QA-BILLING-007](../../../docs/qa/scenarios/QA-BILLING-007-every-unauthenticated-write-handler-is-rate-limited.md) | Every unauthenticated write handler is rate limited | authorization | SECURITY | HIGH | AUTOMATED | `services/api/src/common/guards/public-write-rate-limit.invariant.spec.ts` | BUG-0075 | REG-065 |
+| [QA-BILLING-008](../../../docs/qa/scenarios/QA-BILLING-008-an-unpaid-public-subscribe-creates-no-tenant.md) | An unpaid public subscribe creates no tenant | subscription-orders | DATABASE | HIGH | AUTOMATED | `services/api/test/payment-authorised-provisioning.e2e-spec.ts` | BUG-0077 | REG-066 |
+| [QA-BILLING-009](../../../docs/qa/scenarios/QA-BILLING-009-a-confirmed-payment-provisions-exactly-one-workspace-automat.md) | A confirmed payment provisions exactly one workspace automatically | tenant-provisioning | INTEGRATION | HIGH | PARTIAL | `services/api/src/modules/outbox/emitted-events-have-consumers.invariant.spec.ts` | BUG-0078 | REG-067 |
 | [QA-CI-001](../../../docs/qa/scenarios/QA-CI-001-report-only-jobs-publish-an-explicit-pass-fail-verdict.md) | Report-only CI jobs publish an explicit PASS/FAIL verdict | deployment-release | DEPLOYMENT_SMOKE | HIGH | AUTOMATED | `scripts/validate-framework.mjs` | BUG-0049 | REG-047 |
 | [QA-DEPLOY-001](../../../docs/qa/scenarios/QA-DEPLOY-001-deployment-smoke-checks-answer-against-the-deployed-environm.md) | Deployment smoke checks answer against the deployed environment | deployment-release | DEPLOYMENT_SMOKE | HIGH | AUTOMATED | `scripts/smoke-deployment.mjs` | — | — |
 | [QA-DEPLOY-002](../../../docs/qa/scenarios/QA-DEPLOY-002-no-url-is-hardcoded-where-configuration-is-required.md) | No URL is hardcoded where configuration is required | deployment-release | UNIT | HIGH | AUTOMATED | `scripts/check-no-hardcoded-urls.mjs` | BUG-0026 | REG-016 |

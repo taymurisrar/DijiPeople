@@ -40,7 +40,16 @@ export class UserInvitationsService {
     employeeId?: string | null;
     email: string;
     fullName: string;
-    createdByUserId: string;
+    /**
+     * Null for an invitation issued by automated provisioning.
+     *
+     * `UserInvitation.createdByUserId` has always been nullable; this signature
+     * was stricter than the schema, so an automated caller had to invent an
+     * actor to satisfy the type. A null actor is recorded as a system action,
+     * which is what actually happened — naming the buyer, or a placeholder user,
+     * would put a false name in the audit trail.
+     */
+    createdByUserId?: string | null;
     sendNow?: boolean;
   }) {
     const email = normalizeEmail(input.email);
@@ -252,7 +261,9 @@ export class UserInvitationsService {
 
   async revokePendingInvitations(
     userId: string,
-    actorUserId: string,
+    // Null when automated provisioning supersedes an earlier invitation.
+    // `updatedByUserId` is nullable for the same reason `createdByUserId` is.
+    actorUserId: string | null | undefined,
     db: PrismaDb = this.prisma,
   ) {
     await db.userInvitation.updateMany({

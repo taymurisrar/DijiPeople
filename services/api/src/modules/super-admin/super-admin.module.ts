@@ -21,6 +21,7 @@ import { PaymentsService } from './payments.service';
 import { PlansRepository } from './plans.repository';
 import { PlatformLifecycleService } from './platform-lifecycle.service';
 import { PlatformOnboardingService } from './platform-onboarding.service';
+import { ProvisioningRequestedHandler } from './provisioning-requested.handler';
 import { SuperAdminController } from './super-admin.controller';
 import { SuperAdminService } from './super-admin.service';
 import { TenantProvisioningService } from './tenant-provisioning.service';
@@ -53,6 +54,14 @@ import { TenantIdentitiesProvisioningService } from './tenant-identities-provisi
     TenantProvisioningService,
     TenantIdentitiesProvisioningService,
     SuperAdminService,
+    /*
+     * The consumer that turns a confirmed payment into a workspace (BUG-0078).
+     * It lives here rather than in `billing` because the engine it calls is
+     * here, and OutboxModule is @Global so nothing needs importing for it to
+     * register itself. Putting it in `billing` would have meant importing
+     * SuperAdminModule there to reach one method.
+     */
+    ProvisioningRequestedHandler,
     JwtAuthGuard,
     RolesGuard,
     PlatformPermissionsGuard,

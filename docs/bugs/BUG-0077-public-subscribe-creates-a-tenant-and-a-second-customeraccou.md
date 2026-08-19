@@ -2,7 +2,7 @@
 ID: BUG-0077
 aliases: [BUG-0077]
 Title: Public subscribe creates a Tenant and a second CustomerAccount before payment
-Status: OPEN
+Status: FIXED
 Severity: HIGH
 Priority: P1
 Type: DATA_INTEGRITY
@@ -13,13 +13,13 @@ AffectedModules: [billing, super-admin, tenants]
 OwnerAgent: architect
 ArchitectDisposition: FIX_NOW
 QAReport: 
-RegressionId: 
+RegressionId: REG-066
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-19
 UpdatedAt: 2026-08-19
-ResolvedAt:
+ResolvedAt: 2026-08-19
 ---
 
 # BUG-0077 — Public subscribe creates a Tenant and a second CustomerAccount before payment
@@ -198,11 +198,42 @@ Found while starting TASK-0008 WP-02. Blocks the value of WP-01.
 
 ## Resolution
 
-Pending.
+Landed with [[BUG-0078]], which is the only safe order — see that record.
+
+`createPublicSubscriptionCheckout` lost 110 lines and gained nothing. The Stripe
+customer is now created against `order.customerAccountId`; the session metadata
+carries `subscriptionOrderId` and no `tenantId`; `client_reference_id` is the
+order number. `tenantId` and `subscriptionId` on the order stay null until
+provisioning fills them in, and the response returns them as `null` rather than
+dropping the keys, so an already-deployed caller reading them sees an honest
+"not yet".
+
+`handleCheckoutSessionCompleted` branches on the **shape** of the metadata, not
+on a version flag or a deploy date. A checkout started before this change and
+paid after it still carries a `tenantId` and a real pre-created tenant, and
+still completes on the old path — so there is no cutover moment and no window in
+which a paying customer falls between the two.
+
+**Mutation evidence.** `test/payment-authorised-provisioning.e2e-spec.ts` was run
+against the pre-fix source with `git stash`, and the failures reproduce the whole
+defect rather than merely going red:
+
+```
+creates no tenant …            Expected: 0   Received: 1
+creates exactly one customer … Expected length: 1  Received length: 2
+  [{"companySize": "Unknown", "industry": "Unknown"}, {"companySize": null, "industry": null}]
+reports the order as awaiting payment …  tenantId Received: "958e6d09-…"
+sends Stripe the order, not a tenant …   Expected "cus_double_4"  Received: null
+```
+
+The second line is the fabrication and the duplicate customer in one diff; the
+fourth is the Stripe customer having been keyed to the *other* account. Restored,
+all four pass.
 
 ## QA Retest
 
-Pending.
+Pending a full QA campaign in WP-08. The regression above is DB-backed and runs
+in `test:e2e`.
 
 ## History
 

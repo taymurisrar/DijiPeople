@@ -14,7 +14,7 @@
 | Sessions declaring a schema write | 1 |
 | Open CRITICAL | **0** |
 | Open HIGH | 8 |
-| Awaiting Architect triage | 0 |
+| Awaiting Architect triage | 1 |
 | Owner decisions pending | 2 |
 | QA coverage gaps | 88 |
 | Scenarios blocked by infrastructure | 0 |
@@ -34,7 +34,7 @@
 |---|---|---|---|---|---|---|---|
 | [[TASK-0005-dijipeople-global-technical-remediation|TASK-0005]] | DijiPeople Global Technical Remediation | BUG | PROGRAM | 3/11 | WP-09 | WP-04, WP-06, WP-07, WP-08, WP-10 | — |
 | [[TASK-0007-commercial-platform-completion-transactional-legal-and-lifec|TASK-0007]] | Commercial platform completion — transactional, legal and lifecycle half | FEATURE | PROGRAM | 10/16 | WP-11 | WP-13 | WP-15 |
-| [[TASK-0008-self-service-customer-onboarding-tenant-provisioning-domain-|TASK-0008]] | Self-service customer onboarding, tenant provisioning, domain routing and central login | FEATURE | LARGE | 1/10 | WP-10 | WP-02, WP-03, WP-06, WP-07, WP-10 | — |
+| [[TASK-0008-self-service-customer-onboarding-tenant-provisioning-domain-|TASK-0008]] | Self-service customer onboarding, tenant provisioning, domain routing and central login | FEATURE | LARGE | 2/10 | WP-02 | WP-02, WP-03, WP-06, WP-07 | — |
 
 ## Branch model
 
@@ -186,13 +186,13 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 32 |
+| Open total | 33 |
 | Blocked | 0 |
 | Deferred | 5 |
 | Awaiting a product decision | 2 |
-| Awaiting Architect triage | 0 |
+| Awaiting Architect triage | 1 |
 
-Every ordinary record carries a disposition.
+**A record nobody has triaged is work nobody has decided about.** No ordinary record may stay `TRIAGE_REQUIRED` at the end of a task.
 
 ## Deployment
 

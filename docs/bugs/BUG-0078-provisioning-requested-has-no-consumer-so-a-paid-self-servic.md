@@ -2,7 +2,7 @@
 ID: BUG-0078
 aliases: [BUG-0078]
 Title: PROVISIONING_REQUESTED has no consumer so a paid self-service customer is never provisioned
-Status: OPEN
+Status: FIXED
 Severity: HIGH
 Priority: P1
 Type: STATE_MACHINE
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-19
 DetectedInSha: 4f966ea
 AffectedModules: [billing, outbox, super-admin]
 OwnerAgent: architect
-ArchitectDisposition: PLAN_REQUIRED
+ArchitectDisposition: FIX_NOW
 QAReport: 
-RegressionId: 
+RegressionId: REG-067
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-19
 UpdatedAt: 2026-08-19
-ResolvedAt:
+ResolvedAt: 2026-08-19
 ---
 
 # BUG-0078 — PROVISIONING_REQUESTED has no consumer so a paid self-service customer is never provisioned
@@ -175,11 +175,44 @@ Must land with [[BUG-0077]] — see Impact. Neither is safe alone.
 
 ## Resolution
 
-Pending.
+Three parts, landed together with [[BUG-0077]].
+
+1. **The engine is now reachable without a human.**
+   `PlatformOnboardingService.provisionTenantForCustomer` is the tenant-creating
+   core, taking a `CustomerAccount` that already exists. `onboardCustomer` keeps
+   creating the customer for a sales-assisted onboarding and then calls it, so
+   both paths run the same code — the brief's *"one provisioning engine"*, now
+   true rather than intended. `actorUserId` is nullable: a webhook has no human
+   behind it, and naming one would be a false audit trail. That required widening
+   `issueInvitation`'s `createdByUserId`, whose TypeScript signature was stricter
+   than its own nullable column.
+2. **`ProvisioningRequestedHandler`** consumes the event, prefers
+   `order.requestedSlug` and re-checks it against `Tenant.slug` — the hold guards
+   against other orders, but a tenant could have taken the name by another route,
+   and a paid customer gets a workspace either way with the substitution logged.
+   Idempotent twice over: the dispatcher will not re-run a settled consumer, and
+   the handler returns early if the order already points at a tenant, which
+   covers a crash *between* provisioning and settling the outbox row.
+3. **The invariant that would have caught this**, in
+   `emitted-events-have-consumers.invariant.spec.ts`.
+
+**Mutation evidence for the invariant** — the acceptance criterion, not the
+passing run. With `handles` emptied on the new consumer, it fails naming
+`PROVISIONING_REQUESTED`; restored, six tests pass.
+
+Its first run also surfaced something nobody had asked: 18 emitted events with no
+consumer. Twelve turned out to be handled through
+`platform-lifecycle-notifications.catalog.ts`, whose subscriptions are built by
+`.map()` and so are invisible to a literal-array scan — the check now reads the
+catalog as a subscription registry. Of the remaining six, four are genuinely
+history-only and are allowlisted with reasons; two are asymmetries recorded as
+[[ITEM-0061]] rather than waved through.
 
 ## QA Retest
 
-Pending.
+Pending WP-08. Note the honest gap: the handler's own logic is covered, and an
+end-to-end *payment → provisioned tenant* run needs a Stripe webhook this
+environment cannot deliver without live credentials.
 
 ## History
 

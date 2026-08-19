@@ -312,141 +312,53 @@ export class BillingService {
       };
     }
 
-    const created = await this.prisma.$transaction(async (tx) => {
-      const lead = await tx.lead.create({
-        data: {
-          contactFirstName: firstName,
-          contactLastName: lastName,
-          fullName: contactName,
-          companyName,
-          workEmail: email,
-          phoneNumber: input.phone?.trim() || null,
-          industry: 'Unknown',
-          companySize: 'Unknown',
-          country,
-          requirementsSummary: message,
-          message,
-          interestedPlan: planPrice.plan.name,
-          source: 'DijiPeople Public Subscribe',
-          status: LeadStatus.QUALIFIED,
-          subStatus: 'Subscription checkout started',
-          isQualified: true,
-        },
-      });
-
-      const customer = await tx.customerAccount.create({
-        data: {
-          companyName,
-          primaryContactFirstName: firstName,
-          primaryContactLastName: lastName,
-          primaryContactEmail: email,
-          primaryContactPhone: input.phone?.trim() || null,
-          contactEmail: email,
-          contactPhone: input.phone?.trim() || null,
-          billingContactEmail: email,
-          industry: 'Unknown',
-          companySize: 'Unknown',
-          country,
-          selectedPlanId: planPrice.planId,
-          preferredBillingCycle: planPrice.billingCycle,
-          leadId: lead.id,
-          status: CustomerAccountStatus.PROSPECT,
-          subStatus: 'Pending Stripe checkout',
-        },
-      });
-
-      const tenant = await tx.tenant.create({
-        data: {
-          customerAccountId: customer.id,
-          tenantCode: await generateTenantCode(tx),
-          name: companyName,
-          displayName: companyName,
-          slug: await this.resolveUniqueTenantSlug(tx, companyName),
-          status: TenantStatus.INACTIVE,
-          subStatus: 'Pending payment',
-          tenantBranding: {
-            create: buildDefaultTenantBranding(companyName, email),
-          },
-        },
-      });
-
-      const subscription = await tx.subscription.create({
-        data: {
-          tenantId: tenant.id,
-          planId: planPrice.planId,
-          planPriceId: planPrice.id,
-          billingCycle: planPrice.billingCycle,
-          basePrice: planPrice.unitAmount,
-          finalPrice:
-            seatPricing.estimatedMonthlyCharge ?? planPrice.unitAmount,
-          currency: planPrice.currency,
-          purchasedSeats,
-          stripeQuantity: purchasedSeats,
-          status: SubscriptionStatus.INCOMPLETE,
-          startDate: new Date(),
-          autoRenew: true,
-        },
-      });
-
-      await tx.auditLog.createMany({
-        data: [
-          {
-            tenantId: tenant.id,
-            action: 'PUBLIC_SUBSCRIBE_FORM_SUBMITTED',
-            entityType: 'Lead',
-            entityId: lead.id,
-            sourceModule: 'public-subscription',
-            afterSnapshot: toPrismaJson({
-              companyName,
-              email,
-              country,
-              detectedCountry: input.detectedCountry,
-              planPriceId: planPrice.id,
-            }),
-          },
-          {
-            tenantId: tenant.id,
-            action: 'PUBLIC_TENANT_CREATED_INACTIVE',
-            entityType: 'Tenant',
-            entityId: tenant.id,
-            sourceModule: 'public-subscription',
-            afterSnapshot: toPrismaJson({
-              tenantStatus: tenant.status,
-              customerAccountId: customer.id,
-              subscriptionId: subscription.id,
-            }),
-          },
-        ],
-      });
-
-      return { lead, customer, tenant, subscription };
-    });
-
+    /*
+     * No Tenant, no Subscription, no Lead and no second CustomerAccount are
+     * created here — BUG-0077.
+     *
+     * Until this change, `openOrder` above ran and then a second, older block
+     * created all four unconditionally: a Lead, another CustomerAccount carrying
+     * `industry: 'Unknown'`, a Tenant that consumed a workspace slug permanently
+     * before anyone had paid, and an INCOMPLETE Subscription. WP-05 introduced
+     * `openOrder` to replace that block and deferred deleting it to WP-07; WP-07
+     * shipped the post-payment automation and left the deletion. The two paths
+     * ran side by side, disagreeing about which CustomerAccount was the customer.
+     *
+     * The rule the brief states, and that this now obeys: verified payment
+     * authorises provisioning. The tenant is created by the provisioning engine
+     * after Stripe confirms, at the address the buyer reserved.
+     */
     const stripeCustomer =
       await this.stripeBillingService.client.customers.create({
         name: companyName,
         email,
         phone: input.phone?.trim() || undefined,
         metadata: {
-          tenantId: created.tenant.id,
-          tenantSlug: created.tenant.slug,
-          customerAccountId: created.customer.id,
-          leadId: created.lead.id,
+          // The order's own customer, not a second one invented for Stripe.
+          customerAccountId: order.customerAccountId,
+          subscriptionOrderId: order.orderId,
+          orderNumber: order.orderNumber,
           source: 'public_website',
         },
       });
 
     await this.prisma.customerAccount.update({
-      where: { id: created.customer.id },
+      where: { id: order.customerAccountId },
       data: { stripeCustomerId: stripeCustomer.id },
     });
 
+    /*
+     * Deliberately carries no `tenantId`: there is no tenant yet, and inventing
+     * one to satisfy the old metadata shape is what created the defect.
+     * `handleCheckoutSessionCompleted` branches on the absence of `tenantId`,
+     * which is also what keeps checkouts started before this change working —
+     * they still carry one, and still take the old path.
+     */
     const metadata = {
-      tenantId: created.tenant.id,
-      customerAccountId: created.customer.id,
+      subscriptionOrderId: order.orderId,
+      customerAccountId: order.customerAccountId,
       planId: planPrice.planId,
       planPriceId: planPrice.id,
-      leadId: created.lead.id,
       publicSubscription: 'true',
       source: 'public_website',
       seatQuantity: String(purchasedSeats),
@@ -469,57 +381,35 @@ export class BillingService {
         cancel_url: this.resolvePublicCheckoutUrl(
           `/subscribe/cancel?planPriceId=${planPrice.id}`,
         ),
-        client_reference_id: created.tenant.id,
+        // The order, not a tenant. This is the reference support quotes and the
+        // one the webhook resolves back to a row.
+        client_reference_id: order.orderNumber,
         metadata,
         subscription_data: { metadata },
         allow_promotion_codes: true,
       });
 
-    await this.prisma.$transaction(async (tx) => {
-      await tx.subscription.update({
-        where: { id: created.subscription.id },
-        data: {
-          stripeCustomerId: stripeCustomer.id,
-          stripeCheckoutSessionId: session.id,
-        },
-      });
-
-      await tx.auditLog.create({
-        data: {
-          tenantId: created.tenant.id,
-          action: 'STRIPE_CHECKOUT_SESSION_CREATED',
-          entityType: 'Subscription',
-          entityId: created.subscription.id,
-          sourceModule: 'public-subscription',
-          afterSnapshot: toPrismaJson({
-            checkoutSessionId: session.id,
-            stripeCustomerId: stripeCustomer.id,
-            planPriceId: planPrice.id,
-          }),
-        },
-      });
-    });
-
-    // The order now points at what payment will activate. Until WP-07 moves
-    // tenant creation behind the payment, the tenant already exists here; the
-    // order is still the record that survives an abandoned checkout.
-    await this.prisma.subscriptionOrder.update({
-      where: { id: order.orderId },
-      data: {
-        tenantId: created.tenant.id,
-        subscriptionId: created.subscription.id,
-        leadId: created.lead.id,
-        stripeCustomerId: stripeCustomer.id,
-        stripeCheckoutSessionId: session.id,
-      },
-    });
+    /*
+     * Record what the provider was told. `tenantId` and `subscriptionId` stay
+     * null until provisioning fills them in, which is the point: an abandoned
+     * checkout leaves a customer and an order behind, and nothing that looks
+     * like a live workspace.
+     */
+    await this.subscriptionOrders.attachCheckoutSession(
+      order.orderId,
+      stripeCustomer.id,
+      session.id,
+    );
 
     return {
       submitted: true,
       checkoutSessionId: session.id,
       url: session.url,
-      tenantId: created.tenant.id,
-      leadId: created.lead.id,
+      // Null until payment is confirmed and provisioning runs. Kept in the
+      // response rather than removed, so an already-deployed caller reading
+      // these keys sees an honest "not yet" instead of a missing field.
+      tenantId: null,
+      leadId: null,
       orderNumber: order.orderNumber,
       reused: false,
     };

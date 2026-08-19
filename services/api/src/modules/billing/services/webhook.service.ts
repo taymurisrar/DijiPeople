@@ -282,7 +282,6 @@ export class WebhookService {
       return false;
     }
 
-    const metadata = requireBillingMetadata(session.metadata);
     const stripeSubscriptionId = getStripeId(session.subscription);
     const stripeCustomerId = getStripeId(session.customer);
 
@@ -291,6 +290,36 @@ export class WebhookService {
         'Checkout session is missing Stripe customer or subscription.',
       );
     }
+
+    /*
+     * Two metadata shapes reach this handler, and the branch is on which one.
+     *
+     * A **tenant-initiated** checkout — an existing workspace changing plan or
+     * seat count — names its tenant, and everything below runs as it always has.
+     *
+     * A **public self-service** checkout cannot name one: no tenant exists until
+     * this payment authorises provisioning to create it (BUG-0077). Those
+     * sessions carry `subscriptionOrderId`, and their Subscription is created by
+     * provisioning alongside the tenant rather than upserted here against a
+     * tenant id that resolves to nothing.
+     *
+     * Branching on the *shape* rather than on a version flag or a deploy date is
+     * deliberate. A checkout started before that change and paid after it still
+     * carries a `tenantId` and a real pre-created tenant, and still has to
+     * complete — so there is no cutover moment to get wrong and no window in
+     * which a paying customer falls between the two paths.
+     */
+    if (!session.metadata?.tenantId) {
+      if (session.payment_status === 'paid') {
+        await this.orderActivation.confirmPayment({
+          stripeCheckoutSessionId: session.id,
+          stripeSubscriptionId,
+        });
+      }
+      return true;
+    }
+
+    const metadata = requireBillingMetadata(session.metadata);
 
     const stripeSubscription =
       (await this.stripeBillingService.client.subscriptions.retrieve(
