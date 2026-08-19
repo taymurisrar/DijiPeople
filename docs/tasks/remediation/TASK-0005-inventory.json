@@ -3482,7 +3482,8 @@
         "REG-062"
       ],
       "qa_scenarios": [
-        "QA-LANDING-006"
+        "QA-LANDING-006",
+        "QA-LANDING-011"
       ],
       "test_plan": [
         "PLAN-013"
@@ -6700,6 +6701,56 @@
       ],
       "qa_scenarios": [
         "QA-LANDING-010"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "FIX_NOW",
+      "verification_result": {
+        "result": "FIXED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0082",
+      "source": {
+        "record_path": "docs/bugs/BUG-0082-the-onboarding-wizard-collects-five-steps-of-data-it-cannot-.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "71f1795",
+        "created_at": "2026-08-20",
+        "updated_at": "2026-08-20",
+        "resolved_at": "2026-08-20"
+      },
+      "type": "UX",
+      "title": "The onboarding wizard collects five steps of data it cannot submit",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "current_evidence": {
+        "paths": [
+          "apps/landing/app/subscribe/subscribe-form.tsx",
+          "apps/landing/lib/plans.ts",
+          "e2e/tests/flow-c-landing-public-surface.spec.ts"
+        ],
+        "verification_scope": "BUG-0066 reintroduced by WP-11's wizard. Its guard was structural — a disabled fieldset and an id on a notice — and did not survive the rewrite from one page into five steps. A visitor with an unpurchasable selection could type an organization profile, an owner identity and two accepted agreements before meeting a disabled submit button. The rule is now one function, checkoutBlockedReason, feeding the notice, the fieldset and the Continue button alike."
+      },
+      "affected_modules": [
+        "landing"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [
+        "BUG-0066"
+      ],
+      "related_backlog": [],
+      "regressions": [
+        "REG-072"
+      ],
+      "qa_scenarios": [
+        "QA-LANDING-011"
       ],
       "test_plan": [],
       "active_session_conflict": "NONE",

@@ -5,9 +5,9 @@ import type { LegalIndexEntry } from "../../lib/legal-server";
 import {
   BillingCycle,
   PublicPlan,
+  checkoutBlockedReason,
   findPlanPrice,
   formatPlanPrice,
-  isCheckoutReady,
 } from "../../lib/plans";
 import {
   buildSubmitPayload,
@@ -92,7 +92,9 @@ export function SubscribeForm({
   const selectedPrice = selectedPlan
     ? findPlanPrice(selectedPlan, currency, billingCycle)
     : null;
-  const canCheckout = isCheckoutReady(selectedPrice);
+  // One decision, three consumers: the notice, the fieldset and Continue.
+  const blockedReason = checkoutBlockedReason(selectedPrice);
+  const canCheckout = blockedReason === null;
   const minimumSeats = selectedPrice?.minimumSeats ?? 1;
   const maximumSeats = selectedPrice?.maximumSeats ?? null;
   const effectiveSeatQuantity = Math.max(
@@ -512,16 +514,23 @@ export function SubscribeForm({
               ? `${effectiveSeatQuantity} purchased seat${effectiveSeatQuantity === 1 ? "" : "s"} · estimated ${new Intl.NumberFormat("en-US", { style: "currency", currency: selectedPrice.currency }).format(selectedPrice.unitAmount * effectiveSeatQuantity)} per month.`
               : "Billed as one subscription."}
           </p>
-          {!selectedPrice ? (
-            <p className="mt-2 text-xs text-warning">
-              This plan has no published price for your region yet. Contact us
-              and we will arrange it.
-            </p>
-          ) : null}
-          {selectedPrice && !canCheckout ? (
-            <p className="mt-2 text-xs text-muted">
-              This price is configured for display, but online checkout is not
-              available yet.
+          {/*
+            One notice for both reasons checkout can be impossible, carrying the
+            id the BUG-0066 regression test looks for.
+
+            It became two unidentified paragraphs when the wizard replaced the
+            single-page form, and the disabled fieldset that made the inputs
+            inert went with them. That is BUG-0066 again in a worse shape:
+            instead of one page of typing thrown away, five steps of
+            organization profile, owner identity and agreements, discovered dead
+            at the review button.
+          */}
+          {blockedReason ? (
+            <p
+              className="mt-2 text-xs text-warning"
+              id="subscribe-unavailable-notice"
+            >
+              {blockedReason}
             </p>
           ) : null}
         </div>
@@ -594,7 +603,26 @@ export function SubscribeForm({
           {STEP_TITLES[step]}
         </h2>
 
-        <div className="mt-4">
+        {/*
+          BUG-0066: never present an editable form that cannot be submitted.
+
+          A disabled fieldset, not per-input `disabled`, because the steps are
+          separate components and one wrapper cannot be forgotten by the next
+          one added. The plan and billing selectors sit outside it deliberately
+          and stay live — a visitor whose plan is unpurchasable needs to be able
+          to try another one, and disabling those would replace one dead end
+          with a worse one.
+
+          `aria-describedby` ties the inert region to the notice explaining why,
+          so the reason is announced rather than just visible.
+        */}
+        <fieldset
+          aria-describedby={
+            canCheckout ? undefined : "subscribe-unavailable-notice"
+          }
+          className="mt-4 border-0 p-0"
+          disabled={!canCheckout}
+        >
           {step === "organization" ? <OrganizationStep {...stepProps} /> : null}
           {step === "workspace" ? <WorkspaceStep {...stepProps} /> : null}
           {step === "owner" ? <OwnerStep {...stepProps} /> : null}
@@ -602,7 +630,7 @@ export function SubscribeForm({
           {step === "review" ? (
             <ReviewStep {...stepProps} goTo={goTo} />
           ) : null}
-        </div>
+        </fieldset>
 
         {/*
           The honeypot. Hidden from people and from assistive technology, so
@@ -650,7 +678,10 @@ export function SubscribeForm({
             </button>
           ) : (
             <button
-              className="rounded-xl bg-accent px-5 py-3 text-sm font-semibold text-white"
+              // Disabled for the same reason the fieldset is: advancing collects
+              // more of somebody's time towards a submit button that cannot fire.
+              className="rounded-xl bg-accent px-5 py-3 text-sm font-semibold text-white disabled:opacity-60"
+              disabled={!canCheckout}
               onClick={goNext}
               type="button"
             >

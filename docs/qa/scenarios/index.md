@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 100** · automated: 93 · manual: 4 · blocked by infrastructure: 0
+**Scenarios: 101** · automated: 94 · manual: 4 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -71,6 +71,7 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-LANDING-006](../../../docs/qa/scenarios/QA-LANDING-006-subscribe-never-presents-an-editable-form-it-cannot-submit.md) | Subscribe never presents an editable form it cannot submit | landing | BROWSER_E2E | HIGH | AUTOMATED | `e2e/tests/flow-c-landing-public-surface.spec.ts` | BUG-0066 | REG-062 |
 | [QA-LANDING-009](../../../docs/qa/scenarios/QA-LANDING-009-a-flat-price-is-never-described-as-per-employee.md) | A flat price is never described as per-employee | landing | UNIT | HIGH | AUTOMATED | `apps/landing/lib/plan-presentation.spec.ts` | BUG-0080 | REG-069 |
 | [QA-LANDING-010](../../../docs/qa/scenarios/QA-LANDING-010-every-direct-api-route-handler-forwards-the-visitor-address.md) | Every direct-API route handler forwards the visitor address | landing | API | MEDIUM | AUTOMATED | `apps/landing/lib/forwarded-headers.invariant.spec.ts` | BUG-0081, BUG-0032 | REG-071 |
+| [QA-LANDING-011](../../../docs/qa/scenarios/QA-LANDING-011-the-subscribe-wizard-refuses-to-collect-data-it-cannot-submi.md) | The subscribe wizard refuses to collect data it cannot submit | landing | E2E | HIGH | AUTOMATED | `apps/landing/lib/plans.spec.ts` | BUG-0082, BUG-0066 | REG-072 |
 | [QA-LEAD-001](../../../docs/qa/scenarios/QA-LEAD-001-the-public-lead-endpoint-is-rate-limited.md) | The public lead endpoint is rate limited | lead-management | SECURITY | HIGH | AUTOMATED | `services/api/src/modules/leads/public-leads.rate-limit.spec.ts` | BUG-0013 | REG-011 |
 | [QA-LEAD-002](../../../docs/qa/scenarios/QA-LEAD-002-every-public-write-handler-carries-a-rate-limit-guard.md) | Every public write handler carries a rate-limit guard | lead-management | SECURITY | HIGH | AUTOMATED | `services/api/src/common/guards/public-write-rate-limit.invariant.spec.ts` | BUG-0031 | REG-023 |
 | [QA-LEAD-003](../../../docs/qa/scenarios/QA-LEAD-003-rate-limiting-identifies-the-visitor-not-the-proxy.md) | Rate limiting identifies the visitor, not the proxy | lead-management | UNIT | HIGH | AUTOMATED | `services/api/src/common/security/client-ip.spec.ts` | BUG-0032 | REG-024 |

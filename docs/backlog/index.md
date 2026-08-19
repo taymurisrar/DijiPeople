@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**133 records** — 72 bugs under [`docs/bugs/`](../bugs/), 61 non-bug items under [`items/`](items/).
+**134 records** — 73 bugs under [`docs/bugs/`](../bugs/), 61 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,20 +13,20 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 35 |
+| Open (active work) | 36 |
 | Blocked | 0 |
 | Deferred | 7 |
 | Awaiting a product decision | 2 |
 | Completed / closed | 89 |
 | **Open CRITICAL** | **0** |
-| **Open HIGH** | **10** |
+| **Open HIGH** | **11** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
 
 | Severity | Count |
 |---|---|
-| HIGH | 10 |
+| HIGH | 11 |
 | MEDIUM | 20 |
 | LOW | 5 |
 
@@ -43,7 +43,7 @@ see [`README.md`](README.md) for why.
 | STATE_MACHINE | 1 |
 | TECH_DEBT | 6 |
 | TEST_GAP | 8 |
-| UX | 2 |
+| UX | 3 |
 
 ## All records by status
 
@@ -52,7 +52,7 @@ see [`README.md`](README.md) for why.
 | OPEN | 4 |
 | DEFERRED | 7 |
 | PRODUCT_DECISION | 2 |
-| FIXED | 5 |
+| FIXED | 6 |
 | VERIFIED | 62 |
 | READY | 26 |
 | DONE | 27 |
@@ -105,6 +105,7 @@ see [`README.md`](README.md) for why.
 | [BUG-0077](../../docs/bugs/BUG-0077-public-subscribe-creates-a-tenant-and-a-second-customeraccou.md) | Public subscribe creates a Tenant and a second CustomerAccount before payment | DATA_INTEGRITY | HIGH | P1 | FIXED | billing, super-admin, tenants | FIX_NOW |
 | [BUG-0078](../../docs/bugs/BUG-0078-provisioning-requested-has-no-consumer-so-a-paid-self-servic.md) | PROVISIONING_REQUESTED has no consumer so a paid self-service customer is never provisioned | STATE_MACHINE | HIGH | P1 | FIXED | billing, outbox, super-admin | FIX_NOW |
 | [BUG-0080](../../docs/bugs/BUG-0080-seeded-prices-bill-a-flat-fee-while-the-terms-say-the-billab.md) | Seeded prices bill a flat fee while the Terms say the billable unit is an active employee | DATA_INTEGRITY | HIGH | P1 | FIXED | billing, super-admin, legal | FIX_NOW |
+| [BUG-0082](../../docs/bugs/BUG-0082-the-onboarding-wizard-collects-five-steps-of-data-it-cannot-.md) | The onboarding wizard collects five steps of data it cannot submit | UX | HIGH | P1 | FIXED | landing | FIX_NOW |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | READY | api:tenant-control-plane | FIX_NOW |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | READY | apps/web, e2e | PLAN_REQUIRED |

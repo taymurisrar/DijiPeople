@@ -234,11 +234,16 @@ test.describe('commercial surfaces', () => {
   }) => {
     await page.goto(`${LANDING}/subscribe`);
 
-    const submit = page.locator('form button[type="submit"]');
-    const canCheckout = (await submit.count()) > 0;
-
-    if (canCheckout) {
-      await expect(submit).toBeEnabled();
+    /*
+     * The submit button now exists only on the wizard's final step, so its
+     * absence no longer means checkout is unavailable — it usually means the
+     * visitor is on step one. The notice is what distinguishes the two, and it
+     * is rendered beside the price on every step.
+     */
+    const notice = page.locator('#subscribe-unavailable-notice');
+    if ((await notice.count()) === 0) {
+      // Checkout is available: the wizard must be walkable.
+      await expect(page.locator('form button:has-text("Continue")')).toBeEnabled();
       return;
     }
 
@@ -254,7 +259,17 @@ test.describe('commercial surfaces', () => {
     // disabled state from an ancestor fieldset, and its own IDL attribute stays
     // false. Reading the property alone reports every field as enabled and turns
     // a working fix into a failing test.
-    await expect(page.locator('#subscribe-unavailable-notice')).toBeVisible();
+    await expect(notice).toBeVisible();
+
+    /*
+     * BUG-0082 — Continue must be dead too, not just submit. The wizard replaced
+     * a single page with five steps, and for a while it would happily collect
+     * an organization profile, an owner identity and signed agreements across
+     * all of them before revealing a disabled button at the end. Asserting only
+     * on the submit control cannot see that, because the submit control is not
+     * rendered until the visitor has already done the typing.
+     */
+    await expect(page.locator('form button:has-text("Continue")')).toBeDisabled();
 
     // Asserted through the DOM rather than `toBeDisabled()`: Playwright's
     // disabled semantics for a <fieldset> container are not the same question
@@ -295,7 +310,13 @@ test.describe('not found', () => {
 test.describe('metadata', () => {
   const routes = [
     { path: '/partners', title: /Partner network/i },
-    { path: '/subscribe/success', title: /Subscription confirmed/i },
+    /*
+     * "Setting up your workspace", not "Subscription confirmed". The page no
+     * longer congratulates anybody on arrival: a Stripe redirect is not the
+     * provider's word that payment succeeded, only the verified webhook is, so
+     * the page reports what the status endpoint says and its title matches.
+     */
+    { path: '/subscribe/success', title: /Setting up your workspace/i },
     { path: '/subscribe/cancel', title: /Checkout cancelled/i },
   ];
 
