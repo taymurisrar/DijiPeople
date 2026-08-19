@@ -175,7 +175,7 @@ None.
 
 ## Related Items
 
-[[ITEM-0047]] · [[ITEM-0034]] · [[qa-and-ci-architecture]] · [[REG-069]]
+[[ITEM-0047]] · [[ITEM-0034]] · [[qa-and-ci-architecture]] · REG-069 (regression register)
 
 ## Resolution
 

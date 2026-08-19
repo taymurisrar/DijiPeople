@@ -115,6 +115,20 @@ finding is the precondition — one record, not N.
 signal for exactly this, and `database-e2e-report` surfaces it separately from
 the test counts.
 
+## Related records
+
+[[ITEM-0047]] — the backlog item this pattern was extracted from, carrying the
+suite-by-suite evidence. [[BUG-0049]] — the sibling failure in reporting rather
+than fixtures: a red job that read as green. [[qa-and-ci-architecture]] — where
+the database e2e gate sits in the pipeline.
+
+`.agent/context/testing-architecture.md` records which test types run against a
+real database. It is deliberately not a wikilink: `.agent/` is not synced into
+the vault, and a link to a note that cannot exist is worse than a path.
+
+Regression coverage is REG-070 in the regression register; the reusable
+scenario is QA-TENANT-006.
+
 ## Prevention rule
 
 **A test creates what it asserts on.** Where the subject genuinely is a seed —

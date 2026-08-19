@@ -15,7 +15,7 @@
 | **Base Branch** | `origin/develop` |
 | **Task Branch** | `agent/ci-e2e-remediation` |
 | **Base SHA** | `cda00331bd48ba1e809d54e98e2dbf7f28ebb7ca` |
-| **Final Task SHA** | `3f03571295f733e952b9acc3427a47e97959e0b8` |
+| **Final Task SHA** | `944ab4e41a8f16adb7c9a2153e911714a02ca37c` |
 | **Target Branch** | `develop` |
 | **Merge Commit** | TASK_FINALIZATION — ref-push integration, so there is no merge commit; filled with the develop tip |
 | **Final Target SHA** | TASK_FINALIZATION — filled after the target is pushed |
@@ -28,7 +28,16 @@
 e6f4cbe feat(ci): detect the three failures a duration alone cannot carry
 ff34b92 docs(qa,backlog): close ITEM-0047, raise BUG-0079, record the pattern
 3f03571 feat(ci): promote Database e2e into the required gate
+718fb24 docs(qa,history): the QA run and engineering history for this task
+ed82f05 merge: bring develop into agent/ci-e2e-remediation
+2aacab8 docs(qa): renumber this branch's REG ids to 069-070 after the collision
+944ab4e test: record the post-merge run — 25 suites, 304 tests, still green
 ```
+
+The record's filename carries `3f03571`, the SHA it was filed at. The Git table
+above carries the final one. Both are kept rather than renaming the file: the
+filename is how the record is referenced elsewhere, and a record that renames
+itself as work continues is a record nobody can link to.
 
 ### Worktrees
 
