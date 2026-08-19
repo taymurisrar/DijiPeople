@@ -2048,6 +2048,27 @@ Fixed two ways, and both are corrections rather than accommodations:
   `workers: 1` by deliberate choice, so 30 was tight on merit once the warm-up
   was fixed. On `develop` the same job took 6.5 minutes for 18 tests.
 
+**And then CI found a defect I had missed.** With the timeout fixed the job
+completed in 25 minutes and *failed* rather than being cancelled — real evidence
+at last. E5 and E6 asserted on the provisioning table's column headers and state
+cells, and neither test created a run. Against CI's clean database the screen
+correctly rendered its empty state, so there was no table: no `th[scope="col"]`,
+zero state cells. The screen was right and the tests were borrowing data.
+
+This is the same defect as Flow D's, which I had found and fixed hours earlier
+in this same session — and I fixed it in one place without asking whether the
+assumption existed elsewhere in code I had written the same day. The seeding now
+lives in `e2e/fixtures/provisioning-runs.ts` and both suites use it, which is
+where it should have gone the first time.
+
+E3 and E4 passed in CI throughout, because an axe audit and a body-overflow
+check are meaningful against an empty queue. That contrast is what localised the
+defect to data dependence rather than to the screen.
+
+Re-verified against a deliberately emptied local database — every provisioning
+run deleted first, mirroring CI: **53 passed, 4 skipped, 0 failed** across all
+six flows.
+
 **On the exact-SHA rule.** It would have been easy to integrate on `b43ee1e`'s
 green gate and call the cancellations noise. That verdict describes a commit
 that never saw ten commits of other people's work, and it is exactly the

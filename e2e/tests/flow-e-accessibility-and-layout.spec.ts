@@ -3,6 +3,10 @@ import { BASE_URLS } from '../playwright.config';
 import { openAdmin, signInToAdmin } from '../fixtures/admin-session';
 import { probeEnvironment, probePublicSurface } from '../fixtures/environment';
 import {
+  removeProvisioningRuns,
+  seedProvisioningRuns,
+} from '../fixtures/provisioning-runs';
+import {
   auditPage,
   blocking,
   describeViolations,
@@ -125,6 +129,28 @@ test.describe('Flow E — signed-in accessibility and layout', () => {
       !report.ready,
       `Environment not ready for the signed-in half: ${report.missing.join('; ')}`,
     );
+  });
+
+  /**
+   * Create the rows these tests read.
+   *
+   * E5 and E6 inspect the queue's column headers and state cells, and neither
+   * created a run. Locally that passed on rows left behind by other work; in CI,
+   * against a clean database, the screen correctly rendered its empty state and
+   * both failed — no `th[scope="col"]`, zero state cells. The screen was right.
+   *
+   * E3 and E4 deliberately do **not** depend on this: an axe audit and a
+   * body-overflow check are meaningful on an empty queue too, and they passed in
+   * CI while these two failed, which is what localised the defect.
+   */
+  const RUN_MARKER = 'e2e-flow-e';
+
+  test.beforeAll(async () => {
+    await seedProvisioningRuns(RUN_MARKER);
+  });
+
+  test.afterAll(async () => {
+    await removeProvisioningRuns(RUN_MARKER);
   });
 
   for (const surface of ADMIN_PAGES) {

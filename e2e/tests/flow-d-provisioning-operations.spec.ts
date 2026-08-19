@@ -1,7 +1,11 @@
 import { expect, test } from '@playwright/test';
 import { BASE_URLS } from '../playwright.config';
 import { openAdmin, signInToAdmin } from '../fixtures/admin-session';
-import { probeEnvironment, withDatabase } from '../fixtures/environment';
+import { probeEnvironment } from '../fixtures/environment';
+import {
+  removeProvisioningRuns,
+  seedProvisioningRuns,
+} from '../fixtures/provisioning-runs';
 
 /**
  * Flow D — the provisioning operations queue, driven through the browser.
@@ -21,17 +25,8 @@ import { probeEnvironment, withDatabase } from '../fixtures/environment';
 
 const RUN_MARKER = 'e2e-flow-d';
 
-/**
- * A blocker message only this suite can produce.
- *
- * The first version asserted on a plausible-looking "SMTP relay refused the
- * connection (550)", which also existed in data seeded by hand months of
- * sessions earlier. Playwright's strict mode caught the collision — two
- * elements matched — but the more serious problem is what a *non*-strict
- * matcher would have done: passed while reading somebody else's row, which is
- * how a suite comes to prove nothing at all.
- */
-const BLOCKER_MESSAGE = `SMTP relay refused the connection (550) [${RUN_MARKER}]`;
+/** Filled by the shared fixture, which owns the message so it cannot drift. */
+let blockerMessage = '';
 
 test.describe('Flow D — provisioning operations', () => {
   test.beforeAll(async () => {
@@ -47,146 +42,19 @@ test.describe('Flow D — provisioning operations', () => {
   });
 
   /**
-   * Seed the states directly.
+   * Seed through the shared fixture.
    *
-   * A run only reaches BREACHED after its target passes, and MANUAL_ACTION
-   * only when automation stops with nothing in flight. Waiting for either
-   * through the product would take hours and would make the suite a clock test.
-   * The rows are removed again in afterAll, so the queue is left as found.
+   * This used to be a copy of the seeding logic living in this file. E5 and E6
+   * in Flow E asserted on the same table without seeding anything at all, and
+   * passed locally on leftover rows before failing in CI against a clean
+   * database — so the seeding moved somewhere both suites can reach it.
    */
   test.beforeAll(async () => {
-    await withDatabase(async (db) => {
-      const tenant = await db.query<{ id: string }>(
-        'select id from "Tenant" limit 1',
-      );
-      const tenantId = tenant.rows[0]?.id;
-      if (!tenantId) return;
-
-      const minutes = (n: number) =>
-        new Date(Date.now() + n * 60_000).toISOString();
-
-      /*
-       * Written as SQL through the shared client rather than through Prisma,
-       * because that is what `withDatabase` hands out — and the fixture's own
-       * rule is that the browser performs every step a *user* performs. No user
-       * creates a provisioning run; runs are recorded by the API as a
-       * consequence of a purchase, and waiting hours for one to breach would
-       * make this a clock test rather than a screen test.
-       */
-      const run = async (
-        correlationSuffix: string,
-        status: string,
-        startedAt: string,
-        extra: {
-          completedAt?: string | null;
-          targetReadyBy?: string | null;
-          failedStepKey?: string | null;
-          message?: string | null;
-        },
-        steps: Array<[string, string, number, string, string | null]>,
-      ) => {
-        const inserted = await db.query<{ id: string }>(
-          `insert into "TenantProvisioningRun"
-             ("id","tenantId","trigger","attempt","status","startedAt",
-              "completedAt","targetReadyBy","failedStepKey","message",
-              "correlationId","createdAt","updatedAt")
-           values (gen_random_uuid(),$1,'ONBOARDING',1,$2::"TenantProvisioningRunStatus",$3,
-                   $4,$5,$6,$7,$8,now(),now())
-           returning "id"`,
-          [
-            tenantId,
-            status,
-            startedAt,
-            extra.completedAt ?? null,
-            extra.targetReadyBy ?? null,
-            extra.failedStepKey ?? null,
-            extra.message ?? null,
-            `${RUN_MARKER}-${correlationSuffix}`,
-          ],
-        );
-        const runId = inserted.rows[0].id;
-
-        for (const [key, label, sequence, stepStatus, message] of steps) {
-          await db.query(
-            `insert into "TenantProvisioningStep"
-               ("id","tenantId","runId","key","label","sequence","status",
-                "message","createdAt","updatedAt")
-             values (gen_random_uuid(),$1,$2,$3,$4,$5,
-                     $6::"TenantProvisioningStepStatus",$7,now(),now())`,
-            [tenantId, runId, key, label, sequence, stepStatus, message],
-          );
-        }
-      };
-
-      // Past its target and still running — the case the screen exists for.
-      await run(
-        'breached',
-        'RUNNING',
-        minutes(-140),
-        { targetReadyBy: minutes(-30) },
-        [
-          ['create-workspace', 'Create workspace', 1, 'SUCCEEDED', null],
-          ['provision-domain', 'Provision domain', 2, 'RUNNING', null],
-        ],
-      );
-
-      await run(
-        'failed',
-        'FAILED',
-        minutes(-55),
-        {
-          completedAt: minutes(-50),
-          failedStepKey: 'send-welcome',
-          message: 'Run-level message that must not win over the step message',
-        },
-        [
-          ['create-workspace', 'Create workspace', 1, 'SUCCEEDED', null],
-          [
-            'send-welcome',
-            'Send welcome email',
-            2,
-            'FAILED',
-            BLOCKER_MESSAGE,
-          ],
-        ],
-      );
-
-      // Nothing failed and nothing in flight: waiting on a human, and the
-      // easiest state to miss because no error was ever raised.
-      await run(
-        'manual',
-        'RUNNING',
-        minutes(-25),
-        { targetReadyBy: minutes(35) },
-        [
-          ['create-workspace', 'Create workspace', 1, 'SUCCEEDED', null],
-          ['confirm-name', 'Confirm workspace name', 2, 'SKIPPED', null],
-        ],
-      );
-
-      await run(
-        'progress',
-        'RUNNING',
-        minutes(-2),
-        { targetReadyBy: minutes(58) },
-        [['create-workspace', 'Create workspace', 1, 'RUNNING', null]],
-      );
-    });
+    ({ blockerMessage } = await seedProvisioningRuns(RUN_MARKER));
   });
 
   test.afterAll(async () => {
-    await withDatabase(async (db) => {
-      await db.query(
-        `delete from "TenantProvisioningStep"
-          where "runId" in (select "id" from "TenantProvisioningRun"
-                             where "correlationId" like $1)`,
-        [`${RUN_MARKER}-%`],
-      );
-      await db.query(
-        'delete from "TenantProvisioningRun" where "correlationId" like $1',
-        [`${RUN_MARKER}-%`],
-      );
-    });
+    await removeProvisioningRuns(RUN_MARKER);
   });
 
   test('D1 — the queue names every state it is holding', async ({ page }) => {
@@ -223,7 +91,7 @@ test.describe('Flow D — provisioning operations', () => {
      * the run-level message is the less useful of the two — it says a step
      * failed, where the step says why.
      */
-    await expect(page.getByText(BLOCKER_MESSAGE, { exact: false })).toBeVisible();
+    await expect(page.getByText(blockerMessage, { exact: false })).toBeVisible();
     await expect(
       page.getByText(/Run-level message that must not win/i),
     ).toHaveCount(0);
