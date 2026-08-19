@@ -81,7 +81,7 @@ Created 2026-08-19 at `494c44d`, from [[BUG-0076]].
 Implemented as behavioural simulations 37A–37G, 38 and 39 in
 `scripts/validate-framework.mjs`. They execute the behaviour rather than
 grepping for it, because the structural version of check 38l survived a mutation
-that pinned the detection to a constant `false` — see [[REG-065]].
+that pinned the detection to a constant `false` — see REG-065.
 
 Re-run with `node scripts/validate-framework.mjs`.
 

@@ -186,7 +186,7 @@ None required.
 | **Scenarios** | 19, all PASS; durable form [[QA-DEPLOY-015]] |
 | **Bug IDs** | [[BUG-0076]] created and fixed |
 | **Backlog Items** | [[ITEM-0057]] created (`PRODUCT_DECISION`), [[ITEM-0058]] created (`DEFER`) |
-| **Regression** | [[REG-065]] |
+| **Regression** | REG-065 |
 
 ### Mutation testing
 
