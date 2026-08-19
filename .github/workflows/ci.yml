@@ -729,7 +729,15 @@ jobs:
     runs-on: ubuntu-latest
     needs: [resolve]
     if: needs.resolve.outputs.reuse != 'true'
-    timeout-minutes: 30
+    # Raised from 30 on 2026-08-19. The suite went from 18 tests to 48 — flows D,
+    # E and F added the provisioning queue, the first accessibility audit and the
+    # public SEO contract — and it runs at workers: 1 by deliberate choice, so
+    # wall-clock grows with the test count. At 30 the job was cancelled mid-run,
+    # which produces no evidence at all: ci:classify reports a cancelled run as
+    # IS_EVIDENCE = NO, so the gate cannot be satisfied and the branch cannot
+    # integrate. A timeout that cannot distinguish "slow" from "broken" is worse
+    # than a generous one.
+    timeout-minutes: 45
     # The first browser coverage this repository has ever had. Until this job,
     # `BROWSER_E2E = BLOCKED_INFRASTRUCTURE` appeared in every QA run and no UI
     # defect could be *proven* fixed — see ITEM-0001 and

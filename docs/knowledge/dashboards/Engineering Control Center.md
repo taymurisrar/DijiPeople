@@ -16,7 +16,7 @@
 | Open HIGH | 6 |
 | Awaiting Architect triage | 0 |
 | Owner decisions pending | 3 |
-| QA coverage gaps | 88 |
+| QA coverage gaps | 94 |
 | Scenarios blocked by infrastructure | 0 |
 
 ## Active Sessions
@@ -33,7 +33,7 @@
 | Task | Title | Type | Size | Progress | Current | Ready next | Blocked |
 |---|---|---|---|---|---|---|---|
 | [[TASK-0005-dijipeople-global-technical-remediation|TASK-0005]] | DijiPeople Global Technical Remediation | BUG | PROGRAM | 3/11 | WP-09 | WP-04, WP-06, WP-07, WP-08, WP-10 | — |
-| [[TASK-0007-commercial-platform-completion-transactional-legal-and-lifec|TASK-0007]] | Commercial platform completion — transactional, legal and lifecycle half | FEATURE | PROGRAM | 11/16 | WP-11 | WP-11, WP-13 | WP-15 |
+| [[TASK-0007-commercial-platform-completion-transactional-legal-and-lifec|TASK-0007]] | Commercial platform completion — transactional, legal and lifecycle half | FEATURE | PROGRAM | 15/16 | WP-11 | — | WP-15 |
 
 ## Branch model
 
@@ -181,6 +181,12 @@ gap into scope — or files a `TEST_GAP` item and says so.
 | [[PLAN-018-subscription-changes|subscription-changes]] | BROWSER |
 | [[PLAN-018-subscription-changes|subscription-changes]] | SECURITY |
 | [[PLAN-018-subscription-changes|subscription-changes]] | PERFORMANCE |
+| [[PLAN-019-platform-admin|platform-admin]] | UNIT |
+| [[PLAN-019-platform-admin|platform-admin]] | API |
+| [[PLAN-019-platform-admin|platform-admin]] | DATABASE |
+| [[PLAN-019-platform-admin|platform-admin]] | INTEGRATION |
+| [[PLAN-019-platform-admin|platform-admin]] | E2E |
+| [[PLAN-019-platform-admin|platform-admin]] | SECURITY |
 
 ## Backlog Health
 

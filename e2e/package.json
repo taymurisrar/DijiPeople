@@ -10,6 +10,7 @@
     "check-types": "tsc --noEmit"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@playwright/test": "^1.58.0",
     "@types/node": "^22",
     "pg": "^8.16.3",

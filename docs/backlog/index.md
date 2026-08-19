@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**128 records** — 69 bugs under [`docs/bugs/`](../bugs/), 59 non-bug items under [`items/`](items/).
+**132 records** — 73 bugs under [`docs/bugs/`](../bugs/), 59 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -17,7 +17,7 @@ see [`README.md`](README.md) for why.
 | Blocked | 0 |
 | Deferred | 6 |
 | Awaiting a product decision | 3 |
-| Completed / closed | 89 |
+| Completed / closed | 93 |
 | **Open CRITICAL** | **0** |
 | **Open HIGH** | **6** |
 | **Awaiting Architect triage** | **0** |
@@ -52,7 +52,7 @@ see [`README.md`](README.md) for why.
 | DEFERRED | 6 |
 | PRODUCT_DECISION | 3 |
 | FIXED | 2 |
-| VERIFIED | 62 |
+| VERIFIED | 66 |
 | READY | 24 |
 | DONE | 27 |
 
@@ -65,6 +65,7 @@ see [`README.md`](README.md) for why.
 | [BUG-0027](../../docs/bugs/BUG-0027-admin-plan-pricing-and-checkout-pricing-come-from-different-.md) | Admin plan pricing and checkout pricing come from different models | DATA_INTEGRITY | CRITICAL | P0 | VERIFIED | services/api/prisma, apps/admin, apps/landing | DONE |
 | [BUG-0030](../../docs/bugs/BUG-0030-plan-list-get-mutates-commercial-pricing-and-can-fail-on-pla.md) | Plan list GET mutates commercial pricing and can fail on PlanPrice unique constraint | DATA_INTEGRITY | CRITICAL | P0 | VERIFIED | services/api, services/api/prisma | DONE |
 | [BUG-0047](../../docs/bugs/BUG-0047-seven-bug-records-are-verified-while-their-fixes-exist-only.md) | Seven bug records are VERIFIED while their fixes exist only on unmerged branches | SECURITY | CRITICAL | P0 | VERIFIED | api:organization, api:error-logs, api:employees, api:attendance, docs/qa/regressions | DONE |
+| [BUG-0071](../../docs/bugs/BUG-0071-tenant-users-reach-every-platform-super-admin-endpoint.md) | Tenant users reach every platform super-admin endpoint | AUTHORIZATION | CRITICAL | P0 | VERIFIED | super-admin, platform-auth, platform-communications | DONE |
 | [BUG-0049](../../docs/bugs/BUG-0049-report-only-ci-jobs-swallow-security-and-database-e2e-failur.md) | Report-only CI jobs swallow security and database E2E failures | INFRA | HIGH | P0 | VERIFIED | .github/workflows, services/api/src/common/constants, services/api/test, docs/qa | DONE |
 | [BUG-0052](../../docs/bugs/BUG-0052-production-dependency-graph-carries-critical-and-high-securi.md) | Production dependency graph carries critical and high security advisories | SECURITY | HIGH | P0 | OPEN | package-lock.json, apps/agent-desktop, apps/web, apps/admin, apps/landing, services/api | FIX_NOW |
 | [BUG-0053](../../docs/bugs/BUG-0053-documents-self-scoped-users-can-read-tenant-wide-documents.md) | Self-scoped document readers can list and open tenant-wide documents | AUTHORIZATION | HIGH | P0 | VERIFIED | api:documents | DONE |
@@ -100,6 +101,7 @@ see [`README.md`](README.md) for why.
 | [BUG-0064](../../docs/bugs/BUG-0064-landing-public-pages-fail-wcag-bypass-blocks-and-text-contra.md) | Landing public pages fail WCAG bypass blocks and text contrast on every route | UX | HIGH | P1 | VERIFIED | apps/landing | DONE |
 | [BUG-0068](../../docs/bugs/BUG-0068-prisma-client-freshness-check-is-blind-to-field-level-drift.md) | Prisma client freshness check is blind to field-level drift | INFRA | HIGH | P1 | VERIFIED | scripts, services/api | DONE |
 | [BUG-0070](../../docs/bugs/BUG-0070-outbox-deduplication-aborted-the-caller-transaction-on-postg.md) | Outbox deduplication aborted the caller transaction on PostgreSQL | BUG | HIGH | P1 | VERIFIED | outbox | DONE |
+| [BUG-0072](../../docs/bugs/BUG-0072-platform-mutations-map-to-read-permissions-letting-the-read-.md) | Platform mutations map to read permissions, letting the read-only auditor write | AUTHORIZATION | HIGH | P1 | VERIFIED | super-admin, platform-auth | DONE |
 | [BUG-0076](../../docs/bugs/BUG-0076-repository-health-never-inspected-the-primary-worktree-so-a-.md) | Repository health never inspected the primary worktree, so a clean task worktree passed as CLEANUP_STATUS DONE | INFRA | HIGH | P1 | FIXED | scripts/repo-health.mjs, scripts/session.mjs | FIX_NOW |
 | [BUG-0079](../../docs/bugs/BUG-0079-browser-e2e-spends-its-whole-install-step-on-apt-work-that-i.md) | Browser e2e spends its whole install step on apt work that installs no browser library | PERFORMANCE | HIGH | P1 | FIXED | .github/workflows, e2e | FIX_NOW |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
@@ -132,6 +134,8 @@ see [`README.md`](README.md) for why.
 | [BUG-0050](../../docs/bugs/BUG-0050-notification-settings-offer-email-providers-whose-backend-al.md) | Notification settings offer email providers whose backend always fails | INTEGRATION | MEDIUM | P2 | VERIFIED | apps/web, api:notifications | DONE |
 | [BUG-0065](../../docs/bugs/BUG-0065-public-commercial-config-omits-featurecatalog-when-no-market.md) | Public commercial-config omits featureCatalog when no market resolves | BUG | MEDIUM | P2 | VERIFIED | api:billing, apps/landing | DONE |
 | [BUG-0066](../../docs/bugs/BUG-0066-subscribe-page-renders-an-editable-form-with-no-way-to-submi.md) | Subscribe page renders an editable form with no way to submit when checkout is unavailable | UX | MEDIUM | P2 | VERIFIED | apps/landing | DONE |
+| [BUG-0073](../../docs/bugs/BUG-0073-small-uppercase-labels-in-slate-400-fail-wcag-aa-contrast-ac.md) | Small uppercase labels in slate-400 fail WCAG AA contrast across admin | UX | MEDIUM | P2 | VERIFIED | apps/admin | DONE |
+| [BUG-0074](../../docs/bugs/BUG-0074-the-provisioning-queue-scroll-container-was-unreachable-by-k.md) | The provisioning queue scroll container was unreachable by keyboard | UX | MEDIUM | P2 | VERIFIED | apps/admin | DONE |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | READY | services/api, apps/admin | FIX_NOW |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | READY | api:tenant-control-plane | FIX_NOW |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |

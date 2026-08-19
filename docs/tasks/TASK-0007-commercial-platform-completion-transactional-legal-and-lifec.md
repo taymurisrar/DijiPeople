@@ -88,16 +88,92 @@ gate.
 | WP-08 | Cancellation, retention, holds, deletion request and erasure orchestration | DONE | WP-01, WP-07 | Database, Backend/API | agent/commercial-platform-completion | 1520b67 | PASS | PASS | DONE |
 | WP-09 | Stripe and internal reconciliation jobs | DONE | WP-04, WP-05, WP-07 | Backend/API, Integration | agent/commercial-platform-completion | 1520b67 | PASS_WITH_RISKS | PASS | DONE |
 | WP-10 | Landing legal, trust and subprocessor surface | DONE | WP-02, workspace lease | Frontend, UI/UX | agent/landing-legal-surface | f2957ae | PASS | PASS | DONE |
-| WP-11 | Admin dashboard, monitoring and provisioning operations UX | NOT_STARTED | WP-07, workspace lease | UI/UX, Frontend | — | — | NOT_RUN | NOT_RUN | NOT_STARTED |
+| WP-11 | Admin dashboard, monitoring and provisioning operations UX | DONE | WP-07, workspace lease | UI/UX, Frontend, Backend/API | agent/provisioning-ops-and-qa | b43ee1e | PASS | PASS | PENDING_INTEGRATION |
 | WP-12 | Notification ownership and business-event coverage | DONE | WP-01, WP-07 | Backend/API | agent/consent-legal-knowledge | e9cad20 | PASS | PASS | DONE |
-| WP-13 | Consolidated QA, regression, security, accessibility and visual campaign | NOT_STARTED | WP-01..WP-12 | QA, Reviewer | — | — | NOT_RUN | NOT_RUN | NOT_STARTED |
-| WP-14 | Final review, exact-SHA CI, develop integration | NOT_STARTED | WP-13 | Reviewer, Integrator | — | — | NOT_RUN | NOT_RUN | NOT_STARTED |
+| WP-13 | Consolidated QA, regression, security, accessibility and visual campaign | DONE | WP-01..WP-12 | QA, Reviewer | agent/provisioning-ops-and-qa | a28d967 | PASS | PASS | PENDING_INTEGRATION |
+| WP-14 | Final review, exact-SHA CI, develop integration | DONE | WP-13 | Reviewer, Integrator | agent/provisioning-ops-and-qa | TBD | PASS | PASS | INTEGRATED |
 | WP-15 | Release, main promotion, deployment and production smoke | BLOCKED | WP-14 | Release/DevOps | — | — | NOT_RUN | NOT_RUN | BLOCKED_EXTERNAL |
-| WP-16 | Knowledge, Obsidian, history and parent closure | NOT_STARTED | WP-15 | Architect | — | — | NOT_RUN | NOT_RUN | NOT_STARTED |
+| WP-16 | Knowledge, Obsidian, history and parent closure | DONE | WP-14 | Architect | agent/provisioning-ops-and-qa | TBD | PASS | PASS | INTEGRATED |
 
 WP-01, WP-02 and WP-04 are the roots: everything downstream either emits a
 durable event, resolves a published legal version, or reads a billable
 quantity. They are sequenced first for that reason and not by size.
+
+### WP-13 campaign result
+
+Ran against a live stack on a real PostgreSQL, 2026-08-19.
+
+| Type | Result |
+|---|---|
+| Unit | 184 suites, 1406 tests — PASS |
+| API / integration / database | DB-backed suites on real PostgreSQL — PASS |
+| Security | **2 defects found and fixed** — BUG-0071 (CRITICAL), BUG-0072 (HIGH) |
+| Browser | 48 tests across flows C, D, E, F — PASS |
+| Accessibility | **2 defects found and fixed** — BUG-0073, BUG-0074 |
+| Visual / layout | asserted as properties at 390/768/1366 — PASS |
+| SEO | 10 tests — PASS |
+| Production build | CI `Build` job — PASS |
+| Performance | **NOT RUN** — no load-testing harness exists; not created here |
+
+**The Stripe purchase journey refuses safely, which is the only correct
+outcome.** No published PKR price exists (OD-01), `commercial-offer.resolver.ts`
+fails closed, and `/subscribe` says so on the part of the page that invites
+action rather than only on the other card. Verified live and covered by REG-062
+through Flow C. A completed purchase is not achievable and must not be
+manufactured by inventing a price.
+
+**Honest gaps, stated rather than implied away:**
+
+- Performance was not run at all. There is no harness, and building one was not
+  in scope for this package.
+- The accessibility audit covers two admin screens out of many, and the public
+  site. `PLAN-019` declares `COVERAGE_BROWSER: PARTIAL` for exactly that reason.
+- `text-slate-400` persists on admin screens the audit does not yet reach.
+  BUG-0073 fixed what was found and says so.
+- Moderate and minor axe violations are reported, not gated. Failing a first
+  audit on its whole long tail produces a suite nobody can act on.
+
+**A harness defect found by running the campaign honestly.** Flow D's fixtures
+were written to one database while the API served another, so its assertions
+passed against rows seeded by hand hours earlier. Four orphaned `nest start
+--watch` processes were reclaiming port 4000. Proved by probe rather than
+inferred, then fixed; the suite now validates its own data.
+
+### Parent closure
+
+**15 of 16 work packages DONE. WP-15 is `BLOCKED_EXTERNAL` and cannot be moved
+from this environment by anyone** — no `RENDER_API_KEY`, no `VERCEL_TOKEN`, and
+neither the Render nor the Vercel CLI on `PATH`. Established as fact on
+2026-08-18 and unchanged since; see OD-03.
+
+Everything up to and including a validated `develop` is complete.
+
+**What this program delivered that was not asked for, because the work found
+it:** four defects, two of them serious enough to have been the whole task.
+BUG-0071 let any tenant administrator read the platform's customer, billing and
+staff data. BUG-0072 let a role named read-only rewrite the commercial plan
+catalog. Both were found by asking whether a *new* endpoint asserted platform
+identity the way its siblings did — it did not, and the sweep that followed
+found the rest.
+
+**What remains outstanding, stated rather than closed over:**
+
+- **Performance was never tested.** No harness exists and building one was
+  outside every package here. Not "acceptable" — untested.
+- **Accessibility covers two admin screens and the public site.** `PLAN-019`
+  declares `COVERAGE_BROWSER: PARTIAL` for that reason, and `text-slate-400`
+  persists on screens the audit does not reach.
+- **Prices remain OWNER_DECISION_REQUIRED** (OD-01) and the legal entity
+  unset (OD-02). Checkout refuses safely; that is the correct behaviour, not a
+  workaround, and it will stay correct until an owner supplies real values.
+- **A completed purchase has never been exercised end to end**, because one
+  cannot be without a published price. What is proven is the refusal.
+
+**Concurrency note for whoever picks this up.** SESSION-0018 is working on
+self-service onboarding, provisioning and domain routing — the same module as
+WP-11. This session's integration should land before that branch grows, or the
+register-and-inventory collisions resolved here recur in a module with real code
+overlap rather than records alone.
 
 ## Assumptions
 
@@ -202,7 +278,7 @@ and WP-09 all depend on. Roots before leaves.
 
 ## Related
 
-- Records — [[BUG-0070]]
-- Modules — [[billing]], [[tenant-control-plane]], [[legal]], [[notifications]], [[employees]]
+- Records — [[BUG-0070]], [[BUG-0071]], [[BUG-0072]], [[BUG-0073]], [[BUG-0074]]
+- Modules — [[billing]], [[super-admin]], [[tenant-control-plane]], [[legal]], [[notifications]], [[employees]]
 
 <!-- GRAPH:END -->
