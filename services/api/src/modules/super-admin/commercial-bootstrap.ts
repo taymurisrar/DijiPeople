@@ -9,6 +9,7 @@ import {
 } from '@prisma/client';
 import {
   DEFAULT_MARKET_DEFINITIONS,
+  PLACEHOLDER_PKR_PRICES,
   DEFAULT_PLAN_SALES_MODELS,
   SEEDED_PRICE_MARKET_CODE,
 } from './markets.catalog';
@@ -226,6 +227,56 @@ async function ensurePlanPrices(
         ...slot,
       });
     }
+
+    /*
+     * The PKR schedule, as DRAFT placeholders.
+     *
+     * Seeded so the local-currency path can be exercised at all — a launch
+     * market whose only prices are in a foreign currency never tests the code
+     * that resolves a local one. Left unpublished so it cannot be sold: the
+     * resolver serves PUBLISHED only, so a Pakistani buyer is still quoted the
+     * USD amount above and cannot be charged a number nobody chose.
+     *
+     * Skipped when the market does not list PKR as supported, so this can never
+     * quietly create a price in a currency the market has disowned.
+     */
+    const placeholder = PLACEHOLDER_PKR_PRICES[definition.key];
+    const marketSupportsPkr = market.supportedCurrencies.some(
+      (supported) => supported.toUpperCase() === 'PKR',
+    );
+
+    if (placeholder && marketSupportsPkr && currency !== 'PKR') {
+      const draftSlots = [
+        {
+          billingCycle: BillingCycle.MONTHLY,
+          billingInterval: BillingInterval.MONTH,
+          unitAmount: placeholder.monthly,
+        },
+        {
+          billingCycle: BillingCycle.ANNUAL,
+          billingInterval: BillingInterval.YEAR,
+          unitAmount: placeholder.annual,
+        },
+      ];
+
+      for (const draft of draftSlots) {
+        await createPlanPriceIfAbsent(
+          prisma,
+          result,
+          {
+            planId: plan.id,
+            planKey: plan.key,
+            marketId: market.id,
+            currency: 'PKR',
+            salesModel:
+              DEFAULT_PLAN_SALES_MODELS[definition.key] ??
+              CommercialSalesModel.SELF_SERVICE,
+            ...draft,
+          },
+          CommercialPublicationStatus.DRAFT,
+        );
+      }
+    }
   }
 }
 
@@ -262,6 +313,13 @@ async function createPlanPriceIfAbsent(
   prisma: BootstrapClient,
   result: CommercialBootstrapResult,
   slot: PriceSlot,
+  /*
+   * PUBLISHED unless a caller says otherwise. The one caller that says
+   * otherwise is the PKR placeholder schedule, whose amounts nobody has
+   * decided — and an unpublished price is invisible to the resolver, which is
+   * what makes seeding a made-up number safe rather than reckless.
+   */
+  publicationStatus: CommercialPublicationStatus = CommercialPublicationStatus.PUBLISHED,
 ) {
   const occupant = await findActiveForSlot(prisma, slot);
 
@@ -296,9 +354,14 @@ async function createPlanPriceIfAbsent(
         unitAmount: slot.unitAmount,
         minimumSeats: 1,
         includedSeats: 0,
-        publicationStatus: CommercialPublicationStatus.PUBLISHED,
+        publicationStatus,
         salesModel: slot.salesModel,
-        publishedAt: new Date(),
+        // A draft was never published, so it has no publication date. Stamping
+        // one would make an unpublished price look like a withdrawn one.
+        publishedAt:
+          publicationStatus === CommercialPublicationStatus.PUBLISHED
+            ? new Date()
+            : null,
         isActive: true,
       },
     });

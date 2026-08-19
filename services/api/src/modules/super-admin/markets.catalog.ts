@@ -91,6 +91,33 @@ export const DEFAULT_MARKET_DEFINITIONS = [
 export const SEEDED_PRICE_MARKET_CODE = 'PK';
 
 /**
+ * Placeholder PKR amounts, seeded as **DRAFT** so nothing can be bought at them.
+ *
+ * The business asked for "dummy prices for now" so the PKR path can be
+ * exercised before the real schedule is decided. That request and rule 1 of this
+ * file — no invented commercial facts — are reconciled by the publication
+ * status, not by the numbers: a `DRAFT` price is invisible to the commercial
+ * offer resolver, so a Pakistani buyer is still quoted the published USD amount
+ * and **cannot be charged one of these**.
+ *
+ * They are deliberately round and deliberately wrong. Nobody should mistake
+ * `PKR 50,000` for a considered price, and if one ever does reach a customer the
+ * number itself should say "this was never decided".
+ *
+ * Publishing them is the act that makes them real, and it belongs to whoever
+ * sets the price — not to this seed. Until then Pakistan's `defaultCurrency`
+ * stays `USD`.
+ */
+export const PLACEHOLDER_PKR_PRICES: Record<
+  string,
+  { monthly: number; annual: number }
+> = {
+  starter: { monthly: 50_000, annual: 500_000 },
+  growth: { monthly: 100_000, annual: 1_000_000 },
+  enterprise: { monthly: 250_000, annual: 2_500_000 },
+};
+
+/**
  * Sales model per seeded plan.
  *
  * Enterprise is SELF_SERVICE on purpose. The requirement is explicit that a

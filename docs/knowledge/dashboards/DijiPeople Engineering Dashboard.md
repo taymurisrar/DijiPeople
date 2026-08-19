@@ -9,12 +9,12 @@
 |---|---|
 | Open CRITICAL | **0** |
 | Open HIGH | **9** |
-| Open total | 34 |
+| Open total | 35 |
 | Blocked | 0 |
 | Awaiting a product decision | 2 |
 | Deferred | 5 |
 | Completed | 89 |
-| Awaiting Architect triage | 1 |
+| Awaiting Architect triage | 2 |
 
 ## Open Critical Bugs
 
@@ -196,6 +196,7 @@ _None. Nothing has been deployed through the release process._
 | [[ITEM-0045-reconcile-tenant-web-root-domain-environment-examples|ITEM-0045]] | Reconcile tenant web root-domain environment examples | DOCUMENTATION | LOW | READY | apps/web | FIX_NOW |
 | [[ITEM-0049-register-services-api-environment-reads-or-scope-the-rule|ITEM-0049]] | Register services/api environment reads or scope the rule to build inputs | INFRA | LOW | READY | services/api, turbo.json, docs/deployment | PLAN_REQUIRED |
 | [[ITEM-0061-notification-coverage-is-asymmetric-seat-change-applied-and-|ITEM-0061]] | Notification coverage is asymmetric — SEAT_CHANGE_APPLIED and SUBSCRIPTION_TERMINATED notify nobody | FOLLOW_UP | LOW | NEW | notifications, billing | TRIAGE_REQUIRED |
+| [[ITEM-0064-unscoped-duplicate-planprice-rows-shadow-every-real-price|ITEM-0064]] | Unscoped duplicate PlanPrice rows shadow every real price | TECH_DEBT | LOW | NEW | billing, super-admin | TRIAGE_REQUIRED |
 
 ## Key Architecture Decisions
 
@@ -211,7 +212,7 @@ _None. Nothing has been deployed through the release process._
 | Knowledge | Count |
 |---|---|
 | Bug records | 70 |
-| Backlog items | 60 |
+| Backlog items | 61 |
 | Known bug patterns | 19 |
 | QA runs | 17 |
 | Engineering history records | 17 |
@@ -221,7 +222,7 @@ _None. Nothing has been deployed through the release process._
 | Decision notes (ADR + generated) | 6 |
 | Implementation records | 4 |
 
-**Awaiting Architect triage: 1.** A record nobody has
+**Awaiting Architect triage: 2.** A record nobody has
 triaged is work nobody has decided about — the number that should stay near
 zero between tasks.
 

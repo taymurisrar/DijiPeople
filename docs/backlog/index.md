@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**130 records** — 70 bugs under [`docs/bugs/`](../bugs/), 60 non-bug items under [`items/`](items/).
+**131 records** — 70 bugs under [`docs/bugs/`](../bugs/), 61 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,14 +13,14 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 34 |
+| Open (active work) | 35 |
 | Blocked | 0 |
 | Deferred | 5 |
 | Awaiting a product decision | 2 |
 | Completed / closed | 89 |
 | **Open CRITICAL** | **0** |
 | **Open HIGH** | **9** |
-| **Awaiting Architect triage** | **1** |
+| **Awaiting Architect triage** | **2** |
 
 ## Open by severity
 
@@ -28,7 +28,7 @@ see [`README.md`](README.md) for why.
 |---|---|
 | HIGH | 9 |
 | MEDIUM | 19 |
-| LOW | 6 |
+| LOW | 7 |
 
 ## Open by type
 
@@ -41,7 +41,7 @@ see [`README.md`](README.md) for why.
 | INFRA | 2 |
 | SECURITY | 7 |
 | STATE_MACHINE | 1 |
-| TECH_DEBT | 6 |
+| TECH_DEBT | 7 |
 | TEST_GAP | 7 |
 | UX | 2 |
 
@@ -54,7 +54,7 @@ see [`README.md`](README.md) for why.
 | PRODUCT_DECISION | 2 |
 | FIXED | 3 |
 | VERIFIED | 62 |
-| NEW | 1 |
+| NEW | 2 |
 | READY | 26 |
 | DONE | 27 |
 
@@ -192,6 +192,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0049](../../docs/backlog/items/ITEM-0049-register-services-api-environment-reads-or-scope-the-rule.md) | Register services/api environment reads or scope the rule to build inputs | INFRA | LOW | P3 | READY | services/api, turbo.json, docs/deployment | PLAN_REQUIRED |
 | [ITEM-0056](../../docs/backlog/items/ITEM-0056-ci-cache-hit-rate-is-not-observable-from-the-actions-rest-ap.md) | CI cache hit rate is not observable from the Actions REST API | INFRA | LOW | P3 | DEFERRED | ci | DEFER |
 | [ITEM-0061](../../docs/backlog/items/ITEM-0061-notification-coverage-is-asymmetric-seat-change-applied-and-.md) | Notification coverage is asymmetric — SEAT_CHANGE_APPLIED and SUBSCRIPTION_TERMINATED notify nobody | FOLLOW_UP | LOW | P3 | NEW | notifications, billing | TRIAGE_REQUIRED |
+| [ITEM-0064](../../docs/backlog/items/ITEM-0064-unscoped-duplicate-planprice-rows-shadow-every-real-price.md) | Unscoped duplicate PlanPrice rows shadow every real price | TECH_DEBT | LOW | P3 | NEW | billing, super-admin | TRIAGE_REQUIRED |
 
 ## Views
 

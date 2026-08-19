@@ -6563,6 +6563,50 @@
         "classification": "TERMINAL_AS_DOCUMENTED",
         "finding_ids": []
       }
+    },
+    {
+      "record_id": "ITEM-0064",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0064-unscoped-duplicate-planprice-rows-shadow-every-real-price.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-08-20",
+        "updated_at": "2026-08-20",
+        "resolved_at": ""
+      },
+      "type": "TECH_DEBT",
+      "title": "Unscoped duplicate PlanPrice rows shadow every real price",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "NEW",
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/billing/commercial-offer.resolver.ts",
+          "services/api/src/modules/super-admin/commercial-bootstrap.ts"
+        ],
+        "verification_scope": "Counted in two databases: 6 scoped and 6 unscoped active PUBLISHED prices in each. Confirmed unreachable — the resolver filters on marketId equality, so no purchase can use them."
+      },
+      "affected_modules": [
+        "billing",
+        "super-admin"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": "Found while verifying the placeholder PKR schedule could not be sold."
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "verification_result": {
+        "result": "NEW",
+        "classification": "PRELIMINARY",
+        "finding_ids": []
+      }
     }
   ],
   "discovered_findings": [
