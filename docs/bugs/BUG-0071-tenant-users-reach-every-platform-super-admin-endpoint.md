@@ -13,7 +13,7 @@ AffectedModules: [super-admin, platform-auth, platform-communications]
 OwnerAgent: architect
 ArchitectDisposition: DONE
 QAReport:
-RegressionId: REG-065
+RegressionId: REG-066
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation: docs/development/execplan-platform-authorization-boundary.md
@@ -317,7 +317,7 @@ tests, all passing.
 
 ## History
 
-- 2026-08-18 — fixed and retested; REG-065 recorded.
+- 2026-08-18 — fixed and retested; REG-066 recorded.
 - 2026-08-18 — found during the WP-13 security campaign while reviewing the
   platform-identity assertion pattern for the new provisioning queue endpoint.
   The queue service originally carried the same omission; closing it there

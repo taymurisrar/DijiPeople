@@ -13,7 +13,7 @@ AffectedModules: [apps/admin]
 OwnerAgent: architect
 ArchitectDisposition: DONE
 QAReport:
-RegressionId: REG-067
+RegressionId: REG-068
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
@@ -102,7 +102,7 @@ it is announced as something rather than as an unnamed group. No ExecPlan.
 
 `e2e/tests/flow-e-accessibility-and-layout.spec.ts` - E3 audits the screen, and
 E4 independently checks the body-overflow property so the two cannot be traded
-against each other. REG-067.
+against each other. REG-068.
 
 ## Dependencies
 

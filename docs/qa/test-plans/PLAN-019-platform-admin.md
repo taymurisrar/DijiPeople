@@ -15,7 +15,7 @@ COVERAGE_BROWSER: PARTIAL
 COVERAGE_SECURITY: GAP
 COVERAGE_PERFORMANCE: NOT_APPLICABLE
 RELATED_BUGS: [BUG-0073, BUG-0074]
-RELATED_REGRESSIONS: [REG-067]
+RELATED_REGRESSIONS: [REG-068]
 CREATED_AT: 2026-08-19
 UPDATED_AT: 2026-08-19
 VERIFIED_AGAINST_SHA: 4290c03
@@ -125,6 +125,6 @@ than `GOOD`. A plan claiming more would be worse than no plan.
 
 ## Regression Links
 
-- REG-067 - the admin surfaces carry no critical or serious accessibility
+- REG-068 - the admin surfaces carry no critical or serious accessibility
   violation. Guards BUG-0073 (contrast, shared shell) and BUG-0074 (a scrollable
   region reachable only by pointer).

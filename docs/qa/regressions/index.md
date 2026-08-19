@@ -903,7 +903,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fixed** | 2026-08-18, branch `agent/commercial-platform-completion` |
 | **Active** | yes |
 
-### REG-065 — A tenant subject cannot satisfy a platform permission
+### REG-066 — A tenant subject cannot satisfy a platform permission
 
 | | |
 |---|---|
@@ -917,7 +917,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fixed** | 2026-08-18, branch `agent/provisioning-ops-and-qa` |
 | **Active** | yes |
 
-### REG-066 — A mutating platform route is never satisfied by a read permission
+### REG-067 — A mutating platform route is never satisfied by a read permission
 
 | | |
 |---|---|
@@ -931,7 +931,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fixed** | 2026-08-18, branch `agent/provisioning-ops-and-qa` |
 | **Active** | yes |
 
-### REG-067 - The admin surfaces carry no critical or serious accessibility violation
+### REG-068 - The admin surfaces carry no critical or serious accessibility violation
 
 | | |
 |---|---|

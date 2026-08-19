@@ -13,7 +13,7 @@ AffectedModules: [apps/admin]
 OwnerAgent: architect
 ArchitectDisposition: DONE
 QAReport:
-RegressionId: REG-067
+RegressionId: REG-068
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
@@ -109,7 +109,7 @@ belongs with those screens as they gain audit coverage.
 ## Regression Coverage
 
 `e2e/tests/flow-e-accessibility-and-layout.spec.ts` - E3 audits both screens and
-fails on any critical or serious violation. REG-067.
+fails on any critical or serious violation. REG-068.
 
 ## Dependencies
 

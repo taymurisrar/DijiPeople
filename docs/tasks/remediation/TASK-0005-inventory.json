@@ -6154,7 +6154,7 @@
       ],
       "related_backlog": [],
       "regressions": [
-        "REG-065"
+        "REG-066"
       ],
       "qa_scenarios": [
         "QA-AUTHZ-010"
@@ -6208,7 +6208,7 @@
       ],
       "related_backlog": [],
       "regressions": [
-        "REG-066"
+        "REG-067"
       ],
       "qa_scenarios": [
         "QA-AUTHZ-011"
@@ -6260,7 +6260,7 @@
       ],
       "related_backlog": [],
       "regressions": [
-        "REG-067"
+        "REG-068"
       ],
       "qa_scenarios": [
         "QA-PLATFORM-002"
@@ -6310,7 +6310,7 @@
       ],
       "related_backlog": [],
       "regressions": [
-        "REG-067"
+        "REG-068"
       ],
       "qa_scenarios": [
         "QA-PLATFORM-002"

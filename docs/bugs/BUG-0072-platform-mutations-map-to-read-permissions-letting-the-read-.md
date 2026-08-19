@@ -13,7 +13,7 @@ AffectedModules: [super-admin, platform-auth]
 OwnerAgent: architect
 ArchitectDisposition: DONE
 QAReport:
-RegressionId: REG-066
+RegressionId: REG-067
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation: docs/development/execplan-platform-authorization-boundary.md
@@ -217,7 +217,7 @@ Automated, and enumerated from the controller rather than a hand-written list:
 
 ## History
 
-- 2026-08-18 — fixed and retested; REG-066 recorded.
+- 2026-08-18 — fixed and retested; REG-067 recorded.
 - 2026-08-18 — found while completing the permission map for the [[BUG-0071]]
   fix. The route-enumeration test written for that fix surfaced the unmapped
   routes, and reading the map to close them exposed the method-blind branches.
