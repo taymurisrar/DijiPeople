@@ -133,6 +133,7 @@ _None._
 
 ## Recent QA Runs
 
+- [[2026-08-19-ci-e2e-remediation-3f03571|QA Run — ci-e2e-remediation]]
 - [[2026-08-18-primary-worktree-repository-health-494c44d|QA Run — primary-worktree-repository-health]]
 - [[2026-08-18-landing-uiux-remediation-verification-c332992|QA Run — landing-uiux-remediation-verification]]
 - [[2026-08-17-web-app-documentation-1af3690|QA Run — apps/web documentation audit (TASK-0003)]]
@@ -140,7 +141,6 @@ _None._
 - [[2026-08-17-landing-uiux-browser-qa-f58ee1d|QA Run — landing-uiux-browser-qa]]
 - [[2026-08-17-global-remediation-discovery-0051180|QA Run — global-remediation-discovery]]
 - [[2026-08-17-framework-remediation-e6a173d|QA Run — framework-remediation]]
-- [[2026-08-16-public-commercial-wave2-7686bb0|QA Run — Wave 2: Public Plans + Features Experience]]
 
 ## Recent Implementations
 
@@ -151,6 +151,7 @@ _None._
 
 ## Recent Engineering History
 
+- [[2026-08-19-ci-e2e-remediation-3f03571|Engineering History — CI browser install latency and the database e2e fixture contract]]
 - [[2026-08-19-agent-framework-hardening|Engineering History — Database Agent, Security Agent, agent reliability and Obsidian ownership]]
 - [[2026-08-18-primary-worktree-repository-health-494c44d|Engineering History — Primary worktree repository health]]
 - [[2026-08-18-landing-uiux-remediation-ab3bc73|Engineering History — Landing UI/UX remediation]]
@@ -158,7 +159,6 @@ _None._
 - [[2026-08-18-ci-performance-cancellation-rca-3f6775e|Engineering History — CI performance, cancellation RCA and autonomous CI adaptation]]
 - [[2026-08-17-landing-uiux-browser-qa-and-agent-hardening-1f6e842|Engineering History — Landing UI/UX browser QA and UI/UX agent hardening]]
 - [[2026-08-17-framework-remediation-e6a173d|Engineering History — Framework remediation]]
-- [[2026-08-16-web-app-documentation-1af3690|Engineering History — Web app documentation]]
 
 ## Recent Releases
 
@@ -209,8 +209,8 @@ _None. Nothing has been deployed through the release process._
 | Bug records | 69 |
 | Backlog items | 59 |
 | Known bug patterns | 20 |
-| QA runs | 18 |
-| Engineering history records | 18 |
+| QA runs | 19 |
+| Engineering history records | 19 |
 | Release records | 0 |
 | Module notes | 24 |
 | Architecture notes | 20 |
