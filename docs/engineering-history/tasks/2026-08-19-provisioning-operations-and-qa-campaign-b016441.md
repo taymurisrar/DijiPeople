@@ -18,7 +18,7 @@
 | **Final Task SHA** | `b016441b4971c1b2055e83af15b77c32bd1c4d81` |
 | **Target Branch** | `develop` — an ordinary task; `main` is untouched. |
 | **Merge Commit** | `b016441` — `develop` merged **into** the task branch. Integration into `develop` itself is pending. |
-| **Final Target SHA** | PENDING — `develop` is at `cda0033`; this branch has not yet been integrated. |
+| **Final Target SHA** | `1f6b508` — fast-forwarded into `develop` on the exact SHA whose gate passed, so `develop` tip is byte-identical to the verified commit rather than an unverified merge. `main` untouched at `b90f33e`. |
 
 ### Commits
 

@@ -91,9 +91,9 @@ gate.
 | WP-11 | Admin dashboard, monitoring and provisioning operations UX | DONE | WP-07, workspace lease | UI/UX, Frontend, Backend/API | agent/provisioning-ops-and-qa | b43ee1e | PASS | PASS | PENDING_INTEGRATION |
 | WP-12 | Notification ownership and business-event coverage | DONE | WP-01, WP-07 | Backend/API | agent/consent-legal-knowledge | e9cad20 | PASS | PASS | DONE |
 | WP-13 | Consolidated QA, regression, security, accessibility and visual campaign | DONE | WP-01..WP-12 | QA, Reviewer | agent/provisioning-ops-and-qa | a28d967 | PASS | PASS | PENDING_INTEGRATION |
-| WP-14 | Final review, exact-SHA CI, develop integration | DONE | WP-13 | Reviewer, Integrator | agent/provisioning-ops-and-qa | TBD | PASS | PASS | INTEGRATED |
+| WP-14 | Final review, exact-SHA CI, develop integration | DONE | WP-13 | Reviewer, Integrator | agent/provisioning-ops-and-qa | 1f6b508 | PASS | PASS | INTEGRATED |
 | WP-15 | Release, main promotion, deployment and production smoke | BLOCKED | WP-14 | Release/DevOps | — | — | NOT_RUN | NOT_RUN | BLOCKED_EXTERNAL |
-| WP-16 | Knowledge, Obsidian, history and parent closure | DONE | WP-14 | Architect | agent/provisioning-ops-and-qa | TBD | PASS | PASS | INTEGRATED |
+| WP-16 | Knowledge, Obsidian, history and parent closure | DONE | WP-14 | Architect | agent/provisioning-ops-and-qa | 1f6b508 | PASS | PASS | INTEGRATED |
 
 WP-01, WP-02 and WP-04 are the roots: everything downstream either emits a
 durable event, resolves a published legal version, or reads a billable
