@@ -536,8 +536,18 @@ export class BillingService {
             planPrice.billingModel,
           ),
         ],
+        /*
+         * The order id rides back with the buyer so the success page can show
+         * real provisioning state.
+         *
+         * `{CHECKOUT_SESSION_ID}` alone would mean resolving session → order on
+         * every poll, and the order id is already the capability the buyer's
+         * browser held throughout the wizard — an unguessable v4 uuid that the
+         * status endpoint binds to. Passing it here hands back nothing they did
+         * not already have.
+         */
         success_url: this.resolvePublicCheckoutUrl(
-          '/subscribe/success?session_id={CHECKOUT_SESSION_ID}',
+          `/subscribe/success?session_id={CHECKOUT_SESSION_ID}&onboarding=${order.orderId}`,
         ),
         cancel_url: this.resolvePublicCheckoutUrl(
           `/subscribe/cancel?planPriceId=${planPrice.id}`,
