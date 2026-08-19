@@ -1,7 +1,7 @@
 # Repository Health — sync state, protected-branch recovery and deployment drift
 
-> **Last verified:** 2026-08-16
-> **Verified against commit:** 6cfac5c
+> **Last verified:** 2026-08-19
+> **Verified against commit:** 494c44d
 > **Key source files:** scripts/repo-health.mjs, scripts/finalize-agent-task.mjs, .agent/agents/release-devops.md, .agent/agents/integrator.md, docs/development/branch-protection.md, docs/development/git-worktrees.md, .github/workflows/ci.yml
 >
 > This document describes the repository, it is not authority over it. If the
@@ -35,12 +35,118 @@ a script that acts on a checklist acts on a *wrong* checklist just as readily.
 PRE_TASK_REPO_HEALTH      POST_TASK_REPO_HEALTH     MAIN_SYNC_STATUS
 REMOTE_STATE              STALE_BRANCHES            STALE_WORKTREES
 UNFINISHED_GIT_OPERATIONS DEPLOYMENT_DRIFT
+PRIMARY_WORKTREE_STATUS   TASK_WORKTREE_STATUS      UNEXPLAINED_DIRTY_FILES
+OTHER_DIRTY_WORKTREES
 ```
 
 `STALE_WORKTREES` and `STALE_BRANCHES` are counts plus the candidate list;
 `UNFINISHED_GIT_OPERATIONS` is the set of in-flight Git operations, and empty is
 the only healthy value before new work starts. `DEPLOYMENT_DRIFT` is classified
-[below](#deployment-state-and-drift).
+[below](#deployment-state-and-drift). The four worktree fields are
+[below](#the-primary-worktree-is-first-class).
+
+---
+
+## The primary worktree is first-class
+
+**Repository health is a property of every framework-managed worktree, not of
+the one the agent happens to be standing in.**
+
+```
+PRIMARY_WORKTREE    the user's own checkout — their interactive workspace
+TASK_WORKTREE       the isolated worktree this task created for itself
+OTHER_WORKTREE      any other checkout, usually another live session's
+```
+
+This distinction did not exist, and its absence produced the defect it now
+prevents. `repo-health.mjs` computed per-worktree dirtiness, used it only to
+protect a worktree from deletion, dropped it from the report, and then warned
+about uncommitted files **only when the invoking worktree was dirty and sitting
+on `main`**. Three consequences, all of which happened:
+
+- an agent running the check from its own clean task worktree saw `PASS`, while
+  the user's primary checkout held four modified files and two untracked ones;
+- because the gate compared against `main`, a dirty `develop` — which is where
+  the primary checkout actually sits — produced no output at all;
+- dirtiness was a warning in the one case it was reported, never a blocker, so
+  it could not fail a task even when seen.
+
+`node scripts/repo-health.mjs` now reports `PRIMARY_WORKTREE_STATUS` for the
+primary checkout whichever worktree it is invoked from.
+
+### `PRIMARY_WORKTREE_STATUS`
+
+| Value | Meaning | Compatible with completion |
+|---|---|---|
+| `CLEAN` | No uncommitted paths | Yes |
+| `DIRTY_USER_OWNED` | Every dirty path was already dirty at `PRE_TASK_REPO_HEALTH` | Yes — preserved untouched |
+| `DIRTY_OTHER_SESSION_OWNED` | Dirty paths belong to another live session | Yes — reported, never cleaned |
+| `DIRTY_UNEXPLAINED` | At least one path nobody can account for | **No — blocks completion** |
+| `UNAVAILABLE` | The primary checkout could not be read | No |
+
+### Every dirty path has an owner
+
+For each uncommitted path in the primary checkout the framework answers **who
+owns this change**:
+
+```
+USER                    already dirty at task start — preserve, never touch
+SESSION-nnnn            an active session's record or declared worktree
+GENERATED_BY_FRAMEWORK  a framework generator wrote it during this task
+UNKNOWN                 nobody can account for it — this is the blocking one
+```
+
+`UNKNOWN` is not a resting state. Before a task may complete, every unexplained
+path is classified as the user's own work, another session's, a generator's
+output that must be committed, or a mistake that must be corrected. **Never
+reset, checkout, restore or clean the set to make it go away** — that is how
+somebody else's uncommitted afternoon disappears.
+
+Proving a path predates the task requires evidence, not memory. Record the
+baseline at `PRE_TASK_REPO_HEALTH` and pass it back at `POST_TASK_REPO_HEALTH`,
+exactly as `--main-baseline` proves `MAIN_CHANGE_STATUS`:
+
+```bash
+node scripts/repo-health.mjs --json --task-branch agent/<x>          # pre-task
+node scripts/repo-health.mjs --task-branch agent/<x> \
+  --primary-baseline "<paths already dirty at pre-task>"             # post-task
+```
+
+Without `--primary-baseline`, files that predate the task cannot be
+distinguished from files it created, and the report says so rather than
+assuming the flattering reading.
+
+### Session records must not be stranded in the primary checkout
+
+`scripts/session.mjs` resolves its root from **its own location**, so
+`node scripts/session.mjs start` run from the primary checkout writes the
+session record *there*. The session then creates its task worktree, works in it,
+commits the real record from it, and never returns — leaving an untracked stub
+behind in the user's workspace.
+
+SESSION-0015 and SESSION-0016 both did this. SESSION-0016's stub sat in the
+primary checkout with `WORKTREE: D:/My Work/hrm-dijipeople/DijiPeople` while its
+authoritative record — same `SESSION_ID`, same `STARTED_AT`, richer content —
+was committed from `wt-framework`.
+
+`session.mjs start` now detects this and prints `PRIMARY_WORKTREE_ARTIFACT` with
+the steps to correct it. Register the session **from inside the task worktree**
+wherever possible; where the worktree does not exist yet, move the record into
+it before doing any other work.
+
+A session record in the primary checkout is classified by reading that file's
+own `STATUS`, not this checkout's committed indexes — an active session
+registered from the primary checkout has its only copy sitting there untracked,
+and reading committed state instead reports another chat's live session as an
+orphan, which invites deleting it.
+
+### Other sessions' worktrees are reported, never cleaned
+
+A dirty worktree belonging to another session is `DIRTY_OTHER_SESSION_OWNED`.
+Report it, leave it alone, and never remove, reset or revert it — see
+[`multi-session.md`](multi-session.md). Being unable to attribute a dirty
+worktree to a session record is a reason to investigate, never a licence to
+clean.
 
 ## The two mandatory checkpoints
 
@@ -68,11 +174,25 @@ Detect, before any branch is created:
 
 - local `main` ahead, behind or diverged
 - a dirty `main`
-- an unfinished merge, rebase, cherry-pick or revert
+- an unfinished merge, rebase, cherry-pick or revert — **in every worktree**,
+  not only this one; `--git-common-dir` cannot see a rebase abandoned in a
+  sibling checkout
 - stale worktrees — a registered worktree whose directory is gone, or whose
   task merged long ago
 - stale merged branches
 - remote changes since the last fetch
+
+And record, as the baseline the post-task check is measured against:
+
+```
+PRIMARY_WORKTREE_STATUS   ACTIVE_AGENT_WORKTREES    DIRTY_WORKTREES
+UNFINISHED_GIT_OPERATIONS LOCAL_DEVELOP_SHA         ORIGIN_DEVELOP_SHA
+MAIN_SHA                  DEVELOP_CONTAINS_MAIN
+```
+
+**The set of paths already dirty in the primary checkout is part of that
+baseline.** It is the only thing that later distinguishes the user's own
+in-flight work from a mess this task made.
 
 **A task worktree is never cut from a stale `main`.** The base must be the
 current shared-target SHA. Cutting from a stale base produces a branch that
@@ -84,6 +204,50 @@ conflict resolution then risks reverting somebody else's work.
 The same sweep, plus: the merge actually landed, `MAIN_SYNC_STATUS = SYNCED`,
 the task worktree removed, merged local task branches deleted, and no unfinished
 Git operation left behind.
+
+And, against the pre-task baseline:
+
+```
+PRIMARY_WORKTREE_STATUS ∈ { CLEAN, DIRTY_USER_OWNED, DIRTY_OTHER_SESSION_OWNED }
+UNEXPLAINED_DIRTY_FILES = 0
+```
+
+`DIRTY_UNEXPLAINED` blocks completion. `POST_TASK_REPO_HEALTH = PASS` may not be
+claimed while any framework-managed worktree holds tracked modifications nobody
+can account for — **including the primary checkout the agent never opened**.
+
+### Post-integration generators are repository work
+
+Several framework commands write Git-tracked files:
+
+```
+rebuild-sessions · rebuild-backlog · rebuild-tasks · rebuild-qa
+generate-dashboards · new-engineering-history · sync-obsidian
+```
+
+Running one of these *after* the final commit and then declaring cleanup
+complete is the second half of the same defect: the generator output is real
+repository truth, it is tracked, and it is now uncommitted. Either
+
+- run them **before** the final commit, so their output is committed with the
+  work — this is the ordinary case, and it is why record edits must be
+  regenerated in the same commit; or
+- run them after, observe that they produced **no diff**, and record that they
+  are deterministic for this task.
+
+The prohibited sequence is:
+
+```
+final commit → generator writes tracked files → CLEANUP_STATUS = DONE
+```
+
+The canonical order is:
+
+```
+task worktree finalizes records → regenerate indexes → commit → CI
+  → integrate into develop → re-run generators → any diff is committed too
+  → verify the PRIMARY worktree is clean
+```
 
 ---
 

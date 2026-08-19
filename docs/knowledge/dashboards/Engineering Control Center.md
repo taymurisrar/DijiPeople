@@ -7,15 +7,15 @@
 
 | | |
 |---|---|
-| Active sessions | **3** |
+| Active sessions | **4** |
 | Active parent tasks | 2 |
 | Active work packages | 1 |
 | Blocked work packages | 1 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **0** |
-| Open HIGH | 5 |
+| Open HIGH | 6 |
 | Awaiting Architect triage | 0 |
-| Owner decisions pending | 2 |
+| Owner decisions pending | 3 |
 | QA coverage gaps | 88 |
 | Scenarios blocked by infrastructure | 0 |
 
@@ -23,6 +23,7 @@
 
 | Session | Task | Title | Status | Branch | Target | Leases | Schema |
 |---|---|---|---|---|---|---|---|
+| [[SESSION-0017-primary-worktree-repository-health-ownership|SESSION-0017]] | — | Primary worktree repository health ownership | ACTIVE | `agent/repo-health-primary-worktree` | `develop` | — | NO |
 | [[SESSION-0016-database-agent-security-agent-agent-reliability-and-obsidian|SESSION-0016]] | — | Database Agent, Security Agent, agent reliability and Obsidian ownership | ACTIVE | `agent/agent-framework-hardening` | `develop` | — | NO |
 | [[SESSION-0014-ci-performance-cancellation-rca-and-autonomous-ci-adaptation|SESSION-0014]] | — | CI performance, cancellation RCA and autonomous CI adaptation | ACTIVE | `agent/ci-performance-adaptation` | `develop` | — | NO |
 | [[SESSION-0003-dijipeople-global-technical-remediation|SESSION-0003]] | TASK-0005 | DijiPeople Global Technical Remediation | ACTIVE | `agent/remediation-authorization` | `develop` | permissions, record-indexes | NO |
@@ -83,6 +84,7 @@ Questions where the engineering is understood and the **product answer is**
 
 - [[ITEM-0032-recompute-productivity-totals-inflated-by-heartbeat-replays|ITEM-0032]] — **Recompute productivity totals inflated by heartbeat replays**
 - [[ITEM-0053-publish-privacy-policy-and-terms-for-the-public-landing-site|ITEM-0053]] — **Publish privacy policy and terms for the public landing site**
+- [[ITEM-0057-landing-production-env-examples-still-name-the-vercel-and-re|ITEM-0057]] — **Landing production env examples still name the vercel and render hosts, not the dijipeople.com apex**
 
 ## QA Coverage Gaps
 
@@ -184,10 +186,10 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 29 |
+| Open total | 30 |
 | Blocked | 0 |
-| Deferred | 4 |
-| Awaiting a product decision | 2 |
+| Deferred | 5 |
+| Awaiting a product decision | 3 |
 | Awaiting Architect triage | 0 |
 
 Every ordinary record carries a disposition.

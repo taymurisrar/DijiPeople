@@ -1,0 +1,118 @@
+---
+ID: ITEM-0057
+aliases: [ITEM-0057]
+Title: Landing production env examples still name the vercel and render hosts, not the dijipeople.com apex
+Type: PRODUCT_DECISION
+Status: PRODUCT_DECISION
+Priority: P2
+Severity:
+AffectedModules: [apps/landing]
+Source: ARCHITECT
+OwnerAgent: architect
+ArchitectDisposition: PRODUCT_DECISION
+CreatedAt: 2026-08-19
+UpdatedAt: 2026-08-19
+RelatedBug: BUG-0076
+RelatedQA:
+RelatedADR:
+RelatedImplementation:
+TargetMilestone:
+BlockedBy:
+---
+
+# ITEM-0057 — Landing production env examples still name the vercel and render hosts, not the dijipeople.com apex
+
+## Summary
+
+Uncommitted edits to the three `apps/landing` env examples were found in the
+primary worktree while resolving [[BUG-0076]]. They move the landing app's
+production URLs from the deployed `diji-people-*.vercel.app` /
+`dijipeople.onrender.com` hosts onto a `dijipeople.com` apex, and add
+`NEXT_PUBLIC_TENANT_ROOT_DOMAIN`.
+
+The intent is real and worth deciding on. The edits as written are not safe to
+commit, so they were preserved verbatim on the branch
+`preserve/landing-env-domain-cutover` (`2472df3`) and the tracked files were
+restored. **Nothing was discarded.**
+
+## Why It Matters
+
+`packages/config/platform-domains.js` already defaults `PUBLIC_BASE_DOMAIN` to
+`dijipeople.com` in production, and `app.dijipeople.com` appears in the Stripe
+return URLs. The platform is part-way onto the apex while every deployment
+example still names the preview hosts. Leaving the two halves inconsistent is
+how [[BUG-0026]] happened — production builds emitting URLs that resolve
+nowhere.
+
+The cost of not deciding is that the next person to copy an example file gets a
+configuration that contradicts `docs/environment-variables.md`, and the drift
+recurs the next time somebody hand-edits their local copy.
+
+## Evidence
+
+Preserved content: `preserve/landing-env-domain-cutover` @ `2472df3`.
+
+What the working-copy edits did, against `aa33524`:
+
+- `apps/landing/.env.production.example` — `NEXT_PUBLIC_APP_ORIGIN`,
+  `*_APP_URL`, `NEXT_PUBLIC_API_BASE_URL`, `API_BASE_URL` and `API_ORIGIN` moved
+  to `dijipeople.com` / `api.dijipeople.com` / `admin.dijipeople.com`.
+- Deleted the two-line comment added by `5b602be`, which documents that
+  `APP_ENV` arms the production URL validation in `packages/config`. That
+  comment is the regression guard for [[BUG-0026]].
+- Added `NEXT_PUBLIC_TENANT_ROOT_DOMAIN` to all three files.
+  `docs/environment-variables.md:83` documents it as a **legacy alias** for
+  `TENANT_BASE_DOMAIN`, and `git grep` shows it is read only by
+  `apps/admin/lib/tenant-url.ts` and `packages/config/platform-domains.js:166` —
+  `apps/landing` does not read it at all.
+- Overwrote `.env.local.example` with content byte-identical to `.env.example`
+  (both 430 bytes, blob `c9415cd`), collapsing two files that serve different
+  purposes.
+- Removed the trailing newline from all three.
+
+Contradicted by, at `494c44d`: the root `.env.production.example`,
+`apps/web/.env.production.example`, the API section of
+`docs/environment-variables.md`, and the `CORS_ALLOWED_ORIGINS` the API is
+deployed with — all of which still name the vercel and render hosts.
+
+## Proposed Approach
+
+A product decision first, then one task — not an ExecPlan.
+
+1. Decide whether `dijipeople.com` is live for the landing, web, admin and API
+   hosts, or still aspirational.
+2. If live: change **every** example and the deployment documentation together,
+   including `CORS_ALLOWED_ORIGINS`, the Stripe URLs and `render.yaml`. Keep the
+   `APP_ENV` comment. Use `NEXT_PUBLIC_TENANT_BASE_DOMAIN`, not the legacy
+   alias, and only where the app actually reads it.
+3. If aspirational: leave the examples as they are and close this item with the
+   reason recorded.
+
+Either way, restore `.env.local.example` as a distinct file rather than a copy
+of `.env.example`.
+
+## Acceptance Criteria
+
+- No example file names a host that contradicts `docs/environment-variables.md`.
+- `apps/landing/.env.local.example` differs from `apps/landing/.env.example`.
+- The `APP_ENV` explanatory comment survives.
+- No env var is added to an app that does not read it.
+- Every tracked example file ends with a newline.
+
+## Dependencies
+
+DNS, TLS and proxy routing for the apex must actually be live before the
+production values change — see the wildcard-DNS readiness note in
+`docs/environment-variables.md`.
+
+## Related Items
+
+[[BUG-0076]] — the repository-health defect that surfaced these files.
+[[BUG-0026]] — the localhost-URL regression the deleted comment guards.
+[[ITEM-0058]] — the other generated-drift file found in the same dirty state.
+[[SESSION-0017]].
+
+## History
+
+- 2026-08-19 — created at `494c44d`, from working-copy state preserved at
+  `2472df3`.

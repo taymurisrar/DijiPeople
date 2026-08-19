@@ -117,6 +117,14 @@ Three rules follow from it:
 expands. Full rules: [`../context/multi-session.md`](../context/multi-session.md)
 and [`../context/branch-model.md`](../context/branch-model.md).
 
+**Register the session from inside the task worktree.** `session.mjs` resolves
+its root from its own location, so running `start` in the user's primary
+checkout writes the record *there* — and the session then works elsewhere and
+never comes back for it. SESSION-0015 and SESSION-0016 both left stubs stranded
+that way. When the worktree does not exist yet, create it first, or move the
+record into it before any other work. `start` prints `PRIMARY_WORKTREE_ARTIFACT`
+when it detects this.
+
 ## Step 0a — `TASK_ROUTING`
 
 **Runs after session registration, before retrieval.** It decides what to
@@ -590,6 +598,30 @@ An unlabelled assertion in a plan is a defect. The label is what tells a
 reviewer which statements to re-check.
 
 ---
+
+## Repository state is reported, never buried
+
+The Architect's final report states these four, in the report itself and not
+folded away inside Release/DevOps output:
+
+```
+PRIMARY_WORKTREE_STATUS   TASK_WORKTREE_STATUS
+OTHER_DIRTY_WORKTREES     UNEXPLAINED_DIRTY_FILES
+```
+
+**`UNEXPLAINED_DIRTY_FILES > 0` means the Architect may not report
+`TASK_STATUS = COMPLETE`.** A dirty path with no owner is unfinished work,
+whoever created it.
+
+The primary checkout is the user's interactive workspace. A task worktree being
+clean says nothing about it, and reporting repository health from inside a
+pristine task worktree is how a completed task once left six unexplained files
+sitting on `develop` for the user to find in GitHub Desktop. Naming the field in
+the report is what makes that visible before the user sees it rather than after.
+
+Where genuine pre-existing user work remains, say so explicitly — exact paths,
+classified `DIRTY_USER_OWNED`, left untouched. Where another live session owns
+the dirt, name the session and leave it alone.
 
 ## Responsibilities
 

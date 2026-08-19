@@ -1,7 +1,7 @@
 # AGENTS.md — DijiPeople Engineering Instructions
 
-> **Last verified:** 2026-08-18
-> **Verified against commit:** 7c97ff2
+> **Last verified:** 2026-08-19
+> **Verified against commit:** 494c44d
 >
 > This file outranks every role and context document, and until now it was the
 > only tier that carried no provenance of its own — so the two highest-severity
@@ -332,9 +332,9 @@ Node `22.x`, npm `11.x`, npm workspaces + Turborepo.
 ## Database / Prisma
 
 Prisma **7.8** with `@prisma/adapter-pg` against PostgreSQL. Single schema file:
-`services/api/prisma/schema.prisma` — **12,370 lines, 292 models, 267 enums**,
-with **200** migrations in `services/api/prisma/migrations/`, all measured at
-3f9063f and drifting upward from the day they were written. Prisma is configured
+`services/api/prisma/schema.prisma` — **13,703 lines, 312 models, 295 enums**,
+with **210** migrations in `services/api/prisma/migrations/`, all re-derived at
+494c44d and drifting upward from the day they were written. Prisma is configured
 by `services/api/prisma.config.ts` — every Prisma CLI call in this repo passes
 `--config prisma.config.ts`.
 
@@ -346,14 +346,14 @@ Summary:
   relation on tenant-owned models. `PascalCase` models, `camelCase` fields,
   `SCREAMING_SNAKE_CASE` enum members. No `@@map` — Prisma names are the table
   names.
-- **Relations**: explicit `onDelete` on every relation (430 use `Cascade`).
+- **Relations**: explicit `onDelete` on every relation (447 use `Cascade`).
   Named relations where two relations connect the same pair of models.
 - **Migrations**: timestamped directories, created with
   `npm run prisma:migrate:dev` locally. **Never hand-edit an applied migration.
   Never delete one. Never run `migrate reset` or `db push` against a shared
   database.** Deployment applies them via `npm run prisma:migrate:deploy`
   (wrapped by `npm run release:api`).
-- **Indexes**: 1,105 `@@index` and 215 `@@unique` exist. Index every foreign key
+- **Indexes**: 1,163 `@@index` and 221 `@@unique` exist. Index every foreign key
   you filter on and every `(tenantId, <filter column>)` pair a list screen sorts
   or filters by.
 - **Soft delete is not universal.** Only a handful of models carry `isDeleted`
@@ -664,22 +664,27 @@ LOCAL_VALIDATION_STATUS         POST_MERGE_VALIDATION_STATUS
 QA_STATUS                       MAIN_SYNC_STATUS
 QA_FINDINGS_CLASSIFIED_STATUS   MAIN_CHANGE_STATUS
 QA_SCENARIO_PROMOTION_STATUS    POST_TASK_REPO_HEALTH
-BUG_RECORD_STATUS               DEPLOYMENT_STATUS
-ARCHITECT_TRIAGE_STATUS         DEPLOYMENT_DRIFT_STATUS
-BACKLOG_UPDATE_STATUS
+BUG_RECORD_STATUS               PRIMARY_WORKTREE_STATUS
+ARCHITECT_TRIAGE_STATUS         TASK_WORKTREE_STATUS
+BACKLOG_UPDATE_STATUS           UNEXPLAINED_DIRTY_FILES
+                                POST_INTEGRATION_GENERATOR_STATUS
+                                DEPLOYMENT_STATUS
+                                DEPLOYMENT_DRIFT_STATUS
 ```
 
 Resolved means `PASS`, `DONE`, `NOT_REQUIRED` (with a reason),
 `BLOCKED_<REASON>` or `FAILED`. **Never `ASSUMED_PASS`; never omitted.**
 
-Four of these are terminal invariants rather than ordinary fields. After a
+Six of these are terminal invariants rather than ordinary fields. After a
 completed **ordinary** task:
 
 ```
-MAIN_SYNC_STATUS      = SYNCED
-MAIN_CHANGE_STATUS    = UNTOUCHED     ← production is where the task found it
-DEVELOP_SYNC_STATUS   = SYNCED        ← where a local develop exists
-POST_TASK_REPO_HEALTH = PASS
+MAIN_SYNC_STATUS        = SYNCED
+MAIN_CHANGE_STATUS      = UNTOUCHED   ← production is where the task found it
+DEVELOP_SYNC_STATUS     = SYNCED      ← where a local develop exists
+POST_TASK_REPO_HEALTH   = PASS
+UNEXPLAINED_DIRTY_FILES = 0
+PRIMARY_WORKTREE_STATUS ∈ { CLEAN, DIRTY_USER_OWNED, DIRTY_OTHER_SESSION_OWNED }
 ```
 
 No stuck push, unfinished merge, unfinished rebase, unexpected local-`main`
@@ -687,6 +692,15 @@ commit or unverified divergence may remain — see
 [`.agent/context/repository-health.md`](.agent/context/repository-health.md).
 `MAIN_CHANGE_STATUS = CHANGED` on anything but a `RELEASE`, `DEPLOY` or
 `HOTFIX_PRODUCTION` is a **failed** task, not an untidy one.
+
+**Repository health is not a property of the worktree you are standing in.**
+A task worktree can be spotless while the user's primary checkout carries files
+nobody has explained — which is exactly how a task once reported
+`CLEANUP_STATUS = DONE` while GitHub Desktop showed six changed files on
+`develop`. `PRIMARY_WORKTREE_STATUS` is never `NOT_REQUIRED`, and every dirty
+path there must name an owner: the user, a session, a generator, or `UNKNOWN`.
+`UNKNOWN` blocks completion; nothing is reverted, restored, stashed or cleaned
+to make the report look tidier.
 
 `REQUIRED_AGENTS_STATUS` is the fifth invariant and is never `NOT_REQUIRED`: a
 task may not complete while an agent the work needed is not `PASS`. See
@@ -796,12 +810,21 @@ Collect the facts with `node scripts/finalize-agent-task.mjs`.
   [`.agent/context/repository-health.md`](.agent/context/repository-health.md).
 - **Run `npm run repo:health` before creating a branch and again before the
   final report**, passing `--main-baseline <sha>` so `MAIN_CHANGE_STATUS` is a
-  fact rather than a guess. A task worktree is never cut from a stale base, and
-  a task never ends leaving the repository for a human to clean up.
+  fact rather than a guess, and `--task-branch agent/<x>` so the primary, task
+  and other worktrees are told apart. A task worktree is never cut from a stale
+  base, and a task never ends leaving the repository for a human to clean up.
+- **Record which paths were already dirty in the primary checkout before you
+  start**, and pass them back as `--primary-baseline` at the end. It is the only
+  thing that distinguishes the user's in-flight work from a mess the task made,
+  and without it the framework reports `DIRTY_UNEXPLAINED` rather than assuming
+  the flattering reading.
 - The working tree may already contain unrelated in-flight changes. Check
   `git status` before you start and never revert, stage or commit files you did
   not touch. **Other people's uncommitted work remains untouchable** — if the
   primary checkout is dirty with work that is not yours, use another worktree.
+  This applies to the primary checkout above all: it is the user's interactive
+  workspace, not a scratch directory, and `git status --short` being non-empty
+  there is something they will see in GitHub Desktop long before you do.
 - Do not add dependencies without justification; prefer what is already
   installed.
 - Do not reformat files you are not otherwise changing.
