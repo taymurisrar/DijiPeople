@@ -557,6 +557,37 @@ jobs:
             grep -E "Tests:|Test Suites:|✕|Cannot find|timeout" e2e-report.txt | head -60 || echo "no summary lines found"
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+
+          # E2E_FIXTURE_CONTRACT_BROKEN — a distinct finding, not a test count.
+          #
+          # When a shared precondition fails, every test behind it fails at
+          # once, and the report reads as dozens of independent product defects.
+          # That is exactly what happened for weeks: three suites threw "These
+          # tests need two tenants with at least one business unit" in beforeAll
+          # because seed:demo creates one tenant, and 81 red tests were counted
+          # as 81 problems instead of one.
+          #
+          # jest reports a beforeAll failure as "Test suite failed to run", so
+          # that phrase — not the test count — is the signal. It is surfaced
+          # separately so the Architect triages the precondition rather than the
+          # cascade.
+          setup_failures=$(grep -c "Test suite failed to run" e2e-report.txt || true)
+          if [ "${setup_failures:-0}" -gt 0 ]; then
+            {
+              echo ""
+              echo "**E2E_FIXTURE_CONTRACT_BROKEN** — $setup_failures suite(s) failed"
+              echo "before running a test. Those failures are ONE finding about a"
+              echo "precondition, not N findings about the product. Fix the fixture"
+              echo "first, then re-read the counts above; classifying the cascade as"
+              echo "product defects is the mistake ITEM-0047 records."
+              echo ""
+              echo '```'
+              grep -B 2 "Test suite failed to run" e2e-report.txt | head -40 || true
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "::warning title=E2E fixture contract broken::$setup_failures suite(s) failed in setup. Triage the shared precondition, not each failing test."
+          fi
+
           if [ "$code" != "0" ]; then
             echo "::warning title=Database e2e failed::Non-gating, but this run is RED — jest exited $code. Do not record it as a pass."
           fi

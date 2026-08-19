@@ -63,6 +63,20 @@ const THRESHOLDS = {
   unexpectedCancellationRate: 0.2,
   // More than one FULL (non-reused) run for the same SHA.
   duplicateFullRunsPerSha: 1,
+  // A STEP inside a job, under the same ratio-and-floor rule. Tracked
+  // separately because a job median can absorb a step blowing up and hide it:
+  // `Install the browser` went 27s -> 6m41s -> 25m55s while `Browser e2e`
+  // stayed inside its 30-minute cap, so no job-level trigger ever fired and the
+  // regression was found by a person reading the GitHub UI. The floor is lower
+  // than the job floor because a step is a smaller unit.
+  stepDurationIncreaseRatio: 1.5,
+  stepDurationIncreaseFloorSeconds: 45,
+  // A job that consumed essentially its whole declared `timeout-minutes` did
+  // not get cancelled by a superseding push — it ran out of time. Those two
+  // outcomes are both reported as `cancelled` by the API and mean opposite
+  // things, and conflating them is how three consecutive 30-minute database
+  // e2e timeouts read as ordinary supersede-cancels.
+  timeoutConsumedRatio: 0.95,
 };
 
 /* ------------------------------------------------------------------ *
@@ -71,6 +85,52 @@ const THRESHOLDS = {
 
 const seconds = (from, to) =>
   from && to ? Math.max(0, Math.round((new Date(to) - new Date(from)) / 1000)) : null;
+
+/**
+ * The `timeout-minutes` each job declares, read from the workflow itself.
+ *
+ * The Actions API does not report a job's timeout, and a job that hit its cap
+ * is indistinguishable from one a superseding push killed — both are
+ * `cancelled`. Reading the declared cap is what lets the two be told apart, and
+ * reading it from `ci.yml` rather than hardcoding it means raising a timeout
+ * cannot silently disable the detection.
+ *
+ * A deliberately small scan, not a YAML parser: job blocks are two-space
+ * indented, their `name:` and `timeout-minutes:` four-space, and this file is
+ * ours. If the shape ever changes this returns null and the check goes quiet
+ * rather than reporting something invented.
+ */
+let timeoutsByJobName = null;
+function timeoutSeconds(jobName) {
+  if (timeoutsByJobName === null) {
+    timeoutsByJobName = new Map();
+    try {
+      const workflow = readFileSync(
+        join(REPO_ROOT, '.github', 'workflows', 'ci.yml'),
+        'utf8',
+      );
+      let displayName = null;
+      let timeout = null;
+      for (const line of workflow.split(/\r?\n/)) {
+        if (/^  [A-Za-z0-9_-]+:\s*$/.test(line)) {
+          // A new job block: whatever the previous one collected is complete.
+          if (displayName && timeout !== null) timeoutsByJobName.set(displayName, timeout);
+          displayName = null;
+          timeout = null;
+          continue;
+        }
+        const named = /^    name:\s*(.+?)\s*$/.exec(line);
+        if (named) displayName = named[1].replace(/^['"]|['"]$/g, '');
+        const capped = /^    timeout-minutes:\s*(\d+)\s*$/.exec(line);
+        if (capped) timeout = Number(capped[1]) * 60;
+      }
+      if (displayName && timeout !== null) timeoutsByJobName.set(displayName, timeout);
+    } catch {
+      // Unreadable workflow: no timeout detection, and no guesses.
+    }
+  }
+  return timeoutsByJobName.get(jobName) ?? null;
+}
 
 function quantile(values, q) {
   if (values.length === 0) return null;
@@ -142,6 +202,8 @@ function collect(repo, branch, limit) {
 
   const completed = runs.filter((run) => run.status === 'completed');
   const jobStats = new Map();
+  const stepStats = new Map();
+  const timedOut = [];
   const classes = new Map();
   const runRecords = [];
 
@@ -183,6 +245,28 @@ function collect(repo, branch, limit) {
       if (duration !== null) stat.durations.push(duration);
       if (queue !== null) stat.queues.push(queue);
       stat.outcomes.push({ sha: run.head_sha, conclusion: job.conclusion });
+
+      // Timeouts, told apart from supersede-cancellations. Both arrive as
+      // `cancelled`; only one is a problem.
+      const cap = timeoutSeconds(job.name);
+      if (
+        job.conclusion === 'cancelled' &&
+        cap !== null &&
+        duration !== null &&
+        duration >= cap * THRESHOLDS.timeoutConsumedRatio
+      ) {
+        timedOut.push({ name: job.name, sha: run.head_sha.slice(0, 8), duration, cap });
+      }
+
+      // Steps. The API already returns them with the job, so this costs no
+      // extra request — it is only a matter of not throwing them away.
+      for (const step of job.steps ?? []) {
+        const stepDuration = seconds(step.started_at, step.completed_at);
+        if (stepDuration === null || step.conclusion === 'skipped') continue;
+        const key = `${job.name} › ${step.name}`;
+        if (!stepStats.has(key)) stepStats.set(key, []);
+        stepStats.get(key).push(stepDuration);
+      }
     }
   }
 
@@ -235,6 +319,15 @@ function collect(repo, branch, limit) {
     classes: Object.fromEntries(classes),
     unexpectedCancellationRate: runRecords.length ? unexpected / runRecords.length : 0,
     duplicateFullRunShas: duplicateShas.length,
+    // Median only. A step baseline is for comparison, not for a report table —
+    // there are ~150 of them and printing them all would bury the jobs.
+    steps: Object.fromEntries(
+      [...stepStats.entries()].map(([name, durations]) => [
+        name,
+        quantile(durations, 0.5),
+      ]),
+    ),
+    timedOut,
     duplicateShaSamples: duplicateShas
       .slice(0, 5)
       .map(([sha, n, branches]) => `${sha.slice(0, 8)}×${n} (${[...new Set(branches)].join(' + ')})`),
@@ -287,6 +380,32 @@ function detectRegressions(current, baseline) {
     triggers.push({
       type: 'CANCELLATION_SPIKE',
       detail: `${Math.round(current.unexpectedCancellationRate * 100)}% of runs cancelled without a completed gate`,
+    });
+  }
+
+  if (baseline?.steps) {
+    for (const [name, median] of Object.entries(current.steps ?? {})) {
+      const before = baseline.steps[name];
+      if (before == null || median == null) continue;
+      const grew = median - before;
+      if (
+        median > before * THRESHOLDS.stepDurationIncreaseRatio &&
+        grew > THRESHOLDS.stepDurationIncreaseFloorSeconds
+      ) {
+        triggers.push({
+          type: 'STEP_DURATION_REGRESSION',
+          detail: `${name}: median ${fmt(before)} → ${fmt(median)} (+${fmt(grew)})`,
+        });
+      }
+    }
+  }
+
+  for (const job of current.timedOut ?? []) {
+    triggers.push({
+      type: 'JOB_TIMEOUT',
+      detail:
+        `${job.name} ran ${fmt(job.duration)} against a ${fmt(job.cap)} cap at ${job.sha} — ` +
+        'consumed its timeout rather than being superseded',
     });
   }
 

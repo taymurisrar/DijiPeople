@@ -197,9 +197,49 @@ CI_DUPLICATED                the same SHA ran the full pipeline twice
 CI_FLAKY                     a job disagreed with itself on one commit
 CI_CRITICAL_PATH_REGRESSION  the slowest job changed identity
 DATABASE_E2E_RED             the database e2e job failed or timed out again
+E2E_FIXTURE_CONTRACT_BROKEN  a suite failed before it ran a single test
 ```
 
 and otherwise on a release, or when a task changes `ci.yml` itself.
+
+### Three signals a duration alone cannot carry
+
+Added 2026-08-20, after an 18-minute browser install and a 30-minute database
+e2e timeout were both watched for days without either producing a remediation
+record. Each is a case where the existing instrumentation was looking at the
+right run and still could not see the problem.
+
+**`STEP_DURATION_REGRESSION`** — a job median hides a step. `Install the
+browser` went 27s → 6m41s → 25m55s while `Browser e2e` stayed inside its
+30-minute cap, so `JOB_DURATION_REGRESSION` never fired and a person found it in
+the GitHub UI. `ci-metrics.mjs` now keeps a median per step as well as per job.
+The steps come back on the same API response as the jobs, so this costs nothing
+but not discarding them.
+
+**`JOB_TIMEOUT`** — a job that ran out of time and a job a superseding push
+killed are both reported `cancelled`, and they mean opposite things. Three
+consecutive 30-minute database e2e timeouts were read as ordinary
+supersede-cancels for exactly that reason. The declared `timeout-minutes` is
+parsed out of `ci.yml`, so raising a cap cannot silently disable the check.
+
+**`E2E_FIXTURE_CONTRACT_BROKEN`** — a failed shared precondition fails every
+test behind it at once, and the report then reads as dozens of independent
+product defects. Three suites threw *"These tests need two tenants with at least
+one business unit"* in `beforeAll`, and 81 red tests were counted as 81 problems
+rather than one. jest reports this as `Test suite failed to run`, so the
+`database-e2e-report` summary now surfaces that phrase as its own finding.
+
+```
+E2E_FIXTURE_CONTRACT_BROKEN
+  → Database Agent leads    the fixture contract: what each suite requires and
+                            which layer is supposed to create it
+  → QA owns the evidence    and does NOT open one bug per cascading failure
+  → Architect triages       the precondition, once
+```
+
+**Cascading failures are one finding.** Opening a bug per red test in a cascade
+is how a fixture defect becomes twenty phantom product defects that nobody can
+close. Establish the precondition first, then re-read the counts.
 
 ### `DATABASE_E2E_RED` — report-only is not ignorable
 
