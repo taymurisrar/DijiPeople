@@ -1810,7 +1810,8 @@
         "REG-024"
       ],
       "qa_scenarios": [
-        "QA-LEAD-003"
+        "QA-LEAD-003",
+        "QA-LANDING-010"
       ],
       "test_plan": [
         "PLAN-005"
@@ -6429,14 +6430,14 @@
         "provenance": "ARCHITECT",
         "detected_in_sha": "",
         "created_at": "2026-08-19",
-        "updated_at": "2026-08-19",
+        "updated_at": "2026-08-20",
         "resolved_at": ""
       },
       "type": "FOLLOW_UP",
       "title": "Notification coverage is asymmetric — SEAT_CHANGE_APPLIED and SUBSCRIPTION_TERMINATED notify nobody",
       "severity": "LOW",
       "priority": "P3",
-      "current_status": "NEW",
+      "current_status": "DEFERRED",
       "current_evidence": {
         "paths": [
           "services/api/src/modules/notifications/platform-lifecycle-notifications.catalog.ts",
@@ -6461,7 +6462,7 @@
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "DEFER",
       "verification_result": {
         "result": "NEW",
         "classification": "PRELIMINARY",
@@ -6578,7 +6579,7 @@
       "title": "Unscoped duplicate PlanPrice rows shadow every real price",
       "severity": "LOW",
       "priority": "P3",
-      "current_status": "NEW",
+      "current_status": "DEFERRED",
       "current_evidence": {
         "paths": [
           "services/api/src/modules/billing/commercial-offer.resolver.ts",
@@ -6601,7 +6602,7 @@
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "DEFER",
       "verification_result": {
         "result": "NEW",
         "classification": "PRELIMINARY",
@@ -6646,6 +6647,59 @@
       ],
       "qa_scenarios": [
         "QA-LANDING-009"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "FIX_NOW",
+      "verification_result": {
+        "result": "FIXED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0081",
+      "source": {
+        "record_path": "docs/bugs/BUG-0081-three-apps-claimed-a-forwarded-headers-invariant-test-that-d.md",
+        "provenance": "SECURITY_REVIEW",
+        "detected_in_sha": "ffda0e3",
+        "created_at": "2026-08-19",
+        "updated_at": "2026-08-19",
+        "resolved_at": "2026-08-19"
+      },
+      "type": "TEST_GAP",
+      "title": "Three apps claimed a forwarded-headers invariant test that did not exist",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "current_evidence": {
+        "paths": [
+          "apps/landing/lib/forwarded-headers.ts",
+          "apps/web/lib/forwarded-headers.ts",
+          "apps/admin/lib/forwarded-headers.ts",
+          "apps/landing/lib/forwarded-headers.invariant.spec.ts"
+        ],
+        "verification_scope": "All three apps asserted that forwarded-headers.invariant.test.ts failed the build if a route handler forgot to forward the visitor address. No such file existed. The convention was intact at detection — 24 of 24 direct-API handlers forwarded — which is why nothing had surfaced it. The check now exists in each app, asserts a minimum handler count so it cannot pass by finding nothing, and was mutation-verified by stripping the forwarding from apps/landing/app/api/leads/route.ts."
+      },
+      "affected_modules": [
+        "landing",
+        "web",
+        "admin"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [
+        "BUG-0032"
+      ],
+      "related_backlog": [],
+      "regressions": [
+        "REG-071"
+      ],
+      "qa_scenarios": [
+        "QA-LANDING-010"
       ],
       "test_plan": [],
       "active_session_conflict": "NONE",

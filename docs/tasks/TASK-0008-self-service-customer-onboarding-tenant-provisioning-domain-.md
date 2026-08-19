@@ -10,8 +10,8 @@ CREATED_AT: 2026-08-18
 AFFECTED_MODULES: [super-admin, tenant-domains, tenant-control-plane, auth, billing, notifications, legal, landing, web, admin]
 AGENTS: [Architect, Database, Backend/API, Frontend, UI/UX, Integration, Security, QA, Reviewer, Integrator]
 DEPENDENCIES: origin/develop 494c44d; TASK-0007 WP-01..WP-10, WP-12
-CURRENT_PACKAGE: WP-05
-COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-04, WP-10, WP-11]
+CURRENT_PACKAGE: WP-08
+COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-04, WP-05, WP-07, WP-10, WP-11]
 BLOCKED_PACKAGES: [WP-06]
 OWNER_DECISIONS: 4
 FINAL_STATUS:
@@ -150,9 +150,9 @@ Both are recorded here rather than silently fixed, per the retrieval contract.
 | WP-03 | Onboarding status API for the provisioning experience | DONE | WP-01 | Backend/API | agent/self-service-onboarding-provisioning | pending | PASS | NOT_RUN | NOT_STARTED |
 | WP-04 | Onboarding API surface — organization profile, owner identity, agreements, draft session | DONE | WP-01, WP-02 | Backend/API, Database | agent/self-service-onboarding-provisioning | pending | PASS | NOT_RUN | NOT_STARTED |
 | WP-11 | Public onboarding wizard UI — organization, workspace, owner, agreements, review | DONE | WP-04 | Frontend, UI/UX | agent/self-service-onboarding-provisioning | pending | PASS_WITH_RISKS | NOT_RUN | NOT_STARTED |
-| WP-05 | Provisioning progress and workspace-ready experience | NOT_STARTED | WP-03, WP-04 | Frontend, UI/UX | agent/self-service-onboarding-provisioning | — | NOT_RUN | NOT_RUN | NOT_STARTED |
+| WP-05 | Provisioning progress and workspace-ready experience | DONE | WP-03, WP-04 | Frontend, UI/UX | agent/self-service-onboarding-provisioning | pending | PASS | NOT_RUN | NOT_STARTED |
 | WP-06 | Workspace switcher and last-used workspace | BLOCKED | ITEM-0062 | Frontend, UI/UX, Backend/API, Database, Security | — | — | NOT_RUN | NOT_RUN | NOT_STARTED |
-| WP-07 | Security review — enumeration, abuse, rate limiting, redirect safety | NOT_STARTED | WP-01..WP-06 | Security | agent/self-service-onboarding-provisioning | — | NOT_RUN | NOT_RUN | NOT_STARTED |
+| WP-07 | Security review — enumeration, abuse, rate limiting, redirect safety | DONE | WP-01..WP-05 | Security | agent/self-service-onboarding-provisioning | pending | PASS | NOT_RUN | NOT_STARTED |
 | WP-08 | QA campaign — real PostgreSQL, concurrency, browser E2E | NOT_STARTED | WP-07 | QA | agent/self-service-onboarding-provisioning | — | NOT_RUN | NOT_RUN | NOT_STARTED |
 | WP-09 | Review, exact-SHA CI, develop integration, knowledge and closure | NOT_STARTED | WP-08 | Reviewer, Integrator, Architect | agent/self-service-onboarding-provisioning | — | NOT_RUN | NOT_RUN | NOT_STARTED |
 | WP-10 | Payment-authorised provisioning — BUG-0077 and BUG-0078 | DONE | WP-01 | Backend/API, Integration, Database, Security, QA | agent/self-service-onboarding-provisioning | pending | PASS | NOT_RUN | NOT_STARTED |
@@ -194,6 +194,42 @@ at all". An implementation of BUG-0077 alone was written during this session and
 WP-10 blocks the value of WP-01 and precedes WP-02: there is no point gating a
 checkout that provisions the wrong tenant. Plan:
 [`EXECPLAN-0001`](../plans/EXECPLAN-0001-tenant-creation-behind-confirmed-payment.md).
+
+## WP-07 — security review of the public onboarding surface
+
+Reviewed at `ffda0e3`, after WP-05 closed the last customer-facing gap. Six
+questions, each answered against the code rather than the design.
+
+| Question | Finding |
+|---|---|
+| Can the slug check be used to enumerate DijiPeople's customers? | **No.** `GET /public/onboarding/:id/workspace-address` refuses to answer without a live order, so a caller must first create a rate-limited, durably recorded row before asking anything. A dead session and a fabricated one both return 404 with the same body — returning "expired" for one and "not found" for the other would hand back the distinction the binding exists to withhold. |
+| Is every new public handler rate limited? | **Yes**, and at the class rather than per handler. That is the shape [[BUG-0075]] fixed and the shape that survives the next handler being added beside these. The guard is deliberately *not* repeated on individual handlers: Nest concatenates class- and handler-level guards without deduplicating, so a second decorator would spend two tokens from a one-request budget and halve the limit. |
+| Can the client's address be forged to escape the limit? | **No.** `resolveClientIp` trusts `X-Forwarded-For` only behind `isProxyTrusted`, falling back to the socket peer otherwise. But the *forwarding* half of that was a convention with a comment pretending to be a check — [[BUG-0081]], fixed here. |
+| Is the checkout return an open redirect? | **No.** `resolvePublicCheckoutUrl` builds from `LANDING_APP_URL` / `PUBLIC_APP_URL` / `WEB_APP_URL` and throws when none is configured. The path is server-constructed; no part of it comes from the request. |
+| Does the order id leak once it is in the address bar? | **No.** `Referrer-Policy: strict-origin-when-cross-origin` is set for all three apps in `packages/config/security-headers.js`, so a cross-origin request carries the origin without the path. That includes the "Open DijiPeople" link, which points at a different host. |
+| Does the status endpoint over-share with whoever holds the id? | **No.** It returns the order number, a coarse state, four labelled steps, and — only once the workspace can actually be opened — its name and hostname. No email, no amount, no provider identifier, no internal step key, and no failure detail beyond one sentence a customer can act on. |
+
+**Deliberate acceptance.** Holding the order id is holding the capability. It is
+an unguessable v4 uuid, it is the same token the buyer's browser carried through
+the whole wizard, and everything it unlocks is that buyer's own data. Adding a
+second factor to a page somebody reaches by paying would trade a real conversion
+loss for no attacker they do not already have.
+
+**One finding, fixed in package.** [[BUG-0081]] — all three apps asserted that a
+`forwarded-headers.invariant.test.ts` failed the build when a route handler
+forgot to forward the visitor's address. No such file existed. The convention
+was intact across all 24 direct-API handlers, which is exactly why nothing had
+surfaced it: a missing check with nothing to find produces no failing test, and
+the only signal was a comment claiming the opposite of the truth. Regression
+[[REG-071]], scenario [[QA-LANDING-010]], mutation-verified.
+
+**One finding recorded, not fixed.** `server-api.ts` in `apps/web` and
+`apps/admin` does not forward the client address either. Left out of the new
+check's scope on purpose: the endpoints it reaches are authenticated and
+`PublicRateLimitGuard` does not run on them, so the gap is attribution rather
+than a bypass, and widening the check before deciding what should carry the
+address there would only fail the build with nothing to do about it. Noted in
+each spec's header rather than left for a reader to rediscover.
 
 ## Assumptions
 
@@ -500,7 +536,7 @@ before WP-01 writes `schema.prisma`.
 
 ## Related
 
-- Records — [[BUG-0017]], [[BUG-0075]], [[BUG-0077]], [[BUG-0078]], [[ITEM-0013]], [[ITEM-0047]], [[ITEM-0060]], [[ITEM-0061]], [[ITEM-0062]], [[ITEM-0063]]
+- Records — [[BUG-0017]], [[BUG-0075]], [[BUG-0077]], [[BUG-0078]], [[BUG-0081]], [[ITEM-0013]], [[ITEM-0047]], [[ITEM-0060]], [[ITEM-0061]], [[ITEM-0062]], [[ITEM-0063]]
 - Modules — [[tenant-control-plane]], [[billing]], [[notifications]], [[legal]]
 
 <!-- GRAPH:END -->

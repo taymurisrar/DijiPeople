@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**132 records** — 71 bugs under [`docs/bugs/`](../bugs/), 61 non-bug items under [`items/`](items/).
+**133 records** — 72 bugs under [`docs/bugs/`](../bugs/), 61 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,22 +13,22 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 36 |
+| Open (active work) | 35 |
 | Blocked | 0 |
-| Deferred | 5 |
+| Deferred | 7 |
 | Awaiting a product decision | 2 |
 | Completed / closed | 89 |
 | **Open CRITICAL** | **0** |
 | **Open HIGH** | **10** |
-| **Awaiting Architect triage** | **2** |
+| **Awaiting Architect triage** | **0** |
 
 ## Open by severity
 
 | Severity | Count |
 |---|---|
 | HIGH | 10 |
-| MEDIUM | 19 |
-| LOW | 7 |
+| MEDIUM | 20 |
+| LOW | 5 |
 
 ## Open by type
 
@@ -37,12 +37,12 @@ see [`README.md`](README.md) for why.
 | ARCHITECTURE | 2 |
 | DATA_INTEGRITY | 2 |
 | DOCUMENTATION | 2 |
-| FOLLOW_UP | 4 |
+| FOLLOW_UP | 3 |
 | INFRA | 2 |
 | SECURITY | 7 |
 | STATE_MACHINE | 1 |
-| TECH_DEBT | 7 |
-| TEST_GAP | 7 |
+| TECH_DEBT | 6 |
+| TEST_GAP | 8 |
 | UX | 2 |
 
 ## All records by status
@@ -50,11 +50,10 @@ see [`README.md`](README.md) for why.
 | Status | Count |
 |---|---|
 | OPEN | 4 |
-| DEFERRED | 5 |
+| DEFERRED | 7 |
 | PRODUCT_DECISION | 2 |
-| FIXED | 4 |
+| FIXED | 5 |
 | VERIFIED | 62 |
-| NEW | 2 |
 | READY | 26 |
 | DONE | 27 |
 
@@ -138,6 +137,7 @@ see [`README.md`](README.md) for why.
 | [BUG-0050](../../docs/bugs/BUG-0050-notification-settings-offer-email-providers-whose-backend-al.md) | Notification settings offer email providers whose backend always fails | INTEGRATION | MEDIUM | P2 | VERIFIED | apps/web, api:notifications | DONE |
 | [BUG-0065](../../docs/bugs/BUG-0065-public-commercial-config-omits-featurecatalog-when-no-market.md) | Public commercial-config omits featureCatalog when no market resolves | BUG | MEDIUM | P2 | VERIFIED | api:billing, apps/landing | DONE |
 | [BUG-0066](../../docs/bugs/BUG-0066-subscribe-page-renders-an-editable-form-with-no-way-to-submi.md) | Subscribe page renders an editable form with no way to submit when checkout is unavailable | UX | MEDIUM | P2 | VERIFIED | apps/landing | DONE |
+| [BUG-0081](../../docs/bugs/BUG-0081-three-apps-claimed-a-forwarded-headers-invariant-test-that-d.md) | Three apps claimed a forwarded-headers invariant test that did not exist | TEST_GAP | MEDIUM | P2 | FIXED | landing, web, admin | FIX_NOW |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | READY | services/api, apps/admin | FIX_NOW |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | READY | api:tenant-control-plane | FIX_NOW |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |
@@ -192,8 +192,8 @@ see [`README.md`](README.md) for why.
 | [ITEM-0045](../../docs/backlog/items/ITEM-0045-reconcile-tenant-web-root-domain-environment-examples.md) | Reconcile tenant web root-domain environment examples | DOCUMENTATION | LOW | P3 | READY | apps/web | FIX_NOW |
 | [ITEM-0049](../../docs/backlog/items/ITEM-0049-register-services-api-environment-reads-or-scope-the-rule.md) | Register services/api environment reads or scope the rule to build inputs | INFRA | LOW | P3 | READY | services/api, turbo.json, docs/deployment | PLAN_REQUIRED |
 | [ITEM-0056](../../docs/backlog/items/ITEM-0056-ci-cache-hit-rate-is-not-observable-from-the-actions-rest-ap.md) | CI cache hit rate is not observable from the Actions REST API | INFRA | LOW | P3 | DEFERRED | ci | DEFER |
-| [ITEM-0061](../../docs/backlog/items/ITEM-0061-notification-coverage-is-asymmetric-seat-change-applied-and-.md) | Notification coverage is asymmetric — SEAT_CHANGE_APPLIED and SUBSCRIPTION_TERMINATED notify nobody | FOLLOW_UP | LOW | P3 | NEW | notifications, billing | TRIAGE_REQUIRED |
-| [ITEM-0064](../../docs/backlog/items/ITEM-0064-unscoped-duplicate-planprice-rows-shadow-every-real-price.md) | Unscoped duplicate PlanPrice rows shadow every real price | TECH_DEBT | LOW | P3 | NEW | billing, super-admin | TRIAGE_REQUIRED |
+| [ITEM-0061](../../docs/backlog/items/ITEM-0061-notification-coverage-is-asymmetric-seat-change-applied-and-.md) | Notification coverage is asymmetric — SEAT_CHANGE_APPLIED and SUBSCRIPTION_TERMINATED notify nobody | FOLLOW_UP | LOW | P3 | DEFERRED | notifications, billing | DEFER |
+| [ITEM-0064](../../docs/backlog/items/ITEM-0064-unscoped-duplicate-planprice-rows-shadow-every-real-price.md) | Unscoped duplicate PlanPrice rows shadow every real price | TECH_DEBT | LOW | P3 | DEFERRED | billing, super-admin | DEFER |
 
 ## Views
 

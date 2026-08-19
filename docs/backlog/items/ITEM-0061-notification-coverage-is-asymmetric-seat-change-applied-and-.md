@@ -3,15 +3,15 @@ ID: ITEM-0061
 aliases: [ITEM-0061]
 Title: Notification coverage is asymmetric — SEAT_CHANGE_APPLIED and SUBSCRIPTION_TERMINATED notify nobody
 Type: FOLLOW_UP
-Status: NEW
+Status: DEFERRED
 Priority: P3
 Severity: LOW
 AffectedModules: [notifications, billing]
 Source: ARCHITECT
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: DEFER
 CreatedAt: 2026-08-19
-UpdatedAt: 2026-08-19
+UpdatedAt: 2026-08-20
 RelatedBug: 
 RelatedQA: 
 RelatedADR: 
@@ -94,3 +94,22 @@ None. Found during [[TASK-0008]] WP-10; not in its scope.
 - 2026-08-19 — found at `4f966ea` by the BUG-0078 invariant on its first run.
   The check was written to catch one unhandled event and immediately surfaced a
   coverage question nobody had asked.
+
+## Architect triage — 2026-08-20
+
+**DEFER.** Real, and not on the self-service acquisition path.
+
+`SEAT_CHANGE_APPLIED` and `SUBSCRIPTION_TERMINATED` are lifecycle events for an
+already-live tenant. Neither fires during acquisition, so nothing a buyer sees
+between the plans page and their first login depends on this. Deferring it does
+not weaken anything TASK-0008 delivered.
+
+What it costs while deferred: a tenant whose seat count changes, or whose
+subscription ends, learns about it from the effect rather than a message. That
+is a poor experience and a support call, not a correctness or isolation
+failure — the state transitions themselves are recorded and audited.
+
+Sequenced after the notification catalogue is reviewed as a whole. Fixing two
+event types by hand is how the coverage became asymmetric in the first place;
+the useful unit of work is "which lifecycle events must notify, and who", and
+that is a catalogue decision rather than two missing entries.

@@ -3,6 +3,9 @@ import {
   eyebrowFor,
   headlineFor,
   isTerminalState,
+  nextDelayMs,
+  pollDelayMs,
+  RATE_LIMITED_DELAY_MS,
   pollErrorMessage,
   type OnboardingStatusView,
 } from "./provisioning-view";
@@ -143,5 +146,54 @@ describe("pollErrorMessage", () => {
     for (const code of [500, 502, 429, null]) {
       expect(pollErrorMessage(code)).toContain("Still trying");
     }
+  });
+});
+
+describe("pollDelayMs", () => {
+  it("polls quickly while provisioning is likely still running", () => {
+    expect(pollDelayMs(0)).toBe(2_000);
+    expect(pollDelayMs(29_999)).toBe(2_000);
+  });
+
+  it("backs off once the wait is clearly not a normal one", () => {
+    expect(pollDelayMs(30_000)).toBe(5_000);
+    expect(pollDelayMs(120_000)).toBe(15_000);
+    expect(pollDelayMs(9 * 60_000)).toBe(15_000);
+  });
+
+  /*
+   * The reason the backoff exists. PublicRateLimitGuard allows 120 GETs per ten
+   * minutes per IP and path, and this page's path carries the order id — so 120
+   * is the entire budget. A flat three-second poll spends 200 and starts
+   * collecting 429s six minutes in, precisely when something has gone slow and
+   * the customer is still watching. This test is the arithmetic, so a future
+   * tightening of the interval fails here rather than in production.
+   */
+  it("stays inside the platform's own rate limit for a full ten minutes", () => {
+    const WINDOW_MS = 10 * 60_000;
+    const GUARD_GET_LIMIT = 120;
+
+    let elapsed = 0;
+    let requests = 0;
+    while (elapsed < WINDOW_MS) {
+      requests += 1;
+      elapsed += pollDelayMs(elapsed);
+    }
+
+    expect(requests).toBeLessThan(GUARD_GET_LIMIT);
+  });
+});
+
+describe("nextDelayMs", () => {
+  it("uses the normal cadence for an ordinary response", () => {
+    expect(nextDelayMs(0, 200)).toBe(2_000);
+    expect(nextDelayMs(0, null)).toBe(2_000);
+    expect(nextDelayMs(5 * 60_000, 500)).toBe(15_000);
+  });
+
+  // Retrying a 429 at the same cadence turns one into a wall of them.
+  it("waits out a slice of the window after a 429, however early it arrives", () => {
+    expect(nextDelayMs(0, 429)).toBe(RATE_LIMITED_DELAY_MS);
+    expect(nextDelayMs(9 * 60_000, 429)).toBe(RATE_LIMITED_DELAY_MS);
   });
 });

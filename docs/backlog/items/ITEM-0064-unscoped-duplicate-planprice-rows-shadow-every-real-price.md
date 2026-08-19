@@ -3,13 +3,13 @@ ID: ITEM-0064
 aliases: [ITEM-0064]
 Title: Unscoped duplicate PlanPrice rows shadow every real price
 Type: TECH_DEBT
-Status: NEW
+Status: DEFERRED
 Priority: P3
 Severity: LOW
 AffectedModules: [billing, super-admin]
 Source: ARCHITECT
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: DEFER
 CreatedAt: 2026-08-20
 UpdatedAt: 2026-08-20
 RelatedBug: 
@@ -101,3 +101,23 @@ None. Found while adding the placeholder PKR schedule under TASK-0008.
 - 2026-08-20 — found while verifying that draft PKR prices could not be sold. The
   check that proved the PKR drafts safe is the same one that revealed these:
   both hinge on the resolver only ever selecting a market-scoped price.
+
+## Architect triage — 2026-08-20
+
+**DEFER.** Tech debt, and narrower than it first looked.
+
+The original wording of this item said these rows "shadow every real price",
+which read as a live quoting risk. It is not: `commercial-offer.resolver.ts`
+filters on `marketId`, so an unscoped row is never selected in preference to a
+scoped one — a buyer is quoted the market price. The item survives because the
+rows are genuinely wrong to have, not because they are currently charging
+anybody incorrectly.
+
+What it costs while deferred: `PlanPrice` carries rows no resolver reaches, so
+anybody reading the table to answer "what does Growth cost" gets more than one
+answer and has to know which filter applies. That is a trap for the next person
+and a source of wrong figures in ad-hoc reporting, neither of which is urgent.
+
+Removing them is a data change against production rows, so it wants an ExecPlan
+with a backfill and rollback section rather than a quick delete — which is
+precisely why it is not being folded into an onboarding parent as a drive-by.

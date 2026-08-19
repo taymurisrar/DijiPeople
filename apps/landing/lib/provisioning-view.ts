@@ -111,3 +111,41 @@ export function pollErrorMessage(httpStatus: number | null) {
   }
   return "We could not check your workspace just now. Still trying.";
 }
+
+/**
+ * How long to wait before the next poll.
+ *
+ * Not a constant, and the reason is arithmetic. `PublicRateLimitGuard` allows
+ * 120 GETs per ten minutes per IP and path, and the status path carries the
+ * order id — so this page's whole budget is 120 requests. A flat three-second
+ * poll spends 200 of them and starts collecting 429s about six minutes in,
+ * which is exactly the case where something has gone slow and the customer is
+ * still watching. The page would rate-limit *itself* out of the one situation
+ * it exists for.
+ *
+ * So it starts fast, where provisioning almost always finishes, and backs off
+ * once it is clear this is a long wait. Over the full ten minutes that is
+ * roughly 65 requests, comfortably inside the budget with room for the retries
+ * a flaky connection adds.
+ */
+export function pollDelayMs(elapsedMs: number) {
+  if (elapsedMs < 30_000) return 2_000;
+  if (elapsedMs < 120_000) return 5_000;
+  return 15_000;
+}
+
+/**
+ * Back off hard when the platform says we are asking too often.
+ *
+ * A 429 means the budget above was wrong about something — a reload that reset
+ * the page's clock but not the server's window, a second tab, a shared NAT.
+ * Retrying at the same cadence turns one 429 into a solid wall of them, so the
+ * next attempt waits out a meaningful slice of the window instead.
+ */
+export const RATE_LIMITED_DELAY_MS = 30_000;
+
+export function nextDelayMs(elapsedMs: number, httpStatus: number | null) {
+  return httpStatus === 429
+    ? RATE_LIMITED_DELAY_MS
+    : pollDelayMs(elapsedMs);
+}

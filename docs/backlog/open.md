@@ -11,10 +11,7 @@ The Architect reads this before planning any substantial change —
 
 ## Awaiting Architect triage
 
-| ID | Title | Type | Severity | Priority | Status | Affected | Architect |
-|---|---|---|---|---|---|---|---|
-| [ITEM-0061](../../docs/backlog/items/ITEM-0061-notification-coverage-is-asymmetric-seat-change-applied-and-.md) | Notification coverage is asymmetric — SEAT_CHANGE_APPLIED and SUBSCRIPTION_TERMINATED notify nobody | FOLLOW_UP | LOW | P3 | NEW | notifications, billing | TRIAGE_REQUIRED |
-| [ITEM-0064](../../docs/backlog/items/ITEM-0064-unscoped-duplicate-planprice-rows-shadow-every-real-price.md) | Unscoped duplicate PlanPrice rows shadow every real price | TECH_DEBT | LOW | P3 | NEW | billing, super-admin | TRIAGE_REQUIRED |
+_None._
 
 ## CRITICAL
 
@@ -43,6 +40,7 @@ _None._
 | [BUG-0041](../../docs/bugs/BUG-0041-web-route-proxies-make-authorization-and-business-decisions.md) | Web route proxies make authorization and business decisions | SECURITY | MEDIUM | P2 | OPEN | apps/web | PLAN_REQUIRED |
 | [BUG-0043](../../docs/bugs/BUG-0043-web-dialogs-have-no-focus-trap-and-filter-controls-are-unlab.md) | Web dialogs have no focus trap and filter controls are unlabelled | UX | MEDIUM | P2 | OPEN | apps/web | PLAN_REQUIRED |
 | [BUG-0045](../../docs/bugs/BUG-0045-the-canonical-settings-and-branding-contract-is-materially-s.md) | The canonical settings and branding contract is materially stale | DOCUMENTATION | MEDIUM | P2 | OPEN | apps/web, docs/architecture | PLAN_REQUIRED |
+| [BUG-0081](../../docs/bugs/BUG-0081-three-apps-claimed-a-forwarded-headers-invariant-test-that-d.md) | Three apps claimed a forwarded-headers invariant test that did not exist | TEST_GAP | MEDIUM | P2 | FIXED | landing, web, admin | FIX_NOW |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | READY | services/api, apps/admin | FIX_NOW |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | READY | api:tenant-control-plane | FIX_NOW |
 | [ITEM-0009](../../docs/backlog/items/ITEM-0009-no-observability-platform-exists.md) | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | P2 | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
@@ -68,5 +66,3 @@ _None._
 | [ITEM-0042](../../docs/backlog/items/ITEM-0042-burn-down-the-services-api-eslint-warning-baseline.md) | Burn down the services/api ESLint warning baseline | TECH_DEBT | LOW | P3 | READY | services/api | FIX_NOW |
 | [ITEM-0045](../../docs/backlog/items/ITEM-0045-reconcile-tenant-web-root-domain-environment-examples.md) | Reconcile tenant web root-domain environment examples | DOCUMENTATION | LOW | P3 | READY | apps/web | FIX_NOW |
 | [ITEM-0049](../../docs/backlog/items/ITEM-0049-register-services-api-environment-reads-or-scope-the-rule.md) | Register services/api environment reads or scope the rule to build inputs | INFRA | LOW | P3 | READY | services/api, turbo.json, docs/deployment | PLAN_REQUIRED |
-| [ITEM-0061](../../docs/backlog/items/ITEM-0061-notification-coverage-is-asymmetric-seat-change-applied-and-.md) | Notification coverage is asymmetric — SEAT_CHANGE_APPLIED and SUBSCRIPTION_TERMINATED notify nobody | FOLLOW_UP | LOW | P3 | NEW | notifications, billing | TRIAGE_REQUIRED |
-| [ITEM-0064](../../docs/backlog/items/ITEM-0064-unscoped-duplicate-planprice-rows-shadow-every-real-price.md) | Unscoped duplicate PlanPrice rows shadow every real price | TECH_DEBT | LOW | P3 | NEW | billing, super-admin | TRIAGE_REQUIRED |

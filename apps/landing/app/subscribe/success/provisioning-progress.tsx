@@ -6,6 +6,7 @@ import {
   eyebrowFor,
   headlineFor,
   isTerminalState,
+  nextDelayMs,
   pollErrorMessage,
   type OnboardingStatusView,
 } from "../../../lib/provisioning-view";
@@ -26,9 +27,6 @@ import {
  * endpoint is cheap, and a websocket for a page somebody sees once per purchase
  * is a connection to maintain for no benefit.
  */
-
-/** Slow enough not to hammer a rate-limited endpoint, fast enough to feel live. */
-const POLL_MS = 3000;
 
 /*
  * Stop after ten minutes.
@@ -56,6 +54,8 @@ export function ProvisioningProgress({
     let timer: ReturnType<typeof setTimeout> | undefined;
 
     async function poll() {
+      let httpStatus: number | null = null;
+
       try {
         const response = await fetch(
           `/api/public/onboarding/${onboardingId}/status`,
@@ -63,6 +63,7 @@ export function ProvisioningProgress({
         );
 
         if (cancelled) return;
+        httpStatus = response.status;
 
         if (!response.ok) {
           setError(pollErrorMessage(response.status));
@@ -78,12 +79,13 @@ export function ProvisioningProgress({
         setError(pollErrorMessage(null));
       }
 
-      if (Date.now() - startedAt > GIVE_UP_AFTER_MS) {
+      const elapsed = Date.now() - startedAt;
+      if (elapsed > GIVE_UP_AFTER_MS) {
         if (!cancelled) setTimedOut(true);
         return;
       }
 
-      timer = setTimeout(() => void poll(), POLL_MS);
+      timer = setTimeout(() => void poll(), nextDelayMs(elapsed, httpStatus));
     }
 
     void poll();

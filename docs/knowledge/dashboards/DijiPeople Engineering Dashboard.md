@@ -9,12 +9,12 @@
 |---|---|
 | Open CRITICAL | **0** |
 | Open HIGH | **10** |
-| Open total | 36 |
+| Open total | 35 |
 | Blocked | 0 |
 | Awaiting a product decision | 2 |
-| Deferred | 5 |
+| Deferred | 7 |
 | Completed | 89 |
-| Awaiting Architect triage | 2 |
+| Awaiting Architect triage | 0 |
 
 ## Open Critical Bugs
 
@@ -53,6 +53,7 @@ _None._
 | [[ITEM-0004-tenant-activation-never-proven-end-to-end|ITEM-0004]] | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | READY | api:tenant-control-plane | FIX_NOW |
 | [[ITEM-0034-apps-web-has-zero-browser-e2e-coverage|ITEM-0034]] | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | READY | apps/web, e2e | PLAN_REQUIRED |
 | [[ITEM-0047-database-e2e-suites-fail-against-an-ephemeral-postgresql|ITEM-0047]] | Database e2e suites fail against an ephemeral PostgreSQL | TEST_GAP | HIGH | READY | services/api/test, .github/workflows, database | PLAN_REQUIRED |
+| [[BUG-0081-three-apps-claimed-a-forwarded-headers-invariant-test-that-d|BUG-0081]] | Three apps claimed a forwarded-headers invariant test that did not exist | TEST_GAP | MEDIUM | FIXED | landing, web, admin | FIX_NOW |
 | [[ITEM-0002-no-live-api-session-test-harness|ITEM-0002]] | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | READY | services/api, apps/admin | FIX_NOW |
 | [[ITEM-0003-tenant-erasure-never-exercised-against-a-database|ITEM-0003]] | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | READY | api:tenant-control-plane | FIX_NOW |
 | [[ITEM-0033-add-a-test-runner-and-unit-coverage-to-apps-agent-desktop|ITEM-0033]] | Add a test runner and unit coverage to apps/agent-desktop | TEST_GAP | MEDIUM | READY | apps/agent-desktop | FIX_NOW |
@@ -132,6 +133,7 @@ _None._
 | [[BUG-0050-notification-settings-offer-email-providers-whose-backend-al|BUG-0050]] | Notification settings offer email providers whose backend always fails | INTEGRATION | MEDIUM | VERIFIED | apps/web, api:notifications | DONE |
 | [[BUG-0065-public-commercial-config-omits-featurecatalog-when-no-market|BUG-0065]] | Public commercial-config omits featureCatalog when no market resolves | BUG | MEDIUM | VERIFIED | api:billing, apps/landing | DONE |
 | [[BUG-0066-subscribe-page-renders-an-editable-form-with-no-way-to-submi|BUG-0066]] | Subscribe page renders an editable form with no way to submit when checkout is unavailable | UX | MEDIUM | VERIFIED | apps/landing | DONE |
+| [[BUG-0081-three-apps-claimed-a-forwarded-headers-invariant-test-that-d|BUG-0081]] | Three apps claimed a forwarded-headers invariant test that did not exist | TEST_GAP | MEDIUM | FIXED | landing, web, admin | FIX_NOW |
 | [[BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist|BUG-0023]] | The testing-architecture context claims two e2e specs do not exist | DOCUMENTATION | LOW | VERIFIED | .agent/context | DONE |
 | [[BUG-0024-start-onboarding-api-and-proxy-have-no-caller|BUG-0024]] | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | VERIFIED | apps/admin, api:super-admin | DONE |
 | [[BUG-0059-vault-wikilinks-to-task-records-and-four-module-notes-resolv|BUG-0059]] | Vault wikilinks to task records and four module notes resolve to nothing | DOCUMENTATION | LOW | VERIFIED | scripts, docs/tasks, docs/knowledge | DONE |
@@ -177,6 +179,7 @@ _None. Nothing has been deployed through the release process._
 | [[BUG-0041-web-route-proxies-make-authorization-and-business-decisions|BUG-0041]] | Web route proxies make authorization and business decisions | SECURITY | MEDIUM | OPEN | apps/web | PLAN_REQUIRED |
 | [[BUG-0043-web-dialogs-have-no-focus-trap-and-filter-controls-are-unlab|BUG-0043]] | Web dialogs have no focus trap and filter controls are unlabelled | UX | MEDIUM | OPEN | apps/web | PLAN_REQUIRED |
 | [[BUG-0045-the-canonical-settings-and-branding-contract-is-materially-s|BUG-0045]] | The canonical settings and branding contract is materially stale | DOCUMENTATION | MEDIUM | OPEN | apps/web, docs/architecture | PLAN_REQUIRED |
+| [[BUG-0081-three-apps-claimed-a-forwarded-headers-invariant-test-that-d|BUG-0081]] | Three apps claimed a forwarded-headers invariant test that did not exist | TEST_GAP | MEDIUM | FIXED | landing, web, admin | FIX_NOW |
 | [[ITEM-0002-no-live-api-session-test-harness|ITEM-0002]] | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | READY | services/api, apps/admin | FIX_NOW |
 | [[ITEM-0003-tenant-erasure-never-exercised-against-a-database|ITEM-0003]] | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | READY | api:tenant-control-plane | FIX_NOW |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
@@ -197,8 +200,6 @@ _None. Nothing has been deployed through the release process._
 | [[ITEM-0042-burn-down-the-services-api-eslint-warning-baseline|ITEM-0042]] | Burn down the services/api ESLint warning baseline | TECH_DEBT | LOW | READY | services/api | FIX_NOW |
 | [[ITEM-0045-reconcile-tenant-web-root-domain-environment-examples|ITEM-0045]] | Reconcile tenant web root-domain environment examples | DOCUMENTATION | LOW | READY | apps/web | FIX_NOW |
 | [[ITEM-0049-register-services-api-environment-reads-or-scope-the-rule|ITEM-0049]] | Register services/api environment reads or scope the rule to build inputs | INFRA | LOW | READY | services/api, turbo.json, docs/deployment | PLAN_REQUIRED |
-| [[ITEM-0061-notification-coverage-is-asymmetric-seat-change-applied-and-|ITEM-0061]] | Notification coverage is asymmetric — SEAT_CHANGE_APPLIED and SUBSCRIPTION_TERMINATED notify nobody | FOLLOW_UP | LOW | NEW | notifications, billing | TRIAGE_REQUIRED |
-| [[ITEM-0064-unscoped-duplicate-planprice-rows-shadow-every-real-price|ITEM-0064]] | Unscoped duplicate PlanPrice rows shadow every real price | TECH_DEBT | LOW | NEW | billing, super-admin | TRIAGE_REQUIRED |
 
 ## Key Architecture Decisions
 
@@ -213,7 +214,7 @@ _None. Nothing has been deployed through the release process._
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 71 |
+| Bug records | 72 |
 | Backlog items | 61 |
 | Known bug patterns | 19 |
 | QA runs | 17 |
@@ -224,7 +225,7 @@ _None. Nothing has been deployed through the release process._
 | Decision notes (ADR + generated) | 6 |
 | Implementation records | 4 |
 
-**Awaiting Architect triage: 2.** A record nobody has
+**Awaiting Architect triage: 0.** A record nobody has
 triaged is work nobody has decided about — the number that should stay near
 zero between tasks.
 
