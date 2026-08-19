@@ -39,6 +39,10 @@ TESTS_ADDED              new coverage, and what it proves
 TEST_HOOKS               ids, routes, fixtures and seeds the next stage can use
 VALIDATION_RUN           the exact commands, and their results
 UNRESOLVED               what was deliberately left, and why
+KNOWLEDGE_IMPACT         NONE | CONTEXT_UPDATE | MODULE_KNOWLEDGE | ARCHITECTURE |
+                         BUG_PATTERN | REGRESSION | QA_SCENARIO | DATABASE_KNOWLEDGE |
+                         SECURITY_KNOWLEDGE | DECISION | OTHER
+OBSIDIAN_IMPACT          which durable notes must change, or NONE
 HANDOFF_READY            true | false
 ```
 
@@ -74,6 +78,21 @@ Two rules travel with it:
   any unclassified QA finding.
 
 ---
+
+### Knowledge impact travels with the handoff
+
+A specialist is the only party that knows whether what it built changed durable
+behaviour. Asking the Architect to infer it later is how a new provisioning
+state, a new authorization invariant or a new migration rule ends up existing
+only in code and in a chat transcript.
+
+So every handoff declares `KNOWLEDGE_IMPACT` and `OBSIDIAN_IMPACT`. `NONE` is a
+legitimate and common answer — most changes teach nothing durable — but it is an
+*answer*, not an omission.
+
+The Architect uses the union of these to decide `OBSIDIAN_REQUIRED`, and the
+Reviewer verifies the two agree: a handoff declaring `MODULE_KNOWLEDGE` with no
+corresponding note is an incomplete handoff, not a completed one.
 
 ## Acceptance is explicit
 
@@ -126,8 +145,9 @@ The Architect maintains one row per role for every substantial task.
 | **Backend/API** | an API module, service, controller, DTO or guard changes |
 | **Frontend** | an app surface changes |
 | **UI/UX** | the change touches user-facing layout, forms, dialogs, navigation, dashboards, tables, mobile/responsive behaviour, accessibility, onboarding journeys, public landing pages, destructive actions, loading/error/empty states, visual consistency or conversion flows — see [`../agents/ui-ux.md`](../agents/ui-ux.md). Carries **two** statuses: `UI_UX_AGENT_STATUS` and, once Frontend has built, `UI_UX_POST_REVIEW_STATUS` |
-| **Database** | `schema.prisma`, a migration, a constraint or a seed changes |
+| **Database** | `schema.prisma`, a migration, a constraint or a seed changes — **and additionally a preflight whenever the task merely *depends* on database shape**: a Prisma model, enum or delegate, a database field or constraint, a repository method whose types derive from Prisma, billing or provisioning persistence, auth/session persistence, or a backfill. Preflight is read-only and resolves `PRISMA_CLIENT_STATUS`, `MIGRATION_STATUS` and `LOCAL_DATABASE_STATUS` before a dependent agent writes code against a stale client |
 | **Integration** | a boundary changes — gateway, desktop agent, Stripe, device ingestion |
+| **Security** | the change touches auth, sessions, tokens, permissions, tenant scope, platform-admin actions, a public write API, proxy behaviour, Stripe or billing authority, provisioning, secrets, erasure or deletion, desktop credentials, the desktop updater, dependency vulnerabilities, security headers, CSP, or sensitive employee/payroll data — see [`../agents/security.md`](../agents/security.md). Carries **two** statuses: `SECURITY_AGENT_STATUS` and `SECURITY_POST_REVIEW_STATUS` |
 | **QA** | always, except for copy/comment/docs-only changes |
 | **Reviewer** | always for code; docs-only changes may waive it |
 | **Integrator** | **any task that modifies Git-tracked files** |

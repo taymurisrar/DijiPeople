@@ -73,6 +73,46 @@ match a document.
 
 ---
 
+## Instance and handoff
+
+This role is **singular and permanent**; its executions are not. The same role
+runs in as many Architect chats as there are sessions, and every invocation
+states which one it belongs to, so evidence from one chat can never be read as
+another's:
+
+```
+ROLE · SESSION_ID · TASK_ID · WORK_PACKAGE_ID · INSTANCE_STATUS
+BASE_SHA · CURRENT_BRANCH · OWNED_RESOURCES · READ_ONLY_RESOURCES · LEASES
+```
+
+Two Backend/API instances are safe while their **module ownership does not overlap**. Two sessions editing the same service are not parallel work; the second serialises.
+
+Backend/API takes no schema lease and authors no migration. It *requests* a schema change and waits for the Database handoff — see [`database.md`](database.md).
+
+Live state, before planning and before writing:
+
+```bash
+node scripts/session.mjs list
+node scripts/session.mjs check --paths <paths>
+```
+
+The handoff schema is shared and lives in
+[`../context/agent-handoffs.md`](../context/agent-handoffs.md). Two of its
+fields are this role's alone to answer, because nobody else can:
+
+```
+KNOWLEDGE_IMPACT   NONE | CONTEXT_UPDATE | MODULE_KNOWLEDGE | ARCHITECTURE |
+                   BUG_PATTERN | REGRESSION | QA_SCENARIO | DATABASE_KNOWLEDGE |
+                   SECURITY_KNOWLEDGE | DECISION | OTHER
+OBSIDIAN_IMPACT    which durable notes must change, or NONE
+```
+
+`NONE` is common and legitimate — most changes teach nothing durable. It is an
+*answer*, not an omission, and the Reviewer rejects a declared impact with no
+corresponding update.
+
+---
+
 ## Owns
 
 Controllers, services, domain logic, DTOs and validation, guards usage,

@@ -32,33 +32,129 @@ production or staging credentials exist in the workflow.
 
 ## Jobs
 
-| Job | Command | Required |
-|---|---|---|
-| `validate` | `node scripts/validate-framework.mjs` | ✅ |
-| `typecheck` | `npm run prisma:generate` → `prisma:validate` → `npm run typecheck` | ✅ |
-| `lint` | `npx eslint` in web, admin, landing + mutation guard | ✅ |
-| `test-api` | `npm --workspace api run test` — whole suite, nothing excluded, dual-permission invariant included | ✅ |
-| `test-web` | `npm --workspace web run test` | ✅ |
-| `test-admin` | `npm --workspace admin run test` | ✅ |
-| `test-landing` | `npm --workspace landing run test` | ✅ |
-| `test-runtime` | runtime schema, platform domains, release CLI, app URLs, no-hardcoded-URLs | ✅ |
-| `database-migration` | Ephemeral PostgreSQL → `node scripts/verify-database.mjs` | ✅ |
-| `build` | `npm run build` (needs typecheck + test-api) | ✅ |
-| `browser-e2e` | Playwright journeys (`e2e/`) against API + landing + admin | ⚠️ named by `ci-required`, but fail-open through `continue-on-error: true` |
-| `ci-required` | Aggregates the **eleven** jobs above | ✅ **the one to require** |
-| `database-e2e-report` | The e2e suites against an ephemeral PostgreSQL | ❌ report only — read its `RESULT:` line, not its conclusion |
+| Job | Command | Timeout | Required |
+|---|---|---:|---|
+| `resolve` | `node scripts/ci-evidence.mjs find` — exact-SHA evidence lookup | 5m | ✅ precondition |
+| `validate` | `node scripts/validate-framework.mjs` | 10m | ✅ |
+| `typecheck` | `npm run prisma:generate` → `prisma:validate` → `npm run typecheck` | 25m | ✅ |
+| `lint` | `npx eslint` in web, admin, landing, **and services/api** + mutation guard | 25m | ✅ |
+| `test-api` | `npm --workspace api run test` — whole suite, nothing excluded, dual-permission invariant included | 25m | ✅ |
+| `test-web` | `npm --workspace web run test` | 15m | ✅ |
+| `test-admin` | `npm --workspace admin run test` | 15m | ✅ |
+| `test-landing` | `npm --workspace landing run test` | 15m | ✅ |
+| `test-runtime` | runtime schema, platform domains, release CLI, app URLs, no-hardcoded-URLs | 15m | ✅ |
+| `database-migration` | Ephemeral PostgreSQL → `node scripts/verify-database.mjs` | 30m | ✅ |
+| `build` | `npm run build` | 30m | ✅ |
+| `browser-e2e` | Playwright journeys (`e2e/`) against API + landing + admin | 30m | ✅ **genuinely blocking since 2026-08-18** |
+| `ci-required` | Aggregates the **twelve** jobs above | 10m | ✅ **the one to require** |
+| `database-e2e-report` | The e2e suites against an ephemeral PostgreSQL | 30m | ❌ report only — read its `RESULT:` line, not its conclusion |
 
 `validate` runs without installing dependencies, so a structural break in the
 agent framework fails in seconds rather than minutes.
 
-`build` is gated behind `typecheck` and `test-api` because it is the slowest job
-(~6 minutes locally) — an obvious break should fail fast.
+### `needs:` is used for two things, and nothing else
 
-`browser-e2e` appears in `ci-required.needs`, but its job-level
-`continue-on-error: true` converts a failing browser step into a successful
-dependency result. It is therefore structurally listed but not yet a genuine
-blocking gate. The latest audited execution was 8 passed and 1 skipped; the
-skip is the stale BUG-0019 reachability assertion, not a passing scenario.
+Every job depends on `resolve` and on **nothing else**. `ci-required` aggregates
+them. There are no sequencing edges left in this pipeline.
+
+A `needs:` edge is legitimate only when the downstream job consumes an artifact,
+a generated output, or an environment the upstream job created. Two edges were
+removed on 2026-08-18 because neither did:
+
+- `build` needed `typecheck` and `test-api` for fail-fast economy, but consumed
+  nothing from either — it re-checks out, re-installs and re-generates Prisma
+  itself. Measured in run 32160472427 that edge WAS the critical path: typecheck
+  ended 16:33:39, Build ran 16:33:41→16:38:26, total run 10m14s for a Build
+  needing 4m45s of its own.
+- `database-e2e-report` needed `database-migration`, but creates its own
+  PostgreSQL service and runs `verify-database.mjs` itself. The edge only bought
+  a ~2.5 minute late start, which widened the window for a superseding push to
+  kill it mid-suite.
+
+### Every job is time-bounded
+
+Before 2026-08-18 no job declared `timeout-minutes`, so all inherited GitHub's
+360-minute default. When `maxWorkers: 1` landed in e9cad20 the database e2e step
+went from 1m28s to 36 minutes and still unfinished — only a superseding push
+stopped it. `scripts/validate-framework.mjs` now fails if any job omits a
+timeout.
+
+### `browser-e2e` is a real gate now
+
+It carried `continue-on-error: true` while being named in `ci-required.needs`.
+Such a job reports `success` to `needs.*.result` **even when it fails**, so the
+aggregate could not see a browser failure at all — it was named as required and
+was not one. The flag was removed on evidence of six consecutive green runs
+(32148516356, 32159134980, 32160472427, 32167466971, 32169868091, 32173772663)
+against a written criterion of three.
+
+`validate-framework.mjs` now fails if any required job is fail-open this way, so
+the hole cannot silently reopen.
+
+BUG-0019 remains quarantined by name as a `test.fixme` and is still visible as a
+skip. A skip does not fail a run, which is why it was never what made the flag
+necessary — the condition that mattered was stability, and that is what was
+measured.
+
+---
+
+## Concurrency, duplicate runs and cancelled runs
+
+```yaml
+group: ci-${{ github.workflow }}-${{ github.ref }}
+cancel-in-progress: ${{ ref is neither main nor develop }}
+```
+
+`agent/*` runs supersede — that is what superseding is for. `develop` and `main`
+do not, because on a shared branch every SHA is an integration point whose
+evidence may still be needed.
+
+### Exact-SHA evidence reuse
+
+The Integrator integrates by ref-push, so develop's tip is **equal** to the
+CI-verified SHA and GitHub fires a second complete pipeline for a byte-identical
+tree. Fifteen of the nineteen develop SHAs measured on 2026-08-18 were exact
+duplicates of an `agent/*` run that had already passed.
+
+The `resolve` job looks for a completed run of this workflow on the same SHA in
+which **every required job individually concluded `success`**, and skips the
+pipeline when it finds one. Three properties make that safe:
+
+1. The workflow file is part of the SHA, so a matching SHA cannot have been
+   validated by a different pipeline.
+2. The check is job-level, never run-level — a run's own conclusion is
+   unreliable in both directions here.
+3. `skipped` is never accepted as `success`, which stops evidence chaining off a
+   SHA that nothing ever validated.
+
+The required job list is derived from `ci-required.needs`, not copied into the
+script, so adding a job automatically widens what counts as evidence.
+
+### Reading a cancelled run
+
+```bash
+node scripts/ci-evidence.mjs classify --run <RUN_ID>
+```
+
+A `cancelled` run conclusion is **not** a failed gate. Runs 32167466971,
+32169868091 and 32173772663 each concluded `cancelled` while their
+`CI required gate` job had already succeeded — the only job killed was the
+unbounded report-only one. Classification returns `PASS`, `FAILED`,
+`SUPERSEDED_GATE_PASSED`, `SUPERSEDED_GATE_INCOMPLETE`,
+`CANCELLED_MANUAL_OR_TIMEOUT` or `RUNNING`, and says whether the run is evidence.
+
+### Metrics and regression triggers
+
+```bash
+npm run ci:metrics
+```
+
+Writes [`../ci/metrics/ci-metrics.md`](../ci/metrics/ci-metrics.md) and exits
+non-zero on a firing trigger. Owned by Release/DevOps and deliberately **not**
+wired into `ci.yml` — metrics change on every run, so a `--check` in the pipeline
+would fail constantly and teach everyone to ignore it.
+
+Full policy: [`.agent/context/ci-operations.md`](../../.agent/context/ci-operations.md).
 
 ---
 

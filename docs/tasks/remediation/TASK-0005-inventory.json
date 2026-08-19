@@ -6,9 +6,9 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 125,
-    "bugs": 71,
-    "backlog_items": 54,
+    "total_records": 131,
+    "bugs": 72,
+    "backlog_items": 59,
     "open_bucket": 4,
     "blocked_bucket": 0,
     "deferred_bucket": 2,
@@ -5760,7 +5760,7 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "",
         "created_at": "2026-08-17",
-        "updated_at": "2026-08-17",
+        "updated_at": "2026-08-19",
         "resolved_at": ""
       },
       "type": "TEST_GAP",
@@ -5771,7 +5771,8 @@
       "architect_disposition": "PLAN_REQUIRED",
       "affected_modules": [
         "services/api/test",
-        ".github/workflows"
+        ".github/workflows",
+        "database"
       ],
       "regressions": [],
       "qa_scenarios": [],
@@ -6103,6 +6104,312 @@
       },
       "related_bugs": [],
       "related_backlog": [],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DEFER",
+      "verification_result": {
+        "result": "DEFERRED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "ITEM-0055",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0055-database-e2e-runs-serially-and-now-dominates-its-own-job.md",
+        "provenance": "ARCHITECT",
+        "created_at": "2026-08-18",
+        "updated_at": "2026-08-19",
+        "detected_in_sha": "",
+        "resolved_at": ""
+      },
+      "type": "PERFORMANCE",
+      "title": "Database e2e runs serially and now dominates its own job",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "DEFERRED",
+      "current_evidence": {
+        "paths": [
+          "services/api/test/jest-e2e.json",
+          ".github/workflows/ci.yml"
+        ],
+        "verification_scope": "CI job timings: the \"Run database-backed e2e suites\" step measured 1m28s in run 32148516356 (before maxWorkers:1) and 24m25s / 35m56s / 10m16s in runs 32167466971, 32169868091 and 32173772663 after it, none of which completed. The job is report-only and now bounded by timeout-minutes: 30, so the cost is runner time and feedback latency, not correctness."
+      },
+      "affected_modules": [
+        "api",
+        "ci"
+      ],
+      "dependencies": {
+        "record_ids": [
+          "ITEM-0047"
+        ],
+        "note": "maxWorkers:1 is the ITEM-0047 determinism fix and must not be reverted. Parallelism returns only via per-worker databases."
+      },
+      "related_bugs": [
+        "BUG-0049"
+      ],
+      "related_backlog": [
+        "ITEM-0047",
+        "ITEM-0056"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DEFER",
+      "verification_result": {
+        "result": "DEFERRED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "ITEM-0056",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0056-ci-cache-hit-rate-is-not-observable-from-the-actions-rest-ap.md",
+        "provenance": "ARCHITECT",
+        "created_at": "2026-08-18",
+        "updated_at": "2026-08-18",
+        "detected_in_sha": "",
+        "resolved_at": ""
+      },
+      "type": "INFRA",
+      "title": "CI cache hit rate is not observable from the Actions REST API",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "DEFERRED",
+      "current_evidence": {
+        "paths": [
+          "scripts/ci-metrics.mjs",
+          ".github/workflows/ci.yml"
+        ],
+        "verification_scope": "The Actions REST jobs endpoint returns step name, conclusion and timings only; actions/cache reports hit or miss in the raw step log alone. ci-metrics.mjs therefore reports cache hit rate as NOT_OBSERVABLE rather than inferring it from step duration. JOB_DURATION_REGRESSION still catches the symptom of a cache that stops hitting."
+      },
+      "affected_modules": [
+        "ci"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": "Platform limitation, not blocked on repository work."
+      },
+      "related_bugs": [
+        "BUG-0042"
+      ],
+      "related_backlog": [
+        "ITEM-0055"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DEFER",
+      "verification_result": {
+        "result": "DEFERRED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0076",
+      "source": {
+        "record_path": "docs/bugs/BUG-0076-repository-health-never-inspected-the-primary-worktree-so-a-.md",
+        "provenance": "USER_REPORT",
+        "created_at": "2026-08-19",
+        "updated_at": "2026-08-19",
+        "detected_in_sha": "494c44d",
+        "resolved_at": "2026-08-19"
+      },
+      "type": "INFRA",
+      "title": "Repository health never inspected the primary worktree, so a clean task worktree passed as CLEANUP_STATUS DONE",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "current_evidence": {
+        "paths": [
+          "scripts/repo-health.mjs",
+          "scripts/session.mjs",
+          "scripts/validate-framework.mjs",
+          ".agent/context/repository-health.md",
+          ".agent/context/task-completion-contract.md"
+        ],
+        "verification_scope": "repo-health.mjs computed per-worktree dirtiness, dropped it from the report, and warned only when the invoking worktree was dirty AND on main - so a dirty develop in the user's primary checkout produced no output at all. Fixed by classifying every worktree PRIMARY/TASK/OTHER, attributing every dirty path in the primary checkout to USER, SESSION-nnnn, GENERATED_BY_FRAMEWORK or UNKNOWN, and making DIRTY_UNEXPLAINED a blocker. session.mjs now reports PRIMARY_WORKTREE_ARTIFACT when it writes a record into a checkout the session will not work in. Covered by behavioural simulations 37A-37G, 38 and 39 and mutation-tested seven ways, all killed."
+      },
+      "affected_modules": [
+        "scripts/repo-health.mjs",
+        "scripts/session.mjs"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": "None."
+      },
+      "related_bugs": [],
+      "related_backlog": [
+        "ITEM-0057",
+        "ITEM-0058"
+      ],
+      "regressions": [
+        "REG-065"
+      ],
+      "qa_scenarios": [
+        "QA-DEPLOY-015"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "FIX_NOW",
+      "verification_result": {
+        "result": "FIXED",
+        "classification": "REMEDIATED_WITH_REGRESSION",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "ITEM-0057",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0057-landing-production-env-examples-still-name-the-vercel-and-re.md",
+        "provenance": "ARCHITECT",
+        "created_at": "2026-08-19",
+        "updated_at": "2026-08-19",
+        "detected_in_sha": "",
+        "resolved_at": ""
+      },
+      "type": "PRODUCT_DECISION",
+      "title": "Landing production env examples still name the vercel and render hosts, not the dijipeople.com apex",
+      "severity": "",
+      "priority": "P2",
+      "current_status": "PRODUCT_DECISION",
+      "current_evidence": {
+        "paths": [
+          "apps/landing/.env.example",
+          "apps/landing/.env.local.example",
+          "apps/landing/.env.production.example",
+          "docs/environment-variables.md"
+        ],
+        "verification_scope": "Uncommitted working-copy edits found in the primary worktree while resolving BUG-0076, moving landing production URLs onto a dijipeople.com apex. Preserved verbatim on branch preserve/landing-env-domain-cutover at 2472df3; tracked files restored. Not committed because the values contradict the root and web env examples, docs/environment-variables.md and the deployed CORS_ALLOWED_ORIGINS; because the edit deletes the APP_ENV comment that guards BUG-0026; because NEXT_PUBLIC_TENANT_ROOT_DOMAIN is a documented legacy alias that apps/landing does not read; and because .env.local.example was overwritten byte-identical to .env.example."
+      },
+      "affected_modules": [
+        "apps/landing"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": "Apex DNS, TLS and proxy routing must be live before production values change."
+      },
+      "related_bugs": [
+        "BUG-0076",
+        "BUG-0026"
+      ],
+      "related_backlog": [
+        "ITEM-0058"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "YES",
+      "architect_disposition": "PRODUCT_DECISION",
+      "verification_result": {
+        "result": "AWAITING_PRODUCT_DECISION",
+        "classification": "PRESERVED_NOT_DISCARDED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "ITEM-0058",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0058-next-env-d-ts-churns-between-dev-and-build-forms-and-the-fou.md",
+        "provenance": "ARCHITECT",
+        "created_at": "2026-08-19",
+        "updated_at": "2026-08-19",
+        "detected_in_sha": "",
+        "resolved_at": ""
+      },
+      "type": "TECH_DEBT",
+      "title": "next-env.d.ts churns between dev and build forms and the four apps disagree",
+      "severity": "",
+      "priority": "P3",
+      "current_status": "DEFERRED",
+      "current_evidence": {
+        "paths": [
+          "apps/landing/next-env.d.ts",
+          "apps/web/next-env.d.ts",
+          "apps/admin/next-env.d.ts",
+          "apps/docs/next-env.d.ts"
+        ],
+        "verification_scope": "next dev writes an import of .next/dev/types/routes.d.ts; next typegen and next build write .next/types/routes.d.ts. Three distinct forms existed at 494c44d, and the tracked landing form imported .next/types/root-params.d.ts, which does not exist on disk. Landing was normalised to the idempotent next typegen output, removing the broken import; the tracking-policy decision for all four apps is deferred to its own task."
+      },
+      "affected_modules": [
+        "apps/landing",
+        "apps/web",
+        "apps/admin"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": "None."
+      },
+      "related_bugs": [
+        "BUG-0076"
+      ],
+      "related_backlog": [
+        "ITEM-0057"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DEFER",
+      "verification_result": {
+        "result": "DEFERRED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "ITEM-0059",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0059-49-tracked-text-files-have-no-final-newline-and-nothing-enfo.md",
+        "provenance": "ARCHITECT",
+        "created_at": "2026-08-19",
+        "updated_at": "2026-08-19",
+        "detected_in_sha": "",
+        "resolved_at": ""
+      },
+      "type": "TECH_DEBT",
+      "title": "49 tracked text files have no final newline, and nothing enforces one",
+      "severity": "",
+      "priority": "P3",
+      "current_status": "DEFERRED",
+      "current_evidence": {
+        "paths": [
+          ".gitattributes",
+          "apps/admin",
+          "apps/web",
+          "apps/agent-desktop",
+          "scripts/session.mjs"
+        ],
+        "verification_scope": "Scan of git ls-files at 494c44d found 49 tracked text files without a trailing newline. Line-ending policy itself is correct - .gitattributes carries * text=auto and git diff --check is clean across the branch. No .editorconfig or lint rule enforces final newlines. The one instance inside a file this task already changed - session.mjs emitting TASK_ID with a trailing space - was fixed; the 49 pre-existing files were deferred rather than mass-normalised."
+      },
+      "affected_modules": [
+        "apps/admin",
+        "apps/web",
+        "apps/agent-desktop"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": "None."
+      },
+      "related_bugs": [
+        "BUG-0076"
+      ],
+      "related_backlog": [
+        "ITEM-0057",
+        "ITEM-0058"
+      ],
       "regressions": [],
       "qa_scenarios": [],
       "test_plan": [],

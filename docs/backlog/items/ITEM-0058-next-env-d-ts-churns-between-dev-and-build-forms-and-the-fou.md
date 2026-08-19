@@ -1,0 +1,105 @@
+---
+ID: ITEM-0058
+aliases: [ITEM-0058]
+Title: next-env.d.ts churns between dev and build forms and the four apps disagree
+Type: TECH_DEBT
+Status: DEFERRED
+Priority: P3
+Severity:
+AffectedModules: [apps/landing, apps/web, apps/admin]
+Source: ARCHITECT
+OwnerAgent: architect
+ArchitectDisposition: DEFER
+CreatedAt: 2026-08-19
+UpdatedAt: 2026-08-19
+RelatedBug: BUG-0076
+RelatedQA:
+RelatedADR:
+RelatedImplementation:
+TargetMilestone:
+BlockedBy:
+---
+
+# ITEM-0058 — next-env.d.ts churns between dev and build forms and the four apps disagree
+
+## Summary
+
+`next-env.d.ts` is generated, tracked, and rewritten differently depending on
+which Next command last ran. `next dev` writes an import of
+`./.next/dev/types/routes.d.ts`; `next typegen` and `next build` write
+`./.next/types/routes.d.ts`. Whichever ran last dirties the tree, so the file
+churns for every developer and every agent, and the four apps have drifted apart
+as different forms were committed at different times.
+
+Found while resolving [[BUG-0076]]: `apps/landing/next-env.d.ts` was one of the
+six unexplained files in the primary worktree.
+
+## Why It Matters
+
+Low severity but constant. Every spurious dirty file trains people — and now the
+repository-health check — to expect noise in `git status`, which is exactly the
+condition under which a genuinely unexplained file goes unnoticed. It is the
+same failure mode as [[BUG-0076]], in miniature.
+
+## Evidence
+
+At `494c44d`, three distinct forms existed:
+
+| Source | Content |
+|---|---|
+| Tracked `apps/landing` (from `151ce14`) | imports `./.next/types/routes.d.ts` **and** `./.next/types/root-params.d.ts` |
+| Tracked `apps/web`, `apps/admin`, `apps/docs` | imports `./.next/dev/types/routes.d.ts` |
+| `npx next typegen` in `apps/landing`, Next `16.3.1` | imports `./.next/types/routes.d.ts` only |
+
+The tracked landing form imported `.next/types/root-params.d.ts`, which **does
+not exist** — `ls apps/landing/.next/types/` lists only `cache-life.d.ts`,
+`routes.d.ts` and `validator.ts`. The tracked content was itself stale generated
+output, committed by an earlier task that had run a build.
+
+`next typegen` is idempotent: running it twice produces identical output.
+
+This task committed the `next typegen` form for `apps/landing`, which removes
+the broken import and matches what `check-types` (`next typegen && tsc --noEmit`)
+regenerates in CI. It does **not** resolve the churn, and does not touch the
+other three apps.
+
+## Proposed Approach
+
+Decide the tracking policy deliberately, once, for all four apps. Not an
+ExecPlan.
+
+- **Option A — keep tracked, accept churn.** Next's own guidance is to commit
+  the file. Normalise all four apps to the `next typegen` form and accept that
+  `next dev` re-dirties it.
+- **Option B — stop tracking it.** Add `next-env.d.ts` to `.gitignore` and
+  `git rm --cached` it in all four apps. Safe because every app's `check-types`
+  runs `next typegen` first, and `next build` regenerates it, so a fresh clone
+  never needs the committed copy. This ends the churn permanently.
+
+Option B is the recommendation. It is deferred rather than done here because
+changing tracking policy for four apps is its own task, not a rider on a
+repository-health fix.
+
+## Acceptance Criteria
+
+- All four apps agree: either all tracked with identical generated form, or none
+  tracked.
+- `npm run check-types` leaves the tree clean.
+- `next dev` followed by `git status` leaves the tree clean, or the file is
+  untracked.
+- No tracked `next-env.d.ts` imports a path that does not exist.
+
+## Dependencies
+
+None.
+
+## Related Items
+
+[[BUG-0076]] — the repository-health defect that surfaced this file.
+[[ITEM-0057]] — the other drift found in the same dirty state.
+[[SESSION-0017]].
+
+## History
+
+- 2026-08-19 — created at `494c44d`. Landing normalised to the `next typegen`
+  form; the tracking-policy decision deferred.

@@ -37,6 +37,27 @@ has, the plan is stale — report it rather than forcing the merge to match.
 
 ---
 
+## Knowledge impact of integration
+
+The Integrator writes no product knowledge, but it is the stage at which
+repository records become true: an engineering-history record naming a merge
+commit, a session record naming an integrated SHA, a backlog index regenerated
+after records landed.
+
+So its handoff declares the same two fields as every other role:
+
+```
+KNOWLEDGE_IMPACT   usually NONE; CONTEXT_UPDATE when Git or branch policy itself changed
+OBSIDIAN_IMPACT    the records finalized by this integration, or NONE
+```
+
+**Records are finalized after integration, not before.** A history record naming
+a merge commit that does not exist yet is a record that will be wrong if the
+merge is rejected — which is why `ENGINEERING_HISTORY_STATUS` resolves at the
+end and not at the start.
+
+---
+
 ## Owns
 
 Branch creation, worktree creation and removal, base-branch refresh, integrating
@@ -296,12 +317,71 @@ gh run list --branch <branch> --limit 5
 gh run watch <RUN_ID> --exit-status
 ```
 
-or poll a bounded number of times. If CI fails: diagnose, fix, push, wait again.
-If the runner infrastructure is genuinely unavailable, record `BLOCKED_EXTERNAL`
-or `BLOCKED_CI_TIMEOUT` — and **continue any independent work package** instead
-of stopping the task.
+`gh run watch --exit-status` blocks on GitHub's own event stream and returns the
+verdict. **Prefer it to a shell polling loop.** A loop that re-lists runs every
+few seconds spends API budget to learn nothing, and — worse — it keeps waiting on
+a run that has already died.
+
+If CI fails: diagnose, fix, push, wait again. If the runner infrastructure is
+genuinely unavailable, record `BLOCKED_EXTERNAL` or `BLOCKED_CI_TIMEOUT` — and
+**continue any independent work package** instead of stopping the task.
 
 The shared-target rule is unchanged by any of this.
+
+### A cancelled run is a classification, not a failure
+
+`gh run watch` returns non-zero for a cancelled run, and a cancelled run is
+**not** automatically a lost result. On 2026-08-18 three consecutive `develop`
+runs concluded `cancelled` while their `CI required gate` job had already
+succeeded — only the unbounded report-only database e2e job was killed by the
+next push. Reading the run conclusion would have discarded three complete, valid
+results and re-run the entire pipeline for each.
+
+Never guess which case you are in:
+
+```bash
+node scripts/ci-evidence.mjs classify --run <RUN_ID>
+```
+
+| Class | What the Integrator does |
+|---|---|
+| `PASS` | Proceed. |
+| `SUPERSEDED_GATE_PASSED` | **Proceed** — this run is valid evidence for its SHA. |
+| `SUPERSEDED_GATE_INCOMPLETE` | Find the superseding run and follow **that** SHA. |
+| `CANCELLED_MANUAL_OR_TIMEOUT` | Not evidence, and nothing replaced it. Re-trigger, or investigate the timeout. |
+| `FAILED` | Diagnose and fix. |
+| `RUNNING` | Keep watching. |
+
+**Stop waiting the moment a run is dead.** If it was superseded, the run to watch
+is the successor, and the script names it.
+
+### Never accept SHA B's CI as proof for SHA A
+
+If a run for SHA A was cancelled because SHA B superseded it:
+
+- **SHA A is no longer the integration candidate** — ignore it safely and follow
+  SHA B.
+- **SHA A is still the candidate** — its evidence must be re-established. Do not
+  read SHA B's green gate as covering it.
+
+Exact-SHA reuse is legitimate, but it is the pipeline's job, not a judgement
+call. The `resolve` job in `ci.yml` performs it mechanically, and only when every
+required job concluded `success` on the identical SHA. Never hand-wave the
+equivalent.
+
+### Push when a work package is ready, not on every edit
+
+`LOCAL_CHECKPOINT` and `REMOTE_CI_CHECKPOINT` are different things.
+
+Every push to `agent/*` starts a full pipeline **and cancels the previous one**.
+On 2026-08-18 four pushes to `agent/commercial-platform-completion` inside eight
+minutes produced four runs, three of them cancelled mid-suite (runs 32122794801,
+32122995076, 32123416867, 32124051650). None of the three produced evidence, and
+all three consumed runners.
+
+Commit locally as often as is useful. Push when a work package is actually ready
+for integration evidence. This is a sequencing rule, not a discouragement from
+committing — see [`../context/ci-operations.md`](../context/ci-operations.md).
 
 ---
 

@@ -26,6 +26,7 @@ and states what a specialist must verify before changing that layer.
 | [`audit-events.md`](audit-events.md) | Backend/API, Integration |
 | [`integration-patterns.md`](integration-patterns.md) | Integration |
 | [`testing-architecture.md`](testing-architecture.md) | **QA, everyone running validation** |
+| [`ci-operations.md`](ci-operations.md) | **Release/DevOps, Integrator, Architect** |
 | [`deployment-runtime.md`](deployment-runtime.md) | Database, Integration, Architect |
 
 ---

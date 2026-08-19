@@ -6,12 +6,12 @@ Type: TEST_GAP
 Status: READY
 Priority: P1
 Severity: HIGH
-AffectedModules: [services/api/test, .github/workflows]
+AffectedModules: [services/api/test, .github/workflows, database]
 Source: QA_RUN
-OwnerAgent: qa
+OwnerAgent: database
 ArchitectDisposition: PLAN_REQUIRED
 CreatedAt: 2026-08-17
-UpdatedAt: 2026-08-17
+UpdatedAt: 2026-08-19
 RelatedBug: BUG-0049
 RelatedQA: docs/qa/runs/2026-08-17-record-state-reconciliation-d919e1a.md
 RelatedADR:
@@ -115,6 +115,100 @@ direction — a pass is as untrustworthy as a failure.
 addressed, which is why no further suite is being "fixed" on the strength of a
 parallel run.
 
+
+## Status on 2026-08-19 — still RED, and now it does not even finish
+
+Re-measured at the close of the agent-framework-hardening task. This is not a
+new record; it is this one, updated with what the evidence currently says.
+
+**Last run that actually completed** — run 32160472427, SHA 2d6cf1a3:
+
+```
+Test Suites:   6 failed, 15 passed, 21 total
+Tests:        92 failed, 184 passed, 276 total
+```
+
+**Every run since then has timed out instead of completing.** `maxWorkers: 1`
+landed in e9cad20 for determinism (correct — see [[ITEM-0055]]), and the suite
+now exceeds the 30-minute job cap on every run:
+
+| Run | SHA | Duration | Outcome |
+|---|---|---:|---|
+| 32179954819 | 3f6775e0 | 30m17s | cancelled — timeout |
+| 32182849325 | bec5cdfb | 30m25s | cancelled — timeout |
+| 32186211469 | 574fba19 | 30m17s | cancelled — timeout |
+
+So the current honest position is worse than "6 suites red": **the suite has no
+completing run at all**, and therefore no current pass/fail evidence. The 30
+minute cap is doing its job — before it existed the same job ran unbounded and
+was stopped only by a superseding push.
+
+`DATABASE_E2E_HEALTH_STATUS = FAIL`. The `CI required gate` being green does not
+change that: this job is report-only by design, and a report-only job that is
+red is a red job, not an absent one (that distinction is exactly [[BUG-0049]]).
+
+### The six failing suites, and their root-cause groups
+
+Named from run 32160472427 so the next agent starts from evidence rather than
+re-deriving it:
+
+| Suite | Group |
+|---|---|
+| `test/attendance-engine.e2e-spec.ts` | **A — shared fixture state** |
+| `test/attendance-integrations-http.e2e-spec.ts` | **A — shared fixture state** |
+| `test/attendance-review.e2e-spec.ts` | **A — shared fixture state** |
+| `test/gateway-runtime.e2e-spec.ts` | **B — environment/boundary** |
+| `test/legal-documents.e2e-spec.ts` | **C — schema-sensitive seed** |
+| `test/platform-workflows.e2e-spec.ts` | **C — schema-sensitive seed** |
+
+**Group A** is the cluster `maxWorkers: 1` was introduced to contain: three
+attendance suites sharing one seeded dataset. Serialising made them
+*deterministic*, not *passing* — a distinction worth keeping, because it is why
+[[ITEM-0055]] is a blocker here and not a fix.
+
+**Group B** depends on gateway/boundary state that CI does not provide.
+
+**Group C** relies on rows `seed:config` does not create; the workflow already
+compensates with `seed:demo` and `seed:admin`, and these are the suites that
+still want more.
+
+Grouping is from suite identity and the workflow's own notes, not from reading
+every failure — the suite has not completed since, so per-test causes cannot be
+claimed. Treat the groups as a starting hypothesis to confirm, not a diagnosis.
+
+### Open handles
+
+```
+A worker process has failed to exit gracefully and has been force exited.
+This is likely caused by tests leaking due to improper teardown.
+```
+
+`DATABASE_E2E_OPEN_HANDLES = PRESENT`. A leaked handle keeps the worker alive
+after its assertions finish, which inflates wall-clock and is a plausible
+contributor to the 30-minute overrun — the two symptoms are probably one defect.
+Run with `--detectOpenHandles` before assuming the serial mode alone explains the
+duration.
+
+### Ownership
+
+**Database Agent leads; QA owns the evidence.** Split as the roles define it:
+
+- **Database Agent** — fixture architecture, per-worker database isolation,
+  schema-sensitive setup, and whether a failure is a genuine data-integrity
+  defect or a test-harness artefact.
+- **QA** — durable scenarios, the regression register entry, and proving the
+  behaviour once the harness stops lying.
+
+This was `OwnerAgent: qa` and is now `database`: the blocking problem is
+database fixture architecture, not scenario design.
+
+### The `DATABASE_E2E_RED` signal
+
+Report-only does **not** mean ignorable. Repeated failure or repeated timeout is
+now an operational signal the Database Agent and QA act on — see
+`.agent/context/ci-operations.md`. Red database evidence must not persist
+indefinitely behind a green required gate.
+
 ## Proposed Approach
 
 ExecPlan required; this is diagnosis before repair and the causes are probably
@@ -147,4 +241,5 @@ None blocking. Independent of the authorization packages.
 
 ## Related Items
 
-[[BUG-0049]] · [[TASK-0005]] · [[qa-and-ci-architecture]]
+[[BUG-0049]] · [[TASK-0005]] · [[qa-and-ci-architecture]] · [[ITEM-0055]] ·
+[[database-architecture]]

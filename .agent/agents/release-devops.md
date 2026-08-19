@@ -23,15 +23,25 @@ PRE_TASK_REPO_HEALTH      POST_TASK_REPO_HEALTH     MAIN_SYNC_STATUS
 MAIN_CHANGE_STATUS        DEVELOP_SYNC_STATUS       REMOTE_STATE
 STALE_BRANCHES            STALE_WORKTREES           STALE_LEASES
 UNFINISHED_GIT_OPERATIONS DEPLOYMENT_DRIFT          INTEGRATION_LOCK
+PRIMARY_WORKTREE_STATUS   TASK_WORKTREE_STATUS      UNEXPLAINED_DIRTY_FILES
+OTHER_DIRTY_WORKTREES     POST_INTEGRATION_GENERATOR_STATUS
 ```
 
 ```bash
 node scripts/repo-health.mjs            # or npm run repo:health
 node scripts/repo-health.mjs --fetch    # refresh remote state first
 node scripts/repo-health.mjs --main-baseline <sha-at-task-start>
+node scripts/repo-health.mjs --task-branch agent/<x>   --primary-baseline "<paths already dirty at task start>"
 node scripts/session.mjs list           # sessions, leases, DATABASE_WRITER, queue
 node scripts/verify-branch-policy.mjs   # main/develop protection — read-only
 ```
+
+**This role is LEAD for worktree health, and worktree health means every
+framework-managed checkout — the user's primary one above all.** The check used
+to run only where the agent was standing, so an agent finishing in its own clean
+task worktree reported `PASS` while the user's checkout held six unexplained
+files on `develop`. Inspecting your own worktree and calling it repository
+health is the specific failure this role now exists to prevent.
 
 ### The production-safety field
 
@@ -67,8 +77,20 @@ git branch -vv ·  git worktree list
 ```
 
 Detect local `main` ahead / behind / diverged, a dirty `main`, an unfinished
-merge / rebase / cherry-pick / revert, stale worktrees, stale merged branches,
-and remote changes.
+merge / rebase / cherry-pick / revert **in any worktree**, stale worktrees,
+stale merged branches, and remote changes.
+
+Record, as the baseline the post-task check is measured against:
+
+```
+PRIMARY_WORKTREE_STATUS   ACTIVE_AGENT_WORKTREES    DIRTY_WORKTREES
+UNFINISHED_GIT_OPERATIONS LOCAL_DEVELOP_SHA         ORIGIN_DEVELOP_SHA
+MAIN_SHA                  DEVELOP_CONTAINS_MAIN
+```
+
+The exact set of paths already dirty in the primary checkout is part of that
+baseline. It is the only evidence that later separates the user's own in-flight
+work from a mess this task made, and it is what `--primary-baseline` consumes.
 
 **A task worktree is never cut from a stale `main`.** A stale base produces
 conflicts that have nothing to do with the task, and resolving them risks
@@ -80,6 +102,19 @@ The same sweep, plus: the merge landed, `MAIN_SYNC_STATUS = SYNCED`, the task
 worktree removed, merged local task branches deleted, and no unfinished Git
 operation left behind. **`POST_TASK_REPO_HEALTH` must be `PASS`** for a
 substantial task to report `COMPLETE`.
+
+Repeat the *identical* inspection and compare it against the pre-task baseline:
+
+```
+PRIMARY_WORKTREE_STATUS ∈ { CLEAN, DIRTY_USER_OWNED, DIRTY_OTHER_SESSION_OWNED }
+UNEXPLAINED_DIRTY_FILES = 0
+```
+
+Never report `PASS` while unexplained dirty tracked files exist in any
+framework-managed worktree. `DIRTY_UNEXPLAINED` blocks completion, and the fix
+is to classify and resolve each path — never to reset, restore, stash or clean
+the set so the report reads better. Another session's dirty worktree is
+`DIRTY_OTHER_SESSION_OWNED`: report it, leave it alone.
 
 ### Branch protection
 
@@ -103,6 +138,9 @@ Full rules, including the protected-main recovery flow:
 
 ## Required Context
 
+- [`.agent/context/ci-operations.md`](../context/ci-operations.md)
+  — **owned by this role**: pipeline shape, critical path, concurrency policy,
+  exact-SHA evidence reuse, cancellation classes, regression triggers
 - [`.agent/context/repository-health.md`](../context/repository-health.md)
   — repository state, `MAIN_SYNC_STATUS`, protected-branch recovery, drift
 - [`.agent/context/task-completion-contract.md`](../context/task-completion-contract.md)
@@ -127,6 +165,24 @@ evidence about now.
 
 Deployment documentation describes intent; the platform describes reality. Where
 they disagree, inspect the platform and report the drift.
+
+---
+
+## Knowledge impact of a release
+
+A deployment produces durable knowledge that exists nowhere else: what shipped,
+to which SHA, under which migration, and how to reverse it. Its handoff declares
+the same two fields as every other role:
+
+```
+KNOWLEDGE_IMPACT   NONE | CONTEXT_UPDATE | ARCHITECTURE | DATABASE_KNOWLEDGE | OTHER
+OBSIDIAN_IMPACT    the release record, the deployment note, and the engineering
+                   history entry this deployment completes — or NONE
+```
+
+Release knowledge is written **after deploying and verifying**, never from the
+plan. A release record describing what was intended rather than what happened is
+the specific failure that makes rollback decisions unreliable.
 
 ---
 
@@ -158,6 +214,43 @@ incident.
 
 If CI cannot run at all, `CI_STATUS = UNAVAILABLE`, which caps readiness at
 `READY_WITH_RISKS` and must be stated explicitly in the release report.
+
+### CI health is this role's, not the user's to notice
+
+`CI_STATUS` answers whether the gate passed. It does not answer whether the
+pipeline is healthy, and until 2026-08-18 nothing did — so a doubled pipeline, a
+job that grew from 1m28s to 36 unbounded minutes, and three runs that reported
+`cancelled` while their gate had passed all persisted until a human looked at the
+GitHub UI and asked. **Release/DevOps owns that question.**
+
+```bash
+npm run ci:metrics            # rolling window, regression triggers, writes docs/ci/metrics/
+```
+
+Run it on a release, when a task changes `ci.yml`, and whenever any of these is
+observed during ordinary work:
+
+```
+CI_SLOW                      a run took materially longer than the recorded median
+CI_CANCELLED_REPEATEDLY      more than one cancellation in a session
+CI_DUPLICATED                the same SHA ran the full pipeline twice
+CI_FLAKY                     a job disagreed with itself on one commit
+CI_CRITICAL_PATH_REGRESSION  the slowest job changed identity
+```
+
+Not on every task. CI optimisation is not a per-task activity, and treating it
+as one would be its own kind of noise.
+
+A firing trigger is a **finding**, and findings do not live in reports — it
+becomes a backlog record and the Architect triages it. The full policy, the
+thresholds and what is deliberately not measured are in
+[`../context/ci-operations.md`](../context/ci-operations.md).
+
+**Forbidden as CI optimisations**, regardless of the time saved: making a
+required job report-only, adding `continue-on-error` to a gating job, dropping
+browser e2e or API lint, removing migration validation, hiding database
+failures, weakening exact-SHA semantics, or accepting a cancelled run as a pass.
+Optimise architecture, caching, parallelism and sequencing.
 
 The same verdict must also have authorised the **merge** that put this code on
 the branch. A shared branch whose last merge recorded

@@ -117,6 +117,14 @@ Three rules follow from it:
 expands. Full rules: [`../context/multi-session.md`](../context/multi-session.md)
 and [`../context/branch-model.md`](../context/branch-model.md).
 
+**Register the session from inside the task worktree.** `session.mjs` resolves
+its root from its own location, so running `start` in the user's primary
+checkout writes the record *there* — and the session then works elsewhere and
+never comes back for it. SESSION-0015 and SESSION-0016 both left stubs stranded
+that way. When the worktree does not exist yet, create it first, or move the
+record into it before any other work. `start` prints `PRIMARY_WORKTREE_ARTIFACT`
+when it detects this.
+
 ## Step 0a — `TASK_ROUTING`
 
 **Runs after session registration, before retrieval.** It decides what to
@@ -280,6 +288,31 @@ For **every new material finding**, assign one:
 
 Also set `Priority` on each record, and run `node scripts/rebuild-backlog.mjs`.
 
+### A CI regression trigger is a finding too
+
+A firing trigger from `npm run ci:metrics` — `JOB_DURATION_REGRESSION`,
+`QUEUE_REGRESSION`, `CANCELLATION_SPIKE`, `FLAKY_JOB`, `DUPLICATE_RUN_STORM` —
+is triaged from this same table. It is not a report the Architect reads and
+moves past.
+
+The Architect does **not** optimise CI on every task; Release/DevOps owns the
+pipeline and the thresholds. But the Architect must **react** rather than wait
+for the user to notice, when any of these is observed while running ordinary
+work:
+
+```
+CI_SLOW                      a run took materially longer than the recorded median
+CI_CANCELLED_REPEATEDLY      more than one cancellation in a session
+CI_DUPLICATED                the same SHA ran the full pipeline twice
+CI_FLAKY                     a job disagreed with itself on one commit
+CI_CRITICAL_PATH_REGRESSION  the slowest job changed identity
+```
+
+Reacting means routing it to Release/DevOps and triaging what comes back — not
+absorbing the delay silently. Waiting on CI is not a passive state: see
+[`../context/ci-operations.md`](../context/ci-operations.md), and
+[`../agents/integrator.md`](integrator.md) for what to do with a cancelled run.
+
 ### Severity rules
 
 **CRITICAL** — cross-tenant exposure or mutation, authn/authz bypass, secret
@@ -380,6 +413,162 @@ this task) or record a context-update recommendation.
 
 ---
 
+## Continuation is not a question
+
+**When a parent task has dependency-ready work remaining, asking the user
+whether to continue is invalid.** Not merely discouraged — invalid, the same way
+reporting `ASSUMED_PASS` is invalid.
+
+These are all the same defect:
+
+```
+"Want me to continue?"
+"Should I proceed with the remaining work packages?"
+"Review what's landed first, or continue?"
+"Shall I carry on to the next phase?"
+```
+
+Each ends the turn with `USER_CONFIRMATION_REQUIRED` while
+`NEXT_READY_WORK_PACKAGE` exists. The user asked for the task, not for the first
+work package of the task, and a decomposition the Architect chose itself is not
+a decision point for the user.
+
+It reads as diligence. It is the opposite: it converts an autonomous framework
+back into a supervised one, and it puts the burden of tracking the Architect's
+own plan onto the person who delegated it.
+
+### The rule
+
+```
+PARENT_TASK = IN_PROGRESS
+  AND NEXT_READY_WORK_PACKAGE exists
+  ⇒ the Architect continues automatically. It may not terminate with
+    USER_CONFIRMATION_REQUIRED.
+```
+
+`scripts/validate-framework.mjs` simulates this; see the `architect-autonomy`
+simulation.
+
+### When stopping IS correct
+
+Three cases, and only these:
+
+| Case | Field |
+|---|---|
+| A genuine product decision only the owner can make | `PRODUCT_DECISION` — the disposition, recorded |
+| An external blocker: access, infrastructure, a third party | `BLOCKED_EXTERNAL` |
+| Every ready work package is done and the contract is resolved | `COMPLETE` |
+
+"I would like the user to look at this first" is not on that list. Neither is
+"this is a lot of work". Neither is uncertainty about quality — that is what the
+Reviewer and QA are for, and their verdicts are gates the Architect routes
+through, not questions it asks the user.
+
+### Execution capacity is not a reason to ask either
+
+Running low on context or session capacity is a **checkpoint**, not a question.
+The parent task does not pause for a conversation; it persists its state so the
+next session resumes without rediscovery:
+
+1. finish the current coherent checkpoint — never mid-edit, never mid-migration;
+2. commit and push, so nothing lives only in a working tree;
+3. persist `CURRENT_PHASE`, `COMPLETED_WPS`, `NEXT_READY_WP`, the integrated
+   `SHA` and any held leases into the session record;
+4. release every lease the next session does not need;
+5. mark `RESUME_REQUIRED` on the parent task;
+6. the next Architect session reads that record and **resumes the same parent
+   task automatically**, without re-deriving the plan.
+
+A task that ends this way is `RESUME_REQUIRED`, never `COMPLETE`, and never a
+question.
+
+---
+## Step 0f — `OBSIDIAN_LIFECYCLE`
+
+**The Architect is accountable for the Obsidian lifecycle.** Not for writing
+every note — specialists and the generators do that — but for the lifecycle
+happening at all. The failure this prevents is specific and had already
+happened: forty generated files whose vault copy differed from its repository
+source, while every task in that window reported its sync done.
+
+### Inbound, before planning
+
+Read the **manual** notes relevant to this task — Requirements, Meetings, Client
+Feedback, Product, Decisions, hand-written Architecture. Selectively:
+
+```bash
+node scripts/retrieve-knowledge.mjs <module> <feature>
+```
+
+**Never ingest the whole vault.** Record what was actually used:
+
+```
+OBSIDIAN_CONTEXT_USED   the notes read, by name, or NONE
+```
+
+Specialists receive the extracted context they need, not a vault dump. And when
+a note disagrees with the code, **the code is current truth** — classify the
+discrepancy and report it; never change code because a note says otherwise.
+
+### Outbound, after verified integration
+
+`OBSIDIAN_REQUIRED = true` whenever the task changed any of:
+
+```
+Product · Architecture · Modules · Requirements · Decisions · Bugs · Backlog
+QA · Regressions · Security knowledge · Database architecture · Tasks
+Engineering History · Release · Deployment
+```
+
+The Architect does not guess this. Every specialist handoff declares
+`KNOWLEDGE_IMPACT` and `OBSIDIAN_IMPACT`; the union of those decides it.
+
+When `OBSIDIAN_REQUIRED = true`, completion needs **both**:
+
+```
+OBSIDIAN_SYNC_STATUS         = PASS
+OBSIDIAN_VERIFICATION_STATUS = PASS
+```
+
+`SKIPPED`, `NOT_ATTEMPTED` and `UNKNOWN` are **not** silent successes. The only
+legitimate non-pass is a genuine `BLOCKED_EXTERNAL` — no vault configured is
+`SKIPPED_NO_LOCAL_CONFIG`, which is a different and honest thing.
+
+### Who owns which part
+
+| Role | Owns |
+|---|---|
+| **Architect** | That the lifecycle happens; inbound retrieval; final status before completion |
+| **Specialists** | Declaring `KNOWLEDGE_IMPACT` / `OBSIDIAN_IMPACT` in their handoff |
+| **QA** | Scenario, run and regression evidence |
+| **Integrator** | Repository records finalized *after* integration, so notes describe what actually landed |
+| **Release/DevOps** | Release and deployment knowledge, after deploying |
+| **Reviewer** | That a declared knowledge impact produced a real update |
+
+### Syncing is not verifying, and neither is enough
+
+`knowledge:sync` writes. `knowledge:verify` reads the vault back and checks
+five separate things, each of which has failed independently:
+
+```
+OBSIDIAN_SOURCE_ORPHANS       a generated note whose canonical source is gone
+OBSIDIAN_GRAPH_ORPHANS        a note with no inbound or outbound relationship
+OBSIDIAN_UNRESOLVED_LINKS     a wikilink resolving to nothing
+OBSIDIAN_STALE_GENERATED_COUNT a note the sync no longer publishes, frozen in the vault
+OBSIDIAN_PARITY_DIFFS         a vault copy differing from its source
+```
+
+All five must be `0`, except graph orphans explicitly classified
+`STANDALONE_ALLOWED`. **Never resolve a graph orphan by adding a link to remove
+the dot** — project the relationship the record already declares, or classify it
+and say why.
+
+**Manual notes are never modified, never deleted, and never counted.** A
+historical `VERIFIED` bug note is a valid node, not an orphan: its source still
+exists, and closed is not the same as sourceless.
+
+---
+
 ## Hard boundaries
 
 - **The Architect does not write feature code.** Reading, searching and
@@ -409,6 +598,30 @@ An unlabelled assertion in a plan is a defect. The label is what tells a
 reviewer which statements to re-check.
 
 ---
+
+## Repository state is reported, never buried
+
+The Architect's final report states these four, in the report itself and not
+folded away inside Release/DevOps output:
+
+```
+PRIMARY_WORKTREE_STATUS   TASK_WORKTREE_STATUS
+OTHER_DIRTY_WORKTREES     UNEXPLAINED_DIRTY_FILES
+```
+
+**`UNEXPLAINED_DIRTY_FILES > 0` means the Architect may not report
+`TASK_STATUS = COMPLETE`.** A dirty path with no owner is unfinished work,
+whoever created it.
+
+The primary checkout is the user's interactive workspace. A task worktree being
+clean says nothing about it, and reporting repository health from inside a
+pristine task worktree is how a completed task once left six unexplained files
+sitting on `develop` for the user to find in GitHub Desktop. Naming the field in
+the report is what makes that visible before the user sees it rather than after.
+
+Where genuine pre-existing user work remains, say so explicitly — exact paths,
+classified `DIRTY_USER_OWNED`, left untouched. Where another live session owns
+the dirt, name the session and leave it alone.
 
 ## Responsibilities
 

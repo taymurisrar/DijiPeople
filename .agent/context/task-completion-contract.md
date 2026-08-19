@@ -260,6 +260,10 @@ POST_MERGE_VALIDATION_STATUS
 MAIN_SYNC_STATUS
 MAIN_CHANGE_STATUS
 POST_TASK_REPO_HEALTH
+PRIMARY_WORKTREE_STATUS
+TASK_WORKTREE_STATUS
+UNEXPLAINED_DIRTY_FILES
+POST_INTEGRATION_GENERATOR_STATUS
 DEPLOYMENT_STATUS
 DEPLOYMENT_DRIFT_STATUS
 ENGINEERING_HISTORY_STATUS
@@ -267,9 +271,31 @@ FEEDBACK_PROMOTION_STATUS
 KNOWLEDGE_CAPTURE_STATUS
 OBSIDIAN_SYNC_STATUS
 OBSIDIAN_VERIFICATION_STATUS
+OBSIDIAN_SOURCE_ORPHANS
+OBSIDIAN_GRAPH_ORPHANS
+OBSIDIAN_UNRESOLVED_LINKS
+OBSIDIAN_STALE_GENERATED_COUNT
+OBSIDIAN_PARITY_DIFFS
 CONTROL_CENTER_STATUS
 CLEANUP_STATUS
 ```
+
+### The five counts verification actually reports
+
+`OBSIDIAN_VERIFICATION_STATUS = PASS` is a summary of five independent counts,
+and each failed independently before it was measured:
+
+| Field | Zero means |
+|---|---|
+| `OBSIDIAN_SOURCE_ORPHANS` | No generated note has lost its canonical source |
+| `OBSIDIAN_GRAPH_ORPHANS` | No generated knowledge node is isolated in the graph, except those explicitly `STANDALONE_ALLOWED` |
+| `OBSIDIAN_UNRESOLVED_LINKS` | Every generated wikilink resolves |
+| `OBSIDIAN_STALE_GENERATED_COUNT` | No vault copy is frozen because the sync stopped publishing its source |
+| `OBSIDIAN_PARITY_DIFFS` | Every vault copy matches its repository source |
+
+A source orphan and a graph orphan are **different failures**: a note can have a
+perfectly valid source and still be unreachable in the graph. Reporting one
+number for both hides whichever is smaller.
 
 ### Syncing is not verifying
 
@@ -366,17 +392,33 @@ noticed — the human noticed, later, when their next push failed.
 | `PRE_TASK_REPO_HEALTH` | `node scripts/repo-health.mjs` ran **before** the branch was created, and the task started from the current shared-target SHA | Never, for a task that creates a branch |
 | `POST_TASK_REPO_HEALTH` | The same check ran after the merge and reports `PASS` | The task modified no Git-tracked files |
 | `MAIN_SYNC_STATUS` | Computed from refs — see [`repository-health.md`](repository-health.md) | Never; `UNKNOWN` is a value, not an omission |
+| `PRIMARY_WORKTREE_STATUS` | The **primary** checkout was inspected and every dirty path has an owner | Never — a task worktree being clean is not repository health |
+| `TASK_WORKTREE_STATUS` | This task's own worktree is clean, or its remaining paths are named | The task created no worktree |
+| `UNEXPLAINED_DIRTY_FILES` | Counted across framework-managed worktrees | Never; `0` is the only passing value |
+| `POST_INTEGRATION_GENERATOR_STATUS` | Generators that write tracked files ran before the final commit, or ran after and produced no diff | No generator ran |
 | `DEPLOYMENT_STATUS` | The deployment state machine reached a terminal state | Nothing was deployed — state the reason |
 | `DEPLOYMENT_DRIFT_STATUS` | `EXPECTED_SHA` vs `DEPLOYED_SHA` classified | No environment is configured for this component |
 
 **The terminal invariant.** For a completed substantial task:
 
 ```
-MAIN_SYNC_STATUS      = SYNCED
-POST_TASK_REPO_HEALTH = PASS
+MAIN_SYNC_STATUS        = SYNCED
+POST_TASK_REPO_HEALTH   = PASS
+UNEXPLAINED_DIRTY_FILES = 0
+PRIMARY_WORKTREE_STATUS ∈ { CLEAN, DIRTY_USER_OWNED, DIRTY_OTHER_SESSION_OWNED }
 
 local main SHA == origin/main SHA == the expected merged SHA
 ```
+
+**A clean task worktree is not repository health.** The check that mattered was
+never run against the checkout the user actually looks at: an agent finished in
+its own pristine worktree, reported `CLEANUP_STATUS = DONE`, and the user opened
+GitHub Desktop to six changed files on `develop`. `PRIMARY_WORKTREE_STATUS` is
+never `NOT_REQUIRED` for exactly that reason.
+
+`DIRTY_UNEXPLAINED` blocks completion. `DIRTY_USER_OWNED` does not — but only
+when a baseline recorded at `PRE_TASK_REPO_HEALTH` proves those paths were
+already dirty, and the task left them untouched.
 
 None of the following may remain silently:
 
@@ -478,6 +520,16 @@ changed an API response is a false gate, not an exemption.
 
 **`ASSUMED_PASS` is not a value.** Neither is leaving a field out. A field an
 agent cannot evaluate is `BLOCKED_<REASON>`, which is honest and visible.
+
+**`USER_CONFIRMATION_REQUIRED` is not a terminal state while a ready work
+package remains.** A parent task whose `NEXT_READY_WORK_PACKAGE` is set may end
+as `COMPLETE`, `RESUME_REQUIRED`, `BLOCKED_EXTERNAL` or `PRODUCT_DECISION` — and
+never by asking the user whether to continue. The user delegated the task, not
+its first work package, and a decomposition the Architect chose itself is not a
+decision point for anyone else. Running low on execution capacity is a
+checkpoint (`RESUME_REQUIRED`, with state persisted), not a question. See
+[`../agents/architect.md`](../agents/architect.md), *Continuation is not a
+question*.
 
 ### Which fields may be `NOT_REQUIRED`
 
@@ -768,6 +820,22 @@ remove a dirty worktree, an unmerged worktree, or one another agent is using.
 Before deleting, verify: fully merged, remote state known, no worktree attached,
 no unique commits. Never automatically delete long-lived branches, user-created
 branches, release branches, or branches with unresolved work.
+
+**The primary worktree** — the user's own checkout — is inspected before
+`CLEANUP_STATUS = DONE` may be written, whichever worktree the task ran in.
+Every uncommitted path there carries an owner: the user, a named session, a
+framework generator, or `UNKNOWN`. `UNKNOWN` blocks completion.
+
+```bash
+node scripts/repo-health.mjs --task-branch agent/<x> \
+  --primary-baseline "<paths already dirty at PRE_TASK_REPO_HEALTH>"
+```
+
+Cleanup never means making `git status` empty. Reverting, restoring, stashing or
+cleaning a path to tidy the report destroys work that belongs to somebody else —
+the user's afternoon, or a session running in another chat right now. Preserve
+first, classify second, and leave what is not yours. See
+[`repository-health.md`](repository-health.md#the-primary-worktree-is-first-class).
 
 `scripts/finalize-agent-task.mjs` reports the state every one of these decisions
 depends on. It deliberately does not make them — see
