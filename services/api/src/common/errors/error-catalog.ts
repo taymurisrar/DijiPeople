@@ -690,6 +690,13 @@ export const ERROR_CATALOG = {
     'warning',
     'validation',
   ),
+  LEGAL_VERSION_HAS_PLACEHOLDERS: entry(
+    409,
+    'That version still has unfilled blanks',
+    'Fill every {{PLACEHOLDER}} before publishing. The contracting party — legal entity name, registration number, registered office, tax number and jurisdiction — is left blank deliberately until it is known, and a published document must never show one.',
+    'warning',
+    'validation',
+  ),
 } as const satisfies Record<string, ErrorCatalogEntry>;
 
 export type ErrorCode = keyof typeof ERROR_CATALOG;

@@ -498,8 +498,7 @@ export class SubscriptionOrderService {
      * commercial record.
      */
     const firstName = input.owner?.firstName?.trim() || splitFirstName;
-    const lastName =
-      input.owner?.lastName?.trim() || rest.join(' ') || null;
+    const lastName = input.owner?.lastName?.trim() || rest.join(' ') || null;
 
     const customer = await tx.customerAccount.create({
       data: {

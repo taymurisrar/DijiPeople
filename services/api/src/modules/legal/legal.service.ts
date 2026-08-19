@@ -205,6 +205,7 @@ export class LegalService {
           status: true,
           version: true,
           legalDocumentId: true,
+          contentMarkdown: true,
         },
       });
 
@@ -217,6 +218,28 @@ export class LegalService {
       if (version.status !== LegalDocumentVersionStatus.DRAFT) {
         throw new AppError('LEGAL_VERSION_NOT_DRAFT', {
           message: `Version ${version.version} is already ${version.status}.`,
+        });
+      }
+
+      /*
+       * A draft still carrying `{{PLACEHOLDER}}` markers cannot be published.
+       *
+       * The seeded documents mark the contracting party — legal entity name,
+       * registration number, registered office, tax number, jurisdiction — as
+       * blanks, because DijiPeople is not incorporated yet and naming an entity
+       * that does not exist would be false. Marking the gap is more useful than
+       * omitting it, but only if the marker cannot escape: a live Terms of
+       * Service reading `{{LEGAL_ENTITY_NAME}}` is worse than either.
+       *
+       * So the guard is what makes the placeholders safe, and the two were
+       * added together. Publishing is refused with the list of what is still
+       * unfilled, because "it has placeholders" is not actionable and
+       * "{{JURISDICTION}} is unfilled" is.
+       */
+      const unfilled = findUnfilledPlaceholders(version.contentMarkdown);
+      if (unfilled.length) {
+        throw new AppError('LEGAL_VERSION_HAS_PLACEHOLDERS', {
+          message: `Version ${version.version} still has unfilled placeholders: ${unfilled.join(', ')}.`,
         });
       }
 
@@ -373,4 +396,18 @@ export class LegalService {
       skipped: requested.length - toRecord.length,
     };
   }
+}
+
+/**
+ * The `{{PLACEHOLDER}}` markers a draft still carries, de-duplicated and in the
+ * order a reader would meet them.
+ *
+ * Deliberately narrow: uppercase, digits and underscores only. A loose pattern
+ * would catch Handlebars, Liquid or any other braces a lawyer's export format
+ * happens to use, and refusing to publish a finished document because its
+ * converter emitted `{{ }}` would be a worse failure than the one this prevents.
+ */
+export function findUnfilledPlaceholders(content: string): string[] {
+  const found = content.match(/\{\{[A-Z0-9_]+\}\}/g) ?? [];
+  return [...new Set(found)];
 }

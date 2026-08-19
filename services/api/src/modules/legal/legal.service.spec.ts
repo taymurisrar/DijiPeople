@@ -193,6 +193,13 @@ describe('LegalService', () => {
         version: 4,
         status: LegalDocumentVersionStatus.DRAFT,
         legalDocumentId: 'doc_1',
+        /*
+         * Publishing now reads the text, to refuse a draft still carrying
+         * unfilled `{{PLACEHOLDER}}` markers. The double has to carry it: a
+         * guard written to tolerate an absent field would silently pass
+         * everything the day a `select` stopped asking for it.
+         */
+        contentMarkdown: '# Terms\n\nProvided by Maseer Technologies W.L.L.',
       });
 
       await service.publish('ver_new', 'platform_user_1');
@@ -212,6 +219,36 @@ describe('LegalService', () => {
       expect(publish.data.effectiveTo).toBeNull();
 
       expect(prisma.$transaction).toHaveBeenCalled();
+    });
+
+    it('refuses a draft that still has unfilled blanks, and says which', async () => {
+      prisma.legalDocumentVersion.findUnique.mockResolvedValue({
+        id: 'ver_draft',
+        version: 1,
+        status: LegalDocumentVersionStatus.DRAFT,
+        legalDocumentId: 'doc_1',
+        contentMarkdown:
+          'Provided by **{{LEGAL_ENTITY_NAME}}**, registered in {{JURISDICTION}}.',
+      });
+
+      /*
+       * The seeded documents mark the contracting party as blanks because
+       * DijiPeople is not incorporated yet. That is only safer than omitting the
+       * clause if the markers cannot escape — a live Terms of Service reading
+       * `{{LEGAL_ENTITY_NAME}}` is worse than one naming nobody.
+       */
+      await expect(
+        service.publish('ver_draft', 'platform_user_1'),
+      ).rejects.toMatchObject({
+        errorCode: 'LEGAL_VERSION_HAS_PLACEHOLDERS',
+        // The message names them, so an operator knows what to fill in.
+        message: expect.stringContaining('{{LEGAL_ENTITY_NAME}}'),
+      });
+
+      // Nothing was written. A refused publish must not archive the version
+      // currently in force.
+      expect(prisma.legalDocumentVersion.update).not.toHaveBeenCalled();
+      expect(prisma.legalDocumentVersion.updateMany).not.toHaveBeenCalled();
     });
 
     it('refuses to publish something that is already published', async () => {

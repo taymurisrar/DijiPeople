@@ -43,6 +43,31 @@ const REVIEW_BANNER = `> **Draft — not published, and not legal advice.**
 > The operator's legal identity is deliberately absent: no entity is registered
 > yet, and naming one that does not exist would be worse than naming none.`;
 
+/**
+ * The contracting-party clause, as fillable blanks.
+ *
+ * Previously the entity was simply omitted, which was honest but left the next
+ * person to work out *what* was missing and *where* it belonged. These markers
+ * say both, so publishing becomes filling five blanks rather than drafting a
+ * clause from nothing.
+ *
+ * Placeholders are only safer than omission because `LegalService.publish`
+ * refuses any version that still contains one — otherwise the failure mode is
+ * a live Terms of Service reading `{{LEGAL_ENTITY_NAME}}`, which is worse than
+ * either. The guard and these markers are one change and must stay together.
+ */
+const OPERATOR_BLOCK = `## The operator
+
+This service is provided by **{{LEGAL_ENTITY_NAME}}**, a company registered in
+{{JURISDICTION}} under registration number {{COMPANY_REGISTRATION_NUMBER}}, with
+its registered office at {{REGISTERED_OFFICE_ADDRESS}} and tax registration
+{{TAX_REGISTRATION_NUMBER}}.
+
+These terms are governed by the laws of {{JURISDICTION}}.
+
+> Every value above is an unfilled blank. This document cannot be published
+> while any remain — see \`LegalService.publish\`.`;
+
 type DocumentSeed = {
   type: LegalDocumentType;
   slug: string;
@@ -116,7 +141,9 @@ are listed, with purpose and status, on the Subprocessors page.
 ## Changes
 
 Material changes are published as a new version with its own effective date.
-Previous versions are retained because acknowledgements refer to them.`,
+Previous versions are retained because acknowledgements refer to them.
+
+${OPERATOR_BLOCK}`,
   },
   {
     type: LegalDocumentType.TERMS_OF_SERVICE,
@@ -166,7 +193,9 @@ Retention Policy applies before erasure.
 
 Nothing in this draft states a limitation of liability, an indemnity or a
 governing law. Those are exactly the clauses that require a lawyer and a
-registered entity, and this document deliberately does not invent them.`,
+registered entity, and this document deliberately does not invent them.
+
+${OPERATOR_BLOCK}`,
   },
   {
     type: LegalDocumentType.SUBSCRIPTION_BILLING_TERMS,
@@ -495,7 +524,9 @@ Policy apply, after which data is erased.
 
 International transfer mechanisms, audit rights, breach-notification timelines
 and liability all require a registered entity, a jurisdiction and legal review.
-None is asserted here.`,
+None is asserted here.
+
+${OPERATOR_BLOCK}`,
   },
   {
     type: LegalDocumentType.SUBPROCESSOR_LIST,
