@@ -9,7 +9,7 @@ RISK: HIGH
 AUTOMATION_STATUS: AUTOMATED
 TEST_REFERENCE: scripts/install-browser.mjs
 RELATED_BUGS: [BUG-0079]
-RELATED_REGRESSIONS: [REG-066]
+RELATED_REGRESSIONS: [REG-069]
 LAST_RUN: 
 LAST_RESULT: NOT_RUN
 CREATED_AT: 2026-08-19
@@ -73,6 +73,6 @@ why this defect took three attempts to diagnose.
 
 - Test plan — [[PLAN-012]]
 - Bugs — [[BUG-0079]]
-- Regressions — REG-066 (see the regression register)
+- Regressions — REG-069 (see the regression register)
 
 <!-- GRAPH:END -->

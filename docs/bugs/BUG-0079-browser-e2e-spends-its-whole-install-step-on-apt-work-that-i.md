@@ -13,7 +13,7 @@ AffectedModules: [.github/workflows, e2e]
 OwnerAgent: release-devops
 ArchitectDisposition: FIX_NOW
 QAReport: 
-RegressionId: REG-066
+RegressionId: REG-069
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
@@ -175,7 +175,7 @@ None.
 
 ## Related Items
 
-[[ITEM-0047]] · [[ITEM-0034]] · [[qa-and-ci-architecture]] · [[REG-066]]
+[[ITEM-0047]] · [[ITEM-0034]] · [[qa-and-ci-architecture]] · [[REG-069]]
 
 ## Resolution
 

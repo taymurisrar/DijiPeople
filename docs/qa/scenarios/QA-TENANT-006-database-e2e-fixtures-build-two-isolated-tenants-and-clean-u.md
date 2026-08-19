@@ -9,7 +9,7 @@ RISK: HIGH
 AUTOMATION_STATUS: AUTOMATED
 TEST_REFERENCE: services/api/test/db-fixtures-contract.e2e-spec.ts
 RELATED_BUGS: [ITEM-0047]
-RELATED_REGRESSIONS: [REG-067]
+RELATED_REGRESSIONS: [REG-070]
 LAST_RUN: 
 LAST_RESULT: NOT_RUN
 CREATED_AT: 2026-08-19
@@ -61,7 +61,7 @@ The recipe is in [`database-e2e-reproduction.md`](../../development/database-e2e
 
 Created 2026-08-19 at `e6f4cbe`; filled 2026-08-20.
 
-Implements REG-067 and underpins ITEM-0047. Read the bug pattern
+Implements REG-070 and underpins ITEM-0047. Read the bug pattern
 [`borrowed-fixture-dependency`](../known-bug-patterns/borrowed-fixture-dependency.md)
 before designing any database-backed scenario: a suite that goes looking for its
 subject rather than creating it fails much later, in someone else's CI run,
@@ -77,6 +77,6 @@ the first error, not the count.
 - Test plan — [[PLAN-003]]
 - Module — [[tenant-isolation]]
 - Bugs — [[ITEM-0047]]
-- Regressions — REG-067 (see the regression register)
+- Regressions — REG-070 (see the regression register)
 
 <!-- GRAPH:END -->
