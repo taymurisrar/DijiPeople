@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**126 records** — 68 bugs under [`docs/bugs/`](../bugs/), 58 non-bug items under [`items/`](items/).
+**127 records** — 68 bugs under [`docs/bugs/`](../bugs/), 59 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -15,7 +15,7 @@ see [`README.md`](README.md) for why.
 |---|---|
 | Open (active work) | 30 |
 | Blocked | 0 |
-| Deferred | 5 |
+| Deferred | 6 |
 | Awaiting a product decision | 3 |
 | Completed / closed | 88 |
 | **Open CRITICAL** | **0** |
@@ -48,7 +48,7 @@ see [`README.md`](README.md) for why.
 | Status | Count |
 |---|---|
 | OPEN | 4 |
-| DEFERRED | 5 |
+| DEFERRED | 6 |
 | PRODUCT_DECISION | 3 |
 | FIXED | 1 |
 | VERIFIED | 62 |
@@ -185,6 +185,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0056](../../docs/backlog/items/ITEM-0056-ci-cache-hit-rate-is-not-observable-from-the-actions-rest-ap.md) | CI cache hit rate is not observable from the Actions REST API | INFRA | LOW | P3 | DEFERRED | ci | DEFER |
 | [ITEM-0057](../../docs/backlog/items/ITEM-0057-landing-production-env-examples-still-name-the-vercel-and-re.md) | Landing production env examples still name the vercel and render hosts, not the dijipeople.com apex | PRODUCT_DECISION | — | P2 | PRODUCT_DECISION | apps/landing | PRODUCT_DECISION |
 | [ITEM-0058](../../docs/backlog/items/ITEM-0058-next-env-d-ts-churns-between-dev-and-build-forms-and-the-fou.md) | next-env.d.ts churns between dev and build forms and the four apps disagree | TECH_DEBT | — | P3 | DEFERRED | apps/landing, apps/web, apps/admin | DEFER |
+| [ITEM-0059](../../docs/backlog/items/ITEM-0059-49-tracked-text-files-have-no-final-newline-and-nothing-enfo.md) | 49 tracked text files have no final newline, and nothing enforces one | TECH_DEBT | — | P3 | DEFERRED | apps/admin, apps/web, apps/agent-desktop | DEFER |
 
 ## Views
 

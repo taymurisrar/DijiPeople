@@ -152,7 +152,15 @@ function start() {
     `LAST_HEARTBEAT: ${now}`,
     'BLOCKERS: none',
     '---',
-  ].join('\n');
+  ]
+    /*
+     * An unset field would otherwise emit `TASK_ID: ` with a trailing space,
+     * which `git diff --check` reports as a whitespace error on every session
+     * record that has no parent task. Trimming here rather than at each
+     * interpolation keeps the list readable and covers fields added later.
+     */
+    .map((line) => line.replace(/[ \t]+$/, ''))
+    .join('\n');
 
   const body = [
     `# ${sessionId} — ${title}`,

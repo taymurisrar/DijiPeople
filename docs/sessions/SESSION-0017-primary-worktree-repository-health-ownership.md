@@ -1,7 +1,7 @@
 ---
 SESSION_ID: SESSION-0017
 aliases: [SESSION-0017]
-TASK_ID: 
+TASK_ID:
 TITLE: Primary worktree repository health ownership
 ARCHITECT_INTENT: Primary worktree repository health ownership
 STATUS: ACTIVE

@@ -6,9 +6,9 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 126,
+    "total_records": 127,
     "bugs": 68,
-    "backlog_items": 58,
+    "backlog_items": 59,
     "open_bucket": 4,
     "blocked_bucket": 0,
     "deferred_bucket": 2,
@@ -6356,6 +6356,59 @@
       ],
       "related_backlog": [
         "ITEM-0057"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DEFER",
+      "verification_result": {
+        "result": "DEFERRED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "ITEM-0059",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0059-49-tracked-text-files-have-no-final-newline-and-nothing-enfo.md",
+        "provenance": "ARCHITECT",
+        "created_at": "2026-08-19",
+        "updated_at": "2026-08-19",
+        "detected_in_sha": "",
+        "resolved_at": ""
+      },
+      "type": "TECH_DEBT",
+      "title": "49 tracked text files have no final newline, and nothing enforces one",
+      "severity": "",
+      "priority": "P3",
+      "current_status": "DEFERRED",
+      "current_evidence": {
+        "paths": [
+          ".gitattributes",
+          "apps/admin",
+          "apps/web",
+          "apps/agent-desktop",
+          "scripts/session.mjs"
+        ],
+        "verification_scope": "Scan of git ls-files at 494c44d found 49 tracked text files without a trailing newline. Line-ending policy itself is correct - .gitattributes carries * text=auto and git diff --check is clean across the branch. No .editorconfig or lint rule enforces final newlines. The one instance inside a file this task already changed - session.mjs emitting TASK_ID with a trailing space - was fixed; the 49 pre-existing files were deferred rather than mass-normalised."
+      },
+      "affected_modules": [
+        "apps/admin",
+        "apps/web",
+        "apps/agent-desktop"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": "None."
+      },
+      "related_bugs": [
+        "BUG-0076"
+      ],
+      "related_backlog": [
+        "ITEM-0057",
+        "ITEM-0058"
       ],
       "regressions": [],
       "qa_scenarios": [],
