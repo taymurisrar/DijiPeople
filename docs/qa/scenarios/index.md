@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 95** · automated: 89 · manual: 4 · blocked by infrastructure: 0
+**Scenarios: 97** · automated: 91 · manual: 4 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -60,6 +60,7 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-DEPLOY-013](../../../docs/qa/scenarios/QA-DEPLOY-013-build-inputs-and-workspace-manifests-are-complete.md) | Build inputs and workspace manifests are complete | deployment-release | DEPLOYMENT_SMOKE | HIGH | AUTOMATED | `scripts/check-env-registered.mjs` | BUG-0042, ITEM-0037, ITEM-0024 | REG-051, REG-052 |
 | [QA-DEPLOY-014](../../../docs/qa/scenarios/QA-DEPLOY-014-a-stale-generated-prisma-client-is-detected-before-compilati.md) | A stale generated Prisma client is detected before compilation | deployment-release | UNIT | HIGH | AUTOMATED | `scripts/check-prisma-client-fresh.mjs` | BUG-0068 | REG-063 |
 | [QA-DEPLOY-015](../../../docs/qa/scenarios/QA-DEPLOY-015-repository-health-reports-the-primary-worktree-and-blocks-on.md) | Repository health reports the primary worktree and blocks on unexplained dirty files | deployment-release | UNIT | HIGH | AUTOMATED | `scripts/validate-framework.mjs` | BUG-0076 | REG-065 |
+| [QA-DEPLOY-016](../../../docs/qa/scenarios/QA-DEPLOY-016-the-browser-install-does-no-apt-work-and-proves-the-browser-.md) | The browser install does no apt work and proves the browser launches | deployment-release | DEPLOYMENT_SMOKE | HIGH | AUTOMATED | `scripts/install-browser.mjs` | BUG-0079 | REG-066 |
 | [QA-LANDING-001](../../../docs/qa/scenarios/QA-LANDING-001-public-pages-degrade-rather-than-500-when-the-plans-api-is-u.md) | Public pages degrade rather than 500 when the plans API is unreachable | landing | BROWSER_E2E | HIGH | AUTOMATED | `e2e/tests/flow-c-landing-public-surface.spec.ts` | BUG-0061 | REG-057 |
 | [QA-LANDING-002](../../../docs/qa/scenarios/QA-LANDING-002-mobile-navigation-dismisses-on-navigation-escape-and-outside.md) | Mobile navigation dismisses on navigation escape and outside click | landing | BROWSER_E2E | HIGH | AUTOMATED | `e2e/tests/flow-c-landing-public-surface.spec.ts` | BUG-0062 | REG-058 |
 | [QA-LANDING-003](../../../docs/qa/scenarios/QA-LANDING-003-the-demo-form-reports-validation-errors-accessibly-and-submi.md) | The demo form reports validation errors accessibly and submits | landing | BROWSER_E2E | HIGH | AUTOMATED | `e2e/tests/flow-c-landing-public-surface.spec.ts` | BUG-0063 | REG-059 |
@@ -109,3 +110,4 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-TENANT-003](../../../docs/qa/scenarios/QA-TENANT-003-attendance-integration-credentials-never-cross-a-tenant-boun.md) | Attendance-integration credentials never cross a tenant boundary | tenant-isolation | E2E | CRITICAL | AUTOMATED | `services/api/test/attendance-integrations-isolation.e2e-spec.ts` | — | — |
 | [QA-TENANT-004](../../../docs/qa/scenarios/QA-TENANT-004-workspace-domain-resolution-cannot-be-pointed-at-another-ten.md) | Workspace domain resolution cannot be pointed at another tenant | tenant-isolation | E2E | HIGH | AUTOMATED | `services/api/test/workspace-domain-isolation.e2e-spec.ts` | BUG-0017 | REG-027 |
 | [QA-TENANT-005](../../../docs/qa/scenarios/QA-TENANT-005-tenant-erasure-removes-rows-in-dependency-order-and-leaves-n.md) | Tenant erasure removes rows in dependency order and leaves nothing reachable | tenant-isolation | DATABASE | HIGH | AUTOMATED | `services/api/test/tenant-erasure-order.e2e-spec.ts` | — | — |
+| [QA-TENANT-006](../../../docs/qa/scenarios/QA-TENANT-006-database-e2e-fixtures-build-two-isolated-tenants-and-clean-u.md) | Database e2e fixtures build two isolated tenants and clean up after partial setup | tenant-isolation | DATABASE | HIGH | AUTOMATED | `services/api/test/db-fixtures-contract.e2e-spec.ts` | ITEM-0047 | REG-067 |

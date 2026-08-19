@@ -6,7 +6,7 @@ One evergreen plan per product area: scope, risks, the cases that must always
 be covered, and the declared coverage per dimension. QA loads the plan for
 every area a change touches **before** designing anything new.
 
-**Plans: 18** · scenarios across them: 95
+**Plans: 18** · scenarios across them: 97
 
 | Plan | Area | Risk | Status | Scenarios | Related bugs | Verified against |
 |---|---|---|---|---|---|---|
@@ -15,7 +15,7 @@ every area a change touches **before** designing anything new.
 | [PLAN-001](../../../docs/qa/test-plans/PLAN-001-authentication.md) | authentication | CRITICAL | NEEDS_REVIEW | 5 | BUG-0008, BUG-0009, BUG-0010 | `714632d` |
 | [PLAN-002](../../../docs/qa/test-plans/PLAN-002-authorization.md) | authorization | CRITICAL | NEEDS_REVIEW | 12 | BUG-0003, BUG-0004, BUG-0006, BUG-0007, BUG-0047 | `714632d` |
 | [PLAN-004](../../../docs/qa/test-plans/PLAN-004-commercial-onboarding.md) | commercial-onboarding | HIGH | NEEDS_REVIEW | 8 | BUG-0011, BUG-0012, BUG-0024, BUG-0027, BUG-0028, BUG-0029, BUG-0030 | `714632d` |
-| [PLAN-012](../../../docs/qa/test-plans/PLAN-012-deployment-release.md) | deployment-release | HIGH | NEEDS_REVIEW | 15 | BUG-0023, BUG-0026, BUG-0037, BUG-0042, BUG-0047 | `714632d` |
+| [PLAN-012](../../../docs/qa/test-plans/PLAN-012-deployment-release.md) | deployment-release | HIGH | NEEDS_REVIEW | 16 | BUG-0023, BUG-0026, BUG-0037, BUG-0042, BUG-0047 | `714632d` |
 | [PLAN-013](../../../docs/qa/test-plans/PLAN-013-landing.md) | landing | HIGH | CURRENT | 6 | BUG-0061, BUG-0062, BUG-0063, BUG-0064, BUG-0065, BUG-0066 | `c332992` |
 | [PLAN-005](../../../docs/qa/test-plans/PLAN-005-lead-management.md) | lead-management | HIGH | NEEDS_REVIEW | 5 | BUG-0013, BUG-0018, BUG-0021, BUG-0031, BUG-0032 | `714632d` |
 | [PLAN-015](../../../docs/qa/test-plans/PLAN-015-legal.md) | legal | HIGH | CURRENT | 1 | — | `bd0fb36` |
@@ -26,5 +26,5 @@ every area a change touches **before** designing anything new.
 | [PLAN-016](../../../docs/qa/test-plans/PLAN-016-seat-billing.md) | seat-billing | CRITICAL | CURRENT | 1 | — | `39bd665` |
 | [PLAN-018](../../../docs/qa/test-plans/PLAN-018-subscription-changes.md) | subscription-changes | CRITICAL | CURRENT | 1 | — | `ce9bb56` |
 | [PLAN-017](../../../docs/qa/test-plans/PLAN-017-subscription-orders.md) | subscription-orders | CRITICAL | CURRENT | 1 | — | `2051133` |
-| [PLAN-003](../../../docs/qa/test-plans/PLAN-003-tenant-isolation.md) | tenant-isolation | CRITICAL | NEEDS_REVIEW | 5 | BUG-0005 | `714632d` |
+| [PLAN-003](../../../docs/qa/test-plans/PLAN-003-tenant-isolation.md) | tenant-isolation | CRITICAL | NEEDS_REVIEW | 6 | BUG-0005 | `714632d` |
 | [PLAN-007](../../../docs/qa/test-plans/PLAN-007-tenant-provisioning.md) | tenant-provisioning | CRITICAL | NEEDS_REVIEW | 4 | BUG-0014, BUG-0015, BUG-0017, BUG-0022 | `714632d` |

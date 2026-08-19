@@ -6,8 +6,8 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 127,
-    "bugs": 68,
+    "total_records": 128,
+    "bugs": 69,
     "backlog_items": 59,
     "open_bucket": 4,
     "blocked_bucket": 0,
@@ -5760,22 +5760,26 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "",
         "created_at": "2026-08-17",
-        "updated_at": "2026-08-19",
+        "updated_at": "2026-08-20",
         "resolved_at": ""
       },
       "type": "TEST_GAP",
       "title": "Database e2e suites fail against an ephemeral PostgreSQL",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "READY",
-      "architect_disposition": "PLAN_REQUIRED",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
       "affected_modules": [
         "services/api/test",
         ".github/workflows",
         "database"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-067"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-006"
+      ],
       "test_plan": []
     },
     {
@@ -6418,6 +6422,58 @@
       "architect_disposition": "DEFER",
       "verification_result": {
         "result": "DEFERRED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0079",
+      "source": {
+        "record_path": "docs/bugs/BUG-0079-browser-e2e-spends-its-whole-install-step-on-apt-work-that-i.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "e6f4cbe",
+        "created_at": "2026-08-19",
+        "updated_at": "2026-08-20",
+        "resolved_at": "2026-08-20"
+      },
+      "type": "PERFORMANCE",
+      "title": "Browser e2e spends its whole install step on apt work that installs no browser library",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "current_evidence": {
+        "paths": [
+          "docs/bugs/BUG-0079-browser-e2e-spends-its-whole-install-step-on-apt-work-that-i.md",
+          "scripts/install-browser.mjs",
+          ".github/workflows/ci.yml"
+        ],
+        "verification_scope": "Root cause established from run 32294710633 job logs; fix measured locally and verified in CI."
+      },
+      "affected_modules": [
+        ".github/workflows",
+        "e2e"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [
+        "ITEM-0047",
+        "ITEM-0034"
+      ],
+      "regressions": [
+        "REG-066"
+      ],
+      "qa_scenarios": [
+        "QA-DEPLOY-016"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "FIX_NOW",
+      "verification_result": {
+        "result": "PRELIMINARY",
         "classification": "TERMINAL_AS_DOCUMENTED",
         "finding_ids": []
       }
