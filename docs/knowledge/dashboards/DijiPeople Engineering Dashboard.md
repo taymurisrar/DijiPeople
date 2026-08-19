@@ -155,6 +155,7 @@ _None._
 
 ## Recent Engineering History
 
+- [[2026-08-19-provisioning-operations-and-qa-campaign-b016441|Engineering History — Provisioning operations and qa campaign]]
 - [[2026-08-19-agent-framework-hardening|Engineering History — Database Agent, Security Agent, agent reliability and Obsidian ownership]]
 - [[2026-08-18-primary-worktree-repository-health-494c44d|Engineering History — Primary worktree repository health]]
 - [[2026-08-18-landing-uiux-remediation-ab3bc73|Engineering History — Landing UI/UX remediation]]
@@ -162,7 +163,6 @@ _None._
 - [[2026-08-18-ci-performance-cancellation-rca-3f6775e|Engineering History — CI performance, cancellation RCA and autonomous CI adaptation]]
 - [[2026-08-17-landing-uiux-browser-qa-and-agent-hardening-1f6e842|Engineering History — Landing UI/UX browser QA and UI/UX agent hardening]]
 - [[2026-08-17-framework-remediation-e6a173d|Engineering History — Framework remediation]]
-- [[2026-08-16-web-app-documentation-1af3690|Engineering History — Web app documentation]]
 
 ## Recent Releases
 
@@ -214,7 +214,7 @@ _None. Nothing has been deployed through the release process._
 | Backlog items | 59 |
 | Known bug patterns | 19 |
 | QA runs | 18 |
-| Engineering history records | 18 |
+| Engineering history records | 19 |
 | Release records | 0 |
 | Module notes | 27 |
 | Architecture notes | 20 |
