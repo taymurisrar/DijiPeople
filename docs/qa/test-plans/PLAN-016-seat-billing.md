@@ -96,6 +96,6 @@ REG-nnn entries this area owns, and the scenarios that implement them.
 
 ## Related
 
-- Scenarios — [[QA-BILLING-004]]
+- Scenarios — [[QA-BILLING-004]], [[QA-BILLING-011]]
 
 <!-- GRAPH:END -->

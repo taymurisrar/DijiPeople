@@ -10,9 +10,9 @@ CREATED_AT: 2026-08-20
 AFFECTED_MODULES: [auth, users, legal, billing]
 AGENTS: [Architect, Backend/API, Database, Security, QA, Reviewer, Integrator]
 DEPENDENCIES: origin/develop 95551bc; TASK-0009
-CURRENT_PACKAGE: WP-03
-COMPLETED_PACKAGES: [WP-01, WP-02, WP-05, WP-06, WP-07]
-BLOCKED_PACKAGES: [WP-03, WP-04]
+CURRENT_PACKAGE: WP-04
+COMPLETED_PACKAGES: [WP-01, WP-02, WP-05, WP-06, WP-07, WP-08]
+BLOCKED_PACKAGES: [WP-04]
 OWNER_DECISIONS: 4
 FINAL_STATUS:
 ---
@@ -43,11 +43,12 @@ Asked before any work, because each changes what gets built:
 |---|---|---|---|---|---|---|---|---|---|---|
 | WP-01 | ITEM-0069 — discovery throttle, decoupled from the credential lock | DONE | — | Backend/API, Database, Security | agent/go-live-readiness | pending | PASS | ITEM-0069 | NOT_RUN | NOT_STARTED |
 | WP-02 | Legal publication wired into the release command | DONE | — | Backend/API | agent/go-live-readiness | pending | PASS | — | NOT_RUN | NOT_STARTED |
-| WP-03 | Real prices for every launched market | BLOCKED | owner | Backend/API | agent/go-live-readiness | — | — | — | — | — |
+| WP-03 | Real prices for every launched market | DONE | owner | Backend/API | agent/go-live-readiness | — | — | — | — | — |
 | WP-04 | Release readiness assessment and the PR to `main` | BLOCKED | WP-01..WP-03, WP-05, WP-06 | Release/DevOps, Reviewer, Integrator | agent/go-live-readiness | — | — | — | — | — |
 | WP-05 | The xlsx parse path, off an advisory that was reachable after all | DONE | — | Backend/API, Security | agent/go-live-readiness | pending | PASS | BUG-0052, ITEM-0070 | NOT_RUN | NOT_STARTED |
 | WP-06 | The first-deploy dry run, and the two defects it found | DONE | — | Release/DevOps, Database, QA | agent/go-live-readiness | pending | PASS | BUG-0084, BUG-0085 | NOT_RUN | NOT_STARTED |
 | WP-07 | ITEM-0071 — a record may not claim a fix it cannot describe | DONE | — | QA, Reviewer | agent/go-live-readiness | 2c0e6b1 | PASS | BUG-0005, BUG-0009, BUG-0010, ITEM-0071 | PASS | NOT_STARTED |
+| WP-08 | Per-seat public pricing, flat as a sales-assisted instrument | DONE | WP-03 | Backend/API, Database, Integration, QA, Frontend | agent/go-live-readiness | pending | PASS | BUG-0080, ITEM-0072 | NOT_RUN | NOT_STARTED |
 
 ## WP-01 — the lockout weapon, removed
 
@@ -102,14 +103,17 @@ The suites now pass in **both** shapes: a database where the release command has
 published, and one where it has not. That is what makes them invariants rather
 than fixtures tuned to one environment.
 
-## WP-03 — blocked on the owner
+## WP-03 — the schedule arrived
 
-OD-01 was answered *"give me the real prices"*, and the numbers have not arrived.
-Nothing ships to a market without them: the seeded PKR schedule was invented for
-testing, and Qatar has none at all.
+The owner supplied a complete price schedule on 2026-08-20: three markets, two
+billing models, both cycles, with minimum seat commitments and flat overage
+rates. Implemented as WP-08.
 
-Needed, per plan and per market — monthly price, annual price, and confirmation
-that flat billing still holds for every plan.
+**Checked for internal consistency before a line of it was written down.** Every
+annual figure is exactly ten times its monthly figure, and every stated minimum
+charge equals `minimumSeats × seat rate`, across all three currencies and both
+cycles. The schedule agrees with itself, which is not something to assume of a
+table with 54 numbers in it.
 
 ## WP-05 — a reachability claim that was wrong
 
@@ -329,6 +333,99 @@ wrong once: billing is **flat per plan**, the Terms say flat, and [[BUG-0080]]
 was fixed on 2026-08-20 in `e9f977c`. The remaining question is the numbers, not
 the model.
 
+## WP-08 — two billing models, and the channel decides
+
+The owner's decision: **per active employee** on the public site and
+self-service checkout, **flat per plan** only when a salesperson arranges it.
+Full reasoning and the verified schedule are in
+[`EXECPLAN-0002`](../plans/EXECPLAN-0002-per-seat-public-pricing-with-sales-assisted-flat.md).
+
+Four things the system did not have:
+
+1. **Two models could not coexist.** The active-price uniqueness key was
+   `(planId, marketId, billingCycle, currency)` — `billingModel` was not in it,
+   so a plan held one price per slot. The key now includes it. Strictly more
+   permissive, so no existing row can be rejected.
+2. **Overage had no price.** The seat engine has measured overage since it
+   landed and had nowhere to say what an extra employee costs, so a flat plan
+   could exceed its allowance and never be billed. `PlanPrice.overageUnitAmount`,
+   nullable — and null on every per-seat row, because there is no "above
+   included" when every seat is billed.
+3. **Qatar was not a market.** Pakistan defaulted to USD; Qatar sat inside a
+   disabled GCC market. Now PK/PKR, QA/QAR and INTL/USD are launched; US and GCC
+   stay planned and disabled, so nothing that was closed silently opened.
+4. **Enterprise+ did not exist.** Added as `CUSTOM_ONLY`, carrying **no price** —
+   which is what makes the resolver answer `CUSTOM_CONTRACT_ONLY` instead of
+   quoting a figure.
+
+### The defect this package existed to prevent
+
+`resolveCommercialOffer` filtered candidate prices by plan, market, currency and
+interval — **not by sales model** — then let `selectEffectivePrice` pick the most
+recently effective one, and only *then* refused if that one was sales-assisted.
+
+Both prices are seeded in the same run, milliseconds apart. So which model a
+visitor was offered came down to insertion order, and when the flat row won the
+answer was `SALES_ASSISTED_ONLY` — **the plan vanished from public sale**, for a
+reason invisible in the data.
+
+Filtering now happens before selection. The regression asserts **both orderings**
+deliberately: a test fixing one would have passed against the defect half the
+time, which is worse than no test. Mutation-proven — restoring select-then-check
+fails 4 tests.
+
+### Two more found while building it
+
+**The minimum seat commitment was a refusal, not a charge.** The resolver
+returned `SEATS_BELOW_MINIMUM` for a buyer wanting fewer seats than the plan's
+minimum. The owner's rule is the opposite — *"applies even when the customer has
+fewer active employees"* — and the published Minimum Monthly Charge table only
+means anything if such a customer can buy. Now billed at `max(quantity,
+minimumSeats)`, with `quantity` still reported so a page can say "6 employees,
+billed at the 10-seat minimum" rather than silently changing the number somebody
+typed.
+
+**The landing estimate disagreed with the server.** `estimateCost` ignored
+`minimumSeats` entirely, so a six-person Starter customer would have been quoted
+PKR 1,800 and charged PKR 3,000. That is the same shape as [[BUG-0080]] — a page
+and an invoice disagreeing — and it nearly recurred because the arithmetic lives
+in two places and only one of them was changed when the rule did.
+
+### Verified against a real database
+
+- 36 prices seeded across three markets; every Pakistan figure matches the
+  owner's table exactly.
+- Re-running the seed creates **0** and reports 36 slots already served.
+- The migration moves country `QA` from GCC to Qatar and is a no-op on a second
+  run — proven by putting it back and replaying.
+- Enterprise+ carries 0 prices and `CUSTOM_ONLY`.
+- The published Terms now describe per-seat self-service with flat by
+  arrangement.
+
+`api` 1468 unit tests and 369 e2e; `landing` 111; `admin` 108.
+
+**One caveat worth stating plainly:** an e2e run failed five suites mid-way with
+*"the database system is in recovery mode"* — PostgreSQL crashed and restarted.
+Re-running on a healthy server gave 33/33 and 369/369. The failures were the
+crash, established by re-running rather than assumed.
+
+### Recorded, not fixed
+
+[[ITEM-0072]] — a database built from migrations alone carries six active,
+published, self-service, market-less prices at `0.00`, created by a 2026-04-10
+plan insert feeding a 2026-05-23 legacy backfill. Not exploitable, but it fires
+twelve spurious warnings on every seed, and a warning that always fires is one
+people stop reading.
+
+### Still blocking a sale
+
+**Stripe presentment for PKR and QAR is unverified.** Nothing in this repository
+can establish it. If either is unsupported on the live account, that market
+cannot take self-service payment — and `deriveCheckoutReadiness` renders that as
+"checkout not available" rather than a wrong charge, which is the right failure
+but still a failure.
+
+
 ## Assumptions
 
 | ASSUMPTION_ID | STATEMENT | EVIDENCE | CONFIDENCE | IMPACT_IF_WRONG |
@@ -347,6 +444,11 @@ PRE_TASK_REPO_HEALTH — PASS at `95551bc`.
 - 2026-08-20 — created at `95551bc`, after TASK-0009 integrated. Four owner
   decisions taken before any work started.
 - 2026-08-20 — WP-01 and WP-02 done. WP-03 blocked on the price list.
+- 2026-08-20 — WP-08: the owner supplied the price schedule and changed the
+  model — per-seat public, flat sales-assisted. Both now coexist per plan, and
+  the channel decides. Building it found a millisecond race that could have
+  removed a plan from public sale, a minimum commitment implemented as a refusal
+  rather than a charge, and a landing estimate that disagreed with the server.
 - 2026-08-20 — WP-07: [[ITEM-0071]] built and immediately useful. Three more
   records claimed `VERIFIED` above prose saying otherwise, one of them a
   CRITICAL. Two turned out to be genuine gaps covered only by source-shape
@@ -372,7 +474,7 @@ PRE_TASK_REPO_HEALTH — PASS at `95551bc`.
 
 ## Related
 
-- Records — [[BUG-0005]], [[BUG-0009]], [[BUG-0010]], [[BUG-0052]], [[BUG-0080]], [[BUG-0084]], [[BUG-0085]], [[ITEM-0069]], [[ITEM-0070]], [[ITEM-0071]]
+- Records — [[BUG-0005]], [[BUG-0009]], [[BUG-0010]], [[BUG-0052]], [[BUG-0080]], [[BUG-0084]], [[BUG-0085]], [[ITEM-0069]], [[ITEM-0070]], [[ITEM-0071]], [[ITEM-0072]]
 - Modules — [[legal]], [[billing]]
 
 <!-- GRAPH:END -->

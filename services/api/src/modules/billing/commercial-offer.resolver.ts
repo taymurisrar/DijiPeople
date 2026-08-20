@@ -1,5 +1,6 @@
 import {
   BillingInterval,
+  BillingModel,
   CommercialPublicationStatus,
   CommercialSalesModel,
   MarketLaunchStatus,
@@ -230,6 +231,17 @@ export type ResolveOfferInput = {
    * and legitimately not purchasable online.
    */
   channel: 'SELF_SERVICE' | 'OPERATOR';
+  /**
+   * Which billing model the caller wants, when it matters.
+   *
+   * A plan now carries both a PER_SEAT price for the public and a FLAT price
+   * for sales, active at the same time. Self-service never needs this — the
+   * channel narrowing below already excludes anything a visitor may not buy —
+   * but an operator quoting a deal must be able to say which of the two they
+   * mean. Absent, an operator gets the most recently effective price, which is
+   * the behaviour that existed before either model had a sibling.
+   */
+  billingModel?: BillingModel | null;
 };
 
 /**
@@ -268,15 +280,73 @@ export function resolveCommercialOffer(
     return unavailable('CURRENCY_NOT_SUPPORTED');
   }
 
-  const candidates = input.prices.filter(
-    (price) =>
-      price.planId === plan.id &&
-      price.marketId === sellableMarket.id &&
-      price.currency.trim().toUpperCase() === currency &&
-      price.billingInterval === billingInterval,
-  );
+  const matchesSlot = (price: ResolvablePrice) =>
+    price.planId === plan.id &&
+    price.marketId === sellableMarket.id &&
+    price.currency.trim().toUpperCase() === currency &&
+    price.billingInterval === billingInterval;
+
+  /*
+   * Narrow by channel BEFORE selecting, not after.
+   *
+   * This ordering is the whole point, and getting it wrong is silent. A plan
+   * carries a PER_SEAT price for the public and a FLAT price for sales, both
+   * active, differing only in `billingModel` and `salesModel`. The old code
+   * collected every candidate, let `selectEffectivePrice` pick the most
+   * recently effective one, and only then checked whether that one was
+   * sellable on this channel.
+   *
+   * Both are seeded in the same run, milliseconds apart. So which model a
+   * visitor was offered came down to insertion order — and when the flat row
+   * won, the answer was `SALES_ASSISTED_ONLY`: the plan vanished from public
+   * sale entirely, for no reason anybody could see in the data.
+   *
+   * Filtering first makes the self-service answer a property of the schedule
+   * rather than of write order. An operator keeps every candidate, and may
+   * narrow to one model explicitly.
+   */
+  const eligible = input.prices.filter((price) => {
+    if (!matchesSlot(price)) return false;
+
+    if (input.billingModel && price.billingModel !== input.billingModel) {
+      return false;
+    }
+
+    if (channel !== 'SELF_SERVICE') return true;
+
+    // The plan's model narrows the price's, never widens it — so a CUSTOM_ONLY
+    // plan is excluded here even when a price row says SELF_SERVICE.
+    return (
+      narrowestSalesModel(plan.salesModel, price.salesModel) ===
+      CommercialSalesModel.SELF_SERVICE
+    );
+  });
+
+  const candidates = eligible;
 
   if (candidates.length === 0) {
+    /*
+     * Nothing eligible. Say which kind of nothing, because the three have
+     * completely different fixes.
+     *
+     * A price that exists for this slot but was filtered out by the channel is
+     * reported as the sales-model refusal it is — otherwise a self-service
+     * caller looking at a sales-assisted-only plan would be told "no published
+     * price", and an operator would go looking for a price that is right there.
+     */
+    const slotPrices = input.prices.filter(matchesSlot);
+    if (slotPrices.length > 0) {
+      const narrowed = slotPrices.map((price) =>
+        narrowestSalesModel(plan.salesModel, price.salesModel),
+      );
+      if (narrowed.includes(CommercialSalesModel.CUSTOM_ONLY)) {
+        return unavailable('CUSTOM_CONTRACT_ONLY');
+      }
+      if (narrowed.includes(CommercialSalesModel.SALES_ASSISTED)) {
+        return unavailable('SALES_ASSISTED_ONLY');
+      }
+    }
+
     // Distinguish "there is a price but nobody scoped it to a market" from
     // "there is no price at all". The first is a configuration mistake an
     // operator can fix; the second is a commercial decision nobody has made.
@@ -321,13 +391,33 @@ export function resolveCommercialOffer(
 
   const isPerSeat = price.billingModel === 'PER_SEAT';
   if (isPerSeat) {
-    if (quantity < price.minimumSeats)
-      return unavailable('SEATS_BELOW_MINIMUM');
     if (price.maximumSeats !== null && quantity > price.maximumSeats)
       return unavailable('SEATS_ABOVE_MAXIMUM');
   }
 
-  const billableQuantity = isPerSeat ? quantity : 1;
+  /*
+   * A minimum seat commitment is billed, not enforced as a barrier.
+   *
+   * This used to `return unavailable('SEATS_BELOW_MINIMUM')` when a buyer
+   * asked for fewer seats than the plan's minimum, which turned the commitment
+   * into a refusal to sell. The commercial rule the owner set on 2026-08-20 is
+   * the opposite, and says so in as many words:
+   *
+   *   "The minimum seat commitment applies even when the customer has fewer
+   *    active employees."
+   *
+   * The published schedule includes a Minimum Monthly Charge table — Starter
+   * PKR 3,000, Growth PKR 13,750, Enterprise PKR 45,000 — which only means
+   * anything if a customer below the floor can buy and be charged it. A
+   * six-person company on Starter pays for ten seats; it is not turned away.
+   *
+   * `quantity` is still reported unchanged alongside `billableQuantity`, so a
+   * caller can show "6 employees, billed at the 10-seat minimum" rather than
+   * silently inflating the number the customer typed.
+   */
+  const billableQuantity = isPerSeat
+    ? Math.max(quantity, price.minimumSeats)
+    : 1;
 
   return {
     available: true,

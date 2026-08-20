@@ -3961,6 +3961,15 @@ model PlanPrice {
   minimumSeats            Int                @default(1)
   maximumSeats            Int?
   includedSeats           Int                @default(0)
+  /// What one employee above `includedSeats` costs, per interval, in this
+  /// price's currency. Null means this price does not charge overage, which is
+  /// correct for every PER_SEAT row: there is no "above included" when every
+  /// seat is billed. Only the FLAT rows carry a rate.
+  ///
+  /// The schema has measured overage since the seat engine landed
+  /// (`SeatUsage.overage`, `SeatOverageEvent.peakOverage`) and had nowhere to
+  /// price it, so a flat plan's allowance could be exceeded and never billed.
+  overageUnitAmount       Decimal?           @db.Decimal(12, 2)
   effectiveFrom           DateTime           @default(now())
   effectiveTo             DateTime?
   version                 Int                @default(1)

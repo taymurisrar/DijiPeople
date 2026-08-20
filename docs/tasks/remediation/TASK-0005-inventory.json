@@ -6936,9 +6936,11 @@
       "related_bugs": [],
       "related_backlog": [],
       "regressions": [
-        "REG-075"
+        "REG-075",
+        "REG-080"
       ],
       "qa_scenarios": [
+        "QA-BILLING-011",
         "QA-LANDING-009"
       ],
       "test_plan": [],
@@ -7709,6 +7711,52 @@
       "architect_disposition": "DONE",
       "verification_result": {
         "result": "FIXED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "ITEM-0072",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0072-six-published-self-service-prices-with-no-market-and-a-zero-.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-08-20",
+        "updated_at": "2026-08-20",
+        "resolved_at": ""
+      },
+      "type": "TECH_DEBT",
+      "title": "Six published self-service prices with no market and a zero amount exist on every database",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "DEFERRED",
+      "current_evidence": {
+        "paths": [
+          "services/api/prisma/migrations/20260410094500_billing_plan_enforcement_foundation/migration.sql",
+          "services/api/prisma/migrations/20260523120000_stripe_billing_foundation/migration.sql"
+        ],
+        "verification_scope": "A database built from migrations alone, before any seed, holds 3 plans and 6 PlanPrice rows that are active, PUBLISHED, SELF_SERVICE, zero-amount and market-less. Not exploitable - selectEffectivePrice requires a market and deriveCheckoutReadiness rejects a zero amount - but it fires twelve spurious unscoped-price warnings on every seed and makes PRICE_NOT_MARKET_SCOPED reachable when no operator made a mistake."
+      },
+      "affected_modules": [
+        "billing",
+        "super-admin"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [
+        "BUG-0030"
+      ],
+      "related_backlog": [],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DEFER",
+      "verification_result": {
+        "result": "DEFERRED",
         "classification": "TERMINAL_AS_DOCUMENTED",
         "finding_ids": []
       }

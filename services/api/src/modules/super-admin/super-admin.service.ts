@@ -81,7 +81,6 @@ import { DEFAULT_PLAN_DEFINITIONS } from './plans.catalog';
 import {
   DEFAULT_MARKET_DEFINITIONS,
   DEFAULT_PLAN_SALES_MODELS,
-  SEEDED_PRICE_MARKET_CODE,
 } from './markets.catalog';
 import { PlatformLifecycleService } from './platform-lifecycle.service';
 import { PlatformOnboardingService } from './platform-onboarding.service';

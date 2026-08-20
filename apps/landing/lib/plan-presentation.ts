@@ -173,7 +173,25 @@ export function estimateCost(
 ) {
   if (!offer?.available) return null;
 
-  const billable = offer.billingModel === "PER_SEAT" ? Math.max(teamSize, 1) : 1;
+  /*
+   * The minimum seat commitment is BILLED, so it must be shown.
+   *
+   * This read `Math.max(teamSize, 1)`, which ignored `minimumSeats` entirely
+   * while the server bills `Math.max(quantity, minimumSeats)`. A six-person
+   * company on a plan with a ten-seat minimum would have been quoted six seats
+   * on this page and charged for ten by Stripe.
+   *
+   * That is the same defect BUG-0080 was found through — a page and an invoice
+   * disagreeing — and it is worth being blunt about why it nearly recurred: the
+   * arithmetic lives in two places, here and in `resolveCommercialOffer`, and
+   * only one of them was changed when the rule did. `belowMinimum` below is
+   * what lets the page say "6 employees, billed at the 10-seat minimum" instead
+   * of silently showing a number the customer did not type.
+   */
+  const billable =
+    offer.billingModel === "PER_SEAT"
+      ? Math.max(teamSize, offer.minimumSeats, 1)
+      : 1;
   const belowMinimum =
     offer.billingModel === "PER_SEAT" && teamSize < offer.minimumSeats;
   const aboveMaximum =

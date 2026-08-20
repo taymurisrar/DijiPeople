@@ -175,8 +175,27 @@ The active-employee seat engine is therefore not unused — it governs **capacit
 and makes a capacity dispute answerable from usage history. It simply is not the
 billing basis, and the Terms now say which of the two it is.
 
-`billingModel` stays `FLAT` in `commercial-bootstrap.ts`, and that is now the
+`billingModel` stayed `FLAT` in `commercial-bootstrap.ts`, and that was the
 deliberate, documented answer rather than an accident.
+
+### Superseded the same day — the model changed, the defect did not
+
+Later on 2026-08-20 the owner changed the product: **per active employee on the
+public site and self-service checkout, flat by arrangement through sales.** Both
+models are now seeded for the same plan, market, cycle and currency, and the
+channel decides which one a caller can reach.
+
+This record stays `FIXED`. What it was about — the code and the Terms making
+different claims — was genuinely fixed by `e9f977c`, and the new model was
+implemented with the Terms rewritten in the same change, so the two have never
+been out of step since.
+
+The work is
+[`EXECPLAN-0002`](../plans/EXECPLAN-0002-per-seat-public-pricing-with-sales-assisted-flat.md)
+under TASK-0010 WP-08. It is recorded here rather than left for a reader to
+discover, because a Resolution section describing a model the product no longer
+uses is exactly the stale prose [[ITEM-0071]] was written to catch — and this
+record has already misled one reader today.
 
 ## QA Retest
 
@@ -186,6 +205,9 @@ billing model, so the two cannot drift apart again silently.
 
 ## History
 
+- 2026-08-20 — superseded by a product change: per-seat for self-service, flat
+  by arrangement. The Terms were rewritten with it, so code and words still
+  agree. See EXECPLAN-0002.
 - 2026-08-20 — **this record was left half-written, and it cost a later task an
   hour and a wrong decision.** `e9f977c` fixed the defect, rewrote the Terms,
   added [[REG-075]] and a QA scenario, and updated the regression register, the

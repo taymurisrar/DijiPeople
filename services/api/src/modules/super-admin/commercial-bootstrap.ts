@@ -9,11 +9,10 @@ import {
 } from '@prisma/client';
 import {
   DEFAULT_MARKET_DEFINITIONS,
-  PLACEHOLDER_PKR_PRICES,
   DEFAULT_PLAN_SALES_MODELS,
-  SEEDED_PRICE_MARKET_CODE,
 } from './markets.catalog';
 import { DEFAULT_PLAN_DEFINITIONS } from './plans.catalog';
+import { PRICED_MARKET_CODES, buildSeededPrices } from './pricing.catalog';
 
 /**
  * Explicit, idempotent bootstrap of DijiPeople's own commercial configuration.
@@ -180,103 +179,84 @@ async function ensurePlanPrices(
   prisma: BootstrapClient,
   result: CommercialBootstrapResult,
 ) {
-  const market = await prisma.market.findUnique({
-    where: { code: SEEDED_PRICE_MARKET_CODE },
-  });
+  /*
+   * One pass over the whole schedule.
+   *
+   * This used to seed a single market — `SEEDED_PRICE_MARKET_CODE` — from the
+   * legacy `Plan.monthlyBasePrice` columns, plus a DRAFT PKR placeholder
+   * schedule whose amounts nobody had decided. The owner supplied a real
+   * schedule on 2026-08-20, so the placeholders are gone and three markets are
+   * priced in their own currencies.
+   *
+   * `pricing.catalog.ts` is the only place the numbers live. This function
+   * knows how to write a price; it does not know what one costs.
+   */
+  const seeded = buildSeededPrices();
 
-  if (!market) {
-    result.warnings.push(
-      `Seed market "${SEEDED_PRICE_MARKET_CODE}" is missing; no prices were created.`,
-    );
-    return;
-  }
-
-  const currency = market.defaultCurrency.toUpperCase();
-
+  const planIds = new Map<string, string>();
   for (const definition of DEFAULT_PLAN_DEFINITIONS) {
     const plan = await prisma.plan.findUnique({
       where: { key: definition.key },
+      select: { id: true },
     });
-    if (!plan) continue;
+    if (plan) planIds.set(definition.key, plan.id);
+  }
 
-    const slots = [
-      {
-        billingCycle: BillingCycle.MONTHLY,
-        billingInterval: BillingInterval.MONTH,
-        unitAmount: definition.monthlyBasePrice,
-      },
-      {
-        billingCycle: BillingCycle.ANNUAL,
-        billingInterval: BillingInterval.YEAR,
-        unitAmount: definition.annualBasePrice,
-      },
-    ];
-
-    for (const slot of slots) {
-      // A zero legacy amount means unpriced, not free.
-      if (slot.unitAmount <= 0) continue;
-
-      await createPlanPriceIfAbsent(prisma, result, {
-        planId: plan.id,
-        planKey: plan.key,
-        marketId: market.id,
-        currency,
-        salesModel:
-          DEFAULT_PLAN_SALES_MODELS[definition.key] ??
-          CommercialSalesModel.SELF_SERVICE,
-        ...slot,
-      });
+  const marketIds = new Map<string, string>();
+  for (const code of PRICED_MARKET_CODES) {
+    const market = await prisma.market.findUnique({
+      where: { code },
+      select: { id: true },
+    });
+    if (market) {
+      marketIds.set(code, market.id);
+    } else {
+      result.warnings.push(
+        `Priced market "${code}" is missing; its prices were not created.`,
+      );
     }
+  }
 
-    /*
-     * The PKR schedule, as DRAFT placeholders.
-     *
-     * Seeded so the local-currency path can be exercised at all — a launch
-     * market whose only prices are in a foreign currency never tests the code
-     * that resolves a local one. Left unpublished so it cannot be sold: the
-     * resolver serves PUBLISHED only, so a Pakistani buyer is still quoted the
-     * USD amount above and cannot be charged a number nobody chose.
-     *
-     * Skipped when the market does not list PKR as supported, so this can never
-     * quietly create a price in a currency the market has disowned.
-     */
-    const placeholder = PLACEHOLDER_PKR_PRICES[definition.key];
-    const marketSupportsPkr = market.supportedCurrencies.some(
-      (supported) => supported.toUpperCase() === 'PKR',
-    );
+  for (const price of seeded) {
+    const planId = planIds.get(price.planKey);
+    const marketId = marketIds.get(price.marketCode);
 
-    if (placeholder && marketSupportsPkr && currency !== 'PKR') {
-      const draftSlots = [
-        {
-          billingCycle: BillingCycle.MONTHLY,
-          billingInterval: BillingInterval.MONTH,
-          unitAmount: placeholder.monthly,
-        },
-        {
-          billingCycle: BillingCycle.ANNUAL,
-          billingInterval: BillingInterval.YEAR,
-          unitAmount: placeholder.annual,
-        },
-      ];
-
-      for (const draft of draftSlots) {
-        await createPlanPriceIfAbsent(
-          prisma,
-          result,
-          {
-            planId: plan.id,
-            planKey: plan.key,
-            marketId: market.id,
-            currency: 'PKR',
-            salesModel:
-              DEFAULT_PLAN_SALES_MODELS[definition.key] ??
-              CommercialSalesModel.SELF_SERVICE,
-            ...draft,
-          },
-          CommercialPublicationStatus.DRAFT,
-        );
-      }
+    // A missing plan or market is reported, never invented. Seeding a price
+    // against something that does not exist is how an unpurchasable row gets
+    // created and then puzzles somebody in Admin.
+    if (!planId) {
+      result.warnings.push(
+        `Plan "${price.planKey}" is missing; its ${price.marketCode} prices were not created.`,
+      );
+      continue;
     }
+    if (!marketId) continue;
+
+    await createPlanPriceIfAbsent(prisma, result, {
+      planId,
+      planKey: price.planKey,
+      marketId,
+      currency: price.currency,
+      billingCycle:
+        price.cycle === 'ANNUAL' ? BillingCycle.ANNUAL : BillingCycle.MONTHLY,
+      billingInterval:
+        price.cycle === 'ANNUAL' ? BillingInterval.YEAR : BillingInterval.MONTH,
+      billingModel: price.billingModel,
+      unitAmount: price.unitAmount,
+      minimumSeats: price.minimumSeats,
+      includedSeats: price.includedSeats,
+      overageUnitAmount: price.overageUnitAmount,
+      /*
+       * The price's own sales model, not the plan's default.
+       *
+       * This is what keeps flat pricing off the public site: every FLAT row is
+       * SALES_ASSISTED, which `resolveCommercialOffer` refuses on the
+       * SELF_SERVICE channel. The plan's model still narrows it — an
+       * Enterprise+ style CUSTOM_ONLY plan cannot be widened by a permissive
+       * price row — see `narrowestSalesModel`.
+       */
+      salesModel: price.salesModel,
+    });
   }
 }
 
@@ -287,7 +267,11 @@ type PriceSlot = {
   currency: string;
   billingCycle: BillingCycle;
   billingInterval: BillingInterval;
+  billingModel: BillingModel;
   unitAmount: number;
+  minimumSeats: number;
+  includedSeats: number;
+  overageUnitAmount: number | null;
   salesModel: CommercialSalesModel;
 };
 
@@ -349,11 +333,12 @@ async function createPlanPriceIfAbsent(
         marketId: slot.marketId,
         billingCycle: slot.billingCycle,
         billingInterval: slot.billingInterval,
-        billingModel: BillingModel.FLAT,
+        billingModel: slot.billingModel,
         currency: slot.currency,
         unitAmount: slot.unitAmount,
-        minimumSeats: 1,
-        includedSeats: 0,
+        minimumSeats: slot.minimumSeats,
+        includedSeats: slot.includedSeats,
+        overageUnitAmount: slot.overageUnitAmount,
         publicationStatus,
         salesModel: slot.salesModel,
         // A draft was never published, so it has no publication date. Stamping
@@ -413,6 +398,15 @@ async function findActiveForSlot(prisma: BootstrapClient, slot: PriceSlot) {
       marketId: slot.marketId,
       billingCycle: slot.billingCycle,
       currency: slot.currency,
+      /*
+       * `billingModel` joined this check on 2026-08-20, when it joined the
+       * index. Without it the two are back in disagreement — a per-seat row
+       * would look like it occupied the flat slot, the flat price would never
+       * be seeded, and nothing would say so. That is the same shape as the
+       * defect described above, which is the one this function was rewritten
+       * for.
+       */
+      billingModel: slot.billingModel,
       isActive: true,
     },
     select: { id: true, marketId: true, unitAmount: true },

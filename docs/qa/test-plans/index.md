@@ -6,7 +6,7 @@ One evergreen plan per product area: scope, risks, the cases that must always
 be covered, and the declared coverage per dimension. QA loads the plan for
 every area a change touches **before** designing anything new.
 
-**Plans: 19** · scenarios across them: 112
+**Plans: 19** · scenarios across them: 113
 
 | Plan | Area | Risk | Status | Scenarios | Related bugs | Verified against |
 |---|---|---|---|---|---|---|
@@ -24,7 +24,7 @@ every area a change touches **before** designing anything new.
 | [PLAN-010](../../../docs/qa/test-plans/PLAN-010-payroll.md) | payroll | CRITICAL | NEEDS_REVIEW | 6 | BUG-0001, BUG-0039 | `714632d` |
 | [PLAN-019](../../../docs/qa/test-plans/PLAN-019-platform-admin.md) | platform-admin | HIGH | CURRENT | 1 | BUG-0073, BUG-0074 | `4290c03` |
 | [PLAN-011](../../../docs/qa/test-plans/PLAN-011-runtime-modules.md) | runtime-modules | HIGH | NEEDS_REVIEW | 8 | BUG-0019, BUG-0020, BUG-0044 | `714632d` |
-| [PLAN-016](../../../docs/qa/test-plans/PLAN-016-seat-billing.md) | seat-billing | CRITICAL | CURRENT | 1 | — | `39bd665` |
+| [PLAN-016](../../../docs/qa/test-plans/PLAN-016-seat-billing.md) | seat-billing | CRITICAL | CURRENT | 2 | — | `39bd665` |
 | [PLAN-018](../../../docs/qa/test-plans/PLAN-018-subscription-changes.md) | subscription-changes | CRITICAL | CURRENT | 1 | — | `ce9bb56` |
 | [PLAN-017](../../../docs/qa/test-plans/PLAN-017-subscription-orders.md) | subscription-orders | CRITICAL | CURRENT | 3 | — | `2051133` |
 | [PLAN-003](../../../docs/qa/test-plans/PLAN-003-tenant-isolation.md) | tenant-isolation | CRITICAL | NEEDS_REVIEW | 6 | BUG-0005 | `714632d` |

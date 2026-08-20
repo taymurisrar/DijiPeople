@@ -187,11 +187,19 @@ administrators enter.
 
 ## Subscription and billing
 
-The subscription is a **flat fee per plan**, for the billing period chosen. It
-does not vary with the number of employees in the workspace — the plans differ
-by the modules they include. Active-employee numbers are measured for capacity,
-not for billing. Billing terms, capacity changes and cancellation are described
-in the Subscription and Billing Terms.
+Subscriptions bought online are priced **per active employee**, for the billing
+period chosen. Each plan sets a minimum number of seats that is billed even when
+the workspace has fewer active employees, and the plan chosen also determines
+which modules are included.
+
+**Flat pricing is available by arrangement.** A flat subscription covers an
+agreed number of employees for a single fee, with a stated rate for each
+employee above that number. It is not offered through online checkout; it is
+agreed with our team.
+
+How an employee is counted, and how capacity is measured, are described in the
+Subscription and Billing Terms, along with billing terms, capacity changes and
+cancellation.
 
 ## Customer data
 
@@ -229,15 +237,23 @@ ${REVIEW_BANNER}
 
 ## What you pay
 
-A **flat subscription fee per plan**, for the billing period you chose. The fee
-does not change with the number of employees in the workspace; the plans differ
-by the modules they include, not by headcount.
+**If you bought online: a fee per active employee**, for the billing period you
+chose. Your plan sets a minimum number of seats. That minimum is what you are
+billed if you have fewer active employees than it — so a plan with a ten-seat
+minimum costs the same at six employees as at ten.
+
+**If you agreed flat terms with our team:** a single fee covering an agreed
+number of employees, plus a stated rate for each employee above that number. The
+agreed number and the rate are in your order.
+
+The plan you choose also determines which modules are included.
 
 ## How employees are counted
 
-Headcount is still measured, because a plan may carry a capacity limit and
-because the usage history is what makes a capacity dispute answerable. It is
-**not** what you are billed on.
+Headcount is measured daily. On a per-employee subscription it is what you are
+billed on, subject to your plan's minimum. On flat terms it decides whether any
+employees fall above your agreed number, and the usage history is what makes a
+capacity dispute answerable either way.
 
 An employee counts as active when their employment status is active, probation
 or notice. Inactive and terminated employees do not count, and neither do

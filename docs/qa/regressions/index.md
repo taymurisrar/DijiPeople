@@ -1117,3 +1117,18 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | CI never caught this because `.github/workflows/ci.yml` sets both variables against a fresh database, exercising only the create path. The defect lived entirely in the paths CI could not reach. It was found by running the actual `preDeployCommand` against a database built from all 216 migrations — something no test does. |
 | **Fixed** | 2026-08-20, branch `agent/go-live-readiness` |
 | **Active** | yes |
+
+### REG-080 — Two billing models on one plan, and the public gets the right one
+
+| | |
+|---|---|
+| **Bug class** | `select-then-check` |
+| **Module** | `services/api/src/modules/billing`, `apps/landing/lib` |
+| **Bug record** | BUG-0080 (superseded by EXECPLAN-0002) |
+| **Root cause** | A plan now carries a PER_SEAT price for the public and a SALES_ASSISTED FLAT price for operators, active at once. `resolveCommercialOffer` filtered candidates by plan, market, currency and interval — not by sales model — then let `selectEffectivePrice` pick the most recently effective one, and only then refused if that one was sales-assisted. Both rows are seeded in the same run, milliseconds apart, so which model a visitor was offered came down to insertion order; when the flat row won, the plan vanished from public sale with `SALES_ASSISTED_ONLY` and nothing in the data explained why. Separately, `estimateCost` on the landing page ignored `minimumSeats` while the server billed `max(quantity, minimumSeats)`, so a six-person company would have been quoted six seats and charged for ten. |
+| **Regression test** | `services/api/src/modules/billing/commercial-offer.resolver.spec.ts` ("two billing models on one plan"), `apps/landing/lib/plan-presentation.spec.ts`, `services/api/src/modules/super-admin/pricing.catalog.spec.ts` |
+| **Scenario** | With both models present: a SELF_SERVICE resolution returns the per-seat price whichever row was written first; an OPERATOR can request either model explicitly; a plan with only a flat price reports `SALES_ASSISTED_ONLY` rather than "no published price"; a CUSTOM_ONLY plan refuses self-service even with a permissive price row; and the landing estimate bills the same seat count the server does. |
+| **Proven to fail without the fix** | Removing the channel narrowing — restoring select-then-check — fails 4 tests, including both orderings of the determinism case. The ordering case is asserted over BOTH orderings deliberately: a single-ordering test would have passed against the defect half the time, which is worse than not having it. |
+| **Note** | The arithmetic guard is separate and deliberately not a restatement of the price list: `pricing.catalog.spec.ts` asserts that annual is monthly x 10 and that a minimum charge is `minimumSeats x unitAmount`, then checks those against the minimum-charge table the owner published independently. A test that retyped the seat rates would prove only that somebody copied them twice. |
+| **Fixed** | 2026-08-20, branch `agent/go-live-readiness` |
+| **Active** | yes |

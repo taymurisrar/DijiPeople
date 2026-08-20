@@ -230,6 +230,38 @@ describe("estimateCost", () => {
     );
   });
 
+  /*
+   * The page and the invoice must agree.
+   *
+   * `resolveCommercialOffer` bills `max(quantity, minimumSeats)`, because the
+   * commitment applies even below it. If this estimate ignored the minimum, a
+   * six-person company would be quoted six seats here and charged for ten —
+   * which is the shape of BUG-0080, a page disagreeing with Stripe.
+   */
+  it("bills the minimum seats, matching what the server charges", () => {
+    const estimate = estimateCost(
+      offer({ minimumSeats: 10, unitAmount: 300 }),
+      6,
+    );
+
+    expect(estimate?.billable).toBe(10);
+    expect(estimate?.total).toBe(3000);
+    // Still flagged, so the page can explain the difference rather than hide it.
+    expect(estimate?.belowMinimum).toBe(true);
+  });
+
+  it("does not inflate a team that already clears the minimum", () => {
+    // The pair. Without it, an estimate that always billed `minimumSeats`
+    // would satisfy the test above while undercharging every larger customer.
+    const estimate = estimateCost(
+      offer({ minimumSeats: 10, unitAmount: 300 }),
+      40,
+    );
+
+    expect(estimate?.billable).toBe(40);
+    expect(estimate?.total).toBe(12000);
+  });
+
   it("returns null rather than zero when no price is available", () => {
     expect(estimateCost(unavailableOffer(), 50)).toBeNull();
     expect(estimateCost(null, 50)).toBeNull();
