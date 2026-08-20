@@ -41,14 +41,14 @@ Asked before any work, because each changes what gets built:
 
 | WP_ID | TITLE | STATUS | DEPENDENCIES | AGENTS | BRANCH | SHA | QA_STATUS | BUGS | CI_STATUS | MERGE_STATUS |
 |---|---|---|---|---|---|---|---|---|---|---|
-| WP-01 | ITEM-0069 — discovery throttle, decoupled from the credential lock | DONE | — | Backend/API, Database, Security | agent/go-live-readiness | pending | PASS | ITEM-0069 | NOT_RUN | NOT_STARTED |
-| WP-02 | Legal publication wired into the release command | DONE | — | Backend/API | agent/go-live-readiness | pending | PASS | — | NOT_RUN | NOT_STARTED |
+| WP-01 | ITEM-0069 — discovery throttle, decoupled from the credential lock | DONE | — | Backend/API, Database, Security | agent/go-live-readiness | 97b4cc5 | PASS | ITEM-0069 | PASS | INTEGRATED |
+| WP-02 | Legal publication wired into the release command | DONE | — | Backend/API | agent/go-live-readiness | 97b4cc5 | PASS | — | PASS | INTEGRATED |
 | WP-03 | Real prices for every launched market | DONE | owner | Backend/API | agent/go-live-readiness | — | — | — | — | — |
 | WP-04 | Release readiness assessment and the PR to `main` | BLOCKED | WP-01..WP-03, WP-05, WP-06 | Release/DevOps, Reviewer, Integrator | agent/go-live-readiness | — | — | — | — | — |
-| WP-05 | The xlsx parse path, off an advisory that was reachable after all | DONE | — | Backend/API, Security | agent/go-live-readiness | pending | PASS | BUG-0052, ITEM-0070 | NOT_RUN | NOT_STARTED |
-| WP-06 | The first-deploy dry run, and the two defects it found | DONE | — | Release/DevOps, Database, QA | agent/go-live-readiness | pending | PASS | BUG-0084, BUG-0085 | NOT_RUN | NOT_STARTED |
-| WP-07 | ITEM-0071 — a record may not claim a fix it cannot describe | DONE | — | QA, Reviewer | agent/go-live-readiness | 2c0e6b1 | PASS | BUG-0005, BUG-0009, BUG-0010, ITEM-0071 | PASS | NOT_STARTED |
-| WP-08 | Per-seat public pricing, flat as a sales-assisted instrument | DONE | WP-03 | Backend/API, Database, Integration, QA, Frontend | agent/go-live-readiness | pending | PASS | BUG-0080, ITEM-0072 | NOT_RUN | NOT_STARTED |
+| WP-05 | The xlsx parse path, off an advisory that was reachable after all | DONE | — | Backend/API, Security | agent/go-live-readiness | 97b4cc5 | PASS | BUG-0052, ITEM-0070 | PASS | INTEGRATED |
+| WP-06 | The first-deploy dry run, and the two defects it found | DONE | — | Release/DevOps, Database, QA | agent/go-live-readiness | 97b4cc5 | PASS | BUG-0084, BUG-0085 | PASS | INTEGRATED |
+| WP-07 | ITEM-0071 — a record may not claim a fix it cannot describe | DONE | — | QA, Reviewer | agent/go-live-readiness | 97b4cc5 | PASS | BUG-0005, BUG-0009, BUG-0010, ITEM-0071 | PASS | INTEGRATED |
+| WP-08 | Per-seat public pricing, flat as a sales-assisted instrument | DONE | WP-03 | Backend/API, Database, Integration, QA, Frontend | agent/go-live-readiness | 97b4cc5 | PASS | BUG-0080, ITEM-0072 | PASS | INTEGRATED |
 
 ## WP-01 — the lockout weapon, removed
 
@@ -493,6 +493,67 @@ PRE_TASK_REPO_HEALTH — PASS at `95551bc`.
 - 2026-08-20 — WP-05: verifying A-03 falsified the neighbouring claim. The
   `xlsx` parse path was reachable from two authenticated uploads and is now
   on ExcelJS. BUG-0052's 2026-08-17 reachability finding corrected in place.
+
+## Task Finalization
+
+```
+PRE_TASK_REPO_HEALTH            PASS at 95551bc
+SESSION_STATUS                  SESSION-0022 ACTIVE
+PARENT_TASK_STATUS              TASK-0010, 8 work packages
+WORK_PACKAGE_STATUS             7 DONE, WP-04 BLOCKED on the owner
+REQUIRED_AGENTS_STATUS          PASS
+IMPLEMENTATION_STATUS           DONE
+LOCAL_VALIDATION_STATUS         PASS  api 190/190 suites 1468 tests; e2e 33/33 369
+                                tests; landing 111; admin 108; framework 2933
+QA_STATUS                       PASS
+QA_FINDINGS_CLASSIFIED_STATUS   PASS  BUG-0084 DEFER, BUG-0085 FIX_NOW,
+                                ITEM-0070/0072 DEFER, ITEM-0071 DONE
+QA_SCENARIO_PROMOTION_STATUS    DONE  QA-DEPLOY-017, QA-BILLING-011
+BUG_RECORD_STATUS               DONE  BUG-0084, BUG-0085 created; 0005/0009/0010
+                                and 0080 corrected
+ARCHITECT_TRIAGE_STATUS         DONE  nothing left TRIAGE_REQUIRED
+BACKLOG_UPDATE_STATUS           DONE  154 records, indexes current
+REVIEW_STATUS                   PASS
+PR_STATUS                       NOT_REQUIRED — develop needs no PR
+REMOTE_CI_STATUS                PASS on 97b4cc5, run 32389007332
+MERGE_STATUS                    DONE — fast-forward, no merge commit
+DEVELOP_INTEGRATION_STATUS      DONE — origin/develop = 97b4cc5
+DEVELOP_SYNC_STATUS             SYNCED at origin; the primary worktree's local
+                                develop is 12 behind and deliberately untouched
+POST_MERGE_VALIDATION_STATUS    PASS — develop's tip IS the CI-verified SHA, so
+                                the pre-merge evidence applies to it unchanged
+MAIN_SYNC_STATUS                SYNCED
+MAIN_CHANGE_STATUS              UNTOUCHED (baseline b90f33e)
+POST_TASK_REPO_HEALTH           PASS
+PRIMARY_WORKTREE_STATUS         CLEAN
+TASK_WORKTREE_STATUS            CLEAN
+UNEXPLAINED_DIRTY_FILES         0
+POST_INTEGRATION_GENERATOR_STATUS  PASS — backlog, tasks, QA, dashboards current
+DATABASE_COHERENCE_STATUS       PASS — 217 migrations from empty; drift unchanged
+                                at 195 pre-existing statements, none introduced
+DEPLOYMENT_STATUS               NOT_REQUIRED — the owner holds the merge to main
+DEPLOYMENT_DRIFT_STATUS         NOT_REQUIRED — nothing deployed
+ENGINEERING_HISTORY_STATUS      PENDING — written when WP-04 closes
+FEEDBACK_PROMOTION_STATUS       DONE — ITEM-0071 promotes the correction that a
+                                record's status and prose may not disagree
+KNOWLEDGE_CAPTURE_STATUS        DONE — EXECPLAN-0002, REG-079, REG-080
+OBSIDIAN_SYNC_STATUS            SKIPPED_NO_LOCAL_CONFIG
+CONTROL_CENTER_STATUS           PASS
+CLEANUP_STATUS                  DONE — every throwaway database created by this
+                                task dropped; other sessions' left alone
+```
+
+**The task is not COMPLETE.** WP-04 — the PR to `main` — is blocked on two owner
+actions: confirming Stripe presents PKR and QAR, and releasing the merge hold.
+Both are stated in
+[`first-production-launch.md`](../deployment/first-production-launch.md).
+
+`DEVELOP_SYNC_STATUS` deserves its qualification rather than a bare `SYNCED`.
+`origin/develop` is exactly the SHA CI verified, which is what the contract is
+about. The **local** `develop` ref lags by 12 commits because it is checked out
+in the user's primary worktree, and fast-forwarding it would rewrite files under
+whatever they have open. That is theirs to pull, not mine to do.
+
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-tasks.mjs; edit the record, not this block -->
 
