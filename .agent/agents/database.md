@@ -135,14 +135,14 @@ whose types derive from Prisma, billing data, tenant-provisioning persistence,
 auth/session persistence, or a data repair or backfill.
 
 ```bash
-node scripts/db-preflight.mjs            # read-only
+npm run db:preflight                     # read-only
 node scripts/db-preflight.mjs --repair   # only where repair is non-destructive
 ```
 
 It resolves seven fields:
 
 ```
-DATABASE_AGENT_STATUS       PASS | BLOCKED | FAILED
+DATABASE_AGENT_STATUS       PASS | INCOMPLETE | BLOCKED | FAILED
 SCHEMA_STATUS               CURRENT | STALE | UNKNOWN
 MIGRATION_STATUS            CURRENT | PENDING_MIGRATIONS | MIGRATION_DRIFT | UNKNOWN
 PRISMA_CLIENT_STATUS        CURRENT | CLIENT_MISMATCH | UNKNOWN
@@ -153,7 +153,37 @@ DATABASE_WRITE_LEASE_STATUS HELD | HELD_BY_OTHER | NOT_REQUIRED
 
 **`UNKNOWN` is not an acceptable resting state** for DB-affecting
 implementation. It means nobody looked, which is the condition every failure
-below started from.
+below started from. That sentence used to sit directly beneath a headline
+reading `DATABASE_AGENT_STATUS PASS` with two fields `UNKNOWN`, because only
+`SCHEMA_STATUS`, `CLIENT_MISMATCH` and `MIGRATION_DRIFT` were treated as
+blocking. `INCOMPLETE` now exists so the headline cannot contradict the
+paragraph: **BLOCKED** means something is known to be wrong, **INCOMPLETE**
+means the check could not see, and neither one is `PASS`.
+
+`PENDING_MIGRATIONS` blocks too, which it did not before. Measured against an
+empty database with 213 committed migrations unapplied, the old preflight
+printed `DATABASE_AGENT_STATUS PASS` and exited `0`.
+
+## Postflight — the coherence you must leave behind
+
+**A preflight cannot protect this invariant on its own.** It certifies that the
+four links agree, the Database Agent then authors the migration that makes them
+disagree, and nothing asks again. So the check runs at both ends:
+
+```bash
+npm run db:postflight                        # resolves DATABASE_COHERENCE_STATUS
+node scripts/db-preflight.mjs --postflight --repair   # prisma:generate, migrate:deploy
+```
+
+Postflight differs from preflight in **where it looks**. It resolves the primary
+checkout from `git worktree list` and asks about that one, because a task
+worktree's generated client is irrelevant to a human running the API in the
+checkout they actually work in — and because a worktree without `node_modules`
+cannot answer the question at all.
+
+`DATABASE_COHERENCE_STATUS` is a completion-contract field. A task that changed
+schema, a migration or a seed may not report done while it is anything but
+`PASS`. See [`task-completion-contract.md`](../context/task-completion-contract.md).
 
 ### The coherence invariant this exists to protect
 
@@ -173,8 +203,19 @@ points everywhere except the cause:
   produced 8 errors saying the property does not exist. The guard reported
   healthy while the exact failure it was written to prevent was happening.
 
+- **BUG-0083** — this gate itself reported `PASS`, exit `0`, against a database
+  with every committed migration unapplied, printing `PENDING_MIGRATIONS` and
+  `DATABASE_MISMATCH` in the same output. It also announced `DATABASE_URL is not
+  set` on a machine where the database was running, because it read only
+  `process.env` and never `services/api/.env` — the file Prisma itself loads.
+  Both stale artifacts then reached the user at once: a client missing seven
+  fields, and three unapplied migrations that no guard mentioned at all.
+
 That history is why this is owned rather than left to whoever notices. The
-Database Agent owns prevention of this class.
+Database Agent owns prevention of this class — see
+[`stale-generated-artifact`](../../docs/qa/known-bug-patterns/stale-generated-artifact.md),
+which reads as one story: the artifact got staler in more ways each time, and
+the guard's blind spot moved rather than closed.
 
 Before dependent development: `PRISMA_CLIENT_STATUS = CURRENT`.
 Before DB-backed validation: `MIGRATION_STATUS = CURRENT` **and**
@@ -441,6 +482,9 @@ cannot.
 - [ ] Money is `Decimal` with explicit precision
 - [ ] Migration generated, not hand-edited, named for the change
 - [ ] `npm run prisma:validate` and `npm run prisma:generate` run, then typecheck
+- [ ] `npm run db:postflight` reports `PASS` against the **primary** checkout —
+      `DATABASE_COHERENCE_STATUS`. Your own worktree being coherent says nothing
+      about the checkout the next person runs the API in
 - [ ] Backfill written and idempotent, if data must move
 - [ ] `seed-config.ts` + `verify-seed-config.ts` updated if configuration added
 - [ ] Rollback described in the plan

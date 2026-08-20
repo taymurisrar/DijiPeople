@@ -28,7 +28,7 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -4186,6 +4186,50 @@ if (trackedFiles) {
     /Backend\/API\s+may\s+\*request\*\s+a\s+schema\s+change\s+and\s+must\s+not\s+author\s+one/.test(database) &&
       /Release\/DevOps\s+\*executes\*\s+migrations\s+during\s+deployment\s+and\s+does\s+not\s+design\s+them/.test(database),
     'ownership of the database lifecycle is exclusive to the Database Agent',
+  );
+
+  /*
+   * 32e — BUG-0083, and deliberately behavioural rather than textual.
+   *
+   * 32b above asserts that database.md *says* UNKNOWN is unacceptable. That
+   * sentence was present and true the whole time the script reported PASS over
+   * two UNKNOWN fields — a check on prose cannot see a defect in the code the
+   * prose describes. These call the verdict function with the exact state the
+   * user's machine was in and require a failing answer.
+   */
+  const { classifyVerdict } = await import(pathToFileURL(join(ROOT, 'scripts/db-preflight.mjs')).href);
+
+  const coherent = {
+    schema: { status: 'CURRENT' },
+    prismaClient: { status: 'CURRENT' },
+    migration: { status: 'CURRENT' },
+    database: { status: 'CURRENT' },
+  };
+
+  check(
+    'simulation 32e: a database behind the committed history cannot report PASS',
+    classifyVerdict({
+      ...coherent,
+      migration: { status: 'PENDING_MIGRATIONS' },
+      database: { status: 'DATABASE_MISMATCH' },
+    }).verdict === 'BLOCKED',
+    'db-preflight reported PASS and exit 0 against 213 unapplied migrations — BUG-0083',
+  );
+
+  check(
+    'simulation 32f: an UNKNOWN field cannot report PASS',
+    ['schema', 'prismaClient', 'migration', 'database'].every(
+      (field) => classifyVerdict({ ...coherent, [field]: { status: 'UNKNOWN' } }).verdict === 'INCOMPLETE',
+    ) && classifyVerdict(coherent).verdict === 'PASS',
+    'INCOMPLETE exists so the headline cannot contradict "UNKNOWN is not an acceptable resting state"',
+  );
+
+  check(
+    'simulation 32g: the coherence invariant is checked after the work, not only before',
+    /--postflight/.test(read('scripts/db-preflight.mjs')) &&
+      /DATABASE_COHERENCE_STATUS/.test(read('.agent/context/task-completion-contract.md')) &&
+      /"db:postflight"/.test(read('package.json')),
+    'a preflight certifies coherence the same task then breaks by authoring the migration',
   );
 }
 

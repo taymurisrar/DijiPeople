@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**146 records** — 79 bugs under [`docs/bugs/`](../bugs/), 67 non-bug items under [`items/`](items/).
+**147 records** — 80 bugs under [`docs/bugs/`](../bugs/), 67 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -17,7 +17,7 @@ see [`README.md`](README.md) for why.
 | Blocked | 0 |
 | Deferred | 11 |
 | Awaiting a product decision | 3 |
-| Completed / closed | 95 |
+| Completed / closed | 96 |
 | **Open CRITICAL** | **0** |
 | **Open HIGH** | **12** |
 | **Awaiting Architect triage** | **0** |
@@ -54,7 +54,7 @@ see [`README.md`](README.md) for why.
 | DEFERRED | 11 |
 | PRODUCT_DECISION | 3 |
 | FIXED | 8 |
-| VERIFIED | 66 |
+| VERIFIED | 67 |
 | DUPLICATE | 1 |
 | READY | 25 |
 | DONE | 28 |
@@ -112,6 +112,7 @@ see [`README.md`](README.md) for why.
 | [BUG-0079](../../docs/bugs/BUG-0079-browser-e2e-spends-its-whole-install-step-on-apt-work-that-i.md) | Browser e2e spends its whole install step on apt work that installs no browser library | PERFORMANCE | HIGH | P1 | FIXED | .github/workflows, e2e | FIX_NOW |
 | [BUG-0080](../../docs/bugs/BUG-0080-seeded-prices-bill-a-flat-fee-while-the-terms-say-the-billab.md) | Seeded prices bill a flat fee while the Terms say the billable unit is an active employee | DATA_INTEGRITY | HIGH | P1 | FIXED | billing, super-admin, legal | FIX_NOW |
 | [BUG-0082](../../docs/bugs/BUG-0082-the-onboarding-wizard-collects-five-steps-of-data-it-cannot-.md) | The onboarding wizard collects five steps of data it cannot submit | UX | HIGH | P1 | FIXED | landing | FIX_NOW |
+| [BUG-0083](../../docs/bugs/BUG-0083-the-database-agent-preflight-reports-pass-on-a-database-with.md) | The Database Agent preflight reports PASS on a database with every migration unapplied | INFRA | HIGH | P1 | VERIFIED | scripts, .agent, services/api | DONE |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | READY | api:tenant-control-plane | FIX_NOW |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | READY | apps/web, e2e | PLAN_REQUIRED |

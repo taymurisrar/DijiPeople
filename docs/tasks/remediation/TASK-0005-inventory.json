@@ -3162,6 +3162,7 @@
         "REG-048"
       ],
       "qa_scenarios": [
+        "QA-CI-002",
         "QA-DEPLOY-010"
       ],
       "test_plan": []
@@ -6019,6 +6020,7 @@
         "REG-063"
       ],
       "qa_scenarios": [
+        "QA-CI-002",
         "QA-DEPLOY-014"
       ],
       "test_plan": [],
@@ -7371,6 +7373,59 @@
       "architect_disposition": "DUPLICATE",
       "verification_result": {
         "result": "DUPLICATE",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0083",
+      "source": {
+        "record_path": "docs/bugs/BUG-0083-the-database-agent-preflight-reports-pass-on-a-database-with.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "844b6d3",
+        "created_at": "2026-08-20",
+        "updated_at": "2026-08-20",
+        "resolved_at": "2026-08-20"
+      },
+      "type": "INFRA",
+      "title": "The Database Agent preflight reports PASS on a database with every migration unapplied",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "VERIFIED",
+      "current_evidence": {
+        "paths": [
+          "scripts/db-preflight.mjs",
+          "scripts/db-preflight.test.mjs",
+          ".agent/context/task-completion-contract.md"
+        ],
+        "verification_scope": "The Database Agent gate returned PASS over its own failing fields. Measured against a throwaway database with 213 committed migrations unapplied, db-preflight printed MIGRATION_STATUS=PENDING_MIGRATIONS, LOCAL_DATABASE_STATUS=DATABASE_MISMATCH and DATABASE_AGENT_STATUS=PASS in one output, exiting 0. PASS was the default for every status not explicitly enumerated as blocking, so both \"behind\" and \"nobody could look\" reached it. The verdict is now a pure exported function with three outcomes, and the invariant is checked after the work as well as before it, against the primary checkout."
+      },
+      "affected_modules": [
+        "scripts",
+        ".agent",
+        "services/api"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [
+        "BUG-0060",
+        "BUG-0068"
+      ],
+      "related_backlog": [],
+      "regressions": [
+        "REG-078"
+      ],
+      "qa_scenarios": [
+        "QA-CI-002"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
+      "verification_result": {
+        "result": "FIXED",
         "classification": "TERMINAL_AS_DOCUMENTED",
         "finding_ids": []
       }

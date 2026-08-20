@@ -515,6 +515,9 @@ npm run test:runtime-schema  # node --test packages/config/platform-runtime-sche
 npm run prisma:validate      # prisma validate --config prisma.config.ts
 npm run prisma:generate
 npm run prisma:migrate:status
+npm run db:preflight         # schema · migrations · generated client · local database
+npm run db:postflight        # the same four, after the work, against the PRIMARY checkout
+npm run test:db-preflight    # REG-078 — the verdict cannot report PASS over a failing field
 npm run smoke:deployment     # scripts/smoke-deployment.mjs
 
 npm run validate:framework   # structural validation of the agent framework
@@ -669,6 +672,7 @@ BUG_RECORD_STATUS               PRIMARY_WORKTREE_STATUS
 ARCHITECT_TRIAGE_STATUS         TASK_WORKTREE_STATUS
 BACKLOG_UPDATE_STATUS           UNEXPLAINED_DIRTY_FILES
                                 POST_INTEGRATION_GENERATOR_STATUS
+                                DATABASE_COHERENCE_STATUS
                                 DEPLOYMENT_STATUS
                                 DEPLOYMENT_DRIFT_STATUS
 ```

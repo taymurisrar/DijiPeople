@@ -13,7 +13,7 @@
 | Blocked | 0 |
 | Awaiting a product decision | 3 |
 | Deferred | 11 |
-| Completed | 95 |
+| Completed | 96 |
 | Awaiting Architect triage | 0 |
 
 ## Open Critical Bugs
@@ -121,6 +121,7 @@ _None._
 | [[BUG-0079-browser-e2e-spends-its-whole-install-step-on-apt-work-that-i|BUG-0079]] | Browser e2e spends its whole install step on apt work that installs no browser library | PERFORMANCE | HIGH | FIXED | .github/workflows, e2e | FIX_NOW |
 | [[BUG-0080-seeded-prices-bill-a-flat-fee-while-the-terms-say-the-billab|BUG-0080]] | Seeded prices bill a flat fee while the Terms say the billable unit is an active employee | DATA_INTEGRITY | HIGH | FIXED | billing, super-admin, legal | FIX_NOW |
 | [[BUG-0082-the-onboarding-wizard-collects-five-steps-of-data-it-cannot-|BUG-0082]] | The onboarding wizard collects five steps of data it cannot submit | UX | HIGH | FIXED | landing | FIX_NOW |
+| [[BUG-0083-the-database-agent-preflight-reports-pass-on-a-database-with|BUG-0083]] | The Database Agent preflight reports PASS on a database with every migration unapplied | INFRA | HIGH | VERIFIED | scripts, .agent, services/api | DONE |
 | [[BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state|BUG-0051]] | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |
 | [[BUG-0009-session-revocation-depended-on-the-refresh-cookie|BUG-0009]] | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | VERIFIED | app:admin, api:auth | DONE |
 | [[BUG-0010-unguarded-cookie-options-could-turn-sign-out-into-a-500|BUG-0010]] | Unguarded cookie options could turn admin sign-out into a 500 | INFRA | MEDIUM | VERIFIED | app:admin | DONE |
@@ -225,9 +226,9 @@ _None. Nothing has been deployed through the release process._
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 79 |
+| Bug records | 80 |
 | Backlog items | 67 |
-| Known bug patterns | 22 |
+| Known bug patterns | 23 |
 | QA runs | 20 |
 | Engineering history records | 21 |
 | Release records | 0 |
