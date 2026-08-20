@@ -10,8 +10,8 @@ CREATED_AT: 2026-08-20
 AFFECTED_MODULES: [auth, users, legal, tenant-domains, super-admin, web, admin]
 AGENTS: [Architect, Database, Backend/API, Frontend, UI/UX, Security, QA, Reviewer, Integrator]
 DEPENDENCIES: origin/develop 844b6d3; TASK-0008 WP-02, WP-04, WP-05
-CURRENT_PACKAGE: WP-10
-COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-12]
+CURRENT_PACKAGE: WP-11
+COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-10, WP-12]
 BLOCKED_PACKAGES: [WP-09]
 OWNER_DECISIONS: 2
 FINAL_STATUS:
@@ -102,7 +102,7 @@ the wrong design, however elegant it looks.
 | WP-07 | In-app workspace switcher — closes TASK-0008 WP-06 | DONE | WP-06 | Frontend, UI/UX | agent/identity-and-membership | pending | PASS | — | NOT_RUN | NOT_STARTED |
 | WP-08 | Second workspace for an existing identity — no activation step | DONE | WP-04 | Backend/API, Integration | agent/identity-and-membership | pending | PASS | — | NOT_RUN | NOT_STARTED |
 | WP-09 | Contract phase — `identityId` required (written, held for a later deployment) | BLOCKED | WP-02/03 reaching production | Database, Backend/API | agent/identity-and-membership | — | — | — | — | — |
-| WP-10 | Security review — enumeration, credential stuffing, cross-tenant reach | NOT_STARTED | WP-01..WP-09 | Security | agent/identity-and-membership | — | — | — | — | — |
+| WP-10 | Security review — enumeration, credential stuffing, cross-tenant reach | DONE | WP-01..WP-08 | Security | agent/identity-and-membership | pending | PASS | ITEM-0069 | NOT_RUN | NOT_STARTED |
 | WP-11 | QA campaign, browser E2E, review, CI, integration, closure | NOT_STARTED | WP-10 | QA, Reviewer, Integrator, Architect | agent/identity-and-membership | — | — | — | — | — |
 
 **WP-01 is not identity work, and it is here because it was unblocked and
@@ -590,6 +590,48 @@ what lets the application boot against a database where the migration has not
 run — every rollback. Dropping a column with data in it is unrecoverable without
 a restore; making a link required is reversible by dropping a constraint.
 
+## WP-10 — security review of what this parent added
+
+Seven questions, each answered against the code.
+
+| Question | Finding |
+|---|---|
+| Can discovery enumerate customers? | **No.** It requires a password. An address-only endpoint would map the customer base and no rate limit fixes that; with a password the only caller who learns anything is the person the answer is about. |
+| Can it enumerate by *timing*? | **No.** The bcrypt compare runs even when no identity exists, against a fixed hash. Skipping it would make the unknown-address case measurably faster, which is the same oracle wearing a stopwatch. Asserted by counting compare calls rather than by timing, which would be flaky. |
+| Can it enumerate by *response shape*? | **No.** Unknown address, wrong password, suspended identity and locked identity all return the same failure. A login form that distinguishes them is an address validator. |
+| Is the new public endpoint rate limited? | **Yes**, at the class, and `public-write-rate-limit.invariant.spec.ts` — the check BUG-0075 produced — covers `auth.controller.ts` and passes with it. |
+| Does the JWT still name exactly one tenant? | **Yes.** `JwtAuthGuard` is untouched, `request.user.tenantId` still means one tenant, and no service or RBAC scope changed. This was assumption A-03 and it held; any design that broke it would have been the wrong design. |
+| Can a session for one workspace reach another's data? | **No.** Discovery returns a name, a slug and an id for the person's *own* workspaces and nothing else. `assertUserMayUseHostname` is unchanged, so a session presented on another customer's hostname is still refused. |
+| Is a credential or hash ever logged? | **No.** The failure logs carry the normalised address and a reason; no branch logs `passwordHash` or the submitted password. |
+
+**One finding, and it is a trade-off rather than a defect: [[ITEM-0069]].**
+
+The global lockout added in WP-04 is incremented by the public discovery
+endpoint added in WP-06. Twenty unauthenticated requests can therefore lock a
+known address out of **every** workspace for an hour.
+
+The counter cannot simply be removed — without it, discovery is unlimited
+password guessing that bypasses the per-tenant lockout entirely, because at that
+point in the flow there is no tenant to take a policy from. And it cannot be
+keyed on the request instead: `login-lockout.service.ts` already explains why,
+and the reasoning is unchanged — *"counting per address would be avoided by
+rotating addresses, which is exactly what an attacker does."*
+
+So the choice was between an attacker guessing indefinitely and an attacker
+locking somebody out for an hour, and the second is the lesser harm. It is also
+the same trade the existing per-tenant lockout already makes.
+
+It is still worth fixing, because the global lock is **strictly worse in blast
+radius**: per-tenant, a victim loses one workspace and can work in another;
+global, they lose everything including the picker. The global threshold is four
+times the per-tenant default and the public rate limit stops one IP reaching it
+in a single window, which raises the cost without removing the hole.
+
+Filed rather than fixed here because the options — decoupling the discovery
+counter, proof-of-work, notify-on-lock — each trade usability against
+resistance, and where to sit on that curve is a product decision. Fixing it in
+passing would have meant choosing for the owner.
+
 ## Repository Health
 
 PRE_TASK_REPO_HEALTH — PASS at `844b6d3`. `MAIN_SYNC_STATUS = SYNCED`,
@@ -625,7 +667,7 @@ TASK-0008's migrations to the local development database. WP-02 waits on it.
 
 ## Related
 
-- Records — [[ITEM-0060]], [[ITEM-0062]], [[ITEM-0068]]
+- Records — [[BUG-0075]], [[ITEM-0060]], [[ITEM-0062]], [[ITEM-0068]], [[ITEM-0069]]
 - Modules — [[legal]], [[super-admin]]
 
 <!-- GRAPH:END -->

@@ -36,7 +36,7 @@
 | [[TASK-0005-dijipeople-global-technical-remediation|TASK-0005]] | DijiPeople Global Technical Remediation | BUG | PROGRAM | 3/11 | WP-09 | WP-04, WP-06, WP-07, WP-08, WP-10 | — |
 | [[TASK-0007-commercial-platform-completion-transactional-legal-and-lifec|TASK-0007]] | Commercial platform completion — transactional, legal and lifecycle half | FEATURE | PROGRAM | 15/16 | WP-11 | — | WP-15 |
 | [[TASK-0008-self-service-customer-onboarding-tenant-provisioning-domain-|TASK-0008]] | Self-service customer onboarding, tenant provisioning, domain routing and central login | FEATURE | LARGE | 10/11 | WP-06 | — | WP-06 |
-| [[TASK-0009-identity-and-multi-tenant-membership|TASK-0009]] | Identity and multi-tenant membership | FEATURE | LARGE | 9/12 | WP-10 | WP-10 | WP-09 |
+| [[TASK-0009-identity-and-multi-tenant-membership|TASK-0009]] | Identity and multi-tenant membership | FEATURE | LARGE | 10/12 | WP-11 | WP-11 | WP-09 |
 
 ## Branch model
 
@@ -195,7 +195,7 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 38 |
+| Open total | 39 |
 | Blocked | 0 |
 | Deferred | 11 |
 | Awaiting a product decision | 3 |
