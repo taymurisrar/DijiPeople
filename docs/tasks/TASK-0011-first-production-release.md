@@ -10,8 +10,8 @@ CREATED_AT: 2026-08-20
 AFFECTED_MODULES: [all]
 AGENTS: [Architect, Release/DevOps, Integrator]
 DEPENDENCIES: origin/develop 97b4cc5; TASK-0010
-CURRENT_PACKAGE: WP-01
-COMPLETED_PACKAGES: []
+CURRENT_PACKAGE: WP-02
+COMPLETED_PACKAGES: [WP-01]
 BLOCKED_PACKAGES: []
 OWNER_DECISIONS: 1
 FINAL_STATUS:
@@ -63,8 +63,46 @@ A good package can be reviewed on its own and has one owning specialist.
 
 | WP_ID | TITLE | STATUS | DEPENDENCIES | AGENTS | BRANCH | SHA | QA_STATUS | BUGS | CI_STATUS | MERGE_STATUS |
 |---|---|---|---|---|---|---|---|---|---|---|
-| WP-01 | PR `develop` -> `main`, exact-SHA CI verdict, merge | IN_PROGRESS | TASK-0010 | Integrator | develop | 97b4cc5 | PASS | — | PENDING | NOT_STARTED |
-| WP-02 | Deployment outcome and the release-history record | NOT_STARTED | WP-01 | Release/DevOps | — | — | — | — | — | — |
+| WP-01 | PR `develop` -> `main`, exact-SHA CI verdict, merge | DONE | TASK-0010 | Integrator | develop | 77fd2d7 | PASS | — | PASS | MERGED 270cde7 |
+| WP-02 | Deployment outcome and the release-history record | IN_PROGRESS | WP-01 | Release/DevOps | — | 270cde7 | — | — | PASS | — |
+
+## WP-01 — merged
+
+PR [#33](https://github.com/taymurisrar/DijiPeople/pull/33), merged
+2026-08-20 16:40:55Z. `main`: `b90f33e` -> **`270cde7`**.
+
+**The merge changed no file.** `main` was a strict ancestor of `develop`, so the
+merge commit's tree is byte-identical to the CI-verified SHA:
+
+```
+77fd2d7 tree  e027ec20edf0b264e7cce915dd3131fc6c55fe36
+270cde7 tree  e027ec20edf0b264e7cce915dd3131fc6c55fe36
+```
+
+That is what makes `POST_MERGE_VALIDATION_STATUS` a fact rather than a hope: the
+evidence gathered on `77fd2d7` applies to production content unchanged, and
+`git diff origin/develop origin/main` is empty.
+
+### The gate passed in two seconds, and that was checked rather than trusted
+
+The PR's `CI required gate` concluded `pass` in 2s with all twelve underlying
+jobs `skipping`. That is the shape of a gate that checks nothing, so it was
+verified before merging:
+
+```
+reason: run 32391856771 (agent/go-live-readiness) shows all 12 required
+        jobs green on this exact SHA
+RESOLVE_RESULT: success   REUSE: true   EVIDENCE_RUN_ID: 32391856771
+```
+
+`ci.yml` implements exact-SHA evidence reuse deliberately, and defends the two
+ways it could be gamed: the resolver is *"a precondition, not evidence — if it
+did not itself succeed we know nothing about this SHA and must not conclude"*,
+and the check is job-level rather than run-level because *"skipped is rejected
+as firmly as failure"*. The workflow file is part of the SHA, so a matching SHA
+cannot have been validated by a different pipeline.
+
+CI on `main` at `270cde7` then concluded `success` independently.
 
 ## Assumptions
 
@@ -108,6 +146,8 @@ See `node scripts/repo-health.mjs`.
 
 ## History
 
+- 2026-08-20 — merged. `main` = 270cde7, tree identical to the verified 77fd2d7,
+  CI green on main. Deployment outcome pending.
 - 2026-08-20 — created at the owner's instruction to merge `develop` into `main`.
   Separate from TASK-0010 because only a RELEASE may target the production
   branch.
