@@ -14,7 +14,7 @@ TARGET_BRANCH: develop
 WORKTREE: D:/My Work/hrm-dijipeople/DijiPeople-selfservice
 AFFECTED_MODULES: [billing, super-admin, outbox, tenant-domains, prisma]
 WRITE_LEASES: [schema]
-ACTIVE_WORK_PACKAGES: [WP-10]
+ACTIVE_WORK_PACKAGES: [WP-09]
 SCHEMA_WRITE: YES
 CI_STATUS: NOT_RUN
 MERGE_STATUS: NOT_STARTED

@@ -56,7 +56,8 @@ Expected behaviour written before execution.
 | Command | Suite | Pass | Fail | Skip | Duration |
 |---|---|---|---|---|---|
 | `npm --workspace api run test` | api unit | 1388 | 0 | 0 | ~33 s |
-| `npx jest --config ./test/jest-e2e.json` | api e2e, real PostgreSQL | 231 | 81 | 0 | ~5 min |
+| `npx jest --config ./test/jest-e2e.json` | api e2e, real PostgreSQL — **post-merge** | 326 | 0 | 0 | ~5 min |
+| ⤷ same, pre-merge (stale base) | | 231 | 81 | 0 | — |
 | `npm --workspace landing run test` | landing | 109 | 0 | 0 | ~2 s |
 | `npm --workspace web run test` | web | 408 | 0 | 0 | ~4 s |
 | `npm --workspace admin run test` | admin | 101 | 0 | 0 | ~3 s |
@@ -65,8 +66,8 @@ Expected behaviour written before execution.
 | `npm --workspace landing run lint` | landing eslint | — | 0 | — | — |
 | `npm run validate:framework` | framework | 2740 | 0 | 0 | — |
 
-**The 81 e2e failures share one pre-existing cause, and it had already been
-fixed on `develop` when this ran** — see the correction in Known Limitations.
+**Re-run after merging `develop`: 26 suites, 326 tests, zero failures.** The 81
+pre-merge failures were a stale-base artefact — see Known Limitations.
 
 Database prepared as `.github/workflows/ci.yml` prepares it, plus two seeds CI
 does not run: `prisma:migrate:deploy` → `seed:config` → `seed:demo` →
@@ -132,9 +133,11 @@ three suites converted, `legal-seed` made to run its own seed, and
 `database-e2e` into the required gate, which it could only do because these
 failures were gone.
 
-So the number above is a **stale-base artefact**, not a finding.
-[[ITEM-0067]] is withdrawn as a duplicate, and the post-merge figure is recorded
-in TASK-0008's WP-08 section.
+So the pre-merge number was a **stale-base artefact**, not a finding.
+[[ITEM-0067]] is withdrawn as a duplicate. Re-run against a fresh database after
+the merge: **26 suites, 326 tests, zero failures, exit 0** — the whole
+database-backed set green, including the three suites that had appeared broken
+and the two seeds that had appeared missing.
 
 The process lesson is worth more than the number: **a QA campaign that
 establishes a baseline must merge the integration branch first.** Otherwise
@@ -159,6 +162,9 @@ index and the losing-writer path, not by racing clients.
 
 **PASS WITH RISKS.**
 
+Re-issued after merging `develop`, against the whole database-backed suite
+green — 26 suites, 326 tests, zero failures.
+
 The acquisition path holds against a real database: payment authorises
 provisioning and nothing else does, an order cannot be double-created, a
 workspace address cannot be taken twice, nobody is charged before their address
@@ -172,8 +178,9 @@ The risks, named rather than buried:
    argument for taking that seriously: a browser regression survived a rewrite
    that every unit test still passed. The gate runs it on push; if it goes red,
    that is this verdict changing, not a new event.
-2. **The e2e baseline was taken on a stale base.** Corrected above and re-run
-   after the merge; the figure that counts is the post-merge one in TASK-0008.
+2. **The e2e baseline was first taken on a stale base.** Corrected and re-run:
+   326 / 326. The correction cost a wasted investigation and one withdrawn
+   record, which is the cheapest form this mistake takes.
 3. **No legal document is published.** The wizard requires only agreements
    carrying a published version, so with none published it requires none, and a
    purchase records no consent. That is an owner decision already open, not a

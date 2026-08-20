@@ -244,7 +244,7 @@ regression from a pre-existing failure.
 | Suite | Result |
 |---|---|
 | api unit | 1388 / 1388 |
-| api e2e, real PostgreSQL | 231 / 312 pre-merge — **the 81 failures were a stale-base artefact**, see below |
+| api e2e, real PostgreSQL | **326 / 326 after merging `develop`** — 26 suites, exit 0. The pre-merge 231 / 312 was a stale-base artefact; see below |
 | landing | 109 / 109 |
 | web | 408 / 408 |
 | admin | 101 / 101 |

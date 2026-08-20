@@ -168,6 +168,7 @@ _None._
 
 ## Recent Engineering History
 
+- [[2026-08-20-self-service-onboarding-provisioning-c935fcb|Engineering History — Self service onboarding provisioning]]
 - [[2026-08-19-provisioning-operations-and-qa-campaign-b016441|Engineering History — Provisioning operations and qa campaign]]
 - [[2026-08-19-ci-e2e-remediation-3f03571|Engineering History — CI browser install latency and the database e2e fixture contract]]
 - [[2026-08-19-agent-framework-hardening|Engineering History — Database Agent, Security Agent, agent reliability and Obsidian ownership]]
@@ -175,7 +176,6 @@ _None._
 - [[2026-08-18-landing-uiux-remediation-ab3bc73|Engineering History — Landing UI/UX remediation]]
 - [[2026-08-18-commercial-platform-outbox-and-legal|Engineering History — Commercial platform: transactional outbox and legal documents]]
 - [[2026-08-18-ci-performance-cancellation-rca-3f6775e|Engineering History — CI performance, cancellation RCA and autonomous CI adaptation]]
-- [[2026-08-17-landing-uiux-browser-qa-and-agent-hardening-1f6e842|Engineering History — Landing UI/UX browser QA and UI/UX agent hardening]]
 
 ## Recent Releases
 
@@ -228,7 +228,7 @@ _None. Nothing has been deployed through the release process._
 | Backlog items | 67 |
 | Known bug patterns | 20 |
 | QA runs | 20 |
-| Engineering history records | 20 |
+| Engineering history records | 21 |
 | Release records | 0 |
 | Module notes | 27 |
 | Architecture notes | 20 |
