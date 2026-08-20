@@ -10,8 +10,8 @@ CREATED_AT: 2026-08-20
 AFFECTED_MODULES: [auth, users, legal, tenant-domains, super-admin, web, admin]
 AGENTS: [Architect, Database, Backend/API, Frontend, UI/UX, Security, QA, Reviewer, Integrator]
 DEPENDENCIES: origin/develop 844b6d3; TASK-0008 WP-02, WP-04, WP-05
-CURRENT_PACKAGE: WP-05
-COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-04, WP-12]
+CURRENT_PACKAGE: WP-06
+COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-04, WP-05, WP-12]
 BLOCKED_PACKAGES: []
 OWNER_DECISIONS: 2
 FINAL_STATUS:
@@ -97,7 +97,7 @@ the wrong design, however elegant it looks.
 | WP-03 | Backfill — one Identity per distinct email, linking same-email rows | DONE | WP-02 | Database | agent/identity-and-membership | pending | PASS | — | NOT_RUN | NOT_STARTED |
 | WP-12 | Every user-creation path writes an Identity | DONE | WP-03 | Backend/API, Database | agent/identity-and-membership | pending | PASS | — | NOT_RUN | NOT_STARTED |
 | WP-04 | Authentication split — identity resolution, then tenant selection | DONE | WP-12 | Backend/API, Security | agent/identity-and-membership | pending | PASS | — | NOT_RUN | NOT_STARTED |
-| WP-05 | Workspace discovery by email, rate-limited and non-enumerable | NOT_STARTED | WP-04 | Backend/API, Security | agent/identity-and-membership | — | — | — | — | — |
+| WP-05 | Workspace discovery — every workspace the identity reaches | DONE | WP-04 | Backend/API, Security | agent/identity-and-membership | pending | PASS | — | NOT_RUN | NOT_STARTED |
 | WP-06 | Generic login and the workspace picker | NOT_STARTED | WP-05 | Frontend, UI/UX | agent/identity-and-membership | — | — | — | — | — |
 | WP-07 | In-app workspace switcher and last-used preference — closes TASK-0008 WP-06 | NOT_STARTED | WP-06 | Frontend, UI/UX | agent/identity-and-membership | — | — | — | — | — |
 | WP-08 | Second workspace for an existing identity — no activation step | NOT_STARTED | WP-04 | Backend/API, Integration | agent/identity-and-membership | — | — | — | — | — |
@@ -418,6 +418,55 @@ fails and nothing else does.
 
 Full suite **30 suites / 351 tests** green, including the auth e2e suites that
 drive real sign-ins end to end.
+
+## WP-05 — discovery, and the enumeration oracle that was not built
+
+`listWorkspacesForUser` now resolves the identity and lists every workspace it
+reaches. That single change is what [[ITEM-0062]] was filed for: the method
+returned a one-element array **by construction**, so the picker page rendered
+correctly and could never have anything to pick, and the switcher had nowhere
+to switch to. Neither was unbuilt — both were impossible.
+
+**The package title changed, and the reason is a design decision worth
+recording.** It was planned as *"workspace discovery by email, rate-limited and
+non-enumerable"*, which implies a public endpoint taking an address and
+answering which workspaces it reaches. That endpoint is a customer-enumeration
+oracle no amount of rate limiting fixes: feed it a list of company addresses and
+the answers map DijiPeople's customer base.
+
+The brief's own flow does not require one. *"Email → membership discovery →
+automatic redirect or workspace picker"* is satisfied by discovering **after**
+the credential is verified, not before — which is what WP-06 does. So there is
+no public discovery endpoint, and there should not be one. Nothing here answers
+a question to a caller who has not proved who they are.
+
+The session stays tenant-scoped throughout. This tells a person which of *their
+own* workspaces exist and returns nothing about any of them beyond a name, a
+hostname and whether it can be opened.
+
+Three behaviours that are easy to get wrong and are asserted rather than
+assumed:
+
+- **A workspace the person is disabled in is not listed.** `User.status` is per
+  tenant by design, so being revoked at one says nothing about the others.
+  Offering a door that refuses them is worse than not offering it — they click
+  it, get bounced, and cannot tell whether the fault is theirs.
+- **The default is the workspace they are already in**, when it can be opened.
+  "Default" means "where to send somebody who did not choose", and sending them
+  out of the workspace they are standing in would be surprising.
+- **Ordering is openable-first, then by name.** This is a menu somebody uses
+  repeatedly; one that reshuffles between visits defeats the muscle memory that
+  makes it fast.
+
+The unit spec's doubles had to change with the implementation — they supplied a
+single `tenant.findUnique`, which was the old shape and the old defect. Nineteen
+cases now, up from fifteen. Mutation-checked by removing the
+`status: { not: 'DISABLED' }` filter: one test fails, the right one.
+
+`workspace-discovery.e2e-spec.ts` proves the join against real PostgreSQL — two
+`User` rows in two tenants, one `Identity`, both found from a session scoped to
+one of them — and that a neighbouring person in the same tenant sees only their
+own.
 
 ## Repository Health
 

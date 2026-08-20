@@ -148,15 +148,49 @@ export class WorkspaceResolutionService {
   /**
    * The workspaces an authenticated tenant user can open.
    *
-   * Returns a list even though a `User` currently belongs to exactly one tenant
-   * — `User.tenantId` is a single non-null column, so one workspace is all
-   * there can be today. Shaping it as a list means adding multi-workspace
-   * membership later changes this method and nothing that calls it, rather than
-   * every login handler.
+   * This returned a **one-element array by construction** until TASK-0009: it
+   * read `user.tenantId` from the session and looked up that one tenant, so the
+   * workspace picker it feeds could never have anything to pick and the
+   * switcher could never have anywhere to switch to. That was
+   * [[ITEM-0062]], and it is why the shape was already a list — the shape was
+   * right and the data behind it did not exist.
+   *
+   * Now it resolves the **identity** and lists every workspace that identity
+   * reaches. The session stays tenant-scoped: this tells the person which of
+   * *their own* workspaces exist, and returns no data belonging to any of them
+   * beyond a name, a hostname and whether it can be opened.
+   *
+   * Ordering is deliberate and stable — openable first, then by name — so the
+   * picker does not reshuffle between visits and muscle memory keeps working.
    */
   async listWorkspacesForUser(user: AuthenticatedUser) {
-    const tenant = await this.prisma.tenant.findUnique({
-      where: { id: user.tenantId },
+    const account = await this.prisma.user.findUnique({
+      where: { id: user.userId },
+      select: { identityId: true },
+    });
+
+    /*
+     * Without an identity, the answer is the session's own tenant and nothing
+     * else. `identityId` is nullable until the contract phase, so this is the
+     * honest answer for a row the backfill has not reached — not an error, and
+     * not an empty list that would strand somebody who is signed in perfectly
+     * well.
+     */
+    const tenantIds = account?.identityId
+      ? (
+          await this.prisma.user.findMany({
+            where: {
+              identityId: account.identityId,
+              status: { not: 'DISABLED' },
+            },
+            select: { tenantId: true },
+            distinct: ['tenantId'],
+          })
+        ).map((row) => row.tenantId)
+      : [user.tenantId];
+
+    const tenants = await this.prisma.tenant.findMany({
+      where: { id: { in: tenantIds } },
       select: {
         id: true,
         name: true,
@@ -167,35 +201,56 @@ export class WorkspaceResolutionService {
       },
     });
 
-    if (!tenant) {
+    if (!tenants.length) {
       return { workspaces: [], defaultWorkspace: null };
     }
 
-    const primary = await this.domains.getPrimaryDomain(tenant.id);
-    const url = await this.domains.getWorkspaceUrl(tenant.id, '/');
-    const outcome = LIFECYCLE_OUTCOME[tenant.status] ?? 'UNAVAILABLE';
+    const workspaces = await Promise.all(
+      tenants.map(async (tenant) => {
+        const primary = await this.domains.getPrimaryDomain(tenant.id);
+        const url = await this.domains.getWorkspaceUrl(tenant.id, '/');
+        const outcome = LIFECYCLE_OUTCOME[tenant.status] ?? 'UNAVAILABLE';
 
-    const workspace = {
-      tenantId: tenant.id,
-      name: tenant.displayName || tenant.name,
-      slug: tenant.slug,
-      environmentType: tenant.environmentType,
-      status: tenant.status,
-      hostname: primary?.domain ?? null,
-      url,
-      /*
-       * A suspended or half-provisioned workspace is listed but not offered as
-       * somewhere to go: redirecting into it produces a login loop against a
-       * tenant that refuses every session.
-       */
-      canOpen: outcome === 'WORKSPACE',
-      unavailableReason:
-        outcome === 'WORKSPACE' ? null : (LIFECYCLE_MESSAGE[outcome] ?? null),
-    };
+        return {
+          tenantId: tenant.id,
+          name: tenant.displayName || tenant.name,
+          slug: tenant.slug,
+          environmentType: tenant.environmentType,
+          status: tenant.status,
+          hostname: primary?.domain ?? null,
+          url,
+          /*
+           * A suspended or half-provisioned workspace is listed but not offered
+           * as somewhere to go: redirecting into it produces a login loop
+           * against a tenant that refuses every session.
+           */
+          canOpen: outcome === 'WORKSPACE',
+          unavailableReason:
+            outcome === 'WORKSPACE'
+              ? null
+              : (LIFECYCLE_MESSAGE[outcome] ?? null),
+          isCurrent: tenant.id === user.tenantId,
+        };
+      }),
+    );
+
+    workspaces.sort((a, b) => {
+      if (a.canOpen !== b.canOpen) return a.canOpen ? -1 : 1;
+      return a.name.localeCompare(b.name);
+    });
+
+    /*
+     * The workspace this session is already in, when it can be opened —
+     * otherwise the first that can. "Default" here means "where to send
+     * somebody who did not choose", and sending them out of the workspace they
+     * are standing in would be surprising.
+     */
+    const current = workspaces.find((item) => item.isCurrent && item.canOpen);
 
     return {
-      workspaces: [workspace],
-      defaultWorkspace: workspace.canOpen ? workspace : null,
+      workspaces,
+      defaultWorkspace:
+        current ?? workspaces.find((item) => item.canOpen) ?? null,
     };
   }
 
