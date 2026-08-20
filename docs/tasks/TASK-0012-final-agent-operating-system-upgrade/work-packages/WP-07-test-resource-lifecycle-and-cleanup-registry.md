@@ -2,7 +2,7 @@
 WP_ID: WP-07
 TASK_ID: TASK-0012
 TITLE: Test resource lifecycle and cleanup registry
-STATUS: NOT_STARTED
+STATUS: DONE
 OWNER_AGENT: QA
 DEPENDENCIES: [WP-01]
 LAST_VERIFIED_SHA: 4226e53
@@ -63,15 +63,35 @@ LAST_VERIFIED_SHA: 4226e53 — re-read any summarised source that changed since.
 
 ## Implementation State
 
-Not started.
+
+Done.
+
+- `.agent/context/test-resource-policy.md` — ownership, the create-what-you-
+  assert-on rule, ephemeral versus durable evidence, disposable test databases,
+  provider limitations, and the janitor's three-condition test.
+- `scripts/lib/test-resources.mjs` — the per-run registry, reverse-order
+  cleanup, and the five closing numbers.
+
+Three failures are designed out explicitly: partial setup leaving teardown to
+guess, swallowed cleanup failures turning a leak into a green suite, and a
+provider object reported `CLEANED` while it still exists.
 
 ## Validation State
 
-Pending: simulations 55 to 58.
+
+- The library is dependency-free and imported by the WP-12 simulations, which
+  execute it rather than grep it.
+- `node scripts/validate-framework.mjs` → script-syntax checks pass.
 
 ## Evidence
 
-Pending.
+
+- `mayPass()` states the QA gate once, so it cannot drift between suites: a run
+  with a cleanup failure or an unaccounted resource cannot report PASS.
+- Evidence types are registered with cleanup `none` and settle as
+  `RETAINED_AS_EVIDENCE`, so a screenshot is never deleted along with the row
+  it was taken against.
+- Behavioural proof lands in WP-12 (simulations 55 to 58).
 
 ## Questions
 
@@ -79,4 +99,7 @@ None yet.
 
 ## Handoff
 
-Pending. WP-13 wires cleanup status into the QA PASS condition.
+
+KNOWLEDGE_IMPACT: QA_SCENARIO, CURRENT_CONTEXT.
+OBSIDIAN_IMPACT: NONE.
+Unblocks WP-13, which wires cleanup status into the QA PASS condition.

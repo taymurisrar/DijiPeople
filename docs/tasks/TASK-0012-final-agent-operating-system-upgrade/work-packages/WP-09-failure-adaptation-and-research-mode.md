@@ -2,7 +2,7 @@
 WP_ID: WP-09
 TASK_ID: TASK-0012
 TITLE: Failure adaptation, failure budget and research mode
-STATUS: NOT_STARTED
+STATUS: DONE
 OWNER_AGENT: Architect
 DEPENDENCIES: [WP-01]
 LAST_VERIFIED_SHA: 4226e53
@@ -62,15 +62,35 @@ LAST_VERIFIED_SHA: 4226e53 — re-read any summarised source that changed since.
 
 ## Implementation State
 
-Not started.
+
+Done.
+
+- `.agent/context/failure-adaptation.md` — thirteen failure classes, twelve
+  adaptation actions, the budget of two, the evidence chain required before a
+  systemic rule change, and the discovery boundary.
+- `.agent/context/research-mode.md` — when research is warranted, the seven-tier
+  order of evidence, the three-to-five source budget, the recorded finding, and
+  the four provenance kinds.
+
+`MISSING_CONTEXT` and `STALE_CONTEXT` are deliberately separate: they look
+identical in a post-mortem and have opposite remedies.
 
 ## Validation State
 
-Pending: simulations 63 and 64.
+
+- `node scripts/validate-framework.mjs` → context-layer checks pass, both
+  documents carry the staleness header and a CURRENT section.
 
 ## Evidence
 
-Pending.
+
+- The budget of two is grounded in named loops this repository has already paid
+  for: shell quoting that mangled Markdown, Playwright selectors retried against
+  a changed page, migrations re-run against a database that would never accept
+  them, and regex fixes iterated a character at a time.
+- The requirement that a systemic change carry a simulation is grounded in
+  check 38l, which survived a mutation setting its detection to a constant
+  `false` — which is why simulation 39 executes the script instead of reading it.
 
 ## Questions
 
@@ -78,4 +98,7 @@ None yet.
 
 ## Handoff
 
-Pending. Feeds WP-10 (agent health regressions come from classified failures).
+
+KNOWLEDGE_IMPACT: BUG_PATTERN, CURRENT_CONTEXT.
+OBSIDIAN_IMPACT: NONE.
+Feeds WP-10: an agent-health regression is a classified failure with a pattern.

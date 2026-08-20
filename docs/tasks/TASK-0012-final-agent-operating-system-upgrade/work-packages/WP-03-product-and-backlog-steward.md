@@ -2,7 +2,7 @@
 WP_ID: WP-03
 TASK_ID: TASK-0012
 TITLE: Product and Backlog Steward role and backlog ownership
-STATUS: NOT_STARTED
+STATUS: DONE
 OWNER_AGENT: Product & Backlog Steward
 DEPENDENCIES: [WP-01]
 LAST_VERIFIED_SHA: 4226e53
@@ -65,15 +65,43 @@ LAST_VERIFIED_SHA: 4226e53 — re-read any summarised source that changed since.
 
 ## Implementation State
 
-Not started.
+
+Done.
+
+- `.agent/agents/product-backlog-steward.md` — the permanent role.
+- `scripts/backlog-review.mjs` extended with seven health detectors
+  (`OWNERLESS`, `NO_ACCEPTANCE_CRITERIA`, `NO_NEXT_ACTION`,
+  `NO_MODULE_LINK`, `NO_QA_RELATIONSHIP`, `NO_LAST_REVIEWED`,
+  `STALE_DEFERRED`), three aging buckets, and `NEXT_BEST_ACTIONS`.
+- Registered in `REQUIRED_AGENTS`, so deleting the role fails validation.
+
+The ranking weighs blast radius, not severity alone: how many records name this
+one as a blocker, how many modules it spans, whether its type undermines later
+evidence. Every contribution is printed beside the record, so a disagreement is
+about the reasons rather than the number.
+
+Ownership fields are detected, not enforced. 156 records predate every one of
+them, and failing the build would make this a detector people disable.
 
 ## Validation State
 
-Pending: `npm run backlog:check`, `npm run backlog:review`, simulation 46.
+
+- `node scripts/backlog-review.mjs` on the live backlog → 39 active,
+  0 ownerless actionable, 39 without acceptance criteria or next action.
+- `node scripts/rebuild-backlog.mjs --check` → 156 records, 0 structural errors.
+- `node scripts/validate-framework.mjs` → role checks pass for the new role.
 
 ## Evidence
 
-Pending.
+
+- `NEXT_BEST_ACTIONS` ranked the live backlog and put BUG-0052 (HIGH, security,
+  six modules, FIX_NOW) at 75 and ITEM-0034 (HIGH, test gap, two modules) at 48 —
+  an ordering severity alone cannot produce.
+- ITEM-0073 was filed by this package and carries `LastReviewed`,
+  `NextAction` and `AcceptanceCriteria`, demonstrating the fields.
+- The detector reports 0 ownerless actionable records: every live record already
+  names an owner, so the gap is acceptance criteria and next actions, not
+  ownership.
 
 ## Questions
 
@@ -81,4 +109,7 @@ None yet.
 
 ## Handoff
 
-Pending. Feeds WP-10 (agent health, architecture debt) and WP-11 (Control Center).
+
+KNOWLEDGE_IMPACT: CURRENT_CONTEXT.
+OBSIDIAN_IMPACT: CREATE_NODE — the role file projects in WP-16.
+Unblocks WP-10 and WP-11.

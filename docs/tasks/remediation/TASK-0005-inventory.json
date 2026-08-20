@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 133,
+    "total_records": 134,
     "bugs": 73,
     "backlog_items": 60,
     "open_bucket": 4,
@@ -21,8 +21,8 @@
     "qa_findings": 10,
     "obsidian_findings": 2,
     "evidence_verified_during_triage": 28,
-    "preliminary_records": 67,
-    "pending_qa_retest_records": 3,
+    "preliminary_records": 68,
+    "pending_qa_retest_records": 4,
     "terminal_reverification_remaining": 70,
     "canonical_record_count_policy": "Findings that substantiate an existing BUG/ITEM link to that canonical record and do not create a duplicate record row.",
     "wp02_remediated_findings": 21,
@@ -7802,6 +7802,51 @@
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
       "architect_disposition": "FIX_NOW",
+      "verification_result": {
+        "result": "PRELIMINARY",
+        "classification": "ACTIVE_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "ITEM-0073",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0073-agent-role-names-are-spelled-inconsistently-across-bug-and-t.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-08-20",
+        "updated_at": "2026-08-20",
+        "resolved_at": ""
+      },
+      "type": "TECH_DEBT",
+      "title": "Agent role names are spelled inconsistently across bug and task records",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "DEFERRED",
+      "current_evidence": {
+        "paths": [
+          "scripts/agent-health.mjs",
+          "scripts/lib/backlog-records.mjs",
+          "scripts/lib/task-records.mjs",
+          "scripts/validate-framework.mjs"
+        ],
+        "verification_scope": "Found while building scripts/agent-health.mjs for TASK-0012 WP-10. Six spellings of five roles occur across docs/bugs and docs/tasks - release-devops and release/devops, ui-ux and ui/ux, backend-api and backend/api, plus a legacy knowledge capture. OwnerAgent and AGENTS are validated as non-empty and never against a vocabulary, so every spelling is accepted. Before normalisation the health report showed release-devops with 3 tasks and release/devops with 6 as two unrelated roles, and the repeated-defect detector could not see a pattern spread across two spellings. The ROLE_ALIASES table in agent-health.mjs compensates and prints every variant it normalised."
+      },
+      "affected_modules": [
+        "framework"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DEFER",
       "verification_result": {
         "result": "PRELIMINARY",
         "classification": "ACTIVE_AS_DOCUMENTED",

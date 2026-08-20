@@ -2,7 +2,7 @@
 WP_ID: WP-02
 TASK_ID: TASK-0012
 TITLE: Question escalation protocol and decision memory
-STATUS: NOT_STARTED
+STATUS: DONE
 OWNER_AGENT: Architect
 DEPENDENCIES: [WP-01]
 LAST_VERIFIED_SHA: 4226e53
@@ -63,15 +63,42 @@ LAST_VERIFIED_SHA: 4226e53 — re-read any summarised source that changed since.
 
 ## Implementation State
 
-Not started.
+
+Done.
+
+- `scripts/lib/question-records.mjs` — the record type, ten categories, four
+  statuses, three blocking scopes.
+- `scripts/new-question.mjs` and `scripts/rebuild-questions.mjs` — raise,
+  validate, index.
+- `docs/questions/` — record tree with generated `index.md` and `open.md`.
+- `.agent/context/question-protocol.md` — the cross-role invariant.
+- `WAITING_USER` added to both `WP_STATUSES` and `TASK_STATUSES`, distinct
+  from `BLOCKED`.
+- `question` added to `ID_KINDS`, so ids are allocated atomically.
+
+Decision memory: `docs/decisions` moved from retrieval authority 6 to 2 and
+`docs/questions` added at 3. The one source able to stop an agent re-asking a
+settled product question was previously ranked below QA runs and engineering
+history — the least likely thing to surface.
 
 ## Validation State
 
-Pending: `node scripts/check-questions.mjs`, plus simulations 40 and 41 in WP-12.
+
+- `node scripts/rebuild-questions.mjs --check` → valid, indexes current.
+- `node scripts/allocate-id.mjs question` → `QUESTION-0001`, allocated atomically.
+- `node scripts/validate-framework.mjs` → 2,986 checks pass.
 
 ## Evidence
 
-Pending.
+
+- The validator refuses an `ANSWERED` question in a durable category with no
+  `DECISION_ID`, which is the specific shape of an answer that gets lost.
+- It refuses an `OPEN` question with no `## Agent Recommendation`, because
+  routing bare options moves the analysis onto the user.
+- `check-work-packages.mjs` refuses a `WAITING_USER` package naming no
+  `QUESTION-nnnn` — without the reference, "waiting" and "stalled" are
+  indistinguishable.
+- Behavioural coverage lands in WP-12 (simulations 40 and 41).
 
 ## Questions
 
@@ -79,4 +106,7 @@ None yet.
 
 ## Handoff
 
-Pending. Feeds the role files in WP-08 and the simulations in WP-12.
+
+KNOWLEDGE_IMPACT: DECISION, CURRENT_CONTEXT.
+OBSIDIAN_IMPACT: CREATE_NODE — `docs/questions` needs a vault mapping in WP-04.
+Unblocks WP-08. The role files consume the protocol rather than restating it.

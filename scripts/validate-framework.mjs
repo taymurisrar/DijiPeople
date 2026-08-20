@@ -65,6 +65,20 @@ function markdownFilesIn(relativeDir) {
 
 const REQUIRED_AGENTS = [
   'architect',
+  /*
+   * The two roles TASK-0012 made permanent.
+   *
+   * Product & Backlog Steward owns the health of unfinished work — records that
+   * stayed valid, unowned and unactionable for months because owning them was
+   * nobody's job. Knowledge & Graph owns canonical-to-vault projection, which
+   * the Architect remained accountable for but had no capacity to verify note
+   * by note.
+   *
+   * They are listed here rather than merely existing, so deleting one is a
+   * validation failure rather than a silent regression to eleven roles.
+   */
+  'product-backlog-steward',
+  'knowledge-graph',
   'backend-api',
   'frontend',
   'ui-ux',

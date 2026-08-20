@@ -2,7 +2,7 @@
 WP_ID: WP-10
 TASK_ID: TASK-0012
 TITLE: Agent health, architecture debt and improvement budget
-STATUS: NOT_STARTED
+STATUS: DONE
 OWNER_AGENT: Product & Backlog Steward
 DEPENDENCIES: [WP-03]
 LAST_VERIFIED_SHA: 4226e53
@@ -62,15 +62,39 @@ LAST_VERIFIED_SHA: 4226e53 — re-read any summarised source that changed since.
 
 ## Implementation State
 
-Not started.
+
+Done.
+
+- `.agent/context/agent-health.md` — what is measured and from what,
+  `ARCHITECTURE_IMPACT`, `ARCHITECT_DIRECT_IMPLEMENTATION_REASON`, and
+  `IMPROVEMENT_BUDGET`.
+- `scripts/agent-health.mjs` — derives eight signals from durable records and
+  reports seven more as `NOT_DERIVABLE` with the reason.
+
+Two corrections were made after seeing real output. The repeat detector counts
+only *active* records — counting closed history forever made every long-serving
+role look worse the longer it had worked, which is backwards. And role names are
+canonicalised, because six spellings across the tree were splitting single roles
+into two with unrelated histories.
 
 ## Validation State
 
-Pending: simulations 65 and 66.
+
+- `node scripts/agent-health.mjs` on the live tree → 13 canonical roles,
+  3 `AGENT_HEALTH_REGRESSIONS`, 6 `ROLE_NAME_ALIASES`, 0 unowned findings.
+- `node scripts/rebuild-backlog.mjs --check` → 156 records valid after ITEM-0073.
 
 ## Evidence
 
-Pending.
+
+- Before the two corrections the same command reported 19 regressions across 17
+  role names — noise produced by counting closed history and by treating
+  `release-devops` and `release/devops` as different roles. After: 3
+  regressions across 13 roles, each a live pattern.
+- Seven signals are reported `NOT_DERIVABLE` with a reason rather than
+  estimated, because a number invented to fill a column gets trusted.
+- The normalisation was filed as ITEM-0073 rather than hidden: normalising in the
+  script makes the metric right and leaves the records wrong.
 
 ## Questions
 
@@ -78,4 +102,7 @@ None yet.
 
 ## Handoff
 
-Pending. Feeds WP-11.
+
+KNOWLEDGE_IMPACT: ARCHITECTURE, CURRENT_CONTEXT.
+OBSIDIAN_IMPACT: NONE.
+Unblocks WP-11, which surfaces `AGENT_HEALTH_REGRESSIONS` on the Control Center.

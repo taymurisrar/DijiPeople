@@ -2,7 +2,7 @@
 WP_ID: WP-04
 TASK_ID: TASK-0012
 TITLE: Knowledge and Graph role and the Obsidian node contract
-STATUS: NOT_STARTED
+STATUS: IN_PROGRESS
 OWNER_AGENT: Knowledge & Graph
 DEPENDENCIES: [WP-01]
 LAST_VERIFIED_SHA: 4226e53
@@ -63,15 +63,36 @@ LAST_VERIFIED_SHA: 4226e53 — re-read any summarised source that changed since.
 
 ## Implementation State
 
-Not started.
+
+Role definition complete; verification tooling outstanding.
+
+Done:
+- `.agent/agents/knowledge-graph.md` — the permanent role, the node contract,
+  the three link kinds, the relationship grammar, and the rule that
+  `STANDALONE_ALLOWED` needs a reason, an author and a date.
+- Registered in `REQUIRED_AGENTS`.
+
+Outstanding:
+- Provenance frontmatter emitted by `sync-obsidian.mjs`.
+- Bidirectional verification with the ten counters.
+- Semantic link validation against the relationship grammar.
+- A vault mapping for `docs/questions`.
 
 ## Validation State
 
-Pending: `npm run knowledge:verify`, simulations 47 to 52.
+
+- `node scripts/sync-obsidian.mjs --verify` runs against a configured, reachable
+  vault and already reports source orphans, graph orphans and content drift.
+- The vault is currently behind this branch, which is expected and is WP-16's job.
 
 ## Evidence
 
-Pending.
+
+- Verified the vault is configured and reachable rather than assumed: `--verify`
+  returned per-note diffs, including the sixteen new work-package files as
+  `expected note is absent from the vault`.
+- That output also proves the sync recurses into subdirectories, so the new
+  `work-packages/` tree projects without a mapping change.
 
 ## Questions
 
@@ -79,4 +100,7 @@ None yet.
 
 ## Handoff
 
-Pending. Feeds WP-11 (Control Center counters) and WP-16 (final projection).
+
+KNOWLEDGE_IMPACT: CURRENT_CONTEXT.
+OBSIDIAN_IMPACT: CREATE_NODE.
+WP-11 and WP-16 both depend on the counters this package still owes.

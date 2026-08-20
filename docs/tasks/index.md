@@ -17,6 +17,7 @@ graph and the block reasons. See
 | Task | WP | Title |
 |---|---|---|
 | [TASK-0005](TASK-0005-dijipeople-global-technical-remediation.md) | WP-04 | Database E2E isolation and residual defect proof |
+| [TASK-0012](TASK-0012-final-agent-operating-system-upgrade.md) | WP-06 | Evidence cache and invalidation |
 
 ## Needs a human
 
@@ -42,7 +43,7 @@ graph and the block reasons. See
 | [TASK-0008](TASK-0008-self-service-customer-onboarding-tenant-provisioning-domain-.md) | Self-service customer onboarding, tenant provisioning, domain routing and central login | FEATURE | LARGE | P0 | IN_PROGRESS | 10/11 | WP-06 |
 | [TASK-0010](TASK-0010-go-live-readiness.md) | Go-live readiness | FEATURE | MEDIUM | P0 | IN_PROGRESS | 7/8 | WP-04 |
 | [TASK-0011](TASK-0011-first-production-release.md) | First production release | RELEASE | MEDIUM | P0 | IN_PROGRESS | 1/2 | WP-02 |
-| [TASK-0012](TASK-0012-final-agent-operating-system-upgrade.md) | Final agent operating system upgrade | FRAMEWORK | PROGRAM | P0 | IN_PROGRESS | 0/16 | WP-01 |
+| [TASK-0012](TASK-0012-final-agent-operating-system-upgrade.md) | Final agent operating system upgrade | FRAMEWORK | PROGRAM | P0 | IN_PROGRESS | 7/16 | WP-04 |
 | [TASK-0001](TASK-0001-framework-keyword-routing-task-orchestration-and-repository-.md) | Framework: keyword routing, task orchestration and repository health | FRAMEWORK | LARGE | P1 | COMPLETE | 6/6 | — |
 | [TASK-0002](TASK-0002-deep-documentation-of-apps-docs-apps-landing-and-apps-agent-.md) | Deep documentation of apps/docs, apps/landing and apps/agent-desktop | KNOWLEDGE | LARGE | P1 | COMPLETE | 9/9 | — |
 | [TASK-0003](TASK-0003-deep-documentation-of-apps-web-the-tenant-product.md) | Deep documentation of apps/web, the tenant product | KNOWLEDGE | LARGE | P1 | COMPLETE | 9/9 | — |

@@ -138,6 +138,151 @@ for (let i = 0; i < active.length; i += 1) {
   }
 }
 
+/*
+ * ---------------------------------------------------------------- steward view
+ *
+ * Everything above answers "is this record still true?". Everything below
+ * answers the Product & Backlog Steward's question: "is this record actionable,
+ * and is it the right thing to do next?"
+ *
+ * A record can be perfectly valid and still useless — nobody owns it, nothing
+ * says what done looks like, and no next step is written down. Those are the
+ * records that survive every review by being unfalsifiable.
+ */
+
+const scopedActive = scoped.filter(isActive);
+const byId = new Map(scoped.map((record) => [record.id, record]));
+
+/* Who is blocked by whom, so blast radius is counted rather than asserted. */
+const blocks = new Map();
+for (const record of scoped) {
+  const raw = record.fields.BlockedBy;
+  const entries = Array.isArray(raw) ? raw : String(raw ?? '').split(',');
+  for (const blocker of entries
+    .map((entry) => String(entry).trim())
+    .filter((entry) => /^(BUG|ITEM)-\d{4}$/.test(entry))) {
+    blocks.set(blocker, (blocks.get(blocker) ?? 0) + 1);
+  }
+}
+
+const field = (record, name) => String(record.fields[name] ?? '').trim();
+const hasField = (record, name) => {
+  const value = record.fields[name];
+  if (Array.isArray(value)) return value.length > 0;
+  return Boolean(String(value ?? '').trim());
+};
+
+/*
+ * The conditions that make a record unactionable. Reported, never a build
+ * failure: 155 records predate every one of these fields, and failing on them
+ * would make this a detector people disable rather than one they act on.
+ */
+const HEALTH = [
+  ['OWNERLESS', (record) => !field(record, 'OwnerAgent')],
+  ['NO_ACCEPTANCE_CRITERIA', (record) => !hasField(record, 'AcceptanceCriteria')],
+  ['NO_NEXT_ACTION', (record) => !hasField(record, 'NextAction')],
+  ['NO_MODULE_LINK', (record) => record.modules.length === 0],
+  [
+    'NO_QA_RELATIONSHIP',
+    (record) => record.kind === 'bug' && !field(record, 'RegressionId') && !field(record, 'QAReport'),
+  ],
+  ['NO_LAST_REVIEWED', (record) => !hasField(record, 'LastReviewed')],
+  ['STALE_DEFERRED', (record) => record.disposition === 'DEFER' && (days(record.updatedAt) ?? 0) > 60],
+];
+
+const health = {};
+for (const [name] of HEALTH) health[name] = [];
+for (const record of scopedActive) {
+  for (const [name, test] of HEALTH) {
+    if (test(record)) health[name].push(record.id);
+  }
+}
+
+const AGING = { AGING_7D: [], AGING_30D: [], AGING_90D: [] };
+for (const record of active) {
+  const age = record.ageDays ?? 0;
+  if (age >= 90) AGING.AGING_90D.push(record.id);
+  else if (age >= 30) AGING.AGING_30D.push(record.id);
+  else if (age >= 7) AGING.AGING_7D.push(record.id);
+}
+
+/*
+ * NEXT_BEST_ACTIONS.
+ *
+ * Severity alone does not decide order, and that is the whole reason this
+ * exists. A MEDIUM test-infrastructure defect making ninety tests unreliable
+ * outranks a standalone HIGH cosmetic one: the first costs every task that runs
+ * afterwards, the second costs one screen.
+ *
+ * Blast radius is counted from what the records actually say — how many others
+ * name this one as a blocker, how many modules it spans — rather than from a
+ * judgement somebody typed into a priority field.
+ *
+ * The score is deliberately explainable. Every contribution is printed beside
+ * the record so a human can disagree with the ranking on the evidence rather
+ * than argue with a number.
+ */
+const SEVERITY_WEIGHT = { CRITICAL: 50, HIGH: 30, MEDIUM: 15, LOW: 5 };
+const SECURITY_TYPES = new Set(['SECURITY', 'AUTHORIZATION', 'TENANT_ISOLATION']);
+/* A broken test surface silently lowers confidence in everything measured through it. */
+const CONFIDENCE_TYPES = new Set(['TEST_GAP', 'INFRA']);
+
+function score(record) {
+  const reasons = [];
+  let total = 0;
+
+  const add = (points, why) => {
+    if (points <= 0) return;
+    total += points;
+    reasons.push(`${why} +${points}`);
+  };
+
+  add(SEVERITY_WEIGHT[record.severity] ?? 10, `severity ${record.severity || 'unset'}`);
+  if (SECURITY_TYPES.has(record.type)) add(20, `${record.type} exposure`);
+  if (CONFIDENCE_TYPES.has(record.type)) add(12, `${record.type} undermines later evidence`);
+
+  const blocking = blocks.get(record.id) ?? 0;
+  if (blocking) add(Math.min(blocking * 15, 45), `blocks ${blocking} record(s)`);
+
+  if (record.modules.length > 1) {
+    add(Math.min(record.modules.length * 3, 15), `spans ${record.modules.length} modules`);
+  }
+
+  const age = days(String(record.fields.CreatedAt ?? record.fields.DetectedDate ?? ''));
+  if (age !== null && age >= 7) add(Math.min(Math.floor(age / 10), 15), `${age} days old`);
+
+  if (record.disposition === 'FIX_NOW') add(10, 'disposition FIX_NOW');
+  if (record.disposition === 'TRIAGE_REQUIRED') add(8, 'never triaged');
+  if (!field(record, 'OwnerAgent')) add(5, 'ownerless');
+
+  return { total, reasons };
+}
+
+const SETTLED = new Set(['ACCEPTED_RISK', 'DUPLICATE', 'NOT_A_BUG']);
+
+const nextBestActions = scopedActive
+  .filter((record) => !SETTLED.has(record.disposition))
+  .map((record) => {
+    const { total, reasons } = score(record);
+    return {
+      id: record.id,
+      title: record.title,
+      severity: record.severity || '—',
+      type: record.type,
+      owner: field(record, 'OwnerAgent') || 'UNOWNED',
+      disposition: record.disposition,
+      score: total,
+      reasons,
+    };
+  })
+  .sort((a, b) => b.score - a.score)
+  .slice(0, 10);
+
+const ownerlessActionable = health.OWNERLESS.filter((id) => {
+  const record = byId.get(id);
+  return record && !SETTLED.has(record.disposition);
+});
+
 const report = {
   scope: modules.length ? modules : 'all',
   totals: {
@@ -146,12 +291,17 @@ const report = {
     dueForRevalidation: dueForRevalidation.length,
     openCritical: criticalOpen.length,
     openHigh: highOpen.length,
+    ownerlessActionable: ownerlessActionable.length,
   },
   untriaged,
   dueForRevalidation,
   openCritical: criticalOpen,
   oldestHigh,
   duplicateCandidates,
+  health,
+  aging: AGING,
+  ownerlessActionable,
+  nextBestActions,
   policy: REVALIDATE_AFTER_DAYS,
 };
 
@@ -212,6 +362,40 @@ if (dueForRevalidation.length) {
   console.log('  Revalidating means reading the current code, not re-reading the record.');
   console.log('  A record the code has already resolved is closed with the evidence that');
   console.log('  resolved it — that is the cheapest backlog reduction available.');
+  console.log('');
+}
+
+if (ownerlessActionable.length) {
+  console.log(`OWNERLESS — ${ownerlessActionable.length} actionable record(s) nobody owns:`);
+  console.log(`  ${ownerlessActionable.slice(0, 20).join(', ')}`);
+  if (ownerlessActionable.length > 20) console.log(`  … and ${ownerlessActionable.length - 20} more`);
+  console.log('');
+  console.log('  An actionable record with no owner is work the framework has agreed to');
+  console.log('  do and assigned to nobody. Set OwnerAgent, or dispose of it.');
+  console.log('');
+}
+
+const unhealthy = Object.entries(health).filter(([, ids]) => ids.length);
+if (unhealthy.length) {
+  console.log('RECORD HEALTH — active records missing what makes them actionable:');
+  for (const [name, ids] of unhealthy) {
+    console.log(`  ${name.padEnd(24)} ${String(ids.length).padStart(4)}`);
+  }
+  console.log('');
+  console.log(`  AGING_7D ${AGING.AGING_7D.length} · AGING_30D ${AGING.AGING_30D.length} · AGING_90D ${AGING.AGING_90D.length}`);
+  console.log('');
+}
+
+if (nextBestActions.length) {
+  console.log('NEXT_BEST_ACTIONS — ranked by blast radius, not by severity alone:');
+  for (const entry of nextBestActions) {
+    console.log(`  ${String(entry.score).padStart(3)}  ${entry.id}  ${entry.severity.padEnd(8)} ${entry.title}`);
+    console.log(`       ${entry.owner} · ${entry.reasons.join(' · ')}`);
+  }
+  console.log('');
+  console.log('  The ranking is explainable on purpose: disagree with the reasons, not');
+  console.log('  the number. A MEDIUM defect that blocks four others outranks a');
+  console.log('  standalone HIGH, because it is costing every task that comes after it.');
   console.log('');
 }
 

@@ -13,6 +13,12 @@ and states what a specialist must verify before changing that layer.
 |---|---|
 | [`knowledge-architecture.md`](knowledge-architecture.md) | **Everyone — which knowledge system answers which question** |
 | [`task-completion-contract.md`](task-completion-contract.md) | **Everyone — defines when a task may be called complete** |
+| [`question-protocol.md`](question-protocol.md) | **Everyone — when to ask, what stops, how an answer becomes durable** |
+| [`context-budget.md`](context-budget.md) | **Everyone — what to load, what not to, and why** |
+| [`failure-adaptation.md`](failure-adaptation.md) | **Everyone — classifying failure, and the budget of two** |
+| [`research-mode.md`](research-mode.md) | Everyone — bounded external research |
+| [`test-resource-policy.md`](test-resource-policy.md) | QA, Database, Integration |
+| [`agent-health.md`](agent-health.md) | Architect, Product & Backlog Steward |
 | [`system-overview.md`](system-overview.md) | Everyone |
 | [`repo-map.md`](repo-map.md) | Everyone |
 | [`backend-architecture.md`](backend-architecture.md) | Backend/API, Architect |
