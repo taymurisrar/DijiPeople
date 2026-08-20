@@ -9,7 +9,7 @@ Severity: MEDIUM
 AffectedModules: [packages/config, services/api, apps/web, apps/admin, apps/landing]
 Source: QA_RUN
 OwnerAgent: architect
-ArchitectDisposition: PLAN_REQUIRED
+ArchitectDisposition: DONE
 CreatedAt: 2026-08-15
 UpdatedAt: 2026-08-17
 RelatedBug: BUG-0017
@@ -75,6 +75,9 @@ requirement [[requirement-tenant-workspace-domains|Tenant Workspace Domains]] ·
 [[settings|Settings]].
 
 ## History
+
+- 2026-08-17 — Architect reconciliation: terminal `DONE` status normalized to
+  `ArchitectDisposition: DONE`; no runtime behavior changed.
 
 - 2026-08-15 — split out from BUG-0017 so the decision is tracked separately
   from the defect it must resolve.

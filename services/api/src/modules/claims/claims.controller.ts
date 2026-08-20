@@ -11,7 +11,11 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { Permissions } from '../../common/decorators/permissions.decorator';
+import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
+import {
+  Permissions,
+  RequirePermission,
+} from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
@@ -39,6 +43,7 @@ export class ClaimsController {
 
   @Post('claims/types')
   @Permissions('claim-types.manage')
+  @RequirePermission(ENTITY_KEYS.CLAIM_TYPES, 'manage')
   createType(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateClaimTypeDto,
@@ -48,12 +53,14 @@ export class ClaimsController {
 
   @Get('claims/types')
   @Permissions('claim-types.read')
+  @RequirePermission(ENTITY_KEYS.CLAIM_TYPES, 'read')
   listTypes(@CurrentUser() user: AuthenticatedUser) {
     return this.claimsService.listTypes(user.tenantId);
   }
 
   @Get('claims/types/:id')
   @Permissions('claim-types.read')
+  @RequirePermission(ENTITY_KEYS.CLAIM_TYPES, 'read')
   getType(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -63,6 +70,7 @@ export class ClaimsController {
 
   @Patch('claims/types/:id')
   @Permissions('claim-types.manage')
+  @RequirePermission(ENTITY_KEYS.CLAIM_TYPES, 'manage')
   updateType(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -73,6 +81,7 @@ export class ClaimsController {
 
   @Delete('claims/types/:id')
   @Permissions('claim-types.manage')
+  @RequirePermission(ENTITY_KEYS.CLAIM_TYPES, 'manage')
   deactivateType(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -82,6 +91,7 @@ export class ClaimsController {
 
   @Post('claims/types/:claimTypeId/subtypes')
   @Permissions('claim-types.manage')
+  @RequirePermission(ENTITY_KEYS.CLAIM_TYPES, 'manage')
   createSubType(
     @CurrentUser() user: AuthenticatedUser,
     @Param('claimTypeId', new ParseUUIDPipe()) claimTypeId: string,
@@ -92,6 +102,7 @@ export class ClaimsController {
 
   @Get('claims/types/:claimTypeId/subtypes')
   @Permissions('claim-types.read')
+  @RequirePermission(ENTITY_KEYS.CLAIM_TYPES, 'read')
   listSubTypes(
     @CurrentUser() user: AuthenticatedUser,
     @Param('claimTypeId', new ParseUUIDPipe()) claimTypeId: string,
@@ -101,6 +112,7 @@ export class ClaimsController {
 
   @Patch('claims/subtypes/:id')
   @Permissions('claim-types.manage')
+  @RequirePermission(ENTITY_KEYS.CLAIM_TYPES, 'manage')
   updateSubType(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -111,6 +123,7 @@ export class ClaimsController {
 
   @Delete('claims/subtypes/:id')
   @Permissions('claim-types.manage')
+  @RequirePermission(ENTITY_KEYS.CLAIM_TYPES, 'manage')
   deactivateSubType(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -120,6 +133,7 @@ export class ClaimsController {
 
   @Post('claims')
   @Permissions('claims.create')
+  @RequirePermission(ENTITY_KEYS.CLAIMS, 'create')
   createClaim(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateClaimRequestDto,
@@ -129,6 +143,7 @@ export class ClaimsController {
 
   @Get('claims')
   @Permissions('claims.read-all')
+  @RequirePermission(ENTITY_KEYS.CLAIMS, 'read')
   listClaims(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: ClaimQueryDto,
@@ -138,6 +153,7 @@ export class ClaimsController {
 
   @Get('claims/:id')
   @Permissions('claims.read-all')
+  @RequirePermission(ENTITY_KEYS.CLAIMS, 'read')
   getClaim(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -147,6 +163,7 @@ export class ClaimsController {
 
   @Patch('claims/:id')
   @Permissions('claims.update')
+  @RequirePermission(ENTITY_KEYS.CLAIMS, 'write')
   updateClaim(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -157,6 +174,7 @@ export class ClaimsController {
 
   @Post('claims/:id/submit')
   @Permissions('claims.update')
+  @RequirePermission(ENTITY_KEYS.CLAIMS, 'write')
   submitClaim(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -166,6 +184,7 @@ export class ClaimsController {
 
   @Post('claims/:id/line-items')
   @Permissions('claims.update')
+  @RequirePermission(ENTITY_KEYS.CLAIMS, 'write')
   addLineItem(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -176,6 +195,7 @@ export class ClaimsController {
 
   @Patch('claims/:id/line-items/:lineItemId')
   @Permissions('claims.update')
+  @RequirePermission(ENTITY_KEYS.CLAIMS, 'write')
   updateLineItem(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -187,6 +207,7 @@ export class ClaimsController {
 
   @Delete('claims/:id/line-items/:lineItemId')
   @Permissions('claims.update')
+  @RequirePermission(ENTITY_KEYS.CLAIMS, 'write')
   deleteLineItem(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -197,6 +218,7 @@ export class ClaimsController {
 
   @Post('claims/:id/manager-approve')
   @Permissions('claims.manager-approve')
+  @RequirePermission(ENTITY_KEYS.CLAIMS, 'approve')
   managerApprove(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -207,6 +229,7 @@ export class ClaimsController {
 
   @Post('claims/:id/payroll-approve')
   @Permissions('claims.payroll-approve')
+  @RequirePermission(ENTITY_KEYS.CLAIMS, 'manage')
   payrollApprove(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -217,6 +240,7 @@ export class ClaimsController {
 
   @Post('claims/:id/reject')
   @Permissions('claims.reject')
+  @RequirePermission(ENTITY_KEYS.CLAIMS, 'reject')
   rejectClaim(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -227,6 +251,7 @@ export class ClaimsController {
 
   @Post('claims/:id/cancel')
   @Permissions('claims.cancel')
+  @RequirePermission(ENTITY_KEYS.CLAIMS, 'write')
   cancelClaim(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -236,12 +261,14 @@ export class ClaimsController {
 
   @Get('me/claims')
   @Permissions('claims.read-own')
+  @RequirePermission(ENTITY_KEYS.CLAIMS, 'read')
   listMyClaims(@CurrentUser() user: AuthenticatedUser) {
     return this.claimsService.listMyClaims(user);
   }
 
   @Post('me/claims')
   @Permissions('claims.create')
+  @RequirePermission(ENTITY_KEYS.CLAIMS, 'create')
   createMyClaim(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateClaimRequestDto,
@@ -251,6 +278,7 @@ export class ClaimsController {
 
   @Get('me/claims/:id')
   @Permissions('claims.read-own')
+  @RequirePermission(ENTITY_KEYS.CLAIMS, 'read')
   getMyClaim(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -260,6 +288,7 @@ export class ClaimsController {
 
   @Patch('me/claims/:id')
   @Permissions('claims.create')
+  @RequirePermission(ENTITY_KEYS.CLAIMS, 'create')
   updateMyClaim(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -270,6 +299,7 @@ export class ClaimsController {
 
   @Post('me/claims/:id/submit')
   @Permissions('claims.create')
+  @RequirePermission(ENTITY_KEYS.CLAIMS, 'create')
   submitMyClaim(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -279,6 +309,7 @@ export class ClaimsController {
 
   @Post('me/claims/:id/line-items')
   @Permissions('claims.create')
+  @RequirePermission(ENTITY_KEYS.CLAIMS, 'create')
   addMyLineItem(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -289,6 +320,7 @@ export class ClaimsController {
 
   @Patch('me/claims/:id/line-items/:lineItemId')
   @Permissions('claims.create')
+  @RequirePermission(ENTITY_KEYS.CLAIMS, 'create')
   updateMyLineItem(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -300,6 +332,7 @@ export class ClaimsController {
 
   @Delete('me/claims/:id/line-items/:lineItemId')
   @Permissions('claims.create')
+  @RequirePermission(ENTITY_KEYS.CLAIMS, 'create')
   deleteMyLineItem(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,

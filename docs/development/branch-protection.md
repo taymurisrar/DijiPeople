@@ -1,4 +1,91 @@
-# Branch Protection on `main`
+# Branch Protection — `main` and `develop`
+
+> **Verify, do not read.** `node scripts/verify-branch-policy.mjs` reads the
+> live protection objects and reports drift against the intended policy. It is
+> read-only by design: a script that could relax protection is one that will
+> eventually relax it to make a merge easier.
+
+## The branch model
+
+```
+main        production deployment branch   ← RELEASE / DEPLOY / HOTFIX_PRODUCTION
+develop     autonomous integration branch  ← every ordinary task
+agent/*     isolated implementation branches
+```
+
+Rules and rationale:
+[`../../.agent/context/branch-model.md`](../../.agent/context/branch-model.md).
+
+---
+
+## `develop` — intended configuration
+
+```
+required_status_checks         null    no required check on a direct push
+required_pull_request_reviews  null    no PR, no approvals
+enforce_admins                 true    so the two prohibitions below bind everyone
+allow_force_pushes             false
+allow_deletions                false
+required_linear_history        false
+```
+
+Applied with:
+
+```bash
+gh api -X PUT repos/taymurisrar/DijiPeople/branches/develop/protection \
+  --input docs/development/develop-protection.json
+```
+
+**Why `required_status_checks` is null.** A required status check on a branch
+with no pull-request requirement blocks direct pushes outright — the commit
+being pushed has no completed check yet — which would reimpose the mandatory-PR
+workflow by the back door. Validation before integrating is enforced by the
+framework instead (`DEVELOP_VALIDATION_REQUIRED = true`), and CI still runs on
+every push, because `.github/workflows/ci.yml` triggers on `'**'` and lists
+`develop` under `pull_request`.
+
+**Why `enforce_admins` is true.** With no required checks and no PR requirement,
+the only rules on the branch are "no force push" and "no deletion". Those should
+bind everyone, admins included, and enforcing them costs nothing — an ordinary
+fast-forward push is unaffected.
+
+### Current state — not yet applied
+
+`develop` is presently **unprotected**. The `PUT` above was refused in the
+environment that authored this model: the agent tooling blocks GitHub protection
+mutations, which is a sensible guardrail rather than a repository problem. Reads
+work; writes do not.
+
+Until it is applied, `develop` can be force-pushed and deleted. Everything else
+in the model is already in force, because the framework enforces it rather than
+the platform. `node scripts/verify-branch-policy.mjs` reports it as `HIGH` drift
+on every run, so it cannot be forgotten.
+
+### The inert ruleset
+
+The repository carries one ruleset, **"No push"** (id `15523234`, enforcement
+`active`), declaring a pull-request rule with
+`required_approving_review_count: 1`. Its ref condition is:
+
+```json
+"include": ["refs/heads/\"main\", \"develop\""]
+```
+
+That is a literal string, not a ref pattern, so it **matches no branch** and the
+ruleset does nothing. `main` is protected solely by the classic branch
+protection described below.
+
+It is reported rather than repaired, deliberately. Fixing the pattern would
+impose a one-approval requirement on `main` that does not exist today — and that
+a single-maintainer repository cannot satisfy, since GitHub forbids
+self-approval — and on `develop`, where this model explicitly excludes it.
+Deleting it is equally a policy decision, not a cleanup.
+`verify-branch-policy.mjs` surfaces it on every run so it cannot quietly begin
+matching after a rename.
+
+---
+
+## Branch protection on `main`
 
 > **Status: APPLIED on 2026-08-15** and verified by reading the protection
 > object back from the GitHub API. This file used to say the settings were *not*
@@ -76,29 +163,35 @@ Require exactly **one** check:
 CI required gate
 ```
 
-That job (`ci-required` in `.github/workflows/ci.yml`) aggregates the eight
-required jobs and fails if any did not succeed. Requiring the aggregate rather
-than the eight individually means **adding or renaming a job later does not
+That job (`ci-required` in `.github/workflows/ci.yml`) names eleven dependency
+jobs and fails if any dependency result is not `success`. The browser job is a
+current exception: job-level `continue-on-error` converts a failed browser step
+to a successful dependency result, so it remains fail-open despite being named.
+Requiring the aggregate rather than the jobs individually means **adding or
+renaming a job later does not
 require touching branch protection** — a common source of silently-unenforced
 rules.
 
-The eight it aggregates:
+The eleven jobs currently named by the aggregate:
 
 | Job | What it protects |
 |---|---|
 | `validate` | Agent framework structure and consistency |
-| `typecheck` | All 7 workspaces compile; Prisma schema valid |
-| `lint` | web, admin, landing lint clean; **checkout not mutated** |
-| `test-api` | 127 suites, 764 tests |
-| `test-web` | 16 suites, 379 tests |
-| `test-admin` | 4 suites, 23 tests |
-| `test-runtime` | Platform runtime schema contract |
+| `typecheck` | Workspace typechecks compile; Prisma schema valid |
+| `lint` | API, web, admin and landing lint checks; **checkout not mutated** |
+| `test-api` | API unit/invariant tests, excluding the named dual-permission invariant |
+| `test-web` | Tenant-web pure-logic tests |
+| `test-admin` | Admin pure-logic tests |
+| `test-landing` | Landing pure-logic tests |
+| `test-runtime` | Platform runtime/config contract tests |
+| `database-migration` | Empty-database migration and configuration-seed verification |
 | `build` | Monorepo build |
+| `browser-e2e` | Browser journeys; currently fail-open because the job retains `continue-on-error: true` |
 
-**Deliberately not required** (both `continue-on-error`, see §Known baselines):
+**Deliberately report-only** (both `continue-on-error`, see §Known baselines):
 
 - `security-invariant-report`
-- `lint-api-report`
+- `database-e2e-report`
 
 ---
 
@@ -136,18 +229,17 @@ Both run on every push and report in full. Neither is weakened, disabled or
 suppressed.
 
 **`security-invariant-report`** — the dual-permission wiring invariant fails
-against a large pre-existing inventory (780 violations of 878 in-scope handlers
-at the time of writing). Requiring it would block every unrelated PR on
+against a large pre-existing inventory (796 violations of 894 in-scope handlers
+in the latest audited run). Requiring it would block every unrelated PR on
 accumulated debt, which teaches people to bypass CI. Promote it to required once
 the inventory reaches zero; progress is tracked in
 [`ci-recommendation.md`](ci-recommendation.md).
 
-**`lint-api-report`** — `services/api` carries 2 pre-existing ESLint errors on
-`main`, both `@typescript-eslint/unbound-method` in
-`src/modules/auth/auth.service.spec.ts` (lines 120 and 125). Fix those two and
-this step can move into the required `lint` job. It is a small, self-contained
-piece of work, deliberately left out of the CI task's scope because it edits
-product test code.
+**`database-e2e-report`** — all fifteen suites now execute against ephemeral
+PostgreSQL, but the latest audited run had 6 failing suites and 136 failing
+tests. The job also swallows the Jest exit status. Fix and stabilize the suites,
+then remove the fail-open handling before promotion; [[BUG-0049]] tracks the
+evidence-integrity failure.
 
 ---
 

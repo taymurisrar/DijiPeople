@@ -10,6 +10,11 @@ import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/common/prisma/prisma.service';
 import { getClientAccessTokenSecret } from '../src/common/config/auth.config';
 import { GatewayCredentialService } from '../src/modules/attendance-integrations/gateways/gateway-credential.service';
+import { SecurityAccessLevel, SecurityPrivilege } from '@prisma/client';
+
+import { ENTITY_KEYS } from '../src/common/constants/rbac-matrix';
+
+import { DbFixtures, definedIds } from './helpers/db-fixtures';
 
 /**
  * HTTP-level authentication and authorisation smoke tests.
@@ -28,6 +33,7 @@ describe('Attendance integration HTTP auth/RBAC (e2e)', () => {
   let app: INestApplication<App>;
   let moduleRef: TestingModule;
   let prisma: PrismaService;
+  let fixtures: DbFixtures;
   let jwt: JwtService;
   let config: ConfigService;
   let gatewayCredentials: GatewayCredentialService;
@@ -68,6 +74,23 @@ describe('Attendance integration HTTP auth/RBAC (e2e)', () => {
     tenantId: string,
     permissionKeys: string[],
     label: string,
+    /**
+     * Matrix privileges, which are a SEPARATE grant from the legacy keys above.
+     *
+     * DijiPeople runs two permission systems at once and `PermissionsGuard`
+     * requires *all* declared legacy keys AND *at least one* matrix privilege
+     * whose access level is not NONE. An actor holding only legacy keys is
+     * refused with 403 — which is what every authorised request in this suite
+     * did once the suite started building its own tenants instead of adopting
+     * a seeded one whose roles came pre-bootstrapped.
+     *
+     * Granting both is not belt-and-braces; it is what a real role has. See the
+     * Permissions row in AGENTS.md and `common/constants/rbac-matrix.ts`.
+     */
+    matrixPrivileges: Array<{
+      entityKey: string;
+      privilege: SecurityPrivilege;
+    }> = [],
   ): Promise<TenantActor> {
     const businessUnit = await prisma.businessUnit.findFirstOrThrow({
       where: { tenantId },
@@ -127,6 +150,23 @@ describe('Attendance integration HTTP auth/RBAC (e2e)', () => {
           tenantId,
           roleId: role.id,
           permissionId: permission.id,
+        })),
+        skipDuplicates: true,
+      });
+    }
+
+    if (matrixPrivileges.length > 0) {
+      // TENANT access level: this suite asserts guard wiring and tenant
+      // boundaries, not row-level scoping. A narrower level would make a
+      // cross-tenant test pass for the wrong reason — because the row was out
+      // of the actor's scope rather than because the tenant filter held.
+      await prisma.rolePrivilege.createMany({
+        data: matrixPrivileges.map((privilege) => ({
+          tenantId,
+          roleId: role.id,
+          entityKey: privilege.entityKey,
+          privilege: privilege.privilege,
+          accessLevel: SecurityAccessLevel.TENANT,
         })),
         skipDuplicates: true,
       });
@@ -192,19 +232,13 @@ describe('Attendance integration HTTP auth/RBAC (e2e)', () => {
     config = app.get(ConfigService);
     gatewayCredentials = app.get(GatewayCredentialService);
 
-    const tenants = await prisma.tenant.findMany({
-      where: { businessUnits: { some: {} } },
-      take: 2,
-      orderBy: { createdAt: 'asc' },
-      select: { id: true },
-    });
-    if (tenants.length < 2) {
-      throw new Error(
-        'These tests need two tenants with at least one business unit.',
-      );
-    }
-
-    const [alphaTenant, betaTenant] = tenants;
+    // Built, not borrowed — see helpers/db-fixtures.ts and ITEM-0047. Alpha and
+    // Beta must be genuinely different tenants for the cross-tenant assertions
+    // below to mean anything, and "whichever two the seed left behind" gave no
+    // such guarantee. `seed:demo` creates one tenant, so this threw before a
+    // single assertion ran.
+    fixtures = new DbFixtures(prisma, 'attendance-http');
+    const { a: alphaTenant, b: betaTenant } = await fixtures.createTenantPair();
 
     privileged = await createActor(
       alphaTenant.id,
@@ -223,11 +257,42 @@ describe('Attendance integration HTTP auth/RBAC (e2e)', () => {
         'locations.update',
       ],
       'admin',
+      // The matrix half of the same grant. Three entity keys, because the
+      // routes this suite drives do not sit under one: `attendance` covers
+      // integrations, devices and gateways, `agent` covers the app-download
+      // catalogue, and `hierarchy` covers locations, which is where work-site
+      // attendance configuration is written.
+      [
+        {
+          entityKey: ENTITY_KEYS.ATTENDANCE,
+          privilege: SecurityPrivilege.READ,
+        },
+        {
+          entityKey: ENTITY_KEYS.ATTENDANCE,
+          privilege: SecurityPrivilege.MANAGE,
+        },
+        { entityKey: ENTITY_KEYS.AGENT, privilege: SecurityPrivilege.READ },
+        { entityKey: ENTITY_KEYS.AGENT, privilege: SecurityPrivilege.MANAGE },
+        { entityKey: ENTITY_KEYS.HIERARCHY, privilege: SecurityPrivilege.READ },
+        {
+          entityKey: ENTITY_KEYS.HIERARCHY,
+          privilege: SecurityPrivilege.MANAGE,
+        },
+      ],
     );
     unprivileged = await createActor(
       alphaTenant.id,
       ['integrations.read'],
       'viewer',
+      // READ only, deliberately. This actor exists to prove a reader is refused
+      // a write, so granting MANAGE on either system would make every
+      // permission-enforcement assertion below vacuous.
+      [
+        {
+          entityKey: ENTITY_KEYS.ATTENDANCE,
+          privilege: SecurityPrivilege.READ,
+        },
+      ],
     );
     otherTenant = await createActor(
       betaTenant.id,
@@ -238,6 +303,19 @@ describe('Attendance integration HTTP auth/RBAC (e2e)', () => {
         'gateways.read',
       ],
       'beta',
+      // Fully privileged WITHIN tenant B. That is the point: the cross-tenant
+      // assertions must fail on the tenant boundary, not on a missing grant —
+      // an under-privileged intruder would pass them for the wrong reason.
+      [
+        {
+          entityKey: ENTITY_KEYS.ATTENDANCE,
+          privilege: SecurityPrivilege.READ,
+        },
+        {
+          entityKey: ENTITY_KEYS.ATTENDANCE,
+          privilege: SecurityPrivilege.MANAGE,
+        },
+      ],
     );
 
     const alphaIntegration = await prisma.attendanceIntegration.create({
@@ -328,46 +406,31 @@ describe('Attendance integration HTTP auth/RBAC (e2e)', () => {
   });
 
   afterAll(async () => {
-    await prisma.applicationRelease.deleteMany({
-      where: { id: { in: [internalReleaseId, stableReleaseId] } },
-    });
-    await prisma.attendanceDevice.deleteMany({
-      where: { integrationId: { in: [alphaIntegrationId, betaIntegrationId] } },
-    });
-    await prisma.attendanceIntegration.deleteMany({
-      where: { id: { in: [alphaIntegrationId, betaIntegrationId] } },
-    });
-    await prisma.integrationGatewayCredential.deleteMany({
-      where: { gatewayId: { in: [pairedGatewayId, betaGatewayId] } },
-    });
-    await prisma.integrationGatewayPairingCode.deleteMany({
-      where: { gatewayId: { in: [pairedGatewayId, betaGatewayId] } },
-    });
-    await prisma.integrationGateway.deleteMany({
-      where: { id: { in: [pairedGatewayId, betaGatewayId] } },
-    });
-    await prisma.refreshToken.deleteMany({
-      where: { userId: { in: createdUserIds } },
-    });
-    await prisma.userRole.deleteMany({
-      where: { userId: { in: createdUserIds } },
-    });
-    await prisma.rolePermission.deleteMany({
-      where: { roleId: { in: createdRoleIds } },
-    });
-    for (const entry of createdPermissionKeys) {
-      const [tenantId, key] = entry.split('::');
-      await prisma.permission.deleteMany({
-        where: {
-          tenantId,
-          key,
-          description: 'Created by the HTTP RBAC smoke suite.',
-        },
-      });
+    // Everything tenant-owned — users, roles, permissions, gateways,
+    // integrations, devices — cascades from the two fixture tenants, so the
+    // eleven hand-ordered deletes that used to be here are gone along with the
+    // chance of getting their order wrong.
+    //
+    // `ApplicationRelease` is the exception and stays explicit: it is a
+    // PLATFORM model with no `tenantId`, so no tenant delete can reach it.
+    // `definedIds` is what makes that safe when setup failed before the
+    // releases were created — the previous version passed `undefined` straight
+    // into an `in` array and Prisma refused the whole call, turning one setup
+    // failure into a second, louder teardown failure.
+    try {
+      const releaseIds = definedIds([internalReleaseId, stableReleaseId]);
+      if (releaseIds.length > 0) {
+        await prisma.applicationRelease.deleteMany({
+          where: { id: { in: releaseIds } },
+        });
+      }
+    } finally {
+      try {
+        await fixtures?.cleanup();
+      } finally {
+        await app?.close();
+      }
     }
-    await prisma.user.deleteMany({ where: { id: { in: createdUserIds } } });
-    await prisma.role.deleteMany({ where: { id: { in: createdRoleIds } } });
-    await app.close();
   });
 
   const server = () => app.getHttpServer();

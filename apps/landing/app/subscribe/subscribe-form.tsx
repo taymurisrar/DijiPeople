@@ -1,31 +1,72 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
+import type { LegalIndexEntry } from "../../lib/legal-server";
 import {
   BillingCycle,
   PublicPlan,
+  checkoutBlockedReason,
   findPlanPrice,
   formatPlanPrice,
-  isCheckoutReady,
 } from "../../lib/plans";
+import {
+  buildSubmitPayload,
+  describeSlugProblem,
+  emptyWizardForm,
+  missingFieldsForStep,
+  STEP_TITLES,
+  suggestSlug,
+  WIZARD_STEPS,
+  type WizardForm,
+  type WizardStep,
+} from "../../lib/onboarding-wizard";
 import {
   resolveSubscribeSelection,
   type SubscribeSelectionParams,
 } from "../../lib/subscribe-selection";
+import {
+  AgreementsStep,
+  OrganizationStep,
+  OwnerStep,
+  ReviewStep,
+  WorkspaceStep,
+  type SlugState,
+} from "./onboarding-steps";
 
+/**
+ * The public onboarding wizard.
+ *
+ * This component owns *flow* — which step, what is allowed next, what is
+ * submitted. The fields live in `onboarding-steps.tsx` and the rules in
+ * `lib/onboarding-wizard.ts`, which is where they can be tested without a
+ * browser.
+ *
+ * Two things here are load-bearing and easy to mistake for incidental:
+ *
+ * 1. **A draft order is opened before the workspace step**, because the
+ *    address check is session-bound — the API will not answer "is maseer free"
+ *    to a caller with no live order, which is what stops it being used to map
+ *    DijiPeople's customer base.
+ * 2. **Submitting does not go to Stripe.** The first submission returns an
+ *    onboarding id and mails a verification code; the same submission repeated
+ *    after verification returns the checkout URL. Nobody is charged for a
+ *    workspace whose administrator address was a typo.
+ */
 export function SubscribeForm({
   plans,
   defaultCurrency,
   error,
   selectionParams,
+  agreements,
+  tenantBaseDomain,
 }: {
   plans: PublicPlan[];
   defaultCurrency: string;
   error?: string;
   selectionParams?: SubscribeSelectionParams;
+  agreements: LegalIndexEntry[];
+  tenantBaseDomain: string;
 }) {
-  // Resolved by the shared helper so /plans -> /subscribe continuity is
-  // testable; see lib/subscribe-selection.spec.ts.
   const initialSelection = resolveSubscribeSelection(plans, selectionParams);
   const [planId, setPlanId] = useState(initialSelection.planId);
   const [billingCycle, setBillingCycle] = useState<BillingCycle>(
@@ -35,23 +76,25 @@ export function SubscribeForm({
   const [seatQuantity, setSeatQuantity] = useState(
     initialSelection.seatQuantity,
   );
-  const [form, setForm] = useState({
-    companyName: "",
-    contactName: "",
-    email: "",
-    phone: "",
-    country: "",
-    message: "",
-  });
+
+  const [form, setForm] = useState<WizardForm>(emptyWizardForm());
+  const [step, setStep] = useState<WizardStep>("organization");
+  const [showErrors, setShowErrors] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [onboardingId, setOnboardingId] = useState<string | null>(null);
+  const [awaitingCode, setAwaitingCode] = useState(false);
+  const [code, setCode] = useState("");
 
   const selectedPlan =
     plans.find((plan) => plan.id === planId) ?? plans[0] ?? null;
   const selectedPrice = selectedPlan
     ? findPlanPrice(selectedPlan, currency, billingCycle)
     : null;
-  const canCheckout = isCheckoutReady(selectedPrice);
+  // One decision, three consumers: the notice, the fieldset and Continue.
+  const blockedReason = checkoutBlockedReason(selectedPrice);
+  const canCheckout = blockedReason === null;
   const minimumSeats = selectedPrice?.minimumSeats ?? 1;
   const maximumSeats = selectedPrice?.maximumSeats ?? null;
   const effectiveSeatQuantity = Math.max(
@@ -60,9 +103,161 @@ export function SubscribeForm({
       ? seatQuantity
       : Math.min(seatQuantity, maximumSeats),
   );
-  const contactHref = selectedPlan
-    ? `/contact?plan=${encodeURIComponent(selectedPlan.key)}`
-    : "/contact";
+
+  // Only agreements that name a published version can be accepted; one that
+  // cannot say which text was agreed to is not evidence.
+  const acceptableAgreements = agreements.filter((entry) => entry.versionId);
+  const requiredAgreementIds = acceptableAgreements.map(
+    (entry) => entry.versionId as string,
+  );
+
+  const missing = missingFieldsForStep(step, form, requiredAgreementIds);
+  const stepIndex = WIZARD_STEPS.indexOf(step);
+
+  /*
+   * The draft's inputs as plain values, so the availability effect below
+   * depends on primitives rather than on objects whose identity changes every
+   * render. The placeholder email exists because a draft is opened before the
+   * owner step — it is replaced by the real address at submit, when `openOrder`
+   * resolves the same customer.
+   */
+  const priceIdForDraft = selectedPrice?.id ?? null;
+  const seatsForDraft = effectiveSeatQuantity;
+  const companyNameForDraft = form.companyName.trim();
+  const countryForDraft = form.country.trim();
+  const emailForDraft = form.email.trim() || "pending@onboarding.invalid";
+
+  function set(patch: Partial<WizardForm>) {
+    setForm((current) => {
+      const next = { ...current, ...patch };
+      /*
+       * Prefill the workspace address from the company name, but only while the
+       * buyer has not touched it. Overwriting an address they typed because
+       * they later corrected a typo in the company name would be maddening.
+       */
+      if (patch.companyName !== undefined && !current.requestedSlug) {
+        next.requestedSlug = suggestSlug(patch.companyName);
+      }
+      return next;
+    });
+    setStatus(null);
+  }
+
+  /*
+   * The availability answer, keyed to the address it is about.
+   *
+   * Keeping the *subject* alongside the *verdict* is what lets "checking" be
+   * derived rather than set: if the buyer has typed past the last answer, the
+   * answer is stale by definition and the UI says so without an effect having
+   * to announce it. Setting that state synchronously inside the effect is both
+   * a lint error and a cascading render.
+   */
+  const [slugAnswer, setSlugAnswer] = useState<{
+    slug: string;
+    verdict: "available" | "taken" | "unknown";
+  } | null>(null);
+
+  const currentSlug = form.requestedSlug.trim().toLowerCase();
+  const slugFormatProblem = currentSlug
+    ? describeSlugProblem(currentSlug)
+    : "blank";
+
+  const slugState: SlugState = slugFormatProblem
+    ? { kind: "idle" }
+    : slugAnswer?.slug === currentSlug
+      ? { kind: slugAnswer.verdict }
+      : { kind: "checking" };
+
+  /*
+   * Debounced, and deliberately not per keystroke: each check is a rate-limited
+   * API call, and a buyer typing "maseer" would otherwise spend six of their
+   * budget asking about "m", "ma", "mas"…
+   *
+   * The draft is opened here rather than in a memoised callback so this effect
+   * depends only on values, not on a function identity — which is what the
+   * React Compiler needs to reason about it.
+   */
+  const onboardingIdRef = useRef<string | null>(null);
+  const slugRequestRef = useRef(0);
+
+  useEffect(() => {
+    if (step !== "workspace") return;
+    if (!currentSlug || describeSlugProblem(currentSlug)) return;
+    if (slugAnswer?.slug === currentSlug) return;
+    if (!priceIdForDraft) return;
+
+    const requestId = ++slugRequestRef.current;
+    const timer = setTimeout(() => {
+      void (async () => {
+        const answer = (verdict: "available" | "taken" | "unknown") => {
+          // A stale response must never overwrite a newer one — the buyer who
+          // typed on would otherwise see an answer about a name they left.
+          if (slugRequestRef.current === requestId) {
+            setSlugAnswer({ slug: currentSlug, verdict });
+          }
+        };
+
+        try {
+          if (!onboardingIdRef.current) {
+            const draft = await fetch("/api/public/onboarding", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                planPriceId: priceIdForDraft,
+                seatQuantity: seatsForDraft,
+                companyName: companyNameForDraft,
+                contactName: companyNameForDraft,
+                email: emailForDraft,
+                country: countryForDraft,
+              }),
+            });
+            if (!draft.ok) return answer("unknown");
+            const payload = (await draft.json()) as { onboardingId?: string };
+            if (!payload.onboardingId) return answer("unknown");
+            onboardingIdRef.current = payload.onboardingId;
+            setOnboardingId(payload.onboardingId);
+          }
+
+          const response = await fetch(
+            `/api/public/onboarding/${onboardingIdRef.current}/workspace-address?value=${encodeURIComponent(currentSlug)}`,
+          );
+          if (!response.ok) return answer("unknown");
+          const payload = (await response.json()) as { available?: boolean };
+          return answer(payload.available ? "available" : "taken");
+        } catch {
+          // A check we could not run is not a reason to block the buyer. The
+          // server decides at submit either way.
+          return answer("unknown");
+        }
+      })();
+    }, 450);
+
+    return () => clearTimeout(timer);
+  }, [
+    step,
+    currentSlug,
+    slugAnswer,
+    priceIdForDraft,
+    seatsForDraft,
+    companyNameForDraft,
+    emailForDraft,
+    countryForDraft,
+  ]);
+
+  function goTo(next: WizardStep) {
+    setShowErrors(false);
+    setStatus(null);
+    setStep(next);
+  }
+
+  function goNext() {
+    if (missing.length) {
+      setShowErrors(true);
+      return;
+    }
+    setShowErrors(false);
+    goTo(WIZARD_STEPS[Math.min(stepIndex + 1, WIZARD_STEPS.length - 1)]);
+  }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -81,23 +276,99 @@ export function SubscribeForm({
     const response = await fetch("/api/public/subscribe", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...form,
-        planPriceId: selectedPrice.id,
-        seatQuantity: effectiveSeatQuantity,
-        phone: form.phone || undefined,
-        message: form.message || undefined,
-      }),
+      body: JSON.stringify(
+        buildSubmitPayload(form, {
+          planPriceId: selectedPrice.id,
+          seatQuantity: effectiveSeatQuantity,
+        }),
+      ),
     });
     const payload = await response.json().catch(() => null);
     setIsSubmitting(false);
 
-    if (!response.ok || !payload?.url) {
+    if (!response.ok) {
+      setStatus(payload?.message ?? "Unable to start Stripe Checkout.");
+      return;
+    }
+
+    if (payload?.verificationRequired) {
+      setOnboardingId(payload.onboardingId as string);
+      setAwaitingCode(true);
+      return;
+    }
+
+    if (!payload?.url) {
       setStatus(payload?.message ?? "Unable to start Stripe Checkout.");
       return;
     }
 
     window.location.assign(payload.url);
+  }
+
+  async function verifyCode(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!onboardingId || !selectedPrice) return;
+
+    setIsSubmitting(true);
+    setStatus(null);
+
+    const verification = await fetch(
+      `/api/public/onboarding/${onboardingId}/verify-email`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code }),
+      },
+    );
+    const verificationPayload = await verification.json().catch(() => null);
+
+    if (!verification.ok) {
+      setIsSubmitting(false);
+      setStatus(verificationPayload?.message ?? "That code is not correct.");
+      return;
+    }
+
+    /*
+     * Verified, so the original submission is now permitted. Reusing the same
+     * endpoint rather than adding a "resume checkout" one keeps a single path
+     * to a Stripe session — which is what stops an unverified caller finding a
+     * second way in.
+     */
+    const checkout = await fetch("/api/public/subscribe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(
+        buildSubmitPayload(form, {
+          planPriceId: selectedPrice.id,
+          seatQuantity: effectiveSeatQuantity,
+        }),
+      ),
+    });
+    const checkoutPayload = await checkout.json().catch(() => null);
+    setIsSubmitting(false);
+
+    if (!checkout.ok || !checkoutPayload?.url) {
+      setStatus(checkoutPayload?.message ?? "Unable to start Stripe Checkout.");
+      return;
+    }
+
+    window.location.assign(checkoutPayload.url);
+  }
+
+  async function resendCode() {
+    if (!onboardingId) return;
+    setStatus(null);
+    const response = await fetch(
+      `/api/public/onboarding/${onboardingId}/verification-code`,
+      { method: "POST" },
+    );
+    // The same message either way. Saying whether a code was actually sent
+    // would confirm whether that address is mid-purchase.
+    setStatus(
+      response.ok
+        ? "If that address needs a new code, one is on its way."
+        : "Unable to send a new code right now.",
+    );
   }
 
   if (error) {
@@ -116,9 +387,82 @@ export function SubscribeForm({
     );
   }
 
+  if (awaitingCode) {
+    return (
+      <form
+        className="max-w-xl rounded-[24px] border border-border bg-white p-6 shadow-sm"
+        onSubmit={verifyCode}
+      >
+        <h2 className="text-xl font-semibold text-foreground">
+          Confirm your email
+        </h2>
+        <p className="mt-2 text-sm leading-6 text-muted">
+          We sent a six-digit code to{" "}
+          <strong className="text-foreground">{form.email}</strong>. Entering it
+          confirms the address your workspace administrator will sign in with.
+          Nothing has been charged yet.
+        </p>
+
+        <label
+          className="mt-5 block text-sm font-medium text-foreground"
+          htmlFor="verification-code"
+        >
+          Verification code
+          <input
+            aria-describedby="verification-code-hint"
+            autoComplete="one-time-code"
+            className="mt-2 w-full rounded-xl border border-border px-3 py-2 text-lg tracking-[0.4em]"
+            id="verification-code"
+            inputMode="numeric"
+            maxLength={6}
+            onChange={(event) => setCode(event.target.value)}
+            pattern="[0-9]*"
+            required
+            value={code}
+          />
+        </label>
+        <p className="mt-2 text-xs text-muted" id="verification-code-hint">
+          The code expires 15 minutes after it was sent.
+        </p>
+
+        {status ? (
+          <p className="mt-4 text-sm text-danger" role="alert">
+            {status}
+          </p>
+        ) : null}
+
+        <div className="mt-5 flex flex-wrap items-center gap-3">
+          <button
+            className="rounded-xl bg-accent px-5 py-3 text-sm font-semibold text-white disabled:opacity-60"
+            disabled={isSubmitting || code.length !== 6}
+            type="submit"
+          >
+            {isSubmitting ? "Confirming…" : "Confirm and continue to payment"}
+          </button>
+          <button
+            className="text-sm font-medium text-accent underline"
+            onClick={() => void resendCode()}
+            type="button"
+          >
+            Send a new code
+          </button>
+        </div>
+      </form>
+    );
+  }
+
+  const stepProps = {
+    form,
+    set,
+    missing: showErrors ? missing : [],
+    tenantBaseDomain,
+    slugState,
+    agreements: acceptableAgreements,
+  };
+
   return (
     <form className="grid gap-6 lg:grid-cols-[0.85fr_1.15fr]" onSubmit={submit}>
-      <section className="rounded-[24px] border border-border bg-white p-5 shadow-sm">
+      <section className="rounded-[24px] border border-border bg-white p-5 shadow-sm lg:sticky lg:top-6 lg:self-start">
         <h2 className="text-xl font-semibold text-foreground">Selected plan</h2>
         <label className="mt-4 block text-sm font-medium text-foreground">
           Plan
@@ -170,16 +514,23 @@ export function SubscribeForm({
               ? `${effectiveSeatQuantity} purchased seat${effectiveSeatQuantity === 1 ? "" : "s"} · estimated ${new Intl.NumberFormat("en-US", { style: "currency", currency: selectedPrice.currency }).format(selectedPrice.unitAmount * effectiveSeatQuantity)} per month.`
               : "Billed as one subscription."}
           </p>
-          {!selectedPrice ? (
-            <p className="mt-2 text-xs text-warning">
-              This plan has no published price for your region yet. Contact us
-              and we will arrange it.
-            </p>
-          ) : null}
-          {selectedPrice && !canCheckout ? (
-            <p className="mt-2 text-xs text-muted">
-              This price is configured for display, but online checkout is not
-              available yet.
+          {/*
+            One notice for both reasons checkout can be impossible, carrying the
+            id the BUG-0066 regression test looks for.
+
+            It became two unidentified paragraphs when the wizard replaced the
+            single-page form, and the disabled fieldset that made the inputs
+            inert went with them. That is BUG-0066 again in a worse shape:
+            instead of one page of typing thrown away, five steps of
+            organization profile, owner identity and agreements, discovered dead
+            at the review button.
+          */}
+          {blockedReason ? (
+            <p
+              className="mt-2 text-xs text-warning"
+              id="subscribe-unavailable-notice"
+            >
+              {blockedReason}
             </p>
           ) : null}
         </div>
@@ -188,10 +539,8 @@ export function SubscribeForm({
             Purchased seats
             <input
               className="mt-2 w-full rounded-xl border border-border px-3 py-2"
-              type="number"
-              min={selectedPrice.minimumSeats ?? 1}
               max={selectedPrice.maximumSeats ?? undefined}
-              value={effectiveSeatQuantity}
+              min={selectedPrice.minimumSeats ?? 1}
               onChange={(event) => {
                 const nextValue = Number(event.target.value);
                 setSeatQuantity(
@@ -204,6 +553,8 @@ export function SubscribeForm({
                 );
               }}
               required
+              type="number"
+              value={effectiveSeatQuantity}
             />
             <span className="mt-1 block text-xs text-muted">
               Minimum {selectedPrice.minimumSeats ?? 1}
@@ -216,104 +567,129 @@ export function SubscribeForm({
       </section>
 
       <section className="rounded-[24px] border border-border bg-white p-5 shadow-sm">
-        <h2 className="text-xl font-semibold text-foreground">
-          Company details
+        {/*
+          The progress list is an ordered list so a screen reader announces
+          position and length, and each completed step is a button rather than
+          a decoration — going back to fix something is the most common thing
+          anybody does in a wizard.
+        */}
+        <ol className="flex flex-wrap gap-2" aria-label="Onboarding steps">
+          {WIZARD_STEPS.map((candidate, index) => {
+            const isCurrent = candidate === step;
+            const isPast = index < stepIndex;
+            return (
+              <li key={candidate}>
+                <button
+                  aria-current={isCurrent ? "step" : undefined}
+                  className={`rounded-full px-3 py-1 text-xs font-medium ${
+                    isCurrent
+                      ? "bg-accent text-white"
+                      : isPast
+                        ? "bg-surface-muted text-foreground"
+                        : "bg-surface-muted text-muted"
+                  }`}
+                  disabled={!isPast && !isCurrent}
+                  onClick={() => goTo(candidate)}
+                  type="button"
+                >
+                  {index + 1}. {STEP_TITLES[candidate]}
+                </button>
+              </li>
+            );
+          })}
+        </ol>
+
+        <h2 className="mt-5 text-xl font-semibold text-foreground">
+          {STEP_TITLES[step]}
         </h2>
-        <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          <Field
-            label="Company / workspace name"
-            onChange={(value) => setForm({ ...form, companyName: value })}
-            required
-            value={form.companyName}
-          />
-          <Field
-            label="Contact name"
-            onChange={(value) => setForm({ ...form, contactName: value })}
-            required
-            value={form.contactName}
-          />
-          <Field
-            label="Email"
-            onChange={(value) => setForm({ ...form, email: value })}
-            required
-            type="email"
-            value={form.email}
-          />
-          <Field
-            label="Phone"
-            onChange={(value) => setForm({ ...form, phone: value })}
-            type="tel"
-            value={form.phone}
-          />
-          <Field
-            label="Country / region"
-            onChange={(value) => setForm({ ...form, country: value })}
-            required
-            value={form.country}
-          />
-        </div>
-        <label className="mt-4 block text-sm font-medium text-foreground">
-          Optional message
-          <textarea
-            className="mt-2 min-h-28 w-full rounded-xl border border-border px-3 py-2"
-            onChange={(event) =>
-              setForm({ ...form, message: event.target.value })
-            }
-            value={form.message}
-          />
-        </label>
-        <p className="mt-4 text-xs leading-5 text-muted">
-          Your tenant stays inactive until Stripe confirms payment through the
-          webhook. The success page does not activate access.
-        </p>
-        {status ? <p className="mt-4 text-sm text-danger">{status}</p> : null}
-        {canCheckout ? (
+
+        {/*
+          BUG-0066: never present an editable form that cannot be submitted.
+
+          A disabled fieldset, not per-input `disabled`, because the steps are
+          separate components and one wrapper cannot be forgotten by the next
+          one added. The plan and billing selectors sit outside it deliberately
+          and stay live — a visitor whose plan is unpurchasable needs to be able
+          to try another one, and disabling those would replace one dead end
+          with a worse one.
+
+          `aria-describedby` ties the inert region to the notice explaining why,
+          so the reason is announced rather than just visible.
+        */}
+        <fieldset
+          aria-describedby={
+            canCheckout ? undefined : "subscribe-unavailable-notice"
+          }
+          className="mt-4 border-0 p-0"
+          disabled={!canCheckout}
+        >
+          {step === "organization" ? <OrganizationStep {...stepProps} /> : null}
+          {step === "workspace" ? <WorkspaceStep {...stepProps} /> : null}
+          {step === "owner" ? <OwnerStep {...stepProps} /> : null}
+          {step === "agreements" ? <AgreementsStep {...stepProps} /> : null}
+          {step === "review" ? (
+            <ReviewStep {...stepProps} goTo={goTo} />
+          ) : null}
+        </fieldset>
+
+        {/*
+          The honeypot. Hidden from people and from assistive technology, so
+          only something filling every field it finds will fill it.
+        */}
+        <input
+          aria-hidden="true"
+          autoComplete="off"
+          className="hidden"
+          name="website"
+          onChange={() => undefined}
+          tabIndex={-1}
+          value=""
+        />
+
+        {status ? (
+          <p className="mt-4 text-sm text-danger" role="alert">
+            {status}
+          </p>
+        ) : null}
+
+        {showErrors && missing.length ? (
+          <p className="mt-4 text-sm text-danger" role="alert">
+            Please complete the highlighted fields before continuing.
+          </p>
+        ) : null}
+
+        <div className="mt-6 flex items-center justify-between gap-3">
           <button
-            className="mt-5 rounded-xl bg-accent px-5 py-3 text-sm font-semibold text-white disabled:opacity-60"
-            disabled={isSubmitting}
-            type="submit"
+            className="text-sm font-medium text-accent underline disabled:opacity-40 disabled:no-underline"
+            disabled={stepIndex === 0}
+            onClick={() => goTo(WIZARD_STEPS[Math.max(stepIndex - 1, 0)])}
+            type="button"
           >
-            {isSubmitting
-              ? "Starting checkout..."
-              : "Continue to Stripe Checkout"}
+            Back
           </button>
-        ) : (
-          <a
-            className="mt-5 inline-flex rounded-xl border border-border bg-white px-5 py-3 text-sm font-semibold text-foreground hover:bg-surface-muted"
-            href={contactHref}
-          >
-            Contact sales
-          </a>
-        )}
+
+          {step === "review" ? (
+            <button
+              className="rounded-xl bg-accent px-5 py-3 text-sm font-semibold text-white disabled:opacity-60"
+              disabled={isSubmitting || !canCheckout}
+              type="submit"
+            >
+              {isSubmitting ? "Submitting…" : "Confirm and verify email"}
+            </button>
+          ) : (
+            <button
+              // Disabled for the same reason the fieldset is: advancing collects
+              // more of somebody's time towards a submit button that cannot fire.
+              className="rounded-xl bg-accent px-5 py-3 text-sm font-semibold text-white disabled:opacity-60"
+              disabled={!canCheckout}
+              onClick={goNext}
+              type="button"
+            >
+              Continue
+            </button>
+          )}
+        </div>
       </section>
     </form>
   );
 }
-
-function Field({
-  label,
-  onChange,
-  required,
-  type = "text",
-  value,
-}: {
-  label: string;
-  onChange: (value: string) => void;
-  required?: boolean;
-  type?: string;
-  value: string;
-}) {
-  return (
-    <label className="text-sm font-medium text-foreground">
-      {label}
-      <input
-        className="mt-2 w-full rounded-xl border border-border px-3 py-2"
-        onChange={(event) => onChange(event.target.value)}
-        required={required}
-        type={type}
-        value={value}
-      />
-    </label>
-  );
-}
-

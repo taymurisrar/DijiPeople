@@ -236,12 +236,17 @@ was omitted, and not that it was assumed.
 
 ```
 PRE_TASK_REPO_HEALTH
+SESSION_STATUS
 PARENT_TASK_STATUS
 WORK_PACKAGE_STATUS
+REQUIRED_AGENTS_STATUS
+UI_UX_AGENT_STATUS
+UI_UX_POST_REVIEW_STATUS
 IMPLEMENTATION_STATUS
 LOCAL_VALIDATION_STATUS
 QA_STATUS
 QA_FINDINGS_CLASSIFIED_STATUS
+QA_SCENARIO_PROMOTION_STATUS
 BUG_RECORD_STATUS
 ARCHITECT_TRIAGE_STATUS
 BACKLOG_UPDATE_STATUS
@@ -249,17 +254,132 @@ REVIEW_STATUS
 PR_STATUS
 REMOTE_CI_STATUS
 MERGE_STATUS
+DEVELOP_INTEGRATION_STATUS
+DEVELOP_SYNC_STATUS
 POST_MERGE_VALIDATION_STATUS
 MAIN_SYNC_STATUS
+MAIN_CHANGE_STATUS
 POST_TASK_REPO_HEALTH
+PRIMARY_WORKTREE_STATUS
+TASK_WORKTREE_STATUS
+UNEXPLAINED_DIRTY_FILES
+POST_INTEGRATION_GENERATOR_STATUS
+DATABASE_COHERENCE_STATUS
 DEPLOYMENT_STATUS
 DEPLOYMENT_DRIFT_STATUS
 ENGINEERING_HISTORY_STATUS
 FEEDBACK_PROMOTION_STATUS
 KNOWLEDGE_CAPTURE_STATUS
 OBSIDIAN_SYNC_STATUS
+OBSIDIAN_VERIFICATION_STATUS
+OBSIDIAN_SOURCE_ORPHANS
+OBSIDIAN_GRAPH_ORPHANS
+OBSIDIAN_UNRESOLVED_LINKS
+OBSIDIAN_STALE_GENERATED_COUNT
+OBSIDIAN_PARITY_DIFFS
+CONTROL_CENTER_STATUS
 CLEANUP_STATUS
 ```
+
+### The five counts verification actually reports
+
+`OBSIDIAN_VERIFICATION_STATUS = PASS` is a summary of five independent counts,
+and each failed independently before it was measured:
+
+| Field | Zero means |
+|---|---|
+| `OBSIDIAN_SOURCE_ORPHANS` | No generated note has lost its canonical source |
+| `OBSIDIAN_GRAPH_ORPHANS` | No generated knowledge node is isolated in the graph, except those explicitly `STANDALONE_ALLOWED` |
+| `OBSIDIAN_UNRESOLVED_LINKS` | Every generated wikilink resolves |
+| `OBSIDIAN_STALE_GENERATED_COUNT` | No vault copy is frozen because the sync stopped publishing its source |
+| `OBSIDIAN_PARITY_DIFFS` | Every vault copy matches its repository source |
+
+A source orphan and a graph orphan are **different failures**: a note can have a
+perfectly valid source and still be unreachable in the graph. Reporting one
+number for both hides whichever is smaller.
+
+### Syncing is not verifying
+
+`OBSIDIAN_SYNC_STATUS` records that `npm run knowledge:sync` **ran**.
+`OBSIDIAN_VERIFICATION_STATUS` records that `npm run knowledge:verify` then
+reported the vault and the repository **identical**. They are separate fields
+because they failed separately: the 2026-08-17 drift audit found forty
+generated files whose vault copy differed from its repository source — bug
+records, backlog items and `Backlog/open.md` among them — while every task in
+that window had reported its sync done.
+
+A task is **knowledge-changing** if it writes to `docs/bugs/`,
+`docs/backlog/`, `docs/knowledge/`, `docs/qa/` or `docs/engineering-history/`.
+Such a task must resolve **both** fields. `SKIPPED_NO_LOCAL_CONFIG` remains
+available to both where no vault is configured locally — that is a real state,
+and it is not the same as `PASS`.
+
+### The multi-session gates
+
+Two Architect chats can run at once, so a task now has to say what it held and
+whether it let go of it. See [`multi-session.md`](multi-session.md).
+
+| Field | Resolved when | May be `NOT_REQUIRED` when |
+|---|---|---|
+| `SESSION_STATUS` | A `docs/sessions/` record exists, `node scripts/session.mjs finish` released every lease, and `rebuild-sessions.mjs --check` is clean | The task registered no session — only legitimate for a trivial, single-file change |
+| `REQUIRED_AGENTS_STATUS` | Every row of the required-agent matrix is `PASS` or `NOT_REQUIRED` with a reason | Never. `UNKNOWN` means nobody checked |
+| `UI_UX_AGENT_STATUS` | The UI/UX handoff exists, names the surfaces reviewed, and every `CRITICAL`/`HIGH` finding carries a bug record id | Only when no row of the UI/UX required-surface list applies — **with the reason stated** |
+| `UI_UX_POST_REVIEW_STATUS` | UI/UX reviewed the built result against the running UI and returned a verdict | Before implementation exists, or when `UI_UX_AGENT_STATUS` is legitimately `NOT_REQUIRED` |
+
+**Why UI/UX gets two fields of its own.** The role was defined, invoked and then
+routinely invisible: it had no status on this contract, no row in the acceptance
+chain, and no schema for its output, so its findings reached the user — when
+they reached the user at all — as the sentence "UI/UX Agent reviewed". A role
+whose participation cannot be distinguished from its absence is not gated. These
+two fields are what make the difference legible, and the second one is where the
+*built* result gets judged rather than the intention.
+
+`UI_UX_POST_REVIEW_STATUS = FAILED` blocks completion the same way a failing
+required agent does. Frontend work is not complete because the diff is correct;
+it is complete when the journey works.
+
+**A session that ends holding a lease blocks the next task that needs it**, and
+nothing will tell the next agent why. `SESSION_STATUS` is what makes that
+visible rather than mysterious.
+
+`REQUIRED_AGENTS_STATUS` is a different question from the rest of this contract.
+Every other field asks *did this phase produce its output*; this one asks *did
+each agent that should have run actually run, and did the next stage accept its
+handoff*. A task can satisfy every other field while a required specialist was
+never dispatched. See [`agent-handoffs.md`](agent-handoffs.md).
+
+### The branch-model gates
+
+`develop` integrates and `main` deploys — [`branch-model.md`](branch-model.md).
+
+| Field | Resolved when | May be `NOT_REQUIRED` when |
+|---|---|---|
+| `DEVELOP_INTEGRATION_STATUS` | The work is on `origin/develop`, verified by reading the ref | The task modified no Git-tracked files, or it is a `RELEASE`/`DEPLOY` targeting `main` |
+| `DEVELOP_SYNC_STATUS` | Computed from refs by `repo-health.mjs` | Never; `REMOTE_ONLY` and `UNKNOWN` are values, not omissions |
+| `MAIN_CHANGE_STATUS` | `repo-health.mjs --main-baseline <sha>` reports `UNTOUCHED`, or the task is a production type and the change is intended | Never |
+
+**The production invariant.** For a completed *ordinary* task:
+
+```
+MAIN_CHANGE_STATUS   = UNTOUCHED
+MAIN_SYNC_STATUS     = SYNCED
+DEVELOP_SYNC_STATUS  = SYNCED        (where a local develop exists)
+```
+
+`MAIN_CHANGE_STATUS = CHANGED_BY_THIS_TASK` on anything other than a `RELEASE`,
+`DEPLOY` or `HOTFIX_PRODUCTION` is a **failed** task, not an untidy one: any
+mutation of `main` may trigger a production deployment, and the user did not ask
+for one.
+
+The field tests **containment, not equality**: does `origin/main` contain this
+task's commits? `main` advancing because another session merged is ordinary and
+reports `UNTOUCHED`, with the number of commits it advanced by. `REWRITTEN` —
+`origin/main` no longer containing the recorded baseline — is a blocker in its
+own right.
+
+It is `UNKNOWN` unless a baseline SHA was recorded at task start and passed to
+the check. That is deliberate: deriving `UNTOUCHED` from "main looks synced"
+would report clean for a task that merged into `main` and pushed.
 
 ### The repository-state gates
 
@@ -273,17 +393,34 @@ noticed — the human noticed, later, when their next push failed.
 | `PRE_TASK_REPO_HEALTH` | `node scripts/repo-health.mjs` ran **before** the branch was created, and the task started from the current shared-target SHA | Never, for a task that creates a branch |
 | `POST_TASK_REPO_HEALTH` | The same check ran after the merge and reports `PASS` | The task modified no Git-tracked files |
 | `MAIN_SYNC_STATUS` | Computed from refs — see [`repository-health.md`](repository-health.md) | Never; `UNKNOWN` is a value, not an omission |
+| `PRIMARY_WORKTREE_STATUS` | The **primary** checkout was inspected and every dirty path has an owner | Never — a task worktree being clean is not repository health |
+| `TASK_WORKTREE_STATUS` | This task's own worktree is clean, or its remaining paths are named | The task created no worktree |
+| `UNEXPLAINED_DIRTY_FILES` | Counted across framework-managed worktrees | Never; `0` is the only passing value |
+| `POST_INTEGRATION_GENERATOR_STATUS` | Generators that write tracked files ran before the final commit, or ran after and produced no diff | No generator ran |
+| `DATABASE_COHERENCE_STATUS` | `npm run db:postflight` reports `PASS` against the **primary** checkout after integration | The task changed no Prisma schema, migration or seed |
 | `DEPLOYMENT_STATUS` | The deployment state machine reached a terminal state | Nothing was deployed — state the reason |
 | `DEPLOYMENT_DRIFT_STATUS` | `EXPECTED_SHA` vs `DEPLOYED_SHA` classified | No environment is configured for this component |
 
 **The terminal invariant.** For a completed substantial task:
 
 ```
-MAIN_SYNC_STATUS      = SYNCED
-POST_TASK_REPO_HEALTH = PASS
+MAIN_SYNC_STATUS        = SYNCED
+POST_TASK_REPO_HEALTH   = PASS
+UNEXPLAINED_DIRTY_FILES = 0
+PRIMARY_WORKTREE_STATUS ∈ { CLEAN, DIRTY_USER_OWNED, DIRTY_OTHER_SESSION_OWNED }
 
 local main SHA == origin/main SHA == the expected merged SHA
 ```
+
+**A clean task worktree is not repository health.** The check that mattered was
+never run against the checkout the user actually looks at: an agent finished in
+its own pristine worktree, reported `CLEANUP_STATUS = DONE`, and the user opened
+GitHub Desktop to six changed files on `develop`. `PRIMARY_WORKTREE_STATUS` is
+never `NOT_REQUIRED` for exactly that reason.
+
+`DIRTY_UNEXPLAINED` blocks completion. `DIRTY_USER_OWNED` does not — but only
+when a baseline recorded at `PRE_TASK_REPO_HEALTH` proves those paths were
+already dirty, and the task left them untouched.
 
 None of the following may remain silently:
 
@@ -295,6 +432,44 @@ an unfinished cherry-pick · unexpected local-main commits · unverified diverge
 `MAIN_SYNC_STATUS = AHEAD` after a task is not a cosmetic untidiness. It means
 work exists in exactly one place, on one machine, and the next person to touch
 the branch will collide with it.
+
+### `DATABASE_COHERENCE_STATUS` — a clean checkout that cannot boot
+
+Repository health answers a Git question. It does not answer whether the
+application still runs, and those came apart in exactly the way the previous
+section describes — one level deeper.
+
+`POST_INTEGRATION_GENERATOR_STATUS` is defined over generators that write
+**tracked** files: the backlog indexes, the QA matrix, the dashboards. The
+generated Prisma client is untracked, so the one generator whose staleness stops
+the API from starting was the one generator no completion field could see.
+
+TASK-0008 landed three additive migrations, resolved every field in this
+contract — `PRIMARY_WORKTREE_STATUS = CLEAN`, `POST_INTEGRATION_GENERATOR_STATUS
+= DONE` — and left the user's checkout with a generated client missing seven
+`SubscriptionOrder` fields and three migrations unapplied. Nothing in the
+framework noticed. The user found it by running `npm run start:dev`.
+
+So the coherence the Database Agent already names —
+
+```
+schema.prisma → migration state → generated Prisma Client → local PostgreSQL → application
+```
+
+— is now asked **after** the work as well as before it, and asked of the
+**primary** checkout rather than whichever worktree the agent happens to be
+standing in:
+
+```bash
+npm run db:postflight          # resolves DATABASE_COHERENCE_STATUS
+npm run db:postflight -- --repair   # prisma:generate, migrate:deploy — never reset, never db push
+```
+
+A preflight cannot protect this invariant on its own. It certifies coherence,
+the agent then authors the migration that breaks it, and preflight is never
+asked again. The field is `NOT_REQUIRED` only when the task touched no schema,
+no migration and no seed — and `INCOMPLETE` is not a passing value, because a
+link nobody could check is not a link known to hold.
 
 ### `PR_STATUS`
 
@@ -333,7 +508,16 @@ defect that gets found again, at full cost, by someone who had no way to know.
 | `BUG_RECORD_STATUS` | Every finding needing a durable record has one under `docs/bugs/`, with evidence and reproduction — or an existing record was updated | No finding required a record; state which findings were considered and why not |
 | `ARCHITECT_TRIAGE_STATUS` | No record produced by this task is still `ArchitectDisposition: TRIAGE_REQUIRED` | No new records |
 | `BACKLOG_UPDATE_STATUS` | `node scripts/rebuild-backlog.mjs` ran clean and the indexes are current | The task created and changed no record |
+| `QA_SCENARIO_PROMOTION_STATUS` | Every new scenario with durable value is under `docs/qa/scenarios/`, and `node scripts/rebuild-qa.mjs --check` is clean | QA designed no scenario worth keeping — name the ones considered |
 | `ENGINEERING_HISTORY_STATUS` | A record exists under `docs/engineering-history/tasks/` with no unresolved TODO | The task modified no Git-tracked files |
+
+`QA_SCENARIO_PROMOTION_STATUS` exists for the same reason as
+`BUG_RECORD_STATUS`, one level up: a scenario that lives only in a run file is
+re-invented by the next agent, at full cost. A scenario earns promotion when it
+guards a fixed defect, covers a security or tenant-isolation case, or is a state
+transition somebody will get wrong again — **not** merely because it was run.
+Promoting everything turns the registry into noise nobody re-runs. See
+[`qa-persistence.md`](qa-persistence.md).
 
 **`QA_STATUS = PASS` is not permitted while `QA_FINDINGS_CLASSIFIED_STATUS` is
 unresolved.** A run may pass with recorded, dispositioned defects — frequently it
@@ -363,13 +547,29 @@ values: `DONE`, `NOT_REQUIRED` (with a reason), `BLOCKED`. See
 | `BLOCKED_<REASON>` | Attempted and prevented, e.g. `BLOCKED_BY_ACCESS`, `BLOCKED_BY_POLICY`, `BLOCKED_BY_CONFLICT`, `BLOCKED_CI_UNVERIFIED` |
 | `FAILED` | Ran and failed |
 
-`SKIPPED_NO_LOCAL_CONFIG` is additionally allowed for `OBSIDIAN_SYNC_STATUS`.
+`SKIPPED_NO_LOCAL_CONFIG` is additionally allowed for `OBSIDIAN_SYNC_STATUS` and
+`CONTROL_CENTER_STATUS`.
+
+`UNTOUCHED` and `CHANGED` are the values of `MAIN_CHANGE_STATUS`; the
+`DEVELOP_SYNC_STATUS` and `MAIN_SYNC_STATUS` vocabularies are in
+[`repository-health.md`](repository-health.md) and
+[`branch-model.md`](branch-model.md).
 
 **`NOT_REQUIRED` needs a reason.** "QA_STATUS = NOT_REQUIRED" on a task that
 changed an API response is a false gate, not an exemption.
 
 **`ASSUMED_PASS` is not a value.** Neither is leaving a field out. A field an
 agent cannot evaluate is `BLOCKED_<REASON>`, which is honest and visible.
+
+**`USER_CONFIRMATION_REQUIRED` is not a terminal state while a ready work
+package remains.** A parent task whose `NEXT_READY_WORK_PACKAGE` is set may end
+as `COMPLETE`, `RESUME_REQUIRED`, `BLOCKED_EXTERNAL` or `PRODUCT_DECISION` — and
+never by asking the user whether to continue. The user delegated the task, not
+its first work package, and a decomposition the Architect chose itself is not a
+decision point for anyone else. Running low on execution capacity is a
+checkpoint (`RESUME_REQUIRED`, with state persisted), not a question. See
+[`../agents/architect.md`](../agents/architect.md), *Continuation is not a
+question*.
 
 ### Which fields may be `NOT_REQUIRED`
 
@@ -395,6 +595,13 @@ agent cannot evaluate is `BLOCKED_<REASON>`, which is honest and visible.
 | `DEPLOYMENT_STATUS` | Nothing was deployed — state why |
 | `DEPLOYMENT_DRIFT_STATUS` | No environment is configured for the component |
 | `POST_TASK_REPO_HEALTH` | The task modified no Git-tracked files |
+| `SESSION_STATUS` | No session was registered — only for a trivial single-file change |
+| `DEVELOP_INTEGRATION_STATUS` | Nothing was integrated, or the task is a `RELEASE`/`DEPLOY` targeting `main` |
+| `QA_SCENARIO_PROMOTION_STATUS` | No scenario had durable value — name the ones considered |
+| `CONTROL_CENTER_STATUS` | Use `SKIPPED_NO_LOCAL_CONFIG` where no vault is configured; the repository-side note is regenerated regardless |
+| `REQUIRED_AGENTS_STATUS` | **Never** |
+| `MAIN_CHANGE_STATUS` | **Never** |
+| `DEVELOP_SYNC_STATUS` | **Never** — `REMOTE_ONLY` and `UNKNOWN` are values |
 
 `PRE_TASK_REPO_HEALTH` and `MAIN_SYNC_STATUS` are never `NOT_REQUIRED` on a task
 that creates a branch. `MAIN_SYNC_STATUS` has `UNKNOWN` for the case where the
@@ -653,6 +860,22 @@ remove a dirty worktree, an unmerged worktree, or one another agent is using.
 Before deleting, verify: fully merged, remote state known, no worktree attached,
 no unique commits. Never automatically delete long-lived branches, user-created
 branches, release branches, or branches with unresolved work.
+
+**The primary worktree** — the user's own checkout — is inspected before
+`CLEANUP_STATUS = DONE` may be written, whichever worktree the task ran in.
+Every uncommitted path there carries an owner: the user, a named session, a
+framework generator, or `UNKNOWN`. `UNKNOWN` blocks completion.
+
+```bash
+node scripts/repo-health.mjs --task-branch agent/<x> \
+  --primary-baseline "<paths already dirty at PRE_TASK_REPO_HEALTH>"
+```
+
+Cleanup never means making `git status` empty. Reverting, restoring, stashing or
+cleaning a path to tidy the report destroys work that belongs to somebody else —
+the user's afternoon, or a session running in another chat right now. Preserve
+first, classify second, and leave what is not yours. See
+[`repository-health.md`](repository-health.md#the-primary-worktree-is-first-class).
 
 `scripts/finalize-agent-task.mjs` reports the state every one of these decisions
 depends on. It deliberately does not make them — see

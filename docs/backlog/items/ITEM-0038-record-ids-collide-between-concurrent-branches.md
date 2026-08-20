@@ -3,13 +3,13 @@ ID: ITEM-0038
 aliases: [ITEM-0038]
 Title: Record ids collide between concurrent branches
 Type: TECH_DEBT
-Status: READY
+Status: DONE
 Priority: P2
 Severity: MEDIUM
 AffectedModules: [scripts, docs/bugs, docs/backlog]
 Source: QA_RUN
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 CreatedAt: 2026-08-17
 UpdatedAt: 2026-08-17
 RelatedBug:
@@ -104,8 +104,44 @@ must keep working · bug pattern [[divergent-duplicate-guard]] ·
 
 ## History
 
+- 2026-08-17 — corrected `UpdatedAt` so it no longer predates `CreatedAt`;
+  record content and completed disposition are unchanged.
+
 - 2026-08-17 — raised after the second occurrence in two consecutive tasks.
   TASK-0002 treated the first as bad luck; two in two days is a mechanism.
 - 2026-08-17 — Architect triage: `FIX_NOW`. The detection half is small and
   unambiguous; the prevention half is a choice between four options, none large.
-</content>
+- 2026-08-16 — **DONE**, resolved by [[TASK-0004]].
+
+  The option chosen is **none of the four listed**, because all four were framed
+  against `origin/main` and the real requirement is wider: several sessions run
+  concurrently *on one machine*, in sibling worktrees, and the window that
+  matters is between deciding on an id and writing the record — not between
+  writing and pushing.
+
+  `scripts/lib/id-allocator.mjs` closes both:
+
+  - **Scans every ref**, not the remote default branch — `git log --all --reflog
+    --name-only` in one subprocess, so an id used on any branch, including one
+    later reverted, is spent. That is strictly stronger than "allocate against
+    `origin/main`" and no slower in practice (~1s).
+  - **Reserves before the record exists**, under a `mkdir` lock in the
+    repository's shared Git directory. Every worktree shares that directory, so
+    a reservation taken in one is visible in another immediately — the mechanism
+    "reserve a block per branch" was reaching for, without the bookkeeping.
+  - Sequential human-readable ids are **kept**, so `[[BUG-0031]]` still works and
+    [[ITEM-0029]] is unaffected.
+
+  Acceptance criteria, each verified:
+
+  1. *Two branches from the same base cannot produce the same id* — simulation
+     `4b` in `validate-framework.mjs` commits `BUG-0900` on a sibling branch,
+     checks out the first, and asserts the ceiling still sees it. It fails
+     against a working-tree scan.
+  2. *`rebuild-backlog --check` fails on a duplicate `ID`* — already true via
+     `loadRecords`, and now covered by the concurrency simulations.
+  3. *`docs/bugs/README.md` no longer claims two agents cannot collide* — the
+     false guarantee is replaced, with the reason it was false.
+
+  `node scripts/allocate-id.mjs` exposes the allocator directly for every
+  numbered kind: bug, item, task, session, adr, plan, scenario and regression.

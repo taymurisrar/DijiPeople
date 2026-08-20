@@ -11,7 +11,11 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { Permissions } from '../../common/decorators/permissions.decorator';
+import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
+import {
+  Permissions,
+  RequirePermission,
+} from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
@@ -29,6 +33,8 @@ export class EmploymentTypesController {
   ) {}
 
   @Get()
+  @Permissions('dashboard.view')
+  @RequirePermission(ENTITY_KEYS.USER_PREFERENCES, 'read')
   findAll(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: ListEmploymentTypesDto,
@@ -41,6 +47,7 @@ export class EmploymentTypesController {
 
   @Get(':id')
   @Permissions('employment-types.read')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'read')
   findOne(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -50,6 +57,7 @@ export class EmploymentTypesController {
 
   @Post()
   @Permissions('employment-types.manage')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'manage')
   create(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateEmploymentTypeDto,
@@ -59,6 +67,7 @@ export class EmploymentTypesController {
 
   @Patch(':id')
   @Permissions('employment-types.manage')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'manage')
   update(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -69,6 +78,7 @@ export class EmploymentTypesController {
 
   @Delete(':id')
   @Permissions('employment-types.manage')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'manage')
   deactivate(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,

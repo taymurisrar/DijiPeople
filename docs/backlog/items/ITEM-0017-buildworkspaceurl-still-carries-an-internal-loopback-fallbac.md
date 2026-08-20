@@ -9,7 +9,7 @@ Severity: LOW
 AffectedModules: [pkg:config]
 Source: ARCHITECT
 OwnerAgent: architect
-ArchitectDisposition: DEFER
+ArchitectDisposition: DONE
 CreatedAt: 2026-08-16
 UpdatedAt: 2026-08-17
 RelatedBug: BUG-0026
@@ -85,6 +85,9 @@ same file, and a reason to treat changes here carefully.
 [[ITEM-0006]] — ADR for one source of truth for the tenant base domain.
 
 ## History
+
+- 2026-08-17 — Architect reconciliation: terminal `DONE` status normalized to
+  `ArchitectDisposition: DONE`; no runtime behavior changed.
 
 - 2026-08-16 — created at `344a832` while fixing [[BUG-0026]]; deferred with the
   reason recorded above rather than bundled into that fix.

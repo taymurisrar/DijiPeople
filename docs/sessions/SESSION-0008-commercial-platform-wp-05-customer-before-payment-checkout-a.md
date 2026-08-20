@@ -1,0 +1,46 @@
+---
+SESSION_ID: SESSION-0008
+aliases: [SESSION-0008]
+TASK_ID: TASK-0007
+TITLE: Commercial platform WP-05 — customer before payment, checkout authority, tax basis
+ARCHITECT_INTENT: Commercial platform WP-05 — customer before payment, checkout authority, tax basis
+STATUS: COMPLETE
+TASK_TYPE: FEATURE
+TASK_SIZE: LARGE
+BASE_BRANCH: origin/develop
+BASE_SHA: 9886309b6e07606c0460300ef46dcdf8d687dc22
+TASK_BRANCH: agent/commercial-platform-completion
+TARGET_BRANCH: develop
+WORKTREE: D:/My Work/hrm-dijipeople/DijiPeople
+AFFECTED_MODULES: [billing, outbox, tenant-control-plane]
+WRITE_LEASES: []
+ACTIVE_WORK_PACKAGES: []
+SCHEMA_WRITE: YES
+CI_STATUS: PASS
+MERGE_STATUS: DONE
+STARTED_AT: 2026-08-18T11:28:52.499Z
+LAST_HEARTBEAT: 2026-08-18T11:28:52.499Z
+BLOCKERS: none
+---
+
+# SESSION-0008 — Commercial platform WP-05 — customer before payment, checkout authority, tax basis
+
+## Intent
+
+Commercial platform WP-05 — customer before payment, checkout authority, tax basis
+
+## Scope
+
+WP-05 of TASK-0007: the SubscriptionOrder pre-payment snapshot, conservative
+customer deduplication, server-authoritative money and the tax basis chain.
+Integrated into develop at 68ef4d1 behind a green exact-SHA required gate.
+
+## Concurrency
+
+Write leases held, overlap classification against other active sessions, and
+anything this session deliberately serialised behind another. Live state:
+`node scripts/session.mjs list`.
+
+## History
+
+- 2026-08-18 — session started from `origin/develop` at `9886309`.

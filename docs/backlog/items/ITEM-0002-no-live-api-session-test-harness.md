@@ -1,7 +1,7 @@
 ---
 ID: ITEM-0002
 aliases: [ITEM-0002]
-Title: No harness exists for testing against a running API with real sessions
+Title: Live API session and database proof for admin sign-out
 Type: TEST_GAP
 Status: READY
 Priority: P2
@@ -11,7 +11,7 @@ Source: QA_RUN
 OwnerAgent: qa
 ArchitectDisposition: FIX_NOW
 CreatedAt: 2026-08-15
-UpdatedAt: 2026-08-15
+UpdatedAt: 2026-08-17
 RelatedBug: BUG-0009
 RelatedQA: docs/qa/runs/2026-08-14-admin-session-expired-logout-cbc2db8.md
 RelatedADR:
@@ -20,20 +20,20 @@ TargetMilestone:
 BlockedBy:
 ---
 
-# ITEM-0002 — No harness exists for testing against a running API with real sessions
+# ITEM-0002 — Live API session and database proof for admin sign-out
 
 ## Summary
 
-Two fixed defects — [[BUG-0009]] (revocation depended on the refresh cookie) and
-[[BUG-0010]] (unguarded cookie options could 500 sign-out) — are `FIXED` rather
-than `VERIFIED` because neither is observable without a running API holding a
-real session, and no harness for that exists.
+The gap remains. `REG-032` statically inspects the logout route's source shape,
+but no test invokes GET/POST with a persisted platform session and proves the
+`PlatformRefreshToken` row is revoked when the refresh cookie is absent. The
+same source-shape test does not execute the rejected-cookie-configuration path.
 
 ## Why It Matters
 
 Session revocation is the one auth behaviour where "the code looks right" is
-least convincing: the failure mode is a session that *appears* closed. Two
-security-adjacent fixes are currently claims.
+least convincing: the failure mode is a session that *appears* closed. Static
+guards are useful, but cannot prove persisted revocation or a real response.
 
 More generally, the boundary between "provable with jest and supertest" and
 "needs a live process" is where this repository keeps accumulating unverified
@@ -41,31 +41,31 @@ fixes.
 
 ## Evidence
 
-`docs/qa/runs/2026-08-14-admin-session-expired-logout-cbc2db8.md`, Known
-Limitations: "Server-side revocation was not observed. The API was not running."
-Its Follow-up section names the exact missing test: sign out with the refresh
-cookie already expired and confirm the `PlatformRefreshToken` row is revoked.
-
-The commercial onboarding run *did* drive a live local API successfully, which
-shows the capability is reachable — it was built ad hoc as a bespoke HTTP+SQL
-harness and not kept.
+The original limitation is recorded in
+`docs/qa/runs/2026-08-14-admin-session-expired-logout-cbc2db8.md`. `REG-032`
+and `apps/admin/app/api/auth/logout/logout-route.spec.ts` prove only that the
+current source contains unconditional-looking calls and a safe wrapper. The
+spec never invokes either route handler and never queries a token row.
 
 ## Proposed Approach
 
-Promote the ad-hoc harness pattern the commercial onboarding run used into
-something reusable under `services/api/test/helpers/`, alongside the existing
-`db-fixtures.ts`. Scope it deliberately: enough to authenticate, hold cookies
-and assert database state — not a second e2e framework.
+Add a focused integration/E2E harness that creates a platform session and
+refresh-token row, invokes both logout methods with the refresh cookie absent,
+and asserts the row is revoked. Execute the rejected cookie-domain path and
+assert a non-500 redirect plus best-effort cookie expiry. Reuse the existing DB
+fixtures and ephemeral PostgreSQL; do not introduce another test framework.
 
 ## Acceptance Criteria
 
-The two follow-ups named above run as tests, and [[BUG-0009]] can move to
-`VERIFIED` on evidence rather than on reading.
+- GET and POST are invoked against a real session.
+- A missing refresh cookie still leaves the persisted token revoked.
+- Rejected cookie configuration returns the intended redirect rather than 500.
+- `QA-AUTH-002` is promoted from PARTIAL only after those assertions pass.
 
 ## Dependencies
 
-Needs an isolated database, which CI already provides via the
-`database-migration` job's ephemeral PostgreSQL service.
+No external blocker. Existing DB fixtures and CI PostgreSQL make this
+technically resolvable.
 
 ## Related Items
 
@@ -77,3 +77,7 @@ Needs an isolated database, which CI already provides via the
 - 2026-08-15 — imported from the admin session-expired QA run's follow-ups.
 
 - 2026-08-15 — Architect triage: FIX_NOW. The blocker this item described has gone — the browser suite holds a real admin session through a real login, and `test/helpers/db-fixtures.ts` plus the DB-backed suites cover database assertions. What is left is narrow and worth doing: the two named follow-ups that would move BUG-0009 and BUG-0010 from FIXED to VERIFIED on evidence rather than on reading.
+
+- 2026-08-17 — independent WP-02 review rejected the attempted `DONE` closure:
+  the named spec is a static source-shape test and does not prove persisted
+  revocation or execute the rejected-cookie path. Restored to `READY/FIX_NOW`.

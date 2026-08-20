@@ -16,7 +16,11 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { Permissions } from '../../common/decorators/permissions.decorator';
+import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
+import {
+  Permissions,
+  RequirePermission,
+} from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
@@ -66,12 +70,14 @@ export class TimesheetsController {
 
   @Get('access-restriction')
   @Permissions('timesheets.read')
+  @RequirePermission(ENTITY_KEYS.TIMESHEETS, 'read')
   getAccessRestriction(@CurrentUser() user: AuthenticatedUser) {
     return this.workflowService.getAccessRestriction(user);
   }
 
   @Get('mine/monthly')
   @Permissions('timesheets.read')
+  @RequirePermission(ENTITY_KEYS.TIMESHEETS, 'read')
   getMineMONTHLY(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: GetMONTHLYTimesheetDto,
@@ -81,6 +87,7 @@ export class TimesheetsController {
 
   @Get('mine')
   @Permissions('timesheets.read')
+  @RequirePermission(ENTITY_KEYS.TIMESHEETS, 'read')
   listMine(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: TimesheetQueryDto,
@@ -90,6 +97,7 @@ export class TimesheetsController {
 
   @Get('team')
   @Permissions('timesheets.read.team')
+  @RequirePermission(ENTITY_KEYS.TIMESHEETS, 'read')
   listTeam(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: TimesheetQueryDto,
@@ -99,6 +107,7 @@ export class TimesheetsController {
 
   @Get('team/:timesheetId')
   @Permissions('timesheets.read.team')
+  @RequirePermission(ENTITY_KEYS.TIMESHEETS, 'read')
   getTeamTimesheet(
     @CurrentUser() user: AuthenticatedUser,
     @Param('timesheetId', new ParseUUIDPipe()) timesheetId: string,
@@ -108,6 +117,7 @@ export class TimesheetsController {
 
   @Get(':timesheetId/timeline')
   @Permissions('timesheets.read', 'timeline.read')
+  @RequirePermission(ENTITY_KEYS.TIMESHEETS, 'read')
   async getTimeline(
     @CurrentUser() user: AuthenticatedUser,
     @Param('timesheetId', new ParseUUIDPipe()) timesheetId: string,
@@ -123,6 +133,7 @@ export class TimesheetsController {
 
   @Get(':timesheetId')
   @Permissions('timesheets.read')
+  @RequirePermission(ENTITY_KEYS.TIMESHEETS, 'read')
   getTimesheet(
     @CurrentUser() user: AuthenticatedUser,
     @Param('timesheetId', new ParseUUIDPipe()) timesheetId: string,
@@ -132,6 +143,7 @@ export class TimesheetsController {
 
   @Patch(':timesheetId/entries')
   @Permissions('timesheets.write')
+  @RequirePermission(ENTITY_KEYS.TIMESHEETS, 'write')
   updateEntries(
     @CurrentUser() user: AuthenticatedUser,
     @Param('timesheetId', new ParseUUIDPipe()) timesheetId: string,
@@ -142,6 +154,7 @@ export class TimesheetsController {
 
   @Patch(':timesheetId/weeks/:weekId/entries')
   @Permissions('timesheets.write')
+  @RequirePermission(ENTITY_KEYS.TIMESHEETS, 'write')
   async updateWeekEntries(
     @CurrentUser() user: AuthenticatedUser,
     @Param('timesheetId', new ParseUUIDPipe()) timesheetId: string,
@@ -159,6 +172,7 @@ export class TimesheetsController {
 
   @Post(':timesheetId/weeks/:weekId/submit')
   @Permissions('timesheets.submit')
+  @RequirePermission(ENTITY_KEYS.TIMESHEETS, 'write')
   async submitWeek(
     @CurrentUser() user: AuthenticatedUser,
     @Param('timesheetId', new ParseUUIDPipe()) timesheetId: string,
@@ -171,6 +185,7 @@ export class TimesheetsController {
 
   @Post(':timesheetId/weeks/:weekId/late-submission-override')
   @Permissions('timesheets.override')
+  @RequirePermission(ENTITY_KEYS.TIMESHEETS, 'manage')
   async grantLateSubmissionOverride(
     @CurrentUser() user: AuthenticatedUser,
     @Param('timesheetId', new ParseUUIDPipe()) timesheetId: string,
@@ -188,6 +203,7 @@ export class TimesheetsController {
 
   @Post(':timesheetId/weeks/:weekId/copy-previous')
   @Permissions('timesheets.write')
+  @RequirePermission(ENTITY_KEYS.TIMESHEETS, 'write')
   async copyPreviousWeek(
     @CurrentUser() user: AuthenticatedUser,
     @Param('timesheetId', new ParseUUIDPipe()) timesheetId: string,
@@ -208,6 +224,7 @@ export class TimesheetsController {
 
   @Post(':timesheetId/correction')
   @Permissions('timesheets.reject')
+  @RequirePermission(ENTITY_KEYS.TIMESHEETS, 'reject')
   async requestCorrection(
     @CurrentUser() user: AuthenticatedUser,
     @Param('timesheetId', new ParseUUIDPipe()) timesheetId: string,
@@ -219,6 +236,7 @@ export class TimesheetsController {
 
   @Post(':timesheetId/weeks/:weekId/withdraw')
   @Permissions('timesheets.withdraw')
+  @RequirePermission(ENTITY_KEYS.TIMESHEETS, 'write')
   async withdrawWeek(
     @CurrentUser() user: AuthenticatedUser,
     @Param('timesheetId', new ParseUUIDPipe()) timesheetId: string,
@@ -231,6 +249,7 @@ export class TimesheetsController {
 
   @Post(':timesheetId/weeks/:weekId/approve')
   @Permissions('timesheets.approve')
+  @RequirePermission(ENTITY_KEYS.TIMESHEETS, 'approve')
   async approveWeek(
     @CurrentUser() user: AuthenticatedUser,
     @Param('timesheetId', new ParseUUIDPipe()) timesheetId: string,
@@ -249,6 +268,7 @@ export class TimesheetsController {
 
   @Post(':timesheetId/weeks/:weekId/reject')
   @Permissions('timesheets.reject')
+  @RequirePermission(ENTITY_KEYS.TIMESHEETS, 'reject')
   async rejectWeek(
     @CurrentUser() user: AuthenticatedUser,
     @Param('timesheetId', new ParseUUIDPipe()) timesheetId: string,
@@ -267,6 +287,7 @@ export class TimesheetsController {
 
   @Get(':timesheetId/weeks/:weekId/approval')
   @Permissions('timesheets.read')
+  @RequirePermission(ENTITY_KEYS.TIMESHEETS, 'read')
   getWeekApproval(
     @CurrentUser() user: AuthenticatedUser,
     @Param('timesheetId', new ParseUUIDPipe()) timesheetId: string,
@@ -277,6 +298,7 @@ export class TimesheetsController {
 
   @Post(':timesheetId/weeks/:weekId/reopening-requests')
   @Permissions('timesheets.reopen')
+  @RequirePermission(ENTITY_KEYS.TIMESHEETS, 'write')
   requestReopening(
     @CurrentUser() user: AuthenticatedUser,
     @Param('timesheetId', new ParseUUIDPipe()) timesheetId: string,
@@ -293,6 +315,7 @@ export class TimesheetsController {
 
   @Patch(':timesheetId/weeks/:weekId/reopening-requests/:requestId')
   @Permissions('timesheets.approve')
+  @RequirePermission(ENTITY_KEYS.TIMESHEETS, 'approve')
   decideReopening(
     @CurrentUser() user: AuthenticatedUser,
     @Param('timesheetId', new ParseUUIDPipe()) timesheetId: string,
@@ -311,6 +334,7 @@ export class TimesheetsController {
 
   @Post(':timesheetId/payroll-handoff')
   @Permissions('timesheets.payroll.handoff')
+  @RequirePermission(ENTITY_KEYS.TIMESHEETS, 'manage')
   handoffToPayroll(
     @CurrentUser() user: AuthenticatedUser,
     @Param('timesheetId', new ParseUUIDPipe()) timesheetId: string,
@@ -320,6 +344,7 @@ export class TimesheetsController {
 
   @Post(':timesheetId/submit')
   @Permissions('timesheets.submit')
+  @RequirePermission(ENTITY_KEYS.TIMESHEETS, 'write')
   submit(
     @CurrentUser() user: AuthenticatedUser,
     @Param('timesheetId', new ParseUUIDPipe()) timesheetId: string,
@@ -330,6 +355,7 @@ export class TimesheetsController {
 
   @Post(':timesheetId/approve')
   @Permissions('timesheets.approve')
+  @RequirePermission(ENTITY_KEYS.TIMESHEETS, 'approve')
   approve(
     @CurrentUser() user: AuthenticatedUser,
     @Param('timesheetId', new ParseUUIDPipe()) timesheetId: string,
@@ -340,6 +366,7 @@ export class TimesheetsController {
 
   @Post(':timesheetId/reject')
   @Permissions('timesheets.reject')
+  @RequirePermission(ENTITY_KEYS.TIMESHEETS, 'reject')
   reject(
     @CurrentUser() user: AuthenticatedUser,
     @Param('timesheetId', new ParseUUIDPipe()) timesheetId: string,
@@ -350,6 +377,7 @@ export class TimesheetsController {
 
   @Get('template/export')
   @Permissions('timesheets.template.export')
+  @RequirePermission(ENTITY_KEYS.TIMESHEETS, 'export')
   async exportTemplate(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: ExportTimesheetTemplateDto,
@@ -371,6 +399,7 @@ export class TimesheetsController {
 
   @Post('template/import/preview')
   @Permissions('timesheets.import')
+  @RequirePermission(ENTITY_KEYS.TIMESHEETS, 'import')
   @UseInterceptors(FileInterceptor('file'))
   previewImport(
     @CurrentUser() user: AuthenticatedUser,
@@ -382,6 +411,7 @@ export class TimesheetsController {
 
   @Post('template/import/commit')
   @Permissions('timesheets.import')
+  @RequirePermission(ENTITY_KEYS.TIMESHEETS, 'import')
   commitImport(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CommitTimesheetImportDto,
@@ -391,6 +421,7 @@ export class TimesheetsController {
 
   @Get(':timesheetId/export')
   @Permissions('timesheets.export')
+  @RequirePermission(ENTITY_KEYS.TIMESHEETS, 'export')
   async export(
     @CurrentUser() user: AuthenticatedUser,
     @Param('timesheetId', new ParseUUIDPipe()) timesheetId: string,

@@ -146,6 +146,40 @@ AUTH_AGENT_IDLE_SESSION_TIMEOUT_SECONDS=30d
 AUTH_AGENT_ABSOLUTE_SESSION_TIMEOUT_SECONDS=30d
 ```
 
+### Platform super admin bootstrap
+
+`seed:admin` runs inside `npm run release`, which is `render.yaml`'s
+`preDeployCommand`, so it executes on **every** deploy of the API.
+
+```env
+PLATFORM_SUPER_ADMIN_EMAIL=<bootstrap-admin-email>
+PLATFORM_SUPER_ADMIN_PASSWORD=<at least 12 characters>
+```
+
+**Set both for the first deploy of an environment, then remove the password.**
+Once an active platform super admin exists, `seed:admin` is a no-op and deploys
+stay green without either variable — so a live credential does not have to sit
+in the Render dashboard indefinitely.
+
+It will not overwrite an existing admin. A deploy never changes an existing
+platform user's password, role or status, because two configurations were
+previously the only ones available and both were wrong: leaving the variables
+unset aborted `preDeployCommand`, and leaving them set reset the super admin's
+password to the dashboard value on every deploy — including a password that had
+just been rotated because it leaked.
+
+```env
+PLATFORM_SUPER_ADMIN_PASSWORD_RESET=true
+```
+
+Break-glass only, for regaining access to an environment. Set it with the two
+variables above, deploy once, then unset it — left on, it reapplies the
+dashboard value on every subsequent deploy.
+
+Without any of them, a database that has **no** active super admin still fails
+loudly rather than deploying: such an environment has nobody who can sign in,
+and nobody to attribute legal-document publication to.
+
 Email variables are required only when email delivery is enabled:
 
 ```env
@@ -161,6 +195,47 @@ SMTP_PASS=<smtp-password>
 SMTP_FROM_EMAIL=no-reply@example.com
 SMTP_FROM_NAME=DijiPeople
 ```
+
+## Transactional outbox worker
+
+Read by `services/api`. The outbox itself is not optional and is not
+configurable: every domain service that changes business state writes its event
+in the same transaction, always. These variables govern only whether *this
+process* also drains the resulting queue.
+
+| Variable | Where | Required | Meaning |
+|---|---|---|---|
+| `OUTBOX_WORKER_ENABLED` | API | no — defaults off | `true` starts the poll loop in this process. Off by default so tests, seeds and CLI invocations that boot the Nest container do not silently start a background worker. At least one deployed instance must set it, or events are written and never delivered. |
+| `OUTBOX_WORKER_POLL_INTERVAL_MS` | API | optional | Poll interval. Defaults to 5000, floored at 1000. |
+| `OUTBOX_WORKER_BATCH_SIZE` | API | optional | Events claimed per poll. Defaults to 25, capped at 200. |
+
+Running the worker on more than one instance is safe — claims use
+`FOR UPDATE SKIP LOCKED`, so each event goes to exactly one dispatcher — but
+running it on none is not, and nothing fails loudly when you do: the events
+accumulate in `PENDING` and the transitions they carry simply never happen.
+
+## Active-employee overage thresholds
+
+Read by `services/api` (`SeatUsageService`). They decide when exceeding
+purchased capacity is ordinary business, when the tenant is warned, and when a
+human must look before anything is billed.
+
+| Variable | Where | Required | Meaning |
+|---|---|---|---|
+| `SEAT_OVERAGE_WARN_PERCENT` | API | optional | Overage, as a percentage of purchased capacity, at which the episode becomes `WARNED`. Defaults to 10. |
+| `SEAT_OVERAGE_REVIEW_PERCENT` | API | optional | Percentage at which the episode becomes `REVIEW_REQUIRED`. Defaults to 100. |
+| `SEAT_OVERAGE_REVIEW_ABSOLUTE` | API | optional | Absolute overage that also forces `REVIEW_REQUIRED`, regardless of percentage. Defaults to 100. |
+
+Both an absolute and a proportional threshold exist because neither alone is
+right: 5 over on a capacity of 5 is a doubling and worth a look, while 5 over on
+a capacity of 2,000 is noise — and a large jump on a large tenant is one a
+percentage would wave through.
+
+The point of `REVIEW_REQUIRED` is the import accident. Going 20 → 22 is ordinary
+hiring. Going 20 → 900 overnight is almost always a bad CSV, and silently
+generating an invoice for 880 phantom employees is not a billing policy anyone
+would defend afterwards. Raising these thresholds makes that outcome *more*
+likely, so change them deliberately.
 
 ## Application release publishing
 
@@ -257,7 +332,7 @@ AGENT_HEARTBEAT_INTERVAL_SECONDS=60
 AGENT_HEARTBEAT_BATCH_SIZE=1000
 AGENT_OFFLINE_QUEUE_ENABLED=true
 AGENT_OFFLINE_QUEUE_MAX_ITEMS=5000
-DIJIPEOPLE_AGENT_UPDATE_URL=https://dijipeople.onrender.com/api/agent/updates
+DIJIPEOPLE_AGENT_UPDATE_URL=https://dijipeople.onrender.com/api/app-releases/feed/agent-desktop
 AGENT_AUTO_UPDATE_ENABLED=true
 ```
 

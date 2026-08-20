@@ -9,12 +9,9 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { ROLE_KEYS } from '../../common/constants/rbac-matrix';
-import { RequireRoles } from '../../common/decorators/require-roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../../common/guards/roles.guard';
 import {
   CreatePartnerCommissionDto,
   CreatePartnerDto,
@@ -27,25 +24,34 @@ import {
 } from './dto/partner.dto';
 import { PartnersService } from './partners.service';
 
-@UseGuards(JwtAuthGuard, RolesGuard)
-@RequireRoles(ROLE_KEYS.SYSTEM_ADMIN, ROLE_KEYS.SYSTEM_CUSTOMIZER)
+@UseGuards(JwtAuthGuard)
 @Controller('partners')
 export class PartnersController {
   constructor(private readonly service: PartnersService) {}
-  @Get() list(@Query() query: PartnerQueryDto) {
-    return this.service.list(query);
+  @Get() list(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() query: PartnerQueryDto,
+  ) {
+    return this.service.listForUser(user, query);
   }
-  @Post() create(@Body() dto: CreatePartnerDto) {
-    return this.service.create(dto);
+  @Post() create(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: CreatePartnerDto,
+  ) {
+    return this.service.createForUser(user, dto);
   }
-  @Get(':partnerId') get(@Param('partnerId', new ParseUUIDPipe()) id: string) {
-    return this.service.get(id);
+  @Get(':partnerId') get(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('partnerId', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.service.getForUser(user, id);
   }
   @Patch(':partnerId') update(
+    @CurrentUser() user: AuthenticatedUser,
     @Param('partnerId', new ParseUUIDPipe()) id: string,
     @Body() dto: UpdatePartnerDto,
   ) {
-    return this.service.update(id, dto);
+    return this.service.updateForUser(user, id, dto);
   }
   @Post(':partnerId/lifecycle')
   lifecycle(
@@ -53,11 +59,14 @@ export class PartnersController {
     @Param('partnerId', new ParseUUIDPipe()) id: string,
     @Body() dto: PartnerLifecycleActionDto,
   ) {
-    return this.service.lifecycleAction(id, user.userId, dto);
+    return this.service.lifecycleActionForUser(user, id, dto);
   }
   @Get(':partnerId/referral-links')
-  async referralLinks(@Param('partnerId', new ParseUUIDPipe()) id: string) {
-    return { items: (await this.service.get(id)).referralLinks };
+  async referralLinks(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('partnerId', new ParseUUIDPipe()) id: string,
+  ) {
+    return { items: (await this.service.getForUser(user, id)).referralLinks };
   }
   @Post(':partnerId/referral-links')
   referralLink(
@@ -65,7 +74,7 @@ export class PartnersController {
     @Param('partnerId', new ParseUUIDPipe()) id: string,
     @Body() dto: CreatePartnerReferralLinkDto,
   ) {
-    return this.service.createReferralLink(id, dto, user.userId);
+    return this.service.createReferralLinkForUser(user, id, dto);
   }
   @Post(':partnerId/referral-links/:linkId/action')
   referralLinkAction(
@@ -74,19 +83,21 @@ export class PartnersController {
     @Param('linkId') linkId: string,
     @Body() dto: PartnerReferralLinkActionDto,
   ) {
-    return this.service.referralLinkAction(id, linkId, dto.action, user.userId);
+    return this.service.referralLinkActionForUser(user, id, linkId, dto.action);
   }
   @Post(':partnerId/commissions') commission(
+    @CurrentUser() user: AuthenticatedUser,
     @Param('partnerId', new ParseUUIDPipe()) id: string,
     @Body() dto: CreatePartnerCommissionDto,
   ) {
-    return this.service.createCommission(id, dto);
+    return this.service.createCommissionForUser(user, id, dto);
   }
   @Patch(':partnerId/commissions/:commissionId') updateCommission(
+    @CurrentUser() user: AuthenticatedUser,
     @Param('partnerId', new ParseUUIDPipe()) id: string,
     @Param('commissionId', new ParseUUIDPipe()) commissionId: string,
     @Body() dto: UpdatePartnerCommissionDto,
   ) {
-    return this.service.updateCommission(id, commissionId, dto);
+    return this.service.updateCommissionForUser(user, id, commissionId, dto);
   }
 }

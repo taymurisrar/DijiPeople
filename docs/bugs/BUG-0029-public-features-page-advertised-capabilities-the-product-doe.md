@@ -11,14 +11,14 @@ DetectedDate: 2026-08-16
 DetectedInSha: 7686bb0
 AffectedModules: [apps/landing]
 OwnerAgent: frontend
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: docs/qa/runs/2026-08-16-public-commercial-wave2-7686bb0.md
 RegressionId: REG-019
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation: agent/public-commercial-wave2
 CreatedAt: 2026-08-16
-UpdatedAt: 2026-08-16
+UpdatedAt: 2026-08-17
 ResolvedAt: 2026-08-16
 ---
 
@@ -139,5 +139,9 @@ real PostgreSQL 16. Each of these tests was proven to fail without its fix when
 it was written; re-running them is what confirms the fix still holds.
 
 ## History
+
+- 2026-08-17 — Architect reconciliation: terminal `VERIFIED` status normalized
+  to `ArchitectDisposition: DONE`; the existing resolution and QA evidence are
+  unchanged.
 
 - 2026-08-16 — found during Wave 2 discovery, fixed in the same wave.

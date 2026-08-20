@@ -25,6 +25,7 @@ and automatic continuation are in
 | **UI/UX** | [ui-ux.md](ui-ux.md) | **No** (read-only by default) | Experience specification and acceptance criteria |
 | **Database** | [database.md](database.md) | Yes, single-writer | Prisma schema, migrations, indexes, backfills, seed impact |
 | **Integration** | [integration.md](integration.md) | Yes | Connectors, gateway contract, webhooks, queues, idempotency |
+| **Security** | [security.md](security.md) | **No** (read-only unless Architect delegates) | Adversarial review of auth, tenant isolation, object-level authorization, trust boundaries, payment and destructive operations |
 | **QA** | [qa.md](qa.md) | Tests only | Scenario design, execution, QA runs, regression register |
 | **Reviewer** | [reviewer.md](reviewer.md) | **No** | Independent technical and security assessment |
 | **Integrator** | [integrator.md](integrator.md) | Git only | Branches, worktrees, conflicts, **PR lifecycle**, merges, **protected-branch recovery**, cleanup |

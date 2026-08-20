@@ -3,15 +3,15 @@ ID: ITEM-0009
 aliases: [ITEM-0009]
 Title: No observability platform exists, so a release cannot be verified from outside
 Type: INFRA
-Status: DEFERRED
+Status: READY
 Priority: P2
 Severity: MEDIUM
 AffectedModules: [services/api, apps/web, apps/admin]
 Source: DEPLOYMENT
 OwnerAgent: release-devops
-ArchitectDisposition: DEFER
+ArchitectDisposition: PLAN_REQUIRED
 CreatedAt: 2026-08-15
-UpdatedAt: 2026-08-15
+UpdatedAt: 2026-08-17
 RelatedBug:
 RelatedQA:
 RelatedADR:
@@ -25,8 +25,10 @@ BlockedBy:
 ## Summary
 
 There is no Sentry, Datadog, OpenTelemetry, Prometheus or log-shipping
-dependency anywhere in this repository. What exists is `/api/health`, a second
-health endpoint under billing, and Render's own console.
+dependency anywhere in this repository. The first planned observability step is
+complete: `/api/health` exposes the deployed commit and the smoke command prints
+it. The endpoint still does not prove database reachability, and no external
+error aggregation exists.
 
 ## Why It Matters
 
@@ -42,32 +44,35 @@ honest but does not fix it.
 
 ## Evidence
 
-Verified at `main` `ad8f77f`: no `@sentry`, `datadog`, `opentelemetry` or
-`prom-client` dependency in the root, API or app `package.json` files.
+Originally verified at `main` `ad8f77f`: no `@sentry`, `datadog`, `opentelemetry`
+or `prom-client` dependency in the root, API or app `package.json` files.
 `.agent/agents/release-devops.md`, "Observability expectations": *"Current
 capability: almost none."*
 `.agent/context/deployment-runtime.md` records the health-check caveat.
 
+Current code evidence: `services/api/src/app.service.ts` returns
+`getRuntimeHealthPayload(process.env)` without a database probe. [[ITEM-0010]]
+is `DONE` and records the deployed-commit resolver and smoke output.
+
 ## Proposed Approach
 
-Smallest useful step first, and **not** an observability platform build — the
-Release/DevOps role explicitly forbids taking that on inside a release task.
-Ordered by value per unit of work:
+The smallest first step is complete. The remaining work needs a plan rather
+than another effort-based defer:
 
-1. Expose the deployed SHA from the API (tracked separately as [[ITEM-0010]]).
-2. Make the health check actually touch the database, so green means something.
-3. Then, and only then, consider error aggregation — with an ADR, because it is
+1. Make the health check touch the database, so green means something, while
+   defining timeout and failure semantics that cannot overload an outage.
+2. Then consider error aggregation — with an ADR, because it is
    a dependency added to four deployables.
 
 ## Acceptance Criteria
 
 A release report can state, from outside the system, which SHA is serving and
-whether the database is reachable — without opening the Render console.
+whether the database is reachable — without opening the Render console. The SHA
+half is met; database reachability remains open.
 
 ## Dependencies
 
-None. [[ITEM-0010]] is the first step of this item and is tracked separately
-because it is independently valuable and much smaller.
+None. [[ITEM-0010]] is complete, satisfying the explicit revisit trigger.
 
 ## Related Items
 
@@ -81,3 +86,8 @@ where the gap is recorded as a capability.
   Release/DevOps role and the deployment-runtime context.
 
 - 2026-08-15 — Architect triage: DEFER, with the reason stated rather than implied. Not blocked and not unimportant — but this item is a container for three ordered steps, the first of which (ITEM-0010) is independently valuable, much smaller and now FIX_NOW. Adding an error-aggregation dependency to four deployables needs its own ADR, and doing it before the deployed SHA is even observable would be building the roof first. Revisit once ITEM-0010 lands and the health check touches the database.
+
+- 2026-08-17 — revisit trigger evaluated after ITEM-0010 reached `DONE`. The
+  deployed SHA is observable; database health and error aggregation remain.
+  Moved to `READY` / `PLAN_REQUIRED` because the remaining work is technically
+  actionable and dependency choice, not effort, is the planning reason.

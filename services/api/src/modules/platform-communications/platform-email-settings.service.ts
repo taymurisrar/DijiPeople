@@ -500,6 +500,15 @@ export class PlatformEmailSettingsService {
     actor: AuthenticatedUser,
     permission: PlatformPermission,
   ) {
+    // Platform identity, asserted here and not only in the guard. This service
+    // configures the platform's own outbound mail; when the guard failed open
+    // (BUG-0071) nothing downstream caught it, and a tenant administrator read
+    // the SMTP host, port, username and security mode. Its sibling
+    // control-plane services all assert identity themselves for this reason.
+    if (!actor.platform?.id) {
+      throw new ForbiddenException('Platform access is required.');
+    }
+
     if (!userHasPlatformPermission(actor, permission)) {
       throw new ForbiddenException(
         'You do not have permission to manage platform email settings.',

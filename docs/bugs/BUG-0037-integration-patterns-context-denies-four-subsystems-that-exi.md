@@ -11,14 +11,14 @@ DetectedDate: 2026-08-16
 DetectedInSha: 78072d2
 AffectedModules: [.agent/context]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: docs/qa/runs/2026-08-16-monorepo-app-documentation-78072d2.md
-RegressionId:
+RegressionId: REG-036
 RelatedBacklogItem: ITEM-0011
 RelatedDecision:
 RelatedImplementation: docs/knowledge/implementations/2026-08-16-monorepo-app-documentation.md
 CreatedAt: 2026-08-16
-UpdatedAt: 2026-08-16
+UpdatedAt: 2026-08-17
 ResolvedAt: 2026-08-16
 ---
 
@@ -169,6 +169,13 @@ No regression test, for the same reason as BUG-0023: the artefact is a document.
 The recurring failure mode is covered by the `doc-code-drift` bug pattern.
 
 ## History
+
+- 2026-08-17 — linked to active regression `REG-036` during TASK-0005
+  record/QA reconciliation.
+
+- 2026-08-17 — Architect reconciliation: terminal `VERIFIED` status normalized
+  to `ArchitectDisposition: DONE`; the existing resolution and QA evidence are
+  unchanged.
 
 - 2026-08-16 — found during the cross-application relationship mapping for
   TASK-0002, while establishing whether the desktop agent talks to the gateway.

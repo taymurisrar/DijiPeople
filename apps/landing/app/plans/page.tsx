@@ -6,14 +6,14 @@ import { getCommercialConfig } from "../../lib/commercial-config";
 import { PlansExperience } from "./plans-experience";
 
 export const metadata: Metadata = {
-  title: "Plans and Pricing | DijiPeople",
+  title: "Plans and Pricing",
   description:
-    "DijiPeople pricing is per active employee, shown in your region's currency. Compare Starter, Growth and Enterprise, estimate your cost, and start when you're ready.",
+    "DijiPeople pricing is one flat price per plan, shown in your region's currency. Compare Starter, Growth and Enterprise and start when you're ready.",
   alternates: { canonical: "/plans" },
   openGraph: {
     title: "Plans and Pricing | DijiPeople",
     description:
-      "Simple pricing that scales with your team — per active employee, in your region's currency.",
+      "One flat price per plan, in your region's currency. Plans differ by what they include, not by headcount.",
     url: "/plans",
     type: "website",
   },
@@ -99,12 +99,12 @@ export default async function PlansPage() {
           Plans and pricing
         </p>
         <h1 className="mt-3 font-serif text-4xl leading-tight text-foreground sm:text-5xl">
-          Simple pricing that scales with your team.
+          Simple pricing that does not punish you for hiring.
         </h1>
         <p className="mt-5 text-lg leading-8 text-muted">
-          You pay per active employee, in your region&rsquo;s currency. Plans
-          differ by which parts of the platform they include — compare them
-          below, or estimate what your organization would pay.
+          One flat price per plan, in your region&rsquo;s currency — the same
+          whether you have ten people or ten thousand. Plans differ by which
+          parts of the platform they include; compare them below.
         </p>
       </section>
 

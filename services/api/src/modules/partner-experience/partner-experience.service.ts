@@ -9,6 +9,7 @@ import { JwtService } from '@nestjs/jwt';
 import {
   ContractStatus,
   ContractType,
+  LegalDocumentType,
   PartnerInquiryStatus,
   PartnerLeadReviewStatus,
   PartnerOnboardingStatus,
@@ -40,6 +41,7 @@ import {
   SubmitPartnerOnboardingDto,
 } from './dto/partner-experience.dto';
 import { CURRENT_PRIVACY_NOTICE_VERSION } from '../leads/acquisition.catalog';
+import { LegalService } from '../legal/legal.service';
 
 @Injectable()
 export class PartnerExperienceService {
@@ -48,6 +50,7 @@ export class PartnerExperienceService {
     private readonly jwt: JwtService,
     private readonly communications: PlatformCommunicationsService,
     private readonly events: PlatformEventsService,
+    private readonly legalService: LegalService,
   ) {}
 
   async submitInquiry(dto: CreatePartnerInquiryDto, correlationId?: string) {
@@ -91,6 +94,16 @@ export class PartnerExperienceService {
         'A partner application already exists for this email or company. Contact the partner team if you need help.',
       );
     const submittedAt = new Date();
+    // The notice in force, from the published legal documents. The constant
+    // is only a pre-launch fallback now, not the source of truth.
+    const publishedNotice = await this.legalService.resolvePublished(
+      LegalDocumentType.PRIVACY_POLICY,
+      null,
+    );
+    const privacyNoticeVersion = publishedNotice
+      ? `v${publishedNotice.version}`
+      : CURRENT_PRIVACY_NOTICE_VERSION;
+
     const inquiry = await this.prisma.$transaction(async (tx) => {
       const partner = duplicate
         ? await tx.partner.update({
@@ -156,7 +169,7 @@ export class PartnerExperienceService {
           // Privacy notice acknowledgement, plus the version the server had.
           // A client-supplied version could claim any notice at all.
           consentAcceptedAt: submittedAt,
-          privacyNoticeVersion: CURRENT_PRIVACY_NOTICE_VERSION,
+          privacyNoticeVersion,
           // Optional and separate: a partnership inquiry is submittable
           // without agreeing to marketing.
           marketingConsent: dto.marketingConsent === true,
@@ -187,6 +200,19 @@ export class PartnerExperienceService {
           },
         },
       });
+      // Same transaction as the inquiry: an inquiry without the
+      // acknowledgement that justified contacting them is unprovable consent.
+      if (publishedNotice) {
+        await this.legalService.acknowledge(
+          {
+            legalDocumentVersionId: publishedNotice.versionId,
+            source: 'landing:partners',
+            subjectEmail: created.email,
+          },
+          tx,
+        );
+      }
+
       return created;
     });
     await this.communications.sendEmail({

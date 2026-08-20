@@ -283,7 +283,7 @@ shipped without it; a required `test-landing` CI job runs it.
 > reinstated — an enumeration is a snapshot that goes stale the next time
 > somebody adds a spec, which is exactly how this went wrong.
 
-Frontend spec count at `78072d2`: **28 — web 17, admin 9, landing 2.** Count
+Frontend spec count at `d919e1a`: **30 — web 17, admin 10, landing 3.** Count
 them rather than trusting this number.
 
 ## Key abstractions

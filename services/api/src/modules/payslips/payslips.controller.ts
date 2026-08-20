@@ -11,7 +11,11 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { Permissions } from '../../common/decorators/permissions.decorator';
+import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
+import {
+  Permissions,
+  RequirePermission,
+} from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
@@ -27,6 +31,7 @@ export class PayslipsController {
 
   @Post('payslips/generate/run/:payrollRunId')
   @Permissions('payslips.manage')
+  @RequirePermission(ENTITY_KEYS.PAYSLIPS, 'create')
   generateForRun(
     @CurrentUser() user: AuthenticatedUser,
     @Param('payrollRunId', new ParseUUIDPipe()) payrollRunId: string,
@@ -40,6 +45,7 @@ export class PayslipsController {
 
   @Post('payslips/generate/run-employee/:payrollRunEmployeeId')
   @Permissions('payslips.manage')
+  @RequirePermission(ENTITY_KEYS.PAYSLIPS, 'create')
   generateForRunEmployee(
     @CurrentUser() user: AuthenticatedUser,
     @Param('payrollRunEmployeeId', new ParseUUIDPipe())
@@ -54,6 +60,7 @@ export class PayslipsController {
 
   @Get('payslips')
   @Permissions('payslips.read-all')
+  @RequirePermission(ENTITY_KEYS.PAYSLIPS, 'read')
   listPayslips(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: PayslipQueryDto,
@@ -66,6 +73,7 @@ export class PayslipsController {
 
   @Get('payslips/:id')
   @Permissions('payslips.read-all')
+  @RequirePermission(ENTITY_KEYS.PAYSLIPS, 'read')
   getPayslip(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -78,6 +86,7 @@ export class PayslipsController {
 
   @Post('payslips/:id/publish')
   @Permissions('payslips.publish')
+  @RequirePermission(ENTITY_KEYS.PAYSLIPS, 'approve')
   publishPayslip(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -91,6 +100,7 @@ export class PayslipsController {
 
   @Post('payslips/:id/void')
   @Permissions('payslips.void')
+  @RequirePermission(ENTITY_KEYS.PAYSLIPS, 'delete')
   voidPayslip(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -106,6 +116,7 @@ export class PayslipsController {
 
   @Post('payslips/:id/regenerate')
   @Permissions('payslips.manage')
+  @RequirePermission(ENTITY_KEYS.PAYSLIPS, 'create')
   regeneratePayslip(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -119,6 +130,7 @@ export class PayslipsController {
 
   @Post('payslips/:id/deliver')
   @Permissions('payslips.deliver')
+  @RequirePermission(ENTITY_KEYS.PAYSLIPS, 'manage')
   deliverPayslip(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -132,6 +144,7 @@ export class PayslipsController {
 
   @Get('payslips/:id/download')
   @Permissions('payslips.read-all', 'payslips.download')
+  @RequirePermission(ENTITY_KEYS.PAYSLIPS, 'read')
   async downloadPayslip(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -153,6 +166,7 @@ export class PayslipsController {
 
   @Get('me/payslips')
   @Permissions('payslips.read-own')
+  @RequirePermission(ENTITY_KEYS.PAYSLIPS, 'read')
   getMyPayslips(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: { year?: string; month?: string },
@@ -167,6 +181,7 @@ export class PayslipsController {
 
   @Get('me/payslips/:id')
   @Permissions('payslips.read-own')
+  @RequirePermission(ENTITY_KEYS.PAYSLIPS, 'read')
   getMyPayslip(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -180,6 +195,7 @@ export class PayslipsController {
 
   @Get('me/payslips/:id/download')
   @Permissions('payslips.read-own', 'payslips.download')
+  @RequirePermission(ENTITY_KEYS.PAYSLIPS, 'read')
   async downloadMyPayslip(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,

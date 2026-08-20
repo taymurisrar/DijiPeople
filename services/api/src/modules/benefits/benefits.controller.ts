@@ -10,7 +10,11 @@ import {
 } from '@nestjs/common';
 import { EmployeeBenefitAssignmentSource } from '@prisma/client';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { Permissions } from '../../common/decorators/permissions.decorator';
+import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
+import {
+  Permissions,
+  RequirePermission,
+} from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
@@ -33,18 +37,21 @@ export class BenefitsController {
 
   @Get('benefits/policies')
   @Permissions('benefits.read')
+  @RequirePermission(ENTITY_KEYS.BENEFITS, 'read')
   policies(@CurrentUser() user: AuthenticatedUser) {
     return this.benefits.listPolicies(user);
   }
 
   @Get('benefits/policies/:id')
   @Permissions('benefits.read')
+  @RequirePermission(ENTITY_KEYS.BENEFITS, 'read')
   policy(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
     return this.benefits.getPolicy(user.tenantId, id);
   }
 
   @Post('benefits/policies')
   @Permissions('benefits.manage')
+  @RequirePermission(ENTITY_KEYS.BENEFITS, 'manage')
   createPolicy(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateBenefitPolicyDto,
@@ -54,6 +61,7 @@ export class BenefitsController {
 
   @Patch('benefits/policies/:id')
   @Permissions('benefits.manage')
+  @RequirePermission(ENTITY_KEYS.BENEFITS, 'manage')
   updatePolicy(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
@@ -64,6 +72,7 @@ export class BenefitsController {
 
   @Get('benefits/assignments')
   @Permissions('benefits.read')
+  @RequirePermission(ENTITY_KEYS.BENEFITS, 'read')
   assignments(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: BenefitAssignmentQueryDto,
@@ -73,12 +82,14 @@ export class BenefitsController {
 
   @Get('benefits/assignments/:id')
   @Permissions('benefits.read')
+  @RequirePermission(ENTITY_KEYS.BENEFITS, 'read')
   assignment(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
     return this.benefits.getAssignment(user, id);
   }
 
   @Post('benefits/assignments')
   @Permissions('benefits.assign')
+  @RequirePermission(ENTITY_KEYS.BENEFITS, 'create')
   assign(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: AssignBenefitDto,
@@ -88,6 +99,7 @@ export class BenefitsController {
 
   @Post('benefits/employees/:employeeId/assign-defaults')
   @Permissions('benefits.assign')
+  @RequirePermission(ENTITY_KEYS.BENEFITS, 'create')
   assignDefaults(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId') employeeId: string,
@@ -103,6 +115,7 @@ export class BenefitsController {
 
   @Post('benefits/assignments/:id/suspend')
   @Permissions('benefits.assign')
+  @RequirePermission(ENTITY_KEYS.BENEFITS, 'create')
   suspend(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
@@ -113,6 +126,7 @@ export class BenefitsController {
 
   @Post('benefits/assignments/:id/cancel')
   @Permissions('benefits.assign')
+  @RequirePermission(ENTITY_KEYS.BENEFITS, 'create')
   cancel(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
@@ -123,6 +137,7 @@ export class BenefitsController {
 
   @Post('benefits/assignments/:id/override')
   @Permissions('benefits.assign')
+  @RequirePermission(ENTITY_KEYS.BENEFITS, 'create')
   override(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
@@ -133,6 +148,7 @@ export class BenefitsController {
 
   @Post('benefits/assignments/:id/approval-action')
   @Permissions('approvals.readAssigned')
+  @RequirePermission(ENTITY_KEYS.BENEFITS, 'approve')
   approvalAction(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
@@ -143,6 +159,7 @@ export class BenefitsController {
 
   @Post('benefits/assignments/:id/consume')
   @Permissions('benefits.consume')
+  @RequirePermission(ENTITY_KEYS.BENEFITS, 'approve')
   consume(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
@@ -153,12 +170,14 @@ export class BenefitsController {
 
   @Post('benefits/renew')
   @Permissions('benefits.manage')
+  @RequirePermission(ENTITY_KEYS.BENEFITS, 'manage')
   renew(@CurrentUser() user: AuthenticatedUser) {
     return this.benefits.renewDueAssignments(user, new Date());
   }
 
   @Get('me/benefits')
   @Permissions('benefits.read-own')
+  @RequirePermission(ENTITY_KEYS.BENEFITS, 'read')
   myBenefits(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: BenefitAssignmentQueryDto,

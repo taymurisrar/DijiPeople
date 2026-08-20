@@ -47,6 +47,43 @@ export function resolveTheme(choice: ThemeChoice): "light" | "dark" {
 }
 
 /**
+ * Where the tenant's `defaultThemeMode` is published for the client.
+ *
+ * BUG-0046 — the tenant default used to be written straight into `data-theme`
+ * by the branding client, which put it in a race with the user's own choice.
+ * They are different inputs and must not share a slot: `data-theme` is the
+ * *resolved answer* the stylesheet keys on, and only `applyTheme` writes it.
+ */
+export const TENANT_THEME_ATTRIBUTE = "data-tenant-theme";
+
+export function readTenantThemeDefault(): ThemeChoice | null {
+  if (typeof document === "undefined") return null;
+  const value = document.documentElement.getAttribute(TENANT_THEME_ATTRIBUTE);
+  return value === "light" || value === "dark" || value === "system"
+    ? value
+    : null;
+}
+
+/**
+ * The one precedence order: **user choice → tenant default → device.**
+ *
+ * Three writers previously competed for `data-theme` — the branding client, the
+ * resolved-settings provider, and this module — and one of them installed a
+ * MutationObserver that reverted anything it had not written back to
+ * `readStoredThemeChoice() ?? "system"`. On a browser with no stored choice that
+ * made a tenant default of DARK unreachable: it was written, observed, and
+ * immediately overwritten with the device preference.
+ *
+ * Reading the tenant default here is what stops the observer fighting it.
+ * "system" is still resolved to a concrete value before it reaches the document,
+ * because `globals.css` keys `[data-theme="dark"]` and nothing matches a literal
+ * `data-theme="system"`.
+ */
+export function effectiveThemeChoice(): ThemeChoice {
+  return readStoredThemeChoice() ?? readTenantThemeDefault() ?? "system";
+}
+
+/**
  * Writes the resolved theme onto the document.
  *
  * The attribute lives on `<html>` because that is what the stylesheet keys on

@@ -31,6 +31,12 @@ ResolvedAt:
 substantive claims are now false, including a ~20-row route table describing
 URLs that return 404.
 
+## Expected Behavior
+
+The document designated canonical matches the implemented settings runtime,
+names only existing shared components and routes, and does not direct permission
+fallbacks to a missing page.
+
 ## Actual Behavior
 
 Verified at `1af3690`:
@@ -66,6 +72,18 @@ Verified at `1af3690`:
 Accurate and worth keeping: the CSS token contract (`:451-459`) matches
 `lib/branding.ts` exactly, and the provider load order (`:435-447`) is correct.
 
+## Reproduction
+
+Compare the five numbered claims above with `settings-runtime.ts`, the App
+Router tree, `app/components/ui`, `require-settings-permission.ts`, and the
+two user-management implementations.
+
+## Evidence
+
+The source paths and line references in Actual Behavior are the direct evidence
+recorded by the linked QA run at `1af3690`; the settings runtime's existing
+`existsSync` test demonstrates the available route-verification mechanism.
+
 ## Root Cause
 
 `doc-code-drift` in the one document the repository designates as overriding
@@ -83,6 +101,11 @@ reader who notices the discrepancy is instructed to trust the wrong side.
 
 The `/settings/tenant` fallback is the one live defect rather than pure
 documentation: it is quoted from the doc into code, and it 404s.
+
+## Affected Areas
+
+`docs/architecture/settings-and-branding.md`, the settings App Router tree,
+`require-settings-permission.ts`, and the duplicate user-management surfaces.
 
 ## Proposed Resolution
 
@@ -107,6 +130,12 @@ turning the enumeration from a liability into a checked artifact.
 ## Regression Coverage
 
 **None.** The spec extension above is the regression.
+
+## Dependencies
+
+An ExecPlan and owner decision are required for the canonical user-management
+surface; the mechanical documentation corrections and live fallback correction
+can proceed independently.
 
 ## Related Items
 
@@ -136,4 +165,3 @@ single-segment cases.
 - 2026-08-17 — found during the `apps/web` deep documentation audit (TASK-0003).
 - 2026-08-17 — Architect triage: `PLAN_REQUIRED`, with the mechanical
   documentation corrections available to land independently.
-</content>

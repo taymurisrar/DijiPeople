@@ -17,7 +17,7 @@ import {
 } from "../../lib/feature-presentation";
 
 export const metadata: Metadata = {
-  title: "Features | DijiPeople",
+  title: "Features",
   description:
     "Hiring, employee records, attendance, leave, timesheets and payroll in one connected HR platform — so the same data moves through every stage instead of being retyped between tools.",
   alternates: { canonical: "/features" },
@@ -34,8 +34,11 @@ export default async function FeaturesPage() {
   // The feature list is the product's own catalogue, fetched server-side. This
   // page previously held a hardcoded array of twelve cards, which advertised
   // capabilities the catalogue does not contain and omitted ones it does.
-  const config = await getCommercialConfig();
-  const catalog = config.featureCatalog;
+const config = await getCommercialConfig();
+
+const catalog = Array.isArray(config.featureCatalog)
+  ? config.featureCatalog
+  : [];
 
   // Group by the catalogue's own categories, then order commercially. A
   // category the presentation layer does not know about still renders, using
@@ -200,8 +203,7 @@ export default async function FeaturesPage() {
               See which plan fits your team.
             </h2>
             <p className="mt-1 text-sm leading-6 text-muted">
-              Pricing is per active employee, shown in your region&rsquo;s
-              currency.
+              One flat price per plan, shown in your region&rsquo;s currency.
             </p>
           </div>
           <Link

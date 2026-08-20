@@ -110,6 +110,28 @@ export function isCheckoutReady(price: PublicPlanPrice | null) {
   return Boolean(price?.checkoutReady ?? price?.isCheckoutReady);
 }
 
+/**
+ * Why this selection cannot be bought, in the visitor's words — or null.
+ *
+ * One function for both reasons, because the subscribe wizard has to make the
+ * same call in three places: whether to show a notice, whether the step inputs
+ * are inert, and whether Continue advances. When those were three inline
+ * conditions they drifted, and the wizard would collect an organization
+ * profile, an owner identity and signed agreements across five steps before
+ * revealing a dead submit button — [[BUG-0082]], which is [[BUG-0066]] in a
+ * shape that wastes more of somebody's afternoon.
+ *
+ * Returning the sentence rather than a boolean is deliberate: a caller cannot
+ * disable an input without also having the reason to hand.
+ */
+export function checkoutBlockedReason(price: PublicPlanPrice | null) {
+  if (isCheckoutReady(price)) return null;
+
+  return price
+    ? "This price is configured for display, but online checkout is not available yet. Choose another plan, or contact us and we will arrange it."
+    : "This plan has no published price for your region yet. Choose another plan, or contact us and we will arrange it.";
+}
+
 export function formatPlanPrice(price: PublicPlanPrice | null) {
   if (!price) return "Contact sales";
   return new Intl.NumberFormat("en-US", {

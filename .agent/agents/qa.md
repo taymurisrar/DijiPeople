@@ -47,6 +47,68 @@ context update.
 
 ---
 
+## Report-only does not mean unverified
+
+`security-invariant-report` and any future non-gating job sit outside the
+required gate. QA never records their green **conclusion** as a pass — it reads
+the `RESULT:` line the job prints, because a job that rounds its own result up
+is [[BUG-0049]], and that is how a QA run once recorded a pass over 136 failed
+tests.
+
+`database-e2e-report` was the other one and is now a **required gate**
+(2026-08-20, [[ITEM-0047]]). Read its `RESULT:` line anyway: a gate that fails
+is read by whoever has to fix it, and the summary is where they start.
+
+On `DATABASE_E2E_RED` the Database Agent leads the diagnosis; QA owns the
+evidence half: durable scenarios for what actually broke, and the regression
+register entry that stops it returning silently. The canonical record is
+[[ITEM-0047]] — update it, never open a parallel one.
+
+A suite that cannot finish has **no** pass/fail evidence. Absence of a result is
+not a passing result, and must be reported as absence.
+
+---
+
+## Instance and handoff
+
+This role is **singular and permanent**; its executions are not. The same role
+runs in as many Architect chats as there are sessions, and every invocation
+states which one it belongs to, so evidence from one chat can never be read as
+another's:
+
+```
+ROLE · SESSION_ID · TASK_ID · WORK_PACKAGE_ID · INSTANCE_STATUS
+BASE_SHA · CURRENT_BRANCH · OWNED_RESOURCES · READ_ONLY_RESOURCES · LEASES
+```
+
+Multiple QA instances may **design and read** concurrently. Execution against a shared database is not concurrent — a suite that seeds or truncates collides with any other run on the same database.
+
+QA takes no schema lease. When a run needs a database of its own, say so rather than sharing one: `DATABASE_WRITER` is single-writer across all sessions.
+
+Live state, before planning and before writing:
+
+```bash
+node scripts/session.mjs list
+node scripts/session.mjs check --paths <paths>
+```
+
+The handoff schema is shared and lives in
+[`../context/agent-handoffs.md`](../context/agent-handoffs.md). Two of its
+fields are this role's alone to answer, because nobody else can:
+
+```
+KNOWLEDGE_IMPACT   NONE | CONTEXT_UPDATE | MODULE_KNOWLEDGE | ARCHITECTURE |
+                   BUG_PATTERN | REGRESSION | QA_SCENARIO | DATABASE_KNOWLEDGE |
+                   SECURITY_KNOWLEDGE | DECISION | OTHER
+OBSIDIAN_IMPACT    which durable notes must change, or NONE
+```
+
+`NONE` is common and legitimate — most changes teach nothing durable. It is an
+*answer*, not an omission, and the Reviewer rejects a declared impact with no
+corresponding update.
+
+---
+
 ## Hard boundaries
 
 - QA **does not approve architecture**. That is the Reviewer's call.
@@ -62,7 +124,55 @@ context update.
 
 ## 0. Learn from history first
 
-Before designing scenarios, retrieve what has already gone wrong here:
+**QA does not rediscover testing from zero on every task.** Before designing
+anything, load the durable material that already applies:
+
+```bash
+node scripts/qa-select.mjs services/api/src/modules/<module> [<module>…]
+```
+
+It returns, for the modules in scope:
+
+```
+TEST_PLANS           the evergreen plan for each area touched
+SCENARIOS_TO_RERUN   every reusable scenario for those areas
+MANDATORY            SECURITY type and CRITICAL risk — never risk-weighted down
+REGRESSIONS          the REG-nnn entries those scenarios guard
+OPEN_RECORDS_HERE    what is already known to be wrong on this ground
+BUG_PATTERNS         the defect classes this repository produces here
+COVERAGE_GAPS        dimensions this change would walk over unprotected
+```
+
+Execute the impacted scenarios, and say in the run which you considered and
+deliberately excluded.
+
+**The selection is a starting point and never a boundary.** New behaviour still
+needs new scenarios, designed from the requirement and the risk areas rather than
+from the diff. One with durable value is then **promoted** into
+`docs/qa/scenarios/`:
+
+```bash
+node scripts/new-qa-scenario.mjs "<title>" --scope TENANT --area tenant-isolation \
+  --type SECURITY --risk CRITICAL --module <module> \
+  --automation AUTOMATED --test <path> --bug BUG-nnnn --regression REG-nnn
+node scripts/rebuild-qa.mjs
+```
+
+A one-off check stays in the run file. Promoting everything turns the registry
+into noise nobody re-runs — see
+[`../context/qa-persistence.md`](../context/qa-persistence.md) and
+`QA_SCENARIO_PROMOTION_STATUS` in the completion contract.
+
+A `GAP` or `PARTIAL` coverage cell on a dimension this change affects pulls
+closing it into scope, or produces a `TEST_GAP` backlog item that says so.
+
+> **An `AUTOMATED` scenario must name a test that exists**, and
+> `rebuild-qa.mjs` fails if it does not. That check is what surfaced
+> [`BUG-0047`](../../docs/bugs/): five regression entries marked `Active: yes`
+> named specs that were only ever on unmerged branches, and following that back
+> showed seven bug records closed against fixes `main` does not have.
+
+Then retrieve what has already gone wrong here:
 
 ```bash
 node scripts/retrieve-knowledge.mjs <module> <feature>
@@ -95,8 +205,8 @@ conflating them is how "tested" comes to mean less than it sounds:
 |---|---|---|
 | `UNIT` | A function or service behaves in isolation | Available — jest |
 | `INTEGRATION` | Modules work together against real infrastructure | Needs a database — see [`../context/testing-architecture.md`](../context/testing-architecture.md) |
-| `API` | The HTTP contract behaves, authorization included | supertest; the 9 e2e suites need a live DB |
-| `BROWSER_E2E` | A real user flow works in a real browser | **Not available** — no browser tooling installed |
+| `API` | The HTTP contract behaves, authorization included | supertest; 15 e2e suites run in CI against ephemeral PostgreSQL, currently report-only with 6 failing suites |
+| `BROWSER_E2E` | A real user flow works in a real browser | **Installed** — Playwright in the `e2e` workspace; `browser-e2e` is named by the required aggregate but remains fail-open through `continue-on-error` |
 | `MANUAL_VISUAL` | A human looked at it | Always available; always say when it is all you did |
 | `DEPLOYMENT_SMOKE` | The deployed system responds | [`../../docs/deployment/smoke-tests.md`](../../docs/deployment/smoke-tests.md) |
 
@@ -223,16 +333,33 @@ Verdict is one of:
   environment)
 - **FAIL** — a scenario failed, or coverage was not achievable
 
-## 3a. Browser QA, when it becomes available
+## 3a. Browser QA
 
-**Status: no browser automation exists in this repository** — no Playwright, no
-Cypress, no Puppeteer, in any workspace. Web and admin jest run in a node
-environment with no jsdom, so component rendering is not testable either. For UI
-work today, `BROWSER_E2E` is `BLOCKED_INFRASTRUCTURE`, and that goes in Known
-Limitations.
+**Status: Playwright is installed**, in the `e2e` workspace, with two journey
+specs — `flow-a-commercial-onboarding` and `flow-b-partner-journey`. It runs in
+CI as `browser-e2e`. The job is named by `ci-required` but remains fail-open
+through job-level `continue-on-error`; inspect its test summary and artifacts.
 
-When browser automation is introduced, prefer it for UI tasks, covering — where
-applicable:
+```bash
+npm run test:browser:install   # once, downloads chromium
+npm run test:browser
+```
+
+> This section previously read "no browser automation exists in this repository
+> — no Playwright, no Cypress, no Puppeteer, in any workspace". That became false
+> while it was still being read as current, which is the `doc-code-drift` shape.
+> Re-derive the tooling state from `e2e/package.json` before repeating any claim
+> about what cannot be tested.
+
+Web and admin jest still run in a node environment with **no jsdom**, so
+component rendering is not testable there — extract the logic and test that.
+
+`BROWSER_E2E` is therefore no longer `BLOCKED_INFRASTRUCTURE` by default. When a
+UI scenario has no spec, the honest status is `MANUAL`: the blocker is an
+unwritten test, not absent tooling, and those are different pieces of
+information for whoever reads the coverage matrix.
+
+Prefer browser coverage for UI tasks, covering — where applicable:
 
 route loading · authentication · role-based UI · navigation · tabs · forms ·
 field types · required and read-only · lookups · option sets · validation ·
@@ -265,7 +392,7 @@ The QA run records, for any database-backed validation:
 | Field | Example |
 |---|---|
 | Database type | ephemeral PostgreSQL 16 service container (CI) |
-| Ephemeral identifier | `dijipeople_e2e_test`, `database-e2e-report` job |
+| Ephemeral identifier | `dijipeople_e2e_test`, `database-e2e-report` job (display name `Database e2e`) |
 | Migration command | `node scripts/verify-database.mjs` |
 | Seed command | `seed:config` then `seed:verify` |
 | E2E suites | which ran, which were skipped, and why |

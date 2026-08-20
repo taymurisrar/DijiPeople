@@ -28,6 +28,7 @@ import {
   agentOwnedVaultPaths,
   hasMeaningfulContent,
 } from './lib/obsidian-mappings.mjs';
+import { resolveObsidianConfig } from './lib/obsidian-config.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -177,17 +178,27 @@ for (const [label, rel, authority] of REPO_SOURCES) {
  * repository is self-sufficient by design.
  */
 let obsidianContext = 'UNAVAILABLE';
-let obsidianDetail = 'no .obsidian-sync.local.json — vault path unknown';
-const configPath = join(ROOT, '.obsidian-sync.local.json');
+let obsidianDetail = 'no vault configuration found in any worktree';
+/* Every vault note this retrieval drew on, reported as OBSIDIAN_CONTEXT_USED. */
+const obsidianUsed = [];
 
-if (existsSync(configPath)) {
-  try {
-    const config = JSON.parse(readFileSync(configPath, 'utf8'));
-    const { vaultPath } = config;
+/*
+ * Resolution spans worktrees — see scripts/lib/obsidian-config.mjs. Reading only
+ * this worktree's config made inbound retrieval silently vault-less in every
+ * task worktree, which is precisely where planning happens.
+ */
+const resolution = resolveObsidianConfig(ROOT);
+const configPath = resolution.configPath;
+
+{
+  {
+    const config = resolution.config ?? {};
+    const { vaultPath } = resolution;
     if (!vaultPath) {
-      obsidianDetail = 'config has no vaultPath';
-    } else if (!existsSync(vaultPath)) {
-      obsidianDetail = `vault path does not exist: ${vaultPath}`;
+      obsidianDetail =
+        resolution.status === 'INVALID'
+          ? `configuration found but unusable — ${resolution.attempts.map((a) => a.result).join('; ')}`
+          : 'no vault configuration found in this worktree, the primary checkout, the shared Git directory or the environment';
     } else {
       obsidianContext = 'AVAILABLE';
       obsidianDetail = vaultPath;
@@ -231,19 +242,49 @@ if (existsSync(configPath)) {
         );
       };
 
-      results.push(
-        ...collect('obsidian', vaultPath, { authority: 7 }).filter(
-          (h) => !isAgentOwned(h.path) && !isScaffolding(h.path),
-        ),
+      /*
+       * The inbound half of the bidirectional relationship.
+       *
+       * These folders carry what the repository cannot know: what was asked for,
+       * what a client said, what was decided in a room. A note here is not
+       * implementation truth — the code is — but it is the only source for
+       * *intent*, and planning without it produces work that is technically
+       * correct and not what anybody wanted.
+       *
+       * They are boosted rather than filtered to, so a manual architecture note
+       * outside these folders still surfaces.
+       */
+      const MANUAL_INTENT = [
+        '04 - Requirements',
+        '09 - Meetings',
+        '10 - Client Feedback',
+        '01 - Product',
+        '05 - Decisions',
+      ];
+      const intentFolder = (p) => {
+        const norm = p.replace(/\\/g, '/');
+        return MANUAL_INTENT.find((folder) => norm.includes(`/${folder}/`)) ?? null;
+      };
+
+      const vaultHits = collect('obsidian', vaultPath, { authority: 7 })
+        .filter((h) => !isAgentOwned(h.path) && !isScaffolding(h.path))
+        .map((hit) => {
+          const folder = intentFolder(hit.path);
+          return folder
+            ? { ...hit, source: 'obsidian:intent', intentFolder: folder, score: hit.score * 1.5 }
+            : hit;
+        });
+
+      results.push(...vaultHits);
+      obsidianUsed.push(
+        ...vaultHits.map((hit) => ({ path: hit.path, intentFolder: hit.intentFolder ?? null })),
       );
 
-      if (!results.some((h) => h.source === 'obsidian')) {
+      if (!results.some((h) => String(h.source).startsWith('obsidian'))) {
         obsidianContext = 'AVAILABLE_NO_MANUAL_NOTES';
         obsidianDetail = `${vaultPath} — readable, but no manual notes matched (the vault currently holds only generated knowledge and scaffolding)`;
       }
     }
-  } catch (error) {
-    obsidianDetail = `config unreadable: ${String(error.message).split('\n')[0]}`;
   }
 }
 
@@ -265,10 +306,21 @@ const ranked = sorted.filter((hit) => hit.score >= threshold);
 const TOP = 15;
 const shown = ranked.slice(0, TOP);
 
+/* Only the notes that actually made the cut count as context used. */
+const shownPaths = new Set(shown.map((hit) => hit.path));
+const contextUsed = obsidianUsed.filter((entry) => shownPaths.has(entry.path));
+
 if (AS_JSON) {
   console.log(
     JSON.stringify(
-      { terms, OBSIDIAN_CONTEXT: obsidianContext, obsidian: obsidianDetail, matches: shown, totalMatches: ranked.length },
+      {
+        terms,
+        OBSIDIAN_CONTEXT: obsidianContext,
+        obsidian: obsidianDetail,
+        OBSIDIAN_CONTEXT_USED: contextUsed,
+        matches: shown,
+        totalMatches: ranked.length,
+      },
       null,
       2,
     ),
@@ -294,8 +346,27 @@ if (AS_JSON) {
     }
   }
 
+  /*
+   * The Architect reports this block in the plan. Naming the manual notes a
+   * decision drew on is what makes an intent claim checkable — and what lets
+   * somebody correct the plan by pointing at the note it missed.
+   */
+  console.log(`\nOBSIDIAN_CONTEXT_USED (${contextUsed.length})`);
+  if (contextUsed.length) {
+    for (const entry of contextUsed) {
+      console.log(`  ${entry.intentFolder ? `[${entry.intentFolder}] ` : ''}${entry.path}`);
+    }
+  } else {
+    console.log('  none — no manual vault note informed this retrieval');
+  }
+
   console.log('\nAuthority order: AGENTS.md → .agent/context → SOURCE CODE → bugs/backlog → QA → knowledge → Obsidian.');
   console.log('Obsidian carries intent and history. The code is implementation truth.');
   console.log('A hit under docs/bugs or docs/backlog is something already known to be wrong');
   console.log('or outstanding here — read it before writing code, not after review.');
+  console.log('');
+  console.log('When a vault note and the code disagree, classify — never silently resolve:');
+  console.log('  EXPECTED_CHANGE · STALE_OBSIDIAN_NOTE · STALE_REPOSITORY_DOC');
+  console.log('  UNIMPLEMENTED_REQUIREMENT · PRODUCT_DECISION_REQUIRED · UNCLEAR_CONFLICT');
+  console.log('An UNIMPLEMENTED_REQUIREMENT becomes a backlog record, not a code change.');
 }

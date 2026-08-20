@@ -1,7 +1,7 @@
 # Database and Prisma
 
-> **Last verified:** 2026-08-14
-> **Verified against commit:** 8682dc1
+> **Last verified:** 2026-08-20
+> **Verified against commit:** bab45ad
 > **Key source files:** services/api/prisma/schema.prisma, services/api/prisma.config.ts, services/api/package.json, package.json, render.yaml, services/api/src/common/prisma/prisma.service.ts, services/api/prisma/create-prisma-client.ts, services/api/prisma/seed-config.ts, services/api/prisma/verify-seed-config.ts, services/api/prisma/seed-admin.ts, services/api/prisma/seed-demo.ts, services/api/prisma/seed-platform-workflows.ts, docs/development/git-worktrees.md
 >
 > This document describes the repository, it is not authority over it. If the
@@ -37,18 +37,25 @@ imports `dotenv/config`, so `services/api/.env` satisfies this locally.
 | Metric | Count |
 |---|---|
 | Lines in `schema.prisma` | 10,436 |
-| `model` declarations | 266 |
-| `enum` declarations | 222 |
-| Models declaring a `tenantId` field | 213 |
-| `@@index` blocks | 992 |
-| `@@unique` blocks | 192 |
+| `model` declarations | 292 |
+| `enum` declarations | 267 |
+| Models declaring a `tenantId` field | 235 |
+| `@@index` blocks | 1,105 |
+| `@@unique` blocks | 215 |
 | `@@map` | **0** |
-| `onDelete:` clauses | 692 (`Cascade` 381, `SetNull` 171, `Restrict` 140) |
-| Migration directories | 183 (`20260407175455_init_auth_foundation` … `20260813130000_lead_contracting_terms`) |
+| `onDelete:` clauses | 775 (`Cascade` 430, `SetNull` 202, `Restrict` 143) |
+| Migration directories | 200 (`20260407175455_init_auth_foundation` … `20260817110000_customer_lead_unique`) |
 
-> `AGENTS.md` currently states 285 models / 255 enums / ~11,800 lines / 191
-> migrations / 1,076 `@@index` / 210 `@@unique`. Those figures are **stale and
-> overstated** relative to `8682dc1`. Re-count before quoting either source.
+> Measured at `3f9063f`, and reconciled with `AGENTS.md`, which now carries the
+> same figures.
+>
+> This note previously called the `AGENTS.md` figures "stale and overstated" and
+> misquoted them as 1,076 `@@index` where that file said 1,080. Both documents
+> were in fact stale in the *same* direction — the schema only grows — and the
+> table above was the older of the two, having been measured at `8682dc1` while
+> `AGENTS.md` was measured at `78716c4`. A correction that is itself uncounted
+> is just a second stale claim; re-derive with the commands in this file's
+> closing section before quoting either source.
 
 There is exactly **one** schema file. `prisma/migrations/migration_lock.toml`
 pins `provider = "postgresql"`.
@@ -111,7 +118,8 @@ build but **not** by `start:dev` alone.
 ### Release chain
 
 `npm run release:api` → `npm --workspace api run release` →
-`prisma:migrate:deploy && seed:config && seed:verify && seed:admin`
+`prisma:migrate:deploy && seed:config && seed:verify && seed:admin &&
+seed:legal && legal:publish -- --confirm`
 (`services/api/package.json`), wired as `preDeployCommand`
 (`render.yaml:8`); `buildCommand` / `startCommand` (`render.yaml:6-7`) do **not**
 touch the database. A required configuration row missing from `seed-config.ts`

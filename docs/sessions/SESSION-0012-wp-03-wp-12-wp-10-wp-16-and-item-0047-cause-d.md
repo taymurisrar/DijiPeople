@@ -1,0 +1,54 @@
+---
+SESSION_ID: SESSION-0012
+aliases: [SESSION-0012]
+TASK_ID: TASK-0007
+TITLE: WP-03, WP-12, WP-10, WP-16 and ITEM-0047 cause D
+ARCHITECT_INTENT: WP-03, WP-12, WP-10, WP-16 and ITEM-0047 cause D
+STATUS: COMPLETE
+TASK_TYPE: FEATURE
+TASK_SIZE: LARGE
+BASE_BRANCH: origin/develop
+BASE_SHA: 2d6cf1a34ec3abe96e98e7b7f9a544b944655657
+TASK_BRANCH: agent/consent-legal-knowledge
+TARGET_BRANCH: develop
+WORKTREE: D:/My Work/hrm-dijipeople/DijiPeople
+AFFECTED_MODULES: [legal, notifications, leads, outbox, billing, tenant-control-plane]
+WRITE_LEASES: []
+ACTIVE_WORK_PACKAGES: []
+SCHEMA_WRITE: YES
+CI_STATUS: PASS
+MERGE_STATUS: DONE
+STARTED_AT: 2026-08-18T16:57:12.921Z
+LAST_HEARTBEAT: 2026-08-18T16:57:12.921Z
+BLOCKERS: none
+---
+
+# SESSION-0012 — WP-03, WP-12, WP-10, WP-16 and ITEM-0047 cause D
+
+## Intent
+
+WP-03, WP-12, WP-10, WP-16 and ITEM-0047 cause D
+
+## Scope
+
+WP-03 (consent history, cookie categories, marketing withdrawal), WP-12
+(lifecycle notification catalogue and recipient resolution) and ITEM-0047 cause
+D (serial e2e). Integrated at e9cad20.
+
+Wiring the second outbox consumer exposed a latent data-loss bug: two modules
+providing OUTBOX_HANDLERS would have silently dropped one set of consumers while
+the outbox reported every event PROCESSED. Handlers now self-register.
+
+Obsidian was synced from develop and verified; four unresolved wikilinks were my
+own and are fixed. The outbox knowledge note was corrected — it still described
+the token pattern and claimed no consumers existed.
+
+## Concurrency
+
+Write leases held, overlap classification against other active sessions, and
+anything this session deliberately serialised behind another. Live state:
+`node scripts/session.mjs list`.
+
+## History
+
+- 2026-08-18 — session started from `origin/develop` at `2d6cf1a`.

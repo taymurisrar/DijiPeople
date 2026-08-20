@@ -13,12 +13,12 @@ AffectedModules: [apps/web]
 OwnerAgent: frontend
 ArchitectDisposition: PLAN_REQUIRED
 QAReport: docs/qa/runs/2026-08-17-web-app-documentation-1af3690.md
-RegressionId:
-RelatedBacklogItem:
+RegressionId: REG-055
+RelatedBacklogItem: ITEM-0050
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-17
-UpdatedAt: 2026-08-17
+UpdatedAt: 2026-08-18
 ResolvedAt:
 ---
 
@@ -152,18 +152,68 @@ bug pattern [[service-authorization-hidden]] · bug pattern [[divergent-duplicat
 
 ## Resolution
 
-Not resolved.
+**The authorization half is fixed; two business-logic instances remain.** The
+record stays `OPEN` for those rather than being closed on the half that was
+easier, and they are carried by [[ITEM-0050]].
+
+Fixed 2026-08-18:
+
+1. **`api/teams/route.ts` — the only authorization instance.** It read
+   `permissionKeys`, decided the caller could not read teams, and returned a
+   fabricated `200 { items: [] }` without calling the API. Removed entirely; the
+   handler now forwards and the API's own `teams.read` enforcement answers. Being
+   fail-closed was never the point — it was a second source of truth the API
+   could not correct, could not audit, and could not see, and an empty list is
+   indistinguishable from "you have no teams".
+2. **`api/lookups/dashboard-views/route.ts` — invented data.** It substituted a
+   `DEFAULT_DASHBOARD_OPTION` ("Administration") on *any* failure other than 401,
+   so a caller the API refused with 403 received a dashboard it had never
+   offered. That is the BUG-0039 shape — a refusal rendered as a `200`. It now
+   forwards `error.status`, and an empty list is returned as the real answer it
+   is. The consumer already lists `dashboardViews` in `RECOVERABLE_LOOKUP_KEYS`,
+   so it tolerates the honest failure.
+3. **`api/attendance/reverse-geocode/route.ts` — third-party IP leak.** It called
+   `nominatim.openstreetmap.org` itself and spread `forwardedClientHeaders` into
+   that request. That helper exists so the **API** can see the visitor's address
+   for per-client rate limiting across this app's proxy hop (BUG-0032); pointing
+   it at a third party sent every employee's IP to OpenStreetMap alongside their
+   exact punch coordinates — a linkable location trace, from a helper whose
+   documented purpose is the opposite hop. It now uses the existing
+   `lib/location/geocoding.server.ts` helper, which sends no client headers and
+   already carries the provider's usage-policy User-Agent. The duplicated address
+   assembly went with it.
+
+Not fixed, and deliberately not rushed — both are real refactors with a domain
+owner, and neither is currently producing a wrong answer:
+
+- `api/payroll/compensations/route.ts` derives `basicSalary` as the first
+  component with a non-empty amount. That is a payroll rule in a proxy, it is
+  money, and "first non-empty component" is a guess no domain service has agreed
+  to. Changing it blind could alter what employees are paid.
+- `api/tenant-settings/branding-assets/route.ts` owns a MIME allowlist and 3 MB
+  policy the API does not know about, and its two-step upload orphans a document
+  when step two fails.
 
 ## QA Retest
 
-Not applicable — not yet fixed. Verified by direct read of each cited handler at
-`1af3690`; the wider claim that these are the only such handlers rests on
-repo-wide greps across all 416 files, which is sound for those patterns but
-would not catch a novel one.
+Pass for the three fixed handlers.
+
+```text
+check:proxies-forward-refusals   PASS
+apps/web                         18 suites, 397 tests; check-types PASS
+```
+
+`teams/route.ts` no longer imports `getSessionUser`; `dashboard-views` forwards
+`error.status`; `reverse-geocode` no longer constructs a third-party request or
+touches `forwardedClientHeaders`.
+
+The original record's caveat still stands and is worth keeping: the claim that
+these were the *only* such handlers rests on repo-wide greps for known patterns,
+which would not catch a novel one. `check-proxies-forward-refusals` and the
+forwarded-headers invariant cover the two shapes that have now bitten twice.
 
 ## History
 
 - 2026-08-17 — found during the `apps/web` deep documentation audit (TASK-0003).
 - 2026-08-17 — Architect triage: `PLAN_REQUIRED`. Five independent decisions
   plus a guard; doing them piecemeal is how the rule eroded in the first place.
-</content>

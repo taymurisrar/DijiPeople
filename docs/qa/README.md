@@ -17,6 +17,9 @@ Role definition: [`.agent/agents/qa.md`](../../.agent/agents/qa.md).
 ```
 docs/qa/
 ├── README.md                  this file — the loop
+├── test-plans/                one evergreen plan per product area — what must ALWAYS be true
+├── scenarios/                 reusable, id'd tests — QA-AUTH-001, QA-TENANT-002, …
+├── coverage-matrix.md         generated — what is covered, per area, per dimension
 ├── runs/                      one file per QA execution, timestamped history
 ├── regressions/index.md       the regression register: what broke, and the test that guards it
 ├── known-bug-patterns/        defect classes this repository produces, with prevention rules
@@ -24,8 +27,27 @@ docs/qa/
 ```
 
 **Runs are history** — timestamped, never edited after the fact.
-**Regressions and patterns are evergreen** — updated in place as knowledge
-improves.
+**Plans, scenarios, regressions and patterns are evergreen** — updated in place
+as knowledge improves.
+**The coverage matrix and the two indexes are generated** — `node
+scripts/rebuild-qa.mjs`. Never edit them by hand.
+
+### Start here, not from a blank page
+
+QA used to design its scenarios from scratch on every task. Before designing
+anything:
+
+```bash
+node scripts/qa-select.mjs services/api/src/modules/<module>
+```
+
+That returns the plans, the reusable scenarios, the regressions they guard, the
+open records on the same ground, the bug patterns, and the coverage gaps this
+change would walk over unprotected. Execute the impacted scenarios, then design
+for what is genuinely new — and promote anything with durable value into
+`scenarios/`.
+
+Full rules: [`../../.agent/context/qa-persistence.md`](../../.agent/context/qa-persistence.md).
 
 ### And, outside this folder
 

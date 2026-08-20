@@ -20,7 +20,12 @@ import {
 } from '@prisma/client';
 import type { Response } from 'express';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { Permissions } from '../../common/decorators/permissions.decorator';
+import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
+import {
+  Permissions,
+  RequireAnyPermission,
+  RequirePermission,
+} from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
@@ -37,12 +42,14 @@ export class PayrollOperationsController {
 
   @Get('dashboard')
   @Permissions('payroll-operations.dashboard')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_RUNS, 'read')
   dashboard(@CurrentUser() user: AuthenticatedUser) {
     return this.operations.dashboard(user);
   }
 
   @Get('exceptions')
   @Permissions('payroll-exceptions.read')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_RUNS, 'read')
   exceptions(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: Record<string, string>,
@@ -52,6 +59,7 @@ export class PayrollOperationsController {
 
   @Get('exceptions/export')
   @Permissions('payroll-exceptions.export')
+  @RequirePermission(ENTITY_KEYS.PAYROLL, 'export')
   async exportExceptions(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: Record<string, string>,
@@ -69,6 +77,7 @@ export class PayrollOperationsController {
 
   @Get('reports')
   @Permissions('payroll-runs.read')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_RUNS, 'read')
   reports(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: Record<string, string>,
@@ -77,7 +86,8 @@ export class PayrollOperationsController {
   }
 
   @Get('reports/export')
-  @Permissions('payroll-runs.read')
+  @Permissions('payroll.export')
+  @RequirePermission(ENTITY_KEYS.PAYROLL, 'export')
   async reportExport(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: Record<string, string>,
@@ -95,6 +105,7 @@ export class PayrollOperationsController {
 
   @Get('runs/:id/preview')
   @Permissions('payroll-runs.read')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_RUNS, 'read')
   preview(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -104,6 +115,7 @@ export class PayrollOperationsController {
 
   @Get('runs/:id/lifecycle')
   @Permissions('payroll-runs.read')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_RUNS, 'read')
   lifecycle(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -113,6 +125,7 @@ export class PayrollOperationsController {
 
   @Post('runs/:id/finalize')
   @Permissions('payroll-runs.finalize')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_RUNS, 'manage')
   finalize(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -122,6 +135,7 @@ export class PayrollOperationsController {
 
   @Post('runs/:id/review')
   @Permissions('payroll-runs.finalize')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_RUNS, 'manage')
   review(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -131,6 +145,7 @@ export class PayrollOperationsController {
 
   @Post('runs/:id/return-to-calculation')
   @Permissions('payroll-runs.calculate')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_RUNS, 'manage')
   returnToCalculation(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -140,6 +155,7 @@ export class PayrollOperationsController {
 
   @Post('runs/:id/bank-export')
   @Permissions('payroll-bank-export.generate')
+  @RequirePermission(ENTITY_KEYS.PAYROLL, 'export')
   async bankExport(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -159,6 +175,7 @@ export class PayrollOperationsController {
 
   @Get('runs/:id/payment-batches')
   @Permissions('payroll-runs.read')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_RUNS, 'read')
   paymentBatches(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -168,6 +185,7 @@ export class PayrollOperationsController {
 
   @Post('runs/:id/payment-batches/:exportId/submit')
   @Permissions('payroll-runs.disburse')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_RUNS, 'manage')
   submitPaymentBatch(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -178,6 +196,7 @@ export class PayrollOperationsController {
 
   @Post('runs/:id/payment-batches/:exportId/cancel')
   @Permissions('payroll-runs.disburse')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_RUNS, 'manage')
   cancelPaymentBatch(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -188,6 +207,7 @@ export class PayrollOperationsController {
 
   @Get('runs/:id/payment-batches/:exportId/result-template')
   @Permissions('payroll-runs.disburse')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_RUNS, 'manage')
   async paymentResultTemplate(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -210,6 +230,7 @@ export class PayrollOperationsController {
 
   @Post('runs/:id/payment-batches/:exportId/import-results')
   @Permissions('payroll-runs.disburse')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_RUNS, 'manage')
   @UseInterceptors(FileInterceptor('file'))
   importPaymentResults(
     @CurrentUser() user: AuthenticatedUser,
@@ -223,6 +244,7 @@ export class PayrollOperationsController {
 
   @Post('runs/:id/payment-batches/:exportId/import-results/preview')
   @Permissions('payroll-runs.disburse')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_RUNS, 'manage')
   @UseInterceptors(FileInterceptor('file'))
   previewPaymentResults(
     @CurrentUser() user: AuthenticatedUser,
@@ -242,6 +264,7 @@ export class PayrollOperationsController {
 
   @Post('runs/:id/payment-batches/:exportId/retry-failed')
   @Permissions('payroll-runs.disburse')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_RUNS, 'manage')
   async retryFailedPayments(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -271,6 +294,7 @@ export class PayrollOperationsController {
 
   @Post('runs/:id/payment-lines/:lineId/reconcile')
   @Permissions('payroll-runs.disburse')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_RUNS, 'manage')
   reconcilePaymentLine(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -287,6 +311,7 @@ export class PayrollOperationsController {
 
   @Post('runs/:id/disburse')
   @Permissions('payroll-runs.disburse')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_RUNS, 'manage')
   disburse(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,

@@ -1,0 +1,87 @@
+{
+  "branch": "develop",
+  "window": 19,
+  "generatedFromRun": 32173772663,
+  "runMedian": 534,
+  "runP95": 1713,
+  "jobs": [
+    {
+      "name": "Browser e2e",
+      "median": 481,
+      "p95": 777,
+      "queueMedian": 2
+    },
+    {
+      "name": "Database e2e (report only — NOT a gate)",
+      "median": 278,
+      "p95": 1556,
+      "queueMedian": 2
+    },
+    {
+      "name": "Build",
+      "median": 262,
+      "p95": 315,
+      "queueMedian": 2
+    },
+    {
+      "name": "Lint (check only)",
+      "median": 208,
+      "p95": 340,
+      "queueMedian": 2
+    },
+    {
+      "name": "Typecheck",
+      "median": 163,
+      "p95": 231,
+      "queueMedian": 2
+    },
+    {
+      "name": "Database migration gate",
+      "median": 147,
+      "p95": 163,
+      "queueMedian": 2
+    },
+    {
+      "name": "API tests",
+      "median": 97,
+      "p95": 300,
+      "queueMedian": 2
+    },
+    {
+      "name": "Web tests",
+      "median": 54,
+      "p95": 200,
+      "queueMedian": 2
+    },
+    {
+      "name": "Landing tests",
+      "median": 54,
+      "p95": 95,
+      "queueMedian": 2
+    },
+    {
+      "name": "Admin tests",
+      "median": 52,
+      "p95": 75,
+      "queueMedian": 2
+    },
+    {
+      "name": "Runtime schema tests",
+      "median": 51,
+      "p95": 78,
+      "queueMedian": 2
+    },
+    {
+      "name": "Framework validation",
+      "median": 16,
+      "p95": 47,
+      "queueMedian": 2
+    },
+    {
+      "name": "CI required gate",
+      "median": 3,
+      "p95": 4,
+      "queueMedian": 2
+    }
+  ]
+}

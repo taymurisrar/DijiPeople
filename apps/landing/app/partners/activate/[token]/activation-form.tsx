@@ -40,7 +40,11 @@ export function ActivationForm({ token }: { token: string }) {
         Create your secure password
       </h1>
       {success ? (
-        <div className="mt-6 rounded-2xl bg-accent-soft p-5 text-sm leading-6 text-accent-strong">
+        <div
+          aria-live="polite"
+          className="mt-6 rounded-2xl bg-accent-soft p-5 text-sm leading-6 text-accent-strong"
+          role="status"
+        >
           {message} You can now open the partner portal from the login page.
         </div>
       ) : (
@@ -48,6 +52,7 @@ export function ActivationForm({ token }: { token: string }) {
           <label className="block text-sm font-semibold text-foreground">
             Password
             <input
+              autoComplete="new-password"
               name="password"
               type="password"
               minLength={12}
@@ -58,6 +63,7 @@ export function ActivationForm({ token }: { token: string }) {
           <label className="block text-sm font-semibold text-foreground">
             Confirm password
             <input
+              autoComplete="new-password"
               name="confirmPassword"
               type="password"
               minLength={12}
@@ -70,12 +76,18 @@ export function ActivationForm({ token }: { token: string }) {
             recommended.
           </p>
           {message ? (
-            <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-danger">
+            <p
+              aria-live="assertive"
+              className="rounded-xl bg-red-50 px-4 py-3 text-sm text-danger"
+              role="alert"
+            >
               {message}
             </p>
           ) : null}
           <button
+            aria-busy={busy}
             disabled={busy}
+            type="submit"
             className="w-full rounded-xl bg-accent px-5 py-3 text-sm font-semibold text-white disabled:opacity-50"
           >
             {busy ? "Activating…" : "Activate partner account"}

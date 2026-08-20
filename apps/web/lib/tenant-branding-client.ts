@@ -3,6 +3,11 @@ import {
   type BrandingSettings,
 } from "@/lib/branding";
 import { buildFaviconHref, DEFAULT_FAVICON_HREF } from "@/lib/favicon-metadata";
+import {
+  applyTheme,
+  effectiveThemeChoice,
+  TENANT_THEME_ATTRIBUTE,
+} from "@/lib/theme";
 
 const TENANT_FAVICON_ID = "tenant-favicon";
 const BRANDING_ATTRIBUTE = "data-dijipeople-branding";
@@ -23,7 +28,21 @@ export function applyTenantBranding(
   }
 
   root.dataset.density = branding.density.toLowerCase();
-  root.dataset.theme = branding.themeMode.toLowerCase();
+
+  /*
+   * BUG-0046 — this used to write `root.dataset.theme` directly, which put the
+   * tenant default into the same slot as the resolved answer and lost the race
+   * against the theme applier's MutationObserver every time.
+   *
+   * The tenant default is now published to its own attribute and `applyTheme`
+   * resolves the precedence — user choice, then this, then the device. That also
+   * stops a themeMode of `SYSTEM` reaching the document as a literal
+   * `data-theme="system"`, which matched no rule in `globals.css` and so read as
+   * light regardless of the device.
+   */
+  root.setAttribute(TENANT_THEME_ATTRIBUTE, branding.themeMode.toLowerCase());
+  applyTheme(effectiveThemeChoice());
+
   setRouteTitle(pageTitle ?? "", branding.appTitle);
   upsertFavicon(branding.faviconUrl);
 

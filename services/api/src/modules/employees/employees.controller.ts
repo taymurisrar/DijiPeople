@@ -22,6 +22,7 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import {
   Permissions,
   RequirePermission,
+  RequireAnyPermission,
 } from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
@@ -175,11 +176,15 @@ export class EmployeesController {
   }
 
   @Get('me/context')
+  @Permissions('dashboard.view')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'read')
   getCurrentEmployeeContext(@CurrentUser() user: AuthenticatedUser) {
     return this.employeesService.getCurrentEmployeeContext(user);
   }
 
   @Get(':employeeId')
+  @Permissions('dashboard.view')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'read')
   findOne(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -234,6 +239,7 @@ export class EmployeesController {
 
   @Get(':employeeId/hierarchy')
   @Permissions('hierarchy.read')
+  @RequirePermission(ENTITY_KEYS.HIERARCHY, 'read')
   getHierarchy(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -243,6 +249,7 @@ export class EmployeesController {
 
   @Get(':employeeId/reporting-structure')
   @Permissions('hierarchy.read')
+  @RequirePermission(ENTITY_KEYS.HIERARCHY, 'read')
   getReportingStructure(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -255,6 +262,7 @@ export class EmployeesController {
 
   @Get(':employeeId/direct-reports')
   @Permissions('hierarchy.read')
+  @RequirePermission(ENTITY_KEYS.HIERARCHY, 'read')
   getDirectReports(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -264,6 +272,7 @@ export class EmployeesController {
 
   @Get('me/direct-reports')
   @Permissions('hierarchy.read')
+  @RequirePermission(ENTITY_KEYS.HIERARCHY, 'read')
   getMyDirectReports(@CurrentUser() user: AuthenticatedUser) {
     return this.employeesService.getDirectReportsByUser(user);
   }
@@ -312,6 +321,10 @@ export class EmployeesController {
 
   @Patch(':employeeId/reporting-manager')
   @Permissions('hierarchy.update')
+  @RequireAnyPermission(
+    { entityKey: ENTITY_KEYS.HIERARCHY, action: 'write' },
+    { entityKey: ENTITY_KEYS.HIERARCHY, action: 'manage' },
+  )
   assignReportingManager(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -327,6 +340,10 @@ export class EmployeesController {
 
   @Patch(':employeeId/manager')
   @Permissions('hierarchy.update')
+  @RequireAnyPermission(
+    { entityKey: ENTITY_KEYS.HIERARCHY, action: 'write' },
+    { entityKey: ENTITY_KEYS.HIERARCHY, action: 'manage' },
+  )
   assignManagerAlias(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -341,6 +358,8 @@ export class EmployeesController {
   }
 
   @Patch(':employeeId/personal-info')
+  @Permissions('dashboard.view')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'write')
   updatePersonalInfo(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -354,6 +373,8 @@ export class EmployeesController {
   }
 
   @Patch(':employeeId/address')
+  @Permissions('dashboard.view')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'write')
   updateAddress(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -363,6 +384,8 @@ export class EmployeesController {
   }
 
   @Patch(':employeeId/emergency-contact')
+  @Permissions('dashboard.view')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'write')
   updateEmergencyContact(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -376,6 +399,8 @@ export class EmployeesController {
   }
 
   @Get(':employeeId/history')
+  @Permissions('dashboard.view')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'read')
   getHistory(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -385,6 +410,7 @@ export class EmployeesController {
 
   @Post(':employeeId/history')
   @Permissions('employees.history.create')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'write')
   createHistory(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -394,6 +420,8 @@ export class EmployeesController {
   }
 
   @Get(':employeeId/education')
+  @Permissions('dashboard.view')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'read')
   getEducation(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -402,6 +430,8 @@ export class EmployeesController {
   }
 
   @Get(':employeeId/compensation')
+  @Permissions('dashboard.view')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'read')
   getCompensation(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -428,6 +458,8 @@ export class EmployeesController {
   }
 
   @Get(':employeeId/previous-employments')
+  @Permissions('dashboard.view')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'read')
   getPreviousEmployments(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -439,6 +471,8 @@ export class EmployeesController {
   }
 
   @Post(':employeeId/previous-employments')
+  @Permissions('dashboard.view')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'write')
   createPreviousEmployment(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -452,6 +486,8 @@ export class EmployeesController {
   }
 
   @Patch(':employeeId/previous-employments/:previousEmploymentId')
+  @Permissions('dashboard.view')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'write')
   updatePreviousEmployment(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -468,6 +504,8 @@ export class EmployeesController {
   }
 
   @Delete(':employeeId/previous-employments/:previousEmploymentId')
+  @Permissions('dashboard.view')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'write')
   deletePreviousEmployment(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -482,6 +520,8 @@ export class EmployeesController {
   }
 
   @Post(':employeeId/education')
+  @Permissions('dashboard.view')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'write')
   createEducation(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -491,6 +531,8 @@ export class EmployeesController {
   }
 
   @Patch(':employeeId/education/:educationId')
+  @Permissions('dashboard.view')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'write')
   updateEducation(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -506,6 +548,8 @@ export class EmployeesController {
   }
 
   @Delete(':employeeId/education/:educationId')
+  @Permissions('dashboard.view')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'write')
   deleteEducation(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -519,6 +563,8 @@ export class EmployeesController {
   }
 
   @Get(':employeeId/documents')
+  @Permissions('dashboard.view')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'read')
   getDocuments(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -528,6 +574,8 @@ export class EmployeesController {
 
   @Post(':employeeId/documents/upload')
   @UseInterceptors(FileInterceptor('file'))
+  @Permissions('dashboard.view')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'write')
   uploadDocument(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -544,6 +592,8 @@ export class EmployeesController {
 
   @Patch(':employeeId/documents/:documentId')
   @UseInterceptors(FileInterceptor('file'))
+  @Permissions('dashboard.view')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'write')
   updateDocument(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -561,6 +611,8 @@ export class EmployeesController {
   }
 
   @Get(':employeeId/documents/:documentId/download')
+  @Permissions('dashboard.view')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'read')
   async downloadDocument(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -585,6 +637,8 @@ export class EmployeesController {
   }
 
   @Get(':employeeId/documents/:documentId/view')
+  @Permissions('dashboard.view')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'read')
   async viewDocument(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -609,6 +663,8 @@ export class EmployeesController {
   }
 
   @Delete(':employeeId/documents/:documentId')
+  @Permissions('dashboard.view')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'write')
   deleteDocument(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -623,6 +679,8 @@ export class EmployeesController {
 
   @Post(':employeeId/profile-image/upload')
   @UseInterceptors(FileInterceptor('file'))
+  @Permissions('dashboard.view')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'write')
   uploadProfileImage(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -636,6 +694,8 @@ export class EmployeesController {
   }
 
   @Get(':employeeId/profile-image')
+  @Permissions('dashboard.view')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'read')
   async getProfileImage(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -651,6 +711,10 @@ export class EmployeesController {
 
   @Get(':employeeId/leave-history')
   @Permissions('employees.read')
+  @RequireAnyPermission(
+    { entityKey: ENTITY_KEYS.EMPLOYEES, action: 'read' },
+    { entityKey: ENTITY_KEYS.REPORTS, action: 'read' },
+  )
   getLeaveHistory(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -660,6 +724,10 @@ export class EmployeesController {
 
   @Get(':employeeId/attendance-history')
   @Permissions('employees.read')
+  @RequireAnyPermission(
+    { entityKey: ENTITY_KEYS.EMPLOYEES, action: 'read' },
+    { entityKey: ENTITY_KEYS.REPORTS, action: 'read' },
+  )
   getAttendanceHistory(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -669,6 +737,10 @@ export class EmployeesController {
 
   @Get(':employeeId/timesheet-history')
   @Permissions('employees.read')
+  @RequireAnyPermission(
+    { entityKey: ENTITY_KEYS.EMPLOYEES, action: 'read' },
+    { entityKey: ENTITY_KEYS.REPORTS, action: 'read' },
+  )
   getTimesheetHistory(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -678,6 +750,7 @@ export class EmployeesController {
 
   @Get(':employeeId/project-allocations')
   @Permissions('projects.read')
+  @RequirePermission(ENTITY_KEYS.PROJECTS, 'read')
   getProjectAllocations(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,

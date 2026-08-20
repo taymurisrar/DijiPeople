@@ -1,13 +1,30 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma, TeamType } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import {
+  ensureIdentityForEmail,
+  mirrorPasswordToIdentity,
+} from './identity.service';
 
 type PrismaDb = PrismaService | Prisma.TransactionClient;
+/**
+ * What a caller has to supply to create a user.
+ *
+ * `businessUnitId` and `identityId` are both optional here and both required on
+ * the model: this repository derives them. The tenant's default business unit
+ * is looked up, and the identity is resolved or created from the email.
+ *
+ * Making `identityId` optional in this type is what keeps the contract phase
+ * from becoming a six-file change — the compiler listed exactly six callers
+ * when it briefly was required, which is also the clearest evidence that this
+ * method is the right chokepoint for the rule.
+ */
 type UserCreateInput = Omit<
   Prisma.UserUncheckedCreateInput,
-  'businessUnitId'
+  'businessUnitId' | 'identityId'
 > & {
   businessUnitId?: string;
+  identityId?: string;
 };
 
 const roleAccessInclude = {
@@ -371,15 +388,35 @@ export class UsersRepository {
     return this.createWithDefaultBusinessUnit(data, db);
   }
 
-  update(
+  async update(
     userId: string,
     data: Prisma.UserUncheckedUpdateInput,
     db: PrismaDb = this.prisma,
   ) {
-    return db.user.update({
+    const updated = await db.user.update({
       where: { id: userId },
       data,
     });
+
+    /*
+     * A password set through this path has to reach the identity too.
+     *
+     * Invitation acceptance is the caller that matters — somebody choosing
+     * their password for the first time. Once login reads the identity, a
+     * password that landed only on `User` would leave them unable to sign in
+     * with the password they had just chosen and watched be accepted.
+     *
+     * Guarded on the field being present rather than mirroring unconditionally,
+     * because most updates here are names and status and have no business
+     * touching a credential. `typeof === 'string'` because Prisma's update
+     * input also permits `{ set: … }`, and passing that object through as a
+     * hash would store the literal `[object Object]`.
+     */
+    if (typeof data.passwordHash === 'string') {
+      await mirrorPasswordToIdentity(db, userId, data.passwordHash);
+    }
+
+    return updated;
   }
 
   delete(userId: string, db: PrismaDb = this.prisma) {
@@ -770,10 +807,28 @@ export class UsersRepository {
       data.businessUnitId ??
       (await this.ensureTenantDefaultBusinessUnitId(data.tenantId, db));
 
+    /*
+     * Every account belongs to a person, and this is the path almost every
+     * account is created through.
+     *
+     * `identityId` is nullable during the expand phase, which makes forgetting
+     * this silent: the user is created, everything works, and the row is
+     * invisible until the contract phase in WP-09 tries to make the column
+     * required and finds rows it cannot fill. `user-creation-links-identity`
+     * fails the build rather than leaving that to be discovered later.
+     *
+     * A caller that already resolved the identity — because it is attaching an
+     * existing person to a second workspace — passes it and is not overridden.
+     */
+    const identityId =
+      data.identityId ??
+      (await ensureIdentityForEmail(db, data.email, data.passwordHash));
+
     return db.user.create({
       data: {
         ...data,
         businessUnitId,
+        identityId,
       },
     });
   }

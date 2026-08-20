@@ -668,6 +668,35 @@ export const ERROR_CATALOG = {
     'error',
     'validation',
   ),
+  LEGAL_VERSION_NOT_FOUND: entry(
+    404,
+    'Legal document version not found',
+    'No legal document version matches that identifier.',
+    'error',
+    'validation',
+  ),
+  LEGAL_VERSION_IMMUTABLE: entry(
+    409,
+    'Published legal versions cannot be edited',
+    'This version has been published and is the evidence behind every acknowledgement that names it. Publish a new version instead of changing this one.',
+    'warning',
+    'validation',
+    'Create a new draft version and publish that.',
+  ),
+  LEGAL_VERSION_NOT_DRAFT: entry(
+    409,
+    'That version is not a draft',
+    'Only a draft version can be published.',
+    'warning',
+    'validation',
+  ),
+  LEGAL_VERSION_HAS_PLACEHOLDERS: entry(
+    409,
+    'That version still has unfilled blanks',
+    'Fill every {{PLACEHOLDER}} before publishing. The contracting party — legal entity name, registration number, registered office, tax number and jurisdiction — is left blank deliberately until it is known, and a published document must never show one.',
+    'warning',
+    'validation',
+  ),
 } as const satisfies Record<string, ErrorCatalogEntry>;
 
 export type ErrorCode = keyof typeof ERROR_CATALOG;

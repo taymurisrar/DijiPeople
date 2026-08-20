@@ -137,8 +137,9 @@ export function buildSubscribeHref(
  * cheaper. Nothing is assumed about a standard discount rate — a previous
  * version rendered a fixed percentage regardless of the configured prices.
  *
- * Both amounts are per active employee, so the comparison holds at any team
- * size and does not need one.
+ * The monthly and annual offers of one plan share a billing model, so the
+ * comparison holds at any team size and does not need one — whether both are
+ * flat or both are per employee.
  */
 export function calculateAnnualSaving(plan: CommercialPlanView) {
   const monthly = findOffer(plan, "MONTH");
@@ -172,7 +173,25 @@ export function estimateCost(
 ) {
   if (!offer?.available) return null;
 
-  const billable = offer.billingModel === "PER_SEAT" ? Math.max(teamSize, 1) : 1;
+  /*
+   * The minimum seat commitment is BILLED, so it must be shown.
+   *
+   * This read `Math.max(teamSize, 1)`, which ignored `minimumSeats` entirely
+   * while the server bills `Math.max(quantity, minimumSeats)`. A six-person
+   * company on a plan with a ten-seat minimum would have been quoted six seats
+   * on this page and charged for ten by Stripe.
+   *
+   * That is the same defect BUG-0080 was found through — a page and an invoice
+   * disagreeing — and it is worth being blunt about why it nearly recurred: the
+   * arithmetic lives in two places, here and in `resolveCommercialOffer`, and
+   * only one of them was changed when the rule did. `belowMinimum` below is
+   * what lets the page say "6 employees, billed at the 10-seat minimum" instead
+   * of silently showing a number the customer did not type.
+   */
+  const billable =
+    offer.billingModel === "PER_SEAT"
+      ? Math.max(teamSize, offer.minimumSeats, 1)
+      : 1;
   const belowMinimum =
     offer.billingModel === "PER_SEAT" && teamSize < offer.minimumSeats;
   const aboveMaximum =
@@ -282,16 +301,25 @@ export function formatMoney(amount: number, currency: string) {
 /**
  * The billing unit, in customer language.
  *
- * The billable unit is an active employee — not a login and not a "seat". A
- * tenant admin who is not an employee does not consume one, and a terminated
- * employee stops consuming one, so "per user" describes a larger population
- * than the one actually billed.
+ * A **flat** price is labelled by period alone — "per month" — because that is
+ * the whole truth about it: the amount does not move with headcount. This used
+ * to return null for flat prices, which rendered a bare figure with no unit and
+ * left the visitor to work out for themselves whether it was monthly, annual or
+ * per person. Saying nothing is not the same as saying nothing misleading.
+ *
+ * A **per-seat** price is labelled per active employee — not per login and not
+ * per "seat". A tenant admin who is not an employee does not consume one, and a
+ * terminated employee stops consuming one, so "per user" would name a larger
+ * population than the one actually billed.
  */
 export function billingUnitLabel(offer: CommercialOfferView | null) {
-  if (!offer?.available || offer.billingModel !== "PER_SEAT") return null;
-  return offer.billingInterval === "YEAR"
-    ? "per active employee / year"
-    : "per active employee / month";
+  if (!offer?.available) return null;
+
+  const period = offer.billingInterval === "YEAR" ? "year" : "month";
+
+  return offer.billingModel === "PER_SEAT"
+    ? `per active employee / ${period}`
+    : `per ${period}`;
 }
 
 function round2(value: number) {

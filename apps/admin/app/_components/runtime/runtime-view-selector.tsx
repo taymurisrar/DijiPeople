@@ -124,7 +124,8 @@ export function RuntimeViewSelector({
         className="flex min-w-[240px] max-w-full items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-left shadow-sm transition hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-[var(--admin-primary)]/20"
       >
         <span className="min-w-0">
-          <span className="block text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+          {/* slate-400 on white is ~2.8:1 and fails WCAG AA; slate-500 clears it. */}
+          <span className="block text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">
             View
           </span>
           <span className="mt-0.5 block truncate text-sm font-semibold text-slate-900">

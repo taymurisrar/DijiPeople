@@ -1,7 +1,7 @@
 # Testing Architecture
 
 > **Last verified:** 2026-08-16
-> **Verified against commit:** 78072d2
+> **Verified against commit:** d919e1a
 > **Key source files:** .github/workflows/ci.yml, services/api/package.json, services/api/tsconfig.json, services/api/tsconfig.build.json, services/api/test/jest-e2e.json, services/api/src/common/constants/wiring-invariants.spec.ts, apps/web/jest.config.js, apps/admin/jest.config.js, apps/landing/jest.config.js, e2e/package.json, e2e/playwright.config.ts, package.json, turbo.json, packages/config/platform-runtime-schema.test.js
 >
 > This document describes the repository, it is not authority over it. If the
@@ -10,14 +10,17 @@
 
 ## CURRENT
 
-**CI exists** at `.github/workflows/ci.yml`: **ten** required jobs aggregated
-into a single `CI required gate` check, plus **four** non-gating report-only
-jobs. See [`../../docs/development/ci.md`](../../docs/development/ci.md).
+**CI exists** at `.github/workflows/ci.yml`: **eleven** jobs are named in the
+single `CI required gate` check, plus **two** report-only jobs. The browser job
+is named by the required gate but is still configured `continue-on-error: true`,
+so a failing browser step is currently fail-open; [[BUG-0049]] tracks that
+contradiction. See [`../../docs/development/ci.md`](../../docs/development/ci.md).
 
-The ten, from the gate's own `needs` list: `validate`, `typecheck`, `lint`,
-`test-api`, `test-web`, `test-admin`, `test-landing`, `test-runtime`,
-`database-migration`, `build`. The four report-only: `database-e2e-report`,
-`lint-api-report`, `security-invariant-report`, `browser-e2e-report`.
+From the gate's own `needs` list: `validate`, `typecheck`, `lint`, `test-api`,
+`test-web`, `test-admin`, `test-landing`, `test-runtime`, `database-migration`,
+`database-e2e-report`, `build`, `browser-e2e`. `security-invariant-report` is
+the one remaining report-only job. Count them in `ci-required.needs` rather
+than trusting a number written here.
 
 Two consequences, both load-bearing:
 
@@ -34,8 +37,8 @@ Two consequences, both load-bearing:
 |---|---|---|
 | `UNIT` | jest (api, web, admin, **landing**) | **Available** |
 | `INTEGRATION` | jest + a real database | **Available in CI** — ephemeral `postgres:16-alpine` service container |
-| `API` | supertest; `*.e2e-spec.ts` under `services/api/test/` | **Available in CI**, report-only (`database-e2e-report`). List the directory — the set changes |
-| `BROWSER_E2E` | **Playwright, in the `e2e` workspace** | **Installed** — `@playwright/test`, two journey specs; runs in CI as `browser-e2e-report`, **report-only, not a gate** |
+| `API` | supertest; `*.e2e-spec.ts` under `services/api/test/` | **Available in CI and gating** since 2026-08-20 (`database-e2e-report`, display name `Database e2e`). List the directory — the set changes |
+| `BROWSER_E2E` | **Playwright, in the `e2e` workspace** | **Installed and gating** — `@playwright/test`, three journey specs; `continue-on-error` was removed from `browser-e2e` on 2026-08-18, so it genuinely blocks |
 | `MANUAL_VISUAL` | a human | Available |
 | `DEPLOYMENT_SMOKE` | `scripts/smoke-deployment.mjs`, `docs/deployment/smoke-tests.md` | Available against a reachable environment |
 
@@ -71,7 +74,7 @@ with the runner — nothing persists, so no cleanup step can be forgotten:
 | Job | Database | Gating |
 |---|---|---|
 | `database-migration` | `dijipeople_test` | **Required** — inside `ci-required` |
-| `database-e2e-report` | `dijipeople_e2e_test` | Report-only, with written promotion criteria |
+| `database-e2e-report` | `dijipeople_e2e_test` | **Required** since 2026-08-20 — inside `ci-required`; the only gate that runs the product against a real PostgreSQL |
 
 `database-migration` runs `node scripts/verify-database.mjs`: assert the target
 is disposable → `prisma generate` → **`prisma migrate deploy`** → `migrate
@@ -129,12 +132,12 @@ key — there is no `jest.config.js` for the API. Verified contents:
 ```
 
 Only `src/**` is discovered; `services/api/test/` is invisible to
-`npm --workspace api run test`. **112 `*.spec.ts` files** live under
+`npm --workspace api run test`. **169 `*.spec.ts` files** live under
 `services/api/src`, colocated next to the code they cover.
 
 ### API e2e tests
 
-`services/api/test/` contains **13 `*.e2e-spec.ts` suites**, plus
+`services/api/test/` contains **15 `*.e2e-spec.ts` suites**, plus
 `sanitize-html.e2e-mock.ts` (a module mock, not a test) and `jest-e2e.json`
 (`rootDir: "."`, `testRegex: ".e2e-spec.ts$"`, `testEnvironment: "node"`, ts-jest
 with **`diagnostics: false`**, `moduleNameMapper` remapping `sanitize-html` to
@@ -202,7 +205,7 @@ The header comments carry the design rationale:
 `@testing-library/*` are absent from every frontend `package.json`. Do not write
 one without adding the dependencies as an explicit decision.
 
-**Frontend spec count at `78072d2`: 28 — web 17, admin 9, landing 2.** Do not
+**Frontend spec count at `d919e1a`: 30 — web 17, admin 10, landing 3.** Do not
 copy that number forward; count them. A previous version of this file said "9
 total" and named them individually, which stayed accurate for exactly as long as
 nobody added a spec.
@@ -218,18 +221,18 @@ Per app:
   reads as confirmation. Corrected 2026-08-16.
 - **`apps/docs`** has no test script and nothing to test — a stock starter. See
   [[docs-application]].
-- **`apps/agent-desktop`** has no test script and no tests, and neither does the
-  `agent` API module that serves it. That gap is tracked as [[ITEM-0028]] and is
-  how [[BUG-0035-desktop-agent-logout-never-revokes-the-refresh-token]] survived.
+- **`apps/agent-desktop`** has no test script and no tests. The `agent` API
+  module that serves it now has three colocated specs, so [[ITEM-0028]] remains
+  specifically a desktop-client coverage gap rather than an absence of all
+  agent coverage.
 
 ### packages/config
 
-Plain Node test files run via `node --test`, not jest:
-`platform-runtime-schema.test.js`, `platform-runtime-views.test.js`,
-`system-widget-registry.test.js`, `widget-runtime-contract.test.js`.
-Root exposes only one of them: `npm run test:runtime-schema` →
-`node --test packages/config/platform-runtime-schema.test.js`. The other three
-must be invoked directly with `node --test <path>`.
+Seven `*.test.js` files currently cover the package and run via `node --test`,
+not jest. Root exposes the runtime schema test as
+`npm run test:runtime-schema`; CI's `test-runtime` job invokes the broader
+runtime/config command set. List the directory before relying on a fixed
+inventory because these contract tests change with the runtime.
 
 ### Wiring invariants — `services/api/src/common/constants/wiring-invariants.spec.ts`
 
@@ -318,7 +321,7 @@ npm --workspace admin run test | check-types | lint | build | dev | start | rele
 ## Key abstractions
 
 - **Colocated unit specs** beside the service under test — the dominant pattern
-  (112 files). Follow `attendance.service.spec.ts`,
+  (169 files). Follow `attendance.service.spec.ts`,
   `payroll-operations.service.spec.ts`, `webhook.service.spec.ts`,
   `secret-encryption.service.spec.ts`, `jwt-auth.guard.spec.ts`.
 - **Invariant specs** that read source files or Nest metadata rather than

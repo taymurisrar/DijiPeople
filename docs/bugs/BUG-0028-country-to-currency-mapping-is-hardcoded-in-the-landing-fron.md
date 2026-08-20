@@ -11,14 +11,14 @@ DetectedDate: 2026-08-16
 DetectedInSha: 45d00cf
 AffectedModules: [apps/landing]
 OwnerAgent: architect
-ArchitectDisposition: PLAN_REQUIRED
+ArchitectDisposition: DONE
 QAReport: docs/qa/runs/2026-08-16-commercial-config-wave1-a525896.md
 RegressionId: REG-018
 RelatedBacklogItem: ITEM-0019
 RelatedDecision:
 RelatedImplementation: agent/commercial-config-wave1
 CreatedAt: 2026-08-16
-UpdatedAt: 2026-08-16
+UpdatedAt: 2026-08-17
 ResolvedAt: 2026-08-16
 ---
 
@@ -156,6 +156,10 @@ real PostgreSQL 16. Each of these tests was proven to fail without its fix when
 it was written; re-running them is what confirms the fix still holds.
 
 ## History
+
+- 2026-08-17 — Architect reconciliation: terminal `VERIFIED` status normalized
+  to `ArchitectDisposition: DONE`; the existing resolution and QA evidence are
+  unchanged.
 
 - 2026-08-16 — found during commercial-configuration discovery at `45d00cf`.
 

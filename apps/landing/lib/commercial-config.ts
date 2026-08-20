@@ -1,4 +1,5 @@
 import { headers } from "next/headers";
+import { unstable_rethrow } from "next/navigation";
 
 import { landingEnv } from "./env";
 
@@ -16,23 +17,23 @@ import { landingEnv } from "./env";
 
 export type CommercialOfferView =
   | {
-      available: true;
-      billingInterval: "MONTH" | "YEAR";
-      currency: string;
-      unitAmount: number;
-      billingModel: "PER_SEAT" | "FLAT";
-      minimumSeats: number;
-      maximumSeats: number | null;
-      includedSeats: number;
-      selfServiceEligible: boolean;
-      priceVersion: number;
-    }
+    available: true;
+    billingInterval: "MONTH" | "YEAR";
+    currency: string;
+    unitAmount: number;
+    billingModel: "PER_SEAT" | "FLAT";
+    minimumSeats: number;
+    maximumSeats: number | null;
+    includedSeats: number;
+    selfServiceEligible: boolean;
+    priceVersion: number;
+  }
   | {
-      available: false;
-      billingInterval: "MONTH" | "YEAR";
-      reason: string;
-      message: string;
-    };
+    available: false;
+    billingInterval: "MONTH" | "YEAR";
+    reason: string;
+    message: string;
+  };
 
 export type CommercialPlanView = {
   id: string;
@@ -85,6 +86,7 @@ const EMPTY_CONFIG: CommercialConfigView = {
   featureCatalog: [],
 };
 
+
 /**
  * Country headers set by the edge/CDN. Forwarded rather than re-derived,
  * because the platform in front of this app is the only thing that actually
@@ -97,38 +99,191 @@ const COUNTRY_HEADERS = [
   "x-country-code",
 ] as const;
 
+const COMMERCIAL_CONFIG_TIMEOUT_MS = 8000;
+
 export async function getCommercialConfig(): Promise<CommercialConfigView> {
   const requestHeaders = await headers();
 
   const forwarded: Record<string, string> = {};
+
   for (const header of COUNTRY_HEADERS) {
     const value = requestHeaders.get(header);
-    if (value) forwarded[header] = value;
+
+    if (value) {
+      forwarded[header] = value;
+    }
   }
 
   try {
     const response = await fetch(
       `${landingEnv.apiBaseUrl}/public/commercial-config`,
       {
-        headers: { Accept: "application/json", ...forwarded },
-        // Matches the API's own cache window. Published commercial
-        // configuration changes rarely, and every render reads it.
-        next: { revalidate: 60 },
+        headers: {
+          Accept: "application/json",
+          ...forwarded,
+        },
+        next: {
+          revalidate: 60,
+        },
+        // A server component awaiting a hung fetch blocks the whole render, so
+        // "slow forever" degrades worse than "unavailable" (BUG-0061).
+        signal: AbortSignal.timeout(COMMERCIAL_CONFIG_TIMEOUT_MS),
       },
     );
 
-    if (!response.ok) return EMPTY_CONFIG;
+    if (!response.ok) {
+      return EMPTY_CONFIG;
+    }
 
-    const payload = (await response.json()) as CommercialConfigView;
-    return payload ?? EMPTY_CONFIG;
-  } catch {
-    // A pricing page that renders nothing is recoverable; one that renders a
-    // guessed price is not. Fail to an empty catalogue and let the caller show
-    // a commercial state rather than a number nobody published.
+    const raw: unknown = await response.json();
+
+    return normalizeCommercialConfig(raw);
+  } catch (error) {
+    // Same reasoning as plans-server: Next's control-flow errors must not be
+    // absorbed by a network catch.
+    unstable_rethrow(error);
+
+    console.error(
+      "[commercial-config] Failed to resolve commercial configuration",
+      error,
+    );
+
     return EMPTY_CONFIG;
   }
 }
+function normalizeCommercialConfig(
+  raw: unknown,
+): CommercialConfigView {
+  if (!raw || typeof raw !== "object") {
+    console.error(
+      "[commercial-config] Invalid commercial config payload",
+      raw,
+    );
 
+    return EMPTY_CONFIG;
+  }
+
+  const payload = raw as Record<string, unknown>;
+
+  const rawMarket = payload.market;
+
+  const market =
+    rawMarket && typeof rawMarket === "object"
+      ? {
+        code: stringValue(
+          (rawMarket as Record<string, unknown>).code,
+        ),
+        name: stringValue(
+          (rawMarket as Record<string, unknown>).name,
+        ),
+        selfServiceEnabled: Boolean(
+          (rawMarket as Record<string, unknown>)
+            .selfServiceEnabled,
+        ),
+        launchStatus: stringValue(
+          (rawMarket as Record<string, unknown>)
+            .launchStatus,
+        ),
+      }
+      : null;
+
+  const plans = Array.isArray(payload.plans)
+    ? payload.plans
+    : [];
+
+  const featureCatalog = normalizeFeatureCatalog(
+    payload.featureCatalog,
+  );
+
+  const billingIntervals = Array.isArray(
+    payload.billingIntervals,
+  )
+    ? payload.billingIntervals.filter(
+      (
+        value,
+      ): value is "MONTH" | "YEAR" =>
+        value === "MONTH" || value === "YEAR",
+    )
+    : [];
+
+  const currency =
+    typeof payload.currency === "string"
+      ? payload.currency
+      : null;
+
+  return {
+    market,
+    currency,
+    billingIntervals,
+    plans: plans as CommercialPlanView[],
+    featureCatalog,
+  };
+}
+
+function normalizeFeatureCatalog(
+  raw: unknown,
+): CommercialFeatureView[] {
+  if (Array.isArray(raw)) {
+    return raw.filter(isCommercialFeature);
+  }
+
+  /*
+   * Compatibility with APIs that return the catalogue wrapped
+   * inside an object rather than directly as an array.
+   */
+  if (raw && typeof raw === "object") {
+    const record = raw as Record<string, unknown>;
+
+    const possibleArrays = [
+      record.features,
+      record.items,
+      record.data,
+      record.featureCatalog,
+    ];
+
+    for (const candidate of possibleArrays) {
+      if (Array.isArray(candidate)) {
+        console.warn(
+          "[commercial-config] featureCatalog was wrapped; normalizing response shape",
+        );
+
+        return candidate.filter(isCommercialFeature);
+      }
+    }
+  }
+
+  console.error(
+    "[commercial-config] Expected featureCatalog to be an array",
+    raw,
+  );
+
+  return [];
+}
+function isCommercialFeature(
+  value: unknown,
+): value is CommercialFeatureView {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const feature = value as Record<string, unknown>;
+
+  return (
+    typeof feature.key === "string" &&
+    typeof feature.label === "string" &&
+    typeof feature.description === "string" &&
+    typeof feature.categoryKey === "string" &&
+    typeof feature.categoryLabel === "string" &&
+    typeof feature.categoryOrder === "number" &&
+    typeof feature.sortOrder === "number" &&
+    (typeof feature.icon === "string" ||
+      feature.icon === null)
+  );
+}
+
+function stringValue(value: unknown): string {
+  return typeof value === "string" ? value : "";
+}
 export function findOffer(
   plan: CommercialPlanView,
   billingInterval: "MONTH" | "YEAR",

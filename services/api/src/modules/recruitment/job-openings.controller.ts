@@ -10,7 +10,11 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { Permissions } from '../../common/decorators/permissions.decorator';
+import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
+import {
+  Permissions,
+  RequireAnyPermission,
+} from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
@@ -26,6 +30,10 @@ export class JobOpeningsController {
 
   @Get()
   @Permissions('recruitment.read')
+  @RequireAnyPermission(
+    { entityKey: ENTITY_KEYS.JOBS, action: 'read' },
+    { entityKey: ENTITY_KEYS.CANDIDATES, action: 'read' },
+  )
   findAll(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: JobOpeningQueryDto,
@@ -35,6 +43,10 @@ export class JobOpeningsController {
 
   @Get(':jobOpeningId')
   @Permissions('recruitment.read')
+  @RequireAnyPermission(
+    { entityKey: ENTITY_KEYS.JOBS, action: 'read' },
+    { entityKey: ENTITY_KEYS.CANDIDATES, action: 'read' },
+  )
   findOne(
     @CurrentUser() user: AuthenticatedUser,
     @Param('jobOpeningId', new ParseUUIDPipe()) jobOpeningId: string,
@@ -47,6 +59,10 @@ export class JobOpeningsController {
 
   @Post()
   @Permissions('recruitment.create')
+  @RequireAnyPermission(
+    { entityKey: ENTITY_KEYS.JOBS, action: 'create' },
+    { entityKey: ENTITY_KEYS.CANDIDATES, action: 'create' },
+  )
   create(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateJobOpeningDto,
@@ -56,6 +72,10 @@ export class JobOpeningsController {
 
   @Patch(':jobOpeningId')
   @Permissions('recruitment.update')
+  @RequireAnyPermission(
+    { entityKey: ENTITY_KEYS.JOBS, action: 'write' },
+    { entityKey: ENTITY_KEYS.CANDIDATES, action: 'write' },
+  )
   update(
     @CurrentUser() user: AuthenticatedUser,
     @Param('jobOpeningId', new ParseUUIDPipe()) jobOpeningId: string,

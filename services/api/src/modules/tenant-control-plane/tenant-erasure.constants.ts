@@ -82,6 +82,29 @@ export const TENANT_ERASURE_DETACHED_MODELS: Array<{
     model: 'customerOnboarding',
     clearFields: [],
   },
+  {
+    /*
+     * What was bought, and for how much. Detached for the same reason as a
+     * contract: the order is a financial record owned by the CustomerAccount,
+     * not tenant business content, and it has to remain answerable after the
+     * workspace is gone. The subscription pointer is cleared because the
+     * Subscription
+     * cascades away with the tenant and the Restrict edge would otherwise
+     * block the whole erasure.
+     */
+    model: 'subscriptionOrder',
+    clearFields: [{ field: 'subscriptionId', via: 'subscription' }],
+  },
+  {
+    /*
+     * Money that moved, and why. Detached for the same reason as the order:
+     * a refund is a financial record owned by the CustomerAccount, and
+     * "did we refund this company" must stay answerable after their workspace
+     * is gone.
+     */
+    model: 'refundRequest',
+    clearFields: [],
+  },
 ];
 
 /**
@@ -117,6 +140,10 @@ export const TENANT_ERASURE_LINK_CLEANUPS: Array<{
 export const TENANT_ERASURE_PRESERVED_MODELS = [
   'tenantErasureReceipt',
   'platformEvent',
+  // Reconciliation output is DijiPeople monitoring its own consistency. It
+  // names a tenant but is not tenant business content, and deleting it would
+  // erase the record of drift that was found before the workspace went.
+  'reconciliationFinding',
 ] as const;
 
 /**
@@ -140,6 +167,42 @@ export const TENANT_ERASURE_SELF_REFERENCES: Array<{
 
 /** Dependents first, parents last. See the derivation note above. */
 export const TENANT_ERASURE_DELETE_ORDER: string[] = [
+  // Nothing tenant-owned points at either of these, so they can go first.
+  //
+  // `outboxEvent` — an erased tenant must not leave undelivered transitions
+  // behind. A PENDING provisioning or seat event for a tenant that no longer
+  // exists would be claimed by the worker after the erasure committed and fail
+  // forever against a missing row.
+  //
+  // `legalDocumentAcknowledgement` — only the tenant-scoped ones are deleted
+  // here, which are acknowledgements by people inside the tenant. The evidence
+  // that the *company* accepted terms hangs off `customerAccountId`/`leadId`
+  // with no `tenantId`, is not tenant-owned, and is untouched by this order.
+  'outboxEvent',
+  'seatUsageSample',
+  'seatUsagePeriod',
+  'seatOverageEvent',
+  // Operational history of capacity and plan moves. Deleted with the tenant,
+  // unlike SubscriptionOrder: an order is a financial record owned by the
+  // customer, whereas these describe a workspace that is ceasing to exist.
+  // Both hold Restrict pointers at Plan, which is itself tenant-owned, so they
+  // must be gone before it.
+  'seatChangeRequest',
+  'planChangeRequest',
+  // Cancellation and retention state describes a workspace that is ceasing to
+  // exist, so it goes with it. The durable evidence of the erasure itself is
+  // TenantErasureReceipt, which is preserved and carries no foreign key.
+  // retentionHold before tenantRetention: the hold points at it.
+  'retentionHold',
+  'tenantRetention',
+  'subscriptionCancellation',
+  'tenantDeletionRequest',
+  'legalDocumentAcknowledgement',
+  // Consent given by people INSIDE the tenant, deleted with it for exactly the
+  // reason the acknowledgement above is. Consent from a lead or a customer
+  // carries no tenantId, is not tenant-owned, and survives untouched — which is
+  // what keeps "did this company opt in" answerable after the workspace goes.
+  'consentRecord',
   'activityEvent',
   'agentLocationRequest',
   'agentRefreshToken',

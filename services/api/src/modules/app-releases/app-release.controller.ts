@@ -27,7 +27,11 @@ import {
 } from 'class-validator';
 
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { Permissions } from '../../common/decorators/permissions.decorator';
+import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
+import {
+  Permissions,
+  RequirePermission,
+} from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
@@ -90,6 +94,7 @@ export class AppReleaseController {
 
   @Get()
   @Permissions('appDownloads.read')
+  @RequirePermission(ENTITY_KEYS.AGENT, 'read')
   list(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: ListReleasesDto,
@@ -99,6 +104,7 @@ export class AppReleaseController {
 
   @Get('latest')
   @Permissions('appDownloads.read')
+  @RequirePermission(ENTITY_KEYS.AGENT, 'read')
   latest(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: LatestReleaseDto,
@@ -108,6 +114,7 @@ export class AppReleaseController {
 
   @Get(':id')
   @Permissions('appDownloads.read')
+  @RequirePermission(ENTITY_KEYS.AGENT, 'read')
   findOne(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -121,6 +128,7 @@ export class AppReleaseController {
    */
   @Get(':id/download')
   @Permissions('appDownloads.read')
+  @RequirePermission(ENTITY_KEYS.AGENT, 'read')
   async download(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -149,6 +157,7 @@ export class AppReleaseController {
 
   @Post()
   @Permissions('appDownloads.manage')
+  @RequirePermission(ENTITY_KEYS.AGENT, 'manage')
   publish(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: PublishReleaseDto,
@@ -158,6 +167,7 @@ export class AppReleaseController {
 
   @Post(':id/disable')
   @Permissions('appDownloads.manage')
+  @RequirePermission(ENTITY_KEYS.AGENT, 'manage')
   disable(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -167,6 +177,7 @@ export class AppReleaseController {
 
   @Post(':id/enable')
   @Permissions('appDownloads.manage')
+  @RequirePermission(ENTITY_KEYS.AGENT, 'manage')
   enable(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,

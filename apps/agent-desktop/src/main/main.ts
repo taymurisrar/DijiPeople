@@ -510,7 +510,15 @@ app.on("ready", async () => {
     onCheckUpdates: () => void updateManager.checkForUpdates(),
   });
 
-  updateManager.start(() => configManager.current);
+  updateManager.start(
+    () => configManager.current,
+    /*
+     * BUG-0034 — the feed and the artefact are authenticated, so every check
+     * reads the token as it stands rather than a copy captured here, which
+     * would already be stale by the first six-hour tick.
+     */
+    () => apiClient.getAccessToken(),
+  );
   logger.info("agent.startup", { version: app.getVersion() });
 
   const restored = await sessionManager.restore();

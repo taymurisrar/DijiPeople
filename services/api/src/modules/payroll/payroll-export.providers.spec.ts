@@ -38,11 +38,16 @@ describe('payroll export providers', () => {
     );
   });
 
-  it('generates a real Excel workbook with the expected row and total', () => {
+  it('generates a real Excel workbook with the expected row and total', async () => {
     const excel = new ExcelExportService();
     const provider = new ExcelPayrollExportProvider(excel);
     const artifact = provider.generate([row]);
-    const parsed = excel.parseFirstWorksheet(artifact.buffer);
+    /*
+     * A genuine round trip: written by SheetJS, read back by ExcelJS. That
+     * crossing is the compatibility proof for moving the parse off `xlsx` —
+     * see `ExcelExportService.parseFirstWorksheet` for why it moved.
+     */
+    const parsed = await excel.parseFirstWorksheet(artifact.buffer);
 
     expect(provider.format).toBe(PayrollBankExportFormat.EXCEL);
     expect(artifact.extension).toBe('xlsx');

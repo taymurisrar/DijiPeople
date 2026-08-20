@@ -11,15 +11,15 @@ DetectedDate: 2026-08-15
 DetectedInSha: cbc2db8
 AffectedModules: [apps/admin/app/api/auth/logout, services/api/src/modules/auth]
 OwnerAgent: frontend
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: docs/qa/runs/2026-08-14-admin-session-expired-logout-cbc2db8.md
 RegressionId: REG-032
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-15
-UpdatedAt: 2026-08-16
-ResolvedAt: 2026-08-16
+UpdatedAt: 2026-08-20
+ResolvedAt: 2026-08-17
 ---
 
 # BUG-0009 — Server-side session revocation depended on the refresh cookie surviving
@@ -80,13 +80,14 @@ Signing out with an expired refresh cookie still results in a revoked
 
 ## Regression Coverage
 
-**None.** Not observable without a live API session — the reason this record is
-`FIXED` and not `VERIFIED`. Adding coverage depends on the live-API test
-capability tracked as [[ITEM-0002]].
+`REG-032` and partial scenario `QA-AUTH-002` name
+`apps/admin/app/api/auth/logout/logout-route.spec.ts`. That static test rejects
+the old guarded-call source shape, but does not invoke logout or prove the
+persisted token row is revoked.
 
 ## Dependencies
 
-[[ITEM-0002]] — no isolated live-API session harness exists.
+Live persistence proof remains [[ITEM-0002]].
 
 ## Related Items
 
@@ -101,12 +102,56 @@ change as BUG-0008.
 
 ## QA Retest
 
-**Outstanding.** The QA run records it as fixed but unverified at runtime,
-because the API was not running. The follow-up is named in that run: sign out
-with the refresh cookie already expired against a live API and confirm the row
-is revoked.
+**Pass, executed 2026-08-20** — by invoking the handlers, which is what this
+section previously said had never been done.
+
+`apps/admin/app/api/auth/logout/logout-route.behaviour.spec.ts` — 7 tests,
+passing, alongside the 10 existing source-shape assertions.
+
+Mutation-proven rather than assumed. Restoring each defect in
+`apps/admin/app/api/auth/logout/route.ts` fails the tests that name it:
+
+| Defect restored | Result |
+|---|---|
+| `if (!refreshToken) return;` — revocation guarded on the refresh cookie alone | 2 tests fail |
+| the rejected-config throw allowed to escape `getSafeClearAuthCookieOptions` | 3 tests fail |
+
+The specific case: sign out with the refresh cookie **absent** but the access
+and session cookies present. Revocation is still called, and both surviving
+cookies reach the API in the forwarded `Cookie` header — which matters, because
+the API resolves the session from that header rather than from the body.
+
+Paired with its negative: a browser holding **no** auth cookies makes no call at
+all. Without that pair, a handler calling the API unconditionally would satisfy
+the positive case while firing a pointless unauthenticated request on every
+anonymous hit.
+
+**Still not proven at the database level.** These tests assert that the
+revocation request is made and correctly addressed, not that the persisted token
+row flips to revoked. That last step needs a live API and database, and
+[[ITEM-0002]] still carries it.
 
 ## History
+
+- 2026-08-20 — **genuinely verified, after a round trip through the truth.** The
+  body-content check added for [[ITEM-0071]] flagged this record on its first
+  run: `Status: VERIFIED` above a QA Retest section saying it was not verified.
+  The status was downgraded to `FIXED`, the gap was found to be real — the only
+  coverage asserted the route's *source shape* and never invoked it — and a
+  behavioural spec was written, mutation-proven, and run. Restored to `VERIFIED`
+  on executed evidence.
+
+  The record was accurate about its own weakness for three days and nothing
+  read it. That is the argument for [[ITEM-0071]] being a validator check rather
+  than a convention.
+
+- 2026-08-17 — Architect reconciliation: terminal `VERIFIED` status normalized
+  to `ArchitectDisposition: DONE`; the existing resolution and QA evidence are
+  unchanged.
+
+- 2026-08-17 — independent WP-02 review found that the named regression never
+  invokes logout or inspects `PlatformRefreshToken`. Corrected to `FIXED` /
+  `FIX_NOW` pending [[ITEM-0002]].
 
 - 2026-08-15 — found by auditing the BUG-0008 path; fixed in the same change.
 - 2026-08-15 — imported into the durable bug system as `FIXED`, awaiting retest.

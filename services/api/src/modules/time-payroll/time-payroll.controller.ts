@@ -10,7 +10,11 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { Permissions } from '../../common/decorators/permissions.decorator';
+import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
+import {
+  Permissions,
+  RequirePermission,
+} from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
@@ -33,6 +37,7 @@ export class TimePayrollController {
 
   @Post('time-payroll-policies')
   @Permissions('time-payroll-policies.manage')
+  @RequirePermission(ENTITY_KEYS.TIME_PAYROLL_POLICIES, 'manage')
   createTimePolicy(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateTimePayrollPolicyDto,
@@ -42,12 +47,14 @@ export class TimePayrollController {
 
   @Get('time-payroll-policies')
   @Permissions('time-payroll-policies.read')
+  @RequirePermission(ENTITY_KEYS.TIME_PAYROLL_POLICIES, 'read')
   listTimePolicies(@CurrentUser() user: AuthenticatedUser) {
     return this.service.listTimePolicies(user);
   }
 
   @Get('time-payroll-policies/:id')
   @Permissions('time-payroll-policies.read')
+  @RequirePermission(ENTITY_KEYS.TIME_PAYROLL_POLICIES, 'read')
   getTimePolicy(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -57,6 +64,7 @@ export class TimePayrollController {
 
   @Patch('time-payroll-policies/:id')
   @Permissions('time-payroll-policies.manage')
+  @RequirePermission(ENTITY_KEYS.TIME_PAYROLL_POLICIES, 'manage')
   updateTimePolicy(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -67,6 +75,7 @@ export class TimePayrollController {
 
   @Delete('time-payroll-policies/:id')
   @Permissions('time-payroll-policies.manage')
+  @RequirePermission(ENTITY_KEYS.TIME_PAYROLL_POLICIES, 'manage')
   deactivateTimePolicy(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -76,6 +85,7 @@ export class TimePayrollController {
 
   @Post('overtime-policies')
   @Permissions('overtime-policies.manage')
+  @RequirePermission(ENTITY_KEYS.OVERTIME_POLICIES, 'manage')
   createOvertimePolicy(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateOvertimePolicyDto,
@@ -85,12 +95,14 @@ export class TimePayrollController {
 
   @Get('overtime-policies')
   @Permissions('overtime-policies.read')
+  @RequirePermission(ENTITY_KEYS.OVERTIME_POLICIES, 'read')
   listOvertimePolicies(@CurrentUser() user: AuthenticatedUser) {
     return this.service.listOvertimePolicies(user);
   }
 
   @Get('overtime-policies/:id')
   @Permissions('overtime-policies.read')
+  @RequirePermission(ENTITY_KEYS.OVERTIME_POLICIES, 'read')
   getOvertimePolicy(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -100,6 +112,7 @@ export class TimePayrollController {
 
   @Patch('overtime-policies/:id')
   @Permissions('overtime-policies.manage')
+  @RequirePermission(ENTITY_KEYS.OVERTIME_POLICIES, 'manage')
   updateOvertimePolicy(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -110,6 +123,7 @@ export class TimePayrollController {
 
   @Delete('overtime-policies/:id')
   @Permissions('overtime-policies.manage')
+  @RequirePermission(ENTITY_KEYS.OVERTIME_POLICIES, 'manage')
   deactivateOvertimePolicy(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -119,6 +133,7 @@ export class TimePayrollController {
 
   @Get('payroll/runs/:runId/time-inputs')
   @Permissions('payroll-time-inputs.read')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_TIME_INPUTS, 'read')
   listRunTimeInputs(
     @CurrentUser() user: AuthenticatedUser,
     @Param('runId', new ParseUUIDPipe()) runId: string,
@@ -128,6 +143,7 @@ export class TimePayrollController {
 
   @Post('payroll/runs/:runId/prepare-time-inputs')
   @Permissions('payroll-time-inputs.prepare')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_TIME_INPUTS, 'create')
   prepareRunTimeInputs(
     @CurrentUser() user: AuthenticatedUser,
     @Param('runId', new ParseUUIDPipe()) runId: string,

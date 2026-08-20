@@ -35,6 +35,35 @@ export interface FixtureTenant {
   environmentType: TenantEnvironmentType;
 }
 
+/**
+ * A tenant that is actually usable by the modules that hang work off an
+ * organizational position — attendance, gateways, users, employees.
+ *
+ * `BusinessUnit.organizationId` is required and joined on the composite
+ * `(organizationId, tenantId)`, so "a tenant with a business unit" is really
+ * three rows, not two. Returning all three ids means a suite never has to go
+ * looking for what it just created.
+ */
+export interface FixtureTenantWithBusinessUnit extends FixtureTenant {
+  organizationId: string;
+  businessUnitId: string;
+}
+
+/**
+ * The standard two-tenant shape for cross-tenant negative tests.
+ *
+ *   Tenant A └ Organization A └ Business Unit A
+ *   Tenant B └ Organization B └ Business Unit B
+ *
+ * Named `a` and `b` rather than `primary`/`foreign` because which one plays the
+ * intruder differs by suite, and a fixture that decides that for the test reads
+ * as an assertion it is not making.
+ */
+export interface FixtureTenantPair {
+  a: FixtureTenantWithBusinessUnit;
+  b: FixtureTenantWithBusinessUnit;
+}
+
 export class DbFixtures {
   /**
    * Unique per instance. Included in every generated name so a failed run that
@@ -119,6 +148,80 @@ export class DbFixtures {
   }
 
   /**
+   * An organization, the row a business unit cannot exist without.
+   *
+   * Only `tenantId` and `name` are required; everything else defaults. Kept
+   * minimal for the same reason `createTenant` is — a fixture that fills in
+   * `organizationType`, hierarchy and contacts would let a test pass on data it
+   * never asked for.
+   */
+  async createOrganization(tenantId: string, suffix = 'org'): Promise<string> {
+    const organization = await this.prisma.organization.create({
+      data: { tenantId, name: this.name(suffix) },
+      select: { id: true },
+    });
+    return organization.id;
+  }
+
+  /** A business unit under an existing organization of the same tenant. */
+  async createBusinessUnit(
+    tenantId: string,
+    organizationId: string,
+    suffix = 'bu',
+  ): Promise<string> {
+    const businessUnit = await this.prisma.businessUnit.create({
+      data: { tenantId, organizationId, name: this.name(suffix) },
+      select: { id: true },
+    });
+    return businessUnit.id;
+  }
+
+  /**
+   * A tenant complete enough for the attendance, gateway and user modules:
+   * customer account → tenant → organization → business unit.
+   *
+   * This is the shape three suites used to go looking for in `seed:demo`, with
+   * `tenant.findMany({ where: { businessUnits: { some: {} } }, take: 2 })`.
+   * That query is why they all failed: `seed:demo` creates exactly ONE tenant,
+   * so `take: 2` returned one row and `beforeAll` threw "These tests need two
+   * tenants with at least one business unit" before a single assertion ran.
+   *
+   * It was never a seeding bug. A test that adopts whichever tenants happen to
+   * exist is coupled to a fixture it does not own, cannot assert anything about
+   * identity, and mutates data the next suite is also reading.
+   */
+  async createTenantWithBusinessUnit(
+    suffix = 'tenant',
+  ): Promise<FixtureTenantWithBusinessUnit> {
+    const tenant = await this.createTenant(suffix);
+    const organizationId = await this.createOrganization(
+      tenant.id,
+      `${suffix}-org`,
+    );
+    const businessUnitId = await this.createBusinessUnit(
+      tenant.id,
+      organizationId,
+      `${suffix}-bu`,
+    );
+    return { ...tenant, organizationId, businessUnitId };
+  }
+
+  /**
+   * Two fully-formed, mutually isolated tenants — the fixture every
+   * cross-tenant negative test needs.
+   *
+   * Separate customer accounts as well as separate tenants, so a leak through
+   * the commercial side is caught too rather than being hidden by a shared
+   * parent row.
+   */
+  async createTenantPair(): Promise<FixtureTenantPair> {
+    return {
+      a: await this.createTenantWithBusinessUnit('a'),
+      b: await this.createTenantWithBusinessUnit('b'),
+    };
+  }
+
+  /**
    * Remove everything this instance created, in reverse dependency order:
    * tenants first, then their customer accounts. Reversing that order fails on
    * the `Restrict` foreign key above.
@@ -162,6 +265,36 @@ export class DbFixtures {
       );
     }
   }
+}
+
+/**
+ * The ids out of a list that were actually assigned.
+ *
+ * Teardown runs whether or not setup finished, so an id a failed `beforeAll`
+ * never reached is `undefined` — and Prisma rejects `undefined` inside an `in`
+ * array outright:
+ *
+ *   Invalid `prisma.rawAttendanceEvent.deleteMany()` invocation
+ *   Invalid value for argument `in[0]`: Can not use `undefined` value
+ *
+ * That is how a suite reported "Test suite failed to run" on top of 27 failing
+ * tests, with the teardown error on top of the setup error that caused it. Two
+ * failures, one cause, and the second one louder than the first.
+ *
+ * Filtering is not enough on its own: an empty array must skip the delete
+ * entirely, because `{ in: [] }` matches nothing and issues a pointless query,
+ * while a caller who spreads the result into a bare `where` can end up with no
+ * filter at all — which deletes everything.
+ *
+ *   const ids = definedIds([a, b, c]);
+ *   if (ids.length > 0) await prisma.thing.deleteMany({ where: { id: { in: ids } } });
+ *
+ * Prefer cascading from a fixture tenant where the model is tenant-owned. This
+ * exists for the rows that are not — platform-level models such as
+ * `ApplicationRelease`, which no tenant delete can reach.
+ */
+export function definedIds(ids: (string | undefined | null)[]): string[] {
+  return ids.filter((id): id is string => typeof id === 'string' && id !== '');
 }
 
 /**

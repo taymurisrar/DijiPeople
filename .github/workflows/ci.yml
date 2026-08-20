@@ -26,11 +26,25 @@ on:
   workflow_dispatch:
 
 concurrency:
-  # A newer push to the same ref supersedes an in-flight run. main is excluded
-  # so post-merge runs are never cancelled — those are the ones a release
-  # decision depends on.
-  group: ci-${{ github.ref }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+  # A newer push to the same ref supersedes an in-flight run — on agent/* work
+  # branches only. That is the case superseding is FOR: an agent pushing four
+  # checkpoint commits in eight minutes (runs 32122794801, 32122995076,
+  # 32123416867, 32124051650 on 2026-08-18) should not hold four runners.
+  #
+  # main AND develop are both excluded, because on a shared branch every SHA is
+  # an integration point whose evidence may still be needed. Excluding only main
+  # meant a develop push cancelled the previous develop run — and on 2026-08-18
+  # that happened three times in a row, each time turning a run whose
+  # "CI required gate" had ALREADY passed into one the GitHub UI reports as
+  # cancelled. The evidence survived; the signal did not, and a yellow icon on a
+  # run that actually passed is how CI stops being read at all.
+  #
+  # Not cancelling develop costs almost nothing now: an integrated develop SHA is
+  # byte-identical to the agent/* SHA that just passed, so the `resolve` job
+  # skips the whole pipeline rather than re-running it.
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: >-
+    ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/develop' }}
 
 env:
   # Placeholder. Prisma requires the variable; it does not connect.
@@ -38,22 +52,95 @@ env:
   NODE_VERSION: '22.x'
 
 jobs:
+  resolve:
+    name: Resolve CI evidence
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # Exact-SHA evidence reuse — the single largest saving in this pipeline.
+    #
+    # The Integrator integrates by ref-push (`git push origin <branch>:develop`),
+    # which deliberately keeps develop's tip EQUAL to the CI-verified SHA. GitHub
+    # then fires a second, complete pipeline for a byte-identical tree. Measured
+    # on 2026-08-18: 16 of the last 20 develop runs were exact-SHA duplicates of
+    # an agent/* run that had already passed — about half of all CI compute spent
+    # re-proving a tree that was already proven.
+    #
+    # This job asks one question: has THIS EXACT SHA already had every required
+    # job conclude success in an earlier run of THIS workflow? The workflow file
+    # is itself part of the SHA, so a matching SHA cannot have been validated by
+    # a different pipeline. If yes, the heavy jobs skip and `ci-required` records
+    # which run carries the evidence.
+    #
+    # The check is job-level, never run-level. See scripts/ci-evidence.mjs for
+    # why — in short, a run that reused evidence has SKIPPED jobs, so requiring
+    # every required job to individually report success is what stops evidence
+    # chaining off a SHA that nothing ever actually validated.
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      reuse: ${{ steps.evidence.outputs.reuse }}
+      evidence_run_id: ${{ steps.evidence.outputs.evidence_run_id }}
+      evidence_run_url: ${{ steps.evidence.outputs.evidence_run_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Only what the resolver reads: the script, and the workflow it derives
+          # the required job list from. No npm ci — the script has no deps.
+          fetch-depth: 1
+          sparse-checkout: |
+            scripts
+            .github
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+      - name: Look for completed evidence on this exact SHA
+        id: evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >
+          node scripts/ci-evidence.mjs find
+          --repo "${{ github.repository }}"
+          --sha "${{ github.sha }}"
+          --exclude-run "${{ github.run_id }}"
+          --github-output
+
   validate:
     name: Framework validation
     runs-on: ubuntu-latest
+    needs: [resolve]
+    if: needs.resolve.outputs.reuse != 'true'
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22.x'
-      # No dependencies needed — this job is pure repository-structure checks
-      # and is the fastest signal that something is structurally wrong.
+      # No dependencies needed — these are pure repository-structure checks and
+      # the fastest signal that something is structurally wrong.
       - name: Validate agent framework
         run: node scripts/validate-framework.mjs
+
+      # The generated indexes must agree with the records they summarise. Each is
+      # its own step so a red build names the system that drifted rather than
+      # reporting "framework validation failed" and leaving somebody to bisect it.
+      - name: Backlog records and indexes
+        run: node scripts/rebuild-backlog.mjs --check
+      - name: Parent task records and indexes
+        run: node scripts/rebuild-tasks.mjs --check
+      - name: Session records and indexes
+        run: node scripts/rebuild-sessions.mjs --check
+      - name: QA plans, scenarios and coverage matrix
+        run: node scripts/rebuild-qa.mjs --check
+      - name: Dashboards and the Engineering Control Center
+        run: node scripts/generate-dashboards.mjs --check
 
   typecheck:
     name: Typecheck
     runs-on: ubuntu-latest
+    needs: [resolve]
+    if: needs.resolve.outputs.reuse != 'true'
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -70,6 +157,9 @@ jobs:
   lint:
     name: Lint (check only)
     runs-on: ubuntu-latest
+    needs: [resolve]
+    if: needs.resolve.outputs.reuse != 'true'
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -80,9 +170,10 @@ jobs:
       - name: Generate Prisma client
         # ESLint's type-aware rules resolve @prisma/client types.
         run: npm run prisma:generate
-      # services/api is NOT linted here — it carries 2 pre-existing errors on
-      # main and runs in the non-blocking lint-api-report job instead. See that
-      # job for the promotion path.
+      # services/api IS linted here, as a required step — see the note above the
+      # "ESLint — services/api" step below. This comment previously said the
+      # opposite and pointed at the lint-api-report job, which was promoted away
+      # on 2026-08-17; it contradicted the note 10 lines further down.
       - name: ESLint — apps/web
         working-directory: apps/web
         run: npx eslint
@@ -92,6 +183,18 @@ jobs:
       - name: ESLint — apps/landing
         working-directory: apps/landing
         run: npx eslint
+      # services/api joined the required gate on 2026-08-17. It had been
+      # report-only because of a real error baseline — 2 errors when this
+      # pipeline was written, 15 by the time it was measured again, since a
+      # non-blocking job does not stop new ones arriving. All 15 are fixed:
+      # 11 prettier, 3 unbound-method, 1 no-regex-spaces.
+      #
+      # --max-warnings=10000 against ~910 actual warnings. That is a ceiling
+      # against a flood, not a target; the burn-down is ITEM-0042. Warnings do
+      # not gate, errors do.
+      - name: ESLint — services/api
+        working-directory: services/api
+        run: npx eslint "{src,test}/**/*.ts" --max-warnings=10000
       - name: Fail if lint modified the checkout
         # Defence in depth: if any lint step ever regains --fix, this catches it
         # rather than letting CI silently "pass" against rewritten files.
@@ -105,6 +208,9 @@ jobs:
   test-api:
     name: API tests
     runs-on: ubuntu-latest
+    needs: [resolve]
+    if: needs.resolve.outputs.reuse != 'true'
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -114,22 +220,25 @@ jobs:
       - run: npm ci
       - run: npm run prisma:generate
       - name: API unit tests
-        # Excludes exactly one test by NAME — the dual-permission wiring
-        # invariant, a known baseline failure reported by the non-blocking job
-        # below.
+        # Runs the whole suite, dual-permission wiring invariant included.
         #
-        # Excluding it by *path* would have been easier and wrong: the same file
-        # holds four other wiring invariants that currently pass (permissions
-        # granted to a role, settings menu wiring, filter operators). Dropping
-        # the file would silently stop gating those too. The negative lookahead
-        # keeps all four in this required gate.
-        run: >
-          npm --workspace api run test --
-          --testNamePattern "^(?!.*declares both permission systems).*$"
+        # That invariant used to be excluded here by NAME while a separate
+        # report-only job carried its baseline. WP-03 took the baseline from 796
+        # violations to 0, so on 2026-08-17 the exclusion and the report-only
+        # job were both removed and the invariant gates like every other test.
+        #
+        # A failure here is now a real regression: a route went in behind
+        # PermissionsGuard declaring only one of the two permission families.
+        # Fix the route. Do not reintroduce the exclusion — restoring it would
+        # re-open BUG-0049, which is exactly how the baseline reached 796.
+        run: npm --workspace api run test
 
   test-web:
     name: Web tests
     runs-on: ubuntu-latest
+    needs: [resolve]
+    if: needs.resolve.outputs.reuse != 'true'
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -142,6 +251,9 @@ jobs:
   test-admin:
     name: Admin tests
     runs-on: ubuntu-latest
+    needs: [resolve]
+    if: needs.resolve.outputs.reuse != 'true'
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -154,6 +266,9 @@ jobs:
   test-landing:
     name: Landing tests
     runs-on: ubuntu-latest
+    needs: [resolve]
+    if: needs.resolve.outputs.reuse != 'true'
+    timeout-minutes: 15
     # The public site had no test coverage until Wave 2, which is how a
     # country-to-currency table (BUG-0028) and a "Popular" badge decided by
     # array position both shipped. The suite covers the rules that decide what
@@ -170,6 +285,9 @@ jobs:
   test-runtime:
     name: Runtime schema tests
     runs-on: ubuntu-latest
+    needs: [resolve]
+    if: needs.resolve.outputs.reuse != 'true'
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -227,6 +345,18 @@ jobs:
         # different employee's payslips and bank accounts. A proxy makes no
         # authorization decisions.
         run: npm run check:proxies-forward-refusals
+      - name: Environment variables are registered for cache invalidation
+        # BUG-0042 — 37 variables across the three Next apps were read but
+        # absent from turbo globalEnv, so Turborepo could serve a cached build
+        # with an old NEXT_PUBLIC_* value already inlined into the bundle. The
+        # rule was documented and unenforced.
+        run: npm run check:env-registered
+      - name: Workspaces declare what they import
+        # ITEM-0024 then ITEM-0037 — the same undeclared lucide-react, in
+        # landing and then in web at 59 files, resolving only by workspace
+        # hoisting from admin. A per-project install (how apps/web deploys)
+        # would not resolve it. Twice is a pattern, so it gets a gate.
+        run: npm run check:declared-dependencies
       - name: Security response headers
         # BUG-0040 — all three Next apps shipped none. Pins that the CSP stays
         # report-only until observed, and that frame protection is not deferred
@@ -236,6 +366,9 @@ jobs:
   database-migration:
     name: Database migration gate
     runs-on: ubuntu-latest
+    needs: [resolve]
+    if: needs.resolve.outputs.reuse != 'true'
+    timeout-minutes: 30
     # THE database gate. Proves the committed migration history applies to an
     # empty PostgreSQL and reaches the expected schema, then that the
     # production-safe seed configuration applies and verifies.
@@ -297,21 +430,63 @@ jobs:
           --testPathPatterns "commercial-bootstrap"
 
   database-e2e-report:
-    name: Database e2e (report only — NOT a gate)
+    # PROMOTED to a required gate on 2026-08-20. The job KEY is unchanged on
+    # purpose: it is referenced by name from `.agent/`, the QA records and the
+    # regression register, and renaming it would rewrite history that was true
+    # when it was written. The display name is what people read, and that no
+    # longer claims to be a report.
+    name: Database e2e
     runs-on: ubuntu-latest
-    needs: [database-migration]
-    # The 9 e2e suites have never run in CI and have not been observed passing
-    # against a fresh database. Requiring them on arrival risks a permanently
-    # red gate, which trains people to ignore CI — the exact failure the
-    # pipeline exists to prevent.
+    needs: [resolve]
+    if: needs.resolve.outputs.reuse != 'true'
+    timeout-minutes: 30
+    # `needs: [database-migration]` was removed on 2026-08-18. It bought nothing:
+    # this job creates its OWN PostgreSQL service and runs verify-database.mjs
+    # itself, so it never consumed anything the migration gate produced. What the
+    # dependency did buy was a ~2.5 minute late start, which widened the window
+    # in which a superseding push could kill it mid-suite — which is exactly what
+    # happened three times on 2026-08-18.
     #
-    # PROMOTION CRITERIA — move into `ci-required` when all hold:
-    #   1. Every suite classified READY passes three consecutive runs.
-    #   2. Suites needing fixtures or environment are fixed, or quarantined by
-    #      name with the reason recorded in docs/qa/.
-    #   3. Total runtime stays under ~10 minutes.
+    # The 30 minute timeout above is the other half of that fix. This job
+    # previously declared none, so it inherited GitHub's 360 minute default. When
+    # `maxWorkers: 1` landed in e9cad20 the suite step went from 1m28s to 36
+    # minutes and still unfinished; only a superseding push stopped it. A
+    # report-only job must never be able to hold a runner for six hours.
+    #
+    # PROMOTION, 2026-08-20 — ITEM-0047 closed, and `continue-on-error: true`
+    # removed with it.
+    #
+    # The criteria were written before this task and were met, not adjusted to
+    # fit:
+    #   1. every suite passes — 24 of 24 and 295 of 295 tests before merging
+    #      develop, 25 of 25 and 304 of 304 after it added
+    #      provisioning-queue.e2e-spec.ts. No suite quarantined, no assertion
+    #      relaxed to get there;
+    #   2. no suite needs fixtures or environment it does not build itself. The
+    #      job still seeds, but only because `platform-workflows` reads a
+    #      CustomerAccount and an ACTIVE PlatformUser; every other dependency on
+    #      ambient data is gone;
+    #   3. runtime 644s and 714s locally against the full set, still at
+    #      `maxWorkers: 1`. Quote 644s: the post-merge 277s is a warm ts-jest
+    #      transform cache, not a real speed-up, and CI's cache is cold.
+    #
+    # Proven three times on a fresh database — runs 1 and 2 with identical suite
+    # and test counts and zero retries, run 3 after merging develop — and
+    # `--detectOpenHandles` clean on all three: no "force exited", no "Jest did
+    # not exit". Recipe in docs/development/database-e2e-reproduction.md.
+    #
+    # What it was before: 7 suites and 148 tests failing at the WP-02 baseline,
+    # 6 suites and 92 tests at the last run that completed at all, and then
+    # three consecutive runs that consumed the whole 30-minute cap without
+    # finishing. That was never capacity. Suites borrowed each other's rows out
+    # of one seeded tenant, and the resulting contention hung the worker — 27
+    # minutes of wall clock for 86 seconds of CPU. Once each suite built its own
+    # data the same serial config finished in ten and a half minutes.
+    #
+    # If it proves flaky, move it back to report-only WITH the failing evidence
+    # — not silently, and not by deleting a suite.
+    #
     # Classification: docs/qa/test-strategy/e2e-suite-classification.md
-    continue-on-error: true
     services:
       postgres:
         image: postgres:16-alpine
@@ -348,6 +523,11 @@ jobs:
       STRIPE_MODE: test
       STRIPE_SECRET_KEY: sk_test_ci_placeholder_not_a_real_key
       STRIPE_API_VERSION: '2024-06-20'
+      # Synthetic, test-only. seed:admin refuses to run without them, and
+      # platform-workflows needs an ACTIVE PlatformUser that only seed:admin
+      # creates — without it that suite errored in beforeAll on every run.
+      PLATFORM_SUPER_ADMIN_EMAIL: ci-admin@example.invalid
+      PLATFORM_SUPER_ADMIN_PASSWORD: ci-test-only-password-000000
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -368,38 +548,131 @@ jobs:
         # written from here on should build their own via test/helpers/db-fixtures.ts
         # rather than growing this dependency.
         run: npm --workspace api run seed:demo
+      - name: Seed the platform super admin
+        # platform-workflows resolves an ACTIVE PlatformUser. seed:demo creates
+        # tenant-side data only, so without this the suite could never pass —
+        # ITEM-0047.
+        run: npm --workspace api run seed:admin
       - name: Run database-backed e2e suites
         id: e2e
+        # `set +e` and `PIPESTATUS` are still here, and still necessary: the
+        # summary below has to run whether jest passed or failed, and `$?` after
+        # a `| tee` is tee's status, not jest's — that mistake IS BUG-0049.
+        #
+        # What changed with promotion is where the verdict lands. It is no
+        # longer only printed; the `Publish the verdict` step exits non-zero on
+        # it, so the job conclusion and the RESULT line cannot disagree.
         run: |
           set +e
           npm --workspace api run test:e2e 2>&1 | tee e2e-report.txt
           echo "exit_code=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
       - name: Summarise
         if: always()
+        # BUG-0049 — the RESULT line must say what actually happened rather than
+        # printing counts and leaving the reader to infer. That was written when
+        # this job was report-only and a QA run copied "all jobs green" off the
+        # conclusion over 136 failed tests. It matters no less now: a gate that
+        # fails is read by whoever has to fix it, and the summary is where they
+        # start.
         run: |
+          code='${{ steps.e2e.outputs.exit_code }}'
+          if [ "$code" = "0" ]; then result='PASS'; else result="FAIL (jest exit $code)"; fi
           {
-            echo "### Database e2e — baseline report"
+            echo "### Database e2e"
             echo ""
-            echo "Non-blocking. Promoted per the criteria in this workflow."
+            echo "RESULT: $result"
+            echo ""
+            echo "A required gate since 2026-08-20 (ITEM-0047). A red run here"
+            echo "fails \`CI required gate\`."
             echo ""
             echo '```'
             grep -E "Tests:|Test Suites:|✕|Cannot find|timeout" e2e-report.txt | head -60 || echo "no summary lines found"
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+
+          # E2E_FIXTURE_CONTRACT_BROKEN — a distinct finding, not a test count.
+          #
+          # When a shared precondition fails, every test behind it fails at
+          # once, and the report reads as dozens of independent product defects.
+          # That is exactly what happened for weeks: three suites threw "These
+          # tests need two tenants with at least one business unit" in beforeAll
+          # because seed:demo creates one tenant, and 81 red tests were counted
+          # as 81 problems instead of one.
+          #
+          # jest reports a beforeAll failure as "Test suite failed to run", so
+          # that phrase — not the test count — is the signal. It is surfaced
+          # separately so the Architect triages the precondition rather than the
+          # cascade.
+          setup_failures=$(grep -c "Test suite failed to run" e2e-report.txt || true)
+          if [ "${setup_failures:-0}" -gt 0 ]; then
+            {
+              echo ""
+              echo "**E2E_FIXTURE_CONTRACT_BROKEN** — $setup_failures suite(s) failed"
+              echo "before running a test. Those failures are ONE finding about a"
+              echo "precondition, not N findings about the product. Fix the fixture"
+              echo "first, then re-read the counts above; classifying the cascade as"
+              echo "product defects is the mistake ITEM-0047 records."
+              echo ""
+              echo '```'
+              grep -B 2 "Test suite failed to run" e2e-report.txt | head -40 || true
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "::warning title=E2E fixture contract broken::$setup_failures suite(s) failed in setup. Triage the shared precondition, not each failing test."
+          fi
+
       - name: Upload report
+        # Before the verdict, so a failing run still uploads the report that
+        # explains it. `if: always()` would do the same, but ordering it here
+        # means the artifact exists even if the verdict step is what fails.
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: database-e2e-report
           path: e2e-report.txt
           retention-days: 30
+      - name: Publish the verdict
+        # The step that makes this a gate rather than a report.
+        #
+        # It is separate from `Run database-backed e2e suites` because that step
+        # must not fail: the summary and the artifact upload both need to run on
+        # a red result, and a step that exits non-zero skips everything after it
+        # unless every subsequent step carries `if: always()`. Concentrating the
+        # failure in one final step keeps the reporting unconditional and the
+        # verdict unambiguous.
+        #
+        # It is deliberately NOT `if: always()`. If an earlier step failed —
+        # the database never came up, a seed threw — the job is already red for
+        # that reason, and this step running would only add a second, less
+        # informative failure.
+        run: |
+          code='${{ steps.e2e.outputs.exit_code }}'
+          if [ "$code" != "0" ]; then
+            echo "::error title=Database e2e failed::jest exited $code. See the job summary for the RESULT line and the failing suites."
+            exit "$code"
+          fi
+          echo "Database e2e passed."
 
   build:
     name: Build
     runs-on: ubuntu-latest
-    # Slowest job. Gated behind the fast signals so an obvious break fails in
-    # ~2 minutes instead of ~10.
-    needs: [typecheck, test-api]
+    needs: [resolve]
+    if: needs.resolve.outputs.reuse != 'true'
+    timeout-minutes: 30
+    # `needs: [typecheck, test-api]` was removed on 2026-08-18. The reasoning
+    # behind it was sound — do not spend a runner on a build when a cheap signal
+    # already says the tree is broken — but it was measured against the wrong
+    # cost. In run 32160472427, typecheck finished at 16:33:39, Build started two
+    # seconds later and finished at 16:38:26: Build WAS the critical path, and
+    # every second of typecheck was serial time ahead of it. Total run 10m14s,
+    # against a Build that only needs 4m45s of its own.
+    #
+    # Build consumes nothing typecheck or test-api produce — it re-checks out,
+    # re-installs and re-generates Prisma from scratch. So the dependency was
+    # pure sequencing, and removing it takes ~4-5 minutes off the critical path
+    # whenever browser-e2e is not the longer pole.
+    #
+    # The trade is explicit: a genuinely broken tree now spends one extra runner
+    # for ~4 minutes. That is cheaper than adding ~4 minutes to every green run.
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -408,106 +681,107 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run prisma:generate
+      - name: Restore the Turborepo cache
+        # Safe by construction: Turbo's cache is content-addressed. It only
+        # reuses an entry whose task hash matches, so restoring a cache written
+        # by an older commit cannot serve a stale artifact — a changed input
+        # produces a different hash and a cache miss. The restore-keys fallback
+        # is what makes it useful at all, since the exact key rarely repeats.
+        #
+        # The stale-bundle risk people associate with build caching is the
+        # NEXT_PUBLIC_* inlining problem (BUG-0042), and that is guarded
+        # separately by `check:env-registered` in the test-runtime job, which
+        # fails if a variable is read but absent from turbo globalEnv.
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: turbo-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            turbo-${{ runner.os }}-
       - name: Monorepo build
         run: npm run build
 
-  lint-api-report:
-    name: Lint services/api (report only — NOT a gate)
-    runs-on: ubuntu-latest
-    # services/api has 2 pre-existing ESLint errors on main, both
-    # @typescript-eslint/unbound-method in
-    # src/modules/auth/auth.service.spec.ts (lines 120 and 125), alongside ~815
-    # warnings.
-    #
-    # Gating on it today would make CI red on arrival for reasons unrelated to
-    # any incoming change, which trains people to ignore or bypass it.
-    #
-    # Promotion path: fix those two errors, then move this step into the
-    # required `lint` job. The rule is not disabled and nothing is suppressed —
-    # the check runs in full here every time.
-    continue-on-error: true
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22.x'
-          cache: npm
-      - run: npm ci
-      - run: npm run prisma:generate
-      - name: ESLint — services/api (check only, never --fix)
-        working-directory: services/api
-        run: npx eslint "{src,test}/**/*.ts" --max-warnings=10000
+  # lint-api-report was PROMOTED on 2026-08-17 and no longer exists.
+  #
+  # Its error baseline is zero, so it now runs as a required step inside the
+  # `lint` job. Keeping a duplicate report-only copy would double the runtime and
+  # report the same result twice.
+  #
+  # The promotion path it documented — "fix those two errors, then move this step
+  # into the required lint job" — was followed exactly, three days and thirteen
+  # extra errors later. That gap is the argument for exit criteria: a report-only
+  # job does not hold a baseline still, it only stops anyone noticing it grow.
 
-  security-invariant-report:
-    name: Security invariant (report only — NOT a gate)
-    runs-on: ubuntu-latest
-    # Runs the dual-permission wiring invariant and reports its inventory
-    # WITHOUT blocking the pipeline.
-    #
-    # Why it does not gate: the invariant currently fails against a large,
-    # pre-existing inventory of handlers declaring only one of the two
-    # permission families. Gating on it would block every unrelated PR on
-    # accumulated debt, which trains people to bypass CI.
-    #
-    # The invariant is NOT weakened, skipped or edited. It runs in full here,
-    # its output is uploaded, and the intent is to promote this job to a
-    # required gate once the inventory reaches zero. Progress is tracked in
-    # docs/qa/regressions/index.md and docs/development/ci-recommendation.md.
-    continue-on-error: true
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22.x'
-          cache: npm
-      - run: npm ci
-      - run: npm run prisma:generate
-      - name: Dual-permission wiring invariant
-        id: invariant
-        run: |
-          set +e
-          npm --workspace api run test -- --testPathPatterns "wiring-invariants" 2>&1 | tee invariant-report.txt
-          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
-      - name: Summarise inventory
-        if: always()
-        run: |
-          {
-            echo "### Dual-permission invariant — baseline report"
-            echo ""
-            echo "Non-blocking. Promoted to a required gate when violations reach 0."
-            echo ""
-            echo '```'
-            grep -E "total route handlers|public handlers|not behind|in scope|compliant|violations|missing @" invariant-report.txt || echo "inventory not found in output"
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
-      - name: Upload report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: security-invariant-report
-          path: invariant-report.txt
-          retention-days: 30
+  # security-invariant-report was PROMOTED on 2026-08-17 and no longer exists.
+  #
+  # Its four promotion criteria were all met: WP-03 took the dual-permission
+  # inventory from 796 violations to 0, the API suite passes without the
+  # --testNamePattern exclusion, develop went green twice consecutively, and
+  # ITEM-0043 tracked the count throughout. The invariant now runs inside the
+  # required "test-api" job, so a duplicate report-only copy would double the
+  # runtime and report the same result twice.
+  #
+  # It is also the job BUG-0049 was filed against. It read jest's status from
+  # "$?" after a "| tee" pipeline, which is tee's status and therefore always 0,
+  # so the job concluded success while its own report showed 796 violations.
+  # Promotion removes that false green rather than repairing it: a required job
+  # cannot round its own result up.
 
-  browser-e2e-report:
-    name: Browser e2e (report only — NOT a gate)
+  browser-e2e:
+    name: Browser e2e
     runs-on: ubuntu-latest
+    needs: [resolve]
+    if: needs.resolve.outputs.reuse != 'true'
+    # Raised from 30 on 2026-08-19. The suite went from 18 tests to 48 — flows D,
+    # E and F added the provisioning queue, the first accessibility audit and the
+    # public SEO contract — and it runs at workers: 1 by deliberate choice, so
+    # wall-clock grows with the test count. At 30 the job was cancelled mid-run,
+    # which produces no evidence at all: ci:classify reports a cancelled run as
+    # IS_EVIDENCE = NO, so the gate cannot be satisfied and the branch cannot
+    # integrate. A timeout that cannot distinguish "slow" from "broken" is worse
+    # than a generous one.
+    timeout-minutes: 45
     # The first browser coverage this repository has ever had. Until this job,
     # `BROWSER_E2E = BLOCKED_INFRASTRUCTURE` appeared in every QA run and no UI
     # defect could be *proven* fixed — see ITEM-0001 and
     # docs/development/browser-e2e.md.
     #
-    # Report-only for the same reason database-e2e-report is: three servers, a
-    # seeded database, browser binaries and a real login is strictly more
-    # environmental surface than any existing gate carries. A gate that is red
-    # on arrival for environmental reasons trains people to ignore CI.
+    # PROMOTED to a required gate on 2026-08-17. It had been report-only because
+    # three servers, a seeded database, browser binaries and a real login is more
+    # environmental surface than any other gate carries.
     #
-    # PROMOTION CRITERIA — move into `ci-required` when all hold:
-    #   1. Three consecutive green runs on main with zero retries consumed.
-    #   2. Total runtime under ~8 minutes.
-    #   3. Server startup is deterministic — no sleep-and-hope waits.
-    #   4. Any environment-dependent scenario is quarantined BY NAME with the
-    #      reason recorded in docs/qa/.
-    continue-on-error: true
+    # The criteria below were written before this task and were met, not adjusted
+    # to fit:
+    #   1. three consecutive green runs, zero retries consumed — runs
+    #      32006245507, 32006831300, 32007388682, each "8 passed" with no
+    #      retry line;
+    #   2. runtime ~6 min wall clock, ~1 min in tests — under the ~8 min bar;
+    #   3. startup polls each URL with `curl -sf` until it answers, rather than
+    #      sleeping a fixed interval;
+    #   4. the one environment-dependent scenario is quarantined BY NAME —
+    #      B4, `test.fixme` with BUG-0019 recorded in the test itself.
+    #
+    # It earned this by finding a real defect the moment it could run: BUG-0048,
+    # an optional field that made the public partner inquiry form unsubmittable.
+    #
+    # If it proves flaky in practice, move it back to report-only WITH the
+    # failing evidence — not silently, and not by deleting a scenario.
+    #
+    # `continue-on-error: true` was REMOVED on 2026-08-18. It made this job's
+    # promotion fail-open: a continue-on-error job reports success to
+    # `needs.*.result` even when it fails, so `ci-required` could not see a
+    # browser failure at all. The job was named as required and was not one.
+    #
+    # The comment above deferred removal until the BUG-0019 skip became a passing
+    # assertion. That was the wrong condition — a `test.fixme` does not fail a
+    # run, so it was never what made the flag necessary. The condition that
+    # matters is stability, and the evidence is there: runs 32148516356,
+    # 32159134980, 32160472427, 32167466971, 32169868091 and 32173772663 all
+    # concluded success for this job, six consecutive, against a criterion of
+    # three. BUG-0019 remains quarantined by name and stays visible as a skip.
+    #
+    # If it does prove flaky, move it back to report-only WITH the failing
+    # evidence — not silently, and not by deleting a scenario.
     services:
       postgres:
         image: postgres:16-alpine
@@ -555,6 +829,55 @@ jobs:
           npm --workspace api run seed:demo
           npm --workspace api run seed:admin
       - name: Install the browser
+        # Instrumented deliberately: this step is measured, not merely timed.
+        # `scripts/install-browser.mjs` reports PLAYWRIGHT_COMMAND,
+        # APT_DEPENDENCY_DURATION, CHROMIUM_DOWNLOAD_DURATION and
+        # TOTAL_BROWSER_INSTALL_DURATION into the job summary, because one step
+        # timer is what made this defect hard to diagnose — a single number
+        # cannot tell a slow download from a slow apt mirror, and the two have
+        # completely different fixes.
+        #
+        # `--with-deps` was REMOVED on 2026-08-19. It was 97% of the step and
+        # installed no browser library at all. Measured on run 32294710633:
+        #
+        #   apt-get update             74s   11.4 MB of lists @ 162 kB/s
+        #   apt-get install           229s   21.1 MB @ 93.8 kB/s — 9 FONT
+        #                                    packages; 0 libraries, every one
+        #                                    logged "already the newest version"
+        #   browser downloads         9.6s   301 MB from cdn.playwright.dev
+        #                            ─────
+        #                             314s
+        #
+        # The same command took 1555s on run 32182849325. Azure's Ubuntu mirror
+        # throughput is not ours to fix — EXTERNAL_APT_MIRROR_LATENCY — so the
+        # fix is to stop depending on it, not to point it somewhere else. The
+        # fonts it installed broaden CJK/Cyrillic/Thai glyph coverage for
+        # pixel-exact screenshots; this suite makes no visual comparison.
+        #
+        # The fast path is verified rather than assumed: the script launches the
+        # browser, and only if that fails runs `playwright install-deps` and
+        # tries again. A future runner image that stops shipping a library
+        # degrades to the old cost with a warning, instead of failing inside a
+        # journey where it would read as a product defect.
+        #
+        # A Playwright browser cache was added here on 2026-08-18 and REMOVED on
+        # 2026-08-19, because it made this step catastrophically slower rather
+        # than faster. Measured:
+        #
+        #   before the cache            27s   (run 32160472427)
+        #   with the cache, first run   6m41s (run 32178458380)
+        #   with the cache, next run    25m55s — consumed the whole 30 minute
+        #                               timeout and failed the gate (32182849325)
+        #
+        # The likely mechanism is that `~/.cache/ms-playwright` is exactly where
+        # ubuntu-latest already ships the browser. Restoring an empty or partial
+        # directory over it appears to shadow the preinstalled build, so
+        # `playwright install` stops being a fast verification and becomes a full
+        # download — the opposite of the intent.
+        #
+        # The runner image already caches this better than we can. Do not
+        # reintroduce the cache without a measurement showing it helps; the
+        # baseline to beat is now the browser download alone.
         run: npm run test:browser:install
       - name: Start the API, landing and admin
         # Backgrounded with logs to files. The readiness loop is what makes this
@@ -591,16 +914,66 @@ jobs:
     runs-on: ubuntu-latest
     # Single aggregate status the Integrator and branch protection can key on,
     # so adding a job later does not require reconfiguring the merge policy.
-    # security-invariant-report is deliberately absent from `needs`.
+    # security-invariant-report is deliberately absent from `needs` — it is
+    # still report-only, with written promotion criteria (ITEM-0043).
+    #
+    # browser-e2e joined on 2026-08-17 after meeting the criteria recorded on the
+    # job itself. lint now covers services/api too, so `Lint services/api` is a
+    # required step rather than a separate report-only job.
+    #
+    # database-e2e-report joined on 2026-08-20, on the evidence recorded on that
+    # job and in ITEM-0047: 24 of 24 suites and 295 of 295 tests, twice
+    # consecutively on a fresh database, no suite quarantined and no assertion
+    # relaxed. It is the only gate that exercises the product against a real
+    # PostgreSQL — migrations, tenant erasure ordering, permission propagation,
+    # attendance integration isolation, platform workflows — and every one of
+    # those is a tenant-boundary or data-integrity assertion. It gated nothing
+    # for the entire period it was red, which is precisely why being red was
+    # survivable for weeks.
+    timeout-minutes: 10
     needs:
-      [validate, typecheck, lint, test-api, test-web, test-admin, test-landing, test-runtime, database-migration, build]
+      [resolve, validate, typecheck, lint, test-api, test-web, test-admin, test-landing, test-runtime, database-migration, database-e2e-report, build, browser-e2e]
     if: always()
     steps:
       - name: Verify all required jobs passed
+        env:
+          RESOLVE_RESULT: ${{ needs.resolve.result }}
+          REUSE: ${{ needs.resolve.outputs.reuse }}
+          EVIDENCE_RUN_ID: ${{ needs.resolve.outputs.evidence_run_id }}
+          EVIDENCE_RUN_URL: ${{ needs.resolve.outputs.evidence_run_url }}
         run: |
+          # The resolver is a precondition, not evidence. If it did not itself
+          # succeed we know nothing about this SHA and must not conclude.
+          if [ "$RESOLVE_RESULT" != "success" ]; then
+            echo "::error::The CI evidence resolver did not succeed ($RESOLVE_RESULT). Refusing to conclude."
+            exit 1
+          fi
+
+          if [ "$REUSE" = "true" ]; then
+            # Every other job is skipped by design. The gate passes on the
+            # strength of a named, verifiable earlier run in which every required
+            # job individually concluded success on this identical SHA.
+            if [ -z "$EVIDENCE_RUN_ID" ]; then
+              echo "::error::reuse=true with no evidence run id. Refusing to conclude."
+              exit 1
+            fi
+            echo "Exact-SHA evidence reused from run $EVIDENCE_RUN_ID."
+            {
+              echo "### CI required gate — exact-SHA evidence reused"
+              echo ""
+              echo "Every required job already concluded success for this exact SHA in"
+              echo "[run $EVIDENCE_RUN_ID]($EVIDENCE_RUN_URL). The tree is byte-identical,"
+              echo "this workflow file included, so re-running it could not produce a"
+              echo "different answer."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
           results='${{ join(needs.*.result, ' ') }}'
           echo "Required job results: $results"
           for r in $results; do
+            # skipped is rejected as firmly as failure. Without reuse, a skipped
+            # required job means the gate never saw it run.
             if [ "$r" != "success" ]; then
               echo "::error::A required job did not succeed ($r). Merge is blocked."
               exit 1

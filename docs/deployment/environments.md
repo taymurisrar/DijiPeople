@@ -76,9 +76,15 @@ Classification: `REQUIRED_BUILD_TIME`, `REQUIRED_RUNTIME`, `OPTIONAL`, `SECRET`,
 | `PLATFORM_SUPER_ADMIN_EMAIL` | REQUIRED_RUNTIME | `seed:admin` runs in `preDeployCommand` on **every** deploy |
 | `PLATFORM_SUPER_ADMIN_PASSWORD` | REQUIRED_RUNTIME, SECRET | Minimum 12 characters |
 
-**Verify these are set in the Render dashboard.** They are documented in
-`README.md` and `DEPLOYMENT_CHECKLIST.md` but not declared in `render.yaml`, so
-nothing in the repository will remind you.
+**Declared in `render.yaml` since 2026-08-20.** Set both for an environment's
+first deploy, then remove the password: `seed:admin` is a no-op once an active
+super admin exists, and it never overwrites an existing admin's password, role
+or status. `PLATFORM_SUPER_ADMIN_PASSWORD_RESET=true` is the deliberate
+break-glass path. See `docs/environment-variables.md`.
+
+Until that change, the two available configurations were both wrong: unset
+aborted `preDeployCommand` on a new environment, and set reset the super admin's
+password to the dashboard value on **every** deploy.
 
 ### Frontend apps
 
@@ -108,7 +114,7 @@ Plus `packages/config` validation if it is required at boot.
 
 | Finding | Severity |
 |---|---|
-| `PLATFORM_SUPER_ADMIN_*` required by `preDeployCommand` but undeclared in `render.yaml` | **Medium** — a deploy fails at seed time if unset |
+| ~~`PLATFORM_SUPER_ADMIN_*` required by `preDeployCommand` but undeclared in `render.yaml`~~ | **Fixed 2026-08-20 (TASK-0010).** Declared in `render.yaml`; `seed:admin` is now a no-op once an active super admin exists, and never overwrites an existing one |
 | Frontend deployment configuration is not committed | **Medium** — not reproducible from a clean clone |
 | No staging environment | **Medium** — changes go local → production |
 | `apps/landing` has no `release` script | **Low** — inconsistent with web and admin |

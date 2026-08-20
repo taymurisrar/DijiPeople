@@ -25,6 +25,9 @@ import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { loadRecords, bucketOf, compareRecords, writeIfChanged } from './lib/backlog-records.mjs';
+import { loadSessions, compareSessions, isActive as sessionIsActive } from './lib/session-records.mjs';
+import { loadTasks, readyPackages, progressOf, isActive as taskIsActive } from './lib/task-records.mjs';
+import { COVERAGE_DIMENSIONS, loadQaRecords } from './lib/qa-records.mjs';
 
 const BANNER =
   '> **Generated file — do not edit by hand.** Rebuild with `node scripts/generate-dashboards.mjs`,\n' +
@@ -339,11 +342,227 @@ const productDashboard = page('DijiPeople Product Dashboard', [
   ],
 ]);
 
+// -------------------------------------------------- engineering control center
+
+/*
+ * One high-level state view: what is in flight, what is blocked, and whether the
+ * branch model is being respected.
+ *
+ * Generated from **durable records only** — sessions, tasks, backlog, QA. Live
+ * state (heartbeats, who holds the schema lease this minute, the integration
+ * lock) deliberately stays out: a note regenerated from live state can never
+ * pass a `--check` for drift, and a generated file that is always dirty is one
+ * nobody regenerates. The live view is `node scripts/session.mjs list`, and this
+ * note says so rather than pretending to be it.
+ */
+
+const { sessions, errors: sessionErrors } = loadSessions(ROOT);
+const { tasks, errors: taskErrors } = loadTasks(ROOT);
+const qa = loadQaRecords(ROOT);
+
+for (const [label, list] of [['session', sessionErrors], ['task', taskErrors], ['QA', qa.errors]]) {
+  if (list.length) {
+    console.error(`Control Center generation FAILED — ${list.length} ${label} record error(s):`);
+    for (const error of list.slice(0, 8)) console.error(`  x ${error}`);
+    console.error('');
+    console.error('Fix the records and re-run the matching rebuild script first.');
+    process.exit(1);
+  }
+}
+
+const activeSessions = sessions.filter(sessionIsActive).sort(compareSessions);
+const activeTasks = tasks.filter(taskIsActive);
+const schemaWriters = activeSessions.filter((session) => session.schemaWrite === 'YES');
+const ownerDecisions = buckets['product-decisions'];
+
+const coverageGaps = qa.plans.flatMap((plan) =>
+  Object.keys(COVERAGE_DIMENSIONS)
+    .filter((dimension) => plan.coverage[dimension] === 'GAP')
+    .map((dimension) => ({ area: plan.area, dimension, relative: plan.relative })),
+);
+
+const blockedScenarios = qa.scenarios.filter((s) => s.automation === 'BLOCKED_INFRASTRUCTURE');
+
+const activeWorkPackages = activeTasks.flatMap((task) =>
+  task.packages.filter((wp) => ['READY', 'IN_PROGRESS', 'QA', 'CI', 'MERGING'].includes(wp.status)),
+);
+const blockedWorkPackages = activeTasks.flatMap((task) =>
+  task.packages.filter((wp) => wp.status === 'BLOCKED'),
+);
+
+const sessionTable = activeSessions.length
+  ? [
+      '| Session | Task | Title | Status | Branch | Target | Leases | Schema |',
+      '|---|---|---|---|---|---|---|---|',
+      ...activeSessions.map(
+        (s) =>
+          `| ${wikilink(s.relative, s.id)} | ${s.taskId || '—'} | ${s.title} | ${s.status} | ` +
+          `\`${s.taskBranch}\` | \`${s.targetBranch}\` | ${s.leases.join(', ') || '—'} | ${s.schemaWrite} |`,
+      ),
+    ].join('\n')
+  : '_No session is currently registered as active._';
+
+const taskTable = activeTasks.length
+  ? [
+      '| Task | Title | Type | Size | Progress | Current | Ready next | Blocked |',
+      '|---|---|---|---|---|---|---|---|',
+      ...activeTasks.map((task) => {
+        const { done, total } = progressOf(task);
+        const ready = readyPackages(task).map((wp) => wp.id);
+        const blocked = task.packages.filter((wp) => wp.status === 'BLOCKED').map((wp) => wp.id);
+        return (
+          `| ${wikilink(task.relative, task.id)} | ${task.title} | ${task.type} | ${task.size} | ` +
+          `${done}/${total} | ${task.currentPackage || '—'} | ${ready.join(', ') || '—'} | ${blocked.join(', ') || '—'} |`
+        );
+      }),
+    ].join('\n')
+  : '_No parent task is active._';
+
+const controlCenter = page('Engineering Control Center', [
+  [
+    'State',
+    [
+      '| | |',
+      '|---|---|',
+      `| Active sessions | **${activeSessions.length}** |`,
+      `| Active parent tasks | ${activeTasks.length} |`,
+      `| Active work packages | ${activeWorkPackages.length} |`,
+      `| Blocked work packages | ${blockedWorkPackages.length} |`,
+      `| Sessions declaring a schema write | ${schemaWriters.length}${schemaWriters.length > 1 ? ' — **the database is single-writer across all sessions; this must be at most 1**' : ''} |`,
+      `| Open CRITICAL | **${bySeverity('CRITICAL').length}** |`,
+      `| Open HIGH | ${bySeverity('HIGH').length} |`,
+      `| Awaiting Architect triage | ${untriaged.length} |`,
+      `| Owner decisions pending | ${ownerDecisions.length} |`,
+      `| QA coverage gaps | ${coverageGaps.length} |`,
+      `| Scenarios blocked by infrastructure | ${blockedScenarios.length} |`,
+    ].join('\n'),
+  ],
+  ['Active Sessions', sessionTable],
+  ['Active Tasks and Work Packages', taskTable],
+  [
+    'Branch model',
+    [
+      '```',
+      'main        production deployment branch   ← RELEASE / DEPLOY / HOTFIX_PRODUCTION only',
+      '  ↑',
+      'develop     autonomous integration branch  ← every ordinary task',
+      '  ↑',
+      'agent/*     isolated implementation branches',
+      '```',
+      '',
+      'An ordinary task finishes with `MAIN_CHANGE_STATUS = UNTOUCHED` and',
+      '`DEVELOP_SYNC_STATUS = SYNCED`. Branch state is read from the repository',
+      'rather than published here, because a note cannot be evidence about a ref:',
+      '',
+      '```bash',
+      'node scripts/repo-health.mjs --main-baseline <sha-at-task-start>',
+      '```',
+    ].join('\n'),
+  ],
+  [
+    'Live state is deliberately not in this note',
+    [
+      'Heartbeats, the write leases held this minute, `DATABASE_WRITER` and the',
+      'develop merge queue live in the repository\'s shared Git directory, not in',
+      'Git. They change between one command and the next, so publishing them here',
+      'would produce a note that is never current and can never pass a drift check.',
+      '',
+      '```bash',
+      'node scripts/session.mjs list                    # sessions, leases, DATABASE_WRITER, queue',
+      'node scripts/session.mjs check --paths <paths>   # classify proposed work',
+      'node scripts/repo-health.mjs                     # branches, worktrees, integration lock',
+      'node scripts/backlog-review.mjs                  # aging, revalidation, duplicates',
+      'node scripts/db-preflight.mjs                    # schema, migrations, client, local database',
+      'node scripts/sync-obsidian.mjs --verify           # source orphans, graph orphans, links, parity',
+      'node scripts/ci-metrics.mjs collect               # CI durations, cancellations, regression triggers',
+      '```',
+      '',
+      'What this note carries is the durable half: which sessions and tasks exist,',
+      'what they own, and what the backlog and QA systems currently say.',
+    ].join('\n'),
+  ],
+  ['Open Critical', recordTable(bySeverity('CRITICAL'), '_None. Nothing open at CRITICAL._')],
+  [
+    'Owner Decisions Pending',
+    ownerDecisions.length
+      ? [
+          'Questions where the engineering is understood and the **product answer is**',
+          '**not**. No agent may resolve one by implementing a side of it.',
+          '',
+          ...ownerDecisions
+            .slice()
+            .sort(compareRecords)
+            .map((record) => `- ${wikilink(record.relative, record.id)} — **${record.title}**`),
+        ].join('\n')
+      : '_None outstanding._',
+  ],
+  [
+    'QA Coverage Gaps',
+    coverageGaps.length
+      ? [
+          'A task touching one of these areas on the named dimension pulls closing the',
+          'gap into scope — or files a `TEST_GAP` item and says so.',
+          '',
+          '| Area | Dimension |',
+          '|---|---|',
+          ...coverageGaps.map((gap) => `| ${wikilink(gap.relative, gap.area)} | ${gap.dimension} |`),
+        ].join('\n')
+      : '_None declared._',
+  ],
+  [
+    'Backlog Health',
+    [
+      '| | |',
+      '|---|---|',
+      `| Open total | ${openRecords.length} |`,
+      `| Blocked | ${buckets.blocked.length} |`,
+      `| Deferred | ${buckets.deferred.length} |`,
+      `| Awaiting a product decision | ${ownerDecisions.length} |`,
+      `| Awaiting Architect triage | ${untriaged.length} |`,
+      '',
+      untriaged.length
+        ? '**A record nobody has triaged is work nobody has decided about.** No ordinary record may stay `TRIAGE_REQUIRED` at the end of a task.'
+        : 'Every ordinary record carries a disposition.',
+    ].join('\n'),
+  ],
+  [
+    'Deployment',
+    [
+      'Deployment state is **not** derivable from Git. A merge is Git state; what is',
+      'running is a separate fact with separate evidence, recorded per release under',
+      '`docs/deployment/release-history/`.',
+      '',
+      releases.length === 0
+        ? '_No release has been recorded. Nothing has been deployed through the release process._'
+        : recentList(releases, 5),
+    ].join('\n'),
+  ],
+  [
+    'How this is maintained',
+    [
+      'Regenerate with:',
+      '',
+      '```bash',
+      'node scripts/rebuild-sessions.mjs',
+      'node scripts/rebuild-tasks.mjs',
+      'node scripts/rebuild-backlog.mjs',
+      'node scripts/rebuild-qa.mjs',
+      'node scripts/generate-dashboards.mjs',
+      'node scripts/sync-obsidian.mjs',
+      '```',
+      '',
+      'Every number is derived from the records at generation time. Editing this note',
+      'in the vault only loses the edit on the next sync — change the record instead.',
+    ].join('\n'),
+  ],
+]);
+
 // ------------------------------------------------------------------- writing
 
 const pages = {
   'DijiPeople Engineering Dashboard.md': engineering,
   'DijiPeople Product Dashboard.md': productDashboard,
+  'Engineering Control Center.md': controlCenter,
 };
 
 let changed = 0;

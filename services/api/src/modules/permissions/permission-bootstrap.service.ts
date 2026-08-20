@@ -10,6 +10,8 @@ import {
   SYSTEM_ROLE_DEFINITIONS,
   SYSTEM_ROLE_MISC_PERMISSIONS,
   SYSTEM_ROLE_PRIVILEGES,
+  legacyPermissionToMatrixPrivileges,
+  legacyRoleAccessLevelToSecurityAccessLevel,
   matrixPrivilegeToPermissionKey,
 } from '../../common/constants/rbac-matrix';
 import { PrismaService } from '../../common/prisma/prisma.service';
@@ -210,6 +212,52 @@ export class PermissionBootstrapService {
           createdById: assignment.createdById,
           updatedById: assignment.updatedById,
         },
+      });
+    }
+
+    // Custom roles may predate matrix permissions. Preserve their legacy
+    // capability by creating only absent matrix rows; an explicit matrix row,
+    // including NONE, is never overwritten.
+    const customRoles = await db.role.findMany({
+      where: { tenantId, isSystem: false, isActive: true },
+      include: {
+        rolePermissions: {
+          include: { permission: { select: { key: true } } },
+        },
+        miscPermissions: {
+          where: { enabled: true },
+          select: { permissionKey: true },
+        },
+      },
+    });
+    const customRolePrivilegeAssignments = customRoles.flatMap((role) => {
+      const permissionKeys = new Set([
+        ...role.rolePermissions.map((item) => item.permission.key),
+        ...role.miscPermissions.map((item) => item.permissionKey),
+      ]);
+      const accessLevel = legacyRoleAccessLevelToSecurityAccessLevel(
+        role.accessLevel,
+      );
+
+      return Array.from(permissionKeys).flatMap((permissionKey) =>
+        legacyPermissionToMatrixPrivileges(permissionKey).map(
+          (requirement) => ({
+            tenantId,
+            roleId: role.id,
+            entityKey: requirement.entityKey,
+            privilege: requirement.privilege,
+            accessLevel,
+            createdById: actorUserId,
+            updatedById: actorUserId,
+          }),
+        ),
+      );
+    });
+
+    if (customRolePrivilegeAssignments.length > 0) {
+      await db.rolePrivilege.createMany({
+        data: customRolePrivilegeAssignments,
+        skipDuplicates: true,
       });
     }
 

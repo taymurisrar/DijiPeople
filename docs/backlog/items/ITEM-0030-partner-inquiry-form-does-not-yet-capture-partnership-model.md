@@ -9,7 +9,7 @@ Severity: MEDIUM
 AffectedModules: [apps/landing, api:partners]
 Source: ARCHITECT
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 CreatedAt: 2026-08-16
 UpdatedAt: 2026-08-17
 RelatedBug: BUG-0019
@@ -86,6 +86,9 @@ None. The schema landed in Wave 3.
 [[BUG-0021]] — the Lead half of the same acquisition work.
 
 ## History
+
+- 2026-08-17 — Architect reconciliation: terminal `DONE` status normalized to
+  `ArchitectDisposition: DONE`; no runtime behavior changed.
 
 - 2026-08-16 — created during Wave 3, which completed the Lead path and left the
   partner form for a focused follow-up.

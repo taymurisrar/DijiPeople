@@ -18,8 +18,8 @@ RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-15
-UpdatedAt: 2026-08-15
-ResolvedAt: 2026-08-14
+UpdatedAt: 2026-08-17
+ResolvedAt: 2026-08-17
 ---
 
 # BUG-0007 — An unguarded duplicate route aliased a permission-gated one
@@ -100,3 +100,6 @@ Verified by the regression spec.
 
 - 2026-08-14 — found, fixed, REG-007 added.
 - 2026-08-15 — imported into the durable bug system.
+
+- 2026-08-16 — **reopened.** The fix and `feature-availability-authorization.spec.ts` are on `agent/authz-feature-availability` (`7f5eacd`), which has never merged. Found by the same sweep as [[BUG-0047]], which this record is the seventh instance of.
+- 2026-08-17 — **re-verified and closed against the integration branch.** The fix was ported onto `develop` by TASK-0005 (cherry-picked from the original `agent/authz-*` branch, which had never merged), and `services/api/src/modules/tenant-settings/feature-availability-authorization.spec.ts` now exists and passes there. Previously this record read VERIFIED on branch-level evidence alone — see [[BUG-0047]], which is what caught it, and the two validator checks that now make the same drift a red build.

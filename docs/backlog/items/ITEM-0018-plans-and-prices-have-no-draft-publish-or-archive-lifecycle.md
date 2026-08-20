@@ -9,7 +9,7 @@ Severity: MEDIUM
 AffectedModules: [services/api/prisma, api:super-admin, apps/admin, apps/landing]
 Source: ARCHITECT
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 CreatedAt: 2026-08-16
 UpdatedAt: 2026-08-17
 RelatedBug: BUG-0027
@@ -131,6 +131,9 @@ enforcement exist; the governed UI transitions are a follow-up, recorded as
 [[ITEM-0022]]. Editing a published price is still a direct edit today.
 
 ## History
+
+- 2026-08-17 — Architect reconciliation: terminal `DONE` status normalized to
+  `ArchitectDisposition: DONE`; no runtime behavior changed.
 
 - 2026-08-16 — created during commercial-configuration discovery at `45d00cf`.
 

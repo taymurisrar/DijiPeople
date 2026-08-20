@@ -2,7 +2,7 @@
 ID: BUG-0034
 aliases: [BUG-0034]
 Title: Desktop agent auto update points at an endpoint that does not exist
-Status: OPEN
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: INTEGRATION
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-16
 DetectedInSha: 78072d2
 AffectedModules: [apps/agent-desktop, services/api/src/modules/agent, services/api/src/modules/app-releases]
 OwnerAgent: integration
-ArchitectDisposition: PLAN_REQUIRED
+ArchitectDisposition: DONE
 QAReport: docs/qa/runs/2026-08-16-monorepo-app-documentation-78072d2.md
-RegressionId:
-RelatedBacklogItem:
+RegressionId: REG-056
+RelatedBacklogItem: ITEM-0052
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-16
-UpdatedAt: 2026-08-16
-ResolvedAt:
+UpdatedAt: 2026-08-18
+ResolvedAt: 2026-08-18
 ---
 
 # BUG-0034 — Desktop agent auto update points at an endpoint that does not exist
@@ -165,11 +165,12 @@ bug pattern [[declared-but-unwired-step]].
 
 ## Resolution
 
-**Partially fixed. Still OPEN — the feed does not exist yet.**
-
-Two of the three defects in this record are fixed. The third is a feature build
-that turns on unattended software installation on employee machines, and it
-carries a decision I should not make silently.
+Fixed in two passes. The first closed the two agent-side defects and stopped
+short of the feed, because building it turns on unattended software installation
+on employee machines and carried a decision that should not be made silently.
+The owner took that decision on 2026-08-18 — build it — and the second pass
+below did. Both passes are kept here because the reasoning for pausing is worth
+as much as the reasoning for proceeding.
 
 ## Fixed
 
@@ -215,14 +216,77 @@ Needs an ExecPlan under [PLANS.md](../../PLANS.md) covering the column, the
 publisher change, the two endpoints, the agent's `requestHeaders`, and a staging
 verification against a real artefact.
 
+## Update — the feed is now built
+
+Owner decision taken 2026-08-18: build it. All three parts landed.
+
+**1. `ApplicationRelease.checksumSha512`** — additive, nullable, migration
+`20260818090000_application_release_sha512`. Nullable is the correct shape rather
+than a concession: a release published before the column cannot have a sha512
+computed without its original artefact, and the feed **skips** a release it
+cannot let the updater verify instead of advertising one that would download and
+then fail. electron-updater retries, so offering an unverifiable build is worse
+than offering nothing.
+
+`ReleasePublisherService` computes it from **the bytes that arrived**, beside the
+existing sha256 and for the same reason — a digest supplied by the publisher only
+ever proves the publisher's own copy was intact. Base64, because that is what
+electron-updater compares against; hex would fail every verification while
+looking perfectly correct in the database. `promote()` carries it forward, which
+matters most: promotion is how a build becomes STABLE, and STABLE is the only
+channel the feed serves. `verifyRegistration` checks it too, case-sensitively —
+lower-casing a base64 digest would compare two different values as equal.
+
+**2. `UpdateFeedController`** — `GET app-releases/feed/:appKey/latest.yml` and
+`GET app-releases/feed/:appKey/:fileName`.
+
+**3. The agent** points `DIJIPEOPLE_AGENT_UPDATE_URL` at
+`/api/app-releases/feed/agent-desktop` and supplies its session through
+`autoUpdater.requestHeaders`, refreshed before every check rather than captured
+at startup — a header taken at launch would be stale by the first six-hour tick,
+turning a 404 into a 401 with exactly the same silence.
+
+**The exposure decision this record asked for, answered: the gate stays.**
+electron-updater resolves the artefact URL *relative to the feed URL*, so the two
+share a base path and an auth posture — serving the feed publicly would have made
+the agent installer downloadable by anyone, which is an exposure change to a
+considered design rather than an oversight to correct. Both routes keep
+`appDownloads.read`, and the artefact streams through `AppReleaseService` so the
+same checks apply to the bytes as to the metadata. `findPublishableByFileName`
+applies the same publishable conditions as the feed, so the filename route cannot
+reach a beta, an inactive or an unverifiable build by guessing.
+
+The cost, stated plainly: an agent that cannot sign in cannot auto-update. That
+is acceptable rather than ideal — the agent's whole function needs a session, so
+one that cannot obtain a token is not tracking anything either, and its remedy is
+a reinstall rather than a background update.
+
 ## QA Retest
 
-The two agent-side fixes typecheck (`npx tsc --noEmit` in
-`apps/agent-desktop`, exit 0). `apps/agent-desktop` has no test runner —
-recorded separately as ITEM-0028 — so neither is covered by an automated
-assertion, which is stated here rather than implied.
+Pass, with one honest gap.
 
-The feed remains unverified because it remains unbuilt.
+```text
+update-feed.service.spec.ts     6 tests
+app-releases suites             4 suites, 61 tests
+services/api                    180 suites, 1350 tests
+apps/agent-desktop check-types  PASS
+validate:framework              2385 checks
+```
+
+The feed spec pins what makes it *usable* rather than merely present: the
+document carries the fields electron-updater reads, the version is **quoted** so
+YAML cannot reinterpret `1.10` as the float `1.1`, and the query demands sha512,
+fileName, fileSizeBytes and publishedAt so an unverifiable release is never
+advertised.
+
+The two earlier agent-side fixes still have no automated assertion —
+`apps/agent-desktop` has no test runner, recorded as ITEM-0033 — which is stated
+here rather than implied.
+
+**Not verified end-to-end.** There is no published artefact and no storage
+backend in this environment, so no agent has actually downloaded and installed
+through this path. That belongs to a staging run against a real build, and it is
+the one claim this record does not make.
 
 ## History
 

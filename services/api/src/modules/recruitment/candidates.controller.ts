@@ -17,7 +17,12 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { Permissions } from '../../common/decorators/permissions.decorator';
+import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
+import {
+  Permissions,
+  RequireAnyPermission,
+  RequirePermission,
+} from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
@@ -42,6 +47,10 @@ export class CandidatesController {
 
   @Get()
   @Permissions('recruitment.read')
+  @RequireAnyPermission(
+    { entityKey: ENTITY_KEYS.JOBS, action: 'read' },
+    { entityKey: ENTITY_KEYS.CANDIDATES, action: 'read' },
+  )
   findAll(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: CandidateQueryDto,
@@ -51,6 +60,10 @@ export class CandidatesController {
 
   @Get(':candidateId')
   @Permissions('recruitment.read')
+  @RequireAnyPermission(
+    { entityKey: ENTITY_KEYS.JOBS, action: 'read' },
+    { entityKey: ENTITY_KEYS.CANDIDATES, action: 'read' },
+  )
   findOne(
     @CurrentUser() user: AuthenticatedUser,
     @Param('candidateId', new ParseUUIDPipe()) candidateId: string,
@@ -63,6 +76,10 @@ export class CandidatesController {
 
   @Post()
   @Permissions('recruitment.create')
+  @RequireAnyPermission(
+    { entityKey: ENTITY_KEYS.JOBS, action: 'create' },
+    { entityKey: ENTITY_KEYS.CANDIDATES, action: 'create' },
+  )
   create(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateCandidateDto,
@@ -72,6 +89,10 @@ export class CandidatesController {
 
   @Post('parse-upload')
   @Permissions('recruitment.create')
+  @RequireAnyPermission(
+    { entityKey: ENTITY_KEYS.JOBS, action: 'create' },
+    { entityKey: ENTITY_KEYS.CANDIDATES, action: 'create' },
+  )
   @UseInterceptors(FileInterceptor('file'))
   parseUploadedResumeDraft(
     @CurrentUser() user: AuthenticatedUser,
@@ -82,6 +103,10 @@ export class CandidatesController {
 
   @Patch(':candidateId')
   @Permissions('recruitment.update')
+  @RequireAnyPermission(
+    { entityKey: ENTITY_KEYS.JOBS, action: 'write' },
+    { entityKey: ENTITY_KEYS.CANDIDATES, action: 'write' },
+  )
   update(
     @CurrentUser() user: AuthenticatedUser,
     @Param('candidateId', new ParseUUIDPipe()) candidateId: string,
@@ -92,6 +117,7 @@ export class CandidatesController {
 
   @Delete()
   @Permissions('recruitment.delete')
+  @RequirePermission(ENTITY_KEYS.CANDIDATES, 'delete')
   deleteMany(
     @CurrentUser() user: AuthenticatedUser,
     @Body() body: { recordIds?: string[]; ids?: string[] },
@@ -104,6 +130,10 @@ export class CandidatesController {
 
   @Delete(':candidateId')
   @Permissions('recruitment.update')
+  @RequireAnyPermission(
+    { entityKey: ENTITY_KEYS.JOBS, action: 'write' },
+    { entityKey: ENTITY_KEYS.CANDIDATES, action: 'write' },
+  )
   deleteOne(
     @CurrentUser() user: AuthenticatedUser,
     @Param('candidateId', new ParseUUIDPipe()) candidateId: string,
@@ -113,6 +143,10 @@ export class CandidatesController {
 
   @Post(':candidateId/documents')
   @Permissions('recruitment.update')
+  @RequireAnyPermission(
+    { entityKey: ENTITY_KEYS.JOBS, action: 'write' },
+    { entityKey: ENTITY_KEYS.CANDIDATES, action: 'write' },
+  )
   registerDocument(
     @CurrentUser() user: AuthenticatedUser,
     @Param('candidateId', new ParseUUIDPipe()) candidateId: string,
@@ -127,6 +161,10 @@ export class CandidatesController {
 
   @Post(':candidateId/documents/:documentId/parse')
   @Permissions('recruitment.update')
+  @RequireAnyPermission(
+    { entityKey: ENTITY_KEYS.JOBS, action: 'write' },
+    { entityKey: ENTITY_KEYS.CANDIDATES, action: 'write' },
+  )
   triggerDocumentParsing(
     @CurrentUser() user: AuthenticatedUser,
     @Param('candidateId', new ParseUUIDPipe()) candidateId: string,
@@ -143,6 +181,10 @@ export class CandidatesController {
 
   @Get(':candidateId/documents/:documentId/view')
   @Permissions('recruitment.read')
+  @RequireAnyPermission(
+    { entityKey: ENTITY_KEYS.JOBS, action: 'read' },
+    { entityKey: ENTITY_KEYS.CANDIDATES, action: 'read' },
+  )
   async viewCandidateDocument(
     @CurrentUser() user: AuthenticatedUser,
     @Param('candidateId', new ParseUUIDPipe()) candidateId: string,
@@ -177,6 +219,10 @@ export class CandidatesController {
 
   @Get(':candidateId/documents/:documentId/download')
   @Permissions('recruitment.read')
+  @RequireAnyPermission(
+    { entityKey: ENTITY_KEYS.JOBS, action: 'read' },
+    { entityKey: ENTITY_KEYS.CANDIDATES, action: 'read' },
+  )
   async downloadCandidateDocument(
     @CurrentUser() user: AuthenticatedUser,
     @Param('candidateId', new ParseUUIDPipe()) candidateId: string,

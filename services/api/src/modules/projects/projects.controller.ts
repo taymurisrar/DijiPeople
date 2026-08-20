@@ -11,7 +11,11 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { Permissions } from '../../common/decorators/permissions.decorator';
+import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
+import {
+  Permissions,
+  RequirePermission,
+} from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
@@ -32,6 +36,7 @@ export class ProjectsController {
 
   @Get()
   @Permissions('projects.read')
+  @RequirePermission(ENTITY_KEYS.PROJECTS, 'read')
   findAll(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: ProjectQueryDto,
@@ -41,12 +46,14 @@ export class ProjectsController {
 
   @Get('assigned/me')
   @Permissions('projects.read')
+  @RequirePermission(ENTITY_KEYS.PROJECTS, 'read')
   findAssignedToCurrentUser(@CurrentUser() user: AuthenticatedUser) {
     return this.projectsService.findAssignedProjectsForCurrentUser(user);
   }
 
   @Get(':projectId')
   @Permissions('projects.read')
+  @RequirePermission(ENTITY_KEYS.PROJECTS, 'read')
   findOne(
     @CurrentUser() user: AuthenticatedUser,
     @Param('projectId', new ParseUUIDPipe()) projectId: string,
@@ -56,6 +63,7 @@ export class ProjectsController {
 
   @Get(':projectId/timeline')
   @Permissions('projects.read', 'timeline.read')
+  @RequirePermission(ENTITY_KEYS.PROJECTS, 'read')
   async getTimeline(
     @CurrentUser() user: AuthenticatedUser,
     @Param('projectId', new ParseUUIDPipe()) projectId: string,
@@ -71,6 +79,7 @@ export class ProjectsController {
 
   @Post()
   @Permissions('projects.create')
+  @RequirePermission(ENTITY_KEYS.PROJECTS, 'create')
   create(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateProjectDto,
@@ -80,6 +89,7 @@ export class ProjectsController {
 
   @Patch(':projectId')
   @Permissions('projects.update')
+  @RequirePermission(ENTITY_KEYS.PROJECTS, 'write')
   update(
     @CurrentUser() user: AuthenticatedUser,
     @Param('projectId', new ParseUUIDPipe()) projectId: string,
@@ -90,6 +100,7 @@ export class ProjectsController {
 
   @Post(':projectId/assignments')
   @Permissions('projects.assign')
+  @RequirePermission(ENTITY_KEYS.PROJECTS, 'assign')
   assignEmployee(
     @CurrentUser() user: AuthenticatedUser,
     @Param('projectId', new ParseUUIDPipe()) projectId: string,
@@ -100,6 +111,7 @@ export class ProjectsController {
 
   @Get(':projectId/assignments')
   @Permissions('projects.read')
+  @RequirePermission(ENTITY_KEYS.PROJECTS, 'read')
   listAssignments(
     @CurrentUser() user: AuthenticatedUser,
     @Param('projectId', new ParseUUIDPipe()) projectId: string,
@@ -109,6 +121,7 @@ export class ProjectsController {
 
   @Delete(':projectId/assignments/:assignmentId')
   @Permissions('projects.assign')
+  @RequirePermission(ENTITY_KEYS.PROJECTS, 'assign')
   removeAssignment(
     @CurrentUser() user: AuthenticatedUser,
     @Param('projectId', new ParseUUIDPipe()) projectId: string,
@@ -119,6 +132,7 @@ export class ProjectsController {
 
   @Post(':projectId/resources')
   @Permissions('projects.assign')
+  @RequirePermission(ENTITY_KEYS.PROJECTS, 'assign')
   assignResource(
     @CurrentUser() user: AuthenticatedUser,
     @Param('projectId', new ParseUUIDPipe()) projectId: string,
@@ -129,6 +143,7 @@ export class ProjectsController {
 
   @Get(':projectId/timesheets')
   @Permissions('projects.read')
+  @RequirePermission(ENTITY_KEYS.PROJECTS, 'read')
   findProjectTimesheets(
     @CurrentUser() user: AuthenticatedUser,
     @Param('projectId', new ParseUUIDPipe()) projectId: string,

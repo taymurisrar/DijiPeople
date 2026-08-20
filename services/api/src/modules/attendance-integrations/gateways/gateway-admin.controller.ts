@@ -22,7 +22,11 @@ import {
 import { Type } from 'class-transformer';
 
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
-import { Permissions } from '../../../common/decorators/permissions.decorator';
+import { ENTITY_KEYS } from '../../../common/constants/rbac-matrix';
+import {
+  Permissions,
+  RequirePermission,
+} from '../../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../../common/interfaces/authenticated-request.interface';
@@ -75,6 +79,7 @@ export class GatewayAdminController {
 
   @Get()
   @Permissions('gateways.read')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'read')
   async list(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: ListGatewaysDto,
@@ -111,6 +116,7 @@ export class GatewayAdminController {
 
   @Get(':id')
   @Permissions('gateways.read')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'read')
   async findOne(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -144,6 +150,7 @@ export class GatewayAdminController {
 
   @Post()
   @Permissions('gateways.manage')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'manage')
   async create(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateGatewayDto,
@@ -178,6 +185,7 @@ export class GatewayAdminController {
 
   @Patch(':id')
   @Permissions('gateways.manage')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'manage')
   async update(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -224,6 +232,7 @@ export class GatewayAdminController {
    */
   @Post(':id/pairing-code')
   @Permissions('gateways.manage')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'manage')
   async issuePairingCode(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -259,6 +268,7 @@ export class GatewayAdminController {
 
   @Post(':id/rotate-credential')
   @Permissions('gateways.manage')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'manage')
   async rotateCredential(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -292,6 +302,7 @@ export class GatewayAdminController {
 
   @Post(':id/revoke')
   @Permissions('gateways.manage')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'manage')
   async revoke(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,

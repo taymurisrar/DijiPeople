@@ -556,26 +556,39 @@ export class ApprovalsService {
     user: AuthenticatedUser,
     query: Record<string, string>,
   ): Prisma.ApprovalRequestWhereInput {
+    const search = query.search?.trim();
+
+    /*
+     * The access scope and the search filter both express themselves as OR, and
+     * spreading them into one object literal let the later key win: with
+     * `?search=` present the caller's scope restriction disappeared entirely
+     * and the query fell back to tenantId alone, returning every approval in
+     * the tenant. They are combined under AND so both always apply.
+     */
     const where: Prisma.ApprovalRequestWhereInput = {
       tenantId: user.tenantId,
-      ...this.relevantScope(user),
+      AND: [
+        this.relevantScope(user),
+        ...(search
+          ? [
+              {
+                OR: [
+                  { title: { contains: search, mode: 'insensitive' as const } },
+                  {
+                    requestNumber: {
+                      contains: search,
+                      mode: 'insensitive' as const,
+                    },
+                  },
+                ],
+              },
+            ]
+          : []),
+      ],
       ...(query.moduleKey ? { moduleKey: query.moduleKey.toLowerCase() } : {}),
       ...(query.entityId ? { entityId: query.entityId } : {}),
       ...(query.status
         ? { status: query.status as ApprovalRequestStatus }
-        : {}),
-      ...(query.search?.trim()
-        ? {
-            OR: [
-              { title: { contains: query.search.trim(), mode: 'insensitive' } },
-              {
-                requestNumber: {
-                  contains: query.search.trim(),
-                  mode: 'insensitive',
-                },
-              },
-            ],
-          }
         : {}),
     };
 
@@ -604,17 +617,39 @@ export class ApprovalsService {
     user: AuthenticatedUser,
   ): Prisma.ApprovalRequestWhereInput {
     const permissions = new Set(user.permissionKeys ?? []);
+
+    // Tenant-wide is what `manage` means; nothing narrower reaches it.
     if (permissions.has('approvals.manage')) return {};
+
+    const ownScope: Prisma.ApprovalRequestWhereInput[] = [
+      { submittedByUserId: user.userId },
+      { assignments: { some: { assignedToUserId: user.userId } } },
+    ];
+
+    /*
+     * `readTeam` returned {} — an unrestricted where — which made it a synonym
+     * for `manage` and let every holder read every approval in the tenant.
+     *
+     * Team here means the caller's direct reports, which is how the same
+     * concept is enforced elsewhere in the product: timesheets rejects a
+     * non-`read.all` caller whose target is not their direct report with "You
+     * can only view timesheets for your direct reports"
+     * (timesheets.service.ts), and attendance corrections scope to
+     * `employee.manager.userId` for callers without tenant-wide rights.
+     *
+     * The caller keeps their own submitted and assigned requests on top, so
+     * this only ever widens the default scope, never narrows it.
+     */
     if (permissions.has('approvals.readTeam')) {
-      return {};
+      return {
+        OR: [
+          ...ownScope,
+          { submittedForEmployee: { manager: { userId: user.userId } } },
+        ],
+      };
     }
 
-    return {
-      OR: [
-        { submittedByUserId: user.userId },
-        { assignments: { some: { assignedToUserId: user.userId } } },
-      ],
-    };
+    return { OR: ownScope };
   }
 
   private assertCanReadApprovals(user: AuthenticatedUser) {

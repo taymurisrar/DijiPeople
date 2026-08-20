@@ -1,5 +1,12 @@
+import type { Metadata } from "next";
 import { PageShell } from "../_components/site-shell";
 import { PartnerInquiryForm } from "./partner-inquiry-form";
+
+export const metadata: Metadata = {
+  title: "Partner network",
+  description:
+    "Refer and deliver DijiPeople with a structured partner agreement, onboarding and commission model.",
+};
 
 export default function PartnersPage() {
   return (

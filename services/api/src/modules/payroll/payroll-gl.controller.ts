@@ -12,7 +12,12 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { Permissions } from '../../common/decorators/permissions.decorator';
+import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
+import {
+  Permissions,
+  RequireAnyPermission,
+  RequirePermission,
+} from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
@@ -32,6 +37,7 @@ export class PayrollGlController {
 
   @Post('gl-accounts')
   @Permissions('payroll-gl.manage')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_GL, 'manage')
   createGlAccount(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreatePayrollGlAccountDto,
@@ -41,12 +47,14 @@ export class PayrollGlController {
 
   @Get('gl-accounts')
   @Permissions('payroll-gl.read')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_GL, 'read')
   listGlAccounts(@CurrentUser() user: AuthenticatedUser) {
     return this.payrollJournalService.listGlAccounts(user);
   }
 
   @Get('gl-accounts/:id')
   @Permissions('payroll-gl.read')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_GL, 'read')
   getGlAccount(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -56,6 +64,7 @@ export class PayrollGlController {
 
   @Patch('gl-accounts/:id')
   @Permissions('payroll-gl.manage')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_GL, 'manage')
   updateGlAccount(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -66,6 +75,7 @@ export class PayrollGlController {
 
   @Delete('gl-accounts/:id')
   @Permissions('payroll-gl.manage')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_GL, 'manage')
   deactivateGlAccount(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -75,6 +85,7 @@ export class PayrollGlController {
 
   @Post('posting-rules')
   @Permissions('payroll-gl.manage')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_GL, 'manage')
   createPostingRule(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreatePayrollPostingRuleDto,
@@ -84,12 +95,14 @@ export class PayrollGlController {
 
   @Get('posting-rules')
   @Permissions('payroll-gl.read')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_GL, 'read')
   listPostingRules(@CurrentUser() user: AuthenticatedUser) {
     return this.payrollJournalService.listPostingRules(user);
   }
 
   @Post('posting-rules/preview-resolution')
   @Permissions('payroll-gl.read')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_GL, 'read')
   previewPostingRuleResolution(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: PreviewPayrollPostingRuleDto,
@@ -99,6 +112,10 @@ export class PayrollGlController {
 
   @Get('policies')
   @Permissions('payroll.settings.read')
+  @RequireAnyPermission(
+    { entityKey: ENTITY_KEYS.SETTINGS, action: 'read' },
+    { entityKey: ENTITY_KEYS.PAYROLL, action: 'read' },
+  )
   listPayrollPolicies(
     @CurrentUser() user: AuthenticatedUser,
     @Query()
@@ -118,6 +135,7 @@ export class PayrollGlController {
 
   @Get('posting-rules/:id')
   @Permissions('payroll-gl.read')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_GL, 'read')
   getPostingRule(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -127,6 +145,7 @@ export class PayrollGlController {
 
   @Patch('posting-rules/:id')
   @Permissions('payroll-gl.manage')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_GL, 'manage')
   updatePostingRule(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -137,6 +156,7 @@ export class PayrollGlController {
 
   @Delete('posting-rules/:id')
   @Permissions('payroll-gl.manage')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_GL, 'manage')
   deactivatePostingRule(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -146,6 +166,7 @@ export class PayrollGlController {
 
   @Post('runs/:runId/journal/generate')
   @Permissions('payroll-journal.generate')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_JOURNAL, 'create')
   generateJournal(
     @CurrentUser() user: AuthenticatedUser,
     @Param('runId', new ParseUUIDPipe()) runId: string,
@@ -159,6 +180,7 @@ export class PayrollGlController {
 
   @Get('runs/:runId/journal')
   @Permissions('payroll-journal.read')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_JOURNAL, 'read')
   getJournal(
     @CurrentUser() user: AuthenticatedUser,
     @Param('runId', new ParseUUIDPipe()) runId: string,
@@ -168,6 +190,7 @@ export class PayrollGlController {
 
   @Get('runs/:runId/journals')
   @Permissions('payroll-journal.read')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_JOURNAL, 'read')
   listJournals(
     @CurrentUser() user: AuthenticatedUser,
     @Param('runId', new ParseUUIDPipe()) runId: string,
@@ -177,6 +200,7 @@ export class PayrollGlController {
 
   @Get('runs/:runId/journal/export')
   @Permissions('payroll-journal.export')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_JOURNAL, 'export')
   @Header('Content-Type', 'text/csv; charset=utf-8')
   @Header('Content-Disposition', 'attachment; filename="payroll-journal.csv"')
   exportJournal(
@@ -188,6 +212,7 @@ export class PayrollGlController {
 
   @Post('runs/:runId/journal/mark-exported')
   @Permissions('payroll-journal.export')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_JOURNAL, 'export')
   markJournalExported(
     @CurrentUser() user: AuthenticatedUser,
     @Param('runId', new ParseUUIDPipe()) runId: string,
@@ -197,6 +222,7 @@ export class PayrollGlController {
 
   @Post('runs/:runId/journal/validate')
   @Permissions('payroll-journal.read')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_JOURNAL, 'read')
   validateJournal(
     @CurrentUser() user: AuthenticatedUser,
     @Param('runId', new ParseUUIDPipe()) runId: string,
@@ -205,7 +231,8 @@ export class PayrollGlController {
   }
 
   @Post('runs/:runId/journal/mark-posted')
-  @Permissions('payroll-journal.export')
+  @Permissions('payroll-journal.manage')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_JOURNAL, 'manage')
   markJournalPosted(
     @CurrentUser() user: AuthenticatedUser,
     @Param('runId', new ParseUUIDPipe()) runId: string,
@@ -214,7 +241,8 @@ export class PayrollGlController {
   }
 
   @Post('runs/:runId/journal/reverse')
-  @Permissions('payroll-journal.export')
+  @Permissions('payroll-journal.manage')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_JOURNAL, 'manage')
   reverseJournal(
     @CurrentUser() user: AuthenticatedUser,
     @Param('runId', new ParseUUIDPipe()) runId: string,

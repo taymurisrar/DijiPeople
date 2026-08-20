@@ -1,7 +1,8 @@
 # Browser E2E
 
-> **Status: infrastructure exists and runs; not a required CI gate yet.**
-> Promotion criteria are in [Promotion](#promotion-to-the-required-gate).
+> **Status: infrastructure exists and runs; named by the required aggregate,
+> but still fail-open through job-level `continue-on-error: true`.**
+> Closure criteria are in [Required-gate status](#required-gate-status).
 
 Until this suite existed, this repository had **no browser tooling of any
 kind** — no Playwright, no Cypress, no Puppeteer, and `apps/web` / `apps/admin`
@@ -22,20 +23,20 @@ Tracked as [`ITEM-0001`](../backlog/items/ITEM-0001-no-browser-e2e-tooling-exist
 | Which tool | Playwright | Multi-origin in one context — the primary journey starts on landing (`:3000`) and finishes in admin (`:3002`). Cypress's per-origin model fights that. Traces and video on failure come free. |
 | Where it lives | `e2e/`, a workspace of its own | The journeys span three apps. A suite inside `apps/admin` would be misfiled for half its scenarios or duplicated. |
 | Which apps first | landing + admin | They carry the commercial journey, which is the product's most important flow and the one with the most open records against it. |
-| CI mode | **Report-only** | See below. |
+| CI mode | **Fail-open required-list dependency** | It appears in `ci-required.needs`, but job-level `continue-on-error` prevents a failing browser step from blocking the aggregate. |
 | Test data | A disposable local/CI PostgreSQL, seeded, plus per-run unique identifiers | Never a developer's working database — `scripts/assert-test-database.mjs` refuses one, and the suite re-checks independently because it can be pointed elsewhere by an env var. |
 
-### Why report-only, and not required
+### Current gate contradiction
 
-The database e2e job is already report-only for a stated reason: a gate that is
-red on arrival for environmental reasons trains people to ignore CI, which is
-the exact failure the pipeline exists to prevent. A browser suite has strictly
-more environmental surface than that job — three servers, a database, browser
-binaries and a real login — so requiring it on day one would be a worse version
-of the same mistake.
+The job was added to `ci-required.needs` after its original promotion criteria
+were met, but `continue-on-error: true` was left on the job. GitHub therefore
+reports the dependency as successful even when its test step fails. The latest
+audited execution ran 8 tests and skipped one named BUG-0019 reachability
+assertion. [[BUG-0049]] tracks both the fail-open policy and the misleading
+aggregate signal.
 
-It runs in full on every push, its report is uploaded, and nothing in it is
-skipped or weakened.
+It runs on every push and uploads its report. The artifact and test summary,
+not the aggregate conclusion alone, are the current evidence source.
 
 ---
 
@@ -140,9 +141,9 @@ it cannot hide.
 
 ---
 
-## Promotion to the required gate
+## Required-gate status
 
-Move `browser-e2e-report` into `ci-required` when **all** hold:
+The original promotion criteria were:
 
 1. The suite passes three consecutive runs on `main` with zero retries used.
 2. Total runtime stays under ~8 minutes.
@@ -150,5 +151,8 @@ Move `browser-e2e-report` into `ci-required` when **all** hold:
 4. Any scenario that is environment-dependent is quarantined **by name**, with
    the reason recorded in `docs/qa/`.
 
-Until then it reports and does not block. Recorded in
-[`ci-recommendation.md`](ci-recommendation.md).
+The job is now named `browser-e2e` and is already in `ci-required`. Promotion is
+not complete until `continue-on-error` is removed and the stale BUG-0019 skip is
+restored to an executed assertion. Until then a green aggregate is not a
+browser-pass verdict. Recorded in [`ci-recommendation.md`](ci-recommendation.md)
+and [[BUG-0049]].

@@ -11,9 +11,10 @@ import {
 } from './partner-experience.controller';
 import { PartnerExperienceService } from './partner-experience.service';
 import { PlatformCommunicationsModule } from '../platform-communications/platform-communications.module';
+import { LegalModule } from '../legal/legal.module';
 
 @Module({
-  imports: [AuthModule, PlatformCommunicationsModule],
+  imports: [AuthModule, PlatformCommunicationsModule, LegalModule],
   controllers: [
     PublicPartnersController,
     PartnerAuthController,

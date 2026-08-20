@@ -17,6 +17,11 @@ import type { AuthenticatedUser } from '../../common/interfaces/authenticated-re
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { normalizeEmail } from '../../common/utils/email.util';
 import { AuditService } from '../audit/audit.service';
+import {
+  ensureIdentityForEmail,
+  identityHasUsableCredential,
+  mirrorPasswordToIdentity,
+} from '../users/identity.service';
 import { AuthService } from '../auth/auth.service';
 import { UserInvitationsService } from '../auth/user-invitations.service';
 import { PlatformEventsService } from '../platform-events/platform-events.service';
@@ -183,23 +188,59 @@ export class TenantAccessService {
       );
     }
 
+    let reusesExistingCredential = false;
+
     const created = await this.prisma.$transaction(async (tx) => {
+      /*
+       * A placeholder nobody knows, including this process. Used only if this
+       * email is not already a person — `ensureForEmail` never overwrites an
+       * existing credential, which is what makes OD-01's "reuses its
+       * credentials with no activation step" true rather than aspirational.
+       */
+      const placeholderHash = await bcrypt.hash(unguessableSecret(), 12);
+      const identityId = await ensureIdentityForEmail(
+        tx,
+        email,
+        placeholderHash,
+      );
+      /*
+       * WP-08 / OD-01: an existing identity keeps its credentials and skips
+       * activation entirely.
+       *
+       * The test is not "does an identity exist" — both provisioning paths
+       * create one with an unguessable placeholder, so an identity can exist
+       * for somebody who has never set a password. It is "has this person
+       * activated somewhere", evidenced by an ACTIVE account in another
+       * workspace. Get that wrong in the permissive direction and they get an
+       * ACTIVE account nobody can open, with the activation email that was
+       * their only way in suppressed.
+       */
+      reusesExistingCredential = await identityHasUsableCredential(
+        tx,
+        identityId,
+        tenant.id,
+      );
+
       const identity = await tx.user.create({
         data: {
           tenantId: tenant.id,
           businessUnitId: businessUnit.id,
+          identityId,
           firstName: dto.firstName,
           lastName: isOwner
             ? dto.lastName?.trim() || 'Owner'
             : 'Service Account',
           email,
           /*
-           * A placeholder nobody knows, including this process. The identity is
-           * usable only after the holder sets their own password through the
-           * activation link — Platform Admin never chooses or sees a password.
+           * The workspace account's own copy, kept until the contract phase
+           * takes credentials off `User` entirely. The holder sets their real
+           * password through the activation link — Platform Admin never chooses
+           * or sees one.
            */
-          passwordHash: await bcrypt.hash(unguessableSecret(), 12),
-          status: UserStatus.INVITED,
+          passwordHash: placeholderHash,
+          status: reusesExistingCredential
+            ? UserStatus.ACTIVE
+            : UserStatus.INVITED,
           isServiceAccount: !isOwner,
           serviceAccountPurpose: !isOwner ? (dto.purpose ?? null) : null,
           createdById: user.userId,
@@ -220,13 +261,22 @@ export class TenantAccessService {
       return identity;
     });
 
-    const invitation = await this.userInvitations.issueInvitation({
-      tenantId: tenant.id,
-      userId: created.id,
-      email: created.email,
-      fullName: `${created.firstName} ${created.lastName}`.trim(),
-      createdByUserId: user.userId,
-    });
+    /*
+     * No activation email for somebody who already has a password. The brief
+     * asks for exactly this — *"if the Owner identity already exists, do not
+     * unnecessarily force password recreation"* — and sending one anyway would
+     * invite them to replace a working credential they share with another
+     * workspace.
+     */
+    const invitation = reusesExistingCredential
+      ? null
+      : await this.userInvitations.issueInvitation({
+          tenantId: tenant.id,
+          userId: created.id,
+          email: created.email,
+          fullName: `${created.firstName} ${created.lastName}`.trim(),
+          createdByUserId: user.userId,
+        });
 
     await this.record(user, tenant.id, {
       action: isOwner
@@ -237,6 +287,8 @@ export class TenantAccessService {
         email: created.email,
         identityType: dto.identityType,
         status: created.status,
+        // Auditable: "why did this person never get an activation email".
+        reusedExistingCredential: reusesExistingCredential,
       },
     });
 
@@ -249,10 +301,16 @@ export class TenantAccessService {
       /*
        * Shown once. The link is single-use and expires; it is not stored in a
        * form the UI can request again.
+       *
+       * Null when the person already had a password — there is no activation to
+       * link to. The screen must say "they can sign in with their existing
+       * DijiPeople password" rather than render an empty link box, which is
+       * what `reusedExistingCredential` is for.
        */
-      activationLink: invitation.activationLink,
-      activationExpiresAt: invitation.expiresAt,
-      deliveryStatus: invitation.deliveryStatus,
+      activationLink: invitation?.activationLink ?? null,
+      activationExpiresAt: invitation?.expiresAt ?? null,
+      deliveryStatus: invitation?.deliveryStatus ?? null,
+      reusedExistingCredential: reusesExistingCredential,
     };
   }
 
@@ -427,13 +485,23 @@ export class TenantAccessService {
       );
     }
 
-    await this.prisma.user.update({
-      where: { id: identity.id },
-      data: {
-        passwordHash: await bcrypt.hash(unguessableSecret(), 12),
-        status: UserStatus.INVITED,
-        updatedById: user.userId,
-      },
+    const rotatedHash = await bcrypt.hash(unguessableSecret(), 12);
+    await this.prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: identity.id },
+        data: {
+          passwordHash: rotatedHash,
+          status: UserStatus.INVITED,
+          updatedById: user.userId,
+        },
+      });
+      /*
+       * Rotation has to reach the identity too. Once login reads the identity,
+       * a rotation that touched only `User` would rotate nothing — a
+       * service-account credential reported as revoked and still working is
+       * worse than one nobody rotated.
+       */
+      await mirrorPasswordToIdentity(tx, identity.id, rotatedHash);
     });
     const revoked = await this.revokeSessions(tenant.id, identity.id);
 

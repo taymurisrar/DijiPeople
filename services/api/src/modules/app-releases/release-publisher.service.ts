@@ -100,7 +100,7 @@ export class ReleasePublisherService {
       input.fileName,
       app.artifactExtensions,
     );
-    const checksum = this.assertArtifact(
+    const { checksum, checksumSha512 } = this.assertArtifact(
       input.artifact,
       input.declaredChecksumSha256,
     );
@@ -176,6 +176,7 @@ export class ReleasePublisherService {
         {
           ...identity,
           checksumSha256: checksum,
+          checksumSha512,
           environment,
         },
       );
@@ -197,6 +198,7 @@ export class ReleasePublisherService {
           fileName,
           fileSizeBytes,
           checksumSha256: checksum,
+          checksumSha512,
           minimumSupportedVersion: input.minimumSupportedVersion ?? null,
           requiredPermission: defaultPermissionForApp(app.appKey),
         },
@@ -226,6 +228,7 @@ export class ReleasePublisherService {
           fileName,
           fileSizeBytes,
           checksumSha256: checksum,
+          checksumSha512,
           minimumSupportedVersion: input.minimumSupportedVersion ?? null,
           releaseNotes: input.releaseNotes ?? null,
           requiredPermission: defaultPermissionForApp(app.appKey),
@@ -258,6 +261,7 @@ export class ReleasePublisherService {
     await this.verifyRegistration(created.id, {
       ...identity,
       checksumSha256: checksum,
+      checksumSha512,
       fileSizeBytes,
     });
 
@@ -268,6 +272,7 @@ export class ReleasePublisherService {
       {
         ...identity,
         checksumSha256: checksum,
+        checksumSha512,
         fileSizeBytes,
         fileName,
         environment,
@@ -412,6 +417,18 @@ export class ReleasePublisherService {
         fileName: source.fileName,
         fileSizeBytes: source.fileSizeBytes,
         checksumSha256: source.checksumSha256,
+        /*
+         * BUG-0034 — carried forward, because promotion is exactly the path
+         * that matters to the update feed: beta becomes stable, and stable is
+         * the only channel the feed serves. Dropping it here would publish a
+         * release the feed then silently skips.
+         *
+         * Null for anything published before the column existed. That is
+         * correct rather than unfortunate — the feed skips a release it cannot
+         * let the updater verify, instead of advertising one that would fail
+         * verification after downloading.
+         */
+        checksumSha512: source.checksumSha512,
         minimumSupportedVersion: source.minimumSupportedVersion,
         // Notes may legitimately differ per channel ("promoted from beta after
         // hardware acceptance"), but the source's notes are the default so a
@@ -426,6 +443,7 @@ export class ReleasePublisherService {
     await this.verifyRegistration(promoted.id, {
       ...identity,
       checksumSha256: source.checksumSha256,
+      checksumSha512: source.checksumSha512,
       fileSizeBytes: source.fileSizeBytes,
     });
 
@@ -615,6 +633,24 @@ export class ReleasePublisherService {
 
     const checksum = createHash('sha256').update(artifact).digest('hex');
 
+    /*
+     * BUG-0034 — a second digest of the same bytes, for the electron-updater
+     * feed. It verifies a download against sha512 and aborts the install on a
+     * mismatch, so sha256 cannot serve that feed however it is re-encoded: they
+     * are different digests, not two formats of one.
+     *
+     * Base64 rather than hex because base64 is what electron-updater writes
+     * into `latest.yml` and compares against. Hex would fail every verification
+     * while looking perfectly correct in the database.
+     *
+     * Computed here, from the bytes that ARRIVED, for the same reason the
+     * sha256 is: a digest supplied by the publisher would only ever prove the
+     * publisher's own copy was intact.
+     */
+    const checksumSha512 = createHash('sha512')
+      .update(artifact)
+      .digest('base64');
+
     // The checksum is recomputed here from the bytes that ARRIVED. The
     // publisher's own value is only ever compared, never trusted: if they
     // disagree the upload was corrupted in transit and the release must not be
@@ -630,7 +666,7 @@ export class ReleasePublisherService {
       });
     }
 
-    return checksum;
+    return { checksum, checksumSha512 };
   }
 
   private async storeArtifact(
@@ -660,6 +696,8 @@ export class ReleasePublisherService {
       version: string;
       channel: ApplicationReleaseChannel;
       checksumSha256: string;
+      /* Null for releases published before the column existed — see promote(). */
+      checksumSha512: string | null;
       fileSizeBytes: number | null;
     },
   ) {
@@ -679,6 +717,15 @@ export class ReleasePublisherService {
         expected.checksumSha256.toLowerCase()
       ) {
         problems.push('checksum differs');
+      }
+      /*
+       * BUG-0034 — verified as strictly as the sha256, and case-sensitively,
+       * because this one is base64. Lower-casing a base64 digest would compare
+       * two different values as equal, and a wrong sha512 is invisible until an
+       * agent downloads the update and refuses to install it.
+       */
+      if (stored.checksumSha512 !== expected.checksumSha512) {
+        problems.push('sha512 checksum differs');
       }
       if (stored.fileSizeBytes !== expected.fileSizeBytes) {
         problems.push('file size differs');

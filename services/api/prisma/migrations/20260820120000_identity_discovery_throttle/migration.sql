@@ -1,0 +1,33 @@
+-- Discovery gets its own throttle, so it stops being a lockout weapon.
+--
+-- ITEM-0069. `POST /auth/discover-workspaces` is public and counted its failures
+-- against `Identity.failedLoginAttempts` — the same counter that governs real
+-- sign-ins. Twenty unauthenticated requests therefore locked a known address out
+-- of **every** workspace for an hour. Anybody could run it against anybody.
+--
+-- The counter could not simply be removed: discovery has no tenant, so without
+-- one it is unlimited password guessing that the per-tenant lockout never sees.
+-- And it could not be keyed on the request instead, for the reason
+-- `login-lockout.service.ts` already gives — counting per address is avoided by
+-- rotating addresses, which is exactly what an attacker does.
+--
+-- So the fix is separation rather than removal. Discovery gets a counter of its
+-- own, and exhausting it blocks **discovery** rather than the credential:
+--
+--   * guessing through the public endpoint stays bounded;
+--   * the victim can still sign in at their workspace URL, because the
+--     credential lock is untouched;
+--   * the worst a stranger can now do is take away the generic login screen
+--     from one address for fifteen minutes.
+--
+-- That last line is the whole trade. It is not nothing — somebody who only
+-- knows their email and not their workspace URL is inconvenienced — but it is a
+-- different order of harm from being locked out of the product entirely.
+--
+-- Additive and defaulted, so it applies to a populated database with no
+-- backfill. Hand-written for the reason ITEM-0060 documents: a generated script
+-- carries ~204 statements of pre-existing drift alongside the real change.
+
+-- AlterTable
+ALTER TABLE "Identity" ADD COLUMN     "discoveryFailedAttempts" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN     "discoveryBlockedUntil" TIMESTAMP(3);

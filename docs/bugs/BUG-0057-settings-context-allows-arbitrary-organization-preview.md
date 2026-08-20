@@ -1,0 +1,103 @@
+---
+ID: BUG-0057
+aliases: [BUG-0057]
+Title: Self-service settings context allows arbitrary organization preview
+Status: VERIFIED
+Severity: HIGH
+Priority: P0
+Type: AUTHORIZATION
+Source: ARCHITECT
+DetectedDate: 2026-08-17
+DetectedInSha: 3f9063f
+AffectedModules: [services/api/src/modules/tenant-settings]
+OwnerAgent: backend-api
+ArchitectDisposition: DONE
+QAReport:
+RegressionId: REG-044
+RelatedBacklogItem: ITEM-0043
+RelatedDecision:
+RelatedImplementation:
+CreatedAt: 2026-08-17
+UpdatedAt: 2026-08-17
+ResolvedAt: 2026-08-17
+---
+
+# BUG-0057 - Self-service settings context allows arbitrary organization preview
+
+## Summary
+
+Ordinary employees can supply arbitrary same-tenant organization and context
+identifiers to resolved settings/context endpoints.
+
+## Expected Behavior
+
+SELF callers resolve only their own employee context; explicit organization
+preview requires settings read access above SELF.
+
+## Actual Behavior
+
+Base employees receive `dashboard.view`, which is incorrectly treated as
+authority for arbitrary context, and `/tenant-settings/resolved` checks only
+that a requested organization belongs to the tenant.
+
+## Reproduction
+
+As an employee, supply another organization/employee/business-unit id to the
+two resolved endpoints.
+
+## Evidence
+
+`settings-context.controller.ts` derives authority from `dashboard.view`;
+`tenant-settings.controller.ts` performs membership but not caller-access
+validation.
+
+## Root Cause
+
+Navigation/dashboard capability and tenant membership were mistaken for
+object-level settings authorization.
+
+## Impact
+
+Intra-tenant exposure of organization-specific configuration and resolved
+application context.
+
+## Affected Areas
+
+Resolved application context and tenant settings preview.
+
+## Proposed Resolution
+
+Move access decisions into services, derive SELF context from the linked
+employee, and honor supplied identifiers only with effective SETTINGS read
+scope above SELF.
+
+## Acceptance Criteria
+
+Employee input cannot alter own resolution; authorized settings admins can
+preview allowed organizations; inaccessible/cross-tenant ids do not resolve.
+
+## Regression Coverage
+
+Pending WP-03 settings authorization tests.
+
+## Dependencies
+
+Dual permission metadata and scope-resolution tests.
+
+## Related Items
+
+[[ITEM-0043]].
+
+## Resolution
+
+Fixed 2026-08-17, integrated into develop at 2313bef. Resolved settings derive their organization from the caller instead of trusting a request-supplied id, and a scoped reader is refused a sibling or out-of-tenant organization.
+
+## QA Retest
+
+Verified by the regression spec settings-context-authorization.spec.ts: arbitrary ids from a self-service user are ignored, an organization-scoped reader is denied a sibling organization, and an out-of-tenant id is denied. REG-044 records it Active: yes.
+
+## History
+
+- 2026-08-17 — fixed and verified in WP-03; integrated into develop at 2313bef with the CI required gate green on that exact SHA.
+- 2026-08-17 - confirmed by the WP-03 missing-both audit and atomically
+  reserved under `SESSION-0003`.

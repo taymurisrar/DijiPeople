@@ -1,5 +1,12 @@
+import type { Metadata } from "next";
 import { PageShell } from "../../../_components/site-shell";
 import { ActivationForm } from "./activation-form";
+
+export const metadata: Metadata = {
+  title: "Activate partner account",
+  description:
+    "Set the password for your DijiPeople partner portal account.",
+};
 export default async function Page({
   params,
 }: {

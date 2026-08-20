@@ -11,6 +11,7 @@ import { PrismaService } from '../src/common/prisma/prisma.service';
 import { SecretEncryptionService } from '../src/common/security/secret-encryption.service';
 import { getClientAccessTokenSecret } from '../src/common/config/auth.config';
 import { GatewayCredentialService } from '../src/modules/attendance-integrations/gateways/gateway-credential.service';
+import { DbFixtures } from './helpers/db-fixtures';
 
 /**
  * The machine-facing gateway surface, over real HTTP against the real database.
@@ -43,6 +44,8 @@ describe('Gateway runtime endpoints (e2e)', () => {
 
   let tenantId: string;
   let foreignTenantId: string;
+  let businessUnitId: string;
+  let fixtures: DbFixtures;
 
   /** Gateway A: the caller under test. */
   let gatewayA: string;
@@ -144,20 +147,16 @@ describe('Gateway runtime endpoints (e2e)', () => {
     credentials = app.get(GatewayCredentialService);
     secrets = app.get(SecretEncryptionService);
 
-    const tenants = await prisma.tenant.findMany({
-      where: { businessUnits: { some: {} } },
-      take: 2,
-      orderBy: { createdAt: 'asc' },
-      select: { id: true },
-    });
-    if (tenants.length < 2) {
-      throw new Error(
-        'These tests need two tenants with at least one business unit.',
-      );
-    }
+    // Built, not borrowed — see helpers/db-fixtures.ts and ITEM-0047. The
+    // cross-tenant assertions in this file are only meaningful if the suite
+    // knows which tenant is which, and adopting "the first two tenants that
+    // happen to have a business unit" gave it neither identity nor isolation.
+    fixtures = new DbFixtures(prisma, 'gateway-runtime');
+    const tenants = await fixtures.createTenantPair();
 
-    tenantId = tenants[0].id;
-    foreignTenantId = tenants[1].id;
+    tenantId = tenants.a.id;
+    foreignTenantId = tenants.b.id;
+    businessUnitId = tenants.a.businessUnitId;
 
     const a = await createGateway(tenantId, 'GW A');
     gatewayA = a.id;
@@ -183,14 +182,10 @@ describe('Gateway runtime endpoints (e2e)', () => {
       ));
 
     // A genuine user session, to prove it cannot substitute for a machine one.
-    const businessUnit = await prisma.businessUnit.findFirstOrThrow({
-      where: { tenantId },
-      select: { id: true },
-    });
     const user = await prisma.user.create({
       data: {
         tenantId,
-        businessUnitId: businessUnit.id,
+        businessUnitId,
         firstName: 'Gateway',
         lastName: 'Suite',
         email: `gwrt-${suffix}@example.test`,
@@ -233,36 +228,27 @@ describe('Gateway runtime endpoints (e2e)', () => {
   });
 
   afterAll(async () => {
-    const integrationIds = [integrationA, integrationB, foreignIntegration];
-    const gatewayIds = [gatewayA, gatewayB, foreignGateway];
-
-    await prisma.rawAttendanceEvent.deleteMany({
-      where: { integrationId: { in: integrationIds } },
-    });
-    await prisma.integrationRun.deleteMany({
-      where: { integrationId: { in: integrationIds } },
-    });
-    await prisma.externalDeviceUser.deleteMany({
-      where: { integrationId: { in: integrationIds } },
-    });
-    await prisma.attendanceDevice.deleteMany({
-      where: { integrationId: { in: integrationIds } },
-    });
-    await prisma.attendanceIntegration.deleteMany({
-      where: { id: { in: integrationIds } },
-    });
-    await prisma.integrationGatewayCredential.deleteMany({
-      where: { gatewayId: { in: gatewayIds } },
-    });
-    await prisma.integrationGateway.deleteMany({
-      where: { id: { in: gatewayIds } },
-    });
-    await prisma.refreshToken.deleteMany({
-      where: { userId: { in: createdUserIds } },
-    });
-    await prisma.user.deleteMany({ where: { id: { in: createdUserIds } } });
-
-    await app.close();
+    // This teardown is the reason B5 exists. When `beforeAll` threw on the
+    // missing second tenant, none of the ids below were ever assigned, and the
+    // first statement went out as:
+    //
+    //   deleteMany({ where: { integrationId: { in: [undefined, undefined,
+    //                                              undefined] } } })
+    //
+    // Prisma rejects `undefined` inside an array, so teardown itself threw —
+    // reported as "Test suite failed to run", on top of 27 already-failing
+    // tests, none of which was the actual defect. Secondary damage that made
+    // the primary failure harder to see.
+    //
+    // Deleting the fixture tenants cascades every row this suite created, so
+    // there are no ids to thread through and nothing to be undefined. `app`
+    // closes in `finally` because a leaked Nest application holds a Prisma
+    // pool open and keeps jest alive after the run.
+    try {
+      await fixtures?.cleanup();
+    } finally {
+      await app?.close();
+    }
   });
 
   const server = () => app.getHttpServer();

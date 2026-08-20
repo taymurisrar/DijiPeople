@@ -78,11 +78,14 @@ mailer call beside the notification orchestrator.
 Two agents in one of these produces conflicts that are painful, or silently
 wrong, to merge.
 
-### 5. There is no CI — validation only happens if you run it
+### 5. CI exists, and local validation still matters
 
-No `.github/` workflows exist. Nothing runs lint, typecheck or tests on push.
-Agents must run the relevant commands themselves and **state which ran, which
-passed, which failed, and which were skipped and why.**
+`.github/workflows/ci.yml` runs on push and aggregates eleven listed jobs behind
+`CI required gate`. Two jobs remain report-only, and browser E2E remains
+fail-open through `continue-on-error`, so inspect relevant job evidence rather
+than trusting only the aggregate. Agents must also run relevant local commands
+and **state which ran, which passed, which failed, and which were skipped and
+why.**
 
 Never report completion while a relevant validation is failing or unrun.
 

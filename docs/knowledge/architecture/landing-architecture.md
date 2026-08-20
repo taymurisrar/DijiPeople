@@ -129,7 +129,9 @@ Landing is covered by four required CI jobs: `lint`, `test-landing`, `typecheck`
 and `build`, plus the URL rules in `test-runtime`.
 
 Browser E2E exists (Playwright, `e2e/` workspace) and starts on landing for both
-flows, but the `browser-e2e-report` job is **report-only, not a gate**.
+flows. The `browser-e2e` job is named by the required aggregate but remains
+fail-open through job-level `continue-on-error`; inspect the browser summary
+rather than inferring PASS from the aggregate.
 
 Gaps, verified: no component/DOM tests (no jsdom installed, deliberately); no
 tests for any of the four proxies; **`/contact` is untested at every level**; and

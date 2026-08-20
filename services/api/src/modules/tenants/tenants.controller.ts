@@ -1,6 +1,10 @@
 import { Body, Controller, Get, Patch, Post, UseGuards } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { Permissions } from '../../common/decorators/permissions.decorator';
+import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
+import {
+  Permissions,
+  RequirePermission,
+} from '../../common/decorators/permissions.decorator';
 import { Public } from '../../common/decorators/public.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
@@ -24,17 +28,21 @@ export class TenantsController {
 
   @Get('current')
   @Permissions('tenant.read')
+  @RequirePermission(ENTITY_KEYS.TENANT_ADMINISTRATION, 'read')
   findCurrent(@CurrentUser() user: AuthenticatedUser) {
     return this.tenantsService.findById(user.tenantId);
   }
 
   @Get('current/slug')
   @Permissions('tenant.read')
+  @RequirePermission(ENTITY_KEYS.TENANT_ADMINISTRATION, 'read')
   getCurrentSlug(@CurrentUser() user: AuthenticatedUser) {
     return this.tenantsService.getCurrentSlug(user);
   }
 
   @Patch('current/slug')
+  @Permissions('tenant.update')
+  @RequirePermission(ENTITY_KEYS.TENANT_ADMINISTRATION, 'manage')
   updateCurrentSlug(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: UpdateTenantSlugDto,

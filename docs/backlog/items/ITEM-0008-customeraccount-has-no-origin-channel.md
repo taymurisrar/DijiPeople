@@ -9,7 +9,7 @@ Severity: LOW
 AffectedModules: [services/api/prisma, services/api/src/modules/super-admin]
 Source: QA_RUN
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 CreatedAt: 2026-08-15
 UpdatedAt: 2026-08-17
 RelatedBug:
@@ -69,6 +69,9 @@ requirement [[requirement-commercial-onboarding|Commercial Onboarding]] · [[ITE
 `Lead → CustomerAccount` edge.
 
 ## History
+
+- 2026-08-17 — Architect reconciliation: terminal `DONE` status normalized to
+  `ArchitectDisposition: DONE`; no runtime behavior changed.
 
 - 2026-08-15 — imported from the commercial onboarding E2E observations.
 

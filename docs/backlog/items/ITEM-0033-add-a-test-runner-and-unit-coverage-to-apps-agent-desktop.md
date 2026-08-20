@@ -9,9 +9,9 @@ Severity: MEDIUM
 AffectedModules: [apps/agent-desktop]
 Source: ARCHITECT
 OwnerAgent: architect
-ArchitectDisposition: DEFER
+ArchitectDisposition: FIX_NOW
 CreatedAt: 2026-08-16
-UpdatedAt: 2026-08-16
+UpdatedAt: 2026-08-17
 RelatedBug: BUG-0036
 RelatedQA: 
 RelatedADR: 
@@ -70,3 +70,9 @@ harness and should not block the three above.
 - `offline-queue` has a test asserting a failed batch is re-sent exactly once
   per event.
 - The coverage table in `apps/agent-desktop/AGENTS.md` lists desktop-side entries.
+
+## History
+
+- 2026-08-17 — reconciled to `FIX_NOW`: the first three targets deliberately
+  avoid Electron dependencies, so this is ready technical work rather than a
+  justified defer.

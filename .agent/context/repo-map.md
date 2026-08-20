@@ -1,7 +1,7 @@
 # Repository Map
 
-> **Last verified:** 2026-08-16
-> **Verified against commit:** 78072d2
+> **Last verified:** 2026-08-17
+> **Verified against commit:** 3f9063f
 > **Key source files:** package.json, turbo.json, services/api/src/common/, apps/web/lib/runtime/, apps/admin/lib/, packages/config/index.js, packages/ui/src/, gateway/, tools/zkteco-poc/, e2e/, scripts/, docs/README.md
 >
 > This document describes the repository, it is not authority over it. If the
@@ -56,7 +56,9 @@ turbo.json         task graph + globalEnv allowlist
 AGENTS.md          primary agent instructions (CLAUDE.md is a one-line include)
 PLANS.md           planning rules
 DEPLOYMENT_CHECKLIST.md
-.agent/agents/     agent role definitions (architect, implementer, reviewer)
+.agent/agents/     10 agent role definitions (architect, backend-api, database,
+                   frontend, integration, integrator, qa, release-devops,
+                   reviewer, ui-ux) — there is no `implementer`
 ```
 
 `gateway/` and `tools/` **both exist** — `git ls-files gateway tools` returns

@@ -9,7 +9,11 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { Permissions } from '../../common/decorators/permissions.decorator';
+import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
+import {
+  Permissions,
+  RequirePermission,
+} from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
@@ -42,24 +46,28 @@ export class NotificationsController {
 
   @Get('events')
   @Permissions(NOTIFICATION_PERMISSION_KEYS.NOTIFICATIONS_READ)
+  @RequirePermission(ENTITY_KEYS.USER_PREFERENCES, 'read')
   listEvents() {
     return this.notificationsService.listEvents();
   }
 
   @Get('events/:code')
   @Permissions(NOTIFICATION_PERMISSION_KEYS.NOTIFICATIONS_READ)
+  @RequirePermission(ENTITY_KEYS.USER_PREFERENCES, 'read')
   getEvent(@Param('code') code: string) {
     return this.notificationsService.getEvent(code);
   }
 
   @Get('preferences')
   @Permissions(NOTIFICATION_PERMISSION_KEYS.NOTIFICATIONS_READ)
+  @RequirePermission(ENTITY_KEYS.USER_PREFERENCES, 'read')
   listPreferences(@CurrentUser() user: AuthenticatedUser) {
     return this.notificationsService.listPreferences(user);
   }
 
   @Patch('preferences')
   @Permissions(NOTIFICATION_PERMISSION_KEYS.NOTIFICATIONS_MANAGE)
+  @RequirePermission(ENTITY_KEYS.USER_PREFERENCES, 'write')
   updatePreferences(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: UpdateNotificationPreferencesDto,
@@ -69,6 +77,7 @@ export class NotificationsController {
 
   @Get('email-templates')
   @Permissions(NOTIFICATION_PERMISSION_KEYS.NOTIFICATION_TEMPLATES_READ)
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'read')
   listTemplates(@CurrentUser() user: AuthenticatedUser) {
     return this.notificationsService.listTemplates(user);
   }
@@ -79,12 +88,14 @@ export class NotificationsController {
    */
   @Get('email-templates/scope-options')
   @Permissions(NOTIFICATION_PERMISSION_KEYS.NOTIFICATION_TEMPLATES_READ)
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'read')
   listScopeOptions(@CurrentUser() user: AuthenticatedUser) {
     return this.notificationsService.listTemplateScopeOptions(user);
   }
 
   @Get('email-templates/:id')
   @Permissions(NOTIFICATION_PERMISSION_KEYS.NOTIFICATION_TEMPLATES_READ)
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'read')
   getTemplate(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') templateId: string,
@@ -94,6 +105,7 @@ export class NotificationsController {
 
   @Post('email-templates')
   @Permissions(NOTIFICATION_PERMISSION_KEYS.NOTIFICATION_TEMPLATES_MANAGE)
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'configure')
   createTemplate(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateEmailTemplateDto,
@@ -103,6 +115,7 @@ export class NotificationsController {
 
   @Patch('email-templates/:id')
   @Permissions(NOTIFICATION_PERMISSION_KEYS.NOTIFICATION_TEMPLATES_MANAGE)
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'configure')
   updateTemplate(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') templateId: string,
@@ -113,6 +126,7 @@ export class NotificationsController {
 
   @Post('email-templates/:id/clone')
   @Permissions(NOTIFICATION_PERMISSION_KEYS.NOTIFICATION_TEMPLATES_MANAGE)
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'configure')
   cloneTemplate(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') templateId: string,
@@ -123,6 +137,7 @@ export class NotificationsController {
 
   @Post('email-templates/:id/activate')
   @Permissions(NOTIFICATION_PERMISSION_KEYS.NOTIFICATION_TEMPLATES_MANAGE)
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'configure')
   activateTemplate(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') templateId: string,
@@ -132,6 +147,7 @@ export class NotificationsController {
 
   @Post('email-templates/:id/archive')
   @Permissions(NOTIFICATION_PERMISSION_KEYS.NOTIFICATION_TEMPLATES_MANAGE)
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'configure')
   archiveTemplate(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') templateId: string,
@@ -141,6 +157,7 @@ export class NotificationsController {
 
   @Post('email-templates/:id/preview')
   @Permissions(NOTIFICATION_PERMISSION_KEYS.NOTIFICATION_TEMPLATES_READ)
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'read')
   previewTemplate(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') templateId: string,
@@ -151,6 +168,7 @@ export class NotificationsController {
 
   @Post('email-templates/:id/test-send')
   @Permissions(NOTIFICATION_PERMISSION_KEYS.NOTIFICATION_TEMPLATES_MANAGE)
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'configure')
   testSendTemplate(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') templateId: string,
@@ -165,18 +183,21 @@ export class NotificationsController {
    */
   @Get('email-providers/field-schema')
   @Permissions(NOTIFICATION_PERMISSION_KEYS.NOTIFICATION_PROVIDERS_READ)
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'read')
   listProviderFieldSchema() {
     return { items: PROVIDER_SCHEMAS };
   }
 
   @Get('email-providers')
   @Permissions(NOTIFICATION_PERMISSION_KEYS.NOTIFICATION_PROVIDERS_READ)
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'read')
   listProviderSettings(@CurrentUser() user: AuthenticatedUser) {
     return this.notificationsService.listProviderSettings(user);
   }
 
   @Get('email-providers/:id')
   @Permissions(NOTIFICATION_PERMISSION_KEYS.NOTIFICATION_PROVIDERS_READ)
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'read')
   getProvider(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') providerId: string,
@@ -186,6 +207,7 @@ export class NotificationsController {
 
   @Post('email-providers')
   @Permissions(NOTIFICATION_PERMISSION_KEYS.NOTIFICATION_PROVIDERS_MANAGE)
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'configure')
   createProvider(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateEmailProviderDto,
@@ -195,6 +217,7 @@ export class NotificationsController {
 
   @Patch('email-providers/:id')
   @Permissions(NOTIFICATION_PERMISSION_KEYS.NOTIFICATION_PROVIDERS_MANAGE)
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'configure')
   updateProvider(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') providerId: string,
@@ -205,6 +228,7 @@ export class NotificationsController {
 
   @Post('email-providers/:id/set-default')
   @Permissions(NOTIFICATION_PERMISSION_KEYS.NOTIFICATION_PROVIDERS_MANAGE)
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'configure')
   setDefaultProvider(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') providerId: string,
@@ -214,6 +238,7 @@ export class NotificationsController {
 
   @Post('email-providers/:id/disable')
   @Permissions(NOTIFICATION_PERMISSION_KEYS.NOTIFICATION_PROVIDERS_MANAGE)
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'configure')
   disableProvider(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') providerId: string,
@@ -223,6 +248,7 @@ export class NotificationsController {
 
   @Post('email-providers/:id/validate')
   @Permissions(NOTIFICATION_PERMISSION_KEYS.NOTIFICATION_PROVIDERS_MANAGE)
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'configure')
   validateProvider(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') providerId: string,
@@ -232,6 +258,7 @@ export class NotificationsController {
 
   @Get('email-delivery-logs')
   @Permissions(NOTIFICATION_PERMISSION_KEYS.NOTIFICATION_LOGS_READ)
+  @RequirePermission(ENTITY_KEYS.REPORTS, 'read')
   listDeliveryLogs(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: EmailDeliveryLogQueryDto,
@@ -241,6 +268,7 @@ export class NotificationsController {
 
   @Get('email-delivery-logs/:id')
   @Permissions(NOTIFICATION_PERMISSION_KEYS.NOTIFICATION_LOGS_READ)
+  @RequirePermission(ENTITY_KEYS.REPORTS, 'read')
   getDeliveryLog(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') deliveryLogId: string,
@@ -249,6 +277,8 @@ export class NotificationsController {
   }
 
   @Get('in-app')
+  @Permissions('inbox.read')
+  @RequirePermission(ENTITY_KEYS.USER_PREFERENCES, 'read')
   listInAppNotifications(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: InAppNotificationQueryDto,
@@ -257,11 +287,15 @@ export class NotificationsController {
   }
 
   @Get('in-app/unread-count')
+  @Permissions('inbox.read')
+  @RequirePermission(ENTITY_KEYS.USER_PREFERENCES, 'read')
   getInAppUnreadCount(@CurrentUser() user: AuthenticatedUser) {
     return this.inAppNotificationsService.getUnreadCount(user);
   }
 
   @Post('in-app/:id/read')
+  @Permissions('inbox.markRead')
+  @RequirePermission(ENTITY_KEYS.USER_PREFERENCES, 'write')
   markInAppNotificationRead(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') recipientId: string,
@@ -270,6 +304,8 @@ export class NotificationsController {
   }
 
   @Post('in-app/:id/archive')
+  @Permissions('inbox.markRead')
+  @RequirePermission(ENTITY_KEYS.USER_PREFERENCES, 'write')
   archiveInAppNotification(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') recipientId: string,
@@ -278,6 +314,8 @@ export class NotificationsController {
   }
 
   @Post('in-app/:id/popup-shown')
+  @Permissions('inbox.markRead')
+  @RequirePermission(ENTITY_KEYS.USER_PREFERENCES, 'write')
   markInAppNotificationPopupShown(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') recipientId: string,
@@ -287,6 +325,7 @@ export class NotificationsController {
 
   @Get('diagnostics')
   @Permissions(NOTIFICATION_PERMISSION_KEYS.NOTIFICATION_DIAGNOSTICS_READ)
+  @RequirePermission(ENTITY_KEYS.REPORTS, 'read')
   getDiagnostics(@CurrentUser() user: AuthenticatedUser) {
     return this.diagnosticsService.getTenantDiagnostics(user.tenantId);
   }

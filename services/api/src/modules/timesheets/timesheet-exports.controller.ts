@@ -12,7 +12,11 @@ import {
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { Permissions } from '../../common/decorators/permissions.decorator';
+import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
+import {
+  Permissions,
+  RequirePermission,
+} from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
@@ -26,12 +30,14 @@ export class TimesheetExportsController {
 
   @Get()
   @Permissions('timesheets.export')
+  @RequirePermission(ENTITY_KEYS.TIMESHEETS, 'export')
   list(@CurrentUser() user: AuthenticatedUser) {
     return this.service.listRequests(user);
   }
 
   @Post()
   @Permissions('timesheets.export')
+  @RequirePermission(ENTITY_KEYS.TIMESHEETS, 'export')
   create(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateTimesheetExportDto,
@@ -41,6 +47,7 @@ export class TimesheetExportsController {
 
   @Get(':requestId')
   @Permissions('timesheets.export')
+  @RequirePermission(ENTITY_KEYS.TIMESHEETS, 'export')
   detail(
     @CurrentUser() user: AuthenticatedUser,
     @Param('requestId', new ParseUUIDPipe()) requestId: string,
@@ -50,6 +57,7 @@ export class TimesheetExportsController {
 
   @Get(':requestId/download')
   @Permissions('timesheets.export')
+  @RequirePermission(ENTITY_KEYS.TIMESHEETS, 'export')
   async download(
     @CurrentUser() user: AuthenticatedUser,
     @Param('requestId', new ParseUUIDPipe()) requestId: string,

@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { BASE_URLS } from '../playwright.config';
 import { openAdmin, signInToAdmin } from '../fixtures/admin-session';
 import { probeEnvironment, RUN_ID, withDatabase } from '../fixtures/environment';
@@ -29,6 +29,76 @@ const INQUIRY = {
   email: `flow-b-${RUN_ID}@example.test`,
 };
 
+/**
+ * Fill the public partner inquiry form.
+ *
+ * Shared by B1 and B2 deliberately. Both previously carried their own copy of
+ * the selectors, and both copies were wrong in the same way — written against
+ * label text this form has never had:
+ *
+ *   'Partner type'                        → 'How would you like to partner with DijiPeople?'
+ *   'Company name'                        → 'Company / Organization name'
+ *   'Business email'                      → 'Work email'
+ *   'Phone'                               → 'Phone number'
+ *   'Country' + `.fill()`                 → 'Country / Region', which is a <select>
+ *   'How would you work with DijiPeople?' → the message textarea, whose label differs again
+ *
+ * `getByLabel` matches the accessible name, so none of those resolved and
+ * `selectOption` sat until its 20s timeout — deterministically, on every run and
+ * every retry. Two copies of a selector list is how they drift apart together;
+ * one helper is the actual fix.
+ *
+ * Labels are matched by regex rather than exact string because two of them
+ * contain a typographic apostrophe (`&rsquo;`), which is easy to get wrong in
+ * source and invisible in a diff.
+ */
+async function fillPartnerInquiry(page: Page) {
+  await page
+    .getByLabel(/How would you like to partner with DijiPeople/i)
+    .selectOption({ index: 1 });
+  await page.getByLabel(/Company \/ Organization name/i).fill(INQUIRY.company);
+  await page.getByLabel(/First name/i).fill(INQUIRY.firstName);
+  await page.getByLabel(/Last name/i).fill(INQUIRY.lastName);
+  await page.getByLabel(/Work email/i).fill(INQUIRY.email);
+  await page.getByLabel(/Phone number/i).fill('+13125550199');
+  await page.getByLabel(/Country \/ Region/i).selectOption({ index: 1 });
+  await page
+    .getByLabel(/Tell us how you.{0,3}d like to work with DijiPeople/i)
+    .fill(`Browser E2E run ${RUN_ID}. Safe to delete.`);
+
+  /*
+   * `consentAccepted` carries the `required` attribute, so leaving it unchecked
+   * fails native form validation and the submit never reaches the API — with
+   * nothing surfaced to the test beyond a later assertion timing out. Checked
+   * unconditionally rather than behind an `if (count())`, because a form that
+   * no longer has the field is a change this test should notice, not skip past.
+   */
+  await page.locator('input[name="consentAccepted"]').first().check();
+}
+
+/**
+ * Assert the submission was **accepted**, not merely answered.
+ *
+ * The form renders success and failure into the same `role="status"` region, so
+ * `toBeVisible()` on it passes for "Reference PI-123" and for "website must be a
+ * URL address" alike. That is how BUG-0048 stayed invisible here: the API was
+ * rejecting every submission, this assertion passed, and the failure surfaced
+ * three statements later as a row count of 0 — with nothing in the message to
+ * say why.
+ *
+ * Asserting the reference number makes the test fail at the point of failure and
+ * puts the server's own words in the report.
+ */
+async function expectInquiryAccepted(page: Page) {
+  const status = page.locator('[role="status"]');
+  await expect(status).toBeVisible({ timeout: 30_000 });
+
+  const shown = (await status.textContent().catch(() => null)) ?? 'no status text';
+  await expect(status, `the form answered: ${shown}`).toContainText(/Reference/i, {
+    timeout: 15_000,
+  });
+}
+
 test.describe('Flow B — partner journey', () => {
   test.describe.configure({ mode: 'serial' });
 
@@ -46,24 +116,11 @@ test.describe('Flow B — partner journey', () => {
     const submit = page.getByRole('button', { name: /submit partner inquiry/i });
     await expect(submit).toBeVisible({ timeout: 30_000 });
 
-    await page.getByLabel('Partner type').selectOption({ index: 1 });
-    await page.getByLabel('Company name').fill(INQUIRY.company);
-    await page.getByLabel('First name').fill(INQUIRY.firstName);
-    await page.getByLabel('Last name').fill(INQUIRY.lastName);
-    await page.getByLabel('Business email').fill(INQUIRY.email);
-    await page.getByLabel('Phone').fill('+13125550199');
-    await page.getByLabel('Country').fill('United States');
-    await page
-      .getByLabel('How would you work with DijiPeople?')
-      .fill(`Browser E2E run ${RUN_ID}. Safe to delete.`);
-
-    const consent = page.locator('input[name="consentAccepted"]');
-    if (await consent.count()) await consent.first().check();
+    await fillPartnerInquiry(page);
 
     await submit.click();
 
-    /* The form reports a reference number in a role=status region on success. */
-    await expect(page.locator('[role="status"]')).toBeVisible({ timeout: 30_000 });
+    await expectInquiryAccepted(page);
 
     const rows = await withDatabase((client) =>
       client.query('select id, status from "PartnerInquiry" where email = $1', [
@@ -85,20 +142,14 @@ test.describe('Flow B — partner journey', () => {
      * form in the product with that protection.
      */
     await page.goto(`${BASE_URLS.landing}/partners`);
-    await page.getByLabel('Partner type').selectOption({ index: 1 });
-    await page.getByLabel('Company name').fill(INQUIRY.company);
-    await page.getByLabel('First name').fill(INQUIRY.firstName);
-    await page.getByLabel('Last name').fill(INQUIRY.lastName);
-    await page.getByLabel('Business email').fill(INQUIRY.email);
-    await page.getByLabel('Phone').fill('+13125550199');
-    await page.getByLabel('Country').fill('United States');
-    await page
-      .getByLabel('How would you work with DijiPeople?')
-      .fill(`Browser E2E run ${RUN_ID}. Safe to delete.`);
-    const consent = page.locator('input[name="consentAccepted"]');
-    if (await consent.count()) await consent.first().check();
+    await expect(
+      page.getByRole('button', { name: /submit partner inquiry/i }),
+    ).toBeVisible({ timeout: 30_000 });
+
+    await fillPartnerInquiry(page);
+
     await page.getByRole('button', { name: /submit partner inquiry/i }).click();
-    await expect(page.locator('[role="status"]')).toBeVisible({ timeout: 30_000 });
+    await expectInquiryAccepted(page);
 
     const rows = await withDatabase((client) =>
       client.query('select id from "PartnerInquiry" where email = $1', [

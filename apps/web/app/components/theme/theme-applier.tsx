@@ -1,11 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import {
-  applyTheme,
-  readStoredThemeChoice,
-  type ThemeChoice,
-} from "@/lib/theme";
+import { applyTheme, effectiveThemeChoice, type ThemeChoice } from "@/lib/theme";
 
 /*
  * Re-asserts the user's theme after hydration, everywhere in the app.
@@ -21,7 +17,7 @@ import {
  */
 export function ThemeApplier() {
   useEffect(() => {
-    const choice: ThemeChoice = readStoredThemeChoice() ?? "system";
+    const choice: ThemeChoice = effectiveThemeChoice();
     applyTheme(choice);
 
     /*
@@ -30,7 +26,7 @@ export function ThemeApplier() {
      * rather than set once and trusted.
      */
     const observer = new MutationObserver(() => {
-      const expected = readStoredThemeChoice() ?? "system";
+      const expected = effectiveThemeChoice();
       applyTheme(expected);
     });
     observer.observe(document.documentElement, {
@@ -41,7 +37,7 @@ export function ThemeApplier() {
     /* Keep following the operating system while "System" is selected. */
     const query = window.matchMedia("(prefers-color-scheme: dark)");
     const onSystemChange = () => {
-      if ((readStoredThemeChoice() ?? "system") === "system") {
+      if ((effectiveThemeChoice()) === "system") {
         applyTheme("system");
       }
     };

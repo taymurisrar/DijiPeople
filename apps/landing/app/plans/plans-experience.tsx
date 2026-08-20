@@ -129,9 +129,16 @@ export function PlansExperience({ config }: { config: CommercialConfigView }) {
               key={plan.id}
             >
               <div className="flex items-start justify-between gap-3">
-                <h3 className="text-lg font-semibold text-foreground">
+                {/*
+                  h2, not h3: each plan card is a top-level section of this page,
+                  a peer of "Estimate your cost" and "Compare plans in detail".
+                  As an h3 directly under the page h1 it skipped a level, which
+                  is what a screen-reader user navigating by heading hears as a
+                  missing section.
+                */}
+                <h2 className="text-lg font-semibold text-foreground">
                   {plan.name}
-                </h3>
+                </h2>
                 {highlight ? (
                   <span className="rounded-full bg-accent-soft px-3 py-1 text-xs font-semibold text-accent">
                     {highlight}
@@ -239,10 +246,18 @@ export function PlansExperience({ config }: { config: CommercialConfigView }) {
         <h2 className="text-lg font-semibold text-foreground">
           Estimate your cost
         </h2>
+        {/*
+          The headcount input stays, but it no longer claims to drive the price.
+          It does two real things: it flags a plan whose capacity your team would
+          exceed, and it carries through to checkout so the workspace is sized
+          correctly. `estimateCost` already refuses to multiply a flat price by
+          team size — saying "per active employee" here contradicted the number
+          shown directly beneath it.
+        */}
         <p className="mt-1 text-sm leading-6 text-muted">
-          Pricing is per active employee. Enter roughly how many people you
-          employ — this is an estimate, and the exact amount is confirmed at
-          checkout.
+          Each plan is one flat price, whatever your headcount. Enter roughly how
+          many people you employ and we will flag any plan that would not have
+          the capacity for your team.
         </p>
 
         <div className="mt-4 flex flex-wrap items-end gap-3">
@@ -302,21 +317,28 @@ export function PlansExperience({ config }: { config: CommercialConfigView }) {
                 <dt className="text-sm font-semibold text-foreground">
                   {plan.name}
                 </dt>
+                {/*
+                  The qualifier belongs inside the <dd>: a <div> grouping inside
+                  a <dl> may contain only <dt>/<dd>, so a sibling <p> here made
+                  the list structurally invalid. It only became visible once
+                  seeded pricing existed to render — with an empty plan list the
+                  <dl> had no children and nothing flagged it.
+                */}
                 <dd className="mt-1 text-lg font-semibold text-foreground">
                   {estimate
                     ? formatMoney(estimate.total, estimate.currency)
                     : "On request"}
+                  {estimate ? (
+                    <span className="mt-1 block text-xs font-normal text-muted">
+                      estimated {interval === "MONTH" ? "per month" : "per year"}
+                      {estimate.belowMinimum
+                        ? " · below this plan's minimum"
+                        : estimate.aboveMaximum
+                          ? " · above the self-service maximum"
+                          : ""}
+                    </span>
+                  ) : null}
                 </dd>
-                {estimate ? (
-                  <p className="mt-1 text-xs text-muted">
-                    estimated {interval === "MONTH" ? "per month" : "per year"}
-                    {estimate.belowMinimum
-                      ? " · below this plan's minimum"
-                      : estimate.aboveMaximum
-                        ? " · above the self-service maximum"
-                        : ""}
-                  </p>
-                ) : null}
               </div>
             );
           })}

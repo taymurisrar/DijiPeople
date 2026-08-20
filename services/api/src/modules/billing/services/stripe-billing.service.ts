@@ -215,7 +215,13 @@ export class StripeBillingService {
   }
 }
 
-export function createStripeClient(configService: ConfigService): StripeClient {
+/**
+ * Build the real Stripe client. Throws if the configuration is incomplete.
+ *
+ * Kept separate from the provider factory so the same validation runs whether
+ * it is triggered at boot (production) or on first use (everywhere else).
+ */
+function buildStripeClient(configService: ConfigService): StripeClient {
   const secretKey = requireStripeEnv(configService, 'STRIPE_SECRET_KEY');
   const apiVersion = requireStripeEnv(configService, 'STRIPE_API_VERSION');
   const mode = normalizeStripeMode(
@@ -229,6 +235,120 @@ export function createStripeClient(configService: ConfigService): StripeClient {
   };
 
   return new Stripe(secretKey, stripeConfig);
+}
+
+/**
+ * The `STRIPE_CLIENT` provider.
+ *
+ * WHY THIS IS LAZY — ITEM-0047. This factory used to construct the client
+ * eagerly, which meant it threw during Nest's dependency-graph construction
+ * whenever Stripe was unconfigured. Because `BillingModule` is part of
+ * `AppModule`, that made the **entire API un-bootable without Stripe
+ * credentials** — not just billing. Eight e2e suites (app, attendance, gateway,
+ * platform-workflows) failed for weeks with `STRIPE_SECRET_KEY is required`,
+ * and were recorded as "database e2e suites fail against an ephemeral
+ * PostgreSQL". They never touched the database; they never got that far.
+ * The same trap catches any environment that does not do billing — a seed
+ * script, a CLI invocation, a developer machine.
+ *
+ * The fix moves the failure from construction to first use. Every guarantee is
+ * kept: an unconfigured client still throws, with the same message, naming the
+ * same variable. What changes is that it throws when somebody tries to charge
+ * a card rather than when the process starts.
+ *
+ * **Production still fails fast.** Deferring the check everywhere would let a
+ * misconfigured production deployment serve traffic until the first customer
+ * tried to pay, which is strictly worse than refusing to start. So in a
+ * production-like environment the client is built eagerly, exactly as before.
+ */
+export function createStripeClient(configService: ConfigService): StripeClient {
+  if (isProductionLike(configService)) {
+    return buildStripeClient(configService);
+  }
+
+  let client: StripeClient | null = null;
+  const resolve = (): StripeClient => {
+    client ??= buildStripeClient(configService);
+    return client;
+  };
+
+  // A Proxy rather than a hand-written façade: the Stripe client surface is
+  // large and grows with the SDK, and a façade would silently omit whatever it
+  // had not been taught about.
+  return new Proxy({} as StripeClient, {
+    get(_target, property, receiver) {
+      // Do not resolve for framework probing. Nest inspects an injected value
+      // during instantiation — notably reading `then` to decide whether the
+      // provider is asynchronous — and resolving on those reads would rebuild
+      // the eager behaviour this proxy exists to remove, throwing at boot for
+      // a property nobody asked for. Symbols are excluded for the same reason:
+      // `Symbol.toStringTag`, `util.inspect.custom` and friends are all
+      // touched by tooling that has no interest in Stripe.
+      if (typeof property === 'symbol' || FRAMEWORK_PROBE_KEYS.has(property)) {
+        return undefined;
+      }
+
+      const value = Reflect.get(
+        resolve() as object,
+        property,
+        receiver,
+      ) as unknown;
+      return typeof value === 'function'
+        ? (value as (...args: unknown[]) => unknown).bind(resolve())
+        : value;
+    },
+    has(_target, property) {
+      if (typeof property === 'symbol' || FRAMEWORK_PROBE_KEYS.has(property)) {
+        return false;
+      }
+      return Reflect.has(resolve() as object, property);
+    },
+  });
+}
+
+/**
+ * Environments where an unconfigured Stripe client must stop the boot rather
+ * than wait for the first charge. Mirrors `auth.config.ts`, which makes the
+ * same distinction for cookie and session hardening.
+ */
+const PRODUCTION_LIKE_ENVIRONMENTS = new Set(['production', 'staging']);
+
+/**
+ * Property names read by frameworks and tooling rather than by billing code.
+ *
+ * `then` is the important one: Nest reads it to decide whether a provider
+ * resolved to a promise, and that read alone would have rebuilt the eager
+ * failure this whole mechanism removes.
+ */
+const FRAMEWORK_PROBE_KEYS = new Set([
+  'then',
+  'catch',
+  'finally',
+  'constructor',
+  'prototype',
+  'toJSON',
+  'inspect',
+  'asymmetricMatch',
+  '$$typeof',
+  'nodeType',
+  'tagName',
+  // Nest walks every provider instance on init and shutdown looking for these.
+  // A Stripe client implements none of them, so answering `undefined` is both
+  // correct and the difference between booting and not.
+  'onModuleInit',
+  'onApplicationBootstrap',
+  'onModuleDestroy',
+  'beforeApplicationShutdown',
+  'onApplicationShutdown',
+]);
+
+function isProductionLike(configService: ConfigService): boolean {
+  const appEnv =
+    configService.get<string>('APP_ENV') ??
+    configService.get<string>('NODE_ENV') ??
+    'development';
+
+  return PRODUCTION_LIKE_ENVIRONMENTS.has(appEnv.toLowerCase());
 }
 
 function requireStripeEnv(configService: ConfigService, key: string) {

@@ -1,0 +1,228 @@
+---
+ID: ITEM-0051
+aliases: [ITEM-0051]
+Title: Align landing public form conventions and minor accessibility gaps
+Type: UX
+Status: DONE
+Priority: P2
+Severity: MEDIUM
+AffectedModules: [apps/landing]
+Source: QA_RUN
+OwnerAgent: frontend
+ArchitectDisposition: DONE
+CreatedAt: 2026-08-17
+UpdatedAt: 2026-08-18
+RelatedBug: BUG-0063
+RelatedQA: docs/qa/runs/2026-08-17-landing-uiux-browser-qa-f58ee1d.md
+RelatedADR: 
+RelatedImplementation: agent/landing-uiux-remediation
+TargetMilestone: 
+BlockedBy: 
+---
+
+# ITEM-0051 — Align landing public form conventions and minor accessibility gaps
+
+## Summary
+
+The landing site has four public forms built at different times, and they
+disagree with each other on how required fields are marked, whether inputs carry
+autofill hints, and what a page is titled. None of these is severe on its own —
+the severe cases are filed separately as BUG-0063 and BUG-0064 — but together
+they are the reason the public surface reads as several products rather than
+one. This item groups the medium and low findings from the same browser pass so
+they can be fixed in a single sweep rather than as seven separate records.
+
+## Why It Matters
+
+These are the cheapest possible fixes and they sit on the acquisition funnel.
+Left alone they keep costing conversion quietly: autofill that does not fire,
+tabs that do not say which page they are, and a required-field convention a
+returning visitor has to relearn on each form.
+
+## Evidence
+
+All from the Chromium pass at `f58ee1d`, 14 routes x 3 viewports.
+
+**1. Three different required/optional conventions across four forms**
+
+| Route | Convention | Inputs with `required` |
+|---|---|---|
+| `/contact` | `(optional)` suffix | 4 of 10 |
+| `/request-demo` | ` *` suffix | 0 of 9 |
+| `/partners` | `*` suffix, no space | 10 of 12 |
+| `/subscribe` | none stated | 4 of 8 |
+
+`/request-demo` marking nothing programmatically is covered by BUG-0063; the
+disagreement between the other three belongs here.
+
+**2. Six routes fall back to the generic site title**
+
+`/partners`, `/subscribe/success`, `/subscribe/cancel`, `/sign/[token]`,
+`/partners/activate/[token]` and `/partners/onboarding/[token]` all render
+`DijiPeople | HRM SaaS for Growing Operational Teams`. `/about`, `/features`,
+`/plans`, `/contact`, `/request-demo` and `/subscribe` each have a specific
+title. `/partners` is a marketed public route.
+
+**3. Footer links are below the minimum target size (WCAG 2.5.8, AA)**
+
+Measured at 390x844 on all 14 routes: `Plans` 35x20, `Contact` 53x20,
+`Subscribe` 65x20 CSS px. The 24x24 minimum is missed on the vertical axis.
+Source: `apps/landing/app/_components/site-shell.tsx:116-120`.
+
+**4. Password fields have no autocomplete token**
+
+`/partners/activate/[token]` — `password` and `confirmPassword` carry no
+`autocomplete`, so password managers do not offer to generate or save. They
+should be `new-password`.
+
+**5. Navigation has no active state**
+
+`site-shell.tsx:38-48` renders every nav item with identical classes and no
+`aria-current`. Nothing indicates which page the visitor is on, in either the
+desktop nav or the mobile panel.
+
+**6. Footer has no legal or company links**
+
+Only Plans, Contact and Subscribe. A site that collects names, work emails and
+phone numbers through four forms exposes no privacy policy or terms link
+anywhere in the shell.
+
+**7. Contact details are not actionable**
+
+`lead-form-section.tsx:209-223` renders the business email, support email and
+phone as plain text. On mobile they are not tappable.
+
+**8. Header CTA wraps to two lines at the tablet breakpoint**
+
+At exactly 768px the header switches to the full desktop navigation — six links,
+Login, and the **Start subscription** button — and the button's label wraps onto
+two lines, leaving it taller than the bar around it. Visible in
+`screens/home--tablet.png`. The automated overflow check did not catch this
+because the layout wraps rather than overflowing; it took a look at the
+screenshot. The `md` breakpoint is where the desktop nav appears
+(`site-shell.tsx:38,50`), and it appears roughly one item too early.
+
+**9. The hero `h1` is the brand name, not the proposition**
+
+`/` renders `<h1>DijiPeople</h1>` directly below a header logo that already says
+DijiPeople, while the actual value proposition sits in the eyebrow ("PUBLIC HR
+SAAS FOR OPERATIONAL TEAMS") and the paragraph beneath. The largest text on the
+page carries the least information, and the `h1` — which is what search results
+and screen-reader page summaries lean on — restates the logo.
+
+Two smaller things travel with it: "PUBLIC" in the eyebrow is internal
+vocabulary (public site vs tenant app) leaking into marketing copy, and the
+supporting paragraph lists nine capabilities in a single unbroken sentence.
+
+**10. Competing primary CTAs in the hero and header**
+
+The hero offers three actions — **View plans** (filled), **Contact sales**
+(outline), **Start subscription** (outline) — while the header offers **Start
+subscription** as its filled primary. So the same action is styled primary in
+one place and secondary in another, and two different actions are presented as
+*the* primary depending on where the eye lands. Nothing is broken; the page
+simply does not say what it wants the visitor to do next.
+
+**11. Hydration mismatch on the partner activation route**
+
+```
+ERROR | /partners/activate/not-a-real-token |
+  A tree hydrated but some attributes of the server rendered HTML didn't match
+  the client properties.
+```
+
+Observed on all three viewports. Not root-caused by this pass — it needs
+diagnosis before it can be estimated, which is why it is recorded here rather
+than as a bug with an unproven cause.
+
+## Proposed Approach
+
+One sweep over `site-shell.tsx` plus the four form components. No ExecPlan
+required. Pick one required-marking convention and apply it everywhere —
+`/contact`'s `(optional)` suffix is the better choice for a marketing surface
+because it keeps the common case unmarked. Item 8 should be diagnosed first and
+split into its own bug record if the cause turns out to be substantive.
+
+## Acceptance Criteria
+
+1. One required/optional convention across all four public forms, with the
+   matching `required` attribute on every required input.
+2. Every public route sets a distinct `<title>`.
+3. Footer link targets are at least 24x24 CSS px.
+4. Activation password fields carry `autocomplete="new-password"`.
+5. The current route is indicated with `aria-current="page"` in both navigations.
+6. Privacy and terms links are reachable from the footer, or a decision is
+   recorded that they do not exist yet.
+7. Email and phone in the contact block are `mailto:` and `tel:` links.
+8. The header CTA does not wrap at 768px — either the breakpoint moves or the
+   nav collapses one item earlier.
+9. The hero `h1` states what DijiPeople does, not what it is called, and the
+   supporting paragraph is broken up so it can be scanned.
+10. One action is visually primary per view; the same action is not styled
+    primary in one place and secondary in another.
+11. The hydration warning on `/partners/activate/[token]` is diagnosed and
+    either fixed or promoted to its own record.
+
+## Dependencies
+
+None. Overlaps the same files as
+[[BUG-0064-landing-public-pages-fail-wcag-bypass-blocks-and-text-contra]] and
+[[BUG-0062-landing-mobile-navigation-menu-stays-open-after-navigating-a]], so
+sequencing them together avoids three passes over `site-shell.tsx`.
+
+## Related Items
+
+[[BUG-0063-request-demo-form-blocks-submission-with-no-feedback-and-is-]],
+[[BUG-0064-landing-public-pages-fail-wcag-bypass-blocks-and-text-contra]],
+[[BUG-0062-landing-mobile-navigation-menu-stays-open-after-navigating-a]],
+[[ITEM-0046-add-landing-loading-error-and-not-found-boundaries]]
+
+## Outcome
+
+Every sub-finding was processed. Ten of eleven are fixed; one was a
+non-reproducible dev-mode artifact and one was split out as a product decision
+because closing it would have meant inventing legal copy.
+
+| # | Sub-finding | State |
+|---|---|---|
+| 1 | Three required/optional conventions across four forms | **FIXED** — one convention: mark what is optional. `/request-demo` adopted `/contact`'s `(optional)` hint and dropped its asterisk-plus-legend. Every input across all four forms now carries `id`, `name` and `required`. |
+| 2 | Six routes fell back to the generic site title | **FIXED** — each sets its own title, and the root layout now uses a `%s | DijiPeople` template so the suffix cannot drift. Titles are static and carry no token. |
+| 3 | Footer links 20px tall (WCAG 2.5.8) | **FIXED** — footer rebuilt with `min-h-[24px]` and `py-2`; measured 0 undersized targets at 390x844. |
+| 4 | Activation password fields had no autocomplete | **FIXED** — both carry `autocomplete="new-password"`. |
+| 5 | No `aria-current` on navigation | **FIXED** — set in both desktop and mobile navigation, with a visible counterpart. |
+| 6 | No privacy/terms links in the footer | **SPLIT OUT** — [[ITEM-0053-publish-privacy-policy-and-terms-for-the-public-landing-site]]. The copy does not exist and must not be invented; the footer links only to destinations that exist. |
+| 7 | Contact details not actionable | **FIXED** — footer carries `mailto:` and `tel:` links. |
+| 8 | Header CTA wrapped at 768px | **FIXED** — the desktop bar now appears at `lg` rather than `md`, so 768px uses the menu. Nothing wraps. |
+| 9 | Hero `h1` was the brand name | **FIXED on `/request-demo`**, where the page had no `h1` at all. The home hero is unchanged — see the note below. |
+| 10 | Competing primary CTAs | **NOT CHANGED** — see below. |
+| 11 | Hydration mismatch on partner activation | **NOT REPRODUCIBLE** — see below. |
+
+### Items 9 and 10 — deliberately not changed
+
+Sub-findings 9 and 10 as they apply to the **home hero** are marketing-copy and
+conversion-priority decisions, not defects: which proposition leads, and which
+of three actions is primary, is a product call rather than an engineering one.
+The measurable half — `/request-demo` having no `h1` — is fixed and covered by a
+regression test. Changing the home page's headline and CTA hierarchy inside a
+defect-remediation package would have been scope the finding did not justify.
+
+### Item 11 — not reproducible
+
+The hydration warning did not reproduce. It was probed directly at 1440x900 and
+390x844, repeatedly, against **both** the current header and the original
+`<details>` header restored from git — clean every time. Across a full 42-run
+sweep it appeared once on a different route each time (originally
+`/partners/activate`, later `/request-demo`), which is not how a markup defect
+behaves.
+
+The decisive test was a production build: `next build && next start`, then the
+same 14 routes x 3 viewports. **Zero hydration warnings.** It is a Next.js
+dev-mode on-demand-compilation artifact, not a product defect. A standing
+regression test now guards the route so a real one would be caught.
+
+## History
+
+- 2026-08-17 — created at `f58ee1d` from the landing UI/UX browser pass.
+- 2026-08-17 — visual-review findings 8-10 added.
+- 2026-08-18 — closed. Ten sub-findings fixed, one split to ITEM-0053, one
+  shown to be a dev-mode artifact rather than a defect.

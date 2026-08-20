@@ -12,6 +12,8 @@ export const PERMISSION_KEYS = {
   TENANT_UPDATE: 'tenant.update',
   SETTINGS_READ: 'settings.read',
   TENANT_SETTINGS_RESOLVED_READ: 'tenant-settings.resolved.read',
+  USER_PREFERENCES_READ: 'user-preferences.read',
+  USER_PREFERENCES_WRITE: 'user-preferences.write',
   SETTINGS_UPDATE: 'settings.update',
   USERS_READ: 'users.read',
   USERS_CREATE: 'users.create',
@@ -169,6 +171,7 @@ export const PERMISSION_KEYS = {
   PAYROLL_JOURNAL_GENERATE: 'payroll-journal.generate',
   PAYROLL_JOURNAL_EXPORT: 'payroll-journal.export',
   PAYROLL_JOURNAL_READ: 'payroll-journal.read',
+  PAYROLL_JOURNAL_MANAGE: 'payroll-journal.manage',
   PAY_COMPONENTS_READ: 'pay-components.read',
   PAY_COMPONENTS_MANAGE: 'pay-components.manage',
   COMPENSATION_READ: 'compensation.read',
@@ -270,6 +273,16 @@ export const FOUNDATION_PERMISSION_DEFINITIONS: PermissionDefinition[] = [
     name: 'Read resolved runtime settings',
     description:
       'Read the resolved tenant settings required by the authenticated application shell and runtime.',
+  },
+  {
+    key: 'user-preferences.read',
+    name: 'Read own preferences',
+    description: 'Read the authenticated user preferences.',
+  },
+  {
+    key: 'user-preferences.write',
+    name: 'Update own preferences',
+    description: 'Update the authenticated user preferences.',
   },
   {
     key: 'settings.update',
@@ -1809,6 +1822,11 @@ export const FOUNDATION_PERMISSION_DEFINITIONS: PermissionDefinition[] = [
     name: 'Export payroll journals',
     description:
       'Export payroll journal entries to CSV and mark journals exported.',
+  },
+  {
+    key: PERMISSION_KEYS.PAYROLL_JOURNAL_MANAGE,
+    name: 'Manage payroll journal lifecycle',
+    description: 'Post and reverse payroll journal entries.',
   },
   {
     key: PERMISSION_KEYS.PAY_COMPONENTS_READ,

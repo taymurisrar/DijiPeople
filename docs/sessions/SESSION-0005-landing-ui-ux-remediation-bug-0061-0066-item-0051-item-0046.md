@@ -1,0 +1,68 @@
+---
+SESSION_ID: SESSION-0005
+aliases: [SESSION-0005]
+TASK_ID: TASK-0006
+TITLE: Landing UI/UX remediation — BUG-0061..0066, ITEM-0051, ITEM-0046
+ARCHITECT_INTENT: Landing UI/UX remediation — BUG-0061..0066, ITEM-0051, ITEM-0046
+STATUS: COMPLETE
+TASK_TYPE: BUG
+TASK_SIZE: LARGE
+BASE_BRANCH: origin/develop
+BASE_SHA: 257622e
+TASK_BRANCH: agent/landing-uiux-remediation
+TARGET_BRANCH: develop
+WORKTREE: D:/My Work/hrm-dijipeople/dijipeople-landing-fix
+AFFECTED_MODULES: [apps/landing, services/api/src/modules/billing]
+WRITE_LEASES: []
+ACTIVE_WORK_PACKAGES: []
+SCHEMA_WRITE: NO
+CI_STATUS: PASS
+MERGE_STATUS: MERGED
+STARTED_AT: 2026-08-17T23:02:52.199Z
+LAST_HEARTBEAT: 2026-08-17T23:02:52.199Z
+BLOCKERS: none
+---
+
+# SESSION-0005 — Landing UI/UX remediation — BUG-0061..0066, ITEM-0051, ITEM-0046
+
+## Intent
+
+Fix every documented landing finding rather than re-audit them: BUG-0061..0066,
+ITEM-0051 and ITEM-0046, plus the two verification gaps the previous run left
+open — real form submissions and populated pricing.
+
+## Scope
+
+**Changed** — `apps/landing` (shell, forms, boundaries, metadata, plans loader),
+one file in `services/api` (the commercial-config contract), and a splitter fix
+in `scripts/validate-framework.mjs`.
+
+**Not changed** — no schema, no migration, no auth or permission surface, and no
+home-page marketing copy.
+
+## Records
+
+BUG-0061..0066 VERIFIED with REG-057..062 · ITEM-0046 DONE · ITEM-0051 DONE ·
+ITEM-0053 created as a product decision · PLAN-013 and QA-LANDING-001..006
+created · QA run
+`docs/qa/runs/2026-08-18-landing-uiux-remediation-verification-c332992.md`.
+
+## Concurrency
+
+Ran alongside SESSION-0003 and SESSION-0006 throughout. `develop` moved twice
+under this branch, and the second rebase surfaced a **semantic** collision Git
+could not: SESSION-0006 had taken `REG-056` for BUG-0034 while this branch was
+using it for BUG-0061. Renumbered to REG-057..062.
+
+That is the concurrency lesson worth keeping: the regression register has no id
+allocator, so two sessions filing regressions at the same time will collide, and
+the collision is invisible to Git because both sides appended cleanly to
+different parts of the file.
+
+## History
+
+- 2026-08-17 — session started from `origin/develop` at `c332992`.
+- 2026-08-18 — rebased onto `257622e`; REG ids renumbered after a collision.
+- 2026-08-18 — CI PASS on `ab3bc73`; fast-forwarded `develop`.
+- 2026-08-18 — Obsidian sync and verification PASS, 0 unresolved wikilinks.
+- 2026-08-18 — session finished, leases released.

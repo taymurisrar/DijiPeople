@@ -3,10 +3,12 @@ import { PageShell } from "../_components/site-shell";
 import { getCommercialConfig } from "../../lib/commercial-config";
 import { resolveDisplayCurrency } from "../../lib/plans";
 import { getPublicPlans } from "../../lib/plans-server";
+import { fetchPublishedLegalIndex } from "../../lib/legal-server";
+import { landingEnv } from "../../lib/env";
 import { SubscribeForm } from "./subscribe-form";
 
 export const metadata: Metadata = {
-  title: "Subscribe | DijiPeople",
+  title: "Subscribe",
   description:
     "Start a public DijiPeople subscription through a secure Stripe Checkout flow.",
 };
@@ -23,11 +25,18 @@ export default async function SubscribePage({
 }: {
   searchParams: SearchParams;
 }) {
-  const [selectionParams, plansResponse, commercialConfig] = await Promise.all([
-    searchParams,
-    getPublicPlans(),
-    getCommercialConfig(),
-  ]);
+  const [selectionParams, plansResponse, commercialConfig, agreements] =
+    await Promise.all([
+      searchParams,
+      getPublicPlans(),
+      getCommercialConfig(),
+      /*
+       * Fetched server-side so the buyer never waits on a round trip mid-wizard,
+       * and so a market with nothing published simply shows an agreements step
+       * that says so. An empty index is a real answer here, not a failure.
+       */
+      fetchPublishedLegalIndex(),
+    ]);
   const plans = plansResponse.plans;
   const defaultCurrency = resolveDisplayCurrency(
     plans,
@@ -49,10 +58,12 @@ export default async function SubscribePage({
         </p>
       </section>
       <SubscribeForm
+        agreements={agreements}
         defaultCurrency={defaultCurrency}
         error={plansResponse.error}
         plans={plans}
         selectionParams={selectionParams}
+        tenantBaseDomain={landingEnv.tenantBaseDomain}
       />
     </PageShell>
   );

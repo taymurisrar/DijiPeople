@@ -13,7 +13,12 @@ import {
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { Permissions } from '../../common/decorators/permissions.decorator';
+import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
+import {
+  Permissions,
+  RequireAnyPermission,
+  RequirePermission,
+} from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
@@ -30,6 +35,10 @@ export class EmployerBankAccountsController {
 
   @Get()
   @Permissions('payroll.settings.read')
+  @RequireAnyPermission(
+    { entityKey: ENTITY_KEYS.SETTINGS, action: 'read' },
+    { entityKey: ENTITY_KEYS.PAYROLL, action: 'read' },
+  )
   list(
     @CurrentUser() user: AuthenticatedUser,
     @Query('page') page?: string,
@@ -45,6 +54,7 @@ export class EmployerBankAccountsController {
 
   @Post()
   @Permissions('payroll.settings.update')
+  @RequirePermission(ENTITY_KEYS.PAYROLL, 'write')
   create(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateEmployerBankAccountDto,
@@ -54,6 +64,10 @@ export class EmployerBankAccountsController {
 
   @Get(':id')
   @Permissions('payroll.settings.read')
+  @RequireAnyPermission(
+    { entityKey: ENTITY_KEYS.SETTINGS, action: 'read' },
+    { entityKey: ENTITY_KEYS.PAYROLL, action: 'read' },
+  )
   detail(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -63,6 +77,7 @@ export class EmployerBankAccountsController {
 
   @Patch(':id')
   @Permissions('payroll.settings.update')
+  @RequirePermission(ENTITY_KEYS.PAYROLL, 'write')
   update(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -73,6 +88,7 @@ export class EmployerBankAccountsController {
 
   @Post(':id/deactivate')
   @Permissions('payroll.settings.update')
+  @RequirePermission(ENTITY_KEYS.PAYROLL, 'write')
   deactivate(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -82,6 +98,7 @@ export class EmployerBankAccountsController {
 
   @Post(':id/set-default-payroll')
   @Permissions('payroll.settings.update')
+  @RequirePermission(ENTITY_KEYS.PAYROLL, 'write')
   setDefaultPayroll(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -91,6 +108,10 @@ export class EmployerBankAccountsController {
 
   @Get('actions/export')
   @Permissions('payroll.settings.read')
+  @RequireAnyPermission(
+    { entityKey: ENTITY_KEYS.SETTINGS, action: 'read' },
+    { entityKey: ENTITY_KEYS.PAYROLL, action: 'read' },
+  )
   async exportCsv(
     @CurrentUser() user: AuthenticatedUser,
     @Res({ passthrough: true }) response: Response,
@@ -107,6 +128,10 @@ export class EmployerBankAccountsController {
 
   @Get('actions/export-template')
   @Permissions('payroll.settings.read')
+  @RequireAnyPermission(
+    { entityKey: ENTITY_KEYS.SETTINGS, action: 'read' },
+    { entityKey: ENTITY_KEYS.PAYROLL, action: 'read' },
+  )
   exportTemplate(@Res({ passthrough: true }) response: Response) {
     const exported = this.service.exportTemplate();
     response.setHeader('Content-Type', exported.contentType);
@@ -120,6 +145,7 @@ export class EmployerBankAccountsController {
 
   @Post('actions/import')
   @Permissions('payroll.settings.update')
+  @RequirePermission(ENTITY_KEYS.PAYROLL, 'write')
   importRows(
     @CurrentUser() user: AuthenticatedUser,
     @Body() rows: Array<CreateEmployerBankAccountDto & { bankCode?: string }>,

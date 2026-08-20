@@ -6,7 +6,9 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
+  BillingCycle,
   CustomerAccountStatus,
+  DiscountType,
   InvoiceStatus,
   PlatformUserStatus,
   SubscriptionStatus,
@@ -32,6 +34,50 @@ import { UsersRepository } from '../users/users.repository';
 import { BillingService } from './billing.service';
 import { CreateCustomerOnboardingDto } from './dto/create-customer-onboarding.dto';
 import { TenantProvisioningService } from './tenant-provisioning.service';
+
+/**
+ * What the shared provisioning engine needs, from either caller.
+ *
+ * Deliberately not the admin DTO. That DTO describes a *form a human filled in*
+ * — trimming, optional sales fields, an assigned account manager — and shaping
+ * the engine around it is what kept the self-service path from being able to use
+ * it. This describes the decision instead: which customer, which name, which
+ * owner, which subscription, and who if anyone is accountable for it.
+ */
+export type ProvisionTenantForCustomerInput = {
+  /** Must already exist. The engine never creates a second one — BUG-0077. */
+  customerAccountId: string;
+  companyName: string;
+  /** Already validated and known free. The engine does not re-derive it. */
+  slug: string;
+  contactEmail: string;
+  owner: { firstName: string; lastName: string; email: string };
+  tenantStatus: TenantStatus;
+  /**
+   * Null for an automated run. There is no human behind a webhook, and naming
+   * one would be a false audit trail.
+   */
+  actorUserId: string | null;
+  subscription: {
+    planId: string;
+    planPriceId?: string | null;
+    billingCycle: BillingCycle;
+    status: SubscriptionStatus;
+    currency?: string;
+    purchasedSeats?: number;
+    stripeSubscriptionId?: string | null;
+    discountType?: DiscountType;
+    discountValue?: number;
+    discountReason?: string | null;
+    manualFinalPrice?: number;
+    autoRenew?: boolean;
+  };
+  serviceAccount?: { name: string; email: string } | null;
+  featureOverrides?: Array<{ key: string; isEnabled: boolean }>;
+  /** False when an external provider already invoiced — see the call site. */
+  generateInitialInvoice: boolean;
+  note: string;
+};
 
 @Injectable()
 export class PlatformOnboardingService {
@@ -78,34 +124,97 @@ export class PlatformOnboardingService {
       dto.assignedToUserId ?? actor.platform?.id ?? actor.userId,
     );
 
+    /*
+     * The customer is created here because a sales-assisted onboarding starts
+     * from a company nobody has a record of yet. Everything after it — tenant,
+     * owner, roles, subscription, domain, invitation — is the shared engine,
+     * because the self-service path arrives with a CustomerAccount that already
+     * exists and must not get a second one (BUG-0077).
+     */
+    const customerAccount = await this.prisma.customerAccount.create({
+      data: {
+        companyName: dto.companyName.trim(),
+        industry: dto.industry?.trim() || null,
+        companySize: dto.companySize?.trim() || null,
+        contactEmail: normalizeEmail(dto.contactEmail),
+        contactPhone: dto.contactPhone?.trim() || null,
+        country: dto.country.trim(),
+        status: CustomerAccountStatus.ONBOARDING,
+        assignedToUserId,
+      },
+      select: { id: true },
+    });
+
+    return this.provisionTenantForCustomer({
+      customerAccountId: customerAccount.id,
+      companyName: dto.companyName.trim(),
+      slug: normalizedSlug,
+      contactEmail: normalizeEmail(dto.contactEmail),
+      owner: {
+        firstName: dto.primaryOwner.firstName.trim(),
+        lastName: dto.primaryOwner.lastName.trim(),
+        email: normalizeEmail(dto.primaryOwner.workEmail),
+      },
+      tenantStatus: TenantStatus.ONBOARDING,
+      actorUserId: actor.userId,
+      subscription: {
+        planId: dto.planId,
+        billingCycle: dto.billingCycle,
+        status: SubscriptionStatus.TRIALING,
+        discountType: dto.discountType,
+        discountValue: dto.discountValue,
+        discountReason: dto.discountReason,
+        manualFinalPrice: dto.manualFinalPrice,
+        autoRenew: dto.autoRenew,
+      },
+      serviceAccount: dto.serviceAccount
+        ? {
+            name: dto.serviceAccount.name.trim(),
+            email: normalizeEmail(dto.serviceAccount.workEmail),
+          }
+        : null,
+      featureOverrides: dto.featureOverrides ?? [],
+      generateInitialInvoice: dto.generateInitialInvoice !== false,
+      note: `Customer onboarded on ${new Date().toISOString()} with ${dto.billingCycle.toLowerCase()} billing.`,
+    });
+  }
+
+  /**
+   * Create a tenant for a customer that already exists.
+   *
+   * **This is the one provisioning engine the brief requires.** Sales-assisted
+   * onboarding reaches it through `onboardCustomer`, which creates the customer
+   * first; self-service reaches it from the `PROVISIONING_REQUESTED` consumer,
+   * carrying the `CustomerAccount` the checkout order already made. Before this
+   * existed the website never reached the engine at all — it created its own
+   * tenant inline, before payment (BUG-0077), and the provisioning event it
+   * emitted afterwards had no consumer (BUG-0078).
+   *
+   * `actorUserId` is nullable because a provisioning run triggered by a webhook
+   * has no human behind it. Writing the buyer's own id into `createdById` would
+   * be a lie about who performed a platform action, and inventing a system user
+   * would be a second identity to secure.
+   */
+  async provisionTenantForCustomer(input: ProvisionTenantForCustomerInput) {
+    const actorUserId = input.actorUserId;
+
     const onboardingResult = await this.prisma.$transaction(async (tx) => {
-      const customerAccount = await tx.customerAccount.create({
-        data: {
-          companyName: dto.companyName.trim(),
-          industry: dto.industry?.trim() || null,
-          companySize: dto.companySize?.trim() || null,
-          contactEmail: normalizeEmail(dto.contactEmail),
-          contactPhone: dto.contactPhone?.trim() || null,
-          country: dto.country.trim(),
-          status: CustomerAccountStatus.ONBOARDING,
-          assignedToUserId,
-        },
-      });
+      const customerAccount = { id: input.customerAccountId };
 
       const tenant = await tx.tenant.create({
         data: {
           customerAccountId: customerAccount.id,
           tenantCode: await generateTenantCode(tx),
-          name: dto.companyName.trim(),
-          displayName: dto.companyName.trim(),
-          slug: normalizedSlug,
-          status: TenantStatus.ONBOARDING,
-          createdById: actor.userId,
-          updatedById: actor.userId,
+          name: input.companyName,
+          displayName: input.companyName,
+          slug: input.slug,
+          status: input.tenantStatus,
+          createdById: actorUserId,
+          updatedById: actorUserId,
           tenantBranding: {
             create: buildDefaultTenantBranding(
-              dto.companyName.trim(),
-              normalizeEmail(dto.contactEmail),
+              input.companyName,
+              input.contactEmail,
             ),
           },
         },
@@ -114,7 +223,7 @@ export class PlatformOnboardingService {
       await this.permissionsService.bootstrapTenantDefaults(
         tenant.id,
         tx,
-        actor.userId,
+        actorUserId ?? undefined,
       );
 
       const systemAdminRole = await this.rolesRepository.findByKeyAndTenant(
@@ -137,13 +246,13 @@ export class PlatformOnboardingService {
       const ownerUser = await this.usersRepository.create(
         {
           tenantId: tenant.id,
-          firstName: dto.primaryOwner.firstName.trim(),
-          lastName: dto.primaryOwner.lastName.trim(),
-          email: normalizeEmail(dto.primaryOwner.workEmail),
+          firstName: input.owner.firstName,
+          lastName: input.owner.lastName,
+          email: input.owner.email,
           passwordHash: placeholderPasswordHash,
           status: UserStatus.INVITED,
-          createdById: actor.userId,
-          updatedById: actor.userId,
+          createdById: actorUserId ?? undefined,
+          updatedById: actorUserId ?? undefined,
         },
         tx,
       );
@@ -159,39 +268,39 @@ export class PlatformOnboardingService {
         where: { id: tenant.id },
         data: {
           ownerUserId: ownerUser.id,
-          updatedById: actor.userId,
+          updatedById: actorUserId,
         },
       });
 
       const invitedUsers = [
         {
           userId: ownerUser.id,
-          email: normalizeEmail(dto.primaryOwner.workEmail),
-          fullName: `${dto.primaryOwner.firstName.trim()} ${dto.primaryOwner.lastName.trim()}`,
+          email: input.owner.email,
+          fullName: `${input.owner.firstName} ${input.owner.lastName}`,
         },
       ];
       const usersToAssign = [ownerUser.id];
 
-      if (dto.serviceAccount) {
+      if (input.serviceAccount) {
         const serviceAccount = await this.usersRepository.create(
           {
             tenantId: tenant.id,
-            firstName: dto.serviceAccount.name.trim(),
+            firstName: input.serviceAccount.name,
             lastName: 'Service Account',
-            email: normalizeEmail(dto.serviceAccount.workEmail),
+            email: input.serviceAccount.email,
             passwordHash: placeholderPasswordHash,
             status: UserStatus.INVITED,
             isServiceAccount: true,
-            createdById: actor.userId,
-            updatedById: actor.userId,
+            createdById: actorUserId ?? undefined,
+            updatedById: actorUserId ?? undefined,
           },
           tx,
         );
         usersToAssign.push(serviceAccount.id);
         invitedUsers.push({
           userId: serviceAccount.id,
-          email: normalizeEmail(dto.serviceAccount.workEmail),
-          fullName: `${dto.serviceAccount.name.trim()} Service Account`,
+          email: input.serviceAccount.email,
+          fullName: `${input.serviceAccount.name} Service Account`,
         });
       }
 
@@ -200,7 +309,7 @@ export class PlatformOnboardingService {
           tenantId: tenant.id,
           userId,
           roleId: systemAdminRole.id,
-          createdById: actor.userId,
+          createdById: actorUserId,
         })),
         skipDuplicates: true,
       });
@@ -209,22 +318,26 @@ export class PlatformOnboardingService {
         tx,
         {
           tenantId: tenant.id,
-          planId: dto.planId,
-          billingCycle: dto.billingCycle,
-          status: SubscriptionStatus.TRIALING,
+          planId: input.subscription.planId,
+          planPriceId: input.subscription.planPriceId,
+          billingCycle: input.subscription.billingCycle,
+          status: input.subscription.status,
           startDate: new Date(),
-          discountType: dto.discountType,
-          discountValue: dto.discountValue,
-          discountReason: dto.discountReason,
-          manualFinalPrice: dto.manualFinalPrice,
-          autoRenew: dto.autoRenew,
-          actorUserId: actor.userId,
+          currency: input.subscription.currency,
+          purchasedSeats: input.subscription.purchasedSeats,
+          stripeSubscriptionId: input.subscription.stripeSubscriptionId,
+          discountType: input.subscription.discountType,
+          discountValue: input.subscription.discountValue,
+          discountReason: input.subscription.discountReason,
+          manualFinalPrice: input.subscription.manualFinalPrice,
+          autoRenew: input.subscription.autoRenew,
+          actorUserId: actorUserId ?? undefined,
         },
       );
 
-      if (dto.featureOverrides?.length) {
+      if (input.featureOverrides?.length) {
         await Promise.all(
-          dto.featureOverrides.map((feature) =>
+          input.featureOverrides.map((feature) =>
             tx.tenantFeature.upsert({
               where: {
                 tenantId_key: {
@@ -237,13 +350,13 @@ export class PlatformOnboardingService {
                 key: feature.key,
                 isEnabled: feature.isEnabled,
                 source: TenantFeatureSource.MANUAL,
-                createdById: actor.userId,
-                updatedById: actor.userId,
+                createdById: actorUserId,
+                updatedById: actorUserId,
               },
               update: {
                 isEnabled: feature.isEnabled,
                 source: TenantFeatureSource.MANUAL,
-                updatedById: actor.userId,
+                updatedById: actorUserId,
               },
             }),
           ),
@@ -253,8 +366,8 @@ export class PlatformOnboardingService {
       await tx.customerContact.create({
         data: {
           customerAccountId: customerAccount.id,
-          name: `${dto.primaryOwner.firstName.trim()} ${dto.primaryOwner.lastName.trim()}`,
-          email: normalizeEmail(dto.primaryOwner.workEmail),
+          name: `${input.owner.firstName} ${input.owner.lastName}`,
+          email: input.owner.email,
           role: 'Primary Owner',
           isPrimaryContact: true,
         },
@@ -263,19 +376,25 @@ export class PlatformOnboardingService {
       await tx.customerNote.create({
         data: {
           customerAccountId: customerAccount.id,
-          note: `Customer onboarded on ${new Date().toISOString()} with ${dto.billingCycle.toLowerCase()} billing.`,
-          createdByUserId: actor.userId,
+          note: input.note,
+          createdByUserId: actorUserId,
         },
       });
 
-      if (dto.generateInitialInvoice !== false) {
+      /*
+       * Skipped on the self-service path. Stripe has already invoiced the buyer
+       * and will keep doing so; issuing a second internal invoice for the same
+       * period would double-count revenue and reach the customer as a bill they
+       * have already paid.
+       */
+      if (input.generateInitialInvoice) {
         await this.billingService.createInvoice(tx, {
           tenantId: tenant.id,
           subscriptionId: subscription.id,
           amount: Number(subscription.finalPrice),
           currency: subscription.currency,
           status: InvoiceStatus.ISSUED,
-          actorUserId: actor.userId,
+          actorUserId: actorUserId ?? undefined,
         });
       }
 
@@ -293,6 +412,13 @@ export class PlatformOnboardingService {
       };
     });
 
+    /*
+     * Outside the transaction on purpose. Issuing an invitation sends mail, and
+     * mail cannot be rolled back — so it must not happen inside a transaction
+     * that might still abort. The cost is that a crash here leaves a provisioned
+     * tenant whose owner has no activation link, which the provisioning retry
+     * path resends rather than duplicating.
+     */
     const invitations = await Promise.all(
       onboardingResult.invitedUsers.map((user) =>
         this.userInvitationsService.issueInvitation({
@@ -300,7 +426,7 @@ export class PlatformOnboardingService {
           userId: user.userId,
           email: user.email,
           fullName: user.fullName,
-          createdByUserId: actor.userId,
+          createdByUserId: actorUserId ?? undefined,
         }),
       ),
     );
@@ -308,7 +434,7 @@ export class PlatformOnboardingService {
     const domain = await this.tenantProvisioning.provisionSystemDomain({
       tenantId: onboardingResult.tenantId,
       slug: onboardingResult.tenant.slug,
-      actorId: actor.userId,
+      actorId: actorUserId ?? undefined,
     });
 
     return {
@@ -323,6 +449,28 @@ export class PlatformOnboardingService {
         tenantUrl: domain.resolvedUrl,
       },
     };
+  }
+
+  /**
+   * Resolve a free workspace slug, preferring one the buyer already reserved.
+   *
+   * The reserved value is honoured only if it is still free at this moment:
+   * `SubscriptionOrder.requestedSlug` is a hold against other *orders*, while
+   * `Tenant.slug` is the permanent authority, and a tenant could have taken the
+   * name by another route since. Falling back to derivation is better than
+   * failing provisioning for a customer who has already paid — they get a
+   * workspace, and a suffixed address is a support conversation rather than a
+   * refund.
+   */
+  async resolveWorkspaceSlug(preferred: string | null, companyName: string) {
+    if (preferred) {
+      const taken = await this.prisma.tenant.findUnique({
+        where: { slug: preferred },
+        select: { id: true },
+      });
+      if (!taken) return preferred;
+    }
+    return this.generateAvailableSlug(companyName);
   }
 
   private async generateAvailableSlug(value: string) {

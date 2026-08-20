@@ -20,6 +20,7 @@ import { TenantErasureService } from './tenant-erasure.service';
 import { TenantModulesService } from './tenant-modules.service';
 import { TenantOperationsService } from './tenant-operations.service';
 import { TenantDomainsAdminService } from './tenant-domains-admin.service';
+import { ProvisioningOperationsService } from './provisioning-operations.service';
 import {
   AddTenantCustomDomainDto,
   CancelTenantSubscriptionDto,
@@ -55,7 +56,27 @@ export class TenantControlPlaneController {
     private readonly operations: TenantOperationsService,
     private readonly erasure: TenantErasureService,
     private readonly domains: TenantDomainsAdminService,
+    private readonly provisioningOperations: ProvisioningOperationsService,
   ) {}
+
+  /**
+   * The provisioning queue, across every tenant.
+   *
+   * Declared before the per-tenant routes on purpose: `provisioning-queue`
+   * would otherwise be captured as a tenant id by whichever parameterised
+   * route matched first.
+   */
+  @Get('provisioning-queue')
+  listProvisioningQueue(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query('limit') limit?: string,
+    @Query('includeCompleted') includeCompleted?: string,
+  ) {
+    return this.provisioningOperations.listQueue(user, {
+      limit: limit ? Number(limit) : undefined,
+      includeCompleted: includeCompleted === 'true',
+    });
+  }
 
   @Get(':tenantId/domains')
   listDomains(

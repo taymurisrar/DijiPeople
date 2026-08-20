@@ -11,7 +11,11 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { Permissions } from '../../common/decorators/permissions.decorator';
+import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
+import {
+  Permissions,
+  RequirePermission,
+} from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
@@ -27,6 +31,7 @@ export class LeaveTypesController {
 
   @Get()
   @Permissions('leave-types.read')
+  @RequirePermission(ENTITY_KEYS.LEAVE_REQUESTS, 'read')
   findAll(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: ListLeaveConfigDto,
@@ -36,6 +41,7 @@ export class LeaveTypesController {
 
   @Get(':id')
   @Permissions('leave-types.read')
+  @RequirePermission(ENTITY_KEYS.LEAVE_REQUESTS, 'read')
   findOne(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -45,6 +51,7 @@ export class LeaveTypesController {
 
   @Get(':id/policy-rules')
   @Permissions('leave-types.read')
+  @RequirePermission(ENTITY_KEYS.LEAVE_REQUESTS, 'read')
   listPolicyRules(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -54,6 +61,7 @@ export class LeaveTypesController {
 
   @Get(':id/usage')
   @Permissions('leave-types.read')
+  @RequirePermission(ENTITY_KEYS.LEAVE_REQUESTS, 'read')
   listUsage(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -63,6 +71,7 @@ export class LeaveTypesController {
 
   @Post()
   @Permissions('leave-types.create')
+  @RequirePermission(ENTITY_KEYS.LEAVE_REQUESTS, 'create')
   create(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateLeaveTypeDto,
@@ -72,6 +81,7 @@ export class LeaveTypesController {
 
   @Patch(':id')
   @Permissions('leave-types.update')
+  @RequirePermission(ENTITY_KEYS.LEAVE_REQUESTS, 'write')
   update(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -82,6 +92,7 @@ export class LeaveTypesController {
 
   @Delete(':id')
   @Permissions('leave-types.update')
+  @RequirePermission(ENTITY_KEYS.LEAVE_REQUESTS, 'write')
   deactivate(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,

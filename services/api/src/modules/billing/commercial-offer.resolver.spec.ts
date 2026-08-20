@@ -304,11 +304,47 @@ describe('resolveCommercialOffer', () => {
   // Seats
   // ---------------------------------------------------------------------
 
-  it('enforces minimum and maximum seats for per-seat prices', () => {
-    expect(
-      resolve({ prices: [price({ minimumSeats: 5 })], quantity: 4 }),
-    ).toMatchObject({ available: false, reason: 'SEATS_BELOW_MINIMUM' });
+  /*
+   * This asserted `SEATS_BELOW_MINIMUM` until 2026-08-20, and the premise
+   * expired rather than the guard being wrong — the fourth time in this
+   * programme that a correct assertion outlived the rule underneath it.
+   *
+   * A minimum seat commitment is now BILLED, not refused: the owner's schedule
+   * states that it "applies even when the customer has fewer active employees",
+   * and publishes a Minimum Monthly Charge table that only means anything if a
+   * customer below the floor can actually buy.
+   *
+   * What the test really guards is that seat bounds are honoured at all, and
+   * that is still worth guarding — so it is inverted, not deleted.
+   */
+  it('bills the minimum seats rather than refusing below them', () => {
+    const result = resolve({
+      prices: [price({ minimumSeats: 5 })],
+      quantity: 4,
+    });
 
+    expect(result.available).toBe(true);
+    // Billed at five, and the four the customer actually asked for is still
+    // reported so a caller can explain the difference rather than hide it.
+    expect(result.available && result.billableQuantity).toBe(5);
+    expect(result.available && result.quantity).toBe(4);
+  });
+
+  it('does not inflate a quantity that already clears the minimum', () => {
+    // The pair to the case above. Without it, a resolver that always billed
+    // `minimumSeats` would pass that test while undercharging every real
+    // customer.
+    const result = resolve({
+      prices: [price({ minimumSeats: 5 })],
+      quantity: 12,
+    });
+
+    expect(result.available && result.billableQuantity).toBe(12);
+  });
+
+  it('still refuses above the maximum', () => {
+    // A maximum is a genuine barrier: it means the plan cannot serve that
+    // customer, which is not something billing more can fix.
     expect(
       resolve({ prices: [price({ maximumSeats: 100 })], quantity: 101 }),
     ).toMatchObject({ available: false, reason: 'SEATS_ABOVE_MAXIMUM' });
@@ -412,5 +448,132 @@ describe('isPublicSafeReason', () => {
     expect(isPublicSafeReason('PRICE_NOT_MARKET_SCOPED')).toBe(false);
     expect(isPublicSafeReason('MARKET_NOT_PUBLISHED')).toBe(false);
     expect(isPublicSafeReason('NO_PUBLISHED_PRICE')).toBe(false);
+  });
+});
+
+/**
+ * Two billing models, active at once, on the same plan and market.
+ *
+ * From 2026-08-20 a plan carries a PER_SEAT price for the public and a FLAT
+ * price for sales simultaneously — they differ only in `billingModel` and
+ * `salesModel`, and the active-price index permits both because it now includes
+ * `billingModel`.
+ *
+ * These are the cases that make that safe. Every one of them passes trivially
+ * when only one model exists, which is why they are written with both.
+ */
+describe('two billing models on one plan', () => {
+  const perSeat = price({
+    id: 'price-per-seat',
+    billingModel: 'PER_SEAT',
+    unitAmount: 550,
+    minimumSeats: 25,
+    salesModel: CommercialSalesModel.SELF_SERVICE,
+    effectiveFrom: new Date('2026-08-15T10:00:00.000Z'),
+  });
+
+  const flat = price({
+    id: 'price-flat',
+    billingModel: 'FLAT',
+    unitAmount: 30_000,
+    includedSeats: 100,
+    salesModel: CommercialSalesModel.SALES_ASSISTED,
+    // One millisecond later. Seeding writes both in the same run, so this is
+    // realistic rather than contrived — and under the old select-then-check
+    // ordering it was enough to decide what the public was offered.
+    effectiveFrom: new Date('2026-08-15T10:00:00.001Z'),
+  });
+
+  it('offers the public the per-seat price, not the sales-assisted one', () => {
+    const result = resolve({ prices: [perSeat, flat] });
+
+    expect(result.available).toBe(true);
+    expect(result.available && result.priceId).toBe('price-per-seat');
+    expect(result.available && result.billingModel).toBe('PER_SEAT');
+  });
+
+  /*
+   * The regression, and the reason the filtering had to move ahead of the
+   * selection. `selectEffectivePrice` sorts by effectiveFrom DESC, so with the
+   * flat row written last it was chosen first — and then refused, taking the
+   * plan off public sale for a reason invisible in the data.
+   *
+   * Asserted over both orderings. A test using one ordering would have passed
+   * against the defect half the time, which is worse than not having it.
+   */
+  it.each([
+    ['per-seat first', 'flat first'],
+    ['flat first', 'per-seat first'],
+  ])('answers the same whichever row was written first (%s)', (label) => {
+    const ordered =
+      label === 'per-seat first' ? [perSeat, flat] : [flat, perSeat];
+    const result = resolve({ prices: ordered });
+
+    expect(result.available).toBe(true);
+    expect(result.available && result.priceId).toBe('price-per-seat');
+  });
+
+  it('charges the per-seat price by seat count', () => {
+    const result = resolve({ prices: [perSeat, flat], quantity: 40 });
+
+    // 40 x 550. If the flat row had been selected this would be 30,000.
+    expect(result.available && result.subtotal).toBe(22_000);
+    expect(result.available && result.billableQuantity).toBe(40);
+  });
+
+  it('lets an operator reach the flat price by asking for it', () => {
+    const result = resolve({
+      prices: [perSeat, flat],
+      channel: 'OPERATOR',
+      billingModel: 'FLAT',
+      quantity: 40,
+    });
+
+    expect(result.available && result.priceId).toBe('price-flat');
+    // Flat bills once regardless of headcount, which is the whole product.
+    expect(result.available && result.billableQuantity).toBe(1);
+    expect(result.available && result.subtotal).toBe(30_000);
+  });
+
+  it('lets an operator ask for per-seat instead', () => {
+    const result = resolve({
+      prices: [perSeat, flat],
+      channel: 'OPERATOR',
+      billingModel: 'PER_SEAT',
+      quantity: 40,
+    });
+
+    expect(result.available && result.priceId).toBe('price-per-seat');
+  });
+
+  it('refuses a self-service caller who has only a sales-assisted price', () => {
+    // Not NO_PUBLISHED_PRICE: the price exists and an operator can sell it.
+    // Reporting it as missing would send somebody looking for a row that is
+    // right in front of them.
+    const result = resolve({ prices: [flat] });
+
+    expect(result.available).toBe(false);
+    expect(!result.available && result.reason).toBe('SALES_ASSISTED_ONLY');
+  });
+
+  it('refuses self-service on a custom-only plan even with a permissive price', () => {
+    // Enterprise+ is CUSTOM_ONLY at the plan level. narrowestSalesModel must
+    // stop one permissive price row from widening it.
+    const result = resolve({
+      plan: plan({ salesModel: CommercialSalesModel.CUSTOM_ONLY }),
+      prices: [perSeat],
+    });
+
+    expect(result.available).toBe(false);
+    expect(!result.available && result.reason).toBe('CUSTOM_CONTRACT_ONLY');
+  });
+
+  it('still reports a genuinely absent price as absent', () => {
+    // The pair to the two refusals above. Without it, a resolver that answered
+    // SALES_ASSISTED_ONLY for everything would satisfy them both.
+    const result = resolve({ prices: [] });
+
+    expect(result.available).toBe(false);
+    expect(!result.available && result.reason).toBe('NO_PUBLISHED_PRICE');
   });
 });

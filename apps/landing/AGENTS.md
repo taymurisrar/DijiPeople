@@ -93,9 +93,21 @@ that. Current specs are `lib/plan-presentation.spec.ts` and
 
 CI runs four required jobs over this app — `lint`, `test-landing`, `typecheck`
 and `build` — plus the cross-app URL rules in `test-runtime`. Browser coverage
-exists in the `e2e/` workspace and starts on landing, but that job is
-**report-only and does not gate**.
+exists in the `e2e/` workspace and starts on landing. That job is named by the
+required aggregate but remains fail-open through job-level
+`continue-on-error: true`; do not treat the aggregate green as proof that its
+browser step passed.
 
 **Untested at every level today:** the `/contact` form, all four
 `app/api/**/route.ts` proxies, and the `/subscribe`, `/sign/[token]` and partner
 token journeys.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

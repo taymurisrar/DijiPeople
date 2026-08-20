@@ -9,9 +9,15 @@ import { buildForwardedClientHeaders } from "@repo/config";
  * becomes a switch that any one of them can flip for everybody (BUG-0032).
  *
  * Spread this into the outbound `fetch()` headers of every route handler that
- * proxies to the API. `forwarded-headers.invariant.test.ts` fails the build if a
- * handler forgets — the guarantee is mechanical rather than a convention,
- * because this same convention has already been broken three times.
+ * proxies to the API. `forwarded-headers.invariant.spec.ts` beside this file
+ * fails the build if a handler forgets — the guarantee is mechanical rather
+ * than a convention, because this same convention has already been broken
+ * three times.
+ *
+ * That sentence used to name `forwarded-headers.invariant.test.ts`, which did
+ * not exist in any of the three apps. The convention happened to be intact, so
+ * nothing was broken — but the claim was doing the work of a check while a
+ * reviewer read it and stopped looking.
  */
 export function forwardedClientHeaders(
   request: Request,

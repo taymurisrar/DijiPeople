@@ -36,7 +36,29 @@ export class UpdateManager {
     autoUpdater.allowDowngrade = false;
   }
 
-  start(configProvider: () => AgentConfig): void {
+  /**
+   * Supplies the agent's session to the updater (BUG-0034).
+   *
+   * The feed and the artefact are both gated behind `appDownloads.read` — see
+   * `UpdateFeedController` for why that gate was kept rather than opened — and
+   * `electron-updater` sends `requestHeaders` on both the feed request and the
+   * download, so one token covers the whole exchange.
+   *
+   * Applied before every check rather than once at construction: the access
+   * token is refreshed periodically, so a header captured at startup would be
+   * stale by the first six-hour tick and the check would 401 rather than 404 —
+   * a different failure with the same silence.
+   */
+  setAuthorization(accessToken: string | null): void {
+    autoUpdater.requestHeaders = accessToken
+      ? { Authorization: `Bearer ${accessToken}` }
+      : null;
+  }
+
+  start(
+    configProvider: () => AgentConfig,
+    accessTokenProvider?: () => string | null,
+  ): void {
     this.stop();
 
     const check = () => {
@@ -44,6 +66,7 @@ export class UpdateManager {
         const config = configProvider();
 
         if (config.features.autoUpdate) {
+          this.setAuthorization(accessTokenProvider?.() ?? null);
           void this.checkForUpdates();
         }
       } catch {

@@ -36,15 +36,23 @@ See [[dijipeople-platform-overview|DijiPeople Platform Overview]] for the full p
 - [[customers|Customers]]
 - [[employees|Employees]]
 - [[leads|Leads]]
+- [[legal|Legal]]
+- [[notifications|Notifications]]
 - [[organization|Organization]]
+- [[outbox|Outbox]]
 - [[partner-onboarding|Partner Onboarding]]
 - [[partners|Partners]]
 - [[payroll|Payroll]]
 - [[platform-admin|Platform Admin]]
+- [[platform-auth|Platform Auth]]
+- [[platform-communications|Platform Communications]]
 - [[settings|Settings]]
+- [[super-admin|Super Admin]]
 - [[tenant-application|Tenant Application]]
 - [[tenant-control-plane]]
+- [[tenant-isolation|Tenant Isolation]]
 - [[tenant-provisioning|Tenant Provisioning]]
+- [[workspace-routing-and-domains|Workspace Routing and Domains]]
 
 ## Requirements
 
@@ -55,10 +63,17 @@ See [[dijipeople-platform-overview|DijiPeople Platform Overview]] for the full p
 
 ## Open Product Decisions
 
-_None outstanding._
+Questions where the engineering is understood and the **product answer**
+**is not**. No agent may resolve one by implementing a side of it.
+
+- [[ITEM-0032-recompute-productivity-totals-inflated-by-heartbeat-replays|ITEM-0032]] — **Recompute productivity totals inflated by heartbeat replays** (MEDIUM)
+- [[ITEM-0053-publish-privacy-policy-and-terms-for-the-public-landing-site|ITEM-0053]] — **Publish privacy policy and terms for the public landing site** (MEDIUM)
+- [[ITEM-0057-landing-production-env-examples-still-name-the-vercel-and-re|ITEM-0057]] — **Landing production env examples still name the vercel and render hosts, not the dijipeople.com apex** (unrated)
 
 ## Recent Product Changes
 
+- [[2026-08-20-self-service-acquisition-path|Self-Service Acquisition Path]]
+- [[2026-08-20-identity-and-membership|Identity and Multi-Tenant Membership]]
 - [[2026-08-17-web-app-documentation|2026-08-17 — Documenting `apps/web`, the tenant product]]
 - [[2026-08-16-monorepo-app-documentation|2026-08-16 — Documenting `apps/docs`, `apps/landing` and `apps/agent-desktop`]]
 - [[2026-08-15-database-ci-and-gh-access|Database CI, GitHub access, and the first four framework merges]]
@@ -68,9 +83,13 @@ _None outstanding._
 
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
+| [[BUG-0077-public-subscribe-creates-a-tenant-and-a-second-customeraccou|BUG-0077]] | Public subscribe creates a Tenant and a second CustomerAccount before payment | DATA_INTEGRITY | HIGH | FIXED | billing, super-admin, tenants | FIX_NOW |
+| [[BUG-0078-provisioning-requested-has-no-consumer-so-a-paid-self-servic|BUG-0078]] | PROVISIONING_REQUESTED has no consumer so a paid self-service customer is never provisioned | STATE_MACHINE | HIGH | FIXED | billing, outbox, super-admin | FIX_NOW |
+| [[BUG-0080-seeded-prices-bill-a-flat-fee-while-the-terms-say-the-billab|BUG-0080]] | Seeded prices bill a flat fee while the Terms say the billable unit is an active employee | DATA_INTEGRITY | HIGH | FIXED | billing, super-admin, legal | FIX_NOW |
+| [[BUG-0082-the-onboarding-wizard-collects-five-steps-of-data-it-cannot-|BUG-0082]] | The onboarding wizard collects five steps of data it cannot submit | UX | HIGH | FIXED | landing | FIX_NOW |
 | [[BUG-0043-web-dialogs-have-no-focus-trap-and-filter-controls-are-unlab|BUG-0043]] | Web dialogs have no focus trap and filter controls are unlabelled | UX | MEDIUM | OPEN | apps/web | PLAN_REQUIRED |
-| [[BUG-0046-tenant-theme-mode-and-runtime-settings-saves-do-not-take-eff|BUG-0046]] | Tenant theme mode and runtime settings saves do not take effect | UX | MEDIUM | OPEN | apps/web | FIX_NOW |
-| [[ITEM-0031-replace-remaining-native-prompts-for-governed-input|ITEM-0031]] | Replace remaining native prompts for governed input | UX | MEDIUM | READY | apps/admin, apps/web | DEFER |
+| [[ITEM-0031-replace-remaining-native-prompts-for-governed-input|ITEM-0031]] | Replace remaining native prompts for governed input | UX | MEDIUM | READY | apps/admin, apps/web | FIX_NOW |
+| [[ITEM-0068-legal-documents-have-no-operator-ui-so-publishing-is-a-scrip|ITEM-0068]] | Legal documents have no operator UI, so publishing is a script | UX | MEDIUM | READY | legal, admin | PLAN_REQUIRED |
 
 ## How to read this
 

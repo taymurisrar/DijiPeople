@@ -3,7 +3,7 @@ import Link from "next/link";
 import { PageShell } from "../_components/site-shell";
 
 export const metadata: Metadata = {
-  title: "About | DijiPeople",
+  title: "About",
   description:
     "Learn why DijiPeople exists and who it serves as an HR operations SaaS platform.",
 };

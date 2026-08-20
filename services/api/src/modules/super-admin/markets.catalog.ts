@@ -12,10 +12,14 @@ import { CommercialSalesModel, MarketLaunchStatus } from '@prisma/client';
  *    not have — which is the difference between architecture that is ready for
  *    a market and a public claim that we operate in one.
  *
- * 2. **Only Pakistan is open.** Future markets exist as configuration so the
- *    model is exercised and so opening one is a data change rather than a
- *    deploy, but they are `PLANNED`, disabled, and have no prices. Nothing
- *    about their presence implies availability.
+ * 2. **Only priced markets are open.** Pakistan, Qatar and International carry
+ *    the schedule the owner set on 2026-08-20 and are `LAUNCHED`. `US` and
+ *    `GCC` remain configuration only — `PLANNED`, disabled, no prices — so the
+ *    model is exercised and opening one is a data change rather than a deploy.
+ *    Nothing about their presence implies availability.
+ *
+ *    This rule used to read "Only Pakistan is open", which was true while the
+ *    only prices this repository held evidence for were invented USD figures.
  */
 export const DEFAULT_MARKET_DEFINITIONS = [
   {
@@ -26,18 +30,15 @@ export const DEFAULT_MARKET_DEFINITIONS = [
     isEnabled: true,
     selfServiceEnabled: true,
     published: true,
-    // USD, not PKR — deliberately.
+    // PKR, as of 2026-08-20.
     //
-    // The only plan prices this repository holds evidence for are the USD
-    // amounts in plans.catalog.ts (199/399/899 monthly). Seeding a PKR figure
-    // would mean inventing what DijiPeople charges in its launch market, which
-    // is a commercial decision no agent gets to make. PKR is listed as
-    // supported so the price schedule can be added in Admin without a schema
-    // or seed change; the market default moves to PKR at that point.
-    //
-    // Recorded as OWNER_DECISION_REQUIRED in the Wave 1 report.
-    defaultCurrency: 'USD',
-    supportedCurrencies: ['USD', 'PKR'],
+    // This read USD until the owner supplied a real PKR schedule. The comment
+    // it replaces said the default "moves to PKR at that point", and this is
+    // that point — the condition it named has been met rather than overruled.
+    // USD stays supported so an international buyer in Pakistan can still be
+    // quoted in it.
+    defaultCurrency: 'PKR',
+    supportedCurrencies: ['PKR', 'USD'],
     countryCodes: ['PK'],
     dataRegion: null,
     taxProfileRef: null,
@@ -74,32 +75,93 @@ export const DEFAULT_MARKET_DEFINITIONS = [
     // commercial model actually differs between them.
     defaultCurrency: 'USD',
     supportedCurrencies: ['USD', 'AED', 'SAR', 'QAR'],
-    countryCodes: ['AE', 'SA', 'QA', 'KW', 'BH', 'OM'],
+    // 'QA' deliberately absent: Qatar is its own launched market below.
+    //
+    // `MarketCountry.countryCode` is UNIQUE globally, not per market, so two
+    // markets cannot both claim it — and `ensureMarkets` treats a unique
+    // violation as benign, which means leaving it here would create the Qatar
+    // market with no country row at all, silently. The migration
+    // 20260820140000 moves the existing row on databases seeded before this.
+    countryCodes: ['AE', 'SA', 'KW', 'BH', 'OM'],
     dataRegion: null,
     taxProfileRef: null,
     legalDocumentSetRef: null,
     sortOrder: 30,
   },
+  {
+    code: 'QA',
+    name: 'Qatar',
+    description: 'Launch market. Priced in QAR.',
+    launchStatus: MarketLaunchStatus.LAUNCHED,
+    isEnabled: true,
+    selfServiceEnabled: true,
+    published: true,
+    defaultCurrency: 'QAR',
+    supportedCurrencies: ['QAR', 'USD'],
+    countryCodes: ['QA'],
+    // Null for the same reason as every other market here: this repository
+    // holds no evidence of a Qatari tax registration or legal entity, and a
+    // non-null value would be a public claim rather than a configuration.
+    dataRegion: null,
+    taxProfileRef: null,
+    legalDocumentSetRef: null,
+    sortOrder: 15,
+  },
+  {
+    code: 'INTL',
+    name: 'International',
+    description:
+      'Launch market for buyers outside Pakistan and Qatar. Priced in USD.',
+    launchStatus: MarketLaunchStatus.LAUNCHED,
+    isEnabled: true,
+    selfServiceEnabled: true,
+    published: true,
+    defaultCurrency: 'USD',
+    supportedCurrencies: ['USD'],
+    /*
+     * No country codes, and that is the point.
+     *
+     * `MarketCountry.countryCode` is globally unique, so a catch-all market
+     * cannot enumerate "everywhere else" without colliding with every market
+     * added later. INTL is resolved as the fallback when no country-specific
+     * market matches, not by listing countries.
+     */
+    countryCodes: [],
+    dataRegion: null,
+    taxProfileRef: null,
+    legalDocumentSetRef: null,
+    sortOrder: 25,
+  },
 ] as const;
 
-/**
- * Which market a plan's seeded prices belong to. Only the launch market gets
- * prices — a planned market with a published price would be purchasable the
- * moment someone enabled it, which is not a state anyone should be able to
- * reach by accident.
- */
-export const SEEDED_PRICE_MARKET_CODE = 'PK';
-
-/**
- * Sales model per seeded plan.
+/*
+ * `SEEDED_PRICE_MARKET_CODE` and `PLACEHOLDER_PKR_PRICES` used to live here and
+ * were removed on 2026-08-20.
  *
- * Enterprise is SELF_SERVICE on purpose. The requirement is explicit that a
- * standard published Enterprise plan stays self-service and is not hardcoded to
- * "Contact sales"; routing to sales is a configuration decision made per plan
- * or per price, not a property of the word "enterprise".
+ * The first named the single market that carried prices — `'PK'` — which stopped
+ * being true when Pakistan, Qatar and International were each given a schedule.
+ * A constant asserting there is one priced market is worse than no constant at
+ * all once there are three.
+ *
+ * The second was a DRAFT PKR schedule of round, deliberately-wrong numbers,
+ * seeded so the local-currency path could be exercised before anyone had
+ * decided what DijiPeople charges in Pakistan. That decision has been made, the
+ * real schedule is in `pricing.catalog.ts`, and inventing numbers alongside real
+ * ones is how the two get confused.
  */
+
 export const DEFAULT_PLAN_SALES_MODELS: Record<string, CommercialSalesModel> = {
   starter: CommercialSalesModel.SELF_SERVICE,
   growth: CommercialSalesModel.SELF_SERVICE,
   enterprise: CommercialSalesModel.SELF_SERVICE,
+  /*
+   * Enterprise+ is the exception the paragraph above describes, and it is
+   * CUSTOM_ONLY at the PLAN level rather than the price level — deliberately.
+   *
+   * `narrowestSalesModel` lets a plan's model narrow a price's but never widen
+   * it, so no permissive price row can accidentally make Enterprise+
+   * self-service. Above 250 employees the terms are negotiated; there is no
+   * list price to publish.
+   */
+  'enterprise-plus': CommercialSalesModel.CUSTOM_ONLY,
 };

@@ -28,7 +28,7 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -74,6 +74,7 @@ const REQUIRED_AGENTS = [
   'reviewer',
   'integrator',
   'release-devops',
+  'security',
 ];
 
 for (const agent of REQUIRED_AGENTS) {
@@ -86,6 +87,31 @@ for (const agent of REQUIRED_AGENTS) {
   const body = read(path);
   check(`${agent} declares Required Context`, body.includes('## Required Context'));
   check(`${agent} declares a Staleness Rule`, body.includes('Staleness Rule'));
+
+  /*
+   * Two properties every permanent role must carry, because their absence is
+   * invisible until it costs something.
+   *
+   * SESSION AWARENESS. The same role runs in several Architect chats at once.
+   * A role that never names SESSION_ID cannot say which chat its evidence came
+   * from, and two sessions' results become indistinguishable in the report.
+   * Five roles were missing this until 2026-08-19.
+   *
+   * KNOWLEDGE IMPACT. The specialist is the only party that knows whether what
+   * it built changed durable behaviour. A role that never declares it leaves the
+   * Architect inferring, which is how a new invariant ends up existing only in
+   * code and a chat transcript.
+   */
+  check(
+    `${agent} is session-aware`,
+    /SESSION_ID|session\.mjs/.test(body),
+    'the same role runs in multiple chats; an execution must name its session',
+  );
+  check(
+    `${agent} declares KNOWLEDGE_IMPACT in its handoff`,
+    body.includes('KNOWLEDGE_IMPACT'),
+    'only the specialist knows whether durable behaviour changed',
+  );
 }
 
 // The generic implementer role was superseded by the five specialists. A merge
@@ -875,11 +901,19 @@ check(
  */
 function runScript(relative, args = []) {
   try {
-    execFileSync(process.execPath, [join(ROOT, relative), ...args], {
+    /*
+     * stdout is returned on success as well as on failure. It used to be
+     * discarded, which made every check that inspected a successful script's
+     * output fail against an empty string — a false negative that looks exactly
+     * like the script being broken.
+     */
+    const stdout = execFileSync(process.execPath, [join(ROOT, relative), ...args], {
       cwd: ROOT,
       stdio: 'pipe',
+      encoding: 'utf8',
+      maxBuffer: 16 * 1024 * 1024,
     });
-    return { ok: true, output: '' };
+    return { ok: true, output: String(stdout ?? '') };
   } catch (error) {
     return { ok: false, output: String(error.stdout ?? '') + String(error.stderr ?? '') };
   }
@@ -910,7 +944,7 @@ if (existsSync(join(ROOT, 'scripts/generate-dashboards.mjs'))) {
  * commented them out.
  */
 if (existsSync(join(ROOT, 'scripts/lib/backlog-records.mjs'))) {
-  const { loadRecords } = await import('./lib/backlog-records.mjs');
+  const { loadRecords, BUG_SECTIONS } = await import('./lib/backlog-records.mjs');
 
   const sandbox = mkdtempSync(join(tmpdir(), 'dijipeople-framework-'));
   const bugDir = join(sandbox, 'docs/bugs');
@@ -943,10 +977,103 @@ if (existsSync(join(ROOT, 'scripts/lib/backlog-records.mjs'))) {
       '',
       '# probe',
       '',
+      ...BUG_SECTIONS.flatMap((section) => [`## ${section}`, '', 'probe', '']),
     ].join('\n');
 
   writeFileSync(join(bugDir, 'BUG-9001-probe-a.md'), valid('BUG-9001'));
   check('a well-formed record set loads cleanly', loadRecords(sandbox).errors.length === 0);
+
+  writeFileSync(
+    join(bugDir, 'BUG-9001-probe-a.md'),
+    valid('BUG-9001')
+      .replace('Status: OPEN', 'Status: VERIFIED')
+      .replace('ArchitectDisposition: TRIAGE_REQUIRED', 'ArchitectDisposition: FIX_NOW')
+      .replace('ResolvedAt:', 'ResolvedAt: 2026-01-02'),
+  );
+  check(
+    'terminal records with actionable dispositions are rejected',
+    loadRecords(sandbox).errors.some((e) => /terminal Status VERIFIED requires ArchitectDisposition DONE/.test(e)),
+  );
+
+  writeFileSync(
+    join(bugDir, 'BUG-9001-probe-a.md'),
+    valid('BUG-9001')
+      .replace('Status: OPEN', 'Status: VERIFIED')
+      .replace('ArchitectDisposition: TRIAGE_REQUIRED', 'ArchitectDisposition: DONE')
+      .replace('ResolvedAt:', 'ResolvedAt: 2026-01-02'),
+  );
+  check(
+    'fixed and verified bugs require a regression link',
+    loadRecords(sandbox).errors.some((e) => /Status VERIFIED requires RegressionId/.test(e)),
+  );
+
+  mkdirSync(join(sandbox, 'docs/qa/regressions'), { recursive: true });
+  writeFileSync(
+    join(sandbox, 'docs/qa/regressions/index.md'),
+    [
+      '### REG-901 — inactive probe',
+      '',
+      '| Field | Value |',
+      '|---|---|',
+      '| **Active** | no |',
+      '| **Bug record** | BUG-9001 |',
+    ].join('\n'),
+  );
+  writeFileSync(
+    join(bugDir, 'BUG-9001-probe-a.md'),
+    valid('BUG-9001')
+      .replace('Status: OPEN', 'Status: FIXED')
+      .replace('ArchitectDisposition: TRIAGE_REQUIRED', 'ArchitectDisposition: FIX_NOW')
+      .replace('RegressionId:', 'RegressionId: REG-901'),
+  );
+  check(
+    'fixed and terminal bugs require an active regression link',
+    loadRecords(sandbox).errors.some((e) => /Status FIXED requires RegressionId REG-901 to be active/.test(e)),
+  );
+
+  writeFileSync(
+    join(bugDir, 'BUG-9001-probe-a.md'),
+    valid('BUG-9001').replace('ArchitectDisposition: TRIAGE_REQUIRED', 'ArchitectDisposition: DEFER'),
+  );
+  check(
+    'deferred dispositions cannot remain active',
+    loadRecords(sandbox).errors.some((e) => /ArchitectDisposition DEFER requires Status DEFERRED/.test(e)),
+  );
+
+  writeFileSync(
+    join(bugDir, 'BUG-9001-probe-a.md'),
+    valid('BUG-9001').replace('QAReport:', 'QAReport: docs/qa/runs/missing.md'),
+  );
+  check(
+    'record evidence paths must resolve',
+    loadRecords(sandbox).errors.some((e) => /QAReport references missing path/.test(e)),
+  );
+
+  writeFileSync(
+    join(bugDir, 'BUG-9001-probe-a.md'),
+    valid('BUG-9001').replace('UpdatedAt: 2026-01-01', 'UpdatedAt: 2025-12-31'),
+  );
+  check(
+    'record dates cannot move backwards',
+    loadRecords(sandbox).errors.some((e) => /UpdatedAt .* predates CreatedAt/.test(e)),
+  );
+
+  writeFileSync(
+    join(bugDir, 'BUG-9001-probe-a.md'),
+    valid('BUG-9001').replace('## Root Cause\n\nprobe\n\n', ''),
+  );
+  check(
+    'bug body sections are mandatory',
+    loadRecords(sandbox).errors.some((e) => /missing required section "## Root Cause"/.test(e)),
+  );
+
+  writeFileSync(join(bugDir, 'BUG-9001-probe-a.md'), `${valid('BUG-9001')}\n</content>\n`);
+  check(
+    'record wrapper artifacts are rejected',
+    loadRecords(sandbox).errors.some((e) => /stray literal <\/content>/.test(e)),
+  );
+
+  writeFileSync(join(bugDir, 'BUG-9001-probe-a.md'), valid('BUG-9001'));
 
   // Same id, different filename — the collision two agents can create.
   writeFileSync(join(bugDir, 'BUG-9001-probe-b.md'), valid('BUG-9001'));
@@ -983,6 +1110,119 @@ if (existsSync(join(ROOT, 'scripts/lib/backlog-records.mjs'))) {
   );
 
   rmSync(sandbox, { recursive: true, force: true });
+}
+
+/*
+ * Program inventories are curated evidence, but their canonical state fields
+ * must not become a second backlog. TASK-0005 is the first such inventory, so
+ * verify its id set, canonical metadata and QA relationship fields. Discovery
+ * analysis may remain curated, but status and backlinks must never become a
+ * competing source of truth.
+ */
+const remediationInventory = join(
+  ROOT,
+  'docs/tasks/remediation/TASK-0005-inventory.json',
+);
+if (
+  existsSync(remediationInventory) &&
+  existsSync(join(ROOT, 'scripts/lib/backlog-records.mjs'))
+) {
+  const { loadRecords } = await import('./lib/backlog-records.mjs');
+  const { loadQaRecords } = await import('./lib/qa-records.mjs');
+  const inventory = JSON.parse(readFileSync(remediationInventory, 'utf8'));
+  const { records, errors } = loadRecords(ROOT);
+  const qa = loadQaRecords(ROOT);
+  const canonical = new Map(records.map((record) => [record.id, record]));
+  const rows = Array.isArray(inventory.records) ? inventory.records : [];
+  const rowIds = rows.map((row) => row.record_id);
+
+  check(
+    'remediation inventory loads with canonical records and QA relationships',
+    errors.length === 0 && qa.errors.length === 0,
+  );
+  check(
+    'remediation inventory has one row per canonical record',
+    rows.length === records.length && new Set(rowIds).size === records.length,
+    `${rows.length} inventory rows / ${records.length} canonical records`,
+  );
+  check(
+    'remediation inventory contains no missing or extra record ids',
+    rowIds.every((id) => canonical.has(id)) && records.every((record) => rowIds.includes(record.id)),
+  );
+
+  const drift = [];
+  const regressionRoots = new Map();
+  const register = read('docs/qa/regressions/index.md');
+  for (const entry of register.split(/(?=^### REG-)/m)) {
+    const regressionId = (/^### (REG-\d{3})/.exec(entry) ?? [])[1];
+    if (!regressionId) continue;
+    const rootCell =
+      (/^\|\s*\*\*Bug record\*\*\s*\|\s*(.*?)\s*\|\s*$/m.exec(entry) ?? [])[1] ?? '';
+    for (const rootId of rootCell.match(/\b(?:BUG|ITEM)-\d{4}\b/g) ?? []) {
+      const ids = regressionRoots.get(rootId) ?? [];
+      ids.push(regressionId);
+      regressionRoots.set(rootId, ids);
+    }
+  }
+  const sameIds = (actual, expected) =>
+    JSON.stringify([...(actual ?? [])].sort()) === JSON.stringify([...expected].sort());
+  for (const row of rows) {
+    const record = canonical.get(row.record_id);
+    if (!record) continue;
+    const expected = {
+      type: String(record.fields.Type ?? '').trim(),
+      title: String(record.fields.Title ?? '').trim(),
+      severity: record.severity,
+      priority: record.priority,
+      current_status: record.status,
+      architect_disposition: String(record.fields.ArchitectDisposition ?? '').trim(),
+    };
+    for (const [field, value] of Object.entries(expected)) {
+      if (row[field] !== value) drift.push(`${row.record_id}.${field}`);
+    }
+    const expectedSource = {
+      record_path: record.relative,
+      provenance: String(record.fields.Source ?? '').trim(),
+      detected_in_sha: String(record.fields.DetectedInSha ?? '').trim(),
+      created_at: String(record.fields.CreatedAt ?? '').trim(),
+      updated_at: String(record.fields.UpdatedAt ?? '').trim(),
+      resolved_at: String(record.fields.ResolvedAt ?? '').trim(),
+    };
+    for (const [field, value] of Object.entries(expectedSource)) {
+      if (row.source?.[field] !== value) drift.push(`${row.record_id}.source.${field}`);
+    }
+    if (!sameIds(row.affected_modules, record.fields.AffectedModules ?? [])) {
+      drift.push(`${row.record_id}.affected_modules`);
+    }
+    if (!sameIds(row.regressions, regressionRoots.get(record.id) ?? [])) {
+      drift.push(`${row.record_id}.regressions`);
+    }
+    const scenarioIds = qa.scenarios
+      .filter((scenario) => scenario.bugs.includes(record.id))
+      .map((scenario) => scenario.id);
+    if (!sameIds(row.qa_scenarios, scenarioIds)) drift.push(`${row.record_id}.qa_scenarios`);
+    const planIds = qa.plans.filter((plan) => plan.bugs.includes(record.id)).map((plan) => plan.id);
+    if (!sameIds(row.test_plan, planIds)) drift.push(`${row.record_id}.test_plan`);
+  }
+  check(
+    'remediation inventory canonical state matches Bug/Backlog records',
+    drift.length === 0,
+    drift.slice(0, 8).join(', '),
+  );
+  check(
+    'remediation inventory distinguishes discovery and reconciliation provenance',
+    /^[0-9a-f]{40}$/.test(inventory.discovery_source_head ?? '') &&
+      /^[0-9a-f]{40}$/.test(inventory.reconciliation_base_head ?? '') &&
+      !Object.hasOwn(inventory, 'source_head'),
+  );
+
+  const findingIds = (inventory.discovered_findings ?? []).map(
+    (finding) => finding.finding_id,
+  );
+  check(
+    'remediation inventory finding ids are unique',
+    findingIds.length === new Set(findingIds).size,
+  );
 }
 
 // ------------------------------------------------ the finding-classification loop
@@ -1086,6 +1326,223 @@ for (const agent of ['backend-api', 'frontend', 'database', 'integration', 'ui-u
   check(
     `${agent} states that a recorded defect is not new information`,
     /not new information|REPEATED_REGRESSION/i.test(body),
+  );
+}
+
+/*
+ * UI/UX participation.
+ *
+ * This role was defined, was invoked, and was still invisible: it had no status
+ * on the completion contract, no row in the acceptance chain, and no schema for
+ * its output, so whatever it found reached the user — when it reached the user
+ * at all — as the sentence "UI/UX Agent reviewed". Its own role file closed by
+ * saying that invoking it "produces documentation nobody reads", which the
+ * Architect could reasonably read as licence to skip it.
+ *
+ * These checks assert the mechanism, not the vocabulary. Each is anchored to
+ * the section carrying the rule, so deleting the section fails the check rather
+ * than leaving a stray mention elsewhere in the file to satisfy it — which is
+ * the failure mode a previous audit of this validator recorded.
+ */
+function sectionOf(body, headingPattern) {
+  const lines = body.split('\n');
+  const start = lines.findIndex(
+    (line) => /^#{2,6}\s/.test(line) && headingPattern.test(line),
+  );
+  if (start === -1) return '';
+  const level = lines[start].match(/^#+/)[0].length;
+  let end = lines.length;
+  for (let i = start + 1; i < lines.length; i += 1) {
+    const heading = lines[i].match(/^(#+)\s/);
+    if (heading && heading[1].length <= level) {
+      end = i;
+      break;
+    }
+  }
+  return lines.slice(start, end).join('\n');
+}
+
+const UI_UX_AGENT_PATH = '.agent/agents/ui-ux.md';
+if (existsSync(join(ROOT, UI_UX_AGENT_PATH))) {
+  const uiux = read(UI_UX_AGENT_PATH);
+
+  /* 1. A landing/UI task requires UI/UX — the surfaces are enumerated, not implied. */
+  const requiredSurfaces = sectionOf(uiux, /When UI\/UX is required/i);
+  check(
+    'ui-ux enumerates the surfaces that require it',
+    requiredSurfaces.length > 0,
+    'without the section the Architect has nothing to check a task against',
+  );
+  for (const surface of [
+    'forms',
+    'navigation',
+    'accessibility',
+    'public landing pages',
+    'destructive actions',
+    'conversion flows',
+    'responsive',
+    'dialogs',
+  ]) {
+    check(
+      `ui-ux requires review for ${surface}`,
+      new RegExp(surface.replace(/[/\\^$*+?.()|[\]{}]/g, '\\$&'), 'i').test(requiredSurfaces),
+      'a surface absent from the required list is one the Architect may silently skip',
+    );
+  }
+
+  /* 7. NOT_REQUIRED is an exemption that has to be argued for. */
+  check(
+    'ui-ux requires a stated reason for NOT_REQUIRED',
+    /NOT_REQUIRED/.test(requiredSurfaces) &&
+      /stated reason|with a reason|with the reason/i.test(requiredSurfaces),
+    'an unreasoned NOT_REQUIRED is how this role stopped running',
+  );
+
+  /* 2. The handoff has a schema, and an empty one is not a pass. */
+  const handoff = sectionOf(uiux, /UI\/UX handoff/i);
+  check('ui-ux defines its own handoff block', handoff.length > 0);
+  for (const field of [
+    'UI_UX_AGENT_STATUS',
+    'SURFACES_REVIEWED',
+    'WHAT_WORKS_WELL',
+    'CRITICAL_FINDINGS',
+    'HIGH_FINDINGS',
+    'ACCESSIBILITY_FINDINGS',
+    'RESPONSIVE_FINDINGS',
+    'KNOWN_EXISTING_ISSUES',
+    'NEW_FINDINGS',
+    'SCREENSHOTS_OR_BROWSER_EVIDENCE',
+    'HANDOFF_READY',
+  ]) {
+    check(`ui-ux handoff carries ${field}`, handoff.includes(field));
+  }
+  check(
+    'ui-ux states that an empty handoff is not a pass',
+    /empty handoff is not a pass/i.test(handoff),
+    'otherwise a PASS with no findings is indistinguishable from no review',
+  );
+
+  /* 3 + 4. Findings are classified, and severe ones cannot stay in prose. */
+  const findings = sectionOf(uiux, /Findings/i);
+  check('ui-ux defines where findings go', findings.length > 0);
+  for (const kind of [
+    'UX_DEBT',
+    'ACCESSIBILITY',
+    'CONTENT',
+    'RESPONSIVE',
+    'CONVERSION',
+    'DESIGN_SYSTEM',
+    'GOOD_TO_HAVE',
+  ]) {
+    check(`ui-ux classifies findings as ${kind}`, findings.includes(kind));
+  }
+  check(
+    'ui-ux binds CRITICAL and HIGH findings to a bug record',
+    /CRITICAL/.test(findings) && /HIGH/.test(findings) && /docs\/bugs/.test(findings),
+    'a severe finding with nowhere to live is a finding that disappears',
+  );
+  check(
+    'ui-ux forbids a material finding existing only in a report',
+    /only in a report/i.test(findings),
+  );
+  check(
+    'ui-ux separates a bug from a recommendation',
+    /\*\*BUG\*\*/.test(findings) &&
+      /\*\*WARNING\*\*/.test(findings) &&
+      /\*\*RECOMMENDATION\*\*/.test(findings),
+    'without the distinction every preference inflates to HIGH and triage stops meaning anything',
+  );
+
+  /* 5. Frontend completion cannot bypass the post-review. */
+  const postReview = sectionOf(uiux, /Post-implementation review/i);
+  check('ui-ux defines a post-implementation review', postReview.length > 0);
+  check(
+    'ui-ux post-review carries UI_UX_POST_REVIEW_STATUS',
+    postReview.includes('UI_UX_POST_REVIEW_STATUS'),
+  );
+  check(
+    'ui-ux blocks Frontend completion on a failed or absent post-review',
+    /may not be reported complete|not be reported complete/i.test(postReview) &&
+      /FAILED/.test(postReview),
+    'a review whose verdict blocks nothing is advisory, and advisory gates do not hold',
+  );
+  check(
+    'ui-ux post-review runs against the running UI rather than the diff',
+    /running\s+UI/i.test(postReview) &&
+      /(not|rather\s+than)\s+against\s+the\s+diff|not\s+against\s+the\s+diff/i.test(postReview),
+  );
+}
+
+/* The handoff contract has to know about the role, or the role has no gate. */
+if (existsSync(join(ROOT, '.agent/context/agent-handoffs.md'))) {
+  const handoffs = read('.agent/context/agent-handoffs.md');
+  check(
+    'handoffs give UI/UX its own handoff shape',
+    /UI\/UX hands off differently/i.test(handoffs),
+    'the generic build-shaped handoff leaves a read-only role with every field empty',
+  );
+  check(
+    'handoffs place UI/UX in the acceptance chain in both directions',
+    /Frontend ← UI\/UX/.test(handoffs) && /UI\/UX ← Frontend/.test(handoffs),
+    'a stage nobody accepts or rejects is not a gate',
+  );
+  check(
+    'handoffs name the UI/UX acceptance tokens',
+    handoffs.includes('FRONTEND_ACCEPTED_UI_UX') &&
+      handoffs.includes('UI_UX_ACCEPTED_IMPLEMENTATION'),
+  );
+  check(
+    'handoffs treat an empty UI/UX handoff as an anti-pattern',
+    /`?PASS`?\s+with\s+every\s+finding\s+field\s+empty/i.test(handoffs),
+  );
+  check(
+    'handoffs require a bug id on a CRITICAL or HIGH UI/UX finding',
+    /`?(CRITICAL|HIGH)`?\s+UI\/UX\s+finding\s+with\s+no\s+bug\s+record\s+id/i.test(handoffs),
+  );
+  check(
+    'handoffs require the final report to show what UI/UX found',
+    /quotes the\s+\*\*UI\/UX handoff\*\*|quotes the\s+UI\/UX handoff/i.test(handoffs),
+  );
+}
+
+/* And the completion contract has to be able to fail on it. */
+if (existsSync(join(ROOT, '.agent/context/task-completion-contract.md'))) {
+  const contract = read('.agent/context/task-completion-contract.md');
+  for (const field of ['UI_UX_AGENT_STATUS', 'UI_UX_POST_REVIEW_STATUS']) {
+    check(`completion contract resolves ${field}`, contract.includes(field));
+  }
+  check(
+    'completion contract allows UI/UX NOT_REQUIRED only with a reason',
+    /with the reason stated/i.test(contract),
+  );
+  check(
+    'completion contract blocks completion on a failed UI/UX post-review',
+    /UI_UX_POST_REVIEW_STATUS = FAILED` blocks completion/i.test(contract),
+  );
+}
+
+/* 6. The Architect must expose the contribution, not assert it. */
+if (existsSync(join(ROOT, '.agent/agents/architect.md'))) {
+  const architectReport = sectionOf(
+    read('.agent/agents/architect.md'),
+    /Reporting the UI\/UX contribution/i,
+  );
+  check(
+    'architect reports the UI/UX contribution',
+    architectReport.length > 0,
+    'without this the roster says UI/UX ran and the report never shows a single finding',
+  );
+  for (const field of [
+    'UI_UX_AGENT_STATUS',
+    'UI_UX_POST_REVIEW_STATUS',
+    'UI_UX_FINDINGS_COUNT',
+    'SURFACES_REVIEWED',
+  ]) {
+    check(`architect report exposes ${field}`, architectReport.includes(field));
+  }
+  check(
+    'architect rejects a bare claim that UI/UX reviewed',
+    /is not a report of a review/i.test(architectReport),
   );
 }
 
@@ -1265,8 +1722,15 @@ if (existsSync(join(ROOT, `${DASHBOARD_DIR}/DijiPeople Engineering Dashboard.md`
     for (const file of markdownFilesIn(dir)) {
       for (const match of read(file).matchAll(/\[\[([^\]|#]+)(?:\|[^\]]*)?\]\]/g)) {
         const target = match[1].trim().toLowerCase();
-        // Record ids resolve through the `aliases:` frontmatter in the vault.
-        if (/^(bug|item)-\d{4}$/.test(target)) continue;
+        /*
+         * Record ids resolve through the `aliases:` frontmatter in the vault.
+         * Task, session, plan and scenario records emit the same alias line, so
+         * they resolve the same way — the filename carries a slug the id does
+         * not, and linking by id is what keeps a rename from breaking a link.
+         */
+        if (/^(bug|item|task|session|plan)-\d{3,4}$/.test(target)) continue;
+        if (/^qa-[a-z0-9]+-\d{3}$/.test(target)) continue;
+        if (/^reg-\d{3}$/.test(target)) continue;
         if (noteNames.has(target)) continue;
         unresolved.set(target, (unresolved.get(target) ?? 0) + 1);
       }
@@ -1296,10 +1760,17 @@ if (existsSync(join(ROOT, `${DASHBOARD_DIR}/DijiPeople Engineering Dashboard.md`
    * any future edit to either template.
    */
   const withoutAliases = [];
-  for (const dir of ['docs/bugs', 'docs/backlog/items']) {
+  /*
+   * BUG-0059 — this loop ran over bugs and backlog items only, which is exactly
+   * how `docs/tasks` came to hold five records no `[[TASK-nnnn]]` could reach:
+   * the rule was right, the record type was simply outside the loop. Every
+   * directory of id-addressable records belongs here, so adding a sixth record
+   * type cannot silently reintroduce the gap.
+   */
+  for (const dir of ['docs/bugs', 'docs/backlog/items', 'docs/tasks']) {
     for (const file of markdownFilesIn(dir)) {
       const name = file.split(/[\\/]/).pop() ?? '';
-      const idMatch = /^(BUG|ITEM)-\d{4}/.exec(name);
+      const idMatch = /^(BUG|ITEM|TASK)-\d{4}/.exec(name);
       if (!idMatch) continue;
 
       const source = read(file);
@@ -1316,7 +1787,7 @@ if (existsSync(join(ROOT, `${DASHBOARD_DIR}/DijiPeople Engineering Dashboard.md`
   }
 
   check(
-    'Every bug and backlog record is reachable by its bare id in Obsidian',
+    'Every bug, backlog and task record is reachable by its bare id in Obsidian',
     withoutAliases.length === 0,
     withoutAliases.slice(0, 6).join('; '),
   );
@@ -2059,6 +2530,2253 @@ for (const file of [
       `matched ${pattern}`,
     );
   }
+}
+
+// ================================================================================
+// Autonomous framework v2 — multi-session, develop integration, persistent QA
+// ================================================================================
+
+/*
+ * Everything below covers the capabilities added by TASK-0004. The structural
+ * checks prove the rules are written; the simulations further down prove they
+ * are executable.
+ *
+ * The distinction is not academic here. A check asserting that
+ * `multi-session.md` mentions "lease" passes just as happily after somebody
+ * inverts the comparison in `acquireLease`, which is the exact class of failure
+ * this framework has already recorded against itself.
+ */
+
+// -------------------------------------------------- v2 structure and wiring
+
+const V2_CONTEXT = [
+  '.agent/context/multi-session.md',
+  '.agent/context/branch-model.md',
+  '.agent/context/agent-handoffs.md',
+  '.agent/context/qa-persistence.md',
+];
+
+const V2_SCRIPTS = [
+  'scripts/lib/agent-state.mjs',
+  'scripts/lib/id-allocator.mjs',
+  'scripts/lib/session-registry.mjs',
+  'scripts/lib/session-records.mjs',
+  'scripts/lib/qa-records.mjs',
+  'scripts/allocate-id.mjs',
+  'scripts/session.mjs',
+  'scripts/rebuild-sessions.mjs',
+  'scripts/rebuild-qa.mjs',
+  'scripts/qa-select.mjs',
+  'scripts/new-qa-scenario.mjs',
+  'scripts/new-test-plan.mjs',
+  'scripts/backlog-review.mjs',
+  'scripts/verify-branch-policy.mjs',
+];
+
+const V2_DOCS = [
+  'docs/sessions/README.md',
+  'docs/sessions/index.md',
+  'docs/sessions/active.md',
+  'docs/sessions/completed.md',
+  'docs/qa/test-plans/index.md',
+  'docs/qa/scenarios/index.md',
+  'docs/qa/coverage-matrix.md',
+  'docs/knowledge/dashboards/Engineering Control Center.md',
+];
+
+for (const path of [...V2_CONTEXT, ...V2_SCRIPTS, ...V2_DOCS]) {
+  check(`required path present: ${path}`, existsSync(join(ROOT, path)));
+}
+
+for (const script of V2_SCRIPTS) {
+  if (!existsSync(join(ROOT, script))) continue;
+  const body = read(script);
+  check(`${script} is an ES module`, body.includes('import ') || body.includes('export '));
+  check(`${script} is not truncated`, body.trimEnd().length > 400);
+}
+
+/* 1, 3 — multi-session rules must be stated before they can be relied on. */
+if (existsSync(join(ROOT, '.agent/context/multi-session.md'))) {
+  const body = read('.agent/context/multi-session.md');
+  for (const classification of [
+    'SAFE_PARALLEL',
+    'SERIALIZE',
+    'DEPENDENCY_WAIT',
+    'SHARED_FILE_CONFLICT',
+    'REBASE_REQUIRED',
+    'BLOCKED_BY_ACTIVE_SESSION',
+  ]) {
+    check(`multi-session defines overlap class ${classification}`, body.includes(classification));
+  }
+  for (const field of [
+    'SESSION_ID',
+    'TASK_BRANCH',
+    'BASE_SHA',
+    'WRITE_LEASES',
+    'SCHEMA_WRITE',
+    'LAST_HEARTBEAT',
+  ]) {
+    check(`multi-session declares session field ${field}`, body.includes(field));
+  }
+  check(
+    'multi-session keeps the database single-writer across all sessions',
+    /single-writer across all sessions|single writer across ALL/i.test(body),
+  );
+  check('multi-session names DATABASE_WRITER', body.includes('DATABASE_WRITER'));
+  check(
+    'multi-session forbids reusing an id',
+    /never lowered and never expire|gap in a sequence/i.test(body),
+  );
+  check(
+    'multi-session reports rather than reaps a stale session',
+    /reported, never reaped|never reaped/i.test(body),
+  );
+  check(
+    'multi-session tells a blocked session to run other work rather than wait',
+    /never stops an independent work package/i.test(body),
+  );
+  check('multi-session defines the merge queue statuses', ['QUEUED', 'INTEGRATING', 'VALIDATING', 'DONE'].every((s) => body.includes(s)));
+}
+
+/* 14, 15, 16, 19, 20 — the branch model. */
+if (existsSync(join(ROOT, '.agent/context/branch-model.md'))) {
+  const body = read('.agent/context/branch-model.md');
+  check('branch model sets develop as the default target', /DEFAULT_TARGET_BRANCH\s*=\s*develop/.test(body));
+  check('branch model declares MAIN_MUTATION_FORBIDDEN', body.includes('MAIN_MUTATION_FORBIDDEN'));
+  check(
+    'branch model states that any mutation of main may deploy production',
+    /mutation of `?main`? may trigger a production deployment/i.test(body),
+  );
+  check('branch model makes develop PR optional', /DEVELOP_PR_REQUIRED\s*=\s*false/.test(body));
+  check(
+    'branch model still requires validation on develop',
+    /DEVELOP_VALIDATION_REQUIRED\s*=\s*true/.test(body),
+  );
+  for (const state of ['SYNCED', 'AHEAD', 'BEHIND', 'DIVERGED', 'NOT_PRESENT', 'REMOTE_ONLY', 'UNKNOWN']) {
+    check(`branch model defines DEVELOP_SYNC_STATUS ${state}`, body.includes(state));
+  }
+  check('branch model defines MAIN_CHANGE_STATUS UNTOUCHED', /MAIN_CHANGE_STATUS[\s\S]{0,400}UNTOUCHED/.test(body));
+  check(
+    'branch model requires a recorded baseline to claim UNTOUCHED',
+    /--main-baseline/.test(body),
+  );
+  check(
+    'branch model tests containment rather than equality for MAIN_CHANGE_STATUS',
+    /containment, not equality/i.test(body) && body.includes('CHANGED_BY_THIS_TASK'),
+    'comparing baseline to origin/main reports CHANGED whenever another session merges',
+  );
+  check(
+    'branch model requires a hotfix to reconcile develop',
+    /reconciled so it contains the production fix|`develop` must be reconciled/i.test(body),
+  );
+  check(
+    'branch model refuses to weaken main',
+    /None of that is weakened|does not make touching it easier/i.test(body),
+  );
+  check(
+    'branch model records that only the Integrator writes a shared branch',
+    /[Oo]nly the Integrator writes/i.test(body),
+  );
+}
+
+/* 9, 25 — handoffs and the required-agent matrix. */
+if (existsSync(join(ROOT, '.agent/context/agent-handoffs.md'))) {
+  const body = read('.agent/context/agent-handoffs.md');
+  for (const field of [
+    'AGENT_STATUS',
+    'IMPLEMENTED',
+    'CHANGED_BEHAVIOR',
+    'FILES_CHANGED',
+    'RISK_AREAS',
+    'KNOWN_MISTAKES_AVOIDED',
+    'TESTS_ADDED',
+    'VALIDATION_RUN',
+    'UNRESOLVED',
+    'HANDOFF_READY',
+  ]) {
+    check(`handoff contract declares ${field}`, body.includes(field));
+  }
+  for (const acceptance of [
+    'QA_ACCEPTED_IMPLEMENTATION',
+    'REVIEWER_ACCEPTED_QA',
+    'INTEGRATOR_ACCEPTED_REVIEW',
+    'RELEASE_DEVOPS_ACCEPTED_INTEGRATION',
+  ]) {
+    check(`handoff contract declares ${acceptance}`, body.includes(acceptance));
+  }
+  for (const status of ['PASS', 'NOT_REQUIRED', 'BLOCKED', 'FAILED', 'HANDOFF_REJECTED', 'UNKNOWN']) {
+    check(`required-agent matrix defines status ${status}`, body.includes(status));
+  }
+  check(
+    'a task cannot complete while a required agent is not PASS',
+    /may not reach `?COMPLETE`? while a required agent is not `?PASS/i.test(body),
+  );
+  check(
+    'handoff rejection routes rework rather than ending the task',
+    /routes the work back|routes back to/i.test(body),
+  );
+  check(
+    'the user never selects a specialist',
+    /user talks only to the Architect|never have to name a specialist/i.test(body),
+  );
+  check(
+    'rework re-runs the impacted scenarios, not everything',
+    /impacted scenarios/i.test(body) && /qa-select/.test(body),
+  );
+}
+
+/* 10, 11, 12, 13, 16, 17 — QA persistence. */
+if (existsSync(join(ROOT, '.agent/context/qa-persistence.md'))) {
+  const body = read('.agent/context/qa-persistence.md');
+  check('QA persistence points at the scenario registry', body.includes('docs/qa/scenarios'));
+  check('QA persistence points at the test plans', body.includes('docs/qa/test-plans'));
+  check('QA persistence points at the coverage matrix', body.includes('docs/qa/coverage-matrix.md'));
+  check('QA persistence describes selection before design', /qa-select/.test(body));
+  check(
+    'QA persistence keeps selection a starting point rather than a boundary',
+    /starting point and \*\*never a boundary\*\*|never a boundary/i.test(body),
+  );
+  check('QA persistence defines scenario promotion', /[Pp]romotion/.test(body));
+  check(
+    'QA persistence refuses to promote every one-off check',
+    /one-off check stays in the run file|Promoting everything/i.test(body),
+  );
+  check(
+    'QA persistence states the regression rule in both directions',
+    /FAILS on the unfixed code/i.test(body) && /PASSES on the fixed code/i.test(body),
+  );
+  check(
+    'QA persistence makes a coverage gap pull work into scope',
+    /becomes part of that task's scope/i.test(body),
+  );
+  for (const dimension of ['UNIT', 'API', 'DATABASE', 'INTEGRATION', 'E2E', 'BROWSER', 'SECURITY', 'PERFORMANCE']) {
+    check(`coverage matrix declares dimension ${dimension}`, body.includes(dimension));
+  }
+  for (const status of ['GOOD', 'PARTIAL', 'GAP', 'NOT_APPLICABLE']) {
+    check(`coverage matrix declares status ${status}`, body.includes(status));
+  }
+}
+
+/* 2, 6, 7, 8 — the router must carry the short trigger and its aliases. */
+if (existsSync(join(ROOT, ROUTER))) {
+  const router = read(ROUTER);
+  check('router recognises the DP: short trigger', /`DP:`/.test(router));
+  check(
+    'router states that DP: is the same framework',
+    /`DP:`\s*\*\*is\*\*\s*`DijiPeople Task:`|activates \*\*exactly\*\* the same framework/i.test(router),
+  );
+  for (const shorthand of ['DP FIX:', 'DP UI:', 'DP TEST:', 'DP DB:', 'DP ARCH:', 'DP DOC:', 'DP CLEANUP:']) {
+    check(`router lists the ${shorthand} shorthand`, router.includes(shorthand));
+  }
+  check(
+    'router states that a shorthand never selects a weaker workflow',
+    /shorthand never selects a weaker workflow/i.test(router),
+  );
+  check(
+    'router routes "DP FIX: agent logout" to BUG + SECURITY',
+    /DP FIX: agent logout[\s\S]{0,200}BUG \+ SECURITY/.test(router),
+  );
+  check(
+    'router routes a production-readiness request to LARGE with work packages',
+    /production ready[\s\S]{0,300}SIZE\s*=\s*LARGE/.test(router),
+  );
+  check('router declares an integration target per keyword', /Target/.test(router) && /`develop`/.test(router));
+  check(
+    'router keeps main as production control',
+    /`main` as production control|RELEASE.{0,40}DEPLOY.{0,40}HOTFIX_PRODUCTION/i.test(router),
+  );
+}
+
+/* The contract must carry the v2 fields. */
+if (contractExists) {
+  const contract = read(CONTRACT);
+  for (const field of [
+    'SESSION_STATUS',
+    'REQUIRED_AGENTS_STATUS',
+    'DEVELOP_INTEGRATION_STATUS',
+    'DEVELOP_SYNC_STATUS',
+    'MAIN_CHANGE_STATUS',
+    'QA_SCENARIO_PROMOTION_STATUS',
+    'CONTROL_CENTER_STATUS',
+  ]) {
+    check(`contract requires ${field}`, contract.includes(field));
+  }
+  check(
+    'contract requires MAIN_CHANGE_STATUS = UNTOUCHED for an ordinary task',
+    /MAIN_CHANGE_STATUS\s*=\s*UNTOUCHED/.test(contract),
+  );
+  check(
+    'contract treats a changed main on an ordinary task as failure, not untidiness',
+    /is a \*\*failed\*\* task/i.test(contract),
+  );
+  check(
+    'contract never allows REQUIRED_AGENTS_STATUS to be NOT_REQUIRED',
+    /`REQUIRED_AGENTS_STATUS`\s*\|\s*\*\*Never\*\*/.test(contract),
+  );
+}
+
+/* repo-health must compute the new fields and still never mutate. */
+if (existsSync(join(ROOT, 'scripts/repo-health.mjs'))) {
+  const health = read('scripts/repo-health.mjs');
+  check('repo-health computes DEVELOP_SYNC_STATUS', health.includes('DEVELOP_SYNC_STATUS'));
+  check('repo-health computes MAIN_CHANGE_STATUS', health.includes('MAIN_CHANGE_STATUS'));
+  check('repo-health reports DEVELOP_BEHIND_MAIN', health.includes('developBehindMain'));
+  check(
+    'repo-health requires a baseline before claiming main is untouched',
+    /MAIN_BASELINE/.test(health) && /return 'UNKNOWN'/.test(health),
+  );
+}
+
+/* The branch-policy verifier must stay read-only. */
+if (existsSync(join(ROOT, 'scripts/verify-branch-policy.mjs'))) {
+  const body = read('scripts/verify-branch-policy.mjs');
+  check(
+    'verify-branch-policy declares itself read-only',
+    /\*\*Read-only, by design/i.test(body),
+  );
+  for (const forbidden of [/'-X',\s*'PUT'/, /'-X',\s*'POST'/, /'-X',\s*'DELETE'/, /'-X',\s*'PATCH'/]) {
+    check(
+      `verify-branch-policy performs no write (${forbidden.source.slice(0, 20)})`,
+      !forbidden.test(body),
+      'a script that can relax protection eventually will, to make a merge easier',
+    );
+  }
+}
+
+/* The id allocator must not have quietly reverted to a working-tree scan. */
+if (existsSync(join(ROOT, 'scripts/lib/id-allocator.mjs'))) {
+  const body = read('scripts/lib/id-allocator.mjs');
+  check(
+    'the id allocator scans every ref, not just the working tree',
+    /'log',\s*'--all'/.test(body),
+    'a working-tree scan cannot see an id a sibling branch already took',
+  );
+  check('the id allocator reserves under a lock', /withLock\(/.test(body));
+  check(
+    'the id allocator never lowers the ceiling when pruning',
+    /Only \*\*consumed\*\* reservations are pruned|known\.has\(entry\.id\)/.test(body),
+  );
+}
+
+// ------------------------------- BUG-0047: records must match the branch
+
+/*
+ * The prevention half of BUG-0047.
+ *
+ * Six records read `VERIFIED` while the commits implementing them sat on
+ * branches that never merged, and five regression entries marked `Active: yes`
+ * named test files absent from the integration branch. Two of those records were
+ * CRITICAL. Every view derived from them — the open backlog, the dashboards, a
+ * future BACKLOG_PRECHECK — reported protection the branch did not have.
+ *
+ * Both checks below fail against that state and pass against a corrected one,
+ * which is the fails-without-the-fix property a regression needs.
+ */
+{
+  const registerPath = 'docs/qa/regressions/index.md';
+  if (existsSync(join(ROOT, registerPath))) {
+    const register = read(registerPath);
+    const entries = register.split(/(?=^### REG-)/m).filter((entry) => entry.startsWith('### REG-'));
+
+    for (const entry of entries) {
+      const id = (/^### (REG-\d{3})/.exec(entry) ?? [])[1] ?? 'REG-???';
+      const active = /\|\s*\*\*Active\*\*\s*\|\s*yes\s*\|/i.test(entry);
+      if (!active) continue;
+
+      const testMatch = /\|\s*\*\*Regression test\*\*\s*\|\s*`([^`]+)`/.exec(entry);
+      check(
+        `${id} names a regression test`,
+        Boolean(testMatch),
+        'an active regression entry with no named test guards nothing',
+      );
+      if (!testMatch) continue;
+
+      /*
+       * Split on a comma, or on "and" as a *word*. The bare alternative used to
+       * be `(?:,|and)` with optional surrounding whitespace, which matches
+       * inside words: every path containing "l-and-ing" was torn in half, so no
+       * regression entry could reference anything under `apps/landing` or the
+       * landing browser spec. The check then reported two files that do not
+       * exist instead of the one that does.
+       */
+      for (const path of testMatch[1].split(/\s*,\s*|\s+and\s+/).map((p) => p.trim()).filter(Boolean)) {
+        check(
+          `${id} regression test exists: ${path}`,
+          existsSync(join(ROOT, path)),
+          'the entry says Active: yes — a test that is not on this branch protects nothing here',
+        );
+      }
+    }
+  }
+
+  /* A closed bug whose regression test is absent is a closure nobody can trust. */
+  const bugDir = join(ROOT, 'docs/bugs');
+  if (existsSync(bugDir)) {
+    const register = existsSync(join(ROOT, 'docs/qa/regressions/index.md'))
+      ? read('docs/qa/regressions/index.md')
+      : '';
+
+    for (const name of readdirSync(bugDir)) {
+      if (!name.endsWith('.md') || name === 'README.md') continue;
+      const body = read(`docs/bugs/${name}`);
+      /*
+       * `[^\S\r\n]` rather than `\s`: `\s` matches a newline, so a trailing
+       * `\s*$` on an empty value silently ran on to capture the *next* line's
+       * key. That reported `RelatedBacklogItem:` as a regression id.
+       */
+      const status = (/^Status:[^\S\r\n]*(\S+)[^\S\r\n]*$/m.exec(body) ?? [])[1] ?? '';
+      const regression = (/^RegressionId:[^\S\r\n]*(REG-\d{3})[^\S\r\n]*$/m.exec(body) ?? [])[1] ?? '';
+      if (!['VERIFIED', 'CLOSED'].includes(status) || !regression) continue;
+
+      const entry = register
+        .split(/(?=^### REG-)/m)
+        .find((section) => section.startsWith(`### ${regression} `));
+
+      check(
+        `${name.slice(0, 8)} is ${status} and its ${regression} entry is active`,
+        Boolean(entry) && /\|\s*\*\*Active\*\*\s*\|\s*yes\s*\|/i.test(entry ?? ''),
+        'a record closed on a regression that is not active on this branch overstates its own protection',
+      );
+    }
+  }
+}
+
+// ------------------------------------------- v2 behavioural simulations
+
+/*
+ * Simulations 1-29 from the TASK-0004 request, run against throwaway state.
+ *
+ * Where a rule can be executed it is executed. Where it genuinely cannot be —
+ * a real deployment, a live Obsidian vault — the structural check above stands
+ * in and says so rather than pretending.
+ */
+
+if (existsSync(join(ROOT, 'scripts/lib/session-registry.mjs'))) {
+  const registry = await import('./lib/session-registry.mjs');
+  const allocator = await import('./lib/id-allocator.mjs');
+  const sessionRecords = await import('./lib/session-records.mjs');
+  const qaRecords = await import('./lib/qa-records.mjs');
+
+  const sandbox = mkdtempSync(join(tmpdir(), 'dijipeople-v2-'));
+
+  const git = (args, cwd = sandbox) =>
+    execFileSync('git', args, { cwd, stdio: 'pipe', encoding: 'utf8' }).trim();
+
+  let gitAvailable = true;
+  try {
+    git(['init', '--initial-branch=main', '.']);
+    git(['config', 'user.email', 'probe@example.com']);
+    git(['config', 'user.name', 'probe']);
+    mkdirSync(join(sandbox, 'docs/bugs'), { recursive: true });
+    writeFileSync(join(sandbox, 'docs/bugs/BUG-0001-probe.md'), '# probe\n');
+    git(['add', '.']);
+    git(['commit', '-m', 'base']);
+  } catch (error) {
+    gitAvailable = false;
+    warn(`v2 simulations could not initialise a sandbox repository — ${String(error.message).split('\n')[0]}`);
+  }
+
+  if (gitAvailable) {
+    /* 1 — two sessions starting concurrently get distinct ids. */
+    const first = allocator.allocateId(sandbox, 'session', { note: 'session A' });
+    const second = allocator.allocateId(sandbox, 'session', { note: 'session B' });
+    check(
+      'simulation 1: two Architect sessions receive distinct ids',
+      first !== second,
+      `both received ${first}`,
+    );
+
+    /* 4, 5 — duplicate BUG and ITEM allocation must be impossible. */
+    for (const [kind, label] of [['bug', 'BUG'], ['item', 'ITEM']]) {
+      const ids = new Set();
+      for (let i = 0; i < 8; i += 1) ids.add(allocator.allocateId(sandbox, kind, {}));
+      check(
+        `simulation ${kind === 'bug' ? '4' : '5'}: eight ${label} allocations produce eight distinct ids`,
+        ids.size === 8,
+        `got ${ids.size} distinct from 8`,
+      );
+    }
+
+    /*
+     * 4b — the case that actually failed twice: an id used on another branch.
+     * The working tree never sees it, so a directory scan hands it out again.
+     */
+    git(['checkout', '-q', '-b', 'sibling']);
+    writeFileSync(join(sandbox, 'docs/bugs/BUG-0900-on-a-sibling-branch.md'), '# probe\n');
+    git(['add', '.']);
+    git(['commit', '-m', 'record on a sibling branch']);
+    git(['checkout', '-q', 'main']);
+
+    check(
+      'simulation 4b: an id allocated on a sibling branch is not handed out again',
+      allocator.highestAllocated(sandbox, 'bug') >= 900,
+      `ceiling was ${allocator.highestAllocated(sandbox, 'bug')} — a working-tree scan would report far less`,
+    );
+
+    /* Reservations must survive: allocating twice never returns the same id. */
+    const reserved = allocator.allocateId(sandbox, 'bug', {});
+    check(
+      'simulation 4c: a reservation is visible before its record exists',
+      allocator.readReservations(sandbox).some((entry) => entry.id === reserved),
+    );
+    check(
+      'simulation 4d: the next allocation is above the reservation',
+      allocator.allocateId(sandbox, 'bug', {}) !== reserved,
+    );
+
+    /* 2 — independent sessions proceed. */
+    registry.registerSession(sandbox, {
+      sessionId: 'SESSION-9001',
+      title: 'probe A',
+      branch: 'agent/probe-a',
+      target: 'develop',
+      paths: ['apps/web/app/page.tsx'],
+    });
+    registry.registerSession(sandbox, {
+      sessionId: 'SESSION-9002',
+      title: 'probe B',
+      branch: 'agent/probe-b',
+      target: 'develop',
+      paths: ['services/api/src/modules/leave/leave.service.ts'],
+    });
+
+    check(
+      'simulation 2: two sessions on unrelated files are SAFE_PARALLEL',
+      registry.classifyOverlap(sandbox, {
+        sessionId: 'SESSION-9002',
+        paths: ['services/api/src/modules/leave/leave.service.ts'],
+      }).classification === 'SAFE_PARALLEL',
+    );
+
+    /* 3 — the Prisma writer serialises across sessions. */
+    const firstLease = registry.acquireLease(sandbox, {
+      resource: 'schema',
+      sessionId: 'SESSION-9001',
+      reason: 'add a model',
+    });
+    const secondLease = registry.acquireLease(sandbox, {
+      resource: 'schema',
+      sessionId: 'SESSION-9002',
+      reason: 'add another model',
+    });
+
+    check('simulation 3: the first session receives the schema lease', firstLease.granted);
+    check(
+      'simulation 3: the second session is refused the schema lease',
+      !secondLease.granted && secondLease.lease?.sessionId === 'SESSION-9001',
+      'the database must stay single-writer across all sessions',
+    );
+    check(
+      'simulation 3: a contended schema write classifies as BLOCKED_BY_ACTIVE_SESSION',
+      registry.classifyOverlap(sandbox, {
+        sessionId: 'SESSION-9002',
+        paths: ['services/api/prisma/schema.prisma'],
+      }).classification === 'BLOCKED_BY_ACTIVE_SESSION',
+    );
+
+    /* A non-global resource serialises rather than blocking outright. */
+    registry.acquireLease(sandbox, { resource: 'permissions', sessionId: 'SESSION-9001', reason: 'probe' });
+    check(
+      'simulation 3b: a contended non-global resource classifies as SERIALIZE',
+      registry.classifyOverlap(sandbox, {
+        sessionId: 'SESSION-9002',
+        paths: ['services/api/src/common/constants/permissions.ts'],
+      }).classification === 'SERIALIZE',
+    );
+
+    /* Reads are never blocked. */
+    check(
+      'simulation 3c: a read is granted even while a write lease is held',
+      registry.acquireLease(sandbox, {
+        resource: 'schema',
+        sessionId: 'SESSION-9002',
+        mode: 'read',
+      }).granted,
+    );
+
+    /* Two sessions editing one ordinary file is one work item, not a race. */
+    check(
+      'simulation 2b: two sessions editing one file classify as SHARED_FILE_CONFLICT',
+      registry.classifyOverlap(sandbox, {
+        sessionId: 'SESSION-9002',
+        paths: ['apps/web/app/page.tsx'],
+      }).classification === 'SHARED_FILE_CONFLICT',
+    );
+
+    /* 18 — concurrent completions serialise through the merge queue. */
+    registry.enqueue(sandbox, { sessionId: 'SESSION-9001', branch: 'agent/probe-a', sha: 'aaa' });
+    registry.enqueue(sandbox, { sessionId: 'SESSION-9002', branch: 'agent/probe-b', sha: 'bbb' });
+
+    const firstReady = registry.nextIntegration(sandbox);
+    check(
+      'simulation 18: the queue offers exactly one branch to integrate',
+      firstReady.ready?.branch === 'agent/probe-a' && firstReady.inFlight === null,
+    );
+
+    registry.updateQueueEntry(sandbox, 'agent/probe-a', { status: 'INTEGRATING' });
+    const whileBusy = registry.nextIntegration(sandbox);
+    check(
+      'simulation 18: no second branch may integrate while one is in flight',
+      whileBusy.ready === null && whileBusy.inFlight?.branch === 'agent/probe-a',
+      'two sessions writing develop at once is the failure the lock exists to prevent',
+    );
+
+    registry.updateQueueEntry(sandbox, 'agent/probe-a', { status: 'DONE' });
+    check(
+      'simulation 18: the next branch integrates once the lock is released',
+      registry.nextIntegration(sandbox).ready?.branch === 'agent/probe-b',
+    );
+
+    /* A finished session must not leave a lease behind. */
+    const finished = registry.finishSession(sandbox, 'SESSION-9001');
+    check(
+      'simulation 27: finishing a session releases every lease it held',
+      finished.releasedLeases.includes('schema') && registry.liveLeases(sandbox).every((l) => l.sessionId !== 'SESSION-9001'),
+    );
+    check(
+      'simulation 27: finishing a session removes it from the merge queue',
+      registry.readQueue(sandbox).every((entry) => entry.sessionId !== 'SESSION-9001'),
+    );
+
+    /* 14, 15, 16 — the session record enforces the branch model. */
+    const sessionDir = join(sandbox, 'docs/sessions');
+    mkdirSync(sessionDir, { recursive: true });
+
+    const sessionRecord = (id, { type = 'FEATURE', target = 'develop', branch = 'agent/probe' } = {}) =>
+      [
+        '---',
+        `SESSION_ID: ${id}`,
+        'TASK_ID: TASK-0001',
+        'TITLE: probe',
+        'ARCHITECT_INTENT: probe',
+        'STATUS: ACTIVE',
+        `TASK_TYPE: ${type}`,
+        'TASK_SIZE: MEDIUM',
+        'BASE_BRANCH: origin/develop',
+        'BASE_SHA: abc1234',
+        `TASK_BRANCH: ${branch}`,
+        `TARGET_BRANCH: ${target}`,
+        'WORKTREE: /tmp/probe',
+        'AFFECTED_MODULES: []',
+        'WRITE_LEASES: []',
+        'ACTIVE_WORK_PACKAGES: []',
+        'SCHEMA_WRITE: NO',
+        'CI_STATUS: NOT_RUN',
+        'MERGE_STATUS: NOT_STARTED',
+        'STARTED_AT: 2026-01-01T00:00:00.000Z',
+        'LAST_HEARTBEAT: 2026-01-01T00:00:00.000Z',
+        'BLOCKERS: none',
+        '---',
+        '',
+        `# ${id} — probe`,
+        '',
+        '## Intent',
+        '',
+        'probe',
+        '',
+      ].join('\n');
+
+    writeFileSync(join(sessionDir, 'SESSION-9101-probe.md'), sessionRecord('SESSION-9101'));
+    check(
+      'simulation 14: an ordinary session targeting develop is accepted',
+      sessionRecords.loadSessions(sandbox).errors.length === 0,
+      sessionRecords.loadSessions(sandbox).errors.join(' | '),
+    );
+
+    writeFileSync(
+      join(sessionDir, 'SESSION-9101-probe.md'),
+      sessionRecord('SESSION-9101', { target: 'main' }),
+    );
+    check(
+      'simulation 15: an ordinary session targeting main is rejected',
+      sessionRecords.loadSessions(sandbox).errors.some((e) => /main is the production deployment branch/.test(e)),
+      'an ordinary task that merges into main may trigger a production deployment nobody asked for',
+    );
+
+    writeFileSync(
+      join(sessionDir, 'SESSION-9101-probe.md'),
+      sessionRecord('SESSION-9101', { type: 'RELEASE', target: 'main' }),
+    );
+    check(
+      'simulation 16: a RELEASE session may target main',
+      sessionRecords.loadSessions(sandbox).errors.length === 0,
+      sessionRecords.loadSessions(sandbox).errors.join(' | '),
+    );
+
+    writeFileSync(
+      join(sessionDir, 'SESSION-9101-probe.md'),
+      sessionRecord('SESSION-9101', { type: 'HOTFIX', target: 'main' }),
+    );
+    check(
+      'simulation 17: a HOTFIX session may target main',
+      sessionRecords.loadSessions(sandbox).errors.length === 0,
+    );
+
+    /* Two live sessions on one branch is two agents overwriting each other. */
+    writeFileSync(join(sessionDir, 'SESSION-9101-probe.md'), sessionRecord('SESSION-9101'));
+    writeFileSync(join(sessionDir, 'SESSION-9102-probe.md'), sessionRecord('SESSION-9102'));
+    check(
+      'simulation 1b: two active sessions on one branch are rejected',
+      sessionRecords.loadSessions(sandbox).errors.some((e) => /two active sessions share the branch/.test(e)),
+    );
+    rmSync(join(sessionDir, 'SESSION-9102-probe.md'));
+
+    /* 13 — a coverage claim with nothing behind it is rejected. */
+    const planDir = join(sandbox, 'docs/qa/test-plans');
+    const scenarioDir = join(sandbox, 'docs/qa/scenarios');
+    mkdirSync(planDir, { recursive: true });
+    mkdirSync(scenarioDir, { recursive: true });
+
+    const DIMENSIONS = Object.keys(qaRecords.COVERAGE_DIMENSIONS);
+    const planRecord = (coverage = {}) =>
+      [
+        '---',
+        'PLAN_ID: PLAN-901',
+        'TITLE: probe',
+        'AREA: probe-area',
+        'STATUS: CURRENT',
+        'MODULES: [services/api/src/modules/probe]',
+        'RISK: HIGH',
+        ...DIMENSIONS.map((d) => `COVERAGE_${d}: ${coverage[d] ?? 'GAP'}`),
+        'RELATED_BUGS: []',
+        'RELATED_REGRESSIONS: []',
+        'CREATED_AT: 2026-01-01',
+        'UPDATED_AT: 2026-01-01',
+        'VERIFIED_AGAINST_SHA: abc1234',
+        '---',
+        '',
+        '# PLAN-901 — probe',
+        '',
+        ...qaRecords.loadQaRecords ? [] : [],
+        ...['Scope', 'Risks', 'Preconditions', 'Test Types', 'Data Requirements', 'Security Cases', 'Negative Cases', 'State Transitions', 'Integration Cases', 'Browser Cases', 'Regression Links'].flatMap(
+          (section) => [`## ${section}`, '', 'probe', ''],
+        ),
+      ].join('\n');
+
+    const scenarioRecord = (
+      id,
+      {
+        type = 'UNIT',
+        automation = 'MANUAL',
+        test = '',
+        area = 'probe-area',
+        bugs = '[]',
+        regressions = '[]',
+        lastRun = '',
+      } = {},
+    ) =>
+      [
+        '---',
+        `SCENARIO_ID: ${id}`,
+        'TITLE: probe',
+        `AREA: ${area}`,
+        'MODULE: services/api/src/modules/probe',
+        `TYPE: ${type}`,
+        'RISK: HIGH',
+        `AUTOMATION_STATUS: ${automation}`,
+        `TEST_REFERENCE: ${test}`,
+        `RELATED_BUGS: ${bugs}`,
+        `RELATED_REGRESSIONS: ${regressions}`,
+        `LAST_RUN: ${lastRun}`,
+        'LAST_RESULT: NOT_RUN',
+        'CREATED_AT: 2026-01-01',
+        'UPDATED_AT: 2026-01-01',
+        '---',
+        '',
+        `# ${id} — probe`,
+        '',
+        '## Preconditions',
+        '',
+        'probe',
+        '',
+        '## Steps',
+        '',
+        '1. probe',
+        '',
+        '## Expected Result',
+        '',
+        'probe',
+        '',
+        '## Notes',
+        '',
+        'probe',
+        '',
+      ].join('\n');
+
+    writeFileSync(join(planDir, 'PLAN-901-probe-area.md'), planRecord({ SECURITY: 'GOOD' }));
+    check(
+      'simulation 13: declaring coverage with no scenario behind it is rejected',
+      qaRecords
+        .loadQaRecords(sandbox)
+        .errors.some((e) => /COVERAGE_SECURITY = GOOD but no SECURITY scenario exists/.test(e)),
+      'a matrix cell with nothing behind it reports coverage nobody has',
+    );
+
+    writeFileSync(
+      join(scenarioDir, 'QA-PROBE-001-probe.md'),
+      scenarioRecord('QA-PROBE-001', { type: 'SECURITY', automation: 'BLOCKED_INFRASTRUCTURE' }),
+    );
+    check(
+      'simulation 13b: coverage that cannot run may not be declared GOOD',
+      qaRecords
+        .loadQaRecords(sandbox)
+        .errors.some((e) => /every SECURITY scenario is BLOCKED_INFRASTRUCTURE/.test(e)),
+    );
+
+    /* 12 — an automated scenario must name a test that exists. */
+    writeFileSync(join(planDir, 'PLAN-901-probe-area.md'), planRecord());
+    writeFileSync(
+      join(scenarioDir, 'QA-PROBE-001-probe.md'),
+      scenarioRecord('QA-PROBE-001', { automation: 'AUTOMATED', test: 'services/api/src/does-not-exist.spec.ts' }),
+    );
+    check(
+      'simulation 12: an AUTOMATED scenario naming a missing test is rejected',
+      qaRecords.loadQaRecords(sandbox).errors.some((e) => /does not exist/.test(e)),
+      'this is the check that surfaced BUG-0047',
+    );
+
+    writeFileSync(
+      join(scenarioDir, 'QA-PROBE-001-probe.md'),
+      scenarioRecord('QA-PROBE-001', { lastRun: '2026-01-01 2025-12-31' }),
+    );
+    check(
+      'scenario LAST_RUN must be one date',
+      qaRecords.loadQaRecords(sandbox).errors.some((e) => /LAST_RUN .* is not YYYY-MM-DD/.test(e)),
+    );
+
+    const regressionDir = join(sandbox, 'docs/qa/regressions');
+    const regressionTestDir = join(sandbox, 'services/api/src/modules/probe');
+    mkdirSync(regressionDir, { recursive: true });
+    mkdirSync(regressionTestDir, { recursive: true });
+    writeFileSync(join(regressionTestDir, 'probe.spec.ts'), 'export {};\n');
+    writeFileSync(
+      join(regressionDir, 'index.md'),
+      [
+        '# Regression Register',
+        '',
+        '### REG-901 â€” probe',
+        '',
+        '| | |',
+        '|---|---|',
+        '| **Bug record** | BUG-9001 |',
+        '| **Regression test** | `services/api/src/modules/probe/probe.spec.ts` |',
+        '| **Active** | yes |',
+        '',
+      ].join('\n'),
+    );
+    writeFileSync(join(scenarioDir, 'QA-PROBE-001-probe.md'), scenarioRecord('QA-PROBE-001'));
+    check(
+      'active regressions require a reusable QA scenario',
+      qaRecords.loadQaRecords(sandbox).errors.some((e) => /REG-901: active regression has no reusable QA scenario/.test(e)),
+    );
+
+    writeFileSync(
+      join(scenarioDir, 'QA-PROBE-001-probe.md'),
+      scenarioRecord('QA-PROBE-001', { regressions: '[REG-901]' }),
+    );
+    check(
+      'regression scenarios require a canonical root-cause record',
+      qaRecords.loadQaRecords(sandbox).errors.some((e) => /REG-901: reusable scenario roots do not match Bug record BUG-9001/.test(e)),
+    );
+
+    writeFileSync(
+      join(scenarioDir, 'QA-PROBE-001-probe.md'),
+      scenarioRecord('QA-PROBE-001', { bugs: '[BUG-9002]', regressions: '[REG-901]' }),
+    );
+    check(
+      'regression scenario roots must match the register root',
+      qaRecords.loadQaRecords(sandbox).errors.some((e) => /REG-901: reusable scenario roots do not match Bug record BUG-9001/.test(e)),
+    );
+
+    /* A scenario belonging to no plan is a scenario nothing ever selects. */
+    writeFileSync(
+      join(scenarioDir, 'QA-PROBE-001-probe.md'),
+      scenarioRecord('QA-PROBE-001', { area: 'no-such-area' }),
+    );
+    check(
+      'simulation 10b: a scenario outside every test plan is rejected',
+      qaRecords.loadQaRecords(sandbox).errors.some((e) => /has no test plan/.test(e)),
+    );
+
+    /* 10 — selection returns the durable scenarios for a changed module. */
+    writeFileSync(
+      join(scenarioDir, 'QA-PROBE-001-probe.md'),
+      scenarioRecord('QA-PROBE-001', { bugs: '[BUG-9001]', regressions: '[REG-901]' }),
+    );
+    writeFileSync(
+      join(scenarioDir, 'QA-PROBE-002-probe.md'),
+      scenarioRecord('QA-PROBE-002', { type: 'SECURITY' }),
+    );
+
+    const loaded = qaRecords.loadQaRecords(sandbox);
+    check('simulation 10: the probe QA records load cleanly', loaded.errors.length === 0, loaded.errors.join(' | '));
+
+    const selection = qaRecords.selectForModules(loaded, ['services/api/src/modules/probe']);
+    check(
+      'simulation 10: a change selects the durable scenarios for its module',
+      selection.scenarios.length === 2 && selection.plans.length === 1,
+      `got ${selection.scenarios.length} scenario(s), ${selection.plans.length} plan(s)`,
+    );
+    check(
+      'simulation 10c: security scenarios are surfaced as mandatory',
+      selection.mandatory.some((scenario) => scenario.id === 'QA-PROBE-002'),
+      'security and cross-tenant failures are silent, so they are never risk-weighted down',
+    );
+
+    /* 26 — a stale record is surfaced for revalidation. */
+    const reviewOutput = runScript('scripts/backlog-review.mjs', ['--json']);
+    check(
+      'simulation 26: backlog review computes aging and revalidation',
+      reviewOutput.ok && /"dueForRevalidation"/.test(reviewOutput.output),
+      reviewOutput.output.split('\n').slice(0, 3).join(' | '),
+    );
+    check(
+      'simulation 26b: backlog review reports a revalidation policy per severity',
+      /"CRITICAL":\s*0/.test(reviewOutput.output),
+      'a critical record is reverified by every task that goes near it, not on a timer',
+    );
+
+    /* 24 — the Control Center regenerates and is stable. */
+    const controlCenter = runScript('scripts/generate-dashboards.mjs', ['--check']);
+    check(
+      'simulation 24: the Engineering Control Center is current',
+      controlCenter.ok,
+      controlCenter.output.split('\n').filter(Boolean).slice(0, 4).join(' | '),
+    );
+
+    /* 6 — QA records are valid and their indexes current. */
+    const qaCheck = runScript('scripts/rebuild-qa.mjs', ['--check']);
+    check(
+      'simulation 11: QA plans, scenarios and the coverage matrix are valid and current',
+      qaCheck.ok,
+      qaCheck.output.split('\n').filter(Boolean).slice(0, 4).join(' | '),
+    );
+
+    /* Session records and indexes. */
+    const sessionCheck = runScript('scripts/rebuild-sessions.mjs', ['--check']);
+    check(
+      'simulation 1c: session records are valid and their indexes current',
+      sessionCheck.ok,
+      sessionCheck.output.split('\n').filter(Boolean).slice(0, 4).join(' | '),
+    );
+
+    /* 28, 29 — repo-health reports the branch-model fields honestly. */
+    const healthOutput = runScript('scripts/repo-health.mjs', ['--json']);
+    if (healthOutput.ok) {
+      let report = null;
+      try {
+        report = JSON.parse(healthOutput.output);
+      } catch {
+        /* handled below */
+      }
+      check('simulation 29: repo-health emits machine-readable state', report !== null);
+      if (report) {
+        check(
+          'simulation 29: repo-health reports DEVELOP_SYNC_STATUS',
+          typeof report.DEVELOP_SYNC_STATUS === 'string' && report.DEVELOP_SYNC_STATUS.length > 0,
+        );
+        check(
+          'simulation 28: MAIN_CHANGE_STATUS is UNKNOWN without a recorded baseline',
+          report.MAIN_CHANGE_STATUS === 'UNKNOWN',
+          `got ${report.MAIN_CHANGE_STATUS} — claiming UNTOUCHED with no baseline would pass a task that merged into main`,
+        );
+
+        /*
+         * 28b — the correction that mattered. The field asks "did THIS TASK move
+         * production", not "has main moved": a concurrent session merging a PR
+         * advances `main` through no fault of the task being audited. The first
+         * implementation compared baseline to origin/main and reported CHANGED
+         * for exactly that, on its own first real run.
+         */
+        const baselineRun = runScript('scripts/repo-health.mjs', [
+          '--json',
+          '--main-baseline',
+          'HEAD',
+          '--task-sha',
+          'HEAD',
+        ]);
+        if (baselineRun.ok) {
+          let baselineReport = null;
+          try {
+            baselineReport = JSON.parse(baselineRun.output);
+          } catch {
+            /* reported below */
+          }
+          check(
+            'simulation 28b: MAIN_CHANGE_STATUS distinguishes this task from other sessions',
+            baselineReport !== null &&
+              ['UNTOUCHED', 'CHANGED_BY_THIS_TASK', 'REWRITTEN', 'UNKNOWN'].includes(
+                baselineReport.MAIN_CHANGE_STATUS,
+              ),
+            `got ${baselineReport?.MAIN_CHANGE_STATUS} — the vocabulary must name who moved main`,
+          );
+          check(
+            'simulation 28c: repo-health reports how far others advanced main',
+            baselineReport !== null && typeof baselineReport.mainAdvancedByOthers === 'number',
+            'a field that cries wolf when a colleague merges is one people learn to ignore',
+          );
+        }
+        check(
+          'simulation 27: repo-health reports unfinished Git operations',
+          Array.isArray(report.unfinishedOperations),
+        );
+      }
+    }
+  }
+
+  rmSync(sandbox, { recursive: true, force: true });
+}
+
+/*
+ * 21, 22, 23 — the Obsidian relationship.
+ *
+ * The vault is a per-developer capability and is absent in CI, so these are
+ * checks on the *mechanism* rather than on a live vault. That limitation is
+ * stated rather than papered over: a green run here does not prove any vault is
+ * correct, only that the code which would verify one exists and is wired.
+ */
+if (existsSync(join(ROOT, 'scripts/retrieve-knowledge.mjs'))) {
+  const body = read('scripts/retrieve-knowledge.mjs');
+  check('inbound retrieval reports OBSIDIAN_CONTEXT_USED', body.includes('OBSIDIAN_CONTEXT_USED'));
+  for (const folder of ['04 - Requirements', '09 - Meetings', '10 - Client Feedback', '01 - Product', '05 - Decisions']) {
+    check(`inbound retrieval knows the manual intent folder "${folder}"`, body.includes(folder));
+  }
+  check(
+    'inbound retrieval never bulk-loads the vault',
+    /never returns the whole vault|Bulk loading/i.test(body),
+  );
+  for (const classification of [
+    'EXPECTED_CHANGE',
+    'STALE_OBSIDIAN_NOTE',
+    'STALE_REPOSITORY_DOC',
+    'UNIMPLEMENTED_REQUIREMENT',
+    'PRODUCT_DECISION_REQUIRED',
+    'UNCLEAR_CONFLICT',
+  ]) {
+    check(`retrieval names the conflict class ${classification}`, body.includes(classification));
+  }
+}
+
+if (existsSync(join(ROOT, 'scripts/sync-obsidian.mjs'))) {
+  const body = read('scripts/sync-obsidian.mjs');
+  check('the sync offers a --verify mode', body.includes('--verify'));
+  check(
+    'verification checks that expected notes exist',
+    /expected note is absent from the vault/.test(body),
+  );
+  check('verification checks that published notes carry substance', /empty of substance/.test(body));
+  check('verification resolves generated wikilinks', /resolves to no note in the vault/.test(body));
+  check(
+    'verification refuses to trust an exit code',
+    /not trusting the last exit code|must mean the vault is actually right/i.test(body),
+  );
+  check(
+    'verification leaves manual notes untouched',
+    /MANUAL_NOTES_UNTOUCHED/.test(body),
+  );
+}
+
+if (existsSync(join(ROOT, 'scripts/lib/obsidian-mappings.mjs'))) {
+  const body = read('scripts/lib/obsidian-mappings.mjs');
+  for (const source of ['docs/sessions', 'docs/qa/test-plans', 'docs/qa/scenarios']) {
+    check(`the vault publishes ${source}`, body.includes(source));
+  }
+}
+
+// ============================ TASK-0005 remediation gaps ====================
+
+/*
+ * Only the gaps this remediation actually closed. Each check exists because the
+ * corresponding mistake was made and cost something, not to raise a count.
+ */
+
+/* The Obsidian config must be findable from a worktree that has no copy. */
+if (existsSync(join(ROOT, 'scripts/lib/obsidian-config.mjs'))) {
+  const body = read('scripts/lib/obsidian-config.mjs');
+
+  for (const status of ['FOUND_WORKTREE', 'FOUND_PRIMARY', 'FOUND_SHARED', 'FOUND_ENV', 'NOT_CONFIGURED']) {
+    check(`obsidian config declares ${status}`, body.includes(status));
+  }
+  check(
+    'obsidian config resolves from the primary checkout, not only this worktree',
+    /primaryCheckout/.test(body) && /git-common-dir/.test(body),
+    'every task runs in its own worktree; a CWD-only lookup reported SKIPPED for two whole tasks',
+  );
+  check(
+    'the example config is never treated as runtime configuration',
+    /never\*\* a source of runtime configuration|is \*\*never\*\*/i.test(body) && /isPlaceholder/.test(body),
+    'a placeholder vaultPath would "sync" into a directory named <absolute path to your vault>',
+  );
+
+  const { resolveObsidianConfig } = await import('./lib/obsidian-config.mjs');
+
+  /* A placeholder must never resolve, whatever file it sits in. */
+  const sandbox = mkdtempSync(join(tmpdir(), 'dijipeople-obsidian-'));
+  writeFileSync(
+    join(sandbox, '.obsidian-sync.local.json'),
+    JSON.stringify({ vaultPath: '<absolute path to your Obsidian vault>' }),
+  );
+  const placeholder = resolveObsidianConfig(sandbox, { env: {} });
+  check(
+    'simulation: a placeholder vaultPath resolves to NOT_CONFIGURED',
+    placeholder.status === 'NOT_CONFIGURED',
+    `got ${placeholder.status}`,
+  );
+
+  writeFileSync(
+    join(sandbox, '.obsidian-sync.local.json'),
+    JSON.stringify({ vaultPath: join(sandbox, 'no-such-vault') }),
+  );
+  const missingVault = resolveObsidianConfig(sandbox, { env: {} });
+  check(
+    'simulation: a configured but absent vault does not resolve',
+    missingVault.status === 'NOT_CONFIGURED',
+    'a vault path that does not exist is not configuration',
+  );
+  rmSync(sandbox, { recursive: true, force: true });
+}
+
+/* Verification must resolve aliases and ignore code — both were false alarms. */
+if (existsSync(join(ROOT, 'scripts/sync-obsidian.mjs'))) {
+  const body = read('scripts/sync-obsidian.mjs');
+  check(
+    'vault verification resolves wikilinks through frontmatter aliases',
+    /aliases:/.test(body) && /vaultNotes\.add/.test(body),
+    'records are named <ID>-<slug>.md and linked as [[ID]]; basename-only resolution reported 300+ false failures',
+  );
+  check(
+    'vault verification ignores wikilinks inside code',
+    /replace\(\/```/.test(body),
+    'documentation about wikilinks is not a wikilink',
+  );
+  check(
+    'the sync resolves its config across worktrees',
+    /resolveObsidianConfig/.test(body),
+  );
+}
+
+if (existsSync(join(ROOT, 'scripts/retrieve-knowledge.mjs'))) {
+  check(
+    'inbound retrieval resolves its config across worktrees',
+    /resolveObsidianConfig/.test(read('scripts/retrieve-knowledge.mjs')),
+    'planning happens in a task worktree, which is exactly where the vault was invisible',
+  );
+}
+
+/* `develop` must contain `main`, or the integration branch is behind production. */
+{
+  const contains = (() => {
+    try {
+      execFileSync('git', ['merge-base', '--is-ancestor', 'origin/main', 'origin/develop'], {
+        cwd: ROOT,
+        stdio: 'pipe',
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  })();
+
+  /*
+   * Only meaningful where both refs are actually fetched. A shallow or
+   * single-branch checkout — CI's default for a PR — has neither, and failing
+   * there would be a check about the checkout rather than about the branches.
+   */
+  const hasRef = (ref) => {
+    try {
+      execFileSync('git', ['rev-parse', '--verify', '--quiet', ref], { cwd: ROOT, stdio: 'pipe' });
+      return true;
+    } catch {
+      return false;
+    }
+  };
+  const haveBoth = hasRef('refs/remotes/origin/main') && hasRef('refs/remotes/origin/develop');
+
+  if (haveBoth) {
+    check(
+      'DEVELOP_CONTAINS_MAIN — origin/develop contains origin/main',
+      contains,
+      'an integration branch behind production produces conflicts unrelated to any task; reconcile main into develop',
+    );
+  } else {
+    warn('DEVELOP_CONTAINS_MAIN could not be checked — origin/main or origin/develop is not fetched here');
+  }
+}
+
+/* A report-only CI job must carry a written exit criterion, not run forever. */
+if (existsSync(join(ROOT, '.github/workflows/ci.yml'))) {
+  const workflow = read('.github/workflows/ci.yml');
+  const reportOnly = [...workflow.matchAll(/^ {2}([a-z0-9-]+):\s*\n\s*name: ([^\n]*report only[^\n]*)$/gim)];
+
+  for (const [, jobId] of reportOnly) {
+    /*
+     * The job's own block, bounded by the next top-level job key. Slicing to
+     * `steps:` does not work — it is indented four spaces, not two — and an
+     * off-by-indent there silently truncated every job to its first line.
+     */
+    const start = workflow.indexOf(`\n  ${jobId}:`);
+    const rest = workflow.slice(start + 1);
+    const nextJob = /\n {2}[a-z0-9-]+:\n/.exec(rest);
+    const body = nextJob ? rest.slice(0, nextJob.index) : rest;
+
+    check(
+      `report-only job "${jobId}" states a promotion path`,
+      /promotion path|promotion criteri|promote (?:this job |it )?when|becomes required|move (?:this step |it )?into/i.test(
+        body,
+      ),
+      'report-only without an exit criterion is permanent red CI nobody reads',
+    );
+
+    /*
+     * BUG-0049 — a report-only job concludes `success` no matter what its tests
+     * did, so its summary is the only place its real verdict can live. Both
+     * report-only jobs used to print counts and stop there; a QA run then read
+     * "all jobs green" off the conclusions and recorded a pass over 136 failed
+     * tests. Requiring an explicit verdict token makes the summary say PASS or
+     * FAIL rather than leaving the reader to infer it from a wall of output.
+     */
+    check(
+      `report-only job "${jobId}" publishes an explicit PASS/FAIL verdict`,
+      /RESULT:/.test(body) && /\bFAIL\b/.test(body),
+      'a report-only job that only prints counts gets read as green — BUG-0049',
+    );
+  }
+}
+
+/* ===================================================================
+ * Drift classes found by the 2026-08-17 documentation audit.
+ *
+ * Every check below corresponds to a defect that was real, that no test or
+ * validator could see, and that survived precisely because nothing failed when
+ * it went stale. The audit found both validators green while AGENTS.md claimed
+ * 63 modules and listed 61, PLANS.md routed work to a role file deleted weeks
+ * earlier, and 1,104 compiled build outputs sat in the index.
+ *
+ * The rule these encode: a documented claim about the repository must be
+ * *derivable* from the repository. Prose that cannot be checked is prose that
+ * will drift.
+ * =================================================================== */
+
+const trackedFiles = (() => {
+  try {
+    return execFileSync('git', ['ls-files'], { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })
+      .split('\n')
+      .filter(Boolean);
+  } catch {
+    return null;
+  }
+})();
+
+/* -- 1. The two top-tier instruction files must carry provenance -------------
+ * Every .agent/context/ document already records what commit it was verified
+ * against, which is what made the audit's findings triageable by age. AGENTS.md
+ * and PLANS.md — which outrank all of them — carried nothing, and produced both
+ * high-severity findings. */
+for (const file of ['AGENTS.md', 'PLANS.md']) {
+  const body = read(file);
+  check(
+    `${file} records Last verified`,
+    body.includes('**Last verified:**'),
+    'the highest-authority files must date their claims like every context document does',
+  );
+  check(
+    `${file} records Verified against commit`,
+    body.includes('**Verified against commit:**'),
+    'a date without a commit cannot be re-derived',
+  );
+}
+
+/* -- 2 & 8. Every tracked markdown relative link must resolve ----------------
+ * Five were broken when the audit ran: a deleted agent role, two paths one
+ * level too deep, a generated filename whose truncation the hand-written link
+ * did not match, and a document that had moved directory.
+ *
+ * A link into `.agent/agents/` gets its own wording, because that failure has a
+ * specific cause worth naming: PLANS.md routed step 3 of the plan lifecycle to
+ * `implementer.md` for weeks after that role was deliberately deleted. Only
+ * *links* are checked — prose and code spans naming the deleted file are
+ * deliberate history (see integrator.md's delete/modify case) and must stay.
+ *
+ * Both live in one pass over the file list: reading 461 files twice to report
+ * the same broken link under two descriptions is cost without information. */
+if (trackedFiles) {
+  for (const file of trackedFiles.filter((f) => f.endsWith('.md'))) {
+    /*
+     * A tracked file absent from the working tree is a finding, not a crash.
+     *
+     * This threw an unhandled ENOENT when a mutation test deleted a role file:
+     * exit 1, so CI still blocked, but the output was a stack trace instead of a
+     * named check — and a stack trace hides every other result in the run. The
+     * same shape occurs in a partial checkout or a halted rebase, where the
+     * useful message is "this tracked file is missing", not a Node trace.
+     */
+    if (!existsSync(join(ROOT, file))) {
+      check(`tracked file exists in the working tree: ${file}`, false, 'tracked by Git, absent on disk');
+      continue;
+    }
+    const body = readFileSync(join(ROOT, file), 'utf8');
+    for (const [, target] of body.matchAll(/\[[^\]]*\]\(([^)\s]+)\)/g)) {
+      if (/^(https?:|mailto:|#)/.test(target)) continue;
+      let path = target.split('#')[0];
+      if (!path) continue;
+      try {
+        path = decodeURIComponent(path);
+      } catch {
+        /* a literal % in a filename is not an encoding error */
+      }
+      const resolved = path.startsWith('/') ? join(ROOT, path) : resolve(dirname(join(ROOT, file)), path);
+      check(
+        `${file} → ${target} resolves`,
+        existsSync(resolved),
+        /\.agent\/agents\/[a-z0-9-]+\.md$/.test(path)
+          ? 'referenced agent role does not exist'
+          : 'broken relative link',
+      );
+    }
+  }
+}
+
+/* -- 3 & 4. The module inventory must match the filesystem -------------------
+ * AGENTS.md claimed 63 modules, enumerated 61, and omitted `auth` and
+ * `notifications` — while mandating, by name, that notifications route through
+ * the module its own table did not list. */
+const MODULES_DIR = 'services/api/src/modules';
+if (existsSync(join(ROOT, MODULES_DIR))) {
+  const agentsBody = read('AGENTS.md');
+  const moduleDirs = readdirSync(join(ROOT, MODULES_DIR), { withFileTypes: true })
+    .filter((e) => e.isDirectory())
+    .map((e) => e.name)
+    .sort();
+
+  const stated = /\*\*(\d+) modules\*\* under `services\/api\/src\/modules\/`/.exec(agentsBody);
+  check('AGENTS.md states a module count', Boolean(stated), 'the Domains section must state a count');
+  if (stated) {
+    check(
+      `AGENTS.md module count (${stated[1]}) matches ${MODULES_DIR} (${moduleDirs.length})`,
+      Number(stated[1]) === moduleDirs.length,
+      're-derive with: ls services/api/src/modules | wc -l',
+    );
+  }
+
+  /* Gathered line-by-line rather than by slicing to the next blank line: these
+   * files use CRLF, so an indexOf('\n\n') finds nothing and the "table" would
+   * swallow the rest of the document — every backticked word in AGENTS.md then
+   * reads as a claimed module. */
+  const agentsLines = agentsBody.split(/\r?\n/);
+  const tableStart = agentsLines.findIndex((line) => line.startsWith('| Area | Modules |'));
+  check('AGENTS.md carries the module inventory table', tableStart !== -1);
+  if (tableStart !== -1) {
+    const tableLines = [];
+    for (let i = tableStart; i < agentsLines.length && agentsLines[i].startsWith('|'); i += 1) {
+      tableLines.push(agentsLines[i]);
+    }
+    const table = tableLines.join('\n');
+
+    for (const dir of moduleDirs) {
+      check(`module "${dir}" appears in the AGENTS.md inventory`, table.includes(`\`${dir}\``));
+    }
+
+    /* The reverse direction catches a module renamed in the tree but left
+     * standing in the table. Only lowercase-kebab tokens are considered, so
+     * class names such as `JwtAuthGuard` in the same cells are not mistaken
+     * for modules. */
+    for (const [, token] of table.matchAll(/`([a-z][a-z0-9-]*)`/g)) {
+      check(
+        `inventory entry "${token}" is a real module directory`,
+        moduleDirs.includes(token),
+        `${MODULES_DIR}/${token} does not exist`,
+      );
+    }
+
+    /* Modules AGENTS.md names as the *only* sanctioned route for a capability.
+     * If one is missing from the inventory, the file mandates a destination it
+     * does not acknowledge exists — exactly the `notifications` case. */
+    const MANDATORY_ROUTING_MODULES = ['auth', 'notifications', 'audit', 'permissions', 'settings-runtime'];
+    for (const name of MANDATORY_ROUTING_MODULES) {
+      check(`mandatory routing target "${name}" exists`, moduleDirs.includes(name));
+      check(`mandatory routing target "${name}" is in the inventory`, table.includes(`\`${name}\``));
+    }
+  }
+}
+
+/* -- 5 & 6. Documented CI must match the workflow ---------------------------
+ * The gate gained browser-e2e on 2026-08-17; AGENTS.md and ci.md both still
+ * said ten, and ci.md documented lint-api-report, promoted away the same day. */
+const CI_WORKFLOW_PATH = '.github/workflows/ci.yml';
+if (existsSync(join(ROOT, CI_WORKFLOW_PATH))) {
+  const workflow = read(CI_WORKFLOW_PATH);
+  const needsMatch = /ci-required:[\s\S]*?needs:\s*\n?\s*\[([^\]]+)\]/.exec(workflow);
+  check('ci.yml declares the required-gate needs list', Boolean(needsMatch));
+
+  if (needsMatch) {
+    const requiredJobs = needsMatch[1]
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    /* Scoped to the `jobs:` block. Matching two-space keys across the whole
+     * file also collects `push:` from the `on:` trigger, which would let a
+     * document claim a job named "push" and pass. */
+    const jobsBlock = workflow.slice(workflow.search(/^jobs:$/m));
+    const jobKeys = [...jobsBlock.matchAll(/^ {2}([a-z0-9-]+):$/gm)].map((m) => m[1]);
+    for (const job of requiredJobs) {
+      check(`required job "${job}" is defined in ${CI_WORKFLOW_PATH}`, jobKeys.includes(job));
+    }
+
+    /* Per-job properties. Two real defects on 2026-08-18 were invisible to
+     * every check above, because both were about HOW a job is declared rather
+     * than whether it exists:
+     *
+     *   - browser-e2e was named in ci-required.needs while carrying
+     *     `continue-on-error: true`. Such a job reports `success` to
+     *     needs.*.result even when it fails, so the aggregate gate could not
+     *     see a browser failure at all. It was named as required and was not.
+     *   - no job declared timeout-minutes, so every one inherited GitHub's
+     *     360-minute default. The report-only database e2e job then ran for 36
+     *     minutes unbounded and was stopped only by a superseding push.
+     */
+    const jobBodies = new Map();
+    {
+      const starts = [...jobsBlock.matchAll(/^ {2}([a-z0-9-]+):$/gm)];
+      starts.forEach((match, index) => {
+        const end = index + 1 < starts.length ? starts[index + 1].index : jobsBlock.length;
+        jobBodies.set(match[1], jobsBlock.slice(match.index, end));
+      });
+    }
+
+    /* The evidence resolver is what stops every ref-push integration running a
+     * second full pipeline over a byte-identical tree. */
+    check(
+      'ci-required depends on the `resolve` evidence job',
+      requiredJobs.includes('resolve'),
+      'without it every integrated SHA re-runs the whole pipeline for a tree already proven',
+    );
+
+    const failOpen = requiredJobs.filter(
+      (job) =>
+        job !== 'resolve' &&
+        /^ {4}continue-on-error:\s*true\s*$/m.test(jobBodies.get(job) ?? ''),
+    );
+    check(
+      'no required job is fail-open through continue-on-error',
+      failOpen.length === 0,
+      failOpen.length
+        ? `${failOpen.join(', ')} — reports success to needs.*.result even when it fails, so the gate cannot see the failure`
+        : '',
+    );
+
+    const unbounded = [...jobBodies.entries()]
+      .filter(([, body]) => !/^ {4}timeout-minutes:/m.test(body))
+      .map(([id]) => id);
+    check(
+      'every ci.yml job declares timeout-minutes',
+      unbounded.length === 0,
+      unbounded.length
+        ? `${unbounded.join(', ')} would inherit GitHub's 360-minute default`
+        : '',
+    );
+
+    const NUMBER_WORDS = {
+      seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11,
+      twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15,
+    };
+    const documentedCount = (body, label) => {
+      const m = /\*\*(\w+)\*\*\s+jobs|Aggregates the \*\*(\w+)\*\*\s+jobs|\*\*(\w+)\*\* required jobs/.exec(body);
+      if (!m) return warn(`${label} states no CI job count to check`);
+      const word = (m[1] || m[2] || m[3]).toLowerCase();
+      const value = NUMBER_WORDS[word] ?? Number(word);
+      check(
+        `${label} CI job count (${word}) equals the gate's needs list (${requiredJobs.length})`,
+        value === requiredJobs.length,
+        'count them in ci-required.needs rather than editing one document',
+      );
+    };
+    documentedCount(read('AGENTS.md'), 'AGENTS.md');
+    if (existsSync(join(ROOT, 'docs/development/ci.md'))) {
+      const ciDoc = read('docs/development/ci.md');
+      documentedCount(ciDoc, 'docs/development/ci.md');
+
+      /* Every job named in the ci.md table must exist in the workflow. This is
+       * what would have caught lint-api-report surviving its own promotion. */
+      for (const [, name] of ciDoc.matchAll(/^\|\s*`([a-z0-9-]+)`\s*\|/gm)) {
+        check(`ci.md documents job "${name}", which exists in the workflow`, jobKeys.includes(name));
+      }
+    }
+  }
+}
+
+/* -- 7. Engineering-history records must be finalized ------------------------
+ * Two records sat with literal "TODO —" in Merge Commit, Final Target SHA and
+ * CI Result, while the generator that writes them prints "Every TODO must be
+ * resolved before the task reports COMPLETE." The generator template itself
+ * legitimately contains them, so only the records are checked. */
+for (const file of markdownFilesIn('docs/engineering-history/tasks')) {
+  const body = read(file);
+  check(
+    `${file} has no unresolved TODO`,
+    !body.includes('TODO —'),
+    'a history record filed before the merge must be returned to and completed with real Git/CI evidence',
+  );
+}
+
+/* -- 9. Obsidian parity must be a verified field, not an assumed one ---------
+ * The vault was 40 generated files behind while every task reported its sync
+ * done. Syncing and *verifying the sync* are different acts. */
+{
+  const contract = read('.agent/context/task-completion-contract.md');
+  /* Anchored to a line of its own, which is how the contract lists a field.
+   * `includes()` alone passed while the field was deleted from the list,
+   * because the prose below it still mentioned the name — a check that cannot
+   * fail is worse than no check, since it reads as coverage. */
+  const declaresField = (name) => new RegExp(`^${name}\\s*$`, 'm').test(contract);
+  check(
+    'completion contract declares OBSIDIAN_SYNC_STATUS',
+    declaresField('OBSIDIAN_SYNC_STATUS'),
+  );
+  check(
+    'completion contract declares OBSIDIAN_VERIFICATION_STATUS',
+    declaresField('OBSIDIAN_VERIFICATION_STATUS'),
+    'a sync that was run but never verified is how the vault fell 40 files behind',
+  );
+  check(
+    'completion contract names the verification command',
+    contract.includes('knowledge:verify'),
+    'the field needs a command that produces its value',
+  );
+}
+
+/* -- 10. No tracked build output --------------------------------------------
+ * 1,104 files — 977 compiled .dll/.exe under bin/ and 127 under obj/, 11 MB —
+ * were tracked under gateway/. They regenerate on every `dotnet build`, so a
+ * clean checkout always reported them modified and every agent began in a dirty
+ * tree it was told not to touch. Nothing consumed them. */
+if (trackedFiles) {
+  const BUILD_OUTPUT = /(^|\/)(bin|obj)\//;
+  /* Deliberate exceptions go here with a reason. Empty is the correct state. */
+  const BUILD_OUTPUT_ALLOWLIST = [];
+  const tracked = trackedFiles.filter(
+    (f) => BUILD_OUTPUT.test(f) && !BUILD_OUTPUT_ALLOWLIST.some((a) => f.startsWith(a)),
+  );
+  check(
+    'no compiler build output is tracked',
+    tracked.length === 0,
+    tracked.length
+      ? `${tracked.length} tracked, e.g. ${tracked[0]} — untrack with "git rm -r --cached" and confirm .gitignore covers it`
+      : '',
+  );
+}
+
+// ------------------------------- simulations 30-38: agents, database, Obsidian
+//
+// Each of these was written because the corresponding rule could otherwise be
+// deleted without any check noticing. Where a rule is behavioural the simulation
+// executes it; where a rule is a written boundary the check names the exact
+// sentence that carries it, so a rewrite that drops the boundary fails rather
+// than passing on a file that still merely mentions the topic.
+
+{
+  /* 30 — Architect autonomy. The loophole this task itself fell through: with
+   * dependency-ready work remaining, the Architect asked the user whether to
+   * continue. That converts an autonomous framework back into a supervised one
+   * and hands the user the job of tracking a plan the Architect chose. */
+  const architect = read('.agent/agents/architect.md');
+  const contract = read(CONTRACT);
+
+  check(
+    'simulation 30: the Architect forbids asking to continue while work remains',
+    /PARENT_TASK\s*=\s*IN_PROGRESS/.test(architect) &&
+      /NEXT_READY_WORK_PACKAGE/.test(architect) &&
+      /USER_CONFIRMATION_REQUIRED/.test(architect),
+    'architect.md must state the rule in terms of PARENT_TASK, NEXT_READY_WORK_PACKAGE and USER_CONFIRMATION_REQUIRED',
+  );
+  check(
+    'simulation 30b: the completion contract refuses USER_CONFIRMATION_REQUIRED as terminal',
+    /USER_CONFIRMATION_REQUIRED` is not a terminal state/.test(contract),
+    'a ready work package must not be endable by asking the user',
+  );
+  check(
+    'simulation 30c: capacity exhaustion is a checkpoint, not a question',
+    /RESUME_REQUIRED/.test(architect) && /NEXT_READY_WP/.test(architect),
+    'architect.md must define the persist-and-resume checkpoint',
+  );
+  /* The three legitimate stopping states must still be named, or the rule reads
+   * as "never stop", which is a different and worse defect. */
+  check(
+    'simulation 30d: the legitimate stopping states are still named',
+    /PRODUCT_DECISION/.test(architect) && /BLOCKED_EXTERNAL/.test(architect),
+    'continuing automatically must not erase the cases where stopping is correct',
+  );
+}
+
+{
+  /* 31 — Security is a first-class permanent role, routed automatically. */
+  const security = existsSync(join(ROOT, '.agent/agents/security.md'))
+    ? read('.agent/agents/security.md')
+    : '';
+  const handoffs = read('.agent/context/agent-handoffs.md');
+
+  check('simulation 31: the Security role exists', security.length > 0);
+  check(
+    'simulation 31b: Security is in the required-agent matrix with routing triggers',
+    /\*\*Security\*\*/.test(handoffs) &&
+      /tenant scope/.test(handoffs) &&
+      /SECURITY_POST_REVIEW_STATUS/.test(handoffs),
+    'the matrix row must name the triggers and both statuses',
+  );
+  check(
+    'simulation 31c: Security carries a two-stage review and a blocking post-review',
+    /SECURITY_POST_REVIEW_STATUS = FAILED\*\* blocks completion/.test(security) ||
+      /`SECURITY_POST_REVIEW_STATUS = FAILED` blocks completion/.test(security),
+    'a post-review failure must block, not advise',
+  );
+  check(
+    'simulation 31d: Security findings become records, not prose',
+    /KNOWN_SECURITY_FAILURES_TO_AVOID/.test(security) &&
+      /No material finding may exist only in a report/.test(security),
+    'CRITICAL/HIGH must route to a bug record, a fix, a negative test and a retest',
+  );
+  check(
+    'simulation 31e: Security does not replace QA or the Reviewer',
+    /Security says what must be attacked/.test(security) &&
+      /final independent technical reviewer/.test(security),
+    'merging the roles removes the check each provides',
+  );
+}
+
+{
+  /* 32 — Database preflight. Behavioural: the script must actually run and emit
+   * every field, with UNKNOWN reachable rather than silently defaulted. */
+  const preflight = runScript('scripts/db-preflight.mjs', ['--json']);
+  let fields = null;
+  try {
+    fields = JSON.parse(preflight.output.slice(preflight.output.indexOf('{')));
+  } catch {
+    /* left null; the check below reports it */
+  }
+
+  check(
+    'simulation 32: db-preflight emits the seven Database Agent fields',
+    fields !== null &&
+      [
+        'DATABASE_AGENT_STATUS',
+        'SCHEMA_STATUS',
+        'MIGRATION_STATUS',
+        'PRISMA_CLIENT_STATUS',
+        'LOCAL_DATABASE_STATUS',
+        'DATABASE_WRITE_REQUIRED',
+        'DATABASE_WRITE_LEASE_STATUS',
+      ].every((key) => key in fields),
+    preflight.output.split('\n').filter(Boolean).slice(0, 3).join(' | '),
+  );
+
+  const database = read('.agent/agents/database.md');
+  check(
+    'simulation 32b: UNKNOWN is refused as a resting state',
+    /UNKNOWN` is not an acceptable resting state/.test(database),
+    'an unresolved preflight field means nobody looked',
+  );
+  check(
+    'simulation 32c: repair is bounded — no reset, no data loss without a strategy',
+    /No reset, and no data loss, without evidence and a migration strategy/.test(database) &&
+      /MIGRATION_DRIFT` is a finding/.test(database),
+    'flattening drift destroys the evidence of how the histories diverged',
+  );
+  check(
+    'simulation 32d: Backend may request but not author a schema change',
+    /Backend\/API\s+may\s+\*request\*\s+a\s+schema\s+change\s+and\s+must\s+not\s+author\s+one/.test(database) &&
+      /Release\/DevOps\s+\*executes\*\s+migrations\s+during\s+deployment\s+and\s+does\s+not\s+design\s+them/.test(database),
+    'ownership of the database lifecycle is exclusive to the Database Agent',
+  );
+
+  /*
+   * 32e — BUG-0083, and deliberately behavioural rather than textual.
+   *
+   * 32b above asserts that database.md *says* UNKNOWN is unacceptable. That
+   * sentence was present and true the whole time the script reported PASS over
+   * two UNKNOWN fields — a check on prose cannot see a defect in the code the
+   * prose describes. These call the verdict function with the exact state the
+   * user's machine was in and require a failing answer.
+   */
+  const { classifyVerdict } = await import(pathToFileURL(join(ROOT, 'scripts/db-preflight.mjs')).href);
+
+  const coherent = {
+    schema: { status: 'CURRENT' },
+    prismaClient: { status: 'CURRENT' },
+    migration: { status: 'CURRENT' },
+    database: { status: 'CURRENT' },
+  };
+
+  check(
+    'simulation 32e: a database behind the committed history cannot report PASS',
+    classifyVerdict({
+      ...coherent,
+      migration: { status: 'PENDING_MIGRATIONS' },
+      database: { status: 'DATABASE_MISMATCH' },
+    }).verdict === 'BLOCKED',
+    'db-preflight reported PASS and exit 0 against 213 unapplied migrations — BUG-0083',
+  );
+
+  check(
+    'simulation 32f: an UNKNOWN field cannot report PASS',
+    ['schema', 'prismaClient', 'migration', 'database'].every(
+      (field) => classifyVerdict({ ...coherent, [field]: { status: 'UNKNOWN' } }).verdict === 'INCOMPLETE',
+    ) && classifyVerdict(coherent).verdict === 'PASS',
+    'INCOMPLETE exists so the headline cannot contradict "UNKNOWN is not an acceptable resting state"',
+  );
+
+  check(
+    'simulation 32g: the coherence invariant is checked after the work, not only before',
+    /--postflight/.test(read('scripts/db-preflight.mjs')) &&
+      /DATABASE_COHERENCE_STATUS/.test(read('.agent/context/task-completion-contract.md')) &&
+      /"db:postflight"/.test(read('package.json')),
+    'a preflight certifies coherence the same task then breaks by authoring the migration',
+  );
+}
+
+{
+  /* 33 — Role instances. The same permanent role runs in many chats; reads are
+   * parallel, schema writes are exclusive. Simulation 3 already proves the lease
+   * behaviour; these prove the role files declare the instance model, so results
+   * from one chat cannot be mistaken for another's. */
+  const database = read('.agent/agents/database.md');
+  const security = existsSync(join(ROOT, '.agent/agents/security.md'))
+    ? read('.agent/agents/security.md')
+    : '';
+
+  for (const [label, body] of [['Database', database], ['Security', security]]) {
+    check(
+      `simulation 33: the ${label} role declares a session-scoped instance identity`,
+      /## Instance identity/.test(body) &&
+        /SESSION_ID/.test(body) &&
+        /WORK_PACKAGE_ID/.test(body),
+      'a role execution must state which session and work package it belongs to',
+    );
+  }
+  check(
+    'simulation 33b: Database reads are parallel and schema writes exclusive',
+    /\*\*Reads are parallel; writes are exclusive\.\*\*/.test(database),
+    'concurrent preflights must not serialise behind one another',
+  );
+  check(
+    'simulation 33c: Security review instances are explicitly concurrent-safe',
+    /Concurrent Security instances are safe and expected/.test(security),
+    'review is read-only, so two sessions may review at once',
+  );
+  /* No per-chat duplicates of a permanent role may exist. */
+  const duplicated = readdirSync(join(ROOT, '.agent/agents'))
+    .filter((name) => /-(\d+)\.md$/.test(name));
+  check(
+    'simulation 33d: no per-chat duplicate role files exist',
+    duplicated.length === 0,
+    duplicated.join(', '),
+  );
+}
+
+{
+  /* 34 — Obsidian ownership and the two orphan kinds. */
+  const sync = read('scripts/sync-obsidian.mjs');
+  check(
+    'simulation 34: the verifier distinguishes SOURCE_ORPHAN from GRAPH_ORPHAN',
+    /OBSIDIAN_SOURCE_ORPHANS/.test(sync) && /OBSIDIAN_GRAPH_ORPHANS/.test(sync),
+    'a note can have a valid source and still be an isolated dot',
+  );
+  check(
+    'simulation 34b: an orphan and a stale generated note are separate classifications',
+    /ORPHAN_GENERATED_NODE/.test(sync) && /STALE_GENERATED_NODE/.test(sync),
+    'source-gone and source-no-longer-published are different problems',
+  );
+  check(
+    'simulation 34c: graph exemptions are explicit and carry a reason',
+    /STANDALONE_CATEGORIES/.test(sync) && /NAVIGATION_AGGREGATES/.test(sync),
+    'an unexplained exemption is indistinguishable from an oversight',
+  );
+  check(
+    'simulation 34d: verification reads only agent-owned folders',
+    /MANUAL_NOTES_UNTOUCHED/.test(sync),
+    'manual notes must never be read, modified or counted',
+  );
+  /* The nesting trap: mapping targets nest, and a naive recursive walk reports
+   * ~94 orphans in a vault that has none. */
+  check(
+    'simulation 34e: the orphan scan excludes subtrees owned by another mapping',
+    /MAPPING TARGETS NEST/.test(sync),
+    'without this the checker cries wolf on first contact and gets skipped',
+  );
+}
+
+{
+  /* 35 — Generated relationships are projected, never invented. */
+  const qa = read('scripts/rebuild-qa.mjs');
+  const taskGen = read('scripts/rebuild-tasks.mjs');
+  check(
+    'simulation 35: QA scenarios project their existing frontmatter into links',
+    /GRAPH:BEGIN/.test(qa) && /planByArea/.test(qa),
+    'the plan edge comes from shared AREA, which loadQaRecords already validates',
+  );
+  check(
+    'simulation 35b: module links require an exact name match',
+    /EXACT match/.test(qa) || /exact match/i.test(qa),
+    'a plausible-looking wrong edge is worse than an absent one',
+  );
+  check(
+    'simulation 35c: task records link the bug and item ids they already name',
+    /GRAPH:BEGIN/.test(taskGen) && /BUG\|ITEM/.test(taskGen),
+    'the relationship exists in prose; it just was not a wikilink',
+  );
+  check(
+    'simulation 35d: REG ids are not linkified',
+    /REG ids are deliberately NOT wikilinked/.test(qa),
+    'regressions are sections in one register, so [[REG-002]] resolves to nothing',
+  );
+}
+
+{
+  /* 36 — KNOWLEDGE_IMPACT must travel with every handoff, and the Reviewer must
+   * check it. Behaviour that exists only in code and chat is behaviour that has
+   * to be rediscovered. */
+  const handoffs = read('.agent/context/agent-handoffs.md');
+  const reviewer = read('.agent/agents/reviewer.md');
+  check(
+    'simulation 36: the handoff contract carries KNOWLEDGE_IMPACT and OBSIDIAN_IMPACT',
+    /KNOWLEDGE_IMPACT/.test(handoffs) && /OBSIDIAN_IMPACT/.test(handoffs),
+  );
+  check(
+    'simulation 36b: the Reviewer rejects a declared knowledge impact with no update',
+    /KNOWLEDGE_IMPACT/.test(reviewer),
+    'a specialist declaring MODULE_KNOWLEDGE with no note is an incomplete handoff',
+  );
+}
+
+
+{
+  /*
+   * 37 — the primary worktree is first-class.
+   *
+   * Every one of these runs `repo-health.mjs` against a throwaway repository
+   * with real worktrees attached, because the defect being guarded here was a
+   * *structural* check that passed while the behaviour was absent: per-worktree
+   * dirtiness was computed, dropped from the report, and gated on a branch
+   * comparison that could never be true for the branch the primary checkout is
+   * actually on. Asserting that the document mentions PRIMARY_WORKTREE_STATUS
+   * would have passed against every version of the code that had the bug.
+   */
+  const sandbox = mkdtempSync(join(tmpdir(), 'dijipeople-primary-'));
+  const primary = join(sandbox, 'primary');
+  const taskWorktree = join(sandbox, 'task');
+  const otherWorktree = join(sandbox, 'other');
+
+  const git = (args, cwd = primary) =>
+    execFileSync('git', args, { cwd, stdio: 'pipe', encoding: 'utf8' }).trim();
+
+  const health = (args) => {
+    const result = runScript('scripts/repo-health.mjs', ['--json', '--root', primary, ...args]);
+    if (!result.ok) return null;
+    try {
+      return JSON.parse(result.output);
+    } catch {
+      return null;
+    }
+  };
+
+  let ready = true;
+  try {
+    mkdirSync(primary, { recursive: true });
+    git(['init', '--initial-branch=main', '.']);
+    git(['config', 'user.email', 'probe@example.com']);
+    git(['config', 'user.name', 'probe']);
+    mkdirSync(join(primary, 'docs/sessions'), { recursive: true });
+    writeFileSync(join(primary, 'docs/sessions/README.md'), '# sessions\n');
+    writeFileSync(join(primary, 'tracked.txt'), 'base\n');
+    git(['add', '.']);
+    git(['commit', '-m', 'base']);
+    git(['branch', 'develop']);
+    git(['checkout', 'develop']);
+    git(['worktree', 'add', '-b', 'agent/task', taskWorktree]);
+    git(['worktree', 'add', '-b', 'agent/other', otherWorktree]);
+  } catch (error) {
+    ready = false;
+    warn(`primary-worktree simulations could not initialise — ${String(error.message).split('\n')[0]}`);
+  }
+
+  if (ready) {
+    /* A — a clean task worktree does not make repository health PASS. */
+    writeFileSync(join(primary, 'tracked.txt'), 'edited by nobody in particular\n');
+    const dirtyPrimary = health(['--task-branch', 'agent/task']);
+    check(
+      'simulation 37A: an unexplained dirty file in the primary worktree is DIRTY_UNEXPLAINED',
+      dirtyPrimary?.PRIMARY_WORKTREE_STATUS === 'DIRTY_UNEXPLAINED',
+      `got ${dirtyPrimary?.PRIMARY_WORKTREE_STATUS}`,
+    );
+    check(
+      'simulation 37A: the task worktree being clean does not clear it',
+      dirtyPrimary?.TASK_WORKTREE_STATUS === 'CLEAN' &&
+        dirtyPrimary?.PRIMARY_WORKTREE_STATUS === 'DIRTY_UNEXPLAINED',
+      'a spotless task worktree is exactly the state the failing task reported PASS from',
+    );
+    check(
+      'simulation 37A: an unexplained primary file blocks, it does not merely warn',
+      Array.isArray(dirtyPrimary?.blockers) &&
+        dirtyPrimary.blockers.some((entry) => /unexplained/i.test(entry)),
+      'dirtiness was a warning before, and a warning cannot fail a task',
+    );
+    check(
+      'simulation 37A: the unexplained path is named, with UNKNOWN ownership',
+      dirtyPrimary?.unexplainedDirtyFiles?.some(
+        (file) => file.path === 'tracked.txt' && file.owner === 'UNKNOWN',
+      ),
+      'a count with no paths cannot be acted on',
+    );
+
+    /* B — work that predates the task is preserved, and may complete. */
+    const baselined = health(['--task-branch', 'agent/task', '--primary-baseline', 'tracked.txt']);
+    check(
+      'simulation 37B: a path already dirty at task start is DIRTY_USER_OWNED',
+      baselined?.PRIMARY_WORKTREE_STATUS === 'DIRTY_USER_OWNED',
+      `got ${baselined?.PRIMARY_WORKTREE_STATUS} — the user's own in-flight work must not block them`,
+    );
+    check(
+      'simulation 37B: user-owned dirt does not block completion',
+      baselined?.UNEXPLAINED_DIRTY_FILES === undefined
+        ? baselined?.unexplainedDirtyFiles?.length === 0
+        : true,
+      'preserved user work is reported, never counted as unexplained',
+    );
+    check(
+      'simulation 37B: the file is still on disk — nothing was reverted to tidy the report',
+      readFileSync(join(primary, 'tracked.txt'), 'utf8').includes('edited by nobody'),
+      'repo-health reports; it must never restore, reset or clean',
+    );
+
+    /* C — a generator writing a tracked file after the final commit is caught. */
+    rmSync(join(primary, 'tracked.txt'), { force: true });
+    git(['checkout', '--', 'tracked.txt']);
+    mkdirSync(join(primary, 'docs/backlog'), { recursive: true });
+    writeFileSync(join(primary, 'docs/backlog/index.md'), '# regenerated after the commit\n');
+    const generated = health(['--task-branch', 'agent/task']);
+    check(
+      'simulation 37C: a post-integration generator writing a tracked file is detected',
+      generated?.primaryDirtyFiles?.some(
+        (file) => file.owner === 'GENERATED_BY_FRAMEWORK' && /docs\/backlog/.test(file.path),
+      ),
+      'generator output left uncommitted is repository work, not a clean tree',
+    );
+    check(
+      'simulation 37C: uncommitted generator output does not pass as CLEAN',
+      generated?.PRIMARY_WORKTREE_STATUS !== 'CLEAN',
+      'running a tracked-file generator after the final commit and declaring cleanup done is the defect',
+    );
+    rmSync(join(primary, 'docs/backlog'), { recursive: true, force: true });
+
+    /* D — a session record left behind by `start` blocks until reconciled. */
+    writeFileSync(
+      join(primary, 'docs/sessions/SESSION-9001-stranded.md'),
+      '---\nSESSION_ID: SESSION-9001\nSTATUS: COMPLETE\nTASK_BRANCH: agent/task\n---\n\n# stranded\n',
+    );
+    const stranded = health(['--task-branch', 'agent/task']);
+    check(
+      'simulation 37D: a session record for a finished session is an ORPHANED_SESSION_STUB',
+      stranded?.orphanedSessionStubs?.some((file) => /SESSION-9001/.test(file.path)),
+      `got ${JSON.stringify(stranded?.primaryDirtyFiles)}`,
+    );
+    check(
+      'simulation 37D: a stranded session record blocks completion until reconciled',
+      stranded?.PRIMARY_WORKTREE_STATUS === 'DIRTY_UNEXPLAINED',
+      'SESSION-0016 left exactly this stub in the primary checkout and the task still reported DONE',
+    );
+
+    /*
+     * D2 — a stub that was already there is somebody else's mess, and must not
+     * block this task. It is still named and still attributed to its session:
+     * "pre-existing" is a reason not to block, never a reason to stop
+     * reporting.
+     */
+    const preExistingStub = health([
+      '--task-branch',
+      'agent/task',
+      '--primary-baseline',
+      'docs/sessions/SESSION-9001-stranded.md',
+    ]);
+    check(
+      'simulation 37D2: a pre-existing orphaned stub does not block the task that found it',
+      preExistingStub?.PRIMARY_WORKTREE_STATUS !== 'DIRTY_UNEXPLAINED',
+      `got ${preExistingStub?.PRIMARY_WORKTREE_STATUS}`,
+    );
+    check(
+      'simulation 37D2: it is still attributed to the session that left it, not to the user',
+      preExistingStub?.primaryDirtyFiles?.some(
+        (file) => file.owner === 'SESSION-9001' && file.classification === 'PRE_EXISTING_ORPHANED_STUB',
+      ),
+      'attributing it to USER would send somebody to ask the wrong person',
+    );
+
+    /* E — an ACTIVE session's record is another chat's, and is left alone. */
+    writeFileSync(
+      join(primary, 'docs/sessions/SESSION-9001-stranded.md'),
+      '---\nSESSION_ID: SESSION-9001\nSTATUS: ACTIVE\nTASK_BRANCH: agent/other\n---\n\n# live\n',
+    );
+    const live = health(['--task-branch', 'agent/task']);
+    check(
+      'simulation 37E: an ACTIVE session record is owned by that session, not orphaned',
+      live?.primaryDirtyFiles?.some(
+        (file) => file.owner === 'SESSION-9001' && file.classification === 'ACTIVE_SESSION_RECORD',
+      ),
+      'reading committed indexes instead of the file itself reported a live session as an orphan',
+    );
+    check(
+      'simulation 37E: another session\'s record is DIRTY_OTHER_SESSION_OWNED, not a blocker',
+      live?.PRIMARY_WORKTREE_STATUS === 'DIRTY_OTHER_SESSION_OWNED',
+      `got ${live?.PRIMARY_WORKTREE_STATUS}`,
+    );
+    check(
+      'simulation 37E: a dirty worktree owned by another session is reported, never cleaned',
+      existsSync(join(primary, 'docs/sessions/SESSION-9001-stranded.md')),
+      'the framework must not delete or revert another session\'s work',
+    );
+
+    /* E2 — a dirty sibling worktree is surfaced and left alone. */
+    writeFileSync(join(otherWorktree, 'tracked.txt'), 'another session is mid-edit\n');
+    const sibling = health(['--task-branch', 'agent/task']);
+    check(
+      'simulation 37E: a dirty sibling worktree is listed under OTHER_DIRTY_WORKTREES',
+      sibling?.otherDirtyWorktrees?.some((entry) => entry.branch === 'agent/other'),
+      `got ${JSON.stringify(sibling?.otherDirtyWorktrees)}`,
+    );
+    check(
+      'simulation 37E: the sibling worktree\'s changes are still there afterwards',
+      readFileSync(join(otherWorktree, 'tracked.txt'), 'utf8').includes('mid-edit'),
+      'reporting a worktree must never mutate it',
+    );
+    execFileSync('git', ['-C', otherWorktree, 'checkout', '--', 'tracked.txt'], { stdio: 'pipe' });
+    rmSync(join(primary, 'docs/sessions/SESSION-9001-stranded.md'), { force: true });
+
+    /* F — line-ending-only drift is still drift, and is classified not ignored. */
+    writeFileSync(join(primary, 'tracked.txt'), 'base\r\n');
+    const crlf = health(['--task-branch', 'agent/task']);
+    check(
+      'simulation 37F: a line-ending-only change is detected rather than silently accumulated',
+      crlf?.PRIMARY_WORKTREE_STATUS === 'CLEAN' ||
+        crlf?.primaryDirtyFiles?.some((file) => file.path === 'tracked.txt'),
+      'either .gitattributes normalises it away, or it is reported — never invisible',
+    );
+    writeFileSync(join(primary, 'tracked.txt'), 'base\n');
+
+    /*
+     * G — behind the remote while dirty must not become a blind pull.
+     *
+     * The assertion is non-mutation, captured either side of the call, rather
+     * than "the tree is clean afterwards": a health check has to be safe to run
+     * on an unhealthy repository, which is the only kind worth running it on.
+     */
+    writeFileSync(join(primary, 'tracked.txt'), 'dirty while behind the remote\n');
+    const branchBefore = git(['rev-parse', '--abbrev-ref', 'HEAD']);
+    const statusBefore = git(['status', '--porcelain']);
+    const headBefore = git(['rev-parse', 'HEAD']);
+    const behindAndDirty = health(['--task-branch', 'agent/task']);
+    check(
+      'simulation 37G: repo-health returns a report rather than failing on a dirty tree',
+      behindAndDirty !== null,
+      'a health check that cannot run on an unhealthy repository is no use',
+    );
+    check(
+      'simulation 37G: repo-health does not switch, pull or merge the branch it inspects',
+      git(['rev-parse', '--abbrev-ref', 'HEAD']) === branchBefore &&
+        git(['rev-parse', 'HEAD']) === headBefore,
+      `branch/HEAD moved — a report must never reconcile, and never on a dirty tree`,
+    );
+    check(
+      'simulation 37G: repo-health leaves the working tree exactly as it found it',
+      git(['status', '--porcelain']) === statusBefore,
+      `working tree changed from ${JSON.stringify(statusBefore)} to ${JSON.stringify(git(['status', '--porcelain']))}`,
+    );
+    check(
+      'simulation 37G: the dirty file is still dirty — nothing was pulled over it',
+      readFileSync(join(primary, 'tracked.txt'), 'utf8').includes('dirty while behind'),
+      'classify and preserve local changes first; only then reconcile',
+    );
+    check(
+      'simulation 37G: an unexplained primary is reported before any sync decision',
+      typeof behindAndDirty?.PRIMARY_WORKTREE_STATUS === 'string' &&
+        typeof behindAndDirty?.DEVELOP_SYNC_STATUS === 'string',
+      'classify and preserve local changes first; only then reconcile',
+    );
+
+    /* Unfinished operations are aggregated across worktrees, not just this one. */
+    check(
+      'simulation 37: unfinished Git operations are aggregated per worktree',
+      Array.isArray(behindAndDirty?.unfinishedByWorktree),
+      'a rebase abandoned in a sibling checkout is invisible to --git-common-dir',
+    );
+    check(
+      'simulation 37: every worktree carries a PRIMARY / TASK / OTHER role',
+      behindAndDirty?.worktrees?.length >= 3 &&
+        behindAndDirty.worktrees.filter((w) => w.role === 'PRIMARY').length === 1 &&
+        behindAndDirty.worktrees.some((w) => w.role === 'TASK') &&
+        behindAndDirty.worktrees.some((w) => w.role === 'OTHER'),
+      `got ${JSON.stringify(behindAndDirty?.worktrees?.map((w) => w.role))}`,
+    );
+  }
+
+  rmSync(sandbox, { recursive: true, force: true });
+}
+
+{
+  /*
+   * 38 — the rules above are also *written down*, because a check that only
+   * lives in code is a check the next Architect cannot reason about before
+   * running it.
+   */
+  const health = read('.agent/context/repository-health.md');
+  const contract = read('.agent/context/task-completion-contract.md');
+  const releaseDevops = read('.agent/agents/release-devops.md');
+  const architect = read('.agent/agents/architect.md');
+  const agents = read('AGENTS.md');
+
+  check(
+    'simulation 38: repository health names the primary worktree as first-class',
+    /PRIMARY_WORKTREE_STATUS/.test(health) && /TASK_WORKTREE/.test(health),
+  );
+  check(
+    'simulation 38b: DIRTY_UNEXPLAINED is documented as blocking completion',
+    /DIRTY_UNEXPLAINED/.test(health) && /blocks completion/i.test(health),
+  );
+  check(
+    'simulation 38c: every dirty path must carry an owner',
+    /GENERATED_BY_FRAMEWORK/.test(health) && /UNKNOWN/.test(health),
+    'USER, SESSION-nnnn, GENERATED_BY_FRAMEWORK or UNKNOWN',
+  );
+  check(
+    'simulation 38d: the completion contract carries the worktree fields',
+    /PRIMARY_WORKTREE_STATUS/.test(contract) &&
+      /UNEXPLAINED_DIRTY_FILES/.test(contract) &&
+      /POST_INTEGRATION_GENERATOR_STATUS/.test(contract),
+  );
+  check(
+    'simulation 38e: PRIMARY_WORKTREE_STATUS is never NOT_REQUIRED',
+    /Never — a task worktree being clean is not repository health/.test(contract),
+    'the field exists precisely because a clean task worktree was mistaken for repository health',
+  );
+  check(
+    'simulation 38f: Release/DevOps is LEAD for worktree health',
+    /LEAD for worktree health/i.test(releaseDevops) && /PRIMARY_WORKTREE_STATUS/.test(releaseDevops),
+  );
+  check(
+    'simulation 38g: the Architect reports worktree state rather than burying it',
+    /UNEXPLAINED_DIRTY_FILES/.test(architect) && /may not report/i.test(architect),
+  );
+  check(
+    'simulation 38h: post-integration generators must be committed or proven diff-free',
+    /Post-integration generators are repository work/.test(health) &&
+      /no diff/i.test(health),
+  );
+  check(
+    'simulation 38i: session records must not be stranded in the primary checkout',
+    /stranded in the primary checkout/i.test(health) || /PRIMARY_WORKTREE_ARTIFACT/.test(health),
+  );
+  check(
+    'simulation 38j: AGENTS.md states that a clean task worktree is not repository health',
+    /not a property of the worktree you are standing in/i.test(agents),
+  );
+  check(
+    'simulation 38k: cleanup may never mean making git status empty',
+    /Cleanup never means making `git status` empty/.test(contract),
+    'reverting to tidy the report is how somebody else\'s afternoon disappears',
+  );
+
+  /* session.mjs must actually implement the artifact warning, not just describe it. */
+  const sessionScript = read('scripts/session.mjs');
+  check(
+    'simulation 38l: session.mjs detects a record written into the primary checkout',
+    /PRIMARY_WORKTREE_ARTIFACT/.test(sessionScript) &&
+      /'worktree',\s*'list'/.test(sessionScript) &&
+      /strandedInPrimary/.test(sessionScript),
+    'the root cause was session.mjs resolving its root from its own location',
+  );
+
+  /* repo-health must expose the fields the contract now depends on. */
+  const healthScript = read('scripts/repo-health.mjs');
+  for (const field of [
+    'PRIMARY_WORKTREE_STATUS',
+    'TASK_WORKTREE_STATUS',
+    'unexplainedDirtyFiles',
+    'otherDirtyWorktrees',
+    'unfinishedByWorktree',
+  ]) {
+    check(
+      `simulation 38m: repo-health emits ${field}`,
+      new RegExp(field).test(healthScript),
+    );
+  }
+}
+
+{
+  /*
+   * 39 — session.mjs actually refuses to strand a record silently.
+   *
+   * This is executed rather than grepped because the grepped version of this
+   * check (38l) survived a mutation that set the detection to a constant
+   * `false` while leaving every identifier it searched for in place. A check
+   * that reads the source for a word cannot tell whether the word still does
+   * anything.
+   */
+  const sandbox = mkdtempSync(join(tmpdir(), 'dijipeople-session-root-'));
+  const git = (args, cwd = sandbox) =>
+    execFileSync('git', args, { cwd, stdio: 'pipe', encoding: 'utf8' }).trim();
+
+  let ready = true;
+  try {
+    git(['init', '--initial-branch=develop', '.']);
+    git(['config', 'user.email', 'probe@example.com']);
+    git(['config', 'user.name', 'probe']);
+    mkdirSync(join(sandbox, 'docs/sessions'), { recursive: true });
+    writeFileSync(join(sandbox, 'docs/sessions/README.md'), '# sessions\n');
+    git(['add', '.']);
+    git(['commit', '-m', 'base']);
+  } catch (error) {
+    ready = false;
+    warn(`session-root simulation could not initialise — ${String(error.message).split('\n')[0]}`);
+  }
+
+  if (ready) {
+    const startSession = (branch) => {
+      const result = runScript('scripts/session.mjs', [
+        'start',
+        `probe ${branch}`,
+        '--json',
+        '--branch',
+        branch,
+        '--root',
+        sandbox,
+      ]);
+      try {
+        return JSON.parse(result.output);
+      } catch {
+        return null;
+      }
+    };
+
+    /* Registering for a branch this checkout does not have is the stranding case. */
+    const stranded = startSession('agent/somewhere-else');
+    check(
+      'simulation 39: registering a session for another branch flags PRIMARY_WORKTREE_ARTIFACT',
+      stranded?.PRIMARY_WORKTREE_ARTIFACT === true,
+      `got ${JSON.stringify(stranded?.PRIMARY_WORKTREE_ARTIFACT)} — SESSION-0015 and SESSION-0016 both stranded a stub this way`,
+    );
+    check(
+      'simulation 39: the record reports which worktree it was written into',
+      typeof stranded?.worktree === 'string' && stranded.worktree.length > 0,
+      'a record that does not say where it lives cannot be reconciled later',
+    );
+
+    /* Registering for the branch actually checked out here is the ordinary case. */
+    const ordinary = startSession('develop');
+    check(
+      'simulation 39b: registering on the checked-out branch is not flagged',
+      ordinary?.PRIMARY_WORKTREE_ARTIFACT === false,
+      `got ${JSON.stringify(ordinary?.PRIMARY_WORKTREE_ARTIFACT)} — a warning that always fires is a warning nobody reads`,
+    );
+  }
+
+  rmSync(sandbox, { recursive: true, force: true });
 }
 
 // ------------------------------------------------------------------- reporting

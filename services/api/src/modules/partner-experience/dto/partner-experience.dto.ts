@@ -1,4 +1,4 @@
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsBoolean,
   IsDateString,
@@ -38,7 +38,19 @@ export class CreatePartnerInquiryDto {
   @IsEmail() email!: string;
   @IsOptional() @IsString() @MaxLength(40) phone?: string;
   @IsOptional() @IsString() @MaxLength(120) country?: string;
-  /** Validated as a URL rather than free text — it is displayed as a link. */
+  /**
+   * Validated as a URL rather than free text — it is displayed as a link.
+   *
+   * The transform is load-bearing on a public endpoint. `@IsOptional()` skips
+   * only `null` and `undefined`, and an untouched HTML input submits `""`, so
+   * without it `@IsUrl()` rejected every submission that left this optional
+   * field blank (BUG-0048). Normalising here means no caller has to remember —
+   * the landing form does too, but this endpoint is public and that form is not
+   * its only possible client.
+   */
+  @Transform(({ value }) =>
+    typeof value === 'string' && value.trim() === '' ? undefined : value,
+  )
   @IsOptional()
   @IsUrl({ require_protocol: false, require_tld: true })
   @MaxLength(240)

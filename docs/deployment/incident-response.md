@@ -44,8 +44,10 @@ Be aware of what you cannot see:
   commit is live. Use `release-history/`.
 - There is **no error-tracking platform**; `ErrorLog` in the database is the
   primary signal, and reading it requires database access.
-- There is **no CI**, so a bad commit can reach a target without any automated
-  check having run.
+- CI exists and the required aggregate covers eleven listed jobs, but relevant
+  report-only/fail-open jobs can still contain red test evidence behind a green
+  conclusion. Inspect database E2E, security-invariant and browser artifacts;
+  see [`../development/ci.md`](../development/ci.md) and [[BUG-0049]].
 
 ## 6. Recover
 

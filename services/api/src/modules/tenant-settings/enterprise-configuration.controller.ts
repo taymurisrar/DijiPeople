@@ -11,7 +11,12 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { Permissions } from '../../common/decorators/permissions.decorator';
+import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
+import {
+  Permissions,
+  RequireAnyPermission,
+  RequirePermission,
+} from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
@@ -26,6 +31,7 @@ export class EnterpriseConfigurationController {
 
   @Get('holiday-calendars')
   @Permissions('settings.read')
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'read')
   listHolidayCalendars(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: Record<string, unknown>,
@@ -38,6 +44,7 @@ export class EnterpriseConfigurationController {
 
   @Post('holiday-calendars')
   @Permissions('settings.update')
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'configure')
   createHolidayCalendar(
     @CurrentUser() user: AuthenticatedUser,
     @Body() body: Record<string, unknown>,
@@ -50,6 +57,7 @@ export class EnterpriseConfigurationController {
 
   @Get('holiday-calendars/:id')
   @Permissions('settings.read')
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'read')
   getHolidayCalendar(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -62,6 +70,7 @@ export class EnterpriseConfigurationController {
 
   @Patch('holiday-calendars/:id')
   @Permissions('settings.update')
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'configure')
   updateHolidayCalendar(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -76,6 +85,7 @@ export class EnterpriseConfigurationController {
 
   @Delete('holiday-calendars/:id')
   @Permissions('settings.update')
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'configure')
   deleteHolidayCalendar(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -85,6 +95,7 @@ export class EnterpriseConfigurationController {
 
   @Get('holiday-calendars/:id/holidays')
   @Permissions('settings.read')
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'read')
   listHolidays(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -99,6 +110,7 @@ export class EnterpriseConfigurationController {
 
   @Post('holiday-calendars/:id/holidays')
   @Permissions('settings.update')
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'configure')
   createHoliday(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -109,6 +121,7 @@ export class EnterpriseConfigurationController {
 
   @Patch('holiday-calendars/:id/holidays/:holidayId')
   @Permissions('settings.update')
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'configure')
   updateHoliday(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -125,6 +138,7 @@ export class EnterpriseConfigurationController {
 
   @Delete('holiday-calendars/:id/holidays/:holidayId')
   @Permissions('settings.update')
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'configure')
   deleteHoliday(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -139,6 +153,7 @@ export class EnterpriseConfigurationController {
 
   @Post('holiday-calendars/:id/assignments')
   @Permissions('settings.update')
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'configure')
   assignHolidayCalendar(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -153,6 +168,7 @@ export class EnterpriseConfigurationController {
 
   @Get('work-schedules')
   @Permissions('settings.read')
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'read')
   listWorkSchedules(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: Record<string, unknown>,
@@ -165,6 +181,7 @@ export class EnterpriseConfigurationController {
 
   @Post('work-schedules')
   @Permissions('settings.update')
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'configure')
   createWorkSchedule(
     @CurrentUser() user: AuthenticatedUser,
     @Body() body: Record<string, unknown>,
@@ -174,6 +191,7 @@ export class EnterpriseConfigurationController {
 
   @Get('work-schedules/:id')
   @Permissions('settings.read')
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'read')
   getWorkSchedule(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -186,6 +204,7 @@ export class EnterpriseConfigurationController {
 
   @Patch('work-schedules/:id')
   @Permissions('settings.update')
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'configure')
   updateWorkSchedule(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -200,6 +219,7 @@ export class EnterpriseConfigurationController {
 
   @Delete('work-schedules/:id')
   @Permissions('settings.update')
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'configure')
   deleteWorkSchedule(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -209,6 +229,7 @@ export class EnterpriseConfigurationController {
 
   @Get('shift-templates')
   @Permissions('settings.read')
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'read')
   listShiftTemplates(@CurrentUser() user: AuthenticatedUser) {
     return this.enterpriseConfigurationService.listShiftTemplates(
       user.tenantId,
@@ -217,6 +238,7 @@ export class EnterpriseConfigurationController {
 
   @Post('shift-templates')
   @Permissions('settings.update')
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'configure')
   createShiftTemplate(
     @CurrentUser() user: AuthenticatedUser,
     @Body() body: Record<string, unknown>,
@@ -226,6 +248,7 @@ export class EnterpriseConfigurationController {
 
   @Get('shift-templates/:id')
   @Permissions('settings.read')
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'read')
   getShiftTemplate(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -238,6 +261,7 @@ export class EnterpriseConfigurationController {
 
   @Patch('shift-templates/:id')
   @Permissions('settings.update')
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'configure')
   updateShiftTemplate(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -252,6 +276,7 @@ export class EnterpriseConfigurationController {
 
   @Delete('shift-templates/:id')
   @Permissions('settings.update')
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'configure')
   archiveShiftTemplate(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -261,6 +286,7 @@ export class EnterpriseConfigurationController {
 
   @Get('employee-schedule-assignments')
   @Permissions('settings.read')
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'read')
   listEmployeeScheduleAssignments(@CurrentUser() user: AuthenticatedUser) {
     return this.enterpriseConfigurationService.listEmployeeScheduleAssignments(
       user.tenantId,
@@ -269,6 +295,7 @@ export class EnterpriseConfigurationController {
 
   @Post('employee-schedule-assignments')
   @Permissions('settings.update')
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'configure')
   createEmployeeScheduleAssignment(
     @CurrentUser() user: AuthenticatedUser,
     @Body() body: Record<string, unknown>,
@@ -281,6 +308,7 @@ export class EnterpriseConfigurationController {
 
   @Get('employee-schedule-assignments/:id')
   @Permissions('settings.read')
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'read')
   getEmployeeScheduleAssignment(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -293,6 +321,7 @@ export class EnterpriseConfigurationController {
 
   @Delete('employee-schedule-assignments/:id')
   @Permissions('settings.update')
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'configure')
   deactivateEmployeeScheduleAssignment(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -305,6 +334,10 @@ export class EnterpriseConfigurationController {
 
   @Get('payroll-regions')
   @Permissions('payroll.settings.read')
+  @RequireAnyPermission(
+    { entityKey: ENTITY_KEYS.SETTINGS, action: 'read' },
+    { entityKey: ENTITY_KEYS.PAYROLL, action: 'read' },
+  )
   listPayrollRegions(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: Record<string, unknown>,
@@ -317,6 +350,7 @@ export class EnterpriseConfigurationController {
 
   @Post('payroll-regions')
   @Permissions('payroll.settings.update')
+  @RequirePermission(ENTITY_KEYS.PAYROLL, 'write')
   createPayrollRegion(
     @CurrentUser() user: AuthenticatedUser,
     @Body() body: Record<string, unknown>,
@@ -326,6 +360,10 @@ export class EnterpriseConfigurationController {
 
   @Get('payroll-regions/:id')
   @Permissions('payroll.settings.read')
+  @RequireAnyPermission(
+    { entityKey: ENTITY_KEYS.SETTINGS, action: 'read' },
+    { entityKey: ENTITY_KEYS.PAYROLL, action: 'read' },
+  )
   getPayrollRegion(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -338,6 +376,7 @@ export class EnterpriseConfigurationController {
 
   @Patch('payroll-regions/:id')
   @Permissions('payroll.settings.update')
+  @RequirePermission(ENTITY_KEYS.PAYROLL, 'write')
   updatePayrollRegion(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -352,6 +391,7 @@ export class EnterpriseConfigurationController {
 
   @Delete('payroll-regions/:id')
   @Permissions('payroll.settings.update')
+  @RequirePermission(ENTITY_KEYS.PAYROLL, 'write')
   deletePayrollRegion(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -361,6 +401,7 @@ export class EnterpriseConfigurationController {
 
   @Get('fiscal-years')
   @Permissions('settings.read')
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'read')
   listFiscalYears(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: Record<string, unknown>,
@@ -373,6 +414,7 @@ export class EnterpriseConfigurationController {
 
   @Post('fiscal-years')
   @Permissions('settings.update')
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'configure')
   createFiscalYear(
     @CurrentUser() user: AuthenticatedUser,
     @Body() body: Record<string, unknown>,
@@ -382,6 +424,7 @@ export class EnterpriseConfigurationController {
 
   @Get('fiscal-years/:id')
   @Permissions('settings.read')
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'read')
   getFiscalYear(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -391,6 +434,7 @@ export class EnterpriseConfigurationController {
 
   @Get('fiscal-years/:id/usage')
   @Permissions('settings.read')
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'read')
   getFiscalYearUsage(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -403,6 +447,7 @@ export class EnterpriseConfigurationController {
 
   @Patch('fiscal-years/:id')
   @Permissions('settings.update')
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'configure')
   updateFiscalYear(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -413,6 +458,7 @@ export class EnterpriseConfigurationController {
 
   @Delete('fiscal-years/:id')
   @Permissions('settings.update')
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'configure')
   deleteFiscalYear(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,

@@ -117,12 +117,26 @@ describe('AuthService', () => {
       rememberMe: true,
       refreshTokenExpiresIn: '30d',
     });
-    expect(jwtService.sign).toHaveBeenNthCalledWith(
+    /*
+     * `jest.Mocked<JwtService>` keeps the real class's method *types*, so
+     * reading `.sign` off it trips `@typescript-eslint/unbound-method` — right
+     * for a class whose method uses `this`, and meaningless for a `jest.fn()`
+     * that has none.
+     *
+     * Destructured off a structural cast, the shape
+     * `partner-lifecycle-guards.spec.ts` already uses: the cast applies to the
+     * object, so the property is read as a spy rather than as a class method.
+     * Casting the *result* does not help — the rule fires on the member access
+     * itself, not on the resulting type.
+     */
+    const { sign } = jwtService as unknown as { sign: jest.Mock };
+
+    expect(sign).toHaveBeenNthCalledWith(
       1,
       expect.objectContaining({ rememberMe: true, tokenUse: 'access' }),
       expect.any(Object),
     );
-    expect(jwtService.sign).toHaveBeenNthCalledWith(
+    expect(sign).toHaveBeenNthCalledWith(
       2,
       expect.objectContaining({ rememberMe: true, tokenUse: 'refresh' }),
       expect.any(Object),

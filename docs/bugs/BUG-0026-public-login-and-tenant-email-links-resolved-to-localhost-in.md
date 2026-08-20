@@ -11,14 +11,14 @@ DetectedDate: 2026-08-16
 DetectedInSha: 344a832
 AffectedModules: [apps/landing, apps/web, apps/admin, services/api, packages/config]
 OwnerAgent: integration
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: docs/qa/runs/2026-08-16-production-url-integrity-344a832.md
 RegressionId: REG-016
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation: agent/production-url-integrity
 CreatedAt: 2026-08-16
-UpdatedAt: 2026-08-16
+UpdatedAt: 2026-08-17
 ResolvedAt: 2026-08-16
 ---
 
@@ -181,6 +181,10 @@ real PostgreSQL 16. Each of these tests was proven to fail without its fix when
 it was written; re-running them is what confirms the fix still holds.
 
 ## History
+
+- 2026-08-17 — Architect reconciliation: terminal `VERIFIED` status normalized
+  to `ArchitectDisposition: DONE`; the existing resolution and QA evidence are
+  unchanged.
 
 - 2026-08-16 — created from user report at `344a832`.
 - 2026-08-16 — root cause established, fixed, regression coverage added.

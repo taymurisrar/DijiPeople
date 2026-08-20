@@ -34,6 +34,14 @@ import {
 } from '../../common/config/auth.config';
 import { AuthTokenPayload } from '../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import {
+  listTenantIdsForIdentity,
+  mirrorPasswordToIdentity,
+  registerIdentityFailure,
+  registerIdentitySuccess,
+  resolveLoginCredential,
+  verifyIdentityCredential,
+} from '../users/identity.service';
 import { normalizeEmail } from '../../common/utils/email.util';
 import { TenantsService } from '../tenants/tenants.service';
 import { PublicTenantsService } from '../tenants/public-tenants.service';
@@ -43,6 +51,7 @@ import { UserInvitationsService } from './user-invitations.service';
 import { EmailService } from '../notifications/email/email.service';
 import { AuditService } from '../audit/audit.service';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { DiscoverWorkspacesDto } from './dto/discover-workspaces.dto';
 import { LoginDto } from './dto/login.dto';
 import { SignupDto } from './dto/signup.dto';
 import { AuthAccessService } from './auth-access.service';
@@ -52,6 +61,7 @@ import { platformAccessForRole } from '../platform-auth/platform-permissions';
 import { AdminLoginDto } from './dto/admin-login.dto';
 import { PlatformCommunicationsService } from '../platform-communications/platform-communications.service';
 import { TenantDomainService } from '../tenant-domains/tenant-domain.service';
+import { buildDirectPermissionPrivileges } from './direct-permission-privileges';
 
 type UserWithAccess = Prisma.UserGetPayload<{
   include: {
@@ -176,6 +186,86 @@ export class AuthService {
       adminEmail: dto.adminEmail,
       password: dto.password,
     });
+  }
+
+  /**
+   * Sign in without naming a workspace.
+   *
+   * The brief's opening case: somebody clicks **Login** on `www.dijipeople.com`
+   * with no tenant URL in hand. Before TASK-0009 this was impossible —
+   * `resolveLoginTenant` refuses with `AUTH_TENANT_REQUIRED`, and `User` was
+   * one row per tenant with its own password.
+   *
+   * **No token is issued here.** The credential is verified against the
+   * identity and the workspaces it reaches are returned; the caller then signs
+   * in normally against the workspace they picked. That keeps the JWT
+   * tenant-scoped, which is the property the whole parent is built on:
+   * `JwtAuthGuard` and every service reading `user.tenantId` are untouched.
+   *
+   * Every failure returns the same shape. A caller cannot tell an unknown
+   * address from a wrong password from a suspended identity — the alternative
+   * is a login form that doubles as an address validator.
+   */
+  async discoverWorkspaces(dto: DiscoverWorkspacesDto) {
+    const verified = await verifyIdentityCredential(
+      this.prisma,
+      bcrypt.compare,
+      dto.email,
+      dto.password,
+    );
+
+    if (!verified) {
+      this.logger.warn(
+        JSON.stringify({
+          event: 'auth.discover.failed',
+          identifier: normalizeEmail(dto.email),
+        }),
+      );
+      throw this.authUnauthorized(
+        'AUTH_INVALID_CREDENTIALS',
+        'Invalid credentials.',
+      );
+    }
+
+    const tenantIds = await listTenantIdsForIdentity(
+      this.prisma,
+      verified.identityId,
+    );
+
+    const tenants = await this.prisma.tenant.findMany({
+      where: { id: { in: tenantIds } },
+      select: {
+        id: true,
+        name: true,
+        displayName: true,
+        slug: true,
+        status: true,
+      },
+    });
+
+    /*
+     * Only workspaces that can actually be signed into. A suspended or
+     * half-provisioned tenant in this list is a door that refuses them, and
+     * they have no way to tell whether the fault is theirs.
+     */
+    const workspaces = tenants
+      .filter((tenant) => String(tenant.status).toUpperCase() === 'ACTIVE')
+      .map((tenant) => ({
+        tenantId: tenant.id,
+        name: tenant.displayName || tenant.name,
+        slug: tenant.slug,
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    return {
+      /*
+       * Someone whose credentials are right but who has no usable workspace
+       * gets an empty list rather than an error. It is a real state — every
+       * workspace suspended, or an identity created before provisioning
+       * finished — and the screen can say so honestly.
+       */
+      workspaces,
+    };
   }
 
   async login(dto: LoginDto, req?: Request) {
@@ -842,8 +932,8 @@ export class AuthService {
     );
 
     const passwordHash = await bcrypt.hash(password, 10);
-    await this.prisma.$transaction([
-      this.prisma.user.update({
+    await this.prisma.$transaction(async (tx) => {
+      await tx.user.update({
         where: { id: payload.sub },
         data: {
           passwordHash,
@@ -851,16 +941,23 @@ export class AuthService {
           status: 'ACTIVE',
           updatedById: payload.sub,
         },
-      }),
-      this.prisma.refreshToken.updateMany({
+      });
+      /*
+       * The identity carries the same credential. Inside the transaction, so a
+       * reset cannot half-apply and leave the two copies disagreeing — which,
+       * once login reads the identity, is a person locked out by a change they
+       * made themselves and watched succeed.
+       */
+      await mirrorPasswordToIdentity(tx, payload.sub, passwordHash);
+      await tx.refreshToken.updateMany({
         where: {
           userId: payload.sub,
           tenantId: payload.tenantId,
           revokedAt: null,
         },
         data: { revokedAt: new Date() },
-      }),
-    ]);
+      });
+    });
 
     await this.passwordPolicyService.recordPasswordChange(
       payload.sub,
@@ -1090,7 +1187,49 @@ export class AuthService {
       );
     }
 
-    if (this.loginLockoutService.isLocked(user)) {
+    /*
+     * The credential now comes from the identity where one exists.
+     *
+     * `resolveLoginCredential` falls back to `User.passwordHash` for a row the
+     * backfill has not reached — `identityId` is nullable until the contract
+     * phase, and a migration that has not run must not lock anybody out. It
+     * also refuses outright for a SUSPENDED identity, which is the platform-
+     * level "this person may not sign in anywhere" that `User.status` cannot
+     * express.
+     */
+    const credential = await resolveLoginCredential(this.prisma, user.id);
+
+    if (!credential) {
+      await this.logTenantAuthEvent({
+        tenantId: user.tenantId,
+        actorUserId: user.id,
+        action: 'auth.login.failed',
+        entityId: user.id,
+        email: user.email,
+        result: 'FAILED',
+        failureReason: 'IDENTITY_SUSPENDED',
+        clientId,
+        req,
+      });
+      // Same response as a wrong password — see the lockout case below.
+      throw this.authUnauthorized(
+        'AUTH_INVALID_CREDENTIALS',
+        'Invalid credentials.',
+      );
+    }
+
+    /*
+     * Two locks, and both must pass. The tenant's own policy governs sign-ins
+     * to that tenant and is unchanged; the global one exists so that naming a
+     * tenant cannot be a way around a platform-level lock, and so a sign-in
+     * that names no tenant can still be stopped once WP-06 lands.
+     */
+    const identityLocked = Boolean(
+      credential.identityLockedUntil &&
+      credential.identityLockedUntil.getTime() > Date.now(),
+    );
+
+    if (identityLocked || this.loginLockoutService.isLocked(user)) {
       this.logger.warn(
         JSON.stringify({
           event: 'auth.login.failed',
@@ -1124,11 +1263,14 @@ export class AuthService {
 
     const isPasswordValid = await bcrypt.compare(
       dto.password,
-      user.passwordHash,
+      credential.passwordHash,
     );
 
     if (!isPasswordValid) {
       await this.loginLockoutService.registerFailure(user);
+      if (credential.identityId) {
+        await registerIdentityFailure(this.prisma, credential.identityId);
+      }
       this.logger.warn(
         JSON.stringify({
           event: 'auth.login.failed',
@@ -1157,6 +1299,9 @@ export class AuthService {
     }
 
     await this.loginLockoutService.registerSuccess(user);
+    if (credential.identityId) {
+      await registerIdentitySuccess(this.prisma, credential.identityId);
+    }
 
     return user;
   }
@@ -2084,14 +2229,22 @@ export class AuthService {
       roleKeys,
       roles,
       permissionKeys,
-      rolePrivileges: effectiveRoles.flatMap((role) =>
-        role.rolePrivileges.map((privilege) => ({
-          entityKey: privilege.entityKey,
-          privilege: privilege.privilege,
-          accessLevel: privilege.accessLevel,
-          roleId: role.id,
-        })),
-      ),
+      rolePrivileges: [
+        ...effectiveRoles.flatMap((role) =>
+          role.rolePrivileges.map((privilege) => ({
+            entityKey: privilege.entityKey,
+            privilege: privilege.privilege,
+            accessLevel: privilege.accessLevel,
+            roleId: role.id,
+          })),
+        ),
+        ...buildDirectPermissionPrivileges(
+          user.userPermissions.map(
+            (userPermission) => userPermission.permission.key,
+          ),
+          effectiveRoles,
+        ),
+      ],
       miscPermissions: effectiveRoles.flatMap((role) =>
         role.miscPermissions
           .filter((permission) => permission.enabled)

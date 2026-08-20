@@ -25,6 +25,9 @@ import {
 } from '../../../common/utils/slug.util';
 import { generateTenantCode } from '../../../common/utils/tenant-code.util';
 import { StripeBillingService } from './stripe-billing.service';
+import { LegalService } from '../../legal/legal.service';
+import { OwnerEmailVerificationService } from './owner-email-verification.service';
+import { SubscriptionOrderService } from './subscription-order.service';
 import {
   calculateSeatPricing,
   buildRecurringCheckoutLineItem,
@@ -41,6 +44,9 @@ export class BillingService {
     private readonly prisma: PrismaService,
     private readonly stripeBillingService: StripeBillingService,
     private readonly configService: ConfigService,
+    private readonly subscriptionOrders: SubscriptionOrderService,
+    private readonly ownerEmailVerification: OwnerEmailVerificationService,
+    private readonly legalService: LegalService,
   ) {}
 
   async getPublicPlans() {
@@ -213,6 +219,64 @@ export class BillingService {
     };
   }
 
+  /**
+   * Open a draft the wizard can hang its later steps off.
+   *
+   * Exists for one reason: the workspace-address check is session-bound (OD-02),
+   * so the buyer needs an order before they can be told whether `maseer` is
+   * free. Creating it after the organization step is the earliest point at which
+   * enough is known to resolve a customer and price the order honestly.
+   *
+   * It creates **no Stripe session and sends no verification code**. A draft is
+   * somebody filling in a form, and announcing a checkout they have not started
+   * would tell funnel metrics and abandoned-cart follow-up a lie.
+   *
+   * Deliberately shares `openOrder` with the final submission rather than
+   * writing a lighter row of its own: the money, the customer deduplication and
+   * the commercial snapshot must be identical, or the price quoted mid-wizard is
+   * not the price charged at the end.
+   */
+  async startPublicOnboarding(input: {
+    planPriceId: string;
+    seatQuantity: number;
+    companyName: string;
+    contactName: string;
+    email: string;
+    country: string;
+    phone?: string;
+  }) {
+    const planPrice = await this.prisma.planPrice.findUnique({
+      where: { id: input.planPriceId },
+      include: { plan: true },
+    });
+
+    if (
+      !planPrice ||
+      !planPrice.isActive ||
+      !planPrice.plan.isActive ||
+      !planPrice.plan.isPublic
+    ) {
+      throw new NotFoundException('Plan price not found.');
+    }
+
+    const order = await this.subscriptionOrders.openOrder({
+      planPriceId: planPrice.id,
+      seatQuantity: normalizePurchasedSeats(input.seatQuantity, planPrice),
+      companyName: input.companyName.trim(),
+      contactName: input.contactName.trim(),
+      email: input.email.trim().toLowerCase(),
+      phone: input.phone?.trim() || null,
+      country: input.country.trim(),
+      mode: 'DRAFT',
+    });
+
+    return {
+      onboardingId: order.orderId,
+      orderNumber: order.orderNumber,
+      status: order.status,
+    };
+  }
+
   async createPublicSubscriptionCheckout(input: {
     planPriceId: string;
     seatQuantity: number;
@@ -223,6 +287,25 @@ export class BillingService {
     country: string;
     message?: string;
     website?: string;
+    requestedSlug?: string;
+    legalCompanyName?: string;
+    registrationNumber?: string;
+    taxId?: string;
+    industry?: string;
+    companySize?: string;
+    estimatedEmployeeCount?: number;
+    addressLine1?: string;
+    addressLine2?: string;
+    city?: string;
+    stateProvince?: string;
+    companyWebsite?: string;
+    ownerFirstName?: string;
+    ownerLastName?: string;
+    ownerJobTitle?: string;
+    acceptedLegalVersionIds?: string[];
+    /** Request evidence for the acceptance record, never used to profile. */
+    ipAddress?: string | null;
+    userAgent?: string | null;
     detectedCountry?: string | null;
   }) {
     if (input.website?.trim()) {
@@ -266,141 +349,177 @@ export class BillingService {
     const country = input.country.trim();
     const message = input.message?.trim() || null;
 
-    const created = await this.prisma.$transaction(async (tx) => {
-      const lead = await tx.lead.create({
-        data: {
-          contactFirstName: firstName,
-          contactLastName: lastName,
-          fullName: contactName,
-          companyName,
-          workEmail: email,
-          phoneNumber: input.phone?.trim() || null,
-          industry: 'Unknown',
-          companySize: 'Unknown',
-          country,
-          requirementsSummary: message,
-          message,
-          interestedPlan: planPrice.plan.name,
-          source: 'DijiPeople Public Subscribe',
-          status: LeadStatus.QUALIFIED,
-          subStatus: 'Subscription checkout started',
-          isQualified: true,
-        },
-      });
-
-      const customer = await tx.customerAccount.create({
-        data: {
-          companyName,
-          primaryContactFirstName: firstName,
-          primaryContactLastName: lastName,
-          primaryContactEmail: email,
-          primaryContactPhone: input.phone?.trim() || null,
-          contactEmail: email,
-          contactPhone: input.phone?.trim() || null,
-          billingContactEmail: email,
-          industry: 'Unknown',
-          companySize: 'Unknown',
-          country,
-          selectedPlanId: planPrice.planId,
-          preferredBillingCycle: planPrice.billingCycle,
-          leadId: lead.id,
-          status: CustomerAccountStatus.PROSPECT,
-          subStatus: 'Pending Stripe checkout',
-        },
-      });
-
-      const tenant = await tx.tenant.create({
-        data: {
-          customerAccountId: customer.id,
-          tenantCode: await generateTenantCode(tx),
-          name: companyName,
-          displayName: companyName,
-          slug: await this.resolveUniqueTenantSlug(tx, companyName),
-          status: TenantStatus.INACTIVE,
-          subStatus: 'Pending payment',
-          tenantBranding: {
-            create: buildDefaultTenantBranding(companyName, email),
-          },
-        },
-      });
-
-      const subscription = await tx.subscription.create({
-        data: {
-          tenantId: tenant.id,
-          planId: planPrice.planId,
-          planPriceId: planPrice.id,
-          billingCycle: planPrice.billingCycle,
-          basePrice: planPrice.unitAmount,
-          finalPrice:
-            seatPricing.estimatedMonthlyCharge ?? planPrice.unitAmount,
-          currency: planPrice.currency,
-          purchasedSeats,
-          stripeQuantity: purchasedSeats,
-          status: SubscriptionStatus.INCOMPLETE,
-          startDate: new Date(),
-          autoRenew: true,
-        },
-      });
-
-      await tx.auditLog.createMany({
-        data: [
-          {
-            tenantId: tenant.id,
-            action: 'PUBLIC_SUBSCRIBE_FORM_SUBMITTED',
-            entityType: 'Lead',
-            entityId: lead.id,
-            sourceModule: 'public-subscription',
-            afterSnapshot: toPrismaJson({
-              companyName,
-              email,
-              country,
-              detectedCountry: input.detectedCountry,
-              planPriceId: planPrice.id,
-            }),
-          },
-          {
-            tenantId: tenant.id,
-            action: 'PUBLIC_TENANT_CREATED_INACTIVE',
-            entityType: 'Tenant',
-            entityId: tenant.id,
-            sourceModule: 'public-subscription',
-            afterSnapshot: toPrismaJson({
-              tenantStatus: tenant.status,
-              customerAccountId: customer.id,
-              subscriptionId: subscription.id,
-            }),
-          },
-        ],
-      });
-
-      return { lead, customer, tenant, subscription };
+    /*
+     * The order is opened BEFORE anything else is written, because it is what
+     * makes this path idempotent. Previously every submission — a refresh, a
+     * double click, a retried abandoned checkout — created a fresh Lead,
+     * CustomerAccount, Tenant and Subscription, permanently consuming a tenant
+     * slug each time. openOrder deduplicates the customer and returns the
+     * existing order for a repeated submission.
+     */
+    const order = await this.subscriptionOrders.openOrder({
+      planPriceId: planPrice.id,
+      seatQuantity: purchasedSeats,
+      companyName,
+      contactName,
+      email,
+      phone: input.phone?.trim() || null,
+      country,
+      message,
+      requestedSlug: input.requestedSlug ?? null,
+      organization: {
+        legalCompanyName: input.legalCompanyName,
+        registrationNumber: input.registrationNumber,
+        taxId: input.taxId,
+        industry: input.industry,
+        companySize: input.companySize,
+        estimatedEmployeeCount: input.estimatedEmployeeCount,
+        addressLine1: input.addressLine1,
+        addressLine2: input.addressLine2,
+        city: input.city,
+        stateProvince: input.stateProvince,
+        // Not `input.website`: that field is the honeypot this method returns
+        // early on, so anything reaching here has it empty by definition.
+        website: input.companyWebsite,
+      },
+      owner: {
+        firstName: input.ownerFirstName,
+        lastName: input.ownerLastName,
+        jobTitle: input.ownerJobTitle,
+      },
     });
 
+    /*
+     * Record what was agreed to, against the exact version that was shown.
+     *
+     * Version ids rather than a boolean, because the brief is explicit that
+     * `accepted = true` with no document relationship is not evidence: a
+     * published version is immutable, so an acknowledgement naming one answers
+     * "what did this person actually agree to" for as long as the record exists.
+     *
+     * Recorded here rather than at the verification or payment step so the
+     * evidence exists from the moment the buyer clicked, even for an order that
+     * is abandoned before payment — the acceptance happened whether or not the
+     * purchase completed.
+     */
+    if (input.acceptedLegalVersionIds?.length) {
+      await this.legalService.acknowledgeMany({
+        legalDocumentVersionIds: input.acceptedLegalVersionIds,
+        customerAccountId: order.customerAccountId,
+        subjectEmail: email,
+        source: 'landing:subscribe',
+        ipAddress: input.ipAddress ?? null,
+        userAgent: input.userAgent ?? null,
+      });
+    }
+
+    /*
+     * The verification gate, and the reason this endpoint no longer returns a
+     * checkout URL on the first call.
+     *
+     * A gate that only one path respects is not a gate. If this endpoint kept
+     * creating a Stripe session directly while a separate verified route existed
+     * beside it, the unverified route would simply be the one anybody used. So
+     * the first submission opens the order, mails a code and stops; the caller
+     * verifies, then asks for checkout.
+     *
+     * Verified orders fall straight through, which is what makes a resubmission
+     * after verification — a refresh, a back-button, a retried payment — behave
+     * exactly as it did before.
+     */
+    const verifiedOrder = await this.prisma.subscriptionOrder.findUnique({
+      where: { id: order.orderId },
+      select: { ownerEmailVerifiedAt: true },
+    });
+
+    if (!verifiedOrder?.ownerEmailVerifiedAt) {
+      const issued = await this.ownerEmailVerification.issueCode(order.orderId);
+      return {
+        submitted: true,
+        verificationRequired: true as const,
+        onboardingId: order.orderId,
+        orderNumber: order.orderNumber,
+        // Present so the UI can say "we already sent one, check your inbox"
+        // rather than implying a fresh mail it did not send.
+        codeSent: issued.issued,
+        checkoutSessionId: null,
+        url: null,
+        tenantId: null,
+        leadId: null,
+        reused: order.reused,
+      };
+    }
+
+    // A repeated submission that already has a live Stripe session is sent
+    // back to that session rather than being given a second one.
+    if (order.reused && order.stripeCheckoutSessionId) {
+      const existingSession =
+        await this.stripeBillingService.client.checkout.sessions.retrieve(
+          order.stripeCheckoutSessionId,
+        );
+      const existingOrder =
+        await this.prisma.subscriptionOrder.findUniqueOrThrow({
+          where: { id: order.orderId },
+          select: { tenantId: true, leadId: true },
+        });
+      return {
+        submitted: true,
+        checkoutSessionId: existingSession.id,
+        url: existingSession.url,
+        tenantId: existingOrder.tenantId,
+        leadId: existingOrder.leadId,
+        orderNumber: order.orderNumber,
+        reused: true,
+      };
+    }
+
+    /*
+     * No Tenant, no Subscription, no Lead and no second CustomerAccount are
+     * created here — BUG-0077.
+     *
+     * Until this change, `openOrder` above ran and then a second, older block
+     * created all four unconditionally: a Lead, another CustomerAccount carrying
+     * `industry: 'Unknown'`, a Tenant that consumed a workspace slug permanently
+     * before anyone had paid, and an INCOMPLETE Subscription. WP-05 introduced
+     * `openOrder` to replace that block and deferred deleting it to WP-07; WP-07
+     * shipped the post-payment automation and left the deletion. The two paths
+     * ran side by side, disagreeing about which CustomerAccount was the customer.
+     *
+     * The rule the brief states, and that this now obeys: verified payment
+     * authorises provisioning. The tenant is created by the provisioning engine
+     * after Stripe confirms, at the address the buyer reserved.
+     */
     const stripeCustomer =
       await this.stripeBillingService.client.customers.create({
         name: companyName,
         email,
         phone: input.phone?.trim() || undefined,
         metadata: {
-          tenantId: created.tenant.id,
-          tenantSlug: created.tenant.slug,
-          customerAccountId: created.customer.id,
-          leadId: created.lead.id,
+          // The order's own customer, not a second one invented for Stripe.
+          customerAccountId: order.customerAccountId,
+          subscriptionOrderId: order.orderId,
+          orderNumber: order.orderNumber,
           source: 'public_website',
         },
       });
 
     await this.prisma.customerAccount.update({
-      where: { id: created.customer.id },
+      where: { id: order.customerAccountId },
       data: { stripeCustomerId: stripeCustomer.id },
     });
 
+    /*
+     * Deliberately carries no `tenantId`: there is no tenant yet, and inventing
+     * one to satisfy the old metadata shape is what created the defect.
+     * `handleCheckoutSessionCompleted` branches on the absence of `tenantId`,
+     * which is also what keeps checkouts started before this change working —
+     * they still carry one, and still take the old path.
+     */
     const metadata = {
-      tenantId: created.tenant.id,
-      customerAccountId: created.customer.id,
+      subscriptionOrderId: order.orderId,
+      customerAccountId: order.customerAccountId,
       planId: planPrice.planId,
       planPriceId: planPrice.id,
-      leadId: created.lead.id,
       publicSubscription: 'true',
       source: 'public_website',
       seatQuantity: String(purchasedSeats),
@@ -417,49 +536,53 @@ export class BillingService {
             planPrice.billingModel,
           ),
         ],
+        /*
+         * The order id rides back with the buyer so the success page can show
+         * real provisioning state.
+         *
+         * `{CHECKOUT_SESSION_ID}` alone would mean resolving session → order on
+         * every poll, and the order id is already the capability the buyer's
+         * browser held throughout the wizard — an unguessable v4 uuid that the
+         * status endpoint binds to. Passing it here hands back nothing they did
+         * not already have.
+         */
         success_url: this.resolvePublicCheckoutUrl(
-          '/subscribe/success?session_id={CHECKOUT_SESSION_ID}',
+          `/subscribe/success?session_id={CHECKOUT_SESSION_ID}&onboarding=${order.orderId}`,
         ),
         cancel_url: this.resolvePublicCheckoutUrl(
           `/subscribe/cancel?planPriceId=${planPrice.id}`,
         ),
-        client_reference_id: created.tenant.id,
+        // The order, not a tenant. This is the reference support quotes and the
+        // one the webhook resolves back to a row.
+        client_reference_id: order.orderNumber,
         metadata,
         subscription_data: { metadata },
         allow_promotion_codes: true,
       });
 
-    await this.prisma.$transaction(async (tx) => {
-      await tx.subscription.update({
-        where: { id: created.subscription.id },
-        data: {
-          stripeCustomerId: stripeCustomer.id,
-          stripeCheckoutSessionId: session.id,
-        },
-      });
-
-      await tx.auditLog.create({
-        data: {
-          tenantId: created.tenant.id,
-          action: 'STRIPE_CHECKOUT_SESSION_CREATED',
-          entityType: 'Subscription',
-          entityId: created.subscription.id,
-          sourceModule: 'public-subscription',
-          afterSnapshot: toPrismaJson({
-            checkoutSessionId: session.id,
-            stripeCustomerId: stripeCustomer.id,
-            planPriceId: planPrice.id,
-          }),
-        },
-      });
-    });
+    /*
+     * Record what the provider was told. `tenantId` and `subscriptionId` stay
+     * null until provisioning fills them in, which is the point: an abandoned
+     * checkout leaves a customer and an order behind, and nothing that looks
+     * like a live workspace.
+     */
+    await this.subscriptionOrders.attachCheckoutSession(
+      order.orderId,
+      stripeCustomer.id,
+      session.id,
+    );
 
     return {
       submitted: true,
       checkoutSessionId: session.id,
       url: session.url,
-      tenantId: created.tenant.id,
-      leadId: created.lead.id,
+      // Null until payment is confirmed and provisioning runs. Kept in the
+      // response rather than removed, so an already-deployed caller reading
+      // these keys sees an honest "not yet" instead of a missing field.
+      tenantId: null,
+      leadId: null,
+      orderNumber: order.orderNumber,
+      reused: false,
     };
   }
 

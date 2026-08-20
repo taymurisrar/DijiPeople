@@ -2,6 +2,10 @@
 
 import { FormEvent, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+  SUPPORTED_EMAIL_PROVIDER_TYPES,
+  isSupportedEmailProviderType,
+} from "@repo/config";
 import { Button } from "@/app/components/ui/button";
 import { EmptyState } from "@/app/components/ui/empty-state";
 import {
@@ -47,16 +51,20 @@ const emptyProvider: ProviderForm = {
   configuration: {},
 };
 
-const providerTypes: EmailProviderType[] = [
-  "CONSOLE",
-  "DEV",
-  "SMTP",
-  "SES",
-  "SENDGRID",
-  "MAILGUN",
-  "POSTMARK",
-  "CUSTOM",
-];
+/*
+ * BUG-0050 — this list used to enumerate the whole Prisma enum, including five
+ * providers the backend maps to a placeholder that throws on send and on
+ * connection test. A tenant administrator could configure SES, mark it default,
+ * and silently receive no mail.
+ *
+ * It now comes from `@repo/config`, which is the same list the API factory is
+ * checked against, so the offer cannot drift ahead of the implementation again.
+ * An existing row may still reference an unimplemented provider — the enum keeps
+ * every historical value — so `providerTypeOptions` below re-adds whatever the
+ * saved setting already uses, marked unavailable rather than hidden.
+ */
+const providerTypes =
+  SUPPORTED_EMAIL_PROVIDER_TYPES as readonly EmailProviderType[];
 
 export function EmailProvidersManager({
   canManage,
@@ -69,6 +77,21 @@ export function EmailProvidersManager({
 }) {
   const router = useRouter();
   const [form, setForm] = useState<ProviderForm>(emptyProvider);
+  /*
+   * Offer only what can actually send, plus whatever this record already uses.
+   *
+   * A tenant configured before BUG-0050 may hold SES. Dropping that value from
+   * the list would make the select fall back to its first option, so opening the
+   * row and saving anything would silently rewrite the provider type. Keeping it
+   * visible-but-disabled shows the administrator what is stored and why it is
+   * not working, and still refuses to let anyone newly choose it.
+   */
+  const providerTypeOptions = useMemo(() => {
+    const stored = form.providerType;
+    return providerTypes.includes(stored)
+      ? providerTypes
+      : [...providerTypes, stored];
+  }, [form.providerType]);
   /*
    * The server describes what each provider type needs, so the form follows it
    * rather than asking a user to hand-write configuration JSON.
@@ -208,9 +231,15 @@ export function EmailProvidersManager({
                 }
                 value={form.providerType}
               >
-                {providerTypes.map((type) => (
-                  <option key={type} value={type}>
-                    {type}
+                {providerTypeOptions.map((type) => (
+                  <option
+                    key={type}
+                    value={type}
+                    disabled={!isSupportedEmailProviderType(type)}
+                  >
+                    {isSupportedEmailProviderType(type)
+                      ? type
+                      : `${type} — not available`}
                   </option>
                 ))}
               </select>

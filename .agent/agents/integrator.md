@@ -37,6 +37,27 @@ has, the plan is stale — report it rather than forcing the merge to match.
 
 ---
 
+## Knowledge impact of integration
+
+The Integrator writes no product knowledge, but it is the stage at which
+repository records become true: an engineering-history record naming a merge
+commit, a session record naming an integrated SHA, a backlog index regenerated
+after records landed.
+
+So its handoff declares the same two fields as every other role:
+
+```
+KNOWLEDGE_IMPACT   usually NONE; CONTEXT_UPDATE when Git or branch policy itself changed
+OBSIDIAN_IMPACT    the records finalized by this integration, or NONE
+```
+
+**Records are finalized after integration, not before.** A history record naming
+a merge commit that does not exist yet is a record that will be wrong if the
+merge is rejected — which is why `ENGINEERING_HISTORY_STATUS` resolves at the
+end and not at the start.
+
+---
+
 ## Owns
 
 Branch creation, worktree creation and removal, base-branch refresh, integrating
@@ -226,9 +247,57 @@ or mid-revert.** Complete or abort it based on evidence, and document which.
 
 ---
 
+## The integration target is `develop`
+
+**Ordinary tasks integrate into `develop`, not `main`.** Any mutation of `main`
+may trigger a production deployment, so only a `RELEASE`, `DEPLOY` or
+`HOTFIX_PRODUCTION` task may target it. Full rules:
+[`../context/branch-model.md`](../context/branch-model.md).
+
+Integration into `develop` needs **no PR and no human approval**. It still needs
+validation: run the gates relevant to the change before pushing, and remember
+that CI runs on every push because the workflow triggers on `'**'`. Open a PR
+anyway — it needs no approval — for security, database, architecture or large
+cross-module work, or where a contested conflict resolution has audit value.
+
+### Only the Integrator writes a shared branch, and only one at a time
+
+Several sessions can finish concurrently. Two pushing `develop` at the same
+moment either reject noisily, which is recoverable, or fast-forward over a state
+the other had already validated against — which is silent, and means that
+validation was about different code.
+
+```bash
+node scripts/session.mjs queue add --session SESSION-nnnn --branch agent/<x> --sha <sha>
+node scripts/session.mjs queue next            # exits 1 while another branch is in flight
+node scripts/session.mjs queue claim --branch agent/<x>   # this IS the integration lock
+node scripts/session.mjs queue validating --branch agent/<x>
+node scripts/session.mjs queue done --branch agent/<x> --sha <merged>
+```
+
+While holding the claim:
+
+```
+fetch develop → verify the target SHA → integrate → resolve conflicts
+  → targeted validation → push develop → verify origin/develop by reading the ref
+  → release the claim → next queued branch
+```
+
+`DEVELOP_SYNC_STATUS = SYNCED` and `MAIN_CHANGE_STATUS = UNTOUCHED` are both
+completion-contract fields. Prove the second with a baseline:
+
+```bash
+node scripts/repo-health.mjs --main-baseline <sha-at-task-start>
+```
+
+Without the baseline it reports `UNKNOWN`, deliberately — deriving `UNTOUCHED`
+from "main looks synced" would pass a task that merged into `main` and pushed.
+
+---
+
 ## PR lifecycle — owned automatically
 
-For any protected or shared branch:
+For `main`, and for any branch policy marks protected:
 
 ```
 task branch → push → PR → CI → exact-SHA PASS → merge → verify target
@@ -248,12 +317,71 @@ gh run list --branch <branch> --limit 5
 gh run watch <RUN_ID> --exit-status
 ```
 
-or poll a bounded number of times. If CI fails: diagnose, fix, push, wait again.
-If the runner infrastructure is genuinely unavailable, record `BLOCKED_EXTERNAL`
-or `BLOCKED_CI_TIMEOUT` — and **continue any independent work package** instead
-of stopping the task.
+`gh run watch --exit-status` blocks on GitHub's own event stream and returns the
+verdict. **Prefer it to a shell polling loop.** A loop that re-lists runs every
+few seconds spends API budget to learn nothing, and — worse — it keeps waiting on
+a run that has already died.
+
+If CI fails: diagnose, fix, push, wait again. If the runner infrastructure is
+genuinely unavailable, record `BLOCKED_EXTERNAL` or `BLOCKED_CI_TIMEOUT` — and
+**continue any independent work package** instead of stopping the task.
 
 The shared-target rule is unchanged by any of this.
+
+### A cancelled run is a classification, not a failure
+
+`gh run watch` returns non-zero for a cancelled run, and a cancelled run is
+**not** automatically a lost result. On 2026-08-18 three consecutive `develop`
+runs concluded `cancelled` while their `CI required gate` job had already
+succeeded — only the unbounded report-only database e2e job was killed by the
+next push. Reading the run conclusion would have discarded three complete, valid
+results and re-run the entire pipeline for each.
+
+Never guess which case you are in:
+
+```bash
+node scripts/ci-evidence.mjs classify --run <RUN_ID>
+```
+
+| Class | What the Integrator does |
+|---|---|
+| `PASS` | Proceed. |
+| `SUPERSEDED_GATE_PASSED` | **Proceed** — this run is valid evidence for its SHA. |
+| `SUPERSEDED_GATE_INCOMPLETE` | Find the superseding run and follow **that** SHA. |
+| `CANCELLED_MANUAL_OR_TIMEOUT` | Not evidence, and nothing replaced it. Re-trigger, or investigate the timeout. |
+| `FAILED` | Diagnose and fix. |
+| `RUNNING` | Keep watching. |
+
+**Stop waiting the moment a run is dead.** If it was superseded, the run to watch
+is the successor, and the script names it.
+
+### Never accept SHA B's CI as proof for SHA A
+
+If a run for SHA A was cancelled because SHA B superseded it:
+
+- **SHA A is no longer the integration candidate** — ignore it safely and follow
+  SHA B.
+- **SHA A is still the candidate** — its evidence must be re-established. Do not
+  read SHA B's green gate as covering it.
+
+Exact-SHA reuse is legitimate, but it is the pipeline's job, not a judgement
+call. The `resolve` job in `ci.yml` performs it mechanically, and only when every
+required job concluded `success` on the identical SHA. Never hand-wave the
+equivalent.
+
+### Push when a work package is ready, not on every edit
+
+`LOCAL_CHECKPOINT` and `REMOTE_CI_CHECKPOINT` are different things.
+
+Every push to `agent/*` starts a full pipeline **and cancels the previous one**.
+On 2026-08-18 four pushes to `agent/commercial-platform-completion` inside eight
+minutes produced four runs, three of them cancelled mid-suite (runs 32122794801,
+32122995076, 32123416867, 32124051650). None of the three produced evidence, and
+all three consumed runners.
+
+Commit locally as often as is useful. Push when a work package is actually ready
+for integration evidence. This is a sequencing rule, not a discouragement from
+committing — see [`../context/ci-operations.md`](../context/ci-operations.md).
 
 ---
 
@@ -334,9 +462,11 @@ PostgreSQL**, confirms the schema fully migrated, then runs `seed:config` and
 blocks the aggregate check — `DB_CI_STATUS` names it explicitly because "CI was
 green" is not a specific enough claim for a schema change.
 
-`database-e2e-report` is **report-only** and does not block. Promotion criteria
-are in the workflow and in
-[`../../docs/development/ci.md`](../../docs/development/ci.md).
+`database-e2e-report` (display name `Database e2e`) joined `ci-required` on
+2026-08-20 and **does** block. It is the only gate that exercises the product
+against a real PostgreSQL, so a red run there is a data-integrity or
+tenant-boundary result, not a slow test. The promotion evidence is on the job
+itself and in [[ITEM-0047]].
 
 Where the change touches none of the above: `DB_CI_STATUS = NOT_REQUIRED`, with
 that reason stated.
@@ -369,8 +499,10 @@ substitute a local run. The current environment status lives in
 [`../../docs/development/agent-tooling-matrix.md`](../../docs/development/agent-tooling-matrix.md),
 where `CI_READ` is the single capability whose absence blocks task completion.
 
-The two report-only checks — `security-invariant-report` and `lint-api-report`
-— are known baselines and do **not** block a merge. See
+`security-invariant-report` is now the only report-only check. It is a known
+baseline and does **not** block a merge; ITEM-0043 carries its promotion
+criteria. `database-e2e-report` used to be listed here and no longer is — it
+blocks since 2026-08-20. See
 [`docs/development/ci.md`](../../docs/development/ci.md).
 
 For production-affecting work, additionally:

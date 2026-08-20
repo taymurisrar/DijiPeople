@@ -70,11 +70,31 @@ describe('every public write handler is rate limited', () => {
    * put on one handler of `PublicBillingController` and the `subscribe` handler
    * added beside it inherited nothing.
    */
+  /*
+   * Only the contiguous decorator block immediately above `@Controller(` counts.
+   *
+   * This used to test `source.slice(0, controllerIndex).includes(GUARD)` — every
+   * character before the class decorator, which spans the import block. A file
+   * cannot apply a decorator it has not imported, so the import line alone
+   * satisfied the predicate, and every controller that could possibly be guarded
+   * was reported as guarded. `PublicBillingController` imported the guard, used
+   * it on one GET handler, left `@Post('subscribe')` bare, and this suite stayed
+   * green (BUG-0075) — reproducing BUG-0031 on the very handler the comment above
+   * names as the reason the check exists.
+   */
   function hasControllerLevelGuard(source: string) {
-    const controllerIndex = source.search(/@Controller\s*\(/);
+    const lines = source.split(/\r?\n/);
+    const controllerIndex = lines.findIndex((line) =>
+      /@Controller\s*\(/.test(line),
+    );
     if (controllerIndex < 0) return false;
-    // Decorators above @Controller() apply to the class.
-    return source.slice(0, controllerIndex).includes(GUARD);
+
+    let start = controllerIndex;
+    while (start > 0 && lines[start - 1].trim().startsWith('@')) start -= 1;
+
+    return lines
+      .slice(start, controllerIndex)
+      .some((line) => line.includes(GUARD));
   }
 
   /**

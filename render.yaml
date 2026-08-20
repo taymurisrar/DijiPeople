@@ -50,6 +50,30 @@ services:
       # Set the value in the Render dashboard; never commit it.
       - key: SECRET_ENCRYPTION_KEY
         sync: false
+      # Bootstrap credentials for the platform super admin.
+      #
+      # These were required by `preDeployCommand` and undeclared here, which
+      # meant the first deploy of a new environment aborted during
+      # `npm run release` — before `seed:legal` and `legal:publish`, the steps
+      # that make a purchase record consent at all. `docs/deployment/
+      # environments.md` had recorded that gap; nothing in the repository
+      # closed it.
+      #
+      # Set both for the first deploy of an environment, then REMOVE the
+      # password: `seed:admin` is a no-op once an active super admin exists, so
+      # a password no longer has to live in this dashboard to keep deploys
+      # green. It will not overwrite an existing admin's credential.
+      - key: PLATFORM_SUPER_ADMIN_EMAIL
+        sync: false
+      - key: PLATFORM_SUPER_ADMIN_PASSWORD
+        sync: false
+      # Break-glass only. Set to "true" together with the two above to
+      # deliberately reset the super admin's password, role and status — for
+      # example after losing access. Unset it again immediately: left on, it
+      # restores the dashboard value on every subsequent deploy, which is the
+      # behaviour this variable exists to make explicit rather than automatic.
+      - key: PLATFORM_SUPER_ADMIN_PASSWORD_RESET
+        sync: false
       # Machine credential for scripts/publish-release.mjs. Leave UNSET to keep
       # release publishing closed on this environment: ReleasePublishTokenGuard
       # fails closed, so an environment without this value cannot be published
@@ -61,6 +85,42 @@ services:
       # FILE_UPLOAD_MAX_BYTES so raising it for a self-contained installer does
       # not raise the limit on tenant document uploads. Default 512 MB.
       - key: RELEASE_ARTIFACT_MAX_BYTES
+        sync: false
+      # The transactional outbox worker. Business state changes and the events
+      # announcing them are written together regardless of this flag; what the
+      # flag controls is whether THIS process also drains them. Exactly one
+      # deployed service should have it true — several is safe (claims use
+      # FOR UPDATE SKIP LOCKED) but none means events accumulate undelivered.
+      - key: OUTBOX_WORKER_ENABLED
+        value: "true"
+      - key: OUTBOX_WORKER_POLL_INTERVAL_MS
+        value: "5000"
+      - key: OUTBOX_WORKER_BATCH_SIZE
+        value: "25"
+      # When exceeding purchased capacity is ordinary, warned, or stopped for a
+      # human. The review thresholds exist for the import accident: 20 -> 22 is
+      # hiring, 20 -> 900 overnight is a bad CSV, and billing the second one
+      # silently is indefensible. Raising these makes that outcome more likely.
+      - key: SEAT_OVERAGE_WARN_PERCENT
+        value: "10"
+      - key: SEAT_OVERAGE_REVIEW_PERCENT
+        value: "100"
+      - key: SEAT_OVERAGE_REVIEW_ABSOLUTE
+        value: "100"
+      # Who hears about a failed payment or a broken provisioning run. There is
+      # deliberately NO fallback address: a hardcoded operator email works until
+      # that person leaves, and then critical notifications go to a mailbox
+      # nobody reads with nothing reporting that they do. Unset means the
+      # lifecycle handler marks those events MANUAL_ACTION_REQUIRED and they
+      # stay visible in the outbox instead of being silently marked delivered.
+      - key: PLATFORM_OPS_NOTIFICATION_EMAILS
+        sync: false
+      # How long tenant data is kept after access ends. The value in force is
+      # copied onto each TenantRetention row when it starts, so changing this
+      # never shortens a window a customer was already promised.
+      - key: TENANT_RETENTION_DAYS
+        value: "60"
+      - key: RETENTION_POLICY_VERSION
         sync: false
       # Platform and tenant email both fall back to this provider when no
       # per-tenant provider row exists. Without it resolveProvider returns null

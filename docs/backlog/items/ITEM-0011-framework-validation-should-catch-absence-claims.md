@@ -9,7 +9,7 @@ Severity: LOW
 AffectedModules: [.agent/context, scripts]
 Source: QA_RUN
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 CreatedAt: 2026-08-15
 UpdatedAt: 2026-08-17
 RelatedBug: BUG-0023
@@ -73,6 +73,9 @@ None.
 architecture [[agent-engineering-architecture|Agent Engineering Architecture]].
 
 ## History
+
+- 2026-08-17 — Architect reconciliation: terminal `DONE` status normalized to
+  `ArchitectDisposition: DONE`; no runtime behavior changed.
 
 - 2026-08-16 — **second occurrence recorded, and much larger than the first.**
   [[BUG-0037-integration-patterns-context-denies-four-subsystems-that-exi]]

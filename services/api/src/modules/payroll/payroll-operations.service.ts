@@ -1250,7 +1250,7 @@ export class PayrollOperationsService {
     file?: PayrollPaymentResultFile,
   ) {
     await this.findPaymentBatch(user.tenantId, runId, exportId);
-    const rows = this.normalizePaymentResultRows(input.rows, file);
+    const rows = await this.normalizePaymentResultRows(input.rows, file);
     if (!rows.length) {
       throw new BadRequestException('Payment result import has no rows.');
     }
@@ -1382,7 +1382,7 @@ export class PayrollOperationsService {
     file?: PayrollPaymentResultFile,
   ) {
     await this.findPaymentBatch(user.tenantId, runId, exportId);
-    const rows = this.normalizePaymentResultRows(input.rows, file);
+    const rows = await this.normalizePaymentResultRows(input.rows, file);
     const lines = await this.prisma.payrollPaymentLine.findMany({
       where: {
         tenantId: user.tenantId,
@@ -1866,7 +1866,11 @@ export class PayrollOperationsService {
       });
   }
 
-  private normalizePaymentResultRows(
+  /*
+   * Async because the workbook parse moved from SheetJS to ExcelJS — see
+   * `ExcelExportService.parseFirstWorksheet` for why the library changed.
+   */
+  private async normalizePaymentResultRows(
     rows: PayrollPaymentResultRow[] | undefined,
     file?: PayrollPaymentResultFile,
   ) {
@@ -1892,7 +1896,10 @@ export class PayrollOperationsService {
       const jsonRows = Array.isArray(parsed) ? parsed : (parsed.rows ?? []);
       return this.normalizePaymentResultRows(jsonRows);
     }
-    return this.excel.parseFirstWorksheet(file.buffer).map((row) => ({
+    // Awaited: the parse moved to ExcelJS, which is async — see
+    // `parseFirstWorksheet` for why the library changed.
+    const parsed = await this.excel.parseFirstWorksheet(file.buffer);
+    return parsed.map((row) => ({
       paymentLineId: pickImportValue(row.values, [
         'Payment Line ID',
         'paymentLineId',

@@ -5,9 +5,11 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { randomUUID } from 'crypto';
-import { Prisma } from '@prisma/client';
+import { Prisma, SecurityAccessLevel, SecurityPrivilege } from '@prisma/client';
+import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
 import { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { resolveEffectiveAccessLevel } from '../../common/security/rbac-query-scope';
 import { CreateBusinessUnitDto } from './dto/create-business-unit.dto';
 import { CreateDepartmentDto } from './dto/create-department.dto';
 import { CreateDesignationDto } from './dto/create-designation.dto';
@@ -75,6 +77,36 @@ export class OrganizationService {
     return this.organizationRepository.findOrganizations(tenantId);
   }
 
+  async findOrganizationsForUser(
+    currentUser: AuthenticatedUser,
+    privilege: SecurityPrivilege = SecurityPrivilege.READ,
+  ) {
+    const organizations = await this.findOrganizations(currentUser.tenantId);
+    return this.filterOrganizationsForUser(
+      currentUser,
+      organizations,
+      privilege,
+    );
+  }
+
+  async findOrganizationForUser(
+    currentUser: AuthenticatedUser,
+    id: string,
+    privilege: SecurityPrivilege = SecurityPrivilege.READ,
+  ) {
+    const organizations = await this.findOrganizationsForUser(
+      currentUser,
+      privilege,
+    );
+    const organization = organizations.find((item) => item.id === id);
+    if (!organization) {
+      throw new NotFoundException(
+        'Organization was not found for this tenant.',
+      );
+    }
+    return organization;
+  }
+
   async findOrganizationById(tenantId: string, id: string) {
     const organization = await this.organizationRepository.findOrganizationById(
       tenantId,
@@ -94,6 +126,15 @@ export class OrganizationService {
     currentUser: AuthenticatedUser,
     dto: CreateOrganizationDto,
   ) {
+    if (dto.parentOrganizationId) {
+      await this.findOrganizationForUser(
+        currentUser,
+        dto.parentOrganizationId,
+        SecurityPrivilege.MANAGE,
+      );
+    } else {
+      this.assertCanManageTenantHierarchy(currentUser);
+    }
     await this.assertOrganizationParentValid(
       currentUser.tenantId,
       null,
@@ -136,9 +177,22 @@ export class OrganizationService {
     id: string,
     dto: UpdateOrganizationDto,
   ) {
-    const existing = await this.findOrganizationById(currentUser.tenantId, id);
+    const existing = await this.findOrganizationForUser(
+      currentUser,
+      id,
+      SecurityPrivilege.MANAGE,
+    );
 
     if (dto.parentOrganizationId !== undefined) {
+      if (dto.parentOrganizationId) {
+        await this.findOrganizationForUser(
+          currentUser,
+          dto.parentOrganizationId,
+          SecurityPrivilege.MANAGE,
+        );
+      } else {
+        this.assertCanManageTenantHierarchy(currentUser);
+      }
       await this.assertOrganizationParentValid(
         currentUser.tenantId,
         id,
@@ -222,14 +276,22 @@ export class OrganizationService {
         );
       }
 
-      return this.findOrganizationById(currentUser.tenantId, id);
+      return this.findOrganizationForUser(
+        currentUser,
+        id,
+        SecurityPrivilege.MANAGE,
+      );
     } catch (error) {
       this.handleUniqueError(error, 'Organization');
     }
   }
 
   async deleteOrganization(currentUser: AuthenticatedUser, id: string) {
-    await this.findOrganizationById(currentUser.tenantId, id);
+    await this.findOrganizationForUser(
+      currentUser,
+      id,
+      SecurityPrivilege.MANAGE,
+    );
 
     const [childCount, businessUnitCount, employeeCount] = await Promise.all([
       this.organizationRepository.countOrganizationChildren(
@@ -278,6 +340,41 @@ export class OrganizationService {
     return this.organizationRepository.findBusinessUnits(tenantId, query);
   }
 
+  async findBusinessUnitsForUser(
+    currentUser: AuthenticatedUser,
+    query: ListMasterDataDto = {},
+    privilege: SecurityPrivilege = SecurityPrivilege.READ,
+  ) {
+    const businessUnits = await this.findBusinessUnits(
+      currentUser.tenantId,
+      query,
+    );
+    return this.filterBusinessUnitsForUser(
+      currentUser,
+      businessUnits,
+      privilege,
+    );
+  }
+
+  async findBusinessUnitForUser(
+    currentUser: AuthenticatedUser,
+    id: string,
+    privilege: SecurityPrivilege = SecurityPrivilege.READ,
+  ) {
+    const businessUnits = await this.findBusinessUnitsForUser(
+      currentUser,
+      {},
+      privilege,
+    );
+    const businessUnit = businessUnits.find((item) => item.id === id);
+    if (!businessUnit) {
+      throw new NotFoundException(
+        'Business unit was not found for this tenant.',
+      );
+    }
+    return businessUnit;
+  }
+
   async findBusinessUnitById(tenantId: string, id: string) {
     const businessUnit = await this.organizationRepository.findBusinessUnitById(
       tenantId,
@@ -297,10 +394,18 @@ export class OrganizationService {
     currentUser: AuthenticatedUser,
     dto: CreateBusinessUnitDto,
   ) {
-    const organization = await this.findOrganizationById(
-      currentUser.tenantId,
+    const organization = await this.findOrganizationForUser(
+      currentUser,
       dto.organizationId,
+      SecurityPrivilege.MANAGE,
     );
+    if (dto.parentBusinessUnitId) {
+      await this.findBusinessUnitForUser(
+        currentUser,
+        dto.parentBusinessUnitId,
+        SecurityPrivilege.MANAGE,
+      );
+    }
 
     await this.assertBusinessUnitParentValid(
       currentUser.tenantId,
@@ -351,10 +456,25 @@ export class OrganizationService {
     id: string,
     dto: UpdateBusinessUnitDto,
   ) {
-    const existing = await this.findBusinessUnitById(currentUser.tenantId, id);
+    const existing = await this.findBusinessUnitForUser(
+      currentUser,
+      id,
+      SecurityPrivilege.MANAGE,
+    );
     const nextOrganizationId = dto.organizationId ?? existing.organizationId;
 
-    await this.findOrganizationById(currentUser.tenantId, nextOrganizationId);
+    await this.findOrganizationForUser(
+      currentUser,
+      nextOrganizationId,
+      SecurityPrivilege.MANAGE,
+    );
+    if (dto.parentBusinessUnitId) {
+      await this.findBusinessUnitForUser(
+        currentUser,
+        dto.parentBusinessUnitId,
+        SecurityPrivilege.MANAGE,
+      );
+    }
 
     if (
       dto.parentBusinessUnitId !== undefined ||
@@ -469,14 +589,22 @@ export class OrganizationService {
         );
       }
 
-      return this.findBusinessUnitById(currentUser.tenantId, id);
+      return this.findBusinessUnitForUser(
+        currentUser,
+        id,
+        SecurityPrivilege.MANAGE,
+      );
     } catch (error) {
       this.handleUniqueError(error, 'Business unit');
     }
   }
 
   async deleteBusinessUnit(currentUser: AuthenticatedUser, id: string) {
-    await this.findBusinessUnitById(currentUser.tenantId, id);
+    await this.findBusinessUnitForUser(
+      currentUser,
+      id,
+      SecurityPrivilege.MANAGE,
+    );
 
     const [childCount, userCount, departmentCount, teamCount, employeeCount] =
       await Promise.all([
@@ -528,7 +656,7 @@ export class OrganizationService {
   }
 
   async deleteDepartment(currentUser: AuthenticatedUser, id: string) {
-    await this.findDepartmentById(currentUser.tenantId, id);
+    await this.findDepartmentForUser(currentUser, id, SecurityPrivilege.MANAGE);
     const [teamCount, employeeCount] = await Promise.all([
       this.organizationRepository.countDepartmentTeams(
         currentUser.tenantId,
@@ -602,6 +730,76 @@ export class OrganizationService {
     return this.findBusinessUnitNode(tree, businessUnitId);
   }
 
+  async getChildOrganizationsForUser(
+    currentUser: AuthenticatedUser,
+    organizationId: string,
+  ) {
+    await this.findOrganizationForUser(currentUser, organizationId);
+    const organizations = await this.findOrganizationsForUser(currentUser);
+    return organizations.filter(
+      (item) => item.parentOrganizationId === organizationId,
+    );
+  }
+
+  async getParentOrganizationsForUser(
+    currentUser: AuthenticatedUser,
+    organizationId: string,
+  ) {
+    await this.findOrganizationForUser(currentUser, organizationId);
+    const organizations = await this.findOrganizationsForUser(currentUser);
+    return this.fetchParentOrganizationChainFromFlat(
+      organizations,
+      organizationId,
+    );
+  }
+
+  async fetchOrganizationSubtreeForUser(
+    currentUser: AuthenticatedUser,
+    organizationId: string,
+  ) {
+    await this.findOrganizationForUser(currentUser, organizationId);
+    const organizations = await this.findOrganizationsForUser(currentUser);
+    return this.findOrganizationNode(
+      this.buildOrganizationTree(organizations),
+      organizationId,
+    );
+  }
+
+  async getChildBusinessUnitsForUser(
+    currentUser: AuthenticatedUser,
+    businessUnitId: string,
+  ) {
+    await this.findBusinessUnitForUser(currentUser, businessUnitId);
+    const businessUnits = await this.findBusinessUnitsForUser(currentUser);
+    return businessUnits.filter(
+      (item) => item.parentBusinessUnitId === businessUnitId,
+    );
+  }
+
+  async getParentBusinessUnitsForUser(
+    currentUser: AuthenticatedUser,
+    businessUnitId: string,
+  ) {
+    await this.findBusinessUnitForUser(currentUser, businessUnitId);
+    const businessUnits = await this.findBusinessUnitsForUser(currentUser);
+    return this.fetchParentBusinessUnitChainFromFlat(
+      businessUnits,
+      businessUnitId,
+    );
+  }
+
+  async fetchBusinessUnitSubtreeForUser(
+    currentUser: AuthenticatedUser,
+    businessUnitId: string,
+  ) {
+    await this.findBusinessUnitForUser(currentUser, businessUnitId);
+    const businessUnits = await this.findBusinessUnitsForUser(currentUser);
+    return this.findBusinessUnitNode(
+      this.buildBusinessUnitTree(businessUnits),
+      businessUnitId,
+    );
+  }
+
   async getHierarchyTree(tenantId: string) {
     const [organizations, businessUnits, departments, teams] =
       await Promise.all([
@@ -667,6 +865,42 @@ export class OrganizationService {
     return this.organizationRepository.findDepartments(tenantId, query);
   }
 
+  async findDepartmentsForUser(
+    currentUser: AuthenticatedUser,
+    query: ListMasterDataDto,
+    privilege: SecurityPrivilege = SecurityPrivilege.READ,
+  ) {
+    const [departments, businessUnits] = await Promise.all([
+      this.findDepartments(currentUser.tenantId, query),
+      this.findBusinessUnitsForUser(currentUser, {}, privilege),
+    ]);
+    const visibleBusinessUnitIds = new Set(
+      businessUnits.map((businessUnit) => businessUnit.id),
+    );
+    return departments.filter(
+      (department) =>
+        department.businessUnitId !== null &&
+        visibleBusinessUnitIds.has(department.businessUnitId),
+    );
+  }
+
+  async findDepartmentForUser(
+    currentUser: AuthenticatedUser,
+    id: string,
+    privilege: SecurityPrivilege = SecurityPrivilege.READ,
+  ) {
+    const departments = await this.findDepartmentsForUser(
+      currentUser,
+      {},
+      privilege,
+    );
+    const department = departments.find((item) => item.id === id);
+    if (!department) {
+      throw new NotFoundException('Department was not found for this tenant.');
+    }
+    return department;
+  }
+
   async findDepartmentById(tenantId: string, id: string) {
     const department = await this.organizationRepository.findDepartmentById(
       tenantId,
@@ -684,7 +918,11 @@ export class OrganizationService {
     currentUser: AuthenticatedUser,
     dto: CreateDepartmentDto,
   ) {
-    await this.findBusinessUnitById(currentUser.tenantId, dto.businessUnitId);
+    await this.findBusinessUnitForUser(
+      currentUser,
+      dto.businessUnitId,
+      SecurityPrivilege.MANAGE,
+    );
     await this.assertEmployeeInTenant(
       currentUser.tenantId,
       dto.headEmployeeId,
@@ -719,9 +957,17 @@ export class OrganizationService {
     id: string,
     dto: UpdateDepartmentDto,
   ) {
-    const existing = await this.findDepartmentById(currentUser.tenantId, id);
+    const existing = await this.findDepartmentForUser(
+      currentUser,
+      id,
+      SecurityPrivilege.MANAGE,
+    );
     if (dto.businessUnitId) {
-      await this.findBusinessUnitById(currentUser.tenantId, dto.businessUnitId);
+      await this.findBusinessUnitForUser(
+        currentUser,
+        dto.businessUnitId,
+        SecurityPrivilege.MANAGE,
+      );
     }
     if (dto.headEmployeeId !== undefined) {
       await this.assertEmployeeInTenant(
@@ -789,7 +1035,11 @@ export class OrganizationService {
       throw new NotFoundException('Department was not found for this tenant.');
     }
 
-    return this.findDepartmentById(currentUser.tenantId, id);
+    return this.findDepartmentForUser(
+      currentUser,
+      id,
+      SecurityPrivilege.MANAGE,
+    );
   }
 
   findDesignations(tenantId: string, query: ListMasterDataDto) {
@@ -1182,6 +1432,63 @@ export class OrganizationService {
         'Selected work calendar is not active for this tenant.',
       );
     }
+  }
+
+  private filterOrganizationsForUser<T extends { id: string }>(
+    currentUser: AuthenticatedUser,
+    organizations: T[],
+    privilege: SecurityPrivilege,
+  ) {
+    const accessLevel = resolveEffectiveAccessLevel(
+      currentUser,
+      ENTITY_KEYS.HIERARCHY,
+      privilege,
+    );
+    if (accessLevel === SecurityAccessLevel.TENANT) return organizations;
+    if (accessLevel === SecurityAccessLevel.NONE) return [];
+    const organizationId = currentUser.accessContext?.organizationId;
+    return organizationId
+      ? organizations.filter((item) => item.id === organizationId)
+      : [];
+  }
+
+  private assertCanManageTenantHierarchy(currentUser: AuthenticatedUser) {
+    const accessLevel = resolveEffectiveAccessLevel(
+      currentUser,
+      ENTITY_KEYS.HIERARCHY,
+      SecurityPrivilege.MANAGE,
+    );
+    if (accessLevel !== SecurityAccessLevel.TENANT) {
+      throw new NotFoundException(
+        'Organization was not found for this tenant.',
+      );
+    }
+  }
+
+  private filterBusinessUnitsForUser<T extends { id: string }>(
+    currentUser: AuthenticatedUser,
+    businessUnits: T[],
+    privilege: SecurityPrivilege = SecurityPrivilege.READ,
+  ) {
+    const accessLevel = resolveEffectiveAccessLevel(
+      currentUser,
+      ENTITY_KEYS.HIERARCHY,
+      privilege,
+    );
+    if (accessLevel === SecurityAccessLevel.TENANT) return businessUnits;
+    if (accessLevel === SecurityAccessLevel.NONE) return [];
+
+    const visibleIds =
+      accessLevel === SecurityAccessLevel.ORGANIZATION
+        ? (currentUser.accessContext?.accessibleBusinessUnitIds ?? [])
+        : accessLevel === SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT ||
+            accessLevel === SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNITS
+          ? (currentUser.accessContext?.businessUnitSubtreeIds ?? [])
+          : currentUser.accessContext?.businessUnitId
+            ? [currentUser.accessContext.businessUnitId]
+            : [];
+    const visible = new Set(visibleIds);
+    return businessUnits.filter((item) => visible.has(item.id));
   }
 
   private async resolveRecordOwnerId(

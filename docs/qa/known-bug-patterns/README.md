@@ -34,3 +34,6 @@ pattern. New patterns come out of the bug learning loop in
 | [ui-permission-backend-mismatch](ui-permission-backend-mismatch.md) | UX / Security | Organization settings screens |
 | [route-method-mismatch](route-method-mismatch.md) | UX / Availability | Admin session-expired sign-in link |
 | [doc-code-drift](doc-code-drift.md) | Process | This framework's own AGENTS.md |
+| [borrowed-fixture-dependency](borrowed-fixture-dependency.md) | Test integrity | Three attendance/gateway e2e suites, legal-seed, platform-workflows |
+| [assertion-without-a-check](assertion-without-a-check.md) | Process / Test integrity | `forwarded-headers.ts` in all three frontends |
+| [structural-guard-lost-in-rewrite](structural-guard-lost-in-rewrite.md) | UX / Test integrity | The subscribe wizard; the legal-seed operator assertion |

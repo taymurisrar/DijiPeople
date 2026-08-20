@@ -78,6 +78,46 @@ exists, follow the code and recommend a context update.
 
 ---
 
+## Instance and handoff
+
+This role is **singular and permanent**; its executions are not. The same role
+runs in as many Architect chats as there are sessions, and every invocation
+states which one it belongs to, so evidence from one chat can never be read as
+another's:
+
+```
+ROLE · SESSION_ID · TASK_ID · WORK_PACKAGE_ID · INSTANCE_STATUS
+BASE_SHA · CURRENT_BRANCH · OWNED_RESOURCES · READ_ONLY_RESOURCES · LEASES
+```
+
+Two Frontend instances are safe while their **file and feature ownership does not overlap**. Two sessions in the same route group are not parallel work.
+
+Frontend takes no lease. A shared registry — the module, metadata or command registry — is a contended resource: check `session.mjs check --paths` before editing one.
+
+Live state, before planning and before writing:
+
+```bash
+node scripts/session.mjs list
+node scripts/session.mjs check --paths <paths>
+```
+
+The handoff schema is shared and lives in
+[`../context/agent-handoffs.md`](../context/agent-handoffs.md). Two of its
+fields are this role's alone to answer, because nobody else can:
+
+```
+KNOWLEDGE_IMPACT   NONE | CONTEXT_UPDATE | MODULE_KNOWLEDGE | ARCHITECTURE |
+                   BUG_PATTERN | REGRESSION | QA_SCENARIO | DATABASE_KNOWLEDGE |
+                   SECURITY_KNOWLEDGE | DECISION | OTHER
+OBSIDIAN_IMPACT    which durable notes must change, or NONE
+```
+
+`NONE` is common and legitimate — most changes teach nothing durable. It is an
+*answer*, not an omission, and the Reviewer rejects a declared impact with no
+corresponding update.
+
+---
+
 ## Owns
 
 Routes and pages, runtime module specs and adapters, components, forms, tables,

@@ -21,6 +21,10 @@ import { ReleasePublisherService } from './release-publisher.service';
 describe('ReleasePublisherService', () => {
   const ARTIFACT = Buffer.from('a self-contained gateway package, pretend');
   const ARTIFACT_SHA = createHash('sha256').update(ARTIFACT).digest('hex');
+  /* Base64, because that is what electron-updater compares against (BUG-0034). */
+  const ARTIFACT_SHA512 = createHash('sha512')
+    .update(ARTIFACT)
+    .digest('base64');
   const OTHER_ARTIFACT = Buffer.from('a DIFFERENT build of the same version');
 
   const actor: ReleasePublisherIdentity = {
@@ -61,6 +65,7 @@ describe('ReleasePublisherService', () => {
       fileName: 'DijiPeople.IntegrationGateway-2.0.0-win-x64.zip',
       fileSizeBytes: ARTIFACT.byteLength,
       checksumSha256: ARTIFACT_SHA,
+      checksumSha512: ARTIFACT_SHA512,
       minimumSupportedVersion: null,
       releaseNotes: null,
       requiredPermission: 'gateways.manage',

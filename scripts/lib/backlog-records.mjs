@@ -17,6 +17,8 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join, basename } from 'node:path';
 
+import { allocateId } from './id-allocator.mjs';
+
 // ------------------------------------------------------------------ vocabulary
 
 /** Bug lifecycle. See docs/bugs/README.md for what each means operationally. */
@@ -188,6 +190,47 @@ export const BUG_SECTIONS = [
   'History',
 ];
 
+/**
+ * Statuses that claim the work is done, as opposed to merely decided.
+ *
+ * Deliberately not `BUG_TERMINAL`: that set is about records that are *closed*,
+ * and it excludes `FIXED` while including `NOT_A_BUG`, `DUPLICATE` and
+ * `ACCEPTED_RISK`. The question here is narrower — "does this record assert a
+ * fix?" — and `FIXED` is the status that asserts one most often.
+ */
+const BUG_STATUS_CLAIMS_A_FIX = new Set(['FIXED', 'VERIFIED', 'CLOSED']);
+
+/**
+ * Prose that means "this has not been done yet".
+ *
+ * Kept short, literal and anchored to the start of the section. A cleverer
+ * pattern that fires on real records would be worse than no check at all,
+ * because the response to a noisy gate is to stop reading it.
+ */
+const UNFINISHED_PROSE =
+  /^(pending\b|tbd\b|to be (added|written|determined|decided|filled)|to follow\b|awaiting\b|not yet\b|none yet\b)/i;
+
+/**
+ * The text of one `## Section`, up to the next `##` heading of any level 2.
+ * Markdown emphasis and list markers are stripped so the placeholder patterns
+ * above match "**Pending.**" as readily as "Pending."
+ */
+function sectionText(body, section) {
+  const heading = new RegExp(
+    `^##\\s+${section.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`,
+    'm',
+  );
+  const start = heading.exec(body);
+  if (!start) return null;
+  const rest = body.slice(start.index + start[0].length);
+  const next = /^##\s+/m.exec(rest);
+  const raw = next ? rest.slice(0, next.index) : rest;
+  return raw
+    .replace(/[*_`~>#]/g, '')
+    .replace(/^[-+]\s+/gm, '')
+    .trim();
+}
+
 export const BUG_DIR = 'docs/bugs';
 export const ITEM_DIR = 'docs/backlog/items';
 
@@ -334,8 +377,60 @@ function validate(record, kind, errors) {
     }
   }
 
+  const createdAt = String(fields.CreatedAt ?? '').trim();
+  const updatedAt = String(fields.UpdatedAt ?? '').trim();
+  const resolvedAt = String(fields.ResolvedAt ?? '').trim();
+  if (createdAt && updatedAt && updatedAt < createdAt) {
+    errors.push(`${where}: UpdatedAt ${updatedAt} predates CreatedAt ${createdAt}`);
+  }
+  if (createdAt && resolvedAt && resolvedAt < createdAt) {
+    errors.push(`${where}: ResolvedAt ${resolvedAt} predates CreatedAt ${createdAt}`);
+  }
+
+  const status = String(fields.Status ?? '').trim();
+  const disposition = String(fields.ArchitectDisposition ?? '').trim();
+  const terminalDisposition =
+    kind === 'bug'
+      ? {
+          VERIFIED: 'DONE',
+          CLOSED: 'DONE',
+          NOT_A_BUG: 'NOT_A_BUG',
+          DUPLICATE: 'DUPLICATE',
+          ACCEPTED_RISK: 'ACCEPTED_RISK',
+        }[status]
+      : {
+          DONE: 'DONE',
+          CANCELLED: 'DONE',
+          DUPLICATE: 'DUPLICATE',
+        }[status];
+
+  if (terminalDisposition && disposition !== terminalDisposition) {
+    errors.push(
+      `${where}: terminal Status ${status} requires ArchitectDisposition ${terminalDisposition}, got ${disposition || '(empty)'}`,
+    );
+  }
+
+  for (const [alignedStatus, alignedDisposition] of [
+    ['DEFERRED', 'DEFER'],
+    ['PRODUCT_DECISION', 'PRODUCT_DECISION'],
+  ]) {
+    if (status === alignedStatus && disposition !== alignedDisposition) {
+      errors.push(
+        `${where}: Status ${alignedStatus} requires ArchitectDisposition ${alignedDisposition}`,
+      );
+    }
+    if (disposition === alignedDisposition && status !== alignedStatus) {
+      errors.push(
+        `${where}: ArchitectDisposition ${alignedDisposition} requires Status ${alignedStatus}`,
+      );
+    }
+  }
+
+  if (record.body.split(/\r?\n/).some((line) => line.trim() === '</content>')) {
+    errors.push(`${where}: contains stray literal </content> wrapper text`);
+  }
+
   if (kind === 'bug') {
-    const status = String(fields.Status ?? '').trim();
     if (['VERIFIED', 'CLOSED'].includes(status) && !String(fields.ResolvedAt ?? '').trim()) {
       errors.push(`${where}: Status ${status} requires a ResolvedAt date`);
     }
@@ -348,6 +443,64 @@ function validate(record, kind, errors) {
       BUG_TERMINAL.has(status)
     ) {
       errors.push(`${where}: a ${status} bug cannot still be TRIAGE_REQUIRED`);
+    }
+
+    let previousSection = -1;
+    for (const section of BUG_SECTIONS) {
+      const match = new RegExp(
+        `^##\\s+${section.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&')}\\s*$`,
+        'm',
+      ).exec(record.body);
+      if (!match) {
+        errors.push(`${where}: missing required section "## ${section}"`);
+        continue;
+      }
+      if (match.index < previousSection) {
+        errors.push(`${where}: required section "## ${section}" is out of order`);
+      }
+      previousSection = Math.max(previousSection, match.index);
+    }
+
+    /*
+     * A record that claims a fix must describe one — ITEM-0071.
+     *
+     * Everything above this point validates frontmatter, or that a section
+     * *exists* and is in the right place. Nothing validated what a section
+     * said, so a record could make two opposite claims and pass: BUG-0080
+     * carried `Status: FIXED` and `RegressionId: REG-075` above a `##
+     * Resolution` reading, in full, "Pending a product decision."
+     *
+     * That is not cosmetic. The generated fields are checked and were right;
+     * the prose is hand-written, unchecked, and more persuasive because it
+     * explains itself. A later reader believed the prose, reversed a correct
+     * status, changed working billing code, and put a settled product decision
+     * back to the owner. All of it had to be reverted.
+     *
+     * The check is one-directional on purpose. "Terminal status, unfinished
+     * prose" is unambiguous. The mirror case — an open record whose Resolution
+     * claims completion — cannot be detected without guessing, and a guess here
+     * would produce exactly the false positives that teach people to ignore the
+     * gate.
+     */
+    if (BUG_STATUS_CLAIMS_A_FIX.has(status)) {
+      for (const section of ['Resolution', 'QA Retest']) {
+        // `VERIFIED` is the status that asserts QA looked; `FIXED` is not.
+        if (section === 'QA Retest' && status === 'FIXED') continue;
+
+        const text = sectionText(record.body, section);
+        if (text === null) continue; // already reported as missing above
+
+        if (!text) {
+          errors.push(
+            `${where}: Status ${status} but "## ${section}" is empty — say what was done`,
+          );
+        } else if (UNFINISHED_PROSE.test(text)) {
+          errors.push(
+            `${where}: Status ${status} but "## ${section}" still reads "${text.split('\n')[0].slice(0, 60)}" — ` +
+              'the status and the prose disagree',
+          );
+        }
+      }
     }
   }
 }
@@ -430,6 +583,67 @@ export function loadRecords(root) {
     }
   }
 
+  /* Evidence paths and regression links are part of record truth, not prose. */
+  const registerPath = join(root, 'docs/qa/regressions/index.md');
+  const regressionRegister = existsSync(registerPath) ? readFileSync(registerPath, 'utf8') : '';
+  const regressionEntries = new Map(
+    regressionRegister
+      .split(/(?=^### REG-)/m)
+      .map((entry) => [(/^### (REG-\d{3})/.exec(entry) ?? [])[1], entry])
+      .filter(([id]) => id),
+  );
+  for (const record of records) {
+    for (const field of ['QAReport', 'RelatedQA', 'RelatedADR', 'RelatedImplementation']) {
+      for (const value of asList(record.fields[field])) {
+        if (!value.startsWith('docs/')) continue;
+        if (!existsSync(join(root, value))) {
+          errors.push(`${record.relative}: ${field} references missing path ${value}`);
+        }
+      }
+    }
+
+    if (record.kind !== 'bug') continue;
+    const regressionId = String(record.fields.RegressionId ?? '').trim();
+    if (['FIXED', 'VERIFIED', 'CLOSED'].includes(record.status) && !regressionId) {
+      errors.push(
+        `${record.relative}: Status ${record.status} requires RegressionId so the fix has durable regression coverage`,
+      );
+    }
+    if (regressionId && !regressionEntries.has(regressionId)) {
+      errors.push(`${record.relative}: RegressionId ${regressionId} is absent from the regression register`);
+    } else if (regressionId) {
+      const entry = regressionEntries.get(regressionId);
+      const active =
+        (/^\|\s*\*\*Active\*\*\s*\|\s*(.*?)\s*\|\s*$/m.exec(entry) ?? [])[1] ?? '';
+      if (['FIXED', 'VERIFIED', 'CLOSED'].includes(record.status) && active.trim().toLowerCase() !== 'yes') {
+        errors.push(
+          `${record.relative}: Status ${record.status} requires RegressionId ${regressionId} to be active`,
+        );
+      }
+      const rootCell =
+        (/^\|\s*\*\*Bug record\*\*\s*\|\s*(.*?)\s*\|\s*$/m.exec(entry) ?? [])[1] ?? '';
+      const rootIds = [...rootCell.matchAll(/\bBUG-\d{4}\b/g)].map((match) => match[0]);
+      if (!rootIds.includes(record.id)) {
+        errors.push(
+          `${record.relative}: RegressionId ${regressionId} does not name ${record.id} in its Bug record field`,
+        );
+      }
+    }
+  }
+
+  /* A completed blocker cannot still describe why active work cannot move. */
+  const byId = new Map(records.map((record) => [record.id, record]));
+  for (const record of records) {
+    for (const reference of asList(record.fields.BlockedBy)) {
+      const blocker = byId.get(reference);
+      if (blocker && isTerminal(blocker)) {
+        errors.push(
+          `${record.relative}: BlockedBy ${reference} is terminal (${blocker.status}); clear or replace the discharged dependency`,
+        );
+      }
+    }
+  }
+
   return { records, errors };
 }
 
@@ -467,15 +681,21 @@ export function compareRecords(a, b) {
   return a.id.localeCompare(b.id);
 }
 
-/** Highest allocated numeric suffix for a prefix, so ids are never reused. */
-export function nextId(root, prefix) {
-  const dir = prefix === 'BUG' ? BUG_DIR : ITEM_DIR;
-  let highest = 0;
-  for (const file of recordFilesIn(root, dir)) {
-    const match = new RegExp(`^${prefix}-(\\d{4})-`).exec(file.name);
-    if (match) highest = Math.max(highest, Number(match[1]));
-  }
-  return `${prefix}-${String(highest + 1).padStart(4, '0')}`;
+/**
+ * Reserve the next id for a prefix — atomically, and across every branch.
+ *
+ * This was `max(ids visible in the working tree) + 1`, which is right for one
+ * agent on one branch and wrong for every other case: two concurrent sessions
+ * on two branches both see the same highest id and both take the next one. That
+ * collision has landed twice — see the commits titled "renumber colliding
+ * record ids" and "(second occurrence)".
+ *
+ * `allocateId` scans every ref and holds a cross-worktree lock while it
+ * reserves, so a second caller sees the first caller's reservation even before
+ * the record file exists. See scripts/lib/id-allocator.mjs.
+ */
+export function nextId(root, prefix, { sessionId = '', note = '' } = {}) {
+  return allocateId(root, prefix === 'BUG' ? 'bug' : 'item', { sessionId, note });
 }
 
 export function slugify(text) {

@@ -30,6 +30,18 @@ datasource db {
 ///   DECOMMISSIONING     retirement in progress
 ///   DECOMMISSIONED      retired; data still present
 ///   ARCHIVED / CHURNED  historical terminal states
+/// Whether a workspace can be used, separate from whether onboarding finished.
+enum TenantReadinessStatus {
+  NOT_READY
+  PROVISIONING
+  /// Every blocking provisioning step succeeded. People can work.
+  READY
+  /// Usable, with a non-blocking step outstanding.
+  PARTIALLY_READY
+  /// Automation stopped and a human must act before it can be used.
+  BLOCKED
+}
+
 enum TenantStatus {
   ONBOARDING
   PENDING_SETUP
@@ -356,6 +368,18 @@ enum UserStatus {
   ACTIVE
   INVITED
   DISABLED
+}
+
+/// Whether the *person* may sign in at all, as distinct from whether one of
+/// their workspace accounts is active.
+///
+/// `User.status` answers "is this account usable in this tenant" and must stay
+/// per tenant — somebody disabled at one workspace stays disabled there while
+/// active at another. This answers "may these credentials be used anywhere",
+/// which is the only question a global lockout can ask.
+enum IdentityStatus {
+  ACTIVE
+  SUSPENDED
 }
 
 enum PlatformUserRole {
@@ -2033,6 +2057,19 @@ model Tenant {
   environmentGroupId              String?
   status                          TenantStatus                     @default(ACTIVE)
   subStatus                       String?
+  /// Whether the workspace is USABLE, which is deliberately not the same
+  /// question as whether onboarding is finished. A tenant can be READY while a
+  /// historical data import, a biometric device rollout or a custom domain is
+  /// still outstanding — none of those should keep people locked out of a
+  /// product they have paid for. CustomerOnboarding.status answers the other
+  /// question.
+  readinessStatus                 TenantReadinessStatus            @default(NOT_READY)
+  readyAt                         DateTime?
+  /// Where this workspace is hosted. First-class on the tenant rather than
+  /// only on the market, because a market is a commercial grouping and this is
+  /// an infrastructure fact. Null means undeclared — never assume a region,
+  /// and never publish a residency claim from it.
+  dataRegion                      String?
   createdAt                       DateTime                         @default(now())
   updatedAt                       DateTime                         @updatedAt
   createdById                     String?
@@ -2041,6 +2078,10 @@ model Tenant {
   demoBatchId                     String?
   seedSource                      String?
   users                           User[]
+  /// Identities whose last-used workspace is this tenant. Advisory only —
+  /// `onDelete: SetNull` on the other side, so deleting a tenant clears the
+  /// preference rather than orphaning or blocking the identity.
+  identitiesLastUsedHere          Identity[]                      @relation("IdentityLastUsedTenant")
   platformContracts               Contract[]
   originatingPartner              Partner?                         @relation("PartnerAttributedTenants", fields: [originatingPartnerId], references: [id], onDelete: SetNull)
   originatingLead                 Lead?                            @relation("LeadAttributedTenants", fields: [originatingLeadId], references: [id], onDelete: SetNull)
@@ -2198,6 +2239,15 @@ model Tenant {
   activityEvents                  ActivityEvent[]
   dailyProductivitySummaries      DailyProductivitySummary[]
   agentTrackingSettings           AgentTrackingSettings?
+  seatUsageSamples                SeatUsageSample[]
+  seatUsagePeriods                SeatUsagePeriod[]
+  seatOverageEvents               SeatOverageEvent[]
+  subscriptionOrders              SubscriptionOrder[]
+  seatChangeRequests              SeatChangeRequest[]
+  planChangeRequests              PlanChangeRequest[]
+  cancellations                   SubscriptionCancellation[]
+  retention                       TenantRetention?
+  deletionRequests                TenantDeletionRequest[]
   auditLogs                       AuditLog[]
   documents                       Document[]
   documentLinks                   DocumentLink[]
@@ -2401,10 +2451,22 @@ model TenantProvisioningRun {
   message        String?
   correlationId  String?
   requestedById  String?
+  /// What paid for this workspace. Null for a run started by an operator
+  /// rather than by a purchase, which is why it is not required.
+  subscriptionOrderId String?
+  customerAccountId   String?
+  /// Internal operational targets, NOT a contractual SLA. Stored per run so
+  /// changing the policy later cannot retroactively rewrite whether a past
+  /// run breached.
+  targetReadyBy  DateTime?
+  escalateAt     DateTime?
+  breachedAt     DateTime?
   createdAt      DateTime                    @default(now())
   updatedAt      DateTime                    @updatedAt
   tenant         Tenant                      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   steps          TenantProvisioningStep[]
+  subscriptionOrder SubscriptionOrder? @relation(fields: [subscriptionOrderId], references: [id], onDelete: SetNull)
+  customerAccount   CustomerAccount?   @relation(fields: [customerAccountId], references: [id], onDelete: SetNull)
 
   @@index([tenantId])
   @@index([tenantId, startedAt])
@@ -2580,6 +2642,10 @@ model CustomerAccount {
   supportCases               SupportCase[]
   payrollCostAllocationLines PayrollCostAllocationLine[]
   promotions                 Promotion[]
+  subscriptionOrders         SubscriptionOrder[]
+  tenantProvisioningRuns     TenantProvisioningRun[]
+  refundRequests             RefundRequest[]
+  consentRecords             ConsentRecord[]
 
   // ITEM-0008 — commercial reports group customers by channel.
   @@index([originChannel])
@@ -2761,6 +2827,9 @@ model Lead {
   @@index([assignedToUserId])
   @@index([partnerId])
   @@index([partnerReferralLinkId])
+  subscriptionOrders             SubscriptionOrder[]
+  consentRecords                 ConsentRecord[]
+
   @@index([attributionStatus, referredAt])
   @@index([agreedPlanId])
 }
@@ -3854,6 +3923,10 @@ model Plan {
 
   @@index([publicationStatus, isActive, sortOrder])
   @@index([tenantId])
+  subscriptionOrders      SubscriptionOrder[]
+  planChangesFrom         PlanChangeRequest[] @relation("PlanChangeFrom")
+  planChangesTo           PlanChangeRequest[] @relation("PlanChangeTo")
+
   @@index([isActive, sortOrder])
   @@index([stripeProductId])
 }
@@ -3888,6 +3961,15 @@ model PlanPrice {
   minimumSeats            Int                @default(1)
   maximumSeats            Int?
   includedSeats           Int                @default(0)
+  /// What one employee above `includedSeats` costs, per interval, in this
+  /// price's currency. Null means this price does not charge overage, which is
+  /// correct for every PER_SEAT row: there is no "above included" when every
+  /// seat is billed. Only the FLAT rows carry a rate.
+  ///
+  /// The schema has measured overage since the seat engine landed
+  /// (`SeatUsage.overage`, `SeatOverageEvent.peakOverage`) and had nowhere to
+  /// price it, so a flat plan's allowance could be exceeded and never billed.
+  overageUnitAmount       Decimal?           @db.Decimal(12, 2)
   effectiveFrom           DateTime           @default(now())
   effectiveTo             DateTime?
   version                 Int                @default(1)
@@ -3938,6 +4020,8 @@ model PlanPrice {
   // The resolution path: plan + market + currency + interval, filtered by
   // publication, then ordered by effective date.
   @@index([planId, marketId, currency, billingInterval, publicationStatus])
+  subscriptionOrders      SubscriptionOrder[]
+
   @@index([marketId])
   @@index([publicationStatus, effectiveFrom])
 }
@@ -3984,6 +4068,11 @@ model Market {
   updatedById         String?
   countries           MarketCountry[]
   prices              PlanPrice[]
+  // legalDocumentSetRef above is a loose text reference kept for the market
+  // catalogue; this is the real relation. A market-specific legal document
+  // overrides the global one of the same type.
+  legalDocuments      LegalDocument[]
+  subscriptionOrders  SubscriptionOrder[]
 
   @@index([publicationStatus, isEnabled, sortOrder])
   @@index([launchStatus])
@@ -4025,6 +4114,11 @@ model Subscription {
   stripeSubscriptionId     String?                 @unique
   stripeSubscriptionItemId String?
   purchasedSeats           Int                     @default(1)
+  /// A capacity DECREASE that takes effect at the next renewal. Null means
+  /// no change is scheduled. Increases are immediate and rewrite
+  /// purchasedSeats directly, so they never appear here.
+  scheduledSeats           Int?
+  scheduledSeatsEffectiveAt DateTime?
   stripeQuantity           Int?
   seatsLastReconciledAt    DateTime?
   lastStripeEventCreatedAt DateTime?
@@ -4050,6 +4144,13 @@ model Subscription {
   contracts                Contract[]
   promotions               Promotion[]
   promotionApplications    SubscriptionPromotion[]
+  seatUsageSamples         SeatUsageSample[]
+  seatUsagePeriods         SeatUsagePeriod[]
+  seatOverageEvents        SeatOverageEvent[]
+  seatChangeRequests       SeatChangeRequest[]
+  planChangeRequests       PlanChangeRequest[]
+  cancellations            SubscriptionCancellation[]
+  subscriptionOrders       SubscriptionOrder[]
 
   @@index([status])
   @@index([planId, status])
@@ -4103,6 +4204,8 @@ model Promotion {
   @@index([scope, planId, planPriceId])
   @@index([customerAccountId])
   @@index([subscriptionId])
+  subscriptionOrders    SubscriptionOrder[]
+
   @@index([supersedesPromotionId])
   @@index([stripeSyncStatus, stripeEnvironment])
 }
@@ -4124,9 +4227,94 @@ model SubscriptionPromotion {
   @@index([promotionId])
 }
 
+/// One person, across every workspace they belong to.
+///
+/// **Credentials global, profile and authorisation per tenant.** Before this,
+/// `User` was `@@unique([tenantId, email])` with a required `tenantId`, so the
+/// same person in two workspaces was two rows with two passwords — and generic
+/// login, workspace discovery and switching were all impossible by
+/// construction rather than unbuilt. See ITEM-0062.
+///
+/// `User` deliberately stays tenant-scoped. It carries `status`, roles,
+/// `businessUnitId` and the employee link, all legitimately per tenant. Making
+/// `User` global would push every one of those onto a membership table and
+/// change every query joining `User` by `tenantId`: the same end state, far
+/// larger blast radius.
+///
+/// The property that makes this survivable is that **the JWT stays
+/// tenant-scoped**. `request.user.tenantId` keeps meaning exactly one tenant
+/// and `JwtAuthGuard` is untouched; login gains a step in front of token
+/// issuance and nothing behind it moves.
+///
+/// The credential columns below are duplicated from `User` on purpose during
+/// the expand phase. Authentication keeps reading `User.passwordHash` until the
+/// backfill has run and the auth split lands; only then does `User` lose them.
+model Identity {
+  id String @id @default(uuid())
+
+  /// Normalised by `normalizeEmail` — trimmed and lowercased — which is what
+  /// the login path has always done before looking a user up. A global unique
+  /// is only safe because that normalisation already exists.
+  email String @unique
+
+  passwordHash    String
+  passwordChangedAt DateTime?
+  emailVerifiedAt DateTime?
+
+  status IdentityStatus @default(ACTIVE)
+
+  /// Lockout is global because credentials are. Leaving it per tenant would
+  /// give an attacker a fresh allowance of attempts for every workspace the
+  /// address belongs to, which is the opposite of what a lockout is for.
+  ///
+  /// **Only the tenant-scoped login path writes these.** The public discovery
+  /// endpoint used to, and that made it a weapon: twenty unauthenticated
+  /// requests could lock a known address out of every workspace for an hour
+  /// (ITEM-0069). Discovery now has its own counter below, which bounds
+  /// guessing without touching the credential the victim signs in with.
+  failedLoginAttempts Int       @default(0)
+  lockedUntil         DateTime?
+
+  /// Throttles the public workspace-discovery endpoint, per address.
+  ///
+  /// Separate from the credential lock on purpose, and the separation *is* the
+  /// fix. Discovery is unauthenticated, so anybody can drive it — which means
+  /// whatever it can trigger, anybody can trigger against any address they
+  /// know. Blocking discovery costs the victim the generic login screen; they
+  /// can still sign in at their workspace URL, which is what makes this a
+  /// tolerable thing for a stranger to be able to cause.
+  discoveryFailedAttempts Int       @default(0)
+  discoveryBlockedUntil   DateTime?
+
+  /// Where to send this person when they sign in without naming a workspace.
+  /// Advisory: a stale or revoked value falls back to the picker, and
+  /// `onDelete: SetNull` means deleting a tenant cannot orphan an identity.
+  lastUsedTenantId String?
+  lastUsedTenant   Tenant? @relation("IdentityLastUsedTenant", fields: [lastUsedTenantId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users User[]
+
+  @@index([lastUsedTenantId])
+}
+
 model User {
   id                             String                        @id @default(uuid())
   tenantId                       String
+
+  /// The person this workspace account belongs to.
+  ///
+  /// Still nullable, deliberately. Expand and backfill have landed and every
+  /// creation path writes it — pinned by
+  /// `user-creation-links-identity.invariant.spec.ts` — but the **contract
+  /// phase must ship in a later deployment than the backfill**, or a code
+  /// rollback leaves old code unable to create users at all against a NOT NULL
+  /// column. TASK-0009 WP-09 carries the migration, written and verified,
+  /// waiting on this one reaching production. See the task record.
+  identityId                     String?
+  identity                       Identity?                     @relation(fields: [identityId], references: [id], onDelete: Restrict)
   businessUnitId                 String
   firstName                      String
   lastName                       String
@@ -4206,6 +4394,8 @@ model User {
   @@index([businessUnitId])
   @@index([tenantId, status])
   @@index([tenantId, lastName, firstName])
+  /// Workspace discovery reads this: "which tenants does this identity reach".
+  @@index([identityId])
 }
 
 model PlatformUser {
@@ -12039,6 +12229,18 @@ model ApplicationRelease {
   fileName                String?
   fileSizeBytes           Int?
   checksumSha256          String?
+  /// Base64 SHA-512, required by the electron-updater feed (BUG-0034).
+  ///
+  /// electron-updater verifies a downloaded artefact against the sha512 in
+  /// `latest.yml` and refuses to install on a mismatch, so `checksumSha256`
+  /// cannot serve that feed however it is re-encoded — they are different
+  /// digests, not two formats of one.
+  ///
+  /// Nullable because releases published before this column existed have no
+  /// sha512 and cannot have one computed without the original artefact. The
+  /// feed skips a release that lacks it rather than advertising one the updater
+  /// will download and then reject.
+  checksumSha512          String?
   minimumSupportedVersion String?
   releaseNotes            String?
   /// Permission a user must hold to download this artefact.
@@ -12367,4 +12569,1291 @@ model AttendanceLocationEvidence {
   @@index([tenantId, attendanceDayId])
   @@index([tenantId, outcome])
   @@index([tenantId, employeeId, capturedAt])
+}
+
+// ---------------------------------------------------------------------------
+// Transactional outbox
+//
+// PlatformEvent already answers "what happened" for monitoring. It is an
+// observability record: no status, no attempt count, nothing to claim. It
+// cannot deliver anything, and a domain service that needs a side effect to
+// survive a crash has had nowhere to put it.
+//
+// OutboxEvent is that place. The rule is that a business state change and the
+// event announcing it are written in the SAME transaction, so the pair is
+// atomic: there is no window in which a subscription activates without the
+// activation being scheduled for delivery, and no window in which delivery is
+// scheduled for an activation that rolled back.
+//
+// Delivery is at-least-once. Consumers therefore have to be idempotent, and
+// OutboxEventConsumption is how they prove it — a consumer records that it
+// handled an event, and the unique index refuses the second recording rather
+// than trusting the consumer to have checked.
+// ---------------------------------------------------------------------------
+
+enum OutboxEventStatus {
+  /// Written, not yet claimed. `availableAt` decides when it becomes eligible.
+  PENDING
+  /// A dispatcher holds it. `claimedBy`/`claimedAt` say which one and since when.
+  CLAIMED
+  /// Every registered consumer for this event type succeeded.
+  PROCESSED
+  /// A consumer failed and the attempt budget is not exhausted.
+  RETRY_SCHEDULED
+  /// The attempt budget is exhausted. Requires a human decision.
+  FAILED
+  /// A consumer signalled that automation cannot resolve this one.
+  MANUAL_ACTION_REQUIRED
+  /// Deliberately abandoned by an operator, with a reason.
+  DISCARDED
+}
+
+/// Every business transition this platform is allowed to announce.
+///
+/// A closed enum rather than a free string, because the whole point of the
+/// outbox is that a consumer can be written against a known set. An untyped
+/// event dumping ground gives back exactly the coupling this replaces.
+enum DomainEventType {
+  LEAD_SUBMITTED
+  PARTNER_INQUIRY_SUBMITTED
+  CUSTOMER_CREATED
+  CUSTOMER_ACTIVATED
+  CHECKOUT_STARTED
+  PAYMENT_CONFIRMED
+  PAYMENT_FAILED
+  SUBSCRIPTION_ACTIVATED
+  SUBSCRIPTION_TERMINATED
+  ONBOARDING_REQUESTED
+  PROVISIONING_REQUESTED
+  PROVISIONING_STARTED
+  TENANT_READY
+  TENANT_PROVISIONING_FAILED
+  SEAT_OVERAGE_DETECTED
+  SEAT_CHANGE_REQUESTED
+  SEAT_CHANGE_APPLIED
+  PLAN_CHANGE_REQUESTED
+  PLAN_CHANGE_APPLIED
+  CANCELLATION_REQUESTED
+  RETENTION_STARTED
+  TENANT_DELETION_REQUESTED
+  TENANT_ERASURE_REQUESTED
+  TENANT_ERASED
+}
+
+model OutboxEvent {
+  id        String          @id @default(uuid())
+  eventType DomainEventType
+
+  /// The business identity of this transition, not a random value.
+  ///
+  /// Two writers announcing the same transition — a webhook delivered twice, a
+  /// retried activation, a reconciliation job re-deriving a state it already
+  /// derived — construct the same key, and the unique index collapses them into
+  /// one event. Emission is therefore idempotent because the database says so,
+  /// not because every caller remembered to check first.
+  idempotencyKey String @unique
+
+  /// What the event is about. `aggregateType` is the model name as written in
+  /// this schema; `aggregateId` is its primary key.
+  aggregateType String
+  aggregateId   String
+
+  /// Denormalised routing columns. Nullable because platform-level events
+  /// (a customer created before any tenant exists) genuinely have no tenant.
+  tenantId          String?
+  customerAccountId String?
+
+  /// Ties this event to the request or job that produced it, across services.
+  correlationId String
+
+  /// The event body. Immutable once written — consumers re-read it on every
+  /// retry, so rewriting it would change the meaning of an event mid-flight.
+  payload Json
+
+  status       OutboxEventStatus @default(PENDING)
+  attemptCount Int               @default(0)
+  maxAttempts  Int               @default(8)
+
+  /// Earliest time a dispatcher may claim this. Backoff moves it forward.
+  availableAt DateTime  @default(now())
+  claimedAt   DateTime?
+  /// Dispatcher instance identity, so a crashed claim can be reclaimed.
+  claimedBy   String?
+  processedAt DateTime?
+  lastError   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  consumptions OutboxEventConsumption[]
+
+  /// The dispatcher's claim query. Ordering by availableAt within status is the
+  /// hot path and it runs on every poll.
+  @@index([status, availableAt])
+  @@index([eventType, status])
+  @@index([aggregateType, aggregateId])
+  @@index([tenantId, createdAt])
+  @@index([customerAccountId, createdAt])
+  @@index([correlationId])
+}
+
+/// One row per (event, consumer) that reached a terminal outcome.
+///
+/// This is what makes at-least-once delivery safe: a consumer that is handed
+/// the same event twice finds its own row already present and does nothing the
+/// second time. The unique constraint is the enforcement — a consumer cannot
+/// opt out of it by forgetting to look.
+model OutboxEventConsumption {
+  id            String @id @default(uuid())
+  outboxEventId String
+
+  /// Stable identifier of the consumer, e.g. `provisioning.request-tenant`.
+  consumerKey String
+
+  succeeded    Boolean
+  attemptCount Int      @default(1)
+  errorMessage String?
+  processedAt  DateTime @default(now())
+
+  event OutboxEvent @relation(fields: [outboxEventId], references: [id], onDelete: Cascade)
+
+  @@unique([outboxEventId, consumerKey])
+  @@index([consumerKey, succeeded])
+}
+
+// ---------------------------------------------------------------------------
+// Legal documents
+//
+// Until now the platform's only notion of a legal version was
+// CURRENT_PRIVACY_NOTICE_VERSION — a date string in a TypeScript constant that
+// leads and partner inquiries were stamped with. That records *that* a version
+// was accepted while making it impossible to answer what the person actually
+// read: the text lived on no server, changing it required a deploy, and the
+// previous wording was gone the moment it changed.
+//
+// The acknowledgement is only worth keeping if the exact text it refers to is
+// still retrievable years later, so a published version is immutable. Editing
+// one is not "correcting a typo", it is retroactively altering what every
+// person who accepted it is recorded as having agreed to. Corrections publish a
+// new version; the old one is archived, never rewritten.
+// ---------------------------------------------------------------------------
+
+enum LegalDocumentType {
+  PRIVACY_POLICY
+  TERMS_OF_SERVICE
+  SUBSCRIPTION_BILLING_TERMS
+  REFUND_CANCELLATION_POLICY
+  COOKIE_POLICY
+  ACCEPTABLE_USE_POLICY
+  DATA_PROCESSING_ADDENDUM
+  DATA_RETENTION_POLICY
+  SECURITY_NOTICE
+  SUBPROCESSOR_LIST
+}
+
+enum LegalDocumentVersionStatus {
+  /// Editable. Never served to the public and never acknowledgeable.
+  DRAFT
+  /// Immutable and publicly resolvable within its effective window.
+  PUBLISHED
+  /// Immutable and superseded. Retained because acknowledgements point at it.
+  ARCHIVED
+}
+
+/// One legal document, identified by its public slug.
+///
+/// Market is nullable and null means "applies everywhere". A market-specific
+/// document wins over the global one when both exist, which is what lets a
+/// jurisdiction get its own wording without forking the whole set.
+model LegalDocument {
+  id   String            @id @default(uuid())
+  type LegalDocumentType
+
+  /// The public path segment, e.g. `privacy`. Stable — it is what the
+  /// published URL is built from, so changing it breaks inbound links.
+  slug String @unique
+
+  title       String
+  description String?
+
+  marketId String?
+  market   Market? @relation(fields: [marketId], references: [id], onDelete: Restrict)
+
+  /// Withdraws the document from public resolution without deleting versions
+  /// that acknowledgements still refer to.
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  versions LegalDocumentVersion[]
+
+  /// One document per type per market. Two live privacy policies for the same
+  /// market is not a configuration, it is an unanswerable question about which
+  /// one a person agreed to.
+  @@unique([type, marketId])
+  @@index([type, isActive])
+  @@index([marketId])
+}
+
+model LegalDocumentVersion {
+  id              String @id @default(uuid())
+  legalDocumentId String
+
+  /// Monotonic per document. Displayed to users and written into every
+  /// acknowledgement, so it is the human-facing identity of the text.
+  version Int
+
+  status LegalDocumentVersionStatus @default(DRAFT)
+
+  /// The full text, authored as Markdown. Immutable once PUBLISHED — the
+  /// service refuses the write, because this column is the evidence behind
+  /// every acknowledgement that names this version.
+  contentMarkdown String
+
+  /// Plain-language description of what changed from the previous version.
+  changeSummary String?
+
+  /// The window in which this version is the one in force. `effectiveTo` is set
+  /// when a successor is published; a null value means "still in force".
+  effectiveFrom DateTime
+  effectiveTo   DateTime?
+
+  publishedAt             DateTime?
+  publishedByPlatformUser String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  document         LegalDocument                  @relation(fields: [legalDocumentId], references: [id], onDelete: Restrict)
+  acknowledgements LegalDocumentAcknowledgement[]
+
+  @@unique([legalDocumentId, version])
+  @@index([legalDocumentId, status, effectiveFrom])
+  @@index([status, effectiveFrom])
+}
+
+/// Proof that a specific party accepted a specific version.
+///
+/// The subject columns are all nullable and deliberately not a polymorphic
+/// (type, id) pair: a lead that later becomes a customer, and a customer whose
+/// tenant is later provisioned, should still have one row that can be joined
+/// from any of those directions rather than a string discriminator nobody can
+/// index against a foreign key.
+model LegalDocumentAcknowledgement {
+  id                     String @id @default(uuid())
+  legalDocumentVersionId String
+
+  leadId            String?
+  customerAccountId String?
+  tenantId          String?
+  userId            String?
+
+  /// Where the acceptance happened, e.g. `landing:contact`, `landing:subscribe`.
+  source String
+
+  /// Free-text identity for a party that is none of the above yet — the email
+  /// typed into a public form before any record exists for it.
+  subjectEmail String?
+
+  acknowledgedAt DateTime @default(now())
+
+  /// Retained as evidence of the acceptance event itself. Never used to
+  /// identify or profile the person.
+  ipAddress String?
+  userAgent String?
+
+  version LegalDocumentVersion @relation(fields: [legalDocumentVersionId], references: [id], onDelete: Restrict)
+
+  @@index([legalDocumentVersionId])
+  @@index([leadId])
+  @@index([customerAccountId])
+  @@index([tenantId])
+  @@index([userId])
+  @@index([subjectEmail])
+}
+
+// ---------------------------------------------------------------------------
+// Subprocessors
+//
+// Only providers that actually process customer data belong here. The list is
+// a factual disclosure, so a row exists because a provider is genuinely in the
+// path — not because it might be one day.
+// ---------------------------------------------------------------------------
+
+enum SubprocessorStatus {
+  ACTIVE
+  PLANNED
+  RETIRED
+}
+
+enum SubprocessorCategory {
+  INFRASTRUCTURE
+  DATABASE
+  EMAIL
+  PAYMENTS
+  MONITORING
+  STORAGE
+  SUPPORT
+  ANALYTICS
+}
+
+model Subprocessor {
+  id       String               @id @default(uuid())
+  name     String
+  purpose  String
+  category SubprocessorCategory
+
+  /// Where processing happens, when it is actually known. Null means unknown,
+  /// which is a different and more honest statement than naming a plausible
+  /// region — this column is published, and a guess here is a false disclosure.
+  processingRegion String?
+  websiteUrl       String?
+
+  status        SubprocessorStatus @default(ACTIVE)
+  effectiveFrom DateTime
+  effectiveTo   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([name])
+  @@index([status, category])
+}
+
+// ---------------------------------------------------------------------------
+// Active-employee billing
+//
+// The billable unit is an ACTIVE EMPLOYEE, which is not the same as a user, a
+// login, a seat someone bought, or a row in Employee. Getting that wrong in
+// either direction is a billing incident: counting auth users bills a tenant
+// for its service accounts and platform admins, and counting every Employee row
+// bills it for people who left years ago.
+//
+// `Subscription.purchasedSeats` already records what was BOUGHT. Nothing
+// recorded what was USED, so no invoice quantity could be explained after the
+// fact — the current employee count answers "how many now", never "how many
+// during the period you charged me for". These models are that history.
+// ---------------------------------------------------------------------------
+
+/// A daily measurement of one subscription's billable population.
+///
+/// Daily rather than on-change because billing needs a defensible series, not a
+/// change log: "your peak in March was 214 on the 9th" is answerable from
+/// samples and is not answerable from a stream of hire/leave deltas without
+/// replaying all of them.
+model SeatUsageSample {
+  id             String @id @default(uuid())
+  tenantId       String
+  subscriptionId String
+
+  /// Date-only, in the platform's billing timezone. One sample per day is the
+  /// invariant the unique constraint below enforces.
+  sampledOn DateTime @db.Date
+
+  /// Employees counted as billable at sample time.
+  activeEmployeeCount Int
+
+  /// Capacity in force at sample time, copied rather than joined. A later plan
+  /// change must not silently rewrite what a past day was measured against.
+  purchasedCapacity Int
+
+  /// max(0, activeEmployeeCount - purchasedCapacity), stored so overage
+  /// reporting never depends on re-deriving it with today's rules.
+  overage Int @default(0)
+
+  /// How the count was produced, so a repaired or backfilled sample is
+  /// distinguishable from one taken live.
+  source String @default("SCHEDULED")
+
+  createdAt DateTime @default(now())
+
+  tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  /// One sample per subscription per day. A retried sampler must update the
+  /// day's row, never append a second one that doubles the period's average.
+  @@unique([subscriptionId, sampledOn])
+  @@index([tenantId, sampledOn])
+  @@index([subscriptionId, sampledOn])
+  @@index([overage])
+}
+
+enum SeatUsagePeriodStatus {
+  /// The period is in progress; peak and ending counts still move.
+  OPEN
+  /// The period ended and its figures are frozen for billing.
+  CLOSED
+  /// Closed and reconciled against what the provider actually invoiced.
+  RECONCILED
+}
+
+/// One billing period's usage, frozen when the period closes.
+///
+/// This is the row that answers "why was I billed for 214 employees". It keeps
+/// the peak, the ending count and the capacity that was in force, so the
+/// question is answerable from stored facts rather than from a recomputation
+/// that today's data would give a different answer to.
+model SeatUsagePeriod {
+  id             String @id @default(uuid())
+  tenantId       String
+  subscriptionId String
+
+  periodStart DateTime
+  periodEnd   DateTime
+
+  purchasedCapacity Int
+
+  /// The highest active-employee count observed in the period, and when.
+  peakActiveEmployees Int       @default(0)
+  peakObservedOn      DateTime?
+
+  /// The count at period end — what a "current headcount" view would show.
+  endingActiveEmployees Int @default(0)
+
+  /// max(0, peak - capacity). The billable overage if the plan charges for it.
+  peakOverage Int @default(0)
+
+  /// What was actually billed, once known. Null while the period is OPEN, and
+  /// deliberately separate from peakOverage: policy may bill on peak, on
+  /// ending count, or not at all, and the record must show which happened.
+  billedQuantity Int?
+
+  status SeatUsagePeriodStatus @default(OPEN)
+
+  closedAt     DateTime?
+  reconciledAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  /// One period row per subscription per start date.
+  @@unique([subscriptionId, periodStart])
+  @@index([tenantId, periodStart])
+  @@index([status, periodEnd])
+}
+
+enum SeatOverageStatus {
+  /// Detected and inside the tolerated band. Recorded, not acted on.
+  OBSERVED
+  /// Crossed the warning threshold; the tenant is told.
+  WARNED
+  /// Crossed the abnormal threshold; a human looks before anything is billed.
+  REVIEW_REQUIRED
+  /// A human accepted it as genuine growth.
+  ACCEPTED
+  /// Resolved because the count came back within capacity.
+  RESOLVED
+}
+
+/// A distinct episode of a subscription exceeding its purchased capacity.
+///
+/// An episode, not a daily flag: a tenant 3 over capacity for a fortnight is one
+/// conversation, and fourteen rows would make it look like fourteen.
+///
+/// REVIEW_REQUIRED exists because of the import case. Going 20 → 22 is ordinary
+/// business. Going 20 → 900 overnight is almost always a bad CSV import, and
+/// billing it silently would be indefensible — so an abnormal jump stops for a
+/// human instead of quietly generating an enormous invoice.
+model SeatOverageEvent {
+  id             String @id @default(uuid())
+  tenantId       String
+  subscriptionId String
+
+  detectedAt DateTime @default(now())
+  resolvedAt DateTime?
+
+  purchasedCapacity Int
+  /// Count when the episode opened, and the worst it reached.
+  activeEmployeeCount Int
+  peakActiveEmployees Int
+
+  /// peak - capacity, and that as a share of capacity. The ratio is what
+  /// separates ordinary growth from an import accident.
+  peakOverage      Int
+  peakOveragePercent Int
+
+  status SeatOverageStatus @default(OBSERVED)
+
+  /// Set when a human dispositions a REVIEW_REQUIRED episode.
+  reviewedByPlatformUser String?
+  reviewedAt             DateTime?
+  reviewNote             String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, detectedAt])
+  @@index([status, detectedAt])
+  /// The open-episode lookup: at most one unresolved episode per subscription.
+  @@index([subscriptionId, resolvedAt])
+}
+
+// ---------------------------------------------------------------------------
+// Pre-payment subscription orders
+//
+// WHY A SEPARATE MODEL AND NOT `Subscription`. `Subscription.tenantId` is
+// required and unique, so a subscription cannot exist before a tenant does —
+// and a tenant should not exist before payment. Reusing `Subscription` for the
+// pre-payment state would mean creating a tenant per checkout *attempt*, which
+// is what the public subscribe path used to do: every refresh, every abandoned
+// checkout and every double submit left an orphan INACTIVE tenant behind and
+// permanently consumed its slug.
+//
+// `SubscriptionOrder` is the pre-payment half of the lifecycle:
+//
+//   visitor -> plan -> company details -> validate -> DEDUPLICATE -> customer
+//     -> SubscriptionOrder (PENDING_PAYMENT) -> Stripe checkout
+//     -> payment -> provisioning -> Tenant + Subscription
+//
+// It is also the money record. Every figure here is resolved on the server from
+// published commercial configuration; the browser supplies identifiers and
+// quantities, never prices. Frozen at checkout time so that a later price
+// change cannot retroactively alter what someone was charged, and so the
+// invoice is explainable from stored facts rather than from a recomputation
+// that today's configuration would answer differently.
+// ---------------------------------------------------------------------------
+
+enum SubscriptionOrderStatus {
+  /// Being assembled. Nothing has been sent to the provider.
+  DRAFT
+  /// A checkout session exists and the customer has not paid yet.
+  PENDING_PAYMENT
+  /// Payment confirmed. Provisioning has not finished.
+  PAID
+  /// A tenant and a real Subscription now exist for this order.
+  ACTIVATED
+  /// The customer never completed checkout and the order aged out.
+  ABANDONED
+  /// Payment or provider interaction failed terminally.
+  FAILED
+  /// Withdrawn deliberately, by the customer or an operator.
+  CANCELLED
+}
+
+/// How tax is treated for this order.
+///
+/// `NOT_DETERMINED` is the honest default and is deliberately distinct from
+/// `NOT_APPLICABLE`. The platform has no tax registrations configured, so for
+/// now nothing is charged — but "we have not worked out whether tax applies"
+/// and "tax does not apply" are different statements, and recording the second
+/// when the first is true would be a false tax record.
+enum TaxTreatment {
+  NOT_DETERMINED
+  NOT_APPLICABLE
+  INCLUSIVE
+  EXCLUSIVE
+  REVERSE_CHARGE
+  EXEMPT
+}
+
+model SubscriptionOrder {
+  id String @id @default(uuid())
+
+  /// Human-quotable reference. Support asks for this, not a uuid.
+  orderNumber String @unique
+
+  customerAccountId String
+  leadId            String?
+
+  /// Filled in by provisioning, once payment has actually been confirmed.
+  /// Null on every order that has not been paid for, which is the state the
+  /// old flow could not represent.
+  tenantId       String?
+  subscriptionId String?
+
+  /// Nullable with SetNull because Plan is tenant-owned: a tenant-specific
+  /// plan is deleted when its tenant is erased, while this order is retained
+  /// as a financial record. The commercial identity that matters is frozen in
+  /// commercialSnapshot (plan key, price version, market), so losing the
+  /// pointer loses a join, not a fact.
+  planId      String?
+  planPriceId String?
+  marketId    String?
+
+  /// Commercial terms as resolved by the server, copied rather than joined.
+  /// A later edit to the PlanPrice must not change what this order was.
+  currency        String
+  billingCycle    BillingCycle
+  billingInterval BillingInterval
+  requestedSeats  Int
+
+  /// The money, in resolution order: subtotal -> discount -> taxable basis
+  /// -> tax -> total. Stored as separate columns rather than a blob because
+  /// every one of them is a number somebody will dispute individually.
+  unitAmount     Decimal @db.Decimal(12, 2)
+  subtotalAmount Decimal @db.Decimal(12, 2)
+  discountAmount Decimal @default(0) @db.Decimal(12, 2)
+  taxableAmount  Decimal @db.Decimal(12, 2)
+  taxAmount      Decimal @default(0) @db.Decimal(12, 2)
+  totalAmount    Decimal @db.Decimal(12, 2)
+
+  promotionId String?
+
+  /// Tax context. All nullable: this platform has no configured registrations,
+  /// and inventing a jurisdiction or a rate on a financial record is worse than
+  /// recording that neither was determined.
+  taxTreatment       TaxTreatment @default(NOT_DETERMINED)
+  taxJurisdiction    String?
+  taxRatePercent     Decimal?     @db.Decimal(6, 3)
+  taxRegistrationRef String?
+  taxProviderRef     String?
+  /// The provider's or catalogue's rate response exactly as received, so a
+  /// disputed tax figure can be traced to what was known at the time.
+  taxRateSnapshot    Json?
+
+  /// The published commercial configuration this order was priced against —
+  /// plan price version, market code, publication status. Without it, "why was
+  /// I quoted this" is unanswerable after the next publish.
+  commercialSnapshot Json?
+
+  status SubscriptionOrderStatus @default(DRAFT)
+
+  stripeCustomerId        String?
+  stripeCheckoutSessionId String? @unique
+
+  /// Business identity of the submission, used to absorb refreshes and double
+  /// submits. Unique, so the database — not a pre-check racing itself — is what
+  /// refuses the second one.
+  ///
+  /// **Nullable on purpose, and released when the order stops being open.**
+  /// The hash identifies the one *live* order for a submission, not the
+  /// submission forever. Held permanently, an abandoned checkout would make
+  /// that company and plan unbuyable for all time — PostgreSQL treats NULLs as
+  /// distinct, so releasing it lets the same customer come back and buy.
+  submissionHash String? @unique
+
+  /// The workspace slug the customer asked for, reserved from the moment they
+  /// ask rather than at provisioning time.
+  ///
+  /// Tenant.slug is already unique, but a Tenant does not exist until payment
+  /// has been confirmed — so without this column two people can both be shown
+  /// "maseer is available", both pay, and only the second one's provisioning
+  /// discovers the collision, after the money has moved. The reservation has to
+  /// outlive the availability check that promised it.
+  ///
+  /// **Nullable-unique, and released the same way submissionHash is**, for the
+  /// same reason: held permanently, one abandoned checkout would make a name
+  /// unclaimable forever. PostgreSQL treats NULLs as distinct, so clearing it on
+  /// abandonment returns the slug to circulation. Uniqueness here is a *hold*,
+  /// not the final say — Tenant.slug remains the permanent authority, and
+  /// provisioning re-asserts it inside its own transaction.
+  requestedSlug String? @unique
+
+  /// Proof that the person buying controls the address the workspace owner will
+  /// be created at, established **before** payment.
+  ///
+  /// A card proves somebody can pay. It does not prove they typed their own
+  /// email, and the owner address is the one credential that can never be
+  /// corrected from inside the workspace — get it wrong and nobody can sign in
+  /// to fix it. Verifying first means nobody is charged for a workspace they
+  /// cannot reach, and `paidAt` implies `ownerEmailVerifiedAt`.
+  ownerEmailVerifiedAt DateTime?
+
+  /// The code is a credential and is stored hashed, never in plaintext, for the
+  /// same reason a password is. Cleared once consumed.
+  emailVerificationCodeHash String?
+  emailVerificationExpiresAt DateTime?
+  emailVerificationSentAt    DateTime?
+  /// Wrong guesses against the *current* code. Reset on reissue, capped so a
+  /// six-digit code cannot be walked.
+  emailVerificationAttempts  Int      @default(0)
+
+  /// What the buyer does — "HR Director", not "Primary Owner".
+  ///
+  /// Carried here because `CustomerContact`, its eventual home, does not exist
+  /// until provisioning runs. `CustomerContact.role` is free text and
+  /// `isPrimaryContact` already carries the relationship, so the role column can
+  /// hold the job title without losing anything.
+  ownerJobTitle String?
+
+  /// When an unpaid order stops being offered and becomes ABANDONED.
+  expiresAt DateTime?
+
+  paidAt      DateTime?
+  activatedAt DateTime?
+  abandonedAt DateTime?
+  failureReason String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  customer     CustomerAccount @relation(fields: [customerAccountId], references: [id], onDelete: Restrict)
+  lead         Lead?           @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  tenant       Tenant?         @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  subscription Subscription?   @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  plan         Plan?           @relation(fields: [planId], references: [id], onDelete: SetNull)
+  planPrice    PlanPrice?      @relation(fields: [planPriceId], references: [id], onDelete: SetNull)
+  market       Market?         @relation(fields: [marketId], references: [id], onDelete: Restrict)
+  provisioningRuns TenantProvisioningRun[]
+  promotion    Promotion?      @relation(fields: [promotionId], references: [id], onDelete: SetNull)
+
+  @@index([customerAccountId, status])
+  @@index([status, expiresAt])
+  @@index([tenantId])
+  @@index([planPriceId])
+  @@index([leadId])
+}
+
+// ---------------------------------------------------------------------------
+// Seat and plan changes
+//
+// The asymmetry between increase and decrease is a commercial rule, not an
+// implementation detail. An INCREASE is immediate: somebody hired people and
+// needs them working today, and the provider takes a proration. A DECREASE
+// takes effect at renewal — a customer who paid for the period keeps what they
+// paid for, and nobody gets a refund by editing a number downward.
+//
+// Both are recorded as requests rather than applied as bare column writes, so
+// "who reduced our capacity, when, and from what" is answerable, and so a
+// decrease can sit pending until its effective date without the current
+// capacity being wrong in the meantime.
+// ---------------------------------------------------------------------------
+
+enum SeatChangeDirection {
+  INCREASE
+  DECREASE
+}
+
+enum SeatChangeStatus {
+  /// Recorded and waiting for its effective date. Decreases live here.
+  SCHEDULED
+  /// Applied to internal capacity and to the provider.
+  APPLIED
+  /// The provider refused or errored; internal capacity was NOT changed.
+  FAILED
+  /// Withdrawn before it took effect.
+  CANCELLED
+}
+
+model SeatChangeRequest {
+  id             String @id @default(uuid())
+  tenantId       String
+  subscriptionId String
+
+  direction SeatChangeDirection
+  fromSeats Int
+  toSeats   Int
+
+  status SeatChangeStatus @default(SCHEDULED)
+
+  /// When the change takes or took effect. For an increase this is now; for a
+  /// decrease it is the renewal date.
+  effectiveAt DateTime
+  appliedAt   DateTime?
+
+  /// Provider outcome, kept separate from `status` because internal capacity
+  /// and provider quantity can legitimately disagree for a moment, and the
+  /// reconciliation job needs to see which side moved.
+  providerSynced Boolean @default(false)
+  providerError  String?
+
+  requestedByUserId String?
+  reason            String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([subscriptionId, status])
+  @@index([status, effectiveAt])
+  @@index([tenantId, createdAt])
+}
+
+enum PlanChangeDirection {
+  UPGRADE
+  DOWNGRADE
+}
+
+enum PlanChangeStatus {
+  SCHEDULED
+  APPLIED
+  FAILED
+  CANCELLED
+}
+
+/// A move between plans, with the consequences recorded before it happens.
+///
+/// A DOWNGRADE never deletes module data. It reduces entitlement, and the
+/// features that stop being reachable are listed in `entitlementImpact` so the
+/// customer is shown what they are giving up *before* they confirm — and so
+/// support can answer "where did our data go" with "it is still there".
+model PlanChangeRequest {
+  id             String @id @default(uuid())
+  tenantId       String
+  subscriptionId String
+
+  direction     PlanChangeDirection
+  fromPlanId    String
+  toPlanId      String
+  toPlanPriceId String?
+
+  status PlanChangeStatus @default(SCHEDULED)
+
+  /// Upgrades take effect immediately; downgrades at renewal, for the same
+  /// reason a seat decrease does.
+  effectiveAt DateTime
+  appliedAt   DateTime?
+
+  /// Which feature keys are gained and lost. Computed at request time from the
+  /// plan feature sets and frozen — a later plan edit must not rewrite what the
+  /// customer was shown when they agreed.
+  entitlementImpact Json?
+
+  providerSynced Boolean @default(false)
+  providerError  String?
+
+  requestedByUserId String?
+  reason            String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant       Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  fromPlan     Plan   @relation("PlanChangeFrom", fields: [fromPlanId], references: [id], onDelete: Restrict)
+  toPlan       Plan   @relation("PlanChangeTo", fields: [toPlanId], references: [id], onDelete: Restrict)
+
+  @@index([subscriptionId, status])
+  @@index([status, effectiveAt])
+  @@index([tenantId, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Cancellation, retention and erasure requests
+//
+// `Subscription.cancelAtPeriodEnd` already existed and answered one narrow
+// question. It could not express the two things customers and operators
+// actually do, which are different actions with different consequences:
+//
+//   CANCEL_RENEWAL   — stop billing me; I keep working until the date I paid
+//                      through. The overwhelmingly common case.
+//   TERMINATE_NOW    — cut access today. Rare, deliberate, and a decision
+//                      somebody has to own, because people lose access to a
+//                      product they have already paid for.
+//
+// Collapsing those into one boolean is how a "cancel" button ends up locking a
+// company out on the day they clicked it.
+// ---------------------------------------------------------------------------
+
+enum CancellationType {
+  CANCEL_RENEWAL
+  TERMINATE_NOW
+}
+
+enum CancellationStatus {
+  /// Renewal is off; access continues to the paid-through date.
+  PENDING_PERIOD_END
+  /// Access has ended and retention has started.
+  TERMINATED
+  /// The customer changed their mind before it took effect.
+  REVOKED
+}
+
+model SubscriptionCancellation {
+  id             String @id @default(uuid())
+  tenantId       String
+  subscriptionId String
+
+  type   CancellationType
+  status CancellationStatus @default(PENDING_PERIOD_END)
+
+  /// The date access actually ends. For CANCEL_RENEWAL this is the period the
+  /// customer already paid for — it is a promise, not an estimate.
+  paidThroughDate DateTime?
+  effectiveAt     DateTime
+  terminatedAt    DateTime?
+
+  reason            String?
+  /// Free text from the customer. Kept separate from `reason` because one is a
+  /// category somebody chose and the other is what they actually said.
+  feedback          String?
+  requestedByUserId String?
+  revokedAt         DateTime?
+  revokedByUserId   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([subscriptionId, status])
+  @@index([status, effectiveAt])
+  @@index([tenantId, createdAt])
+}
+
+enum RetentionStatus {
+  /// Counting down to the scheduled erasure date.
+  RETAINING
+  /// A hold is in force; the clock is paused and erasure will not run.
+  ON_HOLD
+  /// The window elapsed and erasure has been requested.
+  ERASURE_SCHEDULED
+  ERASED
+  /// The customer came back before the window ran out.
+  RESTORED
+}
+
+/// The window between losing access and losing data.
+///
+/// Recorded as a row rather than computed on demand so the scheduled erasure
+/// date is a stored promise that survives a policy change. A customer told
+/// "your data is kept for 60 days" must not silently get 30 because somebody
+/// edited a default six weeks later.
+model TenantRetention {
+  id       String @id @default(uuid())
+  tenantId String @unique
+
+  status RetentionStatus @default(RETAINING)
+
+  retentionStartedAt DateTime
+  /// The date erasure becomes due. Stored, not derived.
+  scheduledErasureAt DateTime
+
+  /// What the customer was actually told, frozen at the time they were told it.
+  retentionDays  Int
+  policyVersion  String?
+
+  erasureRequestedAt DateTime?
+  erasedAt           DateTime?
+  restoredAt         DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  holds  RetentionHold[]
+
+  @@index([status, scheduledErasureAt])
+}
+
+enum RetentionHoldType {
+  LEGAL
+  SECURITY
+  BILLING_DISPUTE
+  ADMINISTRATIVE
+}
+
+/// A reason not to erase yet.
+///
+/// Any active hold suspends automatic erasure. Deliberately a separate table
+/// rather than a flag: several holds can exist for different reasons and
+/// different owners, and releasing one must not release the others. A single
+/// boolean is how data gets erased during litigation.
+model RetentionHold {
+  id                String @id @default(uuid())
+  tenantRetentionId String
+  tenantId          String
+
+  type   RetentionHoldType
+  reason String
+
+  placedByPlatformUser String?
+  placedAt             DateTime  @default(now())
+  releasedByPlatformUser String?
+  releasedAt           DateTime?
+  releaseReason        String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  retention TenantRetention @relation(fields: [tenantRetentionId], references: [id], onDelete: Cascade)
+
+  /// The "is anything holding this" query. `releasedAt IS NULL` means active.
+  @@index([tenantRetentionId, releasedAt])
+  @@index([tenantId, type])
+}
+
+enum DeletionRequestOrigin {
+  /// The tenant's own owner asked. This is a REQUEST, never an execution.
+  TENANT_OWNER
+  /// A platform operator initiated it.
+  PLATFORM_ADMIN
+}
+
+enum DeletionRequestStatus {
+  REQUESTED
+  /// A platform operator approved it; it is queued for the erasure orchestrator.
+  APPROVED
+  REJECTED
+  COMPLETED
+  CANCELLED
+}
+
+/// A request to erase a workspace — never the erasure itself.
+///
+/// The separation is the safety property. A tenant owner can ask; only a
+/// platform operator with the dedicated permission can approve, and the
+/// existing TenantErasureService is what actually runs. An owner-initiated
+/// deletion that erased immediately would make an angry afternoon permanent.
+model TenantDeletionRequest {
+  id       String @id @default(uuid())
+  tenantId String
+
+  origin DeletionRequestOrigin
+  status DeletionRequestStatus @default(REQUESTED)
+
+  reason String
+
+  /// The typed confirmation. Stored so the audit trail can show the operator
+  /// was asked to type the workspace name and did.
+  confirmationPhrase String?
+
+  requestedByUserId         String?
+  requestedByPlatformUser   String?
+  requestedAt               DateTime  @default(now())
+  reviewedByPlatformUser    String?
+  reviewedAt                DateTime?
+  reviewNote                String?
+  /// When erasure may run. Never immediate — the retention window applies.
+  scheduledFor              DateTime?
+  completedAt               DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, status])
+  @@index([status, scheduledFor])
+}
+
+enum RefundStatus {
+  REQUESTED
+  APPROVED
+  REJECTED
+  PROCESSED
+  FAILED
+}
+
+enum RefundReasonCode {
+  DUPLICATE_PAYMENT
+  BILLING_ERROR
+  LEGAL_REQUIREMENT
+  GOODWILL
+  MANUAL_CORRECTION
+}
+
+/// A controlled refund.
+///
+/// Ordinary voluntary refunds are not offered; every row here is one of the
+/// named exceptions, requires the dedicated permission, and is audited. The
+/// reason is an enum rather than free text so "why did we refund this" is a
+/// reportable question rather than a reading exercise.
+model RefundRequest {
+  id                String @id @default(uuid())
+  tenantId          String?
+  customerAccountId String
+  paymentId         String?
+  invoiceId         String?
+
+  amount   Decimal @db.Decimal(12, 2)
+  currency String
+
+  reasonCode RefundReasonCode
+  reason     String
+  status     RefundStatus @default(REQUESTED)
+
+  requestedByPlatformUser String?
+  approvedByPlatformUser  String?
+  approvedAt              DateTime?
+  processedAt             DateTime?
+  providerRefundId        String?
+  failureReason           String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  customer CustomerAccount @relation(fields: [customerAccountId], references: [id], onDelete: Restrict)
+
+  @@index([customerAccountId, status])
+  @@index([status, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Reconciliation
+//
+// Two systems hold the same facts — DijiPeople and Stripe — and they drift.
+// A quantity updated here but refused there, a subscription cancelled in the
+// dashboard, a plan price republished mid-flight. Drift that nobody measures is
+// drift that gets discovered by a customer.
+//
+// Auto-fix is deliberately narrow: only differences with one obviously correct
+// answer are corrected automatically, and every correction is recorded. A
+// reconciler that "helpfully" resolves ambiguous differences is a second,
+// unaudited writer of billing state.
+// ---------------------------------------------------------------------------
+
+enum ReconciliationScope {
+  STRIPE
+  INTERNAL
+}
+
+enum ReconciliationRunStatus {
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+enum ReconciliationOutcome {
+  HEALTHY
+  WARNING
+  MISMATCH
+  AUTO_FIXED
+  MANUAL_ACTION_REQUIRED
+}
+
+model ReconciliationRun {
+  id    String              @id @default(uuid())
+  scope ReconciliationScope
+
+  status ReconciliationRunStatus @default(RUNNING)
+
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  checkedCount              Int @default(0)
+  healthyCount              Int @default(0)
+  warningCount              Int @default(0)
+  mismatchCount             Int @default(0)
+  autoFixedCount            Int @default(0)
+  manualActionRequiredCount Int @default(0)
+
+  errorMessage String?
+
+  findings ReconciliationFinding[]
+
+  @@index([scope, startedAt])
+  @@index([status])
+}
+
+model ReconciliationFinding {
+  id    String @id @default(uuid())
+  runId String
+
+  outcome ReconciliationOutcome
+
+  /// What was compared, e.g. `subscription.quantity`.
+  checkKey   String
+  entityType String
+  entityId   String
+  tenantId   String?
+
+  /// Both sides, as strings, so a numeric and a status difference are stored
+  /// the same way and a report does not need per-check columns.
+  expectedValue String?
+  actualValue   String?
+
+  detail String?
+
+  /// What the reconciler did about it, when it did anything.
+  autoFixApplied Boolean   @default(false)
+  autoFixDetail  String?
+  resolvedAt     DateTime?
+
+  createdAt DateTime @default(now())
+
+  run ReconciliationRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([runId, outcome])
+  @@index([entityType, entityId])
+  @@index([tenantId])
+}
+
+// ---------------------------------------------------------------------------
+// Consent
+//
+// Three different things were being conflated, and the brief is explicit that
+// they must not be:
+//
+//   Privacy notice acknowledgement — "I have been told what you do with my
+//     data". Already handled: LegalDocumentAcknowledgement, pointing at an
+//     immutable published version.
+//   Marketing consent — "you may email me". OPTIONAL, and never a condition of
+//     submitting a form.
+//   Cookie consent — "you may run non-essential scripts".
+//
+// `Lead.marketingConsent` and friends already record the current state as
+// booleans. Those stay: three frontends read them. What they cannot answer is
+// *what* was agreed to and *when it changed* — a boolean has no version, no
+// source and no history, so "prove this person opted in" has no answer beyond
+// "a column says true".
+//
+// ConsentRecord is that history. The booleans remain the fast current-state
+// read; this is the evidence behind them.
+// ---------------------------------------------------------------------------
+
+enum ConsentType {
+  MARKETING_EMAIL
+  /// Cookie categories. ESSENTIAL is deliberately absent: it is not a choice,
+  /// so offering it as one would be a dark pattern — a toggle that does nothing
+  /// but imply the visitor had a say.
+  COOKIE_FUNCTIONAL
+  COOKIE_ANALYTICS
+  COOKIE_MARKETING
+}
+
+enum ConsentState {
+  GRANTED
+  /// Actively refused. Distinct from never having been asked, which is the
+  /// absence of a row.
+  DECLINED
+  /// Granted and later taken back. `withdrawnAt` says when.
+  WITHDRAWN
+}
+
+model ConsentRecord {
+  id    String       @id @default(uuid())
+  type  ConsentType
+  state ConsentState
+
+  /// Who. All nullable because consent is given at every stage of the funnel —
+  /// an anonymous visitor accepting cookies has none of these, a lead has an
+  /// email, a tenant user has all of them.
+  visitorId         String?
+  subjectEmail      String?
+  leadId            String?
+  customerAccountId String?
+  tenantId          String?
+  userId            String?
+
+  /// The wording or definition the person was actually shown. Without this,
+  /// "they consented to marketing" means nothing in two years when the copy has
+  /// changed three times.
+  definitionVersion String
+
+  /// Where it happened, e.g. `landing:contact`, `landing:cookie-banner`,
+  /// `web:preferences`. A withdrawal from the preferences page and one from an
+  /// unsubscribe link are different facts about how well the flow works.
+  source String
+
+  grantedAt   DateTime?
+  withdrawnAt DateTime?
+
+  /// Evidence of the event itself, never used to profile anyone.
+  ipAddress String?
+  userAgent String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  lead     Lead?            @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  customer CustomerAccount? @relation(fields: [customerAccountId], references: [id], onDelete: SetNull)
+
+  /// The withdrawal lookup: the current state for one subject and one type.
+  @@index([subjectEmail, type, createdAt])
+  @@index([visitorId, type])
+  @@index([leadId])
+  @@index([customerAccountId])
+  @@index([tenantId, type])
+  @@index([type, state])
 }

@@ -253,7 +253,7 @@ available the Integrator pushes the task branch, waits for the
 - **No remote, or CI cannot run** → report `REMOTE_CI = UNAVAILABLE`, fall back
   to local gates where the target is not shared, and say so explicitly. Never
   imply CI ran when it did not.
-- **`security-invariant-report` and `lint-api-report` are non-gating** known
+- **`security-invariant-report` and `database-e2e-report` are non-gating** known
   baselines — see [`ci.md`](ci.md).
 - **Branch advanced while CI ran** → the run is against a stale base. Rebase or
   merge the target in, push, and let CI re-run. Do not merge on a green run

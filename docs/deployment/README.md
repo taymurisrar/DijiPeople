@@ -10,6 +10,7 @@ Owning agent: [`.agent/agents/release-devops.md`](../../.agent/agents/release-de
 | [`environments.md`](environments.md) | What environments exist, and what is configured where |
 | [`readiness-checklist.md`](readiness-checklist.md) | The gates, and the readiness levels |
 | [`deployment-runbook.md`](deployment-runbook.md) | Executing a release |
+| [`first-production-launch.md`](first-production-launch.md) | The ordered owner actions for the **first** production deploy — new environment variables, the Stripe currency question, and opening the commercial surface |
 | [`rollback-runbook.md`](rollback-runbook.md) | Undoing one, by change class |
 | [`smoke-tests.md`](smoke-tests.md) | Post-deploy verification scenarios |
 | [`incident-response.md`](incident-response.md) | When a deploy goes wrong |

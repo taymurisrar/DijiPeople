@@ -1,6 +1,10 @@
 import { Body, Controller, Get, Put, UseGuards } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { Permissions } from '../../common/decorators/permissions.decorator';
+import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
+import {
+  Permissions,
+  RequirePermission,
+} from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
@@ -19,6 +23,8 @@ export class NavigationController {
    * hiding an entry never substitutes for the permission checks behind it.
    */
   @Get('sidebar')
+  @Permissions('dashboard.view')
+  @RequirePermission(ENTITY_KEYS.USER_PREFERENCES, 'read')
   getSidebar(@CurrentUser() user: AuthenticatedUser) {
     return this.navigationService.getSidebarOverrides(user.tenantId);
   }
@@ -32,6 +38,7 @@ export class NavigationController {
    * it does.
    */
   @Permissions('customization.modules.manage')
+  @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'manage')
   updateSidebar(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: UpdateSidebarNavigationDto,

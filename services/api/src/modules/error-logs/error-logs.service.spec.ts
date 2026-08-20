@@ -65,3 +65,129 @@ describe('ErrorLogsService', () => {
     expect(prisma.errorLog.findUnique).not.toHaveBeenCalled();
   });
 });
+
+/*
+ * A support role here is a tenant role. Holding system-admin in tenant A must
+ * not read tenant B's log, which it did until the tenant comparison was added
+ * to the support branch of findForUser.
+ */
+describe('ErrorLogsService.findForUser tenant isolation', () => {
+  function buildService(log: {
+    tenantId: string | null;
+    userId: string | null;
+  }) {
+    const prisma = {
+      errorLog: {
+        count: jest.fn(async () => 1),
+        findUnique: jest.fn(async () => ({
+          id: 'log-1',
+          traceId: 'trace-1',
+          message: 'Boom',
+          path: '/api/payroll/runs',
+          ...log,
+        })),
+      },
+      errorLogOccurrence: {
+        findUnique: jest.fn(async () => null),
+      },
+    };
+
+    return new ErrorLogsService(prisma as never, { get: jest.fn() } as never);
+  }
+
+  const supportRoles = ['system-admin'];
+
+  it('lets a tenant support user read a log from their own tenant', async () => {
+    const service = buildService({ tenantId: 'tenant-a', userId: 'someone' });
+
+    const log = await service.findForUser('trace-1', {
+      userId: 'support-user',
+      tenantId: 'tenant-a',
+      roleKeys: supportRoles,
+    });
+
+    expect(log).toMatchObject({ traceId: 'trace-1' });
+  });
+
+  it('denies a tenant support user a log belonging to another tenant', async () => {
+    const service = buildService({ tenantId: 'tenant-b', userId: 'someone' });
+
+    const log = await service.findForUser('trace-1', {
+      userId: 'support-user',
+      tenantId: 'tenant-a',
+      roleKeys: supportRoles,
+    });
+
+    expect(log).toBeNull();
+  });
+
+  it.each([null, 'platform'])(
+    'denies a tenant support user a platform-scope log (%s)',
+    async (tenantId) => {
+      const service = buildService({ tenantId, userId: 'platform-user' });
+
+      const log = await service.findForUser('trace-1', {
+        userId: 'support-user',
+        tenantId: 'tenant-a',
+        roleKeys: supportRoles,
+      });
+
+      expect(log).toBeNull();
+    },
+  );
+
+  it('reports a foreign trace exactly as it reports a missing one', async () => {
+    const foreign = await buildService({
+      tenantId: 'tenant-b',
+      userId: 'someone',
+    }).findForUser('trace-1', {
+      userId: 'support-user',
+      tenantId: 'tenant-a',
+      roleKeys: supportRoles,
+    });
+
+    const missingPrisma = {
+      errorLog: {
+        count: jest.fn(async () => 1),
+        findUnique: jest.fn(async () => null),
+      },
+      errorLogOccurrence: { findUnique: jest.fn(async () => null) },
+    };
+    const missing = await new ErrorLogsService(
+      missingPrisma as never,
+      { get: jest.fn() } as never,
+    ).findForUser('trace-1', {
+      userId: 'support-user',
+      tenantId: 'tenant-a',
+      roleKeys: supportRoles,
+    });
+
+    // Same value for both, so existence of a foreign trace stays unobservable.
+    expect(foreign).toBeNull();
+    expect(missing).toBeNull();
+  });
+
+  it('still lets an ordinary user read their own log in their own tenant', async () => {
+    const service = buildService({ tenantId: 'tenant-a', userId: 'user-1' });
+
+    const log = await service.findForUser('trace-1', {
+      userId: 'user-1',
+      tenantId: 'tenant-a',
+      roleKeys: ['employee'],
+    });
+
+    expect(log).toMatchObject({ traceId: 'trace-1' });
+  });
+
+  it('denies an ordinary user another user log in their own tenant', async () => {
+    const service = buildService({ tenantId: 'tenant-a', userId: 'user-2' });
+
+    const log = await service.findForUser('trace-1', {
+      userId: 'user-1',
+      tenantId: 'tenant-a',
+      roleKeys: ['employee'],
+    });
+
+    expect(log).toBeNull();
+  });
+});

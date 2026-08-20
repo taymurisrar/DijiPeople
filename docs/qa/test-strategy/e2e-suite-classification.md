@@ -1,8 +1,11 @@
 # E2E Suite Classification
 
-The nine `*.e2e-spec.ts` suites under `services/api/test/`, classified so the
-`database-e2e-report` job can be promoted to a required gate deliberately rather
-than hopefully.
+The database-backed `*.e2e-spec.ts` suites under `services/api/test/`,
+classified so the `database-e2e-report` job could be promoted to a required gate
+deliberately rather than hopefully. **It was promoted on 2026-08-20** — see
+Promotion to a required gate, below. The original classification covered nine
+suites; the tree now contains **15**, so the old table is retained as historical
+design evidence and the current execution snapshot below is authoritative.
 
 > **First CI run: every suite failed.** The static classification below was
 > wrong in one specific way, and the run is what proved it. Both root causes
@@ -13,6 +16,34 @@ than hopefully.
 **Classified:** 2026-08-14 (static), against `0b4d90e`.
 **First observed run:** GitHub Actions run `31840528309`, SHA `f35d696` —
 10 suites failed, 190 tests failed, 0 passed.
+
+**Current observed runs:** GitHub Actions runs `32020076245` at `47b127f` and
+`32021401010` at final task SHA `03f30cb` both executed 15 suites / 227 tests
+with 8 suites passing and the same 7 failing; totals varied from 79–80 passed
+and 147–148 failed. Post-merge run `32022417483` at `c554f45` shifted to 10
+suites / 99 tests passing and 5 suites / 128 tests failing because
+`attendance-review` and `attendance-operational` passed. This is run-variable
+evidence, not proof of a stable fix; `QA-ATT-007` preserves the latter as
+`PASS_WITH_RISKS`. The job is still report-only. Its green job conclusion does
+not mean the Jest suite passed; that evidence-integrity defect is `BUG-0049`.
+
+| Current suite | Exact-base result |
+|---|---|
+| `app` | PASS |
+| `attendance-engine` | FAIL |
+| `attendance-integrations-http` | FAIL |
+| `attendance-integrations-isolation` | FAIL |
+| `attendance-operational` | PASS_WITH_RISKS — failed twice, then passed post-merge |
+| `attendance-review` | PASS_WITH_RISKS — failed twice, then passed post-merge |
+| `commercial-bootstrap` | PASS |
+| `gateway-runtime` | FAIL |
+| `permission-propagation` | PASS |
+| `platform-workflows` | FAIL |
+| `tenant-erasure-dry-run` | PASS |
+| `tenant-erasure-order` | PASS |
+| `tenant-isolation-pattern` | PASS |
+| `tenant-provisioning-recovery` | PASS |
+| `workspace-domain-isolation` | PASS |
 
 ## What the first run revealed
 
@@ -31,7 +62,7 @@ question as "what does booting need".**
 
 ---
 
-## Classification
+## Original static classification (2026-08-14)
 
 | Suite | Tests | Class | Basis |
 |---|---|---|---|
@@ -45,7 +76,8 @@ question as "what does booting need".**
 | `gateway-runtime` | 27 | **NEEDS_ENVIRONMENT** | Same credential-encryption dependency |
 | `platform-workflows` | 5 | **NEEDS_TEST_DATA** | Seeds itself through the public endpoint `/public/partners/onboarding/seed-horizon-onboarding`, and has **no `deleteMany` cleanup**. Safe in an ephemeral database; would leak in a reused one |
 
-**Totals:** 190 tests across 9 suites (10 including `tenant-isolation-pattern`).
+**Historical totals:** 190 tests across 9 suites (10 including
+`tenant-isolation-pattern`). These are not the current suite counts.
 **None classified `FLAKY`, `BROKEN` or `STALE`** — no skipped tests, no
 `TODO`/`FIXME` markers, and every suite reads as maintained.
 
@@ -77,16 +109,36 @@ rather than replaces.
 
 ---
 
-## Promotion to a required gate
+## Promotion to a required gate — DONE, 2026-08-20
 
-`database-e2e-report` becomes required when:
+`database-e2e-report` is a required gate. The criteria were:
 
 1. every `READY` suite passes three consecutive runs
 2. `NEEDS_*` suites are fixed, or quarantined **by name** with the reason
    recorded here
 3. total runtime stays under ~10 minutes
 
-Until then it uploads its output as an artifact and writes a job summary.
+All three hold, and none was adjusted to fit:
+
+1. **every** suite passes, not only the `READY` ones — 24 of 24, 295 of 295
+   tests;
+2. **nothing is quarantined.** There is no `NEEDS_FIXTURE` or `NEEDS_ENV` suite
+   left, because the suites that carried those labels now build their own data
+   through `test/helpers/db-fixtures.ts`. No assertion was relaxed to get there;
+3. 644 and 714 seconds for the full set at `maxWorkers: 1`, cold cache.
+
+Proven twice consecutively on a fresh database, with `--detectOpenHandles`
+clean both times. See [[ITEM-0047]] and the recipe in
+[`database-e2e-reproduction.md`](../../development/database-e2e-reproduction.md).
+
+The evidence-integrity half is also closed. `BUG-0049` fixed the summary so a
+red Jest exit could not read as green; promotion goes further — a separate
+`Publish the verdict` step exits non-zero on that captured code, so the job
+conclusion and the `RESULT:` line cannot disagree at all.
+
+**The classification tables below are now historical.** They record how the
+suites were understood before they were made deterministic, and the gap between
+that understanding and what running them proved is the point of keeping them.
 
 ## When a suite fails
 

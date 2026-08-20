@@ -10,7 +10,11 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { Permissions } from '../../common/decorators/permissions.decorator';
+import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
+import {
+  Permissions,
+  RequirePermission,
+} from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
@@ -43,12 +47,14 @@ export class CustomizationController {
 
   @Get()
   @Permissions('customization.read')
+  @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'read')
   summary(@CurrentUser() user: AuthenticatedUser) {
     return this.customizationService.getSummary(user);
   }
 
   @Post('publish')
   @Permissions('customization.publish')
+  @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'configure')
   publish(@CurrentUser() user: AuthenticatedUser) {
     return this.customizationService.publish(user);
   }
@@ -65,6 +71,7 @@ export class CustomizationController {
    */
   @Get('lookup-options/:tableKey')
   @Permissions('customization.read')
+  @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'read')
   listLookupOptions(
     @CurrentUser() user: AuthenticatedUser,
     @Param('tableKey') tableKey: string,
@@ -81,30 +88,35 @@ export class CustomizationController {
 
   @Get('published')
   @Permissions('customization.read')
+  @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'read')
   getPublished(@CurrentUser() user: AuthenticatedUser) {
     return this.customizationService.getPublished(user);
   }
 
   @Get('default-solution')
   @Permissions('customization.read')
+  @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'read')
   getDefaultSolution(@CurrentUser() user: AuthenticatedUser) {
     return this.customizationService.getDefaultSolution(user);
   }
 
   @Get('publish-history')
   @Permissions('customization.read')
+  @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'read')
   getPublishHistory(@CurrentUser() user: AuthenticatedUser) {
     return this.customizationService.getPublishHistory(user);
   }
 
   @Get('publish/drafts')
   @Permissions('customization.read')
+  @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'read')
   listPublishDrafts(@CurrentUser() user: AuthenticatedUser) {
     return this.customizationService.listPublishDraftComponents(user);
   }
 
   @Post('layers/ensure')
   @Permissions('customization.publish')
+  @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'configure')
   ensureCustomizationLayer(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: EnsureCustomizationLayerDto,
@@ -114,6 +126,7 @@ export class CustomizationController {
 
   @Post('components/move')
   @Permissions('customization.publish')
+  @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'configure')
   moveDraftComponents(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: MoveCustomizationComponentsDto,
@@ -123,6 +136,7 @@ export class CustomizationController {
 
   @Post('publish/validate')
   @Permissions('customization.publish')
+  @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'configure')
   validatePublishDrafts(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto?: Partial<PublishCustomizationComponentsDto>,
@@ -135,6 +149,7 @@ export class CustomizationController {
 
   @Post('publish/components')
   @Permissions('customization.publish')
+  @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'configure')
   publishComponents(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: PublishCustomizationComponentsDto,
@@ -144,18 +159,21 @@ export class CustomizationController {
 
   @Get('effective')
   @Permissions('customization.read')
+  @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'read')
   getEffectiveMetadata(@CurrentUser() user: AuthenticatedUser) {
     return this.customizationService.getEffectiveMetadata(user);
   }
 
   @Get('packages')
   @Permissions('customization.read')
+  @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'read')
   listPackages(@CurrentUser() user: AuthenticatedUser) {
     return this.customizationService.listPackages(user);
   }
 
   @Post('packages')
   @Permissions('customization.publish')
+  @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'configure')
   createPackage(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateCustomizationPackageDto,
@@ -165,6 +183,7 @@ export class CustomizationController {
 
   @Get('packages/import/preview')
   @Permissions('customization.read')
+  @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'read')
   getImportPreviewShell() {
     return {
       supported: true,
@@ -176,12 +195,14 @@ export class CustomizationController {
 
   @Post('packages/import/preview')
   @Permissions('customization.publish')
+  @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'configure')
   previewPackageImport(@Body() dto: PreviewCustomizationPackageImportDto) {
     return this.customizationService.previewPackageImport(dto);
   }
 
   @Get('packages/:packageId')
   @Permissions('customization.read')
+  @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'read')
   getPackage(
     @CurrentUser() user: AuthenticatedUser,
     @Param('packageId') packageId: string,
@@ -191,6 +212,7 @@ export class CustomizationController {
 
   @Patch('packages/:packageId')
   @Permissions('customization.publish')
+  @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'configure')
   updatePackage(
     @CurrentUser() user: AuthenticatedUser,
     @Param('packageId') packageId: string,
@@ -201,6 +223,7 @@ export class CustomizationController {
 
   @Delete('packages/:packageId')
   @Permissions('customization.publish')
+  @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'configure')
   deletePackage(
     @CurrentUser() user: AuthenticatedUser,
     @Param('packageId') packageId: string,
@@ -210,6 +233,7 @@ export class CustomizationController {
 
   @Get('packages/:packageId/candidates')
   @Permissions('customization.read')
+  @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'read')
   listPackageComponentCandidates(
     @CurrentUser() user: AuthenticatedUser,
     @Param('packageId') packageId: string,
@@ -225,6 +249,7 @@ export class CustomizationController {
 
   @Post('packages/:packageId/components')
   @Permissions('customization.publish')
+  @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'configure')
   addExistingComponentsToPackage(
     @CurrentUser() user: AuthenticatedUser,
     @Param('packageId') packageId: string,
@@ -239,6 +264,7 @@ export class CustomizationController {
 
   @Post('packages/:packageId/validate')
   @Permissions('customization.publish')
+  @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'configure')
   validatePackage(
     @CurrentUser() user: AuthenticatedUser,
     @Param('packageId') packageId: string,
@@ -248,6 +274,7 @@ export class CustomizationController {
 
   @Post('packages/:packageId/publish')
   @Permissions('customization.publish')
+  @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'configure')
   publishPackage(
     @CurrentUser() user: AuthenticatedUser,
     @Param('packageId') packageId: string,
@@ -257,6 +284,7 @@ export class CustomizationController {
 
   @Delete('packages/:packageId/components/:componentId')
   @Permissions('customization.publish')
+  @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'configure')
   removeComponentFromPackage(
     @CurrentUser() user: AuthenticatedUser,
     @Param('packageId') packageId: string,
@@ -271,6 +299,7 @@ export class CustomizationController {
 
   @Delete('packages/:packageId/components/:componentId/metadata')
   @Permissions('customization.publish')
+  @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'configure')
   deletePackageComponentMetadata(
     @CurrentUser() user: AuthenticatedUser,
     @Param('packageId') packageId: string,
@@ -290,6 +319,7 @@ export class CustomizationController {
    */
   @Get('packages/:packageId/export-readiness')
   @Permissions('customization.read')
+  @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'read')
   getPackageExportReadiness(
     @CurrentUser() user: AuthenticatedUser,
     @Param('packageId') packageId: string,
@@ -298,7 +328,8 @@ export class CustomizationController {
   }
 
   @Get('packages/:packageId/export')
-  @Permissions('customization.read')
+  @Permissions('customization.export')
+  @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'export')
   exportPackage(
     @CurrentUser() user: AuthenticatedUser,
     @Param('packageId') packageId: string,
@@ -308,12 +339,14 @@ export class CustomizationController {
 
   @Get('tables')
   @Permissions('customization.tables.read')
+  @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'read')
   listTables(@CurrentUser() user: AuthenticatedUser) {
     return this.customizationService.listTables(user);
   }
 
   @Post('tables')
   @Permissions('customization.tables.update')
+  @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'create')
   createTable(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateCustomizationTableDto,
@@ -323,6 +356,7 @@ export class CustomizationController {
 
   @Get('tables/:tableKey')
   @Permissions('customization.tables.read')
+  @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'read')
   getTable(
     @CurrentUser() user: AuthenticatedUser,
     @Param('tableKey') tableKey: string,
@@ -332,6 +366,7 @@ export class CustomizationController {
 
   @Patch('tables/:tableKey')
   @Permissions('customization.tables.update')
+  @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'write')
   updateTable(
     @CurrentUser() user: AuthenticatedUser,
     @Param('tableKey') tableKey: string,
@@ -342,6 +377,7 @@ export class CustomizationController {
 
   @Delete('tables/:tableKey')
   @Permissions('customization.tables.update')
+  @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'delete')
   deleteTable(
     @CurrentUser() user: AuthenticatedUser,
     @Param('tableKey') tableKey: string,
@@ -351,6 +387,7 @@ export class CustomizationController {
 
   @Get('tables/:tableKey/dependencies')
   @Permissions('customization.tables.read')
+  @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'read')
   getTableDependencies(
     @CurrentUser() user: AuthenticatedUser,
     @Param('tableKey') tableKey: string,
@@ -360,6 +397,7 @@ export class CustomizationController {
 
   @Get('tables/:tableKey/metadata-components')
   @Permissions('customization.tables.read')
+  @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'read')
   listModuleMetadataComponents(
     @CurrentUser() user: AuthenticatedUser,
     @Param('tableKey') tableKey: string,
@@ -374,6 +412,7 @@ export class CustomizationController {
 
   @Get('tables/:tableKey/columns')
   @Permissions('customization.columns.read')
+  @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'read')
   listColumns(
     @CurrentUser() user: AuthenticatedUser,
     @Param('tableKey') tableKey: string,
@@ -383,6 +422,7 @@ export class CustomizationController {
 
   @Post('tables/:tableKey/columns')
   @Permissions('customization.columns.create')
+  @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'create')
   createColumn(
     @CurrentUser() user: AuthenticatedUser,
     @Param('tableKey') tableKey: string,
@@ -393,6 +433,7 @@ export class CustomizationController {
 
   @Patch('tables/:tableKey/columns/:columnKey')
   @Permissions('customization.columns.update')
+  @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'write')
   updateColumn(
     @CurrentUser() user: AuthenticatedUser,
     @Param('tableKey') tableKey: string,
@@ -409,6 +450,7 @@ export class CustomizationController {
 
   @Delete('tables/:tableKey/columns/:columnKey')
   @Permissions('customization.columns.delete')
+  @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'delete')
   deleteColumn(
     @CurrentUser() user: AuthenticatedUser,
     @Param('tableKey') tableKey: string,
@@ -419,6 +461,7 @@ export class CustomizationController {
 
   @Get('tables/:tableKey/columns/:columnKey/dependencies')
   @Permissions('customization.columns.read')
+  @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'read')
   getColumnDependencies(
     @CurrentUser() user: AuthenticatedUser,
     @Param('tableKey') tableKey: string,
@@ -433,6 +476,7 @@ export class CustomizationController {
 
   @Get('tables/:tableKey/forms')
   @Permissions('customization.forms.read')
+  @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'read')
   listForms(
     @CurrentUser() user: AuthenticatedUser,
     @Param('tableKey') tableKey: string,
@@ -442,6 +486,7 @@ export class CustomizationController {
 
   @Get('tables/:tableKey/views')
   @Permissions('customization.views.read')
+  @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'read')
   listTableViews(
     @CurrentUser() user: AuthenticatedUser,
     @Param('tableKey') tableKey: string,
@@ -451,6 +496,7 @@ export class CustomizationController {
 
   @Post('tables/:tableKey/views')
   @Permissions('customization.views.create')
+  @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'create')
   createTableView(
     @CurrentUser() user: AuthenticatedUser,
     @Param('tableKey') tableKey: string,
@@ -461,6 +507,7 @@ export class CustomizationController {
 
   @Patch('tables/:tableKey/views/:viewKey')
   @Permissions('customization.views.update')
+  @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'write')
   updateTableView(
     @CurrentUser() user: AuthenticatedUser,
     @Param('tableKey') tableKey: string,
@@ -477,6 +524,7 @@ export class CustomizationController {
 
   @Delete('tables/:tableKey/views/:viewKey')
   @Permissions('customization.views.delete')
+  @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'delete')
   deleteTableView(
     @CurrentUser() user: AuthenticatedUser,
     @Param('tableKey') tableKey: string,
@@ -487,6 +535,7 @@ export class CustomizationController {
 
   @Post('tables/:tableKey/views/:viewKey/hide')
   @Permissions('customization.views.update')
+  @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'create')
   hideTableView(
     @CurrentUser() user: AuthenticatedUser,
     @Param('tableKey') tableKey: string,
@@ -502,6 +551,7 @@ export class CustomizationController {
 
   @Post('tables/:tableKey/views/:viewKey/unhide')
   @Permissions('customization.views.update')
+  @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'create')
   unhideTableView(
     @CurrentUser() user: AuthenticatedUser,
     @Param('tableKey') tableKey: string,
@@ -517,6 +567,7 @@ export class CustomizationController {
 
   @Post('tables/:tableKey/views/:viewKey/set-default')
   @Permissions('customization.views.update')
+  @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'create')
   setDefaultTableView(
     @CurrentUser() user: AuthenticatedUser,
     @Param('tableKey') tableKey: string,
@@ -531,6 +582,7 @@ export class CustomizationController {
 
   @Get('views')
   @Permissions('customization.views.read')
+  @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'read')
   listViews(
     @CurrentUser() user: AuthenticatedUser,
     @Query('moduleKey') moduleKey?: string,
@@ -540,6 +592,7 @@ export class CustomizationController {
 
   @Post('views')
   @Permissions('customization.views.create')
+  @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'create')
   createView(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateModuleViewDto,
@@ -549,6 +602,7 @@ export class CustomizationController {
 
   @Patch('views/:id')
   @Permissions('customization.views.update')
+  @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'write')
   updateView(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
@@ -559,12 +613,14 @@ export class CustomizationController {
 
   @Delete('views/:id')
   @Permissions('customization.views.delete')
+  @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'delete')
   deleteView(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
     return this.customizationService.deleteView(user, id);
   }
 
   @Post('tables/:tableKey/forms')
   @Permissions('customization.forms.create')
+  @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'create')
   createForm(
     @CurrentUser() user: AuthenticatedUser,
     @Param('tableKey') tableKey: string,
@@ -575,6 +631,7 @@ export class CustomizationController {
 
   @Patch('tables/:tableKey/forms/:formKey')
   @Permissions('customization.forms.update')
+  @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'write')
   updateForm(
     @CurrentUser() user: AuthenticatedUser,
     @Param('tableKey') tableKey: string,
@@ -586,6 +643,7 @@ export class CustomizationController {
 
   @Delete('tables/:tableKey/forms/:formKey')
   @Permissions('customization.forms.delete')
+  @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'delete')
   deleteForm(
     @CurrentUser() user: AuthenticatedUser,
     @Param('tableKey') tableKey: string,
@@ -596,6 +654,7 @@ export class CustomizationController {
 
   @Post('tables/:tableKey/forms/:formKey/set-default')
   @Permissions('customization.forms.update')
+  @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'create')
   setDefaultForm(
     @CurrentUser() user: AuthenticatedUser,
     @Param('tableKey') tableKey: string,

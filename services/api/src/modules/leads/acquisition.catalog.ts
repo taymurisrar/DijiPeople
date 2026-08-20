@@ -116,3 +116,17 @@ export function isPartnershipModel(value: unknown): value is PartnershipModel {
  * backfilled with a guess. Bump this whenever the notice wording changes.
  */
 export const CURRENT_PRIVACY_NOTICE_VERSION = '2026-08-16';
+
+/**
+ * The marketing-consent wording a submission is recorded against.
+ *
+ * Deliberately separate from the privacy notice version. They are different
+ * agreements that change on different schedules: rewriting the privacy notice
+ * does not re-ask anyone for permission to email them, and changing the opt-in
+ * wording says nothing about data handling. One shared version would make each
+ * look as though it invalidated the other.
+ *
+ * Bump this when the opt-in wording changes. Existing `GRANTED` records keep the
+ * version they were given under, which is the whole point of storing it.
+ */
+export const CURRENT_MARKETING_CONSENT_VERSION = '2026-08-18';

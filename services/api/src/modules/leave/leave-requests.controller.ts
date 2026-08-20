@@ -13,7 +13,11 @@ import {
 import type { Response } from 'express';
 import { setCsvDownloadHeaders } from '../../common/utils/csv-response.util';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { Permissions } from '../../common/decorators/permissions.decorator';
+import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
+import {
+  Permissions,
+  RequirePermission,
+} from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
@@ -33,12 +37,15 @@ export class LeaveRequestsController {
   ) {}
 
   @Get('available-types')
+  @Permissions('dashboard.view')
+  @RequirePermission(ENTITY_KEYS.USER_PREFERENCES, 'read')
   availableTypes(@CurrentUser() user: AuthenticatedUser) {
     return this.leaveService.getAvailableLeaveTypesForEmployee(user);
   }
 
   @Post()
   @Permissions('leave-requests.create')
+  @RequirePermission(ENTITY_KEYS.LEAVE_REQUESTS, 'create')
   submit(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: SubmitLeaveRequestDto,
@@ -49,6 +56,7 @@ export class LeaveRequestsController {
   // Declared before ':id'-style routes so "export" is not captured as an id.
   @Get('export')
   @Permissions('leave-requests.read')
+  @RequirePermission(ENTITY_KEYS.LEAVE_REQUESTS, 'read')
   async exportLeaveRequests(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: LeaveRequestQueryDto,
@@ -61,6 +69,7 @@ export class LeaveRequestsController {
 
   @Get('export-template')
   @Permissions('leave-requests.read')
+  @RequirePermission(ENTITY_KEYS.LEAVE_REQUESTS, 'read')
   exportTemplate(@Res({ passthrough: true }) response: Response) {
     const file = this.leaveService.exportLeaveRequestTemplate();
     setCsvDownloadHeaders(response, file.filename);
@@ -69,6 +78,7 @@ export class LeaveRequestsController {
 
   @Get('mine')
   @Permissions('leave-requests.read')
+  @RequirePermission(ENTITY_KEYS.LEAVE_REQUESTS, 'read')
   listMine(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: LeaveRequestQueryDto,
@@ -78,6 +88,7 @@ export class LeaveRequestsController {
 
   @Get('team')
   @Permissions('leave-requests.read')
+  @RequirePermission(ENTITY_KEYS.LEAVE_REQUESTS, 'read')
   listTeam(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: LeaveRequestQueryDto,
@@ -87,6 +98,7 @@ export class LeaveRequestsController {
 
   @Get(':id')
   @Permissions('leave-requests.read')
+  @RequirePermission(ENTITY_KEYS.LEAVE_REQUESTS, 'read')
   getById(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -96,6 +108,7 @@ export class LeaveRequestsController {
 
   @Get(':id/timeline')
   @Permissions('leave-requests.read', 'timeline.read')
+  @RequirePermission(ENTITY_KEYS.LEAVE_REQUESTS, 'read')
   async getTimeline(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -111,6 +124,7 @@ export class LeaveRequestsController {
 
   @Post(':id/approve')
   @Permissions('leave-requests.read')
+  @RequirePermission(ENTITY_KEYS.LEAVE_REQUESTS, 'read')
   approve(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -121,6 +135,7 @@ export class LeaveRequestsController {
 
   @Post(':id/reject')
   @Permissions('leave-requests.read')
+  @RequirePermission(ENTITY_KEYS.LEAVE_REQUESTS, 'read')
   reject(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -131,6 +146,7 @@ export class LeaveRequestsController {
 
   @Post(':id/cancel')
   @Permissions('leave-requests.cancel')
+  @RequirePermission(ENTITY_KEYS.LEAVE_REQUESTS, 'delete')
   cancel(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,

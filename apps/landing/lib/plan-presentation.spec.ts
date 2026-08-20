@@ -230,6 +230,38 @@ describe("estimateCost", () => {
     );
   });
 
+  /*
+   * The page and the invoice must agree.
+   *
+   * `resolveCommercialOffer` bills `max(quantity, minimumSeats)`, because the
+   * commitment applies even below it. If this estimate ignored the minimum, a
+   * six-person company would be quoted six seats here and charged for ten —
+   * which is the shape of BUG-0080, a page disagreeing with Stripe.
+   */
+  it("bills the minimum seats, matching what the server charges", () => {
+    const estimate = estimateCost(
+      offer({ minimumSeats: 10, unitAmount: 300 }),
+      6,
+    );
+
+    expect(estimate?.billable).toBe(10);
+    expect(estimate?.total).toBe(3000);
+    // Still flagged, so the page can explain the difference rather than hide it.
+    expect(estimate?.belowMinimum).toBe(true);
+  });
+
+  it("does not inflate a team that already clears the minimum", () => {
+    // The pair. Without it, an estimate that always billed `minimumSeats`
+    // would satisfy the test above while undercharging every larger customer.
+    const estimate = estimateCost(
+      offer({ minimumSeats: 10, unitAmount: 300 }),
+      40,
+    );
+
+    expect(estimate?.billable).toBe(40);
+    expect(estimate?.total).toBe(12000);
+  });
+
   it("returns null rather than zero when no price is available", () => {
     expect(estimateCost(unavailableOffer(), 50)).toBeNull();
     expect(estimateCost(null, 50)).toBeNull();
@@ -237,16 +269,32 @@ describe("estimateCost", () => {
 });
 
 describe("billingUnitLabel", () => {
-  // The billable unit is an active employee, not a login or a "seat".
-  it("names the billing unit as active employees", () => {
+  // For a per-seat price the unit is an active employee, not a login or a
+  // "seat" — a tenant admin who is not an employee does not consume one.
+  it("names active employees when the price is per seat", () => {
     expect(billingUnitLabel(offer())).toBe("per active employee / month");
     expect(billingUnitLabel(offer({ billingInterval: "YEAR" }))).toBe(
       "per active employee / year",
     );
   });
 
-  it("returns nothing for a flat price, which is not per employee", () => {
-    expect(billingUnitLabel(offer({ billingModel: "FLAT" }))).toBeNull();
+  it("names only the period when the price is flat", () => {
+    /*
+     * This used to return null, which rendered a bare figure with no unit at
+     * all. DijiPeople's public plans are flat, so that was every price on the
+     * pricing page — "$199" with nothing saying per what, beside body copy
+     * claiming the price was per employee. Saying nothing is not the same as
+     * saying nothing misleading.
+     */
+    expect(billingUnitLabel(offer({ billingModel: "FLAT" }))).toBe("per month");
+    expect(
+      billingUnitLabel(offer({ billingModel: "FLAT", billingInterval: "YEAR" })),
+    ).toBe("per year");
+  });
+
+  it("says nothing about a price that is not available", () => {
+    expect(billingUnitLabel(unavailableOffer())).toBeNull();
+    expect(billingUnitLabel(null)).toBeNull();
   });
 });
 

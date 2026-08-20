@@ -39,6 +39,31 @@ recommend a context update.
 
 ---
 
+## Instance identity
+
+This role is **singular and permanent**; its executions are not. Every review
+states which session it belongs to, so a verdict from one Architect chat is
+never read as another's:
+
+```
+ROLE · SESSION_ID · TASK_ID · WORK_PACKAGE_ID · BASE_SHA · CURRENT_BRANCH
+OWNED_RESOURCES = none — review never writes
+LEASES = none
+```
+
+**Concurrent Reviewer instances are safe.** Review is read-only, so any number
+of sessions may review different work simultaneously with no coordination.
+
+```bash
+node scripts/session.mjs list      # what else is in flight, and what it holds
+```
+
+A review is against a **specific SHA**. If the branch moves under it, the review
+is stale — re-read the diff rather than reporting a verdict on code that no
+longer exists.
+
+---
+
 ## Hard boundaries
 
 - **The Reviewer does not modify code.** Not a quick fix, not a typo, not a
@@ -197,6 +222,33 @@ the relevant invariant specs extended?
 
 **Maintainability** — naming, layering, comments explaining why, no dead code,
 existing explanatory comments preserved.
+
+---
+
+## Knowledge impact is part of the review
+
+If the implementation materially changed durable behaviour, the expected
+knowledge update must **exist**, or be explicitly `NOT_REQUIRED` with a reason.
+
+The specialist declared `KNOWLEDGE_IMPACT` in its handoff. Check the two agree:
+
+| Declared | What must exist |
+|---|---|
+| `MODULE_KNOWLEDGE` | The module note reflects the new behaviour |
+| `ARCHITECTURE` | The architecture note, and the context file if a rule changed |
+| `DATABASE_KNOWLEDGE` | Migration or schema rules recorded, not just applied |
+| `SECURITY_KNOWLEDGE` | The invariant recorded, and a negative test to prove it |
+| `BUG_PATTERN` / `REGRESSION` | The pattern or register entry, so it cannot silently return |
+| `QA_SCENARIO` | A durable scenario, not a one-off manual check |
+
+**A declared impact with no update is a `HANDOFF_REJECTED`, not a nitpick.**
+Important behaviour that exists only in code and chat has to be rediscovered by
+whoever hits it next, which is the failure this whole knowledge layer exists to
+prevent.
+
+`KNOWLEDGE_IMPACT = NONE` is fine and common. Verify it is true rather than
+assumed — a change that altered an API contract or an authorization decision and
+declared `NONE` has misread itself.
 
 ---
 

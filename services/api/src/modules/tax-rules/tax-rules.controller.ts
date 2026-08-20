@@ -10,8 +10,10 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Permissions } from '../../common/decorators/permissions.decorator';
+import { RequirePermission } from '../../common/decorators/require-permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
@@ -42,6 +44,7 @@ export class TaxRulesController {
 
   @Get('employee-tax-profiles')
   @Permissions('employee-tax-profiles.read')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEE_TAX_PROFILES, 'read')
   listProfiles(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: EmployeeTaxProfileQueryDto,
@@ -51,6 +54,7 @@ export class TaxRulesController {
 
   @Post('employee-tax-profiles')
   @Permissions('employee-tax-profiles.manage')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEE_TAX_PROFILES, 'manage')
   createProfile(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateEmployeeTaxProfileDto,
@@ -60,6 +64,7 @@ export class TaxRulesController {
 
   @Get('employee-tax-profiles/:id')
   @Permissions('employee-tax-profiles.read')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEE_TAX_PROFILES, 'read')
   getProfile(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -69,6 +74,7 @@ export class TaxRulesController {
 
   @Patch('employee-tax-profiles/:id')
   @Permissions('employee-tax-profiles.manage')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEE_TAX_PROFILES, 'manage')
   updateProfile(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -79,6 +85,7 @@ export class TaxRulesController {
 
   @Delete('employee-tax-profiles/:id')
   @Permissions('employee-tax-profiles.manage')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEE_TAX_PROFILES, 'manage')
   deactivateProfile(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -88,6 +95,7 @@ export class TaxRulesController {
 
   @Post('tax-rules')
   @Permissions('tax-rules.manage')
+  @RequirePermission(ENTITY_KEYS.TAX_RULES, 'manage')
   create(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateTaxRuleDto,
@@ -97,12 +105,14 @@ export class TaxRulesController {
 
   @Get('tax-rules')
   @Permissions('tax-rules.read')
+  @RequirePermission(ENTITY_KEYS.TAX_RULES, 'read')
   list(@CurrentUser() user: AuthenticatedUser) {
     return this.service.list(user);
   }
 
   @Get('tax-rules/:id')
   @Permissions('tax-rules.read')
+  @RequirePermission(ENTITY_KEYS.TAX_RULES, 'read')
   get(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -112,6 +122,7 @@ export class TaxRulesController {
 
   @Patch('tax-rules/:id')
   @Permissions('tax-rules.manage')
+  @RequirePermission(ENTITY_KEYS.TAX_RULES, 'manage')
   update(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -122,6 +133,7 @@ export class TaxRulesController {
 
   @Delete('tax-rules/:id')
   @Permissions('tax-rules.manage')
+  @RequirePermission(ENTITY_KEYS.TAX_RULES, 'manage')
   deactivate(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -131,6 +143,7 @@ export class TaxRulesController {
 
   @Post('tax-rules/:id/brackets')
   @Permissions('tax-rules.manage')
+  @RequirePermission(ENTITY_KEYS.TAX_RULES, 'manage')
   addBracket(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -141,6 +154,7 @@ export class TaxRulesController {
 
   @Get('tax-rules/:id/brackets')
   @Permissions('tax-rules.read')
+  @RequirePermission(ENTITY_KEYS.TAX_RULES, 'read')
   listBrackets(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -150,6 +164,7 @@ export class TaxRulesController {
 
   @Patch('tax-rules/:id/brackets/reorder')
   @Permissions('tax-rules.manage')
+  @RequirePermission(ENTITY_KEYS.TAX_RULES, 'manage')
   reorderBrackets(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -160,6 +175,7 @@ export class TaxRulesController {
 
   @Post('tax-rules/:id/preview')
   @Permissions('tax-rules.read')
+  @RequirePermission(ENTITY_KEYS.TAX_RULES, 'read')
   preview(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -170,6 +186,7 @@ export class TaxRulesController {
 
   @Patch('tax-rules/:id/brackets/:bracketId')
   @Permissions('tax-rules.manage')
+  @RequirePermission(ENTITY_KEYS.TAX_RULES, 'manage')
   updateBracket(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -181,6 +198,7 @@ export class TaxRulesController {
 
   @Delete('tax-rules/:id/brackets/:bracketId')
   @Permissions('tax-rules.manage')
+  @RequirePermission(ENTITY_KEYS.TAX_RULES, 'manage')
   deleteBracket(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -191,6 +209,7 @@ export class TaxRulesController {
 
   @Post('tax-rules/:id/pay-components')
   @Permissions('tax-rules.manage')
+  @RequirePermission(ENTITY_KEYS.TAX_RULES, 'manage')
   addPayComponent(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -201,6 +220,7 @@ export class TaxRulesController {
 
   @Delete('tax-rules/:id/pay-components/:payComponentId')
   @Permissions('tax-rules.manage')
+  @RequirePermission(ENTITY_KEYS.TAX_RULES, 'manage')
   removePayComponent(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,

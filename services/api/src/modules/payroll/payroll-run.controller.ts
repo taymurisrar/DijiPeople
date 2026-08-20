@@ -11,7 +11,12 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { Permissions } from '../../common/decorators/permissions.decorator';
+import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
+import {
+  Permissions,
+  RequireAnyPermission,
+  RequirePermission,
+} from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
@@ -38,6 +43,7 @@ export class PayrollRunController {
 
   @Post('calendars')
   @Permissions('payroll-calendars.manage')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_CALENDARS, 'manage')
   createCalendar(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreatePayrollCalendarDto,
@@ -47,6 +53,7 @@ export class PayrollRunController {
 
   @Get('calendars')
   @Permissions('payroll-calendars.read')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_CALENDARS, 'read')
   listCalendars(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: PayrollCoreQueryDto,
@@ -56,6 +63,7 @@ export class PayrollRunController {
 
   @Get('calendars/:id')
   @Permissions('payroll-calendars.read')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_CALENDARS, 'read')
   getCalendar(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -65,6 +73,7 @@ export class PayrollRunController {
 
   @Patch('calendars/:id')
   @Permissions('payroll-calendars.manage')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_CALENDARS, 'manage')
   updateCalendar(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -75,6 +84,7 @@ export class PayrollRunController {
 
   @Post('periods')
   @Permissions('payroll-periods.manage')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_PERIODS, 'manage')
   createPeriod(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreatePayrollPeriodDto,
@@ -84,6 +94,7 @@ export class PayrollRunController {
 
   @Get('periods')
   @Permissions('payroll-periods.read')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_PERIODS, 'read')
   listPeriods(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: PayrollCoreQueryDto,
@@ -93,6 +104,7 @@ export class PayrollRunController {
 
   @Get('periods/:id')
   @Permissions('payroll-periods.read')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_PERIODS, 'read')
   getPeriod(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -102,6 +114,7 @@ export class PayrollRunController {
 
   @Patch('periods/:id')
   @Permissions('payroll-periods.manage')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_PERIODS, 'manage')
   updatePeriod(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -112,6 +125,7 @@ export class PayrollRunController {
 
   @Post('runs')
   @Permissions('payroll-runs.create')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_RUNS, 'create')
   createPayrollRun(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreatePayrollRunDto,
@@ -121,6 +135,7 @@ export class PayrollRunController {
 
   @Get('runs')
   @Permissions('payroll-runs.read')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_RUNS, 'read')
   listPayrollRuns(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: PayrollCoreQueryDto,
@@ -130,6 +145,7 @@ export class PayrollRunController {
 
   @Get('runs/:id')
   @Permissions('payroll-runs.read')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_RUNS, 'read')
   getPayrollRun(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -139,6 +155,7 @@ export class PayrollRunController {
 
   @Delete('runs/:id')
   @Permissions('payroll-runs.delete')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_RUNS, 'delete')
   deletePayrollRun(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -148,6 +165,7 @@ export class PayrollRunController {
 
   @Post('runs/:id/calculate')
   @Permissions('payroll-runs.calculate')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_RUNS, 'manage')
   calculatePayrollRun(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -157,6 +175,7 @@ export class PayrollRunController {
 
   @Post('runs/:id/lock')
   @Permissions('payroll-runs.lock')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_RUNS, 'configure')
   lockPayrollRun(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -166,6 +185,7 @@ export class PayrollRunController {
 
   @Post('runs/:id/calculate-taxes')
   @Permissions('payroll-tax.calculate')
+  @RequirePermission(ENTITY_KEYS.PAYROLL, 'manage')
   calculatePayrollRunTaxes(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -175,6 +195,7 @@ export class PayrollRunController {
 
   @Get('runs/:id/employees')
   @Permissions('payroll-runs.read')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_RUNS, 'read')
   listRunEmployees(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -184,6 +205,7 @@ export class PayrollRunController {
 
   @Get('runs/:id/exceptions')
   @Permissions('payroll-runs.read')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_RUNS, 'read')
   listRunExceptions(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -193,6 +215,7 @@ export class PayrollRunController {
 
   @Post('runs/:id/exceptions/:exceptionId/acknowledge')
   @Permissions('payroll-runs.calculate')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_RUNS, 'manage')
   acknowledgeRunException(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -209,6 +232,7 @@ export class PayrollRunController {
 
   @Post('runs/:id/exceptions/:exceptionId/resolve')
   @Permissions('payroll-runs.calculate')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_RUNS, 'manage')
   resolveRunException(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -225,6 +249,7 @@ export class PayrollRunController {
 
   @Get('runs/:id/adjustments')
   @Permissions('payroll-runs.read')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_RUNS, 'read')
   listRunAdjustments(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -234,6 +259,7 @@ export class PayrollRunController {
 
   @Post('runs/:id/adjustments')
   @Permissions('payroll-runs.manage')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_RUNS, 'manage')
   createRunAdjustment(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -244,6 +270,7 @@ export class PayrollRunController {
 
   @Patch('runs/:id/adjustments/:adjustmentId')
   @Permissions('payroll-runs.manage')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_RUNS, 'manage')
   updateRunAdjustment(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -260,6 +287,7 @@ export class PayrollRunController {
 
   @Delete('runs/:id/adjustments/:adjustmentId')
   @Permissions('payroll-runs.manage')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_RUNS, 'manage')
   deleteRunAdjustment(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -270,6 +298,7 @@ export class PayrollRunController {
 
   @Post('runs/:id/adjustments/:adjustmentId/submit')
   @Permissions('payroll-runs.manage')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_RUNS, 'manage')
   submitRunAdjustment(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -280,6 +309,7 @@ export class PayrollRunController {
 
   @Post('runs/:id/adjustments/:adjustmentId/approve')
   @Permissions('payroll-runs.manage')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_RUNS, 'manage')
   approveRunAdjustment(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -290,6 +320,7 @@ export class PayrollRunController {
 
   @Post('runs/:id/adjustments/:adjustmentId/reject')
   @Permissions('payroll-runs.manage')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_RUNS, 'manage')
   rejectRunAdjustment(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -306,6 +337,7 @@ export class PayrollRunController {
 
   @Get('runs/:id/cost-allocations')
   @Permissions('payroll-runs.read')
+  @RequirePermission(ENTITY_KEYS.PAYROLL_RUNS, 'read')
   listRunCostAllocations(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,

@@ -11,14 +11,14 @@ DetectedDate: 2026-08-16
 DetectedInSha: 45d00cf
 AffectedModules: [services/api/prisma, apps/admin, apps/landing]
 OwnerAgent: architect
-ArchitectDisposition: PLAN_REQUIRED
+ArchitectDisposition: DONE
 QAReport: docs/qa/runs/2026-08-16-commercial-config-wave1-a525896.md
 RegressionId: REG-017
 RelatedBacklogItem: ITEM-0018
 RelatedDecision:
 RelatedImplementation: agent/commercial-config-wave1
 CreatedAt: 2026-08-16
-UpdatedAt: 2026-08-16
+UpdatedAt: 2026-08-17
 ResolvedAt: 2026-08-16
 ---
 
@@ -88,7 +88,7 @@ operator sees is the number a customer is charged.
 (`version`, `effectiveFrom`, `effectiveTo`, `supersedesPriceId`), Stripe linkage
 and seat rules — but the older `Plan`-level base price columns were never
 removed, and Admin was never migrated onto `PlanPrice`. Two sources of truth for
-one fact, which the root [`AGENTS.md`](../../../AGENTS.md) architecture principle
+one fact, which the root [`AGENTS.md`](../../AGENTS.md) architecture principle
 4 explicitly forbids.
 
 ## Impact
@@ -134,7 +134,7 @@ form, the public plans and subscribe pages, `super-admin` plan services.
 ## Proposed Resolution
 
 **Needs an ExecPlan.** Dropping columns is a destructive schema change requiring
-expand/backfill/contract staging per [`PLANS.md`](../../../PLANS.md).
+expand/backfill/contract staging per [`PLANS.md`](../../PLANS.md).
 
 Direction: make `PlanPrice` the only price. Backfill a `PlanPrice` per (plan,
 cycle, currency) from the existing base prices, migrate Admin and the plan form
@@ -211,6 +211,10 @@ real PostgreSQL 16. Each of these tests was proven to fail without its fix when
 it was written; re-running them is what confirms the fix still holds.
 
 ## History
+
+- 2026-08-17 — Architect reconciliation: terminal `VERIFIED` status normalized
+  to `ArchitectDisposition: DONE`; the existing resolution and QA evidence are
+  unchanged.
 
 - 2026-08-16 — found during commercial-configuration discovery at `45d00cf`.
 

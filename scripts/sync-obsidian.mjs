@@ -18,20 +18,20 @@
  */
 
 import { readFileSync, existsSync, mkdirSync, readdirSync, statSync, copyFileSync } from 'node:fs';
-import { join, resolve, relative, dirname, basename } from 'node:path';
+import { join, resolve, relative, dirname, basename, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { resolveMappings, hasMeaningfulContent } from './lib/obsidian-mappings.mjs';
+import { describeResolution, resolveObsidianConfig } from './lib/obsidian-config.mjs';
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 const args = process.argv.slice(2);
 const DRY_RUN = args.includes('--dry-run');
+const VERIFY = args.includes('--verify');
 const configArgIndex = args.indexOf('--config');
-const CONFIG_PATH = resolve(
-  REPO_ROOT,
-  configArgIndex !== -1 ? args[configArgIndex + 1] : '.obsidian-sync.local.json',
-);
+const EXPLICIT_CONFIG =
+  configArgIndex !== -1 ? resolve(REPO_ROOT, args[configArgIndex + 1]) : null;
 
 /*
  * The mapping table lives in scripts/lib/obsidian-mappings.mjs, shared with
@@ -41,52 +41,54 @@ const CONFIG_PATH = resolve(
  */
 
 function loadConfig() {
-  if (!existsSync(CONFIG_PATH)) {
-    /*
-     * Absent config is not an error: most checkouts have no vault, and an
-     * agent chaining this after a deployment must not have the chain abort
-     * because documentation sync was never configured. Exit 0 with the token
-     * the framework expects. Genuine misconfiguration below still exits 1.
-     */
-    console.log(
-      [
-        'OBSIDIAN_SYNC = SKIPPED_NO_LOCAL_CONFIG',
-        '',
-        `No config at ${relative(REPO_ROOT, CONFIG_PATH)} — nothing to sync.`,
-        '',
-        'To enable:',
-        '  cp .obsidian-sync.example.json .obsidian-sync.local.json',
-        '',
-        'then set "vaultPath". The .local.json file is gitignored, so your path',
-        'never reaches the repository.',
-      ].join('\n'),
-    );
-    process.exit(0);
-  }
+  /*
+   * Resolution spans worktrees — see scripts/lib/obsidian-config.mjs. Reading
+   * only this worktree's config is why every task worktree reported
+   * SKIPPED_NO_LOCAL_CONFIG while a configured vault sat in the primary
+   * checkout, for two consecutive framework tasks.
+   */
+  const resolution = EXPLICIT_CONFIG
+    ? resolveObsidianConfig(REPO_ROOT, { env: { DIJIPEOPLE_OBSIDIAN_CONFIG: EXPLICIT_CONFIG } })
+    : resolveObsidianConfig(REPO_ROOT);
 
-  const config = JSON.parse(readFileSync(CONFIG_PATH, 'utf8'));
-
-  if (!config.vaultPath || config.vaultPath.startsWith('<')) {
-    console.error(`Set "vaultPath" in ${relative(REPO_ROOT, CONFIG_PATH)} first.`);
-    process.exit(1);
-  }
-  if (!existsSync(config.vaultPath)) {
-    console.error(`Vault not found: ${config.vaultPath}`);
-    process.exit(1);
+  if (resolution.status !== 'NOT_CONFIGURED' && resolution.status !== 'INVALID') {
+    console.log(describeResolution(resolution));
+    console.log('');
+    const { mappings, mode } = resolveMappings(resolution.config);
+    return { vaultPath: resolution.vaultPath, mappings, mode, resolution };
   }
 
   /*
-   * Config mappings ADD to the defaults; they do not replace them.
-   *
-   * The previous behaviour was replace-on-present, and it had exactly the
-   * failure you would expect: a local config pins the mappings that existed
-   * when it was written, so every mapping added afterwards silently never syncs
-   * — for the one person who actually configured a vault. A stale local file
-   * must not be able to un-publish knowledge.
+   * Absent config is not an error: a fresh clone has no vault, and an agent
+   * chaining this after a deployment must not abort because documentation sync
+   * was never configured. Exit 0 with the token the framework expects — but
+   * print every place that was searched, because "not configured" was
+   * previously indistinguishable from "configured somewhere I did not look".
    */
-  const { mappings, mode } = resolveMappings(config);
-  return { vaultPath: config.vaultPath, mappings, mode };
+  console.log('OBSIDIAN_SYNC = SKIPPED_NO_LOCAL_CONFIG');
+  console.log('');
+  console.log(describeResolution(resolution));
+  console.log('');
+  console.log('To enable, in any worktree:');
+  console.log('  cp .obsidian-sync.example.json .obsidian-sync.local.json');
+  console.log('');
+  console.log('then set "vaultPath". `.obsidian-sync.local.json` is gitignored, so your');
+  console.log('path never reaches the repository; `.obsidian-sync.example.json` is the');
+  console.log('tracked template and is never read as runtime configuration.');
+  console.log('');
+  console.log('A config in the primary checkout, in the shared Git directory, or in');
+  console.log('DIJIPEOPLE_OBSIDIAN_VAULT is found automatically from every worktree.');
+  process.exit(0);
 }
+
+/*
+ * `resolveMappings` (above, in loadConfig) merges rather than replaces: config
+ * mappings ADD to the defaults. The previous behaviour was replace-on-present,
+ * which had exactly the failure you would expect — a local config pins the
+ * mappings that existed when it was written, so every mapping added afterwards
+ * silently never syncs, for the one person who actually configured a vault. A
+ * stale local file must not be able to un-publish knowledge.
+ */
 
 /** Markdown files only. Never copies anything else out of the repository. */
 function markdownFilesIn(dir) {
@@ -112,8 +114,408 @@ function isPublishable(file, body) {
   return hasMeaningfulContent(body, { minimumWords });
 }
 
+/**
+ * `OBSIDIAN_SYNC_STATUS = PASS` must mean the vault is actually right, not that
+ * a copy loop exited zero.
+ *
+ * Every failure this has had was silent: a mapping whose source directory had
+ * been renamed, a note published with nothing in it, a wikilink pointing at a
+ * note the sync never wrote. All three pass an exit-code check, and all three
+ * are caught by reading the vault back.
+ *
+ * Manual notes are checked for *absence of interference* only. This script
+ * writes exclusively into mapped agent-owned folders, and verification confirms
+ * that boundary rather than inspecting anybody's notes.
+ */
+/*
+ * Orphan and staleness scan — the half of verification that was missing.
+ *
+ * `verify` above walks repo -> vault: every source note must exist, match and
+ * resolve its links. Nothing walked vault -> repo, so a generated note whose
+ * source was renamed, merged or deleted stayed in the vault forever, invisible
+ * to every check and to every agent that reported OBSIDIAN_SYNC_STATUS = PASS.
+ * That is the ownership defect, not a stale note here or there: the direction
+ * that detects rot was never traversed.
+ *
+ * MAPPING TARGETS NEST, and this is the trap. `docs/knowledge/dashboards`
+ * publishes to `00 - Home/Generated`, while `docs/backlog`, `docs/tasks` and
+ * `docs/sessions` publish to folders directly beneath it. A recursive walk of
+ * the parent sees every child mapping's notes too and attributes them to a
+ * source directory that never contained them. Written naively, this scan
+ * reports 94 orphans in a vault that has exactly none — and a verifier that
+ * cries wolf gets skipped, which is precisely how the thing it verifies rots.
+ *
+ * Manual notes are never touched and never counted: only the mapped,
+ * agent-owned folders are traversed, and everything outside them is the user's.
+ */
+const norm = (value) => value.split(sep).join('/');
+
+/*
+ * GRAPH_ORPHAN detection — a different question from SOURCE_ORPHAN.
+ *
+ *   SOURCE_ORPHAN  the generated note has no canonical source. `scanOrphans`
+ *                  answers this by walking vault -> repo.
+ *   GRAPH_ORPHAN   the note has a perfectly valid source and is still an
+ *                  isolated dot: nothing links to it, it links to nothing, and
+ *                  it is unreachable in the graph except by search.
+ *
+ * The second is invisible to every parity check, which is why a vault can pass
+ * verification and still look like scattered dust in the graph view. Measured on
+ * 2026-08-18: 102 of 294 generated nodes were isolated — 82 of them QA
+ * scenarios whose relationships were sitting in frontmatter (AREA, RELATED_BUGS,
+ * RELATED_REGRESSIONS) where Obsidian cannot see them, because a YAML value is
+ * not a wikilink.
+ *
+ * NAVIGATION AGGREGATES ARE NOT KNOWLEDGE NODES. `index.md`, `README.md`,
+ * `active.md`, `completed.md` and the dashboards are generated listing surfaces.
+ * Requiring them to carry domain relationships would mean adding links for the
+ * sake of the graph, which is the one thing this must not do — a link created to
+ * remove a dot teaches nothing and dilutes every real edge around it. They are
+ * classified STANDALONE_ALLOWED, by name and with that reason.
+ *
+ * Any individual note may also opt out by declaring `STANDALONE_ALLOWED: true`
+ * in its frontmatter, which makes the exemption explicit and greppable rather
+ * than a silent hole in the checker.
+ */
+const NAVIGATION_AGGREGATES = new Set([
+  'index',
+  'README',
+  'open',
+  'active',
+  'blocked',
+  'completed',
+  'deferred',
+  'product-decisions',
+  'coverage-matrix',
+]);
+
+/*
+ * Whole categories that are evidence or coordination records rather than
+ * knowledge nodes. Each is classified here, by mapping source and with its
+ * reason, instead of being silently skipped — an unexplained exemption is a hole
+ * in the checker, and the next person cannot tell it from an oversight.
+ *
+ * The categories that DO require a relationship are the ten knowledge kinds:
+ * bugs, backlog items, requirements, decisions, tasks, QA scenarios,
+ * regressions, releases, modules and architecture notes.
+ */
+const STANDALONE_CATEGORIES = new Map([
+  ['docs/sessions', 'a session is a runtime coordination lease, not durable knowledge'],
+  ['docs/qa/runs', 'a QA run is dated execution evidence; the scenarios it ran carry the relationships'],
+  ['docs/engineering-history/tasks', 'a history record narrates one task end to end and is reached from that task'],
+  ['docs/qa/test-strategy', 'strategy prose describing how testing is organised, not a node about a thing'],
+]);
+
+function scanGraph(mappings) {
+  const nodes = new Map();
+  const byName = new Map();
+
+  for (const mapping of mappings) {
+    const sourceDir = resolve(REPO_ROOT, mapping.from);
+    if (!existsSync(sourceDir)) continue;
+    for (const file of markdownFilesIn(sourceDir)) {
+      const body = readFileSync(file, 'utf8');
+      if (!isPublishable(file, body)) continue;
+      const name = basename(file, '.md');
+      const node = {
+        name,
+        note: `${mapping.to}/${norm(relative(sourceDir, file))}`,
+        body,
+        degree: 0,
+        standalone:
+          NAVIGATION_AGGREGATES.has(name) ||
+          STANDALONE_CATEGORIES.has(mapping.from) ||
+          /^STANDALONE_ALLOWED:\s*true\s*$/m.test(body.slice(0, 2048)),
+      };
+      nodes.set(file, node);
+      byName.set(name, node);
+      const aliases = /^aliases:\s*\[([^\]]*)\]\s*$/m.exec(body.slice(0, 2048));
+      if (aliases) {
+        for (const alias of aliases[1].split(',')) {
+          const trimmed = alias.trim().replace(/^["']|["']$/g, '');
+          if (trimmed) byName.set(trimmed, node);
+        }
+      }
+    }
+  }
+
+  // Edges are counted in BOTH directions: an inbound link makes a note reachable
+  // just as well as an outbound one does.
+  for (const node of nodes.values()) {
+    const linkable = node.body.replace(/```[\s\S]*?```/g, '').replace(/`[^`\n]*`/g, '');
+    for (const match of linkable.matchAll(/\[\[([^\]|#]+)(?:\|[^\]]*)?\]\]/g)) {
+      const target = byName.get(match[1].trim());
+      if (!target || target === node) continue;
+      node.degree += 1;
+      target.degree += 1;
+    }
+  }
+
+  const graphOrphans = [];
+  let standaloneAllowed = 0;
+  for (const node of nodes.values()) {
+    if (node.standalone) {
+      standaloneAllowed += 1;
+      continue;
+    }
+    if (node.degree === 0) graphOrphans.push(node.note);
+  }
+
+  return { graphOrphans, standaloneAllowed, graphNodes: nodes.size };
+}
+
+function scanOrphans(vaultPath, mappings) {
+  const allTargets = mappings.map((mapping) => norm(mapping.to));
+  const orphans = [];
+  const stale = [];
+  const missing = [];
+  let vaultNotes = 0;
+
+  const walkExcluding = (dir, base, excluded) => {
+    let found = [];
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const full = join(dir, entry.name);
+      const rel = norm(relative(base, full));
+      if (entry.isDirectory()) {
+        if (excluded.includes(rel)) continue;
+        found = found.concat(walkExcluding(full, base, excluded));
+      } else if (entry.name.endsWith('.md')) {
+        found.push(full);
+      }
+    }
+    return found;
+  };
+
+  for (const mapping of mappings) {
+    const target = norm(mapping.to);
+    const nested = allTargets
+      .filter((other) => other !== target && other.startsWith(`${target}/`))
+      .map((other) => other.slice(target.length + 1));
+
+    const sourceDir = resolve(REPO_ROOT, mapping.from);
+    const targetDir = resolve(vaultPath, mapping.to);
+    if (!existsSync(targetDir)) continue;
+
+    const sources = existsSync(sourceDir)
+      ? markdownFilesIn(sourceDir).filter((file) => isPublishable(file, readFileSync(file, 'utf8')))
+      : [];
+    const published = walkExcluding(targetDir, targetDir, nested);
+    vaultNotes += published.length;
+
+    /*
+     * Two different conditions, deliberately not collapsed into one number.
+     *
+     *   ORPHAN_GENERATED_NODE  the source file is gone from the repository
+     *                          entirely — renamed, merged or deleted.
+     *   STALE_GENERATED_NODE   the source still exists but the sync no longer
+     *                          publishes it, because `isPublishable` rejects it
+     *                          as empty of substance. The vault copy is then
+     *                          frozen at whatever it said when it last shipped,
+     *                          and nothing maintains it again.
+     *
+     * The second class is the one that actually existed here: four folder
+     * README stubs, published before the substance filter, unmaintained since.
+     * Reporting them as "orphan, source missing" would have sent someone
+     * looking for a deleted file that is sitting right there.
+     */
+    const sourceRel = new Set(sources.map((file) => norm(relative(sourceDir, file))));
+    for (const file of published) {
+      const rel = norm(relative(targetDir, file));
+      if (sourceRel.has(rel)) continue;
+      const onDisk = join(sourceDir, rel);
+      if (existsSync(onDisk)) {
+        stale.push({ note: `${mapping.to}/${rel}`, path: file, source: onDisk });
+      } else {
+        orphans.push({ note: `${mapping.to}/${rel}`, path: file, source: null });
+      }
+    }
+    const publishedRel = new Set(published.map((file) => norm(relative(targetDir, file))));
+    for (const rel of sourceRel) {
+      if (!publishedRel.has(rel)) missing.push(`${mapping.to}/${rel}`);
+    }
+  }
+
+  return { orphans, stale, missing, vaultNotes };
+}
+
+function verify(vaultPath, mappings) {
+  const problems = [];
+  const checked = [];
+  let notes = 0;
+  let links = 0;
+  let unresolved = 0;
+
+  /*
+   * Obsidian resolves a wikilink by note name **or by an alias** declared in
+   * frontmatter. Every record here is named `BUG-0047-<slug>.md` and carries
+   * `aliases: [BUG-0047]` precisely so `[[BUG-0047]]` works — that is why
+   * `new-bug.mjs` emits the alias line at all (ITEM-0029).
+   *
+   * The first version of this check resolved by basename alone and reported 300+
+   * "unresolved" links that Obsidian resolves perfectly well. A verifier that
+   * cries wolf is worse than none: it trains people to skip the output, which is
+   * exactly what a verification step must never do.
+   */
+  const vaultNotes = new Set();
+  for (const file of markdownFilesIn(vaultPath)) {
+    vaultNotes.add(basename(file, '.md'));
+    let head;
+    try {
+      head = readFileSync(file, 'utf8').slice(0, 2048);
+    } catch {
+      continue;
+    }
+    const aliases = /^aliases:\s*\[([^\]]*)\]\s*$/m.exec(head);
+    if (!aliases) continue;
+    for (const alias of aliases[1].split(',')) {
+      const name = alias.trim().replace(/^["']|["']$/g, '');
+      if (name) vaultNotes.add(name);
+    }
+  }
+
+  for (const mapping of mappings) {
+    const sourceDir = resolve(REPO_ROOT, mapping.from);
+    const targetDir = resolve(vaultPath, mapping.to);
+    const sources = markdownFilesIn(sourceDir).filter((file) =>
+      isPublishable(file, readFileSync(file, 'utf8')),
+    );
+
+    if (!sources.length) continue;
+
+    if (!existsSync(targetDir)) {
+      problems.push(
+        `${mapping.to} — destination folder absent, though ${sources.length} note(s) map to it`,
+      );
+      continue;
+    }
+    checked.push(mapping.to);
+
+    for (const file of sources) {
+      const relativePath = relative(sourceDir, file);
+      const target = join(targetDir, relativePath);
+      const label = `${mapping.to}/${relativePath}`.replace(/\\/g, '/');
+
+      if (!existsSync(target)) {
+        problems.push(`${label} — expected note is absent from the vault`);
+        continue;
+      }
+
+      const published = readFileSync(target, 'utf8');
+      notes += 1;
+
+      if (!isPublishable(file, published)) {
+        problems.push(`${label} — published but empty of substance`);
+      }
+
+      if (published !== readFileSync(file, 'utf8')) {
+        problems.push(`${label} — vault copy differs from its repository source; re-run the sync`);
+      }
+
+      /*
+       * A wikilink that resolves to nothing is not visibly broken in Obsidian —
+       * it renders as an invitation to create the note. That is exactly why an
+       * unresolved *generated* link is worth failing on: nobody would notice it.
+       *
+       * Code is stripped first. This repository's documentation writes *about*
+       * wikilinks — "use `[[wikilinks]]`, not relative paths" — and Obsidian
+       * does not render a link inside a code span, so flagging those is a false
+       * positive. Two of them were the entire remaining failure list, and a
+       * verifier that cries wolf gets skipped.
+       */
+      const linkable = published
+        .replace(/```[\s\S]*?```/g, '')
+        .replace(/`[^`\n]*`/g, '');
+
+      for (const match of linkable.matchAll(/\[\[([^\]|#]+)(?:\|[^\]]*)?\]\]/g)) {
+        links += 1;
+        const name = match[1].trim();
+        if (!vaultNotes.has(name)) {
+          unresolved += 1;
+          problems.push(`${label} — wikilink [[${name}]] resolves to no note in the vault`);
+        }
+      }
+    }
+  }
+
+  console.log(`Vault:  ${vaultPath}`);
+  console.log('Mode:   verify — reading the vault back, not trusting the last exit code');
+  console.log('');
+  const {
+    orphans,
+    stale,
+    missing,
+    vaultNotes: generatedNoteCount,
+  } = scanOrphans(vaultPath, mappings);
+  const { graphOrphans, standaloneAllowed, graphNodes } = scanGraph(mappings);
+
+  /*
+   * An orphan is a HARD failure, not a warning. A generated note whose source no
+   * longer exists is a statement about the engineering state that nothing in the
+   * repository backs any more — and it looks exactly as authoritative in the
+   * graph as a current one.
+   *
+   * A CLOSED bug record is NOT an orphan. Its source still exists in docs/bugs/;
+   * it is a valid historical node and stays. Orphan means the SOURCE is gone.
+   */
+  for (const orphan of orphans) {
+    problems.push(
+      `${orphan.note} — ORPHAN_GENERATED_NODE: no source in the repository. ` +
+        'Remove the generated copy, or restore the source if the deletion was wrong.',
+    );
+  }
+  for (const note of graphOrphans) {
+    problems.push(
+      `${note} — GRAPH_ORPHAN: no inbound or outbound wikilink, so the note is ` +
+        'unreachable in the graph. Declare the relationship it already has ' +
+        '(module, bug, regression, plan, task) rather than adding a link to remove ' +
+        'the dot; or mark it STANDALONE_ALLOWED: true with a reason.',
+    );
+  }
+  for (const entry of stale) {
+    problems.push(
+      `${entry.note} — STALE_GENERATED_NODE: the source exists but is no longer ` +
+        'published (empty of substance), so the vault copy is frozen and unmaintained. ' +
+        'Remove the generated copy, or give the source real content.',
+    );
+  }
+
+  console.log(`FOLDERS_CHECKED             ${checked.length}`);
+  console.log(`NOTES_VERIFIED              ${notes}`);
+  console.log(`WIKILINKS_CHECKED           ${links}`);
+  console.log(`OBSIDIAN_UNRESOLVED_LINKS   ${unresolved}`);
+  console.log(`VAULT_GENERATED_NOTES       ${generatedNoteCount}`);
+  console.log(`OBSIDIAN_ORPHAN_COUNT       ${orphans.length}`);
+  console.log(`OBSIDIAN_STALE_GENERATED    ${stale.length}`);
+  console.log(`OBSIDIAN_SOURCE_ORPHANS     ${orphans.length}`);
+  console.log(`OBSIDIAN_GRAPH_NODES        ${graphNodes}`);
+  console.log(`OBSIDIAN_GRAPH_ORPHANS      ${graphOrphans.length}`);
+  console.log(`OBSIDIAN_STANDALONE_ALLOWED ${standaloneAllowed}`);
+  console.log(`OBSIDIAN_PARITY_DIFFS       ${missing.length}`);
+  console.log('MANUAL_NOTES_UNTOUCHED      all — verification reads only the mapped agent-owned folders');
+  console.log('');
+
+  if (problems.length) {
+    console.error(`OBSIDIAN_SYNC_STATUS = FAILED — ${problems.length} problem(s):`);
+    for (const problem of problems.slice(0, 40)) console.error(`  x ${problem}`);
+    if (problems.length > 40) console.error(`  … and ${problems.length - 40} more`);
+    console.error('');
+    console.error('A documentation-automation failure never rolls back healthy work — and never');
+    console.error('hides either. Cap the task at COMPLETE_WITH_DOCUMENTATION_WARNING.');
+    process.exit(1);
+  }
+
+  console.log('OBSIDIAN_SYNC_STATUS = PASS');
+  console.log('Every mapped note exists, carries substance, matches its source, and every');
+  console.log('generated wikilink resolves.');
+}
+
 function main() {
   const { vaultPath, mappings, mode } = loadConfig();
+
+  if (VERIFY) {
+    verify(vaultPath, mappings);
+    return;
+  }
 
   console.log(`Vault:  ${vaultPath}`);
   console.log(`Mode:   ${DRY_RUN ? 'dry run — nothing will be written' : 'write'}`);

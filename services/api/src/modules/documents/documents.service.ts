@@ -4,11 +4,19 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { DocumentEntityType, Prisma, SecurityPrivilege } from '@prisma/client';
+import {
+  DocumentEntityType,
+  Prisma,
+  SecurityAccessLevel,
+  SecurityPrivilege,
+} from '@prisma/client';
 import { extname } from 'path';
 import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
 import { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
-import { buildScopedAccessWhere } from '../../common/security/rbac-query-scope';
+import {
+  buildScopedAccessWhere,
+  resolveEffectiveAccessLevel,
+} from '../../common/security/rbac-query-scope';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { StorageService } from '../../common/storage/storage.service';
 import { AuditService } from '../audit/audit.service';
@@ -52,10 +60,11 @@ export class DocumentsService {
     private readonly auditService: AuditService,
   ) {}
 
-  async findByTenant(tenantId: string, query: DocumentQueryDto) {
+  async findByTenant(currentUser: AuthenticatedUser, query: DocumentQueryDto) {
     const { items, total } = await this.documentsRepository.findByTenant(
-      tenantId,
+      currentUser.tenantId,
       query,
+      this.buildDocumentReadWhere(currentUser),
     );
 
     return {
@@ -87,7 +96,12 @@ export class DocumentsService {
     const tenantId = currentUser.tenantId;
 
     await this.assertValidLinkedEntity(tenantId, entityType, entityId);
-    await this.assertEntityReadAccess(currentUser, entityType, entityId);
+    await this.assertEntityAccess(
+      currentUser,
+      entityType,
+      entityId,
+      SecurityPrivilege.READ,
+    );
 
     const items = await this.documentsRepository.findByEntity(
       tenantId,
@@ -106,10 +120,11 @@ export class DocumentsService {
    * the tenant — including records they are explicitly denied. Access is decided
    * by the owning employee, using the same scoping employee reads apply.
    */
-  private async assertEntityReadAccess(
+  private async assertEntityAccess(
     currentUser: AuthenticatedUser,
     entityType: DocumentEntityType,
     entityId: string,
+    employeePrivilege: SecurityPrivilege,
   ) {
     const employeeId = await this.resolveOwningEmployeeId(
       currentUser.tenantId,
@@ -130,7 +145,7 @@ export class DocumentsService {
           buildScopedAccessWhere<Prisma.EmployeeWhereInput>(
             currentUser,
             ENTITY_KEYS.EMPLOYEES,
-            SecurityPrivilege.READ,
+            employeePrivilege,
             { organizationIdField: null, userIdField: 'userId' },
           ),
         ],
@@ -172,15 +187,17 @@ export class DocumentsService {
     }
   }
 
-  async findById(tenantId: string, documentId: string) {
+  async findById(currentUser: AuthenticatedUser, documentId: string) {
     const document = await this.documentsRepository.findById(
-      tenantId,
+      currentUser.tenantId,
       documentId,
     );
 
     if (!document || document.isArchived) {
       throw new NotFoundException('Document was not found for this tenant.');
     }
+
+    await this.assertDocumentReadAccess(currentUser, document);
 
     return this.mapDocument(document);
   }
@@ -223,6 +240,12 @@ export class DocumentsService {
       currentUser.tenantId,
       dto.entityType,
       dto.entityId,
+    );
+    await this.assertEntityAccess(
+      currentUser,
+      dto.entityType,
+      dto.entityId,
+      SecurityPrivilege.WRITE,
     );
 
     if (
@@ -319,6 +342,13 @@ export class DocumentsService {
       throw new NotFoundException('Document was not found for this tenant.');
     }
 
+    await this.assertDocumentAccess(
+      currentUser,
+      before,
+      SecurityPrivilege.WRITE,
+      SecurityPrivilege.WRITE,
+    );
+
     if (dto.documentTypeId !== undefined && dto.documentTypeId !== null) {
       await this.validateDocumentType(currentUser.tenantId, dto.documentTypeId);
     }
@@ -385,6 +415,13 @@ export class DocumentsService {
       throw new NotFoundException('Document was not found for this tenant.');
     }
 
+    await this.assertDocumentAccess(
+      currentUser,
+      document,
+      SecurityPrivilege.DELETE,
+      SecurityPrivilege.WRITE,
+    );
+
     await this.documentsRepository.archiveDocument(
       currentUser.tenantId,
       documentId,
@@ -404,9 +441,9 @@ export class DocumentsService {
     return { id: documentId, archived: true };
   }
 
-  async openForView(tenantId: string, documentId: string) {
+  async openForView(currentUser: AuthenticatedUser, documentId: string) {
     const document = await this.documentsRepository.findById(
-      tenantId,
+      currentUser.tenantId,
       documentId,
     );
 
@@ -414,21 +451,114 @@ export class DocumentsService {
       throw new NotFoundException('Document was not found for this tenant.');
     }
 
+    await this.assertDocumentReadAccess(currentUser, document);
+
     return {
       document,
       file: await this.storageService.openFile(document.storageKey),
     };
   }
 
-  async openForDownload(tenantId: string, documentId: string) {
+  async openForDownload(currentUser: AuthenticatedUser, documentId: string) {
     const documentSettings =
-      await this.tenantSettingsResolverService.getDocumentSettings(tenantId);
+      await this.tenantSettingsResolverService.getDocumentSettings(
+        currentUser.tenantId,
+      );
     if (documentSettings.disableExternalDownloads) {
       throw new BadRequestException(
         'Document downloads are disabled by tenant document settings.',
       );
     }
-    return this.openForView(tenantId, documentId);
+    return this.openForView(currentUser, documentId);
+  }
+
+  private buildDocumentReadWhere(
+    currentUser: AuthenticatedUser,
+  ): Prisma.DocumentWhereInput {
+    const accessLevel = resolveEffectiveAccessLevel(
+      currentUser,
+      ENTITY_KEYS.DOCUMENTS,
+      SecurityPrivilege.READ,
+    );
+
+    if (accessLevel === SecurityAccessLevel.TENANT) return {};
+    if (accessLevel === SecurityAccessLevel.NONE) {
+      return { id: '__rbac_no_document_access__' };
+    }
+
+    const employeeWhere = buildScopedAccessWhere<Prisma.EmployeeWhereInput>(
+      currentUser,
+      ENTITY_KEYS.EMPLOYEES,
+      SecurityPrivilege.READ,
+      { organizationIdField: null, userIdField: 'userId' },
+    );
+
+    return {
+      links: {
+        some: {
+          OR: [
+            { employee: { is: employeeWhere } },
+            { leaveRequest: { is: { employee: { is: employeeWhere } } } },
+          ],
+        },
+      },
+    };
+  }
+
+  private async assertDocumentReadAccess(
+    currentUser: AuthenticatedUser,
+    document: DocumentWithRelations,
+  ) {
+    return this.assertDocumentAccess(
+      currentUser,
+      document,
+      SecurityPrivilege.READ,
+      SecurityPrivilege.READ,
+    );
+  }
+
+  private async assertDocumentAccess(
+    currentUser: AuthenticatedUser,
+    document: DocumentWithRelations,
+    documentPrivilege: SecurityPrivilege,
+    employeePrivilege: SecurityPrivilege,
+  ) {
+    const accessLevel = resolveEffectiveAccessLevel(
+      currentUser,
+      ENTITY_KEYS.DOCUMENTS,
+      documentPrivilege,
+    );
+    if (accessLevel === SecurityAccessLevel.TENANT) return;
+
+    for (const link of document.links) {
+      const employeeId = await this.resolveOwningEmployeeId(
+        currentUser.tenantId,
+        link.entityType,
+        link.entityId,
+      );
+      if (!employeeId) continue;
+      const visible = await this.prisma.employee.findFirst({
+        where: {
+          AND: [
+            {
+              id: employeeId,
+              tenantId: currentUser.tenantId,
+              isDeleted: false,
+            },
+            buildScopedAccessWhere<Prisma.EmployeeWhereInput>(
+              currentUser,
+              ENTITY_KEYS.EMPLOYEES,
+              employeePrivilege,
+              { organizationIdField: null, userIdField: 'userId' },
+            ),
+          ],
+        },
+        select: { id: true },
+      });
+      if (visible) return;
+    }
+
+    throw new NotFoundException('Document was not found for this tenant.');
   }
 
   listDocumentTypes(tenantId: string) {
