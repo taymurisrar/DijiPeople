@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 111** · automated: 104 · manual: 4 · blocked by infrastructure: 0
+**Scenarios: 112** · automated: 105 · manual: 4 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -68,6 +68,7 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-DEPLOY-014](../../../docs/qa/scenarios/QA-DEPLOY-014-a-stale-generated-prisma-client-is-detected-before-compilati.md) | A stale generated Prisma client is detected before compilation | deployment-release | UNIT | HIGH | AUTOMATED | `scripts/check-prisma-client-fresh.mjs` | BUG-0068 | REG-063 |
 | [QA-DEPLOY-015](../../../docs/qa/scenarios/QA-DEPLOY-015-repository-health-reports-the-primary-worktree-and-blocks-on.md) | Repository health reports the primary worktree and blocks on unexplained dirty files | deployment-release | UNIT | HIGH | AUTOMATED | `scripts/validate-framework.mjs` | BUG-0076 | REG-065 |
 | [QA-DEPLOY-016](../../../docs/qa/scenarios/QA-DEPLOY-016-the-browser-install-does-no-apt-work-and-proves-the-browser-.md) | The browser install does no apt work and proves the browser launches | deployment-release | DEPLOYMENT_SMOKE | HIGH | AUTOMATED | `scripts/install-browser.mjs` | BUG-0079 | REG-069 |
+| [QA-DEPLOY-017](../../../docs/qa/scenarios/QA-DEPLOY-017-a-deploy-never-changes-an-existing-platform-super-admin.md) | A deploy never changes an existing platform super admin | deployment-release | UNIT | HIGH | AUTOMATED | `services/api/src/common/utils/admin-seed.util.spec.ts` | BUG-0085 | REG-079 |
 | [QA-LANDING-001](../../../docs/qa/scenarios/QA-LANDING-001-public-pages-degrade-rather-than-500-when-the-plans-api-is-u.md) | Public pages degrade rather than 500 when the plans API is unreachable | landing | BROWSER_E2E | HIGH | AUTOMATED | `e2e/tests/flow-c-landing-public-surface.spec.ts` | BUG-0061 | REG-057 |
 | [QA-LANDING-002](../../../docs/qa/scenarios/QA-LANDING-002-mobile-navigation-dismisses-on-navigation-escape-and-outside.md) | Mobile navigation dismisses on navigation escape and outside click | landing | BROWSER_E2E | HIGH | AUTOMATED | `e2e/tests/flow-c-landing-public-surface.spec.ts` | BUG-0062 | REG-058 |
 | [QA-LANDING-003](../../../docs/qa/scenarios/QA-LANDING-003-the-demo-form-reports-validation-errors-accessibly-and-submi.md) | The demo form reports validation errors accessibly and submits | landing | BROWSER_E2E | HIGH | AUTOMATED | `e2e/tests/flow-c-landing-public-surface.spec.ts` | BUG-0063 | REG-059 |

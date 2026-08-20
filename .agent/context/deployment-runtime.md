@@ -1,7 +1,7 @@
 # Deployment Runtime
 
-> **Last verified:** 2026-08-16
-> **Verified against commit:** 78072d2
+> **Last verified:** 2026-08-20
+> **Verified against commit:** bab45ad
 > **Key source files:** render.yaml, package.json, services/api/src/main.ts,
 > services/api/src/config/env.validation.ts, packages/config/index.js,
 > turbo.json, scripts/smoke-deployment.mjs, scripts/next-with-port.mjs,
@@ -66,7 +66,12 @@ healthCheckPath:  /api
 ```
 
 `npm --workspace api run release` =
-`prisma migrate deploy && seed:config && seed:verify && seed:admin`.
+`prisma migrate deploy && seed:config && seed:verify && seed:admin &&
+seed:legal && legal:publish -- --confirm`.
+
+The last two were added in TASK-0010. Until then a deployment published no legal
+documents, and because the purchase wizard only requires agreements that carry a
+**published** version, a purchase recorded no consent at all.
 
 **Migrations run automatically on every Render deploy**, in `preDeployCommand`,
 before the new process starts. That is the production migration strategy — there
@@ -112,9 +117,15 @@ rather than degrading:
 `EMAIL_FROM_NAME`. Secrets use `sync: false` — set in the dashboard, never
 committed.
 
-**Required by the release chain but absent from `render.yaml`:**
-`PLATFORM_SUPER_ADMIN_EMAIL` and `PLATFORM_SUPER_ADMIN_PASSWORD`, because
-`seed:admin` runs on every deploy. See `docs/deployment/environments.md`.
+**`PLATFORM_SUPER_ADMIN_EMAIL` / `_PASSWORD` / `_PASSWORD_RESET` are declared**
+(`render.yaml`) since TASK-0010. They were required by the release chain and
+undeclared, so the first deploy of a new environment aborted in
+`preDeployCommand` — before `seed:legal` and `legal:publish` ever ran.
+
+Set the first two for an environment's first deploy, then remove the password:
+`seed:admin` is a no-op once an active super admin exists, and **never**
+overwrites an existing admin's password, role or status. `_PASSWORD_RESET=true`
+is the deliberate break-glass path. See `docs/environment-variables.md`.
 
 ### Smoke tooling
 

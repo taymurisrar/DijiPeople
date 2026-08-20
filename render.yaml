@@ -50,6 +50,30 @@ services:
       # Set the value in the Render dashboard; never commit it.
       - key: SECRET_ENCRYPTION_KEY
         sync: false
+      # Bootstrap credentials for the platform super admin.
+      #
+      # These were required by `preDeployCommand` and undeclared here, which
+      # meant the first deploy of a new environment aborted during
+      # `npm run release` — before `seed:legal` and `legal:publish`, the steps
+      # that make a purchase record consent at all. `docs/deployment/
+      # environments.md` had recorded that gap; nothing in the repository
+      # closed it.
+      #
+      # Set both for the first deploy of an environment, then REMOVE the
+      # password: `seed:admin` is a no-op once an active super admin exists, so
+      # a password no longer has to live in this dashboard to keep deploys
+      # green. It will not overwrite an existing admin's credential.
+      - key: PLATFORM_SUPER_ADMIN_EMAIL
+        sync: false
+      - key: PLATFORM_SUPER_ADMIN_PASSWORD
+        sync: false
+      # Break-glass only. Set to "true" together with the two above to
+      # deliberately reset the super admin's password, role and status — for
+      # example after losing access. Unset it again immediately: left on, it
+      # restores the dashboard value on every subsequent deploy, which is the
+      # behaviour this variable exists to make explicit rather than automatic.
+      - key: PLATFORM_SUPER_ADMIN_PASSWORD_RESET
+        sync: false
       # Machine credential for scripts/publish-release.mjs. Leave UNSET to keep
       # release publishing closed on this environment: ReleasePublishTokenGuard
       # fails closed, so an environment without this value cannot be published

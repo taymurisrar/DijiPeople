@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**150 records** — 80 bugs under [`docs/bugs/`](../bugs/), 70 non-bug items under [`items/`](items/).
+**152 records** — 82 bugs under [`docs/bugs/`](../bugs/), 70 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -15,9 +15,9 @@ see [`README.md`](README.md) for why.
 |---|---|
 | Open (active work) | 38 |
 | Blocked | 0 |
-| Deferred | 12 |
+| Deferred | 13 |
 | Awaiting a product decision | 3 |
-| Completed / closed | 97 |
+| Completed / closed | 98 |
 | **Open CRITICAL** | **0** |
 | **Open HIGH** | **12** |
 | **Awaiting Architect triage** | **0** |
@@ -51,10 +51,10 @@ see [`README.md`](README.md) for why.
 | Status | Count |
 |---|---|
 | OPEN | 4 |
-| DEFERRED | 12 |
+| DEFERRED | 13 |
 | PRODUCT_DECISION | 3 |
 | FIXED | 8 |
-| VERIFIED | 67 |
+| VERIFIED | 68 |
 | DUPLICATE | 1 |
 | READY | 26 |
 | DONE | 29 |
@@ -113,6 +113,7 @@ see [`README.md`](README.md) for why.
 | [BUG-0080](../../docs/bugs/BUG-0080-seeded-prices-bill-a-flat-fee-while-the-terms-say-the-billab.md) | Seeded prices bill a flat fee while the Terms say the billable unit is an active employee | DATA_INTEGRITY | HIGH | P1 | FIXED | billing, super-admin, legal | FIX_NOW |
 | [BUG-0082](../../docs/bugs/BUG-0082-the-onboarding-wizard-collects-five-steps-of-data-it-cannot-.md) | The onboarding wizard collects five steps of data it cannot submit | UX | HIGH | P1 | FIXED | landing | FIX_NOW |
 | [BUG-0083](../../docs/bugs/BUG-0083-the-database-agent-preflight-reports-pass-on-a-database-with.md) | The Database Agent preflight reports PASS on a database with every migration unapplied | INFRA | HIGH | P1 | VERIFIED | scripts, .agent, services/api | DONE |
+| [BUG-0085](../../docs/bugs/BUG-0085-the-release-command-aborted-a-first-deploy-and-otherwise-res.md) | The release command aborted a first deploy, and otherwise reset the super admin password | INFRA | HIGH | P1 | VERIFIED | platform-users, legal | DONE |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | READY | api:tenant-control-plane | FIX_NOW |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | READY | apps/web, e2e | PLAN_REQUIRED |
@@ -148,6 +149,7 @@ see [`README.md`](README.md) for why.
 | [BUG-0073](../../docs/bugs/BUG-0073-small-uppercase-labels-in-slate-400-fail-wcag-aa-contrast-ac.md) | Small uppercase labels in slate-400 fail WCAG AA contrast across admin | UX | MEDIUM | P2 | VERIFIED | apps/admin | DONE |
 | [BUG-0074](../../docs/bugs/BUG-0074-the-provisioning-queue-scroll-container-was-unreachable-by-k.md) | The provisioning queue scroll container was unreachable by keyboard | UX | MEDIUM | P2 | VERIFIED | apps/admin | DONE |
 | [BUG-0081](../../docs/bugs/BUG-0081-three-apps-claimed-a-forwarded-headers-invariant-test-that-d.md) | Three apps claimed a forwarded-headers invariant test that did not exist | TEST_GAP | MEDIUM | P2 | FIXED | landing, web, admin | FIX_NOW |
+| [BUG-0084](../../docs/bugs/BUG-0084-seven-unique-constraints-in-schema-prisma-are-absent-from-th.md) | Seven unique constraints in schema.prisma are absent from the migration chain | DATA_INTEGRITY | MEDIUM | P2 | DEFERRED | contracts, partner-experience, support-cases, approvals, tenant-settings | DEFER |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | READY | services/api, apps/admin | FIX_NOW |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | READY | api:tenant-control-plane | FIX_NOW |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |

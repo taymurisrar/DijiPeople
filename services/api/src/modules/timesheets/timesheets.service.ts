@@ -1231,8 +1231,9 @@ export class TimesheetsService {
     const holidayMap = new Map(
       holidays.map((holiday) => [toDateKey(holiday.date), holiday]),
     );
-    const parsedRows =
-      await this.excelExportService.parseFirstWorksheet(file.buffer);
+    const parsedRows = await this.excelExportService.parseFirstWorksheet(
+      file.buffer,
+    );
     assertRequiredImportColumns(parsedRows);
 
     const rows = parsedRows.map((row) =>

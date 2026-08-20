@@ -11,7 +11,7 @@ AFFECTED_MODULES: [auth, users, legal, billing]
 AGENTS: [Architect, Backend/API, Database, Security, QA, Reviewer, Integrator]
 DEPENDENCIES: origin/develop 95551bc; TASK-0009
 CURRENT_PACKAGE: WP-03
-COMPLETED_PACKAGES: [WP-01, WP-02, WP-05]
+COMPLETED_PACKAGES: [WP-01, WP-02, WP-05, WP-06]
 BLOCKED_PACKAGES: [WP-03]
 OWNER_DECISIONS: 4
 FINAL_STATUS:
@@ -44,8 +44,9 @@ Asked before any work, because each changes what gets built:
 | WP-01 | ITEM-0069 — discovery throttle, decoupled from the credential lock | DONE | — | Backend/API, Database, Security | agent/go-live-readiness | pending | PASS | ITEM-0069 | NOT_RUN | NOT_STARTED |
 | WP-02 | Legal publication wired into the release command | DONE | — | Backend/API | agent/go-live-readiness | pending | PASS | — | NOT_RUN | NOT_STARTED |
 | WP-03 | Real prices for every launched market | BLOCKED | owner | Backend/API | agent/go-live-readiness | — | — | — | — | — |
-| WP-04 | Release readiness assessment and the PR to `main` | NOT_STARTED | WP-01..WP-03, WP-05 | Release/DevOps, Reviewer, Integrator | agent/go-live-readiness | — | — | — | — | — |
+| WP-04 | Release readiness assessment and the PR to `main` | IN_PROGRESS | WP-01..WP-03, WP-05, WP-06 | Release/DevOps, Reviewer, Integrator | agent/go-live-readiness | — | — | — | — | — |
 | WP-05 | The xlsx parse path, off an advisory that was reachable after all | DONE | — | Backend/API, Security | agent/go-live-readiness | pending | PASS | BUG-0052, ITEM-0070 | NOT_RUN | NOT_STARTED |
+| WP-06 | The first-deploy dry run, and the two defects it found | DONE | — | Release/DevOps, Database, QA | agent/go-live-readiness | pending | PASS | BUG-0084, BUG-0085 | NOT_RUN | NOT_STARTED |
 
 ## WP-01 — the lockout weapon, removed
 
@@ -170,6 +171,80 @@ the removal of an advisory with no call site. Carried by [[ITEM-0070]], with the
 verification it actually needs — a golden-file diff, not a round trip, because a
 round trip only proves the writer and reader agree with each other.
 
+## WP-06 — the first-deploy dry run
+
+Every prior task validated code. Nothing had ever run **the actual deployment
+command against an empty database**, which is what a production launch is.
+
+So that is what this package did: create a throwaway database, apply all 216
+migrations from zero, and run `npm --workspace api run release` — the literal
+`preDeployCommand` from `render.yaml`. It found two defects, one of which would
+have stopped the launch outright.
+
+### It aborted — [[BUG-0085]]
+
+```text
+> api@0.0.1 seed:admin
+PLATFORM_SUPER_ADMIN_EMAIL is required.
+npm error Lifecycle script `release` failed with error: code 1
+```
+
+`seed:admin` requires that variable and `render.yaml` never declared it, so the
+first deploy of a new environment fails in `preDeployCommand`. And because
+`seed:admin` sits *before* `seed:legal` and `legal:publish`, the abort would also
+have suppressed WP-02 — an environment that failed here would have had no
+published legal documents, so a purchase would still have recorded no consent.
+The work of WP-02 was real; it just could never have run.
+
+Setting the variable then revealed the second half. The upsert wrote
+`passwordHash` in its `update` branch, so **every deploy reset the super admin's
+password** to the dashboard value. Proven rather than read:
+
+```text
+before: $2b$12$nyZMFbE7d.yPW
+after:  $2b$12$17uYhjdHW2gTa
+VERDICT: password OVERWRITTEN by redeploy
+```
+
+The two available configurations were "every deploy fails" and "every deploy
+silently reverts the super admin's credential" — including a credential rotated
+*because it leaked*. There was no third one.
+
+**CI could not have caught this.** `ci.yml` sets both variables against a fresh
+database, so it only ever exercised the create path. The defect lived entirely
+where CI does not go, which is why it survived to the eve of a release.
+
+Fixed by extracting the decision into a pure, tested function
+(`admin-seed.util.ts`) under one rule: **a deploy never modifies an existing
+platform user unless explicitly told to.** Re-activation was deliberately left
+out of the default path — restoring role and status on every deploy would
+silently undo the suspension of a compromised account.
+
+Redeploy is now verified idempotent end to end: 216 migrations applied, 10 legal
+documents published on the first run, `published: 0, alreadyPublished: 10,
+skipped: 0` on the second.
+
+### The schema promises constraints the database will not keep — [[BUG-0084]]
+
+Diffing the from-empty database against `schema.prisma` gives 195 statements.
+Almost all of it is cosmetic — 55 index renames, 54 foreign-key renames, 17
+default changes, and no `DROP TABLE`, `DROP COLUMN` or `SET NOT NULL` anywhere.
+
+But 53 indexes are declared and absent, and **seven of those are UNIQUE**.
+Confirmed against `pg_index`, not inferred from the diff.
+
+My first reading of the consequence was wrong and is worth recording. I expected
+`supportCaseIncident.upsert` to fail outright, since Postgres rejects
+`ON CONFLICT` with no matching constraint. A query-log probe shows Prisma
+emitting `SELECT` then `INSERT` instead, so it does not fail — it silently
+degrades to a read-then-write race. Checking beat reasoning, again.
+
+**Deferred, not fixed.** It is pre-existing, identical on `main`, and nothing is
+broken today. Adding unique indexes is trivial on an empty database and can abort
+a deployment on a populated one, so doing it alongside 216 migrations and a first
+production deploy would leave a failure with too many candidate causes. It should
+be the first migration *after* launch.
+
 ## Assumptions
 
 | ASSUMPTION_ID | STATEMENT | EVIDENCE | CONFIDENCE | IMPACT_IF_WRONG |
@@ -188,6 +263,9 @@ PRE_TASK_REPO_HEALTH — PASS at `95551bc`.
 - 2026-08-20 — created at `95551bc`, after TASK-0009 integrated. Four owner
   decisions taken before any work started.
 - 2026-08-20 — WP-01 and WP-02 done. WP-03 blocked on the price list.
+- 2026-08-20 — WP-06: the release command was run against a database built from
+  all 216 migrations, for the first time. It aborted. Two defects recorded and
+  one fixed; redeploy now verified idempotent end to end.
 - 2026-08-20 — WP-05: verifying A-03 falsified the neighbouring claim. The
   `xlsx` parse path was reachable from two authenticated uploads and is now
   on ExcelJS. BUG-0052's 2026-08-17 reachability finding corrected in place.
@@ -196,7 +274,7 @@ PRE_TASK_REPO_HEALTH — PASS at `95551bc`.
 
 ## Related
 
-- Records — [[BUG-0052]], [[ITEM-0069]], [[ITEM-0070]]
+- Records — [[BUG-0052]], [[BUG-0084]], [[BUG-0085]], [[ITEM-0069]], [[ITEM-0070]]
 - Modules — [[legal]], [[billing]]
 
 <!-- GRAPH:END -->

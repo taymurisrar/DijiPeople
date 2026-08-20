@@ -1101,3 +1101,18 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | The third arrival of the class behind BUG-0060 and BUG-0068. Both earlier fixes guarded the *developer* — `check-prisma-client-fresh.mjs` on `prestart:dev` — so the human kept discovering what the task should have caught. `DATABASE_COHERENCE_STATUS` and `npm run db:postflight` make it an agent-facing gate: the invariant is now checked after the work that breaks it, against the primary checkout rather than the agent's own worktree. |
 | **Fixed** | 2026-08-20, branch `agent/db-coherence-postflight` |
 | **Active** | yes |
+
+### REG-079 — A deploy reset the platform super admin's password
+
+| | |
+|---|---|
+| **Bug class** | `bootstrap-script-wired-into-a-recurring-step` |
+| **Module** | `services/api/prisma/seed-admin.ts`, `render.yaml` |
+| **Bug record** | BUG-0085 |
+| **Root cause** | `seed:admin` was written as a one-time bootstrap and then wired into `npm run release`, which `render.yaml` sets as `preDeployCommand` — so it ran on every deploy. Its upsert wrote `passwordHash` in the `update` branch, so every deploy reset the super admin's credential to the dashboard value. The variable it required was never declared in `render.yaml`, so the only alternative was a first deploy that aborted in `preDeployCommand`, before `seed:legal` and `legal:publish`. Two wrong configurations and no third one. |
+| **Regression test** | `services/api/src/common/utils/admin-seed.util.spec.ts` |
+| **Scenario** | A redeploy with a different `PLATFORM_SUPER_ADMIN_PASSWORD` must leave the stored hash untouched; a redeploy with no variables at all must succeed when an active super admin exists and fail loudly when none does; only `PLATFORM_SUPER_ADMIN_PASSWORD_RESET=true` may change an existing admin's password, role or status. |
+| **Proven to fix** | The reset case is asserted **as a pair** with the non-reset case, so a decision that ignored the flag and reset unconditionally — the original behaviour — fails the test. End to end against a real database: before the fix, two `seed:admin` runs with different passwords produced two different bcrypt hashes; after it, the second run reports `SKIP` and the hash is unchanged, while `_PASSWORD_RESET=true` changes it. |
+| **Note** | CI never caught this because `.github/workflows/ci.yml` sets both variables against a fresh database, exercising only the create path. The defect lived entirely in the paths CI could not reach. It was found by running the actual `preDeployCommand` against a database built from all 216 migrations — something no test does. |
+| **Fixed** | 2026-08-20, branch `agent/go-live-readiness` |
+| **Active** | yes |

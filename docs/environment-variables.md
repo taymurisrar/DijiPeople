@@ -146,6 +146,40 @@ AUTH_AGENT_IDLE_SESSION_TIMEOUT_SECONDS=30d
 AUTH_AGENT_ABSOLUTE_SESSION_TIMEOUT_SECONDS=30d
 ```
 
+### Platform super admin bootstrap
+
+`seed:admin` runs inside `npm run release`, which is `render.yaml`'s
+`preDeployCommand`, so it executes on **every** deploy of the API.
+
+```env
+PLATFORM_SUPER_ADMIN_EMAIL=<bootstrap-admin-email>
+PLATFORM_SUPER_ADMIN_PASSWORD=<at least 12 characters>
+```
+
+**Set both for the first deploy of an environment, then remove the password.**
+Once an active platform super admin exists, `seed:admin` is a no-op and deploys
+stay green without either variable — so a live credential does not have to sit
+in the Render dashboard indefinitely.
+
+It will not overwrite an existing admin. A deploy never changes an existing
+platform user's password, role or status, because two configurations were
+previously the only ones available and both were wrong: leaving the variables
+unset aborted `preDeployCommand`, and leaving them set reset the super admin's
+password to the dashboard value on every deploy — including a password that had
+just been rotated because it leaked.
+
+```env
+PLATFORM_SUPER_ADMIN_PASSWORD_RESET=true
+```
+
+Break-glass only, for regaining access to an environment. Set it with the two
+variables above, deploy once, then unset it — left on, it reapplies the
+dashboard value on every subsequent deploy.
+
+Without any of them, a database that has **no** active super admin still fails
+loudly rather than deploying: such an environment has nobody who can sign in,
+and nobody to attribute legal-document publication to.
+
 Email variables are required only when email delivery is enabled:
 
 ```env

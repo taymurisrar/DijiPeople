@@ -172,5 +172,5 @@ function cellToPrimitive(
     }
     return '';
   }
-  return value as string | number | boolean;
+  return value;
 }

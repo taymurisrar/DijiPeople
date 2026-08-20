@@ -1,7 +1,7 @@
 # Database and Prisma
 
-> **Last verified:** 2026-08-17
-> **Verified against commit:** 3f9063f
+> **Last verified:** 2026-08-20
+> **Verified against commit:** bab45ad
 > **Key source files:** services/api/prisma/schema.prisma, services/api/prisma.config.ts, services/api/package.json, package.json, render.yaml, services/api/src/common/prisma/prisma.service.ts, services/api/prisma/create-prisma-client.ts, services/api/prisma/seed-config.ts, services/api/prisma/verify-seed-config.ts, services/api/prisma/seed-admin.ts, services/api/prisma/seed-demo.ts, services/api/prisma/seed-platform-workflows.ts, docs/development/git-worktrees.md
 >
 > This document describes the repository, it is not authority over it. If the
@@ -118,7 +118,8 @@ build but **not** by `start:dev` alone.
 ### Release chain
 
 `npm run release:api` → `npm --workspace api run release` →
-`prisma:migrate:deploy && seed:config && seed:verify && seed:admin`
+`prisma:migrate:deploy && seed:config && seed:verify && seed:admin &&
+seed:legal && legal:publish -- --confirm`
 (`services/api/package.json`), wired as `preDeployCommand`
 (`render.yaml:8`); `buildCommand` / `startCommand` (`render.yaml:6-7`) do **not**
 touch the database. A required configuration row missing from `seed-config.ts`
