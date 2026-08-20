@@ -6,7 +6,7 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 5** · completed: 15
+**Active: 5** · completed: 16
 
 ## Active
 
@@ -22,6 +22,7 @@ see [`README.md`](README.md) for how they stay out of each other's way.
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0020](../../docs/sessions/SESSION-0020-database-agent-coherence-is-verified-after-schema-work-not-o.md) | — | Database Agent coherence is verified after schema work, not only before | COMPLETE | `agent/db-coherence-postflight` | `develop` | — | 2026-08-20T05:46:42.814Z |
 | [SESSION-0018](../../docs/sessions/SESSION-0018-self-service-onboarding-provisioning-domain-routing-and-cent.md) | TASK-0008 | Self-service onboarding, provisioning, domain routing and central login | COMPLETE | `agent/self-service-onboarding-provisioning` | `develop` | — | 2026-08-18T23:23:49.309Z |
 | [SESSION-0017](../../docs/sessions/SESSION-0017-primary-worktree-repository-health-ownership.md) | — | Primary worktree repository health ownership | COMPLETE | `agent/repo-health-primary-worktree` | `develop` | — | 2026-08-18T23:14:32.919Z |
 | [SESSION-0015](../../docs/sessions/SESSION-0015-wp-11-provisioning-operations-ux-and-wp-13-qa-campaign.md) | TASK-0007 | WP-11 provisioning operations UX and WP-13 QA campaign | COMPLETE | `agent/provisioning-ops-and-qa` | `develop` | — | 2026-08-19T22:40:00.000Z |

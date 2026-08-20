@@ -264,6 +264,7 @@ PRIMARY_WORKTREE_STATUS
 TASK_WORKTREE_STATUS
 UNEXPLAINED_DIRTY_FILES
 POST_INTEGRATION_GENERATOR_STATUS
+DATABASE_COHERENCE_STATUS
 DEPLOYMENT_STATUS
 DEPLOYMENT_DRIFT_STATUS
 ENGINEERING_HISTORY_STATUS
@@ -396,6 +397,7 @@ noticed — the human noticed, later, when their next push failed.
 | `TASK_WORKTREE_STATUS` | This task's own worktree is clean, or its remaining paths are named | The task created no worktree |
 | `UNEXPLAINED_DIRTY_FILES` | Counted across framework-managed worktrees | Never; `0` is the only passing value |
 | `POST_INTEGRATION_GENERATOR_STATUS` | Generators that write tracked files ran before the final commit, or ran after and produced no diff | No generator ran |
+| `DATABASE_COHERENCE_STATUS` | `npm run db:postflight` reports `PASS` against the **primary** checkout after integration | The task changed no Prisma schema, migration or seed |
 | `DEPLOYMENT_STATUS` | The deployment state machine reached a terminal state | Nothing was deployed — state the reason |
 | `DEPLOYMENT_DRIFT_STATUS` | `EXPECTED_SHA` vs `DEPLOYED_SHA` classified | No environment is configured for this component |
 
@@ -430,6 +432,44 @@ an unfinished cherry-pick · unexpected local-main commits · unverified diverge
 `MAIN_SYNC_STATUS = AHEAD` after a task is not a cosmetic untidiness. It means
 work exists in exactly one place, on one machine, and the next person to touch
 the branch will collide with it.
+
+### `DATABASE_COHERENCE_STATUS` — a clean checkout that cannot boot
+
+Repository health answers a Git question. It does not answer whether the
+application still runs, and those came apart in exactly the way the previous
+section describes — one level deeper.
+
+`POST_INTEGRATION_GENERATOR_STATUS` is defined over generators that write
+**tracked** files: the backlog indexes, the QA matrix, the dashboards. The
+generated Prisma client is untracked, so the one generator whose staleness stops
+the API from starting was the one generator no completion field could see.
+
+TASK-0008 landed three additive migrations, resolved every field in this
+contract — `PRIMARY_WORKTREE_STATUS = CLEAN`, `POST_INTEGRATION_GENERATOR_STATUS
+= DONE` — and left the user's checkout with a generated client missing seven
+`SubscriptionOrder` fields and three migrations unapplied. Nothing in the
+framework noticed. The user found it by running `npm run start:dev`.
+
+So the coherence the Database Agent already names —
+
+```
+schema.prisma → migration state → generated Prisma Client → local PostgreSQL → application
+```
+
+— is now asked **after** the work as well as before it, and asked of the
+**primary** checkout rather than whichever worktree the agent happens to be
+standing in:
+
+```bash
+npm run db:postflight          # resolves DATABASE_COHERENCE_STATUS
+npm run db:postflight -- --repair   # prisma:generate, migrate:deploy — never reset, never db push
+```
+
+A preflight cannot protect this invariant on its own. It certifies coherence,
+the agent then authors the migration that breaks it, and preflight is never
+asked again. The field is `NOT_REQUIRED` only when the task touched no schema,
+no migration and no seed — and `INCOMPLETE` is not a passing value, because a
+link nobody could check is not a link known to hold.
 
 ### `PR_STATUS`
 

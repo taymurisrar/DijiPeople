@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 110** · automated: 103 · manual: 4 · blocked by infrastructure: 0
+**Scenarios: 111** · automated: 104 · manual: 4 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -52,6 +52,7 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-BILLING-009](../../../docs/qa/scenarios/QA-BILLING-009-a-confirmed-payment-provisions-exactly-one-workspace-automat.md) | A confirmed payment provisions exactly one workspace automatically | tenant-provisioning | INTEGRATION | HIGH | PARTIAL | `services/api/src/modules/outbox/emitted-events-have-consumers.invariant.spec.ts` | BUG-0078 | REG-073 |
 | [QA-BILLING-010](../../../docs/qa/scenarios/QA-BILLING-010-checkout-cannot-open-until-the-owner-email-is-verified.md) | Checkout cannot open until the owner email is verified | subscription-orders | SECURITY | HIGH | AUTOMATED | `services/api/test/payment-authorised-provisioning.e2e-spec.ts` | ITEM-0063 | REG-074 |
 | [QA-CI-001](../../../docs/qa/scenarios/QA-CI-001-report-only-jobs-publish-an-explicit-pass-fail-verdict.md) | Report-only CI jobs publish an explicit PASS/FAIL verdict | deployment-release | DEPLOYMENT_SMOKE | HIGH | AUTOMATED | `scripts/validate-framework.mjs` | BUG-0049 | REG-047 |
+| [QA-CI-002](../../../docs/qa/scenarios/QA-CI-002-the-database-agent-verdict-cannot-report-pass-over-a-failing.md) | The Database Agent verdict cannot report PASS over a failing field | deployment-release | API | HIGH | AUTOMATED | `scripts/db-preflight.test.mjs` | BUG-0083, BUG-0060, BUG-0068 | REG-078 |
 | [QA-DEPLOY-001](../../../docs/qa/scenarios/QA-DEPLOY-001-deployment-smoke-checks-answer-against-the-deployed-environm.md) | Deployment smoke checks answer against the deployed environment | deployment-release | DEPLOYMENT_SMOKE | HIGH | AUTOMATED | `scripts/smoke-deployment.mjs` | — | — |
 | [QA-DEPLOY-002](../../../docs/qa/scenarios/QA-DEPLOY-002-no-url-is-hardcoded-where-configuration-is-required.md) | No URL is hardcoded where configuration is required | deployment-release | UNIT | HIGH | AUTOMATED | `scripts/check-no-hardcoded-urls.mjs` | BUG-0026 | REG-016 |
 | [QA-DEPLOY-003](../../../docs/qa/scenarios/QA-DEPLOY-003-the-running-api-exposes-the-commit-it-was-built-from.md) | The running API exposes the commit it was built from | deployment-release | UNIT | MEDIUM | AUTOMATED | `services/api/src/config/deployed-commit.spec.ts` | — | — |
