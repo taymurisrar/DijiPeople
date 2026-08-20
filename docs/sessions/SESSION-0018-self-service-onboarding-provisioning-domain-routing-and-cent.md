@@ -4,7 +4,7 @@ aliases: [SESSION-0018]
 TASK_ID: TASK-0008
 TITLE: Self-service onboarding, provisioning, domain routing and central login
 ARCHITECT_INTENT: Self-service onboarding, provisioning, domain routing and central login
-STATUS: ACTIVE
+STATUS: COMPLETE
 TASK_TYPE: FEATURE
 TASK_SIZE: LARGE
 BASE_BRANCH: origin/develop
@@ -13,11 +13,11 @@ TASK_BRANCH: agent/self-service-onboarding-provisioning
 TARGET_BRANCH: develop
 WORKTREE: D:/My Work/hrm-dijipeople/DijiPeople-selfservice
 AFFECTED_MODULES: [billing, super-admin, outbox, tenant-domains, prisma]
-WRITE_LEASES: [schema]
+WRITE_LEASES: []
 ACTIVE_WORK_PACKAGES: [WP-09]
 SCHEMA_WRITE: YES
-CI_STATUS: NOT_RUN
-MERGE_STATUS: NOT_STARTED
+CI_STATUS: PASS
+MERGE_STATUS: INTEGRATED
 STARTED_AT: 2026-08-18T23:23:49.309Z
 LAST_HEARTBEAT: 2026-08-18T23:23:49.309Z
 BLOCKERS: none
@@ -107,3 +107,7 @@ agreements carrying a published version and there are none.
 baseline was taken before merging the integration branch, so 81 already-fixed
 failures were rediscovered, investigated and filed. The analysis was right and
 entirely wasted. Merge first, then baseline.
+- 2026-08-20 — `09f24ea` passed `CI required gate` (run 32318019957), all
+  fourteen jobs green including Browser e2e and Database e2e. Integrated into
+  `develop` by ref-push, so the develop tip is byte-identical to the SHA the
+  verdict was read on: `09f24ea`. `schema` lease released.

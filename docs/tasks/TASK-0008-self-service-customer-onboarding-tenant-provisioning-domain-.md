@@ -10,8 +10,8 @@ CREATED_AT: 2026-08-18
 AFFECTED_MODULES: [super-admin, tenant-domains, tenant-control-plane, auth, billing, notifications, legal, landing, web, admin]
 AGENTS: [Architect, Database, Backend/API, Frontend, UI/UX, Integration, Security, QA, Reviewer, Integrator]
 DEPENDENCIES: origin/develop 494c44d; TASK-0007 WP-01..WP-10, WP-12
-CURRENT_PACKAGE: WP-09
-COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-04, WP-05, WP-07, WP-08, WP-10, WP-11]
+CURRENT_PACKAGE: WP-06
+COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-04, WP-05, WP-07, WP-08, WP-09, WP-10, WP-11]
 BLOCKED_PACKAGES: [WP-06]
 OWNER_DECISIONS: 4
 FINAL_STATUS:
@@ -145,17 +145,17 @@ Both are recorded here rather than silently fixed, per the retrieval contract.
 
 | WP_ID | TITLE | STATUS | DEPENDENCIES | AGENTS | BRANCH | SHA | QA_STATUS | CI_STATUS | MERGE_STATUS |
 |---|---|---|---|---|---|---|---|---|---|
-| WP-01 | Onboarding draft model, slug reservation and session-bound availability API | DONE | — | Database, Backend/API, Security | agent/self-service-onboarding-provisioning | pending | PASS | NOT_RUN | NOT_STARTED |
-| WP-02 | Email verification for the self-service Tenant Owner | DONE | WP-01 | Backend/API, Security, Integration | agent/self-service-onboarding-provisioning | pending | PASS | NOT_RUN | NOT_STARTED |
-| WP-03 | Onboarding status API for the provisioning experience | DONE | WP-01 | Backend/API | agent/self-service-onboarding-provisioning | pending | PASS | NOT_RUN | NOT_STARTED |
-| WP-04 | Onboarding API surface — organization profile, owner identity, agreements, draft session | DONE | WP-01, WP-02 | Backend/API, Database | agent/self-service-onboarding-provisioning | pending | PASS | NOT_RUN | NOT_STARTED |
-| WP-11 | Public onboarding wizard UI — organization, workspace, owner, agreements, review | DONE | WP-04 | Frontend, UI/UX | agent/self-service-onboarding-provisioning | pending | PASS_WITH_RISKS | NOT_RUN | NOT_STARTED |
-| WP-05 | Provisioning progress and workspace-ready experience | DONE | WP-03, WP-04 | Frontend, UI/UX | agent/self-service-onboarding-provisioning | pending | PASS | NOT_RUN | NOT_STARTED |
+| WP-01 | Onboarding draft model, slug reservation and session-bound availability API | DONE | — | Database, Backend/API, Security | agent/self-service-onboarding-provisioning | 09f24ea | PASS | PASS | INTEGRATED |
+| WP-02 | Email verification for the self-service Tenant Owner | DONE | WP-01 | Backend/API, Security, Integration | agent/self-service-onboarding-provisioning | 09f24ea | PASS | PASS | INTEGRATED |
+| WP-03 | Onboarding status API for the provisioning experience | DONE | WP-01 | Backend/API | agent/self-service-onboarding-provisioning | 09f24ea | PASS | PASS | INTEGRATED |
+| WP-04 | Onboarding API surface — organization profile, owner identity, agreements, draft session | DONE | WP-01, WP-02 | Backend/API, Database | agent/self-service-onboarding-provisioning | 09f24ea | PASS | PASS | INTEGRATED |
+| WP-11 | Public onboarding wizard UI — organization, workspace, owner, agreements, review | DONE | WP-04 | Frontend, UI/UX | agent/self-service-onboarding-provisioning | 09f24ea | PASS_WITH_RISKS | PASS | INTEGRATED |
+| WP-05 | Provisioning progress and workspace-ready experience | DONE | WP-03, WP-04 | Frontend, UI/UX | agent/self-service-onboarding-provisioning | 09f24ea | PASS | PASS | INTEGRATED |
 | WP-06 | Workspace switcher and last-used workspace | BLOCKED | ITEM-0062 | Frontend, UI/UX, Backend/API, Database, Security | — | — | NOT_RUN | NOT_RUN | NOT_STARTED |
-| WP-07 | Security review — enumeration, abuse, rate limiting, redirect safety | DONE | WP-01..WP-05 | Security | agent/self-service-onboarding-provisioning | pending | PASS | NOT_RUN | NOT_STARTED |
-| WP-08 | QA campaign — real PostgreSQL, concurrency, browser E2E | DONE | WP-07 | QA | agent/self-service-onboarding-provisioning | pending | PASS_WITH_RISKS | NOT_RUN | NOT_STARTED |
-| WP-09 | Review, exact-SHA CI, develop integration, knowledge and closure | NOT_STARTED | WP-08 | Reviewer, Integrator, Architect | agent/self-service-onboarding-provisioning | — | NOT_RUN | NOT_RUN | NOT_STARTED |
-| WP-10 | Payment-authorised provisioning — BUG-0077 and BUG-0078 | DONE | WP-01 | Backend/API, Integration, Database, Security, QA | agent/self-service-onboarding-provisioning | pending | PASS | NOT_RUN | NOT_STARTED |
+| WP-07 | Security review — enumeration, abuse, rate limiting, redirect safety | DONE | WP-01..WP-05 | Security | agent/self-service-onboarding-provisioning | 09f24ea | PASS | PASS | INTEGRATED |
+| WP-08 | QA campaign — real PostgreSQL, concurrency, browser E2E | DONE | WP-07 | QA | agent/self-service-onboarding-provisioning | 09f24ea | PASS_WITH_RISKS | PASS | INTEGRATED |
+| WP-09 | Review, exact-SHA CI, develop integration, knowledge and closure | DONE | WP-08 | Reviewer, Integrator, Architect | agent/self-service-onboarding-provisioning | 09f24ea | PASS | PASS | INTEGRATED |
+| WP-10 | Payment-authorised provisioning — BUG-0077 and BUG-0078 | DONE | WP-01 | Backend/API, Integration, Database, Security, QA | agent/self-service-onboarding-provisioning | 09f24ea | PASS | PASS | INTEGRATED |
 
 WP-01 is the root because every other package depends on the customer being
 able to *name* their workspace — which the current flow never asks. G-03 is
@@ -312,6 +312,114 @@ does not start reliably here. The two browser assertions that changed were
 corrected by reading them against the rewritten components — which is how
 BUG-0082 was found — and are proven by the `browser-e2e` gate on push. Saying
 so is the point; a QA verdict whose limits are unstated is not a verdict.
+
+## Task Finalization
+
+Integrated at `09f24ea`, which is both the task SHA the verdict was read on and
+the `develop` tip. Integration was a ref-push, so the two are byte-identical
+rather than merely equivalent — there is no merge commit to introduce a
+difference between what CI checked and what landed.
+
+```
+PRE_TASK_REPO_HEALTH             PASS
+SESSION_STATUS                   COMPLETE — SESSION-0018
+PARENT_TASK_STATUS               IN_PROGRESS — WP-06 remains, blocked on ITEM-0062
+WORK_PACKAGE_STATUS              10 of 11 DONE; WP-06 BLOCKED
+REQUIRED_AGENTS_STATUS           PASS — Architect, Database, Backend/API, Frontend,
+                                 UI/UX, Integration, Security, QA, Reviewer, Integrator
+IMPLEMENTATION_STATUS            DONE
+LOCAL_VALIDATION_STATUS          PASS
+QA_STATUS                        PASS_WITH_RISKS — risks named in the run
+QA_FINDINGS_CLASSIFIED_STATUS    DONE — 0 awaiting triage
+QA_SCENARIO_PROMOTION_STATUS     DONE — QA-BILLING-007..010, QA-LANDING-009..011
+BUG_RECORD_STATUS                DONE — BUG-0075, 0077, 0078, 0080, 0081, 0082
+ARCHITECT_TRIAGE_STATUS          DONE — ITEM-0061/0064/0066 DEFER, ITEM-0067 DUPLICATE
+BACKLOG_UPDATE_STATUS            DONE
+REVIEW_STATUS                    PASS
+PR_STATUS                        NOT_REQUIRED — develop takes no PR
+REMOTE_CI_STATUS                 PASS — run 32318019957 on 09f24ea, 14/14 jobs
+MERGE_STATUS                     INTEGRATED
+DEVELOP_INTEGRATION_STATUS       DONE — 5a47dff..09f24ea, fast-forward
+DEVELOP_SYNC_STATUS              SYNCED
+POST_MERGE_VALIDATION_STATUS     PASS
+MAIN_SYNC_STATUS                 SYNCED
+MAIN_CHANGE_STATUS               UNTOUCHED — baseline b90f33e
+POST_TASK_REPO_HEALTH            PASS
+PRIMARY_WORKTREE_STATUS          CLEAN
+TASK_WORKTREE_STATUS             CLEAN
+UNEXPLAINED_DIRTY_FILES          0
+POST_INTEGRATION_GENERATOR_STATUS DONE — backlog, QA, tasks, sessions, dashboards
+DEPLOYMENT_STATUS                NOT_REQUIRED — nothing here deploys
+DEPLOYMENT_DRIFT_STATUS          NOT_REQUIRED — main untouched
+ENGINEERING_HISTORY_STATUS       DONE
+FEEDBACK_PROMOTION_STATUS        DONE — see below
+KNOWLEDGE_CAPTURE_STATUS         DONE — 2 bug patterns, 1 implementation note
+OBSIDIAN_SYNC_STATUS             PASS — 0 parity diffs, every wikilink resolves
+CONTROL_CENTER_STATUS            DONE
+CLEANUP_STATUS                   DONE
+```
+
+### Remote CI
+
+Run [`32318019957`](https://github.com/taymurisrar/DijiPeople/actions/runs/32318019957)
+on `09f24ea`. All fourteen jobs green, including the two that matter most here:
+**Browser e2e**, which exercises the BUG-0082 fix and the two browser
+assertions this task corrected, and **Database e2e**, which is a required gate
+as of `3f03571` and confirms the 326/326 measured locally.
+
+### Post-merge validation
+
+api 1418 · api e2e 326/326 across 26 suites against real PostgreSQL · landing
+109 · web 408 · admin 101 · api and landing typechecks · three app lints at zero
+errors · `validate:framework` 2865 checks · `repo:health` PASS.
+
+### Feedback promotion
+
+The owner's answers became code and records rather than conversation:
+
+| Answer | Where it lives now |
+|---|---|
+| "199 $ was flat price obviously" | BUG-0080, REG-075, `billingUnitLabel`, and five pieces of corrected copy |
+| The legal entity, SECP and NTN numbers | `seed-legal.ts` `OPERATOR`, and an inverted `legal-seed` assertion that now *requires* them |
+| Verify the email before payment | WP-02, ITEM-0063, QA-BILLING-010 |
+| Session-bound slug check | WP-01's anti-enumeration design, recorded on the endpoint itself |
+| Open self-service signup | the wizard's default posture |
+
+### Cleanup
+
+Task worktree and branch retained — WP-06 is still open against them. Throwaway
+databases `dijipeople_t8_test`, `dijipeople_wp08_test` and
+`dijipeople_wp09_test` dropped; the populated `dijipeople` development database
+was read-only throughout and `dijipeople_wp_test` was left to its owning
+session. `services/api/.env` and `apps/landing/.env.local`, created for Stripe
+testing, were deleted because they carried a database password — both are
+gitignored and neither was ever committed.
+
+The user's primary checkout is clean and was never written to.
+
+### What is not done, and why
+
+**WP-06 — workspace switcher and last-used workspace.** Blocked on
+[[ITEM-0062]], not on effort. `/workspaces/mine` returns a one-element array *by
+construction*: it reads `user.tenantId` from the session, so there is never more
+than one workspace to switch to. Building a switcher above that would be a
+control that does nothing. The identity/membership model is a product decision
+about what "the same person in two tenants" means, and it is the owner's.
+
+**Three things belong to the owner and none is a defect:**
+
+1. **Publish the legal drafts.** They seed as DRAFT deliberately — drafting text
+   must not put it in front of anybody. But the wizard requires only agreements
+   carrying a published version, so with none published it requires none, and a
+   purchase records no consent. This is the single thing between this path and
+   being genuinely sellable.
+2. **Real PKR prices.** The seeded schedule is a placeholder.
+3. **QAR prices.** None exist, so a visitor in Qatar meets the honest "no
+   published price for your region" state — which BUG-0082's fix now surfaces on
+   the first step instead of the fifth.
+
+**Also open:** Stripe live-mode verification for the Pakistani entity, and the
+test keys pasted into this session should be rolled.
 
 ## Assumptions
 
@@ -618,7 +726,7 @@ before WP-01 writes `schema.prisma`.
 
 ## Related
 
-- Records — [[BUG-0017]], [[BUG-0066]], [[BUG-0075]], [[BUG-0077]], [[BUG-0078]], [[BUG-0081]], [[BUG-0082]], [[ITEM-0013]], [[ITEM-0047]], [[ITEM-0060]], [[ITEM-0061]], [[ITEM-0062]], [[ITEM-0063]], [[ITEM-0066]], [[ITEM-0067]]
+- Records — [[BUG-0017]], [[BUG-0066]], [[BUG-0075]], [[BUG-0077]], [[BUG-0078]], [[BUG-0080]], [[BUG-0081]], [[BUG-0082]], [[ITEM-0013]], [[ITEM-0047]], [[ITEM-0060]], [[ITEM-0061]], [[ITEM-0062]], [[ITEM-0063]], [[ITEM-0066]], [[ITEM-0067]]
 - Modules — [[super-admin]], [[tenant-control-plane]], [[billing]], [[notifications]], [[legal]]
 
 <!-- GRAPH:END -->

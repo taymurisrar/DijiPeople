@@ -17,8 +17,8 @@
 | **Base SHA** | `5a47dfff0c4cb98cd10d8df533645147e7ac8c72` |
 | **Final Task SHA** | `c935fcbd83e7a9a8aa7856fdc70b1840a0774269` |
 | **Target Branch** | `develop` |
-| **Merge Commit** | TASK_FINALIZATION — integration is a ref-push, so there is no merge commit; the develop tip is the record |
-| **Final Target SHA** | TASK_FINALIZATION — filled after the target is pushed |
+| **Merge Commit** | None — integration was a ref-push, so `develop` fast-forwards to the task SHA rather than gaining a merge commit |
+| **Final Target SHA** | `09f24ea98e18412c69ef84a32e64e1c5a3548ebe` on `develop` |
 
 ### Commits
 
@@ -245,8 +245,8 @@ ITEM ids does not exist for REG ids, which is why this has now happened twice.
 
 | | |
 |---|---|
-| **CI Run ID** | TASK_FINALIZATION — the run whose `CI required gate` verdict authorised the merge, read on the pushed task SHA |
-| **CI Result** | TASK_FINALIZATION — read on the exact SHA being merged, never an earlier one |
+| **CI Run ID** | [`32318019957`](https://github.com/taymurisrar/DijiPeople/actions/runs/32318019957) — on `09f24ea`, the exact SHA integrated |
+| **CI Result** | **PASS** — `CI required gate` success, all fourteen jobs green including Browser e2e and Database e2e |
 
 A verdict must be read **on the exact SHA being merged**. A verdict from an
 earlier commit on the same branch is a verdict about different code.
@@ -317,9 +317,25 @@ scenarios, which is where `retrieve-knowledge.mjs` reads from.
 
 ## Obsidian Sync
 
-Recorded in the Task Finalization block on the parent rather than guessed at
-here.
+`npm run knowledge:sync` ran, then `npm run knowledge:verify` reported
+`OBSIDIAN_SYNC_STATUS = PASS` with `OBSIDIAN_PARITY_DIFFS 0`.
+
+The first verify failed, and usefully: every `[[REG-nnn]]` wikilink resolved to
+nothing. REG entries live in one register file rather than as individual notes,
+so the links were pointing at notes that cannot exist. Stripped to plain text
+across five records — the same correction `8cff00f` had already made once on
+another branch.
 
 ## Cleanup
 
-Recorded in the Task Finalization block on the parent.
+Task worktree kept — `D:/My Work/hrm-dijipeople/DijiPeople-selfservice` still
+carries the branch, and WP-06 remains open against it. Branch not deleted for
+the same reason.
+
+Throwaway databases dropped: `dijipeople_t8_test` and `dijipeople_wp08_test`.
+`dijipeople_wp09_test` retained until this record is filed, then dropped. The
+populated `dijipeople` development database was read-only throughout and
+`dijipeople_wp_test` was left to its owning session.
+
+The user's primary checkout at `D:/My Work/hrm-dijipeople/DijiPeople` is clean
+and was never written to by this session.

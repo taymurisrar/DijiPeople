@@ -6,6 +6,7 @@ Sessions that reached a terminal state. Kept as history: the branch, the base it
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0018](../../docs/sessions/SESSION-0018-self-service-onboarding-provisioning-domain-routing-and-cent.md) | TASK-0008 | Self-service onboarding, provisioning, domain routing and central login | COMPLETE | `agent/self-service-onboarding-provisioning` | `develop` | — | 2026-08-18T23:23:49.309Z |
 | [SESSION-0017](../../docs/sessions/SESSION-0017-primary-worktree-repository-health-ownership.md) | — | Primary worktree repository health ownership | COMPLETE | `agent/repo-health-primary-worktree` | `develop` | — | 2026-08-18T23:14:32.919Z |
 | [SESSION-0015](../../docs/sessions/SESSION-0015-wp-11-provisioning-operations-ux-and-wp-13-qa-campaign.md) | TASK-0007 | WP-11 provisioning operations UX and WP-13 QA campaign | COMPLETE | `agent/provisioning-ops-and-qa` | `develop` | — | 2026-08-19T22:40:00.000Z |
 | [SESSION-0013](../../docs/sessions/SESSION-0013-wp-10-landing-legal-trust-and-subprocessor-surface.md) | TASK-0007 | WP-10 landing legal, trust and subprocessor surface | COMPLETE | `agent/landing-legal-surface` | `develop` | — | 2026-08-18T18:22:58.471Z |
