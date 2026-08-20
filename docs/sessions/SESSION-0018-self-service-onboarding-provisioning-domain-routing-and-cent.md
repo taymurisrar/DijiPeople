@@ -67,3 +67,43 @@ touched, and `dijipeople_wp_test` was left to its owning session.
   reconciliation corrected against `CustomerAccount`. `4f966ea` WP-01. `0177db9`
   BUG-0077 and BUG-0078 recorded, EXECPLAN-0001 written, TASK-0007 WP-07
   reopened, WP-10 made the critical path.
+- 2026-08-19 — `7480756` WP-10: payment authorises provisioning, the
+  pre-payment tenant removed and the missing outbox consumer written, in one
+  change because either alone leaves the platform worse. `46c24b1` WP-03 status
+  API. `b68c7bf` WP-02 owner email verification. `1da7add` WP-04 onboarding API
+  surface. `2b07be4` WP-11 the five-step wizard.
+- 2026-08-19 — `7557d14`, `a60ba83`, `d4c0b00` OD-01: the operator named from
+  the details the owner supplied, publication refused while a placeholder
+  remains, and a placeholder PKR schedule seeded as drafts. `4081e79` the
+  checkout path proven against the real Stripe test sandbox. `e9f977c`
+  BUG-0080 — the prices were right and every word around them was wrong.
+- 2026-08-20 — `ffda0e3` WP-05: the success page reports provisioning instead
+  of guessing at it, with the poll backed off so it cannot rate-limit itself
+  out of its own purpose. `71f1795` WP-07 and BUG-0081. `f5bd870` WP-08 and
+  BUG-0082 — BUG-0066 returning in a worse shape. `d054769` the QA campaign and
+  the two defects it found in the legal seed.
+- 2026-08-20 — `c935fcb` merged `origin/develop`, 36 commits ahead. Nineteen
+  conflicts, one real collision: both branches had independently claimed REG ids
+  from 065. Mine renumbered to 071–077, following the precedent develop set when
+  it hit the same thing. ITEM-0067 withdrawn as a duplicate — the campaign had
+  run on a stale base and rediscovered work already finished under ITEM-0047.
+- 2026-08-20 — `1238cfc` the post-merge baseline (e2e 326/326) and the
+  engineering history. `d76c53f` knowledge capture: two bug patterns and the
+  acquisition-path implementation note.
+
+## Outcome
+
+Nine of eleven work packages closed. WP-06 stays blocked on [[ITEM-0062]] — the
+workspace switcher needs an identity/membership model, and `/workspaces/mine`
+returns a one-element array by construction until that exists. WP-09 is this
+finalization.
+
+Three things are the owner's, not the framework's, and none is a defect:
+publish the legal drafts, supply real PKR prices, and add QAR prices. Until the
+first, a purchase records no consent, because the wizard requires only
+agreements carrying a published version and there are none.
+
+**What this session got wrong, recorded because it is reusable.** The QA
+baseline was taken before merging the integration branch, so 81 already-fixed
+failures were rediscovered, investigated and filed. The analysis was right and
+entirely wasted. Merge first, then baseline.
