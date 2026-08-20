@@ -4,7 +4,7 @@ aliases: [SESSION-0024]
 TASK_ID:
 TITLE: Neon pooled endpoint blocks Prisma migrate advisory lock
 ARCHITECT_INTENT: Neon pooled endpoint blocks Prisma migrate advisory lock
-STATUS: ACTIVE
+STATUS: COMPLETE
 TASK_TYPE: BUG
 TASK_SIZE: SMALL
 BASE_BRANCH: origin/develop
@@ -12,12 +12,12 @@ BASE_SHA: d6aa7380f359f5804bcd03f89d551f9b750b4d6b
 TASK_BRANCH: agent/neon-pooler-migration-bug
 TARGET_BRANCH: develop
 WORKTREE: C:/Users/hp/AppData/Local/Temp/claude/wt-neon-pooler
-AFFECTED_MODULES: []
+AFFECTED_MODULES: [docs/bugs, docs/backlog, docs/tasks]
 WRITE_LEASES: []
 ACTIVE_WORK_PACKAGES: []
 SCHEMA_WRITE: NO
-CI_STATUS: NOT_RUN
-MERGE_STATUS: NOT_STARTED
+CI_STATUS: PASS
+MERGE_STATUS: INTEGRATED_TO_DEVELOP
 STARTED_AT: 2026-08-20T21:37:09.447Z
 LAST_HEARTBEAT: 2026-08-20T21:37:09.447Z
 BLOCKERS: none
@@ -31,14 +31,32 @@ Neon pooled endpoint blocks Prisma migrate advisory lock
 
 ## Scope
 
-_To be established during planning._
+Record-only, by explicit user instruction: capture the Render deploy failure as
+a durable BUG record and change nothing else. No code, no `prisma.config.ts`, no
+`render.yaml`, no dashboard or environment changes.
+
+Produced [[BUG-0086]] plus the generated artifacts that must move with a new
+record — backlog indexes, session indexes, Obsidian dashboards and the TASK-0005
+remediation inventory row.
 
 ## Concurrency
 
-Write leases held, overlap classification against other active sessions, and
-anything this session deliberately serialised behind another. Live state:
-`node scripts/session.mjs list`.
+No write leases were needed or taken; this session wrote only documentation.
+
+`session.mjs check --paths docs/bugs,docs/backlog` classified the work
+`SHARED_FILE_CONFLICT` against SESSION-0003, which claims the same directories.
+That session's record reads `ACTIVE`, but its merge-queue entries are `DONE` and
+its heartbeat is stale — the known gap where `session.mjs finish` does not write
+the durable record. Treated as stale rather than genuinely concurrent, and left
+untouched: correcting another session's record is not this session's to do. The
+integration was a fast-forward onto an unmoved `develop`, so the overlap never
+materialised.
 
 ## History
 
 - 2026-08-20 — session started from `origin/develop` at `d6aa738`.
+- 2026-08-20 — [[BUG-0086]] created, triaged `FIX_NOW`, generated artifacts
+  rebuilt; framework validation passed at 2943 checks.
+- 2026-08-20 — `74e8056` pushed; `CI required gate` passed with all 14 jobs
+  green on that exact SHA; integrated to `develop` by ref-push, leaving the
+  branch tip equal to the verified SHA. `main` untouched.

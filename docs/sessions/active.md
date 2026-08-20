@@ -12,7 +12,6 @@ therefore sees sibling worktrees without anybody having pushed.
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
-| [SESSION-0024](../../docs/sessions/SESSION-0024-neon-pooled-endpoint-blocks-prisma-migrate-advisory-lock.md) | — | Neon pooled endpoint blocks Prisma migrate advisory lock | ACTIVE | `agent/neon-pooler-migration-bug` | `develop` | — | 2026-08-20T21:37:09.447Z |
 | [SESSION-0023](../../docs/sessions/SESSION-0023-first-production-release.md) | — | First production release | ACTIVE | `agent/first-production-release` | `main` | — | 2026-08-20T16:21:59.286Z |
 | [SESSION-0022](../../docs/sessions/SESSION-0022-go-live-readiness.md) | TASK-0010 | Go-live readiness | ACTIVE | `agent/go-live-readiness` | `develop` | — | 2026-08-20T11:10:18.564Z |
 | [SESSION-0019](../../docs/sessions/SESSION-0019-ci-browser-install-latency-and-database-e2e-fixture-contract.md) | — | CI browser install latency and database e2e fixture contract | ACTIVE | `agent/ci-e2e-remediation` | `develop` | — | 2026-08-19T20:24:28.476Z |
