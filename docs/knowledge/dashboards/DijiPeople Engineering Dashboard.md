@@ -163,6 +163,7 @@ _None._
 ## Recent Implementations
 
 - [[2026-08-20-self-service-acquisition-path|Self-Service Acquisition Path]]
+- [[2026-08-20-identity-and-membership|Identity and Multi-Tenant Membership]]
 - [[2026-08-17-web-app-documentation|2026-08-17 — Documenting `apps/web`, the tenant product]]
 - [[2026-08-16-monorepo-app-documentation|2026-08-16 — Documenting `apps/docs`, `apps/landing` and `apps/agent-desktop`]]
 - [[2026-08-15-database-ci-and-gh-access|Database CI, GitHub access, and the first four framework merges]]
@@ -171,13 +172,13 @@ _None._
 ## Recent Engineering History
 
 - [[2026-08-20-self-service-onboarding-provisioning-c935fcb|Engineering History — Self service onboarding provisioning]]
+- [[2026-08-20-identity-and-membership-b4e8a2b|Engineering History — Identity and membership]]
 - [[2026-08-19-provisioning-operations-and-qa-campaign-b016441|Engineering History — Provisioning operations and qa campaign]]
 - [[2026-08-19-ci-e2e-remediation-3f03571|Engineering History — CI browser install latency and the database e2e fixture contract]]
 - [[2026-08-19-agent-framework-hardening|Engineering History — Database Agent, Security Agent, agent reliability and Obsidian ownership]]
 - [[2026-08-18-primary-worktree-repository-health-494c44d|Engineering History — Primary worktree repository health]]
 - [[2026-08-18-landing-uiux-remediation-ab3bc73|Engineering History — Landing UI/UX remediation]]
 - [[2026-08-18-commercial-platform-outbox-and-legal|Engineering History — Commercial platform: transactional outbox and legal documents]]
-- [[2026-08-18-ci-performance-cancellation-rca-3f6775e|Engineering History — CI performance, cancellation RCA and autonomous CI adaptation]]
 
 ## Recent Releases
 
@@ -232,12 +233,12 @@ _None. Nothing has been deployed through the release process._
 | Backlog items | 69 |
 | Known bug patterns | 23 |
 | QA runs | 21 |
-| Engineering history records | 21 |
+| Engineering history records | 22 |
 | Release records | 0 |
 | Module notes | 27 |
 | Architecture notes | 20 |
 | Decision notes (ADR + generated) | 6 |
-| Implementation records | 5 |
+| Implementation records | 6 |
 
 **Awaiting Architect triage: 0.** A record nobody has
 triaged is work nobody has decided about — the number that should stay near
