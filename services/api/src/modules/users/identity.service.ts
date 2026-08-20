@@ -243,3 +243,115 @@ export async function registerIdentitySuccess(
     // Intentionally silent — see above.
   }
 }
+
+/**
+ * Verify a credential against an identity, with no tenant in hand.
+ *
+ * This is what makes signing in from `www.dijipeople.com` possible: the person
+ * proves who they are once, and *then* the platform can say which workspaces
+ * they reach. Discovery before verification would be an enumeration oracle;
+ * discovery after it tells one person about their own workspaces.
+ *
+ * Returns null for every failure — wrong password, unknown address, suspended
+ * identity, locked identity — and the caller must render all of them
+ * identically. Distinguishing them is what turns a login form into an address
+ * validator.
+ *
+ * The compare runs even when no identity exists, against a fixed hash. Skipping
+ * it makes the unknown-address case measurably faster than the wrong-password
+ * case, and that timing difference is the same oracle in a different costume.
+ */
+const ABSENT_IDENTITY_HASH =
+  '$2a$10$0000000000000000000000000000000000000000000000000000';
+
+export async function verifyIdentityCredential(
+  db: IdentityDb,
+  compare: (plain: string, hash: string) => Promise<boolean>,
+  rawEmail: string,
+  password: string,
+): Promise<{ identityId: string } | null> {
+  const email = normalizeEmail(rawEmail);
+
+  const identity = await db.identity.findUnique({
+    where: { email },
+    select: {
+      id: true,
+      passwordHash: true,
+      status: true,
+      lockedUntil: true,
+    },
+  });
+
+  const matches = await compare(
+    password,
+    identity?.passwordHash ?? ABSENT_IDENTITY_HASH,
+  );
+
+  if (!identity) return null;
+
+  const locked = Boolean(
+    identity.lockedUntil && identity.lockedUntil.getTime() > Date.now(),
+  );
+
+  if (!matches || locked || identity.status === 'SUSPENDED') {
+    if (!matches) await registerIdentityFailure(db, identity.id);
+    return null;
+  }
+
+  await registerIdentitySuccess(db, identity.id);
+  return { identityId: identity.id };
+}
+
+/**
+ * The workspaces an identity reaches, for the picker.
+ *
+ * Only tenant ids and only for accounts that are not disabled — the caller
+ * turns them into something displayable. Kept here rather than in the
+ * workspace resolver because that resolver takes an authenticated session, and
+ * at this point in the flow there is not one yet.
+ */
+export async function listTenantIdsForIdentity(
+  db: IdentityDb,
+  identityId: string,
+): Promise<string[]> {
+  const rows = await db.user.findMany({
+    where: { identityId, status: { not: 'DISABLED' } },
+    select: { tenantId: true },
+    distinct: ['tenantId'],
+  });
+  return rows.map((row) => row.tenantId);
+}
+
+/**
+ * Whether this person has ever actually signed in somewhere.
+ *
+ * The question WP-08 needs, and the reason "does an identity exist" is the
+ * wrong one to ask. Both provisioning paths call `ensureIdentityForEmail` with
+ * an **unguessable placeholder** — so an identity can exist for somebody who
+ * has never set a password and cannot sign in anywhere. Treating that as "they
+ * already have credentials" would hand them an ACTIVE account in a second
+ * workspace that nobody can open, and skip the activation email that was their
+ * only way in.
+ *
+ * An `ACTIVE` `User` elsewhere is the evidence that activation completed:
+ * accounts are created `INVITED` and only become `ACTIVE` when somebody accepts
+ * an invitation and chooses a password.
+ *
+ * `excludeTenantId` skips the workspace being created right now, which would
+ * otherwise count itself.
+ */
+export async function identityHasUsableCredential(
+  db: IdentityDb,
+  identityId: string,
+  excludeTenantId?: string,
+): Promise<boolean> {
+  const active = await db.user.findFirst({
+    where: {
+      identityId,
+      status: 'ACTIVE',
+      ...(excludeTenantId ? { tenantId: { not: excludeTenantId } } : {}),
+    },
+    select: { id: true },
+  });
+  return Boolean(active);
+}

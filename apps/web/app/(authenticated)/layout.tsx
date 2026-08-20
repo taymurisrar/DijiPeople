@@ -23,6 +23,7 @@ import { DashboardSidebar } from "./_components/dashboard-sidebar";
 import type { DashboardNavOverride } from "./_components/navigation";
 import { buildVisibilityPlacement } from "@/lib/runtime/visibility-placement";
 import { DashboardTopbar } from "./_components/dashboard-topbar";
+import { WorkspaceSwitcher } from "@/app/components/workspace-switcher";
 import { ErrorProvider } from "@/app/components/errors/error-provider";
 import { SystemPreferencesProvider } from "./_components/resolved-settings-provider";
 import { NotificationPopupProvider } from "./_components/notification-popup-provider";
@@ -210,6 +211,16 @@ export default async function DashboardLayout({
                 tenantId={user.tenantId}
                 tenantName={effectiveTenantName}
               />
+
+              {/*
+                Rendered beside the topbar rather than inside it, so a slow or
+                failing `/workspaces/mine` cannot delay the header everybody
+                needs. It returns null for the common case — one workspace —
+                and costs nothing when there is nothing to switch to.
+              */}
+              <div className="flex justify-end px-2">
+                <WorkspaceSwitcher />
+              </div>
 
               <ErrorProvider user={{ roleKeys: user.roleKeys }}>
                 <NotificationPopupProvider />

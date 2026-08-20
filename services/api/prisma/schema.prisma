@@ -4280,10 +4280,13 @@ model User {
 
   /// The person this workspace account belongs to.
   ///
-  /// Nullable **only during the expand phase**. WP-03 backfills one `Identity`
-  /// per distinct normalised email and links every row; WP-09 makes it
-  /// required once nothing can create a `User` without one. Arriving required
-  /// would make the migration unrunnable against a populated database.
+  /// Still nullable, deliberately. Expand and backfill have landed and every
+  /// creation path writes it — pinned by
+  /// `user-creation-links-identity.invariant.spec.ts` — but the **contract
+  /// phase must ship in a later deployment than the backfill**, or a code
+  /// rollback leaves old code unable to create users at all against a NOT NULL
+  /// column. TASK-0009 WP-09 carries the migration, written and verified,
+  /// waiting on this one reaching production. See the task record.
   identityId                     String?
   identity                       Identity?                     @relation(fields: [identityId], references: [id], onDelete: Restrict)
   businessUnitId                 String

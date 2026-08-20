@@ -15,16 +15,20 @@ type Workspace = {
   url: string;
   canOpen: boolean;
   unavailableReason: string | null;
+  isCurrent?: boolean;
 };
 
 /**
  * Workspace discovery, reached on the generic login host after signing in.
  *
- * A `User` currently belongs to exactly one tenant — `User.tenantId` is a single
- * non-null column — so in practice this always resolves to one workspace and
- * redirects straight to it. It is written against a list anyway: when a user can
- * belong to several workspaces, this page starts choosing between them and no
- * login handler has to change.
+ * This page used to carry a note explaining that it would always resolve to
+ * exactly one workspace, because `User.tenantId` was a single non-null column
+ * and one person in two workspaces was two unrelated rows. It was written
+ * against a list anyway, on the bet that membership would arrive later.
+ *
+ * TASK-0009 made that true: `/workspaces/mine` now resolves the identity and
+ * returns every workspace it reaches. The bet paid off — this page did not have
+ * to change to start working, only to stop claiming it could not.
  */
 export default async function ChooseWorkspacePage() {
   const token = (await cookies()).get(ACCESS_TOKEN_COOKIE)?.value;
@@ -89,11 +93,23 @@ export default async function ChooseWorkspacePage() {
                     {new URL(workspace.url).host}
                   </span>
                 </span>
-                {workspace.environmentType !== "PRODUCTION" ? (
-                  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-900">
-                    {workspace.environmentType}
-                  </span>
-                ) : null}
+                <span className="flex shrink-0 items-center gap-2">
+                  {/*
+                    Which one they are already in. Without it, somebody with two
+                    similarly-named workspaces has no way to tell where the
+                    session they are currently holding actually points.
+                  */}
+                  {workspace.isCurrent ? (
+                    <span className="rounded-full bg-slate-900 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                      Current
+                    </span>
+                  ) : null}
+                  {workspace.environmentType !== "PRODUCTION" ? (
+                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-900">
+                      {workspace.environmentType}
+                    </span>
+                  ) : null}
+                </span>
               </Link>
             ) : (
               <div className="rounded-xl border border-dashed border-slate-300 px-4 py-3">

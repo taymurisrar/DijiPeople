@@ -7,11 +7,24 @@ import {
 } from './identity.service';
 
 type PrismaDb = PrismaService | Prisma.TransactionClient;
+/**
+ * What a caller has to supply to create a user.
+ *
+ * `businessUnitId` and `identityId` are both optional here and both required on
+ * the model: this repository derives them. The tenant's default business unit
+ * is looked up, and the identity is resolved or created from the email.
+ *
+ * Making `identityId` optional in this type is what keeps the contract phase
+ * from becoming a six-file change — the compiler listed exactly six callers
+ * when it briefly was required, which is also the clearest evidence that this
+ * method is the right chokepoint for the rule.
+ */
 type UserCreateInput = Omit<
   Prisma.UserUncheckedCreateInput,
-  'businessUnitId'
+  'businessUnitId' | 'identityId'
 > & {
   businessUnitId?: string;
+  identityId?: string;
 };
 
 const roleAccessInclude = {

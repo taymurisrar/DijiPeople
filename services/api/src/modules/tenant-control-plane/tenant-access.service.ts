@@ -19,6 +19,7 @@ import { normalizeEmail } from '../../common/utils/email.util';
 import { AuditService } from '../audit/audit.service';
 import {
   ensureIdentityForEmail,
+  identityHasUsableCredential,
   mirrorPasswordToIdentity,
 } from '../users/identity.service';
 import { AuthService } from '../auth/auth.service';
@@ -187,6 +188,8 @@ export class TenantAccessService {
       );
     }
 
+    let reusesExistingCredential = false;
+
     const created = await this.prisma.$transaction(async (tx) => {
       /*
        * A placeholder nobody knows, including this process. Used only if this
@@ -200,6 +203,24 @@ export class TenantAccessService {
         email,
         placeholderHash,
       );
+      /*
+       * WP-08 / OD-01: an existing identity keeps its credentials and skips
+       * activation entirely.
+       *
+       * The test is not "does an identity exist" — both provisioning paths
+       * create one with an unguessable placeholder, so an identity can exist
+       * for somebody who has never set a password. It is "has this person
+       * activated somewhere", evidenced by an ACTIVE account in another
+       * workspace. Get that wrong in the permissive direction and they get an
+       * ACTIVE account nobody can open, with the activation email that was
+       * their only way in suppressed.
+       */
+      reusesExistingCredential = await identityHasUsableCredential(
+        tx,
+        identityId,
+        tenant.id,
+      );
+
       const identity = await tx.user.create({
         data: {
           tenantId: tenant.id,
@@ -217,7 +238,9 @@ export class TenantAccessService {
            * or sees one.
            */
           passwordHash: placeholderHash,
-          status: UserStatus.INVITED,
+          status: reusesExistingCredential
+            ? UserStatus.ACTIVE
+            : UserStatus.INVITED,
           isServiceAccount: !isOwner,
           serviceAccountPurpose: !isOwner ? (dto.purpose ?? null) : null,
           createdById: user.userId,
@@ -238,13 +261,22 @@ export class TenantAccessService {
       return identity;
     });
 
-    const invitation = await this.userInvitations.issueInvitation({
-      tenantId: tenant.id,
-      userId: created.id,
-      email: created.email,
-      fullName: `${created.firstName} ${created.lastName}`.trim(),
-      createdByUserId: user.userId,
-    });
+    /*
+     * No activation email for somebody who already has a password. The brief
+     * asks for exactly this — *"if the Owner identity already exists, do not
+     * unnecessarily force password recreation"* — and sending one anyway would
+     * invite them to replace a working credential they share with another
+     * workspace.
+     */
+    const invitation = reusesExistingCredential
+      ? null
+      : await this.userInvitations.issueInvitation({
+          tenantId: tenant.id,
+          userId: created.id,
+          email: created.email,
+          fullName: `${created.firstName} ${created.lastName}`.trim(),
+          createdByUserId: user.userId,
+        });
 
     await this.record(user, tenant.id, {
       action: isOwner
@@ -255,6 +287,8 @@ export class TenantAccessService {
         email: created.email,
         identityType: dto.identityType,
         status: created.status,
+        // Auditable: "why did this person never get an activation email".
+        reusedExistingCredential: reusesExistingCredential,
       },
     });
 
@@ -267,10 +301,16 @@ export class TenantAccessService {
       /*
        * Shown once. The link is single-use and expires; it is not stored in a
        * form the UI can request again.
+       *
+       * Null when the person already had a password — there is no activation to
+       * link to. The screen must say "they can sign in with their existing
+       * DijiPeople password" rather than render an empty link box, which is
+       * what `reusedExistingCredential` is for.
        */
-      activationLink: invitation.activationLink,
-      activationExpiresAt: invitation.expiresAt,
-      deliveryStatus: invitation.deliveryStatus,
+      activationLink: invitation?.activationLink ?? null,
+      activationExpiresAt: invitation?.expiresAt ?? null,
+      deliveryStatus: invitation?.deliveryStatus ?? null,
+      reusedExistingCredential: reusesExistingCredential,
     };
   }
 

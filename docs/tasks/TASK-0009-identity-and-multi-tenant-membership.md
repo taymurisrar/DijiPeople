@@ -10,9 +10,9 @@ CREATED_AT: 2026-08-20
 AFFECTED_MODULES: [auth, users, legal, tenant-domains, super-admin, web, admin]
 AGENTS: [Architect, Database, Backend/API, Frontend, UI/UX, Security, QA, Reviewer, Integrator]
 DEPENDENCIES: origin/develop 844b6d3; TASK-0008 WP-02, WP-04, WP-05
-CURRENT_PACKAGE: WP-06
-COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-04, WP-05, WP-12]
-BLOCKED_PACKAGES: []
+CURRENT_PACKAGE: WP-10
+COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-12]
+BLOCKED_PACKAGES: [WP-09]
 OWNER_DECISIONS: 2
 FINAL_STATUS:
 ---
@@ -98,10 +98,10 @@ the wrong design, however elegant it looks.
 | WP-12 | Every user-creation path writes an Identity | DONE | WP-03 | Backend/API, Database | agent/identity-and-membership | pending | PASS | — | NOT_RUN | NOT_STARTED |
 | WP-04 | Authentication split — identity resolution, then tenant selection | DONE | WP-12 | Backend/API, Security | agent/identity-and-membership | pending | PASS | — | NOT_RUN | NOT_STARTED |
 | WP-05 | Workspace discovery — every workspace the identity reaches | DONE | WP-04 | Backend/API, Security | agent/identity-and-membership | pending | PASS | — | NOT_RUN | NOT_STARTED |
-| WP-06 | Generic login and the workspace picker | NOT_STARTED | WP-05 | Frontend, UI/UX | agent/identity-and-membership | — | — | — | — | — |
-| WP-07 | In-app workspace switcher and last-used preference — closes TASK-0008 WP-06 | NOT_STARTED | WP-06 | Frontend, UI/UX | agent/identity-and-membership | — | — | — | — | — |
-| WP-08 | Second workspace for an existing identity — no activation step | NOT_STARTED | WP-04 | Backend/API, Integration | agent/identity-and-membership | — | — | — | — | — |
-| WP-09 | Contract phase — `identityId` required, legacy auth path removed | NOT_STARTED | WP-04..WP-08 | Database, Backend/API | agent/identity-and-membership | — | — | — | — | — |
+| WP-06 | Generic login and the workspace picker | DONE | WP-05 | Backend/API, Frontend, UI/UX | agent/identity-and-membership | pending | PASS | — | NOT_RUN | NOT_STARTED |
+| WP-07 | In-app workspace switcher — closes TASK-0008 WP-06 | DONE | WP-06 | Frontend, UI/UX | agent/identity-and-membership | pending | PASS | — | NOT_RUN | NOT_STARTED |
+| WP-08 | Second workspace for an existing identity — no activation step | DONE | WP-04 | Backend/API, Integration | agent/identity-and-membership | pending | PASS | — | NOT_RUN | NOT_STARTED |
+| WP-09 | Contract phase — `identityId` required (written, held for a later deployment) | BLOCKED | WP-02/03 reaching production | Database, Backend/API | agent/identity-and-membership | — | — | — | — | — |
 | WP-10 | Security review — enumeration, credential stuffing, cross-tenant reach | NOT_STARTED | WP-01..WP-09 | Security | agent/identity-and-membership | — | — | — | — | — |
 | WP-11 | QA campaign, browser E2E, review, CI, integration, closure | NOT_STARTED | WP-10 | QA, Reviewer, Integrator, Architect | agent/identity-and-membership | — | — | — | — | — |
 
@@ -467,6 +467,128 @@ cases now, up from fifteen. Mutation-checked by removing the
 `User` rows in two tenants, one `Identity`, both found from a session scoped to
 one of them — and that a neighbouring person in the same tenant sees only their
 own.
+
+## WP-06 — signing in without naming a workspace
+
+`POST /auth/discover-workspaces` takes an email **and a password**, verifies the
+credential against the identity, and returns the workspaces it reaches. No token
+is issued: the caller then signs in normally against the workspace they picked,
+which is what keeps the JWT tenant-scoped and `JwtAuthGuard` untouched.
+
+**Taking a password is the security design, not an inconvenience.** An endpoint
+answering "which workspaces does this address reach" without one is a
+customer-enumeration oracle that no rate limit fixes. With one, the only caller
+who learns anything is the person the answer is about.
+
+Every failure returns the same thing — unknown address, wrong password,
+suspended identity, locked identity — because a login form that distinguishes
+them is an address validator. The bcrypt compare runs **even when no identity
+exists**, against a fixed hash, because skipping it makes the unknown-address
+case measurably faster and that timing difference is the same oracle wearing a
+stopwatch. Asserted by counting the compare calls rather than by timing, which
+would be flaky.
+
+Discovery also counts failures against the identity's global lockout.
+Unauthenticated and uncounted, it would be an unlimited password-guessing
+surface that bypasses the tenant-scoped lockout entirely.
+
+The picker page at `apps/web/app/workspace/choose/` needed almost nothing: it
+was written against a list on the bet that membership would arrive, and the bet
+paid off. It did not change to start working — only to stop carrying a comment
+explaining that it could not. It now also marks which workspace the current
+session is in, because somebody with two similarly-named workspaces otherwise
+cannot tell where they already are.
+
+## WP-07 — the switcher, and TASK-0008's WP-06 closed
+
+`WorkspaceSwitcher` renders in the authenticated shell, and **renders nothing
+when there is nothing to switch to** — which is most people. A menu offering one
+item is noise on every screen, and the cost of noise is that people stop reading
+the header.
+
+A plain list of links rather than a dropdown, deliberately: switching workspace
+is a full navigation to another hostname under a different session scope. The
+interaction should feel like leaving, because it is.
+
+A workspace the person cannot open is shown but not linked, with the reason. One
+that silently disappeared would read as data loss.
+
+A failed `/workspaces/mine` renders nothing rather than an error. This sits on
+every authenticated page; a network blip must not put a broken control in the
+header of the whole product.
+
+## WP-08 — a second workspace, and the trap in the obvious test
+
+OD-01: *"an existing identity made owner of a second workspace reuses its
+credentials with no activation step."*
+
+**The obvious test is wrong.** "Does an identity exist" fails badly, because
+both provisioning paths call `ensureIdentityForEmail` with an unguessable
+placeholder — so an identity can exist for somebody who has never set a password
+and cannot sign in anywhere. Reuse *that* and you create an `ACTIVE` account
+nobody can open while suppressing the activation email that was their only way
+in: a person silently locked out of a workspace they were just told they have.
+
+The right question is "has this person activated somewhere", evidenced by an
+`ACTIVE` `User` in another tenant — accounts are created `INVITED` and only
+become `ACTIVE` when an invitation is accepted and a password chosen. A
+`DISABLED` account does not count either: whether that credential still works is
+not something a revoked row can answer.
+
+`excludeTenantId` stops the account being created from answering the question
+about itself. Without it, on a path that creates the row before asking, every
+new account looks pre-credentialled and nobody receives an activation email
+again. Asserted both ways — with the exclusion it is false, without it the same
+data says true.
+
+The response now carries `reusedExistingCredential`, and `activationLink` is
+null in that case. The screen must say "they can sign in with their existing
+DijiPeople password" rather than render an empty link box, and the audit record
+answers "why did this person never get an activation email".
+
+## WP-09 — written, verified, and deliberately **not shipped**
+
+The contract migration exists and was proven end to end:
+
+- it refuses before altering, naming the count — `ALTER TABLE ... SET NOT NULL`
+  reports which column but not which rows or how many, and an operator meeting
+  that mid-deployment has to go and find out. Demonstrated: two rows unlinked,
+  and the migration stops with *"Cannot make User.identityId required: 2 row(s)
+  have no Identity"* before the unhelpful error;
+- run the backfill and it succeeds;
+- drift stayed at 204 statements with none mentioning `Identity`, so the SQL and
+  the schema agree.
+
+**It is held back anyway, and this is the important part of the package.**
+
+Expand, backfill and contract must reach production in *separate deployments*.
+Shipping all three together defeats the point: after the contract phase, rolling
+the **code** back leaves the old build unable to create users at all, because it
+does not write `identityId` and the column no longer permits null. A rollback
+that breaks user creation is worse than the problem it is rolling back from.
+
+Merging all three into `develop` would put them in the same eventual release. So
+this branch carries expand and backfill; the contract phase ships once they have
+been live. The migration text is preserved in this record rather than left as
+lost work.
+
+Making it required also revealed something worth keeping: the compiler named
+**six** call sites reaching `usersRepository.create` — including
+`tenant-identities-provisioning.service.ts`, which the earlier audit had not
+surfaced because it goes through the repository rather than calling
+`user.create` directly. That is the clearest evidence available that the
+repository is the right chokepoint for the rule, and the reason `identityId` is
+optional on `UserCreateInput` while required on the model.
+
+Its second cost is a genuine one to plan for: eleven e2e suites create `User`
+rows directly and will need identities when this lands. That work belongs with
+the contract phase, not before it.
+
+**`User.passwordHash` is deliberately not dropped**, and will not be in the
+contract phase either. `resolveLoginCredential` still falls back to it, which is
+what lets the application boot against a database where the migration has not
+run — every rollback. Dropping a column with data in it is unrecoverable without
+a restore; making a link required is reversible by dropping a constraint.
 
 ## Repository Health
 

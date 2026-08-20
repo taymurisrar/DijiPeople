@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  HttpCode,
   Post,
   Query,
   Req,
@@ -15,6 +16,7 @@ import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { ActivateAccountDto } from './dto/activate-account.dto';
 import { InvitationStatusQueryDto } from './dto/invitation-status-query.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { DiscoverWorkspacesDto } from './dto/discover-workspaces.dto';
 import { LoginDto } from './dto/login.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
@@ -47,6 +49,26 @@ export class AuthController {
   @Post('signup')
   signup(@Body() dto: SignupDto) {
     return this.authService.signup(dto);
+  }
+
+  /**
+   * Which workspaces these credentials reach.
+   *
+   * Public and rate limited, and it takes a **password** rather than only an
+   * address on purpose: an endpoint answering "which workspaces does this email
+   * reach" without one is a customer-enumeration oracle. Requiring the password
+   * means the only caller who learns anything is the person the answer is
+   * about.
+   *
+   * Issues no token. The caller signs in normally against the workspace they
+   * pick, which keeps the JWT tenant-scoped.
+   */
+  @Public()
+  @UseGuards(PublicRateLimitGuard)
+  @Post('discover-workspaces')
+  @HttpCode(200)
+  discoverWorkspaces(@Body() dto: DiscoverWorkspacesDto) {
+    return this.authService.discoverWorkspaces(dto);
   }
 
   @Public()

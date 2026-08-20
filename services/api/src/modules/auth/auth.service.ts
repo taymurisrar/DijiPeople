@@ -35,10 +35,12 @@ import {
 import { AuthTokenPayload } from '../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import {
+  listTenantIdsForIdentity,
   mirrorPasswordToIdentity,
   registerIdentityFailure,
   registerIdentitySuccess,
   resolveLoginCredential,
+  verifyIdentityCredential,
 } from '../users/identity.service';
 import { normalizeEmail } from '../../common/utils/email.util';
 import { TenantsService } from '../tenants/tenants.service';
@@ -49,6 +51,7 @@ import { UserInvitationsService } from './user-invitations.service';
 import { EmailService } from '../notifications/email/email.service';
 import { AuditService } from '../audit/audit.service';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { DiscoverWorkspacesDto } from './dto/discover-workspaces.dto';
 import { LoginDto } from './dto/login.dto';
 import { SignupDto } from './dto/signup.dto';
 import { AuthAccessService } from './auth-access.service';
@@ -183,6 +186,86 @@ export class AuthService {
       adminEmail: dto.adminEmail,
       password: dto.password,
     });
+  }
+
+  /**
+   * Sign in without naming a workspace.
+   *
+   * The brief's opening case: somebody clicks **Login** on `www.dijipeople.com`
+   * with no tenant URL in hand. Before TASK-0009 this was impossible —
+   * `resolveLoginTenant` refuses with `AUTH_TENANT_REQUIRED`, and `User` was
+   * one row per tenant with its own password.
+   *
+   * **No token is issued here.** The credential is verified against the
+   * identity and the workspaces it reaches are returned; the caller then signs
+   * in normally against the workspace they picked. That keeps the JWT
+   * tenant-scoped, which is the property the whole parent is built on:
+   * `JwtAuthGuard` and every service reading `user.tenantId` are untouched.
+   *
+   * Every failure returns the same shape. A caller cannot tell an unknown
+   * address from a wrong password from a suspended identity — the alternative
+   * is a login form that doubles as an address validator.
+   */
+  async discoverWorkspaces(dto: DiscoverWorkspacesDto) {
+    const verified = await verifyIdentityCredential(
+      this.prisma,
+      bcrypt.compare,
+      dto.email,
+      dto.password,
+    );
+
+    if (!verified) {
+      this.logger.warn(
+        JSON.stringify({
+          event: 'auth.discover.failed',
+          identifier: normalizeEmail(dto.email),
+        }),
+      );
+      throw this.authUnauthorized(
+        'AUTH_INVALID_CREDENTIALS',
+        'Invalid credentials.',
+      );
+    }
+
+    const tenantIds = await listTenantIdsForIdentity(
+      this.prisma,
+      verified.identityId,
+    );
+
+    const tenants = await this.prisma.tenant.findMany({
+      where: { id: { in: tenantIds } },
+      select: {
+        id: true,
+        name: true,
+        displayName: true,
+        slug: true,
+        status: true,
+      },
+    });
+
+    /*
+     * Only workspaces that can actually be signed into. A suspended or
+     * half-provisioned tenant in this list is a door that refuses them, and
+     * they have no way to tell whether the fault is theirs.
+     */
+    const workspaces = tenants
+      .filter((tenant) => String(tenant.status).toUpperCase() === 'ACTIVE')
+      .map((tenant) => ({
+        tenantId: tenant.id,
+        name: tenant.displayName || tenant.name,
+        slug: tenant.slug,
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    return {
+      /*
+       * Someone whose credentials are right but who has no usable workspace
+       * gets an empty list rather than an error. It is a real state — every
+       * workspace suspended, or an identity created before provisioning
+       * finished — and the screen can say so honestly.
+       */
+      workspaces,
+    };
   }
 
   async login(dto: LoginDto, req?: Request) {
