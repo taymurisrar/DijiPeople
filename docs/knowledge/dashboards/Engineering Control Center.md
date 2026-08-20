@@ -23,7 +23,7 @@
 
 | Session | Task | Title | Status | Branch | Target | Leases | Schema |
 |---|---|---|---|---|---|---|---|
-| [[SESSION-0022-go-live-readiness|SESSION-0022]] | — | Go-live readiness | ACTIVE | `agent/go-live-readiness` | `develop` | — | NO |
+| [[SESSION-0022-go-live-readiness|SESSION-0022]] | TASK-0010 | Go-live readiness | ACTIVE | `agent/go-live-readiness` | `develop` | — | NO |
 | [[SESSION-0019-ci-browser-install-latency-and-database-e2e-fixture-contract|SESSION-0019]] | — | CI browser install latency and database e2e fixture contract | ACTIVE | `agent/ci-e2e-remediation` | `develop` | — | NO |
 | [[SESSION-0016-database-agent-security-agent-agent-reliability-and-obsidian|SESSION-0016]] | — | Database Agent, Security Agent, agent reliability and Obsidian ownership | ACTIVE | `agent/agent-framework-hardening` | `develop` | — | NO |
 | [[SESSION-0014-ci-performance-cancellation-rca-and-autonomous-ci-adaptation|SESSION-0014]] | — | CI performance, cancellation RCA and autonomous CI adaptation | ACTIVE | `agent/ci-performance-adaptation` | `develop` | — | NO |
