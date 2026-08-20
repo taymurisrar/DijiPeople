@@ -2,7 +2,7 @@
 WP_ID: WP-06
 TASK_ID: TASK-0012
 TITLE: Evidence cache and invalidation
-STATUS: NOT_STARTED
+STATUS: DONE
 OWNER_AGENT: Release/DevOps
 DEPENDENCIES: [WP-05]
 LAST_VERIFIED_SHA: 4226e53
@@ -61,15 +61,45 @@ LAST_VERIFIED_SHA: 4226e53 — re-read any summarised source that changed since.
 
 ## Implementation State
 
-Not started.
+
+Done.
+
+- `scripts/lib/evidence-ledger.mjs` — the record shape, scope matching, and
+  `evaluate`, which answers "may I reuse this?" with a reason and the list of
+  in-scope files that changed.
+- `scripts/evidence.mjs` — record, check, list, invalidate. `check` exits 1
+  when evidence is not reusable, so it gates a suite directly:
+  `node scripts/evidence.mjs check DB-E2E-001 || npm --workspace api run test:e2e`.
+- `docs/evidence/` — the Git-tracked ledger, so a result outlives its session.
+
+Every ambiguity resolves towards re-running: an unresolvable SHA, an empty scope
+and a non-PASS result all refuse reuse. The asymmetry is deliberate — re-running
+costs minutes, while reusing after an in-scope change costs a false PASS with a
+real command behind it, which is the most convincing kind of wrong answer.
+
+Invalidation is by content, never by age. A TTL would expire a green suite that
+nothing touched and keep a stale one alive after its fixture was rewritten.
 
 ## Validation State
 
-Pending: simulations 53 and 54 — same-SHA reuse, changed-scope invalidation.
+
+- Both directions executed against real repository history rather than reasoned
+  about.
+- `--scope` is required by the CLI; a record without one could never be
+  invalidated, which would make the laziest evidence the most durable.
 
 ## Evidence
 
-Pending.
+
+- Reuse across an unrelated change: evidence recorded at `4226e53` scoped to
+  `services/api/test` stayed REUSABLE with 63 files changed overall and none in
+  scope. Exit 0.
+- Invalidation on an in-scope change: the same base SHA scoped to
+  `scripts,docs/tasks` reported INVALIDATED — 39 in-scope files changed — and
+  listed them. Exit 1.
+- The three probe records were removed afterwards, under the test-resource
+  policy this program also introduces: created, accounted for, cleaned, zero
+  unaccounted.
 
 ## Questions
 
@@ -77,4 +107,7 @@ None yet.
 
 ## Handoff
 
-Pending. WP-13 consumes the ledger for QA evidence levels.
+
+KNOWLEDGE_IMPACT: CURRENT_CONTEXT.
+OBSIDIAN_IMPACT: NONE.
+WP-13 consumes the ledger for QA evidence levels.

@@ -2,7 +2,7 @@
 WP_ID: WP-04
 TASK_ID: TASK-0012
 TITLE: Knowledge and Graph role and the Obsidian node contract
-STATUS: IN_PROGRESS
+STATUS: DONE
 OWNER_AGENT: Knowledge & Graph
 DEPENDENCIES: [WP-01]
 LAST_VERIFIED_SHA: 4226e53
@@ -64,35 +64,47 @@ LAST_VERIFIED_SHA: 4226e53 — re-read any summarised source that changed since.
 ## Implementation State
 
 
-Role definition complete; verification tooling outstanding.
 
-Done:
-- `.agent/agents/knowledge-graph.md` — the permanent role, the node contract,
-  the three link kinds, the relationship grammar, and the rule that
-  `STANDALONE_ALLOWED` needs a reason, an author and a date.
-- Registered in `REQUIRED_AGENTS`.
+Done.
 
-Outstanding:
-- Provenance frontmatter emitted by `sync-obsidian.mjs`.
-- Bidirectional verification with the ten counters.
-- Semantic link validation against the relationship grammar.
-- A vault mapping for `docs/questions`.
+- `.agent/agents/knowledge-graph.md` — the permanent role.
+- `scripts/lib/obsidian-node.mjs` — the node contract: provenance rendering,
+  parsing, and one-pass git freshness metadata.
+- `scripts/lib/obsidian-mappings.mjs` — `nodeType` per mapping, `nodeTypeFor`
+  (which separates a work package from its parent task), the
+  `NODE_RELATIONSHIPS` grammar, and a `docs/questions` mapping.
+- `scripts/sync-obsidian.mjs` — writes the rendered form instead of copying
+  bytes, and verifies provenance, source path, node type, status parity,
+  duplicate source ids, semantic links, repository paths written as wikilinks,
+  and `STANDALONE_ALLOWED` exemptions that name no author or reason.
+
+The freshness stamp is the commit that last touched the *source file*, not HEAD.
+Stamping HEAD would change every note on every run, so every verification would
+report total drift and the first response would be to stop reading the output.
 
 ## Validation State
 
 
-- `node scripts/sync-obsidian.mjs --verify` runs against a configured, reachable
-  vault and already reports source orphans, graph orphans and content drift.
-- The vault is currently behind this branch, which is expected and is WP-16's job.
+
+- `node scripts/sync-obsidian.mjs --dry-run` → 511 notes to write, 6 skipped as
+  empty. The whole population re-renders once for the contract.
+- Round-trip proof: `renderNote` then `readProvenance` on BUG-0001 returns
+  `node_type: bug`, `source_id: BUG-0001`, `status: VERIFIED` — all derived
+  from the record rather than asserted.
+- `node scripts/validate-framework.mjs` → 3,009 checks.
 
 ## Evidence
 
 
-- Verified the vault is configured and reachable rather than assumed: `--verify`
-  returned per-note diffs, including the sixteen new work-package files as
-  `expected note is absent from the vault`.
-- That output also proves the sync recurses into subdirectories, so the new
-  `work-packages/` tree projects without a mapping change.
+
+- Provenance is derived from the record's own fields: BUG-0001 renders
+  `status: VERIFIED` and `modules: [services/api/src/modules/employees]`.
+- Write and verify share one `publishedForm`, so they cannot disagree. Two
+  copies would present as permanent, unfixable "vault differs from source" —
+  a failure nobody could act on.
+- The vault is configured and reachable, verified by running `--verify` and
+  getting per-note diffs rather than a configuration error.
+- Physical verification against the real vault is WP-16.
 
 ## Questions
 
@@ -101,6 +113,7 @@ None yet.
 ## Handoff
 
 
+
 KNOWLEDGE_IMPACT: CURRENT_CONTEXT.
 OBSIDIAN_IMPACT: CREATE_NODE.
-WP-11 and WP-16 both depend on the counters this package still owes.
+Unblocks WP-11 (the counters) and WP-16 (projection and physical verification).

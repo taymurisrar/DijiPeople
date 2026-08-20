@@ -62,6 +62,8 @@
     "questions:rebuild": "node scripts/rebuild-questions.mjs",
     "questions:check": "node scripts/rebuild-questions.mjs --check",
     "questions:new": "node scripts/new-question.mjs",
+    "evidence": "node scripts/evidence.mjs",
+    "agent:health": "node scripts/agent-health.mjs",
     "session": "node scripts/session.mjs",
     "sessions:rebuild": "node scripts/rebuild-sessions.mjs",
     "sessions:check": "node scripts/rebuild-sessions.mjs --check",

@@ -10,9 +10,9 @@ CREATED_AT: 2026-08-21
 AFFECTED_MODULES: [framework]
 AGENTS: [Architect, Product & Backlog Steward, Knowledge & Graph, Backend/API, Frontend, UI/UX, Database, Security, Integration, QA, Reviewer, Integrator, Release/DevOps]
 DEPENDENCIES: origin/develop 4226e53; SESSION-0026; no schema lease required
-CURRENT_PACKAGE: WP-04
-NEXT_READY_WORK_PACKAGE: WP-04
-COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-05, WP-07, WP-09, WP-10]
+CURRENT_PACKAGE: WP-08
+NEXT_READY_WORK_PACKAGE: WP-08
+COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-09, WP-10]
 BLOCKED_PACKAGES: []
 OWNER_DECISIONS: 0
 FINAL_STATUS:
@@ -82,9 +82,9 @@ packages loses nothing but its scrollback.
 | WP-01 | Framework reconciliation and gap register | DONE | — | Architect | agent/agent-operating-system | — | — | — | — | — |
 | WP-02 | Question escalation protocol and decision memory | DONE | WP-01 | Architect | agent/agent-operating-system | — | — | — | — | — |
 | WP-03 | Product and Backlog Steward role and backlog ownership | DONE | WP-01 | Product & Backlog Steward | agent/agent-operating-system | — | — | — | — | — |
-| WP-04 | Knowledge and Graph role and the Obsidian node contract | IN_PROGRESS | WP-01 | Knowledge & Graph | agent/agent-operating-system | — | — | — | — | — |
+| WP-04 | Knowledge and Graph role and the Obsidian node contract | DONE | WP-01 | Knowledge & Graph | agent/agent-operating-system | — | — | — | — | — |
 | WP-05 | Large-task persistence, work-package files and context budget | DONE | WP-01 | Architect | agent/agent-operating-system | — | — | — | — | — |
-| WP-06 | Evidence cache and invalidation | NOT_STARTED | WP-05 | Release/DevOps | agent/agent-operating-system | — | — | — | — | — |
+| WP-06 | Evidence cache and invalidation | DONE | WP-05 | Release/DevOps | agent/agent-operating-system | — | — | — | — | — |
 | WP-07 | Test resource lifecycle and cleanup registry | DONE | WP-01 | QA | agent/agent-operating-system | — | — | — | — | — |
 | WP-08 | Agent role enhancements across the permanent set | NOT_STARTED | WP-02, WP-03, WP-04, WP-05 | Architect | agent/agent-operating-system | — | — | — | — | — |
 | WP-09 | Failure adaptation, failure budget and research mode | DONE | WP-01 | Architect | agent/agent-operating-system | — | — | — | — | — |
