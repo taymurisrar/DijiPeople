@@ -96,7 +96,7 @@ the wrong design, however elegant it looks.
 | WP-02 | `Identity` model, `User.identityId`, expand-phase migration | DONE | — | Database, Backend/API | agent/identity-and-membership | pending | PASS | — | NOT_RUN | NOT_STARTED |
 | WP-03 | Backfill — one Identity per distinct email, linking same-email rows | DONE | WP-02 | Database | agent/identity-and-membership | pending | PASS | — | NOT_RUN | NOT_STARTED |
 | WP-12 | Every user-creation path writes an Identity | DONE | WP-03 | Backend/API, Database | agent/identity-and-membership | pending | PASS | — | NOT_RUN | NOT_STARTED |
-| WP-04 | Authentication split — identity resolution, then tenant selection | NOT_STARTED | WP-12 | Backend/API, Security | agent/identity-and-membership | — | — | — | — | — |
+| WP-04 | Authentication split — identity resolution, then tenant selection | IN_PROGRESS | WP-12 | Backend/API, Security | agent/identity-and-membership | — | — | — | — | — |
 | WP-05 | Workspace discovery by email, rate-limited and non-enumerable | NOT_STARTED | WP-04 | Backend/API, Security | agent/identity-and-membership | — | — | — | — | — |
 | WP-06 | Generic login and the workspace picker | NOT_STARTED | WP-05 | Frontend, UI/UX | agent/identity-and-membership | — | — | — | — | — |
 | WP-07 | In-app workspace switcher and last-used preference — closes TASK-0008 WP-06 | NOT_STARTED | WP-06 | Frontend, UI/UX | agent/identity-and-membership | — | — | — | — | — |
@@ -307,12 +307,17 @@ later dependency shifted by one and the failure surfaced as
 from the cause. Moot once the service became a function, but the lesson stands
 for the next positional constructor.
 
-The invariant's own regex was written through a Python heredoc where ``
-became a **literal backspace byte** rather than a word boundary, so the pattern
-matched nothing and the check reported zero callers. Caught by the minimum-count
-assertion — which is exactly the failure mode that assertion exists for, working
-on the file that introduced it. Replaced with a plain `includes()`; a scan of
-every changed file confirms no other control bytes.
+The invariant's own regex was written through a Python heredoc, where the
+word-boundary escape became a **literal backspace byte (0x08)** instead. The
+pattern matched nothing and the check reported zero callers — caught by the
+minimum-count assertion, which is exactly the failure mode that assertion exists
+for, working on the file that introduced it. Replaced with a plain `includes()`.
+
+Then this very paragraph, written through the same heredoc, acquired a real
+backspace where it described one. The rule that follows is about tooling rather
+than care: **content containing backslash escapes is written with the editor,
+never through a shell or Python heredoc.** A scan of every changed file confirms
+no control bytes remain.
 
 `identity-model.e2e-spec.ts` also had a premise expire, and was inverted rather
 than deleted. Its WP-02 assertion read "leaves every existing user unlinked,
@@ -324,6 +329,58 @@ merging.
 Proof it holds end to end: a fresh database, migrated and seeded, reports 7
 users, 7 identities and **0 unlinked**; the full database-backed suite is 29
 suites / 345 tests green.
+
+## WP-04 — first half: the two credentials cannot diverge
+
+The split has two halves and they must land in this order. **Mirroring writes
+first, flipping the read second.** Reversed, every password changed between the
+backfill and the flip becomes wrong, and the person discovers it by being locked
+out with the password they just chose.
+
+Five paths set a password on a `User`, and all five now reach the identity:
+
+| Path | What it is |
+|---|---|
+| `auth.service.ts` | the real reset-password flow |
+| `super-admin.service.ts` ×2 | platform-admin credential resets, tenant access and tenant owner |
+| `tenant-access.service.ts` | service-account credential rotation |
+| `users.repository.ts` | invitation acceptance, and anything else going through the repository |
+| `seed-demo.ts` | re-seeding, which resets the demo password |
+
+Each mirrors inside the transaction that writes the `User` row, so a reset
+cannot half-apply. Where there was no transaction — two of the platform-admin
+resets — one was added, because "updated the account but not the person" is
+precisely the state that must not survive a crash.
+
+**Two failure shapes, and the second is the dangerous one.** A password *change*
+that reaches only `User` locks somebody out — loud, and they tell you. A
+credential *rotation* that reaches only `User` rotates nothing: the old password
+keeps working and the operator has been told it was revoked. Nobody finds out.
+
+`mirrorPasswordToIdentity` is the only place permitted to write
+`identity.passwordHash` after creation, and the invariant enforces that no other
+file calls `identity.update`. That separation is what keeps "reset this person's
+password" and "silently overwrite a credential they are using" from being the
+same line of code — the provisioning paths mint unguessable placeholders, and
+those must never reach a credential somebody holds.
+
+**The invariant caught the seed, and then mutation-testing caught the
+invariant.** `seed-demo.ts` was updating `User.passwordHash` on a re-seed
+without mirroring; both hashes verify the same demo password, so nothing looked
+broken, but the copies were drifting. Fixed rather than excluded.
+
+Then the check itself failed its mutation test: it asserted the file *contained*
+`mirrorPasswordToIdentity`, and deleting the call while leaving the import
+passed. That is `assertion-without-a-check` — written by the person who
+documented the pattern two packages earlier. Now matched as
+`mirrorPasswordToIdentity\s*\(`, and the mutation fails as it should.
+
+Proof: a database seeded **twice** reports zero users whose `passwordHash`
+differs from their identity's. Full suite 29 / 345 green.
+
+**Second half, not yet done:** login verifying against `Identity` rather than
+`User`, and lockout counters moving with it. Deliberately a separate commit —
+the mirror needs to be in place and proven before the read moves.
 
 ## Repository Health
 
@@ -343,6 +400,8 @@ TASK-0008's migrations to the local development database. WP-02 waits on it.
 - 2026-08-20 — created at `844b6d3`, immediately after TASK-0008 integrated.
 - 2026-08-20 — WP-01 done: `legal:publish`, its contract suite, and
   [[ITEM-0068]] for the operator UI the script stands in for.
+- 2026-08-20 — WP-04 first half: every password write now reaches the identity,
+  so the two credentials cannot diverge before the read is flipped.
 - 2026-08-20 — WP-12 done, an addition to the decomposition rather than part
   of it: every user-creation path now writes an Identity, pinned by an
   invariant. Without it the backfill's work would diverge the moment it

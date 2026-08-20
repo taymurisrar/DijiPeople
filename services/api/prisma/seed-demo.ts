@@ -19,7 +19,10 @@ import {
   UserStatus,
   WorkWeekday,
 } from '@prisma/client';
-import { ensureIdentityForEmail } from '../src/modules/users/identity.service';
+import {
+  ensureIdentityForEmail,
+  mirrorPasswordToIdentity,
+} from '../src/modules/users/identity.service';
 import * as bcrypt from 'bcryptjs';
 import { ROLE_KEYS } from '../src/common/constants/rbac-matrix';
 import { PermissionBootstrapService } from '../src/modules/permissions/permission-bootstrap.service';
@@ -874,6 +877,19 @@ async function seedRoleBasedUsers(input: {
             status: UserStatus.ACTIVE,
           },
         });
+
+    /*
+     * Re-seeding resets the demo password, and it has to reach the identity too.
+     *
+     * `ensureIdentityForEmail` deliberately never overwrites an existing
+     * credential — that is what protects a real person from a provisioning
+     * placeholder — so on a re-seed the identity would otherwise keep the hash
+     * from the first run. Both hashes verify the same demo password today, so
+     * nothing looks broken; it is still two copies drifting apart, and the next
+     * person to change the demo password would find only half of it moved.
+     */
+    await mirrorPasswordToIdentity(prisma, user.id, passwordHash);
+
     for (const roleKey of definition.roleKeys) {
       const roleId = roleIdByKey.get(roleKey);
       if (!roleId) {

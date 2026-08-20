@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma, TeamType } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { ensureIdentityForEmail } from './identity.service';
+import {
+  ensureIdentityForEmail,
+  mirrorPasswordToIdentity,
+} from './identity.service';
 
 type PrismaDb = PrismaService | Prisma.TransactionClient;
 type UserCreateInput = Omit<
@@ -372,15 +375,35 @@ export class UsersRepository {
     return this.createWithDefaultBusinessUnit(data, db);
   }
 
-  update(
+  async update(
     userId: string,
     data: Prisma.UserUncheckedUpdateInput,
     db: PrismaDb = this.prisma,
   ) {
-    return db.user.update({
+    const updated = await db.user.update({
       where: { id: userId },
       data,
     });
+
+    /*
+     * A password set through this path has to reach the identity too.
+     *
+     * Invitation acceptance is the caller that matters — somebody choosing
+     * their password for the first time. Once login reads the identity, a
+     * password that landed only on `User` would leave them unable to sign in
+     * with the password they had just chosen and watched be accepted.
+     *
+     * Guarded on the field being present rather than mirroring unconditionally,
+     * because most updates here are names and status and have no business
+     * touching a credential. `typeof === 'string'` because Prisma's update
+     * input also permits `{ set: … }`, and passing that object through as a
+     * hash would store the literal `[object Object]`.
+     */
+    if (typeof data.passwordHash === 'string') {
+      await mirrorPasswordToIdentity(db, userId, data.passwordHash);
+    }
+
+    return updated;
   }
 
   delete(userId: string, db: PrismaDb = this.prisma) {

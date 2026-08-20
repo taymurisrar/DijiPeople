@@ -17,7 +17,7 @@ graph and the block reasons. See
 | Task | WP | Title |
 |---|---|---|
 | [TASK-0005](TASK-0005-dijipeople-global-technical-remediation.md) | WP-04 | Database E2E isolation and residual defect proof |
-| [TASK-0009](TASK-0009-identity-and-multi-tenant-membership.md) | WP-04 | Authentication split — identity resolution, then tenant selection |
+| [TASK-0009](TASK-0009-identity-and-multi-tenant-membership.md) | WP-09 | Contract phase — `identityId` required, legacy auth path removed |
 
 ## Needs a human
 

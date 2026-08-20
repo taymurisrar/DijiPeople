@@ -94,7 +94,10 @@ import {
 } from '../../common/reference-data/platform-reference-data';
 import { validatePlatformBranding } from './platform-appearance-settings';
 import { UserInvitationsService } from '../auth/user-invitations.service';
-import { ensureIdentityForEmail } from '../users/identity.service';
+import {
+  ensureIdentityForEmail,
+  mirrorPasswordToIdentity,
+} from '../users/identity.service';
 import { AuthService } from '../auth/auth.service';
 
 function toCountMap<T extends { _count: { _all: number } }>(rows: T[]) {
@@ -1241,16 +1244,26 @@ export class SuperAdminService {
     userId: string,
   ) {
     const user = await this.findTenantAccessUserOrThrow(tenantId, userId);
-    await this.prisma.user.update({
-      where: { id: user.id },
-      data: {
-        passwordHash: await bcrypt.hash(
-          `tenant-access-reset-${tenantId}-${Date.now()}`,
-          12,
-        ),
-        status: UserStatus.INVITED,
-        updatedById: actor.userId,
-      },
+    const passwordHash = await bcrypt.hash(
+      `tenant-access-reset-${tenantId}-${Date.now()}`,
+      12,
+    );
+    await this.prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: user.id },
+        data: {
+          passwordHash,
+          status: UserStatus.INVITED,
+          updatedById: actor.userId,
+        },
+      });
+      /*
+       * The identity carries the same credential, so a reset has to reach it
+       * too. Once login reads the identity, a reset that only touched `User`
+       * would leave the old password working — an invalidation that silently
+       * invalidated nothing.
+       */
+      await mirrorPasswordToIdentity(tx, user.id, passwordHash);
     });
     const invitation = await this.userInvitationsService.issueInvitation({
       tenantId,
@@ -1617,13 +1630,18 @@ export class SuperAdminService {
       `owner-reset-${tenantId}-${Date.now()}`,
       12,
     );
-    await this.prisma.user.update({
-      where: { id: owner.id },
-      data: {
-        passwordHash,
-        status: UserStatus.INVITED,
-        updatedById: actor.userId,
-      },
+    await this.prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: owner.id },
+        data: {
+          passwordHash,
+          status: UserStatus.INVITED,
+          updatedById: actor.userId,
+        },
+      });
+      // Same reason as the tenant-access reset above: an invalidation that
+      // reaches only `User` invalidates nothing once login reads the identity.
+      await mirrorPasswordToIdentity(tx, owner.id, passwordHash);
     });
 
     return this.userInvitationsService.issueInvitation({

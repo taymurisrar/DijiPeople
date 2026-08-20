@@ -17,7 +17,10 @@ import type { AuthenticatedUser } from '../../common/interfaces/authenticated-re
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { normalizeEmail } from '../../common/utils/email.util';
 import { AuditService } from '../audit/audit.service';
-import { ensureIdentityForEmail } from '../users/identity.service';
+import {
+  ensureIdentityForEmail,
+  mirrorPasswordToIdentity,
+} from '../users/identity.service';
 import { AuthService } from '../auth/auth.service';
 import { UserInvitationsService } from '../auth/user-invitations.service';
 import { PlatformEventsService } from '../platform-events/platform-events.service';
@@ -442,13 +445,23 @@ export class TenantAccessService {
       );
     }
 
-    await this.prisma.user.update({
-      where: { id: identity.id },
-      data: {
-        passwordHash: await bcrypt.hash(unguessableSecret(), 12),
-        status: UserStatus.INVITED,
-        updatedById: user.userId,
-      },
+    const rotatedHash = await bcrypt.hash(unguessableSecret(), 12);
+    await this.prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: identity.id },
+        data: {
+          passwordHash: rotatedHash,
+          status: UserStatus.INVITED,
+          updatedById: user.userId,
+        },
+      });
+      /*
+       * Rotation has to reach the identity too. Once login reads the identity,
+       * a rotation that touched only `User` would rotate nothing — a
+       * service-account credential reported as revoked and still working is
+       * worse than one nobody rotated.
+       */
+      await mirrorPasswordToIdentity(tx, identity.id, rotatedHash);
     });
     const revoked = await this.revokeSessions(tenant.id, identity.id);
 

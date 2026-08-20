@@ -34,6 +34,7 @@ import {
 } from '../../common/config/auth.config';
 import { AuthTokenPayload } from '../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { mirrorPasswordToIdentity } from '../users/identity.service';
 import { normalizeEmail } from '../../common/utils/email.util';
 import { TenantsService } from '../tenants/tenants.service';
 import { PublicTenantsService } from '../tenants/public-tenants.service';
@@ -843,8 +844,8 @@ export class AuthService {
     );
 
     const passwordHash = await bcrypt.hash(password, 10);
-    await this.prisma.$transaction([
-      this.prisma.user.update({
+    await this.prisma.$transaction(async (tx) => {
+      await tx.user.update({
         where: { id: payload.sub },
         data: {
           passwordHash,
@@ -852,16 +853,23 @@ export class AuthService {
           status: 'ACTIVE',
           updatedById: payload.sub,
         },
-      }),
-      this.prisma.refreshToken.updateMany({
+      });
+      /*
+       * The identity carries the same credential. Inside the transaction, so a
+       * reset cannot half-apply and leave the two copies disagreeing — which,
+       * once login reads the identity, is a person locked out by a change they
+       * made themselves and watched succeed.
+       */
+      await mirrorPasswordToIdentity(tx, payload.sub, passwordHash);
+      await tx.refreshToken.updateMany({
         where: {
           userId: payload.sub,
           tenantId: payload.tenantId,
           revokedAt: null,
         },
         data: { revokedAt: new Date() },
-      }),
-    ]);
+      });
+    });
 
     await this.passwordPolicyService.recordPasswordChange(
       payload.sub,

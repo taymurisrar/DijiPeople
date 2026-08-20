@@ -54,9 +54,8 @@ function sourceFiles(dir: string): string[] {
  * to the matching brace is the difference between "this call links an identity"
  * and "this file mentions identities somewhere".
  */
-function userCreateBlocks(source: string): string[] {
+function callBlocks(source: string, pattern: RegExp): string[] {
   const blocks: string[] = [];
-  const pattern = /\buser\.create\s*\(/g;
 
   let match: RegExpExecArray | null;
   while ((match = pattern.exec(source)) !== null) {
@@ -74,6 +73,15 @@ function userCreateBlocks(source: string): string[] {
     blocks.push(source.slice(start, index + 1));
   }
   return blocks;
+}
+
+function userCreateBlocks(source: string): string[] {
+  return callBlocks(source, /\buser\.create\s*\(/g);
+}
+
+/** The same, for `user.update(` — see the password-mirror block below. */
+function userUpdateBlocks(source: string): string[] {
+  return callBlocks(source, /\buser\.update\s*\(/g);
 }
 
 describe('every user-creation path links an Identity', () => {
@@ -159,5 +167,79 @@ describe('every user-creation path links an Identity', () => {
         updates: false,
       });
     }
+  });
+});
+
+/**
+ * Every path that sets a password must set it on the identity too.
+ *
+ * This is the mirror image of the creation rule, and the more dangerous of the
+ * two. `User.passwordHash` and `Identity.passwordHash` both exist through the
+ * expand phase, and login still reads the `User` copy — so a path that writes
+ * only `User` looks completely correct today and becomes a defect the moment
+ * the read moves. Two shapes, both bad:
+ *
+ *   a password *change* that reaches only `User` locks somebody out with the
+ *   password they just chose and watched be accepted;
+ *
+ *   a credential *rotation* that reaches only `User` rotates nothing — the old
+ *   password keeps working, and the operator has been told it was revoked.
+ *
+ * The second is worse, because nobody finds out.
+ */
+describe('every password write reaches the Identity', () => {
+  const writers = SCANNED.flatMap((dir) => sourceFiles(dir)).filter((path) => {
+    const source = readFileSync(path, 'utf8');
+    // A `user.update(...)` whose data object actually sets a password.
+    return userUpdateBlocks(source).some((block) =>
+      /passwordHash\s*[,:]/.test(block),
+    );
+  });
+
+  /*
+   * Inert-guard check, as above. At the time of writing: the reset-password
+   * path in `auth.service.ts`, two platform-admin resets in
+   * `super-admin.service.ts`, and the service-account rotation in
+   * `tenant-access.service.ts`.
+   */
+  it('finds the password writers it is supposed to be checking', () => {
+    expect(writers.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it.each(
+    writers.map(
+      (path) =>
+        [path.slice(API_ROOT.length + 1).replace(/\\/g, '/'), path] as const,
+    ),
+  )('%s mirrors the password to the identity', (_label, path) => {
+    const source = readFileSync(path, 'utf8');
+
+    /*
+     * `mirrorPasswordToIdentity(` with the paren, not merely the name.
+     *
+     * The first version of this assertion used `toContain('mirrorPasswordTo-
+     * Identity')`, and a mutation that deleted the *call* while leaving the
+     * *import* passed it — the import line mentions the name. That is the
+     * `assertion-without-a-check` shape, caught here by mutation-testing the
+     * check rather than by trusting it went green.
+     */
+    expect(source).toMatch(/mirrorPasswordToIdentity\s*\(/);
+  });
+
+  it('routes every mirror through the one function', () => {
+    /*
+     * `mirrorPasswordToIdentity` is the only place allowed to write
+     * `identity.passwordHash` after creation, which is what keeps "reset this
+     * person's password" and "quietly overwrite a credential they are using"
+     * from being the same line of code. Any other file writing it directly is
+     * the regression.
+     */
+    const offenders = SCANNED.flatMap((dir) => sourceFiles(dir)).filter(
+      (path) =>
+        !path.endsWith('identity.service.ts') &&
+        /identity\.update\(/.test(readFileSync(path, 'utf8')),
+    );
+
+    expect(offenders.map((p) => p.slice(API_ROOT.length + 1))).toEqual([]);
   });
 });

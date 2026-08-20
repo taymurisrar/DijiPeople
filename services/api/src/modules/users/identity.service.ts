@@ -75,3 +75,42 @@ export async function ensureIdentityForEmail(
     throw error;
   }
 }
+
+/**
+ * Keep an identity's credential in step with the workspace account's.
+ *
+ * During the expand phase `User.passwordHash` and `Identity.passwordHash` both
+ * exist, and authentication still reads the `User` copy. The moment login is
+ * switched to read the identity, **every password changed since the backfill
+ * would be wrong** — the person would be locked out by a change they made
+ * themselves and watched succeed. So the mirror has to land first, and it has
+ * to cover every path that sets a password, not the obvious ones.
+ *
+ * This is the **only** place permitted to write `identity.passwordHash` after
+ * creation. `user-creation-links-identity.invariant.spec.ts` fails the build if
+ * any caller writes it directly, because the paths that mint unguessable
+ * placeholders must never reach a credential somebody is using — the difference
+ * between "reset this person's password" and "silently lock them out of another
+ * workspace" is which function you called.
+ *
+ * A user with no identity is a no-op rather than an error: `identityId` is
+ * nullable until the contract phase, and a password reset is the wrong moment
+ * to fail on a backfill gap. The gap itself is caught by the backfill's own
+ * guard and by the contract migration.
+ */
+export async function mirrorPasswordToIdentity(
+  db: IdentityDb,
+  userId: string,
+  passwordHash: string,
+): Promise<void> {
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    select: { identityId: true },
+  });
+  if (!user?.identityId) return;
+
+  await db.identity.update({
+    where: { id: user.identityId },
+    data: { passwordHash, passwordChangedAt: new Date() },
+  });
+}
