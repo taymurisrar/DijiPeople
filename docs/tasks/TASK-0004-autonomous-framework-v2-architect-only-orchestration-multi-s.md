@@ -4,6 +4,7 @@ aliases: [TASK-0004]
 TITLE: Autonomous framework v2 — Architect-only orchestration, multi-session safety, develop integration, persistent QA
 TYPE: FRAMEWORK
 SIZE: PROGRAM
+WORK_PACKAGE_FILES: NOT_REQUIRED - predates the per-package file convention introduced by TASK-0012; table-only state retained rather than backfilled with invented manifests
 STATUS: BLOCKED
 PRIORITY: P1
 CREATED_AT: 2026-08-16
@@ -11,6 +12,7 @@ AFFECTED_MODULES: [.agent, scripts, docs/sessions, docs/qa, docs/backlog, docs/t
 AGENTS: [architect, qa, reviewer, integrator, release-devops]
 DEPENDENCIES: none external
 CURRENT_PACKAGE:
+NEXT_READY_WORK_PACKAGE: NONE
 COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10]
 BLOCKED_PACKAGES: [WP-11: BLOCKED_EXTERNAL — GitHub protection writes refused by this environment's tooling policy; configuration committed and verifiable; tracked as ITEM-0040]
 OWNER_DECISIONS: 1

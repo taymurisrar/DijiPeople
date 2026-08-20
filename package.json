@@ -58,6 +58,7 @@
     "tasks:rebuild": "node scripts/rebuild-tasks.mjs",
     "tasks:check": "node scripts/rebuild-tasks.mjs --check",
     "tasks:new": "node scripts/new-task.mjs",
+    "wp:check": "node scripts/check-work-packages.mjs",
     "session": "node scripts/session.mjs",
     "sessions:rebuild": "node scripts/rebuild-sessions.mjs",
     "sessions:check": "node scripts/rebuild-sessions.mjs --check",
