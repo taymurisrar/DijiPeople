@@ -10,8 +10,8 @@ CREATED_AT: 2026-08-20
 AFFECTED_MODULES: [auth, users, legal, tenant-domains, super-admin, web, admin]
 AGENTS: [Architect, Database, Backend/API, Frontend, UI/UX, Security, QA, Reviewer, Integrator]
 DEPENDENCIES: origin/develop 844b6d3; TASK-0008 WP-02, WP-04, WP-05
-CURRENT_PACKAGE: WP-03
-COMPLETED_PACKAGES: [WP-01, WP-02]
+CURRENT_PACKAGE: WP-04
+COMPLETED_PACKAGES: [WP-01, WP-02, WP-03]
 BLOCKED_PACKAGES: []
 OWNER_DECISIONS: 2
 FINAL_STATUS:
@@ -94,7 +94,7 @@ the wrong design, however elegant it looks.
 |---|---|---|---|---|---|---|---|---|---|---|
 | WP-01 | Publish the legal drafts — the path that had no door | DONE | — | Backend/API, QA | agent/identity-and-membership | pending | PASS | ITEM-0068 | NOT_RUN | NOT_STARTED |
 | WP-02 | `Identity` model, `User.identityId`, expand-phase migration | DONE | — | Database, Backend/API | agent/identity-and-membership | pending | PASS | — | NOT_RUN | NOT_STARTED |
-| WP-03 | Backfill — one Identity per distinct email, linking same-email rows | NOT_STARTED | WP-02 | Database | agent/identity-and-membership | — | — | — | — | — |
+| WP-03 | Backfill — one Identity per distinct email, linking same-email rows | DONE | WP-02 | Database | agent/identity-and-membership | pending | PASS | — | NOT_RUN | NOT_STARTED |
 | WP-04 | Authentication split — identity resolution, then tenant selection | NOT_STARTED | WP-03 | Backend/API, Security | agent/identity-and-membership | — | — | — | — | — |
 | WP-05 | Workspace discovery by email, rate-limited and non-enumerable | NOT_STARTED | WP-04 | Backend/API, Security | agent/identity-and-membership | — | — | — | — | — |
 | WP-06 | Generic login and the workspace picker | NOT_STARTED | WP-05 | Frontend, UI/UX | agent/identity-and-membership | — | — | — | — | — |
@@ -122,7 +122,7 @@ database.
 
 | ASSUMPTION_ID | STATEMENT | EVIDENCE | CONFIDENCE | IMPACT_IF_WRONG |
 |---|---|---|---|---|
-| A-01 | No real customer shares an email across tenants, so the backfill links rather than merges | Read-only count at the ITEM-0062 decision: 5 shared emails, all `@dijipeople.local` seed identities | MEDIUM — true then; must be re-counted immediately before the backfill | A merge would join two different people into one login. WP-03 re-derives this rather than trusting this row |
+| A-01 | No real customer shares an email across tenants, so the backfill links rather than merges | **RE-DERIVED in WP-03**, read-only against the development database: 19 users, 14 distinct emails, 5 shared, all `@dijipeople.local`. Still true — but **4 of the 5 carry two different password hashes**, so the merge does discard a credential | HIGH | A merge would join two different people into one login. The selection rule is what makes it defensible |
 | A-02 | Nothing outside `auth` creates a `User` without passing through a service that can be taught about `Identity` | **VERIFIED in WP-02.** Four `user.create` call sites, all reachable: `super-admin.service.ts:1137`, `tenant-access.service.ts:187`, `users.repository.ts:773`, `seed-demo.ts:840`. Small enough to teach individually in WP-04 | HIGH | A seed or provisioning path creates users with no identity and the contract phase in WP-09 cannot run |
 | A-03 | The JWT can stay tenant-scoped with identity resolution in front of issuance | `JwtAuthGuard` reads `sub` and `tenantId` then calls `loadAccessContext(sub, tenantId)`; nothing in it needs a global identity | HIGH | The blast radius stops being login and becomes every guarded endpoint |
 | A-04 | `apps/agent-desktop` and the .NET gateway authenticate through the same `/auth/login` and are affected by any change to it | Per-client JWT issuance keyed on `appClientId` lives in `auth`; the desktop agent has its own client id | MEDIUM | A change that suits the web login breaks attendance capture silently |
@@ -179,6 +179,64 @@ the schema and the SQL and rebuilding the database — one test fails, and the
 one that fails is the one asserting a person cannot be deleted out from under
 their workspace accounts.
 
+## WP-03 — the backfill, and the credential it has to throw away
+
+One `Identity` per distinct `lower(trim(email))`, then every `User` linked. The
+mechanics are four statements; the decision inside them is the package.
+
+**The owner's decision has a consequence nobody stated.** "Same email in two
+tenants is one person" means that when those rows carry different password
+hashes, one of those passwords stops working. Re-derived read-only against the
+development database before writing a line: 19 users, 14 distinct emails, 5
+shared — and **four of the five carry two different hashes.** All are
+`@dijipeople.local` seed identities and no real customer is affected, which is
+the argument for doing this now rather than after the first one appears.
+
+**The rule: keep the credential they most recently signed in with.**
+`passwordChangedAt` cannot break the tie — it is identical across both rows of
+every duplicate, because the seed wrote them together. `lastLoginAt` can, and it
+is the only tie-break that is about the person rather than about row order: the
+password they last used successfully is the one they are most likely to still
+know. Ordering is `lastLoginAt`, `passwordChangedAt`, `createdAt`, all `DESC
+NULLS LAST`, which cannot end in a tie and gives the same answer in every
+environment.
+
+**Lockout carries forward at its most restrictive** — `MAX(failedLoginAttempts)`
+and `MAX(lockedUntil)` across the merged rows, not the chosen row's values. A
+merge must not forgive an attack in progress; taking the winner's clean counters
+would hand an attacker a reset for doing nothing but waiting for a deployment.
+`User.status` deliberately does **not** carry forward: being disabled at one
+workspace says nothing about the others.
+
+`identity-backfill.e2e-spec.ts` reads `migration.sql` off disk and executes it,
+rather than reimplementing it in TypeScript — a reimplementation is what gets
+tested while the shipped SQL is what runs. Seven assertions; three mutations
+tried, three caught:
+
+| Mutation | Result |
+|---|---|
+| `NULLS LAST` dropped from the `lastLoginAt` ordering | 1 failed — the never-signed-in credential wins, because PostgreSQL sorts NULL highest on `DESC` |
+| Merged `failedLoginAttempts` replaced with `0` | 1 failed — the lockout carry-forward |
+| The unlinked guard removed | see below |
+
+**On that guard, precisely.** It raises if any `User` is left unlinked. No input
+was found that makes the full script produce that state — every `User` has a
+non-null email, every distinct normalised email gets an `Identity`, and the
+`UPDATE` matches on the same expression. So it is a backstop for the assumption
+breaking later, not for a case reachable today. Rather than claim it is proven
+by the script, the test aims the guard text at a deliberately unlinked row and
+asserts it raises, then links the row and asserts it passes.
+
+Re-runnable: `ON CONFLICT DO NOTHING` and an `UPDATE` restricted to rows still
+`NULL`. `DO UPDATE` would be wrong once the auth split lands — an identity's
+password can then change independently of any `User` row, and a re-run would
+silently roll it back from stale data.
+
+**What this does not do, and WP-04 must.** On a *fresh* environment the backfill
+runs before any seed, so it is a no-op, and `seed:demo` then creates users with
+`identityId` still null. The four `user.create` call sites verified under A-02
+have to learn about `Identity` before WP-09 can make the column required.
+
 ## Repository Health
 
 PRE_TASK_REPO_HEALTH — PASS at `844b6d3`. `MAIN_SYNC_STATUS = SYNCED`,
@@ -197,6 +255,9 @@ TASK-0008's migrations to the local development database. WP-02 waits on it.
 - 2026-08-20 — created at `844b6d3`, immediately after TASK-0008 integrated.
 - 2026-08-20 — WP-01 done: `legal:publish`, its contract suite, and
   [[ITEM-0068]] for the operator UI the script stands in for.
+- 2026-08-20 — WP-03 done: the backfill, its selection rule re-derived from
+  the data rather than assumed, and the discarded-credential consequence made
+  explicit. A-01 re-derived and raised to HIGH.
 - 2026-08-20 — `schema` lease freed by SESSION-0020 and taken. WP-02 done:
   the expand-phase migration, verified by drift measurement rather than by
   trusting hand-written SQL. A-02 verified — four `user.create` call sites.
