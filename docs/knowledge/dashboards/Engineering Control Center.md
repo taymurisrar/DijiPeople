@@ -7,9 +7,9 @@
 
 | | |
 |---|---|
-| Active sessions | **5** |
-| Active parent tasks | 5 |
-| Active work packages | 1 |
+| Active sessions | **6** |
+| Active parent tasks | 6 |
+| Active work packages | 2 |
 | Blocked work packages | 4 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **0** |
@@ -23,6 +23,7 @@
 
 | Session | Task | Title | Status | Branch | Target | Leases | Schema |
 |---|---|---|---|---|---|---|---|
+| [[SESSION-0023-first-production-release|SESSION-0023]] | — | First production release | ACTIVE | `agent/first-production-release` | `main` | — | NO |
 | [[SESSION-0022-go-live-readiness|SESSION-0022]] | TASK-0010 | Go-live readiness | ACTIVE | `agent/go-live-readiness` | `develop` | — | NO |
 | [[SESSION-0019-ci-browser-install-latency-and-database-e2e-fixture-contract|SESSION-0019]] | — | CI browser install latency and database e2e fixture contract | ACTIVE | `agent/ci-e2e-remediation` | `develop` | — | NO |
 | [[SESSION-0016-database-agent-security-agent-agent-reliability-and-obsidian|SESSION-0016]] | — | Database Agent, Security Agent, agent reliability and Obsidian ownership | ACTIVE | `agent/agent-framework-hardening` | `develop` | — | NO |
@@ -38,6 +39,7 @@
 | [[TASK-0008-self-service-customer-onboarding-tenant-provisioning-domain-|TASK-0008]] | Self-service customer onboarding, tenant provisioning, domain routing and central login | FEATURE | LARGE | 10/11 | WP-06 | — | WP-06 |
 | [[TASK-0009-identity-and-multi-tenant-membership|TASK-0009]] | Identity and multi-tenant membership | FEATURE | LARGE | 11/12 | WP-09 | — | WP-09 |
 | [[TASK-0010-go-live-readiness|TASK-0010]] | Go-live readiness | FEATURE | MEDIUM | 7/8 | WP-04 | — | WP-04 |
+| [[TASK-0011-first-production-release|TASK-0011]] | First production release | RELEASE | MEDIUM | 0/2 | WP-01 | — | — |
 
 ## Branch model
 
