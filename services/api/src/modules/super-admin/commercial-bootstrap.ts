@@ -298,10 +298,22 @@ async function createPlanPriceIfAbsent(
   result: CommercialBootstrapResult,
   slot: PriceSlot,
   /*
-   * PUBLISHED unless a caller says otherwise. The one caller that says
-   * otherwise is the PKR placeholder schedule, whose amounts nobody has
-   * decided — and an unpublished price is invisible to the resolver, which is
-   * what makes seeding a made-up number safe rather than reckless.
+   * PUBLISHED unless a caller says otherwise.
+   *
+   * Every caller now says nothing, because every seeded price is a real one the
+   * owner set. This used to read "the one caller that says otherwise is the PKR
+   * placeholder schedule, whose amounts nobody has decided" — that schedule was
+   * removed on 2026-08-20 when the real one arrived.
+   *
+   * The parameter stays because the distinction it encodes is still true and
+   * still needed: a DRAFT price is invisible to the offer resolver, so it is how
+   * a price can exist before anybody has decided to sell at it.
+   *
+   * Publishing is **not** the same as being sellable. Every seeded price is
+   * PUBLISHED and none of them can be bought, because `deriveCheckoutReadiness`
+   * refuses anything without a verified, synced, active Stripe price — and
+   * seeding creates none. That guard, not the publication status, is what stands
+   * between a seeded number and a customer's card.
    */
   publicationStatus: CommercialPublicationStatus = CommercialPublicationStatus.PUBLISHED,
 ) {
