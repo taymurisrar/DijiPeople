@@ -11,7 +11,7 @@ AFFECTED_MODULES: [auth, users, legal, billing]
 AGENTS: [Architect, Backend/API, Database, Security, QA, Reviewer, Integrator]
 DEPENDENCIES: origin/develop 95551bc; TASK-0009
 CURRENT_PACKAGE: WP-03
-COMPLETED_PACKAGES: [WP-01, WP-02, WP-05, WP-06]
+COMPLETED_PACKAGES: [WP-01, WP-02, WP-05, WP-06, WP-07]
 BLOCKED_PACKAGES: [WP-03, WP-04]
 OWNER_DECISIONS: 4
 FINAL_STATUS:
@@ -47,6 +47,7 @@ Asked before any work, because each changes what gets built:
 | WP-04 | Release readiness assessment and the PR to `main` | BLOCKED | WP-01..WP-03, WP-05, WP-06 | Release/DevOps, Reviewer, Integrator | agent/go-live-readiness | — | — | — | — | — |
 | WP-05 | The xlsx parse path, off an advisory that was reachable after all | DONE | — | Backend/API, Security | agent/go-live-readiness | pending | PASS | BUG-0052, ITEM-0070 | NOT_RUN | NOT_STARTED |
 | WP-06 | The first-deploy dry run, and the two defects it found | DONE | — | Release/DevOps, Database, QA | agent/go-live-readiness | pending | PASS | BUG-0084, BUG-0085 | NOT_RUN | NOT_STARTED |
+| WP-07 | ITEM-0071 — a record may not claim a fix it cannot describe | DONE | — | QA, Reviewer | agent/go-live-readiness | 2c0e6b1 | PASS | BUG-0005, BUG-0009, BUG-0010, ITEM-0071 | PASS | NOT_STARTED |
 
 ## WP-01 — the lockout weapon, removed
 
@@ -258,11 +259,34 @@ software is in good shape; what is missing is a price list.
 | Git | PASS — `16fcaa3`, pushed, clean tree, `agent/*` → `develop` policy satisfied |
 | Architecture | PASS — database → API → frontends; gateway and desktop agent contracts unchanged |
 | QA | PASS — 189/189 unit suites (1446 tests), 33/33 e2e suites (369 tests) against a database built from all 216 migrations |
-| Reviewer | PASS — 0 unresolved CRITICAL; every open HIGH is `FIXED` awaiting verification, `DEFERRED` with reasoning, or owner-accepted |
+| Reviewer | PASS — **re-derived after WP-07**; see below |
 | Database | PASS — see below |
 | Configuration | PASS — 12 new variables, 4 needing dashboard values, all now declared in `render.yaml` |
 | Build | PASS — all six workspaces |
 | Smoke plan | **NOT_OBSERVED** — `smoke:deployment` runs against a deployed URL and nothing is deployed |
+
+### The Reviewer gate had to be re-derived
+
+The first pass recorded *"0 unresolved CRITICAL"*. That was true of the
+**records**, and the records were wrong.
+
+WP-07's new check found [[BUG-0005]] — a CRITICAL cross-tenant error-log read —
+carrying `Status: VERIFIED` above a QA Retest section reading *"Pending WP-03
+retest of the expanded regression cases."* Had that prose been the accurate half,
+this release would have shipped with an unverified CRITICAL tenant-isolation
+defect, counted as closed.
+
+It was the stale half: the expanded cases exist and pass. But **the verdict was
+right by luck rather than by evidence**, which is not a distinction a release
+assessment is allowed to blur. It now rests on executed tests:
+
+| Record | Was | Now |
+|---|---|---|
+| [[BUG-0005]] CRITICAL | `VERIFIED` on stale prose | `VERIFIED` on 10 executed tests, including a support user denied a platform-scope log in both `null` and `'platform'` shapes |
+| [[BUG-0009]] | `VERIFIED` on a source-shape assertion | `VERIFIED` on 7 behavioural tests, mutation-proven |
+| [[BUG-0010]] | `VERIFIED` on a source-shape assertion | same |
+
+0 unresolved CRITICAL, and now it is a measurement.
 
 ### The database gate, in detail
 
@@ -323,6 +347,10 @@ PRE_TASK_REPO_HEALTH — PASS at `95551bc`.
 - 2026-08-20 — created at `95551bc`, after TASK-0009 integrated. Four owner
   decisions taken before any work started.
 - 2026-08-20 — WP-01 and WP-02 done. WP-03 blocked on the price list.
+- 2026-08-20 — WP-07: [[ITEM-0071]] built and immediately useful. Three more
+  records claimed `VERIFIED` above prose saying otherwise, one of them a
+  CRITICAL. Two turned out to be genuine gaps covered only by source-shape
+  assertions; both now have behavioural, mutation-proven tests.
 - 2026-08-20 — WP-04: readiness assessed. `READY_WITH_RISKS` for the platform,
   `NOT_READY` for the commercial surface, which is blocked on WP-03 alone. The
   owner chose to hold the merge until pricing is settled, so `main` is untouched.
@@ -344,7 +372,7 @@ PRE_TASK_REPO_HEALTH — PASS at `95551bc`.
 
 ## Related
 
-- Records — [[BUG-0052]], [[BUG-0080]], [[BUG-0084]], [[BUG-0085]], [[ITEM-0069]], [[ITEM-0070]], [[ITEM-0071]]
+- Records — [[BUG-0005]], [[BUG-0009]], [[BUG-0010]], [[BUG-0052]], [[BUG-0080]], [[BUG-0084]], [[BUG-0085]], [[ITEM-0069]], [[ITEM-0070]], [[ITEM-0071]]
 - Modules — [[legal]], [[billing]]
 
 <!-- GRAPH:END -->
