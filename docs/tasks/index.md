@@ -30,6 +30,7 @@ graph and the block reasons. See
 - [TASK-0007](TASK-0007-commercial-platform-completion-transactional-legal-and-lifec.md) — every remaining work package is blocked
 - [TASK-0008](TASK-0008-self-service-customer-onboarding-tenant-provisioning-domain-.md) — every remaining work package is blocked
 - [TASK-0009](TASK-0009-identity-and-multi-tenant-membership.md) — every remaining work package is blocked
+- [TASK-0010](TASK-0010-go-live-readiness.md) — every remaining work package is blocked
 
 ## All tasks
 

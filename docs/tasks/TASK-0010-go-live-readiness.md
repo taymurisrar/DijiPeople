@@ -12,7 +12,7 @@ AGENTS: [Architect, Backend/API, Database, Security, QA, Reviewer, Integrator]
 DEPENDENCIES: origin/develop 95551bc; TASK-0009
 CURRENT_PACKAGE: WP-03
 COMPLETED_PACKAGES: [WP-01, WP-02, WP-05, WP-06]
-BLOCKED_PACKAGES: [WP-03]
+BLOCKED_PACKAGES: [WP-03, WP-04]
 OWNER_DECISIONS: 4
 FINAL_STATUS:
 ---
@@ -44,7 +44,7 @@ Asked before any work, because each changes what gets built:
 | WP-01 | ITEM-0069 — discovery throttle, decoupled from the credential lock | DONE | — | Backend/API, Database, Security | agent/go-live-readiness | pending | PASS | ITEM-0069 | NOT_RUN | NOT_STARTED |
 | WP-02 | Legal publication wired into the release command | DONE | — | Backend/API | agent/go-live-readiness | pending | PASS | — | NOT_RUN | NOT_STARTED |
 | WP-03 | Real prices for every launched market | BLOCKED | owner | Backend/API | agent/go-live-readiness | — | — | — | — | — |
-| WP-04 | Release readiness assessment and the PR to `main` | IN_PROGRESS | WP-01..WP-03, WP-05, WP-06 | Release/DevOps, Reviewer, Integrator | agent/go-live-readiness | — | — | — | — | — |
+| WP-04 | Release readiness assessment and the PR to `main` | BLOCKED | WP-01..WP-03, WP-05, WP-06 | Release/DevOps, Reviewer, Integrator | agent/go-live-readiness | — | — | — | — | — |
 | WP-05 | The xlsx parse path, off an advisory that was reachable after all | DONE | — | Backend/API, Security | agent/go-live-readiness | pending | PASS | BUG-0052, ITEM-0070 | NOT_RUN | NOT_STARTED |
 | WP-06 | The first-deploy dry run, and the two defects it found | DONE | — | Release/DevOps, Database, QA | agent/go-live-readiness | pending | PASS | BUG-0084, BUG-0085 | NOT_RUN | NOT_STARTED |
 
@@ -245,6 +245,66 @@ a deployment on a populated one, so doing it alongside 216 migrations and a firs
 production deploy would leave a failure with too many candidate causes. It should
 be the first migration *after* launch.
 
+## WP-04 — the readiness verdict
+
+Assessed against [`docs/deployment/readiness-checklist.md`](../deployment/readiness-checklist.md).
+
+**Verdict: `READY_WITH_RISKS` for the platform, `NOT_READY` for the commercial
+surface.** The two are separable and the distinction is the whole finding — the
+software is in good shape; what is missing is a price list.
+
+| Gate | Result |
+|---|---|
+| Git | PASS — `16fcaa3`, pushed, clean tree, `agent/*` → `develop` policy satisfied |
+| Architecture | PASS — database → API → frontends; gateway and desktop agent contracts unchanged |
+| QA | PASS — 189/189 unit suites (1446 tests), 33/33 e2e suites (369 tests) against a database built from all 216 migrations |
+| Reviewer | PASS — 0 unresolved CRITICAL; every open HIGH is `FIXED` awaiting verification, `DEFERRED` with reasoning, or owner-accepted |
+| Database | PASS — see below |
+| Configuration | PASS — 12 new variables, 4 needing dashboard values, all now declared in `render.yaml` |
+| Build | PASS — all six workspaces |
+| Smoke plan | **NOT_OBSERVED** — `smoke:deployment` runs against a deployed URL and nothing is deployed |
+
+### The database gate, in detail
+
+16 migrations. **Zero destructive statements** — no `DROP TABLE`, `DROP COLUMN`,
+`DROP TYPE`, `SET NOT NULL` or type narrowing anywhere in the set. Fifteen are
+`DATABASE_ADDITIVE`; one, the identity backfill, is `DATA_MIGRATION`.
+
+Rollback classification: **`ROLLBACK_SAFE`**, with the backfill
+`FORWARD_FIX_PREFERRED`. What makes the code rollback safe is the decision taken
+in TASK-0009 to **hold the contract phase**: `User.identityId` is still nullable,
+so an older build simply ignores a column it does not know about. Had
+`identityId NOT NULL` shipped in this release, rolling back would have left old
+code unable to create users at all.
+
+The backfill was tested against **populated** data, not just an empty database:
+four users across two tenants with the same address in three spellings produced
+two identities, deduped across case and whitespace, with the credential taken
+from the most recently used account and lockout counters carried forward as the
+maximum. Zero users left unlinked. Its `RAISE EXCEPTION` guard was
+mutation-tested by breaking the invariant, and it fired.
+
+### Risks accepted to reach `READY_WITH_RISKS`
+
+1. **[[BUG-0052]]** — `xlsx` advisories present but unreachable after WP-05; the
+   `tar` critical reaches only the Electron agent, verified. Owner-accepted.
+2. **[[BUG-0084]]** — seven unique constraints declared and absent. Nothing is
+   broken today; deferred to the first post-launch migration.
+3. **No staging environment.** This release's first contact with a real Render
+   environment is production. Mitigated as far as it can be by running the
+   actual `preDeployCommand` end to end against a virgin database — which is
+   what found [[BUG-0085]] — but a dry run on a laptop is not a deploy.
+
+### Why the commercial surface is `NOT_READY`
+
+WP-03. The seeded prices are USD figures chosen for testing, Qatar has none, and
+the owner asked to supply real ones. Nothing else blocks; this alone does.
+
+It is worth being exact about what is *not* wrong here, because this task got it
+wrong once: billing is **flat per plan**, the Terms say flat, and [[BUG-0080]]
+was fixed on 2026-08-20 in `e9f977c`. The remaining question is the numbers, not
+the model.
+
 ## Assumptions
 
 | ASSUMPTION_ID | STATEMENT | EVIDENCE | CONFIDENCE | IMPACT_IF_WRONG |
@@ -263,6 +323,16 @@ PRE_TASK_REPO_HEALTH — PASS at `95551bc`.
 - 2026-08-20 — created at `95551bc`, after TASK-0009 integrated. Four owner
   decisions taken before any work started.
 - 2026-08-20 — WP-01 and WP-02 done. WP-03 blocked on the price list.
+- 2026-08-20 — WP-04: readiness assessed. `READY_WITH_RISKS` for the platform,
+  `NOT_READY` for the commercial surface, which is blocked on WP-03 alone. The
+  owner chose to hold the merge until pricing is settled, so `main` is untouched.
+- 2026-08-20 — a self-inflicted detour worth recording. [[BUG-0080]] carried
+  `Status: FIXED` above a Resolution reading *"Pending a product decision"*. The
+  prose was believed, the record was reversed, `commercial-bootstrap.ts` was
+  changed from `FLAT` to `PER_SEAT`, the seeded prices were zeroed, and the owner
+  was asked to settle a question `e9f977c` had settled the same day. All reverted
+  once `seed-legal.ts` was read directly. Filed as [[ITEM-0071]]: a record whose
+  status and prose disagree should fail validation, not puzzle a reader.
 - 2026-08-20 — WP-06: the release command was run against a database built from
   all 216 migrations, for the first time. It aborted. Two defects recorded and
   one fixed; redeploy now verified idempotent end to end.
@@ -274,7 +344,7 @@ PRE_TASK_REPO_HEALTH — PASS at `95551bc`.
 
 ## Related
 
-- Records — [[BUG-0052]], [[BUG-0084]], [[BUG-0085]], [[ITEM-0069]], [[ITEM-0070]]
+- Records — [[BUG-0052]], [[BUG-0080]], [[BUG-0084]], [[BUG-0085]], [[ITEM-0069]], [[ITEM-0070]], [[ITEM-0071]]
 - Modules — [[legal]], [[billing]]
 
 <!-- GRAPH:END -->
