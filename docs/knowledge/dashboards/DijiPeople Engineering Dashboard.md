@@ -12,7 +12,7 @@
 | Open total | 36 |
 | Blocked | 0 |
 | Awaiting a product decision | 2 |
-| Deferred | 7 |
+| Deferred | 9 |
 | Completed | 89 |
 | Awaiting Architect triage | 0 |
 
@@ -142,6 +142,7 @@ _None._
 
 ## Recent QA Runs
 
+- [[2026-08-19-self-service-onboarding-provisioning-f5bd870|QA Run — self-service-onboarding-provisioning]]
 - [[2026-08-18-landing-uiux-remediation-verification-c332992|QA Run — landing-uiux-remediation-verification]]
 - [[2026-08-17-web-app-documentation-1af3690|QA Run — apps/web documentation audit (TASK-0003)]]
 - [[2026-08-17-record-state-reconciliation-d919e1a|QA Run — record-state-reconciliation]]
@@ -149,7 +150,6 @@ _None._
 - [[2026-08-17-global-remediation-discovery-0051180|QA Run — global-remediation-discovery]]
 - [[2026-08-17-framework-remediation-e6a173d|QA Run — framework-remediation]]
 - [[2026-08-16-public-commercial-wave2-7686bb0|QA Run — Wave 2: Public Plans + Features Experience]]
-- [[2026-08-16-production-url-integrity-344a832|QA Run — Production URL integrity (BUG-0026)]]
 
 ## Recent Implementations
 
@@ -217,9 +217,9 @@ _None. Nothing has been deployed through the release process._
 | Knowledge | Count |
 |---|---|
 | Bug records | 73 |
-| Backlog items | 61 |
+| Backlog items | 63 |
 | Known bug patterns | 19 |
-| QA runs | 17 |
+| QA runs | 18 |
 | Engineering history records | 17 |
 | Release records | 0 |
 | Module notes | 24 |

@@ -91,7 +91,26 @@ describeWithDatabase()('Seeded legal documents (DB-backed)', () => {
     expect(index).toEqual([]);
   });
 
-  it('names no legal entity, registration number or tax number', async () => {
+  /*
+   * This assertion used to run the other way.
+   *
+   * It forbade any legal entity, registration number or tax number, on the
+   * stated grounds that "DijiPeople is not incorporated" — true when it was
+   * written, and a good guard: a page naming a company that does not exist is
+   * worse than a page naming none.
+   *
+   * The company now exists and the owner supplied its details for exactly this
+   * purpose, so the premise expired. The guard should not, so it is inverted
+   * rather than deleted: the operator must be named, and every
+   * registration-shaped number in the corpus must be one the owner actually
+   * gave. Fabricated identity is the failure mode, and it outlives any
+   * particular premise about whether the company had been incorporated yet.
+   */
+  const OPERATOR_LEGAL_NAME = 'DijiPeople (SMC-PRIVATE) LIMITED';
+  const OPERATOR_REGISTRATION = '38252358';
+  const OPERATOR_TAX_NUMBER = '748234783';
+
+  it('names the real operator, and no other entity', async () => {
     const versions = await prisma.legalDocumentVersion.findMany({
       where: { document: { slug: { in: EXPECTED_SLUGS } } },
       select: { contentMarkdown: true, document: { select: { slug: true } } },
@@ -99,25 +118,63 @@ describeWithDatabase()('Seeded legal documents (DB-backed)', () => {
 
     expect(versions.length).toBeGreaterThan(0);
 
-    // DijiPeople is not incorporated. A page naming an entity that does not
-    // exist is worse than a page naming none, so this is asserted rather than
-    // trusted to review.
-    const forbidden = [
-      /\bCR-\d{6,}/i,
-      /\bcommercial registration\b/i,
-      /\bregistration number[:\s]+\S+/i,
-      /\btax (id|number)[:\s]+\d/i,
-      /\bregistered office[:\s]+\S+/i,
-      /\bLLC\b|\bLimited Liability\b|\bPvt\.? Ltd\b/,
-    ];
+    /*
+     * Checking only that the real numbers are present would pass a document
+     * that named them and invented a third alongside. So every long digit run
+     * in the corpus has to be one of the two.
+     */
+    const KNOWN_NUMBERS = new Set([OPERATOR_REGISTRATION, OPERATOR_TAX_NUMBER]);
 
     for (const version of versions) {
-      for (const pattern of forbidden) {
+      const { contentMarkdown, document } = version;
+
+      for (const digits of contentMarkdown.match(/\b\d{6,}\b/g) ?? []) {
         expect({
-          slug: version.document.slug,
-          matched: pattern.exec(version.contentMarkdown)?.[0] ?? null,
-        }).toEqual({ slug: version.document.slug, matched: null });
+          slug: document.slug,
+          digits,
+          known: KNOWN_NUMBERS.has(digits),
+        }).toEqual({ slug: document.slug, digits, known: true });
       }
+
+      /*
+       * No second corporate identity. The operator is a Pakistani SMC-Private
+       * Limited; an LLC, a Pvt Ltd or a Gulf-style CR number appearing anywhere
+       * means text was carried over from somewhere it did not belong.
+       */
+      for (const pattern of [
+        /\bCR-\d{6,}/i,
+        /\bcommercial registration\b/i,
+        /\bLLC\b|\bLimited Liability\b|\bPvt\.? Ltd\b/,
+      ]) {
+        expect({
+          slug: document.slug,
+          matched: pattern.exec(contentMarkdown)?.[0] ?? null,
+        }).toEqual({ slug: document.slug, matched: null });
+      }
+    }
+  });
+
+  it('states who the operator is in the documents that create obligations', async () => {
+    /*
+     * Terms and the billing terms are the two that bind somebody to a
+     * counterparty. A contract that never says who the other party is cannot be
+     * enforced — and cannot be complained about either.
+     */
+    for (const slug of ['terms', 'billing-terms']) {
+      const version = await prisma.legalDocumentVersion.findFirstOrThrow({
+        where: { document: { slug } },
+        select: { contentMarkdown: true },
+      });
+
+      expect({
+        slug,
+        names: version.contentMarkdown.includes(OPERATOR_LEGAL_NAME),
+      }).toEqual({ slug, names: true });
+
+      expect({
+        slug,
+        registration: version.contentMarkdown.includes(OPERATOR_REGISTRATION),
+      }).toEqual({ slug, registration: true });
     }
   });
 

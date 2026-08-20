@@ -292,7 +292,9 @@ Tax treatment is recorded per order. At the time of writing the platform has no
 tax registrations configured, so no tax is charged and the treatment is recorded
 as **not determined** — which is deliberately different from recording that tax
 does not apply. This section requires review by a tax adviser before it is
-published.`,
+published.
+
+${OPERATOR_BLOCK}`,
   },
   {
     type: LegalDocumentType.REFUND_CANCELLATION_POLICY,

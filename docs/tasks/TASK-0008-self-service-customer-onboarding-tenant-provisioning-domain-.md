@@ -10,8 +10,8 @@ CREATED_AT: 2026-08-18
 AFFECTED_MODULES: [super-admin, tenant-domains, tenant-control-plane, auth, billing, notifications, legal, landing, web, admin]
 AGENTS: [Architect, Database, Backend/API, Frontend, UI/UX, Integration, Security, QA, Reviewer, Integrator]
 DEPENDENCIES: origin/develop 494c44d; TASK-0007 WP-01..WP-10, WP-12
-CURRENT_PACKAGE: WP-08
-COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-04, WP-05, WP-07, WP-10, WP-11]
+CURRENT_PACKAGE: WP-09
+COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-04, WP-05, WP-07, WP-08, WP-10, WP-11]
 BLOCKED_PACKAGES: [WP-06]
 OWNER_DECISIONS: 4
 FINAL_STATUS:
@@ -153,7 +153,7 @@ Both are recorded here rather than silently fixed, per the retrieval contract.
 | WP-05 | Provisioning progress and workspace-ready experience | DONE | WP-03, WP-04 | Frontend, UI/UX | agent/self-service-onboarding-provisioning | pending | PASS | NOT_RUN | NOT_STARTED |
 | WP-06 | Workspace switcher and last-used workspace | BLOCKED | ITEM-0062 | Frontend, UI/UX, Backend/API, Database, Security | — | — | NOT_RUN | NOT_RUN | NOT_STARTED |
 | WP-07 | Security review — enumeration, abuse, rate limiting, redirect safety | DONE | WP-01..WP-05 | Security | agent/self-service-onboarding-provisioning | pending | PASS | NOT_RUN | NOT_STARTED |
-| WP-08 | QA campaign — real PostgreSQL, concurrency, browser E2E | NOT_STARTED | WP-07 | QA | agent/self-service-onboarding-provisioning | — | NOT_RUN | NOT_RUN | NOT_STARTED |
+| WP-08 | QA campaign — real PostgreSQL, concurrency, browser E2E | DONE | WP-07 | QA | agent/self-service-onboarding-provisioning | pending | PASS_WITH_RISKS | NOT_RUN | NOT_STARTED |
 | WP-09 | Review, exact-SHA CI, develop integration, knowledge and closure | NOT_STARTED | WP-08 | Reviewer, Integrator, Architect | agent/self-service-onboarding-provisioning | — | NOT_RUN | NOT_RUN | NOT_STARTED |
 | WP-10 | Payment-authorised provisioning — BUG-0077 and BUG-0078 | DONE | WP-01 | Backend/API, Integration, Database, Security, QA | agent/self-service-onboarding-provisioning | pending | PASS | NOT_RUN | NOT_STARTED |
 
@@ -230,6 +230,73 @@ check's scope on purpose: the endpoints it reaches are authenticated and
 than a bypass, and widening the check before deciding what should carry the
 address there would only fail the build with nothing to do about it. Noted in
 each spec's header rather than left for a reader to rediscover.
+
+## WP-08 — QA campaign against real PostgreSQL
+
+Full record: [`docs/qa/runs/2026-08-19-self-service-onboarding-provisioning-f5bd870.md`](../qa/runs/2026-08-19-self-service-onboarding-provisioning-f5bd870.md).
+Verdict **PASS WITH RISKS**, with the risks named there rather than here.
+
+Run against a disposable PostgreSQL 18 prepared the way CI prepares one, plus
+two seeds CI does not run. Every DB-backed suite in the repository was run, not
+only this parent's — a campaign that runs only its own tests cannot tell a
+regression from a pre-existing failure.
+
+| Suite | Result |
+|---|---|
+| api unit | 1388 / 1388 |
+| api e2e, real PostgreSQL | 231 / 312 — the 81 failures are one pre-existing cause, [[ITEM-0067]] |
+| landing | 109 / 109 |
+| web | 408 / 408 |
+| admin | 101 / 101 |
+| framework validation | 2740 checks |
+
+**Two material findings, both fixed here.**
+
+[[BUG-0082]] — HIGH, and a repeat. WP-11's wizard reintroduced [[BUG-0066]] in a
+worse shape: a visitor whose plan cannot be bought could fill in an organization
+profile, a workspace address, an owner identity and two accepted agreements
+across five steps before meeting a disabled submit button. The original fix was
+structural — a disabled `<fieldset>` and an id on a paragraph — and structure
+does not survive a rewrite that keeps the fields and replaces everything around
+them. The rule is now `checkoutBlockedReason()`, one function returning the
+visitor-facing sentence or null, consumed by the notice, the fieldset and
+`Continue` alike.
+
+The lesson generalises past this screen: **a guard made of markup is a guard
+that the next rewrite deletes silently.** A named function with a unit test is
+not.
+
+[[BUG-0081]] — found in WP-07 and recorded there.
+
+**Two fixes made in place**, neither shipped in a broken state, both proven by
+an assertion written in the same change:
+
+- `seed:legal` was in neither `seed:all` nor `release`, so the ten legal
+  documents existed only for whoever ran the script by hand — and the
+  `legal-seed` e2e suite has therefore been failing for as long as it has
+  existed. Wired into `seed:all`. Deliberately **not** into `release`: adding a
+  seed to the production release path is a deployment change and this is not a
+  `RELEASE` task.
+- `legal-seed.e2e-spec.ts` asserted that no document names a legal entity,
+  registration number or tax number, on the stated grounds that "DijiPeople is
+  not incorporated". True when written; the owner has since supplied the entity
+  and OD-01 put it in the seed. The assertion was inverted rather than deleted —
+  the operator must be named, and every registration-shaped number in the corpus
+  must be one the owner actually gave. **It found a real defect on its first
+  run**: `billing-terms` carried no operator block at all. A billing agreement
+  that never says who is charging you is not a small omission.
+
+**Two obstacles recorded, not fixed.** [[ITEM-0066]] (`verify-database.mjs`
+cannot spawn npm on Windows) and [[ITEM-0067]] (three e2e suites need two
+seeded tenants and no seed produces them). Both cost local QA time and neither
+affects the product or a gate.
+
+**What this campaign did not prove.** No browser run: Playwright needs three
+Next servers, an API, a seeded database and browser binaries, and the Nest CLI
+does not start reliably here. The two browser assertions that changed were
+corrected by reading them against the rewritten components — which is how
+BUG-0082 was found — and are proven by the `browser-e2e` gate on push. Saying
+so is the point; a QA verdict whose limits are unstated is not a verdict.
 
 ## Assumptions
 
@@ -536,7 +603,7 @@ before WP-01 writes `schema.prisma`.
 
 ## Related
 
-- Records — [[BUG-0017]], [[BUG-0075]], [[BUG-0077]], [[BUG-0078]], [[BUG-0081]], [[ITEM-0013]], [[ITEM-0047]], [[ITEM-0060]], [[ITEM-0061]], [[ITEM-0062]], [[ITEM-0063]]
+- Records — [[BUG-0017]], [[BUG-0066]], [[BUG-0075]], [[BUG-0077]], [[BUG-0078]], [[BUG-0081]], [[BUG-0082]], [[ITEM-0013]], [[ITEM-0047]], [[ITEM-0060]], [[ITEM-0061]], [[ITEM-0062]], [[ITEM-0063]], [[ITEM-0066]], [[ITEM-0067]]
 - Modules — [[tenant-control-plane]], [[billing]], [[notifications]], [[legal]]
 
 <!-- GRAPH:END -->

@@ -6761,6 +6761,94 @@
         "classification": "TERMINAL_AS_DOCUMENTED",
         "finding_ids": []
       }
+    },
+    {
+      "record_id": "ITEM-0066",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0066-verify-database-mjs-cannot-spawn-npm-on-windows.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "",
+        "created_at": "2026-08-20",
+        "updated_at": "2026-08-20",
+        "resolved_at": ""
+      },
+      "type": "TECH_DEBT",
+      "title": "verify-database.mjs cannot spawn npm on Windows",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "DEFERRED",
+      "current_evidence": {
+        "paths": [
+          "scripts/verify-database.mjs"
+        ],
+        "verification_scope": "execFileSync('npm', ...) with no shell:true cannot resolve npm.cmd on Windows, so every step after the ephemeral-database assertion dies. CI runs on ubuntu so nothing gated is affected; the cost is local database-backed QA, where the failure names the stage rather than the cause and sends a reader to look at Prisma."
+      },
+      "affected_modules": [
+        "scripts"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DEFER",
+      "verification_result": {
+        "result": "DEFERRED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "ITEM-0067",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0067-three-e2e-suites-need-two-seeded-tenants-and-no-seed-produce.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "",
+        "created_at": "2026-08-20",
+        "updated_at": "2026-08-20",
+        "resolved_at": ""
+      },
+      "type": "TEST_GAP",
+      "title": "Three e2e suites need two seeded tenants and no seed produces them",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "DEFERRED",
+      "current_evidence": {
+        "paths": [
+          "services/api/test/attendance-engine.e2e-spec.ts",
+          "services/api/test/attendance-integrations-http.e2e-spec.ts",
+          "services/api/test/gateway-runtime.e2e-spec.ts"
+        ],
+        "verification_scope": "87 tests fail in beforeAll on 'These tests need two tenants with at least one business unit'. seed:demo creates one and no script creates a second, so the three suites cannot pass against a database prepared the documented way. database-e2e is not in the ci-required gate, which is why nothing forced the question. The fix is to build fixtures per suite rather than grow the seed:demo dependency the CI job explicitly asks new tests not to grow."
+      },
+      "affected_modules": [
+        "attendance",
+        "attendance-integrations",
+        "agent"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DEFER",
+      "verification_result": {
+        "result": "DEFERRED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
     }
   ],
   "discovered_findings": [
