@@ -28,6 +28,7 @@ graph and the block reasons. See
 - [TASK-0004](TASK-0004-autonomous-framework-v2-architect-only-orchestration-multi-s.md) — every remaining work package is blocked
 - [TASK-0007](TASK-0007-commercial-platform-completion-transactional-legal-and-lifec.md) — every remaining work package is blocked
 - [TASK-0008](TASK-0008-self-service-customer-onboarding-tenant-provisioning-domain-.md) — every remaining work package is blocked
+- [TASK-0009](TASK-0009-identity-and-multi-tenant-membership.md) — every remaining work package is blocked
 
 ## All tasks
 
@@ -41,4 +42,4 @@ graph and the block reasons. See
 | [TASK-0003](TASK-0003-deep-documentation-of-apps-web-the-tenant-product.md) | Deep documentation of apps/web, the tenant product | KNOWLEDGE | LARGE | P1 | COMPLETE | 9/9 | — |
 | [TASK-0004](TASK-0004-autonomous-framework-v2-architect-only-orchestration-multi-s.md) | Autonomous framework v2 — Architect-only orchestration, multi-session safety, develop integration, persistent QA | FRAMEWORK | PROGRAM | P1 | BLOCKED | 10/11 | — |
 | [TASK-0006](TASK-0006-landing-ui-ux-remediation-package.md) | Landing UI/UX remediation package | BUG | LARGE | P1 | COMPLETE | 5/5 | — |
-| [TASK-0009](TASK-0009-identity-and-multi-tenant-membership.md) | Identity and multi-tenant membership | FEATURE | LARGE | P1 | IN_PROGRESS | 10/12 | WP-11 |
+| [TASK-0009](TASK-0009-identity-and-multi-tenant-membership.md) | Identity and multi-tenant membership | FEATURE | LARGE | P1 | IN_PROGRESS | 11/12 | WP-09 |

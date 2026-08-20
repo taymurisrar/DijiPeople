@@ -10,8 +10,8 @@ CREATED_AT: 2026-08-20
 AFFECTED_MODULES: [auth, users, legal, tenant-domains, super-admin, web, admin]
 AGENTS: [Architect, Database, Backend/API, Frontend, UI/UX, Security, QA, Reviewer, Integrator]
 DEPENDENCIES: origin/develop 844b6d3; TASK-0008 WP-02, WP-04, WP-05
-CURRENT_PACKAGE: WP-11
-COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-10, WP-12]
+CURRENT_PACKAGE: WP-09
+COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-10, WP-11, WP-12]
 BLOCKED_PACKAGES: [WP-09]
 OWNER_DECISIONS: 2
 FINAL_STATUS:
@@ -92,18 +92,18 @@ the wrong design, however elegant it looks.
 
 | WP_ID | TITLE | STATUS | DEPENDENCIES | AGENTS | BRANCH | SHA | QA_STATUS | BUGS | CI_STATUS | MERGE_STATUS |
 |---|---|---|---|---|---|---|---|---|---|---|
-| WP-01 | Publish the legal drafts — the path that had no door | DONE | — | Backend/API, QA | agent/identity-and-membership | pending | PASS | ITEM-0068 | NOT_RUN | NOT_STARTED |
-| WP-02 | `Identity` model, `User.identityId`, expand-phase migration | DONE | — | Database, Backend/API | agent/identity-and-membership | pending | PASS | — | NOT_RUN | NOT_STARTED |
-| WP-03 | Backfill — one Identity per distinct email, linking same-email rows | DONE | WP-02 | Database | agent/identity-and-membership | pending | PASS | — | NOT_RUN | NOT_STARTED |
-| WP-12 | Every user-creation path writes an Identity | DONE | WP-03 | Backend/API, Database | agent/identity-and-membership | pending | PASS | — | NOT_RUN | NOT_STARTED |
-| WP-04 | Authentication split — identity resolution, then tenant selection | DONE | WP-12 | Backend/API, Security | agent/identity-and-membership | pending | PASS | — | NOT_RUN | NOT_STARTED |
-| WP-05 | Workspace discovery — every workspace the identity reaches | DONE | WP-04 | Backend/API, Security | agent/identity-and-membership | pending | PASS | — | NOT_RUN | NOT_STARTED |
-| WP-06 | Generic login and the workspace picker | DONE | WP-05 | Backend/API, Frontend, UI/UX | agent/identity-and-membership | pending | PASS | — | NOT_RUN | NOT_STARTED |
-| WP-07 | In-app workspace switcher — closes TASK-0008 WP-06 | DONE | WP-06 | Frontend, UI/UX | agent/identity-and-membership | pending | PASS | — | NOT_RUN | NOT_STARTED |
-| WP-08 | Second workspace for an existing identity — no activation step | DONE | WP-04 | Backend/API, Integration | agent/identity-and-membership | pending | PASS | — | NOT_RUN | NOT_STARTED |
+| WP-01 | Publish the legal drafts — the path that had no door | DONE | — | Backend/API, QA | agent/identity-and-membership | 8306936 | PASS | ITEM-0068 | PASS | INTEGRATED |
+| WP-02 | `Identity` model, `User.identityId`, expand-phase migration | DONE | — | Database, Backend/API | agent/identity-and-membership | 8306936 | PASS | — | PASS | INTEGRATED |
+| WP-03 | Backfill — one Identity per distinct email, linking same-email rows | DONE | WP-02 | Database | agent/identity-and-membership | 8306936 | PASS | — | PASS | INTEGRATED |
+| WP-12 | Every user-creation path writes an Identity | DONE | WP-03 | Backend/API, Database | agent/identity-and-membership | 8306936 | PASS | — | PASS | INTEGRATED |
+| WP-04 | Authentication split — identity resolution, then tenant selection | DONE | WP-12 | Backend/API, Security | agent/identity-and-membership | 8306936 | PASS | — | PASS | INTEGRATED |
+| WP-05 | Workspace discovery — every workspace the identity reaches | DONE | WP-04 | Backend/API, Security | agent/identity-and-membership | 8306936 | PASS | — | PASS | INTEGRATED |
+| WP-06 | Generic login and the workspace picker | DONE | WP-05 | Backend/API, Frontend, UI/UX | agent/identity-and-membership | 8306936 | PASS | — | PASS | INTEGRATED |
+| WP-07 | In-app workspace switcher — closes TASK-0008 WP-06 | DONE | WP-06 | Frontend, UI/UX | agent/identity-and-membership | 8306936 | PASS | — | PASS | INTEGRATED |
+| WP-08 | Second workspace for an existing identity — no activation step | DONE | WP-04 | Backend/API, Integration | agent/identity-and-membership | 8306936 | PASS | — | PASS | INTEGRATED |
 | WP-09 | Contract phase — `identityId` required (written, held for a later deployment) | BLOCKED | WP-02/03 reaching production | Database, Backend/API | agent/identity-and-membership | — | — | — | — | — |
-| WP-10 | Security review — enumeration, credential stuffing, cross-tenant reach | DONE | WP-01..WP-08 | Security | agent/identity-and-membership | pending | PASS | ITEM-0069 | NOT_RUN | NOT_STARTED |
-| WP-11 | QA campaign, review, CI, integration, closure | IN_PROGRESS | WP-10 | QA, Reviewer, Integrator, Architect | agent/identity-and-membership | — | PASS_WITH_RISKS | ITEM-0069 | NOT_RUN | NOT_STARTED |
+| WP-10 | Security review — enumeration, credential stuffing, cross-tenant reach | DONE | WP-01..WP-08 | Security | agent/identity-and-membership | 8306936 | PASS | ITEM-0069 | PASS | INTEGRATED |
+| WP-11 | QA campaign, review, CI, integration, closure | DONE | WP-10 | QA, Reviewer, Integrator, Architect | agent/identity-and-membership | 8306936 | PASS_WITH_RISKS | ITEM-0069 | PASS | INTEGRATED |
 
 **WP-01 is not identity work, and it is here because it was unblocked and
 nothing else was.** The owner asked for the legal drafts to be published;
@@ -631,6 +631,100 @@ Filed rather than fixed here because the options — decoupling the discovery
 counter, proof-of-work, notify-on-lock — each trade usability against
 resistance, and where to sit on that curve is a product decision. Fixing it in
 passing would have meant choosing for the owner.
+
+## Task Finalization
+
+Integrated at `8306936`, which is both the task SHA the verdict was read on and the
+`develop` tip — integration was a ref-push, so there is no merge commit to
+introduce a difference between what CI checked and what landed.
+
+```
+PRE_TASK_REPO_HEALTH             PASS
+SESSION_STATUS                   COMPLETE — SESSION-0021
+PARENT_TASK_STATUS               IN_PROGRESS — WP-09 held by design
+WORK_PACKAGE_STATUS              11 of 12 DONE; WP-09 BLOCKED on WP-02/03 reaching production
+REQUIRED_AGENTS_STATUS           PASS
+IMPLEMENTATION_STATUS            DONE
+LOCAL_VALIDATION_STATUS          PASS
+QA_STATUS                        PASS_WITH_RISKS
+QA_FINDINGS_CLASSIFIED_STATUS    DONE — 0 awaiting triage
+QA_SCENARIO_PROMOTION_STATUS     DONE
+BUG_RECORD_STATUS                NOT_REQUIRED — no shipped behaviour was defective
+ARCHITECT_TRIAGE_STATUS          DONE — ITEM-0068 and ITEM-0069 both PLAN_REQUIRED
+BACKLOG_UPDATE_STATUS            DONE
+REVIEW_STATUS                    PASS
+PR_STATUS                        NOT_REQUIRED — develop takes no PR
+REMOTE_CI_STATUS                 PASS — run 32360520565, 14/14 jobs
+MERGE_STATUS                     INTEGRATED
+DEVELOP_INTEGRATION_STATUS       DONE — 77c24c7..8306936, fast-forward
+DEVELOP_SYNC_STATUS              SYNCED
+POST_MERGE_VALIDATION_STATUS     PASS
+MAIN_SYNC_STATUS                 SYNCED
+MAIN_CHANGE_STATUS               UNTOUCHED
+POST_TASK_REPO_HEALTH            PASS
+PRIMARY_WORKTREE_STATUS          CLEAN
+TASK_WORKTREE_STATUS             CLEAN
+UNEXPLAINED_DIRTY_FILES          0
+POST_INTEGRATION_GENERATOR_STATUS DONE
+DATABASE_COHERENCE_STATUS        PASS — drift unchanged at 204, none from this change
+DEPLOYMENT_STATUS                NOT_REQUIRED
+DEPLOYMENT_DRIFT_STATUS          NOT_REQUIRED — main untouched
+ENGINEERING_HISTORY_STATUS       DONE
+FEEDBACK_PROMOTION_STATUS        DONE
+KNOWLEDGE_CAPTURE_STATUS         DONE
+OBSIDIAN_SYNC_STATUS             PASS
+CONTROL_CENTER_STATUS            DONE
+CLEANUP_STATUS                   DONE
+```
+
+### Post-merge validation
+
+api 1439 · **api e2e 367/367 across 33 suites** against real PostgreSQL · web 408 ·
+admin 101 · landing 109 · both typechecks · lints at 0 errors ·
+`validate:framework` 2897 · `repo:health` PASS.
+
+### What is deliberately not done
+
+**WP-09, the contract phase.** Written, and run by hand in both directions — it
+refuses with a row count before `ALTER TABLE` produces its unhelpful error, and
+succeeds once the backfill has run. Held because expand, backfill and contract
+must reach production in *separate deployments*: once `identityId` is `NOT
+NULL`, rolling the **code** back leaves the old build unable to create users at
+all. A rollback that breaks user creation is worse than what it was rolling back
+from.
+
+Merging it here would have put all three in one release and thrown that away.
+Marking it DONE would have been easy and false.
+
+When it lands it brings two costs already measured: eleven e2e suites create
+`User` rows directly and will need identities, and `User.passwordHash` still
+should not be dropped — `resolveLoginCredential` falls back to it, which is what
+lets the application boot against a database where the migration has not run.
+
+### Owner decisions still outstanding
+
+| | |
+|---|---|
+| **[[ITEM-0069]]** | How should discovery be throttled without handing anybody a lockout weapon? Decoupling the counter, proof-of-work, or notify-on-lock — each trades usability against resistance. |
+| **Publish the legal drafts** | `npm --workspace api run legal:publish -- --confirm`, in production. Until then a purchase records no consent. |
+| **Real PKR and QAR prices** | The seeded schedule is a placeholder; Qatar has none. |
+| **Roll the Stripe test keys** | Pasted into a chat session. |
+
+### Feedback promotion
+
+| The owner said | Where it lives now |
+|---|---|
+| "Same email in two tenants is one person" | The `Identity` model, the backfill's selection rule, and `identity-backfill.e2e-spec.ts` |
+| "Reuses its credentials with no activation step" | `identityHasUsableCredential`, and the trap in the obvious predicate written into WP-08 |
+| "Publish the drafts as-is now" | `legal:publish`, and [[ITEM-0068]] for the operator UI it stands in for |
+
+### Cleanup
+
+Worktree and branch retained — WP-09 and the follow-ups are open against them.
+Thirteen throwaway databases dropped; the populated `dijipeople` development
+database was **read-only throughout**, queried twice to re-derive the
+duplicate-email count and never written to. The user's primary checkout is clean
+and was never written to.
 
 ## Repository Health
 

@@ -17,8 +17,8 @@
 | **Base SHA** | `77c24c76be383fbb27074f54f49171a2ccfde168` |
 | **Final Task SHA** | `b4e8a2be362c8f98b4ceab6f20bb78e3ca4f685d` |
 | **Target Branch** | `develop` |
-| **Merge Commit** | TASK_FINALIZATION — integration is a ref-push, so `develop` fast-forwards rather than gaining a merge commit |
-| **Final Target SHA** | TASK_FINALIZATION — filled after the target is pushed |
+| **Merge Commit** | None — integration was a ref-push, so `develop` fast-forwarded to the task SHA rather than gaining a merge commit |
+| **Final Target SHA** | `8306936` on `develop` — byte-identical to the SHA the verdict was read on |
 
 ### Commits
 
@@ -150,8 +150,8 @@ happened first. The baseline that followed was clean on the first run.
 
 | | |
 |---|---|
-| **CI Run ID** | TASK_FINALIZATION — read on the pushed task SHA |
-| **CI Result** | TASK_FINALIZATION — read on the exact SHA being merged, never an earlier one |
+| **CI Run ID** | [`32360520565`](https://github.com/taymurisrar/DijiPeople/actions/runs/32360520565) — on `8306936` |
+| **CI Result** | **PASS** — all fourteen jobs green, including Database e2e and Browser e2e |
 
 A verdict must be read **on the exact SHA being merged**. A verdict from an
 earlier commit on the same branch is a verdict about different code.
@@ -224,8 +224,22 @@ than about identity:
 
 ## Obsidian Sync
 
-Recorded in the Task Finalization block on the parent.
+`npm run knowledge:sync` then `npm run knowledge:verify` — **PASS**, every
+mapped note present and every generated wikilink resolving.
+
+The first verify failed usefully: `[[auth-rbac]]` pointed at `.agent/context/`,
+which is never synced into the vault, so it resolved to nothing. A wikilink to a
+note that cannot exist is worse than a path — corrected to `[[authentication]]`,
+which is a real note.
 
 ## Cleanup
 
-Recorded in the Task Finalization block on the parent.
+Task worktree and branch retained — WP-09 and WP-11's follow-ups are still
+open against them.
+
+Thirteen throwaway databases dropped. The populated `dijipeople` development
+database was **read-only throughout** — it was queried twice, to re-derive the
+duplicate-email count that decided the backfill's merge rule, and never written
+to. `dijipeople_wp_test` was left to its owning session.
+
+The user's primary checkout is clean and was never written to by this session.

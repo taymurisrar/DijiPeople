@@ -4,7 +4,7 @@ aliases: [SESSION-0021]
 TASK_ID:
 TITLE: Identity and multi-tenant membership
 ARCHITECT_INTENT: Identity and multi-tenant membership
-STATUS: ACTIVE
+STATUS: COMPLETE
 TASK_TYPE: FEATURE
 TASK_SIZE: LARGE
 BASE_BRANCH: origin/develop
@@ -16,8 +16,8 @@ AFFECTED_MODULES: []
 WRITE_LEASES: []
 ACTIVE_WORK_PACKAGES: []
 SCHEMA_WRITE: NO
-CI_STATUS: NOT_RUN
-MERGE_STATUS: NOT_STARTED
+CI_STATUS: PASS
+MERGE_STATUS: INTEGRATED
 STARTED_AT: 2026-08-20T05:51:24.102Z
 LAST_HEARTBEAT: 2026-08-20T05:51:24.102Z
 BLOCKERS: none
@@ -42,3 +42,40 @@ anything this session deliberately serialised behind another. Live state:
 ## History
 
 - 2026-08-20 — session started from `origin/develop` at `844b6d3`.
+
+## History
+
+- 2026-08-20 — session started from `origin/develop` at `844b6d3`, immediately
+  after TASK-0008 integrated.
+- 2026-08-20 — WP-01 taken first because `schema` was leased by SESSION-0020 and
+  it was the only unblocked package. The owner had asked for the legal drafts to
+  be published and there was no way to publish anything.
+- 2026-08-20 — lease acquired. WP-02 expand, WP-03 backfill, WP-12 (an addition
+  to the decomposition — without it the backfill's work diverges the moment it
+  lands).
+- 2026-08-20 — WP-04 in two halves: mirror every password write, *then* flip the
+  read. Reversed, every password changed in between becomes wrong.
+- 2026-08-20 — WP-05 discovery, WP-06 generic login and picker, WP-07 the
+  switcher (closing TASK-0008 WP-06), WP-08 second workspace.
+- 2026-08-20 — WP-09 written, run by hand in both directions, and **held**. The
+  contract phase must reach production in a later deployment than the backfill.
+- 2026-08-20 — WP-10 security review: seven questions, one trade-off filed as
+  [[ITEM-0069]].
+- 2026-08-20 — WP-11: `develop` merged **before** the QA baseline this time.
+  33 suites / 367 tests green on the first run.
+- 2026-08-20 — `8306936` passed `CI required gate` (run 32360520565), all fourteen
+  jobs. Integrated into `develop` by ref-push, so the tip is byte-identical to
+  the SHA the verdict was read on. `schema` lease released.
+
+## Outcome
+
+Eleven of twelve work packages closed. WP-09 is written and deliberately unshipped.
+
+**What this session got right that the last one got wrong:** the QA baseline was
+taken after merging the integration branch. TASK-0008 did it the other way and
+spent its effort rediscovering 81 already-fixed failures.
+
+**What it got wrong:** an invariant that asserted a file *mentioned* a function
+rather than called it, caught only by mutation-testing the check — written by
+the same session that had documented that exact pattern two packages earlier.
+Knowing a failure mode by name is not the same as not committing it.
