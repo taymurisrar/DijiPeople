@@ -7760,6 +7760,53 @@
         "classification": "TERMINAL_AS_DOCUMENTED",
         "finding_ids": []
       }
+    },
+    {
+      "record_id": "BUG-0086",
+      "source": {
+        "record_path": "docs/bugs/BUG-0086-prisma-migrate-deploy-cannot-acquire-its-advisory-lock-throu.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "d6aa738",
+        "created_at": "2026-08-20",
+        "updated_at": "2026-08-20",
+        "resolved_at": ""
+      },
+      "type": "INFRA",
+      "title": "Prisma migrate deploy cannot acquire its advisory lock through Neon pooled endpoint",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "OPEN",
+      "current_evidence": {
+        "paths": [
+          "services/api/prisma.config.ts",
+          "services/api/prisma/schema.prisma",
+          "services/api/package.json",
+          "render.yaml"
+        ],
+        "verification_scope": "Render deploy log of 2026-08-20 shows prisma migrate deploy failing P1002 after 10s on SELECT pg_advisory_lock(72707369), with the datasource resolved to Neon's -pooler host. prisma.config.ts:12-13 supplies one url from env('DATABASE_URL') for every Prisma CLI call and schema.prisma:11-13 declares no directUrl, so migrations inherit the runtime pooled connection. Session-scoped advisory locks cannot be held across PgBouncer transaction pooling, so the step cannot succeed at any timeout. Production stayed up on the prior revision; the release chain after the migration step did not run."
+      },
+      "affected_modules": [
+        "services/api/prisma"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [
+        "BUG-0085"
+      ],
+      "related_backlog": [],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "FIX_NOW",
+      "verification_result": {
+        "result": "PRELIMINARY",
+        "classification": "ACTIVE_AS_DOCUMENTED",
+        "finding_ids": []
+      }
     }
   ],
   "discovered_findings": [
