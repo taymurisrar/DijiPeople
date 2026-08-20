@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma, TeamType } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { ensureIdentityForEmail } from './identity.service';
 
 type PrismaDb = PrismaService | Prisma.TransactionClient;
 type UserCreateInput = Omit<
@@ -770,10 +771,28 @@ export class UsersRepository {
       data.businessUnitId ??
       (await this.ensureTenantDefaultBusinessUnitId(data.tenantId, db));
 
+    /*
+     * Every account belongs to a person, and this is the path almost every
+     * account is created through.
+     *
+     * `identityId` is nullable during the expand phase, which makes forgetting
+     * this silent: the user is created, everything works, and the row is
+     * invisible until the contract phase in WP-09 tries to make the column
+     * required and finds rows it cannot fill. `user-creation-links-identity`
+     * fails the build rather than leaving that to be discovered later.
+     *
+     * A caller that already resolved the identity — because it is attaching an
+     * existing person to a second workspace — passes it and is not overridden.
+     */
+    const identityId =
+      data.identityId ??
+      (await ensureIdentityForEmail(db, data.email, data.passwordHash));
+
     return db.user.create({
       data: {
         ...data,
         businessUnitId,
+        identityId,
       },
     });
   }

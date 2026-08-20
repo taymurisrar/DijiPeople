@@ -11,7 +11,7 @@ AFFECTED_MODULES: [auth, users, legal, tenant-domains, super-admin, web, admin]
 AGENTS: [Architect, Database, Backend/API, Frontend, UI/UX, Security, QA, Reviewer, Integrator]
 DEPENDENCIES: origin/develop 844b6d3; TASK-0008 WP-02, WP-04, WP-05
 CURRENT_PACKAGE: WP-04
-COMPLETED_PACKAGES: [WP-01, WP-02, WP-03]
+COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-12]
 BLOCKED_PACKAGES: []
 OWNER_DECISIONS: 2
 FINAL_STATUS:
@@ -95,7 +95,8 @@ the wrong design, however elegant it looks.
 | WP-01 | Publish the legal drafts — the path that had no door | DONE | — | Backend/API, QA | agent/identity-and-membership | pending | PASS | ITEM-0068 | NOT_RUN | NOT_STARTED |
 | WP-02 | `Identity` model, `User.identityId`, expand-phase migration | DONE | — | Database, Backend/API | agent/identity-and-membership | pending | PASS | — | NOT_RUN | NOT_STARTED |
 | WP-03 | Backfill — one Identity per distinct email, linking same-email rows | DONE | WP-02 | Database | agent/identity-and-membership | pending | PASS | — | NOT_RUN | NOT_STARTED |
-| WP-04 | Authentication split — identity resolution, then tenant selection | NOT_STARTED | WP-03 | Backend/API, Security | agent/identity-and-membership | — | — | — | — | — |
+| WP-12 | Every user-creation path writes an Identity | DONE | WP-03 | Backend/API, Database | agent/identity-and-membership | pending | PASS | — | NOT_RUN | NOT_STARTED |
+| WP-04 | Authentication split — identity resolution, then tenant selection | NOT_STARTED | WP-12 | Backend/API, Security | agent/identity-and-membership | — | — | — | — | — |
 | WP-05 | Workspace discovery by email, rate-limited and non-enumerable | NOT_STARTED | WP-04 | Backend/API, Security | agent/identity-and-membership | — | — | — | — | — |
 | WP-06 | Generic login and the workspace picker | NOT_STARTED | WP-05 | Frontend, UI/UX | agent/identity-and-membership | — | — | — | — | — |
 | WP-07 | In-app workspace switcher and last-used preference — closes TASK-0008 WP-06 | NOT_STARTED | WP-06 | Frontend, UI/UX | agent/identity-and-membership | — | — | — | — | — |
@@ -111,6 +112,15 @@ Taking an independent package rather than waiting is what
 [`.agent/context/multi-session.md`](../../.agent/context/multi-session.md) asks
 for. This record says so plainly rather than inventing a relationship between
 the two.
+
+**WP-12 was not in the original decomposition, and its id is out of order
+because ids are allocation order rather than execution order.** It was found
+while writing WP-03: the backfill runs before any seed on a fresh environment,
+so it is a no-op there, and every account created afterwards would carry a null
+`identityId` while the column stayed nullable. Writing the backfill without it
+would have produced data that diverges from the moment it lands. It is
+sequenced immediately after WP-03 and before WP-04, because identity resolution
+cannot read a column that is not reliably written.
 
 **WP-02, WP-03 and WP-09 are expand / backfill / contract**, in that order and
 in separate deployments, per [`PLANS.md`](../../PLANS.md). `identityId` arrives
@@ -237,6 +247,84 @@ runs before any seed, so it is a no-op, and `seed:demo` then creates users with
 `identityId` still null. The four `user.create` call sites verified under A-02
 have to learn about `Identity` before WP-09 can make the column required.
 
+## WP-12 — every user-creation path writes an Identity
+
+Four call sites, verified under A-02 and all four now linking:
+`users.repository.ts` (the path almost every account takes),
+`super-admin.service.ts`, `tenant-access.service.ts`, and `seed-demo.ts`.
+
+`IdentityService.ensureForEmail` is the single decision point, and its rule is
+the owner's decision made mechanical: **an existing identity keeps its
+credential.** Both provisioning paths mint an unguessable placeholder for the
+`User` row they are about to create; writing that over a real password would
+lock somebody out of the workspace they already had — by an action taken in
+another tenant, on their behalf, that they never saw. It is also what makes
+OD-01's *"reuses its credentials with no activation step"* true rather than
+aspirational.
+
+It takes a transaction client because two of the three service callers create
+inside `$transaction`, and an identity that survives a rolled-back user creation
+is an orphan that then blocks that address from ever being provisioned again.
+
+**It is a plain function, not an injectable service, and that was learned the
+hard way.** The first version was an `@Injectable()` that `UsersRepository` took
+in its constructor. That broke every module providing `UsersRepository` on its
+own — `TenantsModule` does — with *"Nest can't resolve dependencies of the
+UsersRepository"*, and it took **eight e2e suites and 137 tests** down. The
+available fix was to import `UsersModule` into each affected module; the better
+one was to stop needing wiring at all. A function taking the db client it should
+write through has no DI surface, and the seed scripts, which run outside the
+Nest container entirely, call exactly the same implementation instead of
+carrying a copy of the rule that drifts.
+
+Worth stating because the failure looked like a test-environment problem rather
+than a design one: the suites that broke were `attendance-engine` and friends,
+which have nothing to do with identity and simply build `AppModule`.
+
+`user-creation-links-identity.invariant.spec.ts` is the mechanical guarantee.
+`identityId` is nullable through the expand phase, so a call site that forgets
+produces a working user, a green suite and a clean deploy — and stays invisible
+until WP-09 tries to make the column required and finds accounts it cannot fill.
+The scan brace-matches each `user.create(` call rather than grepping the file,
+because a regex would happily match the `identityId` in a neighbouring
+`userRole.create`. It asserts a minimum call-site count first, so a rename
+cannot turn it inert. Mutation-checked by removing `identityId` from
+`super-admin.service.ts`: one test fails, naming the file.
+
+The invariant also pins that there is exactly **one** implementation: every
+caller imports `ensureIdentityForEmail`, none redefines it, and none calls
+`identity.update`. That last one matters after the auth split, when an
+identity's password changes independently of any `User` row — a provisioning
+path pushing its placeholder into an update would lock somebody out of a
+workspace they already had.
+
+**Two things this got wrong first, both kept.**
+
+A constructor parameter was inserted into the middle of `SuperAdminService`'s
+argument list, which `super-admin.service.spec.ts` builds positionally. Every
+later dependency shifted by one and the failure surfaced as
+`this.auditService.log is not a function` — pointing at audit, several layers
+from the cause. Moot once the service became a function, but the lesson stands
+for the next positional constructor.
+
+The invariant's own regex was written through a Python heredoc where ``
+became a **literal backspace byte** rather than a word boundary, so the pattern
+matched nothing and the check reported zero callers. Caught by the minimum-count
+assertion — which is exactly the failure mode that assertion exists for, working
+on the file that introduced it. Replaced with a plain `includes()`; a scan of
+every changed file confirms no other control bytes.
+
+`identity-model.e2e-spec.ts` also had a premise expire, and was inverted rather
+than deleted. Its WP-02 assertion read "leaves every existing user unlinked,
+which is what expand means" — true when nothing wrote the column. It now asserts
+the precondition WP-09 actually needs: no seeded user without an identity, and
+distinct addresses mapping to distinct identities, because linking is not
+merging.
+
+Proof it holds end to end: a fresh database, migrated and seeded, reports 7
+users, 7 identities and **0 unlinked**; the full database-backed suite is 29
+suites / 345 tests green.
+
 ## Repository Health
 
 PRE_TASK_REPO_HEALTH — PASS at `844b6d3`. `MAIN_SYNC_STATUS = SYNCED`,
@@ -255,6 +343,10 @@ TASK-0008's migrations to the local development database. WP-02 waits on it.
 - 2026-08-20 — created at `844b6d3`, immediately after TASK-0008 integrated.
 - 2026-08-20 — WP-01 done: `legal:publish`, its contract suite, and
   [[ITEM-0068]] for the operator UI the script stands in for.
+- 2026-08-20 — WP-12 done, an addition to the decomposition rather than part
+  of it: every user-creation path now writes an Identity, pinned by an
+  invariant. Without it the backfill's work would diverge the moment it
+  landed.
 - 2026-08-20 — WP-03 done: the backfill, its selection rule re-derived from
   the data rather than assumed, and the discarded-credential consequence made
   explicit. A-01 re-derived and raised to HIGH.

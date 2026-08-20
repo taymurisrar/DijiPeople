@@ -17,6 +17,7 @@ import type { AuthenticatedUser } from '../../common/interfaces/authenticated-re
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { normalizeEmail } from '../../common/utils/email.util';
 import { AuditService } from '../audit/audit.service';
+import { ensureIdentityForEmail } from '../users/identity.service';
 import { AuthService } from '../auth/auth.service';
 import { UserInvitationsService } from '../auth/user-invitations.service';
 import { PlatformEventsService } from '../platform-events/platform-events.service';
@@ -184,21 +185,35 @@ export class TenantAccessService {
     }
 
     const created = await this.prisma.$transaction(async (tx) => {
+      /*
+       * A placeholder nobody knows, including this process. Used only if this
+       * email is not already a person — `ensureForEmail` never overwrites an
+       * existing credential, which is what makes OD-01's "reuses its
+       * credentials with no activation step" true rather than aspirational.
+       */
+      const placeholderHash = await bcrypt.hash(unguessableSecret(), 12);
+      const identityId = await ensureIdentityForEmail(
+        tx,
+        email,
+        placeholderHash,
+      );
       const identity = await tx.user.create({
         data: {
           tenantId: tenant.id,
           businessUnitId: businessUnit.id,
+          identityId,
           firstName: dto.firstName,
           lastName: isOwner
             ? dto.lastName?.trim() || 'Owner'
             : 'Service Account',
           email,
           /*
-           * A placeholder nobody knows, including this process. The identity is
-           * usable only after the holder sets their own password through the
-           * activation link — Platform Admin never chooses or sees a password.
+           * The workspace account's own copy, kept until the contract phase
+           * takes credentials off `User` entirely. The holder sets their real
+           * password through the activation link — Platform Admin never chooses
+           * or sees one.
            */
-          passwordHash: await bcrypt.hash(unguessableSecret(), 12),
+          passwordHash: placeholderHash,
           status: UserStatus.INVITED,
           isServiceAccount: !isOwner,
           serviceAccountPurpose: !isOwner ? (dto.purpose ?? null) : null,

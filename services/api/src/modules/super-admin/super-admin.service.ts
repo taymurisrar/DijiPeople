@@ -94,6 +94,7 @@ import {
 } from '../../common/reference-data/platform-reference-data';
 import { validatePlatformBranding } from './platform-appearance-settings';
 import { UserInvitationsService } from '../auth/user-invitations.service';
+import { ensureIdentityForEmail } from '../users/identity.service';
 import { AuthService } from '../auth/auth.service';
 
 function toCountMap<T extends { _count: { _all: number } }>(rows: T[]) {
@@ -1134,6 +1135,13 @@ export class SuperAdminService {
       12,
     );
     const created = await this.prisma.$transaction(async (tx) => {
+      /*
+       * Inside the transaction, so an identity cannot survive a rolled-back
+       * user creation as an orphan nothing will ever claim. If this email is
+       * already a person, they keep their credential — the placeholder hashed
+       * above is only used when nobody holds the address yet.
+       */
+      const identityId = await ensureIdentityForEmail(tx, email, passwordHash);
       const user = await tx.user.create({
         data: {
           tenantId,
@@ -1142,6 +1150,7 @@ export class SuperAdminService {
           lastName: dto.lastName.trim(),
           email,
           passwordHash,
+          identityId,
           status: UserStatus.INVITED,
           isServiceAccount: dto.accessType === 'SERVICE_ACCOUNT',
           createdById: actor.userId,

@@ -66,7 +66,12 @@ describeWithDatabase()('Identity model (DB-backed)', () => {
         passwordHash: 'not-a-real-hash',
         lastUsedTenantId: lastUsedTenantId ?? null,
       },
-      select: { id: true, email: true, status: true, failedLoginAttempts: true },
+      select: {
+        id: true,
+        email: true,
+        status: true,
+        failedLoginAttempts: true,
+      },
     });
     identityIds.push(identity.id);
     return identity;
@@ -174,19 +179,44 @@ describeWithDatabase()('Identity model (DB-backed)', () => {
     expect(after.lastUsedTenantId).toBeNull();
   });
 
-  it('leaves every existing user unlinked, which is what expand means', async () => {
+  /*
+   * This assertion used to run the other way.
+   *
+   * Written in WP-02 as "leaves every existing user unlinked, which is what
+   * expand means" — correct then, because the expand migration only added a
+   * nullable column and nothing wrote to it. WP-12 then taught every
+   * user-creation path to link, so a seeded database has no unlinked users and
+   * the old assertion became factually wrong.
+   *
+   * Inverted rather than deleted, for the same reason `legal-seed`'s
+   * legal-entity check was: the premise expired, the guard did not. What it
+   * protects now is the precondition WP-09 depends on — the contract phase
+   * makes `identityId` NOT NULL, and every row it cannot fill is a deployment
+   * that fails at the worst possible moment.
+   */
+  it('leaves no seeded user without an identity', async () => {
+    const unlinked = await prisma.user.count({ where: { identityId: null } });
+
+    expect(unlinked).toBe(0);
+  });
+
+  it('gives distinct people distinct identities', async () => {
     /*
-     * The expand phase must be a no-op for anything already in the database.
-     * If `identityId` had arrived required, or with a default, this migration
-     * could not run against production at all — and that failure would only
-     * appear at deploy time.
+     * The other half, and the one a careless "just link everything"
+     * implementation would break: linking is not merging. Two different
+     * addresses must not collapse onto one identity merely because the code
+     * that links them ran in the same loop.
      */
-    const linkedByAccident = await prisma.user.count({
-      where: {
-        identityId: { not: null },
-        NOT: { identityId: { in: identityIds } },
-      },
+    const linkedPeople = await prisma.user.findMany({
+      where: { identityId: { not: null } },
+      select: { identityId: true },
+      distinct: ['identityId'],
     });
-    expect(linkedByAccident).toBe(0);
+    const addresses = await prisma.user.findMany({
+      select: { email: true },
+      distinct: ['email'],
+    });
+
+    expect(linkedPeople.length).toBe(addresses.length);
   });
 });
