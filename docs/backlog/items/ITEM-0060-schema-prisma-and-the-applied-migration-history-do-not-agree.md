@@ -11,7 +11,7 @@ Source: ARCHITECT
 OwnerAgent: architect
 ArchitectDisposition: DEFER
 CreatedAt: 2026-08-19
-UpdatedAt: 2026-08-19
+UpdatedAt: 2026-08-20
 RelatedBug: 
 RelatedQA: 
 RelatedADR: 
@@ -52,6 +52,26 @@ Three concrete costs, in order of how soon they bite.
 3. **Drift detection is dead as a signal.** A future genuine divergence —
    someone hand-editing a migration, or a migration that fails halfway on one
    environment — arrives as 198 statements instead of 196 and nobody notices.
+
+## Re-measured 2026-08-20, at `844b6d3` plus one new migration
+
+**204 statements**, up from the 196 recorded below. The census shape is
+unchanged — 71 `ALTER TABLE`, 46 `CREATE INDEX`, 16 `DROP INDEX`, 7
+`CREATE UNIQUE INDEX` — so this is the same drift, not a new kind of it.
+
+The useful half of the measurement is the comparison. TASK-0009 WP-02 added the
+`Identity` model, `User.identityId`, two indexes and two foreign keys as a
+hand-written migration, and the drift went from **204 to 204**: not one of the
+statements mentions `Identity`. So a correctly hand-authored migration adds
+nothing to this pile, and the pile is a constant an author can subtract rather
+than a moving target they have to re-derive.
+
+**A warning worth more than the number.** Reaching for `--from-url`, which is
+how this diff was written before Prisma 7, now fails with *"`--from-url` was
+removed"* — and if stderr is redirected, the empty stdout reads as **zero
+drift**. That is a silent false clean on the exact command this item tells
+people to run. Use the flags in the block below, and pass `--exit-code` so an
+error (1) cannot be mistaken for an empty diff (0).
 
 ## Evidence
 

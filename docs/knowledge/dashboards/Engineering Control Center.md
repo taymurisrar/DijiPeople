@@ -9,8 +9,8 @@
 |---|---|
 | Active sessions | **5** |
 | Active parent tasks | 4 |
-| Active work packages | 2 |
-| Blocked work packages | 3 |
+| Active work packages | 1 |
+| Blocked work packages | 2 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **0** |
 | Open HIGH | 12 |
@@ -36,7 +36,7 @@
 | [[TASK-0005-dijipeople-global-technical-remediation|TASK-0005]] | DijiPeople Global Technical Remediation | BUG | PROGRAM | 3/11 | WP-09 | WP-04, WP-06, WP-07, WP-08, WP-10 | — |
 | [[TASK-0007-commercial-platform-completion-transactional-legal-and-lifec|TASK-0007]] | Commercial platform completion — transactional, legal and lifecycle half | FEATURE | PROGRAM | 15/16 | WP-11 | — | WP-15 |
 | [[TASK-0008-self-service-customer-onboarding-tenant-provisioning-domain-|TASK-0008]] | Self-service customer onboarding, tenant provisioning, domain routing and central login | FEATURE | LARGE | 10/11 | WP-06 | — | WP-06 |
-| [[TASK-0009-identity-and-multi-tenant-membership|TASK-0009]] | Identity and multi-tenant membership | FEATURE | LARGE | 0/11 | WP-01 | WP-09, WP-10 | WP-02 |
+| [[TASK-0009-identity-and-multi-tenant-membership|TASK-0009]] | Identity and multi-tenant membership | FEATURE | LARGE | 2/11 | WP-03 | WP-03, WP-09, WP-10 | — |
 
 ## Branch model
 

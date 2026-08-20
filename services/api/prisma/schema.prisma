@@ -370,6 +370,18 @@ enum UserStatus {
   DISABLED
 }
 
+/// Whether the *person* may sign in at all, as distinct from whether one of
+/// their workspace accounts is active.
+///
+/// `User.status` answers "is this account usable in this tenant" and must stay
+/// per tenant — somebody disabled at one workspace stays disabled there while
+/// active at another. This answers "may these credentials be used anywhere",
+/// which is the only question a global lockout can ask.
+enum IdentityStatus {
+  ACTIVE
+  SUSPENDED
+}
+
 enum PlatformUserRole {
   SUPER_ADMIN
   MEMBER
@@ -2066,6 +2078,10 @@ model Tenant {
   demoBatchId                     String?
   seedSource                      String?
   users                           User[]
+  /// Identities whose last-used workspace is this tenant. Advisory only —
+  /// `onDelete: SetNull` on the other side, so deleting a tenant clears the
+  /// preference rather than orphaning or blocking the identity.
+  identitiesLastUsedHere          Identity[]                      @relation("IdentityLastUsedTenant")
   platformContracts               Contract[]
   originatingPartner              Partner?                         @relation("PartnerAttributedTenants", fields: [originatingPartnerId], references: [id], onDelete: SetNull)
   originatingLead                 Lead?                            @relation("LeadAttributedTenants", fields: [originatingLeadId], references: [id], onDelete: SetNull)
@@ -4202,9 +4218,74 @@ model SubscriptionPromotion {
   @@index([promotionId])
 }
 
+/// One person, across every workspace they belong to.
+///
+/// **Credentials global, profile and authorisation per tenant.** Before this,
+/// `User` was `@@unique([tenantId, email])` with a required `tenantId`, so the
+/// same person in two workspaces was two rows with two passwords — and generic
+/// login, workspace discovery and switching were all impossible by
+/// construction rather than unbuilt. See ITEM-0062.
+///
+/// `User` deliberately stays tenant-scoped. It carries `status`, roles,
+/// `businessUnitId` and the employee link, all legitimately per tenant. Making
+/// `User` global would push every one of those onto a membership table and
+/// change every query joining `User` by `tenantId`: the same end state, far
+/// larger blast radius.
+///
+/// The property that makes this survivable is that **the JWT stays
+/// tenant-scoped**. `request.user.tenantId` keeps meaning exactly one tenant
+/// and `JwtAuthGuard` is untouched; login gains a step in front of token
+/// issuance and nothing behind it moves.
+///
+/// The credential columns below are duplicated from `User` on purpose during
+/// the expand phase. Authentication keeps reading `User.passwordHash` until the
+/// backfill has run and the auth split lands; only then does `User` lose them.
+model Identity {
+  id String @id @default(uuid())
+
+  /// Normalised by `normalizeEmail` — trimmed and lowercased — which is what
+  /// the login path has always done before looking a user up. A global unique
+  /// is only safe because that normalisation already exists.
+  email String @unique
+
+  passwordHash    String
+  passwordChangedAt DateTime?
+  emailVerifiedAt DateTime?
+
+  status IdentityStatus @default(ACTIVE)
+
+  /// Lockout is global because credentials are. Leaving it per tenant would
+  /// give an attacker a fresh allowance of attempts for every workspace the
+  /// address belongs to, which is the opposite of what a lockout is for.
+  failedLoginAttempts Int       @default(0)
+  lockedUntil         DateTime?
+
+  /// Where to send this person when they sign in without naming a workspace.
+  /// Advisory: a stale or revoked value falls back to the picker, and
+  /// `onDelete: SetNull` means deleting a tenant cannot orphan an identity.
+  lastUsedTenantId String?
+  lastUsedTenant   Tenant? @relation("IdentityLastUsedTenant", fields: [lastUsedTenantId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users User[]
+
+  @@index([lastUsedTenantId])
+}
+
 model User {
   id                             String                        @id @default(uuid())
   tenantId                       String
+
+  /// The person this workspace account belongs to.
+  ///
+  /// Nullable **only during the expand phase**. WP-03 backfills one `Identity`
+  /// per distinct normalised email and links every row; WP-09 makes it
+  /// required once nothing can create a `User` without one. Arriving required
+  /// would make the migration unrunnable against a populated database.
+  identityId                     String?
+  identity                       Identity?                     @relation(fields: [identityId], references: [id], onDelete: Restrict)
   businessUnitId                 String
   firstName                      String
   lastName                       String
@@ -4284,6 +4365,8 @@ model User {
   @@index([businessUnitId])
   @@index([tenantId, status])
   @@index([tenantId, lastName, firstName])
+  /// Workspace discovery reads this: "which tenants does this identity reach".
+  @@index([identityId])
 }
 
 model PlatformUser {

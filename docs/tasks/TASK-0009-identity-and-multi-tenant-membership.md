@@ -10,9 +10,9 @@ CREATED_AT: 2026-08-20
 AFFECTED_MODULES: [auth, users, legal, tenant-domains, super-admin, web, admin]
 AGENTS: [Architect, Database, Backend/API, Frontend, UI/UX, Security, QA, Reviewer, Integrator]
 DEPENDENCIES: origin/develop 844b6d3; TASK-0008 WP-02, WP-04, WP-05
-CURRENT_PACKAGE: WP-01
-COMPLETED_PACKAGES: []
-BLOCKED_PACKAGES: [WP-02]
+CURRENT_PACKAGE: WP-03
+COMPLETED_PACKAGES: [WP-01, WP-02]
+BLOCKED_PACKAGES: []
 OWNER_DECISIONS: 2
 FINAL_STATUS:
 ---
@@ -92,8 +92,8 @@ the wrong design, however elegant it looks.
 
 | WP_ID | TITLE | STATUS | DEPENDENCIES | AGENTS | BRANCH | SHA | QA_STATUS | BUGS | CI_STATUS | MERGE_STATUS |
 |---|---|---|---|---|---|---|---|---|---|---|
-| WP-01 | Publish the legal drafts — the path that had no door | IN_PROGRESS | — | Backend/API, QA | agent/identity-and-membership | — | — | — | — | — |
-| WP-02 | `Identity` model, `User.identityId`, expand-phase migration | BLOCKED | schema lease | Database, Backend/API | agent/identity-and-membership | — | — | — | — | — |
+| WP-01 | Publish the legal drafts — the path that had no door | DONE | — | Backend/API, QA | agent/identity-and-membership | pending | PASS | ITEM-0068 | NOT_RUN | NOT_STARTED |
+| WP-02 | `Identity` model, `User.identityId`, expand-phase migration | DONE | — | Database, Backend/API | agent/identity-and-membership | pending | PASS | — | NOT_RUN | NOT_STARTED |
 | WP-03 | Backfill — one Identity per distinct email, linking same-email rows | NOT_STARTED | WP-02 | Database | agent/identity-and-membership | — | — | — | — | — |
 | WP-04 | Authentication split — identity resolution, then tenant selection | NOT_STARTED | WP-03 | Backend/API, Security | agent/identity-and-membership | — | — | — | — | — |
 | WP-05 | Workspace discovery by email, rate-limited and non-enumerable | NOT_STARTED | WP-04 | Backend/API, Security | agent/identity-and-membership | — | — | — | — | — |
@@ -123,7 +123,7 @@ database.
 | ASSUMPTION_ID | STATEMENT | EVIDENCE | CONFIDENCE | IMPACT_IF_WRONG |
 |---|---|---|---|---|
 | A-01 | No real customer shares an email across tenants, so the backfill links rather than merges | Read-only count at the ITEM-0062 decision: 5 shared emails, all `@dijipeople.local` seed identities | MEDIUM — true then; must be re-counted immediately before the backfill | A merge would join two different people into one login. WP-03 re-derives this rather than trusting this row |
-| A-02 | Nothing outside `auth` creates a `User` without passing through a service that can be taught about `Identity` | To be verified in WP-02 by enumerating `user.create` call sites | MEDIUM | A seed or provisioning path creates users with no identity and the contract phase in WP-09 cannot run |
+| A-02 | Nothing outside `auth` creates a `User` without passing through a service that can be taught about `Identity` | **VERIFIED in WP-02.** Four `user.create` call sites, all reachable: `super-admin.service.ts:1137`, `tenant-access.service.ts:187`, `users.repository.ts:773`, `seed-demo.ts:840`. Small enough to teach individually in WP-04 | HIGH | A seed or provisioning path creates users with no identity and the contract phase in WP-09 cannot run |
 | A-03 | The JWT can stay tenant-scoped with identity resolution in front of issuance | `JwtAuthGuard` reads `sub` and `tenantId` then calls `loadAccessContext(sub, tenantId)`; nothing in it needs a global identity | HIGH | The blast radius stops being login and becomes every guarded endpoint |
 | A-04 | `apps/agent-desktop` and the .NET gateway authenticate through the same `/auth/login` and are affected by any change to it | Per-client JWT issuance keyed on `appClientId` lives in `auth`; the desktop agent has its own client id | MEDIUM | A change that suits the web login breaks attendance capture silently |
 
@@ -133,6 +133,51 @@ database.
 |---|---|---|---|
 | OD-01 | Is the same email in two tenants one person? | Yes. Build identity + membership. An existing identity made owner of a second workspace reuses its credentials with no activation step. | 2026-08-19 |
 | OD-02 | Publish the seeded legal drafts as they stand, or block checkout until they are published? | Publish as-is now. Raised that they carry a "no lawyer has read them" banner and that publishing makes them the operative terms; the owner confirmed. | 2026-08-20 |
+
+## WP-02 — the expand-phase migration, and how it was verified
+
+`20260820090000_identity_and_membership_expand` adds one enum, one table, one
+nullable column, two indexes and two foreign keys. Everything additive, nothing
+dropped, `identityId` nullable — so it applies to a populated database with no
+backfill in front of it.
+
+**Hand-written, not generated, and that needs justifying.** `prisma migrate dev`
+and `prisma migrate diff` both emit [[ITEM-0060]]'s pre-existing drift alongside
+the real change, so a generated script here would have carried 204 unrelated
+statements — including 16 `DROP INDEX` — into production. TASK-0008 WP-01 hit
+the same thing and made the same choice.
+
+Hand-writing SQL means the schema and the migration can silently disagree, so
+the verification is the deliverable, not the file:
+
+| Check | Result |
+|---|---|
+| `prisma validate` | valid |
+| Apply the whole committed history to an empty database | all migrations applied |
+| `\d "Identity"` against that database | matches the model column for column, including both foreign keys |
+| Drift, database vs `schema.prisma` | **204 statements, none mentioning `Identity`** |
+| Same measurement at `origin/develop` without this migration | **204** |
+
+204 before and 204 after is the assertion that matters: Prisma sees nothing to
+add or alter for anything this migration created, so the SQL and the schema
+agree, and the change contributed nothing to the drift pile.
+
+**How that measurement was first got wrong.** Two earlier readings used
+`--from-url`, which Prisma 7.9 removed. With stderr redirected the command
+printed nothing and the count read as **zero drift** — a silent false clean on
+the exact command [[ITEM-0060]] documents. The correct flags were in that record
+all along; they were not read before being recalled from memory. Written up on
+ITEM-0060 with `--exit-code`, so an error (1) can no longer be mistaken for an
+empty diff (0).
+
+`identity-model.e2e-spec.ts` asserts the three properties WP-03 and WP-09 depend
+on, at the database rather than in the schema, because `@relation(onDelete:)` is
+a claim about a foreign key and the foreign key is what enforces it: the global
+unique on email, `Restrict` on `User.identityId`, and `SetNull` on
+`lastUsedTenantId`. Mutation-checked by flipping `Restrict` to `Cascade` in both
+the schema and the SQL and rebuilding the database — one test fails, and the
+one that fails is the one asserting a person cannot be deleted out from under
+their workspace accounts.
 
 ## Repository Health
 
@@ -150,14 +195,17 @@ TASK-0008's migrations to the local development database. WP-02 waits on it.
 ## History
 
 - 2026-08-20 — created at `844b6d3`, immediately after TASK-0008 integrated.
-- 2026-08-20 — WP-01 started: `legal:publish`, its contract suite, and
+- 2026-08-20 — WP-01 done: `legal:publish`, its contract suite, and
   [[ITEM-0068]] for the operator UI the script stands in for.
+- 2026-08-20 — `schema` lease freed by SESSION-0020 and taken. WP-02 done:
+  the expand-phase migration, verified by drift measurement rather than by
+  trusting hand-written SQL. A-02 verified — four `user.create` call sites.
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-tasks.mjs; edit the record, not this block -->
 
 ## Related
 
-- Records — [[ITEM-0062]], [[ITEM-0068]]
+- Records — [[ITEM-0060]], [[ITEM-0062]], [[ITEM-0068]]
 - Modules — [[legal]], [[super-admin]]
 
 <!-- GRAPH:END -->

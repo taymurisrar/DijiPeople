@@ -17,7 +17,7 @@ graph and the block reasons. See
 | Task | WP | Title |
 |---|---|---|
 | [TASK-0005](TASK-0005-dijipeople-global-technical-remediation.md) | WP-04 | Database E2E isolation and residual defect proof |
-| [TASK-0009](TASK-0009-identity-and-multi-tenant-membership.md) | WP-09 | Contract phase — `identityId` required, legacy auth path removed |
+| [TASK-0009](TASK-0009-identity-and-multi-tenant-membership.md) | WP-03 | Backfill — one Identity per distinct email, linking same-email rows |
 
 ## Needs a human
 
@@ -42,4 +42,4 @@ graph and the block reasons. See
 | [TASK-0003](TASK-0003-deep-documentation-of-apps-web-the-tenant-product.md) | Deep documentation of apps/web, the tenant product | KNOWLEDGE | LARGE | P1 | COMPLETE | 9/9 | — |
 | [TASK-0004](TASK-0004-autonomous-framework-v2-architect-only-orchestration-multi-s.md) | Autonomous framework v2 — Architect-only orchestration, multi-session safety, develop integration, persistent QA | FRAMEWORK | PROGRAM | P1 | BLOCKED | 10/11 | — |
 | [TASK-0006](TASK-0006-landing-ui-ux-remediation-package.md) | Landing UI/UX remediation package | BUG | LARGE | P1 | COMPLETE | 5/5 | — |
-| [TASK-0009](TASK-0009-identity-and-multi-tenant-membership.md) | Identity and multi-tenant membership | FEATURE | LARGE | P1 | IN_PROGRESS | 0/11 | WP-01 |
+| [TASK-0009](TASK-0009-identity-and-multi-tenant-membership.md) | Identity and multi-tenant membership | FEATURE | LARGE | P1 | IN_PROGRESS | 2/11 | WP-03 |
