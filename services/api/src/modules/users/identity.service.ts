@@ -264,6 +264,17 @@ export async function registerIdentitySuccess(
 const ABSENT_IDENTITY_HASH =
   '$2a$10$0000000000000000000000000000000000000000000000000000';
 
+/**
+ * How many discovery attempts one address gets, and for how long it is refused.
+ *
+ * Lower than the credential threshold precisely *because* it is cheaper to
+ * trigger: anybody can drive this endpoint, so its bound has to assume anybody
+ * will. Fifteen minutes rather than an hour for the same reason — the cost of
+ * being wrong here falls on a legitimate person, not on an attacker.
+ */
+export const DISCOVERY_ATTEMPTS_BEFORE_BLOCK = 10;
+export const DISCOVERY_BLOCK_MINUTES = 15;
+
 export async function verifyIdentityCredential(
   db: IdentityDb,
   compare: (plain: string, hash: string) => Promise<boolean>,
@@ -279,6 +290,8 @@ export async function verifyIdentityCredential(
       passwordHash: true,
       status: true,
       lockedUntil: true,
+      discoveryFailedAttempts: true,
+      discoveryBlockedUntil: true,
     },
   });
 
@@ -289,17 +302,96 @@ export async function verifyIdentityCredential(
 
   if (!identity) return null;
 
-  const locked = Boolean(
-    identity.lockedUntil && identity.lockedUntil.getTime() > Date.now(),
+  const now = Date.now();
+  const credentialLocked = Boolean(
+    identity.lockedUntil && identity.lockedUntil.getTime() > now,
+  );
+  const discoveryBlocked = Boolean(
+    identity.discoveryBlockedUntil &&
+    identity.discoveryBlockedUntil.getTime() > now,
   );
 
-  if (!matches || locked || identity.status === 'SUSPENDED') {
-    if (!matches) await registerIdentityFailure(db, identity.id);
+  if (
+    !matches ||
+    credentialLocked ||
+    discoveryBlocked ||
+    identity.status === 'SUSPENDED'
+  ) {
+    /*
+     * ITEM-0069: a wrong password here throttles **discovery**, not the
+     * credential.
+     *
+     * This endpoint is unauthenticated, so whatever it can trigger, a stranger
+     * can trigger against any address they know. It used to increment
+     * `failedLoginAttempts`, which meant twenty requests locked somebody out of
+     * every workspace for an hour. Now the worst it can do is take away the
+     * generic login screen for fifteen minutes — the person can still sign in
+     * at their workspace URL, because the credential lock is untouched.
+     */
+    if (!matches) await registerDiscoveryFailure(db, identity.id);
     return null;
   }
 
-  await registerIdentitySuccess(db, identity.id);
+  /*
+   * A correct password clears the discovery counter but deliberately does *not*
+   * clear the credential lock. Otherwise somebody who eventually guesses right
+   * is rewarded by having the lock lifted, and the lockout has protected
+   * nothing at the moment it mattered.
+   */
+  await clearDiscoveryFailures(db, identity.id);
   return { identityId: identity.id };
+}
+
+/**
+ * Record a failed discovery attempt, and block discovery once the allowance is
+ * spent. Never throws — bookkeeping must not turn a wrong password into a 500,
+ * because a status code that changes tells an attacker which addresses exist.
+ */
+export async function registerDiscoveryFailure(
+  db: IdentityDb,
+  identityId: string,
+): Promise<void> {
+  try {
+    const identity = await db.identity.findUnique({
+      where: { id: identityId },
+      select: { discoveryFailedAttempts: true },
+    });
+    if (!identity) return;
+
+    const attempts = identity.discoveryFailedAttempts + 1;
+    const shouldBlock = attempts >= DISCOVERY_ATTEMPTS_BEFORE_BLOCK;
+
+    await db.identity.update({
+      where: { id: identityId },
+      data: shouldBlock
+        ? {
+            // Reset with the block, so one attempt after it expires does not
+            // immediately re-block — the same reasoning as both other counters.
+            discoveryFailedAttempts: 0,
+            discoveryBlockedUntil: new Date(
+              Date.now() + DISCOVERY_BLOCK_MINUTES * 60_000,
+            ),
+          }
+        : { discoveryFailedAttempts: attempts },
+    });
+  } catch {
+    // Intentionally silent — see above.
+  }
+}
+
+/** Clears the discovery counter after a correct password. */
+export async function clearDiscoveryFailures(
+  db: IdentityDb,
+  identityId: string,
+): Promise<void> {
+  try {
+    await db.identity.update({
+      where: { id: identityId },
+      data: { discoveryFailedAttempts: 0, discoveryBlockedUntil: null },
+    });
+  } catch {
+    // Intentionally silent — see above.
+  }
 }
 
 /**

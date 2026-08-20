@@ -72,31 +72,58 @@ describeWithDatabase()('Seeded legal documents (DB-backed)', () => {
     );
   });
 
-  it('seeds them all as DRAFT, so nothing is publicly resolvable', async () => {
-    const published = await prisma.legalDocumentVersion.count({
+  it('publishes nothing by seeding, whatever is already published', async () => {
+    /*
+     * This asserted that **nothing** was published — `published === 0` and an
+     * empty public index. That was right while publication was a decision
+     * nobody had taken. It expired the day `npm run release:api` started
+     * publishing the set: on any environment where a release has run, ten
+     * documents are legitimately live and this failed for correct behaviour.
+     *
+     * The rule worth keeping is narrower and is the one the owner actually
+     * relies on: **seeding is not publishing.** Unreviewed text must never
+     * become live as a side effect of a deploy running the seed — it becomes
+     * live only when somebody, or the release command, publishes deliberately.
+     *
+     * So the assertion is now a *delta* rather than an absolute: run the seed
+     * again and the published count must not move.
+     */
+    const publishedBefore = await prisma.legalDocumentVersion.count({
       where: {
         status: LegalDocumentVersionStatus.PUBLISHED,
         document: { slug: { in: EXPECTED_SLUGS } },
       },
     });
 
-    // The owner chose draft-then-publish precisely so unreviewed legal text
-    // cannot be served. If this ever fails, something published without asking.
-    expect(published).toBe(0);
+    await seedLegalDocuments(prisma);
 
-    for (const type of [
-      LegalDocumentType.PRIVACY_POLICY,
-      LegalDocumentType.TERMS_OF_SERVICE,
-      LegalDocumentType.SECURITY_NOTICE,
-      LegalDocumentType.DATA_PROCESSING_ADDENDUM,
-    ]) {
-      await expect(legal.resolvePublished(type, null)).resolves.toBeNull();
+    const publishedAfter = await prisma.legalDocumentVersion.count({
+      where: {
+        status: LegalDocumentVersionStatus.PUBLISHED,
+        document: { slug: { in: EXPECTED_SLUGS } },
+      },
+    });
+
+    expect(publishedAfter).toBe(publishedBefore);
+
+    /*
+     * And every version the seed is free to touch — the drafts — is still a
+     * draft. A seed that quietly promoted one would satisfy the count above by
+     * leaving the total unchanged while changing which version is live.
+     */
+    const drafts = await prisma.legalDocumentVersion.findMany({
+      where: {
+        document: { slug: { in: EXPECTED_SLUGS } },
+        status: { not: LegalDocumentVersionStatus.PUBLISHED },
+      },
+      select: { status: true },
+    });
+    for (const version of drafts) {
+      expect([
+        LegalDocumentVersionStatus.DRAFT,
+        LegalDocumentVersionStatus.ARCHIVED,
+      ]).toContain(version.status);
     }
-
-    const index = await legal.listPublished(null);
-    // The footer renders from this, so an empty list is what makes the site
-    // show no legal links rather than links to pages that apologise.
-    expect(index).toEqual([]);
   });
 
   /*

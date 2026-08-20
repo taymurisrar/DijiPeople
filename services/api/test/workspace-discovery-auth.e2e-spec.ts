@@ -7,7 +7,7 @@ import {
   type FixtureTenantPair,
 } from './helpers/db-fixtures';
 import {
-  GLOBAL_ATTEMPTS_BEFORE_LOCK,
+  DISCOVERY_ATTEMPTS_BEFORE_BLOCK,
   listTenantIdsForIdentity,
   verifyIdentityCredential,
 } from '../src/modules/users/identity.service';
@@ -196,32 +196,59 @@ describeWithDatabase()('Workspace discovery by credential (DB-backed)', () => {
     expect(after.lockedUntil?.getTime()).toBe(lockedUntil.getTime());
   });
 
-  it('counts failures against the person, so guessing here is not free', async () => {
+  it('bounds guessing without touching the credential the victim signs in with', async () => {
+    /*
+     * ITEM-0069, and the assertion that fixes it.
+     *
+     * This endpoint used to count its failures against
+     * `Identity.failedLoginAttempts` — the counter that governs real sign-ins —
+     * so twenty unauthenticated requests locked a known address out of **every**
+     * workspace for an hour. Anybody could run that against anybody.
+     *
+     * Guessing still has to be bounded: discovery has no tenant, so the
+     * per-tenant lockout never sees it. The fix is separation, not removal.
+     */
     const address = `counted-${NOW}@dijipeople.test`;
     const identityId = await makeIdentity(address);
 
-    for (let i = 0; i < GLOBAL_ATTEMPTS_BEFORE_LOCK; i += 1) {
+    for (let i = 0; i < DISCOVERY_ATTEMPTS_BEFORE_BLOCK; i += 1) {
+      await verifyIdentityCredential(prisma, bcrypt.compare, address, 'nope');
+    }
+
+    const after = await prisma.identity.findUniqueOrThrow({
+      where: { id: identityId },
+      select: { discoveryBlockedUntil: true, lockedUntil: true },
+    });
+
+    // Discovery is blocked, so guessing through it stops.
+    expect(after.discoveryBlockedUntil).not.toBeNull();
+
+    /*
+     * And the credential lock is untouched — which is the entire point. The
+     * victim can still sign in at their workspace URL. A stranger has cost them
+     * the generic login screen for fifteen minutes, not the product.
+     */
+    expect(after.lockedUntil).toBeNull();
+  });
+
+  it('refuses even a correct password while discovery is blocked', async () => {
+    const address = `blocked-correct-${NOW}@dijipeople.test`;
+    await makeIdentity(address);
+
+    for (let i = 0; i < DISCOVERY_ATTEMPTS_BEFORE_BLOCK; i += 1) {
       await verifyIdentityCredential(prisma, bcrypt.compare, address, 'nope');
     }
 
     /*
-     * Discovery is unauthenticated, so it would otherwise be an unlimited
-     * password-guessing surface that bypasses the tenant-scoped lockout
-     * entirely — the reason the global counter exists.
+     * Otherwise the block is decorative: an attacker who guesses correctly on
+     * attempt eleven would be let straight through.
      */
-    const after = await prisma.identity.findUniqueOrThrow({
-      where: { id: identityId },
-      select: { lockedUntil: true },
-    });
-    expect(after.lockedUntil).not.toBeNull();
-
-    // And now even the right password is refused, until the lock expires.
     await expect(
       verifyIdentityCredential(prisma, bcrypt.compare, address, PASSWORD),
     ).resolves.toBeNull();
   });
 
-  it('clears the counter once the right password arrives', async () => {
+  it('clears the discovery counter once the right password arrives', async () => {
     const address = `recovered-${NOW}@dijipeople.test`;
     const identityId = await makeIdentity(address);
 
@@ -230,10 +257,32 @@ describeWithDatabase()('Workspace discovery by credential (DB-backed)', () => {
 
     const after = await prisma.identity.findUniqueOrThrow({
       where: { id: identityId },
-      select: { failedLoginAttempts: true },
+      select: { discoveryFailedAttempts: true },
     });
-    // Otherwise a few typos over a year eventually lock somebody out for no
-    // reason at all.
-    expect(after.failedLoginAttempts).toBe(0);
+    // Otherwise a few typos over a year eventually block somebody for no reason
+    // at all.
+    expect(after.discoveryFailedAttempts).toBe(0);
+  });
+
+  it('does not let a correct password lift a credential lock', async () => {
+    /*
+     * The mirror of the rule above, and the more important half. Somebody who
+     * eventually guesses right must not be rewarded by having the lock lifted —
+     * that would mean the lockout protected nothing at the exact moment it
+     * mattered.
+     */
+    const address = `still-locked-${NOW}@dijipeople.test`;
+    const lockedUntil = new Date(Date.now() + 60 * 60_000);
+    const identityId = await makeIdentity(address, { lockedUntil });
+
+    await expect(
+      verifyIdentityCredential(prisma, bcrypt.compare, address, PASSWORD),
+    ).resolves.toBeNull();
+
+    const after = await prisma.identity.findUniqueOrThrow({
+      where: { id: identityId },
+      select: { lockedUntil: true },
+    });
+    expect(after.lockedUntil?.getTime()).toBe(lockedUntil.getTime());
   });
 });

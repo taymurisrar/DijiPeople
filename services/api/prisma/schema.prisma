@@ -4257,8 +4257,25 @@ model Identity {
   /// Lockout is global because credentials are. Leaving it per tenant would
   /// give an attacker a fresh allowance of attempts for every workspace the
   /// address belongs to, which is the opposite of what a lockout is for.
+  ///
+  /// **Only the tenant-scoped login path writes these.** The public discovery
+  /// endpoint used to, and that made it a weapon: twenty unauthenticated
+  /// requests could lock a known address out of every workspace for an hour
+  /// (ITEM-0069). Discovery now has its own counter below, which bounds
+  /// guessing without touching the credential the victim signs in with.
   failedLoginAttempts Int       @default(0)
   lockedUntil         DateTime?
+
+  /// Throttles the public workspace-discovery endpoint, per address.
+  ///
+  /// Separate from the credential lock on purpose, and the separation *is* the
+  /// fix. Discovery is unauthenticated, so anybody can drive it — which means
+  /// whatever it can trigger, anybody can trigger against any address they
+  /// know. Blocking discovery costs the victim the generic login screen; they
+  /// can still sign in at their workspace URL, which is what makes this a
+  /// tolerable thing for a stranger to be able to cause.
+  discoveryFailedAttempts Int       @default(0)
+  discoveryBlockedUntil   DateTime?
 
   /// Where to send this person when they sign in without naming a workspace.
   /// Advisory: a stale or revoked value falls back to the picker, and

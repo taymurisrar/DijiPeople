@@ -8,7 +8,7 @@ graph and the block reasons. See
 
 | Bucket | Count |
 |---|---|
-| [Active](active.md) | 4 |
+| [Active](active.md) | 5 |
 | [Blocked](blocked.md) | 1 |
 | [Completed](completed.md) | 4 |
 
@@ -17,6 +17,7 @@ graph and the block reasons. See
 | Task | WP | Title |
 |---|---|---|
 | [TASK-0005](TASK-0005-dijipeople-global-technical-remediation.md) | WP-04 | Database E2E isolation and residual defect proof |
+| [TASK-0010](TASK-0010-go-live-readiness.md) | WP-04 | Release readiness assessment and the PR to `main` |
 
 ## Needs a human
 
@@ -25,6 +26,7 @@ graph and the block reasons. See
 - [TASK-0007](TASK-0007-commercial-platform-completion-transactional-legal-and-lifec.md) — 2 owner decision(s) outstanding
 - [TASK-0008](TASK-0008-self-service-customer-onboarding-tenant-provisioning-domain-.md) — 4 owner decision(s) outstanding
 - [TASK-0009](TASK-0009-identity-and-multi-tenant-membership.md) — 2 owner decision(s) outstanding
+- [TASK-0010](TASK-0010-go-live-readiness.md) — 4 owner decision(s) outstanding
 - [TASK-0004](TASK-0004-autonomous-framework-v2-architect-only-orchestration-multi-s.md) — every remaining work package is blocked
 - [TASK-0007](TASK-0007-commercial-platform-completion-transactional-legal-and-lifec.md) — every remaining work package is blocked
 - [TASK-0008](TASK-0008-self-service-customer-onboarding-tenant-provisioning-domain-.md) — every remaining work package is blocked
@@ -37,6 +39,7 @@ graph and the block reasons. See
 | [TASK-0005](TASK-0005-dijipeople-global-technical-remediation.md) | DijiPeople Global Technical Remediation | BUG | PROGRAM | P0 | IN_PROGRESS | 3/11 | WP-09 |
 | [TASK-0007](TASK-0007-commercial-platform-completion-transactional-legal-and-lifec.md) | Commercial platform completion — transactional, legal and lifecycle half | FEATURE | PROGRAM | P0 | IN_PROGRESS | 15/16 | WP-11 |
 | [TASK-0008](TASK-0008-self-service-customer-onboarding-tenant-provisioning-domain-.md) | Self-service customer onboarding, tenant provisioning, domain routing and central login | FEATURE | LARGE | P0 | IN_PROGRESS | 10/11 | WP-06 |
+| [TASK-0010](TASK-0010-go-live-readiness.md) | Go-live readiness | FEATURE | MEDIUM | P0 | IN_PROGRESS | 2/4 | WP-03 |
 | [TASK-0001](TASK-0001-framework-keyword-routing-task-orchestration-and-repository-.md) | Framework: keyword routing, task orchestration and repository health | FRAMEWORK | LARGE | P1 | COMPLETE | 6/6 | — |
 | [TASK-0002](TASK-0002-deep-documentation-of-apps-docs-apps-landing-and-apps-agent-.md) | Deep documentation of apps/docs, apps/landing and apps/agent-desktop | KNOWLEDGE | LARGE | P1 | COMPLETE | 9/9 | — |
 | [TASK-0003](TASK-0003-deep-documentation-of-apps-web-the-tenant-product.md) | Deep documentation of apps/web, the tenant product | KNOWLEDGE | LARGE | P1 | COMPLETE | 9/9 | — |

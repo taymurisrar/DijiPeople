@@ -198,26 +198,62 @@ describeWithDatabase()('Legal documents (DB-backed)', () => {
     expect(orphans).toBe(0);
   });
 
-  it('does not resolve a draft, and returns null when nothing is published', async () => {
+  it('does not resolve a draft', async () => {
+    /*
+     * This used to read "…and returns null when nothing is published",
+     * asserting that `resolvePublished` found nothing at all. That premise
+     * expired the day publication was wired into `npm run release:api`: on any
+     * environment where a release has run, the seeded set *is* published, and
+     * the assertion failed for a reason that was correct behaviour.
+     *
+     * The guard is still worth having — a draft must never be served — so it is
+     * scoped to a document this test owns, in its own market, rather than
+     * asserting on the state of the whole table. `resolvePublished` sorts
+     * market-specific ahead of global, so an unpublished document here resolves
+     * to nothing even while the global set is live.
+     */
+    const market = await prisma.market.create({
+      data: {
+        code: `LD${Date.now() % 100000}`,
+        name: 'Draft resolution test',
+        defaultCurrency: 'PKR',
+        supportedCurrencies: ['PKR'],
+      },
+      select: { id: true },
+    });
+
     const draftOnly = await prisma.legalDocument.create({
       data: {
         type: LegalDocumentType.COOKIE_POLICY,
+        marketId: market.id,
         slug: `${runId}-cookies`,
         title: 'Cookie Policy (test)',
       },
       select: { id: true },
     });
-    await service.createDraft(draftOnly.id, '# unpublished');
+    const draft = await service.createDraft(draftOnly.id, '# unpublished');
 
     const resolved = await service.resolvePublished(
       LegalDocumentType.COOKIE_POLICY,
-      null,
+      market.id,
     );
-    expect(resolved).toBeNull();
+
+    /*
+     * Not `toBeNull()` — and the difference is the point.
+     *
+     * `resolvePublished` prefers a market-specific document but falls back to
+     * the global one, and the global cookie policy is published on any
+     * environment where a release has run. So the honest assertion is not "it
+     * finds nothing", it is **"it never serves the draft"**: whatever comes
+     * back, it is not this unpublished version and does not carry its text.
+     */
+    expect(resolved?.versionId).not.toBe(draft.id);
+    expect(resolved?.contentMarkdown ?? '').not.toContain('# unpublished');
 
     await prisma.legalDocumentVersion.deleteMany({
       where: { legalDocumentId: draftOnly.id },
     });
     await prisma.legalDocument.delete({ where: { id: draftOnly.id } });
+    await prisma.market.delete({ where: { id: market.id } });
   });
 });

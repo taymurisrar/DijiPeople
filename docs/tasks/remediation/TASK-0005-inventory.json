@@ -7489,7 +7489,7 @@
       "title": "A global identity lock can be triggered by an unauthenticated attacker",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "READY",
+      "current_status": "DONE",
       "current_evidence": {
         "paths": [
           "services/api/src/modules/users/identity.service.ts",
@@ -7512,10 +7512,10 @@
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "PLAN_REQUIRED",
+      "architect_disposition": "DONE",
       "verification_result": {
-        "result": "OPEN",
-        "classification": "PRELIMINARY",
+        "result": "FIXED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
         "finding_ids": []
       }
     }

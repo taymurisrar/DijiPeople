@@ -43,7 +43,7 @@
     "seed:platform-workflows": "ts-node prisma/seed-platform-workflows.ts",
     "invoice:sample-pdf": "ts-node src/modules/super-admin/invoice-pdf.sample.ts",
     "seed:all": "npm run seed:admin && npm run seed:config && npm run seed:platform-workflows && npm run seed:demo && npm run seed:legal",
-    "release": "npm run prisma:migrate:deploy && npm run seed:config && npm run seed:verify && npm run seed:admin",
+    "release": "npm run prisma:migrate:deploy && npm run seed:config && npm run seed:verify && npm run seed:admin && npm run seed:legal && npm run legal:publish -- --confirm",
     "backfill:default-views": "ts-node prisma/backfill-default-views.ts",
     "backfill:attendance": "ts-node prisma/backfill-attendance.ts",
     "backfill:workspace-domains": "ts-node prisma/backfill-workspace-domains.ts",

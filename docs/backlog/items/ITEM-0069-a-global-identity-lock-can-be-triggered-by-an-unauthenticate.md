@@ -3,19 +3,19 @@ ID: ITEM-0069
 aliases: [ITEM-0069]
 Title: A global identity lock can be triggered by an unauthenticated attacker
 Type: SECURITY
-Status: READY
+Status: DONE
 Priority: P2
 Severity: MEDIUM
 AffectedModules: [auth, users]
 Source: SECURITY_REVIEW
 OwnerAgent: architect
-ArchitectDisposition: PLAN_REQUIRED
+ArchitectDisposition: DONE
 CreatedAt: 2026-08-20
 UpdatedAt: 2026-08-20
 RelatedBug:
 RelatedQA:
 RelatedADR:
-RelatedImplementation: TASK-0009 WP-10
+RelatedImplementation: TASK-0010
 TargetMilestone:
 BlockedBy:
 ---
@@ -111,3 +111,44 @@ parent.
 
 - [[TASK-0009]] — the parent that introduced it, and whose WP-10 found it.
 - [[ITEM-0062]] — the architecture decision underneath.
+
+## Resolution — 2026-08-20, TASK-0010
+
+**Separation, not removal.** Discovery has its own counter now:
+`Identity.discoveryFailedAttempts` and `discoveryBlockedUntil`, 10 attempts and
+a 15-minute block. Exhausting it blocks *discovery*; the credential lock is
+untouched.
+
+The counter could not simply be deleted — discovery has no tenant, so without
+one it is unlimited password guessing that the per-tenant lockout never sees.
+And it could not move to the request, for the reason `login-lockout.service.ts`
+already gives: counting per address is avoided by rotating addresses.
+
+So the three properties now hold together:
+
+- guessing through the public endpoint stays bounded;
+- the victim can still sign in at their workspace URL, because the credential
+  lock is untouched;
+- the worst a stranger can do is take away the generic login screen from one
+  address for fifteen minutes.
+
+**That last line is the residual harm, and it is real** — somebody who knows
+their email but not their workspace URL is inconvenienced. It is a different
+order of thing from being locked out of the product, which is what this item was
+filed about.
+
+Thresholds are lower than the credential lock's (10/15min against 20/60min)
+precisely because this one is cheaper to trigger: anybody can drive the
+endpoint, so its bound has to assume anybody will, and the cost of being wrong
+falls on a legitimate person.
+
+Mutation-checked: putting `registerIdentityFailure` back in discovery's path —
+recreating the weapon exactly — fails the test that names it.
+
+**Notify-on-lock was not built.** `PlatformCommunicationsService` exists but has
+no email provider configured, so a notification would fail silently in
+production. Filed as part of that provider's own work rather than shipped as
+something that looks like a safeguard and is not.
+
+Regression: `services/api/test/workspace-discovery-auth.e2e-spec.ts` — "bounds
+guessing without touching the credential the victim signs in with".
