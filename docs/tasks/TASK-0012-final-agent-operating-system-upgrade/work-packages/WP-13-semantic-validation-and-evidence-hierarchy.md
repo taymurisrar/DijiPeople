@@ -2,7 +2,7 @@
 WP_ID: WP-13
 TASK_ID: TASK-0012
 TITLE: Semantic record validation, QA evidence hierarchy, id allocation
-STATUS: NOT_STARTED
+STATUS: DONE
 OWNER_AGENT: QA
 DEPENDENCIES: [WP-03, WP-04, WP-07]
 LAST_VERIFIED_SHA: 4226e53
@@ -64,15 +64,54 @@ LAST_VERIFIED_SHA: 4226e53 — re-read any summarised source that changed since.
 
 ## Implementation State
 
-Not started.
+Done.
+
+- **Evidence hierarchy** — `EVIDENCE_LEVELS` L0-L7 in `qa-records.mjs`, with
+  `evidenceRank` and `evidenceSatisfies`. Scenario validation gates
+  `LAST_RESULT` against `REQUIRED_EVIDENCE_LEVEL` and
+  `ACTUAL_EVIDENCE_LEVEL`. Both fields are optional, because 113 scenarios
+  predate them and rejecting those would turn a rule about proof into a bulk
+  migration nobody asked for. Only success is gated — reporting a FAIL on weak
+  evidence is honest.
+
+- **Semantic contradiction detection** — in `backlog-records.mjs`, bounded to
+  two rules over the `Resolution` and `QA Retest` sections.
+
+- **Id allocation** — `REG` already had an allocator entry, so this package
+  proved it rather than building a second one, and added `question`.
+
+A real defect surfaced while writing the simulations: the section-extraction
+regex used `\s*` after the heading, which is greedy across newlines. For an
+*empty* section it swallowed the blank line and the section boundary with it,
+so the capture ran on into the next section — meaning an empty
+`## Agent Recommendation` silently returned the text of `## Answer` and read
+as populated. The empty section is exactly the case these validators exist to
+catch, so the greedy version failed in precisely the situation it was written
+for. Fixed in all three parsers by matching horizontal whitespace only.
 
 ## Validation State
 
-Pending: simulations 68 to 71.
+- `node scripts/rebuild-qa.mjs --check` → 19 plans, 113 scenarios, valid.
+- `node scripts/rebuild-backlog.mjs --check` → 156 records, 0 structural errors.
+- `node scripts/validate-framework.mjs` → 3,059 checks.
 
 ## Evidence
 
-Pending.
+- The contradiction detector was run against all 156 live records and produced
+  exactly one hit: BUG-0034, `VERIFIED` above a QA Retest section containing
+  "Not verified". Reading it showed a **false positive** — the retest ran and
+  passed, and the phrase was an honest end-to-end scope limit.
+- Rather than accept the noise, the rule was tightened twice: the opening line
+  of the section is treated as the verdict, and a negative followed by a scope
+  qualifier is a stated gap rather than a contradiction. It now reports zero
+  across all 156. Punishing the records that explain their own limits is how a
+  validator teaches people to stop writing limits down.
+- Simulation 56 pins that false positive permanently, using BUG-0034's actual
+  shape, so a future tightening cannot silently reintroduce it.
+- Simulation 55 proves the detector still catches the real contradiction, and
+  the mutation run proves the check fails when it is disabled.
+- Simulation 54 allocates four `regression`, `bug` and `question` ids in
+  succession and asserts all are distinct.
 
 ## Questions
 
@@ -80,4 +119,6 @@ None yet.
 
 ## Handoff
 
-Pending. Feeds WP-14.
+KNOWLEDGE_IMPACT: QA_SCENARIO, REGRESSION.
+OBSIDIAN_IMPACT: NONE.
+Unblocks WP-14.

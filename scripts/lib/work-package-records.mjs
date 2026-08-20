@@ -119,10 +119,24 @@ function asList(value) {
     .filter(Boolean);
 }
 
-/** The `## <name>` block of a body, or '' when absent. */
+/**
+ * The `## <name>` block of a body, or '' when absent or empty.
+ *
+ * `[^\S\r\n]*` rather than `\s*` after the heading, and the difference matters
+ * more than it looks. `\s*` is greedy across newlines, so for an *empty*
+ * section it swallows the blank line and the section boundary with it, and the
+ * capture runs on into everything that follows.
+ *
+ * An empty `## Evidence` would therefore return the text of `## Questions` and
+ * read as populated — defeating the one check that stops a package reaching
+ * DONE with nothing behind it. The empty section is the case these validators
+ * exist for, and the greedy version failed in exactly that case.
+ */
 export function section(body, name) {
   const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const match = new RegExp(`##\\s+${escaped}\\s*\\r?\\n([\\s\\S]*?)(?=\\r?\\n##\\s|$)`).exec(body);
+  const match = new RegExp(
+    `##[^\\S\\r\\n]+${escaped}[^\\S\\r\\n]*\\r?\\n([\\s\\S]*?)(?=\\r?\\n##[^\\S\\r\\n]|$)`,
+  ).exec(body);
   return match ? match[1].trim() : '';
 }
 

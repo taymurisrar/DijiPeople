@@ -585,3 +585,37 @@ Two consequences to state plainly in every release report:
 gap in
 [`../../docs/development/agent-tooling-matrix.md`](../../docs/development/agent-tooling-matrix.md)
 and report what could not be verified.
+
+---
+
+## Operational CI signals
+
+Tracked as measured trends, not impressions:
+
+```
+CI_DURATION_REGRESSION      CI_CANCELLATION_SPIKE     FLAKY_JOB
+DATABASE_E2E_RED            BROWSER_INSTALL_REGRESSION
+DEPLOYMENT_DRIFT            WORKTREE_DIRTY_UNEXPLAINED
+```
+
+**Do not rewrite CI on the strength of one slow run.** A single slow run is
+noise; a threshold crossed repeatedly is a signal. Open or route an
+investigation when a measured threshold is breached or an anomaly repeats —
+`node scripts/ci-metrics.mjs` is the evidence, not recollection.
+
+Pushing again cancels the in-flight run, so a cancellation spike often means
+batching discipline slipped rather than that CI is unstable. Classify before
+acting: `node scripts/ci-classify.mjs --run <id>`.
+
+## The janitor capability
+
+Stale test resources may be swept only when **all three** hold:
+
+```
+tagged test-owned  +  older than the threshold  +  no active run owns it
+```
+
+Never two of three. A sweep on age and tag alone will eventually delete a
+long-running suite's fixtures mid-run. When ownership cannot be proven, report
+rather than delete. See
+[`../context/test-resource-policy.md`](../context/test-resource-policy.md).

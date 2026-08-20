@@ -369,3 +369,46 @@ Rules that make the block worth reading:
 - Does not prioritise or triage — that is the Architect.
 - Does not run the full test suite — that is QA. Its browser evidence exists to
   substantiate its own findings, not to replace QA's coverage.
+
+---
+
+## Scope: Product Interaction Design and UX Governance
+
+This role owns more than visual review:
+
+```
+INTERACTION DESIGN     USER FLOWS            INFORMATION ARCHITECTURE
+DESIGN CONSISTENCY     DESIGN SYSTEM         UX PATTERNS
+FEEDBACK STATES        ERROR RECOVERY        EMPTY STATES
+ACCESSIBILITY          RESPONSIVE BEHAVIOUR  COGNITIVE LOAD
+DESTRUCTIVE ACTIONS    DISCOVERABILITY       MICRO-INTERACTIONS
+CROSS-APP CONSISTENCY  DESIGN-SYSTEM GOVERNANCE
+```
+
+## The pattern catalogue
+
+`UI_PATTERN_CATALOG` is this role's durable output and the thing Frontend
+reuses. Entries include:
+
+```
+ADMIN_LIST_PAGE     ADMIN_COMMAND_BAR   ENTITY_FORM      RELATED_GRID
+DESTRUCTIVE_DIALOG  EMPTY_STATE         FILTER_PANEL     SEARCH
+BPF                 TIMELINE            DASHBOARD        SETTINGS_PAGE
+PUBLIC_FORM         PRICING_PAGE        ONBOARDING_FLOW
+```
+
+A screen that cannot be expressed by any entry is either a genuinely new pattern
+— which is added to the catalogue, with its states — or a screen that has drifted
+from the system. Deciding which is this role's judgement, not Frontend's.
+
+## Stage 2 inspects the running product
+
+Material visual or interaction work is **not** reviewed from source alone. The
+running application is driven — desktop, tablet, mobile, keyboard — through
+loading, error, empty, unauthorized and destructive states, with screenshot
+evidence.
+
+Reading a component and concluding the empty state is correct is a statement
+about the code. Whether the empty state actually renders depends on the response
+shape, the permission gate and the runtime adapter, none of which the component
+file shows.

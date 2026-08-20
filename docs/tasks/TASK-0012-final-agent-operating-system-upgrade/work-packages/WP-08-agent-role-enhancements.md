@@ -2,7 +2,7 @@
 WP_ID: WP-08
 TASK_ID: TASK-0012
 TITLE: Agent role enhancements across the permanent set
-STATUS: NOT_STARTED
+STATUS: DONE
 OWNER_AGENT: Architect
 DEPENDENCIES: [WP-02, WP-03, WP-04, WP-05]
 LAST_VERIFIED_SHA: 4226e53
@@ -60,15 +60,46 @@ LAST_VERIFIED_SHA: 4226e53 — re-read any summarised source that changed since.
 
 ## Implementation State
 
-Not started.
+Done. All ten existing role files extended, and the two new ones already
+carry their sections.
+
+- **Architect** — orchestration over implementation,
+  `ARCHITECT_DIRECT_IMPLEMENTATION_REASON`, `ARCHITECTURE_IMPACT`, the
+  question protocol, computed continuation, and the thirteen-role roster.
+- **Backend/API** — the six determinism questions for lookup logic, and the
+  contract-change handoff fields.
+- **Frontend** — `UI_PATTERN_USED`, `SHARED_UI_CONVENTIONS_APPLIED`,
+  `CONVENTION_EXCEPTIONS`, and browser evidence over source reading.
+- **UI/UX** — the full interaction-design and governance scope, the pattern
+  catalogue, and Stage 2 against the running product.
+- **Database** — four lifecycle stages, exclusive write, and the rule that
+  `prisma validate` is not semantic proof.
+- **Security** — `SECURITY_EVIDENCE_LEVEL` with the CRITICAL floor, and the
+  nine-case tenant matrix.
+- **Integration** — `LIVE_CAPABILITY_STATUS` and the provider boundary record.
+- **QA** — the L0-L7 hierarchy, test-resource accounting, evidence reuse.
+- **Integrator** — `SEMANTIC_CONFLICT_CHECK` and allocator-only ids.
+- **Release/DevOps** — measured CI signals and the janitor's three conditions.
+
+Appended rather than woven in, so the diff is reviewable and nothing already in
+these files was disturbed. Cross-role invariants are pointed at, never restated:
+a rule copied into eleven files disagrees with itself within a month.
 
 ## Validation State
 
-Pending: `npm run validate:framework` role checks, simulations 59 to 62.
+- `node scripts/validate-framework.mjs` → 3,059 checks; the per-role checks
+  (Required Context, Staleness Rule, session awareness, KNOWLEDGE_IMPACT) pass
+  for all thirteen roles.
+- Every `.agent/context/*.md` reference in a role file resolves — the validator
+  checks this, and it is how a role pointing at an uncommitted context file has
+  twice been caught.
 
 ## Evidence
 
-Pending.
+- `REQUIRED_AGENTS` now lists thirteen roles, so deleting either new role is a
+  validation failure rather than a silent regression to eleven.
+- The two roles this program created were written before this package and are
+  covered by the same per-role checks, not exempted from them.
 
 ## Questions
 
@@ -76,4 +107,6 @@ None yet.
 
 ## Handoff
 
-Pending. Feeds WP-14 (Reviewer acceptance requirements).
+KNOWLEDGE_IMPACT: CURRENT_CONTEXT, UI_CONVENTION, DATABASE, SECURITY.
+OBSIDIAN_IMPACT: UPDATE_NODE.
+Unblocks WP-14.

@@ -101,9 +101,23 @@ export const QUESTION_SECTIONS = [
 
 // --------------------------------------------------------------------- parsing
 
+/*
+ * The `## <name>` block of a body, or '' when absent or empty.
+ *
+ * `[^\S\r\n]*` rather than `\s*` after the heading, and the difference is the
+ * whole check. `\s*` is greedy across newlines, so for an *empty* section it
+ * swallows the blank line and the boundary with it, and the capture runs on
+ * into the next section — which means an empty "## Agent Recommendation"
+ * silently returns the text of "## Answer" and reads as populated.
+ *
+ * The empty section is precisely the case this validator exists to catch, so
+ * the greedy version failed in exactly the situation it was written for.
+ */
 function sectionText(body, name) {
   const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const match = new RegExp(`##\\s+${escaped}\\s*\\r?\\n([\\s\\S]*?)(?=\\r?\\n##\\s|$)`).exec(body);
+  const match = new RegExp(
+    `##[^\\S\\r\\n]+${escaped}[^\\S\\r\\n]*\\r?\\n([\\s\\S]*?)(?=\\r?\\n##[^\\S\\r\\n]|$)`,
+  ).exec(body);
   return match ? match[1].trim() : '';
 }
 

@@ -246,3 +246,37 @@ was invoked.
 - Repeating a class listed in `KNOWN_SECURITY_FAILURES_TO_AVOID` without saying
   the retrieval happened.
 - Passing Stage 2 while a CRITICAL or HIGH finding has no bug record.
+
+---
+
+## Evidence level, and what a terminal status may rest on
+
+```
+SECURITY_EVIDENCE_LEVEL = STATIC | UNIT | BEHAVIORAL | DB_BACKED | BROWSER | EXTERNAL
+```
+
+**A CRITICAL authorization defect cannot reach `VERIFIED` on `STATIC` evidence
+alone.** A static check proves the guard decorator is present in the source. It
+does not prove the guard runs, that it reads the tenant from the token rather
+than the body, or that the query underneath it is scoped. Those three have each
+failed here with the decorator correctly in place.
+
+Security does **not** trust a record's terminal status. It retrieves the actual
+implementation, the negative regression, the QA execution and the latest
+evidence — because a record saying `VERIFIED` is a claim, and this role exists
+to test claims.
+
+## The tenant matrix
+
+For any tenant-sensitive flow, the cases are not "allowed" and "denied":
+
+```
+same tenant + permitted     same tenant + denied     foreign tenant
+wrong owner                 missing tenant           null tenant
+platform sentinel           elevated tenant role     platform-admin path
+```
+
+`hasElevatedTenantRole` bypasses the guard entirely, and the platform sentinel
+`tenantId: 'platform'` routes elsewhere. A test suite covering only the first
+two rows proves the happy path and the obvious refusal, and nothing about the
+seven ways through.

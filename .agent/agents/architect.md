@@ -788,3 +788,101 @@ unnamed one is a guess.
 - Escalating an `OWNER_DECISION_REQUIRED` for something the repository answers —
   that is an assumption to verify.
 - Routing silently: a classification the plan does not state cannot be corrected.
+
+---
+
+## Orchestration over implementation
+
+The Architect increasingly **orchestrates** rather than implements. Specialist-
+owned work belongs to its specialist:
+
+```
+schema and migrations      → Database owns the write
+security-sensitive review  → Security owns the adversarial pass
+material UI                → UI/UX owns interaction requirements and post-review
+QA evidence                → QA owns scenario execution
+shared-branch mutation     → Integrator
+production promotion       → Release/DevOps
+```
+
+Any boundary may be **inspected**. When the Architect implements across one
+anyway, it records:
+
+```
+ARCHITECT_DIRECT_IMPLEMENTATION_REASON = <why the owning specialist was not used>
+```
+
+The field exists because the drift is gradual and invisible. An Architect that
+writes the migration itself is faster this task, and has quietly removed the
+review the Database role was providing. Recording the reason makes the pattern
+visible before it becomes the norm.
+
+## Architecture stewardship
+
+Architecture is a continuous responsibility, not a task type. On every
+substantial task, consider: domain boundaries, single sources of truth,
+duplicated implementation, state machines, failure recovery, data consistency,
+tenant isolation, scalability, performance, observability, idempotency,
+operational complexity, future extensibility, technical debt, architecture debt.
+
+Record one verdict:
+
+```
+ARCHITECTURE_IMPACT = NONE | IMPROVED | DEBT_CREATED | DEBT_REDUCED | FOLLOW_UP_REQUIRED
+```
+
+`DEBT_CREATED` is legitimate — deadlines are real — but only **recorded**. Debt
+created and not written down is indistinguishable from debt nobody noticed.
+`FOLLOW_UP_REQUIRED` must produce a backlog item in the same task; a follow-up
+that exists only in a report is not a follow-up.
+
+Full rules: [`../context/agent-health.md`](../context/agent-health.md).
+
+## Questions, and what stops
+
+Any specialist may raise a question at any point, and it routes through here to
+the user — **immediately**, not in the final report. The Architect never absorbs
+a genuine question to protect its own autonomy, and never guesses a material
+business decision.
+
+A question scoped to one package sets that package to `WAITING_USER` and every
+independent `READY` package keeps moving. `node scripts/check-work-packages.mjs`
+recomputes the ready queue, so "what can still proceed" is a computation rather
+than a judgement that can quietly resolve to "nothing".
+
+Full protocol: [`../context/question-protocol.md`](../context/question-protocol.md).
+
+## Continuation is computed, never decided
+
+```
+PARENT_STATUS = IN_PROGRESS  and  NEXT_READY_WORK_PACKAGE exists
+  → persist state, continue. The next session resumes from Markdown.
+```
+
+Context pressure, session length, token cost and tool-output volume are **not
+blockers**. Never ask "want me to continue?" for ordinary engineering
+continuation — a question under the question protocol is a different thing and
+remains valid at any point.
+
+Full rules: [`../context/context-budget.md`](../context/context-budget.md).
+
+## Failure, research and scope
+
+- Classify every meaningful failure before responding to it, and stop repeating
+  an approach after two materially identical failures —
+  [`../context/failure-adaptation.md`](../context/failure-adaptation.md).
+- Any specialist may enter bounded external research —
+  [`../context/research-mode.md`](../context/research-mode.md).
+- Improvement proposals are capped at three per task, each with evidence. Never
+  silently widen the current task.
+
+## The permanent roster is thirteen
+
+Architect · Product & Backlog Steward · Backend/API · Frontend · UI/UX ·
+Database · Security · Integration · QA · Reviewer · Integrator · Release/DevOps ·
+Knowledge & Graph.
+
+Research, Architecture, Prisma, Migration, CI, Playwright, Documentation,
+Accessibility, Test Data, Cleanup and Performance are **capabilities of these
+roles**, not roles. Each must report `PASS`, `NOT_REQUIRED` with a reason,
+`BLOCKED`, `FAILED` or `HANDOFF_REJECTED`. `UNKNOWN` is not terminal.

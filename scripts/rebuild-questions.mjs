@@ -108,8 +108,14 @@ ${open.length} question(s) waiting on an answer.
 ${table(open, 'Nothing is waiting on a user answer.')}
 `;
 
+/*
+ * Invalid records are not indexed. The house convention across the backlog, QA
+ * and task trees is the same: an index generated from records that do not
+ * validate is a tidy summary of something broken, and it hides the breakage
+ * behind a file that looks freshly built.
+ */
 let changed = 0;
-if (!checkOnly) {
+if (!checkOnly && errors.length === 0) {
   if (writeIfChanged(join(dir, 'index.md'), indexBody)) changed += 1;
   if (writeIfChanged(join(dir, 'open.md'), openBody)) changed += 1;
 }

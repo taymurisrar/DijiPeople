@@ -4793,6 +4793,942 @@ if (trackedFiles) {
   rmSync(sandbox, { recursive: true, force: true });
 }
 
+// ================================================================================
+// TASK-0012 — the agent operating system, simulations 40-62
+// ================================================================================
+//
+// Every simulation here EXECUTES the mechanism against a fixture and asserts on
+// the outcome. None of them greps.
+//
+// That is not a style preference. Check 38l — a grepped check — survived a
+// mutation that set its detection to a constant false while every identifier it
+// searched for stayed in place. A check that reads source for a word cannot tell
+// whether the word still does anything, so it passes for exactly as long as the
+// vocabulary survives, which is longer than the behaviour does.
+//
+// Each block below was also mutation-tested during WP-12: the mechanism was
+// broken and the check observed to fail. A check nobody has seen fail is a check
+// nobody has tested.
+
+{
+  /*
+   * 40-41 — the question protocol.
+   *
+   * The two shapes that lose an answer: options routed to the user with no
+   * recommendation, and a durable question answered without an ADR.
+   */
+  const sandbox = mkdtempSync(join(tmpdir(), 'dijipeople-questions-'));
+  mkdirSync(join(sandbox, 'docs/questions'), { recursive: true });
+
+  const question = (fields, body) => ['---', ...fields, '---', '', '# probe', '', body].join('\n');
+
+  const sections = (recommendation, answer) =>
+    [
+      '## Question',
+      'Should trial tenants keep their data after expiry?',
+      '',
+      '## Why It Matters',
+      'The retention job cannot be written until this is settled.',
+      '',
+      '## Options',
+      '| OPTION | WHAT IT MEANS | COST | RISK |',
+      '|---|---|---|---|',
+      '| purge | delete after 30 days | low | irreversible |',
+      '',
+      '## Agent Recommendation',
+      recommendation,
+      '',
+      '## Answer',
+      answer,
+    ].join('\n');
+
+  const base = () => [
+    'QUESTION_ID: QUESTION-0001',
+    'TITLE: probe',
+    'STATUS: OPEN',
+    'CATEGORY: USER_DECISION_REQUIRED',
+    'ASKED_BY_AGENT: Backend/API',
+    'ASKED_AT: 2026-08-21',
+    'TASK_ID: TASK-0001',
+    'WORK_PACKAGE_ID: WP-01',
+    'BLOCKING: PACKAGE',
+    'ANSWER:',
+    'DECISION_ID:',
+    'KNOWLEDGE_IMPACT: DECISION',
+  ];
+
+  const write = (text) =>
+    writeFileSync(join(sandbox, 'docs/questions/QUESTION-0001-probe.md'), text, 'utf8');
+  /*
+   * Generate first, then check. A fresh sandbox has no indexes at all, so a bare
+   * `--check` reports staleness for every record — which masks the validation
+   * failure actually under test and makes the accepting cases fail for a reason
+   * that has nothing to do with them.
+   *
+   * The rebuild refuses to write indexes for invalid records, so the negative
+   * cases still reach `--check` with no indexes; record errors take precedence
+   * over staleness there, which is the ordering this relies on.
+   */
+  const run = () => {
+    runScript('scripts/rebuild-questions.mjs', ['--root', sandbox]);
+    return runScript('scripts/rebuild-questions.mjs', ['--check', '--root', sandbox]);
+  };
+
+  write(question(base(), sections('', 'Pending.')));
+  const noRecommendation = run();
+  check(
+    'simulation 40: an OPEN question with no Agent Recommendation is refused',
+    !noRecommendation.ok && /Agent Recommendation/i.test(noRecommendation.output),
+    noRecommendation.output.split('\n').filter(Boolean).slice(0, 3).join(' | '),
+  );
+
+  /* With one, the same record is accepted — a check that always fires is unread. */
+  write(question(base(), sections('Purge. It is the only option the Terms already permit.', 'Pending.')));
+  const withRecommendation = run();
+  check(
+    'simulation 40b: the same question carrying a recommendation is accepted',
+    withRecommendation.ok,
+    withRecommendation.output.split('\n').filter(Boolean).slice(0, 3).join(' | '),
+  );
+
+  /*
+   * 41 — an answered durable question with no ADR. Nothing retrieves questions
+   * by module, so this is precisely the answer the next task will not find.
+   */
+  const answered = (extra) =>
+    base().map((line) => {
+      if (line.startsWith('STATUS:')) return 'STATUS: ANSWERED';
+      if (line.startsWith('ANSWER:')) return 'ANSWER: purge after 30 days';
+      if (line.startsWith('DECISION_ID:') && extra) return 'DECISION_ID: ADR-0003';
+      return line;
+    });
+
+  write(question(answered(false), sections('Purge.', 'Purge after 30 days; the Terms already say so.')));
+  const noDecision = run();
+  check(
+    'simulation 41: an ANSWERED durable question without a DECISION_ID is refused',
+    !noDecision.ok && /DECISION_ID/.test(noDecision.output),
+    noDecision.output.split('\n').filter(Boolean).slice(0, 3).join(' | '),
+  );
+
+  write(question(answered(true), sections('Purge.', 'Purge after 30 days; the Terms already say so.')));
+  const withDecision = run();
+  check(
+    'simulation 41b: the same answer carrying an ADR is accepted',
+    withDecision.ok,
+    withDecision.output.split('\n').filter(Boolean).slice(0, 3).join(' | '),
+  );
+
+  rmSync(sandbox, { recursive: true, force: true });
+}
+
+{
+  /*
+   * 42-46 — work-package persistence, continuation and the context budget.
+   *
+   * The behaviours that let a killed session resume without rediscovery.
+   */
+  const sandbox = mkdtempSync(join(tmpdir(), 'dijipeople-wp-'));
+  const taskSlug = 'TASK-0001-probe';
+  mkdirSync(join(sandbox, 'docs/tasks', taskSlug, 'work-packages'), { recursive: true });
+
+  const parent = (rows, next) =>
+    [
+      '---',
+      'TASK_ID: TASK-0001',
+      'TITLE: probe',
+      'TYPE: FRAMEWORK',
+      'SIZE: PROGRAM',
+      'STATUS: IN_PROGRESS',
+      'PRIORITY: P0',
+      'CREATED_AT: 2026-08-21',
+      'AFFECTED_MODULES: [framework]',
+      'AGENTS: [Architect]',
+      'DEPENDENCIES: none',
+      'CURRENT_PACKAGE: WP-01',
+      'NEXT_READY_WORK_PACKAGE: ' + next,
+      'COMPLETED_PACKAGES: []',
+      'BLOCKED_PACKAGES: []',
+      'OWNER_DECISIONS: 0',
+      'FINAL_STATUS:',
+      '---',
+      '',
+      '# TASK-0001 — probe',
+      '',
+      '## Objective',
+      'Probe.',
+      '',
+      '## Work Packages',
+      '',
+      '| WP_ID | TITLE | STATUS | DEPENDENCIES | AGENTS | BRANCH | SHA | QA_STATUS | BUGS | CI_STATUS | MERGE_STATUS |',
+      '|---|---|---|---|---|---|---|---|---|---|---|',
+      ...rows,
+      '',
+      '## Assumptions',
+      'None.',
+      '',
+      '## Owner Decisions',
+      'None.',
+      '',
+      '## Repository Health',
+      'Probe.',
+      '',
+      '## History',
+      '- probe',
+    ].join('\n');
+
+  const pkg = (options) => {
+    const {
+      id,
+      status,
+      deps = [],
+      manifest = true,
+      assumption = 'VERIFIED',
+      questions = 'None.',
+      evidence = 'Executed against a fixture.',
+    } = options;
+
+    return [
+      '---',
+      'WP_ID: ' + id,
+      'TASK_ID: TASK-0001',
+      'TITLE: probe ' + id,
+      'STATUS: ' + status,
+      'OWNER_AGENT: Architect',
+      'DEPENDENCIES: [' + deps.join(', ') + ']',
+      'LAST_VERIFIED_SHA: abc1234',
+      'KNOWLEDGE_IMPACT: [NONE]',
+      'OBSIDIAN_IMPACT: NONE',
+      '---',
+      '',
+      '# ' + id,
+      '',
+      '## Goal',
+      'Probe.',
+      '',
+      '## Context Manifest',
+      '',
+      'REQUIRED:',
+      '- AGENTS.md',
+      '',
+      'OPTIONAL:',
+      '- none',
+      '',
+      ...(manifest ? ['DO_NOT_LOAD:', '- the bug backlog', ''] : []),
+      'LAST_VERIFIED_SHA: abc1234',
+      '',
+      '## Relevant Files',
+      '- none',
+      '',
+      '## Assumptions',
+      '',
+      '| ASSUMPTION_ID | STATEMENT | STATE | EVIDENCE |',
+      '|---|---|---|---|',
+      '| A-01 | probe | ' + assumption + ' | probe |',
+      '',
+      '## Implementation State',
+      'Probe.',
+      '',
+      '## Validation State',
+      'Probe.',
+      '',
+      '## Evidence',
+      evidence,
+      '',
+      '## Questions',
+      questions,
+      '',
+      '## Handoff',
+      'Probe.',
+    ].join('\n');
+  };
+
+  const writeParent = (rows, next) =>
+    writeFileSync(join(sandbox, 'docs/tasks', taskSlug + '.md'), parent(rows, next), 'utf8');
+  const writePkg = (name, text) =>
+    writeFileSync(join(sandbox, 'docs/tasks', taskSlug, 'work-packages', name), text, 'utf8');
+  const run = () => runScript('scripts/check-work-packages.mjs', ['--json', '--root', sandbox]);
+
+  const row = (id, title, status, deps) =>
+    '| ' + id + ' | ' + title + ' | ' + status + ' | ' + (deps || '—') +
+    ' | Architect | agent/probe | — | — | — | — | — |';
+
+  /*
+   * 42 — a package that says it waits on the user must name the question.
+   * Without the reference, WAITING_USER and "stalled" are indistinguishable and
+   * nobody can tell whether an answer would even help.
+   */
+  writeParent([row('WP-01', 'waiting', 'WAITING_USER'), row('WP-02', 'independent', 'READY')], 'WP-02');
+  writePkg('WP-01-waiting.md', pkg({ id: 'WP-01', status: 'WAITING_USER', questions: 'Waiting.' }));
+  writePkg('WP-02-independent.md', pkg({ id: 'WP-02', status: 'READY' }));
+  const unnamed = run();
+  check(
+    'simulation 42: WAITING_USER without a QUESTION-nnnn reference is refused',
+    !unnamed.ok && /WAITING_USER/.test(unnamed.output),
+    (unnamed.output.split('\n').filter((line) => /WAITING_USER/.test(line))[0] || '').slice(0, 160),
+  );
+
+  /*
+   * 43 — one package waits on the user; every independent package keeps moving.
+   * This is what stops a single unanswered question stalling a whole program —
+   * the state TASK-0004 has been sitting in with eleven packages behind it.
+   */
+  writePkg(
+    'WP-01-waiting.md',
+    pkg({ id: 'WP-01', status: 'WAITING_USER', questions: 'Blocked on QUESTION-0001.' }),
+  );
+  const parallelRun = run();
+  let parallelReport = null;
+  try {
+    parallelReport = JSON.parse(parallelRun.output);
+  } catch {
+    parallelReport = null;
+  }
+  const readyIds = parallelReport?.tasks?.[0]?.ready ?? [];
+  check(
+    'simulation 43: a WAITING_USER package does not stop an independent READY package',
+    parallelRun.ok && readyIds.includes('WP-02') && !readyIds.includes('WP-01'),
+    'ready = ' + JSON.stringify(readyIds),
+  );
+
+  /*
+   * 44 — resumption. The continuation pointer is recomputed from the dependency
+   * graph, never trusted: a stale pointer sends the next session to a package
+   * whose dependencies are unmet, or to nothing at all while work remains.
+   */
+  writeParent([row('WP-01', 'done', 'DONE'), row('WP-02', 'next', 'NOT_STARTED', 'WP-01')], 'WP-01');
+  writePkg('WP-01-waiting.md', pkg({ id: 'WP-01', status: 'DONE' }));
+  writePkg('WP-02-independent.md', pkg({ id: 'WP-02', status: 'NOT_STARTED', deps: ['WP-01'] }));
+  const stalePointer = run();
+  check(
+    'simulation 44: a stale NEXT_READY_WORK_PACKAGE is caught by recomputation',
+    !stalePointer.ok && /NEXT_READY_WORK_PACKAGE/.test(stalePointer.output),
+    (stalePointer.output.split('\n').filter((line) => /NEXT_READY/.test(line))[0] || '').slice(0, 160),
+  );
+
+  writeParent([row('WP-01', 'done', 'DONE'), row('WP-02', 'next', 'NOT_STARTED', 'WP-01')], 'WP-02');
+  const freshPointer = run();
+  check(
+    'simulation 44b: the corrected pointer is accepted, so a resuming session has a start',
+    freshPointer.ok,
+    freshPointer.output.split('\n').filter(Boolean).slice(0, 3).join(' | '),
+  );
+
+  /*
+   * 45 — the context budget. A manifest naming nothing to skip is not a budget:
+   * the agent falls back to reading whatever looks relevant, which is exactly
+   * the behaviour the manifest exists to stop.
+   */
+  writePkg(
+    'WP-02-independent.md',
+    pkg({ id: 'WP-02', status: 'NOT_STARTED', deps: ['WP-01'], manifest: false }),
+  );
+  const noExclusions = run();
+  check(
+    'simulation 45: a context manifest with no DO_NOT_LOAD entries is refused',
+    !noExclusions.ok && /DO_NOT_LOAD/.test(noExclusions.output),
+    (noExclusions.output.split('\n').filter((line) => /DO_NOT_LOAD/.test(line))[0] || '').slice(0, 160),
+  );
+
+  /*
+   * 46 — a package cannot reach DONE on an assumption nobody proved, or with no
+   * evidence at all. Both are states where a guess has already been built on.
+   */
+  writeParent([row('WP-01', 'done', 'DONE'), row('WP-02', 'next', 'DONE', 'WP-01')], 'NONE');
+  writePkg(
+    'WP-02-independent.md',
+    pkg({ id: 'WP-02', status: 'DONE', deps: ['WP-01'], assumption: 'UNVERIFIED' }),
+  );
+  const unverified = run();
+  check(
+    'simulation 46: a DONE package with an UNVERIFIED assumption is refused',
+    !unverified.ok && /UNVERIFIED/.test(unverified.output),
+    (unverified.output.split('\n').filter((line) => /UNVERIFIED/.test(line))[0] || '').slice(0, 160),
+  );
+
+  writePkg(
+    'WP-02-independent.md',
+    pkg({ id: 'WP-02', status: 'DONE', deps: ['WP-01'], evidence: 'None.' }),
+  );
+  const noEvidence = run();
+  check(
+    'simulation 46b: a DONE package with no Evidence is refused',
+    !noEvidence.ok && /Evidence/.test(noEvidence.output),
+    (noEvidence.output.split('\n').filter((line) => /Evidence/.test(line))[0] || '').slice(0, 160),
+  );
+
+  rmSync(sandbox, { recursive: true, force: true });
+}
+
+{
+  /*
+   * 47-49 — evidence reuse and invalidation.
+   *
+   * Executed against real git history in a throwaway repository. The whole
+   * mechanism is a question about what changed between two commits, and a mocked
+   * answer would prove nothing about it.
+   */
+  const sandbox = mkdtempSync(join(tmpdir(), 'dijipeople-evidence-'));
+  const git = (args) =>
+    execFileSync('git', args, { cwd: sandbox, stdio: 'pipe', encoding: 'utf8' }).trim();
+
+  let ready = true;
+  let baseSha = '';
+  try {
+    git(['init', '--initial-branch=main', '.']);
+    git(['config', 'user.email', 'probe@example.com']);
+    git(['config', 'user.name', 'probe']);
+    mkdirSync(join(sandbox, 'src'), { recursive: true });
+    mkdirSync(join(sandbox, 'docs'), { recursive: true });
+    writeFileSync(join(sandbox, 'src/app.ts'), 'export const a = 1;\n');
+    writeFileSync(join(sandbox, 'docs/readme.md'), 'notes\n');
+    git(['add', '.']);
+    git(['commit', '-m', 'base']);
+    baseSha = git(['rev-parse', '--short', 'HEAD']);
+  } catch (error) {
+    ready = false;
+    warn('evidence simulation could not initialise — ' + String(error.message).split('\n')[0]);
+  }
+
+  if (ready) {
+    const evidence = (args) => runScript('scripts/evidence.mjs', [...args, '--root', sandbox]);
+
+    evidence([
+      'record',
+      'DB-E2E-001',
+      '--command',
+      'suite',
+      '--scope',
+      'src',
+      '--result',
+      'PASS',
+      '--sha',
+      baseSha,
+    ]);
+
+    /* 47 — an unrelated documentation commit must not invalidate expensive evidence. */
+    writeFileSync(join(sandbox, 'docs/readme.md'), 'notes, revised\n');
+    git(['add', '.']);
+    git(['commit', '-m', 'docs only']);
+
+    const afterDocs = evidence(['check', 'DB-E2E-001']);
+    check(
+      'simulation 47: evidence survives a change outside its declared scope',
+      afterDocs.ok && /REUSABLE/.test(afterDocs.output),
+      afterDocs.output.split('\n').filter(Boolean).slice(0, 3).join(' | '),
+    );
+
+    /* 48 — a change inside the scope invalidates it, and names the file. */
+    writeFileSync(join(sandbox, 'src/app.ts'), 'export const a = 2;\n');
+    git(['add', '.']);
+    git(['commit', '-m', 'in scope']);
+
+    const afterCode = evidence(['check', 'DB-E2E-001']);
+    check(
+      'simulation 48: evidence is invalidated by a change inside its scope',
+      !afterCode.ok && /INVALIDATED/.test(afterCode.output) && /src\/app\.ts/.test(afterCode.output),
+      afterCode.output.split('\n').filter(Boolean).slice(0, 4).join(' | '),
+    );
+
+    /*
+     * 49 — a record with no scope is refused at the point of recording. Without
+     * it, the laziest possible evidence would be the most durable thing in the
+     * ledger, because nothing could ever invalidate it.
+     */
+    const noScope = evidence(['record', 'NO-SCOPE-001', '--command', 'suite', '--result', 'PASS']);
+    check(
+      'simulation 49: evidence with no declared scope is refused',
+      !noScope.ok && /scope/i.test(noScope.output),
+      noScope.output.split('\n').filter(Boolean).slice(0, 3).join(' | '),
+    );
+  }
+
+  rmSync(sandbox, { recursive: true, force: true });
+}
+
+{
+  /*
+   * 50-53 — test resource ownership and cleanup.
+   *
+   * The registry is exercised directly. Every one of these is a behaviour about
+   * what happens when something goes wrong, and all of them are invisible to a
+   * suite that only exercises the happy path.
+   */
+  const { createRegistry } = await import('./lib/test-resources.mjs');
+
+  /* 50 — the ordinary case: everything created is accounted for. */
+  const clean = createRegistry('RUN-001');
+  clean.register({ type: 'tenant', id: 't1' });
+  clean.register({ type: 'employee', id: 'e1' });
+  await clean.cleanup(async () => 'CLEANED');
+  const cleanSummary = clean.summary();
+  check(
+    'simulation 50: a run that cleans what it created reports zero unaccounted',
+    cleanSummary.TEST_RESOURCES_CREATED === 2 &&
+      cleanSummary.TEST_RESOURCES_CLEANED === 2 &&
+      cleanSummary.UNACCOUNTED_TEST_RESOURCES === 0,
+    JSON.stringify(cleanSummary),
+  );
+
+  /*
+   * 51 — setup fails halfway. Teardown must clean exactly the two things that
+   * were made, not the six the fixture intended, and must not throw on ids that
+   * never existed.
+   */
+  const partial = createRegistry('RUN-002');
+  const cleaned = [];
+  try {
+    partial.register({ type: 'tenant', id: 't1' });
+    partial.register({ type: 'business-unit', id: 'bu1' });
+    throw new Error('setup failed on step three');
+  } catch {
+    /* the fixture aborts here, exactly as a real one would */
+  }
+  await partial.cleanup(async (resource) => {
+    cleaned.push(resource.type + ':' + resource.id);
+    return 'CLEANED';
+  });
+  check(
+    'simulation 51: a partially failed setup cleans only what was actually created',
+    cleaned.length === 2 &&
+      cleaned.includes('tenant:t1') &&
+      cleaned.includes('business-unit:bu1') &&
+      partial.summary().UNACCOUNTED_TEST_RESOURCES === 0,
+    JSON.stringify(cleaned),
+  );
+
+  /* Reverse order, so a cascade or a foreign key does not defeat the teardown. */
+  check(
+    'simulation 51b: cleanup runs in reverse creation order',
+    cleaned[0] === 'business-unit:bu1',
+    JSON.stringify(cleaned),
+  );
+
+  /*
+   * 52 — a cleanup that fails must be visible and must stop a PASS. A
+   * try/catch around teardown turns a leaked tenant into a green suite.
+   */
+  const leaked = createRegistry('RUN-003');
+  leaked.register({ type: 'tenant', id: 't1' });
+  leaked.register({ type: 'stripe-customer', id: 'cus_1' });
+  await leaked.cleanup(async (resource) => {
+    if (resource.type === 'stripe-customer') throw new Error('provider refused');
+    return 'CLEANED';
+  });
+  const leakedVerdict = leaked.mayPass();
+  check(
+    'simulation 52: a failed owned-resource cleanup blocks a QA PASS',
+    !leakedVerdict.ok &&
+      leaked.summary().TEST_RESOURCE_CLEANUP_FAILURES === 1 &&
+      /provider refused/.test(leaked.summary().failures.join(' ')),
+    JSON.stringify(leakedVerdict.reasons),
+  );
+
+  /*
+   * 53 — durable evidence is not an ephemeral resource. Deleting the screenshot
+   * because the row it was taken against was deleted destroys the proof the run
+   * existed to produce.
+   */
+  const withEvidence = createRegistry('RUN-004');
+  withEvidence.register({ type: 'tenant', id: 't1' });
+  withEvidence.register({ type: 'screenshot', id: 'shot-1.png' });
+  const touched = [];
+  await withEvidence.cleanup(async (resource) => {
+    touched.push(resource.type);
+    return 'CLEANED';
+  });
+  const evidenceSummary = withEvidence.summary();
+  check(
+    'simulation 53: durable evidence is retained, not cleaned with the resource',
+    !touched.includes('screenshot') &&
+      evidenceSummary.TEST_RESOURCES_RETAINED_AS_EVIDENCE === 1 &&
+      evidenceSummary.UNACCOUNTED_TEST_RESOURCES === 0,
+    JSON.stringify({ touched, summary: evidenceSummary }),
+  );
+
+  /*
+   * 53c — a provider that will not delete an object reports the limitation. A
+   * false CLEANED is worse than an honest one, because the next run trusts it.
+   */
+  const provider = createRegistry('RUN-005');
+  provider.register({ type: 'stripe-price', id: 'price_1', cleanup: 'archive' });
+  await provider.cleanup(async () => 'ARCHIVED_PROVIDER_LIMITATION');
+  const providerSummary = provider.summary();
+  check(
+    'simulation 53c: an undeletable provider object is ARCHIVED, never reported CLEANED',
+    providerSummary.TEST_RESOURCES_ARCHIVED_PROVIDER_LIMITATION === 1 &&
+      providerSummary.TEST_RESOURCES_CLEANED === 0 &&
+      providerSummary.UNACCOUNTED_TEST_RESOURCES === 0,
+    JSON.stringify(providerSummary),
+  );
+}
+
+{
+  /*
+   * 54 — id allocation for every numbered shared resource.
+   *
+   * Successive allocations must not collide. This repository has twice had to
+   * renumber colliding records, both times because an id was chosen by scanning
+   * a directory rather than reserved through the allocator.
+   */
+  const { allocateId } = await import('./lib/id-allocator.mjs');
+
+  for (const kind of ['regression', 'bug', 'question']) {
+    const ids = new Set();
+    let failed = '';
+    try {
+      for (let index = 0; index < 4; index += 1) {
+        ids.add(allocateId(ROOT, kind, { note: 'validate-framework allocation probe' }));
+      }
+    } catch (error) {
+      failed = String(error.message).split('\n')[0];
+    }
+
+    check(
+      'simulation 54: four successive ' + kind + ' allocations are all distinct',
+      !failed && ids.size === 4,
+      failed || 'got ' + JSON.stringify([...ids]),
+    );
+  }
+}
+
+{
+  /*
+   * 55-56 — semantic record validation.
+   *
+   * A record whose terminal status contradicts its own prose, and — just as
+   * important — a record stating an honest gap that must NOT be flagged.
+   */
+  const { loadRecords } = await import('./lib/backlog-records.mjs');
+
+  const sandbox = mkdtempSync(join(tmpdir(), 'dijipeople-semantic-'));
+  mkdirSync(join(sandbox, 'docs/bugs'), { recursive: true });
+
+  const bug = (retest) =>
+    [
+      '---',
+      'ID: BUG-0001',
+      'Title: probe',
+      'Status: VERIFIED',
+      'Severity: HIGH',
+      'Priority: P1',
+      'Type: BUG',
+      'Source: QA_RUN',
+      'DetectedDate: 2026-08-01',
+      'DetectedInSha: abc1234',
+      'AffectedModules: [services/api]',
+      'OwnerAgent: backend-api',
+      'ArchitectDisposition: DONE',
+      'QAReport:',
+      'RegressionId:',
+      'RelatedBacklogItem:',
+      'RelatedDecision:',
+      'RelatedImplementation:',
+      'CreatedAt: 2026-08-01',
+      'UpdatedAt: 2026-08-02',
+      'ResolvedAt: 2026-08-02',
+      '---',
+      '',
+      '# BUG-0001 — probe',
+      '',
+      '## Summary',
+      'Probe.',
+      '',
+      '## Expected Behavior',
+      'Probe.',
+      '',
+      '## Actual Behavior',
+      'Probe.',
+      '',
+      '## Reproduction',
+      'Probe.',
+      '',
+      '## Evidence',
+      'Probe.',
+      '',
+      '## Root Cause',
+      'Probe.',
+      '',
+      '## Impact',
+      'Probe.',
+      '',
+      '## Affected Areas',
+      'Probe.',
+      '',
+      '## Proposed Resolution',
+      'Probe.',
+      '',
+      '## Acceptance Criteria',
+      'Probe.',
+      '',
+      '## Regression Coverage',
+      'Probe.',
+      '',
+      '## Dependencies',
+      'Probe.',
+      '',
+      '## Related Items',
+      'Probe.',
+      '',
+      '## Resolution',
+      'The guard now scopes by tenant.',
+      '',
+      '## QA Retest',
+      retest,
+      '',
+      '## History',
+      '- probe',
+    ].join('\n');
+
+  const path = join(sandbox, 'docs/bugs/BUG-0001-probe.md');
+
+  /* 55 — VERIFIED above a section saying the retest never ran. */
+  writeFileSync(path, bug('The retest has not yet been run.'), 'utf8');
+  const contradictory = loadRecords(sandbox);
+  check(
+    'simulation 55: VERIFIED contradicting its own QA Retest section is caught',
+    contradictory.errors.some((error) => /contradicts its own/.test(error)),
+    contradictory.errors.slice(0, 2).join(' | '),
+  );
+
+  /*
+   * 56 — the false positive that must not happen. BUG-0034 is a real record that
+   * ran its retest, passed, and stated precisely what it could not cover. It was
+   * this check's first output, and flagging it would teach people to stop
+   * writing their limits down.
+   */
+  writeFileSync(
+    path,
+    bug(
+      [
+        'Pass, with one honest gap.',
+        '',
+        'The unit suites cover the scoped query.',
+        '',
+        'Not verified end-to-end. There is no staging environment here, so no',
+        'agent has actually installed through this path.',
+      ].join('\n'),
+    ),
+    'utf8',
+  );
+  const honest = loadRecords(sandbox);
+  check(
+    'simulation 56: a passing retest that declares a scoped gap is NOT flagged',
+    !honest.errors.some((error) => /contradicts its own/.test(error)),
+    honest.errors.slice(0, 2).join(' | '),
+  );
+
+  rmSync(sandbox, { recursive: true, force: true });
+}
+
+{
+  /*
+   * 57-58 — the QA evidence hierarchy.
+   *
+   * A static source-shape test is useful and is not behavioural proof. Three
+   * authorization defects shipped here behind tests asserting a decorator was
+   * present while the guard was inert.
+   */
+  const { evidenceSatisfies, evidenceRank } = await import('./lib/qa-records.mjs');
+
+  const below = evidenceSatisfies('L4_REAL_POSTGRESQL', 'L1_STATIC_SOURCE_SHAPE', 'PASS');
+  check(
+    'simulation 57: a PASS below its required evidence level is refused',
+    !below.ok && /below/.test(below.reason),
+    below.reason,
+  );
+
+  const met = evidenceSatisfies('L2_UNIT_BEHAVIORAL', 'L4_REAL_POSTGRESQL', 'PASS');
+  check('simulation 58: a PASS at or above the required level is accepted', met.ok, met.reason);
+
+  /*
+   * Only success is gated. Reporting a FAIL on weak evidence is honest, and a
+   * rule blocking it would discourage saying anything is broken.
+   */
+  const failing = evidenceSatisfies('L5_BROWSER_JOURNEY', 'L1_STATIC_SOURCE_SHAPE', 'FAIL');
+  check(
+    'simulation 58b: a FAIL on low evidence is still allowed to be reported',
+    failing.ok,
+    failing.reason,
+  );
+
+  check(
+    'simulation 58c: the hierarchy is ordered, so levels are comparable',
+    evidenceRank('L0_DOCUMENTATION') < evidenceRank('L4_REAL_POSTGRESQL') &&
+      evidenceRank('L4_REAL_POSTGRESQL') < evidenceRank('L7_PRODUCTION_SMOKE'),
+    'ranks are not monotonic',
+  );
+}
+
+{
+  /*
+   * 59-60 — the Obsidian node contract.
+   *
+   * Provenance round-trip, status parity, and the link rules that stop a
+   * detected inconsistency being converted into a fabricated one.
+   */
+  const { renderNote, readProvenance } = await import('./lib/obsidian-node.mjs');
+  const { relationshipIsValid, nodeTypeFor } = await import('./lib/obsidian-mappings.mjs');
+
+  const source = [
+    '---',
+    'ID: BUG-0005',
+    'Status: VERIFIED',
+    'AffectedModules: [services/api/src/modules/auth]',
+    '---',
+    '',
+    '# BUG-0005 — probe',
+    '',
+    'Body.',
+  ].join('\n');
+
+  const rendered = renderNote({
+    source,
+    sourcePath: 'docs/bugs/BUG-0005-probe.md',
+    filename: 'BUG-0005-probe.md',
+    nodeType: 'bug',
+    sourceCommit: 'abc1234',
+    lastVerified: '2026-08-19',
+  });
+  const provenance = readProvenance(rendered);
+
+  check(
+    'simulation 59: a generated note carries provenance derived from its record',
+    provenance !== null &&
+      provenance.sourceId === 'BUG-0005' &&
+      provenance.sourcePath === 'docs/bugs/BUG-0005-probe.md' &&
+      provenance.nodeType === 'bug' &&
+      provenance.status === 'VERIFIED' &&
+      provenance.sourceCommit === 'abc1234',
+    JSON.stringify(provenance),
+  );
+
+  /*
+   * 59b — a note without generated:true belongs to a human. Reading it as
+   * generated is what would let the sync overwrite somebody's own notes.
+   */
+  check(
+    'simulation 59b: a note without generated:true is not treated as generated',
+    readProvenance('---\nID: BUG-0005\n---\n\nManual note.\n') === null,
+    'manual notes must never be claimed by the generator',
+  );
+
+  /*
+   * 59c — status parity. A vault saying OPEN while the record says VERIFIED is
+   * worse than a vault with no status: somebody reads it and acts on it.
+   */
+  const staleNote = rendered.replace('status: VERIFIED', 'status: OPEN');
+  check(
+    'simulation 59c: a status mismatch between note and record is detectable',
+    readProvenance(staleNote).status === 'OPEN' && /^Status: VERIFIED$/m.test(source),
+    'the note and its record must be comparable on status',
+  );
+
+  /*
+   * 60 — semantic links. A Bug pointing at its Regression is knowledge; a Bug
+   * pointing at a Session because somebody needed to clear a graph orphan is
+   * noise that looks identical in the graph view.
+   */
+  check(
+    'simulation 60: a defined relationship is accepted',
+    relationshipIsValid('bug', 'regression') && relationshipIsValid('task', 'work-package'),
+    'BUG-REGRESSION and TASK-WORK_PACKAGE are both defined',
+  );
+  check(
+    'simulation 60b: an undefined relationship is a semantic link error',
+    !relationshipIsValid('bug', 'session') && !relationshipIsValid('regression', 'release'),
+    'linking anything to anything makes the graph meaningless',
+  );
+  check(
+    'simulation 60c: dashboards are exempt rather than enumerated',
+    relationshipIsValid('dashboard', 'bug') && relationshipIsValid('dashboard', 'session'),
+    'a listing surface links everywhere by design',
+  );
+
+  /*
+   * 60d — a work package is not its parent task. They take part in different
+   * relationships, so sharing a node type would make both sets of checks wrong.
+   */
+  check(
+    'simulation 60d: a work-package file is typed separately from its parent task',
+    nodeTypeFor({ from: 'docs/tasks', nodeType: 'task' }, 'TASK-0012-x/work-packages/WP-01-y.md') ===
+      'work-package' &&
+      nodeTypeFor({ from: 'docs/tasks', nodeType: 'task' }, 'TASK-0012-x.md') === 'task',
+    'the parent and its packages must not share a type',
+  );
+}
+
+{
+  /*
+   * 61-62 — backlog stewardship and agent health.
+   *
+   * Both are reporting mechanisms, and both are worth having only if they report
+   * the truth rather than a comfortable number.
+   */
+  const review = runScript('scripts/backlog-review.mjs', ['--json']);
+  let stewardReport = null;
+  try {
+    stewardReport = JSON.parse(review.output);
+  } catch {
+    stewardReport = null;
+  }
+
+  check(
+    'simulation 61: the steward view computes record-health detectors',
+    stewardReport !== null &&
+      typeof stewardReport.health === 'object' &&
+      'OWNERLESS' in stewardReport.health &&
+      'NO_ACCEPTANCE_CRITERIA' in stewardReport.health &&
+      'NO_NEXT_ACTION' in stewardReport.health,
+    review.output.split('\n').slice(0, 2).join(' | '),
+  );
+
+  /*
+   * 61b — the ranking must be able to disagree with severity, or it is severity
+   * sorting with extra steps. Every entry carries the reasons that produced it,
+   * so a human argues with the evidence rather than the number.
+   */
+  const ranked = stewardReport?.nextBestActions ?? [];
+  check(
+    'simulation 61b: NEXT_BEST_ACTIONS ranks with stated reasons, not severity alone',
+    ranked.length > 0 &&
+      ranked.every((entry) => Array.isArray(entry.reasons) && entry.reasons.length > 0) &&
+      ranked.some((entry) => entry.reasons.some((reason) => !/^severity/.test(reason))),
+    JSON.stringify(ranked.slice(0, 1)),
+  );
+
+  const health = runScript('scripts/agent-health.mjs', ['--json']);
+  let healthReport = null;
+  try {
+    healthReport = JSON.parse(health.output);
+  } catch {
+    healthReport = null;
+  }
+
+  /*
+   * 62 — signals the records cannot support are reported as NOT_DERIVABLE with a
+   * reason, never estimated. A number invented to fill a column gets trusted,
+   * which makes it worse than an empty column.
+   */
+  check(
+    'simulation 62: agent health reports non-derivable signals rather than fabricating them',
+    healthReport !== null &&
+      typeof healthReport.NOT_DERIVABLE === 'object' &&
+      Object.keys(healthReport.NOT_DERIVABLE).length > 0 &&
+      Object.values(healthReport.NOT_DERIVABLE).every((reason) => String(reason).length > 20),
+    JSON.stringify(Object.keys(healthReport?.NOT_DERIVABLE ?? {})),
+  );
+
+  check(
+    'simulation 62b: agent health canonicalises role names before deriving anything',
+    healthReport !== null &&
+      Array.isArray(healthReport.roles) &&
+      healthReport.roles.length > 0 &&
+      healthReport.roles.every((role) => !role.role.includes('/')),
+    'a role spelled two ways splits its history and makes every signal plausible and false',
+  );
+}
+
 // ------------------------------------------------------------------- reporting
 
 if (warnings.length) {

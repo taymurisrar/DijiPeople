@@ -426,6 +426,98 @@ function validate(record, kind, errors) {
     }
   }
 
+  /*
+   * Semantic contradiction between a terminal status and the record's own prose.
+   *
+   * Structural validation already checks that Status and ArchitectDisposition
+   * agree with each other. It cannot see the case that actually happened here:
+   * a record whose frontmatter said VERIFIED sitting above a QA Retest section
+   * that said the retest had not been run. Both fields were internally
+   * consistent, and the record was still false.
+   *
+   * Deliberately bounded to phrases that cannot mean anything else in the
+   * section they appear in. A validator that guesses at prose produces false
+   * positives, and the first response to a noisy validator is to stop reading
+   * it — which costs more than the check was worth. Anything needing
+   * interpretation is the Reviewer's job, not this function's.
+   */
+  const contradictions = [
+    {
+      section: 'QA Retest',
+      statuses: ['VERIFIED', 'CLOSED'],
+      pattern:
+        /\b(not (?:yet )?(?:been )?(?:re)?(?:tested|verified|executed|run)|retest (?:is )?(?:still )?pending|awaiting (?:qa )?retest)\b/i,
+      says: 'the retest has not happened',
+    },
+    {
+      section: 'Resolution',
+      statuses: ['VERIFIED', 'CLOSED', 'FIXED', 'DONE'],
+      pattern:
+        /\b(not (?:yet )?(?:been )?implemented|implementation (?:is )?(?:still )?in progress|pending (?:a )?product decision|no fix (?:has been )?(?:applied|written))\b/i,
+      says: 'the fix has not landed',
+    },
+  ];
+
+  for (const rule of contradictions) {
+    if (!rule.statuses.includes(status)) continue;
+
+    /*
+     * `[^\S\r\n]*` rather than `\s*` after the heading: `\s*` is greedy across
+     * newlines, so an empty section swallows its own boundary and captures
+     * everything after it — which would make this rule read the *next*
+     * section's prose and attribute it to this one.
+     */
+    const escaped = rule.section.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const block = new RegExp(
+      `##[^\\S\\r\\n]+${escaped}[^\\S\\r\\n]*\\r?\\n([\\s\\S]*?)(?=\\r?\\n##[^\\S\\r\\n]|$)`,
+    ).exec(record.body);
+    if (!block) continue;
+
+    /*
+     * Blockquotes and code fences describe history — "this used to say the
+     * retest was pending" — rather than the current state, and flagging them
+     * would punish exactly the records that explain themselves best.
+     */
+    const prose = block[1]
+      .replace(/```[\s\S]*?```/g, '')
+      .split(/\r?\n/)
+      .filter((line) => !line.trim().startsWith('>'))
+      .join('\n');
+
+    /*
+     * The opening line of the section is the verdict; everything after it is
+     * qualification. A section that begins "Pass, with one honest gap" and later
+     * says "not verified end-to-end" is a *good* record — it ran the retest and
+     * stated precisely what it could not cover.
+     *
+     * BUG-0034 is exactly that record, and flagging it was this check's first
+     * output. Punishing the records that explain their own limits is how a
+     * validator teaches people to stop writing limits down.
+     */
+    const verdict = prose.split(/\r?\n/).find((line) => line.trim());
+    if (verdict && /^\**\s*(pass|passed|verified|re-?tested|green|confirmed)\b/i.test(verdict.trim())) {
+      continue;
+    }
+
+    /*
+     * A scoped negative is a stated gap, not a contradiction. "Not verified
+     * end-to-end" and "not tested against a real provider" both mean the retest
+     * happened and its boundary is being declared.
+     */
+    const scoped = new RegExp(
+      `${rule.pattern.source}\\s*(end.to.end|in production|against|on real|in this environment|manually|locally)`,
+      'i',
+    );
+    if (scoped.test(prose)) continue;
+
+    const hit = rule.pattern.exec(prose);
+    if (hit) {
+      errors.push(
+        `${where}: Status ${status} contradicts its own "## ${rule.section}" section, which says ${rule.says} ("${hit[0].trim()}")`,
+      );
+    }
+  }
+
   if (record.body.split(/\r?\n/).some((line) => line.trim() === '</content>')) {
     errors.push(`${where}: contains stray literal </content> wrapper text`);
   }
