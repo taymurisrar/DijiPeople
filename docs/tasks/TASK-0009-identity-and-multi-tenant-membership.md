@@ -103,7 +103,7 @@ the wrong design, however elegant it looks.
 | WP-08 | Second workspace for an existing identity — no activation step | DONE | WP-04 | Backend/API, Integration | agent/identity-and-membership | pending | PASS | — | NOT_RUN | NOT_STARTED |
 | WP-09 | Contract phase — `identityId` required (written, held for a later deployment) | BLOCKED | WP-02/03 reaching production | Database, Backend/API | agent/identity-and-membership | — | — | — | — | — |
 | WP-10 | Security review — enumeration, credential stuffing, cross-tenant reach | DONE | WP-01..WP-08 | Security | agent/identity-and-membership | pending | PASS | ITEM-0069 | NOT_RUN | NOT_STARTED |
-| WP-11 | QA campaign, browser E2E, review, CI, integration, closure | NOT_STARTED | WP-10 | QA, Reviewer, Integrator, Architect | agent/identity-and-membership | — | — | — | — | — |
+| WP-11 | QA campaign, review, CI, integration, closure | IN_PROGRESS | WP-10 | QA, Reviewer, Integrator, Architect | agent/identity-and-membership | — | PASS_WITH_RISKS | ITEM-0069 | NOT_RUN | NOT_STARTED |
 
 **WP-01 is not identity work, and it is here because it was unblocked and
 nothing else was.** The owner asked for the legal drafts to be published;

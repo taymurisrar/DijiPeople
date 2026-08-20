@@ -151,6 +151,7 @@ _None._
 
 ## Recent QA Runs
 
+- [[2026-08-20-identity-and-membership-3008a13|QA Run — identity-and-membership]]
 - [[2026-08-19-self-service-onboarding-provisioning-f5bd870|QA Run — self-service-onboarding-provisioning]]
 - [[2026-08-19-ci-e2e-remediation-3f03571|QA Run — ci-e2e-remediation]]
 - [[2026-08-18-primary-worktree-repository-health-494c44d|QA Run — primary-worktree-repository-health]]
@@ -158,7 +159,6 @@ _None._
 - [[2026-08-17-web-app-documentation-1af3690|QA Run — apps/web documentation audit (TASK-0003)]]
 - [[2026-08-17-record-state-reconciliation-d919e1a|QA Run — record-state-reconciliation]]
 - [[2026-08-17-landing-uiux-browser-qa-f58ee1d|QA Run — landing-uiux-browser-qa]]
-- [[2026-08-17-global-remediation-discovery-0051180|QA Run — global-remediation-discovery]]
 
 ## Recent Implementations
 
@@ -231,7 +231,7 @@ _None. Nothing has been deployed through the release process._
 | Bug records | 80 |
 | Backlog items | 69 |
 | Known bug patterns | 23 |
-| QA runs | 20 |
+| QA runs | 21 |
 | Engineering history records | 21 |
 | Release records | 0 |
 | Module notes | 27 |

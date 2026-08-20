@@ -17,7 +17,6 @@ graph and the block reasons. See
 | Task | WP | Title |
 |---|---|---|
 | [TASK-0005](TASK-0005-dijipeople-global-technical-remediation.md) | WP-04 | Database E2E isolation and residual defect proof |
-| [TASK-0009](TASK-0009-identity-and-multi-tenant-membership.md) | WP-11 | QA campaign, browser E2E, review, CI, integration, closure |
 
 ## Needs a human
 
