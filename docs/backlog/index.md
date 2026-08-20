@@ -13,20 +13,20 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 38 |
+| Open (active work) | 37 |
 | Blocked | 0 |
 | Deferred | 13 |
-| Awaiting a product decision | 3 |
+| Awaiting a product decision | 4 |
 | Completed / closed | 98 |
 | **Open CRITICAL** | **0** |
-| **Open HIGH** | **12** |
+| **Open HIGH** | **11** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
 
 | Severity | Count |
 |---|---|
-| HIGH | 12 |
+| HIGH | 11 |
 | MEDIUM | 21 |
 | LOW | 5 |
 
@@ -35,7 +35,7 @@ see [`README.md`](README.md) for why.
 | Type | Count |
 |---|---|
 | ARCHITECTURE | 2 |
-| DATA_INTEGRITY | 2 |
+| DATA_INTEGRITY | 1 |
 | DOCUMENTATION | 2 |
 | FOLLOW_UP | 3 |
 | INFRA | 3 |
@@ -52,8 +52,8 @@ see [`README.md`](README.md) for why.
 |---|---|
 | OPEN | 4 |
 | DEFERRED | 13 |
-| PRODUCT_DECISION | 3 |
-| FIXED | 8 |
+| PRODUCT_DECISION | 4 |
+| FIXED | 7 |
 | VERIFIED | 68 |
 | DUPLICATE | 1 |
 | READY | 26 |
@@ -110,7 +110,7 @@ see [`README.md`](README.md) for why.
 | [BUG-0077](../../docs/bugs/BUG-0077-public-subscribe-creates-a-tenant-and-a-second-customeraccou.md) | Public subscribe creates a Tenant and a second CustomerAccount before payment | DATA_INTEGRITY | HIGH | P1 | FIXED | billing, super-admin, tenants | FIX_NOW |
 | [BUG-0078](../../docs/bugs/BUG-0078-provisioning-requested-has-no-consumer-so-a-paid-self-servic.md) | PROVISIONING_REQUESTED has no consumer so a paid self-service customer is never provisioned | STATE_MACHINE | HIGH | P1 | FIXED | billing, outbox, super-admin | FIX_NOW |
 | [BUG-0079](../../docs/bugs/BUG-0079-browser-e2e-spends-its-whole-install-step-on-apt-work-that-i.md) | Browser e2e spends its whole install step on apt work that installs no browser library | PERFORMANCE | HIGH | P1 | FIXED | .github/workflows, e2e | FIX_NOW |
-| [BUG-0080](../../docs/bugs/BUG-0080-seeded-prices-bill-a-flat-fee-while-the-terms-say-the-billab.md) | Seeded prices bill a flat fee while the Terms say the billable unit is an active employee | DATA_INTEGRITY | HIGH | P1 | FIXED | billing, super-admin, legal | FIX_NOW |
+| [BUG-0080](../../docs/bugs/BUG-0080-seeded-prices-bill-a-flat-fee-while-the-terms-say-the-billab.md) | Seeded prices bill a flat fee while the Terms say the billable unit is an active employee | DATA_INTEGRITY | HIGH | P1 | PRODUCT_DECISION | billing, super-admin, legal | PRODUCT_DECISION |
 | [BUG-0082](../../docs/bugs/BUG-0082-the-onboarding-wizard-collects-five-steps-of-data-it-cannot-.md) | The onboarding wizard collects five steps of data it cannot submit | UX | HIGH | P1 | FIXED | landing | FIX_NOW |
 | [BUG-0083](../../docs/bugs/BUG-0083-the-database-agent-preflight-reports-pass-on-a-database-with.md) | The Database Agent preflight reports PASS on a database with every migration unapplied | INFRA | HIGH | P1 | VERIFIED | scripts, .agent, services/api | DONE |
 | [BUG-0085](../../docs/bugs/BUG-0085-the-release-command-aborted-a-first-deploy-and-otherwise-res.md) | The release command aborted a first deploy, and otherwise reset the super admin password | INFRA | HIGH | P1 | VERIFIED | platform-users, legal | DONE |

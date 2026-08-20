@@ -6910,13 +6910,13 @@
         "detected_in_sha": "d4c0b00",
         "created_at": "2026-08-20",
         "updated_at": "2026-08-20",
-        "resolved_at": "2026-08-20"
+        "resolved_at": ""
       },
       "type": "DATA_INTEGRITY",
       "title": "Seeded prices bill a flat fee while the Terms say the billable unit is an active employee",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "FIXED",
+      "current_status": "PRODUCT_DECISION",
       "current_evidence": {
         "paths": [
           "services/api/src/modules/super-admin/commercial-bootstrap.ts",
@@ -6943,10 +6943,10 @@
       ],
       "test_plan": [],
       "active_session_conflict": "NONE",
-      "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
+      "owner_decision_required": "YES",
+      "architect_disposition": "PRODUCT_DECISION",
       "verification_result": {
-        "result": "FIXED",
+        "result": "PENDING_DECISION",
         "classification": "TERMINAL_AS_DOCUMENTED",
         "finding_ids": []
       }

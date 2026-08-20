@@ -2,7 +2,7 @@
 ID: BUG-0080
 aliases: [BUG-0080]
 Title: Seeded prices bill a flat fee while the Terms say the billable unit is an active employee
-Status: FIXED
+Status: PRODUCT_DECISION
 Severity: HIGH
 Priority: P1
 Type: DATA_INTEGRITY
@@ -11,7 +11,7 @@ DetectedDate: 2026-08-20
 DetectedInSha: d4c0b00
 AffectedModules: [billing, super-admin, legal]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: PRODUCT_DECISION
 QAReport: 
 RegressionId: REG-075
 RelatedBacklogItem:
@@ -19,7 +19,7 @@ RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-20
 UpdatedAt: 2026-08-20
-ResolvedAt: 2026-08-20
+ResolvedAt:
 ---
 
 # BUG-0080 — Seeded prices bill a flat fee while the Terms say the billable unit is an active employee
@@ -153,7 +153,20 @@ customers are charged.
 
 ## Resolution
 
-Pending a product decision.
+**Not resolved. Awaiting a product decision**, and the record's status was
+corrected on 2026-08-20 to say so — it read `FIXED` while its own resolution
+said the opposite, which is exactly the kind of disagreement that lets a release
+count a blocker as closed.
+
+**The decision became more urgent, not less.** TASK-0010 WP-02 wired
+`legal:publish` into `npm run release`, so a deployment now *publishes* the
+Terms of Service rather than leaving it a draft. The sentence *"the billable
+unit is an active employee"* stops being a draft the moment the first deploy
+runs, while every seeded price is still `BillingModel.FLAT` and Stripe charges
+the same amount for 5 seats as for 500.
+
+Before publication this was an internal inconsistency. After it, it is a
+published commercial term that the billing system does not honour.
 
 ## QA Retest
 
