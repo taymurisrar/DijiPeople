@@ -114,3 +114,132 @@ export async function mirrorPasswordToIdentity(
     data: { passwordHash, passwordChangedAt: new Date() },
   });
 }
+
+/**
+ * The credential to check a sign-in against, and where it came from.
+ *
+ * During the expand phase both copies exist. The identity is authoritative
+ * where it is present, because it is the one every password write now reaches
+ * (WP-04) and the one a workspace-less sign-in will have to use (WP-06). The
+ * `User` copy is the fallback, and it is not dead code: `identityId` is
+ * nullable until the contract phase, so a row the backfill has not reached yet
+ * must still be able to authenticate rather than being locked out by a
+ * migration that has not run.
+ *
+ * Returning the source alongside the hash rather than just the hash is
+ * deliberate — it is what lets the fallback be *counted* instead of merely
+ * happening. A fallback nobody measures is how "temporary" becomes permanent.
+ */
+export async function resolveLoginCredential(
+  db: IdentityDb,
+  userId: string,
+): Promise<{
+  passwordHash: string;
+  source: 'IDENTITY' | 'USER';
+  identityId: string | null;
+  identityLockedUntil: Date | null;
+} | null> {
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    select: {
+      passwordHash: true,
+      identityId: true,
+      identity: {
+        select: {
+          id: true,
+          passwordHash: true,
+          status: true,
+          lockedUntil: true,
+        },
+      },
+    },
+  });
+  if (!user) return null;
+
+  if (user.identity) {
+    /*
+     * A suspended identity cannot sign in anywhere, whatever any individual
+     * workspace account says. `User.status` answers a different question — is
+     * this account usable in *this* tenant — and both have to pass.
+     */
+    if (user.identity.status === 'SUSPENDED') return null;
+
+    return {
+      passwordHash: user.identity.passwordHash,
+      source: 'IDENTITY',
+      identityId: user.identity.id,
+      identityLockedUntil: user.identity.lockedUntil,
+    };
+  }
+
+  return {
+    passwordHash: user.passwordHash,
+    source: 'USER',
+    identityId: null,
+    identityLockedUntil: null,
+  };
+}
+
+/**
+ * Record a failed sign-in against the person, not only the workspace account.
+ *
+ * The per-tenant counter on `User` stays exactly as it is — a tenant's own
+ * lockout policy governs sign-ins to that tenant, and it already works. This is
+ * an **additional** global counter, never an alternative one: an attacker who
+ * can name a tenant must not be able to escape a platform-level lock by doing
+ * so, and one who cannot name a tenant still has to be stopped.
+ *
+ * Deliberately fixed rather than policy-driven. A global lock has no tenant to
+ * take a policy from, and inventing "the strictest policy across the tenants
+ * this person belongs to" would mean one workspace's settings silently
+ * governing another's sign-ins.
+ *
+ * Never throws. Bookkeeping must not turn a wrong password into a 500.
+ */
+export const GLOBAL_ATTEMPTS_BEFORE_LOCK = 20;
+export const GLOBAL_LOCK_MINUTES = 60;
+
+export async function registerIdentityFailure(
+  db: IdentityDb,
+  identityId: string,
+): Promise<void> {
+  try {
+    const identity = await db.identity.findUnique({
+      where: { id: identityId },
+      select: { failedLoginAttempts: true },
+    });
+    if (!identity) return;
+
+    const attempts = identity.failedLoginAttempts + 1;
+    const shouldLock = attempts >= GLOBAL_ATTEMPTS_BEFORE_LOCK;
+
+    await db.identity.update({
+      where: { id: identityId },
+      data: shouldLock
+        ? {
+            // Reset with the lock, so one failure after expiry does not
+            // immediately re-lock.
+            failedLoginAttempts: 0,
+            lockedUntil: new Date(Date.now() + GLOBAL_LOCK_MINUTES * 60_000),
+          }
+        : { failedLoginAttempts: attempts },
+    });
+  } catch {
+    // Intentionally silent — see above.
+  }
+}
+
+/** Clears the global counter after a correct password. */
+export async function registerIdentitySuccess(
+  db: IdentityDb,
+  identityId: string,
+): Promise<void> {
+  try {
+    await db.identity.update({
+      where: { id: identityId },
+      data: { failedLoginAttempts: 0, lockedUntil: null },
+    });
+  } catch {
+    // Intentionally silent — see above.
+  }
+}

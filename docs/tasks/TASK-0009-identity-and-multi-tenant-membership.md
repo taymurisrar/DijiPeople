@@ -10,8 +10,8 @@ CREATED_AT: 2026-08-20
 AFFECTED_MODULES: [auth, users, legal, tenant-domains, super-admin, web, admin]
 AGENTS: [Architect, Database, Backend/API, Frontend, UI/UX, Security, QA, Reviewer, Integrator]
 DEPENDENCIES: origin/develop 844b6d3; TASK-0008 WP-02, WP-04, WP-05
-CURRENT_PACKAGE: WP-04
-COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-12]
+CURRENT_PACKAGE: WP-05
+COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-04, WP-12]
 BLOCKED_PACKAGES: []
 OWNER_DECISIONS: 2
 FINAL_STATUS:
@@ -96,7 +96,7 @@ the wrong design, however elegant it looks.
 | WP-02 | `Identity` model, `User.identityId`, expand-phase migration | DONE | — | Database, Backend/API | agent/identity-and-membership | pending | PASS | — | NOT_RUN | NOT_STARTED |
 | WP-03 | Backfill — one Identity per distinct email, linking same-email rows | DONE | WP-02 | Database | agent/identity-and-membership | pending | PASS | — | NOT_RUN | NOT_STARTED |
 | WP-12 | Every user-creation path writes an Identity | DONE | WP-03 | Backend/API, Database | agent/identity-and-membership | pending | PASS | — | NOT_RUN | NOT_STARTED |
-| WP-04 | Authentication split — identity resolution, then tenant selection | IN_PROGRESS | WP-12 | Backend/API, Security | agent/identity-and-membership | — | — | — | — | — |
+| WP-04 | Authentication split — identity resolution, then tenant selection | DONE | WP-12 | Backend/API, Security | agent/identity-and-membership | pending | PASS | — | NOT_RUN | NOT_STARTED |
 | WP-05 | Workspace discovery by email, rate-limited and non-enumerable | NOT_STARTED | WP-04 | Backend/API, Security | agent/identity-and-membership | — | — | — | — | — |
 | WP-06 | Generic login and the workspace picker | NOT_STARTED | WP-05 | Frontend, UI/UX | agent/identity-and-membership | — | — | — | — | — |
 | WP-07 | In-app workspace switcher and last-used preference — closes TASK-0008 WP-06 | NOT_STARTED | WP-06 | Frontend, UI/UX | agent/identity-and-membership | — | — | — | — | — |
@@ -378,9 +378,46 @@ documented the pattern two packages earlier. Now matched as
 Proof: a database seeded **twice** reports zero users whose `passwordHash`
 differs from their identity's. Full suite 29 / 345 green.
 
-**Second half, not yet done:** login verifying against `Identity` rather than
-`User`, and lockout counters moving with it. Deliberately a separate commit —
-the mirror needs to be in place and proven before the read moves.
+## WP-04 — second half: login reads the identity
+
+`resolveLoginCredential` decides which hash a sign-in is checked against, and
+`validateCredentials` delegates to it. Three outcomes, and each is a way this
+could have gone wrong:
+
+- **an identity exists** → its hash is authoritative, because it is the one
+  every password write now reaches;
+- **no identity yet** → fall back to `User.passwordHash`. Not dead code:
+  `identityId` is nullable until the contract phase, so a deployment where the
+  code has shipped and the backfill has not must still authenticate. Removing
+  this turns a migration-ordering problem into every user locked out;
+- **the identity is SUSPENDED** → refuse outright, whatever the workspace
+  account says. Returning the `User` hash here would make suspension a
+  suggestion: the person keeps signing in everywhere and the only trace is an
+  admin screen claiming otherwise.
+
+The resolver returns the *source* alongside the hash, so the fallback can be
+counted rather than merely happening — a fallback nobody measures is how
+"temporary" becomes permanent.
+
+**Lockout is now two locks, and both must pass.** The per-tenant counter on
+`User` is untouched: a tenant's own policy governs sign-ins to that tenant and
+it already works. The global counter on `Identity` is **additional**, never an
+alternative — an attacker who can name a tenant must not escape a platform-level
+lock by naming one, and a sign-in that names no tenant still has to be stoppable
+once WP-06 lands. It is fixed at 20 attempts / 60 minutes rather than
+policy-driven, because a global lock has no tenant to take a policy from, and
+"the strictest policy across this person's workspaces" would mean one tenant's
+settings silently governing another's sign-ins.
+
+Both counter updates are non-throwing. A wrong password must produce "invalid
+credentials", never a 500 — a status code that changes tells an attacker which
+addresses exist.
+
+Mutation-checked by deleting the suspension guard: the suspended-identity test
+fails and nothing else does.
+
+Full suite **30 suites / 351 tests** green, including the auth e2e suites that
+drive real sign-ins end to end.
 
 ## Repository Health
 

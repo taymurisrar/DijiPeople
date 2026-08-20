@@ -34,7 +34,12 @@ import {
 } from '../../common/config/auth.config';
 import { AuthTokenPayload } from '../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { mirrorPasswordToIdentity } from '../users/identity.service';
+import {
+  mirrorPasswordToIdentity,
+  registerIdentityFailure,
+  registerIdentitySuccess,
+  resolveLoginCredential,
+} from '../users/identity.service';
 import { normalizeEmail } from '../../common/utils/email.util';
 import { TenantsService } from '../tenants/tenants.service';
 import { PublicTenantsService } from '../tenants/public-tenants.service';
@@ -1099,7 +1104,49 @@ export class AuthService {
       );
     }
 
-    if (this.loginLockoutService.isLocked(user)) {
+    /*
+     * The credential now comes from the identity where one exists.
+     *
+     * `resolveLoginCredential` falls back to `User.passwordHash` for a row the
+     * backfill has not reached — `identityId` is nullable until the contract
+     * phase, and a migration that has not run must not lock anybody out. It
+     * also refuses outright for a SUSPENDED identity, which is the platform-
+     * level "this person may not sign in anywhere" that `User.status` cannot
+     * express.
+     */
+    const credential = await resolveLoginCredential(this.prisma, user.id);
+
+    if (!credential) {
+      await this.logTenantAuthEvent({
+        tenantId: user.tenantId,
+        actorUserId: user.id,
+        action: 'auth.login.failed',
+        entityId: user.id,
+        email: user.email,
+        result: 'FAILED',
+        failureReason: 'IDENTITY_SUSPENDED',
+        clientId,
+        req,
+      });
+      // Same response as a wrong password — see the lockout case below.
+      throw this.authUnauthorized(
+        'AUTH_INVALID_CREDENTIALS',
+        'Invalid credentials.',
+      );
+    }
+
+    /*
+     * Two locks, and both must pass. The tenant's own policy governs sign-ins
+     * to that tenant and is unchanged; the global one exists so that naming a
+     * tenant cannot be a way around a platform-level lock, and so a sign-in
+     * that names no tenant can still be stopped once WP-06 lands.
+     */
+    const identityLocked = Boolean(
+      credential.identityLockedUntil &&
+      credential.identityLockedUntil.getTime() > Date.now(),
+    );
+
+    if (identityLocked || this.loginLockoutService.isLocked(user)) {
       this.logger.warn(
         JSON.stringify({
           event: 'auth.login.failed',
@@ -1133,11 +1180,14 @@ export class AuthService {
 
     const isPasswordValid = await bcrypt.compare(
       dto.password,
-      user.passwordHash,
+      credential.passwordHash,
     );
 
     if (!isPasswordValid) {
       await this.loginLockoutService.registerFailure(user);
+      if (credential.identityId) {
+        await registerIdentityFailure(this.prisma, credential.identityId);
+      }
       this.logger.warn(
         JSON.stringify({
           event: 'auth.login.failed',
@@ -1166,6 +1216,9 @@ export class AuthService {
     }
 
     await this.loginLockoutService.registerSuccess(user);
+    if (credential.identityId) {
+      await registerIdentitySuccess(this.prisma, credential.identityId);
+    }
 
     return user;
   }
