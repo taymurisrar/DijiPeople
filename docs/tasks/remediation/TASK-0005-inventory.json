@@ -7374,6 +7374,51 @@
         "classification": "TERMINAL_AS_DOCUMENTED",
         "finding_ids": []
       }
+    },
+    {
+      "record_id": "ITEM-0068",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0068-legal-documents-have-no-operator-ui-so-publishing-is-a-scrip.md",
+        "provenance": "IMPLEMENTATION",
+        "detected_in_sha": "",
+        "created_at": "2026-08-20",
+        "updated_at": "2026-08-20",
+        "resolved_at": ""
+      },
+      "type": "UX",
+      "title": "Legal documents have no operator UI, so publishing is a script",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "READY",
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/legal/",
+          "services/api/prisma/publish-legal.ts",
+          "services/api/test/legal-publish.e2e-spec.ts"
+        ],
+        "verification_scope": "The legal module has one controller — public-legal.controller.ts — so publish(), createDraft() and updateDraft() were written and never reachable. With nothing published the subscribe wizard required no agreements and every purchase recorded no consent. A deliberate, idempotent, dry-run-by-default script now closes the gap; an operator surface that shows the text and a diff before binding customers to it is the rest."
+      },
+      "affected_modules": [
+        "legal",
+        "admin"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "PLAN_REQUIRED",
+      "verification_result": {
+        "result": "OPEN",
+        "classification": "PRELIMINARY",
+        "finding_ids": []
+      }
     }
   ],
   "discovered_findings": [

@@ -7,10 +7,10 @@
 
 | | |
 |---|---|
-| Active sessions | **4** |
-| Active parent tasks | 3 |
-| Active work packages | 1 |
-| Blocked work packages | 2 |
+| Active sessions | **5** |
+| Active parent tasks | 4 |
+| Active work packages | 2 |
+| Blocked work packages | 3 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **0** |
 | Open HIGH | 12 |
@@ -23,6 +23,7 @@
 
 | Session | Task | Title | Status | Branch | Target | Leases | Schema |
 |---|---|---|---|---|---|---|---|
+| [[SESSION-0021-identity-and-multi-tenant-membership|SESSION-0021]] | — | Identity and multi-tenant membership | ACTIVE | `agent/identity-and-membership` | `develop` | — | NO |
 | [[SESSION-0019-ci-browser-install-latency-and-database-e2e-fixture-contract|SESSION-0019]] | — | CI browser install latency and database e2e fixture contract | ACTIVE | `agent/ci-e2e-remediation` | `develop` | — | NO |
 | [[SESSION-0016-database-agent-security-agent-agent-reliability-and-obsidian|SESSION-0016]] | — | Database Agent, Security Agent, agent reliability and Obsidian ownership | ACTIVE | `agent/agent-framework-hardening` | `develop` | — | NO |
 | [[SESSION-0014-ci-performance-cancellation-rca-and-autonomous-ci-adaptation|SESSION-0014]] | — | CI performance, cancellation RCA and autonomous CI adaptation | ACTIVE | `agent/ci-performance-adaptation` | `develop` | — | NO |
@@ -35,6 +36,7 @@
 | [[TASK-0005-dijipeople-global-technical-remediation|TASK-0005]] | DijiPeople Global Technical Remediation | BUG | PROGRAM | 3/11 | WP-09 | WP-04, WP-06, WP-07, WP-08, WP-10 | — |
 | [[TASK-0007-commercial-platform-completion-transactional-legal-and-lifec|TASK-0007]] | Commercial platform completion — transactional, legal and lifecycle half | FEATURE | PROGRAM | 15/16 | WP-11 | — | WP-15 |
 | [[TASK-0008-self-service-customer-onboarding-tenant-provisioning-domain-|TASK-0008]] | Self-service customer onboarding, tenant provisioning, domain routing and central login | FEATURE | LARGE | 10/11 | WP-06 | — | WP-06 |
+| [[TASK-0009-identity-and-multi-tenant-membership|TASK-0009]] | Identity and multi-tenant membership | FEATURE | LARGE | 0/11 | WP-01 | WP-09, WP-10 | WP-02 |
 
 ## Branch model
 
@@ -193,7 +195,7 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 37 |
+| Open total | 38 |
 | Blocked | 0 |
 | Deferred | 11 |
 | Awaiting a product decision | 3 |

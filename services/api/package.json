@@ -47,7 +47,8 @@
     "backfill:default-views": "ts-node prisma/backfill-default-views.ts",
     "backfill:attendance": "ts-node prisma/backfill-attendance.ts",
     "backfill:workspace-domains": "ts-node prisma/backfill-workspace-domains.ts",
-    "seed:legal": "ts-node prisma/seed-legal.ts"
+    "seed:legal": "ts-node prisma/seed-legal.ts",
+    "legal:publish": "ts-node prisma/publish-legal.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
