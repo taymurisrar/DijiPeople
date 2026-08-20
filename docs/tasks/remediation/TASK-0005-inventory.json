@@ -2908,7 +2908,7 @@
         "provenance": "ARCHITECT",
         "detected_in_sha": "0051180",
         "created_at": "2026-08-17",
-        "updated_at": "2026-08-17",
+        "updated_at": "2026-08-20",
         "resolved_at": ""
       },
       "type": "SECURITY",
@@ -7515,6 +7515,53 @@
       "architect_disposition": "DONE",
       "verification_result": {
         "result": "FIXED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "ITEM-0070",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0070-move-the-excel-write-path-off-xlsx-and-drop-the-dependency.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-08-20",
+        "updated_at": "2026-08-20",
+        "resolved_at": ""
+      },
+      "type": "SECURITY",
+      "title": "Move the Excel write path off xlsx and drop the dependency",
+      "severity": "LOW",
+      "priority": "P2",
+      "current_status": "DEFERRED",
+      "current_evidence": {
+        "paths": [
+          "services/api/src/common/excel/excel-export.service.ts"
+        ],
+        "verification_scope": "The xlsx read path moved to ExcelJS in TASK-0010, so both advisories are present but unreachable. The write path still uses SheetJS, so npm audit still reports them. Removing the dependency means changing the bytes of payroll workbooks that banks consume, which was judged too risky to land in the same release that first goes to paying customers."
+      },
+      "affected_modules": [
+        "payroll",
+        "timesheets"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": "Should not land in the same release as a payroll change."
+      },
+      "related_bugs": [
+        "BUG-0052"
+      ],
+      "related_backlog": [
+        "ITEM-0048"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DEFER",
+      "verification_result": {
+        "result": "DEFERRED",
         "classification": "TERMINAL_AS_DOCUMENTED",
         "finding_ids": []
       }

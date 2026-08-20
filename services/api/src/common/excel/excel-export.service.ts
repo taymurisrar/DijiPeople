@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import * as ExcelJS from 'exceljs';
 import * as XLSX from 'xlsx';
 
 export type ExcelCellValue = string | number | boolean | Date | null;
@@ -72,25 +73,48 @@ export class ExcelExportService {
     }) as Buffer;
   }
 
-  parseFirstWorksheet(buffer: Buffer): ExcelParsedRow[] {
-    const workbook = XLSX.read(buffer, {
-      cellDates: true,
-      type: 'buffer',
-    });
-    const firstSheetName = workbook.SheetNames[0];
-    if (!firstSheetName) {
+  /**
+   * Read an uploaded workbook.
+   *
+   * **Parsed with ExcelJS, not SheetJS, and that is a security decision.**
+   * `xlsx` carries two unfixed high-severity advisories — prototype pollution
+   * (GHSA-4r6h-8v6p-xvw6) and a ReDoS (GHSA-5pgg-2g8v-p4x9) — and both are
+   * about *parsing*. npm reports no fix because the registry copy of `xlsx` is
+   * abandoned; SheetJS publishes elsewhere now.
+   *
+   * This method is reachable from two authenticated upload endpoints — payroll
+   * import and timesheet import — so "no fix available" would have meant
+   * shipping a reachable high into production on a path that accepts a file
+   * from a tenant user. ExcelJS was already a dependency, and
+   * `import-analysis.service.ts` already used it for exactly this job, so the
+   * untrusted-input path now goes through the library that is maintained.
+   *
+   * Writing still uses SheetJS below. That direction consumes only data this
+   * application produced, and neither advisory applies to it.
+   */
+  async parseFirstWorksheet(buffer: Buffer): Promise<ExcelParsedRow[]> {
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(buffer as unknown as ArrayBuffer);
+
+    const worksheet = workbook.worksheets[0];
+    if (!worksheet) {
       return [];
     }
 
-    const worksheet = workbook.Sheets[firstSheetName];
-    const matrix = XLSX.utils.sheet_to_json<
-      Array<string | number | boolean | Date>
-    >(worksheet, {
-      blankrows: false,
-      defval: '',
-      header: 1,
-      raw: false,
+    /*
+     * ExcelJS rows and columns are 1-indexed, and row 1 is the header — which
+     * is what SheetJS's `header: 1` produced. Cells are stringified the same
+     * way below, so callers see no change in shape.
+     */
+    const matrix: Array<Array<string | number | boolean | Date>> = [];
+    worksheet.eachRow({ includeEmpty: false }, (row) => {
+      const cells: Array<string | number | boolean | Date> = [];
+      row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+        cells[colNumber - 1] = cellToPrimitive(cell.value);
+      });
+      matrix.push(cells);
     });
+
     const [rawHeaders, ...rows] = matrix;
     const headers = (rawHeaders ?? []).map((header) => String(header).trim());
 
@@ -109,4 +133,44 @@ export class ExcelExportService {
         Object.values(row.values).some((value) => value.trim().length > 0),
       );
   }
+}
+
+/**
+ * One ExcelJS cell value, flattened to what the row mapper expects.
+ *
+ * ExcelJS returns rich objects where SheetJS returned primitives: a formula
+ * cell is `{ formula, result }`, a hyperlink is `{ text, hyperlink }`, and rich
+ * text is `{ richText: [...] }`. Passing those to `String()` yields
+ * `[object Object]`, which would land in an imported payroll row and look like
+ * a value somebody typed.
+ */
+function cellToPrimitive(
+  value: ExcelJS.CellValue,
+): string | number | boolean | Date {
+  if (value === null || value === undefined) return '';
+  if (value instanceof Date) return value;
+  if (typeof value === 'object') {
+    if ('richText' in value && Array.isArray(value.richText)) {
+      return value.richText.map((part) => part.text).join('');
+    }
+    if ('text' in value && typeof value.text === 'string') return value.text;
+    if ('result' in value) {
+      const result = (value as { result?: unknown }).result;
+      /*
+       * A formula cell carries its last computed result. Taking the formula
+       * string instead would import "=SUM(A1:A9)" as a payroll amount.
+       */
+      if (result instanceof Date) return result;
+      if (
+        typeof result === 'string' ||
+        typeof result === 'number' ||
+        typeof result === 'boolean'
+      ) {
+        return result;
+      }
+      return '';
+    }
+    return '';
+  }
+  return value as string | number | boolean;
 }

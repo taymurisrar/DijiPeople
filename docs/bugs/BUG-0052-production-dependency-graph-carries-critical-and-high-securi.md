@@ -16,9 +16,9 @@ QAReport:
 RegressionId:
 RelatedBacklogItem:
 RelatedDecision:
-RelatedImplementation:
+RelatedImplementation: TASK-0010
 CreatedAt: 2026-08-17
-UpdatedAt: 2026-08-17
+UpdatedAt: 2026-08-20
 ResolvedAt:
 ---
 
@@ -129,7 +129,7 @@ documented below because npm's proposed fix costs more than the advisory.
 |---|---|---|---|
 | `prisma`, `@prisma/config`, `deepmerge-ts` | 3 high | `prisma@6.12.0` | A **downgrade from 7.9.1**. The data layer is Prisma 7 with `@prisma/adapter-pg` driver adapters, which 6.x does not support. It is also a `devDependency` — the CLI, not shipped runtime code. This "fix" would break every query in the product to silence a build-tool advisory. |
 | `active-win`, `tar` (critical), `cacache`, `make-fetch-happen`, `node-gyp`, `@mapbox/node-pre-gyp` | 1 critical, 5 high | `active-win@7.7.2` | A **major downgrade** of a direct dependency. `active-win` is reached only from `apps/agent-desktop/src/main/activity-tracker.ts` in the Electron main process, and the `tar`/`node-gyp` chain beneath it is install-time native-build tooling that does not ship in the packaged app. |
-| `xlsx` | 1 high | none exists | Reached only from `services/api/src/common/excel/excel-export.service.ts` — **export**, so it writes workbooks rather than parsing untrusted ones. The advisory class is parse-side. |
+| `xlsx` | 1 high | none exists | ~~Reached only from `services/api/src/common/excel/excel-export.service.ts` — **export**, so it writes workbooks rather than parsing untrusted ones. The advisory class is parse-side.~~ **This reachability finding was wrong. Superseded by the 2026-08-20 correction below — do not act on this row.** |
 | `exceljs`, `uuid` | 2 moderate | `exceljs@3.4.0` | A **major downgrade** from 4.4.0, `uuid` transitive through it. Moderate severity does not justify losing four majors of the library the `xlsx` containment would migrate *toward*. |
 
 **Compensating controls and revalidation.** None of the twelve is reachable from
@@ -142,6 +142,66 @@ agent is next packaged.
 The two decisions left — replacing or containing `active-win`, and migrating the
 `xlsx` export path onto `exceljs` — are dependency-replacement projects with
 their own testing surface, not audit hygiene. They are carried by [[ITEM-0048]].
+
+## Correction — 2026-08-20, TASK-0010
+
+**The `xlsx` row above was wrong, and the disposition rested on it.**
+
+The 2026-08-17 analysis said the package was "export, so it writes workbooks
+rather than parsing untrusted ones". The file it named,
+`services/api/src/common/excel/excel-export.service.ts`, contained *both*
+directions: `buildWorkbookBuffer` wrote, and `parseFirstWorksheet` called
+`XLSX.read` on an uploaded buffer. The reachability check looked at the file's
+name and its principal purpose rather than at its call sites.
+
+`parseFirstWorksheet` was reachable from two authenticated upload endpoints:
+
+- `services/api/src/modules/payroll/payroll-operations.service.ts` — payment
+  result import;
+- `services/api/src/modules/timesheets/timesheets.service.ts` — timesheet
+  import.
+
+Both take a file from a tenant user. Both advisories — prototype pollution
+(GHSA-4r6h-8v6p-xvw6) and ReDoS (GHSA-5pgg-2g8v-p4x9) — are triggered by
+*parsing* a crafted workbook. So the one class of input the disposition assumed
+could not happen was exactly what those two endpoints accept.
+
+Authentication is a real mitigation and it is why this is not a critical: an
+attacker needs a tenant account with payroll or timesheet import rights. It is
+not a reason to ship it, because a tenant user is not a trusted party in a
+multi-tenant product, and prototype pollution in a shared Node process is not
+confined to the tenant who triggered it.
+
+### What changed
+
+`parseFirstWorksheet` now parses with **ExcelJS**, which is maintained, was
+already a dependency, and was already used for exactly this job in
+`import-analysis.service.ts`. There is no longer any `XLSX.read` call site
+anywhere in the repository — verified by search across `services`, `apps`,
+`packages` and `scripts`.
+
+Writing still uses SheetJS. That direction consumes only data this application
+produced, and neither advisory applies to it.
+
+### What that leaves
+
+`npm audit --omit=dev` in `services/api` still reports the two `xlsx` highs,
+because the package is still installed for the write path. They are now
+**present but unreachable** rather than accepted-as-reachable, which is a
+different statement and a much cheaper one to defend at the next release.
+
+Dropping the dependency entirely means moving the writer to ExcelJS too. That
+was deliberately **not** done here: payroll exports are consumed by banks, and
+changing the bytes of a produced workbook immediately before a production
+release is a customer-visible risk with no security payoff. Carried by
+[[ITEM-0070]].
+
+### The lesson
+
+A reachability claim about a package must name the **call sites**, not the file.
+This one named a file whose name described half of what it did. Recorded as the
+`reachability-asserted-from-file-purpose` variant of `assertion-without-a-check`.
+
 
 ## QA Retest
 
@@ -161,4 +221,7 @@ apps/landing   3 suites,  49 tests   PASS   check-types PASS
 - 2026-08-17 — 8 of 20 advisories cleared without a breaking change; the
   remaining 12 documented with package path, reachability, compensating control
   and revalidation trigger. Replacement work split to ITEM-0048.
+- 2026-08-20 — the `xlsx` reachability finding was found to be wrong during
+  TASK-0010 release verification. The parse path moved to ExcelJS; the two
+  advisories are now unreachable rather than accepted.
 - 2026-08-17 — discovered after a clean locked install for TASK-0005.

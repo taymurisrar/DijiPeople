@@ -37,7 +37,7 @@
 | [[TASK-0007-commercial-platform-completion-transactional-legal-and-lifec|TASK-0007]] | Commercial platform completion — transactional, legal and lifecycle half | FEATURE | PROGRAM | 15/16 | WP-11 | — | WP-15 |
 | [[TASK-0008-self-service-customer-onboarding-tenant-provisioning-domain-|TASK-0008]] | Self-service customer onboarding, tenant provisioning, domain routing and central login | FEATURE | LARGE | 10/11 | WP-06 | — | WP-06 |
 | [[TASK-0009-identity-and-multi-tenant-membership|TASK-0009]] | Identity and multi-tenant membership | FEATURE | LARGE | 11/12 | WP-09 | — | WP-09 |
-| [[TASK-0010-go-live-readiness|TASK-0010]] | Go-live readiness | FEATURE | MEDIUM | 2/4 | WP-03 | WP-04 | WP-03 |
+| [[TASK-0010-go-live-readiness|TASK-0010]] | Go-live readiness | FEATURE | MEDIUM | 3/5 | WP-03 | WP-04 | WP-03 |
 
 ## Branch model
 
@@ -198,7 +198,7 @@ gap into scope — or files a `TEST_GAP` item and says so.
 |---|---|
 | Open total | 38 |
 | Blocked | 0 |
-| Deferred | 11 |
+| Deferred | 12 |
 | Awaiting a product decision | 3 |
 | Awaiting Architect triage | 0 |
 

@@ -11,7 +11,7 @@ AFFECTED_MODULES: [auth, users, legal, billing]
 AGENTS: [Architect, Backend/API, Database, Security, QA, Reviewer, Integrator]
 DEPENDENCIES: origin/develop 95551bc; TASK-0009
 CURRENT_PACKAGE: WP-03
-COMPLETED_PACKAGES: [WP-01, WP-02]
+COMPLETED_PACKAGES: [WP-01, WP-02, WP-05]
 BLOCKED_PACKAGES: [WP-03]
 OWNER_DECISIONS: 4
 FINAL_STATUS:
@@ -44,7 +44,8 @@ Asked before any work, because each changes what gets built:
 | WP-01 | ITEM-0069 — discovery throttle, decoupled from the credential lock | DONE | — | Backend/API, Database, Security | agent/go-live-readiness | pending | PASS | ITEM-0069 | NOT_RUN | NOT_STARTED |
 | WP-02 | Legal publication wired into the release command | DONE | — | Backend/API | agent/go-live-readiness | pending | PASS | — | NOT_RUN | NOT_STARTED |
 | WP-03 | Real prices for every launched market | BLOCKED | owner | Backend/API | agent/go-live-readiness | — | — | — | — | — |
-| WP-04 | Release readiness assessment and the PR to `main` | NOT_STARTED | WP-01..WP-03 | Release/DevOps, Reviewer, Integrator | agent/go-live-readiness | — | — | — | — | — |
+| WP-04 | Release readiness assessment and the PR to `main` | NOT_STARTED | WP-01..WP-03, WP-05 | Release/DevOps, Reviewer, Integrator | agent/go-live-readiness | — | — | — | — | — |
+| WP-05 | The xlsx parse path, off an advisory that was reachable after all | DONE | — | Backend/API, Security | agent/go-live-readiness | pending | PASS | BUG-0052, ITEM-0070 | NOT_RUN | NOT_STARTED |
 
 ## WP-01 — the lockout weapon, removed
 
@@ -108,13 +109,75 @@ testing, and Qatar has none at all.
 Needed, per plan and per market — monthly price, annual price, and confirmation
 that flat billing still holds for every plan.
 
+## WP-05 — a reachability claim that was wrong
+
+This package exists because verifying **A-03** falsified the claim sitting next
+to it. The false part was not a slip in this task's summary: it was written into
+[[BUG-0052]] on 2026-08-17 and had been carried as settled ever since.
+
+The record said `xlsx` was "export, so it writes workbooks rather than parsing
+untrusted ones". The file it cited,
+`services/api/src/common/excel/excel-export.service.ts`, did both. Its
+`parseFirstWorksheet` called `XLSX.read` on an uploaded buffer, and two
+authenticated endpoints handed it one:
+
+- payroll payment-result import — `payroll-operations.service.ts`;
+- timesheet import — `timesheets.service.ts`.
+
+Both `xlsx` advisories are parse-side. The one input the disposition assumed
+could never arrive was exactly what those two endpoints accept.
+
+**The reachability check had looked at the file's name.** `excel-export.service`
+does export, and it also did import, and only the call sites would have said so.
+That is the same failure shape as `assertion-without-a-check`: something was
+asserted from a plausible proxy rather than from the thing itself.
+
+Authentication is why this is not a critical — an attacker needs a tenant account
+with import rights. It is not a reason to ship it. A tenant user is not a trusted
+party in a multi-tenant product, and prototype pollution in a shared Node process
+does not stay inside the tenant that caused it.
+
+### The fix
+
+Parsing moved to **ExcelJS** — already a dependency, already doing this exact job
+in `import-analysis.service.ts`, and maintained, which the registry copy of
+`xlsx` is not. There is now **no `XLSX.read` call site anywhere in the
+repository**, verified by search across `services`, `apps`, `packages` and
+`scripts`.
+
+Cell flattening had to be written by hand, because ExcelJS returns objects where
+SheetJS returned primitives: a formula cell is `{ formula, result }`, a hyperlink
+is `{ text, hyperlink }`, rich text is `{ richText: [...] }`. Passing those
+through `String()` yields `[object Object]`, which would land in an imported
+payroll row looking like something a person typed. A formula cell now imports its
+**result**, not `=SUM(A1:A9)`.
+
+Proven by round trip: `payroll-export.providers.spec.ts` writes a workbook with
+SheetJS and reads it back with ExcelJS, asserting the row values and the total
+survive the crossing. That is the compatibility evidence for the swap.
+
+### What was deliberately not done
+
+Writing still uses SheetJS, so the package is still installed and `npm audit`
+still reports the two highs — **present but unreachable** rather than accepted as
+reachable.
+
+Removing it entirely means moving `buildWorkbookBuffer` to ExcelJS, which changes
+the bytes of every generated workbook. Payroll exports are consumed by banks,
+which reject files for formatting the exporter cannot see. Doing that in the same
+release that first meets paying customers trades a real customer-visible risk for
+the removal of an advisory with no call site. Carried by [[ITEM-0070]], with the
+verification it actually needs — a golden-file diff, not a round trip, because a
+round trip only proves the writer and reader agree with each other.
+
 ## Assumptions
 
 | ASSUMPTION_ID | STATEMENT | EVIDENCE | CONFIDENCE | IMPACT_IF_WRONG |
 |---|---|---|---|---|
 | A-01 | `preDeployCommand` runs `npm --workspace api run release` on every deploy, so wiring publication there is sufficient and repeatable | `render.yaml:8` | HIGH | Legal stays unpublished and purchases keep recording no consent |
 | A-02 | The additive discovery-throttle migration is safe alongside TASK-0009's expand and backfill in one release | Columns are new, defaulted, and on a table this same release creates | HIGH | A failed production migration |
-| A-03 | BUG-0052's critical advisory reaches only the Electron desktop agent, not the deployed API | To be verified in WP-04 before the release record accepts it | MEDIUM | The release accepts a risk it has mischaracterised |
+| A-03 | BUG-0052's **critical** advisory (`tar`, via `active-win`) reaches only the Electron desktop agent, not the deployed API | **Verified.** `active-win` is imported only by `apps/agent-desktop/src/main/activity-tracker.ts`; the `tar`/`node-gyp` chain beneath it is install-time native-build tooling that is not packaged | HIGH | The release accepts a risk it has mischaracterised |
+| A-04 | ~~BUG-0052's `xlsx` highs are export-only and therefore unreachable~~ | **FALSIFIED.** `parseFirstWorksheet` called `XLSX.read` on buffers from two authenticated upload endpoints. Fixed in WP-05 rather than accepted | — | It was wrong, and the release would have accepted a reachable high on a tenant-facing upload path |
 
 ## Repository Health
 
@@ -125,12 +188,15 @@ PRE_TASK_REPO_HEALTH — PASS at `95551bc`.
 - 2026-08-20 — created at `95551bc`, after TASK-0009 integrated. Four owner
   decisions taken before any work started.
 - 2026-08-20 — WP-01 and WP-02 done. WP-03 blocked on the price list.
+- 2026-08-20 — WP-05: verifying A-03 falsified the neighbouring claim. The
+  `xlsx` parse path was reachable from two authenticated uploads and is now
+  on ExcelJS. BUG-0052's 2026-08-17 reachability finding corrected in place.
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-tasks.mjs; edit the record, not this block -->
 
 ## Related
 
-- Records — [[BUG-0052]], [[ITEM-0069]]
+- Records — [[BUG-0052]], [[ITEM-0069]], [[ITEM-0070]]
 - Modules — [[legal]], [[billing]]
 
 <!-- GRAPH:END -->
