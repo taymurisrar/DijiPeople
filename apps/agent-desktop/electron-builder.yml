@@ -15,18 +15,17 @@ extraResources:
     to: .env
 
 win:
-  # A real .ico is supplied so electron-builder does not convert the PNG at
-  # build time; that conversion runs in WebAssembly and fails outright on a
-  # memory-pressured machine ("WebAssembly.Memory(): could not allocate memory").
-  icon: assets/favicon.ico
+  icon: assets/icon.ico
   target:
     - nsis
-  signAndEditExecutable: false
+  signExecutable: false
 
 nsis:
   oneClick: false
   perMachine: false
   allowToChangeInstallationDirectory: true
+  installerIcon: assets/icon.ico
+  uninstallerIcon: assets/icon.ico
 
 publish:
   provider: generic
