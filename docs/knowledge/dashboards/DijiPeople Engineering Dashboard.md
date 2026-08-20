@@ -161,6 +161,7 @@ _None._
 
 ## Recent Implementations
 
+- [[2026-08-20-self-service-acquisition-path|Self-Service Acquisition Path]]
 - [[2026-08-17-web-app-documentation|2026-08-17 — Documenting `apps/web`, the tenant product]]
 - [[2026-08-16-monorepo-app-documentation|2026-08-16 — Documenting `apps/docs`, `apps/landing` and `apps/agent-desktop`]]
 - [[2026-08-15-database-ci-and-gh-access|Database CI, GitHub access, and the first four framework merges]]
@@ -226,14 +227,14 @@ _None. Nothing has been deployed through the release process._
 |---|---|
 | Bug records | 79 |
 | Backlog items | 67 |
-| Known bug patterns | 20 |
+| Known bug patterns | 22 |
 | QA runs | 20 |
 | Engineering history records | 21 |
 | Release records | 0 |
 | Module notes | 27 |
 | Architecture notes | 20 |
 | Decision notes (ADR + generated) | 6 |
-| Implementation records | 4 |
+| Implementation records | 5 |
 
 **Awaiting Architect triage: 0.** A record nobody has
 triaged is work nobody has decided about — the number that should stay near

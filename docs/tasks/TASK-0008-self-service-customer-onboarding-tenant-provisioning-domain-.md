@@ -221,7 +221,7 @@ forgot to forward the visitor's address. No such file existed. The convention
 was intact across all 24 direct-API handlers, which is exactly why nothing had
 surfaced it: a missing check with nothing to find produces no failing test, and
 the only signal was a comment claiming the opposite of the truth. Regression
-[[REG-076]], scenario [[QA-LANDING-010]], mutation-verified.
+REG-076, scenario [[QA-LANDING-010]], mutation-verified.
 
 **One finding recorded, not fixed.** `server-api.ts` in `apps/web` and
 `apps/admin` does not forward the client address either. Left out of the new
@@ -292,7 +292,7 @@ withdrawn.
 
 **The withdrawal is the most useful thing this campaign produced.** It ran
 against the task branch while `develop` was 36 commits ahead, and those 81
-failures had already been fixed there: [[ITEM-0047]] / [[REG-070]] on
+failures had already been fixed there: [[ITEM-0047]] / REG-070 on
 `agent/ci-e2e-remediation` converted the three suites to per-suite fixtures,
 made `legal-seed` run its own seed, and gave `platform-workflows` its invitation
 data. The same work promoted `database-e2e` into the **required** gate, which it
@@ -546,7 +546,7 @@ before WP-01 writes `schema.prisma`.
   Mutation-proven: neutering the condition fails 7 of the 12 cases. The
   load-bearing assertion is that the **Stripe session count is unchanged** —
   returning a warning while still handing back a checkout URL would satisfy a
-  weaker test and none of the requirement. [[ITEM-0063]], [[REG-074]],
+  weaker test and none of the requirement. [[ITEM-0063]], REG-074,
   [[QA-BILLING-010]].
 
   The landing form gained the verification step in the same change, so the

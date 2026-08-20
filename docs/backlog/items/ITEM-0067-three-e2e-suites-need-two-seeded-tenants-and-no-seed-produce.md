@@ -44,7 +44,7 @@ was the fix that had already been written.
 
 **The campaign ran against the task branch before merging `develop`.** At that
 point `develop` was 36 commits ahead and carried `agent/ci-e2e-remediation`,
-which fixed exactly this under [[ITEM-0047]] / [[REG-070]] — `db-fixtures.ts`
+which fixed exactly this under [[ITEM-0047]] / REG-070 — `db-fixtures.ts`
 with `createTenantPair()`, the three suites converted, `legal-seed` made to run
 its own seed, and `platform-workflows` given its invitation data. The same
 branch also promoted `database-e2e` into the required gate, which it could only
@@ -63,7 +63,7 @@ other way round.
 ## Related Items
 
 - [[ITEM-0047]] — the canonical record. `DONE`.
-- [[REG-070]] — the regression that holds it.
+- REG-070 — the regression that holds it.
 - [[TASK-0008]] — the parent whose WP-08 campaign refiled it.
 - [[ITEM-0066]] — the other local-QA obstacle from the same campaign, which is
   genuinely open.

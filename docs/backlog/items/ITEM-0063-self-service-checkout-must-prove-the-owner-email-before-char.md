@@ -30,7 +30,7 @@ nobody would find out until the welcome mail went nowhere.
 
 Recorded as an item rather than a bug because nothing was *broken* — the
 behaviour was simply absent, and the brief requires it. It exists as a canonical
-record so [[REG-068]] has a root to trace to.
+record so REG-068 has a root to trace to.
 
 ## Why It Matters
 
@@ -76,7 +76,7 @@ Implemented in TASK-0008 WP-02.
   hash is cleared.
 - Re-verifying an already-verified order succeeds.
 
-All are asserted by [[QA-BILLING-010]] and covered by [[REG-068]].
+All are asserted by [[QA-BILLING-010]] and covered by REG-068.
 
 ## Dependencies
 

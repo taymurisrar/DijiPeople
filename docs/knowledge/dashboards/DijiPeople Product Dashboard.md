@@ -72,6 +72,7 @@ Questions where the engineering is understood and the **product answer**
 
 ## Recent Product Changes
 
+- [[2026-08-20-self-service-acquisition-path|Self-Service Acquisition Path]]
 - [[2026-08-17-web-app-documentation|2026-08-17 — Documenting `apps/web`, the tenant product]]
 - [[2026-08-16-monorepo-app-documentation|2026-08-16 — Documenting `apps/docs`, `apps/landing` and `apps/agent-desktop`]]
 - [[2026-08-15-database-ci-and-gh-access|Database CI, GitHub access, and the first four framework merges]]

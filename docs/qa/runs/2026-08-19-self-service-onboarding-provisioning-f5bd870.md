@@ -107,8 +107,8 @@ of cross-origin requests once it is in the address bar.
 
 | ID | Severity | Description | Bug pattern | Regression test added |
 |---|---|---|---|---|
-| [[BUG-0081]] (F2) | MEDIUM | Three apps claimed a forwarded-headers invariant test that did not exist | `assertion-without-a-check` | [[REG-076]] |
-| [[BUG-0082]] (F3) | HIGH | The wizard collects five steps of data it cannot submit | `editable-form-that-cannot-submit` | [[REG-077]] |
+| [[BUG-0081]] (F2) | MEDIUM | Three apps claimed a forwarded-headers invariant test that did not exist | `assertion-without-a-check` | REG-076 |
+| [[BUG-0082]] (F3) | HIGH | The wizard collects five steps of data it cannot submit | `editable-form-that-cannot-submit` | REG-077 |
 | F4 — fixed in place | — | `billing-terms` named no operator, and `seed:legal` was in no aggregate seed script | `contract-without-a-counterparty` | `legal-seed.e2e-spec.ts` |
 | [[ITEM-0066]] | LOW | `verify-database.mjs` cannot spawn npm on Windows | — | deferred |
 | [[ITEM-0067]] | — | Three e2e suites need two seeded tenants | — | **withdrawn — duplicate of [[ITEM-0047]], already fixed on `develop`** |
@@ -127,7 +127,7 @@ As run, `attendance-engine`, `attendance-integrations-http` and
 least one business unit."* `seed:demo` creates one. The reading was right and
 the diagnosis was right, and it was **also already fixed**: `develop` was 36
 commits ahead of the branch this campaign ran against, carrying
-[[ITEM-0047]] / [[REG-070]] — per-suite fixtures via `createTenantPair()`, the
+[[ITEM-0047]] / REG-070 — per-suite fixtures via `createTenantPair()`, the
 three suites converted, `legal-seed` made to run its own seed, and
 `platform-workflows` given its invitation data. The same work promoted
 `database-e2e` into the required gate, which it could only do because these
