@@ -6,12 +6,12 @@ AREA: authentication
 MODULE: apps/admin/app/api/auth
 TYPE: UNIT
 RISK: HIGH
-AUTOMATION_STATUS: PARTIAL
-TEST_REFERENCE: apps/admin/app/api/auth/logout/logout-route.spec.ts
+AUTOMATION_STATUS: AUTOMATED
+TEST_REFERENCE: apps/admin/app/api/auth/logout/logout-route.behaviour.spec.ts
 RELATED_BUGS: [BUG-0009, BUG-0010]
 RELATED_REGRESSIONS: [REG-032]
 LAST_RUN: 2026-08-17
-LAST_RESULT: PASS_WITH_RISKS
+LAST_RESULT: PASS
 CREATED_AT: 2026-08-16
 UPDATED_AT: 2026-08-17
 ---

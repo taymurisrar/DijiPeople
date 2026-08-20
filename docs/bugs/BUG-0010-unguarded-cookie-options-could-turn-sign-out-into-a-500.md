@@ -18,7 +18,7 @@ RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-15
-UpdatedAt: 2026-08-17
+UpdatedAt: 2026-08-20
 ResolvedAt: 2026-08-17
 ---
 
@@ -99,10 +99,43 @@ Fixed 2026-08-15 on branch `agent/admin-session-expired-logout-auth`.
 
 ## QA Retest
 
-Not yet verified by executing the rejected-cookie configuration. `REG-032` is
-useful partial coverage, not proof of the redirect/non-500 acceptance criterion.
+**Pass, executed 2026-08-20** — by invoking the handlers, which is what this
+section previously said had never been done.
+
+`apps/admin/app/api/auth/logout/logout-route.behaviour.spec.ts` — 7 tests,
+passing, alongside the 10 existing source-shape assertions.
+
+Mutation-proven rather than assumed. Restoring each defect in
+`apps/admin/app/api/auth/logout/route.ts` fails the tests that name it:
+
+| Defect restored | Result |
+|---|---|
+| `if (!refreshToken) return;` — revocation guarded on the refresh cookie alone | 2 tests fail |
+| the rejected-config throw allowed to escape `getSafeClearAuthCookieOptions` | 3 tests fail |
+
+The rejected cookie configuration is now driven through both handlers. POST
+returns 200 and GET redirects to `/login` carrying its `reason` — the
+acceptance criterion this record was reopened for. Both still expire the
+cookies via the fallback, so a sign-out under a broken configuration is a real
+sign-out and not merely a non-error.
+
+Paired with its negative: when the configuration is **accepted**, the real
+options are used and the cookie is still marked `Secure`. Without that pair, a
+route that always took the fallback would pass every failure test while silently
+dropping the cookie domain and secure flag in production.
 
 ## History
+
+- 2026-08-20 — `Status` corrected `VERIFIED` -> `FIXED`, by the body-content
+  check added for [[ITEM-0071]] on its first run. The record had claimed
+  `VERIFIED` since 2026-08-17 while its own QA Retest section said the
+  acceptance criterion had never been executed.
+
+  The 2026-08-17 entry below is how it got there, and it is worth reading twice:
+  a reconciliation pass took the `VERIFIED` status as given and *normalised the
+  disposition to match it*. That made the frontmatter self-consistent and the
+  record self-contradictory, because nothing in the pass read the prose. The
+  fix is real and `REG-032` is real; what was never true is that QA verified it.
 
 - 2026-08-17 — Architect reconciliation: terminal `VERIFIED` status normalized
   to `ArchitectDisposition: DONE`; the existing resolution and QA evidence are

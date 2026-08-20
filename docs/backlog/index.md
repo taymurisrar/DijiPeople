@@ -13,11 +13,11 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 39 |
+| Open (active work) | 38 |
 | Blocked | 0 |
 | Deferred | 13 |
 | Awaiting a product decision | 3 |
-| Completed / closed | 98 |
+| Completed / closed | 99 |
 | **Open CRITICAL** | **0** |
 | **Open HIGH** | **12** |
 | **Awaiting Architect triage** | **0** |
@@ -27,7 +27,7 @@ see [`README.md`](README.md) for why.
 | Severity | Count |
 |---|---|
 | HIGH | 12 |
-| MEDIUM | 22 |
+| MEDIUM | 21 |
 | LOW | 5 |
 
 ## Open by type
@@ -43,7 +43,7 @@ see [`README.md`](README.md) for why.
 | SECURITY | 7 |
 | STATE_MACHINE | 1 |
 | TECH_DEBT | 6 |
-| TEST_GAP | 8 |
+| TEST_GAP | 7 |
 | UX | 4 |
 
 ## All records by status
@@ -56,8 +56,8 @@ see [`README.md`](README.md) for why.
 | FIXED | 8 |
 | VERIFIED | 68 |
 | DUPLICATE | 1 |
-| READY | 27 |
-| DONE | 29 |
+| READY | 26 |
+| DONE | 30 |
 
 ## All records
 
@@ -188,7 +188,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0060](../../docs/backlog/items/ITEM-0060-schema-prisma-and-the-applied-migration-history-do-not-agree.md) | schema.prisma and the applied migration history do not agree | TECH_DEBT | MEDIUM | P2 | DEFERRED | prisma, timesheets, attendance, payroll, billing | DEFER |
 | [ITEM-0068](../../docs/backlog/items/ITEM-0068-legal-documents-have-no-operator-ui-so-publishing-is-a-scrip.md) | Legal documents have no operator UI, so publishing is a script | UX | MEDIUM | P2 | READY | legal, admin | PLAN_REQUIRED |
 | [ITEM-0069](../../docs/backlog/items/ITEM-0069-a-global-identity-lock-can-be-triggered-by-an-unauthenticate.md) | A global identity lock can be triggered by an unauthenticated attacker | SECURITY | MEDIUM | P2 | DONE | auth, users | DONE |
-| [ITEM-0071](../../docs/backlog/items/ITEM-0071-a-terminal-bug-record-may-claim-fixed-while-its-resolution-s.md) | A terminal bug record may claim FIXED while its Resolution says pending | TEST_GAP | MEDIUM | P2 | READY | scripts | FIX_NOW |
+| [ITEM-0071](../../docs/backlog/items/ITEM-0071-a-terminal-bug-record-may-claim-fixed-while-its-resolution-s.md) | A terminal bug record may claim FIXED while its Resolution says pending | TEST_GAP | MEDIUM | P2 | DONE | scripts | DONE |
 | [ITEM-0021](../../docs/backlog/items/ITEM-0021-mechanical-guard-against-country-and-currency-literals-in-fr.md) | Mechanical guard against country and currency literals in frontends | TEST_GAP | LOW | P2 | DONE | scripts, apps/landing, apps/web, apps/admin | DONE |
 | [ITEM-0023](../../docs/backlog/items/ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning.md) | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | P2 | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
 | [ITEM-0024](../../docs/backlog/items/ITEM-0024-landing-depends-on-lucide-react-without-declaring-it.md) | Landing depends on lucide-react without declaring it | TECH_DEBT | LOW | P2 | DONE | apps/landing | DONE |

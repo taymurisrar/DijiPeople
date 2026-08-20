@@ -196,7 +196,7 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 39 |
+| Open total | 38 |
 | Blocked | 0 |
 | Deferred | 13 |
 | Awaiting a product decision | 3 |

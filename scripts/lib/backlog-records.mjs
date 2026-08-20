@@ -190,6 +190,47 @@ export const BUG_SECTIONS = [
   'History',
 ];
 
+/**
+ * Statuses that claim the work is done, as opposed to merely decided.
+ *
+ * Deliberately not `BUG_TERMINAL`: that set is about records that are *closed*,
+ * and it excludes `FIXED` while including `NOT_A_BUG`, `DUPLICATE` and
+ * `ACCEPTED_RISK`. The question here is narrower — "does this record assert a
+ * fix?" — and `FIXED` is the status that asserts one most often.
+ */
+const BUG_STATUS_CLAIMS_A_FIX = new Set(['FIXED', 'VERIFIED', 'CLOSED']);
+
+/**
+ * Prose that means "this has not been done yet".
+ *
+ * Kept short, literal and anchored to the start of the section. A cleverer
+ * pattern that fires on real records would be worse than no check at all,
+ * because the response to a noisy gate is to stop reading it.
+ */
+const UNFINISHED_PROSE =
+  /^(pending\b|tbd\b|to be (added|written|determined|decided|filled)|to follow\b|awaiting\b|not yet\b|none yet\b)/i;
+
+/**
+ * The text of one `## Section`, up to the next `##` heading of any level 2.
+ * Markdown emphasis and list markers are stripped so the placeholder patterns
+ * above match "**Pending.**" as readily as "Pending."
+ */
+function sectionText(body, section) {
+  const heading = new RegExp(
+    `^##\\s+${section.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`,
+    'm',
+  );
+  const start = heading.exec(body);
+  if (!start) return null;
+  const rest = body.slice(start.index + start[0].length);
+  const next = /^##\s+/m.exec(rest);
+  const raw = next ? rest.slice(0, next.index) : rest;
+  return raw
+    .replace(/[*_`~>#]/g, '')
+    .replace(/^[-+]\s+/gm, '')
+    .trim();
+}
+
 export const BUG_DIR = 'docs/bugs';
 export const ITEM_DIR = 'docs/backlog/items';
 
@@ -418,6 +459,48 @@ function validate(record, kind, errors) {
         errors.push(`${where}: required section "## ${section}" is out of order`);
       }
       previousSection = Math.max(previousSection, match.index);
+    }
+
+    /*
+     * A record that claims a fix must describe one — ITEM-0071.
+     *
+     * Everything above this point validates frontmatter, or that a section
+     * *exists* and is in the right place. Nothing validated what a section
+     * said, so a record could make two opposite claims and pass: BUG-0080
+     * carried `Status: FIXED` and `RegressionId: REG-075` above a `##
+     * Resolution` reading, in full, "Pending a product decision."
+     *
+     * That is not cosmetic. The generated fields are checked and were right;
+     * the prose is hand-written, unchecked, and more persuasive because it
+     * explains itself. A later reader believed the prose, reversed a correct
+     * status, changed working billing code, and put a settled product decision
+     * back to the owner. All of it had to be reverted.
+     *
+     * The check is one-directional on purpose. "Terminal status, unfinished
+     * prose" is unambiguous. The mirror case — an open record whose Resolution
+     * claims completion — cannot be detected without guessing, and a guess here
+     * would produce exactly the false positives that teach people to ignore the
+     * gate.
+     */
+    if (BUG_STATUS_CLAIMS_A_FIX.has(status)) {
+      for (const section of ['Resolution', 'QA Retest']) {
+        // `VERIFIED` is the status that asserts QA looked; `FIXED` is not.
+        if (section === 'QA Retest' && status === 'FIXED') continue;
+
+        const text = sectionText(record.body, section);
+        if (text === null) continue; // already reported as missing above
+
+        if (!text) {
+          errors.push(
+            `${where}: Status ${status} but "## ${section}" is empty — say what was done`,
+          );
+        } else if (UNFINISHED_PROSE.test(text)) {
+          errors.push(
+            `${where}: Status ${status} but "## ${section}" still reads "${text.split('\n')[0].slice(0, 60)}" — ` +
+              'the status and the prose disagree',
+          );
+        }
+      }
     }
   }
 }

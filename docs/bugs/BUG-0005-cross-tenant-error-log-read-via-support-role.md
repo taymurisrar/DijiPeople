@@ -18,7 +18,7 @@ RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-15
-UpdatedAt: 2026-08-17
+UpdatedAt: 2026-08-20
 ResolvedAt: 2026-08-17
 ---
 
@@ -92,14 +92,62 @@ Module [[audit-and-events|Audit and Events]].
 
 ## Resolution
 
-WP-03 correction in progress; the earlier fix covered foreign tenant ids but
-not null/platform-scope records.
+Fixed in WP-03 and integrated into `develop` at `2313bef`. The wording above
+this line read *"WP-03 correction in progress"* until 2026-08-20; it was written
+mid-work and never updated once the correction landed.
+
+`ErrorLogsService.findForUser` now computes one predicate and gates **both**
+branches on it:
+
+```ts
+const belongsToCallerTenant =
+  Boolean(log.tenantId) && log.tenantId === user.tenantId;
+```
+
+The `Boolean(log.tenantId)` half is the part the first fix was missing. A
+platform-scope log — a failed sign-in that never resolved a tenant, for example
+— has no `tenantId`, and the earlier comparison treated "no tenant" as
+"belongs to whichever tenant is asking". Those records stay on the
+platform-monitoring path.
+
+Both branches return `null` rather than throwing, so a foreign traceId is
+indistinguishable from one that does not exist.
 
 ## QA Retest
 
-Pending WP-03 retest of the expanded regression cases.
+**Pass, executed 2026-08-20.** This section previously read *"Pending WP-03
+retest of the expanded regression cases"*, which was stale: the expanded cases
+had been added and were passing.
+
+`services/api/src/modules/error-logs/error-logs.service.spec.ts` —
+2 suites, 10 tests, all passing. The cases that matter here:
+
+| Case | Result |
+|---|---|
+| Support user reads a log from their own tenant | allowed |
+| Support user reads a log from another tenant | `null` |
+| **Support user reads a platform-scope log** (`it.each([null, 'platform'])`) | `null` |
+| A foreign trace is reported exactly as a missing one | indistinguishable |
+| Ordinary user reads another user's log in their own tenant | `null` |
+
+The third row is the expanded case this record was reopened for on 2026-08-17,
+and it is parameterised over both shapes a scopeless log can take — a genuine
+`null` and the `'platform'` sentinel that routes to `PlatformAuditLog`.
 
 ## History
+
+- 2026-08-20 — **retested and genuinely verified.** The body-content check added
+  for [[ITEM-0071]] flagged this record on its first run: `Status: VERIFIED`
+  above a QA Retest reading *"Pending WP-03 retest"*. It was downgraded to
+  `FIXED`, then investigated properly — and the prose turned out to be the stale
+  half. The guard is correct, the expanded platform-scope cases exist as
+  `it.each([null, 'platform'])`, and all 10 tests pass. Restored to `VERIFIED`
+  on executed evidence rather than on a status field nobody had questioned.
+
+  Worth noting for whoever reads this next: **this record was wrong in the
+  reassuring direction and in the alarming one within the same hour.** Its
+  status over-claimed for three days; its prose then under-claimed once
+  challenged. Neither half was checked against the code until now.
 
 - 2026-08-17 — fixed and verified in WP-03; integrated into develop at 2313bef with the CI required gate green on that exact SHA.
 - 2026-08-17 - reopened in WP-03 after the unguarded-route audit proved the

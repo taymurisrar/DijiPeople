@@ -3,19 +3,19 @@ ID: ITEM-0071
 aliases: [ITEM-0071]
 Title: A terminal bug record may claim FIXED while its Resolution says pending
 Type: TEST_GAP
-Status: READY
+Status: DONE
 Priority: P2
 Severity: MEDIUM
 AffectedModules: [scripts]
 Source: ARCHITECT
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 CreatedAt: 2026-08-20
 UpdatedAt: 2026-08-20
 RelatedBug: BUG-0080
 RelatedQA: 
 RelatedADR: 
-RelatedImplementation:
+RelatedImplementation: TASK-0010
 TargetMilestone: 
 BlockedBy: 
 ---
@@ -108,8 +108,49 @@ None.
   locally. The same family: the record and the reality disagreed, and the record
   was believed.
 
+## Resolution
+
+Implemented 2026-08-20 in `scripts/lib/backlog-records.mjs`.
+
+When a bug's `Status` is `FIXED`, `VERIFIED` or `CLOSED`, its `## Resolution`
+must not be empty and must not open with unfinished prose — `pending`, `tbd`,
+`to be added/written/determined/decided/filled`, `to follow`, `awaiting`, `not
+yet`, `none yet`. `## QA Retest` is held to the same rule on `VERIFIED` only,
+because `FIXED` does not claim QA looked.
+
+Deliberately one-directional. "Terminal status, unfinished prose" is
+unambiguous; the mirror case — an open record whose Resolution claims completion
+— cannot be detected without guessing, and a guess would produce the false
+positives that teach people to ignore a gate.
+
+**Mutation-proven, as the acceptance criteria demanded.** Pointed at
+[[BUG-0080]] as it stood at `b43b85c`, it fails:
+
+```text
+BUG-0080: Status FIXED but "## Resolution" still reads
+  "Pending a product decision." — the status and the prose disagree
+```
+
+### It found three more on its first run
+
+Not a hypothetical class. Every one was `Status: VERIFIED` above a QA Retest
+section saying the opposite:
+
+| Record | What it said | Outcome |
+|---|---|---|
+| [[BUG-0005]] | *"Pending WP-03 retest of the expanded regression cases"* — **CRITICAL**, cross-tenant error-log read | Prose was stale. The expanded cases exist as `it.each([null, 'platform'])` and pass. Re-verified on executed evidence. |
+| [[BUG-0009]] | *"Not yet verified against a live session/database"* | Gap was real. Coverage asserted the route's source shape and never invoked it. Behavioural spec written and mutation-proven. |
+| [[BUG-0010]] | *"Not verified by executing the rejected-cookie configuration"* | Same. Same fix. |
+
+BUG-0005 is the one that matters most: a CRITICAL tenant-isolation record
+reading `VERIFIED` for three days on prose that said it had not been retested.
+The release readiness assessment written an hour earlier had counted zero
+unresolved CRITICALs, and it was only true because that record over-claimed.
+
 ## History
 
+- 2026-08-20 — implemented, mutation-proven against BUG-0080 at `b43b85c`, and
+  three further contradictions found and resolved on the first run.
 - 2026-08-20 — created after BUG-0080's stale prose caused a correct `FIXED`
   status to be reversed, a settled product decision to be re-opened with the
   owner, and working code to be changed and then reverted.

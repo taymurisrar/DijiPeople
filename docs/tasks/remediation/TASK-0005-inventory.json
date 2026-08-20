@@ -246,7 +246,7 @@
         "provenance": "REGRESSION_REGISTER",
         "detected_in_sha": "13e720e",
         "created_at": "2026-08-15",
-        "updated_at": "2026-08-17",
+        "updated_at": "2026-08-20",
         "resolved_at": "2026-08-17"
       },
       "type": "TENANT_ISOLATION",
@@ -285,7 +285,7 @@
       "owner_decision_required": "NO",
       "architect_disposition": "DONE",
       "verification_result": {
-        "result": "PRELIMINARY",
+        "result": "FIXED",
         "classification": "TERMINAL_AS_DOCUMENTED",
         "finding_ids": []
       }
@@ -462,7 +462,7 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "cbc2db8",
         "created_at": "2026-08-15",
-        "updated_at": "2026-08-17",
+        "updated_at": "2026-08-20",
         "resolved_at": "2026-08-17"
       },
       "type": "SECURITY",
@@ -508,7 +508,7 @@
       "owner_decision_required": "NO",
       "architect_disposition": "DONE",
       "verification_result": {
-        "result": "PENDING",
+        "result": "FIXED",
         "classification": "FIXED_AWAITING_LIVE_SESSION_QA",
         "finding_ids": [
           "TASK-0005-RF-005"
@@ -522,7 +522,7 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "cbc2db8",
         "created_at": "2026-08-15",
-        "updated_at": "2026-08-17",
+        "updated_at": "2026-08-20",
         "resolved_at": "2026-08-17"
       },
       "type": "INFRA",
@@ -567,7 +567,7 @@
       "owner_decision_required": "NO",
       "architect_disposition": "DONE",
       "verification_result": {
-        "result": "PENDING",
+        "result": "FIXED",
         "classification": "FIXED_AWAITING_LIVE_SESSION_QA",
         "finding_ids": [
           "TASK-0005-RF-005"
@@ -7682,7 +7682,7 @@
       "title": "A terminal bug record may claim FIXED while its Resolution says pending",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "READY",
+      "current_status": "DONE",
       "current_evidence": {
         "paths": [
           "scripts/rebuild-backlog.mjs"
@@ -7706,9 +7706,9 @@
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "verification_result": {
-        "result": "OPEN",
+        "result": "FIXED",
         "classification": "TERMINAL_AS_DOCUMENTED",
         "finding_ids": []
       }
