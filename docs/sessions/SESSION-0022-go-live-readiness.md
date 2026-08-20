@@ -39,9 +39,14 @@ would be built: real prices rather than placeholders, publication wired into the
 release command, [[ITEM-0069]] fixed before release rather than after, and
 [[BUG-0052]] accepted with the risk recorded.
 
-Two of the four are code and are done. One — the price list — is blocked on the
-owner and nothing ships to a market without it. The fourth is a judgement to be
-written into the release record.
+All four are now resolved. Three were code and are done; the price list arrived
+mid-session and became WP-08, the largest package of the four.
+
+What the session did **not** anticipate is most of what it found: the release
+command had never been run against a virgin database and did not work; a
+security record's reachability claim was wrong; and three bug records claimed a
+verification nobody had performed. Each was found by executing something rather
+than reading about it.
 
 ## Concurrency
 
@@ -62,4 +67,27 @@ development database was not touched at all by this session.
 - 2026-08-20 — WP-02: `release:api` publishes the legal set, so a purchase
   finally records consent. Two more assertions inverted rather than deleted —
   the third time in this programme that a guard outlived its premise.
-- 2026-08-20 — WP-03 blocked on the owner: real prices per plan and market.
+- 2026-08-20 — WP-05: [[BUG-0052]]'s `xlsx` reachability finding was wrong. The
+  advisories were reachable from two authenticated uploads, not export-only.
+  Parse moved to ExcelJS; no `XLSX.read` call site remains anywhere.
+- 2026-08-20 — WP-06: the real `preDeployCommand` was run against a database
+  built from every migration, for the first time. It aborted. [[BUG-0085]] would
+  have failed the first production deploy and taken WP-02's legal publication
+  with it; the fix an operator would reach for first reset the super admin's
+  password on every deploy.
+- 2026-08-20 — WP-07: [[ITEM-0071]] built, and on its first run it found three
+  records claiming `VERIFIED` above prose saying otherwise — one of them a
+  CRITICAL. **This session had caused the need for it**: reading BUG-0080's stale
+  Resolution, I reversed a correct status, changed working billing code, and put
+  a settled product decision back to the owner. All reverted.
+- 2026-08-20 — WP-03 unblocked: the owner supplied a complete price schedule and
+  changed the model to per-seat public with flat by arrangement.
+- 2026-08-20 — WP-08: both models now coexist per plan and the channel decides.
+  Building it found a millisecond race that could have removed a plan from public
+  sale, a minimum seat commitment implemented as a refusal rather than a charge,
+  and a landing estimate that disagreed with the server by the size of that
+  minimum.
+- 2026-08-20 — WP-04: readiness re-derived twice as its blocker narrowed. The
+  platform is `READY_WITH_RISKS`; the commercial surface waits on a Stripe sync
+  and on PKR/QAR presentment being confirmed against the live account. `main`
+  untouched by the owner's decision.

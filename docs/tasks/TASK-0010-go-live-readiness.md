@@ -255,8 +255,12 @@ be the first migration *after* launch.
 Assessed against [`docs/deployment/readiness-checklist.md`](../deployment/readiness-checklist.md).
 
 **Verdict: `READY_WITH_RISKS` for the platform, `NOT_READY` for the commercial
-surface.** The two are separable and the distinction is the whole finding — the
-software is in good shape; what is missing is a price list.
+surface.** The two are separable and the distinction is the whole finding.
+
+The verdict has survived two revisions and the reason has narrowed each time:
+first the blocker was a missing price list (WP-03), then — once the schedule
+arrived — it became the absence of any Stripe-synced price and unverified PKR
+and QAR presentment. The software has been in good shape throughout.
 
 | Gate | Result |
 |---|---|
@@ -323,15 +327,35 @@ mutation-tested by breaking the invariant, and it fired.
    actual `preDeployCommand` end to end against a virgin database — which is
    what found [[BUG-0085]] — but a dry run on a laptop is not a deploy.
 
-### Why the commercial surface is `NOT_READY`
+### Why the commercial surface is still `NOT_READY` — and the reason has changed
 
-WP-03. The seeded prices are USD figures chosen for testing, Qatar has none, and
-the owner asked to supply real ones. Nothing else blocks; this alone does.
+**This section was rewritten on 2026-08-20 after WP-08.** It previously said the
+blocker was WP-03: no real prices. That is resolved — the owner supplied a
+complete schedule, it is seeded, and its arithmetic is verified.
 
-It is worth being exact about what is *not* wrong here, because this task got it
-wrong once: billing is **flat per plan**, the Terms say flat, and [[BUG-0080]]
-was fixed on 2026-08-20 in `e9f977c`. The remaining question is the numbers, not
-the model.
+What blocks now is narrower and entirely external:
+
+**No price is synced to Stripe.** All 36 carry `stripeSyncStatus = NOT_SYNCED`,
+`stripeActive = false`, and no `stripePriceId`. `deriveCheckoutReadiness`
+therefore refuses every one, so **nothing can be bought yet** — the schedule is
+live in the database and the commercial surface is closed until somebody performs
+the deliberate act of syncing a price. That is the correct default and it is why
+seeding real numbers is safe.
+
+**Stripe presentment for PKR and QAR is unverified.** Nothing in this repository
+can establish it; it depends on the live account. If either currency is
+unsupported, that market cannot take self-service payment. It fails safely —
+`deriveCheckoutReadiness` renders it as "checkout not available" rather than a
+wrong charge — but a market that cannot take money is not launched.
+
+So the platform is deployable and the commercial surface is one owner action and
+one external confirmation away.
+
+It is also worth being exact about what is *not* wrong here, because this task
+got it wrong once and put a settled question back to the owner: the billing model
+disagreement of [[BUG-0080]] was genuinely fixed in `e9f977c`, and when the owner
+changed the model later the same day the Terms were rewritten in the same change.
+Code and words have not been out of step since.
 
 ## WP-08 — two billing models, and the channel decides
 
