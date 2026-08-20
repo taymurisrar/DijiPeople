@@ -9,7 +9,7 @@ RISK: HIGH
 AUTOMATION_STATUS: AUTOMATED
 TEST_REFERENCE: services/api/src/common/guards/public-write-rate-limit.invariant.spec.ts
 RELATED_BUGS: [BUG-0075]
-RELATED_REGRESSIONS: [REG-065]
+RELATED_REGRESSIONS: [REG-071]
 LAST_RUN: 2026-08-19
 LAST_RESULT: PASS
 CREATED_AT: 2026-08-19
@@ -66,6 +66,6 @@ justified and non-stale, so an exemption cannot silently protect nothing.
 
 - Test plan — [[PLAN-002]]
 - Bugs — [[BUG-0075]]
-- Regressions — REG-065 (see the regression register)
+- Regressions — REG-071 (see the regression register)
 
 <!-- GRAPH:END -->

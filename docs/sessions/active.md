@@ -12,6 +12,7 @@ therefore sees sibling worktrees without anybody having pushed.
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0019](../../docs/sessions/SESSION-0019-ci-browser-install-latency-and-database-e2e-fixture-contract.md) | — | CI browser install latency and database e2e fixture contract | ACTIVE | `agent/ci-e2e-remediation` | `develop` | — | 2026-08-19T20:24:28.476Z |
 | [SESSION-0018](../../docs/sessions/SESSION-0018-self-service-onboarding-provisioning-domain-routing-and-cent.md) | TASK-0008 | Self-service onboarding, provisioning, domain routing and central login | ACTIVE | `agent/self-service-onboarding-provisioning` | `develop` | schema | 2026-08-18T23:23:49.309Z |
 | [SESSION-0016](../../docs/sessions/SESSION-0016-database-agent-security-agent-agent-reliability-and-obsidian.md) | — | Database Agent, Security Agent, agent reliability and Obsidian ownership | ACTIVE | `agent/agent-framework-hardening` | `develop` | — | 2026-08-18T20:06:16.992Z |
 | [SESSION-0014](../../docs/sessions/SESSION-0014-ci-performance-cancellation-rca-and-autonomous-ci-adaptation.md) | — | CI performance, cancellation RCA and autonomous CI adaptation | ACTIVE | `agent/ci-performance-adaptation` | `develop` | — | 2026-08-18T19:15:42.554Z |

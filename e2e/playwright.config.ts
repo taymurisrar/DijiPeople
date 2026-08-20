@@ -63,6 +63,12 @@ export default defineConfig({
    * `retry #1` is visible in the HTML report for exactly that reason.
    */
   retries: process.env.CI ? 1 : 0,
+  /*
+   * Warm the routes before anything runs, so no test absorbs another's
+   * first-hit compile. Without it the first test in a run pays the cost and
+   * fails on a timeout that says nothing about the product — see global-setup.ts.
+   */
+  globalSetup: './global-setup.ts',
   timeout: 90_000,
   expect: { timeout: 15_000 },
   reporter: process.env.CI

@@ -9,7 +9,7 @@ RISK: MEDIUM
 AUTOMATION_STATUS: AUTOMATED
 TEST_REFERENCE: apps/landing/lib/forwarded-headers.invariant.spec.ts
 RELATED_BUGS: [BUG-0081, BUG-0032]
-RELATED_REGRESSIONS: [REG-071]
+RELATED_REGRESSIONS: [REG-076]
 LAST_RUN: 2026-08-20
 LAST_RESULT: PASS
 CREATED_AT: 2026-08-19
@@ -72,6 +72,6 @@ fail the build with nothing to do about it.
 
 - Test plan — [[PLAN-013]]
 - Bugs — [[BUG-0081]], [[BUG-0032]]
-- Regressions — REG-071 (see the regression register)
+- Regressions — REG-076 (see the regression register)
 
 <!-- GRAPH:END -->

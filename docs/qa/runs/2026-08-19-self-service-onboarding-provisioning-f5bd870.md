@@ -65,8 +65,8 @@ Expected behaviour written before execution.
 | `npm --workspace landing run lint` | landing eslint | — | 0 | — | — |
 | `npm run validate:framework` | framework | 2740 | 0 | 0 | — |
 
-**The 81 e2e failures share one pre-existing cause and none are in this parent's
-scope** — see Known Limitations and [[ITEM-0067]].
+**The 81 e2e failures share one pre-existing cause, and it had already been
+fixed on `develop` when this ran** — see the correction in Known Limitations.
 
 Database prepared as `.github/workflows/ci.yml` prepares it, plus two seeds CI
 does not run: `prisma:migrate:deploy` → `seed:config` → `seed:demo` →
@@ -96,9 +96,9 @@ of cross-origin requests once it is in the address bar.
 
 | Regression ID | Scenario | Result |
 |---|---|---|
-| REG-069 | A flat price is never described as per-employee | PASS |
-| REG-071 | Every direct-API handler forwards the client address | PASS (added here) |
-| REG-072 | The wizard refuses to collect data it cannot submit | PASS (added here) |
+| REG-075 | A flat price is never described as per-employee | PASS |
+| REG-076 | Every direct-API handler forwards the client address | PASS (added here) |
+| REG-077 | The wizard refuses to collect data it cannot submit | PASS (added here) |
 | BUG-0066's browser scenario | Subscribe never offers an unsubmittable form | **FAILED against the rewritten wizard** — F3 below |
 | REG-027 | Workspace domain resolution cannot be pointed at another tenant | PASS — `workspace-domain-isolation.e2e-spec.ts` |
 
@@ -106,11 +106,11 @@ of cross-origin requests once it is in the address bar.
 
 | ID | Severity | Description | Bug pattern | Regression test added |
 |---|---|---|---|---|
-| [[BUG-0081]] (F2) | MEDIUM | Three apps claimed a forwarded-headers invariant test that did not exist | `assertion-without-a-check` | [[REG-071]] |
-| [[BUG-0082]] (F3) | HIGH | The wizard collects five steps of data it cannot submit | `editable-form-that-cannot-submit` | [[REG-072]] |
+| [[BUG-0081]] (F2) | MEDIUM | Three apps claimed a forwarded-headers invariant test that did not exist | `assertion-without-a-check` | [[REG-076]] |
+| [[BUG-0082]] (F3) | HIGH | The wizard collects five steps of data it cannot submit | `editable-form-that-cannot-submit` | [[REG-077]] |
 | F4 — fixed in place | — | `billing-terms` named no operator, and `seed:legal` was in no aggregate seed script | `contract-without-a-counterparty` | `legal-seed.e2e-spec.ts` |
 | [[ITEM-0066]] | LOW | `verify-database.mjs` cannot spawn npm on Windows | — | deferred |
-| [[ITEM-0067]] | LOW | Three e2e suites need two seeded tenants; no seed produces them | — | deferred |
+| [[ITEM-0067]] | — | Three e2e suites need two seeded tenants | — | **withdrawn — duplicate of [[ITEM-0047]], already fixed on `develop`** |
 
 F4 is recorded here rather than as its own bug record because it was found and
 closed inside one change, by an assertion written in that same change, and
@@ -119,14 +119,28 @@ operator block — are in the commit.
 
 ## Known Limitations
 
-**81 e2e failures, all pre-existing, all one cause.** `attendance-engine`,
-`attendance-integrations-http` and `gateway-runtime` throw in `beforeAll` on
-*"These tests need two tenants with at least one business unit."* `seed:demo`
-creates one and no script creates a second, so they cannot pass against a
-database prepared the documented way. They fail before any product code runs,
-they touch none of this parent's modules, and `database-e2e` is not in the
-`ci-required` gate — which is why nothing has forced the question. Recorded as
-[[ITEM-0067]].
+**81 e2e failures — corrected after merging `develop`.**
+
+As run, `attendance-engine`, `attendance-integrations-http` and
+`gateway-runtime` threw in `beforeAll` on *"These tests need two tenants with at
+least one business unit."* `seed:demo` creates one. The reading was right and
+the diagnosis was right, and it was **also already fixed**: `develop` was 36
+commits ahead of the branch this campaign ran against, carrying
+[[ITEM-0047]] / [[REG-070]] — per-suite fixtures via `createTenantPair()`, the
+three suites converted, `legal-seed` made to run its own seed, and
+`platform-workflows` given its invitation data. The same work promoted
+`database-e2e` into the required gate, which it could only do because these
+failures were gone.
+
+So the number above is a **stale-base artefact**, not a finding.
+[[ITEM-0067]] is withdrawn as a duplicate, and the post-merge figure is recorded
+in TASK-0008's WP-08 section.
+
+The process lesson is worth more than the number: **a QA campaign that
+establishes a baseline must merge the integration branch first.** Otherwise
+every failure somebody else has already fixed gets rediscovered, investigated
+and re-filed — and the campaign's own findings become harder to see among
+them.
 
 **No browser run here.** Playwright needs three Next servers, an API, a seeded
 database and browser binaries, and the Nest CLI does not start reliably in this
@@ -158,9 +172,8 @@ The risks, named rather than buried:
    argument for taking that seriously: a browser regression survived a rewrite
    that every unit test still passed. The gate runs it on push; if it goes red,
    that is this verdict changing, not a new event.
-2. **81 e2e tests contribute nothing** until [[ITEM-0067]] is resolved. They
-   cover tenant isolation on the attendance and gateway paths — covered
-   elsewhere, but not by them.
+2. **The e2e baseline was taken on a stale base.** Corrected above and re-run
+   after the merge; the figure that counts is the post-merge one in TASK-0008.
 3. **No legal document is published.** The wizard requires only agreements
    carrying a published version, so with none published it requires none, and a
    purchase records no consent. That is an owner decision already open, not a
@@ -171,6 +184,6 @@ The risks, named rather than buried:
 
 - Owner: publish the legal drafts, and supply real PKR and QAR prices. Until
   then a Qatari visitor meets BUG-0082's now-honest "no published price" state.
-- [[ITEM-0067]] — build fixtures per suite rather than growing `seed:demo`.
+- [[ITEM-0067]] — withdrawn as a duplicate of [[ITEM-0047]].
 - [[ITEM-0066]] — sweep `scripts/` for the same Windows spawn shape.
 - WP-09 — Reviewer, exact-SHA CI, develop integration.

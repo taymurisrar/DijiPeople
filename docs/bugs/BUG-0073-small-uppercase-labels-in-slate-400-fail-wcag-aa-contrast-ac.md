@@ -1,0 +1,136 @@
+---
+ID: BUG-0073
+aliases: [BUG-0073]
+Title: Small uppercase labels in slate-400 fail WCAG AA contrast across admin
+Status: VERIFIED
+Severity: MEDIUM
+Priority: P2
+Type: UX
+Source: QA_RUN
+DetectedDate: 2026-08-19
+DetectedInSha: 4290c03
+AffectedModules: [apps/admin]
+OwnerAgent: architect
+ArchitectDisposition: DONE
+QAReport:
+RegressionId: REG-068
+RelatedBacklogItem:
+RelatedDecision:
+RelatedImplementation:
+CreatedAt: 2026-08-19
+UpdatedAt: 2026-08-19
+ResolvedAt: 2026-08-19
+---
+
+# BUG-0073 - Small uppercase labels in slate-400 fail WCAG AA contrast across admin
+
+## Summary
+
+Platform Admin renders its small uppercase section labels in `text-slate-400` on
+a white background. That is roughly **2.8:1**, against the **4.5:1** WCAG AA
+requires for normal-size text - and these labels are 10-11px, so the relaxed
+large-text threshold does not apply. Two of the three instances live in the
+**shared shell**, so every admin screen carries the failure.
+
+## Expected Behavior
+
+Text meets at least 4.5:1 against its background. `text-slate-500` (#64748b on
+white, ~4.8:1) clears it while remaining visually subdued.
+
+## Actual Behavior
+
+axe reports `color-contrast` at **serious** impact on every admin screen.
+
+## Reproduction
+
+1. Sign in to Platform Admin as a platform user.
+2. Open any screen - the sidebar is present on all of them.
+3. Run axe with the `wcag2aa` rule set.
+4. `color-contrast` is reported against the sidebar's section labels.
+
+## Evidence
+
+Found by the first accessibility audit this repository has ever had, on
+2026-08-19, via `@axe-core/playwright`:
+
+```
+E3 provisioning operations - SERIOUS color-contrast
+  div:nth-child(1..4) > .pb-2.tracking-[0.22em].text-[11px]
+  .last:border-0.align-top:nth-child(1) > td:nth-child(8) > .text-slate-400
+E3 admin dashboard - SERIOUS color-contrast
+  .tracking-[0.16em]
+```
+
+Three sources:
+
+- `apps/admin/app/_components/admin-sidebar.tsx:242` - navigation section
+  labels. **Shared shell, so every admin screen.**
+- `apps/admin/app/_components/runtime/runtime-view-selector.tsx:127` - the
+  "View" label above the selector.
+- `apps/admin/app/(internal)/operations/provisioning/provisioning-queue.tsx` -
+  the "None" blocker and the "not recorded" dash. Introduced by WP-11 in this
+  same session.
+
+## Root Cause
+
+`text-slate-400` reads as "muted" and was used wherever a label should recede.
+Nothing checked contrast, so the convention spread. AGENTS.md has always
+required that meaning not rest on colour alone, but with no accessibility
+tooling in the repository the requirement was unenforced - every QA run recorded
+ACCESSIBILITY as unverified.
+
+## Impact
+
+Low-vision users, and anyone on a dim or glare-affected screen, cannot reliably
+read the navigation section labels that organise the console. Not a data or
+security defect; a legibility one, on every screen.
+
+## Affected Areas
+
+`apps/admin` - the shared sidebar, the runtime view selector, and the
+provisioning queue.
+
+## Proposed Resolution
+
+Raise the three reported instances to `text-slate-500`. No ExecPlan: a token
+swap with no behavioural surface.
+
+**Deliberately scoped to what the audit found.** `text-slate-400` appears
+elsewhere in `apps/admin` on screens this audit does not yet cover, and a
+repository-wide sweep would be a large diff across untested surfaces. That sweep
+belongs with those screens as they gain audit coverage.
+
+## Acceptance Criteria
+
+- axe reports no `color-contrast` violation on the admin dashboard or the
+  provisioning queue.
+- The labels remain visually subordinate to the content they head.
+
+## Regression Coverage
+
+`e2e/tests/flow-e-accessibility-and-layout.spec.ts` - E3 audits both screens and
+fails on any critical or serious violation. REG-068.
+
+## Dependencies
+
+None.
+
+## Related Items
+
+- [[BUG-0074]] - found in the same audit
+- [[platform-admin]]
+
+## Resolution
+
+Fixed on branch `agent/provisioning-ops-and-qa`: the three reported instances
+raised to `text-slate-500`, each with a comment recording the ratio so the next
+person does not quietly revert it.
+
+## QA Retest
+
+Re-run 2026-08-19 against the live stack: E3 passes for both the provisioning
+queue and the admin dashboard. Full browser suite 30 passed.
+
+## History
+
+- 2026-08-19 - found by the first axe audit; fixed and retested the same day.

@@ -903,7 +903,91 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fixed** | 2026-08-18, branch `agent/commercial-platform-completion` |
 | **Active** | yes |
 
-### REG-065 — The public-write rate-limit invariant cannot be satisfied by an import
+### REG-065 — Repository health inspects the primary worktree, not only the one it runs in
+
+| | |
+|---|---|
+| **Bug class** | `computed-then-discarded` |
+| **Module** | `scripts` — `repo-health.mjs`, `session.mjs` |
+| **Bug record** | BUG-0076 |
+| **Root cause** | `repo-health.mjs` computed `worktree.dirty` for every worktree, used it only to protect a worktree from deletion, and dropped it from the report before anything could read it. The single dirty check that *was* reported ran with `cwd: ROOT` — the script's own checkout, which for an agent is its pristine task worktree — and was further gated on `currentBranch === TARGET`, where `TARGET` is `main`. The primary checkout sits on `develop`, so a dirty primary produced no output at all. Dirtiness was a warning in the one case it appeared, never a blocker. Separately, `session.mjs` resolves `ROOT` from its own location, so registering a session from the primary checkout wrote the record there and the task then worked elsewhere, stranding an untracked stub. |
+| **Regression test** | `scripts/validate-framework.mjs` — behavioural simulations 37A–37G, 38 and 39, run against throwaway repositories with real worktrees attached |
+| **Scenario** | An unexplained dirty file in the primary checkout yields `PRIMARY_WORKTREE_STATUS = DIRTY_UNEXPLAINED` and a blocker, while the task worktree is `CLEAN`. A path proven pre-existing by `--primary-baseline` yields `DIRTY_USER_OWNED` and does not block. An ACTIVE session's record is attributed to that session, never orphaned. A dirty sibling worktree is listed and left untouched. `repo-health.mjs` leaves branch, HEAD and working tree byte-identical either side of a run, including on a dirty tree. Registering a session for a branch this checkout does not have reports `PRIMARY_WORKTREE_ARTIFACT`. |
+| **Proven to fail without the fix** | Mutation-tested seven ways: the `DIRTY_UNEXPLAINED` blocker deleted; `primaryWorktreeStatus()` pinned to `CLEAN`; the per-worktree porcelain lines collapsed back to a boolean; `UNKNOWN` ownership silently reclassed as `USER`; an ACTIVE session record misread as an orphan; sibling worktrees filtered out of the report; and `session.mjs`'s `strandedInPrimary` pinned to `false`. All seven are killed by at least one simulation. The seventh initially **survived**, because the check covering it grepped the source for an identifier rather than executing the behaviour — the same defect class as the bug — which is why simulation 39 drives `session.mjs` against a sandbox. |
+| **Fixed** | 2026-08-19, branch `agent/repo-health-primary-worktree` |
+| **Active** | yes |
+
+### REG-066 — A tenant subject cannot satisfy a platform permission
+
+| | |
+|---|---|
+| **Bug class** | `authorization-guard-fails-open` |
+| **Module** | `services/api` — `platform-auth`, `super-admin`, `platform-communications` |
+| **Bug record** | BUG-0071 |
+| **Root cause** | `PlatformPermissionsGuard` opened with `if (!role) return true`, reading "no platform role" as "not a platform request". Every controller using it is a platform surface end to end, so that early exit meant unguarded, not harmless. `userHasPlatformPermission` then fell back to `user.permissionKeys`, which for a tenant subject are tenant keys — and six tenant key names collide exactly with platform permission names. A tenant user holding the ordinary `system-admin` tenant role reached every super-admin endpoint. The same line was inverted for unmapped routes: a genuine platform operator fell through to the throw and got 403 from `/operators`, `/feature-catalog` and `/lifecycle-options`. |
+| **Regression test** | `services/api/src/modules/platform-auth/platform-permissions.spec.ts` — "refuses a tenant subject on a platform route", "refuses a tenant subject holding the colliding key %s", "admits a platform subject on the routes that used to 403 them" |
+| **Scenario** | A subject with no `platform.id` is refused by the guard and by `userHasPlatformPermission`, whatever its `permissionKeys` contain — including the `platform.*` wildcard. A platform subject holding the route's permission still passes, and the four previously-unmapped routes now resolve a permission and admit a platform user. |
+| **Proven to fail without the fix** | Before, live against a seeded local stack: a tenant `system-admin` received 200 from all 16 super-admin GET routes and 400 (not 403) from `PATCH /platform-settings` and `PATCH /platform-email`, while a platform SUPER_ADMIN received 403 from `/operators`, `/feature-catalog` and `/lifecycle-options`. After: the tenant subject receives 403 from every one, and the platform subject receives 200 from every one including the three that were broken. |
+| **Fixed** | 2026-08-18, branch `agent/provisioning-ops-and-qa` |
+| **Active** | yes |
+
+### REG-067 — A mutating platform route is never satisfied by a read permission
+
+| | |
+|---|---|
+| **Bug class** | `method-blind-permission-mapping` |
+| **Module** | `services/api` — `platform-auth`, `super-admin` |
+| **Bug record** | BUG-0072 |
+| **Root cause** | `resolvePlatformPermission` matches path substrings, and it was extended domain by domain. The branches added through `actionFor` consider the HTTP method; the branches added as a bare `return '<domain>.read'` do not. Every method on `/super-admin/plans*` therefore resolved `plans.read`, which `READ_ONLY_AUDITOR` holds, so a role named for not writing could create, update and delete plans and plan prices. The `PlatformPermission` union also had no `plans.manage`, `invoices.manage`, `subscriptions.manage` or `payments.manage`, so there was no mutating permission to return. `actionFor` returned null for DELETE, leaving customer and onboarding deletes unmapped. |
+| **Regression test** | `services/api/src/modules/platform-auth/platform-permissions.spec.ts` — "maps every route to a platform permission", "never satisfies a mutating route with a read permission", "refuses the read-only auditor on the plan catalog it could once rewrite" |
+| **Scenario** | Each route is enumerated from the controller's own `PATH_METADATA` and `METHOD_METADATA` and resolved with its real verb. No route resolves null, and no route whose verb is not GET resolves a permission ending in `.read`. `READ_ONLY_AUDITOR` is refused `plans.manage` while `PLATFORM_ADMIN` still holds it. |
+| **Proven to fail without the fix** | Before: the enumeration named four unmapped routes (`operators`, `lifecycle-options`, `feature-catalog`, `tenant-slug/availability`) and eight mutating routes resolving a `.read` permission, including `POST /plans`, `PATCH /plans/:planId`, `DELETE /plans/:planId/prices/:priceId` and `POST /billing/stripe-webhook-events/:id/retry`. After: both lists are empty; 30 passed. |
+| **Fixed** | 2026-08-18, branch `agent/provisioning-ops-and-qa` |
+| **Active** | yes |
+
+### REG-068 — The admin surfaces carry no critical or serious accessibility violation
+
+| | |
+|---|---|
+| **Bug class** | `unverified-convention` |
+| **Module** | `apps/admin` |
+| **Bug record** | BUG-0073, BUG-0074 |
+| **Root cause** | AGENTS.md required labelled controls, keyboard-navigable tables and meaning that never rests on colour alone, and nothing checked any of it - the repository had no accessibility tooling, so every QA run recorded ACCESSIBILITY as unverified. Two defects followed. Small uppercase labels used `text-slate-400` on white (~2.8:1 against a 4.5:1 requirement) in the shared sidebar, the runtime view selector and the new provisioning queue. And the queue's `overflow-x-auto` container had no `tabIndex`, so its off-screen columns were reachable by pointer only - on the screen whose own hand-written keyboard test had passed on header scope and a caption. |
+| **Regression test** | `e2e/tests/flow-e-accessibility-and-layout.spec.ts` - E3 audits the provisioning queue and the admin dashboard with axe and fails on any critical or serious violation; E4 independently asserts the page body does not scroll sideways, so the keyboard fix cannot be traded against the layout one. |
+| **Scenario** | Sign in to Platform Admin, open each audited screen, run axe with the wcag2a/wcag2aa/wcag21a/wcag21aa rule sets, and filter to critical and serious impact. The list must be empty. Moderate and minor are reported rather than gated, deliberately - failing a first audit on its whole long tail produces a suite nobody can act on. |
+| **Proven to fail without the fix** | Before: `SERIOUS color-contrast` on the sidebar labels and the queue's muted cells, `SERIOUS scrollable-region-focusable` on the queue container, and a further `SERIOUS color-contrast` on the dashboard's view selector - 2 of 5 signed-in scenarios failing. After: 5 passed, and the full browser suite 30 passed. |
+| **Fixed** | 2026-08-19, branch `agent/provisioning-ops-and-qa` |
+| **Active** | yes |
+
+### REG-069 — Playwright installed system dependencies the runner already had
+
+| | |
+|---|---|
+| **Bug class** | `unnecessary-external-dependency` |
+| **Module** | `.github/workflows` — `browser-e2e`; `e2e`; `scripts/install-browser.mjs` |
+| **Bug record** | BUG-0079 |
+| **Root cause** | `playwright install --with-deps chromium` ran `apt-get update` and `apt-get install` on every run. On `ubuntu-latest` every library Chromium links against is already present — all 24 logged "already the newest version", `0 upgraded, 0 to remove` — and the only packages it newly installed were nine CJK/Cyrillic/Thai font packages that no assertion in `e2e/tests/` depends on, since the suite makes no screenshot comparison. So 97–99% of the step was apt work with no effect, its cost set entirely by Azure's Ubuntu mirror: 74s for 11.4 MB of package lists at 162 kB/s, then 229s for 21.1 MB at 93.8 kB/s, against 9.6s for the 301 MB browser download from `cdn.playwright.dev`. The tail reached 1555s and consumed the job's 30-minute cap. |
+| **Regression test** | `scripts/install-browser.mjs` — the launch probe, which runs on every CI run rather than in a separate suite; `scripts/ci-metrics.mjs` carries the STEP_DURATION_REGRESSION trigger for the step growing again without anything failing. |
+| **Scenario** | The install step downloads the browser, then launches it for real and closes it. A runner that already satisfies the browser does no apt work and reports `APT_DEPENDENCY_DURATION = 0s`. A runner missing a library fails the probe, runs `playwright install-deps` with a warning, and re-probes — so the outcome is a working browser either way and only the cost differs. `PLAYWRIGHT_COMMAND`, `APT_DEPENDENCY_DURATION`, `CHROMIUM_DOWNLOAD_DURATION`, `LAUNCH_PROBE_DURATION`, `TOTAL_BROWSER_INSTALL_DURATION`, `RUNNER_IMAGE` and `PLAYWRIGHT_VERSION` appear in the job summary. |
+| **Proven to fail without the fix** | The probe is the only thing standing between a missing library and a browser journey failing for a reason that reads as a product defect — remove it and dropping `--with-deps` becomes an unverified assumption about the runner image. Removing the metrics restores the single opaque timer that made this defect take three attempts to diagnose: a job median cannot distinguish a slow download from a slow apt mirror, and 27s → 25m55s fired no job-level trigger at all. |
+| **Fixed** | 2026-08-20, branch `agent/ci-e2e-remediation` |
+| **Active** | yes |
+
+### REG-070 — Database e2e suites asserted against tenants they did not create
+
+| | |
+|---|---|
+| **Bug class** | `borrowed-fixture-dependency` |
+| **Module** | `services/api/test` — `attendance-engine`, `attendance-integrations-http`, `gateway-runtime`, `legal-seed`, `platform-workflows`, `helpers/db-fixtures.ts` |
+| **Bug record** | ITEM-0047 |
+| **Root cause** | Three suites opened with `tenant.findMany({ where: { businessUnits: { some: {} } }, take: 2 })` and threw when it returned fewer than two. `seed:demo` creates exactly one tenant, so `beforeAll` threw on every CI run and **81 tests errored before a single assertion executed** — counted for weeks as 81 product failures. Two more suites had the same shape against different absent data: `legal-seed` asserted the output of `seed:legal`, and `platform-workflows` drove the invitation token `seed-horizon-onboarding` from `seed-platform-workflows.ts`; the database e2e job runs neither seed, so the legal table was empty and both public onboarding requests returned 404. Teardown compounded it — ids a failed `beforeAll` never assigned reached Prisma as `in: [undefined, undefined]`, which Prisma refuses, producing a second and louder failure on top of the first. |
+| **Regression test** | `services/api/test/db-fixtures-contract.e2e-spec.ts`, against real PostgreSQL |
+| **Scenario** | `createTenantPair()` returns two tenants with distinct ids and distinct customer accounts, each carrying an organization and a business unit whose `tenantId` matches. `cleanup()` removes tenants, customer accounts, organizations and business units — the cascade asserted, not assumed, because `BusinessUnit → Organization` is `Restrict`. `cleanup()` after partial construction resolves rather than throwing, and is safe to call twice. Two `DbFixtures` instances with the same label generate different names. |
+| **Proven to fail without the fix** | Restore any suite's `take: 2` lookup and it fails in `beforeAll` against a freshly seeded database — the exact CI condition, reproduced locally at 7 suites / 148 failed. Remove the cascade assertions and a fixture that silently leaked organizations would pass. Remove the partial-construction case and the `undefined`-id teardown returns, since that is the state a failed setup leaves. |
+| **Fixed** | 2026-08-20, branch `agent/ci-e2e-remediation` |
+| **Active** | yes |
+
+### REG-071 — The public-write rate-limit invariant cannot be satisfied by an import
 
 | | |
 |---|---|
@@ -917,7 +1001,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fixed** | 2026-08-19, branch `agent/self-service-onboarding-provisioning` |
 | **Active** | yes |
 
-### REG-066 — An unpaid public subscribe creates no tenant
+### REG-072 — An unpaid public subscribe creates no tenant
 
 | | |
 |---|---|
@@ -931,7 +1015,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fixed** | 2026-08-19, branch `agent/self-service-onboarding-provisioning` |
 | **Active** | yes |
 
-### REG-067 — Every emitted domain event has a consumer
+### REG-073 — Every emitted domain event has a consumer
 
 | | |
 |---|---|
@@ -945,7 +1029,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fixed** | 2026-08-19, branch `agent/self-service-onboarding-provisioning` |
 | **Active** | yes |
 
-### REG-068 — Checkout cannot open until the owner email is verified
+### REG-074 — Checkout cannot open until the owner email is verified
 
 | | |
 |---|---|
@@ -959,7 +1043,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fixed** | 2026-08-19, branch `agent/self-service-onboarding-provisioning` |
 | **Active** | yes |
 
-### REG-069 — A flat price is never described as per-employee
+### REG-075 — A flat price is never described as per-employee
 
 | | |
 |---|---|
@@ -973,7 +1057,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fixed** | 2026-08-20, branch `agent/self-service-onboarding-provisioning` |
 | **Active** | yes |
 
-### REG-071 — A named invariant test that did not exist
+### REG-076 — A named invariant test that did not exist
 
 | | |
 |---|---|
@@ -988,7 +1072,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fixed** | 2026-08-20, branch `agent/self-service-onboarding-provisioning` |
 | **Active** | yes |
 
-### REG-072 — The onboarding wizard collected data it could not submit
+### REG-077 — The onboarding wizard collected data it could not submit
 
 | | |
 |---|---|

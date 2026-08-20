@@ -430,7 +430,12 @@ jobs:
           --testPathPatterns "commercial-bootstrap"
 
   database-e2e-report:
-    name: Database e2e (report only — NOT a gate)
+    # PROMOTED to a required gate on 2026-08-20. The job KEY is unchanged on
+    # purpose: it is referenced by name from `.agent/`, the QA records and the
+    # regression register, and renaming it would rewrite history that was true
+    # when it was written. The display name is what people read, and that no
+    # longer claims to be a report.
+    name: Database e2e
     runs-on: ubuntu-latest
     needs: [resolve]
     if: needs.resolve.outputs.reuse != 'true'
@@ -448,20 +453,40 @@ jobs:
     # minutes and still unfinished; only a superseding push stopped it. A
     # report-only job must never be able to hold a runner for six hours.
     #
-    # All 15 e2e suites now execute in CI against a fresh database. At the
-    # initial 2026-08-17 discovery baseline, 9 suites / 91 tests passed and 6
-    # suites / 136 tests failed; WP-02 exact-SHA evidence later worsened to 8/79
-    # passing and 7/148 failing. Requiring the whole set before that inventory
-    # is burned down would make every unrelated change red.
+    # PROMOTION, 2026-08-20 — ITEM-0047 closed, and `continue-on-error: true`
+    # removed with it.
     #
-    # REMAINING PROMOTION CRITERIA — remove `continue-on-error` and rely on
-    # this job as a truthful gate when all hold:
-    #   1. Every suite classified READY passes three consecutive runs.
-    #   2. Suites needing fixtures or environment are fixed, or quarantined by
-    #      name with the reason recorded in docs/qa/.
-    #   3. Total runtime stays under ~10 minutes.
+    # The criteria were written before this task and were met, not adjusted to
+    # fit:
+    #   1. every suite passes — 24 of 24 and 295 of 295 tests before merging
+    #      develop, 25 of 25 and 304 of 304 after it added
+    #      provisioning-queue.e2e-spec.ts. No suite quarantined, no assertion
+    #      relaxed to get there;
+    #   2. no suite needs fixtures or environment it does not build itself. The
+    #      job still seeds, but only because `platform-workflows` reads a
+    #      CustomerAccount and an ACTIVE PlatformUser; every other dependency on
+    #      ambient data is gone;
+    #   3. runtime 644s and 714s locally against the full set, still at
+    #      `maxWorkers: 1`. Quote 644s: the post-merge 277s is a warm ts-jest
+    #      transform cache, not a real speed-up, and CI's cache is cold.
+    #
+    # Proven three times on a fresh database — runs 1 and 2 with identical suite
+    # and test counts and zero retries, run 3 after merging develop — and
+    # `--detectOpenHandles` clean on all three: no "force exited", no "Jest did
+    # not exit". Recipe in docs/development/database-e2e-reproduction.md.
+    #
+    # What it was before: 7 suites and 148 tests failing at the WP-02 baseline,
+    # 6 suites and 92 tests at the last run that completed at all, and then
+    # three consecutive runs that consumed the whole 30-minute cap without
+    # finishing. That was never capacity. Suites borrowed each other's rows out
+    # of one seeded tenant, and the resulting contention hung the worker — 27
+    # minutes of wall clock for 86 seconds of CPU. Once each suite built its own
+    # data the same serial config finished in ten and a half minutes.
+    #
+    # If it proves flaky, move it back to report-only WITH the failing evidence
+    # — not silently, and not by deleting a suite.
+    #
     # Classification: docs/qa/test-strategy/e2e-suite-classification.md
-    continue-on-error: true
     services:
       postgres:
         image: postgres:16-alpine
@@ -530,43 +555,102 @@ jobs:
         run: npm --workspace api run seed:admin
       - name: Run database-backed e2e suites
         id: e2e
+        # `set +e` and `PIPESTATUS` are still here, and still necessary: the
+        # summary below has to run whether jest passed or failed, and `$?` after
+        # a `| tee` is tee's status, not jest's — that mistake IS BUG-0049.
+        #
+        # What changed with promotion is where the verdict lands. It is no
+        # longer only printed; the `Publish the verdict` step exits non-zero on
+        # it, so the job conclusion and the RESULT line cannot disagree.
         run: |
           set +e
           npm --workspace api run test:e2e 2>&1 | tee e2e-report.txt
           echo "exit_code=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
       - name: Summarise
         if: always()
-        # BUG-0049 — this job stays non-gating, but its RESULT line must say what
-        # actually happened. Previously the summary printed the counts and left
-        # the reader to infer, while the job concluded success; a QA run then
-        # copied "all jobs green" from the conclusion and recorded a pass over
-        # 136 failed tests. A report-only job is evidence, and evidence that
-        # rounds itself up is worse than no job at all.
+        # BUG-0049 — the RESULT line must say what actually happened rather than
+        # printing counts and leaving the reader to infer. That was written when
+        # this job was report-only and a QA run copied "all jobs green" off the
+        # conclusion over 136 failed tests. It matters no less now: a gate that
+        # fails is read by whoever has to fix it, and the summary is where they
+        # start.
         run: |
           code='${{ steps.e2e.outputs.exit_code }}'
           if [ "$code" = "0" ]; then result='PASS'; else result="FAIL (jest exit $code)"; fi
           {
-            echo "### Database e2e — baseline report"
+            echo "### Database e2e"
             echo ""
             echo "RESULT: $result"
             echo ""
-            echo "Non-blocking, and NOT a gate. Do not read this job's green"
-            echo "conclusion as a pass — read the RESULT line above."
+            echo "A required gate since 2026-08-20 (ITEM-0047). A red run here"
+            echo "fails \`CI required gate\`."
             echo ""
             echo '```'
             grep -E "Tests:|Test Suites:|✕|Cannot find|timeout" e2e-report.txt | head -60 || echo "no summary lines found"
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
-          if [ "$code" != "0" ]; then
-            echo "::warning title=Database e2e failed::Non-gating, but this run is RED — jest exited $code. Do not record it as a pass."
+
+          # E2E_FIXTURE_CONTRACT_BROKEN — a distinct finding, not a test count.
+          #
+          # When a shared precondition fails, every test behind it fails at
+          # once, and the report reads as dozens of independent product defects.
+          # That is exactly what happened for weeks: three suites threw "These
+          # tests need two tenants with at least one business unit" in beforeAll
+          # because seed:demo creates one tenant, and 81 red tests were counted
+          # as 81 problems instead of one.
+          #
+          # jest reports a beforeAll failure as "Test suite failed to run", so
+          # that phrase — not the test count — is the signal. It is surfaced
+          # separately so the Architect triages the precondition rather than the
+          # cascade.
+          setup_failures=$(grep -c "Test suite failed to run" e2e-report.txt || true)
+          if [ "${setup_failures:-0}" -gt 0 ]; then
+            {
+              echo ""
+              echo "**E2E_FIXTURE_CONTRACT_BROKEN** — $setup_failures suite(s) failed"
+              echo "before running a test. Those failures are ONE finding about a"
+              echo "precondition, not N findings about the product. Fix the fixture"
+              echo "first, then re-read the counts above; classifying the cascade as"
+              echo "product defects is the mistake ITEM-0047 records."
+              echo ""
+              echo '```'
+              grep -B 2 "Test suite failed to run" e2e-report.txt | head -40 || true
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "::warning title=E2E fixture contract broken::$setup_failures suite(s) failed in setup. Triage the shared precondition, not each failing test."
           fi
+
       - name: Upload report
+        # Before the verdict, so a failing run still uploads the report that
+        # explains it. `if: always()` would do the same, but ordering it here
+        # means the artifact exists even if the verdict step is what fails.
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: database-e2e-report
           path: e2e-report.txt
           retention-days: 30
+      - name: Publish the verdict
+        # The step that makes this a gate rather than a report.
+        #
+        # It is separate from `Run database-backed e2e suites` because that step
+        # must not fail: the summary and the artifact upload both need to run on
+        # a red result, and a step that exits non-zero skips everything after it
+        # unless every subsequent step carries `if: always()`. Concentrating the
+        # failure in one final step keeps the reporting unconditional and the
+        # verdict unambiguous.
+        #
+        # It is deliberately NOT `if: always()`. If an earlier step failed —
+        # the database never came up, a seed threw — the job is already red for
+        # that reason, and this step running would only add a second, less
+        # informative failure.
+        run: |
+          code='${{ steps.e2e.outputs.exit_code }}'
+          if [ "$code" != "0" ]; then
+            echo "::error title=Database e2e failed::jest exited $code. See the job summary for the RESULT line and the failing suites."
+            exit "$code"
+          fi
+          echo "Database e2e passed."
 
   build:
     name: Build
@@ -648,7 +732,15 @@ jobs:
     runs-on: ubuntu-latest
     needs: [resolve]
     if: needs.resolve.outputs.reuse != 'true'
-    timeout-minutes: 30
+    # Raised from 30 on 2026-08-19. The suite went from 18 tests to 48 — flows D,
+    # E and F added the provisioning queue, the first accessibility audit and the
+    # public SEO contract — and it runs at workers: 1 by deliberate choice, so
+    # wall-clock grows with the test count. At 30 the job was cancelled mid-run,
+    # which produces no evidence at all: ci:classify reports a cancelled run as
+    # IS_EVIDENCE = NO, so the gate cannot be satisfied and the branch cannot
+    # integrate. A timeout that cannot distinguish "slow" from "broken" is worse
+    # than a generous one.
+    timeout-minutes: 45
     # The first browser coverage this repository has ever had. Until this job,
     # `BROWSER_E2E = BLOCKED_INFRASTRUCTURE` appeared in every QA run and no UI
     # defect could be *proven* fixed — see ITEM-0001 and
@@ -737,6 +829,37 @@ jobs:
           npm --workspace api run seed:demo
           npm --workspace api run seed:admin
       - name: Install the browser
+        # Instrumented deliberately: this step is measured, not merely timed.
+        # `scripts/install-browser.mjs` reports PLAYWRIGHT_COMMAND,
+        # APT_DEPENDENCY_DURATION, CHROMIUM_DOWNLOAD_DURATION and
+        # TOTAL_BROWSER_INSTALL_DURATION into the job summary, because one step
+        # timer is what made this defect hard to diagnose — a single number
+        # cannot tell a slow download from a slow apt mirror, and the two have
+        # completely different fixes.
+        #
+        # `--with-deps` was REMOVED on 2026-08-19. It was 97% of the step and
+        # installed no browser library at all. Measured on run 32294710633:
+        #
+        #   apt-get update             74s   11.4 MB of lists @ 162 kB/s
+        #   apt-get install           229s   21.1 MB @ 93.8 kB/s — 9 FONT
+        #                                    packages; 0 libraries, every one
+        #                                    logged "already the newest version"
+        #   browser downloads         9.6s   301 MB from cdn.playwright.dev
+        #                            ─────
+        #                             314s
+        #
+        # The same command took 1555s on run 32182849325. Azure's Ubuntu mirror
+        # throughput is not ours to fix — EXTERNAL_APT_MIRROR_LATENCY — so the
+        # fix is to stop depending on it, not to point it somewhere else. The
+        # fonts it installed broaden CJK/Cyrillic/Thai glyph coverage for
+        # pixel-exact screenshots; this suite makes no visual comparison.
+        #
+        # The fast path is verified rather than assumed: the script launches the
+        # browser, and only if that fails runs `playwright install-deps` and
+        # tries again. A future runner image that stops shipping a library
+        # degrades to the old cost with a warning, instead of failing inside a
+        # journey where it would read as a product defect.
+        #
         # A Playwright browser cache was added here on 2026-08-18 and REMOVED on
         # 2026-08-19, because it made this step catastrophically slower rather
         # than faster. Measured:
@@ -754,7 +877,7 @@ jobs:
         #
         # The runner image already caches this better than we can. Do not
         # reintroduce the cache without a measurement showing it helps; the
-        # baseline to beat is 27 seconds.
+        # baseline to beat is now the browser download alone.
         run: npm run test:browser:install
       - name: Start the API, landing and admin
         # Backgrounded with logs to files. The readiness loop is what makes this
@@ -791,16 +914,25 @@ jobs:
     runs-on: ubuntu-latest
     # Single aggregate status the Integrator and branch protection can key on,
     # so adding a job later does not require reconfiguring the merge policy.
-    # security-invariant-report and database-e2e-report are deliberately absent
-    # from `needs` — both are still report-only, each with written promotion
-    # criteria (ITEM-0043 carries the security one).
+    # security-invariant-report is deliberately absent from `needs` — it is
+    # still report-only, with written promotion criteria (ITEM-0043).
     #
     # browser-e2e joined on 2026-08-17 after meeting the criteria recorded on the
     # job itself. lint now covers services/api too, so `Lint services/api` is a
     # required step rather than a separate report-only job.
+    #
+    # database-e2e-report joined on 2026-08-20, on the evidence recorded on that
+    # job and in ITEM-0047: 24 of 24 suites and 295 of 295 tests, twice
+    # consecutively on a fresh database, no suite quarantined and no assertion
+    # relaxed. It is the only gate that exercises the product against a real
+    # PostgreSQL — migrations, tenant erasure ordering, permission propagation,
+    # attendance integration isolation, platform workflows — and every one of
+    # those is a tenant-boundary or data-integrity assertion. It gated nothing
+    # for the entire period it was red, which is precisely why being red was
+    # survivable for weeks.
     timeout-minutes: 10
     needs:
-      [resolve, validate, typecheck, lint, test-api, test-web, test-admin, test-landing, test-runtime, database-migration, build, browser-e2e]
+      [resolve, validate, typecheck, lint, test-api, test-web, test-admin, test-landing, test-runtime, database-migration, database-e2e-report, build, browser-e2e]
     if: always()
     steps:
       - name: Verify all required jobs passed

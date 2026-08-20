@@ -9,7 +9,7 @@ RISK: HIGH
 AUTOMATION_STATUS: AUTOMATED
 TEST_REFERENCE: apps/landing/lib/plan-presentation.spec.ts
 RELATED_BUGS: [BUG-0080]
-RELATED_REGRESSIONS: [REG-069]
+RELATED_REGRESSIONS: [REG-075]
 LAST_RUN: 2026-08-20
 LAST_RESULT: PASS
 CREATED_AT: 2026-08-20
@@ -64,6 +64,6 @@ happened, which is the kind that leaves no trace in any log.
 
 - Test plan — [[PLAN-013]]
 - Bugs — [[BUG-0080]]
-- Regressions — REG-069 (see the regression register)
+- Regressions — REG-075 (see the regression register)
 
 <!-- GRAPH:END -->

@@ -12,6 +12,10 @@ describe('Platform workflow public journeys (e2e)', () => {
   let signatureToken: string;
   let signatureRequestNumber: string;
   let signatureContractNumber: string;
+  let onboardingToken: string;
+  let onboardingPartnerName: string;
+  let onboardingPartnerId: string;
+  let onboardingApplicationId: string;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -44,6 +48,52 @@ describe('Platform workflow public journeys (e2e)', () => {
       prisma.platformUser.findFirstOrThrow({ where: { status: 'ACTIVE' } }),
     ]);
     const unique = `${Date.now()}-${Math.floor(Math.random() * 1_000_000)}`;
+
+    /*
+     * The partner onboarding invitation, built here rather than borrowed.
+     *
+     * These two cases used to drive the token `seed-horizon-onboarding`, which
+     * exists only in `seed-platform-workflows.ts` — a seed the database e2e job
+     * has never run. Both requests therefore 404'd, and the 404 read as a
+     * missing route or a regressed controller when the route was never reached
+     * because the record did not exist. Neither the route nor the contract had
+     * changed; the fixture was absent.
+     *
+     * A public journey should not be gated on which optional seed a job
+     * happened to run. The token is unique per run, so two runs against one
+     * database cannot collide on the `invitationTokenHash` unique constraint.
+     */
+    onboardingToken = `e2e-partner-onboarding-${unique}`;
+    onboardingPartnerName = `E2E Onboarding Advisory ${unique}`;
+    const onboardingPartner = await prisma.partner.create({
+      data: {
+        code: `E2E-PA-${unique}`,
+        displayName: onboardingPartnerName,
+        email: `onboarding-${unique}@example.test`,
+        currencyCode: 'SAR',
+        country: 'Saudi Arabia',
+      },
+      select: { id: true },
+    });
+    onboardingPartnerId = onboardingPartner.id;
+    const onboardingApplication =
+      await prisma.partnerOnboardingApplication.create({
+        data: {
+          partnerId: onboardingPartner.id,
+          status: 'IN_PROGRESS',
+          // The route resolves the token by SHA-256 of the plaintext, exactly
+          // as the seed does — the hash is the contract, so the fixture must
+          // reproduce it rather than store the token in the clear.
+          invitationTokenHash: createHash('sha256')
+            .update(onboardingToken)
+            .digest('hex'),
+          tokenExpiresAt: new Date(Date.now() + 14 * 86_400_000),
+          version: 1,
+        },
+        select: { id: true },
+      });
+    onboardingApplicationId = onboardingApplication.id;
+
     signatureToken = `e2e-customer-signature-${unique}`;
     signatureRequestNumber = `SIG-E2E-${unique}`;
     signatureContractNumber = `CA-E2E-${unique}`;
@@ -120,17 +170,17 @@ describe('Platform workflow public journeys (e2e)', () => {
 
   it('opens a persisted partner onboarding invitation by its secure token', async () => {
     const response = await request(app.getHttpServer())
-      .get('/public/partners/onboarding/seed-horizon-onboarding')
+      .get(`/public/partners/onboarding/${onboardingToken}`)
       .expect(200);
     expect(response.body).toMatchObject({
-      partner: { displayName: 'Horizon People Advisory' },
+      partner: { displayName: onboardingPartnerName },
     });
     expect(['IN_PROGRESS', 'SUBMITTED']).toContain(response.body.status);
   });
 
   it('submits the secure partner onboarding form into the admin review lifecycle', async () => {
     const response = await request(app.getHttpServer())
-      .post('/public/partners/onboarding/seed-horizon-onboarding')
+      .post(`/public/partners/onboarding/${onboardingToken}`)
       .send({
         data: {
           legalName: 'Horizon People Advisory LLC',
@@ -148,11 +198,10 @@ describe('Platform workflow public journeys (e2e)', () => {
       })
       .expect(201);
     expect(response.body).toMatchObject({ success: true });
-    const stored = await prisma.partnerOnboardingApplication.findFirst({
-      where: { partner: { displayName: 'Horizon People Advisory' } },
-      orderBy: { updatedAt: 'desc' },
+    const stored = await prisma.partnerOnboardingApplication.findFirstOrThrow({
+      where: { id: onboardingApplicationId },
     });
-    expect(stored?.status).toBe('SUBMITTED');
+    expect(stored.status).toBe('SUBMITTED');
   });
 
   it('persists a public partner inquiry and returns its reference', async () => {
@@ -221,6 +270,29 @@ describe('Platform workflow public journeys (e2e)', () => {
   });
 
   afterAll(async () => {
-    await app.close();
+    // The onboarding rows this suite created, deleted innermost first.
+    //
+    // Both foreign keys along this chain are `Restrict`, not `Cascade`:
+    // PartnerOnboardingSubmission -> PartnerOnboardingApplication -> Partner.
+    // PostgreSQL enforces RESTRICT immediately, so the submission the POST test
+    // writes has to go before the application, and the application before the
+    // partner. Getting that order wrong fails teardown with
+    // "violates RESTRICT setting of foreign key constraint" — which is what
+    // happened when this was written assuming a cascade.
+    try {
+      if (onboardingApplicationId) {
+        await prisma.partnerOnboardingSubmission.deleteMany({
+          where: { applicationId: onboardingApplicationId },
+        });
+        await prisma.partnerOnboardingApplication.deleteMany({
+          where: { id: onboardingApplicationId },
+        });
+      }
+      if (onboardingPartnerId) {
+        await prisma.partner.deleteMany({ where: { id: onboardingPartnerId } });
+      }
+    } finally {
+      await app?.close();
+    }
   });
 });

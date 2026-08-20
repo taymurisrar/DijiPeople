@@ -13,7 +13,7 @@ AffectedModules: [landing, web, admin]
 OwnerAgent: architect
 ArchitectDisposition: FIX_NOW
 QAReport:
-RegressionId: REG-071
+RegressionId: REG-076
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation: TASK-0008 WP-07

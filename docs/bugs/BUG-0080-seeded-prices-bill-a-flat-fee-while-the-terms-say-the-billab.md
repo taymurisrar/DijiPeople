@@ -13,7 +13,7 @@ AffectedModules: [billing, super-admin, legal]
 OwnerAgent: architect
 ArchitectDisposition: FIX_NOW
 QAReport: 
-RegressionId: REG-069
+RegressionId: REG-075
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:

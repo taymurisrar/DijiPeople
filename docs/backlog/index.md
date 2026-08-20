@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**136 records** — 73 bugs under [`docs/bugs/`](../bugs/), 63 non-bug items under [`items/`](items/).
+**146 records** — 79 bugs under [`docs/bugs/`](../bugs/), 67 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,20 +13,20 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 36 |
+| Open (active work) | 37 |
 | Blocked | 0 |
-| Deferred | 9 |
-| Awaiting a product decision | 2 |
-| Completed / closed | 89 |
+| Deferred | 11 |
+| Awaiting a product decision | 3 |
+| Completed / closed | 95 |
 | **Open CRITICAL** | **0** |
-| **Open HIGH** | **11** |
+| **Open HIGH** | **12** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
 
 | Severity | Count |
 |---|---|
-| HIGH | 11 |
+| HIGH | 12 |
 | MEDIUM | 20 |
 | LOW | 5 |
 
@@ -38,11 +38,12 @@ see [`README.md`](README.md) for why.
 | DATA_INTEGRITY | 2 |
 | DOCUMENTATION | 2 |
 | FOLLOW_UP | 3 |
-| INFRA | 2 |
+| INFRA | 3 |
+| PERFORMANCE | 1 |
 | SECURITY | 7 |
 | STATE_MACHINE | 1 |
 | TECH_DEBT | 6 |
-| TEST_GAP | 8 |
+| TEST_GAP | 7 |
 | UX | 3 |
 
 ## All records by status
@@ -50,12 +51,13 @@ see [`README.md`](README.md) for why.
 | Status | Count |
 |---|---|
 | OPEN | 4 |
-| DEFERRED | 9 |
-| PRODUCT_DECISION | 2 |
-| FIXED | 6 |
-| VERIFIED | 62 |
-| READY | 26 |
-| DONE | 27 |
+| DEFERRED | 11 |
+| PRODUCT_DECISION | 3 |
+| FIXED | 8 |
+| VERIFIED | 66 |
+| DUPLICATE | 1 |
+| READY | 25 |
+| DONE | 28 |
 
 ## All records
 
@@ -66,6 +68,7 @@ see [`README.md`](README.md) for why.
 | [BUG-0027](../../docs/bugs/BUG-0027-admin-plan-pricing-and-checkout-pricing-come-from-different-.md) | Admin plan pricing and checkout pricing come from different models | DATA_INTEGRITY | CRITICAL | P0 | VERIFIED | services/api/prisma, apps/admin, apps/landing | DONE |
 | [BUG-0030](../../docs/bugs/BUG-0030-plan-list-get-mutates-commercial-pricing-and-can-fail-on-pla.md) | Plan list GET mutates commercial pricing and can fail on PlanPrice unique constraint | DATA_INTEGRITY | CRITICAL | P0 | VERIFIED | services/api, services/api/prisma | DONE |
 | [BUG-0047](../../docs/bugs/BUG-0047-seven-bug-records-are-verified-while-their-fixes-exist-only.md) | Seven bug records are VERIFIED while their fixes exist only on unmerged branches | SECURITY | CRITICAL | P0 | VERIFIED | api:organization, api:error-logs, api:employees, api:attendance, docs/qa/regressions | DONE |
+| [BUG-0071](../../docs/bugs/BUG-0071-tenant-users-reach-every-platform-super-admin-endpoint.md) | Tenant users reach every platform super-admin endpoint | AUTHORIZATION | CRITICAL | P0 | VERIFIED | super-admin, platform-auth, platform-communications | DONE |
 | [BUG-0049](../../docs/bugs/BUG-0049-report-only-ci-jobs-swallow-security-and-database-e2e-failur.md) | Report-only CI jobs swallow security and database E2E failures | INFRA | HIGH | P0 | VERIFIED | .github/workflows, services/api/src/common/constants, services/api/test, docs/qa | DONE |
 | [BUG-0052](../../docs/bugs/BUG-0052-production-dependency-graph-carries-critical-and-high-securi.md) | Production dependency graph carries critical and high security advisories | SECURITY | HIGH | P0 | OPEN | package-lock.json, apps/agent-desktop, apps/web, apps/admin, apps/landing, services/api | FIX_NOW |
 | [BUG-0053](../../docs/bugs/BUG-0053-documents-self-scoped-users-can-read-tenant-wide-documents.md) | Self-scoped document readers can list and open tenant-wide documents | AUTHORIZATION | HIGH | P0 | VERIFIED | api:documents | DONE |
@@ -101,15 +104,18 @@ see [`README.md`](README.md) for why.
 | [BUG-0064](../../docs/bugs/BUG-0064-landing-public-pages-fail-wcag-bypass-blocks-and-text-contra.md) | Landing public pages fail WCAG bypass blocks and text contrast on every route | UX | HIGH | P1 | VERIFIED | apps/landing | DONE |
 | [BUG-0068](../../docs/bugs/BUG-0068-prisma-client-freshness-check-is-blind-to-field-level-drift.md) | Prisma client freshness check is blind to field-level drift | INFRA | HIGH | P1 | VERIFIED | scripts, services/api | DONE |
 | [BUG-0070](../../docs/bugs/BUG-0070-outbox-deduplication-aborted-the-caller-transaction-on-postg.md) | Outbox deduplication aborted the caller transaction on PostgreSQL | BUG | HIGH | P1 | VERIFIED | outbox | DONE |
+| [BUG-0072](../../docs/bugs/BUG-0072-platform-mutations-map-to-read-permissions-letting-the-read-.md) | Platform mutations map to read permissions, letting the read-only auditor write | AUTHORIZATION | HIGH | P1 | VERIFIED | super-admin, platform-auth | DONE |
 | [BUG-0075](../../docs/bugs/BUG-0075-public-subscribe-checkout-has-no-rate-limit-and-the-invarian.md) | Public subscribe checkout has no rate limit and the invariant that should catch it is inert | SECURITY | HIGH | P1 | FIXED | billing, common/guards | FIX_NOW |
+| [BUG-0076](../../docs/bugs/BUG-0076-repository-health-never-inspected-the-primary-worktree-so-a-.md) | Repository health never inspected the primary worktree, so a clean task worktree passed as CLEANUP_STATUS DONE | INFRA | HIGH | P1 | FIXED | scripts/repo-health.mjs, scripts/session.mjs | FIX_NOW |
 | [BUG-0077](../../docs/bugs/BUG-0077-public-subscribe-creates-a-tenant-and-a-second-customeraccou.md) | Public subscribe creates a Tenant and a second CustomerAccount before payment | DATA_INTEGRITY | HIGH | P1 | FIXED | billing, super-admin, tenants | FIX_NOW |
 | [BUG-0078](../../docs/bugs/BUG-0078-provisioning-requested-has-no-consumer-so-a-paid-self-servic.md) | PROVISIONING_REQUESTED has no consumer so a paid self-service customer is never provisioned | STATE_MACHINE | HIGH | P1 | FIXED | billing, outbox, super-admin | FIX_NOW |
+| [BUG-0079](../../docs/bugs/BUG-0079-browser-e2e-spends-its-whole-install-step-on-apt-work-that-i.md) | Browser e2e spends its whole install step on apt work that installs no browser library | PERFORMANCE | HIGH | P1 | FIXED | .github/workflows, e2e | FIX_NOW |
 | [BUG-0080](../../docs/bugs/BUG-0080-seeded-prices-bill-a-flat-fee-while-the-terms-say-the-billab.md) | Seeded prices bill a flat fee while the Terms say the billable unit is an active employee | DATA_INTEGRITY | HIGH | P1 | FIXED | billing, super-admin, legal | FIX_NOW |
 | [BUG-0082](../../docs/bugs/BUG-0082-the-onboarding-wizard-collects-five-steps-of-data-it-cannot-.md) | The onboarding wizard collects five steps of data it cannot submit | UX | HIGH | P1 | FIXED | landing | FIX_NOW |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | READY | api:tenant-control-plane | FIX_NOW |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | READY | apps/web, e2e | PLAN_REQUIRED |
-| [ITEM-0047](../../docs/backlog/items/ITEM-0047-database-e2e-suites-fail-against-an-ephemeral-postgresql.md) | Database e2e suites fail against an ephemeral PostgreSQL | TEST_GAP | HIGH | P1 | READY | services/api/test, .github/workflows, database | PLAN_REQUIRED |
+| [ITEM-0047](../../docs/backlog/items/ITEM-0047-database-e2e-suites-fail-against-an-ephemeral-postgresql.md) | Database e2e suites fail against an ephemeral PostgreSQL | TEST_GAP | HIGH | P1 | DONE | services/api/test, .github/workflows, database | DONE |
 | [ITEM-0062](../../docs/backlog/items/ITEM-0062-no-multi-tenant-membership-one-user-belongs-to-one-tenant-so.md) | No multi-tenant membership — one user belongs to one tenant, so discovery and switching cannot exist | ARCHITECTURE | HIGH | P1 | READY | auth, users, tenant-domains, web | PLAN_REQUIRED |
 | [ITEM-0063](../../docs/backlog/items/ITEM-0063-self-service-checkout-must-prove-the-owner-email-before-char.md) | Self-service checkout must prove the owner email before charging | SECURITY | HIGH | P1 | DONE | billing, platform-communications, landing | DONE |
 | [ITEM-0048](../../docs/backlog/items/ITEM-0048-replace-or-contain-active-win-and-the-xlsx-export-path.md) | Replace or contain active-win and the xlsx export path | SECURITY | HIGH | P2 | READY | apps/agent-desktop, services/api/src/common/excel, package-lock.json | PLAN_REQUIRED |
@@ -138,6 +144,8 @@ see [`README.md`](README.md) for why.
 | [BUG-0050](../../docs/bugs/BUG-0050-notification-settings-offer-email-providers-whose-backend-al.md) | Notification settings offer email providers whose backend always fails | INTEGRATION | MEDIUM | P2 | VERIFIED | apps/web, api:notifications | DONE |
 | [BUG-0065](../../docs/bugs/BUG-0065-public-commercial-config-omits-featurecatalog-when-no-market.md) | Public commercial-config omits featureCatalog when no market resolves | BUG | MEDIUM | P2 | VERIFIED | api:billing, apps/landing | DONE |
 | [BUG-0066](../../docs/bugs/BUG-0066-subscribe-page-renders-an-editable-form-with-no-way-to-submi.md) | Subscribe page renders an editable form with no way to submit when checkout is unavailable | UX | MEDIUM | P2 | VERIFIED | apps/landing | DONE |
+| [BUG-0073](../../docs/bugs/BUG-0073-small-uppercase-labels-in-slate-400-fail-wcag-aa-contrast-ac.md) | Small uppercase labels in slate-400 fail WCAG AA contrast across admin | UX | MEDIUM | P2 | VERIFIED | apps/admin | DONE |
+| [BUG-0074](../../docs/bugs/BUG-0074-the-provisioning-queue-scroll-container-was-unreachable-by-k.md) | The provisioning queue scroll container was unreachable by keyboard | UX | MEDIUM | P2 | VERIFIED | apps/admin | DONE |
 | [BUG-0081](../../docs/bugs/BUG-0081-three-apps-claimed-a-forwarded-headers-invariant-test-that-d.md) | Three apps claimed a forwarded-headers invariant test that did not exist | TEST_GAP | MEDIUM | P2 | FIXED | landing, web, admin | FIX_NOW |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | READY | services/api, apps/admin | FIX_NOW |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | READY | api:tenant-control-plane | FIX_NOW |
@@ -195,8 +203,12 @@ see [`README.md`](README.md) for why.
 | [ITEM-0056](../../docs/backlog/items/ITEM-0056-ci-cache-hit-rate-is-not-observable-from-the-actions-rest-ap.md) | CI cache hit rate is not observable from the Actions REST API | INFRA | LOW | P3 | DEFERRED | ci | DEFER |
 | [ITEM-0061](../../docs/backlog/items/ITEM-0061-notification-coverage-is-asymmetric-seat-change-applied-and-.md) | Notification coverage is asymmetric — SEAT_CHANGE_APPLIED and SUBSCRIPTION_TERMINATED notify nobody | FOLLOW_UP | LOW | P3 | DEFERRED | notifications, billing | DEFER |
 | [ITEM-0064](../../docs/backlog/items/ITEM-0064-unscoped-duplicate-planprice-rows-shadow-every-real-price.md) | Unscoped duplicate PlanPrice rows shadow every real price | TECH_DEBT | LOW | P3 | DEFERRED | billing, super-admin | DEFER |
+| [ITEM-0065](../../docs/backlog/items/ITEM-0065-two-e2e-suites-still-borrow-a-customeraccount-which-is-what-.md) | Two e2e suites still borrow a CustomerAccount, which is what blocks parallel execution | TEST_GAP | LOW | P3 | DEFERRED | services/api/test | DEFER |
 | [ITEM-0066](../../docs/backlog/items/ITEM-0066-verify-database-mjs-cannot-spawn-npm-on-windows.md) | verify-database.mjs cannot spawn npm on Windows | TECH_DEBT | LOW | P3 | DEFERRED | scripts | DEFER |
-| [ITEM-0067](../../docs/backlog/items/ITEM-0067-three-e2e-suites-need-two-seeded-tenants-and-no-seed-produce.md) | Three e2e suites need two seeded tenants and no seed produces them | TEST_GAP | LOW | P3 | DEFERRED | attendance, attendance-integrations, agent | DEFER |
+| [ITEM-0067](../../docs/backlog/items/ITEM-0067-three-e2e-suites-need-two-seeded-tenants-and-no-seed-produce.md) | Three e2e suites need two seeded tenants and no seed produces them | TEST_GAP | LOW | P3 | DUPLICATE | attendance, attendance-integrations, agent | DUPLICATE |
+| [ITEM-0057](../../docs/backlog/items/ITEM-0057-landing-production-env-examples-still-name-the-vercel-and-re.md) | Landing production env examples still name the vercel and render hosts, not the dijipeople.com apex | PRODUCT_DECISION | — | P2 | PRODUCT_DECISION | apps/landing | PRODUCT_DECISION |
+| [ITEM-0058](../../docs/backlog/items/ITEM-0058-next-env-d-ts-churns-between-dev-and-build-forms-and-the-fou.md) | next-env.d.ts churns between dev and build forms and the four apps disagree | TECH_DEBT | — | P3 | DEFERRED | apps/landing, apps/web, apps/admin | DEFER |
+| [ITEM-0059](../../docs/backlog/items/ITEM-0059-49-tracked-text-files-have-no-final-newline-and-nothing-enfo.md) | 49 tracked text files have no final newline, and nothing enforces one | TECH_DEBT | — | P3 | DEFERRED | apps/admin, apps/web, apps/agent-desktop | DEFER |
 
 ## Views
 

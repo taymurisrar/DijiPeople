@@ -52,9 +52,20 @@ import {
 } from './lib/session-registry.mjs';
 import { SESSION_DIR, nextSessionId, slugify } from './lib/session-records.mjs';
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-
 const argv = process.argv.slice(2);
+
+/*
+ * `--root` exists so the behavioural simulations can drive this script against a
+ * throwaway repository. Without it the PRIMARY_WORKTREE_ARTIFACT warning below
+ * could only be asserted by grepping this file — and a mutation that set the
+ * flag to a constant `false` survived exactly that check.
+ */
+const rootIndex = argv.indexOf('--root');
+const ROOT =
+  rootIndex === -1
+    ? resolve(dirname(fileURLToPath(import.meta.url)), '..')
+    : resolve(argv[rootIndex + 1] ?? '.');
+
 const command = argv[0];
 const positional = argv.slice(1).filter((arg) => !arg.startsWith('--'));
 
@@ -141,7 +152,15 @@ function start() {
     `LAST_HEARTBEAT: ${now}`,
     'BLOCKERS: none',
     '---',
-  ].join('\n');
+  ]
+    /*
+     * An unset field would otherwise emit `TASK_ID: ` with a trailing space,
+     * which `git diff --check` reports as a whitespace error on every session
+     * record that has no parent task. Trimming here rather than at each
+     * interpolation keeps the list readable and covers fields added later.
+     */
+    .map((line) => line.replace(/[ \t]+$/, ''))
+    .join('\n');
 
   const body = [
     `# ${sessionId} — ${title}`,
@@ -191,17 +210,72 @@ function start() {
 
   const overlap = classifyOverlap(ROOT, { sessionId, paths });
 
+  /*
+   * Where did this record actually land?
+   *
+   * ROOT is this script's own checkout, so `node scripts/session.mjs start` run
+   * from the user's primary worktree writes the record *there* — and then the
+   * session creates its task worktree, does all its work in it, commits the real
+   * record from there, and never comes back. The stub is left behind untracked,
+   * invisible to every check that only ever looked at the task worktree, until
+   * the user opens GitHub Desktop and finds files nobody can explain.
+   *
+   * That is not hypothetical: SESSION-0015 and SESSION-0016 both did exactly
+   * this, and SESSION-0016's abandoned stub sat in the primary checkout while
+   * its real record — same SESSION_ID, same STARTED_AT, richer content — was
+   * committed from `wt-framework`.
+   */
+  const primaryWorktree = (() => {
+    const first = git(['worktree', 'list', '--porcelain']).split(/\r?\n/)[0] ?? '';
+    return first.startsWith('worktree ') ? first.slice('worktree '.length) : '';
+  })();
+  const normalise = (value) => value.replace(/\\/g, '/').replace(/\/+$/, '').toLowerCase();
+  const wroteIntoPrimary = primaryWorktree && normalise(primaryWorktree) === normalise(ROOT);
+  const checkedOutBranch = git(['rev-parse', '--abbrev-ref', 'HEAD'], 'unknown');
+  const strandedInPrimary = Boolean(wroteIntoPrimary && branch !== checkedOutBranch);
+
   if (asJson) {
-    console.log(JSON.stringify({ sessionId, path: path.replace(ROOT, '.'), target, overlap }, null, 2));
+    console.log(
+      JSON.stringify(
+        {
+          sessionId,
+          path: path.replace(ROOT, '.'),
+          target,
+          overlap,
+          worktree: ROOT.replace(/\\/g, '/'),
+          PRIMARY_WORKTREE_ARTIFACT: strandedInPrimary,
+        },
+        null,
+        2,
+      ),
+    );
   } else {
     console.log(`${sessionId} started.`);
     console.log(`  record   ${SESSION_DIR}/${sessionId}-${slugify(title)}.md`);
+    console.log(`  worktree ${ROOT.replace(/\\/g, '/')}`);
     console.log(`  branch   ${branch}`);
     console.log(`  target   ${target}${target === 'main' ? '  ← production branch' : ''}`);
     console.log(`  base     ${baseBranch} @ ${baseSha.slice(0, 7)}`);
     console.log(`  overlap  ${overlap.classification}`);
     for (const reason of overlap.reasons) console.log(`           ${reason}`);
     console.log('');
+
+    if (strandedInPrimary) {
+      console.log('  PRIMARY_WORKTREE_ARTIFACT');
+      console.log('');
+      console.log(`  This record was written into the PRIMARY checkout (${primaryWorktree}),`);
+      console.log(`  which has ${checkedOutBranch} checked out — but this session works on ${branch}.`);
+      console.log('  Left as-is it becomes an untracked file in the user\'s own workspace that no');
+      console.log('  task-worktree check will ever see. Before doing any other work:');
+      console.log('');
+      console.log(`    1. create the task worktree for ${branch}`);
+      console.log('    2. move this record into it, or re-run `start` from inside it');
+      console.log('    3. confirm the primary checkout is clean again');
+      console.log('');
+      console.log('  Verify with: node scripts/repo-health.mjs --task-branch <branch>');
+      console.log('');
+    }
+
     console.log('Next: node scripts/rebuild-sessions.mjs');
   }
 }

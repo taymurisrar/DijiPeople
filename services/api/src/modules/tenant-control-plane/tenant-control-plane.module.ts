@@ -19,6 +19,7 @@ import { TenantOperationsService } from './tenant-operations.service';
 import { TenantProvisioningRunModule } from './tenant-provisioning-run.service';
 import { TenantDomainsModule } from '../tenant-domains/tenant-domains.module';
 import { TenantDomainsAdminService } from './tenant-domains-admin.service';
+import { ProvisioningOperationsService } from './provisioning-operations.service';
 
 /**
  * Platform Admin's control plane over one tenant workspace.
@@ -52,6 +53,7 @@ import { TenantDomainsAdminService } from './tenant-domains-admin.service';
     TenantOperationsService,
     TenantErasureService,
     TenantDomainsAdminService,
+    ProvisioningOperationsService,
     JwtAuthGuard,
   ],
   exports: [

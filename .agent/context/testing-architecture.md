@@ -16,10 +16,11 @@ is named by the required gate but is still configured `continue-on-error: true`,
 so a failing browser step is currently fail-open; [[BUG-0049]] tracks that
 contradiction. See [`../../docs/development/ci.md`](../../docs/development/ci.md).
 
-The eleven, from the gate's own `needs` list: `validate`, `typecheck`, `lint`,
-`test-api`, `test-web`, `test-admin`, `test-landing`, `test-runtime`,
-`database-migration`, `build`, `browser-e2e`. The two report-only jobs are
-`database-e2e-report` and `security-invariant-report`.
+From the gate's own `needs` list: `validate`, `typecheck`, `lint`, `test-api`,
+`test-web`, `test-admin`, `test-landing`, `test-runtime`, `database-migration`,
+`database-e2e-report`, `build`, `browser-e2e`. `security-invariant-report` is
+the one remaining report-only job. Count them in `ci-required.needs` rather
+than trusting a number written here.
 
 Two consequences, both load-bearing:
 
@@ -36,8 +37,8 @@ Two consequences, both load-bearing:
 |---|---|---|
 | `UNIT` | jest (api, web, admin, **landing**) | **Available** |
 | `INTEGRATION` | jest + a real database | **Available in CI** — ephemeral `postgres:16-alpine` service container |
-| `API` | supertest; `*.e2e-spec.ts` under `services/api/test/` | **Available in CI**, report-only (`database-e2e-report`). List the directory — the set changes |
-| `BROWSER_E2E` | **Playwright, in the `e2e` workspace** | **Installed** — `@playwright/test`, two journey specs; `browser-e2e` is named by the required gate but remains fail-open through `continue-on-error: true` |
+| `API` | supertest; `*.e2e-spec.ts` under `services/api/test/` | **Available in CI and gating** since 2026-08-20 (`database-e2e-report`, display name `Database e2e`). List the directory — the set changes |
+| `BROWSER_E2E` | **Playwright, in the `e2e` workspace** | **Installed and gating** — `@playwright/test`, three journey specs; `continue-on-error` was removed from `browser-e2e` on 2026-08-18, so it genuinely blocks |
 | `MANUAL_VISUAL` | a human | Available |
 | `DEPLOYMENT_SMOKE` | `scripts/smoke-deployment.mjs`, `docs/deployment/smoke-tests.md` | Available against a reachable environment |
 
@@ -73,7 +74,7 @@ with the runner — nothing persists, so no cleanup step can be forgotten:
 | Job | Database | Gating |
 |---|---|---|
 | `database-migration` | `dijipeople_test` | **Required** — inside `ci-required` |
-| `database-e2e-report` | `dijipeople_e2e_test` | Report-only, with written promotion criteria |
+| `database-e2e-report` | `dijipeople_e2e_test` | **Required** since 2026-08-20 — inside `ci-required`; the only gate that runs the product against a real PostgreSQL |
 
 `database-migration` runs `node scripts/verify-database.mjs`: assert the target
 is disposable → `prisma generate` → **`prisma migrate deploy`** → `migrate

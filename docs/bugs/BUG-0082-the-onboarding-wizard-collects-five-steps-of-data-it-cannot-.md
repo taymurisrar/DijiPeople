@@ -13,7 +13,7 @@ AffectedModules: [landing]
 OwnerAgent: architect
 ArchitectDisposition: FIX_NOW
 QAReport:
-RegressionId: REG-072
+RegressionId: REG-077
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation: TASK-0008 WP-08
@@ -128,7 +128,7 @@ applied by the next rewrite.
 
 ## Regression Coverage
 
-- `apps/landing/lib/plans.spec.ts` — [[REG-072]]. Covers
+- `apps/landing/lib/plans.spec.ts` — [[REG-077]]. Covers
   `checkoutBlockedReason` directly: a purchasable price yields null, each
   unpurchasable case yields its own distinct sentence, and the function agrees
   with `isCheckoutReady` in both directions. Mutation-verified: making it return

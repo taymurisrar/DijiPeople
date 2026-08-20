@@ -221,7 +221,7 @@ forgot to forward the visitor's address. No such file existed. The convention
 was intact across all 24 direct-API handlers, which is exactly why nothing had
 surfaced it: a missing check with nothing to find produces no failing test, and
 the only signal was a comment claiming the opposite of the truth. Regression
-[[REG-071]], scenario [[QA-LANDING-010]], mutation-verified.
+[[REG-076]], scenario [[QA-LANDING-010]], mutation-verified.
 
 **One finding recorded, not fixed.** `server-api.ts` in `apps/web` and
 `apps/admin` does not forward the client address either. Left out of the new
@@ -244,7 +244,7 @@ regression from a pre-existing failure.
 | Suite | Result |
 |---|---|
 | api unit | 1388 / 1388 |
-| api e2e, real PostgreSQL | 231 / 312 — the 81 failures are one pre-existing cause, [[ITEM-0067]] |
+| api e2e, real PostgreSQL | 231 / 312 pre-merge — **the 81 failures were a stale-base artefact**, see below |
 | landing | 109 / 109 |
 | web | 408 / 408 |
 | admin | 101 / 101 |
@@ -286,10 +286,25 @@ an assertion written in the same change:
   run**: `billing-terms` carried no operator block at all. A billing agreement
   that never says who is charging you is not a small omission.
 
-**Two obstacles recorded, not fixed.** [[ITEM-0066]] (`verify-database.mjs`
-cannot spawn npm on Windows) and [[ITEM-0067]] (three e2e suites need two
-seeded tenants and no seed produces them). Both cost local QA time and neither
-affects the product or a gate.
+**One obstacle recorded, one withdrawn.** [[ITEM-0066]] — `verify-database.mjs`
+cannot spawn npm on Windows — is genuine and deferred. [[ITEM-0067]] is
+withdrawn.
+
+**The withdrawal is the most useful thing this campaign produced.** It ran
+against the task branch while `develop` was 36 commits ahead, and those 81
+failures had already been fixed there: [[ITEM-0047]] / [[REG-070]] on
+`agent/ci-e2e-remediation` converted the three suites to per-suite fixtures,
+made `legal-seed` run its own seed, and gave `platform-workflows` its invitation
+data. The same work promoted `database-e2e` into the **required** gate, which it
+could only do because those failures were gone.
+
+The diagnosis was correct and entirely wasted. The rule that follows is:
+**merge the integration branch before taking a QA baseline, not after.** A
+campaign on a stale base rediscovers, investigates and re-files everything
+somebody else has already fixed — and buries its own findings among them.
+`develop` had itself hit the same class of problem one commit earlier, in
+`2aacab8 docs(qa): renumber this branch's REG ids after the collision on
+develop`, which is the same lesson wearing different clothes.
 
 **What this campaign did not prove.** No browser run: Playwright needs three
 Next servers, an API, a seeded database and browser binaries, and the Nest CLI
@@ -417,7 +432,7 @@ before WP-01 writes `schema.prisma`.
   onboarding surface: `POST /public/subscribe` had no rate limit, and the
   ITEM-0013 invariant written to prevent exactly that recurrence passed against
   it because an import satisfied its class-level check. Mutation-tested in both
-  directions; REG-065 and QA-BILLING-007 carry the coverage. Not a work package —
+  directions; REG-071 and QA-BILLING-007 carry the coverage. Not a work package —
   it was a live defect sitting in the surface WP-01 is about to extend, and
   building the wizard on top of an unthrottled endpoint would have widened it.
 - 2026-08-19 — reconciliation corrected against `CustomerAccount`. G-02 and G-04
@@ -470,9 +485,9 @@ before WP-01 writes `schema.prisma`.
   metadata *shape*, so a checkout started before this change and paid after it
   still completes — there is no cutover moment to get wrong.
 
-  Both regressions are mutation-proven. REG-066 run against pre-fix source
+  Both regressions are mutation-proven. REG-072 run against pre-fix source
   reproduces the whole defect in the assertion diff, fabricated `"Unknown"`
-  columns included. REG-067's invariant, on its first run, found 18 unhandled
+  columns included. REG-073's invariant, on its first run, found 18 unhandled
   events — 12 consumed through a notification catalog its scan could not see,
   which it now reads as a subscription registry; of the remaining six, four are
   allowlisted with reasons and two became [[ITEM-0061]].
@@ -531,7 +546,7 @@ before WP-01 writes `schema.prisma`.
   Mutation-proven: neutering the condition fails 7 of the 12 cases. The
   load-bearing assertion is that the **Stripe session count is unchanged** —
   returning a warning while still handing back a checkout URL would satisfy a
-  weaker test and none of the requirement. [[ITEM-0063]], [[REG-068]],
+  weaker test and none of the requirement. [[ITEM-0063]], [[REG-074]],
   [[QA-BILLING-010]].
 
   The landing form gained the verification step in the same change, so the
@@ -604,6 +619,6 @@ before WP-01 writes `schema.prisma`.
 ## Related
 
 - Records — [[BUG-0017]], [[BUG-0066]], [[BUG-0075]], [[BUG-0077]], [[BUG-0078]], [[BUG-0081]], [[BUG-0082]], [[ITEM-0013]], [[ITEM-0047]], [[ITEM-0060]], [[ITEM-0061]], [[ITEM-0062]], [[ITEM-0063]], [[ITEM-0066]], [[ITEM-0067]]
-- Modules — [[tenant-control-plane]], [[billing]], [[notifications]], [[legal]]
+- Modules — [[super-admin]], [[tenant-control-plane]], [[billing]], [[notifications]], [[legal]]
 
 <!-- GRAPH:END -->

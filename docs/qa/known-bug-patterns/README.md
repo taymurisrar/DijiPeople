@@ -34,3 +34,4 @@ pattern. New patterns come out of the bug learning loop in
 | [ui-permission-backend-mismatch](ui-permission-backend-mismatch.md) | UX / Security | Organization settings screens |
 | [route-method-mismatch](route-method-mismatch.md) | UX / Availability | Admin session-expired sign-in link |
 | [doc-code-drift](doc-code-drift.md) | Process | This framework's own AGENTS.md |
+| [borrowed-fixture-dependency](borrowed-fixture-dependency.md) | Test integrity | Three attendance/gateway e2e suites, legal-seed, platform-workflows |

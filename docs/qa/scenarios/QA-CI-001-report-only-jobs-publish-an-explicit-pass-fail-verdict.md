@@ -13,7 +13,7 @@ RELATED_REGRESSIONS: [REG-047]
 LAST_RUN: 2026-08-17
 LAST_RESULT: PASS
 CREATED_AT: 2026-08-17
-UPDATED_AT: 2026-08-17
+UPDATED_AT: 2026-08-20
 ---
 
 # QA-CI-001 — Report-only CI jobs publish an explicit PASS/FAIL verdict
@@ -50,8 +50,22 @@ its summary states a verdict rather than leaving one to be inferred from counts.
 
 ## Negative Case
 
-Deleting the `echo "RESULT: $result"` line from `database-e2e-report` fails the
-check by name. Restoring it passes. Verified 2026-08-17.
+Deleting the `echo "RESULT: $result"` line from a report-only job fails the
+check by name; restoring it passes. Verified 2026-08-17 against
+`database-e2e-report`, which was report-only then.
+
+`database-e2e-report` became a required gate on 2026-08-20 ([[ITEM-0047]]), so
+this scenario now covers `security-invariant-report` — the one remaining
+report-only job. **The scenario has not narrowed.** The check is written against
+whichever jobs declare "report only" in their name, so it protects the next one
+as well, and re-verify it against `security-invariant-report` rather than
+assuming the earlier verification still stands.
+
+Promotion did not remove the `RESULT:` line from `database-e2e-report`, and
+should not: the summary is where whoever has to fix a failing gate starts. What
+promotion added is a separate `Publish the verdict` step that exits non-zero on
+the captured jest code, so the conclusion and the `RESULT:` line cannot
+disagree — the stronger form of the same guarantee.
 
 ## Notes
 

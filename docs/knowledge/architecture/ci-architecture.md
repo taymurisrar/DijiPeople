@@ -11,8 +11,9 @@ preceding `aa33524`, not assumed.
 ```
 resolve  ─┬─ validate  typecheck  lint  test-api  test-web  test-admin
           │  test-landing  test-runtime  database-migration  build  browser-e2e
+          │  database-e2e-report        (display name: Database e2e)
           │            ── all parallel, all gated on `resolve` and nothing else
-          └─ database-e2e-report        (report only — NOT in the gate)
+          └─ security-invariant-report  (report only — NOT in the gate)
                      ↓
               ci-required   ← the single check branch protection keys on
 ```

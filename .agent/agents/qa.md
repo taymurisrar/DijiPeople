@@ -49,11 +49,15 @@ context update.
 
 ## Report-only does not mean unverified
 
-`database-e2e-report` and any future non-gating job sit outside the required
-gate. QA never records their green **conclusion** as a pass — it reads the
-`RESULT:` line the job prints, because a job that rounds its own result up is
-[[BUG-0049]], and that is how a QA run once recorded a pass over 136 failed
+`security-invariant-report` and any future non-gating job sit outside the
+required gate. QA never records their green **conclusion** as a pass — it reads
+the `RESULT:` line the job prints, because a job that rounds its own result up
+is [[BUG-0049]], and that is how a QA run once recorded a pass over 136 failed
 tests.
+
+`database-e2e-report` was the other one and is now a **required gate**
+(2026-08-20, [[ITEM-0047]]). Read its `RESULT:` line anyway: a gate that fails
+is read by whoever has to fix it, and the summary is where they start.
 
 On `DATABASE_E2E_RED` the Database Agent leads the diagnosis; QA owns the
 evidence half: durable scenarios for what actually broke, and the regression
@@ -388,7 +392,7 @@ The QA run records, for any database-backed validation:
 | Field | Example |
 |---|---|
 | Database type | ephemeral PostgreSQL 16 service container (CI) |
-| Ephemeral identifier | `dijipeople_e2e_test`, `database-e2e-report` job |
+| Ephemeral identifier | `dijipeople_e2e_test`, `database-e2e-report` job (display name `Database e2e`) |
 | Migration command | `node scripts/verify-database.mjs` |
 | Seed command | `seed:config` then `seed:verify` |
 | E2E suites | which ran, which were skipped, and why |

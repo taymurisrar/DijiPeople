@@ -13,7 +13,7 @@ AffectedModules: [billing, common/guards]
 OwnerAgent: architect
 ArchitectDisposition: FIX_NOW
 QAReport: docs/qa/scenarios/QA-BILLING-007-every-unauthenticated-write-handler-is-rate-limited.md
-RegressionId: REG-065
+RegressionId: REG-071
 RelatedBacklogItem: ITEM-0013
 RelatedDecision:
 RelatedImplementation:
@@ -174,7 +174,7 @@ No ExecPlan needed; both fixes are local.
 
 ## Regression Coverage
 
-REG-065. The corrected invariant is itself the regression: it must fail without
+REG-071. The corrected invariant is itself the regression: it must fail without
 the controller fix, and the register records the before/after runs that prove it
 does.
 

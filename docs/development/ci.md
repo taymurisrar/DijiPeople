@@ -46,8 +46,8 @@ production or staging credentials exist in the workflow.
 | `database-migration` | Ephemeral PostgreSQL → `node scripts/verify-database.mjs` | 30m | ✅ |
 | `build` | `npm run build` | 30m | ✅ |
 | `browser-e2e` | Playwright journeys (`e2e/`) against API + landing + admin | 30m | ✅ **genuinely blocking since 2026-08-18** |
-| `ci-required` | Aggregates the **twelve** jobs above | 10m | ✅ **the one to require** |
-| `database-e2e-report` | The e2e suites against an ephemeral PostgreSQL | 30m | ❌ report only — read its `RESULT:` line, not its conclusion |
+| `database-e2e-report` | The e2e suites against an ephemeral PostgreSQL. Job key still says `-report`; its display name is `Database e2e` | 30m | ✅ **genuinely blocking since 2026-08-20** |
+| `ci-required` | Aggregates the **thirteen** jobs above | 10m | ✅ **the one to require** |
 
 `validate` runs without installing dependencies, so a structural break in the
 agent framework fails in seconds rather than minutes.

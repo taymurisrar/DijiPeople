@@ -8,12 +8,12 @@
 | | |
 |---|---|
 | Open CRITICAL | **0** |
-| Open HIGH | **11** |
-| Open total | 36 |
+| Open HIGH | **12** |
+| Open total | 37 |
 | Blocked | 0 |
-| Awaiting a product decision | 2 |
-| Deferred | 9 |
-| Completed | 89 |
+| Awaiting a product decision | 3 |
+| Deferred | 11 |
+| Completed | 95 |
 | Awaiting Architect triage | 0 |
 
 ## Open Critical Bugs
@@ -26,13 +26,14 @@ _None. Nothing open at CRITICAL._
 |---|---|---|---|---|---|---|
 | [[BUG-0052-production-dependency-graph-carries-critical-and-high-securi|BUG-0052]] | Production dependency graph carries critical and high security advisories | SECURITY | HIGH | OPEN | package-lock.json, apps/agent-desktop, apps/web, apps/admin, apps/landing, services/api | FIX_NOW |
 | [[BUG-0075-public-subscribe-checkout-has-no-rate-limit-and-the-invarian|BUG-0075]] | Public subscribe checkout has no rate limit and the invariant that should catch it is inert | SECURITY | HIGH | FIXED | billing, common/guards | FIX_NOW |
+| [[BUG-0076-repository-health-never-inspected-the-primary-worktree-so-a-|BUG-0076]] | Repository health never inspected the primary worktree, so a clean task worktree passed as CLEANUP_STATUS DONE | INFRA | HIGH | FIXED | scripts/repo-health.mjs, scripts/session.mjs | FIX_NOW |
 | [[BUG-0077-public-subscribe-creates-a-tenant-and-a-second-customeraccou|BUG-0077]] | Public subscribe creates a Tenant and a second CustomerAccount before payment | DATA_INTEGRITY | HIGH | FIXED | billing, super-admin, tenants | FIX_NOW |
 | [[BUG-0078-provisioning-requested-has-no-consumer-so-a-paid-self-servic|BUG-0078]] | PROVISIONING_REQUESTED has no consumer so a paid self-service customer is never provisioned | STATE_MACHINE | HIGH | FIXED | billing, outbox, super-admin | FIX_NOW |
+| [[BUG-0079-browser-e2e-spends-its-whole-install-step-on-apt-work-that-i|BUG-0079]] | Browser e2e spends its whole install step on apt work that installs no browser library | PERFORMANCE | HIGH | FIXED | .github/workflows, e2e | FIX_NOW |
 | [[BUG-0080-seeded-prices-bill-a-flat-fee-while-the-terms-say-the-billab|BUG-0080]] | Seeded prices bill a flat fee while the Terms say the billable unit is an active employee | DATA_INTEGRITY | HIGH | FIXED | billing, super-admin, legal | FIX_NOW |
 | [[BUG-0082-the-onboarding-wizard-collects-five-steps-of-data-it-cannot-|BUG-0082]] | The onboarding wizard collects five steps of data it cannot submit | UX | HIGH | FIXED | landing | FIX_NOW |
 | [[ITEM-0004-tenant-activation-never-proven-end-to-end|ITEM-0004]] | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | READY | api:tenant-control-plane | FIX_NOW |
 | [[ITEM-0034-apps-web-has-zero-browser-e2e-coverage|ITEM-0034]] | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | READY | apps/web, e2e | PLAN_REQUIRED |
-| [[ITEM-0047-database-e2e-suites-fail-against-an-ephemeral-postgresql|ITEM-0047]] | Database e2e suites fail against an ephemeral PostgreSQL | TEST_GAP | HIGH | READY | services/api/test, .github/workflows, database | PLAN_REQUIRED |
 | [[ITEM-0062-no-multi-tenant-membership-one-user-belongs-to-one-tenant-so|ITEM-0062]] | No multi-tenant membership — one user belongs to one tenant, so discovery and switching cannot exist | ARCHITECTURE | HIGH | READY | auth, users, tenant-domains, web | PLAN_REQUIRED |
 | [[ITEM-0048-replace-or-contain-active-win-and-the-xlsx-export-path|ITEM-0048]] | Replace or contain active-win and the xlsx export path | SECURITY | HIGH | READY | apps/agent-desktop, services/api/src/common/excel, package-lock.json | PLAN_REQUIRED |
 
@@ -42,6 +43,7 @@ _None. Nothing open at CRITICAL._
 |---|---|---|---|---|---|---|
 | [[ITEM-0032-recompute-productivity-totals-inflated-by-heartbeat-replays|ITEM-0032]] | Recompute productivity totals inflated by heartbeat replays | DATA_MIGRATION | MEDIUM | PRODUCT_DECISION | api:agent | PRODUCT_DECISION |
 | [[ITEM-0053-publish-privacy-policy-and-terms-for-the-public-landing-site|ITEM-0053]] | Publish privacy policy and terms for the public landing site | PRODUCT_DECISION | MEDIUM | PRODUCT_DECISION | apps/landing | PRODUCT_DECISION |
+| [[ITEM-0057-landing-production-env-examples-still-name-the-vercel-and-re|ITEM-0057]] | Landing production env examples still name the vercel and render hosts, not the dijipeople.com apex | PRODUCT_DECISION | — | PRODUCT_DECISION | apps/landing | PRODUCT_DECISION |
 
 ## Blocked Items
 
@@ -53,7 +55,6 @@ _None._
 |---|---|---|---|---|---|---|
 | [[ITEM-0004-tenant-activation-never-proven-end-to-end|ITEM-0004]] | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | READY | api:tenant-control-plane | FIX_NOW |
 | [[ITEM-0034-apps-web-has-zero-browser-e2e-coverage|ITEM-0034]] | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | READY | apps/web, e2e | PLAN_REQUIRED |
-| [[ITEM-0047-database-e2e-suites-fail-against-an-ephemeral-postgresql|ITEM-0047]] | Database e2e suites fail against an ephemeral PostgreSQL | TEST_GAP | HIGH | READY | services/api/test, .github/workflows, database | PLAN_REQUIRED |
 | [[BUG-0081-three-apps-claimed-a-forwarded-headers-invariant-test-that-d|BUG-0081]] | Three apps claimed a forwarded-headers invariant test that did not exist | TEST_GAP | MEDIUM | FIXED | landing, web, admin | FIX_NOW |
 | [[ITEM-0002-no-live-api-session-test-harness|ITEM-0002]] | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | READY | services/api, apps/admin | FIX_NOW |
 | [[ITEM-0003-tenant-erasure-never-exercised-against-a-database|ITEM-0003]] | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | READY | api:tenant-control-plane | FIX_NOW |
@@ -64,6 +65,7 @@ _None._
 
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
+| [[BUG-0076-repository-health-never-inspected-the-primary-worktree-so-a-|BUG-0076]] | Repository health never inspected the primary worktree, so a clean task worktree passed as CLEANUP_STATUS DONE | INFRA | HIGH | FIXED | scripts/repo-health.mjs, scripts/session.mjs | FIX_NOW |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0049-register-services-api-environment-reads-or-scope-the-rule|ITEM-0049]] | Register services/api environment reads or scope the rule to build inputs | INFRA | LOW | READY | services/api, turbo.json, docs/deployment | PLAN_REQUIRED |
 
@@ -76,6 +78,7 @@ _None._
 | [[BUG-0027-admin-plan-pricing-and-checkout-pricing-come-from-different-|BUG-0027]] | Admin plan pricing and checkout pricing come from different models | DATA_INTEGRITY | CRITICAL | VERIFIED | services/api/prisma, apps/admin, apps/landing | DONE |
 | [[BUG-0030-plan-list-get-mutates-commercial-pricing-and-can-fail-on-pla|BUG-0030]] | Plan list GET mutates commercial pricing and can fail on PlanPrice unique constraint | DATA_INTEGRITY | CRITICAL | VERIFIED | services/api, services/api/prisma | DONE |
 | [[BUG-0047-seven-bug-records-are-verified-while-their-fixes-exist-only|BUG-0047]] | Seven bug records are VERIFIED while their fixes exist only on unmerged branches | SECURITY | CRITICAL | VERIFIED | api:organization, api:error-logs, api:employees, api:attendance, docs/qa/regressions | DONE |
+| [[BUG-0071-tenant-users-reach-every-platform-super-admin-endpoint|BUG-0071]] | Tenant users reach every platform super-admin endpoint | AUTHORIZATION | CRITICAL | VERIFIED | super-admin, platform-auth, platform-communications | DONE |
 | [[BUG-0049-report-only-ci-jobs-swallow-security-and-database-e2e-failur|BUG-0049]] | Report-only CI jobs swallow security and database E2E failures | INFRA | HIGH | VERIFIED | .github/workflows, services/api/src/common/constants, services/api/test, docs/qa | DONE |
 | [[BUG-0053-documents-self-scoped-users-can-read-tenant-wide-documents|BUG-0053]] | Self-scoped document readers can list and open tenant-wide documents | AUTHORIZATION | HIGH | VERIFIED | api:documents | DONE |
 | [[BUG-0055-partner-routes-use-tenant-role-aliases-instead-of-platform-permissions|BUG-0055]] | Partner administration routes use tenant role aliases instead of platform permissions | AUTHORIZATION | HIGH | VERIFIED | api:partners | DONE |
@@ -110,9 +113,12 @@ _None._
 | [[BUG-0064-landing-public-pages-fail-wcag-bypass-blocks-and-text-contra|BUG-0064]] | Landing public pages fail WCAG bypass blocks and text contrast on every route | UX | HIGH | VERIFIED | apps/landing | DONE |
 | [[BUG-0068-prisma-client-freshness-check-is-blind-to-field-level-drift|BUG-0068]] | Prisma client freshness check is blind to field-level drift | INFRA | HIGH | VERIFIED | scripts, services/api | DONE |
 | [[BUG-0070-outbox-deduplication-aborted-the-caller-transaction-on-postg|BUG-0070]] | Outbox deduplication aborted the caller transaction on PostgreSQL | BUG | HIGH | VERIFIED | outbox | DONE |
+| [[BUG-0072-platform-mutations-map-to-read-permissions-letting-the-read-|BUG-0072]] | Platform mutations map to read permissions, letting the read-only auditor write | AUTHORIZATION | HIGH | VERIFIED | super-admin, platform-auth | DONE |
 | [[BUG-0075-public-subscribe-checkout-has-no-rate-limit-and-the-invarian|BUG-0075]] | Public subscribe checkout has no rate limit and the invariant that should catch it is inert | SECURITY | HIGH | FIXED | billing, common/guards | FIX_NOW |
+| [[BUG-0076-repository-health-never-inspected-the-primary-worktree-so-a-|BUG-0076]] | Repository health never inspected the primary worktree, so a clean task worktree passed as CLEANUP_STATUS DONE | INFRA | HIGH | FIXED | scripts/repo-health.mjs, scripts/session.mjs | FIX_NOW |
 | [[BUG-0077-public-subscribe-creates-a-tenant-and-a-second-customeraccou|BUG-0077]] | Public subscribe creates a Tenant and a second CustomerAccount before payment | DATA_INTEGRITY | HIGH | FIXED | billing, super-admin, tenants | FIX_NOW |
 | [[BUG-0078-provisioning-requested-has-no-consumer-so-a-paid-self-servic|BUG-0078]] | PROVISIONING_REQUESTED has no consumer so a paid self-service customer is never provisioned | STATE_MACHINE | HIGH | FIXED | billing, outbox, super-admin | FIX_NOW |
+| [[BUG-0079-browser-e2e-spends-its-whole-install-step-on-apt-work-that-i|BUG-0079]] | Browser e2e spends its whole install step on apt work that installs no browser library | PERFORMANCE | HIGH | FIXED | .github/workflows, e2e | FIX_NOW |
 | [[BUG-0080-seeded-prices-bill-a-flat-fee-while-the-terms-say-the-billab|BUG-0080]] | Seeded prices bill a flat fee while the Terms say the billable unit is an active employee | DATA_INTEGRITY | HIGH | FIXED | billing, super-admin, legal | FIX_NOW |
 | [[BUG-0082-the-onboarding-wizard-collects-five-steps-of-data-it-cannot-|BUG-0082]] | The onboarding wizard collects five steps of data it cannot submit | UX | HIGH | FIXED | landing | FIX_NOW |
 | [[BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state|BUG-0051]] | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |
@@ -135,6 +141,8 @@ _None._
 | [[BUG-0050-notification-settings-offer-email-providers-whose-backend-al|BUG-0050]] | Notification settings offer email providers whose backend always fails | INTEGRATION | MEDIUM | VERIFIED | apps/web, api:notifications | DONE |
 | [[BUG-0065-public-commercial-config-omits-featurecatalog-when-no-market|BUG-0065]] | Public commercial-config omits featureCatalog when no market resolves | BUG | MEDIUM | VERIFIED | api:billing, apps/landing | DONE |
 | [[BUG-0066-subscribe-page-renders-an-editable-form-with-no-way-to-submi|BUG-0066]] | Subscribe page renders an editable form with no way to submit when checkout is unavailable | UX | MEDIUM | VERIFIED | apps/landing | DONE |
+| [[BUG-0073-small-uppercase-labels-in-slate-400-fail-wcag-aa-contrast-ac|BUG-0073]] | Small uppercase labels in slate-400 fail WCAG AA contrast across admin | UX | MEDIUM | VERIFIED | apps/admin | DONE |
+| [[BUG-0074-the-provisioning-queue-scroll-container-was-unreachable-by-k|BUG-0074]] | The provisioning queue scroll container was unreachable by keyboard | UX | MEDIUM | VERIFIED | apps/admin | DONE |
 | [[BUG-0081-three-apps-claimed-a-forwarded-headers-invariant-test-that-d|BUG-0081]] | Three apps claimed a forwarded-headers invariant test that did not exist | TEST_GAP | MEDIUM | FIXED | landing, web, admin | FIX_NOW |
 | [[BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist|BUG-0023]] | The testing-architecture context claims two e2e specs do not exist | DOCUMENTATION | LOW | VERIFIED | .agent/context | DONE |
 | [[BUG-0024-start-onboarding-api-and-proxy-have-no-caller|BUG-0024]] | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | VERIFIED | apps/admin, api:super-admin | DONE |
@@ -143,13 +151,13 @@ _None._
 ## Recent QA Runs
 
 - [[2026-08-19-self-service-onboarding-provisioning-f5bd870|QA Run — self-service-onboarding-provisioning]]
+- [[2026-08-19-ci-e2e-remediation-3f03571|QA Run — ci-e2e-remediation]]
+- [[2026-08-18-primary-worktree-repository-health-494c44d|QA Run — primary-worktree-repository-health]]
 - [[2026-08-18-landing-uiux-remediation-verification-c332992|QA Run — landing-uiux-remediation-verification]]
 - [[2026-08-17-web-app-documentation-1af3690|QA Run — apps/web documentation audit (TASK-0003)]]
 - [[2026-08-17-record-state-reconciliation-d919e1a|QA Run — record-state-reconciliation]]
 - [[2026-08-17-landing-uiux-browser-qa-f58ee1d|QA Run — landing-uiux-browser-qa]]
 - [[2026-08-17-global-remediation-discovery-0051180|QA Run — global-remediation-discovery]]
-- [[2026-08-17-framework-remediation-e6a173d|QA Run — framework-remediation]]
-- [[2026-08-16-public-commercial-wave2-7686bb0|QA Run — Wave 2: Public Plans + Features Experience]]
 
 ## Recent Implementations
 
@@ -160,14 +168,14 @@ _None._
 
 ## Recent Engineering History
 
+- [[2026-08-19-provisioning-operations-and-qa-campaign-b016441|Engineering History — Provisioning operations and qa campaign]]
+- [[2026-08-19-ci-e2e-remediation-3f03571|Engineering History — CI browser install latency and the database e2e fixture contract]]
 - [[2026-08-19-agent-framework-hardening|Engineering History — Database Agent, Security Agent, agent reliability and Obsidian ownership]]
+- [[2026-08-18-primary-worktree-repository-health-494c44d|Engineering History — Primary worktree repository health]]
 - [[2026-08-18-landing-uiux-remediation-ab3bc73|Engineering History — Landing UI/UX remediation]]
 - [[2026-08-18-commercial-platform-outbox-and-legal|Engineering History — Commercial platform: transactional outbox and legal documents]]
 - [[2026-08-18-ci-performance-cancellation-rca-3f6775e|Engineering History — CI performance, cancellation RCA and autonomous CI adaptation]]
 - [[2026-08-17-landing-uiux-browser-qa-and-agent-hardening-1f6e842|Engineering History — Landing UI/UX browser QA and UI/UX agent hardening]]
-- [[2026-08-17-framework-remediation-e6a173d|Engineering History — Framework remediation]]
-- [[2026-08-16-web-app-documentation-1af3690|Engineering History — Web app documentation]]
-- [[2026-08-16-public-commercial-wave2-301a397|Engineering History — Wave 2: Public Plans + Features Experience]]
 
 ## Recent Releases
 
@@ -216,13 +224,13 @@ _None. Nothing has been deployed through the release process._
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 73 |
-| Backlog items | 63 |
-| Known bug patterns | 19 |
-| QA runs | 18 |
-| Engineering history records | 17 |
+| Bug records | 79 |
+| Backlog items | 67 |
+| Known bug patterns | 20 |
+| QA runs | 20 |
+| Engineering history records | 20 |
 | Release records | 0 |
-| Module notes | 24 |
+| Module notes | 27 |
 | Architecture notes | 20 |
 | Decision notes (ADR + generated) | 6 |
 | Implementation records | 4 |

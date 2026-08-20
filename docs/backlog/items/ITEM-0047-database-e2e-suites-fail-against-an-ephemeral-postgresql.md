@@ -3,15 +3,15 @@ ID: ITEM-0047
 aliases: [ITEM-0047]
 Title: Database e2e suites fail against an ephemeral PostgreSQL
 Type: TEST_GAP
-Status: READY
+Status: DONE
 Priority: P1
 Severity: HIGH
 AffectedModules: [services/api/test, .github/workflows, database]
 Source: QA_RUN
 OwnerAgent: database
-ArchitectDisposition: PLAN_REQUIRED
+ArchitectDisposition: DONE
 CreatedAt: 2026-08-17
-UpdatedAt: 2026-08-19
+UpdatedAt: 2026-08-20
 RelatedBug: BUG-0049
 RelatedQA: docs/qa/runs/2026-08-17-record-state-reconciliation-d919e1a.md
 RelatedADR:
@@ -208,6 +208,126 @@ Report-only does **not** mean ignorable. Repeated failure or repeated timeout is
 now an operational signal the Database Agent and QA act on — see
 `.agent/context/ci-operations.md`. Red database evidence must not persist
 indefinitely behind a green required gate.
+
+## Resolved on 2026-08-20 — every suite green, twice, in under eleven minutes
+
+Reproduced locally against a throwaway PostgreSQL using the recipe in
+[`database-e2e-reproduction.md`](../../development/database-e2e-reproduction.md),
+then fixed. The result:
+
+| | Suites | Tests failing | Tests passing | Wall clock |
+|---|---|---|---|---|
+| Recorded baseline (`32020076245`) | 7 failing | 148 | 79 | — |
+| Last completing CI run (`32160472427`) | 6 failing | 92 | 184 | — |
+| Every run after that | — | — | — | **timed out at 30m** |
+| **After this task, run 1** | **0 failing / 24 total** | **0** | **295** | **644s** |
+| **After this task, run 2** | **0 failing / 24 total** | **0** | **295** | **714s** |
+| **After merging develop, run 3** | **0 failing / 25 total** | **0** | **304** | **277s** |
+| **In CI**, run 32307298504 | **0 failing / 25 total** | **0** | **304** | **92s** |
+
+Three runs. The first two are the repeatability proof — same 24 suites, same
+295 tests, zero retries. The third is after merging develop, which added
+`provisioning-queue.e2e-spec.ts`: 25 suites and 304 tests, also green. It is
+faster (277s) because ts-jest's transform cache was warm, not because anything
+got cheaper — quote 644s as the cold-cache figure.
+`DATABASE_E2E_OPEN_HANDLES = 0` — no "force exited" line, no "Jest did not
+exit", under `--detectOpenHandles` on both. `DATABASE_E2E_FLAKINESS = 0`: no
+test changed verdict between the runs.
+
+### It was one defect wearing six faces
+
+The three groups this record hypothesised — A shared fixture state, B
+environment/boundary, C schema-sensitive seed — were **not three causes**. They
+were one: *suites reaching for data they did not create*, differing only in
+which absent data they reached for.
+
+| Suite | What it reached for | What existed |
+|---|---|---|
+| `attendance-engine` | two tenants with a business unit | `seed:demo` makes one |
+| `attendance-integrations-http` | same | same |
+| `gateway-runtime` | same | same |
+| `attendance-review` | nothing — collateral of the shared-database race | — |
+| `legal-seed` | the output of `seed:legal` | CI never ran it |
+| `platform-workflows` | the token `seed-horizon-onboarding` | only `seed:platform-workflows` makes it, and CI never ran that either |
+
+Group B was never environmental. `gateway-runtime` failed on exactly the same
+`take: 2` query as the two attendance suites, and went 0/27 → 27/27 with the
+same fixture change. The classification was a reasonable hypothesis from suite
+identity, and it was wrong; that is why this record said to confirm it rather
+than treat it as a diagnosis.
+
+### The 30-minute timeout was a hang, not slowness
+
+Running the three group-A suites together locally reproduced it: 27 minutes
+with 86 seconds of CPU — a process waiting, not working. It never appeared when
+a suite ran alone, which is why the CI timeout looked like a capacity problem
+and was not.
+
+Once the suites stopped sharing borrowed rows, the whole set — all 24 suites,
+still at `maxWorkers: 1` — completed in **644 seconds**. That is the answer to
+[[ITEM-0055]] as well: serialisation was never the cost.
+
+### What changed
+
+- `test/helpers/db-fixtures.ts` — `createOrganization`, `createBusinessUnit`,
+  `createTenantWithBusinessUnit`, `createTenantPair`, `definedIds`.
+- `test/db-fixtures-contract.e2e-spec.ts` — the fixture layer's own contract,
+  including that a fixture tenant's cascade really does remove Organization and
+  BusinessUnit. Asserted, because `BusinessUnit → Organization` is `Restrict`
+  and only a real PostgreSQL shows that ordering.
+- Teardown across the converted suites collapses to `fixtures.cleanup()` inside
+  `try`/`finally`, with `app.close()` guaranteed. The hand-ordered deletes are
+  gone, and with them the `in: [undefined, undefined]` that turned a setup
+  failure into a louder teardown failure.
+- `prisma/seed-legal.ts` exports `seedLegalDocuments(prisma)`; `legal-seed`
+  calls it. A test of a seed runs that seed.
+- `platform-workflows` creates its own Partner and PartnerOnboardingApplication
+  with a per-run token.
+- `attendance-integrations-http`'s `createActor` grants matrix privileges as
+  well as legacy keys — `PermissionsGuard` requires both, and the borrowed
+  seeded tenant had been supplying the second half by accident.
+
+### No product defect was found
+
+Every failure classified as a test-harness defect. Nothing here became a BUG
+record, and nothing was "fixed" by relaxing an assertion. The one assertion that
+changed — the legal foreign-key wording in `legal-documents.e2e-spec.ts` —
+widened which *sentence* it accepts across three layers that can raise the same
+rejection; the delete must still be refused.
+
+[[BUG-0079]] was raised in the same task, and is the browser install, not this.
+
+### Confirmed in CI
+
+Run `32307298504`, job `96242923532` — the first green `Database e2e` in this
+job's existence, and the first run in which it gated anything:
+
+```
+Test Suites: 25 passed, 25 total
+Tests:       304 passed, 304 total
+Time:        92.43 s
+```
+
+The job's phases, which answer the performance question this item was also
+carrying:
+
+| Phase | Duration |
+|---|---:|
+| `POSTGRES_STARTUP` (container init) | 21s |
+| `MIGRATION_DURATION` (`verify-database.mjs`) | 86s |
+| `SEED_DURATION` (`seed:demo` + `seed:admin`) | 43s |
+| **`TEST_DURATION`** | **92s** |
+| Whole job, checkout to teardown | **5m31s** |
+
+**The database setup now costs more than the tests.** That is the answer to
+[[ITEM-0055]] and to whether the suite should run in parallel: at 92 seconds
+there is nothing left to reclaim by parallelising, and [[ITEM-0065]] records
+the two remaining borrowed-fixture lookups that would have to be fixed first
+anyway.
+
+### Promotion
+
+See the promotion decision recorded on `database-e2e-report` in `ci.yml`.
 
 ## Proposed Approach
 

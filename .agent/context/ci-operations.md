@@ -47,8 +47,9 @@ resolve  ─┬─ validate                  ┐
           ├─ test-runtime              │
           ├─ database-migration        │
           ├─ build                     │
-          ├─ browser-e2e               ┘
-          └─ database-e2e-report          (report only — NOT in the gate)
+          ├─ browser-e2e               │
+          ├─ database-e2e-report       ┘  (display name: Database e2e)
+          └─ security-invariant-report    (report only — NOT in the gate)
                      ↓
               ci-required  ← the single check branch protection keys on
 ```
@@ -68,7 +69,7 @@ Measured across the 19 develop runs before this change:
 | Job | Median | p95 |
 |---|---:|---:|
 | **Browser e2e** | **8m01s** | **12m57s** |
-| Database e2e (report only) | 4m38s | 25m56s |
+| Database e2e (report-only at the time) | 4m38s | 25m56s |
 | Build | 4m22s | 5m15s |
 | Lint | 3m28s | 5m40s |
 | Typecheck | 2m43s | 3m51s |
@@ -154,7 +155,7 @@ and never record one as a pass, without running this.
 Each job declares `timeout-minutes`. Before 2026-08-18 none did, so every job
 inherited GitHub's 360-minute default — which is how `database-e2e-report` was
 able to run for 36 minutes and would have run for six hours had nothing
-superseded it. A report-only job must never be able to hold a runner that long.
+superseded it. No job, gating or not, may hold a runner that long.
 
 A job hitting its timeout is a real signal. Raise the limit only with evidence
 that the work legitimately grew; otherwise find out what is hanging.
@@ -197,16 +198,66 @@ CI_DUPLICATED                the same SHA ran the full pipeline twice
 CI_FLAKY                     a job disagreed with itself on one commit
 CI_CRITICAL_PATH_REGRESSION  the slowest job changed identity
 DATABASE_E2E_RED             the database e2e job failed or timed out again
+E2E_FIXTURE_CONTRACT_BROKEN  a suite failed before it ran a single test
 ```
 
 and otherwise on a release, or when a task changes `ci.yml` itself.
 
-### `DATABASE_E2E_RED` — report-only is not ignorable
+### Three signals a duration alone cannot carry
 
-`database-e2e-report` carries `continue-on-error` and sits outside the required
-gate. That makes it **non-blocking**, which is not the same as **unowned**, and
-the difference is exactly the defect BUG-0049 was filed against: a report-only
-job whose green conclusion was read as a pass over 136 failed tests.
+Added 2026-08-20, after an 18-minute browser install and a 30-minute database
+e2e timeout were both watched for days without either producing a remediation
+record. Each is a case where the existing instrumentation was looking at the
+right run and still could not see the problem.
+
+**`STEP_DURATION_REGRESSION`** — a job median hides a step. `Install the
+browser` went 27s → 6m41s → 25m55s while `Browser e2e` stayed inside its
+30-minute cap, so `JOB_DURATION_REGRESSION` never fired and a person found it in
+the GitHub UI. `ci-metrics.mjs` now keeps a median per step as well as per job.
+The steps come back on the same API response as the jobs, so this costs nothing
+but not discarding them.
+
+**`JOB_TIMEOUT`** — a job that ran out of time and a job a superseding push
+killed are both reported `cancelled`, and they mean opposite things. Three
+consecutive 30-minute database e2e timeouts were read as ordinary
+supersede-cancels for exactly that reason. The declared `timeout-minutes` is
+parsed out of `ci.yml`, so raising a cap cannot silently disable the check.
+
+**`E2E_FIXTURE_CONTRACT_BROKEN`** — a failed shared precondition fails every
+test behind it at once, and the report then reads as dozens of independent
+product defects. Three suites threw *"These tests need two tenants with at least
+one business unit"* in `beforeAll`, and 81 red tests were counted as 81 problems
+rather than one. jest reports this as `Test suite failed to run`, so the
+`database-e2e-report` summary now surfaces that phrase as its own finding.
+
+```
+E2E_FIXTURE_CONTRACT_BROKEN
+  → Database Agent leads    the fixture contract: what each suite requires and
+                            which layer is supposed to create it
+  → QA owns the evidence    and does NOT open one bug per cascading failure
+  → Architect triages       the precondition, once
+```
+
+**Cascading failures are one finding.** Opening a bug per red test in a cascade
+is how a fixture defect becomes twenty phantom product defects that nobody can
+close. Establish the precondition first, then re-read the counts.
+
+### `DATABASE_E2E_RED` — now a blocking gate, and still an owned signal
+
+**Promoted on 2026-08-20.** `database-e2e-report` no longer carries
+`continue-on-error` and is in `ci-required`'s `needs`, so a red run fails the
+gate and blocks the merge. Its job key is unchanged — it is referenced by name
+from these documents, the QA records and the regression register — but its
+display name is now `Database e2e`, because a gate should not describe itself
+as a report.
+
+This section survives promotion rather than being deleted, because the signal
+and the gate answer different questions. The gate blocks *this* merge. The
+signal says *the same job keeps going red*, which is an ownership question and
+was the whole reason a job could sit red for weeks: it was non-blocking, which
+is not the same as unowned. That distinction is the defect BUG-0049 was filed
+against — a report-only job whose green conclusion was read as a pass over 136
+failed tests.
 
 The signal fires when the job fails **or times out**, and it is not the
 Architect's to absorb:
@@ -221,15 +272,17 @@ DATABASE_E2E_RED
   → visible in the Control Center via the backlog, not as a raw log
 ```
 
-**A green `CI required gate` does not clear this.** The gate proves the required
-jobs passed; it says nothing about a job deliberately kept outside it. Red
-database evidence must not persist indefinitely behind a green gate — if it is
-going to persist, it persists as an open, owned, prioritised record with a
-stated reason, never as silence.
+**A green `CI required gate` no longer coexists with a red database e2e** — the
+gate now includes it. What remains true is the rule that produced this section:
+a job deliberately kept outside the gate is not thereby unowned, and red
+evidence must never persist as silence. `security-invariant-report` is the
+remaining report-only job, and ITEM-0043 carries its promotion criteria.
 
-The current state is `FAIL`: [[ITEM-0047]] (6 suites / 92 tests failing at the
-last completing run) blocked by [[ITEM-0055]] (the serial suite now exceeds the
-30-minute cap on every run, so there is no completing run at all).
+The current state is `PASS`: [[ITEM-0047]] is DONE — 24 of 24 suites, 295 of
+295 tests, twice consecutively, 644s at `maxWorkers: 1`. [[ITEM-0055]] is
+answered by the same evidence: serialisation was never the cost. Suites
+borrowing rows from one shared seeded tenant was, and the contention hung the
+worker — 27 minutes of wall clock for 86 seconds of CPU.
 
 ---
 

@@ -239,7 +239,8 @@ export function AdminSidebar({
             <div key={section.title}>
               <div
                 className={[
-                  "px-2 pb-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400",
+                  // slate-400 on white is ~2.8:1 and fails WCAG AA for normal text; slate-500 clears it at ~4.8:1.
+                  "px-2 pb-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500",
                   collapsed ? "lg:hidden" : "",
                 ].join(" ")}
               >

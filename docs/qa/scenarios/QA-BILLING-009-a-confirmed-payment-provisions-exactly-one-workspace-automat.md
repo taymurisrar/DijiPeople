@@ -9,7 +9,7 @@ RISK: HIGH
 AUTOMATION_STATUS: PARTIAL
 TEST_REFERENCE: services/api/src/modules/outbox/emitted-events-have-consumers.invariant.spec.ts
 RELATED_BUGS: [BUG-0078]
-RELATED_REGRESSIONS: [REG-067]
+RELATED_REGRESSIONS: [REG-073]
 LAST_RUN: 2026-08-19
 LAST_RESULT: PASS
 CREATED_AT: 2026-08-19
@@ -63,6 +63,6 @@ provisioning step declared itself retryable and was never wired.
 - Test plan — [[PLAN-007]]
 - Module — [[tenant-provisioning]]
 - Bugs — [[BUG-0078]]
-- Regressions — REG-067 (see the regression register)
+- Regressions — REG-073 (see the regression register)
 
 <!-- GRAPH:END -->

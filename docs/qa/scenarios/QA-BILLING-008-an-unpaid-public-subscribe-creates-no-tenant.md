@@ -9,7 +9,7 @@ RISK: HIGH
 AUTOMATION_STATUS: AUTOMATED
 TEST_REFERENCE: services/api/test/payment-authorised-provisioning.e2e-spec.ts
 RELATED_BUGS: [BUG-0077]
-RELATED_REGRESSIONS: [REG-066]
+RELATED_REGRESSIONS: [REG-072]
 LAST_RUN: 2026-08-19
 LAST_RESULT: PASS
 CREATED_AT: 2026-08-19
@@ -65,6 +65,6 @@ diff.
 
 - Test plan — [[PLAN-017]]
 - Bugs — [[BUG-0077]]
-- Regressions — REG-066 (see the regression register)
+- Regressions — REG-072 (see the regression register)
 
 <!-- GRAPH:END -->

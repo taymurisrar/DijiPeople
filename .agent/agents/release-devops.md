@@ -23,15 +23,25 @@ PRE_TASK_REPO_HEALTH      POST_TASK_REPO_HEALTH     MAIN_SYNC_STATUS
 MAIN_CHANGE_STATUS        DEVELOP_SYNC_STATUS       REMOTE_STATE
 STALE_BRANCHES            STALE_WORKTREES           STALE_LEASES
 UNFINISHED_GIT_OPERATIONS DEPLOYMENT_DRIFT          INTEGRATION_LOCK
+PRIMARY_WORKTREE_STATUS   TASK_WORKTREE_STATUS      UNEXPLAINED_DIRTY_FILES
+OTHER_DIRTY_WORKTREES     POST_INTEGRATION_GENERATOR_STATUS
 ```
 
 ```bash
 node scripts/repo-health.mjs            # or npm run repo:health
 node scripts/repo-health.mjs --fetch    # refresh remote state first
 node scripts/repo-health.mjs --main-baseline <sha-at-task-start>
+node scripts/repo-health.mjs --task-branch agent/<x>   --primary-baseline "<paths already dirty at task start>"
 node scripts/session.mjs list           # sessions, leases, DATABASE_WRITER, queue
 node scripts/verify-branch-policy.mjs   # main/develop protection — read-only
 ```
+
+**This role is LEAD for worktree health, and worktree health means every
+framework-managed checkout — the user's primary one above all.** The check used
+to run only where the agent was standing, so an agent finishing in its own clean
+task worktree reported `PASS` while the user's checkout held six unexplained
+files on `develop`. Inspecting your own worktree and calling it repository
+health is the specific failure this role now exists to prevent.
 
 ### The production-safety field
 
@@ -67,8 +77,20 @@ git branch -vv ·  git worktree list
 ```
 
 Detect local `main` ahead / behind / diverged, a dirty `main`, an unfinished
-merge / rebase / cherry-pick / revert, stale worktrees, stale merged branches,
-and remote changes.
+merge / rebase / cherry-pick / revert **in any worktree**, stale worktrees,
+stale merged branches, and remote changes.
+
+Record, as the baseline the post-task check is measured against:
+
+```
+PRIMARY_WORKTREE_STATUS   ACTIVE_AGENT_WORKTREES    DIRTY_WORKTREES
+UNFINISHED_GIT_OPERATIONS LOCAL_DEVELOP_SHA         ORIGIN_DEVELOP_SHA
+MAIN_SHA                  DEVELOP_CONTAINS_MAIN
+```
+
+The exact set of paths already dirty in the primary checkout is part of that
+baseline. It is the only evidence that later separates the user's own in-flight
+work from a mess this task made, and it is what `--primary-baseline` consumes.
 
 **A task worktree is never cut from a stale `main`.** A stale base produces
 conflicts that have nothing to do with the task, and resolving them risks
@@ -80,6 +102,19 @@ The same sweep, plus: the merge landed, `MAIN_SYNC_STATUS = SYNCED`, the task
 worktree removed, merged local task branches deleted, and no unfinished Git
 operation left behind. **`POST_TASK_REPO_HEALTH` must be `PASS`** for a
 substantial task to report `COMPLETE`.
+
+Repeat the *identical* inspection and compare it against the pre-task baseline:
+
+```
+PRIMARY_WORKTREE_STATUS ∈ { CLEAN, DIRTY_USER_OWNED, DIRTY_OTHER_SESSION_OWNED }
+UNEXPLAINED_DIRTY_FILES = 0
+```
+
+Never report `PASS` while unexplained dirty tracked files exist in any
+framework-managed worktree. `DIRTY_UNEXPLAINED` blocks completion, and the fix
+is to classify and resolve each path — never to reset, restore, stash or clean
+the set so the report reads better. Another session's dirty worktree is
+`DIRTY_OTHER_SESSION_OWNED`: report it, leave it alone.
 
 ### Branch protection
 

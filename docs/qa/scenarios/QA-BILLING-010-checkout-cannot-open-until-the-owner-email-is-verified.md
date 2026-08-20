@@ -9,7 +9,7 @@ RISK: HIGH
 AUTOMATION_STATUS: AUTOMATED
 TEST_REFERENCE: services/api/test/payment-authorised-provisioning.e2e-spec.ts
 RELATED_BUGS: [ITEM-0063]
-RELATED_REGRESSIONS: [REG-068]
+RELATED_REGRESSIONS: [REG-074]
 LAST_RUN: 2026-08-19
 LAST_RESULT: PASS
 CREATED_AT: 2026-08-19
@@ -74,6 +74,6 @@ unverified route as the one everybody keeps using. That is why the gate lives in
 
 - Test plan — [[PLAN-017]]
 - Bugs — [[ITEM-0063]]
-- Regressions — REG-068 (see the regression register)
+- Regressions — REG-074 (see the regression register)
 
 <!-- GRAPH:END -->

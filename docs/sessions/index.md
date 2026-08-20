@@ -6,12 +6,13 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 4** · completed: 12
+**Active: 5** · completed: 14
 
 ## Active
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0019](../../docs/sessions/SESSION-0019-ci-browser-install-latency-and-database-e2e-fixture-contract.md) | — | CI browser install latency and database e2e fixture contract | ACTIVE | `agent/ci-e2e-remediation` | `develop` | — | 2026-08-19T20:24:28.476Z |
 | [SESSION-0018](../../docs/sessions/SESSION-0018-self-service-onboarding-provisioning-domain-routing-and-cent.md) | TASK-0008 | Self-service onboarding, provisioning, domain routing and central login | ACTIVE | `agent/self-service-onboarding-provisioning` | `develop` | schema | 2026-08-18T23:23:49.309Z |
 | [SESSION-0016](../../docs/sessions/SESSION-0016-database-agent-security-agent-agent-reliability-and-obsidian.md) | — | Database Agent, Security Agent, agent reliability and Obsidian ownership | ACTIVE | `agent/agent-framework-hardening` | `develop` | — | 2026-08-18T20:06:16.992Z |
 | [SESSION-0014](../../docs/sessions/SESSION-0014-ci-performance-cancellation-rca-and-autonomous-ci-adaptation.md) | — | CI performance, cancellation RCA and autonomous CI adaptation | ACTIVE | `agent/ci-performance-adaptation` | `develop` | — | 2026-08-18T19:15:42.554Z |
@@ -21,6 +22,8 @@ see [`README.md`](README.md) for how they stay out of each other's way.
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0017](../../docs/sessions/SESSION-0017-primary-worktree-repository-health-ownership.md) | — | Primary worktree repository health ownership | COMPLETE | `agent/repo-health-primary-worktree` | `develop` | — | 2026-08-18T23:14:32.919Z |
+| [SESSION-0015](../../docs/sessions/SESSION-0015-wp-11-provisioning-operations-ux-and-wp-13-qa-campaign.md) | TASK-0007 | WP-11 provisioning operations UX and WP-13 QA campaign | COMPLETE | `agent/provisioning-ops-and-qa` | `develop` | — | 2026-08-19T22:40:00.000Z |
 | [SESSION-0013](../../docs/sessions/SESSION-0013-wp-10-landing-legal-trust-and-subprocessor-surface.md) | TASK-0007 | WP-10 landing legal, trust and subprocessor surface | COMPLETE | `agent/landing-legal-surface` | `develop` | — | 2026-08-18T18:22:58.471Z |
 | [SESSION-0012](../../docs/sessions/SESSION-0012-wp-03-wp-12-wp-10-wp-16-and-item-0047-cause-d.md) | TASK-0007 | WP-03, WP-12, WP-10, WP-16 and ITEM-0047 cause D | COMPLETE | `agent/consent-legal-knowledge` | `develop` | — | 2026-08-18T16:57:12.921Z |
 | [SESSION-0011](../../docs/sessions/SESSION-0011-item-0047-database-e2e-determinism.md) | — | ITEM-0047 — database e2e determinism | COMPLETE | `agent/database-e2e-determinism` | `develop` | — | 2026-08-18T14:43:47.468Z |

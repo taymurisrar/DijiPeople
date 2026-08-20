@@ -7,6 +7,7 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { describeWithDatabase } from './helpers/db-fixtures';
 import { LegalService } from '../src/modules/legal/legal.service';
 import type { PrismaService } from '../src/common/prisma/prisma.service';
+import { seedLegalDocuments } from '../prisma/seed-legal';
 
 /**
  * The seeded legal set, against a real PostgreSQL.
@@ -47,6 +48,13 @@ describeWithDatabase()('Seeded legal documents (DB-backed)', () => {
 
   beforeAll(async () => {
     await prisma.$connect();
+    // Run the seed this suite exists to assert on, rather than hoping an
+    // earlier CI step ran it. The database e2e job seeds demo data and the
+    // platform admin; it has never run seed:legal, so every assertion below
+    // used to read an empty table and report the seed as incomplete when the
+    // seed had simply never executed. It upserts and never rewrites a
+    // published version, so running it here is idempotent.
+    await seedLegalDocuments(prisma);
   });
 
   afterAll(async () => {

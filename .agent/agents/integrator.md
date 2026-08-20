@@ -462,9 +462,11 @@ PostgreSQL**, confirms the schema fully migrated, then runs `seed:config` and
 blocks the aggregate check — `DB_CI_STATUS` names it explicitly because "CI was
 green" is not a specific enough claim for a schema change.
 
-`database-e2e-report` is **report-only** and does not block. Promotion criteria
-are in the workflow and in
-[`../../docs/development/ci.md`](../../docs/development/ci.md).
+`database-e2e-report` (display name `Database e2e`) joined `ci-required` on
+2026-08-20 and **does** block. It is the only gate that exercises the product
+against a real PostgreSQL, so a red run there is a data-integrity or
+tenant-boundary result, not a slow test. The promotion evidence is on the job
+itself and in [[ITEM-0047]].
 
 Where the change touches none of the above: `DB_CI_STATUS = NOT_REQUIRED`, with
 that reason stated.
@@ -497,8 +499,10 @@ substitute a local run. The current environment status lives in
 [`../../docs/development/agent-tooling-matrix.md`](../../docs/development/agent-tooling-matrix.md),
 where `CI_READ` is the single capability whose absence blocks task completion.
 
-The two report-only checks — `security-invariant-report` and `database-e2e-report`
-— are known baselines and do **not** block a merge. See
+`security-invariant-report` is now the only report-only check. It is a known
+baseline and does **not** block a merge; ITEM-0043 carries its promotion
+criteria. `database-e2e-report` used to be listed here and no longer is — it
+blocks since 2026-08-20. See
 [`docs/development/ci.md`](../../docs/development/ci.md).
 
 For production-affecting work, additionally:

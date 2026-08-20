@@ -4,7 +4,7 @@ aliases: [PLAN-002]
 TITLE: Authorization and RBAC
 AREA: authorization
 STATUS: NEEDS_REVIEW
-MODULES: [services/api/src/common/constants, services/api/src/common/security, services/api/src/common/guards, services/api/src/modules/employees, services/api/src/modules/approvals]
+MODULES: [services/api/src/common/constants, services/api/src/common/security, services/api/src/common/guards, services/api/src/modules/employees, services/api/src/modules/approvals, services/api/src/modules/platform-auth, services/api/src/modules/super-admin]
 RISK: CRITICAL
 COVERAGE_UNIT: GOOD
 COVERAGE_API: GAP
@@ -14,10 +14,10 @@ COVERAGE_E2E: PARTIAL
 COVERAGE_BROWSER: GAP
 COVERAGE_SECURITY: GOOD
 COVERAGE_PERFORMANCE: NOT_APPLICABLE
-RELATED_BUGS: [BUG-0003, BUG-0004, BUG-0006, BUG-0007, BUG-0047]
-RELATED_REGRESSIONS: [REG-003, REG-004, REG-006, REG-007, REG-034]
+RELATED_BUGS: [BUG-0003, BUG-0004, BUG-0006, BUG-0007, BUG-0047, BUG-0071, BUG-0072]
+RELATED_REGRESSIONS: [REG-003, REG-004, REG-006, REG-007, REG-034, REG-066, REG-067]
 CREATED_AT: 2026-08-16
-UPDATED_AT: 2026-08-17
+UPDATED_AT: 2026-08-18
 VERIFIED_AGAINST_SHA: 714632d
 ---
 
@@ -100,8 +100,8 @@ global invariant failure is assigned to WP-03 rather than rounded into a pass.
 
 ## Related
 
-- Scenarios — [[QA-AUTHZ-001]], [[QA-AUTHZ-002]], [[QA-AUTHZ-003]], [[QA-AUTHZ-004]], [[QA-AUTHZ-005]], [[QA-AUTHZ-006]], [[QA-AUTHZ-007]], [[QA-AUTHZ-008]], [[QA-AUTHZ-009]], [[QA-BILLING-001]], [[QA-BILLING-007]], [[QA-PARTNER-006]], [[QA-SETTINGS-001]]
-- Bugs — [[BUG-0003]], [[BUG-0004]], [[BUG-0006]], [[BUG-0007]], [[BUG-0047]]
-- Regressions — REG-003, REG-004, REG-006, REG-007, REG-034 (see the regression register)
+- Scenarios — [[QA-AUTHZ-001]], [[QA-AUTHZ-002]], [[QA-AUTHZ-003]], [[QA-AUTHZ-004]], [[QA-AUTHZ-005]], [[QA-AUTHZ-006]], [[QA-AUTHZ-007]], [[QA-AUTHZ-008]], [[QA-AUTHZ-009]], [[QA-AUTHZ-010]], [[QA-AUTHZ-011]], [[QA-BILLING-001]], [[QA-BILLING-007]], [[QA-PARTNER-006]], [[QA-SETTINGS-001]]
+- Bugs — [[BUG-0003]], [[BUG-0004]], [[BUG-0006]], [[BUG-0007]], [[BUG-0047]], [[BUG-0071]], [[BUG-0072]]
+- Regressions — REG-003, REG-004, REG-006, REG-007, REG-034, REG-066, REG-067 (see the regression register)
 
 <!-- GRAPH:END -->

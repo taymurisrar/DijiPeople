@@ -9,7 +9,7 @@ RISK: HIGH
 AUTOMATION_STATUS: AUTOMATED
 TEST_REFERENCE: apps/landing/lib/plans.spec.ts
 RELATED_BUGS: [BUG-0082, BUG-0066]
-RELATED_REGRESSIONS: [REG-072]
+RELATED_REGRESSIONS: [REG-077]
 LAST_RUN: 2026-08-20
 LAST_RESULT: PASS
 CREATED_AT: 2026-08-20
@@ -75,6 +75,6 @@ a rewrite than a wrapper element, and a unit test can hold it without a browser.
 
 - Test plan — [[PLAN-013]]
 - Bugs — [[BUG-0082]], [[BUG-0066]]
-- Regressions — REG-072 (see the regression register)
+- Regressions — REG-077 (see the regression register)
 
 <!-- GRAPH:END -->

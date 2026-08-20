@@ -4303,6 +4303,438 @@ if (trackedFiles) {
   );
 }
 
+
+{
+  /*
+   * 37 — the primary worktree is first-class.
+   *
+   * Every one of these runs `repo-health.mjs` against a throwaway repository
+   * with real worktrees attached, because the defect being guarded here was a
+   * *structural* check that passed while the behaviour was absent: per-worktree
+   * dirtiness was computed, dropped from the report, and gated on a branch
+   * comparison that could never be true for the branch the primary checkout is
+   * actually on. Asserting that the document mentions PRIMARY_WORKTREE_STATUS
+   * would have passed against every version of the code that had the bug.
+   */
+  const sandbox = mkdtempSync(join(tmpdir(), 'dijipeople-primary-'));
+  const primary = join(sandbox, 'primary');
+  const taskWorktree = join(sandbox, 'task');
+  const otherWorktree = join(sandbox, 'other');
+
+  const git = (args, cwd = primary) =>
+    execFileSync('git', args, { cwd, stdio: 'pipe', encoding: 'utf8' }).trim();
+
+  const health = (args) => {
+    const result = runScript('scripts/repo-health.mjs', ['--json', '--root', primary, ...args]);
+    if (!result.ok) return null;
+    try {
+      return JSON.parse(result.output);
+    } catch {
+      return null;
+    }
+  };
+
+  let ready = true;
+  try {
+    mkdirSync(primary, { recursive: true });
+    git(['init', '--initial-branch=main', '.']);
+    git(['config', 'user.email', 'probe@example.com']);
+    git(['config', 'user.name', 'probe']);
+    mkdirSync(join(primary, 'docs/sessions'), { recursive: true });
+    writeFileSync(join(primary, 'docs/sessions/README.md'), '# sessions\n');
+    writeFileSync(join(primary, 'tracked.txt'), 'base\n');
+    git(['add', '.']);
+    git(['commit', '-m', 'base']);
+    git(['branch', 'develop']);
+    git(['checkout', 'develop']);
+    git(['worktree', 'add', '-b', 'agent/task', taskWorktree]);
+    git(['worktree', 'add', '-b', 'agent/other', otherWorktree]);
+  } catch (error) {
+    ready = false;
+    warn(`primary-worktree simulations could not initialise — ${String(error.message).split('\n')[0]}`);
+  }
+
+  if (ready) {
+    /* A — a clean task worktree does not make repository health PASS. */
+    writeFileSync(join(primary, 'tracked.txt'), 'edited by nobody in particular\n');
+    const dirtyPrimary = health(['--task-branch', 'agent/task']);
+    check(
+      'simulation 37A: an unexplained dirty file in the primary worktree is DIRTY_UNEXPLAINED',
+      dirtyPrimary?.PRIMARY_WORKTREE_STATUS === 'DIRTY_UNEXPLAINED',
+      `got ${dirtyPrimary?.PRIMARY_WORKTREE_STATUS}`,
+    );
+    check(
+      'simulation 37A: the task worktree being clean does not clear it',
+      dirtyPrimary?.TASK_WORKTREE_STATUS === 'CLEAN' &&
+        dirtyPrimary?.PRIMARY_WORKTREE_STATUS === 'DIRTY_UNEXPLAINED',
+      'a spotless task worktree is exactly the state the failing task reported PASS from',
+    );
+    check(
+      'simulation 37A: an unexplained primary file blocks, it does not merely warn',
+      Array.isArray(dirtyPrimary?.blockers) &&
+        dirtyPrimary.blockers.some((entry) => /unexplained/i.test(entry)),
+      'dirtiness was a warning before, and a warning cannot fail a task',
+    );
+    check(
+      'simulation 37A: the unexplained path is named, with UNKNOWN ownership',
+      dirtyPrimary?.unexplainedDirtyFiles?.some(
+        (file) => file.path === 'tracked.txt' && file.owner === 'UNKNOWN',
+      ),
+      'a count with no paths cannot be acted on',
+    );
+
+    /* B — work that predates the task is preserved, and may complete. */
+    const baselined = health(['--task-branch', 'agent/task', '--primary-baseline', 'tracked.txt']);
+    check(
+      'simulation 37B: a path already dirty at task start is DIRTY_USER_OWNED',
+      baselined?.PRIMARY_WORKTREE_STATUS === 'DIRTY_USER_OWNED',
+      `got ${baselined?.PRIMARY_WORKTREE_STATUS} — the user's own in-flight work must not block them`,
+    );
+    check(
+      'simulation 37B: user-owned dirt does not block completion',
+      baselined?.UNEXPLAINED_DIRTY_FILES === undefined
+        ? baselined?.unexplainedDirtyFiles?.length === 0
+        : true,
+      'preserved user work is reported, never counted as unexplained',
+    );
+    check(
+      'simulation 37B: the file is still on disk — nothing was reverted to tidy the report',
+      readFileSync(join(primary, 'tracked.txt'), 'utf8').includes('edited by nobody'),
+      'repo-health reports; it must never restore, reset or clean',
+    );
+
+    /* C — a generator writing a tracked file after the final commit is caught. */
+    rmSync(join(primary, 'tracked.txt'), { force: true });
+    git(['checkout', '--', 'tracked.txt']);
+    mkdirSync(join(primary, 'docs/backlog'), { recursive: true });
+    writeFileSync(join(primary, 'docs/backlog/index.md'), '# regenerated after the commit\n');
+    const generated = health(['--task-branch', 'agent/task']);
+    check(
+      'simulation 37C: a post-integration generator writing a tracked file is detected',
+      generated?.primaryDirtyFiles?.some(
+        (file) => file.owner === 'GENERATED_BY_FRAMEWORK' && /docs\/backlog/.test(file.path),
+      ),
+      'generator output left uncommitted is repository work, not a clean tree',
+    );
+    check(
+      'simulation 37C: uncommitted generator output does not pass as CLEAN',
+      generated?.PRIMARY_WORKTREE_STATUS !== 'CLEAN',
+      'running a tracked-file generator after the final commit and declaring cleanup done is the defect',
+    );
+    rmSync(join(primary, 'docs/backlog'), { recursive: true, force: true });
+
+    /* D — a session record left behind by `start` blocks until reconciled. */
+    writeFileSync(
+      join(primary, 'docs/sessions/SESSION-9001-stranded.md'),
+      '---\nSESSION_ID: SESSION-9001\nSTATUS: COMPLETE\nTASK_BRANCH: agent/task\n---\n\n# stranded\n',
+    );
+    const stranded = health(['--task-branch', 'agent/task']);
+    check(
+      'simulation 37D: a session record for a finished session is an ORPHANED_SESSION_STUB',
+      stranded?.orphanedSessionStubs?.some((file) => /SESSION-9001/.test(file.path)),
+      `got ${JSON.stringify(stranded?.primaryDirtyFiles)}`,
+    );
+    check(
+      'simulation 37D: a stranded session record blocks completion until reconciled',
+      stranded?.PRIMARY_WORKTREE_STATUS === 'DIRTY_UNEXPLAINED',
+      'SESSION-0016 left exactly this stub in the primary checkout and the task still reported DONE',
+    );
+
+    /*
+     * D2 — a stub that was already there is somebody else's mess, and must not
+     * block this task. It is still named and still attributed to its session:
+     * "pre-existing" is a reason not to block, never a reason to stop
+     * reporting.
+     */
+    const preExistingStub = health([
+      '--task-branch',
+      'agent/task',
+      '--primary-baseline',
+      'docs/sessions/SESSION-9001-stranded.md',
+    ]);
+    check(
+      'simulation 37D2: a pre-existing orphaned stub does not block the task that found it',
+      preExistingStub?.PRIMARY_WORKTREE_STATUS !== 'DIRTY_UNEXPLAINED',
+      `got ${preExistingStub?.PRIMARY_WORKTREE_STATUS}`,
+    );
+    check(
+      'simulation 37D2: it is still attributed to the session that left it, not to the user',
+      preExistingStub?.primaryDirtyFiles?.some(
+        (file) => file.owner === 'SESSION-9001' && file.classification === 'PRE_EXISTING_ORPHANED_STUB',
+      ),
+      'attributing it to USER would send somebody to ask the wrong person',
+    );
+
+    /* E — an ACTIVE session's record is another chat's, and is left alone. */
+    writeFileSync(
+      join(primary, 'docs/sessions/SESSION-9001-stranded.md'),
+      '---\nSESSION_ID: SESSION-9001\nSTATUS: ACTIVE\nTASK_BRANCH: agent/other\n---\n\n# live\n',
+    );
+    const live = health(['--task-branch', 'agent/task']);
+    check(
+      'simulation 37E: an ACTIVE session record is owned by that session, not orphaned',
+      live?.primaryDirtyFiles?.some(
+        (file) => file.owner === 'SESSION-9001' && file.classification === 'ACTIVE_SESSION_RECORD',
+      ),
+      'reading committed indexes instead of the file itself reported a live session as an orphan',
+    );
+    check(
+      'simulation 37E: another session\'s record is DIRTY_OTHER_SESSION_OWNED, not a blocker',
+      live?.PRIMARY_WORKTREE_STATUS === 'DIRTY_OTHER_SESSION_OWNED',
+      `got ${live?.PRIMARY_WORKTREE_STATUS}`,
+    );
+    check(
+      'simulation 37E: a dirty worktree owned by another session is reported, never cleaned',
+      existsSync(join(primary, 'docs/sessions/SESSION-9001-stranded.md')),
+      'the framework must not delete or revert another session\'s work',
+    );
+
+    /* E2 — a dirty sibling worktree is surfaced and left alone. */
+    writeFileSync(join(otherWorktree, 'tracked.txt'), 'another session is mid-edit\n');
+    const sibling = health(['--task-branch', 'agent/task']);
+    check(
+      'simulation 37E: a dirty sibling worktree is listed under OTHER_DIRTY_WORKTREES',
+      sibling?.otherDirtyWorktrees?.some((entry) => entry.branch === 'agent/other'),
+      `got ${JSON.stringify(sibling?.otherDirtyWorktrees)}`,
+    );
+    check(
+      'simulation 37E: the sibling worktree\'s changes are still there afterwards',
+      readFileSync(join(otherWorktree, 'tracked.txt'), 'utf8').includes('mid-edit'),
+      'reporting a worktree must never mutate it',
+    );
+    execFileSync('git', ['-C', otherWorktree, 'checkout', '--', 'tracked.txt'], { stdio: 'pipe' });
+    rmSync(join(primary, 'docs/sessions/SESSION-9001-stranded.md'), { force: true });
+
+    /* F — line-ending-only drift is still drift, and is classified not ignored. */
+    writeFileSync(join(primary, 'tracked.txt'), 'base\r\n');
+    const crlf = health(['--task-branch', 'agent/task']);
+    check(
+      'simulation 37F: a line-ending-only change is detected rather than silently accumulated',
+      crlf?.PRIMARY_WORKTREE_STATUS === 'CLEAN' ||
+        crlf?.primaryDirtyFiles?.some((file) => file.path === 'tracked.txt'),
+      'either .gitattributes normalises it away, or it is reported — never invisible',
+    );
+    writeFileSync(join(primary, 'tracked.txt'), 'base\n');
+
+    /*
+     * G — behind the remote while dirty must not become a blind pull.
+     *
+     * The assertion is non-mutation, captured either side of the call, rather
+     * than "the tree is clean afterwards": a health check has to be safe to run
+     * on an unhealthy repository, which is the only kind worth running it on.
+     */
+    writeFileSync(join(primary, 'tracked.txt'), 'dirty while behind the remote\n');
+    const branchBefore = git(['rev-parse', '--abbrev-ref', 'HEAD']);
+    const statusBefore = git(['status', '--porcelain']);
+    const headBefore = git(['rev-parse', 'HEAD']);
+    const behindAndDirty = health(['--task-branch', 'agent/task']);
+    check(
+      'simulation 37G: repo-health returns a report rather than failing on a dirty tree',
+      behindAndDirty !== null,
+      'a health check that cannot run on an unhealthy repository is no use',
+    );
+    check(
+      'simulation 37G: repo-health does not switch, pull or merge the branch it inspects',
+      git(['rev-parse', '--abbrev-ref', 'HEAD']) === branchBefore &&
+        git(['rev-parse', 'HEAD']) === headBefore,
+      `branch/HEAD moved — a report must never reconcile, and never on a dirty tree`,
+    );
+    check(
+      'simulation 37G: repo-health leaves the working tree exactly as it found it',
+      git(['status', '--porcelain']) === statusBefore,
+      `working tree changed from ${JSON.stringify(statusBefore)} to ${JSON.stringify(git(['status', '--porcelain']))}`,
+    );
+    check(
+      'simulation 37G: the dirty file is still dirty — nothing was pulled over it',
+      readFileSync(join(primary, 'tracked.txt'), 'utf8').includes('dirty while behind'),
+      'classify and preserve local changes first; only then reconcile',
+    );
+    check(
+      'simulation 37G: an unexplained primary is reported before any sync decision',
+      typeof behindAndDirty?.PRIMARY_WORKTREE_STATUS === 'string' &&
+        typeof behindAndDirty?.DEVELOP_SYNC_STATUS === 'string',
+      'classify and preserve local changes first; only then reconcile',
+    );
+
+    /* Unfinished operations are aggregated across worktrees, not just this one. */
+    check(
+      'simulation 37: unfinished Git operations are aggregated per worktree',
+      Array.isArray(behindAndDirty?.unfinishedByWorktree),
+      'a rebase abandoned in a sibling checkout is invisible to --git-common-dir',
+    );
+    check(
+      'simulation 37: every worktree carries a PRIMARY / TASK / OTHER role',
+      behindAndDirty?.worktrees?.length >= 3 &&
+        behindAndDirty.worktrees.filter((w) => w.role === 'PRIMARY').length === 1 &&
+        behindAndDirty.worktrees.some((w) => w.role === 'TASK') &&
+        behindAndDirty.worktrees.some((w) => w.role === 'OTHER'),
+      `got ${JSON.stringify(behindAndDirty?.worktrees?.map((w) => w.role))}`,
+    );
+  }
+
+  rmSync(sandbox, { recursive: true, force: true });
+}
+
+{
+  /*
+   * 38 — the rules above are also *written down*, because a check that only
+   * lives in code is a check the next Architect cannot reason about before
+   * running it.
+   */
+  const health = read('.agent/context/repository-health.md');
+  const contract = read('.agent/context/task-completion-contract.md');
+  const releaseDevops = read('.agent/agents/release-devops.md');
+  const architect = read('.agent/agents/architect.md');
+  const agents = read('AGENTS.md');
+
+  check(
+    'simulation 38: repository health names the primary worktree as first-class',
+    /PRIMARY_WORKTREE_STATUS/.test(health) && /TASK_WORKTREE/.test(health),
+  );
+  check(
+    'simulation 38b: DIRTY_UNEXPLAINED is documented as blocking completion',
+    /DIRTY_UNEXPLAINED/.test(health) && /blocks completion/i.test(health),
+  );
+  check(
+    'simulation 38c: every dirty path must carry an owner',
+    /GENERATED_BY_FRAMEWORK/.test(health) && /UNKNOWN/.test(health),
+    'USER, SESSION-nnnn, GENERATED_BY_FRAMEWORK or UNKNOWN',
+  );
+  check(
+    'simulation 38d: the completion contract carries the worktree fields',
+    /PRIMARY_WORKTREE_STATUS/.test(contract) &&
+      /UNEXPLAINED_DIRTY_FILES/.test(contract) &&
+      /POST_INTEGRATION_GENERATOR_STATUS/.test(contract),
+  );
+  check(
+    'simulation 38e: PRIMARY_WORKTREE_STATUS is never NOT_REQUIRED',
+    /Never — a task worktree being clean is not repository health/.test(contract),
+    'the field exists precisely because a clean task worktree was mistaken for repository health',
+  );
+  check(
+    'simulation 38f: Release/DevOps is LEAD for worktree health',
+    /LEAD for worktree health/i.test(releaseDevops) && /PRIMARY_WORKTREE_STATUS/.test(releaseDevops),
+  );
+  check(
+    'simulation 38g: the Architect reports worktree state rather than burying it',
+    /UNEXPLAINED_DIRTY_FILES/.test(architect) && /may not report/i.test(architect),
+  );
+  check(
+    'simulation 38h: post-integration generators must be committed or proven diff-free',
+    /Post-integration generators are repository work/.test(health) &&
+      /no diff/i.test(health),
+  );
+  check(
+    'simulation 38i: session records must not be stranded in the primary checkout',
+    /stranded in the primary checkout/i.test(health) || /PRIMARY_WORKTREE_ARTIFACT/.test(health),
+  );
+  check(
+    'simulation 38j: AGENTS.md states that a clean task worktree is not repository health',
+    /not a property of the worktree you are standing in/i.test(agents),
+  );
+  check(
+    'simulation 38k: cleanup may never mean making git status empty',
+    /Cleanup never means making `git status` empty/.test(contract),
+    'reverting to tidy the report is how somebody else\'s afternoon disappears',
+  );
+
+  /* session.mjs must actually implement the artifact warning, not just describe it. */
+  const sessionScript = read('scripts/session.mjs');
+  check(
+    'simulation 38l: session.mjs detects a record written into the primary checkout',
+    /PRIMARY_WORKTREE_ARTIFACT/.test(sessionScript) &&
+      /'worktree',\s*'list'/.test(sessionScript) &&
+      /strandedInPrimary/.test(sessionScript),
+    'the root cause was session.mjs resolving its root from its own location',
+  );
+
+  /* repo-health must expose the fields the contract now depends on. */
+  const healthScript = read('scripts/repo-health.mjs');
+  for (const field of [
+    'PRIMARY_WORKTREE_STATUS',
+    'TASK_WORKTREE_STATUS',
+    'unexplainedDirtyFiles',
+    'otherDirtyWorktrees',
+    'unfinishedByWorktree',
+  ]) {
+    check(
+      `simulation 38m: repo-health emits ${field}`,
+      new RegExp(field).test(healthScript),
+    );
+  }
+}
+
+{
+  /*
+   * 39 — session.mjs actually refuses to strand a record silently.
+   *
+   * This is executed rather than grepped because the grepped version of this
+   * check (38l) survived a mutation that set the detection to a constant
+   * `false` while leaving every identifier it searched for in place. A check
+   * that reads the source for a word cannot tell whether the word still does
+   * anything.
+   */
+  const sandbox = mkdtempSync(join(tmpdir(), 'dijipeople-session-root-'));
+  const git = (args, cwd = sandbox) =>
+    execFileSync('git', args, { cwd, stdio: 'pipe', encoding: 'utf8' }).trim();
+
+  let ready = true;
+  try {
+    git(['init', '--initial-branch=develop', '.']);
+    git(['config', 'user.email', 'probe@example.com']);
+    git(['config', 'user.name', 'probe']);
+    mkdirSync(join(sandbox, 'docs/sessions'), { recursive: true });
+    writeFileSync(join(sandbox, 'docs/sessions/README.md'), '# sessions\n');
+    git(['add', '.']);
+    git(['commit', '-m', 'base']);
+  } catch (error) {
+    ready = false;
+    warn(`session-root simulation could not initialise — ${String(error.message).split('\n')[0]}`);
+  }
+
+  if (ready) {
+    const startSession = (branch) => {
+      const result = runScript('scripts/session.mjs', [
+        'start',
+        `probe ${branch}`,
+        '--json',
+        '--branch',
+        branch,
+        '--root',
+        sandbox,
+      ]);
+      try {
+        return JSON.parse(result.output);
+      } catch {
+        return null;
+      }
+    };
+
+    /* Registering for a branch this checkout does not have is the stranding case. */
+    const stranded = startSession('agent/somewhere-else');
+    check(
+      'simulation 39: registering a session for another branch flags PRIMARY_WORKTREE_ARTIFACT',
+      stranded?.PRIMARY_WORKTREE_ARTIFACT === true,
+      `got ${JSON.stringify(stranded?.PRIMARY_WORKTREE_ARTIFACT)} — SESSION-0015 and SESSION-0016 both stranded a stub this way`,
+    );
+    check(
+      'simulation 39: the record reports which worktree it was written into',
+      typeof stranded?.worktree === 'string' && stranded.worktree.length > 0,
+      'a record that does not say where it lives cannot be reconciled later',
+    );
+
+    /* Registering for the branch actually checked out here is the ordinary case. */
+    const ordinary = startSession('develop');
+    check(
+      'simulation 39b: registering on the checked-out branch is not flagged',
+      ordinary?.PRIMARY_WORKTREE_ARTIFACT === false,
+      `got ${JSON.stringify(ordinary?.PRIMARY_WORKTREE_ARTIFACT)} — a warning that always fires is a warning nobody reads`,
+    );
+  }
+
+  rmSync(sandbox, { recursive: true, force: true });
+}
+
 // ------------------------------------------------------------------- reporting
 
 if (warnings.length) {

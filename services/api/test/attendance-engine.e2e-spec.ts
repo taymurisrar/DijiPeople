@@ -7,6 +7,7 @@ import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/common/prisma/prisma.service';
 import { AttendanceReconciliationService } from '../src/modules/attendance-engine/attendance-reconciliation.service';
 import { AttendanceReconciliationQueueService } from '../src/modules/attendance-engine/attendance-reconciliation-queue.service';
+import { DbFixtures } from './helpers/db-fixtures';
 
 /**
  * The Attendance Engine against the real database.
@@ -28,6 +29,7 @@ describe('Attendance Engine (e2e)', () => {
   let prisma: PrismaService;
   let reconciliation: AttendanceReconciliationService;
   let queue: AttendanceReconciliationQueueService;
+  let fixtures: DbFixtures;
 
   const suffix = `eng-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
 
@@ -126,24 +128,16 @@ describe('Attendance Engine (e2e)', () => {
     reconciliation = app.get(AttendanceReconciliationService);
     queue = app.get(AttendanceReconciliationQueueService);
 
-    const tenants = await prisma.tenant.findMany({
-      where: { businessUnits: { some: {} } },
-      take: 2,
-      orderBy: { createdAt: 'asc' },
-      select: { id: true },
-    });
-    if (tenants.length < 2) {
-      throw new Error(
-        'These tests need two tenants with at least one business unit.',
-      );
-    }
-    tenantId = tenants[0].id;
-    otherTenantId = tenants[1].id;
+    // Built, not borrowed. This used to adopt "the first two tenants that have
+    // a business unit", which `seed:demo` cannot satisfy — it creates one
+    // tenant — so beforeAll threw and every test in the file errored. See
+    // ITEM-0047 and helpers/db-fixtures.ts.
+    fixtures = new DbFixtures(prisma, 'attendance-engine');
+    const tenants = await fixtures.createTenantPair();
+    tenantId = tenants.a.id;
+    otherTenantId = tenants.b.id;
 
-    const businessUnit = await prisma.businessUnit.findFirstOrThrow({
-      where: { tenantId },
-      select: { id: true },
-    });
+    const businessUnit = { id: tenants.a.businessUnitId };
 
     workSiteId = (
       await prisma.location.create({
@@ -332,33 +326,27 @@ describe('Attendance Engine (e2e)', () => {
   });
 
   afterAll(async () => {
-    const employees = [employeeId, otherEmployeeId].filter(Boolean);
-
-    await prisma.rawAttendanceEvent.deleteMany({
-      where: { tenantId, integrationId },
-    });
-    await prisma.attendanceDevice.deleteMany({ where: { integrationId } });
-    await prisma.attendanceIntegration.deleteMany({
-      where: { id: integrationId },
-    });
-    await prisma.employeeWorkSite.deleteMany({
-      where: { employeeId: { in: employees } },
-    });
-    await prisma.employeeScheduleAssignment.deleteMany({
-      where: { employeeId: { in: employees } },
-    });
-    await prisma.leaveRequest.deleteMany({
-      where: { employeeId: { in: employees } },
-    });
-    await prisma.employee.deleteMany({ where: { id: { in: employees } } });
-    await prisma.workScheduleDay.deleteMany({ where: { workScheduleId } });
-    await prisma.shiftTemplate.deleteMany({
-      where: { id: { in: [dayShiftId, nightShiftId] } },
-    });
-    await prisma.workSchedule.deleteMany({ where: { id: workScheduleId } });
-    await prisma.location.deleteMany({ where: { id: workSiteId } });
-
-    await app.close();
+    // Twelve hand-written deletes used to live here, one per model the suite
+    // touched. They are gone because the suite now owns its tenants: deleting
+    // a fixture tenant cascades every row underneath it, and the cascade is
+    // asserted in db-fixtures-contract.e2e-spec.ts rather than assumed.
+    //
+    // The hand-written version was also unsafe when setup failed part-way. Ids
+    // that were never assigned arrived as `undefined`, and Prisma reads an
+    // `undefined` filter as "do not filter on this column" — so
+    // `deleteMany({ where: { tenantId, integrationId } })` with no integration
+    // would have deleted every raw event belonging to the tenant. Harmless
+    // against a fixture tenant; not harmless against the shared seeded one this
+    // suite used to borrow.
+    //
+    // Ordered so the application closes even if cleanup throws: a leaked Nest
+    // application is a leaked Prisma pool, and that is what kept jest alive
+    // after the run.
+    try {
+      await fixtures?.cleanup();
+    } finally {
+      await app?.close();
+    }
   });
 
   // ------------------------------------------------------------ office day
