@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**152 records** — 82 bugs under [`docs/bugs/`](../bugs/), 70 non-bug items under [`items/`](items/).
+**153 records** — 82 bugs under [`docs/bugs/`](../bugs/), 71 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,21 +13,21 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 37 |
+| Open (active work) | 39 |
 | Blocked | 0 |
 | Deferred | 13 |
-| Awaiting a product decision | 4 |
+| Awaiting a product decision | 3 |
 | Completed / closed | 98 |
 | **Open CRITICAL** | **0** |
-| **Open HIGH** | **11** |
+| **Open HIGH** | **12** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
 
 | Severity | Count |
 |---|---|
-| HIGH | 11 |
-| MEDIUM | 21 |
+| HIGH | 12 |
+| MEDIUM | 22 |
 | LOW | 5 |
 
 ## Open by type
@@ -35,7 +35,7 @@ see [`README.md`](README.md) for why.
 | Type | Count |
 |---|---|
 | ARCHITECTURE | 2 |
-| DATA_INTEGRITY | 1 |
+| DATA_INTEGRITY | 2 |
 | DOCUMENTATION | 2 |
 | FOLLOW_UP | 3 |
 | INFRA | 3 |
@@ -43,7 +43,7 @@ see [`README.md`](README.md) for why.
 | SECURITY | 7 |
 | STATE_MACHINE | 1 |
 | TECH_DEBT | 6 |
-| TEST_GAP | 7 |
+| TEST_GAP | 8 |
 | UX | 4 |
 
 ## All records by status
@@ -52,11 +52,11 @@ see [`README.md`](README.md) for why.
 |---|---|
 | OPEN | 4 |
 | DEFERRED | 13 |
-| PRODUCT_DECISION | 4 |
-| FIXED | 7 |
+| PRODUCT_DECISION | 3 |
+| FIXED | 8 |
 | VERIFIED | 68 |
 | DUPLICATE | 1 |
-| READY | 26 |
+| READY | 27 |
 | DONE | 29 |
 
 ## All records
@@ -110,7 +110,7 @@ see [`README.md`](README.md) for why.
 | [BUG-0077](../../docs/bugs/BUG-0077-public-subscribe-creates-a-tenant-and-a-second-customeraccou.md) | Public subscribe creates a Tenant and a second CustomerAccount before payment | DATA_INTEGRITY | HIGH | P1 | FIXED | billing, super-admin, tenants | FIX_NOW |
 | [BUG-0078](../../docs/bugs/BUG-0078-provisioning-requested-has-no-consumer-so-a-paid-self-servic.md) | PROVISIONING_REQUESTED has no consumer so a paid self-service customer is never provisioned | STATE_MACHINE | HIGH | P1 | FIXED | billing, outbox, super-admin | FIX_NOW |
 | [BUG-0079](../../docs/bugs/BUG-0079-browser-e2e-spends-its-whole-install-step-on-apt-work-that-i.md) | Browser e2e spends its whole install step on apt work that installs no browser library | PERFORMANCE | HIGH | P1 | FIXED | .github/workflows, e2e | FIX_NOW |
-| [BUG-0080](../../docs/bugs/BUG-0080-seeded-prices-bill-a-flat-fee-while-the-terms-say-the-billab.md) | Seeded prices bill a flat fee while the Terms say the billable unit is an active employee | DATA_INTEGRITY | HIGH | P1 | PRODUCT_DECISION | billing, super-admin, legal | PRODUCT_DECISION |
+| [BUG-0080](../../docs/bugs/BUG-0080-seeded-prices-bill-a-flat-fee-while-the-terms-say-the-billab.md) | Seeded prices bill a flat fee while the Terms say the billable unit is an active employee | DATA_INTEGRITY | HIGH | P1 | FIXED | billing, super-admin, legal | FIX_NOW |
 | [BUG-0082](../../docs/bugs/BUG-0082-the-onboarding-wizard-collects-five-steps-of-data-it-cannot-.md) | The onboarding wizard collects five steps of data it cannot submit | UX | HIGH | P1 | FIXED | landing | FIX_NOW |
 | [BUG-0083](../../docs/bugs/BUG-0083-the-database-agent-preflight-reports-pass-on-a-database-with.md) | The Database Agent preflight reports PASS on a database with every migration unapplied | INFRA | HIGH | P1 | VERIFIED | scripts, .agent, services/api | DONE |
 | [BUG-0085](../../docs/bugs/BUG-0085-the-release-command-aborted-a-first-deploy-and-otherwise-res.md) | The release command aborted a first deploy, and otherwise reset the super admin password | INFRA | HIGH | P1 | VERIFIED | platform-users, legal | DONE |
@@ -188,6 +188,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0060](../../docs/backlog/items/ITEM-0060-schema-prisma-and-the-applied-migration-history-do-not-agree.md) | schema.prisma and the applied migration history do not agree | TECH_DEBT | MEDIUM | P2 | DEFERRED | prisma, timesheets, attendance, payroll, billing | DEFER |
 | [ITEM-0068](../../docs/backlog/items/ITEM-0068-legal-documents-have-no-operator-ui-so-publishing-is-a-scrip.md) | Legal documents have no operator UI, so publishing is a script | UX | MEDIUM | P2 | READY | legal, admin | PLAN_REQUIRED |
 | [ITEM-0069](../../docs/backlog/items/ITEM-0069-a-global-identity-lock-can-be-triggered-by-an-unauthenticate.md) | A global identity lock can be triggered by an unauthenticated attacker | SECURITY | MEDIUM | P2 | DONE | auth, users | DONE |
+| [ITEM-0071](../../docs/backlog/items/ITEM-0071-a-terminal-bug-record-may-claim-fixed-while-its-resolution-s.md) | A terminal bug record may claim FIXED while its Resolution says pending | TEST_GAP | MEDIUM | P2 | READY | scripts | FIX_NOW |
 | [ITEM-0021](../../docs/backlog/items/ITEM-0021-mechanical-guard-against-country-and-currency-literals-in-fr.md) | Mechanical guard against country and currency literals in frontends | TEST_GAP | LOW | P2 | DONE | scripts, apps/landing, apps/web, apps/admin | DONE |
 | [ITEM-0023](../../docs/backlog/items/ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning.md) | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | P2 | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
 | [ITEM-0024](../../docs/backlog/items/ITEM-0024-landing-depends-on-lucide-react-without-declaring-it.md) | Landing depends on lucide-react without declaring it | TECH_DEBT | LOW | P2 | DONE | apps/landing | DONE |

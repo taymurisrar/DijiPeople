@@ -2,7 +2,7 @@
 ID: BUG-0080
 aliases: [BUG-0080]
 Title: Seeded prices bill a flat fee while the Terms say the billable unit is an active employee
-Status: PRODUCT_DECISION
+Status: FIXED
 Severity: HIGH
 Priority: P1
 Type: DATA_INTEGRITY
@@ -11,7 +11,7 @@ DetectedDate: 2026-08-20
 DetectedInSha: d4c0b00
 AffectedModules: [billing, super-admin, legal]
 OwnerAgent: architect
-ArchitectDisposition: PRODUCT_DECISION
+ArchitectDisposition: FIX_NOW
 QAReport: 
 RegressionId: REG-075
 RelatedBacklogItem:
@@ -19,7 +19,7 @@ RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-20
 UpdatedAt: 2026-08-20
-ResolvedAt:
+ResolvedAt: 2026-08-20
 ---
 
 # BUG-0080 — Seeded prices bill a flat fee while the Terms say the billable unit is an active employee
@@ -139,8 +139,10 @@ not any one of them.
 
 ## Regression Coverage
 
-To be added with the fix. The assertion that found this — comparing
-`amount_total` against the seat count and the unit amount — is the shape of it.
+[[REG-075]], added with the fix, plus the QA scenario *"a flat price is never
+described as per-employee"*. The guard is on the **wording against the model**
+rather than on the arithmetic, which is the right place: the arithmetic was never
+wrong.
 
 ## Dependencies
 
@@ -153,27 +155,59 @@ customers are charged.
 
 ## Resolution
 
-**Not resolved. Awaiting a product decision**, and the record's status was
-corrected on 2026-08-20 to say so — it read `FIXED` while its own resolution
-said the opposite, which is exactly the kind of disagreement that lets a release
-count a blocker as closed.
+Fixed 2026-08-20 in `e9f977c` — *"the prices were right, the words were wrong"*.
 
-**The decision became more urgent, not less.** TASK-0010 WP-02 wired
-`legal:publish` into `npm run release`, so a deployment now *publishes* the
-Terms of Service rather than leaving it a draft. The sentence *"the billable
-unit is an active employee"* stops being a draft the moment the first deploy
-runs, while every seeded price is still `BillingModel.FLAT` and Stripe charges
-the same amount for 5 seats as for 500.
+The product answer was **flat**: DijiPeople is a flat subscription per plan, and
+plans differ by the modules they include rather than by headcount. So the code
+was correct and the legal text was not, and `seed-legal.ts` was rewritten to
+match:
 
-Before publication this was an internal inconsistency. After it, it is a
-published commercial term that the billing system does not honour.
+- **Terms of Service** — *"The subscription is a flat fee per plan, for the
+  billing period chosen. It does not vary with the number of employees in the
+  workspace — the plans differ by the modules they include. Active-employee
+  numbers are measured for capacity, not for billing."*
+- **Subscription and Billing Terms** — *"A flat subscription fee per plan… The
+  fee does not change with the number of employees in the workspace"*, followed
+  by a **How employees are counted** section that says explicitly that headcount
+  is measured for capacity and *"is not what you are billed on"*.
+
+The active-employee seat engine is therefore not unused — it governs **capacity**
+and makes a capacity dispute answerable from usage history. It simply is not the
+billing basis, and the Terms now say which of the two it is.
+
+`billingModel` stays `FLAT` in `commercial-bootstrap.ts`, and that is now the
+deliberate, documented answer rather than an accident.
 
 ## QA Retest
 
-Pending.
+Pass. [[REG-075]] and the QA scenario *"a flat price is never described as
+per-employee"* were added with the fix and assert the wording against the seeded
+billing model, so the two cannot drift apart again silently.
 
 ## History
 
+- 2026-08-20 — **this record was left half-written, and it cost a later task an
+  hour and a wrong decision.** `e9f977c` fixed the defect, rewrote the Terms,
+  added [[REG-075]] and a QA scenario, and updated the regression register, the
+  remediation inventory and three dashboards. It never filled in this record's
+  own `## Resolution` and `## QA Retest` sections, which still read *"Pending a
+  product decision"* and *"Pending"* while `Status` correctly read `FIXED`.
+
+  During TASK-0010's release readiness assessment that stale narrative was read
+  as authoritative. The record was reversed to `PRODUCT_DECISION`, the seeded
+  `billingModel` was changed to `PER_SEAT`, the base prices were zeroed, and the
+  owner was asked to settle a question that had been settled the same day. All of
+  it was reverted once `seed-legal.ts` was actually read.
+
+  The lesson is not "read the code" in general — it is narrower and sharper.
+  **A record whose `Status` and whose prose disagree is not a record; it is two
+  claims.** The status field is generated and checked, so it was right. The prose
+  is written by hand and checked by nobody, so it was wrong, and it was the more
+  persuasive of the two because it explained itself. `Status: FIXED` with
+  `Resolution: Pending` should be a validation error, not a puzzle for a future
+  reader — filed as [[ITEM-0071]].
+- 2026-08-20 — fixed in `e9f977c`. The product answer was flat; the Terms were
+  rewritten to say so.
 - 2026-08-20 — found while proving the checkout path against the real Stripe
   sandbox. The test asserted `5 x $199 = 99500` from the pricing page's own
   logic; Stripe returned `39900`. The literal in the test was wrong *and* it was
