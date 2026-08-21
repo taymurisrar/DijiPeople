@@ -82,8 +82,17 @@ export function buildSignatureBlockHtml(
       return `<tr><td><strong>${escapeDocumentText(line.label)}</strong></td><td>${value || "&nbsp;"}</td></tr>`;
     },
   );
-  const header = caption.trim()
-    ? `<tr><th colspan="2">${escapeDocumentText(caption.trim())}</th></tr>`
+  /*
+   * The caption falls back to the party's own name, and only for a party the
+   * platform cannot sign for. A wet-ink block with no caption is an anonymous
+   * set of ruled lines — whoever holds the paper cannot tell the witness's
+   * block from the guarantor's. A registry party needs no such fallback: its
+   * label ("Counterparty signature") is a picker entry, not a heading, and its
+   * lines carry resolvable tokens that say whose they are.
+   */
+  const heading = caption.trim() || (party.slot ? "" : party.label.trim());
+  const header = heading
+    ? `<tr><th colspan="2">${escapeDocumentText(heading)}</th></tr>`
     : "";
   return `<table data-document-role="signature-block"><tbody>${header}${cells.join("")}</tbody></table><p></p>`;
 }

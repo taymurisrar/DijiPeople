@@ -103,6 +103,32 @@ describe("signature block markup", () => {
     expect(html).toContain("&lt;script&gt;");
   });
 
+  it("captions a wet-ink block with the party's name when none is given", () => {
+    /*
+     * Otherwise the field that asks for the party's name does nothing, and the
+     * printed block is an anonymous pair of ruled lines — nobody holding the
+     * paper can tell the witness's block from the guarantor's.
+     */
+    const html = buildSignatureBlockHtml(
+      { slot: null, label: "Witness" },
+      "",
+      ["signature", "date"],
+      null,
+    );
+    expect(html).toContain('<th colspan="2">Witness</th>');
+  });
+
+  it("does not caption a registry party with its picker label", () => {
+    // "Counterparty signature" is a menu entry, not a heading on a contract.
+    const html = buildSignatureBlockHtml(
+      { slot: "counterparty", label: "Counterparty signature" },
+      "",
+      ["signature"],
+      null,
+    );
+    expect(html).not.toContain("<th");
+  });
+
   it("omits the caption row entirely when there is no caption", () => {
     const html = buildSignatureBlockHtml(
       { slot: "counterparty", label: "Counterparty" },
