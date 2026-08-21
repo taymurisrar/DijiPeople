@@ -14,6 +14,7 @@ import {
   describeSlugProblem,
   emptyWizardForm,
   missingFieldsForStep,
+  STEP_LABELS,
   STEP_TITLES,
   suggestSlug,
   WIZARD_STEPS,
@@ -99,9 +100,7 @@ export function SubscribeForm({
   const maximumSeats = selectedPrice?.maximumSeats ?? null;
   const effectiveSeatQuantity = Math.max(
     minimumSeats,
-    maximumSeats === null
-      ? seatQuantity
-      : Math.min(seatQuantity, maximumSeats),
+    maximumSeats === null ? seatQuantity : Math.min(seatQuantity, maximumSeats),
   );
 
   // Only agreements that name a published version can be accepted; one that
@@ -583,7 +582,7 @@ export function SubscribeForm({
         */}
         <ol
           aria-label="Onboarding steps"
-          className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-0"
+          className="flex items-start gap-1 sm:gap-0"
         >
           {WIZARD_STEPS.map((candidate, index) => {
             const isCurrent = candidate === step;
@@ -591,44 +590,66 @@ export function SubscribeForm({
             const isReachable = isPast || isCurrent;
             return (
               <li
-                className="flex flex-1 items-center gap-2"
+                className="flex min-w-0 flex-1 items-start last:flex-none"
                 key={candidate}
               >
                 <button
                   aria-current={isCurrent ? "step" : undefined}
-                  className={`flex min-w-0 items-center gap-2 rounded-full py-1 pl-1 pr-3 text-left text-xs font-medium transition ${
-                    isCurrent
-                      ? "bg-accent text-white"
-                      : isPast
-                        ? "text-foreground hover:bg-surface-muted"
-                        : "text-muted"
-                  } ${isReachable ? "cursor-pointer" : "cursor-default"}`}
+                  /*
+                   * The label sits *under* the marker rather than beside it.
+                   * Five labels in a row across a 700px column is what forced
+                   * the truncation; stacked, each one gets the full width of
+                   * its own segment and no label is ever cut.
+                   */
+                  className={`group flex w-14 shrink-0 flex-col items-center gap-1.5 rounded-lg px-1 pb-1 pt-0.5 transition sm:w-20 ${
+                    isReachable
+                      ? "cursor-pointer hover:bg-surface-muted"
+                      : "cursor-default"
+                  }`}
                   disabled={!isReachable}
                   onClick={() => goTo(candidate)}
                   type="button"
                 >
                   <span
                     aria-hidden
-                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold ${
+                    className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold transition ${
                       isCurrent
-                        ? "bg-white/20 text-white"
+                        ? "bg-accent text-white ring-4 ring-accent/15"
                         : isPast
                           ? "bg-accent text-white"
-                          : "border border-border text-muted"
+                          : "border border-border bg-white text-muted"
                     }`}
                   >
                     {isPast ? "\u2713" : index + 1}
                   </span>
-                  <span className="truncate">{STEP_TITLES[candidate]}</span>
+                  <span
+                    className={`text-center text-[11px] leading-tight ${
+                      isCurrent
+                        ? "font-semibold text-foreground"
+                        : isPast
+                          ? "font-medium text-foreground"
+                          : "text-muted"
+                    }`}
+                  >
+                    {STEP_LABELS[candidate]}
+                  </span>
                   {/* Announced, never drawn: the tick and the fill are visual. */}
                   <span className="sr-only">
-                    {isPast ? " (completed)" : isCurrent ? " (current step)" : " (not yet reached)"}
+                    {isPast
+                      ? " (completed)"
+                      : isCurrent
+                        ? " (current step)"
+                        : " (not yet reached)"}
                   </span>
                 </button>
                 {index < WIZARD_STEPS.length - 1 ? (
                   <span
                     aria-hidden
-                    className={`hidden h-px flex-1 sm:block ${
+                    /*
+                     * `mt-3.5` centres the connector on the 28px marker rather
+                     * than on the button, whose height now includes the label.
+                     */
+                    className={`mt-3.5 h-0.5 flex-1 rounded-full ${
                       isPast ? "bg-accent" : "bg-border"
                     }`}
                   />
@@ -676,9 +697,7 @@ export function SubscribeForm({
           {step === "workspace" ? <WorkspaceStep {...stepProps} /> : null}
           {step === "owner" ? <OwnerStep {...stepProps} /> : null}
           {step === "agreements" ? <AgreementsStep {...stepProps} /> : null}
-          {step === "review" ? (
-            <ReviewStep {...stepProps} goTo={goTo} />
-          ) : null}
+          {step === "review" ? <ReviewStep {...stepProps} goTo={goTo} /> : null}
         </fieldset>
 
         {/*

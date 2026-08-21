@@ -43,9 +43,7 @@ function fieldProps(name: string, missing: string[]) {
   return {
     "aria-invalid": invalid || undefined,
     "aria-describedby": invalid ? `${name}-error` : undefined,
-    className: invalid
-      ? `${inputClass} border-danger`
-      : inputClass,
+    className: invalid ? `${inputClass} border-danger` : inputClass,
   };
 }
 
@@ -107,9 +105,7 @@ export function OrganizationStep({ form, set, missing }: StepProps) {
           onChange={(event) => set({ legalCompanyName: event.target.value })}
           value={form.legalCompanyName}
         />
-        <p className={hintClass}>
-          Only if it differs from the name above.
-        </p>
+        <p className={hintClass}>Only if it differs from the name above.</p>
       </label>
 
       <label className={labelClass} htmlFor="country">
@@ -118,48 +114,43 @@ export function OrganizationStep({ form, set, missing }: StepProps) {
           A list, not a text box. "UAE", "U.A.E." and "United Arab Emirates"
           were three different customers as far as any report was concerned.
 
-          It degrades to a text input when the lookup is unavailable rather
-          than blocking the step: losing the canonical spelling costs data
-          quality, refusing the purchase costs the customer.
+          Always a list. This previously degraded to a text input when the
+          lookup could not be read, which is how the field came back looking
+          untouched: an API process that has not restarted since the endpoint
+          shipped answers 404, the fallback fired silently, and the buyer saw
+          the same free-text box as before. `useCountryOptions` now stands the
+          bundled shortlist in instead, and a successful request only widens it.
+
+          It is not disabled while loading either. A control that is briefly
+          inert is one somebody clicks and believes is broken, and the bundled
+          list is already selectable on first paint.
         */}
-        {countries.unavailable ? (
-          <input
-            {...fieldProps("country", missing)}
-            autoComplete="country-name"
-            id="country"
-            onChange={(event) => set({ country: event.target.value })}
-            value={form.country}
-          />
-        ) : (
-          <select
-            {...fieldProps("country", missing)}
-            autoComplete="country-name"
-            disabled={countries.loading}
-            id="country"
-            onChange={(event) => set({ country: event.target.value })}
-            value={form.country}
-          >
-            <option value="">
-              {countries.loading ? "Loading countries..." : "Select a country"}
+        <select
+          {...fieldProps("country", missing)}
+          autoComplete="country-name"
+          id="country"
+          onChange={(event) => set({ country: event.target.value })}
+          value={form.country}
+        >
+          <option value="">Select a country</option>
+          {countries.countries.map((country) => (
+            <option key={country.id} value={country.name}>
+              {country.name}
             </option>
-            {countries.countries.map((country) => (
-              <option key={country.id} value={country.name}>
-                {country.name}
-              </option>
-            ))}
-            {/*
-              A value already on the form that is not in the list stays
-              selectable, so returning to this step never silently clears an
-              answer somebody gave.
-            */}
-            {form.country &&
-            !countries.countries.some(
-              (candidate) => candidate.name === form.country,
-            ) ? (
-              <option value={form.country}>{form.country}</option>
-            ) : null}
-          </select>
-        )}
+          ))}
+          {/*
+            A value already on the form that is not in the list stays
+            selectable, so returning to this step never silently clears an
+            answer somebody gave — and so widening the shortlist to the full
+            list mid-session cannot drop a choice either.
+          */}
+          {form.country &&
+          !countries.countries.some(
+            (candidate) => candidate.name === form.country,
+          ) ? (
+            <option value={form.country}>{form.country}</option>
+          ) : null}
+        </select>
         <FieldError missing={missing} name="country" />
       </label>
 
@@ -334,11 +325,7 @@ export function WorkspaceStep({
         One live region for every outcome, so a screen reader announces the
         change rather than the sighted-only tick appearing silently.
       */}
-      <p
-        aria-live="polite"
-        className="text-xs"
-        id="workspace-address-state"
-      >
+      <p aria-live="polite" className="text-xs" id="workspace-address-state">
         {formatProblem ? (
           <span className="text-danger">{formatProblem}</span>
         ) : slugState.kind === "checking" ? (
