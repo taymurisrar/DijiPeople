@@ -514,22 +514,18 @@ export function SubscribeForm({
               : "Billed as one subscription."}
           </p>
           {/*
-            One notice for both reasons checkout can be impossible, carrying the
-            id the BUG-0066 regression test looks for.
+            A short status line here; the full reason moved next to the form.
 
-            It became two unidentified paragraphs when the wizard replaced the
-            single-page form, and the disabled fieldset that made the inputs
-            inert went with them. That is BUG-0066 again in a worse shape:
-            instead of one page of typing thrown away, five steps of
-            organization profile, owner identity and agreements, discovered dead
-            at the review button.
+            The reason has to live where the consequence is. This paragraph
+            carried the whole explanation, in the left-hand plan card, while the
+            fields it explains are in the right-hand column — so the form read
+            as locked for no stated reason and was asked about directly. Keeping
+            a line here is still right: the price above it is the thing that
+            cannot be bought.
           */}
           {blockedReason ? (
-            <p
-              className="mt-2 text-xs text-warning"
-              id="subscribe-unavailable-notice"
-            >
-              {blockedReason}
+            <p className="mt-2 text-xs font-medium text-warning">
+              Online checkout is unavailable for this selection.
             </p>
           ) : null}
         </div>
@@ -674,6 +670,39 @@ export function SubscribeForm({
         </div>
 
         {/*
+          Why the fields below are inert, immediately above the fields below.
+
+          This is the only element carrying `subscribe-unavailable-notice`; the
+          plan card's line is deliberately id-less, because the BUG-0066
+          regression asserts a single visible notice and two would be a strict
+          -mode violation rather than twice the clarity.
+        */}
+        {blockedReason ? (
+          <div
+            className="mt-4 rounded-2xl border border-warning/30 bg-warning/10 p-4"
+            id="subscribe-unavailable-notice"
+            role="status"
+          >
+            <p className="text-sm font-semibold text-foreground">
+              This form is locked for the plan you have selected.
+            </p>
+            <p className="mt-1 text-sm leading-6 text-muted">{blockedReason}</p>
+            <p className="mt-2 text-sm leading-6 text-muted">
+              Nothing you type here could be submitted, so the fields are
+              disabled rather than left to be filled in and thrown away. The
+              plan, billing cycle and currency above stay live — switching to a
+              plan that is available unlocks the form immediately.
+            </p>
+            <a
+              className="mt-3 inline-flex text-sm font-semibold text-accent underline"
+              href="/contact"
+            >
+              Ask us to arrange this plan
+            </a>
+          </div>
+        ) : null}
+
+        {/*
           BUG-0066: never present an editable form that cannot be submitted.
 
           A disabled fieldset, not per-input `disabled`, because the steps are
@@ -685,12 +714,20 @@ export function SubscribeForm({
 
           `aria-describedby` ties the inert region to the notice explaining why,
           so the reason is announced rather than just visible.
+
+          It is also **drawn** as inert. It was not: the fieldset carried no
+          disabled styling, so every control looked ordinary and silently
+          ignored the pointer — which is worse than an obviously dead form,
+          because the visitor blames themselves or the browser. A screen reader
+          was told what a sighted user was not.
         */}
         <fieldset
           aria-describedby={
             canCheckout ? undefined : "subscribe-unavailable-notice"
           }
-          className="mt-4 border-0 p-0"
+          className={`mt-4 border-0 p-0 ${
+            canCheckout ? "" : "cursor-not-allowed opacity-55 grayscale"
+          }`}
           disabled={!canCheckout}
         >
           {step === "organization" ? <OrganizationStep {...stepProps} /> : null}

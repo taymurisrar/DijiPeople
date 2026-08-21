@@ -412,13 +412,15 @@ function PriceFields({
           value={draft.billingModel}
           disabled={disabled}
           onChange={(event) => {
-            const billingModel = event.target.value as DraftPrice["billingModel"];
+            const billingModel = event.target
+              .value as DraftPrice["billingModel"];
             onChange({
               ...draft,
               billingModel,
               minimumSeats: billingModel === "FLAT" ? "1" : draft.minimumSeats,
               maximumSeats: billingModel === "FLAT" ? "" : draft.maximumSeats,
-              includedSeats: billingModel === "FLAT" ? "0" : draft.includedSeats,
+              includedSeats:
+                billingModel === "FLAT" ? "0" : draft.includedSeats,
             });
           }}
           className="mt-1.5 h-10 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus:border-[var(--admin-primary)]"
@@ -565,16 +567,48 @@ function CheckoutReadyBadge({ price }: { price: PlanPriceRecord }) {
     );
   }
 
-  if (price.isActive)
+  if (price.isActive) {
+    /*
+     * The reasons, on the page.
+     *
+     * `deriveCheckoutReadiness` computes up to ten specific causes — no Stripe
+     * price id, wrong environment, never verified, recurring interval mismatch
+     * — the API returns every one of them, and this rendered them in a `title`
+     * attribute. A tooltip is invisible on touch, unreachable by keyboard, and
+     * inconsistently announced, so in practice the answer to "why can this plan
+     * not be bought" was computed, transmitted, and then hidden.
+     *
+     * That matters beyond tidiness: the public wizard tells a visitor to
+     * contact us and we will arrange it, and this is the screen where somebody
+     * has to find out what to arrange.
+     */
+    const reasons = price.checkoutReadinessReasons ?? [];
     return (
-      <div
-        title={price.checkoutReadinessReasons?.join(" ")}
-        className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700"
-      >
-        <XCircle className="h-3.5 w-3.5" /> Active configuration · not
-        checkout-ready
+      <div className="inline-flex flex-col items-start gap-1.5">
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700">
+          <XCircle className="h-3.5 w-3.5" /> Active configuration · not
+          checkout-ready
+        </span>
+        {reasons.length ? (
+          <ul className="ml-1 list-disc space-y-0.5 pl-4 text-xs text-amber-800">
+            {reasons.map((reason) => (
+              <li key={reason}>{reason}</li>
+            ))}
+          </ul>
+        ) : (
+          /*
+           * Not checkout-ready with no reason given is itself worth saying. It
+           * means the readiness rules and this record disagree, and silence
+           * would read as "no problem found".
+           */
+          <p className="ml-1 text-xs text-amber-800">
+            No reason was returned for this price, which should not happen —
+            check the Stripe integration diagnostics.
+          </p>
+        )}
       </div>
     );
+  }
 
   return (
     <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-600">

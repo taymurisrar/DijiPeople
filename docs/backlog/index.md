@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**183 records** — 107 bugs under [`docs/bugs/`](../bugs/), 76 non-bug items under [`items/`](items/).
+**184 records** — 108 bugs under [`docs/bugs/`](../bugs/), 76 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,7 +13,7 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 61 |
+| Open (active work) | 62 |
 | Blocked | 1 |
 | Deferred | 16 |
 | Awaiting a product decision | 6 |
@@ -27,7 +27,7 @@ see [`README.md`](README.md) for why.
 | Severity | Count |
 |---|---|
 | HIGH | 21 |
-| MEDIUM | 34 |
+| MEDIUM | 35 |
 | LOW | 6 |
 
 ## Open by type
@@ -46,7 +46,7 @@ see [`README.md`](README.md) for why.
 | STATE_MACHINE | 2 |
 | TECH_DEBT | 6 |
 | TEST_GAP | 7 |
-| UX | 14 |
+| UX | 15 |
 
 ## All records by status
 
@@ -56,7 +56,7 @@ see [`README.md`](README.md) for why.
 | BLOCKED | 1 |
 | DEFERRED | 16 |
 | PRODUCT_DECISION | 6 |
-| FIXED | 28 |
+| FIXED | 29 |
 | VERIFIED | 68 |
 | DUPLICATE | 1 |
 | READY | 26 |
@@ -177,6 +177,7 @@ see [`README.md`](README.md) for why.
 | [BUG-0351](../../docs/bugs/BUG-0351-the-subscribe-wizard-progress-rail-truncated-every-step-labe.md) | The subscribe wizard progress rail truncated every step label | UX | MEDIUM | P2 | FIXED | apps/landing | FIX_NOW |
 | [BUG-0420](../../docs/bugs/BUG-0420-the-console-dark-theme-set-color-scheme-and-repainted-nothin.md) | The console dark theme set color-scheme and repainted nothing | UX | MEDIUM | P2 | FIXED | apps/admin | FIX_NOW |
 | [BUG-0421](../../docs/bugs/BUG-0421-an-overflow-declaration-in-the-shell-disabled-every-sticky-e.md) | An overflow declaration in the shell disabled every sticky element | UX | MEDIUM | P2 | FIXED | apps/admin | FIX_NOW |
+| [BUG-0439](../../docs/bugs/BUG-0439-the-subscribe-form-was-disabled-without-looking-disabled-or-.md) | The subscribe form was disabled without looking disabled or saying why beside it | UX | MEDIUM | P2 | FIXED | apps/landing, apps/admin | FIX_NOW |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | READY | services/api, apps/admin | FIX_NOW |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | READY | api:tenant-control-plane | FIX_NOW |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |

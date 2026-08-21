@@ -6,14 +6,14 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 183,
-    "bugs": 107,
+    "total_records": 184,
+    "bugs": 108,
     "backlog_items": 76,
     "open_bucket": 4,
     "blocked_bucket": 0,
     "deferred_bucket": 2,
     "product_decision_bucket": 2,
-    "completed_bucket": 97,
+    "completed_bucket": 98,
     "parser_structural_errors": 0,
     "active_session_conflict": "NONE",
     "discovered_findings_total": 34,
@@ -9171,6 +9171,54 @@
       ],
       "qa_scenarios": [
         "QA-TENANT-009"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "FIX_NOW",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0439",
+      "source": {
+        "record_path": "docs/bugs/BUG-0439-the-subscribe-form-was-disabled-without-looking-disabled-or-.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "97f2a4a",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
+      },
+      "type": "UX",
+      "title": "The subscribe form was disabled without looking disabled or saying why beside it",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "current_evidence": {
+        "paths": [
+          "apps/landing",
+          "apps/admin"
+        ],
+        "verification_scope": "Fixed on agent/document-render-and-theme; not verified in a browser."
+      },
+      "affected_modules": [
+        "apps/landing",
+        "apps/admin"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [
+        "REG-190"
+      ],
+      "qa_scenarios": [
+        "QA-LANDING-013"
       ],
       "test_plan": [],
       "active_session_conflict": "NONE",
