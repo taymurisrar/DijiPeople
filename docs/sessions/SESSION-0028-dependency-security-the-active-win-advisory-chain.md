@@ -4,7 +4,7 @@ aliases: [SESSION-0028]
 TASK_ID:
 TITLE: Dependency security: the active-win advisory chain
 ARCHITECT_INTENT: Dependency security: the active-win advisory chain
-STATUS: ACTIVE
+STATUS: COMPLETE
 TASK_TYPE: SECURITY
 TASK_SIZE: MEDIUM
 BASE_BRANCH: origin/develop
@@ -12,12 +12,12 @@ BASE_SHA: 34b699b3c1fbddf1016cb1d9063a412243e651a1
 TASK_BRANCH: agent/dependency-security-active-win
 TARGET_BRANCH: develop
 WORKTREE: D:/My Work/hrm-dijipeople/dijipeople-depsec
-AFFECTED_MODULES: []
+AFFECTED_MODULES: [apps/agent-desktop, package-lock.json]
 WRITE_LEASES: []
 ACTIVE_WORK_PACKAGES: []
 SCHEMA_WRITE: NO
-CI_STATUS: NOT_RUN
-MERGE_STATUS: NOT_STARTED
+CI_STATUS: PASS
+MERGE_STATUS: DONE
 STARTED_AT: 2026-08-21T07:38:59.264Z
 LAST_HEARTBEAT: 2026-08-21T07:38:59.264Z
 BLOCKERS: none

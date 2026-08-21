@@ -6,13 +6,12 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 7** · completed: 21
+**Active: 6** · completed: 22
 
 ## Active
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
-| [SESSION-0028](../../docs/sessions/SESSION-0028-dependency-security-the-active-win-advisory-chain.md) | — | Dependency security: the active-win advisory chain | ACTIVE | `agent/dependency-security-active-win` | `develop` | — | 2026-08-21T07:38:59.264Z |
 | [SESSION-0023](../../docs/sessions/SESSION-0023-first-production-release.md) | — | First production release | ACTIVE | `agent/first-production-release` | `main` | — | 2026-08-20T16:21:59.286Z |
 | [SESSION-0022](../../docs/sessions/SESSION-0022-go-live-readiness.md) | TASK-0010 | Go-live readiness | ACTIVE | `agent/go-live-readiness` | `develop` | — | 2026-08-20T11:10:18.564Z |
 | [SESSION-0019](../../docs/sessions/SESSION-0019-ci-browser-install-latency-and-database-e2e-fixture-contract.md) | — | CI browser install latency and database e2e fixture contract | ACTIVE | `agent/ci-e2e-remediation` | `develop` | — | 2026-08-19T20:24:28.476Z |
@@ -24,6 +23,7 @@ see [`README.md`](README.md) for how they stay out of each other's way.
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0028](../../docs/sessions/SESSION-0028-dependency-security-the-active-win-advisory-chain.md) | — | Dependency security: the active-win advisory chain | COMPLETE | `agent/dependency-security-active-win` | `develop` | — | 2026-08-21T07:38:59.264Z |
 | [SESSION-0027](../../docs/sessions/SESSION-0027-hotfix-api-production-heap-cap-to-1536mb.md) | — | Hotfix API production heap cap to 1536MB | COMPLETE | `agent/api-heap-cap-hotfix` | `main` | — | 2026-08-21T06:21:05.333Z |
 | [SESSION-0026](../../docs/sessions/SESSION-0026-final-agent-operating-system-upgrade.md) | TASK-0012 | Final agent operating system upgrade | COMPLETE | `agent/agent-operating-system` | `develop` | — | 2026-08-20T22:43:51.238Z |
 | [SESSION-0025](../../docs/sessions/SESSION-0025-deploy-api-heap-cap-change-to-production.md) | — | Deploy API heap cap change to production | COMPLETE | `agent/api-heap-cap-deploy` | `main` | — | 2026-08-20T22:28:30.499Z |
