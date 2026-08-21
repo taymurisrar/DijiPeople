@@ -28,6 +28,7 @@
     "check:proxy-forwards-client-ip": "node scripts/check-proxy-forwards-client-ip.mjs",
     "check:env-registered": "node scripts/check-env-registered.mjs",
     "check:declared-dependencies": "node scripts/check-declared-dependencies.mjs",
+    "check:overrides-applied": "node scripts/check-overrides-applied.mjs",
     "prisma:validate": "npm --workspace api run prisma:validate",
     "prisma:generate": "npm --workspace api run prisma:generate",
     "check:prisma-client": "node scripts/check-prisma-client-fresh.mjs",
