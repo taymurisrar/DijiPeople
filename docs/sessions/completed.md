@@ -6,7 +6,9 @@ Sessions that reached a terminal state. Kept as history: the branch, the base it
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0027](../../docs/sessions/SESSION-0027-hotfix-api-production-heap-cap-to-1536mb.md) | — | Hotfix API production heap cap to 1536MB | COMPLETE | `agent/api-heap-cap-hotfix` | `main` | — | 2026-08-21T06:21:05.333Z |
 | [SESSION-0026](../../docs/sessions/SESSION-0026-final-agent-operating-system-upgrade.md) | TASK-0012 | Final agent operating system upgrade | COMPLETE | `agent/agent-operating-system` | `develop` | — | 2026-08-20T22:43:51.238Z |
+| [SESSION-0025](../../docs/sessions/SESSION-0025-deploy-api-heap-cap-change-to-production.md) | — | Deploy API heap cap change to production | COMPLETE | `agent/api-heap-cap-deploy` | `main` | — | 2026-08-20T22:28:30.499Z |
 | [SESSION-0024](../../docs/sessions/SESSION-0024-neon-pooled-endpoint-blocks-prisma-migrate-advisory-lock.md) | — | Neon pooled endpoint blocks Prisma migrate advisory lock | COMPLETE | `agent/neon-pooler-migration-bug` | `develop` | — | 2026-08-20T21:37:09.447Z |
 | [SESSION-0021](../../docs/sessions/SESSION-0021-identity-and-multi-tenant-membership.md) | — | Identity and multi-tenant membership | COMPLETE | `agent/identity-and-membership` | `develop` | — | 2026-08-20T05:51:24.102Z |
 | [SESSION-0020](../../docs/sessions/SESSION-0020-database-agent-coherence-is-verified-after-schema-work-not-o.md) | — | Database Agent coherence is verified after schema work, not only before | COMPLETE | `agent/db-coherence-postflight` | `develop` | — | 2026-08-20T05:46:42.814Z |

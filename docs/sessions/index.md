@@ -6,14 +6,12 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 8** · completed: 19
+**Active: 6** · completed: 21
 
 ## Active
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
-| [SESSION-0027](../../docs/sessions/SESSION-0027-hotfix-api-production-heap-cap-to-1536mb.md) | — | Hotfix API production heap cap to 1536MB | ACTIVE | `agent/api-heap-cap-hotfix` | `main` | — | 2026-08-21T06:21:05.333Z |
-| [SESSION-0025](../../docs/sessions/SESSION-0025-deploy-api-heap-cap-change-to-production.md) | — | Deploy API heap cap change to production | ACTIVE | `agent/api-heap-cap-deploy` | `main` | — | 2026-08-20T22:28:30.499Z |
 | [SESSION-0023](../../docs/sessions/SESSION-0023-first-production-release.md) | — | First production release | ACTIVE | `agent/first-production-release` | `main` | — | 2026-08-20T16:21:59.286Z |
 | [SESSION-0022](../../docs/sessions/SESSION-0022-go-live-readiness.md) | TASK-0010 | Go-live readiness | ACTIVE | `agent/go-live-readiness` | `develop` | — | 2026-08-20T11:10:18.564Z |
 | [SESSION-0019](../../docs/sessions/SESSION-0019-ci-browser-install-latency-and-database-e2e-fixture-contract.md) | — | CI browser install latency and database e2e fixture contract | ACTIVE | `agent/ci-e2e-remediation` | `develop` | — | 2026-08-19T20:24:28.476Z |
@@ -25,7 +23,9 @@ see [`README.md`](README.md) for how they stay out of each other's way.
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0027](../../docs/sessions/SESSION-0027-hotfix-api-production-heap-cap-to-1536mb.md) | — | Hotfix API production heap cap to 1536MB | COMPLETE | `agent/api-heap-cap-hotfix` | `main` | — | 2026-08-21T06:21:05.333Z |
 | [SESSION-0026](../../docs/sessions/SESSION-0026-final-agent-operating-system-upgrade.md) | TASK-0012 | Final agent operating system upgrade | COMPLETE | `agent/agent-operating-system` | `develop` | — | 2026-08-20T22:43:51.238Z |
+| [SESSION-0025](../../docs/sessions/SESSION-0025-deploy-api-heap-cap-change-to-production.md) | — | Deploy API heap cap change to production | COMPLETE | `agent/api-heap-cap-deploy` | `main` | — | 2026-08-20T22:28:30.499Z |
 | [SESSION-0024](../../docs/sessions/SESSION-0024-neon-pooled-endpoint-blocks-prisma-migrate-advisory-lock.md) | — | Neon pooled endpoint blocks Prisma migrate advisory lock | COMPLETE | `agent/neon-pooler-migration-bug` | `develop` | — | 2026-08-20T21:37:09.447Z |
 | [SESSION-0021](../../docs/sessions/SESSION-0021-identity-and-multi-tenant-membership.md) | — | Identity and multi-tenant membership | COMPLETE | `agent/identity-and-membership` | `develop` | — | 2026-08-20T05:51:24.102Z |
 | [SESSION-0020](../../docs/sessions/SESSION-0020-database-agent-coherence-is-verified-after-schema-work-not-o.md) | — | Database Agent coherence is verified after schema work, not only before | COMPLETE | `agent/db-coherence-postflight` | `develop` | — | 2026-08-20T05:46:42.814Z |
