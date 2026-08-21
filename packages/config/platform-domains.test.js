@@ -147,6 +147,58 @@ test("builds hostnames and URLs from the same rules that parse them", () => {
   );
 });
 
+test("a development workspace URL carries the port the web app listens on", () => {
+  /*
+   * `xoul-ltd.localhost` resolves — browsers loopback any `.localhost` label —
+   * so with a tenant base domain configured locally the hostname branch is
+   * taken, and it produced port 80 where nothing listens. Every generated
+   * workspace link was dead in development, including Open Tenant and every
+   * invitation email, and it presented as a DNS problem.
+   */
+  const DEV = {
+    PLATFORM_ENVIRONMENT: "development",
+    TENANT_BASE_DOMAIN: "localhost",
+    WEB_APP_URL: "http://localhost:3001",
+  };
+  assert.equal(buildWorkspaceHostname("xoul-ltd", DEV), "xoul-ltd.localhost");
+  assert.equal(
+    buildWorkspaceUrl("xoul-ltd", { path: "/login", env: DEV }),
+    "http://xoul-ltd.localhost:3001/login",
+  );
+});
+
+test("a deployed workspace URL never has a port grafted onto it", () => {
+  /*
+   * Asserted for both non-development stages rather than production alone: the
+   * guard is on the environment, and a rule that only holds for one of the two
+   * values it excludes is a rule that will be got wrong later.
+   */
+  for (const stage of ["production", "staging"]) {
+    const env = {
+      PLATFORM_ENVIRONMENT: stage,
+      TENANT_BASE_DOMAIN: "dijipeople.com",
+      /* Deliberately present, and deliberately ignored. */
+      WEB_APP_URL: "http://localhost:3001",
+    };
+    assert.equal(
+      buildWorkspaceUrl("maseer", { path: "/login", env }),
+      "https://maseer.dijipeople.com/login",
+    );
+  }
+});
+
+test("a web origin with no explicit port yields no port", () => {
+  const DEV = {
+    PLATFORM_ENVIRONMENT: "development",
+    TENANT_BASE_DOMAIN: "localhost",
+    WEB_APP_URL: "http://web.internal",
+  };
+  assert.equal(
+    buildWorkspaceUrl("xoul-ltd", { path: "/", env: DEV }),
+    "http://xoul-ltd.localhost/",
+  );
+});
+
 test("suggests a usable slug from a company name", () => {
   assert.equal(suggestWorkspaceSlug("Maseer Group LLC"), "maseer-group-llc");
   assert.equal(suggestWorkspaceSlug("  ACME   Holdings  "), "acme-holdings");

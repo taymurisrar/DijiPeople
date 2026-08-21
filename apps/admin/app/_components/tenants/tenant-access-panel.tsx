@@ -5,6 +5,7 @@ import {
   ProDataTable,
   type ProDataTableColumn,
 } from "@/app/_components/crm/data-table";
+import { RowActions } from "@/app/_components/crm/row-actions";
 import { formatDate } from "@/lib/formatters";
 import {
   DialogField,
@@ -522,72 +523,77 @@ function identityColumns(options: {
     {
       key: "actions",
       header: "Actions",
-      minWidth: 260,
+      /*
+       * One inline action and a menu, rather than five wrapped buttons.
+       * Previously this column rendered every action as a labelled button in a
+       * `flex-wrap`, which needed roughly 700px in a 260px column: the buttons
+       * stacked three deep, tripled the row height, and forced the table into
+       * horizontal scroll so the actions were wider than the data.
+       */
+      minWidth: 140,
+      maxWidth: 180,
       render: (row) => {
         const isLastActiveOwner = options.lastActiveOwnerId === row.id;
+        const lastOwnerReason = isLastActiveOwner
+          ? "This is the last active Tenant Owner."
+          : undefined;
+
         return (
-          <div className="flex flex-wrap gap-1.5">
-            {row.isActive ? (
-              <PanelButton
-                onClick={() => options.onAction(row, "disable")}
-                disabled={isLastActiveOwner}
-                title={
-                  isLastActiveOwner
-                    ? "This is the last active Tenant Owner."
-                    : undefined
-                }
-              >
-                Disable
-              </PanelButton>
-            ) : (
-              <PanelButton onClick={() => options.onAction(row, "enable")}>
-                Enable
-              </PanelButton>
-            )}
-            {options.isServiceAccount ? (
-              <PanelButton
-                onClick={() => options.onAction(row, "rotate-credential")}
-              >
-                Rotate credential
-              </PanelButton>
-            ) : (
-              <>
-                <PanelButton
-                  onClick={() => options.onAction(row, "password-reset")}
-                  disabled={!row.isActive}
-                  title={
-                    row.isActive
-                      ? undefined
-                      : "Enable the account before sending a reset."
-                  }
-                >
-                  Send password reset
-                </PanelButton>
-                {options.canTransfer && !row.isPrimaryOwner ? (
-                  <PanelButton onClick={() => options.onTransfer?.(row)}>
-                    Make primary
-                  </PanelButton>
-                ) : null}
-              </>
-            )}
-            <PanelButton onClick={() => options.onAction(row, "resend-invitation")}>
-              Resend invite
-            </PanelButton>
-            <PanelButton
-              variant="danger"
-              onClick={() => options.onAction(row, "delete")}
-              disabled={isLastActiveOwner || row.isPrimaryOwner}
-              title={
-                row.isPrimaryOwner
+          <RowActions
+            label={`Actions for ${row.fullName || row.email}`}
+            actions={[
+              {
+                key: "toggle",
+                label: row.isActive ? "Disable" : "Enable",
+                onSelect: () =>
+                  options.onAction(row, row.isActive ? "disable" : "enable"),
+                disabledReason: row.isActive ? lastOwnerReason : undefined,
+              },
+              {
+                key: "rotate-credential",
+                label: "Rotate credential",
+                hidden: !options.isServiceAccount,
+                onSelect: () => options.onAction(row, "rotate-credential"),
+              },
+              {
+                key: "password-reset",
+                label: "Send password reset",
+                hidden: options.isServiceAccount,
+                /*
+                 * The one an operator reaches for most often on a support call,
+                 * so it is the action that costs a single click.
+                 */
+                primary: true,
+                onSelect: () => options.onAction(row, "password-reset"),
+                disabledReason: row.isActive
+                  ? undefined
+                  : "Enable the account before sending a reset.",
+              },
+              {
+                key: "make-primary",
+                label: "Make primary",
+                hidden:
+                  options.isServiceAccount ||
+                  !options.canTransfer ||
+                  row.isPrimaryOwner,
+                onSelect: () => options.onTransfer?.(row),
+              },
+              {
+                key: "resend-invitation",
+                label: "Resend invite",
+                onSelect: () => options.onAction(row, "resend-invitation"),
+              },
+              {
+                key: "delete",
+                label: "Delete",
+                destructive: true,
+                onSelect: () => options.onAction(row, "delete"),
+                disabledReason: row.isPrimaryOwner
                   ? "Transfer primary ownership before deleting this account."
-                  : isLastActiveOwner
-                    ? "This is the last active Tenant Owner."
-                    : undefined
-              }
-            >
-              Delete
-            </PanelButton>
-          </div>
+                  : lastOwnerReason,
+              },
+            ]}
+          />
         );
       },
     },

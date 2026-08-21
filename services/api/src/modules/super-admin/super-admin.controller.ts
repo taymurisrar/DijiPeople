@@ -14,6 +14,7 @@ import {
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { PaymentRecheckService } from '../billing/services/payment-recheck.service';
 import { RequireRoles } from '../../common/decorators/require-roles.decorator';
 import { ROLE_KEYS } from '../../common/constants/rbac-matrix';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -72,6 +73,7 @@ export class SuperAdminController {
     private readonly superAdminService: SuperAdminService,
     private readonly platformEmailSettings: PlatformEmailSettingsService,
     private readonly platformCommunications: PlatformCommunicationsService,
+    private readonly paymentRecheck: PaymentRecheckService,
   ) {}
 
   @Get('dashboard-summary')
@@ -612,6 +614,23 @@ export class SuperAdminController {
     @Param('customerAccountId', new ParseUUIDPipe()) customerAccountId: string,
   ) {
     return this.superAdminService.createStripeCustomer(customerAccountId);
+  }
+
+  /**
+   * Ask Stripe what happened to this customer's payment, and advance the order
+   * if Stripe says it was paid.
+   *
+   * A POST because it may change state — but only ever through the same
+   * `confirmPayment` path a webhook uses, so nothing here can mark an order
+   * paid that Stripe does not agree was paid. The response carries a diagnosis
+   * the operator can relay to the customer; see `payment-diagnosis.ts`.
+   */
+  @Post('customers/:customerAccountId/recheck-payment')
+  recheckCustomerPayment(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('customerAccountId', new ParseUUIDPipe()) customerAccountId: string,
+  ) {
+    return this.paymentRecheck.recheckCustomerPayment(user, customerAccountId);
   }
 
   @Post('subscriptions/:subscriptionId/stripe-subscription')

@@ -1,6 +1,6 @@
 import { Logger, LogLevel, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import { validateDeploymentEnv } from '@repo/config';
+import { getPlatformDomainConfig, validateDeploymentEnv } from '@repo/config';
 import cookieParser from 'cookie-parser';
 import {
   type Express,
@@ -119,6 +119,29 @@ async function bootstrap() {
 
   logger.log(`API is running on http://${host}:${port}/api`);
   logger.log(`Public API base URL: ${envReport.apiBaseUrl}`);
+
+  /*
+   * Say out loud whether workspaces can be addressed at all.
+   *
+   * With no tenant base domain, `createSystemDomain` throws
+   * TENANT_BASE_DOMAIN_NOT_CONFIGURED, so provisioning completes and quietly
+   * issues no hostname — and the first anyone hears of it is a tenant whose
+   * readiness reports a blocked workspace address, days later, with nothing
+   * pointing at the cause. One line at boot is the difference between that and
+   * a five-second fix. BUG-0284.
+   */
+  const domains = getPlatformDomainConfig(process.env);
+  if (domains.tenantBaseDomain) {
+    logger.log(
+      `Workspace hostnames: ${domains.protocol}://<slug>.${domains.tenantBaseDomain} (${domains.platformEnvironment})`,
+    );
+  } else {
+    logger.warn(
+      'No TENANT_BASE_DOMAIN is configured, so no workspace hostname can be issued. ' +
+        'Tenant provisioning will complete without a primary workspace address. ' +
+        'Set TENANT_BASE_DOMAIN (localhost is correct for development).',
+    );
+  }
   for (const warning of envReport.warnings) {
     logger.warn(warning);
   }

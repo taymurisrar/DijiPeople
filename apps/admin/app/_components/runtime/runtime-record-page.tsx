@@ -32,6 +32,7 @@ import {
 } from "@/app/_components/plan-price-manager";
 import { PlanCommercialSummary } from "@/app/_components/plans/plan-commercial-summary";
 import { PlanEntitlementsPanel } from "@/app/_components/plans/plan-entitlements-panel";
+import { PaymentRecheckPanel } from "@/app/_components/customers/payment-recheck-panel";
 import {
   RuntimeForm,
   useRuntimeFormState,
@@ -531,6 +532,12 @@ function RuntimeRecordEditor({
         <CustomerAgreementPanel
           record={form.values}
           onComplete={reloadRecord}
+        />
+      ) : null}
+      {moduleKey === "customers" && !isCreate ? (
+        <PaymentRecheckPanel
+          customerId={record.id}
+          customerName={String(form.values.companyName ?? "")}
         />
       ) : null}
       {moduleKey === "support-cases" && !isCreate ? (
