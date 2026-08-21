@@ -6,13 +6,12 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 7** · completed: 26
+**Active: 6** · completed: 27
 
 ## Active
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
-| [SESSION-0034](../../docs/sessions/SESSION-0034-landing-ux-modernisation-notification-popover-workspace-host.md) | TASK-0014 | Landing UX modernisation, notification popover, workspace host resolution, timeline paging, template signatures | ACTIVE | `agent/ux-round-two` | `develop` | runtime-registries | 2026-08-21T19:25:07.378Z |
 | [SESSION-0023](../../docs/sessions/SESSION-0023-first-production-release.md) | — | First production release | ACTIVE | `agent/first-production-release` | `main` | — | 2026-08-20T16:21:59.286Z |
 | [SESSION-0022](../../docs/sessions/SESSION-0022-go-live-readiness.md) | TASK-0010 | Go-live readiness | ACTIVE | `agent/go-live-readiness` | `develop` | — | 2026-08-20T11:10:18.564Z |
 | [SESSION-0019](../../docs/sessions/SESSION-0019-ci-browser-install-latency-and-database-e2e-fixture-contract.md) | — | CI browser install latency and database e2e fixture contract | ACTIVE | `agent/ci-e2e-remediation` | `develop` | — | 2026-08-19T20:24:28.476Z |
@@ -24,6 +23,7 @@ see [`README.md`](README.md) for how they stay out of each other's way.
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0034](../../docs/sessions/SESSION-0034-landing-ux-modernisation-notification-popover-workspace-host.md) | TASK-0014 | Landing UX modernisation, notification popover, workspace host resolution, timeline paging, template signatures | COMPLETE | `agent/ux-round-two` | `develop` | — | 2026-08-21T19:25:07.378Z |
 | [SESSION-0033](../../docs/sessions/SESSION-0033-platform-admin-and-landing-ux-program.md) | TASK-0013 | Platform Admin and landing UX program | COMPLETE | `agent/admin-landing-ux-program` | `develop` | — | 2026-08-21T17:13:50.968Z |
 | [SESSION-0031](../../docs/sessions/SESSION-0031-checkout-customer-account-fidelity-payment-confirmation-and-.md) | — | Checkout customer account fidelity, payment confirmation, and the PlanPrice migration drift | COMPLETE | `agent/checkout-account-and-payment-confirmation` | `develop` | schema | 2026-08-21T15:48:29.930Z |
 | [SESSION-0030](../../docs/sessions/SESSION-0030-platform-admin-record-header-status-group-and-default-comman.md) | — | Platform Admin record header status group and default command bar | COMPLETE | `agent/admin-record-status-header` | `develop` | runtime-registries | 2026-08-21T13:54:09.827Z |

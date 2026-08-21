@@ -12,4 +12,3 @@ Parent tasks currently in flight. `Current` is the work package executing now.
 | [TASK-0010](TASK-0010-go-live-readiness.md) | Go-live readiness | FEATURE | MEDIUM | P0 | IN_PROGRESS | 7/8 | WP-04 |
 | [TASK-0011](TASK-0011-first-production-release.md) | First production release | RELEASE | MEDIUM | P0 | IN_PROGRESS | 1/2 | WP-02 |
 | [TASK-0009](TASK-0009-identity-and-multi-tenant-membership.md) | Identity and multi-tenant membership | FEATURE | LARGE | P1 | IN_PROGRESS | 11/12 | WP-09 |
-| [TASK-0014](TASK-0014-second-ux-round-lookups-that-stay-lookups-a-notification-pop.md) | Second UX round: lookups that stay lookups, a notification popover, a modern features page and configurable signatures | FEATURE | LARGE | P1 | IN_PROGRESS | 7/7 | — |

@@ -6,6 +6,7 @@ Sessions that reached a terminal state. Kept as history: the branch, the base it
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0034](../../docs/sessions/SESSION-0034-landing-ux-modernisation-notification-popover-workspace-host.md) | TASK-0014 | Landing UX modernisation, notification popover, workspace host resolution, timeline paging, template signatures | COMPLETE | `agent/ux-round-two` | `develop` | — | 2026-08-21T19:25:07.378Z |
 | [SESSION-0033](../../docs/sessions/SESSION-0033-platform-admin-and-landing-ux-program.md) | TASK-0013 | Platform Admin and landing UX program | COMPLETE | `agent/admin-landing-ux-program` | `develop` | — | 2026-08-21T17:13:50.968Z |
 | [SESSION-0031](../../docs/sessions/SESSION-0031-checkout-customer-account-fidelity-payment-confirmation-and-.md) | — | Checkout customer account fidelity, payment confirmation, and the PlanPrice migration drift | COMPLETE | `agent/checkout-account-and-payment-confirmation` | `develop` | schema | 2026-08-21T15:48:29.930Z |
 | [SESSION-0030](../../docs/sessions/SESSION-0030-platform-admin-record-header-status-group-and-default-comman.md) | — | Platform Admin record header status group and default command bar | COMPLETE | `agent/admin-record-status-header` | `develop` | runtime-registries | 2026-08-21T13:54:09.827Z |

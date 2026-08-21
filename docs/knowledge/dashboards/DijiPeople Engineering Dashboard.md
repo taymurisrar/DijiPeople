@@ -202,6 +202,7 @@ _None. Nothing open at CRITICAL._
 
 ## Recent Engineering History
 
+- [[2026-08-21-second-ux-round-5d9f74b|Engineering History — Second ux round]]
 - [[2026-08-21-final-agent-operating-system-upgrade-f023512|Engineering History — Final agent operating system upgrade]]
 - [[2026-08-21-checkout-account-and-payment-confirmation-d8d27ab|Engineering History — Checkout customer fidelity, payment confirmation, and a database four migrations behind]]
 - [[2026-08-21-admin-record-status-header-08b8661|Engineering History — Platform Admin record header status group and default command bar]]
@@ -209,7 +210,6 @@ _None. Nothing open at CRITICAL._
 - [[2026-08-20-self-service-onboarding-provisioning-c935fcb|Engineering History — Self service onboarding provisioning]]
 - [[2026-08-20-identity-and-membership-b4e8a2b|Engineering History — Identity and membership]]
 - [[2026-08-19-provisioning-operations-and-qa-campaign-b016441|Engineering History — Provisioning operations and qa campaign]]
-- [[2026-08-19-ci-e2e-remediation-3f03571|Engineering History — CI browser install latency and the database e2e fixture contract]]
 
 ## Recent Releases
 
@@ -275,7 +275,7 @@ _None. Nothing has been deployed through the release process._
 | Backlog items | 76 |
 | Known bug patterns | 25 |
 | QA runs | 21 |
-| Engineering history records | 26 |
+| Engineering history records | 27 |
 | Release records | 0 |
 | Module notes | 27 |
 | Architecture notes | 20 |

@@ -85,3 +85,12 @@ being unreachable is a state to test, not an environment problem to work around.
 | Ref | Where |
 |---|---|
 | REG-182 | `apps/landing/lib/use-country-options.ts` — the subscribe wizard's country field |
+
+## Related
+
+[[BUG-0350]] — the occurrence this pattern was written from.
+[[silent-config-fallback]] — the sibling where the *value* is wrong rather than
+the control.
+[[unbounded-render]] — the other pattern from the same round, and the same
+underlying habit: a view that is correct on the day it is written and says
+nothing when its assumptions stop holding.

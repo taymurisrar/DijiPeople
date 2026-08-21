@@ -8,9 +8,9 @@ graph and the block reasons. See
 
 | Bucket | Count |
 |---|---|
-| [Active](active.md) | 7 |
+| [Active](active.md) | 6 |
 | [Blocked](blocked.md) | 1 |
-| [Completed](completed.md) | 6 |
+| [Completed](completed.md) | 7 |
 
 ## Next ready work package
 
@@ -50,4 +50,4 @@ graph and the block reasons. See
 | [TASK-0006](TASK-0006-landing-ui-ux-remediation-package.md) | Landing UI/UX remediation package | BUG | LARGE | P1 | COMPLETE | 5/5 | — |
 | [TASK-0009](TASK-0009-identity-and-multi-tenant-membership.md) | Identity and multi-tenant membership | FEATURE | LARGE | P1 | IN_PROGRESS | 11/12 | WP-09 |
 | [TASK-0013](TASK-0013-platform-admin-and-landing-ux-program-payment-diagnosis-work.md) | Platform Admin and landing UX program: payment diagnosis, workspace routing, notifications, preferences, field types | FEATURE | LARGE | P1 | COMPLETE | 8/8 | — |
-| [TASK-0014](TASK-0014-second-ux-round-lookups-that-stay-lookups-a-notification-pop.md) | Second UX round: lookups that stay lookups, a notification popover, a modern features page and configurable signatures | FEATURE | LARGE | P1 | IN_PROGRESS | 7/7 | — |
+| [TASK-0014](TASK-0014-second-ux-round-lookups-that-stay-lookups-a-notification-pop.md) | Second UX round: lookups that stay lookups, a notification popover, a modern features page and configurable signatures | FEATURE | LARGE | P1 | COMPLETE | 7/7 | — |

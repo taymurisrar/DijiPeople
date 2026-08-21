@@ -117,6 +117,7 @@ None.
 
 [[BUG-0316]] — the change this one restores the visible half of.
 [[BUG-0351]] — reported in the same message, on the same form.
+[[silent-degradation]] — the pattern this occurrence defined.
 
 ## Resolution
 

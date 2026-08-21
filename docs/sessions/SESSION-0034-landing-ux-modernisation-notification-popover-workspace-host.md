@@ -4,7 +4,7 @@ aliases: [SESSION-0034]
 TASK_ID: TASK-0014
 TITLE: Landing UX modernisation, notification popover, workspace host resolution, timeline paging, template signatures
 ARCHITECT_INTENT: Landing UX modernisation, notification popover, workspace host resolution, timeline paging, template signatures
-STATUS: ACTIVE
+STATUS: COMPLETE
 TASK_TYPE: FEATURE
 TASK_SIZE: LARGE
 BASE_BRANCH: origin/develop
@@ -13,11 +13,11 @@ TASK_BRANCH: agent/ux-round-two
 TARGET_BRANCH: develop
 WORKTREE: D:/My Work/hrm-dijipeople/dijipeople-ux2
 AFFECTED_MODULES: [apps/landing, apps/admin, apps/web, api:tenants, api:contracts]
-WRITE_LEASES: [runtime-registries]
-ACTIVE_WORK_PACKAGES: [WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07]
+WRITE_LEASES: []
+ACTIVE_WORK_PACKAGES: []
 SCHEMA_WRITE: NO
-CI_STATUS: NOT_RUN
-MERGE_STATUS: NOT_STARTED
+CI_STATUS: PASS
+MERGE_STATUS: INTEGRATED
 STARTED_AT: 2026-08-21T19:25:07.378Z
 LAST_HEARTBEAT: 2026-08-21T19:25:07.378Z
 BLOCKERS: none
@@ -65,3 +65,6 @@ Live state: `node scripts/session.mjs list`.
 ## History
 
 - 2026-08-21 — session started from `origin/develop` at `0d10a9d`.
+- 2026-08-21 — integrated at `5d9f74b` by fast-forward ref-push to `develop`;
+  gate green on the exact SHA (run 32523288146, 14/14 jobs). `main` untouched at
+  `3602ec3`. `runtime-registries` released.

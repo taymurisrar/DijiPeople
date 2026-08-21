@@ -7,8 +7,8 @@
 
 | | |
 |---|---|
-| Active sessions | **7** |
-| Active parent tasks | 7 |
+| Active sessions | **6** |
+| Active parent tasks | 6 |
 | Active work packages | 2 |
 | Blocked work packages | 4 |
 | Work packages waiting on the user | 0 |
@@ -49,7 +49,6 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 | Session | Task | Title | Status | Branch | Target | Leases | Schema |
 |---|---|---|---|---|---|---|---|
-| [[SESSION-0034-landing-ux-modernisation-notification-popover-workspace-host|SESSION-0034]] | TASK-0014 | Landing UX modernisation, notification popover, workspace host resolution, timeline paging, template signatures | ACTIVE | `agent/ux-round-two` | `develop` | runtime-registries | NO |
 | SESSION-0023 | — | First production release | ACTIVE | `agent/first-production-release` | `main` | — | NO |
 | [[SESSION-0022-go-live-readiness|SESSION-0022]] | TASK-0010 | Go-live readiness | ACTIVE | `agent/go-live-readiness` | `develop` | — | NO |
 | [[SESSION-0019-ci-browser-install-latency-and-database-e2e-fixture-contract|SESSION-0019]] | — | CI browser install latency and database e2e fixture contract | ACTIVE | `agent/ci-e2e-remediation` | `develop` | — | NO |
@@ -67,7 +66,6 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 | [[TASK-0009-identity-and-multi-tenant-membership|TASK-0009]] | Identity and multi-tenant membership | FEATURE | LARGE | 11/12 | WP-09 | — | WP-09 |
 | [[TASK-0010-go-live-readiness|TASK-0010]] | Go-live readiness | FEATURE | MEDIUM | 7/8 | WP-04 | — | WP-04 |
 | [[TASK-0011-first-production-release|TASK-0011]] | First production release | RELEASE | MEDIUM | 1/2 | WP-02 | — | — |
-| [[TASK-0014-second-ux-round-lookups-that-stay-lookups-a-notification-pop|TASK-0014]] | Second UX round: lookups that stay lookups, a notification popover, a modern features page and configurable signatures | FEATURE | LARGE | 7/7 | — | — | — |
 
 ## Branch model
 
