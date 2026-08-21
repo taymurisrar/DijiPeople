@@ -6,6 +6,7 @@ Sessions that reached a terminal state. Kept as history: the branch, the base it
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0029](../../docs/sessions/SESSION-0029-lockfile-resolution-and-the-tar-advisory.md) | — | Lockfile resolution and the tar advisory | COMPLETE | `agent/lockfile-resolution-and-tar` | `develop` | — | 2026-08-21T10:26:46.109Z |
 | [SESSION-0028](../../docs/sessions/SESSION-0028-dependency-security-the-active-win-advisory-chain.md) | — | Dependency security: the active-win advisory chain | COMPLETE | `agent/dependency-security-active-win` | `develop` | — | 2026-08-21T07:38:59.264Z |
 | [SESSION-0027](../../docs/sessions/SESSION-0027-hotfix-api-production-heap-cap-to-1536mb.md) | — | Hotfix API production heap cap to 1536MB | COMPLETE | `agent/api-heap-cap-hotfix` | `main` | — | 2026-08-21T06:21:05.333Z |
 | [SESSION-0026](../../docs/sessions/SESSION-0026-final-agent-operating-system-upgrade.md) | TASK-0012 | Final agent operating system upgrade | COMPLETE | `agent/agent-operating-system` | `develop` | — | 2026-08-20T22:43:51.238Z |
