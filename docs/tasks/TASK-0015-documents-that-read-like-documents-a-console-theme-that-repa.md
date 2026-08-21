@@ -4,7 +4,7 @@ aliases: [TASK-0015]
 TITLE: Documents that read like documents, a console theme that repaints, and a stuck tenant with a way out
 TYPE: BUG
 SIZE: LARGE
-STATUS: IN_PROGRESS
+STATUS: COMPLETE
 PRIORITY: P1
 CREATED_AT: 2026-08-22
 AFFECTED_MODULES: [apps/admin, api:contracts, api:tenant-control-plane]
@@ -14,7 +14,7 @@ CURRENT_PACKAGE:
 COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07]
 BLOCKED_PACKAGES: []
 OWNER_DECISIONS: 0
-FINAL_STATUS:
+FINAL_STATUS: DELIVERED — six reported defects fixed and integrated at a701eeb with the gate green; two further defects caught by that gate before integration; visual verification not performed
 ---
 
 # TASK-0015 — Documents that read like documents, a console theme that repaints, and a stuck tenant with a way out
@@ -49,13 +49,13 @@ A good package can be reviewed on its own and has one owning specialist.
 
 | WP_ID | TITLE | STATUS | DEPENDENCIES | AGENTS | BRANCH | SHA | QA_STATUS | BUGS | CI_STATUS | MERGE_STATUS |
 |---|---|---|---|---|---|---|---|---|---|---|
-| WP-01 | Placeholder formatting that reaches the document | DONE | — | backend-api | agent/document-render-and-theme | — | PASS | BUG-0418 | — | PENDING |
-| WP-02 | A preview that cannot damage what it previews | DONE | WP-01 | frontend, ui-ux | agent/document-render-and-theme | — | PASS | BUG-0419 | — | PENDING |
-| WP-03 | A dark theme that repaints the console | DONE | — | ui-ux, frontend | agent/document-render-and-theme | — | PASS | BUG-0420 | — | PENDING |
-| WP-04 | Sticky containment, and a full-width canvas | DONE | — | ui-ux, frontend | agent/document-render-and-theme | — | PASS | BUG-0421 | — | PENDING |
-| WP-05 | A stuck tenant with a stated next action | DONE | — | backend-api, frontend | agent/document-render-and-theme | — | PASS | BUG-0422 | — | PENDING |
-| WP-06 | The UI/UX role's output audit | DONE | WP-01..05 | architect, ui-ux | agent/document-render-and-theme | — | NOT_REQUIRED — a role definition; its mechanical half is enforced by the specs it names | — | — | PENDING |
-| WP-07 | Test suites, scenarios and an execution guide | DONE | WP-01..05 | qa | agent/document-render-and-theme | — | PASS | — | — | PENDING |
+| WP-01 | Placeholder formatting that reaches the document | DONE | — | backend-api | agent/document-render-and-theme | a701eeb | PASS | BUG-0418 | PASS | INTEGRATED |
+| WP-02 | A preview that cannot damage what it previews | DONE | WP-01 | frontend, ui-ux | agent/document-render-and-theme | a701eeb | PASS | BUG-0419 | PASS | INTEGRATED |
+| WP-03 | A dark theme that repaints the console | DONE | — | ui-ux, frontend | agent/document-render-and-theme | a701eeb | PASS | BUG-0420 | PASS | INTEGRATED |
+| WP-04 | Sticky containment, and a full-width canvas | DONE | — | ui-ux, frontend | agent/document-render-and-theme | a701eeb | PASS | BUG-0421 | PASS | INTEGRATED |
+| WP-05 | A stuck tenant with a stated next action | DONE | — | backend-api, frontend | agent/document-render-and-theme | a701eeb | PASS | BUG-0422 | PASS | INTEGRATED |
+| WP-06 | The UI/UX role's output audit | DONE | WP-01..05 | architect, ui-ux | agent/document-render-and-theme | a701eeb | NOT_REQUIRED — a role definition; its mechanical half is enforced by the specs it names | — | PASS | INTEGRATED |
+| WP-07 | Test suites, scenarios and an execution guide | DONE | WP-01..05 | qa | agent/document-render-and-theme | a701eeb | PASS | — | PASS | INTEGRATED |
 
 ## Assumptions
 

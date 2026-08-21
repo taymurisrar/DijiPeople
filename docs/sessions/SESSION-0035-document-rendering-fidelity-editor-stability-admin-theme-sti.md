@@ -4,7 +4,7 @@ aliases: [SESSION-0035]
 TASK_ID: TASK-0015
 TITLE: Document rendering fidelity, editor stability, admin theme, sticky fields rail, and a stuck tenant
 ARCHITECT_INTENT: Document rendering fidelity, editor stability, admin theme, sticky fields rail, and a stuck tenant
-STATUS: ACTIVE
+STATUS: COMPLETE
 TASK_TYPE: BUG
 TASK_SIZE: LARGE
 BASE_BRANCH: origin/develop
@@ -16,8 +16,8 @@ AFFECTED_MODULES: []
 WRITE_LEASES: []
 ACTIVE_WORK_PACKAGES: []
 SCHEMA_WRITE: NO
-CI_STATUS: NOT_RUN
-MERGE_STATUS: NOT_STARTED
+CI_STATUS: PASS
+MERGE_STATUS: INTEGRATED
 STARTED_AT: 2026-08-21T20:58:56.938Z
 LAST_HEARTBEAT: 2026-08-21T20:58:56.938Z
 BLOCKERS: none
@@ -71,4 +71,10 @@ Live state: `node scripts/session.mjs list`.
 
 ## History
 
-- 2026-08-21 — session started from `origin/develop` at `fb7c771`.
+- 2026-08-22 — session started from `origin/develop` at `fb7c771`.
+- 2026-08-22 — first gate run FAILED on `97f2a4a` (Database e2e, Browser e2e).
+  Two defects in the STALLED work, both invisible to its unit tests; fixed with
+  sub-second guards rather than integrated and fixed forward.
+- 2026-08-22 — integrated at `a701eeb` by fast-forward ref-push to `develop`;
+  gate green on the exact SHA (run 32531018692, 14/14 jobs). `main` untouched at
+  `3602ec3`.
