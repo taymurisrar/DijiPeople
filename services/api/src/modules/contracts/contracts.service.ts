@@ -403,7 +403,10 @@ export const CONTRACT_PLACEHOLDER_REGISTRY: ContractPlaceholderDefinition[] = [
     'customer.address',
     'Customer address',
     'ADDRESS',
-    'Dammam, Saudi Arabia',
+    // The whole postal address, country included — that is what the resolver
+    // builds, and an example that omits half of it teaches template authors to
+    // append the parts it appears to be missing.
+    'King Fahd Road, Dammam, Eastern Province, Saudi Arabia',
   ),
   placeholder(
     'customer.contact.fullName',
@@ -1088,6 +1091,23 @@ export class ContractsService {
       items: CONTRACT_PLACEHOLDER_REGISTRY.map((item) => ({
         ...item,
         group: placeholderGroup(item.key),
+        /*
+         * The example **as the document will render it**, produced by the same
+         * function that renders the real thing.
+         *
+         * The template editor previously previewed sample data by substituting
+         * `exampleValue` as a raw string, which is why its preview showed
+         * `["Employees","Attendance","Payroll"]` and `99.5` where the signed
+         * document shows a bulleted list and `99.5%`. A preview that disagrees
+         * with the document is worse than no preview: it is checked, believed,
+         * and wrong.
+         *
+         * HTML, not text — collections render as a list or a table.
+         */
+        exampleHtml: renderContractPlaceholders(`{{${item.key}}}`, {
+          [item.key]: item.exampleValue,
+          'contract.currency': 'SAR',
+        }),
       })),
       groups: PLACEHOLDER_GROUP_ORDER,
     };
@@ -5211,11 +5231,116 @@ export function cleanContractHtml(value: string) {
   });
 }
 
+/**
+ * A placeholder value as a reader should see it.
+ *
+ * WHY THIS EXISTS. `formattingRule` has been declared on nineteen placeholders
+ * since the registry was written — `'currency'`, `'locale-date'`, `'0.##%'` —
+ * and **nothing read it**. `renderContractPlaceholders` escaped every scalar
+ * verbatim, so an executed service order printed "Uptime target 99.5." where it
+ * meant 99.5%, printed "2026-08-01T10:00:00+03:00" where it meant 1 August
+ * 2026, and printed a bare "1200" for a price. A declared rule that nothing
+ * applies is worse than no rule: it reads, in review, as a solved problem.
+ *
+ * The rule wins where it is set; the data type decides otherwise. Both are
+ * best-effort by design — a value that cannot be interpreted is returned
+ * unchanged rather than replaced by "Invalid Date" or "NaN%", because a
+ * contract that prints the raw string is recoverable and one that prints
+ * nonsense is not.
+ */
+export function formatPlaceholderValue(
+  value: string,
+  definition: ContractPlaceholderDefinition | undefined,
+  currencyCode?: string,
+): string {
+  const raw = value.trim();
+  if (!raw || !definition) return value;
+
+  const rule = definition.formattingRule;
+  const type = definition.dataType;
+
+  if (rule === '0.##%' || type === 'PERCENTAGE') {
+    const numeric = Number(raw);
+    if (!Number.isFinite(numeric)) return value;
+    /*
+     * Stored as a percentage already (99.5 means 99.5%), not as a fraction.
+     * `validateContractPlaceholderValues` bounds PERCENTAGE to 0–100, which is
+     * what fixes that reading in place.
+     */
+    return `${trimNumber(numeric)}%`;
+  }
+
+  if (rule === 'currency' || type === 'CURRENCY') {
+    const numeric = Number(raw);
+    if (!Number.isFinite(numeric)) return value;
+    const amount = numeric.toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+    /*
+     * The code is prefixed rather than the symbol. A contract that says
+     * "SAR 1,200.00" is unambiguous in every jurisdiction; one that says
+     * "$1,200.00" is not, and this platform bills in several currencies.
+     */
+    return currencyCode ? `${currencyCode} ${amount}` : amount;
+  }
+
+  if (rule === 'locale-date' || type === 'DATE' || type === 'DATE_TIME') {
+    const parsed = new Date(raw);
+    if (Number.isNaN(parsed.getTime())) return value;
+    /*
+     * "1 October 2026", never "10/01/2026". A numeric date is read as October
+     * the first in one country and the tenth of January in another, and a
+     * go-live date that means two things is the kind of ambiguity a contract
+     * exists to remove. The time is kept only where the type asks for it.
+     */
+    const date = parsed.toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      timeZone: 'UTC',
+    });
+    if (type !== 'DATE_TIME') return date;
+    const time = parsed.toLocaleTimeString('en-GB', {
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: 'UTC',
+    });
+    return `${date}, ${time} UTC`;
+  }
+
+  if (type === 'BOOLEAN') {
+    const normalized = raw.toLowerCase();
+    if (['true', 'yes', '1'].includes(normalized)) return 'Yes';
+    if (['false', 'no', '0'].includes(normalized)) return 'No';
+    return value;
+  }
+
+  if (type === 'INTEGER' || type === 'DECIMAL') {
+    const numeric = Number(raw);
+    if (!Number.isFinite(numeric)) return value;
+    // Thousands separators: "5,000 records" is read at a glance; "5000" is counted.
+    return numeric.toLocaleString('en-US', { maximumFractionDigits: 6 });
+  }
+
+  return value;
+}
+
+/** `99.50` renders as `99.5`, `100.00` as `100`, `99.55` unchanged. */
+function trimNumber(value: number) {
+  return String(Number(value.toFixed(2)));
+}
+
 export function renderContractPlaceholders(
   html: string,
   rawValues: Record<string, string>,
 ) {
   const values = applyDeprecatedPlaceholderAliases(rawValues);
+  const currencyCode = /^[A-Za-z]{3}$/.test(
+    (values['contract.currency'] ?? '').trim(),
+  )
+    ? values['contract.currency'].trim().toUpperCase()
+    : undefined;
   return html.replace(
     /\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/g,
     (match, key: string) => {
@@ -5238,7 +5363,14 @@ export function renderContractPlaceholders(
         return renderCollectionValue(value);
       if (definition && ['SIGNATURE', 'INITIALS'].includes(definition.dataType))
         return renderSignatureValue(value);
-      return escapeHtml(value);
+      /*
+       * Currency values are prefixed with the agreement's own currency where
+       * the document carries one, so "SAR 1,200.00" rather than a bare number
+       * whose unit the reader has to infer from a different paragraph.
+       */
+      return escapeHtml(
+        formatPlaceholderValue(value, definition, currencyCode),
+      );
     },
   );
 }

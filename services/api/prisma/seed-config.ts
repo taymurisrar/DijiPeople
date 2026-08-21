@@ -663,7 +663,13 @@ const SAAS_SUBSCRIPTION_AGREEMENT_HTML = [
 const TENANT_SERVICE_ORDER_HTML = [
   '<h1>DijiPeople Tenant Provisioning &amp; Service Order</h1>',
   '<p>Service order {{contract.number}} issued under master agreement {{serviceOrder.masterAgreementNumber}}.</p>',
-  '<p>Customer: {{customer.legalName}} ({{customer.companyName}}), {{customer.address}}, {{customer.country}}.</p>',
+  /*
+   * The country is *not* repeated here. `customer.address` is assembled from
+   * addressLine1, addressLine2, city, stateProvince and country, so the old
+   * line printed 'Dammam, Saudi Arabia, Saudi Arabia' on every real service
+   * order — not only in the preview.
+   */
+  '<p>Customer: {{customer.legalName}} ({{customer.companyName}}), {{customer.address}}.</p>',
   '<h2>1. Tenant</h2>',
   '<p>Tenant {{tenant.name}} ({{tenant.id}}), accessible at {{tenant.url}} in the {{tenant.environment}} environment.</p>',
   '<p>Configuration: country {{tenant.country}}, time zone {{tenant.timeZone}}, language {{tenant.language}}, currency {{tenant.currency}}.</p>',
