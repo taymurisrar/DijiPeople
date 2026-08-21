@@ -3697,6 +3697,31 @@ if (existsSync(join(ROOT, 'scripts/retrieve-knowledge.mjs'))) {
   );
 }
 
+/*
+ * Every script that decides whether a vault exists must ask the shared resolver.
+ *
+ * The config lives in the primary checkout, so a script that looks beside itself
+ * concludes there is no vault from any task worktree. The sync and retrieval
+ * were each fixed for this in turn; the finalizer still had it, and reported
+ * OBSIDIAN_SYNC = SKIPPED_NO_LOCAL_CONFIG to the completion contract while the
+ * sync was publishing 511 notes. Listing them together is what stops a fourth
+ * script rediscovering it.
+ */
+for (const script of [
+  'scripts/finalize-agent-task.mjs',
+  'scripts/sync-obsidian.mjs',
+  'scripts/retrieve-knowledge.mjs',
+]) {
+  if (!existsSync(join(ROOT, script))) continue;
+  const body = read(script);
+  if (!/obsidian-sync\.local\.json|OBSIDIAN|obsidian/i.test(body)) continue;
+  check(
+    `${script} resolves the vault through the shared resolver`,
+    /resolveObsidianConfig/.test(body),
+    'looking beside the script finds no vault from a task worktree, which reads as "nothing to sync"',
+  );
+}
+
 /* `develop` must contain `main`, or the integration branch is behind production. */
 {
   const isAncestor = (ancestor, descendant) => {
