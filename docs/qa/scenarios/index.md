@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 114** · automated: 108 · manual: 4 · blocked by infrastructure: 0
+**Scenarios: 117** · automated: 111 · manual: 4 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -109,6 +109,9 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-PAY-006](../../../docs/qa/scenarios/QA-PAY-006-an-employee-payslip-proxy-never-returns-the-caller-s-own-rec.md) | An employee payslip proxy never returns the caller's own record for another id | payroll | API | HIGH | MANUAL | — | BUG-0039 | — |
 | [QA-PLATFORM-001](../../../docs/qa/scenarios/QA-PLATFORM-001-the-provisioning-queue-surfaces-every-stuck-run-to-an-operat.md) | The provisioning queue surfaces every stuck run to an operator | tenant-provisioning | DATABASE | HIGH | AUTOMATED | `services/api/test/provisioning-queue.e2e-spec.ts` | — | — |
 | [QA-PLATFORM-002](../../../docs/qa/scenarios/QA-PLATFORM-002-platform-admin-screens-carry-no-critical-or-serious-accessib.md) | Platform Admin screens carry no critical or serious accessibility violation | platform-admin | BROWSER_E2E | MEDIUM | AUTOMATED | `e2e/tests/flow-e-accessibility-and-layout.spec.ts` | BUG-0073, BUG-0074 | REG-068 |
+| [QA-PLATFORM-003](../../../docs/qa/scenarios/QA-PLATFORM-003-a-plan-form-field-the-api-will-reject-is-never-offered-as-ed.md) | A plan form field the API will reject is never offered as editable | platform-admin | UNIT | HIGH | AUTOMATED | `apps/admin/lib/runtime/plan-record-form.spec.ts` | BUG-0220 | REG-174 |
+| [QA-PLATFORM-004](../../../docs/qa/scenarios/QA-PLATFORM-004-every-module-record-page-offers-the-standard-command-bar-the.md) | Every module record page offers the standard command bar the API can serve | platform-admin | UNIT | MEDIUM | AUTOMATED | `apps/admin/lib/runtime/platform-module-capabilities.spec.ts` | BUG-0220 | REG-175 |
+| [QA-PLATFORM-005](../../../docs/qa/scenarios/QA-PLATFORM-005-no-record-form-field-or-related-panel-renders-on-a-tab-the-f.md) | No record form field or related panel renders on a tab the form never declares | platform-admin | UNIT | MEDIUM | AUTOMATED | `apps/admin/lib/runtime/plan-record-form.spec.ts` | BUG-0221, BUG-0222 | REG-176 |
 | [QA-PROV-001](../../../docs/qa/scenarios/QA-PROV-001-a-tenant-that-failed-provisioning-can-be-retried.md) | A tenant that failed provisioning can be retried | tenant-provisioning | UNIT | CRITICAL | AUTOMATED | `services/api/src/modules/tenant-control-plane/tenant-provisioning-retry.spec.ts` | BUG-0014 | REG-012 |
 | [QA-PROV-002](../../../docs/qa/scenarios/QA-PROV-002-provisioning-is-safe-to-submit-twice.md) | Provisioning is safe to submit twice | tenant-provisioning | UNIT | CRITICAL | AUTOMATED | `services/api/src/modules/super-admin/tenant-provisioning-idempotency.spec.ts` | BUG-0022 | REG-030 |
 | [QA-PROV-003](../../../docs/qa/scenarios/QA-PROV-003-issued-tenant-hostnames-honour-the-configured-base-domain.md) | Issued tenant hostnames honour the configured base domain | tenant-provisioning | UNIT | HIGH | AUTOMATED | `services/api/src/common/config/tenant-url.config.spec.ts` | BUG-0017, BUG-0026 | REG-016, REG-027 |

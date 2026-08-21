@@ -6,9 +6,9 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 134,
-    "bugs": 73,
-    "backlog_items": 60,
+    "total_records": 162,
+    "bugs": 88,
+    "backlog_items": 74,
     "open_bucket": 4,
     "blocked_bucket": 0,
     "deferred_bucket": 2,
@@ -7952,6 +7952,219 @@
       "architect_disposition": "PLAN_REQUIRED",
       "verification_result": {
         "result": "PRELIMINARY",
+        "classification": "ACTIVE_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0220",
+      "source": {
+        "record_path": "docs/bugs/BUG-0220-saving-a-plan-from-the-runtime-record-page-always-returns-40.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "08b8661",
+        "created_at": "2026-08-21",
+        "updated_at": "2026-08-21",
+        "resolved_at": "2026-08-21"
+      },
+      "type": "BUG",
+      "title": "Saving a plan from the runtime record page always returns 400",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "current_evidence": {
+        "paths": [
+          "apps/admin/lib/runtime/platform-module-registry.ts",
+          "apps/admin/app/_components/runtime/runtime-record-page.tsx",
+          "services/api/src/modules/super-admin/dto/update-plan.dto.ts",
+          "services/api/src/modules/platform-runtime/platform-runtime.service.ts"
+        ],
+        "verification_scope": "The runtime completes the plan form from the generated Prisma manifest, which reports eight plain writable Plan columns as editable; UpdatePlanDto declares none of them and dto() validates with forbidNonWhitelisted, so every plan save returned 400. Fixed by declaring planForms() explicitly with only DTO-accepted fields writable, and by mapping plans onto UpdatePlanDto in the runtime validate switch."
+      },
+      "affected_modules": [
+        "apps/admin",
+        "api:platform-runtime",
+        "api:super-admin"
+      ],
+      "dependencies": {
+        "record_ids": [
+          "ITEM-0022"
+        ],
+        "note": ""
+      },
+      "related_bugs": [
+        "BUG-0221",
+        "BUG-0223"
+      ],
+      "related_backlog": [
+        "ITEM-0022"
+      ],
+      "regressions": [
+        "REG-174",
+        "REG-175"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-003",
+        "QA-PLATFORM-004"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "FIX_NOW",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0221",
+      "source": {
+        "record_path": "docs/bugs/BUG-0221-schema-completed-form-fields-render-on-a-tab-the-form-never-.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "08b8661",
+        "created_at": "2026-08-21",
+        "updated_at": "2026-08-21",
+        "resolved_at": "2026-08-21"
+      },
+      "type": "UX",
+      "title": "Schema-completed form fields render on a tab the form never declares",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "current_evidence": {
+        "paths": [
+          "apps/admin/lib/runtime/platform-module-registry.ts",
+          "apps/admin/app/_components/runtime/runtime-form.tsx"
+        ],
+        "verification_scope": "completeFormsFromSchema pinned its generated section to the tab key details, which exists only in the default tab set, so modules declaring their own tabs rendered none of the completed fields (tenants.environmentGroupId, customer-onboarding.agreedSeats). Fixed by resolving the fallback tab from the form and by failing the registry at import on any unreachable placement."
+      },
+      "affected_modules": [
+        "apps/admin"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [
+        "BUG-0220",
+        "BUG-0222"
+      ],
+      "related_backlog": [],
+      "regressions": [
+        "REG-176"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-005"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "FIX_NOW",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0222",
+      "source": {
+        "record_path": "docs/bugs/BUG-0222-plan-related-record-panels-declare-no-tab-so-they-never-rend.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "08b8661",
+        "created_at": "2026-08-21",
+        "updated_at": "2026-08-21",
+        "resolved_at": "2026-08-21"
+      },
+      "type": "UX",
+      "title": "Plan related-record panels declare no tab, so they never render",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "current_evidence": {
+        "paths": [
+          "apps/admin/lib/runtime/platform-module-registry.ts",
+          "apps/admin/app/_components/runtime/runtime-record-page.tsx"
+        ],
+        "verification_scope": "The plans relatedRecords entries carried no tab while the record page draws a relationship only when its tab is active, so the Subscriptions and Customers panels never rendered and both tabs were filtered out as empty. Fixed by naming the tab on each relationship and scoping hasSpecialPanel to the plan tabs that carry one."
+      },
+      "affected_modules": [
+        "apps/admin"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [
+        "BUG-0221"
+      ],
+      "related_backlog": [],
+      "regressions": [
+        "REG-176"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-005"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "FIX_NOW",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0223",
+      "source": {
+        "record_path": "docs/bugs/BUG-0223-admin-cannot-set-a-plan-ispublic-flag-which-gates-self-servi.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "08b8661",
+        "created_at": "2026-08-21",
+        "updated_at": "2026-08-21",
+        "resolved_at": ""
+      },
+      "type": "UX",
+      "title": "Admin cannot set a plan isPublic flag which gates self-service checkout",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "PRODUCT_DECISION",
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/super-admin/dto/update-plan.dto.ts",
+          "services/api/src/modules/super-admin/dto/create-plan.dto.ts",
+          "services/api/src/modules/billing/services/billing.service.ts"
+        ],
+        "verification_scope": "Plan.isPublic gates self-service checkout and the public plan listing, and no Admin path writes it. Recorded rather than fixed: adding it to the DTO would create a second ungoverned way to change what customers can buy, which is what ITEM-0022 exists to prevent. Needs an owner decision on whether isPublic and publicationStatus are one concept."
+      },
+      "affected_modules": [
+        "apps/admin",
+        "api:super-admin",
+        "api:billing"
+      ],
+      "dependencies": {
+        "record_ids": [
+          "ITEM-0018",
+          "ITEM-0022"
+        ],
+        "note": ""
+      },
+      "related_bugs": [
+        "BUG-0220"
+      ],
+      "related_backlog": [
+        "ITEM-0018",
+        "ITEM-0022"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "YES",
+      "architect_disposition": "PRODUCT_DECISION",
+      "verification_result": {
+        "result": "VERIFIED",
         "classification": "ACTIVE_AS_DOCUMENTED",
         "finding_ids": []
       }

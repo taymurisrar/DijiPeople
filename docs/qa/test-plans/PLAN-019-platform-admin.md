@@ -133,7 +133,7 @@ than `GOOD`. A plan claiming more would be worse than no plan.
 
 ## Related
 
-- Scenarios — [[QA-PLATFORM-002]]
+- Scenarios — [[QA-PLATFORM-002]], [[QA-PLATFORM-003]], [[QA-PLATFORM-004]], [[QA-PLATFORM-005]]
 - Module — [[platform-admin]]
 - Bugs — [[BUG-0073]], [[BUG-0074]]
 - Regressions — REG-068 (see the regression register)
