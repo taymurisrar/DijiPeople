@@ -12,6 +12,7 @@ therefore sees sibling worktrees without anybody having pushed.
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0027](../../docs/sessions/SESSION-0027-hotfix-api-production-heap-cap-to-1536mb.md) | — | Hotfix API production heap cap to 1536MB | ACTIVE | `agent/api-heap-cap-hotfix` | `main` | — | 2026-08-21T06:21:05.333Z |
 | [SESSION-0026](../../docs/sessions/SESSION-0026-final-agent-operating-system-upgrade.md) | — | Final agent operating system upgrade | ACTIVE | `agent/agent-operating-system` | `develop` | — | 2026-08-20T22:43:51.238Z |
 | [SESSION-0025](../../docs/sessions/SESSION-0025-deploy-api-heap-cap-change-to-production.md) | — | Deploy API heap cap change to production | ACTIVE | `agent/api-heap-cap-deploy` | `main` | — | 2026-08-20T22:28:30.499Z |
 | [SESSION-0023](../../docs/sessions/SESSION-0023-first-production-release.md) | — | First production release | ACTIVE | `agent/first-production-release` | `main` | — | 2026-08-20T16:21:59.286Z |

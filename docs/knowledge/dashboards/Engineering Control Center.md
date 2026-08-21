@@ -7,7 +7,7 @@
 
 | | |
 |---|---|
-| Active sessions | **8** |
+| Active sessions | **9** |
 | Active parent tasks | 7 |
 | Active work packages | 4 |
 | Blocked work packages | 4 |
@@ -49,6 +49,7 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 | Session | Task | Title | Status | Branch | Target | Leases | Schema |
 |---|---|---|---|---|---|---|---|
+| [[SESSION-0027-hotfix-api-production-heap-cap-to-1536mb|SESSION-0027]] | — | Hotfix API production heap cap to 1536MB | ACTIVE | `agent/api-heap-cap-hotfix` | `main` | — | NO |
 | [[SESSION-0026-final-agent-operating-system-upgrade|SESSION-0026]] | — | Final agent operating system upgrade | ACTIVE | `agent/agent-operating-system` | `develop` | — | NO |
 | [[SESSION-0025-deploy-api-heap-cap-change-to-production|SESSION-0025]] | — | Deploy API heap cap change to production | ACTIVE | `agent/api-heap-cap-deploy` | `main` | — | NO |
 | SESSION-0023 | — | First production release | ACTIVE | `agent/first-production-release` | `main` | — | NO |
