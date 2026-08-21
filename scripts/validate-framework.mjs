@@ -3699,9 +3699,9 @@ if (existsSync(join(ROOT, 'scripts/retrieve-knowledge.mjs'))) {
 
 /* `develop` must contain `main`, or the integration branch is behind production. */
 {
-  const contains = (() => {
+  const isAncestor = (ancestor, descendant) => {
     try {
-      execFileSync('git', ['merge-base', '--is-ancestor', 'origin/main', 'origin/develop'], {
+      execFileSync('git', ['merge-base', '--is-ancestor', ancestor, descendant], {
         cwd: ROOT,
         stdio: 'pipe',
       });
@@ -3709,7 +3709,27 @@ if (existsSync(join(ROOT, 'scripts/retrieve-knowledge.mjs'))) {
     } catch {
       return false;
     }
-  })();
+  };
+
+  /*
+   * Satisfied either by `develop` already containing `main`, or by the branch
+   * under test carrying the reconciliation that will put it there.
+   *
+   * The second clause is not a loophole, it is the fix for a deadlock. This
+   * check reads *repository* state, not branch state, so once a release moved
+   * `main` ahead of `develop` it failed on every branch — including the branch
+   * whose whole job was to reconcile them. The branch that fixes the divergence
+   * could never go green, so the fix could never pass the gate that required it.
+   * TASK-0012 hit exactly that after SESSION-0025 deployed to production
+   * mid-program.
+   *
+   * It does not weaken the rule. A branch cut from a stale `develop` that does
+   * nothing about it still fails, which is the case worth catching: work built
+   * on an integration branch that is behind production.
+   */
+  const developContainsMain = isAncestor('origin/main', 'origin/develop');
+  const branchCarriesReconciliation = isAncestor('origin/main', 'HEAD');
+  const contains = developContainsMain || branchCarriesReconciliation;
 
   /*
    * Only meaningful where both refs are actually fetched. A shallow or

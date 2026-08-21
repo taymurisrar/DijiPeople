@@ -17,7 +17,6 @@ graph and the block reasons. See
 | Task | WP | Title |
 |---|---|---|
 | [TASK-0005](TASK-0005-dijipeople-global-technical-remediation.md) | WP-04 | Database E2E isolation and residual defect proof |
-| [TASK-0012](TASK-0012-final-agent-operating-system-upgrade.md) | WP-15 | Exact-SHA CI and develop integration |
 
 ## Needs a human
 

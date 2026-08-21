@@ -9,7 +9,7 @@
 |---|---|
 | Active sessions | **8** |
 | Active parent tasks | 7 |
-| Active work packages | 2 |
+| Active work packages | 4 |
 | Blocked work packages | 4 |
 | Work packages waiting on the user | 0 |
 | Open questions | 0 |
@@ -68,7 +68,7 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 | [[TASK-0009-identity-and-multi-tenant-membership|TASK-0009]] | Identity and multi-tenant membership | FEATURE | LARGE | 11/12 | WP-09 | — | WP-09 |
 | [[TASK-0010-go-live-readiness|TASK-0010]] | Go-live readiness | FEATURE | MEDIUM | 7/8 | WP-04 | — | WP-04 |
 | [[TASK-0011-first-production-release|TASK-0011]] | First production release | RELEASE | MEDIUM | 1/2 | WP-02 | — | — |
-| [[TASK-0012-final-agent-operating-system-upgrade|TASK-0012]] | Final agent operating system upgrade | FRAMEWORK | PROGRAM | 14/16 | WP-15 | WP-15 | — |
+| [[TASK-0012-final-agent-operating-system-upgrade|TASK-0012]] | Final agent operating system upgrade | FRAMEWORK | PROGRAM | 14/16 | WP-15 | — | — |
 
 ## Branch model
 

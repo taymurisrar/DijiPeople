@@ -174,7 +174,6 @@ _None._
 
 ## Recent Engineering History
 
-- [[2026-08-21-final-agent-operating-system-upgrade-73e200f|Engineering History — Final agent operating system upgrade]]
 - [[2026-08-20-self-service-onboarding-provisioning-c935fcb|Engineering History — Self service onboarding provisioning]]
 - [[2026-08-20-identity-and-membership-b4e8a2b|Engineering History — Identity and membership]]
 - [[2026-08-19-provisioning-operations-and-qa-campaign-b016441|Engineering History — Provisioning operations and qa campaign]]
@@ -182,6 +181,7 @@ _None._
 - [[2026-08-19-agent-framework-hardening|Engineering History — Database Agent, Security Agent, agent reliability and Obsidian ownership]]
 - [[2026-08-18-primary-worktree-repository-health-494c44d|Engineering History — Primary worktree repository health]]
 - [[2026-08-18-landing-uiux-remediation-ab3bc73|Engineering History — Landing UI/UX remediation]]
+- [[2026-08-18-commercial-platform-outbox-and-legal|Engineering History — Commercial platform: transactional outbox and legal documents]]
 
 ## Recent Releases
 
@@ -235,7 +235,7 @@ _None. Nothing has been deployed through the release process._
 | Backlog items | 73 |
 | Known bug patterns | 23 |
 | QA runs | 21 |
-| Engineering history records | 23 |
+| Engineering history records | 22 |
 | Release records | 0 |
 | Module notes | 27 |
 | Architecture notes | 20 |
