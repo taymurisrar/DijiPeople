@@ -84,7 +84,10 @@ export class PaymentRecheckService {
     });
   }
 
-  async recheckCustomerPayment(user: AuthenticatedUser, customerAccountId: string) {
+  async recheckCustomerPayment(
+    user: AuthenticatedUser,
+    customerAccountId: string,
+  ) {
     const order = await this.findRecheckableOrder(customerAccountId);
     if (!order) {
       throw new NotFoundException({
@@ -203,7 +206,8 @@ export class PaymentRecheckService {
                 lastPaymentError: intent.last_payment_error
                   ? {
                       code: intent.last_payment_error.code ?? null,
-                      declineCode: intent.last_payment_error.decline_code ?? null,
+                      declineCode:
+                        intent.last_payment_error.decline_code ?? null,
                       message: intent.last_payment_error.message ?? null,
                     }
                   : null,

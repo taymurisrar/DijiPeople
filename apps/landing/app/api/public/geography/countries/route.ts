@@ -18,7 +18,7 @@ export async function GET(request: Request) {
     const response = await fetch(
       `${getApiBaseUrl()}/public/geography/countries${query}`,
       {
-        headers: forwardedClientHeaders(request),
+        headers: { ...forwardedClientHeaders(request) },
         cache: "no-store",
       },
     );

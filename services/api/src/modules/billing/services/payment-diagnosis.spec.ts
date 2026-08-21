@@ -86,7 +86,10 @@ describe('payment diagnosis', () => {
         paymentStatus: 'unpaid',
         paymentIntent: {
           status: 'requires_payment_method',
-          lastPaymentError: { code: 'card_declined', declineCode: 'expired_card' },
+          lastPaymentError: {
+            code: 'card_declined',
+            declineCode: 'expired_card',
+          },
         },
       },
       alreadyPaid: false,
@@ -223,7 +226,9 @@ describe('payment diagnosis', () => {
         now: NOW,
       });
       expect(customerMessage).not.toMatch(/\b(pi|cs|sub|cus)_[A-Za-z0-9]+/);
-      expect(customerMessage).not.toMatch(/do_not_honor|requires_payment_method/);
+      expect(customerMessage).not.toMatch(
+        /do_not_honor|requires_payment_method/,
+      );
     }
   });
 });

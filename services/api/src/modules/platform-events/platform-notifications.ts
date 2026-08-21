@@ -1,5 +1,3 @@
-import { PlatformEventResult } from '@prisma/client';
-
 /**
  * Which platform events are worth telling an operator about, and how to say it.
  *
@@ -32,7 +30,11 @@ type NotificationRule = {
  * Keyed on the event code prefix so a new step within a known flow inherits its
  * treatment rather than silently dropping out of the feed.
  */
-const RULES: Array<{ match: RegExp; failed: NotificationRule; succeeded?: NotificationRule }> = [
+const RULES: Array<{
+  match: RegExp;
+  failed: NotificationRule;
+  succeeded?: NotificationRule;
+}> = [
   {
     match: /^TENANT_PROVISIONING/,
     failed: {
@@ -89,7 +91,13 @@ const RULES: Array<{ match: RegExp; failed: NotificationRule; succeeded?: Notifi
 export type NotifiableEvent = {
   id: string;
   eventCode: string;
-  result: PlatformEventResult | string;
+  /*
+   * `string`, not `PlatformEventResult`. A union of the two collapses to
+   * `string` and claims a safety it does not have; the rules compare
+   * case-insensitively anyway, because this reads rows the enum has outgrown
+   * before as well as after a migration.
+   */
+  result: string;
   occurredAt: Date;
   entityType?: string | null;
   entityId?: string | null;
@@ -212,7 +220,9 @@ function hrefFor(event: NotifiableEvent) {
    * and therefore where the operator was going anyway.
    */
   if (event.entityType === 'SubscriptionOrder') {
-    return event.customerAccountId ? `${base}/${event.customerAccountId}` : base;
+    return event.customerAccountId
+      ? `${base}/${event.customerAccountId}`
+      : base;
   }
   return event.entityId ? `${base}/${event.entityId}` : base;
 }

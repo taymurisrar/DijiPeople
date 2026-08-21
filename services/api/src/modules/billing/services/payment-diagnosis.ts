@@ -79,7 +79,8 @@ const DECLINE_GUIDANCE: Record<string, string> = {
   expired_card: 'The card has expired. Ask them to use a current card.',
   incorrect_cvc:
     'The security code did not match. Ask them to re-enter the three or four digit code from the card.',
-  incorrect_number: 'The card number was not accepted. Ask them to re-enter it.',
+  incorrect_number:
+    'The card number was not accepted. Ask them to re-enter it.',
   processing_error:
     'The bank had a temporary processing error. Asking them to try again usually works.',
   authentication_required:
@@ -117,7 +118,9 @@ export function diagnoseCheckoutSession(input: {
 
   const paymentStatus = String(session.paymentStatus ?? '').toLowerCase();
   const sessionStatus = String(session.status ?? '').toLowerCase();
-  const intentStatus = String(session.paymentIntent?.status ?? '').toLowerCase();
+  const intentStatus = String(
+    session.paymentIntent?.status ?? '',
+  ).toLowerCase();
   const error = session.paymentIntent?.lastPaymentError ?? null;
   const providerDetail = error?.message?.trim() || null;
 

@@ -42,7 +42,9 @@ describe('platform notifications', () => {
       'REPORT_EXPORTED',
       'SETTINGS_READ',
     ]) {
-      expect(isNotifiable({ eventCode: code, result: 'SUCCEEDED' })).toBe(false);
+      expect(isNotifiable({ eventCode: code, result: 'SUCCEEDED' })).toBe(
+        false,
+      );
       expect(toNotification(event({ eventCode: code }), READ_AT)).toBeNull();
     }
   });
