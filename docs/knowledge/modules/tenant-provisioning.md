@@ -59,6 +59,43 @@ create a second owner and a second invoice.
 - [[BUG-0022-provision-tenant-has-no-confirmation-step]] — OPEN. The most
   consequential create in the lifecycle is one unconfirmed click with no
   idempotency key.
+- [[BUG-0353]] — FIXED. The **third** implementation of "which workspace does
+  this hostname address", keyed on `WEB_APP_PROD_ROOT_DOMAIN` while the web app
+  keys on `TENANT_BASE_DOMAIN`. See below; this one is worth reading before
+  touching anything hostname-shaped. Pattern: [[divergent-duplicate-guard]].
+
+## Workspace hostnames: one rule, and the three names it had
+
+`packages/config/platform-domains.js` owns this. `buildWorkspaceHostname` and
+`buildWorkspaceUrl` construct; **`parseWorkspaceHostname` resolves**. Everything
+that turns a `Host` header into a workspace must call the last one.
+
+The concept has been implemented three times, under three different environment
+variable names for the same value:
+
+| Copy | Keyed on | Removed by |
+|---|---|---|
+| `apps/admin/lib/tenant-url.ts` | `NEXT_PUBLIC_TENANT_ROOT_DOMAIN` | REG-179 |
+| `PublicTenantsService.getTenantSlugFromHost` | `WEB_APP_PROD_ROOT_DOMAIN` | REG-184 |
+| `packages/config/platform-domains.js` | `TENANT_BASE_DOMAIN` (+ documented fallbacks) | — canonical |
+
+Each copy was internally correct. Configuring the platform properly for two of
+them left the third reading an unset variable, and an inert hostname parser
+**fails closed** — `xoul-ltd.localhost` resolved to no slug and login answered
+`TENANT_NOT_FOUND` for a tenant that existed and was ACTIVE.
+
+Two things follow, and both cost a round to learn:
+
+1. When consolidating a duplicated rule, enumerate every **reader** of the
+   concept, not only the writer that was reported. REG-179 fixed the builder,
+   verified the link, and left the parser.
+2. Search by *concept*, not by variable name. Three names for one value is
+   precisely what hid the third copy from a search for the first two.
+
+Reserved slugs are a separate, product-level list held by `PublicTenantsService`
+and deliberately unknown to the host parser. Keep them separate: the parser's
+refusals (`admin.`, `api.`, `app.`, the bare domain, nested labels) are about
+addressing; the reserved list is about what a customer may be called.
 
 ## Open backlog
 
@@ -70,6 +107,16 @@ blocked by BUG-0015. [[ITEM-0006]] — the ADR BUG-0017 waits on.
 REG-012 — `tenant-provisioning-retry.spec.ts`, which pins the step catalogue and
 the replay switch together so a future retryable-but-unwired step fails the test
 rather than production.
+
+REG-179 — `packages/config/platform-domains.test.js` and
+`apps/admin/lib/tenant-url.spec.ts`, for the constructed URL.
+
+REG-184 — `services/api/src/modules/tenants/public-tenant-host.spec.ts`, for the
+resolution. Three of its seven assertions are refusals, and those are the
+security-relevant half: resolving `admin.dijipeople.com` would hand whoever
+registered the slug "admin" the platform's own hostname, and resolving
+`evil.maseer.dijipeople.com` as "maseer" would let a nested label address
+somebody else's workspace.
 
 ## Related
 

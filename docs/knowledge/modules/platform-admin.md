@@ -46,11 +46,49 @@ authorization or tenant decisions.
   platform permission resolver has no `DELETE` mapping, so **every** platform
   `DELETE` route is dead. It fails closed.
 
+## Shared console primitives
+
+Reach for these before writing a fourth copy of one:
+
+- `app/_components/notifications/notification-model.ts` — the severity map, the
+  relative-time formatter, both notification endpoints and the
+  `dijipeople:notifications-read` event name. The bell and the feed page both
+  read it; the badge and the list deliberately read **one** endpoint so they
+  cannot disagree about one number, and both listen for the read event so
+  clearing the mark in one place updates the other.
+- `lib/list-paging.ts` — `describePage(total, requestedPage, pageSize)`. The
+  window is computed rather than stored, which is the point: a page number held
+  in state survives the list being filtered under it. Pattern:
+  [[unbounded-render]].
+- `lib/documents/signature-block.ts` — the signature-box markup, kept out of the
+  editor component so its constraints can be asserted without importing TipTap.
+  It must produce a `table`; see [[contracts-and-agreements]] for why, and for
+  why a party outside `platform`/`counterparty` gets ruled lines rather than a
+  placeholder.
+
+The contract template editor's fields panel is a **sticky rail**, not a
+dropdown. It was a dropdown, and it closed on every insertion — building a
+four-line signature block meant reopening and re-searching four times.
+
+## Stacking order
+
+`lib/z-layers.spec.ts` asserts it, and a popover in the topbar is the case that
+looks wrong and is not: the notification panel is `z-20` (page-popover tier)
+because the topbar is `relative z-30` and forms a stacking context, so the panel
+clears all page content regardless. Claiming `z-30` there fails the spec, which
+reserves the shell tier for three named shell files.
+
 ## Testing constraint
 
 `apps/admin` jest runs in a **node environment with no jsdom**, so no component
 here has ever been rendered in a test. Every UI finding above was read from
 code. [[ITEM-0001]].
+
+That constraint is why the primitives above are plain modules with their own
+specs: logic extracted from a component is logic that can be asserted, and it is
+the only coverage this app can have. It is not a substitute for looking — the
+two regressions in [[BUG-0350]] and [[BUG-0351]] were both invisible to every
+test that existed and obvious in a screenshot.
 
 ## Related
 

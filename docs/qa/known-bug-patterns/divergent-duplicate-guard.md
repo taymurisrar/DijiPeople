@@ -67,3 +67,25 @@ audit trail distinguishes it from a legitimate conversion.
 | Ref | Where |
 |---|---|
 | REG-009 | `ContractsService.update()` vs `assertAgreementEditable` |
+| REG-179 | `apps/admin/lib/tenant-url.ts` vs `buildWorkspaceUrl` in `packages/config` |
+| REG-184 | `PublicTenantsService.getTenantSlugFromHost` vs `parseWorkspaceHostname` |
+
+### The lesson REG-184 adds
+
+REG-179 consolidated the copy that **built** workspace links, verified the link
+it produced, and closed. REG-184 is the copy that **read** them — a third
+implementation of the same rule, keyed on a third name for its input
+(`TENANT_BASE_DOMAIN`, `NEXT_PUBLIC_TENANT_ROOT_DOMAIN`,
+`WEB_APP_PROD_ROOT_DOMAIN`). Each copy was internally correct. Configuring the
+platform correctly for two of them left the third inert, and an inert hostname
+parser fails closed: a customer could not log in, and the API answered
+`TENANT_NOT_FOUND` for a tenant that plainly existed.
+
+So: **when a duplicated rule is consolidated, enumerate every *reader* of the
+concept, not only the writer that was reported.** The report names the symptom
+somebody noticed. The duplication is a property of the concept, and the second
+symptom is usually somewhere nobody was looking.
+
+A practical way to enumerate: search for every environment variable name that
+could plausibly express the same concept, not only the one the shared rule uses.
+Three names for one value is what hid this for two rounds.
