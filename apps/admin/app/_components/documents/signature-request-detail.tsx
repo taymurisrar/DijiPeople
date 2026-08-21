@@ -4,7 +4,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { ModuleActionBar } from "@/app/_components/runtime/module-action-bar";
+import { RecordStatusGroup } from "@/app/_components/runtime/record-status-group";
 import { getPlatformModuleDefinition } from "@/lib/runtime/platform-module-registry";
+import { runStandardRecordCommand } from "@/lib/runtime/standard-record-commands";
 
 type Item = {
   id: string;
@@ -97,21 +99,14 @@ export function SignatureRequestDetail({
           permissionKeys,
           mode: "read",
         }}
-        statusSlot={
-          <span className="rounded-full bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700">
-            {label(item.status)}
-          </span>
-        }
         onAction={async (action) => {
-          if (action.key === "back") {
-            if (window.history.length > 1) router.back();
-            else router.push("/signature-requests");
-            return;
-          }
-          if (action.key === "refresh") {
-            await load();
-            return { success: true, message: "Signature request refreshed." };
-          }
+          const standard = await runStandardRecordCommand(action, {
+            routeBase: moduleDefinition.routeBase,
+            router,
+            reload: load,
+            reloadMessage: "Signature request refreshed.",
+          });
+          if (standard) return standard;
           if (action.key === "export") {
             window.print();
             return;
@@ -137,13 +132,26 @@ export function SignatureRequestDetail({
       />
 
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
-          {item.requestNumber}
-        </p>
-        <h1 className="mt-2 text-2xl font-semibold">{item.subject}</h1>
-        <Link href={`/contracts/${item.contract.id}`} className="mt-1 block text-sm text-blue-700">
-          {item.contract.contractNumber} · {item.contract.title}
-        </Link>
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+              {item.requestNumber}
+            </p>
+            <h1 className="mt-2 text-2xl font-semibold">{item.subject}</h1>
+            <Link
+              href={`/contracts/${item.contract.id}`}
+              className="mt-1 block text-sm text-blue-700"
+            >
+              {item.contract.contractNumber} · {item.contract.title}
+            </Link>
+          </div>
+          <RecordStatusGroup
+            definition={moduleDefinition}
+            record={item as unknown as Record<string, unknown>}
+            roleKeys={roleKeys}
+            permissionKeys={permissionKeys}
+          />
+        </div>
       </section>
 
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">

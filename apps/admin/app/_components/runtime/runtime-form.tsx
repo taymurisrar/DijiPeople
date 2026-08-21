@@ -10,6 +10,7 @@ import type {
 import { ContractDocumentEditor } from "@/app/_components/documents/contract-document-editor";
 import type { RuntimeLookupOption } from "@/lib/runtime/runtime-lookups";
 import { buildLookupRecordHref } from "@/lib/runtime/lookup-record-href";
+import { useRuntimeLookupOptions } from "@/lib/runtime/use-runtime-lookup-options";
 
 type RuntimeValues = Record<string, unknown>;
 export function RuntimeForm({
@@ -826,11 +827,18 @@ function RuntimeLookup({
   required: boolean;
   onChange: (value: unknown) => void;
 }) {
-  const [options, setOptions] = useState<RuntimeLookupOption[]>(
-    field.options ?? [],
+  const lookup = useRuntimeLookupOptions(field.lookupPath);
+  /*
+   * A lookup-backed field takes its options from the endpoint; one that
+   * declares a static list keeps that list. Memoised because it feeds the
+   * memo below, and a fresh array each render would defeat it.
+   */
+  const options = useMemo(
+    () => (field.lookupPath ? lookup.options : (field.options ?? [])),
+    [field.lookupPath, field.options, lookup.options],
   );
-  const [lookupError, setLookupError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(Boolean(field.lookupPath));
+  const lookupError = lookup.error;
+  const loading = lookup.loading;
   /*
    * The selected record's label is already on the record, so the control shows
    * it from the first paint. Without this the picker printed the raw id until
@@ -849,50 +857,6 @@ function RuntimeLookup({
         : options,
     [currentOption, options],
   );
-  useEffect(() => {
-    if (!field.lookupPath) return;
-    const controller = new AbortController();
-    let active = true;
-    fetch(
-      `/api/platform-runtime/lookups?path=${encodeURIComponent(field.lookupPath)}`,
-      { signal: controller.signal },
-    )
-      .then(async (response) => {
-        const payload = (await response.json().catch(() => null)) as
-          | { items?: RuntimeLookupOption[]; message?: string }
-          | RuntimeLookupOption[]
-          | null;
-        if (!response.ok) {
-          throw new Error(
-            !Array.isArray(payload)
-              ? payload?.message
-              : "Unable to load lookup.",
-          );
-        }
-        return payload;
-      })
-      .then((payload) => {
-        if (!active) return;
-        const items = Array.isArray(payload) ? payload : (payload?.items ?? []);
-        setOptions(items);
-      })
-      .catch((error: unknown) => {
-        if (isAbortError(error)) return;
-        console.error("Runtime lookup failed", error);
-        if (active) {
-          setLookupError(
-            error instanceof Error ? error.message : "Unable to load lookup.",
-          );
-        }
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-    return () => {
-      active = false;
-      controller.abort();
-    };
-  }, [field.lookupPath]);
   return (
     <div className="space-y-1.5 font-normal normal-case tracking-normal">
       <SearchableSelect
@@ -922,7 +886,7 @@ function RuntimeLookup({
   );
 }
 
-function SearchableSelect({
+export function SearchableSelect({
   ariaLabel,
   options,
   value,
@@ -1082,9 +1046,6 @@ function SearchableSelect({
   );
 }
 
-function isAbortError(error: unknown) {
-  return error instanceof DOMException && error.name === "AbortError";
-}
 
 function readRuntimeValue(values: RuntimeValues, path: string) {
   if (path in values) return values[path];

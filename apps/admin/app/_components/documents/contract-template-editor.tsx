@@ -321,8 +321,22 @@ export function ContractTemplateEditor({
           if (action.key === "back") {
             if (dirty && !window.confirm("Discard unsaved template changes?"))
               return;
-            router.push("/templates");
+            router.push(moduleDefinition.routeBase);
             return;
+          }
+          if (action.key === "record-new")
+            return router.push(`${moduleDefinition.routeBase}/new`);
+          if (action.key === "record-refresh") {
+            /*
+             * Same rule as the runtime record page: Refresh answers "what is on
+             * the server", which it cannot do while the editor still holds an
+             * unsaved draft. The confirm is here because a template body is a
+             * lot of work to lose silently.
+             */
+            if (dirty && !window.confirm("Discard unsaved template changes?"))
+              return;
+            await load();
+            return { success: true, message: "Template reloaded." };
           }
           if (action.key === "save") return save();
           if (action.key === "duplicate" && templateId) {

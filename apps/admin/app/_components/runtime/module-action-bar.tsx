@@ -22,6 +22,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import type { RuntimeActionDefinition } from "@/lib/runtime/platform-runtime.types";
+import { hasRuntimePermission } from "@/lib/runtime/runtime-permissions";
 
 export type ModuleActionContext = {
   scope: "list" | "record";
@@ -260,16 +261,7 @@ function isVisible(
     !action.roles.some((role) => context.roleKeys?.includes(role))
   )
     return false;
-  if (
-    action.permission &&
-    !context.permissionKeys?.some((granted) =>
-      permissionMatches(granted, action.permission!),
-    ) &&
-    !context.roleKeys?.some((role) =>
-      ["PLATFORM_OWNER", "PLATFORM_ADMIN", "SUPER_ADMIN"].includes(role),
-    )
-  )
-    return false;
+  if (!hasRuntimePermission(action.permission, context)) return false;
   if (
     action.states?.length &&
     !action.states.includes(String(context.record?.status ?? ""))
@@ -281,10 +273,6 @@ function isVisible(
   if (action.selection === "any" && count < 1) return false;
   if (action.selection === "none" && count > 0) return false;
   return true;
-}
-function permissionMatches(granted: string, requested: string) {
-  if (granted === "platform.*" || granted === requested) return true;
-  return granted.endsWith(".*") && requested.startsWith(granted.slice(0, -1));
 }
 function disabledReason(
   action: RuntimeActionDefinition,

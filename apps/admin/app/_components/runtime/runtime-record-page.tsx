@@ -20,12 +20,18 @@ import type {
 import { getRuntimeSchema } from "@repo/config";
 import { executeRuntimeRecordAction } from "@/lib/runtime/runtime-record-action-handler";
 import { ModuleActionBar } from "./module-action-bar";
+import {
+  RecordStatusGroup,
+  type RecordStatusGroupWrite,
+} from "./record-status-group";
 import { useConfirmAction } from "./use-confirm-action";
 import { useReasonPrompt } from "./use-reason-prompt";
 import {
   PlanPriceManager,
   type PlanPriceRecord,
 } from "@/app/_components/plan-price-manager";
+import { PlanCommercialSummary } from "@/app/_components/plans/plan-commercial-summary";
+import { PlanEntitlementsPanel } from "@/app/_components/plans/plan-entitlements-panel";
 import {
   RuntimeForm,
   useRuntimeFormState,
@@ -215,7 +221,13 @@ function RuntimeRecordEditor({
       const hasRuntimePanel =
         !isCreate &&
         ((moduleKey === "contracts" && tab.key === "versions") ||
-          (moduleKey === "tenants" && TENANT_PANEL_TABS.includes(tab.key)));
+          (moduleKey === "tenants" && TENANT_PANEL_TABS.includes(tab.key)) ||
+          /*
+           * Entitlements are a panel, not form fields, so without this the tab
+           * was filtered out as empty and the plan's capabilities had nowhere
+           * to be edited outside the legacy screen.
+           */
+          (moduleKey === "plans" && tab.key === "entitlements"));
       return hasFields || hasRelationship || hasTimeline || hasRuntimePanel;
     });
     return { ...baseFormDefinition, tabs };
@@ -314,6 +326,31 @@ function RuntimeRecordEditor({
       );
   }
 
+  /**
+   * The header status group's write routes.
+   *
+   * Both are named API operations rather than a PATCH of the underlying
+   * column: assignment and status transitions carry side effects the owning
+   * service performs — qualifying a lead sets `isQualified`, a support case
+   * transition runs its own rules — and a header control that wrote the column
+   * directly would skip every one of them.
+   */
+  const headerWrite: RecordStatusGroupWrite = {
+    async assign(ownerId) {
+      const result = await adapter.assign(record.id, ownerId);
+      return { success: result.success, message: result.message };
+    },
+    async changeStatus({ status, subStatus }) {
+      const result = await adapter.changeStatus(
+        record.id,
+        status,
+        undefined,
+        subStatus,
+      );
+      return { success: result.success, message: result.message };
+    },
+  };
+
   async function handleAction(action: RuntimeActionDefinition) {
     if (moduleKey === "tenants") {
       const handled = await tenant.handleAction(action, {
@@ -350,9 +387,16 @@ function RuntimeRecordEditor({
         ? `New ${definition.displayName.toLowerCase()}`
         : definition.displayName),
   );
+  /*
+   * A record being created has nothing to refresh, delete, reassign or open a
+   * sibling of, so the create command bar is Save, Save and close, and the way
+   * out. Back was previously excluded too, which left the create screen with
+   * no cancel path at all short of the browser button.
+   */
   const actions = definition.actions.filter(
     (action) =>
-      !isCreate || ["save", "save-close", "cancel"].includes(action.key),
+      !isCreate ||
+      ["save", "save-close", "cancel", "back"].includes(action.key),
   );
   const relatedRecords =
     definition.relatedRecords?.filter(
@@ -371,12 +415,58 @@ function RuntimeRecordEditor({
     (moduleKey === "contracts" &&
       ["parties", "versions"].includes(activeTab)) ||
     (moduleKey === "tenants" && TENANT_PANEL_TABS.includes(activeTab)) ||
-    moduleKey === "plans";
+    /*
+     * Was `moduleKey === "plans"` unqualified, which claimed a panel on every
+     * plan tab — including the ones that had none — and so suppressed the
+     * empty-tab message that would have shown the tab was dead.
+     */
+    (moduleKey === "plans" &&
+      ["overview", "pricing", "entitlements"].includes(activeTab));
+
+  const planPrices = useMemo(
+    () =>
+      moduleKey === "plans" && Array.isArray(form.values.prices)
+        ? (form.values.prices as PlanPriceRecord[])
+        : [],
+    [moduleKey, form.values.prices],
+  );
+  /*
+   * `PlanFeature` rows carry `isEnabled`, and a disabled row is not an
+   * entitlement. Reading the keys without that filter would have shown — and
+   * then re-saved — capabilities the plan does not actually grant.
+   */
+  const planFeatureKeys = useMemo(
+    () =>
+      Array.isArray(form.values.features)
+        ? (form.values.features as Array<Record<string, unknown>>)
+            .filter((item) => item.isEnabled !== false)
+            .map((item) => String(item.featureKey ?? ""))
+            .filter(Boolean)
+        : [],
+    [form.values.features],
+  );
+
+  /*
+   * Owner, Status and Sub-status are drawn once, in the header, for every
+   * module — the D365 arrangement. They are deliberately not repeated in the
+   * metadata strip beneath the title, which is where Status and Owner used to
+   * sit for the handful of modules that showed them at all.
+   */
+  const statusGroup = isCreate ? null : (
+    <RecordStatusGroup
+      definition={definition}
+      record={form.values}
+      roleKeys={roleKeys}
+      permissionKeys={permissionKeys}
+      write={headerWrite}
+      onChanged={reloadRecord}
+    />
+  );
 
   return (
     <main className="space-y-5">
       {moduleKey === "tenants" && !isCreate ? (
-        <TenantRecordHeader record={form.values} />
+        <TenantRecordHeader record={form.values} statusGroup={statusGroup} />
       ) : (
         <PageHeader
           eyebrow={definition.navigationGroup}
@@ -388,8 +478,20 @@ function RuntimeRecordEditor({
               <RecordHeaderMetadata moduleKey={moduleKey} record={form.values} />
             )
           }
+          actions={statusGroup}
         />
       )}
+      {moduleKey === "plans" && !isCreate ? (
+        <PlanCommercialSummary
+          prices={planPrices}
+          featureCount={planFeatureKeys.length}
+          subscriptionCount={
+            Array.isArray(form.values.subscriptions)
+              ? form.values.subscriptions.length
+              : 0
+          }
+        />
+      ) : null}
       {definition.process && !isCreate ? (
         <ProcessBar
           stages={resolveProcessStages(
@@ -482,23 +584,39 @@ function RuntimeRecordEditor({
           }
         />
       ) : null}
-      {moduleKey === "plans" &&
-      !isCreate &&
-      Array.isArray(form.values.prices) ? (
+      {moduleKey === "plans" && !isCreate && activeTab === "pricing" ? (
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-950">Pricing</h2>
-          <p className="mt-1 text-sm text-slate-600">
-            Configure flat or per-seat monthly and annual prices. Existing
-            Stripe prices remain immutable for active subscriptions.
+          <h2 className="text-lg font-semibold text-slate-950">
+            Checkout prices
+          </h2>
+          <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-600">
+            The per-currency, per-cycle prices checkout actually charges.
+            Existing Stripe prices stay immutable for the subscriptions that
+            reference them, so a change here supersedes rather than rewrites.
           </p>
           <div className="mt-5">
             <PlanPriceManager
               planId={record.id}
-              initialPrices={form.values.prices as PlanPriceRecord[]}
+              initialPrices={planPrices}
               defaultCurrency={String(form.values.currency ?? "USD")}
             />
           </div>
         </section>
+      ) : null}
+      {moduleKey === "plans" && !isCreate && activeTab === "entitlements" ? (
+        <PlanEntitlementsPanel
+          planId={record.id}
+          initialFeatureKeys={planFeatureKeys}
+          readOnly={!definition.capabilities.update}
+          onSave={async (featureKeys) => {
+            const response = await adapter.updateRecord(
+              record.id,
+              { featureKeys },
+              version,
+            );
+            form.setValues(response.item);
+          }}
+        />
       ) : null}
       {!isCreate && relatedRecords.length ? (
         <section className="grid gap-5">
@@ -1271,6 +1389,13 @@ function isAgreementLocked(status: string) {
   ].includes(status);
 }
 
+/**
+ * The line of business context under the record title.
+ *
+ * Status and Owner used to be the first two entries here. They now live in the
+ * header status group, where an operator can also change them, and repeating
+ * them below the title only invited the two to disagree while one was saving.
+ */
 function RecordHeaderMetadata({
   moduleKey,
   record,
@@ -1278,11 +1403,6 @@ function RecordHeaderMetadata({
   moduleKey: PlatformModuleKey;
   record: Record<string, unknown>;
 }) {
-  const owner =
-    readRecordLabel(record.assignedToUser) ??
-    readRecordLabel(record.accountManagerUser) ??
-    readRecordLabel(record.onboardingOwnerUser) ??
-    readRecordLabel(record.owner);
   const source = String(record.source ?? record.applicationSource ?? "");
   const customer = readRecordLabel(record.customerAccount ?? record.customer);
   const convertedCustomer =
@@ -1295,9 +1415,6 @@ function RecordHeaderMetadata({
     href?: string;
   };
   const candidateItems: Array<HeaderMetadataItem | null> = [
-    record.status
-      ? { label: "Status", value: formatRecordValue(record.status) }
-      : null,
     moduleKey === "leads" && source ? { label: "Source", value: source } : null,
     moduleKey === "leads" && convertedCustomer
       ? {
@@ -1307,7 +1424,6 @@ function RecordHeaderMetadata({
         }
       : null,
     customer ? { label: "Customer", value: customer } : null,
-    owner ? { label: "Owner", value: owner } : null,
     record.createdAt
       ? {
           label: moduleKey === "leads" ? "Received" : "Created",

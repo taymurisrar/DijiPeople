@@ -900,7 +900,17 @@ export class PlatformRuntimeService {
                     ? body.mode === 'create'
                       ? CreateSupportCaseDto
                       : UpdateSupportCaseDto
-                    : null;
+                    : /*
+                       * Plans validate on update only — the runtime does not
+                       * create them. Without this entry every plan edit
+                       * validated vacuously and then failed at save with a
+                       * whole-request 400, because `dto()` runs with
+                       * `forbidNonWhitelisted` and the form had no way to know
+                       * which field was the problem.
+                       */
+                      key === 'plans' && body.mode !== 'create'
+                      ? UpdatePlanDto
+                      : null;
     if (!Class) return { success: true };
     try {
       const validationValues = { ...(body.values ?? {}) };

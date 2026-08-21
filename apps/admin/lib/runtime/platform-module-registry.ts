@@ -4,6 +4,8 @@ import type {
   RuntimeActionDefinition,
   RuntimeColumnDefinition,
   RuntimeFieldDefinition,
+  RuntimeModuleCapabilities,
+  RuntimeRecordHeaderSlot,
   RuntimeStatusDefinition,
   RuntimeViewDefinition,
 } from "./platform-runtime.types";
@@ -101,8 +103,17 @@ const LEAD_SUB_STATUS_VALUES: Record<string, string[]> = {
   ARCHIVED: ["Archived"],
 };
 
-const STANDARD_LIST_ACTIONS: RuntimeActionDefinition[] = [
-  {
+/**
+ * The standard commands, addressed by name.
+ *
+ * These were previously reached positionally — `STANDARD_LIST_ACTIONS[3]` for
+ * Assign — across seventeen module definitions. Inserting one command into
+ * either array silently re-pointed every one of those references at a
+ * different button, which is not a mistake a type checker can catch. They are
+ * named now, and the arrays below are assembled from the names.
+ */
+const ACTION = {
+  new: {
     key: "new",
     label: "New",
     icon: "new",
@@ -110,7 +121,7 @@ const STANDARD_LIST_ACTIONS: RuntimeActionDefinition[] = [
     scope: "list",
     selection: "none",
   },
-  {
+  refresh: {
     key: "refresh",
     label: "Refresh",
     icon: "refresh",
@@ -118,7 +129,7 @@ const STANDARD_LIST_ACTIONS: RuntimeActionDefinition[] = [
     scope: "list",
     selection: "none",
   },
-  {
+  export: {
     key: "export",
     label: "Export",
     icon: "export",
@@ -126,7 +137,7 @@ const STANDARD_LIST_ACTIONS: RuntimeActionDefinition[] = [
     scope: "list",
     selection: "none",
   },
-  {
+  bulkAssign: {
     key: "bulk-assign",
     label: "Assign",
     icon: "approve",
@@ -134,7 +145,7 @@ const STANDARD_LIST_ACTIONS: RuntimeActionDefinition[] = [
     scope: "list",
     selection: "any",
   },
-  {
+  bulkDelete: {
     key: "bulk-delete",
     label: "Delete",
     icon: "delete",
@@ -146,9 +157,7 @@ const STANDARD_LIST_ACTIONS: RuntimeActionDefinition[] = [
     confirmDescription:
       "This action follows the module retention policy and cannot always be reversed.",
   },
-];
-const STANDARD_RECORD_ACTIONS: RuntimeActionDefinition[] = [
-  {
+  back: {
     key: "back",
     label: "Back",
     icon: "back",
@@ -156,7 +165,22 @@ const STANDARD_RECORD_ACTIONS: RuntimeActionDefinition[] = [
     scope: "record",
     selection: "none",
   },
-  {
+  /*
+   * `record-new` and `record-refresh` carry their own keys rather than reusing
+   * `new` and `refresh`, which already exist at list scope with different
+   * behaviour — list New opens the create form in place, record New navigates
+   * away from the record you are looking at. One key with two meanings would
+   * have left the action handler guessing which page it was on.
+   */
+  recordNew: {
+    key: "record-new",
+    label: "New",
+    icon: "new",
+    placement: "secondary",
+    scope: "record",
+    selection: "none",
+  },
+  edit: {
     key: "edit",
     label: "Edit",
     icon: "edit",
@@ -164,7 +188,15 @@ const STANDARD_RECORD_ACTIONS: RuntimeActionDefinition[] = [
     scope: "record",
     selection: "none",
   },
-  {
+  recordRefresh: {
+    key: "record-refresh",
+    label: "Refresh",
+    icon: "refresh",
+    placement: "secondary",
+    scope: "record",
+    selection: "none",
+  },
+  save: {
     key: "save",
     label: "Save",
     icon: "save",
@@ -172,7 +204,7 @@ const STANDARD_RECORD_ACTIONS: RuntimeActionDefinition[] = [
     scope: "record",
     selection: "none",
   },
-  {
+  saveClose: {
     key: "save-close",
     label: "Save and close",
     icon: "save",
@@ -180,7 +212,7 @@ const STANDARD_RECORD_ACTIONS: RuntimeActionDefinition[] = [
     scope: "record",
     selection: "none",
   },
-  {
+  delete: {
     key: "delete",
     label: "Delete",
     icon: "delete",
@@ -190,22 +222,215 @@ const STANDARD_RECORD_ACTIONS: RuntimeActionDefinition[] = [
     destructive: true,
     confirmTitle: "Delete this record?",
   },
+} satisfies Record<string, RuntimeActionDefinition>;
+
+const STANDARD_RECORD_ACTIONS: RuntimeActionDefinition[] = [
+  ACTION.back,
+  ACTION.recordNew,
+  ACTION.edit,
+  ACTION.recordRefresh,
+  ACTION.save,
+  ACTION.saveClose,
+  ACTION.delete,
 ];
 const READ_ONLY_ACTIONS: RuntimeActionDefinition[] = [
-  STANDARD_LIST_ACTIONS[1]!,
-  STANDARD_LIST_ACTIONS[2]!,
-  STANDARD_RECORD_ACTIONS[0]!,
+  ACTION.refresh,
+  ACTION.export,
+  ACTION.back,
+  ACTION.recordRefresh,
 ];
 const CREATE_LIST_ACTIONS: RuntimeActionDefinition[] = [
-  STANDARD_LIST_ACTIONS[0]!,
-  STANDARD_LIST_ACTIONS[1]!,
-  STANDARD_LIST_ACTIONS[2]!,
+  ACTION.new,
+  ACTION.refresh,
+  ACTION.export,
 ];
 const EDIT_RECORD_ACTIONS: RuntimeActionDefinition[] = [
-  STANDARD_RECORD_ACTIONS[0]!,
-  STANDARD_RECORD_ACTIONS[1]!,
-  STANDARD_RECORD_ACTIONS[2]!,
-  STANDARD_RECORD_ACTIONS[3]!,
+  ACTION.back,
+  ACTION.recordNew,
+  ACTION.edit,
+  ACTION.recordRefresh,
+  ACTION.save,
+  ACTION.saveClose,
+];
+
+const OWNER_LOOKUP_PATH = "/platform-users/owner-candidates";
+/**
+ * Owner is not spelled the same way twice in this schema. The order matters:
+ * a customer carries `assignedToUserId` *and* `accountManagerUserId`, and the
+ * first is the one the list column, the Assign action and the personal views
+ * all agree is the owner.
+ */
+const OWNER_FIELD_CANDIDATES = [
+  { field: "assignedToUserId", displayValueField: "assignedToUser" },
+  { field: "ownerUserId", displayValueField: "ownerUser" },
+  { field: "onboardingOwnerUserId", displayValueField: "onboardingOwnerUser" },
+  { field: "ownerPlatformUserId", displayValueField: "ownerPlatformUser" },
+];
+/** Modules `PlatformRuntimeService.bulkAssign` can actually reassign. */
+const ASSIGNABLE_MODULES = new Set<PlatformModuleKey>([
+  "leads",
+  "partners",
+  "customers",
+  "support-cases",
+]);
+/** Modules `PlatformRuntimeService.changeStatus` implements a transition for. */
+const STATUS_TRANSITION_MODULES = new Set<PlatformModuleKey>([
+  "leads",
+  "partners",
+  "support-cases",
+]);
+/**
+ * Why a status slot is read-only, where the reason is worth telling an
+ * operator rather than leaving them to wonder whether the control is broken.
+ */
+const RECORD_HEADER_READ_ONLY_REASON: Partial<Record<PlatformModuleKey, string>> =
+  {
+    plans:
+      "Publication is changed through the plan form. Governed publish and archive actions are tracked as ITEM-0022.",
+    tenants:
+      "Tenant lifecycle changes go through the Operations tab so the provisioning transition rules apply.",
+    customers:
+      "Customer status follows onboarding and tenant provisioning rather than a direct edit.",
+  };
+
+/**
+ * A partner onboarding application can only be decided on while it is with the
+ * reviewer. `APPROVED` and `REJECTED` are terminal, and an application still
+ * `INVITED` or `IN_PROGRESS` has nothing submitted to decide about.
+ */
+const REVIEWABLE_ONBOARDING_STATES = [
+  "SUBMITTED",
+  "UNDER_REVIEW",
+  "CHANGES_REQUESTED",
+];
+
+/**
+ * What `PlatformRuntimeService` will accept, per module.
+ *
+ * This is a restatement of the `create`, `update` and `remove` switch
+ * statements in
+ * `services/api/src/modules/platform-runtime/platform-runtime.service.ts`, and
+ * it is not free to drift from them: `platform-module-capabilities.spec.ts`
+ * re-derives all three sets from that file and fails when this map disagrees.
+ *
+ * `define()` builds the default command bar from these flags, so a module the
+ * API cannot update never renders an Edit that would come back 400 — and, just
+ * as importantly, a module the API *can* update never quietly ships a record
+ * page carrying nothing but Back, which is what seven of them did before the
+ * command bar had a default at all.
+ */
+const MODULE_CAPABILITIES: Record<
+  PlatformModuleKey,
+  RuntimeModuleCapabilities
+> = {
+  dashboard: { create: false, update: false, delete: false },
+  leads: { create: true, update: true, delete: true },
+  partners: { create: true, update: true, delete: false },
+  "partner-inquiries": { create: false, update: false, delete: false },
+  customers: { create: true, update: true, delete: true },
+  "partner-onboarding": { create: false, update: false, delete: false },
+  "customer-onboarding": { create: true, update: true, delete: true },
+  tenants: { create: false, update: true, delete: false },
+  contracts: { create: true, update: true, delete: false },
+  "contract-templates": { create: false, update: false, delete: false },
+  "signature-requests": { create: false, update: false, delete: false },
+  "support-cases": { create: true, update: true, delete: false },
+  subscriptions: { create: false, update: false, delete: false },
+  plans: { create: false, update: true, delete: false },
+  invoices: { create: false, update: false, delete: false },
+  payments: { create: false, update: false, delete: false },
+  commissions: { create: false, update: false, delete: false },
+  "monitoring-incidents": { create: false, update: false, delete: false },
+};
+
+/**
+ * The command bar every module gets before its own actions are merged in.
+ *
+ * Back and Refresh are unconditional: both are client-side, both work on a
+ * record the API will never let anyone change, and a detail page without them
+ * is a dead end. The rest follow the module's capabilities.
+ */
+function defaultActionsFor(
+  key: PlatformModuleKey,
+  capabilities: RuntimeModuleCapabilities,
+): RuntimeActionDefinition[] {
+  if (key === "dashboard") return [ACTION.refresh];
+  return [
+    ...(capabilities.create ? [ACTION.new] : []),
+    ACTION.refresh,
+    ACTION.export,
+    ACTION.back,
+    ...(capabilities.create ? [ACTION.recordNew] : []),
+    ...(capabilities.update ? [ACTION.edit] : []),
+    ACTION.recordRefresh,
+    ...(capabilities.update ? [ACTION.save, ACTION.saveClose] : []),
+    ...(capabilities.delete ? [ACTION.delete, ACTION.bulkDelete] : []),
+  ];
+}
+
+/**
+ * Merge a module's declared actions over the defaults.
+ *
+ * A declared action wins on `(key, scope)` — that is how Leads keeps "New
+ * Lead" as its list button and Contracts keeps an Edit offered only in the
+ * states an unsigned agreement may be edited in. Everything the module did not
+ * mention is prepended in the canonical order above, so the first commands sit
+ * in the same place on every record page in the product.
+ */
+function withDefaultActions(
+  key: PlatformModuleKey,
+  capabilities: RuntimeModuleCapabilities,
+  declared: RuntimeActionDefinition[],
+): RuntimeActionDefinition[] {
+  const identity = (action: RuntimeActionDefinition) =>
+    `${action.key}::${action.scope}`;
+  const declaredIds = new Set(declared.map(identity));
+  const defaults = defaultActionsFor(key, capabilities).filter(
+    (action) => !declaredIds.has(identity(action)),
+  );
+  const seen = new Set<string>();
+  const merged = [...defaults, ...declared].filter((action) => {
+    const id = identity(action);
+    if (seen.has(id)) return false;
+    seen.add(id);
+    return true;
+  });
+  /*
+   * The standard commands come first, in one fixed order, whether the module
+   * declared them or inherited them. Without this a module that declared five
+   * of the six got the sixth prepended, so Delete led the command bar on Leads
+   * while it sat last on Customers — the same button in two places depending
+   * on which module happened to spell out which defaults.
+   */
+  const rank = (action: RuntimeActionDefinition) => {
+    const index = COMMAND_ORDER.indexOf(String(action.key));
+    return index === -1 ? COMMAND_ORDER.length : index;
+  };
+  return merged
+    .map((action, index) => ({ action, index }))
+    .sort((a, b) => rank(a.action) - rank(b.action) || a.index - b.index)
+    .map((entry) => entry.action);
+}
+
+/**
+ * The order the standard commands appear in, list and record together. Keys
+ * absent from this list are module-specific and keep their declared order
+ * after them; `placement` still decides which of them are drawn inline and
+ * which fall into the overflow menu.
+ */
+const COMMAND_ORDER = [
+  "new",
+  "back",
+  "record-new",
+  "edit",
+  "save",
+  "save-close",
+  "refresh",
+  "record-refresh",
+  "export",
+  "bulk-assign",
+  "delete",
+  "bulk-delete",
 ];
 
 /**
@@ -269,12 +494,14 @@ const TENANT_RECORD_ACTIONS: RuntimeActionDefinition[] = [
    * is never created from this list (provisioning creates it from a completed
    * onboarding), so New is deliberately absent while Refresh and Export are not.
    */
-  STANDARD_LIST_ACTIONS[1]!,
-  STANDARD_LIST_ACTIONS[2]!,
-  STANDARD_RECORD_ACTIONS[0]!,
-  STANDARD_RECORD_ACTIONS[1]!,
-  STANDARD_RECORD_ACTIONS[2]!,
-  STANDARD_RECORD_ACTIONS[3]!,
+  ACTION.refresh,
+  ACTION.export,
+  ACTION.back,
+  ACTION.recordNew,
+  ACTION.edit,
+  ACTION.recordRefresh,
+  ACTION.save,
+  ACTION.saveClose,
   {
     key: "open-tenant-list",
     label: "Open Tenant",
@@ -1134,10 +1361,10 @@ const definitions: PlatformModuleDefinition[] = [
       ],
     },
     actions: [
-      { ...STANDARD_LIST_ACTIONS[0]!, label: "New Lead" },
-      STANDARD_LIST_ACTIONS[1]!,
-      STANDARD_LIST_ACTIONS[2]!,
-      STANDARD_LIST_ACTIONS[3]!,
+      { ...ACTION.new, label: "New Lead" },
+      ACTION.refresh,
+      ACTION.export,
+      ACTION.bulkAssign,
       {
         key: "bulk-change-status",
         label: "Change Status",
@@ -1145,7 +1372,7 @@ const definitions: PlatformModuleDefinition[] = [
         scope: "list",
         selection: "any",
       },
-      STANDARD_LIST_ACTIONS[4]!,
+      ACTION.bulkDelete,
       ...EDIT_RECORD_ACTIONS,
       {
         key: "qualify",
@@ -1241,7 +1468,7 @@ const definitions: PlatformModuleDefinition[] = [
     forms: partnerForms(partnerFields),
     actions: [
       ...CREATE_LIST_ACTIONS,
-      STANDARD_LIST_ACTIONS[3]!,
+      ACTION.bulkAssign,
       ...EDIT_RECORD_ACTIONS,
       {
         key: "start-review",
@@ -1660,8 +1887,11 @@ const definitions: PlatformModuleDefinition[] = [
       },
     ),
     actions: [
-      { ...STANDARD_LIST_ACTIONS[0]!, label: "New Customer" },
-      ...STANDARD_LIST_ACTIONS.slice(1),
+      { ...ACTION.new, label: "New Customer" },
+      ACTION.refresh,
+      ACTION.export,
+      ACTION.bulkAssign,
+      ACTION.bulkDelete,
       ...STANDARD_RECORD_ACTIONS,
       {
         key: "start-onboarding",
@@ -1766,7 +1996,36 @@ const definitions: PlatformModuleDefinition[] = [
         col("createdAt", "Received", 170, "dateTime"),
       ],
     ),
-    actions: READ_ONLY_ACTIONS,
+    /*
+     * The review decisions used to be declared inside
+     * `partner-inquiry-review.tsx`, which meant this module's command bar was
+     * whatever that one component happened to build — no Refresh, and no way
+     * for the registry's defaults to reach it. They are the module's actions,
+     * so they live with the module.
+     */
+    actions: [
+      ...READ_ONLY_ACTIONS,
+      {
+        key: "approve",
+        label: "Qualify and invite",
+        scope: "record",
+        selection: "none",
+        placement: "primary",
+        states: ["NEW", "QUALIFYING", "QUALIFIED"],
+      },
+      {
+        key: "reject",
+        label: "Reject inquiry",
+        scope: "record",
+        selection: "none",
+        placement: "secondary",
+        destructive: true,
+        confirmTitle: "Reject this partner inquiry?",
+        confirmDescription:
+          "The applicant is told the inquiry was not taken forward. This cannot be undone from here.",
+        states: ["NEW", "QUALIFYING", "QUALIFIED"],
+      },
+    ],
   }),
   define({
     ...simple(
@@ -1784,7 +2043,35 @@ const definitions: PlatformModuleDefinition[] = [
         col("reviewedById", "Reviewer", 220, "lookup"),
       ],
     ),
-    actions: READ_ONLY_ACTIONS,
+    actions: [
+      ...READ_ONLY_ACTIONS,
+      {
+        key: "approve",
+        label: "Approve information",
+        scope: "record",
+        selection: "none",
+        placement: "primary",
+        states: REVIEWABLE_ONBOARDING_STATES,
+      },
+      {
+        key: "changes",
+        label: "Request changes",
+        scope: "record",
+        selection: "none",
+        placement: "secondary",
+        states: REVIEWABLE_ONBOARDING_STATES,
+      },
+      {
+        key: "reject",
+        label: "Reject",
+        scope: "record",
+        selection: "none",
+        placement: "secondary",
+        destructive: true,
+        confirmTitle: "Reject this onboarding application?",
+        states: REVIEWABLE_ONBOARDING_STATES,
+      },
+    ],
   }),
   define({
     ...simple(
@@ -2075,8 +2362,8 @@ const definitions: PlatformModuleDefinition[] = [
     },
     actions: [
       ...CREATE_LIST_ACTIONS,
-      STANDARD_LIST_ACTIONS[3]!,
-      STANDARD_LIST_ACTIONS[4]!,
+      ACTION.bulkAssign,
+      ACTION.bulkDelete,
       ...EDIT_RECORD_ACTIONS,
       {
         key: "create-agreement",
@@ -2725,9 +3012,9 @@ const definitions: PlatformModuleDefinition[] = [
     },
     actions: [
       ...CREATE_LIST_ACTIONS,
-      STANDARD_RECORD_ACTIONS[0]!,
+      ACTION.back,
       {
-        ...STANDARD_RECORD_ACTIONS[1]!,
+        ...ACTION.edit,
         states: [
           "DRAFT",
           "INTERNAL_REVIEW",
@@ -2739,8 +3026,8 @@ const definitions: PlatformModuleDefinition[] = [
           "DECLINED",
         ],
       },
-      STANDARD_RECORD_ACTIONS[2]!,
-      STANDARD_RECORD_ACTIONS[3]!,
+      ACTION.save,
+      ACTION.saveClose,
       {
         key: "submit",
         label: "Submit for internal review",
@@ -2939,7 +3226,7 @@ const definitions: PlatformModuleDefinition[] = [
     ),
     actions: [
       ...CREATE_LIST_ACTIONS,
-      STANDARD_RECORD_ACTIONS[0]!,
+      ACTION.back,
       {
         key: "save",
         label: "Create version",
@@ -3119,7 +3406,7 @@ const definitions: PlatformModuleDefinition[] = [
     ]),
     actions: [
       ...CREATE_LIST_ACTIONS,
-      STANDARD_LIST_ACTIONS[3]!,
+      ACTION.bulkAssign,
       ...EDIT_RECORD_ACTIONS,
     ],
     relatedRecords: [
@@ -3233,16 +3520,33 @@ const definitions: PlatformModuleDefinition[] = [
     ),
     forms: planForms(),
     actions: [...CREATE_LIST_ACTIONS, ...EDIT_RECORD_ACTIONS],
+    /*
+     * These declared no `tab`, and the record page only renders a relationship
+     * whose tab is the active one — so a plan with tabs named "Subscriptions"
+     * and "Tenants" showed neither panel, on either tab, ever.
+     */
     relatedRecords: [
       {
         key: "subscriptions",
-        label: "Subscriptions",
+        label: "Subscriptions on this plan",
+        tab: "subscriptions",
+        description:
+          "Tenants currently billed on this plan. Their agreed terms are snapshotted at purchase and are not changed by editing the plan.",
+        emptyTitle: "No tenant is subscribed to this plan",
+        emptyDescription:
+          "Pricing and entitlement changes here affect nobody until a tenant subscribes.",
         module: "subscriptions",
         foreignKey: "planId",
       },
       {
         key: "selectedByCustomers",
-        label: "Customers",
+        label: "Customers who selected this plan",
+        tab: "customers",
+        description:
+          "Customer accounts that named this plan during onboarding, whether or not a subscription exists yet.",
+        emptyTitle: "No customer has selected this plan",
+        emptyDescription:
+          "Customers pick a plan during onboarding or at checkout.",
         module: "customers",
         foreignKey: "selectedPlanId",
       },
@@ -3385,9 +3689,50 @@ const definitions: PlatformModuleDefinition[] = [
   }),
 ];
 
-const runtimeDefinitionErrors = definitions.flatMap((definition) =>
-  validateRuntimeDefinition(definition),
-);
+const runtimeDefinitionErrors = definitions.flatMap((definition) => [
+  ...validateRuntimeDefinition(definition),
+  ...unreachableFormPlacements(definition),
+]);
+
+/**
+ * A form field that renders nowhere.
+ *
+ * `validateRuntimeDefinition` checks that a form field exists in the Prisma
+ * schema and is readable. It says nothing about whether the operator can ever
+ * see it — and the record page draws a section only when its tab is the active
+ * one, so a section pinned to a tab the form does not declare is invisible
+ * while every existing check stays green. The schema-coverage rule then passes
+ * on fields nobody can reach, which is the worst of both: a validation that
+ * asserts presence and proves nothing.
+ */
+function unreachableFormPlacements(definition: PlatformModuleDefinition) {
+  return definition.forms.flatMap((formDefinition) => {
+    if (!formDefinition.tabs?.length) return [];
+    const tabKeys = new Set(formDefinition.tabs.map((tab) => tab.key));
+    const sectionKeys = new Set(
+      formDefinition.sections
+        .filter((section) => !section.tab || tabKeys.has(section.tab))
+        .map((section) => section.key),
+    );
+    return [
+      ...formDefinition.sections
+        .filter((section) => section.tab && !tabKeys.has(section.tab))
+        .map(
+          (section) =>
+            `${definition.key}: ${formDefinition.key} section ${section.key} is placed on tab ${section.tab}, which the form does not declare`,
+        ),
+      ...formDefinition.fields
+        .filter(
+          (item) =>
+            !sectionKeys.has(item.section) || (item.tab && !tabKeys.has(item.tab)),
+        )
+        .map(
+          (item) =>
+            `${definition.key}: ${formDefinition.key} field ${item.key} renders on no tab (section ${item.section}, tab ${item.tab ?? "none"})`,
+        ),
+    ];
+  });
+}
 const schemaCoverageModules = new Set<PlatformModuleKey>([
   "leads",
   "customers",
@@ -3482,16 +3827,151 @@ function define(
       actionLabel: `New ${input.displayName.toLowerCase()}`,
     },
     importExport: input.importExport ?? { export: true, formats: ["csv"] },
+    capabilities: MODULE_CAPABILITIES[input.key],
     ...input,
   } as PlatformModuleDefinition;
-  definition.actions = definition.actions.map((action) => ({
+  definition.actions = withDefaultActions(
+    definition.key,
+    definition.capabilities,
+    definition.actions,
+  ).map((action) => ({
     ...action,
     permission:
       action.permission ?? actionPermission(action.key, definition.permissions),
   }));
+  definition.recordHeader =
+    definition.recordHeader ?? defaultRecordHeader(definition);
   definition.forms = completeFormsFromSchema(definition);
   return definition;
 }
+
+/**
+ * Owner / Status / Sub-status, resolved from what the module already declares.
+ *
+ * Nothing is invented. A slot appears only when the module's Prisma model
+ * actually carries the field; its label and options are taken from the record
+ * form when the module declares one, and from the generated enum otherwise, so
+ * the header and the form never disagree about what a value is called.
+ *
+ * Editing is off by default. A header dropdown that PATCHed a lifecycle column
+ * directly would route around whatever the owning service does on a
+ * transition, so a slot becomes editable only where the runtime API exposes a
+ * governed route for it — named on the slot as `write`.
+ */
+function defaultRecordHeader(
+  definition: PlatformModuleDefinition,
+): PlatformModuleDefinition["recordHeader"] {
+  const schema = getRuntimeSchema(definition.key);
+  if (!schema) return undefined;
+  const declared = new Map(
+    (definition.forms.find((item) => item.key === "detail")?.fields ?? []).map(
+      (item) => [item.key, item] as const,
+    ),
+  );
+  const has = (key: string) => Boolean(schema.fields[key]?.readable);
+  const labelFor = (key: string, fallback: string) =>
+    declared.get(key)?.label ?? fallback;
+  const optionsFor = (key: string) =>
+    declared.get(key)?.options ??
+    (schema.fields[key]?.enumValues ?? []).map((value) => ({
+      value,
+      label: title(value),
+    }));
+
+  const ownerCandidate = OWNER_FIELD_CANDIDATES.find((candidate) =>
+    has(candidate.field),
+  );
+  const owner: RuntimeRecordHeaderSlot | undefined = ownerCandidate
+    ? {
+        field: ownerCandidate.field,
+        label: labelFor(ownerCandidate.field, "Owner"),
+        displayValueField: ownerCandidate.displayValueField,
+        lookupPath: OWNER_LOOKUP_PATH,
+        ...(ASSIGNABLE_MODULES.has(definition.key)
+          ? { write: "assign" as const }
+          : {
+              readOnlyReason:
+                "The runtime API does not expose assignment for this module.",
+            }),
+      }
+    : undefined;
+
+  const statusField = has("status")
+    ? "status"
+    : has("publicationStatus")
+      ? "publicationStatus"
+      : undefined;
+  const statusEditable =
+    statusField === "status" && STATUS_TRANSITION_MODULES.has(definition.key);
+  const status: RuntimeRecordHeaderSlot | undefined = statusField
+    ? {
+        field: statusField,
+        label: labelFor(
+          statusField,
+          statusField === "status" ? "Status" : "Publication",
+        ),
+        options: optionsFor(statusField),
+        ...(statusEditable
+          ? { write: "change-status" as const }
+          : {
+              readOnlyReason:
+                RECORD_HEADER_READ_ONLY_REASON[definition.key] ??
+                "This status is maintained by the owning service, not edited here.",
+            }),
+      }
+    : undefined;
+
+  /*
+   * `subStatus` is a free String on every model that has one, so only Leads
+   * gets a real dependent optionset — the one place a curated value list
+   * exists. Everywhere else the header shows the stored reason and leaves
+   * editing to the form, rather than offering a picker with nothing in it.
+   */
+  const subStatusOptions =
+    definition.key === "leads"
+      ? Object.fromEntries(
+          Object.entries(LEAD_SUB_STATUS_VALUES).map(([value, reasons]) => [
+            value,
+            reasons.map((reason) => ({ value: reason, label: reason })),
+          ]),
+        )
+      : undefined;
+  const subStatus: RuntimeRecordHeaderSlot | undefined = has("subStatus")
+    ? {
+        field: "subStatus",
+        label: labelFor("subStatus", "Sub-status"),
+        ...(subStatusOptions
+          ? { optionsByStatus: subStatusOptions }
+          : {
+              readOnlyReason:
+                "This module records a free-text status reason; edit it on the form.",
+            }),
+        ...(subStatusOptions && statusEditable
+          ? { write: "change-status" as const }
+          : {}),
+      }
+    : definition.key === "plans" && has("salesModel")
+      ? {
+          /*
+           * A plan has no sub-status column. Sales model is the secondary
+           * classification an operator actually reads next to publication —
+           * whether the plan is bought self-service, sold, or quoted — so it
+           * takes the slot rather than leaving a gap where D365 would draw
+           * one.
+           */
+          field: "salesModel",
+          label: labelFor("salesModel", "Sales model"),
+          options: optionsFor("salesModel"),
+          readOnlyReason:
+            "Sales model is changed on the plan form alongside publication.",
+        }
+      : undefined;
+
+  return owner || status || subStatus
+    ? { owner, status, subStatus }
+    : undefined;
+}
+
 
 function completeFormsFromSchema(definition: PlatformModuleDefinition) {
   const schema = getRuntimeSchema(definition.key);
@@ -3538,13 +4018,27 @@ function completeFormsFromSchema(definition: PlatformModuleDefinition) {
       ...item,
       tab: item.tab ?? tabs[0]?.key,
     }));
-    if (additional.length)
+    if (additional.length) {
+      /*
+       * Schema-completed fields have to land on a tab that exists. This
+       * section was pinned to "details", which only exists in the default tab
+       * set — so on any module that declares its own tabs the fields were
+       * added, passed the schema-coverage check, and then rendered nowhere.
+       * Falling back to the last declared tab puts them behind the System or
+       * equivalent tab, which is where an uncurated column belongs anyway.
+       */
+      const fallbackTab =
+        tabs.find((tab) => tab.key === "details")?.key ??
+        tabs[tabs.length - 1]?.key ??
+        "details";
       sections.push({
         key: "additional-details",
         label: "Additional details",
         columns: 3,
-        tab: "details",
+        tab: fallbackTab,
       });
+      for (const item of additional) item.tab = fallbackTab;
+    }
     return {
       ...formDefinition,
       tabs,
@@ -3864,28 +4358,105 @@ function partnerForms(fields: RuntimeFieldDefinition[]) {
   }));
 }
 
+/**
+ * The plan record form.
+ *
+ * Two rules shape this. First, **every field the form leaves writable must be
+ * one `UpdatePlanDto` accepts** — the API validates with
+ * `forbidNonWhitelisted`, so a single extra key fails the whole save with a
+ * 400. The runtime completes a form from the Prisma schema, and the schema
+ * says `isPublic`, `publicationStatus`, `salesModel` and the publication
+ * timestamps are editable columns; the API does not take any of them. Every
+ * plan save from this screen returned 400 until each was declared read-only
+ * here.
+ *
+ * Second, publication is **shown but not changed here**. Making a plan buyable
+ * is a commercial act that ITEM-0022 exists to give governed, audited actions;
+ * a checkbox on an edit form is not that, so this form reports the state and
+ * says where it is decided.
+ */
 function planForms() {
   const tabs = [
     { key: "overview", label: "Overview" },
     { key: "pricing", label: "Pricing" },
-    { key: "features", label: "Features" },
+    { key: "entitlements", label: "Entitlements" },
+    { key: "commercial", label: "Publication" },
     { key: "subscriptions", label: "Subscriptions" },
+    { key: "customers", label: "Customers" },
     { key: "stripe", label: "Stripe" },
-    { key: "tenants", label: "Tenants" },
-    { key: "audit", label: "Audit" },
+    { key: "system", label: "System" },
   ];
-  const fields = [
-    { ...field("key", "Plan key", "text", "overview", true), tab: "overview" },
+  const readOnly = (
+    item: RuntimeFieldDefinition,
+    description?: string,
+  ): RuntimeFieldDefinition => ({ ...item, readOnly: true, description });
+  const fields: RuntimeFieldDefinition[] = [
+    { ...field("name", "Plan name", "text", "identity", true), tab: "overview" },
     {
-      ...field("name", "Plan name", "text", "overview", true),
+      ...field("key", "Plan key", "text", "identity", true),
       tab: "overview",
+      description:
+        "Stable identifier used by checkout, provisioning and the public catalogue.",
     },
     {
-      ...field("description", "Description", "longText", "overview"),
+      ...field("description", "Description", "longText", "identity"),
       tab: "overview",
+      description: "Shown to customers wherever the plan is offered.",
     },
-    { ...field("isActive", "Active", "boolean", "overview"), tab: "overview" },
-    { ...field("isPublic", "Public", "boolean", "overview"), tab: "overview" },
+    {
+      ...field("isActive", "Active", "boolean", "availability"),
+      tab: "overview",
+      description:
+        "Whether the plan is still sold. Publication, not this flag, decides whether it reaches the public catalogue.",
+    },
+    {
+      ...field("sortOrder", "Display order", "integer", "availability"),
+      tab: "overview",
+      description: "Lower numbers appear first in the plan catalogue.",
+    },
+    {
+      ...readOnly(
+        field("publicationStatus", "Publication status", "option", "publication"),
+        "Set through the governed publish and archive actions tracked as ITEM-0022, not from this form.",
+      ),
+      tab: "commercial",
+    },
+    {
+      ...readOnly(
+        field("salesModel", "Sales model", "option", "publication"),
+        "How the plan is bought: self-service checkout, sales-assisted, or custom quote only.",
+      ),
+      tab: "commercial",
+    },
+    {
+      ...readOnly(
+        field("isPublic", "Public", "boolean", "publication"),
+        "Gates self-service checkout alongside publication. The runtime API does not currently accept a change to it.",
+      ),
+      tab: "commercial",
+    },
+    {
+      ...readOnly(
+        field("publishedAt", "Published", "dateTime", "publication"),
+        "When this plan first became buyable. Stamped by the publish transition.",
+      ),
+      tab: "commercial",
+    },
+    {
+      ...readOnly(
+        field("archivedAt", "Archived", "dateTime", "publication"),
+        "When the plan was withdrawn from sale. Existing subscriptions keep the terms they bought.",
+      ),
+      tab: "commercial",
+    },
+    {
+      ...readOnly(
+        field("publishedById", "Published by", "text", "publication"),
+        "The platform user who published it.",
+      ),
+      renderAs: "identifier",
+      tab: "commercial",
+    },
     {
       ...field("currency", "Legacy currency", "text", "legacy-pricing"),
       tab: "pricing",
@@ -3899,7 +4470,7 @@ function planForms() {
       ),
       tab: "pricing",
       description:
-        "Compatibility only. New checkout prices are configured per seat below.",
+        "Compatibility only. What a customer is actually charged comes from the checkout prices below — BUG-0027.",
     },
     {
       ...field(
@@ -3911,21 +4482,82 @@ function planForms() {
       tab: "pricing",
     },
     {
-      ...field("stripeProductId", "Stripe product ID", "text", "stripe"),
+      ...readOnly(
+        field(
+          "legacyPricingMigratedAt",
+          "Legacy pricing migrated",
+          "dateTime",
+          "legacy-pricing",
+        ),
+      ),
+      tab: "pricing",
+    },
+    {
+      ...readOnly(
+        field("stripeProductId", "Stripe product ID", "text", "stripe"),
+        "Created by Stripe synchronisation. Per-price Stripe state is on each checkout price.",
+      ),
+      renderAs: "identifier",
       tab: "stripe",
-      readOnly: true,
+    },
+    {
+      ...readOnly(field("id", "Plan ID", "text", "system")),
+      renderAs: "identifier",
+      tab: "system",
+    },
+    {
+      ...readOnly(field("tenantId", "Owning tenant", "text", "system")),
+      renderAs: "identifier",
+      hideWhenEmpty: true,
+      tab: "system",
+    },
+    {
+      ...readOnly(field("createdAt", "Created", "dateTime", "system")),
+      tab: "system",
+    },
+    {
+      ...readOnly(field("createdById", "Created by", "text", "system")),
+      renderAs: "identifier",
+      tab: "system",
+    },
+    {
+      ...readOnly(field("updatedAt", "Last updated", "dateTime", "system")),
+      tab: "system",
+    },
+    {
+      ...readOnly(field("updatedById", "Updated by", "text", "system")),
+      renderAs: "identifier",
+      tab: "system",
     },
   ];
   const sections = [
     {
-      key: "overview",
-      label: "Plan overview",
+      key: "identity",
+      label: "Plan",
       columns: 2 as const,
       tab: "overview",
     },
     {
+      key: "availability",
+      label: "Availability",
+      description:
+        "Whether the plan is still sold, and where it sits in the catalogue.",
+      columns: 2 as const,
+      tab: "overview",
+    },
+    {
+      key: "publication",
+      label: "Publication and sales model",
+      description:
+        "The state that governs whether customers can see and buy this plan. Read-only here by design.",
+      columns: 3 as const,
+      tab: "commercial",
+    },
+    {
       key: "legacy-pricing",
       label: "Legacy pricing compatibility",
+      description:
+        "Retained for manual billing. Checkout reads the prices configured below.",
       columns: 3 as const,
       tab: "pricing",
     },
@@ -3934,6 +4566,12 @@ function planForms() {
       label: "Stripe product",
       columns: 2 as const,
       tab: "stripe",
+    },
+    {
+      key: "system",
+      label: "System",
+      columns: 3 as const,
+      tab: "system",
     },
   ];
   return (["create", "detail", "edit"] as const).map((key) => ({

@@ -90,10 +90,10 @@ export function createHttpModuleRuntimeAdapter<
         body: JSON.stringify({ ids, ownerId }),
       });
     },
-    async changeStatus(id, status, reason) {
+    async changeStatus(id, status, reason, subStatus) {
       return json<RuntimeActionResult>(
         `/${encodeURIComponent(id)}/actions/change-status`,
-        { method: "POST", body: JSON.stringify({ status, reason }) },
+        { method: "POST", body: JSON.stringify({ status, reason, subStatus }) },
       );
     },
     async executeAction(actionKey, input) {
