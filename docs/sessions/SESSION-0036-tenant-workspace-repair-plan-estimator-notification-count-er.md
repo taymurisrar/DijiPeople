@@ -4,7 +4,7 @@ aliases: [SESSION-0036]
 TASK_ID: TASK-0016
 TITLE: Tenant workspace repair, plan estimator, notification count, error-log UX, and a coded checkout block
 ARCHITECT_INTENT: Tenant workspace repair, plan estimator, notification count, error-log UX, and a coded checkout block
-STATUS: ACTIVE
+STATUS: COMPLETE
 TASK_TYPE: BUG
 TASK_SIZE: LARGE
 BASE_BRANCH: origin/develop
@@ -16,8 +16,8 @@ AFFECTED_MODULES: []
 WRITE_LEASES: []
 ACTIVE_WORK_PACKAGES: []
 SCHEMA_WRITE: NO
-CI_STATUS: NOT_RUN
-MERGE_STATUS: NOT_STARTED
+CI_STATUS: PASS
+MERGE_STATUS: INTEGRATED
 STARTED_AT: 2026-08-21T22:23:03.357Z
 LAST_HEARTBEAT: 2026-08-21T22:23:03.357Z
 BLOCKERS: none
@@ -64,4 +64,7 @@ Live state: `node scripts/session.mjs list`.
 
 ## History
 
-- 2026-08-21 — session started from `origin/develop` at `3883798`.
+- 2026-08-22 — session started from `origin/develop` at `3883798`.
+- 2026-08-22 — integrated at `f87335d` by fast-forward ref-push to `develop`;
+  gate green on the exact SHA on the first attempt (run 32534985937, 14/14).
+  `main` untouched at `3602ec3`.

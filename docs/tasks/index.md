@@ -8,9 +8,9 @@ graph and the block reasons. See
 
 | Bucket | Count |
 |---|---|
-| [Active](active.md) | 7 |
+| [Active](active.md) | 6 |
 | [Blocked](blocked.md) | 1 |
-| [Completed](completed.md) | 8 |
+| [Completed](completed.md) | 9 |
 
 ## Next ready work package
 
@@ -52,4 +52,4 @@ graph and the block reasons. See
 | [TASK-0013](TASK-0013-platform-admin-and-landing-ux-program-payment-diagnosis-work.md) | Platform Admin and landing UX program: payment diagnosis, workspace routing, notifications, preferences, field types | FEATURE | LARGE | P1 | COMPLETE | 8/8 | — |
 | [TASK-0014](TASK-0014-second-ux-round-lookups-that-stay-lookups-a-notification-pop.md) | Second UX round: lookups that stay lookups, a notification popover, a modern features page and configurable signatures | FEATURE | LARGE | P1 | COMPLETE | 7/7 | — |
 | [TASK-0015](TASK-0015-documents-that-read-like-documents-a-console-theme-that-repa.md) | Documents that read like documents, a console theme that repaints, and a stuck tenant with a way out | BUG | LARGE | P1 | COMPLETE | 7/7 | — |
-| [TASK-0016](TASK-0016-a-workspace-that-says-what-it-is-missing-metrics-you-can-act.md) | A workspace that says what it is missing, metrics you can act on, and a checkout block with a code | BUG | LARGE | P1 | IN_PROGRESS | 5/5 | — |
+| [TASK-0016](TASK-0016-a-workspace-that-says-what-it-is-missing-metrics-you-can-act.md) | A workspace that says what it is missing, metrics you can act on, and a checkout block with a code | BUG | LARGE | P1 | COMPLETE | 5/5 | — |

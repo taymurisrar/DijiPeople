@@ -6,13 +6,12 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 7** · completed: 28
+**Active: 6** · completed: 29
 
 ## Active
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
-| [SESSION-0036](../../docs/sessions/SESSION-0036-tenant-workspace-repair-plan-estimator-notification-count-er.md) | TASK-0016 | Tenant workspace repair, plan estimator, notification count, error-log UX, and a coded checkout block | ACTIVE | `agent/tenant-repair-and-console-ux` | `develop` | — | 2026-08-21T22:23:03.357Z |
 | [SESSION-0023](../../docs/sessions/SESSION-0023-first-production-release.md) | — | First production release | ACTIVE | `agent/first-production-release` | `main` | — | 2026-08-20T16:21:59.286Z |
 | [SESSION-0022](../../docs/sessions/SESSION-0022-go-live-readiness.md) | TASK-0010 | Go-live readiness | ACTIVE | `agent/go-live-readiness` | `develop` | — | 2026-08-20T11:10:18.564Z |
 | [SESSION-0019](../../docs/sessions/SESSION-0019-ci-browser-install-latency-and-database-e2e-fixture-contract.md) | — | CI browser install latency and database e2e fixture contract | ACTIVE | `agent/ci-e2e-remediation` | `develop` | — | 2026-08-19T20:24:28.476Z |
@@ -24,6 +23,7 @@ see [`README.md`](README.md) for how they stay out of each other's way.
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0036](../../docs/sessions/SESSION-0036-tenant-workspace-repair-plan-estimator-notification-count-er.md) | TASK-0016 | Tenant workspace repair, plan estimator, notification count, error-log UX, and a coded checkout block | COMPLETE | `agent/tenant-repair-and-console-ux` | `develop` | — | 2026-08-21T22:23:03.357Z |
 | [SESSION-0035](../../docs/sessions/SESSION-0035-document-rendering-fidelity-editor-stability-admin-theme-sti.md) | TASK-0015 | Document rendering fidelity, editor stability, admin theme, sticky fields rail, and a stuck tenant | COMPLETE | `agent/document-render-and-theme` | `develop` | — | 2026-08-21T20:58:56.938Z |
 | [SESSION-0034](../../docs/sessions/SESSION-0034-landing-ux-modernisation-notification-popover-workspace-host.md) | TASK-0014 | Landing UX modernisation, notification popover, workspace host resolution, timeline paging, template signatures | COMPLETE | `agent/ux-round-two` | `develop` | — | 2026-08-21T19:25:07.378Z |
 | [SESSION-0033](../../docs/sessions/SESSION-0033-platform-admin-and-landing-ux-program.md) | TASK-0013 | Platform Admin and landing UX program | COMPLETE | `agent/admin-landing-ux-program` | `develop` | — | 2026-08-21T17:13:50.968Z |

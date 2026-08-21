@@ -216,6 +216,7 @@ _None. Nothing open at CRITICAL._
 
 ## Recent Engineering History
 
+- [[2026-08-22-tenant-repair-and-console-ux-f87335d|Engineering History — Tenant repair and console ux]]
 - [[2026-08-22-document-render-theme-and-tenant-recovery-a701eeb|Engineering History — Document render theme and tenant recovery]]
 - [[2026-08-21-second-ux-round-5d9f74b|Engineering History — Second ux round]]
 - [[2026-08-21-final-agent-operating-system-upgrade-f023512|Engineering History — Final agent operating system upgrade]]
@@ -223,7 +224,6 @@ _None. Nothing open at CRITICAL._
 - [[2026-08-21-admin-record-status-header-08b8661|Engineering History — Platform Admin record header status group and default command bar]]
 - [[2026-08-21-admin-landing-ux-program-3b77e1b|Engineering History — Platform Admin and landing UX program]]
 - [[2026-08-20-self-service-onboarding-provisioning-c935fcb|Engineering History — Self service onboarding provisioning]]
-- [[2026-08-20-identity-and-membership-b4e8a2b|Engineering History — Identity and membership]]
 
 ## Recent Releases
 
@@ -295,7 +295,7 @@ _None. Nothing has been deployed through the release process._
 | Backlog items | 76 |
 | Known bug patterns | 25 |
 | QA runs | 21 |
-| Engineering history records | 28 |
+| Engineering history records | 29 |
 | Release records | 0 |
 | Module notes | 27 |
 | Architecture notes | 20 |

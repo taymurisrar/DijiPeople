@@ -4,7 +4,7 @@ aliases: [TASK-0016]
 TITLE: A workspace that says what it is missing, metrics you can act on, and a checkout block with a code
 TYPE: BUG
 SIZE: LARGE
-STATUS: IN_PROGRESS
+STATUS: COMPLETE
 PRIORITY: P1
 CREATED_AT: 2026-08-22
 AFFECTED_MODULES: [apps/admin, apps/landing, api:tenant-control-plane, api:platform-events]
@@ -14,7 +14,7 @@ CURRENT_PACKAGE:
 COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-04, WP-05]
 BLOCKED_PACKAGES: []
 OWNER_DECISIONS: 0
-FINAL_STATUS:
+FINAL_STATUS: DELIVERED — six reported items fixed and integrated at f87335d with the gate green on the first attempt; one owner decision recorded rather than taken; visual verification not performed
 ---
 
 # TASK-0016 — A workspace that says what it is missing, metrics you can act on, and a checkout block with a code
@@ -49,11 +49,11 @@ A good package can be reviewed on its own and has one owning specialist.
 
 | WP_ID | TITLE | STATUS | DEPENDENCIES | AGENTS | BRANCH | SHA | QA_STATUS | BUGS | CI_STATUS | MERGE_STATUS |
 |---|---|---|---|---|---|---|---|---|---|---|
-| WP-01 | Workspace health, and a repair that is not a retry | DONE | — | backend-api, frontend | agent/tenant-repair-and-console-ux | — | PASS | BUG-0463 | — | PENDING |
-| WP-02 | An unread count that does not depend on who asks | DONE | — | backend-api, frontend | agent/tenant-repair-and-console-ux | — | PASS | BUG-0460 | — | PENDING |
-| WP-03 | An estimator scoped to what headcount changes | DONE | — | frontend, ui-ux | agent/tenant-repair-and-console-ux | — | PASS | BUG-0461 | — | PENDING |
-| WP-04 | Monitoring: Overview first, metrics that act | DONE | — | ui-ux, frontend | agent/tenant-repair-and-console-ux | — | PASS | BUG-0462 | — | PENDING |
-| WP-05 | A checkout block with a quotable code and no form | DONE | — | ui-ux, frontend | agent/tenant-repair-and-console-ux | — | PASS | — | — | PENDING |
+| WP-01 | Workspace health, and a repair that is not a retry | DONE | — | backend-api, frontend | agent/tenant-repair-and-console-ux | f87335d | PASS | BUG-0463 | PASS | INTEGRATED |
+| WP-02 | An unread count that does not depend on who asks | DONE | — | backend-api, frontend | agent/tenant-repair-and-console-ux | f87335d | PASS | BUG-0460 | PASS | INTEGRATED |
+| WP-03 | An estimator scoped to what headcount changes | DONE | — | frontend, ui-ux | agent/tenant-repair-and-console-ux | f87335d | PASS | BUG-0461 | PASS | INTEGRATED |
+| WP-04 | Monitoring: Overview first, metrics that act | DONE | — | ui-ux, frontend | agent/tenant-repair-and-console-ux | f87335d | PASS | BUG-0462 | PASS | INTEGRATED |
+| WP-05 | A checkout block with a quotable code and no form | DONE | — | ui-ux, frontend | agent/tenant-repair-and-console-ux | f87335d | PASS | — | PASS | INTEGRATED |
 
 ## Assumptions
 
