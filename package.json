@@ -17,6 +17,7 @@
     "check-types": "turbo run check-types",
     "generate:runtime-schema": "node scripts/generate-platform-runtime-schema.mjs",
     "test:runtime-schema": "node --test packages/config/platform-runtime-schema.test.js",
+    "check:runtime-schema": "node scripts/generate-platform-runtime-schema.mjs --check",
     "test:platform-domains": "node --test packages/config/platform-domains.test.js",
     "test:security-headers": "node --test packages/config/security-headers.test.js",
     "test:app-urls": "node --test packages/config/app-urls.test.js",

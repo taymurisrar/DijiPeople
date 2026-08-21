@@ -1,6 +1,8 @@
 import { ConflictException, Injectable, Logger } from '@nestjs/common';
 import {
+  BillingCycle,
   CustomerAccountStatus,
+  CustomerOriginChannel,
   DomainEventType,
   Prisma,
   SubscriptionOrderStatus,
@@ -109,6 +111,19 @@ export type OpenOrderInput = {
    * the price they are charged.
    */
   mode?: 'DRAFT' | 'CHECKOUT';
+};
+
+/**
+ * What the order is priced against, as far as the customer record is concerned.
+ *
+ * Its own type rather than three loose parameters: the three are written
+ * together, gap-filled together, and adding a fourth commercial column should
+ * be one edit rather than three.
+ */
+type CommercialSelection = {
+  planId: string;
+  billingCycle: BillingCycle;
+  originChannel: CustomerOriginChannel;
 };
 
 export type OpenOrderResult = {
@@ -254,7 +269,19 @@ export class SubscriptionOrderService {
           });
         }
 
-        const customerAccountId = await this.resolveCustomer(tx, input);
+        const customerAccountId = await this.resolveCustomer(tx, input, {
+          planId: planPrice.planId,
+          billingCycle: planPrice.billingCycle,
+          /*
+           * A lead-attributed order came through sales; anything else reached
+           * this endpoint from the public site. `PARTNER_REFERRAL` is
+           * deliberately not inferred here — the subscribe flow captures no
+           * referral code, so claiming one would be a guess. See BUG-0281.
+           */
+          originChannel: input.leadId
+            ? CustomerOriginChannel.OTHER
+            : CustomerOriginChannel.WEBSITE,
+        });
 
         const orderNumber = `ORD-${new Date().getUTCFullYear()}-${randomUUID()
           .slice(0, 8)
@@ -459,6 +486,7 @@ export class SubscriptionOrderService {
   private async resolveCustomer(
     tx: Prisma.TransactionClient,
     input: OpenOrderInput,
+    selection: CommercialSelection,
   ): Promise<string> {
     const existing = await this.identity.findExisting(tx, {
       companyName: input.companyName,
@@ -476,10 +504,40 @@ export class SubscriptionOrderService {
        * established — a second order from a caller that collects less must not
        * erase what the first one learned.
        */
-      if (Object.keys(profile).length > 0) {
+      /*
+       * The commercial columns fill gaps and never overwrite. A returning buyer
+       * assembling a new order must not rewrite the plan and cycle of the one
+       * they already paid for — `openOnboarding` is what states those
+       * authoritatively, at payment. Filling a null is still worth doing: it is
+       * the difference between a Customers list that can be grouped by plan and
+       * one where every self-service row is blank.
+       *
+       * Read inside this transaction rather than carried on `findExisting`,
+       * which answers an identity question and should not grow a commercial
+       * projection to serve this one.
+       */
+      const current = await tx.customerAccount.findUniqueOrThrow({
+        where: { id: existing.id },
+        select: {
+          selectedPlanId: true,
+          preferredBillingCycle: true,
+          originChannel: true,
+        },
+      });
+      const updates = {
+        ...profile,
+        ...(current.selectedPlanId ? {} : { selectedPlanId: selection.planId }),
+        ...(current.preferredBillingCycle
+          ? {}
+          : { preferredBillingCycle: selection.billingCycle }),
+        ...(current.originChannel
+          ? {}
+          : { originChannel: selection.originChannel }),
+      };
+      if (Object.keys(updates).length > 0) {
         await tx.customerAccount.update({
           where: { id: existing.id },
-          data: profile,
+          data: updates,
         });
       }
       return existing.id;
@@ -518,6 +576,19 @@ export class SubscriptionOrderService {
          * which is exactly what the pre-payment block used to do (BUG-0077).
          */
         ...profile,
+        /*
+         * What this customer is buying, recorded when it is known rather than
+         * after payment. The sales-assisted conversion path has always written
+         * these three; the self-service path wrote none of them, so a
+         * customer who bought through the website arrived in Platform Admin
+         * with no plan, no billing cycle and no channel — the columns the
+         * Customers module reports on. Nothing here is inferred: the plan and
+         * cycle are the ones the order is priced against, and the channel is a
+         * fact about which endpoint created the record.
+         */
+        selectedPlanId: selection.planId,
+        preferredBillingCycle: selection.billingCycle,
+        originChannel: selection.originChannel,
         status: CustomerAccountStatus.PROSPECT,
         subStatus: 'Checkout started',
         leadId: input.leadId ?? null,

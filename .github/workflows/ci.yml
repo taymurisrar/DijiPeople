@@ -295,6 +295,14 @@ jobs:
           node-version: '22.x'
           cache: npm
       - run: npm ci
+      - name: Platform runtime schema is derived from the current schema
+        # The manifest that decides which Prisma columns Platform Admin can see
+        # is generated from schema.prisma, and nothing checked it stayed that
+        # way. When it fell behind, the contract test below still passed —
+        # because it validates the registry against this file, so a stale file
+        # and a stale registry agree with each other. Five real columns were
+        # invisible to operators for a day before anyone noticed. BUG-0282.
+        run: npm run check:runtime-schema
       - name: Platform runtime schema contract
         # Guards sensitive/system-managed fields from becoming writable or
         # exportable. Cheap, and a real security contract.
