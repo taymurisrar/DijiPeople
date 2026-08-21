@@ -7,7 +7,7 @@
 
 | | |
 |---|---|
-| Active sessions | **7** |
+| Active sessions | **8** |
 | Active parent tasks | 6 |
 | Active work packages | 2 |
 | Blocked work packages | 4 |
@@ -23,6 +23,7 @@
 
 | Session | Task | Title | Status | Branch | Target | Leases | Schema |
 |---|---|---|---|---|---|---|---|
+| [[SESSION-0027-hotfix-api-production-heap-cap-to-1536mb|SESSION-0027]] | — | Hotfix API production heap cap to 1536MB | ACTIVE | `agent/api-heap-cap-hotfix` | `main` | — | NO |
 | [[SESSION-0025-deploy-api-heap-cap-change-to-production|SESSION-0025]] | — | Deploy API heap cap change to production | ACTIVE | `agent/api-heap-cap-deploy` | `main` | — | NO |
 | [[SESSION-0023-first-production-release|SESSION-0023]] | — | First production release | ACTIVE | `agent/first-production-release` | `main` | — | NO |
 | [[SESSION-0022-go-live-readiness|SESSION-0022]] | TASK-0010 | Go-live readiness | ACTIVE | `agent/go-live-readiness` | `develop` | — | NO |
