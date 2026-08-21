@@ -253,6 +253,15 @@ const EDIT_RECORD_ACTIONS: RuntimeActionDefinition[] = [
   ACTION.saveClose,
 ];
 
+/*
+ * Declared above `definitions`, not beside the helper that reads it. The
+ * definitions array is evaluated at module scope, so a `const` any `define()`
+ * path touches must already be initialised — otherwise the registry throws
+ * "cannot access before initialization" at import and the whole app fails to
+ * boot, with a message that names the constant rather than the ordering.
+ */
+const COUNTRY_LOOKUP_PATH = "/public/geography/countries";
+
 const OWNER_LOOKUP_PATH = "/platform-users/owner-candidates";
 /**
  * Owner is not spelled the same way twice in this schema. The order matters:
@@ -825,7 +834,7 @@ const partnerFields: RuntimeFieldDefinition[] = [
   field("email", "Business email", "email", "contact", true),
   field("phone", "Phone", "phone", "contact"),
   field("website", "Website", "url", "contact"),
-  field("country", "Country", "text", "contact"),
+  countryField("contact"),
   field(
     "defaultCommissionRate",
     "Default commission",
@@ -996,7 +1005,7 @@ const definitions: PlatformModuleDefinition[] = [
           "integer",
           "company",
         ),
-        field("country", "Country", "text", "company"),
+        countryField("company"),
         field("stateProvince", "State or province", "text", "company"),
         field("city", "City", "text", "company"),
         field(
@@ -1751,7 +1760,7 @@ const definitions: PlatformModuleDefinition[] = [
         ),
         field("financeContactName", "Finance contact", "text", "contacts"),
         field("financeContactEmail", "Finance email", "email", "contacts"),
-        field("country", "Country", "text", "address", true),
+        countryField("address", true),
         field("stateProvince", "State or province", "text", "address"),
         field("city", "City", "text", "address"),
         field("addressLine1", "Address line 1", "text", "address"),
@@ -4202,6 +4211,33 @@ function col(
     ...(link ? { link } : {}),
   } as const;
 }
+/**
+ * Country, as a lookup over the one list that is real.
+ *
+ * There were three answers to "which countries exist": `PLATFORM_COUNTRIES` in
+ * this app, `COUNTRY_OPTIONS` in the landing site, and the `Country` table the
+ * API actually stores against — 250 rows, refreshed from an ISO source. The
+ * admin forms rendered it as a free-text input, so an operator could type
+ * "UAE", "U.A.E." and "United Arab Emirates" into three customer records and
+ * no report could tell they were the same place.
+ *
+ * `/public/geography/countries` rather than `/lookups/countries`: the latter is
+ * behind the tenant permission matrix, and a reference list of countries is not
+ * a tenant-scoped decision. One endpoint serves admin and the public subscribe
+ * wizard, which is what stops the fourth copy from appearing.
+ */
+function countryField(
+  section: string,
+  required = false,
+  label = "Country",
+): RuntimeFieldDefinition {
+  return {
+    ...field("country", label, "lookup", section, required),
+    lookupPath: COUNTRY_LOOKUP_PATH,
+  };
+}
+
+
 function field(
   key: string,
   label: string,

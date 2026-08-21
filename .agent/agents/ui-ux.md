@@ -248,6 +248,104 @@ implying the UI was exercised — the QA context's rule against rounding
 
 ---
 
+## The control audit — every field, every action, every indicator
+
+The Stage 2 list above is what to look at. This is what to look *for*. Each
+check below exists because it was missed on a real screen in this repository,
+and each is answerable in seconds once you know to ask.
+
+**A screen is not reviewed until every field, every action and every indicator
+on it has been through this list.** Sampling the interesting ones is how a
+free-text country field survives four modules.
+
+### Does each control match the data behind it?
+
+Read the column, then read the control. They disagree more often than anyone
+expects, because a schema has one string type and a form has fifteen.
+
+| The data is | The control must be | Not |
+|---|---|---|
+| An email address | `type="email"`, `autoComplete` | a text box |
+| A phone number | `type="tel"`, `inputMode="tel"` | a text box |
+| A URL | `type="url"`, `inputMode="url"` | a text box |
+| A member of a known set | a select, or a lookup if the set is long or lives in a table | a text box |
+| A country, currency, timezone, industry | **a lookup over the one list that is real** | a text box, and never a second hardcoded copy |
+| Money | a currency control that shows the currency | a bare decimal |
+| A percentage | a percentage control | a decimal that looks like money |
+| A count | an integer control with a sensible minimum | a text box |
+| A date | a date control | a string |
+| A foreign key | a lookup showing the record's *name* | the raw id |
+
+Free text where a list exists is not a small defect. "UAE", "U.A.E." and
+"United Arab Emirates" become three customers, and no report can tell. Ask
+where the canonical list lives before accepting any select: if the answer is
+"there is a hardcoded array in this app", check whether the API already has the
+real one, because it usually does.
+
+### Is every field labelled, visibly?
+
+A placeholder is not a label. It disappears the moment somebody types, so
+anyone who is interrupted returns to a row of identical boxes. `aria-label`
+fixes this for screen readers and leaves everybody else guessing — it is half a
+fix, and it reads in review as a whole one.
+
+### Does the action fit the space it is in?
+
+Count the actions in a table row and multiply by their labels. Five labelled
+buttons need roughly 700px; a row action column gets 150. Wrapped buttons
+triple the row height and push the table into horizontal scroll, so the actions
+end up wider than the data they act on.
+
+One inline action, the rest behind an overflow menu. Destructive actions always
+in the menu, never inline — Delete at the end of a row is how a row gets
+deleted by somebody aiming at the row above.
+
+### Does every indicator carry information?
+
+An indicator that is always on is worse than no indicator. A permanently lit
+badge, a spinner that never resolves, a "3 items need attention" that is
+hardcoded — each teaches the person looking at it that indicators here can be
+ignored, and the lesson holds on the day one matters.
+
+Ask of every dot, badge and count: **what would make this go away?** If there
+is no answer, it is decoration pretending to be information.
+
+Prefer a number to a dot. A count is falsifiable; a dot cannot be wrong, which
+is why nobody notices when it is.
+
+### Does the control actually do anything?
+
+A preference that is stored and never read is not a preference. A toggle that
+writes to `localStorage` and changes nothing on screen is a control that lies
+about being a control.
+
+For every setting: change it, then find the pixel that changed. If you cannot,
+the finding is not "the styling is subtle" — it is that the setting is not
+wired.
+
+### Does every link and button reach something real?
+
+Follow it. A button that reports "Workspace opened" and opens a URL that does
+not resolve has told the operator it worked. So has a link to a record page
+that does not exist for that entity type.
+
+Where a destination is built from configuration — a hostname, a port, a base
+domain — check it in the environment you are actually in, not the one the code
+was written for.
+
+### Does a multi-step form say where you are?
+
+Position, length, what is done and what is left, and a way back to a completed
+step without losing what is in the current one. Five identical pills convey
+none of that. Completion must be distinguishable without colour.
+
+### Does an empty state explain itself?
+
+"No results" is not an empty state. Say what would appear here, why nothing
+does, and what to do about it — and link to the thing that would populate it.
+
+---
+
 ## Findings: what they are, and where they go
 
 **No material finding may exist only in a report.** UI/UX surfaces findings; the

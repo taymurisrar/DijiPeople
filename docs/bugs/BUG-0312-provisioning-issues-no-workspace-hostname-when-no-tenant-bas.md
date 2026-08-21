@@ -1,0 +1,126 @@
+---
+ID: BUG-0312
+aliases: [BUG-0312]
+Title: Provisioning issues no workspace hostname when no tenant base domain is configured
+Status: FIXED
+Severity: HIGH
+Priority: P1
+Type: INFRA
+Source: QA_RUN
+DetectedDate: 2026-08-21
+DetectedInSha: aab6965
+AffectedModules: [services/api, packages/config, apps/admin]
+OwnerAgent: architect
+ArchitectDisposition: FIX_NOW
+QAReport: 
+RegressionId: REG-179
+RelatedBacklogItem:
+RelatedDecision:
+RelatedImplementation: agent/admin-landing-ux-program
+CreatedAt: 2026-08-21
+UpdatedAt: 2026-08-21
+ResolvedAt: 2026-08-21
+---
+
+
+# BUG-0312 — Provisioning issues no workspace hostname when no tenant base domain is configured
+
+## Summary
+
+`createSystemDomain` builds a workspace hostname from `TENANT_BASE_DOMAIN`.
+Where none is configured it throws `TENANT_BASE_DOMAIN_NOT_CONFIGURED` — but
+provisioning completes regardless, so a tenant is created, activated and handed
+to a customer with no primary workspace address and nothing saying why.
+
+The only signal is tenant readiness reporting "No primary workspace hostname has
+been created", days later, on a screen nobody opens until something is wrong.
+
+## Expected Behavior
+
+Either the platform can issue workspace hostnames and does, or it says at
+startup that it cannot.
+
+## Actual Behavior
+
+Silent. The environment has no tenant base domain, every provisioning run skips
+the hostname, and the failure surfaces as an unreachable workspace.
+
+## Reproduction
+
+1. Start the API with no `TENANT_BASE_DOMAIN`.
+2. Provision a tenant.
+3. Open it in Platform Admin. Readiness shows the workspace address blocked,
+   Workspace reads "Not provisioned", and the boot log said nothing.
+
+## Evidence
+
+- `services/api/src/modules/tenant-domains/tenant-domain.service.ts` —
+  `createSystemDomain` throws when `buildWorkspaceHostname` returns "".
+- `packages/config/platform-domains.js` — `buildWorkspaceHostname` returns ""
+  when `tenantBaseDomain` is empty, which is its value outside production when
+  unconfigured.
+- No environment file in the repository set it, and
+  `.env.development.example` did not mention it.
+
+## Root Cause
+
+A required piece of configuration that was neither required at boot nor
+documented as required. `resolvePlatformEnvironment` deliberately refuses to
+infer the stage from `NODE_ENV` — which is correct and is what keeps the
+development workspace fallback out of production — but nothing then said the
+stage was missing.
+
+## Impact
+
+Every tenant provisioned in an environment without the variable. In development
+that is every tenant; a deployment missing it would ship customers a workspace
+they cannot reach.
+
+## Affected Areas
+
+Tenant provisioning, workspace routing, `Open Tenant`, invitation emails.
+
+## Proposed Resolution
+
+Log the resolved workspace hostname pattern at boot, or warn that none can be
+issued. Document the variable in `.env.development.example` with the reason.
+
+## Acceptance Criteria
+
+- Starting the API prints either the hostname pattern or a warning naming the
+  missing variable.
+- The development example configures it.
+
+## Regression Coverage
+
+REG-179 — `packages/config/platform-domains.test.js` covers the URL half; the
+boot warning is a log line, asserted by reading it rather than by a test, and
+that is stated rather than implied.
+
+## Dependencies
+
+None.
+
+## Related Items
+
+[[BUG-0313]] — the second copy of the workspace URL rule, found with it.
+
+## Resolution
+
+Fixed on `agent/admin-landing-ux-program`: boot-time diagnostic in `main.ts`,
+`TENANT_BASE_DOMAIN` / `PLATFORM_ENVIRONMENT` / `PUBLIC_BASE_DOMAIN` documented
+in `.env.development.example` and set in the local environment, and
+`CORS_ALLOWED_ORIGINS` widened to `http://*.localhost:3001` so a workspace
+origin can sign in.
+
+## QA Retest
+
+Not re-provisioned automatically — with the configuration in place, Retry
+provisioning on the tenant Operations tab issues the hostname through the normal
+path. Writing the row by hand would bypass the demote-other-primaries
+transaction and the platform event.
+
+## History
+
+- 2026-08-21 — reported as "why doesn't xoul-ltd.localhost:3001/login work" and
+  "why is the primary hostname not created"; both were this.

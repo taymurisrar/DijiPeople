@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**168 records** — 92 bugs under [`docs/bugs/`](../bugs/), 76 non-bug items under [`items/`](items/).
+**174 records** — 98 bugs under [`docs/bugs/`](../bugs/), 76 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,21 +13,21 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 46 |
+| Open (active work) | 52 |
 | Blocked | 1 |
 | Deferred | 16 |
 | Awaiting a product decision | 6 |
 | Completed / closed | 99 |
 | **Open CRITICAL** | **0** |
-| **Open HIGH** | **15** |
+| **Open HIGH** | **17** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
 
 | Severity | Count |
 |---|---|
-| HIGH | 15 |
-| MEDIUM | 26 |
+| HIGH | 17 |
+| MEDIUM | 30 |
 | LOW | 5 |
 
 ## Open by type
@@ -35,17 +35,17 @@ see [`README.md`](README.md) for why.
 | Type | Count |
 |---|---|
 | ARCHITECTURE | 2 |
-| BUG | 1 |
-| DATA_INTEGRITY | 5 |
+| BUG | 2 |
+| DATA_INTEGRITY | 6 |
 | DOCUMENTATION | 2 |
 | FOLLOW_UP | 3 |
-| INFRA | 6 |
+| INFRA | 7 |
 | PERFORMANCE | 1 |
 | SECURITY | 6 |
 | STATE_MACHINE | 1 |
 | TECH_DEBT | 6 |
 | TEST_GAP | 7 |
-| UX | 6 |
+| UX | 9 |
 
 ## All records by status
 
@@ -55,7 +55,7 @@ see [`README.md`](README.md) for why.
 | BLOCKED | 1 |
 | DEFERRED | 16 |
 | PRODUCT_DECISION | 6 |
-| FIXED | 13 |
+| FIXED | 19 |
 | VERIFIED | 68 |
 | DUPLICATE | 1 |
 | READY | 26 |
@@ -121,6 +121,8 @@ see [`README.md`](README.md) for why.
 | [BUG-0220](../../docs/bugs/BUG-0220-saving-a-plan-from-the-runtime-record-page-always-returns-40.md) | Saving a plan from the runtime record page always returns 400 | BUG | HIGH | P1 | FIXED | apps/admin, api:platform-runtime, api:super-admin | FIX_NOW |
 | [BUG-0280](../../docs/bugs/BUG-0280-self-service-checkout-leaves-a-customer-with-no-plan-billing.md) | Self-service checkout leaves a customer with no plan, billing cycle or origin channel | DATA_INTEGRITY | HIGH | P1 | FIXED | api:billing, api:super-admin, apps/admin | FIX_NOW |
 | [BUG-0282](../../docs/bugs/BUG-0282-the-platform-runtime-schema-manifest-drifted-from-schema-pri.md) | The platform runtime schema manifest drifted from schema.prisma and no check noticed | DATA_INTEGRITY | HIGH | P1 | FIXED | pkg:config, apps/admin, services/api/prisma | FIX_NOW |
+| [BUG-0312](../../docs/bugs/BUG-0312-provisioning-issues-no-workspace-hostname-when-no-tenant-bas.md) | Provisioning issues no workspace hostname when no tenant base domain is configured | INFRA | HIGH | P1 | FIXED | services/api, pkg:config, apps/admin | FIX_NOW |
+| [BUG-0313](../../docs/bugs/BUG-0313-admin-builds-workspace-urls-from-a-second-divergent-copy-of-.md) | Admin builds workspace URLs from a second, divergent copy of the rule | BUG | HIGH | P1 | FIXED | apps/admin, pkg:config | FIX_NOW |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | READY | api:tenant-control-plane | FIX_NOW |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | READY | apps/web, e2e | PLAN_REQUIRED |
@@ -162,6 +164,10 @@ see [`README.md`](README.md) for why.
 | [BUG-0223](../../docs/bugs/BUG-0223-admin-cannot-set-a-plan-ispublic-flag-which-gates-self-servi.md) | Admin cannot set a plan isPublic flag which gates self-service checkout | UX | MEDIUM | P2 | PRODUCT_DECISION | apps/admin, api:super-admin, api:billing | PRODUCT_DECISION |
 | [BUG-0281](../../docs/bugs/BUG-0281-partner-attribution-is-lost-when-a-referred-buyer-purchases-.md) | Partner attribution is lost when a referred buyer purchases through self-service checkout | DATA_INTEGRITY | MEDIUM | P2 | OPEN | apps/landing, api:billing, api:partner-experience | PLAN_REQUIRED |
 | [BUG-0283](../../docs/bugs/BUG-0283-a-regenerated-prisma-client-against-an-un-migrated-database-.md) | A regenerated Prisma client against an un-migrated database 500s every affected screen | INFRA | MEDIUM | P2 | OPEN | services/api, services/api/prisma, apps/admin | PLAN_REQUIRED |
+| [BUG-0314](../../docs/bugs/BUG-0314-the-notifications-page-is-a-placeholder-under-a-permanently-.md) | The notifications page is a placeholder under a permanently lit badge | UX | MEDIUM | P2 | FIXED | apps/admin, api:platform-events | FIX_NOW |
+| [BUG-0315](../../docs/bugs/BUG-0315-workspace-preferences-are-stored-in-localstorage-and-never-a.md) | Workspace preferences are stored in localStorage and never applied | UX | MEDIUM | P2 | FIXED | apps/admin, api:platform-users, services/api/prisma | FIX_NOW |
+| [BUG-0316](../../docs/bugs/BUG-0316-country-industry-and-contact-fields-are-free-text-where-a-ca.md) | Country industry and contact fields are free text where a canonical list exists | DATA_INTEGRITY | MEDIUM | P2 | FIXED | apps/landing, apps/admin, api:lookups, pkg:config | FIX_NOW |
+| [BUG-0317](../../docs/bugs/BUG-0317-the-subscribe-wizard-shows-five-identical-pills-and-labels-t.md) | The subscribe wizard shows five identical pills and labels three address fields only by placeholder | UX | MEDIUM | P2 | FIXED | apps/landing | FIX_NOW |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | READY | services/api, apps/admin | FIX_NOW |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | READY | api:tenant-control-plane | FIX_NOW |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |

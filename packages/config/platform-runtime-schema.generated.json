@@ -129,7 +129,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "email",
           "defaultValue": null
         },
         "phoneNumber": {
@@ -150,7 +150,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "phone",
           "defaultValue": null
         },
         "companyWebsite": {
@@ -171,7 +171,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "url",
           "defaultValue": null
         },
         "industry": {
@@ -549,7 +549,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "email",
           "defaultValue": null
         },
         "billingContactName": {
@@ -591,7 +591,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "email",
           "defaultValue": null
         },
         "agreedPlanId": {
@@ -654,7 +654,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "billingCycle": {
@@ -1098,7 +1098,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "url",
           "defaultValue": null
         },
         "utmSource": {
@@ -1943,7 +1943,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "email",
           "defaultValue": null
         },
         "phone": {
@@ -1964,7 +1964,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "phone",
           "defaultValue": null
         },
         "country": {
@@ -2006,7 +2006,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "url",
           "defaultValue": null
         },
         "taxId": {
@@ -2837,7 +2837,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "email",
           "defaultValue": null
         },
         "phone": {
@@ -2858,7 +2858,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "phone",
           "defaultValue": null
         },
         "country": {
@@ -2900,7 +2900,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "url",
           "defaultValue": null
         },
         "message": {
@@ -3068,7 +3068,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "url",
           "defaultValue": null
         },
         "utmSource": {
@@ -3870,7 +3870,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "email",
           "defaultValue": null
         },
         "primaryContactPhone": {
@@ -3891,7 +3891,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "phone",
           "defaultValue": null
         },
         "billingContactEmail": {
@@ -3912,7 +3912,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "email",
           "defaultValue": null
         },
         "financeContactName": {
@@ -3954,7 +3954,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "email",
           "defaultValue": null
         },
         "industry": {
@@ -4017,7 +4017,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "email",
           "defaultValue": null
         },
         "contactPhone": {
@@ -4038,7 +4038,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "phone",
           "defaultValue": null
         },
         "country": {
@@ -4164,7 +4164,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "url",
           "defaultValue": null
         },
         "estimatedEmployeeCount": {
@@ -5234,7 +5234,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "agreedSeats": {
@@ -5385,7 +5385,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "email",
           "defaultValue": null
         },
         "primaryOwnerPhone": {
@@ -5406,7 +5406,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "phone",
           "defaultValue": null
         },
         "createServiceAccount": {
@@ -5490,7 +5490,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "email",
           "defaultValue": null
         },
         "contractSigned": {
@@ -11690,7 +11690,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": "0"
         },
         "discountType": {
@@ -11778,7 +11778,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": "0"
         },
         "currency": {
@@ -12928,7 +12928,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": "0"
         },
         "annualBasePrice": {
@@ -12949,7 +12949,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": "0"
         },
         "currency": {
@@ -13551,7 +13551,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "currency": {
@@ -13685,7 +13685,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "url",
           "defaultValue": null
         },
         "stripeInvoicePdfUrl": {
@@ -13706,7 +13706,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "url",
           "defaultValue": null
         },
         "stripePaymentIntentId": {
@@ -13874,7 +13874,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "tax": {
@@ -13916,7 +13916,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "amountPaid": {
@@ -14342,7 +14342,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "currency": {
@@ -14847,7 +14847,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "commissionRate": {
@@ -14889,7 +14889,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "currencyCode": {
@@ -15570,7 +15570,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "email",
           "defaultValue": null
         },
         "documentSource": {
@@ -18317,7 +18317,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "email",
           "defaultValue": null
         },
         "requesterUserId": {
@@ -25561,7 +25561,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "url",
           "defaultValue": null
         },
         "faviconUrl": {
@@ -25582,7 +25582,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "url",
           "defaultValue": null
         },
         "loginImageUrl": {
@@ -25603,7 +25603,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "url",
           "defaultValue": null
         },
         "primaryColor": {
@@ -25939,7 +25939,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "email",
           "defaultValue": null
         },
         "supportPhone": {
@@ -25960,7 +25960,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "phone",
           "defaultValue": null
         },
         "privacyPolicyUrl": {
@@ -25981,7 +25981,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "url",
           "defaultValue": null
         },
         "termsOfUseUrl": {
@@ -26002,7 +26002,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "url",
           "defaultValue": null
         },
         "createdAt": {
@@ -28126,7 +28126,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "email",
           "defaultValue": null
         },
         "executedById": {
@@ -28577,7 +28577,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "email",
           "defaultValue": null
         },
         "primaryContactPhone": {
@@ -28598,7 +28598,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "phone",
           "defaultValue": null
         },
         "billingContactEmail": {
@@ -28619,7 +28619,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "email",
           "defaultValue": null
         },
         "financeContactName": {
@@ -28661,7 +28661,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "email",
           "defaultValue": null
         },
         "industry": {
@@ -28724,7 +28724,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "email",
           "defaultValue": null
         },
         "contactPhone": {
@@ -28745,7 +28745,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "phone",
           "defaultValue": null
         },
         "country": {
@@ -28871,7 +28871,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "url",
           "defaultValue": null
         },
         "estimatedEmployeeCount": {
@@ -30115,7 +30115,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "email",
           "defaultValue": null
         },
         "role": {
@@ -30503,7 +30503,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "email",
           "defaultValue": null
         },
         "phoneNumber": {
@@ -30524,7 +30524,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "phone",
           "defaultValue": null
         },
         "companyWebsite": {
@@ -30545,7 +30545,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "url",
           "defaultValue": null
         },
         "industry": {
@@ -30923,7 +30923,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "email",
           "defaultValue": null
         },
         "billingContactName": {
@@ -30965,7 +30965,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "email",
           "defaultValue": null
         },
         "agreedPlanId": {
@@ -31028,7 +31028,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "billingCycle": {
@@ -31472,7 +31472,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "url",
           "defaultValue": null
         },
         "utmSource": {
@@ -32316,7 +32316,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "email",
           "defaultValue": null
         },
         "phone": {
@@ -32337,7 +32337,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "phone",
           "defaultValue": null
         },
         "country": {
@@ -32379,7 +32379,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "url",
           "defaultValue": null
         },
         "taxId": {
@@ -34079,7 +34079,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "commissionRate": {
@@ -34121,7 +34121,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "currencyCode": {
@@ -35639,7 +35639,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "email",
           "defaultValue": null
         },
         "documentSource": {
@@ -38463,7 +38463,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "email",
           "defaultValue": null
         },
         "phone": {
@@ -38484,7 +38484,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "phone",
           "defaultValue": null
         },
         "organizationId": {
@@ -40720,7 +40720,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "email",
           "defaultValue": null
         },
         "role": {
@@ -41430,7 +41430,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "email",
           "defaultValue": null
         },
         "signerRole": {
@@ -42979,7 +42979,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "email",
           "defaultValue": null
         },
         "phone": {
@@ -43000,7 +43000,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "phone",
           "defaultValue": null
         },
         "country": {
@@ -43042,7 +43042,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "url",
           "defaultValue": null
         },
         "message": {
@@ -43210,7 +43210,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "url",
           "defaultValue": null
         },
         "utmSource": {
@@ -44052,7 +44052,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "email",
           "defaultValue": null
         },
         "firstName": {
@@ -45302,7 +45302,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "email",
           "defaultValue": null
         },
         "requesterUserId": {
@@ -46563,7 +46563,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "email",
           "defaultValue": null
         },
         "subject": {
@@ -47059,7 +47059,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "agreedSeats": {
@@ -47210,7 +47210,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "email",
           "defaultValue": null
         },
         "primaryOwnerPhone": {
@@ -47231,7 +47231,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "phone",
           "defaultValue": null
         },
         "createServiceAccount": {
@@ -47315,7 +47315,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "email",
           "defaultValue": null
         },
         "contractSigned": {
@@ -48625,7 +48625,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": "0"
         },
         "annualBasePrice": {
@@ -48646,7 +48646,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": "0"
         },
         "currency": {
@@ -49534,7 +49534,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "minimumSeats": {
@@ -49618,7 +49618,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "effectiveFrom": {
@@ -51132,7 +51132,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": "0"
         },
         "discountType": {
@@ -51220,7 +51220,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": "0"
         },
         "currency": {
@@ -53242,7 +53242,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "email",
           "defaultValue": null
         },
         "passwordHash": {
@@ -53691,7 +53691,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "email",
           "defaultValue": null
         },
         "passwordHash": {
@@ -55065,7 +55065,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "email",
           "defaultValue": null
         },
         "firstName": {
@@ -55234,6 +55234,97 @@
           "systemManaged": false,
           "sensitive": false,
           "defaultControl": "text",
+          "defaultValue": null
+        },
+        "uiTheme": {
+          "key": "uiTheme",
+          "label": "Ui Theme",
+          "type": "enum",
+          "relationModel": null,
+          "required": false,
+          "nullable": true,
+          "list": false,
+          "enumValues": [
+            "SYSTEM",
+            "LIGHT",
+            "DARK"
+          ],
+          "readable": true,
+          "creatable": true,
+          "editable": true,
+          "filterable": true,
+          "sortable": true,
+          "searchable": false,
+          "exportable": true,
+          "systemManaged": false,
+          "sensitive": false,
+          "defaultControl": "option",
+          "defaultValue": null
+        },
+        "uiDensity": {
+          "key": "uiDensity",
+          "label": "Ui Density",
+          "type": "enum",
+          "relationModel": null,
+          "required": false,
+          "nullable": true,
+          "list": false,
+          "enumValues": [
+            "COMFORTABLE",
+            "COMPACT"
+          ],
+          "readable": true,
+          "creatable": true,
+          "editable": true,
+          "filterable": true,
+          "sortable": true,
+          "searchable": false,
+          "exportable": true,
+          "systemManaged": false,
+          "sensitive": false,
+          "defaultControl": "option",
+          "defaultValue": null
+        },
+        "defaultLandingRoute": {
+          "key": "defaultLandingRoute",
+          "label": "Default Landing Route",
+          "type": "String",
+          "relationModel": null,
+          "required": false,
+          "nullable": true,
+          "list": false,
+          "enumValues": [],
+          "readable": true,
+          "creatable": true,
+          "editable": true,
+          "filterable": true,
+          "sortable": true,
+          "searchable": true,
+          "exportable": true,
+          "systemManaged": false,
+          "sensitive": false,
+          "defaultControl": "text",
+          "defaultValue": null
+        },
+        "notificationsReadAt": {
+          "key": "notificationsReadAt",
+          "label": "Notifications Read At",
+          "type": "DateTime",
+          "relationModel": null,
+          "required": false,
+          "nullable": true,
+          "list": false,
+          "enumValues": [],
+          "readable": true,
+          "creatable": true,
+          "editable": true,
+          "filterable": true,
+          "sortable": true,
+          "searchable": false,
+          "exportable": true,
+          "systemManaged": false,
+          "sensitive": false,
+          "defaultControl": "dateTime",
           "defaultValue": null
         },
         "createdAt": {
@@ -56997,7 +57088,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "email",
           "defaultValue": null
         },
         "payrollContactPhone": {
@@ -57018,7 +57109,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "phone",
           "defaultValue": null
         },
         "approvalContactName": {
@@ -57060,7 +57151,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "email",
           "defaultValue": null
         },
         "createdAt": {
@@ -61785,7 +61876,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "email",
           "defaultValue": null
         },
         "tokenHash": {
@@ -62240,7 +62331,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "email",
           "defaultValue": null
         },
         "personalEmail": {
@@ -62261,7 +62352,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "email",
           "defaultValue": null
         },
         "phone": {
@@ -62282,7 +62373,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "phone",
           "defaultValue": null
         },
         "alternatePhone": {
@@ -62303,7 +62394,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "phone",
           "defaultValue": null
         },
         "dateOfBirth": {
@@ -63197,7 +63288,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "phone",
           "defaultValue": null
         },
         "emergencyContactAlternatePhone": {
@@ -63218,7 +63309,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "phone",
           "defaultValue": null
         },
         "noticePeriodDays": {
@@ -69450,7 +69541,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "phone",
           "defaultValue": null
         },
         "email": {
@@ -69471,7 +69562,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "email",
           "defaultValue": null
         },
         "isPrimary": {
@@ -71372,7 +71463,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "accrualType": {
@@ -71467,7 +71558,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "accrueDuringProbation": {
@@ -72510,7 +72601,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "maximumAmount": {
@@ -72531,7 +72622,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "minimumDuration": {
@@ -80068,7 +80159,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "url",
           "defaultValue": null
         },
         "username": {
@@ -89000,7 +89091,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "email",
           "defaultValue": null
         },
         "contactPhone": {
@@ -89021,7 +89112,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "phone",
           "defaultValue": null
         },
         "billingEmail": {
@@ -89042,7 +89133,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "email",
           "defaultValue": null
         },
         "websiteUrl": {
@@ -89063,7 +89154,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "url",
           "defaultValue": null
         },
         "address": {
@@ -90079,7 +90170,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "budgetCurrencyCode": {
@@ -90205,7 +90296,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "costBudgetAmount": {
@@ -90226,7 +90317,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "consumedAmount": {
@@ -90247,7 +90338,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "burnRate": {
@@ -91181,7 +91272,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "billingRateAmount": {
@@ -91202,7 +91293,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "currencyCode": {
@@ -92630,7 +92721,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "email",
           "defaultValue": null
         },
         "personalEmail": {
@@ -92651,7 +92742,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "email",
           "defaultValue": null
         },
         "phone": {
@@ -92672,7 +92763,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "phone",
           "defaultValue": null
         },
         "alternatePhone": {
@@ -92693,7 +92784,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "phone",
           "defaultValue": null
         },
         "source": {
@@ -93324,7 +93415,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "url",
           "defaultValue": null
         },
         "linkedInUrl": {
@@ -93345,7 +93436,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "url",
           "defaultValue": null
         },
         "otherProfileUrl": {
@@ -93366,7 +93457,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "url",
           "defaultValue": null
         },
         "interests": {
@@ -98879,7 +98970,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "email",
           "defaultValue": null
         },
         "completedAt": {
@@ -105266,7 +105357,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "email",
           "defaultValue": null
         },
         "fromName": {
@@ -105308,7 +105399,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "email",
           "defaultValue": null
         },
         "configuration": {
@@ -106459,7 +106550,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "url",
           "defaultValue": null
         },
         "payload": {
@@ -112470,7 +112561,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "currency": {
@@ -112604,7 +112695,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "url",
           "defaultValue": null
         },
         "stripeInvoicePdfUrl": {
@@ -112625,7 +112716,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "url",
           "defaultValue": null
         },
         "stripePaymentIntentId": {
@@ -112793,7 +112884,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "tax": {
@@ -112835,7 +112926,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "amountPaid": {
@@ -113522,7 +113613,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "currency": {
@@ -119872,7 +119963,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "currencyCode": {
@@ -119914,7 +120005,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "reportingCurrency": {
@@ -120368,7 +120459,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "currencyCode": {
@@ -120410,7 +120501,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "reportingCurrency": {
@@ -121134,7 +121225,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "currencyCode": {
@@ -123202,7 +123293,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "currencyCode": {
@@ -123753,7 +123844,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "status": {
@@ -124297,7 +124388,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "currencyCode": {
@@ -124841,7 +124932,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "currencyCode": {
@@ -125224,7 +125315,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "requiresReceipt": {
@@ -125595,7 +125686,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": "0"
         },
         "approvedAmount": {
@@ -125616,7 +125707,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": "0"
         },
         "currencyCode": {
@@ -126125,7 +126216,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "approvedAmount": {
@@ -126146,7 +126237,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "currencyCode": {
@@ -126917,7 +127008,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "percentage": {
@@ -127114,7 +127205,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "employeeContributionPercent": {
@@ -127177,7 +127268,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "employerContributionPercent": {
@@ -127639,7 +127730,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "renewalPeriod": {
@@ -128723,7 +128814,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "consumedBalance": {
@@ -128744,7 +128835,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": "0"
         },
         "notes": {
@@ -129043,7 +129134,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "consumedAt": {
@@ -130886,7 +130977,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "maximumAmount": {
@@ -130907,7 +130998,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "maximumInstallments": {
@@ -131096,7 +131187,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "insuranceFee": {
@@ -131117,7 +131208,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "gracePeriodDays": {
@@ -131285,7 +131376,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "arrearsHandling": {
@@ -131948,7 +132039,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "approvedAmount": {
@@ -131969,7 +132060,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "currencyCode": {
@@ -132053,7 +132144,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": "0"
         },
         "requestedStartDate": {
@@ -132478,7 +132569,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "principalAmount": {
@@ -132499,7 +132590,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "interestAmount": {
@@ -132520,7 +132611,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": "0"
         },
         "status": {
@@ -135585,7 +135676,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": "0"
         },
         "creditAmount": {
@@ -135606,7 +135697,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": "0"
         },
         "description": {
@@ -137307,7 +137398,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "currencyCode": {
@@ -137658,7 +137749,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "currencyCode": {
@@ -140112,7 +140203,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "fixedEmployerAmount": {
@@ -140133,7 +140224,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "currencyCode": {
@@ -140726,7 +140817,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "maxAmount": {
@@ -140747,7 +140838,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "employeeRate": {
@@ -140810,7 +140901,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "fixedEmployerAmount": {
@@ -140831,7 +140922,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "excessOver": {
@@ -141477,7 +141568,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": "0"
         },
         "taxExemptionAmount": {
@@ -141498,7 +141589,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": "0"
         },
         "taxCreditAmount": {
@@ -141519,7 +141610,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": "0"
         },
         "previousEmployerTaxableIncome": {
@@ -141974,7 +142065,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "description": {
@@ -142440,7 +142531,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "percentage": {
@@ -142608,7 +142699,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "maximumAmount": {
@@ -142629,7 +142720,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "roundingMethod": {
@@ -143543,7 +143634,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "percentage": {
@@ -145270,7 +145361,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "percentage": {
@@ -145354,7 +145445,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "maximumAmount": {
@@ -145375,7 +145466,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "isRequired": {
@@ -145896,7 +145987,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "grossEarnings": {
@@ -146346,7 +146437,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "percentage": {
@@ -146388,7 +146479,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "calculatedAmount": {
@@ -146409,7 +146500,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": "0"
         },
         "overrideAmount": {
@@ -146430,7 +146521,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "effectiveAmount": {
@@ -146451,7 +146542,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": "0"
         },
         "isOverridden": {
@@ -152334,7 +152425,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "url",
           "defaultValue": null
         },
         "releaseDate": {
@@ -166419,7 +166510,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "url",
           "defaultValue": null
         },
         "fileName": {
@@ -171643,7 +171734,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "email",
           "defaultValue": null
         },
         "acknowledgedAt": {
@@ -171867,7 +171958,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "url",
           "defaultValue": null
         },
         "status": {
@@ -173293,7 +173384,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "subtotalAmount": {
@@ -173314,7 +173405,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "discountAmount": {
@@ -173335,7 +173426,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": "0"
         },
         "taxableAmount": {
@@ -173356,7 +173447,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "taxAmount": {
@@ -173377,7 +173468,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": "0"
         },
         "totalAmount": {
@@ -173398,7 +173489,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "promotionId": {
@@ -176431,7 +176522,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "decimal",
+          "defaultControl": "currency",
           "defaultValue": null
         },
         "currency": {
@@ -177446,7 +177537,7 @@
           "exportable": true,
           "systemManaged": false,
           "sensitive": false,
-          "defaultControl": "text",
+          "defaultControl": "email",
           "defaultValue": null
         },
         "leadId": {

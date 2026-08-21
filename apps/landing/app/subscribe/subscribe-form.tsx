@@ -568,40 +568,89 @@ export function SubscribeForm({
 
       <section className="rounded-[24px] border border-border bg-white p-5 shadow-sm">
         {/*
-          The progress list is an ordered list so a screen reader announces
-          position and length, and each completed step is a button rather than
-          a decoration — going back to fix something is the most common thing
-          anybody does in a wizard.
+          The progress indicator.
+          An ordered list, so a screen reader announces position and length, and
+          each reachable step is a real button — going back to fix something is
+          the most common thing anybody does in a wizard, and the five equal
+          pills this replaces gave no sense of how far along you were or how
+          much was left.
+
+          Three states, and each is distinguishable without colour: a completed
+          step carries a tick, the current one is filled and labelled, and an
+          unreached one is outlined and inert. A wizard where progress is
+          conveyed by shade alone is one that reads as five identical buttons to
+          anybody who cannot see the shade.
         */}
-        <ol className="flex flex-wrap gap-2" aria-label="Onboarding steps">
+        <ol
+          aria-label="Onboarding steps"
+          className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-0"
+        >
           {WIZARD_STEPS.map((candidate, index) => {
             const isCurrent = candidate === step;
             const isPast = index < stepIndex;
+            const isReachable = isPast || isCurrent;
             return (
-              <li key={candidate}>
+              <li
+                className="flex flex-1 items-center gap-2"
+                key={candidate}
+              >
                 <button
                   aria-current={isCurrent ? "step" : undefined}
-                  className={`rounded-full px-3 py-1 text-xs font-medium ${
+                  className={`flex min-w-0 items-center gap-2 rounded-full py-1 pl-1 pr-3 text-left text-xs font-medium transition ${
                     isCurrent
                       ? "bg-accent text-white"
                       : isPast
-                        ? "bg-surface-muted text-foreground"
-                        : "bg-surface-muted text-muted"
-                  }`}
-                  disabled={!isPast && !isCurrent}
+                        ? "text-foreground hover:bg-surface-muted"
+                        : "text-muted"
+                  } ${isReachable ? "cursor-pointer" : "cursor-default"}`}
+                  disabled={!isReachable}
                   onClick={() => goTo(candidate)}
                   type="button"
                 >
-                  {index + 1}. {STEP_TITLES[candidate]}
+                  <span
+                    aria-hidden
+                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold ${
+                      isCurrent
+                        ? "bg-white/20 text-white"
+                        : isPast
+                          ? "bg-accent text-white"
+                          : "border border-border text-muted"
+                    }`}
+                  >
+                    {isPast ? "\u2713" : index + 1}
+                  </span>
+                  <span className="truncate">{STEP_TITLES[candidate]}</span>
+                  {/* Announced, never drawn: the tick and the fill are visual. */}
+                  <span className="sr-only">
+                    {isPast ? " (completed)" : isCurrent ? " (current step)" : " (not yet reached)"}
+                  </span>
                 </button>
+                {index < WIZARD_STEPS.length - 1 ? (
+                  <span
+                    aria-hidden
+                    className={`hidden h-px flex-1 sm:block ${
+                      isPast ? "bg-accent" : "bg-border"
+                    }`}
+                  />
+                ) : null}
               </li>
             );
           })}
         </ol>
 
-        <h2 className="mt-5 text-xl font-semibold text-foreground">
-          {STEP_TITLES[step]}
-        </h2>
+        <div className="mt-5 flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="text-xl font-semibold text-foreground">
+            {STEP_TITLES[step]}
+          </h2>
+          {/*
+            "Step 2 of 5" in words. The indicator above shows it graphically;
+            this is the version somebody skims, and the one that survives a
+            narrow viewport where the row collapses.
+          */}
+          <p className="text-xs font-medium text-muted">
+            Step {stepIndex + 1} of {WIZARD_STEPS.length}
+          </p>
+        </div>
 
         {/*
           BUG-0066: never present an editable form that cannot be submitted.

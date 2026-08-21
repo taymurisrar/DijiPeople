@@ -1,6 +1,7 @@
 "use client";
 
 import type { LegalIndexEntry } from "../../lib/legal-server";
+import { useCountryOptions } from "../../lib/use-country-options";
 import {
   describeSlugProblem,
   type WizardForm,
@@ -57,7 +58,34 @@ function FieldError({ name, missing }: { name: string; missing: string[] }) {
   );
 }
 
+/**
+ * Industries, matching the list Platform Admin offers on a lead.
+ *
+ * A free-text industry produced "IT", "I.T.", "Information Technology" and
+ * "Tech" as four different segments in the same report. The list ends in Other
+ * deliberately: a closed list with no escape hatch pushes people into whichever
+ * nearby value is least wrong, which is worse than an honest Other.
+ */
+const INDUSTRY_OPTIONS = [
+  "Healthcare",
+  "IT / Software",
+  "Recruitment",
+  "Staffing",
+  "Professional Services",
+  "Real Estate",
+  "Construction",
+  "Education",
+  "Retail",
+  "Hospitality",
+  "Manufacturing",
+  "Financial Services",
+  "Government",
+  "Nonprofit",
+  "Other",
+] as const;
+
 export function OrganizationStep({ form, set, missing }: StepProps) {
+  const countries = useCountryOptions();
   return (
     <div className="grid gap-4">
       <label className={labelClass} htmlFor="companyName">
@@ -86,13 +114,52 @@ export function OrganizationStep({ form, set, missing }: StepProps) {
 
       <label className={labelClass} htmlFor="country">
         Country *
-        <input
-          {...fieldProps("country", missing)}
-          autoComplete="country-name"
-          id="country"
-          onChange={(event) => set({ country: event.target.value })}
-          value={form.country}
-        />
+        {/*
+          A list, not a text box. "UAE", "U.A.E." and "United Arab Emirates"
+          were three different customers as far as any report was concerned.
+
+          It degrades to a text input when the lookup is unavailable rather
+          than blocking the step: losing the canonical spelling costs data
+          quality, refusing the purchase costs the customer.
+        */}
+        {countries.unavailable ? (
+          <input
+            {...fieldProps("country", missing)}
+            autoComplete="country-name"
+            id="country"
+            onChange={(event) => set({ country: event.target.value })}
+            value={form.country}
+          />
+        ) : (
+          <select
+            {...fieldProps("country", missing)}
+            autoComplete="country-name"
+            disabled={countries.loading}
+            id="country"
+            onChange={(event) => set({ country: event.target.value })}
+            value={form.country}
+          >
+            <option value="">
+              {countries.loading ? "Loading countries..." : "Select a country"}
+            </option>
+            {countries.countries.map((country) => (
+              <option key={country.id} value={country.name}>
+                {country.name}
+              </option>
+            ))}
+            {/*
+              A value already on the form that is not in the list stays
+              selectable, so returning to this step never silently clears an
+              answer somebody gave.
+            */}
+            {form.country &&
+            !countries.countries.some(
+              (candidate) => candidate.name === form.country,
+            ) ? (
+              <option value={form.country}>{form.country}</option>
+            ) : null}
+          </select>
+        )}
         <FieldError missing={missing} name="country" />
       </label>
 
@@ -127,12 +194,19 @@ export function OrganizationStep({ form, set, missing }: StepProps) {
       <div className="grid gap-4 sm:grid-cols-2">
         <label className={labelClass} htmlFor="industry">
           Industry
-          <input
+          <select
             className={inputClass}
             id="industry"
             onChange={(event) => set({ industry: event.target.value })}
             value={form.industry}
-          />
+          >
+            <option value="">Select an industry</option>
+            {INDUSTRY_OPTIONS.map((industry) => (
+              <option key={industry} value={industry}>
+                {industry}
+              </option>
+            ))}
+          </select>
         </label>
         <label className={labelClass} htmlFor="estimatedEmployeeCount">
           Approximate employees
@@ -153,6 +227,7 @@ export function OrganizationStep({ form, set, missing }: StepProps) {
       <label className={labelClass} htmlFor="addressLine1">
         Registered address
         <input
+          autoComplete="address-line1"
           className={inputClass}
           id="addressLine1"
           onChange={(event) => set({ addressLine1: event.target.value })}
@@ -160,37 +235,60 @@ export function OrganizationStep({ form, set, missing }: StepProps) {
           value={form.addressLine1}
         />
       </label>
-      <input
-        aria-label="Address line 2"
-        className={inputClass}
-        onChange={(event) => set({ addressLine2: event.target.value })}
-        placeholder="Address line 2"
-        value={form.addressLine2}
-      />
+      {/*
+        Visible labels, not placeholders. A placeholder disappears the moment
+        somebody types, so anyone interrupted mid-form returns to three
+        identical boxes with no way to tell which one is the city. `aria-label`
+        solved that for screen readers and left everybody else guessing.
+      */}
+      <label className={labelClass} htmlFor="addressLine2">
+        Address line 2
+        <input
+          autoComplete="address-line2"
+          className={inputClass}
+          id="addressLine2"
+          onChange={(event) => set({ addressLine2: event.target.value })}
+          value={form.addressLine2}
+        />
+      </label>
       <div className="grid gap-4 sm:grid-cols-2">
-        <input
-          aria-label="City"
-          className={inputClass}
-          onChange={(event) => set({ city: event.target.value })}
-          placeholder="City"
-          value={form.city}
-        />
-        <input
-          aria-label="State or province"
-          className={inputClass}
-          onChange={(event) => set({ stateProvince: event.target.value })}
-          placeholder="State or province"
-          value={form.stateProvince}
-        />
+        <label className={labelClass} htmlFor="city">
+          City
+          <input
+            autoComplete="address-level2"
+            className={inputClass}
+            id="city"
+            onChange={(event) => set({ city: event.target.value })}
+            value={form.city}
+          />
+        </label>
+        <label className={labelClass} htmlFor="stateProvince">
+          State or province
+          <input
+            autoComplete="address-level1"
+            className={inputClass}
+            id="stateProvince"
+            onChange={(event) => set({ stateProvince: event.target.value })}
+            value={form.stateProvince}
+          />
+        </label>
       </div>
 
       <label className={labelClass} htmlFor="companyWebsite">
         Website
+        {/*
+          `type="url"` gives a mobile keyboard with a slash and a .com key, and
+          browser validation that catches a missing scheme before the server
+          does.
+        */}
         <input
+          autoComplete="url"
           className={inputClass}
           id="companyWebsite"
+          inputMode="url"
           onChange={(event) => set({ companyWebsite: event.target.value })}
           placeholder="https://"
+          type="url"
           value={form.companyWebsite}
         />
       </label>

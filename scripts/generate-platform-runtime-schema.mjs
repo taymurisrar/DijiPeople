@@ -118,7 +118,7 @@ for (const [modelName, body] of Object.entries(modelBodies)) {
         readable && !sensitive && rawType !== "Json" && rawType !== "Bytes",
       systemManaged,
       sensitive,
-      defaultControl: defaultControl(rawType, isEnum, isRelation, isList),
+      defaultControl: defaultControl(rawType, isEnum, isRelation, isList, key),
       defaultValue: readDefault(attributes),
     };
   }
@@ -244,17 +244,66 @@ function describeManifestDrift(committed, expected) {
   return problems;
 }
 
-function defaultControl(type, isEnum, isRelation, isList) {
+function defaultControl(type, isEnum, isRelation, isList, name = "") {
   if (isList) return "relatedRecords";
   if (isRelation) return "lookup";
   if (isEnum) return "option";
   if (type === "Boolean") return "boolean";
   if (type === "DateTime") return "dateTime";
   if (["Int", "BigInt"].includes(type)) return "integer";
-  if (["Float", "Decimal"].includes(type)) return "decimal";
+  if (["Float", "Decimal"].includes(type)) return semanticNumeric(name);
   if (type === "Json") return "hidden";
   if (type === "Bytes") return "file";
+  return semanticText(name);
+}
+
+/**
+ * What a `String` column is actually for, from what it is called.
+ *
+ * Prisma has one string type, so every email, phone number and URL in this
+ * schema arrived as a plain text input: no `type="email"` and so no keyboard
+ * or validation on mobile, no `tel:` semantics, and a Stripe invoice URL
+ * rendered as an uneditable-looking string rather than a link. Four modules had
+ * this on `email`, `phone`, `website` and `referrerUrl` at once, which is the
+ * tell that it belongs here rather than in four hand-written field lists.
+ *
+ * Name-based inference is a heuristic, so it is deliberately narrow: suffixes
+ * that are unambiguous in this schema, checked against the whole column name
+ * rather than as a substring. `emailStatus` is a status, not an email, and
+ * `phoneVerifiedAt` is a date — both would be caught by a looser rule.
+ */
+function semanticText(name) {
+  const key = String(name ?? "");
+  if (/(^|[a-z])Email$/i.test(key) || key.toLowerCase() === "email") {
+    return "email";
+  }
+  if (
+    /(^|[a-z])(Phone|PhoneNumber|Mobile)$/i.test(key) ||
+    ["phone", "mobile", "phonenumber"].includes(key.toLowerCase())
+  ) {
+    return "phone";
+  }
+  if (/(Url|Uri|Website)$/i.test(key) || key.toLowerCase() === "website") {
+    return "url";
+  }
   return "text";
+}
+
+/**
+ * Money reads as money.
+ *
+ * A `Decimal` named `amount`, `total` or `unitAmount` is a sum, and rendering
+ * it as a bare number loses the currency and the fixed two-decimal formatting
+ * that makes an invoice legible. Rates and percentages are excluded explicitly:
+ * `taxRatePercent` is a Decimal too and is not a sum.
+ */
+function semanticNumeric(name) {
+  const key = String(name ?? "");
+  if (/(Percent|Rate|Ratio|Scale|Weight)$/i.test(key)) return "decimal";
+  if (/(Amount|Price|Total|Subtotal|Balance|Cost|Fee)$/i.test(key)) {
+    return "currency";
+  }
+  return "decimal";
 }
 
 function readDefault(attributes) {

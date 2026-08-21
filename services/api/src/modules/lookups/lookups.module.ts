@@ -4,10 +4,15 @@ import { GeographicLookupService } from './geographic-lookup.service';
 import { ConfigurationController } from './configuration.controller';
 import { LookupsController } from './lookups.controller';
 import { LookupsService } from './lookups.service';
+import { PublicGeographyController } from './public-geography.controller';
 
 @Module({
   imports: [AuthModule],
-  controllers: [LookupsController, ConfigurationController],
+  controllers: [
+    LookupsController,
+    ConfigurationController,
+    PublicGeographyController,
+  ],
   providers: [LookupsService, GeographicLookupService],
   exports: [LookupsService],
 })

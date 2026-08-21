@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 119** · automated: 113 · manual: 4 · blocked by infrastructure: 0
+**Scenarios: 122** · automated: 116 · manual: 4 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -114,6 +114,8 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-PLATFORM-004](../../../docs/qa/scenarios/QA-PLATFORM-004-every-module-record-page-offers-the-standard-command-bar-the.md) | Every module record page offers the standard command bar the API can serve | platform-admin | UNIT | MEDIUM | AUTOMATED | `apps/admin/lib/runtime/platform-module-capabilities.spec.ts` | BUG-0220 | REG-175 |
 | [QA-PLATFORM-005](../../../docs/qa/scenarios/QA-PLATFORM-005-no-record-form-field-or-related-panel-renders-on-a-tab-the-f.md) | No record form field or related panel renders on a tab the form never declares | platform-admin | UNIT | MEDIUM | AUTOMATED | `apps/admin/lib/runtime/plan-record-form.spec.ts` | BUG-0221, BUG-0222 | REG-176 |
 | [QA-PLATFORM-006](../../../docs/qa/scenarios/QA-PLATFORM-006-the-platform-runtime-manifest-is-derived-from-the-current-pr.md) | The platform runtime manifest is derived from the current Prisma schema | platform-admin | UNIT | HIGH | AUTOMATED | `scripts/generate-platform-runtime-schema.mjs` | BUG-0282 | REG-178 |
+| [QA-PLATFORM-007](../../../docs/qa/scenarios/QA-PLATFORM-007-only-events-that-need-an-operator-reach-the-notification-fee.md) | Only events that need an operator reach the notification feed | platform-admin | UNIT | MEDIUM | AUTOMATED | `services/api/src/modules/platform-events/platform-notifications.spec.ts` | BUG-0314, BUG-0315 | REG-180 |
+| [QA-PLATFORM-008](../../../docs/qa/scenarios/QA-PLATFORM-008-every-field-control-matches-the-column-behind-it.md) | Every field control matches the column behind it | platform-admin | UNIT | MEDIUM | AUTOMATED | `scripts/generate-platform-runtime-schema.mjs` | BUG-0316, BUG-0317 | REG-181 |
 | [QA-PROV-001](../../../docs/qa/scenarios/QA-PROV-001-a-tenant-that-failed-provisioning-can-be-retried.md) | A tenant that failed provisioning can be retried | tenant-provisioning | UNIT | CRITICAL | AUTOMATED | `services/api/src/modules/tenant-control-plane/tenant-provisioning-retry.spec.ts` | BUG-0014 | REG-012 |
 | [QA-PROV-002](../../../docs/qa/scenarios/QA-PROV-002-provisioning-is-safe-to-submit-twice.md) | Provisioning is safe to submit twice | tenant-provisioning | UNIT | CRITICAL | AUTOMATED | `services/api/src/modules/super-admin/tenant-provisioning-idempotency.spec.ts` | BUG-0022 | REG-030 |
 | [QA-PROV-003](../../../docs/qa/scenarios/QA-PROV-003-issued-tenant-hostnames-honour-the-configured-base-domain.md) | Issued tenant hostnames honour the configured base domain | tenant-provisioning | UNIT | HIGH | AUTOMATED | `services/api/src/common/config/tenant-url.config.spec.ts` | BUG-0017, BUG-0026 | REG-016, REG-027 |
@@ -133,3 +135,4 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-TENANT-004](../../../docs/qa/scenarios/QA-TENANT-004-workspace-domain-resolution-cannot-be-pointed-at-another-ten.md) | Workspace domain resolution cannot be pointed at another tenant | tenant-isolation | E2E | HIGH | AUTOMATED | `services/api/test/workspace-domain-isolation.e2e-spec.ts` | BUG-0017 | REG-027 |
 | [QA-TENANT-005](../../../docs/qa/scenarios/QA-TENANT-005-tenant-erasure-removes-rows-in-dependency-order-and-leaves-n.md) | Tenant erasure removes rows in dependency order and leaves nothing reachable | tenant-isolation | DATABASE | HIGH | AUTOMATED | `services/api/test/tenant-erasure-order.e2e-spec.ts` | — | — |
 | [QA-TENANT-006](../../../docs/qa/scenarios/QA-TENANT-006-database-e2e-fixtures-build-two-isolated-tenants-and-clean-u.md) | Database e2e fixtures build two isolated tenants and clean up after partial setup | tenant-isolation | DATABASE | HIGH | AUTOMATED | `services/api/test/db-fixtures-contract.e2e-spec.ts` | ITEM-0047 | REG-070 |
+| [QA-TENANT-007](../../../docs/qa/scenarios/QA-TENANT-007-a-workspace-link-resolves-from-one-rule-on-every-surface.md) | A workspace link resolves from one rule on every surface | tenant-provisioning | UNIT | HIGH | AUTOMATED | `packages/config/platform-domains.test.js` | BUG-0312, BUG-0313 | REG-179 |
