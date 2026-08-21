@@ -6,14 +6,14 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 178,
-    "bugs": 102,
+    "total_records": 183,
+    "bugs": 107,
     "backlog_items": 76,
     "open_bucket": 4,
     "blocked_bucket": 0,
     "deferred_bucket": 2,
     "product_decision_bucket": 2,
-    "completed_bucket": 92,
+    "completed_bucket": 97,
     "parser_structural_errors": 0,
     "active_session_conflict": "NONE",
     "discovered_findings_total": 34,
@@ -8939,6 +8939,238 @@
       ],
       "qa_scenarios": [
         "QA-TENANT-008"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "FIX_NOW",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0418",
+      "source": {
+        "record_path": "docs/bugs/BUG-0418-contract-placeholders-declared-a-formatting-rule-that-nothin.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "fb7c771",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
+      },
+      "type": "DATA_INTEGRITY",
+      "title": "Contract placeholders declared a formatting rule that nothing applied",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/contracts"
+        ],
+        "verification_scope": "Fixed on agent/document-render-and-theme; see the record for evidence paths and the regression that proves it. Not verified in a browser."
+      },
+      "affected_modules": [
+        "services/api/src/modules/contracts"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [
+        "REG-185"
+      ],
+      "qa_scenarios": [
+        "QA-CONTRACT-001"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "FIX_NOW",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0419",
+      "source": {
+        "record_path": "docs/bugs/BUG-0419-preview-sample-data-replaced-the-live-template-and-rendered-.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "fb7c771",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
+      },
+      "type": "UX",
+      "title": "Preview sample data replaced the live template and rendered one paint late",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "current_evidence": {
+        "paths": [
+          "apps/admin"
+        ],
+        "verification_scope": "Fixed on agent/document-render-and-theme; see the record for evidence paths and the regression that proves it. Not verified in a browser."
+      },
+      "affected_modules": [
+        "apps/admin"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [
+        "REG-186"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-010"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "FIX_NOW",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0420",
+      "source": {
+        "record_path": "docs/bugs/BUG-0420-the-console-dark-theme-set-color-scheme-and-repainted-nothin.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "fb7c771",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
+      },
+      "type": "UX",
+      "title": "The console dark theme set color-scheme and repainted nothing",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "current_evidence": {
+        "paths": [
+          "apps/admin"
+        ],
+        "verification_scope": "Fixed on agent/document-render-and-theme; see the record for evidence paths and the regression that proves it. Not verified in a browser."
+      },
+      "affected_modules": [
+        "apps/admin"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [
+        "REG-187"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-011"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "FIX_NOW",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0421",
+      "source": {
+        "record_path": "docs/bugs/BUG-0421-an-overflow-declaration-in-the-shell-disabled-every-sticky-e.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "fb7c771",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
+      },
+      "type": "UX",
+      "title": "An overflow declaration in the shell disabled every sticky element",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "current_evidence": {
+        "paths": [
+          "apps/admin"
+        ],
+        "verification_scope": "Fixed on agent/document-render-and-theme; see the record for evidence paths and the regression that proves it. Not verified in a browser."
+      },
+      "affected_modules": [
+        "apps/admin"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [
+        "REG-188"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-012"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "FIX_NOW",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0422",
+      "source": {
+        "record_path": "docs/bugs/BUG-0422-an-abandoned-provisioning-run-blocked-every-retry-with-no-ro.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "fb7c771",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
+      },
+      "type": "STATE_MACHINE",
+      "title": "An abandoned provisioning run blocked every retry with no route out",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/tenant-control-plane",
+          "apps/admin"
+        ],
+        "verification_scope": "Fixed on agent/document-render-and-theme; see the record for evidence paths and the regression that proves it. Not verified in a browser."
+      },
+      "affected_modules": [
+        "services/api/src/modules/tenant-control-plane",
+        "apps/admin"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [
+        "REG-189"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-009"
       ],
       "test_plan": [],
       "active_session_conflict": "NONE",

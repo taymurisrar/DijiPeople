@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**178 records** — 102 bugs under [`docs/bugs/`](../bugs/), 76 non-bug items under [`items/`](items/).
+**183 records** — 107 bugs under [`docs/bugs/`](../bugs/), 76 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,21 +13,21 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 56 |
+| Open (active work) | 61 |
 | Blocked | 1 |
 | Deferred | 16 |
 | Awaiting a product decision | 6 |
 | Completed / closed | 99 |
 | **Open CRITICAL** | **0** |
-| **Open HIGH** | **18** |
+| **Open HIGH** | **21** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
 
 | Severity | Count |
 |---|---|
-| HIGH | 18 |
-| MEDIUM | 32 |
+| HIGH | 21 |
+| MEDIUM | 34 |
 | LOW | 6 |
 
 ## Open by type
@@ -36,17 +36,17 @@ see [`README.md`](README.md) for why.
 |---|---|
 | ARCHITECTURE | 2 |
 | BUG | 2 |
-| DATA_INTEGRITY | 7 |
+| DATA_INTEGRITY | 8 |
 | DOCUMENTATION | 2 |
 | FOLLOW_UP | 3 |
 | INFRA | 7 |
 | INTEGRATION | 1 |
 | PERFORMANCE | 1 |
 | SECURITY | 6 |
-| STATE_MACHINE | 1 |
+| STATE_MACHINE | 2 |
 | TECH_DEBT | 6 |
 | TEST_GAP | 7 |
-| UX | 11 |
+| UX | 14 |
 
 ## All records by status
 
@@ -56,7 +56,7 @@ see [`README.md`](README.md) for why.
 | BLOCKED | 1 |
 | DEFERRED | 16 |
 | PRODUCT_DECISION | 6 |
-| FIXED | 23 |
+| FIXED | 28 |
 | VERIFIED | 68 |
 | DUPLICATE | 1 |
 | READY | 26 |
@@ -125,6 +125,9 @@ see [`README.md`](README.md) for why.
 | [BUG-0312](../../docs/bugs/BUG-0312-provisioning-issues-no-workspace-hostname-when-no-tenant-bas.md) | Provisioning issues no workspace hostname when no tenant base domain is configured | INFRA | HIGH | P1 | FIXED | services/api, pkg:config, apps/admin | FIX_NOW |
 | [BUG-0313](../../docs/bugs/BUG-0313-admin-builds-workspace-urls-from-a-second-divergent-copy-of-.md) | Admin builds workspace URLs from a second, divergent copy of the rule | BUG | HIGH | P1 | FIXED | apps/admin, pkg:config | FIX_NOW |
 | [BUG-0353](../../docs/bugs/BUG-0353-the-api-resolved-a-workspace-hostname-from-a-variable-nothin.md) | The API resolved a workspace hostname from a variable nothing sets | INTEGRATION | HIGH | P1 | FIXED | api:tenants, pkg:config | FIX_NOW |
+| [BUG-0418](../../docs/bugs/BUG-0418-contract-placeholders-declared-a-formatting-rule-that-nothin.md) | Contract placeholders declared a formatting rule that nothing applied | DATA_INTEGRITY | HIGH | P1 | FIXED | api:contracts | FIX_NOW |
+| [BUG-0419](../../docs/bugs/BUG-0419-preview-sample-data-replaced-the-live-template-and-rendered-.md) | Preview sample data replaced the live template and rendered one paint late | UX | HIGH | P1 | FIXED | apps/admin | FIX_NOW |
+| [BUG-0422](../../docs/bugs/BUG-0422-an-abandoned-provisioning-run-blocked-every-retry-with-no-ro.md) | An abandoned provisioning run blocked every retry with no route out | STATE_MACHINE | HIGH | P1 | FIXED | api:tenant-control-plane, apps/admin | FIX_NOW |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | READY | api:tenant-control-plane | FIX_NOW |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | READY | apps/web, e2e | PLAN_REQUIRED |
@@ -172,6 +175,8 @@ see [`README.md`](README.md) for why.
 | [BUG-0317](../../docs/bugs/BUG-0317-the-subscribe-wizard-shows-five-identical-pills-and-labels-t.md) | The subscribe wizard shows five identical pills and labels three address fields only by placeholder | UX | MEDIUM | P2 | FIXED | apps/landing | FIX_NOW |
 | [BUG-0350](../../docs/bugs/BUG-0350-the-subscribe-wizard-s-country-field-silently-degraded-to-fr.md) | The subscribe wizard's country field silently degraded to free text | DATA_INTEGRITY | MEDIUM | P2 | FIXED | apps/landing | FIX_NOW |
 | [BUG-0351](../../docs/bugs/BUG-0351-the-subscribe-wizard-progress-rail-truncated-every-step-labe.md) | The subscribe wizard progress rail truncated every step label | UX | MEDIUM | P2 | FIXED | apps/landing | FIX_NOW |
+| [BUG-0420](../../docs/bugs/BUG-0420-the-console-dark-theme-set-color-scheme-and-repainted-nothin.md) | The console dark theme set color-scheme and repainted nothing | UX | MEDIUM | P2 | FIXED | apps/admin | FIX_NOW |
+| [BUG-0421](../../docs/bugs/BUG-0421-an-overflow-declaration-in-the-shell-disabled-every-sticky-e.md) | An overflow declaration in the shell disabled every sticky element | UX | MEDIUM | P2 | FIXED | apps/admin | FIX_NOW |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | READY | services/api, apps/admin | FIX_NOW |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | READY | api:tenant-control-plane | FIX_NOW |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |

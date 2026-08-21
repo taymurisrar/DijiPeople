@@ -1,0 +1,74 @@
+---
+SESSION_ID: SESSION-0035
+aliases: [SESSION-0035]
+TASK_ID: TASK-0015
+TITLE: Document rendering fidelity, editor stability, admin theme, sticky fields rail, and a stuck tenant
+ARCHITECT_INTENT: Document rendering fidelity, editor stability, admin theme, sticky fields rail, and a stuck tenant
+STATUS: ACTIVE
+TASK_TYPE: BUG
+TASK_SIZE: LARGE
+BASE_BRANCH: origin/develop
+BASE_SHA: fb7c771ede8e44b18776f8e21abc9fb30f283751
+TASK_BRANCH: agent/document-render-and-theme
+TARGET_BRANCH: develop
+WORKTREE: D:/My Work/hrm-dijipeople/dijipeople-ux2
+AFFECTED_MODULES: []
+WRITE_LEASES: []
+ACTIVE_WORK_PACKAGES: []
+SCHEMA_WRITE: NO
+CI_STATUS: NOT_RUN
+MERGE_STATUS: NOT_STARTED
+STARTED_AT: 2026-08-21T20:58:56.938Z
+LAST_HEARTBEAT: 2026-08-21T20:58:56.938Z
+BLOCKERS: none
+---
+
+# SESSION-0035 — Document rendering fidelity, editor stability, admin theme, sticky fields rail, and a stuck tenant
+
+## Intent
+
+Document rendering fidelity, editor stability, admin theme, sticky fields rail, and a stuck tenant
+
+## Scope
+
+Five reported defects, four of them the same shape: a mechanism declared,
+believed, and connected to nothing.
+
+**In scope**
+
+- `services/api/src/modules/contracts` — placeholder formatting, and the
+  server-rendered example the editor preview now uses.
+- `services/api/prisma/seed-config.ts` — the service-order template line that
+  printed the country twice.
+- `apps/admin` — the template editor preview and layout, the shell overflow
+  that disabled every sticky element, the console theme, and the tenant
+  Operations panel.
+- `services/api/src/modules/tenant-control-plane` — a derived STALLED state and
+  the retry gate that reads it.
+- `.agent/agents/ui-ux.md` — an output audit, with its mechanical half enforced
+  by the specs it names.
+- `docs/qa/execution-guides/` — the step-by-step manual suite requested for
+  later execution.
+
+**Out of scope**
+
+- The schema. `SCHEMA_WRITE: NO`.
+- [[BUG-0015]]. A tenant that failed before the business-unit step is now
+  recoverable-looking and still cannot be activated. Named on BUG-0422 and in
+  the guide rather than quietly folded in.
+- The tenant UUID printed in contract prose — a product decision, recorded on
+  TASK-0015 rather than changed.
+- Deployment. `main` is untouched.
+
+## Concurrency
+
+Classified SAFE_PARALLEL against six other ACTIVE sessions, all with stale
+heartbeats and none holding a lease this work needs. No lease taken: the admin
+runtime registry is untouched this round, and nothing here writes the schema, so
+`DATABASE_WRITER` is not needed.
+
+Live state: `node scripts/session.mjs list`.
+
+## History
+
+- 2026-08-21 — session started from `origin/develop` at `fb7c771`.

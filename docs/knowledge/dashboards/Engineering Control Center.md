@@ -7,15 +7,15 @@
 
 | | |
 |---|---|
-| Active sessions | **6** |
-| Active parent tasks | 6 |
+| Active sessions | **7** |
+| Active parent tasks | 7 |
 | Active work packages | 2 |
 | Blocked work packages | 4 |
 | Work packages waiting on the user | 0 |
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **0** |
-| Open HIGH | 18 |
+| Open HIGH | 21 |
 | Awaiting Architect triage | 0 |
 | Owner decisions pending | 6 |
 | QA coverage gaps | 94 |
@@ -30,12 +30,12 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 55 |
-| No next action | 55 |
+| No acceptance criteria | 60 |
+| No next action | 60 |
 | Aging — 7d / 30d / 90d | 0 / 0 / 0 |
 | Architecture and technical debt | 8 |
 | Security gaps | 6 |
-| Database gaps | 7 |
+| Database gaps | 8 |
 
 Ranked next-best actions weigh blast radius rather than severity alone, and
 are computed on demand so the reasons travel with the ranking:
@@ -49,6 +49,7 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 | Session | Task | Title | Status | Branch | Target | Leases | Schema |
 |---|---|---|---|---|---|---|---|
+| [[SESSION-0035-document-rendering-fidelity-editor-stability-admin-theme-sti|SESSION-0035]] | TASK-0015 | Document rendering fidelity, editor stability, admin theme, sticky fields rail, and a stuck tenant | ACTIVE | `agent/document-render-and-theme` | `develop` | — | NO |
 | SESSION-0023 | — | First production release | ACTIVE | `agent/first-production-release` | `main` | — | NO |
 | [[SESSION-0022-go-live-readiness|SESSION-0022]] | TASK-0010 | Go-live readiness | ACTIVE | `agent/go-live-readiness` | `develop` | — | NO |
 | [[SESSION-0019-ci-browser-install-latency-and-database-e2e-fixture-contract|SESSION-0019]] | — | CI browser install latency and database e2e fixture contract | ACTIVE | `agent/ci-e2e-remediation` | `develop` | — | NO |
@@ -66,6 +67,7 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 | [[TASK-0009-identity-and-multi-tenant-membership|TASK-0009]] | Identity and multi-tenant membership | FEATURE | LARGE | 11/12 | WP-09 | — | WP-09 |
 | [[TASK-0010-go-live-readiness|TASK-0010]] | Go-live readiness | FEATURE | MEDIUM | 7/8 | WP-04 | — | WP-04 |
 | [[TASK-0011-first-production-release|TASK-0011]] | First production release | RELEASE | MEDIUM | 1/2 | WP-02 | — | — |
+| [[TASK-0015-documents-that-read-like-documents-a-console-theme-that-repa|TASK-0015]] | Documents that read like documents, a console theme that repaints, and a stuck tenant with a way out | BUG | LARGE | 7/7 | — | — | — |
 
 ## Branch model
 
@@ -227,7 +229,7 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 56 |
+| Open total | 61 |
 | Blocked | 1 |
 | Deferred | 16 |
 | Awaiting a product decision | 6 |
