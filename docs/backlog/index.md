@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**184 records** — 108 bugs under [`docs/bugs/`](../bugs/), 76 non-bug items under [`items/`](items/).
+**188 records** — 112 bugs under [`docs/bugs/`](../bugs/), 76 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,21 +13,21 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 62 |
+| Open (active work) | 66 |
 | Blocked | 1 |
 | Deferred | 16 |
 | Awaiting a product decision | 6 |
 | Completed / closed | 99 |
 | **Open CRITICAL** | **0** |
-| **Open HIGH** | **21** |
+| **Open HIGH** | **22** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
 
 | Severity | Count |
 |---|---|
-| HIGH | 21 |
-| MEDIUM | 35 |
+| HIGH | 22 |
+| MEDIUM | 38 |
 | LOW | 6 |
 
 ## Open by type
@@ -43,10 +43,10 @@ see [`README.md`](README.md) for why.
 | INTEGRATION | 1 |
 | PERFORMANCE | 1 |
 | SECURITY | 6 |
-| STATE_MACHINE | 2 |
+| STATE_MACHINE | 3 |
 | TECH_DEBT | 6 |
 | TEST_GAP | 7 |
-| UX | 15 |
+| UX | 18 |
 
 ## All records by status
 
@@ -56,7 +56,7 @@ see [`README.md`](README.md) for why.
 | BLOCKED | 1 |
 | DEFERRED | 16 |
 | PRODUCT_DECISION | 6 |
-| FIXED | 29 |
+| FIXED | 33 |
 | VERIFIED | 68 |
 | DUPLICATE | 1 |
 | READY | 26 |
@@ -128,6 +128,7 @@ see [`README.md`](README.md) for why.
 | [BUG-0418](../../docs/bugs/BUG-0418-contract-placeholders-declared-a-formatting-rule-that-nothin.md) | Contract placeholders declared a formatting rule that nothing applied | DATA_INTEGRITY | HIGH | P1 | FIXED | api:contracts | FIX_NOW |
 | [BUG-0419](../../docs/bugs/BUG-0419-preview-sample-data-replaced-the-live-template-and-rendered-.md) | Preview sample data replaced the live template and rendered one paint late | UX | HIGH | P1 | FIXED | apps/admin | FIX_NOW |
 | [BUG-0422](../../docs/bugs/BUG-0422-an-abandoned-provisioning-run-blocked-every-retry-with-no-ro.md) | An abandoned provisioning run blocked every retry with no route out | STATE_MACHINE | HIGH | P1 | FIXED | api:tenant-control-plane, apps/admin | FIX_NOW |
+| [BUG-0463](../../docs/bugs/BUG-0463-an-active-reachable-tenant-reported-that-its-workspace-was-n.md) | An active reachable tenant reported that its workspace was not provisioned | STATE_MACHINE | HIGH | P1 | FIXED | api:tenant-control-plane, apps/admin | FIX_NOW |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | READY | api:tenant-control-plane | FIX_NOW |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | READY | apps/web, e2e | PLAN_REQUIRED |
@@ -178,6 +179,9 @@ see [`README.md`](README.md) for why.
 | [BUG-0420](../../docs/bugs/BUG-0420-the-console-dark-theme-set-color-scheme-and-repainted-nothin.md) | The console dark theme set color-scheme and repainted nothing | UX | MEDIUM | P2 | FIXED | apps/admin | FIX_NOW |
 | [BUG-0421](../../docs/bugs/BUG-0421-an-overflow-declaration-in-the-shell-disabled-every-sticky-e.md) | An overflow declaration in the shell disabled every sticky element | UX | MEDIUM | P2 | FIXED | apps/admin | FIX_NOW |
 | [BUG-0439](../../docs/bugs/BUG-0439-the-subscribe-form-was-disabled-without-looking-disabled-or-.md) | The subscribe form was disabled without looking disabled or saying why beside it | UX | MEDIUM | P2 | FIXED | apps/landing, apps/admin | FIX_NOW |
+| [BUG-0460](../../docs/bugs/BUG-0460-the-notification-badge-counted-over-a-window-sized-by-the-pa.md) | The notification badge counted over a window sized by the page it was fetching | UX | MEDIUM | P2 | FIXED | api:platform-events, apps/admin | FIX_NOW |
+| [BUG-0461](../../docs/bugs/BUG-0461-the-cost-estimator-listed-flat-priced-plans-under-a-headcoun.md) | The cost estimator listed flat-priced plans under a headcount input | UX | MEDIUM | P2 | FIXED | apps/landing | FIX_NOW |
+| [BUG-0462](../../docs/bugs/BUG-0462-monitoring-opened-on-a-twelve-thousand-row-queue-with-five-u.md) | Monitoring opened on a twelve thousand row queue with five unactionable tiles | UX | MEDIUM | P2 | FIXED | apps/admin | FIX_NOW |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | READY | services/api, apps/admin | FIX_NOW |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | READY | api:tenant-control-plane | FIX_NOW |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |

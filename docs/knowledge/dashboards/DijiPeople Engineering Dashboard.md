@@ -8,8 +8,8 @@
 | | |
 |---|---|
 | Open CRITICAL | **0** |
-| Open HIGH | **21** |
-| Open total | 62 |
+| Open HIGH | **22** |
+| Open total | 66 |
 | Blocked | 1 |
 | Awaiting a product decision | 6 |
 | Deferred | 16 |
@@ -42,6 +42,7 @@ _None. Nothing open at CRITICAL._
 | [[BUG-0418-contract-placeholders-declared-a-formatting-rule-that-nothin|BUG-0418]] | Contract placeholders declared a formatting rule that nothing applied | DATA_INTEGRITY | HIGH | FIXED | api:contracts | FIX_NOW |
 | [[BUG-0419-preview-sample-data-replaced-the-live-template-and-rendered-|BUG-0419]] | Preview sample data replaced the live template and rendered one paint late | UX | HIGH | FIXED | apps/admin | FIX_NOW |
 | [[BUG-0422-an-abandoned-provisioning-run-blocked-every-retry-with-no-ro|BUG-0422]] | An abandoned provisioning run blocked every retry with no route out | STATE_MACHINE | HIGH | FIXED | api:tenant-control-plane, apps/admin | FIX_NOW |
+| [[BUG-0463-an-active-reachable-tenant-reported-that-its-workspace-was-n|BUG-0463]] | An active reachable tenant reported that its workspace was not provisioned | STATE_MACHINE | HIGH | FIXED | api:tenant-control-plane, apps/admin | FIX_NOW |
 | [[ITEM-0004-tenant-activation-never-proven-end-to-end|ITEM-0004]] | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | READY | api:tenant-control-plane | FIX_NOW |
 | [[ITEM-0034-apps-web-has-zero-browser-e2e-coverage|ITEM-0034]] | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | READY | apps/web, e2e | PLAN_REQUIRED |
 | [[ITEM-0062-no-multi-tenant-membership-one-user-belongs-to-one-tenant-so|ITEM-0062]] | No multi-tenant membership — one user belongs to one tenant, so discovery and switching cannot exist | ARCHITECTURE | HIGH | READY | auth, users, tenant-domains, web | PLAN_REQUIRED |
@@ -150,6 +151,7 @@ _None. Nothing open at CRITICAL._
 | [[BUG-0418-contract-placeholders-declared-a-formatting-rule-that-nothin|BUG-0418]] | Contract placeholders declared a formatting rule that nothing applied | DATA_INTEGRITY | HIGH | FIXED | api:contracts | FIX_NOW |
 | [[BUG-0419-preview-sample-data-replaced-the-live-template-and-rendered-|BUG-0419]] | Preview sample data replaced the live template and rendered one paint late | UX | HIGH | FIXED | apps/admin | FIX_NOW |
 | [[BUG-0422-an-abandoned-provisioning-run-blocked-every-retry-with-no-ro|BUG-0422]] | An abandoned provisioning run blocked every retry with no route out | STATE_MACHINE | HIGH | FIXED | api:tenant-control-plane, apps/admin | FIX_NOW |
+| [[BUG-0463-an-active-reachable-tenant-reported-that-its-workspace-was-n|BUG-0463]] | An active reachable tenant reported that its workspace was not provisioned | STATE_MACHINE | HIGH | FIXED | api:tenant-control-plane, apps/admin | FIX_NOW |
 | [[BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state|BUG-0051]] | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |
 | [[BUG-0009-session-revocation-depended-on-the-refresh-cookie|BUG-0009]] | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | VERIFIED | app:admin, api:auth | DONE |
 | [[BUG-0010-unguarded-cookie-options-could-turn-sign-out-into-a-500|BUG-0010]] | Unguarded cookie options could turn admin sign-out into a 500 | INFRA | MEDIUM | VERIFIED | app:admin | DONE |
@@ -184,6 +186,9 @@ _None. Nothing open at CRITICAL._
 | [[BUG-0420-the-console-dark-theme-set-color-scheme-and-repainted-nothin|BUG-0420]] | The console dark theme set color-scheme and repainted nothing | UX | MEDIUM | FIXED | apps/admin | FIX_NOW |
 | [[BUG-0421-an-overflow-declaration-in-the-shell-disabled-every-sticky-e|BUG-0421]] | An overflow declaration in the shell disabled every sticky element | UX | MEDIUM | FIXED | apps/admin | FIX_NOW |
 | [[BUG-0439-the-subscribe-form-was-disabled-without-looking-disabled-or-|BUG-0439]] | The subscribe form was disabled without looking disabled or saying why beside it | UX | MEDIUM | FIXED | apps/landing, apps/admin | FIX_NOW |
+| [[BUG-0460-the-notification-badge-counted-over-a-window-sized-by-the-pa|BUG-0460]] | The notification badge counted over a window sized by the page it was fetching | UX | MEDIUM | FIXED | api:platform-events, apps/admin | FIX_NOW |
+| [[BUG-0461-the-cost-estimator-listed-flat-priced-plans-under-a-headcoun|BUG-0461]] | The cost estimator listed flat-priced plans under a headcount input | UX | MEDIUM | FIXED | apps/landing | FIX_NOW |
+| [[BUG-0462-monitoring-opened-on-a-twelve-thousand-row-queue-with-five-u|BUG-0462]] | Monitoring opened on a twelve thousand row queue with five unactionable tiles | UX | MEDIUM | FIXED | apps/admin | FIX_NOW |
 | [[BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist|BUG-0023]] | The testing-architecture context claims two e2e specs do not exist | DOCUMENTATION | LOW | VERIFIED | .agent/context | DONE |
 | [[BUG-0024-start-onboarding-api-and-proxy-have-no-caller|BUG-0024]] | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | VERIFIED | apps/admin, api:super-admin | DONE |
 | [[BUG-0059-vault-wikilinks-to-task-records-and-four-module-notes-resolv|BUG-0059]] | Vault wikilinks to task records and four module notes resolve to nothing | DOCUMENTATION | LOW | VERIFIED | scripts, docs/tasks, docs/knowledge | DONE |
@@ -246,6 +251,9 @@ _None. Nothing has been deployed through the release process._
 | [[BUG-0420-the-console-dark-theme-set-color-scheme-and-repainted-nothin|BUG-0420]] | The console dark theme set color-scheme and repainted nothing | UX | MEDIUM | FIXED | apps/admin | FIX_NOW |
 | [[BUG-0421-an-overflow-declaration-in-the-shell-disabled-every-sticky-e|BUG-0421]] | An overflow declaration in the shell disabled every sticky element | UX | MEDIUM | FIXED | apps/admin | FIX_NOW |
 | [[BUG-0439-the-subscribe-form-was-disabled-without-looking-disabled-or-|BUG-0439]] | The subscribe form was disabled without looking disabled or saying why beside it | UX | MEDIUM | FIXED | apps/landing, apps/admin | FIX_NOW |
+| [[BUG-0460-the-notification-badge-counted-over-a-window-sized-by-the-pa|BUG-0460]] | The notification badge counted over a window sized by the page it was fetching | UX | MEDIUM | FIXED | api:platform-events, apps/admin | FIX_NOW |
+| [[BUG-0461-the-cost-estimator-listed-flat-priced-plans-under-a-headcoun|BUG-0461]] | The cost estimator listed flat-priced plans under a headcount input | UX | MEDIUM | FIXED | apps/landing | FIX_NOW |
+| [[BUG-0462-monitoring-opened-on-a-twelve-thousand-row-queue-with-five-u|BUG-0462]] | Monitoring opened on a twelve thousand row queue with five unactionable tiles | UX | MEDIUM | FIXED | apps/admin | FIX_NOW |
 | [[ITEM-0002-no-live-api-session-test-harness|ITEM-0002]] | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | READY | services/api, apps/admin | FIX_NOW |
 | [[ITEM-0003-tenant-erasure-never-exercised-against-a-database|ITEM-0003]] | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | READY | api:tenant-control-plane | FIX_NOW |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
@@ -283,7 +291,7 @@ _None. Nothing has been deployed through the release process._
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 108 |
+| Bug records | 112 |
 | Backlog items | 76 |
 | Known bug patterns | 25 |
 | QA runs | 21 |

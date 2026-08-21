@@ -1405,3 +1405,63 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | The id is asserted to appear exactly **once** rather than merely to exist. The BUG-0066 browser journey locates it and asserts visibility, so a second copy is a strict-mode violation rather than twice the clarity — which is the trap in "put the message in both places". |
 | **Fixed** | 2026-08-22, branch `agent/document-render-and-theme` |
 | **Active** | yes |
+
+### REG-191 — A badge that counted over the page it was fetching
+
+| | |
+|---|---|
+| **Bug class** | `assertion-without-a-check` |
+| **Module** | `services/api/src/modules/platform-events`, `apps/admin` |
+| **Bug record** | BUG-0460 |
+| **Root cause** | `notifications()` scanned `take: limit * 20`, so the unread count was a function of the caller's page size. The badge polls with `limit=1` and therefore counted unread notifications among **twenty** events; opening the popover asks for six and scans a hundred and twenty. Most platform events are not notifiable, so the narrow scan usually found none — no badge at sign-in, a count the moment the bell was clicked. The comment directly above the return claimed the count was computed "over everything in the window, not over the page": it excluded the page *slice*, while the window itself was the page size times twenty. The code read as correct to anyone who read the comment first. |
+| **Regression test** | `services/api/src/modules/platform-events/notification-count.spec.ts` |
+| **Scenario** | The scan takes a fixed `NOTIFICATION_SCAN_LIMIT` and never a multiple of `limit`; the page is still sliced from it, so `limit` keeps bounding the payload; the limit is wide enough for the notifiable subset to be found; a truncated scan is reported so the badge renders `99+` rather than an exact number nothing stands behind; the time window is still bounded, so this stays one indexed range scan. |
+| **Proven to fail without the fix** | Restoring `take: limit * 20` fails the first assertion by name. |
+| **Note** | Comments are stripped before scanning. The comment explaining what the query *used to be* contains the very string asserted absent, so a raw scan reports the fix as the bug — `z-layers.spec.ts` met this first, and it is worth stating twice because every structural assertion over source will meet it. |
+| **Fixed** | 2026-08-22, branch `agent/tenant-repair-and-console-ux` |
+| **Active** | yes |
+
+### REG-192 — An estimator listing plans its input could not move
+
+| | |
+|---|---|
+| **Bug class** | `assertion-without-a-check` |
+| **Module** | `apps/landing` |
+| **Bug record** | BUG-0461 |
+| **Root cause** | "Estimate your cost" mapped every plan, so flat-priced plans appeared under an "Active employees" control that could not change them, and a plan with no regional offer rendered as "On request" beside three prices — reading as a fourth quote rather than as an absence. The section had been correct once, when its copy claimed a per-seat relationship `estimateCost` refused to compute; that contradiction was closed by rewriting the **copy** to describe flat pricing, which left an estimator whose control does nothing under a heading promising an estimate. Fixing the sentence rather than the scope moved the inconsistency instead of removing it. |
+| **Regression test** | `apps/landing/lib/plan-estimator.spec.ts` |
+| **Scenario** | A per-seat price multiplies by headcount; a minimum commitment is billed and flagged rather than silently applied; a team above the self-service ceiling is flagged; an unavailable offer estimates nothing. The section filters to available per-seat offers, renders no headcount control when nothing responds to one, and explains an empty section rather than showing one. |
+| **Proven to fail without the fix** | Restoring `plans.map` fails the filter assertions, and removing the empty-state branch fails the copy assertion. |
+| **Note** | The arithmetic assertions are kept alongside the scope ones deliberately. The minimum-seat case is [[BUG-0080]]'s shape — a page quoting six seats while Stripe charges ten — and it lives in this file because that is where somebody changing the estimator will look. |
+| **Fixed** | 2026-08-22, branch `agent/tenant-repair-and-console-ux` |
+| **Active** | yes |
+
+### REG-193 — Five numbers nobody could act on, behind a skipped Overview
+
+| | |
+|---|---|
+| **Bug class** | `assertion-without-a-check` |
+| **Module** | `apps/admin` |
+| **Bug record** | BUG-0462 |
+| **Root cause** | Three faults reading as one bad page. The sidebar used the module's `routeBase` — where its *records* live, correct for the runtime record routes built from it — as the area's landing page, so every operator was dropped into a queue of 12,005 incidents past the Overview. "Error severity: 488" used a column name as a metric label. "Open investigations: 12,005" equalled the total, because every sanitized incident starts NEW, so one figure appeared twice under two names and neither said which was the queue. And no tile was clickable or scoped, so learning that 488 were critical left an operator to rebuild that filter by hand, over a window nothing stated. |
+| **Regression test** | `apps/admin/lib/monitoring-metrics.spec.ts` |
+| **Scenario** | The sidebar lands on `/settings/monitoring` through an `href` override, while modules without one keep `routeBase`. Every tile names what it counts, carries the active window, toggles its filter on a second press, and marks the filter in force with `aria-pressed` and the word "Filtering" — not colour alone. `scope` is required on `SummaryCard`, so a tile cannot be added without one. |
+| **Proven to fail without the fix** | Reverting the sidebar fails two assertions by name; restoring either old label fails the negative assertions; dropping an `onClick` fails the count. |
+| **Note** | The default time window is deliberately **unchanged**. Narrowing it would make the page open on less than everything, which is a product decision about what the queue is for — not a UX repair — and doing it quietly is how a monitoring screen starts hiding incidents. |
+| **Fixed** | 2026-08-22, branch `agent/tenant-repair-and-console-ux` |
+| **Active** | yes |
+
+### REG-194 — Health read off the record of the attempt
+
+| | |
+|---|---|
+| **Bug class** | `divergent-duplicate-guard` |
+| **Module** | `services/api/src/modules/tenant-control-plane`, `apps/admin` |
+| **Bug record** | BUG-0463 |
+| **Root cause** | Every panel on the tenant record described *provisioning runs*. A run is evidence that a build was attempted; a workspace can be entirely usable with no run rows — they predate run recording, or were never written — and can be missing a hostname behind a perfectly successful run. So an ACTIVE, reachable, signed-into tenant reported "Workspace: Not provisioned", "Primary tenant owner: Unassigned", a status reason of "Provisioning" beside an "Active" badge, and no recorded run: four true statements answering nothing. The retry gate then made it unrecoverable rather than merely unclear, because the one control that could issue a hostname is bound to a lifecycle state a working tenant has already left. Underneath, `subStatus` is a sentence nothing clears when the lifecycle moves on. |
+| **Regression test** | `services/api/src/modules/tenant-control-plane/workspace-health.spec.ts` |
+| **Scenario** | A complete workspace reports nothing wrong. A missing hostname is blocking, and repairable only when a slug exists to derive one from. An ACTIVE tenant still described as provisioning is flagged, while an ordinary sub-status and a genuinely provisioning tenant are left alone. A missing business unit is blocking and explicitly not repairable. A missing owner distinguishes "nobody assigned" from "nobody to assign". Every deficiency is reported at once, and `repairable` is true exactly when one of them is. |
+| **Proven to fail without the fix** | There is nothing to revert to — the derivation did not exist. Removing the slug guard makes the not-repairable case claim repairability, which is the assertion that matters: it would produce a button that can only fail. |
+| **Note** | The repair is narrow on purpose. It issues a missing hostname and clears a contradictory sub-status; it does **not** create business units, owners, subscriptions or invoices. Those belong to provisioning, and quietly duplicating them in a repair is how a repair becomes an incident. [[BUG-0015]] is named on the business-unit finding rather than worked around: the step that creates one is not replayed, so claiming it repairable would produce a button that reports success and changes nothing — which is BUG-0015's own shape. |
+| **Fixed** | 2026-08-22, branch `agent/tenant-repair-and-console-ux` |
+| **Active** | yes |

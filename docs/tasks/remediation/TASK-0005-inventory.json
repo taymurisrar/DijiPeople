@@ -6,14 +6,14 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 184,
-    "bugs": 108,
+    "total_records": 188,
+    "bugs": 112,
     "backlog_items": 76,
     "open_bucket": 4,
     "blocked_bucket": 0,
     "deferred_bucket": 2,
     "product_decision_bucket": 2,
-    "completed_bucket": 98,
+    "completed_bucket": 102,
     "parser_structural_errors": 0,
     "active_session_conflict": "NONE",
     "discovered_findings_total": 34,
@@ -9219,6 +9219,194 @@
       ],
       "qa_scenarios": [
         "QA-LANDING-013"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "FIX_NOW",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0460",
+      "source": {
+        "record_path": "docs/bugs/BUG-0460-the-notification-badge-counted-over-a-window-sized-by-the-pa.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "3883798",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
+      },
+      "type": "UX",
+      "title": "The notification badge counted over a window sized by the page it was fetching",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/platform-events",
+          "apps/admin"
+        ],
+        "verification_scope": "Fixed on agent/tenant-repair-and-console-ux; not verified in a browser."
+      },
+      "affected_modules": [
+        "services/api/src/modules/platform-events",
+        "apps/admin"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [
+        "REG-191"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-013"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "FIX_NOW",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0461",
+      "source": {
+        "record_path": "docs/bugs/BUG-0461-the-cost-estimator-listed-flat-priced-plans-under-a-headcoun.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "3883798",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
+      },
+      "type": "UX",
+      "title": "The cost estimator listed flat-priced plans under a headcount input",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "current_evidence": {
+        "paths": [
+          "apps/landing"
+        ],
+        "verification_scope": "Fixed on agent/tenant-repair-and-console-ux; not verified in a browser."
+      },
+      "affected_modules": [
+        "apps/landing"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [
+        "REG-192"
+      ],
+      "qa_scenarios": [
+        "QA-LANDING-014"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "FIX_NOW",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0462",
+      "source": {
+        "record_path": "docs/bugs/BUG-0462-monitoring-opened-on-a-twelve-thousand-row-queue-with-five-u.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "3883798",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
+      },
+      "type": "UX",
+      "title": "Monitoring opened on a twelve thousand row queue with five unactionable tiles",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "current_evidence": {
+        "paths": [
+          "apps/admin"
+        ],
+        "verification_scope": "Fixed on agent/tenant-repair-and-console-ux; not verified in a browser."
+      },
+      "affected_modules": [
+        "apps/admin"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [
+        "REG-193"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-014"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "FIX_NOW",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0463",
+      "source": {
+        "record_path": "docs/bugs/BUG-0463-an-active-reachable-tenant-reported-that-its-workspace-was-n.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "3883798",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
+      },
+      "type": "STATE_MACHINE",
+      "title": "An active reachable tenant reported that its workspace was not provisioned",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/tenant-control-plane",
+          "apps/admin"
+        ],
+        "verification_scope": "Fixed on agent/tenant-repair-and-console-ux; not verified in a browser."
+      },
+      "affected_modules": [
+        "services/api/src/modules/tenant-control-plane",
+        "apps/admin"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [
+        "REG-194"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-010"
       ],
       "test_plan": [],
       "active_session_conflict": "NONE",
