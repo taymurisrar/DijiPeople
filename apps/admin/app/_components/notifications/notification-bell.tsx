@@ -33,6 +33,7 @@ const PREVIEW_LIMIT = 6;
  */
 export function NotificationBell() {
   const [unread, setUnread] = useState(0);
+  const [truncated, setTruncated] = useState(false);
   const [open, setOpen] = useState(false);
   const [feed, setFeed] = useState<Feed | null>(null);
   const [loading, setLoading] = useState(false);
@@ -56,6 +57,7 @@ export function NotificationBell() {
       if (!response.ok) throw new Error("unavailable");
       const payload = (await response.json()) as Feed;
       setUnread(Math.max(0, Number(payload.unreadCount ?? 0)));
+      setTruncated(Boolean(payload.scanTruncated));
       if (limit > 1) {
         setFeed(payload);
         setFailed(false);
@@ -180,7 +182,7 @@ export function NotificationBell() {
            * be wrong, so nobody notices when it is.
            */
           <span className="absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-white bg-rose-600 px-1 text-[10px] font-bold leading-none text-white">
-            {unread > 99 ? "99+" : unread}
+            {unread > 99 || truncated ? "99+" : unread}
           </span>
         ) : null}
       </button>

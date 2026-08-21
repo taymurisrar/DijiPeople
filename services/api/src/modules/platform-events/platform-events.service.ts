@@ -30,6 +30,16 @@ export type RecordPlatformEventInput = {
   metadata?: Record<string, unknown> | null;
 };
 
+/**
+ * How many recent platform events one notification read examines.
+ *
+ * "Notifiable" is a rule over the event code and result, evaluated in
+ * TypeScript — see `platform-notifications.ts` — so it cannot be a database
+ * `count`. The scan is therefore wide and bounded, and the boundedness is
+ * reported rather than hidden: see `scanTruncated`.
+ */
+export const NOTIFICATION_SCAN_LIMIT = 600;
+
 @Injectable()
 export class PlatformEventsService {
   private readonly logger = new Logger(PlatformEventsService.name);
@@ -83,6 +93,7 @@ export class PlatformEventsService {
   ): Promise<{
     items: PlatformNotification[];
     unreadCount: number;
+    scanTruncated: boolean;
     readAt: string | null;
   }> {
     this.assertRead(user);
@@ -107,11 +118,22 @@ export class PlatformEventsService {
       where: { occurredAt: { gte: since } },
       orderBy: { occurredAt: 'desc' },
       /*
-       * Over-fetch, then filter to the notifiable subset. Most events are not
-       * notifiable, so taking exactly `limit` rows would routinely return a
-       * near-empty feed while unread failures sat just past the cut.
+       * A fixed scan, **independent of the page size**.
+       *
+       * This read `take: limit * 20`, and the comment below the return claimed
+       * the unread count was computed "over everything in the window, not over
+       * the page". It was not: the window *was* the page size times twenty. The
+       * badge polls with `limit=1` and therefore counted unread notifications
+       * among twenty events; opening the popover asks for six and scans a
+       * hundred and twenty. So the same reader saw no badge on sign-in and a
+       * count the moment they clicked the bell — reported exactly that way.
+       *
+       * Most platform events are not notifiable, so the scan has to be wide;
+       * what it must not be is a function of how many rows the caller wants to
+       * display. `scanTruncated` below is what keeps the resulting number
+       * honest when even this is not enough.
        */
-      take: limit * 20,
+      take: NOTIFICATION_SCAN_LIMIT,
       select: {
         id: true,
         eventCode: true,
@@ -134,11 +156,17 @@ export class PlatformEventsService {
 
     return {
       /*
-       * The unread count is computed over everything in the window, not over
-       * the page — a badge that said "3" because the page held three would be
-       * lying about the thing the badge exists to state.
+       * Over the scanned window, and the same number whatever `limit` is — a
+       * badge that changes when you open the panel it describes is worse than
+       * no badge, because it looks like the act of looking created the news.
        */
       unreadCount: items.filter((item) => item.unread).length,
+      /*
+       * True when the scan hit its ceiling, so the count is a floor rather than
+       * a total. The caller renders "99+" rather than an exact number it cannot
+       * stand behind.
+       */
+      scanTruncated: rows.length >= NOTIFICATION_SCAN_LIMIT,
       items: items.slice(0, limit),
       readAt: readAt?.toISOString() ?? null,
     };

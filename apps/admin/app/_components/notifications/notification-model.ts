@@ -24,6 +24,12 @@ export type Notification = {
 export type Feed = {
   items: Notification[];
   unreadCount: number;
+  /**
+   * The API stopped scanning before the end of the window, so `unreadCount` is
+   * a floor. The badge renders `99+` rather than an exact number nothing can
+   * stand behind.
+   */
+  scanTruncated?: boolean;
   readAt: string | null;
 };
 
