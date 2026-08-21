@@ -11,3 +11,4 @@ Parent tasks that reached a terminal state. `FINAL_STATUS` records how.
 | [TASK-0002](TASK-0002-deep-documentation-of-apps-docs-apps-landing-and-apps-agent-.md) | Deep documentation of apps/docs, apps/landing and apps/agent-desktop | KNOWLEDGE | LARGE | P1 | COMPLETE | 9/9 | — |
 | [TASK-0003](TASK-0003-deep-documentation-of-apps-web-the-tenant-product.md) | Deep documentation of apps/web, the tenant product | KNOWLEDGE | LARGE | P1 | COMPLETE | 9/9 | — |
 | [TASK-0006](TASK-0006-landing-ui-ux-remediation-package.md) | Landing UI/UX remediation package | BUG | LARGE | P1 | COMPLETE | 5/5 | — |
+| [TASK-0013](TASK-0013-platform-admin-and-landing-ux-program-payment-diagnosis-work.md) | Platform Admin and landing UX program: payment diagnosis, workspace routing, notifications, preferences, field types | FEATURE | LARGE | P1 | COMPLETE | 8/8 | — |

@@ -4,7 +4,7 @@ aliases: [TASK-0013]
 TITLE: Platform Admin and landing UX program: payment diagnosis, workspace routing, notifications, preferences, field types
 TYPE: FEATURE
 SIZE: LARGE
-STATUS: NOT_STARTED
+STATUS: COMPLETE
 PRIORITY: P1
 CREATED_AT: 2026-08-21
 AFFECTED_MODULES: []
@@ -14,7 +14,7 @@ CURRENT_PACKAGE:
 COMPLETED_PACKAGES: []
 BLOCKED_PACKAGES: []
 OWNER_DECISIONS: 0
-FINAL_STATUS:
+FINAL_STATUS: DELIVERED — ten reported items, eight fixed and two answered with a recorded decision; integrated at 3b77e1b with the gate green
 ---
 
 # TASK-0013 — Platform Admin and landing UX program: payment diagnosis, workspace routing, notifications, preferences, field types
@@ -31,12 +31,27 @@ A good package can be reviewed on its own and has one owning specialist.
 
 | WP_ID | TITLE | STATUS | DEPENDENCIES | AGENTS | BRANCH | SHA | QA_STATUS | BUGS | CI_STATUS | MERGE_STATUS |
 |---|---|---|---|---|---|---|---|---|---|---|
-| WP-01 | <first package> | NOT_STARTED | — | <agent> | agent/<feature>-<scope> | — | — | — | — | — |
+| WP-01 | Workspace routing: configuration, the development port, and one URL rule | DONE | — | backend-api, frontend | agent/admin-landing-ux-program | a339e75 | PASS | BUG-0312, BUG-0313 | PASS | INTEGRATED |
+| WP-02 | Re-check payment with Stripe, with a diagnosis an operator can relay | DONE | — | backend-api, frontend | agent/admin-landing-ux-program | a339e75 | PASS | — | PASS | INTEGRATED |
+| WP-03 | Row actions that fit the column they are in | DONE | — | ui-ux, frontend | agent/admin-landing-ux-program | a339e75 | PASS | — | PASS | INTEGRATED |
+| WP-04 | A notification feed projected from PlatformEvent, and a badge that counts | DONE | — | backend-api, frontend | agent/admin-landing-ux-program | b30e152 | PASS | BUG-0314 | PASS | INTEGRATED |
+| WP-05 | Console preferences persisted per operator and applied on every page | DONE | WP-04 | database, backend-api, frontend | agent/admin-landing-ux-program | b30e152 | PASS | BUG-0315 | PASS | INTEGRATED |
+| WP-06 | Field controls that match their columns, on one geographic lookup | DONE | — | backend-api, frontend, ui-ux | agent/admin-landing-ux-program | b8d5d88 | PASS | BUG-0316 | PASS | INTEGRATED |
+| WP-07 | The subscribe wizard: progress that reads, labels that stay | DONE | WP-06 | ui-ux, frontend | agent/admin-landing-ux-program | b8d5d88 | PASS | BUG-0317 | PASS | INTEGRATED |
+| WP-08 | The UI/UX agent's control audit | DONE | WP-01..07 | architect, ui-ux | agent/admin-landing-ux-program | b8d5d88 | NOT_REQUIRED — a role definition, exercised by the next review rather than a test | — | PASS | INTEGRATED |
 
 ## Assumptions
 
 One row per material assumption. LOW confidence with high impact must be verified
 before work depends on it.
+
+| Assumption | Confidence | Verified | How |
+|---|---|---|---|
+| The reported login failure, the missing hostname and Open Tenant share one cause | HIGH | YES | All three trace to `TENANT_BASE_DOMAIN` being unset; `createSystemDomain` throws on it and `buildTenantLoginUrl` builds from it |
+| Three additive nullable columns are not an ExecPlan trigger | HIGH | YES | `PLANS.md` names "new models, destructive changes, changed uniqueness or relations, anything needing a backfill"; this is none of them |
+| `PlatformEvent` already records enough to build a notification feed on | HIGH | YES | Provisioning, billing, webhook, lifecycle and delivery outcomes are all emitted, and admin already proxied the read |
+| A public country endpoint is safe to expose unauthenticated | HIGH | YES | It projects ISO code and name only, is rate-limited by `PublicRateLimitGuard`, and enumerates nothing about the platform |
+| The behaviour changes are correct without browser verification | **LOW** | **NO** | Stated as a known limitation on the engineering history rather than assumed away. Unit assertions cover the decisions; layout, spacing and interaction are unobserved |
 
 | ASSUMPTION_ID | STATEMENT | EVIDENCE | CONFIDENCE | IMPACT_IF_WRONG |
 |---|---|---|---|---|
@@ -62,7 +77,6 @@ See `node scripts/repo-health.mjs`.
 
 ## Related
 
-- `STANDALONE_ALLOWED` — this task names no bug, backlog item or known
-  module. Name one in the record rather than adding a link here by hand.
+- Records — [[BUG-0312]], [[BUG-0313]], [[BUG-0314]], [[BUG-0315]], [[BUG-0316]], [[BUG-0317]]
 
 <!-- GRAPH:END -->

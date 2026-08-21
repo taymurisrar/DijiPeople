@@ -8,16 +8,15 @@ graph and the block reasons. See
 
 | Bucket | Count |
 |---|---|
-| [Active](active.md) | 7 |
+| [Active](active.md) | 6 |
 | [Blocked](blocked.md) | 1 |
-| [Completed](completed.md) | 5 |
+| [Completed](completed.md) | 6 |
 
 ## Next ready work package
 
 | Task | WP | Title |
 |---|---|---|
 | [TASK-0005](TASK-0005-dijipeople-global-technical-remediation.md) | WP-04 | Database E2E isolation and residual defect proof |
-| [TASK-0013](TASK-0013-platform-admin-and-landing-ux-program-payment-diagnosis-work.md) | WP-01 | <first package> |
 
 ## Needs a human
 
@@ -50,4 +49,4 @@ graph and the block reasons. See
 | [TASK-0004](TASK-0004-autonomous-framework-v2-architect-only-orchestration-multi-s.md) | Autonomous framework v2 — Architect-only orchestration, multi-session safety, develop integration, persistent QA | FRAMEWORK | PROGRAM | P1 | BLOCKED | 10/11 | — |
 | [TASK-0006](TASK-0006-landing-ui-ux-remediation-package.md) | Landing UI/UX remediation package | BUG | LARGE | P1 | COMPLETE | 5/5 | — |
 | [TASK-0009](TASK-0009-identity-and-multi-tenant-membership.md) | Identity and multi-tenant membership | FEATURE | LARGE | P1 | IN_PROGRESS | 11/12 | WP-09 |
-| [TASK-0013](TASK-0013-platform-admin-and-landing-ux-program-payment-diagnosis-work.md) | Platform Admin and landing UX program: payment diagnosis, workspace routing, notifications, preferences, field types | FEATURE | LARGE | P1 | NOT_STARTED | 0/1 | — |
+| [TASK-0013](TASK-0013-platform-admin-and-landing-ux-program-payment-diagnosis-work.md) | Platform Admin and landing UX program: payment diagnosis, workspace routing, notifications, preferences, field types | FEATURE | LARGE | P1 | COMPLETE | 8/8 | — |
