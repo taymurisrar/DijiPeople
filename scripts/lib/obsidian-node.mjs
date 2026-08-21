@@ -59,10 +59,23 @@ export function splitNote(text) {
   };
 }
 
+/*
+ * `[^\S\r\n]*` rather than `\s*` after the colon.
+ *
+ * `\s*` is greedy across newlines, so a key with an *empty* value swallowed its
+ * own line ending and `(.*)` captured the **next** line. A note whose frontmatter
+ * read `status:` followed by `last_verified: 2026-08-17` reported its status as
+ * "last_verified: 2026-08-17", which then failed status parity against a record
+ * that was perfectly fine.
+ *
+ * Same defect as the section parsers in question-records and
+ * work-package-records: an empty value is the case the greedy version cannot
+ * see, and an empty value is exactly what these checks are looking for.
+ */
 function readKey(frontmatter, ...names) {
   for (const name of names) {
     const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const match = new RegExp(`^${escaped}:\\s*(.*)$`, 'm').exec(frontmatter);
+    const match = new RegExp(`^${escaped}:[^\\S\\r\\n]*(.*)$`, 'm').exec(frontmatter);
     if (match) {
       const value = match[1].trim().replace(/^["']|["']$/g, '');
       if (value) return value;
@@ -81,16 +94,21 @@ function readKey(frontmatter, ...names) {
  * frontmatter at all.
  */
 export function deriveSourceId(frontmatter, filename) {
-  const explicit = readKey(
-    frontmatter,
-    'ID',
-    'TASK_ID',
-    'WP_ID',
-    'QUESTION_ID',
-    'SESSION_ID',
-    'BUG_ID',
-    'ITEM_ID',
-  );
+  /*
+   * A work package carries both WP_ID and TASK_ID, and neither alone identifies
+   * it: TASK_ID is shared by every package in the program, and WP-01 exists in
+   * every program there has ever been. Reading TASK_ID first made all sixteen
+   * of TASK-0012's packages claim the same source id, which duplicate detection
+   * correctly reported as sixteen collisions.
+   *
+   * The composite is the actual identity of the node.
+   */
+  const workPackage = readKey(frontmatter, 'WP_ID');
+  const parentTask = readKey(frontmatter, 'TASK_ID');
+  if (workPackage && parentTask) return `${parentTask}-${workPackage}`;
+  if (workPackage) return workPackage;
+
+  const explicit = readKey(frontmatter, 'ID', 'QUESTION_ID', 'SESSION_ID', 'BUG_ID', 'ITEM_ID', 'TASK_ID');
   if (explicit) return explicit;
 
   const aliases = /^aliases:\s*\[([^\]]*)\]\s*$/m.exec(frontmatter);

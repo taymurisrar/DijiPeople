@@ -12,6 +12,8 @@ OBSIDIAN_IMPACT: UPDATE_NODE
 
 # WP-11 — Engineering Control Center expansion
 
+Work package of [[TASK-0012]].
+
 ## Goal
 
 Make one page answer "what is the state of engineering right now"

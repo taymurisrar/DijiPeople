@@ -12,6 +12,8 @@ OBSIDIAN_IMPACT: CREATE_NODE
 
 # WP-02 — Question escalation protocol and decision memory
 
+Work package of [[TASK-0012]].
+
 ## Goal
 
 Let any specialist raise a genuine question at any point, route it

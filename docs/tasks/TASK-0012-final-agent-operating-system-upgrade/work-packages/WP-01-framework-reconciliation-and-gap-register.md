@@ -12,6 +12,8 @@ OBSIDIAN_IMPACT: NONE
 
 # WP-01 — Framework reconciliation and gap register
 
+Work package of [[TASK-0012]].
+
 ## Goal
 
 Establish what the framework already does before adding anything, and

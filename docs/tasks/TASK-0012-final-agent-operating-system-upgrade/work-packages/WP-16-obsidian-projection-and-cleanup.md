@@ -12,6 +12,8 @@ OBSIDIAN_IMPACT: CREATE_NODE
 
 # WP-16 — Obsidian projection, verification and cleanup
 
+Work package of [[TASK-0012]].
+
 ## Goal
 
 Project this program into the vault, verify the result physically

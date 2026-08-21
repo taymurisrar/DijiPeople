@@ -12,6 +12,8 @@ OBSIDIAN_IMPACT: UPDATE_NODE
 
 # WP-08 — Agent role enhancements across the permanent set
 
+Work package of [[TASK-0012]].
+
 ## Goal
 
 Fold the new mechanisms into the eleven existing role files and settle

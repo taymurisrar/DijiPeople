@@ -29,6 +29,7 @@ import { loadSessions, compareSessions, isActive as sessionIsActive } from './li
 import { loadTasks, readyPackages, progressOf, isActive as taskIsActive } from './lib/task-records.mjs';
 import { COVERAGE_DIMENSIONS, loadQaRecords } from './lib/qa-records.mjs';
 import { loadQuestions } from './lib/question-records.mjs';
+import { hasMeaningfulContent } from './lib/obsidian-mappings.mjs';
 
 const BANNER =
   '> **Generated file — do not edit by hand.** Rebuild with `node scripts/generate-dashboards.mjs`,\n' +
@@ -44,8 +45,29 @@ const CHECK_ONLY = process.argv.includes('--check');
 /** Note name as Obsidian resolves it: the filename without its extension. */
 const noteName = (path) => basename(path, '.md');
 
+/**
+ * A wikilink, but only to a record that will actually reach the vault.
+ *
+ * The empty-note policy skips sources with no substance, so a stub record never
+ * becomes a note — and a dashboard that links to it emits a wikilink Obsidian
+ * cannot resolve. SESSION-0023 is a 103-word stub, and the Control Center was
+ * its only unresolved link.
+ *
+ * Resolving that by publishing the stub anyway would defeat the empty-note
+ * policy; resolving it by editing another session's record would be reaching
+ * into work that is not this one's. So the dashboard degrades to plain text,
+ * which is honest: the row still appears, and it simply is not a link.
+ */
 const wikilink = (path, label) => {
   const name = noteName(path);
+  const full = join(ROOT, path);
+  if (existsSync(full)) {
+    try {
+      if (!hasMeaningfulContent(readFileSync(full, 'utf8'))) return label || name;
+    } catch {
+      /* Unreadable is the caller's problem to report, not this helper's. */
+    }
+  }
   return label && label !== name ? `[[${name}|${label}]]` : `[[${name}]]`;
 };
 

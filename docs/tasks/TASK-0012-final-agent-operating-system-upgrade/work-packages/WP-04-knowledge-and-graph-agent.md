@@ -12,6 +12,8 @@ OBSIDIAN_IMPACT: CREATE_NODE
 
 # WP-04 — Knowledge and Graph role and the Obsidian node contract
 
+Work package of [[TASK-0012]].
+
 ## Goal
 
 Create the permanent role that owns canonical-to-vault projection, and

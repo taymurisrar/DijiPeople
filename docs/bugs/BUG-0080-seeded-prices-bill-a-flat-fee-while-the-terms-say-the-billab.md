@@ -139,7 +139,7 @@ not any one of them.
 
 ## Regression Coverage
 
-[[REG-075]], added with the fix, plus the QA scenario *"a flat price is never
+REG-075, added with the fix, plus the QA scenario *"a flat price is never
 described as per-employee"*. The guard is on the **wording against the model**
 rather than on the arithmetic, which is the right place: the arithmetic was never
 wrong.
@@ -199,7 +199,7 @@ record has already misled one reader today.
 
 ## QA Retest
 
-Pass. [[REG-075]] and the QA scenario *"a flat price is never described as
+Pass. REG-075 and the QA scenario *"a flat price is never described as
 per-employee"* were added with the fix and assert the wording against the seeded
 billing model, so the two cannot drift apart again silently.
 
@@ -210,7 +210,7 @@ billing model, so the two cannot drift apart again silently.
   agree. See EXECPLAN-0002.
 - 2026-08-20 — **this record was left half-written, and it cost a later task an
   hour and a wrong decision.** `e9f977c` fixed the defect, rewrote the Terms,
-  added [[REG-075]] and a QA scenario, and updated the regression register, the
+  added REG-075 and a QA scenario, and updated the regression register, the
   remediation inventory and three dashboards. It never filled in this record's
   own `## Resolution` and `## QA Retest` sections, which still read *"Pending a
   product decision"* and *"Pending"* while `Status` correctly read `FIXED`.

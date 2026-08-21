@@ -12,6 +12,8 @@ OBSIDIAN_IMPACT: NONE
 
 # WP-05 — Large-task persistence, work-package files and context budget
 
+Work package of [[TASK-0012]].
+
 ## Goal
 
 Make a program's state survive the session that started it, and make

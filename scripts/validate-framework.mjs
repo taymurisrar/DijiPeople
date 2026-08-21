@@ -5645,24 +5645,36 @@ if (trackedFiles) {
   );
 
   /*
-   * 60 — semantic links. A Bug pointing at its Regression is knowledge; a Bug
-   * pointing at a Session because somebody needed to clear a graph orphan is
-   * noise that looks identical in the graph view.
+   * 60 — semantic links.
+   *
+   * This rule was rewritten mid-package, and the rewrite is the lesson. The
+   * first version enumerated which pairs were legitimate and produced 607
+   * errors against the real vault — almost all of them *good* links: an item
+   * pointing at the bug pattern it addresses, an item citing the requirement it
+   * came from. The grammar was describing one author's guess, not the graph.
+   *
+   * What survives is the rule that is actually defensible: knowledge may link to
+   * knowledge, and nothing may link into a generated listing surface. That still
+   * forbids the move the framework cares about — pointing an isolated note at
+   * the index so the dot disappears — without inventing relationships.
    */
   check(
-    'simulation 60: a defined relationship is accepted',
-    relationshipIsValid('bug', 'regression') && relationshipIsValid('task', 'work-package'),
-    'BUG-REGRESSION and TASK-WORK_PACKAGE are both defined',
+    'simulation 60: knowledge linking to knowledge is accepted',
+    relationshipIsValid('bug', 'regression') &&
+      relationshipIsValid('task', 'work-package') &&
+      relationshipIsValid('backlog-item', 'bug-pattern') &&
+      relationshipIsValid('product-knowledge', 'bug'),
+    'the enumerated grammar rejected the last two, and the vault was right',
   );
   check(
-    'simulation 60b: an undefined relationship is a semantic link error',
-    !relationshipIsValid('bug', 'session') && !relationshipIsValid('regression', 'release'),
-    'linking anything to anything makes the graph meaningless',
+    'simulation 60b: linking into a generated listing surface is a semantic link error',
+    !relationshipIsValid('bug', 'dashboard') && !relationshipIsValid('backlog-item', 'dashboard'),
+    'linking at the index is the cheapest way to fake a relationship',
   );
   check(
-    'simulation 60c: dashboards are exempt rather than enumerated',
+    'simulation 60c: a listing surface linking outward is exempt',
     relationshipIsValid('dashboard', 'bug') && relationshipIsValid('dashboard', 'session'),
-    'a listing surface links everywhere by design',
+    'a listing surface links everywhere by design; that is its whole job',
   );
 
   /*

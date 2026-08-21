@@ -8,6 +8,8 @@ VERIFIED_AGAINST_COMMIT: 4226e53
 
 # Framework reconciliation — 2026-08-21
 
+Produced by WP-01 of [[TASK-0012]].
+
 The TASK-0012 brief describes a target state in sixty-five sections. A large
 part of it is already built. This document records which part, so the program
 extends what exists instead of growing a second copy of it — the specific

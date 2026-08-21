@@ -12,6 +12,8 @@ OBSIDIAN_IMPACT: UPDATE_NODE
 
 # WP-14 — Reviewer hardening and the completion contract
 
+Work package of [[TASK-0012]].
+
 ## Goal
 
 Make the Reviewer inspect evidence rather than summaries, and extend

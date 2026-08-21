@@ -511,7 +511,15 @@ function verify(vaultPath, mappings) {
          * VERIFIED is worse than a vault with no status at all — somebody reads
          * it and acts on it.
          */
-        const canonicalStatus = /^(?:Status|STATUS|TASK_STATUS):\s*(.*)$/m.exec(source)?.[1]?.trim() ?? '';
+        /*
+         * Read from the source's *frontmatter*, not from anywhere in the file.
+         * A folder README that happens to contain the line "Status: OPEN" in a
+         * prose table has no canonical status at all, and comparing against it
+         * reported a mismatch on a note that was correct.
+         */
+        const sourceFrontmatter = /^---\r?\n([\s\S]*?)\r?\n---/.exec(source)?.[1] ?? '';
+        const canonicalStatus =
+          /^(?:Status|STATUS|TASK_STATUS):[^\S\r\n]*(.*)$/m.exec(sourceFrontmatter)?.[1]?.trim() ?? '';
         if (canonicalStatus && provenance.status !== canonicalStatus) {
           statusMismatches += 1;
           problems.push(
@@ -542,11 +550,26 @@ function verify(vaultPath, mappings) {
         }
 
         nodeTypeByName.set(basename(target, '.md'), provenance.nodeType);
-        const seenAt = duplicateIds.get(provenance.sourceId);
-        if (seenAt && seenAt !== label) {
-          duplicates.push(`${provenance.sourceId}: ${seenAt} and ${label}`);
-        } else {
-          duplicateIds.set(provenance.sourceId, label);
+
+        /*
+         * Duplicate detection applies only to *allocated* ids.
+         *
+         * A folder README or a generated index has no record id, so `source_id`
+         * falls back to the filename — and every mapping has a `README.md`. The
+         * first version of this check reported 53 duplicates, all of them
+         * `README` and `index`, and none of them a problem. Two notes sharing
+         * `BUG-0005` is a stale copy left by a rename; two notes both called
+         * README is the folder structure working.
+         */
+        const ALLOCATED_ID =
+          /^(?:BUG|ITEM|TASK|SESSION|ADR|QUESTION|PLAN|WP)-\d+(?:-WP-\d+)?$|^QA-[A-Z]+-\d+$|^REG-\d+$/;
+        if (ALLOCATED_ID.test(provenance.sourceId)) {
+          const seenAt = duplicateIds.get(provenance.sourceId);
+          if (seenAt && seenAt !== label) {
+            duplicates.push(`${provenance.sourceId}: ${seenAt} and ${label}`);
+          } else {
+            duplicateIds.set(provenance.sourceId, label);
+          }
         }
       }
 

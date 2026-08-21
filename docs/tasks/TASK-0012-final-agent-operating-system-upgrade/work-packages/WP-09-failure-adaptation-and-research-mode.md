@@ -12,6 +12,8 @@ OBSIDIAN_IMPACT: NONE
 
 # WP-09 — Failure adaptation, failure budget and research mode
 
+Work package of [[TASK-0012]].
+
 ## Goal
 
 Classify failures, cap repetition, and bound external research.

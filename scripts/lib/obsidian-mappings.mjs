@@ -121,60 +121,73 @@ export function nodeTypeFor(mapping, relativePath) {
 }
 
 /**
- * Which relationships mean something.
+ * Node types that carry knowledge, as opposed to listing it.
  *
- * A link is valid when it resolves **and** the two ends have a defined
- * relationship. Without this, "the graph is connected" is satisfied by any link
- * at all, and the cheapest way to clear a graph orphan is to point it at
- * whatever note is nearest — which destroys the signal the orphan was carrying.
- *
- * Read as: a note of type <key> may meaningfully link to a note of these types.
- * Symmetry is not assumed; each direction is declared where it is meant.
+ * A bug, an item, a task, a decision, a regression — each says something about
+ * the system. A dashboard or an index says only what other notes exist.
  */
-export const NODE_RELATIONSHIPS = {
-  bug: ['module', 'regression', 'qa-scenario', 'qa-run', 'task', 'backlog-item', 'bug', 'decision', 'bug-pattern'],
-  'backlog-item': ['module', 'task', 'bug', 'decision', 'qa-scenario', 'backlog-item', 'architecture'],
-  task: ['bug', 'backlog-item', 'module', 'work-package', 'task', 'decision', 'engineering-history', 'session'],
-  'work-package': ['task', 'bug', 'backlog-item', 'module', 'decision', 'question', 'work-package'],
-  requirement: ['module', 'decision', 'implementation', 'architecture'],
-  decision: ['architecture', 'module', 'requirement', 'question', 'bug', 'backlog-item'],
-  question: ['decision', 'task', 'work-package', 'module'],
-  'qa-scenario': ['module', 'bug', 'regression', 'test-plan', 'qa-run'],
-  'qa-run': ['qa-scenario', 'bug', 'regression', 'test-plan', 'module'],
-  regression: ['bug', 'qa-scenario', 'module', 'bug-pattern'],
-  'bug-pattern': ['bug', 'regression', 'module', 'architecture'],
-  'test-plan': ['qa-scenario', 'module', 'qa-run'],
-  'test-strategy': ['test-plan', 'qa-scenario', 'module'],
-  module: ['architecture', 'bug', 'requirement', 'implementation', 'qa-scenario', 'module'],
-  architecture: ['module', 'decision', 'requirement', 'implementation'],
-  implementation: ['requirement', 'module', 'architecture', 'task'],
-  release: ['engineering-history', 'task', 'module'],
-  'engineering-history': ['task', 'release', 'bug', 'session'],
-  session: ['task', 'work-package'],
-  'framework-knowledge': ['task', 'decision', 'architecture', 'bug-pattern', 'regression'],
-  'product-knowledge': ['module', 'requirement', 'architecture'],
-  /*
-   * Dashboards link to everything by design — they are listing surfaces. Given
-   * an empty allow-list they would produce a semantic error per row, so they are
-   * exempt rather than enumerated.
-   */
-  dashboard: null,
-};
+export const KNOWLEDGE_NODE_TYPES = [
+  'bug',
+  'backlog-item',
+  'task',
+  'work-package',
+  'question',
+  'requirement',
+  'decision',
+  'qa-scenario',
+  'qa-run',
+  'regression',
+  'bug-pattern',
+  'test-plan',
+  'test-strategy',
+  'module',
+  'architecture',
+  'implementation',
+  'release',
+  'engineering-history',
+  'session',
+  'framework-knowledge',
+  'product-knowledge',
+];
+
+/**
+ * Generated *listing* surfaces rather than knowledge.
+ *
+ * Linking **into** one of these is the failure this rule exists to catch. It is
+ * the cheapest possible way to clear a graph orphan — point the isolated note at
+ * the index and the dot disappears — and it teaches a reader nothing while
+ * diluting every real edge around it.
+ */
+export const LISTING_NODE_TYPES = ['dashboard'];
 
 /**
  * Is a link from `fromType` to `toType` meaningful?
  *
+ * This began as an allow-list enumerating which pairs were legitimate, and that
+ * was wrong. Run against the real vault it produced 607 errors, and reading them
+ * showed almost every one was a **good** link: a backlog item pointing at the
+ * bug pattern it addresses, an item citing the requirement it came from, product
+ * knowledge naming the defects that shaped it. The grammar was not describing
+ * the graph; it was describing one author's guess about the graph, and the graph
+ * was right.
+ *
+ * A verifier that cries wolf gets skipped, which is exactly how the thing it
+ * verifies rots — the same lesson the orphan scan already carries in this file,
+ * and the same one BUG-0034 taught the contradiction detector.
+ *
+ * So the rule is now the one that is actually defensible: knowledge may link to
+ * knowledge, and nothing may link into a generated listing surface. That still
+ * forbids the move the framework cares about — adding an edge to remove a dot —
+ * without inventing relationships nobody agreed to.
+ *
  * Unknown types pass. A verifier that fails on a type it has never heard of
- * blocks every new record kind on the day it is introduced, and the first
- * response to that is to disable the verifier.
+ * blocks every new record kind on the day it is introduced.
  */
 export function relationshipIsValid(fromType, toType) {
   if (!fromType || !toType) return true;
-  const allowed = NODE_RELATIONSHIPS[fromType];
-  if (allowed === null) return true;
-  if (!allowed) return true;
-  if (!(toType in NODE_RELATIONSHIPS)) return true;
-  return allowed.includes(toType);
+  /* A listing surface links everywhere by design; that is its whole job. */
+  if (LISTING_NODE_TYPES.includes(fromType)) return true;
+  return !LISTING_NODE_TYPES.includes(toType);
 }
 
 export const mappingKey = (mapping) => `${mapping.from}→${mapping.to}`;

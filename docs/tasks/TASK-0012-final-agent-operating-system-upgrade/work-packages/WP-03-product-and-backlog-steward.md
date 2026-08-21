@@ -12,6 +12,8 @@ OBSIDIAN_IMPACT: CREATE_NODE
 
 # WP-03 — Product and Backlog Steward role and backlog ownership
 
+Work package of [[TASK-0012]].
+
 ## Goal
 
 Create the permanent role that owns the health of unfinished work, and

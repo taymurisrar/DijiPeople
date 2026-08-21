@@ -12,6 +12,8 @@ OBSIDIAN_IMPACT: NONE
 
 # WP-12 — Behavioural simulations and mutation tests
 
+Work package of [[TASK-0012]].
+
 ## Goal
 
 Prove the twenty-five behaviours in the brief execute, rather than

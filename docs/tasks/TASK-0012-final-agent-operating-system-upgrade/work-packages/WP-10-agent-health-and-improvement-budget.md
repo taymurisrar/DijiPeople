@@ -12,6 +12,8 @@ OBSIDIAN_IMPACT: NONE
 
 # WP-10 — Agent health, architecture debt and improvement budget
 
+Work package of [[TASK-0012]].
+
 ## Goal
 
 Measure where roles systematically fail, track architecture debt as a

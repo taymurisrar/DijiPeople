@@ -12,6 +12,8 @@ OBSIDIAN_IMPACT: NONE
 
 # WP-07 — Test resource lifecycle and cleanup registry
 
+Work package of [[TASK-0012]].
+
 ## Goal
 
 Make every resource a test creates owned, accounted for and cleaned —

@@ -38,7 +38,7 @@ the prose is the more persuasive one because it explains itself.
 It happened, and it cost real work.
 
 [[BUG-0080]] was fixed in `e9f977c`. That commit rewrote the Terms of Service,
-added [[REG-075]] and a QA scenario, and updated the regression register, the
+added REG-075 and a QA scenario, and updated the regression register, the
 remediation inventory and three dashboards — but never filled in the bug
 record's own `## Resolution` and `## QA Retest` sections.
 

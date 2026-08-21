@@ -12,6 +12,8 @@ OBSIDIAN_IMPACT: NONE
 
 # WP-13 — Semantic record validation, QA evidence hierarchy, id allocation
 
+Work package of [[TASK-0012]].
+
 ## Goal
 
 Stop a record's terminal status from contradicting its own prose, put a

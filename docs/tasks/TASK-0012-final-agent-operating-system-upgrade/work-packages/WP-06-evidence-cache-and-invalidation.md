@@ -12,6 +12,8 @@ OBSIDIAN_IMPACT: NONE
 
 # WP-06 — Evidence cache and invalidation
 
+Work package of [[TASK-0012]].
+
 ## Goal
 
 Stop re-running expensive suites because an unrelated package moved,

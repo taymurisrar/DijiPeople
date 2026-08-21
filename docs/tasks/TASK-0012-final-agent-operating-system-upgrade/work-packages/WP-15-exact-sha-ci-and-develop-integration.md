@@ -12,6 +12,8 @@ OBSIDIAN_IMPACT: NONE
 
 # WP-15 — Exact-SHA CI and develop integration
 
+Work package of [[TASK-0012]].
+
 ## Goal
 
 Get a green CI verdict on the exact final SHA and integrate it into
