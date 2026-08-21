@@ -2,7 +2,7 @@
 WP_ID: WP-15
 TASK_ID: TASK-0012
 TITLE: Exact-SHA CI and develop integration
-STATUS: CI
+STATUS: DONE
 OWNER_AGENT: Integrator
 DEPENDENCIES: [WP-14]
 LAST_VERIFIED_SHA: 4226e53
@@ -61,15 +61,48 @@ LAST_VERIFIED_SHA: 4226e53 — re-read any summarised source that changed since.
 
 ## Implementation State
 
-Not started.
+Done.
+
+Three framework defects had to be fixed before the gate could go green, and
+each was a deadlock rather than a bug in the work being integrated.
+
+- `DEVELOP_CONTAINS_MAIN` read repository state, not branch state, so once a
+  release moved `main` ahead of `develop` it failed on every branch —
+  including the branch whose job was to reconcile them. The fix could not
+  pass the gate that demanded it.
+- The engineering history record cannot be complete before the merge exists,
+  and the validator rightly refuses one left with TODOs. It moved to a
+  post-integration commit rather than being filled with "PENDING", which
+  would have passed the grep and meant the same thing.
+- `repo-health` had no way to say a path in the primary checkout belongs to
+  another live session, so a concurrent edit blocked completion or had to be
+  laundered through `--primary-baseline`.
+- `finalize-agent-task` looked for the vault config beside itself, so it
+  reported `SKIPPED_NO_LOCAL_CONFIG` from every task worktree.
 
 ## Validation State
 
-Pending: the `CI required gate` conclusion at the final SHA.
+CI run [32454788133](https://github.com/taymurisrar/DijiPeople/actions/runs/32454788133)
+at `f023512` — all 14 jobs green, including `CI required gate`.
+
+The run id and its head SHA were both checked before the verdict was
+believed: a cancelled run’s `gh run watch` also exits 0, and three runs were
+superseded during this program.
 
 ## Evidence
 
-Pending.
+```
+CI required gate            success     head f023512
+Framework validation        success
+API tests · Web · Admin · Landing · Browser e2e · Database e2e   success
+Database migration gate · Typecheck · Build · Lint · Runtime schema  success
+```
+
+SEMANTIC_CONFLICT_CHECK before the push: all six record validators PASS, and
+no duplicate record id is introduced against `origin/develop`.
+
+Integrated by ref-push at `4226e53..f023512`, so the tip `develop` holds is
+byte-identical to the tip CI verified. `main` was never written by this task.
 
 ## Questions
 
@@ -77,4 +110,9 @@ None yet.
 
 ## Handoff
 
-Pending. Gates WP-16.
+KNOWLEDGE_IMPACT: NONE.
+OBSIDIAN_IMPACT: NONE.
+
+A-01 and A-02 both held. `main` moved twice during the program, both times by
+SESSION-0025 and never by this task; each divergence was reconciled into
+`develop` rather than left for the next task to trip over.

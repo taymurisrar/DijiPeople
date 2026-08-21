@@ -2,7 +2,7 @@
 WP_ID: WP-16
 TASK_ID: TASK-0012
 TITLE: Obsidian projection, verification and cleanup
-STATUS: IN_PROGRESS
+STATUS: DONE
 OWNER_AGENT: Knowledge & Graph
 DEPENDENCIES: [WP-04, WP-15]
 LAST_VERIFIED_SHA: 4226e53
@@ -112,6 +112,16 @@ None yet.
 ## Handoff
 
 KNOWLEDGE_IMPACT: CURRENT_CONTEXT.
-OBSIDIAN_IMPACT: CREATE_NODE — done and verified.
-Remaining: session close, lease release and aggregate repository health, once
-WP-15 has integrated.
+OBSIDIAN_IMPACT: CREATE_NODE — done and physically verified.
+
+Cleanup: SESSION-0026 closed, leases released (none were held — this program
+took no schema, permissions or workspace lease), every generated index
+rebuilt, and the vault re-synced after the final commit.
+
+The primary checkout ended CLEAN. It was CLEAN at session start, held
+SESSION-0025’s uncommitted heap-cap change mid-task — attributed, never
+touched — and is clean again now that they committed it.
+
+The task worktree and branch are left in place: `agent/agent-operating-system`
+is the branch `develop` was fast-forwarded from, and deleting a branch whose
+SHA is the integration evidence removes the thing the history record points at.

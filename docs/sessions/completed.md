@@ -6,6 +6,7 @@ Sessions that reached a terminal state. Kept as history: the branch, the base it
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0026](../../docs/sessions/SESSION-0026-final-agent-operating-system-upgrade.md) | TASK-0012 | Final agent operating system upgrade | COMPLETE | `agent/agent-operating-system` | `develop` | — | 2026-08-20T22:43:51.238Z |
 | [SESSION-0024](../../docs/sessions/SESSION-0024-neon-pooled-endpoint-blocks-prisma-migrate-advisory-lock.md) | — | Neon pooled endpoint blocks Prisma migrate advisory lock | COMPLETE | `agent/neon-pooler-migration-bug` | `develop` | — | 2026-08-20T21:37:09.447Z |
 | [SESSION-0021](../../docs/sessions/SESSION-0021-identity-and-multi-tenant-membership.md) | — | Identity and multi-tenant membership | COMPLETE | `agent/identity-and-membership` | `develop` | — | 2026-08-20T05:51:24.102Z |
 | [SESSION-0020](../../docs/sessions/SESSION-0020-database-agent-coherence-is-verified-after-schema-work-not-o.md) | — | Database Agent coherence is verified after schema work, not only before | COMPLETE | `agent/db-coherence-postflight` | `develop` | — | 2026-08-20T05:46:42.814Z |

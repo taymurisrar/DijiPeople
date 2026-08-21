@@ -7,9 +7,9 @@
 
 | | |
 |---|---|
-| Active sessions | **9** |
-| Active parent tasks | 7 |
-| Active work packages | 4 |
+| Active sessions | **8** |
+| Active parent tasks | 6 |
+| Active work packages | 2 |
 | Blocked work packages | 4 |
 | Work packages waiting on the user | 0 |
 | Open questions | 0 |
@@ -50,7 +50,6 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 | Session | Task | Title | Status | Branch | Target | Leases | Schema |
 |---|---|---|---|---|---|---|---|
 | [[SESSION-0027-hotfix-api-production-heap-cap-to-1536mb|SESSION-0027]] | — | Hotfix API production heap cap to 1536MB | ACTIVE | `agent/api-heap-cap-hotfix` | `main` | — | NO |
-| [[SESSION-0026-final-agent-operating-system-upgrade|SESSION-0026]] | — | Final agent operating system upgrade | ACTIVE | `agent/agent-operating-system` | `develop` | — | NO |
 | [[SESSION-0025-deploy-api-heap-cap-change-to-production|SESSION-0025]] | — | Deploy API heap cap change to production | ACTIVE | `agent/api-heap-cap-deploy` | `main` | — | NO |
 | SESSION-0023 | — | First production release | ACTIVE | `agent/first-production-release` | `main` | — | NO |
 | [[SESSION-0022-go-live-readiness|SESSION-0022]] | TASK-0010 | Go-live readiness | ACTIVE | `agent/go-live-readiness` | `develop` | — | NO |
@@ -69,7 +68,6 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 | [[TASK-0009-identity-and-multi-tenant-membership|TASK-0009]] | Identity and multi-tenant membership | FEATURE | LARGE | 11/12 | WP-09 | — | WP-09 |
 | [[TASK-0010-go-live-readiness|TASK-0010]] | Go-live readiness | FEATURE | MEDIUM | 7/8 | WP-04 | — | WP-04 |
 | [[TASK-0011-first-production-release|TASK-0011]] | First production release | RELEASE | MEDIUM | 1/2 | WP-02 | — | — |
-| [[TASK-0012-final-agent-operating-system-upgrade|TASK-0012]] | Final agent operating system upgrade | FRAMEWORK | PROGRAM | 14/16 | WP-15 | — | — |
 
 ## Branch model
 

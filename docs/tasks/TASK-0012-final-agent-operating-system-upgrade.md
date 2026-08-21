@@ -4,18 +4,18 @@ aliases: [TASK-0012]
 TITLE: Final agent operating system upgrade
 TYPE: FRAMEWORK
 SIZE: PROGRAM
-STATUS: IN_PROGRESS
+STATUS: COMPLETE
 PRIORITY: P0
 CREATED_AT: 2026-08-21
 AFFECTED_MODULES: [framework]
 AGENTS: [Architect, Product & Backlog Steward, Knowledge & Graph, Backend/API, Frontend, UI/UX, Database, Security, Integration, QA, Reviewer, Integrator, Release/DevOps]
 DEPENDENCIES: origin/develop 4226e53; SESSION-0026; no schema lease required
-CURRENT_PACKAGE: WP-15
-NEXT_READY_WORK_PACKAGE: WP-15
-COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10, WP-11, WP-12, WP-13, WP-14]
+CURRENT_PACKAGE: WP-16
+NEXT_READY_WORK_PACKAGE: NONE
+COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10, WP-11, WP-12, WP-13, WP-14, WP-15, WP-16]
 BLOCKED_PACKAGES: []
 OWNER_DECISIONS: 0
-FINAL_STATUS:
+FINAL_STATUS: COMPLETE — integrated into develop at f023512 behind a green exact-SHA gate; main untouched by this task
 ---
 
 # TASK-0012 — Final agent operating system upgrade
@@ -93,8 +93,8 @@ packages loses nothing but its scrollback.
 | WP-12 | Behavioural simulations and mutation tests | DONE | WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-09, WP-10 | QA | agent/agent-operating-system | — | — | — | — | — |
 | WP-13 | Semantic record validation, QA evidence hierarchy, id allocation | DONE | WP-03, WP-04, WP-07 | QA | agent/agent-operating-system | — | — | — | — | — |
 | WP-14 | Reviewer hardening and the completion contract | DONE | WP-08, WP-12, WP-13 | Reviewer | agent/agent-operating-system | — | — | — | — | — |
-| WP-15 | Exact-SHA CI and develop integration | CI | WP-14 | Integrator | agent/agent-operating-system | — | — | — | — | — |
-| WP-16 | Obsidian projection, verification and cleanup | IN_PROGRESS | WP-04, WP-15 | Knowledge & Graph | agent/agent-operating-system | — | — | — | — | — |
+| WP-15 | Exact-SHA CI and develop integration | DONE | WP-14 | Integrator | agent/agent-operating-system | — | — | — | — | — |
+| WP-16 | Obsidian projection, verification and cleanup | DONE | WP-04, WP-15 | Knowledge & Graph | agent/agent-operating-system | — | — | — | — | — |
 
 Per-package state — goal, context manifest, assumptions, evidence, handoff —
 lives in `docs/tasks/TASK-0012-final-agent-operating-system-upgrade/work-packages/`.
