@@ -53,17 +53,24 @@ describe("checkoutBlockedReason", () => {
     );
 
     expect(reason).not.toBeNull();
-    expect(reason).toContain("checkout is not available yet");
-    // The visitor is given somewhere to go, not just a refusal.
-    expect(reason).toContain("Choose another plan");
+    /*
+     * "not available to buy online" rather than the previous "checkout is not
+     * available yet". The wording moved when the page stopped disabling the
+     * form and started hiding it: the visitor is now told what is true of the
+     * *plan*, and is given a code to quote and two links to follow, rather than
+     * a sentence about a mechanism they cannot see.
+     *
+     * Asserted loosely on purpose — this pins the *meaning*, and the code and
+     * the routes out are pinned in `subscribe-lock.spec.ts` where they belong.
+     */
+    expect(reason).toContain("not available to buy online");
   });
 
   it("names a different reason when no price resolved at all", () => {
     const reason = checkoutBlockedReason(null);
 
     expect(reason).not.toBeNull();
-    expect(reason).toContain("no published price");
-    expect(reason).toContain("Choose another plan");
+    expect(reason).toContain("not published for your region");
   });
 
   // The two cases are genuinely different and must not collapse into one

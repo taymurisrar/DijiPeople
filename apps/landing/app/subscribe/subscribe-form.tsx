@@ -5,7 +5,7 @@ import type { LegalIndexEntry } from "../../lib/legal-server";
 import {
   BillingCycle,
   PublicPlan,
-  checkoutBlockedReason,
+  checkoutBlock,
   findPlanPrice,
   formatPlanPrice,
 } from "../../lib/plans";
@@ -93,9 +93,9 @@ export function SubscribeForm({
   const selectedPrice = selectedPlan
     ? findPlanPrice(selectedPlan, currency, billingCycle)
     : null;
-  // One decision, three consumers: the notice, the fieldset and Continue.
-  const blockedReason = checkoutBlockedReason(selectedPrice);
-  const canCheckout = blockedReason === null;
+  // One decision, three consumers: the notice, the form and Continue.
+  const block = checkoutBlock(selectedPrice);
+  const canCheckout = block === null;
   const minimumSeats = selectedPrice?.minimumSeats ?? 1;
   const maximumSeats = selectedPrice?.maximumSeats ?? null;
   const effectiveSeatQuantity = Math.max(
@@ -523,9 +523,9 @@ export function SubscribeForm({
             a line here is still right: the price above it is the thing that
             cannot be bought.
           */}
-          {blockedReason ? (
+          {block ? (
             <p className="mt-2 text-xs font-medium text-warning">
-              Online checkout is unavailable for this selection.
+              Not available to buy online ({block.code}).
             </p>
           ) : null}
         </div>
@@ -670,72 +670,85 @@ export function SubscribeForm({
         </div>
 
         {/*
-          Why the fields below are inert, immediately above the fields below.
+          Unavailable: say so, quote a code, and render no form at all.
 
-          This is the only element carrying `subscribe-unavailable-notice`; the
-          plan card's line is deliberately id-less, because the BUG-0066
-          regression asserts a single visible notice and two would be a strict
-          -mode violation rather than twice the clarity.
+          The form was disabled and left on screen, which is defensible and was
+          not what anybody wanted: a page of dead inputs invites a visitor to
+          read them, wonder which one is the problem, and try. Removing it
+          entirely is a smaller thing to explain — there is nothing to fill in,
+          and the only two live controls left are the plan and billing selectors
+          above, which are exactly what a visitor should reach for next.
+
+          The code is the part that makes the sentence useful. A visitor cannot
+          act on "your Stripe price is unverified" and should not be shown it;
+          they can quote `DP-CHK-01`, and it resolves for us to the plan price
+          whose full readiness list is on the console. Deliberately coarse — see
+          `CHECKOUT_BLOCK_CODES` — because a code fine enough to name the exact
+          misconfiguration would leak it.
+
+          This element keeps `subscribe-unavailable-notice` and is the only one
+          that does; the plan card's line is id-less, because the BUG-0066
+          journey asserts a single visible notice and a duplicate id is a
+          strict-mode violation rather than twice the clarity.
         */}
-        {blockedReason ? (
+        {block ? (
           <div
-            className="mt-4 rounded-2xl border border-warning/30 bg-warning/10 p-4"
+            className="mt-4 rounded-2xl border border-warning/30 bg-warning/10 p-5"
             id="subscribe-unavailable-notice"
             role="status"
           >
-            <p className="text-sm font-semibold text-foreground">
-              This form is locked for the plan you have selected.
+            <p className="text-base font-semibold text-foreground">
+              This form is not available for the plan you have selected{" "}
+              <span className="font-mono text-sm font-semibold text-muted">
+                ({block.code})
+              </span>
             </p>
-            <p className="mt-1 text-sm leading-6 text-muted">{blockedReason}</p>
+            <p className="mt-2 text-sm leading-6 text-muted">{block.message}</p>
             <p className="mt-2 text-sm leading-6 text-muted">
-              Nothing you type here could be submitted, so the fields are
-              disabled rather than left to be filled in and thrown away. The
-              plan, billing cycle and currency above stay live — switching to a
-              plan that is available unlocks the form immediately.
+              The plan, billing cycle and currency on the left stay live —
+              choosing a plan that is available brings the form straight back.
             </p>
-            <a
-              className="mt-3 inline-flex text-sm font-semibold text-accent underline"
-              href="/contact"
-            >
-              Ask us to arrange this plan
-            </a>
+            <div className="mt-4 flex flex-wrap gap-3">
+              <a
+                className="inline-flex items-center rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-accent-strong"
+                href={`/contact?ref=${encodeURIComponent(block.code)}`}
+              >
+                Ask us to arrange this plan
+              </a>
+              <a
+                className="inline-flex items-center rounded-xl border border-border bg-white px-4 py-2.5 text-sm font-semibold text-foreground transition hover:bg-surface-muted"
+                href="/plans"
+              >
+                See all plans
+              </a>
+            </div>
+            <p className="mt-3 text-xs text-muted">
+              Quote {block.code} if you get in touch and we will know exactly
+              which plan and region you were looking at.
+            </p>
           </div>
-        ) : null}
+        ) : (
+          /*
+            BUG-0066: never present an editable form that cannot be submitted.
 
-        {/*
-          BUG-0066: never present an editable form that cannot be submitted.
-
-          A disabled fieldset, not per-input `disabled`, because the steps are
-          separate components and one wrapper cannot be forgotten by the next
-          one added. The plan and billing selectors sit outside it deliberately
-          and stay live — a visitor whose plan is unpurchasable needs to be able
-          to try another one, and disabling those would replace one dead end
-          with a worse one.
-
-          `aria-describedby` ties the inert region to the notice explaining why,
-          so the reason is announced rather than just visible.
-
-          It is also **drawn** as inert. It was not: the fieldset carried no
-          disabled styling, so every control looked ordinary and silently
-          ignored the pointer — which is worse than an obviously dead form,
-          because the visitor blames themselves or the browser. A screen reader
-          was told what a sighted user was not.
-        */}
-        <fieldset
-          aria-describedby={
-            canCheckout ? undefined : "subscribe-unavailable-notice"
-          }
-          className={`mt-4 border-0 p-0 ${
-            canCheckout ? "" : "cursor-not-allowed opacity-55 grayscale"
-          }`}
-          disabled={!canCheckout}
-        >
-          {step === "organization" ? <OrganizationStep {...stepProps} /> : null}
-          {step === "workspace" ? <WorkspaceStep {...stepProps} /> : null}
-          {step === "owner" ? <OwnerStep {...stepProps} /> : null}
-          {step === "agreements" ? <AgreementsStep {...stepProps} /> : null}
-          {step === "review" ? <ReviewStep {...stepProps} goTo={goTo} /> : null}
-        </fieldset>
+            The fieldset stays even though the branch above now removes the form
+            when checkout is blocked. It is one wrapper that cannot be forgotten
+            by the next step somebody adds, and it costs nothing — the two
+            guards agree, and the cheap one is the one that survives a future
+            edit to the branch above.
+          */
+          <fieldset className="mt-4 border-0 p-0">
+            {step === "organization" ? (
+              <OrganizationStep {...stepProps} />
+            ) : null}
+            {step === "workspace" ? <WorkspaceStep {...stepProps} /> : null}
+            {step === "owner" ? <OwnerStep {...stepProps} /> : null}
+            {step === "agreements" ? <AgreementsStep {...stepProps} /> : null}
+            {step === "review" ? (
+              <ReviewStep {...stepProps} goTo={goTo} />
+            ) : null}
+          </fieldset>
+        )}
 
         {/*
           The honeypot. Hidden from people and from assistive technology, so
