@@ -7,7 +7,7 @@
 
 | | |
 |---|---|
-| Active sessions | **6** |
+| Active sessions | **7** |
 | Active parent tasks | 6 |
 | Active work packages | 2 |
 | Blocked work packages | 4 |
@@ -15,9 +15,9 @@
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **0** |
-| Open HIGH | 13 |
+| Open HIGH | 15 |
 | Awaiting Architect triage | 0 |
-| Owner decisions pending | 5 |
+| Owner decisions pending | 6 |
 | QA coverage gaps | 94 |
 | Scenarios blocked by infrastructure | 0 |
 
@@ -30,12 +30,12 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 41 |
-| No next action | 41 |
+| No acceptance criteria | 45 |
+| No next action | 45 |
 | Aging — 7d / 30d / 90d | 0 / 0 / 0 |
 | Architecture and technical debt | 8 |
 | Security gaps | 6 |
-| Database gaps | 2 |
+| Database gaps | 5 |
 
 Ranked next-best actions weigh blast radius rather than severity alone, and
 are computed on demand so the reasons travel with the ranking:
@@ -49,6 +49,7 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 | Session | Task | Title | Status | Branch | Target | Leases | Schema |
 |---|---|---|---|---|---|---|---|
+| [[SESSION-0031-checkout-customer-account-fidelity-payment-confirmation-and-|SESSION-0031]] | — | Checkout customer account fidelity, payment confirmation, and the PlanPrice migration drift | ACTIVE | `agent/checkout-account-and-payment-confirmation` | `develop` | schema | NO |
 | SESSION-0023 | — | First production release | ACTIVE | `agent/first-production-release` | `main` | — | NO |
 | [[SESSION-0022-go-live-readiness|SESSION-0022]] | TASK-0010 | Go-live readiness | ACTIVE | `agent/go-live-readiness` | `develop` | — | NO |
 | [[SESSION-0019-ci-browser-install-latency-and-database-e2e-fixture-contract|SESSION-0019]] | — | CI browser install latency and database e2e fixture contract | ACTIVE | `agent/ci-e2e-remediation` | `develop` | — | NO |
@@ -118,6 +119,7 @@ Questions where the engineering is understood and the **product answer is**
 - [[BUG-0223-admin-cannot-set-a-plan-ispublic-flag-which-gates-self-servi|BUG-0223]] — **Admin cannot set a plan isPublic flag which gates self-service checkout**
 - [[ITEM-0032-recompute-productivity-totals-inflated-by-heartbeat-replays|ITEM-0032]] — **Recompute productivity totals inflated by heartbeat replays**
 - [[ITEM-0053-publish-privacy-policy-and-terms-for-the-public-landing-site|ITEM-0053]] — **Publish privacy policy and terms for the public landing site**
+- [[ITEM-0076-operators-cannot-recover-an-order-whose-stripe-webhook-never|ITEM-0076]] — **Operators cannot recover an order whose Stripe webhook never arrived**
 - [[ITEM-0057-landing-production-env-examples-still-name-the-vercel-and-re|ITEM-0057]] — **Landing production env examples still name the vercel and render hosts, not the dijipeople.com apex**
 
 ## QA Coverage Gaps
@@ -226,10 +228,10 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 42 |
+| Open total | 46 |
 | Blocked | 1 |
-| Deferred | 15 |
-| Awaiting a product decision | 5 |
+| Deferred | 16 |
+| Awaiting a product decision | 6 |
 | Awaiting Architect triage | 0 |
 
 Every ordinary record carries a disposition.

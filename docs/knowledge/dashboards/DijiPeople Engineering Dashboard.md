@@ -8,11 +8,11 @@
 | | |
 |---|---|
 | Open CRITICAL | **0** |
-| Open HIGH | **13** |
-| Open total | 42 |
+| Open HIGH | **15** |
+| Open total | 46 |
 | Blocked | 1 |
-| Awaiting a product decision | 5 |
-| Deferred | 15 |
+| Awaiting a product decision | 6 |
+| Deferred | 16 |
 | Completed | 99 |
 | Awaiting Architect triage | 0 |
 
@@ -34,6 +34,8 @@ _None. Nothing open at CRITICAL._
 | [[BUG-0082-the-onboarding-wizard-collects-five-steps-of-data-it-cannot-|BUG-0082]] | The onboarding wizard collects five steps of data it cannot submit | UX | HIGH | FIXED | landing | FIX_NOW |
 | [[BUG-0086-prisma-migrate-deploy-cannot-acquire-its-advisory-lock-throu|BUG-0086]] | Prisma migrate deploy cannot acquire its advisory lock through Neon pooled endpoint | INFRA | HIGH | OPEN | services/api/prisma | FIX_NOW |
 | [[BUG-0220-saving-a-plan-from-the-runtime-record-page-always-returns-40|BUG-0220]] | Saving a plan from the runtime record page always returns 400 | BUG | HIGH | FIXED | apps/admin, api:platform-runtime, api:super-admin | FIX_NOW |
+| [[BUG-0280-self-service-checkout-leaves-a-customer-with-no-plan-billing|BUG-0280]] | Self-service checkout leaves a customer with no plan, billing cycle or origin channel | DATA_INTEGRITY | HIGH | FIXED | api:billing, api:super-admin, apps/admin | FIX_NOW |
+| [[BUG-0282-the-platform-runtime-schema-manifest-drifted-from-schema-pri|BUG-0282]] | The platform runtime schema manifest drifted from schema.prisma and no check noticed | DATA_INTEGRITY | HIGH | FIXED | pkg:config, apps/admin, services/api/prisma | FIX_NOW |
 | [[ITEM-0004-tenant-activation-never-proven-end-to-end|ITEM-0004]] | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | READY | api:tenant-control-plane | FIX_NOW |
 | [[ITEM-0034-apps-web-has-zero-browser-e2e-coverage|ITEM-0034]] | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | READY | apps/web, e2e | PLAN_REQUIRED |
 | [[ITEM-0062-no-multi-tenant-membership-one-user-belongs-to-one-tenant-so|ITEM-0062]] | No multi-tenant membership — one user belongs to one tenant, so discovery and switching cannot exist | ARCHITECTURE | HIGH | READY | auth, users, tenant-domains, web | PLAN_REQUIRED |
@@ -46,6 +48,7 @@ _None. Nothing open at CRITICAL._
 | [[BUG-0223-admin-cannot-set-a-plan-ispublic-flag-which-gates-self-servi|BUG-0223]] | Admin cannot set a plan isPublic flag which gates self-service checkout | UX | MEDIUM | PRODUCT_DECISION | apps/admin, api:super-admin, api:billing | PRODUCT_DECISION |
 | [[ITEM-0032-recompute-productivity-totals-inflated-by-heartbeat-replays|ITEM-0032]] | Recompute productivity totals inflated by heartbeat replays | DATA_MIGRATION | MEDIUM | PRODUCT_DECISION | api:agent | PRODUCT_DECISION |
 | [[ITEM-0053-publish-privacy-policy-and-terms-for-the-public-landing-site|ITEM-0053]] | Publish privacy policy and terms for the public landing site | PRODUCT_DECISION | MEDIUM | PRODUCT_DECISION | apps/landing | PRODUCT_DECISION |
+| [[ITEM-0076-operators-cannot-recover-an-order-whose-stripe-webhook-never|ITEM-0076]] | Operators cannot recover an order whose Stripe webhook never arrived | PRODUCT_DECISION | MEDIUM | PRODUCT_DECISION | api:billing, apps/admin | PRODUCT_DECISION |
 | [[ITEM-0057-landing-production-env-examples-still-name-the-vercel-and-re|ITEM-0057]] | Landing production env examples still name the vercel and render hosts, not the dijipeople.com apex | PRODUCT_DECISION | — | PRODUCT_DECISION | apps/landing | PRODUCT_DECISION |
 
 ## Blocked Items
@@ -72,6 +75,7 @@ _None. Nothing open at CRITICAL._
 |---|---|---|---|---|---|---|
 | [[BUG-0076-repository-health-never-inspected-the-primary-worktree-so-a-|BUG-0076]] | Repository health never inspected the primary worktree, so a clean task worktree passed as CLEANUP_STATUS DONE | INFRA | HIGH | FIXED | scripts/repo-health.mjs, scripts/session.mjs | FIX_NOW |
 | [[BUG-0086-prisma-migrate-deploy-cannot-acquire-its-advisory-lock-throu|BUG-0086]] | Prisma migrate deploy cannot acquire its advisory lock through Neon pooled endpoint | INFRA | HIGH | OPEN | services/api/prisma | FIX_NOW |
+| [[BUG-0283-a-regenerated-prisma-client-against-an-un-migrated-database-|BUG-0283]] | A regenerated Prisma client against an un-migrated database 500s every affected screen | INFRA | MEDIUM | OPEN | services/api, services/api/prisma, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0074-allocate-id-and-session-tooling-accept-a-session-id-that-doe|ITEM-0074]] | allocate-id and session tooling accept a session id that does not exist | INFRA | MEDIUM | READY | framework | PLAN_REQUIRED |
 | [[ITEM-0049-register-services-api-environment-reads-or-scope-the-rule|ITEM-0049]] | Register services/api environment reads or scope the rule to build inputs | INFRA | LOW | READY | services/api, turbo.json, docs/deployment | PLAN_REQUIRED |
@@ -131,6 +135,8 @@ _None. Nothing open at CRITICAL._
 | [[BUG-0083-the-database-agent-preflight-reports-pass-on-a-database-with|BUG-0083]] | The Database Agent preflight reports PASS on a database with every migration unapplied | INFRA | HIGH | VERIFIED | scripts, .agent, services/api | DONE |
 | [[BUG-0085-the-release-command-aborted-a-first-deploy-and-otherwise-res|BUG-0085]] | The release command aborted a first deploy, and otherwise reset the super admin password | INFRA | HIGH | VERIFIED | platform-users, legal | DONE |
 | [[BUG-0220-saving-a-plan-from-the-runtime-record-page-always-returns-40|BUG-0220]] | Saving a plan from the runtime record page always returns 400 | BUG | HIGH | FIXED | apps/admin, api:platform-runtime, api:super-admin | FIX_NOW |
+| [[BUG-0280-self-service-checkout-leaves-a-customer-with-no-plan-billing|BUG-0280]] | Self-service checkout leaves a customer with no plan, billing cycle or origin channel | DATA_INTEGRITY | HIGH | FIXED | api:billing, api:super-admin, apps/admin | FIX_NOW |
+| [[BUG-0282-the-platform-runtime-schema-manifest-drifted-from-schema-pri|BUG-0282]] | The platform runtime schema manifest drifted from schema.prisma and no check noticed | DATA_INTEGRITY | HIGH | FIXED | pkg:config, apps/admin, services/api/prisma | FIX_NOW |
 | [[BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state|BUG-0051]] | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |
 | [[BUG-0009-session-revocation-depended-on-the-refresh-cookie|BUG-0009]] | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | VERIFIED | app:admin, api:auth | DONE |
 | [[BUG-0010-unguarded-cookie-options-could-turn-sign-out-into-a-500|BUG-0010]] | Unguarded cookie options could turn admin sign-out into a 500 | INFRA | MEDIUM | VERIFIED | app:admin | DONE |
@@ -206,6 +212,8 @@ _None. Nothing has been deployed through the release process._
 | [[BUG-0081-three-apps-claimed-a-forwarded-headers-invariant-test-that-d|BUG-0081]] | Three apps claimed a forwarded-headers invariant test that did not exist | TEST_GAP | MEDIUM | FIXED | landing, web, admin | FIX_NOW |
 | [[BUG-0221-schema-completed-form-fields-render-on-a-tab-the-form-never-|BUG-0221]] | Schema-completed form fields render on a tab the form never declares | UX | MEDIUM | FIXED | apps/admin | FIX_NOW |
 | [[BUG-0222-plan-related-record-panels-declare-no-tab-so-they-never-rend|BUG-0222]] | Plan related-record panels declare no tab, so they never render | UX | MEDIUM | FIXED | apps/admin | FIX_NOW |
+| [[BUG-0281-partner-attribution-is-lost-when-a-referred-buyer-purchases-|BUG-0281]] | Partner attribution is lost when a referred buyer purchases through self-service checkout | DATA_INTEGRITY | MEDIUM | OPEN | apps/landing, api:billing, api:partner-experience | PLAN_REQUIRED |
+| [[BUG-0283-a-regenerated-prisma-client-against-an-un-migrated-database-|BUG-0283]] | A regenerated Prisma client against an un-migrated database 500s every affected screen | INFRA | MEDIUM | OPEN | services/api, services/api/prisma, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0002-no-live-api-session-test-harness|ITEM-0002]] | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | READY | services/api, apps/admin | FIX_NOW |
 | [[ITEM-0003-tenant-erasure-never-exercised-against-a-database|ITEM-0003]] | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | READY | api:tenant-control-plane | FIX_NOW |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
@@ -242,8 +250,8 @@ _None. Nothing has been deployed through the release process._
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 88 |
-| Backlog items | 74 |
+| Bug records | 92 |
+| Backlog items | 76 |
 | Known bug patterns | 23 |
 | QA runs | 21 |
 | Engineering history records | 24 |

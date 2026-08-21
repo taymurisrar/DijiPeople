@@ -6,9 +6,9 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 162,
-    "bugs": 88,
-    "backlog_items": 74,
+    "total_records": 168,
+    "bugs": 92,
+    "backlog_items": 76,
     "open_bucket": 4,
     "blocked_bucket": 0,
     "deferred_bucket": 2,
@@ -8155,6 +8155,307 @@
       ],
       "related_backlog": [
         "ITEM-0018",
+        "ITEM-0022"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "YES",
+      "architect_disposition": "PRODUCT_DECISION",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "ACTIVE_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0280",
+      "source": {
+        "record_path": "docs/bugs/BUG-0280-self-service-checkout-leaves-a-customer-with-no-plan-billing.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "cf9ea47",
+        "created_at": "2026-08-21",
+        "updated_at": "2026-08-21",
+        "resolved_at": "2026-08-21"
+      },
+      "type": "DATA_INTEGRITY",
+      "title": "Self-service checkout leaves a customer with no plan, billing cycle or origin channel",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/billing/services/subscription-order.service.ts",
+          "services/api/src/modules/super-admin/platform-lifecycle.service.ts",
+          "services/api/src/modules/billing/services/order-activation.service.ts"
+        ],
+        "verification_scope": "resolveCustomer wrote eleven columns where convertLeadToCustomer writes twenty-two, omitting selectedPlanId, preferredBillingCycle and originChannel — the commercial columns the Customers module reports on — although openOrder held planPrice two lines away. Fixed by passing a CommercialSelection into resolveCustomer, writing all three on create and gap-filling without overwrite for a returning buyer."
+      },
+      "affected_modules": [
+        "api:billing",
+        "api:super-admin",
+        "apps/admin"
+      ],
+      "dependencies": {
+        "record_ids": [
+          "ITEM-0075"
+        ],
+        "note": ""
+      },
+      "related_bugs": [
+        "BUG-0281",
+        "BUG-0282"
+      ],
+      "related_backlog": [
+        "ITEM-0075"
+      ],
+      "regressions": [
+        "REG-177"
+      ],
+      "qa_scenarios": [
+        "QA-BILLING-012"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "FIX_NOW",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0281",
+      "source": {
+        "record_path": "docs/bugs/BUG-0281-partner-attribution-is-lost-when-a-referred-buyer-purchases-.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "cf9ea47",
+        "created_at": "2026-08-21",
+        "updated_at": "2026-08-21",
+        "resolved_at": ""
+      },
+      "type": "DATA_INTEGRITY",
+      "title": "Partner attribution is lost when a referred buyer purchases through self-service checkout",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "current_evidence": {
+        "paths": [
+          "apps/landing/lib/onboarding-wizard.ts",
+          "services/api/src/modules/billing/dto/public-subscribe.dto.ts",
+          "services/api/src/modules/leads/leads.service.ts"
+        ],
+        "verification_scope": "originatingPartnerId, originatingReferralLinkId and referralCodeSnapshot are written only by the lead paths; the subscribe wizard captures no referral code and the public DTO accepts none, so a partner-referred self-service purchase is recorded as unattributed. Not fixed: resolving a partner from anything currently available at checkout would attribute commission on evidence the platform does not have."
+      },
+      "affected_modules": [
+        "apps/landing",
+        "api:billing",
+        "api:partner-experience"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [
+        "BUG-0280"
+      ],
+      "related_backlog": [],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "PLAN_REQUIRED",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "ACTIVE_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0282",
+      "source": {
+        "record_path": "docs/bugs/BUG-0282-the-platform-runtime-schema-manifest-drifted-from-schema-pri.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "cf9ea47",
+        "created_at": "2026-08-21",
+        "updated_at": "2026-08-21",
+        "resolved_at": "2026-08-21"
+      },
+      "type": "DATA_INTEGRITY",
+      "title": "The platform runtime schema manifest drifted from schema.prisma and no check noticed",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "current_evidence": {
+        "paths": [
+          "packages/config/platform-runtime-schema.generated.json",
+          "scripts/generate-platform-runtime-schema.mjs",
+          ".github/workflows/ci.yml"
+        ],
+        "verification_scope": "The generated manifest that decides which Prisma columns Platform Admin can render had fallen behind schema.prisma; test:runtime-schema validates the registry against the manifest, so a stale manifest and a registry built from it agree and CI passed. Five real scalar columns were undisplayable. Fixed by regenerating and adding a --check mode to the generator, wired into the CI gate."
+      },
+      "affected_modules": [
+        "packages/config",
+        "apps/admin",
+        "services/api/prisma"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [
+        "BUG-0221",
+        "BUG-0280"
+      ],
+      "related_backlog": [],
+      "regressions": [
+        "REG-178"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-006"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "FIX_NOW",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0283",
+      "source": {
+        "record_path": "docs/bugs/BUG-0283-a-regenerated-prisma-client-against-an-un-migrated-database-.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "cf9ea47",
+        "created_at": "2026-08-21",
+        "updated_at": "2026-08-21",
+        "resolved_at": ""
+      },
+      "type": "INFRA",
+      "title": "A regenerated Prisma client against an un-migrated database 500s every affected screen",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "current_evidence": {
+        "paths": [
+          "services/api/prisma/migrations",
+          "scripts/db-preflight.mjs",
+          "scripts/check-prisma-client-fresh.mjs"
+        ],
+        "verification_scope": "A development database four migrations behind was masked by an equally stale generated client; regenerating the client surfaced P2022 ColumnNotFound on PlanPrice.overageUnitAmount thirty minutes later. The four pending migrations were applied and the failing query re-verified. The guard is not built: where a pending-migration warning belongs is a developer-workflow decision."
+      },
+      "affected_modules": [
+        "services/api",
+        "services/api/prisma",
+        "apps/admin"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [
+        "BUG-0282"
+      ],
+      "related_backlog": [],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "PLAN_REQUIRED",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "ACTIVE_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "ITEM-0075",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0075-the-subscribe-wizard-never-collects-companysize-which-the-ap.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-08-21",
+        "updated_at": "2026-08-21",
+        "resolved_at": ""
+      },
+      "type": "UX",
+      "title": "The subscribe wizard never collects companySize, which the API and Customers module both expect",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "DEFERRED",
+      "current_evidence": {
+        "paths": [
+          "apps/landing/lib/onboarding-wizard.ts",
+          "services/api/src/modules/billing/dto/public-subscribe.dto.ts"
+        ],
+        "verification_scope": "companySize is accepted by the public DTO, mapped into the organization profile and displayed by the Customers module; the wizard never collects it, so it is null on every self-service customer. Recommended resolution is to derive it from estimatedEmployeeCount rather than ask a second overlapping question."
+      },
+      "affected_modules": [
+        "apps/landing",
+        "api:billing"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [
+        "BUG-0280"
+      ],
+      "related_backlog": [],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DEFER",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "ACTIVE_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "ITEM-0076",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0076-operators-cannot-recover-an-order-whose-stripe-webhook-never.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-08-21",
+        "updated_at": "2026-08-21",
+        "resolved_at": ""
+      },
+      "type": "PRODUCT_DECISION",
+      "title": "Operators cannot recover an order whose Stripe webhook never arrived",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "PRODUCT_DECISION",
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/billing/controllers/stripe-webhook.controller.ts",
+          "services/api/src/modules/billing/services/order-activation.service.ts",
+          "apps/landing/lib/provisioning-view.ts"
+        ],
+        "verification_scope": "Payment confirmation has one input, a signature-verified Stripe webhook, and no recovery path when it does not arrive. A manual paid flag is rejected: it would let the platform witness its own payment and would skip the PAYMENT_CONFIRMED outbox chain, so provisioning still would not run. Recommended instead is a permissioned, audited Re-check payment with Stripe action delegating to the same confirmPayment path."
+      },
+      "affected_modules": [
+        "api:billing",
+        "apps/admin"
+      ],
+      "dependencies": {
+        "record_ids": [
+          "ITEM-0022"
+        ],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [
         "ITEM-0022"
       ],
       "regressions": [],

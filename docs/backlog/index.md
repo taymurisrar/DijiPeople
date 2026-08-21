@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**162 records** — 88 bugs under [`docs/bugs/`](../bugs/), 74 non-bug items under [`items/`](items/).
+**168 records** — 92 bugs under [`docs/bugs/`](../bugs/), 76 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,21 +13,21 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 42 |
+| Open (active work) | 46 |
 | Blocked | 1 |
-| Deferred | 15 |
-| Awaiting a product decision | 5 |
+| Deferred | 16 |
+| Awaiting a product decision | 6 |
 | Completed / closed | 99 |
 | **Open CRITICAL** | **0** |
-| **Open HIGH** | **13** |
+| **Open HIGH** | **15** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
 
 | Severity | Count |
 |---|---|
-| HIGH | 13 |
-| MEDIUM | 24 |
+| HIGH | 15 |
+| MEDIUM | 26 |
 | LOW | 5 |
 
 ## Open by type
@@ -36,10 +36,10 @@ see [`README.md`](README.md) for why.
 |---|---|
 | ARCHITECTURE | 2 |
 | BUG | 1 |
-| DATA_INTEGRITY | 2 |
+| DATA_INTEGRITY | 5 |
 | DOCUMENTATION | 2 |
 | FOLLOW_UP | 3 |
-| INFRA | 5 |
+| INFRA | 6 |
 | PERFORMANCE | 1 |
 | SECURITY | 6 |
 | STATE_MACHINE | 1 |
@@ -51,11 +51,11 @@ see [`README.md`](README.md) for why.
 
 | Status | Count |
 |---|---|
-| OPEN | 5 |
+| OPEN | 7 |
 | BLOCKED | 1 |
-| DEFERRED | 15 |
-| PRODUCT_DECISION | 5 |
-| FIXED | 11 |
+| DEFERRED | 16 |
+| PRODUCT_DECISION | 6 |
+| FIXED | 13 |
 | VERIFIED | 68 |
 | DUPLICATE | 1 |
 | READY | 26 |
@@ -119,6 +119,8 @@ see [`README.md`](README.md) for why.
 | [BUG-0086](../../docs/bugs/BUG-0086-prisma-migrate-deploy-cannot-acquire-its-advisory-lock-throu.md) | Prisma migrate deploy cannot acquire its advisory lock through Neon pooled endpoint | INFRA | HIGH | P1 | OPEN | services/api/prisma | FIX_NOW |
 | [BUG-0163](../../docs/bugs/BUG-0163-package-lock-json-cannot-be-regenerated-npm-overrides-are-si.md) | package-lock.json cannot be regenerated - npm overrides are silently ignored | INFRA | HIGH | P1 | PRODUCT_DECISION | package-lock.json, apps/admin | PRODUCT_DECISION |
 | [BUG-0220](../../docs/bugs/BUG-0220-saving-a-plan-from-the-runtime-record-page-always-returns-40.md) | Saving a plan from the runtime record page always returns 400 | BUG | HIGH | P1 | FIXED | apps/admin, api:platform-runtime, api:super-admin | FIX_NOW |
+| [BUG-0280](../../docs/bugs/BUG-0280-self-service-checkout-leaves-a-customer-with-no-plan-billing.md) | Self-service checkout leaves a customer with no plan, billing cycle or origin channel | DATA_INTEGRITY | HIGH | P1 | FIXED | api:billing, api:super-admin, apps/admin | FIX_NOW |
+| [BUG-0282](../../docs/bugs/BUG-0282-the-platform-runtime-schema-manifest-drifted-from-schema-pri.md) | The platform runtime schema manifest drifted from schema.prisma and no check noticed | DATA_INTEGRITY | HIGH | P1 | FIXED | pkg:config, apps/admin, services/api/prisma | FIX_NOW |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | READY | api:tenant-control-plane | FIX_NOW |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | READY | apps/web, e2e | PLAN_REQUIRED |
@@ -158,6 +160,8 @@ see [`README.md`](README.md) for why.
 | [BUG-0221](../../docs/bugs/BUG-0221-schema-completed-form-fields-render-on-a-tab-the-form-never-.md) | Schema-completed form fields render on a tab the form never declares | UX | MEDIUM | P2 | FIXED | apps/admin | FIX_NOW |
 | [BUG-0222](../../docs/bugs/BUG-0222-plan-related-record-panels-declare-no-tab-so-they-never-rend.md) | Plan related-record panels declare no tab, so they never render | UX | MEDIUM | P2 | FIXED | apps/admin | FIX_NOW |
 | [BUG-0223](../../docs/bugs/BUG-0223-admin-cannot-set-a-plan-ispublic-flag-which-gates-self-servi.md) | Admin cannot set a plan isPublic flag which gates self-service checkout | UX | MEDIUM | P2 | PRODUCT_DECISION | apps/admin, api:super-admin, api:billing | PRODUCT_DECISION |
+| [BUG-0281](../../docs/bugs/BUG-0281-partner-attribution-is-lost-when-a-referred-buyer-purchases-.md) | Partner attribution is lost when a referred buyer purchases through self-service checkout | DATA_INTEGRITY | MEDIUM | P2 | OPEN | apps/landing, api:billing, api:partner-experience | PLAN_REQUIRED |
+| [BUG-0283](../../docs/bugs/BUG-0283-a-regenerated-prisma-client-against-an-un-migrated-database-.md) | A regenerated Prisma client against an un-migrated database 500s every affected screen | INFRA | MEDIUM | P2 | OPEN | services/api, services/api/prisma, apps/admin | PLAN_REQUIRED |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | READY | services/api, apps/admin | FIX_NOW |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | READY | api:tenant-control-plane | FIX_NOW |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |
@@ -199,6 +203,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0071](../../docs/backlog/items/ITEM-0071-a-terminal-bug-record-may-claim-fixed-while-its-resolution-s.md) | A terminal bug record may claim FIXED while its Resolution says pending | TEST_GAP | MEDIUM | P2 | DONE | scripts | DONE |
 | [ITEM-0073](../../docs/backlog/items/ITEM-0073-agent-role-names-are-spelled-inconsistently-across-bug-and-t.md) | Agent role names are spelled inconsistently across bug and task records | TECH_DEBT | MEDIUM | P2 | DEFERRED | framework | DEFER |
 | [ITEM-0074](../../docs/backlog/items/ITEM-0074-allocate-id-and-session-tooling-accept-a-session-id-that-doe.md) | allocate-id and session tooling accept a session id that does not exist | INFRA | MEDIUM | P2 | READY | framework | PLAN_REQUIRED |
+| [ITEM-0076](../../docs/backlog/items/ITEM-0076-operators-cannot-recover-an-order-whose-stripe-webhook-never.md) | Operators cannot recover an order whose Stripe webhook never arrived | PRODUCT_DECISION | MEDIUM | P2 | PRODUCT_DECISION | api:billing, apps/admin | PRODUCT_DECISION |
 | [ITEM-0021](../../docs/backlog/items/ITEM-0021-mechanical-guard-against-country-and-currency-literals-in-fr.md) | Mechanical guard against country and currency literals in frontends | TEST_GAP | LOW | P2 | DONE | scripts, apps/landing, apps/web, apps/admin | DONE |
 | [ITEM-0023](../../docs/backlog/items/ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning.md) | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | P2 | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
 | [ITEM-0024](../../docs/backlog/items/ITEM-0024-landing-depends-on-lucide-react-without-declaring-it.md) | Landing depends on lucide-react without declaring it | TECH_DEBT | LOW | P2 | DONE | apps/landing | DONE |
@@ -224,6 +229,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0066](../../docs/backlog/items/ITEM-0066-verify-database-mjs-cannot-spawn-npm-on-windows.md) | verify-database.mjs cannot spawn npm on Windows | TECH_DEBT | LOW | P3 | DEFERRED | scripts | DEFER |
 | [ITEM-0067](../../docs/backlog/items/ITEM-0067-three-e2e-suites-need-two-seeded-tenants-and-no-seed-produce.md) | Three e2e suites need two seeded tenants and no seed produces them | TEST_GAP | LOW | P3 | DUPLICATE | attendance, attendance-integrations, agent | DUPLICATE |
 | [ITEM-0072](../../docs/backlog/items/ITEM-0072-six-published-self-service-prices-with-no-market-and-a-zero-.md) | Six published self-service prices with no market and a zero amount exist on every database | TECH_DEBT | LOW | P3 | DEFERRED | billing, super-admin | DEFER |
+| [ITEM-0075](../../docs/backlog/items/ITEM-0075-the-subscribe-wizard-never-collects-companysize-which-the-ap.md) | The subscribe wizard never collects companySize, which the API and Customers module both expect | UX | LOW | P3 | DEFERRED | apps/landing, api:billing | DEFER |
 | [ITEM-0057](../../docs/backlog/items/ITEM-0057-landing-production-env-examples-still-name-the-vercel-and-re.md) | Landing production env examples still name the vercel and render hosts, not the dijipeople.com apex | PRODUCT_DECISION | — | P2 | PRODUCT_DECISION | apps/landing | PRODUCT_DECISION |
 | [ITEM-0058](../../docs/backlog/items/ITEM-0058-next-env-d-ts-churns-between-dev-and-build-forms-and-the-fou.md) | next-env.d.ts churns between dev and build forms and the four apps disagree | TECH_DEBT | — | P3 | DEFERRED | apps/landing, apps/web, apps/admin | DEFER |
 | [ITEM-0059](../../docs/backlog/items/ITEM-0059-49-tracked-text-files-have-no-final-newline-and-nothing-enfo.md) | 49 tracked text files have no final newline, and nothing enforces one | TECH_DEBT | — | P3 | DEFERRED | apps/admin, apps/web, apps/agent-desktop | DEFER |
