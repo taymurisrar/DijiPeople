@@ -13,20 +13,20 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 39 |
+| Open (active work) | 38 |
 | Blocked | 1 |
 | Deferred | 15 |
-| Awaiting a product decision | 3 |
+| Awaiting a product decision | 4 |
 | Completed / closed | 99 |
 | **Open CRITICAL** | **0** |
-| **Open HIGH** | **13** |
+| **Open HIGH** | **12** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
 
 | Severity | Count |
 |---|---|
-| HIGH | 13 |
+| HIGH | 12 |
 | MEDIUM | 21 |
 | LOW | 5 |
 
@@ -38,7 +38,7 @@ see [`README.md`](README.md) for why.
 | DATA_INTEGRITY | 2 |
 | DOCUMENTATION | 2 |
 | FOLLOW_UP | 3 |
-| INFRA | 5 |
+| INFRA | 4 |
 | PERFORMANCE | 1 |
 | SECURITY | 6 |
 | STATE_MACHINE | 1 |
@@ -50,10 +50,10 @@ see [`README.md`](README.md) for why.
 
 | Status | Count |
 |---|---|
-| OPEN | 6 |
+| OPEN | 5 |
 | BLOCKED | 1 |
 | DEFERRED | 15 |
-| PRODUCT_DECISION | 3 |
+| PRODUCT_DECISION | 4 |
 | FIXED | 8 |
 | VERIFIED | 68 |
 | DUPLICATE | 1 |
@@ -116,7 +116,7 @@ see [`README.md`](README.md) for why.
 | [BUG-0083](../../docs/bugs/BUG-0083-the-database-agent-preflight-reports-pass-on-a-database-with.md) | The Database Agent preflight reports PASS on a database with every migration unapplied | INFRA | HIGH | P1 | VERIFIED | scripts, .agent, services/api | DONE |
 | [BUG-0085](../../docs/bugs/BUG-0085-the-release-command-aborted-a-first-deploy-and-otherwise-res.md) | The release command aborted a first deploy, and otherwise reset the super admin password | INFRA | HIGH | P1 | VERIFIED | platform-users, legal | DONE |
 | [BUG-0086](../../docs/bugs/BUG-0086-prisma-migrate-deploy-cannot-acquire-its-advisory-lock-throu.md) | Prisma migrate deploy cannot acquire its advisory lock through Neon pooled endpoint | INFRA | HIGH | P1 | OPEN | services/api/prisma | FIX_NOW |
-| [BUG-0163](../../docs/bugs/BUG-0163-package-lock-json-cannot-be-regenerated-npm-overrides-are-si.md) | package-lock.json cannot be regenerated - npm overrides are silently ignored | INFRA | HIGH | P1 | OPEN | package-lock.json, apps/admin | PLAN_REQUIRED |
+| [BUG-0163](../../docs/bugs/BUG-0163-package-lock-json-cannot-be-regenerated-npm-overrides-are-si.md) | package-lock.json cannot be regenerated - npm overrides are silently ignored | INFRA | HIGH | P1 | PRODUCT_DECISION | package-lock.json, apps/admin | PRODUCT_DECISION |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | READY | api:tenant-control-plane | FIX_NOW |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | READY | apps/web, e2e | PLAN_REQUIRED |

@@ -8,10 +8,10 @@
 | | |
 |---|---|
 | Open CRITICAL | **0** |
-| Open HIGH | **13** |
-| Open total | 39 |
+| Open HIGH | **12** |
+| Open total | 38 |
 | Blocked | 1 |
-| Awaiting a product decision | 3 |
+| Awaiting a product decision | 4 |
 | Deferred | 15 |
 | Completed | 99 |
 | Awaiting Architect triage | 0 |
@@ -33,7 +33,6 @@ _None. Nothing open at CRITICAL._
 | [[BUG-0080-seeded-prices-bill-a-flat-fee-while-the-terms-say-the-billab|BUG-0080]] | Seeded prices bill a flat fee while the Terms say the billable unit is an active employee | DATA_INTEGRITY | HIGH | FIXED | billing, super-admin, legal | FIX_NOW |
 | [[BUG-0082-the-onboarding-wizard-collects-five-steps-of-data-it-cannot-|BUG-0082]] | The onboarding wizard collects five steps of data it cannot submit | UX | HIGH | FIXED | landing | FIX_NOW |
 | [[BUG-0086-prisma-migrate-deploy-cannot-acquire-its-advisory-lock-throu|BUG-0086]] | Prisma migrate deploy cannot acquire its advisory lock through Neon pooled endpoint | INFRA | HIGH | OPEN | services/api/prisma | FIX_NOW |
-| [[BUG-0163-package-lock-json-cannot-be-regenerated-npm-overrides-are-si|BUG-0163]] | package-lock.json cannot be regenerated - npm overrides are silently ignored | INFRA | HIGH | OPEN | package-lock.json, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0004-tenant-activation-never-proven-end-to-end|ITEM-0004]] | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | READY | api:tenant-control-plane | FIX_NOW |
 | [[ITEM-0034-apps-web-has-zero-browser-e2e-coverage|ITEM-0034]] | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | READY | apps/web, e2e | PLAN_REQUIRED |
 | [[ITEM-0062-no-multi-tenant-membership-one-user-belongs-to-one-tenant-so|ITEM-0062]] | No multi-tenant membership — one user belongs to one tenant, so discovery and switching cannot exist | ARCHITECTURE | HIGH | READY | auth, users, tenant-domains, web | PLAN_REQUIRED |
@@ -42,6 +41,7 @@ _None. Nothing open at CRITICAL._
 
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
+| [[BUG-0163-package-lock-json-cannot-be-regenerated-npm-overrides-are-si|BUG-0163]] | package-lock.json cannot be regenerated - npm overrides are silently ignored | INFRA | HIGH | PRODUCT_DECISION | package-lock.json, apps/admin | PRODUCT_DECISION |
 | [[ITEM-0032-recompute-productivity-totals-inflated-by-heartbeat-replays|ITEM-0032]] | Recompute productivity totals inflated by heartbeat replays | DATA_MIGRATION | MEDIUM | PRODUCT_DECISION | api:agent | PRODUCT_DECISION |
 | [[ITEM-0053-publish-privacy-policy-and-terms-for-the-public-landing-site|ITEM-0053]] | Publish privacy policy and terms for the public landing site | PRODUCT_DECISION | MEDIUM | PRODUCT_DECISION | apps/landing | PRODUCT_DECISION |
 | [[ITEM-0057-landing-production-env-examples-still-name-the-vercel-and-re|ITEM-0057]] | Landing production env examples still name the vercel and render hosts, not the dijipeople.com apex | PRODUCT_DECISION | — | PRODUCT_DECISION | apps/landing | PRODUCT_DECISION |
@@ -70,7 +70,6 @@ _None. Nothing open at CRITICAL._
 |---|---|---|---|---|---|---|
 | [[BUG-0076-repository-health-never-inspected-the-primary-worktree-so-a-|BUG-0076]] | Repository health never inspected the primary worktree, so a clean task worktree passed as CLEANUP_STATUS DONE | INFRA | HIGH | FIXED | scripts/repo-health.mjs, scripts/session.mjs | FIX_NOW |
 | [[BUG-0086-prisma-migrate-deploy-cannot-acquire-its-advisory-lock-throu|BUG-0086]] | Prisma migrate deploy cannot acquire its advisory lock through Neon pooled endpoint | INFRA | HIGH | OPEN | services/api/prisma | FIX_NOW |
-| [[BUG-0163-package-lock-json-cannot-be-regenerated-npm-overrides-are-si|BUG-0163]] | package-lock.json cannot be regenerated - npm overrides are silently ignored | INFRA | HIGH | OPEN | package-lock.json, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0049-register-services-api-environment-reads-or-scope-the-rule|ITEM-0049]] | Register services/api environment reads or scope the rule to build inputs | INFRA | LOW | READY | services/api, turbo.json, docs/deployment | PLAN_REQUIRED |
 

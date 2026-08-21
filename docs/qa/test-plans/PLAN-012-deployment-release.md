@@ -83,7 +83,7 @@ Post-deployment visual confirmation of the landing and login surfaces.
 
 ## Related
 
-- Scenarios — [[QA-CI-001]], [[QA-CI-002]], [[QA-DEPLOY-001]], [[QA-DEPLOY-002]], [[QA-DEPLOY-003]], [[QA-DEPLOY-004]], [[QA-DEPLOY-005]], [[QA-DEPLOY-006]], [[QA-DEPLOY-007]], [[QA-DEPLOY-008]], [[QA-DEPLOY-010]], [[QA-DEPLOY-011]], [[QA-DEPLOY-012]], [[QA-DEPLOY-013]], [[QA-DEPLOY-014]], [[QA-DEPLOY-015]], [[QA-DEPLOY-016]], [[QA-DEPLOY-017]]
+- Scenarios — [[QA-CI-001]], [[QA-CI-002]], [[QA-CI-003]], [[QA-DEPLOY-001]], [[QA-DEPLOY-002]], [[QA-DEPLOY-003]], [[QA-DEPLOY-004]], [[QA-DEPLOY-005]], [[QA-DEPLOY-006]], [[QA-DEPLOY-007]], [[QA-DEPLOY-008]], [[QA-DEPLOY-010]], [[QA-DEPLOY-011]], [[QA-DEPLOY-012]], [[QA-DEPLOY-013]], [[QA-DEPLOY-014]], [[QA-DEPLOY-015]], [[QA-DEPLOY-016]], [[QA-DEPLOY-017]]
 - Bugs — [[BUG-0023]], [[BUG-0026]], [[BUG-0037]], [[BUG-0042]], [[BUG-0047]]
 - Regressions — REG-016, REG-018, REG-035, REG-036, REG-038 (see the regression register)
 

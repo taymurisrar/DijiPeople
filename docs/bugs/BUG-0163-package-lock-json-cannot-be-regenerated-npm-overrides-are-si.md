@@ -2,7 +2,7 @@
 ID: BUG-0163
 aliases: [BUG-0163]
 Title: package-lock.json cannot be regenerated - npm overrides are silently ignored
-Status: OPEN
+Status: PRODUCT_DECISION
 Severity: HIGH
 Priority: P1
 Type: INFRA
@@ -11,9 +11,9 @@ DetectedDate: 2026-08-21
 DetectedInSha: 34b699b
 AffectedModules: [package-lock.json, apps/admin]
 OwnerAgent: architect
-ArchitectDisposition: PLAN_REQUIRED
+ArchitectDisposition: PRODUCT_DECISION
 QAReport:
-RegressionId:
+RegressionId: REG-173
 RelatedBacklogItem: ITEM-0048
 RelatedDecision:
 RelatedImplementation:
@@ -21,7 +21,7 @@ CreatedAt: 2026-08-21
 UpdatedAt: 2026-08-21
 ResolvedAt:
 LastReviewed: 2026-08-21
-NextAction: Align the @tiptap family in apps/admin so the peer set resolves, then confirm an overrides entry reaches the lockfile
+NextAction: Owner decision - the fix requires accepting a 338-package dependency refresh, which broke five CI jobs on first attempt
 AcceptanceCriteria: npm install --package-lock-only succeeds from no lockfile, and an overrides entry in the root manifest appears in package-lock.json and changes the resolved version
 ---
 
@@ -166,14 +166,74 @@ None. It blocks ITEM-0048 rather than being blocked by anything.
 
 ## Resolution
 
-Not yet fixed.
+**Root cause identified and a fix proven. Not applied — it costs more than it
+first appeared to, and that cost is an owner decision.**
+
+The `@tiptap` half is genuinely solved. `apps/admin` pinned all thirteen
+packages at exactly `3.29.2` while tiptap declares its own transitive
+extensions with carets, and `starter-kit` nests caret-ranged copies of a dozen
+more. Widening the thirteen specs to `^3.29.2` makes a fresh resolve succeed —
+verified: `rm -rf node_modules package-lock.json && npm install
+--package-lock-only` completes with no `ERESOLVE`, and both overrides then
+apply, taking `tar` to 7.5.22 and clearing the critical.
+
+Pinning the floaters instead was tried and rejected: `starter-kit`’s nested
+copies would mean enumerating the whole `@tiptap` namespace, and npm overrides
+cannot wildcard a scope.
+
+### Why it was reverted
+
+npm will not apply an override incrementally. It reports "up to date" against
+the existing tree and changes nothing, so the only way to apply one is a full
+re-resolution — and this lockfile is months stale relative to the registry, so
+a full re-resolution refreshes the entire caret-ranged graph:
+
+```text
+338 packages changed version · 133 added · 182 removed
+jest 30.3.0 -> 30.4.x · eslint · babel · @angular-devkit · react hoisting
+```
+
+CI on `ce7a841` failed five jobs from three distinct causes:
+
+| job | cause |
+|---|---|
+| API tests | `SyntaxError: Cannot use import statement outside a module` — the jest bump broke the TypeScript transform |
+| Lint | the eslint bump |
+| Database migration gate, Database e2e, Browser e2e | all failed at `Prepare the database` |
+
+`npm install --package-lock-only --before=2026-08-20` was tried to pin the
+refresh to the lockfile’s era. It does not work: the committed versions were
+resolved at many different dates, so 505 packages still moved.
+
+The commit was reverted before integration. `develop` never carried it.
+
+### What this actually costs
+
+Clearing the repository’s only critical advisory requires accepting a broad
+dependency refresh with its own regression surface, in the same window as the
+first production release. That is a scope and risk judgement, not an
+engineering one, so it is recorded here rather than absorbed.
 
 ## QA Retest
 
-Not yet run.
+Not passed. The fix was proven to work and then reverted.
+
+```text
+fresh resolve after the @tiptap fix   no ERESOLVE
+overrides applied                     node-pre-gyp 2.0.3, node-gyp 11.5.0
+npm audit --omit=dev                  critical 1 -> 0, total 12 -> 6
+admin check-types                     PASS
+admin tests                           12 suites, 108 tests PASS
+CI on ce7a841                         5 of 13 jobs FAILED
+```
+
+The first five lines are why the fix is known to be correct. The last line is
+why it is not on `develop`.
 
 ## History
 
+- 2026-08-21 — fixed the same day: `@tiptap` specs widened to carets, lockfile
+  regenerated, both overrides applied, critical cleared.
 - 2026-08-21 — found while attempting the `@mapbox/node-pre-gyp` override for
   ITEM-0048. The override was correct and provably works elsewhere; this
   repository could not apply it.

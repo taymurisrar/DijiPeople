@@ -19,7 +19,7 @@ RelatedImplementation:
 TargetMilestone:
 BlockedBy: BUG-0163
 LastReviewed: 2026-08-21
-NextAction: Unblock BUG-0163 so npm overrides apply, then set @mapbox/node-pre-gyp to ^2.0.3 and repackage
+NextAction: Blocked on the BUG-0163 owner decision about accepting a full dependency refresh
 ---
 
 # ITEM-0048 — Replace or contain active-win and the xlsx export path

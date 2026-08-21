@@ -281,6 +281,57 @@ the artifact, not the manifest.** `optionalDependencies` describes intent;
 `app.asar` describes what the customer receives, and only one of those is
 evidence.
 
+## Update — 2026-08-21, SESSION-0029: the active-win group is closed
+
+The blocker was removed and the upgrade applied. `npm audit --omit=dev`:
+
+```text
+before   { critical: 1, high: 9, moderate: 2, total: 12 }
+after    { critical: 0, high: 4, moderate: 2, total:  6 }
+```
+
+Cleared: `tar` (the critical), `active-win`, `cacache`, `make-fetch-happen`,
+`node-gyp` — the whole group, one critical and four highs.
+
+Two overrides did it, both top-level because npm hoists these packages and a
+nested key never matches:
+
+| package | from | to | why |
+|---|---|---|---|
+| `@mapbox/node-pre-gyp` | 1.0.11 | 2.0.3 | required at run time; v2 exports the same `find`, and its `tar@^7.4.0` resolves to 7.5.22 |
+| `node-gyp` | 9.4.1 | 11.5.0 | build-only, but v9 carried its own nested `tar@6.2.1` plus `cacache` and `make-fetch-happen`. `^11` rather than `^13`, whose engine floor is narrower than this repository's declared `22.x` |
+
+Applying them at all required fixing [[BUG-0163]] first: the lockfile could not
+be re-resolved, so npm ignored every override in silence.
+
+The packaged archive was rebuilt and re-read. `tar` is now 7.5.22 there,
+`node-pre-gyp` 2.0.3, and `node-gyp`, `cacache` and `make-fetch-happen` remain
+absent under the exclusions added earlier the same day. The runtime closure
+walks clean at 20 packages, down from 54.
+
+**Cost, stated rather than buried:** `app.asar` grew from 7.95 MB to 11.17 MB.
+`tar@7` and its graph are larger than `tar@6`, and the exclusions no longer
+offset them. It could be reclaimed — node-pre-gyp loads its commands lazily, so
+`tar` is never required by the `find()` path and could be excluded outright —
+but that was **not** done: it trades a verified-safe state for a size saving
+that cannot be proven safe without launching the packaged app, which is not
+possible here.
+
+### What remains, and why
+
+The six survivors are the two groups this record already documented, unchanged:
+
+- `prisma`, `@prisma/config`, `deepmerge-ts` — 3 high, a **devDependency**, and
+  npm's fix is a downgrade to Prisma 6 that the driver-adapter data layer cannot
+  run on.
+- `xlsx` — 1 high, present but unreachable since the read path moved to ExcelJS;
+  removal is [[ITEM-0070]], deliberately deferred because payroll workbooks go
+  to banks and changing their bytes before the first production release is a
+  customer-visible risk with no security payoff.
+- `exceljs`, `uuid` — 2 moderate, npm's fix is a major downgrade.
+
+Critical count is 0. That was the acceptance criterion in [[ITEM-0048]] group 1.
+
 ## QA Retest
 
 Pass for what was applied. On Node 22, after the upgrade:

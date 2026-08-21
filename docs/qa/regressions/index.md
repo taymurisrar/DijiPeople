@@ -1132,3 +1132,19 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | The arithmetic guard is separate and deliberately not a restatement of the price list: `pricing.catalog.spec.ts` asserts that annual is monthly x 10 and that a minimum charge is `minimumSeats x unitAmount`, then checks those against the minimum-charge table the owner published independently. A test that retyped the seat rates would prove only that somebody copied them twice. |
 | **Fixed** | 2026-08-20, branch `agent/go-live-readiness` |
 | **Active** | yes |
+
+### REG-173 — An npm override that npm silently ignores
+
+| | |
+|---|---|
+| **Bug class** | `declared-but-unwired-step` |
+| **Module** | `package.json`, `package-lock.json`, `apps/admin` |
+| **Bug record** | BUG-0163 |
+| **Root cause** | `apps/admin` pinned the thirteen `@tiptap` packages at exactly `3.29.2`, while tiptap declares its own transitive extensions with carets — `@tiptap/react` needs `extension-floating-menu@^3.29.2`, and `starter-kit` nests caret-ranged copies of a dozen more. On a fresh resolve those float to the newest 3.x and demand a matching `@tiptap/core`, which an exact pin cannot satisfy, so `npm install` from no lockfile failed with `ERESOLVE`. The committed lockfile predated the conflict, so `npm ci` succeeded and nobody noticed. The consequence was that npm reused the existing tree and **ignored every `overrides` entry in silence** — `npm pkg get overrides` returned the key, `npm install` reported "up to date", and the resolved version never moved. |
+| **Regression test** | `scripts/check-overrides-applied.mjs` |
+| **Scenario** | For every `overrides` entry in the root manifest, every resolved instance of that package in `package-lock.json` must satisfy the demanded range. An override naming a package absent from the graph fails too, since it is either a typo or a stale entry. |
+| **Proven to fail without the fix** | Setting `overrides["node-gyp"]` to `^99.0.0` — a version that cannot resolve — makes the check report `IGNORED  node-gyp  resolved 11.5.0, override demands ^99.0.0` and exit 1. Restoring it returns exit 0. Both directions were run. |
+| **Note** | The obvious check does **not** work and was tried first: npm 11 writes no `overrides` key at `packages[""]` in the lockfile even when the overrides are applied and effective, so its absence proves nothing. The outcome — resolved versions — is the only observable that distinguishes an applied override from an ignored one. Range matching is limited to the `^`, `~` and exact forms this repository uses; anything else reports `UNCHECKED` rather than being guessed at. |
+| **Why it mattered** | The ignored override was the fix for the repository's only **critical** advisory: `tar` reachable through the desktop agent. A security fix that silently does not happen is worse than one that fails loudly. |
+| **Fixed** | Not yet — BUG-0163 is open pending an owner decision. The guard was added while investigating it and is active on its own: it fails the moment a declared override stops being applied, whatever the cause. |
+| **Active** | yes |

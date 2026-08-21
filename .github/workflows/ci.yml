@@ -357,6 +357,15 @@ jobs:
         # hoisting from admin. A per-project install (how apps/web deploys)
         # would not resolve it. Twice is a pattern, so it gets a gate.
         run: npm run check:declared-dependencies
+      - name: Declared npm overrides are actually applied
+        # BUG-0163 / REG-173 — a @tiptap peer conflict made every fresh resolve
+        # fail, so npm reused the existing tree and ignored every overrides
+        # entry in silence. `npm pkg get overrides` returned the key,
+        # `npm install` reported "up to date", and the resolved version never
+        # moved. The override being ignored was the fix for the repository's
+        # only critical advisory, so the failure mode is a security fix that
+        # quietly does not happen.
+        run: npm run check:overrides-applied
       - name: Security response headers
         # BUG-0040 — all three Next apps shipped none. Pins that the CSP stays
         # report-only until observed, and that frame protection is not deferred

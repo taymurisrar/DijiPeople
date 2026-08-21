@@ -15,9 +15,9 @@
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **0** |
-| Open HIGH | 13 |
+| Open HIGH | 12 |
 | Awaiting Architect triage | 0 |
-| Owner decisions pending | 3 |
+| Owner decisions pending | 4 |
 | QA coverage gaps | 94 |
 | Scenarios blocked by infrastructure | 0 |
 
@@ -114,6 +114,7 @@ _None. Nothing open at CRITICAL._
 Questions where the engineering is understood and the **product answer is**
 **not**. No agent may resolve one by implementing a side of it.
 
+- [[BUG-0163-package-lock-json-cannot-be-regenerated-npm-overrides-are-si|BUG-0163]] — **package-lock.json cannot be regenerated - npm overrides are silently ignored**
 - [[ITEM-0032-recompute-productivity-totals-inflated-by-heartbeat-replays|ITEM-0032]] — **Recompute productivity totals inflated by heartbeat replays**
 - [[ITEM-0053-publish-privacy-policy-and-terms-for-the-public-landing-site|ITEM-0053]] — **Publish privacy policy and terms for the public landing site**
 - [[ITEM-0057-landing-production-env-examples-still-name-the-vercel-and-re|ITEM-0057]] — **Landing production env examples still name the vercel and render hosts, not the dijipeople.com apex**
@@ -224,10 +225,10 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 39 |
+| Open total | 38 |
 | Blocked | 1 |
 | Deferred | 15 |
-| Awaiting a product decision | 3 |
+| Awaiting a product decision | 4 |
 | Awaiting Architect triage | 0 |
 
 Every ordinary record carries a disposition.

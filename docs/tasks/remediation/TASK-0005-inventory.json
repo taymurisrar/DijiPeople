@@ -5813,7 +5813,7 @@
         "record_ids": [
           "BUG-0163"
         ],
-        "note": "npm overrides cannot be applied until the lockfile can be re-resolved"
+        "note": "blocked on the owner decision about a full dependency refresh"
       }
     },
     {
@@ -7873,7 +7873,7 @@
       "title": "package-lock.json cannot be regenerated - npm overrides are silently ignored",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
+      "current_status": "PRODUCT_DECISION",
       "current_evidence": {
         "paths": [
           "package-lock.json",
@@ -7896,12 +7896,16 @@
       "related_backlog": [
         "ITEM-0048"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-173"
+      ],
+      "qa_scenarios": [
+        "QA-CI-003"
+      ],
       "test_plan": [],
       "active_session_conflict": "NONE",
-      "owner_decision_required": "NO",
-      "architect_disposition": "PLAN_REQUIRED",
+      "owner_decision_required": "YES",
+      "architect_disposition": "PRODUCT_DECISION",
       "verification_result": {
         "result": "PRELIMINARY",
         "classification": "ACTIVE_AS_DOCUMENTED",
