@@ -115,4 +115,96 @@ describe('provisioning operational state', () => {
       ),
     ).toBe('IN_PROGRESS');
   });
+
+  /*
+   * A run whose process died.
+   *
+   * `TenantProvisioningRunStatus` has no terminal value for this: the row is
+   * created RUNNING and moved on by the same process that is executing it, so a
+   * restart, a deploy or a crash mid-run leaves it RUNNING for ever. Nothing
+   * sweeps it. Reported as a tenant that "is not provisioned or stuck ... what
+   * to do? I am not sure" — with the retry button disabled and the panel
+   * insisting a run was already in progress.
+   */
+  describe('a run that stopped recording', () => {
+    it('is stalled once nothing has happened for the threshold', () => {
+      expect(
+        deriveProvisioningState(
+          run({
+            startedAt: minutes(-90),
+            updatedAt: minutes(-90),
+            steps: [{ status: 'RUNNING', updatedAt: minutes(-45) }],
+          }),
+          NOW,
+        ),
+      ).toBe('STALLED');
+    });
+
+    it('is not stalled while a step is still recording', () => {
+      // Long-running is not the same as abandoned, and a retry mid-run is the
+      // thing this state exists to avoid authorising.
+      expect(
+        deriveProvisioningState(
+          run({
+            startedAt: minutes(-90),
+            updatedAt: minutes(-90),
+            steps: [{ status: 'RUNNING', updatedAt: minutes(-2) }],
+          }),
+          NOW,
+        ),
+      ).toBe('IN_PROGRESS');
+    });
+
+    it('outranks a breached target, because they ask for different things', () => {
+      /*
+       * "Late" and "nothing is coming" need different responses. A breached run
+       * that is still moving is watched; a stalled one is retried.
+       */
+      expect(
+        deriveProvisioningState(
+          run({
+            startedAt: minutes(-120),
+            updatedAt: minutes(-120),
+            breachedAt: minutes(-60),
+            targetReadyBy: minutes(-90),
+            steps: [{ status: 'RUNNING', updatedAt: minutes(-119) }],
+          }),
+          NOW,
+        ),
+      ).toBe('STALLED');
+    });
+
+    it('never calls a finished run stalled, however old it is', () => {
+      for (const status of [
+        TenantProvisioningRunStatus.SUCCEEDED,
+        TenantProvisioningRunStatus.FAILED,
+      ]) {
+        expect(
+          deriveProvisioningState(
+            run({
+              status,
+              startedAt: minutes(-6000),
+              updatedAt: minutes(-6000),
+              completedAt: minutes(-5990),
+              steps: [{ status: 'COMPLETED', updatedAt: minutes(-5990) }],
+            }),
+            NOW,
+          ),
+        ).toBe(
+          status === TenantProvisioningRunStatus.SUCCEEDED ? 'READY' : 'FAILED',
+        );
+      }
+    });
+
+    it('tolerates a run whose steps carry no timestamps', () => {
+      // Older rows predate the columns being read here. Falling back to the run
+      // start keeps them classifiable rather than throwing on a null.
+      expect(
+        deriveProvisioningState(
+          run({ startedAt: minutes(-90), steps: [{ status: 'RUNNING' }] }),
+          NOW,
+        ),
+      ).toBe('STALLED');
+    });
+  });
 });

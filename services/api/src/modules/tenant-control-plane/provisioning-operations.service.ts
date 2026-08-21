@@ -19,9 +19,29 @@ export type ProvisioningOperationalState =
   | 'IN_PROGRESS'
   | 'AT_RISK'
   | 'BREACHED'
+  | 'STALLED'
   | 'MANUAL_ACTION_REQUIRED'
   | 'FAILED'
   | 'READY';
+
+/**
+ * How long a run may record nothing before it is treated as abandoned.
+ *
+ * Provisioning is a handful of database writes and a domain issue; it finishes
+ * in seconds. Thirty minutes is far beyond any legitimate run and short enough
+ * that an operator is not left guessing for a working day.
+ *
+ * WHY THIS EXISTS AT ALL. `TenantProvisioningRunStatus` has no terminal state
+ * for "the process died holding this". A run row is created RUNNING and moved
+ * to SUCCEEDED or FAILED by the same process that is executing it — so if that
+ * process is restarted, deployed over, or killed mid-run, the row stays RUNNING
+ * for ever. Nothing sweeps it, and `retryBlockedReason` refused every retry
+ * with 'A provisioning run is already in progress.' That sentence was false and
+ * it was the only thing the console said: the tenant showed as provisioning,
+ * the one button that could fix it was disabled, and there was no way out from
+ * the UI at all.
+ */
+export const PROVISIONING_STALL_AFTER_MS = 30 * 60 * 1000;
 
 export type ProvisioningQueueRow = {
   runId: string;
@@ -58,7 +78,9 @@ export type ProvisioningStateInput = {
   targetReadyBy: Date | null;
   escalateAt: Date | null;
   breachedAt: Date | null;
-  steps: Array<{ status: string }>;
+  /** Last time the run row itself changed. Optional so older callers still compile. */
+  updatedAt?: Date | null;
+  steps: Array<{ status: string; updatedAt?: Date | null }>;
 };
 
 /**
@@ -84,9 +106,27 @@ export function deriveProvisioningState(
     return 'FAILED';
   }
 
-  // Still running. Targets are internal operational goals, not a contractual
-  // SLA, and they are read from the run rather than recomputed so a later
-  // policy change cannot retroactively rewrite whether a past run breached.
+  /*
+   * Still running — but is anything actually happening?
+   *
+   * This is checked before the target clocks because it outranks them in what
+   * it asks of a person. A breached target says "this is late"; silence for
+   * half an hour says "nothing is coming", and those need different responses.
+   * A stalled run is also the only running state that is safe to replay: see
+   * `retryBlockedReason` in tenant-operations.service.ts.
+   */
+  const lastActivity = Math.max(
+    run.startedAt.getTime(),
+    run.updatedAt?.getTime() ?? 0,
+    ...run.steps.map((step) => step.updatedAt?.getTime() ?? 0),
+  );
+  if (now - lastActivity >= PROVISIONING_STALL_AFTER_MS) {
+    return 'STALLED';
+  }
+
+  // Targets are internal operational goals, not a contractual SLA, and they are
+  // read from the run rather than recomputed so a later policy change cannot
+  // retroactively rewrite whether a past run breached.
   if (run.breachedAt && run.breachedAt.getTime() <= now) {
     return 'BREACHED';
   }

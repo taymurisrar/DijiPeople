@@ -1,9 +1,5 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
-import {
-  TenantProvisioningRunStatus,
-  TenantProvisioningStepStatus,
-  TenantStatus,
-} from '@prisma/client';
+import { TenantProvisioningStepStatus, TenantStatus } from '@prisma/client';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
@@ -25,6 +21,10 @@ import {
 } from './tenant-control-plane.constants';
 import { TenantProvisioningRunService } from './tenant-provisioning-run.service';
 import type { RetryTenantProvisioningDto } from './dto/tenant-control-plane.dto';
+import {
+  deriveProvisioningState,
+  type ProvisioningOperationalState,
+} from './provisioning-operations.service';
 
 /**
  * The operational surface of a tenant: how provisioning went, what support is
@@ -99,6 +99,19 @@ export class TenantOperationsService {
     ]);
 
     const latestRun = runs[0] ?? null;
+    /*
+     * The same derivation the provisioning queue uses.
+     *
+     * These had drifted into two answers to one question: the queue knew a run
+     * could be breached or waiting on a human, while this panel reported the
+     * raw `RUNNING` and disabled the retry button on it. An operator looking at
+     * the tenant was told 'a provisioning run is already in progress' about a
+     * run that had not recorded a step in hours — and the queue, on another
+     * screen, already knew better.
+     */
+    const operationalState: ProvisioningOperationalState | null = latestRun
+      ? deriveProvisioningState(latestRun, Date.now())
+      : null;
     const openSupportCases = supportCases.filter(
       (item) =>
         !item.resolvedAt &&
@@ -121,10 +134,17 @@ export class TenantOperationsService {
         attempt: latestRun?.attempt ?? null,
         failedStepKey: latestRun?.failedStepKey ?? null,
         message: latestRun?.message ?? null,
-        canRetry: this.canRetry(tenant.status, latestRun?.status ?? null),
+        operationalState,
+        /*
+         * What to do about it, in a sentence, on the screen where the doing
+         * happens. The states are derived and the advice is derived with them,
+         * so a screen cannot show one and imply the other.
+         */
+        recommendedAction: recommendedAction(operationalState, tenant.status),
+        canRetry: this.canRetry(tenant.status, operationalState),
         retryBlockedReason: this.retryBlockedReason(
           tenant.status,
-          latestRun?.status ?? null,
+          operationalState,
         ),
         onboarding,
       },
@@ -201,14 +221,19 @@ export class TenantOperationsService {
     assertTenantPlatformAccess(user, 'tenants.update');
     const tenant = await loadTenantOrThrow(this.prisma, tenantId);
 
+    /*
+     * The gate is re-derived here rather than trusted from the client, and it
+     * needs the same inputs the panel had: a run's status alone cannot tell a
+     * live run from an abandoned one.
+     */
     const latestRun = await this.prisma.tenantProvisioningRun.findFirst({
       where: { tenantId: tenant.id },
       orderBy: { startedAt: 'desc' },
-      select: { status: true },
+      include: { steps: { select: { status: true, updatedAt: true } } },
     });
     const blocked = this.retryBlockedReason(
       tenant.status,
-      latestRun?.status ?? null,
+      latestRun ? deriveProvisioningState(latestRun, Date.now()) : null,
     );
     if (blocked) throw new BadRequestException(blocked);
 
@@ -522,22 +547,82 @@ export class TenantOperationsService {
 
   private canRetry(
     tenantStatus: TenantStatus,
-    runStatus: TenantProvisioningRunStatus | null,
+    state: ProvisioningOperationalState | null,
   ) {
-    return this.retryBlockedReason(tenantStatus, runStatus) === null;
+    return this.retryBlockedReason(tenantStatus, state) === null;
   }
 
+  /**
+   * Why the retry button is disabled, or null when it is not.
+   *
+   * The gate used to refuse on the raw run status: any run in `RUNNING` blocked
+   * a retry, permanently, because nothing ever moves an abandoned run out of
+   * that status. A process restarted mid-provision left the tenant stuck with
+   * no route out of the console — which is exactly how this was reported.
+   *
+   * It now refuses only while the run is *making progress*. Two of the running
+   * states are safe to replay and are allowed:
+   *
+   *   STALLED                 nothing recorded for 30 minutes — the process is
+   *                           gone, and the row is the only thing that thinks
+   *                           otherwise
+   *   MANUAL_ACTION_REQUIRED  no step is running or pending, so nothing is in
+   *                           flight to collide with
+   *
+   * Replay itself is already idempotent-by-design: only steps marked retryable
+   * are re-run, and owner, subscription and invoice creation never are. That is
+   * what makes allowing these two safe rather than merely convenient.
+   */
   private retryBlockedReason(
     tenantStatus: TenantStatus,
-    runStatus: TenantProvisioningRunStatus | null,
+    state: ProvisioningOperationalState | null,
   ): string | null {
-    if (runStatus === TenantProvisioningRunStatus.RUNNING) {
-      return 'A provisioning run is already in progress.';
+    if (state === 'IN_PROGRESS' || state === 'AT_RISK') {
+      return 'A provisioning run is in progress. Retry becomes available if it stops making progress.';
+    }
+    if (state === 'BREACHED') {
+      return 'This run is past its target but still recording steps. Retry becomes available if it stops making progress.';
     }
     if (!TENANT_RETRYABLE_STATUSES.includes(tenantStatus)) {
       return 'Provisioning can only be retried while the tenant is still being provisioned or has failed provisioning.';
     }
     return null;
+  }
+}
+
+/**
+ * The next thing a person should do, given where the run got to.
+ *
+ * Written here rather than in the frontend because it is an operational policy,
+ * not presentation: the same sentence should reach the tenant page, the
+ * provisioning queue and any alert built on this data.
+ */
+function recommendedAction(
+  state: ProvisioningOperationalState | null,
+  tenantStatus: TenantStatus,
+): string | null {
+  if (state === null) {
+    return tenantStatus === TenantStatus.PROVISIONING
+      ? 'This tenant is marked as provisioning but has no recorded run. It predates run recording, or the run never started — check the workspace and subscription, then retry provisioning.'
+      : null;
+  }
+  switch (state) {
+    case 'READY':
+      return null;
+    case 'IN_PROGRESS':
+      return 'Provisioning is running. Nothing to do yet.';
+    case 'AT_RISK':
+      return 'Provisioning is running but behind its target. Watch it; retry becomes available if it stops recording steps.';
+    case 'BREACHED':
+      return 'Provisioning is past its target and still running. If it records nothing for thirty minutes it becomes retryable here.';
+    case 'STALLED':
+      return 'Nothing has been recorded for this run in over thirty minutes, so the process that owned it is gone. Retry provisioning — only the safe steps are replayed.';
+    case 'MANUAL_ACTION_REQUIRED':
+      return 'The run stopped with no step in flight and none failed, which means it is waiting on something outside automation. Read the step list below, then retry provisioning.';
+    case 'FAILED':
+      return 'Provisioning failed. The failed step is named below; fix its cause if it is external, then retry provisioning.';
+    default:
+      return null;
   }
 }
 

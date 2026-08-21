@@ -165,6 +165,22 @@ export type TenantOperationsView = {
     attempt: number | null;
     failedStepKey: string | null;
     message: string | null;
+    /**
+     * The run as an operator experiences it, derived on the API from the same
+     * function the provisioning queue uses. `status` alone cannot tell a live
+     * run from one whose process died holding it.
+     */
+    operationalState:
+      | "IN_PROGRESS"
+      | "AT_RISK"
+      | "BREACHED"
+      | "STALLED"
+      | "MANUAL_ACTION_REQUIRED"
+      | "FAILED"
+      | "READY"
+      | null;
+    /** What to do next, in a sentence. Null when there is nothing to do. */
+    recommendedAction: string | null;
     canRetry: boolean;
     retryBlockedReason: string | null;
     onboarding: {

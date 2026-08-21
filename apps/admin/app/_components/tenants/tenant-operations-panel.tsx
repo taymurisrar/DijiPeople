@@ -137,6 +137,33 @@ export function TenantOperationsPanel({
         </p>
       ) : null}
 
+      {/*
+        What to do, above what happened.
+
+        The panel already held everything needed to diagnose a stuck tenant —
+        the failed step, the attempt, the duration — and required the reader to
+        know how to read it. Reported as "is not provisioned or stuck ... what
+        to do? I am not sure", which is a fair description of a screen that
+        states facts and recommends nothing.
+      */}
+      {provisioning.recommendedAction ? (
+        <p
+          className={`rounded-xl border px-4 py-3 text-sm ${
+            provisioning.operationalState === "FAILED" ||
+            provisioning.operationalState === "STALLED"
+              ? "border-rose-200 bg-rose-50 text-rose-900"
+              : provisioning.operationalState === "MANUAL_ACTION_REQUIRED" ||
+                  provisioning.operationalState === "BREACHED"
+                ? "border-amber-200 bg-amber-50 text-amber-900"
+                : "border-slate-200 bg-slate-50 text-slate-700"
+          }`}
+          role="status"
+        >
+          <span className="font-semibold">Next step. </span>
+          {provisioning.recommendedAction}
+        </p>
+      ) : null}
+
       <PanelCard
         title="Provisioning"
         description="The most recent attempt to build this workspace."
@@ -159,14 +186,21 @@ export function TenantOperationsPanel({
               {
                 label: "State",
                 value: (
+                  /*
+                   * The derived state, not the stored one. `RUNNING` covers a
+                   * run that started ten seconds ago and one whose process died
+                   * an hour ago, and an operator needs those told apart — that
+                   * confusion is what left a tenant looking stuck with nothing
+                   * to click.
+                   */
                   <StatePill
-                    value={provisioning.status ?? "Unknown"}
                     tone={
-                      provisioning.status === "SUCCEEDED"
-                        ? "success"
-                        : provisioning.status === "FAILED"
-                          ? "danger"
-                          : "info"
+                      STATE_TONE[provisioning.operationalState ?? ""] ?? "info"
+                    }
+                    value={
+                      provisioning.operationalState
+                        ? formatEnumLabel(provisioning.operationalState)
+                        : (provisioning.status ?? "Unknown")
                     }
                   />
                 ),
@@ -443,3 +477,17 @@ const supportColumns: ProDataTableColumn<SupportCase>[] = [
     render: (row) => formatDate(row.createdAt),
   },
 ];
+
+/**
+ * Colour is the second signal, never the only one — the pill carries the state
+ * in words, and this only decides how loudly it is said.
+ */
+const STATE_TONE: Record<string, "success" | "danger" | "warning" | "info"> = {
+  READY: "success",
+  FAILED: "danger",
+  STALLED: "danger",
+  MANUAL_ACTION_REQUIRED: "warning",
+  BREACHED: "warning",
+  AT_RISK: "warning",
+  IN_PROGRESS: "info",
+};
