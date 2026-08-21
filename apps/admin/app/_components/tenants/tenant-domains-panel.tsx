@@ -50,15 +50,17 @@ type TenantDomainsView = {
   domains: TenantDomainRow[];
 };
 
-const STATUS_TONE: Record<string, "success" | "warning" | "danger" | "neutral"> =
-  {
-    VERIFIED: "success",
-    PENDING: "warning",
-    FAILED: "danger",
-    DISABLED: "neutral",
-    ACTIVE: "success",
-    NOT_REQUIRED: "neutral",
-  };
+const STATUS_TONE: Record<
+  string,
+  "success" | "warning" | "danger" | "neutral"
+> = {
+  VERIFIED: "success",
+  PENDING: "warning",
+  FAILED: "danger",
+  DISABLED: "neutral",
+  ACTIVE: "success",
+  NOT_REQUIRED: "neutral",
+};
 
 /**
  * The hostnames a workspace answers on.
@@ -87,11 +89,12 @@ export function TenantDomainsPanel({ tenantId }: { tenantId: string }) {
     setBusyId(domainId);
     setNotice(null);
     try {
-      const result = await tenantRequest<TenantDomainsView | { domains: TenantDomainRow[]; message?: string }>(
-        tenantId,
-        `/domains/${domainId}/${action}`,
-        { method: "POST", body: JSON.stringify({}) },
-      );
+      const result = await tenantRequest<
+        TenantDomainsView | { domains: TenantDomainRow[]; message?: string }
+      >(tenantId, `/domains/${domainId}/${action}`, {
+        method: "POST",
+        body: JSON.stringify({}),
+      });
       if ("workspaceSlug" in result) {
         setData(result);
         setNotice({ tone: "success", text: successMessage });
@@ -105,7 +108,10 @@ export function TenantDomainsPanel({ tenantId }: { tenantId: string }) {
     } catch (reason) {
       setNotice({
         tone: "error",
-        text: describeError(reason, "The domain action could not be completed."),
+        text: describeError(
+          reason,
+          "The domain action could not be completed.",
+        ),
       });
     } finally {
       setBusyId(null);
@@ -147,14 +153,19 @@ export function TenantDomainsPanel({ tenantId }: { tenantId: string }) {
       header: "Type",
       minWidth: 150,
       render: (row) =>
-        row.type === "SYSTEM_SUBDOMAIN" ? "DijiPeople subdomain" : "Custom domain",
+        row.type === "SYSTEM_SUBDOMAIN"
+          ? "DijiPeople subdomain"
+          : "Custom domain",
     },
     {
       key: "status",
       header: "Status",
       minWidth: 130,
       render: (row) => (
-        <StatePill value={row.status} tone={STATUS_TONE[row.status] ?? "neutral"} />
+        <StatePill
+          value={row.status}
+          tone={STATUS_TONE[row.status] ?? "neutral"}
+        />
       ),
     },
     {
@@ -188,14 +199,18 @@ export function TenantDomainsPanel({ tenantId }: { tenantId: string }) {
                 ? "A custom domain must be verified before it can be primary."
                 : undefined
             }
-            onClick={() => void act(row.id, "primary", "Primary domain changed.")}
+            onClick={() =>
+              void act(row.id, "primary", "Primary domain changed.")
+            }
           >
             Set primary
           </PanelButton>
           {row.type === "CUSTOM_DOMAIN" && row.status !== "VERIFIED" ? (
             <PanelButton
               busy={busyId === row.id}
-              onClick={() => void act(row.id, "verify", "Verification attempted.")}
+              onClick={() =>
+                void act(row.id, "verify", "Verification attempted.")
+              }
             >
               Retry verification
             </PanelButton>
@@ -262,7 +277,9 @@ export function TenantDomainsPanel({ tenantId }: { tenantId: string }) {
                     ? "Configured"
                     : "Not configured"
                 }
-                tone={data.routing.wildcardDnsConfigured ? "success" : "warning"}
+                tone={
+                  data.routing.wildcardDnsConfigured ? "success" : "warning"
+                }
               />
             ),
             /*
@@ -285,7 +302,7 @@ export function TenantDomainsPanel({ tenantId }: { tenantId: string }) {
         ) : (
           <PanelEmptyState
             title="This workspace has no hostname yet."
-            description="Provisioning issues a DijiPeople subdomain automatically. Retry provisioning from Operations if this is unexpected."
+            description="Provisioning issues a DijiPeople subdomain automatically. If none exists, Operations → Workspace health will say why and can issue one — Retry provisioning cannot, because it is refused once the tenant is active."
           />
         )}
       </div>

@@ -118,8 +118,27 @@ export class TenantOperationsService {
         !['CLOSED', 'RESOLVED', 'CANCELLED'].includes(item.status),
     );
 
+    /*
+     * What is actually missing from this workspace, regardless of what the
+     * provisioning runs say.
+     *
+     * A tenant reached this state and could not be explained from the screen:
+     * ACTIVE, reachable, signed into — and reporting "Workspace: Not
+     * provisioned", "Primary tenant owner: Unassigned", a status reason still
+     * reading "Provisioning", and no recorded run at all. Every one of those is
+     * true and none of them is the same fact, so the page said four things and
+     * answered no question.
+     *
+     * The run history cannot answer it either: these tenants predate run
+     * recording, or their run rows were never written. So the deficiencies are
+     * derived from the tenant's current state — the only thing that is
+     * definitely true — and each carries whether this console can repair it.
+     */
+    const workspace = await this.diagnoseWorkspace(tenant);
+
     return {
       tenantId: tenant.id,
+      workspace,
       provisioning: {
         status: latestRun?.status ?? null,
         /*
@@ -196,6 +215,128 @@ export class TenantOperationsService {
           0,
       },
     };
+  }
+
+  /**
+   * The workspace's deficiencies, as facts about the tenant rather than about a
+   * run that may never have been recorded.
+   *
+   * Each entry says what is missing, whether it is repairable from here, and
+   * what happens if it is not. `repairable` is the field that matters: the
+   * previous screen offered exactly one action — retry provisioning — gated on
+   * a lifecycle status, so an ACTIVE tenant missing only its hostname had no
+   * route to a hostname at all.
+   */
+  private async diagnoseWorkspace(tenant: {
+    id: string;
+    slug: string | null;
+    status: TenantStatus;
+    subStatus: string | null;
+    ownerUserId: string | null;
+  }) {
+    const [primaryDomain, businessUnitCount, userCount] = await Promise.all([
+      this.prisma.tenantDomain.findFirst({
+        where: { tenantId: tenant.id, isPrimary: true },
+        select: { domain: true, verificationStatus: true },
+      }),
+      this.prisma.businessUnit.count({ where: { tenantId: tenant.id } }),
+      this.prisma.user.count({
+        where: { tenantId: tenant.id, isServiceAccount: false },
+      }),
+    ]);
+
+    return deriveWorkspaceHealth({
+      slug: tenant.slug,
+      status: tenant.status,
+      subStatus: tenant.subStatus,
+      ownerUserId: tenant.ownerUserId,
+      primaryHostname: primaryDomain?.domain ?? null,
+      hostnameVerification: primaryDomain?.verificationStatus ?? null,
+      businessUnitCount,
+      userCount,
+    });
+  }
+
+  /**
+   * Fix what this console can fix, and say what it could not.
+   *
+   * Deliberately **not** part of retry provisioning. Retry replays a step
+   * catalogue and is gated on the tenant still being in a provisioning
+   * lifecycle state — correct for its purpose, and the reason an ACTIVE tenant
+   * missing only a hostname had no remedy: the one button that could have
+   * issued one refused, accurately, because the tenant was not being
+   * provisioned.
+   *
+   * This is idempotent and narrow. It issues a missing workspace hostname and
+   * clears a sub-status that contradicts the lifecycle. It does not create
+   * business units, owners, subscriptions or invoices — those are provisioning's
+   * to own, and quietly duplicating them here is how a repair becomes an
+   * incident.
+   */
+  async repairWorkspace(user: AuthenticatedUser, tenantId: string) {
+    assertTenantPlatformAccess(user, 'tenants.update');
+    const tenant = await loadTenantOrThrow(this.prisma, tenantId);
+    const actorId = user.platform?.id ?? user.userId;
+
+    const before = await this.diagnoseWorkspace(tenant);
+    const repaired: string[] = [];
+    const failed: Array<{ key: string; reason: string }> = [];
+
+    for (const finding of before.findings.filter((item) => item.repairable)) {
+      try {
+        if (finding.key === 'missing-workspace-hostname' && tenant.slug) {
+          await this.tenantDomains.createSystemDomain({
+            tenantId: tenant.id,
+            slug: tenant.slug,
+            actorUserId: actorId,
+          });
+          repaired.push(finding.key);
+        }
+        if (finding.key === 'stale-sub-status') {
+          await this.prisma.tenant.update({
+            where: { id: tenant.id },
+            data: { subStatus: null, updatedById: user.userId },
+          });
+          repaired.push(finding.key);
+        }
+      } catch (reason) {
+        /*
+         * One failed repair must not abandon the others. A missing tenant base
+         * domain is the common case here and it is a configuration answer, not
+         * an error to swallow — it is reported per finding so the operator reads
+         * what to change.
+         */
+        failed.push({
+          key: finding.key,
+          reason:
+            reason instanceof Error ? reason.message : 'The repair failed.',
+        });
+      }
+    }
+
+    const after = await this.diagnoseWorkspace(
+      await loadTenantOrThrow(this.prisma, tenantId),
+    );
+
+    await this.auditService.log({
+      tenantId: 'platform',
+      actorUserId: user.userId,
+      action: 'TENANT_WORKSPACE_REPAIRED',
+      entityType: 'Tenant',
+      entityId: tenant.id,
+      beforeSnapshot: {
+        findings: before.findings.map((finding) => finding.key),
+        primaryHostname: before.primaryHostname,
+      },
+      afterSnapshot: {
+        repaired,
+        failed,
+        findings: after.findings.map((finding) => finding.key),
+        primaryHostname: after.primaryHostname,
+      },
+    });
+
+    return { repaired, failed, workspace: after };
   }
 
   /**
@@ -588,6 +729,116 @@ export class TenantOperationsService {
     }
     return null;
   }
+}
+
+/** The facts a workspace diagnosis is made from. Nothing else is consulted. */
+export type WorkspaceFacts = {
+  slug: string | null;
+  status: TenantStatus;
+  subStatus: string | null;
+  ownerUserId: string | null;
+  primaryHostname: string | null;
+  hostnameVerification: string | null;
+  businessUnitCount: number;
+  userCount: number;
+};
+
+export type WorkspaceFinding = {
+  key: string;
+  title: string;
+  detail: string;
+  /** Whether the console can fix it. The field the screen is built on. */
+  repairable: boolean;
+  severity: 'BLOCKING' | 'DEGRADED' | 'INFO';
+};
+
+/**
+ * What is missing from a workspace, derived from the tenant's current state.
+ *
+ * WHY NOT FROM THE PROVISIONING RUNS. A run is a record of an *attempt*, and a
+ * tenant can be perfectly usable with no run rows at all — they predate run
+ * recording, or were never written. One arrived exactly so: ACTIVE, reachable,
+ * signed into, and reporting "Workspace: Not provisioned", "Primary tenant
+ * owner: Unassigned", a status reason of "Provisioning" and no recorded run.
+ * Four true statements, no answer, and the one available action refused because
+ * the tenant was not being provisioned.
+ *
+ * Pure, and exported, because every interesting case here is a combination of
+ * five facts and deserves tests that do not need a database to state what they
+ * mean.
+ */
+export function deriveWorkspaceHealth(facts: WorkspaceFacts) {
+  const findings: WorkspaceFinding[] = [];
+
+  if (!facts.primaryHostname) {
+    findings.push({
+      key: 'missing-workspace-hostname',
+      title: 'No workspace hostname has been issued',
+      detail: facts.slug
+        ? `Nothing resolves to this workspace by name. A hostname can be issued now from the slug "${facts.slug}".`
+        : 'This tenant has no workspace slug, so no hostname can be derived. Set the slug on Configuration first.',
+      /* No slug, nothing to build a hostname from. Saying "repairable" then
+       * would offer a button that could only fail. */
+      repairable: Boolean(facts.slug),
+      severity: 'BLOCKING',
+    });
+  }
+
+  /*
+   * A sub-status is a sentence a human reads under the lifecycle badge, and
+   * nothing clears it when the lifecycle moves on — so an ACTIVE tenant sat
+   * under "Provisioning" indefinitely, contradicting the badge beside it. Only
+   * flagged when it actually contradicts: a sub-status is a legitimate field and
+   * most values are fine.
+   */
+  if (
+    facts.status === TenantStatus.ACTIVE &&
+    facts.subStatus &&
+    /provision/i.test(facts.subStatus)
+  ) {
+    findings.push({
+      key: 'stale-sub-status',
+      title: 'The status reason still describes provisioning',
+      detail: `This tenant is ACTIVE, and its status reason reads "${facts.subStatus}". Nothing clears a sub-status when the lifecycle moves on, so it contradicts the badge next to it.`,
+      repairable: true,
+      severity: 'DEGRADED',
+    });
+  }
+
+  if (!facts.businessUnitCount) {
+    findings.push({
+      key: 'missing-business-unit',
+      title: 'No business unit exists',
+      detail:
+        'Owners and employees hang off a business unit, so this workspace cannot be activated or staffed until one exists. This is BUG-0015 and is not repairable from here — the provisioning step that creates it is not replayed.',
+      repairable: false,
+      severity: 'BLOCKING',
+    });
+  }
+
+  if (!facts.ownerUserId) {
+    findings.push({
+      key: 'no-primary-owner',
+      title: 'No primary tenant owner is assigned',
+      detail: facts.userCount
+        ? 'Users exist in this workspace but none is recorded as its primary owner. Assign one from Access & Security.'
+        : 'This workspace has no non-service users at all, so there is nobody to make the owner. Invite one from Access & Security.',
+      repairable: false,
+      severity: 'DEGRADED',
+    });
+  }
+
+  return {
+    slug: facts.slug,
+    primaryHostname: facts.primaryHostname,
+    hostnameVerification: facts.hostnameVerification,
+    businessUnitCount: facts.businessUnitCount,
+    userCount: facts.userCount,
+    findings,
+    /* Whether pressing Repair would do anything at all. */
+    repairable: findings.some((finding) => finding.repairable),
+    healthy: findings.length === 0,
+  };
 }
 
 /**

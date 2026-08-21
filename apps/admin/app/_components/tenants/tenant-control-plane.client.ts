@@ -155,7 +155,35 @@ export type TenantProvisioningStep = {
   message: string | null;
 };
 
+/**
+ * What is missing from a workspace, as facts about the tenant rather than about
+ * a provisioning run that may never have been recorded.
+ *
+ * The screen this exists for showed an ACTIVE, reachable tenant reporting
+ * "Workspace: Not provisioned", "Primary tenant owner: Unassigned", a status
+ * reason of "Provisioning" and no recorded run — four true statements that
+ * together answered nothing.
+ */
+export type TenantWorkspaceHealth = {
+  slug: string | null;
+  primaryHostname: string | null;
+  hostnameVerification: string | null;
+  businessUnitCount: number;
+  userCount: number;
+  findings: Array<{
+    key: string;
+    title: string;
+    detail: string;
+    /** Whether **this console** can fix it, which is the field that matters. */
+    repairable: boolean;
+    severity: "BLOCKING" | "DEGRADED" | "INFO";
+  }>;
+  repairable: boolean;
+  healthy: boolean;
+};
+
 export type TenantOperationsView = {
+  workspace: TenantWorkspaceHealth;
   provisioning: {
     status: string | null;
     hasRecordedRuns: boolean;
