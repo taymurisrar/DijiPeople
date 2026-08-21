@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**157 records** — 84 bugs under [`docs/bugs/`](../bugs/), 73 non-bug items under [`items/`](items/).
+**158 records** — 84 bugs under [`docs/bugs/`](../bugs/), 74 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,7 +13,7 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 38 |
+| Open (active work) | 39 |
 | Blocked | 1 |
 | Deferred | 15 |
 | Awaiting a product decision | 4 |
@@ -27,7 +27,7 @@ see [`README.md`](README.md) for why.
 | Severity | Count |
 |---|---|
 | HIGH | 12 |
-| MEDIUM | 21 |
+| MEDIUM | 22 |
 | LOW | 5 |
 
 ## Open by type
@@ -38,7 +38,7 @@ see [`README.md`](README.md) for why.
 | DATA_INTEGRITY | 2 |
 | DOCUMENTATION | 2 |
 | FOLLOW_UP | 3 |
-| INFRA | 4 |
+| INFRA | 5 |
 | PERFORMANCE | 1 |
 | SECURITY | 6 |
 | STATE_MACHINE | 1 |
@@ -57,7 +57,7 @@ see [`README.md`](README.md) for why.
 | FIXED | 8 |
 | VERIFIED | 68 |
 | DUPLICATE | 1 |
-| READY | 25 |
+| READY | 26 |
 | DONE | 30 |
 
 ## All records
@@ -193,6 +193,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0069](../../docs/backlog/items/ITEM-0069-a-global-identity-lock-can-be-triggered-by-an-unauthenticate.md) | A global identity lock can be triggered by an unauthenticated attacker | SECURITY | MEDIUM | P2 | DONE | auth, users | DONE |
 | [ITEM-0071](../../docs/backlog/items/ITEM-0071-a-terminal-bug-record-may-claim-fixed-while-its-resolution-s.md) | A terminal bug record may claim FIXED while its Resolution says pending | TEST_GAP | MEDIUM | P2 | DONE | scripts | DONE |
 | [ITEM-0073](../../docs/backlog/items/ITEM-0073-agent-role-names-are-spelled-inconsistently-across-bug-and-t.md) | Agent role names are spelled inconsistently across bug and task records | TECH_DEBT | MEDIUM | P2 | DEFERRED | framework | DEFER |
+| [ITEM-0074](../../docs/backlog/items/ITEM-0074-allocate-id-and-session-tooling-accept-a-session-id-that-doe.md) | allocate-id and session tooling accept a session id that does not exist | INFRA | MEDIUM | P2 | READY | framework | PLAN_REQUIRED |
 | [ITEM-0021](../../docs/backlog/items/ITEM-0021-mechanical-guard-against-country-and-currency-literals-in-fr.md) | Mechanical guard against country and currency literals in frontends | TEST_GAP | LOW | P2 | DONE | scripts, apps/landing, apps/web, apps/admin | DONE |
 | [ITEM-0023](../../docs/backlog/items/ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning.md) | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | P2 | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
 | [ITEM-0024](../../docs/backlog/items/ITEM-0024-landing-depends-on-lucide-react-without-declaring-it.md) | Landing depends on lucide-react without declaring it | TECH_DEBT | LOW | P2 | DONE | apps/landing | DONE |

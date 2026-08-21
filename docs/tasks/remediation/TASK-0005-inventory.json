@@ -7911,6 +7911,50 @@
         "classification": "ACTIVE_AS_DOCUMENTED",
         "finding_ids": []
       }
+    },
+    {
+      "record_id": "ITEM-0074",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0074-allocate-id-and-session-tooling-accept-a-session-id-that-doe.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-08-21",
+        "updated_at": "2026-08-21",
+        "resolved_at": ""
+      },
+      "type": "INFRA",
+      "title": "allocate-id and session tooling accept a session id that does not exist",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "READY",
+      "current_evidence": {
+        "paths": [
+          "scripts/allocate-id.mjs",
+          "scripts/lib/id-allocator.mjs",
+          "scripts/session.mjs"
+        ],
+        "verification_scope": "allocate-id.mjs stores --session in the reservation ledger without resolving it against docs/sessions. During SESSION-0029 it allocated REG-173 under a session id that did not exist; session.mjs finish then reported unknown session for the same id, so the two tools disagree about whether it exists. Separately nothing asserts that an agent/* branch has a session record at all, so leases, the single-writer database rule and session.mjs check --paths are never engaged rather than being bypassed."
+      },
+      "affected_modules": [
+        "framework"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "PLAN_REQUIRED",
+      "verification_result": {
+        "result": "PRELIMINARY",
+        "classification": "ACTIVE_AS_DOCUMENTED",
+        "finding_ids": []
+      }
     }
   ],
   "discovered_findings": [
