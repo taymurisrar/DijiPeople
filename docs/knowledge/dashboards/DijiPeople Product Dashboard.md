@@ -100,8 +100,11 @@ Questions where the engineering is understood and the **product answer**
 | [[BUG-0315-workspace-preferences-are-stored-in-localstorage-and-never-a|BUG-0315]] | Workspace preferences are stored in localStorage and never applied | UX | MEDIUM | FIXED | apps/admin, api:platform-users, services/api/prisma | FIX_NOW |
 | [[BUG-0316-country-industry-and-contact-fields-are-free-text-where-a-ca|BUG-0316]] | Country industry and contact fields are free text where a canonical list exists | DATA_INTEGRITY | MEDIUM | FIXED | apps/landing, apps/admin, api:lookups, pkg:config | FIX_NOW |
 | [[BUG-0317-the-subscribe-wizard-shows-five-identical-pills-and-labels-t|BUG-0317]] | The subscribe wizard shows five identical pills and labels three address fields only by placeholder | UX | MEDIUM | FIXED | apps/landing | FIX_NOW |
+| [[BUG-0350-the-subscribe-wizard-s-country-field-silently-degraded-to-fr|BUG-0350]] | The subscribe wizard's country field silently degraded to free text | DATA_INTEGRITY | MEDIUM | FIXED | apps/landing | FIX_NOW |
+| [[BUG-0351-the-subscribe-wizard-progress-rail-truncated-every-step-labe|BUG-0351]] | The subscribe wizard progress rail truncated every step label | UX | MEDIUM | FIXED | apps/landing | FIX_NOW |
 | [[ITEM-0031-replace-remaining-native-prompts-for-governed-input|ITEM-0031]] | Replace remaining native prompts for governed input | UX | MEDIUM | READY | apps/admin, apps/web | FIX_NOW |
 | [[ITEM-0068-legal-documents-have-no-operator-ui-so-publishing-is-a-scrip|ITEM-0068]] | Legal documents have no operator UI, so publishing is a script | UX | MEDIUM | READY | legal, admin | PLAN_REQUIRED |
+| [[BUG-0352-the-tenant-timeline-rendered-every-entry-with-no-count-and-n|BUG-0352]] | The tenant timeline rendered every entry with no count and no paging | UX | LOW | FIXED | apps/admin | FIX_NOW |
 
 ## How to read this
 

@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**174 records** — 98 bugs under [`docs/bugs/`](../bugs/), 76 non-bug items under [`items/`](items/).
+**178 records** — 102 bugs under [`docs/bugs/`](../bugs/), 76 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,22 +13,22 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 52 |
+| Open (active work) | 56 |
 | Blocked | 1 |
 | Deferred | 16 |
 | Awaiting a product decision | 6 |
 | Completed / closed | 99 |
 | **Open CRITICAL** | **0** |
-| **Open HIGH** | **17** |
+| **Open HIGH** | **18** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
 
 | Severity | Count |
 |---|---|
-| HIGH | 17 |
-| MEDIUM | 30 |
-| LOW | 5 |
+| HIGH | 18 |
+| MEDIUM | 32 |
+| LOW | 6 |
 
 ## Open by type
 
@@ -36,16 +36,17 @@ see [`README.md`](README.md) for why.
 |---|---|
 | ARCHITECTURE | 2 |
 | BUG | 2 |
-| DATA_INTEGRITY | 6 |
+| DATA_INTEGRITY | 7 |
 | DOCUMENTATION | 2 |
 | FOLLOW_UP | 3 |
 | INFRA | 7 |
+| INTEGRATION | 1 |
 | PERFORMANCE | 1 |
 | SECURITY | 6 |
 | STATE_MACHINE | 1 |
 | TECH_DEBT | 6 |
 | TEST_GAP | 7 |
-| UX | 9 |
+| UX | 11 |
 
 ## All records by status
 
@@ -55,7 +56,7 @@ see [`README.md`](README.md) for why.
 | BLOCKED | 1 |
 | DEFERRED | 16 |
 | PRODUCT_DECISION | 6 |
-| FIXED | 19 |
+| FIXED | 23 |
 | VERIFIED | 68 |
 | DUPLICATE | 1 |
 | READY | 26 |
@@ -123,6 +124,7 @@ see [`README.md`](README.md) for why.
 | [BUG-0282](../../docs/bugs/BUG-0282-the-platform-runtime-schema-manifest-drifted-from-schema-pri.md) | The platform runtime schema manifest drifted from schema.prisma and no check noticed | DATA_INTEGRITY | HIGH | P1 | FIXED | pkg:config, apps/admin, services/api/prisma | FIX_NOW |
 | [BUG-0312](../../docs/bugs/BUG-0312-provisioning-issues-no-workspace-hostname-when-no-tenant-bas.md) | Provisioning issues no workspace hostname when no tenant base domain is configured | INFRA | HIGH | P1 | FIXED | services/api, pkg:config, apps/admin | FIX_NOW |
 | [BUG-0313](../../docs/bugs/BUG-0313-admin-builds-workspace-urls-from-a-second-divergent-copy-of-.md) | Admin builds workspace URLs from a second, divergent copy of the rule | BUG | HIGH | P1 | FIXED | apps/admin, pkg:config | FIX_NOW |
+| [BUG-0353](../../docs/bugs/BUG-0353-the-api-resolved-a-workspace-hostname-from-a-variable-nothin.md) | The API resolved a workspace hostname from a variable nothing sets | INTEGRATION | HIGH | P1 | FIXED | api:tenants, pkg:config | FIX_NOW |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | READY | api:tenant-control-plane | FIX_NOW |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | READY | apps/web, e2e | PLAN_REQUIRED |
@@ -168,6 +170,8 @@ see [`README.md`](README.md) for why.
 | [BUG-0315](../../docs/bugs/BUG-0315-workspace-preferences-are-stored-in-localstorage-and-never-a.md) | Workspace preferences are stored in localStorage and never applied | UX | MEDIUM | P2 | FIXED | apps/admin, api:platform-users, services/api/prisma | FIX_NOW |
 | [BUG-0316](../../docs/bugs/BUG-0316-country-industry-and-contact-fields-are-free-text-where-a-ca.md) | Country industry and contact fields are free text where a canonical list exists | DATA_INTEGRITY | MEDIUM | P2 | FIXED | apps/landing, apps/admin, api:lookups, pkg:config | FIX_NOW |
 | [BUG-0317](../../docs/bugs/BUG-0317-the-subscribe-wizard-shows-five-identical-pills-and-labels-t.md) | The subscribe wizard shows five identical pills and labels three address fields only by placeholder | UX | MEDIUM | P2 | FIXED | apps/landing | FIX_NOW |
+| [BUG-0350](../../docs/bugs/BUG-0350-the-subscribe-wizard-s-country-field-silently-degraded-to-fr.md) | The subscribe wizard's country field silently degraded to free text | DATA_INTEGRITY | MEDIUM | P2 | FIXED | apps/landing | FIX_NOW |
+| [BUG-0351](../../docs/bugs/BUG-0351-the-subscribe-wizard-progress-rail-truncated-every-step-labe.md) | The subscribe wizard progress rail truncated every step label | UX | MEDIUM | P2 | FIXED | apps/landing | FIX_NOW |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | READY | services/api, apps/admin | FIX_NOW |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | READY | api:tenant-control-plane | FIX_NOW |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |
@@ -218,6 +222,7 @@ see [`README.md`](README.md) for why.
 | [BUG-0023](../../docs/bugs/BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist.md) | The testing-architecture context claims two e2e specs do not exist | DOCUMENTATION | LOW | P3 | VERIFIED | .agent/context | DONE |
 | [BUG-0024](../../docs/bugs/BUG-0024-start-onboarding-api-and-proxy-have-no-caller.md) | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | P3 | VERIFIED | apps/admin, api:super-admin | DONE |
 | [BUG-0059](../../docs/bugs/BUG-0059-vault-wikilinks-to-task-records-and-four-module-notes-resolv.md) | Vault wikilinks to task records and four module notes resolve to nothing | DOCUMENTATION | LOW | P3 | VERIFIED | scripts, docs/tasks, docs/knowledge | DONE |
+| [BUG-0352](../../docs/bugs/BUG-0352-the-tenant-timeline-rendered-every-entry-with-no-count-and-n.md) | The tenant timeline rendered every entry with no count and no paging | UX | LOW | P3 | FIXED | apps/admin | FIX_NOW |
 | [ITEM-0007](../../docs/backlog/items/ITEM-0007-should-duplicate-website-leads-be-deduplicated.md) | Product decision — should duplicate website leads be deduplicated? | PRODUCT_DECISION | LOW | P3 | DONE | api:leads, apps/landing | DONE |
 | [ITEM-0008](../../docs/backlog/items/ITEM-0008-customeraccount-has-no-origin-channel.md) | Product decision — CustomerAccount carries no origin channel | PRODUCT_DECISION | LOW | P3 | DONE | services/api/prisma, api:super-admin | DONE |
 | [ITEM-0011](../../docs/backlog/items/ITEM-0011-framework-validation-should-catch-absence-claims.md) | Framework validation should catch false absence claims in context documents | TECH_DEBT | LOW | P3 | DONE | .agent/context, scripts | DONE |

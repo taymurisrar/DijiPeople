@@ -6,14 +6,14 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 174,
-    "bugs": 98,
+    "total_records": 178,
+    "bugs": 102,
     "backlog_items": 76,
     "open_bucket": 4,
     "blocked_bucket": 0,
     "deferred_bucket": 2,
     "product_decision_bucket": 2,
-    "completed_bucket": 88,
+    "completed_bucket": 92,
     "parser_structural_errors": 0,
     "active_session_conflict": "NONE",
     "discovered_findings_total": 34,
@@ -8753,6 +8753,192 @@
       ],
       "qa_scenarios": [
         "QA-PLATFORM-008"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "FIX_NOW",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0350",
+      "source": {
+        "record_path": "docs/bugs/BUG-0350-the-subscribe-wizard-s-country-field-silently-degraded-to-fr.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "0d10a9d",
+        "created_at": "2026-08-21",
+        "updated_at": "2026-08-21",
+        "resolved_at": "2026-08-21"
+      },
+      "type": "DATA_INTEGRITY",
+      "title": "The subscribe wizard's country field silently degraded to free text",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "current_evidence": {
+        "paths": [
+          "apps/landing"
+        ],
+        "verification_scope": "Fixed on agent/ux-round-two; see the record for evidence paths and the regression that proves it."
+      },
+      "affected_modules": [
+        "apps/landing"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [
+        "REG-182"
+      ],
+      "qa_scenarios": [
+        "QA-LANDING-012"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "FIX_NOW",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0351",
+      "source": {
+        "record_path": "docs/bugs/BUG-0351-the-subscribe-wizard-progress-rail-truncated-every-step-labe.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "0d10a9d",
+        "created_at": "2026-08-21",
+        "updated_at": "2026-08-21",
+        "resolved_at": "2026-08-21"
+      },
+      "type": "UX",
+      "title": "The subscribe wizard progress rail truncated every step label",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "current_evidence": {
+        "paths": [
+          "apps/landing"
+        ],
+        "verification_scope": "Fixed on agent/ux-round-two; see the record for evidence paths and the regression that proves it."
+      },
+      "affected_modules": [
+        "apps/landing"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [
+        "REG-182"
+      ],
+      "qa_scenarios": [
+        "QA-LANDING-012"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "FIX_NOW",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0352",
+      "source": {
+        "record_path": "docs/bugs/BUG-0352-the-tenant-timeline-rendered-every-entry-with-no-count-and-n.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "0d10a9d",
+        "created_at": "2026-08-21",
+        "updated_at": "2026-08-21",
+        "resolved_at": "2026-08-21"
+      },
+      "type": "UX",
+      "title": "The tenant timeline rendered every entry with no count and no paging",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "FIXED",
+      "current_evidence": {
+        "paths": [
+          "apps/admin"
+        ],
+        "verification_scope": "Fixed on agent/ux-round-two; see the record for evidence paths and the regression that proves it."
+      },
+      "affected_modules": [
+        "apps/admin"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [
+        "REG-183"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-009"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "FIX_NOW",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0353",
+      "source": {
+        "record_path": "docs/bugs/BUG-0353-the-api-resolved-a-workspace-hostname-from-a-variable-nothin.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "0d10a9d",
+        "created_at": "2026-08-21",
+        "updated_at": "2026-08-21",
+        "resolved_at": "2026-08-21"
+      },
+      "type": "INTEGRATION",
+      "title": "The API resolved a workspace hostname from a variable nothing sets",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/tenants",
+          "packages/config"
+        ],
+        "verification_scope": "Fixed on agent/ux-round-two; see the record for evidence paths and the regression that proves it."
+      },
+      "affected_modules": [
+        "services/api/src/modules/tenants",
+        "packages/config"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [
+        "REG-184"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-008"
       ],
       "test_plan": [],
       "active_session_conflict": "NONE",

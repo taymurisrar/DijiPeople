@@ -1269,3 +1269,48 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | The inference is deliberately narrow — anchored suffixes over the whole column name, not substrings. `emailStatus` is a status and `taxRatePercent` is a rate, and a looser rule catches both. The country lookup is served from one public, rate-limited projection precisely so a fifth copy of the list has nowhere to appear. |
 | **Fixed** | 2026-08-21, branch `agent/admin-landing-ux-program` |
 | **Active** | yes |
+
+### REG-182 — A control that stays a control, and a label that fits
+
+| | |
+|---|---|
+| **Bug class** | `silent-degradation` |
+| **Module** | `apps/landing` |
+| **Bug record** | BUG-0350, BUG-0351 |
+| **Root cause** | Two regressions in the fix for the previous two defects on the same form. The country lookup fell back to a **free-text input** whenever `/public/geography/countries` could not be read — an API process that had not restarted since the endpoint shipped answers 404 — so a lookup outage and an unshipped change looked identical, and the field was reported as "still not a lookup" after it had been changed into one. Separately, the new progress rail put five label-beside-marker units in one row and reused `STEP_TITLES` for the labels, so four of the five ellipsized: "Your org…", "Your wo…", "Worksp…", "Agreem…". `truncate` is what made both quiet — overflowing text gets noticed in review, ellipsized text looks deliberate. |
+| **Regression test** | `apps/landing/lib/use-country-options.spec.ts`, `apps/landing/lib/onboarding-wizard.spec.ts` |
+| **Scenario** | The country list offered to a buyer is non-empty with no network call completed, carries an ISO code and a name for every entry, excludes `OTHER` — which is a valid answer to "where did you hear about us" and a corrupt value for a country column — and is uniquely keyed. Every wizard step has a rail label, no label exceeds what one segment of a five-across rail holds, and no two labels are the same word. |
+| **Proven to fail without the fix** | Seeding `useCountryOptions` from `[]` fails the non-empty assertion; pointing `STEP_LABELS` back at `STEP_TITLES` fails the length assertion on three of the five steps. |
+| **Note** | The length assertion is a proxy and is stated as one: nothing here renders the rail. It pins the property that actually broke — a label too long for its segment — rather than pretending to have measured pixels. Visual verification was not performed. |
+| **Fixed** | 2026-08-21, branch `agent/ux-round-two` |
+| **Active** | yes |
+
+### REG-183 — A page number that outlived its list
+
+| | |
+|---|---|
+| **Bug class** | `unbounded-render` |
+| **Module** | `apps/admin` |
+| **Bug record** | BUG-0352 |
+| **Root cause** | The tenant Timeline panel rendered every entry the endpoint returned — 154 on a tenant a few weeks old, and growing — with no total and no pager, so the panels below it sat under an arbitrarily long list. The paging added for it then had a second failure available to it: filtering to a category with two entries while sitting on page four renders an empty panel above rows that plainly exist, and correcting the page from an effect still shows that state for one render. |
+| **Regression test** | `apps/admin/lib/list-paging.spec.ts` |
+| **Scenario** | A 154-entry list at 25 a page reports seven pages, stops the last page at the end of the list, and covers every row exactly once across all its pages. A page number beyond the end clamps into range rather than rendering nothing; an empty list stays on a valid page; a nonsense page request (`0`, negative, `NaN`) resolves to the first page; a page size of zero does not produce an infinite page count. |
+| **Proven to fail without the fix** | Replacing the clamp with the raw requested page fails the out-of-range case with `start` past the end of the list. |
+| **Note** | The window is computed rather than stored, so it cannot be stale by construction. That is the whole reason the arithmetic is worth a file of its own — the bug is not in the slice, it is in the state that outlives what it indexes. |
+| **Fixed** | 2026-08-21, branch `agent/ux-round-two` |
+| **Active** | yes |
+
+### REG-184 — The third copy of one hostname rule
+
+| | |
+|---|---|
+| **Bug class** | `divergent-duplicate-guard` |
+| **Module** | `services/api/src/modules/tenants`, `packages/config` |
+| **Bug record** | BUG-0353 |
+| **Root cause** | `PublicTenantsService.getTenantSlugFromHost` parsed the host itself against `WEB_APP_PROD_ROOT_DOMAIN` — a third name for the concept `packages/config` calls `TENANT_BASE_DOMAIN` and `apps/admin` briefly called `NEXT_PUBLIC_TENANT_ROOT_DOMAIN` — and re-implemented suffix matching, nested-label rejection and a common-login-host exception that the shared rule already performs. With `TENANT_BASE_DOMAIN` configured and `WEB_APP_PROD_ROOT_DOMAIN` unset, the web app routed `xoul-ltd.localhost` to a workspace and the API resolved no slug from the same hostname, so login answered `TENANT_NOT_FOUND` for a tenant that exists and is ACTIVE. |
+| **Regression test** | `services/api/src/modules/tenants/public-tenant-host.spec.ts` |
+| **Scenario** | A workspace subdomain resolves under a locally configured base domain, with and without a port, and against a deployed base domain. `admin.`, `api.`, `app.` and the bare domain resolve to nothing. A nested label resolves to neither its leftmost nor its rightmost part. A hostname that merely ends with the base domain as a substring resolves to nothing. With no base domain configured, nothing resolves. |
+| **Proven to fail without the fix** | Restoring the `WEB_APP_PROD_ROOT_DOMAIN` lookup fails six of the seven assertions, since no test configures that variable — which is the defect stated as a test result. |
+| **Note** | REG-179 removed the duplicate that *built* dead workspace links, verified the link, and did not ask what else parsed the same hostname. This defect survived a fix aimed directly at it. The lesson is on the record rather than in this row: when a duplicated rule is consolidated, search for every reader of the concept, not only the writer that was reported. |
+| **Fixed** | 2026-08-21, branch `agent/ux-round-two` |
+| **Active** | yes |
