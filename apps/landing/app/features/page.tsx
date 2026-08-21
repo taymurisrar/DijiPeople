@@ -230,7 +230,7 @@ export default async function FeaturesPage() {
       {orderedCategories.length > 1 ? (
         <nav
           aria-label="Feature areas"
-          className="sticky top-0 z-10 -mx-4 mt-10 overflow-x-auto border-y border-border bg-background/85 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8"
+          className="sticky top-16 z-10 -mx-4 mt-10 overflow-x-auto border-y border-border bg-background/85 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8"
         >
           <ul className="flex min-w-max gap-2">
             {orderedCategories.map((categoryKey) => {
@@ -269,7 +269,7 @@ export default async function FeaturesPage() {
         return (
           <section
             className={[
-              "scroll-mt-20 border-t border-border py-12",
+              "scroll-mt-32 border-t border-border py-12",
               isAlternate
                 ? "lg:grid lg:grid-cols-[0.85fr_1.15fr] lg:gap-12"
                 : "",
@@ -279,7 +279,7 @@ export default async function FeaturesPage() {
           >
             <div
               className={
-                isAlternate ? "lg:sticky lg:top-24 lg:h-fit" : "max-w-3xl"
+                isAlternate ? "lg:sticky lg:top-32 lg:h-fit" : "max-w-3xl"
               }
             >
               <p className="font-mono text-xs font-semibold uppercase tracking-[0.16em] text-accent">
