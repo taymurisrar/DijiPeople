@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { NotificationBell } from "@/app/_components/notifications/notification-bell";
 import {
   Bell,
   ChevronDown,
@@ -227,17 +228,7 @@ export function AdminTopbar({
               <Search className="h-4 w-4" />
             </button>
 
-            <button
-              type="button"
-              aria-label="View notifications"
-              onClick={() => {
-                window.location.href = "/notifications";
-              }}
-              className="relative inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-900/10"
-            >
-              <Bell className="h-4 w-4" />
-              <span className="absolute right-2.5 top-2.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-red-500" />
-            </button>
+            <NotificationBell />
 
             <div ref={profileMenuRef} className="relative">
               <button

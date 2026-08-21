@@ -8,6 +8,11 @@ import { randomUUID } from 'node:crypto';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { userHasPlatformPermission } from '../platform-auth/platform-permissions';
+import {
+  isNotifiable,
+  toNotification,
+  type PlatformNotification,
+} from './platform-notifications';
 
 export type RecordPlatformEventInput = {
   eventCode: string;
@@ -61,6 +66,95 @@ export class PlatformEventsService {
       );
       return null;
     }
+  }
+
+  /**
+   * The operator-facing slice of the event stream.
+   *
+   * Not a second event log. `PlatformEvent` holds everything this platform
+   * does; this returns only what somebody should act on or would want to know,
+   * as decided by `platform-notifications.ts`. Filtering happens after the
+   * fetch rather than in SQL because the rules are regex over event codes and
+   * belong in one readable place — the window is bounded to keep that honest.
+   */
+  async notifications(
+    user: AuthenticatedUser,
+    options: { limit?: number } = {},
+  ): Promise<{
+    items: PlatformNotification[];
+    unreadCount: number;
+    readAt: string | null;
+  }> {
+    this.assertRead(user);
+    const limit = Math.min(100, Math.max(1, options.limit ?? 30));
+
+    const platformUserId = user.platform?.id ?? null;
+    const reader = platformUserId
+      ? await this.prisma.platformUser.findUnique({
+          where: { id: platformUserId },
+          select: { notificationsReadAt: true },
+        })
+      : null;
+    const readAt = reader?.notificationsReadAt ?? null;
+
+    /*
+     * A bounded window rather than the whole table. Ninety days is long enough
+     * that a failure cannot silently age out of view before anyone looks, and
+     * short enough that this stays one indexed range scan.
+     */
+    const since = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+    const rows = await this.prisma.platformEvent.findMany({
+      where: { occurredAt: { gte: since } },
+      orderBy: { occurredAt: 'desc' },
+      /*
+       * Over-fetch, then filter to the notifiable subset. Most events are not
+       * notifiable, so taking exactly `limit` rows would routinely return a
+       * near-empty feed while unread failures sat just past the cut.
+       */
+      take: limit * 20,
+      select: {
+        id: true,
+        eventCode: true,
+        result: true,
+        occurredAt: true,
+        entityType: true,
+        entityId: true,
+        tenantId: true,
+        customerAccountId: true,
+        metadata: true,
+      },
+    });
+
+    const items = rows
+      .filter((row) =>
+        isNotifiable({ eventCode: row.eventCode, result: String(row.result) }),
+      )
+      .map((row) => toNotification(row, readAt))
+      .filter((item): item is PlatformNotification => item !== null);
+
+    return {
+      /*
+       * The unread count is computed over everything in the window, not over
+       * the page — a badge that said "3" because the page held three would be
+       * lying about the thing the badge exists to state.
+       */
+      unreadCount: items.filter((item) => item.unread).length,
+      items: items.slice(0, limit),
+      readAt: readAt?.toISOString() ?? null,
+    };
+  }
+
+  /** Mark the feed read, as of now. */
+  async markNotificationsRead(user: AuthenticatedUser) {
+    this.assertRead(user);
+    const platformUserId = user.platform?.id;
+    if (!platformUserId) return { readAt: null };
+    const updated = await this.prisma.platformUser.update({
+      where: { id: platformUserId },
+      data: { notificationsReadAt: new Date() },
+      select: { notificationsReadAt: true },
+    });
+    return { readAt: updated.notificationsReadAt?.toISOString() ?? null };
   }
 
   async list(

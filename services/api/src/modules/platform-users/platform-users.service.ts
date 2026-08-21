@@ -327,9 +327,25 @@ export class PlatformUsersService {
     this.assertPlatformUser(actor);
     const user = await this.prisma.platformUser.findUniqueOrThrow({
       where: { id: actor.platform!.id },
-      select: { defaultDashboardView: true },
+      select: {
+        defaultDashboardView: true,
+        uiTheme: true,
+        uiDensity: true,
+        defaultLandingRoute: true,
+      },
     });
-    return { defaultDashboardView: user.defaultDashboardView ?? 'ADMIN' };
+    /*
+     * Nulls are resolved to the platform default on read rather than written on
+     * create. Storing today's default would freeze every existing operator on
+     * it the day the default changes, which is the difference between "has not
+     * chosen" and "chose this".
+     */
+    return {
+      defaultDashboardView: user.defaultDashboardView ?? 'ADMIN',
+      uiTheme: user.uiTheme ?? 'SYSTEM',
+      uiDensity: user.uiDensity ?? 'COMFORTABLE',
+      defaultLandingRoute: user.defaultLandingRoute ?? '/',
+    };
   }
 
   async updatePreferences(
@@ -337,12 +353,26 @@ export class PlatformUsersService {
     dto: UpdatePlatformPreferencesDto,
   ) {
     this.assertPlatformUser(actor);
-    const updated = await this.prisma.platformUser.update({
+    /*
+     * Only what the caller sent. Spreading the whole DTO would write undefined
+     * over the preferences a different screen owns — the theme form does not
+     * know about the dashboard view and must not clear it.
+     */
+    await this.prisma.platformUser.update({
       where: { id: actor.platform!.id },
-      data: { defaultDashboardView: dto.defaultDashboardView },
-      select: { defaultDashboardView: true },
+      data: {
+        ...(dto.defaultDashboardView !== undefined
+          ? { defaultDashboardView: dto.defaultDashboardView }
+          : {}),
+        ...(dto.uiTheme !== undefined ? { uiTheme: dto.uiTheme } : {}),
+        ...(dto.uiDensity !== undefined ? { uiDensity: dto.uiDensity } : {}),
+        ...(dto.defaultLandingRoute !== undefined
+          ? { defaultLandingRoute: dto.defaultLandingRoute }
+          : {}),
+      },
+      select: { id: true },
     });
-    return updated;
+    return this.getPreferences(actor);
   }
 
   async getModulePreference(actor: AuthenticatedUser, moduleKey: string) {

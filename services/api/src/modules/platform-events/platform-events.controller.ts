@@ -1,4 +1,4 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
@@ -20,5 +20,25 @@ export class PlatformEventsController {
   @Get('overview')
   overview(@CurrentUser() user: AuthenticatedUser) {
     return this.events.overview(user);
+  }
+
+  /**
+   * The operator's notification feed: the subset of platform events that need
+   * attention, with an unread count derived from when they last opened it.
+   */
+  @Get('notifications')
+  notifications(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query('limit') limit?: string,
+  ) {
+    const parsed = Number.parseInt(limit ?? '', 10);
+    return this.events.notifications(user, {
+      limit: Number.isFinite(parsed) ? parsed : undefined,
+    });
+  }
+
+  @Post('notifications/read')
+  markNotificationsRead(@CurrentUser() user: AuthenticatedUser) {
+    return this.events.markNotificationsRead(user);
   }
 }

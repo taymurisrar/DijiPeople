@@ -73,3 +73,48 @@ body {
 .admin-theme ::selection {
   background: color-mix(in srgb, var(--admin-accent) 30%, white);
 }
+
+/* ---------------------------------------------------------------------------
+ * Console preferences.
+ *
+ * `applyConsolePreferences` writes these onto <html> as data attributes. They
+ * are attributes rather than classes because a component that rewrites
+ * `className` cannot accidentally drop them, and because the absence of
+ * `data-admin-theme` is itself meaningful: it means "follow the system", which
+ * is a third state that a two-value class could not express.
+ *
+ * Density is a single custom property that the shared surfaces read, rather
+ * than a rule per component. One number to change, and no component can opt out
+ * of the setting by not knowing about it.
+ * ------------------------------------------------------------------------- */
+:root {
+  --admin-density-scale: 1;
+}
+
+html[data-admin-density="compact"] {
+  --admin-density-scale: 0.82;
+}
+
+html[data-admin-density="compact"] .admin-theme table :is(td, th) {
+  padding-top: calc(0.75rem * var(--admin-density-scale));
+  padding-bottom: calc(0.75rem * var(--admin-density-scale));
+}
+
+html[data-admin-density="compact"] .admin-theme section {
+  --admin-section-padding: calc(1rem * var(--admin-density-scale));
+}
+
+/*
+ * Dark is opt-in only. `data-admin-theme` absent means the system decides, so
+ * the media query below applies; `light` pins light even on a dark machine,
+ * which is the whole reason an explicit Light option exists.
+ */
+html[data-admin-theme="dark"] {
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  html:not([data-admin-theme="light"]) {
+    color-scheme: dark;
+  }
+}
