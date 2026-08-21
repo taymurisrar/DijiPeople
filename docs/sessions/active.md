@@ -12,7 +12,6 @@ therefore sees sibling worktrees without anybody having pushed.
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
-| [SESSION-0030](../../docs/sessions/SESSION-0030-platform-admin-record-header-status-group-and-default-comman.md) | — | Platform Admin record header status group and default command bar | ACTIVE | `agent/admin-record-status-header` | `develop` | runtime-registries | 2026-08-21T13:54:09.827Z |
 | [SESSION-0023](../../docs/sessions/SESSION-0023-first-production-release.md) | — | First production release | ACTIVE | `agent/first-production-release` | `main` | — | 2026-08-20T16:21:59.286Z |
 | [SESSION-0022](../../docs/sessions/SESSION-0022-go-live-readiness.md) | TASK-0010 | Go-live readiness | ACTIVE | `agent/go-live-readiness` | `develop` | — | 2026-08-20T11:10:18.564Z |
 | [SESSION-0019](../../docs/sessions/SESSION-0019-ci-browser-install-latency-and-database-e2e-fixture-contract.md) | — | CI browser install latency and database e2e fixture contract | ACTIVE | `agent/ci-e2e-remediation` | `develop` | — | 2026-08-19T20:24:28.476Z |
