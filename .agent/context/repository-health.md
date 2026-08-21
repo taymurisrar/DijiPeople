@@ -1,7 +1,7 @@
 # Repository Health — sync state, protected-branch recovery and deployment drift
 
-> **Last verified:** 2026-08-19
-> **Verified against commit:** 494c44d
+> **Last verified:** 2026-08-21
+> **Verified against commit:** fefb132
 > **Key source files:** scripts/repo-health.mjs, scripts/finalize-agent-task.mjs, .agent/agents/release-devops.md, .agent/agents/integrator.md, docs/development/branch-protection.md, docs/development/git-worktrees.md, .github/workflows/ci.yml
 >
 > This document describes the repository, it is not authority over it. If the
@@ -115,6 +115,31 @@ node scripts/repo-health.mjs --task-branch agent/<x> \
 Without `--primary-baseline`, files that predate the task cannot be
 distinguished from files it created, and the report says so rather than
 assuming the flattering reading.
+
+### When another session dirties the primary checkout mid-task
+
+Several Architect chats run at once, so a path can appear in the primary
+checkout *during* a task without belonging to it. The baseline cannot express
+that — it asserts a path predated the task — so such a path used to land in
+`UNEXPLAINED`, which blocks completion, and the only escape was to baseline it
+and quietly claim it had been there all along.
+
+```bash
+node scripts/repo-health.mjs --task-branch agent/<x> \
+  --primary-baseline "<paths already dirty at pre-task>" \
+  --primary-attributed "SESSION-0025:services/api/package.json"
+```
+
+The two flags say different things and must not be collapsed. The baseline says
+*this predated me*; attribution says *this is not mine, and here is who owns it*.
+
+**The named owner must be an `ACTIVE` session.** Naming one that is not leaves
+the path `UNEXPLAINED`, which is the right answer when nobody is around to claim
+it — otherwise attribution would become a way to launder any file at all.
+
+Attributed paths are reported and **never touched**. Another session's
+uncommitted work in the user's checkout is not this task's to clean, stash or
+revert.
 
 ### Session records must not be stranded in the primary checkout
 

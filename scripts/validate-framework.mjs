@@ -5781,6 +5781,108 @@ if (trackedFiles) {
   );
 }
 
+{
+  /*
+   * 63 — a concurrent session dirties the primary checkout mid-task.
+   *
+   * The model used to assume only the running task changes the primary
+   * worktree, so a path another session touched had nowhere to land but
+   * UNEXPLAINED — which blocks completion. The only escape was to list it in
+   * --primary-baseline, asserting it predated the task when it did not.
+   *
+   * TASK-0012 hit this for real: SESSION-0025 edited services/api/package.json
+   * in the primary checkout while this program was running.
+   *
+   * Both directions are asserted, because attribution is only safe if it cannot
+   * be used to wave through a file nobody owns.
+   */
+  const sandbox = mkdtempSync(join(tmpdir(), 'dijipeople-attribution-'));
+  const origin = join(sandbox, 'origin.git');
+  const work = join(sandbox, 'work');
+
+  const git = (args, cwd) =>
+    execFileSync('git', args, { cwd, stdio: 'pipe', encoding: 'utf8' }).trim();
+
+  let ready = true;
+  try {
+    mkdirSync(work, { recursive: true });
+    git(['init', '--bare', '--initial-branch=main', origin], sandbox);
+    git(['init', '--initial-branch=main', '.'], work);
+    git(['config', 'user.email', 'probe@example.com'], work);
+    git(['config', 'user.name', 'probe'], work);
+    git(['remote', 'add', 'origin', origin], work);
+
+    mkdirSync(join(work, 'docs/sessions'), { recursive: true });
+    mkdirSync(join(work, 'services/api'), { recursive: true });
+    writeFileSync(join(work, 'services/api/package.json'), '{"name":"api"}\n');
+    writeFileSync(
+      join(work, 'docs/sessions/SESSION-0025-probe.md'),
+      ['---', 'SESSION_ID: SESSION-0025', 'STATUS: ACTIVE', '---', '', '# probe', ''].join('\n'),
+    );
+    git(['add', '.'], work);
+    git(['commit', '-m', 'base'], work);
+    git(['push', '-q', 'origin', 'main'], work);
+    git(['branch', 'develop'], work);
+    git(['push', '-q', 'origin', 'develop'], work);
+    git(['fetch', '-q', 'origin'], work);
+
+    /* The concurrent session's edit: present, uncommitted, and not this task's. */
+    writeFileSync(join(work, 'services/api/package.json'), '{"name":"api","heap":1536}\n');
+  } catch (error) {
+    ready = false;
+    warn('attribution simulation could not initialise — ' + String(error.message).split('\n')[0]);
+  }
+
+  if (ready) {
+    const health = (args) => {
+      const result = runScript('scripts/repo-health.mjs', ['--root', work, '--json', ...args]);
+      try {
+        return JSON.parse(result.output);
+      } catch {
+        return null;
+      }
+    };
+
+    const unattributed = health([]);
+    check(
+      'simulation 63: an unowned change in the primary checkout is UNEXPLAINED',
+      unattributed?.PRIMARY_WORKTREE_STATUS === 'DIRTY_UNEXPLAINED',
+      'got ' + JSON.stringify(unattributed?.PRIMARY_WORKTREE_STATUS),
+    );
+
+    const attributed = health(['--primary-attributed', 'SESSION-0025:services/api/package.json']);
+    check(
+      'simulation 63b: attributing it to an ACTIVE session resolves it without touching the file',
+      attributed?.PRIMARY_WORKTREE_STATUS === 'DIRTY_OTHER_SESSION_OWNED' &&
+        (attributed?.unexplainedDirtyFiles?.length ?? 1) === 0,
+      'got ' +
+        JSON.stringify(attributed?.PRIMARY_WORKTREE_STATUS) +
+        ' with ' +
+        JSON.stringify(attributed?.unexplainedDirtyFiles),
+    );
+
+    /*
+     * 63c — the guard. Naming a session that is not active must NOT resolve the
+     * path, or attribution becomes a way to launder any file at all.
+     */
+    const bogus = health(['--primary-attributed', 'SESSION-9999:services/api/package.json']);
+    check(
+      'simulation 63c: attributing to a session that is not ACTIVE leaves it UNEXPLAINED',
+      bogus?.PRIMARY_WORKTREE_STATUS === 'DIRTY_UNEXPLAINED',
+      'got ' + JSON.stringify(bogus?.PRIMARY_WORKTREE_STATUS),
+    );
+
+    /* The file is reported, never modified — that is the whole point. */
+    check(
+      'simulation 63d: the attributed file is left exactly as the other session left it',
+      readFileSync(join(work, 'services/api/package.json'), 'utf8').includes('1536'),
+      'repo-health reports; it never writes',
+    );
+  }
+
+  rmSync(sandbox, { recursive: true, force: true });
+}
+
 // ------------------------------------------------------------------- reporting
 
 if (warnings.length) {
