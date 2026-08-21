@@ -7,17 +7,33 @@ import {
 const NOW = new Date('2026-08-18T12:00:00.000Z').getTime();
 const minutes = (n: number) => new Date(NOW + n * 60_000);
 
-function run(overrides: Partial<ProvisioningStateInput> = {}) {
-  const base: ProvisioningStateInput = {
+/**
+ * A run, with only the fields a case cares about spelled out.
+ *
+ * Step timestamps default to "a minute ago" so a test about step *statuses*
+ * does not have to restate them. Cases about staleness pass them explicitly,
+ * which is what makes those cases readable: the timestamp is the subject.
+ */
+function run(
+  overrides: Partial<Omit<ProvisioningStateInput, 'steps'>> & {
+    steps?: Array<{ status: string; updatedAt?: Date }>;
+  } = {},
+): ProvisioningStateInput {
+  const { steps, ...rest } = overrides;
+  return {
     status: TenantProvisioningRunStatus.RUNNING,
     startedAt: minutes(-10),
     completedAt: null,
     targetReadyBy: null,
     escalateAt: null,
     breachedAt: null,
-    steps: [{ status: 'RUNNING' }],
+    updatedAt: minutes(-10),
+    ...rest,
+    steps: (steps ?? [{ status: 'RUNNING' }]).map((step) => ({
+      status: step.status,
+      updatedAt: step.updatedAt ?? minutes(-1),
+    })),
   };
-  return { ...base, ...overrides };
 }
 
 describe('provisioning operational state', () => {
@@ -196,15 +212,39 @@ describe('provisioning operational state', () => {
       }
     });
 
-    it('tolerates a run whose steps carry no timestamps', () => {
-      // Older rows predate the columns being read here. Falling back to the run
-      // start keeps them classifiable rather than throwing on a null.
+    it('classifies a run that recorded no steps at all', () => {
+      /*
+       * A run created and then abandoned before writing a single step. It has
+       * nothing but its own timestamps, and it is the most stuck a run can be.
+       */
       expect(
         deriveProvisioningState(
-          run({ startedAt: minutes(-90), steps: [{ status: 'RUNNING' }] }),
+          run({
+            startedAt: minutes(-90),
+            updatedAt: minutes(-90),
+            steps: [],
+          }),
           NOW,
         ),
       ).toBe('STALLED');
+    });
+
+    it('reads the run row own timestamp when its steps are older', () => {
+      /*
+       * The max across the run and every step, not the step list alone. A run
+       * whose row was touched recently is being worked on even if its oldest
+       * step has not moved.
+       */
+      expect(
+        deriveProvisioningState(
+          run({
+            startedAt: minutes(-90),
+            updatedAt: minutes(-2),
+            steps: [{ status: 'RUNNING', updatedAt: minutes(-80) }],
+          }),
+          NOW,
+        ),
+      ).toBe('IN_PROGRESS');
     });
   });
 });

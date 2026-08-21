@@ -78,9 +78,21 @@ export type ProvisioningStateInput = {
   targetReadyBy: Date | null;
   escalateAt: Date | null;
   breachedAt: Date | null;
-  /** Last time the run row itself changed. Optional so older callers still compile. */
-  updatedAt?: Date | null;
-  steps: Array<{ status: string; updatedAt?: Date | null }>;
+  /**
+   * Last time the run row changed, and the same for each step.
+   *
+   * **Required, deliberately.** These were optional, and the staleness check
+   * fell back to `startedAt` when they were absent — so a caller whose Prisma
+   * `select` omitted them classified every long-running run as STALLED. The
+   * provisioning queue did exactly that, and its DB-backed test caught it:
+   * absence of activity data was being read as evidence of *no activity*, which
+   * is the fail-dangerous direction.
+   *
+   * Requiring them turns that silent misclassification into a compile error at
+   * every call site.
+   */
+  updatedAt: Date;
+  steps: Array<{ status: string; updatedAt: Date }>;
 };
 
 /**
@@ -117,8 +129,8 @@ export function deriveProvisioningState(
    */
   const lastActivity = Math.max(
     run.startedAt.getTime(),
-    run.updatedAt?.getTime() ?? 0,
-    ...run.steps.map((step) => step.updatedAt?.getTime() ?? 0),
+    run.updatedAt.getTime(),
+    ...run.steps.map((step) => step.updatedAt.getTime()),
   );
   if (now - lastActivity >= PROVISIONING_STALL_AFTER_MS) {
     return 'STALLED';
@@ -214,6 +226,9 @@ export class ProvisioningOperationsService {
         targetReadyBy: true,
         escalateAt: true,
         breachedAt: true,
+        // Required by `deriveProvisioningState`. Omitting it read every
+        // long-running run as abandoned.
+        updatedAt: true,
         subscriptionOrderId: true,
         // The customer recorded on the run itself is what paid for *this* run.
         // The tenant's current customer is only a fallback: if a workspace is
@@ -235,6 +250,9 @@ export class ProvisioningOperationsService {
             status: true,
             message: true,
             sequence: true,
+            // A step recording progress is what distinguishes a slow run from
+            // an abandoned one.
+            updatedAt: true,
           },
         },
       },
