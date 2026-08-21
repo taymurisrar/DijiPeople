@@ -149,11 +149,28 @@ export function ContractDocumentEditor({
   onChange,
   readOnly = false,
   placeholders,
+  previewHtml,
 }: {
   value: string;
   onChange: (html: string) => void;
   readOnly?: boolean;
   placeholders?: Array<string | PlaceholderDefinition>;
+  /**
+   * Rendered instead of the editor's own content while set.
+   *
+   * The caller previously previewed sample data by passing the *substituted*
+   * HTML as `value`, which pushed resolved sample values into the editor
+   * document itself — one stray update away from saving "Gulf Horizon" into the
+   * template in place of `{{customer.companyName}}`. It also rendered from
+   * `editor.getHTML()` read during render, so the first paint after the toggle
+   * showed the previous content and only corrected on the next unrelated
+   * re-render. That is the flicker.
+   *
+   * Passing the preview as its own string keeps the editor holding the real
+   * template at all times, and makes the preview a pure function of what is
+   * shown.
+   */
+  previewHtml?: string;
 }) {
   const [preview, setPreview] = useState(readOnly);
   /*
@@ -916,10 +933,18 @@ export function ContractDocumentEditor({
         scrolls to.
       */}
       <div
-        className={`flex flex-col-reverse gap-4 px-2 xl:grid xl:items-start ${
+        /*
+          The sheet keeps a fixed track and the rail takes the rest, rather than
+          the other way round. With `minmax(0,1fr)` for the sheet the rail's
+          20rem came out of the document, which is what left an 816px page
+          rendering at ~650px. `minmax(0,54rem)` is the sheet's own width plus
+          its margins, so the document is never squeezed and any leftover space
+          goes to the rail instead.
+        */
+        className={`flex flex-col-reverse gap-4 px-2 lg:grid lg:items-start ${
           railOpen && !readOnly
-            ? "xl:grid-cols-[minmax(0,1fr)_20rem]"
-            : "xl:grid-cols-1"
+            ? "lg:grid-cols-[minmax(0,54rem)_minmax(17rem,1fr)]"
+            : "lg:grid-cols-1"
         }`}
       >
         <div className="min-w-0">
@@ -927,7 +952,9 @@ export function ContractDocumentEditor({
             {preview || readOnly ? (
               <article
                 className="contract-editor-content px-5 py-7 text-[15px] leading-7 text-slate-800 sm:px-12 sm:py-10"
-                dangerouslySetInnerHTML={{ __html: editor.getHTML() }}
+                dangerouslySetInnerHTML={{
+                  __html: previewHtml ?? editor.getHTML(),
+                }}
               />
             ) : (
               <EditorContent editor={editor} />
@@ -947,7 +974,7 @@ export function ContractDocumentEditor({
              * unbounded rail would run past the fold and take the insert
              * controls with it.
              */
-            className="mt-3 max-h-[calc(100vh-8rem)] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-3 shadow-sm xl:sticky xl:top-24 xl:mt-6"
+            className="mt-3 max-h-[calc(100vh-7rem)] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-3 shadow-sm lg:sticky lg:top-20 lg:mt-6"
           >
             <div className="flex items-start justify-between gap-2">
               <div>

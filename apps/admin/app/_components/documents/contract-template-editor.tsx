@@ -95,21 +95,32 @@ export function ContractTemplateEditor({
   const [dirty, setDirty] = useState(!templateId);
   const [loadError, setLoadError] = useState("");
   const [samplePreview, setSamplePreview] = useState(false);
-  const [editingHtmlBeforePreview, setEditingHtmlBeforePreview] = useState<
-    string | null
-  >(null);
   const [placeholderExamples, setPlaceholderExamples] = useState<
     Record<string, string>
   >({});
+  /**
+   * The document as it would read with sample data in it.
+   *
+   * Derived, never stored, and **never fed back into the editor**. The previous
+   * version swapped the editor's content for this string and kept the original
+   * in a second piece of state to restore afterwards — so the template survived
+   * only as long as that restore ran, and a save while previewing wrote sample
+   * values into the template. The state it needed to be correct is gone rather
+   * than better managed.
+   *
+   * Substitution uses `exampleHtml` from the API, which is produced by
+   * `renderContractPlaceholders` — the function that renders the real document.
+   * Substituting `exampleValue` as raw text is what printed
+   * `["Employees","Attendance","Payroll"]` and a bare `99.5` in a preview whose
+   * whole purpose is to show what the signed document will say.
+   */
   const previewHtml = useMemo(
     () =>
-      samplePreview
-        ? html.replace(
-            /\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/g,
-            (token, key: string) => placeholderExamples[key] || token,
-          )
-        : html,
-    [html, placeholderExamples, samplePreview],
+      html.replace(
+        /\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/g,
+        (token, key: string) => placeholderExamples[key] || token,
+      ),
+    [html, placeholderExamples],
   );
 
   const load = useCallback(async () => {
@@ -194,14 +205,25 @@ export function ContractTemplateEditor({
       .then(
         (
           payload: {
-            items?: Array<{ key: string; exampleValue?: string }>;
+            items?: Array<{
+              key: string;
+              exampleValue?: string;
+              exampleHtml?: string;
+            }>;
           } | null,
         ) =>
           setPlaceholderExamples(
             Object.fromEntries(
               (payload?.items ?? []).map((item) => [
                 item.key,
-                item.exampleValue ?? "",
+                /*
+                 * `exampleHtml` is the example run through the document
+                 * renderer: collections become a list or a table, percentages
+                 * carry their sign, dates read as prose. Falling back to the
+                 * raw value keeps the preview working against an API that
+                 * predates the field rather than blanking every placeholder.
+                 */
+                item.exampleHtml ?? item.exampleValue ?? "",
               ]),
             ),
           ),
@@ -282,15 +304,12 @@ export function ContractTemplateEditor({
     setDirty(true);
   }
 
+  /*
+   * One boolean. Nothing to save, nothing to restore, nothing to lose if the
+   * page is closed mid-preview.
+   */
   function toggleSamplePreview() {
-    if (!samplePreview) {
-      setEditingHtmlBeforePreview(html);
-      setSamplePreview(true);
-      return;
-    }
-    if (editingHtmlBeforePreview !== null) setHtml(editingHtmlBeforePreview);
-    setEditingHtmlBeforePreview(null);
-    setSamplePreview(false);
+    setSamplePreview((current) => !current);
   }
 
   return (
@@ -398,7 +417,16 @@ export function ContractTemplateEditor({
         </p>
       </section>
 
-      <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_280px]">
+      {/*
+        Settings and version history share a row; the document gets the page.
+
+        This used to be one grid with the editor in a `minmax(0,1fr)` column and
+        Version history in a permanent 280px one — and the editor then opened
+        its own 20rem fields rail inside that. Two right-hand columns over an
+        816px sheet left the document about 650px wide on a 1900px screen: the
+        one thing on this page that needs the space had the least of it.
+      */}
+      <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_300px]">
         <div className="space-y-4">
           <div className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 md:grid-cols-2">
             {!templateId ? (
@@ -473,29 +501,6 @@ export function ContractTemplateEditor({
               />
             ) : null}
           </div>
-          <div className="flex justify-end">
-            <button
-              type="button"
-              aria-pressed={samplePreview}
-              onClick={toggleSamplePreview}
-              className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700"
-            >
-              {samplePreview ? "Return to editing" : "Preview sample data"}
-            </button>
-          </div>
-          <ContractDocumentEditor
-            value={previewHtml}
-            onChange={(value) => update(setHtml, value)}
-            readOnly={samplePreview}
-          />
-          <label className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white p-4 text-sm font-semibold text-slate-700">
-            <input
-              type="checkbox"
-              checked={publish}
-              onChange={(event) => update(setPublish, event.target.checked)}
-            />
-            Publish this version
-          </label>
         </div>
 
         <aside className="h-fit rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -520,8 +525,9 @@ export function ContractTemplateEditor({
                   setRequiredSignerRoles(signerRolesForVersion(version));
                   setPublish(version.isPublished);
                   setSummary(`Restored from version ${version.version}`);
+                  // Restoring a version puts you back in the editor: what you
+                  // are looking at is now a draft, not a sample rendering.
                   setSamplePreview(false);
-                  setEditingHtmlBeforePreview(null);
                   setDirty(true);
                 }}
                 className="w-full rounded-xl border border-slate-200 p-3 text-left hover:bg-slate-50"
@@ -550,6 +556,41 @@ export function ContractTemplateEditor({
             ) : null}
           </div>
         </aside>
+      </section>
+
+      <section className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-semibold text-slate-950">Document</h2>
+            <p className="mt-0.5 text-xs text-slate-500">
+              {samplePreview
+                ? "Showing sample values. The template is unchanged and cannot be edited while this is on."
+                : "Placeholders are inserted from the fields panel and resolved when an agreement is generated."}
+            </p>
+          </div>
+          <button
+            aria-pressed={samplePreview}
+            className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 aria-pressed:border-slate-900 aria-pressed:bg-slate-900 aria-pressed:text-white"
+            onClick={toggleSamplePreview}
+            type="button"
+          >
+            {samplePreview ? "Return to editing" : "Preview sample data"}
+          </button>
+        </div>
+        <ContractDocumentEditor
+          onChange={(value) => update(setHtml, value)}
+          previewHtml={samplePreview ? previewHtml : undefined}
+          readOnly={samplePreview}
+          value={html}
+        />
+        <label className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white p-4 text-sm font-semibold text-slate-700">
+          <input
+            checked={publish}
+            onChange={(event) => update(setPublish, event.target.checked)}
+            type="checkbox"
+          />
+          Publish this version
+        </label>
       </section>
     </main>
   );
