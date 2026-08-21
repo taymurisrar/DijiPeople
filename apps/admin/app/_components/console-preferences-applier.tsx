@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import {
   applyConsolePreferences,
+  watchSystemScheme,
   type ConsolePreferences,
 } from "@/lib/console-preferences";
 
@@ -26,6 +27,13 @@ export function ConsolePreferencesApplier({
 }) {
   useEffect(() => {
     applyConsolePreferences(preferences);
+    /*
+     * And keep following the machine while the preference is SYSTEM. Resolving
+     * once at mount means a laptop that switches to dark at sunset leaves the
+     * console light until the next reload — the setting would be right and the
+     * screen wrong, which is the failure this whole applier exists to stop.
+     */
+    return watchSystemScheme(() => preferences.uiTheme);
   }, [preferences]);
 
   return null;

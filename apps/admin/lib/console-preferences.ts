@@ -69,4 +69,55 @@ export function applyConsolePreferences(preferences: ConsolePreferences) {
   }
 
   root.dataset.adminDensity = preferences.uiDensity.toLowerCase();
+  applyResolvedScheme(preferences.uiTheme);
+}
+
+/**
+ * The scheme actually in force, written as its own attribute.
+ *
+ * `data-admin-theme` is a *preference* with three values, one of which defers
+ * to the machine. That is right for storage and wrong for styling: every dark
+ * rule would have to be written twice — once under `[data-admin-theme="dark"]`
+ * and once inside a media query guarded by `:not([data-admin-theme="light"])`
+ * — and a pair of rules kept in step by hand across a stylesheet is a pair of
+ * rules that drifts.
+ *
+ * Resolving here means the stylesheet has one selector to key on. The
+ * preference attribute is deliberately left in place: it is what the settings
+ * form reads back, and it is what a no-JavaScript render still exposes.
+ */
+export function applyResolvedScheme(theme: ConsoleTheme) {
+  if (typeof document === "undefined") return;
+  const root = document.documentElement;
+  const prefersDark =
+    typeof window !== "undefined" &&
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-color-scheme: dark)").matches;
+  root.dataset.adminScheme = resolveScheme(theme, prefersDark);
+}
+
+/** Pure, so the three-state resolution can be asserted without a browser. */
+export function resolveScheme(
+  theme: ConsoleTheme,
+  prefersDark: boolean,
+): "light" | "dark" {
+  if (theme === "DARK") return "dark";
+  if (theme === "LIGHT") return "light";
+  return prefersDark ? "dark" : "light";
+}
+
+/**
+ * Follow the machine while the preference is SYSTEM.
+ *
+ * Without this, choosing SYSTEM resolves once at load and then lies for the
+ * rest of the session — a laptop that switches to dark at sunset leaves the
+ * console light until the next reload. Returns its own unsubscribe.
+ */
+export function watchSystemScheme(getTheme: () => ConsoleTheme) {
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function")
+    return () => {};
+  const query = window.matchMedia("(prefers-color-scheme: dark)");
+  const onChange = () => applyResolvedScheme(getTheme());
+  query.addEventListener("change", onChange);
+  return () => query.removeEventListener("change", onChange);
 }
