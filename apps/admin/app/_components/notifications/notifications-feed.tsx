@@ -2,37 +2,16 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import { BellOff, CheckCheck, LoaderCircle, RefreshCw } from "lucide-react";
+
 import {
-  AlertTriangle,
-  BellOff,
-  CheckCheck,
-  Info,
-  LoaderCircle,
-  RefreshCw,
-  TriangleAlert,
-} from "lucide-react";
-import type { LucideIcon } from "lucide-react";
-
-type Severity = "CRITICAL" | "WARNING" | "INFO";
-
-type Notification = {
-  id: string;
-  severity: Severity;
-  title: string;
-  detail: string;
-  action: string | null;
-  occurredAt: string;
-  eventCode: string;
-  entityType: string | null;
-  href: string | null;
-  unread: boolean;
-};
-
-type Feed = {
-  items: Notification[];
-  unreadCount: number;
-  readAt: string | null;
-};
+  formatWhen,
+  NOTIFICATIONS_ENDPOINT,
+  NOTIFICATIONS_READ_ENDPOINT,
+  NOTIFICATIONS_READ_EVENT,
+  SEVERITY,
+  type Feed,
+} from "./notification-model";
 
 /**
  * What has happened on this platform that somebody should look at.
@@ -56,12 +35,9 @@ export function NotificationsFeed() {
 
   const load = useCallback(async (signal?: AbortSignal) => {
     try {
-      const response = await fetch(
-        "/api/platform/events/notifications?limit=50",
-        {
-          signal,
-        },
-      );
+      const response = await fetch(`${NOTIFICATIONS_ENDPOINT}?limit=50`, {
+        signal,
+      });
       const payload = await response.json().catch(() => null);
       if (!response.ok) {
         throw new Error(payload?.message ?? "Unable to load notifications.");
@@ -83,22 +59,32 @@ export function NotificationsFeed() {
   useEffect(() => {
     const controller = new AbortController();
     void load(controller.signal);
-    return () => controller.abort();
+
+    /*
+     * The bell can clear the unread mark too. Without this the page keeps
+     * showing rows badged "Unread" that the server no longer considers unread
+     * — one state, two components, and the one you are looking at is wrong.
+     */
+    const onRead = () => void load();
+    window.addEventListener(NOTIFICATIONS_READ_EVENT, onRead);
+
+    return () => {
+      controller.abort();
+      window.removeEventListener(NOTIFICATIONS_READ_EVENT, onRead);
+    };
   }, [load]);
 
   async function markAllRead() {
     setMarking(true);
     try {
-      await fetch("/api/platform/events/notifications/read", {
-        method: "POST",
-      });
+      await fetch(NOTIFICATIONS_READ_ENDPOINT, { method: "POST" });
       await load();
       /*
        * The badge is read from the same endpoint, so it has to be told the
        * count changed — otherwise the dot survives until the next full page
        * load, which is exactly the "dot that means nothing" this replaces.
        */
-      window.dispatchEvent(new CustomEvent("dijipeople:notifications-read"));
+      window.dispatchEvent(new CustomEvent(NOTIFICATIONS_READ_EVENT));
     } finally {
       setMarking(false);
     }
@@ -245,32 +231,4 @@ export function NotificationsFeed() {
       )}
     </section>
   );
-}
-
-const SEVERITY: Record<
-  Severity,
-  { label: string; icon: LucideIcon; pill: string }
-> = {
-  CRITICAL: {
-    label: "Critical",
-    icon: AlertTriangle,
-    pill: "bg-rose-100 text-rose-800",
-  },
-  WARNING: {
-    label: "Warning",
-    icon: TriangleAlert,
-    pill: "bg-amber-100 text-amber-900",
-  },
-  INFO: { label: "Info", icon: Info, pill: "bg-slate-100 text-slate-700" },
-};
-
-function formatWhen(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  const minutes = Math.round((Date.now() - date.getTime()) / 60000);
-  if (minutes < 1) return "Just now";
-  if (minutes < 60) return `${minutes} minute${minutes === 1 ? "" : "s"} ago`;
-  const hours = Math.round(minutes / 60);
-  if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"} ago`;
-  return date.toLocaleString();
 }

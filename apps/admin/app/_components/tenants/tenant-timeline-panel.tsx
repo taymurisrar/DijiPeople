@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { Clock3 } from "lucide-react";
 import { formatDateTime } from "@/lib/formatters";
+import { describePage } from "@/lib/list-paging";
 import {
   PanelButton,
   PanelCard,
@@ -29,6 +30,20 @@ const FILTERS = [
 ];
 
 /**
+ * Entries per page.
+ *
+ * The panel used to render every row the endpoint returned — 154 on a tenant a
+ * few weeks old, and it only grows. An unbounded list has no bottom, so
+ * "Modules" and "Provisioning" sat below a scroll nobody reached, and there was
+ * no number anywhere saying how much history there even was.
+ *
+ * Twenty-five is a screenful and a half at this row height: enough that most
+ * questions are answered without paging, few enough that the panel below the
+ * timeline stays reachable.
+ */
+const PAGE_SIZE = 25;
+
+/**
  * Timeline — readable operational history, not the compliance audit log.
  *
  * Each entry is a sentence about something that happened to this tenant. The
@@ -41,6 +56,7 @@ export function TenantTimelinePanel({ tenantId }: { tenantId: string }) {
     items: TenantTimelineItem[];
   }>(tenantId, "/timeline");
   const [filter, setFilter] = useState("ALL");
+  const [page, setPage] = useState(1);
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [noteError, setNoteError] = useState<string | null>(null);
@@ -59,6 +75,17 @@ export function TenantTimelinePanel({ tenantId }: { tenantId: string }) {
     }
     return map;
   }, [data]);
+
+  const total = items.length;
+  /*
+   * `describePage` clamps rather than correcting state. Filtering to a category
+   * with two entries while on page 4, or reloading after entries were removed,
+   * would otherwise leave the panel showing an empty slice of a list that
+   * plainly has rows in it — and fixing it from an effect means one render where
+   * exactly that is on screen.
+   */
+  const pageWindow = describePage(total, page, PAGE_SIZE);
+  const pageItems = items.slice(pageWindow.start, pageWindow.end);
 
   async function addNote() {
     if (!note.trim()) return;
@@ -99,9 +126,7 @@ export function TenantTimelinePanel({ tenantId }: { tenantId: string }) {
     <PanelCard
       title="Timeline"
       description="What has happened to this tenant, newest first."
-      actions={
-        <PanelButton onClick={reload}>Refresh</PanelButton>
-      }
+      actions={<PanelButton onClick={reload}>Refresh</PanelButton>}
     >
       <div className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:flex-row">
         <input
@@ -142,7 +167,12 @@ export function TenantTimelinePanel({ tenantId }: { tenantId: string }) {
               role="tab"
               type="button"
               aria-selected={filter === entry.key}
-              onClick={() => setFilter(entry.key)}
+              onClick={() => {
+                setFilter(entry.key);
+                // A new filter is a new list; keeping the page number would
+                // land on a page that means nothing in it.
+                setPage(1);
+              }}
               className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
                 filter === entry.key
                   ? "bg-slate-950 text-white"
@@ -161,32 +191,73 @@ export function TenantTimelinePanel({ tenantId }: { tenantId: string }) {
           <PanelLoading label="the tenant timeline" />
         ) : error && !data ? (
           <PanelError message={error} onRetry={reload} />
-        ) : items.length ? (
-          <ol className="divide-y divide-slate-100">
-            {items.map((item) => (
-              <li key={`${item.source}-${item.id}`} className="py-3">
-                <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <p className="text-sm font-medium text-slate-900">
-                    {item.actionLabel}
+        ) : total ? (
+          <>
+            {/*
+              How much history there is, and which part of it is on screen. The
+              category chips already carry per-category counts; what was missing
+              was the one number that says whether you are looking at all of it.
+            */}
+            <p
+              aria-live="polite"
+              className="mb-2 text-xs font-medium text-slate-500"
+            >
+              Showing {pageWindow.firstShown}–{pageWindow.lastShown} of {total}{" "}
+              {total === 1 ? "entry" : "entries"}
+              {filter === "ALL" ? "" : " in this category"}
+            </p>
+            <ol className="divide-y divide-slate-100">
+              {pageItems.map((item) => (
+                <li key={`${item.source}-${item.id}`} className="py-3">
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <p className="text-sm font-medium text-slate-900">
+                      {item.actionLabel}
+                    </p>
+                    <p
+                      className="text-xs text-slate-500"
+                      title={formatDateTime(item.occurredAt)}
+                    >
+                      {relativeTime(item.occurredAt)}
+                    </p>
+                  </div>
+                  {item.message ? (
+                    <p className="mt-1 text-sm text-slate-600">
+                      {item.message}
+                    </p>
+                  ) : null}
+                  <p className="mt-1 flex items-center gap-1.5 text-xs text-slate-500">
+                    <Clock3 className="h-3 w-3" aria-hidden />
+                    {item.actorName}
+                    {item.entityType ? ` · ${item.entityType}` : ""}
                   </p>
-                  <p
-                    className="text-xs text-slate-500"
-                    title={formatDateTime(item.occurredAt)}
-                  >
-                    {relativeTime(item.occurredAt)}
-                  </p>
-                </div>
-                {item.message ? (
-                  <p className="mt-1 text-sm text-slate-600">{item.message}</p>
-                ) : null}
-                <p className="mt-1 flex items-center gap-1.5 text-xs text-slate-500">
-                  <Clock3 className="h-3 w-3" aria-hidden />
-                  {item.actorName}
-                  {item.entityType ? ` · ${item.entityType}` : ""}
+                </li>
+              ))}
+            </ol>
+            {pageWindow.pageCount > 1 ? (
+              <nav
+                aria-label="Timeline pages"
+                className="mt-3 flex items-center justify-between gap-2 border-t border-slate-100 pt-3"
+              >
+                <p className="text-xs font-medium text-slate-600">
+                  Page {pageWindow.page} of {pageWindow.pageCount}
                 </p>
-              </li>
-            ))}
-          </ol>
+                <div className="flex gap-2">
+                  <PanelButton
+                    disabled={pageWindow.page <= 1}
+                    onClick={() => setPage(pageWindow.page - 1)}
+                  >
+                    Previous
+                  </PanelButton>
+                  <PanelButton
+                    disabled={pageWindow.page >= pageWindow.pageCount}
+                    onClick={() => setPage(pageWindow.page + 1)}
+                  >
+                    Next
+                  </PanelButton>
+                </div>
+              </nav>
+            ) : null}
+          </>
         ) : (
           <PanelEmptyState
             title={
