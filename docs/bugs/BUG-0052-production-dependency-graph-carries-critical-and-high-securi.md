@@ -202,6 +202,84 @@ A reachability claim about a package must name the **call sites**, not the file.
 This one named a file whose name described half of what it did. Recorded as the
 `reachability-asserted-from-file-purpose` variant of `assertion-without-a-check`.
 
+## Correction — 2026-08-21, SESSION-0028
+
+**The `active-win` row was wrong in the same way, one layer down.**
+
+The 2026-08-17 disposition said the chain beneath `active-win` "is install-time
+native-build tooling that **does not ship in the packaged app**", and the
+compensating-control paragraph rested on it: "six are behind the desktop agent's
+main process".
+
+The packaged build of 2026-08-20 was extracted and read. All of it ships, at
+exactly the advisory versions:
+
+```text
+active-win            8.2.1
+@mapbox/node-pre-gyp  1.0.11
+tar                   6.2.1     <- the critical
+cacache               16.1.3
+make-fetch-happen     10.2.1
+node-gyp              9.4.1
+```
+
+`electron-builder` includes production dependencies regardless of the `files`
+patterns, and npm installs `optionalDependencies` by default — so declaring them
+optional kept them out of nothing.
+
+Nor is it present-but-dormant. `active-win/lib/windows-binding.js` opens with
+`require('@mapbox/node-pre-gyp')`, and Windows is the only platform this agent
+targets, so node-pre-gyp loads in the Electron main process on every run, with
+`tar` beneath it.
+
+The one mitigation that does hold: every `tar` advisory is triggered by
+*extracting or parsing* an archive, and the runtime path only calls
+`binary.find()`, which computes a path. The vulnerable code ships, loads, and is
+never invoked.
+
+### What changed
+
+`apps/agent-desktop/electron-builder.yml` now excludes the build-only tooling.
+Verified by extracting both archives and diffing them:
+
+| package | severity | before | after |
+|---|---|---|---|
+| `node-gyp` | high | 9.4.1 | **absent** |
+| `cacache` | high | 16.1.3 | **absent** |
+| `make-fetch-happen` | high | 10.2.1 | **absent** |
+| `tar` | critical | 6.2.1 | 6.2.1 |
+| `@mapbox/node-pre-gyp` | high | 1.0.11 | 1.0.11 |
+
+`app.asar` fell from 7,946,269 to 5,719,668 bytes — 2.23 MB, 28%.
+
+The first exclusion list also removed `npmlog`, which *looks* like build tooling
+and arrives under `node-gyp`, but is a hard dependency of `node-pre-gyp@1`. A
+dependency-closure walk over the packaged archive caught it before it shipped:
+`require('@mapbox/node-pre-gyp')` would have thrown and the agent would never
+have found its addon. The list was corrected; the walk now reports all 54
+packages of the runtime closure present.
+
+### What that leaves
+
+`tar` and `@mapbox/node-pre-gyp` still ship, because node-pre-gyp is genuinely
+required at runtime and `tar` is its dependency.
+
+The forward fix is verified and **blocked, not unknown**:
+`@mapbox/node-pre-gyp@2.0.3` exports `find` — the only API `windows-binding.js`
+uses — depends on `tar@^7.4.0`, which resolves to `7.5.22` outside the advisory
+range, and drops `cacache`, `make-fetch-happen`, `node-gyp`, `npmlog` and
+`rimraf` entirely. Proven by installing it in isolation, not inferred.
+
+It cannot be applied here: npm `overrides` are silently ignored in this
+repository and the lockfile cannot be regenerated at all. See [[BUG-0163]].
+
+### The lesson, again
+
+The 2026-08-20 correction said a reachability claim must name call sites rather
+than a file. This is its packaging twin: **a claim about what ships must name
+the artifact, not the manifest.** `optionalDependencies` describes intent;
+`app.asar` describes what the customer receives, and only one of those is
+evidence.
 
 ## QA Retest
 

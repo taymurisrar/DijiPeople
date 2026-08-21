@@ -3,21 +3,23 @@ ID: ITEM-0048
 aliases: [ITEM-0048]
 Title: Replace or contain active-win and the xlsx export path
 Type: SECURITY
-Status: READY
+Status: BLOCKED
 Priority: P2
 Severity: HIGH
 AffectedModules: [apps/agent-desktop, services/api/src/common/excel, package-lock.json]
 Source: QA_RUN
 OwnerAgent: integration
-ArchitectDisposition: PLAN_REQUIRED
+ArchitectDisposition: BLOCKED_EXTERNAL
 CreatedAt: 2026-08-17
-UpdatedAt: 2026-08-17
+UpdatedAt: 2026-08-21
 RelatedBug: BUG-0052
 RelatedQA:
 RelatedADR:
 RelatedImplementation:
 TargetMilestone:
-BlockedBy:
+BlockedBy: BUG-0163
+LastReviewed: 2026-08-21
+NextAction: Unblock BUG-0163 so npm overrides apply, then set @mapbox/node-pre-gyp to ^2.0.3 and repackage
 ---
 
 # ITEM-0048 — Replace or contain active-win and the xlsx export path

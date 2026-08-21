@@ -5792,15 +5792,15 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "",
         "created_at": "2026-08-17",
-        "updated_at": "2026-08-17",
+        "updated_at": "2026-08-21",
         "resolved_at": ""
       },
       "type": "SECURITY",
       "title": "Replace or contain active-win and the xlsx export path",
       "severity": "HIGH",
       "priority": "P2",
-      "current_status": "READY",
-      "architect_disposition": "PLAN_REQUIRED",
+      "current_status": "BLOCKED",
+      "architect_disposition": "BLOCKED_EXTERNAL",
       "affected_modules": [
         "apps/agent-desktop",
         "services/api/src/common/excel",
@@ -5808,7 +5808,13 @@
       ],
       "regressions": [],
       "qa_scenarios": [],
-      "test_plan": []
+      "test_plan": [],
+      "dependencies": {
+        "record_ids": [
+          "BUG-0163"
+        ],
+        "note": "npm overrides cannot be applied until the lockfile can be re-resolved"
+      }
     },
     {
       "record_id": "ITEM-0049",
@@ -7847,6 +7853,55 @@
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
       "architect_disposition": "DEFER",
+      "verification_result": {
+        "result": "PRELIMINARY",
+        "classification": "ACTIVE_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0163",
+      "source": {
+        "record_path": "docs/bugs/BUG-0163-package-lock-json-cannot-be-regenerated-npm-overrides-are-si.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "34b699b",
+        "created_at": "2026-08-21",
+        "updated_at": "2026-08-21",
+        "resolved_at": ""
+      },
+      "type": "INFRA",
+      "title": "package-lock.json cannot be regenerated - npm overrides are silently ignored",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "OPEN",
+      "current_evidence": {
+        "paths": [
+          "package-lock.json",
+          "package.json",
+          "apps/admin/package.json"
+        ],
+        "verification_scope": "Found while attempting the @mapbox/node-pre-gyp override for ITEM-0048. npm reads the overrides key - npm pkg get overrides returns it - and resolves as though it were absent, leaving no overrides key under packages[\"\"] in the lockfile. Seven routes to a fresh resolution were tried; six were npm reusing a tree it considered satisfying, and the seventh, rm -rf node_modules package-lock.json followed by npm install --package-lock-only, failed with ERESOLVE on a @tiptap peer conflict in apps/admin. apps/admin pins the @tiptap family at 3.29.2 while @tiptap/extension-floating-menu, an optional peer of @tiptap/react, floats to 3.30.2 and demands @tiptap/core@3.30.2. The committed lockfile predates the conflict so npm ci succeeds and nothing has noticed. The override mechanism itself was verified working in an isolated scratch project on the first attempt."
+      },
+      "affected_modules": [
+        "package-lock.json",
+        "apps/admin"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [
+        "BUG-0052"
+      ],
+      "related_backlog": [
+        "ITEM-0048"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "PLAN_REQUIRED",
       "verification_result": {
         "result": "PRELIMINARY",
         "classification": "ACTIVE_AS_DOCUMENTED",
