@@ -6,6 +6,7 @@ Sessions that reached a terminal state. Kept as history: the branch, the base it
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0031](../../docs/sessions/SESSION-0031-checkout-customer-account-fidelity-payment-confirmation-and-.md) | — | Checkout customer account fidelity, payment confirmation, and the PlanPrice migration drift | COMPLETE | `agent/checkout-account-and-payment-confirmation` | `develop` | schema | 2026-08-21T15:48:29.930Z |
 | [SESSION-0030](../../docs/sessions/SESSION-0030-platform-admin-record-header-status-group-and-default-comman.md) | — | Platform Admin record header status group and default command bar | COMPLETE | `agent/admin-record-status-header` | `develop` | runtime-registries | 2026-08-21T13:54:09.827Z |
 | [SESSION-0029](../../docs/sessions/SESSION-0029-lockfile-resolution-and-the-tar-advisory.md) | — | Lockfile resolution and the tar advisory | COMPLETE | `agent/lockfile-resolution-and-tar` | `develop` | — | 2026-08-21T10:26:46.109Z |
 | [SESSION-0028](../../docs/sessions/SESSION-0028-dependency-security-the-active-win-advisory-chain.md) | — | Dependency security: the active-win advisory chain | COMPLETE | `agent/dependency-security-active-win` | `develop` | — | 2026-08-21T07:38:59.264Z |
