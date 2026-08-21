@@ -277,9 +277,47 @@ OBSIDIAN_GRAPH_ORPHANS
 OBSIDIAN_UNRESOLVED_LINKS
 OBSIDIAN_STALE_GENERATED_COUNT
 OBSIDIAN_PARITY_DIFFS
+OBSIDIAN_PATH_MISMATCHES
+OBSIDIAN_STATUS_MISMATCHES
+OBSIDIAN_SEMANTIC_LINK_ERRORS
+OBSIDIAN_DUPLICATE_NODES
+QUESTION_STATUS
+DECISION_MEMORY_STATUS
+CONTEXT_BUDGET_STATUS
+EVIDENCE_REUSE_STATUS
+TEST_RESOURCE_POLICY_STATUS
+TEST_RESOURCE_CLEANUP_FAILURES
+UNACCOUNTED_TEST_RESOURCES
+QA_EVIDENCE_LEVEL_STATUS
+ARCHITECTURE_IMPACT
+BACKLOG_OWNERSHIP_STATUS
+AGENT_HEALTH_STATUS
 CONTROL_CENTER_STATUS
 CLEANUP_STATUS
 ```
+
+### The TASK-0012 additions, and what each is for
+
+| Field | Resolved means |
+|---|---|
+| `QUESTION_STATUS` | Every question this task raised is `ANSWERED`, `WITHDRAWN`, or explicitly still `OPEN` with the package waiting on it named. A question disclosed only in the final report is a failure, not a field |
+| `DECISION_MEMORY_STATUS` | Every answered durable question carries its ADR, so the next task retrieves the decision instead of asking again |
+| `CONTEXT_BUDGET_STATUS` | Every substantial work package declared a context manifest, including what not to load |
+| `EVIDENCE_REUSE_STATUS` | Reused evidence was checked against its scope; nothing was reused across an invalidating change |
+| `TEST_RESOURCE_POLICY_STATUS` | Resources created by this task's testing were owned and accounted for |
+| `TEST_RESOURCE_CLEANUP_FAILURES` | `0`. A swallowed cleanup failure turns a leaked tenant into a green suite |
+| `UNACCOUNTED_TEST_RESOURCES` | `0`. Created and then neither cleaned, retained as evidence, nor recorded as failed — unlike a failure, it leaves nothing to follow |
+| `QA_EVIDENCE_LEVEL_STATUS` | No scenario reported success below its `REQUIRED_EVIDENCE_LEVEL` |
+| `ARCHITECTURE_IMPACT` | One of `NONE`, `IMPROVED`, `DEBT_CREATED`, `DEBT_REDUCED`, `FOLLOW_UP_REQUIRED`. `DEBT_CREATED` is a legitimate outcome; unrecorded debt is not |
+| `BACKLOG_OWNERSHIP_STATUS` | Every actionable record this task touched has an owner, or a named exception |
+| `AGENT_HEALTH_STATUS` | Health signals were derived from records, and any regression was classified rather than acted on from a single incident |
+
+The four new `OBSIDIAN_*` counts come from the node contract. A note can match
+its source byte-for-byte and still claim a `source_path` that no longer exists,
+a `status` its record has since changed, a duplicate `source_id` left behind by
+a rename, or a link that resolves to a note it has no defined relationship with.
+Content parity cannot see any of those, which is why parity alone was never
+enough to say the vault was right.
 
 ### The five counts verification actually reports
 

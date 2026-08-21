@@ -152,6 +152,13 @@ The Architect maintains one row per role for every substantial task.
 | **Reviewer** | always for code; docs-only changes may waive it |
 | **Integrator** | **any task that modifies Git-tracked files** |
 | **Release/DevOps** | every substantial task, for repository health — including tasks that deploy nothing |
+| **Product & Backlog Steward** | the task produced or touched a durable record — a bug, a backlog item, a deferral, an accepted risk, architecture debt — or proposed an improvement. Resolves `BACKLOG_OWNERSHIP_STATUS` and `OWNERLESS_ACTIONABLE_ITEMS`. Rarely `NOT_REQUIRED`: a substantial task that leaves the backlog untouched has usually failed to record something it found |
+| **Knowledge & Graph** | the task changed durable knowledge, or any canonical record that projects into the vault. Resolves the `OBSIDIAN_*` counts. `NOT_REQUIRED` only when nothing mapped into the vault changed at all |
+
+Thirteen roles. Research, Architecture, Prisma, Migration, CI, Playwright,
+Documentation, Accessibility, Test Data, Cleanup and Performance are
+**capabilities of these roles**, not roles of their own — a separate agent for
+each would multiply handoffs without adding a single new decision-maker.
 
 Each carries exactly one status:
 

@@ -233,6 +233,26 @@ const REQUIRED_COMPLETION_FIELDS = [
   'KNOWLEDGE_CAPTURE_STATUS',
   'OBSIDIAN_SYNC_STATUS',
   'CLEANUP_STATUS',
+  /*
+   * The TASK-0012 additions. Listed here rather than only in the contract so
+   * that deleting one from the contract is a validation failure — the contract
+   * is prose, and prose loses a line without anything noticing.
+   */
+  'QUESTION_STATUS',
+  'DECISION_MEMORY_STATUS',
+  'CONTEXT_BUDGET_STATUS',
+  'EVIDENCE_REUSE_STATUS',
+  'TEST_RESOURCE_POLICY_STATUS',
+  'TEST_RESOURCE_CLEANUP_FAILURES',
+  'UNACCOUNTED_TEST_RESOURCES',
+  'QA_EVIDENCE_LEVEL_STATUS',
+  'ARCHITECTURE_IMPACT',
+  'BACKLOG_OWNERSHIP_STATUS',
+  'AGENT_HEALTH_STATUS',
+  'OBSIDIAN_PATH_MISMATCHES',
+  'OBSIDIAN_STATUS_MISMATCHES',
+  'OBSIDIAN_SEMANTIC_LINK_ERRORS',
+  'OBSIDIAN_DUPLICATE_NODES',
 ];
 
 const REQUIRED_TASK_STATES = [

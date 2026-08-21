@@ -11,6 +11,8 @@
 | Active parent tasks | 7 |
 | Active work packages | 2 |
 | Blocked work packages | 4 |
+| Work packages waiting on the user | 0 |
+| Open questions | 0 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **0** |
 | Open HIGH | 13 |
@@ -18,6 +20,30 @@
 | Owner decisions pending | 3 |
 | QA coverage gaps | 94 |
 | Scenarios blocked by infrastructure | 0 |
+
+## Backlog health
+
+Whether the outstanding work is *actionable*, as opposed to merely valid.
+A record nobody owns, with no acceptance criteria and no next action,
+survives every review by being unfalsifiable.
+
+| | |
+|---|---|
+| Ownerless actionable records | 0 |
+| No acceptance criteria | 39 |
+| No next action | 39 |
+| Aging — 7d / 30d / 90d | 0 / 0 / 0 |
+| Architecture and technical debt | 8 |
+| Security gaps | 7 |
+| Database gaps | 2 |
+
+Ranked next-best actions weigh blast radius rather than severity alone, and
+are computed on demand so the reasons travel with the ranking:
+
+```bash
+node scripts/backlog-review.mjs        # health detectors and NEXT_BEST_ACTIONS
+node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
+```
 
 ## Active Sessions
 
@@ -42,7 +68,7 @@
 | [[TASK-0009-identity-and-multi-tenant-membership|TASK-0009]] | Identity and multi-tenant membership | FEATURE | LARGE | 11/12 | WP-09 | — | WP-09 |
 | [[TASK-0010-go-live-readiness|TASK-0010]] | Go-live readiness | FEATURE | MEDIUM | 7/8 | WP-04 | — | WP-04 |
 | [[TASK-0011-first-production-release|TASK-0011]] | First production release | RELEASE | MEDIUM | 1/2 | WP-02 | — | — |
-| [[TASK-0012-final-agent-operating-system-upgrade|TASK-0012]] | Final agent operating system upgrade | FRAMEWORK | PROGRAM | 12/16 | WP-11 | WP-11, WP-14 | — |
+| [[TASK-0012-final-agent-operating-system-upgrade|TASK-0012]] | Final agent operating system upgrade | FRAMEWORK | PROGRAM | 14/16 | WP-15 | WP-15 | — |
 
 ## Branch model
 

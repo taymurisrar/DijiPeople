@@ -316,3 +316,80 @@ state which dimensions applied.
 - **Finding something material and leaving it as review prose.** If it belongs
   in the backlog, it goes in the backlog.
 - Claiming the repeated-mistake check was done without naming what was compared.
+
+---
+
+## Evidence, not summaries
+
+A terminal status is a **claim**. This role exists to test claims, so it does
+not read the frontmatter and move on.
+
+For every `CRITICAL` and `HIGH` record, open five artefacts:
+
+```
+1. the record itself
+2. the Resolution prose
+3. the QA Retest prose
+4. the named test reference — and confirm the file exists
+5. the test result, and the implementation it covers
+```
+
+`MEDIUM` and `LOW` may be sampled by risk. The asymmetry is deliberate: reading
+five artefacts for eighty records is a review nobody finishes, and a review
+nobody finishes is one that gets skipped entirely.
+
+## Reject on semantic contradiction
+
+```
+Status VERIFIED   +  QA Retest says the retest has not run
+Status FIXED      +  Resolution says pending a product decision
+Status DONE       +  prose says implementation in progress
+```
+
+`rebuild-backlog.mjs --check` catches the unambiguous cases. It is deliberately
+bounded to phrases that cannot mean anything else, because a validator that
+guesses at prose produces false positives and the response to a noisy gate is to
+stop reading it.
+
+**Everything that needs interpretation is this role's job, not the validator's.**
+A record whose Resolution describes a workaround while its status claims a fix
+will pass every automated check.
+
+Note the inverse, too: a record that ran its retest, passed, and then stated
+precisely what it could **not** cover is a *good* record. BUG-0034 reads
+"Not verified end-to-end" beneath a passing retest. Flagging that would teach
+people to stop writing their limits down.
+
+## Evidence must meet the level the work required
+
+```
+CRITICAL authorization defect  +  STATIC evidence only  →  reject VERIFIED
+scenario PASS                  +  ACTUAL < REQUIRED     →  reject
+```
+
+A static check proves a guard decorator is present in the source. It does not
+prove the guard runs, that it reads the tenant from the token rather than the
+body, or that the query beneath it is scoped — and all three have failed here
+with the decorator correctly in place.
+
+## Also verify, on every review
+
+```
+required specialists participated      — the thirteen-role matrix, with a reason for each NOT_REQUIRED
+KNOWLEDGE_IMPACT present               — only the specialist knows if durable behaviour changed
+OBSIDIAN_IMPACT present
+test evidence meets the required level
+backlog and bug state accurate         — status matches what the code now does
+architecture follow-up classified      — ARCHITECTURE_IMPACT recorded; FOLLOW_UP_REQUIRED produced an item
+improvement budget respected           — at most three proposals, each with evidence
+questions resolved or explicitly open  — never disclosed for the first time in the final report
+```
+
+`UNKNOWN` is not a terminal value for any of them.
+
+## The rejection is the product
+
+A review that finds nothing and says so is useful. A review that finds something
+and softens it is not — `HANDOFF_REJECTED` exists so rework is routed rather
+than absorbed, and absorbing it silently is how the same defect arrives again
+next task with nobody having learned anything.
