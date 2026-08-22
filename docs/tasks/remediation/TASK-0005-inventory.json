@@ -4466,14 +4466,14 @@
         "provenance": "ARCHITECT",
         "detected_in_sha": "34b699b",
         "created_at": "2026-08-21",
-        "updated_at": "2026-08-21",
-        "resolved_at": ""
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
       },
       "type": "INFRA",
       "title": "package-lock.json cannot be regenerated - npm overrides are silently ignored",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "PRODUCT_DECISION",
+      "current_status": "FIXED",
       "current_evidence": {
         "paths": [
           "package-lock.json",
@@ -4497,15 +4497,17 @@
         "ITEM-0048"
       ],
       "regressions": [
-        "REG-173"
+        "REG-173",
+        "REG-226"
       ],
       "qa_scenarios": [
-        "QA-CI-003"
+        "QA-CI-003",
+        "QA-CI-004"
       ],
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "YES",
-      "architect_disposition": "PRODUCT_DECISION",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "PRELIMINARY",
         "classification": "ACTIVE_AS_DOCUMENTED",
@@ -8125,14 +8127,14 @@
         "provenance": "ARCHITECT",
         "detected_in_sha": "",
         "created_at": "2026-08-16",
-        "updated_at": "2026-08-17",
+        "updated_at": "2026-08-22",
         "resolved_at": ""
       },
       "type": "DATA_MIGRATION",
       "title": "Recompute productivity totals inflated by heartbeat replays",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "PRODUCT_DECISION",
+      "current_status": "DONE",
       "current_evidence": {
         "paths": [
           "docs/backlog/items/ITEM-0032-recompute-productivity-totals-inflated-by-heartbeat-replays.md"
@@ -8155,7 +8157,7 @@
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "YES",
-      "architect_disposition": "PRODUCT_DECISION",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "VERIFIED",
         "classification": "STATUS_DISPOSITION_BUCKET_MISMATCH_PRODUCT_DECISION",

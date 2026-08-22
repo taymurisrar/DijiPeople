@@ -121,6 +121,41 @@ jobs:
       - name: Validate agent framework
         run: node scripts/validate-framework.mjs
 
+      # BUG-0163 — the lockfile must be REGENERABLE, not merely present.
+      #
+      # It had stopped being so, and nothing noticed for weeks, because
+      # `npm ci` only replays a committed lockfile: it never asks whether the
+      # manifests could still produce one. Two optional peers of
+      # `@tiptap/react` carried caret ranges that drifted past the pinned
+      # family, so a from-scratch resolve failed with ERESOLVE while the
+      # committed lockfile papered over it.
+      #
+      # The cost was not theoretical. `overrides` in the root manifest were
+      # read and then silently discarded — npm cannot apply an override while
+      # it cannot produce a tree — which meant the one lever for forcing a
+      # transitive version had quietly stopped working. BUG-0052 needed exactly
+      # that lever and had to graft resolutions in by hand instead.
+      #
+      # Resolution only: no `node_modules`, no network install, ~20s. It
+      # answers the single question `npm ci` cannot.
+      - name: Lockfile regenerates from the manifests
+        run: |
+          set -euo pipefail
+          probe="$(mktemp -d)"
+          # Manifests and nothing else — resolution needs no source.
+          git ls-files '*package.json' | while read -r f; do
+            mkdir -p "$probe/$(dirname "$f")"
+            cp "$f" "$probe/$f"
+          done
+          cd "$probe"
+          if ! npm install --package-lock-only --no-audit --no-fund; then
+            echo "::error::The lockfile cannot be regenerated from the manifests."
+            echo "::error::A peer conflict makes a from-scratch resolve fail. npm ci still"
+            echo "::error::works because it replays the committed lockfile, and 'overrides'"
+            echo "::error::in the root manifest are silently ignored. See BUG-0163."
+            exit 1
+          fi
+
       # The generated indexes must agree with the records they summarise. Each is
       # its own step so a red build names the system that drifted rather than
       # reporting "framework validation failed" and leaving somebody to bisect it.

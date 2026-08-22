@@ -1930,3 +1930,18 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | Reads source rather than calling the service, deliberately: the defect is *the existence of a second gate*, not the behaviour of any one call, and a behavioural test would have to guess which of the eleven read sites somebody might reintroduce. Scoped to three files and to `Plan.isPublic` alone — the unrelated `IS_PUBLIC_KEY` route decorator and `isPublicSafeReason` share a prefix and are out of scope. Safe to land in one step because production was read first: all three plans are `isPublic: true` **and** `PUBLISHED`, so no plan changed purchasability. The column is still in the schema; dropping it is a contract-phase migration. |
 | **Fixed** | 2026-08-22, branch `agent/qa-verify-and-burndown` |
 | **Active** | yes |
+
+### REG-226 — The lockfile could not be regenerated, so overrides were ignored
+
+| | |
+|---|---|
+| **Bug class** | `lockfile-cannot-be-regenerated` |
+| **Module** | `apps/admin`, `package-lock.json` |
+| **Bug record** | BUG-0163 |
+| **Root cause** | `@tiptap/react@3.29.2` declares two **optional peers** with caret ranges — `@tiptap/extension-floating-menu@"^3.29.2"` and `@tiptap/extension-bubble-menu@"^3.29.2"`. A caret resolves to the newest 3.x, which is `3.30.2`, and `3.30.2` of either declares a **hard** peer on `@tiptap/pm@"3.30.2"` while the project pins `@tiptap/pm@3.29.2`. So a from-scratch resolve failed with ERESOLVE, the committed lockfile papered over it, and `overrides` in the root manifest were read and then silently discarded — npm cannot apply an override while it cannot produce a tree. |
+| **Regression test** | `.github/workflows/ci.yml` — `Lockfile regenerates` step |
+| **Scenario** | `npm install --package-lock-only` from the manifests alone, with no lockfile and no `node_modules`, resolves without ERESOLVE. |
+| **Proven to fail without the fix** | Removing either pin reproduces `Conflicting peer dependency: @tiptap/pm@3.30.2` in an isolated probe; removing both reproduces the original ERESOLVE. |
+| **Note** | Pinning the two optional peers at the family version is the minimal fix — the alternative, moving all thirteen `@tiptap` packages to 3.30.x, changes an editor the admin app depends on for no benefit. The regenerated lockfile removed **76 packages, added 0, and changed 0 versions**: every removal is an orphan of the `node-gyp@9` chain that [[BUG-0052]] upgraded away from and could not prune, because pruning needs the regeneration this record was blocking. Verified by a real `npm ci` in an isolated copy of the manifests — 1622 packages installed, all six `@tiptap` packages at 3.29.2 — rather than by reading the diff. |
+| **Fixed** | 2026-08-22, branch `agent/qa-verify-and-burndown` |
+| **Active** | yes |

@@ -114,7 +114,14 @@ wrong by accident; it is wrong because it is possible to set half of it.
 
 ## Impact
 
-**Live, customer-facing, and on the first thing a new tenant ever does.**
+**Corrected 2026-08-22 after reading production data.** I first wrote that this
+was "live, customer-facing, and happening now". It is live and it is
+customer-facing, but **no customer has received a wrong link yet**: production
+holds three tenants, all `INACTIVE` with subStatus "Pending payment", zero users
+and zero employees. Nobody has activated, so no activation mail has been sent.
+
+That lowers the urgency and not the severity. It is still on the first thing a
+new tenant ever does,
 Activation and invitation links are how a workspace owner reaches their product
 for the first time. The Vercel host resolves, so nothing breaks visibly — the
 customer simply arrives somewhere that is not their address, does not match the

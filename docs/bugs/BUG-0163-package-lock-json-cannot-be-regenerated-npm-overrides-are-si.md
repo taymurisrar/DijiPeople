@@ -2,7 +2,7 @@
 ID: BUG-0163
 aliases: [BUG-0163]
 Title: package-lock.json cannot be regenerated - npm overrides are silently ignored
-Status: PRODUCT_DECISION
+Status: FIXED
 Severity: HIGH
 Priority: P1
 Type: INFRA
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-21
 DetectedInSha: 34b699b
 AffectedModules: [package-lock.json, apps/admin]
 OwnerAgent: architect
-ArchitectDisposition: PRODUCT_DECISION
+ArchitectDisposition: DONE
 QAReport:
-RegressionId: REG-173
+RegressionId: REG-226
 RelatedBacklogItem: ITEM-0048
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-21
-UpdatedAt: 2026-08-21
-ResolvedAt:
+UpdatedAt: 2026-08-22
+ResolvedAt: 2026-08-22
 LastReviewed: 2026-08-21
 NextAction: Owner decision - the fix requires accepting a 338-package dependency refresh, which broke five CI jobs on first attempt
 AcceptanceCriteria: npm install --package-lock-only succeeds from no lockfile, and an overrides entry in the root manifest appears in package-lock.json and changes the resolved version
@@ -230,6 +230,88 @@ CI on ce7a841                         5 of 13 jobs FAILED
 The first five lines are why the fix is known to be correct. The last line is
 why it is not on `develop`.
 
+## Resolution — 2026-08-22, SESSION-0040
+
+The user's instruction was "do what's best". The root cause turned out to be
+narrower than this record's Proposed Resolution assumed, and the fix is two
+lines.
+
+### The actual conflict
+
+`@tiptap/react@3.29.2` declares two **optional peers**, both with caret ranges:
+
+```
+optional @tiptap/extension-floating-menu@"^3.29.2"  from @tiptap/react@3.29.2
+optional @tiptap/extension-bubble-menu@"^3.29.2"    from @tiptap/react@3.29.2
+```
+
+A caret resolves to the newest 3.x — `3.30.2` — and **3.30.2 of either declares a
+hard peer on `@tiptap/pm@"3.30.2"`**, while every direct `@tiptap` dependency in
+`apps/admin` is pinned at `3.29.2`. Two optional peers drifting forward past a
+pinned family is the whole defect.
+
+This record proposed either pinning `extension-floating-menu` or moving the
+family to 3.30.x. Pinning was right; the record just did not know there were
+**two** such peers. Pinning only the first surfaces the second, identically —
+which is how it was found.
+
+### The fix
+
+Two entries in `apps/admin/package.json`:
+
+```json
+"@tiptap/extension-bubble-menu": "3.29.2",
+"@tiptap/extension-floating-menu": "3.29.2",
+```
+
+Not `--legacy-peer-deps` and not `--force`, as this record insisted: both make
+the command succeed while leaving the graph unresolvable, which is the state
+that produced the record.
+
+### Blast radius, measured
+
+The regenerated lockfile, compared package-by-package against the committed one:
+
+| | |
+|---|---|
+| packages before → after | 1812 → 1736 |
+| **removed** | **76** |
+| **added** | **0** |
+| **version-changed** | **0** |
+
+Every one of the 76 is an orphan of the `node-gyp@9` chain — `@gar/promisify`,
+`@npmcli/fs@2`, `@tootallnate/once`, the `gauge` family, `chownr@2`. [[BUG-0052]]
+upgraded away from them and could not prune them, because pruning requires the
+regeneration *this* record was blocking. Nothing in use moved.
+
+### Verified against an installed tree, not a diff
+
+`npm ci` in an isolated copy of the manifests: **1622 packages installed, exit
+0**, with `core`, `pm`, `react`, `starter-kit`, `extension-floating-menu` and
+`extension-bubble-menu` all at 3.29.2. Audit of that tree: 0 critical, 8 high, 2
+moderate — unchanged, and it cannot have risen, because 0 packages were added
+and 0 versions changed.
+
+### Against the acceptance criteria — one half, honestly
+
+> `npm install --package-lock-only` succeeds from no lockfile **and** an
+> overrides entry in the root manifest appears in `package-lock.json` and
+> changes the resolved version
+
+- **Resolves from nothing** — yes. Proven from the manifests alone with no
+  lockfile and no `node_modules`.
+- **Changes the resolved version** — yes. An `overrides` entry of
+  `{"semver": "7.6.0"}` moved `semver` from 6.3.1 to 7.6.0. Before the fix,
+  overrides were discarded entirely.
+- **Appears in `packages[""].overrides`** — **no.** npm 11 applies the override
+  and does not write the key into the lockfile root. That is npm's behaviour
+  rather than anything this repository controls, so the criterion as written
+  cannot be met; the half that matters — the override taking effect — is met.
+
+Status is `FIXED` rather than `VERIFIED` for that reason: the last clause of the
+acceptance criteria is not satisfiable as stated and should be rewritten before
+this closes.
+
 ## History
 
 - 2026-08-21 — fixed the same day: `@tiptap` specs widened to carets, lockfile
@@ -244,6 +326,8 @@ why it is not on `develop`.
 
 - Backlog item — [[ITEM-0048]]
 - Modules — [[platform-admin]]
-- Regression — REG-173 (see the regression register)
+- Regression — REG-226 (see the regression register)
 
 <!-- GRAPH:END -->
+
+- 2026-08-22 — user said "do what's best". Root cause is two optional peers of @tiptap/react with caret ranges drifting past the pinned family; both pinned at 3.29.2. Lockfile regenerates, 76 orphans pruned, 0 added, 0 changed.
