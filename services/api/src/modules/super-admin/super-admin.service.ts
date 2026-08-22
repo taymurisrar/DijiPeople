@@ -3233,6 +3233,17 @@ export class SuperAdminService {
       status: tenant.status,
       createdAt: tenant.createdAt,
       updatedAt: tenant.updatedAt,
+      /*
+       * The Tenants list offers a "Created by me" view, and
+       * `PLATFORM_MODULE_VIEW_RULES` filters it on `createdById`. The summary
+       * did not return that field, so the filter compared `undefined` against
+       * the operator's id and the tab was empty for everyone, always — a
+       * control that looked functional and selected nothing.
+       *
+       * `mapTenantDetail` has always returned it; only the list payload was
+       * missing it, which is why the record page never showed the symptom.
+       */
+      createdById: tenant.createdById,
       customerAccount: tenant.customerAccount
         ? {
             id: tenant.customerAccount.id,
@@ -3256,8 +3267,28 @@ export class SuperAdminService {
             })),
           }
         : null,
-      userCount: tenant._count.users,
-      employeeCount: tenant._count.employees,
+      /*
+       * Named for the Prisma relations they count, not `userCount` /
+       * `employeeCount`.
+       *
+       * The Tenants list renders these as columns, and
+       * `validateRuntimeDefinition` resolves every column path against the
+       * generated model graph — where `employeeCount` is nothing at all and
+       * `employees` is a relation. A computed alias here means the column
+       * cannot exist there, which is why headcount was absent from a list of
+       * workspaces. `mapPlan` already names its count `subscriptions` for the
+       * same reason; this is that convention, applied.
+       *
+       * Only this list reads them, so the rename carries no other consumer.
+       */
+      users: tenant._count.users,
+      employees: tenant._count.employees,
+      /*
+       * Production, UAT, Sandbox or Development. Absent from the summary until
+       * now, so the list could not tell a customer's live workspace from their
+       * test one — a distinction the record page is emphatic about.
+       */
+      environmentType: tenant.environmentType,
       enabledFeatures: resolvedFeatures.enabledKeys,
       subscription: tenant.subscription
         ? this.mapSubscription(tenant.subscription)
@@ -4058,6 +4089,10 @@ export class SuperAdminService {
         .map((feature) => feature.featureKey),
       createdAt: plan.createdAt,
       updatedAt: plan.updatedAt,
+      // Same omission as the tenant summary carried: the Plans list has a
+      // "Created by me" view filtering on this, and without it the tab
+      // selected nothing for anybody.
+      createdById: plan.createdById,
     };
   }
 

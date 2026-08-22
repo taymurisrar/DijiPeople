@@ -1,10 +1,8 @@
 import Link from "next/link";
-import { PlanCards } from "./_components/plan-cards";
+import { PlanPreview } from "./_components/plan-preview";
 import { PageShell } from "./_components/site-shell";
-import { resolveDisplayCurrency } from "../lib/plans";
 import Image from "next/image";
 import { getCommercialConfig } from "../lib/commercial-config";
-import { getPublicPlans } from "../lib/plans-server";
 
 // Customer-facing copy. "Stripe webhook" and "PlanPrice record" are how this is
 // built, not what a buyer is choosing between — internal vocabulary on a public
@@ -28,15 +26,17 @@ const faqs = [
 ];
 
 export default async function HomePage() {
-  const [plansResponse, commercialConfig] = await Promise.all([
-    getPublicPlans(),
-    getCommercialConfig(),
-  ]);
-  const plans = plansResponse.plans;
-  const defaultCurrency = resolveDisplayCurrency(
-    plans,
-    commercialConfig.currency,
-  );
+  /*
+   * One source for what a visitor can buy and what it costs: published
+   * commercial configuration, resolved server-side for their market.
+   *
+   * This page used to also fetch `/public/plans` and reconcile the two. It
+   * could not: that endpoint is not market-scoped, so the reconciliation was a
+   * guess, and the guess disagreed with `/plans` and `/subscribe`. Asking one
+   * question of one source is what makes the three pages agree by construction
+   * rather than by three matching implementations.
+   */
+  const commercialConfig = await getCommercialConfig();
 
   return (
     <PageShell>
@@ -112,12 +112,16 @@ export default async function HomePage() {
             Simple pricing, published by us.
           </h2>
         </div>
-        <PlanCards
-          defaultCurrency={defaultCurrency}
-          error={plansResponse.error}
-          plans={plans}
-          compact
-        />
+        <PlanPreview config={commercialConfig} />
+        <p className="text-sm text-muted">
+          <Link
+            className="font-semibold text-accent underline-offset-4 hover:underline"
+            href="/plans"
+          >
+            Compare all plans in detail
+          </Link>{" "}
+          — including annual pricing and what each one includes.
+        </p>
       </section>
 
       <section className="grid gap-5 py-8 lg:grid-cols-[0.8fr_1.2fr]">

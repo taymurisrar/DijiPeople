@@ -1,6 +1,7 @@
 import { Prisma, type PrismaClient } from '@prisma/client';
 
 import { bootstrapCommercialDefaults } from './commercial-bootstrap';
+import { DEFAULT_MARKET_DEFINITIONS } from './markets.catalog';
 import { DEFAULT_PLAN_DEFINITIONS } from './plans.catalog';
 import { buildSeededPrices } from './pricing.catalog';
 
@@ -27,11 +28,18 @@ type Row = Record<string, unknown>;
 function fakePrisma(seed: {
   plans?: Row[];
   markets?: Row[];
+  marketCountries?: Row[];
   prices?: Row[];
   planFeatures?: Row[];
 }) {
   const plans = seed.plans ?? [];
   const markets = seed.markets ?? [];
+  /*
+   * Country claims default to already matching the catalog, so a test whose
+   * subject is a drifted plan name does not also have five country moves to
+   * account for. A test about the country mapping seeds this explicitly.
+   */
+  const marketCountries = seed.marketCountries ?? catalogMarketCountries();
   const prices = seed.prices ?? [];
   /*
    * Features default to already agreeing with the catalogue, because a plan
@@ -46,6 +54,9 @@ function fakePrisma(seed: {
   const priceUpdates: Row[] = [];
   const priceUpdateManys: Row[] = [];
   const featureUpdates: Row[] = [];
+  const marketCreates: Row[] = [];
+  const countryCreates: Row[] = [];
+  const countryUpdates: Row[] = [];
 
   const matches = (row: Row, where: Row): boolean =>
     Object.entries(where).every(([key, value]) => {
@@ -89,7 +100,40 @@ function fakePrisma(seed: {
       findUnique: jest.fn(({ where }: { where: Row }) =>
         Promise.resolve(markets.find((row) => matches(row, where)) ?? null),
       ),
-      create: jest.fn(() => Promise.resolve({})),
+      create: jest.fn((args: Row) => {
+        const data = args.data as Row;
+        const row = { id: `market-${String(data.code)}`, ...data };
+        markets.push(row);
+        marketCreates.push(args);
+        return Promise.resolve(row);
+      }),
+    },
+    marketCountry: {
+      findUnique: jest.fn(({ where }: { where: Row }) => {
+        const row = marketCountries.find((item) => matches(item, where));
+        if (!row) return Promise.resolve(null);
+        // `include: { market: { select: { code } } }` — the repair reports the
+        // market it took a country from, so the fake has to be able to name it.
+        const owner = markets.find((item) => item.id === row.marketId);
+        return Promise.resolve({
+          ...row,
+          market: { code: owner?.code ?? 'UNKNOWN' },
+        });
+      }),
+      create: jest.fn((args: Row) => {
+        const data = args.data as Row;
+        marketCountries.push({ ...data });
+        countryCreates.push(args);
+        return Promise.resolve({});
+      }),
+      update: jest.fn((args: Row) => {
+        const where = args.where as Row;
+        const data = args.data as Row;
+        const row = marketCountries.find((item) => matches(item, where));
+        if (row) Object.assign(row, data);
+        countryUpdates.push(args);
+        return Promise.resolve({});
+      }),
     },
     planPrice: {
       findFirst: jest.fn(({ where }: { where: Row }) =>
@@ -123,7 +167,22 @@ function fakePrisma(seed: {
     priceUpdates,
     priceUpdateManys,
     featureUpdates,
+    marketCreates,
+    countryCreates,
+    countryUpdates,
+    marketCountries,
   };
+}
+
+/** Every country the catalog assigns, already pointing at the right market. */
+function catalogMarketCountries() {
+  return DEFAULT_MARKET_DEFINITIONS.flatMap((definition) => {
+    const codes: readonly string[] = definition.countryCodes;
+    return codes.map((countryCode) => ({
+      countryCode,
+      marketId: `market-${definition.code}`,
+    }));
+  });
 }
 
 /** Every catalogue plan's feature rows, all enabled, as they would be once seeded. */
@@ -479,5 +538,114 @@ describe('commercial bootstrap converges on the catalogue', () => {
     // And it is reported rather than done quietly.
     expect(result.warnings.join(' ')).toContain('3 subscription(s)');
     expect(fake.priceUpdateManys).toEqual([]);
+  });
+});
+
+/**
+ * BUG-0309 — a launched market that resolved for nobody.
+ *
+ * `MarketCountry.countryCode` is unique globally, not per market. `GCC` was
+ * seeded first and claimed `QA`. When Qatar later became its own market at QAR,
+ * the bootstrap created the market, failed to create its country row against
+ * that unique constraint, caught the violation as benign, and moved on — then
+ * skipped the market on every subsequent run because it now existed. The repair
+ * migration was guarded on the market existing and runs before the seed that
+ * creates it, so it matched nothing on exactly the databases that needed it.
+ *
+ * Production ran for weeks with a LAUNCHED, published, QAR-priced Qatar market
+ * holding no countries, so every visitor in Doha resolved to GCC — PLANNED,
+ * self-service off, default currency USD — and was quoted USD on the home and
+ * plans pages while the checkout page said QAR.
+ *
+ * These tests pin the repair and, just as importantly, its silence: a country
+ * moved between markets is a commercial change and must be reported.
+ */
+describe('commercial bootstrap reconciles market country claims', () => {
+  it('gives a country back to the market the catalog assigns it to', async () => {
+    const fake = fakePrisma({
+      plans: catalogPlans(),
+      markets: allMarkets(),
+      prices: catalogPrices(),
+      // The production state: GCC still holds QA, so Qatar resolves for nobody.
+      marketCountries: catalogMarketCountries().map((row) =>
+        row.countryCode === 'QA' ? { ...row, marketId: 'market-GCC' } : row,
+      ),
+    });
+
+    const result = await bootstrapCommercialDefaults(fake.client);
+
+    const moved = fake.countryUpdates.find(
+      (item) => (item as { where: Row }).where.countryCode === 'QA',
+    ) as { data: Row } | undefined;
+    expect(moved?.data.marketId).toBe('market-QA');
+
+    // Reported, not done quietly — the silence is what hid this for weeks.
+    expect(result.warnings.join(' ')).toContain('Country QA');
+    expect(result.warnings.join(' ')).toContain('GCC');
+  });
+
+  it('creates a country row the market never got at all', async () => {
+    const fake = fakePrisma({
+      plans: catalogPlans(),
+      markets: allMarkets(),
+      prices: catalogPrices(),
+      marketCountries: catalogMarketCountries().filter(
+        (row) => row.countryCode !== 'QA',
+      ),
+    });
+
+    await bootstrapCommercialDefaults(fake.client);
+
+    expect(
+      fake.countryCreates.map((item) => (item as { data: Row }).data),
+    ).toContainEqual({ marketId: 'market-QA', countryCode: 'QA' });
+  });
+
+  it('leaves a country alone when it already points at the right market', async () => {
+    // Idempotence. A seed that rewrites correct rows on every deploy is a seed
+    // nobody can tell apart from one that is repairing something.
+    const fake = fakePrisma({
+      plans: catalogPlans(),
+      markets: allMarkets(),
+      prices: catalogPrices(),
+    });
+
+    const result = await bootstrapCommercialDefaults(fake.client);
+
+    expect(fake.countryUpdates).toEqual([]);
+    expect(fake.countryCreates).toEqual([]);
+    expect(result.warnings.join(' ')).not.toContain('Country');
+  });
+
+  it('writes a new market before its countries, so one clash cannot lose the market', async () => {
+    /*
+     * The countries used to be nested inside `market.create`. A single country
+     * already claimed elsewhere failed the whole statement, and the catch
+     * treated it as benign — so the market silently did not exist, which is
+     * strictly worse than a market missing one country.
+     */
+    const fake = fakePrisma({
+      plans: catalogPlans(),
+      // No Qatar market yet, and GCC is holding its country code.
+      markets: ['PK', 'INTL', 'US', 'GCC'].map((code) => ({
+        id: `market-${code}`,
+        code,
+      })),
+      prices: catalogPrices(),
+      marketCountries: catalogMarketCountries().map((row) =>
+        row.countryCode === 'QA' ? { ...row, marketId: 'market-GCC' } : row,
+      ),
+    });
+
+    const result = await bootstrapCommercialDefaults(fake.client);
+
+    expect(result.marketsCreated).toBe(1);
+    const created = fake.marketCreates[0] as { data: Row };
+    expect(created.data.code).toBe('QA');
+    // The market is created without countries, then the claim is reconciled.
+    expect(created.data).not.toHaveProperty('countries');
+    expect(
+      fake.marketCountries.find((row) => row.countryCode === 'QA')?.marketId,
+    ).toBe('market-QA');
   });
 });

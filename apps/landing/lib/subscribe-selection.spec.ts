@@ -150,6 +150,135 @@ describe("resolveSubscribeSelection", () => {
   });
 });
 
+/**
+ * BUG-0308 — the checkout page quoted a different currency from the rest of the
+ * site.
+ *
+ * `/public/plans` is not market-scoped: it returns every active price in every
+ * currency any market publishes, ordered by `currency` ascending. Every
+ * `prices[0]` in this resolver therefore meant "whichever currency sorts first"
+ * — QAR ahead of USD — while `/` and `/plans` read the market currency from
+ * published configuration. A visitor was shown one currency on the plans page
+ * and another at checkout, and neither page was obviously the wrong one.
+ *
+ * The market currency is authoritative. These cases are written against a plan
+ * carrying prices in two currencies, because a single-currency fixture cannot
+ * fail the way production did.
+ */
+describe("resolveSubscribeSelection — market currency", () => {
+  const multiCurrency = plan({
+    id: "plan-growth",
+    key: "growth",
+    name: "Growth",
+    prices: [
+      // Deliberately in the order the API returns them: currency ascending.
+      {
+        id: "growth-monthly-qar",
+        billingCycle: "MONTHLY",
+        currency: "QAR",
+        unitAmount: 25,
+        minimumSeats: 1,
+        maximumSeats: null,
+        hasStripePrice: true,
+        isCheckoutReady: true,
+      },
+      {
+        id: "growth-monthly-usd",
+        billingCycle: "MONTHLY",
+        currency: "USD",
+        unitAmount: 5.5,
+        minimumSeats: 1,
+        maximumSeats: null,
+        hasStripePrice: true,
+        isCheckoutReady: true,
+      },
+      {
+        id: "growth-annual-usd",
+        billingCycle: "ANNUAL",
+        currency: "USD",
+        unitAmount: 55,
+        minimumSeats: 1,
+        maximumSeats: null,
+        hasStripePrice: true,
+        isCheckoutReady: true,
+      },
+    ],
+  } as Partial<PublicPlan>);
+
+  const catalogue = [multiCurrency];
+
+  it("quotes the market currency, not the first one the API listed", () => {
+    // The regression itself: with no market currency this returns QAR, because
+    // QAR sorts before USD. With one, it must return the market's.
+    expect(resolveSubscribeSelection(catalogue, {}, "USD").currency).toBe("USD");
+    expect(resolveSubscribeSelection(catalogue, {}, "QAR").currency).toBe("QAR");
+  });
+
+  it("picks the price in the market currency, not merely reports it", () => {
+    // A currency label that does not match the price actually selected is the
+    // same defect wearing a correct-looking string.
+    const usd = resolveSubscribeSelection(
+      catalogue,
+      { billingInterval: "MONTH" },
+      "USD",
+    );
+    expect(usd.currency).toBe("USD");
+    expect(usd.billingCycle).toBe("MONTHLY");
+  });
+
+  it("normalizes the market currency it is given", () => {
+    expect(resolveSubscribeSelection(catalogue, {}, " usd ").currency).toBe(
+      "USD",
+    );
+  });
+
+  it("refuses a price id belonging to another market, keeping the plan", () => {
+    /*
+     * A link built for a QAR market and opened from a USD one. Honouring the
+     * id would quote a price this visitor cannot be sold; dropping the whole
+     * parameter would send a buyer who picked Growth to the first plan in the
+     * list. Neither is acceptable, so the plan survives and the price is
+     * re-resolved.
+     */
+    const selection = resolveSubscribeSelection(
+      catalogue,
+      { planPriceId: "growth-monthly-qar" },
+      "USD",
+    );
+    expect(selection.planId).toBe("plan-growth");
+    expect(selection.currency).toBe("USD");
+  });
+
+  it("still honours a price id that the market can sell", () => {
+    const selection = resolveSubscribeSelection(
+      catalogue,
+      { planPriceId: "growth-annual-usd" },
+      "USD",
+    );
+    expect(selection.planId).toBe("plan-growth");
+    expect(selection.billingCycle).toBe("ANNUAL");
+    expect(selection.currency).toBe("USD");
+  });
+
+  it("reports the market currency even where the plan has no price in it", () => {
+    /*
+     * The form renders a blocked state from this, and the message names the
+     * visitor's region. An empty currency beside "not published for your
+     * region" reads as a broken page rather than an answer.
+     */
+    const selection = resolveSubscribeSelection(catalogue, {}, "PKR");
+    expect(selection.currency).toBe("PKR");
+    expect(selection.planId).toBe("plan-growth");
+  });
+
+  it("leaves every price eligible when the market currency is unknown", () => {
+    // commercial-config failed. Quoting from stale plan data beats a checkout
+    // with no price at all — but this is the only path that may do it.
+    expect(resolveSubscribeSelection(catalogue, {}, null).currency).toBe("QAR");
+    expect(resolveSubscribeSelection(catalogue, {}, "").currency).toBe("QAR");
+  });
+});
+
 describe("normalizeBillingCycle", () => {
   it("accepts both the commercial-config and plan-price vocabularies", () => {
     // The URL is written using one and read using the other.

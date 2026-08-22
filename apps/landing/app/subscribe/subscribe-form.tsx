@@ -84,12 +84,28 @@ export function SubscribeForm({
   agreements: LegalIndexEntry[];
   tenantBaseDomain: string;
 }) {
-  const initialSelection = resolveSubscribeSelection(plans, selectionParams);
+  const initialSelection = resolveSubscribeSelection(
+    plans,
+    selectionParams,
+    defaultCurrency,
+  );
   const [planId, setPlanId] = useState(initialSelection.planId);
   const [billingCycle, setBillingCycle] = useState<BillingCycle>(
     initialSelection.billingCycle,
   );
-  const currency = initialSelection.currency || defaultCurrency;
+  /*
+   * The market's currency, not the selection's.
+   *
+   * This read `initialSelection.currency || defaultCurrency`, which inverted
+   * the authority: `/public/plans` is not market-scoped and returns its prices
+   * ordered by currency ascending, so the selection's currency was whichever
+   * one sorted first — QAR ahead of USD. Checkout then quoted a currency the
+   * home and plans pages, which read the market, did not. `defaultCurrency` is
+   * that market currency, resolved server-side from published configuration,
+   * and `resolveSubscribeSelection` now narrows to it rather than competing
+   * with it.
+   */
+  const currency = defaultCurrency || initialSelection.currency;
   const [seatQuantity, setSeatQuantity] = useState(
     initialSelection.seatQuantity,
   );

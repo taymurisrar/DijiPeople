@@ -370,12 +370,17 @@ async function ensureMarkets(
       where: { code: definition.code },
     });
 
-    // Never overwrite an existing market: after the first run its values are
-    // operator decisions, not seed defaults.
-    if (existing) continue;
+    if (existing) {
+      // Never overwrite an existing market's *attributes*: after the first run
+      // its currency, launch status and publication are operator decisions, not
+      // seed defaults. Its country claims are reconciled separately below —
+      // see `ensureMarketCountries` for why that is not the same thing.
+      await ensureMarketCountries(prisma, result, existing.id, definition);
+      continue;
+    }
 
     try {
-      await prisma.market.create({
+      const created = await prisma.market.create({
         data: {
           code: definition.code,
           name: definition.name,
@@ -393,17 +398,94 @@ async function ensureMarkets(
           taxProfileRef: definition.taxProfileRef,
           legalDocumentSetRef: definition.legalDocumentSetRef,
           sortOrder: definition.sortOrder,
-          countries: {
-            create: definition.countryCodes.map((countryCode) => ({
-              countryCode,
-            })),
-          },
         },
       });
       result.marketsCreated += 1;
+      /*
+       * Countries are written after the market rather than nested inside the
+       * create. Nested, a single country already claimed by another market
+       * fails the whole `market.create` — and the catch below then treated that
+       * as benign, so the market silently did not exist at all.
+       */
+      await ensureMarketCountries(prisma, result, created.id, definition);
     } catch (error) {
-      // `Market.code` and `MarketCountry.countryCode` are both unique.
+      // `Market.code` is unique; a concurrent seeder may have won the race.
       if (!isUniqueViolation(error)) throw error;
+    }
+  }
+}
+
+/**
+ * Make a market's country claims match the catalog — including the claims it
+ * lost to a market that was seeded before it existed.
+ *
+ * **This is the repair for BUG-0309**, and the shape of that defect is worth
+ * stating plainly because the code that caused it looked careful.
+ *
+ * `MarketCountry.countryCode` is unique **globally**, not per market. `GCC` was
+ * seeded first and claimed `QA` among its six countries. When Qatar was later
+ * given its own market at QAR, three things had to line up and did not:
+ *
+ *  1. `ensureMarkets` skipped any market that already existed, so on a database
+ *     that already had `QA` the Qatar market's own row was never revisited.
+ *  2. Creating the Qatar market wrote its countries nested, so the unique
+ *     violation on `QA` failed the whole create — and the catch treated a
+ *     unique violation as benign, so it failed *silently*.
+ *  3. The migration written to move the row is guarded on the Qatar market
+ *     existing, and `prisma migrate deploy` runs **before** the seed that
+ *     creates it. On exactly the databases that needed the repair it matched
+ *     nothing.
+ *
+ * The result in production: a `LAUNCHED`, published Qatar market priced in QAR
+ * with **no country row at all**, so `resolveMarketForCountry('QA')` fell
+ * through to `GCC` — `PLANNED`, self-service disabled, default currency USD.
+ * Every visitor in Doha was quoted USD on `/` and `/plans`, offered no plan at
+ * all, and the state was self-perpetuating: re-seeding never repaired it.
+ *
+ * So the reconciliation is unconditional and idempotent. A country the catalog
+ * assigns to this market is moved here from whichever market currently holds
+ * it. That is a narrow authority — the catalog decides which market serves a
+ * country, and nothing else in the system writes `MarketCountry` — but it is
+ * still a move, so every one is recorded in `warnings` rather than done
+ * quietly. A silent repair of a silent breakage is how this stayed invisible.
+ */
+async function ensureMarketCountries(
+  prisma: BootstrapClient,
+  result: CommercialBootstrapResult,
+  marketId: string,
+  definition: (typeof DEFAULT_MARKET_DEFINITIONS)[number],
+) {
+  for (const countryCode of definition.countryCodes) {
+    const existing = await prisma.marketCountry.findUnique({
+      where: { countryCode },
+      include: { market: { select: { code: true } } },
+    });
+
+    if (existing?.marketId === marketId) continue;
+
+    try {
+      if (!existing) {
+        await prisma.marketCountry.create({ data: { marketId, countryCode } });
+        continue;
+      }
+
+      await prisma.marketCountry.update({
+        where: { countryCode },
+        data: { marketId },
+      });
+      result.warnings.push(
+        `Country ${countryCode} was served by market ${existing.market.code} and has been moved to ${definition.code}, which the catalog assigns it to.`,
+      );
+    } catch (error) {
+      /*
+       * A concurrent seeder claimed it between the read and the write. Report
+       * rather than swallow: the previous version's silence on exactly this
+       * error is what let a launched market run with no countries.
+       */
+      if (!isUniqueViolation(error)) throw error;
+      result.warnings.push(
+        `Country ${countryCode} could not be assigned to market ${definition.code}: another writer claimed it concurrently. Re-run to reconcile.`,
+      );
     }
   }
 }
