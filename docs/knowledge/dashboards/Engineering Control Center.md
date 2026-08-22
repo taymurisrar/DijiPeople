@@ -7,7 +7,7 @@
 
 | | |
 |---|---|
-| Active sessions | **7** |
+| Active sessions | **6** |
 | Active parent tasks | 7 |
 | Active work packages | 2 |
 | Blocked work packages | 5 |
@@ -49,7 +49,6 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 | Session | Task | Title | Status | Branch | Target | Leases | Schema |
 |---|---|---|---|---|---|---|---|
-| [[SESSION-0041-document-vercel-render-and-neon-platform-access-for-agents|SESSION-0041]] | — | Document Vercel, Render and Neon platform access for agents | ACTIVE | `agent/platform-access-docs` | `develop` | — | NO |
 | SESSION-0023 | — | First production release | ACTIVE | `agent/first-production-release` | `main` | — | NO |
 | [[SESSION-0022-go-live-readiness|SESSION-0022]] | TASK-0010 | Go-live readiness | ACTIVE | `agent/go-live-readiness` | `develop` | — | NO |
 | [[SESSION-0019-ci-browser-install-latency-and-database-e2e-fixture-contract|SESSION-0019]] | — | CI browser install latency and database e2e fixture contract | ACTIVE | `agent/ci-e2e-remediation` | `develop` | — | NO |
