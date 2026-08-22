@@ -517,10 +517,31 @@ reading the diff.
 Dashboard and Engineering Control Center were regenerated and are current, and
 `validate:framework` asserts that.
 
-`node scripts/sync-obsidian.mjs` did **not** run — it needs a local vault
-configuration this environment does not have. `knowledge:verify`, which reads
-the vault back, likewise did not run. Both are recorded as not run rather than
-reported as done, and are outstanding for whoever has the vault.
+`node scripts/sync-obsidian.mjs` ran, and `npm run knowledge:verify` read the
+vault back:
+
+```text
+Wrote 123 file(s); 506 already current; 6 skipped as empty
+NOTES_VERIFIED                629
+WIKILINKS_CHECKED            3130
+OBSIDIAN_UNRESOLVED_LINKS       0
+OBSIDIAN_GRAPH_ORPHANS          0
+OBSIDIAN_PARITY_DIFFS           0
+OBSIDIAN_SYNC_STATUS         PASS
+```
+
+**Correction.** This section first said the sync "did not run — it needs a local
+vault configuration this environment does not have". That was wrong, and wrong in
+an avoidable way: a configured `.obsidian-sync.local.json` was sitting in the
+primary checkout the whole time, and `obsidian-config.mjs` resolves it from any
+worktree precisely so a task worktree does not report `SKIPPED_NO_LOCAL_CONFIG`
+against a perfectly good vault. That failure mode is documented at the top of
+that file, having already happened to two consecutive framework tasks.
+
+I did not hit it. I assumed it without running the script — which is the same
+class of error as the reachability claims BUG-0052 had to correct twice: a
+statement about the environment made from expectation rather than from asking
+it.
 
 ## Cleanup
 
