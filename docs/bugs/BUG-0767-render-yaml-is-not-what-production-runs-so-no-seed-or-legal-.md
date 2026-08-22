@@ -2,7 +2,7 @@
 ID: BUG-0767
 aliases: [BUG-0767]
 Title: render.yaml is not what production runs, so no seed or legal publication has ever executed
-Status: PRODUCT_DECISION
+Status: FIXED
 Severity: HIGH
 Priority: P1
 Type: INFRA
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-22
 DetectedInSha: 3c0efdb
 AffectedModules: [render.yaml, services/api/prisma, docs/deployment]
 OwnerAgent: release-devops
-ArchitectDisposition: PRODUCT_DECISION
+ArchitectDisposition: DONE
 QAReport: 
-RegressionId: 
+RegressionId: REG-229
 RelatedBacklogItem: ITEM-0053
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-22
-UpdatedAt: 2026-08-22
-ResolvedAt:
+UpdatedAt: 2026-08-23
+ResolvedAt: 2026-08-23
 ---
 
 # BUG-0767 — render.yaml is not what production runs, so no seed or legal publication has ever executed
@@ -154,12 +154,53 @@ Needs a decision on whether the deploy pipeline changes.
 
 ## Resolution
 
-Not yet fixed.
+Applied 2026-08-23. The user set the service configuration to match
+`render.yaml`:
+
+```
+buildCommand     npm ci --include=dev && NODE_OPTIONS="...6144" npm run build
+preDeployCommand NODE_OPTIONS="...4096" npm --workspace api run release
+```
+
+`prisma migrate deploy` is out of the build command and the release chain runs
+where it was always declared to. Verified by reading the live service, and by
+the deploy of `ef57b2a` passing through `pre_deploy_in_progress` — the first
+deploy in this service’s history to do so.
+
+The chain completed: `seed:verify` reported *"Seed reference data verification
+passed"*, and `legal:publish` reported `published: 0, alreadyPublished: 10`.
+
+### What applying the fix cost, and the lesson in it
+
+**Changing a Render service setting is itself a deploy.** Render redeploys on
+configuration change with trigger `service_updated`, and that deploy runs the
+code currently on `main` — not the code about to be released.
+
+So setting `preDeployCommand` redeployed `35f263c`, which had no guard against
+publishing a self-declared draft, and **republished the ten documents that had
+just been withdrawn**. The guarded release landed thirty minutes later and
+reported `alreadyPublished: 10`: a guard can refuse a publish and cannot undo
+one.
+
+The ordering advice given at the time was right in principle — *land the guard
+before automating publication* — and was undone by not knowing that applying the
+setting would deploy. Verifying the configuration took hold is not the same as
+verifying what the resulting deploy did.
+
+`docs/deployment/platform-access.md` now says so, with the rule: after any
+service update, read `deploys?limit=5` and look for a `service_updated` entry.
+
+### Still open
+
+The drift **detector** proposed in step 3 of the resolution does not exist. The
+file and the service agree today because somebody made them agree, and nothing
+fails when they diverge again. That is [[ITEM-0084]].
 
 ## QA Retest
 
-Pending. Retest is `GET /api/public/legal` returning documents, and the privacy
-page rendering published text rather than "Not published yet".
+Production regression against `ef57b2a`: **16/16**, including
+`no draft document is published`. All ten public pages confirmed showing their
+unpublished state after forcing edge revalidation.
 
 ## History
 
@@ -172,6 +213,9 @@ page rendering published text rather than "Not published yet".
 ## Related
 
 - Backlog item — [[ITEM-0053]]
+- Referenced by — [[ITEM-0084]]
 - Modules — [[database-architecture]]
+- Regression — REG-229 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-08-23 — fixed. preDeployCommand set and verified by a deploy passing through pre_deploy_in_progress. Applying it republished the withdrawn drafts, because a service update is itself a deploy against the old code; recorded in platform-access.md.

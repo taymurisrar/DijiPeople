@@ -6582,14 +6582,14 @@
         "provenance": "DEPLOYMENT",
         "detected_in_sha": "3c0efdb",
         "created_at": "2026-08-22",
-        "updated_at": "2026-08-22",
-        "resolved_at": ""
+        "updated_at": "2026-08-23",
+        "resolved_at": "2026-08-23"
       },
       "type": "INFRA",
       "title": "render.yaml is not what production runs, so no seed or legal publication has ever executed",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "PRODUCT_DECISION",
+      "current_status": "FIXED",
       "current_evidence": {
         "paths": [
           "render.yaml",
@@ -6623,7 +6623,7 @@
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "YES",
-      "architect_disposition": "PRODUCT_DECISION",
+      "architect_disposition": "DONE",
       "verification_result": "NOT_VERIFIED"
     },
     {
@@ -10538,6 +10538,49 @@
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
       "architect_disposition": "DEFER",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0084",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0084-detect-drift-between-render-yaml-and-the-live-render-service.md",
+        "provenance": "DEPLOYMENT",
+        "detected_in_sha": "",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": ""
+      },
+      "type": "INFRA",
+      "title": "Detect drift between render.yaml and the live Render service",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "READY",
+      "current_evidence": {
+        "paths": [
+          "render.yaml",
+          "scripts/repo-health.mjs"
+        ],
+        "verification_scope": "BUG-0767 fixed the drift between render.yaml and the live Render service by making them agree; nothing detects the next divergence. The file is committed and reviewed, the service is edited in a dashboard, and those two facts guarantee they drift. The last divergence was invisible because migrations kept applying - deploys looked correct while seed:config, seed:verify, seed:admin, seed:legal and legal:publish had never executed on production, which meant no purchase could record consent. Verification is a script that reads the live service and diffs buildCommand, startCommand, preDeployCommand, healthCheckPath, autoDeploy and branch against the file, reporting the field and both values rather than a boolean. Not a required CI job: it needs RENDER_API_KEY which CI does not hold and should not, so it runs from repo:health when the key is present and says loudly when it skipped."
+      },
+      "affected_modules": [
+        "render.yaml",
+        "scripts"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [
+        "BUG-0767",
+        "BUG-0714"
+      ],
+      "related_backlog": [],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "FIX_NOW",
       "verification_result": "NOT_VERIFIED"
     }
   ],
