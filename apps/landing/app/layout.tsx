@@ -34,25 +34,38 @@ export const metadata: Metadata = {
   // brand suffix cannot drift between pages — six routes previously set no
   // title at all and inherited this one verbatim, which made them
   // indistinguishable in history, tabs and search results.
+  /*
+   * The most-read copy on the site: the browser tab, the search result and the
+   * link preview. It was written in the register of an internal positioning
+   * document — "HRM SaaS for Growing Operational Teams", "structured people
+   * operations", "scalable workflows" — none of which tells a reader what they
+   * would get.
+   *
+   * "US-based" is also gone, and not for tone. `markets.catalog.ts` has the US
+   * as `PLANNED`, `isEnabled: false`, "Not open for business", while Pakistan,
+   * Qatar and International are the launched markets. It was a factual claim
+   * this repository's own configuration contradicts, and the fix for that is to
+   * stop making it rather than to make a different one.
+   */
   title: {
-    default: "DijiPeople | HRM SaaS for Growing Operational Teams",
+    default: "DijiPeople | HR, attendance and payroll in one place",
     template: "%s | DijiPeople",
   },
   description:
-    "DijiPeople is a US-based HRM SaaS platform for healthcare, IT, recruitment, staffing, and service businesses that need structured people operations.",
+    "DijiPeople keeps employee records, attendance, leave, hiring and payroll preparation in one connected system — so information is entered once instead of retyped between tools.",
   openGraph: {
-    title: "DijiPeople | HRM SaaS for Growing Operational Teams",
+    title: "DijiPeople | HR, attendance and payroll in one place",
     description:
-      "Modern HR operations for growing businesses that need structure across employee workflows, leave, onboarding, documents, and operational control.",
+      "Employee records, attendance, leave, hiring and payroll preparation in one connected system. Enter it once, and every stage reads what the last one produced.",
     url: "https://dijipeople.com",
     siteName: "DijiPeople",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "DijiPeople | HRM SaaS for Growing Operational Teams",
+    title: "DijiPeople | HR, attendance and payroll in one place",
     description:
-      "A modern HRM SaaS platform for operational businesses that need structure, clarity, and scalable workflows.",
+      "Employee records, attendance, leave, hiring and payroll preparation in one connected system.",
   },
 };
 

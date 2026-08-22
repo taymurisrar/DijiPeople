@@ -212,18 +212,23 @@ export function LeadFormSection() {
       <div className="grid gap-8 lg:grid-cols-[0.72fr_1.28fr] lg:items-start">
 <div className="space-y-5 lg:flex lg:min-h-full lg:flex-col lg:justify-between">
   <div className="space-y-5">
-    <p className="text-sm font-semibold uppercase tracking-[0.22em] text-accent">
+    {/*
+      `tracking-[0.22em]` here, `0.18em` two blocks down, `0.16em` everywhere
+      else on the site. Three spacings for one eyebrow.
+    */}
+    <p className="text-sm font-semibold uppercase tracking-[0.16em] text-accent">
       Request a demo
     </p>
 
     <div className="space-y-4">
-      <h1 className="max-w-md text-3xl font-semibold leading-tight text-foreground sm:text-4xl">
-        Tell us about your team. We’ll recommend the right rollout.
+      {/* Sans where every other page heading on the site is serif. */}
+      <h1 className="max-w-md font-serif text-4xl leading-tight text-foreground sm:text-5xl">
+        See it with your own setup in mind.
       </h1>
 
       <p className="max-w-md text-base leading-7 text-muted">
-        Share your structure, priorities, and operational needs. We’ll map the
-        right plan and setup path.
+        Tell us how your team is organised and what you’re trying to fix
+        first. We’ll show you the parts that matter to you and suggest a plan.
       </p>
     </div>
   </div>
@@ -254,7 +259,7 @@ export function LeadFormSection() {
               className="grid gap-3 rounded-[24px] border border-accent/20 bg-accent-soft/60 p-5"
               role="status"
             >
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-accent">
+              <p className="text-sm font-semibold uppercase tracking-[0.16em] text-accent">
                 Request received
               </p>
               <h3 className="text-2xl font-semibold text-foreground">

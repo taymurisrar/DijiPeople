@@ -4,7 +4,8 @@ import { PageShell } from "../_components/site-shell";
 
 export const metadata: Metadata = {
   title: "Request a demo",
-  description: "Request a tailored DijiPeople HR platform demonstration.",
+  description:
+    "Book a walkthrough of DijiPeople with your own team structure and priorities in mind.",
 };
 
 export default function RequestDemoPage() {

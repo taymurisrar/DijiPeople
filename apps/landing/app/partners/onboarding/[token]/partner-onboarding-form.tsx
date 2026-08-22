@@ -96,7 +96,7 @@ export function PartnerOnboardingForm({ token }: { token: string }) {
   return (
     <form onSubmit={submit} className="space-y-6">
       <header className="rounded-[28px] border border-border bg-white p-6 shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">
+        <p className="text-sm font-semibold uppercase tracking-[0.16em] text-accent">
           Secure partner onboarding
         </p>
         <h1 className="mt-2 font-serif text-3xl text-foreground">

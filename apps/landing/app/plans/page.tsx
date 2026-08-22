@@ -1,7 +1,13 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
 import { PageShell } from "../_components/site-shell";
+import {
+  ClosingCta,
+  Eyebrow,
+  Lede,
+  PageHeading,
+  SectionHeading,
+} from "../_components/marketing/typography";
 import { getCommercialConfig } from "../../lib/commercial-config";
 import { PlansExperience } from "./plans-experience";
 
@@ -95,26 +101,22 @@ export default async function PlansPage() {
   return (
     <PageShell>
       <section className="max-w-3xl py-10 sm:py-14">
-        <p className="text-sm font-semibold uppercase tracking-[0.16em] text-accent">
-          Plans and pricing
-        </p>
-        <h1 className="mt-3 font-serif text-4xl leading-tight text-foreground sm:text-5xl">
-          Simple pricing that does not punish you for hiring.
-        </h1>
-        <p className="mt-5 text-lg leading-8 text-muted">
+        <Eyebrow>Plans and pricing</Eyebrow>
+        <PageHeading className="mt-3">
+          Pricing that doesn&rsquo;t punish you for hiring.
+        </PageHeading>
+        <Lede className="mt-5">
           One flat price per plan, in your region&rsquo;s currency — the same
-          whether you have ten people or ten thousand. Plans differ by which
-          parts of the platform they include; compare them below.
-        </p>
+          whether you have ten people or ten thousand. Plans differ by what they
+          include, not by how many people you employ.
+        </Lede>
       </section>
 
       <PlansExperience config={config} />
 
       {/* FAQ */}
       <section className="border-t border-border py-10">
-        <h2 className="font-serif text-3xl text-foreground">
-          Pricing questions
-        </h2>
+        <SectionHeading>Pricing questions</SectionHeading>
         <div className="mt-6 grid gap-5 lg:grid-cols-2">
           {faqs.map((faq) => (
             <div key={faq.question}>
@@ -139,30 +141,12 @@ export default async function PlansPage() {
         ))}
       </section>
 
-      {/* Final CTA */}
-      <section className="my-8 rounded-[28px] bg-foreground p-6 text-white sm:p-10">
-        <h2 className="font-serif text-3xl">
-          Ready to bring your HR operations together?
-        </h2>
-        <p className="mt-3 max-w-2xl text-sm leading-7 text-white/72">
-          Pick the plan that fits your team, or talk to us if you&rsquo;d like
-          help choosing.
-        </p>
-        <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-          <Link
-            className="inline-flex items-center justify-center rounded-xl bg-white px-5 py-3 text-sm font-semibold text-foreground"
-            href="/subscribe"
-          >
-            Start subscription
-          </Link>
-          <Link
-            className="inline-flex items-center justify-center rounded-xl border border-white/25 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
-            href="/contact"
-          >
-            Talk to us
-          </Link>
-        </div>
-      </section>
+      <ClosingCta
+        body="Pick the plan that fits your team, or talk to us if you'd like help choosing."
+        primary={{ href: "/subscribe", label: "Get started" }}
+        secondary={{ href: "/contact", label: "Talk to us" }}
+        title="Ready to get your HR in one place?"
+      />
     </PageShell>
   );
 }

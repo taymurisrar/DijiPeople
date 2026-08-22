@@ -93,9 +93,16 @@ export async function SiteFooter() {
             height={100}
             className="h-9 w-auto"
           />
+          {/*
+            Appears on every page of the site, and read as a product brochure
+            written for the people who built it: "tenant configuration",
+            "employee lifecycle workflows", "subscription-ready growth". A
+            visitor is not a tenant, and nobody is shopping for growth that is
+            subscription-ready.
+          */}
           <p className="mt-2 max-w-md leading-6">
-            Enterprise SaaS for HR operations, tenant configuration, employee
-            lifecycle workflows, and subscription-ready growth.
+            Employee records, attendance, leave, hiring and payroll preparation
+            in one connected system — so your team enters things once.
           </p>
         </div>
 

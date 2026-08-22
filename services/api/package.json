@@ -34,6 +34,7 @@
     "seed:admin": "ts-node prisma/seed-admin.ts",
     "seed:all": "npm run seed:admin && npm run seed:config && npm run seed:platform-workflows && npm run seed:demo && npm run seed:legal",
     "seed:commercial": "ts-node prisma/seed-commercial.ts",
+    "repair:market-countries": "ts-node prisma/repair-market-countries.ts",
     "seed:config": "ts-node prisma/seed-config.ts",
     "seed:demo": "ts-node prisma/seed-demo.ts",
     "seed:demo:reseed": "npm run seed:demo:reset && npm run seed:demo",
