@@ -8,10 +8,10 @@
 | | |
 |---|---|
 | Open CRITICAL | **0** |
-| Open HIGH | **3** |
-| Open total | 22 |
+| Open HIGH | **2** |
+| Open total | 21 |
 | Blocked | 1 |
-| Awaiting a product decision | 6 |
+| Awaiting a product decision | 7 |
 | Deferred | 16 |
 | Completed | 155 |
 | Awaiting Architect triage | 0 |
@@ -26,13 +26,13 @@ _None. Nothing open at CRITICAL._
 |---|---|---|---|---|---|---|
 | [[ITEM-0004-tenant-activation-never-proven-end-to-end|ITEM-0004]] | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | READY | api:tenant-control-plane | FIX_NOW |
 | [[ITEM-0034-apps-web-has-zero-browser-e2e-coverage|ITEM-0034]] | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | READY | apps/web, e2e | PLAN_REQUIRED |
-| [[ITEM-0062-no-multi-tenant-membership-one-user-belongs-to-one-tenant-so|ITEM-0062]] | No multi-tenant membership — one user belongs to one tenant, so discovery and switching cannot exist | ARCHITECTURE | HIGH | READY | auth, users, tenant-domains, web | PLAN_REQUIRED |
 
 ## Product Decisions Needed
 
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
 | [[BUG-0163-package-lock-json-cannot-be-regenerated-npm-overrides-are-si|BUG-0163]] | package-lock.json cannot be regenerated - npm overrides are silently ignored | INFRA | HIGH | PRODUCT_DECISION | package-lock.json, apps/admin | PRODUCT_DECISION |
+| [[ITEM-0062-no-multi-tenant-membership-one-user-belongs-to-one-tenant-so|ITEM-0062]] | No multi-tenant membership — one user belongs to one tenant, so discovery and switching cannot exist | ARCHITECTURE | HIGH | PRODUCT_DECISION | auth, users, tenant-domains, web | PRODUCT_DECISION |
 | [[BUG-0223-admin-cannot-set-a-plan-ispublic-flag-which-gates-self-servi|BUG-0223]] | Admin cannot set a plan isPublic flag which gates self-service checkout | UX | MEDIUM | PRODUCT_DECISION | apps/admin, api:super-admin, api:billing | PRODUCT_DECISION |
 | [[ITEM-0032-recompute-productivity-totals-inflated-by-heartbeat-replays|ITEM-0032]] | Recompute productivity totals inflated by heartbeat replays | DATA_MIGRATION | MEDIUM | PRODUCT_DECISION | api:agent | PRODUCT_DECISION |
 | [[ITEM-0053-publish-privacy-policy-and-terms-for-the-public-landing-site|ITEM-0053]] | Publish privacy policy and terms for the public landing site | PRODUCT_DECISION | MEDIUM | PRODUCT_DECISION | apps/landing | PRODUCT_DECISION |

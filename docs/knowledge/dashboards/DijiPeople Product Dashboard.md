@@ -67,6 +67,7 @@ Questions where the engineering is understood and the **product answer**
 **is not**. No agent may resolve one by implementing a side of it.
 
 - [[BUG-0163-package-lock-json-cannot-be-regenerated-npm-overrides-are-si|BUG-0163]] — **package-lock.json cannot be regenerated - npm overrides are silently ignored** (HIGH)
+- [[ITEM-0062-no-multi-tenant-membership-one-user-belongs-to-one-tenant-so|ITEM-0062]] — **No multi-tenant membership — one user belongs to one tenant, so discovery and switching cannot exist** (HIGH)
 - [[BUG-0223-admin-cannot-set-a-plan-ispublic-flag-which-gates-self-servi|BUG-0223]] — **Admin cannot set a plan isPublic flag which gates self-service checkout** (MEDIUM)
 - [[ITEM-0032-recompute-productivity-totals-inflated-by-heartbeat-replays|ITEM-0032]] — **Recompute productivity totals inflated by heartbeat replays** (MEDIUM)
 - [[ITEM-0053-publish-privacy-policy-and-terms-for-the-public-landing-site|ITEM-0053]] — **Publish privacy policy and terms for the public landing site** (MEDIUM)

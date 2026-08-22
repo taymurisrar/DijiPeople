@@ -15,9 +15,9 @@
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **0** |
-| Open HIGH | 3 |
+| Open HIGH | 2 |
 | Awaiting Architect triage | 0 |
-| Owner decisions pending | 6 |
+| Owner decisions pending | 7 |
 | QA coverage gaps | 102 |
 | Scenarios blocked by infrastructure | 0 |
 
@@ -30,10 +30,10 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 21 |
-| No next action | 21 |
+| No acceptance criteria | 20 |
+| No next action | 20 |
 | Aging — 7d / 30d / 90d | 4 / 0 / 0 |
-| Architecture and technical debt | 6 |
+| Architecture and technical debt | 5 |
 | Security gaps | 3 |
 | Database gaps | 0 |
 
@@ -117,6 +117,7 @@ Questions where the engineering is understood and the **product answer is**
 **not**. No agent may resolve one by implementing a side of it.
 
 - [[BUG-0163-package-lock-json-cannot-be-regenerated-npm-overrides-are-si|BUG-0163]] — **package-lock.json cannot be regenerated - npm overrides are silently ignored**
+- [[ITEM-0062-no-multi-tenant-membership-one-user-belongs-to-one-tenant-so|ITEM-0062]] — **No multi-tenant membership — one user belongs to one tenant, so discovery and switching cannot exist**
 - [[BUG-0223-admin-cannot-set-a-plan-ispublic-flag-which-gates-self-servi|BUG-0223]] — **Admin cannot set a plan isPublic flag which gates self-service checkout**
 - [[ITEM-0032-recompute-productivity-totals-inflated-by-heartbeat-replays|ITEM-0032]] — **Recompute productivity totals inflated by heartbeat replays**
 - [[ITEM-0053-publish-privacy-policy-and-terms-for-the-public-landing-site|ITEM-0053]] — **Publish privacy policy and terms for the public landing site**
@@ -237,10 +238,10 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 22 |
+| Open total | 21 |
 | Blocked | 1 |
 | Deferred | 16 |
-| Awaiting a product decision | 6 |
+| Awaiting a product decision | 7 |
 | Awaiting Architect triage | 0 |
 
 Every ordinary record carries a disposition.

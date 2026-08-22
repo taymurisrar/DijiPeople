@@ -13,20 +13,20 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 22 |
+| Open (active work) | 21 |
 | Blocked | 1 |
 | Deferred | 16 |
-| Awaiting a product decision | 6 |
+| Awaiting a product decision | 7 |
 | Completed / closed | 155 |
 | **Open CRITICAL** | **0** |
-| **Open HIGH** | **3** |
+| **Open HIGH** | **2** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
 
 | Severity | Count |
 |---|---|
-| HIGH | 3 |
+| HIGH | 2 |
 | MEDIUM | 16 |
 | LOW | 3 |
 
@@ -34,7 +34,7 @@ see [`README.md`](README.md) for why.
 
 | Type | Count |
 |---|---|
-| ARCHITECTURE | 2 |
+| ARCHITECTURE | 1 |
 | FOLLOW_UP | 2 |
 | INFRA | 3 |
 | SECURITY | 3 |
@@ -48,10 +48,10 @@ see [`README.md`](README.md) for why.
 |---|---|
 | BLOCKED | 1 |
 | DEFERRED | 16 |
-| PRODUCT_DECISION | 6 |
+| PRODUCT_DECISION | 7 |
 | VERIFIED | 117 |
 | DUPLICATE | 2 |
-| READY | 22 |
+| READY | 21 |
 | DONE | 36 |
 
 ## All records
@@ -127,7 +127,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | READY | api:tenant-control-plane | FIX_NOW |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | READY | apps/web, e2e | PLAN_REQUIRED |
 | [ITEM-0047](../../docs/backlog/items/ITEM-0047-database-e2e-suites-fail-against-an-ephemeral-postgresql.md) | Database e2e suites fail against an ephemeral PostgreSQL | TEST_GAP | HIGH | P1 | DONE | services/api/test, .github/workflows, database | DONE |
-| [ITEM-0062](../../docs/backlog/items/ITEM-0062-no-multi-tenant-membership-one-user-belongs-to-one-tenant-so.md) | No multi-tenant membership — one user belongs to one tenant, so discovery and switching cannot exist | ARCHITECTURE | HIGH | P1 | READY | auth, users, tenant-domains, web | PLAN_REQUIRED |
+| [ITEM-0062](../../docs/backlog/items/ITEM-0062-no-multi-tenant-membership-one-user-belongs-to-one-tenant-so.md) | No multi-tenant membership — one user belongs to one tenant, so discovery and switching cannot exist | ARCHITECTURE | HIGH | P1 | PRODUCT_DECISION | auth, users, tenant-domains, web | PRODUCT_DECISION |
 | [ITEM-0063](../../docs/backlog/items/ITEM-0063-self-service-checkout-must-prove-the-owner-email-before-char.md) | Self-service checkout must prove the owner email before charging | SECURITY | HIGH | P1 | DONE | billing, platform-communications, landing | DONE |
 | [ITEM-0048](../../docs/backlog/items/ITEM-0048-replace-or-contain-active-win-and-the-xlsx-export-path.md) | Replace or contain active-win and the xlsx export path | SECURITY | HIGH | P2 | BLOCKED | apps/agent-desktop, services/api/src/common/excel, package-lock.json | BLOCKED_EXTERNAL |
 | [BUG-0051](../../docs/bugs/BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state.md) | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | P1 | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |
