@@ -157,8 +157,10 @@ export function RuntimeModuleList({
           payload.tableStateJson?.version === 2 ? payload.tableStateJson : null;
         if (state?.visibleColumns?.length)
           setVisibleColumns(
-            state.visibleColumns.filter((key) =>
-              definition.columns.some((column) => column.key === key),
+            mergeVisibleColumns(
+              state.visibleColumns,
+              state.columnOrder ?? [],
+              definition.columns,
             ),
           );
         if (state?.columnOrder?.length)
@@ -1233,11 +1235,80 @@ function readSorts(
   }
 }
 
-function normalizeColumnOrder(current: string[], available: string[]) {
-  return [
-    ...current.filter((key) => available.includes(key)),
-    ...available.filter((key) => !current.includes(key)),
-  ];
+/**
+ * Merge a saved column order with the module's current one.
+ *
+ * A column added to the definition since the operator last saved lands where
+ * the definition puts it, not at the far right. Appending was how "Tenant" —
+ * the one column identifying the row — could end up last on an operator who had
+ * touched the table months earlier: the definition's order said first, and the
+ * saved order, which knew nothing about it, decided.
+ *
+ * Explicitly reordered columns keep their positions relative to one another.
+ * Only the ones the saved state has never seen are placed from the definition.
+ */
+export function normalizeColumnOrder(current: string[], available: string[]) {
+  const kept = current.filter((key) => available.includes(key));
+  const merged = [...kept];
+
+  for (const key of available) {
+    if (merged.includes(key)) continue;
+
+    /*
+     * Insert after the nearest preceding definition column that survived, so a
+     * new column arrives beside the ones it was designed to sit with. With no
+     * such neighbour — a new first column — it goes to the front.
+     */
+    const definitionIndex = available.indexOf(key);
+    let anchor = -1;
+    for (let index = definitionIndex - 1; index >= 0; index -= 1) {
+      const position = merged.indexOf(available[index]!);
+      if (position !== -1) {
+        anchor = position;
+        break;
+      }
+    }
+    merged.splice(anchor + 1, 0, key);
+  }
+
+  return merged;
+}
+
+/**
+ * Which columns are visible, given a saved preference written against an older
+ * version of the module.
+ *
+ * This is why a list "does not look updated" after a deploy that added columns.
+ * The saved `visibleColumns` was applied verbatim, so a column introduced after
+ * the operator last saved table state was absent from it and therefore hidden —
+ * permanently, and silently, for exactly the people who use the screen most.
+ * Nothing surfaced it: the column existed, the definition was right, and the
+ * only way to find it was the column picker.
+ *
+ * `columnOrder` is what tells the two cases apart. It holds every column the
+ * saved state knew about, hidden ones included, so a definition column missing
+ * from it was never offered to this operator and takes its definition
+ * visibility. A column present in the order but absent from `visibleColumns`
+ * was deliberately turned off and stays off.
+ *
+ * An older save with no `columnOrder` at all cannot be told apart this way, so
+ * every unknown column falls back to its definition visibility — the reading
+ * that shows the operator what the module currently offers rather than what it
+ * offered whenever they last touched it.
+ */
+export function mergeVisibleColumns(
+  savedVisible: string[],
+  savedOrder: string[],
+  columns: RuntimeColumnDefinition[],
+) {
+  const known = new Set(savedOrder.length ? savedOrder : savedVisible);
+  const visible = new Set(savedVisible);
+
+  return columns
+    .filter((column) =>
+      known.has(column.key) ? visible.has(column.key) : column.visible !== false,
+    )
+    .map((column) => column.key);
 }
 
 function moveItem(values: string[], from: number, to: number) {

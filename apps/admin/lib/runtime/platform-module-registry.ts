@@ -2511,11 +2511,28 @@ const definitions: PlatformModuleDefinition[] = [
       "/tenants",
       "/super-admin/tenants",
       "customers",
+      /*
+       * A tenant is a running workspace, so this list answers "which one, whose,
+       * is it healthy, and how big" before anything else. The order is the
+       * answer order: identity, then address, then lifecycle, then commercial,
+       * then size.
+       *
+       * The name stays first and the workspace address sits beside it. Those two
+       * are how an operator recognises a row — a tenant is discussed by its
+       * workspace URL far more often than by its display name, and the slug was
+       * previously reachable only by opening the record.
+       */
       [
         col("displayName", "Tenant", 220),
         /*
-         * Every lookup on this module opens the record it names. These two read
-         * as a customer and a plan and used to be plain text, so the only way to
+         * The subdomain the customer actually signs in at. Not a lookup: it
+         * addresses the same record the row already opens, so linking it
+         * elsewhere would be a link to here.
+         */
+        col("slug", "Workspace", 170),
+        /*
+         * Every lookup on this module opens the record it names. These read as
+         * a customer and a plan and used to be plain text, so the only way to
          * reach either was to leave the tenant list and search for them.
          */
         col("customerAccount.companyName", "Customer", 210, "lookup", {
@@ -2528,7 +2545,33 @@ const definitions: PlatformModuleDefinition[] = [
           idField: "subscription.plan.id",
         }),
         col("subscription.status", "Subscription", 150, "status"),
+        /*
+         * Which of the customer's workspaces this is. A UAT tenant beside a
+         * production one is otherwise indistinguishable in this list, and they
+         * are treated very differently — the record page calls relabelling one
+         * as the other "reclassifying live data rather than moving it".
+         */
+        col("environmentType", "Environment", 140, "status"),
+        /*
+         * Employees, not users. Employees are the billable population — an
+         * admin who is not an employee consumes no seat — so this is the number
+         * that explains an invoice, and the one an operator is usually asked
+         * about. `users` is the same shape and stays in the column picker.
+         *
+         * Named for the Prisma relation rather than `employeeCount`, because
+         * `validateRuntimeDefinition` resolves every column against the model
+         * graph and a computed alias resolves to nothing. `mapPlan` already
+         * names its count `subscriptions` for the same reason.
+         */
+        col("employees", "Employees", 120, "number"),
         col("createdAt", "Created", 160, "dateTime"),
+        /*
+         * Off by default. Each is a column an operator wants only while chasing
+         * a specific workspace, and a list that shows everything shows nothing.
+         */
+        { ...col("users", "Users", 110, "number"), visible: false },
+        { ...col("tenantCode", "Tenant code", 150), visible: false },
+        { ...col("updatedAt", "Updated", 160, "dateTime"), visible: false },
       ],
     ),
     statuses: TENANT_STATUSES,
