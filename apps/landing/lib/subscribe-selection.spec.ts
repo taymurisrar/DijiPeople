@@ -151,7 +151,7 @@ describe("resolveSubscribeSelection", () => {
 });
 
 /**
- * BUG-0308 — the checkout page quoted a different currency from the rest of the
+ * BUG-0793 — the checkout page quoted a different currency from the rest of the
  * site.
  *
  * `/public/plans` is not market-scoped: it returns every active price in every

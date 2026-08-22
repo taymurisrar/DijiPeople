@@ -542,7 +542,7 @@ describe('commercial bootstrap converges on the catalogue', () => {
 });
 
 /**
- * BUG-0309 — a launched market that resolved for nobody.
+ * BUG-0792 — a launched market that resolved for nobody.
  *
  * `MarketCountry.countryCode` is unique globally, not per market. `GCC` was
  * seeded first and claimed `QA`. When Qatar later became its own market at QAR,

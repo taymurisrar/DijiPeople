@@ -229,7 +229,7 @@ function RuntimeRecordEditor({
            * which only render when their tab is the active one — become
            * unreachable code.
            *
-           * BUG-0310: `entitlements` was added here when exactly this happened
+           * BUG-0794: `entitlements` was added here when exactly this happened
            * to it, and `pricing` was not. `PlanPriceManager` has been mounted
            * on `activeTab === "pricing"` the whole time, behind a tab the bar
            * never rendered, so the only remaining route to plan price

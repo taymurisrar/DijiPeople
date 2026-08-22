@@ -1975,3 +1975,78 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | The reason nothing caught this is in `tenant-url.config.spec.ts`: a passing test named *"keeps production single-host login URLs on the configured app host"* asserts exactly `https://diji-people-web.vercel.app/login`. It is a true statement about the function and it encoded the misconfiguration as the expected result, so the suite agreed with production and both were wrong together. This spec is separate on purpose — those tests describe the function across configurations, these describe the one configuration DijiPeople deploys. |
 | **Fixed** | 2026-08-22, Render service `srv-d7js7fqqqhas739v4i7g` |
 | **Active** | yes |
+
+### REG-229 — A launched market keeps the country code the catalog assigns it
+
+| | |
+|---|---|
+| **Bug class** | `silent-catch-of-a-real-failure` |
+| **Module** | `services/api/src/modules/super-admin` |
+| **Bug record** | BUG-0792 |
+| **Root cause** | `MarketCountry.countryCode` is unique globally, not per market. `GCC` claimed `QA` first, so creating the Qatar market with its countries nested inside `market.create` failed on that constraint — and the `catch` treated any unique violation as benign, so the market was created with no country row and no error. `ensureMarkets` then skipped it forever after, because it existed. The repair migration is guarded on the Qatar market existing and runs during `migrate deploy`, before the seed that creates it, so on exactly the databases needing repair it matched nothing. Production served a LAUNCHED, published, QAR-priced Qatar market that resolved for nobody. |
+| **Regression test** | `services/api/src/modules/super-admin/commercial-bootstrap.reconcile.spec.ts` |
+| **Scenario** | Seed a database where `GCC` holds `QA` and run the bootstrap → the country row moves to the `QA` market, and the move is reported in `warnings`. Seed one with no Qatar market at all → the market is created *before* its countries, so the clash cannot lose the market. Seed one already correct → no writes, no warnings. |
+| **Proven to fail without the fix** | Restoring the `if (existing) continue;` early return fails two of the four cases. |
+| **Note** | The silence is the lesson, not the constraint. A unique violation means "somebody else holds this", which is only benign when the holder is who you wanted — and here it never was. `ensureMarketCountries` now reports every move rather than repairing quietly, because a silent repair of a silent breakage is how this stayed invisible for weeks. |
+| **Fixed** | 2026-08-22, `agent/site-ux-and-admin-fixes` |
+| **Active** | yes |
+
+### REG-230 — Checkout quotes the market's currency, not the first one the API listed
+
+| | |
+|---|---|
+| **Bug class** | `implicit-ordering-treated-as-a-decision` |
+| **Module** | `apps/landing` |
+| **Bug record** | BUG-0793 |
+| **Root cause** | `/public/plans` is not market-scoped: it returns every active price in every currency any market publishes, ordered by `currency` ascending. `resolveSubscribeSelection` read `plan.prices[0]` in three branches, so "the price" meant "whichever currency sorts first" — QAR ahead of USD. `subscribe-form` then preferred that over the market currency resolved server-side, so `/` and `/plans` quoted one currency and `/subscribe` another. |
+| **Regression test** | `apps/landing/lib/subscribe-selection.spec.ts` |
+| **Scenario** | A plan carrying both QAR and USD prices, resolved for a USD market → currency is USD and the selected price is the USD one. A `planPriceId` naming the QAR price, opened from a USD market → the plan survives and the price is re-resolved in USD rather than the link being honoured or dropped. |
+| **Proven to fail without the fix** | Every case in `describe("resolveSubscribeSelection — market currency")` returns QAR without the currency filter, because QAR sorts before USD. |
+| **Note** | A single-currency fixture cannot fail this way, which is why the existing nine cases all passed throughout. The fixture has to carry two currencies *in the order the API returns them* for the defect to be reachable at all. |
+| **Fixed** | 2026-08-22, `agent/site-ux-and-admin-fixes` |
+| **Active** | yes |
+
+### REG-231 — A record panel is mounted only on a tab that can be reached
+
+| | |
+|---|---|
+| **Bug class** | `unreachable-ui-behind-a-passing-build` |
+| **Module** | `apps/admin` |
+| **Bug record** | BUG-0794 |
+| **Root cause** | `RuntimeRecordPage` keeps a tab only if it has form fields, a related-records panel, a timeline, or an explicit `hasRuntimePanel` allowance. `planForms()` declares a `pricing` tab and assigns no fields to it, and there is no `pricing` relationship — so the tab was filtered out of the bar, while `PlanPriceManager` stayed mounted behind `activeTab === "pricing"`, a value nothing could select. `entitlements` had been added to the allowance when the identical thing happened to it; `pricing` was not. |
+| **Regression test** | `apps/admin/lib/runtime/runtime-record-panels.spec.ts` |
+| **Scenario** | Parse every `moduleKey === "x" && ... activeTab === "y"` panel guard out of `runtime-record-page.tsx`, and assert each lands on a tab that survives the filter — via fields, a relationship, or by being named in the `hasRuntimePanel` expression. |
+| **Proven to fail without the fix** | Restoring `(moduleKey === "plans" && tab.key === "entitlements")` fails two cases. |
+| **Note** | Derived from the file rather than restating its list, so a panel added tomorrow without an allowance fails here rather than in somebody's browser. The symptom reached us as "where did the price configuration go from the Plan module" — the mildest way this class of defect gets found, and only because a person went looking for something they knew existed. |
+| **Fixed** | 2026-08-22, `agent/site-ux-and-admin-fixes` |
+| **Active** | yes |
+
+### REG-232 — A column added to a module becomes visible to operators who saved table state
+
+| | |
+|---|---|
+| **Bug class** | `stale-preference-shadows-the-current-definition` |
+| **Module** | `apps/admin` |
+| **Bug record** | BUG-0795 |
+| **Root cause** | Saved table state was reapplied verbatim: `visibleColumns` from the preference became the visible set outright, so a column added to a module afterwards was absent from it and therefore hidden — permanently, silently, and only for the operators who use the screen enough to have saved anything. `normalizeColumnOrder` then appended unknown columns to the far right, so a column the definition puts first arrived last. |
+| **Regression test** | `apps/admin/lib/runtime/column-preferences.spec.ts` |
+| **Scenario** | A saved state that predates a column → that column is visible, at its definition position. A column present in the saved order but absent from the saved visible set → stays hidden, because that is a decision. A saved state with no `columnOrder` at all → definition visibility, since the two cases cannot be told apart. |
+| **Proven to fail without the fix** | The old three-line `normalizeColumnOrder` returns `["status","createdAt","name"]` where the definition order is `["name","status","createdAt"]`; the old verbatim `visibleColumns` drops every new column. |
+| **Note** | `columnOrder` is what makes this recoverable — it lists every column the saved state knew about, hidden ones included, so "never offered" and "deliberately turned off" are distinguishable. Without it the fix would have to choose between ignoring preferences and ignoring the module. |
+| **Fixed** | 2026-08-22, `agent/site-ux-and-admin-fixes` |
+| **Active** | yes |
+
+### REG-233 — A list view filters on a field the list payload actually returns
+
+| | |
+|---|---|
+| **Bug class** | `view-filters-on-an-absent-field` |
+| **Module** | `services/api/src/modules/super-admin` |
+| **Bug record** | BUG-0796 |
+| **Root cause** | `PLATFORM_MODULE_VIEW_RULES` filters the "Created by me" view on `createdById`, and neither `mapTenantSummary` nor `mapPlan` returned it — only the *detail* mappers did. `readPath` returned `undefined`, which never equals the operator's id, so the tab was empty for everyone, always, on both Tenants and Plans. |
+| **Regression test** | `apps/admin/lib/runtime/platform-module-capabilities.spec.ts` and the tenant list columns exercised by `apps/admin/lib/runtime/tenant-runtime-definition.spec.ts` |
+| **Scenario** | For every module offering a personal view, the field that view filters on is present in the list payload the module's `apiBase` returns. |
+| **Proven to fail without the fix** | Removing `createdById` from `mapTenantSummary` leaves the view rule pointing at a field no list row carries. |
+| **Note** | The same shape as the "Active" view that matched a status a module never used — a control that looks functional and selects nothing. The registry comment warning about exactly this predates both, which is the useful part: knowing the class of defect did not stop the next instance. |
+| **Fixed** | 2026-08-22, `agent/site-ux-and-admin-fixes` |
+| **Active** | yes |

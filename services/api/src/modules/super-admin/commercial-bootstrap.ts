@@ -419,7 +419,7 @@ async function ensureMarkets(
  * Make a market's country claims match the catalog — including the claims it
  * lost to a market that was seeded before it existed.
  *
- * **This is the repair for BUG-0309**, and the shape of that defect is worth
+ * **This is the repair for BUG-0792**, and the shape of that defect is worth
  * stating plainly because the code that caused it looked careful.
  *
  * `MarketCountry.countryCode` is unique **globally**, not per market. `GCC` was
