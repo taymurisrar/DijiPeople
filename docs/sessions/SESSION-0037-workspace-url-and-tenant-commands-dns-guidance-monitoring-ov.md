@@ -4,7 +4,7 @@ aliases: [SESSION-0037]
 TASK_ID: TASK-0017
 TITLE: Workspace URL and tenant commands, DNS guidance, monitoring overview redesign, dark theme flash, and bulk delete
 ARCHITECT_INTENT: Workspace URL and tenant commands, DNS guidance, monitoring overview redesign, dark theme flash, and bulk delete
-STATUS: ACTIVE
+STATUS: COMPLETE
 TASK_TYPE: BUG
 TASK_SIZE: LARGE
 BASE_BRANCH: origin/develop
@@ -16,8 +16,8 @@ AFFECTED_MODULES: []
 WRITE_LEASES: []
 ACTIVE_WORK_PACKAGES: []
 SCHEMA_WRITE: NO
-CI_STATUS: NOT_RUN
-MERGE_STATUS: NOT_STARTED
+CI_STATUS: PASS
+MERGE_STATUS: INTEGRATED
 STARTED_AT: 2026-08-21T23:28:44.546Z
 LAST_HEARTBEAT: 2026-08-21T23:28:44.546Z
 BLOCKERS: none
@@ -68,4 +68,7 @@ Live state: `node scripts/session.mjs list`.
 
 ## History
 
-- 2026-08-21 — session started from `origin/develop` at `098a0e6`.
+- 2026-08-22 — session started from `origin/develop` at `098a0e6`.
+- 2026-08-22 — integrated at `0f9addc` by fast-forward ref-push to `develop`;
+  gate green on the exact SHA on the first attempt (run 32540723318, 14/14).
+  `main` untouched at `3602ec3`.

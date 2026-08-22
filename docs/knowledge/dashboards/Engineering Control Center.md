@@ -7,8 +7,8 @@
 
 | | |
 |---|---|
-| Active sessions | **7** |
-| Active parent tasks | 7 |
+| Active sessions | **6** |
+| Active parent tasks | 6 |
 | Active work packages | 2 |
 | Blocked work packages | 4 |
 | Work packages waiting on the user | 0 |
@@ -49,7 +49,6 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 | Session | Task | Title | Status | Branch | Target | Leases | Schema |
 |---|---|---|---|---|---|---|---|
-| [[SESSION-0037-workspace-url-and-tenant-commands-dns-guidance-monitoring-ov|SESSION-0037]] | TASK-0017 | Workspace URL and tenant commands, DNS guidance, monitoring overview redesign, dark theme flash, and bulk delete | ACTIVE | `agent/tenant-commands-monitoring-bulk-delete` | `develop` | — | NO |
 | SESSION-0023 | — | First production release | ACTIVE | `agent/first-production-release` | `main` | — | NO |
 | [[SESSION-0022-go-live-readiness|SESSION-0022]] | TASK-0010 | Go-live readiness | ACTIVE | `agent/go-live-readiness` | `develop` | — | NO |
 | [[SESSION-0019-ci-browser-install-latency-and-database-e2e-fixture-contract|SESSION-0019]] | — | CI browser install latency and database e2e fixture contract | ACTIVE | `agent/ci-e2e-remediation` | `develop` | — | NO |
@@ -67,7 +66,6 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 | [[TASK-0009-identity-and-multi-tenant-membership|TASK-0009]] | Identity and multi-tenant membership | FEATURE | LARGE | 11/12 | WP-09 | — | WP-09 |
 | [[TASK-0010-go-live-readiness|TASK-0010]] | Go-live readiness | FEATURE | MEDIUM | 7/8 | WP-04 | — | WP-04 |
 | [[TASK-0011-first-production-release|TASK-0011]] | First production release | RELEASE | MEDIUM | 1/2 | WP-02 | — | — |
-| [[TASK-0017-workspace-links-that-resolve-a-monitoring-page-you-can-work-|TASK-0017]] | Workspace links that resolve, a monitoring page you can work from, and Delete that either deletes or explains | BUG | LARGE | 6/6 | — | — | — |
 
 ## Branch model
 

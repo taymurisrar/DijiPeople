@@ -4,7 +4,7 @@ aliases: [TASK-0017]
 TITLE: Workspace links that resolve, a monitoring page you can work from, and Delete that either deletes or explains
 TYPE: BUG
 SIZE: LARGE
-STATUS: IN_PROGRESS
+STATUS: COMPLETE
 PRIORITY: P1
 CREATED_AT: 2026-08-22
 AFFECTED_MODULES: [apps/admin, api:tenant-control-plane, api:tenant-domains, api:partners, api:platform-runtime]
@@ -14,7 +14,7 @@ CURRENT_PACKAGE:
 COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-04, WP-05, WP-06]
 BLOCKED_PACKAGES: []
 OWNER_DECISIONS: 0
-FINAL_STATUS:
+FINAL_STATUS: DELIVERED — six reported items, integrated at 0f9addc with the gate green on the first attempt; bulk delete scoped to three modules by a recorded owner decision; visual verification not performed
 ---
 
 # TASK-0017 — Workspace links that resolve, a monitoring page you can work from, and Delete that either deletes or explains
@@ -47,12 +47,12 @@ A good package can be reviewed on its own and has one owning specialist.
 
 | WP_ID | TITLE | STATUS | DEPENDENCIES | AGENTS | BRANCH | SHA | QA_STATUS | BUGS | CI_STATUS | MERGE_STATUS |
 |---|---|---|---|---|---|---|---|---|---|---|
-| WP-01 | One rule for where a workspace is reachable | DONE | — | backend-api | agent/tenant-commands-monitoring-bulk-delete | — | PASS | BUG-0492 | — | PENDING |
-| WP-02 | A command that opens a tab, or says why it did not | DONE | WP-01 | frontend | agent/tenant-commands-monitoring-bulk-delete | — | PASS | BUG-0493 | — | PENDING |
-| WP-03 | Wildcard DNS: explained, and reconciled when confirmed | DONE | — | backend-api, ui-ux | agent/tenant-commands-monitoring-bulk-delete | — | PASS | BUG-0494 | — | PENDING |
-| WP-04 | The theme decided before the first paint | DONE | — | frontend, ui-ux | agent/tenant-commands-monitoring-bulk-delete | — | PASS | BUG-0495 | — | PENDING |
-| WP-05 | A monitoring page a support agent can work from | DONE | — | ui-ux, frontend | agent/tenant-commands-monitoring-bulk-delete | — | PASS | BUG-0496 | — | PENDING |
-| WP-06 | Delete that either deletes or explains itself | DONE | — | backend-api, frontend, ui-ux | agent/tenant-commands-monitoring-bulk-delete | — | PASS | BUG-0497 | — | PENDING |
+| WP-01 | One rule for where a workspace is reachable | DONE | — | backend-api | agent/tenant-commands-monitoring-bulk-delete | 0f9addc | PASS | BUG-0492 | PASS | INTEGRATED |
+| WP-02 | A command that opens a tab, or says why it did not | DONE | WP-01 | frontend | agent/tenant-commands-monitoring-bulk-delete | 0f9addc | PASS | BUG-0493 | PASS | INTEGRATED |
+| WP-03 | Wildcard DNS: explained, and reconciled when confirmed | DONE | — | backend-api, ui-ux | agent/tenant-commands-monitoring-bulk-delete | 0f9addc | PASS | BUG-0494 | PASS | INTEGRATED |
+| WP-04 | The theme decided before the first paint | DONE | — | frontend, ui-ux | agent/tenant-commands-monitoring-bulk-delete | 0f9addc | PASS | BUG-0495 | PASS | INTEGRATED |
+| WP-05 | A monitoring page a support agent can work from | DONE | — | ui-ux, frontend | agent/tenant-commands-monitoring-bulk-delete | 0f9addc | PASS | BUG-0496 | PASS | INTEGRATED |
+| WP-06 | Delete that either deletes or explains itself | DONE | — | backend-api, frontend, ui-ux | agent/tenant-commands-monitoring-bulk-delete | 0f9addc | PASS | BUG-0497 | PASS | INTEGRATED |
 
 ## Assumptions
 

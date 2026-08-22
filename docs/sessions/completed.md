@@ -6,6 +6,7 @@ Sessions that reached a terminal state. Kept as history: the branch, the base it
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0037](../../docs/sessions/SESSION-0037-workspace-url-and-tenant-commands-dns-guidance-monitoring-ov.md) | TASK-0017 | Workspace URL and tenant commands, DNS guidance, monitoring overview redesign, dark theme flash, and bulk delete | COMPLETE | `agent/tenant-commands-monitoring-bulk-delete` | `develop` | — | 2026-08-21T23:28:44.546Z |
 | [SESSION-0036](../../docs/sessions/SESSION-0036-tenant-workspace-repair-plan-estimator-notification-count-er.md) | TASK-0016 | Tenant workspace repair, plan estimator, notification count, error-log UX, and a coded checkout block | COMPLETE | `agent/tenant-repair-and-console-ux` | `develop` | — | 2026-08-21T22:23:03.357Z |
 | [SESSION-0035](../../docs/sessions/SESSION-0035-document-rendering-fidelity-editor-stability-admin-theme-sti.md) | TASK-0015 | Document rendering fidelity, editor stability, admin theme, sticky fields rail, and a stuck tenant | COMPLETE | `agent/document-render-and-theme` | `develop` | — | 2026-08-21T20:58:56.938Z |
 | [SESSION-0034](../../docs/sessions/SESSION-0034-landing-ux-modernisation-notification-popover-workspace-host.md) | TASK-0014 | Landing UX modernisation, notification popover, workspace host resolution, timeline paging, template signatures | COMPLETE | `agent/ux-round-two` | `develop` | — | 2026-08-21T19:25:07.378Z |
