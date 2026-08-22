@@ -40,6 +40,7 @@ import type {
 } from "@/lib/runtime/platform-runtime.types";
 import { ModuleActionBar } from "./module-action-bar";
 import { RuntimeViewSelector } from "./runtime-view-selector";
+import { openExternal } from "@/lib/open-external";
 import { buildTenantLoginUrl } from "@/lib/tenant-url";
 
 type Operator = {
@@ -339,7 +340,11 @@ export function RuntimeModuleList({
           message: "This tenant has no workspace slug yet.",
         };
       }
-      window.open(buildTenantLoginUrl(slug), "_blank", "noopener,noreferrer");
+      const opened = openExternal(
+        buildTenantLoginUrl(slug),
+        "The tenant workspace",
+      );
+      if (!opened.opened) return { success: false, message: opened.message };
       return { success: true, message: "Tenant workspace opened." };
     }
     if (action.key === "bulk-assign") {
@@ -1076,7 +1081,9 @@ function formatCell(
   }
   if (format === "status")
     return (
-      <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${typeof value === "boolean" ? (value ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-slate-200 bg-slate-50 text-slate-600") : "border-slate-200 bg-slate-50 text-slate-700"}`}>
+      <span
+        className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${typeof value === "boolean" ? (value ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-slate-200 bg-slate-50 text-slate-600") : "border-slate-200 bg-slate-50 text-slate-700"}`}
+      >
         {typeof value === "boolean"
           ? value
             ? "Active"

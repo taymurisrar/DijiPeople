@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import type { RuntimeActionDefinition } from "@/lib/runtime/platform-runtime.types";
+import { openExternal } from "@/lib/open-external";
 import { buildTenantLoginUrl } from "@/lib/tenant-url";
 import {
   DialogField,
@@ -114,14 +115,33 @@ export function useTenantRecordActions(tenantId: string | null) {
       setContext(handleContext);
 
       if (action.key === "open-tenant") {
-        const slug = String(handleContext.record.slug ?? "");
-        window.open(
+        const slug = String(handleContext.record.slug ?? "").trim();
+        if (!slug) {
+          /*
+           * A tenant with no slug has no workspace address, and opening the
+           * fallback would land the operator on the admin app's own login. Say
+           * so rather than opening something and calling it the workspace.
+           */
+          return {
+            result: {
+              success: false,
+              message:
+                "This tenant has no workspace slug, so there is no workspace to open. Set one on Configuration.",
+            },
+          };
+        }
+        /*
+         * This reported "Tenant workspace opened." unconditionally, while
+         * passing a features string that makes Chrome treat the call as a popup
+         * request — commonly blocked, silently. The button appeared to do
+         * nothing and the toast said it had worked.
+         */
+        const opened = openExternal(
           buildTenantLoginUrl(slug),
-          "_blank",
-          "noopener,noreferrer",
+          "The tenant workspace",
         );
         return {
-          result: { success: true, message: "Tenant workspace opened." },
+          result: { success: opened.opened, message: opened.message },
         };
       }
 
