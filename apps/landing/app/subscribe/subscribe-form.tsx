@@ -21,6 +21,7 @@ import {
   type WizardForm,
   type WizardStep,
 } from "../../lib/onboarding-wizard";
+import { readReferralCode } from "../../lib/referral";
 import {
   resolveSubscribeSelection,
   type SubscribeSelectionParams,
@@ -33,6 +34,21 @@ import {
   WorkspaceStep,
   type SlugState,
 } from "./onboarding-steps";
+
+/**
+ * `buildSubmitPayload` with the remembered referral code attached.
+ *
+ * A wrapper rather than a change to the builder, so the builder stays a pure
+ * function of the form and its tests need no browser. The code is read at
+ * submit time from `lib/referral`, which captured it wherever the partner's
+ * link happened to land. BUG-0281.
+ */
+function buildSubmitPayloadWithReferral(
+  form: Parameters<typeof buildSubmitPayload>[0],
+  selection: Parameters<typeof buildSubmitPayload>[1],
+) {
+  return buildSubmitPayload(form, selection, readReferralCode());
+}
 
 /**
  * The public onboarding wizard.
@@ -208,6 +224,9 @@ export function SubscribeForm({
                 contactName: companyNameForDraft,
                 email: emailForDraft,
                 country: countryForDraft,
+                // Carried from the very first draft, so a buyer who abandons at
+                // the payment step and returns is still attributed. BUG-0281.
+                referralCode: readReferralCode(),
               }),
             });
             if (!draft.ok) return answer("unknown");
@@ -276,7 +295,7 @@ export function SubscribeForm({
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(
-        buildSubmitPayload(form, {
+        buildSubmitPayloadWithReferral(form, {
           planPriceId: selectedPrice.id,
           seatQuantity: effectiveSeatQuantity,
         }),
@@ -337,7 +356,7 @@ export function SubscribeForm({
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(
-        buildSubmitPayload(form, {
+        buildSubmitPayloadWithReferral(form, {
           planPriceId: selectedPrice.id,
           seatQuantity: effectiveSeatQuantity,
         }),

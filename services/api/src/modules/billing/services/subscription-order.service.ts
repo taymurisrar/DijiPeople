@@ -11,6 +11,10 @@ import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { assertValidTenantSlug } from '../../../common/utils/slug.util';
 import { OutboxService } from '../../outbox/outbox.service';
+import {
+  PartnerReferralResolverService,
+  type ReferralAttribution,
+} from '../../partner-experience/partner-referral-resolver.service';
 import { buildIdempotencyKey } from '../../outbox/outbox.types';
 import { CustomerIdentityService } from './customer-identity.service';
 import { TaxBasisService } from './tax-basis.service';
@@ -111,6 +115,12 @@ export type OpenOrderInput = {
    * the price they are charged.
    */
   mode?: 'DRAFT' | 'CHECKOUT';
+  /**
+   * The referral code the buyer presented, unresolved. Resolution happens
+   * inside this service against the referral links, never on the caller's
+   * word — attribution decides commission. BUG-0281.
+   */
+  referralCode?: string | null;
 };
 
 /**
@@ -124,6 +134,8 @@ type CommercialSelection = {
   planId: string;
   billingCycle: BillingCycle;
   originChannel: CustomerOriginChannel;
+  /** Resolved server-side from the presented code. BUG-0281. */
+  attribution: ReferralAttribution;
 };
 
 export type OpenOrderResult = {
@@ -156,6 +168,8 @@ export class SubscriptionOrderService {
     private readonly identity: CustomerIdentityService,
     private readonly taxBasis: TaxBasisService,
     private readonly outbox: OutboxService,
+    // Attribution is resolved here, never accepted. BUG-0281.
+    private readonly referralResolver: PartnerReferralResolverService,
   ) {}
 
   /**
@@ -183,6 +197,20 @@ export class SubscriptionOrderService {
       planPriceId: input.planPriceId,
       seatQuantity: input.seatQuantity,
     });
+
+    /*
+     * Resolved before the transaction opens, and outside it: this is a read
+     * against referral links that nothing in this flow writes, and holding a
+     * transaction open across it would widen the window in which two concurrent
+     * checkouts contend for the same customer row.
+     *
+     * Deliberately NOT part of `submissionHash`. Two otherwise identical
+     * submissions are the same order whether or not a referral code was present
+     * the second time; making the code part of the identity would let a buyer
+     * who reloaded with the code stripped from the URL create a second customer
+     * and a second tenant.
+     */
+    const attribution = await this.referralResolver.resolve(input.referralCode);
 
     // An identical submission that is still awaiting payment is the same order.
     // Returning it — with its existing Stripe session — is what stops a refresh
@@ -273,14 +301,21 @@ export class SubscriptionOrderService {
           planId: planPrice.planId,
           billingCycle: planPrice.billingCycle,
           /*
-           * A lead-attributed order came through sales; anything else reached
-           * this endpoint from the public site. `PARTNER_REFERRAL` is
-           * deliberately not inferred here — the subscribe flow captures no
-           * referral code, so claiming one would be a guess. See BUG-0281.
+           * A lead-attributed order came through sales. Otherwise the channel
+           * follows the evidence: `PARTNER_REFERRAL` only when a code actually
+           * resolved to an active partner and an active link, `WEBSITE` when it
+           * did not. A code that was presented but rejected — expired link,
+           * suspended partner, typo — leaves the channel as WEBSITE and is
+           * still recorded in `referralCodeSnapshot`, because 'someone
+           * presented FOO-123 and it had lapsed' is a different fact from 'no
+           * partner was involved'. BUG-0281.
            */
           originChannel: input.leadId
             ? CustomerOriginChannel.OTHER
-            : CustomerOriginChannel.WEBSITE,
+            : attribution.partnerId
+              ? CustomerOriginChannel.PARTNER_REFERRAL
+              : CustomerOriginChannel.WEBSITE,
+          attribution,
         });
 
         const orderNumber = `ORD-${new Date().getUTCFullYear()}-${randomUUID()
@@ -522,6 +557,7 @@ export class SubscriptionOrderService {
           selectedPlanId: true,
           preferredBillingCycle: true,
           originChannel: true,
+          originatingPartnerId: true,
         },
       });
       const updates = {
@@ -533,6 +569,22 @@ export class SubscriptionOrderService {
         ...(current.originChannel
           ? {}
           : { originChannel: selection.originChannel }),
+        /*
+         * Attribution fills a gap and never overwrites, on the same first-touch
+         * rule the lead path uses: the partner who introduced this customer is
+         * the one who introduced them, and a later order arriving under a
+         * different code must not reassign the commission. Gated on
+         * `originatingPartnerId` rather than on each column, so the partner, the
+         * link and the code snapshot are always written together and a record
+         * can never end up naming a partner with no link. BUG-0281.
+         */
+        ...(current.originatingPartnerId || !selection.attribution.partnerId
+          ? {}
+          : {
+              originatingPartnerId: selection.attribution.partnerId,
+              originatingReferralLinkId: selection.attribution.linkId,
+              referralCodeSnapshot: selection.attribution.code,
+            }),
       };
       if (Object.keys(updates).length > 0) {
         await tx.customerAccount.update({
@@ -589,6 +641,19 @@ export class SubscriptionOrderService {
         selectedPlanId: selection.planId,
         preferredBillingCycle: selection.billingCycle,
         originChannel: selection.originChannel,
+        /*
+         * Who introduced this buyer. Written from a code resolved against the
+         * referral links, never from anything the caller could name — these
+         * three columns are what partner commission is calculated from.
+         *
+         * The snapshot is kept even when the code did not resolve to a partner,
+         * so an expired link or a typo is recoverable evidence rather than a
+         * silent gap. `originatingPartnerId` stays null in that case, which is
+         * what stops a lapsed link from earning anything. BUG-0281.
+         */
+        originatingPartnerId: selection.attribution.partnerId,
+        originatingReferralLinkId: selection.attribution.linkId,
+        referralCodeSnapshot: selection.attribution.code,
         status: CustomerAccountStatus.PROSPECT,
         subStatus: 'Checkout started',
         leadId: input.leadId ?? null,

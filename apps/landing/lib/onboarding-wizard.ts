@@ -240,6 +240,13 @@ export function furthestReachableStep(
 export function buildSubmitPayload(
   form: WizardForm,
   selection: { planPriceId: string; seatQuantity: number },
+  /**
+   * The partner referral code the visitor arrived with, if any. Passed in
+   * rather than read here so this stays a pure function of the form — the
+   * capture lives in `lib/referral.ts` and the resolution is server-side, since
+   * attribution decides commission. BUG-0281.
+   */
+  referralCode?: string,
 ): Record<string, unknown> {
   const text = (value: string) => {
     const trimmed = value.trim();
@@ -279,5 +286,6 @@ export function buildSubmitPayload(
     acceptedLegalVersionIds: form.acceptedVersionIds.length
       ? form.acceptedVersionIds
       : undefined,
+    referralCode: referralCode?.trim() || undefined,
   };
 }

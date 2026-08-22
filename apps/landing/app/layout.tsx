@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 
 import { landingEnv } from "../lib/env";
 import { Fraunces, Manrope } from "next/font/google";
+import { ReferralCapture } from "./_components/referral-capture";
 import { SiteFooter, SiteHeader } from "./_components/site-shell";
 import "./globals.css";
 
@@ -62,6 +64,16 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${manrope.variable} ${fraunces.variable}`}>
+        {/*
+          * Remembers a partner's `?ref=` code on whichever page their link
+          * pointed at, so it survives to the form the visitor finally submits.
+          * Renders nothing. Wrapped in Suspense because `useSearchParams`
+          * opts a subtree out of static rendering otherwise, and this must not
+          * cost every page its prerender. BUG-0281.
+          */}
+        <Suspense fallback={null}>
+          <ReferralCapture />
+        </Suspense>
         <SiteHeader />
         {children}
         <SiteFooter />

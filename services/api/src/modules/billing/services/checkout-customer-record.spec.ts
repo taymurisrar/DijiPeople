@@ -2,12 +2,14 @@ import {
   BillingCycle,
   CustomerAccountStatus,
   CustomerOriginChannel,
+  LeadAttributionStatus,
 } from '@prisma/client';
 import { SubscriptionOrderService } from './subscription-order.service';
 import type { CustomerIdentityService } from './customer-identity.service';
 import type { OutboxService } from '../../outbox/outbox.service';
 import type { PrismaService } from '../../../common/prisma/prisma.service';
 import type { TaxBasisService } from './tax-basis.service';
+import type { PartnerReferralResolverService } from '../../partner-experience/partner-referral-resolver.service';
 
 /**
  * What a self-service purchase writes onto the customer record.
@@ -31,10 +33,35 @@ type ResolveCustomer = (
   selection: unknown,
 ) => Promise<string>;
 
+/** No partner involved: the ordinary direct purchase. */
+const DIRECT = {
+  partnerId: null,
+  linkId: null,
+  code: null,
+  status: LeadAttributionStatus.DIRECT,
+};
+
+/** A code that resolved to an active partner and an active link. */
+const ATTRIBUTED = {
+  partnerId: 'partner-1',
+  linkId: 'link-1',
+  code: 'GOLD-100',
+  status: LeadAttributionStatus.ATTRIBUTED,
+};
+
+/** A code that was presented and did not earn. Recorded, but not credited. */
+const EXPIRED = {
+  partnerId: null,
+  linkId: null,
+  code: 'GOLD-100',
+  status: LeadAttributionStatus.EXPIRED_LINK,
+};
+
 const SELECTION = {
   planId: 'plan-growth',
   billingCycle: BillingCycle.ANNUAL,
   originChannel: CustomerOriginChannel.WEBSITE,
+  attribution: DIRECT,
 };
 
 const INPUT = {
@@ -69,6 +96,7 @@ function build(overrides: {
             selectedPlanId: null,
             preferredBillingCycle: null,
             originChannel: null,
+            originatingPartnerId: null,
           },
         ),
     },
@@ -85,6 +113,9 @@ function build(overrides: {
     identity,
     {} as TaxBasisService,
     outbox,
+    // `resolveCustomer` receives an already-resolved attribution; resolution
+    // itself is asserted in partner-referral-resolver.service.spec.ts.
+    {} as PartnerReferralResolverService,
   );
 
   const resolveCustomer = (
@@ -177,5 +208,127 @@ describe('checkout customer record', () => {
     expect(data).not.toHaveProperty('selectedPlanId');
     expect(data).not.toHaveProperty('preferredBillingCycle');
     expect(data).not.toHaveProperty('originChannel');
+  });
+  /**
+   * REG-219 — BUG-0281.
+   *
+   * `CustomerAccount` carries three attribution columns and only the lead paths
+   * wrote them, so a buyer who followed a partner's referral link and paid
+   * without ever becoming a lead was recorded as an unattributed direct
+   * purchase — no error, no empty state, just a customer with no partner and a
+   * partner with no commission.
+   */
+  describe('partner attribution', () => {
+    it('records partner, link and code snapshot on a referred purchase', async () => {
+      const { resolveCustomer, tx, created } = build({ existing: null });
+
+      await resolveCustomer(tx, INPUT, {
+        ...SELECTION,
+        originChannel: CustomerOriginChannel.PARTNER_REFERRAL,
+        attribution: ATTRIBUTED,
+      });
+
+      expect(created[0]).toMatchObject({
+        originatingPartnerId: 'partner-1',
+        originatingReferralLinkId: 'link-1',
+        referralCodeSnapshot: 'GOLD-100',
+        originChannel: CustomerOriginChannel.PARTNER_REFERRAL,
+      });
+    });
+
+    it('leaves an unreferred purchase on WEBSITE with no partner, not a blank', async () => {
+      const { resolveCustomer, tx, created } = build({ existing: null });
+
+      await resolveCustomer(tx, INPUT, SELECTION);
+
+      expect(created[0]).toMatchObject({
+        originatingPartnerId: null,
+        originatingReferralLinkId: null,
+        referralCodeSnapshot: null,
+        originChannel: CustomerOriginChannel.WEBSITE,
+      });
+    });
+
+    it('keeps the code of a link that did not earn, and credits nobody', async () => {
+      // An expired link is recoverable evidence. A blank is not.
+      const { resolveCustomer, tx, created } = build({ existing: null });
+
+      await resolveCustomer(tx, INPUT, { ...SELECTION, attribution: EXPIRED });
+
+      expect(created[0]).toMatchObject({
+        originatingPartnerId: null,
+        originatingReferralLinkId: null,
+        referralCodeSnapshot: 'GOLD-100',
+        originChannel: CustomerOriginChannel.WEBSITE,
+      });
+    });
+
+    it('fills attribution on a returning customer who had none', async () => {
+      const { resolveCustomer, tx, updated } = build({
+        existing: { id: 'customer-existing', status: CustomerAccountStatus.PROSPECT },
+        current: {
+          selectedPlanId: null,
+          preferredBillingCycle: null,
+          originChannel: null,
+          originatingPartnerId: null,
+        },
+      });
+
+      await resolveCustomer(tx, INPUT, { ...SELECTION, attribution: ATTRIBUTED });
+
+      expect(updated[0]).toMatchObject({
+        originatingPartnerId: 'partner-1',
+        originatingReferralLinkId: 'link-1',
+        referralCodeSnapshot: 'GOLD-100',
+      });
+    });
+
+    it('never reassigns a customer who already has a partner', async () => {
+      /*
+       * First touch wins. The partner who introduced this customer is the one
+       * who introduced them; a later order arriving under a rival's code must
+       * not move the commission.
+       */
+      const { resolveCustomer, tx, updated } = build({
+        existing: { id: 'customer-existing', status: CustomerAccountStatus.ACTIVE },
+        current: {
+          selectedPlanId: 'plan-starter',
+          preferredBillingCycle: BillingCycle.MONTHLY,
+          originChannel: CustomerOriginChannel.PARTNER_REFERRAL,
+          originatingPartnerId: 'partner-first',
+        },
+      });
+
+      await resolveCustomer(tx, INPUT, {
+        ...SELECTION,
+        attribution: { ...ATTRIBUTED, partnerId: 'partner-second' },
+      });
+
+      const data = updated[0] ?? {};
+      expect(data).not.toHaveProperty('originatingPartnerId');
+      expect(data).not.toHaveProperty('originatingReferralLinkId');
+      expect(data).not.toHaveProperty('referralCodeSnapshot');
+    });
+
+    it('writes the three columns together or not at all', async () => {
+      // A record naming a partner with no link would make the commission
+      // unauditable, so the gate is one condition, not three.
+      const { resolveCustomer, tx, updated } = build({
+        existing: { id: 'customer-existing', status: CustomerAccountStatus.PROSPECT },
+        current: {
+          selectedPlanId: null,
+          preferredBillingCycle: null,
+          originChannel: null,
+          originatingPartnerId: null,
+        },
+      });
+
+      await resolveCustomer(tx, INPUT, { ...SELECTION, attribution: EXPIRED });
+
+      const data = updated[0] ?? {};
+      expect(data).not.toHaveProperty('originatingPartnerId');
+      expect(data).not.toHaveProperty('originatingReferralLinkId');
+      expect(data).not.toHaveProperty('referralCodeSnapshot');
+    });
   });
 });

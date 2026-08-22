@@ -244,6 +244,8 @@ export class BillingService {
     email: string;
     country: string;
     phone?: string;
+    /** Unresolved; the order service resolves it against the links. BUG-0281. */
+    referralCode?: string | null;
   }) {
     const planPrice = await this.prisma.planPrice.findUnique({
       where: { id: input.planPriceId },
@@ -267,6 +269,7 @@ export class BillingService {
       email: input.email.trim().toLowerCase(),
       phone: input.phone?.trim() || null,
       country: input.country.trim(),
+      referralCode: input.referralCode ?? null,
       mode: 'DRAFT',
     });
 
@@ -287,6 +290,8 @@ export class BillingService {
     country: string;
     message?: string;
     website?: string;
+    /** Unresolved; the order service resolves it against the links. BUG-0281. */
+    referralCode?: string | null;
     requestedSlug?: string;
     legalCompanyName?: string;
     registrationNumber?: string;
@@ -366,6 +371,7 @@ export class BillingService {
       phone: input.phone?.trim() || null,
       country,
       message,
+      referralCode: input.referralCode ?? null,
       requestedSlug: input.requestedSlug ?? null,
       organization: {
         legalCompanyName: input.legalCompanyName,

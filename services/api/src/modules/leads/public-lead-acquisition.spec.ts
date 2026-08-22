@@ -8,6 +8,7 @@ import {
   isPartnershipModel,
 } from './acquisition.catalog';
 import { LeadsService } from './leads.service';
+import { PartnerReferralResolverService } from '../partner-experience/partner-referral-resolver.service';
 import { SubmitLeadDto } from './dto/submit-lead.dto';
 
 /**
@@ -65,6 +66,9 @@ describe('public lead acquisition', () => {
         withdraw: jest.fn(),
         currentState: jest.fn(),
       } as never,
+      // Referral resolution moved out of LeadsService so checkout could share
+      // it (BUG-0281). The real resolver over the same mocked prisma.
+      new PartnerReferralResolverService(prisma as never),
     );
 
     return { service, created, prisma, events, repository };
