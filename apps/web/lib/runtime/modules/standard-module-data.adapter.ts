@@ -211,7 +211,7 @@ export function createStandardModuleDataAdapter(
     },
 
     async create(_runtime, values) {
-      const payload = sanitizeStandardMutationValues(values, spec);
+      const payload = sanitizeStandardMutationValues(values, spec, "create");
       debugRuntime("Standard adapter create request", {
         moduleKey: spec.moduleKey,
         path: createPath,
@@ -233,7 +233,7 @@ export function createStandardModuleDataAdapter(
 
     async update(_runtime, recordId, values) {
       const path = recordPath(baseResourcePath, recordId, updatePath);
-      const payload = sanitizeStandardMutationValues(values, spec);
+      const payload = sanitizeStandardMutationValues(values, spec, "update");
       debugRuntime("Standard adapter update request", {
         moduleKey: spec.moduleKey,
         recordId,
@@ -802,6 +802,7 @@ function shouldUseLookupCodeAsValue(fieldLogicalName: string) {
 function sanitizeStandardMutationValues(
   values: RuntimeRecord,
   spec: StandardModuleRuntimeSpec,
+  mode: "create" | "update" = "create",
 ) {
   const writableFields = spec.fields.filter(
     (field) =>
@@ -862,6 +863,13 @@ function sanitizeStandardMutationValues(
 
   if (spec.moduleKey === "recruitmentJobs") {
     return normalizeJobOpeningMutationPayload(payload);
+  }
+
+  // Modules whose form fields are generated at runtime cannot be described by a
+  // static field list, so they supply their own reshape. See
+  // `StandardModuleRuntimeSpec.mutationPayloadTransform`.
+  if (spec.mutationPayloadTransform) {
+    return spec.mutationPayloadTransform(payload, values, mode);
   }
 
   return payload;

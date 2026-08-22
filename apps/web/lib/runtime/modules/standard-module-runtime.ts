@@ -99,6 +99,31 @@ export type StandardModuleRuntimeSpec = {
   readonly apiPath?: string;
   readonly createApiPath?: string;
   readonly updateApiPath?: string;
+  /**
+   * Last chance to reshape a create/update payload before it is sent.
+   *
+   * Receives the payload the standard sanitiser produced (writable fields only)
+   * plus the raw form values, and returns the body to send. It exists for
+   * modules whose form fields are generated at runtime and therefore cannot be
+   * declared statically — employee compensation renders one field per active
+   * pay component, named `component_<id>`, which no fixed field list can
+   * describe.
+   *
+   * This is *shape* translation, and it belongs here rather than in a route
+   * handler under `app/api/**`, which "forwards the request, forwards the
+   * response, and decides nothing" (`apps/web/AGENTS.md`). Compensation's
+   * translation used to live in the proxy, where it also made a second API call
+   * and derived `basicSalary` — a payroll rule, in a layer with no tests and no
+   * audit trail. BUG-0041 / ITEM-0050.
+   *
+   * A transform may reshape. It may not decide policy, and it may not invent a
+   * monetary value the user did not enter.
+   */
+  readonly mutationPayloadTransform?: (
+    payload: Record<string, unknown>,
+    values: Readonly<Record<string, unknown>>,
+    mode: "create" | "update",
+  ) => Record<string, unknown>;
   readonly entityLogicalName: string;
   readonly collectionName: string;
   readonly label: string;
