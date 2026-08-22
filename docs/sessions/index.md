@@ -6,12 +6,13 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 7** · completed: 32
+**Active: 8** · completed: 32
 
 ## Active
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0041](../../docs/sessions/SESSION-0041-document-vercel-render-and-neon-platform-access-for-agents.md) | — | Document Vercel, Render and Neon platform access for agents | ACTIVE | `agent/platform-access-docs` | `develop` | — | 2026-08-22T13:30:26.204Z |
 | [SESSION-0040](../../docs/sessions/SESSION-0040-qa-verification-of-49-fixed-bugs-remaining-fix-now-items-and.md) | — | QA verification of 49 fixed bugs, remaining FIX_NOW items, and the lint burn-down | ACTIVE | `agent/qa-verify-and-burndown` | `develop` | — | 2026-08-22T09:25:45.183Z |
 | [SESSION-0023](../../docs/sessions/SESSION-0023-first-production-release.md) | — | First production release | ACTIVE | `agent/first-production-release` | `main` | — | 2026-08-20T16:21:59.286Z |
 | [SESSION-0022](../../docs/sessions/SESSION-0022-go-live-readiness.md) | TASK-0010 | Go-live readiness | ACTIVE | `agent/go-live-readiness` | `develop` | — | 2026-08-20T11:10:18.564Z |

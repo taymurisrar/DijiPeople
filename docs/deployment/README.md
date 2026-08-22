@@ -8,6 +8,7 @@ Owning agent: [`.agent/agents/release-devops.md`](../../.agent/agents/release-de
 | Document | Purpose |
 |---|---|
 | [`environments.md`](environments.md) | What environments exist, and what is configured where |
+| [`platform-access.md`](platform-access.md) | How to reach Vercel, Render and Neon — CLIs, credential variables, ids, and what an agent may do on each |
 | [`readiness-checklist.md`](readiness-checklist.md) | The gates, and the readiness levels |
 | [`deployment-runbook.md`](deployment-runbook.md) | Executing a release |
 | [`first-production-launch.md`](first-production-launch.md) | The ordered owner actions for the **first** production deploy — new environment variables, the Stripe currency question, and opening the commercial surface |
