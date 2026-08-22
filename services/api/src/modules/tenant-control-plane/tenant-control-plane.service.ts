@@ -175,6 +175,23 @@ export class TenantControlPlaneService {
 
   /** The readiness validator on its own, for the action bar's Validate action. */
   async readiness(user: AuthenticatedUser, tenantId: string) {
+    /*
+     * Asserted here, not only inside `overview()`.
+     *
+     * This method *was* authorized — `overview()` asserts, and this delegates to
+     * it — and a QA audit recorded it as "correct-but-indirect", the module's
+     * one soft spot. The control plane is a cross-tenant surface that authorizes
+     * inside services rather than through decorators, so "every reachable method
+     * asserts" is the entire security model. A method that asserts only as a
+     * side effect of what it happens to call is one refactor away from asserting
+     * nothing, and the refactor that breaks it will look like an optimisation:
+     * "readiness only needs the readiness projection, why load the whole
+     * overview?".
+     *
+     * One line, and the authorization is readable without tracing a call chain.
+     * `every-method-asserts.spec.ts` generalises it. ITEM-0015.
+     */
+    assertTenantPlatformAccess(user, 'tenants.read');
     const overview = await this.overview(user, tenantId);
     return overview.readiness;
   }

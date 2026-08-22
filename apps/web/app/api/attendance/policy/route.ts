@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
 import { apiRequest, proxyApiJsonResponse } from "@/lib/server-api";
+import { proxyErrorResponse } from "@/app/api/_lib/proxy-error";
 
 export async function PATCH(request: Request) {
   const body = await request.json();
@@ -12,14 +12,6 @@ export async function PATCH(request: Request) {
 
     return proxyApiJsonResponse(response);
   } catch (error) {
-    return NextResponse.json(
-      {
-        message:
-          error instanceof Error
-            ? error.message
-            : "Unable to update attendance policy.",
-      },
-      { status: 500 },
-    );
+    return proxyErrorResponse(error, "Unable to update attendance policy.");
   }
 }

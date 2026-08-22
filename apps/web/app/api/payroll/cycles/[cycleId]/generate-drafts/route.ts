@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
 import { apiRequest, proxyApiJsonResponse } from "@/lib/server-api";
+import { proxyErrorResponse } from "@/app/api/_lib/proxy-error";
 
 export async function POST(
   _request: Request,
@@ -14,15 +14,7 @@ export async function POST(
 
     return proxyApiJsonResponse(response);
   } catch (error) {
-    return NextResponse.json(
-      {
-        message:
-          error instanceof Error
-            ? error.message
-            : "Unable to generate payroll drafts.",
-      },
-      { status: 500 },
-    );
+    return proxyErrorResponse(error, "Unable to generate payroll drafts.");
   }
 }
 

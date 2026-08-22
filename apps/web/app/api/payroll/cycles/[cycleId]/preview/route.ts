@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
 import { apiRequest, proxyApiJsonResponse } from "@/lib/server-api";
+import { proxyErrorResponse } from "@/app/api/_lib/proxy-error";
 
 export async function GET(
   _request: Request,
@@ -14,14 +14,6 @@ export async function GET(
 
     return proxyApiJsonResponse(response);
   } catch (error) {
-    return NextResponse.json(
-      {
-        message:
-          error instanceof Error
-            ? error.message
-            : "Unable to preview payroll generation.",
-      },
-      { status: 500 },
-    );
+    return proxyErrorResponse(error, "Unable to preview payroll generation.");
   }
 }

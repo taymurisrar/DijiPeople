@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
 import { apiRequest, proxyApiJsonResponse } from "@/lib/server-api";
+import { proxyErrorResponse } from "@/app/api/_lib/proxy-error";
 
 type RouteContext = {
   params: Promise<{ path?: string[] }>;
@@ -21,15 +21,7 @@ async function proxyNavigationRequest(
     const response = await apiRequest(apiPath, { method, body });
     return proxyApiJsonResponse(response);
   } catch (error) {
-    return NextResponse.json(
-      {
-        message:
-          error instanceof Error
-            ? error.message
-            : "Unable to complete navigation request.",
-      },
-      { status: 500 },
-    );
+    return proxyErrorResponse(error, "Unable to complete navigation request.");
   }
 }
 

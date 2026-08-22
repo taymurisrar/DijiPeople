@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
 import { apiRequest, proxyApiFileResponse, proxyApiJsonResponse } from "@/lib/server-api";
+import { proxyErrorResponse } from "@/app/api/_lib/proxy-error";
 
 type RouteContext = {
   params: Promise<{ employeeId: string; documentId: string }>;
@@ -26,15 +26,7 @@ export async function DELETE(_request: Request, context: RouteContext) {
 
     return proxyApiJsonResponse(response);
   } catch (error) {
-    return NextResponse.json(
-      {
-        message:
-          error instanceof Error
-            ? error.message
-            : "Unable to delete employee document.",
-      },
-      { status: 500 },
-    );
+    return proxyErrorResponse(error, "Unable to delete employee document.");
   }
 }
 
@@ -50,14 +42,6 @@ export async function PATCH(request: Request, context: RouteContext) {
 
     return proxyApiJsonResponse(response);
   } catch (error) {
-    return NextResponse.json(
-      {
-        message:
-          error instanceof Error
-            ? error.message
-            : "Unable to update employee document.",
-      },
-      { status: 500 },
-    );
+    return proxyErrorResponse(error, "Unable to update employee document.");
   }
 }

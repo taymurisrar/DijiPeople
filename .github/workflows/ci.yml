@@ -330,6 +330,12 @@ jobs:
         # cannot hold one. The failure is deterministic configuration, so the
         # check is too: the migration url must not name a pooled host.
         run: npm run test:database-urls
+      - name: Environment examples agree with each other and with the code
+        # ITEM-0045 — apps/web ships two committed .env examples and they
+        # disagreed about the domain workspaces are served from: one named the
+        # landing port. It broke nothing, because the port is normalised away
+        # before classification, which is exactly why it survived.
+        run: npm run test:env-examples
       - name: No loopback URLs in shipped source
         # The other half of the same defect: a hardcoded literal never consults
         # an environment variable, so environment validation cannot see it.
@@ -367,6 +373,13 @@ jobs:
         # truth the authority cannot see, correct or audit is a defect even when
         # it is fail-closed, and money derived in an untested layer is worse.
         run: npm run check:proxies-decide-nothing
+      - name: Proxies forward the upstream status
+        # ITEM-0035 — 134 catch blocks across 123 handlers answered every
+        # upstream failure with a hardcoded 500, losing the status, the
+        # fieldErrors a form needs and the traceId that makes a reported error
+        # findable. The capability was all there; it was adoption, and prose
+        # does not achieve adoption across 123 files.
+        run: npm run check:proxies-forward-status
       - name: Modal dialogs contain focus
         # BUG-0043. Every modal in apps/web was a bespoke `fixed inset-0` div:
         # Tab walked out of all of them, three could not be closed with Escape,
