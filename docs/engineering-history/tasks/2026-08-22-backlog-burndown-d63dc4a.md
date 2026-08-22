@@ -470,12 +470,24 @@ migration, no data change, no schema write.
 
 Two things matter at the *next* deploy, whenever it happens:
 
-- **`DIRECT_DATABASE_URL` must be set on Render before the next production
-  deploy**, to Neon's direct endpoint for the same database. Without it,
-  migrations still inherit the pooled `DATABASE_URL` and still fail — the
-  difference is that they now fail immediately with a message naming the
-  variable, rather than ten seconds later on `P1002`. That is a dashboard
-  change and is the user's to make.
+- **`DIRECT_DATABASE_URL` is not currently required — corrected 2026-08-22.**
+  This said it "must be set on Render before the next production deploy" or
+  migrations would still fail. That was wrong, and the evidence came from
+  production itself: `prisma migrate status` reports 217 of 217 `main`
+  migrations applied, and the host it connected to carries **no `-pooler`
+  infix**. Production's `DATABASE_URL` is already the direct endpoint, so
+  migrations resolve to it through the fallback and work exactly as before.
+
+  I inferred the pooled configuration from BUG-0086's report rather than
+  checking what production is set to now — the same shape of error as the
+  Obsidian claim above.
+
+  What remains true is the conditional: **if `DATABASE_URL` is ever moved to
+  the pooled endpoint** — which is a reasonable thing to want for runtime
+  connection reuse — `DIRECT_DATABASE_URL` must be set first, or migrations
+  break. The difference the fix makes is that they now break immediately with a
+  message naming the variable, instead of ten seconds later on `P1002` with an
+  advisory lock id.
 - **The desktop agent's dependency graph changed**: `node-pre-gyp` 1 → 2,
   `node-gyp` 9 → 11, `tar` 6.2.1 → 7.5.22. Verified by a real `npm ci` and an
   audit of the installed tree; **not** verified against a rebuilt `app.asar`,

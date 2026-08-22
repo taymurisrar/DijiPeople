@@ -250,6 +250,28 @@ Registered where the Security checklist requires: `render.yaml` with
 a table of which operations need a direct connection and why, so the next
 environment does not repeat it.
 
+### Production configuration — checked 2026-08-22, SESSION-0040
+
+`prisma migrate status` against production reports **217 of 217 `main`
+migrations applied**, and the host it names carries no `-pooler` infix.
+
+So production's `DATABASE_URL` is the **direct** endpoint today, and migrations
+have been resolving to it all along. `DIRECT_DATABASE_URL` is therefore not
+required on Render right now, and an earlier note in this session's history
+record saying it "must be set before the next production deploy" was wrong — it
+inferred the pooled configuration from this record's report rather than checking
+what production is set to.
+
+The fix is not thereby pointless, and the conditional is the part to keep: the
+pooled endpoint is the better choice for a runtime that opens many short-lived
+connections, and the moment anybody makes that change for performance,
+migrations break. What this record's fix buys is that they break *at config
+load, naming the variable to set*, instead of ten seconds into
+`preDeployCommand` on a `P1002` naming an advisory lock id — and that
+`DIRECT_DATABASE_URL` is already declared in `render.yaml`, `turbo.json` and the
+environment documentation, so setting it is a dashboard change rather than a
+code change made under deployment pressure.
+
 ## QA Retest
 
 Verified against the real Prisma CLI rather than by reading:
