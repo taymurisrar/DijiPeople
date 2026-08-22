@@ -22,6 +22,7 @@ import { TextAreaField, TextField } from "@/app/components/ui/form-control";
 import { StatusPill } from "@/app/components/ui/status-pill";
 import { PermissionGate } from "@/app/(authenticated)/_components/permission-gate";
 import type { CustomizationPackage } from "../types";
+import { useDialogBehavior } from "@/app/components/ui/dialog";
 
 type PackagesListProps = {
   initialMessage?: string;
@@ -380,6 +381,14 @@ export function PackagesList({ initialMessage, packages }: PackagesListProps) {
     (gap) => gap.severity === "error",
   );
 
+  // BUG-0043: this modal kept its own layout and gained the guarantees
+  // it never had - focus containment, Escape, focus restore and dialog
+  // semantics. See useDialogBehavior.
+  const formDialog = useDialogBehavior({
+    open: Boolean(form),
+    onClose: () => setForm(null),
+  });
+
   return (
     <div className="grid gap-4">
       {exportGaps ? (
@@ -495,13 +504,17 @@ export function PackagesList({ initialMessage, packages }: PackagesListProps) {
       />
 
       {form ? (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/40 p-4">
+        <div
+          className="fixed inset-0 z-50 grid place-items-center bg-slate-950/40 p-4"
+          {...formDialog.backdropProps}
+        >
           <form
+            {...formDialog.panelProps}
             className="grid max-h-[92vh] w-full max-w-2xl gap-5 overflow-y-auto rounded-[20px] border border-border bg-white p-6 shadow-xl"
             onSubmit={submitPackage}
           >
             <div>
-              <h3 className="text-lg font-semibold text-foreground">
+              <h3 className="text-lg font-semibold text-foreground" id={formDialog.titleId}>
                 {form.mode === "create" ? "New Package" : "Edit Package"}
               </h3>
               <p className="mt-1 text-sm text-muted">

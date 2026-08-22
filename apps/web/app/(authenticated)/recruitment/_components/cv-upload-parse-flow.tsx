@@ -628,6 +628,13 @@ export function CvUploadParseFlow({
             event.preventDefault();
           }}
           onDrop={handleDrop}
+          /*
+           * Drag-and-drop is a mouse convenience layered over the file picker
+           * button inside this zone — the copy above even says so. The zone
+           * itself activates nothing, so it is presentation; the accessible
+           * route is the button, which is already reachable. BUG-0043.
+           */
+          role="presentation"
         >
           <div>
             <p className="font-medium text-foreground">

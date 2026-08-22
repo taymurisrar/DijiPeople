@@ -11,6 +11,7 @@ import {
   useState,
 } from "react";
 import { UserAvatar } from "@/app/(authenticated)/_components/user-avatar";
+import { useDialogBehavior } from "@/app/components/ui/dialog";
 
 const CROP_PREVIEW_SIZE = 288;
 const OUTPUT_SIZE = 512;
@@ -164,6 +165,15 @@ export function RuntimeProfileImageCard({
     if (draft) URL.revokeObjectURL(draft.previewUrl);
     setDraft(null);
   }
+
+  // BUG-0043: the cropper kept its own layout and gained the guarantees it
+  // never had - focus containment, Escape, focus restore and dialog semantics.
+  // `busy` while an upload is in flight, so a stray Escape cannot abandon it.
+  const cropDialog = useDialogBehavior({
+    open: Boolean(draft),
+    onClose: closeDraft,
+    busy: isUploading,
+  });
 
   async function handleRemoveImage() {
     if (!profileImage || !canRemove) return;
@@ -325,11 +335,20 @@ export function RuntimeProfileImageCard({
       </article>
 
       {draft ? (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/50 px-4 py-6">
-          <div className="w-full max-w-2xl rounded-[28px] border border-border bg-white p-6 shadow-2xl">
+        <div
+          className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/50 px-4 py-6"
+          {...cropDialog.backdropProps}
+        >
+          <div
+            {...cropDialog.panelProps}
+            className="w-full max-w-2xl rounded-[28px] border border-border bg-white p-6 shadow-2xl"
+          >
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h3 className="text-xl font-semibold text-foreground">
+                <h3
+                  className="text-xl font-semibold text-foreground"
+                  id={cropDialog.titleId}
+                >
                   Adjust profile image
                 </h3>
                 <p className="mt-2 text-sm text-muted">

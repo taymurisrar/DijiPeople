@@ -25,6 +25,7 @@ import {
   CustomizationView,
 } from "../types";
 import { CustomPackagePickerDialog } from "./custom-package-picker-dialog";
+import { useDialogBehavior } from "@/app/components/ui/dialog";
 
 type ViewFormState = {
   mode: "create" | "edit";
@@ -485,6 +486,14 @@ export function ViewsManagement({
     router.refresh();
   }
 
+  // BUG-0043: this modal kept its own layout and gained the guarantees
+  // it never had - focus containment, Escape, focus restore and dialog
+  // semantics. See useDialogBehavior.
+  const formDialog = useDialogBehavior({
+    open: Boolean(form),
+    onClose: () => setForm(null),
+  });
+
   return (
     <SectionCard
       description="Views define runtime list fields, default filters, sorting, and visibility scope for this module."
@@ -536,13 +545,17 @@ export function ViewsManagement({
       />
 
       {form ? (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/40 p-4">
+        <div
+          className="fixed inset-0 z-50 grid place-items-center bg-slate-950/40 p-4"
+          {...formDialog.backdropProps}
+        >
           <form
+            {...formDialog.panelProps}
             className="grid max-h-[92vh] w-full max-w-3xl gap-5 overflow-y-auto rounded-[24px] border border-border bg-white p-6 shadow-xl"
             onSubmit={handleSubmit}
           >
             <div>
-              <h3 className="text-lg font-semibold text-foreground">
+              <h3 className="text-lg font-semibold text-foreground" id={formDialog.titleId}>
                 {form.mode === "create" ? "Create view" : "Edit view"}
               </h3>
               <p className="mt-1 text-sm leading-6 text-muted">

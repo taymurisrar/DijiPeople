@@ -1,7 +1,7 @@
 "use client";
 
-import { X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { Dialog } from "@/app/components/ui/dialog";
 import {
   SelectField,
   TextAreaField,
@@ -137,137 +137,128 @@ export function ModuleCommandActionDialog({
     }
   }
 
+  // A right-hand sheet, but a modal one: it declared `role="dialog"` without
+  // `aria-modal`, Escape did nothing, and Tab left it for the page behind. The
+  // shared primitive supplies all three; `variant="panel"` keeps the layout.
+  // BUG-0043.
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/20">
-      <aside
-        aria-label={schema.title}
-        className="h-full w-full max-w-xl overflow-y-auto border-l border-border bg-surface shadow-2xl"
-        role="dialog"
-      >
-        <div className="flex items-center justify-between border-b border-border px-5 py-4">
-          <div>
-            <h2 className="text-lg font-semibold text-foreground">
-              {schema.title}
-            </h2>
-            {contextSubtitle(context) ? (
-              <p className="mt-1 text-xs text-muted">{contextSubtitle(context)}</p>
-            ) : null}
-          </div>
+    <Dialog
+      description={contextSubtitle(context) || undefined}
+      footer={
+        <>
           <button
-            aria-label="Close action"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-md text-muted hover:bg-muted/20"
+            className="rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground"
             onClick={onCancel}
             type="button"
           >
-            <X className="h-4 w-4" />
+            Cancel
           </button>
-        </div>
-        <div className="grid gap-4 p-5">
-          {visibleFields.map((field) => {
-            const options = readOptions(context, field.optionsSource);
-            if (field.type === "multiline") {
-              return (
-                <TextAreaField
-                  key={field.key}
-                  label={field.label}
-                  onChange={(value) =>
-                    setValues((current) => ({ ...current, [field.key]: value }))
-                  }
-                  value={values[field.key] ?? ""}
-                />
-              );
-            }
+          <button
+            className="rounded-md bg-accent px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+            disabled={loading || Boolean(readString(context, "blockedReason"))}
+            onClick={() => void submit()}
+            type="button"
+          >
+            {/*
+             * Falls back to the command title rather than rendering an empty
+             * button. A schema with no `submitLabel` produced a blank, fully
+             * clickable control beside Cancel - an invisible actionable button
+             * is worse than a generically labelled one.
+             */}
+            {loading ? "Working..." : schema.submitLabel || schema.title || "Confirm"}
+          </button>
+        </>
+      }
+      onClose={onCancel}
+      open={open}
+      size="xl"
+      title={schema.title}
+      variant="panel"
+    >
+      <div className="grid gap-4">
+        {visibleFields.map((field) => {
+          const options = readOptions(context, field.optionsSource);
+          if (field.type === "multiline") {
             return (
-              <SelectField
+              <TextAreaField
                 key={field.key}
                 label={field.label}
                 onChange={(value) =>
                   setValues((current) => ({ ...current, [field.key]: value }))
                 }
-                options={options}
-                required={field.required}
                 value={values[field.key] ?? ""}
               />
             );
-          })}
-          {requiresGeolocation(activeSchema, values, context) ? (
-            <p className="rounded-lg border border-info/30 bg-info/5 p-3 text-sm text-foreground">
-              Location will be captured when you submit.
-            </p>
-          ) : null}
-          {locationFailure && !locationFailure.ok ? (
-            <div className="grid gap-2 rounded-lg border border-danger/30 bg-danger/5 p-3 text-sm">
-              <p className="text-danger">{locationFailure.message}</p>
-              <div className="flex flex-wrap gap-2">
+          }
+          return (
+            <SelectField
+              key={field.key}
+              label={field.label}
+              onChange={(value) =>
+                setValues((current) => ({ ...current, [field.key]: value }))
+              }
+              options={options}
+              required={field.required}
+              value={values[field.key] ?? ""}
+            />
+          );
+        })}
+        {requiresGeolocation(activeSchema, values, context) ? (
+          <p className="rounded-lg border border-info/30 bg-info/5 p-3 text-sm text-foreground">
+            Location will be captured when you submit.
+          </p>
+        ) : null}
+        {locationFailure && !locationFailure.ok ? (
+          <div className="grid gap-2 rounded-lg border border-danger/30 bg-danger/5 p-3 text-sm">
+            <p className="text-danger">{locationFailure.message}</p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                className="rounded-md border border-border bg-surface px-3 py-1.5 font-medium text-foreground"
+                disabled={loading}
+                onClick={() => void submit()}
+                type="button"
+              >
+                Retry Location
+              </button>
+              {readBoolean(context, "policy.allowIpFallback", false) ? (
                 <button
                   className="rounded-md border border-border bg-surface px-3 py-1.5 font-medium text-foreground"
                   disabled={loading}
-                  onClick={() => void submit()}
+                  onClick={() => void submitWithApproximateLocation()}
                   type="button"
                 >
-                  Retry Location
+                  Use Approximate Location
                 </button>
-                {readBoolean(context, "policy.allowIpFallback", false) ? (
-                  <button
-                    className="rounded-md border border-border bg-surface px-3 py-1.5 font-medium text-foreground"
-                    disabled={loading}
-                    onClick={() => void submitWithApproximateLocation()}
-                    type="button"
-                  >
-                    Use Approximate Location
-                  </button>
-                ) : null}
-                {readBoolean(
-                  context,
-                  "policy.allowManualLocationException",
-                  false,
-                ) ? (
-                  <button
-                    className="rounded-md border border-border bg-surface px-3 py-1.5 font-medium text-foreground"
-                    disabled={loading}
-                    onClick={() => void submitManualLocationException()}
-                    type="button"
-                  >
-                    Request Manual Checkout
-                  </button>
-                ) : null}
-              </div>
+              ) : null}
+              {readBoolean(
+                context,
+                "policy.allowManualLocationException",
+                false,
+              ) ? (
+                <button
+                  className="rounded-md border border-border bg-surface px-3 py-1.5 font-medium text-foreground"
+                  disabled={loading}
+                  onClick={() => void submitManualLocationException()}
+                  type="button"
+                >
+                  Request Manual Checkout
+                </button>
+              ) : null}
             </div>
-          ) : null}
-          {readString(context, "blockedReason") ? (
-            <p className="rounded-lg border border-danger/30 bg-danger/5 p-3 text-sm text-danger">
-              {readString(context, "blockedReason")}
-            </p>
-          ) : null}
-          {error ? <p className="text-sm text-danger">{error}</p> : null}
-          <div className="flex justify-end gap-2">
-            <button
-              className="rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground"
-              onClick={onCancel}
-              type="button"
-            >
-              Cancel
-            </button>
-            <button
-              className="rounded-md bg-accent px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
-              disabled={
-                loading || Boolean(readString(context, "blockedReason"))
-              }
-              onClick={() => void submit()}
-              type="button"
-            >
-              {/*
-               * Falls back to the command title rather than rendering an empty
-               * button. A schema with no `submitLabel` produced a blank, fully
-               * clickable control beside Cancel - an invisible actionable button
-               * is worse than a generically labelled one.
-               */}
-              {loading ? "Working..." : schema.submitLabel || schema.title || "Confirm"}
-            </button>
           </div>
-        </div>
-      </aside>
-    </div>
+        ) : null}
+        {readString(context, "blockedReason") ? (
+          <p className="rounded-lg border border-danger/30 bg-danger/5 p-3 text-sm text-danger">
+            {readString(context, "blockedReason")}
+          </p>
+        ) : null}
+        {error ? (
+          <p className="text-sm text-danger" role="alert">
+            {error}
+          </p>
+        ) : null}
+      </div>
+    </Dialog>
   );
 
   async function submitWithApproximateLocation() {

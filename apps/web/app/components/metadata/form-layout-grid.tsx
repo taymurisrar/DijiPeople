@@ -70,6 +70,14 @@ export function FormGrid({
       data-effective-columns={effectiveColumns}
       data-gap={gap}
       onDragOver={onDragOver}
+      /*
+       * `onDragOver` makes this a drop target for the form designer, not a
+       * control: there is nothing here to activate, and every field inside is
+       * separately reachable. `group` gives it a non-interactive role so the
+       * grid is not announced as something the user can operate. Keyboard
+       * reordering of designer elements is ITEM-0080, not this element's job.
+       */
+      role="group"
       style={formGridStyle(effectiveColumns)}
     >
       {children}

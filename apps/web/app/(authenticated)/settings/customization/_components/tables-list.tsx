@@ -15,6 +15,7 @@ import {
 import { StatusPill } from "@/app/components/ui/status-pill";
 import { PermissionGate } from "@/app/(authenticated)/_components/permission-gate";
 import { CustomizationTable } from "../types";
+import { useDialogBehavior } from "@/app/components/ui/dialog";
 
 type TablesListProps = {
   tables: CustomizationTable[];
@@ -291,6 +292,17 @@ export function TablesList({ tables }: TablesListProps) {
     router.refresh();
   }
 
+  // BUG-0043: kept its own layout, gained the guarantees it never had -
+  // focus containment, Escape, focus restore and dialog semantics.
+  const editDialog = useDialogBehavior({
+    open: Boolean(editing),
+    onClose: () => setEditing(null),
+  });
+  const deleteDialog = useDialogBehavior({
+    open: Boolean(deleteTarget),
+    onClose: () => setDeleteTarget(null),
+  });
+
   return (
     <>
       <div className="mb-3 flex justify-end">
@@ -339,13 +351,20 @@ export function TablesList({ tables }: TablesListProps) {
       />
 
       {editing ? (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/40 p-4">
+        <div
+          className="fixed inset-0 z-50 grid place-items-center bg-slate-950/40 p-4"
+          {...editDialog.backdropProps}
+        >
           <form
+            {...editDialog.panelProps}
             className="grid w-full max-w-2xl gap-5 rounded-[24px] border border-border bg-white p-6 shadow-xl"
             onSubmit={handleSave}
           >
             <div>
-              <h3 className="text-lg font-semibold text-foreground">
+              <h3
+                className="text-lg font-semibold text-foreground"
+                id={editDialog.titleId}
+              >
                 {editing.mode === "create"
                   ? "Create custom module"
                   : "Edit module metadata"}
@@ -440,10 +459,19 @@ export function TablesList({ tables }: TablesListProps) {
       ) : null}
 
       {deleteTarget ? (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/40 p-4">
-          <div className="grid w-full max-w-lg gap-4 rounded-[24px] border border-border bg-white p-6 shadow-xl">
+        <div
+          className="fixed inset-0 z-50 grid place-items-center bg-slate-950/40 p-4"
+          {...deleteDialog.backdropProps}
+        >
+          <div
+            {...deleteDialog.panelProps}
+            className="grid w-full max-w-lg gap-4 rounded-[24px] border border-border bg-white p-6 shadow-xl"
+          >
             <div>
-              <h3 className="text-lg font-semibold text-foreground">
+              <h3
+                className="text-lg font-semibold text-foreground"
+                id={deleteDialog.titleId}
+              >
                 Delete custom module
               </h3>
               <p className="mt-1 text-sm leading-6 text-muted">

@@ -10,6 +10,7 @@ import { Button } from "@/app/components/ui/button";
 import { formatDateWithTenantSettings } from "@/lib/date-format";
 import { formatDateTime } from "@/lib/formatting-context";
 import { AttendanceStatusBadge } from "./attendance-status-badge";
+import { useDialogBehavior } from "@/app/components/ui/dialog";
 
 type AttendanceRecordDetailDialogProps = {
   open: boolean;
@@ -105,6 +106,10 @@ export function AttendanceRecordDetailDialog({
     return form.adjustmentReason.trim().length > 0;
   }, [canOverride, form]);
 
+  // BUG-0043: kept its own layout, gained the guarantees it never had - focus
+  // containment, Escape, focus restore and dialog semantics.
+  const dialog = useDialogBehavior({ open, onClose, busy: isSaving });
+
   if (!open) {
     return null;
   }
@@ -175,14 +180,23 @@ export function AttendanceRecordDetailDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/40 px-4 py-6">
-      <div className="max-h-[92vh] w-full max-w-5xl overflow-hidden rounded-[28px] border border-border bg-white shadow-2xl">
+    <div
+      className="fixed inset-0 z-[120] flex items-center justify-center bg-black/40 px-4 py-6"
+      {...dialog.backdropProps}
+    >
+      <div
+        {...dialog.panelProps}
+        className="max-h-[92vh] w-full max-w-5xl overflow-hidden rounded-[28px] border border-border bg-white shadow-2xl"
+      >
         <div className="flex flex-col gap-3 border-b border-border bg-surface-strong px-6 py-5 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
               Attendance record
             </p>
-            <h3 className="mt-1 text-xl font-semibold text-foreground">
+            <h3
+              className="mt-1 text-xl font-semibold text-foreground"
+              id={dialog.titleId}
+            >
               {record?.employee.fullName ?? "Loading record"}
             </h3>
           </div>

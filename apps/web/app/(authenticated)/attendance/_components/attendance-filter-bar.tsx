@@ -67,6 +67,7 @@ export function AttendanceFilterBar({
       onSubmit={handleSubmit}
     >
       <input
+        aria-label="Search attendance records"
         className="rounded-2xl border border-border bg-white px-4 py-3 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20 xl:col-span-2"
         onChange={(event) =>
           setForm((current) => ({ ...current, search: event.target.value }))
@@ -76,6 +77,7 @@ export function AttendanceFilterBar({
       />
 
       <input
+        aria-label="From date"
         className="rounded-2xl border border-border bg-white px-4 py-3 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
         onChange={(event) =>
           setForm((current) => ({ ...current, dateFrom: event.target.value }))
@@ -84,6 +86,7 @@ export function AttendanceFilterBar({
         value={form.dateFrom}
       />
       <input
+        aria-label="To date"
         className="rounded-2xl border border-border bg-white px-4 py-3 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
         onChange={(event) =>
           setForm((current) => ({ ...current, dateTo: event.target.value }))
@@ -92,6 +95,7 @@ export function AttendanceFilterBar({
         value={form.dateTo}
       />
       <select
+        aria-label="Filter by status"
         className="rounded-2xl border border-border bg-white px-4 py-3 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
         onChange={(event) =>
           setForm((current) => ({ ...current, status: event.target.value }))
@@ -107,6 +111,7 @@ export function AttendanceFilterBar({
       </select>
 
       <select
+        aria-label="Filter by attendance mode"
         className="rounded-2xl border border-border bg-white px-4 py-3 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
         onChange={(event) =>
           setForm((current) => ({
@@ -126,6 +131,7 @@ export function AttendanceFilterBar({
 
       {showSource ? (
         <select
+          aria-label="Filter by source"
           className="rounded-2xl border border-border bg-white px-4 py-3 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
           onChange={(event) =>
             setForm((current) => ({ ...current, source: event.target.value }))
@@ -143,6 +149,7 @@ export function AttendanceFilterBar({
 
       {showEmployee ? (
         <select
+          aria-label="Filter by employee"
           className="rounded-2xl border border-border bg-white px-4 py-3 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
           onChange={(event) =>
             setForm((current) => ({ ...current, employeeId: event.target.value }))
@@ -159,6 +166,7 @@ export function AttendanceFilterBar({
       ) : null}
 
       <select
+        aria-label="Filter by location"
         className="rounded-2xl border border-border bg-white px-4 py-3 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
         onChange={(event) =>
           setForm((current) => ({
@@ -177,6 +185,7 @@ export function AttendanceFilterBar({
       </select>
 
       <select
+        aria-label="Sort by"
         className="rounded-2xl border border-border bg-white px-4 py-3 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
         onChange={(event) =>
           setForm((current) => ({ ...current, sortField: event.target.value }))
@@ -191,6 +200,7 @@ export function AttendanceFilterBar({
       </select>
 
       <select
+        aria-label="Sort direction"
         className="rounded-2xl border border-border bg-white px-4 py-3 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
         onChange={(event) =>
           setForm((current) => ({
@@ -205,6 +215,7 @@ export function AttendanceFilterBar({
       </select>
 
       <select
+        aria-label="Rows per page"
         className="rounded-2xl border border-border bg-white px-4 py-3 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
         onChange={(event) =>
           setForm((current) => ({ ...current, pageSize: event.target.value }))

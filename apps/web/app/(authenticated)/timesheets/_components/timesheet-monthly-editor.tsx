@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { SideToast } from "@/app/components/notifications";
 import { PermissionGate } from "../../_components/permission-gate";
+import { useDialogBehavior } from "@/app/components/ui/dialog";
 import type {
   TimesheetDay,
   TimesheetRecord,
@@ -53,6 +54,13 @@ export function TimesheetMONTHLYEditor({
   const [correctionOpen, setCorrectionOpen] = useState(false);
   const [correctionReason, setCorrectionReason] = useState("");
   const [lateOverrideOpen, setLateOverrideOpen] = useState(false);
+
+  // BUG-0043: kept its own layout, gained the guarantees it never had - focus
+  // containment, Escape, focus restore and an accessible name.
+  const lateOverrideDialog = useDialogBehavior({
+    open: lateOverrideOpen,
+    onClose: () => setLateOverrideOpen(false),
+  });
   const [lateOverrideWeekId, setLateOverrideWeekId] = useState("");
   const [lateOverrideReason, setLateOverrideReason] = useState("");
   const [commentByWeek, setCommentByWeek] = useState<Record<string, string>>(
@@ -503,13 +511,18 @@ export function TimesheetMONTHLYEditor({
       </div>
       {lateOverrideOpen ? (
         <div
-          aria-modal="true"
           className="fixed inset-0 z-[110] grid place-items-center bg-slate-950/35 p-4"
-          role="dialog"
+          {...lateOverrideDialog.backdropProps}
         >
-          <div className="grid w-full max-w-lg gap-4 rounded-2xl border border-border bg-white p-5 shadow-2xl">
+          <div
+            {...lateOverrideDialog.panelProps}
+            className="grid w-full max-w-lg gap-4 rounded-2xl border border-border bg-white p-5 shadow-2xl"
+          >
             <div>
-              <h3 className="text-lg font-semibold text-foreground">
+              <h3
+                className="text-lg font-semibold text-foreground"
+                id={lateOverrideDialog.titleId}
+              >
                 Allow late submission
               </h3>
               <p className="mt-1 text-sm text-muted">

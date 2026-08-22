@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { Dialog } from "@/app/components/ui/dialog";
 
 type ConfirmationVariant = "default" | "danger" | "warning" | "success";
 
@@ -34,38 +34,14 @@ export function ConfirmationDialog({
   title,
   variant = "default",
 }: ConfirmationDialogProps) {
-  useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
-
-    function handleEscape(event: KeyboardEvent) {
-      if (event.key === "Escape" && !isLoading) {
-        onCancel();
-      }
-    }
-
-    document.addEventListener("keydown", handleEscape);
-    return () => document.removeEventListener("keydown", handleEscape);
-  }, [isLoading, isOpen, onCancel]);
-
-  if (!isOpen) {
-    return null;
-  }
-
+  // Escape was handled here; focus containment and an accessible name were not,
+  // so Tab left the dialog and it announced as an unnamed group. BUG-0043.
   return (
-    <div
-      aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
-      role="dialog"
-    >
-      <div className="w-full max-w-md rounded-[28px] border border-border bg-white p-6 shadow-2xl">
-        <h3 className="text-lg font-semibold text-foreground">{title}</h3>
-        {description ? (
-          <p className="mt-2 text-sm leading-6 text-muted">{description}</p>
-        ) : null}
-
-        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+    <Dialog
+      busy={isLoading}
+      description={description}
+      footer={
+        <>
           <button
             className="rounded-2xl border border-border bg-white px-4 py-2.5 text-sm font-medium text-foreground transition hover:bg-surface disabled:cursor-not-allowed disabled:opacity-60"
             disabled={isLoading}
@@ -82,9 +58,11 @@ export function ConfirmationDialog({
           >
             {isLoading ? "Please wait..." : confirmLabel}
           </button>
-        </div>
-      </div>
-    </div>
+        </>
+      }
+      onClose={onCancel}
+      open={isOpen}
+      title={title}
+    />
   );
 }
-

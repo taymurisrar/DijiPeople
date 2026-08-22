@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { StatusPill } from "@/app/components/ui/status-pill";
 import { formatDateTime } from "../../_lib/presentation";
+import { useDialogBehavior } from "@/app/components/ui/dialog";
 
 /**
  * Pairing code issuance.
@@ -27,6 +28,11 @@ export function PairingCodeDialog({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [acknowledged, setAcknowledged] = useState(false);
+
+  // BUG-0043: kept its own layout, gained the guarantees it never had - focus
+  // containment, Escape, focus restore and dialog semantics. `busy` holds
+  // Escape shut while a pairing code is being generated.
+  const dialog = useDialogBehavior({ open: true, onClose: close, busy });
 
   async function generate() {
     setBusy(true);
@@ -66,9 +72,18 @@ export function PairingCodeDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
-      <div className="w-full max-w-lg rounded-[24px] border border-border bg-surface p-6 shadow-lg">
-        <h2 className="text-lg font-semibold text-foreground">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4"
+      {...dialog.backdropProps}
+    >
+      <div
+        {...dialog.panelProps}
+        className="w-full max-w-lg rounded-[24px] border border-border bg-surface p-6 shadow-lg"
+      >
+        <h2
+          className="text-lg font-semibold text-foreground"
+          id={dialog.titleId}
+        >
           Pair {gatewayName}
         </h2>
 

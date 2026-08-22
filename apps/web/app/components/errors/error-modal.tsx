@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useMemo, useRef } from "react";
 import React from "react";
 
 import { isSessionExpiredError } from "@/lib/api-error";
 import { Button } from "@/app/components/ui/button";
+import { Dialog } from "@/app/components/ui/dialog";
 
 import { canDownloadErrorLog, type ErrorLogUser } from "./error-provider";
 import { downloadErrorLog } from "./download-error-log";
@@ -34,54 +35,14 @@ export function ErrorModal({ error, user, onClose }: ErrorModalProps) {
     error.description.trim().toLowerCase() !==
     error.message.trim().toLowerCase();
 
-  useEffect(() => {
-    primaryButtonRef.current?.focus();
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [onClose]);
-
+  // Escape and focus restore used to be hand-rolled here, and Tab still walked
+  // out of the modal into the page behind it. Both now come from the shared
+  // primitive. BUG-0043.
   return (
-    <div
-      className="fixed inset-0 z-[150] flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm"
-      role="presentation"
-    >
-      <section
-        aria-labelledby="global-error-title"
-        aria-modal="true"
-        className="max-h-[92vh] w-full max-w-2xl overflow-auto rounded-lg border border-slate-200 bg-white shadow-2xl"
-        role="dialog"
-      >
-        <div className="border-b border-slate-200 px-6 py-5">
-          <p className="text-xs font-semibold uppercase text-slate-500">
-            Error {error.errorCode}
-          </p>
-
-          <h2
-            id="global-error-title"
-            className="mt-2 text-xl font-semibold text-slate-950"
-          >
-            {error.message}
-          </h2>
-
-          {shouldShowDescription ? (
-            <p className="mt-2 text-sm leading-6 text-slate-600">
-              {error.description}
-            </p>
-          ) : null}
-        </div>
-
-        <div className="grid gap-4 px-6 py-5 text-sm">
-          <Info label="Reference ID" value={error.traceId} mono />
-          <Info label="Timestamp" value={error.timestamp} />
-          {formatValidationDetails(error.details)}
-        </div>
-
-        <div className="flex flex-wrap justify-end gap-3 border-t border-slate-200 px-6 py-4">
+    <Dialog
+      description={shouldShowDescription ? error.description : undefined}
+      footer={
+        <>
           {mayDownload ? (
             <Button
               variant="secondary"
@@ -99,9 +60,26 @@ export function ErrorModal({ error, user, onClose }: ErrorModalProps) {
             error={error}
             onClose={onClose}
           />
-        </div>
-      </section>
-    </div>
+        </>
+      }
+      onClose={onClose}
+      open
+      size="lg"
+      title={
+        <>
+          <span className="block text-xs font-semibold uppercase text-slate-500">
+            Error {error.errorCode}
+          </span>
+          <span className="mt-2 block">{error.message}</span>
+        </>
+      }
+    >
+      <div className="grid gap-4 text-sm">
+        <Info label="Reference ID" value={error.traceId} mono />
+        <Info label="Timestamp" value={error.timestamp} />
+        {formatValidationDetails(error.details)}
+      </div>
+    </Dialog>
   );
 }
 

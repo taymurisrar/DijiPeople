@@ -24,6 +24,7 @@ import { Button } from "@/app/components/ui/button";
 import { EmptyState } from "@/app/components/ui/empty-state";
 import { SelectField } from "@/app/components/ui/form-control";
 import { StatusPill } from "@/app/components/ui/status-pill";
+import { useDialogBehavior } from "@/app/components/ui/dialog";
 import type {
   CustomizationDependencyIssue,
   CustomizationPackageCandidate,
@@ -515,6 +516,14 @@ export function PackageDetailShell({
       ? newComponentRoute(selection.moduleKey, selection.componentType)
       : null;
 
+  // BUG-0043: this modal kept its own layout and gained the guarantees
+  // it never had - focus containment, Escape, focus restore and dialog
+  // semantics. See useDialogBehavior.
+  const addExistingDialog = useDialogBehavior({
+    open: Boolean(addExisting),
+    onClose: () => setAddExisting(null),
+  });
+
   return (
     <div className="grid gap-4">
       {message ? (
@@ -721,13 +730,17 @@ export function PackageDetailShell({
       </div>
 
       {addExisting ? (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/40 p-4">
+        <div
+          className="fixed inset-0 z-50 grid place-items-center bg-slate-950/40 p-4"
+          {...addExistingDialog.backdropProps}
+        >
           <form
+            {...addExistingDialog.panelProps}
             className="grid max-h-[92vh] w-full max-w-5xl gap-5 overflow-y-auto rounded-[20px] border border-border bg-white p-6 shadow-xl"
             onSubmit={addExistingComponents}
           >
             <div>
-              <h3 className="text-lg font-semibold text-foreground">
+              <h3 className="text-lg font-semibold text-foreground" id={addExistingDialog.titleId}>
                 Add Existing
               </h3>
               <p className="mt-1 text-sm text-muted">

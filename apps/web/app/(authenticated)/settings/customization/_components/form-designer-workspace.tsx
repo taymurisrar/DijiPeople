@@ -451,9 +451,15 @@ export function FormDesignerWorkspace({
           <div className="grid gap-4">
             {layout.tabs.map((tab) => (
               <section
-                className="rounded-[20px] border border-border bg-white p-4"
+                aria-label={`Select tab ${tab.label}`}
+                className="rounded-[20px] border border-border bg-white p-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
                 key={tab.id}
                 onClick={() => setSelection({ type: "tab", tabId: tab.id })}
+                onKeyDown={selectOnActivate(() =>
+                  setSelection({ type: "tab", tabId: tab.id }),
+                )}
+                role="button"
+                tabIndex={0}
               >
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
@@ -490,6 +496,8 @@ export function FormDesignerWorkspace({
                       parentColumns={tab.columns}
                     >
                     <div
+                      aria-label={`Select section ${section.label}`}
+                      className="focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
                       draggable
                       onClick={(event) => {
                         event.stopPropagation();
@@ -499,6 +507,15 @@ export function FormDesignerWorkspace({
                           sectionId: section.id,
                         });
                       }}
+                      onKeyDown={selectOnActivate(() =>
+                        setSelection({
+                          type: "section",
+                          tabId: tab.id,
+                          sectionId: section.id,
+                        }),
+                      )}
+                      role="button"
+                      tabIndex={0}
                       onDragOver={(event) => event.preventDefault()}
                       onDragStart={() =>
                         setDragState({
@@ -565,6 +582,8 @@ export function FormDesignerWorkspace({
                               />
                             ) : (
                             <div
+                              aria-label={`Select field ${field.label || field.columnKey}`}
+                              className="focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
                               draggable
                               onClick={(event) => {
                                 event.stopPropagation();
@@ -575,6 +594,16 @@ export function FormDesignerWorkspace({
                                   columnKey: field.columnKey,
                                 });
                               }}
+                              onKeyDown={selectOnActivate(() =>
+                                setSelection({
+                                  type: "field",
+                                  tabId: tab.id,
+                                  sectionId: section.id,
+                                  columnKey: field.columnKey,
+                                }),
+                              )}
+                              role="button"
+                              tabIndex={0}
                               onDragStart={(event) => {
                                 event.stopPropagation();
                                 setDragState({
@@ -1613,4 +1642,25 @@ function PreviewControl({
   }
 
   return <div className={`${shell} h-7`} />;
+}
+
+/**
+ * Select-on-activate for the designer's tab, section and field surfaces.
+ *
+ * Each of these was `onClick` and nothing else — no tabIndex, no key handler,
+ * no role — so choosing which element to edit, the entire point of the
+ * designer, could not be done from a keyboard at all. BUG-0043.
+ *
+ * The guard on `event.target` matters: these surfaces nest, and each contains
+ * its own buttons. Enter inside a button belongs to that button, and Space
+ * would otherwise scroll the page.
+ */
+function selectOnActivate(select: () => void) {
+  return (event: React.KeyboardEvent<HTMLElement>) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    if (event.target !== event.currentTarget) return;
+    event.preventDefault();
+    event.stopPropagation();
+    select();
+  };
 }

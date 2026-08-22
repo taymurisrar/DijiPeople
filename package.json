@@ -23,6 +23,7 @@
     "test:app-urls": "node --test packages/config/app-urls.test.js",
     "test:database-urls": "node --test packages/config/database-urls.test.js",
     "check:no-hardcoded-urls": "node scripts/check-no-hardcoded-urls.mjs",
+    "check:dialogs-contained": "node scripts/check-dialogs-are-contained.mjs",
     "check:proxies-decide-nothing": "node scripts/check-proxies-decide-nothing.mjs",
     "check:proxies-forward-refusals": "node scripts/check-proxies-forward-refusals.mjs",
     "check:no-commercial-literals": "node scripts/check-no-commercial-literals.mjs",

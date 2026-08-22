@@ -367,6 +367,13 @@ jobs:
         # truth the authority cannot see, correct or audit is a defect even when
         # it is fail-closed, and money derived in an untested layer is worse.
         run: npm run check:proxies-decide-nothing
+      - name: Modal dialogs contain focus
+        # BUG-0043. Every modal in apps/web was a bespoke `fixed inset-0` div:
+        # Tab walked out of all of them, three could not be closed with Escape,
+        # and the shared kit had no dialog to reuse, so the rule forbidding
+        # hand-rolled dialogs could not be followed. Prose does not survive
+        # twenty-one authors; this does.
+        run: npm run check:dialogs-contained
       - name: Environment variables are registered for cache invalidation
         # BUG-0042 — 37 variables across the three Next apps were read but
         # absent from turbo globalEnv, so Turborepo could serve a cached build

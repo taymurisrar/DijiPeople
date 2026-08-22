@@ -1,7 +1,7 @@
 "use client";
 
-import { X } from "lucide-react";
 import { useState } from "react";
+import { Dialog } from "@/app/components/ui/dialog";
 import { RuntimeMetadataFormRenderer } from "@/app/components/metadata/runtime-metadata-form-renderer";
 import type { LookupOption } from "@/app/components/ui/form-control";
 import type {
@@ -49,8 +49,6 @@ export function ModuleQuickCreatePanel({
 }) {
   const [draftValues, setDraftValues] = useState<RuntimeRecordData>({});
 
-  if (!open) return null;
-
   const values = parentBinding
     ? {
         ...contextValues,
@@ -60,63 +58,61 @@ export function ModuleQuickCreatePanel({
       }
     : { ...contextValues, ...record, ...draftValues };
 
+  // A modal side sheet that declared neither `role="dialog"` nor `aria-modal`,
+  // handled no Escape, and let Tab walk out into the list behind it. BUG-0043.
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/20">
-      <aside className="h-full w-full max-w-xl overflow-y-auto border-l border-border bg-surface shadow-2xl">
-        <div className="flex items-center justify-between border-b border-border px-5 py-4">
-          <h2 className="text-lg font-semibold text-foreground">
-            {title ?? "Quick Create"}
-          </h2>
+    <Dialog
+      footer={
+        <>
           <button
-            aria-label="Close quick create"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-md text-muted transition hover:bg-muted/20 hover:text-foreground"
-            onClick={onClose}
+            className="rounded-md border border-border px-3 py-2 text-sm font-medium text-foreground transition hover:bg-muted/20"
+            onClick={() => void onSave?.(formValues(values, form), false)}
             type="button"
           >
-            <X className="h-4 w-4" />
+            Save
           </button>
-        </div>
-        <div className="grid gap-4 p-5">
-          {error ? (
-            <p className="rounded-lg border border-danger/20 bg-danger/5 p-3 text-sm text-danger">
-              {error}
-            </p>
-          ) : null}
-          {form ? (
-            <RuntimeMetadataFormRenderer
-              entity={entity ?? runtime.metadata.entity}
-              form={form}
-              dataAdapter={dataAdapter}
-              lookupOptions={lookupOptions}
-              mode="new"
-              onValuesChange={setDraftValues}
-              runtime={runtime}
-              values={toFieldValueMap(values)}
-            />
-          ) : (
-            <div className="rounded-lg border border-dashed border-border p-6 text-sm text-muted">
-              Quick Create form metadata is not available yet.
-            </div>
-          )}
-          <div className="flex justify-end gap-2">
-            <button
-              className="rounded-md border border-border px-3 py-2 text-sm font-medium text-foreground transition hover:bg-muted/20"
-              onClick={() => void onSave?.(formValues(values, form), false)}
-              type="button"
-            >
-              Save
-            </button>
-            <button
-              className="rounded-md bg-accent px-3 py-2 text-sm font-semibold text-white transition hover:bg-accent-strong"
-              onClick={() => void onSave?.(formValues(values, form), true)}
-              type="button"
-            >
-              Save & Close
-            </button>
+          <button
+            className="rounded-md bg-accent px-3 py-2 text-sm font-semibold text-white transition hover:bg-accent-strong"
+            onClick={() => void onSave?.(formValues(values, form), true)}
+            type="button"
+          >
+            Save &amp; Close
+          </button>
+        </>
+      }
+      onClose={onClose}
+      open={open}
+      size="xl"
+      title={title ?? "Quick Create"}
+      variant="panel"
+    >
+      <div className="grid gap-4">
+        {error ? (
+          <p
+            className="rounded-lg border border-danger/20 bg-danger/5 p-3 text-sm text-danger"
+            role="alert"
+          >
+            {error}
+          </p>
+        ) : null}
+        {form ? (
+          <RuntimeMetadataFormRenderer
+            entity={entity ?? runtime.metadata.entity}
+            form={form}
+            dataAdapter={dataAdapter}
+            lookupOptions={lookupOptions}
+            mode="new"
+            onValuesChange={setDraftValues}
+            runtime={runtime}
+            values={toFieldValueMap(values)}
+          />
+        ) : (
+          <div className="rounded-lg border border-dashed border-border p-6 text-sm text-muted">
+            Quick Create form metadata is not available yet.
           </div>
-        </div>
-      </aside>
-    </div>
+        )}
+      </div>
+    </Dialog>
   );
 }
 

@@ -591,10 +591,37 @@ export function DataTable<T>({
                 const isSelected = selectedKeySet.has(rowKey);
 
                 return (
+                  /*
+                   * A clickable row must also be a reachable one. This carried
+                   * `onClick` and nothing else — no tabIndex, no key handler, no
+                   * role — so opening a record, the primary interaction on every
+                   * runtime list in the product, could not be done from the
+                   * keyboard at all. BUG-0043.
+                   *
+                   * `role="button"` and the two activation keys are added only
+                   * when the row is actually clickable; a static row stays a
+                   * plain row rather than becoming a tab stop that does nothing.
+                   */
                   <tr
                     key={rowKey}
-                    className={`${rowClassName} ${onRowClick ? "cursor-pointer" : ""}`}
+                    aria-selected={enableSelection ? isSelected : undefined}
+                    className={`${rowClassName} ${onRowClick ? "cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50" : ""}`}
                     onClick={() => onRowClick?.(row)}
+                    onKeyDown={
+                      onRowClick
+                        ? (event) => {
+                            if (event.key !== "Enter" && event.key !== " ") return;
+                            // Only when the row itself has focus: Enter inside a
+                            // cell's own control belongs to that control, and
+                            // Space would otherwise scroll the page.
+                            if (event.target !== event.currentTarget) return;
+                            event.preventDefault();
+                            onRowClick(row);
+                          }
+                        : undefined
+                    }
+                    role={onRowClick ? "button" : undefined}
+                    tabIndex={onRowClick ? 0 : undefined}
                   >
                     {enableSelection ? (
                       <td className="w-10 px-3 py-2 align-middle">

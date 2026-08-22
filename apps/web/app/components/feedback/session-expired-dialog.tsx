@@ -1,35 +1,47 @@
 "use client";
 
+import { Dialog } from "@/app/components/ui/dialog";
+
 type SessionExpiredDialogProps = {
   message?: string;
   onLoginAgain: () => void;
 };
 
+/**
+ * This had no dialog semantics, no focus containment and no Escape at all —
+ * which for this one is partly deliberate: there is nothing behind it the user
+ * can usefully do. `dismissible={false}` keeps that, because dismissing it would
+ * leave them on a page whose every request is going to fail. BUG-0043.
+ */
 export function SessionExpiredDialog({
   message = "For security, your session ended due to inactivity. Please sign in again to continue.",
   onLoginAgain,
 }: SessionExpiredDialogProps) {
   return (
-    <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-2xl border border-border bg-white p-6 shadow-xl">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">
-          Session expired
-        </p>
-        <h3 className="mt-2 text-xl font-semibold text-foreground">
-          You were signed out due to inactivity
-        </h3>
-        <p className="mt-2 text-sm text-muted">{message}</p>
-
-        <div className="mt-5 flex justify-end">
-          <button
-            className="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white hover:bg-accent-strong"
-            onClick={onLoginAgain}
-            type="button"
-          >
-            Login again
-          </button>
-        </div>
-      </div>
-    </div>
+    <Dialog
+      description={message}
+      dismissible={false}
+      footer={
+        <button
+          className="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white hover:bg-accent-strong"
+          onClick={onLoginAgain}
+          type="button"
+        >
+          Login again
+        </button>
+      }
+      onClose={onLoginAgain}
+      open
+      title={
+        <>
+          <span className="block text-xs font-semibold uppercase tracking-[0.2em] text-muted">
+            Session expired
+          </span>
+          <span className="mt-2 block text-xl">
+            You were signed out due to inactivity
+          </span>
+        </>
+      }
+    />
   );
 }
