@@ -4,7 +4,7 @@ aliases: [SESSION-0042]
 TASK_ID:
 TITLE: Public site pricing, features page, forms, checkout agreements, and admin plan/tenant list fixes
 ARCHITECT_INTENT: Public site pricing, features page, forms, checkout agreements, and admin plan/tenant list fixes
-STATUS: ACTIVE
+STATUS: COMPLETE
 TASK_TYPE: FEATURE
 TASK_SIZE: LARGE
 BASE_BRANCH: origin/develop
@@ -16,8 +16,8 @@ AFFECTED_MODULES: [apps/landing, apps/admin, services/api/src/modules/super-admi
 WRITE_LEASES: []
 ACTIVE_WORK_PACKAGES: []
 SCHEMA_WRITE: NO
-CI_STATUS: AWAITING
-MERGE_STATUS: NOT_STARTED
+CI_STATUS: PASS
+MERGE_STATUS: MERGED
 STARTED_AT: 2026-08-22T21:25:54.373Z
 LAST_HEARTBEAT: 2026-08-22T21:25:54.373Z
 BLOCKERS: none
@@ -86,3 +86,7 @@ record for what the renumber nearly broke on the other side.
 - 2026-08-22 — five commits: commerce currency, admin fixes, form kit and agreements, site theme and copy, records.
 - 2026-08-22 — `origin/develop` merged at `ef57b2a`; `REG-229` collision resolved by renumbering this branch's entries.
 - 2026-08-22 — pushed `66b864c`; awaiting the `CI required gate` verdict on that exact SHA.
+- 2026-08-22 — a price comparison against `pricing.catalog.ts` showed `seed:commercial` would supersede production's live prices, so a narrow `repair:market-countries` was added instead. Final task SHA `00ef62c`.
+- 2026-08-22 — `CI required gate` PASS on `00ef62c` (run 32603250502). Two earlier runs were correctly classified SUPERSEDED, not failed.
+- 2026-08-22 — integrated into `develop` by ref-push, so `develop` fast-forwards to the exact verified SHA. `main` untouched.
+- 2026-08-22 — Obsidian synced and verified (`OBSIDIAN_SYNC_STATUS = PASS`); session complete.
