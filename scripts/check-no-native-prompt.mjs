@@ -14,10 +14,14 @@
  * `useReasonPrompt` hook. Nothing failed when a call site skipped it, so this
  * check exists to fail instead.
  *
- * The allowlist is the honest part. Several call sites outside the reported
- * scope of BUG-0020 still use a native prompt; each is named here with what it
- * collects, so the remaining work is visible and counted rather than implied by
- * silence.
+ * The allowlist is now empty, and that is the point of it. BUG-0020 fixed the
+ * two worst instances and this check counted the other six by name rather than
+ * implying them by silence; ITEM-0031 replaced all six. `window.prompt` no
+ * longer appears in any of the three apps.
+ *
+ * The map stays because the next exemption should have to be argued for in
+ * review, and because a stale entry fails this check — so an exemption cannot
+ * outlive its justification.
  */
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
@@ -34,30 +38,11 @@ const CALL = /\b(window\.)?prompt\s*\(/;
  * exemption: adding a new one should be argued for in review.
  */
 const ALLOWLIST = new Map([
-  [
-    "apps/admin/app/_components/documents/contract-document-editor.tsx",
-    "Link URL inside the rich-text editor — an editing convenience, not a governed record field.",
-  ],
-  [
-    "apps/admin/app/_components/runtime/runtime-module-list.tsx",
-    "Bulk status change and saved-filter name. The status change IS governed and is tracked in ITEM-0031.",
-  ],
-  [
-    "apps/web/app/(authenticated)/attendance/exceptions/_components/attendance-exceptions-table.tsx",
-    "Attendance exception note — governed, tracked in ITEM-0031.",
-  ],
-  [
-    "apps/web/app/(authenticated)/payroll/runs/[runId]/_components/payroll-payments-workspace.tsx",
-    "Payment failure reason — governed and financial, tracked in ITEM-0031.",
-  ],
-  [
-    "apps/web/app/(authenticated)/payroll/runs/[runId]/_components/payroll-run-actions.tsx",
-    "Payroll reversal reason and date — governed and financial, tracked in ITEM-0031.",
-  ],
-  [
-    "apps/web/app/(authenticated)/recruitment/_components/recruitment-applications-board.tsx",
-    "Application rejection reason — governed, tracked in ITEM-0031.",
-  ],
+  // Empty. Every call site BUG-0020 left behind was replaced under ITEM-0031:
+  // the payroll reversal reason and date, the payment failure reason, the
+  // application rejection reason, the attendance exception note, the bulk
+  // status change (now a select over the module's own statuses, not free text)
+  // and the saved-filter name.
 ]);
 
 function walk(dir) {
@@ -128,6 +113,6 @@ if (offenders.length > 0) {
 }
 
 console.log(
-  `check-no-native-prompt: ${scanned} files scanned, ` +
-    `${ALLOWLIST.size} known call site(s) still tracked in ITEM-0031.`,
+  `check-no-native-prompt: ${scanned} files scanned, no native prompts` +
+    (ALLOWLIST.size > 0 ? ` (${ALLOWLIST.size} allowed).` : "."),
 );

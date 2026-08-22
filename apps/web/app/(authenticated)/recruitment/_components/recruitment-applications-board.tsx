@@ -25,6 +25,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { JobOpeningStatusBadge } from "./job-opening-status-badge";
 import { RecruitmentStageBadge } from "./recruitment-stage-badge";
+import { useGovernedInput } from "@/app/components/feedback/use-governed-input";
 import {
   hasMatchCriteriaConfigured,
   RecruitmentPipelineStageRecord,
@@ -123,6 +124,7 @@ export function RecruitmentApplicationsBoard({
   pipelineStages,
   requireRejectReason = false,
 }: RecruitmentApplicationsBoardProps) {
+  const { requestValue, governedInputDialog } = useGovernedInput();
   const router = useRouter();
   const stages = useMemo(
     () => normalizePipelineStages(pipelineStages, applications),
@@ -260,7 +262,11 @@ export function RecruitmentApplicationsBoard({
     setActiveApplicationId(null);
   }
 
-  function handleDragEnd(event: DragEndEvent) {
+  // `async` because the rejection reason is now collected through a dialog
+  // rather than `window.prompt`, which blocked the thread. dnd-kit does not
+  // await its handler, and does not need to: nothing after this depends on the
+  // drag gesture. ITEM-0031.
+  async function handleDragEnd(event: DragEndEvent) {
     const applicationId = String(event.active.id);
     const overId = event.over?.id ? String(event.over.id) : null;
 
@@ -289,9 +295,21 @@ export function RecruitmentApplicationsBoard({
       return;
     }
 
+    /*
+     * A rejection reason is retained on the application and may be read months
+     * later — by a hiring manager, or by someone answering a candidate. It was
+     * collected with `window.prompt`: unlabelled beyond one line, unvalidated,
+     * and with no way to tell "cancelled" from "typed nothing". ITEM-0031.
+     */
     const rejectionReason =
       targetStage === "REJECTED" && requireRejectReason
-        ? window.prompt("Enter rejection reason")
+        ? await requestValue({
+            title: "Reject application",
+            description:
+              "The reason is kept on the application and can be read later.",
+            label: "Rejection reason",
+            confirmLabel: "Reject",
+          })
         : undefined;
 
     if (targetStage === "REJECTED" && requireRejectReason) {
@@ -319,6 +337,7 @@ export function RecruitmentApplicationsBoard({
 
   return (
     <section className="grid gap-4">
+      {governedInputDialog}
       {error ? (
         <div className="rounded-[24px] border border-danger/20 bg-danger/5 px-5 py-4 text-sm text-danger">
           {error}
@@ -329,7 +348,7 @@ export function RecruitmentApplicationsBoard({
         <DndContext
           collisionDetection={closestCenter}
           onDragCancel={handleDragCancel}
-          onDragEnd={handleDragEnd}
+          onDragEnd={(event) => void handleDragEnd(event)}
           onDragStart={handleDragStart}
           sensors={sensors}
         >

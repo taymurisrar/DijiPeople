@@ -40,6 +40,7 @@ import type {
 } from "@/lib/runtime/platform-runtime.types";
 import { ModuleActionBar } from "./module-action-bar";
 import { RuntimeViewSelector } from "./runtime-view-selector";
+import { useReasonPrompt } from "./use-reason-prompt";
 import { openExternal } from "@/lib/open-external";
 import { buildTenantLoginUrl } from "@/lib/tenant-url";
 
@@ -79,6 +80,7 @@ export function RuntimeModuleList({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { defaults } = usePlatformDefaults();
+  const { requestReason, reasonDialog } = useReasonPrompt();
   const definition = useMemo(
     () => getPlatformModuleDefinition(moduleKey),
     [moduleKey],
@@ -357,12 +359,36 @@ export function RuntimeModuleList({
       return;
     }
     if (action.key === "bulk-change-status") {
-      const nextStatus = window.prompt("Enter the new status");
-      if (!nextStatus?.trim()) return;
+      /*
+       * A select, not free text. The old prompt accepted anything, uppercased
+       * it, and sent it as a status for every selected record — so a typo set a
+       * status the module does not have, on as many rows as were ticked. The
+       * module already enumerates its statuses, which makes a list the only
+       * honest control for this value. ITEM-0031.
+       */
+      const statuses = definition.statuses ?? [];
+      if (statuses.length === 0) {
+        return {
+          success: false,
+          message: "This module does not define statuses to change to.",
+        };
+      }
+
+      const nextStatus = await requestReason({
+        title: "Change status",
+        description: `${selectedIds.length} record(s) will be updated.`,
+        label: "New status",
+        confirmLabel: "Change status",
+        kind: "select",
+        options: statuses.map((item) => ({
+          value: item.value,
+          label: item.label,
+        })),
+      });
+      if (nextStatus === null) return;
+
       await Promise.all(
-        selectedIds.map((id) =>
-          adapter.changeStatus(id, nextStatus.trim().toUpperCase()),
-        ),
+        selectedIds.map((id) => adapter.changeStatus(id, nextStatus)),
       );
       setRefreshKey((value) => value + 1);
       return {
@@ -424,6 +450,7 @@ export function RuntimeModuleList({
 
   return (
     <main className="space-y-5">
+      {reasonDialog}
       <PageHeader
         eyebrow={definition.navigationGroup}
         title={definition.pluralDisplayName}
@@ -644,19 +671,31 @@ export function RuntimeModuleList({
             }}
             onSave={() => {
               if (!draftFilters.length) return;
-              const label = window.prompt("Name this saved filter");
-              if (!label?.trim()) return;
-              setSavedFilters((current) => [
-                ...current.filter(
-                  (item) =>
-                    item.label.toLowerCase() !== label.trim().toLowerCase(),
-                ),
-                {
-                  id: crypto.randomUUID(),
-                  label: label.trim(),
-                  filters: draftFilters,
-                },
-              ]);
+              // Not a governed value — a saved filter is one operator's own
+              // shortcut — but it is still a name typed into an unstyled,
+              // untestable control outside the theme. ITEM-0031.
+              void (async () => {
+                const label = await requestReason({
+                  title: "Save this filter",
+                  description:
+                    "Saved filters are yours; a name that already exists is replaced.",
+                  label: "Filter name",
+                  confirmLabel: "Save filter",
+                  kind: "text",
+                });
+                if (label === null) return;
+
+                setSavedFilters((current) => [
+                  ...current.filter(
+                    (item) => item.label.toLowerCase() !== label.toLowerCase(),
+                  ),
+                  {
+                    id: crypto.randomUUID(),
+                    label,
+                    filters: draftFilters,
+                  },
+                ]);
+              })();
             }}
           />
         ) : null}

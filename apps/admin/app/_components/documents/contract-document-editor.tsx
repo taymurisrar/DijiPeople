@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useReasonPrompt } from "@/app/_components/runtime/use-reason-prompt";
 import { EditorContent, useEditor } from "@tiptap/react";
 import { Extension, Node } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
@@ -172,6 +173,10 @@ export function ContractDocumentEditor({
    */
   previewHtml?: string;
 }) {
+  // The one prompt here that is not a governed business value — a link URL is
+  // editing convenience. It is still an unstyled, unlabelled, unvalidated
+  // control outside the theme, and it is the last one. ITEM-0031.
+  const { requestReason, reasonDialog } = useReasonPrompt();
   const [preview, setPreview] = useState(readOnly);
   /*
    * The fields rail, open by default.
@@ -381,21 +386,32 @@ export function ContractDocumentEditor({
       <div className="min-h-[520px] animate-pulse rounded-xl bg-slate-100" />
     );
 
-  function setLink() {
+  async function setLink() {
     const currentEditor = editor!;
     const previous = currentEditor.getAttributes("link").href as
       | string
       | undefined;
-    const href = window.prompt("Link URL", previous ?? "https://");
+
+    const href = await requestReason({
+      title: previous ? "Edit link" : "Add link",
+      description: "Clear the field to remove the link.",
+      label: "Link URL",
+      confirmLabel: previous ? "Update link" : "Add link",
+      kind: "text",
+      // Zero, because clearing the field is how a link is *removed* — the one
+      // case where an empty answer is a real answer rather than a cancel.
+      minLength: 0,
+    });
     if (href === null) return;
-    if (!href.trim())
+
+    if (!href)
       currentEditor.chain().focus().extendMarkRange("link").unsetLink().run();
     else
       currentEditor
         .chain()
         .focus()
         .extendMarkRange("link")
-        .setLink({ href: href.trim() })
+        .setLink({ href })
         .run();
   }
 
@@ -544,6 +560,7 @@ export function ContractDocumentEditor({
 
   return (
     <div className="overflow-visible rounded-2xl border border-slate-200 bg-slate-100 shadow-sm">
+      {reasonDialog}
       {!readOnly ? (
         <div
           className="sticky top-2 z-10 flex flex-wrap items-center gap-1 rounded-t-2xl border-b border-slate-200 bg-white/95 p-2 shadow-sm backdrop-blur"
