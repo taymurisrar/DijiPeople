@@ -30,7 +30,11 @@
  */
 import { PrismaClient, LegalDocumentVersionStatus } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { LegalService, findUnfilledPlaceholders } from '../src/modules/legal/legal.service';
+import {
+  LegalService,
+  findDraftSelfDeclarations,
+  findUnfilledPlaceholders,
+} from '../src/modules/legal/legal.service';
 import type { PrismaService } from '../src/common/prisma/prisma.service';
 
 /**
@@ -159,6 +163,27 @@ async function main() {
           slug: document.slug,
           action: 'SKIPPED',
           reason: `unfilled placeholders: ${unfilled.join(', ')}`,
+        });
+        continue;
+      }
+
+      /*
+       * The second content gate, and the one that was missing on 2026-08-22.
+       *
+       * The check above asks whether the template was filled in. This asks
+       * whether the result is fit to be public — and the only case that needs
+       * no judgement is a document that has already told you it is not. All ten
+       * were published carrying a banner reading 'Draft — not published, and
+       * not legal advice ... has not been reviewed by a lawyer', because
+       * complete prose with no placeholders left in it passed the only gate
+       * there was.
+       */
+      const declaredDraft = findDraftSelfDeclarations(draft.contentMarkdown);
+      if (declaredDraft.length) {
+        outcomes.push({
+          slug: document.slug,
+          action: 'SKIPPED',
+          reason: `the document ${declaredDraft.join('; ')} — remove that text before publishing`,
         });
         continue;
       }

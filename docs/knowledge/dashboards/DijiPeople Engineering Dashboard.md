@@ -11,7 +11,7 @@
 | Open HIGH | **3** |
 | Open total | 22 |
 | Blocked | 1 |
-| Awaiting a product decision | 2 |
+| Awaiting a product decision | 3 |
 | Deferred | 18 |
 | Completed | 166 |
 | Awaiting Architect triage | 0 |
@@ -32,6 +32,7 @@ _None. Nothing open at CRITICAL._
 
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
+| [[BUG-0767-render-yaml-is-not-what-production-runs-so-no-seed-or-legal-|BUG-0767]] | render.yaml is not what production runs, so no seed or legal publication has ever executed | INFRA | HIGH | PRODUCT_DECISION | render.yaml, services/api/prisma, docs/deployment | PRODUCT_DECISION |
 | [[ITEM-0062-no-multi-tenant-membership-one-user-belongs-to-one-tenant-so|ITEM-0062]] | No multi-tenant membership — one user belongs to one tenant, so discovery and switching cannot exist | ARCHITECTURE | HIGH | PRODUCT_DECISION | auth, users, tenant-domains, web | PRODUCT_DECISION |
 | [[ITEM-0079-activation-does-not-gate-on-a-workspace-having-any-module-en|ITEM-0079]] | Activation does not gate on a workspace having any module enabled | PRODUCT_DECISION | LOW | PRODUCT_DECISION | api:tenant-control-plane | PRODUCT_DECISION |
 
@@ -261,7 +262,7 @@ _None. Nothing has been deployed through the release process._
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 126 |
+| Bug records | 127 |
 | Backlog items | 83 |
 | Known bug patterns | 25 |
 | QA runs | 22 |

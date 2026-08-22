@@ -130,7 +130,7 @@ None yet. QA-BILLING-003 implements this plan.
 
 ## Related
 
-- Scenarios — [[QA-BILLING-003]], [[QA-CONTRACT-001]]
+- Scenarios — [[QA-BILLING-003]], [[QA-CONTRACT-001]], [[QA-LEGAL-001]]
 - Module — [[legal]]
 
 <!-- GRAPH:END -->

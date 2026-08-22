@@ -3,8 +3,38 @@ services:
     name: dijipeople-api
     env: node
     plan: starter
+    # BUG-0767 — THIS FILE WAS NOT WHAT PRODUCTION RAN.
+    #
+    # Until 2026-08-23 the live service was configured by hand in the Render
+    # dashboard: no preDeployCommand at all, and `npx prisma migrate deploy`
+    # bolted onto the end of buildCommand instead. Migrations therefore applied
+    # and deploys looked correct, which is exactly why nobody noticed that
+    # seed:config, seed:verify, seed:admin, seed:legal and legal:publish had
+    # *never executed on production*.
+    #
+    # The consequence was not theoretical. No purchase could record consent,
+    # because the subscribe wizard requires agreements carrying a published
+    # version and none was ever published.
+    #
+    # If you change these values, change them HERE and apply the file. A
+    # dashboard edit that diverges from this file is invisible to every review.
     buildCommand: npm ci && npm --workspace api run build
     startCommand: npm --workspace api run start:prod
+
+    # Runs after the build, before the new instance takes traffic. A non-zero
+    # exit ABORTS THE DEPLOY and leaves the previous instance serving, which is
+    # the point: a half-seeded deployment is worse than a deferred one.
+    #
+    # `release` is migrate -> seed:config -> seed:verify -> seed:admin ->
+    # seed:legal -> legal:publish --confirm. Every step is idempotent, so a
+    # retried deploy is safe.
+    #
+    # On legal:publish specifically — it refuses any document whose own text
+    # declares it a draft (findDraftSelfDeclarations). That guard exists because
+    # on 2026-08-22 ten documents were published carrying a banner reading
+    # "Draft — not published, and not legal advice … has not been reviewed by a
+    # lawyer". Automating publication without it would have repeated that on
+    # every deploy instead of once.
     preDeployCommand: npm --workspace api run release
     healthCheckPath: /api
     envVars:

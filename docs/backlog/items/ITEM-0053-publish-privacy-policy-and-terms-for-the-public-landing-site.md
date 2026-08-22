@@ -142,6 +142,7 @@ release that would publish them has not run.
 
 ## Related
 
+- Referenced by — [[BUG-0767]]
 - Modules — [[landing-architecture]]
 - QA run — [[2026-08-17-landing-uiux-browser-qa-f58ee1d]]
 
