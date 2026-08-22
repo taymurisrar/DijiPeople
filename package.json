@@ -21,6 +21,7 @@
     "test:platform-domains": "node --test packages/config/platform-domains.test.js",
     "test:security-headers": "node --test packages/config/security-headers.test.js",
     "test:app-urls": "node --test packages/config/app-urls.test.js",
+    "test:database-urls": "node --test packages/config/database-urls.test.js",
     "check:no-hardcoded-urls": "node scripts/check-no-hardcoded-urls.mjs",
     "check:proxies-forward-refusals": "node scripts/check-proxies-forward-refusals.mjs",
     "check:no-commercial-literals": "node scripts/check-no-commercial-literals.mjs",

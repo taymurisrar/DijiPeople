@@ -310,6 +310,14 @@ function validateDeploymentEnv(env = process.env, options = {}) {
 
   if (app === "api") {
     required("DATABASE_URL");
+
+    // The migration connection is a separate decision from the runtime one, and
+    // the wrong answer does not fail a query — it fails `prisma migrate deploy`
+    // with P1002 inside preDeployCommand, aborting the release before seeding
+    // and legal publication ever run. BUG-0086.
+    const migrationUrlProblem = describeMigrationUrlProblem(env);
+    if (migrationUrlProblem) errors.push(migrationUrlProblem);
+
     if (productionLike) {
       required("JWT_ACCESS_SECRET");
       required("JWT_REFRESH_SECRET");
@@ -472,7 +480,18 @@ const {
   isSupportedEmailProviderType,
 } = require("./email-providers");
 
+const {
+  POOLED_HOST_INFIX,
+  isPooledConnectionUrl,
+  resolveMigrationDatabaseUrl,
+  describeMigrationUrlProblem,
+} = require("./database-urls");
+
 module.exports = {
+  POOLED_HOST_INFIX,
+  isPooledConnectionUrl,
+  resolveMigrationDatabaseUrl,
+  describeMigrationUrlProblem,
   SUPPORTED_EMAIL_PROVIDER_TYPES,
   UNIMPLEMENTED_EMAIL_PROVIDER_TYPES,
   ALL_EMAIL_PROVIDER_TYPES,

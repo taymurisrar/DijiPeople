@@ -90,6 +90,34 @@ and `NEXT_PUBLIC_WEB_ROOT_DOMAIN` for the tenant base domain.
 
 ## API: Render
 
+### Two database connections, not one
+
+`DATABASE_URL` is the **runtime** connection. Neon's pooled endpoint — the
+hostname carrying the `-pooler` infix — is a good choice for it.
+
+`DIRECT_DATABASE_URL` is the **migration** connection, and it must be the
+**direct** endpoint for the same database. Every Prisma CLI call in this
+repository resolves its datasource through
+[`services/api/prisma.config.ts`](../services/api/prisma.config.ts), which
+prefers this variable and falls back to `DATABASE_URL` when it is unset.
+
+The distinction is not a preference. `prisma migrate deploy` serialises
+concurrent migrators with a *session-scoped* Postgres advisory lock
+(`pg_advisory_lock`), which is bound to one backend connection. The pooled
+endpoint is PgBouncer in **transaction** pooling mode, where a client connection
+maps to a backend only for the duration of a transaction — so the lock cannot be
+established at all. The result is not a slow migration: it is `P1002` after the
+ten-second lock timeout, every time, at any timeout value. `preDeployCommand`
+aborts, and `seed:config`, `seed:verify`, `seed:admin`, `seed:legal` and
+`legal:publish` — everything after the migration step in `npm --workspace api
+run release` — never run. That was BUG-0086.
+
+Leave `DIRECT_DATABASE_URL` unset anywhere there is no pooler in front of
+Postgres (local development, CI): migrations then use `DATABASE_URL` and nothing
+changes. Setting either variable to a pooled url when it is the one migrations
+would use is refused at config load with a message naming the fix, rather than
+being discovered ten seconds into a deploy.
+
 Required production values:
 
 ```env
@@ -98,6 +126,7 @@ PORT=4000
 API_BASE_URL=https://dijipeople.onrender.com/api
 API_ORIGIN=https://dijipeople.onrender.com
 DATABASE_URL=<rotated-neon-postgres-url>
+DIRECT_DATABASE_URL=<same-database, DIRECT endpoint — no `-pooler` in the host>
 CORS_ALLOWED_ORIGINS=https://diji-people-admin.vercel.app,https://diji-people-web.vercel.app,https://diji-people-landing.vercel.app
 CORS_ALLOWED_HEADERS=Authorization,Content-Type,X-DijiPeople-App,X-DijiPeople-Client,X-Client-Id,X-Tenant-Slug,X-Requested-With,X-Trace-Id,X-Request-Id
 CORS_ALLOWED_METHODS=GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS

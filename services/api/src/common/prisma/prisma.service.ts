@@ -7,6 +7,11 @@ import {
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { RequestContextService } from '../request-context/request-context.service';
+import {
+  locateMigrationsDir,
+  readMigrationNamesFromDisk,
+  reportMigrationDrift,
+} from './migration-drift';
 
 @Injectable()
 export class PrismaService
@@ -107,6 +112,36 @@ export class PrismaService
 
   async onModuleInit() {
     await this.$connect();
+
+    // Say so, once, if the database is behind the committed migrations. The
+    // alternative is that the mismatch surfaces later as a `P2022` on an
+    // unrelated screen and is read as a regression in that screen. BUG-0283.
+    await reportMigrationDrift({
+      queryAppliedMigrationNames: () => this.queryAppliedMigrationNames(),
+      readMigrationNames: () => {
+        const dir = locateMigrationsDir();
+        return dir ? readMigrationNamesFromDisk(dir) : [];
+      },
+      warn: (message) => this.logger.warn(message),
+      debug: (message) => this.logger.debug(message),
+    });
+  }
+
+  /**
+   * Migration names Prisma records as successfully applied.
+   *
+   * Raw SQL because `_prisma_migrations` is Prisma's own bookkeeping table and
+   * is deliberately absent from the schema, so there is no model to query.
+   * `rolled_back_at IS NULL` matters: a rolled-back migration is recorded but
+   * its columns are gone, which is precisely the state that produces `P2022`.
+   */
+  private async queryAppliedMigrationNames(): Promise<string[]> {
+    const rows = await this.$queryRaw<Array<{ migration_name: string }>>`
+      SELECT migration_name
+      FROM "_prisma_migrations"
+      WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL
+    `;
+    return rows.map((row) => row.migration_name);
   }
 
   async onModuleDestroy() {

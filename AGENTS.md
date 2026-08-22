@@ -649,6 +649,14 @@ straight to step 6.
 1. **Inspect the existing implementation.** Read the module, its service,
    repository, DTOs, specs and the frontend that consumes it. Read the relevant
    documents in `docs/architecture/`.
+
+   If the work touches a database-backed screen, run `npm run db:preflight`
+   first. A local database several migrations behind is invisible until someone
+   regenerates the Prisma client, and then every query touching a new column
+   returns `P2022` on whichever screen reaches it first — which reads as a
+   regression in that screen and is not one. The API now warns about this at
+   startup as well, but the warning scrolls past and `db:preflight` does not.
+   See the `doc-code-drift` sibling case, BUG-0283.
 2. **Determine architecture and dependencies.** Which modules, which models,
    which permissions, which settings, which runtime registries, which other apps
    consume the contract.

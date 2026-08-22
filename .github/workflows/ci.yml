@@ -323,6 +323,13 @@ jobs:
         # carried its own loopback fallback. These assert that a production
         # build now fails on a missing, malformed or loopback app URL.
         run: npm run test:app-urls
+      - name: Migrations do not run through a connection pooler
+        # BUG-0086. Every production deploy aborted in preDeployCommand on
+        # P1002 — `prisma migrate deploy` takes a session-scoped advisory lock
+        # and Neon's pooled endpoint is PgBouncer in transaction mode, which
+        # cannot hold one. The failure is deterministic configuration, so the
+        # check is too: the migration url must not name a pooled host.
+        run: npm run test:database-urls
       - name: No loopback URLs in shipped source
         # The other half of the same defect: a hardcoded literal never consults
         # an environment variable, so environment validation cannot see it.
