@@ -5,6 +5,7 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  Matches,
   MaxLength,
   Min,
 } from 'class-validator';
@@ -58,4 +59,18 @@ export class StartOnboardingDto {
   @IsString()
   @MaxLength(40)
   phone?: string;
+
+  /**
+   * Carried from the first step so a buyer who abandons at checkout and returns
+   * is still attributed. A code, never a partner id — see PublicSubscribeDto.
+   * BUG-0281.
+   */
+  @IsOptional()
+  @Transform(trimToUndefined)
+  @IsString()
+  @MaxLength(64)
+  @Matches(/^[A-Za-z0-9_-]+$/, {
+    message: 'referralCode must be a valid referral code.',
+  })
+  referralCode?: string;
 }

@@ -483,4 +483,98 @@ describe('TenantDomainService', () => {
       ).rejects.toBeInstanceOf(ConflictException);
     });
   });
+
+  /**
+   * The stamp that could never change.
+   *
+   * `createSystemDomain` reads `wildcardDnsReady` **once**, at the moment it
+   * issues a hostname, and writes PENDING/PENDING when it is false. Nothing
+   * re-reads it, and nothing probes DNS per tenant — so a hostname issued
+   * before the platform setting was confirmed stayed "Pending" for ever, on
+   * workspaces that were by then resolving perfectly. Reported as "the status
+   * say pending. Is it automated or manual?", which the screen could not
+   * answer because the answer was "neither: it will never change".
+   */
+  describe('reconcileSystemDomainsAfterWildcardDns', () => {
+    const reconcilingPrisma = (wildcardDnsReady: boolean) => {
+      const updateMany = jest.fn().mockResolvedValue({ count: 3 });
+      return {
+        prisma: {
+          platformSetting: {
+            findUnique: jest
+              .fn()
+              .mockResolvedValue({ value: { wildcardDnsReady } }),
+          },
+          tenantDomain: { updateMany },
+        },
+        updateMany,
+      };
+    };
+
+    it('promotes the subdomains stamped before the confirmation', async () => {
+      const { prisma, updateMany } = reconcilingPrisma(true);
+
+      const result =
+        await makeService(prisma).reconcileSystemDomainsAfterWildcardDns(
+          'operator-1',
+        );
+
+      expect(result.promoted).toBe(3);
+      expect(updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            verificationStatus: 'VERIFIED',
+            tlsStatus: 'ACTIVE',
+          }),
+        }),
+      );
+    });
+
+    it('does nothing while wildcard DNS is still unconfirmed', async () => {
+      /*
+       * The guard that stops this becoming a way to mark hostnames verified
+       * without anybody having verified anything.
+       */
+      const { prisma, updateMany } = reconcilingPrisma(false);
+
+      const result =
+        await makeService(prisma).reconcileSystemDomainsAfterWildcardDns();
+
+      expect(result.promoted).toBe(0);
+      expect(updateMany).not.toHaveBeenCalled();
+    });
+
+    it('touches only system subdomains, never a customer’s own domain', async () => {
+      /*
+       * The important restriction. A custom domain is verified against records
+       * the customer controls, and the platform wildcard says nothing about it
+       * — promoting one would assert something nobody checked.
+       */
+      const { prisma, updateMany } = reconcilingPrisma(true);
+
+      await makeService(prisma).reconcileSystemDomainsAfterWildcardDns();
+
+      expect(updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ type: 'SYSTEM_SUBDOMAIN' }),
+        }),
+      );
+    });
+
+    it('only touches rows that are actually pending', async () => {
+      // A verified domain must not have its `verifiedAt` rewritten to today by
+      // an unrelated settings save.
+      const { prisma, updateMany } = reconcilingPrisma(true);
+
+      await makeService(prisma).reconcileSystemDomainsAfterWildcardDns();
+
+      const where = updateMany.mock.calls[0]?.[0]?.where as {
+        OR?: Array<Record<string, unknown>>;
+      };
+      expect(where.OR).toEqual([
+        { verificationStatus: 'PENDING' },
+        { tlsStatus: 'PENDING' },
+      ]);
+    });
+  });
 });

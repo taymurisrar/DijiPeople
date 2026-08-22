@@ -51,6 +51,7 @@ import {
 } from './dto/customization.dto';
 import { validatePackageComponentDependencies } from './dependency-validation';
 import { analyzePackageExport } from './package-export-readiness';
+import { toDisplayString } from '../../common/utils/display-string';
 import {
   buildMetadataInvalidationKeys,
   resolveEffectivePackageComponents,
@@ -2057,7 +2058,7 @@ export class CustomizationService {
               ? record.objectKey
               : typeof record.logicalName === 'string'
                 ? record.logicalName
-                : String(record.objectId ?? record.id ?? ''),
+                : toDisplayString(record.objectId ?? record.id ?? ''),
           moduleKey:
             typeof record.moduleKey === 'string' ? record.moduleKey : null,
           dependencies: Array.isArray(record.dependencies)

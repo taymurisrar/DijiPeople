@@ -23,7 +23,9 @@ import { SubscriptionOrderService } from './services/subscription-order.service'
 import { SeatChangeService } from './services/seat-change.service';
 import { PlanChangeService } from './services/plan-change.service';
 import { OrderActivationService } from './services/order-activation.service';
+import { PaymentRecheckService } from './services/payment-recheck.service';
 import { LegalModule } from '../legal/legal.module';
+import { PartnerExperienceModule } from '../partner-experience/partner-experience.module';
 import { PlatformCommunicationsModule } from '../platform-communications/platform-communications.module';
 import { OwnerEmailVerificationService } from './services/owner-email-verification.service';
 import { PaymentConfirmedHandler } from './services/payment-confirmed.handler';
@@ -32,7 +34,15 @@ import { RetentionHoldService } from './services/retention-hold.service';
 import { ReconciliationService } from './services/reconciliation.service';
 
 @Module({
-  imports: [AuthModule, AuditModule, PlatformCommunicationsModule, LegalModule],
+  imports: [
+    AuthModule,
+    AuditModule,
+    PlatformCommunicationsModule,
+    LegalModule,
+    // For PartnerReferralResolverService: checkout attribution is resolved from
+    // a code server-side, never accepted from the caller. BUG-0281.
+    PartnerExperienceModule,
+  ],
   controllers: [
     BillingController,
     PublicBillingController,
@@ -57,6 +67,7 @@ import { ReconciliationService } from './services/reconciliation.service';
     SeatChangeService,
     PlanChangeService,
     OrderActivationService,
+    PaymentRecheckService,
     PaymentConfirmedHandler,
     CancellationService,
     RetentionHoldService,
@@ -73,6 +84,7 @@ import { ReconciliationService } from './services/reconciliation.service';
   ],
   exports: [
     BillingService,
+    PaymentRecheckService,
     ActiveEmployeeCountService,
     SeatUsageService,
     CommercialConfigService,

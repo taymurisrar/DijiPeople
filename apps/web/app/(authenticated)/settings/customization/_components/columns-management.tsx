@@ -23,6 +23,7 @@ import {
   CustomizationTable,
 } from "../types";
 import { CustomPackagePickerDialog } from "./custom-package-picker-dialog";
+import { useDialogBehavior } from "@/app/components/ui/dialog";
 
 const fieldTypeOptions = [
   "text",
@@ -430,6 +431,14 @@ export function ColumnsManagement({
     router.refresh();
   }
 
+  // BUG-0043: this modal kept its own layout and gained the guarantees
+  // it never had - focus containment, Escape, focus restore and dialog
+  // semantics. See useDialogBehavior.
+  const formDialog = useDialogBehavior({
+    open: Boolean(form),
+    onClose: () => setForm(null),
+  });
+
   return (
     <SectionCard
       description="System fields can be relabeled and adjusted only where safe. Custom fields are package-owned metadata components on this module."
@@ -482,13 +491,17 @@ export function ColumnsManagement({
       />
 
       {form ? (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/40 p-4">
+        <div
+          className="fixed inset-0 z-50 grid place-items-center bg-slate-950/40 p-4"
+          {...formDialog.backdropProps}
+        >
           <form
+            {...formDialog.panelProps}
             className="grid max-h-[92vh] w-full max-w-3xl gap-5 overflow-y-auto rounded-[24px] border border-border bg-white p-6 shadow-xl"
             onSubmit={handleSubmit}
           >
             <div>
-              <h3 className="text-lg font-semibold text-foreground">
+              <h3 className="text-lg font-semibold text-foreground" id={formDialog.titleId}>
                 {form.mode === "create" ? "Add custom field" : "Edit field"}
               </h3>
               <p className="mt-1 text-sm leading-6 text-muted">

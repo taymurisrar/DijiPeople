@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { EmailTemplate } from '@prisma/client';
+import { toDisplayString } from '../../../common/utils/display-string';
 import {
   assertSafeHtmlTemplate,
   escapeHtmlValue,
@@ -90,7 +91,7 @@ function renderTemplateString(
       return '';
     }
 
-    return mode === 'html' ? escapeHtmlValue(value) : String(value);
+    return mode === 'html' ? escapeHtmlValue(value) : toDisplayString(value);
   });
 }
 

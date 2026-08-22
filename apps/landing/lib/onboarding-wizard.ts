@@ -24,10 +24,34 @@ export const WIZARD_STEPS = [
 
 export type WizardStep = (typeof WIZARD_STEPS)[number];
 
+/**
+ * The heading shown above each step's fields.
+ *
+ * Kept separate from `STEP_LABELS` below because a heading and a progress label
+ * are different jobs: the heading has a whole column to itself and can afford
+ * "Workspace administrator", while the label sits in a five-across rail where
+ * that phrase either wraps or truncates to "Worksp...".
+ */
 export const STEP_TITLES: Record<WizardStep, string> = {
   organization: "Your organization",
   workspace: "Your workspace",
   owner: "Workspace administrator",
+  agreements: "Agreements",
+  review: "Review",
+};
+
+/**
+ * The one- or two-word label for the progress rail.
+ *
+ * The rail previously reused `STEP_TITLES`, so at ordinary widths it read
+ * "Your org...", "Your wo...", "Worksp...", "Agreem...", "Review" — five
+ * truncated fragments that say less than the numbers beside them. A label that
+ * has to be truncated to fit is the wrong label, not a layout problem.
+ */
+export const STEP_LABELS: Record<WizardStep, string> = {
+  organization: "Organization",
+  workspace: "Workspace",
+  owner: "Administrator",
   agreements: "Agreements",
   review: "Review",
 };
@@ -197,10 +221,10 @@ export function furthestReachableStep(
   let reached: WizardStep = WIZARD_STEPS[0];
   for (const step of WIZARD_STEPS) {
     if (!canLeaveStep(step, form, requiredAgreementIds)) return reached;
-    reached = WIZARD_STEPS[Math.min(
-      WIZARD_STEPS.indexOf(step) + 1,
-      WIZARD_STEPS.length - 1,
-    )];
+    reached =
+      WIZARD_STEPS[
+        Math.min(WIZARD_STEPS.indexOf(step) + 1, WIZARD_STEPS.length - 1)
+      ];
   }
   return reached;
 }
@@ -216,6 +240,13 @@ export function furthestReachableStep(
 export function buildSubmitPayload(
   form: WizardForm,
   selection: { planPriceId: string; seatQuantity: number },
+  /**
+   * The partner referral code the visitor arrived with, if any. Passed in
+   * rather than read here so this stays a pure function of the form — the
+   * capture lives in `lib/referral.ts` and the resolution is server-side, since
+   * attribution decides commission. BUG-0281.
+   */
+  referralCode?: string,
 ): Record<string, unknown> {
   const text = (value: string) => {
     const trimmed = value.trim();
@@ -230,7 +261,8 @@ export function buildSubmitPayload(
     companyName: form.companyName.trim(),
     // Still sent: the API's sales-assisted callers rely on it, and it is the
     // fallback when the two-field name is absent.
-    contactName: `${form.ownerFirstName.trim()} ${form.ownerLastName.trim()}`.trim(),
+    contactName:
+      `${form.ownerFirstName.trim()} ${form.ownerLastName.trim()}`.trim(),
     email: form.email.trim().toLowerCase(),
     country: form.country.trim(),
     phone: text(form.phone),
@@ -239,9 +271,10 @@ export function buildSubmitPayload(
     registrationNumber: text(form.registrationNumber),
     taxId: text(form.taxId),
     industry: text(form.industry),
-    estimatedEmployeeCount: Number.isFinite(employeeCount) && employeeCount > 0
-      ? employeeCount
-      : undefined,
+    estimatedEmployeeCount:
+      Number.isFinite(employeeCount) && employeeCount > 0
+        ? employeeCount
+        : undefined,
     addressLine1: text(form.addressLine1),
     addressLine2: text(form.addressLine2),
     city: text(form.city),
@@ -253,5 +286,6 @@ export function buildSubmitPayload(
     acceptedLegalVersionIds: form.acceptedVersionIds.length
       ? form.acceptedVersionIds
       : undefined,
+    referralCode: referralCode?.trim() || undefined,
   };
 }

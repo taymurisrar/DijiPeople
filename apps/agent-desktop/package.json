@@ -15,7 +15,8 @@
     "start": "dotenv -e .env -- electron .",
     "clean:release": "node scripts/clean-release.mjs",
     "dist:win": "npm run clean:release && dotenv -e .env -- npm run build && dotenv -e .env -- electron-builder --win nsis",
-    "check-types": "tsc --noEmit"
+    "check-types": "tsc --noEmit",
+    "test": "jest --config jest.config.js"
   },
   "dependencies": {
     "active-win": "^8.2.1",

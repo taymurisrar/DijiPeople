@@ -1,5 +1,6 @@
 import { BadRequestException } from '@nestjs/common';
 import { DEFAULT_TENANT_SETTINGS } from '../tenant-settings/tenant-settings.catalog';
+import { toDisplayString } from '../../common/utils/display-string';
 import {
   EmployeesService,
   isEmployeeInvitationEligibleUser,
@@ -255,7 +256,7 @@ describe('EmployeesService', () => {
     // It may still fail further down on unmocked persistence; what matters is
     // that it is no longer blocked by a rule the caller never touched.
     const message =
-      error instanceof Error ? error.message : String(error ?? '');
+      error instanceof Error ? error.message : toDisplayString(error ?? '');
     expect(message).not.toContain('Emergency contact');
   });
 

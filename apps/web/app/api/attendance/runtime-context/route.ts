@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { apiRequest } from "@/lib/server-api";
+import { proxyErrorResponse } from "@/app/api/_lib/proxy-error";
 
 export async function GET() {
   try {
@@ -10,14 +11,6 @@ export async function GET() {
       status: response.status,
     });
   } catch (error) {
-    return NextResponse.json(
-      {
-        message:
-          error instanceof Error
-            ? error.message
-            : "Unable to load attendance action context.",
-      },
-      { status: 500 },
-    );
+    return proxyErrorResponse(error, "Unable to load attendance action context.");
   }
 }

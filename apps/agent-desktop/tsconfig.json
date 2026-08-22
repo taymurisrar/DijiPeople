@@ -11,5 +11,11 @@
     "rootDir": "src",
     "types": ["node", "electron"]
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts"],
+  // Specs are excluded from the *build* typecheck for two reasons: they must
+  // not be compiled into `dist` and shipped inside the installer, and declaring
+  // jest's globals here would put test types on the shipped build's type
+  // surface. ts-jest typechecks them with the right `types` at run time — see
+  // jest.config.js — so they are checked, just not by this pass. ITEM-0033.
+  "exclude": ["src/**/*.spec.ts", "test/**/*.ts", "dist"]
 }

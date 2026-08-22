@@ -1,9 +1,11 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { AuditModule } from '../audit/audit.module';
+import { DocumentsModule } from '../documents/documents.module';
 import { PublicTenantCacheService } from '../tenants/public-tenant-cache.service';
+import { BrandingAssetsService } from './branding-assets.service';
 import { FeatureAccessService } from './feature-access.service';
 import { ActiveOrganizationService } from './active-organization.service';
 import { ConfigurationResolverService } from './configuration-resolver.service';
@@ -19,7 +21,14 @@ import { TenantSettingsRepository } from './tenant-settings.repository';
 import { TenantSettingsService } from './tenant-settings.service';
 
 @Module({
-  imports: [JwtModule.register({}), AuditModule],
+  // `forwardRef` on DocumentsModule: it already imports this module for the
+  // document-settings resolver, and branding-asset upload needs its service to
+  // create the document. Both directions are real. BUG-0041 / ITEM-0050.
+  imports: [
+    JwtModule.register({}),
+    AuditModule,
+    forwardRef(() => DocumentsModule),
+  ],
   controllers: [
     TenantSettingsController,
     TenantBrandingController,
@@ -29,6 +38,7 @@ import { TenantSettingsService } from './tenant-settings.service';
   ],
   providers: [
     ActiveOrganizationService,
+    BrandingAssetsService,
     ConfigurationResolverService,
     SettingsContextService,
     EnterpriseConfigurationService,
@@ -42,6 +52,7 @@ import { TenantSettingsService } from './tenant-settings.service';
   ],
   exports: [
     ActiveOrganizationService,
+    BrandingAssetsService,
     TenantSettingsRepository,
     TenantSettingsService,
     TenantSettingsResolverService,

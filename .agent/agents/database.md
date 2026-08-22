@@ -489,3 +489,34 @@ cannot.
 - [ ] `seed-config.ts` + `verify-seed-config.ts` updated if configuration added
 - [ ] Rollback described in the plan
 - [ ] Queries that read the old shape updated
+
+---
+
+## Four stages, and the exclusive write
+
+Database is the **exclusive owner** of the schema and migration lifecycle. No
+other role writes `schema.prisma` or a migration directory; the `schema` lease
+is single-writer across every session.
+
+```
+DB_PREFLIGHT     SCHEMA_STATUS · MIGRATION_STATUS · PRISMA_CLIENT_STATUS
+                 LOCAL_DATABASE_STATUS · DATABASE_WRITE_REQUIRED · DATABASE_WRITE_LEASE
+DB_DESIGN        the review below
+DB_MIGRATION     expand → backfill → contract, never a destructive single step
+DB_VERIFICATION  fresh database · upgrade from previous schema · replay ·
+                 client generation · consumer compatibility
+```
+
+## What design review actually covers
+
+```
+UNIQUENESS      NULL SEMANTICS   FK              ON DELETE / ON UPDATE
+INDEX COVERAGE  TENANT OWNERSHIP BACKFILL        MIGRATION COMPATIBILITY
+IDEMPOTENCY     CONCURRENT WRITERS               ROLLBACK / FORWARD FIX
+```
+
+**`prisma validate` is not proof of semantic correctness.** It proves the schema
+parses and its relations are internally consistent. It says nothing about
+whether a uniqueness constraint matches the business rule, whether a nullable
+column has a defined meaning when null, or whether a migration can run against
+production data. Those are read, not validated.

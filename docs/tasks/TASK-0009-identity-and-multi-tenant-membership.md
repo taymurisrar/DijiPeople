@@ -11,6 +11,7 @@ AFFECTED_MODULES: [auth, users, legal, tenant-domains, super-admin, web, admin]
 AGENTS: [Architect, Database, Backend/API, Frontend, UI/UX, Security, QA, Reviewer, Integrator]
 DEPENDENCIES: origin/develop 844b6d3; TASK-0008 WP-02, WP-04, WP-05
 CURRENT_PACKAGE: WP-09
+NEXT_READY_WORK_PACKAGE: NONE
 COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-10, WP-11, WP-12]
 BLOCKED_PACKAGES: [WP-09]
 OWNER_DECISIONS: 2
@@ -762,6 +763,6 @@ TASK-0008's migrations to the local development database. WP-02 waits on it.
 ## Related
 
 - Records — [[BUG-0075]], [[ITEM-0060]], [[ITEM-0062]], [[ITEM-0068]], [[ITEM-0069]]
-- Modules — [[legal]], [[super-admin]]
+- Modules — [[auth]], [[legal]], [[super-admin]]
 
 <!-- GRAPH:END -->

@@ -1,12 +1,6 @@
-import {
-  PrismaClient,
-  LegalDocumentType,
-  LegalDocumentVersionStatus,
-} from '@prisma/client';
+import { PrismaClient, LegalDocumentVersionStatus } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { describeWithDatabase } from './helpers/db-fixtures';
-import { LegalService } from '../src/modules/legal/legal.service';
-import type { PrismaService } from '../src/common/prisma/prisma.service';
 import { seedLegalDocuments } from '../prisma/seed-legal';
 
 /**
@@ -44,7 +38,6 @@ describeWithDatabase()('Seeded legal documents (DB-backed)', () => {
   jest.setTimeout(180_000);
 
   const prisma = createTestPrismaClient();
-  const legal = new LegalService(prisma as unknown as PrismaService);
 
   beforeAll(async () => {
     await prisma.$connect();

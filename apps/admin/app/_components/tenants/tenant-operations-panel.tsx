@@ -60,10 +60,53 @@ export function TenantOperationsPanel({
   const { data, loading, error, reload, setData } =
     useTenantResource<TenantOperationsView>(tenantId, "/operations");
   const [busy, setBusy] = useState(false);
+  const [repairing, setRepairing] = useState(false);
   const [message, setMessage] = useState<{
     tone: "success" | "error";
     text: string;
   } | null>(null);
+
+  /**
+   * Fix what the console can fix, and say what it could not.
+   *
+   * Separate from `retry()` on purpose, mirroring the API: retry replays a step
+   * catalogue and is refused unless the tenant is still in a provisioning
+   * lifecycle state — which is exactly why an ACTIVE tenant missing only its
+   * hostname had no route to one.
+   */
+  async function repair() {
+    setRepairing(true);
+    setMessage(null);
+    try {
+      const result = await tenantRequest<{
+        repaired: string[];
+        failed: Array<{ key: string; reason: string }>;
+      }>(tenantId, "/operations/repair-workspace", { method: "POST" });
+      reload();
+      setMessage(
+        result.failed.length
+          ? {
+              tone: "error",
+              text: `Repaired ${result.repaired.length}; ${result.failed
+                .map((item) => item.reason)
+                .join(" ")}`,
+            }
+          : {
+              tone: "success",
+              text: result.repaired.length
+                ? `Repaired ${result.repaired.length} item${result.repaired.length === 1 ? "" : "s"}.`
+                : "Nothing needed repairing.",
+            },
+      );
+    } catch (reason) {
+      setMessage({
+        tone: "error",
+        text: describeError(reason, "The workspace repair failed."),
+      });
+    } finally {
+      setRepairing(false);
+    }
+  }
 
   async function retry() {
     setBusy(true);
@@ -117,7 +160,7 @@ export function TenantOperationsPanel({
     );
   if (!data) return null;
 
-  const { provisioning } = data;
+  const { provisioning, workspace } = data;
   const tenantFilter = encodeURIComponent(
     JSON.stringify([{ field: "tenantId", operator: "eq", value: tenantId }]),
   );
@@ -134,6 +177,115 @@ export function TenantOperationsPanel({
           }`}
         >
           {message.text}
+        </p>
+      ) : null}
+
+      {/*
+        What is missing, before what happened.
+
+        A provisioning run is a *record of an attempt*; this is the state of the
+        thing itself. They are different questions and the page only ever
+        answered the first, which is why an ACTIVE tenant that was plainly
+        working could report "Not provisioned" with nothing to click: its run
+        rows were never written, so every panel had nothing to say about it.
+      */}
+      <PanelCard
+        title="Workspace health"
+        description="What this workspace is missing right now, regardless of what its provisioning runs recorded."
+        actions={
+          <PanelButton
+            busy={repairing}
+            disabled={!workspace.repairable}
+            onClick={() => void repair()}
+            title={
+              workspace.repairable
+                ? undefined
+                : workspace.healthy
+                  ? "Nothing to repair."
+                  : "Nothing here can be repaired from this console — read each finding for what to do instead."
+            }
+            variant="primary"
+          >
+            Repair workspace
+          </PanelButton>
+        }
+      >
+        <DefinitionList
+          columns={3}
+          items={[
+            {
+              label: "Workspace hostname",
+              value: workspace.primaryHostname ?? "None issued",
+              hint: workspace.hostnameVerification
+                ? `Verification ${formatEnumLabel(workspace.hostnameVerification)}`
+                : undefined,
+            },
+            { label: "Workspace slug", value: workspace.slug ?? "Not set" },
+            { label: "Business units", value: workspace.businessUnitCount },
+            { label: "Users", value: workspace.userCount },
+          ]}
+        />
+
+        {workspace.healthy ? (
+          <p className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+            Nothing is missing. This workspace has a hostname, a business unit
+            and an owner.
+          </p>
+        ) : (
+          <ul className="mt-4 space-y-2">
+            {workspace.findings.map((finding) => (
+              <li
+                className={`rounded-xl border px-3 py-2.5 ${
+                  finding.severity === "BLOCKING"
+                    ? "border-rose-200 bg-rose-50"
+                    : "border-amber-200 bg-amber-50"
+                }`}
+                key={finding.key}
+              >
+                <p className="flex flex-wrap items-center gap-2 text-sm font-semibold text-slate-900">
+                  {finding.title}
+                  {/* Said in words, because the border colour is the second
+                      signal and not the only one. */}
+                  <span className="rounded-full bg-white/70 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide">
+                    {finding.severity === "BLOCKING" ? "Blocking" : "Degraded"}
+                  </span>
+                  <span className="rounded-full bg-white/70 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide">
+                    {finding.repairable ? "Repairable here" : "Needs a person"}
+                  </span>
+                </p>
+                <p className="mt-1 text-sm leading-6 text-slate-700">
+                  {finding.detail}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </PanelCard>
+
+      {/*
+        What to do, above what happened.
+
+        The panel already held everything needed to diagnose a stuck tenant —
+        the failed step, the attempt, the duration — and required the reader to
+        know how to read it. Reported as "is not provisioned or stuck ... what
+        to do? I am not sure", which is a fair description of a screen that
+        states facts and recommends nothing.
+      */}
+      {provisioning.recommendedAction ? (
+        <p
+          className={`rounded-xl border px-4 py-3 text-sm ${
+            provisioning.operationalState === "FAILED" ||
+            provisioning.operationalState === "STALLED"
+              ? "border-rose-200 bg-rose-50 text-rose-900"
+              : provisioning.operationalState === "MANUAL_ACTION_REQUIRED" ||
+                  provisioning.operationalState === "BREACHED"
+                ? "border-amber-200 bg-amber-50 text-amber-900"
+                : "border-slate-200 bg-slate-50 text-slate-700"
+          }`}
+          role="status"
+        >
+          <span className="font-semibold">Next step. </span>
+          {provisioning.recommendedAction}
         </p>
       ) : null}
 
@@ -159,14 +311,21 @@ export function TenantOperationsPanel({
               {
                 label: "State",
                 value: (
+                  /*
+                   * The derived state, not the stored one. `RUNNING` covers a
+                   * run that started ten seconds ago and one whose process died
+                   * an hour ago, and an operator needs those told apart — that
+                   * confusion is what left a tenant looking stuck with nothing
+                   * to click.
+                   */
                   <StatePill
-                    value={provisioning.status ?? "Unknown"}
                     tone={
-                      provisioning.status === "SUCCEEDED"
-                        ? "success"
-                        : provisioning.status === "FAILED"
-                          ? "danger"
-                          : "info"
+                      STATE_TONE[provisioning.operationalState ?? ""] ?? "info"
+                    }
+                    value={
+                      provisioning.operationalState
+                        ? formatEnumLabel(provisioning.operationalState)
+                        : (provisioning.status ?? "Unknown")
                     }
                   />
                 ),
@@ -443,3 +602,17 @@ const supportColumns: ProDataTableColumn<SupportCase>[] = [
     render: (row) => formatDate(row.createdAt),
   },
 ];
+
+/**
+ * Colour is the second signal, never the only one — the pill carries the state
+ * in words, and this only decides how loudly it is said.
+ */
+const STATE_TONE: Record<string, "success" | "danger" | "warning" | "info"> = {
+  READY: "success",
+  FAILED: "danger",
+  STALLED: "danger",
+  MANUAL_ACTION_REQUIRED: "warning",
+  BREACHED: "warning",
+  AT_RISK: "warning",
+  IN_PROGRESS: "info",
+};

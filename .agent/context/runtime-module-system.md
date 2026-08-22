@@ -1,7 +1,7 @@
 # Runtime Module System
 
-> **Last verified:** 2026-08-14
-> **Verified against commit:** 8682dc1
+> **Last verified:** 2026-08-21
+> **Verified against commit:** 08b8661 (platform runtime section re-derived)
 > **Key source files:** apps/web/lib/runtime/modules/standard-module-runtime.ts, apps/web/lib/runtime/modules/standard-module-specs.ts, apps/web/lib/runtime/modules/standard-module-data.adapter.ts, apps/web/lib/runtime/modules/standard-module-route-helpers.ts, apps/web/lib/runtime/module-data-adapter.types.ts, apps/web/lib/runtime/command-execution.service.ts, apps/web/lib/runtime/command-runtime.resolver.ts, apps/web/app/components/runtime/standard-module-list-page.tsx, apps/web/app/components/runtime/standard-module-record-page.tsx, apps/web/app/components/runtime/module-list-page.tsx, apps/web/app/components/runtime/module-record-page.tsx, apps/web/app/components/runtime/module-runtime-command-handler.tsx, apps/admin/lib/runtime/platform-module-registry.ts, apps/admin/lib/runtime/http-module-runtime-adapter.ts, apps/admin/app/_components/crm/data-table.tsx, services/api/src/modules/platform-runtime/platform-runtime.controller.ts, scripts/generate-platform-runtime-schema.mjs, packages/config/platform-runtime-schema.test.js
 >
 > This document describes the repository, it is not authority over it. If the
@@ -217,12 +217,56 @@ business process (`:70`, `:77`), related (`:85`), validate (`:94`) and
 list/create/get/update/delete (`:101`-`:130`).
 
 Admin page components: `apps/admin/app/_components/runtime/` —
-`runtime-module-page.tsx` (30 lines, server: auth + user module preference →
-`RuntimeModuleList`), `runtime-record-route.tsx` (29 lines, server auth wrapper
-→ `RuntimeRecordPage`), `runtime-module-list.tsx` (1,176),
-`runtime-record-page.tsx` (2,678), `runtime-form.tsx` (932),
-`module-action-bar.tsx` (340), `runtime-view-selector.tsx` (244).
+`runtime-module-page.tsx` (server: auth + user module preference →
+`RuntimeModuleList`), `runtime-record-route.tsx` (server auth wrapper →
+`RuntimeRecordPage`), `runtime-module-list.tsx`, `runtime-record-page.tsx`,
+`runtime-form.tsx`, `module-action-bar.tsx`, `record-status-group.tsx`,
+`record-command-bar.tsx`, `runtime-view-selector.tsx`.
 33 of 82 admin `page.tsx` files go through `RuntimeModulePage`/`RuntimeRecordRoute`.
+Line counts were removed here rather than restated: they were wrong within a
+week of being written and nothing validates them, which is the `doc-code-drift`
+pattern applied to this document itself.
+
+### The record command bar is a default, not a per-module decision
+
+`define()` builds each module's command bar from a `capabilities` map —
+`{ create, update, delete }` — and merges the module's own declared actions over
+it, keyed on `(key, scope)`. Consequences worth knowing before changing a
+module:
+
+- **Back and Refresh are unconditional** on every record page except the
+  dashboard. `record-new` and `record-refresh` are separate keys from the
+  list-scope `new` and `refresh`, because the two do different things.
+- **`capabilities` restates `PlatformRuntimeService`'s `create` / `update` /
+  `remove` switch statements**, and
+  `apps/admin/lib/runtime/platform-module-capabilities.spec.ts` re-derives all
+  three from that source and fails on drift. Do not edit the map to make a
+  button appear; add the API branch.
+- The standard commands are sorted into one fixed order — Back, New, Edit,
+  Save, Save and close, Refresh, Delete — so a button does not move between
+  modules. Module-specific actions follow in declared order.
+- Five detail pages are bespoke rather than runtime-rendered — contract
+  templates, signature requests, invoices, partner inquiries, partner
+  onboarding. Four take their actions from the registry; all five use
+  `runStandardRecordCommand` (`lib/runtime/standard-record-commands.ts`) for
+  Back / New / Refresh, so a registry default reaching them is implemented
+  rather than merely rendered.
+
+### The record header status group
+
+`RecordStatusGroup` draws Owner, Status and Sub-status at the top right of every
+record, the D365 arrangement. The slots come from `recordHeader` on the module
+definition, which `define()` derives from the generated Prisma manifest — a slot
+exists only when the model carries the field, and labels and options come from
+the record form where it declares them.
+
+**A slot is read-only unless it names a governed write route.** `assign` and
+`change-status` are the only two, and only the modules
+`PlatformRuntimeService.bulkAssign` and `.changeStatus` implement get them
+(assign: leads, partners, customers, support-cases; change-status: leads,
+partners, support-cases). Everything else displays and explains why it cannot be
+changed there. A header dropdown that PATCHed a lifecycle column directly would
+route around whatever the owning service does on a transition.
 
 ## Key abstractions
 

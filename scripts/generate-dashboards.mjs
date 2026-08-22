@@ -28,6 +28,8 @@ import { loadRecords, bucketOf, compareRecords, writeIfChanged } from './lib/bac
 import { loadSessions, compareSessions, isActive as sessionIsActive } from './lib/session-records.mjs';
 import { loadTasks, readyPackages, progressOf, isActive as taskIsActive } from './lib/task-records.mjs';
 import { COVERAGE_DIMENSIONS, loadQaRecords } from './lib/qa-records.mjs';
+import { loadQuestions } from './lib/question-records.mjs';
+import { hasMeaningfulContent } from './lib/obsidian-mappings.mjs';
 
 const BANNER =
   '> **Generated file — do not edit by hand.** Rebuild with `node scripts/generate-dashboards.mjs`,\n' +
@@ -43,8 +45,29 @@ const CHECK_ONLY = process.argv.includes('--check');
 /** Note name as Obsidian resolves it: the filename without its extension. */
 const noteName = (path) => basename(path, '.md');
 
+/**
+ * A wikilink, but only to a record that will actually reach the vault.
+ *
+ * The empty-note policy skips sources with no substance, so a stub record never
+ * becomes a note — and a dashboard that links to it emits a wikilink Obsidian
+ * cannot resolve. SESSION-0023 is a 103-word stub, and the Control Center was
+ * its only unresolved link.
+ *
+ * Resolving that by publishing the stub anyway would defeat the empty-note
+ * policy; resolving it by editing another session's record would be reaching
+ * into work that is not this one's. So the dashboard degrades to plain text,
+ * which is honest: the row still appears, and it simply is not a link.
+ */
 const wikilink = (path, label) => {
   const name = noteName(path);
+  const full = join(ROOT, path);
+  if (existsSync(full)) {
+    try {
+      if (!hasMeaningfulContent(readFileSync(full, 'utf8'))) return label || name;
+    } catch {
+      /* Unreadable is the caller's problem to report, not this helper's. */
+    }
+  }
   return label && label !== name ? `[[${name}|${label}]]` : `[[${name}]]`;
 };
 
@@ -418,6 +441,72 @@ const taskTable = activeTasks.length
     ].join('\n')
   : '_No parent task is active._';
 
+/*
+ * ------------------------------------------------------------------ stewardship
+ *
+ * The Product & Backlog Steward's signals, derived here rather than restated.
+ * A dashboard that repeats a number somebody typed is a second source of truth,
+ * which is the thing it exists to prevent.
+ *
+ * Only what the records can actually support is published. Obsidian parity, the
+ * develop queue, test-resource cleanup and branch SHAs are all *live* state:
+ * they change between one command and the next, so a number here would be a
+ * claim that is already stale. Those get a command instead, which is the same
+ * stance this note already takes about heartbeats and leases.
+ */
+/*
+ * Scoped to the open bucket, the same population the severity counters above
+ * use. Health measured over a different set than the counts beside it would
+ * invite exactly the arithmetic nobody can reproduce.
+ */
+const activeRecords = openRecords;
+const SETTLED_DISPOSITIONS = new Set(['ACCEPTED_RISK', 'DUPLICATE', 'NOT_A_BUG']);
+
+const field = (record, name) => String(record.fields[name] ?? '').trim();
+const hasField = (record, name) => {
+  const value = record.fields[name];
+  return Array.isArray(value) ? value.length > 0 : Boolean(String(value ?? '').trim());
+};
+
+const ownerlessActionable = activeRecords.filter(
+  (record) => !field(record, 'OwnerAgent') && !SETTLED_DISPOSITIONS.has(record.disposition),
+);
+const withoutAcceptance = activeRecords.filter((record) => !hasField(record, 'AcceptanceCriteria'));
+const withoutNextAction = activeRecords.filter((record) => !hasField(record, 'NextAction'));
+
+const ageInDays = (record) => {
+  const at = Date.parse(String(record.fields.CreatedAt ?? record.fields.DetectedDate ?? ''));
+  if (Number.isNaN(at)) return null;
+  return Math.floor((Date.now() - at) / 86_400_000);
+};
+const aging = (threshold) =>
+  activeRecords.filter((record) => (ageInDays(record) ?? 0) >= threshold).length;
+
+const architectureDebt = activeRecords.filter((record) =>
+  ['ARCHITECTURE', 'TECH_DEBT'].includes(record.type),
+);
+const securityGaps = activeRecords.filter((record) =>
+  ['SECURITY', 'AUTHORIZATION', 'TENANT_ISOLATION'].includes(record.type),
+);
+const databaseGaps = activeRecords.filter((record) =>
+  ['DATABASE', 'DATA_INTEGRITY', 'DATA_MIGRATION'].includes(record.type),
+);
+
+const { questions } = loadQuestions(ROOT);
+const openQuestions = questions.filter((question) => question.status === 'OPEN');
+
+/*
+ * Work packages waiting on a user answer, across every live program. This is
+ * the number that says whether the framework is blocked on the user or on
+ * itself — and WAITING_USER is deliberately not counted as BLOCKED, because one
+ * unanswered question must not read as a stalled program.
+ */
+const waitingUserPackages = activeTasks.flatMap((task) =>
+  (task.packages ?? [])
+    .filter((entry) => entry.status === 'WAITING_USER')
+    .map((entry) => `${task.id} ${entry.id}`),
+);
+
 const controlCenter = page('Engineering Control Center', [
   [
     'State',
@@ -428,6 +517,8 @@ const controlCenter = page('Engineering Control Center', [
       `| Active parent tasks | ${activeTasks.length} |`,
       `| Active work packages | ${activeWorkPackages.length} |`,
       `| Blocked work packages | ${blockedWorkPackages.length} |`,
+      `| Work packages waiting on the user | ${waitingUserPackages.length}${waitingUserPackages.length ? ` — ${waitingUserPackages.join(', ')}` : ''} |`,
+      `| Open questions | ${openQuestions.length} |`,
       `| Sessions declaring a schema write | ${schemaWriters.length}${schemaWriters.length > 1 ? ' — **the database is single-writer across all sessions; this must be at most 1**' : ''} |`,
       `| Open CRITICAL | **${bySeverity('CRITICAL').length}** |`,
       `| Open HIGH | ${bySeverity('HIGH').length} |`,
@@ -435,6 +526,32 @@ const controlCenter = page('Engineering Control Center', [
       `| Owner decisions pending | ${ownerDecisions.length} |`,
       `| QA coverage gaps | ${coverageGaps.length} |`,
       `| Scenarios blocked by infrastructure | ${blockedScenarios.length} |`,
+    ].join('\n'),
+  ],
+  [
+    'Backlog health',
+    [
+      'Whether the outstanding work is *actionable*, as opposed to merely valid.',
+      'A record nobody owns, with no acceptance criteria and no next action,',
+      'survives every review by being unfalsifiable.',
+      '',
+      '| | |',
+      '|---|---|',
+      `| Ownerless actionable records | ${ownerlessActionable.length}${ownerlessActionable.length ? ` — ${ownerlessActionable.map((record) => record.id).slice(0, 8).join(', ')}` : ''} |`,
+      `| No acceptance criteria | ${withoutAcceptance.length} |`,
+      `| No next action | ${withoutNextAction.length} |`,
+      `| Aging — 7d / 30d / 90d | ${aging(7)} / ${aging(30)} / ${aging(90)} |`,
+      `| Architecture and technical debt | ${architectureDebt.length} |`,
+      `| Security gaps | ${securityGaps.length} |`,
+      `| Database gaps | ${databaseGaps.length} |`,
+      '',
+      'Ranked next-best actions weigh blast radius rather than severity alone, and',
+      'are computed on demand so the reasons travel with the ranking:',
+      '',
+      '```bash',
+      'node scripts/backlog-review.mjs        # health detectors and NEXT_BEST_ACTIONS',
+      'node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS',
+      '```',
     ].join('\n'),
   ],
   ['Active Sessions', sessionTable],

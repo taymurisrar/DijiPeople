@@ -60,12 +60,25 @@ export async function executeRuntimeRecordAction(input: {
   } = input;
 
   if (action.key === "back") return router.push(routeBase);
+  if (action.key === "record-new") return router.push(`${routeBase}/new`);
   if (action.key === "edit") return enterEditMode();
   if (action.key === "save") return save(false);
   if (action.key === "save-close") return save(true);
   if (action.key === "cancel") {
     resetForm();
     return leaveEditMode();
+  }
+  /*
+   * Refresh discards unsaved edits by design — it is the operator's way of
+   * asking what the record looks like on the server, which is not a question
+   * that can be answered while the form still holds their draft. Leaving edit
+   * mode makes that visible instead of silently repopulating the inputs they
+   * were typing into.
+   */
+  if (action.key === "record-refresh") {
+    await reloadRecord();
+    leaveEditMode();
+    return { success: true, message: "Record reloaded." };
   }
   if (action.key === "delete") {
     const result = await adapter.deleteRecord(record.id);

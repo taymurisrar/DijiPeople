@@ -70,6 +70,30 @@ const PRIMARY_BASELINE = new Set(
 const hasPrimaryBaseline = process.argv.includes('--primary-baseline');
 
 /*
+ * Paths in the primary checkout that appeared during this task and belong to
+ * another live session:
+ *
+ *   --primary-attributed SESSION-0025:services/api/package.json,SESSION-0031:path
+ *
+ * Deliberately separate from --primary-baseline. The baseline says "this
+ * predated me"; attribution says "this is not mine, and here is who owns it".
+ * Collapsing them would let a task launder a file it created into the user's
+ * pre-existing work, which is the one thing the baseline exists to prevent.
+ */
+const primaryAttributions = new Map(
+  argValue('--primary-attributed')
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+    .map((entry) => {
+      const separator = entry.indexOf(':');
+      if (separator === -1) return null;
+      return [entry.slice(separator + 1).trim(), entry.slice(0, separator).trim().toUpperCase()];
+    })
+    .filter(Boolean),
+);
+
+/*
  * The SHA `main` sat at when this task started. Supplying it turns
  * MAIN_CHANGE_STATUS from a guess into a fact: an ordinary task must leave the
  * production branch exactly where it found it, and only a comparison against a
@@ -589,6 +613,27 @@ function classifyPrimaryPath(entry) {
 
   if (preExisting) {
     return { path, owner: 'USER', classification: 'PRE_EXISTING_USER_WORK' };
+  }
+
+  /*
+   * A path that appeared *during* this task and belongs to another live session.
+   *
+   * The model used to assume only the running task changes the primary
+   * checkout, so a concurrent session editing it mid-task had nowhere to land
+   * but UNEXPLAINED. The only ways out were to block forever, or to list the
+   * path in --primary-baseline — which asserts it predated the task when it
+   * did not. TASK-0012 hit exactly this: SESSION-0025 was deploying an API heap
+   * cap and edited `services/api/package.json` in the primary worktree while
+   * this program was running.
+   *
+   * Attribution is explicit, names an owner, and the owner must actually be an
+   * ACTIVE session, so it cannot wave through a genuinely unexplained file.
+   * Naming a session that is not active leaves the path UNEXPLAINED, which is
+   * the correct answer when nobody is around to claim it.
+   */
+  const attributedTo = primaryAttributions.get(path);
+  if (attributedTo && activeSessionIds.has(attributedTo)) {
+    return { path, owner: attributedTo, classification: 'OTHER_SESSION_WORK' };
   }
 
   if (GENERATED_PATH_PATTERNS.some((pattern) => pattern.test(path))) {

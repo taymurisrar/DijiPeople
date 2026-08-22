@@ -90,23 +90,52 @@ and `NEXT_PUBLIC_WEB_ROOT_DOMAIN` for the tenant base domain.
 
 ## API: Render
 
+### Two database connections, not one
+
+`DATABASE_URL` is the **runtime** connection. Neon's pooled endpoint — the
+hostname carrying the `-pooler` infix — is a good choice for it.
+
+`DIRECT_DATABASE_URL` is the **migration** connection, and it must be the
+**direct** endpoint for the same database. Every Prisma CLI call in this
+repository resolves its datasource through
+[`services/api/prisma.config.ts`](../services/api/prisma.config.ts), which
+prefers this variable and falls back to `DATABASE_URL` when it is unset.
+
+The distinction is not a preference. `prisma migrate deploy` serialises
+concurrent migrators with a *session-scoped* Postgres advisory lock
+(`pg_advisory_lock`), which is bound to one backend connection. The pooled
+endpoint is PgBouncer in **transaction** pooling mode, where a client connection
+maps to a backend only for the duration of a transaction — so the lock cannot be
+established at all. The result is not a slow migration: it is `P1002` after the
+ten-second lock timeout, every time, at any timeout value. `preDeployCommand`
+aborts, and `seed:config`, `seed:verify`, `seed:admin`, `seed:legal` and
+`legal:publish` — everything after the migration step in `npm --workspace api
+run release` — never run. That was BUG-0086.
+
+Leave `DIRECT_DATABASE_URL` unset anywhere there is no pooler in front of
+Postgres (local development, CI): migrations then use `DATABASE_URL` and nothing
+changes. Setting either variable to a pooled url when it is the one migrations
+would use is refused at config load with a message naming the fix, rather than
+being discovered ten seconds into a deploy.
+
 Required production values:
 
 ```env
 NODE_ENV=production
 PORT=4000
-API_BASE_URL=https://dijipeople.onrender.com/api
-API_ORIGIN=https://dijipeople.onrender.com
+API_BASE_URL=https://api.dijipeople.com/api
+API_ORIGIN=https://api.dijipeople.com
 DATABASE_URL=<rotated-neon-postgres-url>
-CORS_ALLOWED_ORIGINS=https://diji-people-admin.vercel.app,https://diji-people-web.vercel.app,https://diji-people-landing.vercel.app
+DIRECT_DATABASE_URL=<same-database, DIRECT endpoint — no `-pooler` in the host>
+CORS_ALLOWED_ORIGINS=https://admin.dijipeople.com,https://app.dijipeople.com,https://www.dijipeople.com
 CORS_ALLOWED_HEADERS=Authorization,Content-Type,X-DijiPeople-App,X-DijiPeople-Client,X-Client-Id,X-Tenant-Slug,X-Requested-With,X-Trace-Id,X-Request-Id
 CORS_ALLOWED_METHODS=GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS
 CORS_ALLOW_CREDENTIALS=true
-ADMIN_APP_URL=https://diji-people-admin.vercel.app
-WEB_APP_URL=https://diji-people-web.vercel.app
-LANDING_APP_URL=https://diji-people-landing.vercel.app
-ACCOUNT_ACTIVATION_LINK_BASE_URL=https://diji-people-web.vercel.app/account/activate
-PASSWORD_RESET_LINK_BASE_URL=https://diji-people-web.vercel.app/auth/reset-password
+ADMIN_APP_URL=https://admin.dijipeople.com
+WEB_APP_URL=https://app.dijipeople.com
+LANDING_APP_URL=https://www.dijipeople.com
+ACCOUNT_ACTIVATION_LINK_BASE_URL=https://app.dijipeople.com/account/activate
+PASSWORD_RESET_LINK_BASE_URL=https://app.dijipeople.com/auth/reset-password
 COOKIE_SECURE=true
 COOKIE_SAME_SITE=lax
 COOKIE_DOMAIN=
@@ -261,13 +290,13 @@ published.
 ```env
 NODE_ENV=production
 NEXT_PUBLIC_APP_NAME=DijiPeople
-NEXT_PUBLIC_APP_ORIGIN=https://diji-people-web.vercel.app
-NEXT_PUBLIC_WEB_APP_URL=https://diji-people-web.vercel.app
-NEXT_PUBLIC_ADMIN_APP_URL=https://diji-people-admin.vercel.app
-NEXT_PUBLIC_LANDING_APP_URL=https://diji-people-landing.vercel.app
-NEXT_PUBLIC_API_BASE_URL=https://dijipeople.onrender.com/api
-API_BASE_URL=https://dijipeople.onrender.com/api
-API_ORIGIN=https://dijipeople.onrender.com
+NEXT_PUBLIC_APP_ORIGIN=https://app.dijipeople.com
+NEXT_PUBLIC_WEB_APP_URL=https://app.dijipeople.com
+NEXT_PUBLIC_ADMIN_APP_URL=https://admin.dijipeople.com
+NEXT_PUBLIC_LANDING_APP_URL=https://www.dijipeople.com
+NEXT_PUBLIC_API_BASE_URL=https://api.dijipeople.com/api
+API_BASE_URL=https://api.dijipeople.com/api
+API_ORIGIN=https://api.dijipeople.com
 WEB_ACCESS_TOKEN_COOKIE=web_access_token
 WEB_REFRESH_TOKEN_COOKIE=web_refresh_token
 NEXT_PUBLIC_WEB_ROOT_DOMAIN=dijipeople.com
@@ -284,13 +313,13 @@ EXPOSE_DEV_AUTH_LINKS=false
 ```env
 NODE_ENV=production
 NEXT_PUBLIC_APP_NAME=DijiPeople Admin
-NEXT_PUBLIC_APP_ORIGIN=https://diji-people-admin.vercel.app
-NEXT_PUBLIC_ADMIN_APP_URL=https://diji-people-admin.vercel.app
-NEXT_PUBLIC_WEB_APP_URL=https://diji-people-web.vercel.app
-NEXT_PUBLIC_LANDING_APP_URL=https://diji-people-landing.vercel.app
-NEXT_PUBLIC_API_BASE_URL=https://dijipeople.onrender.com/api
-API_BASE_URL=https://dijipeople.onrender.com/api
-API_ORIGIN=https://dijipeople.onrender.com
+NEXT_PUBLIC_APP_ORIGIN=https://admin.dijipeople.com
+NEXT_PUBLIC_ADMIN_APP_URL=https://admin.dijipeople.com
+NEXT_PUBLIC_WEB_APP_URL=https://app.dijipeople.com
+NEXT_PUBLIC_LANDING_APP_URL=https://www.dijipeople.com
+NEXT_PUBLIC_API_BASE_URL=https://api.dijipeople.com/api
+API_BASE_URL=https://api.dijipeople.com/api
+API_ORIGIN=https://api.dijipeople.com
 ADMIN_ACCESS_TOKEN_COOKIE=admin_access_token
 ADMIN_REFRESH_TOKEN_COOKIE=admin_refresh_token
 NEXT_PUBLIC_WEB_ROOT_DOMAIN=dijipeople.com
@@ -306,13 +335,13 @@ EXPOSE_DEV_AUTH_LINKS=false
 ```env
 NODE_ENV=production
 NEXT_PUBLIC_APP_NAME=DijiPeople
-NEXT_PUBLIC_APP_ORIGIN=https://diji-people-landing.vercel.app
-NEXT_PUBLIC_LANDING_APP_URL=https://diji-people-landing.vercel.app
-NEXT_PUBLIC_WEB_APP_URL=https://diji-people-web.vercel.app
-NEXT_PUBLIC_ADMIN_APP_URL=https://diji-people-admin.vercel.app
-NEXT_PUBLIC_API_BASE_URL=https://dijipeople.onrender.com/api
-API_BASE_URL=https://dijipeople.onrender.com/api
-API_ORIGIN=https://dijipeople.onrender.com
+NEXT_PUBLIC_APP_ORIGIN=https://www.dijipeople.com
+NEXT_PUBLIC_LANDING_APP_URL=https://www.dijipeople.com
+NEXT_PUBLIC_WEB_APP_URL=https://app.dijipeople.com
+NEXT_PUBLIC_ADMIN_APP_URL=https://admin.dijipeople.com
+NEXT_PUBLIC_API_BASE_URL=https://api.dijipeople.com/api
+API_BASE_URL=https://api.dijipeople.com/api
+API_ORIGIN=https://api.dijipeople.com
 ```
 
 ## Agent Desktop
@@ -320,8 +349,8 @@ API_ORIGIN=https://dijipeople.onrender.com
 ```env
 NODE_ENV=production
 AGENT_APP_NAME=DijiPeople Agent
-AGENT_API_BASE_URL=https://dijipeople.onrender.com/api
-AGENT_API_ORIGIN=https://dijipeople.onrender.com
+AGENT_API_BASE_URL=https://api.dijipeople.com/api
+AGENT_API_ORIGIN=https://api.dijipeople.com
 AGENT_DEVICE_REGISTRATION_ENABLED=true
 AGENT_ACCESS_TOKEN_TTL=15m
 AGENT_REFRESH_TOKEN_TTL=90d
@@ -332,7 +361,7 @@ AGENT_HEARTBEAT_INTERVAL_SECONDS=60
 AGENT_HEARTBEAT_BATCH_SIZE=1000
 AGENT_OFFLINE_QUEUE_ENABLED=true
 AGENT_OFFLINE_QUEUE_MAX_ITEMS=5000
-DIJIPEOPLE_AGENT_UPDATE_URL=https://dijipeople.onrender.com/api/app-releases/feed/agent-desktop
+DIJIPEOPLE_AGENT_UPDATE_URL=https://api.dijipeople.com/api/app-releases/feed/agent-desktop
 AGENT_AUTO_UPDATE_ENABLED=true
 ```
 

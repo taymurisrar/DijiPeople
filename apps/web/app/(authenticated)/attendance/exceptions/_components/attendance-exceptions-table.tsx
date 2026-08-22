@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { StatusPill } from "@/app/components/ui/status-pill";
+import { useGovernedInput } from "@/app/components/feedback/use-governed-input";
 import {
   exceptionStatusLabel,
   exceptionTypeLabel,
@@ -35,6 +36,7 @@ export function AttendanceExceptionsTable({
   pageSize: number;
   canManage: boolean;
 }) {
+  const { requestValue, governedInputDialog } = useGovernedInput();
   const router = useRouter();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -44,12 +46,18 @@ export function AttendanceExceptionsTable({
     status: "RESOLVED" | "IGNORED",
   ): Promise<void> {
     // A reason is required for anything that closes an item: "resolved" with no
-    // explanation is indistinguishable from "clicked to clear the list".
-    const note = window.prompt(
-      status === "RESOLVED"
-        ? "How was this resolved? This is kept with the record."
-        : "Why is this being ignored? This is kept with the record.",
-    );
+    // explanation is indistinguishable from "clicked to clear the list". The
+    // dialog enforces that rather than leaving it to a check after the fact,
+    // and it can tell "cancelled" from "typed nothing". ITEM-0031.
+    const note = await requestValue({
+      title: status === "RESOLVED" ? "Resolve exception" : "Ignore exception",
+      description: "This note is kept with the record.",
+      label:
+        status === "RESOLVED"
+          ? "How was this resolved?"
+          : "Why is this being ignored?",
+      confirmLabel: status === "RESOLVED" ? "Resolve" : "Ignore",
+    });
 
     if (note === null) return;
     if (!note.trim()) {
@@ -97,6 +105,7 @@ export function AttendanceExceptionsTable({
 
   return (
     <div className="grid gap-4">
+      {governedInputDialog}
       {error ? (
         <p className="text-sm font-medium text-red-600" role="alert">
           {error}

@@ -179,6 +179,9 @@ export function SelectField({
   disabled?: boolean;
 }) {
   const containerRef = React.useRef<HTMLDivElement | null>(null);
+  // `role="combobox"` requires `aria-controls` and `aria-expanded`; without them
+  // a screen reader announces a combobox whose popup it cannot find. BUG-0043.
+  const listboxId = React.useId();
   const menuRef = React.useRef<HTMLDivElement | null>(null);
   const [isOpen, setIsOpen] = React.useState(false);
   const [menuPosition, setMenuPosition] = React.useState<{
@@ -249,7 +252,9 @@ export function SelectField({
       ? createPortal(
           <div
             className="fixed z-[80] rounded-2xl border border-border bg-white p-2 shadow-xl"
+            id={listboxId}
             ref={menuRef}
+            role="listbox"
             style={{
               left: menuPosition.left,
               top: menuPosition.top,
@@ -314,7 +319,9 @@ export function SelectField({
     >
       <div className="relative" ref={containerRef}>
         <div
+          aria-controls={listboxId}
           aria-expanded={isOpen}
+          aria-haspopup="listbox"
           aria-invalid={Boolean(error)}
           className={[
             controlClassName(error, validationStatus),
@@ -833,6 +840,9 @@ export function LookupField({
   selectedHref?: string;
 }) {
   const containerRef = React.useRef<HTMLDivElement | null>(null);
+  // See SelectField: a combobox must name the popup it controls, and this one
+  // did not even report whether it was open. BUG-0043.
+  const listboxId = React.useId();
   const menuRef = React.useRef<HTMLDivElement | null>(null);
   const inputRef = React.useRef<HTMLInputElement | null>(null);
 
@@ -975,6 +985,7 @@ export function LookupField({
       ? createPortal(
           <div
             className="fixed z-[80] rounded-2xl border border-border bg-white p-3 shadow-xl"
+            id={listboxId}
             ref={menuRef}
             style={{
               left: menuPosition.left,
@@ -1063,6 +1074,9 @@ export function LookupField({
     >
       <div className="relative" ref={containerRef}>
         <div
+          aria-controls={listboxId}
+          aria-expanded={isOpen}
+          aria-haspopup="listbox"
           className={[
             controlClassName(error, validationStatus),
             "flex items-center justify-between gap-3 text-left",

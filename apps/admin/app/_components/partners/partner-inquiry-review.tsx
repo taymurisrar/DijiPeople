@@ -4,7 +4,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ModuleActionBar } from "@/app/_components/runtime/module-action-bar";
+import { RecordStatusGroup } from "@/app/_components/runtime/record-status-group";
+import { getPlatformModuleDefinition } from "@/lib/runtime/platform-module-registry";
 import type { RuntimeActionDefinition } from "@/lib/runtime/platform-runtime.types";
+import { runStandardRecordCommand } from "@/lib/runtime/standard-record-commands";
+
+const moduleDefinition = getPlatformModuleDefinition("partner-inquiries");
 
 type Inquiry = {
   id: string;
@@ -27,38 +32,16 @@ type Inquiry = {
 };
 type Owner = { id: string; fullName: string; email: string; role: string };
 
-const ACTIONS: RuntimeActionDefinition[] = [
-  {
-    key: "back",
-    label: "Back",
-    scope: "record",
-    selection: "none",
-    placement: "secondary",
-  },
-  {
-    key: "approve",
-    label: "Qualify and invite",
-    scope: "record",
-    selection: "none",
-    placement: "primary",
-  },
-  {
-    key: "reject",
-    label: "Reject inquiry",
-    scope: "record",
-    selection: "none",
-    placement: "secondary",
-    destructive: true,
-    confirmTitle: "Reject this partner inquiry?",
-  },
-];
-
 export function PartnerInquiryReview({
   initialItem,
   owners,
+  roleKeys = [],
+  permissionKeys = [],
 }: {
   initialItem: Inquiry;
   owners: Owner[];
+  roleKeys?: string[];
+  permissionKeys?: string[];
 }) {
   const router = useRouter();
   const [item, setItem] = useState(initialItem);
@@ -68,10 +51,17 @@ export function PartnerInquiryReview({
   );
 
   async function act(action: RuntimeActionDefinition) {
-    if (action.key === "back") {
-      router.push("/partner-inquiries");
-      return;
-    }
+    const standard = await runStandardRecordCommand(action, {
+      routeBase: moduleDefinition.routeBase,
+      router,
+      /*
+       * The inquiry is rendered from a server component, so re-reading it is
+       * the router's job rather than a client fetch this page does not have.
+       */
+      reload: () => router.refresh(),
+      reloadMessage: "Inquiry reloaded.",
+    });
+    if (standard) return standard;
     const decision = action.key === "approve" ? "qualify" : "reject";
     const response = await fetch(
       `/api/partner-experience/inquiries/${item.id}/${decision}`,
@@ -132,17 +122,28 @@ export function PartnerInquiryReview({
                 `${item.contactFirstName} ${item.contactLastName}`}
             </h1>
           </div>
-          <span className="rounded-full bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700">
-            {label(item.status)}
-          </span>
+          <RecordStatusGroup
+            definition={moduleDefinition}
+            record={item as unknown as Record<string, unknown>}
+            roleKeys={roleKeys}
+            permissionKeys={permissionKeys}
+          />
         </div>
       </section>
       <ModuleActionBar
-        actions={closed ? ACTIONS.slice(0, 1) : ACTIONS}
+        /*
+         * The decision actions declare the states they are valid in, so a
+         * converted or rejected inquiry hides them without this page slicing
+         * its own array — which is what previously dropped Refresh along with
+         * them.
+         */
+        actions={moduleDefinition.actions}
         context={{
           scope: "record",
           mode: "read",
           record: item as unknown as Record<string, unknown>,
+          roleKeys,
+          permissionKeys,
         }}
         onAction={act}
       />
@@ -207,11 +208,4 @@ export function PartnerInquiryReview({
       </section>
     </main>
   );
-}
-
-function label(value: string) {
-  return value
-    .toLowerCase()
-    .replaceAll("_", " ")
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }

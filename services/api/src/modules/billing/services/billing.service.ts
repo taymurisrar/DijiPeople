@@ -8,13 +8,11 @@ import { ConfigService } from '@nestjs/config';
 import {
   BillingInterval,
   BillingModel,
-  CustomerAccountStatus,
-  LeadStatus,
+  CommercialPublicationStatus,
   Prisma,
   StripeEnvironment,
   StripeSyncStatus,
   SubscriptionStatus,
-  TenantStatus,
   UserStatus,
 } from '@prisma/client';
 import { PrismaService } from '../../../common/prisma/prisma.service';
@@ -23,7 +21,6 @@ import {
   assertValidTenantSlug,
   suggestTenantSlug,
 } from '../../../common/utils/slug.util';
-import { generateTenantCode } from '../../../common/utils/tenant-code.util';
 import { StripeBillingService } from './stripe-billing.service';
 import { LegalService } from '../../legal/legal.service';
 import { OwnerEmailVerificationService } from './owner-email-verification.service';
@@ -69,7 +66,7 @@ export class BillingService {
     const plans = await this.prisma.plan.findMany({
       where: {
         isActive: true,
-        isPublic: true,
+        publicationStatus: CommercialPublicationStatus.PUBLISHED,
       },
       include: {
         features: {
@@ -103,7 +100,9 @@ export class BillingService {
         name: plan.name,
         description: plan.description,
         isActive: plan.isActive,
-        isPublic: plan.isPublic,
+        // BUG-0223 — derived from publication, not a second stored gate.
+        isPublic:
+          plan.publicationStatus === CommercialPublicationStatus.PUBLISHED,
         sortOrder: plan.sortOrder,
         currency: plan.currency,
         monthlyBasePrice: Number(plan.monthlyBasePrice),
@@ -244,6 +243,8 @@ export class BillingService {
     email: string;
     country: string;
     phone?: string;
+    /** Unresolved; the order service resolves it against the links. BUG-0281. */
+    referralCode?: string | null;
   }) {
     const planPrice = await this.prisma.planPrice.findUnique({
       where: { id: input.planPriceId },
@@ -254,7 +255,7 @@ export class BillingService {
       !planPrice ||
       !planPrice.isActive ||
       !planPrice.plan.isActive ||
-      !planPrice.plan.isPublic
+      planPrice.plan.publicationStatus !== CommercialPublicationStatus.PUBLISHED
     ) {
       throw new NotFoundException('Plan price not found.');
     }
@@ -267,6 +268,7 @@ export class BillingService {
       email: input.email.trim().toLowerCase(),
       phone: input.phone?.trim() || null,
       country: input.country.trim(),
+      referralCode: input.referralCode ?? null,
       mode: 'DRAFT',
     });
 
@@ -287,6 +289,8 @@ export class BillingService {
     country: string;
     message?: string;
     website?: string;
+    /** Unresolved; the order service resolves it against the links. BUG-0281. */
+    referralCode?: string | null;
     requestedSlug?: string;
     legalCompanyName?: string;
     registrationNumber?: string;
@@ -321,7 +325,7 @@ export class BillingService {
       !planPrice ||
       !planPrice.isActive ||
       !planPrice.plan.isActive ||
-      !planPrice.plan.isPublic
+      planPrice.plan.publicationStatus !== CommercialPublicationStatus.PUBLISHED
     ) {
       throw new NotFoundException('Plan price not found.');
     }
@@ -336,14 +340,7 @@ export class BillingService {
         `This price is not checkout-ready: ${verifiedPrice.reasons.join(' ')}`,
       );
     }
-    const seatPricing = calculateSeatPricing(
-      mapSeatPriceContract(planPrice),
-      purchasedSeats,
-    );
-
     const contactName = input.contactName.trim();
-    const [firstName, ...lastNameParts] = contactName.split(/\s+/);
-    const lastName = lastNameParts.join(' ') || 'Owner';
     const companyName = input.companyName.trim();
     const email = input.email.trim().toLowerCase();
     const country = input.country.trim();
@@ -366,6 +363,7 @@ export class BillingService {
       phone: input.phone?.trim() || null,
       country,
       message,
+      referralCode: input.referralCode ?? null,
       requestedSlug: input.requestedSlug ?? null,
       organization: {
         legalCompanyName: input.legalCompanyName,
@@ -599,7 +597,7 @@ export class BillingService {
       this.prisma.plan.count({
         where: {
           isActive: true,
-          isPublic: true,
+          publicationStatus: CommercialPublicationStatus.PUBLISHED,
         },
       }),
       this.prisma.planPrice.findMany({
@@ -607,7 +605,7 @@ export class BillingService {
           isActive: true,
           plan: {
             isActive: true,
-            isPublic: true,
+            publicationStatus: CommercialPublicationStatus.PUBLISHED,
           },
         },
       }),
@@ -840,7 +838,9 @@ export class BillingService {
       throw new NotFoundException('Plan price not found.');
     }
 
-    if (!planPrice.plan.isPublic) {
+    if (
+      planPrice.plan.publicationStatus !== CommercialPublicationStatus.PUBLISHED
+    ) {
       throw new NotFoundException('Plan price not found.');
     }
 
@@ -1363,37 +1363,6 @@ export class BillingService {
 
     throw new ConflictException('Unable to allocate a tenant slug.');
   }
-}
-
-function buildDefaultTenantBranding(
-  companyName: string,
-  supportEmail?: string,
-) {
-  const brandName = companyName.trim() || 'DijiPeople';
-
-  return {
-    appTitle: 'DijiPeople',
-    brandName,
-    shortBrandName: brandName.split(/\s+/)[0] || brandName,
-    portalTagline: 'People operations made simple',
-    loginTitle: `Welcome to ${brandName} HR Portal`,
-    loginSubtitle:
-      'Sign in after your subscription is activated to manage HR operations.',
-    loginFooterText: 'Powered by DijiPeople',
-    supportEmail: supportEmail || null,
-    primaryColor: '#0f766e',
-    secondaryColor: '#115e59',
-    accentColor: '#14b8a6',
-    backgroundColor: '#f8fafc',
-    surfaceColor: '#ffffff',
-    textColor: '#0f172a',
-    mutedTextColor: '#64748b',
-    fontFamily: 'Inter',
-  };
-}
-
-function toPrismaJson(value: unknown): Prisma.InputJsonValue {
-  return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
 }
 
 function normalizeJsonObject(value: Prisma.JsonValue | null) {

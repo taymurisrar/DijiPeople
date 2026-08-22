@@ -11,6 +11,7 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { getErrorFrameworkConfig } from '../../common/errors/error-config';
 import { sanitizeForErrorLog } from '../../common/errors/sanitize-error-log';
 import { formatErrorLogText } from './error-log.formatter';
+import { toErrorMessage } from '../../common/utils/display-string';
 
 export type PersistErrorLogInput = {
   traceId: string;
@@ -347,8 +348,9 @@ export class ErrorLogsService implements OnModuleInit, OnModuleDestroy {
 
   private isDatabaseUnavailable(error: unknown) {
     const code = getPrismaErrorCode(error);
-    const message =
-      error instanceof Error ? error.message : String(error ?? '');
+    // See http-exception.filter.ts: a thrown non-Error is the case that
+    // matters, and the case String() gives up on. ITEM-0042.
+    const message = toErrorMessage(error);
     const lowerMessage = message.toLowerCase();
 
     return (

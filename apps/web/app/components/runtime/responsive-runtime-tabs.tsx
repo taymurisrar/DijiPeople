@@ -41,6 +41,10 @@ export function ResponsiveRuntimeTabs({
             className="fixed z-50 min-w-max max-w-[min(28rem,calc(100vw-2rem))] rounded-lg border border-border bg-white p-1 shadow-xl"
             onKeyDown={handleMenuKeyDown}
             role="menu"
+            // A `menu` handles its own arrow-key navigation, so it must be able
+            // to receive focus to hear those keys at all. -1 keeps it out of the
+            // tab order: it is opened from the trigger, not tabbed to. BUG-0043.
+            tabIndex={-1}
             style={{
               right: menuPosition.right,
               top: menuPosition.top,

@@ -561,6 +561,68 @@ describe('Attendance integration HTTP auth/RBAC (e2e)', () => {
       expect(ids).toContain(alphaIntegrationId);
       expect(ids).not.toContain(betaIntegrationId);
     });
+
+    /*
+     * The same probes from the other side of the boundary.
+     *
+     * `otherTenant` was built for this and left unused, so every assertion
+     * above ran in one direction only: tenant A reaching for tenant B. That is
+     * not symmetric by construction — scoping here is applied per query, and a
+     * helper can be right for the fixture somebody tested and wrong for the
+     * other one. It is also the direction where the intruder holds every
+     * relevant grant inside their own tenant, so a refusal is the boundary
+     * holding rather than a missing permission.
+     */
+    it('hides tenant A’s integration from a fully privileged tenant B admin', async () => {
+      await request(server())
+        .get(`/integrations/attendance/integrations/${alphaIntegrationId}`)
+        .set('Authorization', `Bearer ${otherTenant.token}`)
+        .expect(404);
+    });
+
+    it('refuses a tenant B admin mutating tenant A’s integration', async () => {
+      await request(server())
+        .patch(`/integrations/attendance/integrations/${alphaIntegrationId}`)
+        .set('Authorization', `Bearer ${otherTenant.token}`)
+        .send({ name: 'hijacked-from-beta' })
+        .expect(404);
+
+      const unchanged = await prisma.attendanceIntegration.findUnique({
+        where: { id: alphaIntegrationId },
+        select: { name: true },
+      });
+      expect(unchanged?.name).not.toBe('hijacked-from-beta');
+    });
+
+    it('hides tenant A’s gateway from a tenant B admin', async () => {
+      // `pairedGatewayId` is tenant A's gateway. There is no alpha *device*
+      // fixture, so the device direction stays covered by the probes above.
+      await request(server())
+        .get(`/integrations/gateways/${pairedGatewayId}`)
+        .set('Authorization', `Bearer ${otherTenant.token}`)
+        .expect(404);
+
+      const response = await request(server())
+        .post(`/integrations/gateways/${pairedGatewayId}/pairing-code`)
+        .set('Authorization', `Bearer ${otherTenant.token}`);
+
+      expect([403, 404]).toContain(response.status);
+    });
+
+    it('excludes tenant A’s integration from a tenant B admin’s list', async () => {
+      const response = await request(server())
+        .get('/integrations/attendance/integrations?pageSize=200')
+        .set('Authorization', `Bearer ${otherTenant.token}`)
+        .expect(200);
+
+      const ids = (response.body.items as Array<{ id: string }>).map(
+        (i) => i.id,
+      );
+      // Present AND absent: a list that returned nothing at all would satisfy
+      // the exclusion on its own, and prove only that the endpoint was broken.
+      expect(ids).toContain(betaIntegrationId);
+      expect(ids).not.toContain(alphaIntegrationId);
+    });
   });
 
   describe('application release visibility over HTTP', () => {

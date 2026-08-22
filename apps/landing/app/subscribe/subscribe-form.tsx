@@ -5,7 +5,7 @@ import type { LegalIndexEntry } from "../../lib/legal-server";
 import {
   BillingCycle,
   PublicPlan,
-  checkoutBlockedReason,
+  checkoutBlock,
   findPlanPrice,
   formatPlanPrice,
 } from "../../lib/plans";
@@ -14,12 +14,14 @@ import {
   describeSlugProblem,
   emptyWizardForm,
   missingFieldsForStep,
+  STEP_LABELS,
   STEP_TITLES,
   suggestSlug,
   WIZARD_STEPS,
   type WizardForm,
   type WizardStep,
 } from "../../lib/onboarding-wizard";
+import { readReferralCode } from "../../lib/referral";
 import {
   resolveSubscribeSelection,
   type SubscribeSelectionParams,
@@ -32,6 +34,21 @@ import {
   WorkspaceStep,
   type SlugState,
 } from "./onboarding-steps";
+
+/**
+ * `buildSubmitPayload` with the remembered referral code attached.
+ *
+ * A wrapper rather than a change to the builder, so the builder stays a pure
+ * function of the form and its tests need no browser. The code is read at
+ * submit time from `lib/referral`, which captured it wherever the partner's
+ * link happened to land. BUG-0281.
+ */
+function buildSubmitPayloadWithReferral(
+  form: Parameters<typeof buildSubmitPayload>[0],
+  selection: Parameters<typeof buildSubmitPayload>[1],
+) {
+  return buildSubmitPayload(form, selection, readReferralCode());
+}
 
 /**
  * The public onboarding wizard.
@@ -92,16 +109,14 @@ export function SubscribeForm({
   const selectedPrice = selectedPlan
     ? findPlanPrice(selectedPlan, currency, billingCycle)
     : null;
-  // One decision, three consumers: the notice, the fieldset and Continue.
-  const blockedReason = checkoutBlockedReason(selectedPrice);
-  const canCheckout = blockedReason === null;
+  // One decision, three consumers: the notice, the form and Continue.
+  const block = checkoutBlock(selectedPrice);
+  const canCheckout = block === null;
   const minimumSeats = selectedPrice?.minimumSeats ?? 1;
   const maximumSeats = selectedPrice?.maximumSeats ?? null;
   const effectiveSeatQuantity = Math.max(
     minimumSeats,
-    maximumSeats === null
-      ? seatQuantity
-      : Math.min(seatQuantity, maximumSeats),
+    maximumSeats === null ? seatQuantity : Math.min(seatQuantity, maximumSeats),
   );
 
   // Only agreements that name a published version can be accepted; one that
@@ -209,6 +224,9 @@ export function SubscribeForm({
                 contactName: companyNameForDraft,
                 email: emailForDraft,
                 country: countryForDraft,
+                // Carried from the very first draft, so a buyer who abandons at
+                // the payment step and returns is still attributed. BUG-0281.
+                referralCode: readReferralCode(),
               }),
             });
             if (!draft.ok) return answer("unknown");
@@ -277,7 +295,7 @@ export function SubscribeForm({
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(
-        buildSubmitPayload(form, {
+        buildSubmitPayloadWithReferral(form, {
           planPriceId: selectedPrice.id,
           seatQuantity: effectiveSeatQuantity,
         }),
@@ -338,7 +356,7 @@ export function SubscribeForm({
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(
-        buildSubmitPayload(form, {
+        buildSubmitPayloadWithReferral(form, {
           planPriceId: selectedPrice.id,
           seatQuantity: effectiveSeatQuantity,
         }),
@@ -515,22 +533,18 @@ export function SubscribeForm({
               : "Billed as one subscription."}
           </p>
           {/*
-            One notice for both reasons checkout can be impossible, carrying the
-            id the BUG-0066 regression test looks for.
+            A short status line here; the full reason moved next to the form.
 
-            It became two unidentified paragraphs when the wizard replaced the
-            single-page form, and the disabled fieldset that made the inputs
-            inert went with them. That is BUG-0066 again in a worse shape:
-            instead of one page of typing thrown away, five steps of
-            organization profile, owner identity and agreements, discovered dead
-            at the review button.
+            The reason has to live where the consequence is. This paragraph
+            carried the whole explanation, in the left-hand plan card, while the
+            fields it explains are in the right-hand column — so the form read
+            as locked for no stated reason and was asked about directly. Keeping
+            a line here is still right: the price above it is the thing that
+            cannot be bought.
           */}
-          {blockedReason ? (
-            <p
-              className="mt-2 text-xs text-warning"
-              id="subscribe-unavailable-notice"
-            >
-              {blockedReason}
+          {block ? (
+            <p className="mt-2 text-xs font-medium text-warning">
+              Not available to buy online ({block.code}).
             </p>
           ) : null}
         </div>
@@ -568,69 +582,192 @@ export function SubscribeForm({
 
       <section className="rounded-[24px] border border-border bg-white p-5 shadow-sm">
         {/*
-          The progress list is an ordered list so a screen reader announces
-          position and length, and each completed step is a button rather than
-          a decoration — going back to fix something is the most common thing
-          anybody does in a wizard.
+          The progress indicator.
+          An ordered list, so a screen reader announces position and length, and
+          each reachable step is a real button — going back to fix something is
+          the most common thing anybody does in a wizard, and the five equal
+          pills this replaces gave no sense of how far along you were or how
+          much was left.
+
+          Three states, and each is distinguishable without colour: a completed
+          step carries a tick, the current one is filled and labelled, and an
+          unreached one is outlined and inert. A wizard where progress is
+          conveyed by shade alone is one that reads as five identical buttons to
+          anybody who cannot see the shade.
         */}
-        <ol className="flex flex-wrap gap-2" aria-label="Onboarding steps">
+        <ol
+          aria-label="Onboarding steps"
+          className="flex items-start gap-1 sm:gap-0"
+        >
           {WIZARD_STEPS.map((candidate, index) => {
             const isCurrent = candidate === step;
             const isPast = index < stepIndex;
+            const isReachable = isPast || isCurrent;
             return (
-              <li key={candidate}>
+              <li
+                className="flex min-w-0 flex-1 items-start last:flex-none"
+                key={candidate}
+              >
                 <button
                   aria-current={isCurrent ? "step" : undefined}
-                  className={`rounded-full px-3 py-1 text-xs font-medium ${
-                    isCurrent
-                      ? "bg-accent text-white"
-                      : isPast
-                        ? "bg-surface-muted text-foreground"
-                        : "bg-surface-muted text-muted"
+                  /*
+                   * The label sits *under* the marker rather than beside it.
+                   * Five labels in a row across a 700px column is what forced
+                   * the truncation; stacked, each one gets the full width of
+                   * its own segment and no label is ever cut.
+                   */
+                  className={`group flex w-14 shrink-0 flex-col items-center gap-1.5 rounded-lg px-1 pb-1 pt-0.5 transition sm:w-20 ${
+                    isReachable
+                      ? "cursor-pointer hover:bg-surface-muted"
+                      : "cursor-default"
                   }`}
-                  disabled={!isPast && !isCurrent}
+                  disabled={!isReachable}
                   onClick={() => goTo(candidate)}
                   type="button"
                 >
-                  {index + 1}. {STEP_TITLES[candidate]}
+                  <span
+                    aria-hidden
+                    className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold transition ${
+                      isCurrent
+                        ? "bg-accent text-white ring-4 ring-accent/15"
+                        : isPast
+                          ? "bg-accent text-white"
+                          : "border border-border bg-white text-muted"
+                    }`}
+                  >
+                    {isPast ? "\u2713" : index + 1}
+                  </span>
+                  <span
+                    className={`text-center text-[11px] leading-tight ${
+                      isCurrent
+                        ? "font-semibold text-foreground"
+                        : isPast
+                          ? "font-medium text-foreground"
+                          : "text-muted"
+                    }`}
+                  >
+                    {STEP_LABELS[candidate]}
+                  </span>
+                  {/* Announced, never drawn: the tick and the fill are visual. */}
+                  <span className="sr-only">
+                    {isPast
+                      ? " (completed)"
+                      : isCurrent
+                        ? " (current step)"
+                        : " (not yet reached)"}
+                  </span>
                 </button>
+                {index < WIZARD_STEPS.length - 1 ? (
+                  <span
+                    aria-hidden
+                    /*
+                     * `mt-3.5` centres the connector on the 28px marker rather
+                     * than on the button, whose height now includes the label.
+                     */
+                    className={`mt-3.5 h-0.5 flex-1 rounded-full ${
+                      isPast ? "bg-accent" : "bg-border"
+                    }`}
+                  />
+                ) : null}
               </li>
             );
           })}
         </ol>
 
-        <h2 className="mt-5 text-xl font-semibold text-foreground">
-          {STEP_TITLES[step]}
-        </h2>
+        <div className="mt-5 flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="text-xl font-semibold text-foreground">
+            {STEP_TITLES[step]}
+          </h2>
+          {/*
+            "Step 2 of 5" in words. The indicator above shows it graphically;
+            this is the version somebody skims, and the one that survives a
+            narrow viewport where the row collapses.
+          */}
+          <p className="text-xs font-medium text-muted">
+            Step {stepIndex + 1} of {WIZARD_STEPS.length}
+          </p>
+        </div>
 
         {/*
-          BUG-0066: never present an editable form that cannot be submitted.
+          Unavailable: say so, quote a code, and render no form at all.
 
-          A disabled fieldset, not per-input `disabled`, because the steps are
-          separate components and one wrapper cannot be forgotten by the next
-          one added. The plan and billing selectors sit outside it deliberately
-          and stay live — a visitor whose plan is unpurchasable needs to be able
-          to try another one, and disabling those would replace one dead end
-          with a worse one.
+          The form was disabled and left on screen, which is defensible and was
+          not what anybody wanted: a page of dead inputs invites a visitor to
+          read them, wonder which one is the problem, and try. Removing it
+          entirely is a smaller thing to explain — there is nothing to fill in,
+          and the only two live controls left are the plan and billing selectors
+          above, which are exactly what a visitor should reach for next.
 
-          `aria-describedby` ties the inert region to the notice explaining why,
-          so the reason is announced rather than just visible.
+          The code is the part that makes the sentence useful. A visitor cannot
+          act on "your Stripe price is unverified" and should not be shown it;
+          they can quote `DP-CHK-01`, and it resolves for us to the plan price
+          whose full readiness list is on the console. Deliberately coarse — see
+          `CHECKOUT_BLOCK_CODES` — because a code fine enough to name the exact
+          misconfiguration would leak it.
+
+          This element keeps `subscribe-unavailable-notice` and is the only one
+          that does; the plan card's line is id-less, because the BUG-0066
+          journey asserts a single visible notice and a duplicate id is a
+          strict-mode violation rather than twice the clarity.
         */}
-        <fieldset
-          aria-describedby={
-            canCheckout ? undefined : "subscribe-unavailable-notice"
-          }
-          className="mt-4 border-0 p-0"
-          disabled={!canCheckout}
-        >
-          {step === "organization" ? <OrganizationStep {...stepProps} /> : null}
-          {step === "workspace" ? <WorkspaceStep {...stepProps} /> : null}
-          {step === "owner" ? <OwnerStep {...stepProps} /> : null}
-          {step === "agreements" ? <AgreementsStep {...stepProps} /> : null}
-          {step === "review" ? (
-            <ReviewStep {...stepProps} goTo={goTo} />
-          ) : null}
-        </fieldset>
+        {block ? (
+          <div
+            className="mt-4 rounded-2xl border border-warning/30 bg-warning/10 p-5"
+            id="subscribe-unavailable-notice"
+            role="status"
+          >
+            <p className="text-base font-semibold text-foreground">
+              This form is not available for the plan you have selected{" "}
+              <span className="font-mono text-sm font-semibold text-muted">
+                ({block.code})
+              </span>
+            </p>
+            <p className="mt-2 text-sm leading-6 text-muted">{block.message}</p>
+            <p className="mt-2 text-sm leading-6 text-muted">
+              The plan, billing cycle and currency on the left stay live —
+              choosing a plan that is available brings the form straight back.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-3">
+              <a
+                className="inline-flex items-center rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-accent-strong"
+                href={`/contact?ref=${encodeURIComponent(block.code)}`}
+              >
+                Ask us to arrange this plan
+              </a>
+              <a
+                className="inline-flex items-center rounded-xl border border-border bg-white px-4 py-2.5 text-sm font-semibold text-foreground transition hover:bg-surface-muted"
+                href="/plans"
+              >
+                See all plans
+              </a>
+            </div>
+            <p className="mt-3 text-xs text-muted">
+              Quote {block.code} if you get in touch and we will know exactly
+              which plan and region you were looking at.
+            </p>
+          </div>
+        ) : (
+          /*
+            BUG-0066: never present an editable form that cannot be submitted.
+
+            The fieldset stays even though the branch above now removes the form
+            when checkout is blocked. It is one wrapper that cannot be forgotten
+            by the next step somebody adds, and it costs nothing — the two
+            guards agree, and the cheap one is the one that survives a future
+            edit to the branch above.
+          */
+          <fieldset className="mt-4 border-0 p-0">
+            {step === "organization" ? (
+              <OrganizationStep {...stepProps} />
+            ) : null}
+            {step === "workspace" ? <WorkspaceStep {...stepProps} /> : null}
+            {step === "owner" ? <OwnerStep {...stepProps} /> : null}
+            {step === "agreements" ? <AgreementsStep {...stepProps} /> : null}
+            {step === "review" ? (
+              <ReviewStep {...stepProps} goTo={goTo} />
+            ) : null}
+          </fieldset>
+        )}
 
         {/*
           The honeypot. Hidden from people and from assistive technology, so

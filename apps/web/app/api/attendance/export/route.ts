@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
 import { apiRequest, proxyApiFileResponse } from "@/lib/server-api";
+import { proxyErrorResponse } from "@/app/api/_lib/proxy-error";
 
 export async function GET(request: Request) {
   try {
@@ -13,12 +13,6 @@ export async function GET(request: Request) {
 
     return proxyApiFileResponse(response);
   } catch (error) {
-    return NextResponse.json(
-      {
-        message:
-          error instanceof Error ? error.message : "Unable to export attendance.",
-      },
-      { status: 500 },
-    );
+    return proxyErrorResponse(error, "Unable to export attendance.");
   }
 }

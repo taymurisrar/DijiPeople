@@ -34,6 +34,7 @@ import {
 } from './payroll-export.providers';
 import { PayrollOutputDocumentService } from './payroll-output-document.service';
 import { PayrollNotificationService } from './payroll-notification.service';
+import { toDisplayString } from '../../common/utils/display-string';
 
 const runInclude = {
   payrollPeriod: { include: { payrollCalendar: true } },
@@ -282,7 +283,7 @@ export class PayrollOperationsService {
   ) {
     const rows = await this.exceptions(user, query);
     const escape = (value: unknown) =>
-      `"${String(value ?? '').replaceAll('"', '""')}"`;
+      `"${toDisplayString(value ?? '').replaceAll('"', '""')}"`;
     const columns = [
       'employee',
       'issue',
@@ -619,7 +620,7 @@ export class PayrollOperationsService {
       report.columns,
       ...report.items.map((item) =>
         report.columns.map((column) =>
-          String(
+          toDisplayString(
             (item as Record<string, unknown>)[
               column
                 .replace(/ %/g, 'Percentage')
@@ -1172,7 +1173,7 @@ export class PayrollOperationsService {
         typeof batch.metadata === 'object' &&
         batch.metadata &&
         'employerBankAccountName' in batch.metadata
-          ? String(batch.metadata.employerBankAccountName ?? '')
+          ? toDisplayString(batch.metadata.employerBankAccountName ?? '')
           : '',
       paymentLines: batch.paymentLines.map((line) => ({
         ...line,

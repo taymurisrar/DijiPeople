@@ -9,6 +9,7 @@ import { TaxBasisService } from '../src/modules/billing/services/tax-basis.servi
 import { OutboxService } from '../src/modules/outbox/outbox.service';
 import { OwnerEmailVerificationService } from '../src/modules/billing/services/owner-email-verification.service';
 import type { PrismaService } from '../src/common/prisma/prisma.service';
+import { PartnerReferralResolverService } from '../src/modules/partner-experience/partner-referral-resolver.service';
 
 /**
  * Nothing that looks like a live workspace exists before payment — BUG-0077.
@@ -94,6 +95,11 @@ describeWithDatabase()('Payment-authorised provisioning (DB-backed)', () => {
     new CustomerIdentityService(),
     new TaxBasisService(),
     new OutboxService(prisma as unknown as PrismaService),
+    // The real resolver over the same real Prisma client. Referral resolution
+    // moved out of LeadsService so checkout could share it (BUG-0281); with no
+    // referral code on these submissions it resolves to DIRECT and writes three
+    // nulls, which is what these assertions already expect.
+    new PartnerReferralResolverService(prisma as unknown as PrismaService),
   );
 
   /*

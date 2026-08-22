@@ -5,7 +5,10 @@ import {
   emptyWizardForm,
   furthestReachableStep,
   missingFieldsForStep,
+  STEP_LABELS,
+  STEP_TITLES,
   suggestSlug,
+  WIZARD_STEPS,
   type WizardForm,
 } from "./onboarding-wizard";
 
@@ -99,9 +102,9 @@ describe("onboarding wizard step rules", () => {
     const required = ["v-terms", "v-privacy"];
 
     it("requires every agreement offered, not a subset", () => {
-      expect(
-        missingFieldsForStep("agreements", filled(), required),
-      ).toEqual(required);
+      expect(missingFieldsForStep("agreements", filled(), required)).toEqual(
+        required,
+      );
 
       expect(
         missingFieldsForStep(
@@ -210,5 +213,43 @@ describe("onboarding wizard step rules", () => {
   it("treats canLeaveStep as the inverse of having missing fields", () => {
     expect(canLeaveStep("organization", emptyWizardForm())).toBe(false);
     expect(canLeaveStep("organization", filled())).toBe(true);
+  });
+});
+
+/**
+ * The progress rail's labels.
+ *
+ * The rail reused `STEP_TITLES`, so five steps across one column rendered as
+ * "Your org…", "Your wo…", "Worksp…", "Agreem…", "Review" — five truncated
+ * fragments that told a buyer less than the step numbers beside them did. The
+ * fix was a second, shorter set of labels rather than a narrower font, because
+ * a label that has to be truncated to fit is the wrong label.
+ *
+ * Length is asserted here rather than left to review: the rail has no way to
+ * complain, and the next person to add a step will copy whatever is next to it.
+ */
+describe("wizard step labels", () => {
+  it("labels every step", () => {
+    for (const step of WIZARD_STEPS) {
+      expect(STEP_LABELS[step]?.trim().length).toBeGreaterThan(0);
+      expect(STEP_TITLES[step]?.trim().length).toBeGreaterThan(0);
+    }
+  });
+
+  it("keeps every rail label short enough not to be clipped", () => {
+    /*
+     * Fifteen characters is what one segment of a five-across rail holds at the
+     * rail's own type size. "Workspace administrator" is 23 and is exactly what
+     * produced "Worksp…".
+     */
+    for (const step of WIZARD_STEPS) {
+      expect(STEP_LABELS[step].length).toBeLessThanOrEqual(15);
+    }
+  });
+
+  it("keeps the labels distinguishable from one another", () => {
+    // Shortening must not turn two steps into the same word.
+    const labels = WIZARD_STEPS.map((step) => STEP_LABELS[step]);
+    expect(new Set(labels).size).toBe(labels.length);
   });
 });

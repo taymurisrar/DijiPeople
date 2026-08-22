@@ -4,6 +4,7 @@ aliases: [TASK-0005]
 TITLE: DijiPeople Global Technical Remediation
 TYPE: BUG
 SIZE: PROGRAM
+WORK_PACKAGE_FILES: NOT_REQUIRED - predates the per-package file convention introduced by TASK-0012; table-only state retained rather than backfilled with invented manifests
 STATUS: IN_PROGRESS
 PRIORITY: P0
 CREATED_AT: 2026-08-17
@@ -11,6 +12,7 @@ AFFECTED_MODULES: [global, framework, qa, ci, api, web, admin, landing, agent-de
 AGENTS: [Architect, Backend/API, Frontend, UI/UX, Database, Integration, QA, Reviewer, Integrator, Release/DevOps]
 DEPENDENCIES: current origin/develop, readable repository records, configured CI
 CURRENT_PACKAGE: WP-09
+NEXT_READY_WORK_PACKAGE: WP-04
 COMPLETED_PACKAGES: [WP-01, WP-02, WP-03]
 BLOCKED_PACKAGES: []
 OWNER_DECISIONS: 1

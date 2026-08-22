@@ -152,7 +152,18 @@ const REPO_SOURCES = [
   ['engineering history', 'docs/engineering-history/tasks', 6],
   ['agent context', '.agent/context', 2],
   ['architecture docs', 'docs/architecture', 6],
-  ['decisions', 'docs/decisions', 6],
+  /*
+   * Decisions outrank most of what sits above them, and used to sit last.
+   *
+   * An ADR is a question the user has already settled. Ranking it below QA runs
+   * and engineering history meant the one source that could stop an agent asking
+   * the same product question a third time was the least likely to surface.
+   * Answered questions sit beside it and carry the reasoning the ADR compresses
+   * away — including which options were rejected, which is what stops the
+   * question being reopened rather than merely re-answered.
+   */
+  ['decisions', 'docs/decisions', 2],
+  ['answered questions', 'docs/questions', 3],
 ];
 
 /*

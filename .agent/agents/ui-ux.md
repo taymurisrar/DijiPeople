@@ -248,6 +248,229 @@ implying the UI was exercised — the QA context's rule against rounding
 
 ---
 
+## The control audit — every field, every action, every indicator
+
+The Stage 2 list above is what to look at. This is what to look *for*. Each
+check below exists because it was missed on a real screen in this repository,
+and each is answerable in seconds once you know to ask.
+
+**A screen is not reviewed until every field, every action and every indicator
+on it has been through this list.** Sampling the interesting ones is how a
+free-text country field survives four modules.
+
+### Does each control match the data behind it?
+
+Read the column, then read the control. They disagree more often than anyone
+expects, because a schema has one string type and a form has fifteen.
+
+| The data is | The control must be | Not |
+|---|---|---|
+| An email address | `type="email"`, `autoComplete` | a text box |
+| A phone number | `type="tel"`, `inputMode="tel"` | a text box |
+| A URL | `type="url"`, `inputMode="url"` | a text box |
+| A member of a known set | a select, or a lookup if the set is long or lives in a table | a text box |
+| A country, currency, timezone, industry | **a lookup over the one list that is real** | a text box, and never a second hardcoded copy |
+| Money | a currency control that shows the currency | a bare decimal |
+| A percentage | a percentage control | a decimal that looks like money |
+| A count | an integer control with a sensible minimum | a text box |
+| A date | a date control | a string |
+| A foreign key | a lookup showing the record's *name* | the raw id |
+
+Free text where a list exists is not a small defect. "UAE", "U.A.E." and
+"United Arab Emirates" become three customers, and no report can tell. Ask
+where the canonical list lives before accepting any select: if the answer is
+"there is a hardcoded array in this app", check whether the API already has the
+real one, because it usually does.
+
+### Is every field labelled, visibly?
+
+A placeholder is not a label. It disappears the moment somebody types, so
+anyone who is interrupted returns to a row of identical boxes. `aria-label`
+fixes this for screen readers and leaves everybody else guessing — it is half a
+fix, and it reads in review as a whole one.
+
+### Does the action fit the space it is in?
+
+Count the actions in a table row and multiply by their labels. Five labelled
+buttons need roughly 700px; a row action column gets 150. Wrapped buttons
+triple the row height and push the table into horizontal scroll, so the actions
+end up wider than the data they act on.
+
+One inline action, the rest behind an overflow menu. Destructive actions always
+in the menu, never inline — Delete at the end of a row is how a row gets
+deleted by somebody aiming at the row above.
+
+### Does every indicator carry information?
+
+An indicator that is always on is worse than no indicator. A permanently lit
+badge, a spinner that never resolves, a "3 items need attention" that is
+hardcoded — each teaches the person looking at it that indicators here can be
+ignored, and the lesson holds on the day one matters.
+
+Ask of every dot, badge and count: **what would make this go away?** If there
+is no answer, it is decoration pretending to be information.
+
+Prefer a number to a dot. A count is falsifiable; a dot cannot be wrong, which
+is why nobody notices when it is.
+
+### Does the control actually do anything?
+
+A preference that is stored and never read is not a preference. A toggle that
+writes to `localStorage` and changes nothing on screen is a control that lies
+about being a control.
+
+For every setting: change it, then find the pixel that changed. If you cannot,
+the finding is not "the styling is subtle" — it is that the setting is not
+wired.
+
+### Does every link and button reach something real?
+
+Follow it. A button that reports "Workspace opened" and opens a URL that does
+not resolve has told the operator it worked. So has a link to a record page
+that does not exist for that entity type.
+
+Where a destination is built from configuration — a hostname, a port, a base
+domain — check it in the environment you are actually in, not the one the code
+was written for.
+
+### Does a multi-step form say where you are?
+
+Position, length, what is done and what is left, and a way back to a completed
+step without losing what is in the current one. Five identical pills convey
+none of that. Completion must be distinguishable without colour.
+
+### Does an empty state explain itself?
+
+"No results" is not an empty state. Say what would appear here, why nothing
+does, and what to do about it — and link to the thing that would populate it.
+
+---
+
+## The output audit — what the screen actually says
+
+The control audit above asks whether the *right control* is present. This asks
+whether what comes out of it is fit for a human to read. They are different
+questions, and this repository has now shipped four defects that passed the
+first and failed the second — every one of them reported by the user rather
+than found in review.
+
+The reason they get missed is structural, and worth naming rather than treating
+as carelessness: **each of these is invisible in a diff and obvious on a
+screen.** Reviewing the component that renders a value tells you nothing about
+what the value looks like. So this section is not more style rules; it is a list
+of things that must be *looked at*, each with the check that pins it once fixed.
+
+### Never let raw machine data reach a person
+
+Open the screen and read it as a customer would. Every one of these shipped:
+
+| What appeared | Where | What it should have been |
+|---|---|---|
+| `["Employees","Attendance","Payroll"]` | A service order's "Enabled modules" | A bulleted list |
+| `[{"name":"Payroll bank file","type":"Export"}]` | The same document's integrations | A table |
+| `Uptime target 99.5.` | A signed agreement | `99.5%` |
+| `2026-08-01T10:00:00+03:00` | A provisioning date | `1 August 2026` |
+| `Dammam, Saudi Arabia, Saudi Arabia` | A customer address line | The address once |
+| `a3f1c7e2-0000-4000-8000-000000000000` | Prose in a contract | A labelled reference, or nothing |
+
+The rule: **a JSON fragment, an ISO timestamp, a bare decimal, an enum constant
+or a UUID appearing in prose is a defect**, not a formatting preference. If the
+value has a declared format, apply it; if it has none, decide what it should be
+and give it one.
+
+And check the *declared* format is actually applied. `formattingRule` existed on
+nineteen contract placeholders, read by nothing, for as long as the registry has
+existed — it looked, in review, exactly like a solved problem. Grep for the
+field that declares the rule and confirm something consumes it.
+Pattern: [`assertion-without-a-check`](../../docs/qa/known-bug-patterns/assertion-without-a-check.md).
+
+### Toggle every toggle twice
+
+A control that switches a mode must be operated **on, off, and on again**, with
+the underlying data checked afterwards. Two failures live here and neither
+appears on a first press:
+
+- **Stale render.** A preview that draws from a value read during render rather
+  than from state shows the *previous* content for one paint and corrects itself
+  only when something unrelated re-renders. It looks like a flicker; it is a
+  read of the wrong source.
+- **Destructive preview.** A preview that swaps the editing document for a
+  rendered one, and relies on restoring the original afterwards, has put the
+  user's work in the hands of a code path that may not run. Saving mid-preview
+  wrote sample values into a contract template.
+
+The rule: **a preview must be a separate value, never the live one substituted
+in place.** If turning a mode off requires restoring something, the mode is
+built wrong.
+
+### Switch the theme
+
+Set every theme the product offers — including the third state, "follow the
+system" — and look at each surface. Then change the machine's theme with the
+product open, because "follow the system" that resolves once at load is a
+setting that lies from sunset onward.
+
+`color-scheme: dark` is **not a dark theme**. It repaints what the browser
+draws — scrollbars, date pickers, a select's dropdown — and nothing the
+application draws. That was the entire dark theme here for months: dark widgets
+on a white app, with a date field rendering light text on its own light
+background. A theme that only sets `color-scheme` is worse than no theme,
+because the setting exists, persists, and is believed.
+
+Check: `apps/admin/lib/console-theme.spec.ts` asserts the resolution and that
+the stylesheet repaints surfaces, borders and text — not only `color-scheme`.
+
+### Prove that `sticky` sticks
+
+A `position: sticky` class is a *request*. Scroll the page and confirm the
+element stays. It will not if **any ancestor is a scroll container**, and one is
+created by something that reads as unrelated: `overflow-x: hidden` forces the
+other axis to `auto`, so a wrapper three components away silently disables every
+sticky descendant. `overflow-x: clip` does not.
+
+The symptom is a panel that declares `sticky`, reviews as correct, and does not
+stick — reported here as a feature that had already been "delivered".
+
+Check: `apps/admin/lib/sticky-containment.spec.ts`.
+
+### Say what to do, not only what happened
+
+A screen that reports a state a person must act on owes them the next action in
+a sentence. "State: RUNNING, attempt 1, failed step: none" is a fact sheet; it
+required the reader to already know what it meant, and a tenant sat unusable
+because the answer to "what do I do?" was nowhere on the page.
+
+Two specific traps:
+
+- **A status vocabulary built for the recorder, not the reader.** `RUNNING`
+  covers a run that started ten seconds ago and one whose process died an hour
+  ago. If one stored value spans two situations that need different responses,
+  the screen must derive and show the distinction.
+- **A disabled control whose reason is false.** "A provisioning run is already
+  in progress" was shown next to a disabled retry button for runs that had been
+  abandoned for hours. A disabled control must state a reason that is true *now*,
+  and there must exist some sequence of actions that enables it.
+
+### Two more that follow the same shape
+
+- **Never let a fallback change the kind of control.** Degrading a lookup to a
+  text box when the lookup is unreachable is indistinguishable from the lookup
+  never having been built. Degrade the *contents*, not the control.
+  Pattern: [`silent-degradation`](../../docs/qa/known-bug-patterns/silent-degradation.md).
+- **Never render an unbounded list.** Show the total and a page.
+  Pattern: [`unbounded-render`](../../docs/qa/known-bug-patterns/unbounded-render.md).
+
+### Why this section is a list of checks and not of principles
+
+Because the previous version of this file already said "loading, error and empty
+states are mandatory" and "respect the tenant theme tokens", and every defect
+above shipped anyway. General advice is satisfied by a general reading. Each
+item here names the screen it was found on, so the audit has an answer that is
+either yes or no.
+
+Where a check can be made mechanical it has been, and the file that does it is
+named. **A check written only here is a check that passes by being read.**
+
 ## Findings: what they are, and where they go
 
 **No material finding may exist only in a report.** UI/UX surfaces findings; the
@@ -369,3 +592,46 @@ Rules that make the block worth reading:
 - Does not prioritise or triage — that is the Architect.
 - Does not run the full test suite — that is QA. Its browser evidence exists to
   substantiate its own findings, not to replace QA's coverage.
+
+---
+
+## Scope: Product Interaction Design and UX Governance
+
+This role owns more than visual review:
+
+```
+INTERACTION DESIGN     USER FLOWS            INFORMATION ARCHITECTURE
+DESIGN CONSISTENCY     DESIGN SYSTEM         UX PATTERNS
+FEEDBACK STATES        ERROR RECOVERY        EMPTY STATES
+ACCESSIBILITY          RESPONSIVE BEHAVIOUR  COGNITIVE LOAD
+DESTRUCTIVE ACTIONS    DISCOVERABILITY       MICRO-INTERACTIONS
+CROSS-APP CONSISTENCY  DESIGN-SYSTEM GOVERNANCE
+```
+
+## The pattern catalogue
+
+`UI_PATTERN_CATALOG` is this role's durable output and the thing Frontend
+reuses. Entries include:
+
+```
+ADMIN_LIST_PAGE     ADMIN_COMMAND_BAR   ENTITY_FORM      RELATED_GRID
+DESTRUCTIVE_DIALOG  EMPTY_STATE         FILTER_PANEL     SEARCH
+BPF                 TIMELINE            DASHBOARD        SETTINGS_PAGE
+PUBLIC_FORM         PRICING_PAGE        ONBOARDING_FLOW
+```
+
+A screen that cannot be expressed by any entry is either a genuinely new pattern
+— which is added to the catalogue, with its states — or a screen that has drifted
+from the system. Deciding which is this role's judgement, not Frontend's.
+
+## Stage 2 inspects the running product
+
+Material visual or interaction work is **not** reviewed from source alone. The
+running application is driven — desktop, tablet, mobile, keyboard — through
+loading, error, empty, unauthorized and destructive states, with screenshot
+evidence.
+
+Reading a component and concluding the empty state is correct is a statement
+about the code. Whether the empty state actually renders depends on the response
+shape, the permission gate and the runtime adapter, none of which the component
+file shows.

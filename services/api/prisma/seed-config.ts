@@ -450,6 +450,13 @@ export async function runSeedConfig() {
   // runs here, which means it runs on every deployment via `npm run release:api`
   // (migrate:deploy -> seed:config -> seed:verify -> seed:admin) and nowhere in
   // the request path. It is idempotent and safe to run concurrently.
+  //
+  // It also *converges* rather than only creating: a plan whose name or
+  // features have drifted is corrected, a price standing on terms the
+  // catalogue no longer states is superseded, and a plan the catalogue has
+  // dropped is withdrawn from sale. Before that, a database seeded prior to a
+  // catalogue change kept its old plans and old amounts however many times
+  // this ran.
   const commercial = await bootstrapCommercialDefaults(prisma);
   for (const warning of commercial.warnings) {
     console.warn(`Commercial bootstrap: ${warning}`);
@@ -501,9 +508,14 @@ export async function runSeedConfig() {
   await verifyRequiredSeedData(prisma, tenants);
 
   console.log(
-    `Commercial defaults: ${commercial.plansCreated} plan(s), ` +
-      `${commercial.marketsCreated} market(s), ${commercial.pricesCreated} price(s) created; ` +
-      `${commercial.pricesSkippedExisting} slot(s) already served, ` +
+    `Commercial catalogue: ${commercial.plansCreated} plan(s) created, ` +
+      `${commercial.plansUpdated} reconciled, ${commercial.plansRetired} retired, ` +
+      `${commercial.plansWithdrawn} withdrawn from sale; ` +
+      `${commercial.marketsCreated} market(s) created; ` +
+      `${commercial.pricesCreated} price(s) created, ` +
+      `${commercial.pricesSuperseded} superseded, ` +
+      `${commercial.pricesRetired} retired as uncatalogued, ` +
+      `${commercial.pricesSkippedExisting} already on catalogue terms, ` +
       `${commercial.pricesSkippedRace} lost a concurrent race.`,
   );
   console.log(`Core reference data created/updated: ${referenceDataCount}`);
@@ -663,7 +675,13 @@ const SAAS_SUBSCRIPTION_AGREEMENT_HTML = [
 const TENANT_SERVICE_ORDER_HTML = [
   '<h1>DijiPeople Tenant Provisioning &amp; Service Order</h1>',
   '<p>Service order {{contract.number}} issued under master agreement {{serviceOrder.masterAgreementNumber}}.</p>',
-  '<p>Customer: {{customer.legalName}} ({{customer.companyName}}), {{customer.address}}, {{customer.country}}.</p>',
+  /*
+   * The country is *not* repeated here. `customer.address` is assembled from
+   * addressLine1, addressLine2, city, stateProvince and country, so the old
+   * line printed 'Dammam, Saudi Arabia, Saudi Arabia' on every real service
+   * order — not only in the preview.
+   */
+  '<p>Customer: {{customer.legalName}} ({{customer.companyName}}), {{customer.address}}.</p>',
   '<h2>1. Tenant</h2>',
   '<p>Tenant {{tenant.name}} ({{tenant.id}}), accessible at {{tenant.url}} in the {{tenant.environment}} environment.</p>',
   '<p>Configuration: country {{tenant.country}}, time zone {{tenant.timeZone}}, language {{tenant.language}}, currency {{tenant.currency}}.</p>',

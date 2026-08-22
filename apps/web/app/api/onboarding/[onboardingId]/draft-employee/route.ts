@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
 import { apiRequest, proxyApiJsonResponse } from "@/lib/server-api";
+import { proxyErrorResponse } from "@/app/api/_lib/proxy-error";
 
 type RouteContext = {
   params: Promise<{
@@ -17,14 +17,6 @@ export async function POST(_: Request, context: RouteContext) {
 
     return proxyApiJsonResponse(response);
   } catch (error) {
-    return NextResponse.json(
-      {
-        message:
-          error instanceof Error
-            ? error.message
-            : "Unable to prepare employee draft.",
-      },
-      { status: 500 },
-    );
+    return proxyErrorResponse(error, "Unable to prepare employee draft.");
   }
 }

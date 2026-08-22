@@ -324,6 +324,19 @@ export class TenantControlPlaneController {
     return this.operations.overview(user, tenantId);
   }
 
+  /*
+   * Narrow and idempotent, and deliberately not folded into retry-provisioning:
+   * retry is gated on the tenant still being in a provisioning lifecycle state,
+   * which is why an ACTIVE tenant missing only its hostname had no remedy.
+   */
+  @Post(':tenantId/operations/repair-workspace')
+  repairWorkspace(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('tenantId', new ParseUUIDPipe()) tenantId: string,
+  ) {
+    return this.operations.repairWorkspace(user, tenantId);
+  }
+
   @Post(':tenantId/operations/retry-provisioning')
   retryProvisioning(
     @CurrentUser() user: AuthenticatedUser,

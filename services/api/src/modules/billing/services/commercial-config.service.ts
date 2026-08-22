@@ -155,7 +155,6 @@ export class CommercialConfigService {
       where: {
         publicationStatus: CommercialPublicationStatus.PUBLISHED,
         isActive: true,
-        isPublic: true,
       },
       orderBy: { sortOrder: 'asc' },
       include: {

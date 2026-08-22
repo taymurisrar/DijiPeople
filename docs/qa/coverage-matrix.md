@@ -12,16 +12,17 @@ only scenarios that cannot run here, fails `node scripts/rebuild-qa.mjs`.
 **part of that task's scope** — or, when that is too large, a `TEST_GAP` backlog
 item. See [`README.md`](README.md).
 
-**Areas: 19** · scenarios: 113 · automated: 107 · blocked by infrastructure: 0
+**Areas: 21** · scenarios: 166 · automated: 150 · blocked by infrastructure: 0
 
-**Open gaps: 94** · partial: 20
+**Open gaps: 108** · partial: 22
 
 | Area | UNIT | API | DATABASE | INTEGRATION | E2E | BROWSER | SECURITY | PERFORMANCE |
 |---|---|---|---|---|---|---|---|---|
 | [agent-desktop](../../docs/qa/test-plans/PLAN-008-agent-desktop.md) | **GAP** | **GAP** | **GAP** | GOOD | **GAP** | n/a | PARTIAL | n/a |
 | [attendance](../../docs/qa/test-plans/PLAN-009-attendance.md) | GOOD | **GAP** | **GAP** | PARTIAL | PARTIAL | **GAP** | PARTIAL | **GAP** |
-| [authentication](../../docs/qa/test-plans/PLAN-001-authentication.md) | GOOD | PARTIAL | **GAP** | **GAP** | **GAP** | **GAP** | PARTIAL | n/a |
+| [authentication](../../docs/qa/test-plans/PLAN-001-authentication.md) | GOOD | PARTIAL | **GAP** | **GAP** | PARTIAL | **GAP** | PARTIAL | n/a |
 | [authorization](../../docs/qa/test-plans/PLAN-002-authorization.md) | GOOD | **GAP** | **GAP** | **GAP** | PARTIAL | **GAP** | GOOD | n/a |
+| [billing](../../docs/qa/test-plans/PLAN-020-billing.md) | **GAP** | **GAP** | **GAP** | **GAP** | **GAP** | **GAP** | **GAP** | **GAP** |
 | [commercial-onboarding](../../docs/qa/test-plans/PLAN-004-commercial-onboarding.md) | **GAP** | PARTIAL | **GAP** | **GAP** | PARTIAL | PARTIAL | **GAP** | n/a |
 | [deployment-release](../../docs/qa/test-plans/PLAN-012-deployment-release.md) | GOOD | **GAP** | PARTIAL | **GAP** | **GAP** | **GAP** | **GAP** | n/a |
 | [landing](../../docs/qa/test-plans/PLAN-013-landing.md) | **GAP** | **GAP** | **GAP** | **GAP** | **GAP** | GOOD | **GAP** | **GAP** |
@@ -33,6 +34,7 @@ item. See [`README.md`](README.md).
 | [platform-admin](../../docs/qa/test-plans/PLAN-019-platform-admin.md) | **GAP** | **GAP** | **GAP** | **GAP** | **GAP** | PARTIAL | **GAP** | n/a |
 | [runtime-modules](../../docs/qa/test-plans/PLAN-011-runtime-modules.md) | GOOD | **GAP** | **GAP** | **GAP** | **GAP** | **GAP** | PARTIAL | n/a |
 | [seat-billing](../../docs/qa/test-plans/PLAN-016-seat-billing.md) | **GAP** | n/a | GOOD | **GAP** | **GAP** | n/a | **GAP** | **GAP** |
+| [settings](../../docs/qa/test-plans/PLAN-021-settings.md) | PARTIAL | **GAP** | **GAP** | **GAP** | **GAP** | **GAP** | **GAP** | **GAP** |
 | [subscription-changes](../../docs/qa/test-plans/PLAN-018-subscription-changes.md) | **GAP** | **GAP** | GOOD | **GAP** | **GAP** | **GAP** | **GAP** | **GAP** |
 | [subscription-orders](../../docs/qa/test-plans/PLAN-017-subscription-orders.md) | **GAP** | **GAP** | GOOD | **GAP** | **GAP** | **GAP** | **GAP** | **GAP** |
 | [tenant-isolation](../../docs/qa/test-plans/PLAN-003-tenant-isolation.md) | PARTIAL | **GAP** | PARTIAL | **GAP** | PARTIAL | **GAP** | PARTIAL | n/a |

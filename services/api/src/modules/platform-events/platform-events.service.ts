@@ -8,6 +8,11 @@ import { randomUUID } from 'node:crypto';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { userHasPlatformPermission } from '../platform-auth/platform-permissions';
+import {
+  isNotifiable,
+  toNotification,
+  type PlatformNotification,
+} from './platform-notifications';
 
 export type RecordPlatformEventInput = {
   eventCode: string;
@@ -24,6 +29,16 @@ export type RecordPlatformEventInput = {
   route?: string | null;
   metadata?: Record<string, unknown> | null;
 };
+
+/**
+ * How many recent platform events one notification read examines.
+ *
+ * "Notifiable" is a rule over the event code and result, evaluated in
+ * TypeScript — see `platform-notifications.ts` — so it cannot be a database
+ * `count`. The scan is therefore wide and bounded, and the boundedness is
+ * reported rather than hidden: see `scanTruncated`.
+ */
+export const NOTIFICATION_SCAN_LIMIT = 600;
 
 @Injectable()
 export class PlatformEventsService {
@@ -61,6 +76,113 @@ export class PlatformEventsService {
       );
       return null;
     }
+  }
+
+  /**
+   * The operator-facing slice of the event stream.
+   *
+   * Not a second event log. `PlatformEvent` holds everything this platform
+   * does; this returns only what somebody should act on or would want to know,
+   * as decided by `platform-notifications.ts`. Filtering happens after the
+   * fetch rather than in SQL because the rules are regex over event codes and
+   * belong in one readable place — the window is bounded to keep that honest.
+   */
+  async notifications(
+    user: AuthenticatedUser,
+    options: { limit?: number } = {},
+  ): Promise<{
+    items: PlatformNotification[];
+    unreadCount: number;
+    scanTruncated: boolean;
+    readAt: string | null;
+  }> {
+    this.assertRead(user);
+    const limit = Math.min(100, Math.max(1, options.limit ?? 30));
+
+    const platformUserId = user.platform?.id ?? null;
+    const reader = platformUserId
+      ? await this.prisma.platformUser.findUnique({
+          where: { id: platformUserId },
+          select: { notificationsReadAt: true },
+        })
+      : null;
+    const readAt = reader?.notificationsReadAt ?? null;
+
+    /*
+     * A bounded window rather than the whole table. Ninety days is long enough
+     * that a failure cannot silently age out of view before anyone looks, and
+     * short enough that this stays one indexed range scan.
+     */
+    const since = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+    const rows = await this.prisma.platformEvent.findMany({
+      where: { occurredAt: { gte: since } },
+      orderBy: { occurredAt: 'desc' },
+      /*
+       * A fixed scan, **independent of the page size**.
+       *
+       * This read `take: limit * 20`, and the comment below the return claimed
+       * the unread count was computed "over everything in the window, not over
+       * the page". It was not: the window *was* the page size times twenty. The
+       * badge polls with `limit=1` and therefore counted unread notifications
+       * among twenty events; opening the popover asks for six and scans a
+       * hundred and twenty. So the same reader saw no badge on sign-in and a
+       * count the moment they clicked the bell — reported exactly that way.
+       *
+       * Most platform events are not notifiable, so the scan has to be wide;
+       * what it must not be is a function of how many rows the caller wants to
+       * display. `scanTruncated` below is what keeps the resulting number
+       * honest when even this is not enough.
+       */
+      take: NOTIFICATION_SCAN_LIMIT,
+      select: {
+        id: true,
+        eventCode: true,
+        result: true,
+        occurredAt: true,
+        entityType: true,
+        entityId: true,
+        tenantId: true,
+        customerAccountId: true,
+        metadata: true,
+      },
+    });
+
+    const items = rows
+      .filter((row) =>
+        isNotifiable({ eventCode: row.eventCode, result: String(row.result) }),
+      )
+      .map((row) => toNotification(row, readAt))
+      .filter((item): item is PlatformNotification => item !== null);
+
+    return {
+      /*
+       * Over the scanned window, and the same number whatever `limit` is — a
+       * badge that changes when you open the panel it describes is worse than
+       * no badge, because it looks like the act of looking created the news.
+       */
+      unreadCount: items.filter((item) => item.unread).length,
+      /*
+       * True when the scan hit its ceiling, so the count is a floor rather than
+       * a total. The caller renders "99+" rather than an exact number it cannot
+       * stand behind.
+       */
+      scanTruncated: rows.length >= NOTIFICATION_SCAN_LIMIT,
+      items: items.slice(0, limit),
+      readAt: readAt?.toISOString() ?? null,
+    };
+  }
+
+  /** Mark the feed read, as of now. */
+  async markNotificationsRead(user: AuthenticatedUser) {
+    this.assertRead(user);
+    const platformUserId = user.platform?.id;
+    if (!platformUserId) return { readAt: null };
+    const updated = await this.prisma.platformUser.update({
+      where: { id: platformUserId },
+      data: { notificationsReadAt: new Date() },
+      select: { notificationsReadAt: true },
+    });
+    return { readAt: updated.notificationsReadAt?.toISOString() ?? null };
   }
 
   async list(

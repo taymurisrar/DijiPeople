@@ -13,48 +13,182 @@
  * repository and once from its own generated copy.
  */
 
-/** Destination folders are agent-owned; nothing else in the vault is written. */
+/**
+ * Destination folders are agent-owned; nothing else in the vault is written.
+ *
+ * `nodeType` is part of the node contract: every generated note declares what
+ * kind of thing it is, so verification can check the relationships it takes part
+ * in rather than only whether its links resolve. Without it, a link between two
+ * notes is either "resolves" or "does not", and a Bug pointing at a QA Run and a
+ * Bug pointing at a dashboard look equally healthy.
+ */
 export const DEFAULT_MAPPINGS = [
-  { from: 'docs/knowledge/dashboards', to: '00 - Home/Generated' },
-  { from: 'docs/backlog', to: '00 - Home/Generated/Backlog' },
-  { from: 'docs/knowledge/product', to: '01 - Product/Generated' },
-  { from: 'docs/knowledge/architecture', to: '02 - Architecture/Generated' },
-  { from: 'docs/knowledge/modules', to: '03 - Modules/Generated' },
-  { from: 'docs/knowledge/requirements', to: '04 - Requirements/Generated' },
-  { from: 'docs/knowledge/decisions', to: '05 - Decisions/Generated' },
-  { from: 'docs/decisions', to: '05 - Decisions/Generated/ADR' },
-  { from: 'docs/knowledge/implementations', to: '06 - Implementation Plans/Generated' },
-  { from: 'docs/bugs', to: '07 - Bugs/Generated' },
-  { from: 'docs/knowledge/releases', to: '08 - Releases/Generated' },
-  { from: 'docs/deployment/release-history', to: '08 - Releases/Generated/History' },
-  { from: 'docs/knowledge/regressions', to: '11 - Agent Knowledge/Regressions/Generated' },
-  { from: 'docs/qa/runs', to: '11 - Agent Knowledge/QA/Runs' },
-  { from: 'docs/qa/regressions', to: '11 - Agent Knowledge/QA/Regressions' },
-  { from: 'docs/qa/known-bug-patterns', to: '11 - Agent Knowledge/QA/Bug Patterns' },
-  { from: 'docs/qa/test-strategy', to: '11 - Agent Knowledge/QA/Test Strategy' },
+  { from: 'docs/knowledge/dashboards', to: '00 - Home/Generated', nodeType: 'dashboard' },
+  { from: 'docs/backlog', to: '00 - Home/Generated/Backlog', nodeType: 'backlog-item' },
+  { from: 'docs/knowledge/product', to: '01 - Product/Generated', nodeType: 'product-knowledge' },
+  { from: 'docs/knowledge/architecture', to: '02 - Architecture/Generated', nodeType: 'architecture' },
+  { from: 'docs/knowledge/modules', to: '03 - Modules/Generated', nodeType: 'module' },
+  { from: 'docs/knowledge/requirements', to: '04 - Requirements/Generated', nodeType: 'requirement' },
+  { from: 'docs/knowledge/decisions', to: '05 - Decisions/Generated', nodeType: 'decision' },
+  { from: 'docs/decisions', to: '05 - Decisions/Generated/ADR', nodeType: 'decision' },
+  {
+    from: 'docs/knowledge/implementations',
+    to: '06 - Implementation Plans/Generated',
+    nodeType: 'implementation',
+  },
+  { from: 'docs/bugs', to: '07 - Bugs/Generated', nodeType: 'bug' },
+  { from: 'docs/knowledge/releases', to: '08 - Releases/Generated', nodeType: 'release' },
+  {
+    from: 'docs/deployment/release-history',
+    to: '08 - Releases/Generated/History',
+    nodeType: 'release',
+  },
+  {
+    from: 'docs/knowledge/regressions',
+    to: '11 - Agent Knowledge/Regressions/Generated',
+    nodeType: 'regression',
+  },
+  /*
+   * The framework's own durable lessons. A reconciliation of how the agent
+   * system works is not product architecture, and filing it under Architecture
+   * would put it where nobody looks for it.
+   */
+  {
+    from: 'docs/knowledge/framework',
+    to: '11 - Agent Knowledge/Framework',
+    nodeType: 'framework-knowledge',
+  },
+  { from: 'docs/qa/runs', to: '11 - Agent Knowledge/QA/Runs', nodeType: 'qa-run' },
+  { from: 'docs/qa/regressions', to: '11 - Agent Knowledge/QA/Regressions', nodeType: 'regression' },
+  {
+    from: 'docs/qa/known-bug-patterns',
+    to: '11 - Agent Knowledge/QA/Bug Patterns',
+    nodeType: 'bug-pattern',
+  },
+  {
+    from: 'docs/qa/test-strategy',
+    to: '11 - Agent Knowledge/QA/Test Strategy',
+    nodeType: 'test-strategy',
+  },
   /*
    * Test plans and scenarios are the durable half of QA — what must always be
    * true about an area, and the reusable cases that prove it. Runs are history;
    * these are what somebody reads to find out what the product is supposed to
    * guarantee, so they belong beside the runs rather than buried under them.
    */
-  { from: 'docs/qa/test-plans', to: '11 - Agent Knowledge/QA/Test Plans' },
-  { from: 'docs/qa/scenarios', to: '11 - Agent Knowledge/QA/Scenarios' },
-  { from: 'docs/engineering-history/tasks', to: '11 - Agent Knowledge/Engineering History' },
+  { from: 'docs/qa/test-plans', to: '11 - Agent Knowledge/QA/Test Plans', nodeType: 'test-plan' },
+  { from: 'docs/qa/scenarios', to: '11 - Agent Knowledge/QA/Scenarios', nodeType: 'qa-scenario' },
+  {
+    from: 'docs/engineering-history/tasks',
+    to: '11 - Agent Knowledge/Engineering History',
+    nodeType: 'engineering-history',
+  },
   /*
    * Parent tasks carry live orchestration state — which work packages are done,
    * which are blocked and why. Publishing them puts "what is in flight" beside
    * the backlog and the engineering history, which is where somebody reading the
    * vault expects to find it.
    */
-  { from: 'docs/tasks', to: '00 - Home/Generated/Tasks' },
+  { from: 'docs/tasks', to: '00 - Home/Generated/Tasks', nodeType: 'task' },
   /*
    * Sessions answer "who was working on what, from which base, holding which
    * leases" — a question that only becomes interesting once several Architect
    * chats run at once, and one nothing else in the vault records.
    */
-  { from: 'docs/sessions', to: '00 - Home/Generated/Sessions' },
+  { from: 'docs/sessions', to: '00 - Home/Generated/Sessions', nodeType: 'session' },
+  /*
+   * Questions and their answers. Projected because "what has the user already
+   * decided" is exactly the kind of thing somebody reads the vault to find, and
+   * because an answered question is the reasoning its ADR compresses away.
+   */
+  { from: 'docs/questions', to: '05 - Decisions/Generated/Questions', nodeType: 'question' },
 ];
+
+/**
+ * The node type of one file under a mapping.
+ *
+ * Almost always the mapping's own type. The exception is `docs/tasks`, which
+ * carries two populations: the parent records themselves, and the per-package
+ * files in the `work-packages/` subdirectory that TASK-0012 introduced. They
+ * are different kinds of thing and take part in different relationships, so
+ * they must not share a type.
+ */
+export function nodeTypeFor(mapping, relativePath) {
+  const path = String(relativePath ?? '').split('\\').join('/');
+  if (mapping.from === 'docs/tasks' && path.includes('/work-packages/')) return 'work-package';
+  if (mapping.from === 'docs/backlog' && path.startsWith('items/')) return 'backlog-item';
+  return mapping.nodeType ?? 'note';
+}
+
+/**
+ * Node types that carry knowledge, as opposed to listing it.
+ *
+ * A bug, an item, a task, a decision, a regression — each says something about
+ * the system. A dashboard or an index says only what other notes exist.
+ */
+export const KNOWLEDGE_NODE_TYPES = [
+  'bug',
+  'backlog-item',
+  'task',
+  'work-package',
+  'question',
+  'requirement',
+  'decision',
+  'qa-scenario',
+  'qa-run',
+  'regression',
+  'bug-pattern',
+  'test-plan',
+  'test-strategy',
+  'module',
+  'architecture',
+  'implementation',
+  'release',
+  'engineering-history',
+  'session',
+  'framework-knowledge',
+  'product-knowledge',
+];
+
+/**
+ * Generated *listing* surfaces rather than knowledge.
+ *
+ * Linking **into** one of these is the failure this rule exists to catch. It is
+ * the cheapest possible way to clear a graph orphan — point the isolated note at
+ * the index and the dot disappears — and it teaches a reader nothing while
+ * diluting every real edge around it.
+ */
+export const LISTING_NODE_TYPES = ['dashboard'];
+
+/**
+ * Is a link from `fromType` to `toType` meaningful?
+ *
+ * This began as an allow-list enumerating which pairs were legitimate, and that
+ * was wrong. Run against the real vault it produced 607 errors, and reading them
+ * showed almost every one was a **good** link: a backlog item pointing at the
+ * bug pattern it addresses, an item citing the requirement it came from, product
+ * knowledge naming the defects that shaped it. The grammar was not describing
+ * the graph; it was describing one author's guess about the graph, and the graph
+ * was right.
+ *
+ * A verifier that cries wolf gets skipped, which is exactly how the thing it
+ * verifies rots — the same lesson the orphan scan already carries in this file,
+ * and the same one BUG-0034 taught the contradiction detector.
+ *
+ * So the rule is now the one that is actually defensible: knowledge may link to
+ * knowledge, and nothing may link into a generated listing surface. That still
+ * forbids the move the framework cares about — adding an edge to remove a dot —
+ * without inventing relationships nobody agreed to.
+ *
+ * Unknown types pass. A verifier that fails on a type it has never heard of
+ * blocks every new record kind on the day it is introduced.
+ */
+export function relationshipIsValid(fromType, toType) {
+  if (!fromType || !toType) return true;
+  /* A listing surface links everywhere by design; that is its whole job. */
+  if (LISTING_NODE_TYPES.includes(fromType)) return true;
+  return !LISTING_NODE_TYPES.includes(toType);
+}
 
 export const mappingKey = (mapping) => `${mapping.from}→${mapping.to}`;
 

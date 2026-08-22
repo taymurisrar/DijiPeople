@@ -21,6 +21,7 @@ import { ModuleEmptyState } from "./module-empty-state";
 import { ModuleQuickCreatePanel } from "./module-quick-create-panel";
 import type { RuntimeRecordData } from "./module-runtime-ui.types";
 import { formatRuntimeFieldValue } from "@/lib/runtime/runtime-value-formatter";
+import { useDialogBehavior } from "@/app/components/ui/dialog";
 
 export function ModuleRelatedSubgrid({
   dataAdapter,
@@ -961,6 +962,12 @@ function AssignmentPanel({
   readonly subgrid: RelatedSubgridMetadata;
 }) {
   const assignment = subgrid.assignment;
+
+  // BUG-0043: kept its own layout, gained the guarantees it never had - focus
+  // containment, Escape, focus restore and dialog semantics. Called before the
+  // early return: hooks run in the same order on every render, closed or open.
+  const dialog = useDialogBehavior({ open, onClose });
+
   if (!open || !assignment) return null;
 
   const selectedSet = new Set(selectedValues);
@@ -985,11 +992,20 @@ function AssignmentPanel({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/35">
-      <div className="flex h-full w-full max-w-2xl flex-col bg-surface shadow-2xl">
+    <div
+      className="fixed inset-0 z-50 flex justify-end bg-black/35"
+      {...dialog.backdropProps}
+    >
+      <div
+        {...dialog.panelProps}
+        className="flex h-full w-full max-w-2xl flex-col bg-surface shadow-2xl"
+      >
         <div className="flex items-start justify-between gap-4 border-b border-border px-6 py-5">
           <div>
-            <h2 className="text-xl font-semibold text-foreground">
+            <h2
+              className="text-xl font-semibold text-foreground"
+              id={dialog.titleId}
+            >
               {assignment.title ?? `Assign ${subgrid.title}`}
             </h2>
             <p className="mt-1 text-sm text-muted">
@@ -1601,11 +1617,24 @@ function EmployeeDocumentUploadPanel({
     };
   }, []);
 
+  // BUG-0043: kept its own layout, gained the guarantees it never had -
+  // focus containment, Escape, focus restore and dialog semantics.
+  const dialog = useDialogBehavior({ open: true, onClose });
+
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/20">
-      <aside className="h-full w-full max-w-xl overflow-y-auto border-l border-border bg-surface shadow-2xl">
+    <div
+      className="fixed inset-0 z-50 flex justify-end bg-black/20"
+      {...dialog.backdropProps}
+    >
+      <aside
+        {...dialog.panelProps}
+        className="h-full w-full max-w-xl overflow-y-auto border-l border-border bg-surface shadow-2xl"
+      >
         <div className="flex items-center justify-between border-b border-border px-5 py-4">
-          <h2 className="text-lg font-semibold text-foreground">
+          <h2
+            className="text-lg font-semibold text-foreground"
+            id={dialog.titleId}
+          >
             New Document
           </h2>
           <button
@@ -1734,11 +1763,24 @@ function EmployeeDocumentEditPanel({
     }
   }
 
+  // BUG-0043: kept its own layout, gained the guarantees it never had -
+  // focus containment, Escape, focus restore and dialog semantics.
+  const dialog = useDialogBehavior({ open: true, onClose });
+
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/20">
-      <aside className="h-full w-full max-w-xl overflow-y-auto border-l border-border bg-surface shadow-2xl">
+    <div
+      className="fixed inset-0 z-50 flex justify-end bg-black/20"
+      {...dialog.backdropProps}
+    >
+      <aside
+        {...dialog.panelProps}
+        className="h-full w-full max-w-xl overflow-y-auto border-l border-border bg-surface shadow-2xl"
+      >
         <div className="flex items-center justify-between border-b border-border px-5 py-4">
-          <h2 className="text-lg font-semibold text-foreground">
+          <h2
+            className="text-lg font-semibold text-foreground"
+            id={dialog.titleId}
+          >
             Edit Document
           </h2>
           <button

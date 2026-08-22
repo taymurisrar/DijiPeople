@@ -198,3 +198,37 @@ reconciliation after an incident is guesswork.
 - [ ] Tests cover duplicate delivery, timeout and malformed payload
 - [ ] Validation run per `testing-architecture.md`; live-service limitations
       stated honestly
+
+---
+
+## External capability is verified, never inferred
+
+```
+LIVE_CAPABILITY_STATUS = VERIFIED | UNVERIFIED | UNSUPPORTED | BLOCKED_EXTERNAL
+```
+
+**Never invent a live provider capability from repository code.** That the code
+calls an endpoint proves the code calls it — not that the provider supports it
+in the account, plan, region and mode being used. `UNVERIFIED` is an honest
+answer and belongs in the handoff; a confident claim that turns out to be a
+documentation-only feature is not.
+
+## What every provider boundary records
+
+```
+PROVIDER          AUTH_METHOD        REQUEST_CONTRACT   RESPONSE_CONTRACT
+IDEMPOTENCY       RETRY              TIMEOUT            FAILURE_MODE
+RECONCILIATION    TEST_ENVIRONMENT_STATUS               LIVE_CAPABILITY_STATUS
+```
+
+`RECONCILIATION` is the one most often left blank and the one that matters when
+a webhook is missed: what brings the two systems back into agreement when
+delivery fails, rather than what happens when it succeeds.
+
+## Test resources at a provider boundary
+
+This role owns provider-specific cleanup mechanics. When an object cannot be
+deleted, the honest terminal state is
+`CLEANUP_STATUS = ARCHIVED_PROVIDER_LIMITATION` — never `CLEANED`, because the
+next run trusts what this one recorded. See
+[`../context/test-resource-policy.md`](../context/test-resource-policy.md).

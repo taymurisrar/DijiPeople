@@ -7,8 +7,20 @@
 3. Add all API variables from `services/api/.env.production.example`.
 4. Generate unique 32+ character values for global, web, admin, and agent JWT secrets.
 5. Set `CORS_ALLOWED_ORIGINS` exactly to:
-   `https://diji-people-admin.vercel.app,https://diji-people-web.vercel.app,https://diji-people-landing.vercel.app`
-6. Keep `COOKIE_DOMAIN` empty for isolated Vercel domains.
+   `https://www.dijipeople.com,https://dijipeople.com,https://app.dijipeople.com,https://admin.dijipeople.com`
+
+   This is the value live in production on 2026-08-22, read from the Render
+   service rather than composed here. The bare apex is listed as well as `www`
+   because both resolve and a browser sends whichever the customer typed.
+6. Keep `COOKIE_DOMAIN` empty.
+
+   It was empty because the three apps were on isolated `*.vercel.app` hosts and
+   could not share a cookie. They are now all under `dijipeople.com`, so a shared
+   `.dijipeople.com` cookie has become *possible* — which is not the same as
+   correct. Sharing one would put the tenant session and the platform-admin
+   session in the same jar, and [[BUG-0010]] is what happens when the cookie
+   domain is set to something the deployment does not expect. Leave it empty
+   unless somebody decides otherwise deliberately.
 7. Run release:
    `npm --workspace api run prisma:migrate:deploy && npm --workspace api run seed:system`
 
@@ -34,7 +46,7 @@ Create:
 
 ## Verification
 
-1. Visit `https://dijipeople.onrender.com/`, `/api`, and `/api/health`.
+1. Visit `https://api.dijipeople.com/`, `/api`, and `/api/health`.
 2. Run a CORS preflight from the admin origin and confirm `Access-Control-Allow-Credentials: true`.
 3. Log into admin production and confirm `admin_access_token` and `admin_refresh_token` cookies exist.
 4. Log into web production and confirm `web_access_token` and `web_refresh_token` cookies exist.
@@ -43,4 +55,4 @@ Create:
 7. Resend owner activation.
 8. Open super admin dashboard summary.
 9. Confirm activation/reset links use the web production URL.
-10. Start agent desktop login/config/heartbeat against `https://dijipeople.onrender.com/api`.
+10. Start agent desktop login/config/heartbeat against `https://api.dijipeople.com/api`.

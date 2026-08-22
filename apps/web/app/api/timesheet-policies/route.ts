@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
 import { apiRequest, proxyApiJsonResponse } from "@/lib/server-api";
+import { proxyErrorResponse } from "@/app/api/_lib/proxy-error";
 
 export async function GET(request: Request) {
   const query = new URL(request.url).searchParams.toString();
@@ -17,14 +17,6 @@ export async function POST(request: Request) {
     });
     return proxyApiJsonResponse(response);
   } catch (error) {
-    return NextResponse.json(
-      {
-        message:
-          error instanceof Error
-            ? error.message
-            : "Unable to create timesheet policy.",
-      },
-      { status: 500 },
-    );
+    return proxyErrorResponse(error, "Unable to create timesheet policy.");
   }
 }

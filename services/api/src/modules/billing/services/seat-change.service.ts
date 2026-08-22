@@ -1,7 +1,6 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import {
   DomainEventType,
-  Prisma,
   SeatChangeDirection,
   SeatChangeStatus,
 } from '@prisma/client';

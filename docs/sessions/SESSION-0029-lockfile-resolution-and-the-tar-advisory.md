@@ -1,0 +1,44 @@
+---
+SESSION_ID: SESSION-0029
+aliases: [SESSION-0029]
+TASK_ID:
+TITLE: Lockfile resolution and the tar advisory
+ARCHITECT_INTENT: Lockfile resolution and the tar advisory
+STATUS: COMPLETE
+TASK_TYPE: SECURITY
+TASK_SIZE: MEDIUM
+BASE_BRANCH: origin/develop
+BASE_SHA: 4703112a
+TASK_BRANCH: agent/lockfile-resolution-and-tar
+TARGET_BRANCH: develop
+WORKTREE: D:/My Work/hrm-dijipeople/dijipeople-depsec
+AFFECTED_MODULES: [package-lock.json, apps/admin, scripts]
+WRITE_LEASES: []
+ACTIVE_WORK_PACKAGES: []
+SCHEMA_WRITE: NO
+CI_STATUS: PASS
+MERGE_STATUS: DONE
+STARTED_AT: 2026-08-21T10:26:46.109Z
+LAST_HEARTBEAT: 2026-08-21T10:26:46.109Z
+BLOCKERS: none
+---
+
+# SESSION-0029 — Lockfile resolution and the tar advisory
+
+## Intent
+
+Lockfile resolution and the tar advisory
+
+## Scope
+
+_To be established during planning._
+
+## Concurrency
+
+Write leases held, overlap classification against other active sessions, and
+anything this session deliberately serialised behind another. Live state:
+`node scripts/session.mjs list`.
+
+## History
+
+- 2026-08-21 — session started from `origin/develop` at `0396aba`.

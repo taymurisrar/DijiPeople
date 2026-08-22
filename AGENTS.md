@@ -1,7 +1,7 @@
 # AGENTS.md — DijiPeople Engineering Instructions
 
-> **Last verified:** 2026-08-20
-> **Verified against commit:** ff34b92
+> **Last verified:** 2026-08-21
+> **Verified against commit:** 0fac4cd
 >
 > This file outranks every role and context document, and until now it was the
 > only tier that carried no provenance of its own — so the two highest-severity
@@ -104,14 +104,40 @@ read as an exception. It is not: urgency narrows scope, never evidence.
 ## The Architect is the only user-facing agent
 
 The user should never need to invoke Backend/API, Frontend, UI/UX, Database,
-Integration, QA, the Reviewer, the Integrator or Release/DevOps. The Architect
-selects them from impact analysis, sequences them, validates each handoff,
-routes rework when a stage rejects one, and refuses to report completion while a
-required agent is not `PASS`.
+Security, Integration, QA, the Reviewer, the Integrator, Release/DevOps, the
+Product & Backlog Steward or Knowledge & Graph. The Architect selects them from
+impact analysis, sequences them, validates each handoff, routes rework when a
+stage rejects one, and refuses to report completion while a required agent is
+not `PASS`.
+
+**The permanent roster is thirteen roles.** Research, Architecture, Prisma,
+Migration, CI, Playwright, Documentation, Accessibility, Test Data, Cleanup and
+Performance are capabilities these roles own, not roles of their own — a
+separate agent for each would multiply handoffs without adding one new
+decision-maker.
 
 Full rules — the handoff contract, the required-agent matrix, the acceptance
 tokens and rework routing — are in
 [`.agent/context/agent-handoffs.md`](.agent/context/agent-handoffs.md).
+
+Four cross-role invariants sit beside it, and are pointed at rather than
+restated in any role file:
+
+- **[`question-protocol.md`](.agent/context/question-protocol.md)** — any
+  specialist may raise a genuine question at any point; it routes through the
+  Architect to the user **immediately**, and its answer becomes an ADR so nobody
+  is asked the same thing twice. `WAITING_USER` stops one package, never a
+  whole program.
+- **[`context-budget.md`](.agent/context/context-budget.md)** — a program's
+  state lives in Markdown, not in the conversation. Every substantial work
+  package declares what to load *and what not to*, and continuation is computed
+  from the dependency graph rather than decided.
+- **[`failure-adaptation.md`](.agent/context/failure-adaptation.md)** — classify
+  a failure before responding to it, and change the approach after two
+  materially identical failures instead of repeating it harder.
+- **[`test-resource-policy.md`](.agent/context/test-resource-policy.md)** — a
+  test creates what it asserts on, cleans exactly what it created, and reports
+  its own cleanup failures rather than swallowing them.
 
 ---
 
@@ -581,7 +607,7 @@ Seeds and release: `npm run seed:config`, `seed:admin`, `seed:demo`,
 - Run the validation that is **relevant to what you changed**, plus a repository
   typecheck for anything crossing a workspace boundary. A full `npm run build`
   is slow (`--concurrency=1`); run it when you changed build inputs.
-- **CI exists** — `.github/workflows/ci.yml`, **thirteen** jobs named behind a
+- **CI exists** — `.github/workflows/ci.yml`, **fourteen** jobs named behind a
   single `CI required gate` check
   ([`docs/development/ci.md`](docs/development/ci.md)). Count them in the gate's
   `needs` list rather than trusting this number. A job can still be fail-open
@@ -623,6 +649,14 @@ straight to step 6.
 1. **Inspect the existing implementation.** Read the module, its service,
    repository, DTOs, specs and the frontend that consumes it. Read the relevant
    documents in `docs/architecture/`.
+
+   If the work touches a database-backed screen, run `npm run db:preflight`
+   first. A local database several migrations behind is invisible until someone
+   regenerates the Prisma client, and then every query touching a new column
+   returns `P2022` on whichever screen reaches it first — which reads as a
+   regression in that screen and is not one. The API now warns about this at
+   startup as well, but the warning scrolls past and `db:preflight` does not.
+   See the `doc-code-drift` sibling case, BUG-0283.
 2. **Determine architecture and dependencies.** Which modules, which models,
    which permissions, which settings, which runtime registries, which other apps
    consume the contract.

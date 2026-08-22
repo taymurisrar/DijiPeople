@@ -2,7 +2,6 @@ import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
 import {
   AttendanceDeviceHealth,
   AttendanceDeviceVerificationStatus,
-  AttendanceProvider,
   DeviceProvisioningOperation,
   DeviceProvisioningStatus,
   ExternalUserMappingStatus,

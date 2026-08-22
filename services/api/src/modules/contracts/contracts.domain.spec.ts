@@ -53,6 +53,32 @@ describe('contract document domain', () => {
     expect(result).toContain('data-page-break="true"');
   });
 
+  /*
+   * The contract template editor inserts signature boxes as a table carrying
+   * `data-document-role="signature-block"`, and it does so *because* of this
+   * allowlist — `div` and every `data-signature-*` attribute are stripped, so a
+   * signature box built any other way would silently disappear on save with no
+   * error raised anywhere. Pinned here rather than in the frontend, because
+   * this is the side that decides.
+   */
+  it('preserves an editor-inserted signature block', () => {
+    const result = cleanContractHtml(
+      '<table data-document-role="signature-block"><tbody><tr><th colspan="2">For and on behalf of</th></tr><tr><td><strong>Signature</strong></td><td>{{signature.counterparty.name}}</td></tr></tbody></table>',
+    );
+    expect(result).toContain('data-document-role="signature-block"');
+    expect(result).toContain('{{signature.counterparty.name}}');
+    expect(result).toContain('colspan="2"');
+  });
+
+  it('strips a signature block built from a div, which is why it is a table', () => {
+    // The contrast that makes the assertion above mean something.
+    const result = cleanContractHtml(
+      '<div data-signature-block="true"><p>Signature</p></div>',
+    );
+    expect(result).not.toContain('<div');
+    expect(result).not.toContain('data-signature-block');
+  });
+
   it('preserves headings, nested lists, and table rows for generated files', () => {
     expect(
       extractAgreementDocumentStructure(

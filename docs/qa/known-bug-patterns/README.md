@@ -37,3 +37,16 @@ pattern. New patterns come out of the bug learning loop in
 | [borrowed-fixture-dependency](borrowed-fixture-dependency.md) | Test integrity | Three attendance/gateway e2e suites, legal-seed, platform-workflows |
 | [assertion-without-a-check](assertion-without-a-check.md) | Process / Test integrity | `forwarded-headers.ts` in all three frontends |
 | [structural-guard-lost-in-rewrite](structural-guard-lost-in-rewrite.md) | UX / Test integrity | The subscribe wizard; the legal-seed operator assertion |
+| [silent-config-fallback](silent-config-fallback.md) | Availability | The marketing site's Login button |
+| [silent-degradation](silent-degradation.md) | UX / Data integrity | The subscribe wizard's country field |
+| [divergent-duplicate-guard](divergent-duplicate-guard.md) | Security / Domain integrity | `ContractsService.update()`; workspace hostname resolution |
+| [unbounded-render](unbounded-render.md) | UX / Availability | The tenant timeline panel |
+| [stale-generated-artifact](stale-generated-artifact.md) | Correctness | The platform runtime manifest |
+| [premature-completion](premature-completion.md) | Process | This framework's own reporting |
+| [unvalidated-seed-state](unvalidated-seed-state.md) | Deployment | `seed-config` required rows |
+| [hidden-write-on-read](hidden-write-on-read.md) | Domain integrity | Read paths that mutate |
+| [declared-but-unwired-step](declared-but-unwired-step.md) | Process | Pipeline steps declared and never run |
+
+> Seven of these rows were missing from this index while their files existed —
+> a pattern nobody can find is a pattern nobody applies. Added when
+> `silent-degradation` was.

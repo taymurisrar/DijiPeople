@@ -10,6 +10,7 @@ import { LeadsService } from './leads.service';
 import { PublicLeadsController } from './public-leads.controller';
 import { PlatformCommunicationsModule } from '../platform-communications/platform-communications.module';
 import { LegalModule } from '../legal/legal.module';
+import { PartnerExperienceModule } from '../partner-experience/partner-experience.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { LegalModule } from '../legal/legal.module';
     AuditModule,
     PlatformCommunicationsModule,
     LegalModule,
+    PartnerExperienceModule,
   ],
   controllers: [PublicLeadsController, AdminLeadsController],
   providers: [

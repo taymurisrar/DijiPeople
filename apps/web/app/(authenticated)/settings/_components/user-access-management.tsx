@@ -13,6 +13,7 @@ import {
   BusinessUnitRecord,
 } from "../types";
 import { RoleTypeBadge } from "./rbac-components";
+import { useDialogBehavior } from "@/app/components/ui/dialog";
 
 type TeamRecord = {
   id: string;
@@ -885,6 +886,12 @@ function EmployeeLinkDialog({
   selectedEmployeeId: string;
   user: AccessUserRecord | null;
 }) {
+  // BUG-0043: kept its own layout, gained the guarantees it never had -
+  // focus containment, Escape, focus restore and dialog semantics.
+  // Called before the early return: hooks run in the same order on every
+  // render, closed or open.
+  const dialog = useDialogBehavior({ open, onClose });
+
   if (!open || !user) {
     return null;
   }
@@ -894,15 +901,24 @@ function EmployeeLinkDialog({
   );
 
   return (
-    <div className="fixed inset-0 z-[100] flex justify-end bg-black/35">
-      <aside className="h-full w-full max-w-2xl overflow-y-auto bg-white p-6 shadow-2xl">
+    <div
+      className="fixed inset-0 z-[100] flex justify-end bg-black/35"
+      {...dialog.backdropProps}
+    >
+      <aside
+        {...dialog.panelProps}
+        className="h-full w-full max-w-2xl overflow-y-auto bg-white p-6 shadow-2xl"
+      >
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-sm uppercase tracking-[0.18em] text-muted">
               Employee Link
             </p>
 
-            <h3 className="mt-2 text-2xl font-semibold text-foreground">
+            <h3
+              className="mt-2 text-2xl font-semibold text-foreground"
+              id={dialog.titleId}
+            >
               Link employee to {user.firstName} {user.lastName}
             </h3>
 

@@ -1,10 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 import { AttendanceConnectorRegistry } from './connector.registry';
-import type {
-  AttendanceConnectorDefinition,
-  ConnectorConfigurationField,
-} from './connector.types';
+import type { ConnectorConfigurationField } from './connector.types';
 
 /**
  * Schema validation for connector configuration.

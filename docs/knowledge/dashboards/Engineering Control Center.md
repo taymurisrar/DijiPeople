@@ -7,25 +7,49 @@
 
 | | |
 |---|---|
-| Active sessions | **8** |
-| Active parent tasks | 6 |
+| Active sessions | **6** |
+| Active parent tasks | 7 |
 | Active work packages | 2 |
-| Blocked work packages | 4 |
+| Blocked work packages | 5 |
+| Work packages waiting on the user | 0 |
+| Open questions | 0 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **0** |
-| Open HIGH | 12 |
+| Open HIGH | 3 |
 | Awaiting Architect triage | 0 |
-| Owner decisions pending | 3 |
-| QA coverage gaps | 94 |
+| Owner decisions pending | 2 |
+| QA coverage gaps | 108 |
 | Scenarios blocked by infrastructure | 0 |
+
+## Backlog health
+
+Whether the outstanding work is *actionable*, as opposed to merely valid.
+A record nobody owns, with no acceptance criteria and no next action,
+survives every review by being unfalsifiable.
+
+| | |
+|---|---|
+| Ownerless actionable records | 0 |
+| No acceptance criteria | 20 |
+| No next action | 20 |
+| Aging — 7d / 30d / 90d | 1 / 0 / 0 |
+| Architecture and technical debt | 5 |
+| Security gaps | 3 |
+| Database gaps | 0 |
+
+Ranked next-best actions weigh blast radius rather than severity alone, and
+are computed on demand so the reasons travel with the ranking:
+
+```bash
+node scripts/backlog-review.mjs        # health detectors and NEXT_BEST_ACTIONS
+node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
+```
 
 ## Active Sessions
 
 | Session | Task | Title | Status | Branch | Target | Leases | Schema |
 |---|---|---|---|---|---|---|---|
-| [[SESSION-0027-hotfix-api-production-heap-cap-to-1536mb|SESSION-0027]] | — | Hotfix API production heap cap to 1536MB | ACTIVE | `agent/api-heap-cap-hotfix` | `main` | — | NO |
-| [[SESSION-0025-deploy-api-heap-cap-change-to-production|SESSION-0025]] | — | Deploy API heap cap change to production | ACTIVE | `agent/api-heap-cap-deploy` | `main` | — | NO |
-| [[SESSION-0023-first-production-release|SESSION-0023]] | — | First production release | ACTIVE | `agent/first-production-release` | `main` | — | NO |
+| SESSION-0023 | — | First production release | ACTIVE | `agent/first-production-release` | `main` | — | NO |
 | [[SESSION-0022-go-live-readiness|SESSION-0022]] | TASK-0010 | Go-live readiness | ACTIVE | `agent/go-live-readiness` | `develop` | — | NO |
 | [[SESSION-0019-ci-browser-install-latency-and-database-e2e-fixture-contract|SESSION-0019]] | — | CI browser install latency and database e2e fixture contract | ACTIVE | `agent/ci-e2e-remediation` | `develop` | — | NO |
 | [[SESSION-0016-database-agent-security-agent-agent-reliability-and-obsidian|SESSION-0016]] | — | Database Agent, Security Agent, agent reliability and Obsidian ownership | ACTIVE | `agent/agent-framework-hardening` | `develop` | — | NO |
@@ -42,6 +66,7 @@
 | [[TASK-0009-identity-and-multi-tenant-membership|TASK-0009]] | Identity and multi-tenant membership | FEATURE | LARGE | 11/12 | WP-09 | — | WP-09 |
 | [[TASK-0010-go-live-readiness|TASK-0010]] | Go-live readiness | FEATURE | MEDIUM | 7/8 | WP-04 | — | WP-04 |
 | [[TASK-0011-first-production-release|TASK-0011]] | First production release | RELEASE | MEDIUM | 1/2 | WP-02 | — | — |
+| [[TASK-0018-legacy-pricing-removed-and-the-commercial-catalogue-made-to-|TASK-0018]] | Legacy pricing removed and the commercial catalogue made to converge | FEATURE | MEDIUM | 3/4 | — | — | WP-04 |
 
 ## Branch model
 
@@ -90,9 +115,8 @@ _None. Nothing open at CRITICAL._
 Questions where the engineering is understood and the **product answer is**
 **not**. No agent may resolve one by implementing a side of it.
 
-- [[ITEM-0032-recompute-productivity-totals-inflated-by-heartbeat-replays|ITEM-0032]] — **Recompute productivity totals inflated by heartbeat replays**
-- [[ITEM-0053-publish-privacy-policy-and-terms-for-the-public-landing-site|ITEM-0053]] — **Publish privacy policy and terms for the public landing site**
-- [[ITEM-0057-landing-production-env-examples-still-name-the-vercel-and-re|ITEM-0057]] — **Landing production env examples still name the vercel and render hosts, not the dijipeople.com apex**
+- [[ITEM-0062-no-multi-tenant-membership-one-user-belongs-to-one-tenant-so|ITEM-0062]] — **No multi-tenant membership — one user belongs to one tenant, so discovery and switching cannot exist**
+- [[ITEM-0079-activation-does-not-gate-on-a-workspace-having-any-module-en|ITEM-0079]] — **Activation does not gate on a workspace having any module enabled**
 
 ## QA Coverage Gaps
 
@@ -103,7 +127,6 @@ gap into scope — or files a `TEST_GAP` item and says so.
 |---|---|
 | [[PLAN-001-authentication|authentication]] | DATABASE |
 | [[PLAN-001-authentication|authentication]] | INTEGRATION |
-| [[PLAN-001-authentication|authentication]] | E2E |
 | [[PLAN-001-authentication|authentication]] | BROWSER |
 | [[PLAN-002-authorization|authorization]] | API |
 | [[PLAN-002-authorization|authorization]] | DATABASE |
@@ -195,15 +218,30 @@ gap into scope — or files a `TEST_GAP` item and says so.
 | [[PLAN-019-platform-admin|platform-admin]] | INTEGRATION |
 | [[PLAN-019-platform-admin|platform-admin]] | E2E |
 | [[PLAN-019-platform-admin|platform-admin]] | SECURITY |
+| [[PLAN-020-billing|billing]] | UNIT |
+| [[PLAN-020-billing|billing]] | API |
+| [[PLAN-020-billing|billing]] | DATABASE |
+| [[PLAN-020-billing|billing]] | INTEGRATION |
+| [[PLAN-020-billing|billing]] | E2E |
+| [[PLAN-020-billing|billing]] | BROWSER |
+| [[PLAN-020-billing|billing]] | SECURITY |
+| [[PLAN-020-billing|billing]] | PERFORMANCE |
+| [[PLAN-021-settings|settings]] | API |
+| [[PLAN-021-settings|settings]] | DATABASE |
+| [[PLAN-021-settings|settings]] | INTEGRATION |
+| [[PLAN-021-settings|settings]] | E2E |
+| [[PLAN-021-settings|settings]] | BROWSER |
+| [[PLAN-021-settings|settings]] | SECURITY |
+| [[PLAN-021-settings|settings]] | PERFORMANCE |
 
 ## Backlog Health
 
 | | |
 |---|---|
-| Open total | 38 |
-| Blocked | 0 |
-| Deferred | 14 |
-| Awaiting a product decision | 3 |
+| Open total | 22 |
+| Blocked | 1 |
+| Deferred | 18 |
+| Awaiting a product decision | 2 |
 | Awaiting Architect triage | 0 |
 
 Every ordinary record carries a disposition.

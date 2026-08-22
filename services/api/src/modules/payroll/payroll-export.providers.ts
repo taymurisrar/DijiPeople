@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PayrollBankExportFormat } from '@prisma/client';
 import { ExcelExportService } from '../../common/excel/excel-export.service';
+import { toDisplayString } from '../../common/utils/display-string';
 
 export type PayrollExportRow = {
   employeeCode: string;
@@ -27,7 +28,7 @@ export interface PayrollExportProvider {
 
 function csv(rows: PayrollExportRow[], columns: Array<keyof PayrollExportRow>) {
   const escape = (value: unknown) =>
-    `"${String(value ?? '').replaceAll('"', '""')}"`;
+    `"${toDisplayString(value ?? '').replaceAll('"', '""')}"`;
   return Buffer.from(
     [
       columns.join(','),

@@ -15,7 +15,6 @@ import {
   BillingInterval,
   BillingModel,
   CommercialPublicationStatus,
-  CommercialSalesModel,
   CustomerAccountStatus,
   DiscountType,
   InvoiceStatus,
@@ -27,8 +26,8 @@ import {
   StripeEnvironment,
   StripeSyncStatus,
   SubscriptionStatus,
-  TenantStatus,
   TenantFeatureSource,
+  TenantStatus,
   UserInvitationStatus,
   UserStatus,
   WebhookProcessingStatus,
@@ -77,11 +76,6 @@ import { UpdateTenantSlugDto } from '../tenants/dto/update-tenant-slug.dto';
 import { CreateInvoiceFromSubscriptionDto } from './dto/create-invoice-from-subscription.dto';
 import { PlansRepository } from './plans.repository';
 import { bootstrapCommercialDefaults } from './commercial-bootstrap';
-import { DEFAULT_PLAN_DEFINITIONS } from './plans.catalog';
-import {
-  DEFAULT_MARKET_DEFINITIONS,
-  DEFAULT_PLAN_SALES_MODELS,
-} from './markets.catalog';
 import { PlatformLifecycleService } from './platform-lifecycle.service';
 import { PlatformOnboardingService } from './platform-onboarding.service';
 import { PaymentsService } from './payments.service';
@@ -109,7 +103,7 @@ function toCountMap<T extends { _count: { _all: number } }>(rows: T[]) {
         severity?: unknown;
       };
       return [
-        String(
+        toDisplayString(
           item.status ??
             item.supportStatus ??
             item.contractType ??
@@ -207,6 +201,7 @@ import {
   UpdateTenantAccessUserDto,
 } from './dto/tenant-access-user.dto';
 import { normalizeEmail } from '../../common/utils/email.util';
+import { toDisplayString } from '../../common/utils/display-string';
 import {
   buildProfessionalInvoicePdf,
   formatInvoiceDate,
@@ -2809,14 +2804,17 @@ export class SuperAdminService {
       this.prisma.plan.count({
         where: {
           isActive: true,
-          isPublic: true,
+          publicationStatus: CommercialPublicationStatus.PUBLISHED,
         },
       }),
       this.prisma.planPrice.count({
         where: {
           isActive: true,
           stripePriceId: null,
-          plan: { isActive: true, isPublic: true },
+          plan: {
+            isActive: true,
+            publicationStatus: CommercialPublicationStatus.PUBLISHED,
+          },
         },
       }),
       this.prisma.planPrice.count({
@@ -2825,7 +2823,10 @@ export class SuperAdminService {
       this.prisma.planPrice.findMany({
         where: {
           isActive: true,
-          plan: { isActive: true, isPublic: true },
+          plan: {
+            isActive: true,
+            publicationStatus: CommercialPublicationStatus.PUBLISHED,
+          },
         },
       }),
       this.prisma.stripeWebhookEvent.count({
@@ -3190,6 +3191,26 @@ export class SuperAdminService {
       }
     });
 
+    /*
+     * Turning wildcard DNS on has to reach the hostnames issued before it.
+     *
+     * `createSystemDomain` reads the flag once, when it issues a hostname, and
+     * nothing re-reads it — so without this, confirming DNS left every existing
+     * workspace subdomain reading "Pending" for ever while resolving perfectly.
+     * The operator's next question was reasonable and had no answer on the
+     * screen: is this automated or is it waiting for me?
+     *
+     * Outside the transaction on purpose. The settings write is the operator's
+     * intent and must not be rolled back by a reconciliation that touches
+     * unrelated tenants; if this fails, the flag is still correct and the sweep
+     * can be repeated by saving again.
+     */
+    if (dto.tenantProvisioning) {
+      await this.tenantDomains.reconcileSystemDomainsAfterWildcardDns(
+        actor.userId,
+      );
+    }
+
     return this.getPlatformSettings();
   }
 
@@ -3201,8 +3222,6 @@ export class SuperAdminService {
     const resolvedFeatures =
       await this.featureAccessService.getResolvedTenantFeatures(tenant.id);
 
-    const primaryDomainRecord =
-      tenant.tenantDomains.find((domain) => domain.isPrimary) ?? null;
     return {
       id: tenant.id,
       tenantCode: tenant.tenantCode,

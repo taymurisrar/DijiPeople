@@ -11,6 +11,7 @@ import { CustomerIdentityService } from '../src/modules/billing/services/custome
 import { TaxBasisService } from '../src/modules/billing/services/tax-basis.service';
 import { OutboxService } from '../src/modules/outbox/outbox.service';
 import type { PrismaService } from '../src/common/prisma/prisma.service';
+import { PartnerReferralResolverService } from '../src/modules/partner-experience/partner-referral-resolver.service';
 
 /**
  * Customer-before-payment, deduplication and the money snapshot, against a real
@@ -40,6 +41,9 @@ describeWithDatabase()('Subscription orders (DB-backed)', () => {
     identity,
     new TaxBasisService(),
     new OutboxService(prisma as unknown as PrismaService),
+    // See payment-authorised-provisioning: the real resolver, resolving to
+    // DIRECT because these submissions carry no referral code. BUG-0281.
+    new PartnerReferralResolverService(prisma as unknown as PrismaService),
   );
 
   const runId = `ord-${Date.now()}`;

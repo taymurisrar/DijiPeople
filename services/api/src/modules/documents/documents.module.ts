@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
@@ -9,7 +9,11 @@ import { DocumentsRepository } from './documents.repository';
 import { DocumentsService } from './documents.service';
 
 @Module({
-  imports: [JwtModule.register({}), AuditModule, TenantSettingsModule],
+  imports: [
+    JwtModule.register({}),
+    AuditModule,
+    forwardRef(() => TenantSettingsModule),
+  ],
   controllers: [DocumentsController],
   providers: [
     DocumentsRepository,

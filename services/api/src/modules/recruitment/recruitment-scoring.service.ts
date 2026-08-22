@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { Prisma, RecruitmentStage } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 
 type NumericWeights = {
   skillMatch: number;
@@ -193,7 +193,6 @@ export class RecruitmentScoringService {
     const requiredSkills = normalizeStringList(criteria.requiredSkills);
     const preferredSkills = normalizeStringList(criteria.preferredSkills);
     const requiredSkillsSet = new Set(requiredSkills.map(normalizeToken));
-    const preferredSkillsSet = new Set(preferredSkills.map(normalizeToken));
     const candidateSkillsSet = new Set(
       candidateSkills.map(normalizeSkillToken),
     );

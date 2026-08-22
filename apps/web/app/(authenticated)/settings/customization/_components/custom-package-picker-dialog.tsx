@@ -3,6 +3,7 @@
 import { Button } from "@/app/components/ui/button";
 import { SelectField } from "@/app/components/ui/form-control";
 import type { CustomizationPackage } from "../types";
+import { useDialogBehavior } from "@/app/components/ui/dialog";
 
 export function CustomPackagePickerDialog({
   confirmLabel = "Continue",
@@ -28,6 +29,10 @@ export function CustomPackagePickerDialog({
   selectedPackageId: string;
   setSelectedPackageId: (packageId: string) => void;
 }) {
+  // BUG-0043: kept its own layout, gained the guarantees it never had -
+  // focus containment, Escape, focus restore and dialog semantics.
+  const dialog = useDialogBehavior({ open, onClose });
+
   if (!open) return null;
 
   const customPackages = packages.filter(
@@ -39,10 +44,19 @@ export function CustomPackagePickerDialog({
   );
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/40 p-4">
-      <div className="grid w-full max-w-lg gap-4 rounded-[24px] border border-border bg-white p-6 shadow-xl">
+    <div
+      className="fixed inset-0 z-50 grid place-items-center bg-slate-950/40 p-4"
+      {...dialog.backdropProps}
+    >
+      <div
+        {...dialog.panelProps}
+        className="grid w-full max-w-lg gap-4 rounded-[24px] border border-border bg-white p-6 shadow-xl"
+      >
         <div>
-          <h3 className="text-lg font-semibold text-foreground">
+          <h3
+            className="text-lg font-semibold text-foreground"
+            id={dialog.titleId}
+          >
             Select Custom Package
           </h3>
           <p className="mt-1 text-sm leading-6 text-muted">{message}</p>

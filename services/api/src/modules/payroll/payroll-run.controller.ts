@@ -14,7 +14,6 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
 import {
   Permissions,
-  RequireAnyPermission,
   RequirePermission,
 } from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';

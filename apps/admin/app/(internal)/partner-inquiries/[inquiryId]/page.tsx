@@ -1,4 +1,5 @@
 import { PartnerInquiryReview } from "@/app/_components/partners/partner-inquiry-review";
+import { requireSystemAdminUser } from "@/lib/auth";
 import { apiRequestJson } from "@/lib/server-api";
 
 type Inquiry = {
@@ -29,11 +30,19 @@ export default async function PartnerInquiryDetailPage({
   params: Promise<{ inquiryId: string }>;
 }) {
   const { inquiryId } = await params;
+  const user = await requireSystemAdminUser("/partner-inquiries");
   const [response, owners] = await Promise.all([
     apiRequestJson<{ item: Inquiry }>(
       `/platform-runtime/partner-inquiries/${inquiryId}`,
     ),
     apiRequestJson<Owner[]>("/platform-users/owner-candidates"),
   ]);
-  return <PartnerInquiryReview initialItem={response.item} owners={owners} />;
+  return (
+    <PartnerInquiryReview
+      initialItem={response.item}
+      owners={owners}
+      roleKeys={[user.role, ...(user.roleKeys ?? [])]}
+      permissionKeys={user.permissionKeys}
+    />
+  );
 }

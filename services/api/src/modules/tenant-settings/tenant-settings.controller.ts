@@ -4,10 +4,14 @@ import {
   Get,
   Param,
   Patch,
+  Post,
   Query,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
   BadRequestException,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { PERMISSION_KEYS } from '../../common/constants/permissions';
 import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -21,6 +25,11 @@ import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { UpdateTenantFeaturesDto } from './dto/update-tenant-features.dto';
 import { UpdateTenantSettingsDto } from './dto/update-tenant-settings.dto';
+import {
+  BrandingAssetsService,
+  MAX_BRANDING_ASSET_BYTES,
+  type UploadedBrandingFile,
+} from './branding-assets.service';
 import { TenantSettingsService } from './tenant-settings.service';
 
 const SETTINGS_READ_PERMISSION = 'settings.read';
@@ -29,7 +38,38 @@ const SETTINGS_UPDATE_PERMISSION = 'settings.update';
 @Controller('tenant-settings')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class TenantSettingsController {
-  constructor(private readonly service: TenantSettingsService) {}
+  constructor(
+    private readonly service: TenantSettingsService,
+    private readonly brandingAssetsService: BrandingAssetsService,
+  ) {}
+
+  /**
+   * Upload a logo, favicon or banner and point the branding setting at it.
+   *
+   * The MIME allowlist, the size limit and the two-step orchestration used to
+   * live in the web app's route handler, where the API could not enforce them
+   * and a failed second step left an orphaned document behind. BUG-0041 /
+   * ITEM-0050. `limits.fileSize` is Multer refusing the oversized body before
+   * it is buffered; the service checks the size again because it is the
+   * authority and a direct caller need not come through this interceptor.
+   */
+  @Post('branding-assets')
+  @Permissions('branding.manage')
+  @RequirePermission(ENTITY_KEYS.BRANDING, 'configure')
+  @UseInterceptors(
+    FileInterceptor('file', { limits: { fileSize: MAX_BRANDING_ASSET_BYTES } }),
+  )
+  async uploadBrandingAsset(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body('settingKey') settingKey: string,
+    @UploadedFile() file: UploadedBrandingFile | undefined,
+  ) {
+    return this.brandingAssetsService.uploadBrandingAsset(
+      user,
+      settingKey,
+      file,
+    );
+  }
 
   @Get()
   @Permissions(SETTINGS_READ_PERMISSION)

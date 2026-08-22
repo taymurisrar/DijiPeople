@@ -7,6 +7,7 @@ import { DataTable } from "@/app/components/data-table/data-table";
 import type { DataTableColumn } from "@/app/components/data-table/types";
 import { EmptyState } from "@/app/components/ui/empty-state";
 import { StatusPill } from "@/app/components/ui/status-pill";
+import { useDialogBehavior } from "@/app/components/ui/dialog";
 import {
   formatDateTime,
   mappingStatusLabel,
@@ -290,12 +291,25 @@ function MappingDialog({
     }
   }
 
+  // BUG-0043: kept its own layout, gained the guarantees it never had -
+  // focus containment, Escape, focus restore and dialog semantics.
+  const dialog = useDialogBehavior({ open: true, onClose, busy });
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
-      <div className="max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-[24px] border border-border bg-surface p-6 shadow-lg">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4"
+      {...dialog.backdropProps}
+    >
+      <div
+        {...dialog.panelProps}
+        className="max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-[24px] border border-border bg-surface p-6 shadow-lg"
+      >
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-lg font-semibold text-foreground">
+            <h2
+              className="text-lg font-semibold text-foreground"
+              id={dialog.titleId}
+            >
               Match device user
             </h2>
             <p className="mt-1 text-sm text-muted">

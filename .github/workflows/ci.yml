@@ -121,6 +121,41 @@ jobs:
       - name: Validate agent framework
         run: node scripts/validate-framework.mjs
 
+      # BUG-0163 — the lockfile must be REGENERABLE, not merely present.
+      #
+      # It had stopped being so, and nothing noticed for weeks, because
+      # `npm ci` only replays a committed lockfile: it never asks whether the
+      # manifests could still produce one. Two optional peers of
+      # `@tiptap/react` carried caret ranges that drifted past the pinned
+      # family, so a from-scratch resolve failed with ERESOLVE while the
+      # committed lockfile papered over it.
+      #
+      # The cost was not theoretical. `overrides` in the root manifest were
+      # read and then silently discarded — npm cannot apply an override while
+      # it cannot produce a tree — which meant the one lever for forcing a
+      # transitive version had quietly stopped working. BUG-0052 needed exactly
+      # that lever and had to graft resolutions in by hand instead.
+      #
+      # Resolution only: no `node_modules`, no network install, ~20s. It
+      # answers the single question `npm ci` cannot.
+      - name: Lockfile regenerates from the manifests
+        run: |
+          set -euo pipefail
+          probe="$(mktemp -d)"
+          # Manifests and nothing else — resolution needs no source.
+          git ls-files '*package.json' | while read -r f; do
+            mkdir -p "$probe/$(dirname "$f")"
+            cp "$f" "$probe/$f"
+          done
+          cd "$probe"
+          if ! npm install --package-lock-only --no-audit --no-fund; then
+            echo "::error::The lockfile cannot be regenerated from the manifests."
+            echo "::error::A peer conflict makes a from-scratch resolve fail. npm ci still"
+            echo "::error::works because it replays the committed lockfile, and 'overrides'"
+            echo "::error::in the root manifest are silently ignored. See BUG-0163."
+            exit 1
+          fi
+
       # The generated indexes must agree with the records they summarise. Each is
       # its own step so a red build names the system that drifted rather than
       # reporting "framework validation failed" and leaving somebody to bisect it.
@@ -189,12 +224,37 @@ jobs:
       # non-blocking job does not stop new ones arriving. All 15 are fixed:
       # 11 prettier, 3 unbound-method, 1 no-regex-spaces.
       #
-      # --max-warnings=10000 against ~910 actual warnings. That is a ceiling
-      # against a flood, not a target; the burn-down is ITEM-0042. Warnings do
-      # not gate, errors do.
+      # The ceiling is a RATCHET, not a target. It was --max-warnings=10000
+      # against ~910 real warnings, which is no ceiling at all: the count grew
+      # to 1027 without anything noticing, and its *error* count had already
+      # grown from 2 to 15 the same way while the job was report-only.
+      #
+      # 805 against 800 actual, measured on this branch on 2026-08-22. The
+      # five-warning margin is for environment drift in typescript-eslint's
+      # inference between a developer's tree and this runner — not headroom to
+      # spend. It was 975/971 before ITEM-0042's first pass.
+      #
+      # When this fails, the fix is to reduce warnings, not to raise the number.
+      # Lower it whenever the real count drops.
+      #
+      # ITEM-0042 closed the two rules it named:
+      #   no-base-to-string   41 -> 0   (a String() on an object is a log line
+      #                                  reading [object Object], which is a lost
+      #                                  incident; toDisplayString replaces it)
+      #   no-unused-vars      17 -> 0   (decided one at a time, not swept: two of
+      #                                  the seventeen were real defects, and
+      #                                  prefixing them with _ would have buried
+      #                                  BUG-0668 and BUG-0669)
+      #
+      # The 800 that remain are one family — values typed `any` flowing through
+      # Prisma-adjacent code — and are ITEM-0080. They need typing, not casting,
+      # and go module by module. The leave module was the first and is the worked
+      # example: removing eight `(this.prisma as any)` casts took it from 114
+      # warnings to zero AND surfaced four real type errors the cast was hiding,
+      # including a .filter(Boolean) that never narrowed.
       - name: ESLint — services/api
         working-directory: services/api
-        run: npx eslint "{src,test}/**/*.ts" --max-warnings=10000
+        run: npx eslint "{src,test}/**/*.ts" --max-warnings=805
       - name: Fail if lint modified the checkout
         # Defence in depth: if any lint step ever regains --fix, this catches it
         # rather than letting CI silently "pass" against rewritten files.
@@ -282,6 +342,27 @@ jobs:
       - run: npm ci
       - run: npm --workspace landing run test
 
+  test-agent-desktop:
+    name: Desktop agent tests
+    runs-on: ubuntu-latest
+    needs: [resolve]
+    if: needs.resolve.outputs.reuse != 'true'
+    timeout-minutes: 15
+    # ITEM-0033. This workspace had no runner at all, and it is the app with
+    # native capabilities the employee cannot observe: it reads active window
+    # titles, captures geolocation, holds a refresh token in the OS credential
+    # vault and runs unattended from login. Its most dangerous code was the code
+    # no test touched — BUG-0036's offline queue among it, whose fix landed on
+    # the server while the queue kept no statement of what it re-sends.
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: npm
+      - run: npm ci
+      - run: npm --workspace agent-desktop run test
+
   test-runtime:
     name: Runtime schema tests
     runs-on: ubuntu-latest
@@ -295,6 +376,14 @@ jobs:
           node-version: '22.x'
           cache: npm
       - run: npm ci
+      - name: Platform runtime schema is derived from the current schema
+        # The manifest that decides which Prisma columns Platform Admin can see
+        # is generated from schema.prisma, and nothing checked it stayed that
+        # way. When it fell behind, the contract test below still passed —
+        # because it validates the registry against this file, so a stale file
+        # and a stale registry agree with each other. Five real columns were
+        # invisible to operators for a day before anyone noticed. BUG-0282.
+        run: npm run check:runtime-schema
       - name: Platform runtime schema contract
         # Guards sensitive/system-managed fields from becoming writable or
         # exportable. Cheap, and a real security contract.
@@ -315,6 +404,19 @@ jobs:
         # carried its own loopback fallback. These assert that a production
         # build now fails on a missing, malformed or loopback app URL.
         run: npm run test:app-urls
+      - name: Migrations do not run through a connection pooler
+        # BUG-0086. Every production deploy aborted in preDeployCommand on
+        # P1002 — `prisma migrate deploy` takes a session-scoped advisory lock
+        # and Neon's pooled endpoint is PgBouncer in transaction mode, which
+        # cannot hold one. The failure is deterministic configuration, so the
+        # check is too: the migration url must not name a pooled host.
+        run: npm run test:database-urls
+      - name: Environment examples agree with each other and with the code
+        # ITEM-0045 — apps/web ships two committed .env examples and they
+        # disagreed about the domain workspaces are served from: one named the
+        # landing port. It broke nothing, because the port is normalised away
+        # before classification, which is exactly why it survived.
+        run: npm run test:env-examples
       - name: No loopback URLs in shipped source
         # The other half of the same defect: a hardcoded literal never consults
         # an environment variable, so environment validation cannot see it.
@@ -345,6 +447,27 @@ jobs:
         # different employee's payslips and bank accounts. A proxy makes no
         # authorization decisions.
         run: npm run check:proxies-forward-refusals
+      - name: Proxies decide nothing
+        # BUG-0041 — a handler read permissionKeys and returned a fabricated
+        # empty list without calling the API, and another derived basicSalary
+        # from "the first component with a non-empty amount". A second source of
+        # truth the authority cannot see, correct or audit is a defect even when
+        # it is fail-closed, and money derived in an untested layer is worse.
+        run: npm run check:proxies-decide-nothing
+      - name: Proxies forward the upstream status
+        # ITEM-0035 — 134 catch blocks across 123 handlers answered every
+        # upstream failure with a hardcoded 500, losing the status, the
+        # fieldErrors a form needs and the traceId that makes a reported error
+        # findable. The capability was all there; it was adoption, and prose
+        # does not achieve adoption across 123 files.
+        run: npm run check:proxies-forward-status
+      - name: Modal dialogs contain focus
+        # BUG-0043. Every modal in apps/web was a bespoke `fixed inset-0` div:
+        # Tab walked out of all of them, three could not be closed with Escape,
+        # and the shared kit had no dialog to reuse, so the rule forbidding
+        # hand-rolled dialogs could not be followed. Prose does not survive
+        # twenty-one authors; this does.
+        run: npm run check:dialogs-contained
       - name: Environment variables are registered for cache invalidation
         # BUG-0042 — 37 variables across the three Next apps were read but
         # absent from turbo globalEnv, so Turborepo could serve a cached build
@@ -357,6 +480,23 @@ jobs:
         # hoisting from admin. A per-project install (how apps/web deploys)
         # would not resolve it. Twice is a pattern, so it gets a gate.
         run: npm run check:declared-dependencies
+      - name: Declared npm overrides are actually applied
+        # BUG-0163 / REG-173 — a @tiptap peer conflict made every fresh resolve
+        # fail, so npm reused the existing tree and ignored every overrides
+        # entry in silence. `npm pkg get overrides` returned the key,
+        # `npm install` reported "up to date", and the resolved version never
+        # moved. The override being ignored was the fix for the repository's
+        # only critical advisory, so the failure mode is a security fix that
+        # quietly does not happen.
+        run: npm run check:overrides-applied
+      - name: No undocumented production advisories
+        # BUG-0052 — 17 advisories, one critical, and three corrections to the
+        # record before it closed: every disposition that failed had rested on
+        # a reachability claim made by inspection. This asserts what a machine
+        # can decide instead — nothing is critical, every survivor has a
+        # written argument, and a disposition that no longer matches anything
+        # is removed rather than left reading as a live risk acceptance.
+        run: npm run check:production-advisories
       - name: Security response headers
         # BUG-0040 — all three Next apps shipped none. Pins that the CSP stays
         # report-only until observed, and that frame protection is not deferred
@@ -932,7 +1072,7 @@ jobs:
     # survivable for weeks.
     timeout-minutes: 10
     needs:
-      [resolve, validate, typecheck, lint, test-api, test-web, test-admin, test-landing, test-runtime, database-migration, database-e2e-report, build, browser-e2e]
+      [resolve, validate, typecheck, lint, test-api, test-web, test-admin, test-landing, test-agent-desktop, test-runtime, database-migration, database-e2e-report, build, browser-e2e]
     if: always()
     steps:
       - name: Verify all required jobs passed

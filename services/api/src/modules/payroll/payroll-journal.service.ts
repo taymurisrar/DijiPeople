@@ -8,7 +8,6 @@ import {
   PayrollExceptionSeverity,
   PayrollJournalEntryStatus,
   PayrollJournalEntryType,
-  PayrollRunLineItemCategory,
   PayrollRunStatus,
   Prisma,
 } from '@prisma/client';
@@ -28,6 +27,7 @@ import {
   payrollPostingRuleInclude,
 } from './payroll-posting-rule-resolver.service';
 import { PayrollNotificationService } from './payroll-notification.service';
+import { toDisplayString } from '../../common/utils/display-string';
 
 const journalInclude = {
   lines: {
@@ -710,8 +710,10 @@ export class PayrollJournalService {
 
     assertBalanced(
       lines.map((line) => ({
-        debitAmount: new Prisma.Decimal(String(line.debitAmount ?? 0)),
-        creditAmount: new Prisma.Decimal(String(line.creditAmount ?? 0)),
+        debitAmount: new Prisma.Decimal(toDisplayString(line.debitAmount ?? 0)),
+        creditAmount: new Prisma.Decimal(
+          toDisplayString(line.creditAmount ?? 0),
+        ),
       })),
     );
     await this.prisma.payrollJournalEntryLine.createMany({ data: lines });

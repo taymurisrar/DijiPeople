@@ -7,17 +7,15 @@ import {
 import {
   ConsentState,
   ConsentType,
-  LeadAttributionStatus,
   LegalDocumentType,
   LeadInquiryIntent,
   LeadStatus,
-  PartnerReferralLinkStatus,
-  PartnerStatus,
   PlatformUserRole,
   PlatformUserStatus,
 } from '@prisma/client';
 import { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { AuditService } from '../audit/audit.service';
+import { PartnerReferralResolverService } from '../partner-experience/partner-referral-resolver.service';
 import {
   BulkAssignLeadsDto,
   CorrectLeadAttributionDto,
@@ -77,6 +75,10 @@ export class LeadsService {
     private readonly events: PlatformEventsService,
     private readonly legalService: LegalService,
     private readonly consentService: ConsentService,
+    // The one place a referral code becomes an attribution. This logic used to
+    // be private to this service, which is exactly why self-service checkout —
+    // writing the same CustomerAccount columns — attributed nothing. BUG-0281.
+    private readonly referralResolver: PartnerReferralResolverService,
   ) {}
 
   async submitLead(dto: SubmitLeadDto, correlationId?: string) {
@@ -131,7 +133,7 @@ export class LeadsService {
       return { submitted: true, id: duplicate.id };
     }
 
-    const referral = await this.resolveReferral(dto.referralCode);
+    const referral = await this.referralResolver.resolve(dto.referralCode);
 
     // The notice actually in force, resolved from the published legal
     // documents rather than from a compile-time constant. Falls back to that
@@ -360,59 +362,6 @@ export class LeadsService {
           .filter((area) => known.has(area)),
       ),
     ];
-  }
-
-  private async resolveReferral(referralCode?: string) {
-    if (!referralCode) {
-      return {
-        partnerId: null,
-        linkId: null,
-        code: null,
-        status: LeadAttributionStatus.DIRECT,
-      };
-    }
-    const code = referralCode.trim().toUpperCase();
-    const link = await this.prisma.partnerReferralLink.findUnique({
-      where: { code },
-      include: { partner: { select: { id: true, status: true } } },
-    });
-    if (!link)
-      return {
-        partnerId: null,
-        linkId: null,
-        code,
-        status: LeadAttributionStatus.INVALID_CODE,
-      };
-    if (link.partner.status !== PartnerStatus.ACTIVE)
-      return {
-        partnerId: null,
-        linkId: null,
-        code,
-        status: LeadAttributionStatus.INACTIVE_PARTNER,
-      };
-    if (link.status === PartnerReferralLinkStatus.DISABLED)
-      return {
-        partnerId: null,
-        linkId: null,
-        code,
-        status: LeadAttributionStatus.DISABLED_LINK,
-      };
-    if (
-      link.status !== PartnerReferralLinkStatus.ACTIVE ||
-      (link.expiresAt && link.expiresAt <= new Date())
-    )
-      return {
-        partnerId: null,
-        linkId: null,
-        code,
-        status: LeadAttributionStatus.EXPIRED_LINK,
-      };
-    return {
-      partnerId: link.partner.id,
-      linkId: link.id,
-      code,
-      status: LeadAttributionStatus.ATTRIBUTED,
-    };
   }
 
   private async notifyLeadSubmitted(

@@ -4,6 +4,7 @@ import {
   PartnerStatus,
 } from '@prisma/client';
 import { LeadsService } from './leads.service';
+import { PartnerReferralResolverService } from '../partner-experience/partner-referral-resolver.service';
 
 const submission = {
   firstName: 'Ahmed',
@@ -54,6 +55,10 @@ function setup(referral: unknown) {
       withdraw: jest.fn(),
       currentState: jest.fn(),
     } as never,
+    // The real resolver over the same mocked prisma. Resolution moved out of
+    // LeadsService so checkout could share it (BUG-0281); these cases still
+    // assert the behaviour end to end rather than against a stub.
+    new PartnerReferralResolverService(prisma as never),
   );
   return { service, create, tx };
 }

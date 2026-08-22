@@ -41,6 +41,35 @@ never had an agreement.
 The lesson is not about contracts. **One rule, two implementations, and the
 copy is the one that drifts.** Pattern: [[divergent-duplicate-guard]].
 
+## Authoring a template document
+
+The template editor writes HTML that `cleanContractHtml` sanitises on save.
+The allowlist is the binding constraint and it is easy to discover the expensive
+way:
+
+- `div` is **not** allowed, and neither is any `data-signature-*` attribute. A
+  signature box built as a custom element or a `div` is deleted on first save,
+  with no error raised anywhere — the author places it, saves, and finds it
+  gone.
+- `table`/`thead`/`tbody`/`tr`/`th`/`td` are allowed, and `table` may carry
+  `data-document-role`. That is the hook every document-role style keys off, and
+  it is why the signature box the editor inserts is a table.
+- `td` styles are constrained to the `allowedStyles` list, which has no `border`
+  or `width`. A signature block's rules therefore come from the editor and print
+  stylesheets, not from inline style.
+
+Anything that needs to survive a save should be asserted in
+`contracts.domain.spec.ts` against `cleanContractHtml` itself, not against the
+frontend that produced it — the API owns the allowlist and is the side that
+decides.
+
+**Signature placeholders resolve or print literally.** `signature.*` keys are
+registered `required: false` with `fallbackBehavior: 'LEAVE_TOKEN'`, so a token
+for a party the platform never fills is not an error — it prints
+`{{signature.witness.name}}` into an executed agreement. Only `platform` and
+`counterparty` are actually written, by `signaturePlaceholderValues`. A party
+outside that set must be given ruled blank lines, never a token.
+
 ## Regressions
 
 REG-009 — `contracts.agreement-immutability.spec.ts`; 19 assertions, **7 fail**

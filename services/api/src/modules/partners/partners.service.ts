@@ -9,6 +9,7 @@ import { randomBytes } from 'crypto';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { userHasPlatformPermission } from '../platform-auth/platform-permissions';
+import { toDisplayString } from '../../common/utils/display-string';
 import {
   CreatePartnerCommissionDto,
   CreatePartnerDto,
@@ -663,7 +664,7 @@ function partnerRuntimeWhere(
 ): Prisma.PartnerWhereInput {
   const clauses: Prisma.PartnerWhereInput[] = [];
   for (const filter of filters) {
-    const value = String(filter.value ?? '').trim();
+    const value = toDisplayString(filter.value ?? '').trim();
     if (!value && !['isNull', 'isNotNull'].includes(filter.operator)) continue;
     if (filter.field === 'type') clauses.push({ type: value as never });
     else if (filter.field === 'status')

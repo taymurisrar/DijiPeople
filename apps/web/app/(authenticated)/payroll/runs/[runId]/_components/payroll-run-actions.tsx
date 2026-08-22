@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/app/components/ui/button";
+import { useGovernedInput } from "@/app/components/feedback/use-governed-input";
 
 export function PayrollRunActions({
   canCalculate,
@@ -43,6 +44,7 @@ export function PayrollRunActions({
   runId: string;
   status: string;
 }) {
+  const { requestValue, governedInputDialog } = useGovernedInput();
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -262,12 +264,32 @@ export function PayrollRunActions({
   }
 
   async function reverseJournal() {
-    const reason = window.prompt("Reversal reason");
-    if (!reason?.trim()) return;
-    const reversalDate =
-      window.prompt("Reversal date (YYYY-MM-DD)", new Date().toISOString().slice(0, 10)) ??
-      "";
-    if (!reversalDate.trim()) return;
+    /*
+     * A reversal reason is financial and is read during audit; a reversal date
+     * decides which period the entry lands in. Both were collected with
+     * `window.prompt` — unvalidated, and the date as free text with a
+     * pre-filled default, so "next Tuesday" reached the API and
+     * `2026-02-31` would have rolled silently into March. ITEM-0031.
+     */
+    const reason = await requestValue({
+      title: "Reverse journal",
+      description:
+        "This reverses a posted payroll journal. The reason is recorded on the audit trail.",
+      label: "Reversal reason",
+      hint: "Why this journal is being reversed.",
+      confirmLabel: "Continue",
+    });
+    if (reason === null) return;
+
+    const reversalDate = await requestValue({
+      title: "Reversal date",
+      description: "The date the reversing entry is posted.",
+      label: "Reversal date",
+      confirmLabel: "Reverse journal",
+      kind: "date",
+      initialValue: new Date().toISOString().slice(0, 10),
+    });
+    if (reversalDate === null) return;
     setBusy(true);
     setError(null);
     const response = await fetch(`/api/payroll/runs/${runId}/journal/reverse`, {
@@ -288,6 +310,7 @@ export function PayrollRunActions({
 
   return (
     <div className="grid gap-3">
+      {governedInputDialog}
       <div className="flex flex-wrap gap-3">
         <Button href={`/payroll/runs/${runId}/preview`} variant="secondary">
           Preview

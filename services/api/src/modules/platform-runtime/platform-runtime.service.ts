@@ -21,6 +21,7 @@ import {
   PartnerQueryDto,
   UpdatePartnerDto,
 } from '../partners/dto/partner.dto';
+import { PartnerDeletionService } from '../partners/partner-deletion.service';
 import { SuperAdminService } from '../super-admin/super-admin.service';
 import {
   CreateCustomerDto,
@@ -59,6 +60,7 @@ import { resolveRuntimeField, resolveRuntimeViewRule } from '@repo/config';
 import { runtimeViewWhere } from './runtime-view-where';
 import { PlatformRuntimeRelationsService } from './platform-runtime-relations.service';
 import { TenantControlPlaneService } from '../tenant-control-plane/tenant-control-plane.service';
+import { toDisplayString } from '../../common/utils/display-string';
 
 @Injectable()
 export class PlatformRuntimeService {
@@ -67,6 +69,7 @@ export class PlatformRuntimeService {
     private readonly leads: LeadsService,
     private readonly partners: PartnersService,
     private readonly superAdmin: SuperAdminService,
+    private readonly partnerDeletion: PartnerDeletionService,
     private readonly monitoring: PlatformMonitoringService,
     private readonly audit: AuditService,
     private readonly contracts: ContractsService,
@@ -568,7 +571,25 @@ export class PlatformRuntimeService {
             ids: [id],
           }),
         );
+      case 'partners':
+        return result(await this.partnerDeletion.deletePartners(user, [id]));
+      case 'partner-inquiries':
+        return result(
+          await this.partnerDeletion.deletePartnerInquiries(user, [id]),
+        );
+      case 'partner-onboarding':
+        return result(
+          await this.partnerDeletion.deletePartnerOnboarding(user, [id]),
+        );
       default:
+        /*
+         * Not an oversight. The modules that land here hold records the
+         * business has to be able to produce later — invoices, payments,
+         * commissions, executed agreements, signature evidence — or, for
+         * tenants, an entire customer workspace behind a cascade. The console
+         * says which of those applies rather than offering a button that would
+         * be wrong to press; see `DELETE_REFUSALS` in the module registry.
+         */
         throw new BadRequestException(
           'Delete is not available for this module or is prevented by retention policy.',
         );
@@ -726,7 +747,7 @@ export class PlatformRuntimeService {
         user,
         key,
         id,
-        String(input.status ?? ''),
+        toDisplayString(input.status ?? ''),
         textOrNull(input.reason),
         textOrNull(input.subStatus),
       );
@@ -775,8 +796,8 @@ export class PlatformRuntimeService {
     this.assertModuleWrite(user, key);
     if (key === 'support-cases') {
       await this.supportCases.addActivity(user, id, {
-        eventType: String(input.activityType ?? 'NOTE'),
-        message: String(input.message ?? ''),
+        eventType: toDisplayString(input.activityType ?? 'NOTE'),
+        message: toDisplayString(input.message ?? ''),
       });
       return { success: true, message: 'Timeline activity added.' };
     }
@@ -789,8 +810,8 @@ export class PlatformRuntimeService {
       entityId: id,
       sourceModule: 'platform-runtime',
       afterSnapshot: {
-        message: String(input.message ?? ''),
-        activityType: String(input.activityType ?? 'NOTE'),
+        message: toDisplayString(input.message ?? ''),
+        activityType: toDisplayString(input.activityType ?? 'NOTE'),
       },
     });
     return { success: true, message: 'Timeline activity added.' };
@@ -818,7 +839,7 @@ export class PlatformRuntimeService {
       user,
       key,
       id,
-      String(input.stage ?? ''),
+      toDisplayString(input.stage ?? ''),
       textOrNull(input.reason),
       textOrNull(input.subStatus),
     );
@@ -900,7 +921,17 @@ export class PlatformRuntimeService {
                     ? body.mode === 'create'
                       ? CreateSupportCaseDto
                       : UpdateSupportCaseDto
-                    : null;
+                    : /*
+                       * Plans validate on update only — the runtime does not
+                       * create them. Without this entry every plan edit
+                       * validated vacuously and then failed at save with a
+                       * whole-request 400, because `dto()` runs with
+                       * `forbidNonWhitelisted` and the form had no way to know
+                       * which field was the problem.
+                       */
+                      key === 'plans' && body.mode !== 'create'
+                      ? UpdatePlanDto
+                      : null;
     if (!Class) return { success: true };
     try {
       const validationValues = { ...(body.values ?? {}) };
@@ -937,7 +968,7 @@ export class PlatformRuntimeService {
       fields.join(','),
       ...items.map((item) =>
         fields
-          .map((field) => csv(String(readPath(item, field) ?? '')))
+          .map((field) => csv(toDisplayString(readPath(item, field) ?? '')))
           .join(','),
       ),
     ].join('\n');
@@ -955,6 +986,16 @@ export class PlatformRuntimeService {
     if (key === 'customer-onboarding')
       return result(
         await this.superAdmin.bulkDeleteCustomerOnboardings(user, { ids }),
+      );
+    if (key === 'partners')
+      return result(await this.partnerDeletion.deletePartners(user, ids));
+    if (key === 'partner-inquiries')
+      return result(
+        await this.partnerDeletion.deletePartnerInquiries(user, ids),
+      );
+    if (key === 'partner-onboarding')
+      return result(
+        await this.partnerDeletion.deletePartnerOnboarding(user, ids),
       );
     throw new BadRequestException(
       'Bulk delete is not available for this module.',
@@ -1420,8 +1461,8 @@ function matchesRuntimeFilter(
 ) {
   const actual = readPath(record, filter.field);
   const expected = filter.value;
-  const left = String(actual ?? '').toLocaleLowerCase();
-  const right = String(expected ?? '').toLocaleLowerCase();
+  const left = toDisplayString(actual ?? '').toLocaleLowerCase();
+  const right = toDisplayString(expected ?? '').toLocaleLowerCase();
   if (filter.operator === 'isNull') return actual == null || actual === '';
   if (filter.operator === 'isNotNull') return actual != null && actual !== '';
   if (filter.operator === 'contains') return left.includes(right);
@@ -1451,14 +1492,18 @@ function compareRuntimeValues(left: unknown, right: unknown) {
   const rightNumber = Number(right);
   if (Number.isFinite(leftNumber) && Number.isFinite(rightNumber))
     return leftNumber - rightNumber;
-  const leftDate = Date.parse(String(left ?? ''));
-  const rightDate = Date.parse(String(right ?? ''));
+  const leftDate = Date.parse(toDisplayString(left ?? ''));
+  const rightDate = Date.parse(toDisplayString(right ?? ''));
   if (Number.isFinite(leftDate) && Number.isFinite(rightDate))
     return leftDate - rightDate;
-  return String(left ?? '').localeCompare(String(right ?? ''), undefined, {
-    numeric: true,
-    sensitivity: 'base',
-  });
+  return toDisplayString(left ?? '').localeCompare(
+    toDisplayString(right ?? ''),
+    undefined,
+    {
+      numeric: true,
+      sensitivity: 'base',
+    },
+  );
 }
 function readPath(record: Record<string, unknown>, path: string) {
   return path

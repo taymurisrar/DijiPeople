@@ -155,7 +155,35 @@ export type TenantProvisioningStep = {
   message: string | null;
 };
 
+/**
+ * What is missing from a workspace, as facts about the tenant rather than about
+ * a provisioning run that may never have been recorded.
+ *
+ * The screen this exists for showed an ACTIVE, reachable tenant reporting
+ * "Workspace: Not provisioned", "Primary tenant owner: Unassigned", a status
+ * reason of "Provisioning" and no recorded run — four true statements that
+ * together answered nothing.
+ */
+export type TenantWorkspaceHealth = {
+  slug: string | null;
+  primaryHostname: string | null;
+  hostnameVerification: string | null;
+  businessUnitCount: number;
+  userCount: number;
+  findings: Array<{
+    key: string;
+    title: string;
+    detail: string;
+    /** Whether **this console** can fix it, which is the field that matters. */
+    repairable: boolean;
+    severity: "BLOCKING" | "DEGRADED" | "INFO";
+  }>;
+  repairable: boolean;
+  healthy: boolean;
+};
+
 export type TenantOperationsView = {
+  workspace: TenantWorkspaceHealth;
   provisioning: {
     status: string | null;
     hasRecordedRuns: boolean;
@@ -165,6 +193,22 @@ export type TenantOperationsView = {
     attempt: number | null;
     failedStepKey: string | null;
     message: string | null;
+    /**
+     * The run as an operator experiences it, derived on the API from the same
+     * function the provisioning queue uses. `status` alone cannot tell a live
+     * run from one whose process died holding it.
+     */
+    operationalState:
+      | "IN_PROGRESS"
+      | "AT_RISK"
+      | "BREACHED"
+      | "STALLED"
+      | "MANUAL_ACTION_REQUIRED"
+      | "FAILED"
+      | "READY"
+      | null;
+    /** What to do next, in a sentence. Null when there is nothing to do. */
+    recommendedAction: string | null;
     canRetry: boolean;
     retryBlockedReason: string | null;
     onboarding: {

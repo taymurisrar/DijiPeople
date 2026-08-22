@@ -3,15 +3,15 @@ ID: ITEM-0062
 aliases: [ITEM-0062]
 Title: No multi-tenant membership — one user belongs to one tenant, so discovery and switching cannot exist
 Type: ARCHITECTURE
-Status: READY
+Status: PRODUCT_DECISION
 Priority: P1
 Severity: HIGH
 AffectedModules: [auth, users, tenant-domains, web]
 Source: ARCHITECT
 OwnerAgent: architect
-ArchitectDisposition: PLAN_REQUIRED
+ArchitectDisposition: PRODUCT_DECISION
 CreatedAt: 2026-08-19
-UpdatedAt: 2026-08-19
+UpdatedAt: 2026-08-22
 RelatedBug: 
 RelatedQA: 
 RelatedADR: 
@@ -169,6 +169,93 @@ Blocks TASK-0008 WP-06 entirely. Does not block WP-02, WP-03, WP-04, WP-05.
 
 [[TASK-0008]]
 
+## Correction — 2026-08-22, SESSION-0040
+
+**This record's premise is out of date, and the gap it describes is largely
+closed.** It was verified at `7480756`; [[TASK-0009]] has since built the thing
+it says does not exist.
+
+The membership model is `Identity`, and it is the shape this record proposed:
+
+```
+Identity   global, `email @unique`, holds passwordHash, lockout and
+           lastUsedTenantId
+   |
+   +-- users User[]     one User row per tenant, exactly as before
+```
+
+That is "a membership model joining a global identity to many tenants, with a
+role per membership" — step 1 of the Proposed Approach — under a different name.
+Step 2 landed with it: `loginWithoutWorkspace` verifies the credential against
+the `Identity`, issues **no token**, and returns the workspaces it reaches; the
+caller then signs in to a chosen one. `JwtAuthGuard` and every one of the ~2,290
+reads of `user.tenantId` across 131 files are untouched, which is the property
+this record identified as the one that makes the change survivable.
+
+Verified rather than read: six e2e suites, 37 tests, all passing on `develop` —
+`identity-login`, `identity-model`, `identity-second-workspace`,
+`identity-backfill`, `workspace-discovery`, `workspace-discovery-auth`.
+
+The frontend exists too: `apps/web/app/workspace/choose/page.tsx` and
+`app/components/workspace-switcher.tsx`. `listWorkspacesForUser` now returns
+every tenant reachable from the identity, not a single-element array — and falls
+back to the session's own tenant for a row the backfill has not reached, which
+is the honest answer rather than an empty list that would strand somebody signed
+in perfectly well.
+
+Two things this record raised were answered along the way, and both are worth
+keeping:
+
+- **Same-email rows in different tenants may not be the same person.** The
+  record called merging them a cross-tenant leak and said the safe default is
+  not to merge. That is what the backfill does.
+- **Discovery is a weapon if it shares the credential lock.** Not in this record,
+  but found while building it: twenty unauthenticated requests to the public
+  discovery endpoint could lock a known address out of every workspace for an
+  hour. `Identity` now carries a separate `discoveryFailedAttempts` counter
+  (ITEM-0069), so blocking discovery costs the victim the generic login screen
+  and nothing else.
+
+### What actually remains
+
+One work package: **WP-09, the contract migration** making `User.identityId`
+`NOT NULL`. It is written and proven — it refuses before altering, naming how
+many rows have no identity, rather than leaving an operator with
+`ALTER TABLE ... SET NOT NULL` and no idea which rows.
+
+It is held back **on purpose**, and the reason is not caution about the
+migration: expand, backfill and contract must reach production in *separate
+deployments*. After the contract phase, rolling the **code** back leaves the old
+build unable to create users at all — it does not write `identityId` and the
+column no longer permits null. A rollback that breaks user creation is worse
+than whatever it is rolling back from.
+
+Its remaining cost, stated in the task record: eleven e2e suites create `User`
+rows directly and will need identities when it lands.
+
+### The gate is now cleared, with one thing unverified
+
+`main` is `3602ec3` and carries the `Identity` model. Production `/api/health`
+reports `commit: 3602ec3` — so the expand and backfill **code** is live, which
+was WP-09's stated precondition.
+
+What is **not** verified from here is whether the backfill *migration* actually
+applied to the production database. That is not a quibble: [[BUG-0086]] is
+exactly the failure where `prisma migrate deploy` aborts inside
+`preDeployCommand` on `P1002`, so a deploy can carry new code while its
+migrations never ran. Confirming it needs `prisma migrate status` against
+production, or a count of `User` rows with a null `identityId` — neither of
+which this environment can reach.
+
+**So the open question is no longer architectural.** It is: has the backfill
+landed in production, and when should the contract phase ship its own deployment?
+
+## Superseded sections
+
+Everything above this correction describes the state at `7480756` and is kept
+because the analysis is still the analysis — the record was right about what was
+needed and what the risk was. It is simply no longer a description of the code.
+
 ## History
 
 - 2026-08-19 — found at `7480756` while starting WP-06, which had been scoped as
@@ -178,3 +265,11 @@ Blocks TASK-0008 WP-06 entirely. Does not block WP-02, WP-03, WP-04, WP-05.
   the strength of the pages existing — the third and fourth rows corrected for
   the same reason as the first two: presence of code read as presence of
   behaviour.
+
+<!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
+
+## Related
+
+- Modules — [[auth]], [[workspace-routing-and-domains]], [[tenant-application]]
+
+<!-- GRAPH:END -->

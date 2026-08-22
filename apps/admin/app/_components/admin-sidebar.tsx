@@ -56,11 +56,25 @@ type SidebarItem = {
   roleKeys: string[];
   readPermission?: string;
 };
-function moduleItem(key: string, label?: string): SidebarItem | null {
+/**
+ * `href` overrides the module's own `routeBase`.
+ *
+ * Needed where a module's list page is not the right landing page for its area.
+ * Monitoring is the case: `routeBase` is `/settings/monitoring/error-logs`
+ * because that is where its records live, so the sidebar sent every operator
+ * straight into a queue of twelve thousand incidents, skipping the Overview
+ * that exists to say which of them matter. Changing `routeBase` instead would
+ * break the runtime record routes built from it.
+ */
+function moduleItem(
+  key: string,
+  label?: string,
+  href?: string,
+): SidebarItem | null {
   const definition = modules.find((item) => item.key === key);
   if (!definition) return null;
   return {
-    href: definition.routeBase,
+    href: href ?? definition.routeBase,
     label: label ?? definition.pluralDisplayName,
     icon: iconMap[definition.icon as keyof typeof iconMap] ?? LayoutDashboard,
     roleKeys: [
@@ -112,7 +126,9 @@ const navSections = [
     moduleItem("commissions"),
   ]),
   section("Support", [moduleItem("support-cases", "Support cases")]),
-  section("Operations", [moduleItem("monitoring-incidents", "Monitoring")]),
+  section("Operations", [
+    moduleItem("monitoring-incidents", "Monitoring", "/settings/monitoring"),
+  ]),
   section("System", [
     {
       href: "/settings",

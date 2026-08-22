@@ -38,6 +38,8 @@ import { existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { resolveObsidianConfig } from './lib/obsidian-config.mjs';
+
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 // ------------------------------------------------------------------ arguments
@@ -342,8 +344,30 @@ report.KNOWLEDGE_CAPTURE =
     ? 'records present — confirm one exists for THIS task'
     : 'NONE TRACKED — run the knowledge-capture Skill, or record NOT_REQUIRED with a reason';
 
-const obsidianConfig = join(ROOT, '.obsidian-sync.local.json');
-if (!existsSync(obsidianConfig)) {
+/*
+ * Resolve the vault the way the sync itself does, rather than looking beside
+ * this script.
+ *
+ * The config lives in the user's primary checkout. A task runs in its own
+ * worktree, where that file does not exist — so this reported
+ * SKIPPED_NO_LOCAL_CONFIG from every task worktree, while `sync-obsidian.mjs`
+ * found the vault perfectly well and published 511 notes into it. The finalizer
+ * was telling the completion contract there was nothing to sync: exactly the
+ * false "nothing to do here" the contract exists to refuse.
+ *
+ * `retrieve-knowledge.mjs` already carried this defect and had it fixed, and
+ * the validator records the reason — planning happens in a task worktree, which
+ * is precisely where the vault was invisible. Sharing the resolver is what
+ * stops a third script repeating it.
+ */
+let obsidianVault = '';
+try {
+  obsidianVault = resolveObsidianConfig(ROOT)?.vaultPath ?? '';
+} catch {
+  obsidianVault = '';
+}
+
+if (!obsidianVault) {
   report.OBSIDIAN_SYNC = 'SKIPPED_NO_LOCAL_CONFIG';
 } else if (NO_SYNC) {
   report.OBSIDIAN_SYNC = 'NOT_RUN — --no-sync requested';

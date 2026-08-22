@@ -125,7 +125,22 @@ export function AdminShell({
             role={user.role}
           />
 
-          <div className="min-w-0 overflow-x-hidden">{children}</div>
+          {/*
+            `overflow-x-clip`, not `overflow-x-hidden`.
+
+            They look identical and are not. `hidden` on one axis forces the
+            other axis to compute to `auto`, which makes this div a scroll
+            container — and a sticky descendant sticks to its nearest scroll
+            container, which here has auto height and never scrolls. So every
+            `position: sticky` under this element was silently inert: the page
+            scrolled, the container did not, and nothing stuck. `clip` is
+            allowed to pair with `visible` on the other axis, so it contains
+            horizontal overflow without creating a scrollport.
+
+            The symptom was reported as "Fields & signatures should be sticky"
+            about a panel that already declared `sticky`.
+          */}
+          <div className="min-w-0 overflow-x-clip">{children}</div>
         </main>
       </div>
       {sessionExpired ? (

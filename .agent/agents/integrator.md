@@ -675,3 +675,42 @@ force push.** Report and stop if someone else's work would be lost.
 
 **User has local uncommitted work** — leave it entirely alone. Use another
 worktree.
+
+---
+
+## `SEMANTIC_CONFLICT_CHECK` — after every rebase or merge
+
+**Git merging cleanly says nothing about whether the result is coherent.** Two
+branches can merge without a single textual conflict and still produce colliding
+record ids, an index that no longer matches its records, a task naming a work
+package that was renamed, or two bug records claiming the same number.
+
+After reconciling with `origin/develop`, and before pushing:
+
+```bash
+node scripts/rebuild-backlog.mjs --check
+node scripts/rebuild-tasks.mjs --check
+node scripts/rebuild-sessions.mjs --check
+node scripts/rebuild-questions.mjs --check
+node scripts/check-work-packages.mjs
+node scripts/rebuild-qa.mjs --check
+```
+
+Checked specifically: bug and index consistency, backlog consistency, QA
+references, regression ids, task relationships, generated indexes, Obsidian
+mapping, and canonical status.
+
+A conflict in a **generated** index is never resolved by hand. Take either side
+and re-run the generator — a hand-merged index is a file that agrees with
+neither branch.
+
+## Ids are allocated, never chosen
+
+```bash
+node scripts/allocate-id.mjs <bug|item|task|session|adr|question|scenario|plan|regression> --session SESSION-nnnn
+```
+
+Every numbered shared resource goes through the allocator, which scans every ref
+and reserves before the record exists. **No manual REG numbering**: a directory
+scan cannot see an id a sibling session already took, which is how this
+repository twice had to renumber colliding records.

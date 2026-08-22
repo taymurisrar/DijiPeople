@@ -357,10 +357,47 @@ function buildWorkspaceUrl(slug, options = {}) {
     return url.toString();
   }
 
+  /*
+   * In development the workspace hostname resolves but the *port* does not.
+   *
+   * `xoul-ltd.localhost` is a real hostname — browsers loopback any `.localhost`
+   * label — so with a tenant base domain configured locally this branch is
+   * taken rather than the slug-parameter one above. It then produced
+   * `http://xoul-ltd.localhost/login`: port 80, where nothing listens. Every
+   * generated workspace link was dead, including the one behind Open Tenant and
+   * the ones in invitation emails, and the failure presented as DNS.
+   *
+   * The port is inherited from the configured web origin, and only in
+   * development. Production and staging terminate on 443 and must never have a
+   * port grafted onto a customer's hostname, so this cannot leak upward.
+   */
+  const workspacePort =
+    config.platformEnvironment === PLATFORM_ENVIRONMENTS.DEVELOPMENT &&
+    !hostname.includes(":")
+      ? developmentWebPort(options, env)
+      : "";
+
   return new URL(
     path.startsWith("/") ? path : `/${path}`,
-    `${config.protocol}://${hostname}`,
+    `${config.protocol}://${hostname}${workspacePort}`,
   ).toString();
+}
+
+/** `":3001"`, or `""` when the web origin names no explicit port. */
+function developmentWebPort(options, env) {
+  try {
+    const origin =
+      options.developmentOrigin ?? require("./index").getAppOrigin("web", env);
+    const port = new URL(origin).port;
+    return port ? `:${port}` : "";
+  } catch {
+    /*
+     * An unconfigured web origin is not a reason to refuse a workspace URL that
+     * is otherwise correct — the hostname still resolves, and the caller gets
+     * the default port rather than an exception from a formatting helper.
+     */
+    return "";
+  }
 }
 
 module.exports = {

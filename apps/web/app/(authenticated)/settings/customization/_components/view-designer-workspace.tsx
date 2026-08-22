@@ -228,6 +228,13 @@ export function ViewDesignerWorkspace({ columns, table, view }: Props) {
                   className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-white px-4 py-3"
                   draggable
                   key={selected.columnKey}
+                  /*
+                   * A selected column in a reorderable list. `draggable` is a
+                   * pointer affordance; the row activates nothing and its own
+                   * controls are separately reachable. Keyboard reordering is
+                   * ITEM-0080. BUG-0043.
+                   */
+                  role="listitem"
                   onDragOver={(event) => event.preventDefault()}
                   onDragStart={() => setDragColumnKey(selected.columnKey)}
                   onDrop={() => {

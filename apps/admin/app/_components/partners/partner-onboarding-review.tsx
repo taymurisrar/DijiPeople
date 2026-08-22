@@ -3,7 +3,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { ModuleActionBar } from "@/app/_components/runtime/module-action-bar";
-import type { RuntimeActionDefinition } from "@/lib/runtime/platform-runtime.types";
+import { RecordStatusGroup } from "@/app/_components/runtime/record-status-group";
+import { getPlatformModuleDefinition } from "@/lib/runtime/platform-module-registry";
+import { runStandardRecordCommand } from "@/lib/runtime/standard-record-commands";
+
+const moduleDefinition = getPlatformModuleDefinition("partner-onboarding");
 type Item = {
   id: string;
   status: string;
@@ -19,8 +23,12 @@ type Item = {
 };
 export function PartnerOnboardingReview({
   applicationId,
+  roleKeys = [],
+  permissionKeys = [],
 }: {
   applicationId: string;
+  roleKeys?: string[];
+  permissionKeys?: string[];
 }) {
   const router = useRouter();
   const [item, setItem] = useState<Item | null>(null);
@@ -80,53 +88,31 @@ export function PartnerOnboardingReview({
               {submission?.version ?? "—"}
             </p>
           </div>
-          <span className="w-fit rounded-full bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700">
-            {label(item.status)}
-          </span>
+          <RecordStatusGroup
+            definition={moduleDefinition}
+            record={item as unknown as Record<string, unknown>}
+            roleKeys={roleKeys}
+            permissionKeys={permissionKeys}
+          />
         </div>
       </section>
       <ModuleActionBar
-        actions={
-          [
-            {
-              key: "back",
-              label: "Back",
-              scope: "record",
-              selection: "none",
-              placement: "secondary",
-            },
-            {
-              key: "changes",
-              label: "Request changes",
-              scope: "record",
-              selection: "none",
-              placement: "secondary",
-            },
-            {
-              key: "reject",
-              label: "Reject",
-              scope: "record",
-              selection: "none",
-              placement: "secondary",
-              destructive: true,
-              confirmTitle: "Reject this onboarding application?",
-            },
-            {
-              key: "approve",
-              label: "Approve information",
-              scope: "record",
-              selection: "none",
-              placement: "primary",
-            },
-          ] as RuntimeActionDefinition[]
-        }
+        actions={moduleDefinition.actions}
         context={{
           scope: "record",
           mode: "read",
           record: item as unknown as Record<string, unknown>,
+          roleKeys,
+          permissionKeys,
         }}
-        onAction={(action) => {
-          if (action.key === "back") return router.push("/partner-onboarding");
+        onAction={async (action) => {
+          const standard = await runStandardRecordCommand(action, {
+            routeBase: moduleDefinition.routeBase,
+            router,
+            reload: load,
+            reloadMessage: "Application reloaded.",
+          });
+          if (standard) return standard;
           if (!submission)
             throw new Error("The partner has not submitted information yet.");
           return decide(action.key);

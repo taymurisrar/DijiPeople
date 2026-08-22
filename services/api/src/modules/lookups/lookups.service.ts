@@ -129,7 +129,10 @@ export class LookupsService {
   }
 
   async getStateUsage(id: string) {
-    const state = await this.getState(id);
+    // Existence check: `getState` throws NotFoundException for an unknown id,
+    // which is what turns a usage request for a deleted state into a 404 rather
+    // than an empty report.
+    await this.getState(id);
     return {
       stateProvinceId: id,
       usages: [

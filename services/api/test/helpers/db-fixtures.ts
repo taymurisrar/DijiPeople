@@ -258,6 +258,20 @@ export class DbFixtures {
     try {
       await remove();
     } catch (error) {
+      /*
+       * "Already gone" is cleanup succeeding, not cleanup failing. A suite that
+       * legitimately removes its own fixture — tenant erasure is the obvious
+       * one — would otherwise end every run with a warning saying the row was
+       * "left behind", which is the opposite of what happened and costs the
+       * next reader time.
+       */
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        (error as { code?: string }).code === 'P2025'
+      ) {
+        return;
+      }
       console.warn(
         `[db-fixtures] cleanup left ${model} ${id} behind: ${
           error instanceof Error ? error.message : String(error)

@@ -10,6 +10,7 @@ import {
   SecurityPrivilege,
 } from "../types";
 import { AssignedUsersPanel, RoleTypeBadge } from "./rbac-components";
+import { useDialogBehavior } from "@/app/components/ui/dialog";
 
 type MatrixItem = {
   entityKey: string;
@@ -1049,6 +1050,11 @@ export function RoleCopyDialog({
   onCopy: (roleId: string) => void;
 }) {
   const [query, setQuery] = useState("");
+  // BUG-0043: kept its own layout, gained the guarantees it never had -
+  // focus containment, Escape, focus restore and dialog semantics.
+  // Called before the early return: hooks run in the same order on every
+  // render, closed or open.
+  const dialog = useDialogBehavior({ open: isOpen, onClose });
 
   if (!isOpen) {
     return null;
@@ -1065,15 +1071,24 @@ export function RoleCopyDialog({
   });
 
   return (
-    <div className="fixed inset-0 z-40 grid place-items-center bg-black/30 p-4">
-      <section className="max-h-[80vh] w-full max-w-2xl overflow-hidden rounded-[28px] border border-border bg-surface shadow-2xl">
+    <div
+      className="fixed inset-0 z-40 grid place-items-center bg-black/30 p-4"
+      {...dialog.backdropProps}
+    >
+      <section
+        {...dialog.panelProps}
+        className="max-h-[80vh] w-full max-w-2xl overflow-hidden rounded-[28px] border border-border bg-surface shadow-2xl"
+      >
         <div className="border-b border-border px-6 py-5">
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-sm uppercase tracking-[0.18em] text-muted">
                 Copy Permissions
               </p>
-              <h3 className="mt-1 text-2xl font-semibold text-foreground">
+              <h3
+                className="mt-1 text-2xl font-semibold text-foreground"
+                id={dialog.titleId}
+              >
                 Choose a source role
               </h3>
             </div>
@@ -1136,14 +1151,29 @@ function ConfirmDialog({
   onClose: () => void;
   onConfirm: () => void;
 }) {
+  // BUG-0043: kept its own layout, gained the guarantees it never had -
+  // focus containment, Escape, focus restore and dialog semantics.
+  const dialog = useDialogBehavior({ open: isOpen, onClose });
+
   if (!isOpen) {
     return null;
   }
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/30 p-4">
-      <section className="w-full max-w-md rounded-[28px] border border-border bg-surface p-6 shadow-2xl">
-        <h3 className="text-xl font-semibold text-foreground">{title}</h3>
+    <div
+      className="fixed inset-0 z-50 grid place-items-center bg-black/30 p-4"
+      {...dialog.backdropProps}
+    >
+      <section
+        {...dialog.panelProps}
+        className="w-full max-w-md rounded-[28px] border border-border bg-surface p-6 shadow-2xl"
+      >
+        <h3
+          className="text-xl font-semibold text-foreground"
+          id={dialog.titleId}
+        >
+          {title}
+        </h3>
         <p className="mt-3 text-sm leading-6 text-muted">{body}</p>
         <div className="mt-6 flex flex-wrap justify-end gap-3">
           <button

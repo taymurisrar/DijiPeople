@@ -39,6 +39,13 @@ export const TASK_STATUSES = [
   'NOT_STARTED',
   'IN_PROGRESS',
   'BLOCKED',
+  /*
+   * The parent equivalent of the package-level state below: the *task* waits on
+   * a user decision, which is different from being blocked by something the
+   * framework could have solved. Reserved for a question that blocks the parent
+   * itself — a question scoped to one package leaves the task IN_PROGRESS.
+   */
+  'WAITING_USER',
   'COMPLETE',
   'ABANDONED',
 ];
@@ -88,6 +95,14 @@ export const WP_STATUSES = [
   'MERGING',
   'DONE',
   'BLOCKED',
+  /*
+   * WAITING_USER is not a kind of BLOCKED. BLOCKED means the framework itself
+   * cannot proceed; WAITING_USER means *this package* cannot while every
+   * independent package continues. Collapsing the two is how one unanswered
+   * question used to stall a whole program — and how the answer surfaced only
+   * in the final report, long after the work depending on it had been guessed.
+   */
+  'WAITING_USER',
 ];
 
 /** The only reasons a task may stop with work outstanding. */

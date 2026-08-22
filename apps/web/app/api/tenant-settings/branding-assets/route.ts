@@ -1,166 +1,24 @@
-import { NextResponse } from "next/server";
-import { getSessionUser } from "@/lib/auth";
-import { apiRequest } from "@/lib/server-api";
+import { apiRequest, proxyApiJsonResponse } from "@/lib/server-api";
 
-const MAX_LOGO_SIZE_BYTES = 3 * 1024 * 1024;
-const ALLOWED_SETTING_KEYS = new Set([
-  "logoUrl",
-  "squareLogoUrl",
-  "faviconUrl",
-  "emailHeaderLogoUrl",
-  "loginBannerImageUrl",
-]);
-const ALLOWED_IMAGE_TYPES = new Set([
-  "image/png",
-  "image/jpeg",
-  "image/jpg",
-  "image/webp",
-  "image/svg+xml",
-]);
-
-const ALLOWED_FAVICON_TYPES = new Set([
-  "image/png",
-  "image/jpeg",
-  "image/jpg",
-  "image/webp",
-  "image/svg+xml",
-  "image/x-icon",
-  "image/vnd.microsoft.icon",
-]);
-
-const DOCUMENT_ID_KEYS: Record<string, string> = {
-  logoUrl: "logoDocumentId",
-  squareLogoUrl: "squareLogoDocumentId",
-  faviconUrl: "faviconDocumentId",
-  emailHeaderLogoUrl: "emailHeaderLogoDocumentId",
-  loginBannerImageUrl: "loginBannerImageDocumentId",
-};
-
+/**
+ * Forwards. Decides nothing.
+ *
+ * This handler used to own the branding MIME allowlist and the 3 MB limit — a
+ * policy the API had never heard of, so a caller reaching the API directly was
+ * governed by nothing — and it orchestrated the upload in two steps that were
+ * not atomic: create the document, then point the setting at it. When the
+ * second step failed, the first had already created a document that nothing
+ * referenced and nothing would ever find. BUG-0041 / ITEM-0050.
+ *
+ * `POST /tenant-settings/branding-assets` now owns both. The policy is enforced
+ * on the authority, and the orchestration compensates: a failed settings write
+ * archives the document it created before the error is returned.
+ */
 export async function POST(request: Request) {
-  const user = await getSessionUser();
-
-  if (!user) {
-    return NextResponse.json(
-      { message: "Session expired. Please sign in again." },
-      { status: 401 },
-    );
-  }
-
-  const incoming = await request.formData();
-  const settingKey = String(incoming.get("settingKey") ?? "").trim();
-  const file = incoming.get("file");
-
-  if (!ALLOWED_SETTING_KEYS.has(settingKey)) {
-    return NextResponse.json(
-      { message: "Invalid branding setting key for file upload." },
-      { status: 400 },
-    );
-  }
-
-  if (!(file instanceof File)) {
-    return NextResponse.json(
-      { message: "A branding asset file is required." },
-      { status: 400 },
-    );
-  }
-
-  const normalizedType = file.type.toLowerCase();
-  const isFaviconUpload = settingKey === "faviconUrl";
-  const allowedTypes = isFaviconUpload ? ALLOWED_FAVICON_TYPES : ALLOWED_IMAGE_TYPES;
-
-  if (!allowedTypes.has(normalizedType)) {
-    return NextResponse.json(
-      { message: isFaviconUpload
-          ? "Favicon supports PNG, JPG, WEBP, SVG, and ICO files."
-          : "Only PNG, JPG, WEBP, or SVG branding files are allowed." },
-      { status: 400 },
-    );
-  }
-
-  if (file.size > MAX_LOGO_SIZE_BYTES) {
-    return NextResponse.json(
-      { message: "Branding asset exceeds the 3 MB upload limit." },
-      { status: 400 },
-    );
-  }
-
-  const uploadFormData = new FormData();
-  uploadFormData.set("file", file);
-  uploadFormData.set("entityType", "TENANT");
-  uploadFormData.set("entityId", user.tenantId);
-  uploadFormData.set("title", `Branding asset: ${settingKey}`);
-  uploadFormData.set(
-    "description",
-    `Tenant branding asset uploaded for ${settingKey}.`,
-  );
-
-  const uploadResponse = await apiRequest("/documents/upload", {
+  const response = await apiRequest("/tenant-settings/branding-assets", {
     method: "POST",
-    body: uploadFormData,
+    body: await request.formData(),
   });
 
-  const uploadPayload = (await uploadResponse.json().catch(() => null)) as
-    | {
-        id: string;
-        viewPath?: string;
-        downloadPath?: string;
-      }
-    | null;
-
-  if (!uploadResponse.ok || !uploadPayload?.id) {
-    return NextResponse.json(
-      {
-        message:
-          (uploadPayload as { message?: string } | null)?.message ??
-          "Branding asset upload could not be registered. Please retry.",
-      },
-      { status: uploadResponse.status || 500 },
-    );
-  }
-
-  const viewPath = uploadPayload.viewPath || `/api/documents/${uploadPayload.id}/view`;
-  const relatedDocumentIdKey = DOCUMENT_ID_KEYS[settingKey];
-  const updates: Array<{ category: string; key: string; value: string }> = [
-    {
-      category: "branding",
-      key: settingKey,
-      value: viewPath,
-    },
-  ];
-
-  if (relatedDocumentIdKey) {
-    updates.push({
-      category: "branding",
-      key: relatedDocumentIdKey,
-      value: uploadPayload.id,
-    });
-  }
-
-  const saveResponse = await apiRequest("/tenant-settings", {
-    method: "PATCH",
-    body: JSON.stringify({ updates }),
-  });
-
-  if (!saveResponse.ok) {
-    const savePayload = (await saveResponse.json().catch(() => null)) as
-      | { message?: string }
-      | null;
-    return NextResponse.json(
-      {
-        message:
-          savePayload?.message ??
-          "Branding asset uploaded, but settings could not be saved.",
-      },
-      { status: saveResponse.status || 500 },
-    );
-  }
-
-  return NextResponse.json({
-    documentId: uploadPayload.id,
-    settingKey,
-    value: viewPath,
-    viewPath,
-    downloadPath:
-      uploadPayload.downloadPath || `/api/documents/${uploadPayload.id}/download`,
-  });
+  return proxyApiJsonResponse(response);
 }

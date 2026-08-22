@@ -59,6 +59,13 @@ export const ID_KINDS = {
   task: { prefix: 'TASK', dir: 'docs/tasks', width: 4 },
   session: { prefix: 'SESSION', dir: 'docs/sessions', width: 4 },
   adr: { prefix: 'ADR', dir: 'docs/decisions', width: 4 },
+  /*
+   * A question raised by a specialist and routed to the user. Numbered like
+   * every other durable record because the answer becomes a decision that later
+   * tasks retrieve by id — an unnumbered question cannot be pointed at from the
+   * work package that is waiting on it.
+   */
+  question: { prefix: 'QUESTION', dir: 'docs/questions', width: 4 },
   scenario: { prefix: 'QA', dir: 'docs/qa/scenarios', width: 3, scoped: true },
   plan: { prefix: 'PLAN', dir: 'docs/qa/test-plans', width: 3 },
   regression: {

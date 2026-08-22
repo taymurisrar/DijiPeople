@@ -223,3 +223,21 @@ export declare const ALL_EMAIL_PROVIDER_TYPES: readonly string[];
 export declare function isSupportedEmailProviderType(
   providerType: string,
 ): boolean;
+
+/**
+ * Postgres connection selection (BUG-0086).
+ *
+ * `DATABASE_URL` is the runtime connection and may be pooled. Prisma migrations
+ * need a *direct* connection because `migrate deploy` holds a session-scoped
+ * advisory lock, which a transaction pooler cannot keep across statements.
+ * `DIRECT_DATABASE_URL` names that connection and is optional — unset,
+ * migrations fall back to `DATABASE_URL`, which is correct for local Postgres.
+ */
+export declare const POOLED_HOST_INFIX: string;
+export declare function isPooledConnectionUrl(url: string | undefined): boolean;
+export declare function resolveMigrationDatabaseUrl(
+  env?: NodeJS.ProcessEnv,
+): string | undefined;
+export declare function describeMigrationUrlProblem(
+  env?: NodeJS.ProcessEnv,
+): string | null;

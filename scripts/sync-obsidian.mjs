@@ -17,14 +17,66 @@
  *   node scripts/sync-obsidian.mjs [--dry-run] [--config <path>]
  */
 
-import { readFileSync, existsSync, mkdirSync, readdirSync, statSync, copyFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { readFileSync, existsSync, mkdirSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { join, resolve, relative, dirname, basename, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { resolveMappings, hasMeaningfulContent } from './lib/obsidian-mappings.mjs';
+import {
+  resolveMappings,
+  hasMeaningfulContent,
+  nodeTypeFor,
+  relationshipIsValid,
+} from './lib/obsidian-mappings.mjs';
 import { describeResolution, resolveObsidianConfig } from './lib/obsidian-config.mjs';
+import { renderNote, readProvenance, lastCommitByPath } from './lib/obsidian-node.mjs';
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+
+/*
+ * Freshness metadata for every tracked path, from one `git log` pass.
+ *
+ * Per-file `git log` would take minutes across ~300 notes, and a verification
+ * step slow enough to skip is one that gets skipped. Computed lazily so a
+ * non-git checkout still syncs — with `UNTRACKED` provenance, which is honest
+ * rather than fatal.
+ */
+let commitIndex = null;
+function commitFor(repoRelativePath) {
+  if (commitIndex === null) {
+    try {
+      const output = execFileSync(
+        'git',
+        ['log', '--format=%h%x00%ad', '--date=short', '--name-only'],
+        { cwd: REPO_ROOT, encoding: 'utf8', maxBuffer: 256 * 1024 * 1024 },
+      );
+      commitIndex = lastCommitByPath(output);
+    } catch {
+      commitIndex = new Map();
+    }
+  }
+  return commitIndex.get(repoRelativePath) ?? { sha: '', date: '' };
+}
+
+/**
+ * The exact bytes a source file should have in the vault.
+ *
+ * One function, used by both the writer and the verifier. Two copies would
+ * drift, and the drift would present as permanent, unfixable "vault differs
+ * from source" — a failure nobody could act on.
+ */
+function publishedForm(file, source, mapping, relativePath) {
+  const repoRelative = relative(REPO_ROOT, file).split(sep).join('/');
+  const { sha, date } = commitFor(repoRelative);
+  return renderNote({
+    source,
+    sourcePath: repoRelative,
+    filename: basename(file),
+    nodeType: nodeTypeFor(mapping, relativePath.split(sep).join('/')),
+    sourceCommit: sha,
+    lastVerified: date,
+  });
+}
 
 const args = process.argv.slice(2);
 const DRY_RUN = args.includes('--dry-run');
@@ -345,6 +397,16 @@ function verify(vaultPath, mappings) {
   let links = 0;
   let unresolved = 0;
 
+  /* The node-contract counters, reported whether or not any of them fires. */
+  let missingProvenance = 0;
+  let pathMismatches = 0;
+  let typeMismatches = 0;
+  let statusMismatches = 0;
+  const duplicates = [];
+  const duplicateIds = new Map();
+  const nodeTypeByName = new Map();
+  const linkPairs = [];
+
   /*
    * Obsidian resolves a wikilink by note name **or by an alias** declared in
    * frontmatter. Every record here is named `BUG-0047-<slug>.md` and carries
@@ -407,8 +469,108 @@ function verify(vaultPath, mappings) {
         problems.push(`${label} — published but empty of substance`);
       }
 
-      if (published !== readFileSync(file, 'utf8')) {
+      const source = readFileSync(file, 'utf8');
+      const expected = publishedForm(file, source, mapping, relativePath);
+
+      if (published !== expected) {
         problems.push(`${label} — vault copy differs from its repository source; re-run the sync`);
+      }
+
+      /*
+       * The node contract, checked against the note actually on disk rather than
+       * against what the sync intended to write. This is the half that catches a
+       * note whose source was renamed: the content can still match a file
+       * somewhere, while the provenance points at a path that no longer exists.
+       */
+      const provenance = readProvenance(published);
+      if (!provenance) {
+        missingProvenance += 1;
+        problems.push(
+          `${label} — no generated-node provenance. Without source_path and source_id a note ` +
+            'can only be matched to its source by filename, which survives a rename silently.',
+        );
+      } else {
+        const expectedPath = relative(REPO_ROOT, file).split(sep).join('/');
+        const expectedType = nodeTypeFor(mapping, relativePath.split(sep).join('/'));
+
+        if (provenance.sourcePath !== expectedPath) {
+          pathMismatches += 1;
+          problems.push(
+            `${label} — SOURCE_PATH_MISMATCH: note claims ${provenance.sourcePath || '(none)'}, source is ${expectedPath}`,
+          );
+        }
+        if (provenance.nodeType !== expectedType) {
+          typeMismatches += 1;
+          problems.push(
+            `${label} — NODE_TYPE_MISMATCH: note claims ${provenance.nodeType || '(none)'}, mapping says ${expectedType}`,
+          );
+        }
+
+        /*
+         * Status parity. A vault that says a bug is OPEN while the record says
+         * VERIFIED is worse than a vault with no status at all — somebody reads
+         * it and acts on it.
+         */
+        /*
+         * Read from the source's *frontmatter*, not from anywhere in the file.
+         * A folder README that happens to contain the line "Status: OPEN" in a
+         * prose table has no canonical status at all, and comparing against it
+         * reported a mismatch on a note that was correct.
+         */
+        const sourceFrontmatter = /^---\r?\n([\s\S]*?)\r?\n---/.exec(source)?.[1] ?? '';
+        const canonicalStatus =
+          /^(?:Status|STATUS|TASK_STATUS):[^\S\r\n]*(.*)$/m.exec(sourceFrontmatter)?.[1]?.trim() ?? '';
+        if (canonicalStatus && provenance.status !== canonicalStatus) {
+          statusMismatches += 1;
+          problems.push(
+            `${label} — STATUS_MISMATCH: note says ${provenance.status || '(none)'}, record says ${canonicalStatus}`,
+          );
+        }
+
+        if (!provenance.sourceCommit) {
+          problems.push(`${label} — no source_commit, so the note carries no freshness proof`);
+        }
+
+        /*
+         * STANDALONE_ALLOWED is not an escape hatch. Opting out of graph-orphan
+         * detection without saying who decided and why turns a check into a
+         * checkbox — and generated records are exactly the population that
+         * should almost never qualify.
+         */
+        if (provenance.standaloneAllowed) {
+          const missing = [];
+          if (!provenance.standaloneReason) missing.push('STANDALONE_ALLOWED_REASON');
+          if (!provenance.standaloneBy) missing.push('STANDALONE_ALLOWED_BY');
+          if (!provenance.standaloneAt) missing.push('STANDALONE_ALLOWED_AT');
+          if (missing.length) {
+            problems.push(
+              `${label} — STANDALONE_ALLOWED without ${missing.join(', ')}; an exemption with no author or reason is a hole, not a decision`,
+            );
+          }
+        }
+
+        nodeTypeByName.set(basename(target, '.md'), provenance.nodeType);
+
+        /*
+         * Duplicate detection applies only to *allocated* ids.
+         *
+         * A folder README or a generated index has no record id, so `source_id`
+         * falls back to the filename — and every mapping has a `README.md`. The
+         * first version of this check reported 53 duplicates, all of them
+         * `README` and `index`, and none of them a problem. Two notes sharing
+         * `BUG-0005` is a stale copy left by a rename; two notes both called
+         * README is the folder structure working.
+         */
+        const ALLOCATED_ID =
+          /^(?:BUG|ITEM|TASK|SESSION|ADR|QUESTION|PLAN|WP)-\d+(?:-WP-\d+)?$|^QA-[A-Z]+-\d+$|^REG-\d+$/;
+        if (ALLOCATED_ID.test(provenance.sourceId)) {
+          const seenAt = duplicateIds.get(provenance.sourceId);
+          if (seenAt && seenAt !== label) {
+            duplicates.push(`${provenance.sourceId}: ${seenAt} and ${label}`);
+          } else {
+            duplicateIds.set(provenance.sourceId, label);
+          }
+        }
       }
 
       /*
@@ -432,9 +594,67 @@ function verify(vaultPath, mappings) {
         if (!vaultNotes.has(name)) {
           unresolved += 1;
           problems.push(`${label} — wikilink [[${name}]] resolves to no note in the vault`);
+
+          /*
+           * The specific mistake worth naming rather than merely counting: a
+           * repository path written as a wikilink. `.agent/context/` is not
+           * mapped into the vault, so `[[testing-architecture]]` can never
+           * resolve — and the tempting repair is to create the node, which
+           * fabricates a vault entry for a file that lives only in the repo.
+           */
+          if (/\.(md|mjs|ts|tsx|json|ya?ml)$/i.test(name) || name.includes('/')) {
+            problems.push(
+              `${label} — [[${name}]] looks like a repository path. Repository paths are ` +
+                'written as inline code, never as wikilinks; do not create a node to make it resolve.',
+            );
+          }
+        } else {
+          /* Semantics are checked after the walk, once every note type is known. */
+          linkPairs.push({ label, from: basename(target, '.md'), to: name });
         }
       }
     }
+  }
+
+  /*
+   * Semantic link validation, once every note's type is known.
+   *
+   * A link that resolves is not automatically an edge worth having. A Bug
+   * pointing at its Regression is knowledge; a Bug pointing at a Release note
+   * because somebody needed to clear a graph orphan is noise that looks
+   * identical to knowledge in the graph view.
+   *
+   * Aliases are resolved back to their note first — `[[BUG-0005]]` is an alias
+   * for `BUG-0005-<slug>`, and the type is recorded under the file name.
+   */
+  let semanticErrors = 0;
+  for (const pair of linkPairs) {
+    const fromType = nodeTypeByName.get(pair.from);
+    let toType = nodeTypeByName.get(pair.to);
+    if (!toType) {
+      for (const [name, type] of nodeTypeByName) {
+        if (name.startsWith(`${pair.to}-`)) {
+          toType = type;
+          break;
+        }
+      }
+    }
+    if (!fromType || !toType) continue;
+    if (!relationshipIsValid(fromType, toType)) {
+      semanticErrors += 1;
+      problems.push(
+        `${pair.label} — SEMANTIC_LINK_ERROR: a ${fromType} linking to a ${toType} ([[${pair.to}]]) ` +
+          'is not a defined relationship. Link what the record actually relates to, rather than ' +
+          'adding an edge to remove a dot.',
+      );
+    }
+  }
+
+  for (const entry of duplicates) {
+    problems.push(
+      `DUPLICATE_NODE: ${entry} — two generated notes claim the same source id, so one of them ` +
+        'is a stale copy left behind by a rename.',
+    );
   }
 
   console.log(`Vault:  ${vaultPath}`);
@@ -491,6 +711,20 @@ function verify(vaultPath, mappings) {
   console.log(`OBSIDIAN_GRAPH_ORPHANS      ${graphOrphans.length}`);
   console.log(`OBSIDIAN_STANDALONE_ALLOWED ${standaloneAllowed}`);
   console.log(`OBSIDIAN_PARITY_DIFFS       ${missing.length}`);
+  /*
+   * The node-contract counters. Printed unconditionally, including the zeros:
+   * a field that only appears when it fires cannot be read as "checked and
+   * clean", and the completion contract asks for each of these by name.
+   */
+  console.log(`OBSIDIAN_REPO_TO_VAULT_DIFFS  ${problems.filter((p) => /expected note is absent/.test(p)).length}`);
+  console.log(`OBSIDIAN_VAULT_TO_REPO_DIFFS  ${orphans.length}`);
+  console.log(`OBSIDIAN_MISSING_PROVENANCE   ${missingProvenance}`);
+  console.log(`OBSIDIAN_PATH_MISMATCHES      ${pathMismatches}`);
+  console.log(`OBSIDIAN_NODE_TYPE_MISMATCHES ${typeMismatches}`);
+  console.log(`OBSIDIAN_STATUS_MISMATCHES    ${statusMismatches}`);
+  console.log(`OBSIDIAN_SEMANTIC_LINK_ERRORS ${semanticErrors}`);
+  console.log(`OBSIDIAN_DUPLICATE_NODES      ${duplicates.length}`);
+  console.log(`OBSIDIAN_STALE_NODES          ${stale.length}`);
   console.log('MANUAL_NOTES_UNTOUCHED      all — verification reads only the mapped agent-owned folders');
   console.log('');
 
@@ -558,15 +792,17 @@ function main() {
         continue;
       }
 
+      const rendered = publishedForm(file, source, mapping, relativePath);
+
       const exists = existsSync(target);
-      if (exists && readFileSync(target, 'utf8') === source) {
+      if (exists && readFileSync(target, 'utf8') === rendered) {
         unchanged += 1;
         continue;
       }
 
       if (!DRY_RUN) {
         mkdirSync(dirname(target), { recursive: true });
-        copyFileSync(file, target);
+        writeFileSync(target, rendered, 'utf8');
       }
 
       (exists ? updated : created).push(label);

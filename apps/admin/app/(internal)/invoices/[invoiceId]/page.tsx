@@ -1,5 +1,8 @@
-import Link from "next/link";
 import { InvoiceActions } from "@/app/_components/invoice-actions";
+import { RecordCommandBar } from "@/app/_components/runtime/record-command-bar";
+import { RecordStatusGroup } from "@/app/_components/runtime/record-status-group";
+import { requireSystemAdminUser } from "@/lib/auth";
+import { getPlatformModuleDefinition } from "@/lib/runtime/platform-module-registry";
 import { apiRequestJson } from "@/lib/server-api";
 
 type InvoiceDetail = {
@@ -43,7 +46,9 @@ export default async function InvoiceDetailPage({
   params: Promise<{ invoiceId: string }>;
 }) {
   const { invoiceId } = await params;
+  const user = await requireSystemAdminUser("/invoices");
   const invoice = await apiRequestJson<InvoiceDetail>(`/super-admin/invoices/${invoiceId}`);
+  const roleKeys = [user.role, ...(user.roleKeys ?? [])];
   const paidAmount =
     invoice.amountPaid ??
     invoice.payments
@@ -56,17 +61,35 @@ export default async function InvoiceDetailPage({
 
   return (
     <main className="space-y-6">
+      <RecordCommandBar
+        moduleKey="invoices"
+        record={invoice as unknown as Record<string, unknown>}
+        roleKeys={roleKeys}
+        permissionKeys={user.permissionKeys}
+        reloadMessage="Invoice reloaded."
+      />
+
       <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-        <Link className="text-sm font-medium text-slate-600 hover:text-slate-950" href="/invoices">
-          Back to invoices
-        </Link>
-        <p className="mt-4 text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
-          Invoice detail
-        </p>
-        <h1 className="mt-2 text-3xl font-semibold text-slate-950">{invoice.invoiceNumber}</h1>
-        <p className="mt-2 text-sm text-slate-600">
-          {invoice.currency} {invoice.amount.toFixed(2)} • {invoice.status}
-        </p>
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
+              Invoice detail
+            </p>
+            <h1 className="mt-2 text-3xl font-semibold text-slate-950">
+              {invoice.invoiceNumber}
+            </h1>
+            <p className="mt-2 text-sm text-slate-600">
+              {formatCurrency(invoice.currency, invoice.amount)} ·{" "}
+              {invoice.tenant.name}
+            </p>
+          </div>
+          <RecordStatusGroup
+            definition={getPlatformModuleDefinition("invoices")}
+            record={invoice as unknown as Record<string, unknown>}
+            roleKeys={roleKeys}
+            permissionKeys={user.permissionKeys}
+          />
+        </div>
         <div className="mt-5">
           <InvoiceActions invoiceId={invoice.id} />
         </div>

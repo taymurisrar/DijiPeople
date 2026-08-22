@@ -201,3 +201,35 @@ tenant CSS variables; do not hardcode brand colours.
       component render tests are not possible**; test the resolver, merge or
       catalog instead
 - [ ] `check-types` and the app's jest run; lint scoped to changed files
+
+---
+
+## Reuse the catalogued pattern
+
+Every material screen uses an existing UI pattern unless there is a stated
+reason not to. The catalogue is owned by UI/UX and lives in
+[`../context/ui-design-system.md`](../context/ui-design-system.md).
+
+```
+SHARED_UI_CONVENTIONS_APPLIED   which shared components were used
+UI_PATTERN_USED                 the catalogue entry this screen implements
+CONVENTION_EXCEPTIONS           each departure, with why the pattern could not express it
+```
+
+An empty `UI_PATTERN_USED` on a material screen means either the catalogue is
+missing an entry — which is a finding for UI/UX — or the pattern was not looked
+for. A hand-rolled table, form control or empty state remains a review failure.
+
+## What every material handoff must have checked
+
+```
+API contract consumed correctly     server authority preserved
+loading · empty · error · unauthorized states
+mobile · tablet · desktop           keyboard navigation
+selection behaviour                 destructive-action behaviour
+browser evidence
+```
+
+**Browser evidence, not source reading.** Permissions in the UI are cosmetic;
+every gated action is enforced server-side, and a screen that looks correct in
+the source can still render an empty table because the response shape changed.

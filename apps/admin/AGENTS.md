@@ -44,11 +44,26 @@ lib/            auth, platform RBAC, server-api, formatters, runtime registry
 | **Any production table** | **`ProDataTable`** — `app/_components/crm/data-table.tsx` |
 | List page | `app/_components/runtime/runtime-module-page.tsx`, `runtime-module-list.tsx` |
 | Record page | `runtime-record-route.tsx`, `runtime-record-page.tsx`, `runtime-form.tsx` |
-| Commands | `module-action-bar.tsx` |
+| Commands | `module-action-bar.tsx` — the actions come from the registry, which gives every module Back and Refresh and adds Edit/New/Delete from its `capabilities` |
+| Owner / Status / Sub-status | `record-status-group.tsx` — the D365 header group. Do not draw a status badge beside a record title as well |
+| Commands on a bespoke detail page | `record-command-bar.tsx`, or `lib/runtime/standard-record-commands.ts` if the page has its own handler |
 | Views | `runtime-view-selector.tsx` (includes user-pinned default) |
 | Shell / nav | `admin-shell.tsx`, `admin-sidebar.tsx`, `admin-topbar.tsx`, `admin-ui.tsx` |
 | Dashboard widgets | `app/_components/dashboard/` + the dashboard widget registry |
 | Formatting | `lib/formatters.ts`, `lib/platform-formatters.ts`, `lib/platform-appearance.ts` |
+
+**A module's command bar and its record header are registry decisions, not page
+decisions.** `define()` builds both. A detail page that declares its own action
+array — as two partner review screens did — loses every default the registry
+adds later, which is how seven record pages ended up with a single Back button
+and no Refresh at all. Put the actions on the module and take them from
+`getPlatformModuleDefinition(key).actions`.
+
+**Never mark a header slot or a form field writable that the API will reject.**
+`PlatformRuntimeService` validates with `forbidNonWhitelisted`, so one extra key
+fails the whole save with a 400 rather than that field — see BUG-0220, where the
+runtime completed the plan form from the Prisma schema and every plan save had
+been failing.
 
 `ProDataTable` is the required table for every production Platform Admin screen —
 this is stated in

@@ -3,10 +3,7 @@
 import Link from "next/link";
 import { useId, useMemo, useState } from "react";
 
-import {
-  CheckIcon,
-  FeatureIcon,
-} from "../_components/marketing/feature-icon";
+import { CheckIcon, FeatureIcon } from "../_components/marketing/feature-icon";
 import type { CommercialConfigView } from "../../lib/commercial-config";
 import {
   billingUnitLabel,
@@ -36,6 +33,32 @@ export function PlansExperience({ config }: { config: CommercialConfigView }) {
   const { plans, featureCatalog } = config;
   const comparison = useMemo(() => buildComparisonMatrix(config), [config]);
   const cumulative = useMemo(() => plansAreCumulative(plans), [plans]);
+
+  /**
+   * The plans the headcount estimator can actually say something about.
+   *
+   * A flat-priced plan costs the same for six people as for six hundred, so
+   * listing it under an "Active employees" input states a relationship that
+   * does not exist — and a plan with no offer in this region has no number at
+   * all and rendered as "On request" beside three prices, which reads as a
+   * fourth quote rather than as an absence.
+   */
+  const perSeatPlans = useMemo(
+    () =>
+      plans
+        .map((plan) => ({ plan, offer: findOffer(plan, interval) }))
+        .filter(
+          (
+            entry,
+          ): entry is {
+            plan: (typeof plans)[number];
+            offer: NonNullable<ReturnType<typeof findOffer>>;
+          } =>
+            entry.offer?.available === true &&
+            entry.offer.billingModel === "PER_SEAT",
+        ),
+    [plans, interval],
+  );
 
   // Only offer an interval the backend actually publishes for some plan. A
   // toggle that switches to a period nothing is priced in reads as broken.
@@ -247,102 +270,110 @@ export function PlansExperience({ config }: { config: CommercialConfigView }) {
           Estimate your cost
         </h2>
         {/*
-          The headcount input stays, but it no longer claims to drive the price.
-          It does two real things: it flags a plan whose capacity your team would
-          exceed, and it carries through to checkout so the workspace is sized
-          correctly. `estimateCost` already refuses to multiply a flat price by
-          team size — saying "per active employee" here contradicted the number
-          shown directly beneath it.
+          Per-seat plans only.
+          A cost estimator that lists flat-priced plans is showing numbers the
+          input above it cannot change — the section read "Each plan is one flat
+          price, whatever your headcount" above an "Active employees" field and
+          four prices that never moved. Flat plans have one price and it is on
+          the card above; repeating it here under a headcount control implies a
+          relationship that does not exist.
         */}
         <p className="mt-1 text-sm leading-6 text-muted">
-          Each plan is one flat price, whatever your headcount. Enter roughly how
-          many people you employ and we will flag any plan that would not have
-          the capacity for your team.
+          {perSeatPlans.length > 0
+            ? "These plans are billed per active employee. Enter roughly how many people you employ and we will show what each would cost, including any minimum commitment."
+            : "Every plan available in your region is a single flat price, whatever your headcount, so there is nothing to estimate — the price on each card above is the price."}
         </p>
 
-        <div className="mt-4 flex flex-wrap items-end gap-3">
-          <div
-            aria-label="Team size presets"
-            className="inline-flex rounded-xl border border-border bg-white p-1"
-            role="group"
-          >
-            {TEAM_SIZE_PRESETS.map((preset) => (
-              <button
-                aria-pressed={teamSize === preset}
-                className={[
-                  "rounded-lg px-3 py-2 text-sm font-semibold transition",
-                  teamSize === preset
-                    ? "bg-foreground text-white"
-                    : "text-muted hover:text-foreground",
-                ].join(" ")}
-                key={preset}
-                onClick={() => setTeamSize(preset)}
-                type="button"
-              >
-                {preset}
-              </button>
-            ))}
-          </div>
-
-          <div>
-            <label
-              className="block text-xs font-semibold text-muted"
-              htmlFor={teamSizeInputId}
-            >
-              Active employees
-            </label>
-            <input
-              className="mt-1 w-32 rounded-xl border border-border bg-white px-3 py-2 text-sm text-foreground"
-              id={teamSizeInputId}
-              inputMode="numeric"
-              min={1}
-              onChange={(event) => {
-                const parsed = Number.parseInt(event.target.value, 10);
-                setTeamSize(Number.isFinite(parsed) && parsed > 0 ? parsed : 1);
-              }}
-              type="number"
-              value={teamSize}
-            />
-          </div>
-        </div>
-
-        <dl className="mt-5 grid gap-3 sm:grid-cols-3">
-          {plans.map((plan) => {
-            const estimate = estimateCost(findOffer(plan, interval), teamSize);
-            return (
+        {perSeatPlans.length > 0 ? (
+          <>
+            <div className="mt-4 flex flex-wrap items-end gap-3">
               <div
-                className="rounded-2xl border border-border bg-white p-4"
-                key={plan.id}
+                aria-label="Team size presets"
+                className="inline-flex rounded-xl border border-border bg-white p-1"
+                role="group"
               >
-                <dt className="text-sm font-semibold text-foreground">
-                  {plan.name}
-                </dt>
-                {/*
+                {TEAM_SIZE_PRESETS.map((preset) => (
+                  <button
+                    aria-pressed={teamSize === preset}
+                    className={[
+                      "rounded-lg px-3 py-2 text-sm font-semibold transition",
+                      teamSize === preset
+                        ? "bg-foreground text-white"
+                        : "text-muted hover:text-foreground",
+                    ].join(" ")}
+                    key={preset}
+                    onClick={() => setTeamSize(preset)}
+                    type="button"
+                  >
+                    {preset}
+                  </button>
+                ))}
+              </div>
+
+              <div>
+                <label
+                  className="block text-xs font-semibold text-muted"
+                  htmlFor={teamSizeInputId}
+                >
+                  Active employees
+                </label>
+                <input
+                  className="mt-1 w-32 rounded-xl border border-border bg-white px-3 py-2 text-sm text-foreground"
+                  id={teamSizeInputId}
+                  inputMode="numeric"
+                  min={1}
+                  onChange={(event) => {
+                    const parsed = Number.parseInt(event.target.value, 10);
+                    setTeamSize(
+                      Number.isFinite(parsed) && parsed > 0 ? parsed : 1,
+                    );
+                  }}
+                  type="number"
+                  value={teamSize}
+                />
+              </div>
+            </div>
+
+            <dl className="mt-5 grid gap-3 sm:grid-cols-3">
+              {perSeatPlans.map(({ plan, offer }) => {
+                const estimate = estimateCost(offer, teamSize);
+                return (
+                  <div
+                    className="rounded-2xl border border-border bg-white p-4"
+                    key={plan.id}
+                  >
+                    <dt className="text-sm font-semibold text-foreground">
+                      {plan.name}
+                    </dt>
+                    {/*
                   The qualifier belongs inside the <dd>: a <div> grouping inside
                   a <dl> may contain only <dt>/<dd>, so a sibling <p> here made
                   the list structurally invalid. It only became visible once
                   seeded pricing existed to render — with an empty plan list the
                   <dl> had no children and nothing flagged it.
                 */}
-                <dd className="mt-1 text-lg font-semibold text-foreground">
-                  {estimate
-                    ? formatMoney(estimate.total, estimate.currency)
-                    : "On request"}
-                  {estimate ? (
-                    <span className="mt-1 block text-xs font-normal text-muted">
-                      estimated {interval === "MONTH" ? "per month" : "per year"}
-                      {estimate.belowMinimum
-                        ? " · below this plan's minimum"
-                        : estimate.aboveMaximum
-                          ? " · above the self-service maximum"
-                          : ""}
-                    </span>
-                  ) : null}
-                </dd>
-              </div>
-            );
-          })}
-        </dl>
+                    <dd className="mt-1 text-lg font-semibold text-foreground">
+                      {estimate
+                        ? formatMoney(estimate.total, estimate.currency)
+                        : "On request"}
+                      {estimate ? (
+                        <span className="mt-1 block text-xs font-normal text-muted">
+                          estimated{" "}
+                          {interval === "MONTH" ? "per month" : "per year"}
+                          {estimate.belowMinimum
+                            ? " · below this plan's minimum"
+                            : estimate.aboveMaximum
+                              ? " · above the self-service maximum"
+                              : ""}
+                        </span>
+                      ) : null}
+                    </dd>
+                  </div>
+                );
+              })}
+            </dl>
+          </>
+        ) : null}
       </section>
 
       {/* Comparison */}
@@ -378,7 +409,10 @@ export function PlansExperience({ config }: { config: CommercialConfigView }) {
                       </caption>
                       <thead>
                         <tr className="border-b border-border">
-                          <th className="py-2 pr-4 font-semibold text-foreground" scope="col">
+                          <th
+                            className="py-2 pr-4 font-semibold text-foreground"
+                            scope="col"
+                          >
                             Capability
                           </th>
                           {plans.map((plan) => (
@@ -394,7 +428,10 @@ export function PlansExperience({ config }: { config: CommercialConfigView }) {
                       </thead>
                       <tbody>
                         {group.rows.map((row) => (
-                          <tr className="border-b border-border/60" key={row.key}>
+                          <tr
+                            className="border-b border-border/60"
+                            key={row.key}
+                          >
                             <th
                               className="py-2 pr-4 font-normal text-muted"
                               scope="row"

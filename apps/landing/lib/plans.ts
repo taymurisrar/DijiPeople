@@ -124,12 +124,70 @@ export function isCheckoutReady(price: PublicPlanPrice | null) {
  * Returning the sentence rather than a boolean is deliberate: a caller cannot
  * disable an input without also having the reason to hand.
  */
-export function checkoutBlockedReason(price: PublicPlanPrice | null) {
+/**
+ * The support code shown to a visitor, and what it means internally.
+ *
+ * A visitor does not need to be told that a Stripe price is unverified, and
+ * telling them would be worse than useless: it exposes our billing plumbing and
+ * still leaves them unable to act. But "this is not available" with nothing to
+ * quote makes a support conversation start from zero.
+ *
+ * So the page shows a short code. It is deliberately coarse — two values, not
+ * the ten reasons `deriveCheckoutReadiness` distinguishes — because a code fine
+ * enough to identify the exact misconfiguration would leak it. The precise
+ * cause stays where it belongs: on the plan's price in Platform Admin, where an
+ * operator reads the full list.
+ *
+ * `DP-CHK-01` — a price exists for this region and is not sellable online.
+ * `DP-CHK-02` — no published price exists for this region at all.
+ */
+export const CHECKOUT_BLOCK_CODES = {
+  NOT_SELLABLE: "DP-CHK-01",
+  NO_REGIONAL_PRICE: "DP-CHK-02",
+} as const;
+
+export type CheckoutBlock = {
+  /** Quotable by the visitor, meaningful to us. */
+  code: string;
+  /** One sentence, free of billing internals. */
+  message: string;
+};
+
+/**
+ * Why this selection cannot be bought, or null.
+ *
+ * One function for every consumer, because the subscribe wizard has to make the
+ * same call in three places: whether to show a notice, whether the step inputs
+ * exist at all, and whether Continue advances. When those were three inline
+ * conditions they drifted, and the wizard collected an organization profile, an
+ * owner identity and signed agreements across five steps before revealing a
+ * dead submit button — [[BUG-0082]], which is [[BUG-0066]] in a shape that
+ * wastes more of somebody's afternoon.
+ *
+ * Returning the sentence rather than a boolean is deliberate: a caller cannot
+ * hide a form without also having the reason to hand.
+ */
+export function checkoutBlock(
+  price: PublicPlanPrice | null,
+): CheckoutBlock | null {
   if (isCheckoutReady(price)) return null;
 
   return price
-    ? "This price is configured for display, but online checkout is not available yet. Choose another plan, or contact us and we will arrange it."
-    : "This plan has no published price for your region yet. Choose another plan, or contact us and we will arrange it.";
+    ? {
+        code: CHECKOUT_BLOCK_CODES.NOT_SELLABLE,
+        message:
+          "This plan is not available to buy online at the moment. Our team can set it up for you.",
+      }
+    : {
+        code: CHECKOUT_BLOCK_CODES.NO_REGIONAL_PRICE,
+        message:
+          "This plan is not published for your region yet. Our team can arrange it for you.",
+      };
+}
+
+/** The message alone. Kept for callers that only render prose. */
+export function checkoutBlockedReason(price: PublicPlanPrice | null) {
+  return checkoutBlock(price)?.message ?? null;
 }
 
 export function formatPlanPrice(price: PublicPlanPrice | null) {

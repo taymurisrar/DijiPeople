@@ -12,7 +12,6 @@ import {
   HolidayScopeType,
   PayCycle,
   Prisma,
-  ProjectApprovalMode,
   WeekendPolicy,
   WorkWeekModel,
   WorkWeekday,
@@ -20,6 +19,7 @@ import {
 import { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
+import { toDisplayString } from '../../common/utils/display-string';
 
 type ScopeInput = {
   organizationId?: string | null;
@@ -1382,6 +1382,26 @@ export class EnterpriseConfigurationService {
     const from = normalizeCurrencyCode(fromCurrency);
     const to = normalizeCurrencyCode(toCurrency);
     if (from === to) return new Prisma.Decimal(1);
+
+    /*
+     * BUG-0668. `effectiveDate` was accepted and then ignored: every lookup
+     * ordered by `updatedAt` and took the newest row, so a caller asking for
+     * the rate *as of* a date silently got today's. `convertMoney` forwards
+     * the caller's date, which is what made it dangerous — the caller did
+     * everything right and still got the wrong number.
+     *
+     * `ExchangeRateSnapshot` is effective-dated by design: `effectiveDate` is
+     * required, `effectiveEndDate` is nullable and null means "still current".
+     * A row is eligible when the requested moment falls inside that window.
+     */
+    const asOf = {
+      effectiveDate: { lte: effectiveDate },
+      OR: [
+        { effectiveEndDate: null },
+        { effectiveEndDate: { gte: effectiveDate } },
+      ],
+    };
+
     const directManual = await this.prisma.exchangeRateSnapshot.findFirst({
       where: {
         tenantId,
@@ -1389,8 +1409,11 @@ export class EnterpriseConfigurationService {
         toCurrency: to,
         status: 'ACTIVE',
         isManual: true,
+        ...asOf,
       },
-      orderBy: [{ updatedAt: 'desc' }],
+      // Most recently effective first: with several windows covering the same
+      // moment, the later one is the correction.
+      orderBy: [{ effectiveDate: 'desc' }, { updatedAt: 'desc' }],
     });
     if (directManual) return directManual.rate;
 
@@ -1401,8 +1424,13 @@ export class EnterpriseConfigurationService {
         toCurrency: to,
         status: 'ACTIVE',
         isManual: false,
+        ...asOf,
       },
-      orderBy: [{ lastFetchedAt: 'desc' }, { updatedAt: 'desc' }],
+      orderBy: [
+        { effectiveDate: 'desc' },
+        { lastFetchedAt: 'desc' },
+        { updatedAt: 'desc' },
+      ],
     });
     if (direct) return direct.rate;
     const inverse = await this.prisma.exchangeRateSnapshot.findFirst({
@@ -1411,16 +1439,18 @@ export class EnterpriseConfigurationService {
         fromCurrency: to,
         toCurrency: from,
         status: 'ACTIVE',
+        ...asOf,
       },
       orderBy: [
         { isManual: 'desc' },
+        { effectiveDate: 'desc' },
         { lastFetchedAt: 'desc' },
         { updatedAt: 'desc' },
       ],
     });
     if (inverse) return new Prisma.Decimal(1).div(inverse.rate);
     throw new BadRequestException(
-      `Exchange rate is missing for ${from} to ${to}. Please refresh rates or add a manual override.`,
+      `Exchange rate is missing for ${from} to ${to} on ${effectiveDate.toISOString().slice(0, 10)}. Please refresh rates or add a manual override.`,
     );
   }
 
@@ -2634,7 +2664,7 @@ function readNumber(value: unknown) {
 
 function readDate(value: unknown) {
   if (value === undefined || value === null || value === '') return null;
-  const date = new Date(String(value));
+  const date = new Date(toDisplayString(value));
   if (Number.isNaN(date.getTime())) {
     throw new BadRequestException('Date value is invalid.');
   }

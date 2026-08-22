@@ -14,6 +14,18 @@ services:
         value: production
       - key: DATABASE_URL
         sync: false
+      # The connection migrations run over, and it must be Neon's DIRECT
+      # endpoint — the hostname WITHOUT the `-pooler` infix. `prisma migrate
+      # deploy` serialises migrators with a session-scoped advisory lock, and
+      # the pooled endpoint is PgBouncer in transaction pooling mode, which
+      # cannot hold one across statements. With DATABASE_URL pooled and this
+      # unset, preDeployCommand fails on P1002 after ten seconds and the deploy
+      # never reaches seeding or legal publication. BUG-0086.
+      #
+      # Optional everywhere there is no pooler: unset, migrations fall back to
+      # DATABASE_URL.
+      - key: DIRECT_DATABASE_URL
+        sync: false
       - key: JWT_ACCESS_SECRET
         sync: false
       - key: JWT_REFRESH_SECRET

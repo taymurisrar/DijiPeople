@@ -17,6 +17,7 @@ import {
   getReservedTenantSlugs,
   normalizeTenantSlug,
 } from '../../common/utils/slug.util';
+import { parseWorkspaceHostname } from '@repo/config';
 import { PublicTenantCacheService } from './public-tenant-cache.service';
 
 type ResolveInput = {
@@ -208,41 +209,65 @@ export class PublicTenantsService {
     };
   }
 
+  /**
+   * The workspace slug a hostname addresses, or null.
+   *
+   * This used to parse the hostname itself against `WEB_APP_PROD_ROOT_DOMAIN`
+   * — a **third** name for the concept `@repo/config` calls
+   * `TENANT_BASE_DOMAIN` and `apps/admin` briefly called
+   * `NEXT_PUBLIC_TENANT_ROOT_DOMAIN`. Three copies of one rule, each keyed on a
+   * variable the other two do not read.
+   *
+   * The consequence was concrete and is what sent a customer to a dead login:
+   * with the tenant base domain configured, the web app routed
+   * `xoul-ltd.localhost` to a workspace and the API — reading a different,
+   * unset variable — could not resolve a slug from the same hostname, so login
+   * answered `TENANT_NOT_FOUND` for a tenant that exists and is ACTIVE.
+   *
+   * `parseWorkspaceHostname` is the shared rule. It already refuses platform
+   * hostnames, nested labels and reserved labels, which is what the
+   * `commonLoginHost` and reserved-slug checks below were doing by hand; the
+   * reserved check is kept because this service owns a second, product-level
+   * reserved list that the host parser deliberately knows nothing about.
+   */
   getTenantSlugFromHost(host: string) {
-    const normalizedHost = normalizeHost(host);
-    if (!normalizedHost) {
-      return null;
-    }
+    const label = parseWorkspaceHostname(host, this.workspaceHostEnv());
+    if (!label) return null;
 
-    const rootDomain = normalizeHost(
-      this.configService.get<string>('WEB_APP_PROD_ROOT_DOMAIN') ?? '',
-    );
-    const commonLoginHost = normalizeHost(
-      this.configService.get<string>('COMMON_LOGIN_HOST') ??
-        this.configService.get<string>('NEXT_PUBLIC_COMMON_LOGIN_HOST') ??
-        '',
-    );
-
-    if (!rootDomain || !normalizedHost.endsWith(`.${rootDomain}`)) {
-      return null;
-    }
-
-    if (commonLoginHost && normalizedHost === commonLoginHost) {
-      return null;
-    }
-
-    const suffix = `.${rootDomain}`;
-    const subdomain = normalizedHost.slice(0, -suffix.length);
-    if (!subdomain || subdomain.includes('.')) {
-      return null;
-    }
-
-    const slug = normalizeTenantSlug(subdomain);
+    const slug = normalizeTenantSlug(label);
     if (!slug || getReservedTenantSlugs().has(slug)) {
       return null;
     }
 
     return slug;
+  }
+
+  /**
+   * `parseWorkspaceHostname` reads `process.env` by default. Values are taken
+   * from `ConfigService` so a test or a deployment that configures Nest rather
+   * than the process environment resolves hostnames the same way — and so the
+   * fallbacks the shared rule already documents keep working.
+   */
+  private workspaceHostEnv(): NodeJS.ProcessEnv {
+    const keys = [
+      'PLATFORM_ENVIRONMENT',
+      'TENANT_BASE_DOMAIN',
+      'PUBLIC_BASE_DOMAIN',
+      'NEXT_PUBLIC_TENANT_BASE_DOMAIN',
+      'NEXT_PUBLIC_TENANT_ROOT_DOMAIN',
+      'WEB_APP_PROD_ROOT_DOMAIN',
+      'NEXT_PUBLIC_WEB_ROOT_DOMAIN',
+      'APP_HOST',
+      'ADMIN_HOST',
+      'API_HOST',
+      'LANDING_HOST',
+    ];
+    const env: NodeJS.ProcessEnv = { ...process.env };
+    for (const key of keys) {
+      const value = this.configService.get<string>(key);
+      if (typeof value === 'string' && value.trim()) env[key] = value;
+    }
+    return env;
   }
 
   private normalizeInput(input: ResolveInput) {

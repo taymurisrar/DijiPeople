@@ -8,6 +8,7 @@ import {
   type ResolvedFormattingContext,
 } from "@/lib/formatting-context";
 import { PayrollPaymentBatchRecord } from "../../../payroll-run-types";
+import { useGovernedInput } from "@/app/components/feedback/use-governed-input";
 
 const PAYMENT_FORMATTING_CONTEXT = {
   dateFormat: "dd/MM/yyyy",
@@ -40,6 +41,7 @@ export function PayrollPaymentsWorkspace({
   canGenerateBankExport: boolean;
   runId: string;
 }) {
+  const { requestValue, governedInputDialog } = useGovernedInput();
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -467,15 +469,25 @@ export function PayrollPaymentsWorkspace({
                                     className="rounded-xl border border-danger/40 px-3 py-1.5 text-xs font-semibold text-danger"
                                     disabled={Boolean(busy)}
                                     onClick={() => {
-                                      const reason = prompt("Failure reason");
-                                      if (reason?.trim()) {
+                                      // A failure reason is read when someone
+                                      // asks why an employee was not paid.
+                                      // ITEM-0031.
+                                      void (async () => {
+                                        const reason = await requestValue({
+                                          title: "Mark payment failed",
+                                          description: `Payment to ${line.employeeCode} will be recorded as failed.`,
+                                          label: "Failure reason",
+                                          hint: "What the bank or provider reported.",
+                                          confirmLabel: "Mark failed",
+                                        });
+                                        if (reason === null) return;
                                         reconcileLine(
                                           line.id,
                                           "FAILED",
                                           line.transactionReference ?? undefined,
                                           reason,
                                         );
-                                      }
+                                      })();
                                     }}
                                     type="button"
                                   >

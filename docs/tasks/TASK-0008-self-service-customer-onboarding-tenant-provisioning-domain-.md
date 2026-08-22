@@ -11,6 +11,7 @@ AFFECTED_MODULES: [super-admin, tenant-domains, tenant-control-plane, auth, bill
 AGENTS: [Architect, Database, Backend/API, Frontend, UI/UX, Integration, Security, QA, Reviewer, Integrator]
 DEPENDENCIES: origin/develop 494c44d; TASK-0007 WP-01..WP-10, WP-12
 CURRENT_PACKAGE: WP-06
+NEXT_READY_WORK_PACKAGE: NONE
 COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-04, WP-05, WP-07, WP-08, WP-09, WP-10, WP-11]
 BLOCKED_PACKAGES: [WP-06]
 OWNER_DECISIONS: 4
@@ -727,6 +728,6 @@ before WP-01 writes `schema.prisma`.
 ## Related
 
 - Records — [[BUG-0017]], [[BUG-0066]], [[BUG-0075]], [[BUG-0077]], [[BUG-0078]], [[BUG-0080]], [[BUG-0081]], [[BUG-0082]], [[ITEM-0013]], [[ITEM-0047]], [[ITEM-0060]], [[ITEM-0061]], [[ITEM-0062]], [[ITEM-0063]], [[ITEM-0066]], [[ITEM-0067]]
-- Modules — [[super-admin]], [[tenant-control-plane]], [[billing]], [[notifications]], [[legal]]
+- Modules — [[super-admin]], [[tenant-control-plane]], [[auth]], [[billing]], [[notifications]], [[legal]]
 
 <!-- GRAPH:END -->

@@ -97,12 +97,28 @@ contract change that requires a new client build strands every installed copy.
 
 ## Testing
 
-There is **no test runner in this workspace yet** — that is the open half of
-[`ITEM-0028`](../../docs/backlog/items/ITEM-0028-apps-agent-desktop-has-no-agents-md-and-no-test-coverage.md),
-and it is stated here rather than implied so nobody assumes coverage that does
-not exist.
+`npm --workspace agent-desktop run test` — jest, `*.spec.ts` beside the module.
+It gates: `test-agent-desktop` is one of the jobs behind `CI required gate`.
 
-What is covered today, and where:
+The runner arrived with ITEM-0033. Before it there was none at all — no config,
+no script, not a single spec — and `tsc --noEmit` was the whole automated signal
+for the app with native capabilities the employee cannot observe.
+
+What is covered here, in this workspace:
+
+| Behaviour | Covered by |
+|---|---|
+| A drained batch is gone, and a returned one is re-sent exactly once, in front | `src/main/offline-queue.spec.ts` |
+| The queue bound drops the oldest, and malformed events never reach the wire | `src/main/offline-queue.spec.ts` |
+| A partial server config fills from defaults, leaving nothing `undefined` | `src/main/config-manager.spec.ts` |
+| Screenshots, clipboard and keylogging stay off whatever the server asks | `src/main/config-manager.spec.ts` |
+| A failed config refresh keeps the last good config | `src/main/config-manager.spec.ts` |
+| A capability that is off reads nothing — the OS call is never made | `src/main/activity-tracker.spec.ts` |
+| Window titles are trimmed, bounded, and browser suffixes stripped | `src/main/activity-tracker.spec.ts` |
+| The ACTIVE/IDLE/AWAY thresholds, including an inverted pair | `src/main/activity-tracker.spec.ts` |
+
+And on the **API** side, which is where these behaviours are enforced rather
+than merely produced:
 
 | Behaviour | Covered by |
 |---|---|
@@ -111,14 +127,20 @@ What is covered today, and where:
 | Replayed heartbeats are not double counted | `services/api/.../heartbeat-idempotency.spec.ts` |
 | Public agent writes are rate limited | `services/api/.../public-write-rate-limit.invariant.spec.ts` |
 
-All of those live on the **API** side. Nothing exercises this app's own logic —
-`activity-tracker`, `offline-queue`, `session-manager`, `secure-store`,
-`update-manager`. Until a runner exists, `npm --workspace agent-desktop run
-check-types` is the only automated signal here.
-
-When adding one, prefer the pure modules first: `offline-queue` and
-`config-manager` have no Electron dependency and are where a defect is most
+**Still uncovered, and stated rather than implied:** `secure-store`, `tray`,
+`main`, `session-manager` and `update-manager`. Each needs a real Electron
+harness, and a stub of the OS credential vault would assert the stub. The three
+covered modules were chosen because they have no Electron dependency of their
+own beyond one path lookup — and because they are where a defect is most
 expensive.
+
+`test/electron-stub.ts` supplies the slice of Electron the covered modules
+touch: `app.getPath` for the queue's journal (a real temp directory, so the
+atomic write-then-rename path is exercised rather than mocked) and a settable
+`powerMonitor.getSystemIdleTime`. `test/env-stub.ts` stands in for
+`src/config/env.ts`, which reads `process.env` at import time and throws on a
+missing variable; it declares only the values the covered modules read, so a new
+dependency fails loudly instead of picking up a silent default.
 
 ---
 

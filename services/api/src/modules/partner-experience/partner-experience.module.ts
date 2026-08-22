@@ -10,6 +10,7 @@ import {
   PublicPartnersController,
 } from './partner-experience.controller';
 import { PartnerExperienceService } from './partner-experience.service';
+import { PartnerReferralResolverService } from './partner-referral-resolver.service';
 import { PlatformCommunicationsModule } from '../platform-communications/platform-communications.module';
 import { LegalModule } from '../legal/legal.module';
 
@@ -23,10 +24,11 @@ import { LegalModule } from '../legal/legal.module';
   ],
   providers: [
     PartnerExperienceService,
+    PartnerReferralResolverService,
     PartnerAuthGuard,
     JwtAuthGuard,
     PublicRateLimitGuard,
   ],
-  exports: [PartnerExperienceService],
+  exports: [PartnerExperienceService, PartnerReferralResolverService],
 })
 export class PartnerExperienceModule {}

@@ -81,7 +81,7 @@ The partner inquiry and onboarding review screens — `BUG-0019` was that they w
 
 ## Related
 
-- Scenarios — [[QA-PARTNER-001]], [[QA-PARTNER-002]], [[QA-PARTNER-003]], [[QA-PARTNER-004]], [[QA-PARTNER-005]]
+- Scenarios — [[QA-PARTNER-001]], [[QA-PARTNER-002]], [[QA-PARTNER-003]], [[QA-PARTNER-004]], [[QA-PARTNER-005]], [[QA-PARTNER-007]]
 - Bugs — [[BUG-0016]], [[BUG-0019]], [[BUG-0025]], [[BUG-0048]]
 - Regressions — REG-014, REG-015, REG-022, REG-028, REG-039 (see the regression register)
 

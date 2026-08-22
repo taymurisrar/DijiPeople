@@ -1,0 +1,89 @@
+---
+SESSION_ID: SESSION-0039
+aliases: [SESSION-0039]
+TASK_ID:
+TITLE: Backlog burn-down: open bugs and ready items
+ARCHITECT_INTENT: Backlog burn-down: open bugs and ready items
+STATUS: COMPLETE
+TASK_TYPE: FEATURE
+TASK_SIZE: LARGE
+BASE_BRANCH: origin/develop
+BASE_SHA: c1d3d7b0a3555cabac960afee38cddbccc18bd53
+TASK_BRANCH: agent/backlog-burndown
+TARGET_BRANCH: develop
+WORKTREE: D:/My Work/hrm-dijipeople/dijipeople-backlog
+AFFECTED_MODULES: [services/api, apps/web, apps/admin, apps/landing, apps/agent-desktop, pkg:config, package-lock.json, docs, scripts, .github/workflows]
+WRITE_LEASES: []
+ACTIVE_WORK_PACKAGES: []
+SCHEMA_WRITE: NO
+CI_STATUS: PASS
+MERGE_STATUS: INTEGRATED
+STARTED_AT: 2026-08-22T03:02:42.887Z
+LAST_HEARTBEAT: 2026-08-22T03:02:42.887Z
+BLOCKERS: none
+---
+
+# SESSION-0039 — Backlog burn-down: open bugs and ready items
+
+## Intent
+
+Backlog burn-down: open bugs and ready items
+
+## Scope
+
+Seven `OPEN` bug records and the `READY` backlog items whose Architect
+disposition was `FIX_NOW`, plus the two guards those fixes made possible.
+
+**Bugs, all now `FIXED`:**
+
+| | |
+|---|---|
+| BUG-0086 | migrations get their own connection, so they stop dying on a pooler's advisory lock |
+| BUG-0283 | the API names pending migrations at startup instead of `P2022`-ing a screen later |
+| BUG-0041 | the last two proxies that derived payroll and owned upload policy (with [[ITEM-0050]]) |
+| BUG-0043 | a dialog primitive, 17 modals contained, filter labels, keyboard rows, `jsx-a11y` on |
+| BUG-0281 | a partner referral survives self-service checkout, resolved server-side |
+| BUG-0045 | the canonical settings contract matches the code; the 404 fallback fixed |
+| BUG-0052 | the repository's only critical advisory cleared, without a 338-package refresh |
+
+**Backlog items, all now `DONE`:** ITEM-0050, ITEM-0035, ITEM-0031, ITEM-0033,
+ITEM-0015, ITEM-0045.
+
+**Not closed, and why:** ITEM-0042 stays `READY`. It is a burn-down, not a fix:
+1027 warnings to 971 and the ceiling ratcheted from 10000 to 975, with the two
+families the item names cleared first. The ~860 that remain are one family and
+need Prisma results typed rather than cast, module by module.
+
+Six checks were added or emptied, because in every one of these cases the rule
+already existed in prose and nothing enforced it:
+
+`check-dialogs-are-contained` · `check-production-advisories` ·
+`check-proxies-decide-nothing` · `check-proxies-forward-status` ·
+`check-no-native-prompt` (allowlist emptied) · `test:env-examples`
+
+Seventeen regressions, REG-203 through REG-219, each with a reusable scenario.
+
+## Concurrency
+
+No write leases were taken: nothing here touches the schema, and no migration was
+written. `SCHEMA_WRITE: NO`.
+
+Six other sessions were `ACTIVE` with stale heartbeats at the start
+(SESSION-0003, 0019, 0022, 0023, 0025, 0027). `session.mjs check` classified this
+work `SAFE_PARALLEL` against them.
+
+One shared file needed care: `docs/qa/regressions/index.md` has no allocator and
+every session appends to it. The ids were checked against `origin/develop` before
+writing — the register reached REG-202 there, not the REG-214 a first pass had
+assumed — and the fourteen provisional ids already written into test files were
+renumbered into the real range in one pass, so the overlapping source and target
+ranges could not collide.
+
+## History
+
+- 2026-08-22 — session started from `origin/develop` at `c1d3d7b`.
+- 2026-08-22 — seven `OPEN` bugs fixed, six `FIX_NOW` items closed, ITEM-0042
+  started and left open with its ceiling ratcheted.
+- 2026-08-22 — CI run `32556695618` on `d63dc4a`: `CI required gate` PASS, all
+  fourteen jobs green. Integrated into `develop` by ref-push, so the tip is
+  byte-identical to the verified SHA. `main` untouched.

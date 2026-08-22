@@ -73,3 +73,197 @@ body {
 .admin-theme ::selection {
   background: color-mix(in srgb, var(--admin-accent) 30%, white);
 }
+
+/* ---------------------------------------------------------------------------
+ * Console preferences.
+ *
+ * `applyConsolePreferences` writes these onto <html> as data attributes. They
+ * are attributes rather than classes because a component that rewrites
+ * `className` cannot accidentally drop them, and because the absence of
+ * `data-admin-theme` is itself meaningful: it means "follow the system", which
+ * is a third state that a two-value class could not express.
+ *
+ * Density is a single custom property that the shared surfaces read, rather
+ * than a rule per component. One number to change, and no component can opt out
+ * of the setting by not knowing about it.
+ * ------------------------------------------------------------------------- */
+:root {
+  --admin-density-scale: 1;
+}
+
+html[data-admin-density="compact"] {
+  --admin-density-scale: 0.82;
+}
+
+html[data-admin-density="compact"] .admin-theme table :is(td, th) {
+  padding-top: calc(0.75rem * var(--admin-density-scale));
+  padding-bottom: calc(0.75rem * var(--admin-density-scale));
+}
+
+html[data-admin-density="compact"] .admin-theme section {
+  --admin-section-padding: calc(1rem * var(--admin-density-scale));
+}
+
+/*
+ * Dark is opt-in only. `data-admin-theme` absent means the system decides, so
+ * the media query below applies; `light` pins light even on a dark machine,
+ * which is the whole reason an explicit Light option exists.
+ */
+html[data-admin-theme="dark"] {
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  html:not([data-admin-theme="light"]) {
+    color-scheme: dark;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Dark, as an actual theme.
+ *
+ * WHAT WAS WRONG. The two rules above *were* the entire dark theme. They set
+ * `color-scheme`, which repaints what the browser draws — scrollbars, the date
+ * picker, a select's dropdown, the canvas behind the page — and repaints
+ * nothing this console draws, because every surface here is a hardcoded light
+ * utility: 348 `bg-white`, 450 `border-slate-200`, 338 `text-slate-500`.
+ * Choosing Dark therefore gave dark scrollbars and dark form-control internals
+ * on a white application, with a date field rendering light text on its own
+ * light background. That is worse than having no dark mode, because the setting
+ * exists, persists across sessions, and is believed.
+ *
+ * WHY IT IS DONE THIS WAY. The textbook fix is a token per surface and no raw
+ * palette classes in components — about 1,900 call sites. A change that size
+ * turns a theme fix into an app-wide regression sweep. This remaps the palette
+ * at its source instead, using the same attribute-selector technique that
+ * `.admin-theme [class~="bg-slate-950"]` above already establishes as the house
+ * approach. One file; no component edited; a component that later adopts a
+ * token is simply unaffected.
+ *
+ * Everything keys on `data-admin-scheme`, which `applyConsolePreferences`
+ * resolves from the three-value preference. Keying on the preference directly
+ * would mean writing every rule below twice — once for the attribute and once
+ * inside a media query — and two lists kept in step by hand is two lists that
+ * drift.
+ *
+ * WHAT THIS DELIBERATELY DOES NOT COVER, stated so nobody assumes otherwise:
+ * arbitrary colour values (`bg-[#f8fafc]`), and the tinted status pills
+ * (rose/amber/emerald/sky). The pills are left alone because each pairs a light
+ * tint with dark text of the same hue and both halves are held, so they stay
+ * legible and keep their meaning. Anything else that reads wrong in dark is a
+ * call site to convert to a token — not a reason to widen these selectors.
+ * ------------------------------------------------------------------------- */
+
+html[data-admin-scheme="dark"] {
+  --background: #0b1220;
+  --foreground: #e2e8f0;
+  --admin-background: #0b1220;
+  --admin-surface: #111a2b;
+  --admin-border: #24324a;
+  --admin-text: #e2e8f0;
+  --admin-muted-text: #94a3b8;
+  --admin-success: #34d399;
+  --admin-warning: #fbbf24;
+  --admin-danger: #fb7185;
+  --admin-info: #38bdf8;
+  --admin-shadow-card: 0 1px 2px rgb(0 0 0 / 0.55);
+  --admin-shadow-floating: 0 20px 45px rgb(0 0 0 / 0.65);
+}
+
+/*
+ * The shell gradient is replaced, not tinted. A light gradient at low opacity
+ * over a dark page is grey haze rather than depth.
+ */
+html[data-admin-scheme="dark"] .admin-theme {
+  --admin-surface-tint: #0d1526;
+  --admin-navigation: #0b1220;
+  background:
+    radial-gradient(
+      circle at 78% 0%,
+      color-mix(in srgb, var(--admin-accent) 16%, transparent),
+      transparent 34rem
+    ),
+    linear-gradient(180deg, #0b1220 0%, #0d1526 100%);
+}
+
+/* Surfaces. */
+html[data-admin-scheme="dark"] [class~="bg-white"],
+html[data-admin-scheme="dark"] [class~="bg-slate-50"] {
+  background-color: var(--admin-surface);
+}
+html[data-admin-scheme="dark"] [class~="bg-slate-100"] {
+  background-color: #1a2438;
+}
+html[data-admin-scheme="dark"] [class~="bg-slate-200"] {
+  background-color: #24324a;
+}
+html[data-admin-scheme="dark"] [class~="hover:bg-slate-50"]:hover,
+html[data-admin-scheme="dark"] [class~="hover:bg-white"]:hover {
+  background-color: #1a2438;
+}
+html[data-admin-scheme="dark"] [class~="hover:bg-slate-100"]:hover,
+html[data-admin-scheme="dark"] [class~="hover:bg-slate-200"]:hover {
+  background-color: #24324a;
+}
+
+/* Borders and dividers. */
+html[data-admin-scheme="dark"] [class~="border-slate-100"],
+html[data-admin-scheme="dark"] [class~="border-slate-200"],
+html[data-admin-scheme="dark"] [class~="border-slate-300"] {
+  border-color: var(--admin-border);
+}
+html[data-admin-scheme="dark"] [class~="divide-slate-100"] > * + *,
+html[data-admin-scheme="dark"] [class~="divide-slate-200"] > * + * {
+  border-color: var(--admin-border);
+}
+html[data-admin-scheme="dark"] [class~="hover:border-slate-300"]:hover {
+  border-color: #33415c;
+}
+
+/*
+ * Text. The scale is inverted rather than shifted: slate-950 is the darkest ink
+ * on light and must become the *brightest* text on dark, or headings recede
+ * behind the body copy under them.
+ */
+html[data-admin-scheme="dark"] [class~="text-slate-950"],
+html[data-admin-scheme="dark"] [class~="text-slate-900"] {
+  color: #f1f5f9;
+}
+html[data-admin-scheme="dark"] [class~="text-slate-800"],
+html[data-admin-scheme="dark"] [class~="text-slate-700"] {
+  color: #cbd5e1;
+}
+html[data-admin-scheme="dark"] [class~="text-slate-600"],
+html[data-admin-scheme="dark"] [class~="text-slate-500"] {
+  color: var(--admin-muted-text);
+}
+html[data-admin-scheme="dark"] [class~="text-slate-400"],
+html[data-admin-scheme="dark"] [class~="text-slate-300"] {
+  color: #7b8794;
+}
+
+/* Form controls the browser paints, and the ones we do. */
+html[data-admin-scheme="dark"] :is(input, select, textarea) {
+  background-color: #0e1728;
+  color: var(--admin-text);
+}
+html[data-admin-scheme="dark"] :is(input, select, textarea)::placeholder {
+  color: #64748b;
+}
+
+/*
+ * The exception that proves the rule: a contract is paper.
+ *
+ * The document sheet stays white in dark mode, because what an author sees must
+ * be what the counterparty receives — a dark-rendered agreement would be a
+ * preview of a document that does not exist. The chrome around it darkens; the
+ * page does not.
+ */
+html[data-admin-scheme="dark"] .contract-document-sheet,
+html[data-admin-scheme="dark"] .contract-editor-content {
+  background: #ffffff;
+  color: #243247;
+}
+html[data-admin-scheme="dark"] .contract-editor-content :is(p, li, td, th) {
+  color: inherit;
+}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useReasonPrompt } from "@/app/_components/runtime/use-reason-prompt";
 import { EditorContent, useEditor } from "@tiptap/react";
 import { Extension, Node } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
@@ -13,6 +14,14 @@ import TaskItem from "@tiptap/extension-task-item";
 import Image from "@tiptap/extension-image";
 import Color from "@tiptap/extension-color";
 import Highlight from "@tiptap/extension-highlight";
+
+import {
+  buildSignatureBlockHtml,
+  SIGNATURE_LINES,
+  WET_INK_PARTY,
+  type SignatureLineKey,
+  type SignatureParty,
+} from "@/lib/documents/signature-block";
 import {
   AlignCenter,
   AlignLeft,
@@ -34,11 +43,13 @@ import {
   Pilcrow,
   Quote,
   Redo2,
+  Signature,
   Strikethrough,
   Table2,
   TextCursorInput,
   Underline as UnderlineIcon,
   Undo2,
+  X,
 } from "lucide-react";
 
 type PlaceholderDefinition = {
@@ -139,14 +150,53 @@ export function ContractDocumentEditor({
   onChange,
   readOnly = false,
   placeholders,
+  previewHtml,
 }: {
   value: string;
   onChange: (html: string) => void;
   readOnly?: boolean;
   placeholders?: Array<string | PlaceholderDefinition>;
+  /**
+   * Rendered instead of the editor's own content while set.
+   *
+   * The caller previously previewed sample data by passing the *substituted*
+   * HTML as `value`, which pushed resolved sample values into the editor
+   * document itself — one stray update away from saving "Gulf Horizon" into the
+   * template in place of `{{customer.companyName}}`. It also rendered from
+   * `editor.getHTML()` read during render, so the first paint after the toggle
+   * showed the previous content and only corrected on the next unrelated
+   * re-render. That is the flicker.
+   *
+   * Passing the preview as its own string keeps the editor holding the real
+   * template at all times, and makes the preview a pure function of what is
+   * shown.
+   */
+  previewHtml?: string;
 }) {
+  // The one prompt here that is not a governed business value — a link URL is
+  // editing convenience. It is still an unstyled, unlabelled, unvalidated
+  // control outside the theme, and it is the last one. ITEM-0031.
+  const { requestReason, reasonDialog } = useReasonPrompt();
   const [preview, setPreview] = useState(readOnly);
-  const [placeholderOpen, setPlaceholderOpen] = useState(false);
+  /*
+   * The fields rail, open by default.
+   *
+   * It used to be a dropdown that closed on every insertion, so building a
+   * signature block meant reopening it, re-typing the search and re-finding the
+   * group for each token. A panel that stays put is the difference between
+   * placing four fields and placing four fields four times.
+   */
+  const [railOpen, setRailOpen] = useState(true);
+  const [signaturePartyIndex, setSignaturePartyIndex] = useState(0);
+  const [signatureCaption, setSignatureCaption] = useState("");
+  const [signatureCustomLabel, setSignatureCustomLabel] = useState("");
+  const [signatureLines, setSignatureLines] = useState<SignatureLineKey[]>([
+    "signature",
+    "name",
+    "title",
+    "date",
+  ]);
+  const signaturePartyRef = useRef<HTMLSelectElement>(null);
   const [tableOpen, setTableOpen] = useState(false);
   const [placeholderQuery, setPlaceholderQuery] = useState("");
   const [importing, setImporting] = useState(false);
@@ -176,8 +226,7 @@ export function ContractDocumentEditor({
           } | null,
         ) => {
           if (payload?.items?.length) setPlaceholderRegistry(payload.items);
-          if (payload?.groups?.length)
-            setPlaceholderGroupOrder(payload.groups);
+          if (payload?.groups?.length) setPlaceholderGroupOrder(payload.groups);
         },
       )
       .catch(() => undefined);
@@ -227,6 +276,58 @@ export function ContractDocumentEditor({
       items: byGroup.get(group) ?? [],
     }));
   }, [placeholderQuery, normalizedPlaceholders, placeholderGroupOrder]);
+  /**
+   * Which parties the platform can actually fill a signature in for.
+   *
+   * Read out of the placeholder registry rather than listed here, so a slot
+   * registered on the API appears in this dialog without a second registration
+   * in the frontend — that duplication is exactly how the two placeholder lists
+   * drifted apart before. Any party outside the registry is still offered, as
+   * wet ink.
+   */
+  const signatureParties = useMemo<SignatureParty[]>(() => {
+    const slots = new Map<string, string>();
+    for (const definition of normalizedPlaceholders) {
+      if (definition.deprecatedFor) continue;
+      const match = /^signature\.(.+)\.name$/.exec(definition.key);
+      if (!match?.[1]) continue;
+      slots.set(match[1], definition.label || match[1]);
+    }
+    return [
+      ...[...slots.entries()].map(([slot, label]) => ({ slot, label })),
+      WET_INK_PARTY,
+    ];
+  }, [normalizedPlaceholders]);
+
+  const signatureParty =
+    signatureParties[
+      Math.min(signaturePartyIndex, signatureParties.length - 1)
+    ] ?? WET_INK_PARTY;
+
+  /**
+   * The token that prints the party's *name* beneath the mark.
+   *
+   * `signature.<slot>.name` is the mark itself — an image when the signer drew
+   * one — so it cannot also serve as the printed name. The party's own entity
+   * token is used where the registry has one (`platform.legalName`,
+   * `counterparty.name`), and the line is left ruled where it does not.
+   */
+  const signaturePartyNameToken = useMemo(() => {
+    if (!signatureParty.slot) return null;
+    const candidates = [
+      `${signatureParty.slot}.legalName`,
+      `${signatureParty.slot}.name`,
+    ];
+    return (
+      candidates.find((candidate) =>
+        normalizedPlaceholders.some(
+          (definition) =>
+            definition.key === candidate && !definition.deprecatedFor,
+        ),
+      ) ?? null
+    );
+  }, [normalizedPlaceholders, signatureParty]);
+
   const editor = useEditor({
     immediatelyRender: false,
     editable: !readOnly,
@@ -285,27 +386,72 @@ export function ContractDocumentEditor({
       <div className="min-h-[520px] animate-pulse rounded-xl bg-slate-100" />
     );
 
-  function setLink() {
+  async function setLink() {
     const currentEditor = editor!;
     const previous = currentEditor.getAttributes("link").href as
       | string
       | undefined;
-    const href = window.prompt("Link URL", previous ?? "https://");
+
+    const href = await requestReason({
+      title: previous ? "Edit link" : "Add link",
+      description: "Clear the field to remove the link.",
+      label: "Link URL",
+      confirmLabel: previous ? "Update link" : "Add link",
+      kind: "text",
+      // Zero, because clearing the field is how a link is *removed* — the one
+      // case where an empty answer is a real answer rather than a cancel.
+      minLength: 0,
+    });
     if (href === null) return;
-    if (!href.trim())
+
+    if (!href)
       currentEditor.chain().focus().extendMarkRange("link").unsetLink().run();
     else
       currentEditor
         .chain()
         .focus()
         .extendMarkRange("link")
-        .setLink({ href: href.trim() })
+        .setLink({ href })
         .run();
   }
 
   function insertPlaceholder(key: string) {
+    /*
+     * The rail is deliberately left open. Fields are placed in runs — a
+     * signature block is four of them — and closing after each one is what made
+     * the previous dropdown tedious.
+     */
     editor!.chain().focus().insertContent(`{{${key}}}`).run();
-    setPlaceholderOpen(false);
+  }
+
+  function toggleSignatureLine(line: SignatureLineKey) {
+    setSignatureLines((current) =>
+      current.includes(line)
+        ? current.filter((candidate) => candidate !== line)
+        : /* Kept in print order rather than click order. */
+          SIGNATURE_LINES.filter(
+            (candidate) =>
+              candidate.key === line || current.includes(candidate.key),
+          ).map((candidate) => candidate.key),
+    );
+  }
+
+  function insertSignatureBlock() {
+    const party = signatureParty.slot
+      ? signatureParty
+      : { slot: null, label: signatureCustomLabel.trim() || "Party" };
+    editor!
+      .chain()
+      .focus()
+      .insertContent(
+        buildSignatureBlockHtml(
+          party,
+          signatureCaption,
+          signatureLines,
+          signaturePartyNameToken,
+        ),
+      )
+      .run();
   }
 
   function changeIndent(delta: number) {
@@ -414,6 +560,7 @@ export function ContractDocumentEditor({
 
   return (
     <div className="overflow-visible rounded-2xl border border-slate-200 bg-slate-100 shadow-sm">
+      {reasonDialog}
       {!readOnly ? (
         <div
           className="sticky top-2 z-10 flex flex-wrap items-center gap-1 rounded-t-2xl border-b border-slate-200 bg-white/95 p-2 shadow-sm backdrop-blur"
@@ -734,55 +881,35 @@ export function ContractDocumentEditor({
             </div>
           ) : null}
           <Separator />
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setPlaceholderOpen((current) => !current)}
-              className="inline-flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-100"
-            >
-              <Braces className="h-4 w-4" />
-              Fields & signatures
-            </button>
-            {placeholderOpen ? (
-              <div className="absolute left-0 top-11 z-20 max-h-72 w-72 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl">
-                <input
-                  value={placeholderQuery}
-                  onChange={(event) => setPlaceholderQuery(event.target.value)}
-                  placeholder="Search typed fields"
-                  className="mb-1 h-9 w-full rounded-lg border border-slate-200 px-2 text-xs"
-                />
-                {placeholderGroups.map(({ group, items }) => (
-                  <div key={group}>
-                    <p className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-                      {group}
-                    </p>
-                    {items.map((definition) => (
-                      <button
-                        type="button"
-                        key={definition.key}
-                        onClick={() => insertPlaceholder(definition.key)}
-                        title={definition.description}
-                        className="block w-full rounded-lg px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50"
-                      >
-                        <span className="flex items-center justify-between gap-2 font-semibold">
-                          <span>{definition.label}</span>
-                          <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[9px] text-slate-500">
-                            {definition.dataType.replaceAll("_", " ")}
-                          </span>
-                        </span>
-                        <span className="mt-0.5 block font-mono text-[10px] text-slate-500">{`{{${definition.key}}}`}</span>
-                      </button>
-                    ))}
-                  </div>
-                ))}
-                {placeholderGroups.length === 0 ? (
-                  <p className="px-3 py-4 text-center text-xs text-slate-500">
-                    No fields match this search.
-                  </p>
-                ) : null}
-              </div>
-            ) : null}
-          </div>
+          <button
+            aria-pressed={railOpen}
+            className="inline-flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 aria-pressed:bg-slate-900 aria-pressed:text-white"
+            onClick={() => setRailOpen((current) => !current)}
+            type="button"
+          >
+            <Braces className="h-4 w-4" />
+            Fields & signatures
+          </button>
+          <button
+            className="inline-flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-100"
+            onClick={() => {
+              /*
+               * Opens the rail and puts the caret in it. The signature box is
+               * configured before it is placed, so sending the author to the
+               * control that decides *which party* is the whole point — a
+               * button that inserted a fixed box would have to be undone
+               * before it could be corrected.
+               */
+              setRailOpen(true);
+              window.requestAnimationFrame(() =>
+                signaturePartyRef.current?.focus(),
+              );
+            }}
+            type="button"
+          >
+            <Signature className="h-4 w-4" />
+            Signature box
+          </button>
           <button
             type="button"
             onClick={() => printContractDocument(editor.getHTML())}
@@ -816,15 +943,211 @@ export function ContractDocumentEditor({
           {documentMessage.text}
         </div>
       ) : null}
-      <div className="contract-document-sheet mx-auto my-3 min-h-[700px] max-w-[816px] overflow-x-auto bg-white shadow-[0_10px_35px_rgba(15,23,42,0.10)] sm:my-6">
-        {preview || readOnly ? (
-          <article
-            className="contract-editor-content px-5 py-7 text-[15px] leading-7 text-slate-800 sm:px-12 sm:py-10"
-            dangerouslySetInnerHTML={{ __html: editor.getHTML() }}
-          />
-        ) : (
-          <EditorContent editor={editor} />
-        )}
+      {/*
+        `flex-col-reverse` below xl, grid at xl and up.
+        Stacked, the rail belongs *above* the page rather than below it: a sheet
+        is 700px tall at minimum, and a panel underneath one is a panel nobody
+        scrolls to.
+      */}
+      <div
+        /*
+          The sheet keeps a fixed track and the rail takes the rest, rather than
+          the other way round. With `minmax(0,1fr)` for the sheet the rail's
+          20rem came out of the document, which is what left an 816px page
+          rendering at ~650px. `minmax(0,54rem)` is the sheet's own width plus
+          its margins, so the document is never squeezed and any leftover space
+          goes to the rail instead.
+        */
+        className={`flex flex-col-reverse gap-4 px-2 lg:grid lg:items-start ${
+          railOpen && !readOnly
+            ? "lg:grid-cols-[minmax(0,54rem)_minmax(17rem,1fr)]"
+            : "lg:grid-cols-1"
+        }`}
+      >
+        <div className="min-w-0">
+          <div className="contract-document-sheet mx-auto my-3 min-h-[700px] max-w-[816px] overflow-x-auto bg-white shadow-[0_10px_35px_rgba(15,23,42,0.10)] sm:my-6">
+            {preview || readOnly ? (
+              <article
+                className="contract-editor-content px-5 py-7 text-[15px] leading-7 text-slate-800 sm:px-12 sm:py-10"
+                dangerouslySetInnerHTML={{
+                  __html: previewHtml ?? editor.getHTML(),
+                }}
+              />
+            ) : (
+              <EditorContent editor={editor} />
+            )}
+          </div>
+        </div>
+
+        {railOpen && !readOnly ? (
+          <aside
+            aria-label="Fields and signatures"
+            /*
+             * Sticky, and scrolled independently of the document.
+             *
+             * `top-24` clears the toolbar, which is itself `sticky top-2` and
+             * two rows tall on most widths. The height cap is what makes the
+             * panel usable at all: the field registry is long enough that an
+             * unbounded rail would run past the fold and take the insert
+             * controls with it.
+             */
+            className="mt-3 max-h-[calc(100vh-7rem)] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-3 shadow-sm lg:sticky lg:top-20 lg:mt-6"
+          >
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <h3 className="text-sm font-semibold text-slate-950">
+                  Fields &amp; signatures
+                </h3>
+                <p className="mt-0.5 text-[11px] leading-4 text-slate-500">
+                  Inserted at the caret. The document keeps its position.
+                </p>
+              </div>
+              <button
+                aria-label="Hide fields and signatures"
+                className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                onClick={() => setRailOpen(false)}
+                type="button"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <section className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-2.5">
+              <h4 className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                Signature box
+              </h4>
+              <label className="mt-2 block text-[11px] font-medium text-slate-600">
+                Party
+                <select
+                  className="mt-1 h-9 w-full rounded-lg border border-slate-200 bg-white px-2 text-xs"
+                  onChange={(event) =>
+                    setSignaturePartyIndex(Number(event.target.value))
+                  }
+                  ref={signaturePartyRef}
+                  value={signaturePartyIndex}
+                >
+                  {signatureParties.map((party, index) => (
+                    <option key={party.slot ?? "custom"} value={index}>
+                      {party.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {!signatureParty.slot ? (
+                <label className="mt-2 block text-[11px] font-medium text-slate-600">
+                  Party name
+                  <input
+                    className="mt-1 h-9 w-full rounded-lg border border-slate-200 px-2 text-xs"
+                    onChange={(event) =>
+                      setSignatureCustomLabel(event.target.value)
+                    }
+                    placeholder="Witness, Guarantor, Notary…"
+                    value={signatureCustomLabel}
+                  />
+                </label>
+              ) : null}
+              <label className="mt-2 block text-[11px] font-medium text-slate-600">
+                Caption
+                <input
+                  className="mt-1 h-9 w-full rounded-lg border border-slate-200 px-2 text-xs"
+                  onChange={(event) => setSignatureCaption(event.target.value)}
+                  placeholder="For and on behalf of…"
+                  value={signatureCaption}
+                />
+              </label>
+              <fieldset className="mt-2">
+                <legend className="text-[11px] font-medium text-slate-600">
+                  Lines
+                </legend>
+                <div className="mt-1 flex flex-wrap gap-1.5">
+                  {SIGNATURE_LINES.map((line) => {
+                    const checked = signatureLines.includes(line.key);
+                    return (
+                      <label
+                        className={`inline-flex cursor-pointer items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-semibold ${
+                          checked
+                            ? "border-slate-900 bg-slate-900 text-white"
+                            : "border-slate-200 bg-white text-slate-600"
+                        }`}
+                        key={line.key}
+                      >
+                        <input
+                          checked={checked}
+                          className="sr-only"
+                          onChange={() => toggleSignatureLine(line.key)}
+                          type="checkbox"
+                        />
+                        {line.label}
+                      </label>
+                    );
+                  })}
+                </div>
+              </fieldset>
+              {/*
+                Said plainly rather than discovered at signing time: a party the
+                platform has no signature slot for gets ruled lines, which is a
+                correct wet-ink block and not a broken electronic one.
+              */}
+              <p className="mt-2 text-[11px] leading-4 text-slate-500">
+                {signatureParty.slot
+                  ? signaturePartyNameToken
+                    ? "Signature and date fill in automatically when this party signs."
+                    : "Signature and date fill in automatically; the printed name is left blank."
+                  : "This party has no electronic signature slot, so every line is ruled for signing by hand."}
+              </p>
+              <button
+                className="mt-2 inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-lg bg-slate-950 px-3 text-xs font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
+                disabled={signatureLines.length === 0}
+                onClick={insertSignatureBlock}
+                type="button"
+              >
+                <Signature className="h-4 w-4" />
+                Insert signature box
+              </button>
+            </section>
+
+            <section className="mt-3">
+              <h4 className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                Fields
+              </h4>
+              <input
+                className="mt-1.5 h-9 w-full rounded-lg border border-slate-200 px-2 text-xs"
+                onChange={(event) => setPlaceholderQuery(event.target.value)}
+                placeholder="Search typed fields"
+                value={placeholderQuery}
+              />
+              {placeholderGroups.map(({ group, items }) => (
+                <div key={group}>
+                  <p className="px-1 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                    {group}
+                  </p>
+                  {items.map((definition) => (
+                    <button
+                      className="block w-full rounded-lg px-2 py-1.5 text-left text-xs text-slate-700 hover:bg-slate-50"
+                      key={definition.key}
+                      onClick={() => insertPlaceholder(definition.key)}
+                      title={definition.description}
+                      type="button"
+                    >
+                      <span className="flex items-center justify-between gap-2 font-semibold">
+                        <span>{definition.label}</span>
+                        <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[9px] text-slate-500">
+                          {definition.dataType.replaceAll("_", " ")}
+                        </span>
+                      </span>
+                      <span className="mt-0.5 block font-mono text-[10px] text-slate-500">{`{{${definition.key}}}`}</span>
+                    </button>
+                  ))}
+                </div>
+              ))}
+              {placeholderGroups.length === 0 ? (
+                <p className="px-2 py-4 text-center text-xs text-slate-500">
+                  No fields match this search.
+                </p>
+              ) : null}
+            </section>
+          </aside>
+        ) : null}
       </div>
       {!readOnly ? (
         <div className="flex justify-between border-t border-slate-200 bg-white px-4 py-2 text-[11px] text-slate-500">
@@ -860,6 +1183,10 @@ function printContractDocument(contentHtml: string) {
     img { max-width: 100%; height: auto; }
     hr[data-page-break="true"] { height: 0; margin: 0; border: 0; break-after: page; page-break-after: always; }
     [data-signature-metadata="true"] { display: inline-block; min-width: 240px; padding: 10pt; border: 1px solid #94a3b8; border-radius: 4pt; }
+    table[data-document-role="signature-block"] { width: 90mm; margin: 10mm 0; break-inside: avoid; }
+    table[data-document-role="signature-block"] th { border: 0; background: transparent; padding: 0 2pt 4pt; font-size: 10pt; }
+    table[data-document-role="signature-block"] td { border: 0; border-bottom: 0.5pt solid #94a3b8; padding: 10pt 2pt 3pt; }
+    table[data-document-role="signature-block"] td:first-child { width: 38%; border-bottom: 0; color: #64748b; font-size: 8pt; vertical-align: bottom; }
   </style></head><body>${contentHtml}</body></html>`);
   printWindow.document.close();
   printWindow.focus();
@@ -1067,6 +1394,39 @@ function DocumentEditorStyles() {
         > tr:nth-child(even)
         td {
         background: #f4f7fa;
+      }
+      /*
+        A signature block is ruled lines, not a data grid.
+        The generic table rule boxes every cell, which is right for a schedule
+        of fees and wrong here — a contract signature area has a label and a
+        line to sign on. Only the value cell keeps a rule, and it keeps the one
+        edge that matters.
+      */
+      .contract-editor-content table[data-document-role="signature-block"] {
+        width: min(340px, 100%);
+        margin: 1.4rem 0;
+        break-inside: avoid;
+      }
+      .contract-editor-content table[data-document-role="signature-block"] td {
+        border: 0;
+        border-bottom: 1px solid #94a3b8;
+        padding: 14px 4px 4px;
+      }
+      .contract-editor-content
+        table[data-document-role="signature-block"]
+        td:first-child {
+        width: 38%;
+        border-bottom-color: transparent;
+        color: #64748b;
+        font-size: 11px;
+        vertical-align: bottom;
+      }
+      .contract-editor-content table[data-document-role="signature-block"] th {
+        border: 0;
+        background: transparent;
+        color: #14213d;
+        font-size: 12px;
+        padding: 0 4px 6px;
       }
       .contract-editor-content table[data-document-role="brand"] {
         margin: 0 0 24px;

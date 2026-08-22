@@ -1,8 +1,4 @@
-import {
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { ForbiddenException, Injectable } from '@nestjs/common';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import {
   EntityFieldMetadata,

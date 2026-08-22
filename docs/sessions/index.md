@@ -6,14 +6,12 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 8** · completed: 17
+**Active: 6** · completed: 34
 
 ## Active
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
-| [SESSION-0027](../../docs/sessions/SESSION-0027-hotfix-api-production-heap-cap-to-1536mb.md) | — | Hotfix API production heap cap to 1536MB | ACTIVE | `agent/api-heap-cap-hotfix` | `main` | — | 2026-08-21T06:21:05.333Z |
-| [SESSION-0025](../../docs/sessions/SESSION-0025-deploy-api-heap-cap-change-to-production.md) | — | Deploy API heap cap change to production | ACTIVE | `agent/api-heap-cap-deploy` | `main` | — | 2026-08-20T22:28:30.499Z |
 | [SESSION-0023](../../docs/sessions/SESSION-0023-first-production-release.md) | — | First production release | ACTIVE | `agent/first-production-release` | `main` | — | 2026-08-20T16:21:59.286Z |
 | [SESSION-0022](../../docs/sessions/SESSION-0022-go-live-readiness.md) | TASK-0010 | Go-live readiness | ACTIVE | `agent/go-live-readiness` | `develop` | — | 2026-08-20T11:10:18.564Z |
 | [SESSION-0019](../../docs/sessions/SESSION-0019-ci-browser-install-latency-and-database-e2e-fixture-contract.md) | — | CI browser install latency and database e2e fixture contract | ACTIVE | `agent/ci-e2e-remediation` | `develop` | — | 2026-08-19T20:24:28.476Z |
@@ -25,6 +23,23 @@ see [`README.md`](README.md) for how they stay out of each other's way.
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0041](../../docs/sessions/SESSION-0041-document-vercel-render-and-neon-platform-access-for-agents.md) | — | Document Vercel, Render and Neon platform access for agents | COMPLETE | `agent/platform-access-docs` | `develop` | — | 2026-08-22T13:30:26.204Z |
+| [SESSION-0040](../../docs/sessions/SESSION-0040-qa-verification-of-49-fixed-bugs-remaining-fix-now-items-and.md) | — | QA verification of 49 fixed bugs, remaining FIX_NOW items, and the lint burn-down | COMPLETE | `agent/qa-verify-and-burndown` | `develop` | — | 2026-08-22T09:25:45.183Z |
+| [SESSION-0039](../../docs/sessions/SESSION-0039-backlog-burn-down-open-bugs-and-ready-items.md) | — | Backlog burn-down: open bugs and ready items | COMPLETE | `agent/backlog-burndown` | `develop` | — | 2026-08-22T03:02:42.887Z |
+| [SESSION-0038](../../docs/sessions/SESSION-0038-plans-reset-legacy-pricing-removed-catalogue-reconciled.md) | — | Plans reset: legacy pricing removed, catalogue reconciled | COMPLETE | `agent/plans-reset` | `develop` | — | 2026-08-22T01:50:51.302Z |
+| [SESSION-0037](../../docs/sessions/SESSION-0037-workspace-url-and-tenant-commands-dns-guidance-monitoring-ov.md) | TASK-0017 | Workspace URL and tenant commands, DNS guidance, monitoring overview redesign, dark theme flash, and bulk delete | COMPLETE | `agent/tenant-commands-monitoring-bulk-delete` | `develop` | — | 2026-08-21T23:28:44.546Z |
+| [SESSION-0036](../../docs/sessions/SESSION-0036-tenant-workspace-repair-plan-estimator-notification-count-er.md) | TASK-0016 | Tenant workspace repair, plan estimator, notification count, error-log UX, and a coded checkout block | COMPLETE | `agent/tenant-repair-and-console-ux` | `develop` | — | 2026-08-21T22:23:03.357Z |
+| [SESSION-0035](../../docs/sessions/SESSION-0035-document-rendering-fidelity-editor-stability-admin-theme-sti.md) | TASK-0015 | Document rendering fidelity, editor stability, admin theme, sticky fields rail, and a stuck tenant | COMPLETE | `agent/document-render-and-theme` | `develop` | — | 2026-08-21T20:58:56.938Z |
+| [SESSION-0034](../../docs/sessions/SESSION-0034-landing-ux-modernisation-notification-popover-workspace-host.md) | TASK-0014 | Landing UX modernisation, notification popover, workspace host resolution, timeline paging, template signatures | COMPLETE | `agent/ux-round-two` | `develop` | — | 2026-08-21T19:25:07.378Z |
+| [SESSION-0033](../../docs/sessions/SESSION-0033-platform-admin-and-landing-ux-program.md) | TASK-0013 | Platform Admin and landing UX program | COMPLETE | `agent/admin-landing-ux-program` | `develop` | — | 2026-08-21T17:13:50.968Z |
+| [SESSION-0031](../../docs/sessions/SESSION-0031-checkout-customer-account-fidelity-payment-confirmation-and-.md) | — | Checkout customer account fidelity, payment confirmation, and the PlanPrice migration drift | COMPLETE | `agent/checkout-account-and-payment-confirmation` | `develop` | schema | 2026-08-21T15:48:29.930Z |
+| [SESSION-0030](../../docs/sessions/SESSION-0030-platform-admin-record-header-status-group-and-default-comman.md) | — | Platform Admin record header status group and default command bar | COMPLETE | `agent/admin-record-status-header` | `develop` | runtime-registries | 2026-08-21T13:54:09.827Z |
+| [SESSION-0029](../../docs/sessions/SESSION-0029-lockfile-resolution-and-the-tar-advisory.md) | — | Lockfile resolution and the tar advisory | COMPLETE | `agent/lockfile-resolution-and-tar` | `develop` | — | 2026-08-21T10:26:46.109Z |
+| [SESSION-0028](../../docs/sessions/SESSION-0028-dependency-security-the-active-win-advisory-chain.md) | — | Dependency security: the active-win advisory chain | COMPLETE | `agent/dependency-security-active-win` | `develop` | — | 2026-08-21T07:38:59.264Z |
+| [SESSION-0027](../../docs/sessions/SESSION-0027-hotfix-api-production-heap-cap-to-1536mb.md) | — | Hotfix API production heap cap to 1536MB | COMPLETE | `agent/api-heap-cap-hotfix` | `main` | — | 2026-08-21T06:21:05.333Z |
+| [SESSION-0026](../../docs/sessions/SESSION-0026-final-agent-operating-system-upgrade.md) | TASK-0012 | Final agent operating system upgrade | COMPLETE | `agent/agent-operating-system` | `develop` | — | 2026-08-20T22:43:51.238Z |
+| [SESSION-0025](../../docs/sessions/SESSION-0025-deploy-api-heap-cap-change-to-production.md) | — | Deploy API heap cap change to production | COMPLETE | `agent/api-heap-cap-deploy` | `main` | — | 2026-08-20T22:28:30.499Z |
+| [SESSION-0024](../../docs/sessions/SESSION-0024-neon-pooled-endpoint-blocks-prisma-migrate-advisory-lock.md) | — | Neon pooled endpoint blocks Prisma migrate advisory lock | COMPLETE | `agent/neon-pooler-migration-bug` | `develop` | — | 2026-08-20T21:37:09.447Z |
 | [SESSION-0021](../../docs/sessions/SESSION-0021-identity-and-multi-tenant-membership.md) | — | Identity and multi-tenant membership | COMPLETE | `agent/identity-and-membership` | `develop` | — | 2026-08-20T05:51:24.102Z |
 | [SESSION-0020](../../docs/sessions/SESSION-0020-database-agent-coherence-is-verified-after-schema-work-not-o.md) | — | Database Agent coherence is verified after schema work, not only before | COMPLETE | `agent/db-coherence-postflight` | `develop` | — | 2026-08-20T05:46:42.814Z |
 | [SESSION-0018](../../docs/sessions/SESSION-0018-self-service-onboarding-provisioning-domain-routing-and-cent.md) | TASK-0008 | Self-service onboarding, provisioning, domain routing and central login | COMPLETE | `agent/self-service-onboarding-provisioning` | `develop` | — | 2026-08-18T23:23:49.309Z |

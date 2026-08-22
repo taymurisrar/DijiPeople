@@ -5,7 +5,6 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
-  Query,
   Res,
   StreamableFile,
   UseGuards,

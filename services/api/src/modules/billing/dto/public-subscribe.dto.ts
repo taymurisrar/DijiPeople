@@ -39,6 +39,24 @@ function normalizeSlug({ value }: { value: unknown }) {
 }
 
 export class PublicSubscribeDto {
+  /**
+   * The partner referral code the buyer arrived with, if any.
+   *
+   * A code, never a partner id. This value is resolved server-side against
+   * the referral links; a caller that could name a partner directly would
+   * be assigning itself a commission. An unrecognised, expired or disabled
+   * code does not refuse the purchase — it is recorded as what it is.
+   * BUG-0281.
+   */
+  @IsOptional()
+  @Transform(trimToUndefined)
+  @IsString()
+  @MaxLength(64)
+  @Matches(/^[A-Za-z0-9_-]+$/, {
+    message: 'referralCode must be a valid referral code.',
+  })
+  referralCode?: string;
+
   @IsUUID()
   planPriceId!: string;
 

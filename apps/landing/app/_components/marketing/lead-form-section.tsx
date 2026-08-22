@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useId, useRef, useState } from "react";
+import { FormEvent, useId, useRef, useState } from "react";
 import { ArrowRight, Mail, Phone } from "lucide-react";
 import {
   companySizeOptions,
@@ -8,6 +8,7 @@ import {
   industryOptions,
   interestedPlanOptions,
 } from "./content";
+import { readReferralCode } from "@/lib/referral";
 
 type LeadFormState = {
   firstName: string;
@@ -71,14 +72,10 @@ export function LeadFormSection() {
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    const referralCode = new URLSearchParams(window.location.search).get("ref");
-    if (!referralCode || !/^[A-Za-z0-9_-]{1,64}$/.test(referralCode)) return;
-    const normalized = referralCode.toUpperCase();
-    window.sessionStorage.setItem("dijipeople_referral", normalized);
-    const secure = window.location.protocol === "https:" ? "; Secure" : "";
-    document.cookie = `dijipeople_referral=${encodeURIComponent(normalized)}; Path=/; Max-Age=2592000; SameSite=Lax${secure}`;
-  }, []);
+  // Capture moved to `<ReferralCapture>` in the root layout. It ran here, in a
+  // form-scoped effect, which meant a visitor who followed a partner link and
+  // went straight to Plans -> Subscribe never captured anything and their
+  // purchase was recorded as a direct sale. BUG-0281.
 
   function updateField<Key extends keyof LeadFormState>(
     key: Key,
@@ -418,20 +415,6 @@ export function LeadFormSection() {
       </div>
     </section>
   );
-}
-
-function readReferralCode() {
-  if (typeof window === "undefined") return undefined;
-  const sessionCode = window.sessionStorage.getItem("dijipeople_referral");
-  const cookieCode = document.cookie
-    .split(";")
-    .map((value) => value.trim())
-    .find((value) => value.startsWith("dijipeople_referral="))
-    ?.split("=")
-    .slice(1)
-    .join("=");
-  const code = sessionCode ?? (cookieCode ? decodeURIComponent(cookieCode) : undefined);
-  return code && /^[A-Za-z0-9_-]{1,64}$/.test(code) ? code.toUpperCase() : undefined;
 }
 
 function ContactRow({

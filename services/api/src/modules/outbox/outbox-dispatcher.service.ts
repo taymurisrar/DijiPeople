@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
-import { OutboxEventStatus, Prisma } from '@prisma/client';
+import { OutboxEventStatus } from '@prisma/client';
 import type { DomainEventType, OutboxEvent } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../../common/prisma/prisma.service';

@@ -220,3 +220,39 @@ computed money.
 - Colocated `*.spec.ts` covering the new business rule
 - Validation run per `testing-architecture.md`, results reported honestly
 - Report: files changed, decisions, reuse, validation, risks, unresolved items
+
+---
+
+## Determinism questions for any lookup or resolution logic
+
+Before a function that selects, matches or resolves a record is considered done:
+
+```
+MULTIPLE_MATCH_STATE_DEFINED?   what happens when more than one row qualifies
+ORDERING_DEFINED?               is the order specified, or incidental
+UNIQUENESS_GUARANTEED?          by a constraint, or by hope
+EMPTY_STATE_DEFINED?            zero rows is a case, not an exception
+FALLBACK_DEFINED?               what is returned when nothing resolves
+DETERMINISM_PROVEN?             same input, same output, across runs
+```
+
+`findFirst` without an `orderBy` is the canonical failure: it works in
+development against three rows and picks a different one in production against
+three thousand. "It has always returned the right one" is an observation about
+the current data, not a property of the code.
+
+## Handoff fields this role answers
+
+```
+API_CONTRACT_CHANGED         DOMAIN_STATE_CHANGED      PUBLIC_CONTRACT_CHANGED
+EVENT_CONTRACT_CHANGED       BACKWARD_COMPATIBILITY
+DATABASE_HANDOFF_ACCEPTED    SECURITY_HANDOFF_ACCEPTED
+```
+
+The two `_ACCEPTED` fields are acknowledgements, not self-assessments: they say
+this role received and applied what Database and Security handed over. Marking
+either without the handoff having happened is the shape of a `HANDOFF_GAP`,
+where two agents each assume the other did it.
+
+Three frontends, an Electron agent and a .NET gateway consume these contracts,
+so `BACKWARD_COMPATIBILITY` is rarely `N/A`.

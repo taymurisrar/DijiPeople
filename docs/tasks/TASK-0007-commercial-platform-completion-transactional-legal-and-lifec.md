@@ -4,6 +4,7 @@ aliases: [TASK-0007]
 TITLE: Commercial platform completion — transactional, legal and lifecycle half
 TYPE: FEATURE
 SIZE: PROGRAM
+WORK_PACKAGE_FILES: NOT_REQUIRED - predates the per-package file convention introduced by TASK-0012; table-only state retained rather than backfilled with invented manifests
 STATUS: IN_PROGRESS
 PRIORITY: P0
 CREATED_AT: 2026-08-18
@@ -11,6 +12,7 @@ AFFECTED_MODULES: [billing, super-admin, tenant-control-plane, legal, notificati
 AGENTS: [Architect, Database, Backend/API, Frontend, UI/UX, Integration, QA, Reviewer, Integrator, Release/DevOps]
 DEPENDENCIES: origin/develop c332992; PARENT-SCOPE-RECONCILIATION; schema and permissions leases
 CURRENT_PACKAGE: WP-11
+NEXT_READY_WORK_PACKAGE: NONE
 COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10, WP-12]
 BLOCKED_PACKAGES: [WP-15]
 OWNER_DECISIONS: 2

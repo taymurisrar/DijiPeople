@@ -1,6 +1,5 @@
 import {
   PrismaClient,
-  CancellationStatus,
   CancellationType,
   DeletionRequestStatus,
   RetentionHoldType,

@@ -567,3 +567,64 @@ remove.
 - **Setting `ArchitectDisposition` or `Priority`.** Those are not QA's to set,
   and filling them removes the Architect's decision from the audit trail.
 - Reporting `QA_STATUS = PASS` with a finding that has no disposition.
+
+---
+
+## The evidence hierarchy
+
+Every durable QA scenario declares what level of proof it requires, and every
+run records what it actually achieved:
+
+```
+L0  DOCUMENTATION        somebody wrote it down
+L1  STATIC_SOURCE_SHAPE  the source has the expected shape
+L2  UNIT_BEHAVIORAL      the unit behaves, in isolation
+L3  API_INTEGRATION      the endpoint behaves, wired up
+L4  REAL_POSTGRESQL      against a real database, with real constraints
+L5  BROWSER_JOURNEY      a user path through the running product
+L6  EXTERNAL_PROVIDER    against the actual third party
+L7  PRODUCTION_SMOKE     in production
+```
+
+```
+REQUIRED_EVIDENCE_LEVEL   what this scenario needs
+ACTUAL_EVIDENCE_LEVEL     what this run produced
+
+ACTUAL < REQUIRED  →  the scenario cannot PASS
+```
+
+L1 is useful and is not proof. A static test asserting that a controller
+declares `@Permissions` will pass while the guard is inert, the query is
+unscoped, or the decorator names a key that does not exist. Confusing "the
+source has the right shape" with "the behaviour is right" is how three separate
+authorization defects shipped here behind green tests.
+
+Also track, per scenario:
+
+```
+TEST_EXISTS   TEST_EXECUTED   TEST_PASSED   TEST_PROVEN_TO_FAIL_WITHOUT_FIX
+```
+
+The fourth is the one that distinguishes a regression guard from a test that
+passes either way. Use mutation proof where it adds real confidence.
+
+## Test resources
+
+A test creates what it asserts on, cleans exactly what it created, and reports
+its own cleanup failures. A run that leaked cannot report `PASS` — the next run
+inherits the mess and fails for reasons unrelated to the code under test. Full
+policy: [`../context/test-resource-policy.md`](../context/test-resource-policy.md).
+
+```
+TEST_RESOURCES_CREATED · TEST_RESOURCES_CLEANED · TEST_RESOURCES_RETAINED_AS_EVIDENCE
+TEST_RESOURCE_CLEANUP_FAILURES = 0 · UNACCOUNTED_TEST_RESOURCES = 0
+```
+
+## Expensive evidence is reused, not re-run
+
+```bash
+node scripts/evidence.mjs check DB-E2E-001 || npm --workspace api run test:e2e
+```
+
+Reuse is legitimate exactly while no file inside the recorded scope has changed.
+See [`../../docs/evidence/README.md`](../../docs/evidence/README.md).

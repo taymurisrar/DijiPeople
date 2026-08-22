@@ -382,6 +382,20 @@ enum IdentityStatus {
   SUSPENDED
 }
 
+/// The console's colour scheme. `SYSTEM` follows the operating system, which is
+/// the default and the reason this column is nullable rather than defaulted.
+enum PlatformUiTheme {
+  SYSTEM
+  LIGHT
+  DARK
+}
+
+/// Row height and padding across admin tables and forms.
+enum PlatformUiDensity {
+  COMFORTABLE
+  COMPACT
+}
+
 enum PlatformUserRole {
   SUPER_ADMIN
   MEMBER
@@ -4408,6 +4422,20 @@ model PlatformUser {
   status                   PlatformUserStatus         @default(ACTIVE)
   lastActiveAt             DateTime?
   defaultDashboardView     String?
+  /// Personal console preferences. Nullable because "not chosen" and "chose the
+  /// default" are different: a null follows the platform default if that ever
+  /// changes, a stored value keeps what the person picked.
+  uiTheme                  PlatformUiTheme?
+  uiDensity                PlatformUiDensity?
+  /// Where this operator lands after signing in, as a route this app owns.
+  /// Validated against a fixed list rather than stored as free text, so a
+  /// preference can never become an open redirect.
+  defaultLandingRoute      String?
+  /// When this operator last opened the notifications feed. Unread is derived
+  /// from it rather than stored per event: the feed is a projection of
+  /// `PlatformEvent`, which nothing owns per-user, and a read receipt table
+  /// would be a second write on every page view for a count.
+  notificationsReadAt      DateTime?
   createdAt                DateTime                   @default(now())
   updatedAt                DateTime                   @updatedAt
   createdById              String?

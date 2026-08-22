@@ -29,6 +29,7 @@ import {
   type AudienceOptions,
 } from "@/app/components/runtime/visibility-rules-editor";
 import type { VisibilityRule } from "@/lib/runtime/visibility.resolver";
+import { useDialogBehavior } from "@/app/components/ui/dialog";
 
 type MetadataComponentType =
   | "choiceList"
@@ -376,6 +377,14 @@ export function MetadataComponentsManagement({
     router.refresh();
   }
 
+  // BUG-0043: this modal kept its own layout and gained the guarantees
+  // it never had - focus containment, Escape, focus restore and dialog
+  // semantics. See useDialogBehavior.
+  const editorDialog = useDialogBehavior({
+    open: Boolean(editor),
+    onClose: () => setEditor(null),
+  });
+
   return (
     <SectionCard description={config.description} title={config.title}>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -454,13 +463,17 @@ export function MetadataComponentsManagement({
       />
 
       {editor ? (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/40 p-4">
+        <div
+          className="fixed inset-0 z-50 grid place-items-center bg-slate-950/40 p-4"
+          {...editorDialog.backdropProps}
+        >
           <form
+            {...editorDialog.panelProps}
             className="grid max-h-[92vh] w-full max-w-4xl gap-4 overflow-y-auto rounded-lg border border-border bg-white p-5 shadow-xl"
             onSubmit={handleSubmit}
           >
             <div>
-              <h3 className="text-base font-semibold text-foreground">
+              <h3 className="text-base font-semibold text-foreground" id={editorDialog.titleId}>
                 {editor.mode === "create" ? config.addLabel : "Edit metadata"}
               </h3>
               <p className="mt-1 text-sm text-muted">
@@ -1021,6 +1034,13 @@ function ActionBarEditor({
               }
               draggable
               key={row.id}
+              /*
+               * A row in a reorderable list. `draggable` is a pointer
+               * affordance, not a control — the row activates nothing, and every
+               * field in it is separately reachable. Keyboard reordering is
+               * ITEM-0080. BUG-0043.
+               */
+              role="listitem"
               onDragEnd={() => setDragIndex(null)}
               onDragOver={(event) => event.preventDefault()}
               onDragStart={() => setDragIndex(index)}

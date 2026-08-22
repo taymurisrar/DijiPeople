@@ -29,7 +29,6 @@ import { buildScopedAccessWhere } from '../../common/security/rbac-query-scope';
 import { hasAnyRole } from '../../common/security/role-matching';
 import { canManageEmployeeAccountActions } from '../../common/security/employee-account-actions';
 import {
-  canEditEmployeeCoreProfile,
   canEditEmployeeRecord,
   ELEVATED_TENANT_ROLE_KEYS,
   hasElevatedTenantRole,

@@ -6,14 +6,14 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 133,
-    "bugs": 73,
-    "backlog_items": 60,
+    "total_records": 198,
+    "bugs": 118,
+    "backlog_items": 76,
     "open_bucket": 4,
     "blocked_bucket": 0,
     "deferred_bucket": 2,
     "product_decision_bucket": 2,
-    "completed_bucket": 88,
+    "completed_bucket": 108,
     "parser_structural_errors": 0,
     "active_session_conflict": "NONE",
     "discovered_findings_total": 34,
@@ -21,8 +21,8 @@
     "qa_findings": 10,
     "obsidian_findings": 2,
     "evidence_verified_during_triage": 28,
-    "preliminary_records": 67,
-    "pending_qa_retest_records": 3,
+    "preliminary_records": 68,
+    "pending_qa_retest_records": 4,
     "terminal_reverification_remaining": 70,
     "canonical_record_count_policy": "Findings that substantiate an existing BUG/ITEM link to that canonical record and do not create a duplicate record row.",
     "wp02_remediated_findings": 21,
@@ -1512,7 +1512,8 @@
         "QA-ONBOARD-005"
       ],
       "test_plan": [
-        "PLAN-004"
+        "PLAN-004",
+        "PLAN-020"
       ],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
@@ -1688,7 +1689,8 @@
         "QA-ONBOARD-008"
       ],
       "test_plan": [
-        "PLAN-004"
+        "PLAN-004",
+        "PLAN-020"
       ],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
@@ -1810,8 +1812,8 @@
         "REG-024"
       ],
       "qa_scenarios": [
-        "QA-LEAD-003",
-        "QA-LANDING-010"
+        "QA-LANDING-010",
+        "QA-LEAD-003"
       ],
       "test_plan": [
         "PLAN-005"
@@ -2300,14 +2302,14 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "1af3690",
         "created_at": "2026-08-17",
-        "updated_at": "2026-08-18",
-        "resolved_at": ""
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
       },
       "type": "SECURITY",
       "title": "Web route proxies make authorization and business decisions",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
+      "current_status": "VERIFIED",
       "current_evidence": {
         "paths": [
           "docs/bugs/BUG-0041-web-route-proxies-make-authorization-and-business-decisions.md",
@@ -2331,15 +2333,21 @@
         "ITEM-0034"
       ],
       "regressions": [
-        "REG-055"
+        "REG-055",
+        "REG-205",
+        "REG-206",
+        "REG-218"
       ],
       "qa_scenarios": [
-        "QA-RUNTIME-010"
+        "QA-AUTHZ-012",
+        "QA-PAYROLL-001",
+        "QA-RUNTIME-010",
+        "QA-TENANT-013"
       ],
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "PLAN_REQUIRED",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "VERIFIED",
         "classification": "ACTIVE_AS_DOCUMENTED",
@@ -2410,14 +2418,14 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "1af3690",
         "created_at": "2026-08-17",
-        "updated_at": "2026-08-17",
-        "resolved_at": ""
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
       },
       "type": "UX",
       "title": "Web dialogs have no focus trap and filter controls are unlabelled",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
+      "current_status": "VERIFIED",
       "current_evidence": {
         "paths": [
           "docs/bugs/BUG-0043-web-dialogs-have-no-focus-trap-and-filter-controls-are-unlab.md",
@@ -2437,12 +2445,16 @@
         "ITEM-0031",
         "ITEM-0034"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-216"
+      ],
+      "qa_scenarios": [
+        "QA-RUNTIME-013"
+      ],
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "PLAN_REQUIRED",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "VERIFIED",
         "classification": "ACTIVE_AS_DOCUMENTED",
@@ -2515,14 +2527,14 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "1af3690",
         "created_at": "2026-08-17",
-        "updated_at": "2026-08-17",
-        "resolved_at": ""
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
       },
       "type": "DOCUMENTATION",
       "title": "The canonical settings and branding contract is materially stale",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
+      "current_status": "VERIFIED",
       "current_evidence": {
         "paths": [
           "docs/bugs/BUG-0045-the-canonical-settings-and-branding-contract-is-materially-s.md",
@@ -2543,12 +2555,16 @@
         "BUG-0046"
       ],
       "related_backlog": [],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-208"
+      ],
+      "qa_scenarios": [
+        "QA-RUNTIME-011"
+      ],
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "PLAN_REQUIRED",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "VERIFIED",
         "classification": "ACTIVE_AS_DOCUMENTED",
@@ -2908,14 +2924,14 @@
         "provenance": "ARCHITECT",
         "detected_in_sha": "0051180",
         "created_at": "2026-08-17",
-        "updated_at": "2026-08-20",
-        "resolved_at": ""
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
       },
       "type": "SECURITY",
       "title": "Production dependency graph carries critical and high security advisories",
       "severity": "HIGH",
       "priority": "P0",
-      "current_status": "OPEN",
+      "current_status": "VERIFIED",
       "current_evidence": {
         "paths": [
           "docs/bugs/BUG-0052-production-dependency-graph-carries-critical-and-high-securi.md"
@@ -2936,12 +2952,16 @@
       },
       "related_bugs": [],
       "related_backlog": [],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-217"
+      ],
+      "qa_scenarios": [
+        "QA-DEPLOY-021"
+      ],
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "PRELIMINARY",
         "classification": "ACTIVE_AS_DOCUMENTED",
@@ -3499,6 +3519,3063 @@
       }
     },
     {
+      "record_id": "BUG-0068",
+      "source": {
+        "record_path": "docs/bugs/BUG-0068-prisma-client-freshness-check-is-blind-to-field-level-drift.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "304bfda",
+        "created_at": "2026-08-18",
+        "updated_at": "2026-08-18",
+        "resolved_at": "2026-08-18"
+      },
+      "type": "INFRA",
+      "title": "Prisma client freshness check is blind to field-level drift",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "VERIFIED",
+      "current_evidence": {
+        "paths": [
+          "docs/bugs/BUG-0068-prisma-client-freshness-check-is-blind-to-field-level-drift.md",
+          "scripts/check-prisma-client-fresh.mjs"
+        ],
+        "verification_scope": "Mutation-tested in both directions: a schema-only field produces exit 1 naming the field, and a restored schema produces exit 0. The eight reported TypeScript errors clear after prisma:generate."
+      },
+      "affected_modules": [
+        "scripts",
+        "services/api"
+      ],
+      "dependencies": {
+        "record_ids": [
+          "BUG-0060"
+        ],
+        "note": "Extends the BUG-0060 guard."
+      },
+      "related_bugs": [
+        "BUG-0060"
+      ],
+      "related_backlog": [],
+      "regressions": [
+        "REG-063"
+      ],
+      "qa_scenarios": [
+        "QA-CI-002",
+        "QA-DEPLOY-014"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0070",
+      "source": {
+        "record_path": "docs/bugs/BUG-0070-outbox-deduplication-aborted-the-caller-transaction-on-postg.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "1fb2bf9",
+        "created_at": "2026-08-18",
+        "updated_at": "2026-08-18",
+        "resolved_at": "2026-08-18"
+      },
+      "type": "BUG",
+      "title": "Outbox deduplication aborted the caller transaction on PostgreSQL",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "VERIFIED",
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/outbox/outbox.service.ts",
+          "services/api/test/outbox-delivery.e2e-spec.ts"
+        ],
+        "verification_scope": "Proven against real PostgreSQL 18 in both directions: the pre-fix implementation fails with \"current transaction is aborted\", the ON CONFLICT DO NOTHING implementation passes 5 of 5 including the two-dispatcher concurrency case."
+      },
+      "affected_modules": [
+        "outbox"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": "Introduced and fixed inside TASK-0007 WP-01."
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [
+        "REG-064"
+      ],
+      "qa_scenarios": [
+        "QA-BILLING-002"
+      ],
+      "test_plan": [
+        "PLAN-014"
+      ],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0071",
+      "source": {
+        "record_path": "docs/bugs/BUG-0071-tenant-users-reach-every-platform-super-admin-endpoint.md",
+        "provenance": "QA_RUN",
+        "created_at": "2026-08-18",
+        "updated_at": "2026-08-18",
+        "detected_in_sha": "aa33524",
+        "resolved_at": "2026-08-18"
+      },
+      "type": "AUTHORIZATION",
+      "title": "Tenant users reach every platform super-admin endpoint",
+      "severity": "CRITICAL",
+      "priority": "P0",
+      "current_status": "VERIFIED",
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/platform-auth/platform-permissions.ts",
+          "services/api/src/modules/super-admin/super-admin.controller.ts",
+          "services/api/src/modules/platform-communications/platform-email-settings.service.ts"
+        ],
+        "verification_scope": "Reproduced live against a seeded local stack: a tenant user holding the ordinary system-admin tenant role received 200 from all 16 super-admin GET routes and 400 (not 403) from PATCH platform-settings and platform-email, proving authorization had passed. Retested on the fixed build, verified by inspecting the compiled artifact rather than assumed: 403 on every route for the tenant subject, 200 for the platform subject including the three routes that previously 403d for platform operators."
+      },
+      "affected_modules": [
+        "super-admin",
+        "platform-auth",
+        "platform-communications"
+      ],
+      "dependencies": {
+        "record_ids": [
+          "BUG-0072"
+        ],
+        "note": "Same resolver and guard; fixed in one commit under a shared ExecPlan."
+      },
+      "related_bugs": [
+        "BUG-0072"
+      ],
+      "related_backlog": [],
+      "regressions": [
+        "REG-066"
+      ],
+      "qa_scenarios": [
+        "QA-AUTHZ-010"
+      ],
+      "test_plan": [
+        "PLAN-002"
+      ],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
+      "verification_result": {
+        "result": "FIXED",
+        "classification": "REMEDIATED_AND_RETESTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0072",
+      "source": {
+        "record_path": "docs/bugs/BUG-0072-platform-mutations-map-to-read-permissions-letting-the-read-.md",
+        "provenance": "QA_RUN",
+        "created_at": "2026-08-18",
+        "updated_at": "2026-08-18",
+        "detected_in_sha": "aa33524",
+        "resolved_at": "2026-08-18"
+      },
+      "type": "AUTHORIZATION",
+      "title": "Platform mutations map to read permissions, letting the read-only auditor write",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "VERIFIED",
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/platform-auth/platform-permissions.ts",
+          "services/api/src/modules/super-admin/super-admin.controller.ts"
+        ],
+        "verification_scope": "Enumerated from the controller PATH_METADATA and METHOD_METADATA rather than a hand-written list. Before: four routes resolved no permission and eight mutating routes resolved a .read permission, including POST /plans, PATCH /plans/:planId, DELETE /plans/:planId/prices/:priceId and POST /billing/stripe-webhook-events/:id/retry. After: both lists empty; READ_ONLY_AUDITOR refused plans.manage while PLATFORM_ADMIN retains it."
+      },
+      "affected_modules": [
+        "super-admin",
+        "platform-auth"
+      ],
+      "dependencies": {
+        "record_ids": [
+          "BUG-0071"
+        ],
+        "note": "Same resolver; a partial fix to either left the other reachable."
+      },
+      "related_bugs": [
+        "BUG-0071"
+      ],
+      "related_backlog": [],
+      "regressions": [
+        "REG-067"
+      ],
+      "qa_scenarios": [
+        "QA-AUTHZ-011"
+      ],
+      "test_plan": [
+        "PLAN-002"
+      ],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
+      "verification_result": {
+        "result": "FIXED",
+        "classification": "REMEDIATED_AND_RETESTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0073",
+      "source": {
+        "record_path": "docs/bugs/BUG-0073-small-uppercase-labels-in-slate-400-fail-wcag-aa-contrast-ac.md",
+        "provenance": "QA_RUN",
+        "created_at": "2026-08-19",
+        "updated_at": "2026-08-19",
+        "detected_in_sha": "4290c03",
+        "resolved_at": "2026-08-19"
+      },
+      "type": "UX",
+      "title": "Small uppercase labels in slate-400 fail WCAG AA contrast across admin",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "VERIFIED",
+      "current_evidence": {
+        "paths": [
+          "apps/admin/app/_components/admin-sidebar.tsx",
+          "apps/admin/app/_components/runtime/runtime-view-selector.tsx",
+          "apps/admin/app/(internal)/operations/provisioning/provisioning-queue.tsx"
+        ],
+        "verification_scope": "axe reported SERIOUS color-contrast on every admin screen: slate-400 on white is ~2.8:1 against a 4.5:1 requirement, and two of the three instances are in the shared shell. Raised to slate-500 (~4.8:1) and retested - E3 passes for both audited screens."
+      },
+      "affected_modules": [
+        "apps/admin"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": "Found in one audit; fixed together."
+      },
+      "related_bugs": [
+        "BUG-0074"
+      ],
+      "related_backlog": [],
+      "regressions": [
+        "REG-068"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-002"
+      ],
+      "test_plan": [
+        "PLAN-019"
+      ],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
+      "verification_result": {
+        "result": "FIXED",
+        "classification": "REMEDIATED_AND_RETESTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0074",
+      "source": {
+        "record_path": "docs/bugs/BUG-0074-the-provisioning-queue-scroll-container-was-unreachable-by-k.md",
+        "provenance": "QA_RUN",
+        "created_at": "2026-08-19",
+        "updated_at": "2026-08-19",
+        "detected_in_sha": "4290c03",
+        "resolved_at": "2026-08-19"
+      },
+      "type": "UX",
+      "title": "The provisioning queue scroll container was unreachable by keyboard",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "VERIFIED",
+      "current_evidence": {
+        "paths": [
+          "apps/admin/app/(internal)/operations/provisioning/provisioning-queue.tsx"
+        ],
+        "verification_scope": "axe reported SERIOUS scrollable-region-focusable: the overflow-x-auto container had no tabIndex, so the Blocker, Attempt and Correlation columns were pointer-only. Given role=region, an aria-label and tabIndex=0; E3 and E4 both pass, so the keyboard fix did not reintroduce body overflow."
+      },
+      "affected_modules": [
+        "apps/admin"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": "Found in one audit; fixed together."
+      },
+      "related_bugs": [
+        "BUG-0073"
+      ],
+      "related_backlog": [],
+      "regressions": [
+        "REG-068"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-002"
+      ],
+      "test_plan": [
+        "PLAN-019"
+      ],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
+      "verification_result": {
+        "result": "FIXED",
+        "classification": "REMEDIATED_AND_RETESTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0075",
+      "source": {
+        "record_path": "docs/bugs/BUG-0075-public-subscribe-checkout-has-no-rate-limit-and-the-invarian.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "494c44d",
+        "created_at": "2026-08-19",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-19"
+      },
+      "type": "SECURITY",
+      "title": "Public subscribe checkout has no rate limit and the invariant that should catch it is inert",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "VERIFIED",
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/billing/controllers/public-billing.controller.ts",
+          "services/api/src/common/guards/public-write-rate-limit.invariant.spec.ts"
+        ],
+        "verification_scope": "Mutation-tested in both directions. Old predicate against the unguarded controller: 13 passed, blind. Corrected predicate with the guard removed and the import left in place: 1 failed, naming createSubscriptionCheckout. Corrected predicate with the guard restored: 13 passed. Swept all 106 controllers and found exactly one offender."
+      },
+      "affected_modules": [
+        "billing",
+        "common/guards"
+      ],
+      "dependencies": {
+        "record_ids": [
+          "ITEM-0013"
+        ],
+        "note": "Found during the TASK-0008 reconciliation and fixed inside it. Third recurrence of the BUG-0013/BUG-0031/BUG-0033 family; the ITEM-0013 invariant built to stop it was structurally unable to see it."
+      },
+      "related_bugs": [
+        "BUG-0013",
+        "BUG-0031",
+        "BUG-0033"
+      ],
+      "related_backlog": [
+        "ITEM-0013"
+      ],
+      "regressions": [
+        "REG-071"
+      ],
+      "qa_scenarios": [
+        "QA-BILLING-007"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
+      "verification_result": {
+        "result": "FIXED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0076",
+      "source": {
+        "record_path": "docs/bugs/BUG-0076-repository-health-never-inspected-the-primary-worktree-so-a-.md",
+        "provenance": "USER_REPORT",
+        "created_at": "2026-08-19",
+        "updated_at": "2026-08-22",
+        "detected_in_sha": "494c44d",
+        "resolved_at": "2026-08-19"
+      },
+      "type": "INFRA",
+      "title": "Repository health never inspected the primary worktree, so a clean task worktree passed as CLEANUP_STATUS DONE",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "VERIFIED",
+      "current_evidence": {
+        "paths": [
+          "scripts/repo-health.mjs",
+          "scripts/session.mjs",
+          "scripts/validate-framework.mjs",
+          ".agent/context/repository-health.md",
+          ".agent/context/task-completion-contract.md"
+        ],
+        "verification_scope": "repo-health.mjs computed per-worktree dirtiness, dropped it from the report, and warned only when the invoking worktree was dirty AND on main - so a dirty develop in the user's primary checkout produced no output at all. Fixed by classifying every worktree PRIMARY/TASK/OTHER, attributing every dirty path in the primary checkout to USER, SESSION-nnnn, GENERATED_BY_FRAMEWORK or UNKNOWN, and making DIRTY_UNEXPLAINED a blocker. session.mjs now reports PRIMARY_WORKTREE_ARTIFACT when it writes a record into a checkout the session will not work in. Covered by behavioural simulations 37A-37G, 38 and 39 and mutation-tested seven ways, all killed."
+      },
+      "affected_modules": [
+        "scripts/repo-health.mjs",
+        "scripts/session.mjs"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": "None."
+      },
+      "related_bugs": [],
+      "related_backlog": [
+        "ITEM-0057",
+        "ITEM-0058"
+      ],
+      "regressions": [
+        "REG-065"
+      ],
+      "qa_scenarios": [
+        "QA-DEPLOY-015"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
+      "verification_result": {
+        "result": "FIXED",
+        "classification": "REMEDIATED_WITH_REGRESSION",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0077",
+      "source": {
+        "record_path": "docs/bugs/BUG-0077-public-subscribe-creates-a-tenant-and-a-second-customeraccou.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "4f966ea",
+        "created_at": "2026-08-19",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-19"
+      },
+      "type": "DATA_INTEGRITY",
+      "title": "Public subscribe creates a Tenant and a second CustomerAccount before payment",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "VERIFIED",
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/billing/services/billing.service.ts"
+        ],
+        "verification_scope": "Fixed and mutation-tested: the regression run against pre-fix source reproduces all four symptoms including the fabricated Unknown columns; restored, all four pass."
+      },
+      "affected_modules": [
+        "billing",
+        "super-admin",
+        "tenants"
+      ],
+      "dependencies": {
+        "record_ids": [
+          "BUG-0078"
+        ],
+        "note": "Must land with BUG-0078. Removing the pre-payment tenant without wiring the provisioning consumer would strand paying customers."
+      },
+      "related_bugs": [
+        "BUG-0078"
+      ],
+      "related_backlog": [],
+      "regressions": [
+        "REG-072"
+      ],
+      "qa_scenarios": [
+        "QA-BILLING-008"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
+      "verification_result": {
+        "result": "FIXED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0078",
+      "source": {
+        "record_path": "docs/bugs/BUG-0078-provisioning-requested-has-no-consumer-so-a-paid-self-servic.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "4f966ea",
+        "created_at": "2026-08-19",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-19"
+      },
+      "type": "STATE_MACHINE",
+      "title": "PROVISIONING_REQUESTED has no consumer so a paid self-service customer is never provisioned",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "VERIFIED",
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/billing/services/order-activation.service.ts",
+          "services/api/src/modules/billing/services/payment-confirmed.handler.ts"
+        ],
+        "verification_scope": "Consumer added and the engine made reachable without a human actor. Invariant mutation-tested: emptying the handles array fails naming PROVISIONING_REQUESTED."
+      },
+      "affected_modules": [
+        "billing",
+        "outbox",
+        "super-admin"
+      ],
+      "dependencies": {
+        "record_ids": [
+          "BUG-0077"
+        ],
+        "note": "Must land with BUG-0077."
+      },
+      "related_bugs": [
+        "BUG-0077"
+      ],
+      "related_backlog": [],
+      "regressions": [
+        "REG-073"
+      ],
+      "qa_scenarios": [
+        "QA-BILLING-009"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
+      "verification_result": {
+        "result": "FIXED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0079",
+      "source": {
+        "record_path": "docs/bugs/BUG-0079-browser-e2e-spends-its-whole-install-step-on-apt-work-that-i.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "e6f4cbe",
+        "created_at": "2026-08-19",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-20"
+      },
+      "type": "PERFORMANCE",
+      "title": "Browser e2e spends its whole install step on apt work that installs no browser library",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "VERIFIED",
+      "current_evidence": {
+        "paths": [
+          "docs/bugs/BUG-0079-browser-e2e-spends-its-whole-install-step-on-apt-work-that-i.md",
+          "scripts/install-browser.mjs",
+          ".github/workflows/ci.yml"
+        ],
+        "verification_scope": "Root cause established from run 32294710633 job logs; fix measured locally and verified in CI."
+      },
+      "affected_modules": [
+        ".github/workflows",
+        "e2e"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [
+        "ITEM-0047",
+        "ITEM-0034"
+      ],
+      "regressions": [
+        "REG-069"
+      ],
+      "qa_scenarios": [
+        "QA-DEPLOY-016"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
+      "verification_result": {
+        "result": "PRELIMINARY",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0080",
+      "source": {
+        "record_path": "docs/bugs/BUG-0080-seeded-prices-bill-a-flat-fee-while-the-terms-say-the-billab.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "d4c0b00",
+        "created_at": "2026-08-20",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-20"
+      },
+      "type": "DATA_INTEGRITY",
+      "title": "Seeded prices bill a flat fee while the Terms say the billable unit is an active employee",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "VERIFIED",
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/super-admin/commercial-bootstrap.ts",
+          "services/api/prisma/seed-legal.ts"
+        ],
+        "verification_scope": "Product decision taken: prices are flat per plan, tiered by modules. The prices were correct; the words were not. Terms, billing terms and five pieces of landing copy corrected, and billingUnitLabel now labels a flat price by period instead of returning null."
+      },
+      "affected_modules": [
+        "billing",
+        "super-admin",
+        "legal"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": "Needs a product answer on whether pricing is per active employee or flat with a seat cap."
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [
+        "REG-075",
+        "REG-080"
+      ],
+      "qa_scenarios": [
+        "QA-BILLING-011",
+        "QA-LANDING-009"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
+      "verification_result": {
+        "result": "FIXED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0081",
+      "source": {
+        "record_path": "docs/bugs/BUG-0081-three-apps-claimed-a-forwarded-headers-invariant-test-that-d.md",
+        "provenance": "SECURITY_REVIEW",
+        "detected_in_sha": "ffda0e3",
+        "created_at": "2026-08-19",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-19"
+      },
+      "type": "TEST_GAP",
+      "title": "Three apps claimed a forwarded-headers invariant test that did not exist",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "VERIFIED",
+      "current_evidence": {
+        "paths": [
+          "apps/landing/lib/forwarded-headers.ts",
+          "apps/web/lib/forwarded-headers.ts",
+          "apps/admin/lib/forwarded-headers.ts",
+          "apps/landing/lib/forwarded-headers.invariant.spec.ts"
+        ],
+        "verification_scope": "All three apps asserted that forwarded-headers.invariant.test.ts failed the build if a route handler forgot to forward the visitor address. No such file existed. The convention was intact at detection — 24 of 24 direct-API handlers forwarded — which is why nothing had surfaced it. The check now exists in each app, asserts a minimum handler count so it cannot pass by finding nothing, and was mutation-verified by stripping the forwarding from apps/landing/app/api/leads/route.ts."
+      },
+      "affected_modules": [
+        "landing",
+        "web",
+        "admin"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [
+        "BUG-0032"
+      ],
+      "related_backlog": [],
+      "regressions": [
+        "REG-076"
+      ],
+      "qa_scenarios": [
+        "QA-LANDING-010"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
+      "verification_result": {
+        "result": "FIXED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0082",
+      "source": {
+        "record_path": "docs/bugs/BUG-0082-the-onboarding-wizard-collects-five-steps-of-data-it-cannot-.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "71f1795",
+        "created_at": "2026-08-20",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-20"
+      },
+      "type": "UX",
+      "title": "The onboarding wizard collects five steps of data it cannot submit",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "VERIFIED",
+      "current_evidence": {
+        "paths": [
+          "apps/landing/app/subscribe/subscribe-form.tsx",
+          "apps/landing/lib/plans.ts",
+          "e2e/tests/flow-c-landing-public-surface.spec.ts"
+        ],
+        "verification_scope": "BUG-0066 reintroduced by WP-11's wizard. Its guard was structural — a disabled fieldset and an id on a notice — and did not survive the rewrite from one page into five steps. A visitor with an unpurchasable selection could type an organization profile, an owner identity and two accepted agreements before meeting a disabled submit button. The rule is now one function, checkoutBlockedReason, feeding the notice, the fieldset and the Continue button alike."
+      },
+      "affected_modules": [
+        "landing"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [
+        "BUG-0066"
+      ],
+      "related_backlog": [],
+      "regressions": [
+        "REG-077"
+      ],
+      "qa_scenarios": [
+        "QA-LANDING-011"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
+      "verification_result": {
+        "result": "FIXED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0083",
+      "source": {
+        "record_path": "docs/bugs/BUG-0083-the-database-agent-preflight-reports-pass-on-a-database-with.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "844b6d3",
+        "created_at": "2026-08-20",
+        "updated_at": "2026-08-20",
+        "resolved_at": "2026-08-20"
+      },
+      "type": "INFRA",
+      "title": "The Database Agent preflight reports PASS on a database with every migration unapplied",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "VERIFIED",
+      "current_evidence": {
+        "paths": [
+          "scripts/db-preflight.mjs",
+          "scripts/db-preflight.test.mjs",
+          ".agent/context/task-completion-contract.md"
+        ],
+        "verification_scope": "The Database Agent gate returned PASS over its own failing fields. Measured against a throwaway database with 213 committed migrations unapplied, db-preflight printed MIGRATION_STATUS=PENDING_MIGRATIONS, LOCAL_DATABASE_STATUS=DATABASE_MISMATCH and DATABASE_AGENT_STATUS=PASS in one output, exiting 0. PASS was the default for every status not explicitly enumerated as blocking, so both \"behind\" and \"nobody could look\" reached it. The verdict is now a pure exported function with three outcomes, and the invariant is checked after the work as well as before it, against the primary checkout."
+      },
+      "affected_modules": [
+        "scripts",
+        ".agent",
+        "services/api"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [
+        "BUG-0060",
+        "BUG-0068"
+      ],
+      "related_backlog": [],
+      "regressions": [
+        "REG-078"
+      ],
+      "qa_scenarios": [
+        "QA-CI-002"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
+      "verification_result": {
+        "result": "FIXED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0084",
+      "source": {
+        "record_path": "docs/bugs/BUG-0084-seven-unique-constraints-in-schema-prisma-are-absent-from-th.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "bab45ad",
+        "created_at": "2026-08-20",
+        "updated_at": "2026-08-20",
+        "resolved_at": ""
+      },
+      "type": "DATA_INTEGRITY",
+      "title": "Seven unique constraints in schema.prisma are absent from the migration chain",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "DEFERRED",
+      "current_evidence": {
+        "paths": [
+          "services/api/prisma/schema.prisma",
+          "services/api/prisma/migrations"
+        ],
+        "verification_scope": "A database built from all 216 migrations lacks seven unique constraints schema.prisma declares. Verified against pg_index on a virgin database. The one live consumer, supportCaseIncident.upsert, degrades to read-then-write rather than failing — proven by query log. Pre-existing and identical on main; deferred to the first post-launch migration."
+      },
+      "affected_modules": [
+        "contracts",
+        "partner-experience",
+        "support-cases",
+        "approvals",
+        "tenant-settings"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [
+        "BUG-0085"
+      ],
+      "related_backlog": [
+        "ITEM-0060"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DEFER",
+      "verification_result": {
+        "result": "DEFERRED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0085",
+      "source": {
+        "record_path": "docs/bugs/BUG-0085-the-release-command-aborted-a-first-deploy-and-otherwise-res.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "bab45ad",
+        "created_at": "2026-08-20",
+        "updated_at": "2026-08-20",
+        "resolved_at": "2026-08-20"
+      },
+      "type": "INFRA",
+      "title": "The release command aborted a first deploy, and otherwise reset the super admin password",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "VERIFIED",
+      "current_evidence": {
+        "paths": [
+          "render.yaml",
+          "services/api/prisma/seed-admin.ts",
+          "services/api/src/common/utils/admin-seed.util.ts"
+        ],
+        "verification_scope": "preDeployCommand runs npm run release, whose seed:admin step threw when PLATFORM_SUPER_ADMIN_EMAIL was unset while render.yaml never declared it, so a first deploy aborted before seed:legal and legal:publish. Setting the variable made every deploy overwrite the super admin password. Both proven against a virgin database and fixed the same day."
+      },
+      "affected_modules": [
+        "platform-users",
+        "legal"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [
+        "BUG-0084"
+      ],
+      "related_backlog": [],
+      "regressions": [
+        "REG-079"
+      ],
+      "qa_scenarios": [
+        "QA-DEPLOY-017"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
+      "verification_result": {
+        "result": "FIXED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0086",
+      "source": {
+        "record_path": "docs/bugs/BUG-0086-prisma-migrate-deploy-cannot-acquire-its-advisory-lock-throu.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "d6aa738",
+        "created_at": "2026-08-20",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
+      },
+      "type": "INFRA",
+      "title": "Prisma migrate deploy cannot acquire its advisory lock through Neon pooled endpoint",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "VERIFIED",
+      "current_evidence": {
+        "paths": [
+          "services/api/prisma.config.ts",
+          "services/api/prisma/schema.prisma",
+          "services/api/package.json",
+          "render.yaml"
+        ],
+        "verification_scope": "Render deploy log of 2026-08-20 shows prisma migrate deploy failing P1002 after 10s on SELECT pg_advisory_lock(72707369), with the datasource resolved to Neon's -pooler host. prisma.config.ts:12-13 supplies one url from env('DATABASE_URL') for every Prisma CLI call and schema.prisma:11-13 declares no directUrl, so migrations inherit the runtime pooled connection. Session-scoped advisory locks cannot be held across PgBouncer transaction pooling, so the step cannot succeed at any timeout. Production stayed up on the prior revision; the release chain after the migration step did not run."
+      },
+      "affected_modules": [
+        "services/api/prisma"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [
+        "BUG-0085"
+      ],
+      "related_backlog": [],
+      "regressions": [
+        "REG-203"
+      ],
+      "qa_scenarios": [
+        "QA-DEPLOY-018"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
+      "verification_result": {
+        "result": "PRELIMINARY",
+        "classification": "ACTIVE_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0163",
+      "source": {
+        "record_path": "docs/bugs/BUG-0163-package-lock-json-cannot-be-regenerated-npm-overrides-are-si.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "34b699b",
+        "created_at": "2026-08-21",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
+      },
+      "type": "INFRA",
+      "title": "package-lock.json cannot be regenerated - npm overrides are silently ignored",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "current_evidence": {
+        "paths": [
+          "package-lock.json",
+          "package.json",
+          "apps/admin/package.json"
+        ],
+        "verification_scope": "Found while attempting the @mapbox/node-pre-gyp override for ITEM-0048. npm reads the overrides key - npm pkg get overrides returns it - and resolves as though it were absent, leaving no overrides key under packages[\"\"] in the lockfile. Seven routes to a fresh resolution were tried; six were npm reusing a tree it considered satisfying, and the seventh, rm -rf node_modules package-lock.json followed by npm install --package-lock-only, failed with ERESOLVE on a @tiptap peer conflict in apps/admin. apps/admin pins the @tiptap family at 3.29.2 while @tiptap/extension-floating-menu, an optional peer of @tiptap/react, floats to 3.30.2 and demands @tiptap/core@3.30.2. The committed lockfile predates the conflict so npm ci succeeds and nothing has noticed. The override mechanism itself was verified working in an isolated scratch project on the first attempt."
+      },
+      "affected_modules": [
+        "package-lock.json",
+        "apps/admin"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [
+        "BUG-0052"
+      ],
+      "related_backlog": [
+        "ITEM-0048"
+      ],
+      "regressions": [
+        "REG-173",
+        "REG-226"
+      ],
+      "qa_scenarios": [
+        "QA-CI-003",
+        "QA-CI-004"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "YES",
+      "architect_disposition": "DONE",
+      "verification_result": {
+        "result": "PRELIMINARY",
+        "classification": "ACTIVE_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0220",
+      "source": {
+        "record_path": "docs/bugs/BUG-0220-saving-a-plan-from-the-runtime-record-page-always-returns-40.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "08b8661",
+        "created_at": "2026-08-21",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-21"
+      },
+      "type": "BUG",
+      "title": "Saving a plan from the runtime record page always returns 400",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "VERIFIED",
+      "current_evidence": {
+        "paths": [
+          "apps/admin/lib/runtime/platform-module-registry.ts",
+          "apps/admin/app/_components/runtime/runtime-record-page.tsx",
+          "services/api/src/modules/super-admin/dto/update-plan.dto.ts",
+          "services/api/src/modules/platform-runtime/platform-runtime.service.ts"
+        ],
+        "verification_scope": "The runtime completes the plan form from the generated Prisma manifest, which reports eight plain writable Plan columns as editable; UpdatePlanDto declares none of them and dto() validates with forbidNonWhitelisted, so every plan save returned 400. Fixed by declaring planForms() explicitly with only DTO-accepted fields writable, and by mapping plans onto UpdatePlanDto in the runtime validate switch."
+      },
+      "affected_modules": [
+        "apps/admin",
+        "api:platform-runtime",
+        "api:super-admin"
+      ],
+      "dependencies": {
+        "record_ids": [
+          "ITEM-0022"
+        ],
+        "note": ""
+      },
+      "related_bugs": [
+        "BUG-0221",
+        "BUG-0223"
+      ],
+      "related_backlog": [
+        "ITEM-0022"
+      ],
+      "regressions": [
+        "REG-174",
+        "REG-175"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-003",
+        "QA-PLATFORM-004"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0221",
+      "source": {
+        "record_path": "docs/bugs/BUG-0221-schema-completed-form-fields-render-on-a-tab-the-form-never-.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "08b8661",
+        "created_at": "2026-08-21",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-21"
+      },
+      "type": "UX",
+      "title": "Schema-completed form fields render on a tab the form never declares",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "VERIFIED",
+      "current_evidence": {
+        "paths": [
+          "apps/admin/lib/runtime/platform-module-registry.ts",
+          "apps/admin/app/_components/runtime/runtime-form.tsx"
+        ],
+        "verification_scope": "completeFormsFromSchema pinned its generated section to the tab key details, which exists only in the default tab set, so modules declaring their own tabs rendered none of the completed fields (tenants.environmentGroupId, customer-onboarding.agreedSeats). Fixed by resolving the fallback tab from the form and by failing the registry at import on any unreachable placement."
+      },
+      "affected_modules": [
+        "apps/admin"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [
+        "BUG-0220",
+        "BUG-0222"
+      ],
+      "related_backlog": [],
+      "regressions": [
+        "REG-176"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-005"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0222",
+      "source": {
+        "record_path": "docs/bugs/BUG-0222-plan-related-record-panels-declare-no-tab-so-they-never-rend.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "08b8661",
+        "created_at": "2026-08-21",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-21"
+      },
+      "type": "UX",
+      "title": "Plan related-record panels declare no tab, so they never render",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "VERIFIED",
+      "current_evidence": {
+        "paths": [
+          "apps/admin/lib/runtime/platform-module-registry.ts",
+          "apps/admin/app/_components/runtime/runtime-record-page.tsx"
+        ],
+        "verification_scope": "The plans relatedRecords entries carried no tab while the record page draws a relationship only when its tab is active, so the Subscriptions and Customers panels never rendered and both tabs were filtered out as empty. Fixed by naming the tab on each relationship and scoping hasSpecialPanel to the plan tabs that carry one."
+      },
+      "affected_modules": [
+        "apps/admin"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [
+        "BUG-0221"
+      ],
+      "related_backlog": [],
+      "regressions": [
+        "REG-176"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-005"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0223",
+      "source": {
+        "record_path": "docs/bugs/BUG-0223-admin-cannot-set-a-plan-ispublic-flag-which-gates-self-servi.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "08b8661",
+        "created_at": "2026-08-21",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
+      },
+      "type": "UX",
+      "title": "Admin cannot set a plan isPublic flag which gates self-service checkout",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "VERIFIED",
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/super-admin/dto/update-plan.dto.ts",
+          "services/api/src/modules/super-admin/dto/create-plan.dto.ts",
+          "services/api/src/modules/billing/services/billing.service.ts"
+        ],
+        "verification_scope": "Plan.isPublic gates self-service checkout and the public plan listing, and no Admin path writes it. Recorded rather than fixed: adding it to the DTO would create a second ungoverned way to change what customers can buy, which is what ITEM-0022 exists to prevent. Needs an owner decision on whether isPublic and publicationStatus are one concept."
+      },
+      "affected_modules": [
+        "apps/admin",
+        "api:super-admin",
+        "api:billing"
+      ],
+      "dependencies": {
+        "record_ids": [
+          "ITEM-0018",
+          "ITEM-0022"
+        ],
+        "note": ""
+      },
+      "related_bugs": [
+        "BUG-0220"
+      ],
+      "related_backlog": [
+        "ITEM-0018",
+        "ITEM-0022"
+      ],
+      "regressions": [
+        "REG-225"
+      ],
+      "qa_scenarios": [
+        "QA-BILLING-013"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "YES",
+      "architect_disposition": "DONE",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "ACTIVE_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0280",
+      "source": {
+        "record_path": "docs/bugs/BUG-0280-self-service-checkout-leaves-a-customer-with-no-plan-billing.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "cf9ea47",
+        "created_at": "2026-08-21",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-21"
+      },
+      "type": "DATA_INTEGRITY",
+      "title": "Self-service checkout leaves a customer with no plan, billing cycle or origin channel",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "VERIFIED",
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/billing/services/subscription-order.service.ts",
+          "services/api/src/modules/super-admin/platform-lifecycle.service.ts",
+          "services/api/src/modules/billing/services/order-activation.service.ts"
+        ],
+        "verification_scope": "resolveCustomer wrote eleven columns where convertLeadToCustomer writes twenty-two, omitting selectedPlanId, preferredBillingCycle and originChannel — the commercial columns the Customers module reports on — although openOrder held planPrice two lines away. Fixed by passing a CommercialSelection into resolveCustomer, writing all three on create and gap-filling without overwrite for a returning buyer."
+      },
+      "affected_modules": [
+        "api:billing",
+        "api:super-admin",
+        "apps/admin"
+      ],
+      "dependencies": {
+        "record_ids": [
+          "ITEM-0075"
+        ],
+        "note": ""
+      },
+      "related_bugs": [
+        "BUG-0281",
+        "BUG-0282"
+      ],
+      "related_backlog": [
+        "ITEM-0075"
+      ],
+      "regressions": [
+        "REG-177"
+      ],
+      "qa_scenarios": [
+        "QA-BILLING-012"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0281",
+      "source": {
+        "record_path": "docs/bugs/BUG-0281-partner-attribution-is-lost-when-a-referred-buyer-purchases-.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "cf9ea47",
+        "created_at": "2026-08-21",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
+      },
+      "type": "DATA_INTEGRITY",
+      "title": "Partner attribution is lost when a referred buyer purchases through self-service checkout",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "VERIFIED",
+      "current_evidence": {
+        "paths": [
+          "apps/landing/lib/onboarding-wizard.ts",
+          "services/api/src/modules/billing/dto/public-subscribe.dto.ts",
+          "services/api/src/modules/leads/leads.service.ts"
+        ],
+        "verification_scope": "originatingPartnerId, originatingReferralLinkId and referralCodeSnapshot are written only by the lead paths; the subscribe wizard captures no referral code and the public DTO accepts none, so a partner-referred self-service purchase is recorded as unattributed. Not fixed: resolving a partner from anything currently available at checkout would attribute commission on evidence the platform does not have."
+      },
+      "affected_modules": [
+        "apps/landing",
+        "api:billing",
+        "api:partner-experience"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [
+        "BUG-0280"
+      ],
+      "related_backlog": [],
+      "regressions": [
+        "REG-207"
+      ],
+      "qa_scenarios": [
+        "QA-PARTNER-007"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "ACTIVE_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0282",
+      "source": {
+        "record_path": "docs/bugs/BUG-0282-the-platform-runtime-schema-manifest-drifted-from-schema-pri.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "cf9ea47",
+        "created_at": "2026-08-21",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-21"
+      },
+      "type": "DATA_INTEGRITY",
+      "title": "The platform runtime schema manifest drifted from schema.prisma and no check noticed",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "VERIFIED",
+      "current_evidence": {
+        "paths": [
+          "packages/config/platform-runtime-schema.generated.json",
+          "scripts/generate-platform-runtime-schema.mjs",
+          ".github/workflows/ci.yml"
+        ],
+        "verification_scope": "The generated manifest that decides which Prisma columns Platform Admin can render had fallen behind schema.prisma; test:runtime-schema validates the registry against the manifest, so a stale manifest and a registry built from it agree and CI passed. Five real scalar columns were undisplayable. Fixed by regenerating and adding a --check mode to the generator, wired into the CI gate."
+      },
+      "affected_modules": [
+        "packages/config",
+        "apps/admin",
+        "services/api/prisma"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [
+        "BUG-0221",
+        "BUG-0280"
+      ],
+      "related_backlog": [],
+      "regressions": [
+        "REG-178"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-006"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0283",
+      "source": {
+        "record_path": "docs/bugs/BUG-0283-a-regenerated-prisma-client-against-an-un-migrated-database-.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "cf9ea47",
+        "created_at": "2026-08-21",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
+      },
+      "type": "INFRA",
+      "title": "A regenerated Prisma client against an un-migrated database 500s every affected screen",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "VERIFIED",
+      "current_evidence": {
+        "paths": [
+          "services/api/prisma/migrations",
+          "scripts/db-preflight.mjs",
+          "scripts/check-prisma-client-fresh.mjs"
+        ],
+        "verification_scope": "A development database four migrations behind was masked by an equally stale generated client; regenerating the client surfaced P2022 ColumnNotFound on PlanPrice.overageUnitAmount thirty minutes later. The four pending migrations were applied and the failing query re-verified. The guard is not built: where a pending-migration warning belongs is a developer-workflow decision."
+      },
+      "affected_modules": [
+        "services/api",
+        "services/api/prisma",
+        "apps/admin"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [
+        "BUG-0282"
+      ],
+      "related_backlog": [],
+      "regressions": [
+        "REG-204"
+      ],
+      "qa_scenarios": [
+        "QA-DEPLOY-019"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "ACTIVE_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0312",
+      "source": {
+        "record_path": "docs/bugs/BUG-0312-provisioning-issues-no-workspace-hostname-when-no-tenant-bas.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "aab6965",
+        "created_at": "2026-08-21",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-21"
+      },
+      "type": "INFRA",
+      "title": "Provisioning issues no workspace hostname when no tenant base domain is configured",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "VERIFIED",
+      "current_evidence": {
+        "paths": [
+          "services/api",
+          "packages/config",
+          "apps/admin"
+        ],
+        "verification_scope": "Fixed on agent/admin-landing-ux-program; see the record for evidence paths and the regression that proves it."
+      },
+      "affected_modules": [
+        "services/api",
+        "packages/config",
+        "apps/admin"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [
+        "REG-179"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-007"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0313",
+      "source": {
+        "record_path": "docs/bugs/BUG-0313-admin-builds-workspace-urls-from-a-second-divergent-copy-of-.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "aab6965",
+        "created_at": "2026-08-21",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-21"
+      },
+      "type": "BUG",
+      "title": "Admin builds workspace URLs from a second, divergent copy of the rule",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "VERIFIED",
+      "current_evidence": {
+        "paths": [
+          "apps/admin",
+          "packages/config"
+        ],
+        "verification_scope": "Fixed on agent/admin-landing-ux-program; see the record for evidence paths and the regression that proves it."
+      },
+      "affected_modules": [
+        "apps/admin",
+        "packages/config"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [
+        "REG-179"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-007"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0314",
+      "source": {
+        "record_path": "docs/bugs/BUG-0314-the-notifications-page-is-a-placeholder-under-a-permanently-.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "aab6965",
+        "created_at": "2026-08-21",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-21"
+      },
+      "type": "UX",
+      "title": "The notifications page is a placeholder under a permanently lit badge",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "VERIFIED",
+      "current_evidence": {
+        "paths": [
+          "apps/admin",
+          "api:platform-events"
+        ],
+        "verification_scope": "Fixed on agent/admin-landing-ux-program; see the record for evidence paths and the regression that proves it."
+      },
+      "affected_modules": [
+        "apps/admin",
+        "api:platform-events"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [
+        "REG-180"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-007"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0315",
+      "source": {
+        "record_path": "docs/bugs/BUG-0315-workspace-preferences-are-stored-in-localstorage-and-never-a.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "aab6965",
+        "created_at": "2026-08-21",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-21"
+      },
+      "type": "UX",
+      "title": "Workspace preferences are stored in localStorage and never applied",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "VERIFIED",
+      "current_evidence": {
+        "paths": [
+          "apps/admin",
+          "api:platform-users",
+          "services/api/prisma"
+        ],
+        "verification_scope": "Fixed on agent/admin-landing-ux-program; see the record for evidence paths and the regression that proves it."
+      },
+      "affected_modules": [
+        "apps/admin",
+        "api:platform-users",
+        "services/api/prisma"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [
+        "REG-180"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-007"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0316",
+      "source": {
+        "record_path": "docs/bugs/BUG-0316-country-industry-and-contact-fields-are-free-text-where-a-ca.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "aab6965",
+        "created_at": "2026-08-21",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-21"
+      },
+      "type": "DATA_INTEGRITY",
+      "title": "Country industry and contact fields are free text where a canonical list exists",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "VERIFIED",
+      "current_evidence": {
+        "paths": [
+          "apps/landing",
+          "apps/admin",
+          "api:lookups",
+          "packages/config"
+        ],
+        "verification_scope": "Fixed on agent/admin-landing-ux-program; see the record for evidence paths and the regression that proves it."
+      },
+      "affected_modules": [
+        "apps/landing",
+        "apps/admin",
+        "api:lookups",
+        "packages/config"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [
+        "REG-181"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-008"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0317",
+      "source": {
+        "record_path": "docs/bugs/BUG-0317-the-subscribe-wizard-shows-five-identical-pills-and-labels-t.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "aab6965",
+        "created_at": "2026-08-21",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-21"
+      },
+      "type": "UX",
+      "title": "The subscribe wizard shows five identical pills and labels three address fields only by placeholder",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "VERIFIED",
+      "current_evidence": {
+        "paths": [
+          "apps/landing"
+        ],
+        "verification_scope": "Fixed on agent/admin-landing-ux-program; see the record for evidence paths and the regression that proves it."
+      },
+      "affected_modules": [
+        "apps/landing"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [
+        "REG-181"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-008"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0350",
+      "source": {
+        "record_path": "docs/bugs/BUG-0350-the-subscribe-wizard-s-country-field-silently-degraded-to-fr.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "0d10a9d",
+        "created_at": "2026-08-21",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-21"
+      },
+      "type": "DATA_INTEGRITY",
+      "title": "The subscribe wizard's country field silently degraded to free text",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "VERIFIED",
+      "current_evidence": {
+        "paths": [
+          "apps/landing"
+        ],
+        "verification_scope": "Fixed on agent/ux-round-two; see the record for evidence paths and the regression that proves it."
+      },
+      "affected_modules": [
+        "apps/landing"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [
+        "REG-182"
+      ],
+      "qa_scenarios": [
+        "QA-LANDING-012"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0351",
+      "source": {
+        "record_path": "docs/bugs/BUG-0351-the-subscribe-wizard-progress-rail-truncated-every-step-labe.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "0d10a9d",
+        "created_at": "2026-08-21",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-21"
+      },
+      "type": "UX",
+      "title": "The subscribe wizard progress rail truncated every step label",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "VERIFIED",
+      "current_evidence": {
+        "paths": [
+          "apps/landing"
+        ],
+        "verification_scope": "Fixed on agent/ux-round-two; see the record for evidence paths and the regression that proves it."
+      },
+      "affected_modules": [
+        "apps/landing"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [
+        "REG-182"
+      ],
+      "qa_scenarios": [
+        "QA-LANDING-012"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0352",
+      "source": {
+        "record_path": "docs/bugs/BUG-0352-the-tenant-timeline-rendered-every-entry-with-no-count-and-n.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "0d10a9d",
+        "created_at": "2026-08-21",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-21"
+      },
+      "type": "UX",
+      "title": "The tenant timeline rendered every entry with no count and no paging",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "VERIFIED",
+      "current_evidence": {
+        "paths": [
+          "apps/admin"
+        ],
+        "verification_scope": "Fixed on agent/ux-round-two; see the record for evidence paths and the regression that proves it."
+      },
+      "affected_modules": [
+        "apps/admin"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [
+        "REG-183"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-009"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0353",
+      "source": {
+        "record_path": "docs/bugs/BUG-0353-the-api-resolved-a-workspace-hostname-from-a-variable-nothin.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "0d10a9d",
+        "created_at": "2026-08-21",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-21"
+      },
+      "type": "INTEGRATION",
+      "title": "The API resolved a workspace hostname from a variable nothing sets",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "VERIFIED",
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/tenants",
+          "packages/config"
+        ],
+        "verification_scope": "Fixed on agent/ux-round-two; see the record for evidence paths and the regression that proves it."
+      },
+      "affected_modules": [
+        "services/api/src/modules/tenants",
+        "packages/config"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [
+        "REG-184"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-008"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0418",
+      "source": {
+        "record_path": "docs/bugs/BUG-0418-contract-placeholders-declared-a-formatting-rule-that-nothin.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "fb7c771",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
+      },
+      "type": "DATA_INTEGRITY",
+      "title": "Contract placeholders declared a formatting rule that nothing applied",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "VERIFIED",
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/contracts"
+        ],
+        "verification_scope": "Fixed on agent/document-render-and-theme; see the record for evidence paths and the regression that proves it. Not verified in a browser."
+      },
+      "affected_modules": [
+        "services/api/src/modules/contracts"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [
+        "REG-185"
+      ],
+      "qa_scenarios": [
+        "QA-CONTRACT-001"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0419",
+      "source": {
+        "record_path": "docs/bugs/BUG-0419-preview-sample-data-replaced-the-live-template-and-rendered-.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "fb7c771",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
+      },
+      "type": "UX",
+      "title": "Preview sample data replaced the live template and rendered one paint late",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "VERIFIED",
+      "current_evidence": {
+        "paths": [
+          "apps/admin"
+        ],
+        "verification_scope": "Fixed on agent/document-render-and-theme; see the record for evidence paths and the regression that proves it. Not verified in a browser."
+      },
+      "affected_modules": [
+        "apps/admin"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [
+        "REG-186"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-010"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0420",
+      "source": {
+        "record_path": "docs/bugs/BUG-0420-the-console-dark-theme-set-color-scheme-and-repainted-nothin.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "fb7c771",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
+      },
+      "type": "UX",
+      "title": "The console dark theme set color-scheme and repainted nothing",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "VERIFIED",
+      "current_evidence": {
+        "paths": [
+          "apps/admin"
+        ],
+        "verification_scope": "Fixed on agent/document-render-and-theme; see the record for evidence paths and the regression that proves it. Not verified in a browser."
+      },
+      "affected_modules": [
+        "apps/admin"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [
+        "REG-187"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-011"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0421",
+      "source": {
+        "record_path": "docs/bugs/BUG-0421-an-overflow-declaration-in-the-shell-disabled-every-sticky-e.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "fb7c771",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
+      },
+      "type": "UX",
+      "title": "An overflow declaration in the shell disabled every sticky element",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "VERIFIED",
+      "current_evidence": {
+        "paths": [
+          "apps/admin"
+        ],
+        "verification_scope": "Fixed on agent/document-render-and-theme; see the record for evidence paths and the regression that proves it. Not verified in a browser."
+      },
+      "affected_modules": [
+        "apps/admin"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [
+        "REG-188"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-012"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0422",
+      "source": {
+        "record_path": "docs/bugs/BUG-0422-an-abandoned-provisioning-run-blocked-every-retry-with-no-ro.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "fb7c771",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
+      },
+      "type": "STATE_MACHINE",
+      "title": "An abandoned provisioning run blocked every retry with no route out",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "VERIFIED",
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/tenant-control-plane",
+          "apps/admin"
+        ],
+        "verification_scope": "Fixed on agent/document-render-and-theme; see the record for evidence paths and the regression that proves it. Not verified in a browser."
+      },
+      "affected_modules": [
+        "services/api/src/modules/tenant-control-plane",
+        "apps/admin"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [
+        "REG-189"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-009"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0439",
+      "source": {
+        "record_path": "docs/bugs/BUG-0439-the-subscribe-form-was-disabled-without-looking-disabled-or-.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "97f2a4a",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
+      },
+      "type": "UX",
+      "title": "The subscribe form was disabled without looking disabled or saying why beside it",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "VERIFIED",
+      "current_evidence": {
+        "paths": [
+          "apps/landing",
+          "apps/admin"
+        ],
+        "verification_scope": "Fixed on agent/document-render-and-theme; not verified in a browser."
+      },
+      "affected_modules": [
+        "apps/landing",
+        "apps/admin"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [
+        "REG-190"
+      ],
+      "qa_scenarios": [
+        "QA-LANDING-013"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0460",
+      "source": {
+        "record_path": "docs/bugs/BUG-0460-the-notification-badge-counted-over-a-window-sized-by-the-pa.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "3883798",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
+      },
+      "type": "UX",
+      "title": "The notification badge counted over a window sized by the page it was fetching",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "VERIFIED",
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/platform-events",
+          "apps/admin"
+        ],
+        "verification_scope": "Fixed on agent/tenant-repair-and-console-ux; not verified in a browser."
+      },
+      "affected_modules": [
+        "services/api/src/modules/platform-events",
+        "apps/admin"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [
+        "REG-191"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-013"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0461",
+      "source": {
+        "record_path": "docs/bugs/BUG-0461-the-cost-estimator-listed-flat-priced-plans-under-a-headcoun.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "3883798",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
+      },
+      "type": "UX",
+      "title": "The cost estimator listed flat-priced plans under a headcount input",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "VERIFIED",
+      "current_evidence": {
+        "paths": [
+          "apps/landing"
+        ],
+        "verification_scope": "Fixed on agent/tenant-repair-and-console-ux; not verified in a browser."
+      },
+      "affected_modules": [
+        "apps/landing"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [
+        "REG-192"
+      ],
+      "qa_scenarios": [
+        "QA-LANDING-014"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0462",
+      "source": {
+        "record_path": "docs/bugs/BUG-0462-monitoring-opened-on-a-twelve-thousand-row-queue-with-five-u.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "3883798",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
+      },
+      "type": "UX",
+      "title": "Monitoring opened on a twelve thousand row queue with five unactionable tiles",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "VERIFIED",
+      "current_evidence": {
+        "paths": [
+          "apps/admin"
+        ],
+        "verification_scope": "Fixed on agent/tenant-repair-and-console-ux; not verified in a browser."
+      },
+      "affected_modules": [
+        "apps/admin"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [
+        "REG-193"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-014"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0463",
+      "source": {
+        "record_path": "docs/bugs/BUG-0463-an-active-reachable-tenant-reported-that-its-workspace-was-n.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "3883798",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
+      },
+      "type": "STATE_MACHINE",
+      "title": "An active reachable tenant reported that its workspace was not provisioned",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "VERIFIED",
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/tenant-control-plane",
+          "apps/admin"
+        ],
+        "verification_scope": "Fixed on agent/tenant-repair-and-console-ux; not verified in a browser."
+      },
+      "affected_modules": [
+        "services/api/src/modules/tenant-control-plane",
+        "apps/admin"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [
+        "REG-194"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-010"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0492",
+      "source": {
+        "record_path": "docs/bugs/BUG-0492-the-workspace-url-was-built-by-hand-in-two-more-places.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "098a0e6",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
+      },
+      "type": "INTEGRATION",
+      "title": "The workspace URL was built by hand in two more places",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "VERIFIED",
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/tenant-control-plane",
+          "packages/config"
+        ],
+        "verification_scope": "Fixed on agent/tenant-commands-monitoring-bulk-delete; not verified in a browser."
+      },
+      "affected_modules": [
+        "services/api/src/modules/tenant-control-plane",
+        "packages/config"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [
+        "REG-195"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-011"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0493",
+      "source": {
+        "record_path": "docs/bugs/BUG-0493-open-tenant-reported-success-while-opening-nothing.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "098a0e6",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
+      },
+      "type": "UX",
+      "title": "Open Tenant reported success while opening nothing",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "VERIFIED",
+      "current_evidence": {
+        "paths": [
+          "apps/admin"
+        ],
+        "verification_scope": "Fixed on agent/tenant-commands-monitoring-bulk-delete; not verified in a browser."
+      },
+      "affected_modules": [
+        "apps/admin"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [
+        "REG-196"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-011"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0494",
+      "source": {
+        "record_path": "docs/bugs/BUG-0494-workspace-hostnames-stayed-pending-for-ever-with-nothing-to-.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "098a0e6",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
+      },
+      "type": "STATE_MACHINE",
+      "title": "Workspace hostnames stayed Pending for ever with nothing to explain or reconcile it",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "VERIFIED",
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/tenant-domains",
+          "services/api/src/modules/super-admin",
+          "apps/admin"
+        ],
+        "verification_scope": "Fixed on agent/tenant-commands-monitoring-bulk-delete; not verified in a browser."
+      },
+      "affected_modules": [
+        "services/api/src/modules/tenant-domains",
+        "services/api/src/modules/super-admin",
+        "apps/admin"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [
+        "REG-197"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-012"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0495",
+      "source": {
+        "record_path": "docs/bugs/BUG-0495-the-console-painted-light-on-every-load-before-the-dark-them.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "098a0e6",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
+      },
+      "type": "UX",
+      "title": "The console painted light on every load before the dark theme arrived",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "VERIFIED",
+      "current_evidence": {
+        "paths": [
+          "apps/admin"
+        ],
+        "verification_scope": "Fixed on agent/tenant-commands-monitoring-bulk-delete; not verified in a browser."
+      },
+      "affected_modules": [
+        "apps/admin"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [
+        "REG-198"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-015"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0496",
+      "source": {
+        "record_path": "docs/bugs/BUG-0496-the-monitoring-landing-page-showed-real-data-an-agent-could-.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "098a0e6",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
+      },
+      "type": "UX",
+      "title": "The monitoring landing page showed real data an agent could not act on",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "VERIFIED",
+      "current_evidence": {
+        "paths": [
+          "apps/admin"
+        ],
+        "verification_scope": "Fixed on agent/tenant-commands-monitoring-bulk-delete; not verified in a browser."
+      },
+      "affected_modules": [
+        "apps/admin"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [
+        "REG-199"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-016"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0497",
+      "source": {
+        "record_path": "docs/bugs/BUG-0497-fifteen-modules-offered-no-delete-and-no-reason-for-its-abse.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "098a0e6",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
+      },
+      "type": "UX",
+      "title": "Fifteen modules offered no Delete and no reason for its absence",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "VERIFIED",
+      "current_evidence": {
+        "paths": [
+          "apps/admin",
+          "services/api/src/modules/partners",
+          "services/api/src/modules/platform-runtime"
+        ],
+        "verification_scope": "Fixed on agent/tenant-commands-monitoring-bulk-delete; not verified in a browser."
+      },
+      "affected_modules": [
+        "apps/admin",
+        "services/api/src/modules/partners",
+        "services/api/src/modules/platform-runtime"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [
+        "REG-200"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-017"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0531",
+      "source": {
+        "record_path": "docs/bugs/BUG-0531-flat-prices-were-sellable-on-the-public-site-at-invented-amo.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "99dc70a",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
+      },
+      "type": "DATA_INTEGRITY",
+      "title": "Flat prices were sellable on the public site at invented amounts",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "VERIFIED",
+      "architect_disposition": "DONE",
+      "current_evidence": {
+        "paths": [
+          "super-admin",
+          "apps/admin"
+        ],
+        "verification_scope": "Fixed in code on agent/plans-reset. The database rows it describes are only corrected once npm run seed:commercial is run, which has not happened."
+      },
+      "affected_modules": [
+        "super-admin",
+        "apps/admin"
+      ],
+      "dependencies": {
+        "record_ids": [
+          "BUG-0533"
+        ],
+        "note": "Consequence of BUG-0533. Not reachable in production: no price was synced to Stripe, and deriveCheckoutReadiness refuses an unsynced price."
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [
+        "REG-201"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-018"
+      ],
+      "test_plan": [
+        "PLAN-020"
+      ],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0532",
+      "source": {
+        "record_path": "docs/bugs/BUG-0532-plan-form-offered-editable-legacy-price-fields-that-bill-nob.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "99dc70a",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
+      },
+      "type": "UX",
+      "title": "Plan form offered editable legacy price fields that bill nobody",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "DUPLICATE",
+      "architect_disposition": "DUPLICATE",
+      "current_evidence": {
+        "paths": [
+          "apps/admin"
+        ],
+        "verification_scope": "Duplicate of BUG-0534. No code, no data."
+      },
+      "affected_modules": [
+        "apps/admin"
+      ],
+      "dependencies": {
+        "record_ids": [
+          "BUG-0534"
+        ],
+        "note": "Created in error when a failing new-bug invocation still exited zero."
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0533",
+      "source": {
+        "record_path": "docs/bugs/BUG-0533-seeding-the-commercial-catalogue-never-corrected-an-existing.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "99dc70a",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
+      },
+      "type": "DATA_INTEGRITY",
+      "title": "Seeding the commercial catalogue never corrected an existing plan or price",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "VERIFIED",
+      "architect_disposition": "DONE",
+      "current_evidence": {
+        "paths": [
+          "super-admin",
+          "apps/admin"
+        ],
+        "verification_scope": "Fixed on agent/plans-reset; seven unit tests, mutation-tested. Not exercised against a real database."
+      },
+      "affected_modules": [
+        "super-admin",
+        "apps/admin"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": "The root cause of BUG-0531. Bootstrap was create-only, so the catalogue files described a state the database had no way to reach."
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [
+        "REG-201"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-018"
+      ],
+      "test_plan": [
+        "PLAN-020"
+      ],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0534",
+      "source": {
+        "record_path": "docs/bugs/BUG-0534-plan-form-offered-editable-legacy-price-fields-that-bill-nob.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "99dc70a",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
+      },
+      "type": "UX",
+      "title": "Plan form offered editable legacy price fields that bill nobody",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "VERIFIED",
+      "architect_disposition": "DONE",
+      "current_evidence": {
+        "paths": [
+          "super-admin",
+          "apps/admin"
+        ],
+        "verification_scope": "Fixed on agent/plans-reset; asserted against the completed form rather than the declared one."
+      },
+      "affected_modules": [
+        "super-admin",
+        "apps/admin"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": "Removing the field declarations alone made this worse — completeFormsFromSchema re-added them without their labels."
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [
+        "REG-202"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-018"
+      ],
+      "test_plan": [
+        "PLAN-020"
+      ],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0627",
+      "source": {
+        "record_path": "docs/bugs/BUG-0627-admin-sign-out-does-not-revoke-the-platform-session-when-the.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "389aa49",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
+      },
+      "type": "AUTHORIZATION",
+      "title": "Admin sign-out does not revoke the platform session when the refresh cookie has expired",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "VERIFIED",
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/auth/auth.service.ts",
+          "services/api/test/admin-logout-revocation.e2e-spec.ts"
+        ],
+        "verification_scope": "AuthService.logout keyed revocation on the refresh token alone and read it only from the cookie, so a sign-out arriving after the refresh cookie's TTL elapsed — the ordinary case, and the exact flow BUG-0009 was raised about — cleared the browser and left the PlatformRefreshToken live for up to seven days. The fix revokes by the forwarded session cookie, filtered on { sessionId, appClientId, revokedAt: null }, using updateMany so a token rotated between a read and a write cannot survive the sign-out. Verification is REG-221: six DB-backed tests over real HTTP against a booted AppModule, covering the platform client and the tenant client, a session id belonging to nobody, and a session id belonging to a different client. Mutation-proven twice — removing the revocation call fails both primary tests, and removing appClientId from the filter fails the scope test. That second probe matters: the scope test's first version signed out as web with an admin session id and could not fail, because the two clients use different tables."
+      },
+      "affected_modules": [
+        "services/api/src/modules/auth",
+        "apps/admin"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [
+        "BUG-0009",
+        "BUG-0010"
+      ],
+      "related_backlog": [
+        "ITEM-0002"
+      ],
+      "regressions": [
+        "REG-221"
+      ],
+      "qa_scenarios": [
+        "QA-AUTH-002"
+      ],
+      "test_plan": [
+        "PLAN-001"
+      ],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
+      "verification_result": "VERIFIED"
+    },
+    {
+      "record_id": "BUG-0668",
+      "source": {
+        "record_path": "docs/bugs/BUG-0668-exchange-rate-resolution-ignored-the-effective-date-it-was-g.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "d5d9ce7",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
+      },
+      "type": "DATA_INTEGRITY",
+      "title": "Exchange rate resolution ignored the effective date it was given",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "VERIFIED",
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/tenant-settings/enterprise-configuration.service.ts",
+          "services/api/src/modules/tenant-settings/exchange-rate-effective-date.spec.ts"
+        ],
+        "verification_scope": "resolveExchangeRate took an effectiveDate and never queried it: all three lookups ordered by updatedAt and returned the newest row, so asking for the rate as of a date returned today's. ExchangeRateSnapshot is effective-dated by design and none of it was used. convertMoney forwards its caller's date, so a caller who supplied the right date still got the wrong number. Fixed by filtering every lookup on { effectiveDate: lte, effectiveEndDate null or gte } and ordering by effectiveDate descending first, so a later window covering the same moment is treated as the correction. Verification is REG-223: seven tests walking a real three-window history, asserting the returned rate AND the where clause, because a stub returns whatever row it holds regardless of the filter. Mutation-proven — replacing the filter with {} fails five of seven. Not reachable in production today: convertMoney has no callers, so this was a trap set for the first one rather than a wrong number already paid."
+      },
+      "affected_modules": [
+        "services/api/src/modules/tenant-settings"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [
+        "BUG-0669"
+      ],
+      "related_backlog": [
+        "ITEM-0042"
+      ],
+      "regressions": [
+        "REG-223"
+      ],
+      "qa_scenarios": [
+        "QA-SETTINGS-003"
+      ],
+      "test_plan": [
+        "PLAN-021"
+      ],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
+      "verification_result": "VERIFIED"
+    },
+    {
+      "record_id": "BUG-0669",
+      "source": {
+        "record_path": "docs/bugs/BUG-0669-patch-my-preferences-never-used-its-dto-so-the-body-was-unva.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "d5d9ce7",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
+      },
+      "type": "SECURITY",
+      "title": "PATCH my-preferences never used its DTO so the body was unvalidated",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "VERIFIED",
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/tenant-settings/settings-context.controller.ts",
+          "services/api/src/modules/tenant-settings/my-preferences-validation.spec.ts"
+        ],
+        "verification_scope": "UpdateMyPreferencesDto existed with IsString, MaxLength and Matches rules on all four fields and was never referenced; the handler took Record<string, unknown>, which gives the global ValidationPipe no metadata, so PATCH /settings/my-preferences accepted any body. normalizePreferences is an allow-list of four keys so this was never mass assignment: the exposure was the values, with unbounded strings persisted as sent and an invalid timezone reaching Intl.DateTimeFormat and surfacing as a 500 where 400 is the answer. Fixed by using the DTO as the parameter type and moving the class above the controller, because design:paramtypes is evaluated at class definition and a DTO below it sits in a temporal dead zone. Verification is REG-224: seven tests, the load-bearing one reading design:paramtypes to assert the parameter type itself, since a DTO's rules can be perfect and never run."
+      },
+      "affected_modules": [
+        "services/api/src/modules/tenant-settings"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [
+        "BUG-0668",
+        "BUG-0020"
+      ],
+      "related_backlog": [
+        "ITEM-0042"
+      ],
+      "regressions": [
+        "REG-224"
+      ],
+      "qa_scenarios": [
+        "QA-SETTINGS-004"
+      ],
+      "test_plan": [
+        "PLAN-021"
+      ],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
+      "verification_result": "VERIFIED"
+    },
+    {
+      "record_id": "BUG-0714",
+      "source": {
+        "record_path": "docs/bugs/BUG-0714-customer-emails-link-to-the-vercel-app-host-and-api-base-url.md",
+        "provenance": "DEPLOYMENT",
+        "detected_in_sha": "b486a60",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": ""
+      },
+      "type": "INFRA",
+      "title": "Customer emails link to the vercel.app host, and API_BASE_URL is plain HTTP",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "current_evidence": {
+        "paths": [
+          "services/api/src/common/config/tenant-url.config.ts",
+          "docs/environment-variables.md",
+          "render.yaml"
+        ],
+        "verification_scope": "Two production environment variables on the Render service are wrong and the first is customer-facing. WEB_APP_URL is https://diji-people-web.vercel.app, so every activation, invitation, password-reset and sign-in link the API mails to a tenant sends them to the Vercel deployment host rather than app.dijipeople.com or their own workspace subdomain. API_BASE_URL is http://api.dijipeople.com/api while API_ORIGIN beside it is correctly https, and getApiBaseUrl prefers API_BASE_URL so the insecure value wins. The per-tenant subdomain rewrite in tenant-url.config.ts fires only when WEB_APP_PROD_ROOT_DOMAIN or NEXT_PUBLIC_WEB_ROOT_DOMAIN is set, and neither is; TENANT_BASE_DOMAIN is set but is read by the hostname issuer, not the URL builder. Neither is a code defect and both are dashboard values, so the fix is a production environment write requiring the user's approval. Verification is that a tenant activation URL lands on the customer domain and /api/health reports an https apiBaseUrl, plus a test asserting the production shape - tenant-url.config.spec.ts currently encodes the misconfiguration as expected, which is why nothing flagged it."
+      },
+      "affected_modules": [
+        "services/api",
+        "apps/web",
+        "docs/deployment"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": "Needs approval to write four production environment variables on Render."
+      },
+      "related_bugs": [
+        "BUG-0061"
+      ],
+      "related_backlog": [
+        "ITEM-0057"
+      ],
+      "regressions": [
+        "REG-228"
+      ],
+      "qa_scenarios": [
+        "QA-PROV-006"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "YES",
+      "architect_disposition": "FIX_NOW",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
       "record_id": "ITEM-0001",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md",
@@ -3558,14 +6635,14 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "",
         "created_at": "2026-08-15",
-        "updated_at": "2026-08-17",
+        "updated_at": "2026-08-22",
         "resolved_at": ""
       },
       "type": "TEST_GAP",
       "title": "Live API session and database proof for admin sign-out",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "READY",
+      "current_status": "DONE",
       "current_evidence": {
         "paths": [
           "docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md",
@@ -3593,7 +6670,7 @@
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "VERIFIED",
         "classification": "STILL_REQUIRED_LIVE_SESSION_PROOF",
@@ -3609,14 +6686,14 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "",
         "created_at": "2026-08-15",
-        "updated_at": "2026-08-15",
+        "updated_at": "2026-08-22",
         "resolved_at": ""
       },
       "type": "TEST_GAP",
       "title": "Tenant erasure has no cross-tenant survival assertion",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "READY",
+      "current_status": "DONE",
       "current_evidence": {
         "paths": [
           "docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md",
@@ -3635,12 +6712,16 @@
       "related_backlog": [
         "ITEM-0002"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-220"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-015"
+      ],
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "VERIFIED",
         "classification": "ACTIVE_AS_DOCUMENTED",
@@ -3654,14 +6735,14 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "",
         "created_at": "2026-08-15",
-        "updated_at": "2026-08-17",
+        "updated_at": "2026-08-22",
         "resolved_at": ""
       },
       "type": "TEST_GAP",
       "title": "Tenant activation to ACTIVE has never been reached in any test",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "READY",
+      "current_status": "DONE",
       "current_evidence": {
         "paths": [
           "docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md",
@@ -3681,12 +6762,16 @@
         "BUG-0022"
       ],
       "related_backlog": [],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-222"
+      ],
+      "qa_scenarios": [
+        "QA-PROV-005"
+      ],
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "VERIFIED",
         "classification": "ACTIVE_WITH_STALE_BLOCKED_BY",
@@ -4187,14 +7272,14 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "",
         "created_at": "2026-08-15",
-        "updated_at": "2026-08-15",
+        "updated_at": "2026-08-22",
         "resolved_at": ""
       },
       "type": "FOLLOW_UP",
       "title": "Make the tenant readiness() authorization assertion auditable",
       "severity": "LOW",
       "priority": "P3",
-      "current_status": "READY",
+      "current_status": "DONE",
       "current_evidence": {
         "paths": [
           "docs/backlog/items/ITEM-0015-make-the-tenant-readiness-assertion-auditable.md",
@@ -4211,12 +7296,16 @@
       },
       "related_bugs": [],
       "related_backlog": [],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-209"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-014"
+      ],
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "VERIFIED",
         "classification": "ACTIVE_AS_DOCUMENTED",
@@ -4991,14 +8080,14 @@
         "provenance": "ARCHITECT",
         "detected_in_sha": "",
         "created_at": "2026-08-16",
-        "updated_at": "2026-08-17",
+        "updated_at": "2026-08-22",
         "resolved_at": ""
       },
       "type": "UX",
       "title": "Replace remaining native prompts for governed input",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "READY",
+      "current_status": "DONE",
       "current_evidence": {
         "paths": [
           "docs/backlog/items/ITEM-0031-replace-remaining-native-prompts-for-governed-input.md"
@@ -5017,12 +8106,16 @@
         "BUG-0020"
       ],
       "related_backlog": [],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-219"
+      ],
+      "qa_scenarios": [
+        "QA-RUNTIME-014"
+      ],
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "VERIFIED",
         "classification": "STATUS_DISPOSITION_BUCKET_MISMATCH_DEFERRED",
@@ -5038,14 +8131,14 @@
         "provenance": "ARCHITECT",
         "detected_in_sha": "",
         "created_at": "2026-08-16",
-        "updated_at": "2026-08-17",
+        "updated_at": "2026-08-22",
         "resolved_at": ""
       },
       "type": "DATA_MIGRATION",
       "title": "Recompute productivity totals inflated by heartbeat replays",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "PRODUCT_DECISION",
+      "current_status": "DONE",
       "current_evidence": {
         "paths": [
           "docs/backlog/items/ITEM-0032-recompute-productivity-totals-inflated-by-heartbeat-replays.md"
@@ -5068,7 +8161,7 @@
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "YES",
-      "architect_disposition": "PRODUCT_DECISION",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "VERIFIED",
         "classification": "STATUS_DISPOSITION_BUCKET_MISMATCH_PRODUCT_DECISION",
@@ -5084,14 +8177,14 @@
         "provenance": "ARCHITECT",
         "detected_in_sha": "",
         "created_at": "2026-08-16",
-        "updated_at": "2026-08-17",
+        "updated_at": "2026-08-22",
         "resolved_at": ""
       },
       "type": "TEST_GAP",
       "title": "Add a test runner and unit coverage to apps/agent-desktop",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "READY",
+      "current_status": "DONE",
       "current_evidence": {
         "paths": [
           "docs/backlog/items/ITEM-0033-add-a-test-runner-and-unit-coverage-to-apps-agent-desktop.md"
@@ -5114,12 +8207,20 @@
       "related_backlog": [
         "ITEM-0028"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-212",
+        "REG-213",
+        "REG-214"
+      ],
+      "qa_scenarios": [
+        "QA-AGENT-005",
+        "QA-AGENT-006",
+        "QA-AGENT-007"
+      ],
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "VERIFIED",
         "classification": "STATUS_DISPOSITION_BUCKET_MISMATCH_DEFERRED",
@@ -5187,14 +8288,14 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "",
         "created_at": "2026-08-17",
-        "updated_at": "2026-08-17",
+        "updated_at": "2026-08-22",
         "resolved_at": ""
       },
       "type": "TECH_DEBT",
       "title": "Web route handlers flatten upstream error status to 500",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "READY",
+      "current_status": "DONE",
       "current_evidence": {
         "paths": [
           "docs/backlog/items/ITEM-0035-web-route-handlers-flatten-upstream-error-status-to-500.md",
@@ -5215,12 +8316,16 @@
       "related_backlog": [
         "ITEM-0012"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-211"
+      ],
+      "qa_scenarios": [
+        "QA-RUNTIME-012"
+      ],
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "VERIFIED",
         "classification": "ACTIVE_AS_DOCUMENTED",
@@ -5532,14 +8637,14 @@
         "provenance": "ARCHITECT",
         "detected_in_sha": "",
         "created_at": "2026-08-17",
-        "updated_at": "2026-08-17",
+        "updated_at": "2026-08-22",
         "resolved_at": ""
       },
       "type": "TECH_DEBT",
       "title": "Burn down the services/api ESLint warning baseline",
       "severity": "LOW",
       "priority": "P3",
-      "current_status": "READY",
+      "current_status": "DONE",
       "current_evidence": {
         "paths": [
           "docs/backlog/items/ITEM-0042-burn-down-the-services-api-eslint-warning-baseline.md"
@@ -5559,12 +8664,16 @@
       "related_backlog": [
         "ITEM-0043"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-215"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-019"
+      ],
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "VERIFIED",
         "classification": "STATUS_DISPOSITION_BUCKET_MISMATCH_DEFERRED",
@@ -5676,14 +8785,14 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "",
         "created_at": "2026-08-17",
-        "updated_at": "2026-08-17",
+        "updated_at": "2026-08-22",
         "resolved_at": ""
       },
       "type": "DOCUMENTATION",
       "title": "Reconcile tenant web root-domain environment examples",
       "severity": "LOW",
       "priority": "P3",
-      "current_status": "READY",
+      "current_status": "DONE",
       "current_evidence": {
         "paths": [
           "docs/backlog/items/ITEM-0045-reconcile-tenant-web-root-domain-environment-examples.md",
@@ -5700,12 +8809,16 @@
       },
       "related_bugs": [],
       "related_backlog": [],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-210"
+      ],
+      "qa_scenarios": [
+        "QA-DEPLOY-020"
+      ],
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "PRELIMINARY",
         "classification": "ACTIVE_AS_DOCUMENTED",
@@ -5792,15 +8905,15 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "",
         "created_at": "2026-08-17",
-        "updated_at": "2026-08-17",
+        "updated_at": "2026-08-21",
         "resolved_at": ""
       },
       "type": "SECURITY",
       "title": "Replace or contain active-win and the xlsx export path",
       "severity": "HIGH",
       "priority": "P2",
-      "current_status": "READY",
-      "architect_disposition": "PLAN_REQUIRED",
+      "current_status": "BLOCKED",
+      "architect_disposition": "BLOCKED_EXTERNAL",
       "affected_modules": [
         "apps/agent-desktop",
         "services/api/src/common/excel",
@@ -5808,7 +8921,13 @@
       ],
       "regressions": [],
       "qa_scenarios": [],
-      "test_plan": []
+      "test_plan": [],
+      "dependencies": {
+        "record_ids": [
+          "BUG-0163"
+        ],
+        "note": "blocked on the owner decision about a full dependency refresh"
+      }
     },
     {
       "record_id": "ITEM-0049",
@@ -5842,15 +8961,15 @@
         "provenance": "IMPLEMENTATION",
         "detected_in_sha": "",
         "created_at": "2026-08-18",
-        "updated_at": "2026-08-18",
+        "updated_at": "2026-08-22",
         "resolved_at": ""
       },
       "type": "TECH_DEBT",
       "title": "Move payroll derivation and branding upload orchestration out of web proxies",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "READY",
-      "architect_disposition": "PLAN_REQUIRED",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
       "affected_modules": [
         "apps/web",
         "services/api/src/modules/compensation",
@@ -5940,14 +9059,14 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "",
         "created_at": "2026-08-18",
-        "updated_at": "2026-08-18",
+        "updated_at": "2026-08-22",
         "resolved_at": ""
       },
       "type": "PRODUCT_DECISION",
       "title": "Publish privacy policy and terms for the public landing site",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "PRODUCT_DECISION",
+      "current_status": "READY",
       "current_evidence": {
         "paths": [
           "docs/backlog/items/ITEM-0053-publish-privacy-policy-and-terms-for-the-public-landing-site.md",
@@ -5973,111 +9092,9 @@
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "YES",
-      "architect_disposition": "PRODUCT_DECISION",
+      "architect_disposition": "FIX_NOW",
       "verification_result": {
         "result": "PRELIMINARY",
-        "classification": "TERMINAL_AS_DOCUMENTED",
-        "finding_ids": []
-      }
-    },
-    {
-      "record_id": "BUG-0068",
-      "source": {
-        "record_path": "docs/bugs/BUG-0068-prisma-client-freshness-check-is-blind-to-field-level-drift.md",
-        "provenance": "USER_REPORT",
-        "detected_in_sha": "304bfda",
-        "created_at": "2026-08-18",
-        "updated_at": "2026-08-18",
-        "resolved_at": "2026-08-18"
-      },
-      "type": "INFRA",
-      "title": "Prisma client freshness check is blind to field-level drift",
-      "severity": "HIGH",
-      "priority": "P1",
-      "current_status": "VERIFIED",
-      "current_evidence": {
-        "paths": [
-          "docs/bugs/BUG-0068-prisma-client-freshness-check-is-blind-to-field-level-drift.md",
-          "scripts/check-prisma-client-fresh.mjs"
-        ],
-        "verification_scope": "Mutation-tested in both directions: a schema-only field produces exit 1 naming the field, and a restored schema produces exit 0. The eight reported TypeScript errors clear after prisma:generate."
-      },
-      "affected_modules": [
-        "scripts",
-        "services/api"
-      ],
-      "dependencies": {
-        "record_ids": [
-          "BUG-0060"
-        ],
-        "note": "Extends the BUG-0060 guard."
-      },
-      "related_bugs": [
-        "BUG-0060"
-      ],
-      "related_backlog": [],
-      "regressions": [
-        "REG-063"
-      ],
-      "qa_scenarios": [
-        "QA-CI-002",
-        "QA-DEPLOY-014"
-      ],
-      "test_plan": [],
-      "active_session_conflict": "NONE",
-      "owner_decision_required": "NO",
-      "architect_disposition": "DONE",
-      "verification_result": {
-        "result": "VERIFIED",
-        "classification": "TERMINAL_AS_DOCUMENTED",
-        "finding_ids": []
-      }
-    },
-    {
-      "record_id": "BUG-0070",
-      "source": {
-        "record_path": "docs/bugs/BUG-0070-outbox-deduplication-aborted-the-caller-transaction-on-postg.md",
-        "provenance": "QA_RUN",
-        "detected_in_sha": "1fb2bf9",
-        "created_at": "2026-08-18",
-        "updated_at": "2026-08-18",
-        "resolved_at": "2026-08-18"
-      },
-      "type": "BUG",
-      "title": "Outbox deduplication aborted the caller transaction on PostgreSQL",
-      "severity": "HIGH",
-      "priority": "P1",
-      "current_status": "VERIFIED",
-      "current_evidence": {
-        "paths": [
-          "services/api/src/modules/outbox/outbox.service.ts",
-          "services/api/test/outbox-delivery.e2e-spec.ts"
-        ],
-        "verification_scope": "Proven against real PostgreSQL 18 in both directions: the pre-fix implementation fails with \"current transaction is aborted\", the ON CONFLICT DO NOTHING implementation passes 5 of 5 including the two-dispatcher concurrency case."
-      },
-      "affected_modules": [
-        "outbox"
-      ],
-      "dependencies": {
-        "record_ids": [],
-        "note": "Introduced and fixed inside TASK-0007 WP-01."
-      },
-      "related_bugs": [],
-      "related_backlog": [],
-      "regressions": [
-        "REG-064"
-      ],
-      "qa_scenarios": [
-        "QA-BILLING-002"
-      ],
-      "test_plan": [
-        "PLAN-014"
-      ],
-      "active_session_conflict": "NONE",
-      "owner_decision_required": "NO",
-      "architect_disposition": "DONE",
-      "verification_result": {
-        "result": "VERIFIED",
         "classification": "TERMINAL_AS_DOCUMENTED",
         "finding_ids": []
       }
@@ -6223,66 +9240,12 @@
       }
     },
     {
-      "record_id": "BUG-0076",
-      "source": {
-        "record_path": "docs/bugs/BUG-0076-repository-health-never-inspected-the-primary-worktree-so-a-.md",
-        "provenance": "USER_REPORT",
-        "created_at": "2026-08-19",
-        "updated_at": "2026-08-19",
-        "detected_in_sha": "494c44d",
-        "resolved_at": "2026-08-19"
-      },
-      "type": "INFRA",
-      "title": "Repository health never inspected the primary worktree, so a clean task worktree passed as CLEANUP_STATUS DONE",
-      "severity": "HIGH",
-      "priority": "P1",
-      "current_status": "FIXED",
-      "current_evidence": {
-        "paths": [
-          "scripts/repo-health.mjs",
-          "scripts/session.mjs",
-          "scripts/validate-framework.mjs",
-          ".agent/context/repository-health.md",
-          ".agent/context/task-completion-contract.md"
-        ],
-        "verification_scope": "repo-health.mjs computed per-worktree dirtiness, dropped it from the report, and warned only when the invoking worktree was dirty AND on main - so a dirty develop in the user's primary checkout produced no output at all. Fixed by classifying every worktree PRIMARY/TASK/OTHER, attributing every dirty path in the primary checkout to USER, SESSION-nnnn, GENERATED_BY_FRAMEWORK or UNKNOWN, and making DIRTY_UNEXPLAINED a blocker. session.mjs now reports PRIMARY_WORKTREE_ARTIFACT when it writes a record into a checkout the session will not work in. Covered by behavioural simulations 37A-37G, 38 and 39 and mutation-tested seven ways, all killed."
-      },
-      "affected_modules": [
-        "scripts/repo-health.mjs",
-        "scripts/session.mjs"
-      ],
-      "dependencies": {
-        "record_ids": [],
-        "note": "None."
-      },
-      "related_bugs": [],
-      "related_backlog": [
-        "ITEM-0057",
-        "ITEM-0058"
-      ],
-      "regressions": [
-        "REG-065"
-      ],
-      "qa_scenarios": [
-        "QA-DEPLOY-015"
-      ],
-      "test_plan": [],
-      "active_session_conflict": "NONE",
-      "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
-      "verification_result": {
-        "result": "FIXED",
-        "classification": "REMEDIATED_WITH_REGRESSION",
-        "finding_ids": []
-      }
-    },
-    {
       "record_id": "ITEM-0057",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0057-landing-production-env-examples-still-name-the-vercel-and-re.md",
         "provenance": "ARCHITECT",
         "created_at": "2026-08-19",
-        "updated_at": "2026-08-19",
+        "updated_at": "2026-08-22",
         "detected_in_sha": "",
         "resolved_at": ""
       },
@@ -6290,7 +9253,7 @@
       "title": "Landing production env examples still name the vercel and render hosts, not the dijipeople.com apex",
       "severity": "",
       "priority": "P2",
-      "current_status": "PRODUCT_DECISION",
+      "current_status": "DONE",
       "current_evidence": {
         "paths": [
           "apps/landing/.env.example",
@@ -6319,7 +9282,7 @@
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "YES",
-      "architect_disposition": "PRODUCT_DECISION",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "AWAITING_PRODUCT_DECISION",
         "classification": "PRESERVED_NOT_DISCARDED",
@@ -6431,632 +9394,6 @@
       }
     },
     {
-      "record_id": "BUG-0071",
-      "source": {
-        "record_path": "docs/bugs/BUG-0071-tenant-users-reach-every-platform-super-admin-endpoint.md",
-        "provenance": "QA_RUN",
-        "created_at": "2026-08-18",
-        "updated_at": "2026-08-18",
-        "detected_in_sha": "aa33524",
-        "resolved_at": "2026-08-18"
-      },
-      "type": "AUTHORIZATION",
-      "title": "Tenant users reach every platform super-admin endpoint",
-      "severity": "CRITICAL",
-      "priority": "P0",
-      "current_status": "VERIFIED",
-      "current_evidence": {
-        "paths": [
-          "services/api/src/modules/platform-auth/platform-permissions.ts",
-          "services/api/src/modules/super-admin/super-admin.controller.ts",
-          "services/api/src/modules/platform-communications/platform-email-settings.service.ts"
-        ],
-        "verification_scope": "Reproduced live against a seeded local stack: a tenant user holding the ordinary system-admin tenant role received 200 from all 16 super-admin GET routes and 400 (not 403) from PATCH platform-settings and platform-email, proving authorization had passed. Retested on the fixed build, verified by inspecting the compiled artifact rather than assumed: 403 on every route for the tenant subject, 200 for the platform subject including the three routes that previously 403d for platform operators."
-      },
-      "affected_modules": [
-        "platform-auth",
-        "super-admin",
-        "platform-communications"
-      ],
-      "dependencies": {
-        "record_ids": [
-          "BUG-0072"
-        ],
-        "note": "Same resolver and guard; fixed in one commit under a shared ExecPlan."
-      },
-      "related_bugs": [
-        "BUG-0072"
-      ],
-      "related_backlog": [],
-      "regressions": [
-        "REG-066"
-      ],
-      "qa_scenarios": [
-        "QA-AUTHZ-010"
-      ],
-      "test_plan": [
-        "PLAN-002"
-      ],
-      "active_session_conflict": "NONE",
-      "owner_decision_required": "NO",
-      "architect_disposition": "DONE",
-      "verification_result": {
-        "result": "FIXED",
-        "classification": "REMEDIATED_AND_RETESTED",
-        "finding_ids": []
-      }
-    },
-    {
-      "record_id": "BUG-0072",
-      "source": {
-        "record_path": "docs/bugs/BUG-0072-platform-mutations-map-to-read-permissions-letting-the-read-.md",
-        "provenance": "QA_RUN",
-        "created_at": "2026-08-18",
-        "updated_at": "2026-08-18",
-        "detected_in_sha": "aa33524",
-        "resolved_at": "2026-08-18"
-      },
-      "type": "AUTHORIZATION",
-      "title": "Platform mutations map to read permissions, letting the read-only auditor write",
-      "severity": "HIGH",
-      "priority": "P1",
-      "current_status": "VERIFIED",
-      "current_evidence": {
-        "paths": [
-          "services/api/src/modules/platform-auth/platform-permissions.ts",
-          "services/api/src/modules/super-admin/super-admin.controller.ts"
-        ],
-        "verification_scope": "Enumerated from the controller PATH_METADATA and METHOD_METADATA rather than a hand-written list. Before: four routes resolved no permission and eight mutating routes resolved a .read permission, including POST /plans, PATCH /plans/:planId, DELETE /plans/:planId/prices/:priceId and POST /billing/stripe-webhook-events/:id/retry. After: both lists empty; READ_ONLY_AUDITOR refused plans.manage while PLATFORM_ADMIN retains it."
-      },
-      "affected_modules": [
-        "platform-auth",
-        "super-admin"
-      ],
-      "dependencies": {
-        "record_ids": [
-          "BUG-0071"
-        ],
-        "note": "Same resolver; a partial fix to either left the other reachable."
-      },
-      "related_bugs": [
-        "BUG-0071"
-      ],
-      "related_backlog": [],
-      "regressions": [
-        "REG-067"
-      ],
-      "qa_scenarios": [
-        "QA-AUTHZ-011"
-      ],
-      "test_plan": [
-        "PLAN-002"
-      ],
-      "active_session_conflict": "NONE",
-      "owner_decision_required": "NO",
-      "architect_disposition": "DONE",
-      "verification_result": {
-        "result": "FIXED",
-        "classification": "REMEDIATED_AND_RETESTED",
-        "finding_ids": []
-      }
-    },
-    {
-      "record_id": "BUG-0073",
-      "source": {
-        "record_path": "docs/bugs/BUG-0073-small-uppercase-labels-in-slate-400-fail-wcag-aa-contrast-ac.md",
-        "provenance": "QA_RUN",
-        "created_at": "2026-08-19",
-        "updated_at": "2026-08-19",
-        "detected_in_sha": "4290c03",
-        "resolved_at": "2026-08-19"
-      },
-      "type": "UX",
-      "title": "Small uppercase labels in slate-400 fail WCAG AA contrast across admin",
-      "severity": "MEDIUM",
-      "priority": "P2",
-      "current_status": "VERIFIED",
-      "current_evidence": {
-        "paths": [
-          "apps/admin/app/_components/admin-sidebar.tsx",
-          "apps/admin/app/_components/runtime/runtime-view-selector.tsx",
-          "apps/admin/app/(internal)/operations/provisioning/provisioning-queue.tsx"
-        ],
-        "verification_scope": "axe reported SERIOUS color-contrast on every admin screen: slate-400 on white is ~2.8:1 against a 4.5:1 requirement, and two of the three instances are in the shared shell. Raised to slate-500 (~4.8:1) and retested - E3 passes for both audited screens."
-      },
-      "affected_modules": [
-        "apps/admin"
-      ],
-      "dependencies": {
-        "record_ids": [],
-        "note": "Found in one audit; fixed together."
-      },
-      "related_bugs": [
-        "BUG-0074"
-      ],
-      "related_backlog": [],
-      "regressions": [
-        "REG-068"
-      ],
-      "qa_scenarios": [
-        "QA-PLATFORM-002"
-      ],
-      "test_plan": [
-        "PLAN-019"
-      ],
-      "active_session_conflict": "NONE",
-      "owner_decision_required": "NO",
-      "architect_disposition": "DONE",
-      "verification_result": {
-        "result": "FIXED",
-        "classification": "REMEDIATED_AND_RETESTED",
-        "finding_ids": []
-      }
-    },
-    {
-      "record_id": "BUG-0074",
-      "source": {
-        "record_path": "docs/bugs/BUG-0074-the-provisioning-queue-scroll-container-was-unreachable-by-k.md",
-        "provenance": "QA_RUN",
-        "created_at": "2026-08-19",
-        "updated_at": "2026-08-19",
-        "detected_in_sha": "4290c03",
-        "resolved_at": "2026-08-19"
-      },
-      "type": "UX",
-      "title": "The provisioning queue scroll container was unreachable by keyboard",
-      "severity": "MEDIUM",
-      "priority": "P2",
-      "current_status": "VERIFIED",
-      "current_evidence": {
-        "paths": [
-          "apps/admin/app/(internal)/operations/provisioning/provisioning-queue.tsx"
-        ],
-        "verification_scope": "axe reported SERIOUS scrollable-region-focusable: the overflow-x-auto container had no tabIndex, so the Blocker, Attempt and Correlation columns were pointer-only. Given role=region, an aria-label and tabIndex=0; E3 and E4 both pass, so the keyboard fix did not reintroduce body overflow."
-      },
-      "affected_modules": [
-        "apps/admin"
-      ],
-      "dependencies": {
-        "record_ids": [],
-        "note": "Found in one audit; fixed together."
-      },
-      "related_bugs": [
-        "BUG-0073"
-      ],
-      "related_backlog": [],
-      "regressions": [
-        "REG-068"
-      ],
-      "qa_scenarios": [
-        "QA-PLATFORM-002"
-      ],
-      "test_plan": [
-        "PLAN-019"
-      ],
-      "active_session_conflict": "NONE",
-      "owner_decision_required": "NO",
-      "architect_disposition": "DONE",
-      "verification_result": {
-        "result": "FIXED",
-        "classification": "REMEDIATED_AND_RETESTED",
-        "finding_ids": []
-      }
-    },
-    {
-      "record_id": "BUG-0079",
-      "source": {
-        "record_path": "docs/bugs/BUG-0079-browser-e2e-spends-its-whole-install-step-on-apt-work-that-i.md",
-        "provenance": "REVIEWER",
-        "detected_in_sha": "e6f4cbe",
-        "created_at": "2026-08-19",
-        "updated_at": "2026-08-20",
-        "resolved_at": "2026-08-20"
-      },
-      "type": "PERFORMANCE",
-      "title": "Browser e2e spends its whole install step on apt work that installs no browser library",
-      "severity": "HIGH",
-      "priority": "P1",
-      "current_status": "FIXED",
-      "current_evidence": {
-        "paths": [
-          "docs/bugs/BUG-0079-browser-e2e-spends-its-whole-install-step-on-apt-work-that-i.md",
-          "scripts/install-browser.mjs",
-          ".github/workflows/ci.yml"
-        ],
-        "verification_scope": "Root cause established from run 32294710633 job logs; fix measured locally and verified in CI."
-      },
-      "affected_modules": [
-        ".github/workflows",
-        "e2e"
-      ],
-      "dependencies": {
-        "record_ids": [],
-        "note": ""
-      },
-      "related_bugs": [],
-      "related_backlog": [
-        "ITEM-0047",
-        "ITEM-0034"
-      ],
-      "regressions": [
-        "REG-069"
-      ],
-      "qa_scenarios": [
-        "QA-DEPLOY-016"
-      ],
-      "test_plan": [],
-      "active_session_conflict": "NONE",
-      "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
-      "verification_result": {
-        "result": "PRELIMINARY",
-        "classification": "TERMINAL_AS_DOCUMENTED",
-        "finding_ids": []
-      }
-    },
-    {
-      "record_id": "ITEM-0065",
-      "source": {
-        "record_path": "docs/backlog/items/ITEM-0065-two-e2e-suites-still-borrow-a-customeraccount-which-is-what-.md",
-        "provenance": "ARCHITECT",
-        "detected_in_sha": "",
-        "created_at": "2026-08-19",
-        "updated_at": "2026-08-20",
-        "resolved_at": ""
-      },
-      "type": "TEST_GAP",
-      "title": "Two e2e suites still borrow a CustomerAccount, which is what blocks parallel execution",
-      "severity": "LOW",
-      "priority": "P3",
-      "current_status": "DEFERRED",
-      "current_evidence": {
-        "paths": [
-          "docs/backlog/items/ITEM-0065-two-e2e-suites-still-borrow-a-customeraccount-which-is-what-.md",
-          "services/api/test/permission-propagation.e2e-spec.ts",
-          "services/api/test/platform-workflows.e2e-spec.ts"
-        ],
-        "verification_scope": "Both lookups read directly; three --maxWorkers=4 runs recorded as narrow-window evidence, not as proof of safety."
-      },
-      "affected_modules": [
-        "services/api/test"
-      ],
-      "dependencies": {
-        "record_ids": [],
-        "note": "ITEM-0047 is DONE; this does not block on it."
-      },
-      "related_bugs": [],
-      "related_backlog": [
-        "ITEM-0047",
-        "ITEM-0055"
-      ],
-      "regressions": [],
-      "qa_scenarios": [],
-      "test_plan": [],
-      "active_session_conflict": "NONE",
-      "owner_decision_required": "NO",
-      "architect_disposition": "DEFER",
-      "verification_result": {
-        "result": "PRELIMINARY",
-        "classification": "OPEN_AS_DOCUMENTED",
-        "finding_ids": []
-      }
-    },
-    {
-      "record_id": "BUG-0075",
-      "source": {
-        "record_path": "docs/bugs/BUG-0075-public-subscribe-checkout-has-no-rate-limit-and-the-invarian.md",
-        "provenance": "ARCHITECT",
-        "detected_in_sha": "494c44d",
-        "created_at": "2026-08-19",
-        "updated_at": "2026-08-19",
-        "resolved_at": "2026-08-19"
-      },
-      "type": "SECURITY",
-      "title": "Public subscribe checkout has no rate limit and the invariant that should catch it is inert",
-      "severity": "HIGH",
-      "priority": "P1",
-      "current_status": "FIXED",
-      "current_evidence": {
-        "paths": [
-          "services/api/src/modules/billing/controllers/public-billing.controller.ts",
-          "services/api/src/common/guards/public-write-rate-limit.invariant.spec.ts"
-        ],
-        "verification_scope": "Mutation-tested in both directions. Old predicate against the unguarded controller: 13 passed, blind. Corrected predicate with the guard removed and the import left in place: 1 failed, naming createSubscriptionCheckout. Corrected predicate with the guard restored: 13 passed. Swept all 106 controllers and found exactly one offender."
-      },
-      "affected_modules": [
-        "billing",
-        "common/guards"
-      ],
-      "dependencies": {
-        "record_ids": [
-          "ITEM-0013"
-        ],
-        "note": "Found during the TASK-0008 reconciliation and fixed inside it. Third recurrence of the BUG-0013/BUG-0031/BUG-0033 family; the ITEM-0013 invariant built to stop it was structurally unable to see it."
-      },
-      "related_bugs": [
-        "BUG-0013",
-        "BUG-0031",
-        "BUG-0033"
-      ],
-      "related_backlog": [
-        "ITEM-0013"
-      ],
-      "regressions": [
-        "REG-071"
-      ],
-      "qa_scenarios": [
-        "QA-BILLING-007"
-      ],
-      "test_plan": [],
-      "active_session_conflict": "NONE",
-      "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
-      "verification_result": {
-        "result": "FIXED",
-        "classification": "TERMINAL_AS_DOCUMENTED",
-        "finding_ids": []
-      }
-    },
-    {
-      "record_id": "BUG-0077",
-      "source": {
-        "record_path": "docs/bugs/BUG-0077-public-subscribe-creates-a-tenant-and-a-second-customeraccou.md",
-        "provenance": "ARCHITECT",
-        "detected_in_sha": "4f966ea",
-        "created_at": "2026-08-19",
-        "updated_at": "2026-08-19",
-        "resolved_at": "2026-08-19"
-      },
-      "type": "DATA_INTEGRITY",
-      "title": "Public subscribe creates a Tenant and a second CustomerAccount before payment",
-      "severity": "HIGH",
-      "priority": "P1",
-      "current_status": "FIXED",
-      "current_evidence": {
-        "paths": [
-          "services/api/src/modules/billing/services/billing.service.ts"
-        ],
-        "verification_scope": "Fixed and mutation-tested: the regression run against pre-fix source reproduces all four symptoms including the fabricated Unknown columns; restored, all four pass."
-      },
-      "affected_modules": [
-        "billing",
-        "super-admin",
-        "tenants"
-      ],
-      "dependencies": {
-        "record_ids": [
-          "BUG-0078"
-        ],
-        "note": "Must land with BUG-0078. Removing the pre-payment tenant without wiring the provisioning consumer would strand paying customers."
-      },
-      "related_bugs": [
-        "BUG-0078"
-      ],
-      "related_backlog": [],
-      "regressions": [
-        "REG-072"
-      ],
-      "qa_scenarios": [
-        "QA-BILLING-008"
-      ],
-      "test_plan": [],
-      "active_session_conflict": "NONE",
-      "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
-      "verification_result": {
-        "result": "FIXED",
-        "classification": "TERMINAL_AS_DOCUMENTED",
-        "finding_ids": []
-      }
-    },
-    {
-      "record_id": "BUG-0078",
-      "source": {
-        "record_path": "docs/bugs/BUG-0078-provisioning-requested-has-no-consumer-so-a-paid-self-servic.md",
-        "provenance": "ARCHITECT",
-        "detected_in_sha": "4f966ea",
-        "created_at": "2026-08-19",
-        "updated_at": "2026-08-19",
-        "resolved_at": "2026-08-19"
-      },
-      "type": "STATE_MACHINE",
-      "title": "PROVISIONING_REQUESTED has no consumer so a paid self-service customer is never provisioned",
-      "severity": "HIGH",
-      "priority": "P1",
-      "current_status": "FIXED",
-      "current_evidence": {
-        "paths": [
-          "services/api/src/modules/billing/services/order-activation.service.ts",
-          "services/api/src/modules/billing/services/payment-confirmed.handler.ts"
-        ],
-        "verification_scope": "Consumer added and the engine made reachable without a human actor. Invariant mutation-tested: emptying the handles array fails naming PROVISIONING_REQUESTED."
-      },
-      "affected_modules": [
-        "billing",
-        "outbox",
-        "super-admin"
-      ],
-      "dependencies": {
-        "record_ids": [
-          "BUG-0077"
-        ],
-        "note": "Must land with BUG-0077."
-      },
-      "related_bugs": [
-        "BUG-0077"
-      ],
-      "related_backlog": [],
-      "regressions": [
-        "REG-073"
-      ],
-      "qa_scenarios": [
-        "QA-BILLING-009"
-      ],
-      "test_plan": [],
-      "active_session_conflict": "NONE",
-      "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
-      "verification_result": {
-        "result": "FIXED",
-        "classification": "TERMINAL_AS_DOCUMENTED",
-        "finding_ids": []
-      }
-    },
-    {
-      "record_id": "BUG-0080",
-      "source": {
-        "record_path": "docs/bugs/BUG-0080-seeded-prices-bill-a-flat-fee-while-the-terms-say-the-billab.md",
-        "provenance": "ARCHITECT",
-        "detected_in_sha": "d4c0b00",
-        "created_at": "2026-08-20",
-        "updated_at": "2026-08-20",
-        "resolved_at": "2026-08-20"
-      },
-      "type": "DATA_INTEGRITY",
-      "title": "Seeded prices bill a flat fee while the Terms say the billable unit is an active employee",
-      "severity": "HIGH",
-      "priority": "P1",
-      "current_status": "FIXED",
-      "current_evidence": {
-        "paths": [
-          "services/api/src/modules/super-admin/commercial-bootstrap.ts",
-          "services/api/prisma/seed-legal.ts"
-        ],
-        "verification_scope": "Product decision taken: prices are flat per plan, tiered by modules. The prices were correct; the words were not. Terms, billing terms and five pieces of landing copy corrected, and billingUnitLabel now labels a flat price by period instead of returning null."
-      },
-      "affected_modules": [
-        "billing",
-        "super-admin",
-        "legal"
-      ],
-      "dependencies": {
-        "record_ids": [],
-        "note": "Needs a product answer on whether pricing is per active employee or flat with a seat cap."
-      },
-      "related_bugs": [],
-      "related_backlog": [],
-      "regressions": [
-        "REG-075",
-        "REG-080"
-      ],
-      "qa_scenarios": [
-        "QA-BILLING-011",
-        "QA-LANDING-009"
-      ],
-      "test_plan": [],
-      "active_session_conflict": "NONE",
-      "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
-      "verification_result": {
-        "result": "FIXED",
-        "classification": "TERMINAL_AS_DOCUMENTED",
-        "finding_ids": []
-      }
-    },
-    {
-      "record_id": "BUG-0081",
-      "source": {
-        "record_path": "docs/bugs/BUG-0081-three-apps-claimed-a-forwarded-headers-invariant-test-that-d.md",
-        "provenance": "SECURITY_REVIEW",
-        "detected_in_sha": "ffda0e3",
-        "created_at": "2026-08-19",
-        "updated_at": "2026-08-19",
-        "resolved_at": "2026-08-19"
-      },
-      "type": "TEST_GAP",
-      "title": "Three apps claimed a forwarded-headers invariant test that did not exist",
-      "severity": "MEDIUM",
-      "priority": "P2",
-      "current_status": "FIXED",
-      "current_evidence": {
-        "paths": [
-          "apps/landing/lib/forwarded-headers.ts",
-          "apps/web/lib/forwarded-headers.ts",
-          "apps/admin/lib/forwarded-headers.ts",
-          "apps/landing/lib/forwarded-headers.invariant.spec.ts"
-        ],
-        "verification_scope": "All three apps asserted that forwarded-headers.invariant.test.ts failed the build if a route handler forgot to forward the visitor address. No such file existed. The convention was intact at detection — 24 of 24 direct-API handlers forwarded — which is why nothing had surfaced it. The check now exists in each app, asserts a minimum handler count so it cannot pass by finding nothing, and was mutation-verified by stripping the forwarding from apps/landing/app/api/leads/route.ts."
-      },
-      "affected_modules": [
-        "landing",
-        "web",
-        "admin"
-      ],
-      "dependencies": {
-        "record_ids": [],
-        "note": ""
-      },
-      "related_bugs": [
-        "BUG-0032"
-      ],
-      "related_backlog": [],
-      "regressions": [
-        "REG-076"
-      ],
-      "qa_scenarios": [
-        "QA-LANDING-010"
-      ],
-      "test_plan": [],
-      "active_session_conflict": "NONE",
-      "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
-      "verification_result": {
-        "result": "FIXED",
-        "classification": "TERMINAL_AS_DOCUMENTED",
-        "finding_ids": []
-      }
-    },
-    {
-      "record_id": "BUG-0082",
-      "source": {
-        "record_path": "docs/bugs/BUG-0082-the-onboarding-wizard-collects-five-steps-of-data-it-cannot-.md",
-        "provenance": "QA_RUN",
-        "detected_in_sha": "71f1795",
-        "created_at": "2026-08-20",
-        "updated_at": "2026-08-20",
-        "resolved_at": "2026-08-20"
-      },
-      "type": "UX",
-      "title": "The onboarding wizard collects five steps of data it cannot submit",
-      "severity": "HIGH",
-      "priority": "P1",
-      "current_status": "FIXED",
-      "current_evidence": {
-        "paths": [
-          "apps/landing/app/subscribe/subscribe-form.tsx",
-          "apps/landing/lib/plans.ts",
-          "e2e/tests/flow-c-landing-public-surface.spec.ts"
-        ],
-        "verification_scope": "BUG-0066 reintroduced by WP-11's wizard. Its guard was structural — a disabled fieldset and an id on a notice — and did not survive the rewrite from one page into five steps. A visitor with an unpurchasable selection could type an organization profile, an owner identity and two accepted agreements before meeting a disabled submit button. The rule is now one function, checkoutBlockedReason, feeding the notice, the fieldset and the Continue button alike."
-      },
-      "affected_modules": [
-        "landing"
-      ],
-      "dependencies": {
-        "record_ids": [],
-        "note": ""
-      },
-      "related_bugs": [
-        "BUG-0066"
-      ],
-      "related_backlog": [],
-      "regressions": [
-        "REG-077"
-      ],
-      "qa_scenarios": [
-        "QA-LANDING-011"
-      ],
-      "test_plan": [],
-      "active_session_conflict": "NONE",
-      "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
-      "verification_result": {
-        "result": "FIXED",
-        "classification": "TERMINAL_AS_DOCUMENTED",
-        "finding_ids": []
-      }
-    },
-    {
       "record_id": "ITEM-0060",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0060-schema-prisma-and-the-applied-migration-history-do-not-agree.md",
@@ -7156,14 +9493,14 @@
         "provenance": "ARCHITECT",
         "detected_in_sha": "",
         "created_at": "2026-08-19",
-        "updated_at": "2026-08-19",
+        "updated_at": "2026-08-22",
         "resolved_at": ""
       },
       "type": "ARCHITECTURE",
       "title": "No multi-tenant membership — one user belongs to one tenant, so discovery and switching cannot exist",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "READY",
+      "current_status": "PRODUCT_DECISION",
       "current_evidence": {
         "paths": [
           "services/api/prisma/schema.prisma",
@@ -7189,7 +9526,7 @@
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "YES",
-      "architect_disposition": "PLAN_REQUIRED",
+      "architect_disposition": "PRODUCT_DECISION",
       "verification_result": {
         "result": "PRODUCT_DECISION",
         "classification": "TERMINAL_AS_DOCUMENTED",
@@ -7290,6 +9627,53 @@
       }
     },
     {
+      "record_id": "ITEM-0065",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0065-two-e2e-suites-still-borrow-a-customeraccount-which-is-what-.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-08-19",
+        "updated_at": "2026-08-20",
+        "resolved_at": ""
+      },
+      "type": "TEST_GAP",
+      "title": "Two e2e suites still borrow a CustomerAccount, which is what blocks parallel execution",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "DEFERRED",
+      "current_evidence": {
+        "paths": [
+          "docs/backlog/items/ITEM-0065-two-e2e-suites-still-borrow-a-customeraccount-which-is-what-.md",
+          "services/api/test/permission-propagation.e2e-spec.ts",
+          "services/api/test/platform-workflows.e2e-spec.ts"
+        ],
+        "verification_scope": "Both lookups read directly; three --maxWorkers=4 runs recorded as narrow-window evidence, not as proof of safety."
+      },
+      "affected_modules": [
+        "services/api/test"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": "ITEM-0047 is DONE; this does not block on it."
+      },
+      "related_bugs": [],
+      "related_backlog": [
+        "ITEM-0047",
+        "ITEM-0055"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DEFER",
+      "verification_result": {
+        "result": "PRELIMINARY",
+        "classification": "OPEN_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
       "record_id": "ITEM-0066",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0066-verify-database-mjs-cannot-spawn-npm-on-windows.md",
@@ -7375,59 +9759,6 @@
       "architect_disposition": "DUPLICATE",
       "verification_result": {
         "result": "DUPLICATE",
-        "classification": "TERMINAL_AS_DOCUMENTED",
-        "finding_ids": []
-      }
-    },
-    {
-      "record_id": "BUG-0083",
-      "source": {
-        "record_path": "docs/bugs/BUG-0083-the-database-agent-preflight-reports-pass-on-a-database-with.md",
-        "provenance": "USER_REPORT",
-        "detected_in_sha": "844b6d3",
-        "created_at": "2026-08-20",
-        "updated_at": "2026-08-20",
-        "resolved_at": "2026-08-20"
-      },
-      "type": "INFRA",
-      "title": "The Database Agent preflight reports PASS on a database with every migration unapplied",
-      "severity": "HIGH",
-      "priority": "P1",
-      "current_status": "VERIFIED",
-      "current_evidence": {
-        "paths": [
-          "scripts/db-preflight.mjs",
-          "scripts/db-preflight.test.mjs",
-          ".agent/context/task-completion-contract.md"
-        ],
-        "verification_scope": "The Database Agent gate returned PASS over its own failing fields. Measured against a throwaway database with 213 committed migrations unapplied, db-preflight printed MIGRATION_STATUS=PENDING_MIGRATIONS, LOCAL_DATABASE_STATUS=DATABASE_MISMATCH and DATABASE_AGENT_STATUS=PASS in one output, exiting 0. PASS was the default for every status not explicitly enumerated as blocking, so both \"behind\" and \"nobody could look\" reached it. The verdict is now a pure exported function with three outcomes, and the invariant is checked after the work as well as before it, against the primary checkout."
-      },
-      "affected_modules": [
-        "scripts",
-        ".agent",
-        "services/api"
-      ],
-      "dependencies": {
-        "record_ids": [],
-        "note": ""
-      },
-      "related_bugs": [
-        "BUG-0060",
-        "BUG-0068"
-      ],
-      "related_backlog": [],
-      "regressions": [
-        "REG-078"
-      ],
-      "qa_scenarios": [
-        "QA-CI-002"
-      ],
-      "test_plan": [],
-      "active_session_conflict": "NONE",
-      "owner_decision_required": "NO",
-      "architect_disposition": "DONE",
-      "verification_result": {
-        "result": "FIXED",
         "classification": "TERMINAL_AS_DOCUMENTED",
         "finding_ids": []
       }
@@ -7569,108 +9900,6 @@
       }
     },
     {
-      "record_id": "BUG-0084",
-      "source": {
-        "record_path": "docs/bugs/BUG-0084-seven-unique-constraints-in-schema-prisma-are-absent-from-th.md",
-        "provenance": "QA_RUN",
-        "detected_in_sha": "bab45ad",
-        "created_at": "2026-08-20",
-        "updated_at": "2026-08-20",
-        "resolved_at": ""
-      },
-      "type": "DATA_INTEGRITY",
-      "title": "Seven unique constraints in schema.prisma are absent from the migration chain",
-      "severity": "MEDIUM",
-      "priority": "P2",
-      "current_status": "DEFERRED",
-      "current_evidence": {
-        "paths": [
-          "services/api/prisma/schema.prisma",
-          "services/api/prisma/migrations"
-        ],
-        "verification_scope": "A database built from all 216 migrations lacks seven unique constraints schema.prisma declares. Verified against pg_index on a virgin database. The one live consumer, supportCaseIncident.upsert, degrades to read-then-write rather than failing — proven by query log. Pre-existing and identical on main; deferred to the first post-launch migration."
-      },
-      "affected_modules": [
-        "contracts",
-        "partner-experience",
-        "support-cases",
-        "approvals",
-        "tenant-settings"
-      ],
-      "dependencies": {
-        "record_ids": [],
-        "note": ""
-      },
-      "related_bugs": [
-        "BUG-0085"
-      ],
-      "related_backlog": [
-        "ITEM-0060"
-      ],
-      "regressions": [],
-      "qa_scenarios": [],
-      "test_plan": [],
-      "active_session_conflict": "NONE",
-      "owner_decision_required": "NO",
-      "architect_disposition": "DEFER",
-      "verification_result": {
-        "result": "DEFERRED",
-        "classification": "TERMINAL_AS_DOCUMENTED",
-        "finding_ids": []
-      }
-    },
-    {
-      "record_id": "BUG-0085",
-      "source": {
-        "record_path": "docs/bugs/BUG-0085-the-release-command-aborted-a-first-deploy-and-otherwise-res.md",
-        "provenance": "QA_RUN",
-        "detected_in_sha": "bab45ad",
-        "created_at": "2026-08-20",
-        "updated_at": "2026-08-20",
-        "resolved_at": "2026-08-20"
-      },
-      "type": "INFRA",
-      "title": "The release command aborted a first deploy, and otherwise reset the super admin password",
-      "severity": "HIGH",
-      "priority": "P1",
-      "current_status": "VERIFIED",
-      "current_evidence": {
-        "paths": [
-          "render.yaml",
-          "services/api/prisma/seed-admin.ts",
-          "services/api/src/common/utils/admin-seed.util.ts"
-        ],
-        "verification_scope": "preDeployCommand runs npm run release, whose seed:admin step threw when PLATFORM_SUPER_ADMIN_EMAIL was unset while render.yaml never declared it, so a first deploy aborted before seed:legal and legal:publish. Setting the variable made every deploy overwrite the super admin password. Both proven against a virgin database and fixed the same day."
-      },
-      "affected_modules": [
-        "platform-users",
-        "legal"
-      ],
-      "dependencies": {
-        "record_ids": [],
-        "note": ""
-      },
-      "related_bugs": [
-        "BUG-0084"
-      ],
-      "related_backlog": [],
-      "regressions": [
-        "REG-079"
-      ],
-      "qa_scenarios": [
-        "QA-DEPLOY-017"
-      ],
-      "test_plan": [],
-      "active_session_conflict": "NONE",
-      "owner_decision_required": "NO",
-      "architect_disposition": "DONE",
-      "verification_result": {
-        "result": "FIXED",
-        "classification": "TERMINAL_AS_DOCUMENTED",
-        "finding_ids": []
-      }
-    },
-    {
       "record_id": "ITEM-0071",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0071-a-terminal-bug-record-may-claim-fixed-while-its-resolution-s.md",
@@ -7760,6 +9989,505 @@
         "classification": "TERMINAL_AS_DOCUMENTED",
         "finding_ids": []
       }
+    },
+    {
+      "record_id": "ITEM-0073",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0073-agent-role-names-are-spelled-inconsistently-across-bug-and-t.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-08-20",
+        "updated_at": "2026-08-20",
+        "resolved_at": ""
+      },
+      "type": "TECH_DEBT",
+      "title": "Agent role names are spelled inconsistently across bug and task records",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "DEFERRED",
+      "current_evidence": {
+        "paths": [
+          "scripts/agent-health.mjs",
+          "scripts/lib/backlog-records.mjs",
+          "scripts/lib/task-records.mjs",
+          "scripts/validate-framework.mjs"
+        ],
+        "verification_scope": "Found while building scripts/agent-health.mjs for TASK-0012 WP-10. Six spellings of five roles occur across docs/bugs and docs/tasks - release-devops and release/devops, ui-ux and ui/ux, backend-api and backend/api, plus a legacy knowledge capture. OwnerAgent and AGENTS are validated as non-empty and never against a vocabulary, so every spelling is accepted. Before normalisation the health report showed release-devops with 3 tasks and release/devops with 6 as two unrelated roles, and the repeated-defect detector could not see a pattern spread across two spellings. The ROLE_ALIASES table in agent-health.mjs compensates and prints every variant it normalised."
+      },
+      "affected_modules": [
+        "framework"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DEFER",
+      "verification_result": {
+        "result": "PRELIMINARY",
+        "classification": "ACTIVE_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "ITEM-0074",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0074-allocate-id-and-session-tooling-accept-a-session-id-that-doe.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-08-21",
+        "updated_at": "2026-08-21",
+        "resolved_at": ""
+      },
+      "type": "INFRA",
+      "title": "allocate-id and session tooling accept a session id that does not exist",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "READY",
+      "current_evidence": {
+        "paths": [
+          "scripts/allocate-id.mjs",
+          "scripts/lib/id-allocator.mjs",
+          "scripts/session.mjs"
+        ],
+        "verification_scope": "allocate-id.mjs stores --session in the reservation ledger without resolving it against docs/sessions. During SESSION-0029 it allocated REG-173 under a session id that did not exist; session.mjs finish then reported unknown session for the same id, so the two tools disagree about whether it exists. Separately nothing asserts that an agent/* branch has a session record at all, so leases, the single-writer database rule and session.mjs check --paths are never engaged rather than being bypassed."
+      },
+      "affected_modules": [
+        "framework"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "PLAN_REQUIRED",
+      "verification_result": {
+        "result": "PRELIMINARY",
+        "classification": "ACTIVE_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "ITEM-0075",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0075-the-subscribe-wizard-never-collects-companysize-which-the-ap.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-08-21",
+        "updated_at": "2026-08-21",
+        "resolved_at": ""
+      },
+      "type": "UX",
+      "title": "The subscribe wizard never collects companySize, which the API and Customers module both expect",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "DEFERRED",
+      "current_evidence": {
+        "paths": [
+          "apps/landing/lib/onboarding-wizard.ts",
+          "services/api/src/modules/billing/dto/public-subscribe.dto.ts"
+        ],
+        "verification_scope": "companySize is accepted by the public DTO, mapped into the organization profile and displayed by the Customers module; the wizard never collects it, so it is null on every self-service customer. Recommended resolution is to derive it from estimatedEmployeeCount rather than ask a second overlapping question."
+      },
+      "affected_modules": [
+        "apps/landing",
+        "api:billing"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [
+        "BUG-0280"
+      ],
+      "related_backlog": [],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DEFER",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "ACTIVE_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "ITEM-0076",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0076-operators-cannot-recover-an-order-whose-stripe-webhook-never.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-08-21",
+        "updated_at": "2026-08-22",
+        "resolved_at": ""
+      },
+      "type": "PRODUCT_DECISION",
+      "title": "Operators cannot recover an order whose Stripe webhook never arrived",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "DONE",
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/billing/controllers/stripe-webhook.controller.ts",
+          "services/api/src/modules/billing/services/order-activation.service.ts",
+          "apps/landing/lib/provisioning-view.ts"
+        ],
+        "verification_scope": "Payment confirmation has one input, a signature-verified Stripe webhook, and no recovery path when it does not arrive. A manual paid flag is rejected: it would let the platform witness its own payment and would skip the PAYMENT_CONFIRMED outbox chain, so provisioning still would not run. Recommended instead is a permissioned, audited Re-check payment with Stripe action delegating to the same confirmPayment path."
+      },
+      "affected_modules": [
+        "api:billing",
+        "apps/admin"
+      ],
+      "dependencies": {
+        "record_ids": [
+          "ITEM-0022"
+        ],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [
+        "ITEM-0022"
+      ],
+      "regressions": [
+        "REG-227"
+      ],
+      "qa_scenarios": [
+        "QA-BILLING-014"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "YES",
+      "architect_disposition": "DONE",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "ACTIVE_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "ITEM-0077",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0077-re-read-the-packaged-agent-archive-after-the-node-pre-gyp-up.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": ""
+      },
+      "type": "TEST_GAP",
+      "title": "Re-read the packaged agent archive after the node-pre-gyp upgrade",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "READY",
+      "current_evidence": {
+        "paths": [
+          "apps/agent-desktop/electron-builder.yml",
+          "package-lock.json",
+          "apps/agent-desktop/src/main/activity-tracker.ts"
+        ],
+        "verification_scope": "BUG-0052 moved @mapbox/node-pre-gyp 1 to 2 and node-gyp 9 to 11, taking tar from 6.2.1 to 7.5.22, and verified it against a real npm ci and an audit of the installed tree. It was not verified against a rebuilt app.asar. The exclusion list in electron-builder.yml names node-gyp, cacache, make-fetch-happen and npmlog by name, and node-pre-gyp@2 has a different dependency closure: an exclusion that no longer matches anything is dead, and one that now matches something required breaks the agent at launch. That nearly shipped once already, when the first exclusion list removed npmlog, which looks like build tooling and is a hard dependency of node-pre-gyp@1. Verification means extracting app.asar, listing the packaged versions of those five packages, walking the runtime closure from active-win/lib/windows-binding.js, and re-measuring the archive against the 11.17 MB baseline."
+      },
+      "affected_modules": [
+        "apps/agent-desktop",
+        "package-lock.json"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [
+        "BUG-0052"
+      ],
+      "related_backlog": [
+        "ITEM-0052"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "PLAN_REQUIRED",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0078",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0078-no-end-to-end-payment-to-provisioned-tenant-run-against-stri.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": ""
+      },
+      "type": "TEST_GAP",
+      "title": "No end-to-end payment to provisioned tenant run against Stripe test mode",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "READY",
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/billing/services/subscription-order.service.ts",
+          "services/api/src/modules/billing/controllers/stripe-webhook.controller.ts",
+          "services/api/src/modules/outbox/outbox-dispatcher.service.ts",
+          "services/api/src/modules/tenant-control-plane/tenant-provisioning-run.service.ts"
+        ],
+        "verification_scope": "BUG-0077, BUG-0078 and BUG-0281 each cover their own half of the self-service purchase and each carries the same residual gap: nothing has driven a real payment through to a provisioned tenant. subscription-order.e2e-spec.ts proves the order and customer exist before payment; emitted-events-have-consumers.invariant.spec.ts proves PROVISIONING_REQUESTED has a registered consumer; checkout-customer-record.spec.ts proves the commercial and attribution columns are written. What no test does is let Stripe say paid and watch what follows, which crosses a webhook, the outbox, a provisioning run and the tenant control plane. The invariant that caught BUG-0078 is a source-level check: it proves a consumer is registered, not that the chain completes. Verification means Stripe test mode with webhook forwarding, driven from the database-e2e job, following a partner referral link through checkout with a test card and asserting the tenant exists, is reachable, and carries the partner attribution. A fabricated webhook payload posted directly is explicitly not sufficient: it exercises the handler, which is already covered, and skips the signature verification and delivery semantics that are the untested part."
+      },
+      "affected_modules": [
+        "api:billing",
+        "api:tenant-control-plane",
+        "api:outbox",
+        "apps/landing"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": "Needs Stripe test-mode credentials and a decision about how CI holds them."
+      },
+      "related_bugs": [
+        "BUG-0077",
+        "BUG-0078",
+        "BUG-0281"
+      ],
+      "related_backlog": [
+        "ITEM-0063"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "YES",
+      "architect_disposition": "PLAN_REQUIRED",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0079",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0079-activation-does-not-gate-on-a-workspace-having-any-module-en.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": ""
+      },
+      "type": "PRODUCT_DECISION",
+      "title": "Activation does not gate on a workspace having any module enabled",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "PRODUCT_DECISION",
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/tenant-control-plane/tenant-control-plane.service.ts",
+          "services/api/test/tenant-activation.e2e-spec.ts"
+        ],
+        "verification_scope": "changeStatus refuses activation for two reasons its own comments explain — a workspace nobody can administer, and one nobody can reach — by filtering readiness down to ['workspace-slug', 'workspace-domain', 'workspace-routing'] plus the owner count. Readiness names a third way a workspace can be live and useless, 'No module is enabled, so the workspace has nothing a user can open', marks it BLOCKER, and the gate does not check it. A tenant therefore reaches ACTIVE, its owner signs in successfully, and lands somewhere empty. Found while closing ITEM-0004; visible there because that suite's fixture plan entitles no modules, whereas an ordinary provisioning run entitles something and the blocker never appears. Raised as PRODUCT_DECISION rather than a bug because extending an activation gate could block legitimate activations where modules are enabled afterwards, and refusing an operator's action is not a change to make on an agent's judgement. Verification is the assertion in tenant-activation.e2e-spec.ts that pins today's behaviour: if the gate is extended, that test fails and names this record, so the decision cannot be silently lost."
+      },
+      "affected_modules": [
+        "services/api/src/modules/tenant-control-plane"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": "Needs a product call on whether activation should refuse a workspace with no module enabled."
+      },
+      "related_bugs": [
+        "BUG-0015"
+      ],
+      "related_backlog": [
+        "ITEM-0004"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "YES",
+      "architect_disposition": "PRODUCT_DECISION",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0080",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0080-type-the-remaining-services-api-no-unsafe-warnings-module-by.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": ""
+      },
+      "type": "TECH_DEBT",
+      "title": "Type the remaining services/api no-unsafe warnings module by module",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "READY",
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/payroll/payroll-operations.service.ts",
+          "services/api/src/modules/platform-runtime/platform-runtime.service.ts",
+          "services/api/src/common/prisma/prisma.service.ts",
+          ".github/workflows/ci.yml"
+        ],
+        "verification_scope": "Successor to ITEM-0042, which closed no-base-to-string and no-unused-vars and left 800 warnings in one family: values typed any flowing through Prisma-adjacent code. Composition and per-file concentration are measured at 2026-08-22, not estimated. The method is proven on the leave module: removing eight (this.prisma as any) casts took it from 114 warnings to zero and surfaced four real type errors the casts had been hiding, including a filter(Boolean) that never narrowed and a repository taking Record<string, unknown> for a Prisma create input. Verification is per module: the CI ratchet in .github/workflows/ci.yml is lowered every time a module lands and never raised, no eslint-disable or new cast is added, and every type error the removal surfaces is fixed rather than suppressed — with any that turns out to be a defect getting its own bug record, as BUG-0668 and BUG-0669 did."
+      },
+      "affected_modules": [
+        "services/api"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [
+        "BUG-0668",
+        "BUG-0669"
+      ],
+      "related_backlog": [
+        "ITEM-0042"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "FIX_NOW",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0081",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0081-nine-test-plans-are-needs-review-against-a-five-day-old-comm.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": ""
+      },
+      "type": "TEST_GAP",
+      "title": "Nine test plans are NEEDS_REVIEW against a five-day-old commit",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "READY",
+      "current_evidence": {
+        "paths": [
+          "docs/qa/test-plans"
+        ],
+        "verification_scope": "Twelve of twenty-one test plans carried STATUS NEEDS_REVIEW and VERIFIED_AGAINST_SHA 714632d, last updated 2026-08-17. Three were reviewed on 2026-08-22 against 0c61b7e because this session produced evidence for them; nine remain, including PLAN-002 authorization at CRITICAL risk and PLAN-004 commercial-onboarding at HIGH. A plan decides what qa:select re-runs, so a stale one under-selects silently. PLAN-001 is the worked example of what that costs: it declared COVERAGE_E2E GAP for authentication, and BUG-0627 had been living in that gap. Verification is per plan: re-derive the module list, re-check every COVERAGE_ claim against a suite that actually exists, add the bugs and regressions raised in that area since 714632d to the frontmatter, and record a dated review section saying what changed. The third step is what rots: rebuild-qa links a scenario to its plan, but a new regression never adds itself to the plan's RELATED_REGRESSIONS."
+      },
+      "affected_modules": [
+        "docs/qa/test-plans"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [
+        "BUG-0627"
+      ],
+      "related_backlog": [
+        "ITEM-0034"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "FIX_NOW",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0082",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0082-contract-phase-drop-the-inert-plan-ispublic-column.md",
+        "provenance": "IMPLEMENTATION",
+        "detected_in_sha": "",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": ""
+      },
+      "type": "DATA_MIGRATION",
+      "title": "Contract phase: drop the inert Plan.isPublic column",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "DEFERRED",
+      "current_evidence": {
+        "paths": [
+          "services/api/prisma/schema.prisma",
+          "services/api/src/modules/billing"
+        ],
+        "verification_scope": "BUG-0223 removed every read of Plan.isPublic; publication is now the only gate on purchasability. The column remains in schema.prisma reading true for all three production plans, and nothing reads it. Expand and backfill are already done, so what remains is the contract phase alone: confirm no read has returned via REG-225 and a grep, drop the column in its own migration in a release carrying no other schema change, and remove it from seed-config and commercial-bootstrap.ts which still write it. The API response field isPublic must survive as a derived value - the landing site consumes it. Deferred because an inert column is misleading rather than dangerous and a column drop is irreversible; it should ship with ITEM-0020, the same contract phase for legacy Plan pricing columns."
+      },
+      "affected_modules": [
+        "services/api/prisma",
+        "services/api/src/modules/billing"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [
+        "BUG-0223"
+      ],
+      "related_backlog": [
+        "ITEM-0020"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DEFER",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0083",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0083-scheduled-reconciliation-sweep-for-orders-stuck-awaiting-pay.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": ""
+      },
+      "type": "FOLLOW_UP",
+      "title": "Scheduled reconciliation sweep for orders stuck awaiting payment",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "DEFERRED",
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/billing/services/payment-recheck.service.ts"
+        ],
+        "verification_scope": "Part two of ITEM-0076: an unattended sweep that re-checks orders left at PENDING_PAYMENT past a threshold, so a lost webhook is recovered without an operator noticing. Deferred on the user's instruction and for two substantive reasons: it acts without a human, so a Stripe outage turns a periodic sweep into a retry storm against a provider already struggling; and payment-diagnosis.ts decides what each provider answer means, so automating a decision nobody has watched being made by hand is how a wrong classification becomes a wrong action at scale. Verification when it is built: no order reaches PAID other than through confirmPayment, a provider outage produces backoff rather than a storm and says so, and the stuck-order count is observable before and after. Wants ITEM-0009 first — a background actor without observability is the hardest kind to debug."
+      },
+      "affected_modules": [
+        "services/api/src/modules/billing"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [
+        "ITEM-0076",
+        "ITEM-0009"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DEFER",
+      "verification_result": "NOT_VERIFIED"
     }
   ],
   "discovered_findings": [

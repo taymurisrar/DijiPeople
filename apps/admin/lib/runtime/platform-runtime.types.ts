@@ -315,6 +315,76 @@ export type PlatformModuleDefinition = {
   emptyState: { title: string; description: string; actionLabel?: string };
   importExport?: { import?: boolean; export?: boolean; formats?: string[] };
   dashboard?: { widgetKeys: string[] };
+  /**
+   * What the API will actually accept for this module.
+   *
+   * The command bar used to be written per module by hand, so a read-only
+   * module's record page carried a single Back button while a writable one
+   * carried six — and nothing said which was deliberate. These three flags let
+   * `define()` build the same default command bar everywhere and still refuse
+   * to offer an Edit that `PlatformRuntimeService.update` would reject with a
+   * 400. They are a fact about the API, not a preference: see
+   * `MODULE_CAPABILITIES` in the registry and the spec that re-derives them
+   * from the service source.
+   */
+  capabilities: RuntimeModuleCapabilities;
+  /**
+   * The record header status group — Owner, Status and Sub-status, drawn
+   * together at the top right of a record the way Dynamics 365 draws them.
+   *
+   * Each slot names a field on the record. A slot with no field is omitted
+   * rather than faked: not every platform entity is user-owned, and inventing
+   * an owner out of `publishedById` would present an audit stamp as an
+   * assignment.
+   */
+  recordHeader?: RuntimeRecordHeaderDefinition;
+};
+
+export type RuntimeModuleCapabilities = {
+  create: boolean;
+  update: boolean;
+  delete: boolean;
+};
+
+export type RuntimeRecordHeaderSlot = {
+  /** Field holding the stored value — `assignedToUserId`, `status`, … */
+  field: string;
+  label: string;
+  /**
+   * Where the human-readable value lives when the stored one is an id.
+   * `assignedToUser` resolves through the same name candidates the runtime
+   * lookups use, so the header shows a person rather than a UUID.
+   */
+  displayValueField?: string;
+  /** Owner slot only — the allowlisted lookup the picker reads. */
+  lookupPath?: string;
+  /**
+   * The optionset. Taken from the module's record form where it declares one,
+   * so the header and the form name a value the same way, and from the
+   * generated Prisma enum otherwise.
+   */
+  options?: Array<{ value: string; label: string }>;
+  /**
+   * Editable slots write through a named API route, never a blind PATCH.
+   * `assign` and `change-status` are governed operations the service
+   * implements for a specific set of modules; every other slot stays
+   * read-only here and is changed through the form, where field validation
+   * and the ordinary save path apply.
+   */
+  write?: "assign" | "change-status";
+  /** Sub-status slot only — options narrowed by the current status value. */
+  optionsByStatus?: Record<string, Array<{ value: string; label: string }>>;
+  /**
+   * Why this slot cannot be edited from the header, shown as the control's
+   * title. Present only on slots that are deliberately read-only.
+   */
+  readOnlyReason?: string;
+};
+
+export type RuntimeRecordHeaderDefinition = {
+  owner?: RuntimeRecordHeaderSlot;
+  status?: RuntimeRecordHeaderSlot;
+  subStatus?: RuntimeRecordHeaderSlot;
 };
 
 export type RuntimeQuery = {
@@ -382,6 +452,13 @@ export interface ModuleRuntimeAdapter<T extends RuntimeRecord = RuntimeRecord> {
     id: string,
     status: string,
     reason?: string,
+    /**
+     * The sub-status recorded alongside the transition. Separate from
+     * `reason`: the reason is prose written for whoever reads the record
+     * later, the sub-status is the value the header optionset holds, and
+     * `PlatformRuntimeService.changeStatus` stores them in different places.
+     */
+    subStatus?: string,
   ): Promise<RuntimeActionResult>;
   executeAction(
     actionKey: string,

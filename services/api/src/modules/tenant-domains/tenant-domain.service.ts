@@ -572,6 +572,46 @@ export class TenantDomainService {
     return value.wildcardDnsReady === true;
   }
 
+  /**
+   * Promote every system subdomain that was stamped before wildcard DNS was
+   * confirmed.
+   *
+   * WHY THIS IS NEEDED. `createSystemDomain` reads `wildcardDnsReady` **once**,
+   * at the moment it issues a hostname, and writes PENDING/PENDING if it is
+   * false. Nothing re-reads it afterwards and nothing probes DNS per tenant, so
+   * every hostname issued before the flag was turned on stayed "Pending" for
+   * ever — including on tenants whose workspace was, by then, perfectly
+   * reachable. The screen offered no explanation and no action, and the obvious
+   * reading of "Pending" is that something is still in progress.
+   *
+   * Deliberately only `SYSTEM_SUBDOMAIN` rows. A customer's own custom domain
+   * is verified by a per-domain check against records they control; the
+   * platform wildcard says nothing about it, and sweeping those to VERIFIED
+   * would be asserting something nobody checked.
+   */
+  async reconcileSystemDomainsAfterWildcardDns(actorUserId?: string | null) {
+    if (!(await this.isWildcardDnsReady())) return { promoted: 0 };
+
+    const result = await this.prisma.tenantDomain.updateMany({
+      where: {
+        type: TenantDomainType.SYSTEM_SUBDOMAIN,
+        OR: [
+          { verificationStatus: TenantDomainVerificationStatus.PENDING },
+          { tlsStatus: TenantDomainTlsStatus.PENDING },
+        ],
+      },
+      data: {
+        verificationStatus: TenantDomainVerificationStatus.VERIFIED,
+        verifiedAt: new Date(),
+        tlsStatus: TenantDomainTlsStatus.ACTIVE,
+        sslStatus: 'ACTIVE',
+        updatedById: actorUserId ?? null,
+      },
+    });
+
+    return { promoted: result.count };
+  }
+
   /** Platform-level workspace routing facts, for readiness and diagnostics. */
   async getPlatformRoutingStatus() {
     const config = getPlatformDomainConfig();

@@ -72,6 +72,64 @@ export const AUTOMATION_STATUSES = ['AUTOMATED', 'PARTIAL', 'MANUAL', 'BLOCKED_I
 
 export const RESULTS = ['PASS', 'PASS_WITH_RISKS', 'FAIL', 'BLOCKED', 'NOT_RUN'];
 
+/**
+ * The evidence hierarchy — what a result is allowed to rest on.
+ *
+ * Ordered, and the order is the point: a scenario declares the level it
+ * requires, a run records the level it achieved, and a run below the
+ * requirement cannot report success.
+ *
+ * L1 is where this matters most. A static test asserting that a controller
+ * declares `@Permissions` passes while the guard is inert, while the query
+ * underneath is unscoped, and while the decorator names a permission key that
+ * does not exist — all three of which have happened here behind green tests.
+ * "The source has the right shape" and "the behaviour is right" are different
+ * claims, and only an explicit hierarchy keeps them apart.
+ */
+export const EVIDENCE_LEVELS = [
+  'L0_DOCUMENTATION',
+  'L1_STATIC_SOURCE_SHAPE',
+  'L2_UNIT_BEHAVIORAL',
+  'L3_API_INTEGRATION',
+  'L4_REAL_POSTGRESQL',
+  'L5_BROWSER_JOURNEY',
+  'L6_EXTERNAL_PROVIDER',
+  'L7_PRODUCTION_SMOKE',
+];
+
+/** Numeric rank of an evidence level, or -1 when it is not one. */
+export function evidenceRank(level) {
+  return EVIDENCE_LEVELS.indexOf(String(level ?? '').trim());
+}
+
+/**
+ * May a scenario at `actual` evidence report `result`?
+ *
+ * Only success is gated. A FAIL, BLOCKED or NOT_RUN at low evidence is honest —
+ * this rule exists to stop a *success* claim resting on proof that cannot
+ * support it, not to stop somebody reporting that something is broken.
+ *
+ * An unrecognised level passes rather than fails. A validator that rejects a
+ * vocabulary it has not been taught blocks the first scenario to use a new
+ * level, and the response to that is to stop declaring levels at all.
+ */
+export function evidenceSatisfies(required, actual, result) {
+  if (!required || !actual) return { ok: true, reason: '' };
+  if (!['PASS', 'PASS_WITH_RISKS'].includes(String(result ?? '').trim())) {
+    return { ok: true, reason: '' };
+  }
+
+  const need = evidenceRank(required);
+  const got = evidenceRank(actual);
+  if (need === -1 || got === -1) return { ok: true, reason: '' };
+  if (got >= need) return { ok: true, reason: '' };
+
+  return {
+    ok: false,
+    reason: `ACTUAL_EVIDENCE_LEVEL ${actual} is below REQUIRED_EVIDENCE_LEVEL ${required}, so ${result} is not supported`,
+  };
+}
+
 export const PLAN_STATUSES = ['CURRENT', 'NEEDS_REVIEW', 'DRAFT'];
 
 /** Coverage dimensions, and the scenario type that evidences each. */
@@ -294,6 +352,30 @@ export function loadQaRecords(root, { knownRecordIds = null } = {}) {
     enumCheck(errors, relative, 'RISK', fields.RISK, RISKS);
     enumCheck(errors, relative, 'AUTOMATION_STATUS', fields.AUTOMATION_STATUS, AUTOMATION_STATUSES);
     enumCheck(errors, relative, 'LAST_RESULT', fields.LAST_RESULT, RESULTS);
+
+    /*
+     * The evidence hierarchy.
+     *
+     * Both fields are optional, because every scenario written before the
+     * hierarchy existed carries neither, and rejecting those would turn a rule
+     * about proof into a bulk migration nobody asked for. Declared values are
+     * checked; the gate fires only when a scenario has said what it needs and
+     * then reported success on less.
+     */
+    const requiredEvidence = String(fields.REQUIRED_EVIDENCE_LEVEL ?? '').trim();
+    const actualEvidence = String(fields.ACTUAL_EVIDENCE_LEVEL ?? '').trim();
+    if (requiredEvidence) {
+      enumCheck(errors, relative, 'REQUIRED_EVIDENCE_LEVEL', requiredEvidence, EVIDENCE_LEVELS);
+    }
+    if (actualEvidence) {
+      enumCheck(errors, relative, 'ACTUAL_EVIDENCE_LEVEL', actualEvidence, EVIDENCE_LEVELS);
+    }
+    const verdict = evidenceSatisfies(
+      requiredEvidence,
+      actualEvidence,
+      String(fields.LAST_RESULT ?? '').trim(),
+    );
+    if (!verdict.ok) errors.push(`${relative}: ${verdict.reason}`);
     validateDate(errors, relative, 'LAST_RUN', fields.LAST_RUN, { optional: true });
     validateDate(errors, relative, 'CREATED_AT', fields.CREATED_AT);
     validateDate(errors, relative, 'UPDATED_AT', fields.UPDATED_AT);

@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
 import { apiRequest, proxyApiJsonResponse } from "@/lib/server-api";
+import { proxyErrorResponse } from "@/app/api/_lib/proxy-error";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -22,15 +22,7 @@ export async function POST(request: Request) {
 
     return proxyApiJsonResponse(response);
   } catch (error) {
-    return NextResponse.json(
-      {
-        message:
-          error instanceof Error
-            ? error.message
-            : "Unable to create candidate.",
-      },
-      { status: 500 },
-    );
+    return proxyErrorResponse(error, "Unable to create candidate.");
   }
 }
 
@@ -45,14 +37,6 @@ export async function DELETE(request: Request) {
 
     return proxyApiJsonResponse(response);
   } catch (error) {
-    return NextResponse.json(
-      {
-        message:
-          error instanceof Error
-            ? error.message
-            : "Unable to delete candidates.",
-      },
-      { status: 500 },
-    );
+    return proxyErrorResponse(error, "Unable to delete candidates.");
   }
 }

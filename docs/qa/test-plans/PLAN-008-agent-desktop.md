@@ -86,7 +86,7 @@ Not applicable — Electron.
 
 ## Related
 
-- Scenarios — [[QA-AGENT-001]], [[QA-AGENT-002]], [[QA-AGENT-003]], [[QA-AGENT-004]]
+- Scenarios — [[QA-AGENT-001]], [[QA-AGENT-002]], [[QA-AGENT-003]], [[QA-AGENT-004]], [[QA-AGENT-005]], [[QA-AGENT-006]], [[QA-AGENT-007]]
 - Bugs — [[BUG-0033]], [[BUG-0034]], [[BUG-0035]], [[BUG-0036]]
 - Regressions — REG-025, REG-026, REG-031 (see the regression register)
 

@@ -1,7 +1,18 @@
+/**
+ * Mirrors `ProvisioningOperationalState` on the API.
+ *
+ * A duplicated union across a workspace boundary, and it drifted exactly as
+ * that always does: the API gained `STALLED`, this did not, and
+ * `STATE_LABEL[row.operationalState]` returned `undefined` — an empty state
+ * cell in a table whose entire purpose is telling six states apart. Caught by
+ * the accessibility journey rather than by anything here, which is why
+ * `provisioning-queue.spec.ts` now checks this list against the API's.
+ */
 export type ProvisioningOperationalState =
   | "IN_PROGRESS"
   | "AT_RISK"
   | "BREACHED"
+  | "STALLED"
   | "MANUAL_ACTION_REQUIRED"
   | "FAILED"
   | "READY";
@@ -34,7 +45,15 @@ export type ProvisioningQueueRow = {
  * READY is last because it needs nobody. An operator opening this screen at
  * 09:00 should read it top-down and stop when they run out of problems.
  */
+/*
+ * Sorted by how loudly each state asks for a person.
+ *
+ * STALLED leads: a failed run at least says what broke, and a breached one is
+ * still moving. A stalled run is the silent case — nothing is recording, no
+ * error was raised, and nothing will change until somebody acts.
+ */
 const STATE_ORDER: ProvisioningOperationalState[] = [
+  "STALLED",
   "BREACHED",
   "FAILED",
   "MANUAL_ACTION_REQUIRED",
@@ -44,6 +63,7 @@ const STATE_ORDER: ProvisioningOperationalState[] = [
 ];
 
 const STATE_LABEL: Record<ProvisioningOperationalState, string> = {
+  STALLED: "Stalled",
   BREACHED: "Breached",
   FAILED: "Failed",
   MANUAL_ACTION_REQUIRED: "Manual action required",
@@ -60,6 +80,7 @@ const STATE_LABEL: Record<ProvisioningOperationalState, string> = {
  * to enforce and which a bare coloured dot would quietly break.
  */
 const STATE_CLASS: Record<ProvisioningOperationalState, string> = {
+  STALLED: "bg-red-100 text-red-900 ring-red-300",
   BREACHED: "bg-red-100 text-red-900 ring-red-300",
   FAILED: "bg-red-50 text-red-800 ring-red-200",
   MANUAL_ACTION_REQUIRED: "bg-amber-100 text-amber-900 ring-amber-300",
@@ -83,9 +104,13 @@ export function ProvisioningQueue({
   );
 
   const needsAttention = rows.filter((row) =>
-    ["BREACHED", "FAILED", "MANUAL_ACTION_REQUIRED", "AT_RISK"].includes(
-      row.operationalState,
-    ),
+    [
+      "STALLED",
+      "BREACHED",
+      "FAILED",
+      "MANUAL_ACTION_REQUIRED",
+      "AT_RISK",
+    ].includes(row.operationalState),
   ).length;
 
   return (
@@ -160,16 +185,36 @@ export function ProvisioningQueue({
             </caption>
             <thead>
               <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-500">
-                <th scope="col" className="px-4 py-3 font-semibold">State</th>
-                <th scope="col" className="px-4 py-3 font-semibold">Customer</th>
-                <th scope="col" className="px-4 py-3 font-semibold">Workspace</th>
-                <th scope="col" className="px-4 py-3 font-semibold">Plan</th>
-                <th scope="col" className="px-4 py-3 font-semibold">Elapsed</th>
-                <th scope="col" className="px-4 py-3 font-semibold">Progress</th>
-                <th scope="col" className="px-4 py-3 font-semibold">Current step</th>
-                <th scope="col" className="px-4 py-3 font-semibold">Blocker</th>
-                <th scope="col" className="px-4 py-3 font-semibold">Attempt</th>
-                <th scope="col" className="px-4 py-3 font-semibold">Correlation</th>
+                <th scope="col" className="px-4 py-3 font-semibold">
+                  State
+                </th>
+                <th scope="col" className="px-4 py-3 font-semibold">
+                  Customer
+                </th>
+                <th scope="col" className="px-4 py-3 font-semibold">
+                  Workspace
+                </th>
+                <th scope="col" className="px-4 py-3 font-semibold">
+                  Plan
+                </th>
+                <th scope="col" className="px-4 py-3 font-semibold">
+                  Elapsed
+                </th>
+                <th scope="col" className="px-4 py-3 font-semibold">
+                  Progress
+                </th>
+                <th scope="col" className="px-4 py-3 font-semibold">
+                  Current step
+                </th>
+                <th scope="col" className="px-4 py-3 font-semibold">
+                  Blocker
+                </th>
+                <th scope="col" className="px-4 py-3 font-semibold">
+                  Attempt
+                </th>
+                <th scope="col" className="px-4 py-3 font-semibold">
+                  Correlation
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -180,9 +225,20 @@ export function ProvisioningQueue({
                 >
                   <td className="px-4 py-3">
                     <span
-                      className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ring-1 ring-inset ${STATE_CLASS[row.operationalState]}`}
+                      /*
+                       * The fallbacks are load-bearing, not defensive padding.
+                       * A state this build has not heard of previously rendered
+                       * an **empty cell** — the one outcome a state column must
+                       * never produce. Showing the raw value is ugly and
+                       * legible; showing nothing is neither.
+                       */
+                      className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ring-1 ring-inset ${
+                        STATE_CLASS[row.operationalState] ??
+                        "bg-slate-100 text-slate-800 ring-slate-300"
+                      }`}
                     >
-                      {STATE_LABEL[row.operationalState]}
+                      {STATE_LABEL[row.operationalState] ??
+                        row.operationalState}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-slate-900">
@@ -198,9 +254,11 @@ export function ProvisioningQueue({
                     {formatElapsed(row.elapsedMs)}
                   </td>
                   <td className="px-4 py-3 tabular-nums text-slate-700">
-                    {row.stepsTotal > 0
-                      ? `${row.stepsCompleted}/${row.stepsTotal}`
-                      : <Unknown />}
+                    {row.stepsTotal > 0 ? (
+                      `${row.stepsCompleted}/${row.stepsTotal}`
+                    ) : (
+                      <Unknown />
+                    )}
                   </td>
                   <td className="px-4 py-3 text-slate-700">
                     {row.currentStepLabel ?? row.currentStepKey ?? <Unknown />}

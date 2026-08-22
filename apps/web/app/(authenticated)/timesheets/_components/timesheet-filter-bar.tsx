@@ -64,6 +64,7 @@ export function TimesheetFilterBar({
       onSubmit={handleSubmit}
     >
       <input
+        aria-label="Filter by year"
         className="rounded-2xl border border-border bg-white px-4 py-3 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
         max={2100}
         min={2000}
@@ -74,6 +75,7 @@ export function TimesheetFilterBar({
         value={form.year}
       />
       <select
+        aria-label="Filter by month"
         className="rounded-2xl border border-border bg-white px-4 py-3 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
         onChange={(event) =>
           setForm((current) => ({ ...current, month: event.target.value }))
@@ -87,6 +89,7 @@ export function TimesheetFilterBar({
         ))}
       </select>
       <select
+        aria-label="Filter by business unit"
         className="rounded-2xl border border-border bg-white px-4 py-3 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
         onChange={(event) =>
           setForm((current) => ({
@@ -104,6 +107,7 @@ export function TimesheetFilterBar({
         ))}
       </select>
       <select
+        aria-label="Filter by status"
         className="rounded-2xl border border-border bg-white px-4 py-3 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
         onChange={(event) =>
           setForm((current) => ({ ...current, status: event.target.value }))
@@ -130,6 +134,7 @@ export function TimesheetFilterBar({
       </select>
       {showEmployee ? (
         <select
+          aria-label="Filter by employee"
           className="rounded-2xl border border-border bg-white px-4 py-3 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
           onChange={(event) =>
             setForm((current) => ({
@@ -149,6 +154,7 @@ export function TimesheetFilterBar({
       ) : null}
       {showManager ? (
         <select
+          aria-label="Filter by manager"
           className="rounded-2xl border border-border bg-white px-4 py-3 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
           onChange={(event) =>
             setForm((current) => ({
@@ -167,6 +173,7 @@ export function TimesheetFilterBar({
         </select>
       ) : null}
       <select
+        aria-label="Filter by department"
         className="rounded-2xl border border-border bg-white px-4 py-3 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
         onChange={(event) =>
           setForm((current) => ({
@@ -184,6 +191,7 @@ export function TimesheetFilterBar({
         ))}
       </select>
       <select
+        aria-label="Sort by"
         className="rounded-2xl border border-border bg-white px-4 py-3 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
         onChange={(event) =>
           setForm((current) => ({ ...current, sortField: event.target.value }))
@@ -196,6 +204,7 @@ export function TimesheetFilterBar({
         <option value="updatedAt">Sort: Updated</option>
       </select>
       <select
+        aria-label="Sort direction"
         className="rounded-2xl border border-border bg-white px-4 py-3 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
         onChange={(event) =>
           setForm((current) => ({
@@ -209,6 +218,7 @@ export function TimesheetFilterBar({
         <option value="asc">Ascending</option>
       </select>
       <select
+        aria-label="Rows per page"
         className="rounded-2xl border border-border bg-white px-4 py-3 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
         onChange={(event) =>
           setForm((current) => ({ ...current, pageSize: event.target.value }))

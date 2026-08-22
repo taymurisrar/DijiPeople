@@ -2,7 +2,7 @@
 ID: BUG-0052
 aliases: [BUG-0052]
 Title: Production dependency graph carries critical and high security advisories
-Status: OPEN
+Status: VERIFIED
 Severity: HIGH
 Priority: P0
 Type: SECURITY
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-17
 DetectedInSha: 0051180
 AffectedModules: [package-lock.json, apps/agent-desktop, apps/web, apps/admin, apps/landing, services/api]
 OwnerAgent: integration
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport:
-RegressionId:
+RegressionId: REG-217
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation: TASK-0010
 CreatedAt: 2026-08-17
-UpdatedAt: 2026-08-20
-ResolvedAt:
+UpdatedAt: 2026-08-22
+ResolvedAt: 2026-08-22
 ---
 
 # BUG-0052 — Production dependency graph carries critical and high security advisories
@@ -202,10 +202,225 @@ A reachability claim about a package must name the **call sites**, not the file.
 This one named a file whose name described half of what it did. Recorded as the
 `reachability-asserted-from-file-purpose` variant of `assertion-without-a-check`.
 
+## Correction — 2026-08-21, SESSION-0028
+
+**The `active-win` row was wrong in the same way, one layer down.**
+
+The 2026-08-17 disposition said the chain beneath `active-win` "is install-time
+native-build tooling that **does not ship in the packaged app**", and the
+compensating-control paragraph rested on it: "six are behind the desktop agent's
+main process".
+
+The packaged build of 2026-08-20 was extracted and read. All of it ships, at
+exactly the advisory versions:
+
+```text
+active-win            8.2.1
+@mapbox/node-pre-gyp  1.0.11
+tar                   6.2.1     <- the critical
+cacache               16.1.3
+make-fetch-happen     10.2.1
+node-gyp              9.4.1
+```
+
+`electron-builder` includes production dependencies regardless of the `files`
+patterns, and npm installs `optionalDependencies` by default — so declaring them
+optional kept them out of nothing.
+
+Nor is it present-but-dormant. `active-win/lib/windows-binding.js` opens with
+`require('@mapbox/node-pre-gyp')`, and Windows is the only platform this agent
+targets, so node-pre-gyp loads in the Electron main process on every run, with
+`tar` beneath it.
+
+The one mitigation that does hold: every `tar` advisory is triggered by
+*extracting or parsing* an archive, and the runtime path only calls
+`binary.find()`, which computes a path. The vulnerable code ships, loads, and is
+never invoked.
+
+### What changed
+
+`apps/agent-desktop/electron-builder.yml` now excludes the build-only tooling.
+Verified by extracting both archives and diffing them:
+
+| package | severity | before | after |
+|---|---|---|---|
+| `node-gyp` | high | 9.4.1 | **absent** |
+| `cacache` | high | 16.1.3 | **absent** |
+| `make-fetch-happen` | high | 10.2.1 | **absent** |
+| `tar` | critical | 6.2.1 | 6.2.1 |
+| `@mapbox/node-pre-gyp` | high | 1.0.11 | 1.0.11 |
+
+`app.asar` fell from 7,946,269 to 5,719,668 bytes — 2.23 MB, 28%.
+
+The first exclusion list also removed `npmlog`, which *looks* like build tooling
+and arrives under `node-gyp`, but is a hard dependency of `node-pre-gyp@1`. A
+dependency-closure walk over the packaged archive caught it before it shipped:
+`require('@mapbox/node-pre-gyp')` would have thrown and the agent would never
+have found its addon. The list was corrected; the walk now reports all 54
+packages of the runtime closure present.
+
+### What that leaves
+
+`tar` and `@mapbox/node-pre-gyp` still ship, because node-pre-gyp is genuinely
+required at runtime and `tar` is its dependency.
+
+The forward fix is verified and **blocked, not unknown**:
+`@mapbox/node-pre-gyp@2.0.3` exports `find` — the only API `windows-binding.js`
+uses — depends on `tar@^7.4.0`, which resolves to `7.5.22` outside the advisory
+range, and drops `cacache`, `make-fetch-happen`, `node-gyp`, `npmlog` and
+`rimraf` entirely. Proven by installing it in isolation, not inferred.
+
+It cannot be applied here: npm `overrides` are silently ignored in this
+repository and the lockfile cannot be regenerated at all. See [[BUG-0163]].
+
+### The lesson, again
+
+The 2026-08-20 correction said a reachability claim must name call sites rather
+than a file. This is its packaging twin: **a claim about what ships must name
+the artifact, not the manifest.** `optionalDependencies` describes intent;
+`app.asar` describes what the customer receives, and only one of those is
+evidence.
+
+## Update — 2026-08-21, SESSION-0029: the active-win group is closed
+
+The blocker was removed and the upgrade applied. `npm audit --omit=dev`:
+
+```text
+before   { critical: 1, high: 9, moderate: 2, total: 12 }
+after    { critical: 0, high: 4, moderate: 2, total:  6 }
+```
+
+Cleared: `tar` (the critical), `active-win`, `cacache`, `make-fetch-happen`,
+`node-gyp` — the whole group, one critical and four highs.
+
+Two overrides did it, both top-level because npm hoists these packages and a
+nested key never matches:
+
+| package | from | to | why |
+|---|---|---|---|
+| `@mapbox/node-pre-gyp` | 1.0.11 | 2.0.3 | required at run time; v2 exports the same `find`, and its `tar@^7.4.0` resolves to 7.5.22 |
+| `node-gyp` | 9.4.1 | 11.5.0 | build-only, but v9 carried its own nested `tar@6.2.1` plus `cacache` and `make-fetch-happen`. `^11` rather than `^13`, whose engine floor is narrower than this repository's declared `22.x` |
+
+Applying them at all required fixing [[BUG-0163]] first: the lockfile could not
+be re-resolved, so npm ignored every override in silence.
+
+The packaged archive was rebuilt and re-read. `tar` is now 7.5.22 there,
+`node-pre-gyp` 2.0.3, and `node-gyp`, `cacache` and `make-fetch-happen` remain
+absent under the exclusions added earlier the same day. The runtime closure
+walks clean at 20 packages, down from 54.
+
+**Cost, stated rather than buried:** `app.asar` grew from 7.95 MB to 11.17 MB.
+`tar@7` and its graph are larger than `tar@6`, and the exclusions no longer
+offset them. It could be reclaimed — node-pre-gyp loads its commands lazily, so
+`tar` is never required by the `find()` path and could be excluded outright —
+but that was **not** done: it trades a verified-safe state for a size saving
+that cannot be proven safe without launching the packaged app, which is not
+possible here.
+
+### What remains, and why
+
+The six survivors are the two groups this record already documented, unchanged:
+
+- `prisma`, `@prisma/config`, `deepmerge-ts` — 3 high, a **devDependency**, and
+  npm's fix is a downgrade to Prisma 6 that the driver-adapter data layer cannot
+  run on.
+- `xlsx` — 1 high, present but unreachable since the read path moved to ExcelJS;
+  removal is [[ITEM-0070]], deliberately deferred because payroll workbooks go
+  to banks and changing their bytes before the first production release is a
+  customer-visible risk with no security payoff.
+- `exceljs`, `uuid` — 2 moderate, npm's fix is a major downgrade.
+
+Critical count is 0. That was the acceptance criterion in [[ITEM-0048]] group 1.
+
+## Update — 2026-08-22, SESSION-0039: the critical is cleared
+
+The upgrade [[BUG-0163]] blocked is applied, by a route that does not need
+`overrides` to be re-resolvable.
+
+npm will not apply an override incrementally — it reports "up to date" against
+the tree it already has — so the only route npm offers is a full re-resolution,
+and this lockfile is months stale relative to the registry. That is what moved
+338 packages and failed five of thirteen CI jobs, and why the previous attempt
+was reverted.
+
+A lockfile is a resolved graph. So `@mapbox/node-pre-gyp@2.0.3` and
+`node-gyp@11.5.0` were resolved in **scratch projects**, where npm has no stale
+tree to reuse and gets both right on the first attempt, and grafted in *nested* —
+which is exactly what npm does for a conflicting version, and makes the blast
+radius provably zero because no shared entry is touched. Then the chain the old
+node-gyp left behind was removed: `make-fetch-happen@10 -> cacache@16 -> tar@6`
+was a closed orphan loop, verified by walking resolution from every dependent.
+
+Measured rather than asserted:
+
+| | before | after |
+|---|---|---|
+| versions changed | 338 | **12**, all inside the two grafted subtrees |
+| removed | — | 8, all orphans of the old chain |
+| added | — | 105, all nested under the grafts |
+| other packages moved | many | **none** |
+
+Verified by installing it, which is the lesson this record has already learned
+twice. `npm ci` into a scratch checkout of the manifests: 1698 packages, clean.
+The installed tree carries `node-pre-gyp` 2.0.3 exporting `find` — the only API
+`active-win/lib/windows-binding.js` uses — `node-gyp` 11.5.0, `tar` 7.5.22 nested
+under both, and no hoisted `tar`, `cacache` or `make-fetch-happen` at all.
+`npm audit --omit=dev` against that real tree:
+
+```text
+before   { critical: 1, high: 9, moderate: 2, total: 12 }
+after    { critical: 0, high: 4, moderate: 2, total:  6 }
+```
+
+`overrides` in the root manifest declares `@mapbox/node-pre-gyp: ^2.0.3`, so
+`check:overrides-applied` verifies the outcome rather than the intention.
+`node-gyp` is deliberately not declared: `@electron/rebuild` carries its own
+nested `node-gyp@12.4.0`, which is outside `^11.5.0` and is not vulnerable, and
+an override that half-applies is worse than none.
+
+**The durable half**, which this record said should wait until reachability was
+understood: `scripts/check-production-advisories.mjs`. It does not evaluate
+reachability — it cannot, and the attempts to do so by inspection are what
+produced two wrong dispositions. It asserts what a machine can decide: nothing is
+critical, every survivor has a written disposition naming the record that argues
+it, and a disposition matching no advisory fails, because a risk acceptance for a
+package that is no longer vulnerable reads as a live one. Reverting the lockfile
+to its pre-fix state makes it report the critical plus three undocumented highs.
+
+**What remains**: the six survivors this record already argued — the prisma CLI
+trio, whose npm "fix" is a downgrade to Prisma 6 the driver-adapter data layer
+cannot run on, and `xlsx`/`exceljs`/`uuid`, where the fixes are major downgrades
+and the `xlsx` read path already moved to ExcelJS.
+
+[[BUG-0163]] stays open. The lockfile still cannot be regenerated from the
+manifests and the `@tiptap` peer conflict beneath it is untouched; what is gone
+is its most expensive consequence.
 
 ## QA Retest
 
-Pass for what was applied. On Node 22, after the upgrade:
+2026-08-22, after the graft:
+
+```text
+npm ci into a scratch checkout          1698 packages, clean
+installed tree: node-pre-gyp            2.0.3, exports find()
+installed tree: node-gyp                11.5.0
+installed tree: tar                     7.5.22 nested; no hoisted copy
+npm audit --omit=dev (installed tree)   critical 0, high 4, moderate 2
+check-production-advisories             PASS; refuses the pre-fix lockfile
+check-overrides-applied                 PASS
+```
+
+Scenario `QA-DEPLOY-021`.
+
+The **packaged Electron archive** is a separate artefact and is not covered by
+the above. The exclusions and versions in it were verified by extraction on
+2026-08-21, and this change alters the graph beneath them, so it should be
+re-read when the agent is next packaged — [[ITEM-0077]]. Recorded as an item
+rather than a caveat here, because assuming what an archive contains is exactly
+what produced the 2026-08-21 correction, and a caveat in prose is not something
+anybody can schedule.
+
+2026-08-21, for what was applied then. On Node 22, after the upgrade:
 
 ```text
 apps/web      17 suites, 391 tests   PASS   check-types PASS
@@ -216,6 +431,17 @@ apps/landing   3 suites,  49 tests   PASS   check-types PASS
 `npm audit --omit=dev`: `{critical: 1, high: 9, moderate: 2, total: 12}`, from
 `{critical: 1, high: 17, moderate: 2, total: 20}`.
 
+### Verification — 2026-08-22, SESSION-0040
+
+Re-ran the guard this record names, rather than reading a green suite
+summary: REG-217 names `scripts/check-production-advisories.mjs`, and that is what was executed.
+
+```text
+node <script>   PASS
+```
+
+`Status: FIXED` → `VERIFIED`.
+
 ## History
 
 - 2026-08-17 — 8 of 20 advisories cleared without a breaking change; the
@@ -225,3 +451,13 @@ apps/landing   3 suites,  49 tests   PASS   check-types PASS
   TASK-0010 release verification. The parse path moved to ExcelJS; the two
   advisories are now unreachable rather than accepted.
 - 2026-08-17 — discovered after a clean locked install for TASK-0005.
+
+<!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
+
+## Related
+
+- Referenced by — [[ITEM-0048]], [[ITEM-0070]], [[ITEM-0077]]
+- Modules — [[desktop-agent-architecture]], [[tenant-application]], [[platform-admin]], [[landing-architecture]], [[api-architecture]]
+- Regression — REG-217 (see the regression register)
+
+<!-- GRAPH:END -->

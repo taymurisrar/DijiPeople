@@ -24,6 +24,7 @@ import {
 import { TenantSettingsRepository } from './tenant-settings.repository';
 import { TenantSettingsResolverService } from './tenant-settings-resolver.service';
 import { ActiveOrganizationService } from './active-organization.service';
+import { toDisplayString } from '../../common/utils/display-string';
 
 type SettingsMap = Record<string, Record<string, Prisma.JsonValue>>;
 
@@ -665,7 +666,7 @@ export class TenantSettingsService {
     };
 
     if (displayNameUpdate) {
-      const name = String(displayNameUpdate.value ?? '').trim();
+      const name = toDisplayString(displayNameUpdate.value ?? '').trim();
 
       if (name.length < 2) {
         throw new BadRequestException(
@@ -710,7 +711,7 @@ export class TenantSettingsService {
         accumulator[field] =
           update.value === null || update.value === Prisma.JsonNull
             ? null
-            : String(update.value);
+            : toDisplayString(update.value);
         return accumulator;
       },
       {},
@@ -1017,7 +1018,7 @@ function toJsonValue(value: unknown): JsonValueInput {
     return value as Prisma.InputJsonValue;
   }
 
-  return String(value);
+  return toDisplayString(value);
 }
 
 function areJsonValuesEqual(

@@ -1,6 +1,5 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { DomainEventType } from '@prisma/client';
 import type { OutboxEvent, Prisma } from '@prisma/client';
 import type {
   OutboxHandler,
@@ -52,7 +51,7 @@ export class LifecycleNotificationHandler
 
   async handle(
     event: OutboxEvent,
-    payload: Prisma.JsonValue,
+    _payload: Prisma.JsonValue,
   ): Promise<OutboxHandlerOutcome> {
     const definition = lifecycleNotificationFor(event.eventType);
 
