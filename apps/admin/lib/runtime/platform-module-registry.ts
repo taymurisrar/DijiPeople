@@ -946,6 +946,38 @@ const partnerFields: RuntimeFieldDefinition[] = [
   },
 ];
 
+/**
+ * Columns that exist on the model and must not appear on a form.
+ *
+ * `completeFormsFromSchema` adds every readable column a form does not mention,
+ * which is the right default — a field nobody declared is more likely forgotten
+ * than deliberately hidden. It also means **deleting a field declaration does
+ * not remove the field**: it reappears under "Additional details", stripped of
+ * the label and description that explained it.
+ *
+ * The plan's legacy price columns are the case that needs the opposite. They
+ * are the pre-`PlanPrice` shape; checkout has read `PlanPrice` since BUG-0027,
+ * so an editable "monthly price" on this form bills nobody and invites somebody
+ * to set a number that does nothing. Removing the declarations alone made that
+ * worse, not better.
+ *
+ * The columns stay on the model — existing rows carry values, and dropping them
+ * is a destructive migration with its own backfill question. What is withdrawn
+ * is the claim that an operator should be setting them.
+ *
+ * Declared above `definitions` for the reason `COUNTRY_LOOKUP_PATH` is: that
+ * array is evaluated at module scope, so a constant declared below it is in its
+ * temporal dead zone and every import of this file throws.
+ */
+const FORM_EXCLUDED_FIELDS: Partial<Record<PlatformModuleKey, string[]>> = {
+  plans: [
+    "currency",
+    "monthlyBasePrice",
+    "annualBasePrice",
+    "legacyPricingMigratedAt",
+  ],
+};
+
 const definitions: PlatformModuleDefinition[] = [
   define({
     key: "dashboard",
@@ -4054,6 +4086,7 @@ function defaultRecordHeader(
 function completeFormsFromSchema(definition: PlatformModuleDefinition) {
   const schema = getRuntimeSchema(definition.key);
   if (!schema) return definition.forms;
+  const excluded = new Set(FORM_EXCLUDED_FIELDS[definition.key] ?? []);
   return definition.forms.map((formDefinition) => {
     const configured = new Set(formDefinition.fields.map((item) => item.key));
     const additional = Object.values(schema.fields)
@@ -4063,6 +4096,7 @@ function completeFormsFromSchema(definition: PlatformModuleDefinition) {
           !item.sensitive &&
           !item.list &&
           item.type !== "relation" &&
+          !excluded.has(item.key) &&
           !configured.has(item.key),
       )
       .map((item) => ({
@@ -4569,41 +4603,19 @@ function planForms() {
       renderAs: "identifier",
       tab: "commercial",
     },
-    {
-      ...field("currency", "Legacy currency", "text", "legacy-pricing"),
-      tab: "pricing",
-    },
-    {
-      ...field(
-        "monthlyBasePrice",
-        "Legacy flat monthly price",
-        "currency",
-        "legacy-pricing",
-      ),
-      tab: "pricing",
-      description:
-        "Compatibility only. What a customer is actually charged comes from the checkout prices below — BUG-0027.",
-    },
-    {
-      ...field(
-        "annualBasePrice",
-        "Legacy flat annual price",
-        "currency",
-        "legacy-pricing",
-      ),
-      tab: "pricing",
-    },
-    {
-      ...readOnly(
-        field(
-          "legacyPricingMigratedAt",
-          "Legacy pricing migrated",
-          "dateTime",
-          "legacy-pricing",
-        ),
-      ),
-      tab: "pricing",
-    },
+    /*
+     * The legacy pricing fields are gone from this form.
+     *
+     * `currency`, `monthlyBasePrice` and `annualBasePrice` are the pre-PlanPrice
+     * shape, kept visible "for compatibility" — and their own description said
+     * what a customer is actually charged comes from the checkout prices below.
+     * A form that offers editable money fields which bill nobody is an invitation
+     * to set a price that does nothing, which is BUG-0027 read forwards.
+     *
+     * The columns stay on the model: existing rows carry values, and dropping
+     * them is a destructive migration with its own backfill question. What is
+     * removed is the pretence that they are something an operator should set.
+     */
     {
       ...readOnly(
         field("stripeProductId", "Stripe product ID", "text", "stripe"),
@@ -4664,14 +4676,6 @@ function planForms() {
         "The state that governs whether customers can see and buy this plan. Read-only here by design.",
       columns: 3 as const,
       tab: "commercial",
-    },
-    {
-      key: "legacy-pricing",
-      label: "Legacy pricing compatibility",
-      description:
-        "Retained for manual billing. Checkout reads the prices configured below.",
-      columns: 3 as const,
-      tab: "pricing",
     },
     {
       key: "stripe",

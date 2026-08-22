@@ -8,7 +8,7 @@ graph and the block reasons. See
 
 | Bucket | Count |
 |---|---|
-| [Active](active.md) | 6 |
+| [Active](active.md) | 7 |
 | [Blocked](blocked.md) | 1 |
 | [Completed](completed.md) | 10 |
 
@@ -32,6 +32,7 @@ graph and the block reasons. See
 - [TASK-0008](TASK-0008-self-service-customer-onboarding-tenant-provisioning-domain-.md) — every remaining work package is blocked
 - [TASK-0009](TASK-0009-identity-and-multi-tenant-membership.md) — every remaining work package is blocked
 - [TASK-0010](TASK-0010-go-live-readiness.md) — every remaining work package is blocked
+- [TASK-0018](TASK-0018-legacy-pricing-removed-and-the-commercial-catalogue-made-to-.md) — every remaining work package is blocked
 
 ## All tasks
 
@@ -54,3 +55,4 @@ graph and the block reasons. See
 | [TASK-0015](TASK-0015-documents-that-read-like-documents-a-console-theme-that-repa.md) | Documents that read like documents, a console theme that repaints, and a stuck tenant with a way out | BUG | LARGE | P1 | COMPLETE | 7/7 | — |
 | [TASK-0016](TASK-0016-a-workspace-that-says-what-it-is-missing-metrics-you-can-act.md) | A workspace that says what it is missing, metrics you can act on, and a checkout block with a code | BUG | LARGE | P1 | COMPLETE | 5/5 | — |
 | [TASK-0017](TASK-0017-workspace-links-that-resolve-a-monitoring-page-you-can-work-.md) | Workspace links that resolve, a monitoring page you can work from, and Delete that either deletes or explains | BUG | LARGE | P1 | COMPLETE | 6/6 | — |
+| [TASK-0018](TASK-0018-legacy-pricing-removed-and-the-commercial-catalogue-made-to-.md) | Legacy pricing removed and the commercial catalogue made to converge | FEATURE | MEDIUM | P1 | IN_PROGRESS | 3/4 | — |

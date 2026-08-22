@@ -7,18 +7,18 @@
 
 | | |
 |---|---|
-| Active sessions | **6** |
-| Active parent tasks | 6 |
+| Active sessions | **7** |
+| Active parent tasks | 7 |
 | Active work packages | 2 |
-| Blocked work packages | 4 |
+| Blocked work packages | 5 |
 | Work packages waiting on the user | 0 |
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **0** |
-| Open HIGH | 22 |
+| Open HIGH | 24 |
 | Awaiting Architect triage | 0 |
 | Owner decisions pending | 6 |
-| QA coverage gaps | 94 |
+| QA coverage gaps | 102 |
 | Scenarios blocked by infrastructure | 0 |
 
 ## Backlog health
@@ -30,12 +30,12 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 71 |
-| No next action | 71 |
+| No acceptance criteria | 74 |
+| No next action | 74 |
 | Aging — 7d / 30d / 90d | 5 / 0 / 0 |
 | Architecture and technical debt | 8 |
 | Security gaps | 6 |
-| Database gaps | 8 |
+| Database gaps | 10 |
 
 Ranked next-best actions weigh blast radius rather than severity alone, and
 are computed on demand so the reasons travel with the ranking:
@@ -49,6 +49,7 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 | Session | Task | Title | Status | Branch | Target | Leases | Schema |
 |---|---|---|---|---|---|---|---|
+| [[SESSION-0038-plans-reset-legacy-pricing-removed-catalogue-reconciled|SESSION-0038]] | — | Plans reset: legacy pricing removed, catalogue reconciled | ACTIVE | `agent/plans-reset` | `develop` | — | NO |
 | SESSION-0023 | — | First production release | ACTIVE | `agent/first-production-release` | `main` | — | NO |
 | [[SESSION-0022-go-live-readiness|SESSION-0022]] | TASK-0010 | Go-live readiness | ACTIVE | `agent/go-live-readiness` | `develop` | — | NO |
 | [[SESSION-0019-ci-browser-install-latency-and-database-e2e-fixture-contract|SESSION-0019]] | — | CI browser install latency and database e2e fixture contract | ACTIVE | `agent/ci-e2e-remediation` | `develop` | — | NO |
@@ -66,6 +67,7 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 | [[TASK-0009-identity-and-multi-tenant-membership|TASK-0009]] | Identity and multi-tenant membership | FEATURE | LARGE | 11/12 | WP-09 | — | WP-09 |
 | [[TASK-0010-go-live-readiness|TASK-0010]] | Go-live readiness | FEATURE | MEDIUM | 7/8 | WP-04 | — | WP-04 |
 | [[TASK-0011-first-production-release|TASK-0011]] | First production release | RELEASE | MEDIUM | 1/2 | WP-02 | — | — |
+| [[TASK-0018-legacy-pricing-removed-and-the-commercial-catalogue-made-to-|TASK-0018]] | Legacy pricing removed and the commercial catalogue made to converge | FEATURE | MEDIUM | 3/4 | — | — | WP-04 |
 
 ## Branch model
 
@@ -222,12 +224,20 @@ gap into scope — or files a `TEST_GAP` item and says so.
 | [[PLAN-019-platform-admin|platform-admin]] | INTEGRATION |
 | [[PLAN-019-platform-admin|platform-admin]] | E2E |
 | [[PLAN-019-platform-admin|platform-admin]] | SECURITY |
+| [[PLAN-020-billing|billing]] | UNIT |
+| [[PLAN-020-billing|billing]] | API |
+| [[PLAN-020-billing|billing]] | DATABASE |
+| [[PLAN-020-billing|billing]] | INTEGRATION |
+| [[PLAN-020-billing|billing]] | E2E |
+| [[PLAN-020-billing|billing]] | BROWSER |
+| [[PLAN-020-billing|billing]] | SECURITY |
+| [[PLAN-020-billing|billing]] | PERFORMANCE |
 
 ## Backlog Health
 
 | | |
 |---|---|
-| Open total | 72 |
+| Open total | 75 |
 | Blocked | 1 |
 | Deferred | 16 |
 | Awaiting a product decision | 6 |

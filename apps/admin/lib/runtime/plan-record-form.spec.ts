@@ -83,26 +83,37 @@ describe("plan record form", () => {
         relationship.key,
         relationship.tab,
       ]);
-      expect([relationship.key, tabKeys.has(String(relationship.tab))]).toEqual([
-        relationship.key,
-        true,
-      ]);
+      expect([relationship.key, tabKeys.has(String(relationship.tab))]).toEqual(
+        [relationship.key, true],
+      );
     }
     expect((definition.relatedRecords ?? []).length).toBeGreaterThan(0);
   });
 
-  it("does not lead with the legacy price columns checkout ignores", () => {
-    // BUG-0027: Admin showed monthlyBasePrice while checkout charged a
-    // PlanPrice row. The legacy fields stay for manual billing, labelled as
-    // legacy, and are not what the list or the summary reads.
+  it("does not offer the legacy price columns checkout ignores", () => {
+    /*
+     * BUG-0027: Admin showed `monthlyBasePrice` while checkout charged a
+     * PlanPrice row. They were then kept, labelled "Legacy" — which is an
+     * improvement on being wrong and still an editable money field that bills
+     * nobody. They are now absent from the form entirely.
+     *
+     * Asserted against the *completed* form, not the declared one:
+     * `completeFormsFromSchema` re-adds any readable column a form does not
+     * mention, so deleting the declarations alone moved them into "Additional
+     * details" without their labels. Only the exclusion list removes them.
+     */
     const columnFields = definition.columns.map((column) => column.field);
-    expect(columnFields).not.toContain("monthlyBasePrice");
-    expect(columnFields).not.toContain("annualBasePrice");
-    for (const key of ["monthlyBasePrice", "annualBasePrice"]) {
-      expect([
+    for (const key of [
+      "currency",
+      "monthlyBasePrice",
+      "annualBasePrice",
+      "legacyPricingMigratedAt",
+    ]) {
+      expect([key, columnFields.includes(key)]).toEqual([key, false]);
+      expect([key, detail.fields.some((item) => item.key === key)]).toEqual([
         key,
-        detail.fields.find((item) => item.key === key)?.label,
-      ]).toEqual([key, expect.stringContaining("Legacy")]);
+        false,
+      ]);
     }
   });
 });

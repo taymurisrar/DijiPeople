@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 194,
+    "total_records": 198,
     "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
@@ -1512,7 +1512,8 @@
         "QA-ONBOARD-005"
       ],
       "test_plan": [
-        "PLAN-004"
+        "PLAN-004",
+        "PLAN-020"
       ],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
@@ -1688,7 +1689,8 @@
         "QA-ONBOARD-008"
       ],
       "test_plan": [
-        "PLAN-004"
+        "PLAN-004",
+        "PLAN-020"
       ],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
@@ -1810,8 +1812,8 @@
         "REG-024"
       ],
       "qa_scenarios": [
-        "QA-LEAD-003",
-        "QA-LANDING-010"
+        "QA-LANDING-010",
+        "QA-LEAD-003"
       ],
       "test_plan": [
         "PLAN-005"
@@ -6460,8 +6462,8 @@
         "verification_scope": "Reproduced live against a seeded local stack: a tenant user holding the ordinary system-admin tenant role received 200 from all 16 super-admin GET routes and 400 (not 403) from PATCH platform-settings and platform-email, proving authorization had passed. Retested on the fixed build, verified by inspecting the compiled artifact rather than assumed: 403 on every route for the tenant subject, 200 for the platform subject including the three routes that previously 403d for platform operators."
       },
       "affected_modules": [
-        "platform-auth",
         "super-admin",
+        "platform-auth",
         "platform-communications"
       ],
       "dependencies": {
@@ -6515,8 +6517,8 @@
         "verification_scope": "Enumerated from the controller PATH_METADATA and METHOD_METADATA rather than a hand-written list. Before: four routes resolved no permission and eight mutating routes resolved a .read permission, including POST /plans, PATCH /plans/:planId, DELETE /plans/:planId/prices/:priceId and POST /billing/stripe-webhook-events/:id/retry. After: both lists empty; READ_ONLY_AUDITOR refused plans.manage while PLATFORM_ADMIN retains it."
       },
       "affected_modules": [
-        "platform-auth",
-        "super-admin"
+        "super-admin",
+        "platform-auth"
       ],
       "dependencies": {
         "record_ids": [
@@ -9698,6 +9700,202 @@
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
       "architect_disposition": "FIX_NOW",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0531",
+      "source": {
+        "record_path": "docs/bugs/BUG-0531-flat-prices-were-sellable-on-the-public-site-at-invented-amo.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "99dc70a",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
+      },
+      "type": "DATA_INTEGRITY",
+      "title": "Flat prices were sellable on the public site at invented amounts",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "current_evidence": {
+        "paths": [
+          "super-admin",
+          "apps/admin"
+        ],
+        "verification_scope": "Fixed in code on agent/plans-reset. The database rows it describes are only corrected once npm run seed:commercial is run, which has not happened."
+      },
+      "affected_modules": [
+        "super-admin",
+        "apps/admin"
+      ],
+      "dependencies": {
+        "record_ids": [
+          "BUG-0533"
+        ],
+        "note": "Consequence of BUG-0533. Not reachable in production: no price was synced to Stripe, and deriveCheckoutReadiness refuses an unsynced price."
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [
+        "REG-201"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-018"
+      ],
+      "test_plan": [
+        "PLAN-020"
+      ],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0532",
+      "source": {
+        "record_path": "docs/bugs/BUG-0532-plan-form-offered-editable-legacy-price-fields-that-bill-nob.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "99dc70a",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
+      },
+      "type": "UX",
+      "title": "Plan form offered editable legacy price fields that bill nobody",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "DUPLICATE",
+      "architect_disposition": "DUPLICATE",
+      "current_evidence": {
+        "paths": [
+          "apps/admin"
+        ],
+        "verification_scope": "Duplicate of BUG-0534. No code, no data."
+      },
+      "affected_modules": [
+        "apps/admin"
+      ],
+      "dependencies": {
+        "record_ids": [
+          "BUG-0534"
+        ],
+        "note": "Created in error when a failing new-bug invocation still exited zero."
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0533",
+      "source": {
+        "record_path": "docs/bugs/BUG-0533-seeding-the-commercial-catalogue-never-corrected-an-existing.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "99dc70a",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
+      },
+      "type": "DATA_INTEGRITY",
+      "title": "Seeding the commercial catalogue never corrected an existing plan or price",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "current_evidence": {
+        "paths": [
+          "super-admin",
+          "apps/admin"
+        ],
+        "verification_scope": "Fixed on agent/plans-reset; seven unit tests, mutation-tested. Not exercised against a real database."
+      },
+      "affected_modules": [
+        "super-admin",
+        "apps/admin"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": "The root cause of BUG-0531. Bootstrap was create-only, so the catalogue files described a state the database had no way to reach."
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [
+        "REG-201"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-018"
+      ],
+      "test_plan": [
+        "PLAN-020"
+      ],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0534",
+      "source": {
+        "record_path": "docs/bugs/BUG-0534-plan-form-offered-editable-legacy-price-fields-that-bill-nob.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "99dc70a",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
+      },
+      "type": "UX",
+      "title": "Plan form offered editable legacy price fields that bill nobody",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "current_evidence": {
+        "paths": [
+          "super-admin",
+          "apps/admin"
+        ],
+        "verification_scope": "Fixed on agent/plans-reset; asserted against the completed form rather than the declared one."
+      },
+      "affected_modules": [
+        "super-admin",
+        "apps/admin"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": "Removing the field declarations alone made this worse — completeFormsFromSchema re-added them without their labels."
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [
+        "REG-202"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-018"
+      ],
+      "test_plan": [
+        "PLAN-020"
+      ],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
       "verification_result": {
         "result": "VERIFIED",
         "classification": "TERMINAL_AS_DOCUMENTED",

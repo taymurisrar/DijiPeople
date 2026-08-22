@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 140** · automated: 125 · manual: 4 · blocked by infrastructure: 0
+**Scenarios: 141** · automated: 125 · manual: 5 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -129,6 +129,7 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-PLATFORM-015](../../../docs/qa/scenarios/QA-PLATFORM-015-the-console-is-painted-in-the-operator-s-theme-on-the-first-.md) | The console is painted in the operator's theme on the first frame | platform-admin | UNIT | MEDIUM | PARTIAL | `apps/admin/lib/console-theme-bootstrap.spec.ts` | BUG-0495 | REG-198 |
 | [QA-PLATFORM-016](../../../docs/qa/scenarios/QA-PLATFORM-016-monitoring-opens-on-work-a-support-agent-can-start.md) | Monitoring opens on work a support agent can start | platform-admin | UNIT | MEDIUM | PARTIAL | `apps/admin/lib/monitoring-overview.spec.ts` | BUG-0496 | REG-199 |
 | [QA-PLATFORM-017](../../../docs/qa/scenarios/QA-PLATFORM-017-every-list-page-either-deletes-or-says-why-it-will-not.md) | Every list page either deletes or says why it will not | platform-admin | UNIT | HIGH | AUTOMATED | `services/api/src/modules/partners/partner-deletion.service.spec.ts` | BUG-0497 | REG-200 |
+| [QA-PLATFORM-018](../../../docs/qa/scenarios/QA-PLATFORM-018-plans-prices-and-the-legacy-pricing-section.md) | Plans, prices and the legacy pricing section | billing | API | HIGH | MANUAL | `services/api/src/modules/super-admin/commercial-bootstrap.reconcile.spec.ts` | BUG-0531, BUG-0533, BUG-0534 | REG-201, REG-202 |
 | [QA-PROV-001](../../../docs/qa/scenarios/QA-PROV-001-a-tenant-that-failed-provisioning-can-be-retried.md) | A tenant that failed provisioning can be retried | tenant-provisioning | UNIT | CRITICAL | AUTOMATED | `services/api/src/modules/tenant-control-plane/tenant-provisioning-retry.spec.ts` | BUG-0014 | REG-012 |
 | [QA-PROV-002](../../../docs/qa/scenarios/QA-PROV-002-provisioning-is-safe-to-submit-twice.md) | Provisioning is safe to submit twice | tenant-provisioning | UNIT | CRITICAL | AUTOMATED | `services/api/src/modules/super-admin/tenant-provisioning-idempotency.spec.ts` | BUG-0022 | REG-030 |
 | [QA-PROV-003](../../../docs/qa/scenarios/QA-PROV-003-issued-tenant-hostnames-honour-the-configured-base-domain.md) | Issued tenant hostnames honour the configured base domain | tenant-provisioning | UNIT | HIGH | AUTOMATED | `services/api/src/common/config/tenant-url.config.spec.ts` | BUG-0017, BUG-0026 | REG-016, REG-027 |

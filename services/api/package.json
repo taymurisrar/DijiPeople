@@ -35,6 +35,8 @@
     "seed:admin": "ts-node prisma/seed-admin.ts",
     "seed:system": "npm run seed:config",
     "seed:config": "ts-node prisma/seed-config.ts",
+    "seed:commercial": "ts-node prisma/seed-commercial.ts",
+    "report:commercial": "ts-node prisma/report-commercial.ts",
     "seed:verify": "ts-node prisma/verify-seed-config.ts",
     "seed:demo": "ts-node prisma/seed-demo.ts",
     "seed:demo:reset": "ts-node prisma/seed-demo-reset.ts",
