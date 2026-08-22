@@ -1764,7 +1764,17 @@ if (existsSync(join(ROOT, `${DASHBOARD_DIR}/DijiPeople Engineering Dashboard.md`
          */
         if (/^(bug|item|task|session|plan)-\d{3,4}$/.test(target)) continue;
         if (/^qa-[a-z0-9]+-\d{3}$/.test(target)) continue;
-        if (/^reg-\d{3}$/.test(target)) continue;
+        /*
+         * REG ids are NOT skipped — see the dedicated check below. This line
+         * used to read `if (/^reg-\d{3}$/.test(target)) continue;`, on the same
+         * assumption as the row above it: that a bare id resolves through
+         * frontmatter aliases. Every other record type has a note per record.
+         * The regression register does not — it is one file with a heading per
+         * regression — so a REG alias has nothing to live on, and the exemption
+         * meant this validator passed while `knowledge:verify` failed on the
+         * same links. Two agents made that mistake, the second after it had been
+         * recorded.
+         */
         if (noteNames.has(target)) continue;
         unresolved.set(target, (unresolved.get(target) ?? 0) + 1);
       }
@@ -1777,6 +1787,91 @@ if (existsSync(join(ROOT, `${DASHBOARD_DIR}/DijiPeople Engineering Dashboard.md`
     warn(
       `${unresolved.size} unresolved wikilink target(s) — ` +
         worst.map(([t, n]) => `${t} (${n})`).join(', '),
+    );
+  }
+
+  /*
+   * `[[REG-nnn]]` can never resolve, so it is an error rather than a warning.
+   *
+   * The warning above is deliberately soft: an unresolved link usually marks a
+   * note worth writing, and failing on it would push agents into writing hollow
+   * notes to satisfy a link. This is the opposite case. The regression register
+   * is ONE file — docs/qa/regressions/index.md, a heading per regression — so
+   * there is no note for the link to point at and no note anybody should create.
+   * The link is not aspirational; it is simply wrong, and it renders as plain
+   * text in the vault so nothing announces it.
+   *
+   * This has now happened twice, the second time after the lesson was written
+   * down, which is what a prose rule buys you. `knowledge:verify` catches it —
+   * but only after `knowledge:sync` has already published the dead links, at the
+   * very end of a task. This catches it before the commit.
+   *
+   * Write the id as plain text: `REG-220`, and link the record that owns it.
+   */
+  const regLinks = [];
+  for (const dir of ['docs', '.agent']) {
+    for (const file of markdownFilesIn(dir)) {
+      const body = read(file);
+      for (const match of body.matchAll(/\[\[REG-\d+(?:\|[^\]]*)?\]\]/g)) {
+        /*
+         * Documentation ABOUT this rule has to be able to name the shape it
+         * forbids. Any line that also says the link does not resolve is prose,
+         * not a link — the same carve-out the sibling check uses for
+         * "documentation about wikilinks is not a wikilink".
+         */
+        const line = body.slice(0, match.index).split(/\r?\n/).pop() ?? '';
+        const context = line + body.slice(match.index, match.index + 200);
+        if (/never resolve|does not resolve|not a wikilink|forbid/i.test(context)) {
+          continue;
+        }
+        regLinks.push(`${file}: ${match[0]}`);
+      }
+    }
+  }
+  check(
+    'no document links a regression id as a wikilink',
+    regLinks.length === 0,
+    regLinks.slice(0, 6).join(' | '),
+  );
+
+  /*
+   * The module-note alias table in rebuild-backlog.mjs must resolve.
+   *
+   * That table is what turns `AffectedModules: [services/api/src/modules/contracts]`
+   * into an edge to [[contracts-and-agreements]], and it is hand-maintained on
+   * purpose — fuzzy matching would pair "commercial-onboarding" with
+   * "commercial-onboarding-lifecycle", which is a different subject, and neither
+   * the matcher nor the reader could tell the good pairing from the bad one.
+   *
+   * The cost of hand-maintaining it is that a typo, or a note being renamed,
+   * produces a dead wikilink in 205 generated blocks at once — and a dead
+   * wikilink renders as ordinary text, so nothing announces it. This reads the
+   * table and checks every target is a real note.
+   */
+  const backlogGenerator = read('scripts/rebuild-backlog.mjs');
+  const aliasTable = backlogGenerator.match(
+    /const MODULE_NOTE_ALIASES = new Map\(\[([\s\S]*?)\n\]\);/,
+  );
+  check('rebuild-backlog declares a module-note alias table', Boolean(aliasTable));
+
+  if (aliasTable) {
+    const knowledgeNotes = new Set();
+    for (const dir of ['docs/knowledge/modules', 'docs/knowledge/architecture']) {
+      for (const file of markdownFilesIn(dir)) {
+        knowledgeNotes.add(basename(file, '.md'));
+      }
+    }
+
+    const targets = [...aliasTable[1].matchAll(/\[\s*'([^']+)'\s*,\s*'([^']+)'\s*\]/g)];
+    check('the alias table is not empty', targets.length > 0);
+
+    const dead = targets
+      .filter(([, , note]) => !knowledgeNotes.has(note))
+      .map(([, from, note]) => `${from} -> ${note}`);
+    check(
+      'every module-note alias resolves to a real knowledge note',
+      dead.length === 0,
+      dead.join(', '),
     );
   }
 

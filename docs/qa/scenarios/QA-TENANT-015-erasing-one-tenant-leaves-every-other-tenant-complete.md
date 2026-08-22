@@ -21,7 +21,9 @@ UPDATED_AT: 2026-08-22
 ## Preconditions
 
 Two fixture tenants against a real PostgreSQL, seeded with the **same shape** of
-data: the payroll chain that produced [[BUG-0148]], and the full commercial chain
+data: the payroll chain whose `Payslip -> PayrollRunEmployee -> PayrollRun ->
+PayrollPeriod` cascade once made a tenant permanently un-erasable — fixed in
+`3c759ce`, see [[ITEM-0003]] — and the full commercial chain
 erasure deliberately keeps — subscription, invoice, contract, support case,
 onboarding, order, refund, and the `SupportCaseIncident` joining a retained
 support case to a tenant error log.

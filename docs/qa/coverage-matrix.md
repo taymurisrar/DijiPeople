@@ -14,13 +14,13 @@ item. See [`README.md`](README.md).
 
 **Areas: 21** · scenarios: 162 · automated: 146 · blocked by infrastructure: 0
 
-**Open gaps: 109** · partial: 21
+**Open gaps: 108** · partial: 22
 
 | Area | UNIT | API | DATABASE | INTEGRATION | E2E | BROWSER | SECURITY | PERFORMANCE |
 |---|---|---|---|---|---|---|---|---|
 | [agent-desktop](../../docs/qa/test-plans/PLAN-008-agent-desktop.md) | **GAP** | **GAP** | **GAP** | GOOD | **GAP** | n/a | PARTIAL | n/a |
 | [attendance](../../docs/qa/test-plans/PLAN-009-attendance.md) | GOOD | **GAP** | **GAP** | PARTIAL | PARTIAL | **GAP** | PARTIAL | **GAP** |
-| [authentication](../../docs/qa/test-plans/PLAN-001-authentication.md) | GOOD | PARTIAL | **GAP** | **GAP** | **GAP** | **GAP** | PARTIAL | n/a |
+| [authentication](../../docs/qa/test-plans/PLAN-001-authentication.md) | GOOD | PARTIAL | **GAP** | **GAP** | PARTIAL | **GAP** | PARTIAL | n/a |
 | [authorization](../../docs/qa/test-plans/PLAN-002-authorization.md) | GOOD | **GAP** | **GAP** | **GAP** | PARTIAL | **GAP** | GOOD | n/a |
 | [billing](../../docs/qa/test-plans/PLAN-020-billing.md) | **GAP** | **GAP** | **GAP** | **GAP** | **GAP** | **GAP** | **GAP** | **GAP** |
 | [commercial-onboarding](../../docs/qa/test-plans/PLAN-004-commercial-onboarding.md) | **GAP** | PARTIAL | **GAP** | **GAP** | PARTIAL | PARTIAL | **GAP** | n/a |

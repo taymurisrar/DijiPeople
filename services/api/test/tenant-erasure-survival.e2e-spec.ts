@@ -13,7 +13,9 @@ import { DbFixtures, describeWithDatabase } from './helpers/db-fixtures';
  * REG-220 — ITEM-0003.
  *
  * `tenant-erasure-order.e2e-spec.ts` proves the delete **order** is one
- * PostgreSQL accepts, which is what BUG-0148's payroll cascade needed, and
+ * PostgreSQL accepts, which is what the payroll cascade needed — a tenant
+ * holding one payslip was once un-erasable at all, refused at `payrollPeriod`
+ * with `Payslip_payrollRunEmployeeId_fkey` — and
  * `tenant-erasure-dry-run.e2e-spec.ts` proves the dry run is non-destructive.
  * Both operate on a single fixture tenant, so the question neither can answer is
  * the one that matters most for an irreversible cross-tenant operation: **is the

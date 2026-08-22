@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**205 records** — 125 bugs under [`docs/bugs/`](../bugs/), 80 non-bug items under [`items/`](items/).
+**206 records** — 125 bugs under [`docs/bugs/`](../bugs/), 81 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,7 +13,7 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 18 |
+| Open (active work) | 19 |
 | Blocked | 1 |
 | Deferred | 16 |
 | Awaiting a product decision | 8 |
@@ -27,7 +27,7 @@ see [`README.md`](README.md) for why.
 | Severity | Count |
 |---|---|
 | HIGH | 1 |
-| MEDIUM | 14 |
+| MEDIUM | 15 |
 | LOW | 3 |
 
 ## Open by type
@@ -39,7 +39,7 @@ see [`README.md`](README.md) for why.
 | INFRA | 3 |
 | SECURITY | 3 |
 | TECH_DEBT | 4 |
-| TEST_GAP | 4 |
+| TEST_GAP | 5 |
 | UX | 1 |
 
 ## All records by status
@@ -51,7 +51,7 @@ see [`README.md`](README.md) for why.
 | PRODUCT_DECISION | 8 |
 | VERIFIED | 120 |
 | DUPLICATE | 2 |
-| READY | 18 |
+| READY | 19 |
 | DONE | 40 |
 
 ## All records
@@ -230,6 +230,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0076](../../docs/backlog/items/ITEM-0076-operators-cannot-recover-an-order-whose-stripe-webhook-never.md) | Operators cannot recover an order whose Stripe webhook never arrived | PRODUCT_DECISION | MEDIUM | P2 | PRODUCT_DECISION | api:billing, apps/admin | PRODUCT_DECISION |
 | [ITEM-0077](../../docs/backlog/items/ITEM-0077-re-read-the-packaged-agent-archive-after-the-node-pre-gyp-up.md) | Re-read the packaged agent archive after the node-pre-gyp upgrade | TEST_GAP | MEDIUM | P2 | READY | apps/agent-desktop, package-lock.json | PLAN_REQUIRED |
 | [ITEM-0078](../../docs/backlog/items/ITEM-0078-no-end-to-end-payment-to-provisioned-tenant-run-against-stri.md) | No end-to-end payment to provisioned tenant run against Stripe test mode | TEST_GAP | MEDIUM | P2 | READY | api:billing, api:tenant-control-plane, api:outbox, apps/landing | PLAN_REQUIRED |
+| [ITEM-0081](../../docs/backlog/items/ITEM-0081-nine-test-plans-are-needs-review-against-a-five-day-old-comm.md) | Nine test plans are NEEDS_REVIEW against a five-day-old commit | TEST_GAP | MEDIUM | P2 | READY | docs/qa/test-plans | FIX_NOW |
 | [ITEM-0021](../../docs/backlog/items/ITEM-0021-mechanical-guard-against-country-and-currency-literals-in-fr.md) | Mechanical guard against country and currency literals in frontends | TEST_GAP | LOW | P2 | DONE | scripts, apps/landing, apps/web, apps/admin | DONE |
 | [ITEM-0023](../../docs/backlog/items/ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning.md) | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | P2 | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
 | [ITEM-0024](../../docs/backlog/items/ITEM-0024-landing-depends-on-lucide-react-without-declaring-it.md) | Landing depends on lucide-react without declaring it | TECH_DEBT | LOW | P2 | DONE | apps/landing | DONE |

@@ -18,7 +18,7 @@
 | Open HIGH | 1 |
 | Awaiting Architect triage | 0 |
 | Owner decisions pending | 8 |
-| QA coverage gaps | 109 |
+| QA coverage gaps | 108 |
 | Scenarios blocked by infrastructure | 0 |
 
 ## Backlog health
@@ -30,8 +30,8 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 17 |
-| No next action | 17 |
+| No acceptance criteria | 18 |
+| No next action | 18 |
 | Aging — 7d / 30d / 90d | 1 / 0 / 0 |
 | Architecture and technical debt | 5 |
 | Security gaps | 3 |
@@ -135,7 +135,6 @@ gap into scope — or files a `TEST_GAP` item and says so.
 |---|---|
 | [[PLAN-001-authentication|authentication]] | DATABASE |
 | [[PLAN-001-authentication|authentication]] | INTEGRATION |
-| [[PLAN-001-authentication|authentication]] | E2E |
 | [[PLAN-001-authentication|authentication]] | BROWSER |
 | [[PLAN-002-authorization|authorization]] | API |
 | [[PLAN-002-authorization|authorization]] | DATABASE |
@@ -247,7 +246,7 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 18 |
+| Open total | 19 |
 | Blocked | 1 |
 | Deferred | 16 |
 | Awaiting a product decision | 8 |

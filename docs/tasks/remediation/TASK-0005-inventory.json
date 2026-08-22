@@ -6412,7 +6412,9 @@
       "qa_scenarios": [
         "QA-AUTH-002"
       ],
-      "test_plan": [],
+      "test_plan": [
+        "PLAN-001"
+      ],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
       "architect_disposition": "DONE",
@@ -10291,6 +10293,48 @@
       ],
       "related_backlog": [
         "ITEM-0042"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "FIX_NOW",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0081",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0081-nine-test-plans-are-needs-review-against-a-five-day-old-comm.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": ""
+      },
+      "type": "TEST_GAP",
+      "title": "Nine test plans are NEEDS_REVIEW against a five-day-old commit",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "READY",
+      "current_evidence": {
+        "paths": [
+          "docs/qa/test-plans"
+        ],
+        "verification_scope": "Twelve of twenty-one test plans carried STATUS NEEDS_REVIEW and VERIFIED_AGAINST_SHA 714632d, last updated 2026-08-17. Three were reviewed on 2026-08-22 against 0c61b7e because this session produced evidence for them; nine remain, including PLAN-002 authorization at CRITICAL risk and PLAN-004 commercial-onboarding at HIGH. A plan decides what qa:select re-runs, so a stale one under-selects silently. PLAN-001 is the worked example of what that costs: it declared COVERAGE_E2E GAP for authentication, and BUG-0627 had been living in that gap. Verification is per plan: re-derive the module list, re-check every COVERAGE_ claim against a suite that actually exists, add the bugs and regressions raised in that area since 714632d to the frontmatter, and record a dated review section saying what changed. The third step is what rots: rebuild-qa links a scenario to its plan, but a new regression never adds itself to the plan's RELATED_REGRESSIONS."
+      },
+      "affected_modules": [
+        "docs/qa/test-plans"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [
+        "BUG-0627"
+      ],
+      "related_backlog": [
+        "ITEM-0034"
       ],
       "regressions": [],
       "qa_scenarios": [],

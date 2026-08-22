@@ -9,7 +9,7 @@
 |---|---|
 | Open CRITICAL | **0** |
 | Open HIGH | **1** |
-| Open total | 18 |
+| Open total | 19 |
 | Blocked | 1 |
 | Awaiting a product decision | 8 |
 | Deferred | 16 |
@@ -53,6 +53,7 @@ _None. Nothing open at CRITICAL._
 | [[ITEM-0052-verify-the-agent-update-feed-against-a-real-published-artefact|ITEM-0052]] | Verify the agent update feed against a real published artefact | TEST_GAP | MEDIUM | READY | apps/agent-desktop, api:app-releases | PLAN_REQUIRED |
 | [[ITEM-0077-re-read-the-packaged-agent-archive-after-the-node-pre-gyp-up|ITEM-0077]] | Re-read the packaged agent archive after the node-pre-gyp upgrade | TEST_GAP | MEDIUM | READY | apps/agent-desktop, package-lock.json | PLAN_REQUIRED |
 | [[ITEM-0078-no-end-to-end-payment-to-provisioned-tenant-run-against-stri|ITEM-0078]] | No end-to-end payment to provisioned tenant run against Stripe test mode | TEST_GAP | MEDIUM | READY | api:billing, api:tenant-control-plane, api:outbox, apps/landing | PLAN_REQUIRED |
+| [[ITEM-0081-nine-test-plans-are-needs-review-against-a-five-day-old-comm|ITEM-0081]] | Nine test plans are NEEDS_REVIEW against a five-day-old commit | TEST_GAP | MEDIUM | READY | docs/qa/test-plans | FIX_NOW |
 
 ## Current Infrastructure Gaps
 
@@ -240,6 +241,7 @@ _None. Nothing has been deployed through the release process._
 | [[ITEM-0074-allocate-id-and-session-tooling-accept-a-session-id-that-doe|ITEM-0074]] | allocate-id and session tooling accept a session id that does not exist | INFRA | MEDIUM | READY | framework | PLAN_REQUIRED |
 | [[ITEM-0077-re-read-the-packaged-agent-archive-after-the-node-pre-gyp-up|ITEM-0077]] | Re-read the packaged agent archive after the node-pre-gyp upgrade | TEST_GAP | MEDIUM | READY | apps/agent-desktop, package-lock.json | PLAN_REQUIRED |
 | [[ITEM-0078-no-end-to-end-payment-to-provisioned-tenant-run-against-stri|ITEM-0078]] | No end-to-end payment to provisioned tenant run against Stripe test mode | TEST_GAP | MEDIUM | READY | api:billing, api:tenant-control-plane, api:outbox, apps/landing | PLAN_REQUIRED |
+| [[ITEM-0081-nine-test-plans-are-needs-review-against-a-five-day-old-comm|ITEM-0081]] | Nine test plans are NEEDS_REVIEW against a five-day-old commit | TEST_GAP | MEDIUM | READY | docs/qa/test-plans | FIX_NOW |
 | [[ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning|ITEM-0023]] | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
 | [[ITEM-0049-register-services-api-environment-reads-or-scope-the-rule|ITEM-0049]] | Register services/api environment reads or scope the rule to build inputs | INFRA | LOW | READY | services/api, turbo.json, docs/deployment | PLAN_REQUIRED |
 | [[ITEM-0080-type-the-remaining-services-api-no-unsafe-warnings-module-by|ITEM-0080]] | Type the remaining services/api no-unsafe warnings module by module | TECH_DEBT | LOW | READY | services/api | FIX_NOW |
@@ -258,7 +260,7 @@ _None. Nothing has been deployed through the release process._
 | Knowledge | Count |
 |---|---|
 | Bug records | 125 |
-| Backlog items | 80 |
+| Backlog items | 81 |
 | Known bug patterns | 25 |
 | QA runs | 22 |
 | Engineering history records | 32 |

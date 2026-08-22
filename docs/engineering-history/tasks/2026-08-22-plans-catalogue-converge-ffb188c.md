@@ -631,7 +631,7 @@ carries the reason rather than the commit message.
 
 `node scripts/sync-obsidian.mjs` ran twice. The first pass wrote 27 notes and
 `knowledge:verify` then failed with five `GRAPH_ORPHAN` errors: the new records
-linked regressions as `[[REG-201]]` / `[[REG-202]]`, and regressions live in a
+linked regressions as `REG-201` / `REG-202`, and regressions live in a
 single register file rather than as one note each, so those wikilinks resolved
 to nothing. De-bracketed to plain `REG-201` / `REG-202`, which is how every
 existing record refers to them; the register itself is still linked. Second pass

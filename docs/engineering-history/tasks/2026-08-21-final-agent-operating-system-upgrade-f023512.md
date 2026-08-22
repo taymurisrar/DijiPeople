@@ -281,7 +281,7 @@ Four of those started non-zero and each was a defect worth the trip:
   Fixed by declaring the relationship each already had (`[[TASK-0012]]`), never
   by adding a link to remove a dot.
 
-**5 unresolved links** were also real. Four were `[[REG-075]]` hand-written in
+**5 unresolved links** were also real. Four were `REG-075` hand-written in
 BUG-0080 and ITEM-0071: REG ids are sections inside the regression register, not
 notes, and the framework already forbids linking them — the generated output had
 been careful, the prose had not. The fifth was the Control Center linking to
