@@ -55,7 +55,7 @@ diagnosis is right.
    younger than the checkout session expiry, oldest first, capped per run.
 2. Reuse `PaymentRecheckService.recheckOrder` exactly. No second path to `PAID`.
 3. Back off on provider failure rather than retrying on the next tick, and stop
-   entirely after consecutive failures — see [[failure-adaptation]].
+   entirely after consecutive failures — see `.agent/context/failure-adaptation.md`.
 4. A monitoring signal for the stuck count, so the sweep’s own health is
    visible rather than inferred.
 

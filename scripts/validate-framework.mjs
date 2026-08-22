@@ -27,7 +27,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { basename, dirname, join, resolve } from 'node:path';
+import { basename, dirname, join, resolve, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -1832,6 +1832,78 @@ if (existsSync(join(ROOT, `${DASHBOARD_DIR}/DijiPeople Engineering Dashboard.md`
     'no document links a regression id as a wikilink',
     regLinks.length === 0,
     regLinks.slice(0, 6).join(' | '),
+  );
+
+  /*
+   * A wikilink that resolves in the repository and NOT in the vault.
+   *
+   * This is the sneakiest of the three link failures, because every local check
+   * passes. `[[platform-access]]` and `[[failure-adaptation]]` both name real
+   * files — `docs/deployment/platform-access.md` and
+   * `.agent/context/failure-adaptation.md` — so the soft warning above stays
+   * quiet, and the link is dead only in the place people actually read it.
+   * Neither directory is in the sync mappings, so nothing publishes them.
+   *
+   * `knowledge:verify` does catch it — but only after `knowledge:sync` has
+   * already published the dead links, at the very end of a task. Both instances
+   * this session were found that way, one after the other. This catches it
+   * before the commit.
+   *
+   * The fix at a call site is either to write the path as plain text, or to add
+   * the directory to DEFAULT_MAPPINGS if the note genuinely belongs in the
+   * vault. Both are decisions; being told which links are affected is the point.
+   */
+  const mappingSource = read('scripts/lib/obsidian-mappings.mjs');
+  const publishedDirs = [
+    ...mappingSource.matchAll(/from:\s*'([^']+)'/g),
+  ].map((match) => match[1]);
+  check(
+    'the mapping table lists published source directories',
+    publishedDirs.length > 5,
+  );
+
+  /** Every note name, and whether the file that defines it is published. */
+  const noteIsPublished = new Map();
+  for (const dir of ['docs', '.agent']) {
+    for (const file of markdownFilesIn(dir)) {
+      const name = basename(file, '.md').toLowerCase();
+      const relative = file.split(sep).join('/');
+      const published = publishedDirs.some((from) =>
+        relative.startsWith(`${from}/`),
+      );
+      // A name defined in more than one place counts as published if ANY of
+      // them is — the link resolves through whichever reached the vault.
+      noteIsPublished.set(name, (noteIsPublished.get(name) ?? false) || published);
+    }
+  }
+
+  const unpublishedTargets = new Map();
+  for (const dir of ['docs/bugs', 'docs/backlog/items', 'docs/qa', 'docs/knowledge']) {
+    for (const file of markdownFilesIn(dir)) {
+      const relative = file.split(sep).join('/');
+      // Only links FROM a published note can be dead in the vault.
+      if (!publishedDirs.some((from) => relative.startsWith(`${from}/`))) continue;
+
+      for (const match of read(file).matchAll(/\[\[([^\]|#]+)(?:\|[^\]]*)?\]\]/g)) {
+        const target = match[1].trim().toLowerCase();
+        if (/^(bug|item|task|session|plan)-\d{3,4}$/.test(target)) continue;
+        if (/^qa-[a-z0-9]+-\d{3}$/.test(target)) continue;
+        if (!noteIsPublished.has(target)) continue; // unresolved everywhere; warned above
+        if (noteIsPublished.get(target)) continue;
+        unpublishedTargets.set(
+          target,
+          (unpublishedTargets.get(target) ?? 0) + 1,
+        );
+      }
+    }
+  }
+
+  check(
+    'no published note links a note the vault never receives',
+    unpublishedTargets.size === 0,
+    [...unpublishedTargets.entries()]
+      .map(([target, n]) => `${target} (${n})`)
+      .join(', '),
   );
 
   /*
