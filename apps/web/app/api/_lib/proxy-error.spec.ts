@@ -2,7 +2,7 @@ import { ApiRequestError } from "@/lib/server-api";
 import { proxyErrorResponse } from "./proxy-error";
 
 /**
- * REG-223 — ITEM-0035.
+ * REG-211 — ITEM-0035.
  *
  * 134 catch blocks across 123 handlers answered every upstream failure with a
  * hardcoded 500. The invariant: **a refusal from the API arrives at the browser

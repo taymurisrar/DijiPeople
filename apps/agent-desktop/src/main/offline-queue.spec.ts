@@ -2,7 +2,7 @@ import { OfflineQueue } from "./offline-queue";
 import type { HeartbeatEvent } from "./types";
 
 /**
- * REG-224 — ITEM-0033, and the test BUG-0036 never got.
+ * REG-212 — ITEM-0033, and the test BUG-0036 never got.
  *
  * BUG-0036 was the agent re-sending whole batches on retry, so a heartbeat was
  * counted twice and an employee's presence was overstated. The fix landed on the

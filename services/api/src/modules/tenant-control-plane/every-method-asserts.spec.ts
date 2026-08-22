@@ -2,7 +2,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 /**
- * REG-221 — ITEM-0015.
+ * REG-209 — ITEM-0015.
  *
  * The tenant control plane is a **cross-tenant** surface. It authorizes inside
  * its services rather than through controller decorators, so "every reachable

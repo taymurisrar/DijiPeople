@@ -7,7 +7,7 @@ import { PartnerReferralResolverService } from './partner-referral-resolver.serv
 import type { PrismaService } from '../../common/prisma/prisma.service';
 
 /**
- * REG-219 — BUG-0281.
+ * REG-207 — BUG-0281.
  *
  * Partner attribution decides commission, and it survived only the lead →
  * convert route. A buyer who followed a partner's referral link and paid

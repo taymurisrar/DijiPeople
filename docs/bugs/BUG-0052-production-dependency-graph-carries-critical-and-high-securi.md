@@ -2,7 +2,7 @@
 ID: BUG-0052
 aliases: [BUG-0052]
 Title: Production dependency graph carries critical and high security advisories
-Status: OPEN
+Status: FIXED
 Severity: HIGH
 Priority: P0
 Type: SECURITY
@@ -13,13 +13,13 @@ AffectedModules: [package-lock.json, apps/agent-desktop, apps/web, apps/admin, a
 OwnerAgent: integration
 ArchitectDisposition: FIX_NOW
 QAReport:
-RegressionId:
+RegressionId: REG-217
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation: TASK-0010
 CreatedAt: 2026-08-17
-UpdatedAt: 2026-08-20
-ResolvedAt:
+UpdatedAt: 2026-08-22
+ResolvedAt: 2026-08-22
 ---
 
 # BUG-0052 — Production dependency graph carries critical and high security advisories
@@ -332,9 +332,91 @@ The six survivors are the two groups this record already documented, unchanged:
 
 Critical count is 0. That was the acceptance criterion in [[ITEM-0048]] group 1.
 
+## Update — 2026-08-22, SESSION-0039: the critical is cleared
+
+The upgrade [[BUG-0163]] blocked is applied, by a route that does not need
+`overrides` to be re-resolvable.
+
+npm will not apply an override incrementally — it reports "up to date" against
+the tree it already has — so the only route npm offers is a full re-resolution,
+and this lockfile is months stale relative to the registry. That is what moved
+338 packages and failed five of thirteen CI jobs, and why the previous attempt
+was reverted.
+
+A lockfile is a resolved graph. So `@mapbox/node-pre-gyp@2.0.3` and
+`node-gyp@11.5.0` were resolved in **scratch projects**, where npm has no stale
+tree to reuse and gets both right on the first attempt, and grafted in *nested* —
+which is exactly what npm does for a conflicting version, and makes the blast
+radius provably zero because no shared entry is touched. Then the chain the old
+node-gyp left behind was removed: `make-fetch-happen@10 -> cacache@16 -> tar@6`
+was a closed orphan loop, verified by walking resolution from every dependent.
+
+Measured rather than asserted:
+
+| | before | after |
+|---|---|---|
+| versions changed | 338 | **12**, all inside the two grafted subtrees |
+| removed | — | 8, all orphans of the old chain |
+| added | — | 105, all nested under the grafts |
+| other packages moved | many | **none** |
+
+Verified by installing it, which is the lesson this record has already learned
+twice. `npm ci` into a scratch checkout of the manifests: 1698 packages, clean.
+The installed tree carries `node-pre-gyp` 2.0.3 exporting `find` — the only API
+`active-win/lib/windows-binding.js` uses — `node-gyp` 11.5.0, `tar` 7.5.22 nested
+under both, and no hoisted `tar`, `cacache` or `make-fetch-happen` at all.
+`npm audit --omit=dev` against that real tree:
+
+```text
+before   { critical: 1, high: 9, moderate: 2, total: 12 }
+after    { critical: 0, high: 4, moderate: 2, total:  6 }
+```
+
+`overrides` in the root manifest declares `@mapbox/node-pre-gyp: ^2.0.3`, so
+`check:overrides-applied` verifies the outcome rather than the intention.
+`node-gyp` is deliberately not declared: `@electron/rebuild` carries its own
+nested `node-gyp@12.4.0`, which is outside `^11.5.0` and is not vulnerable, and
+an override that half-applies is worse than none.
+
+**The durable half**, which this record said should wait until reachability was
+understood: `scripts/check-production-advisories.mjs`. It does not evaluate
+reachability — it cannot, and the attempts to do so by inspection are what
+produced two wrong dispositions. It asserts what a machine can decide: nothing is
+critical, every survivor has a written disposition naming the record that argues
+it, and a disposition matching no advisory fails, because a risk acceptance for a
+package that is no longer vulnerable reads as a live one. Reverting the lockfile
+to its pre-fix state makes it report the critical plus three undocumented highs.
+
+**What remains**: the six survivors this record already argued — the prisma CLI
+trio, whose npm "fix" is a downgrade to Prisma 6 the driver-adapter data layer
+cannot run on, and `xlsx`/`exceljs`/`uuid`, where the fixes are major downgrades
+and the `xlsx` read path already moved to ExcelJS.
+
+[[BUG-0163]] stays open. The lockfile still cannot be regenerated from the
+manifests and the `@tiptap` peer conflict beneath it is untouched; what is gone
+is its most expensive consequence.
+
 ## QA Retest
 
-Pass for what was applied. On Node 22, after the upgrade:
+2026-08-22, after the graft:
+
+```text
+npm ci into a scratch checkout          1698 packages, clean
+installed tree: node-pre-gyp            2.0.3, exports find()
+installed tree: node-gyp                11.5.0
+installed tree: tar                     7.5.22 nested; no hoisted copy
+npm audit --omit=dev (installed tree)   critical 0, high 4, moderate 2
+check-production-advisories             PASS; refuses the pre-fix lockfile
+check-overrides-applied                 PASS
+```
+
+Scenario `QA-DEPLOY-021`. Not retested here: the **packaged Electron archive**.
+The exclusions and versions were verified by extraction on 2026-08-21, and this
+change alters the graph beneath them, so the archive should be re-read when the
+agent is next packaged. That is stated rather than assumed, because assuming it
+is exactly what produced the 2026-08-21 correction.
+
+2026-08-21, for what was applied then. On Node 22, after the upgrade:
 
 ```text
 apps/web      17 suites, 391 tests   PASS   check-types PASS

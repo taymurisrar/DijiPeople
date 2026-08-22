@@ -4,7 +4,7 @@ import { DEFAULT_CONFIG } from "./config-manager";
 import type { AgentConfig } from "./types";
 
 /**
- * REG-226 — ITEM-0033.
+ * REG-214 — ITEM-0033.
  *
  * This is the code that decides **what leaves the employee's machine**. It reads
  * the title of whatever window is in front — which on a browser is the page they

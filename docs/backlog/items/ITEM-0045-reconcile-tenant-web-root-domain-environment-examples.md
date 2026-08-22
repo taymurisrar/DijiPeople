@@ -3,15 +3,15 @@ ID: ITEM-0045
 aliases: [ITEM-0045]
 Title: Reconcile tenant web root-domain environment examples
 Type: DOCUMENTATION
-Status: READY
+Status: DONE
 Priority: P3
 Severity: LOW
 AffectedModules: [apps/web]
 Source: QA_RUN
 OwnerAgent: frontend
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 CreatedAt: 2026-08-17
-UpdatedAt: 2026-08-17
+UpdatedAt: 2026-08-22
 RelatedBug:
 RelatedQA: docs/qa/runs/2026-08-17-web-app-documentation-1af3690.md
 RelatedADR:

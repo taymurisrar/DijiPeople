@@ -10,7 +10,7 @@ const {
 const { validateDeploymentEnv } = require("./index");
 
 /**
- * REG-215 — BUG-0086.
+ * REG-203 — BUG-0086.
  *
  * Production deploys died in `preDeployCommand` on `P1002`, ten seconds into
  * `prisma migrate deploy`, because `DATABASE_URL` named Neon's pooled endpoint

@@ -3,15 +3,15 @@ ID: ITEM-0035
 aliases: [ITEM-0035]
 Title: Web route handlers flatten upstream error status to 500
 Type: TECH_DEBT
-Status: READY
+Status: DONE
 Priority: P2
 Severity: MEDIUM
 AffectedModules: [apps/web]
 Source: QA_RUN
 OwnerAgent: frontend
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 CreatedAt: 2026-08-17
-UpdatedAt: 2026-08-17
+UpdatedAt: 2026-08-22
 RelatedBug: BUG-0041
 RelatedQA: docs/qa/runs/2026-08-17-web-app-documentation-1af3690.md
 RelatedADR:

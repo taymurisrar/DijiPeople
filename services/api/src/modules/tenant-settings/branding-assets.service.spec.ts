@@ -10,7 +10,7 @@ import type { DocumentsService } from '../documents/documents.service';
 import type { TenantSettingsService } from './tenant-settings.service';
 
 /**
- * REG-218 — BUG-0041 / ITEM-0050.
+ * REG-206 — BUG-0041 / ITEM-0050.
  *
  * The MIME allowlist and the 3 MB limit used to live in a web route handler, so
  * the API — the authority — enforced neither, and the two-step upload was not

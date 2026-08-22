@@ -7,7 +7,7 @@
 
 | | |
 |---|---|
-| Active sessions | **6** |
+| Active sessions | **7** |
 | Active parent tasks | 7 |
 | Active work packages | 2 |
 | Blocked work packages | 5 |
@@ -30,10 +30,10 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 74 |
-| No next action | 74 |
-| Aging — 7d / 30d / 90d | 5 / 0 / 0 |
-| Architecture and technical debt | 8 |
+| No acceptance criteria | 68 |
+| No next action | 68 |
+| Aging — 7d / 30d / 90d | 4 / 0 / 0 |
+| Architecture and technical debt | 6 |
 | Security gaps | 6 |
 | Database gaps | 10 |
 
@@ -49,6 +49,7 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 | Session | Task | Title | Status | Branch | Target | Leases | Schema |
 |---|---|---|---|---|---|---|---|
+| [[SESSION-0039-backlog-burn-down-open-bugs-and-ready-items|SESSION-0039]] | — | Backlog burn-down: open bugs and ready items | ACTIVE | `agent/backlog-burndown` | `develop` | — | NO |
 | SESSION-0023 | — | First production release | ACTIVE | `agent/first-production-release` | `main` | — | NO |
 | [[SESSION-0022-go-live-readiness|SESSION-0022]] | TASK-0010 | Go-live readiness | ACTIVE | `agent/go-live-readiness` | `develop` | — | NO |
 | [[SESSION-0019-ci-browser-install-latency-and-database-e2e-fixture-contract|SESSION-0019]] | — | CI browser install latency and database e2e fixture contract | ACTIVE | `agent/ci-e2e-remediation` | `develop` | — | NO |
@@ -236,7 +237,7 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 75 |
+| Open total | 69 |
 | Blocked | 1 |
 | Deferred | 16 |
 | Awaiting a product decision | 6 |

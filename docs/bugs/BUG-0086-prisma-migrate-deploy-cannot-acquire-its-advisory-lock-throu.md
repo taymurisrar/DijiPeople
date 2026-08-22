@@ -2,7 +2,7 @@
 ID: BUG-0086
 aliases: [BUG-0086]
 Title: Prisma migrate deploy cannot acquire its advisory lock through Neon pooled endpoint
-Status: OPEN
+Status: FIXED
 Severity: HIGH
 Priority: P1
 Type: INFRA
@@ -13,13 +13,13 @@ AffectedModules: [services/api/prisma]
 OwnerAgent: release-devops
 ArchitectDisposition: FIX_NOW
 QAReport: 
-RegressionId: 
+RegressionId: REG-203
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-20
-UpdatedAt: 2026-08-20
-ResolvedAt:
+UpdatedAt: 2026-08-22
+ResolvedAt: 2026-08-22
 ---
 
 # BUG-0086 — Prisma migrate deploy cannot acquire its advisory lock through Neon pooled endpoint
@@ -229,16 +229,42 @@ user; the durable fix is a repository change and can proceed independently.
 
 ## Resolution
 
-Not yet fixed. Record created under an explicit instruction to capture the
-finding only and change nothing.
+Fixed 2026-08-22, branch `agent/backlog-burndown`.
+
+`DIRECT_DATABASE_URL` names the migration connection. `prisma.config.ts` prefers
+it and falls back to `DATABASE_URL` when unset, so local development and CI — one
+plain Postgres, no pooler — set nothing and behave exactly as before.
+
+The resolution and the pooled-endpoint test live in `packages/config/database-urls.js`
+rather than in the Prisma config, so `validateDeploymentEnv` can apply the same
+rule at API boot and a unit test can assert it without a database. A url that
+carries the `-pooler` infix, or sets `pgbouncer=true`, is recognised as pooled.
+
+When the url migrations *would* use names a pooled endpoint, config load fails
+immediately with a message naming the variable to set — rather than the deploy
+failing ten seconds later with an advisory lock id and no explanation.
+
+Registered where the Security checklist requires: `render.yaml` with
+`sync: false`, `turbo.json` `globalEnv`, `docs/environment-variables.md`, and
+`services/api/.env.production.example`. `docs/deployment/environments.md` gained
+a table of which operations need a direct connection and why, so the next
+environment does not repeat it.
 
 ## QA Retest
 
-Not yet retested. Retest belongs to a deployment QA run against the Render
-service once the fix lands; the verifying scenario is the `S15` migration-state
-check in `docs/deployment/smoke-tests.md`, extended to assert the migration ran
-rather than only that nothing is pending.
+Verified against the real Prisma CLI rather than by reading:
 
+```text
+DATABASE_URL=<pooled>                              prisma validate  FAILS, naming DIRECT_DATABASE_URL
+DATABASE_URL=<pooled> DIRECT_DATABASE_URL=<direct> prisma validate  PASSES
+DATABASE_URL=<local>  (no override)                prisma validate  PASSES
+packages/config/database-urls.test.js              18 tests PASS
+```
+
+Scenario `QA-DEPLOY-018`. The production half — a Render deploy applying
+migrations through the direct endpoint and continuing into seeding and legal
+publication — is not retested here and belongs to a deployment QA run against the
+service, because this branch cannot reach that environment.
 ## History
 
 - 2026-08-20 — created from user report at `d6aa738`.

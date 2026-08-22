@@ -2,7 +2,7 @@
 ID: BUG-0045
 aliases: [BUG-0045]
 Title: The canonical settings and branding contract is materially stale
-Status: OPEN
+Status: FIXED
 Severity: MEDIUM
 Priority: P2
 Type: DOCUMENTATION
@@ -13,13 +13,13 @@ AffectedModules: [apps/web, docs/architecture]
 OwnerAgent: architect
 ArchitectDisposition: PLAN_REQUIRED
 QAReport: docs/qa/runs/2026-08-17-web-app-documentation-1af3690.md
-RegressionId:
+RegressionId: REG-208
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-17
-UpdatedAt: 2026-08-17
-ResolvedAt:
+UpdatedAt: 2026-08-22
+ResolvedAt: 2026-08-22
 ---
 
 # BUG-0045 — The canonical settings and branding contract is materially stale
@@ -146,20 +146,52 @@ bug pattern [[doc-code-drift]] · bug pattern [[divergent-duplicate-guard]].
 
 ## Resolution
 
-Not resolved. Deliberately **not** fixed inside TASK-0003: correcting a document
-declared canonical, when two of its errors imply product decisions (which
-user-management surface wins, where the permission fallback should go), is not a
-documentation edit and would be the opportunistic scope-widening the working
-agreements forbid.
+Fixed 2026-08-22, branch `agent/backlog-burndown`. All five numbered claims, plus
+the code defect and the durable check.
+
+1. **Eleven categories, not ten.** `integrations` is named and described, and the
+   `/settings/integrations/attendance/**` tree is listed among the purpose-built
+   pages.
+2. **Components that exist.** The shared kit is named exactly:
+   `button`, `dialog`, `empty-state`, `form-control`, `section-card`,
+   `status-pill`, plus `app/components/data-table/`. The document now also says
+   that `form-control.tsx` exports named fields rather than a `FormControl`,
+   which is the specific thing the old sentence sent people looking for.
+   `dialog.tsx` exists because BUG-0043 built it.
+3. **The route audit is gone**, replaced by the five runtime shapes, the nine
+   purpose-built pages and the surfaces genuinely outside the catalogue. Eighty-
+   seven registry items are not listed individually, because the registry is the
+   list — an enumeration is the documentation form that ages worst, and this one
+   aged into twenty 404s.
+4. **Cache invalidation.** This claim is now true: [[BUG-0046]] is `VERIFIED`, so
+   no correction was needed.
+5. **The two user-management surfaces.** The document claimed one redirects to
+   the other; neither does, and both are fully implemented. The decision is now
+   recorded rather than left implicit — the runtime route is canonical for the
+   catalogue, because metadata-driven UI is the default and the catalogue must
+   have one entry per item, and `/settings/access/users` stays as a compound
+   operational view reached from it.
+
+**The one live defect**, quoted out of this document into code:
+`require-settings-permission.ts` used `/settings/tenant` as a `fallbackHref`, and
+it has not resolved since the settings runtime landed. It now points at
+`/settings`, which renders an access-denied state rather than redirecting — no
+loop, and the user is told what happened.
+
+The document gained a provenance header, in the style AGENTS.md carries, because
+it is the tier that outranks others and until now carried none.
 
 ## QA Retest
 
-Not applicable — not yet fixed. Route non-existence is derived from the App
-Router tree plus `[category]/page.tsx:11-12`; **no URL was requested against a
-running server**, so a `redirects()` entry rescuing some of them is not fully
-excluded — though `next.config.ts`'s 55 redirects were read and do not cover the
-single-segment cases.
+```text
+apps/web  settings-doc-routes.spec.ts   5 tests PASS
+apps/web  check-types                   PASS
+apps/web  full suite                    438 tests PASS
+```
 
+Before the rewrite the route assertion listed eighteen dead URLs by name and the
+category assertion failed on "ten" — which is how the eighteen were found rather
+than guessed at. Scenario `QA-RUNTIME-011`.
 ## History
 
 - 2026-08-17 — found during the `apps/web` deep documentation audit (TASK-0003).

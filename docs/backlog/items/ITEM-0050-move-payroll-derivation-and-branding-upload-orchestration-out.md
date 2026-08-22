@@ -3,15 +3,15 @@ ID: ITEM-0050
 aliases: [ITEM-0050]
 Title: Move payroll derivation and branding upload orchestration out of web proxies
 Type: TECH_DEBT
-Status: READY
+Status: DONE
 Priority: P2
 Severity: MEDIUM
 AffectedModules: [apps/web, services/api/src/modules/compensation, services/api/src/modules/tenant-settings]
 Source: IMPLEMENTATION
 OwnerAgent: backend-api
-ArchitectDisposition: PLAN_REQUIRED
+ArchitectDisposition: DONE
 CreatedAt: 2026-08-18
-UpdatedAt: 2026-08-18
+UpdatedAt: 2026-08-22
 RelatedBug: BUG-0041
 RelatedQA:
 RelatedADR:

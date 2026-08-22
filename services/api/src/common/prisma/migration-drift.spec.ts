@@ -7,7 +7,7 @@ import {
 } from './migration-drift';
 
 /**
- * REG-216 — BUG-0283.
+ * REG-204 — BUG-0283.
  *
  * A development database several migrations behind is invisible until someone
  * runs `prisma generate`, at which point the client catches up, the database

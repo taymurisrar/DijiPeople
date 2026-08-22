@@ -2,7 +2,7 @@
 ID: BUG-0283
 aliases: [BUG-0283]
 Title: A regenerated Prisma client against an un-migrated database 500s every affected screen
-Status: OPEN
+Status: FIXED
 Severity: MEDIUM
 Priority: P2
 Type: INFRA
@@ -13,13 +13,13 @@ AffectedModules: [services/api, services/api/prisma, apps/admin]
 OwnerAgent: architect
 ArchitectDisposition: PLAN_REQUIRED
 QAReport:
-RegressionId:
+RegressionId: REG-204
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-21
-UpdatedAt: 2026-08-21
-ResolvedAt:
+UpdatedAt: 2026-08-22
+ResolvedAt: 2026-08-22
 ---
 
 # BUG-0283 — A regenerated Prisma client against an un-migrated database 500s every affected screen
@@ -127,17 +127,36 @@ manifest rather than a generated client.
 
 ## Resolution
 
-The observed instance was cleared by applying the four pending migrations
-(`prisma migrate deploy`, non-destructive, all four additive); `db:preflight`
-now reports `DATABASE_AGENT_STATUS PASS` and the failing query was re-run
-successfully. The **guard** is not built — where the warning belongs is a
-decision about developer workflow, not a defect fix.
+Fixed 2026-08-22, branch `agent/backlog-burndown`.
+
+Option 2 of the three the record proposed, because it is the one the acceptance
+criteria actually describe: "starting the API against a database behind the
+committed migrations produces a warning that names them".
+
+`PrismaService.onModuleInit` compares migration directory names against
+`_prisma_migrations` and logs a warning naming each pending migration, what will
+fail (`P2022`), and the command that fixes it. Startup continues — a developer
+deliberately working against an older database should not be locked out of the
+whole API, and refusing to boot over a condition that is often intentional is how
+a warning gets ignored.
+
+Option 3 landed alongside it: `AGENTS.md`'s implementation process now says to
+run `db:preflight` before touching a database-backed screen, and says why.
+
+Option 1 (`predev`) was not taken. It fires once, before the session that matters,
+and the moment the mismatch becomes reachable is startup rather than install.
 
 ## QA Retest
 
-The specific query was re-executed against the migrated database and returns
-four plans with their prices.
+```text
+services/api  src/common/prisma/migration-drift.spec.ts   18 tests PASS
+services/api  full suite                                  1634 tests PASS
+```
 
+Scenario `QA-DEPLOY-019`. The integration half — pointing the API at a genuinely
+behind database and reading the log — is described in the scenario and was not
+run here; the unit coverage asserts the naming, the ordering, and that neither a
+missing `_prisma_migrations` table nor a filesystem failure can break startup.
 ## History
 
 - 2026-08-21 — reported by the user from an admin error log; root-caused to

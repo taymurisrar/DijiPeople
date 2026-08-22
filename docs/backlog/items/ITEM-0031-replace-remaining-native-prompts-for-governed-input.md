@@ -3,15 +3,15 @@ ID: ITEM-0031
 aliases: [ITEM-0031]
 Title: Replace remaining native prompts for governed input
 Type: UX
-Status: READY
+Status: DONE
 Priority: P2
 Severity: MEDIUM
 AffectedModules: [apps/admin, apps/web]
 Source: ARCHITECT
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 CreatedAt: 2026-08-16
-UpdatedAt: 2026-08-17
+UpdatedAt: 2026-08-22
 RelatedBug: BUG-0020
 RelatedQA: 
 RelatedADR: 

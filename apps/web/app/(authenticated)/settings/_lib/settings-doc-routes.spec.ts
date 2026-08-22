@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { settingsRuntimeCategories } from "./settings-runtime";
 
 /**
- * REG-220 — BUG-0045.
+ * REG-208 — BUG-0045.
  *
  * `docs/architecture/settings-and-branding.md` is declared **canonical** by
  * `docs/README.md`: it "overrides other documents where they differ". Its

@@ -210,7 +210,7 @@ describe('checkout customer record', () => {
     expect(data).not.toHaveProperty('originChannel');
   });
   /**
-   * REG-219 — BUG-0281.
+   * REG-207 — BUG-0281.
    *
    * `CustomerAccount` carries three attribution columns and only the lead paths
    * wrote them, so a buyer who followed a partner's referral link and paid

@@ -2,7 +2,7 @@
 ID: BUG-0281
 aliases: [BUG-0281]
 Title: Partner attribution is lost when a referred buyer purchases through self-service checkout
-Status: OPEN
+Status: FIXED
 Severity: MEDIUM
 Priority: P2
 Type: DATA_INTEGRITY
@@ -13,13 +13,13 @@ AffectedModules: [apps/landing, api:billing, api:partner-experience]
 OwnerAgent: architect
 ArchitectDisposition: PLAN_REQUIRED
 QAReport:
-RegressionId:
+RegressionId: REG-207
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-21
-UpdatedAt: 2026-08-21
-ResolvedAt:
+UpdatedAt: 2026-08-22
+ResolvedAt: 2026-08-22
 ---
 
 # BUG-0281 — Partner attribution is lost when a referred buyer purchases through self-service checkout
@@ -118,14 +118,50 @@ this extends.
 
 ## Resolution
 
-Not resolved. Recorded rather than guessed at: inferring a referral from
-anything available at checkout today would attribute commission on evidence this
-platform does not have.
+Fixed 2026-08-22, branch `agent/backlog-burndown`, in the direction the record
+proposed and for the reason it gave: resolution is server-side, because a
+client-supplied partner id would let anyone assign themselves a commission.
+
+Both halves were broken, and either alone would have been enough.
+
+**Landing.** The capture ran in a `useEffect` inside the *lead form*, so it only
+fired when that form was mounted — straight to Plans → Subscribe and nothing was
+ever remembered. It now lives in `apps/landing/lib/referral.ts` and is mounted in
+the root layout by `<ReferralCapture>`, so a partner's link works whichever page
+it points at. First touch wins. The code is carried on the first draft as well as
+the final submission, so an abandoned checkout that resumes is still attributed.
+
+**API.** `resolveReferral` was private to `LeadsService`, which is exactly why the
+newer path — writing the same `CustomerAccount` columns — attributed nothing. It
+is now `PartnerReferralResolverService` and both callers use it, so the two
+cannot drift again.
+
+`originChannel` follows the evidence: `PARTNER_REFERRAL` only when a code
+resolved to an active partner and an active link, `WEBSITE` otherwise. A code
+that was presented and rejected — expired link, suspended partner, typo — still
+lands in `referralCodeSnapshot`, because "someone presented GOLD-100 and it had
+lapsed" is a different fact from "no partner was involved", and only one of them
+is recoverable. The three columns are written together or not at all, so no
+record can name a partner with no link, and a returning customer who already has
+a partner is never reassigned.
+
+The code is deliberately **not** part of `submissionHash`. Making it part of the
+order's identity would let a buyer who reloaded with `?ref=` stripped from the
+URL create a second customer and a second tenant.
 
 ## QA Retest
 
-Not applicable yet.
+```text
+services/api  partner-referral-resolver.service.spec.ts   10 tests PASS
+services/api  checkout-customer-record.spec.ts           10 tests PASS
+services/api  full suite                                 1634 tests PASS
+apps/landing  full suite                                  134 tests PASS
+```
 
+Scenario `QA-PARTNER-007`. The end-to-end half — following a real referral link
+to a completed Stripe checkout and reading the resulting `CustomerAccount` — is
+described in the scenario and was not run here; it needs a live Stripe test mode
+and a seeded partner.
 ## History
 
 - 2026-08-21 — found while comparing the self-service and sales-assisted

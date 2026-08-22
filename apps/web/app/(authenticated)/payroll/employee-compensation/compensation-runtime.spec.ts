@@ -4,7 +4,7 @@ import {
 } from "./compensation-runtime";
 
 /**
- * REG-217 — BUG-0041 / ITEM-0050.
+ * REG-205 — BUG-0041 / ITEM-0050.
  *
  * The flat-to-structured translation used to live in
  * `app/api/payroll/compensations/route.ts`, together with a derivation of

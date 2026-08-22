@@ -3,15 +3,15 @@ ID: ITEM-0015
 aliases: [ITEM-0015]
 Title: Make the tenant readiness() authorization assertion auditable
 Type: FOLLOW_UP
-Status: READY
+Status: DONE
 Priority: P3
 Severity: LOW
 AffectedModules: [services/api/src/modules/tenant-control-plane]
 Source: QA_RUN
 OwnerAgent: backend-api
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 CreatedAt: 2026-08-15
-UpdatedAt: 2026-08-15
+UpdatedAt: 2026-08-22
 RelatedBug:
 RelatedQA: docs/qa/runs/2026-08-14-tenant-control-plane-ba1e818.md
 RelatedADR:

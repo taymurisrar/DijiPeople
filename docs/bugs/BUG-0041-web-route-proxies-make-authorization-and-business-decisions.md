@@ -2,7 +2,7 @@
 ID: BUG-0041
 aliases: [BUG-0041]
 Title: Web route proxies make authorization and business decisions
-Status: OPEN
+Status: FIXED
 Severity: MEDIUM
 Priority: P2
 Type: SECURITY
@@ -18,8 +18,8 @@ RelatedBacklogItem: ITEM-0050
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-17
-UpdatedAt: 2026-08-18
-ResolvedAt:
+UpdatedAt: 2026-08-22
+ResolvedAt: 2026-08-22
 ---
 
 # BUG-0041 — Web route proxies make authorization and business decisions
@@ -183,25 +183,77 @@ Fixed 2026-08-18:
    already carries the provider's usage-policy User-Agent. The duplicated address
    assembly went with it.
 
-Not fixed, and deliberately not rushed — both are real refactors with a domain
-owner, and neither is currently producing a wrong answer:
+The two that were left in August, and why they were left:
 
-- `api/payroll/compensations/route.ts` derives `basicSalary` as the first
+- `api/payroll/compensations/route.ts` derived `basicSalary` as the first
   component with a non-empty amount. That is a payroll rule in a proxy, it is
   money, and "first non-empty component" is a guess no domain service has agreed
   to. Changing it blind could alter what employees are paid.
-- `api/tenant-settings/branding-assets/route.ts` owns a MIME allowlist and 3 MB
-  policy the API does not know about, and its two-step upload orphans a document
-  when step two fails.
+- `api/tenant-settings/branding-assets/route.ts` owned a MIME allowlist and 3 MB
+  policy the API did not know about, and its two-step upload orphaned a document
+  when step two failed.
+
+### Fixed 2026-08-22 — the remaining two, carried by [[ITEM-0050]]
+
+**Compensation.** The shape translation moved to the compensation runtime spec,
+which already has the pay components loaded to build the form — so the second API
+call to `/pay-components` is gone as well. The derivation is simply deleted, and
+the reason it could be is that the answer was already in the codebase: the form
+marks `basicSalary` `requirementLevel: "required"` and
+`CreateEmployeeCompensationDto` declares it required. The API's stated rule was
+always "reject an omission"; the proxy was inventing a value to satisfy a
+requirement that already existed. A caller who omits it now gets a 400 naming the
+field rather than a silently invented salary, which is the safer answer for money
+and the one the domain had already agreed to.
+
+`StandardModuleRuntimeSpec` gained `mutationPayloadTransform` for this, because a
+module whose form fields are generated at runtime — one per active pay component,
+named `component_<id>` — cannot be described by a static field list. It may
+reshape; it may not decide policy or invent a monetary value.
+
+**Branding assets.** Both halves moved to `POST /tenant-settings/branding-assets`.
+The MIME allowlist and 3 MB limit are enforced on the authority, so a caller
+reaching the API directly is governed by the same rule. The orchestration
+*compensates* rather than transacts — the two writes cross a storage boundary a
+database transaction cannot span — so a failed settings write archives the
+document it created before rethrowing, and a failure of that archive is logged
+without masking the error the caller can act on.
+
+`TenantSettingsModule` and `DocumentsModule` now reference each other through
+`forwardRef`. The cycle is real and deliberate: documents needs the
+document-settings resolver, and branding-asset upload needs the document service.
+
+**The mechanical check the record asked for** is
+`scripts/check-proxies-decide-nothing.mjs`: it fails when any handler under
+`app/api/**` reads a permission, role or elevation value, or assigns a monetary
+field. It would have caught the `teams` handler the day it landed. A probe
+carrying both shapes is refused; 502 handlers scanned.
 
 ## QA Retest
 
-Pass for the three fixed handlers.
+Pass for all five handlers.
+
+August, the first three:
 
 ```text
 check:proxies-forward-refusals   PASS
 apps/web                         18 suites, 397 tests; check-types PASS
 ```
+
+2026-08-22, the remaining two:
+
+```text
+check-proxies-decide-nothing            502 handlers, none decides
+compensation-runtime.spec.ts            14 tests PASS
+branding-assets.service.spec.ts         13 tests PASS
+services/api                            1634 tests PASS
+apps/web                                438 tests PASS; check-types PASS
+```
+
+Scenarios `QA-PAYROLL-001` and `QA-TENANT-013`. The manual half of each — saving a
+compensation record with the basic salary left empty, and a branding upload whose
+settings write fails — is described in those scenarios and was not run against a
+live stack here.
 
 `teams/route.ts` no longer imports `getSessionUser`; `dashboard-views` forwards
 `error.status`; `reverse-geocode` no longer constructs a third-party request or

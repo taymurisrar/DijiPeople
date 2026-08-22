@@ -6,7 +6,7 @@ const { join } = require("node:path");
 const { getPlatformDomainConfig, DEFAULT_LOCAL_PORTS } = require("./index");
 
 /**
- * REG-222 — ITEM-0045.
+ * REG-210 — ITEM-0045.
  *
  * `apps/web` ships two committed environment examples and they disagreed about
  * the domain workspaces are served from: `.env.example` said `localhost:3000`,

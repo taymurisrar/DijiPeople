@@ -2,7 +2,7 @@ import { Prisma } from '@prisma/client';
 import { toDisplayString, toErrorMessage } from './display-string';
 
 /**
- * REG-227 — ITEM-0042.
+ * REG-215 — ITEM-0042.
  *
  * `String(value)` on an object gives `[object Object]`. In an error path that
  * is a lost incident: the one artifact left after a production failure says

@@ -2302,14 +2302,14 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "1af3690",
         "created_at": "2026-08-17",
-        "updated_at": "2026-08-18",
-        "resolved_at": ""
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
       },
       "type": "SECURITY",
       "title": "Web route proxies make authorization and business decisions",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
+      "current_status": "FIXED",
       "current_evidence": {
         "paths": [
           "docs/bugs/BUG-0041-web-route-proxies-make-authorization-and-business-decisions.md",
@@ -2333,10 +2333,16 @@
         "ITEM-0034"
       ],
       "regressions": [
-        "REG-055"
+        "REG-055",
+        "REG-205",
+        "REG-206",
+        "REG-218"
       ],
       "qa_scenarios": [
-        "QA-RUNTIME-010"
+        "QA-AUTHZ-012",
+        "QA-PAYROLL-001",
+        "QA-RUNTIME-010",
+        "QA-TENANT-013"
       ],
       "test_plan": [],
       "active_session_conflict": "NONE",
@@ -2412,14 +2418,14 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "1af3690",
         "created_at": "2026-08-17",
-        "updated_at": "2026-08-17",
-        "resolved_at": ""
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
       },
       "type": "UX",
       "title": "Web dialogs have no focus trap and filter controls are unlabelled",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
+      "current_status": "FIXED",
       "current_evidence": {
         "paths": [
           "docs/bugs/BUG-0043-web-dialogs-have-no-focus-trap-and-filter-controls-are-unlab.md",
@@ -2439,8 +2445,12 @@
         "ITEM-0031",
         "ITEM-0034"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-216"
+      ],
+      "qa_scenarios": [
+        "QA-RUNTIME-013"
+      ],
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
@@ -2517,14 +2527,14 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "1af3690",
         "created_at": "2026-08-17",
-        "updated_at": "2026-08-17",
-        "resolved_at": ""
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
       },
       "type": "DOCUMENTATION",
       "title": "The canonical settings and branding contract is materially stale",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
+      "current_status": "FIXED",
       "current_evidence": {
         "paths": [
           "docs/bugs/BUG-0045-the-canonical-settings-and-branding-contract-is-materially-s.md",
@@ -2545,8 +2555,12 @@
         "BUG-0046"
       ],
       "related_backlog": [],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-208"
+      ],
+      "qa_scenarios": [
+        "QA-RUNTIME-011"
+      ],
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
@@ -2910,14 +2924,14 @@
         "provenance": "ARCHITECT",
         "detected_in_sha": "0051180",
         "created_at": "2026-08-17",
-        "updated_at": "2026-08-20",
-        "resolved_at": ""
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
       },
       "type": "SECURITY",
       "title": "Production dependency graph carries critical and high security advisories",
       "severity": "HIGH",
       "priority": "P0",
-      "current_status": "OPEN",
+      "current_status": "FIXED",
       "current_evidence": {
         "paths": [
           "docs/bugs/BUG-0052-production-dependency-graph-carries-critical-and-high-securi.md"
@@ -2938,8 +2952,12 @@
       },
       "related_bugs": [],
       "related_backlog": [],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-217"
+      ],
+      "qa_scenarios": [
+        "QA-DEPLOY-021"
+      ],
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
@@ -4189,14 +4207,14 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "",
         "created_at": "2026-08-15",
-        "updated_at": "2026-08-15",
+        "updated_at": "2026-08-22",
         "resolved_at": ""
       },
       "type": "FOLLOW_UP",
       "title": "Make the tenant readiness() authorization assertion auditable",
       "severity": "LOW",
       "priority": "P3",
-      "current_status": "READY",
+      "current_status": "DONE",
       "current_evidence": {
         "paths": [
           "docs/backlog/items/ITEM-0015-make-the-tenant-readiness-assertion-auditable.md",
@@ -4213,12 +4231,16 @@
       },
       "related_bugs": [],
       "related_backlog": [],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-209"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-014"
+      ],
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "VERIFIED",
         "classification": "ACTIVE_AS_DOCUMENTED",
@@ -4993,14 +5015,14 @@
         "provenance": "ARCHITECT",
         "detected_in_sha": "",
         "created_at": "2026-08-16",
-        "updated_at": "2026-08-17",
+        "updated_at": "2026-08-22",
         "resolved_at": ""
       },
       "type": "UX",
       "title": "Replace remaining native prompts for governed input",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "READY",
+      "current_status": "DONE",
       "current_evidence": {
         "paths": [
           "docs/backlog/items/ITEM-0031-replace-remaining-native-prompts-for-governed-input.md"
@@ -5019,12 +5041,16 @@
         "BUG-0020"
       ],
       "related_backlog": [],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-219"
+      ],
+      "qa_scenarios": [
+        "QA-RUNTIME-014"
+      ],
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "VERIFIED",
         "classification": "STATUS_DISPOSITION_BUCKET_MISMATCH_DEFERRED",
@@ -5086,14 +5112,14 @@
         "provenance": "ARCHITECT",
         "detected_in_sha": "",
         "created_at": "2026-08-16",
-        "updated_at": "2026-08-17",
+        "updated_at": "2026-08-22",
         "resolved_at": ""
       },
       "type": "TEST_GAP",
       "title": "Add a test runner and unit coverage to apps/agent-desktop",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "READY",
+      "current_status": "DONE",
       "current_evidence": {
         "paths": [
           "docs/backlog/items/ITEM-0033-add-a-test-runner-and-unit-coverage-to-apps-agent-desktop.md"
@@ -5116,12 +5142,20 @@
       "related_backlog": [
         "ITEM-0028"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-212",
+        "REG-213",
+        "REG-214"
+      ],
+      "qa_scenarios": [
+        "QA-AGENT-005",
+        "QA-AGENT-006",
+        "QA-AGENT-007"
+      ],
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "VERIFIED",
         "classification": "STATUS_DISPOSITION_BUCKET_MISMATCH_DEFERRED",
@@ -5189,14 +5223,14 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "",
         "created_at": "2026-08-17",
-        "updated_at": "2026-08-17",
+        "updated_at": "2026-08-22",
         "resolved_at": ""
       },
       "type": "TECH_DEBT",
       "title": "Web route handlers flatten upstream error status to 500",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "READY",
+      "current_status": "DONE",
       "current_evidence": {
         "paths": [
           "docs/backlog/items/ITEM-0035-web-route-handlers-flatten-upstream-error-status-to-500.md",
@@ -5217,12 +5251,16 @@
       "related_backlog": [
         "ITEM-0012"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-211"
+      ],
+      "qa_scenarios": [
+        "QA-RUNTIME-012"
+      ],
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "VERIFIED",
         "classification": "ACTIVE_AS_DOCUMENTED",
@@ -5534,7 +5572,7 @@
         "provenance": "ARCHITECT",
         "detected_in_sha": "",
         "created_at": "2026-08-17",
-        "updated_at": "2026-08-17",
+        "updated_at": "2026-08-22",
         "resolved_at": ""
       },
       "type": "TECH_DEBT",
@@ -5561,8 +5599,12 @@
       "related_backlog": [
         "ITEM-0043"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-215"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-019"
+      ],
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
@@ -5678,14 +5720,14 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "",
         "created_at": "2026-08-17",
-        "updated_at": "2026-08-17",
+        "updated_at": "2026-08-22",
         "resolved_at": ""
       },
       "type": "DOCUMENTATION",
       "title": "Reconcile tenant web root-domain environment examples",
       "severity": "LOW",
       "priority": "P3",
-      "current_status": "READY",
+      "current_status": "DONE",
       "current_evidence": {
         "paths": [
           "docs/backlog/items/ITEM-0045-reconcile-tenant-web-root-domain-environment-examples.md",
@@ -5702,12 +5744,16 @@
       },
       "related_bugs": [],
       "related_backlog": [],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-210"
+      ],
+      "qa_scenarios": [
+        "QA-DEPLOY-020"
+      ],
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "PRELIMINARY",
         "classification": "ACTIVE_AS_DOCUMENTED",
@@ -5850,15 +5896,15 @@
         "provenance": "IMPLEMENTATION",
         "detected_in_sha": "",
         "created_at": "2026-08-18",
-        "updated_at": "2026-08-18",
+        "updated_at": "2026-08-22",
         "resolved_at": ""
       },
       "type": "TECH_DEBT",
       "title": "Move payroll derivation and branding upload orchestration out of web proxies",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "READY",
-      "architect_disposition": "PLAN_REQUIRED",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
       "affected_modules": [
         "apps/web",
         "services/api/src/modules/compensation",
@@ -7776,14 +7822,14 @@
         "provenance": "USER_REPORT",
         "detected_in_sha": "d6aa738",
         "created_at": "2026-08-20",
-        "updated_at": "2026-08-20",
-        "resolved_at": ""
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
       },
       "type": "INFRA",
       "title": "Prisma migrate deploy cannot acquire its advisory lock through Neon pooled endpoint",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
+      "current_status": "FIXED",
       "current_evidence": {
         "paths": [
           "services/api/prisma.config.ts",
@@ -7804,8 +7850,12 @@
         "BUG-0085"
       ],
       "related_backlog": [],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-203"
+      ],
+      "qa_scenarios": [
+        "QA-DEPLOY-018"
+      ],
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
@@ -8235,14 +8285,14 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "cf9ea47",
         "created_at": "2026-08-21",
-        "updated_at": "2026-08-21",
-        "resolved_at": ""
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
       },
       "type": "DATA_INTEGRITY",
       "title": "Partner attribution is lost when a referred buyer purchases through self-service checkout",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
+      "current_status": "FIXED",
       "current_evidence": {
         "paths": [
           "apps/landing/lib/onboarding-wizard.ts",
@@ -8264,8 +8314,12 @@
         "BUG-0280"
       ],
       "related_backlog": [],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-207"
+      ],
+      "qa_scenarios": [
+        "QA-PARTNER-007"
+      ],
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
@@ -8336,14 +8390,14 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "cf9ea47",
         "created_at": "2026-08-21",
-        "updated_at": "2026-08-21",
-        "resolved_at": ""
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
       },
       "type": "INFRA",
       "title": "A regenerated Prisma client against an un-migrated database 500s every affected screen",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
+      "current_status": "FIXED",
       "current_evidence": {
         "paths": [
           "services/api/prisma/migrations",
@@ -8365,8 +8419,12 @@
         "BUG-0282"
       ],
       "related_backlog": [],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-204"
+      ],
+      "qa_scenarios": [
+        "QA-DEPLOY-019"
+      ],
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",

@@ -3,7 +3,7 @@ import type { AgentConfig } from "./types";
 import type { ApiClient } from "./api-client";
 
 /**
- * REG-225 — ITEM-0033.
+ * REG-213 — ITEM-0033.
  *
  * The agent takes its configuration from the server, which decides what it may
  * capture and how often. Three properties matter, and none had a test:

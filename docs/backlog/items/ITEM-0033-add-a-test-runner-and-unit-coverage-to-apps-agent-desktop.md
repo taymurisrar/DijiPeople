@@ -3,15 +3,15 @@ ID: ITEM-0033
 aliases: [ITEM-0033]
 Title: Add a test runner and unit coverage to apps/agent-desktop
 Type: TEST_GAP
-Status: READY
+Status: DONE
 Priority: P2
 Severity: MEDIUM
 AffectedModules: [apps/agent-desktop]
 Source: ARCHITECT
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 CreatedAt: 2026-08-16
-UpdatedAt: 2026-08-17
+UpdatedAt: 2026-08-22
 RelatedBug: BUG-0036
 RelatedQA: 
 RelatedADR: 

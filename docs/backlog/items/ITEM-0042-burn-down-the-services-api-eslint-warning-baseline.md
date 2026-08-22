@@ -11,7 +11,7 @@ Source: ARCHITECT
 OwnerAgent: backend-api
 ArchitectDisposition: FIX_NOW
 CreatedAt: 2026-08-17
-UpdatedAt: 2026-08-17
+UpdatedAt: 2026-08-22
 RelatedBug:
 RelatedQA:
 RelatedADR:

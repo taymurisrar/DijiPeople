@@ -1585,3 +1585,258 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | Two lessons, both structural. The assertion has to run against the completed form: a spec reading `definition.forms` sees what was declared, which is exactly the half that was correct. And `FORM_EXCLUDED_FIELDS` is declared above `definitions` rather than beside the function that reads it — that array is evaluated at module scope, so a constant below it sits in its temporal dead zone and every import of the registry throws at boot. This registry has now been broken that way three times, which is why the constant carries the reason. |
 | **Fixed** | 2026-08-22, branch `agent/plans-reset` |
 | **Active** | yes |
+
+### REG-203 — Migrations ran through a connection pooler and could never acquire their lock
+
+| | |
+|---|---|
+| **Bug class** | `silent-config-fallback` |
+| **Module** | `services/api/prisma`, `pkg:config` |
+| **Bug record** | BUG-0086 |
+| **Root cause** | `prisma.config.ts` supplied one datasource url for every Prisma CLI operation, so migrations inherited whatever `DATABASE_URL` the runtime used. In production that is Neon's pooled endpoint — PgBouncer in transaction pooling mode — and `migrate deploy` serialises migrators with a *session-scoped* advisory lock, which cannot be held when consecutive statements may reach different backends. The lock was not slow to take; it was unobtainable, so every deploy failed with `P1002` after the ten-second timeout and `preDeployCommand` aborted before seeding and legal publication ever ran. |
+| **Regression test** | `packages/config/database-urls.test.js` |
+| **Scenario** | A url whose host carries the `-pooler` infix, or which sets `pgbouncer=true`, is recognised as pooled; `DIRECT_DATABASE_URL` is preferred for migrations and falls back to `DATABASE_URL` when unset; a pooled migration url is refused with a message naming the variable to set; and a pooled *runtime* url is accepted once migrations have a direct one. |
+| **Proven to fail without the fix** | Deleting the pooled-endpoint check makes every "refuses" case fail. Verified end to end against the real CLI: with a pooled `DATABASE_URL` and no override, `prisma validate` fails naming the fix; adding `DIRECT_DATABASE_URL` makes it pass. |
+| **Note** | The distinction is invisible at runtime, which is why it survived: a Nest request needs no state between statements and is perfectly happy on the pooled endpoint. Only the migration path cares, and only in production. |
+| **Fixed** | 2026-08-22, branch `agent/backlog-burndown` |
+| **Active** | yes |
+
+### REG-204 — A database behind the migrations was only discovered when a screen 500ed
+
+| | |
+|---|---|
+| **Bug class** | `assertion-without-a-check` |
+| **Module** | `services/api` |
+| **Bug record** | BUG-0283 |
+| **Root cause** | Two independently-cached derivations of one schema, with nothing comparing them. A development database can sit several migrations behind indefinitely because the generated Prisma client is usually just as far behind — it does not select columns that do not exist, so the two stale artifacts agree. The moment anyone runs `prisma generate` for an unrelated reason the client catches up, the database does not, and every query touching a new column returns `P2022` on whichever screen reaches it first. `db:preflight` detected exactly this and nothing ran it. |
+| **Regression test** | `services/api/src/common/prisma/migration-drift.spec.ts` |
+| **Scenario** | Pending migrations are computed by directory name against `_prisma_migrations`; the warning **names them**; a migration applied but absent from disk does not warn (an ordinary branch switch); and neither a missing `_prisma_migrations` table nor a filesystem failure can break startup. |
+| **Proven to fail without the fix** | Removing the naming from `describeMigrationDrift` fails the assertions that each pending migration appears in the message. |
+| **Note** | It warns and continues deliberately. A developer working against an older database on purpose should not be locked out of the whole API, and refusing to boot over a condition that is often intentional is how a warning gets ignored. |
+| **Fixed** | 2026-08-22, branch `agent/backlog-burndown` |
+| **Active** | yes |
+
+### REG-205 — A payroll figure was derived in a route proxy
+
+| | |
+|---|---|
+| **Bug class** | `service-authorization-hidden` |
+| **Module** | `apps/web` |
+| **Bug record** | BUG-0041 |
+| **Root cause** | `app/api/payroll/compensations/route.ts` made a second API call to `/pay-components`, folded the form's flat `component_<id>` values into a `components` array, and — when the caller omitted it — derived `basicSalary` as *the first component with a non-empty amount*, falling back to `"0"`. A payroll rule, in a layer with no tests, no audit trail and no server-side validation, over the number that decides what an employee is paid. No domain service ever agreed to it. |
+| **Regression test** | `apps/web/app/(authenticated)/payroll/employee-compensation/compensation-runtime.spec.ts` |
+| **Scenario** | The flat-to-structured translation routes a fixed component to `amount` and a percentage component to `percentage`; `basicSalary` is passed through exactly as entered and **never derived** — neither from a component nor as a substituted zero; an update sends only the components the form submitted, so an absent one is not cleared; and the API's derived totals are never sent back. |
+| **Proven to fail without the fix** | Restoring the `?? components.find(...)?.amount ?? '0'` fallback fails the two assertions that `basicSalary` is absent when the caller omitted it. |
+| **Note** | The form already marked `basicSalary` required and `CreateEmployeeCompensationDto` already declared it required — so the API's stated rule was "reject an omission", and the proxy was inventing a value to satisfy a requirement that already existed. Deleting the guess made the two agree. |
+| **Fixed** | 2026-08-22, branch `agent/backlog-burndown` |
+| **Active** | yes |
+
+### REG-206 — A failed branding upload left an orphaned document behind
+
+| | |
+|---|---|
+| **Bug class** | `declared-but-unwired-step` |
+| **Module** | `api:tenant-settings`, `apps/web` |
+| **Bug record** | BUG-0041 |
+| **Root cause** | `app/api/tenant-settings/branding-assets/route.ts` owned a MIME allowlist and a 3 MB limit the API had never heard of — so a caller reaching the API directly was governed by nothing — and orchestrated the upload in two steps that were not atomic. When the settings write failed, the document created by the first step stayed behind for ever: referenced by nothing, and unfindable for a tenant that does not know its id. |
+| **Regression test** | `services/api/src/modules/tenant-settings/branding-assets.service.spec.ts` |
+| **Scenario** | The policy is enforced on the API — an unknown setting key, a disallowed MIME type and a file over the limit are all refused before any upload; an `.ico` is accepted for a favicon and refused for a logo; the document is filed against `user.tenantId` rather than anything client-supplied; and **a failed settings write archives the document that was just created**, while still surfacing the original failure rather than the archive's. |
+| **Proven to fail without the fix** | Removing the compensating `archive` call fails "archives the document it created". Removing the size or MIME check fails the corresponding refusal. |
+| **Note** | Compensating rather than transactional, because the two writes cross a storage boundary a database transaction cannot span. A best-effort archive that itself fails is logged and does not mask the error the caller can act on. |
+| **Fixed** | 2026-08-22, branch `agent/backlog-burndown` |
+| **Active** | yes |
+
+### REG-207 — A referred buyer who paid without becoming a lead earned their partner nothing
+
+| | |
+|---|---|
+| **Bug class** | `divergent-duplicate-guard` |
+| **Module** | `api:billing`, `api:partner-experience`, `apps/landing` |
+| **Bug record** | BUG-0281 |
+| **Root cause** | `CustomerAccount` carries three attribution columns and only the lead paths wrote them, because the referral flow was built around the lead funnel before self-service checkout existed. The resolution logic was *private to `LeadsService`*, which is precisely why the newer path — writing the same columns — attributed nothing. On the landing side the capture ran in a `useEffect` inside the lead form, so a visitor who went straight to Plans → Subscribe never captured a code at all. |
+| **Regression test** | `services/api/src/modules/partner-experience/partner-referral-resolver.service.spec.ts`, `services/api/src/modules/billing/services/checkout-customer-record.spec.ts` |
+| **Scenario** | A code resolves to a partner **against the database, never from the caller**; an unrecognised, expired, disabled or suspended-partner code attributes nobody while still recording the code; a referred checkout writes partner, link and snapshot together with `originChannel = PARTNER_REFERRAL`; an unreferred one records `WEBSITE` and three nulls, not a blank; and a returning customer who already has a partner is never reassigned. |
+| **Proven to fail without the fix** | Removing the three columns from `resolveCustomer`'s create fails "records partner, link and code snapshot". Making the gate per-column rather than on `originatingPartnerId` fails "writes the three columns together or not at all". |
+| **Note** | The code is deliberately **not** part of `submissionHash`. Making it part of the order's identity would let a buyer who reloaded with `?ref=` stripped from the URL create a second customer and a second tenant. |
+| **Fixed** | 2026-08-22, branch `agent/backlog-burndown` |
+| **Active** | yes |
+
+### REG-208 — The canonical settings document named routes that 404
+
+| | |
+|---|---|
+| **Bug class** | `doc-code-drift` |
+| **Module** | `apps/web`, `docs/architecture` |
+| **Bug record** | BUG-0045 |
+| **Root cause** | `docs/architecture/settings-and-branding.md` is designated canonical — it "overrides other documents where they differ" — and its Settings Route Audit was an enumeration of roughly fifty flat `/settings/<name>` URLs, which is the *pre-runtime* route map. `[category]/page.tsx` `notFound()`s on anything outside the eleven categories, so about twenty of those rows described 404s. One of them, `/settings/tenant`, had been quoted out of the document into `require-settings-permission.ts` as a live `fallbackHref`, so a permission failure redirected the user to a 404. |
+| **Regression test** | `apps/web/app/(authenticated)/settings/_lib/settings-doc-routes.spec.ts` |
+| **Scenario** | Every `/settings/...` route the document names in backticks outside a blockquote resolves — through a real page, a dynamic prefix, or one of the eleven category keys; the stated category count matches `settingsRuntimeCategories`; every category the runtime defines is described; and every `app/components/ui/*.tsx` the document names exists. |
+| **Proven to fail without the fix** | Before the rewrite the route assertion listed eighteen dead URLs by name, and the category-count assertion failed on "ten". |
+| **Note** | The blockquote exclusion is the mechanism that lets the document describe its own history — `/settings/tenant` is quoted precisely because it 404s — without that becoming a claim the check has to honour. |
+| **Fixed** | 2026-08-22, branch `agent/backlog-burndown` |
+| **Active** | yes |
+
+### REG-209 — A control-plane method that authorized only by delegation
+
+| | |
+|---|---|
+| **Bug class** | `service-authorization-hidden` |
+| **Module** | `api:tenant-control-plane` |
+| **Bug record** | ITEM-0015 |
+| **Root cause** | `readiness()` carried no inline authorization assertion. It was nonetheless authorized, because it delegated to `overview()`, which asserts — a QA audit recorded it as "correct-but-indirect" and it became the module's one open soft spot. This module is a cross-tenant surface that authorizes inside services rather than through decorators, so "every reachable method asserts" is the entire security model, and a method that asserts as a side effect of what it happens to call is one refactor away from asserting nothing. |
+| **Regression test** | `services/api/src/modules/tenant-control-plane/every-method-asserts.spec.ts` |
+| **Scenario** | Every public `async` method across the module's service files that takes an `AuthenticatedUser` names an authorization helper, and names it **before** its first Prisma call; the set of methods examined is non-trivial, so the check cannot pass by finding nothing; and an exemption that no longer matches a real method fails the test. |
+| **Proven to fail without the fix** | Removing the assertion from `readiness()` makes the test name `TenantControlPlaneService.readiness`. |
+| **Note** | This reads source text, so it asserts a method *names* a helper rather than that the helper is reached on every path — stated in the file rather than papered over. The property being defended is auditability: that a reader sees the authorization without tracing a call chain. |
+| **Fixed** | 2026-08-22, branch `agent/backlog-burndown` |
+| **Active** | yes |
+
+### REG-210 — Two committed environment examples disagreed about the workspace domain
+
+| | |
+|---|---|
+| **Bug class** | `silent-config-fallback` |
+| **Module** | `apps/web`, `pkg:config` |
+| **Bug record** | ITEM-0045 |
+| **Root cause** | `apps/web` ships `.env.example` and `.env.local.example`, and they named different hosts for `NEXT_PUBLIC_WEB_ROOT_DOMAIN` — `localhost:3000`, the *landing* port, against `localhost:3001`. Two examples for one app is the hazard: whichever is read second wins and nobody diffs them. It broke nothing, because `normalizeHostname` strips the port before classification and both reduce to `localhost` — which is exactly why a wrong value survived in a committed example. |
+| **Regression test** | `packages/config/env-examples.test.js` |
+| **Scenario** | The two examples agree on every routing and addressing variable and neither omits one the other declares; the web and admin root domains name the ports those apps actually answer on; and `getPlatformDomainConfig` resolves both to the same tenant base domain. |
+| **Proven to fail without the fix** | Restoring `localhost:3000` to `.env.example` fails both the agreement assertion and the port assertion, naming the variable. |
+| **Note** | Recorded honestly as documentation drift rather than a runtime defect. The value still has to be right: anything building a URL reads it unnormalised, and a developer following the example is told which app they are configuring. |
+| **Fixed** | 2026-08-22, branch `agent/backlog-burndown` |
+| **Active** | yes |
+
+### REG-211 — Every upstream refusal reached the browser as a 500
+
+| | |
+|---|---|
+| **Bug class** | `declared-but-unwired-step` |
+| **Module** | `apps/web` |
+| **Bug record** | ITEM-0035 |
+| **Root cause** | 134 `catch` blocks across 123 route handlers hardcoded `{ status: 500 }`, carrying the message string and nothing else. `apps/web/AGENTS.md` required handlers to forward the API's error contract; `ApiRequestError`, `isApiRequestError` and `proxyApiJsonResponse` all already existed and `app/api/_lib/bulk-delete.ts` already did it correctly. It was adoption, and prose does not achieve adoption across 123 files. |
+| **Regression test** | `apps/web/app/api/_lib/proxy-error.spec.ts` |
+| **Scenario** | A 400, 403, 404, 409, 422, 429 or 503 from the API arrives with that status; `traceId`, `errorCode`, `description` and `fieldErrors` are forwarded when the API sent them and **omitted rather than sent as undefined** when it did not; the API's message wins over the fallback unless it is blank; and a genuine crash in the handler is still a 500. |
+| **Proven to fail without the fix** | Returning a fixed 500 from `proxyErrorResponse` fails the status assertion for all seven codes. `check-proxies-forward-status.mjs` refuses a probe handler that hardcodes 500 while using the throwing client. |
+| **Note** | The check is narrowed to handlers using `apiRequest`/`apiRequestJson`. `apps/landing` uses raw `fetch` and forwards `response.status` already, so its `catch` fires only when the fetch itself fails — genuinely its own failure, not a refusal being swallowed. A check that flags those would be noise, and a check that cries wolf gets switched off. |
+| **Fixed** | 2026-08-22, branch `agent/backlog-burndown` |
+| **Active** | yes |
+
+### REG-212 — The desktop agent's offline queue had no statement of what it re-sends
+
+| | |
+|---|---|
+| **Bug class** | `assertion-without-a-check` |
+| **Module** | `apps/agent-desktop` |
+| **Bug record** | ITEM-0033 |
+| **Root cause** | BUG-0036 was the agent re-sending whole batches on retry, so a heartbeat was counted twice and an employee's presence overstated. The fix landed on the server as idempotency — correctly, because that is where correctness has to hold — and the queue that decided what got re-sent kept no test at all. The workspace had no test runner. |
+| **Regression test** | `apps/agent-desktop/src/main/offline-queue.spec.ts` |
+| **Scenario** | A drained batch is removed, so a successful send cannot re-send it; a returned batch is re-sent exactly once and lands **in front of** anything queued since; the bound drops the oldest rather than the newest; a malformed event — no session, unknown state, unparseable timestamp, negative idle — never reaches the wire; and overlapping writes lose no event. |
+| **Proven to fail without the fix** | Making `drain` non-destructive fails "removes what it drained". Changing `prepend` to append fails the ordering assertion by name. |
+| **Note** | The queue journal is written through the real filesystem into a temp directory rather than a mocked `fs`, so the atomic write-then-rename path is exercised. Mocking `fs` here would test the mock. |
+| **Fixed** | 2026-08-22, branch `agent/backlog-burndown` |
+| **Active** | yes |
+
+### REG-213 — A partial agent config could silently disable what it captures
+
+| | |
+|---|---|
+| **Bug class** | `silent-config-fallback` |
+| **Module** | `apps/agent-desktop` |
+| **Bug record** | ITEM-0033 |
+| **Root cause** | The agent takes its configuration from the server and had no test over the merge. `undefined` is falsy, so an unsent boolean reads as "capability off" and an unsent interval as `NaN` — and the invasive capabilities (screenshots, clipboard, keylogging) had no test saying they are not the server's to enable. |
+| **Regression test** | `apps/agent-desktop/src/main/config-manager.spec.ts` |
+| **Scenario** | Every field the server omits falls back to a default and **nothing is left `undefined`**; screenshots, clipboard tracking and keylogging stay off whatever the server asks; absurd intervals and batch sizes are clamped and a non-numeric one falls back rather than becoming `NaN`; the away threshold can never fall below the idle threshold; a failed refresh keeps the last good config and leaves `lastConfigSync` unset if none succeeded. |
+| **Proven to fail without the fix** | Letting `allowScreenshots` follow the server fails the refusal assertion. Removing a default fails "leaves nothing undefined", naming the path. |
+| **Note** | The decision about what may be captured belongs on the machine, not to whoever can answer the config endpoint. |
+| **Fixed** | 2026-08-22, branch `agent/backlog-burndown` |
+| **Active** | yes |
+
+### REG-214 — Nothing tested what leaves the employee's machine
+
+| | |
+|---|---|
+| **Bug class** | `assertion-without-a-check` |
+| **Module** | `apps/agent-desktop` |
+| **Bug record** | ITEM-0033 |
+| **Root cause** | `activity-tracker` reads the title of whatever window is in front — on a browser the page being read, elsewhere often a filename or a customer name — and had no test. Neither did the ACTIVE/IDLE/AWAY thresholds attendance is computed from. |
+| **Regression test** | `apps/agent-desktop/src/main/activity-tracker.spec.ts` |
+| **Scenario** | A capability that is off does not read and discard — `active-win` is **never called**, so the title never exists in the process; either the platform feature flag or the tenant tracking flag being off is enough; titles are trimmed and bounded at 300 characters; browser suffixes are stripped only when the title was captured; the state follows the thresholds at their exact boundaries; tracking off reports AWAY rather than a false ACTIVE; and an inverted threshold pair is refused rather than guessed at. |
+| **Proven to fail without the fix** | Reading the window before checking the capability flags fails "does not read the window at all when both capabilities are off". |
+| **Note** | The inverted-threshold case turned out stronger than expected: the tracker throws rather than clamping, and `ConfigManager` clamps upstream — so reaching the tracker inverted means the config did not come from the server. Attendance is computed from that number; a silent guess would be worse than a missing heartbeat. |
+| **Fixed** | 2026-08-22, branch `agent/backlog-burndown` |
+| **Active** | yes |
+
+### REG-215 — `[object Object]` in an error path is a lost incident
+
+| | |
+|---|---|
+| **Bug class** | `assertion-without-a-check` |
+| **Module** | `services/api` |
+| **Bug record** | ITEM-0042 |
+| **Root cause** | 47 sites called `String(value)` on a value whose type does not promise a useful `toString`, producing `[object Object]`. Several were error paths carrying `error instanceof Error ? error.message : String(error ?? '')` — and the second half of that ternary is exactly the case a database driver throws and exactly the case `String` gives up on. The log line left after a production failure is the only artifact there is. |
+| **Regression test** | `services/api/src/common/utils/display-string.spec.ts` |
+| **Scenario** | No input produces `[object Object]` — objects, arrays, Maps, Sets, null-prototype objects, functions, symbols and invalid Dates included; a `Prisma.Decimal` renders exactly rather than as a lossy float; a messageless `Error` renders its name rather than an empty string; a circular object is described rather than throwing; and a class with its own `toString` is respected while one inheriting Object's is not. |
+| **Proven to fail without the fix** | Replacing `toDisplayString` with `String` fails the first assertion on nine of its ten inputs. |
+| **Note** | `Decimal` earns an explicit branch because money is where the difference costs most: `Number(decimal)` loses precision silently and `[object Object]` loses the value entirely. |
+| **Fixed** | 2026-08-22, branch `agent/backlog-burndown` |
+| **Active** | yes |
+
+### REG-216 — Every modal in the tenant product leaked keyboard focus
+
+| | |
+|---|---|
+| **Bug class** | `assertion-without-a-check` |
+| **Module** | `apps/web` |
+| **Bug record** | BUG-0043 |
+| **Root cause** | `apps/web/AGENTS.md` required focus-trapped, Escape-dismissible, announced dialogs and called a hand-rolled dialog a review failure — but the shared kit contained no dialog, so the rule was unfulfillable. All 21 modal surfaces were bespoke `fixed inset-0` divs, no `<dialog>` element existed anywhere, `focus-trap` was not a dependency, Tab walked out of every one of them, and three could not be closed with Escape. `jsx-a11y` was configured nowhere in the repository. |
+| **Regression test** | `scripts/check-dialogs-are-contained.mjs`, `apps/web/eslint.config.mjs` |
+| **Scenario** | Every modal overlay under `apps/web/app` — a `fixed inset-0` container that is not `pointer-events-none` — either renders `<Dialog>` or spreads `useDialogBehavior()` onto its own panel; and `jsx-a11y`'s labelling, role and keyboard-interaction rules run as errors in the `lint` gate. |
+| **Proven to fail without the fix** | A probe component rendering a bare `fixed inset-0` modal is named and the check exits 1. Before the fix, `jsx-a11y` reported 14 errors across 10 files, including the clickable-`<tr>` shape. |
+| **Note** | The primitive is built rather than installed: `apps/web` declares four dependencies, and a headless library would be an ADR rather than a side effect of fixing an accessibility bug. `useDialogBehavior` exists so the elaborate modals — an image cropper, a mapping workspace, a monthly timesheet editor — keep their own layouts, because a redesign is not what was wrong with them. |
+| **Fixed** | 2026-08-22, branch `agent/backlog-burndown` |
+| **Active** | yes |
+
+### REG-217 — A critical advisory survived three wrong reachability claims
+
+| | |
+|---|---|
+| **Bug class** | `assertion-without-a-check` |
+| **Module** | `package-lock.json`, `apps/agent-desktop` |
+| **Bug record** | BUG-0052 |
+| **Root cause** | The production graph carried a critical `tar` advisory beneath `@mapbox/node-pre-gyp@1`, and every disposition that failed had rested on a reachability claim made by inspection: `xlsx` was "export only" (the file contained a reachable `XLSX.read`), and `active-win`'s chain "does not ship in the packaged app" (the archive was extracted; all of it shipped). The upgrade was blocked by BUG-0163 — npm ignores `overrides` here because the lockfile cannot be re-resolved — and the proven fix needed a 338-package refresh that failed five of thirteen CI jobs. |
+| **Regression test** | `scripts/check-production-advisories.mjs` |
+| **Scenario** | `npm audit --omit=dev` reports **zero critical**; every surviving advisory has a written disposition naming the record that argues it; and a disposition matching no advisory fails, because a risk acceptance for a package that is no longer vulnerable reads as a live one. |
+| **Proven to fail without the fix** | Restoring the pre-fix lockfile entries makes the check report the critical `tar` plus three undocumented highs and exit 1. |
+| **Note** | The check deliberately does not evaluate reachability — it cannot, and the attempts to do so by inspection are what produced two wrong dispositions. It asserts what a machine can decide. The fix itself grafted two scratch-resolved subtrees into the lockfile instead of re-resolving: 12 versions changed against 338, verified by a real `npm ci` and an audit of the installed tree. |
+| **Fixed** | 2026-08-22, branch `agent/backlog-burndown` |
+| **Active** | yes |
+
+### REG-218 — A route proxy decided a permission the API could not see
+
+| | |
+|---|---|
+| **Bug class** | `divergent-duplicate-guard` |
+| **Module** | `apps/web` |
+| **Bug record** | BUG-0041 |
+| **Root cause** | `app/api/teams/route.ts` read `permissionKeys` off the session, decided the caller could not read teams, and returned a fabricated `200 { items: [] }` **without calling the API at all**. Fail-closed, so nothing leaked — but a second source of truth on `teams.read` that the authority could never correct, audit, or even see. The rule existed only in prose and none of the 416 handlers had a test. |
+| **Regression test** | `scripts/check-proxies-decide-nothing.mjs` |
+| **Scenario** | No handler under `app/api/**` in web, admin or landing reads `permissionKeys`, `roleKeys`, `rolePrivileges`, an elevation check or the permission modules, and none assigns `basicSalary`, `grossEarnings`, `netPay` or `totalDeductions`. |
+| **Proven to fail without the fix** | A probe handler carrying both shapes is named with both reasons and the check exits 1. 502 handlers scanned. |
+| **Note** | Reading the session to *forward* it is fine and is what these handlers are for; reading it to *branch* is not. The rule is "no permission, role or elevation value is read here", not "never import auth". |
+| **Fixed** | 2026-08-22, branch `agent/backlog-burndown` |
+| **Active** | yes |
+
+### REG-219 — Governed values were collected with `window.prompt`
+
+| | |
+|---|---|
+| **Bug class** | `declared-but-unwired-step` |
+| **Module** | `apps/web`, `apps/admin` |
+| **Bug record** | ITEM-0031 |
+| **Root cause** | BUG-0020 established the rule and fixed two instances; six remained, four of them collecting values that land in an audited business record. A payroll reversal *date* was free text with a pre-filled default — a control that cannot reject "next Tuesday", deciding which period an entry posts to. The admin bulk status change took free text, uppercased it, and applied it to every selected record, so a typo set a status the module does not have on as many rows as were ticked. |
+| **Regression test** | `scripts/check-no-native-prompt.mjs` |
+| **Scenario** | No file in web, admin or landing calls `prompt(` or `window.prompt(`; the allowlist is empty, and a stale allowlist entry fails the check. |
+| **Proven to fail without the fix** | A probe component calling `window.prompt` is named and the check exits 1. 1519 files scanned. |
+| **Note** | The date validator round-trips through `Date`, so `2026-02-31` is refused rather than rolling silently into March. The status control is a select over the module's own statuses, showing labels and sending values — the only honest control for a value the system already enumerates. |
+| **Fixed** | 2026-08-22, branch `agent/backlog-burndown` |
+| **Active** | yes |

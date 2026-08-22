@@ -13,11 +13,11 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 75 |
+| Open (active work) | 69 |
 | Blocked | 1 |
 | Deferred | 16 |
 | Awaiting a product decision | 6 |
-| Completed / closed | 100 |
+| Completed / closed | 106 |
 | **Open CRITICAL** | **0** |
 | **Open HIGH** | **24** |
 | **Awaiting Architect triage** | **0** |
@@ -27,8 +27,8 @@ see [`README.md`](README.md) for why.
 | Severity | Count |
 |---|---|
 | HIGH | 24 |
-| MEDIUM | 45 |
-| LOW | 6 |
+| MEDIUM | 41 |
+| LOW | 4 |
 
 ## Open by type
 
@@ -37,30 +37,29 @@ see [`README.md`](README.md) for why.
 | ARCHITECTURE | 2 |
 | BUG | 2 |
 | DATA_INTEGRITY | 10 |
-| DOCUMENTATION | 2 |
-| FOLLOW_UP | 3 |
+| DOCUMENTATION | 1 |
+| FOLLOW_UP | 2 |
 | INFRA | 7 |
 | INTEGRATION | 2 |
 | PERFORMANCE | 1 |
 | SECURITY | 6 |
 | STATE_MACHINE | 4 |
-| TECH_DEBT | 6 |
-| TEST_GAP | 7 |
-| UX | 23 |
+| TECH_DEBT | 4 |
+| TEST_GAP | 6 |
+| UX | 22 |
 
 ## All records by status
 
 | Status | Count |
 |---|---|
-| OPEN | 7 |
 | BLOCKED | 1 |
 | DEFERRED | 16 |
 | PRODUCT_DECISION | 6 |
-| FIXED | 42 |
+| FIXED | 49 |
 | VERIFIED | 68 |
 | DUPLICATE | 2 |
-| READY | 26 |
-| DONE | 30 |
+| READY | 20 |
+| DONE | 36 |
 
 ## All records
 
@@ -73,7 +72,7 @@ see [`README.md`](README.md) for why.
 | [BUG-0047](../../docs/bugs/BUG-0047-seven-bug-records-are-verified-while-their-fixes-exist-only.md) | Seven bug records are VERIFIED while their fixes exist only on unmerged branches | SECURITY | CRITICAL | P0 | VERIFIED | api:organization, api:error-logs, api:employees, api:attendance, docs/qa/regressions | DONE |
 | [BUG-0071](../../docs/bugs/BUG-0071-tenant-users-reach-every-platform-super-admin-endpoint.md) | Tenant users reach every platform super-admin endpoint | AUTHORIZATION | CRITICAL | P0 | VERIFIED | super-admin, platform-auth, platform-communications | DONE |
 | [BUG-0049](../../docs/bugs/BUG-0049-report-only-ci-jobs-swallow-security-and-database-e2e-failur.md) | Report-only CI jobs swallow security and database E2E failures | INFRA | HIGH | P0 | VERIFIED | .github/workflows, services/api/src/common/constants, services/api/test, docs/qa | DONE |
-| [BUG-0052](../../docs/bugs/BUG-0052-production-dependency-graph-carries-critical-and-high-securi.md) | Production dependency graph carries critical and high security advisories | SECURITY | HIGH | P0 | OPEN | package-lock.json, apps/agent-desktop, apps/web, apps/admin, apps/landing, services/api | FIX_NOW |
+| [BUG-0052](../../docs/bugs/BUG-0052-production-dependency-graph-carries-critical-and-high-securi.md) | Production dependency graph carries critical and high security advisories | SECURITY | HIGH | P0 | FIXED | package-lock.json, apps/agent-desktop, apps/web, apps/admin, apps/landing, services/api | FIX_NOW |
 | [BUG-0053](../../docs/bugs/BUG-0053-documents-self-scoped-users-can-read-tenant-wide-documents.md) | Self-scoped document readers can list and open tenant-wide documents | AUTHORIZATION | HIGH | P0 | VERIFIED | api:documents | DONE |
 | [BUG-0055](../../docs/bugs/BUG-0055-partner-routes-use-tenant-role-aliases-instead-of-platform-permissions.md) | Partner administration routes use tenant role aliases instead of platform permissions | AUTHORIZATION | HIGH | P0 | VERIFIED | api:partners | DONE |
 | [BUG-0056](../../docs/bugs/BUG-0056-billing-routes-authorize-by-role-instead-of-billing-capability.md) | Billing routes authorize by role instead of billing capability | AUTHORIZATION | HIGH | P0 | VERIFIED | api:billing | DONE |
@@ -117,7 +116,7 @@ see [`README.md`](README.md) for why.
 | [BUG-0082](../../docs/bugs/BUG-0082-the-onboarding-wizard-collects-five-steps-of-data-it-cannot-.md) | The onboarding wizard collects five steps of data it cannot submit | UX | HIGH | P1 | FIXED | landing | FIX_NOW |
 | [BUG-0083](../../docs/bugs/BUG-0083-the-database-agent-preflight-reports-pass-on-a-database-with.md) | The Database Agent preflight reports PASS on a database with every migration unapplied | INFRA | HIGH | P1 | VERIFIED | scripts, .agent, services/api | DONE |
 | [BUG-0085](../../docs/bugs/BUG-0085-the-release-command-aborted-a-first-deploy-and-otherwise-res.md) | The release command aborted a first deploy, and otherwise reset the super admin password | INFRA | HIGH | P1 | VERIFIED | platform-users, legal | DONE |
-| [BUG-0086](../../docs/bugs/BUG-0086-prisma-migrate-deploy-cannot-acquire-its-advisory-lock-throu.md) | Prisma migrate deploy cannot acquire its advisory lock through Neon pooled endpoint | INFRA | HIGH | P1 | OPEN | services/api/prisma | FIX_NOW |
+| [BUG-0086](../../docs/bugs/BUG-0086-prisma-migrate-deploy-cannot-acquire-its-advisory-lock-throu.md) | Prisma migrate deploy cannot acquire its advisory lock through Neon pooled endpoint | INFRA | HIGH | P1 | FIXED | services/api/prisma | FIX_NOW |
 | [BUG-0163](../../docs/bugs/BUG-0163-package-lock-json-cannot-be-regenerated-npm-overrides-are-si.md) | package-lock.json cannot be regenerated - npm overrides are silently ignored | INFRA | HIGH | P1 | PRODUCT_DECISION | package-lock.json, apps/admin | PRODUCT_DECISION |
 | [BUG-0220](../../docs/bugs/BUG-0220-saving-a-plan-from-the-runtime-record-page-always-returns-40.md) | Saving a plan from the runtime record page always returns 400 | BUG | HIGH | P1 | FIXED | apps/admin, api:platform-runtime, api:super-admin | FIX_NOW |
 | [BUG-0280](../../docs/bugs/BUG-0280-self-service-checkout-leaves-a-customer-with-no-plan-billing.md) | Self-service checkout leaves a customer with no plan, billing cycle or origin channel | DATA_INTEGRITY | HIGH | P1 | FIXED | api:billing, api:super-admin, apps/admin | FIX_NOW |
@@ -154,11 +153,11 @@ see [`README.md`](README.md) for why.
 | [BUG-0037](../../docs/bugs/BUG-0037-integration-patterns-context-denies-four-subsystems-that-exi.md) | Integration patterns context denies four subsystems that exist | DOCUMENTATION | MEDIUM | P2 | VERIFIED | .agent/context | DONE |
 | [BUG-0038](../../docs/bugs/BUG-0038-tenant-commercial-panel-plan-dropdown-405s-and-never-loads.md) | Tenant commercial panel plan dropdown 405s and never loads | UX | MEDIUM | P2 | VERIFIED | apps/admin | DONE |
 | [BUG-0040](../../docs/bugs/BUG-0040-apps-web-sets-no-security-response-headers.md) | apps/web sets no security response headers | SECURITY | MEDIUM | P2 | VERIFIED | apps/web | DONE |
-| [BUG-0041](../../docs/bugs/BUG-0041-web-route-proxies-make-authorization-and-business-decisions.md) | Web route proxies make authorization and business decisions | SECURITY | MEDIUM | P2 | OPEN | apps/web | PLAN_REQUIRED |
+| [BUG-0041](../../docs/bugs/BUG-0041-web-route-proxies-make-authorization-and-business-decisions.md) | Web route proxies make authorization and business decisions | SECURITY | MEDIUM | P2 | FIXED | apps/web | PLAN_REQUIRED |
 | [BUG-0042](../../docs/bugs/BUG-0042-apps-web-reads-21-environment-variables-unregistered-in-turb.md) | apps/web reads 21 environment variables unregistered in turbo globalEnv | INFRA | MEDIUM | P2 | VERIFIED | apps/web, pkg:config | DONE |
-| [BUG-0043](../../docs/bugs/BUG-0043-web-dialogs-have-no-focus-trap-and-filter-controls-are-unlab.md) | Web dialogs have no focus trap and filter controls are unlabelled | UX | MEDIUM | P2 | OPEN | apps/web | PLAN_REQUIRED |
+| [BUG-0043](../../docs/bugs/BUG-0043-web-dialogs-have-no-focus-trap-and-filter-controls-are-unlab.md) | Web dialogs have no focus trap and filter controls are unlabelled | UX | MEDIUM | P2 | FIXED | apps/web | PLAN_REQUIRED |
 | [BUG-0044](../../docs/bugs/BUG-0044-the-documented-new-module-workflow-for-apps-web-cannot-be-fo.md) | The documented new module workflow for apps/web cannot be followed | DOCUMENTATION | MEDIUM | P2 | VERIFIED | apps/web | DONE |
-| [BUG-0045](../../docs/bugs/BUG-0045-the-canonical-settings-and-branding-contract-is-materially-s.md) | The canonical settings and branding contract is materially stale | DOCUMENTATION | MEDIUM | P2 | OPEN | apps/web, docs/architecture | PLAN_REQUIRED |
+| [BUG-0045](../../docs/bugs/BUG-0045-the-canonical-settings-and-branding-contract-is-materially-s.md) | The canonical settings and branding contract is materially stale | DOCUMENTATION | MEDIUM | P2 | FIXED | apps/web, docs/architecture | PLAN_REQUIRED |
 | [BUG-0046](../../docs/bugs/BUG-0046-tenant-theme-mode-and-runtime-settings-saves-do-not-take-eff.md) | Tenant theme mode and runtime settings saves do not take effect | UX | MEDIUM | P2 | VERIFIED | apps/web | DONE |
 | [BUG-0050](../../docs/bugs/BUG-0050-notification-settings-offer-email-providers-whose-backend-al.md) | Notification settings offer email providers whose backend always fails | INTEGRATION | MEDIUM | P2 | VERIFIED | apps/web, api:notifications | DONE |
 | [BUG-0065](../../docs/bugs/BUG-0065-public-commercial-config-omits-featurecatalog-when-no-market.md) | Public commercial-config omits featureCatalog when no market resolves | BUG | MEDIUM | P2 | VERIFIED | api:billing, apps/landing | DONE |
@@ -170,8 +169,8 @@ see [`README.md`](README.md) for why.
 | [BUG-0221](../../docs/bugs/BUG-0221-schema-completed-form-fields-render-on-a-tab-the-form-never-.md) | Schema-completed form fields render on a tab the form never declares | UX | MEDIUM | P2 | FIXED | apps/admin | FIX_NOW |
 | [BUG-0222](../../docs/bugs/BUG-0222-plan-related-record-panels-declare-no-tab-so-they-never-rend.md) | Plan related-record panels declare no tab, so they never render | UX | MEDIUM | P2 | FIXED | apps/admin | FIX_NOW |
 | [BUG-0223](../../docs/bugs/BUG-0223-admin-cannot-set-a-plan-ispublic-flag-which-gates-self-servi.md) | Admin cannot set a plan isPublic flag which gates self-service checkout | UX | MEDIUM | P2 | PRODUCT_DECISION | apps/admin, api:super-admin, api:billing | PRODUCT_DECISION |
-| [BUG-0281](../../docs/bugs/BUG-0281-partner-attribution-is-lost-when-a-referred-buyer-purchases-.md) | Partner attribution is lost when a referred buyer purchases through self-service checkout | DATA_INTEGRITY | MEDIUM | P2 | OPEN | apps/landing, api:billing, api:partner-experience | PLAN_REQUIRED |
-| [BUG-0283](../../docs/bugs/BUG-0283-a-regenerated-prisma-client-against-an-un-migrated-database-.md) | A regenerated Prisma client against an un-migrated database 500s every affected screen | INFRA | MEDIUM | P2 | OPEN | services/api, services/api/prisma, apps/admin | PLAN_REQUIRED |
+| [BUG-0281](../../docs/bugs/BUG-0281-partner-attribution-is-lost-when-a-referred-buyer-purchases-.md) | Partner attribution is lost when a referred buyer purchases through self-service checkout | DATA_INTEGRITY | MEDIUM | P2 | FIXED | apps/landing, api:billing, api:partner-experience | PLAN_REQUIRED |
+| [BUG-0283](../../docs/bugs/BUG-0283-a-regenerated-prisma-client-against-an-un-migrated-database-.md) | A regenerated Prisma client against an un-migrated database 500s every affected screen | INFRA | MEDIUM | P2 | FIXED | services/api, services/api/prisma, apps/admin | PLAN_REQUIRED |
 | [BUG-0314](../../docs/bugs/BUG-0314-the-notifications-page-is-a-placeholder-under-a-permanently-.md) | The notifications page is a placeholder under a permanently lit badge | UX | MEDIUM | P2 | FIXED | apps/admin, api:platform-events | FIX_NOW |
 | [BUG-0315](../../docs/bugs/BUG-0315-workspace-preferences-are-stored-in-localstorage-and-never-a.md) | Workspace preferences are stored in localStorage and never applied | UX | MEDIUM | P2 | FIXED | apps/admin, api:platform-users, services/api/prisma | FIX_NOW |
 | [BUG-0316](../../docs/bugs/BUG-0316-country-industry-and-contact-fields-are-free-text-where-a-ca.md) | Country industry and contact fields are free text where a canonical list exists | DATA_INTEGRITY | MEDIUM | P2 | FIXED | apps/landing, apps/admin, api:lookups, pkg:config | FIX_NOW |
@@ -210,10 +209,10 @@ see [`README.md`](README.md) for why.
 | [ITEM-0027](../../docs/backlog/items/ITEM-0027-desktop-agent-has-no-retry-backoff-and-no-bounded-give-up.md) | Desktop agent has no retry backoff and no bounded give up | TECH_DEBT | MEDIUM | P2 | READY | apps/agent-desktop, api:agent | PLAN_REQUIRED |
 | [ITEM-0028](../../docs/backlog/items/ITEM-0028-apps-agent-desktop-has-no-agents-md-and-no-test-coverage.md) | apps/agent-desktop has no AGENTS.md and no test coverage | TEST_GAP | MEDIUM | P2 | DONE | apps/agent-desktop, api:agent | DONE |
 | [ITEM-0030](../../docs/backlog/items/ITEM-0030-partner-inquiry-form-does-not-yet-capture-partnership-model.md) | Partner inquiry form does not yet capture partnership model | FOLLOW_UP | MEDIUM | P2 | DONE | apps/landing, api:partners | DONE |
-| [ITEM-0031](../../docs/backlog/items/ITEM-0031-replace-remaining-native-prompts-for-governed-input.md) | Replace remaining native prompts for governed input | UX | MEDIUM | P2 | READY | apps/admin, apps/web | FIX_NOW |
+| [ITEM-0031](../../docs/backlog/items/ITEM-0031-replace-remaining-native-prompts-for-governed-input.md) | Replace remaining native prompts for governed input | UX | MEDIUM | P2 | DONE | apps/admin, apps/web | DONE |
 | [ITEM-0032](../../docs/backlog/items/ITEM-0032-recompute-productivity-totals-inflated-by-heartbeat-replays.md) | Recompute productivity totals inflated by heartbeat replays | DATA_MIGRATION | MEDIUM | P2 | PRODUCT_DECISION | api:agent | PRODUCT_DECISION |
-| [ITEM-0033](../../docs/backlog/items/ITEM-0033-add-a-test-runner-and-unit-coverage-to-apps-agent-desktop.md) | Add a test runner and unit coverage to apps/agent-desktop | TEST_GAP | MEDIUM | P2 | READY | apps/agent-desktop | FIX_NOW |
-| [ITEM-0035](../../docs/backlog/items/ITEM-0035-web-route-handlers-flatten-upstream-error-status-to-500.md) | Web route handlers flatten upstream error status to 500 | TECH_DEBT | MEDIUM | P2 | READY | apps/web | FIX_NOW |
+| [ITEM-0033](../../docs/backlog/items/ITEM-0033-add-a-test-runner-and-unit-coverage-to-apps-agent-desktop.md) | Add a test runner and unit coverage to apps/agent-desktop | TEST_GAP | MEDIUM | P2 | DONE | apps/agent-desktop | DONE |
+| [ITEM-0035](../../docs/backlog/items/ITEM-0035-web-route-handlers-flatten-upstream-error-status-to-500.md) | Web route handlers flatten upstream error status to 500 | TECH_DEBT | MEDIUM | P2 | DONE | apps/web | DONE |
 | [ITEM-0036](../../docs/backlog/items/ITEM-0036-decide-the-fate-of-the-inert-runtime-registries-in-apps-web.md) | Decide the fate of the inert runtime registries in apps/web | ARCHITECTURE | MEDIUM | P2 | READY | apps/web | PLAN_REQUIRED |
 | [ITEM-0037](../../docs/backlog/items/ITEM-0037-apps-web-depends-on-lucide-react-without-declaring-it.md) | apps/web depends on lucide-react without declaring it | TECH_DEBT | MEDIUM | P2 | DONE | apps/web | DONE |
 | [ITEM-0038](../../docs/backlog/items/ITEM-0038-record-ids-collide-between-concurrent-branches.md) | Record ids collide between concurrent branches | TECH_DEBT | MEDIUM | P2 | DONE | scripts, docs/bugs, docs/backlog | DONE |
@@ -221,7 +220,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0040](../../docs/backlog/items/ITEM-0040-develop-branch-protection-is-not-applied.md) | develop branch protection is not applied | INFRA | MEDIUM | P2 | DONE | .github | DONE |
 | [ITEM-0043](../../docs/backlog/items/ITEM-0043-promote-the-security-invariant-job-to-a-required-gate.md) | Promote the security invariant job to a required gate | TEST_GAP | MEDIUM | P2 | DONE | services/api | DONE |
 | [ITEM-0046](../../docs/backlog/items/ITEM-0046-add-landing-loading-error-and-not-found-boundaries.md) | Add landing loading error and not-found boundaries | UX | MEDIUM | P2 | DONE | apps/landing | DONE |
-| [ITEM-0050](../../docs/backlog/items/ITEM-0050-move-payroll-derivation-and-branding-upload-orchestration-out.md) | Move payroll derivation and branding upload orchestration out of web proxies | TECH_DEBT | MEDIUM | P2 | READY | apps/web, api:compensation, api:tenant-settings | PLAN_REQUIRED |
+| [ITEM-0050](../../docs/backlog/items/ITEM-0050-move-payroll-derivation-and-branding-upload-orchestration-out.md) | Move payroll derivation and branding upload orchestration out of web proxies | TECH_DEBT | MEDIUM | P2 | DONE | apps/web, api:compensation, api:tenant-settings | DONE |
 | [ITEM-0051](../../docs/backlog/items/ITEM-0051-align-landing-public-form-conventions-and-minor-accessibilit.md) | Align landing public form conventions and minor accessibility gaps | UX | MEDIUM | P2 | DONE | apps/landing | DONE |
 | [ITEM-0052](../../docs/backlog/items/ITEM-0052-verify-the-agent-update-feed-against-a-real-published-artefact.md) | Verify the agent update feed against a real published artefact | TEST_GAP | MEDIUM | P2 | READY | apps/agent-desktop, api:app-releases | PLAN_REQUIRED |
 | [ITEM-0053](../../docs/backlog/items/ITEM-0053-publish-privacy-policy-and-terms-for-the-public-landing-site.md) | Publish privacy policy and terms for the public landing site | PRODUCT_DECISION | MEDIUM | P2 | PRODUCT_DECISION | apps/landing | PRODUCT_DECISION |
@@ -246,12 +245,12 @@ see [`README.md`](README.md) for why.
 | [ITEM-0007](../../docs/backlog/items/ITEM-0007-should-duplicate-website-leads-be-deduplicated.md) | Product decision — should duplicate website leads be deduplicated? | PRODUCT_DECISION | LOW | P3 | DONE | api:leads, apps/landing | DONE |
 | [ITEM-0008](../../docs/backlog/items/ITEM-0008-customeraccount-has-no-origin-channel.md) | Product decision — CustomerAccount carries no origin channel | PRODUCT_DECISION | LOW | P3 | DONE | services/api/prisma, api:super-admin | DONE |
 | [ITEM-0011](../../docs/backlog/items/ITEM-0011-framework-validation-should-catch-absence-claims.md) | Framework validation should catch false absence claims in context documents | TECH_DEBT | LOW | P3 | DONE | .agent/context, scripts | DONE |
-| [ITEM-0015](../../docs/backlog/items/ITEM-0015-make-the-tenant-readiness-assertion-auditable.md) | Make the tenant readiness() authorization assertion auditable | FOLLOW_UP | LOW | P3 | READY | api:tenant-control-plane | FIX_NOW |
+| [ITEM-0015](../../docs/backlog/items/ITEM-0015-make-the-tenant-readiness-assertion-auditable.md) | Make the tenant readiness() authorization assertion auditable | FOLLOW_UP | LOW | P3 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0017](../../docs/backlog/items/ITEM-0017-buildworkspaceurl-still-carries-an-internal-loopback-fallbac.md) | buildWorkspaceUrl still carries an internal loopback fallback | TECH_DEBT | LOW | P3 | DONE | pkg:config | DONE |
 | [ITEM-0029](../../docs/backlog/items/ITEM-0029-validation-should-require-an-aliases-line-on-every-record.md) | Validation should require an aliases line on every record | TECH_DEBT | LOW | P3 | DONE | scripts, docs/backlog, docs/bugs | DONE |
 | [ITEM-0041](../../docs/backlog/items/ITEM-0041-repository-ruleset-no-push-matches-no-branch-and-is-inert.md) | Repository ruleset No push matches no branch and is inert | INFRA | LOW | P3 | DONE | .github | DONE |
 | [ITEM-0042](../../docs/backlog/items/ITEM-0042-burn-down-the-services-api-eslint-warning-baseline.md) | Burn down the services/api ESLint warning baseline | TECH_DEBT | LOW | P3 | READY | services/api | FIX_NOW |
-| [ITEM-0045](../../docs/backlog/items/ITEM-0045-reconcile-tenant-web-root-domain-environment-examples.md) | Reconcile tenant web root-domain environment examples | DOCUMENTATION | LOW | P3 | READY | apps/web | FIX_NOW |
+| [ITEM-0045](../../docs/backlog/items/ITEM-0045-reconcile-tenant-web-root-domain-environment-examples.md) | Reconcile tenant web root-domain environment examples | DOCUMENTATION | LOW | P3 | DONE | apps/web | DONE |
 | [ITEM-0049](../../docs/backlog/items/ITEM-0049-register-services-api-environment-reads-or-scope-the-rule.md) | Register services/api environment reads or scope the rule to build inputs | INFRA | LOW | P3 | READY | services/api, turbo.json, docs/deployment | PLAN_REQUIRED |
 | [ITEM-0056](../../docs/backlog/items/ITEM-0056-ci-cache-hit-rate-is-not-observable-from-the-actions-rest-ap.md) | CI cache hit rate is not observable from the Actions REST API | INFRA | LOW | P3 | DEFERRED | ci | DEFER |
 | [ITEM-0061](../../docs/backlog/items/ITEM-0061-notification-coverage-is-asymmetric-seat-change-applied-and-.md) | Notification coverage is asymmetric — SEAT_CHANGE_APPLIED and SUBSCRIPTION_TERMINATED notify nobody | FOLLOW_UP | LOW | P3 | DEFERRED | notifications, billing | DEFER |
