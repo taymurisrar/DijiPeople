@@ -6576,6 +6576,57 @@
       "verification_result": "NOT_VERIFIED"
     },
     {
+      "record_id": "BUG-0767",
+      "source": {
+        "record_path": "docs/bugs/BUG-0767-render-yaml-is-not-what-production-runs-so-no-seed-or-legal-.md",
+        "provenance": "DEPLOYMENT",
+        "detected_in_sha": "3c0efdb",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": ""
+      },
+      "type": "INFRA",
+      "title": "render.yaml is not what production runs, so no seed or legal publication has ever executed",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "PRODUCT_DECISION",
+      "current_evidence": {
+        "paths": [
+          "render.yaml",
+          "services/api/prisma/publish-legal.ts",
+          "services/api/src/modules/legal/legal.service.ts"
+        ],
+        "verification_scope": "The live Render service was configured by hand and did not match render.yaml: no preDeployCommand at all, with npx prisma migrate deploy bolted onto buildCommand instead. Migrations therefore applied and deploys looked correct, which is exactly why nobody noticed that seed:config, seed:verify, seed:admin, seed:legal and legal:publish had never executed on production. The consequence was not theoretical - the subscribe wizard requires agreements carrying a published version, so with none published it required none and no purchase could record consent. Verification is three-part: the live service configuration matches render.yaml, GET /api/public/legal returns the published documents, and a check fails when the file and the service disagree. The third part is the regression; without it this recurs the next time somebody edits the dashboard. Related and separate: publishing was attempted on 2026-08-22 and published ten documents whose own text declared them unreviewed drafts, which is why REG-229 now refuses any document that declares itself a draft."
+      },
+      "affected_modules": [
+        "render.yaml",
+        "services/api/prisma",
+        "docs/deployment"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": "Needs a decision on changing the deploy pipeline; a failing seed would then abort deploys."
+      },
+      "related_bugs": [
+        "BUG-0714",
+        "BUG-0086"
+      ],
+      "related_backlog": [
+        "ITEM-0053"
+      ],
+      "regressions": [
+        "REG-229"
+      ],
+      "qa_scenarios": [
+        "QA-LEGAL-001"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "YES",
+      "architect_disposition": "PRODUCT_DECISION",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
       "record_id": "ITEM-0001",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md",

@@ -17,7 +17,7 @@
 | Open CRITICAL | **0** |
 | Open HIGH | 3 |
 | Awaiting Architect triage | 0 |
-| Owner decisions pending | 2 |
+| Owner decisions pending | 3 |
 | QA coverage gaps | 108 |
 | Scenarios blocked by infrastructure | 0 |
 
@@ -115,6 +115,7 @@ _None. Nothing open at CRITICAL._
 Questions where the engineering is understood and the **product answer is**
 **not**. No agent may resolve one by implementing a side of it.
 
+- [[BUG-0767-render-yaml-is-not-what-production-runs-so-no-seed-or-legal-|BUG-0767]] — **render.yaml is not what production runs, so no seed or legal publication has ever executed**
 - [[ITEM-0062-no-multi-tenant-membership-one-user-belongs-to-one-tenant-so|ITEM-0062]] — **No multi-tenant membership — one user belongs to one tenant, so discovery and switching cannot exist**
 - [[ITEM-0079-activation-does-not-gate-on-a-workspace-having-any-module-en|ITEM-0079]] — **Activation does not gate on a workspace having any module enabled**
 
@@ -241,7 +242,7 @@ gap into scope — or files a `TEST_GAP` item and says so.
 | Open total | 22 |
 | Blocked | 1 |
 | Deferred | 18 |
-| Awaiting a product decision | 2 |
+| Awaiting a product decision | 3 |
 | Awaiting Architect triage | 0 |
 
 Every ordinary record carries a disposition.
