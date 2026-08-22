@@ -106,6 +106,28 @@ function jobsFor(databaseId) {
   }
 }
 
+/**
+ * Has the branch moved past the commit being waited on?
+ *
+ * Answered from git rather than from the run list, because "a newer run exists"
+ * is not the same question — a newer run could be a re-run of an older commit,
+ * or a run on a different branch entirely. Ancestry is the fact that matters.
+ */
+function supersededByNewerCommit() {
+  try {
+    const head = run('git', ['rev-parse', 'HEAD']);
+    if (head.startsWith(sha) || sha.startsWith(head)) return false;
+    execFileSync('git', ['merge-base', '--is-ancestor', sha, head], {
+      stdio: 'ignore',
+    });
+    return true;
+  } catch {
+    // Not an ancestor, or the commit is unknown here. Either way, do not
+    // downgrade a real cancellation into a reassuring one.
+    return false;
+  }
+}
+
 const started = Date.now();
 console.log(`Awaiting CI for ${sha.slice(0, 7)} (timeout ${timeoutSeconds}s)`);
 
@@ -145,6 +167,35 @@ for (;;) {
       if (failed.length === 0) {
         console.log(`REMOTE_CI_STATUS = PASS for ${sha.slice(0, 7)}`);
         process.exit(0);
+      }
+
+      /*
+       * A cancelled run on a commit the branch has already moved past is not a
+       * failure — it is GitHub cancelling the older build because a newer push
+       * superseded it. Reporting that as FAILED is technically defensible and
+       * practically misleading: it sends the reader hunting for a broken job
+       * that never existed, and the verdict they actually want is on the newer
+       * SHA.
+       *
+       * This happened the first day the script was used. I pushed a second
+       * commit while the first was still building, and the output read
+       *
+       *     CANCELLED  CI
+       *       x cancelled  Typecheck
+       *       x cancelled  Build
+       *     REMOTE_CI_STATUS = FAILED
+       *
+       * which looks like five broken jobs and is five jobs that were told to
+       * stop. The distinction is whether the commit is still the branch tip.
+       */
+      const onlyCancelled = failed.every(
+        (entry) => entry.conclusion === 'cancelled',
+      );
+      if (onlyCancelled && supersededByNewerCommit()) {
+        console.log(
+          `REMOTE_CI_STATUS = SUPERSEDED for ${sha.slice(0, 7)} — a newer commit is building; wait on that one instead.`,
+        );
+        process.exit(2);
       }
 
       /*
