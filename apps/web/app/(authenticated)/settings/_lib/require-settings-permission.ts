@@ -51,7 +51,22 @@ export function hasAnySettingsPermission(
 
 export async function requireSettingsPermissions(
   permissionKeys: readonly string[],
-  fallbackHref = "/settings/tenant",
+  /*
+   * `/settings`, not `/settings/tenant`.
+   *
+   * `/settings/tenant` was quoted out of the canonical settings document, which
+   * still described the pre-runtime flat route map. It has not resolved since
+   * the settings runtime landed: `[category]/page.tsx` calls
+   * `getSettingsRuntimeCategory(key)` and `notFound()`s on a miss, and `tenant`
+   * is an item key, not one of the eleven categories. So a permission failure
+   * redirected the user to a 404 — the wrong answer twice over, since it also
+   * told them nothing about why. BUG-0045.
+   *
+   * `/settings` is the right target for a different reason too: it renders an
+   * access-denied state rather than redirecting, so there is no loop and the
+   * user is told what happened.
+   */
+  fallbackHref = "/settings",
 ) {
   const user = await getSessionUser();
 
