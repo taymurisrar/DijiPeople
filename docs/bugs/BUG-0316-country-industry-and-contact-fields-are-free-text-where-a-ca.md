@@ -2,7 +2,7 @@
 ID: BUG-0316
 aliases: [BUG-0316]
 Title: Country industry and contact fields are free text where a canonical list exists
-Status: FIXED
+Status: VERIFIED
 Severity: MEDIUM
 Priority: P2
 Type: DATA_INTEGRITY
@@ -11,14 +11,14 @@ DetectedDate: 2026-08-21
 DetectedInSha: aab6965
 AffectedModules: [apps/landing, apps/admin, api:lookups, packages/config]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-181
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation: agent/admin-landing-ux-program
 CreatedAt: 2026-08-21
-UpdatedAt: 2026-08-21
+UpdatedAt: 2026-08-22
 ResolvedAt: 2026-08-21
 ---
 
@@ -119,6 +119,18 @@ change to the generator.
 ## QA Retest
 
 Not opened in a browser; the control types are asserted through the manifest.
+
+### Verification — 2026-08-22, SESSION-0040
+
+Re-ran the guard this record names, rather than reading a green suite
+summary: REG-181 names `scripts/generate-platform-runtime-schema.mjs`, `npm run check:runtime-schema`, and that is what was executed.
+
+```text
+node <script>   PASS
+npm run check:runtime-schema   PASS
+```
+
+`Status: FIXED` → `VERIFIED`.
 
 ## History
 

@@ -2,7 +2,7 @@
 ID: BUG-0534
 aliases: [BUG-0534]
 Title: Plan form offered editable legacy price fields that bill nobody
-Status: FIXED
+Status: VERIFIED
 Severity: MEDIUM
 Priority: P2
 Type: UX
@@ -11,7 +11,7 @@ DetectedDate: 2026-08-22
 DetectedInSha: 99dc70a
 AffectedModules: [super-admin, apps/admin]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-202
 RelatedBacklogItem:
@@ -123,6 +123,17 @@ three times, and the constant carries the reason.
 ## QA Retest
 
 QA-PLATFORM-018.
+
+### Verification — 2026-08-22, SESSION-0040
+
+Re-ran the guard this record names, rather than reading a green suite
+summary: REG-202 names `apps/admin/lib/runtime/plan-record-form.spec.ts`, and that is what was executed.
+
+```text
+npx jest --runTestsByPath, apps/admin   PASS
+```
+
+`Status: FIXED` → `VERIFIED`.
 
 ## History
 

@@ -2,7 +2,7 @@
 ID: BUG-0315
 aliases: [BUG-0315]
 Title: Workspace preferences are stored in localStorage and never applied
-Status: FIXED
+Status: VERIFIED
 Severity: MEDIUM
 Priority: P2
 Type: UX
@@ -11,14 +11,14 @@ DetectedDate: 2026-08-21
 DetectedInSha: aab6965
 AffectedModules: [apps/admin, api:platform-users, services/api/prisma]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-180
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation: agent/admin-landing-ux-program
 CreatedAt: 2026-08-21
-UpdatedAt: 2026-08-21
+UpdatedAt: 2026-08-22
 ResolvedAt: 2026-08-21
 ---
 
@@ -104,6 +104,17 @@ Fixed on `agent/admin-landing-ux-program`.
 ## QA Retest
 
 Covered by the API suites; the rendered result was not opened in a browser.
+
+### Verification — 2026-08-22, SESSION-0040
+
+Re-ran the guard this record names, rather than reading a green suite
+summary: REG-180 names `services/api/src/modules/platform-events/platform-notifications.spec.ts`, and that is what was executed.
+
+```text
+npx jest --runTestsByPath, services/api   PASS
+```
+
+`Status: FIXED` → `VERIFIED`.
 
 ## History
 

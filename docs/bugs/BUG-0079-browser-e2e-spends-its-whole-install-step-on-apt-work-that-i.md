@@ -2,7 +2,7 @@
 ID: BUG-0079
 aliases: [BUG-0079]
 Title: Browser e2e spends its whole install step on apt work that installs no browser library
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: PERFORMANCE
@@ -11,14 +11,14 @@ DetectedDate: 2026-08-19
 DetectedInSha: e6f4cbe
 AffectedModules: [.github/workflows, e2e]
 OwnerAgent: release-devops
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-069
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-19
-UpdatedAt: 2026-08-20
+UpdatedAt: 2026-08-22
 ResolvedAt: 2026-08-20
 ---
 
@@ -228,6 +228,17 @@ even the 27s pre-cache baseline, because apt is gone rather than merely faster.
 `ubuntu-latest` still ships the libraries; the step started a real browser,
 opened a page and closed it. `Browser e2e` then passed 56 journeys in 5.5
 minutes.
+
+### Verification — 2026-08-22, SESSION-0040
+
+Re-ran the guard this record names, rather than reading a green suite
+summary: REG-069 names `scripts/install-browser.mjs`, `scripts/ci-metrics.mjs`, and that is what was executed.
+
+```text
+node <script>   PASS
+```
+
+`Status: FIXED` → `VERIFIED`.
 
 ## History
 

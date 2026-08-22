@@ -2,7 +2,7 @@
 ID: BUG-0075
 aliases: [BUG-0075]
 Title: Public subscribe checkout has no rate limit and the invariant that should catch it is inert
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: SECURITY
@@ -11,14 +11,14 @@ DetectedDate: 2026-08-19
 DetectedInSha: 494c44d
 AffectedModules: [billing, common/guards]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: docs/qa/scenarios/QA-BILLING-007-every-unauthenticated-write-handler-is-rate-limited.md
 RegressionId: REG-071
 RelatedBacklogItem: ITEM-0013
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-19
-UpdatedAt: 2026-08-19
+UpdatedAt: 2026-08-22
 ResolvedAt: 2026-08-19
 ---
 
@@ -226,8 +226,44 @@ the change.
 
 ## QA Retest
 
-Pending — WP-08 of [[TASK-0008]]. Scenario: exceed the public write threshold
-against `POST /public/subscribe` and assert `429 PUBLIC_RATE_LIMITED`.
+Run 2026-08-22, and it needed a new test to run at all.
+
+`public-write-rate-limit.invariant.spec.ts` asserts the **rule** — every
+`@Public()` write handler declares the guard — by reading controller sources, so
+it holds for handlers nobody has written yet. That is the right shape for the
+defect it was written against. What it cannot say is whether the guard *works*: a
+declared-but-broken guard passes it completely.
+
+The scenario this record named was the missing half, so it now exists as
+`services/api/test/public-rate-limit.e2e-spec.ts`:
+
+```text
+refuses the twenty-first write with 429 PUBLIC_RATE_LIMITED   PASS
+does not leak the throttle across addresses                   PASS
+does not leak the throttle across paths                       PASS
+throttles a malformed body too                                PASS
+ignores a forwarded address when the hop is not trusted       PASS
+says what happened, without naming a tenant or a customer     PASS
+```
+
+Two things surfaced while writing it, both worth keeping. The guard runs
+**before** validation, so a rejected body still consumes a slot — which is
+correct, or the cheapest way to hammer an endpoint would be to send rubbish. And
+the first version of the suite failed on "does not leak across addresses",
+because `X-Forwarded-For` is only believed when `isProxyTrusted` says so; every
+request had fallen back to the same loopback peer. That is BUG-0032's fix
+working, and the suite now asserts both sides of it.
+
+### Verification — 2026-08-22, SESSION-0040
+
+Re-ran the guard this record names, rather than reading a green suite
+summary: REG-071 names `services/api/src/common/guards/public-write-rate-limit.invariant.spec.ts`, and that is what was executed.
+
+```text
+npx jest --runTestsByPath, services/api   PASS
+```
+
+`Status: FIXED` → `VERIFIED`.
 
 ## History
 

@@ -2,7 +2,7 @@
 ID: BUG-0418
 aliases: [BUG-0418]
 Title: Contract placeholders declared a formatting rule that nothing applied
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: DATA_INTEGRITY
@@ -11,7 +11,7 @@ DetectedDate: 2026-08-22
 DetectedInSha: fb7c771
 AffectedModules: [services/api/src/modules/contracts]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-185
 RelatedBacklogItem:
@@ -122,6 +122,17 @@ Fixed on `agent/document-render-and-theme`.
 ## QA Retest
 
 Unit-verified. Not regenerated against a live database.
+
+### Verification — 2026-08-22, SESSION-0040
+
+Re-ran the guard this record names, rather than reading a green suite
+summary: REG-185 names `services/api/src/modules/contracts/placeholder-formatting.spec.ts`, and that is what was executed.
+
+```text
+npx jest --runTestsByPath, services/api   PASS
+```
+
+`Status: FIXED` → `VERIFIED`.
 
 ## History
 

@@ -7,7 +7,7 @@
 
 | | |
 |---|---|
-| Active sessions | **6** |
+| Active sessions | **7** |
 | Active parent tasks | 7 |
 | Active work packages | 2 |
 | Blocked work packages | 5 |
@@ -15,7 +15,7 @@
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **0** |
-| Open HIGH | 24 |
+| Open HIGH | 3 |
 | Awaiting Architect triage | 0 |
 | Owner decisions pending | 6 |
 | QA coverage gaps | 102 |
@@ -30,12 +30,12 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 68 |
-| No next action | 68 |
+| No acceptance criteria | 21 |
+| No next action | 21 |
 | Aging — 7d / 30d / 90d | 4 / 0 / 0 |
 | Architecture and technical debt | 6 |
-| Security gaps | 6 |
-| Database gaps | 10 |
+| Security gaps | 3 |
+| Database gaps | 0 |
 
 Ranked next-best actions weigh blast radius rather than severity alone, and
 are computed on demand so the reasons travel with the ranking:
@@ -49,6 +49,7 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 | Session | Task | Title | Status | Branch | Target | Leases | Schema |
 |---|---|---|---|---|---|---|---|
+| [[SESSION-0040-qa-verification-of-49-fixed-bugs-remaining-fix-now-items-and|SESSION-0040]] | — | QA verification of 49 fixed bugs, remaining FIX_NOW items, and the lint burn-down | ACTIVE | `agent/qa-verify-and-burndown` | `develop` | — | NO |
 | SESSION-0023 | — | First production release | ACTIVE | `agent/first-production-release` | `main` | — | NO |
 | [[SESSION-0022-go-live-readiness|SESSION-0022]] | TASK-0010 | Go-live readiness | ACTIVE | `agent/go-live-readiness` | `develop` | — | NO |
 | [[SESSION-0019-ci-browser-install-latency-and-database-e2e-fixture-contract|SESSION-0019]] | — | CI browser install latency and database e2e fixture contract | ACTIVE | `agent/ci-e2e-remediation` | `develop` | — | NO |
@@ -236,7 +237,7 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 69 |
+| Open total | 22 |
 | Blocked | 1 |
 | Deferred | 16 |
 | Awaiting a product decision | 6 |

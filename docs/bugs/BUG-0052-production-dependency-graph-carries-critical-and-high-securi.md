@@ -2,7 +2,7 @@
 ID: BUG-0052
 aliases: [BUG-0052]
 Title: Production dependency graph carries critical and high security advisories
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P0
 Type: SECURITY
@@ -11,7 +11,7 @@ DetectedDate: 2026-08-17
 DetectedInSha: 0051180
 AffectedModules: [package-lock.json, apps/agent-desktop, apps/web, apps/admin, apps/landing, services/api]
 OwnerAgent: integration
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport:
 RegressionId: REG-217
 RelatedBacklogItem:
@@ -410,11 +410,15 @@ check-production-advisories             PASS; refuses the pre-fix lockfile
 check-overrides-applied                 PASS
 ```
 
-Scenario `QA-DEPLOY-021`. Not retested here: the **packaged Electron archive**.
-The exclusions and versions were verified by extraction on 2026-08-21, and this
-change alters the graph beneath them, so the archive should be re-read when the
-agent is next packaged. That is stated rather than assumed, because assuming it
-is exactly what produced the 2026-08-21 correction.
+Scenario `QA-DEPLOY-021`.
+
+The **packaged Electron archive** is a separate artefact and is not covered by
+the above. The exclusions and versions in it were verified by extraction on
+2026-08-21, and this change alters the graph beneath them, so it should be
+re-read when the agent is next packaged — [[ITEM-0077]]. Recorded as an item
+rather than a caveat here, because assuming what an archive contains is exactly
+what produced the 2026-08-21 correction, and a caveat in prose is not something
+anybody can schedule.
 
 2026-08-21, for what was applied then. On Node 22, after the upgrade:
 
@@ -426,6 +430,17 @@ apps/landing   3 suites,  49 tests   PASS   check-types PASS
 
 `npm audit --omit=dev`: `{critical: 1, high: 9, moderate: 2, total: 12}`, from
 `{critical: 1, high: 17, moderate: 2, total: 20}`.
+
+### Verification — 2026-08-22, SESSION-0040
+
+Re-ran the guard this record names, rather than reading a green suite
+summary: REG-217 names `scripts/check-production-advisories.mjs`, and that is what was executed.
+
+```text
+node <script>   PASS
+```
+
+`Status: FIXED` → `VERIFIED`.
 
 ## History
 

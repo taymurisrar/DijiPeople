@@ -2,7 +2,7 @@
 ID: BUG-0317
 aliases: [BUG-0317]
 Title: The subscribe wizard shows five identical pills and labels three address fields only by placeholder
-Status: FIXED
+Status: VERIFIED
 Severity: MEDIUM
 Priority: P2
 Type: UX
@@ -11,14 +11,14 @@ DetectedDate: 2026-08-21
 DetectedInSha: aab6965
 AffectedModules: [apps/landing]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-181
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation: agent/admin-landing-ux-program
 CreatedAt: 2026-08-21
-UpdatedAt: 2026-08-21
+UpdatedAt: 2026-08-22
 ResolvedAt: 2026-08-21
 ---
 
@@ -99,6 +99,18 @@ Fixed on `agent/admin-landing-ux-program`.
 ## QA Retest
 
 Not opened in a browser.
+
+### Verification — 2026-08-22, SESSION-0040
+
+Re-ran the guard this record names, rather than reading a green suite
+summary: REG-181 names `scripts/generate-platform-runtime-schema.mjs`, `npm run check:runtime-schema`, and that is what was executed.
+
+```text
+node <script>   PASS
+npm run check:runtime-schema   PASS
+```
+
+`Status: FIXED` → `VERIFIED`.
 
 ## History
 

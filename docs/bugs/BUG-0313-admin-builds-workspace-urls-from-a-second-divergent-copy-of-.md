@@ -2,7 +2,7 @@
 ID: BUG-0313
 aliases: [BUG-0313]
 Title: Admin builds workspace URLs from a second, divergent copy of the rule
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -11,14 +11,14 @@ DetectedDate: 2026-08-21
 DetectedInSha: aab6965
 AffectedModules: [apps/admin, packages/config]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-179
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation: agent/admin-landing-ux-program
 CreatedAt: 2026-08-21
-UpdatedAt: 2026-08-21
+UpdatedAt: 2026-08-22
 ResolvedAt: 2026-08-21
 ---
 
@@ -119,6 +119,18 @@ Fixed on `agent/admin-landing-ux-program`.
 ## QA Retest
 
 Covered by the specs above.
+
+### Verification — 2026-08-22, SESSION-0040
+
+Re-ran the guard this record names, rather than reading a green suite
+summary: REG-179 names `packages/config/platform-domains.test.js`, `apps/admin/lib/tenant-url.spec.ts`, and that is what was executed.
+
+```text
+node --test   PASS
+npx jest --runTestsByPath, apps/admin   PASS
+```
+
+`Status: FIXED` → `VERIFIED`.
 
 ## History
 

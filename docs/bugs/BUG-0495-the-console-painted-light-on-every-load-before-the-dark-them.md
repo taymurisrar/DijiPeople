@@ -2,7 +2,7 @@
 ID: BUG-0495
 aliases: [BUG-0495]
 Title: The console painted light on every load before the dark theme arrived
-Status: FIXED
+Status: VERIFIED
 Severity: MEDIUM
 Priority: P2
 Type: UX
@@ -11,7 +11,7 @@ DetectedDate: 2026-08-22
 DetectedInSha: 098a0e6
 AffectedModules: [apps/admin]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-198
 RelatedBacklogItem:
@@ -112,6 +112,17 @@ Fixed on `agent/tenant-commands-monitoring-bulk-delete`.
 
 Not observed in a browser — and the first frame is precisely what no test here
 can see.
+
+### Verification — 2026-08-22, SESSION-0040
+
+Re-ran the guard this record names, rather than reading a green suite
+summary: REG-198 names `apps/admin/lib/console-theme-bootstrap.spec.ts`, and that is what was executed.
+
+```text
+npx jest --runTestsByPath, apps/admin   PASS
+```
+
+`Status: FIXED` → `VERIFIED`.
 
 ## History
 

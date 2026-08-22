@@ -2,7 +2,7 @@
 ID: BUG-0531
 aliases: [BUG-0531]
 Title: Flat prices were sellable on the public site at invented amounts
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: DATA_INTEGRITY
@@ -11,7 +11,7 @@ DetectedDate: 2026-08-22
 DetectedInSha: 99dc70a
 AffectedModules: [super-admin, apps/admin]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-201
 RelatedBacklogItem:
@@ -150,6 +150,17 @@ not claim.
 
 QA-PLATFORM-018. Not yet run against a database: the reconcile command was
 blocked by a permission prompt and has not been executed.
+
+### Verification — 2026-08-22, SESSION-0040
+
+Re-ran the guard this record names, rather than reading a green suite
+summary: REG-201 names `services/api/src/modules/super-admin/commercial-bootstrap.reconcile.spec.ts`, and that is what was executed.
+
+```text
+npx jest --runTestsByPath, services/api   PASS
+```
+
+`Status: FIXED` → `VERIFIED`.
 
 ## History
 

@@ -1,0 +1,93 @@
+---
+ID: ITEM-0077
+aliases: [ITEM-0077]
+Title: Re-read the packaged agent archive after the node-pre-gyp upgrade
+Type: TEST_GAP
+Status: READY
+Priority: P2
+Severity: MEDIUM
+AffectedModules: [apps/agent-desktop, package-lock.json]
+Source: QA_RUN
+OwnerAgent: release-devops
+ArchitectDisposition: PLAN_REQUIRED
+CreatedAt: 2026-08-22
+UpdatedAt: 2026-08-22
+RelatedBug: BUG-0052
+RelatedQA: 
+RelatedADR: 
+RelatedImplementation:
+TargetMilestone: 
+BlockedBy: 
+---
+
+# ITEM-0077 — Re-read the packaged agent archive after the node-pre-gyp upgrade
+
+## Summary
+
+BUG-0052 cleared the repository's only critical advisory by moving
+`@mapbox/node-pre-gyp` 1 → 2 and `node-gyp` 9 → 11, taking `tar` from 6.2.1 to
+7.5.22. That was verified against a real `npm ci` and an audit of the **installed
+tree**. It was not verified against a rebuilt `app.asar`, and the exclusions it
+sits on top of were established by extracting an archive built the day before.
+
+## Why It Matters
+
+This record exists because the same assumption has already been wrong once, in
+this exact area. The 2026-08-17 disposition said the chain beneath `active-win`
+"does not ship in the packaged app"; the 2026-08-21 correction extracted the
+archive and found all of it shipping, at exactly the advisory versions.
+`electron-builder` includes production dependencies regardless of the `files`
+patterns, and npm installs `optionalDependencies` by default — so declaring them
+optional kept out nothing.
+
+The lesson recorded there is the one that applies here: **a claim about what
+ships must name the artifact, not the manifest.** The manifest now says the right
+thing. Nobody has looked at the artifact since.
+
+Two specific things could be wrong and would fail silently:
+
+1. **The exclusion list.** `electron-builder.yml` excludes `node-gyp`, `cacache`,
+   `make-fetch-happen` and `npmlog` by name. `node-pre-gyp@2` has a different
+   dependency closure; an exclusion that no longer matches anything is dead, and
+   one that now matches something required breaks the agent at launch. That
+   nearly happened once already — the first exclusion list removed `npmlog`,
+   which *looks* like build tooling and is a hard dependency of
+   `node-pre-gyp@1`; a dependency-closure walk caught it before it shipped.
+2. **Archive size.** `app.asar` went 7.95 MB → 11.17 MB when `tar@7` arrived,
+   and that was measured before this change. It should be re-measured, not
+   assumed.
+
+## Evidence
+
+`docs/bugs/BUG-0052-*.md`, the 2026-08-21 correction and the 2026-08-22 update.
+`apps/agent-desktop/electron-builder.yml` carries the exclusion list.
+
+## Proposed Approach
+
+No ExecPlan. Build the installer, extract `app.asar`, and:
+
+- list the packaged versions of `@mapbox/node-pre-gyp`, `tar`, `node-gyp`,
+  `cacache` and `make-fetch-happen`;
+- walk the runtime dependency closure from `active-win/lib/windows-binding.js`
+  and confirm every package it needs is present;
+- record the archive size against the 11.17 MB baseline.
+
+## Acceptance Criteria
+
+- The packaged archive is extracted and its versions recorded in BUG-0052.
+- The runtime closure walks clean — no `require` resolves to an excluded package.
+- Any exclusion matching nothing is removed rather than left as decoration.
+
+## Dependencies
+
+Needs a machine that can run `npm --workspace agent-desktop run dist:win`.
+
+## Related Items
+
+[[BUG-0052]] · [[ITEM-0052]] — the other thing about this agent that only a real
+artefact can prove.
+
+## History
+
+- 2026-08-22 — raised during the QA verification of BUG-0052, so the residual
+  gap is tracked rather than carried in a record's prose.

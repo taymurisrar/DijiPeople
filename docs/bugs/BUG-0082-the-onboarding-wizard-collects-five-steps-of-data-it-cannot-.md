@@ -2,7 +2,7 @@
 ID: BUG-0082
 aliases: [BUG-0082]
 Title: The onboarding wizard collects five steps of data it cannot submit
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: UX
@@ -11,14 +11,14 @@ DetectedDate: 2026-08-20
 DetectedInSha: 71f1795
 AffectedModules: [landing]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport:
 RegressionId: REG-077
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation: TASK-0008 WP-08
 CreatedAt: 2026-08-20
-UpdatedAt: 2026-08-20
+UpdatedAt: 2026-08-22
 ResolvedAt: 2026-08-20
 ---
 
@@ -167,6 +167,18 @@ The browser scenario was corrected in the same change. Its old shape treated
 WP-08 QA campaign under TASK-0008. Landing 109 tests pass, including five new
 ones for `checkoutBlockedReason`, plus the mutation check above. The browser
 assertion runs in the `browser-e2e` gate.
+
+### Verification — 2026-08-22, SESSION-0040
+
+Re-ran the guard this record names, rather than reading a green suite
+summary: REG-077 names `apps/landing/lib/plans.spec.ts`, `e2e/tests/flow-c-landing-public-surface.spec.ts`, and that is what was executed.
+
+```text
+npx jest --runTestsByPath, apps/landing   PASS
+CI run 32556695618 (Browser e2e), on d63dc4a   PASS
+```
+
+`Status: FIXED` → `VERIFIED`.
 
 ## History
 

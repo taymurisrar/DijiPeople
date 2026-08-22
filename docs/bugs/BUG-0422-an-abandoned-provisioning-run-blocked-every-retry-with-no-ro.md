@@ -2,7 +2,7 @@
 ID: BUG-0422
 aliases: [BUG-0422]
 Title: An abandoned provisioning run blocked every retry with no route out
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: STATE_MACHINE
@@ -11,7 +11,7 @@ DetectedDate: 2026-08-22
 DetectedInSha: fb7c771
 AffectedModules: [services/api/src/modules/tenant-control-plane, apps/admin]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-189
 RelatedBacklogItem:
@@ -119,6 +119,18 @@ Fixed on `agent/document-render-and-theme`.
 ## QA Retest
 
 Unit-verified. Not reproduced against a live provisioning run.
+
+### Verification — 2026-08-22, SESSION-0040
+
+Re-ran the guard this record names, rather than reading a green suite
+summary: REG-189 names `services/api/src/modules/tenant-control-plane/provisioning-operations.service.spec.ts`, `apps/admin/lib/provisioning-queue-states.spec.ts`, and that is what was executed.
+
+```text
+npx jest --runTestsByPath, services/api   PASS
+npx jest --runTestsByPath, apps/admin   PASS
+```
+
+`Status: FIXED` → `VERIFIED`.
 
 ## History
 

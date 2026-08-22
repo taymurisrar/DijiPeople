@@ -2,7 +2,7 @@
 ID: BUG-0081
 aliases: [BUG-0081]
 Title: Three apps claimed a forwarded-headers invariant test that did not exist
-Status: FIXED
+Status: VERIFIED
 Severity: MEDIUM
 Priority: P2
 Type: TEST_GAP
@@ -11,14 +11,14 @@ DetectedDate: 2026-08-19
 DetectedInSha: ffda0e3
 AffectedModules: [landing, web, admin]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport:
 RegressionId: REG-076
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation: TASK-0008 WP-07
 CreatedAt: 2026-08-19
-UpdatedAt: 2026-08-19
+UpdatedAt: 2026-08-22
 ResolvedAt: 2026-08-19
 ---
 
@@ -165,6 +165,19 @@ header comment rather than left for a reader to rediscover.
 
 Covered by the WP-08 QA campaign under TASK-0008. Current evidence: landing 97
 tests, web 408, admin 101 — all pass, plus the mutation check above.
+
+### Verification — 2026-08-22, SESSION-0040
+
+Re-ran the guard this record names, rather than reading a green suite
+summary: REG-076 names `apps/landing/lib/forwarded-headers.invariant.spec.ts`, `apps/web`, `apps/admin`, and that is what was executed.
+
+```text
+npx jest --runTestsByPath, apps/landing   PASS
+whole-workspace suite for `apps/web`   PASS
+whole-workspace suite for `apps/admin`   PASS
+```
+
+`Status: FIXED` → `VERIFIED`.
 
 ## History
 

@@ -2,7 +2,7 @@
 ID: BUG-0222
 aliases: [BUG-0222]
 Title: Plan related-record panels declare no tab, so they never render
-Status: FIXED
+Status: VERIFIED
 Severity: MEDIUM
 Priority: P2
 Type: UX
@@ -11,14 +11,14 @@ DetectedDate: 2026-08-21
 DetectedInSha: 08b8661
 AffectedModules: [apps/admin]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport:
 RegressionId: REG-176
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation: agent/admin-record-status-header
 CreatedAt: 2026-08-21
-UpdatedAt: 2026-08-21
+UpdatedAt: 2026-08-22
 ResolvedAt: 2026-08-21
 ---
 
@@ -112,6 +112,17 @@ have one.
 ## QA Retest
 
 Covered by the regression spec above; no manual QA run was recorded.
+
+### Verification — 2026-08-22, SESSION-0040
+
+Re-ran the guard this record names, rather than reading a green suite
+summary: REG-176 names `apps/admin/lib/runtime/plan-record-form.spec.ts`, `apps/admin/lib/runtime/platform-module-registry.ts`, and that is what was executed.
+
+```text
+npx jest --runTestsByPath, apps/admin   PASS
+```
+
+`Status: FIXED` → `VERIFIED`.
 
 ## History
 

@@ -2,7 +2,7 @@
 ID: BUG-0086
 aliases: [BUG-0086]
 Title: Prisma migrate deploy cannot acquire its advisory lock through Neon pooled endpoint
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: INFRA
@@ -11,7 +11,7 @@ DetectedDate: 2026-08-20
 DetectedInSha: d6aa738
 AffectedModules: [services/api/prisma]
 OwnerAgent: release-devops
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-203
 RelatedBacklogItem:
@@ -265,6 +265,17 @@ Scenario `QA-DEPLOY-018`. The production half — a Render deploy applying
 migrations through the direct endpoint and continuing into seeding and legal
 publication — is not retested here and belongs to a deployment QA run against the
 service, because this branch cannot reach that environment.
+### Verification — 2026-08-22, SESSION-0040
+
+Re-ran the guard this record names, rather than reading a green suite
+summary: REG-203 names `packages/config/database-urls.test.js`, and that is what was executed.
+
+```text
+node --test   PASS
+```
+
+`Status: FIXED` → `VERIFIED`.
+
 ## History
 
 - 2026-08-20 — created from user report at `d6aa738`.

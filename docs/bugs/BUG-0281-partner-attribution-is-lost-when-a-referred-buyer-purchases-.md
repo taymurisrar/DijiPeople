@@ -2,7 +2,7 @@
 ID: BUG-0281
 aliases: [BUG-0281]
 Title: Partner attribution is lost when a referred buyer purchases through self-service checkout
-Status: FIXED
+Status: VERIFIED
 Severity: MEDIUM
 Priority: P2
 Type: DATA_INTEGRITY
@@ -11,7 +11,7 @@ DetectedDate: 2026-08-21
 DetectedInSha: cf9ea47
 AffectedModules: [apps/landing, api:billing, api:partner-experience]
 OwnerAgent: architect
-ArchitectDisposition: PLAN_REQUIRED
+ArchitectDisposition: DONE
 QAReport:
 RegressionId: REG-207
 RelatedBacklogItem:
@@ -158,10 +158,24 @@ services/api  full suite                                 1634 tests PASS
 apps/landing  full suite                                  134 tests PASS
 ```
 
-Scenario `QA-PARTNER-007`. The end-to-end half — following a real referral link
-to a completed Stripe checkout and reading the resulting `CustomerAccount` — is
-described in the scenario and was not run here; it needs a live Stripe test mode
-and a seeded partner.
+Scenario `QA-PARTNER-007`.
+
+The end-to-end half — following a real referral link to a completed Stripe
+checkout and reading the resulting `CustomerAccount` — needs a live Stripe test
+mode and a seeded partner, and is tracked as [[ITEM-0078]] together with the same
+gap named in BUG-0077 and BUG-0078. One item for one missing journey, rather than
+the same sentence in three records.
+### Verification — 2026-08-22, SESSION-0040
+
+Re-ran the guard this record names, rather than reading a green suite
+summary: REG-207 names `services/api/src/modules/partner-experience/partner-referral-resolver.service.spec.ts`, `services/api/src/modules/billing/services/checkout-customer-record.spec.ts`, and that is what was executed.
+
+```text
+npx jest --runTestsByPath, services/api   PASS
+```
+
+`Status: FIXED` → `VERIFIED`.
+
 ## History
 
 - 2026-08-21 — found while comparing the self-service and sales-assisted

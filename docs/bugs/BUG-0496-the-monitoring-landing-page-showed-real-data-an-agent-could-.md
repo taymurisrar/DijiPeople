@@ -2,7 +2,7 @@
 ID: BUG-0496
 aliases: [BUG-0496]
 Title: The monitoring landing page showed real data an agent could not act on
-Status: FIXED
+Status: VERIFIED
 Severity: MEDIUM
 Priority: P2
 Type: UX
@@ -11,7 +11,7 @@ DetectedDate: 2026-08-22
 DetectedInSha: 098a0e6
 AffectedModules: [apps/admin]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-199
 RelatedBacklogItem:
@@ -106,6 +106,17 @@ Fixed on `agent/tenant-commands-monitoring-bulk-delete`.
 ## QA Retest
 
 Not opened in a browser.
+
+### Verification — 2026-08-22, SESSION-0040
+
+Re-ran the guard this record names, rather than reading a green suite
+summary: REG-199 names `apps/admin/lib/monitoring-overview.spec.ts`, and that is what was executed.
+
+```text
+npx jest --runTestsByPath, apps/admin   PASS
+```
+
+`Status: FIXED` → `VERIFIED`.
 
 ## History
 

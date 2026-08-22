@@ -2,7 +2,7 @@
 ID: BUG-0462
 aliases: [BUG-0462]
 Title: Monitoring opened on a twelve thousand row queue with five unactionable tiles
-Status: FIXED
+Status: VERIFIED
 Severity: MEDIUM
 Priority: P2
 Type: UX
@@ -11,7 +11,7 @@ DetectedDate: 2026-08-22
 DetectedInSha: 3883798
 AffectedModules: [apps/admin]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-193
 RelatedBacklogItem:
@@ -121,6 +121,17 @@ Fixed on `agent/tenant-repair-and-console-ux`.
 ## QA Retest
 
 Not opened in a browser.
+
+### Verification — 2026-08-22, SESSION-0040
+
+Re-ran the guard this record names, rather than reading a green suite
+summary: REG-193 names `apps/admin/lib/monitoring-metrics.spec.ts`, and that is what was executed.
+
+```text
+npx jest --runTestsByPath, apps/admin   PASS
+```
+
+`Status: FIXED` → `VERIFIED`.
 
 ## History
 

@@ -2,7 +2,7 @@
 ID: BUG-0352
 aliases: [BUG-0352]
 Title: The tenant timeline rendered every entry with no count and no paging
-Status: FIXED
+Status: VERIFIED
 Severity: LOW
 Priority: P3
 Type: UX
@@ -11,14 +11,14 @@ DetectedDate: 2026-08-21
 DetectedInSha: 0d10a9d
 AffectedModules: [apps/admin]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-183
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation: agent/ux-round-two
 CreatedAt: 2026-08-21
-UpdatedAt: 2026-08-21
+UpdatedAt: 2026-08-22
 ResolvedAt: 2026-08-21
 ---
 
@@ -108,6 +108,17 @@ Fixed on `agent/ux-round-two`. Paging arithmetic extracted to
 ## QA Retest
 
 Not opened in a browser. The arithmetic is asserted; the rendered pager is not.
+
+### Verification — 2026-08-22, SESSION-0040
+
+Re-ran the guard this record names, rather than reading a green suite
+summary: REG-183 names `apps/admin/lib/list-paging.spec.ts`, and that is what was executed.
+
+```text
+npx jest --runTestsByPath, apps/admin   PASS
+```
+
+`Status: FIXED` → `VERIFIED`.
 
 ## History
 

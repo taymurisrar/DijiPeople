@@ -2,7 +2,7 @@
 ID: BUG-0351
 aliases: [BUG-0351]
 Title: The subscribe wizard progress rail truncated every step label
-Status: FIXED
+Status: VERIFIED
 Severity: MEDIUM
 Priority: P2
 Type: UX
@@ -11,14 +11,14 @@ DetectedDate: 2026-08-21
 DetectedInSha: 0d10a9d
 AffectedModules: [apps/landing]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-182
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation: agent/ux-round-two
 CreatedAt: 2026-08-21
-UpdatedAt: 2026-08-21
+UpdatedAt: 2026-08-22
 ResolvedAt: 2026-08-21
 ---
 
@@ -113,6 +113,17 @@ added alongside `STEP_TITLES` with a comment stating why both exist.
 ## QA Retest
 
 Not opened in a browser. Label length is asserted; rendered layout is not.
+
+### Verification — 2026-08-22, SESSION-0040
+
+Re-ran the guard this record names, rather than reading a green suite
+summary: REG-182 names `apps/landing/lib/use-country-options.spec.ts`, `apps/landing/lib/onboarding-wizard.spec.ts`, and that is what was executed.
+
+```text
+npx jest --runTestsByPath, apps/landing   PASS
+```
+
+`Status: FIXED` → `VERIFIED`.
 
 ## History
 

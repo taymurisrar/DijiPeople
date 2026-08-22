@@ -2,7 +2,7 @@
 ID: BUG-0045
 aliases: [BUG-0045]
 Title: The canonical settings and branding contract is materially stale
-Status: FIXED
+Status: VERIFIED
 Severity: MEDIUM
 Priority: P2
 Type: DOCUMENTATION
@@ -11,7 +11,7 @@ DetectedDate: 2026-08-17
 DetectedInSha: 1af3690
 AffectedModules: [apps/web, docs/architecture]
 OwnerAgent: architect
-ArchitectDisposition: PLAN_REQUIRED
+ArchitectDisposition: DONE
 QAReport: docs/qa/runs/2026-08-17-web-app-documentation-1af3690.md
 RegressionId: REG-208
 RelatedBacklogItem:
@@ -192,6 +192,17 @@ apps/web  full suite                    438 tests PASS
 Before the rewrite the route assertion listed eighteen dead URLs by name and the
 category assertion failed on "ten" — which is how the eighteen were found rather
 than guessed at. Scenario `QA-RUNTIME-011`.
+### Verification — 2026-08-22, SESSION-0040
+
+Re-ran the guard this record names, rather than reading a green suite
+summary: REG-208 names `apps/web/app/(authenticated)/settings/_lib/settings-doc-routes.spec.ts`, and that is what was executed.
+
+```text
+npx jest --runTestsByPath, apps/web   PASS
+```
+
+`Status: FIXED` → `VERIFIED`.
+
 ## History
 
 - 2026-08-17 — found during the `apps/web` deep documentation audit (TASK-0003).

@@ -2,7 +2,7 @@
 ID: BUG-0439
 aliases: [BUG-0439]
 Title: The subscribe form was disabled without looking disabled or saying why beside it
-Status: FIXED
+Status: VERIFIED
 Severity: MEDIUM
 Priority: P2
 Type: UX
@@ -11,7 +11,7 @@ DetectedDate: 2026-08-22
 DetectedInSha: 97f2a4a
 AffectedModules: [apps/landing, apps/admin]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-190
 RelatedBacklogItem:
@@ -136,6 +136,17 @@ Fixed on `agent/document-render-and-theme`.
 ## QA Retest
 
 Not opened in a browser. Suite F of the execution guide covers the visible half.
+
+### Verification — 2026-08-22, SESSION-0040
+
+Re-ran the guard this record names, rather than reading a green suite
+summary: REG-190 names `apps/landing/lib/subscribe-lock.spec.ts`, and that is what was executed.
+
+```text
+npx jest --runTestsByPath, apps/landing   PASS
+```
+
+`Status: FIXED` → `VERIFIED`.
 
 ## History
 

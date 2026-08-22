@@ -2,7 +2,7 @@
 ID: BUG-0220
 aliases: [BUG-0220]
 Title: Saving a plan from the runtime record page always returns 400
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -11,14 +11,14 @@ DetectedDate: 2026-08-21
 DetectedInSha: 08b8661
 AffectedModules: [apps/admin, api:platform-runtime, api:super-admin]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport:
 RegressionId: REG-174
 RelatedBacklogItem: ITEM-0022
 RelatedDecision:
 RelatedImplementation: agent/admin-record-status-header
 CreatedAt: 2026-08-21
-UpdatedAt: 2026-08-21
+UpdatedAt: 2026-08-22
 ResolvedAt: 2026-08-21
 ---
 
@@ -143,6 +143,17 @@ Fixed on `agent/admin-record-status-header`.
 ## QA Retest
 
 Covered by the regression spec above; no manual QA run was recorded.
+
+### Verification — 2026-08-22, SESSION-0040
+
+Re-ran the guard this record names, rather than reading a green suite
+summary: REG-174 names `apps/admin/lib/runtime/plan-record-form.spec.ts`, and that is what was executed.
+
+```text
+npx jest --runTestsByPath, apps/admin   PASS
+```
+
+`Status: FIXED` → `VERIFIED`.
 
 ## History
 

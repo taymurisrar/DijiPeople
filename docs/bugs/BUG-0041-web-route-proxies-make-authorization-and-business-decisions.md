@@ -2,7 +2,7 @@
 ID: BUG-0041
 aliases: [BUG-0041]
 Title: Web route proxies make authorization and business decisions
-Status: FIXED
+Status: VERIFIED
 Severity: MEDIUM
 Priority: P2
 Type: SECURITY
@@ -11,7 +11,7 @@ DetectedDate: 2026-08-17
 DetectedInSha: 1af3690
 AffectedModules: [apps/web]
 OwnerAgent: frontend
-ArchitectDisposition: PLAN_REQUIRED
+ArchitectDisposition: DONE
 QAReport: docs/qa/runs/2026-08-17-web-app-documentation-1af3690.md
 RegressionId: REG-055
 RelatedBacklogItem: ITEM-0050
@@ -263,6 +263,19 @@ The original record's caveat still stands and is worth keeping: the claim that
 these were the *only* such handlers rests on repo-wide greps for known patterns,
 which would not catch a novel one. `check-proxies-forward-refusals` and the
 forwarded-headers invariant cover the two shapes that have now bitten twice.
+
+### Verification — 2026-08-22, SESSION-0040
+
+Re-ran the guard this record names, rather than reading a green suite
+summary: REG-055 names `scripts/check-proxies-forward-refusals.mjs`, `npm run check:proxies-forward-refusals`, `scripts/check-proxy-forwards-client-ip.mjs`, `npm run check:proxy-forwards-client-ip`, and that is what was executed.
+
+```text
+node <script>   PASS
+npm run check:proxies-forward-refusals   PASS
+npm run check:proxy-forwards-client-ip   PASS
+```
+
+`Status: FIXED` → `VERIFIED`.
 
 ## History
 

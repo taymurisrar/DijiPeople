@@ -2,7 +2,7 @@
 ID: BUG-0494
 aliases: [BUG-0494]
 Title: Workspace hostnames stayed Pending for ever with nothing to explain or reconcile it
-Status: FIXED
+Status: VERIFIED
 Severity: MEDIUM
 Priority: P2
 Type: STATE_MACHINE
@@ -11,7 +11,7 @@ DetectedDate: 2026-08-22
 DetectedInSha: 098a0e6
 AffectedModules: [services/api/src/modules/tenant-domains, services/api/src/modules/super-admin, apps/admin]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-197
 RelatedBacklogItem:
@@ -117,6 +117,17 @@ Fixed on `agent/tenant-commands-monitoring-bulk-delete`.
 ## QA Retest
 
 Not run against a live setting change.
+
+### Verification — 2026-08-22, SESSION-0040
+
+Re-ran the guard this record names, rather than reading a green suite
+summary: REG-197 names `services/api/src/modules/tenant-domains/tenant-domain.service.spec.ts`, and that is what was executed.
+
+```text
+npx jest --runTestsByPath, services/api   PASS
+```
+
+`Status: FIXED` → `VERIFIED`.
 
 ## History
 

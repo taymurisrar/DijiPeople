@@ -2,7 +2,7 @@
 ID: BUG-0283
 aliases: [BUG-0283]
 Title: A regenerated Prisma client against an un-migrated database 500s every affected screen
-Status: FIXED
+Status: VERIFIED
 Severity: MEDIUM
 Priority: P2
 Type: INFRA
@@ -11,7 +11,7 @@ DetectedDate: 2026-08-21
 DetectedInSha: cf9ea47
 AffectedModules: [services/api, services/api/prisma, apps/admin]
 OwnerAgent: architect
-ArchitectDisposition: PLAN_REQUIRED
+ArchitectDisposition: DONE
 QAReport:
 RegressionId: REG-204
 RelatedBacklogItem:
@@ -157,6 +157,17 @@ Scenario `QA-DEPLOY-019`. The integration half — pointing the API at a genuine
 behind database and reading the log — is described in the scenario and was not
 run here; the unit coverage asserts the naming, the ordering, and that neither a
 missing `_prisma_migrations` table nor a filesystem failure can break startup.
+### Verification — 2026-08-22, SESSION-0040
+
+Re-ran the guard this record names, rather than reading a green suite
+summary: REG-204 names `services/api/src/common/prisma/migration-drift.spec.ts`, and that is what was executed.
+
+```text
+npx jest --runTestsByPath, services/api   PASS
+```
+
+`Status: FIXED` → `VERIFIED`.
+
 ## History
 
 - 2026-08-21 — reported by the user from an admin error log; root-caused to

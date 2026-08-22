@@ -2,7 +2,7 @@
 ID: BUG-0043
 aliases: [BUG-0043]
 Title: Web dialogs have no focus trap and filter controls are unlabelled
-Status: FIXED
+Status: VERIFIED
 Severity: MEDIUM
 Priority: P2
 Type: UX
@@ -11,7 +11,7 @@ DetectedDate: 2026-08-17
 DetectedInSha: 1af3690
 AffectedModules: [apps/web]
 OwnerAgent: ui-ux
-ArchitectDisposition: PLAN_REQUIRED
+ArchitectDisposition: DONE
 QAReport: docs/qa/runs/2026-08-17-web-app-documentation-1af3690.md
 RegressionId: REG-216
 RelatedBacklogItem:
@@ -200,6 +200,18 @@ The manual half — Tab cycling inside an open dialog, Escape closing it, focus
 returning to the opener, and a screen reader announcing the name — is described
 in the scenario and has **not** been run in a browser here. `apps/web` still has
 no browser E2E coverage at all, which is [[ITEM-0034]] and remains open.
+### Verification — 2026-08-22, SESSION-0040
+
+Re-ran the guard this record names, rather than reading a green suite
+summary: REG-216 names `scripts/check-dialogs-are-contained.mjs`, `apps/web/eslint.config.mjs`, and that is what was executed.
+
+```text
+node <script>   PASS
+npx jest --runTestsByPath, apps/web   PASS
+```
+
+`Status: FIXED` → `VERIFIED`.
+
 ## History
 
 - 2026-08-17 — found during the `apps/web` deep documentation audit (TASK-0003).

@@ -2,7 +2,7 @@
 ID: BUG-0282
 aliases: [BUG-0282]
 Title: The platform runtime schema manifest drifted from schema.prisma and no check noticed
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: DATA_INTEGRITY
@@ -11,14 +11,14 @@ DetectedDate: 2026-08-21
 DetectedInSha: cf9ea47
 AffectedModules: [packages/config, apps/admin, services/api/prisma]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport:
 RegressionId: REG-178
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation: agent/checkout-account-and-payment-confirmation
 CreatedAt: 2026-08-21
-UpdatedAt: 2026-08-21
+UpdatedAt: 2026-08-22
 ResolvedAt: 2026-08-21
 ---
 
@@ -124,6 +124,19 @@ the CI gate.
 ## QA Retest
 
 Covered by the CI check; no manual QA run was recorded.
+
+### Verification — 2026-08-22, SESSION-0040
+
+Re-ran the guard this record names, rather than reading a green suite
+summary: REG-178 names `scripts/generate-platform-runtime-schema.mjs`, `npm run check:runtime-schema`, `.github/workflows/ci.yml`, and that is what was executed.
+
+```text
+node <script>   PASS
+npm run check:runtime-schema   PASS
+whole-workspace suite for `.github/workflows/ci.yml`   PASS
+```
+
+`Status: FIXED` → `VERIFIED`.
 
 ## History
 

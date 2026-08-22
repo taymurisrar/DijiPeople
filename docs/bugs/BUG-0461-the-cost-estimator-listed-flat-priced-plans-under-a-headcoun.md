@@ -2,7 +2,7 @@
 ID: BUG-0461
 aliases: [BUG-0461]
 Title: The cost estimator listed flat-priced plans under a headcount input
-Status: FIXED
+Status: VERIFIED
 Severity: MEDIUM
 Priority: P2
 Type: UX
@@ -11,7 +11,7 @@ DetectedDate: 2026-08-22
 DetectedInSha: 3883798
 AffectedModules: [apps/landing]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-192
 RelatedBacklogItem:
@@ -106,6 +106,17 @@ Fixed on `agent/tenant-repair-and-console-ux`.
 ## QA Retest
 
 Not opened in a browser.
+
+### Verification — 2026-08-22, SESSION-0040
+
+Re-ran the guard this record names, rather than reading a green suite
+summary: REG-192 names `apps/landing/lib/plan-estimator.spec.ts`, and that is what was executed.
+
+```text
+npx jest --runTestsByPath, apps/landing   PASS
+```
+
+`Status: FIXED` → `VERIFIED`.
 
 ## History
 

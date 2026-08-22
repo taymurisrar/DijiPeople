@@ -2,7 +2,7 @@
 ID: BUG-0353
 aliases: [BUG-0353]
 Title: The API resolved a workspace hostname from a variable nothing sets
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: INTEGRATION
@@ -11,14 +11,14 @@ DetectedDate: 2026-08-21
 DetectedInSha: 0d10a9d
 AffectedModules: [services/api/src/modules/tenants, packages/config]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-184
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation: agent/ux-round-two
 CreatedAt: 2026-08-21
-UpdatedAt: 2026-08-21
+UpdatedAt: 2026-08-22
 ResolvedAt: 2026-08-21
 ---
 
@@ -131,6 +131,17 @@ Fixed on `agent/ux-round-two`.
 ## QA Retest
 
 Unit-verified. Not retested against a running API and a browser.
+
+### Verification — 2026-08-22, SESSION-0040
+
+Re-ran the guard this record names, rather than reading a green suite
+summary: REG-184 names `services/api/src/modules/tenants/public-tenant-host.spec.ts`, and that is what was executed.
+
+```text
+npx jest --runTestsByPath, services/api   PASS
+```
+
+`Status: FIXED` → `VERIFIED`.
 
 ## History
 

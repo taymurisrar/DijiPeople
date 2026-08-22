@@ -2,7 +2,7 @@
 ID: BUG-0460
 aliases: [BUG-0460]
 Title: The notification badge counted over a window sized by the page it was fetching
-Status: FIXED
+Status: VERIFIED
 Severity: MEDIUM
 Priority: P2
 Type: UX
@@ -11,7 +11,7 @@ DetectedDate: 2026-08-22
 DetectedInSha: 3883798
 AffectedModules: [services/api/src/modules/platform-events, apps/admin]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-191
 RelatedBacklogItem:
@@ -109,6 +109,17 @@ Fixed on `agent/tenant-repair-and-console-ux`.
 ## QA Retest
 
 Unit-verified. Not observed in a browser at sign-in.
+
+### Verification — 2026-08-22, SESSION-0040
+
+Re-ran the guard this record names, rather than reading a green suite
+summary: REG-191 names `services/api/src/modules/platform-events/notification-count.spec.ts`, and that is what was executed.
+
+```text
+npx jest --runTestsByPath, services/api   PASS
+```
+
+`Status: FIXED` → `VERIFIED`.
 
 ## History
 

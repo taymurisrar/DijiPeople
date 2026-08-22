@@ -2,7 +2,7 @@
 ID: BUG-0280
 aliases: [BUG-0280]
 Title: Self-service checkout leaves a customer with no plan, billing cycle or origin channel
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: DATA_INTEGRITY
@@ -11,14 +11,14 @@ DetectedDate: 2026-08-21
 DetectedInSha: cf9ea47
 AffectedModules: [api:billing, api:super-admin, apps/admin]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-177
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation: agent/checkout-account-and-payment-confirmation
 CreatedAt: 2026-08-21
-UpdatedAt: 2026-08-21
+UpdatedAt: 2026-08-22
 ResolvedAt: 2026-08-21
 ---
 
@@ -132,6 +132,17 @@ for a returning buyer without overwriting.
 ## QA Retest
 
 Covered by the regression spec; no manual QA run was recorded.
+
+### Verification — 2026-08-22, SESSION-0040
+
+Re-ran the guard this record names, rather than reading a green suite
+summary: REG-177 names `services/api/src/modules/billing/services/checkout-customer-record.spec.ts`, and that is what was executed.
+
+```text
+npx jest --runTestsByPath, services/api   PASS
+```
+
+`Status: FIXED` → `VERIFIED`.
 
 ## History
 

@@ -2,7 +2,7 @@
 ID: BUG-0492
 aliases: [BUG-0492]
 Title: The workspace URL was built by hand in two more places
-Status: FIXED
+Status: VERIFIED
 Severity: MEDIUM
 Priority: P2
 Type: INTEGRATION
@@ -11,7 +11,7 @@ DetectedDate: 2026-08-22
 DetectedInSha: 098a0e6
 AffectedModules: [services/api/src/modules/tenant-control-plane, packages/config]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-195
 RelatedBacklogItem:
@@ -104,6 +104,17 @@ Fixed on `agent/tenant-commands-monitoring-bulk-delete`.
 ## QA Retest
 
 Unit-verified. Not followed in a browser.
+
+### Verification — 2026-08-22, SESSION-0040
+
+Re-ran the guard this record names, rather than reading a green suite
+summary: REG-195 names `services/api/src/modules/tenant-control-plane/workspace-url.spec.ts`, and that is what was executed.
+
+```text
+npx jest --runTestsByPath, services/api   PASS
+```
+
+`Status: FIXED` → `VERIFIED`.
 
 ## History
 

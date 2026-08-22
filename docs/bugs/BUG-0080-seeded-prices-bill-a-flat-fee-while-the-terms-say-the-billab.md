@@ -2,7 +2,7 @@
 ID: BUG-0080
 aliases: [BUG-0080]
 Title: Seeded prices bill a flat fee while the Terms say the billable unit is an active employee
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: DATA_INTEGRITY
@@ -11,14 +11,14 @@ DetectedDate: 2026-08-20
 DetectedInSha: d4c0b00
 AffectedModules: [billing, super-admin, legal]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-075
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-20
-UpdatedAt: 2026-08-20
+UpdatedAt: 2026-08-22
 ResolvedAt: 2026-08-20
 ---
 
@@ -202,6 +202,17 @@ record has already misled one reader today.
 Pass. REG-075 and the QA scenario *"a flat price is never described as
 per-employee"* were added with the fix and assert the wording against the seeded
 billing model, so the two cannot drift apart again silently.
+
+### Verification — 2026-08-22, SESSION-0040
+
+Re-ran the guard this record names, rather than reading a green suite
+summary: REG-075 names `apps/landing/lib/plan-presentation.spec.ts`, and that is what was executed.
+
+```text
+npx jest --runTestsByPath, apps/landing   PASS
+```
+
+`Status: FIXED` → `VERIFIED`.
 
 ## History
 

@@ -2,7 +2,7 @@
 ID: BUG-0497
 aliases: [BUG-0497]
 Title: Fifteen modules offered no Delete and no reason for its absence
-Status: FIXED
+Status: VERIFIED
 Severity: MEDIUM
 Priority: P2
 Type: UX
@@ -11,7 +11,7 @@ DetectedDate: 2026-08-22
 DetectedInSha: 098a0e6
 AffectedModules: [apps/admin, services/api/src/modules/partners, services/api/src/modules/platform-runtime]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-200
 RelatedBacklogItem:
@@ -122,6 +122,18 @@ Fixed on `agent/tenant-commands-monitoring-bulk-delete`.
 ## QA Retest
 
 Unit-verified. No deletion was executed against real data.
+
+### Verification — 2026-08-22, SESSION-0040
+
+Re-ran the guard this record names, rather than reading a green suite
+summary: REG-200 names `services/api/src/modules/partners/partner-deletion.service.spec.ts`, `apps/admin/lib/runtime/platform-module-capabilities.spec.ts`, and that is what was executed.
+
+```text
+npx jest --runTestsByPath, services/api   PASS
+npx jest --runTestsByPath, apps/admin   PASS
+```
+
+`Status: FIXED` → `VERIFIED`.
 
 ## History
 

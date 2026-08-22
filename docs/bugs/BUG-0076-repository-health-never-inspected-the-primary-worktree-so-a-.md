@@ -2,7 +2,7 @@
 ID: BUG-0076
 aliases: [BUG-0076]
 Title: Repository health never inspected the primary worktree, so a clean task worktree passed as CLEANUP_STATUS DONE
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: INFRA
@@ -11,14 +11,14 @@ DetectedDate: 2026-08-19
 DetectedInSha: 494c44d
 AffectedModules: [scripts/repo-health.mjs, scripts/session.mjs]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: docs/qa/runs/2026-08-18-primary-worktree-repository-health-494c44d.md
 RegressionId: REG-065
 RelatedBacklogItem: ITEM-0057
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-19
-UpdatedAt: 2026-08-19
+UpdatedAt: 2026-08-22
 ResolvedAt: 2026-08-19
 ---
 
@@ -199,6 +199,17 @@ a `--root` override so the behaviour is executable in tests.
 ## QA Retest
 
 `docs/qa/runs/2026-08-18-primary-worktree-repository-health-494c44d.md`.
+
+### Verification — 2026-08-22, SESSION-0040
+
+Re-ran the guard this record names, rather than reading a green suite
+summary: REG-065 names `scripts/validate-framework.mjs`, and that is what was executed.
+
+```text
+node <script>   PASS
+```
+
+`Status: FIXED` → `VERIFIED`.
 
 ## History
 

@@ -2,7 +2,7 @@
 ID: BUG-0463
 aliases: [BUG-0463]
 Title: An active reachable tenant reported that its workspace was not provisioned
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: STATE_MACHINE
@@ -11,7 +11,7 @@ DetectedDate: 2026-08-22
 DetectedInSha: 3883798
 AffectedModules: [services/api/src/modules/tenant-control-plane, apps/admin]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-194
 RelatedBacklogItem:
@@ -140,6 +140,17 @@ Fixed on `agent/tenant-repair-and-console-ux`.
 
 Unit-verified over the derivation. The repair itself was not run against a live
 tenant.
+
+### Verification — 2026-08-22, SESSION-0040
+
+Re-ran the guard this record names, rather than reading a green suite
+summary: REG-194 names `services/api/src/modules/tenant-control-plane/workspace-health.spec.ts`, and that is what was executed.
+
+```text
+npx jest --runTestsByPath, services/api   PASS
+```
+
+`Status: FIXED` → `VERIFIED`.
 
 ## History
 

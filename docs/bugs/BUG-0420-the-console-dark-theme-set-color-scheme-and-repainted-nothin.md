@@ -2,7 +2,7 @@
 ID: BUG-0420
 aliases: [BUG-0420]
 Title: The console dark theme set color-scheme and repainted nothing
-Status: FIXED
+Status: VERIFIED
 Severity: MEDIUM
 Priority: P2
 Type: UX
@@ -11,7 +11,7 @@ DetectedDate: 2026-08-22
 DetectedInSha: fb7c771
 AffectedModules: [apps/admin]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-187
 RelatedBacklogItem:
@@ -118,6 +118,17 @@ Fixed on `agent/document-render-and-theme`.
 
 Not opened in a browser. The stylesheet is asserted structurally; contrast on
 each surface is unobserved.
+
+### Verification — 2026-08-22, SESSION-0040
+
+Re-ran the guard this record names, rather than reading a green suite
+summary: REG-187 names `apps/admin/lib/console-theme.spec.ts`, and that is what was executed.
+
+```text
+npx jest --runTestsByPath, apps/admin   PASS
+```
+
+`Status: FIXED` → `VERIFIED`.
 
 ## History
 

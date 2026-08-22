@@ -2,7 +2,7 @@
 ID: BUG-0419
 aliases: [BUG-0419]
 Title: Preview sample data replaced the live template and rendered one paint late
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: UX
@@ -11,7 +11,7 @@ DetectedDate: 2026-08-22
 DetectedInSha: fb7c771
 AffectedModules: [apps/admin]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-186
 RelatedBacklogItem:
@@ -117,6 +117,17 @@ Fixed on `agent/document-render-and-theme`.
 ## QA Retest
 
 Not opened in a browser.
+
+### Verification — 2026-08-22, SESSION-0040
+
+Re-ran the guard this record names, rather than reading a green suite
+summary: REG-186 names `apps/admin/lib/documents/template-preview.spec.ts`, and that is what was executed.
+
+```text
+npx jest --runTestsByPath, apps/admin   PASS
+```
+
+`Status: FIXED` → `VERIFIED`.
 
 ## History
 
