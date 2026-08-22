@@ -8,10 +8,10 @@
 | | |
 |---|---|
 | Open CRITICAL | **0** |
-| Open HIGH | **6** |
-| Open total | 27 |
+| Open HIGH | **7** |
+| Open total | 29 |
 | Blocked | 1 |
-| Awaiting a product decision | 3 |
+| Awaiting a product decision | 2 |
 | Deferred | 18 |
 | Completed | 166 |
 | Awaiting Architect triage | 0 |
@@ -26,6 +26,7 @@ _None. Nothing open at CRITICAL._
 |---|---|---|---|---|---|---|
 | [[BUG-0163-package-lock-json-cannot-be-regenerated-npm-overrides-are-si|BUG-0163]] | package-lock.json cannot be regenerated - npm overrides are silently ignored | INFRA | HIGH | FIXED | package-lock.json, apps/admin | DONE |
 | [[BUG-0714-customer-emails-link-to-the-vercel-app-host-and-api-base-url|BUG-0714]] | Customer emails link to the vercel.app host, and API_BASE_URL is plain HTTP | INFRA | HIGH | FIXED | services/api, apps/web, docs/deployment | FIX_NOW |
+| [[BUG-0767-render-yaml-is-not-what-production-runs-so-no-seed-or-legal-|BUG-0767]] | render.yaml is not what production runs, so no seed or legal publication has ever executed | INFRA | HIGH | FIXED | render.yaml, services/api/prisma, docs/deployment | DONE |
 | [[BUG-0792-qatar-market-resolves-to-gcc-because-its-country-row-is-neve|BUG-0792]] | Qatar market resolves to GCC because its country row is never repaired, so Doha visitors are quoted USD | DATA_INTEGRITY | HIGH | FIXED | api:super-admin | FIX_NOW |
 | [[BUG-0793-checkout-quotes-the-alphabetically-first-plan-price-currency|BUG-0793]] | Checkout quotes the alphabetically first plan price currency instead of the visitor market currency | BUG | HIGH | FIXED | apps/landing | FIX_NOW |
 | [[BUG-0794-plan-record-page-pricing-tab-is-filtered-out-leaving-plan-pr|BUG-0794]] | Plan record page Pricing tab is filtered out, leaving plan price configuration unreachable | UX | HIGH | FIXED | apps/admin | FIX_NOW |
@@ -35,7 +36,6 @@ _None. Nothing open at CRITICAL._
 
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
-| [[BUG-0767-render-yaml-is-not-what-production-runs-so-no-seed-or-legal-|BUG-0767]] | render.yaml is not what production runs, so no seed or legal publication has ever executed | INFRA | HIGH | PRODUCT_DECISION | render.yaml, services/api/prisma, docs/deployment | PRODUCT_DECISION |
 | [[ITEM-0062-no-multi-tenant-membership-one-user-belongs-to-one-tenant-so|ITEM-0062]] | No multi-tenant membership — one user belongs to one tenant, so discovery and switching cannot exist | ARCHITECTURE | HIGH | PRODUCT_DECISION | auth, users, tenant-domains, web | PRODUCT_DECISION |
 | [[ITEM-0079-activation-does-not-gate-on-a-workspace-having-any-module-en|ITEM-0079]] | Activation does not gate on a workspace having any module enabled | PRODUCT_DECISION | LOW | PRODUCT_DECISION | api:tenant-control-plane | PRODUCT_DECISION |
 
@@ -61,8 +61,10 @@ _None. Nothing open at CRITICAL._
 |---|---|---|---|---|---|---|
 | [[BUG-0163-package-lock-json-cannot-be-regenerated-npm-overrides-are-si|BUG-0163]] | package-lock.json cannot be regenerated - npm overrides are silently ignored | INFRA | HIGH | FIXED | package-lock.json, apps/admin | DONE |
 | [[BUG-0714-customer-emails-link-to-the-vercel-app-host-and-api-base-url|BUG-0714]] | Customer emails link to the vercel.app host, and API_BASE_URL is plain HTTP | INFRA | HIGH | FIXED | services/api, apps/web, docs/deployment | FIX_NOW |
+| [[BUG-0767-render-yaml-is-not-what-production-runs-so-no-seed-or-legal-|BUG-0767]] | render.yaml is not what production runs, so no seed or legal publication has ever executed | INFRA | HIGH | FIXED | render.yaml, services/api/prisma, docs/deployment | DONE |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0074-allocate-id-and-session-tooling-accept-a-session-id-that-doe|ITEM-0074]] | allocate-id and session tooling accept a session id that does not exist | INFRA | MEDIUM | READY | framework | PLAN_REQUIRED |
+| [[ITEM-0084-detect-drift-between-render-yaml-and-the-live-render-service|ITEM-0084]] | Detect drift between render.yaml and the live Render service | INFRA | MEDIUM | READY | render.yaml, scripts | FIX_NOW |
 | [[ITEM-0049-register-services-api-environment-reads-or-scope-the-rule|ITEM-0049]] | Register services/api environment reads or scope the rule to build inputs | INFRA | LOW | READY | services/api, turbo.json, docs/deployment | PLAN_REQUIRED |
 
 ## Recently Fixed Bugs
@@ -136,6 +138,7 @@ _None. Nothing open at CRITICAL._
 | [[BUG-0533-seeding-the-commercial-catalogue-never-corrected-an-existing|BUG-0533]] | Seeding the commercial catalogue never corrected an existing plan or price | DATA_INTEGRITY | HIGH | VERIFIED | super-admin, apps/admin | DONE |
 | [[BUG-0627-admin-sign-out-does-not-revoke-the-platform-session-when-the|BUG-0627]] | Admin sign-out does not revoke the platform session when the refresh cookie has expired | AUTHORIZATION | HIGH | VERIFIED | api:auth, apps/admin | DONE |
 | [[BUG-0714-customer-emails-link-to-the-vercel-app-host-and-api-base-url|BUG-0714]] | Customer emails link to the vercel.app host, and API_BASE_URL is plain HTTP | INFRA | HIGH | FIXED | services/api, apps/web, docs/deployment | FIX_NOW |
+| [[BUG-0767-render-yaml-is-not-what-production-runs-so-no-seed-or-legal-|BUG-0767]] | render.yaml is not what production runs, so no seed or legal publication has ever executed | INFRA | HIGH | FIXED | render.yaml, services/api/prisma, docs/deployment | DONE |
 | [[BUG-0792-qatar-market-resolves-to-gcc-because-its-country-row-is-neve|BUG-0792]] | Qatar market resolves to GCC because its country row is never repaired, so Doha visitors are quoted USD | DATA_INTEGRITY | HIGH | FIXED | api:super-admin | FIX_NOW |
 | [[BUG-0793-checkout-quotes-the-alphabetically-first-plan-price-currency|BUG-0793]] | Checkout quotes the alphabetically first plan price currency instead of the visitor market currency | BUG | HIGH | FIXED | apps/landing | FIX_NOW |
 | [[BUG-0794-plan-record-page-pricing-tab-is-filtered-out-leaving-plan-pr|BUG-0794]] | Plan record page Pricing tab is filtered out, leaving plan price configuration unreachable | UX | HIGH | FIXED | apps/admin | FIX_NOW |
@@ -254,6 +257,7 @@ _None. Nothing has been deployed through the release process._
 | [[ITEM-0077-re-read-the-packaged-agent-archive-after-the-node-pre-gyp-up|ITEM-0077]] | Re-read the packaged agent archive after the node-pre-gyp upgrade | TEST_GAP | MEDIUM | READY | apps/agent-desktop, package-lock.json | PLAN_REQUIRED |
 | [[ITEM-0078-no-end-to-end-payment-to-provisioned-tenant-run-against-stri|ITEM-0078]] | No end-to-end payment to provisioned tenant run against Stripe test mode | TEST_GAP | MEDIUM | READY | api:billing, api:tenant-control-plane, api:outbox, apps/landing | PLAN_REQUIRED |
 | [[ITEM-0081-nine-test-plans-are-needs-review-against-a-five-day-old-comm|ITEM-0081]] | Nine test plans are NEEDS_REVIEW against a five-day-old commit | TEST_GAP | MEDIUM | READY | docs/qa/test-plans | FIX_NOW |
+| [[ITEM-0084-detect-drift-between-render-yaml-and-the-live-render-service|ITEM-0084]] | Detect drift between render.yaml and the live Render service | INFRA | MEDIUM | READY | render.yaml, scripts | FIX_NOW |
 | [[ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning|ITEM-0023]] | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
 | [[BUG-0796-tenant-and-plan-list-summaries-omit-createdbyid-so-the-creat|BUG-0796]] | Tenant and plan list summaries omit createdById so the Created by me view is always empty | BUG | LOW | FIXED | api:super-admin | FIX_NOW |
 | [[ITEM-0049-register-services-api-environment-reads-or-scope-the-rule|ITEM-0049]] | Register services/api environment reads or scope the rule to build inputs | INFRA | LOW | READY | services/api, turbo.json, docs/deployment | PLAN_REQUIRED |
@@ -273,7 +277,7 @@ _None. Nothing has been deployed through the release process._
 | Knowledge | Count |
 |---|---|
 | Bug records | 132 |
-| Backlog items | 83 |
+| Backlog items | 84 |
 | Known bug patterns | 25 |
 | QA runs | 22 |
 | Engineering history records | 34 |

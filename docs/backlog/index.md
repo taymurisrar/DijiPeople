@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**215 records** — 132 bugs under [`docs/bugs/`](../bugs/), 83 non-bug items under [`items/`](items/).
+**216 records** — 132 bugs under [`docs/bugs/`](../bugs/), 84 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,21 +13,21 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 27 |
+| Open (active work) | 29 |
 | Blocked | 1 |
 | Deferred | 18 |
-| Awaiting a product decision | 3 |
+| Awaiting a product decision | 2 |
 | Completed / closed | 166 |
 | **Open CRITICAL** | **0** |
-| **Open HIGH** | **6** |
+| **Open HIGH** | **7** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
 
 | Severity | Count |
 |---|---|
-| HIGH | 6 |
-| MEDIUM | 17 |
+| HIGH | 7 |
+| MEDIUM | 18 |
 | LOW | 4 |
 
 ## Open by type
@@ -38,7 +38,7 @@ see [`README.md`](README.md) for why.
 | BUG | 2 |
 | DATA_INTEGRITY | 1 |
 | FOLLOW_UP | 2 |
-| INFRA | 5 |
+| INFRA | 7 |
 | PRODUCT_DECISION | 1 |
 | SECURITY | 3 |
 | TECH_DEBT | 4 |
@@ -51,11 +51,11 @@ see [`README.md`](README.md) for why.
 |---|---|
 | BLOCKED | 1 |
 | DEFERRED | 18 |
-| PRODUCT_DECISION | 3 |
-| FIXED | 7 |
+| PRODUCT_DECISION | 2 |
+| FIXED | 8 |
 | VERIFIED | 121 |
 | DUPLICATE | 2 |
-| READY | 20 |
+| READY | 21 |
 | DONE | 43 |
 
 ## All records
@@ -129,7 +129,7 @@ see [`README.md`](README.md) for why.
 | [BUG-0533](../../docs/bugs/BUG-0533-seeding-the-commercial-catalogue-never-corrected-an-existing.md) | Seeding the commercial catalogue never corrected an existing plan or price | DATA_INTEGRITY | HIGH | P1 | VERIFIED | super-admin, apps/admin | DONE |
 | [BUG-0627](../../docs/bugs/BUG-0627-admin-sign-out-does-not-revoke-the-platform-session-when-the.md) | Admin sign-out does not revoke the platform session when the refresh cookie has expired | AUTHORIZATION | HIGH | P1 | VERIFIED | api:auth, apps/admin | DONE |
 | [BUG-0714](../../docs/bugs/BUG-0714-customer-emails-link-to-the-vercel-app-host-and-api-base-url.md) | Customer emails link to the vercel.app host, and API_BASE_URL is plain HTTP | INFRA | HIGH | P1 | FIXED | services/api, apps/web, docs/deployment | FIX_NOW |
-| [BUG-0767](../../docs/bugs/BUG-0767-render-yaml-is-not-what-production-runs-so-no-seed-or-legal-.md) | render.yaml is not what production runs, so no seed or legal publication has ever executed | INFRA | HIGH | P1 | PRODUCT_DECISION | render.yaml, services/api/prisma, docs/deployment | PRODUCT_DECISION |
+| [BUG-0767](../../docs/bugs/BUG-0767-render-yaml-is-not-what-production-runs-so-no-seed-or-legal-.md) | render.yaml is not what production runs, so no seed or legal publication has ever executed | INFRA | HIGH | P1 | FIXED | render.yaml, services/api/prisma, docs/deployment | DONE |
 | [BUG-0792](../../docs/bugs/BUG-0792-qatar-market-resolves-to-gcc-because-its-country-row-is-neve.md) | Qatar market resolves to GCC because its country row is never repaired, so Doha visitors are quoted USD | DATA_INTEGRITY | HIGH | P1 | FIXED | api:super-admin | FIX_NOW |
 | [BUG-0793](../../docs/bugs/BUG-0793-checkout-quotes-the-alphabetically-first-plan-price-currency.md) | Checkout quotes the alphabetically first plan price currency instead of the visitor market currency | BUG | HIGH | P1 | FIXED | apps/landing | FIX_NOW |
 | [BUG-0794](../../docs/bugs/BUG-0794-plan-record-page-pricing-tab-is-filtered-out-leaving-plan-pr.md) | Plan record page Pricing tab is filtered out, leaving plan price configuration unreachable | UX | HIGH | P1 | FIXED | apps/admin | FIX_NOW |
@@ -241,6 +241,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0077](../../docs/backlog/items/ITEM-0077-re-read-the-packaged-agent-archive-after-the-node-pre-gyp-up.md) | Re-read the packaged agent archive after the node-pre-gyp upgrade | TEST_GAP | MEDIUM | P2 | READY | apps/agent-desktop, package-lock.json | PLAN_REQUIRED |
 | [ITEM-0078](../../docs/backlog/items/ITEM-0078-no-end-to-end-payment-to-provisioned-tenant-run-against-stri.md) | No end-to-end payment to provisioned tenant run against Stripe test mode | TEST_GAP | MEDIUM | P2 | READY | api:billing, api:tenant-control-plane, api:outbox, apps/landing | PLAN_REQUIRED |
 | [ITEM-0081](../../docs/backlog/items/ITEM-0081-nine-test-plans-are-needs-review-against-a-five-day-old-comm.md) | Nine test plans are NEEDS_REVIEW against a five-day-old commit | TEST_GAP | MEDIUM | P2 | READY | docs/qa/test-plans | FIX_NOW |
+| [ITEM-0084](../../docs/backlog/items/ITEM-0084-detect-drift-between-render-yaml-and-the-live-render-service.md) | Detect drift between render.yaml and the live Render service | INFRA | MEDIUM | P2 | READY | render.yaml, scripts | FIX_NOW |
 | [ITEM-0021](../../docs/backlog/items/ITEM-0021-mechanical-guard-against-country-and-currency-literals-in-fr.md) | Mechanical guard against country and currency literals in frontends | TEST_GAP | LOW | P2 | DONE | scripts, apps/landing, apps/web, apps/admin | DONE |
 | [ITEM-0023](../../docs/backlog/items/ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning.md) | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | P2 | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
 | [ITEM-0024](../../docs/backlog/items/ITEM-0024-landing-depends-on-lucide-react-without-declaring-it.md) | Landing depends on lucide-react without declaring it | TECH_DEBT | LOW | P2 | DONE | apps/landing | DONE |

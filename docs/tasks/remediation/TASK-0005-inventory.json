@@ -6582,14 +6582,14 @@
         "provenance": "DEPLOYMENT",
         "detected_in_sha": "3c0efdb",
         "created_at": "2026-08-22",
-        "updated_at": "2026-08-22",
-        "resolved_at": ""
+        "updated_at": "2026-08-23",
+        "resolved_at": "2026-08-23"
       },
       "type": "INFRA",
       "title": "render.yaml is not what production runs, so no seed or legal publication has ever executed",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "PRODUCT_DECISION",
+      "current_status": "FIXED",
       "current_evidence": {
         "paths": [
           "render.yaml",
@@ -6623,8 +6623,237 @@
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "YES",
-      "architect_disposition": "PRODUCT_DECISION",
+      "architect_disposition": "DONE",
       "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-0792",
+      "title": "Qatar market resolves to GCC because its country row is never repaired, so Doha visitors are quoted USD",
+      "type": "DATA_INTEGRITY",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "verification_result": "NOT_VERIFIED",
+      "owner_decision_required": "YES",
+      "active_session_conflict": "NONE",
+      "affected_modules": [
+        "services/api/src/modules/super-admin"
+      ],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/super-admin/commercial-bootstrap.ts",
+          "services/api/src/modules/super-admin/markets.catalog.ts",
+          "services/api/prisma/migrations/20260820140000_planprice_billing_model_uniqueness_and_overage/migration.sql"
+        ],
+        "verification_scope": "MarketCountry.countryCode is unique globally, so GCC holding 'QA' made the Qatar market's own country row impossible to create. The seed caught that unique violation as benign and then skipped the market forever after, and the repair migration is guarded on the market existing while running before the seed that creates it. Production served a LAUNCHED, published, QAR-priced Qatar market that resolved for nobody, so every Doha visitor fell through to GCC at USD with no purchasable offer. Confirmed live against /api/public/commercial-config on 2026-08-22 at API commit 35f263c. Code fix is committed and unit-tested; the live data repair needs `npm run seed:commercial` run once against production, which is not in the release chain and is the owner's call because the same seed also reconciles plan prices."
+      },
+      "dependencies": {
+        "note": "Live repair requires a production seed run the release chain does not perform.",
+        "record_ids": []
+      },
+      "qa_scenarios": [
+        "QA-BILLING-015"
+      ],
+      "regressions": [
+        "REG-230"
+      ],
+      "related_backlog": [],
+      "related_bugs": [
+        "BUG-0793"
+      ],
+      "test_plan": [],
+      "source": {
+        "created_at": "2026-08-22",
+        "detected_in_sha": "8c56006",
+        "provenance": "USER_REPORT",
+        "record_path": "docs/bugs/BUG-0792-qatar-market-resolves-to-gcc-because-its-country-row-is-neve.md",
+        "resolved_at": "2026-08-22",
+        "updated_at": "2026-08-22"
+      }
+    },
+    {
+      "record_id": "BUG-0793",
+      "title": "Checkout quotes the alphabetically first plan price currency instead of the visitor market currency",
+      "type": "BUG",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "verification_result": "NOT_VERIFIED",
+      "owner_decision_required": "NO",
+      "active_session_conflict": "NONE",
+      "affected_modules": [
+        "apps/landing"
+      ],
+      "current_evidence": {
+        "paths": [
+          "apps/landing/lib/subscribe-selection.ts",
+          "apps/landing/app/subscribe/subscribe-form.tsx",
+          "apps/landing/app/page.tsx"
+        ],
+        "verification_scope": "/public/plans is not market-scoped and orders prices by currency ascending, so every prices[0] in resolveSubscribeSelection meant 'whichever currency sorts first' - QAR ahead of USD - and the form preferred that over the server-resolved market currency. The home page separately read /public/plans while /plans read commercial config, so the three surfaces could not agree by construction. Fixed by narrowing candidate prices to the market currency and moving the home page onto commercial config. Seven regression cases against a two-currency fixture in the order the API returns it."
+      },
+      "dependencies": {
+        "note": "End-to-end confirmation depends on BUG-0792's live market repair.",
+        "record_ids": [
+          "BUG-0792"
+        ]
+      },
+      "qa_scenarios": [
+        "QA-LANDING-015"
+      ],
+      "regressions": [
+        "REG-231"
+      ],
+      "related_backlog": [],
+      "related_bugs": [
+        "BUG-0792"
+      ],
+      "test_plan": [],
+      "source": {
+        "created_at": "2026-08-22",
+        "detected_in_sha": "8c56006",
+        "provenance": "USER_REPORT",
+        "record_path": "docs/bugs/BUG-0793-checkout-quotes-the-alphabetically-first-plan-price-currency.md",
+        "resolved_at": "2026-08-22",
+        "updated_at": "2026-08-22"
+      }
+    },
+    {
+      "record_id": "BUG-0794",
+      "title": "Plan record page Pricing tab is filtered out, leaving plan price configuration unreachable",
+      "type": "UX",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "verification_result": "NOT_VERIFIED",
+      "owner_decision_required": "NO",
+      "active_session_conflict": "NONE",
+      "affected_modules": [
+        "apps/admin"
+      ],
+      "current_evidence": {
+        "paths": [
+          "apps/admin/app/_components/runtime/runtime-record-page.tsx",
+          "apps/admin/lib/runtime/platform-module-registry.ts"
+        ],
+        "verification_scope": "RuntimeRecordPage keeps a tab only if it has fields, a relationship, a timeline, or an explicit runtime-panel allowance. planForms() declares a pricing tab with zero fields, and pricing was omitted from the allowance that entitlements had already been added to for the identical reason - so PlanPriceManager stayed mounted behind an activeTab nothing could select. The only route left to the amounts checkout charges was /plans/<id>?workspace=legacy-commerce, which nothing links to. Present at production commit 35f263c. The regression spec now derives reachability from the file rather than restating the list."
+      },
+      "dependencies": {
+        "note": "",
+        "record_ids": []
+      },
+      "qa_scenarios": [
+        "QA-RUNTIME-015"
+      ],
+      "regressions": [
+        "REG-232"
+      ],
+      "related_backlog": [],
+      "related_bugs": [
+        "BUG-0795"
+      ],
+      "test_plan": [],
+      "source": {
+        "created_at": "2026-08-22",
+        "detected_in_sha": "8c56006",
+        "provenance": "USER_REPORT",
+        "record_path": "docs/bugs/BUG-0794-plan-record-page-pricing-tab-is-filtered-out-leaving-plan-pr.md",
+        "resolved_at": "2026-08-22",
+        "updated_at": "2026-08-22"
+      }
+    },
+    {
+      "record_id": "BUG-0795",
+      "title": "Saved table preferences hide every column added to a module afterwards",
+      "type": "UX",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "verification_result": "NOT_VERIFIED",
+      "owner_decision_required": "NO",
+      "active_session_conflict": "NONE",
+      "affected_modules": [
+        "apps/admin"
+      ],
+      "current_evidence": {
+        "paths": [
+          "apps/admin/app/_components/runtime/runtime-module-list.tsx"
+        ],
+        "verification_scope": "Saved table state was reapplied verbatim, so a column added to a module after an operator last saved was absent from their visibleColumns and therefore hidden - permanently, silently, and only for the operators who use the screen most. New columns were also appended to the far right, so a column the definition puts first arrived last. columnOrder distinguishes 'never offered' from 'deliberately turned off' and is now used for that. Affects all eighteen platform modules, not only Tenants."
+      },
+      "dependencies": {
+        "note": "",
+        "record_ids": []
+      },
+      "qa_scenarios": [
+        "QA-RUNTIME-016"
+      ],
+      "regressions": [
+        "REG-233"
+      ],
+      "related_backlog": [],
+      "related_bugs": [
+        "BUG-0794",
+        "BUG-0796"
+      ],
+      "test_plan": [],
+      "source": {
+        "created_at": "2026-08-22",
+        "detected_in_sha": "8c56006",
+        "provenance": "USER_REPORT",
+        "record_path": "docs/bugs/BUG-0795-saved-table-preferences-hide-every-column-added-to-a-module-.md",
+        "resolved_at": "2026-08-22",
+        "updated_at": "2026-08-22"
+      }
+    },
+    {
+      "record_id": "BUG-0796",
+      "title": "Tenant and plan list summaries omit createdById so the Created by me view is always empty",
+      "type": "BUG",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "verification_result": "NOT_VERIFIED",
+      "owner_decision_required": "NO",
+      "active_session_conflict": "NONE",
+      "affected_modules": [
+        "services/api/src/modules/super-admin"
+      ],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/super-admin/super-admin.service.ts",
+          "packages/config/platform-runtime-views.js"
+        ],
+        "verification_scope": "PLATFORM_MODULE_VIEW_RULES filters the 'Created by me' view on createdById for Tenants and Plans, and neither list mapper returned it - only the detail mappers did, which is why the record page never showed the symptom. readPath returned undefined, so the tab was empty for everyone, always. Same shape as the 'Active' view that matched a status a module never used: a control that looks functional and selects nothing."
+      },
+      "dependencies": {
+        "note": "",
+        "record_ids": []
+      },
+      "qa_scenarios": [
+        "QA-PLATFORM-020"
+      ],
+      "regressions": [
+        "REG-234"
+      ],
+      "related_backlog": [],
+      "related_bugs": [
+        "BUG-0795"
+      ],
+      "test_plan": [],
+      "source": {
+        "created_at": "2026-08-22",
+        "detected_in_sha": "8c56006",
+        "provenance": "USER_REPORT",
+        "record_path": "docs/bugs/BUG-0796-tenant-and-plan-list-summaries-omit-createdbyid-so-the-creat.md",
+        "resolved_at": "2026-08-22",
+        "updated_at": "2026-08-22"
+      }
     },
     {
       "record_id": "ITEM-0001",
@@ -10541,233 +10770,47 @@
       "verification_result": "NOT_VERIFIED"
     },
     {
-      "record_id": "BUG-0792",
-      "title": "Qatar market resolves to GCC because its country row is never repaired, so Doha visitors are quoted USD",
-      "type": "DATA_INTEGRITY",
-      "severity": "HIGH",
-      "priority": "P1",
-      "current_status": "FIXED",
-      "architect_disposition": "FIX_NOW",
-      "verification_result": "NOT_VERIFIED",
-      "owner_decision_required": "YES",
-      "active_session_conflict": "NONE",
-      "affected_modules": [
-        "services/api/src/modules/super-admin"
-      ],
-      "current_evidence": {
-        "paths": [
-          "services/api/src/modules/super-admin/commercial-bootstrap.ts",
-          "services/api/src/modules/super-admin/markets.catalog.ts",
-          "services/api/prisma/migrations/20260820140000_planprice_billing_model_uniqueness_and_overage/migration.sql"
-        ],
-        "verification_scope": "MarketCountry.countryCode is unique globally, so GCC holding 'QA' made the Qatar market's own country row impossible to create. The seed caught that unique violation as benign and then skipped the market forever after, and the repair migration is guarded on the market existing while running before the seed that creates it. Production served a LAUNCHED, published, QAR-priced Qatar market that resolved for nobody, so every Doha visitor fell through to GCC at USD with no purchasable offer. Confirmed live against /api/public/commercial-config on 2026-08-22 at API commit 35f263c. Code fix is committed and unit-tested; the live data repair needs `npm run seed:commercial` run once against production, which is not in the release chain and is the owner's call because the same seed also reconciles plan prices."
-      },
-      "dependencies": {
-        "note": "Live repair requires a production seed run the release chain does not perform.",
-        "record_ids": []
-      },
-      "qa_scenarios": [
-        "QA-BILLING-015"
-      ],
-      "regressions": [
-        "REG-230"
-      ],
-      "related_backlog": [],
-      "related_bugs": [
-        "BUG-0793"
-      ],
-      "test_plan": [],
+      "record_id": "ITEM-0084",
       "source": {
+        "record_path": "docs/backlog/items/ITEM-0084-detect-drift-between-render-yaml-and-the-live-render-service.md",
+        "provenance": "DEPLOYMENT",
+        "detected_in_sha": "",
         "created_at": "2026-08-22",
-        "detected_in_sha": "8c56006",
-        "provenance": "USER_REPORT",
-        "record_path": "docs/bugs/BUG-0792-qatar-market-resolves-to-gcc-because-its-country-row-is-neve.md",
-        "resolved_at": "2026-08-22",
-        "updated_at": "2026-08-22"
-      }
-    },
-    {
-      "record_id": "BUG-0793",
-      "title": "Checkout quotes the alphabetically first plan price currency instead of the visitor market currency",
-      "type": "BUG",
-      "severity": "HIGH",
-      "priority": "P1",
-      "current_status": "FIXED",
-      "architect_disposition": "FIX_NOW",
-      "verification_result": "NOT_VERIFIED",
-      "owner_decision_required": "NO",
-      "active_session_conflict": "NONE",
-      "affected_modules": [
-        "apps/landing"
-      ],
-      "current_evidence": {
-        "paths": [
-          "apps/landing/lib/subscribe-selection.ts",
-          "apps/landing/app/subscribe/subscribe-form.tsx",
-          "apps/landing/app/page.tsx"
-        ],
-        "verification_scope": "/public/plans is not market-scoped and orders prices by currency ascending, so every prices[0] in resolveSubscribeSelection meant 'whichever currency sorts first' - QAR ahead of USD - and the form preferred that over the server-resolved market currency. The home page separately read /public/plans while /plans read commercial config, so the three surfaces could not agree by construction. Fixed by narrowing candidate prices to the market currency and moving the home page onto commercial config. Seven regression cases against a two-currency fixture in the order the API returns it."
+        "updated_at": "2026-08-22",
+        "resolved_at": ""
       },
-      "dependencies": {
-        "note": "End-to-end confirmation depends on BUG-0792's live market repair.",
-        "record_ids": [
-          "BUG-0792"
-        ]
-      },
-      "qa_scenarios": [
-        "QA-LANDING-015"
-      ],
-      "regressions": [
-        "REG-231"
-      ],
-      "related_backlog": [],
-      "related_bugs": [
-        "BUG-0792"
-      ],
-      "test_plan": [],
-      "source": {
-        "created_at": "2026-08-22",
-        "detected_in_sha": "8c56006",
-        "provenance": "USER_REPORT",
-        "record_path": "docs/bugs/BUG-0793-checkout-quotes-the-alphabetically-first-plan-price-currency.md",
-        "resolved_at": "2026-08-22",
-        "updated_at": "2026-08-22"
-      }
-    },
-    {
-      "record_id": "BUG-0794",
-      "title": "Plan record page Pricing tab is filtered out, leaving plan price configuration unreachable",
-      "type": "UX",
-      "severity": "HIGH",
-      "priority": "P1",
-      "current_status": "FIXED",
-      "architect_disposition": "FIX_NOW",
-      "verification_result": "NOT_VERIFIED",
-      "owner_decision_required": "NO",
-      "active_session_conflict": "NONE",
-      "affected_modules": [
-        "apps/admin"
-      ],
-      "current_evidence": {
-        "paths": [
-          "apps/admin/app/_components/runtime/runtime-record-page.tsx",
-          "apps/admin/lib/runtime/platform-module-registry.ts"
-        ],
-        "verification_scope": "RuntimeRecordPage keeps a tab only if it has fields, a relationship, a timeline, or an explicit runtime-panel allowance. planForms() declares a pricing tab with zero fields, and pricing was omitted from the allowance that entitlements had already been added to for the identical reason - so PlanPriceManager stayed mounted behind an activeTab nothing could select. The only route left to the amounts checkout charges was /plans/<id>?workspace=legacy-commerce, which nothing links to. Present at production commit 35f263c. The regression spec now derives reachability from the file rather than restating the list."
-      },
-      "dependencies": {
-        "note": "",
-        "record_ids": []
-      },
-      "qa_scenarios": [
-        "QA-RUNTIME-015"
-      ],
-      "regressions": [
-        "REG-232"
-      ],
-      "related_backlog": [],
-      "related_bugs": [
-        "BUG-0795"
-      ],
-      "test_plan": [],
-      "source": {
-        "created_at": "2026-08-22",
-        "detected_in_sha": "8c56006",
-        "provenance": "USER_REPORT",
-        "record_path": "docs/bugs/BUG-0794-plan-record-page-pricing-tab-is-filtered-out-leaving-plan-pr.md",
-        "resolved_at": "2026-08-22",
-        "updated_at": "2026-08-22"
-      }
-    },
-    {
-      "record_id": "BUG-0795",
-      "title": "Saved table preferences hide every column added to a module afterwards",
-      "type": "UX",
+      "type": "INFRA",
+      "title": "Detect drift between render.yaml and the live Render service",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "FIXED",
-      "architect_disposition": "FIX_NOW",
-      "verification_result": "NOT_VERIFIED",
-      "owner_decision_required": "NO",
-      "active_session_conflict": "NONE",
-      "affected_modules": [
-        "apps/admin"
-      ],
+      "current_status": "READY",
       "current_evidence": {
         "paths": [
-          "apps/admin/app/_components/runtime/runtime-module-list.tsx"
+          "render.yaml",
+          "scripts/repo-health.mjs"
         ],
-        "verification_scope": "Saved table state was reapplied verbatim, so a column added to a module after an operator last saved was absent from their visibleColumns and therefore hidden - permanently, silently, and only for the operators who use the screen most. New columns were also appended to the far right, so a column the definition puts first arrived last. columnOrder distinguishes 'never offered' from 'deliberately turned off' and is now used for that. Affects all eighteen platform modules, not only Tenants."
+        "verification_scope": "BUG-0767 fixed the drift between render.yaml and the live Render service by making them agree; nothing detects the next divergence. The file is committed and reviewed, the service is edited in a dashboard, and those two facts guarantee they drift. The last divergence was invisible because migrations kept applying - deploys looked correct while seed:config, seed:verify, seed:admin, seed:legal and legal:publish had never executed on production, which meant no purchase could record consent. Verification is a script that reads the live service and diffs buildCommand, startCommand, preDeployCommand, healthCheckPath, autoDeploy and branch against the file, reporting the field and both values rather than a boolean. Not a required CI job: it needs RENDER_API_KEY which CI does not hold and should not, so it runs from repo:health when the key is present and says loudly when it skipped."
       },
-      "dependencies": {
-        "note": "",
-        "record_ids": []
-      },
-      "qa_scenarios": [
-        "QA-RUNTIME-016"
-      ],
-      "regressions": [
-        "REG-233"
-      ],
-      "related_backlog": [],
-      "related_bugs": [
-        "BUG-0794",
-        "BUG-0796"
-      ],
-      "test_plan": [],
-      "source": {
-        "created_at": "2026-08-22",
-        "detected_in_sha": "8c56006",
-        "provenance": "USER_REPORT",
-        "record_path": "docs/bugs/BUG-0795-saved-table-preferences-hide-every-column-added-to-a-module-.md",
-        "resolved_at": "2026-08-22",
-        "updated_at": "2026-08-22"
-      }
-    },
-    {
-      "record_id": "BUG-0796",
-      "title": "Tenant and plan list summaries omit createdById so the Created by me view is always empty",
-      "type": "BUG",
-      "severity": "LOW",
-      "priority": "P3",
-      "current_status": "FIXED",
-      "architect_disposition": "FIX_NOW",
-      "verification_result": "NOT_VERIFIED",
-      "owner_decision_required": "NO",
-      "active_session_conflict": "NONE",
       "affected_modules": [
-        "services/api/src/modules/super-admin"
+        "render.yaml",
+        "scripts"
       ],
-      "current_evidence": {
-        "paths": [
-          "services/api/src/modules/super-admin/super-admin.service.ts",
-          "packages/config/platform-runtime-views.js"
-        ],
-        "verification_scope": "PLATFORM_MODULE_VIEW_RULES filters the 'Created by me' view on createdById for Tenants and Plans, and neither list mapper returned it - only the detail mappers did, which is why the record page never showed the symptom. readPath returned undefined, so the tab was empty for everyone, always. Same shape as the 'Active' view that matched a status a module never used: a control that looks functional and selects nothing."
-      },
       "dependencies": {
-        "note": "",
-        "record_ids": []
+        "record_ids": [],
+        "note": ""
       },
-      "qa_scenarios": [
-        "QA-PLATFORM-020"
-      ],
-      "regressions": [
-        "REG-234"
+      "related_bugs": [
+        "BUG-0767",
+        "BUG-0714"
       ],
       "related_backlog": [],
-      "related_bugs": [
-        "BUG-0795"
-      ],
+      "regressions": [],
+      "qa_scenarios": [],
       "test_plan": [],
-      "source": {
-        "created_at": "2026-08-22",
-        "detected_in_sha": "8c56006",
-        "provenance": "USER_REPORT",
-        "record_path": "docs/bugs/BUG-0796-tenant-and-plan-list-summaries-omit-createdbyid-so-the-creat.md",
-        "resolved_at": "2026-08-22",
-        "updated_at": "2026-08-22"
-      }
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "FIX_NOW",
+      "verification_result": "NOT_VERIFIED"
     }
   ],
   "discovered_findings": [
