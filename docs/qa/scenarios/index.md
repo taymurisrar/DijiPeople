@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 159** · automated: 143 · manual: 5 · blocked by infrastructure: 0
+**Scenarios: 160** · automated: 144 · manual: 5 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -145,6 +145,7 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-PROV-002](../../../docs/qa/scenarios/QA-PROV-002-provisioning-is-safe-to-submit-twice.md) | Provisioning is safe to submit twice | tenant-provisioning | UNIT | CRITICAL | AUTOMATED | `services/api/src/modules/super-admin/tenant-provisioning-idempotency.spec.ts` | BUG-0022 | REG-030 |
 | [QA-PROV-003](../../../docs/qa/scenarios/QA-PROV-003-issued-tenant-hostnames-honour-the-configured-base-domain.md) | Issued tenant hostnames honour the configured base domain | tenant-provisioning | UNIT | HIGH | AUTOMATED | `services/api/src/common/config/tenant-url.config.spec.ts` | BUG-0017, BUG-0026 | REG-016, REG-027 |
 | [QA-PROV-004](../../../docs/qa/scenarios/QA-PROV-004-a-tenant-failing-before-identities-and-billing-is-still-reco.md) | A tenant failing before identities and billing is still recoverable | tenant-provisioning | E2E | CRITICAL | AUTOMATED | `services/api/test/tenant-provisioning-recovery.e2e-spec.ts` | BUG-0015 | REG-013 |
+| [QA-PROV-005](../../../docs/qa/scenarios/QA-PROV-005-a-tenant-reaches-active-and-its-owner-can-sign-in.md) | A tenant reaches ACTIVE and its owner can sign in | tenant-provisioning | E2E | CRITICAL | AUTOMATED | `services/api/test/tenant-activation.e2e-spec.ts` | ITEM-0004 | REG-222 |
 | [QA-RUNTIME-001](../../../docs/qa/scenarios/QA-RUNTIME-001-every-declared-runtime-module-has-a-route-that-renders-it.md) | Every declared runtime module has a route that renders it | runtime-modules | UNIT | HIGH | AUTOMATED | `apps/admin/lib/runtime/module-routes.invariant.spec.ts` | BUG-0019, BUG-0024 | REG-028 |
 | [QA-RUNTIME-002](../../../docs/qa/scenarios/QA-RUNTIME-002-entity-scope-resolution-never-falls-back-to-unscoped.md) | Entity scope resolution never falls back to unscoped | runtime-modules | SECURITY | CRITICAL | AUTOMATED | `services/api/src/modules/data/entity-scope.resolver.spec.ts` | — | — |
 | [QA-RUNTIME-003](../../../docs/qa/scenarios/QA-RUNTIME-003-the-entity-query-validator-rejects-filters-it-cannot-safely-.md) | The entity query validator rejects filters it cannot safely translate | runtime-modules | UNIT | HIGH | AUTOMATED | `services/api/src/modules/data/entity-query-validator.spec.ts` | — | — |

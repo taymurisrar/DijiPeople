@@ -6578,14 +6578,14 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "",
         "created_at": "2026-08-15",
-        "updated_at": "2026-08-17",
+        "updated_at": "2026-08-22",
         "resolved_at": ""
       },
       "type": "TEST_GAP",
       "title": "Tenant activation to ACTIVE has never been reached in any test",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "READY",
+      "current_status": "DONE",
       "current_evidence": {
         "paths": [
           "docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md",
@@ -6605,12 +6605,16 @@
         "BUG-0022"
       ],
       "related_backlog": [],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-222"
+      ],
+      "qa_scenarios": [
+        "QA-PROV-005"
+      ],
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "VERIFIED",
         "classification": "ACTIVE_WITH_STALE_BLOCKED_BY",
@@ -10106,6 +10110,49 @@
       "active_session_conflict": "NONE",
       "owner_decision_required": "YES",
       "architect_disposition": "PLAN_REQUIRED",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0079",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0079-activation-does-not-gate-on-a-workspace-having-any-module-en.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": ""
+      },
+      "type": "PRODUCT_DECISION",
+      "title": "Activation does not gate on a workspace having any module enabled",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "PRODUCT_DECISION",
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/tenant-control-plane/tenant-control-plane.service.ts",
+          "services/api/test/tenant-activation.e2e-spec.ts"
+        ],
+        "verification_scope": "changeStatus refuses activation for two reasons its own comments explain — a workspace nobody can administer, and one nobody can reach — by filtering readiness down to ['workspace-slug', 'workspace-domain', 'workspace-routing'] plus the owner count. Readiness names a third way a workspace can be live and useless, 'No module is enabled, so the workspace has nothing a user can open', marks it BLOCKER, and the gate does not check it. A tenant therefore reaches ACTIVE, its owner signs in successfully, and lands somewhere empty. Found while closing ITEM-0004; visible there because that suite's fixture plan entitles no modules, whereas an ordinary provisioning run entitles something and the blocker never appears. Raised as PRODUCT_DECISION rather than a bug because extending an activation gate could block legitimate activations where modules are enabled afterwards, and refusing an operator's action is not a change to make on an agent's judgement. Verification is the assertion in tenant-activation.e2e-spec.ts that pins today's behaviour: if the gate is extended, that test fails and names this record, so the decision cannot be silently lost."
+      },
+      "affected_modules": [
+        "services/api/src/modules/tenant-control-plane"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": "Needs a product call on whether activation should refuse a workspace with no module enabled."
+      },
+      "related_bugs": [
+        "BUG-0015"
+      ],
+      "related_backlog": [
+        "ITEM-0004"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "YES",
+      "architect_disposition": "PRODUCT_DECISION",
       "verification_result": "NOT_VERIFIED"
     }
   ],

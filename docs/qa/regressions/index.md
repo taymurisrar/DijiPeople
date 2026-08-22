@@ -1870,3 +1870,18 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | The scope test needed that second probe. Its first version signed out as `web` using an **admin** session id and asserted the platform token survived — which passes whatever the filter says, since admin tokens live in `PlatformRefreshToken` and a `web` logout could never reach one. It stayed green with `appClientId` deleted from the production code: an assertion that cannot fail, inside the suite written to remove exactly that. It now uses `web` and `agent-desktop` rows in the *same* table, which is the claim `appClientId` actually makes. |
 | **Fixed** | 2026-08-22, branch `agent/qa-verify-and-burndown` |
 | **Active** | yes |
+
+### REG-222 — The successful tenant activation path had never been observed
+
+| | |
+|---|---|
+| **Bug class** | `unobserved-happy-path` |
+| **Module** | `services/api/src/modules/tenant-control-plane`, `services/api/src/modules/auth` |
+| **Bug record** | ITEM-0004 |
+| **Root cause** | The commercial onboarding E2E of 2026-08-15 proved five activation **gates** and never reached a successful activation, because BUG-0015 stranded the test tenant with no owner. Its verdict recorded `TENANT_PROVISIONING = FAIL`. A gate fails loudly and is the easy half to test; the path through it, post-activation owner sign-in and the eight-tab verification were all unobserved. The end of the primary commercial journey had never been seen working. |
+| **Regression test** | `services/api/test/tenant-activation.e2e-spec.ts` |
+| **Scenario** | Seventeen tests over real HTTP against a real database, driven as a platform operator who signed in through `POST /api/admin/auth/login`. A tenant starting at `PENDING_SETUP` is refused activation while it has no address; its owner is refused a sign-in; the address is issued and activation succeeds; the tenant row reads `ACTIVE` with the operator’s reason; the same owner now signs in; the change is in the audit trail; all eight tenant tabs serve data; and no reachability blocker is left standing. |
+| **Proven to fail without the fix** | Disabling the routing gate in `changeStatus` fails three tests — the refusal, the owner sign-in refusal, and the activation itself, which then reports a tenant activated without an address. |
+| **Note** | The owner sign-in is asserted as a **pair**: refused before activation, accepted after, against the same account. Asserting only the second would pass on a build where a suspended workspace never locked anybody out, which is the half with the security consequence. The activation is read back from the row rather than from the response, because a handler that echoed the requested status would satisfy the response check. The suite also pins ITEM-0079 — a tenant reaches ACTIVE with the `modules` readiness blocker still standing, so the owner signs in to a workspace with nothing to open. |
+| **Fixed** | 2026-08-22, branch `agent/qa-verify-and-burndown` |
+| **Active** | yes |
