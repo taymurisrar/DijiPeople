@@ -607,7 +607,7 @@ Seeds and release: `npm run seed:config`, `seed:admin`, `seed:demo`,
 - Run the validation that is **relevant to what you changed**, plus a repository
   typecheck for anything crossing a workspace boundary. A full `npm run build`
   is slow (`--concurrency=1`); run it when you changed build inputs.
-- **CI exists** — `.github/workflows/ci.yml`, **thirteen** jobs named behind a
+- **CI exists** — `.github/workflows/ci.yml`, **fourteen** jobs named behind a
   single `CI required gate` check
   ([`docs/development/ci.md`](docs/development/ci.md)). Count them in the gate's
   `needs` list rather than trusting this number. A job can still be fail-open

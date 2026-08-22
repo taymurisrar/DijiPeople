@@ -42,12 +42,13 @@ production or staging credentials exist in the workflow.
 | `test-web` | `npm --workspace web run test` | 15m | ✅ |
 | `test-admin` | `npm --workspace admin run test` | 15m | ✅ |
 | `test-landing` | `npm --workspace landing run test` | 15m | ✅ |
+| `test-agent-desktop` | `npm --workspace agent-desktop run test` — offline queue, config merge, activity sanitisation (ITEM-0033) | 15m | ✅ |
 | `test-runtime` | runtime schema, platform domains, release CLI, app URLs, no-hardcoded-URLs | 15m | ✅ |
 | `database-migration` | Ephemeral PostgreSQL → `node scripts/verify-database.mjs` | 30m | ✅ |
 | `build` | `npm run build` | 30m | ✅ |
 | `browser-e2e` | Playwright journeys (`e2e/`) against API + landing + admin | 30m | ✅ **genuinely blocking since 2026-08-18** |
 | `database-e2e-report` | The e2e suites against an ephemeral PostgreSQL. Job key still says `-report`; its display name is `Database e2e` | 30m | ✅ **genuinely blocking since 2026-08-20** |
-| `ci-required` | Aggregates the **thirteen** jobs above | 10m | ✅ **the one to require** |
+| `ci-required` | Aggregates the **fourteen** jobs above | 10m | ✅ **the one to require** |
 
 `validate` runs without installing dependencies, so a structural break in the
 agent framework fails in seconds rather than minutes.
