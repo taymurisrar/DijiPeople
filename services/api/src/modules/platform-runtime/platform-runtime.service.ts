@@ -21,6 +21,7 @@ import {
   PartnerQueryDto,
   UpdatePartnerDto,
 } from '../partners/dto/partner.dto';
+import { PartnerDeletionService } from '../partners/partner-deletion.service';
 import { SuperAdminService } from '../super-admin/super-admin.service';
 import {
   CreateCustomerDto,
@@ -67,6 +68,7 @@ export class PlatformRuntimeService {
     private readonly leads: LeadsService,
     private readonly partners: PartnersService,
     private readonly superAdmin: SuperAdminService,
+    private readonly partnerDeletion: PartnerDeletionService,
     private readonly monitoring: PlatformMonitoringService,
     private readonly audit: AuditService,
     private readonly contracts: ContractsService,
@@ -568,7 +570,25 @@ export class PlatformRuntimeService {
             ids: [id],
           }),
         );
+      case 'partners':
+        return result(await this.partnerDeletion.deletePartners(user, [id]));
+      case 'partner-inquiries':
+        return result(
+          await this.partnerDeletion.deletePartnerInquiries(user, [id]),
+        );
+      case 'partner-onboarding':
+        return result(
+          await this.partnerDeletion.deletePartnerOnboarding(user, [id]),
+        );
       default:
+        /*
+         * Not an oversight. The modules that land here hold records the
+         * business has to be able to produce later — invoices, payments,
+         * commissions, executed agreements, signature evidence — or, for
+         * tenants, an entire customer workspace behind a cascade. The console
+         * says which of those applies rather than offering a button that would
+         * be wrong to press; see `DELETE_REFUSALS` in the module registry.
+         */
         throw new BadRequestException(
           'Delete is not available for this module or is prevented by retention policy.',
         );
@@ -965,6 +985,16 @@ export class PlatformRuntimeService {
     if (key === 'customer-onboarding')
       return result(
         await this.superAdmin.bulkDeleteCustomerOnboardings(user, { ids }),
+      );
+    if (key === 'partners')
+      return result(await this.partnerDeletion.deletePartners(user, ids));
+    if (key === 'partner-inquiries')
+      return result(
+        await this.partnerDeletion.deletePartnerInquiries(user, ids),
+      );
+    if (key === 'partner-onboarding')
+      return result(
+        await this.partnerDeletion.deletePartnerOnboarding(user, ids),
       );
     throw new BadRequestException(
       'Bulk delete is not available for this module.',

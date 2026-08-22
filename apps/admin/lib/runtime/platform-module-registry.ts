@@ -292,15 +292,16 @@ const STATUS_TRANSITION_MODULES = new Set<PlatformModuleKey>([
  * Why a status slot is read-only, where the reason is worth telling an
  * operator rather than leaving them to wonder whether the control is broken.
  */
-const RECORD_HEADER_READ_ONLY_REASON: Partial<Record<PlatformModuleKey, string>> =
-  {
-    plans:
-      "Publication is changed through the plan form. Governed publish and archive actions are tracked as ITEM-0022.",
-    tenants:
-      "Tenant lifecycle changes go through the Operations tab so the provisioning transition rules apply.",
-    customers:
-      "Customer status follows onboarding and tenant provisioning rather than a direct edit.",
-  };
+const RECORD_HEADER_READ_ONLY_REASON: Partial<
+  Record<PlatformModuleKey, string>
+> = {
+  plans:
+    "Publication is changed through the plan form. Governed publish and archive actions are tracked as ITEM-0022.",
+  tenants:
+    "Tenant lifecycle changes go through the Operations tab so the provisioning transition rules apply.",
+  customers:
+    "Customer status follows onboarding and tenant provisioning rather than a direct edit.",
+};
 
 /**
  * A partner onboarding application can only be decided on while it is with the
@@ -328,16 +329,60 @@ const REVIEWABLE_ONBOARDING_STATES = [
  * page carrying nothing but Back, which is what seven of them did before the
  * command bar had a default at all.
  */
+/**
+ * Why a module offers no Delete, in the words its operator needs.
+ *
+ * Delete appeared on three modules out of eighteen, which reads as an
+ * oversight and mostly is not. Most of the fifteen hold records the business
+ * has to be able to produce later, or sit in front of a cascade that would take
+ * a customer's whole workspace with them.
+ *
+ * The answer to "there is no Delete button" is therefore not a Delete button.
+ * It is a Delete entry that says which of those applies and, where one exists,
+ * points at the non-destructive action that does what the operator actually
+ * wanted. A list with no Delete and no explanation sends somebody to support;
+ * this sends them to Archive.
+ *
+ * A module absent from this map and absent from `delete: true` would render no
+ * Delete at all — which is why `platform-module-capabilities.spec.ts` asserts
+ * that every module is in exactly one of the two.
+ */
+const DELETE_REFUSALS: Partial<Record<PlatformModuleKey, string>> = {
+  tenants:
+    "A tenant carries its customer's entire workspace behind a cascade, so deleting the row deletes their data. Use More → Erase tenant, which is governed, reconciled and reversible up to the point of erasure.",
+  contracts:
+    "An executed agreement is the evidence that it was executed, and the signature chain hashes it. Supersede or terminate the agreement instead — both keep the record and change what it means.",
+  "contract-templates":
+    "Templates are versioned and referenced by every agreement generated from them, so deleting one detaches contracts from the text they were made of. Deactivate the template instead: it stops being offered and stays resolvable.",
+  "signature-requests":
+    "A signature request is signing evidence — who was asked, when, and what they saw. Cancel it instead; a cancelled request still explains itself.",
+  "support-cases":
+    "A case is the record of what a customer was told and when. Resolve or close it instead — the list filters on status, and closed cases leave the default view.",
+  subscriptions:
+    "A subscription is what a customer is being charged against. Cancel it instead; deleting it detaches invoices and payments from the thing that produced them.",
+  plans:
+    "Plans are referenced by every subscription and price sold under them. Archive the plan instead — it stops being sellable and existing subscriptions keep resolving.",
+  invoices:
+    "Invoices are financial records the business is required to be able to produce. Void or credit the invoice instead, which is what an auditor expects to see.",
+  payments:
+    "A payment is a record of money moving, reconciled against Stripe. Refund it instead — deleting it would leave the reconciliation permanently short.",
+  commissions:
+    "A commission is what a partner is owed or was paid. Adjust or reverse it instead; deleting one removes the explanation for a payment that already happened.",
+  "monitoring-incidents":
+    "Incidents are the support trail for what customers experienced. Resolve them instead — resolved incidents leave the default queue and stay searchable by reference.",
+  dashboard: "The dashboard is not a list of records.",
+};
+
 const MODULE_CAPABILITIES: Record<
   PlatformModuleKey,
   RuntimeModuleCapabilities
 > = {
   dashboard: { create: false, update: false, delete: false },
   leads: { create: true, update: true, delete: true },
-  partners: { create: true, update: true, delete: false },
-  "partner-inquiries": { create: false, update: false, delete: false },
+  partners: { create: true, update: true, delete: true },
+  "partner-inquiries": { create: false, update: false, delete: true },
   customers: { create: true, update: true, delete: true },
-  "partner-onboarding": { create: false, update: false, delete: false },
+  "partner-onboarding": { create: false, update: false, delete: true },
   "customer-onboarding": { create: true, update: true, delete: true },
   tenants: { create: false, update: true, delete: false },
   contracts: { create: true, update: true, delete: false },
@@ -373,7 +418,34 @@ function defaultActionsFor(
     ...(capabilities.update ? [ACTION.edit] : []),
     ACTION.recordRefresh,
     ...(capabilities.update ? [ACTION.save, ACTION.saveClose] : []),
-    ...(capabilities.delete ? [ACTION.delete, ACTION.bulkDelete] : []),
+    ...(capabilities.delete
+      ? [ACTION.delete, ACTION.bulkDelete]
+      : refusingDeleteActions(key)),
+  ];
+}
+
+/**
+ * A Delete that appears and explains itself.
+ *
+ * The alternative — rendering nothing — is what produced "there is no Delete
+ * button on any module". It is technically the safer default and practically
+ * the worse one: an operator cannot tell a missing feature from a deliberate
+ * refusal, so they go looking, then ask.
+ *
+ * Both entries are disabled and carry the reason, which `ModuleActionBar`
+ * already renders as the button's `title` and its disabled state. Nothing can
+ * be clicked into a destructive path that the API would refuse anyway — the
+ * server is still the authority, and `PlatformRuntimeService.remove` throws for
+ * every module outside its switch.
+ */
+function refusingDeleteActions(
+  key: PlatformModuleKey,
+): RuntimeActionDefinition[] {
+  const reason = DELETE_REFUSALS[key];
+  if (!reason || key === "dashboard") return [];
+  return [
+    { ...ACTION.delete, disabledReason: reason },
+    { ...ACTION.bulkDelete, disabledReason: reason },
   ];
 }
 
@@ -461,10 +533,7 @@ const TENANT_STATUS_VALUES = [
   "CHURNED",
 ];
 
-const TENANT_STATUS_TONES: Record<
-  string,
-  RuntimeStatusDefinition["tone"]
-> = {
+const TENANT_STATUS_TONES: Record<string, RuntimeStatusDefinition["tone"]> = {
   ONBOARDING: "neutral",
   PENDING_SETUP: "warning",
   PROVISIONING: "info",
@@ -1225,12 +1294,7 @@ const definitions: PlatformModuleDefinition[] = [
          * lead is New or Contacted; the Agreement lifecycle stage is what makes
          * them mandatory, and the server reports exactly which are missing.
          */
-        field(
-          "legalCompanyName",
-          "Legal company name",
-          "text",
-          "legal-entity",
-        ),
+        field("legalCompanyName", "Legal company name", "text", "legal-entity"),
         field(
           "registrationNumber",
           "Registration number",
@@ -1745,12 +1809,7 @@ const definitions: PlatformModuleDefinition[] = [
           true,
         ),
         field("contactPhone", "Account contact phone", "phone", "contacts"),
-        field(
-          "registrationNumber",
-          "Registration number",
-          "text",
-          "identity",
-        ),
+        field("registrationNumber", "Registration number", "text", "identity"),
         field("taxId", "Tax ID", "text", "identity"),
         field(
           "billingContactEmail",
@@ -2565,7 +2624,12 @@ const definitions: PlatformModuleDefinition[] = [
           renderAs: "identifier" as const,
         },
         {
-          ...field("ownerUserId", "Primary Tenant Owner", "text", "identifiers"),
+          ...field(
+            "ownerUserId",
+            "Primary Tenant Owner",
+            "text",
+            "identifiers",
+          ),
           readOnly: true,
           displayValueField: "owner.fullName",
           description: "Managed from Access & Security.",
@@ -3197,7 +3261,12 @@ const definitions: PlatformModuleDefinition[] = [
         tab: "related",
         foreignKey: "contractId",
         columns: [
-          { key: "record", field: "displayName", label: "Record", minWidth: 220 },
+          {
+            key: "record",
+            field: "displayName",
+            label: "Record",
+            minWidth: 220,
+          },
           { key: "recordType", field: "recordType", label: "Type" },
           {
             key: "relationshipType",
@@ -3733,7 +3802,8 @@ function unreachableFormPlacements(definition: PlatformModuleDefinition) {
       ...formDefinition.fields
         .filter(
           (item) =>
-            !sectionKeys.has(item.section) || (item.tab && !tabKeys.has(item.tab)),
+            !sectionKeys.has(item.section) ||
+            (item.tab && !tabKeys.has(item.tab)),
         )
         .map(
           (item) =>
@@ -3980,7 +4050,6 @@ function defaultRecordHeader(
     ? { owner, status, subStatus }
     : undefined;
 }
-
 
 function completeFormsFromSchema(definition: PlatformModuleDefinition) {
   const schema = getRuntimeSchema(definition.key);
@@ -4237,7 +4306,6 @@ function countryField(
   };
 }
 
-
 function field(
   key: string,
   label: string,
@@ -4427,7 +4495,10 @@ function planForms() {
     description?: string,
   ): RuntimeFieldDefinition => ({ ...item, readOnly: true, description });
   const fields: RuntimeFieldDefinition[] = [
-    { ...field("name", "Plan name", "text", "identity", true), tab: "overview" },
+    {
+      ...field("name", "Plan name", "text", "identity", true),
+      tab: "overview",
+    },
     {
       ...field("key", "Plan key", "text", "identity", true),
       tab: "overview",
@@ -4452,7 +4523,12 @@ function planForms() {
     },
     {
       ...readOnly(
-        field("publicationStatus", "Publication status", "option", "publication"),
+        field(
+          "publicationStatus",
+          "Publication status",
+          "option",
+          "publication",
+        ),
         "Set through the governed publish and archive actions tracked as ITEM-0022, not from this form.",
       ),
       tab: "commercial",

@@ -66,11 +66,55 @@ describe("platform module capabilities", () => {
         ]);
       }
       if (!definition.capabilities.delete) {
-        expect([definition.key, keys.has("delete")]).toEqual([
-          definition.key,
-          false,
-        ]);
+        /*
+         * Delete may still *appear* without the capability — but only disabled
+         * and only with a reason.
+         *
+         * The rule this replaces was "no capability, no command", which is the
+         * safe default and, in practice, the worse one: an operator cannot tell
+         * a missing feature from a deliberate refusal, so "there is no Delete
+         * button on any module" was reported as a defect when most of those
+         * fifteen modules hold invoices, payments, commissions, executed
+         * agreements or a cascade onto a customer's whole workspace.
+         *
+         * What must never happen is an *enabled* command the API would refuse.
+         * That is what this now asserts.
+         */
+        const deleteActions = definition.actions.filter(
+          (action) => action.key === "delete" || action.key === "bulk-delete",
+        );
+        for (const action of deleteActions) {
+          expect([
+            definition.key,
+            action.key,
+            Boolean(action.disabledReason),
+          ]).toEqual([definition.key, action.key, true]);
+        }
       }
+    }
+  });
+
+  it("explains every refusal, so no module is silently missing Delete", () => {
+    /*
+     * Every module is in exactly one of two states: it can delete, or it says
+     * why it cannot. A module in neither renders no Delete and no explanation,
+     * which is the state that was reported.
+     */
+    for (const definition of listPlatformModuleDefinitions()) {
+      if (definition.key === "dashboard") continue;
+      if (definition.capabilities.delete) continue;
+      const refusal = definition.actions.find(
+        (action) => action.key === "bulk-delete",
+      )?.disabledReason;
+      expect([definition.key, typeof refusal]).toEqual([
+        definition.key,
+        "string",
+      ]);
+      // A reason, not a shrug. "Not available" sends somebody to support.
+      expect([definition.key, (refusal ?? "").length > 60]).toEqual([
+        definition.key,
+        true,
+      ]);
     }
   });
 
