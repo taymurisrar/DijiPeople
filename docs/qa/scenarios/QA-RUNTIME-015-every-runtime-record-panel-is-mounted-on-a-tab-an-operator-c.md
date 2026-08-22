@@ -9,7 +9,7 @@ RISK: HIGH
 AUTOMATION_STATUS: AUTOMATED
 TEST_REFERENCE: apps/admin/lib/runtime/runtime-record-panels.spec.ts
 RELATED_BUGS: [BUG-0794]
-RELATED_REGRESSIONS: [REG-231]
+RELATED_REGRESSIONS: [REG-232]
 LAST_RUN: 
 LAST_RESULT: NOT_RUN
 CREATED_AT: 2026-08-22
@@ -56,6 +56,6 @@ manual.
 
 - Test plan — [[PLAN-011]]
 - Bugs — [[BUG-0794]]
-- Regressions — REG-231 (see the regression register)
+- Regressions — REG-232 (see the regression register)
 
 <!-- GRAPH:END -->

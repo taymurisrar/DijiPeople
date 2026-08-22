@@ -411,3 +411,85 @@ export function findUnfilledPlaceholders(content: string): string[] {
   const found = content.match(/\{\{[A-Z0-9_]+\}\}/g) ?? [];
   return [...new Set(found)];
 }
+
+/**
+ * Phrases by which a draft declares itself a draft.
+ *
+ * On 2026-08-22 all ten legal documents were published to production, and every
+ * one carried a banner in its own body beginning *"Draft — not published, and
+ * not legal advice"*, going on to say it had not been reviewed by a lawyer and
+ * that the liability and indemnity clauses were absent. The privacy policy of a
+ * live product told its readers not to rely on it.
+ *
+ * Nothing refused. `findUnfilledPlaceholders` above was the only content gate,
+ * and it asks whether the template was *filled in* — a different question from
+ * whether the result is *fit to publish*. The document was complete prose with
+ * no `{{PLACEHOLDER}}` left in it. It simply said it was a draft.
+ *
+ * ## Why phrases rather than a marker
+ *
+ * A convention like `<!-- DRAFT -->` would be cleaner and would not have worked:
+ * the banner is prose a human wrote for other humans to read, and the next one
+ * will be written the same way. Matching what a draft actually says is less
+ * elegant and catches the real case.
+ *
+ * Each pattern is a statement a finished document would never make about itself.
+ * The bare word "draft" is deliberately not one — a published terms of service
+ * may legitimately discuss draft contracts, and refusing to publish over that
+ * would be the false positive that gets this check deleted.
+ */
+const DRAFT_SELF_DECLARATIONS: Array<{ pattern: RegExp; says: string }> = [
+  {
+    pattern: /draft\s*[—–-]\s*not published/i,
+    says: 'declares itself an unpublished draft',
+  },
+  {
+    pattern: /(has )?not been reviewed by a lawyer/i,
+    says: 'states it has not been reviewed by a lawyer',
+  },
+  {
+    pattern: /this is (still )?a draft/i,
+    says: 'calls itself a draft',
+  },
+  {
+    pattern: /\bTODO\b|\bTBD\b|\bFIXME\b/,
+    says: 'carries an unfinished-work marker',
+  },
+];
+
+/**
+ * The ways a document says it is not ready to be published, in the order a
+ * reader would meet them. Empty means nothing in the text disqualifies it.
+ *
+ * This does not judge whether a document is *good* — no check can. It catches
+ * the one case needing no judgement: a document that has already told you.
+ */
+export function findDraftSelfDeclarations(content: string): string[] {
+  /*
+   * Flattened before matching, and this is not a detail.
+   *
+   * The banner is markdown, hard-wrapped at about 78 columns inside a
+   * blockquote, so the real production text reads:
+   *
+   *     > engineering team from the implementation. It has not been reviewed by a
+   *     > lawyer. It is stored as a DRAFT version …
+   *
+   * "not been reviewed by a lawyer" is split across a line break with a `> `
+   * in the middle of it. Matching the raw string finds nothing, which is
+   * exactly the shape of failure this whole function exists to prevent — a
+   * check that runs, reports clean, and is looking at the wrong thing.
+   *
+   * The first version of this did match the raw string, and its own spec caught
+   * it on the first run.
+   */
+  const flattened = content
+    .replace(/^\s*>\s?/gm, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  const found: string[] = [];
+  for (const { pattern, says } of DRAFT_SELF_DECLARATIONS) {
+    if (pattern.test(flattened) && !found.includes(says)) found.push(says);
+  }
+  return found;
+}

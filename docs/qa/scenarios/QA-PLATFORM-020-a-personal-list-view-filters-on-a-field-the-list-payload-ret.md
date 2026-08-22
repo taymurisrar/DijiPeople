@@ -9,7 +9,7 @@ RISK: LOW
 AUTOMATION_STATUS: AUTOMATED
 TEST_REFERENCE: apps/admin/lib/runtime/platform-module-capabilities.spec.ts
 RELATED_BUGS: [BUG-0796]
-RELATED_REGRESSIONS: [REG-233]
+RELATED_REGRESSIONS: [REG-234]
 LAST_RUN: 
 LAST_RESULT: NOT_RUN
 CREATED_AT: 2026-08-22
@@ -55,6 +55,6 @@ instance — only a check that resolves rule fields against payloads does.
 - Test plan — [[PLAN-019]]
 - Module — [[platform-admin]]
 - Bugs — [[BUG-0796]]
-- Regressions — REG-233 (see the regression register)
+- Regressions — REG-234 (see the regression register)
 
 <!-- GRAPH:END -->

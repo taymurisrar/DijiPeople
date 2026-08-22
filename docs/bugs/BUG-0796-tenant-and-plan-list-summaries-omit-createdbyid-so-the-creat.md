@@ -13,7 +13,7 @@ AffectedModules: [services/api/src/modules/super-admin]
 OwnerAgent: architect
 ArchitectDisposition: FIX_NOW
 QAReport: 
-RegressionId: REG-233
+RegressionId: REG-234
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
@@ -79,7 +79,7 @@ Return `createdById` from both list mappers.
 
 ## Regression Coverage
 
-REG-233. Covered structurally by the runtime metadata validation in
+REG-234. Covered structurally by the runtime metadata validation in
 `apps/admin/lib/runtime/platform-module-registry.ts`, which resolves every column
 and view field against the generated schema.
 
@@ -110,6 +110,6 @@ Pending: create a tenant as a platform operator, then confirm it appears under
 ## Related
 
 - Modules — [[super-admin]]
-- Regression — REG-233 (see the regression register)
+- Regression — REG-234 (see the regression register)
 
 <!-- GRAPH:END -->

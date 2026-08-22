@@ -9,7 +9,7 @@ RISK: HIGH
 AUTOMATION_STATUS: AUTOMATED
 TEST_REFERENCE: apps/landing/lib/subscribe-selection.spec.ts
 RELATED_BUGS: [BUG-0793]
-RELATED_REGRESSIONS: [REG-230]
+RELATED_REGRESSIONS: [REG-231]
 LAST_RUN: 
 LAST_RESULT: NOT_RUN
 CREATED_AT: 2026-08-22
@@ -58,6 +58,6 @@ live site are manual and depend on [[QA-BILLING-015]] having repaired the market
 
 - Test plan — [[PLAN-013]]
 - Bugs — [[BUG-0793]]
-- Regressions — REG-230 (see the regression register)
+- Regressions — REG-231 (see the regression register)
 
 <!-- GRAPH:END -->

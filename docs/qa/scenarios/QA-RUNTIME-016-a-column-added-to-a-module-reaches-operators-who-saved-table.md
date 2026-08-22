@@ -9,7 +9,7 @@ RISK: MEDIUM
 AUTOMATION_STATUS: AUTOMATED
 TEST_REFERENCE: apps/admin/lib/runtime/column-preferences.spec.ts
 RELATED_BUGS: [BUG-0795]
-RELATED_REGRESSIONS: [REG-232]
+RELATED_REGRESSIONS: [REG-233]
 LAST_RUN: 
 LAST_RESULT: NOT_RUN
 CREATED_AT: 2026-08-22
@@ -60,6 +60,6 @@ Automated at `apps/admin/lib/runtime/column-preferences.spec.ts`.
 
 - Test plan — [[PLAN-011]]
 - Bugs — [[BUG-0795]]
-- Regressions — REG-232 (see the regression register)
+- Regressions — REG-233 (see the regression register)
 
 <!-- GRAPH:END -->

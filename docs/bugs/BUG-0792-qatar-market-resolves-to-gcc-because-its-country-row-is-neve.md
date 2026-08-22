@@ -13,7 +13,7 @@ AffectedModules: [services/api/src/modules/super-admin]
 OwnerAgent: architect
 ArchitectDisposition: FIX_NOW
 QAReport:
-RegressionId: REG-229
+RegressionId: REG-230
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
@@ -158,6 +158,6 @@ against production, and confirm `market.code == "QA"` and `currency == "QAR"`.
 ## Related
 
 - Modules — [[super-admin]]
-- Regression — REG-229 (see the regression register)
+- Regression — REG-230 (see the regression register)
 
 <!-- GRAPH:END -->

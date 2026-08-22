@@ -13,7 +13,7 @@ AffectedModules: [apps/landing]
 OwnerAgent: architect
 ArchitectDisposition: FIX_NOW
 QAReport: 
-RegressionId: REG-230
+RegressionId: REG-231
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
@@ -129,6 +129,6 @@ all show QAR for a visitor resolving to `QA`.
 ## Related
 
 - Modules — [[landing-architecture]]
-- Regression — REG-230 (see the regression register)
+- Regression — REG-231 (see the regression register)
 
 <!-- GRAPH:END -->

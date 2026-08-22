@@ -13,7 +13,7 @@ AffectedModules: [apps/admin]
 OwnerAgent: architect
 ArchitectDisposition: FIX_NOW
 QAReport: 
-RegressionId: REG-232
+RegressionId: REG-233
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
@@ -124,6 +124,6 @@ Environment and Employees columns appear at their definition positions.
 ## Related
 
 - Modules — [[platform-admin]]
-- Regression — REG-232 (see the regression register)
+- Regression — REG-233 (see the regression register)
 
 <!-- GRAPH:END -->

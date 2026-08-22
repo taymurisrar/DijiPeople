@@ -13,7 +13,7 @@ AffectedModules: [apps/admin]
 OwnerAgent: architect
 ArchitectDisposition: FIX_NOW
 QAReport: 
-RegressionId: REG-231
+RegressionId: REG-232
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
@@ -123,6 +123,6 @@ render and a change saves.
 ## Related
 
 - Modules — [[platform-admin]]
-- Regression — REG-231 (see the regression register)
+- Regression — REG-232 (see the regression register)
 
 <!-- GRAPH:END -->

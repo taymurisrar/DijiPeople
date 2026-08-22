@@ -1976,7 +1976,23 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fixed** | 2026-08-22, Render service `srv-d7js7fqqqhas739v4i7g` |
 | **Active** | yes |
 
-### REG-229 — A launched market keeps the country code the catalog assigns it
+### REG-229 — A document that calls itself a draft was published anyway
+
+| | |
+|---|---|
+| **Bug class** | `gate-answers-the-wrong-question` |
+| **Module** | `services/api/src/modules/legal` |
+| **Bug record** | BUG-0767 |
+| **Root cause** | All ten legal documents were published to production on 2026-08-22 carrying a banner in their own body: *"Draft — not published, and not legal advice … It has not been reviewed by a lawyer … liability, indemnity, warranties and the dispute clauses are absent."* The privacy policy of a live product told its readers not to rely on it. Nothing refused, because `findUnfilledPlaceholders` was the only content gate and it asks whether the template was **filled in** — a different question from whether the result is **fit to publish**. The documents answered the first perfectly: complete prose, no `{{PLACEHOLDER}}` anywhere. A gate that asks the wrong question passes confidently. |
+| **Regression test** | `services/api/src/modules/legal/draft-self-declaration.spec.ts` |
+| **Scenario** | `findDraftSelfDeclarations` flags the literal banner the seeded documents carry, on three independent signals; the old placeholder gate returns empty for the same text, which is the diagnosis; a genuinely ready document passes both; a terms of service that merely *discusses* draft contracts is not refused; and `TODO`/`TBD`/`FIXME` are caught. |
+| **Proven to fail without the fix** | Run against the **live published production text** rather than a fixture: `findUnfilledPlaceholders` returns `[]` while `findDraftSelfDeclarations` returns three signals. The guard also caught its own first version — the banner is markdown hard-wrapped inside a blockquote, so "not been reviewed by a
+> lawyer" never matched the raw string; content is now flattened before matching. |
+| **Note** | Phrases rather than a marker, deliberately. A `<!-- DRAFT -->` convention would be cleaner and would not have worked: the banner is prose a human wrote for other humans, and the next one will be too. The bare word "draft" is excluded — a published terms of service may legitimately discuss draft contracts, and refusing over that would be the false positive that gets the check deleted. |
+| **Fixed** | 2026-08-23, branch `agent/qa-verify-and-burndown` |
+| **Active** | yes |
+
+### REG-230 — A launched market keeps the country code the catalog assigns it
 
 | | |
 |---|---|
@@ -1991,7 +2007,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fixed** | 2026-08-22, `agent/site-ux-and-admin-fixes` |
 | **Active** | yes |
 
-### REG-230 — Checkout quotes the market's currency, not the first one the API listed
+### REG-231 — Checkout quotes the market's currency, not the first one the API listed
 
 | | |
 |---|---|
@@ -2006,7 +2022,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fixed** | 2026-08-22, `agent/site-ux-and-admin-fixes` |
 | **Active** | yes |
 
-### REG-231 — A record panel is mounted only on a tab that can be reached
+### REG-232 — A record panel is mounted only on a tab that can be reached
 
 | | |
 |---|---|
@@ -2021,7 +2037,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fixed** | 2026-08-22, `agent/site-ux-and-admin-fixes` |
 | **Active** | yes |
 
-### REG-232 — A column added to a module becomes visible to operators who saved table state
+### REG-233 — A column added to a module becomes visible to operators who saved table state
 
 | | |
 |---|---|
@@ -2036,7 +2052,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fixed** | 2026-08-22, `agent/site-ux-and-admin-fixes` |
 | **Active** | yes |
 
-### REG-233 — A list view filters on a field the list payload actually returns
+### REG-234 — A list view filters on a field the list payload actually returns
 
 | | |
 |---|---|

@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**214 records** — 131 bugs under [`docs/bugs/`](../bugs/), 83 non-bug items under [`items/`](items/).
+**215 records** — 132 bugs under [`docs/bugs/`](../bugs/), 83 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -16,7 +16,7 @@ see [`README.md`](README.md) for why.
 | Open (active work) | 27 |
 | Blocked | 1 |
 | Deferred | 18 |
-| Awaiting a product decision | 2 |
+| Awaiting a product decision | 3 |
 | Completed / closed | 166 |
 | **Open CRITICAL** | **0** |
 | **Open HIGH** | **6** |
@@ -51,7 +51,7 @@ see [`README.md`](README.md) for why.
 |---|---|
 | BLOCKED | 1 |
 | DEFERRED | 18 |
-| PRODUCT_DECISION | 2 |
+| PRODUCT_DECISION | 3 |
 | FIXED | 7 |
 | VERIFIED | 121 |
 | DUPLICATE | 2 |
@@ -129,6 +129,7 @@ see [`README.md`](README.md) for why.
 | [BUG-0533](../../docs/bugs/BUG-0533-seeding-the-commercial-catalogue-never-corrected-an-existing.md) | Seeding the commercial catalogue never corrected an existing plan or price | DATA_INTEGRITY | HIGH | P1 | VERIFIED | super-admin, apps/admin | DONE |
 | [BUG-0627](../../docs/bugs/BUG-0627-admin-sign-out-does-not-revoke-the-platform-session-when-the.md) | Admin sign-out does not revoke the platform session when the refresh cookie has expired | AUTHORIZATION | HIGH | P1 | VERIFIED | api:auth, apps/admin | DONE |
 | [BUG-0714](../../docs/bugs/BUG-0714-customer-emails-link-to-the-vercel-app-host-and-api-base-url.md) | Customer emails link to the vercel.app host, and API_BASE_URL is plain HTTP | INFRA | HIGH | P1 | FIXED | services/api, apps/web, docs/deployment | FIX_NOW |
+| [BUG-0767](../../docs/bugs/BUG-0767-render-yaml-is-not-what-production-runs-so-no-seed-or-legal-.md) | render.yaml is not what production runs, so no seed or legal publication has ever executed | INFRA | HIGH | P1 | PRODUCT_DECISION | render.yaml, services/api/prisma, docs/deployment | PRODUCT_DECISION |
 | [BUG-0792](../../docs/bugs/BUG-0792-qatar-market-resolves-to-gcc-because-its-country-row-is-neve.md) | Qatar market resolves to GCC because its country row is never repaired, so Doha visitors are quoted USD | DATA_INTEGRITY | HIGH | P1 | FIXED | api:super-admin | FIX_NOW |
 | [BUG-0793](../../docs/bugs/BUG-0793-checkout-quotes-the-alphabetically-first-plan-price-currency.md) | Checkout quotes the alphabetically first plan price currency instead of the visitor market currency | BUG | HIGH | P1 | FIXED | apps/landing | FIX_NOW |
 | [BUG-0794](../../docs/bugs/BUG-0794-plan-record-page-pricing-tab-is-filtered-out-leaving-plan-pr.md) | Plan record page Pricing tab is filtered out, leaving plan price configuration unreachable | UX | HIGH | P1 | FIXED | apps/admin | FIX_NOW |

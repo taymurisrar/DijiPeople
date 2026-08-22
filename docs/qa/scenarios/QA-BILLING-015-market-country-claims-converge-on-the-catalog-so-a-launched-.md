@@ -9,7 +9,7 @@ RISK: HIGH
 AUTOMATION_STATUS: AUTOMATED
 TEST_REFERENCE: services/api/src/modules/super-admin/commercial-bootstrap.reconcile.spec.ts
 RELATED_BUGS: [BUG-0792]
-RELATED_REGRESSIONS: [REG-229]
+RELATED_REGRESSIONS: [REG-230]
 LAST_RUN: 
 LAST_RESULT: NOT_RUN
 CREATED_AT: 2026-08-22
@@ -64,6 +64,6 @@ been run there.
 - Test plan — [[PLAN-020]]
 - Module — [[billing]]
 - Bugs — [[BUG-0792]]
-- Regressions — REG-229 (see the regression register)
+- Regressions — REG-230 (see the regression register)
 
 <!-- GRAPH:END -->
