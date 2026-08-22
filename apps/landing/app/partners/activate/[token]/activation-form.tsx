@@ -33,7 +33,7 @@ export function ActivationForm({ token }: { token: string }) {
   }
   return (
     <div className="mx-auto max-w-lg rounded-[28px] border border-border bg-white p-7 shadow-md">
-      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">
+      <p className="text-sm font-semibold uppercase tracking-[0.16em] text-accent">
         Partner portal activation
       </p>
       <h1 className="mt-2 font-serif text-3xl text-foreground">

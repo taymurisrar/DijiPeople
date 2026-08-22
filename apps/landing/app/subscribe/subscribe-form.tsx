@@ -296,10 +296,17 @@ export function SubscribeForm({
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!selectedPrice || !canCheckout) {
+      /*
+       * `checkoutBlock` owns both of these sentences, and this branch used to
+       * write its own — including "This price is visible but not connected to
+       * Stripe checkout yet", which names our billing processor and describes a
+       * misconfiguration the visitor can do nothing about. This file argues at
+       * length a few hundred lines below that a buyer must never be shown that,
+       * and then showed it here.
+       */
       setStatus(
-        selectedPrice
-          ? "This price is visible but not connected to Stripe checkout yet. Please contact sales."
-          : "This plan does not have a price for the selected billing option. Please contact sales.",
+        (block ?? checkoutBlock(selectedPrice))?.message ??
+          "We can't start checkout for this selection. Please get in touch and we'll sort it out.",
       );
       return;
     }
@@ -321,7 +328,7 @@ export function SubscribeForm({
     setIsSubmitting(false);
 
     if (!response.ok) {
-      setStatus(payload?.message ?? "Unable to start Stripe Checkout.");
+      setStatus(payload?.message ?? "We couldn't open the payment page. Please try again in a moment.");
       return;
     }
 
@@ -332,7 +339,7 @@ export function SubscribeForm({
     }
 
     if (!payload?.url) {
-      setStatus(payload?.message ?? "Unable to start Stripe Checkout.");
+      setStatus(payload?.message ?? "We couldn't open the payment page. Please try again in a moment.");
       return;
     }
 
@@ -382,7 +389,7 @@ export function SubscribeForm({
     setIsSubmitting(false);
 
     if (!checkout.ok || !checkoutPayload?.url) {
-      setStatus(checkoutPayload?.message ?? "Unable to start Stripe Checkout.");
+      setStatus(checkoutPayload?.message ?? "We couldn't open the payment page. Please try again in a moment.");
       return;
     }
 
