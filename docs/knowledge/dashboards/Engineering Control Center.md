@@ -7,7 +7,7 @@
 
 | | |
 |---|---|
-| Active sessions | **8** |
+| Active sessions | **7** |
 | Active parent tasks | 7 |
 | Active work packages | 2 |
 | Blocked work packages | 5 |
@@ -49,7 +49,6 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 | Session | Task | Title | Status | Branch | Target | Leases | Schema |
 |---|---|---|---|---|---|---|---|
-| [[SESSION-0041-document-vercel-render-and-neon-platform-access-for-agents|SESSION-0041]] | — | Document Vercel, Render and Neon platform access for agents | ACTIVE | `agent/platform-access-docs` | `develop` | — | NO |
 | [[SESSION-0040-qa-verification-of-49-fixed-bugs-remaining-fix-now-items-and|SESSION-0040]] | — | QA verification of 49 fixed bugs, remaining FIX_NOW items, and the lint burn-down | ACTIVE | `agent/qa-verify-and-burndown` | `develop` | — | NO |
 | SESSION-0023 | — | First production release | ACTIVE | `agent/first-production-release` | `main` | — | NO |
 | [[SESSION-0022-go-live-readiness|SESSION-0022]] | TASK-0010 | Go-live readiness | ACTIVE | `agent/go-live-readiness` | `develop` | — | NO |
