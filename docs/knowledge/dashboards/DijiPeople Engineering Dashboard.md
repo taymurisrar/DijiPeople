@@ -212,12 +212,12 @@ _None. Nothing open at CRITICAL._
 
 - [[2026-08-22-tenant-repair-and-console-ux-f87335d|Engineering History — Tenant repair and console ux]]
 - [[2026-08-22-tenant-commands-monitoring-bulk-delete-0f9addc|Engineering History — Tenant commands monitoring bulk delete]]
+- [[2026-08-22-qa-verify-and-burndown-bf1921e|Engineering History — QA verification and backlog burn-down]]
 - [[2026-08-22-plans-catalogue-converge-ffb188c|Engineering History — Plans catalogue converge]]
 - [[2026-08-22-document-render-theme-and-tenant-recovery-a701eeb|Engineering History — Document render theme and tenant recovery]]
 - [[2026-08-22-backlog-burndown-d63dc4a|Engineering History — Backlog burn-down: seven open bugs and six ready items]]
 - [[2026-08-21-second-ux-round-5d9f74b|Engineering History — Second ux round]]
 - [[2026-08-21-final-agent-operating-system-upgrade-f023512|Engineering History — Final agent operating system upgrade]]
-- [[2026-08-21-checkout-account-and-payment-confirmation-d8d27ab|Engineering History — Checkout customer fidelity, payment confirmation, and a database four migrations behind]]
 
 ## Recent Releases
 
@@ -264,7 +264,7 @@ _None. Nothing has been deployed through the release process._
 | Backlog items | 82 |
 | Known bug patterns | 25 |
 | QA runs | 22 |
-| Engineering history records | 32 |
+| Engineering history records | 33 |
 | Release records | 0 |
 | Module notes | 28 |
 | Architecture notes | 20 |

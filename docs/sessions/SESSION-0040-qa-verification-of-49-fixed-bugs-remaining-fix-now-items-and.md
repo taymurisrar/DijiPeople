@@ -4,7 +4,7 @@ aliases: [SESSION-0040]
 TASK_ID:
 TITLE: QA verification of 49 fixed bugs, remaining FIX_NOW items, and the lint burn-down
 ARCHITECT_INTENT: QA verification of 49 fixed bugs, remaining FIX_NOW items, and the lint burn-down
-STATUS: ACTIVE
+STATUS: COMPLETE
 TASK_TYPE: QA
 TASK_SIZE: LARGE
 BASE_BRANCH: origin/develop
@@ -75,3 +75,4 @@ touched, and the credentials were staged outside the repository.
 - 2026-08-22 — 49 FIXED bugs verified against their named guards; one new e2e
   suite written to close BUG-0075's stated scenario; two residual gaps raised as
   ITEM-0077 and ITEM-0078.
+- 2026-08-22 — complete. Integrated into develop at bf1921e with a green gate on the exact SHA; main untouched at 3602ec3. 120 bugs VERIFIED, 0 open. Full narrative in docs/engineering-history/tasks/2026-08-22-qa-verify-and-burndown-bf1921e.md.
