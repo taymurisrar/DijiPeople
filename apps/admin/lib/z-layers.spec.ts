@@ -1,6 +1,13 @@
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 
+/*
+ * A comment explaining "this used to be z-30" is not a z-index, and counting it
+ * would make the fix look like the bug. This spec met that first; three more
+ * have since, so the helper is shared — see `source-scan.ts`.
+ */
+import { stripComments } from "./source-scan";
+
 /**
  * The stacking order of Platform Admin, enforced rather than described.
  *
@@ -56,14 +63,6 @@ function collectTsxFiles(dir: string, found: string[] = []) {
     }
   }
   return found;
-}
-
-/**
- * Comments are stripped first. A comment explaining "this used to be z-30" is
- * not a z-index, and counting it would make the fix look like the bug.
- */
-function stripComments(source: string) {
-  return source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
 }
 
 /** `z-30` and `z-[60]`; `z-auto` and `z-0` carry no ordering to check. */
