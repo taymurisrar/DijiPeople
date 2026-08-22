@@ -127,7 +127,7 @@ None.
 
 ## Related Items
 
-[[BUG-0531]], [[BUG-0534]], [[BUG-0027]], [[BUG-0030]], [[REG-201]],
+[[BUG-0531]], [[BUG-0534]], [[BUG-0027]], [[BUG-0030]], REG-201,
 [[QA-PLATFORM-018]]
 
 ## Resolution

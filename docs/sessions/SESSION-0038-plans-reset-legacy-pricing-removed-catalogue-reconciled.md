@@ -4,7 +4,7 @@ aliases: [SESSION-0038]
 TASK_ID:
 TITLE: Plans reset: legacy pricing removed, catalogue reconciled
 ARCHITECT_INTENT: Plans reset: legacy pricing removed, catalogue reconciled
-STATUS: ACTIVE
+STATUS: COMPLETE
 TASK_TYPE: FEATURE
 TASK_SIZE: MEDIUM
 BASE_BRANCH: origin/develop

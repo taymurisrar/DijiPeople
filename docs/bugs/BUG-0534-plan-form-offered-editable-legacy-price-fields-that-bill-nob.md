@@ -110,7 +110,7 @@ None.
 
 ## Related Items
 
-[[BUG-0027]], [[BUG-0531]], [[BUG-0533]], [[REG-202]], [[QA-PLATFORM-018]]
+[[BUG-0027]], [[BUG-0531]], [[BUG-0533]], REG-202, [[QA-PLATFORM-018]]
 
 ## Resolution
 

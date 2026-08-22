@@ -136,7 +136,7 @@ The fix lands in code; **the database is only corrected when
 
 ## Related Items
 
-[[BUG-0533]], [[BUG-0534]], [[BUG-0027]], [[BUG-0030]], [[REG-201]],
+[[BUG-0533]], [[BUG-0534]], [[BUG-0027]], [[BUG-0030]], REG-201,
 [[QA-PLATFORM-018]]
 
 ## Resolution
