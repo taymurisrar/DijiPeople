@@ -4,7 +4,7 @@ aliases: [SESSION-0039]
 TASK_ID:
 TITLE: Backlog burn-down: open bugs and ready items
 ARCHITECT_INTENT: Backlog burn-down: open bugs and ready items
-STATUS: ACTIVE
+STATUS: COMPLETE
 TASK_TYPE: FEATURE
 TASK_SIZE: LARGE
 BASE_BRANCH: origin/develop
@@ -16,8 +16,8 @@ AFFECTED_MODULES: [services/api, apps/web, apps/admin, apps/landing, apps/agent-
 WRITE_LEASES: []
 ACTIVE_WORK_PACKAGES: []
 SCHEMA_WRITE: NO
-CI_STATUS: NOT_RUN
-MERGE_STATUS: NOT_STARTED
+CI_STATUS: PASS
+MERGE_STATUS: INTEGRATED
 STARTED_AT: 2026-08-22T03:02:42.887Z
 LAST_HEARTBEAT: 2026-08-22T03:02:42.887Z
 BLOCKERS: none
@@ -84,3 +84,6 @@ ranges could not collide.
 - 2026-08-22 — session started from `origin/develop` at `c1d3d7b`.
 - 2026-08-22 — seven `OPEN` bugs fixed, six `FIX_NOW` items closed, ITEM-0042
   started and left open with its ceiling ratcheted.
+- 2026-08-22 — CI run `32556695618` on `d63dc4a`: `CI required gate` PASS, all
+  fourteen jobs green. Integrated into `develop` by ref-push, so the tip is
+  byte-identical to the verified SHA. `main` untouched.
