@@ -447,50 +447,84 @@ export function AgreementsStep({ form, set, agreements }: StepProps) {
     );
   }
 
+  const acceptableIds = agreements
+    .map((agreement) => agreement.versionId)
+    .filter((id): id is string => Boolean(id));
+
+  /*
+   * Accepted only when every document is. There is no partial state to render:
+   * `missingFieldsForStep` requires all of them, and a tick that left some out
+   * would be a control that looks satisfied and does not advance.
+   */
+  const accepted =
+    acceptableIds.length > 0 &&
+    acceptableIds.every((id) => form.acceptedVersionIds.includes(id));
+
   return (
-    <div className="grid gap-3">
+    <div className="grid gap-4">
       <p className="text-sm leading-6 text-muted">
-        Please read and accept each of the following. We record which version
-        you accepted and when.
+        These are the terms your subscription runs on. Open any of them to read
+        it — each opens in a new tab, so you won&rsquo;t lose your place.
       </p>
 
-      {agreements.map((agreement) => {
-        const id = agreement.versionId;
-        if (!id) return null;
-        const accepted = form.acceptedVersionIds.includes(id);
+      {/*
+        The documents as reading material, then one acceptance.
 
-        return (
-          <label
-            className="flex items-start gap-3 rounded-2xl border border-border bg-white p-4 text-sm"
-            key={id}
-          >
-            <input
-              checked={accepted}
-              className="mt-1 h-4 w-4"
-              onChange={(event) =>
-                set({
-                  acceptedVersionIds: event.target.checked
-                    ? [...form.acceptedVersionIds, id]
-                    : form.acceptedVersionIds.filter((value) => value !== id),
-                })
-              }
-              type="checkbox"
-            />
-            <span className="text-foreground">
-              I accept the{" "}
+        This was ten checkboxes — one per published document — and ten
+        deliberate ticks before anyone could pay. That is not a stronger
+        agreement than one, it is a weaker one: past about the third box the
+        clicking stops being a decision and becomes an obstacle, and the record
+        it produces is ten acknowledgements nobody read rather than one somebody
+        did. Every consent-UX guideline says the same thing, and every
+        comparable checkout does it this way.
+
+        Nothing is lost from the evidence. The acknowledgement record is still
+        per document and per version — `acceptedVersionIds` carries all of them
+        — so we can still show exactly which version of which document this
+        buyer agreed to and when. What changed is how many times we ask them to
+        say so.
+      */}
+      <ul className="grid gap-2 rounded-2xl border border-border bg-white p-4 sm:grid-cols-2">
+        {agreements.map((agreement) => {
+          if (!agreement.versionId) return null;
+          return (
+            <li key={agreement.versionId}>
               <a
-                className="font-medium text-accent underline"
+                className="inline-flex items-baseline gap-1.5 text-sm text-accent underline-offset-4 hover:underline"
                 href={`/legal/${agreement.slug}`}
                 rel="noreferrer"
                 target="_blank"
               >
                 {agreement.title}
-              </a>{" "}
-              <span className="text-muted">(version {agreement.version})</span>
-            </span>
-          </label>
-        );
-      })}
+                <span className="text-xs text-muted-soft">
+                  v{agreement.version}
+                </span>
+              </a>
+            </li>
+          );
+        })}
+      </ul>
+
+      <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-border bg-surface-muted p-4 text-sm">
+        <input
+          checked={accepted}
+          className="mt-0.5 h-4 w-4"
+          onChange={(event) =>
+            set({
+              acceptedVersionIds: event.target.checked ? acceptableIds : [],
+            })
+          }
+          type="checkbox"
+        />
+        <span className="leading-6 text-foreground">
+          I have read and agree to the{" "}
+          {agreements.length === 1 ? "document" : `${agreements.length} documents`}{" "}
+          listed above.
+          <span className="mt-0.5 block text-xs text-muted">
+            We record which version of each you accepted, and when.
+          </span>
+        </span>
+      </label>
     </div>
   );
 }
