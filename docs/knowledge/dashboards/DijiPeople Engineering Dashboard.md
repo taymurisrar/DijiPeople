@@ -8,12 +8,12 @@
 | | |
 |---|---|
 | Open CRITICAL | **0** |
-| Open HIGH | **2** |
-| Open total | 21 |
+| Open HIGH | **3** |
+| Open total | 22 |
 | Blocked | 1 |
-| Awaiting a product decision | 4 |
-| Deferred | 17 |
-| Completed | 165 |
+| Awaiting a product decision | 2 |
+| Deferred | 18 |
+| Completed | 166 |
 | Awaiting Architect triage | 0 |
 
 ## Open Critical Bugs
@@ -25,15 +25,14 @@ _None. Nothing open at CRITICAL._
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
 | [[BUG-0163-package-lock-json-cannot-be-regenerated-npm-overrides-are-si|BUG-0163]] | package-lock.json cannot be regenerated - npm overrides are silently ignored | INFRA | HIGH | FIXED | package-lock.json, apps/admin | DONE |
+| [[BUG-0714-customer-emails-link-to-the-vercel-app-host-and-api-base-url|BUG-0714]] | Customer emails link to the vercel.app host, and API_BASE_URL is plain HTTP | INFRA | HIGH | FIXED | services/api, apps/web, docs/deployment | FIX_NOW |
 | [[ITEM-0034-apps-web-has-zero-browser-e2e-coverage|ITEM-0034]] | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | READY | apps/web, e2e | PLAN_REQUIRED |
 
 ## Product Decisions Needed
 
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
-| [[BUG-0714-customer-emails-link-to-the-vercel-app-host-and-api-base-url|BUG-0714]] | Customer emails link to the vercel.app host, and API_BASE_URL is plain HTTP | INFRA | HIGH | PRODUCT_DECISION | services/api, apps/web, docs/deployment | PRODUCT_DECISION |
 | [[ITEM-0062-no-multi-tenant-membership-one-user-belongs-to-one-tenant-so|ITEM-0062]] | No multi-tenant membership — one user belongs to one tenant, so discovery and switching cannot exist | ARCHITECTURE | HIGH | PRODUCT_DECISION | auth, users, tenant-domains, web | PRODUCT_DECISION |
-| [[ITEM-0076-operators-cannot-recover-an-order-whose-stripe-webhook-never|ITEM-0076]] | Operators cannot recover an order whose Stripe webhook never arrived | PRODUCT_DECISION | MEDIUM | PRODUCT_DECISION | api:billing, apps/admin | PRODUCT_DECISION |
 | [[ITEM-0079-activation-does-not-gate-on-a-workspace-having-any-module-en|ITEM-0079]] | Activation does not gate on a workspace having any module enabled | PRODUCT_DECISION | LOW | PRODUCT_DECISION | api:tenant-control-plane | PRODUCT_DECISION |
 
 ## Blocked Items
@@ -57,6 +56,7 @@ _None. Nothing open at CRITICAL._
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
 | [[BUG-0163-package-lock-json-cannot-be-regenerated-npm-overrides-are-si|BUG-0163]] | package-lock.json cannot be regenerated - npm overrides are silently ignored | INFRA | HIGH | FIXED | package-lock.json, apps/admin | DONE |
+| [[BUG-0714-customer-emails-link-to-the-vercel-app-host-and-api-base-url|BUG-0714]] | Customer emails link to the vercel.app host, and API_BASE_URL is plain HTTP | INFRA | HIGH | FIXED | services/api, apps/web, docs/deployment | FIX_NOW |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0074-allocate-id-and-session-tooling-accept-a-session-id-that-doe|ITEM-0074]] | allocate-id and session tooling accept a session id that does not exist | INFRA | MEDIUM | READY | framework | PLAN_REQUIRED |
 | [[ITEM-0049-register-services-api-environment-reads-or-scope-the-rule|ITEM-0049]] | Register services/api environment reads or scope the rule to build inputs | INFRA | LOW | READY | services/api, turbo.json, docs/deployment | PLAN_REQUIRED |
@@ -131,6 +131,7 @@ _None. Nothing open at CRITICAL._
 | [[BUG-0531-flat-prices-were-sellable-on-the-public-site-at-invented-amo|BUG-0531]] | Flat prices were sellable on the public site at invented amounts | DATA_INTEGRITY | HIGH | VERIFIED | super-admin, apps/admin | DONE |
 | [[BUG-0533-seeding-the-commercial-catalogue-never-corrected-an-existing|BUG-0533]] | Seeding the commercial catalogue never corrected an existing plan or price | DATA_INTEGRITY | HIGH | VERIFIED | super-admin, apps/admin | DONE |
 | [[BUG-0627-admin-sign-out-does-not-revoke-the-platform-session-when-the|BUG-0627]] | Admin sign-out does not revoke the platform session when the refresh cookie has expired | AUTHORIZATION | HIGH | VERIFIED | api:auth, apps/admin | DONE |
+| [[BUG-0714-customer-emails-link-to-the-vercel-app-host-and-api-base-url|BUG-0714]] | Customer emails link to the vercel.app host, and API_BASE_URL is plain HTTP | INFRA | HIGH | FIXED | services/api, apps/web, docs/deployment | FIX_NOW |
 | [[BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state|BUG-0051]] | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |
 | [[BUG-0009-session-revocation-depended-on-the-refresh-cookie|BUG-0009]] | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | VERIFIED | app:admin, api:auth | DONE |
 | [[BUG-0010-unguarded-cookie-options-could-turn-sign-out-into-a-500|BUG-0010]] | Unguarded cookie options could turn admin sign-out into a 500 | INFRA | MEDIUM | VERIFIED | app:admin | DONE |
@@ -261,7 +262,7 @@ _None. Nothing has been deployed through the release process._
 | Knowledge | Count |
 |---|---|
 | Bug records | 126 |
-| Backlog items | 82 |
+| Backlog items | 83 |
 | Known bug patterns | 25 |
 | QA runs | 22 |
 | Engineering history records | 33 |

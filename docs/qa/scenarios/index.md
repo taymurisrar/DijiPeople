@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 164** · automated: 148 · manual: 5 · blocked by infrastructure: 0
+**Scenarios: 166** · automated: 150 · manual: 5 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -58,6 +58,7 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-BILLING-011](../../../docs/qa/scenarios/QA-BILLING-011-the-public-is-offered-per-seat-pricing-and-can-never-reach-a.md) | The public is offered per-seat pricing and can never reach a sales-assisted flat price | seat-billing | UNIT | CRITICAL | AUTOMATED | `services/api/src/modules/billing/commercial-offer.resolver.spec.ts` | BUG-0080 | REG-080 |
 | [QA-BILLING-012](../../../docs/qa/scenarios/QA-BILLING-012-a-self-service-customer-record-carries-what-the-customer-bou.md) | A self-service customer record carries what the customer bought | seat-billing | UNIT | HIGH | AUTOMATED | `services/api/src/modules/billing/services/checkout-customer-record.spec.ts` | BUG-0280 | REG-177 |
 | [QA-BILLING-013](../../../docs/qa/scenarios/QA-BILLING-013-exactly-one-stored-flag-decides-whether-a-plan-can-be-bought.md) | Exactly one stored flag decides whether a plan can be bought | billing | UNIT | HIGH | AUTOMATED | `services/api/src/modules/billing/one-self-service-gate.spec.ts` | BUG-0223 | REG-225 |
+| [QA-BILLING-014](../../../docs/qa/scenarios/QA-BILLING-014-a-payment-re-check-advances-an-order-only-when-stripe-says-i.md) | A payment re-check advances an order only when Stripe says it was paid | billing | UNIT | HIGH | AUTOMATED | `services/api/src/modules/billing/services/payment-recheck.service.spec.ts` | ITEM-0076 | REG-227 |
 | [QA-CI-001](../../../docs/qa/scenarios/QA-CI-001-report-only-jobs-publish-an-explicit-pass-fail-verdict.md) | Report-only CI jobs publish an explicit PASS/FAIL verdict | deployment-release | DEPLOYMENT_SMOKE | HIGH | AUTOMATED | `scripts/validate-framework.mjs` | BUG-0049 | REG-047 |
 | [QA-CI-002](../../../docs/qa/scenarios/QA-CI-002-the-database-agent-verdict-cannot-report-pass-over-a-failing.md) | The Database Agent verdict cannot report PASS over a failing field | deployment-release | API | HIGH | AUTOMATED | `scripts/db-preflight.test.mjs` | BUG-0083, BUG-0060, BUG-0068 | REG-078 |
 | [QA-CI-003](../../../docs/qa/scenarios/QA-CI-003-declared-npm-overrides-are-reflected-in-the-lockfile.md) | Declared npm overrides are reflected in the lockfile | deployment-release | UNIT | HIGH | AUTOMATED | `scripts/check-overrides-applied.mjs` | BUG-0163 | REG-173 |
@@ -148,6 +149,7 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-PROV-003](../../../docs/qa/scenarios/QA-PROV-003-issued-tenant-hostnames-honour-the-configured-base-domain.md) | Issued tenant hostnames honour the configured base domain | tenant-provisioning | UNIT | HIGH | AUTOMATED | `services/api/src/common/config/tenant-url.config.spec.ts` | BUG-0017, BUG-0026 | REG-016, REG-027 |
 | [QA-PROV-004](../../../docs/qa/scenarios/QA-PROV-004-a-tenant-failing-before-identities-and-billing-is-still-reco.md) | A tenant failing before identities and billing is still recoverable | tenant-provisioning | E2E | CRITICAL | AUTOMATED | `services/api/test/tenant-provisioning-recovery.e2e-spec.ts` | BUG-0015 | REG-013 |
 | [QA-PROV-005](../../../docs/qa/scenarios/QA-PROV-005-a-tenant-reaches-active-and-its-owner-can-sign-in.md) | A tenant reaches ACTIVE and its owner can sign in | tenant-provisioning | E2E | CRITICAL | AUTOMATED | `services/api/test/tenant-activation.e2e-spec.ts` | ITEM-0004 | REG-222 |
+| [QA-PROV-006](../../../docs/qa/scenarios/QA-PROV-006-customer-facing-urls-resolve-on-the-customer-domain-in-produ.md) | Customer-facing URLs resolve on the customer domain in production | tenant-provisioning | UNIT | HIGH | AUTOMATED | `services/api/src/common/config/production-tenant-url.spec.ts` | BUG-0714 | REG-228 |
 | [QA-RUNTIME-001](../../../docs/qa/scenarios/QA-RUNTIME-001-every-declared-runtime-module-has-a-route-that-renders-it.md) | Every declared runtime module has a route that renders it | runtime-modules | UNIT | HIGH | AUTOMATED | `apps/admin/lib/runtime/module-routes.invariant.spec.ts` | BUG-0019, BUG-0024 | REG-028 |
 | [QA-RUNTIME-002](../../../docs/qa/scenarios/QA-RUNTIME-002-entity-scope-resolution-never-falls-back-to-unscoped.md) | Entity scope resolution never falls back to unscoped | runtime-modules | SECURITY | CRITICAL | AUTOMATED | `services/api/src/modules/data/entity-scope.resolver.spec.ts` | — | — |
 | [QA-RUNTIME-003](../../../docs/qa/scenarios/QA-RUNTIME-003-the-entity-query-validator-rejects-filters-it-cannot-safely-.md) | The entity query validator rejects filters it cannot safely translate | runtime-modules | UNIT | HIGH | AUTOMATED | `services/api/src/modules/data/entity-query-validator.spec.ts` | — | — |

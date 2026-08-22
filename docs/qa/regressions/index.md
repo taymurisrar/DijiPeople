@@ -1945,3 +1945,33 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | Pinning the two optional peers at the family version is the minimal fix — the alternative, moving all thirteen `@tiptap` packages to 3.30.x, changes an editor the admin app depends on for no benefit. The regenerated lockfile removed **76 packages, added 0, and changed 0 versions**: every removal is an orphan of the `node-gyp@9` chain that [[BUG-0052]] upgraded away from and could not prune, because pruning needs the regeneration this record was blocking. Verified by a real `npm ci` in an isolated copy of the manifests — 1622 packages installed, all six `@tiptap` packages at 3.29.2 — rather than by reading the diff. |
 | **Fixed** | 2026-08-22, branch `agent/qa-verify-and-burndown` |
 | **Active** | yes |
+
+### REG-227 — The payment re-check path had no test at all
+
+| | |
+|---|---|
+| **Bug class** | `untested-privileged-path` |
+| **Module** | `services/api/src/modules/billing` |
+| **Bug record** | ITEM-0076 |
+| **Root cause** | The operator recovery path for an order whose Stripe webhook never arrived was written, wired to a controller, given an admin panel and mounted on the runtime record page — and had **no test of any kind**. No spec referenced `PaymentRecheckService` or `recheckCustomerPayment`. It is a path that can move an order to `PAID` and set a tenant being provisioned in motion, on an operator button press. |
+| **Regression test** | `services/api/src/modules/billing/services/payment-recheck.service.spec.ts` |
+| **Scenario** | Seven tests over the refusals rather than the happy path: an order Stripe says is unpaid is not advanced; an unreachable Stripe does not advance anything; a paid order advances **through `confirmPayment`**, the same call the webhook makes; every outcome is audited including "we looked and they had not paid"; a customer with no recheckable order is refused; the **newest** order is selected; and `ABANDONED` and `ACTIVATED` orders are not offered. |
+| **Proven to fail without the fix** | Replacing `if (diagnosis.advanced)` with `if (true)` fails both refusal tests — the unpaid case and the unreachable-provider case. |
+| **Note** | The first version of this spec stubbed `stripe.retrieveCheckoutSession`, a method the service does not call — the real path is `stripe.client.checkout.sessions.retrieve(id, { expand })`. Six of the seven tests passed over a service they never reached. It was caught because the seventh, the one asserting an advance actually happens, could not pass on a stub that returned nothing. A spec whose every test passes is not evidence that it ran the code. |
+| **Fixed** | 2026-08-22, branch `agent/qa-verify-and-burndown` |
+| **Active** | yes |
+
+### REG-228 — Customer emails linked to the deployment host
+
+| | |
+|---|---|
+| **Bug class** | `config-encoded-as-expected` |
+| **Module** | `services/api`, Render service configuration |
+| **Bug record** | BUG-0714 |
+| **Root cause** | Four production environment variables. `WEB_APP_URL` was the `vercel.app` deployment host, so every activation, invitation, password-reset and sign-in link the API mails a customer pointed there; `API_BASE_URL` was plain HTTP beside a correct HTTPS `API_ORIGIN`; and the per-tenant subdomain rewrite never fired because it reads `WEB_APP_PROD_ROOT_DOMAIN` while `TENANT_BASE_DOMAIN` is what was set — two variables for one concept, where setting half is not an error today. |
+| **Regression test** | `services/api/src/common/config/production-tenant-url.spec.ts` |
+| **Scenario** | With the four values as production now holds them, a login and an activation URL both resolve to `{slug}.ws.dijipeople.com`, neither contains `vercel.app` or `onrender.com`, both are HTTPS, and the half-configured state — root domain absent — falls back to `app.dijipeople.com` rather than a deployment host. |
+| **Proven to fail without the fix** | Every assertion fails against the previous configuration; the `never emits a deployment host` cases fail on `WEB_APP_URL` alone. |
+| **Note** | The reason nothing caught this is in `tenant-url.config.spec.ts`: a passing test named *"keeps production single-host login URLs on the configured app host"* asserts exactly `https://diji-people-web.vercel.app/login`. It is a true statement about the function and it encoded the misconfiguration as the expected result, so the suite agreed with production and both were wrong together. This spec is separate on purpose — those tests describe the function across configurations, these describe the one configuration DijiPeople deploys. |
+| **Fixed** | 2026-08-22, Render service `srv-d7js7fqqqhas739v4i7g` |
+| **Active** | yes |

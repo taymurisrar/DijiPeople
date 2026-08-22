@@ -15,9 +15,9 @@
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **0** |
-| Open HIGH | 2 |
+| Open HIGH | 3 |
 | Awaiting Architect triage | 0 |
-| Owner decisions pending | 4 |
+| Owner decisions pending | 2 |
 | QA coverage gaps | 108 |
 | Scenarios blocked by infrastructure | 0 |
 
@@ -30,8 +30,8 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 19 |
-| No next action | 19 |
+| No acceptance criteria | 20 |
+| No next action | 20 |
 | Aging — 7d / 30d / 90d | 1 / 0 / 0 |
 | Architecture and technical debt | 5 |
 | Security gaps | 3 |
@@ -115,9 +115,7 @@ _None. Nothing open at CRITICAL._
 Questions where the engineering is understood and the **product answer is**
 **not**. No agent may resolve one by implementing a side of it.
 
-- [[BUG-0714-customer-emails-link-to-the-vercel-app-host-and-api-base-url|BUG-0714]] — **Customer emails link to the vercel.app host, and API_BASE_URL is plain HTTP**
 - [[ITEM-0062-no-multi-tenant-membership-one-user-belongs-to-one-tenant-so|ITEM-0062]] — **No multi-tenant membership — one user belongs to one tenant, so discovery and switching cannot exist**
-- [[ITEM-0076-operators-cannot-recover-an-order-whose-stripe-webhook-never|ITEM-0076]] — **Operators cannot recover an order whose Stripe webhook never arrived**
 - [[ITEM-0079-activation-does-not-gate-on-a-workspace-having-any-module-en|ITEM-0079]] — **Activation does not gate on a workspace having any module enabled**
 
 ## QA Coverage Gaps
@@ -240,10 +238,10 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 21 |
+| Open total | 22 |
 | Blocked | 1 |
-| Deferred | 17 |
-| Awaiting a product decision | 4 |
+| Deferred | 18 |
+| Awaiting a product decision | 2 |
 | Awaiting Architect triage | 0 |
 
 Every ordinary record carries a disposition.

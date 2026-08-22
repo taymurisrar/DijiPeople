@@ -3,15 +3,15 @@ ID: ITEM-0076
 aliases: [ITEM-0076]
 Title: Operators cannot recover an order whose Stripe webhook never arrived
 Type: PRODUCT_DECISION
-Status: PRODUCT_DECISION
+Status: DONE
 Priority: P2
 Severity: MEDIUM
 AffectedModules: [api:billing, apps/admin]
 Source: ARCHITECT
 OwnerAgent: architect
-ArchitectDisposition: PRODUCT_DECISION
+ArchitectDisposition: DONE
 CreatedAt: 2026-08-21
-UpdatedAt: 2026-08-21
+UpdatedAt: 2026-08-22
 RelatedBug: 
 RelatedQA: 
 RelatedADR: 
@@ -115,6 +115,52 @@ None blocking.
 [[ITEM-0022]] — the same principle applied to publication: governed, audited
 transitions rather than an editable field.
 
+## Resolution — 2026-08-22, SESSION-0040
+
+The user chose option 3 — *"the operator action now, the scheduled sweep later,
+once the recheck has proven itself."*
+
+**Part one already existed.** Like [[ITEM-0053]] and [[ITEM-0032]], this record's
+premise had gone stale. Everything the Proposed Resolution asked for is built:
+
+| Asked for | Where it is |
+|---|---|
+| `recheckCheckoutSession(orderId)` | `PaymentRecheckService.recheckOrder` / `recheckCustomerPayment` |
+| A `recheck-payment` record action | `POST /super-admin/customers/:id/recheck-payment` |
+| Audited with before/after | `BILLING_PAYMENT_RECHECKED`, logged on every outcome |
+| A named error when Stripe says unpaid | `payment-diagnosis.ts`, with a sentence the operator can send |
+| Operator UI | `payment-recheck-panel.tsx`, mounted on `runtime-record-page` |
+
+The design is better than this record proposed. It refuses to be a manual "mark
+as paid" for a reason worth keeping: setting the column by hand would let the
+platform witness its own payment, **and** would skip `PAYMENT_CONFIRMED`, so no
+onboarding would open and no tenant would be provisioned. The operator would
+close the ticket and the customer would still have no workspace — worse than the
+original failure, because it now looks fixed.
+
+### What was actually missing: any test
+
+No spec referenced `PaymentRecheckService` or `recheckCustomerPayment`. For a
+path that can move an order to `PAID` and start a provisioning run on a button
+press, that is the gap that mattered.
+
+REG-227 now covers it — seven tests, aimed at the refusals rather than the happy
+path, and mutation-proven: replacing `if (diagnosis.advanced)` with `if (true)`
+fails both the unpaid case and the unreachable-provider case.
+
+**One thing worth recording about writing it.** The first version stubbed
+`stripe.retrieveCheckoutSession` — a method the service does not call. Six of
+seven tests passed over a service they never reached. It was caught only because
+the seventh asserted that an advance *does* happen, and that one cannot pass on a
+stub returning nothing. A spec where everything is green is not evidence that it
+ran the code.
+
+### Part two, deferred as agreed
+
+The scheduled reconciliation sweep is [[ITEM-0083]]. Deferred on purpose: it acts
+without a human, and a Stripe outage turns a sweep into a retry storm. It should
+wait until the operator path has been used enough to show the diagnosis is right.
+
 ## History
 
 - 2026-08-21 — raised after a local checkout sat at "We're confirming your
@@ -130,3 +176,5 @@ transitions rather than an editable field.
 - Modules — [[billing]], [[platform-admin]]
 
 <!-- GRAPH:END -->
+
+- 2026-08-22 — user chose option 3. Part one was already built end to end; what it lacked was any test, now REG-227. Part two deferred as ITEM-0083.

@@ -108,7 +108,7 @@ paid checkout remains unproven end to end.
 
 ## Related
 
-- Scenarios — [[QA-BILLING-009]], [[QA-PLATFORM-001]], [[QA-PROV-001]], [[QA-PROV-002]], [[QA-PROV-003]], [[QA-PROV-004]], [[QA-PROV-005]], [[QA-TENANT-007]], [[QA-TENANT-008]], [[QA-TENANT-009]], [[QA-TENANT-010]], [[QA-TENANT-011]], [[QA-TENANT-012]]
+- Scenarios — [[QA-BILLING-009]], [[QA-PLATFORM-001]], [[QA-PROV-001]], [[QA-PROV-002]], [[QA-PROV-003]], [[QA-PROV-004]], [[QA-PROV-005]], [[QA-PROV-006]], [[QA-TENANT-007]], [[QA-TENANT-008]], [[QA-TENANT-009]], [[QA-TENANT-010]], [[QA-TENANT-011]], [[QA-TENANT-012]]
 - Module — [[tenant-provisioning]]
 - Bugs — [[BUG-0014]], [[BUG-0015]], [[BUG-0017]], [[BUG-0022]]
 - Regressions — REG-012, REG-013, REG-027, REG-030 (see the regression register)

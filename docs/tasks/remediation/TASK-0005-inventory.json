@@ -6539,7 +6539,7 @@
       "title": "Customer emails link to the vercel.app host, and API_BASE_URL is plain HTTP",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "PRODUCT_DECISION",
+      "current_status": "FIXED",
       "current_evidence": {
         "paths": [
           "services/api/src/common/config/tenant-url.config.ts",
@@ -6563,12 +6563,16 @@
       "related_backlog": [
         "ITEM-0057"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-228"
+      ],
+      "qa_scenarios": [
+        "QA-PROV-006"
+      ],
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "YES",
-      "architect_disposition": "PRODUCT_DECISION",
+      "architect_disposition": "FIX_NOW",
       "verification_result": "NOT_VERIFIED"
     },
     {
@@ -10128,14 +10132,14 @@
         "provenance": "ARCHITECT",
         "detected_in_sha": "",
         "created_at": "2026-08-21",
-        "updated_at": "2026-08-21",
+        "updated_at": "2026-08-22",
         "resolved_at": ""
       },
       "type": "PRODUCT_DECISION",
       "title": "Operators cannot recover an order whose Stripe webhook never arrived",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "PRODUCT_DECISION",
+      "current_status": "DONE",
       "current_evidence": {
         "paths": [
           "services/api/src/modules/billing/controllers/stripe-webhook.controller.ts",
@@ -10158,12 +10162,16 @@
       "related_backlog": [
         "ITEM-0022"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-227"
+      ],
+      "qa_scenarios": [
+        "QA-BILLING-014"
+      ],
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "YES",
-      "architect_disposition": "PRODUCT_DECISION",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "VERIFIED",
         "classification": "ACTIVE_AS_DOCUMENTED",
@@ -10431,6 +10439,47 @@
       ],
       "related_backlog": [
         "ITEM-0020"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DEFER",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0083",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0083-scheduled-reconciliation-sweep-for-orders-stuck-awaiting-pay.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": ""
+      },
+      "type": "FOLLOW_UP",
+      "title": "Scheduled reconciliation sweep for orders stuck awaiting payment",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "DEFERRED",
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/billing/services/payment-recheck.service.ts"
+        ],
+        "verification_scope": "Part two of ITEM-0076: an unattended sweep that re-checks orders left at PENDING_PAYMENT past a threshold, so a lost webhook is recovered without an operator noticing. Deferred on the user's instruction and for two substantive reasons: it acts without a human, so a Stripe outage turns a periodic sweep into a retry storm against a provider already struggling; and payment-diagnosis.ts decides what each provider answer means, so automating a decision nobody has watched being made by hand is how a wrong classification becomes a wrong action at scale. Verification when it is built: no order reaches PAID other than through confirmPayment, a provider outage produces backoff rather than a storm and says so, and the stuck-order count is observable before and after. Wants ITEM-0009 first — a background actor without observability is the hardest kind to debug."
+      },
+      "affected_modules": [
+        "services/api/src/modules/billing"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [
+        "ITEM-0076",
+        "ITEM-0009"
       ],
       "regressions": [],
       "qa_scenarios": [],

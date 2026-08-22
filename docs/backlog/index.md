@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**208 records** — 126 bugs under [`docs/bugs/`](../bugs/), 82 non-bug items under [`items/`](items/).
+**209 records** — 126 bugs under [`docs/bugs/`](../bugs/), 83 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,20 +13,20 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 21 |
+| Open (active work) | 22 |
 | Blocked | 1 |
-| Deferred | 17 |
-| Awaiting a product decision | 4 |
-| Completed / closed | 165 |
+| Deferred | 18 |
+| Awaiting a product decision | 2 |
+| Completed / closed | 166 |
 | **Open CRITICAL** | **0** |
-| **Open HIGH** | **2** |
+| **Open HIGH** | **3** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
 
 | Severity | Count |
 |---|---|
-| HIGH | 2 |
+| HIGH | 3 |
 | MEDIUM | 16 |
 | LOW | 3 |
 
@@ -36,7 +36,7 @@ see [`README.md`](README.md) for why.
 |---|---|
 | ARCHITECTURE | 1 |
 | FOLLOW_UP | 2 |
-| INFRA | 4 |
+| INFRA | 5 |
 | PRODUCT_DECISION | 1 |
 | SECURITY | 3 |
 | TECH_DEBT | 4 |
@@ -48,13 +48,13 @@ see [`README.md`](README.md) for why.
 | Status | Count |
 |---|---|
 | BLOCKED | 1 |
-| DEFERRED | 17 |
-| PRODUCT_DECISION | 4 |
-| FIXED | 1 |
+| DEFERRED | 18 |
+| PRODUCT_DECISION | 2 |
+| FIXED | 2 |
 | VERIFIED | 121 |
 | DUPLICATE | 2 |
 | READY | 20 |
-| DONE | 42 |
+| DONE | 43 |
 
 ## All records
 
@@ -126,7 +126,7 @@ see [`README.md`](README.md) for why.
 | [BUG-0531](../../docs/bugs/BUG-0531-flat-prices-were-sellable-on-the-public-site-at-invented-amo.md) | Flat prices were sellable on the public site at invented amounts | DATA_INTEGRITY | HIGH | P1 | VERIFIED | super-admin, apps/admin | DONE |
 | [BUG-0533](../../docs/bugs/BUG-0533-seeding-the-commercial-catalogue-never-corrected-an-existing.md) | Seeding the commercial catalogue never corrected an existing plan or price | DATA_INTEGRITY | HIGH | P1 | VERIFIED | super-admin, apps/admin | DONE |
 | [BUG-0627](../../docs/bugs/BUG-0627-admin-sign-out-does-not-revoke-the-platform-session-when-the.md) | Admin sign-out does not revoke the platform session when the refresh cookie has expired | AUTHORIZATION | HIGH | P1 | VERIFIED | api:auth, apps/admin | DONE |
-| [BUG-0714](../../docs/bugs/BUG-0714-customer-emails-link-to-the-vercel-app-host-and-api-base-url.md) | Customer emails link to the vercel.app host, and API_BASE_URL is plain HTTP | INFRA | HIGH | P1 | PRODUCT_DECISION | services/api, apps/web, docs/deployment | PRODUCT_DECISION |
+| [BUG-0714](../../docs/bugs/BUG-0714-customer-emails-link-to-the-vercel-app-host-and-api-base-url.md) | Customer emails link to the vercel.app host, and API_BASE_URL is plain HTTP | INFRA | HIGH | P1 | FIXED | services/api, apps/web, docs/deployment | FIX_NOW |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | READY | apps/web, e2e | PLAN_REQUIRED |
@@ -230,7 +230,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0071](../../docs/backlog/items/ITEM-0071-a-terminal-bug-record-may-claim-fixed-while-its-resolution-s.md) | A terminal bug record may claim FIXED while its Resolution says pending | TEST_GAP | MEDIUM | P2 | DONE | scripts | DONE |
 | [ITEM-0073](../../docs/backlog/items/ITEM-0073-agent-role-names-are-spelled-inconsistently-across-bug-and-t.md) | Agent role names are spelled inconsistently across bug and task records | TECH_DEBT | MEDIUM | P2 | DEFERRED | framework | DEFER |
 | [ITEM-0074](../../docs/backlog/items/ITEM-0074-allocate-id-and-session-tooling-accept-a-session-id-that-doe.md) | allocate-id and session tooling accept a session id that does not exist | INFRA | MEDIUM | P2 | READY | framework | PLAN_REQUIRED |
-| [ITEM-0076](../../docs/backlog/items/ITEM-0076-operators-cannot-recover-an-order-whose-stripe-webhook-never.md) | Operators cannot recover an order whose Stripe webhook never arrived | PRODUCT_DECISION | MEDIUM | P2 | PRODUCT_DECISION | api:billing, apps/admin | PRODUCT_DECISION |
+| [ITEM-0076](../../docs/backlog/items/ITEM-0076-operators-cannot-recover-an-order-whose-stripe-webhook-never.md) | Operators cannot recover an order whose Stripe webhook never arrived | PRODUCT_DECISION | MEDIUM | P2 | DONE | api:billing, apps/admin | DONE |
 | [ITEM-0077](../../docs/backlog/items/ITEM-0077-re-read-the-packaged-agent-archive-after-the-node-pre-gyp-up.md) | Re-read the packaged agent archive after the node-pre-gyp upgrade | TEST_GAP | MEDIUM | P2 | READY | apps/agent-desktop, package-lock.json | PLAN_REQUIRED |
 | [ITEM-0078](../../docs/backlog/items/ITEM-0078-no-end-to-end-payment-to-provisioned-tenant-run-against-stri.md) | No end-to-end payment to provisioned tenant run against Stripe test mode | TEST_GAP | MEDIUM | P2 | READY | api:billing, api:tenant-control-plane, api:outbox, apps/landing | PLAN_REQUIRED |
 | [ITEM-0081](../../docs/backlog/items/ITEM-0081-nine-test-plans-are-needs-review-against-a-five-day-old-comm.md) | Nine test plans are NEEDS_REVIEW against a five-day-old commit | TEST_GAP | MEDIUM | P2 | READY | docs/qa/test-plans | FIX_NOW |
@@ -265,6 +265,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0079](../../docs/backlog/items/ITEM-0079-activation-does-not-gate-on-a-workspace-having-any-module-en.md) | Activation does not gate on a workspace having any module enabled | PRODUCT_DECISION | LOW | P3 | PRODUCT_DECISION | api:tenant-control-plane | PRODUCT_DECISION |
 | [ITEM-0080](../../docs/backlog/items/ITEM-0080-type-the-remaining-services-api-no-unsafe-warnings-module-by.md) | Type the remaining services/api no-unsafe warnings module by module | TECH_DEBT | LOW | P3 | READY | services/api | FIX_NOW |
 | [ITEM-0082](../../docs/backlog/items/ITEM-0082-contract-phase-drop-the-inert-plan-ispublic-column.md) | Contract phase: drop the inert Plan.isPublic column | DATA_MIGRATION | LOW | P3 | DEFERRED | services/api/prisma, api:billing | DEFER |
+| [ITEM-0083](../../docs/backlog/items/ITEM-0083-scheduled-reconciliation-sweep-for-orders-stuck-awaiting-pay.md) | Scheduled reconciliation sweep for orders stuck awaiting payment | FOLLOW_UP | LOW | P3 | DEFERRED | api:billing | DEFER |
 | [ITEM-0057](../../docs/backlog/items/ITEM-0057-landing-production-env-examples-still-name-the-vercel-and-re.md) | Landing production env examples still name the vercel and render hosts, not the dijipeople.com apex | PRODUCT_DECISION | — | P2 | DONE | apps/landing | DONE |
 | [ITEM-0058](../../docs/backlog/items/ITEM-0058-next-env-d-ts-churns-between-dev-and-build-forms-and-the-fou.md) | next-env.d.ts churns between dev and build forms and the four apps disagree | TECH_DEBT | — | P3 | DEFERRED | apps/landing, apps/web, apps/admin | DEFER |
 | [ITEM-0059](../../docs/backlog/items/ITEM-0059-49-tracked-text-files-have-no-final-newline-and-nothing-enfo.md) | 49 tracked text files have no final newline, and nothing enforces one | TECH_DEBT | — | P3 | DEFERRED | apps/admin, apps/web, apps/agent-desktop | DEFER |

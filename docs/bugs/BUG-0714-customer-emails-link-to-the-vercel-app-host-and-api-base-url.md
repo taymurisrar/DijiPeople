@@ -2,7 +2,7 @@
 ID: BUG-0714
 aliases: [BUG-0714]
 Title: Customer emails link to the vercel.app host, and API_BASE_URL is plain HTTP
-Status: PRODUCT_DECISION
+Status: FIXED
 Severity: HIGH
 Priority: P1
 Type: INFRA
@@ -11,9 +11,9 @@ DetectedDate: 2026-08-22
 DetectedInSha: b486a60
 AffectedModules: [services/api, apps/web, docs/deployment]
 OwnerAgent: release-devops
-ArchitectDisposition: PRODUCT_DECISION
+ArchitectDisposition: FIX_NOW
 QAReport: 
-RegressionId: 
+RegressionId: REG-228
 RelatedBacklogItem: ITEM-0057
 RelatedDecision:
 RelatedImplementation:
@@ -182,13 +182,44 @@ Needs the user to approve a production environment change.
 
 ## Resolution
 
-Filled at fix time. The fix is a production environment change and has not been
-made — see Proposed Resolution.
+Applied 2026-08-22.
+
+**The user approved the production write.** All four values are set on the Render
+service `srv-d7js7fqqqhas739v4i7g` and read back to confirm:
+
+| Variable | Now |
+|---|---|
+| `WEB_APP_URL` | `https://app.dijipeople.com` |
+| `API_BASE_URL` | `https://api.dijipeople.com/api` |
+| `WEB_APP_PROD_ROOT_DOMAIN` | `ws.dijipeople.com` *(new)* |
+| `NEXT_PUBLIC_WEB_ROOT_DOMAIN` | `ws.dijipeople.com` *(new)* |
+
+### Set but not yet in effect
+
+Render did **not** redeploy on the change — the newest deploy is still the manual
+one from 2026-08-21, and `/api/health` continues to report
+`"apiBaseUrl":"http://api.dijipeople.com/api"` because the running process holds
+the values it booted with.
+
+So this stays `FIXED` rather than `VERIFIED`: the configuration is correct and
+the behaviour is not, until the next deploy. That deploy is coming with
+[[ITEM-0053]].
+
+### A note on how the write was verified
+
+The first attempt reported `HTTP 000` for all four and **did not apply**. A
+single `PUT` on its own returns `200` with the new value echoed; the failure came
+from combining `-o file -w "%{http_code}"` in the loop. This was caught only
+because the values were read back afterwards rather than trusted from a status
+code — worth keeping, because the same `000` on this machine is *sometimes* a
+harmless curl artifact and sometimes a real failure, and only reading the state
+back tells them apart.
 
 ## QA Retest
 
-Pending. Retest is: read /api/health and confirm an https apiBaseUrl, and build
-a tenant activation URL and confirm it lands on the customer domain.
+Pending the next deploy. Retest is: `/api/health` reports an `https` `apiBaseUrl`,
+and a tenant activation URL resolves on the customer domain rather than the
+Vercel host.
 
 ## History
 
@@ -202,5 +233,7 @@ a tenant activation URL and confirm it lands on the customer domain.
 
 - Backlog item — [[ITEM-0057]]
 - Modules — [[api-architecture]], [[tenant-application]]
+- Regression — REG-228 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-08-22 — user approved. Four variables written and read back; not yet in effect because Render did not redeploy on the change.
