@@ -1,3 +1,5 @@
+import { ADMIN_THEME_COOKIE } from "./console-theme-bootstrap";
+
 /**
  * Personal console preferences, and what it means to apply one.
  *
@@ -70,6 +72,25 @@ export function applyConsolePreferences(preferences: ConsolePreferences) {
 
   root.dataset.adminDensity = preferences.uiDensity.toLowerCase();
   applyResolvedScheme(preferences.uiTheme);
+  writeThemeCookie(preferences.uiTheme);
+}
+
+/**
+ * Mirror the preference into a cookie the root layout can read.
+ *
+ * The layout that renders `<html>` sits outside the `(internal)` route group,
+ * above the code that fetches preferences from the API, so it has no way to ask
+ * what theme this operator chose — and without it every dark-preference
+ * operator got a light first paint on every full page load.
+ *
+ * A rendering hint, not a decision: nothing is authorised from it, so a forged
+ * value costs the forger a wrongly-coloured page. `SameSite=Lax` and a year,
+ * because a preference that expires is a flash that comes back.
+ */
+function writeThemeCookie(theme: ConsoleTheme) {
+  if (typeof document === "undefined") return;
+  const value = theme.toLowerCase();
+  document.cookie = `${ADMIN_THEME_COOKIE}=${encodeURIComponent(value)}; path=/; max-age=31536000; samesite=lax`;
 }
 
 /**
