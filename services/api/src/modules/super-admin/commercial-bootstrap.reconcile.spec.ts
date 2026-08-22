@@ -1,6 +1,9 @@
 import { Prisma, type PrismaClient } from '@prisma/client';
 
-import { bootstrapCommercialDefaults } from './commercial-bootstrap';
+import {
+  bootstrapCommercialDefaults,
+  reconcileMarketsOnly,
+} from './commercial-bootstrap';
 import { DEFAULT_MARKET_DEFINITIONS } from './markets.catalog';
 import { DEFAULT_PLAN_DEFINITIONS } from './plans.catalog';
 import { buildSeededPrices } from './pricing.catalog';
@@ -647,5 +650,84 @@ describe('commercial bootstrap reconciles market country claims', () => {
     expect(
       fake.marketCountries.find((row) => row.countryCode === 'QA')?.marketId,
     ).toBe('market-QA');
+  });
+});
+
+/**
+ * The narrow repair, and the reason it exists.
+ *
+ * `reconcileMarketsOnly` fixes a market's country claims and nothing else. The
+ * obvious alternative — run `bootstrapCommercialDefaults`, which already calls
+ * `ensureMarkets` — would additionally reconcile plan prices against
+ * `pricing.catalog.ts`, and on this repository's production database those
+ * disagree: the catalog has Qatar per-seat monthly at QAR 8 / 14 / 22 while
+ * production is selling QAR 15 / 25 / 36.
+ *
+ * So repairing a join table through the full bootstrap would supersede every
+ * live price as a side effect, roughly halving them. Nothing already sold would
+ * change, but the next customer would be charged a number nobody chose today.
+ *
+ * These tests are the guarantee that separation actually holds. A future edit
+ * that routes the repair back through the full bootstrap fails here.
+ */
+describe('reconcileMarketsOnly repairs countries without touching commerce', () => {
+  it('moves a country to the market the catalog assigns it to', async () => {
+    const fake = fakePrisma({
+      plans: catalogPlans(),
+      markets: allMarkets(),
+      prices: catalogPrices(),
+      marketCountries: catalogMarketCountries().map((row) =>
+        row.countryCode === 'QA' ? { ...row, marketId: 'market-GCC' } : row,
+      ),
+    });
+
+    const result = await reconcileMarketsOnly(fake.client);
+
+    expect(
+      fake.marketCountries.find((row) => row.countryCode === 'QA')?.marketId,
+    ).toBe('market-QA');
+    expect(result.warnings.join(' ')).toContain('Country QA');
+  });
+
+  it('writes no price, ever', async () => {
+    /*
+     * The whole point. Seeded deliberately so the full bootstrap would have
+     * plenty to do: no prices at all, and a plan whose name has drifted.
+     */
+    const fake = fakePrisma({
+      plans: [
+        { ...catalogPlan('starter'), name: 'Starter (old name)' },
+        ...catalogPlans().slice(1),
+      ],
+      markets: allMarkets(),
+      prices: [],
+      marketCountries: catalogMarketCountries().map((row) =>
+        row.countryCode === 'QA' ? { ...row, marketId: 'market-GCC' } : row,
+      ),
+    });
+
+    await reconcileMarketsOnly(fake.client);
+
+    expect(fake.priceCreates).toEqual([]);
+    expect(fake.priceUpdates).toEqual([]);
+    expect(fake.priceUpdateManys).toEqual([]);
+    // And no plan is reconciled either, drifted name notwithstanding.
+    expect(fake.planUpdates).toEqual([]);
+  });
+
+  it('is a no-op on a database that already agrees', async () => {
+    const fake = fakePrisma({
+      plans: catalogPlans(),
+      markets: allMarkets(),
+      prices: catalogPrices(),
+    });
+
+    const result = await reconcileMarketsOnly(fake.client);
+
+    expect(fake.countryUpdates).toEqual([]);
+    expect(fake.countryCreates).toEqual([]);
+    expect(fake.marketCreates).toEqual([]);
+    expect(result.warnings).toEqual([]);
+    expect(result.marketsCreated).toBe(0);
   });
 });

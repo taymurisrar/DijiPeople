@@ -126,10 +126,43 @@ of them.
 
 ## Dependencies
 
-The code fix does not repair live data on its own. `npm run seed:commercial`
-must be run once against production, and it is **not** in the `release` chain —
-adding it there would also start reconciling plan prices on every deploy, which
-is a commercial decision rather than a defect fix and is left for the owner.
+The code fix stops this state recurring. It does not clear the state already in
+production — a repair has to run against that database.
+
+**Run `npm run repair:market-countries`, not `npm run seed:commercial`.**
+
+That distinction was found while writing this record, and it matters. The
+obvious repair is `seed:commercial`, because it calls `ensureMarkets`. It also
+reconciles plan prices against `pricing.catalog.ts`, and on this production
+database the two disagree:
+
+| | catalog | production today |
+|---|---|---|
+| Qatar per-seat monthly | QAR 8 / 14 / 22 | QAR 15 / 25 / 36 |
+| International per-seat monthly | USD 2.2 / 3.85 / 6.05 | USD 3.5 / 5.5 / 8.5 |
+
+Repairing a join table through the full bootstrap would therefore supersede every
+live price as a side effect, roughly halving them. Nothing already sold would
+change — `reconcilePlanPrice` supersedes rather than edits, and existing
+subscriptions keep the terms they bought — but the next customer would be charged
+a number nobody decided on today.
+
+`repair:market-countries` (`services/api/prisma/repair-market-countries.ts`) does
+the country reconciliation and cannot touch a price;
+`describe('reconcileMarketsOnly repairs countries without touching commerce')`
+asserts exactly that.
+
+Which schedule is authoritative — the catalog or what production is selling — is
+a separate commercial question, tracked nowhere yet because it is the owner's to
+answer. This repair does not require it answered, and deliberately does not force
+it by acting first.
+
+**Until the repair runs**, `/` and `/plans` show "Pricing on request" in Qatar
+rather than a price. That is a deliberate consequence of the BUG-0793 fix: the
+home page now reads the same market-scoped source as `/plans` instead of quoting
+an unscoped USD price, so it shows what the market can actually sell. A wrong
+price is worse than an honest absence, but the absence is visible and the repair
+is what removes it.
 
 ## Related Items
 

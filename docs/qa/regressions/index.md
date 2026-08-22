@@ -2003,7 +2003,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Regression test** | `services/api/src/modules/super-admin/commercial-bootstrap.reconcile.spec.ts` |
 | **Scenario** | Seed a database where `GCC` holds `QA` and run the bootstrap → the country row moves to the `QA` market, and the move is reported in `warnings`. Seed one with no Qatar market at all → the market is created *before* its countries, so the clash cannot lose the market. Seed one already correct → no writes, no warnings. |
 | **Proven to fail without the fix** | Restoring the `if (existing) continue;` early return fails two of the four cases. |
-| **Note** | The silence is the lesson, not the constraint. A unique violation means "somebody else holds this", which is only benign when the holder is who you wanted — and here it never was. `ensureMarketCountries` now reports every move rather than repairing quietly, because a silent repair of a silent breakage is how this stayed invisible for weeks. |
+| **Note** | The silence is the lesson, not the constraint. A unique violation means "somebody else holds this", which is only benign when the holder is who you wanted — and here it never was. `ensureMarketCountries` now reports every move rather than repairing quietly, because a silent repair of a silent breakage is how this stayed invisible for weeks. The live repair runs through `npm run repair:market-countries` rather than `seed:commercial`: the latter also reconciles prices against `pricing.catalog.ts`, which disagrees with what production is selling (Qatar QAR 8/14/22 vs QAR 15/25/36), so fixing a join table would have halved live prices as a side effect. |
 | **Fixed** | 2026-08-22, `agent/site-ux-and-admin-fixes` |
 | **Active** | yes |
 

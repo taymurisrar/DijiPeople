@@ -99,6 +99,51 @@ export async function bootstrapCommercialDefaults(
   return result;
 }
 
+/**
+ * Reconcile markets and their country claims. **Nothing else.**
+ *
+ * This exists because the obvious repair for BUG-0792 is not a safe one. The
+ * defect is that a market resolves for nobody, and the fix for that lives in
+ * `ensureMarkets` — but the only way to run `ensureMarkets` was
+ * `bootstrapCommercialDefaults`, which also reconciles plans and prices against
+ * `pricing.catalog.ts`.
+ *
+ * On this repository's own production database those disagree. The catalog has
+ * Qatar per-seat monthly at QAR 8 / 14 / 22 and International at USD 2.2 / 3.85
+ * / 6.05; production is currently selling QAR 15 / 25 / 36 and USD 3.5 / 5.5 /
+ * 8.5. Running the full bootstrap to fix a country mapping would supersede every
+ * one of those live prices — roughly halving them — as a side effect of
+ * repairing a join table. `reconcilePlanPrice` supersedes rather than edits, so
+ * nothing anybody already bought would change, but the next customer would be
+ * charged a number nobody chose today.
+ *
+ * So the narrow operation gets its own entry point. It creates missing markets
+ * and makes their country claims match the catalog, and it cannot touch a price.
+ * Which schedule is authoritative — the catalog or what production is selling —
+ * is a commercial question, and this repair does not need it answered first.
+ */
+export async function reconcileMarketsOnly(
+  prisma: BootstrapClient,
+): Promise<Pick<CommercialBootstrapResult, 'marketsCreated' | 'warnings'>> {
+  const result: CommercialBootstrapResult = {
+    plansCreated: 0,
+    plansUpdated: 0,
+    plansRetired: 0,
+    plansWithdrawn: 0,
+    marketsCreated: 0,
+    pricesCreated: 0,
+    pricesSuperseded: 0,
+    pricesRetired: 0,
+    pricesSkippedExisting: 0,
+    pricesSkippedRace: 0,
+    warnings: [],
+  };
+
+  await ensureMarkets(prisma, result);
+
+  return { marketsCreated: result.marketsCreated, warnings: result.warnings };
+}
+
 async function ensurePlans(
   prisma: BootstrapClient,
   result: CommercialBootstrapResult,
