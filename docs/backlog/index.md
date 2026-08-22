@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**200 records** — 122 bugs under [`docs/bugs/`](../bugs/), 78 non-bug items under [`items/`](items/).
+**201 records** — 123 bugs under [`docs/bugs/`](../bugs/), 78 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,11 +13,11 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 21 |
+| Open (active work) | 19 |
 | Blocked | 1 |
 | Deferred | 16 |
 | Awaiting a product decision | 7 |
-| Completed / closed | 155 |
+| Completed / closed | 158 |
 | **Open CRITICAL** | **0** |
 | **Open HIGH** | **2** |
 | **Awaiting Architect triage** | **0** |
@@ -27,7 +27,7 @@ see [`README.md`](README.md) for why.
 | Severity | Count |
 |---|---|
 | HIGH | 2 |
-| MEDIUM | 16 |
+| MEDIUM | 14 |
 | LOW | 3 |
 
 ## Open by type
@@ -39,7 +39,7 @@ see [`README.md`](README.md) for why.
 | INFRA | 3 |
 | SECURITY | 3 |
 | TECH_DEBT | 4 |
-| TEST_GAP | 7 |
+| TEST_GAP | 5 |
 | UX | 1 |
 
 ## All records by status
@@ -49,10 +49,10 @@ see [`README.md`](README.md) for why.
 | BLOCKED | 1 |
 | DEFERRED | 16 |
 | PRODUCT_DECISION | 7 |
-| VERIFIED | 117 |
+| VERIFIED | 118 |
 | DUPLICATE | 2 |
-| READY | 21 |
-| DONE | 36 |
+| READY | 19 |
+| DONE | 38 |
 
 ## All records
 
@@ -123,6 +123,7 @@ see [`README.md`](README.md) for why.
 | [BUG-0463](../../docs/bugs/BUG-0463-an-active-reachable-tenant-reported-that-its-workspace-was-n.md) | An active reachable tenant reported that its workspace was not provisioned | STATE_MACHINE | HIGH | P1 | VERIFIED | api:tenant-control-plane, apps/admin | DONE |
 | [BUG-0531](../../docs/bugs/BUG-0531-flat-prices-were-sellable-on-the-public-site-at-invented-amo.md) | Flat prices were sellable on the public site at invented amounts | DATA_INTEGRITY | HIGH | P1 | VERIFIED | super-admin, apps/admin | DONE |
 | [BUG-0533](../../docs/bugs/BUG-0533-seeding-the-commercial-catalogue-never-corrected-an-existing.md) | Seeding the commercial catalogue never corrected an existing plan or price | DATA_INTEGRITY | HIGH | P1 | VERIFIED | super-admin, apps/admin | DONE |
+| [BUG-0627](../../docs/bugs/BUG-0627-admin-sign-out-does-not-revoke-the-platform-session-when-the.md) | Admin sign-out does not revoke the platform session when the refresh cookie has expired | AUTHORIZATION | HIGH | P1 | VERIFIED | api:auth, apps/admin | DONE |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | READY | api:tenant-control-plane | FIX_NOW |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | READY | apps/web, e2e | PLAN_REQUIRED |
@@ -184,8 +185,8 @@ see [`README.md`](README.md) for why.
 | [BUG-0497](../../docs/bugs/BUG-0497-fifteen-modules-offered-no-delete-and-no-reason-for-its-abse.md) | Fifteen modules offered no Delete and no reason for its absence | UX | MEDIUM | P2 | VERIFIED | apps/admin, api:partners, api:platform-runtime | DONE |
 | [BUG-0532](../../docs/bugs/BUG-0532-plan-form-offered-editable-legacy-price-fields-that-bill-nob.md) | Plan form offered editable legacy price fields that bill nobody | UX | MEDIUM | P2 | DUPLICATE | apps/admin | DUPLICATE |
 | [BUG-0534](../../docs/bugs/BUG-0534-plan-form-offered-editable-legacy-price-fields-that-bill-nob.md) | Plan form offered editable legacy price fields that bill nobody | UX | MEDIUM | P2 | VERIFIED | super-admin, apps/admin | DONE |
-| [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | READY | services/api, apps/admin | FIX_NOW |
-| [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | READY | api:tenant-control-plane | FIX_NOW |
+| [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
+| [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |
 | [ITEM-0006](../../docs/backlog/items/ITEM-0006-adr-one-source-of-truth-for-the-tenant-base-domain.md) | ADR needed — one source of truth for the tenant base domain | ARCHITECTURE | MEDIUM | P2 | DONE | pkg:config, services/api, apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0009](../../docs/backlog/items/ITEM-0009-no-observability-platform-exists.md) | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | P2 | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |

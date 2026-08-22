@@ -728,6 +728,6 @@ before WP-01 writes `schema.prisma`.
 ## Related
 
 - Records — [[BUG-0017]], [[BUG-0066]], [[BUG-0075]], [[BUG-0077]], [[BUG-0078]], [[BUG-0080]], [[BUG-0081]], [[BUG-0082]], [[ITEM-0013]], [[ITEM-0047]], [[ITEM-0060]], [[ITEM-0061]], [[ITEM-0062]], [[ITEM-0063]], [[ITEM-0066]], [[ITEM-0067]]
-- Modules — [[super-admin]], [[tenant-control-plane]], [[billing]], [[notifications]], [[legal]]
+- Modules — [[super-admin]], [[tenant-control-plane]], [[auth]], [[billing]], [[notifications]], [[legal]]
 
 <!-- GRAPH:END -->

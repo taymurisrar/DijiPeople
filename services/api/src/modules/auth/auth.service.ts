@@ -1099,6 +1099,26 @@ export class AuthService {
     const clientId = this.getClientId(req);
     const cookieNames = getAuthCookieNames(this.configService, clientId);
     const refreshToken = this.extractTokenFromRequest(req, cookieNames.refresh);
+    const sessionId = this.extractTokenFromRequest(req, cookieNames.session);
+
+    if (!refreshToken && sessionId) {
+      /*
+       * BUG-0627. The refresh cookie is the shortest-lived of the three, so the
+       * sign-out that follows a session-expired modal — the flow BUG-0009 was
+       * raised about — usually arrives without it. Keying revocation on the
+       * refresh token alone meant that sign-out cleared the browser and left the
+       * session live server-side: the operator sees the login screen and
+       * believes they are out, and the token stays valid until it expires on its
+       * own.
+       *
+       * The session cookie outlives the refresh cookie and names the row
+       * directly, which is why every client forwards it here. Revoking by it is
+       * exact rather than broad: the filter is the single session, scoped to the
+       * client it was issued for, so this cannot reach another operator's
+       * session or another client's token for the same person.
+       */
+      await this.revokeSessionTokens(clientId, sessionId);
+    }
 
     if (refreshToken) {
       if (clientId === 'admin') {
@@ -1147,6 +1167,32 @@ export class AuthService {
     }
 
     this.clearAuthCookies(res, clientId);
+  }
+
+  /**
+   * Revoke every live token for one session of one client.
+   *
+   * `updateMany` rather than a read-then-write: the filter is already exact, and
+   * a token rotated between the read and the write would otherwise survive the
+   * sign-out. `revokedAt: null` in the filter keeps an already-closed session's
+   * timestamp at the moment it was actually closed.
+   */
+  private async revokeSessionTokens(clientId: AuthClientId, sessionId: string) {
+    const now = new Date();
+    const where = { sessionId, appClientId: clientId, revokedAt: null };
+
+    if (clientId === 'admin') {
+      await this.prisma.platformRefreshToken.updateMany({
+        where,
+        data: { revokedAt: now, lastUsedAt: now },
+      });
+      return;
+    }
+
+    await this.prisma.refreshToken.updateMany({
+      where,
+      data: { revokedAt: now, lastUsedAt: now },
+    });
   }
 
   private async validateCredentials(

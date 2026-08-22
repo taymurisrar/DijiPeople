@@ -6370,6 +6370,55 @@
       }
     },
     {
+      "record_id": "BUG-0627",
+      "source": {
+        "record_path": "docs/bugs/BUG-0627-admin-sign-out-does-not-revoke-the-platform-session-when-the.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "389aa49",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
+      },
+      "type": "AUTHORIZATION",
+      "title": "Admin sign-out does not revoke the platform session when the refresh cookie has expired",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "VERIFIED",
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/auth/auth.service.ts",
+          "services/api/test/admin-logout-revocation.e2e-spec.ts"
+        ],
+        "verification_scope": "AuthService.logout keyed revocation on the refresh token alone and read it only from the cookie, so a sign-out arriving after the refresh cookie's TTL elapsed — the ordinary case, and the exact flow BUG-0009 was raised about — cleared the browser and left the PlatformRefreshToken live for up to seven days. The fix revokes by the forwarded session cookie, filtered on { sessionId, appClientId, revokedAt: null }, using updateMany so a token rotated between a read and a write cannot survive the sign-out. Verification is REG-221: six DB-backed tests over real HTTP against a booted AppModule, covering the platform client and the tenant client, a session id belonging to nobody, and a session id belonging to a different client. Mutation-proven twice — removing the revocation call fails both primary tests, and removing appClientId from the filter fails the scope test. That second probe matters: the scope test's first version signed out as web with an admin session id and could not fail, because the two clients use different tables."
+      },
+      "affected_modules": [
+        "services/api/src/modules/auth",
+        "apps/admin"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [
+        "BUG-0009",
+        "BUG-0010"
+      ],
+      "related_backlog": [
+        "ITEM-0002"
+      ],
+      "regressions": [
+        "REG-221"
+      ],
+      "qa_scenarios": [
+        "QA-AUTH-002"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
+      "verification_result": "VERIFIED"
+    },
+    {
       "record_id": "ITEM-0001",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md",
@@ -6429,14 +6478,14 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "",
         "created_at": "2026-08-15",
-        "updated_at": "2026-08-17",
+        "updated_at": "2026-08-22",
         "resolved_at": ""
       },
       "type": "TEST_GAP",
       "title": "Live API session and database proof for admin sign-out",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "READY",
+      "current_status": "DONE",
       "current_evidence": {
         "paths": [
           "docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md",
@@ -6464,7 +6513,7 @@
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "VERIFIED",
         "classification": "STILL_REQUIRED_LIVE_SESSION_PROOF",
@@ -6480,14 +6529,14 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "",
         "created_at": "2026-08-15",
-        "updated_at": "2026-08-15",
+        "updated_at": "2026-08-22",
         "resolved_at": ""
       },
       "type": "TEST_GAP",
       "title": "Tenant erasure has no cross-tenant survival assertion",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "READY",
+      "current_status": "DONE",
       "current_evidence": {
         "paths": [
           "docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md",
@@ -6506,12 +6555,16 @@
       "related_backlog": [
         "ITEM-0002"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-220"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-015"
+      ],
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "VERIFIED",
         "classification": "ACTIVE_AS_DOCUMENTED",

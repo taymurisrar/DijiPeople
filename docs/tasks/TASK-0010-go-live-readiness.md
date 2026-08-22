@@ -561,6 +561,6 @@ whatever they have open. That is theirs to pull, not mine to do.
 ## Related
 
 - Records — [[BUG-0005]], [[BUG-0009]], [[BUG-0010]], [[BUG-0052]], [[BUG-0080]], [[BUG-0084]], [[BUG-0085]], [[ITEM-0069]], [[ITEM-0070]], [[ITEM-0071]], [[ITEM-0072]]
-- Modules — [[legal]], [[billing]]
+- Modules — [[auth]], [[legal]], [[billing]]
 
 <!-- GRAPH:END -->

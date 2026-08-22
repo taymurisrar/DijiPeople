@@ -95,7 +95,7 @@ Not meaningful — isolation is a server property and a browser cannot demonstra
 
 ## Related
 
-- Scenarios — [[QA-TENANT-001]], [[QA-TENANT-002]], [[QA-TENANT-003]], [[QA-TENANT-004]], [[QA-TENANT-005]], [[QA-TENANT-006]]
+- Scenarios — [[QA-TENANT-001]], [[QA-TENANT-002]], [[QA-TENANT-003]], [[QA-TENANT-004]], [[QA-TENANT-005]], [[QA-TENANT-006]], [[QA-TENANT-015]]
 - Module — [[tenant-isolation]]
 - Bugs — [[BUG-0005]]
 - Regressions — REG-005 (see the regression register)

@@ -29,6 +29,7 @@ See [[dijipeople-platform-overview|DijiPeople Platform Overview]] for the full p
 - [[approvals|Approvals]]
 - [[attendance|Attendance]]
 - [[audit-and-events|Audit and Events]]
+- [[auth|Auth]]
 - [[billing|Billing]]
 - [[commercial-onboarding-lifecycle]]
 - [[contracts-and-agreements|Contracts and Agreements]]

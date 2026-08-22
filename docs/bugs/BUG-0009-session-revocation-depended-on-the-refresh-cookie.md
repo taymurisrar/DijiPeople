@@ -131,6 +131,23 @@ revocation request is made and correctly addressed, not that the persisted token
 row flips to revoked. That last step needs a live API and database, and
 [[ITEM-0002]] still carries it.
 
+## Follow-on — 2026-08-22
+
+This record stays `VERIFIED`. What it claimed is true and is now proven by
+execution rather than by reading: the admin route calls the API even when the
+refresh cookie is gone.
+
+What nobody checked at the time is what the API *did* with that call. It did
+nothing — `AuthService.logout` keyed revocation on the refresh token alone, so
+the fixed client called an endpoint that then cleared cookies and returned
+success without touching a row. That is [[BUG-0627]], raised and fixed on
+2026-08-22 while closing [[ITEM-0002]].
+
+Worth keeping as a pattern rather than a footnote: the test that closed this
+record mocked `fetch`. A mock can prove a request is *sent*; it can never prove
+anything was *revoked*. The two halves of a fix that crosses a process boundary
+need evidence on both sides of it.
+
 ## History
 
 - 2026-08-20 — **genuinely verified, after a round trip through the truth.** The

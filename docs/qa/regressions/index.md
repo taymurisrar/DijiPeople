@@ -1840,3 +1840,33 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | The date validator round-trips through `Date`, so `2026-02-31` is refused rather than rolling silently into March. The status control is a select over the module's own statuses, showing labels and sending values — the only honest control for a value the system already enumerates. |
 | **Fixed** | 2026-08-22, branch `agent/backlog-burndown` |
 | **Active** | yes |
+
+### REG-220 — Tenant erasure had no cross-tenant survival assertion
+
+| | |
+|---|---|
+| **Bug class** | `assertion-that-cannot-fail` |
+| **Module** | `services/api/src/modules/tenant-control-plane` |
+| **Bug record** | ITEM-0003 |
+| **Root cause** | The two DB-backed erasure suites each operated on a **single** fixture tenant, so the only question they could answer was "is the tenant gone?" — which is the easy half and not the risk. Erasure walks a 242-model delete order, and every step is a `deleteMany` whose correctness rests entirely on one `tenantId` predicate. A missing predicate deletes a neighbour tenant’s rows, the transaction commits, and no existing assertion notices, because no neighbour existed to notice with. |
+| **Regression test** | `services/api/test/tenant-erasure-survival.e2e-spec.ts` |
+| **Scenario** | Two tenants are seeded with the same shape of data — the payroll chain that produced BUG-0148, plus the full commercial chain erasure deliberately keeps (subscription, invoice, contract, support case, onboarding, order, refund, and the support-case/error-log link). One is erased through the production sequence. The neighbour is then probed across **all three collections**: every model in the delete order must hold the same number of rows, every detached model must still be present **with each cleared field still populated**, and every link-cleanup row must survive. Its tenant row must still be present and still hold employees. |
+| **Proven to fail without the fix** | Two probes, each naming the exact loss. Dropping the `tenantId` predicate for one model in the delete loop reports `delete:employee: 1 → 0`. Dropping the tenant scope from the relation-scoped detach and the link cleanup reports all five of `detached:contract.subscriptionId`, `detached:supportCase.subscriptionId`, `detached:supportCase.invoiceId`, `detached:subscriptionOrder.subscriptionId` and `link:supportCaseIncident`, each `1 → 0`. |
+| **Note** | Driven from the three constants rather than a hand-written list of models, because the defect it guards against is precisely "a model added to erasure later whose predicate is wrong" — a hand-listed set is a snapshot of what somebody thought about on the day and silently stops covering new models. Detachment is not deletion, so the detached models are probed per **cleared field** rather than per row count: the relation-scoped clear (`{ subscription: { tenantId } }`) can reach a neighbour's row while leaving the row itself present, and these are contracts, orders and refunds belonging to a different paying customer. Two tests guard the guard — the seed asserts every probe group is actually populated, and a final test asserts the probe count equals the plan size, so neither an empty collection nor an empty seed can make the survival assertion vacuously true. |
+| **Fixed** | 2026-08-22, branch `agent/qa-verify-and-burndown` |
+| **Active** | yes |
+
+### REG-221 — Sign-out left the session live when the refresh cookie had expired
+
+| | |
+|---|---|
+| **Bug class** | `assertion-without-a-check` |
+| **Module** | `services/api/src/modules/auth`, `apps/admin` |
+| **Bug record** | BUG-0627 |
+| **Root cause** | `AuthService.logout` keyed revocation on the refresh token alone, and read it only from the cookie. The refresh cookie is the shortest-lived of the three, so the sign-out that follows a session-expired modal arrives without it — and the handler then cleared the response cookies and returned success without touching a row. The operator sees the login screen; the `PlatformRefreshToken` stays `revokedAt: null` for up to seven days. This is the second half of BUG-0009, which fixed the client so the API is called, and was closed on a test that mocked `fetch` — proving the request is *sent*, never that anything is *revoked*. |
+| **Regression test** | `services/api/test/admin-logout-revocation.e2e-spec.ts` |
+| **Scenario** | Six DB-backed tests over real HTTP. A sign-out carrying the session cookie but no refresh cookie revokes the persisted token; one carrying the refresh cookie still does; a session id belonging to nobody revokes nothing; a session id belonging to a different client revokes nothing. Asserted for the platform client and the tenant client, not assumed from one to the other. |
+| **Proven to fail without the fix** | Two probes. Removing the revocation call fails both primary tests, admin and tenant. Removing `appClientId` from the filter fails the scope test. |
+| **Note** | The scope test needed that second probe. Its first version signed out as `web` using an **admin** session id and asserted the platform token survived — which passes whatever the filter says, since admin tokens live in `PlatformRefreshToken` and a `web` logout could never reach one. It stayed green with `appClientId` deleted from the production code: an assertion that cannot fail, inside the suite written to remove exactly that. It now uses `web` and `agent-desktop` rows in the *same* table, which is the claim `appClientId` actually makes. |
+| **Fixed** | 2026-08-22, branch `agent/qa-verify-and-burndown` |
+| **Active** | yes |

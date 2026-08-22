@@ -3,16 +3,16 @@ ID: ITEM-0002
 aliases: [ITEM-0002]
 Title: Live API session and database proof for admin sign-out
 Type: TEST_GAP
-Status: READY
+Status: DONE
 Priority: P2
 Severity: MEDIUM
 AffectedModules: [services/api, apps/admin]
 Source: QA_RUN
 OwnerAgent: qa
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 CreatedAt: 2026-08-15
-UpdatedAt: 2026-08-17
-RelatedBug: BUG-0009
+UpdatedAt: 2026-08-22
+RelatedBug: BUG-0627
 RelatedQA: docs/qa/runs/2026-08-14-admin-session-expired-logout-cbc2db8.md
 RelatedADR:
 RelatedImplementation:
@@ -72,6 +72,64 @@ technically resolvable.
 [[BUG-0009]] · [[BUG-0010]] · [[ITEM-0001]] · architecture note
 [[qa-and-ci-architecture|QA and CI Architecture]].
 
+## Resolution — 2026-08-22, SESSION-0040
+
+Closed by `services/api/test/admin-logout-revocation.e2e-spec.ts` — six tests,
+DB-backed, driven over real HTTP from a booted `AppModule`, registered as
+[[REG-221]]. [[QA-AUTH-002]] is promoted from PARTIAL.
+
+**The item was a test gap hiding a defect.** The proof was written first, and the
+central case failed:
+
+```
+● revokes the persisted token when the refresh cookie has already expired
+    Expected constructor: Date
+    Received value: null
+```
+
+`AuthService.logout` keyed revocation on the refresh token alone and read it only
+from the cookie. The refresh cookie is the shortest-lived of the three, so the
+sign-out that follows a session-expired modal — the flow [[BUG-0009]] was raised
+about — arrives without it, and the handler cleared the response cookies and
+returned success without touching a row. The operator sees the login screen; the
+`PlatformRefreshToken` stays live for up to seven days.
+
+That is [[BUG-0627]], fixed in the same change: `logout` now revokes by the
+forwarded session cookie, scoped to `{ sessionId, appClientId, revokedAt: null }`.
+
+### Against the acceptance criteria
+
+| Criterion | Where |
+|---|---|
+| GET and POST invoked against a real session | POST over HTTP here; GET in `logout-route.behaviour.spec.ts` |
+| A missing refresh cookie still leaves the persisted token revoked | proven — and it did not, until [[BUG-0627]] was fixed |
+| Rejected cookie configuration returns the redirect rather than 500 | `logout-route.behaviour.spec.ts`, both methods |
+| `QA-AUTH-002` promoted from PARTIAL only after those assertions pass | promoted on this evidence |
+
+### Why this item was right to stay open
+
+It was rejected once, on 2026-08-17, for being closed against a static
+source-shape test. That rejection was correct, and the reason is now concrete
+rather than procedural: the behaviour spec that followed invokes the handlers but
+mocks `fetch`. A mock proves the request is **sent**; it cannot prove anything
+was **revoked**. The defect sat behind a green test for five days, and only
+reading a database row back surfaced it.
+
+### Verification
+
+```
+npx jest --config ./test/jest-e2e.json \
+  --runTestsByPath test/admin-logout-revocation.e2e-spec.ts
+→ 6 passed
+npx jest --testPathPatterns "auth|logout|session"
+→ 16 suites, 173 tests, all passing
+```
+
+Mutation-proven twice: removing the revocation call fails both primary tests;
+removing `appClientId` from the filter fails the scope test. The scope test
+needed that second probe — its first version could not fail, and is written up in
+[[BUG-0627]].
+
 ## History
 
 - 2026-08-15 — imported from the admin session-expired QA run's follow-ups.
@@ -81,3 +139,5 @@ technically resolvable.
 - 2026-08-17 — independent WP-02 review rejected the attempted `DONE` closure:
   the named spec is a static source-shape test and does not prove persisted
   revocation or execute the rejected-cookie path. Restored to `READY/FIX_NOW`.
+
+- 2026-08-22 — resolved in SESSION-0040. The live proof was written, failed, and surfaced BUG-0627; both landed together and QA-AUTH-002 was promoted.

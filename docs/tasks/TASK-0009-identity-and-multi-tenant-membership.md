@@ -763,6 +763,6 @@ TASK-0008's migrations to the local development database. WP-02 waits on it.
 ## Related
 
 - Records — [[BUG-0075]], [[ITEM-0060]], [[ITEM-0062]], [[ITEM-0068]], [[ITEM-0069]]
-- Modules — [[legal]], [[super-admin]]
+- Modules — [[auth]], [[legal]], [[super-admin]]
 
 <!-- GRAPH:END -->

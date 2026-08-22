@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 158** · automated: 142 · manual: 5 · blocked by infrastructure: 0
+**Scenarios: 159** · automated: 143 · manual: 5 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -29,7 +29,7 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-ATT-006](../../../docs/qa/scenarios/QA-ATT-006-an-employee-cannot-approve-their-own-attendance-correction.md) | An employee cannot approve their own attendance correction | attendance | SECURITY | HIGH | AUTOMATED | `services/api/src/modules/attendance/attendance.correction-authorization.spec.ts` | BUG-0002, BUG-0047 | REG-002 |
 | [QA-ATT-007](../../../docs/qa/scenarios/QA-ATT-007-attendance-operational-workflows-complete-against-a-fresh-da.md) | Attendance operational workflows complete against a fresh database | attendance | E2E | HIGH | AUTOMATED | `services/api/test/attendance-operational.e2e-spec.ts` | BUG-0049 | — |
 | [QA-AUTH-001](../../../docs/qa/scenarios/QA-AUTH-001-every-caller-and-its-auth-route-agree-on-http-method.md) | Every caller and its auth route agree on HTTP method | authentication | API | HIGH | AUTOMATED | `scripts/check-route-method-callers.mjs` | BUG-0008, BUG-0038 | REG-008, REG-033 |
-| [QA-AUTH-002](../../../docs/qa/scenarios/QA-AUTH-002-sign-out-always-revokes-the-session-and-never-500s-while-cle.md) | Sign-out always revokes the session and never 500s while clearing cookies | authentication | UNIT | HIGH | AUTOMATED | `apps/admin/app/api/auth/logout/logout-route.behaviour.spec.ts` | BUG-0009, BUG-0010 | REG-032 |
+| [QA-AUTH-002](../../../docs/qa/scenarios/QA-AUTH-002-sign-out-always-revokes-the-session-and-never-500s-while-cle.md) | Sign-out always revokes the session and never 500s while clearing cookies | authentication | E2E | HIGH | AUTOMATED | `services/api/test/admin-logout-revocation.e2e-spec.ts` | BUG-0009, BUG-0010, BUG-0627 | REG-032, REG-221 |
 | [QA-AUTH-003](../../../docs/qa/scenarios/QA-AUTH-003-repeated-failed-sign-ins-lock-the-account.md) | Repeated failed sign-ins lock the account | authentication | UNIT | HIGH | AUTOMATED | `services/api/src/modules/auth/login-lockout.service.spec.ts` | — | — |
 | [QA-AUTH-004](../../../docs/qa/scenarios/QA-AUTH-004-password-policy-is-enforced-on-set-and-on-change.md) | Password policy is enforced on set and on change | authentication | UNIT | MEDIUM | AUTOMATED | `services/api/src/modules/auth/password-policy.service.spec.ts` | — | — |
 | [QA-AUTH-005](../../../docs/qa/scenarios/QA-AUTH-005-a-token-minted-for-one-app-client-is-rejected-by-another.md) | A token minted for one app client is rejected by another | authentication | SECURITY | CRITICAL | AUTOMATED | `services/api/src/common/guards/jwt-auth.guard.spec.ts` | — | — |
@@ -172,3 +172,4 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-TENANT-012](../../../docs/qa/scenarios/QA-TENANT-012-confirming-wildcard-dns-reaches-the-hostnames-already-issued.md) | Confirming wildcard DNS reaches the hostnames already issued | tenant-provisioning | UNIT | MEDIUM | AUTOMATED | `services/api/src/modules/tenant-domains/tenant-domain.service.spec.ts` | BUG-0494 | REG-197 |
 | [QA-TENANT-013](../../../docs/qa/scenarios/QA-TENANT-013-a-failed-branding-upload-leaves-no-orphaned-document.md) | A failed branding upload leaves no orphaned document | platform-admin | UNIT | MEDIUM | AUTOMATED | `services/api/src/modules/tenant-settings/branding-assets.service.spec.ts` | BUG-0041 | REG-206 |
 | [QA-TENANT-014](../../../docs/qa/scenarios/QA-TENANT-014-every-tenant-control-plane-method-authorizes-before-it-queri.md) | Every tenant control-plane method authorizes before it queries | authorization | SECURITY | HIGH | AUTOMATED | `services/api/src/modules/tenant-control-plane/every-method-asserts.spec.ts` | ITEM-0015 | REG-209 |
+| [QA-TENANT-015](../../../docs/qa/scenarios/QA-TENANT-015-erasing-one-tenant-leaves-every-other-tenant-complete.md) | Erasing one tenant leaves every other tenant complete | tenant-isolation | DATABASE | CRITICAL | AUTOMATED | `services/api/test/tenant-erasure-survival.e2e-spec.ts` | ITEM-0003 | REG-220 |
