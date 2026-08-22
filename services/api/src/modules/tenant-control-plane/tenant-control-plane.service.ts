@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { SubscriptionStatus, TenantStatus } from '@prisma/client';
+import { buildWorkspaceUrl } from '@repo/config';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
@@ -43,6 +44,20 @@ export type TenantReadinessCheck = {
  * Everything returned is derived from a record that exists. Where the platform
  * does not measure something, the field is absent rather than estimated.
  */
+/**
+ * Where a workspace is reachable, from the one rule that owns the question.
+ *
+ * Returns null rather than a slug-parameter fallback: on the tenant record this
+ * value is labelled "Workspace URL" beside a hostname, and a link of the form
+ * `…/login?workspace=x` under that label would say the workspace is addressable
+ * by name when it is not. The record's own "No workspace hostname has been
+ * issued" finding is the honest answer, and it already exists.
+ */
+function workspaceUrlFor(slug: string | null, hostname: string | null) {
+  if (!hostname) return null;
+  return buildWorkspaceUrl(slug ?? '', { hostname });
+}
+
 @Injectable()
 export class TenantControlPlaneService {
   constructor(
@@ -111,7 +126,7 @@ export class TenantControlPlaneService {
         environmentType: tenant.environmentType,
         workspace: {
           slug: tenant.slug,
-          url: primaryDomain ? `https://${primaryDomain.domain}` : null,
+          url: workspaceUrlFor(tenant.slug, primaryDomain?.domain ?? null),
           domain: primaryDomain?.domain ?? null,
           domainType: primaryDomain?.type ?? null,
           verificationStatus: primaryDomain?.verificationStatus ?? null,
@@ -217,9 +232,24 @@ export class TenantControlPlaneService {
         environmentType: tenant.environmentType,
         environmentGroupName: tenant.environmentGroupName,
         domains,
-        workspaceUrl: domains.find((item) => item.isPrimary)
-          ? `https://${domains.find((item) => item.isPrimary)!.domain}`
-          : null,
+        /*
+         * The shared rule, not a template literal.
+         *
+         * This was `https://${domain}` — the fourth hand-rolled implementation
+         * of "where is this workspace", after the two REG-179 removed and the
+         * one REG-184 removed. It produced `https://xoul-ltd.localhost/` in
+         * development: the wrong scheme, and no port, so every link on the
+         * record pointed at port 443 of a host that answers on 3001.
+         *
+         * `buildWorkspaceUrl` already owns both decisions — protocol from the
+         * platform environment, and the development port inherited from the
+         * configured web origin, which it takes care never to graft onto a
+         * production hostname.
+         */
+        workspaceUrl: workspaceUrlFor(
+          tenant.slug,
+          domains.find((item) => item.isPrimary)?.domain ?? null,
+        ),
         /*
          * Technical identity is fixed once the workspace is addressable. The
          * slug is in URLs, saved bookmarks, the desktop agent's configuration
@@ -889,7 +919,7 @@ export class TenantControlPlaneService {
             href: `/customers/${tenant.customerAccount.id}`,
           }
         : null,
-      workspaceUrl: primaryDomain ? `https://${primaryDomain.domain}` : null,
+      workspaceUrl: workspaceUrlFor(tenant.slug, primaryDomain?.domain ?? null),
       workspaceDomain: primaryDomain?.domain ?? null,
       createdAt: tenant.system.createdAt,
     };
