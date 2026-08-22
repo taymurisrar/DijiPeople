@@ -21,6 +21,8 @@
  *   node scripts/prod-regression.mjs                     # expects nothing in particular
  *   node scripts/prod-regression.mjs --expect-commit <sha>
  */
+import { readFileSync } from 'node:fs';
+
 const API = 'https://api.dijipeople.com/api';
 const SURFACES = {
   landing: 'https://www.dijipeople.com',
@@ -122,6 +124,37 @@ record(
 );
 
 console.log('\nLegal documents — ITEM-0053');
+
+/*
+ * The expected state is DERIVED, not asserted.
+ *
+ * A first version of this hardcoded "documents must be published", which was
+ * right while publication was the goal and wrong ten minutes later. On
+ * 2026-08-22 ten documents were published carrying a banner reading "Draft —
+ * not published, and not legal advice", and withdrawing them was the correct
+ * action — at which point a regression demanding publication was reporting a
+ * deliberate fix as four failures.
+ *
+ * So it asks the repository what the right answer is. If the seeded copy still
+ * declares itself a draft, then UNPUBLISHED is correct and publication is the
+ * failure. When the reviewed copy replaces it, the expectation flips on its own
+ * and nobody has to remember a flag.
+ */
+const seedPath = new URL('../services/api/prisma/seed-legal.ts', import.meta.url);
+let copyIsPublishable = false;
+try {
+  const { findDraftSelfDeclarations } = await import(
+    new URL('../services/api/src/modules/legal/legal.service.ts', import.meta.url).href
+  ).catch(() => ({}));
+  const seed = readFileSync(seedPath, 'utf8');
+  copyIsPublishable = typeof findDraftSelfDeclarations === 'function'
+    ? findDraftSelfDeclarations(seed).length === 0
+    : !/Draft\s*[—–-]\s*not published|not been reviewed by a lawyer/i.test(seed);
+} catch {
+  // Cannot read the seed — say so rather than guessing an expectation.
+  copyIsPublishable = null;
+}
+
 const legal = await get(`${API}/public/legal`);
 const legalBody = json(legal.text);
 const documents = Array.isArray(legalBody?.documents) ? legalBody.documents : [];
@@ -130,25 +163,51 @@ record(
   'the legal endpoint responds',
   legal.status === 200,
   `HTTP ${legal.status}`,
-  'The public legal API is unreachable; the pages will render their unpublished state.',
+  'The public legal API is unreachable.',
 );
 
-record(
-  'documents are published',
-  documents.length > 0,
-  `${documents.length} document(s)`,
-  'seed-legal / legal:publish did not run, or ran and published nothing. The pages will still say "drafted but has not been published".',
-);
-
-for (const slug of ['privacy', 'terms']) {
-  const document = await get(`${API}/public/legal/${slug}`);
-  const body = json(document.text);
+if (copyIsPublishable === null) {
+  record('legal publication state', null, 'seed file unreadable — expectation unknown');
+} else if (copyIsPublishable) {
   record(
-    `${slug} is served with content`,
-    document.status === 200 && Boolean(body?.body || body?.content || body?.html),
-    `HTTP ${document.status}`,
-    `The ${slug} document is not published. Consent is being recorded against a notice with no published text.`,
+    'documents are published',
+    documents.length > 0,
+    `${documents.length} document(s)`,
+    'The copy is publishable but nothing is published — seed:legal / legal:publish did not run.',
   );
+
+  for (const slug of ['privacy', 'terms']) {
+    const document = await get(`${API}/public/legal/${slug}`);
+    const body = json(document.text);
+    record(
+      `${slug} is served with content`,
+      document.status === 200 && Boolean(body?.contentMarkdown),
+      `HTTP ${document.status}`,
+      `The ${slug} document is not published. Consent would be recorded against a notice with no published text.`,
+    );
+  }
+} else {
+  /*
+   * The copy still declares itself a draft, so nothing should be public. This
+   * is the assertion that would have caught the 2026-08-22 incident within
+   * seconds of it happening.
+   */
+  record(
+    'no draft document is published',
+    documents.length === 0,
+    `${documents.length} document(s) public while the seeded copy still declares itself a draft`,
+    'A document that calls itself an unreviewed draft is publicly readable. Withdraw it: npm --workspace api run legal:unpublish -- --confirm',
+  );
+
+  for (const slug of ['privacy', 'terms']) {
+    const document = await get(`${API}/public/legal/${slug}`);
+    record(
+      `${slug} is correctly not served`,
+      document.status === 404,
+      `HTTP ${document.status}`,
+      `The ${slug} document is being served while its text still says it is an unreviewed draft.`,
+    );
+  }
 }
 
 console.log('\nSurfaces');
@@ -165,12 +224,28 @@ for (const [name, url] of Object.entries(SURFACES)) {
 }
 
 const privacyPage = await get(`${SURFACES.landing}/legal/privacy`);
-record(
-  'the privacy page renders published text',
-  privacyPage.status === 200 && !privacyPage.text.includes('Not published yet'),
-  privacyPage.text.includes('Not published yet') ? 'still unpublished' : `HTTP ${privacyPage.status}`,
-  'The page is live but still shows its honest placeholder — publication did not reach the database the landing site reads.',
-);
+const pageShowsPlaceholder = privacyPage.text.includes('Not published yet');
+if (copyIsPublishable) {
+  record(
+    'the privacy page renders published text',
+    privacyPage.status === 200 && !pageShowsPlaceholder,
+    pageShowsPlaceholder ? 'still unpublished' : `HTTP ${privacyPage.status}`,
+    'The page is live but still shows its placeholder — publication did not reach the database the landing site reads.',
+  );
+} else {
+  /*
+   * Note this reads the page, not the API. They can disagree: the API went
+   * clean immediately after the withdrawal while the pages served a Vercel
+   * prerender cache for several more minutes, and it is the page a visitor
+   * sees.
+   */
+  record(
+    'the privacy page shows its unpublished state',
+    privacyPage.status === 200 && pageShowsPlaceholder,
+    pageShowsPlaceholder ? 'unpublished, as intended' : 'serving draft text',
+    'The page is serving a document whose own text says it is an unreviewed draft — possibly a stale edge cache. Re-request it to force revalidation.',
+  );
+}
 
 console.log('\nPublic endpoints that must stay closed');
 /*
