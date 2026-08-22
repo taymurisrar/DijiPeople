@@ -13,10 +13,10 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 19 |
+| Open (active work) | 20 |
 | Blocked | 1 |
 | Deferred | 17 |
-| Awaiting a product decision | 7 |
+| Awaiting a product decision | 6 |
 | Completed / closed | 164 |
 | **Open CRITICAL** | **0** |
 | **Open HIGH** | **1** |
@@ -27,7 +27,7 @@ see [`README.md`](README.md) for why.
 | Severity | Count |
 |---|---|
 | HIGH | 1 |
-| MEDIUM | 15 |
+| MEDIUM | 16 |
 | LOW | 3 |
 
 ## Open by type
@@ -37,6 +37,7 @@ see [`README.md`](README.md) for why.
 | ARCHITECTURE | 1 |
 | FOLLOW_UP | 2 |
 | INFRA | 3 |
+| PRODUCT_DECISION | 1 |
 | SECURITY | 3 |
 | TECH_DEBT | 4 |
 | TEST_GAP | 5 |
@@ -48,10 +49,10 @@ see [`README.md`](README.md) for why.
 |---|---|
 | BLOCKED | 1 |
 | DEFERRED | 17 |
-| PRODUCT_DECISION | 7 |
+| PRODUCT_DECISION | 6 |
 | VERIFIED | 121 |
 | DUPLICATE | 2 |
-| READY | 19 |
+| READY | 20 |
 | DONE | 41 |
 
 ## All records
@@ -219,7 +220,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0050](../../docs/backlog/items/ITEM-0050-move-payroll-derivation-and-branding-upload-orchestration-out.md) | Move payroll derivation and branding upload orchestration out of web proxies | TECH_DEBT | MEDIUM | P2 | DONE | apps/web, api:compensation, api:tenant-settings | DONE |
 | [ITEM-0051](../../docs/backlog/items/ITEM-0051-align-landing-public-form-conventions-and-minor-accessibilit.md) | Align landing public form conventions and minor accessibility gaps | UX | MEDIUM | P2 | DONE | apps/landing | DONE |
 | [ITEM-0052](../../docs/backlog/items/ITEM-0052-verify-the-agent-update-feed-against-a-real-published-artefact.md) | Verify the agent update feed against a real published artefact | TEST_GAP | MEDIUM | P2 | READY | apps/agent-desktop, api:app-releases | PLAN_REQUIRED |
-| [ITEM-0053](../../docs/backlog/items/ITEM-0053-publish-privacy-policy-and-terms-for-the-public-landing-site.md) | Publish privacy policy and terms for the public landing site | PRODUCT_DECISION | MEDIUM | P2 | PRODUCT_DECISION | apps/landing | PRODUCT_DECISION |
+| [ITEM-0053](../../docs/backlog/items/ITEM-0053-publish-privacy-policy-and-terms-for-the-public-landing-site.md) | Publish privacy policy and terms for the public landing site | PRODUCT_DECISION | MEDIUM | P2 | READY | apps/landing | FIX_NOW |
 | [ITEM-0054](../../docs/backlog/items/ITEM-0054-contract-placeholder-examples-fabricate-a-saudi-legal-entity.md) | Contract placeholder examples fabricate a Saudi legal entity, CR number and tax ID | DOCUMENTATION | MEDIUM | P2 | DEFERRED | contracts | DEFER |
 | [ITEM-0055](../../docs/backlog/items/ITEM-0055-database-e2e-runs-serially-and-now-dominates-its-own-job.md) | Database e2e runs serially and now dominates its own job | PERFORMANCE | MEDIUM | P2 | DEFERRED | api, ci | DEFER |
 | [ITEM-0060](../../docs/backlog/items/ITEM-0060-schema-prisma-and-the-applied-migration-history-do-not-agree.md) | schema.prisma and the applied migration history do not agree | TECH_DEBT | MEDIUM | P2 | DEFERRED | prisma, timesheets, attendance, payroll, billing | DEFER |

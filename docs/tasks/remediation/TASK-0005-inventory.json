@@ -9053,14 +9053,14 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "",
         "created_at": "2026-08-18",
-        "updated_at": "2026-08-18",
+        "updated_at": "2026-08-22",
         "resolved_at": ""
       },
       "type": "PRODUCT_DECISION",
       "title": "Publish privacy policy and terms for the public landing site",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "PRODUCT_DECISION",
+      "current_status": "READY",
       "current_evidence": {
         "paths": [
           "docs/backlog/items/ITEM-0053-publish-privacy-policy-and-terms-for-the-public-landing-site.md",
@@ -9086,7 +9086,7 @@
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "YES",
-      "architect_disposition": "PRODUCT_DECISION",
+      "architect_disposition": "FIX_NOW",
       "verification_result": {
         "result": "PRELIMINARY",
         "classification": "TERMINAL_AS_DOCUMENTED",
