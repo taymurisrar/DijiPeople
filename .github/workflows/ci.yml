@@ -395,6 +395,14 @@ jobs:
         # only critical advisory, so the failure mode is a security fix that
         # quietly does not happen.
         run: npm run check:overrides-applied
+      - name: No undocumented production advisories
+        # BUG-0052 — 17 advisories, one critical, and three corrections to the
+        # record before it closed: every disposition that failed had rested on
+        # a reachability claim made by inspection. This asserts what a machine
+        # can decide instead — nothing is critical, every survivor has a
+        # written argument, and a disposition that no longer matches anything
+        # is removed rather than left reading as a live risk acceptance.
+        run: npm run check:production-advisories
       - name: Security response headers
         # BUG-0040 — all three Next apps shipped none. Pins that the CSP stays
         # report-only until observed, and that frame protection is not deferred

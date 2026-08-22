@@ -33,6 +33,7 @@
     "check:env-registered": "node scripts/check-env-registered.mjs",
     "check:declared-dependencies": "node scripts/check-declared-dependencies.mjs",
     "check:overrides-applied": "node scripts/check-overrides-applied.mjs",
+    "check:production-advisories": "node scripts/check-production-advisories.mjs",
     "prisma:validate": "npm --workspace api run prisma:validate",
     "prisma:generate": "npm --workspace api run prisma:generate",
     "check:prisma-client": "node scripts/check-prisma-client-fresh.mjs",
@@ -131,6 +132,9 @@
     "npm": "11.x"
   },
   "packageManager": "npm@11.9.0",
+  "overrides": {
+    "@mapbox/node-pre-gyp": "^2.0.3"
+  },
   "workspaces": [
     "apps/*",
     "packages/*",
