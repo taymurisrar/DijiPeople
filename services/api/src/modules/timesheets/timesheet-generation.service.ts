@@ -12,7 +12,6 @@ import {
   TimesheetDayType,
   TimesheetDayTypeSource,
   TimesheetEntrySource,
-  TimesheetLockStatus,
   TimesheetStatus,
   TimesheetWeekStatus,
   WorkWeekday,

@@ -98,7 +98,9 @@ describe('PartnerReferralResolverService', () => {
 
     it('refuses a link belonging to a partner who is no longer active', async () => {
       const { service } = build(
-        activeLink({ partner: { id: PARTNER_ID, status: PartnerStatus.SUSPENDED } }),
+        activeLink({
+          partner: { id: PARTNER_ID, status: PartnerStatus.SUSPENDED },
+        }),
       );
       await expect(service.resolve('GOLD-100')).resolves.toMatchObject({
         partnerId: null,
@@ -143,7 +145,9 @@ describe('PartnerReferralResolverService', () => {
       // from "no partner was involved", and only one of them is recoverable.
       for (const link of [
         null,
-        activeLink({ partner: { id: PARTNER_ID, status: PartnerStatus.SUSPENDED } }),
+        activeLink({
+          partner: { id: PARTNER_ID, status: PartnerStatus.SUSPENDED },
+        }),
         activeLink({ status: PartnerReferralLinkStatus.DISABLED }),
         activeLink({ expiresAt: new Date(Date.now() - 1000) }),
       ]) {

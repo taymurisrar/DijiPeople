@@ -27,6 +27,7 @@ import {
   ERASE_TENANT_CONFIRMATION_PHRASE,
   type EraseTenantDto,
 } from './dto/tenant-control-plane.dto';
+import { toErrorMessage } from '../../common/utils/display-string';
 
 /**
  * Where the erasure had got to when it failed.
@@ -710,8 +711,9 @@ function delegateFor(tx: Prisma.TransactionClient, model: string) {
  * one-line fix in `tenant-erasure.constants.ts`.
  */
 function diagnoseErasureFailure(error: unknown, progress: ErasureProgress) {
-  const raw =
-    error instanceof Error ? error.message : String(error ?? 'Unknown error');
+  // An erasure failure is diagnosed from this string. '[object Object]'
+  // would make the diagnosis impossible. ITEM-0042.
+  const raw = toErrorMessage(error, 'Unknown error');
   const known =
     error instanceof Prisma.PrismaClientKnownRequestError ? error : null;
   const prismaCode = known?.code ?? null;

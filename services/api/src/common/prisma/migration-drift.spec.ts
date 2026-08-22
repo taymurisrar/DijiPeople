@@ -74,7 +74,9 @@ describe('migration drift', () => {
   });
 
   describe('reportMigrationDrift', () => {
-    function deps(overrides: Partial<Parameters<typeof reportMigrationDrift>[0]> = {}) {
+    function deps(
+      overrides: Partial<Parameters<typeof reportMigrationDrift>[0]> = {},
+    ) {
       return {
         queryAppliedMigrationNames: jest.fn().mockResolvedValue([A]),
         readMigrationNames: jest.fn().mockReturnValue([A, B]),
@@ -92,7 +94,9 @@ describe('migration drift', () => {
     });
 
     it('stays quiet when the database is current', async () => {
-      const d = deps({ queryAppliedMigrationNames: jest.fn().mockResolvedValue([A, B]) });
+      const d = deps({
+        queryAppliedMigrationNames: jest.fn().mockResolvedValue([A, B]),
+      });
       await reportMigrationDrift(d);
       expect(d.warn).not.toHaveBeenCalled();
     });
@@ -109,7 +113,9 @@ describe('migration drift', () => {
       const d = deps({
         queryAppliedMigrationNames: jest
           .fn()
-          .mockRejectedValue(new Error('relation "_prisma_migrations" does not exist')),
+          .mockRejectedValue(
+            new Error('relation "_prisma_migrations" does not exist'),
+          ),
       });
       await expect(reportMigrationDrift(d)).resolves.toBeUndefined();
       expect(d.warn).not.toHaveBeenCalled();
@@ -131,7 +137,9 @@ describe('migration drift', () => {
     it('finds prisma/migrations from this file, whatever the working directory', () => {
       const dir = locateMigrationsDir([__dirname]);
       expect(dir).not.toBeNull();
-      expect(readMigrationNamesFromDisk(dir as string).length).toBeGreaterThan(0);
+      expect(readMigrationNamesFromDisk(dir as string).length).toBeGreaterThan(
+        0,
+      );
     });
 
     it('returns null rather than throwing when there is nothing to find', () => {
@@ -139,7 +147,9 @@ describe('migration drift', () => {
     });
 
     it('reads no names from a directory that does not exist', () => {
-      expect(readMigrationNamesFromDisk('/definitely/not/a/real/path')).toEqual([]);
+      expect(readMigrationNamesFromDisk('/definitely/not/a/real/path')).toEqual(
+        [],
+      );
     });
   });
 });

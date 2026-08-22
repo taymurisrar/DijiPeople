@@ -28,7 +28,9 @@ describe('BrandingAssetsService', () => {
 
   const DOCUMENT_ID = 'doc-1';
 
-  function pngFile(overrides: Partial<UploadedBrandingFile> = {}): UploadedBrandingFile {
+  function pngFile(
+    overrides: Partial<UploadedBrandingFile> = {},
+  ): UploadedBrandingFile {
     return {
       buffer: Buffer.from('fake-png'),
       originalname: 'logo.png',
@@ -38,11 +40,13 @@ describe('BrandingAssetsService', () => {
     };
   }
 
-  function build(overrides: {
-    upload?: jest.Mock;
-    archive?: jest.Mock;
-    updateSettings?: jest.Mock;
-  } = {}) {
+  function build(
+    overrides: {
+      upload?: jest.Mock;
+      archive?: jest.Mock;
+      updateSettings?: jest.Mock;
+    } = {},
+  ) {
     const upload =
       overrides.upload ??
       jest.fn().mockResolvedValue({
@@ -199,7 +203,9 @@ describe('BrandingAssetsService', () => {
   describe('when the settings write fails', () => {
     it('archives the document it created', async () => {
       const { service, archive } = build({
-        updateSettings: jest.fn().mockRejectedValue(new Error('settings write failed')),
+        updateSettings: jest
+          .fn()
+          .mockRejectedValue(new Error('settings write failed')),
       });
 
       await expect(
@@ -213,7 +219,9 @@ describe('BrandingAssetsService', () => {
       // The caller can act on "settings write failed". They can do nothing with
       // "archive failed", which belongs in the log.
       const { service } = build({
-        updateSettings: jest.fn().mockRejectedValue(new Error('settings write failed')),
+        updateSettings: jest
+          .fn()
+          .mockRejectedValue(new Error('settings write failed')),
         archive: jest.fn().mockRejectedValue(new Error('archive failed')),
       });
 

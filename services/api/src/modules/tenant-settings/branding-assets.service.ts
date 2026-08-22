@@ -11,6 +11,7 @@ import { UploadDocumentDto } from '../documents/dto/upload-document.dto';
 import { DocumentsService } from '../documents/documents.service';
 import { UpdateTenantSettingsDto } from './dto/update-tenant-settings.dto';
 import { TenantSettingsService } from './tenant-settings.service';
+import { toDisplayString } from '../../common/utils/display-string';
 
 /**
  * Uploading a branding asset is two writes — create a document, then point a
@@ -69,10 +70,16 @@ const FAVICON_MIME_TYPES = [
 export const BRANDING_ASSET_SETTINGS: Readonly<
   Record<
     string,
-    { readonly documentIdKey: string; readonly allowedMimeTypes: readonly string[] }
+    {
+      readonly documentIdKey: string;
+      readonly allowedMimeTypes: readonly string[];
+    }
   >
 > = Object.freeze({
-  logoUrl: { documentIdKey: 'logoDocumentId', allowedMimeTypes: IMAGE_MIME_TYPES },
+  logoUrl: {
+    documentIdKey: 'logoDocumentId',
+    allowedMimeTypes: IMAGE_MIME_TYPES,
+  },
   squareLogoUrl: {
     documentIdKey: 'squareLogoDocumentId',
     allowedMimeTypes: IMAGE_MIME_TYPES,
@@ -157,7 +164,7 @@ export class BrandingAssetsService {
       file,
     );
 
-    const documentId = String((document as { id?: unknown })?.id ?? '');
+    const documentId = toDisplayString((document as { id?: unknown })?.id);
     if (!documentId) {
       throw new BadRequestException(
         'Branding asset upload could not be registered. Please retry.',
@@ -165,10 +172,10 @@ export class BrandingAssetsService {
     }
 
     const viewPath =
-      String((document as { viewPath?: unknown })?.viewPath ?? '') ||
+      toDisplayString((document as { viewPath?: unknown })?.viewPath) ||
       `/api/documents/${documentId}/view`;
     const downloadPath =
-      String((document as { downloadPath?: unknown })?.downloadPath ?? '') ||
+      toDisplayString((document as { downloadPath?: unknown })?.downloadPath) ||
       `/api/documents/${documentId}/download`;
 
     try {

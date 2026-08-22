@@ -1,6 +1,5 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { DomainEventType } from '@prisma/client';
 import type { OutboxEvent, Prisma } from '@prisma/client';
 import type {
   OutboxHandler,

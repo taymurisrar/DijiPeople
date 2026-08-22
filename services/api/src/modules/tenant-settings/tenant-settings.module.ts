@@ -24,7 +24,11 @@ import { TenantSettingsService } from './tenant-settings.service';
   // `forwardRef` on DocumentsModule: it already imports this module for the
   // document-settings resolver, and branding-asset upload needs its service to
   // create the document. Both directions are real. BUG-0041 / ITEM-0050.
-  imports: [JwtModule.register({}), AuditModule, forwardRef(() => DocumentsModule)],
+  imports: [
+    JwtModule.register({}),
+    AuditModule,
+    forwardRef(() => DocumentsModule),
+  ],
   controllers: [
     TenantSettingsController,
     TenantBrandingController,

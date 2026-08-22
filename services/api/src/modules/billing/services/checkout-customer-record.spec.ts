@@ -265,7 +265,10 @@ describe('checkout customer record', () => {
 
     it('fills attribution on a returning customer who had none', async () => {
       const { resolveCustomer, tx, updated } = build({
-        existing: { id: 'customer-existing', status: CustomerAccountStatus.PROSPECT },
+        existing: {
+          id: 'customer-existing',
+          status: CustomerAccountStatus.PROSPECT,
+        },
         current: {
           selectedPlanId: null,
           preferredBillingCycle: null,
@@ -274,7 +277,10 @@ describe('checkout customer record', () => {
         },
       });
 
-      await resolveCustomer(tx, INPUT, { ...SELECTION, attribution: ATTRIBUTED });
+      await resolveCustomer(tx, INPUT, {
+        ...SELECTION,
+        attribution: ATTRIBUTED,
+      });
 
       expect(updated[0]).toMatchObject({
         originatingPartnerId: 'partner-1',
@@ -290,7 +296,10 @@ describe('checkout customer record', () => {
        * not move the commission.
        */
       const { resolveCustomer, tx, updated } = build({
-        existing: { id: 'customer-existing', status: CustomerAccountStatus.ACTIVE },
+        existing: {
+          id: 'customer-existing',
+          status: CustomerAccountStatus.ACTIVE,
+        },
         current: {
           selectedPlanId: 'plan-starter',
           preferredBillingCycle: BillingCycle.MONTHLY,
@@ -314,7 +323,10 @@ describe('checkout customer record', () => {
       // A record naming a partner with no link would make the commission
       // unauditable, so the gate is one condition, not three.
       const { resolveCustomer, tx, updated } = build({
-        existing: { id: 'customer-existing', status: CustomerAccountStatus.PROSPECT },
+        existing: {
+          id: 'customer-existing',
+          status: CustomerAccountStatus.PROSPECT,
+        },
         current: {
           selectedPlanId: null,
           preferredBillingCycle: null,

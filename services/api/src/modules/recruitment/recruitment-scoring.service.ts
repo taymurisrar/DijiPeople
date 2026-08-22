@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { Prisma, RecruitmentStage } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 
 type NumericWeights = {
   skillMatch: number;

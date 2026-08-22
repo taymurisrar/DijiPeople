@@ -3,7 +3,6 @@ import {
   CustomerAccountStatus,
   CustomerOnboardingStatus,
   DomainEventType,
-  Prisma,
   SubscriptionOrderStatus,
 } from '@prisma/client';
 import { PrismaService } from '../../../common/prisma/prisma.service';

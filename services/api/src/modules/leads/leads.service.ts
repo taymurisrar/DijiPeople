@@ -7,12 +7,9 @@ import {
 import {
   ConsentState,
   ConsentType,
-  LeadAttributionStatus,
   LegalDocumentType,
   LeadInquiryIntent,
   LeadStatus,
-  PartnerReferralLinkStatus,
-  PartnerStatus,
   PlatformUserRole,
   PlatformUserStatus,
 } from '@prisma/client';

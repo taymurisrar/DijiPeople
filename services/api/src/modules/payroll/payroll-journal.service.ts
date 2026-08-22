@@ -8,7 +8,6 @@ import {
   PayrollExceptionSeverity,
   PayrollJournalEntryStatus,
   PayrollJournalEntryType,
-  PayrollRunLineItemCategory,
   PayrollRunStatus,
   Prisma,
 } from '@prisma/client';

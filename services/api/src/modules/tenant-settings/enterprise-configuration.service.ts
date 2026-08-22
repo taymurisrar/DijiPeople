@@ -12,7 +12,6 @@ import {
   HolidayScopeType,
   PayCycle,
   Prisma,
-  ProjectApprovalMode,
   WeekendPolicy,
   WorkWeekModel,
   WorkWeekday,

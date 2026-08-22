@@ -8,13 +8,10 @@ import { ConfigService } from '@nestjs/config';
 import {
   BillingInterval,
   BillingModel,
-  CustomerAccountStatus,
-  LeadStatus,
   Prisma,
   StripeEnvironment,
   StripeSyncStatus,
   SubscriptionStatus,
-  TenantStatus,
   UserStatus,
 } from '@prisma/client';
 import { PrismaService } from '../../../common/prisma/prisma.service';
@@ -23,7 +20,6 @@ import {
   assertValidTenantSlug,
   suggestTenantSlug,
 } from '../../../common/utils/slug.util';
-import { generateTenantCode } from '../../../common/utils/tenant-code.util';
 import { StripeBillingService } from './stripe-billing.service';
 import { LegalService } from '../../legal/legal.service';
 import { OwnerEmailVerificationService } from './owner-email-verification.service';

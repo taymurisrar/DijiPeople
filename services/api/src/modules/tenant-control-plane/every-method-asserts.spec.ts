@@ -140,7 +140,9 @@ describe('every tenant control-plane method asserts', () => {
         );
         if (!Number.isFinite(assertAt)) return false; // covered by the test above
 
-        const queryAt = method.body.search(/this\.prisma\.[a-zA-Z]+\.(find|update|delete|create|count)/);
+        const queryAt = method.body.search(
+          /this\.prisma\.[a-zA-Z]+\.(find|update|delete|create|count)/,
+        );
         return queryAt !== -1 && queryAt < assertAt;
       })
       .map((method) => `${method.service}.${method.name}`);
@@ -149,7 +151,9 @@ describe('every tenant control-plane method asserts', () => {
   });
 
   it('has no exemption that no longer applies', () => {
-    const known = new Set(methods.map((method) => `${method.service}.${method.name}`));
+    const known = new Set(
+      methods.map((method) => `${method.service}.${method.name}`),
+    );
     const stale = [...EXEMPT.keys()].filter((key) => !known.has(key));
     expect(stale).toEqual([]);
   });

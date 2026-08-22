@@ -27,6 +27,7 @@ import {
   AuthTokenPayload,
 } from '../interfaces/authenticated-request.interface';
 import { TimesheetRestrictionMode } from '@prisma/client';
+import { toErrorMessage } from '../utils/display-string';
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
@@ -434,7 +435,10 @@ function isDatabaseUnavailableError(error: unknown) {
     typeof error === 'object' && error !== null && 'code' in error
       ? String((error as { code?: unknown }).code)
       : '';
-  const message = error instanceof Error ? error.message : String(error ?? '');
+  // `String(error)` on a thrown non-Error gives '[object Object]', which is
+  // exactly the case a driver throws and exactly where the message is the
+  // only thing left to read. ITEM-0042.
+  const message = toErrorMessage(error);
   const lowerMessage = message.toLowerCase();
 
   return (

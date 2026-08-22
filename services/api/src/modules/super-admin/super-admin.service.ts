@@ -14,8 +14,6 @@ import {
   BillingCycle,
   BillingInterval,
   BillingModel,
-  CommercialPublicationStatus,
-  CommercialSalesModel,
   CustomerAccountStatus,
   DiscountType,
   InvoiceStatus,
@@ -77,11 +75,6 @@ import { UpdateTenantSlugDto } from '../tenants/dto/update-tenant-slug.dto';
 import { CreateInvoiceFromSubscriptionDto } from './dto/create-invoice-from-subscription.dto';
 import { PlansRepository } from './plans.repository';
 import { bootstrapCommercialDefaults } from './commercial-bootstrap';
-import { DEFAULT_PLAN_DEFINITIONS } from './plans.catalog';
-import {
-  DEFAULT_MARKET_DEFINITIONS,
-  DEFAULT_PLAN_SALES_MODELS,
-} from './markets.catalog';
 import { PlatformLifecycleService } from './platform-lifecycle.service';
 import { PlatformOnboardingService } from './platform-onboarding.service';
 import { PaymentsService } from './payments.service';

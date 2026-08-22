@@ -1,8 +1,4 @@
-import {
-  PrismaClient,
-  LegalDocumentType,
-  LegalDocumentVersionStatus,
-} from '@prisma/client';
+import { PrismaClient, LegalDocumentVersionStatus } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { describeWithDatabase } from './helpers/db-fixtures';
 import { LegalService } from '../src/modules/legal/legal.service';

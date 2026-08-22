@@ -17,6 +17,7 @@ import { getErrorFrameworkConfig } from '../errors/error-config';
 import { sanitizeForErrorLog } from '../errors/sanitize-error-log';
 import type { AuthenticatedUser } from '../interfaces/authenticated-request.interface';
 import type { RequestWithId } from '../middleware/request-id.middleware';
+import { toErrorMessage } from '../utils/display-string';
 
 type StandardErrorContract = {
   success: false;
@@ -495,7 +496,10 @@ function isDatabaseUnavailableError(error: unknown) {
     typeof error === 'object' && error !== null && 'code' in error
       ? String((error as { code?: unknown }).code)
       : '';
-  const message = error instanceof Error ? error.message : String(error ?? '');
+  // `String(error)` on a thrown non-Error gives '[object Object]', which is
+  // exactly the case a driver throws and exactly where the message is the
+  // only thing left to read. ITEM-0042.
+  const message = toErrorMessage(error);
   const lowerMessage = message.toLowerCase();
 
   return (

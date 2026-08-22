@@ -70,7 +70,12 @@ export class PartnerReferralResolverService {
     });
 
     if (!link) {
-      return { partnerId: null, linkId: null, code, status: LeadAttributionStatus.INVALID_CODE };
+      return {
+        partnerId: null,
+        linkId: null,
+        code,
+        status: LeadAttributionStatus.INVALID_CODE,
+      };
     }
 
     if (link.partner.status !== PartnerStatus.ACTIVE) {
@@ -83,14 +88,24 @@ export class PartnerReferralResolverService {
     }
 
     if (link.status === PartnerReferralLinkStatus.DISABLED) {
-      return { partnerId: null, linkId: null, code, status: LeadAttributionStatus.DISABLED_LINK };
+      return {
+        partnerId: null,
+        linkId: null,
+        code,
+        status: LeadAttributionStatus.DISABLED_LINK,
+      };
     }
 
     if (
       link.status !== PartnerReferralLinkStatus.ACTIVE ||
       (link.expiresAt && link.expiresAt <= new Date())
     ) {
-      return { partnerId: null, linkId: null, code, status: LeadAttributionStatus.EXPIRED_LINK };
+      return {
+        partnerId: null,
+        linkId: null,
+        code,
+        status: LeadAttributionStatus.EXPIRED_LINK,
+      };
     }
 
     return {

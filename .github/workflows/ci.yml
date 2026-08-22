@@ -189,12 +189,24 @@ jobs:
       # non-blocking job does not stop new ones arriving. All 15 are fixed:
       # 11 prettier, 3 unbound-method, 1 no-regex-spaces.
       #
-      # --max-warnings=10000 against ~910 actual warnings. That is a ceiling
-      # against a flood, not a target; the burn-down is ITEM-0042. Warnings do
-      # not gate, errors do.
+      # The ceiling is a RATCHET, not a target. It was --max-warnings=10000
+      # against ~910 real warnings, which is no ceiling at all: the count grew
+      # to 1027 without anything noticing, and its *error* count had already
+      # grown from 2 to 15 the same way while the job was report-only.
+      #
+      # 975 against 971 actual, measured on this branch. The four-warning margin
+      # is for environment drift in typescript-eslint's inference between a
+      # developer's tree and this runner — not headroom to spend.
+      #
+      # When this fails, the fix is to reduce warnings, not to raise the number.
+      # Lower it whenever the real count drops. The burn-down is ITEM-0042:
+      # no-base-to-string and the unused-variable family went first, and the
+      # ~860 remaining are one family — values typed `any` flowing through
+      # Prisma-adjacent code — which needs typing, not casting, and is done by
+      # module rather than by rule.
       - name: ESLint — services/api
         working-directory: services/api
-        run: npx eslint "{src,test}/**/*.ts" --max-warnings=10000
+        run: npx eslint "{src,test}/**/*.ts" --max-warnings=975
       - name: Fail if lint modified the checkout
         # Defence in depth: if any lint step ever regains --fix, this catches it
         # rather than letting CI silently "pass" against rewritten files.

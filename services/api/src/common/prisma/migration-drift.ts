@@ -54,7 +54,9 @@ export function findPendingMigrations(
  * a missing directory means the check cannot run, never that startup should
  * fail.
  */
-export function readMigrationNamesFromDisk(migrationsDir: string): MigrationName[] {
+export function readMigrationNamesFromDisk(
+  migrationsDir: string,
+): MigrationName[] {
   try {
     return readdirSync(migrationsDir, { withFileTypes: true })
       .filter((entry) => entry.isDirectory())
@@ -101,7 +103,9 @@ export function locateMigrationsDir(
  * the warning. A list that says "4 migrations pending" sends the reader back to
  * the CLI; a list that names them lets them recognise their own branch.
  */
-export function describeMigrationDrift(pending: readonly MigrationName[]): string | null {
+export function describeMigrationDrift(
+  pending: readonly MigrationName[],
+): string | null {
   if (pending.length === 0) return null;
 
   const noun = pending.length === 1 ? 'migration' : 'migrations';
@@ -127,7 +131,9 @@ interface DriftCheckDeps {
  * Run the check. Never throws: a diagnostic that can break startup is worse
  * than the condition it diagnoses.
  */
-export async function reportMigrationDrift(deps: DriftCheckDeps): Promise<void> {
+export async function reportMigrationDrift(
+  deps: DriftCheckDeps,
+): Promise<void> {
   try {
     const onDisk = deps.readMigrationNames();
     if (onDisk.length === 0) {
@@ -138,7 +144,9 @@ export async function reportMigrationDrift(deps: DriftCheckDeps): Promise<void> 
     }
 
     const applied = await deps.queryAppliedMigrationNames();
-    const message = describeMigrationDrift(findPendingMigrations(onDisk, applied));
+    const message = describeMigrationDrift(
+      findPendingMigrations(onDisk, applied),
+    );
     if (message) deps.warn(message);
   } catch (error) {
     // A fresh database with no `_prisma_migrations` table lands here, as does
