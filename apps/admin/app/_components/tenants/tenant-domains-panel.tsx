@@ -291,6 +291,55 @@ export function TenantDomainsPanel({ tenantId }: { tenantId: string }) {
         ]}
       />
 
+      {/*
+        Whether "Pending" is waiting on us or on a person, said on the screen.
+
+        Nothing in this product probes DNS. `wildcardDnsReady` is a stored
+        platform setting an operator confirms once, and `createSystemDomain`
+        reads it **at the moment it issues a hostname** — so a subdomain issued
+        before the confirmation stayed Pending for ever while resolving
+        perfectly. That is now reconciled when the setting is saved; what was
+        missing regardless is any statement of which kind of Pending this is.
+      */}
+      {data.routing.wildcardDnsConfigured ? null : (
+        <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
+          <p className="text-sm font-semibold text-amber-950">
+            Workspace hostnames stay Pending until wildcard DNS is confirmed.
+            Nothing here is waiting on an automated check.
+          </p>
+          <p className="mt-1.5 text-sm leading-6 text-amber-900">
+            The platform routes every workspace through one wildcard record for{" "}
+            <span className="font-mono">
+              *.{data.routing.tenantBaseDomain || "<base domain>"}
+            </span>{" "}
+            — a DNS entry, a proxy rule and a wildcard TLS certificate, set up
+            once by whoever runs the platform. It is not issued per tenant, and
+            no code in this console verifies it.
+          </p>
+          <p className="mt-1.5 text-sm leading-6 text-amber-900">
+            {/*
+              Named explicitly because it is the one case where the answer is
+              "nothing to do", and an operator on localhost would otherwise go
+              looking for a DNS provider that is not involved.
+            */}
+            {data.routing.tenantBaseDomain === "localhost"
+              ? "On localhost there is no DNS to configure: browsers resolve every *.localhost label to the loopback address on their own. Confirming the setting is all that is required."
+              : "Confirm it only once the record, the proxy route and the certificate are all live. Marking it early puts customers on hostnames that do not answer."}
+          </p>
+          <a
+            className="mt-3 inline-flex text-sm font-semibold text-amber-950 underline"
+            href="/settings/tenant-provisioning"
+          >
+            Confirm wildcard DNS readiness
+          </a>
+          <p className="mt-2 text-xs text-amber-900">
+            Saving that setting also promotes every workspace subdomain already
+            issued, so hostnames stamped before the confirmation stop reading
+            Pending.
+          </p>
+        </div>
+      )}
+
       <div className="mt-5">
         {data.domains.length ? (
           <ProDataTable

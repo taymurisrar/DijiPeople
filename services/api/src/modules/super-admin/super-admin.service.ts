@@ -3190,6 +3190,26 @@ export class SuperAdminService {
       }
     });
 
+    /*
+     * Turning wildcard DNS on has to reach the hostnames issued before it.
+     *
+     * `createSystemDomain` reads the flag once, when it issues a hostname, and
+     * nothing re-reads it — so without this, confirming DNS left every existing
+     * workspace subdomain reading "Pending" for ever while resolving perfectly.
+     * The operator's next question was reasonable and had no answer on the
+     * screen: is this automated or is it waiting for me?
+     *
+     * Outside the transaction on purpose. The settings write is the operator's
+     * intent and must not be rolled back by a reconciliation that touches
+     * unrelated tenants; if this fails, the flag is still correct and the sweep
+     * can be repeated by saving again.
+     */
+    if (dto.tenantProvisioning) {
+      await this.tenantDomains.reconcileSystemDomainsAfterWildcardDns(
+        actor.userId,
+      );
+    }
+
     return this.getPlatformSettings();
   }
 
