@@ -6,14 +6,14 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 188,
-    "bugs": 112,
+    "total_records": 194,
+    "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
     "blocked_bucket": 0,
     "deferred_bucket": 2,
     "product_decision_bucket": 2,
-    "completed_bucket": 102,
+    "completed_bucket": 108,
     "parser_structural_errors": 0,
     "active_session_conflict": "NONE",
     "discovered_findings_total": 34,
@@ -9407,6 +9407,292 @@
       ],
       "qa_scenarios": [
         "QA-TENANT-010"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "FIX_NOW",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0492",
+      "source": {
+        "record_path": "docs/bugs/BUG-0492-the-workspace-url-was-built-by-hand-in-two-more-places.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "098a0e6",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
+      },
+      "type": "INTEGRATION",
+      "title": "The workspace URL was built by hand in two more places",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/tenant-control-plane",
+          "packages/config"
+        ],
+        "verification_scope": "Fixed on agent/tenant-commands-monitoring-bulk-delete; not verified in a browser."
+      },
+      "affected_modules": [
+        "services/api/src/modules/tenant-control-plane",
+        "packages/config"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [
+        "REG-195"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-011"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "FIX_NOW",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0493",
+      "source": {
+        "record_path": "docs/bugs/BUG-0493-open-tenant-reported-success-while-opening-nothing.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "098a0e6",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
+      },
+      "type": "UX",
+      "title": "Open Tenant reported success while opening nothing",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "current_evidence": {
+        "paths": [
+          "apps/admin"
+        ],
+        "verification_scope": "Fixed on agent/tenant-commands-monitoring-bulk-delete; not verified in a browser."
+      },
+      "affected_modules": [
+        "apps/admin"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [
+        "REG-196"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-011"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "FIX_NOW",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0494",
+      "source": {
+        "record_path": "docs/bugs/BUG-0494-workspace-hostnames-stayed-pending-for-ever-with-nothing-to-.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "098a0e6",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
+      },
+      "type": "STATE_MACHINE",
+      "title": "Workspace hostnames stayed Pending for ever with nothing to explain or reconcile it",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/tenant-domains",
+          "services/api/src/modules/super-admin",
+          "apps/admin"
+        ],
+        "verification_scope": "Fixed on agent/tenant-commands-monitoring-bulk-delete; not verified in a browser."
+      },
+      "affected_modules": [
+        "services/api/src/modules/tenant-domains",
+        "services/api/src/modules/super-admin",
+        "apps/admin"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [
+        "REG-197"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-012"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "FIX_NOW",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0495",
+      "source": {
+        "record_path": "docs/bugs/BUG-0495-the-console-painted-light-on-every-load-before-the-dark-them.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "098a0e6",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
+      },
+      "type": "UX",
+      "title": "The console painted light on every load before the dark theme arrived",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "current_evidence": {
+        "paths": [
+          "apps/admin"
+        ],
+        "verification_scope": "Fixed on agent/tenant-commands-monitoring-bulk-delete; not verified in a browser."
+      },
+      "affected_modules": [
+        "apps/admin"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [
+        "REG-198"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-015"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "FIX_NOW",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0496",
+      "source": {
+        "record_path": "docs/bugs/BUG-0496-the-monitoring-landing-page-showed-real-data-an-agent-could-.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "098a0e6",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
+      },
+      "type": "UX",
+      "title": "The monitoring landing page showed real data an agent could not act on",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "current_evidence": {
+        "paths": [
+          "apps/admin"
+        ],
+        "verification_scope": "Fixed on agent/tenant-commands-monitoring-bulk-delete; not verified in a browser."
+      },
+      "affected_modules": [
+        "apps/admin"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [
+        "REG-199"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-016"
+      ],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "FIX_NOW",
+      "verification_result": {
+        "result": "VERIFIED",
+        "classification": "TERMINAL_AS_DOCUMENTED",
+        "finding_ids": []
+      }
+    },
+    {
+      "record_id": "BUG-0497",
+      "source": {
+        "record_path": "docs/bugs/BUG-0497-fifteen-modules-offered-no-delete-and-no-reason-for-its-abse.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "098a0e6",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
+      },
+      "type": "UX",
+      "title": "Fifteen modules offered no Delete and no reason for its absence",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "current_evidence": {
+        "paths": [
+          "apps/admin",
+          "services/api/src/modules/partners",
+          "services/api/src/modules/platform-runtime"
+        ],
+        "verification_scope": "Fixed on agent/tenant-commands-monitoring-bulk-delete; not verified in a browser."
+      },
+      "affected_modules": [
+        "apps/admin",
+        "services/api/src/modules/partners",
+        "services/api/src/modules/platform-runtime"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "regressions": [
+        "REG-200"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-017"
       ],
       "test_plan": [],
       "active_session_conflict": "NONE",

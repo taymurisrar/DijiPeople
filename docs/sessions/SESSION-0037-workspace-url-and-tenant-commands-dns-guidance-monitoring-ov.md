@@ -1,0 +1,71 @@
+---
+SESSION_ID: SESSION-0037
+aliases: [SESSION-0037]
+TASK_ID: TASK-0017
+TITLE: Workspace URL and tenant commands, DNS guidance, monitoring overview redesign, dark theme flash, and bulk delete
+ARCHITECT_INTENT: Workspace URL and tenant commands, DNS guidance, monitoring overview redesign, dark theme flash, and bulk delete
+STATUS: ACTIVE
+TASK_TYPE: BUG
+TASK_SIZE: LARGE
+BASE_BRANCH: origin/develop
+BASE_SHA: 098a0e6fae178d9c6bfd405094315c5fb7fbfec4
+TASK_BRANCH: agent/tenant-commands-monitoring-bulk-delete
+TARGET_BRANCH: develop
+WORKTREE: D:/My Work/hrm-dijipeople/dijipeople-ux2
+AFFECTED_MODULES: []
+WRITE_LEASES: []
+ACTIVE_WORK_PACKAGES: []
+SCHEMA_WRITE: NO
+CI_STATUS: NOT_RUN
+MERGE_STATUS: NOT_STARTED
+STARTED_AT: 2026-08-21T23:28:44.546Z
+LAST_HEARTBEAT: 2026-08-21T23:28:44.546Z
+BLOCKERS: none
+---
+
+# SESSION-0037 — Workspace URL and tenant commands, DNS guidance, monitoring overview redesign, dark theme flash, and bulk delete
+
+## Intent
+
+Workspace URL and tenant commands, DNS guidance, monitoring overview redesign, dark theme flash, and bulk delete
+
+## Scope
+
+Six reported items. Three are one rule failing in a new place; three are screens
+reporting a mechanism instead of serving their reader.
+
+**In scope**
+
+- `services/api/src/modules/tenant-control-plane` — three more hand-rolled
+  workspace URLs.
+- `services/api/src/modules/tenant-domains` and `super-admin` — reconciling
+  hostnames stamped Pending before wildcard DNS was confirmed.
+- `services/api/src/modules/partners` — guarded bulk deletion, new service.
+- `services/api/src/modules/platform-runtime` — the three new delete paths.
+- `apps/admin` — Open Tenant, the root layout's theme bootstrap, the monitoring
+  overview, the Domains panel copy, and the module registry's delete refusals.
+
+**Out of scope**
+
+- The schema. `SCHEMA_WRITE: NO`.
+- Hard delete for invoices, payments, commissions, subscriptions, plans,
+  contracts, templates, signature requests, support cases, tenants and
+  monitoring incidents — a recorded decision on TASK-0017, not an omission.
+- [[BUG-0018]], which is stale: `actionFor` gained a DELETE branch in
+  `ac17223` and this path does not use that resolver anyway. Noted on BUG-0497
+  for the Architect to re-triage rather than silently amended here.
+- Deployment. `main` is untouched.
+
+## Concurrency
+
+Classified SAFE_PARALLEL at start. No lease taken: nothing here writes the
+schema. The admin runtime registry **is** edited — the capability map and the
+delete refusals — and no other session holds `runtime-registries`; it was not
+taken because this session began before that judgement was made, which is worth
+recording rather than tidying away.
+
+Live state: `node scripts/session.mjs list`.
+
+## History
+
+- 2026-08-21 — session started from `origin/develop` at `098a0e6`.
