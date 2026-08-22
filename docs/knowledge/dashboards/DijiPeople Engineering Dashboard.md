@@ -11,9 +11,9 @@
 | Open HIGH | **1** |
 | Open total | 19 |
 | Blocked | 1 |
-| Awaiting a product decision | 8 |
-| Deferred | 16 |
-| Completed | 162 |
+| Awaiting a product decision | 7 |
+| Deferred | 17 |
+| Completed | 164 |
 | Awaiting Architect triage | 0 |
 
 ## Open Critical Bugs
@@ -31,13 +31,12 @@ _None. Nothing open at CRITICAL._
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
 | [[BUG-0163-package-lock-json-cannot-be-regenerated-npm-overrides-are-si|BUG-0163]] | package-lock.json cannot be regenerated - npm overrides are silently ignored | INFRA | HIGH | PRODUCT_DECISION | package-lock.json, apps/admin | PRODUCT_DECISION |
+| [[BUG-0714-customer-emails-link-to-the-vercel-app-host-and-api-base-url|BUG-0714]] | Customer emails link to the vercel.app host, and API_BASE_URL is plain HTTP | INFRA | HIGH | PRODUCT_DECISION | services/api, apps/web, docs/deployment | PRODUCT_DECISION |
 | [[ITEM-0062-no-multi-tenant-membership-one-user-belongs-to-one-tenant-so|ITEM-0062]] | No multi-tenant membership — one user belongs to one tenant, so discovery and switching cannot exist | ARCHITECTURE | HIGH | PRODUCT_DECISION | auth, users, tenant-domains, web | PRODUCT_DECISION |
-| [[BUG-0223-admin-cannot-set-a-plan-ispublic-flag-which-gates-self-servi|BUG-0223]] | Admin cannot set a plan isPublic flag which gates self-service checkout | UX | MEDIUM | PRODUCT_DECISION | apps/admin, api:super-admin, api:billing | PRODUCT_DECISION |
 | [[ITEM-0032-recompute-productivity-totals-inflated-by-heartbeat-replays|ITEM-0032]] | Recompute productivity totals inflated by heartbeat replays | DATA_MIGRATION | MEDIUM | PRODUCT_DECISION | api:agent | PRODUCT_DECISION |
 | [[ITEM-0053-publish-privacy-policy-and-terms-for-the-public-landing-site|ITEM-0053]] | Publish privacy policy and terms for the public landing site | PRODUCT_DECISION | MEDIUM | PRODUCT_DECISION | apps/landing | PRODUCT_DECISION |
 | [[ITEM-0076-operators-cannot-recover-an-order-whose-stripe-webhook-never|ITEM-0076]] | Operators cannot recover an order whose Stripe webhook never arrived | PRODUCT_DECISION | MEDIUM | PRODUCT_DECISION | api:billing, apps/admin | PRODUCT_DECISION |
 | [[ITEM-0079-activation-does-not-gate-on-a-workspace-having-any-module-en|ITEM-0079]] | Activation does not gate on a workspace having any module enabled | PRODUCT_DECISION | LOW | PRODUCT_DECISION | api:tenant-control-plane | PRODUCT_DECISION |
-| [[ITEM-0057-landing-production-env-examples-still-name-the-vercel-and-re|ITEM-0057]] | Landing production env examples still name the vercel and render hosts, not the dijipeople.com apex | PRODUCT_DECISION | — | PRODUCT_DECISION | apps/landing | PRODUCT_DECISION |
 
 ## Blocked Items
 
@@ -160,6 +159,7 @@ _None. Nothing open at CRITICAL._
 | [[BUG-0081-three-apps-claimed-a-forwarded-headers-invariant-test-that-d|BUG-0081]] | Three apps claimed a forwarded-headers invariant test that did not exist | TEST_GAP | MEDIUM | VERIFIED | landing, web, admin | DONE |
 | [[BUG-0221-schema-completed-form-fields-render-on-a-tab-the-form-never-|BUG-0221]] | Schema-completed form fields render on a tab the form never declares | UX | MEDIUM | VERIFIED | apps/admin | DONE |
 | [[BUG-0222-plan-related-record-panels-declare-no-tab-so-they-never-rend|BUG-0222]] | Plan related-record panels declare no tab, so they never render | UX | MEDIUM | VERIFIED | apps/admin | DONE |
+| [[BUG-0223-admin-cannot-set-a-plan-ispublic-flag-which-gates-self-servi|BUG-0223]] | Admin cannot set a plan isPublic flag which gates self-service checkout | UX | MEDIUM | VERIFIED | apps/admin, api:super-admin, api:billing | DONE |
 | [[BUG-0281-partner-attribution-is-lost-when-a-referred-buyer-purchases-|BUG-0281]] | Partner attribution is lost when a referred buyer purchases through self-service checkout | DATA_INTEGRITY | MEDIUM | VERIFIED | apps/landing, api:billing, api:partner-experience | DONE |
 | [[BUG-0283-a-regenerated-prisma-client-against-an-un-migrated-database-|BUG-0283]] | A regenerated Prisma client against an un-migrated database 500s every affected screen | INFRA | MEDIUM | VERIFIED | services/api, services/api/prisma, apps/admin | DONE |
 | [[BUG-0314-the-notifications-page-is-a-placeholder-under-a-permanently-|BUG-0314]] | The notifications page is a placeholder under a permanently lit badge | UX | MEDIUM | VERIFIED | apps/admin, api:platform-events | DONE |
@@ -259,8 +259,8 @@ _None. Nothing has been deployed through the release process._
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 125 |
-| Backlog items | 81 |
+| Bug records | 126 |
+| Backlog items | 82 |
 | Known bug patterns | 25 |
 | QA runs | 22 |
 | Engineering history records | 32 |

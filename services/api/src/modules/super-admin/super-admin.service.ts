@@ -14,6 +14,7 @@ import {
   BillingCycle,
   BillingInterval,
   BillingModel,
+  CommercialPublicationStatus,
   CustomerAccountStatus,
   DiscountType,
   InvoiceStatus,
@@ -25,8 +26,8 @@ import {
   StripeEnvironment,
   StripeSyncStatus,
   SubscriptionStatus,
-  TenantStatus,
   TenantFeatureSource,
+  TenantStatus,
   UserInvitationStatus,
   UserStatus,
   WebhookProcessingStatus,
@@ -2803,14 +2804,17 @@ export class SuperAdminService {
       this.prisma.plan.count({
         where: {
           isActive: true,
-          isPublic: true,
+          publicationStatus: CommercialPublicationStatus.PUBLISHED,
         },
       }),
       this.prisma.planPrice.count({
         where: {
           isActive: true,
           stripePriceId: null,
-          plan: { isActive: true, isPublic: true },
+          plan: {
+            isActive: true,
+            publicationStatus: CommercialPublicationStatus.PUBLISHED,
+          },
         },
       }),
       this.prisma.planPrice.count({
@@ -2819,7 +2823,10 @@ export class SuperAdminService {
       this.prisma.planPrice.findMany({
         where: {
           isActive: true,
-          plan: { isActive: true, isPublic: true },
+          plan: {
+            isActive: true,
+            publicationStatus: CommercialPublicationStatus.PUBLISHED,
+          },
         },
       }),
       this.prisma.stripeWebhookEvent.count({

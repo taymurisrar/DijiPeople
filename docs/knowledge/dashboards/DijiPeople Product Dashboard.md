@@ -68,13 +68,12 @@ Questions where the engineering is understood and the **product answer**
 **is not**. No agent may resolve one by implementing a side of it.
 
 - [[BUG-0163-package-lock-json-cannot-be-regenerated-npm-overrides-are-si|BUG-0163]] — **package-lock.json cannot be regenerated - npm overrides are silently ignored** (HIGH)
+- [[BUG-0714-customer-emails-link-to-the-vercel-app-host-and-api-base-url|BUG-0714]] — **Customer emails link to the vercel.app host, and API_BASE_URL is plain HTTP** (HIGH)
 - [[ITEM-0062-no-multi-tenant-membership-one-user-belongs-to-one-tenant-so|ITEM-0062]] — **No multi-tenant membership — one user belongs to one tenant, so discovery and switching cannot exist** (HIGH)
-- [[BUG-0223-admin-cannot-set-a-plan-ispublic-flag-which-gates-self-servi|BUG-0223]] — **Admin cannot set a plan isPublic flag which gates self-service checkout** (MEDIUM)
 - [[ITEM-0032-recompute-productivity-totals-inflated-by-heartbeat-replays|ITEM-0032]] — **Recompute productivity totals inflated by heartbeat replays** (MEDIUM)
 - [[ITEM-0053-publish-privacy-policy-and-terms-for-the-public-landing-site|ITEM-0053]] — **Publish privacy policy and terms for the public landing site** (MEDIUM)
 - [[ITEM-0076-operators-cannot-recover-an-order-whose-stripe-webhook-never|ITEM-0076]] — **Operators cannot recover an order whose Stripe webhook never arrived** (MEDIUM)
 - [[ITEM-0079-activation-does-not-gate-on-a-workspace-having-any-module-en|ITEM-0079]] — **Activation does not gate on a workspace having any module enabled** (LOW)
-- [[ITEM-0057-landing-production-env-examples-still-name-the-vercel-and-re|ITEM-0057]] — **Landing production env examples still name the vercel and render hosts, not the dijipeople.com apex** (unrated)
 
 ## Recent Product Changes
 

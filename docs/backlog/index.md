@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**206 records** — 125 bugs under [`docs/bugs/`](../bugs/), 81 non-bug items under [`items/`](items/).
+**208 records** — 126 bugs under [`docs/bugs/`](../bugs/), 82 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -15,9 +15,9 @@ see [`README.md`](README.md) for why.
 |---|---|
 | Open (active work) | 19 |
 | Blocked | 1 |
-| Deferred | 16 |
-| Awaiting a product decision | 8 |
-| Completed / closed | 162 |
+| Deferred | 17 |
+| Awaiting a product decision | 7 |
+| Completed / closed | 164 |
 | **Open CRITICAL** | **0** |
 | **Open HIGH** | **1** |
 | **Awaiting Architect triage** | **0** |
@@ -47,12 +47,12 @@ see [`README.md`](README.md) for why.
 | Status | Count |
 |---|---|
 | BLOCKED | 1 |
-| DEFERRED | 16 |
-| PRODUCT_DECISION | 8 |
-| VERIFIED | 120 |
+| DEFERRED | 17 |
+| PRODUCT_DECISION | 7 |
+| VERIFIED | 121 |
 | DUPLICATE | 2 |
 | READY | 19 |
-| DONE | 40 |
+| DONE | 41 |
 
 ## All records
 
@@ -124,6 +124,7 @@ see [`README.md`](README.md) for why.
 | [BUG-0531](../../docs/bugs/BUG-0531-flat-prices-were-sellable-on-the-public-site-at-invented-amo.md) | Flat prices were sellable on the public site at invented amounts | DATA_INTEGRITY | HIGH | P1 | VERIFIED | super-admin, apps/admin | DONE |
 | [BUG-0533](../../docs/bugs/BUG-0533-seeding-the-commercial-catalogue-never-corrected-an-existing.md) | Seeding the commercial catalogue never corrected an existing plan or price | DATA_INTEGRITY | HIGH | P1 | VERIFIED | super-admin, apps/admin | DONE |
 | [BUG-0627](../../docs/bugs/BUG-0627-admin-sign-out-does-not-revoke-the-platform-session-when-the.md) | Admin sign-out does not revoke the platform session when the refresh cookie has expired | AUTHORIZATION | HIGH | P1 | VERIFIED | api:auth, apps/admin | DONE |
+| [BUG-0714](../../docs/bugs/BUG-0714-customer-emails-link-to-the-vercel-app-host-and-api-base-url.md) | Customer emails link to the vercel.app host, and API_BASE_URL is plain HTTP | INFRA | HIGH | P1 | PRODUCT_DECISION | services/api, apps/web, docs/deployment | PRODUCT_DECISION |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | READY | apps/web, e2e | PLAN_REQUIRED |
@@ -162,7 +163,7 @@ see [`README.md`](README.md) for why.
 | [BUG-0084](../../docs/bugs/BUG-0084-seven-unique-constraints-in-schema-prisma-are-absent-from-th.md) | Seven unique constraints in schema.prisma are absent from the migration chain | DATA_INTEGRITY | MEDIUM | P2 | DEFERRED | contracts, partner-experience, support-cases, approvals, tenant-settings | DEFER |
 | [BUG-0221](../../docs/bugs/BUG-0221-schema-completed-form-fields-render-on-a-tab-the-form-never-.md) | Schema-completed form fields render on a tab the form never declares | UX | MEDIUM | P2 | VERIFIED | apps/admin | DONE |
 | [BUG-0222](../../docs/bugs/BUG-0222-plan-related-record-panels-declare-no-tab-so-they-never-rend.md) | Plan related-record panels declare no tab, so they never render | UX | MEDIUM | P2 | VERIFIED | apps/admin | DONE |
-| [BUG-0223](../../docs/bugs/BUG-0223-admin-cannot-set-a-plan-ispublic-flag-which-gates-self-servi.md) | Admin cannot set a plan isPublic flag which gates self-service checkout | UX | MEDIUM | P2 | PRODUCT_DECISION | apps/admin, api:super-admin, api:billing | PRODUCT_DECISION |
+| [BUG-0223](../../docs/bugs/BUG-0223-admin-cannot-set-a-plan-ispublic-flag-which-gates-self-servi.md) | Admin cannot set a plan isPublic flag which gates self-service checkout | UX | MEDIUM | P2 | VERIFIED | apps/admin, api:super-admin, api:billing | DONE |
 | [BUG-0281](../../docs/bugs/BUG-0281-partner-attribution-is-lost-when-a-referred-buyer-purchases-.md) | Partner attribution is lost when a referred buyer purchases through self-service checkout | DATA_INTEGRITY | MEDIUM | P2 | VERIFIED | apps/landing, api:billing, api:partner-experience | DONE |
 | [BUG-0283](../../docs/bugs/BUG-0283-a-regenerated-prisma-client-against-an-un-migrated-database-.md) | A regenerated Prisma client against an un-migrated database 500s every affected screen | INFRA | MEDIUM | P2 | VERIFIED | services/api, services/api/prisma, apps/admin | DONE |
 | [BUG-0314](../../docs/bugs/BUG-0314-the-notifications-page-is-a-placeholder-under-a-permanently-.md) | The notifications page is a placeholder under a permanently lit badge | UX | MEDIUM | P2 | VERIFIED | apps/admin, api:platform-events | DONE |
@@ -261,7 +262,8 @@ see [`README.md`](README.md) for why.
 | [ITEM-0075](../../docs/backlog/items/ITEM-0075-the-subscribe-wizard-never-collects-companysize-which-the-ap.md) | The subscribe wizard never collects companySize, which the API and Customers module both expect | UX | LOW | P3 | DEFERRED | apps/landing, api:billing | DEFER |
 | [ITEM-0079](../../docs/backlog/items/ITEM-0079-activation-does-not-gate-on-a-workspace-having-any-module-en.md) | Activation does not gate on a workspace having any module enabled | PRODUCT_DECISION | LOW | P3 | PRODUCT_DECISION | api:tenant-control-plane | PRODUCT_DECISION |
 | [ITEM-0080](../../docs/backlog/items/ITEM-0080-type-the-remaining-services-api-no-unsafe-warnings-module-by.md) | Type the remaining services/api no-unsafe warnings module by module | TECH_DEBT | LOW | P3 | READY | services/api | FIX_NOW |
-| [ITEM-0057](../../docs/backlog/items/ITEM-0057-landing-production-env-examples-still-name-the-vercel-and-re.md) | Landing production env examples still name the vercel and render hosts, not the dijipeople.com apex | PRODUCT_DECISION | — | P2 | PRODUCT_DECISION | apps/landing | PRODUCT_DECISION |
+| [ITEM-0082](../../docs/backlog/items/ITEM-0082-contract-phase-drop-the-inert-plan-ispublic-column.md) | Contract phase: drop the inert Plan.isPublic column | DATA_MIGRATION | LOW | P3 | DEFERRED | services/api/prisma, api:billing | DEFER |
+| [ITEM-0057](../../docs/backlog/items/ITEM-0057-landing-production-env-examples-still-name-the-vercel-and-re.md) | Landing production env examples still name the vercel and render hosts, not the dijipeople.com apex | PRODUCT_DECISION | — | P2 | DONE | apps/landing | DONE |
 | [ITEM-0058](../../docs/backlog/items/ITEM-0058-next-env-d-ts-churns-between-dev-and-build-forms-and-the-fou.md) | next-env.d.ts churns between dev and build forms and the four apps disagree | TECH_DEBT | — | P3 | DEFERRED | apps/landing, apps/web, apps/admin | DEFER |
 | [ITEM-0059](../../docs/backlog/items/ITEM-0059-49-tracked-text-files-have-no-final-newline-and-nothing-enfo.md) | 49 tracked text files have no final newline, and nothing enforces one | TECH_DEBT | — | P3 | DEFERRED | apps/admin, apps/web, apps/agent-desktop | DEFER |
 

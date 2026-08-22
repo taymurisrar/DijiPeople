@@ -111,6 +111,7 @@ the same defect again.
 | [BUG-0081](../../docs/bugs/BUG-0081-three-apps-claimed-a-forwarded-headers-invariant-test-that-d.md) | Three apps claimed a forwarded-headers invariant test that did not exist | TEST_GAP | MEDIUM | P2 | VERIFIED | landing, web, admin | DONE |
 | [BUG-0221](../../docs/bugs/BUG-0221-schema-completed-form-fields-render-on-a-tab-the-form-never-.md) | Schema-completed form fields render on a tab the form never declares | UX | MEDIUM | P2 | VERIFIED | apps/admin | DONE |
 | [BUG-0222](../../docs/bugs/BUG-0222-plan-related-record-panels-declare-no-tab-so-they-never-rend.md) | Plan related-record panels declare no tab, so they never render | UX | MEDIUM | P2 | VERIFIED | apps/admin | DONE |
+| [BUG-0223](../../docs/bugs/BUG-0223-admin-cannot-set-a-plan-ispublic-flag-which-gates-self-servi.md) | Admin cannot set a plan isPublic flag which gates self-service checkout | UX | MEDIUM | P2 | VERIFIED | apps/admin, api:super-admin, api:billing | DONE |
 | [BUG-0281](../../docs/bugs/BUG-0281-partner-attribution-is-lost-when-a-referred-buyer-purchases-.md) | Partner attribution is lost when a referred buyer purchases through self-service checkout | DATA_INTEGRITY | MEDIUM | P2 | VERIFIED | apps/landing, api:billing, api:partner-experience | DONE |
 | [BUG-0283](../../docs/bugs/BUG-0283-a-regenerated-prisma-client-against-an-un-migrated-database-.md) | A regenerated Prisma client against an un-migrated database 500s every affected screen | INFRA | MEDIUM | P2 | VERIFIED | services/api, services/api/prisma, apps/admin | DONE |
 | [BUG-0314](../../docs/bugs/BUG-0314-the-notifications-page-is-a-placeholder-under-a-permanently-.md) | The notifications page is a placeholder under a permanently lit badge | UX | MEDIUM | P2 | VERIFIED | apps/admin, api:platform-events | DONE |
@@ -173,6 +174,7 @@ the same defect again.
 | [ITEM-0041](../../docs/backlog/items/ITEM-0041-repository-ruleset-no-push-matches-no-branch-and-is-inert.md) | Repository ruleset No push matches no branch and is inert | INFRA | LOW | P3 | DONE | .github | DONE |
 | [ITEM-0042](../../docs/backlog/items/ITEM-0042-burn-down-the-services-api-eslint-warning-baseline.md) | Burn down the services/api ESLint warning baseline | TECH_DEBT | LOW | P3 | DONE | services/api | DONE |
 | [ITEM-0045](../../docs/backlog/items/ITEM-0045-reconcile-tenant-web-root-domain-environment-examples.md) | Reconcile tenant web root-domain environment examples | DOCUMENTATION | LOW | P3 | DONE | apps/web | DONE |
+| [ITEM-0057](../../docs/backlog/items/ITEM-0057-landing-production-env-examples-still-name-the-vercel-and-re.md) | Landing production env examples still name the vercel and render hosts, not the dijipeople.com apex | PRODUCT_DECISION | — | P2 | DONE | apps/landing | DONE |
 
 ## Accepted risk
 

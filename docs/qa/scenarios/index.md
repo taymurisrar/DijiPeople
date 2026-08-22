@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 162** · automated: 146 · manual: 5 · blocked by infrastructure: 0
+**Scenarios: 163** · automated: 147 · manual: 5 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -57,6 +57,7 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-BILLING-010](../../../docs/qa/scenarios/QA-BILLING-010-checkout-cannot-open-until-the-owner-email-is-verified.md) | Checkout cannot open until the owner email is verified | subscription-orders | SECURITY | HIGH | AUTOMATED | `services/api/test/payment-authorised-provisioning.e2e-spec.ts` | ITEM-0063 | REG-074 |
 | [QA-BILLING-011](../../../docs/qa/scenarios/QA-BILLING-011-the-public-is-offered-per-seat-pricing-and-can-never-reach-a.md) | The public is offered per-seat pricing and can never reach a sales-assisted flat price | seat-billing | UNIT | CRITICAL | AUTOMATED | `services/api/src/modules/billing/commercial-offer.resolver.spec.ts` | BUG-0080 | REG-080 |
 | [QA-BILLING-012](../../../docs/qa/scenarios/QA-BILLING-012-a-self-service-customer-record-carries-what-the-customer-bou.md) | A self-service customer record carries what the customer bought | seat-billing | UNIT | HIGH | AUTOMATED | `services/api/src/modules/billing/services/checkout-customer-record.spec.ts` | BUG-0280 | REG-177 |
+| [QA-BILLING-013](../../../docs/qa/scenarios/QA-BILLING-013-exactly-one-stored-flag-decides-whether-a-plan-can-be-bought.md) | Exactly one stored flag decides whether a plan can be bought | billing | UNIT | HIGH | AUTOMATED | `services/api/src/modules/billing/one-self-service-gate.spec.ts` | BUG-0223 | REG-225 |
 | [QA-CI-001](../../../docs/qa/scenarios/QA-CI-001-report-only-jobs-publish-an-explicit-pass-fail-verdict.md) | Report-only CI jobs publish an explicit PASS/FAIL verdict | deployment-release | DEPLOYMENT_SMOKE | HIGH | AUTOMATED | `scripts/validate-framework.mjs` | BUG-0049 | REG-047 |
 | [QA-CI-002](../../../docs/qa/scenarios/QA-CI-002-the-database-agent-verdict-cannot-report-pass-over-a-failing.md) | The Database Agent verdict cannot report PASS over a failing field | deployment-release | API | HIGH | AUTOMATED | `scripts/db-preflight.test.mjs` | BUG-0083, BUG-0060, BUG-0068 | REG-078 |
 | [QA-CI-003](../../../docs/qa/scenarios/QA-CI-003-declared-npm-overrides-are-reflected-in-the-lockfile.md) | Declared npm overrides are reflected in the lockfile | deployment-release | UNIT | HIGH | AUTOMATED | `scripts/check-overrides-applied.mjs` | BUG-0163 | REG-173 |

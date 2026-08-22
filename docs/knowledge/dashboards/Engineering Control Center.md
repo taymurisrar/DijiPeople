@@ -17,7 +17,7 @@
 | Open CRITICAL | **0** |
 | Open HIGH | 1 |
 | Awaiting Architect triage | 0 |
-| Owner decisions pending | 8 |
+| Owner decisions pending | 7 |
 | QA coverage gaps | 108 |
 | Scenarios blocked by infrastructure | 0 |
 
@@ -117,13 +117,12 @@ Questions where the engineering is understood and the **product answer is**
 **not**. No agent may resolve one by implementing a side of it.
 
 - [[BUG-0163-package-lock-json-cannot-be-regenerated-npm-overrides-are-si|BUG-0163]] — **package-lock.json cannot be regenerated - npm overrides are silently ignored**
+- [[BUG-0714-customer-emails-link-to-the-vercel-app-host-and-api-base-url|BUG-0714]] — **Customer emails link to the vercel.app host, and API_BASE_URL is plain HTTP**
 - [[ITEM-0062-no-multi-tenant-membership-one-user-belongs-to-one-tenant-so|ITEM-0062]] — **No multi-tenant membership — one user belongs to one tenant, so discovery and switching cannot exist**
-- [[BUG-0223-admin-cannot-set-a-plan-ispublic-flag-which-gates-self-servi|BUG-0223]] — **Admin cannot set a plan isPublic flag which gates self-service checkout**
 - [[ITEM-0032-recompute-productivity-totals-inflated-by-heartbeat-replays|ITEM-0032]] — **Recompute productivity totals inflated by heartbeat replays**
 - [[ITEM-0053-publish-privacy-policy-and-terms-for-the-public-landing-site|ITEM-0053]] — **Publish privacy policy and terms for the public landing site**
 - [[ITEM-0076-operators-cannot-recover-an-order-whose-stripe-webhook-never|ITEM-0076]] — **Operators cannot recover an order whose Stripe webhook never arrived**
 - [[ITEM-0079-activation-does-not-gate-on-a-workspace-having-any-module-en|ITEM-0079]] — **Activation does not gate on a workspace having any module enabled**
-- [[ITEM-0057-landing-production-env-examples-still-name-the-vercel-and-re|ITEM-0057]] — **Landing production env examples still name the vercel and render hosts, not the dijipeople.com apex**
 
 ## QA Coverage Gaps
 
@@ -247,8 +246,8 @@ gap into scope — or files a `TEST_GAP` item and says so.
 |---|---|
 | Open total | 19 |
 | Blocked | 1 |
-| Deferred | 16 |
-| Awaiting a product decision | 8 |
+| Deferred | 17 |
+| Awaiting a product decision | 7 |
 | Awaiting Architect triage | 0 |
 
 Every ordinary record carries a disposition.

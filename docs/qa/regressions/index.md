@@ -1915,3 +1915,18 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | Moving the class above the controller is not cosmetic: `design:paramtypes` metadata is evaluated when the controller class is defined, so a DTO declared after it sits in a temporal dead zone. `wiring-invariants.spec.ts` caught that within seconds — "Cannot access ‘UpdateMyPreferencesDto’ before initialization" — the second time this session that the runtime invariant was right where reading was not. |
 | **Fixed** | 2026-08-22, branch `agent/qa-verify-and-burndown` |
 | **Active** | yes |
+
+### REG-225 — Two independent gates decided whether a plan could be bought
+
+| | |
+|---|---|
+| **Bug class** | `two-sources-of-truth` |
+| **Module** | `services/api/src/modules/billing`, `services/api/src/modules/super-admin` |
+| **Bug record** | BUG-0223 |
+| **Root cause** | `Plan` carried two independent answers to "may a customer buy this?". `isPublic` — a boolean defaulting to **true**, with no audit columns and no operator write path at all, changeable only by a seed or by hand in the database — and `publicationStatus` (DRAFT/PUBLISHED/ARCHIVED, with `publishedAt`/`archivedAt`, applied uniformly to plan, market and price). `commercial-offer.resolver.ts` already treated publication as the authority while `billing.service.ts` and the public plan reads still read the boolean. Two gates that can disagree is worse than either alone: a plan could be PUBLISHED and `isPublic: false` — visible in the offer, refused at checkout — or DRAFT and purchasable. Nothing detected either, because each gate was correct on its own terms. |
+| **Regression test** | `services/api/src/modules/billing/one-self-service-gate.spec.ts` |
+| **Scenario** | No gating read of `Plan.isPublic` exists in the three files that held one; the response still exposes an `isPublic` field **derived** from publication, because the landing site consumes it; and every remaining gate compares against `PUBLISHED`. |
+| **Proven to fail without the fix** | Reintroducing `if (!planPrice.plan.isPublic)` at the checkout gate fails two of the five tests and names the file and line. |
+| **Note** | Reads source rather than calling the service, deliberately: the defect is *the existence of a second gate*, not the behaviour of any one call, and a behavioural test would have to guess which of the eleven read sites somebody might reintroduce. Scoped to three files and to `Plan.isPublic` alone — the unrelated `IS_PUBLIC_KEY` route decorator and `isPublicSafeReason` share a prefix and are out of scope. Safe to land in one step because production was read first: all three plans are `isPublic: true` **and** `PUBLISHED`, so no plan changed purchasability. The column is still in the schema; dropping it is a contract-phase migration. |
+| **Fixed** | 2026-08-22, branch `agent/qa-verify-and-burndown` |
+| **Active** | yes |

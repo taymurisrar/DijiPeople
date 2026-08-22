@@ -8,6 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import {
   BillingInterval,
   BillingModel,
+  CommercialPublicationStatus,
   Prisma,
   StripeEnvironment,
   StripeSyncStatus,
@@ -65,7 +66,7 @@ export class BillingService {
     const plans = await this.prisma.plan.findMany({
       where: {
         isActive: true,
-        isPublic: true,
+        publicationStatus: CommercialPublicationStatus.PUBLISHED,
       },
       include: {
         features: {
@@ -99,7 +100,9 @@ export class BillingService {
         name: plan.name,
         description: plan.description,
         isActive: plan.isActive,
-        isPublic: plan.isPublic,
+        // BUG-0223 — derived from publication, not a second stored gate.
+        isPublic:
+          plan.publicationStatus === CommercialPublicationStatus.PUBLISHED,
         sortOrder: plan.sortOrder,
         currency: plan.currency,
         monthlyBasePrice: Number(plan.monthlyBasePrice),
@@ -252,7 +255,7 @@ export class BillingService {
       !planPrice ||
       !planPrice.isActive ||
       !planPrice.plan.isActive ||
-      !planPrice.plan.isPublic
+      planPrice.plan.publicationStatus !== CommercialPublicationStatus.PUBLISHED
     ) {
       throw new NotFoundException('Plan price not found.');
     }
@@ -322,7 +325,7 @@ export class BillingService {
       !planPrice ||
       !planPrice.isActive ||
       !planPrice.plan.isActive ||
-      !planPrice.plan.isPublic
+      planPrice.plan.publicationStatus !== CommercialPublicationStatus.PUBLISHED
     ) {
       throw new NotFoundException('Plan price not found.');
     }
@@ -594,7 +597,7 @@ export class BillingService {
       this.prisma.plan.count({
         where: {
           isActive: true,
-          isPublic: true,
+          publicationStatus: CommercialPublicationStatus.PUBLISHED,
         },
       }),
       this.prisma.planPrice.findMany({
@@ -602,7 +605,7 @@ export class BillingService {
           isActive: true,
           plan: {
             isActive: true,
-            isPublic: true,
+            publicationStatus: CommercialPublicationStatus.PUBLISHED,
           },
         },
       }),
@@ -835,7 +838,9 @@ export class BillingService {
       throw new NotFoundException('Plan price not found.');
     }
 
-    if (!planPrice.plan.isPublic) {
+    if (
+      planPrice.plan.publicationStatus !== CommercialPublicationStatus.PUBLISHED
+    ) {
       throw new NotFoundException('Plan price not found.');
     }
 

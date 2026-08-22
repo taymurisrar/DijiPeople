@@ -4678,14 +4678,14 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "08b8661",
         "created_at": "2026-08-21",
-        "updated_at": "2026-08-21",
-        "resolved_at": ""
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
       },
       "type": "UX",
       "title": "Admin cannot set a plan isPublic flag which gates self-service checkout",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "PRODUCT_DECISION",
+      "current_status": "VERIFIED",
       "current_evidence": {
         "paths": [
           "services/api/src/modules/super-admin/dto/update-plan.dto.ts",
@@ -4713,12 +4713,16 @@
         "ITEM-0018",
         "ITEM-0022"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-225"
+      ],
+      "qa_scenarios": [
+        "QA-BILLING-013"
+      ],
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "YES",
-      "architect_disposition": "PRODUCT_DECISION",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "VERIFIED",
         "classification": "ACTIVE_AS_DOCUMENTED",
@@ -6518,6 +6522,52 @@
       "owner_decision_required": "NO",
       "architect_disposition": "DONE",
       "verification_result": "VERIFIED"
+    },
+    {
+      "record_id": "BUG-0714",
+      "source": {
+        "record_path": "docs/bugs/BUG-0714-customer-emails-link-to-the-vercel-app-host-and-api-base-url.md",
+        "provenance": "DEPLOYMENT",
+        "detected_in_sha": "b486a60",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": ""
+      },
+      "type": "INFRA",
+      "title": "Customer emails link to the vercel.app host, and API_BASE_URL is plain HTTP",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "PRODUCT_DECISION",
+      "current_evidence": {
+        "paths": [
+          "services/api/src/common/config/tenant-url.config.ts",
+          "docs/environment-variables.md",
+          "render.yaml"
+        ],
+        "verification_scope": "Two production environment variables on the Render service are wrong and the first is customer-facing. WEB_APP_URL is https://diji-people-web.vercel.app, so every activation, invitation, password-reset and sign-in link the API mails to a tenant sends them to the Vercel deployment host rather than app.dijipeople.com or their own workspace subdomain. API_BASE_URL is http://api.dijipeople.com/api while API_ORIGIN beside it is correctly https, and getApiBaseUrl prefers API_BASE_URL so the insecure value wins. The per-tenant subdomain rewrite in tenant-url.config.ts fires only when WEB_APP_PROD_ROOT_DOMAIN or NEXT_PUBLIC_WEB_ROOT_DOMAIN is set, and neither is; TENANT_BASE_DOMAIN is set but is read by the hostname issuer, not the URL builder. Neither is a code defect and both are dashboard values, so the fix is a production environment write requiring the user's approval. Verification is that a tenant activation URL lands on the customer domain and /api/health reports an https apiBaseUrl, plus a test asserting the production shape - tenant-url.config.spec.ts currently encodes the misconfiguration as expected, which is why nothing flagged it."
+      },
+      "affected_modules": [
+        "services/api",
+        "apps/web",
+        "docs/deployment"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": "Needs approval to write four production environment variables on Render."
+      },
+      "related_bugs": [
+        "BUG-0061"
+      ],
+      "related_backlog": [
+        "ITEM-0057"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "YES",
+      "architect_disposition": "PRODUCT_DECISION",
+      "verification_result": "NOT_VERIFIED"
     },
     {
       "record_id": "ITEM-0001",
@@ -9189,7 +9239,7 @@
         "record_path": "docs/backlog/items/ITEM-0057-landing-production-env-examples-still-name-the-vercel-and-re.md",
         "provenance": "ARCHITECT",
         "created_at": "2026-08-19",
-        "updated_at": "2026-08-19",
+        "updated_at": "2026-08-22",
         "detected_in_sha": "",
         "resolved_at": ""
       },
@@ -9197,7 +9247,7 @@
       "title": "Landing production env examples still name the vercel and render hosts, not the dijipeople.com apex",
       "severity": "",
       "priority": "P2",
-      "current_status": "PRODUCT_DECISION",
+      "current_status": "DONE",
       "current_evidence": {
         "paths": [
           "apps/landing/.env.example",
@@ -9226,7 +9276,7 @@
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "YES",
-      "architect_disposition": "PRODUCT_DECISION",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "AWAITING_PRODUCT_DECISION",
         "classification": "PRESERVED_NOT_DISCARDED",
@@ -10342,6 +10392,50 @@
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
       "architect_disposition": "FIX_NOW",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0082",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0082-contract-phase-drop-the-inert-plan-ispublic-column.md",
+        "provenance": "IMPLEMENTATION",
+        "detected_in_sha": "",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": ""
+      },
+      "type": "DATA_MIGRATION",
+      "title": "Contract phase: drop the inert Plan.isPublic column",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "DEFERRED",
+      "current_evidence": {
+        "paths": [
+          "services/api/prisma/schema.prisma",
+          "services/api/src/modules/billing"
+        ],
+        "verification_scope": "BUG-0223 removed every read of Plan.isPublic; publication is now the only gate on purchasability. The column remains in schema.prisma reading true for all three production plans, and nothing reads it. Expand and backfill are already done, so what remains is the contract phase alone: confirm no read has returned via REG-225 and a grep, drop the column in its own migration in a release carrying no other schema change, and remove it from seed-config and commercial-bootstrap.ts which still write it. The API response field isPublic must survive as a derived value - the landing site consumes it. Deferred because an inert column is misleading rather than dangerous and a column drop is irreversible; it should ship with ITEM-0020, the same contract phase for legacy Plan pricing columns."
+      },
+      "affected_modules": [
+        "services/api/prisma",
+        "services/api/src/modules/billing"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [
+        "BUG-0223"
+      ],
+      "related_backlog": [
+        "ITEM-0020"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DEFER",
       "verification_result": "NOT_VERIFIED"
     }
   ],
