@@ -194,19 +194,32 @@ jobs:
       # to 1027 without anything noticing, and its *error* count had already
       # grown from 2 to 15 the same way while the job was report-only.
       #
-      # 975 against 971 actual, measured on this branch. The four-warning margin
-      # is for environment drift in typescript-eslint's inference between a
-      # developer's tree and this runner — not headroom to spend.
+      # 805 against 800 actual, measured on this branch on 2026-08-22. The
+      # five-warning margin is for environment drift in typescript-eslint's
+      # inference between a developer's tree and this runner — not headroom to
+      # spend. It was 975/971 before ITEM-0042's first pass.
       #
       # When this fails, the fix is to reduce warnings, not to raise the number.
-      # Lower it whenever the real count drops. The burn-down is ITEM-0042:
-      # no-base-to-string and the unused-variable family went first, and the
-      # ~860 remaining are one family — values typed `any` flowing through
-      # Prisma-adjacent code — which needs typing, not casting, and is done by
-      # module rather than by rule.
+      # Lower it whenever the real count drops.
+      #
+      # ITEM-0042 closed the two rules it named:
+      #   no-base-to-string   41 -> 0   (a String() on an object is a log line
+      #                                  reading [object Object], which is a lost
+      #                                  incident; toDisplayString replaces it)
+      #   no-unused-vars      17 -> 0   (decided one at a time, not swept: two of
+      #                                  the seventeen were real defects, and
+      #                                  prefixing them with _ would have buried
+      #                                  BUG-0668 and BUG-0669)
+      #
+      # The 800 that remain are one family — values typed `any` flowing through
+      # Prisma-adjacent code — and are ITEM-0080. They need typing, not casting,
+      # and go module by module. The leave module was the first and is the worked
+      # example: removing eight `(this.prisma as any)` casts took it from 114
+      # warnings to zero AND surfaced four real type errors the cast was hiding,
+      # including a .filter(Boolean) that never narrowed.
       - name: ESLint — services/api
         working-directory: services/api
-        run: npx eslint "{src,test}/**/*.ts" --max-warnings=975
+        run: npx eslint "{src,test}/**/*.ts" --max-warnings=805
       - name: Fail if lint modified the checkout
         # Defence in depth: if any lint step ever regains --fix, this catches it
         # rather than letting CI silently "pass" against rewritten files.

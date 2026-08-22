@@ -2659,17 +2659,6 @@ function isTerminalRecruitmentStage(stage: RecruitmentStage) {
   );
 }
 
-function parseRecruitmentStageFromConfig(
-  value: string,
-): RecruitmentStage | null {
-  const normalized = value.trim().toUpperCase().replace(/\s+/g, '_');
-  return Object.values(RecruitmentStage).includes(
-    normalized as RecruitmentStage,
-  )
-    ? (normalized as RecruitmentStage)
-    : null;
-}
-
 function mapEmployeeStatus(value: string): EmployeeEmploymentStatus {
   const normalized = value.trim().toUpperCase();
   return Object.values(EmployeeEmploymentStatus).includes(

@@ -1885,3 +1885,33 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | The owner sign-in is asserted as a **pair**: refused before activation, accepted after, against the same account. Asserting only the second would pass on a build where a suspended workspace never locked anybody out, which is the half with the security consequence. The activation is read back from the row rather than from the response, because a handler that echoed the requested status would satisfy the response check. The suite also pins ITEM-0079 — a tenant reaches ACTIVE with the `modules` readiness blocker still standing, so the owner signs in to a workspace with nothing to open. |
 | **Fixed** | 2026-08-22, branch `agent/qa-verify-and-burndown` |
 | **Active** | yes |
+
+### REG-223 — Exchange rate resolution ignored the effective date it was given
+
+| | |
+|---|---|
+| **Bug class** | `parameter-accepted-and-ignored` |
+| **Module** | `services/api/src/modules/tenant-settings` |
+| **Bug record** | BUG-0668 |
+| **Root cause** | `resolveExchangeRate` took an `effectiveDate` and never read it: all three lookups ordered by `updatedAt` and returned the newest row, so asking for the rate *as of* a date returned today’s. `ExchangeRateSnapshot` is effective-dated by design — `effectiveDate` required, `effectiveEndDate` nullable — and none of it was queried. `convertMoney` forwards its caller’s date, so a caller who supplied the correct date still got the wrong number. ESLint had reported the unused parameter for as long as the warning baseline existed, and nobody read the output; that is what ITEM-0042 was raised about. |
+| **Regression test** | `services/api/src/modules/tenant-settings/exchange-rate-effective-date.spec.ts` |
+| **Scenario** | Three consecutive rate windows — 3.60 for Jan–Mar, 3.70 for Apr–Jun, 3.80 from July open-ended. A lookup on a date in each window returns that window’s rate; the default still means "now"; a date no window covers is refused with the date in the message; and `convertMoney` carries its caller’s date through. |
+| **Proven to fail without the fix** | Replacing the effective-date filter with `{}` fails five of the seven tests, including all three window lookups — before the fix every one of them returned 3.80. |
+| **Note** | The suite asserts on the `where` clause as well as on the returned rate. A test that stubbed one row and checked the result would pass with the filter deleted, because the stub returns that row whatever is asked for — the same "assertion that cannot fail" shape REG-220 and REG-221 were written against. Not currently reachable in production: `convertMoney` has no callers. It was a trap set for the first one, and multi-currency payroll is the caller it was waiting for. |
+| **Fixed** | 2026-08-22, branch `agent/qa-verify-and-burndown` |
+| **Active** | yes |
+
+### REG-224 — PATCH my-preferences never used its DTO
+
+| | |
+|---|---|
+| **Bug class** | `declared-but-unwired-step` |
+| **Module** | `services/api/src/modules/tenant-settings` |
+| **Bug record** | BUG-0669 |
+| **Root cause** | `UpdateMyPreferencesDto` was written with `@IsString`, `@MaxLength` and `@Matches` on all four fields and never referenced; the handler took `@Body() dto: Record<string, unknown>`, which gives the global ValidationPipe no metadata to validate against. Anybody auditing the controller would see a DTO with correct rules and move on. `normalizePreferences` is an allow-list of four keys so this was never mass assignment — the exposure was the values: unbounded strings persisted as sent, and an invalid timezone reaching `new Intl.DateTimeFormat` and surfacing as a 500 where 400 is the answer. |
+| **Regression test** | `services/api/src/modules/tenant-settings/my-preferences-validation.spec.ts` |
+| **Scenario** | The handler’s `@Body()` parameter type is `UpdateMyPreferencesDto`, read from `design:paramtypes`. A well-formed body and an empty body are accepted; an over-long timezone, a time format that is neither 12h nor 24h, a non-string where a string is required, and a field the DTO does not declare are each refused. |
+| **Proven to fail without the fix** | The parameter-type assertion fails against the previous signature — which is the defect exactly, since every rule test would pass while the endpoint stayed open. |
+| **Note** | Moving the class above the controller is not cosmetic: `design:paramtypes` metadata is evaluated when the controller class is defined, so a DTO declared after it sits in a temporal dead zone. `wiring-invariants.spec.ts` caught that within seconds — "Cannot access ‘UpdateMyPreferencesDto’ before initialization" — the second time this session that the runtime invariant was right where reading was not. |
+| **Fixed** | 2026-08-22, branch `agent/qa-verify-and-burndown` |
+| **Active** | yes |

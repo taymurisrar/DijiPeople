@@ -75,7 +75,13 @@ export function toDisplayString(value: unknown): string {
     typeof (value as { toString?: unknown }).toString === 'function' &&
     (value as { toString: unknown }).toString !== Object.prototype.toString
   ) {
-    return String(value);
+    /*
+     * The guard above established that this object defines a `toString` of its
+     * own, which is exactly the case the rule cannot see from the type. Saying
+     * so in the cast is the honest fix; an `eslint-disable` here would suppress
+     * the rule for the one function written to satisfy it.
+     */
+    return (value as { toString(): string }).toString();
   }
 
   return safeJson(value);

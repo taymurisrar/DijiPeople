@@ -16,6 +16,7 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { StorageService } from '../../common/storage/storage.service';
 import { EmailService } from '../notifications/email/email.service';
 import { userHasPlatformPermission } from '../platform-auth/platform-permissions';
+import { toDisplayString } from '../../common/utils/display-string';
 import {
   AddSupportCaseActivityDto,
   CreateSupportCaseDto,
@@ -660,7 +661,7 @@ function supportRuntimeWhere(
 ): Prisma.SupportCaseWhereInput {
   const clauses: Prisma.SupportCaseWhereInput[] = [];
   for (const filter of filters) {
-    const value = String(filter.value ?? '').trim();
+    const value = toDisplayString(filter.value ?? '').trim();
     if (!value && !['isNull', 'isNotNull'].includes(filter.operator)) continue;
     if (
       [

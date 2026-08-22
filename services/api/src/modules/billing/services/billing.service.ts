@@ -337,14 +337,7 @@ export class BillingService {
         `This price is not checkout-ready: ${verifiedPrice.reasons.join(' ')}`,
       );
     }
-    const seatPricing = calculateSeatPricing(
-      mapSeatPriceContract(planPrice),
-      purchasedSeats,
-    );
-
     const contactName = input.contactName.trim();
-    const [firstName, ...lastNameParts] = contactName.split(/\s+/);
-    const lastName = lastNameParts.join(' ') || 'Owner';
     const companyName = input.companyName.trim();
     const email = input.email.trim().toLowerCase();
     const country = input.country.trim();
@@ -1365,37 +1358,6 @@ export class BillingService {
 
     throw new ConflictException('Unable to allocate a tenant slug.');
   }
-}
-
-function buildDefaultTenantBranding(
-  companyName: string,
-  supportEmail?: string,
-) {
-  const brandName = companyName.trim() || 'DijiPeople';
-
-  return {
-    appTitle: 'DijiPeople',
-    brandName,
-    shortBrandName: brandName.split(/\s+/)[0] || brandName,
-    portalTagline: 'People operations made simple',
-    loginTitle: `Welcome to ${brandName} HR Portal`,
-    loginSubtitle:
-      'Sign in after your subscription is activated to manage HR operations.',
-    loginFooterText: 'Powered by DijiPeople',
-    supportEmail: supportEmail || null,
-    primaryColor: '#0f766e',
-    secondaryColor: '#115e59',
-    accentColor: '#14b8a6',
-    backgroundColor: '#f8fafc',
-    surfaceColor: '#ffffff',
-    textColor: '#0f172a',
-    mutedTextColor: '#64748b',
-    fontFamily: 'Inter',
-  };
-}
-
-function toPrismaJson(value: unknown): Prisma.InputJsonValue {
-  return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
 }
 
 function normalizeJsonObject(value: Prisma.JsonValue | null) {

@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**202 records** — 123 bugs under [`docs/bugs/`](../bugs/), 79 non-bug items under [`items/`](items/).
+**205 records** — 125 bugs under [`docs/bugs/`](../bugs/), 80 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -17,7 +17,7 @@ see [`README.md`](README.md) for why.
 | Blocked | 1 |
 | Deferred | 16 |
 | Awaiting a product decision | 8 |
-| Completed / closed | 159 |
+| Completed / closed | 162 |
 | **Open CRITICAL** | **0** |
 | **Open HIGH** | **1** |
 | **Awaiting Architect triage** | **0** |
@@ -49,10 +49,10 @@ see [`README.md`](README.md) for why.
 | BLOCKED | 1 |
 | DEFERRED | 16 |
 | PRODUCT_DECISION | 8 |
-| VERIFIED | 118 |
+| VERIFIED | 120 |
 | DUPLICATE | 2 |
 | READY | 18 |
-| DONE | 39 |
+| DONE | 40 |
 
 ## All records
 
@@ -185,6 +185,7 @@ see [`README.md`](README.md) for why.
 | [BUG-0497](../../docs/bugs/BUG-0497-fifteen-modules-offered-no-delete-and-no-reason-for-its-abse.md) | Fifteen modules offered no Delete and no reason for its absence | UX | MEDIUM | P2 | VERIFIED | apps/admin, api:partners, api:platform-runtime | DONE |
 | [BUG-0532](../../docs/bugs/BUG-0532-plan-form-offered-editable-legacy-price-fields-that-bill-nob.md) | Plan form offered editable legacy price fields that bill nobody | UX | MEDIUM | P2 | DUPLICATE | apps/admin | DUPLICATE |
 | [BUG-0534](../../docs/bugs/BUG-0534-plan-form-offered-editable-legacy-price-fields-that-bill-nob.md) | Plan form offered editable legacy price fields that bill nobody | UX | MEDIUM | P2 | VERIFIED | super-admin, apps/admin | DONE |
+| [BUG-0668](../../docs/bugs/BUG-0668-exchange-rate-resolution-ignored-the-effective-date-it-was-g.md) | Exchange rate resolution ignored the effective date it was given | DATA_INTEGRITY | MEDIUM | P2 | VERIFIED | api:tenant-settings | DONE |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |
@@ -238,6 +239,7 @@ see [`README.md`](README.md) for why.
 | [BUG-0024](../../docs/bugs/BUG-0024-start-onboarding-api-and-proxy-have-no-caller.md) | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | P3 | VERIFIED | apps/admin, api:super-admin | DONE |
 | [BUG-0059](../../docs/bugs/BUG-0059-vault-wikilinks-to-task-records-and-four-module-notes-resolv.md) | Vault wikilinks to task records and four module notes resolve to nothing | DOCUMENTATION | LOW | P3 | VERIFIED | scripts, docs/tasks, docs/knowledge | DONE |
 | [BUG-0352](../../docs/bugs/BUG-0352-the-tenant-timeline-rendered-every-entry-with-no-count-and-n.md) | The tenant timeline rendered every entry with no count and no paging | UX | LOW | P3 | VERIFIED | apps/admin | DONE |
+| [BUG-0669](../../docs/bugs/BUG-0669-patch-my-preferences-never-used-its-dto-so-the-body-was-unva.md) | PATCH my-preferences never used its DTO so the body was unvalidated | SECURITY | LOW | P3 | VERIFIED | api:tenant-settings | DONE |
 | [ITEM-0007](../../docs/backlog/items/ITEM-0007-should-duplicate-website-leads-be-deduplicated.md) | Product decision — should duplicate website leads be deduplicated? | PRODUCT_DECISION | LOW | P3 | DONE | api:leads, apps/landing | DONE |
 | [ITEM-0008](../../docs/backlog/items/ITEM-0008-customeraccount-has-no-origin-channel.md) | Product decision — CustomerAccount carries no origin channel | PRODUCT_DECISION | LOW | P3 | DONE | services/api/prisma, api:super-admin | DONE |
 | [ITEM-0011](../../docs/backlog/items/ITEM-0011-framework-validation-should-catch-absence-claims.md) | Framework validation should catch false absence claims in context documents | TECH_DEBT | LOW | P3 | DONE | .agent/context, scripts | DONE |
@@ -245,7 +247,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0017](../../docs/backlog/items/ITEM-0017-buildworkspaceurl-still-carries-an-internal-loopback-fallbac.md) | buildWorkspaceUrl still carries an internal loopback fallback | TECH_DEBT | LOW | P3 | DONE | pkg:config | DONE |
 | [ITEM-0029](../../docs/backlog/items/ITEM-0029-validation-should-require-an-aliases-line-on-every-record.md) | Validation should require an aliases line on every record | TECH_DEBT | LOW | P3 | DONE | scripts, docs/backlog, docs/bugs | DONE |
 | [ITEM-0041](../../docs/backlog/items/ITEM-0041-repository-ruleset-no-push-matches-no-branch-and-is-inert.md) | Repository ruleset No push matches no branch and is inert | INFRA | LOW | P3 | DONE | .github | DONE |
-| [ITEM-0042](../../docs/backlog/items/ITEM-0042-burn-down-the-services-api-eslint-warning-baseline.md) | Burn down the services/api ESLint warning baseline | TECH_DEBT | LOW | P3 | READY | services/api | FIX_NOW |
+| [ITEM-0042](../../docs/backlog/items/ITEM-0042-burn-down-the-services-api-eslint-warning-baseline.md) | Burn down the services/api ESLint warning baseline | TECH_DEBT | LOW | P3 | DONE | services/api | DONE |
 | [ITEM-0045](../../docs/backlog/items/ITEM-0045-reconcile-tenant-web-root-domain-environment-examples.md) | Reconcile tenant web root-domain environment examples | DOCUMENTATION | LOW | P3 | DONE | apps/web | DONE |
 | [ITEM-0049](../../docs/backlog/items/ITEM-0049-register-services-api-environment-reads-or-scope-the-rule.md) | Register services/api environment reads or scope the rule to build inputs | INFRA | LOW | P3 | READY | services/api, turbo.json, docs/deployment | PLAN_REQUIRED |
 | [ITEM-0056](../../docs/backlog/items/ITEM-0056-ci-cache-hit-rate-is-not-observable-from-the-actions-rest-ap.md) | CI cache hit rate is not observable from the Actions REST API | INFRA | LOW | P3 | DEFERRED | ci | DEFER |
@@ -257,6 +259,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0072](../../docs/backlog/items/ITEM-0072-six-published-self-service-prices-with-no-market-and-a-zero-.md) | Six published self-service prices with no market and a zero amount exist on every database | TECH_DEBT | LOW | P3 | DEFERRED | billing, super-admin | DEFER |
 | [ITEM-0075](../../docs/backlog/items/ITEM-0075-the-subscribe-wizard-never-collects-companysize-which-the-ap.md) | The subscribe wizard never collects companySize, which the API and Customers module both expect | UX | LOW | P3 | DEFERRED | apps/landing, api:billing | DEFER |
 | [ITEM-0079](../../docs/backlog/items/ITEM-0079-activation-does-not-gate-on-a-workspace-having-any-module-en.md) | Activation does not gate on a workspace having any module enabled | PRODUCT_DECISION | LOW | P3 | PRODUCT_DECISION | api:tenant-control-plane | PRODUCT_DECISION |
+| [ITEM-0080](../../docs/backlog/items/ITEM-0080-type-the-remaining-services-api-no-unsafe-warnings-module-by.md) | Type the remaining services/api no-unsafe warnings module by module | TECH_DEBT | LOW | P3 | READY | services/api | FIX_NOW |
 | [ITEM-0057](../../docs/backlog/items/ITEM-0057-landing-production-env-examples-still-name-the-vercel-and-re.md) | Landing production env examples still name the vercel and render hosts, not the dijipeople.com apex | PRODUCT_DECISION | — | P2 | PRODUCT_DECISION | apps/landing | PRODUCT_DECISION |
 | [ITEM-0058](../../docs/backlog/items/ITEM-0058-next-env-d-ts-churns-between-dev-and-build-forms-and-the-fou.md) | next-env.d.ts churns between dev and build forms and the four apps disagree | TECH_DEBT | — | P3 | DEFERRED | apps/landing, apps/web, apps/admin | DEFER |
 | [ITEM-0059](../../docs/backlog/items/ITEM-0059-49-tracked-text-files-have-no-final-newline-and-nothing-enfo.md) | 49 tracked text files have no final newline, and nothing enforces one | TECH_DEBT | — | P3 | DEFERRED | apps/admin, apps/web, apps/agent-desktop | DEFER |

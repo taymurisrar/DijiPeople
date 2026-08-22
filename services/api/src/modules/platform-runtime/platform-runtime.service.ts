@@ -60,6 +60,7 @@ import { resolveRuntimeField, resolveRuntimeViewRule } from '@repo/config';
 import { runtimeViewWhere } from './runtime-view-where';
 import { PlatformRuntimeRelationsService } from './platform-runtime-relations.service';
 import { TenantControlPlaneService } from '../tenant-control-plane/tenant-control-plane.service';
+import { toDisplayString } from '../../common/utils/display-string';
 
 @Injectable()
 export class PlatformRuntimeService {
@@ -746,7 +747,7 @@ export class PlatformRuntimeService {
         user,
         key,
         id,
-        String(input.status ?? ''),
+        toDisplayString(input.status ?? ''),
         textOrNull(input.reason),
         textOrNull(input.subStatus),
       );
@@ -795,8 +796,8 @@ export class PlatformRuntimeService {
     this.assertModuleWrite(user, key);
     if (key === 'support-cases') {
       await this.supportCases.addActivity(user, id, {
-        eventType: String(input.activityType ?? 'NOTE'),
-        message: String(input.message ?? ''),
+        eventType: toDisplayString(input.activityType ?? 'NOTE'),
+        message: toDisplayString(input.message ?? ''),
       });
       return { success: true, message: 'Timeline activity added.' };
     }
@@ -809,8 +810,8 @@ export class PlatformRuntimeService {
       entityId: id,
       sourceModule: 'platform-runtime',
       afterSnapshot: {
-        message: String(input.message ?? ''),
-        activityType: String(input.activityType ?? 'NOTE'),
+        message: toDisplayString(input.message ?? ''),
+        activityType: toDisplayString(input.activityType ?? 'NOTE'),
       },
     });
     return { success: true, message: 'Timeline activity added.' };
@@ -838,7 +839,7 @@ export class PlatformRuntimeService {
       user,
       key,
       id,
-      String(input.stage ?? ''),
+      toDisplayString(input.stage ?? ''),
       textOrNull(input.reason),
       textOrNull(input.subStatus),
     );
@@ -967,7 +968,7 @@ export class PlatformRuntimeService {
       fields.join(','),
       ...items.map((item) =>
         fields
-          .map((field) => csv(String(readPath(item, field) ?? '')))
+          .map((field) => csv(toDisplayString(readPath(item, field) ?? '')))
           .join(','),
       ),
     ].join('\n');
@@ -1460,8 +1461,8 @@ function matchesRuntimeFilter(
 ) {
   const actual = readPath(record, filter.field);
   const expected = filter.value;
-  const left = String(actual ?? '').toLocaleLowerCase();
-  const right = String(expected ?? '').toLocaleLowerCase();
+  const left = toDisplayString(actual ?? '').toLocaleLowerCase();
+  const right = toDisplayString(expected ?? '').toLocaleLowerCase();
   if (filter.operator === 'isNull') return actual == null || actual === '';
   if (filter.operator === 'isNotNull') return actual != null && actual !== '';
   if (filter.operator === 'contains') return left.includes(right);
@@ -1491,14 +1492,18 @@ function compareRuntimeValues(left: unknown, right: unknown) {
   const rightNumber = Number(right);
   if (Number.isFinite(leftNumber) && Number.isFinite(rightNumber))
     return leftNumber - rightNumber;
-  const leftDate = Date.parse(String(left ?? ''));
-  const rightDate = Date.parse(String(right ?? ''));
+  const leftDate = Date.parse(toDisplayString(left ?? ''));
+  const rightDate = Date.parse(toDisplayString(right ?? ''));
   if (Number.isFinite(leftDate) && Number.isFinite(rightDate))
     return leftDate - rightDate;
-  return String(left ?? '').localeCompare(String(right ?? ''), undefined, {
-    numeric: true,
-    sensitivity: 'base',
-  });
+  return toDisplayString(left ?? '').localeCompare(
+    toDisplayString(right ?? ''),
+    undefined,
+    {
+      numeric: true,
+      sensitivity: 'base',
+    },
+  );
 }
 function readPath(record: Record<string, unknown>, path: string) {
   return path

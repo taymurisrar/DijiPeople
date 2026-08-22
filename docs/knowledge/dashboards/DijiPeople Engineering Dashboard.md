@@ -13,7 +13,7 @@
 | Blocked | 1 |
 | Awaiting a product decision | 8 |
 | Deferred | 16 |
-| Completed | 159 |
+| Completed | 162 |
 | Awaiting Architect triage | 0 |
 
 ## Open Critical Bugs
@@ -180,10 +180,12 @@ _None. Nothing open at CRITICAL._
 | [[BUG-0496-the-monitoring-landing-page-showed-real-data-an-agent-could-|BUG-0496]] | The monitoring landing page showed real data an agent could not act on | UX | MEDIUM | VERIFIED | apps/admin | DONE |
 | [[BUG-0497-fifteen-modules-offered-no-delete-and-no-reason-for-its-abse|BUG-0497]] | Fifteen modules offered no Delete and no reason for its absence | UX | MEDIUM | VERIFIED | apps/admin, api:partners, api:platform-runtime | DONE |
 | [[BUG-0534-plan-form-offered-editable-legacy-price-fields-that-bill-nob|BUG-0534]] | Plan form offered editable legacy price fields that bill nobody | UX | MEDIUM | VERIFIED | super-admin, apps/admin | DONE |
+| [[BUG-0668-exchange-rate-resolution-ignored-the-effective-date-it-was-g|BUG-0668]] | Exchange rate resolution ignored the effective date it was given | DATA_INTEGRITY | MEDIUM | VERIFIED | api:tenant-settings | DONE |
 | [[BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist|BUG-0023]] | The testing-architecture context claims two e2e specs do not exist | DOCUMENTATION | LOW | VERIFIED | .agent/context | DONE |
 | [[BUG-0024-start-onboarding-api-and-proxy-have-no-caller|BUG-0024]] | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | VERIFIED | apps/admin, api:super-admin | DONE |
 | [[BUG-0059-vault-wikilinks-to-task-records-and-four-module-notes-resolv|BUG-0059]] | Vault wikilinks to task records and four module notes resolve to nothing | DOCUMENTATION | LOW | VERIFIED | scripts, docs/tasks, docs/knowledge | DONE |
 | [[BUG-0352-the-tenant-timeline-rendered-every-entry-with-no-count-and-n|BUG-0352]] | The tenant timeline rendered every entry with no count and no paging | UX | LOW | VERIFIED | apps/admin | DONE |
+| [[BUG-0669-patch-my-preferences-never-used-its-dto-so-the-body-was-unva|BUG-0669]] | PATCH my-preferences never used its DTO so the body was unvalidated | SECURITY | LOW | VERIFIED | api:tenant-settings | DONE |
 
 ## Recent QA Runs
 
@@ -239,8 +241,8 @@ _None. Nothing has been deployed through the release process._
 | [[ITEM-0077-re-read-the-packaged-agent-archive-after-the-node-pre-gyp-up|ITEM-0077]] | Re-read the packaged agent archive after the node-pre-gyp upgrade | TEST_GAP | MEDIUM | READY | apps/agent-desktop, package-lock.json | PLAN_REQUIRED |
 | [[ITEM-0078-no-end-to-end-payment-to-provisioned-tenant-run-against-stri|ITEM-0078]] | No end-to-end payment to provisioned tenant run against Stripe test mode | TEST_GAP | MEDIUM | READY | api:billing, api:tenant-control-plane, api:outbox, apps/landing | PLAN_REQUIRED |
 | [[ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning|ITEM-0023]] | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
-| [[ITEM-0042-burn-down-the-services-api-eslint-warning-baseline|ITEM-0042]] | Burn down the services/api ESLint warning baseline | TECH_DEBT | LOW | READY | services/api | FIX_NOW |
 | [[ITEM-0049-register-services-api-environment-reads-or-scope-the-rule|ITEM-0049]] | Register services/api environment reads or scope the rule to build inputs | INFRA | LOW | READY | services/api, turbo.json, docs/deployment | PLAN_REQUIRED |
+| [[ITEM-0080-type-the-remaining-services-api-no-unsafe-warnings-module-by|ITEM-0080]] | Type the remaining services/api no-unsafe warnings module by module | TECH_DEBT | LOW | READY | services/api | FIX_NOW |
 
 ## Key Architecture Decisions
 
@@ -255,8 +257,8 @@ _None. Nothing has been deployed through the release process._
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 123 |
-| Backlog items | 79 |
+| Bug records | 125 |
+| Backlog items | 80 |
 | Known bug patterns | 25 |
 | QA runs | 22 |
 | Engineering history records | 32 |

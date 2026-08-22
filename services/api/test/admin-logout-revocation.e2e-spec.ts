@@ -125,7 +125,12 @@ describeWithDatabase()('Admin sign-out revokes the persisted session', () => {
       select: { id: true },
     });
 
-    return { platformUserId: platformUser.id, tokenId: token.id, refreshToken, sessionId };
+    return {
+      platformUserId: platformUser.id,
+      tokenId: token.id,
+      refreshToken,
+      sessionId,
+    };
   }
 
   async function revokedAtFor(tokenId: string) {
@@ -192,14 +197,12 @@ describeWithDatabase()('Admin sign-out revokes the persisted session', () => {
   it('clears the auth cookies on the way out', async () => {
     const session = await createLiveAdminSession('cookie-clear');
 
-    const response = await signOut([
-      [cookieNames.session, session.sessionId],
-    ]);
+    const response = await signOut([[cookieNames.session, session.sessionId]]);
 
     const setCookie = response.headers['set-cookie'] as unknown as string[];
-    const header = (Array.isArray(setCookie) ? setCookie : [setCookie ?? '']).join(
-      '\n',
-    );
+    const header = (
+      Array.isArray(setCookie) ? setCookie : [setCookie ?? '']
+    ).join('\n');
     expect(header).toContain(cookieNames.access);
     expect(header).toContain(cookieNames.refresh);
   });
@@ -288,7 +291,8 @@ describeWithDatabase()('Admin sign-out revokes the persisted session', () => {
        * arrives from a cookie the caller controls. Without `appClientId` a
        * tenant sign-out would close the attendance agent's session too.
        */
-      const tenant = await fixtures.createTenantWithBusinessUnit('agent-logout');
+      const tenant =
+        await fixtures.createTenantWithBusinessUnit('agent-logout');
       const user = await prisma.user.create({
         data: {
           tenantId: tenant.id,

@@ -58,6 +58,40 @@ import { DbFixtures, describeWithDatabase } from './helpers/db-fixtures';
  * the panels paint; it would not prove anything more about the tenant, and this
  * runs in CI on every push, which A17 never did.
  */
+/**
+ * The response shapes this suite reads.
+ *
+ * `supertest`'s `Response.body` is `any`, so every field access off it is an
+ * unsafe-member-access warning and, worse, a typo in an assertion silently reads
+ * `undefined` and passes. Narrowing once at the boundary is both the fix for the
+ * lint family and the thing that makes these assertions mean what they say.
+ */
+interface SignInBody {
+  user?: { email?: string };
+  tenant?: { id?: string };
+  tokens?: { accessToken?: string };
+}
+
+interface ErrorBody {
+  message?: string;
+}
+
+interface ReadinessCheck {
+  key: string;
+  label: string;
+  severity: string;
+  message: string;
+}
+
+interface ReadinessBody {
+  checks?: ReadinessCheck[];
+}
+
+/** One cast, at the boundary, instead of one per field read. */
+function body<T>(response: { body: unknown }): T {
+  return response.body as T;
+}
+
 describeWithDatabase()('Tenant activation reaches ACTIVE (DB-backed)', () => {
   jest.setTimeout(300_000);
 
@@ -183,8 +217,8 @@ describeWithDatabase()('Tenant activation reaches ACTIVE (DB-backed)', () => {
         password: OPERATOR_PASSWORD,
       });
     expect(signIn.status).toBeLessThan(400);
-    operatorToken = signIn.body?.tokens?.accessToken;
-    expect(typeof operatorToken).toBe('string');
+    operatorToken = body<SignInBody>(signIn).tokens?.accessToken ?? '';
+    expect(operatorToken).not.toBe('');
   });
 
   afterAll(async () => {
@@ -204,7 +238,9 @@ describeWithDatabase()('Tenant activation reaches ACTIVE (DB-backed)', () => {
 
     await fixtures?.cleanup();
     if (planId) {
-      await prisma.plan.deleteMany({ where: { id: planId } }).catch(() => undefined);
+      await prisma.plan
+        .deleteMany({ where: { id: planId } })
+        .catch(() => undefined);
     }
     await app?.close();
   });
@@ -222,6 +258,12 @@ describeWithDatabase()('Tenant activation reaches ACTIVE (DB-backed)', () => {
       .set('X-DijiPeople-App', 'admin')
       .set('Authorization', `Bearer ${operatorToken}`)
       .send({ status: 'ACTIVE', reason });
+  }
+
+  function blockersOf(response: { body: unknown }): ReadinessCheck[] {
+    return (body<ReadinessBody>(response).checks ?? []).filter(
+      (check) => check.severity === 'BLOCKER',
+    );
   }
 
   function signInAsOwner() {
@@ -242,7 +284,9 @@ describeWithDatabase()('Tenant activation reaches ACTIVE (DB-backed)', () => {
     const response = await activate('Activation attempt before routing exists');
 
     expect(response.status).toBe(400);
-    expect(String(response.body?.message ?? '')).toMatch(/not reachable yet/i);
+    expect(body<ErrorBody>(response).message ?? '').toMatch(
+      /not reachable yet/i,
+    );
 
     const row = await prisma.tenant.findUnique({
       where: { id: tenant.id },
@@ -284,13 +328,10 @@ describeWithDatabase()('Tenant activation reaches ACTIVE (DB-backed)', () => {
 
     const response = await activate('Commercial onboarding complete');
 
-    // Assert on the message as well as the code: a refusal here names the
-    // blocker, and "expected < 400, received 400" would send the next reader
-    // hunting for which of six checks fired.
-    expect({
-      status: response.status,
-      message: response.body?.message ?? response.text,
-    }).toMatchObject({ status: expect.any(Number) });
+    // Asserted against the refusal message, not just the code: a readiness
+    // refusal names which of six checks fired, and "expected < 400, received
+    // 400" would send the next reader hunting for it.
+    expect(body<ErrorBody>(response).message ?? '').toBe('');
     expect(response.status).toBeLessThan(400);
 
     // The record, not the response. A handler that returned the requested
@@ -313,9 +354,10 @@ describeWithDatabase()('Tenant activation reaches ACTIVE (DB-backed)', () => {
     const response = await signInAsOwner();
 
     expect(response.status).toBeLessThan(400);
-    expect(response.body?.user?.email).toBe(ownerEmail);
-    expect(response.body?.tenant?.id).toBe(tenant.id);
-    expect(typeof response.body?.tokens?.accessToken).toBe('string');
+    const signedIn = body<SignInBody>(response);
+    expect(signedIn.user?.email).toBe(ownerEmail);
+    expect(signedIn.tenant?.id).toBe(tenant.id);
+    expect(typeof signedIn.tokens?.accessToken).toBe('string');
   });
 
   it('records the activation in the audit trail', async () => {
@@ -358,6 +400,7 @@ describeWithDatabase()('Tenant activation reaches ACTIVE (DB-backed)', () => {
 
       expect(response.status).toBeLessThan(400);
       expect(response.body).toBeTruthy();
+      expect(response.body).not.toEqual({});
     },
   );
 
@@ -372,14 +415,13 @@ describeWithDatabase()('Tenant activation reaches ACTIVE (DB-backed)', () => {
      * exists because the difference is not obvious and is worth stating.
      */
     const response = await asOperator('/readiness');
-    const blockers: Array<{ key: string; message: string }> = (
-      response.body?.checks ?? []
-    ).filter((check: { severity?: string }) => check.severity === 'BLOCKER');
-
-    const gated = blockers.filter((check) =>
-      ['owner', 'workspace-slug', 'workspace-domain', 'workspace-routing'].includes(
-        check.key,
-      ),
+    const gated = blockersOf(response).filter((check) =>
+      [
+        'owner',
+        'workspace-slug',
+        'workspace-domain',
+        'workspace-routing',
+      ].includes(check.key),
     );
 
     expect(gated).toEqual([]);
@@ -413,10 +455,7 @@ describeWithDatabase()('Tenant activation reaches ACTIVE (DB-backed)', () => {
     expect(tenantRow?.status).toBe('ACTIVE');
 
     const response = await asOperator('/readiness');
-    const blockers: Array<{ key: string }> = (
-      response.body?.checks ?? []
-    ).filter((check: { severity?: string }) => check.severity === 'BLOCKER');
 
-    expect(blockers.map((check) => check.key)).toEqual(['modules']);
+    expect(blockersOf(response).map((check) => check.key)).toEqual(['modules']);
   });
 });

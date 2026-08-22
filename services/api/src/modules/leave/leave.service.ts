@@ -98,6 +98,25 @@ function mapLeaveAssignmentStatus(status: LeaveApprovalStepStatus) {
   return ApprovalAssignmentStatus.PENDING;
 }
 
+/**
+ * The scope fields a leave-policy assignment is validated against.
+ *
+ * Both the create DTO and an existing row feed these helpers, and the two
+ * disagree about how "not set" is spelled: a DTO omits a field (`undefined`),
+ * a row stores `null`. The helpers have always treated both the same way — the
+ * types were narrower than the code, and `(this.prisma as any)` was hiding the
+ * mismatch rather than resolving it.
+ */
+type LeavePolicyAssignmentShape = {
+  scopeType: CreateLeavePolicyAssignmentDto['scopeType'];
+  scopeId?: string | null;
+  organizationId?: string | null;
+  businessUnitId?: string | null;
+  departmentId?: string | null;
+  employeeLevelId?: string | null;
+  employeeId?: string | null;
+};
+
 @Injectable()
 export class LeaveService {
   constructor(
@@ -352,7 +371,7 @@ export class LeaveService {
       this.prisma.leavePolicyRule.count({
         where: { tenantId: currentUser.tenantId, leavePolicyId: id },
       }),
-      (this.prisma as any).leavePolicyAssignment.count({
+      this.prisma.leavePolicyAssignment.count({
         where: { tenantId: currentUser.tenantId, leavePolicyId: id },
       }),
     ]);
@@ -1899,7 +1918,8 @@ export class LeaveService {
         { type: 'ROLE', roleKey: 'hr' },
       ],
     });
-    const approvalSteps: Array<Record<string, unknown>> = [];
+    const approvalSteps: Prisma.LeaveApprovalStepUncheckedCreateWithoutLeaveRequestInput[] =
+      [];
 
     for (const step of route) {
       for (const candidateUserId of step.candidateUserIds) {
@@ -1918,9 +1938,9 @@ export class LeaveService {
       }
     }
 
-    return approvalSteps.sort(
-      (a, b) => Number(a.stepOrder) - Number(b.stepOrder),
-    );
+    // `stepOrder` is a number now that the array is typed; the `Number()`
+    // coercion was only there because every field was `unknown`.
+    return approvalSteps.sort((a, b) => a.stepOrder - b.stepOrder);
   }
 
   private async resolveApplicableLeavePolicy(
@@ -1936,7 +1956,7 @@ export class LeaveService {
     const assignments =
       await this.leaveRepository.findActiveLeavePolicyAssignments(tenantId, at);
     const businessUnit = employee.businessUnitId
-      ? await (this.prisma as any).businessUnit.findFirst({
+      ? await this.prisma.businessUnit.findFirst({
           where: { id: employee.businessUnitId, tenantId },
           select: { organizationId: true },
         })
@@ -1979,7 +1999,13 @@ export class LeaveService {
 
         return matchedScope ? { assignment, rank: matchedScope.rank } : null;
       })
-      .filter(Boolean)
+      /*
+       * A type predicate rather than `filter(Boolean)`: the latter removes the
+       * nulls at runtime and leaves them in the type, so every read in the
+       * comparator below was on a possibly-null value. TypeScript said so as
+       * soon as the `any` came off the Prisma client.
+       */
+      .filter((match): match is NonNullable<typeof match> => match !== null)
       .sort((left, right) => {
         if (left.rank !== right.rank) return right.rank - left.rank;
         if (left.assignment.priority !== right.assignment.priority) {
@@ -2234,18 +2260,10 @@ export class LeaveService {
 
   private async validateLeavePolicyAssignment(
     tenantId: string,
-    dto: Pick<
-      CreateLeavePolicyAssignmentDto,
-      | 'scopeType'
-      | 'scopeId'
-      | 'organizationId'
-      | 'businessUnitId'
-      | 'departmentId'
-      | 'employeeLevelId'
-      | 'employeeId'
-      | 'effectiveFrom'
-      | 'effectiveTo'
-    >,
+    dto: LeavePolicyAssignmentShape & {
+      effectiveFrom: string;
+      effectiveTo?: string | null;
+    },
   ) {
     const scopeId = this.resolveAssignmentScopeId(dto);
 
@@ -2273,18 +2291,7 @@ export class LeaveService {
     );
   }
 
-  private resolveAssignmentScopeId(
-    dto: Pick<
-      CreateLeavePolicyAssignmentDto,
-      | 'scopeType'
-      | 'scopeId'
-      | 'organizationId'
-      | 'businessUnitId'
-      | 'departmentId'
-      | 'employeeLevelId'
-      | 'employeeId'
-    >,
-  ) {
+  private resolveAssignmentScopeId(dto: LeavePolicyAssignmentShape) {
     if (dto.scopeType === ApprovalScopes.TENANT) return null;
     const byScope = {
       [ApprovalScopes.ORGANIZATION]: dto.organizationId,
@@ -2292,7 +2299,7 @@ export class LeaveService {
       [ApprovalScopes.DEPARTMENT]: dto.departmentId,
       [ApprovalScopes.EMPLOYEE_LEVEL]: dto.employeeLevelId,
       [ApprovalScopes.EMPLOYEE]: dto.employeeId,
-    } as Record<string, string | undefined>;
+    } as Record<string, string | null | undefined>;
     const scopeId = byScope[dto.scopeType] ?? dto.scopeId;
     if (!scopeId?.trim()) {
       throw new BadRequestException('Scope ID is required for this scope.');

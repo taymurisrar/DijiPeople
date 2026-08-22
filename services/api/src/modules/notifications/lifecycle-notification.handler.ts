@@ -51,7 +51,7 @@ export class LifecycleNotificationHandler
 
   async handle(
     event: OutboxEvent,
-    payload: Prisma.JsonValue,
+    _payload: Prisma.JsonValue,
   ): Promise<OutboxHandlerOutcome> {
     const definition = lifecycleNotificationFor(event.eventType);
 

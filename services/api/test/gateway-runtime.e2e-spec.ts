@@ -55,7 +55,6 @@ describe('Gateway runtime endpoints (e2e)', () => {
   let credentialB: string;
   /** A gateway in another tenant entirely. */
   let foreignGateway: string;
-  let foreignCredential: string;
 
   let integrationA: string;
   let deviceA: string;
@@ -168,7 +167,6 @@ describe('Gateway runtime endpoints (e2e)', () => {
 
     const foreign = await createGateway(foreignTenantId, 'GW Foreign');
     foreignGateway = foreign.id;
-    foreignCredential = foreign.credential;
 
     ({ integrationId: integrationA, deviceId: deviceA } =
       await createIntegrationWithDevice(tenantId, gatewayA, 'Alpha'));

@@ -102,7 +102,7 @@ function toCountMap<T extends { _count: { _all: number } }>(rows: T[]) {
         severity?: unknown;
       };
       return [
-        String(
+        toDisplayString(
           item.status ??
             item.supportStatus ??
             item.contractType ??
@@ -200,6 +200,7 @@ import {
   UpdateTenantAccessUserDto,
 } from './dto/tenant-access-user.dto';
 import { normalizeEmail } from '../../common/utils/email.util';
+import { toDisplayString } from '../../common/utils/display-string';
 import {
   buildProfessionalInvoicePdf,
   formatInvoiceDate,
@@ -3214,8 +3215,6 @@ export class SuperAdminService {
     const resolvedFeatures =
       await this.featureAccessService.getResolvedTenantFeatures(tenant.id);
 
-    const primaryDomainRecord =
-      tenant.tenantDomains.find((domain) => domain.isPrimary) ?? null;
     return {
       id: tenant.id,
       tenantCode: tenant.tenantCode,

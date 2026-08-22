@@ -248,10 +248,10 @@ export class LeaveRepository {
 
   createLeaveRequest(
     data: Prisma.LeaveRequestUncheckedCreateInput,
-    approvalSteps: Array<Record<string, unknown>>,
+    approvalSteps: Prisma.LeaveApprovalStepUncheckedCreateWithoutLeaveRequestInput[],
     db: PrismaDb = this.prisma,
   ) {
-    return (db.leaveRequest as any).create({
+    return db.leaveRequest.create({
       data: {
         ...data,
         approvalSteps: {
@@ -558,7 +558,7 @@ export class LeaveRepository {
   }
 
   listLeavePolicyAssignments(tenantId: string) {
-    return (this.prisma as any).leavePolicyAssignment.findMany({
+    return this.prisma.leavePolicyAssignment.findMany({
       where: { tenantId },
       include: { leavePolicy: true },
       orderBy: [
@@ -571,7 +571,7 @@ export class LeaveRepository {
   }
 
   listLeavePolicyAssignmentsByPolicy(tenantId: string, leavePolicyId: string) {
-    return (this.prisma as any).leavePolicyAssignment.findMany({
+    return this.prisma.leavePolicyAssignment.findMany({
       where: { tenantId, leavePolicyId },
       include: { leavePolicy: true },
       orderBy: [
@@ -584,14 +584,16 @@ export class LeaveRepository {
   }
 
   findLeavePolicyAssignmentById(tenantId: string, id: string) {
-    return (this.prisma as any).leavePolicyAssignment.findFirst({
+    return this.prisma.leavePolicyAssignment.findFirst({
       where: { tenantId, id },
       include: { leavePolicy: true },
     });
   }
 
-  createLeavePolicyAssignment(data: Record<string, unknown>) {
-    return (this.prisma as any).leavePolicyAssignment.create({
+  createLeavePolicyAssignment(
+    data: Prisma.LeavePolicyAssignmentUncheckedCreateInput,
+  ) {
+    return this.prisma.leavePolicyAssignment.create({
       data,
       include: { leavePolicy: true },
     });
@@ -600,16 +602,16 @@ export class LeaveRepository {
   updateLeavePolicyAssignment(
     tenantId: string,
     id: string,
-    data: Record<string, unknown>,
+    data: Prisma.LeavePolicyAssignmentUncheckedUpdateManyInput,
   ) {
-    return (this.prisma as any).leavePolicyAssignment.updateMany({
+    return this.prisma.leavePolicyAssignment.updateMany({
       where: { tenantId, id },
       data,
     });
   }
 
   findActiveLeavePolicyAssignments(tenantId: string, at: Date) {
-    return (this.prisma as any).leavePolicyAssignment.findMany({
+    return this.prisma.leavePolicyAssignment.findMany({
       where: {
         tenantId,
         isActive: true,

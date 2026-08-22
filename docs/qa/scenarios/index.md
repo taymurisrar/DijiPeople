@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 160** · automated: 144 · manual: 5 · blocked by infrastructure: 0
+**Scenarios: 162** · automated: 146 · manual: 5 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -159,6 +159,8 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-RUNTIME-014](../../../docs/qa/scenarios/QA-RUNTIME-014-no-governed-value-is-collected-with-a-native-prompt.md) | No governed value is collected with a native prompt | runtime-modules | UNIT | MEDIUM | AUTOMATED | `scripts/check-no-native-prompt.mjs` | ITEM-0031 | REG-219 |
 | [QA-SETTINGS-001](../../../docs/qa/scenarios/QA-SETTINGS-001-resolved-settings-reject-arbitrary-context-preview.md) | Resolved settings reject arbitrary context preview | authorization | SECURITY | CRITICAL | AUTOMATED | `services/api/src/modules/tenant-settings/settings-context-authorization.spec.ts` | BUG-0057 | REG-044 |
 | [QA-SETTINGS-002](../../../docs/qa/scenarios/QA-SETTINGS-002-email-providers-offered-are-providers-implemented.md) | Email providers offered are email providers implemented | runtime-modules | UNIT | MEDIUM | AUTOMATED | `services/api/src/modules/notifications/email/email-provider-support.spec.ts` | BUG-0050 | REG-053 |
+| [QA-SETTINGS-003](../../../docs/qa/scenarios/QA-SETTINGS-003-a-currency-conversion-uses-the-rate-in-force-on-the-date-it-.md) | A currency conversion uses the rate in force on the date it was given | settings | UNIT | HIGH | AUTOMATED | `services/api/src/modules/tenant-settings/exchange-rate-effective-date.spec.ts` | BUG-0668 | REG-223 |
+| [QA-SETTINGS-004](../../../docs/qa/scenarios/QA-SETTINGS-004-every-settings-write-endpoint-validates-its-body-against-a-d.md) | Every settings write endpoint validates its body against a DTO | settings | UNIT | MEDIUM | AUTOMATED | `services/api/src/modules/tenant-settings/my-preferences-validation.spec.ts` | BUG-0669 | REG-224 |
 | [QA-TENANT-001](../../../docs/qa/scenarios/QA-TENANT-001-the-two-tenant-isolation-pattern-scoped-read-and-scoped-writ.md) | The two-tenant isolation pattern: scoped read and scoped write | tenant-isolation | SECURITY | CRITICAL | AUTOMATED | `services/api/test/tenant-isolation-pattern.e2e-spec.ts` | — | — |
 | [QA-TENANT-002](../../../docs/qa/scenarios/QA-TENANT-002-a-support-role-cannot-read-another-tenant-s-error-logs.md) | A support role cannot read another tenant's error logs | tenant-isolation | UNIT | CRITICAL | AUTOMATED | `services/api/src/modules/error-logs/error-logs.service.spec.ts` | BUG-0005 | REG-005 |
 | [QA-TENANT-003](../../../docs/qa/scenarios/QA-TENANT-003-attendance-integration-credentials-never-cross-a-tenant-boun.md) | Attendance-integration credentials never cross a tenant boundary | tenant-isolation | E2E | CRITICAL | AUTOMATED | `services/api/test/attendance-integrations-isolation.e2e-spec.ts` | — | — |

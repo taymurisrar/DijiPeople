@@ -1471,11 +1471,6 @@ function bankAccountUpdateData(dto: UpdateEmployeeBankAccountDto) {
   };
 }
 
-function addMonths(value: Date, months: number) {
-  const date = new Date(value);
-  date.setUTCMonth(date.getUTCMonth() + months);
-  return date;
-}
 function mask(value: string | null) {
   if (!value) return null;
   return `${'*'.repeat(Math.max(0, value.length - 4))}${value.slice(-4)}`;

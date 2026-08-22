@@ -132,6 +132,7 @@ the same defect again.
 | [BUG-0496](../../docs/bugs/BUG-0496-the-monitoring-landing-page-showed-real-data-an-agent-could-.md) | The monitoring landing page showed real data an agent could not act on | UX | MEDIUM | P2 | VERIFIED | apps/admin | DONE |
 | [BUG-0497](../../docs/bugs/BUG-0497-fifteen-modules-offered-no-delete-and-no-reason-for-its-abse.md) | Fifteen modules offered no Delete and no reason for its absence | UX | MEDIUM | P2 | VERIFIED | apps/admin, api:partners, api:platform-runtime | DONE |
 | [BUG-0534](../../docs/bugs/BUG-0534-plan-form-offered-editable-legacy-price-fields-that-bill-nob.md) | Plan form offered editable legacy price fields that bill nobody | UX | MEDIUM | P2 | VERIFIED | super-admin, apps/admin | DONE |
+| [BUG-0668](../../docs/bugs/BUG-0668-exchange-rate-resolution-ignored-the-effective-date-it-was-g.md) | Exchange rate resolution ignored the effective date it was given | DATA_INTEGRITY | MEDIUM | P2 | VERIFIED | api:tenant-settings | DONE |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |
@@ -162,6 +163,7 @@ the same defect again.
 | [BUG-0024](../../docs/bugs/BUG-0024-start-onboarding-api-and-proxy-have-no-caller.md) | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | P3 | VERIFIED | apps/admin, api:super-admin | DONE |
 | [BUG-0059](../../docs/bugs/BUG-0059-vault-wikilinks-to-task-records-and-four-module-notes-resolv.md) | Vault wikilinks to task records and four module notes resolve to nothing | DOCUMENTATION | LOW | P3 | VERIFIED | scripts, docs/tasks, docs/knowledge | DONE |
 | [BUG-0352](../../docs/bugs/BUG-0352-the-tenant-timeline-rendered-every-entry-with-no-count-and-n.md) | The tenant timeline rendered every entry with no count and no paging | UX | LOW | P3 | VERIFIED | apps/admin | DONE |
+| [BUG-0669](../../docs/bugs/BUG-0669-patch-my-preferences-never-used-its-dto-so-the-body-was-unva.md) | PATCH my-preferences never used its DTO so the body was unvalidated | SECURITY | LOW | P3 | VERIFIED | api:tenant-settings | DONE |
 | [ITEM-0007](../../docs/backlog/items/ITEM-0007-should-duplicate-website-leads-be-deduplicated.md) | Product decision — should duplicate website leads be deduplicated? | PRODUCT_DECISION | LOW | P3 | DONE | api:leads, apps/landing | DONE |
 | [ITEM-0008](../../docs/backlog/items/ITEM-0008-customeraccount-has-no-origin-channel.md) | Product decision — CustomerAccount carries no origin channel | PRODUCT_DECISION | LOW | P3 | DONE | services/api/prisma, api:super-admin | DONE |
 | [ITEM-0011](../../docs/backlog/items/ITEM-0011-framework-validation-should-catch-absence-claims.md) | Framework validation should catch false absence claims in context documents | TECH_DEBT | LOW | P3 | DONE | .agent/context, scripts | DONE |
@@ -169,6 +171,7 @@ the same defect again.
 | [ITEM-0017](../../docs/backlog/items/ITEM-0017-buildworkspaceurl-still-carries-an-internal-loopback-fallbac.md) | buildWorkspaceUrl still carries an internal loopback fallback | TECH_DEBT | LOW | P3 | DONE | pkg:config | DONE |
 | [ITEM-0029](../../docs/backlog/items/ITEM-0029-validation-should-require-an-aliases-line-on-every-record.md) | Validation should require an aliases line on every record | TECH_DEBT | LOW | P3 | DONE | scripts, docs/backlog, docs/bugs | DONE |
 | [ITEM-0041](../../docs/backlog/items/ITEM-0041-repository-ruleset-no-push-matches-no-branch-and-is-inert.md) | Repository ruleset No push matches no branch and is inert | INFRA | LOW | P3 | DONE | .github | DONE |
+| [ITEM-0042](../../docs/backlog/items/ITEM-0042-burn-down-the-services-api-eslint-warning-baseline.md) | Burn down the services/api ESLint warning baseline | TECH_DEBT | LOW | P3 | DONE | services/api | DONE |
 | [ITEM-0045](../../docs/backlog/items/ITEM-0045-reconcile-tenant-web-root-domain-environment-examples.md) | Reconcile tenant web root-domain environment examples | DOCUMENTATION | LOW | P3 | DONE | apps/web | DONE |
 
 ## Accepted risk

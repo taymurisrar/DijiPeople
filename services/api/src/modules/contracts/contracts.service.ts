@@ -51,6 +51,7 @@ import {
   PlatformCommunicationsService,
 } from '../platform-communications/platform-communications.service';
 import { PlatformEventsService } from '../platform-events/platform-events.service';
+import { toDisplayString } from '../../common/utils/display-string';
 import {
   ApprovalDecisionDto,
   CompleteSignatureDto,
@@ -4969,7 +4970,7 @@ function contractRuntimeWhere(
 ): Prisma.ContractWhereInput {
   const clauses: Prisma.ContractWhereInput[] = [];
   for (const filter of filters) {
-    const value = String(filter.value ?? '').trim();
+    const value = toDisplayString(filter.value ?? '').trim();
     if (!value && !['isNull', 'isNotNull'].includes(filter.operator)) continue;
     if (['contractNumber', 'title', 'counterpartyName'].includes(filter.field))
       clauses.push({
@@ -5557,7 +5558,9 @@ function renderCollectionValue(value: string) {
   const cell = (item: unknown, column: string) => {
     if (!item || typeof item !== 'object' || Array.isArray(item)) return '';
     const raw = (item as Record<string, unknown>)[column];
-    return raw === undefined || raw === null ? '' : escapeHtml(String(raw));
+    return raw === undefined || raw === null
+      ? ''
+      : escapeHtml(toDisplayString(raw));
   };
   return [
     '<table><thead><tr>',
@@ -5671,7 +5674,9 @@ function definedValues(values: Record<string, unknown>) {
         ([key, value]) =>
           [
             key,
-            value === undefined || value === null ? '' : String(value).trim(),
+            value === undefined || value === null
+              ? ''
+              : toDisplayString(value).trim(),
           ] as const,
       )
       .filter(([, value]) => value !== ''),

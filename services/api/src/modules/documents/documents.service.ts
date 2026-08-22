@@ -212,7 +212,9 @@ export class DocumentsService {
         currentUser.tenantId,
       );
     const validatedFile = this.validateUploadedFile(file, documentSettings);
-    const [documentType, documentCategory] = await Promise.all([
+    // Both validators run for their refusals — each throws for a value that
+    // does not belong to this tenant — and only the type's result is read.
+    const [documentType] = await Promise.all([
       this.validateDocumentType(currentUser.tenantId, dto.documentTypeId),
       this.validateDocumentCategory(
         currentUser.tenantId,

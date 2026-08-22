@@ -11,6 +11,7 @@ import { buildScopedAccessWhere } from '../../common/security/rbac-query-scope';
 import { AttendanceService } from '../attendance/attendance.service';
 import { EmployeesService } from '../employees/employees.service';
 import { DataModuleRegistryService } from './module-registry.service';
+import { toDisplayString } from '../../common/utils/display-string';
 
 /** Entity each module is scoped by, so an export never widens visibility. */
 const MODULE_ENTITY_KEYS: Record<string, string> = {
@@ -47,7 +48,7 @@ function cellText(value: unknown): string {
   if (value === null || value === undefined) return '';
   if (value instanceof Date) return value.toISOString();
   if (typeof value === 'object') return relationLabel(value);
-  return String(value);
+  return toDisplayString(value);
 }
 
 /**

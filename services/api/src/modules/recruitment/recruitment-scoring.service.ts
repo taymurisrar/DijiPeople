@@ -193,7 +193,6 @@ export class RecruitmentScoringService {
     const requiredSkills = normalizeStringList(criteria.requiredSkills);
     const preferredSkills = normalizeStringList(criteria.preferredSkills);
     const requiredSkillsSet = new Set(requiredSkills.map(normalizeToken));
-    const preferredSkillsSet = new Set(preferredSkills.map(normalizeToken));
     const candidateSkillsSet = new Set(
       candidateSkills.map(normalizeSkillToken),
     );

@@ -1,6 +1,7 @@
 import { PayComponentType } from '@prisma/client';
 import { Transform } from 'class-transformer';
 import { IsBoolean, IsEnum, IsOptional, IsString } from 'class-validator';
+import { toDisplayString } from '../../../common/utils/display-string';
 
 function toBoolean({ value }: { value: unknown }) {
   if (value === undefined || value === null || value === '') {
@@ -9,7 +10,7 @@ function toBoolean({ value }: { value: unknown }) {
   if (typeof value === 'boolean') {
     return value;
   }
-  return String(value).toLowerCase() === 'true';
+  return toDisplayString(value).toLowerCase() === 'true';
 }
 
 export class ListPayComponentsDto {

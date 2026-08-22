@@ -1,4 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
+import { toDisplayString } from '../../../common/utils/display-string';
 
 export const SECRET_KEY_PATTERN =
   /(password|secret|token|api[_-]?key|private[_-]?key|access[_-]?key|client[_-]?secret)/i;
@@ -32,7 +33,7 @@ export function sanitizeHtmlTemplate(htmlTemplate: string) {
 }
 
 export function escapeHtmlValue(value: unknown) {
-  return String(value ?? '')
+  return toDisplayString(value ?? '')
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')

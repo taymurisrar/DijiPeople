@@ -6419,6 +6419,105 @@
       "verification_result": "VERIFIED"
     },
     {
+      "record_id": "BUG-0668",
+      "source": {
+        "record_path": "docs/bugs/BUG-0668-exchange-rate-resolution-ignored-the-effective-date-it-was-g.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "d5d9ce7",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
+      },
+      "type": "DATA_INTEGRITY",
+      "title": "Exchange rate resolution ignored the effective date it was given",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "VERIFIED",
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/tenant-settings/enterprise-configuration.service.ts",
+          "services/api/src/modules/tenant-settings/exchange-rate-effective-date.spec.ts"
+        ],
+        "verification_scope": "resolveExchangeRate took an effectiveDate and never queried it: all three lookups ordered by updatedAt and returned the newest row, so asking for the rate as of a date returned today's. ExchangeRateSnapshot is effective-dated by design and none of it was used. convertMoney forwards its caller's date, so a caller who supplied the right date still got the wrong number. Fixed by filtering every lookup on { effectiveDate: lte, effectiveEndDate null or gte } and ordering by effectiveDate descending first, so a later window covering the same moment is treated as the correction. Verification is REG-223: seven tests walking a real three-window history, asserting the returned rate AND the where clause, because a stub returns whatever row it holds regardless of the filter. Mutation-proven — replacing the filter with {} fails five of seven. Not reachable in production today: convertMoney has no callers, so this was a trap set for the first one rather than a wrong number already paid."
+      },
+      "affected_modules": [
+        "services/api/src/modules/tenant-settings"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [
+        "BUG-0669"
+      ],
+      "related_backlog": [
+        "ITEM-0042"
+      ],
+      "regressions": [
+        "REG-223"
+      ],
+      "qa_scenarios": [
+        "QA-SETTINGS-003"
+      ],
+      "test_plan": [
+        "PLAN-021"
+      ],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
+      "verification_result": "VERIFIED"
+    },
+    {
+      "record_id": "BUG-0669",
+      "source": {
+        "record_path": "docs/bugs/BUG-0669-patch-my-preferences-never-used-its-dto-so-the-body-was-unva.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "d5d9ce7",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
+      },
+      "type": "SECURITY",
+      "title": "PATCH my-preferences never used its DTO so the body was unvalidated",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "VERIFIED",
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/tenant-settings/settings-context.controller.ts",
+          "services/api/src/modules/tenant-settings/my-preferences-validation.spec.ts"
+        ],
+        "verification_scope": "UpdateMyPreferencesDto existed with IsString, MaxLength and Matches rules on all four fields and was never referenced; the handler took Record<string, unknown>, which gives the global ValidationPipe no metadata, so PATCH /settings/my-preferences accepted any body. normalizePreferences is an allow-list of four keys so this was never mass assignment: the exposure was the values, with unbounded strings persisted as sent and an invalid timezone reaching Intl.DateTimeFormat and surfacing as a 500 where 400 is the answer. Fixed by using the DTO as the parameter type and moving the class above the controller, because design:paramtypes is evaluated at class definition and a DTO below it sits in a temporal dead zone. Verification is REG-224: seven tests, the load-bearing one reading design:paramtypes to assert the parameter type itself, since a DTO's rules can be perfect and never run."
+      },
+      "affected_modules": [
+        "services/api/src/modules/tenant-settings"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [
+        "BUG-0668",
+        "BUG-0020"
+      ],
+      "related_backlog": [
+        "ITEM-0042"
+      ],
+      "regressions": [
+        "REG-224"
+      ],
+      "qa_scenarios": [
+        "QA-SETTINGS-004"
+      ],
+      "test_plan": [
+        "PLAN-021"
+      ],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "DONE",
+      "verification_result": "VERIFIED"
+    },
+    {
       "record_id": "ITEM-0001",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md",
@@ -8487,7 +8586,7 @@
       "title": "Burn down the services/api ESLint warning baseline",
       "severity": "LOW",
       "priority": "P3",
-      "current_status": "READY",
+      "current_status": "DONE",
       "current_evidence": {
         "paths": [
           "docs/backlog/items/ITEM-0042-burn-down-the-services-api-eslint-warning-baseline.md"
@@ -8516,7 +8615,7 @@
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "VERIFIED",
         "classification": "STATUS_DISPOSITION_BUCKET_MISMATCH_DEFERRED",
@@ -10153,6 +10252,52 @@
       "active_session_conflict": "NONE",
       "owner_decision_required": "YES",
       "architect_disposition": "PRODUCT_DECISION",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0080",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0080-type-the-remaining-services-api-no-unsafe-warnings-module-by.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": ""
+      },
+      "type": "TECH_DEBT",
+      "title": "Type the remaining services/api no-unsafe warnings module by module",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "READY",
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/payroll/payroll-operations.service.ts",
+          "services/api/src/modules/platform-runtime/platform-runtime.service.ts",
+          "services/api/src/common/prisma/prisma.service.ts",
+          ".github/workflows/ci.yml"
+        ],
+        "verification_scope": "Successor to ITEM-0042, which closed no-base-to-string and no-unused-vars and left 800 warnings in one family: values typed any flowing through Prisma-adjacent code. Composition and per-file concentration are measured at 2026-08-22, not estimated. The method is proven on the leave module: removing eight (this.prisma as any) casts took it from 114 warnings to zero and surfaced four real type errors the casts had been hiding, including a filter(Boolean) that never narrowed and a repository taking Record<string, unknown> for a Prisma create input. Verification is per module: the CI ratchet in .github/workflows/ci.yml is lowered every time a module lands and never raised, no eslint-disable or new cast is added, and every type error the removal surfaces is fixed rather than suppressed — with any that turns out to be a defect getting its own bug record, as BUG-0668 and BUG-0669 did."
+      },
+      "affected_modules": [
+        "services/api"
+      ],
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [
+        "BUG-0668",
+        "BUG-0669"
+      ],
+      "related_backlog": [
+        "ITEM-0042"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "architect_disposition": "FIX_NOW",
       "verification_result": "NOT_VERIFIED"
     }
   ],

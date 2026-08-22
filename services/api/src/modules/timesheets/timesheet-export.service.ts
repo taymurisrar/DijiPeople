@@ -14,6 +14,7 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { TenantSettingsResolverService } from '../tenant-settings/tenant-settings-resolver.service';
 import { CreateTimesheetExportDto } from './dto/timesheet-export.dto';
+import { toDisplayString } from '../../common/utils/display-string';
 
 type ExportArtifact = {
   buffer: Buffer;
@@ -607,7 +608,7 @@ function fromJson(
       : {};
   return {
     ...record,
-    exportType: String(
+    exportType: toDisplayString(
       record.exportType ?? 'ADVANCED',
     ) as CreateTimesheetExportDto['exportType'],
     format,

@@ -8,6 +8,7 @@ import { Prisma } from '@prisma/client';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
+import { toDisplayString } from '../../common/utils/display-string';
 import {
   CreateEmployerBankAccountDto,
   UpdateEmployerBankAccountDto,
@@ -416,5 +417,5 @@ function handleWriteError(error: unknown): never {
 }
 
 function csvCell(value: unknown) {
-  return `"${String(value ?? '').replaceAll('"', '""')}"`;
+  return `"${toDisplayString(value ?? '').replaceAll('"', '""')}"`;
 }
