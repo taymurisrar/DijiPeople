@@ -19,7 +19,8 @@ import { buildCorsOptions } from './env.validation';
  */
 describe('CORS origin policy', () => {
   const env = {
-    CORS_ALLOWED_ORIGINS: 'https://www.dijipeople.com,https://app.dijipeople.com',
+    CORS_ALLOWED_ORIGINS:
+      'https://www.dijipeople.com,https://app.dijipeople.com',
   } as unknown as NodeJS.ProcessEnv;
 
   /** The `origin` field is a function in this configuration; narrow to it. */
@@ -57,16 +58,15 @@ describe('CORS origin policy', () => {
     expect(decide(undefined)).toEqual({ error: null, allow: true });
   });
 
-  it.each([
-    'http://localhost:3001',
-    'https://evil.example',
-    'not-a-url',
-  ])('refuses %s without raising an error', (requestOrigin) => {
-    const { error, allow } = decide(requestOrigin);
+  it.each(['http://localhost:3001', 'https://evil.example', 'not-a-url'])(
+    'refuses %s without raising an error',
+    (requestOrigin) => {
+      const { error, allow } = decide(requestOrigin);
 
-    // The whole point: no Error. An Error here becomes a 500, and a 500 becomes
-    // a persisted error-log row that anyone can trigger.
-    expect(error).toBeNull();
-    expect(allow).toBe(false);
-  });
+      // The whole point: no Error. An Error here becomes a 500, and a 500 becomes
+      // a persisted error-log row that anyone can trigger.
+      expect(error).toBeNull();
+      expect(allow).toBe(false);
+    },
+  );
 });
