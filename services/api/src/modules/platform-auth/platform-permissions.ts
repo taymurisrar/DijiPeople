@@ -54,6 +54,14 @@ export type PlatformPermission =
   | 'settings.email.credentials'
   | 'settings.email.test'
   | 'roles.manage'
+  /*
+   * Publishing the terms a company sells under is not a settings change, so it
+   * gets its own pair rather than borrowing `settings.manage`. `LEGAL_REVIEWER`
+   * exists precisely for the person who approves this text and should not also
+   * be able to rewrite email credentials to do it.
+   */
+  | 'legal.read'
+  | 'legal.manage'
   | 'platform.demoData.delete';
 
 type PlatformAccess = { roleKeys: string[]; permissionKeys: string[] };
@@ -160,6 +168,8 @@ const ROLE_PERMISSIONS: Record<PlatformUserRole, string[]> = {
     'contracts.approve',
     'customers.read',
     'partners.read',
+    'legal.read',
+    'legal.manage',
   ],
   FINANCE_MANAGER: [
     'dashboard.read',
@@ -385,6 +395,15 @@ export function resolvePlatformPermission(
   const route = request.route as { path?: string } | undefined;
   const path = route?.path ? route.path : (request.path ?? request.url);
   const reads = method === 'GET';
+
+  /*
+   * Ahead of the domain prefixes below: `super-admin/legal/...` would otherwise
+   * fall through to null, and the guard refuses an unresolved permission — a
+   * route nobody can reach. That is BUG-0071's shape, and the reason
+   * platform-permissions.spec.ts enumerates the controllers.
+   */
+  if (path.includes('super-admin/legal'))
+    return reads ? 'legal.read' : 'legal.manage';
 
   if (path.includes('admin/demo-data')) return 'platform.demoData.delete';
   if (path.includes('dashboard-summary')) return 'dashboard.read';

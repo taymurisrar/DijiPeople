@@ -134,7 +134,31 @@ export function buildCorsOptions(env: NodeJS.ProcessEnv): CorsOptions {
         return;
       }
 
-      callback(new Error(`Origin ${origin} is not allowed by CORS.`), false);
+      /*
+       * `callback(null, false)` — not `callback(new Error(...), false)`.
+       *
+       * Handing the `cors` middleware an Error makes it *throw*, and Nest's
+       * `HttpExceptionFilter` renders that as `500 SYSTEM_UNEXPECTED_ERROR`. A
+       * request from a disallowed origin therefore got a server error instead
+       * of a policy decision, which is wrong three times over:
+       *
+       *   - It is not a server fault. Nothing failed; the origin was refused,
+       *     which is the control working. CORS is enforced by the *browser* —
+       *     the server's job is to withhold `Access-Control-Allow-Origin`, and
+       *     `false` does exactly that.
+       *   - It buries real 500s. Any scanner sending an `Origin` header
+       *     produced one, so the error log filled up with the control
+       *     succeeding.
+       *   - It is an unauthenticated write amplification. The filter persists
+       *     every error through `ErrorLogsService`, so anyone could add rows to
+       *     production's error-log table in a loop, from any origin, with no
+       *     credentials and nothing rate-limiting it.
+       *
+       * Observed on production 2026-08-23: `Origin: http://localhost:3001`
+       * against `/api/public/plans` returned 500, while the same request with
+       * no Origin header returned 200. BUG-0976.
+       */
+      callback(null, false);
     },
     credentials: allowCredentials,
     methods:

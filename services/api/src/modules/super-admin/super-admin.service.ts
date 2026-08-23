@@ -2122,6 +2122,102 @@ export class SuperAdminService {
     return this.mapPlanPrice(price);
   }
 
+  /**
+   * Remove a plan price outright, rather than retiring it.
+   *
+   * Deactivation is the right move for a price that has been sold: the row is
+   * the record of what somebody agreed to pay. This is for the other case — a
+   * row created by mistake, or a currency that was never launched — where
+   * leaving it deactivated forever means the pricing screen accumulates
+   * wreckage nobody can clear.
+   *
+   * Every inbound relation to `PlanPrice` is `onDelete: SetNull`, which makes
+   * this more dangerous than it looks: Prisma would happily delete a price that
+   * a live subscription points at and quietly blank the link, leaving a
+   * subscription billing an amount with no record of where it came from. So the
+   * guard below is not a courtesy check that can be skipped under a force flag.
+   * Anything that references this row means the row is history, and history is
+   * deactivated, never deleted.
+   */
+  async deletePlanPrice(
+    actor: AuthenticatedUser,
+    planId: string,
+    priceId: string,
+  ) {
+    const existing = await this.findPlanPriceOrThrow(planId, priceId);
+
+    const references = await this.prisma.planPrice.findUnique({
+      where: { id: existing.id },
+      select: {
+        _count: {
+          select: {
+            subscriptions: true,
+            subscriptionOrders: true,
+            promotions: true,
+            supersededBy: true,
+          },
+        },
+      },
+    });
+
+    const counts = references?._count;
+    const blockers: string[] = [];
+    if (counts?.subscriptions)
+      blockers.push(`${counts.subscriptions} subscription(s)`);
+    if (counts?.subscriptionOrders)
+      blockers.push(`${counts.subscriptionOrders} order(s)`);
+    if (counts?.promotions) blockers.push(`${counts.promotions} promotion(s)`);
+    if (counts?.supersededBy)
+      blockers.push(`${counts.supersededBy} later price version(s)`);
+
+    if (blockers.length) {
+      throw new ConflictException(
+        `This price cannot be deleted because ${blockers.join(', ')} reference it. Deactivate it instead — that withdraws it from checkout and keeps the billing record intact.`,
+      );
+    }
+
+    /*
+     * Stripe first. If the row goes and the Stripe Price stays active, nothing
+     * left in this system knows the Stripe Price exists, and it stays listed in
+     * the Stripe dashboard indefinitely. Archiving cannot fail the delete,
+     * though — the caller is told instead.
+     */
+    let stripeArchived = true;
+    let stripeReason: string | undefined;
+    if (existing.stripePriceId) {
+      const outcome = await this.stripeBillingService.archiveRecurringPrice(
+        existing.stripePriceId,
+      );
+      stripeArchived = outcome.archived;
+      stripeReason = outcome.reason;
+    }
+
+    await this.prisma.planPrice.delete({ where: { id: existing.id } });
+
+    await this.auditService.log({
+      tenantId: actor.tenantId,
+      actorUserId: actor.userId,
+      action: 'PLAN_PRICE_DELETED',
+      entityType: 'PlanPrice',
+      entityId: existing.id,
+      sourceModule: 'super-admin',
+      beforeSnapshot: this.mapPlanPrice(existing),
+      afterSnapshot: null,
+    });
+
+    return {
+      id: existing.id,
+      deleted: true,
+      stripeArchived,
+      // Surfaced rather than swallowed: "deleted, but the Stripe price is still
+      // live" is a different situation from "deleted", and only one of them
+      // needs somebody to go and tidy Stripe by hand.
+      message: stripeArchived
+        ? 'Price deleted.'
+        : `Price deleted, but its Stripe price could not be archived (${stripeReason ?? 'unknown error'}). Archive it in the Stripe dashboard.`,
+    };
+  }
+
   async listPromotions() {
     const promotions = await this.prisma.promotion.findMany({
       include: {
@@ -4243,7 +4339,17 @@ export class SuperAdminService {
       description: input.plan.description,
       planId: input.plan.id,
     });
-    if (!input.plan.stripeProductId) {
+    /*
+     * Persist whenever it differs, not only when it was empty.
+     *
+     * The old condition was `if (!input.plan.stripeProductId)`, which meant a
+     * *stale* id could never be replaced: `resolveOrCreateProduct` would mint a
+     * fresh product on every call, the plan would keep pointing at the dead one,
+     * and the next edit would do it all again — leaking a Stripe product each
+     * time while never fixing the row. Paired with the missing-product throw it
+     * fixed, this is what made one stale id permanent.
+     */
+    if (input.plan.stripeProductId !== product.id) {
       await this.prisma.plan.update({
         where: { id: input.plan.id },
         data: { stripeProductId: product.id },

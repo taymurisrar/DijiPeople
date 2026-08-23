@@ -11,6 +11,7 @@ import {
 import { PageHeader } from "@/app/_components/ui/page-header";
 import { createHttpModuleRuntimeAdapter } from "@/lib/runtime/http-module-runtime-adapter";
 import { getPlatformModuleDefinition } from "@/lib/runtime/platform-module-registry";
+import { planEntitlementKeys } from "@/lib/runtime/plan-entitlement-keys";
 import type {
   PlatformModuleKey,
   RuntimeActionDefinition,
@@ -449,15 +450,14 @@ function RuntimeRecordEditor({
    * `PlanFeature` rows carry `isEnabled`, and a disabled row is not an
    * entitlement. Reading the keys without that filter would have shown — and
    * then re-saved — capabilities the plan does not actually grant.
+   *
+   * This used to inline the row-shaped read, which was only half the story: the
+   * runtime GET and the runtime PATCH return `features` in two different
+   * shapes, so every checkbox blanked out on save. `planEntitlementKeys` reads
+   * both and carries the full account of why.
    */
   const planFeatureKeys = useMemo(
-    () =>
-      Array.isArray(form.values.features)
-        ? (form.values.features as Array<Record<string, unknown>>)
-            .filter((item) => item.isEnabled !== false)
-            .map((item) => String(item.featureKey ?? ""))
-            .filter(Boolean)
-        : [],
+    () => planEntitlementKeys(form.values.features),
     [form.values.features],
   );
 
@@ -625,10 +625,28 @@ function RuntimeRecordEditor({
         </section>
       ) : null}
       {moduleKey === "plans" && !isCreate && activeTab === "entitlements" ? (
+        /*
+         * Entitlements follow the record's edit mode, like every other field
+         * on this form — because that is what they are. They are stored on the
+         * plan and saved through `updatePlan`, so a page that locks Name and
+         * Description until Edit is clicked while leaving twelve live
+         * checkboxes underneath is telling the operator two different things
+         * about the same record.
+         *
+         * Prices deliberately do not follow it. Those are their own collection
+         * with their own create, supersede and delete endpoints, and gating a
+         * price deletion behind "edit the plan" would be the same category
+         * error in the other direction.
+         */
         <PlanEntitlementsPanel
           planId={record.id}
           initialFeatureKeys={planFeatureKeys}
-          readOnly={!definition.capabilities.update}
+          readOnly={mode === "read" || !definition.capabilities.update}
+          lockedHint={
+            mode === "read" && definition.capabilities.update
+              ? "Click Edit to change what this plan grants."
+              : undefined
+          }
           onSave={async (featureKeys) => {
             const response = await adapter.updateRecord(
               record.id,
@@ -636,6 +654,8 @@ function RuntimeRecordEditor({
               version,
             );
             form.setValues(response.item);
+            // Save locks the record back, exactly as saving the form does.
+            setMode("read");
           }}
         />
       ) : null}

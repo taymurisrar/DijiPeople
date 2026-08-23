@@ -2141,3 +2141,48 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | The page said the right thing and could not deliver it. Worth remembering as a property of streaming rather than of this route: any `notFound()` beneath a route-level `loading.tsx` has the same problem, so a static param list plus `dynamicParams = false` is the reliable way to refuse an unknown segment. |
 | **Fixed** | 2026-08-23, `agent/landing-e2e-go-live` |
 | **Active** | yes |
+
+### REG-240 — A refused CORS origin is a decision, not a server error
+
+| | |
+|---|---|
+| **Bug class** | `silent-degradation` |
+| **Module** | `services/api/src/config` |
+| **Bug record** | BUG-0976 |
+| **Root cause** | `buildCorsOptions` refused an unlisted origin with `callback(new Error(...), false)`. The `cors` middleware treats the first argument as an error channel, not a reason, so it rethrew and `HttpExceptionFilter` rendered `500 SYSTEM_UNEXPECTED_ERROR` — then persisted a row through `ErrorLogsService`. Any unauthenticated caller could grow the production error-log table indefinitely by varying one header, and real 500s were buried under the access control working correctly. |
+| **Regression test** | `services/api/src/config/cors-options.spec.ts` |
+| **Scenario** | An allowed origin is permitted and a missing Origin is permitted; `http://localhost:3001`, `https://evil.example` and `not-a-url` are each refused with `allow=false` and **no Error** handed to the callback. |
+| **Proven to fail without the fix** | Restoring `callback(new Error(...), false)` fails 3 of the 5 cases. Independently observed on production: the same endpoint returned 200 with no Origin and 500 with `Origin: http://localhost:3001`. |
+| **Note** | Found by accident. The ITEM-0086 smoke checks send `Origin` on every request, so they reported 500 where a plain fetch reported 200 — and the discrepancy was the product, not the script. A test that happens to exercise a path nothing else does is worth more than its stated purpose. |
+| **Fixed** | 2026-08-23, `agent/release-landing-e2e` |
+| **Active** | yes |
+
+### REG-241 — One runtime module, one shape for `features`
+
+| | |
+|---|---|
+| **Bug class** | `contract-drift` |
+| **Module** | `services/api/src/modules/platform-runtime`, `apps/admin` |
+| **Bug record** | BUG-0994 |
+| **Root cause** | `GET /platform-runtime/plans/:id` returned raw `PlanFeature` rows while `PATCH` on the same module returned `mapPlan`'s filtered key array. The record page holds `form.values` from whichever response arrived last and read only the row shape, so `item.featureKey` was `undefined` over strings and the whole entitlement set silently became `[]` after any save. `updatePlan` applies `featureKeys` as `deleteMany` + `create`, so the next save from that blanked state deleted every entitlement on a plan live tenants were subscribed to. |
+| **Regression test** | `services/api/src/modules/platform-runtime/plan-record-shape.spec.ts`, `apps/admin/lib/runtime/plan-entitlement-keys.spec.ts` |
+| **Scenario** | The runtime GET returns `features` as filtered keys, identical to the PATCH shape, and omits a disabled row. The client helper reads both shapes, drops a disabled row, keeps a bare key, and returns `[]` only for input it genuinely cannot read. |
+| **Proven to fail without the fix** | Restoring `features: item.features` in `findGeneric` fails both API cases. The client case asserts a non-empty result over a `string[]`, which the previous derivation could not produce. |
+| **Note** | The silence is the lesson. A shape mismatch that threw would have been found in a day; this one mapped a missing property to `""`, filtered it out, and produced a well-formed empty array that the API then honoured as an instruction. Any derivation that can turn "I did not understand this" into "the answer is none" should be written so it cannot. |
+| **Fixed** | 2026-08-23, `agent/plan-pricing-admin-ux` |
+| **Active** | yes |
+
+### REG-242 — A stale Stripe product id must not brick a plan's pricing
+
+| | |
+|---|---|
+| **Bug class** | `partial-error-handling` |
+| **Module** | `services/api/src/modules/billing`, `services/api/src/modules/super-admin` |
+| **Bug record** | BUG-0995 |
+| **Root cause** | `resolveOrCreateProduct` handled a *deleted* Stripe product, which resolves to a stub carrying `deleted: true`, but not a *missing* one, for which `products.retrieve` throws `resource_missing`. The throw escaped, so the "orCreate" half never ran. Compounding it, the caller persisted a new product id only when the stored one was empty, so even after a replacement was created the plan kept pointing at the dead id — leaking a Stripe product per attempt and failing again next time. No screen could clear the id, so the plan could not be priced from Admin at all. |
+| **Regression test** | `services/api/src/modules/billing/stripe-product-resolution.spec.ts` |
+| **Scenario** | A missing product and a deleted product each produce a replacement; an existing product is reused with no create call; a `StripeAuthenticationError` still raises and creates nothing. |
+| **Proven to fail without the fix** | Replacing the guard with `if (true) throw error` fails the missing-product case. Independently reported from production with the full 500 and stack. |
+| **Note** | Two failure modes of the same external call looked alike and were not. The fourth case in the spec is the important one: swallowing every error here would mint duplicate Stripe products during an outage or on a bad key, which is worse than the failure and silent. |
+| **Fixed** | 2026-08-23, `agent/plan-pricing-admin-ux` |
+| **Active** | yes |

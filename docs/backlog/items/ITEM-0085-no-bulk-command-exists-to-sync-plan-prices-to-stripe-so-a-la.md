@@ -3,13 +3,13 @@ ID: ITEM-0085
 aliases: [ITEM-0085]
 Title: No bulk command exists to sync plan prices to Stripe, so a launch needs 36 manual admin edits
 Type: INFRA
-Status: TRIAGE_REQUIRED
+Status: DONE
 Priority: P2
 Severity: MEDIUM
 AffectedModules: [services/api/src/modules/super-admin]
 Source: QA_RUN
 OwnerAgent: architect
-ArchitectDisposition: PLAN_REQUIRED
+ArchitectDisposition: DONE
 CreatedAt: 2026-08-23
 UpdatedAt: 2026-08-23
 RelatedBug: BUG-0898

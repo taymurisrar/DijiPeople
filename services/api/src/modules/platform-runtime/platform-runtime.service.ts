@@ -1106,6 +1106,22 @@ export class PlatformRuntimeService {
           subscriptionCount: price._count.subscriptions,
           canDelete: price._count.subscriptions === 0,
         })),
+        /*
+         * The same shape `SuperAdminService.mapPlan` returns, which is what the
+         * PATCH on this very module answers with.
+         *
+         * This used to hand back raw `PlanFeature` rows, so one runtime module
+         * described `features` two ways depending on the verb — and the record
+         * page, which reads whichever the last response carried, emptied its
+         * Entitlements tab the moment anything was saved. Since `updatePlan`
+         * applies `featureKeys` as `deleteMany` + `create`, the next save from
+         * that emptied state deleted entitlements from a live plan.
+         *
+         * `platform-runtime.domain.spec.ts` pins the two together.
+         */
+        features: item.features
+          .filter((feature) => feature.isEnabled)
+          .map((feature) => feature.featureKey),
       };
     }
     const model =

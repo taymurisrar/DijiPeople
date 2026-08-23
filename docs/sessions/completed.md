@@ -6,6 +6,7 @@ Sessions that reached a terminal state. Kept as history: the branch, the base it
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0045](../../docs/sessions/SESSION-0045-release-develop-to-main-landing-e2e-findings-and-the-three-c.md) | — | Release develop to main: landing E2E findings and the three checkout fixes | COMPLETE | `agent/release-landing-e2e` | `main` | — | 2026-08-23T10:56:15.359Z |
 | [SESSION-0044](../../docs/sessions/SESSION-0044-landing-site-full-e2e-ui-forms-checkout-payments-provisionin.md) | — | Landing site full E2E: UI, forms, checkout, payments, provisioning, performance — local and production | COMPLETE | `agent/landing-e2e-go-live` | `develop` | — | 2026-08-23T00:33:25.629Z |
 | [SESSION-0043](../../docs/sessions/SESSION-0043-release-develop-to-main-site-pricing-features-page-forms-che.md) | — | Release develop to main: site pricing, features page, forms, checkout agreements, admin fixes | COMPLETE | `agent/release-site-ux-and-admin` | `main` | — | 2026-08-22T23:34:11.402Z |
 | [SESSION-0042](../../docs/sessions/SESSION-0042-public-site-pricing-features-page-forms-checkout-agreements-.md) | — | Public site pricing, features page, forms, checkout agreements, and admin plan/tenant list fixes | COMPLETE | `agent/site-ux-and-admin-fixes` | `develop` | — | 2026-08-22T21:25:54.373Z |

@@ -565,13 +565,25 @@ export class SuperAdminController {
     return this.superAdminService.updatePlanPrice(user, planId, priceId, dto);
   }
 
+  /*
+   * Two outcomes behind one verb, and the default is the safe one.
+   *
+   * Bare DELETE deactivates: the price leaves checkout and the billing record
+   * survives, which is what you want for anything a customer has ever bought.
+   * `?mode=permanent` removes the row, for the price that was a typo. The
+   * service refuses that whenever anything references the row, so the flag
+   * widens what is *offered*, never what is *allowed*.
+   */
   @Delete('plans/:planId/prices/:priceId')
   deactivatePlanPrice(
     @CurrentUser() user: AuthenticatedUser,
     @Param('planId', new ParseUUIDPipe()) planId: string,
     @Param('priceId', new ParseUUIDPipe()) priceId: string,
+    @Query('mode') mode?: string,
   ) {
-    return this.superAdminService.deactivatePlanPrice(user, planId, priceId);
+    return mode === 'permanent'
+      ? this.superAdminService.deletePlanPrice(user, planId, priceId)
+      : this.superAdminService.deactivatePlanPrice(user, planId, priceId);
   }
 
   @Get('promotions')

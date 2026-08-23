@@ -193,7 +193,7 @@ then completing one purchase in Stripe test mode.
 
 ## Related
 
-- Referenced by — [[ITEM-0085]]
+- Referenced by — [[ITEM-0085]], [[ITEM-0086]]
 - Modules — [[super-admin]]
 
 <!-- GRAPH:END -->

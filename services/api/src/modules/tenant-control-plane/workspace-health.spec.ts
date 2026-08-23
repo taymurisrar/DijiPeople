@@ -120,7 +120,25 @@ describe('workspace health', () => {
       ).findings.find((item) => item.key === 'missing-business-unit');
       expect(finding?.severity).toBe('BLOCKING');
       expect(finding?.repairable).toBe(false);
-      expect(finding?.detail).toContain('BUG-0015');
+    });
+
+    it('tells the operator what to do instead of quoting a tracker id', () => {
+      /*
+       * This assertion used to be `toContain('BUG-0015')`. It pinned an
+       * internal tracker id into a screen an operator reads, and pinned it as a
+       * *requirement* — so removing the leak would have registered as a
+       * regression rather than as the fix it is.
+       *
+       * What the finding owes its reader is a next step. It genuinely cannot
+       * repair itself and should say so, but "not repairable" as the last word
+       * reads as an abandoned product. Assert the property, not the prose.
+       */
+      const finding = deriveWorkspaceHealth(
+        facts({ businessUnitCount: 0 }),
+      ).findings.find((item) => item.key === 'missing-business-unit');
+
+      expect(finding?.detail).not.toMatch(/BUG-\d+/);
+      expect(finding?.detail).toMatch(/provision a fresh workspace/i);
     });
   });
 

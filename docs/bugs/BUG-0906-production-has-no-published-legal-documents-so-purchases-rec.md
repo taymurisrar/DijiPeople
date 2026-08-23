@@ -157,6 +157,7 @@ completing a purchase and confirming acknowledgement rows exist.
 
 ## Related
 
+- Referenced by — [[ITEM-0090]]
 - Modules — [[legal]], [[landing-architecture]]
 
 <!-- GRAPH:END -->

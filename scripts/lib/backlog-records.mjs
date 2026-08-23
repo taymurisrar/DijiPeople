@@ -452,8 +452,21 @@ function validate(record, kind, errors) {
     {
       section: 'Resolution',
       statuses: ['VERIFIED', 'CLOSED', 'FIXED', 'DONE'],
+      /*
+       * `not resolved` was missing from this list until 2026-08-23, and it is
+       * the plainest way anyone would write it. BUG-0015 sat at
+       * `Status: VERIFIED` / `ArchitectDisposition: DONE` above a Resolution
+       * section reading exactly "Not resolved." — so every dashboard, every
+       * burndown and every "what is left before go-live" answer counted it
+       * finished. The defect was still live, and Platform Admin was still
+       * naming it to operators on a tenant health screen.
+       *
+       * The lesson is the one this block exists for: a detector that enumerates
+       * phrasings will always be one phrasing short, so the ones it does carry
+       * had better include the obvious.
+       */
       pattern:
-        /\b(not (?:yet )?(?:been )?implemented|implementation (?:is )?(?:still )?in progress|pending (?:a )?product decision|no fix (?:has been )?(?:applied|written))\b/i,
+        /\b(not (?:yet )?(?:been )?(?:implemented|resolved|fixed|done)|unresolved|implementation (?:is )?(?:still )?in progress|pending (?:a )?product decision|no fix (?:has been )?(?:applied|written))\b/i,
       says: 'the fix has not landed',
     },
   ];
@@ -495,7 +508,21 @@ function validate(record, kind, errors) {
      * validator teaches people to stop writing limits down.
      */
     const verdict = prose.split(/\r?\n/).find((line) => line.trim());
-    if (verdict && /^\**\s*(pass|passed|verified|re-?tested|green|confirmed)\b/i.test(verdict.trim())) {
+    if (
+      verdict &&
+      /*
+       * `fixed|resolved|done|complete` joined this list on 2026-08-23, for the
+       * same reason the others are here. Two records open their Resolution with
+       * "Fixed." and then *narrate* the very phrasing this rule hunts for —
+       * BUG-0023's reads "Fixed. The Resolution section still read 'Not
+       * resolved' long after the fix landed — a stale leftover, corrected
+       * here." Flagging that is flagging a record for explaining itself well,
+       * which is precisely the failure mode the comment above describes.
+       */
+      /^\**\s*(pass|passed|verified|re-?tested|green|confirmed|fixed|resolved|done|complete[d]?|implemented|shipped|landed)\b/i.test(
+        verdict.trim(),
+      )
+    ) {
       continue;
     }
 

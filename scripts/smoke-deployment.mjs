@@ -128,6 +128,88 @@ await check("CORS origin is accepted", async () => {
   }
 });
 
+/*
+ * Can this deployment actually sell anything, and record that it did?
+ *
+ * ITEM-0086. Everything above proves the service is *up*. None of it proves the
+ * product can be bought, and on 2026-08-23 a QA run found production had been
+ * unable to take a single order for as long as anyone could measure — with every
+ * existing check green, because "up" and "sellable" are different questions.
+ *
+ * Two causes, each invisible to a health check and each caught here:
+ *
+ *   BUG-0898  0 of 36 plan prices had ever been synced to Stripe, so every plan
+ *             rendered "not available to buy online" and no form at all.
+ *   BUG-0906  no legal document had ever been published, so a purchase could
+ *             record no consent.
+ *
+ * A third, BUG-0904 — the outbox worker being off, so a paid customer never
+ * receives a workspace — is not observable from outside and is deliberately not
+ * asserted here rather than faked.
+ *
+ * These read only public endpoints, so they run against any deployment without a
+ * session. That matters: the failure they describe is one a prospective customer
+ * hits before they ever authenticate.
+ */
+await check("a launched market has at least one purchasable plan", async () => {
+  const response = await request("/public/plans");
+  if (!response.ok) throw new Error(`/public/plans returned ${response.status}`);
+
+  const payload = await response.json();
+  const plans = Array.isArray(payload) ? payload : (payload.plans ?? []);
+  if (!plans.length) throw new Error("no public plans are published at all");
+
+  const prices = plans.flatMap((plan) => plan.prices ?? []);
+  const sellable = prices.filter(
+    (price) => price.checkoutReady ?? price.isCheckoutReady,
+  );
+
+  if (!sellable.length) {
+    /*
+     * The reasons are already on the price — surfaced rather than summarised,
+     * because "Stripe Price ID is missing" names the operator step that was
+     * skipped and "not sellable" does not.
+     */
+    const reasons = [
+      ...new Set(prices.flatMap((price) => price.checkoutReadinessReasons ?? [])),
+    ].slice(0, 4);
+    throw new Error(
+      `0 of ${prices.length} active price(s) are checkout-ready — nobody can buy. ` +
+        (reasons.length ? `Reasons: ${reasons.join(" ")} ` : "") +
+        "Run `npm run report:commercial` for the full picture.",
+    );
+  }
+});
+
+await check("legal documents are published", async () => {
+  const response = await request("/public/legal");
+  if (!response.ok) throw new Error(`/public/legal returned ${response.status}`);
+
+  const payload = await response.json();
+  const documents = Array.isArray(payload?.documents) ? payload.documents : [];
+
+  if (!documents.length) {
+    throw new Error(
+      "no legal document is published, so a purchase records no consent — run " +
+        "`npm --workspace api run legal:publish -- --confirm` and read its " +
+        "reasons if it refuses",
+    );
+  }
+
+  /*
+   * A document that cannot name the version accepted is not evidence. The
+   * subscribe wizard filters on exactly this, so a published document carrying
+   * no versionId is offered to nobody and is worth the same as none.
+   */
+  const unusable = documents.filter((document) => !document.versionId);
+  if (unusable.length) {
+    throw new Error(
+      `${unusable.length} published document(s) carry no versionId, so no ` +
+        `acceptance can name them: ${unusable.map((d) => d.slug).join(", ")}`,
+    );
+  }
+});
+
 if (failures.length) {
   console.error(`Smoke checks failed: ${failures.length}`);
   process.exit(1);
