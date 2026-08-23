@@ -2066,3 +2066,48 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | The same shape as the "Active" view that matched a status a module never used — a control that looks functional and selects nothing. The registry comment warning about exactly this predates both, which is the useful part: knowing the class of defect did not stop the next instance. |
 | **Fixed** | 2026-08-22, `agent/site-ux-and-admin-fixes` |
 | **Active** | yes |
+
+### REG-235 — A flat price bills one subscription, not one seat above capacity
+
+| | |
+|---|---|
+| **Bug class** | `divergent-duplicate-guard` |
+| **Module** | `services/api/src/modules/billing` |
+| **Bug record** | BUG-0901 |
+| **Root cause** | The rule "how many units of `unitAmount` does this seat count bill" was written twice. `billing-seat-pricing.ts` branched on `billingModel` and was right; `SubscriptionOrderService` open-coded `seats - includedSeats` for every model. The catalogue's Starter FLAT price includes 25 seats and the wizard opens on a team size of 25, so the order priced at `12000 × (25 - 25) = 0` while Stripe — quoted the flat price with quantity 1 — charged 12,000 PKR. A PAID order recorded no revenue. |
+| **Regression test** | `services/api/src/modules/billing/billing-seat-pricing.spec.ts` — `describe('billable seats by billing model')` |
+| **Scenario** | A FLAT price bills exactly one unit at, below and above its included capacity, and the figure agrees with `calculateSeatPricing().estimatedMonthlyCharge`; a PER_SEAT price still bills per seat. |
+| **Proven to fail without the fix** | Replacing `resolveBillableSeats` with the old per-seat expression fails two of the three tests. |
+| **Note** | Three call sites needed this rule and two had it right. The wrong one was the only one that wrote to the database, which is why the disagreement was invisible until a real order was read back and compared to the Stripe session. |
+| **Fixed** | 2026-08-23, `agent/landing-e2e-go-live` |
+| **Active** | yes |
+
+### REG-236 — Tenant RBAC bootstrap writes a set as a set
+
+| | |
+|---|---|
+| **Bug class** | `unbounded-render` |
+| **Module** | `services/api/src/modules/permissions` |
+| **Bug record** | BUG-0900 |
+| **Root cause** | `bootstrapTenantRbac` wrote a tenant's **6,345** role-privilege rows with one `upsert` each, sequentially, inside the caller's interactive transaction. Prisma's default interactive transaction timeout is 5,000 ms, so self-service provisioning failed with `A query cannot be executed on an expired transaction … 5001 ms passed` *after* the card was charged; the outbox retried eight times and marked `PROVISIONING_REQUESTED` FAILED. The sibling `rolePermission` block in the same method already used a single `createMany`. |
+| **Regression test** | `services/api/src/modules/permissions/` (15 tests) plus the browser journey reaching `workspace-created = DONE` |
+| **Scenario** | Provisioning a tenant from a paid order completes within the transaction budget and the outbox event reaches `PROCESSED`. |
+| **Proven to fail without the fix** | Observed directly: the same journey failed on the timeout before the change and succeeded after it, on the same machine. |
+| **Note** | Timing-dependent, so it passed whenever the machine was fast enough. The row count scales with `SYSTEM_ROLE_PRIVILEGES` × system roles, so it was getting worse with every entity added to the matrix. |
+| **Fixed** | 2026-08-23, `agent/landing-e2e-go-live` |
+| **Active** | yes |
+
+### REG-237 — A provisioned workspace is marked ready, and its URL is handed back
+
+| | |
+|---|---|
+| **Bug class** | `declared-but-unwired-step` |
+| **Module** | `services/api/src/modules/super-admin` |
+| **Bug record** | BUG-0902 |
+| **Root cause** | `OrderActivationService.markTenantReady` was defined once and called from nowhere in the repository, and `OrderActivationService` was not exported from `BillingModule`. `getOnboardingStatus` derives both the final "Finishing setup" step and the workspace link from `Tenant.readinessStatus`, so every tenant ever provisioned stayed `NOT_READY`: the buyer's progress page could never finish and never showed the address they had paid for. |
+| **Regression test** | The public onboarding status reaching `READY` with a `workspace` payload, driven by `e2e/drive-checkout.mjs` |
+| **Scenario** | After a completed purchase, `GET /public/onboarding/:id/status` returns `state: READY`, all four steps `DONE`, and a `workspace` object carrying `hostname` and `url`. |
+| **Proven to fail without the fix** | Two tenants provisioned `ACTIVE` in this run sat at `readinessStatus = NOT_READY` with `workspace: null` until the call site was added. |
+| **Note** | The handler's own comment said "the customer is about to be told it is ready". Nothing told them. Same shape as the missing `PROVISIONING_REQUESTED` consumer documented at the top of that same file — the work was done and the last statement of it was not. |
+| **Fixed** | 2026-08-23, `agent/landing-e2e-go-live` |
+| **Active** | yes |

@@ -41,6 +41,38 @@ export function normalizePurchasedSeats(
   return requested;
 }
 
+/**
+ * How many units of `unitAmount` a seat count actually bills.
+ *
+ * The rule differs by billing model, and the difference is not cosmetic:
+ *
+ * - `PER_SEAT` — `unitAmount` is the price of one seat, so the buyer pays for
+ *   each seat the price does not already include.
+ * - `FLAT` — `unitAmount` is the price of the *subscription*, and
+ *   `includedSeats` says what that single fee covers. It is a capacity
+ *   statement, not a discount, so the answer is always one.
+ *
+ * This function exists because that rule was written twice and the two copies
+ * disagreed. `calculateSeatPricing` had it right; `SubscriptionOrderService`
+ * applied the per-seat arithmetic to every model, so a FLAT plan bought at or
+ * below its included capacity computed `25 - 25 = 0` billable units and wrote a
+ * **zero-total order** — while Stripe, quoted the flat price directly, charged
+ * the full amount. A paid order recording no revenue is not a rounding error;
+ * it is the billing record disagreeing with the money that moved.
+ *
+ * Above capacity the same arithmetic was wrong in the other direction: 30 seats
+ * on a 25-seat flat plan billed `unitAmount × 5`. Exceeding included capacity
+ * is overage, which has its own rate and is not modelled by multiplying the
+ * subscription fee.
+ */
+export function resolveBillableSeats(
+  price: Pick<SeatPriceContract, 'billingModel' | 'includedSeats'>,
+  seats: number,
+): number {
+  if (price.billingModel !== BillingModel.PER_SEAT) return 1;
+  return Math.max(0, seats - price.includedSeats);
+}
+
 export function calculateSeatPricing(
   price: SeatPriceContract,
   purchasedSeats: number,
@@ -48,8 +80,7 @@ export function calculateSeatPricing(
 ) {
   const normalizedSeats = normalizePurchasedSeats(purchasedSeats, price);
   const normalizedUsedSeats = Math.max(0, Math.trunc(usedSeats));
-  const billableSeats =
-    price.billingModel === BillingModel.PER_SEAT ? normalizedSeats : 1;
+  const billableSeats = resolveBillableSeats(price, normalizedSeats);
 
   return {
     purchasedSeats: normalizedSeats,

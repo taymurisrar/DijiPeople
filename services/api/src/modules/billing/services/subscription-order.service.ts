@@ -16,6 +16,7 @@ import {
   type ReferralAttribution,
 } from '../../partner-experience/partner-referral-resolver.service';
 import { buildIdempotencyKey } from '../../outbox/outbox.types';
+import { resolveBillableSeats } from '../billing-seat-pricing';
 import { CustomerIdentityService } from './customer-identity.service';
 import { TaxBasisService } from './tax-basis.service';
 
@@ -251,7 +252,13 @@ export class SubscriptionOrderService {
     });
 
     const seats = Math.max(input.seatQuantity, planPrice.minimumSeats);
-    const billableSeats = Math.max(0, seats - planPrice.includedSeats);
+    /*
+     * Billing model decides what a seat count bills — see `resolveBillableSeats`.
+     * This line used to apply per-seat arithmetic to every model, which made a
+     * FLAT plan bought at its included capacity bill `25 - 25 = 0` units and
+     * record a zero-total order against a full Stripe charge.
+     */
+    const billableSeats = resolveBillableSeats(planPrice, seats);
     const unitAmount = planPrice.unitAmount;
     const subtotalAmount = unitAmount.mul(billableSeats);
 

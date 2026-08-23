@@ -8,6 +8,7 @@ import {
   calculateSeatPricing,
   buildRecurringCheckoutLineItem,
   deriveCheckoutReadiness,
+  resolveBillableSeats,
 } from './billing-seat-pricing';
 
 describe('per-seat monthly pricing', () => {
@@ -103,5 +104,48 @@ describe('per-seat monthly pricing', () => {
     expect(
       buildRecurringCheckoutLineItem('price_flat', 30, BillingModel.FLAT),
     ).toEqual({ price: 'price_flat', quantity: 1 });
+  });
+});
+
+/**
+ * REG — a flat plan bought at its included capacity must not bill zero.
+ *
+ * `SubscriptionOrderService` computed `seats - includedSeats` for every billing
+ * model. The public catalogue's Starter FLAT price is 12,000 PKR including 25
+ * seats, and the subscribe wizard opens on a team size of 25 — so the order
+ * total came out `12000 × (25 - 25) = 0` while Stripe, which is quoted the flat
+ * price with quantity 1, charged 12,000. The order record said the customer had
+ * paid nothing.
+ *
+ * These assert the rule directly rather than through the service, because the
+ * defect was in the arithmetic and not in the persistence around it.
+ */
+describe('billable seats by billing model', () => {
+  const flat = { billingModel: BillingModel.FLAT, includedSeats: 25 };
+  const perSeat = { billingModel: BillingModel.PER_SEAT, includedSeats: 0 };
+
+  it('bills a flat price once — at, below and above its included capacity', () => {
+    expect(resolveBillableSeats(flat, 25)).toBe(1);
+    expect(resolveBillableSeats(flat, 10)).toBe(1);
+    expect(resolveBillableSeats(flat, 30)).toBe(1);
+  });
+
+  it('bills a per-seat price per seat', () => {
+    expect(resolveBillableSeats(perSeat, 25)).toBe(25);
+    expect(resolveBillableSeats(perSeat, 1)).toBe(1);
+  });
+
+  it('agrees with the charge calculateSeatPricing quotes for a flat plan', () => {
+    const price = {
+      billingModel: BillingModel.FLAT,
+      billingInterval: BillingInterval.MONTH,
+      unitAmount: 12000,
+      currency: 'PKR',
+      minimumSeats: 1,
+      maximumSeats: null,
+      includedSeats: 25,
+    };
+    expect(calculateSeatPricing(price, 25).estimatedMonthlyCharge).toBe(12000);
+    expect(price.unitAmount * resolveBillableSeats(price, 25)).toBe(12000);
   });
 });

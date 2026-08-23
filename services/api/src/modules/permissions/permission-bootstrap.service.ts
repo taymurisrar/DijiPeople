@@ -190,29 +190,73 @@ export class PermissionBootstrapService {
       });
     });
 
-    for (const assignment of rolePrivilegeAssignments) {
-      await db.rolePrivilege.upsert({
-        where: {
-          roleId_entityKey_privilege: {
-            roleId: assignment.roleId,
-            entityKey: assignment.entityKey,
-            privilege: assignment.privilege,
-          },
-        },
-        update: {
-          accessLevel: assignment.accessLevel,
-          updatedById: assignment.updatedById,
-        },
-        create: {
-          tenantId: assignment.tenantId,
-          roleId: assignment.roleId,
-          entityKey: assignment.entityKey,
-          privilege: assignment.privilege,
-          accessLevel: assignment.accessLevel,
-          createdById: assignment.createdById,
-          updatedById: assignment.updatedById,
-        },
+    /*
+     * Written as one insert plus a handful of grouped updates, not as an upsert
+     * per assignment.
+     *
+     * A tenant's system roles carry **6,345** privilege rows. The loop that used
+     * to be here issued one `upsert` per row, sequentially, inside the caller's
+     * interactive transaction — and Prisma's default interactive transaction
+     * timeout is five seconds. Self-service provisioning therefore failed with
+     * `A query cannot be executed on an expired transaction ... 5001 ms passed`,
+     * after the customer's card had already been charged: the outbox retried
+     * eight times, marked `PROVISIONING_REQUESTED` FAILED, and left a paid order
+     * with no workspace. It succeeded only when the machine happened to be fast
+     * enough, which is why it reached production looking healthy.
+     *
+     * `createMany` writes every missing row in one statement, exactly as the
+     * `rolePermission` block above already does. The updates that follow exist
+     * only for the re-bootstrap case — a tenant whose rows predate a change to
+     * `SYSTEM_ROLE_PRIVILEGES` — and are grouped by the three values that vary,
+     * so drift is reconciled in a few dozen statements rather than thousands.
+     * On a new tenant every row is an insert and no update runs at all.
+     */
+    if (rolePrivilegeAssignments.length > 0) {
+      await db.rolePrivilege.createMany({
+        data: rolePrivilegeAssignments,
+        skipDuplicates: true,
       });
+
+      const drift = new Map<
+        string,
+        {
+          roleId: string;
+          privilege: SecurityPrivilege;
+          accessLevel: (typeof rolePrivilegeAssignments)[number]['accessLevel'];
+          updatedById: string | null | undefined;
+          entityKeys: string[];
+        }
+      >();
+
+      for (const assignment of rolePrivilegeAssignments) {
+        const key = `${assignment.roleId}|${assignment.privilege}|${String(assignment.accessLevel)}`;
+        const group = drift.get(key);
+        if (group) group.entityKeys.push(assignment.entityKey);
+        else
+          drift.set(key, {
+            roleId: assignment.roleId,
+            privilege: assignment.privilege,
+            accessLevel: assignment.accessLevel,
+            updatedById: assignment.updatedById,
+            entityKeys: [assignment.entityKey],
+          });
+      }
+
+      for (const group of drift.values()) {
+        await db.rolePrivilege.updateMany({
+          where: {
+            tenantId,
+            roleId: group.roleId,
+            privilege: group.privilege,
+            entityKey: { in: group.entityKeys },
+            accessLevel: { not: group.accessLevel },
+          },
+          data: {
+            accessLevel: group.accessLevel,
+            updatedById: group.updatedById,
+          },
+        });
+      }
     }
 
     // Custom roles may predate matrix permissions. Preserve their legacy

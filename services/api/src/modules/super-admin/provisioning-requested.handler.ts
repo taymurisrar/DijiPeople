@@ -12,6 +12,7 @@ import type {
   OutboxHandler,
   OutboxHandlerOutcome,
 } from '../outbox/outbox.types';
+import { OrderActivationService } from '../billing/services/order-activation.service';
 import { PlatformOnboardingService } from './platform-onboarding.service';
 
 /**
@@ -46,6 +47,7 @@ export class ProvisioningRequestedHandler
     private readonly prisma: PrismaService,
     private readonly onboarding: PlatformOnboardingService,
     private readonly dispatcher: OutboxDispatcherService,
+    private readonly activation: OrderActivationService,
   ) {}
 
   onModuleInit(): void {
@@ -199,6 +201,28 @@ export class ProvisioningRequestedHandler
         where: { customerId: order.customerAccountId, tenantId: null },
         data: { tenantId: result.tenantId, tenantCreated: true },
       });
+    });
+
+    /*
+     * Say that the workspace is usable — the step this handler's own comment
+     * above promises ("the customer is about to be told it is ready") and which
+     * nothing performed.
+     *
+     * `markTenantReady` existed, was correct, and had **no caller anywhere in
+     * the repository**, so `Tenant.readinessStatus` stayed NOT_READY for every
+     * tenant ever provisioned. `getOnboardingStatus` derives both the final
+     * "Finishing setup" step and the workspace link from that field, so a paying
+     * customer watched a progress page that could never finish and was never
+     * given the address of the workspace they had bought. The same shape as the
+     * missing consumer described at the top of this file: the work was done, and
+     * the last statement of it was not.
+     *
+     * After the transaction rather than inside it: this is a separate,
+     * idempotent state change, and `markTenantReady` opens its own transaction.
+     */
+    await this.activation.markTenantReady({
+      tenantId: result.tenantId,
+      orderId: order.id,
     });
 
     this.logger.log(
