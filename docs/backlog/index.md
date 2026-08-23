@@ -13,14 +13,14 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 40 |
+| Open (active work) | 39 |
 | Blocked | 1 |
 | Deferred | 21 |
 | Awaiting a product decision | 4 |
-| Completed / closed | 167 |
+| Completed / closed | 168 |
 | **Open CRITICAL** | **3** |
 | **Open HIGH** | **12** |
-| **Awaiting Architect triage** | **1** |
+| **Awaiting Architect triage** | **0** |
 
 ## Open by severity
 
@@ -28,7 +28,7 @@ see [`README.md`](README.md) for why.
 |---|---|
 | CRITICAL | 3 |
 | HIGH | 12 |
-| MEDIUM | 21 |
+| MEDIUM | 20 |
 | LOW | 4 |
 
 ## Open by type
@@ -39,7 +39,7 @@ see [`README.md`](README.md) for why.
 | BUG | 11 |
 | DATA_INTEGRITY | 1 |
 | FOLLOW_UP | 2 |
-| INFRA | 8 |
+| INFRA | 7 |
 | PRODUCT_DECISION | 1 |
 | SECURITY | 4 |
 | TECH_DEBT | 4 |
@@ -57,9 +57,8 @@ see [`README.md`](README.md) for why.
 | FIXED | 14 |
 | VERIFIED | 121 |
 | DUPLICATE | 2 |
-| TRIAGE_REQUIRED | 1 |
 | READY | 21 |
-| DONE | 44 |
+| DONE | 45 |
 
 ## All records
 
@@ -258,7 +257,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0078](../../docs/backlog/items/ITEM-0078-no-end-to-end-payment-to-provisioned-tenant-run-against-stri.md) | No end-to-end payment to provisioned tenant run against Stripe test mode | TEST_GAP | MEDIUM | P2 | READY | api:billing, api:tenant-control-plane, api:outbox, apps/landing | PLAN_REQUIRED |
 | [ITEM-0081](../../docs/backlog/items/ITEM-0081-nine-test-plans-are-needs-review-against-a-five-day-old-comm.md) | Nine test plans are NEEDS_REVIEW against a five-day-old commit | TEST_GAP | MEDIUM | P2 | READY | docs/qa/test-plans | FIX_NOW |
 | [ITEM-0084](../../docs/backlog/items/ITEM-0084-detect-drift-between-render-yaml-and-the-live-render-service.md) | Detect drift between render.yaml and the live Render service | INFRA | MEDIUM | P2 | READY | render.yaml, scripts | FIX_NOW |
-| [ITEM-0085](../../docs/backlog/items/ITEM-0085-no-bulk-command-exists-to-sync-plan-prices-to-stripe-so-a-la.md) | No bulk command exists to sync plan prices to Stripe, so a launch needs 36 manual admin edits | INFRA | MEDIUM | P2 | TRIAGE_REQUIRED | api:super-admin | PLAN_REQUIRED |
+| [ITEM-0085](../../docs/backlog/items/ITEM-0085-no-bulk-command-exists-to-sync-plan-prices-to-stripe-so-a-la.md) | No bulk command exists to sync plan prices to Stripe, so a launch needs 36 manual admin edits | INFRA | MEDIUM | P2 | DONE | api:super-admin | DONE |
 | [ITEM-0021](../../docs/backlog/items/ITEM-0021-mechanical-guard-against-country-and-currency-literals-in-fr.md) | Mechanical guard against country and currency literals in frontends | TEST_GAP | LOW | P2 | DONE | scripts, apps/landing, apps/web, apps/admin | DONE |
 | [ITEM-0023](../../docs/backlog/items/ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning.md) | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | P2 | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
 | [ITEM-0024](../../docs/backlog/items/ITEM-0024-landing-depends-on-lucide-react-without-declaring-it.md) | Landing depends on lucide-react without declaring it | TECH_DEBT | LOW | P2 | DONE | apps/landing | DONE |

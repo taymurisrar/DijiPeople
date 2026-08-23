@@ -9,11 +9,11 @@
 |---|---|
 | Open CRITICAL | **3** |
 | Open HIGH | **12** |
-| Open total | 40 |
+| Open total | 39 |
 | Blocked | 1 |
 | Awaiting a product decision | 4 |
 | Deferred | 21 |
-| Completed | 167 |
+| Completed | 168 |
 | Awaiting Architect triage | 0 |
 
 ## Open Critical Bugs
@@ -76,7 +76,6 @@
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0074-allocate-id-and-session-tooling-accept-a-session-id-that-doe|ITEM-0074]] | allocate-id and session tooling accept a session id that does not exist | INFRA | MEDIUM | READY | framework | PLAN_REQUIRED |
 | [[ITEM-0084-detect-drift-between-render-yaml-and-the-live-render-service|ITEM-0084]] | Detect drift between render.yaml and the live Render service | INFRA | MEDIUM | READY | render.yaml, scripts | FIX_NOW |
-| [[ITEM-0085-no-bulk-command-exists-to-sync-plan-prices-to-stripe-so-a-la|ITEM-0085]] | No bulk command exists to sync plan prices to Stripe, so a launch needs 36 manual admin edits | INFRA | MEDIUM | TRIAGE_REQUIRED | api:super-admin | PLAN_REQUIRED |
 | [[ITEM-0049-register-services-api-environment-reads-or-scope-the-rule|ITEM-0049]] | Register services/api environment reads or scope the rule to build inputs | INFRA | LOW | READY | services/api, turbo.json, docs/deployment | PLAN_REQUIRED |
 
 ## Recently Fixed Bugs
@@ -278,7 +277,6 @@ _None. Nothing has been deployed through the release process._
 | [[ITEM-0078-no-end-to-end-payment-to-provisioned-tenant-run-against-stri|ITEM-0078]] | No end-to-end payment to provisioned tenant run against Stripe test mode | TEST_GAP | MEDIUM | READY | api:billing, api:tenant-control-plane, api:outbox, apps/landing | PLAN_REQUIRED |
 | [[ITEM-0081-nine-test-plans-are-needs-review-against-a-five-day-old-comm|ITEM-0081]] | Nine test plans are NEEDS_REVIEW against a five-day-old commit | TEST_GAP | MEDIUM | READY | docs/qa/test-plans | FIX_NOW |
 | [[ITEM-0084-detect-drift-between-render-yaml-and-the-live-render-service|ITEM-0084]] | Detect drift between render.yaml and the live Render service | INFRA | MEDIUM | READY | render.yaml, scripts | FIX_NOW |
-| [[ITEM-0085-no-bulk-command-exists-to-sync-plan-prices-to-stripe-so-a-la|ITEM-0085]] | No bulk command exists to sync plan prices to Stripe, so a launch needs 36 manual admin edits | INFRA | MEDIUM | TRIAGE_REQUIRED | api:super-admin | PLAN_REQUIRED |
 | [[ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning|ITEM-0023]] | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
 | [[BUG-0796-tenant-and-plan-list-summaries-omit-createdbyid-so-the-creat|BUG-0796]] | Tenant and plan list summaries omit createdById so the Created by me view is always empty | BUG | LOW | FIXED | api:super-admin | FIX_NOW |
 | [[ITEM-0049-register-services-api-environment-reads-or-scope-the-rule|ITEM-0049]] | Register services/api environment reads or scope the rule to build inputs | INFRA | LOW | READY | services/api, turbo.json, docs/deployment | PLAN_REQUIRED |

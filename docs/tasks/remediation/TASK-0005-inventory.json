@@ -11308,8 +11308,8 @@
       "title": "No bulk command exists to sync plan prices to Stripe, so a launch needs 36 manual admin edits",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "TRIAGE_REQUIRED",
-      "architect_disposition": "PLAN_REQUIRED",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0085-no-bulk-command-exists-to-sync-plan-prices-to-stripe-so-a-la.md",
         "provenance": "QA_RUN",

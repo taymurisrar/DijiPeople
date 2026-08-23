@@ -12,7 +12,7 @@ OwnerAgent: architect
 ArchitectDisposition: DONE
 CreatedAt: 2026-08-23
 UpdatedAt: 2026-08-23
-RelatedBug: 
+RelatedBug: BUG-0898
 RelatedQA: 
 RelatedADR: 
 RelatedImplementation:
@@ -58,8 +58,6 @@ Wikilinks to related bugs, items, modules and decisions.
 
 ## Related
 
-- No related record, module or decision is declared in this record's
-  frontmatter. Declare one rather than adding a link here by hand — this
-  block is regenerated and a hand-written link inside it is lost.
+- Bug — [[BUG-0898]]
 
 <!-- GRAPH:END -->
