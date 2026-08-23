@@ -2,6 +2,10 @@ import { PrismaClient, LegalDocumentVersionStatus } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { describeWithDatabase } from './helpers/db-fixtures';
 import { seedLegalDocuments } from '../prisma/seed-legal';
+import {
+  findDraftSelfDeclarations,
+  findUnfilledPlaceholders,
+} from '../src/modules/legal/legal.service';
 
 /**
  * The seeded legal set, against a real PostgreSQL.
@@ -253,14 +257,40 @@ describeWithDatabase()('Seeded legal documents (DB-backed)', () => {
     }
   });
 
-  it('carries a visible draft banner on every document', async () => {
+  it('seeds documents the release is allowed to publish', async () => {
+    /*
+     * This used to assert the opposite — that every seeded document carried
+     * `not been reviewed by a lawyer` — and it was right to, for as long as the
+     * copy was written by engineers from the implementation and no lawyer had
+     * seen it. Publishing that would have been the worse failure.
+     *
+     * The business supplied the real clauses on 2026-08-23 and the banner came
+     * off all ten documents, so the assertion flips to the thing that now
+     * matters: the seed must write content that `legal:publish --confirm`
+     * accepts. It is the same guard, asked of the rows the seed actually wrote
+     * rather than of the source — Render's pre-deploy command runs this chain,
+     * and two production deploys failed at exactly this step.
+     *
+     * `seed-legal-publishable.spec.ts` asks it of the source in unit tests, so
+     * a regression is caught before this suite needs a database.
+     */
     const versions = await prisma.legalDocumentVersion.findMany({
       where: { document: { slug: { in: EXPECTED_SLUGS } } },
-      select: { contentMarkdown: true },
+      select: { contentMarkdown: true, document: { select: { slug: true } } },
     });
 
+    expect(versions.length).toBeGreaterThanOrEqual(EXPECTED_SLUGS.length);
+
     for (const version of versions) {
-      expect(version.contentMarkdown).toContain('not been reviewed by a');
+      expect({
+        slug: version.document.slug,
+        declarations: findDraftSelfDeclarations(version.contentMarkdown),
+        placeholders: findUnfilledPlaceholders(version.contentMarkdown),
+      }).toEqual({
+        slug: version.document.slug,
+        declarations: [],
+        placeholders: [],
+      });
     }
   });
 });
