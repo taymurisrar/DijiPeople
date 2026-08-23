@@ -90,6 +90,14 @@ import { ReconciliationService } from './services/reconciliation.service';
     CommercialConfigService,
     StripeBillingService,
     WebhookService,
+    /*
+     * Exported so the provisioning consumer in `super-admin` can mark a
+     * workspace ready once it has built one. Until then `markTenantReady` had no
+     * caller anywhere in the repository, so `Tenant.readinessStatus` stayed
+     * NOT_READY forever and the buyer's success page never left "Finishing
+     * setup" or offered a link to the workspace they had paid for.
+     */
+    OrderActivationService,
   ],
 })
 export class BillingModule {}

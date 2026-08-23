@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**216 records** — 132 bugs under [`docs/bugs/`](../bugs/), 84 non-bug items under [`items/`](items/).
+**232 records** — 143 bugs under [`docs/bugs/`](../bugs/), 89 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,21 +13,22 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 29 |
+| Open (active work) | 40 |
 | Blocked | 1 |
-| Deferred | 18 |
-| Awaiting a product decision | 2 |
+| Deferred | 21 |
+| Awaiting a product decision | 4 |
 | Completed / closed | 166 |
-| **Open CRITICAL** | **0** |
-| **Open HIGH** | **7** |
-| **Awaiting Architect triage** | **0** |
+| **Open CRITICAL** | **3** |
+| **Open HIGH** | **12** |
+| **Awaiting Architect triage** | **2** |
 
 ## Open by severity
 
 | Severity | Count |
 |---|---|
-| HIGH | 7 |
-| MEDIUM | 18 |
+| CRITICAL | 3 |
+| HIGH | 12 |
+| MEDIUM | 21 |
 | LOW | 4 |
 
 ## Open by type
@@ -35,26 +36,28 @@ see [`README.md`](README.md) for why.
 | Type | Count |
 |---|---|
 | ARCHITECTURE | 1 |
-| BUG | 2 |
+| BUG | 11 |
 | DATA_INTEGRITY | 1 |
 | FOLLOW_UP | 2 |
-| INFRA | 7 |
+| INFRA | 8 |
 | PRODUCT_DECISION | 1 |
 | SECURITY | 3 |
 | TECH_DEBT | 4 |
-| TEST_GAP | 5 |
+| TEST_GAP | 6 |
 | UX | 3 |
 
 ## All records by status
 
 | Status | Count |
 |---|---|
+| OPEN | 4 |
 | BLOCKED | 1 |
-| DEFERRED | 18 |
-| PRODUCT_DECISION | 2 |
-| FIXED | 8 |
+| DEFERRED | 21 |
+| PRODUCT_DECISION | 4 |
+| FIXED | 13 |
 | VERIFIED | 121 |
 | DUPLICATE | 2 |
+| TRIAGE_REQUIRED | 2 |
 | READY | 21 |
 | DONE | 43 |
 
@@ -68,6 +71,10 @@ see [`README.md`](README.md) for why.
 | [BUG-0030](../../docs/bugs/BUG-0030-plan-list-get-mutates-commercial-pricing-and-can-fail-on-pla.md) | Plan list GET mutates commercial pricing and can fail on PlanPrice unique constraint | DATA_INTEGRITY | CRITICAL | P0 | VERIFIED | services/api, services/api/prisma | DONE |
 | [BUG-0047](../../docs/bugs/BUG-0047-seven-bug-records-are-verified-while-their-fixes-exist-only.md) | Seven bug records are VERIFIED while their fixes exist only on unmerged branches | SECURITY | CRITICAL | P0 | VERIFIED | api:organization, api:error-logs, api:employees, api:attendance, docs/qa/regressions | DONE |
 | [BUG-0071](../../docs/bugs/BUG-0071-tenant-users-reach-every-platform-super-admin-endpoint.md) | Tenant users reach every platform super-admin endpoint | AUTHORIZATION | CRITICAL | P0 | VERIFIED | super-admin, platform-auth, platform-communications | DONE |
+| [BUG-0898](../../docs/bugs/BUG-0898-self-service-checkout-is-blocked-for-every-plan-no-plan-pric.md) | Self-service checkout is blocked for every plan: no plan price has ever been synced to Stripe | BUG | CRITICAL | P0 | OPEN | api:super-admin, app:landing | BLOCKED_EXTERNAL |
+| [BUG-0899](../../docs/bugs/BUG-0899-production-cannot-deploy-the-release-chain-always-fails-beca.md) | Production cannot deploy: the release chain always fails because seeded legal documents declare themselves drafts | BUG | CRITICAL | P0 | PRODUCT_DECISION | services/api/prisma | PRODUCT_DECISION |
+| [BUG-0900](../../docs/bugs/BUG-0900-tenant-provisioning-exceeds-the-5s-transaction-timeout-a-pai.md) | Tenant provisioning exceeds the 5s transaction timeout: a paid order is left with no workspace | BUG | CRITICAL | P0 | FIXED | api:permissions | FIX_NOW |
+| [BUG-0904](../../docs/bugs/BUG-0904-production-is-missing-outbox-worker-enabled-so-no-workspace-.md) | Production is missing OUTBOX_WORKER_ENABLED, so no workspace is provisioned after payment | BUG | CRITICAL | P0 | OPEN | api:outbox | BLOCKED_EXTERNAL |
 | [BUG-0049](../../docs/bugs/BUG-0049-report-only-ci-jobs-swallow-security-and-database-e2e-failur.md) | Report-only CI jobs swallow security and database E2E failures | INFRA | HIGH | P0 | VERIFIED | .github/workflows, services/api/src/common/constants, services/api/test, docs/qa | DONE |
 | [BUG-0052](../../docs/bugs/BUG-0052-production-dependency-graph-carries-critical-and-high-securi.md) | Production dependency graph carries critical and high security advisories | SECURITY | HIGH | P0 | VERIFIED | package-lock.json, apps/agent-desktop, apps/web, apps/admin, apps/landing, services/api | DONE |
 | [BUG-0053](../../docs/bugs/BUG-0053-documents-self-scoped-users-can-read-tenant-wide-documents.md) | Self-scoped document readers can list and open tenant-wide documents | AUTHORIZATION | HIGH | P0 | VERIFIED | api:documents | DONE |
@@ -133,6 +140,11 @@ see [`README.md`](README.md) for why.
 | [BUG-0792](../../docs/bugs/BUG-0792-qatar-market-resolves-to-gcc-because-its-country-row-is-neve.md) | Qatar market resolves to GCC because its country row is never repaired, so Doha visitors are quoted USD | DATA_INTEGRITY | HIGH | P1 | FIXED | api:super-admin | FIX_NOW |
 | [BUG-0793](../../docs/bugs/BUG-0793-checkout-quotes-the-alphabetically-first-plan-price-currency.md) | Checkout quotes the alphabetically first plan price currency instead of the visitor market currency | BUG | HIGH | P1 | FIXED | apps/landing | FIX_NOW |
 | [BUG-0794](../../docs/bugs/BUG-0794-plan-record-page-pricing-tab-is-filtered-out-leaving-plan-pr.md) | Plan record page Pricing tab is filtered out, leaving plan price configuration unreachable | UX | HIGH | P1 | FIXED | apps/admin | FIX_NOW |
+| [BUG-0877](../../docs/bugs/BUG-0877-editing-a-plan-price-always-fails-with-property-synctostripe.md) | Editing a plan price always fails with property syncToStripe should not exist | BUG | HIGH | P1 | FIXED | apps/admin | FIX_NOW |
+| [BUG-0901](../../docs/bugs/BUG-0901-a-paid-order-records-totalamount-0-00-for-every-flat-plan-wh.md) | A paid order records totalAmount 0.00 for every FLAT plan while Stripe charges the full price | BUG | HIGH | P1 | FIXED | api:billing | FIX_NOW |
+| [BUG-0902](../../docs/bugs/BUG-0902-marktenantready-has-no-caller-so-a-paid-workspace-is-never-m.md) | markTenantReady has no caller, so a paid workspace is never marked ready and its URL is never shown | BUG | HIGH | P1 | FIXED | api:super-admin | FIX_NOW |
+| [BUG-0903](../../docs/bugs/BUG-0903-production-runs-stripe-in-test-mode-so-no-real-payment-can-b.md) | Production runs Stripe in test mode, so no real payment can be collected | BUG | HIGH | P1 | OPEN | api:billing | BLOCKED_EXTERNAL |
+| [BUG-0906](../../docs/bugs/BUG-0906-production-has-no-published-legal-documents-so-purchases-rec.md) | Production has no published legal documents, so purchases record no consent and the footer links to nothing | BUG | HIGH | P1 | PRODUCT_DECISION | api:legal, apps/landing | PRODUCT_DECISION |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | READY | apps/web, e2e | PLAN_REQUIRED |
@@ -140,6 +152,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0062](../../docs/backlog/items/ITEM-0062-no-multi-tenant-membership-one-user-belongs-to-one-tenant-so.md) | No multi-tenant membership — one user belongs to one tenant, so discovery and switching cannot exist | ARCHITECTURE | HIGH | P1 | PRODUCT_DECISION | auth, users, tenant-domains, web | PRODUCT_DECISION |
 | [ITEM-0063](../../docs/backlog/items/ITEM-0063-self-service-checkout-must-prove-the-owner-email-before-char.md) | Self-service checkout must prove the owner email before charging | SECURITY | HIGH | P1 | DONE | billing, platform-communications, landing | DONE |
 | [ITEM-0048](../../docs/backlog/items/ITEM-0048-replace-or-contain-active-win-and-the-xlsx-export-path.md) | Replace or contain active-win and the xlsx export path | SECURITY | HIGH | P2 | BLOCKED | apps/agent-desktop, services/api/src/common/excel, package-lock.json | BLOCKED_EXTERNAL |
+| [ITEM-0086](../../docs/backlog/items/ITEM-0086-smoke-deployment-does-not-assert-that-a-launched-market-has-.md) | smoke:deployment does not assert that a launched market has a purchasable price or a running outbox worker | TEST_GAP | HIGH | P2 | TRIAGE_REQUIRED | scripts | FIX_NOW |
 | [BUG-0051](../../docs/bugs/BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state.md) | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | P1 | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |
 | [ITEM-0018](../../docs/backlog/items/ITEM-0018-plans-and-prices-have-no-draft-publish-or-archive-lifecycle.md) | Plans and prices have no draft, publish or archive lifecycle | ARCHITECTURE | MEDIUM | P1 | DONE | services/api/prisma, api:super-admin, apps/admin, apps/landing | DONE |
 | [ITEM-0044](../../docs/backlog/items/ITEM-0044-validate-forwarded-host-before-tenant-web-workspace-resoluti.md) | Validate forwarded host before tenant web workspace resolution | SECURITY | MEDIUM | P1 | READY | apps/web | PLAN_REQUIRED |
@@ -196,6 +209,8 @@ see [`README.md`](README.md) for why.
 | [BUG-0534](../../docs/bugs/BUG-0534-plan-form-offered-editable-legacy-price-fields-that-bill-nob.md) | Plan form offered editable legacy price fields that bill nobody | UX | MEDIUM | P2 | VERIFIED | super-admin, apps/admin | DONE |
 | [BUG-0668](../../docs/bugs/BUG-0668-exchange-rate-resolution-ignored-the-effective-date-it-was-g.md) | Exchange rate resolution ignored the effective date it was given | DATA_INTEGRITY | MEDIUM | P2 | VERIFIED | api:tenant-settings | DONE |
 | [BUG-0795](../../docs/bugs/BUG-0795-saved-table-preferences-hide-every-column-added-to-a-module-.md) | Saved table preferences hide every column added to a module afterwards | UX | MEDIUM | P2 | FIXED | apps/admin | FIX_NOW |
+| [BUG-0905](../../docs/bugs/BUG-0905-production-defines-direct-url-but-the-code-reads-direct-data.md) | Production defines DIRECT_URL but the code reads DIRECT_DATABASE_URL, so migrations run over the pooled endpoint | BUG | MEDIUM | P2 | OPEN | services/api/prisma, pkg:config | BLOCKED_EXTERNAL |
+| [BUG-0907](../../docs/bugs/BUG-0907-an-unknown-legal-slug-answers-200-and-hangs-on-the-loading-s.md) | An unknown legal slug answers 200 and hangs on the loading shell instead of returning 404 | BUG | MEDIUM | P2 | FIXED | apps/landing | FIX_NOW |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |
@@ -242,10 +257,14 @@ see [`README.md`](README.md) for why.
 | [ITEM-0078](../../docs/backlog/items/ITEM-0078-no-end-to-end-payment-to-provisioned-tenant-run-against-stri.md) | No end-to-end payment to provisioned tenant run against Stripe test mode | TEST_GAP | MEDIUM | P2 | READY | api:billing, api:tenant-control-plane, api:outbox, apps/landing | PLAN_REQUIRED |
 | [ITEM-0081](../../docs/backlog/items/ITEM-0081-nine-test-plans-are-needs-review-against-a-five-day-old-comm.md) | Nine test plans are NEEDS_REVIEW against a five-day-old commit | TEST_GAP | MEDIUM | P2 | READY | docs/qa/test-plans | FIX_NOW |
 | [ITEM-0084](../../docs/backlog/items/ITEM-0084-detect-drift-between-render-yaml-and-the-live-render-service.md) | Detect drift between render.yaml and the live Render service | INFRA | MEDIUM | P2 | READY | render.yaml, scripts | FIX_NOW |
+| [ITEM-0085](../../docs/backlog/items/ITEM-0085-no-bulk-command-exists-to-sync-plan-prices-to-stripe-so-a-la.md) | No bulk command exists to sync plan prices to Stripe, so a launch needs 36 manual admin edits | INFRA | MEDIUM | P2 | TRIAGE_REQUIRED | api:super-admin | PLAN_REQUIRED |
 | [ITEM-0021](../../docs/backlog/items/ITEM-0021-mechanical-guard-against-country-and-currency-literals-in-fr.md) | Mechanical guard against country and currency literals in frontends | TEST_GAP | LOW | P2 | DONE | scripts, apps/landing, apps/web, apps/admin | DONE |
 | [ITEM-0023](../../docs/backlog/items/ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning.md) | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | P2 | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
 | [ITEM-0024](../../docs/backlog/items/ITEM-0024-landing-depends-on-lucide-react-without-declaring-it.md) | Landing depends on lucide-react without declaring it | TECH_DEBT | LOW | P2 | DONE | apps/landing | DONE |
 | [ITEM-0070](../../docs/backlog/items/ITEM-0070-move-the-excel-write-path-off-xlsx-and-drop-the-dependency.md) | Move the Excel write path off xlsx and drop the dependency | SECURITY | LOW | P2 | DEFERRED | payroll, timesheets | DEFER |
+| [ITEM-0087](../../docs/backlog/items/ITEM-0087-stripe-api-version-is-commented-out-in-the-local-api-env-and.md) | STRIPE_API_VERSION is commented out in the local API env and documented with two different values | DOCUMENTATION | LOW | P2 | DEFERRED | services/api | DEFER |
+| [ITEM-0088](../../docs/backlog/items/ITEM-0088-npm-workspace-api-run-start-dev-always-frees-port-4000-regar.md) | npm --workspace api run start:dev always frees port 4000 regardless of PORT, killing any other API instance | TECH_DEBT | LOW | P2 | DEFERRED | services/api | DEFER |
+| [ITEM-0089](../../docs/backlog/items/ITEM-0089-the-contact-form-is-the-only-public-lead-creating-form-with-.md) | The contact form is the only public lead-creating form with no honeypot | SECURITY | LOW | P2 | DEFERRED | apps/landing | DEFER |
 | [BUG-0018](../../docs/bugs/BUG-0018-bulk-lead-delete-is-unreachable-for-every-role.md) | Bulk lead delete is unreachable for every role, including SUPER_ADMIN | AUTHORIZATION | LOW | P3 | DEFERRED | api:platform-auth, api:super-admin | DEFER |
 | [BUG-0023](../../docs/bugs/BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist.md) | The testing-architecture context claims two e2e specs do not exist | DOCUMENTATION | LOW | P3 | VERIFIED | .agent/context | DONE |
 | [BUG-0024](../../docs/bugs/BUG-0024-start-onboarding-api-and-proxy-have-no-caller.md) | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | P3 | VERIFIED | apps/admin, api:super-admin | DONE |

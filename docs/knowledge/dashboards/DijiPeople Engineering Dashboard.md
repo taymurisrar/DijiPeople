@@ -7,18 +7,22 @@
 
 | | |
 |---|---|
-| Open CRITICAL | **0** |
-| Open HIGH | **7** |
-| Open total | 29 |
+| Open CRITICAL | **3** |
+| Open HIGH | **12** |
+| Open total | 40 |
 | Blocked | 1 |
-| Awaiting a product decision | 2 |
-| Deferred | 18 |
+| Awaiting a product decision | 4 |
+| Deferred | 21 |
 | Completed | 166 |
 | Awaiting Architect triage | 0 |
 
 ## Open Critical Bugs
 
-_None. Nothing open at CRITICAL._
+| ID | Title | Type | Severity | Status | Affected | Architect |
+|---|---|---|---|---|---|---|
+| [[BUG-0898-self-service-checkout-is-blocked-for-every-plan-no-plan-pric|BUG-0898]] | Self-service checkout is blocked for every plan: no plan price has ever been synced to Stripe | BUG | CRITICAL | OPEN | api:super-admin, app:landing | BLOCKED_EXTERNAL |
+| [[BUG-0900-tenant-provisioning-exceeds-the-5s-transaction-timeout-a-pai|BUG-0900]] | Tenant provisioning exceeds the 5s transaction timeout: a paid order is left with no workspace | BUG | CRITICAL | FIXED | api:permissions | FIX_NOW |
+| [[BUG-0904-production-is-missing-outbox-worker-enabled-so-no-workspace-|BUG-0904]] | Production is missing OUTBOX_WORKER_ENABLED, so no workspace is provisioned after payment | BUG | CRITICAL | OPEN | api:outbox | BLOCKED_EXTERNAL |
 
 ## Open High Bugs
 
@@ -30,12 +34,19 @@ _None. Nothing open at CRITICAL._
 | [[BUG-0792-qatar-market-resolves-to-gcc-because-its-country-row-is-neve|BUG-0792]] | Qatar market resolves to GCC because its country row is never repaired, so Doha visitors are quoted USD | DATA_INTEGRITY | HIGH | FIXED | api:super-admin | FIX_NOW |
 | [[BUG-0793-checkout-quotes-the-alphabetically-first-plan-price-currency|BUG-0793]] | Checkout quotes the alphabetically first plan price currency instead of the visitor market currency | BUG | HIGH | FIXED | apps/landing | FIX_NOW |
 | [[BUG-0794-plan-record-page-pricing-tab-is-filtered-out-leaving-plan-pr|BUG-0794]] | Plan record page Pricing tab is filtered out, leaving plan price configuration unreachable | UX | HIGH | FIXED | apps/admin | FIX_NOW |
+| [[BUG-0877-editing-a-plan-price-always-fails-with-property-synctostripe|BUG-0877]] | Editing a plan price always fails with property syncToStripe should not exist | BUG | HIGH | FIXED | apps/admin | FIX_NOW |
+| [[BUG-0901-a-paid-order-records-totalamount-0-00-for-every-flat-plan-wh|BUG-0901]] | A paid order records totalAmount 0.00 for every FLAT plan while Stripe charges the full price | BUG | HIGH | FIXED | api:billing | FIX_NOW |
+| [[BUG-0902-marktenantready-has-no-caller-so-a-paid-workspace-is-never-m|BUG-0902]] | markTenantReady has no caller, so a paid workspace is never marked ready and its URL is never shown | BUG | HIGH | FIXED | api:super-admin | FIX_NOW |
+| [[BUG-0903-production-runs-stripe-in-test-mode-so-no-real-payment-can-b|BUG-0903]] | Production runs Stripe in test mode, so no real payment can be collected | BUG | HIGH | OPEN | api:billing | BLOCKED_EXTERNAL |
 | [[ITEM-0034-apps-web-has-zero-browser-e2e-coverage|ITEM-0034]] | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | READY | apps/web, e2e | PLAN_REQUIRED |
+| [[ITEM-0086-smoke-deployment-does-not-assert-that-a-launched-market-has-|ITEM-0086]] | smoke:deployment does not assert that a launched market has a purchasable price or a running outbox worker | TEST_GAP | HIGH | TRIAGE_REQUIRED | scripts | FIX_NOW |
 
 ## Product Decisions Needed
 
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
+| [[BUG-0899-production-cannot-deploy-the-release-chain-always-fails-beca|BUG-0899]] | Production cannot deploy: the release chain always fails because seeded legal documents declare themselves drafts | BUG | CRITICAL | PRODUCT_DECISION | services/api/prisma | PRODUCT_DECISION |
+| [[BUG-0906-production-has-no-published-legal-documents-so-purchases-rec|BUG-0906]] | Production has no published legal documents, so purchases record no consent and the footer links to nothing | BUG | HIGH | PRODUCT_DECISION | api:legal, apps/landing | PRODUCT_DECISION |
 | [[ITEM-0062-no-multi-tenant-membership-one-user-belongs-to-one-tenant-so|ITEM-0062]] | No multi-tenant membership — one user belongs to one tenant, so discovery and switching cannot exist | ARCHITECTURE | HIGH | PRODUCT_DECISION | auth, users, tenant-domains, web | PRODUCT_DECISION |
 | [[ITEM-0079-activation-does-not-gate-on-a-workspace-having-any-module-en|ITEM-0079]] | Activation does not gate on a workspace having any module enabled | PRODUCT_DECISION | LOW | PRODUCT_DECISION | api:tenant-control-plane | PRODUCT_DECISION |
 
@@ -50,6 +61,7 @@ _None. Nothing open at CRITICAL._
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
 | [[ITEM-0034-apps-web-has-zero-browser-e2e-coverage|ITEM-0034]] | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | READY | apps/web, e2e | PLAN_REQUIRED |
+| [[ITEM-0086-smoke-deployment-does-not-assert-that-a-launched-market-has-|ITEM-0086]] | smoke:deployment does not assert that a launched market has a purchasable price or a running outbox worker | TEST_GAP | HIGH | TRIAGE_REQUIRED | scripts | FIX_NOW |
 | [[ITEM-0052-verify-the-agent-update-feed-against-a-real-published-artefact|ITEM-0052]] | Verify the agent update feed against a real published artefact | TEST_GAP | MEDIUM | READY | apps/agent-desktop, api:app-releases | PLAN_REQUIRED |
 | [[ITEM-0077-re-read-the-packaged-agent-archive-after-the-node-pre-gyp-up|ITEM-0077]] | Re-read the packaged agent archive after the node-pre-gyp upgrade | TEST_GAP | MEDIUM | READY | apps/agent-desktop, package-lock.json | PLAN_REQUIRED |
 | [[ITEM-0078-no-end-to-end-payment-to-provisioned-tenant-run-against-stri|ITEM-0078]] | No end-to-end payment to provisioned tenant run against Stripe test mode | TEST_GAP | MEDIUM | READY | api:billing, api:tenant-control-plane, api:outbox, apps/landing | PLAN_REQUIRED |
@@ -65,6 +77,7 @@ _None. Nothing open at CRITICAL._
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0074-allocate-id-and-session-tooling-accept-a-session-id-that-doe|ITEM-0074]] | allocate-id and session tooling accept a session id that does not exist | INFRA | MEDIUM | READY | framework | PLAN_REQUIRED |
 | [[ITEM-0084-detect-drift-between-render-yaml-and-the-live-render-service|ITEM-0084]] | Detect drift between render.yaml and the live Render service | INFRA | MEDIUM | READY | render.yaml, scripts | FIX_NOW |
+| [[ITEM-0085-no-bulk-command-exists-to-sync-plan-prices-to-stripe-so-a-la|ITEM-0085]] | No bulk command exists to sync plan prices to Stripe, so a launch needs 36 manual admin edits | INFRA | MEDIUM | TRIAGE_REQUIRED | api:super-admin | PLAN_REQUIRED |
 | [[ITEM-0049-register-services-api-environment-reads-or-scope-the-rule|ITEM-0049]] | Register services/api environment reads or scope the rule to build inputs | INFRA | LOW | READY | services/api, turbo.json, docs/deployment | PLAN_REQUIRED |
 
 ## Recently Fixed Bugs
@@ -77,6 +90,7 @@ _None. Nothing open at CRITICAL._
 | [[BUG-0030-plan-list-get-mutates-commercial-pricing-and-can-fail-on-pla|BUG-0030]] | Plan list GET mutates commercial pricing and can fail on PlanPrice unique constraint | DATA_INTEGRITY | CRITICAL | VERIFIED | services/api, services/api/prisma | DONE |
 | [[BUG-0047-seven-bug-records-are-verified-while-their-fixes-exist-only|BUG-0047]] | Seven bug records are VERIFIED while their fixes exist only on unmerged branches | SECURITY | CRITICAL | VERIFIED | api:organization, api:error-logs, api:employees, api:attendance, docs/qa/regressions | DONE |
 | [[BUG-0071-tenant-users-reach-every-platform-super-admin-endpoint|BUG-0071]] | Tenant users reach every platform super-admin endpoint | AUTHORIZATION | CRITICAL | VERIFIED | super-admin, platform-auth, platform-communications | DONE |
+| [[BUG-0900-tenant-provisioning-exceeds-the-5s-transaction-timeout-a-pai|BUG-0900]] | Tenant provisioning exceeds the 5s transaction timeout: a paid order is left with no workspace | BUG | CRITICAL | FIXED | api:permissions | FIX_NOW |
 | [[BUG-0049-report-only-ci-jobs-swallow-security-and-database-e2e-failur|BUG-0049]] | Report-only CI jobs swallow security and database E2E failures | INFRA | HIGH | VERIFIED | .github/workflows, services/api/src/common/constants, services/api/test, docs/qa | DONE |
 | [[BUG-0052-production-dependency-graph-carries-critical-and-high-securi|BUG-0052]] | Production dependency graph carries critical and high security advisories | SECURITY | HIGH | VERIFIED | package-lock.json, apps/agent-desktop, apps/web, apps/admin, apps/landing, services/api | DONE |
 | [[BUG-0053-documents-self-scoped-users-can-read-tenant-wide-documents|BUG-0053]] | Self-scoped document readers can list and open tenant-wide documents | AUTHORIZATION | HIGH | VERIFIED | api:documents | DONE |
@@ -142,6 +156,9 @@ _None. Nothing open at CRITICAL._
 | [[BUG-0792-qatar-market-resolves-to-gcc-because-its-country-row-is-neve|BUG-0792]] | Qatar market resolves to GCC because its country row is never repaired, so Doha visitors are quoted USD | DATA_INTEGRITY | HIGH | FIXED | api:super-admin | FIX_NOW |
 | [[BUG-0793-checkout-quotes-the-alphabetically-first-plan-price-currency|BUG-0793]] | Checkout quotes the alphabetically first plan price currency instead of the visitor market currency | BUG | HIGH | FIXED | apps/landing | FIX_NOW |
 | [[BUG-0794-plan-record-page-pricing-tab-is-filtered-out-leaving-plan-pr|BUG-0794]] | Plan record page Pricing tab is filtered out, leaving plan price configuration unreachable | UX | HIGH | FIXED | apps/admin | FIX_NOW |
+| [[BUG-0877-editing-a-plan-price-always-fails-with-property-synctostripe|BUG-0877]] | Editing a plan price always fails with property syncToStripe should not exist | BUG | HIGH | FIXED | apps/admin | FIX_NOW |
+| [[BUG-0901-a-paid-order-records-totalamount-0-00-for-every-flat-plan-wh|BUG-0901]] | A paid order records totalAmount 0.00 for every FLAT plan while Stripe charges the full price | BUG | HIGH | FIXED | api:billing | FIX_NOW |
+| [[BUG-0902-marktenantready-has-no-caller-so-a-paid-workspace-is-never-m|BUG-0902]] | markTenantReady has no caller, so a paid workspace is never marked ready and its URL is never shown | BUG | HIGH | FIXED | api:super-admin | FIX_NOW |
 | [[BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state|BUG-0051]] | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |
 | [[BUG-0009-session-revocation-depended-on-the-refresh-cookie|BUG-0009]] | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | VERIFIED | app:admin, api:auth | DONE |
 | [[BUG-0010-unguarded-cookie-options-could-turn-sign-out-into-a-500|BUG-0010]] | Unguarded cookie options could turn admin sign-out into a 500 | INFRA | MEDIUM | VERIFIED | app:admin | DONE |
@@ -194,6 +211,7 @@ _None. Nothing open at CRITICAL._
 | [[BUG-0534-plan-form-offered-editable-legacy-price-fields-that-bill-nob|BUG-0534]] | Plan form offered editable legacy price fields that bill nobody | UX | MEDIUM | VERIFIED | super-admin, apps/admin | DONE |
 | [[BUG-0668-exchange-rate-resolution-ignored-the-effective-date-it-was-g|BUG-0668]] | Exchange rate resolution ignored the effective date it was given | DATA_INTEGRITY | MEDIUM | VERIFIED | api:tenant-settings | DONE |
 | [[BUG-0795-saved-table-preferences-hide-every-column-added-to-a-module-|BUG-0795]] | Saved table preferences hide every column added to a module afterwards | UX | MEDIUM | FIXED | apps/admin | FIX_NOW |
+| [[BUG-0907-an-unknown-legal-slug-answers-200-and-hangs-on-the-loading-s|BUG-0907]] | An unknown legal slug answers 200 and hangs on the loading shell instead of returning 404 | BUG | MEDIUM | FIXED | apps/landing | FIX_NOW |
 | [[BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist|BUG-0023]] | The testing-architecture context claims two e2e specs do not exist | DOCUMENTATION | LOW | VERIFIED | .agent/context | DONE |
 | [[BUG-0024-start-onboarding-api-and-proxy-have-no-caller|BUG-0024]] | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | VERIFIED | apps/admin, api:super-admin | DONE |
 | [[BUG-0059-vault-wikilinks-to-task-records-and-four-module-notes-resolv|BUG-0059]] | Vault wikilinks to task records and four module notes resolve to nothing | DOCUMENTATION | LOW | VERIFIED | scripts, docs/tasks, docs/knowledge | DONE |
@@ -203,6 +221,7 @@ _None. Nothing open at CRITICAL._
 
 ## Recent QA Runs
 
+- [[2026-08-23-landing-go-live-e2e-789eeac|QA Run — landing-go-live-e2e]]
 - [[2026-08-22-tenant-activation-be0fd00|QA Run — tenant-activation]]
 - [[2026-08-20-identity-and-membership-3008a13|QA Run — identity-and-membership]]
 - [[2026-08-19-self-service-onboarding-provisioning-f5bd870|QA Run — self-service-onboarding-provisioning]]
@@ -210,7 +229,6 @@ _None. Nothing open at CRITICAL._
 - [[2026-08-18-primary-worktree-repository-health-494c44d|QA Run — primary-worktree-repository-health]]
 - [[2026-08-18-landing-uiux-remediation-verification-c332992|QA Run — landing-uiux-remediation-verification]]
 - [[2026-08-17-web-app-documentation-1af3690|QA Run — apps/web documentation audit (TASK-0003)]]
-- [[2026-08-17-record-state-reconciliation-d919e1a|QA Run — record-state-reconciliation]]
 
 ## Recent Implementations
 
@@ -223,6 +241,7 @@ _None. Nothing open at CRITICAL._
 
 ## Recent Engineering History
 
+- [[2026-08-23-landing-go-live-e2e-a92fef5e|Engineering History — Landing site full E2E: what a go-live actually requires]]
 - [[2026-08-22-tenant-repair-and-console-ux-f87335d|Engineering History — Tenant repair and console ux]]
 - [[2026-08-22-tenant-commands-monitoring-bulk-delete-0f9addc|Engineering History — Tenant commands monitoring bulk delete]]
 - [[2026-08-22-site-ux-and-admin-fixes-00ef62c|Engineering History — Site ux and admin fixes]]
@@ -230,7 +249,6 @@ _None. Nothing open at CRITICAL._
 - [[2026-08-22-plans-catalogue-converge-ffb188c|Engineering History — Plans catalogue converge]]
 - [[2026-08-22-document-render-theme-and-tenant-recovery-a701eeb|Engineering History — Document render theme and tenant recovery]]
 - [[2026-08-22-backlog-burndown-d63dc4a|Engineering History — Backlog burn-down: seven open bugs and six ready items]]
-- [[2026-08-21-second-ux-round-5d9f74b|Engineering History — Second ux round]]
 
 ## Recent Releases
 
@@ -242,6 +260,8 @@ _None. Nothing has been deployed through the release process._
 |---|---|---|---|---|---|---|
 | [[ITEM-0044-validate-forwarded-host-before-tenant-web-workspace-resoluti|ITEM-0044]] | Validate forwarded host before tenant web workspace resolution | SECURITY | MEDIUM | READY | apps/web | PLAN_REQUIRED |
 | [[BUG-0795-saved-table-preferences-hide-every-column-added-to-a-module-|BUG-0795]] | Saved table preferences hide every column added to a module afterwards | UX | MEDIUM | FIXED | apps/admin | FIX_NOW |
+| [[BUG-0905-production-defines-direct-url-but-the-code-reads-direct-data|BUG-0905]] | Production defines DIRECT_URL but the code reads DIRECT_DATABASE_URL, so migrations run over the pooled endpoint | BUG | MEDIUM | OPEN | services/api/prisma, pkg:config | BLOCKED_EXTERNAL |
+| [[BUG-0907-an-unknown-legal-slug-answers-200-and-hangs-on-the-loading-s|BUG-0907]] | An unknown legal slug answers 200 and hangs on the loading shell instead of returning 404 | BUG | MEDIUM | FIXED | apps/landing | FIX_NOW |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0020-contract-phase-drop-legacy-plan-pricing-columns|ITEM-0020]] | Contract phase: drop legacy Plan pricing columns | TECH_DEBT | MEDIUM | READY | services/api/prisma, api:super-admin, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur|ITEM-0022]] | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | READY | api:super-admin, apps/admin | PLAN_REQUIRED |
@@ -258,6 +278,7 @@ _None. Nothing has been deployed through the release process._
 | [[ITEM-0078-no-end-to-end-payment-to-provisioned-tenant-run-against-stri|ITEM-0078]] | No end-to-end payment to provisioned tenant run against Stripe test mode | TEST_GAP | MEDIUM | READY | api:billing, api:tenant-control-plane, api:outbox, apps/landing | PLAN_REQUIRED |
 | [[ITEM-0081-nine-test-plans-are-needs-review-against-a-five-day-old-comm|ITEM-0081]] | Nine test plans are NEEDS_REVIEW against a five-day-old commit | TEST_GAP | MEDIUM | READY | docs/qa/test-plans | FIX_NOW |
 | [[ITEM-0084-detect-drift-between-render-yaml-and-the-live-render-service|ITEM-0084]] | Detect drift between render.yaml and the live Render service | INFRA | MEDIUM | READY | render.yaml, scripts | FIX_NOW |
+| [[ITEM-0085-no-bulk-command-exists-to-sync-plan-prices-to-stripe-so-a-la|ITEM-0085]] | No bulk command exists to sync plan prices to Stripe, so a launch needs 36 manual admin edits | INFRA | MEDIUM | TRIAGE_REQUIRED | api:super-admin | PLAN_REQUIRED |
 | [[ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning|ITEM-0023]] | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
 | [[BUG-0796-tenant-and-plan-list-summaries-omit-createdbyid-so-the-creat|BUG-0796]] | Tenant and plan list summaries omit createdById so the Created by me view is always empty | BUG | LOW | FIXED | api:super-admin | FIX_NOW |
 | [[ITEM-0049-register-services-api-environment-reads-or-scope-the-rule|ITEM-0049]] | Register services/api environment reads or scope the rule to build inputs | INFRA | LOW | READY | services/api, turbo.json, docs/deployment | PLAN_REQUIRED |
@@ -276,11 +297,11 @@ _None. Nothing has been deployed through the release process._
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 132 |
-| Backlog items | 84 |
-| Known bug patterns | 25 |
-| QA runs | 22 |
-| Engineering history records | 34 |
+| Bug records | 143 |
+| Backlog items | 89 |
+| Known bug patterns | 26 |
+| QA runs | 23 |
+| Engineering history records | 35 |
 | Release records | 0 |
 | Module notes | 28 |
 | Architecture notes | 20 |

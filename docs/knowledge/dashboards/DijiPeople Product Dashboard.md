@@ -67,6 +67,8 @@ See [[dijipeople-platform-overview|DijiPeople Platform Overview]] for the full p
 Questions where the engineering is understood and the **product answer**
 **is not**. No agent may resolve one by implementing a side of it.
 
+- [[BUG-0899-production-cannot-deploy-the-release-chain-always-fails-beca|BUG-0899]] — **Production cannot deploy: the release chain always fails because seeded legal documents declare themselves drafts** (CRITICAL)
+- [[BUG-0906-production-has-no-published-legal-documents-so-purchases-rec|BUG-0906]] — **Production has no published legal documents, so purchases record no consent and the footer links to nothing** (HIGH)
 - [[ITEM-0062-no-multi-tenant-membership-one-user-belongs-to-one-tenant-so|ITEM-0062]] — **No multi-tenant membership — one user belongs to one tenant, so discovery and switching cannot exist** (HIGH)
 - [[ITEM-0079-activation-does-not-gate-on-a-workspace-having-any-module-en|ITEM-0079]] — **Activation does not gate on a workspace having any module enabled** (LOW)
 

@@ -63,6 +63,8 @@
     "repo:health": "node scripts/repo-health.mjs",
     "backlog:rebuild": "node scripts/rebuild-backlog.mjs",
     "backlog:check": "node scripts/rebuild-backlog.mjs --check",
+    "remediation:sync": "node scripts/sync-remediation-inventory.mjs",
+    "remediation:check": "node scripts/sync-remediation-inventory.mjs --check",
     "backlog:new-bug": "node scripts/new-bug.mjs",
     "backlog:new-item": "node scripts/new-backlog-item.mjs",
     "backlog:review": "node scripts/backlog-review.mjs",

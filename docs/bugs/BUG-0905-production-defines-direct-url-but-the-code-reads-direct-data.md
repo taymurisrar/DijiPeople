@@ -1,0 +1,156 @@
+---
+ID: BUG-0905
+aliases: [BUG-0905]
+Title: Production defines DIRECT_URL but the code reads DIRECT_DATABASE_URL, so migrations run over the pooled endpoint
+Status: OPEN
+Severity: MEDIUM
+Priority: P2
+Type: BUG
+Source: QA_RUN
+DetectedDate: 2026-08-23
+DetectedInSha: 1dd74a25
+AffectedModules: [services/api/prisma, packages/config]
+OwnerAgent: architect
+ArchitectDisposition: BLOCKED_EXTERNAL
+QAReport: 
+RegressionId: 
+RelatedBacklogItem:
+RelatedDecision:
+RelatedImplementation:
+CreatedAt: 2026-08-23
+UpdatedAt: 2026-08-23
+ResolvedAt:
+---
+
+# BUG-0905 — Production defines DIRECT_URL but the code reads DIRECT_DATABASE_URL, so migrations run over the pooled endpoint
+
+## Summary
+
+`prisma.config.ts` resolves the migration connection through
+`resolveMigrationDatabaseUrl`, which reads **`DIRECT_DATABASE_URL`** and falls
+back to `DATABASE_URL` when it is absent. The production service defines
+**`DIRECT_URL`** instead — the Prisma/Neon convention name, but not the one this
+repository reads. The override is therefore inert, and `prisma migrate deploy`
+runs over `DATABASE_URL`, which `render.yaml` documents as Neon's *pooled*
+endpoint.
+
+That is the exact configuration BUG-0086 was filed against: PgBouncer in
+transaction pooling mode cannot hold the session-scoped advisory lock
+`migrate deploy` uses, so the lock is not slow to take — it is unobtainable, and
+the deploy dies on `P1002` after ten seconds.
+
+## Expected Behavior
+
+Migrations connect over the direct, non-pooled endpoint, named by the variable
+the code actually reads.
+
+## Actual Behavior
+
+`DIRECT_DATABASE_URL` is unset in production, so the resolver silently falls
+back to the pooled `DATABASE_URL`. Someone set the right value under the wrong
+key and the failure mode is invisible until a migration needs the lock.
+
+## Reproduction
+
+Inspect the production service's environment: `DIRECT_URL` is present,
+`DIRECT_DATABASE_URL` is not. Compare with
+`packages/config/database-urls.js`, which reads only the latter.
+
+## Evidence
+
+Production environment keys (values not read) include `DIRECT_URL` and do not
+include `DIRECT_DATABASE_URL`.
+
+`packages/config/database-urls.js:77`:
+
+```js
+const direct = typeof env.DIRECT_DATABASE_URL === "string" ? env.DIRECT_DATABASE_URL.trim() : "";
+```
+
+`render.yaml` names the correct variable and explains exactly this failure:
+
+```yaml
+      # The connection migrations run over, and it must be Neon's DIRECT
+      # endpoint … With DATABASE_URL pooled and this unset, preDeployCommand
+      # fails on P1002 after ten seconds … BUG-0086.
+      - key: DIRECT_DATABASE_URL
+        sync: false
+```
+
+The `1dd74a25` deploy did get past `prisma:migrate:deploy` — but that release
+carried **no migrations**, so no lock was contended. The next release that adds
+one is where this surfaces.
+
+## Root Cause
+
+Two names for one concept, and the deployed environment uses the one the code
+does not read. Compounded by `render.yaml` never having been applied to the live
+service (see [[BUG-0904]]), so the file that names the variable correctly is not
+the file production is configured from.
+
+## Impact
+
+Latent. Deploys continue to succeed while releases carry no schema change; the
+first release with a migration fails at pre-deploy on `P1002` and blocks the
+release the same way [[BUG-0899]] does now. Worth fixing before anyone is
+relying on a smooth deploy path.
+
+## Affected Areas
+
+- production environment of the API service
+- `services/api/prisma.config.ts`
+- `packages/config/database-urls.js`
+- `render.yaml`
+
+## Proposed Resolution
+
+Rename the production variable to `DIRECT_DATABASE_URL` (or, if `DIRECT_URL` is
+preferred because it is the Prisma convention, accept both in
+`resolveMigrationDatabaseUrl` and say so in `docs/environment-variables.md`).
+Prefer the rename — one name is better than two, and `describeMigrationUrlProblem`
+already names `DIRECT_DATABASE_URL` in its error text, so accepting an alias
+would make that message misleading.
+
+## Acceptance Criteria
+
+- `npm run prisma:migrate:status` against production connects over the direct
+  endpoint.
+- A release containing a migration deploys without `P1002`.
+
+## Regression Coverage
+
+`packages/config/database-urls.test.js` covers the resolver. What is missing is
+an environment check — `check:env-registered` or `smoke:deployment` asserting
+that a pooled `DATABASE_URL` is accompanied by a readable
+`DIRECT_DATABASE_URL`.
+
+## Dependencies
+
+Shares a root cause with [[BUG-0904]]: the live service is configured by hand
+and `render.yaml` is not applied.
+
+## Related Items
+
+[[BUG-0899]], [[BUG-0904]]
+
+## Resolution
+
+Not fixed here. Renaming a production environment variable is a deployment
+action and is the owner's to take.
+
+## QA Retest
+
+Retest on the next release that carries a migration, or by running
+`prisma migrate status` against production with the corrected variable.
+
+## History
+
+- 2026-08-23 — created from qa run at `1dd74a25`.
+
+<!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
+
+## Related
+
+- Modules — [[database-architecture]], [[deployment-architecture]]
+
+<!-- GRAPH:END -->

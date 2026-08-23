@@ -1,13 +1,20 @@
 # Landing Architecture (`apps/landing`)
 
-> **Last Verified:** 2026-08-16
-> **Verified Against SHA:** `78072d2`
+> **Last Verified:** 2026-08-23 (Route surface only — see below)
+> **Verified Against SHA:** `cbf9090e`
 > **Source Paths:** `apps/landing/next.config.ts`, `apps/landing/lib/env.ts`,
 > `apps/landing/app/api/**/route.ts`, `apps/landing/jest.config.js`,
 > `packages/config/index.js`, `services/api/src/common/guards/public-rate-limit.guard.ts`,
 > `.github/workflows/ci.yml`, `render.yaml`
 >
 > This describes the repository; the code is authority over it.
+>
+> **Scope of the 2026-08-23 pass.** Only **Route surface** was re-derived, from
+> a browser sweep of every route against a production build and against
+> production itself. The remaining sections still carry their 2026-08-16
+> verification at `78072d2` and were not re-checked — moving the header date
+> without saying so would have vouched for claims nobody looked at, which is the
+> `doc-code-drift` this file already carries one instance of.
 
 ## CURRENT
 
@@ -43,12 +50,41 @@ Fifteen page routes plus `robots.ts` and `sitemap.ts`:
 `/partners/onboarding/[token]`, `/partners/activate/[token]`, `/subscribe`,
 `/subscribe/success`, `/subscribe/cancel`, `/sign/[token]`.
 
-**There is no `error.tsx`, `loading.tsx` or `not-found.tsx` anywhere in the
-app**, and only one `layout.tsx`. Root `AGENTS.md` makes loading/error/empty
-states mandatory for data surfaces; landing does not satisfy that. The exposure
-is narrower than it looks because the fetch layer is defensive — the commercial
-config falls back to an empty config and the plans fetch handles a non-OK
-response — but the boundary is genuinely absent.
+`app/error.tsx`, `app/loading.tsx` and `app/not-found.tsx` all exist at the
+root, and there is one `layout.tsx`.
+
+> This paragraph previously read "**There is no `error.tsx`, `loading.tsx` or
+> `not-found.tsx` anywhere in the app**" and went on to call the boundary
+> "genuinely absent". That was true when written and became false before
+> 2026-08-23. The correction matters more than the usual `doc-code-drift` entry,
+> because the file this note said did not exist is the one that caused
+> BUG-0907 — an agent reading this would have ruled out the actual cause.
+
+### A root `loading.tsx` turns `notFound()` into a soft 404
+
+Worth knowing before adding a dynamic route here, because nothing about the
+symptom points at the cause.
+
+`app/loading.tsx` puts a Suspense boundary above **every** route. Next therefore
+flushes the shell as soon as the request arrives — and the HTTP status goes out
+with that first flush, before the dynamic segment has run. A later `notFound()`
+can no longer change the status, and in practice does not replace the fallback
+either: the client keeps showing the loading UI.
+
+`/legal/<unknown>` consequently answered `200 OK` and sat on "Loading" forever,
+while `/this-page-does-not-exist` — refused by the router before any streaming
+begins — correctly returned 404. Same app, same not-found page, two different
+outcomes, and the difference is *where in the pipeline the refusal happens*.
+
+Established by experiment: rebuilding with `app/loading.tsx` removed turns the
+same URL into a 404, and restoring it brings the soft 404 back.
+
+**The fix is a static param list, not deleting the boundary.**
+`legal/[slug]/page.tsx` already enumerates every legitimate slug in
+`generateStaticParams`, so `export const dynamicParams = false` moves the
+refusal to the routing layer where it belongs and leaves the loading UI for the
+routes that want it. Any new dynamic route under this layout needs the same
+treatment, or its `notFound()` will be equally inert. See REG-239.
 
 `sitemap.ts` omits `/request-demo` and `/partners`, both indexable conversion
 pages.

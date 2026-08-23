@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 198,
+    "total_records": 232,
     "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
@@ -3625,9 +3625,9 @@
       "source": {
         "record_path": "docs/bugs/BUG-0071-tenant-users-reach-every-platform-super-admin-endpoint.md",
         "provenance": "QA_RUN",
+        "detected_in_sha": "aa33524",
         "created_at": "2026-08-18",
         "updated_at": "2026-08-18",
-        "detected_in_sha": "aa33524",
         "resolved_at": "2026-08-18"
       },
       "type": "AUTHORIZATION",
@@ -3681,9 +3681,9 @@
       "source": {
         "record_path": "docs/bugs/BUG-0072-platform-mutations-map-to-read-permissions-letting-the-read-.md",
         "provenance": "QA_RUN",
+        "detected_in_sha": "aa33524",
         "created_at": "2026-08-18",
         "updated_at": "2026-08-18",
-        "detected_in_sha": "aa33524",
         "resolved_at": "2026-08-18"
       },
       "type": "AUTHORIZATION",
@@ -3735,9 +3735,9 @@
       "source": {
         "record_path": "docs/bugs/BUG-0073-small-uppercase-labels-in-slate-400-fail-wcag-aa-contrast-ac.md",
         "provenance": "QA_RUN",
+        "detected_in_sha": "4290c03",
         "created_at": "2026-08-19",
         "updated_at": "2026-08-19",
-        "detected_in_sha": "4290c03",
         "resolved_at": "2026-08-19"
       },
       "type": "UX",
@@ -3787,9 +3787,9 @@
       "source": {
         "record_path": "docs/bugs/BUG-0074-the-provisioning-queue-scroll-container-was-unreachable-by-k.md",
         "provenance": "QA_RUN",
+        "detected_in_sha": "4290c03",
         "created_at": "2026-08-19",
         "updated_at": "2026-08-19",
-        "detected_in_sha": "4290c03",
         "resolved_at": "2026-08-19"
       },
       "type": "UX",
@@ -3893,9 +3893,9 @@
       "source": {
         "record_path": "docs/bugs/BUG-0076-repository-health-never-inspected-the-primary-worktree-so-a-.md",
         "provenance": "USER_REPORT",
+        "detected_in_sha": "494c44d",
         "created_at": "2026-08-19",
         "updated_at": "2026-08-22",
-        "detected_in_sha": "494c44d",
         "resolved_at": "2026-08-19"
       },
       "type": "INFRA",
@@ -6664,12 +6664,12 @@
       ],
       "test_plan": [],
       "source": {
-        "created_at": "2026-08-22",
-        "detected_in_sha": "8c56006",
-        "provenance": "USER_REPORT",
         "record_path": "docs/bugs/BUG-0792-qatar-market-resolves-to-gcc-because-its-country-row-is-neve.md",
-        "resolved_at": "2026-08-22",
-        "updated_at": "2026-08-22"
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "8c56006",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
       }
     },
     {
@@ -6712,12 +6712,12 @@
       ],
       "test_plan": [],
       "source": {
-        "created_at": "2026-08-22",
-        "detected_in_sha": "8c56006",
-        "provenance": "USER_REPORT",
         "record_path": "docs/bugs/BUG-0793-checkout-quotes-the-alphabetically-first-plan-price-currency.md",
-        "resolved_at": "2026-08-22",
-        "updated_at": "2026-08-22"
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "8c56006",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
       }
     },
     {
@@ -6757,12 +6757,12 @@
       ],
       "test_plan": [],
       "source": {
-        "created_at": "2026-08-22",
-        "detected_in_sha": "8c56006",
-        "provenance": "USER_REPORT",
         "record_path": "docs/bugs/BUG-0794-plan-record-page-pricing-tab-is-filtered-out-leaving-plan-pr.md",
-        "resolved_at": "2026-08-22",
-        "updated_at": "2026-08-22"
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "8c56006",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
       }
     },
     {
@@ -6802,12 +6802,12 @@
       ],
       "test_plan": [],
       "source": {
-        "created_at": "2026-08-22",
-        "detected_in_sha": "8c56006",
-        "provenance": "USER_REPORT",
         "record_path": "docs/bugs/BUG-0795-saved-table-preferences-hide-every-column-added-to-a-module-.md",
-        "resolved_at": "2026-08-22",
-        "updated_at": "2026-08-22"
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "8c56006",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
       }
     },
     {
@@ -6847,13 +6847,461 @@
       ],
       "test_plan": [],
       "source": {
-        "created_at": "2026-08-22",
-        "detected_in_sha": "8c56006",
-        "provenance": "USER_REPORT",
         "record_path": "docs/bugs/BUG-0796-tenant-and-plan-list-summaries-omit-createdbyid-so-the-creat.md",
-        "resolved_at": "2026-08-22",
-        "updated_at": "2026-08-22"
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "8c56006",
+        "created_at": "2026-08-22",
+        "updated_at": "2026-08-22",
+        "resolved_at": "2026-08-22"
       }
+    },
+    {
+      "record_id": "BUG-0877",
+      "title": "Editing a plan price always fails with property syncToStripe should not exist",
+      "type": "BUG",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "verification_result": "NOT_VERIFIED",
+      "owner_decision_required": "NO",
+      "active_session_conflict": "NONE",
+      "affected_modules": [
+        "apps/admin"
+      ],
+      "current_evidence": {
+        "paths": [
+          "apps/admin/app/_components/plan-price-manager.tsx",
+          "services/api/src/modules/super-admin/dto/update-plan-price.dto.ts",
+          "services/api/src/modules/super-admin/dto/create-plan-price.dto.ts"
+        ],
+        "verification_scope": "One payload builder served both price endpoints and carried syncToStripe, which CreatePlanPriceDto declares and UpdatePlanPriceDto does not. Under forbidNonWhitelisted that is a 400 on the whole request, so creating a price worked and editing one never did. Reported from a Platform Admin error log at reference admin_dc974de7. Exposed by fixing BUG-0794: the panel had been behind a tab the tab bar filtered out, so nothing could reach the form to submit it, and the BUG-0794 regression asserted only that the tab renders. Fixed by splitting create and update payloads, with contract specs on both sides. Also corrected alongside: includedSeats was disabled on billingModel FLAT, the only model that uses it."
+      },
+      "dependencies": {
+        "note": "",
+        "record_ids": []
+      },
+      "qa_scenarios": [
+        "QA-PLATFORM-021"
+      ],
+      "regressions": [
+        "REG-235"
+      ],
+      "related_backlog": [],
+      "related_bugs": [
+        "BUG-0794"
+      ],
+      "test_plan": [],
+      "source": {
+        "record_path": "docs/bugs/BUG-0877-editing-a-plan-price-always-fails-with-property-synctostripe.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "01a88a9",
+        "created_at": "2026-08-23",
+        "updated_at": "2026-08-23",
+        "resolved_at": "2026-08-23"
+      }
+    },
+    {
+      "record_id": "BUG-0898",
+      "type": "BUG",
+      "title": "Self-service checkout is blocked for every plan: no plan price has ever been synced to Stripe",
+      "severity": "CRITICAL",
+      "priority": "P0",
+      "current_status": "OPEN",
+      "architect_disposition": "BLOCKED_EXTERNAL",
+      "source": {
+        "record_path": "docs/bugs/BUG-0898-self-service-checkout-is-blocked-for-every-plan-no-plan-pric.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "1dd74a25",
+        "created_at": "2026-08-23",
+        "updated_at": "2026-08-23",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/super-admin",
+        "apps/landing/app/subscribe"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/super-admin",
+          "apps/landing/app/subscribe"
+        ],
+        "verification_scope": "See docs/bugs/BUG-0898-self-service-checkout-is-blocked-for-every-plan-no-plan-pric.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-0899",
+      "type": "BUG",
+      "title": "Production cannot deploy: the release chain always fails because seeded legal documents declare themselves drafts",
+      "severity": "CRITICAL",
+      "priority": "P0",
+      "current_status": "PRODUCT_DECISION",
+      "architect_disposition": "PRODUCT_DECISION",
+      "source": {
+        "record_path": "docs/bugs/BUG-0899-production-cannot-deploy-the-release-chain-always-fails-beca.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "1dd74a25",
+        "created_at": "2026-08-23",
+        "updated_at": "2026-08-23",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/prisma"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/prisma"
+        ],
+        "verification_scope": "See docs/bugs/BUG-0899-production-cannot-deploy-the-release-chain-always-fails-beca.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-0900",
+      "type": "BUG",
+      "title": "Tenant provisioning exceeds the 5s transaction timeout: a paid order is left with no workspace",
+      "severity": "CRITICAL",
+      "priority": "P0",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-0900-tenant-provisioning-exceeds-the-5s-transaction-timeout-a-pai.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "1dd74a25",
+        "created_at": "2026-08-23",
+        "updated_at": "2026-08-23",
+        "resolved_at": "2026-08-23"
+      },
+      "affected_modules": [
+        "services/api/src/modules/permissions"
+      ],
+      "regressions": [
+        "REG-237"
+      ],
+      "qa_scenarios": [
+        "QA-ONBOARDING-001"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/permissions"
+        ],
+        "verification_scope": "See docs/bugs/BUG-0900-tenant-provisioning-exceeds-the-5s-transaction-timeout-a-pai.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-0901",
+      "type": "BUG",
+      "title": "A paid order records totalAmount 0.00 for every FLAT plan while Stripe charges the full price",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-0901-a-paid-order-records-totalamount-0-00-for-every-flat-plan-wh.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "1dd74a25",
+        "created_at": "2026-08-23",
+        "updated_at": "2026-08-23",
+        "resolved_at": "2026-08-23"
+      },
+      "affected_modules": [
+        "services/api/src/modules/billing"
+      ],
+      "regressions": [
+        "REG-236"
+      ],
+      "qa_scenarios": [
+        "QA-BILLING-016"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/billing"
+        ],
+        "verification_scope": "See docs/bugs/BUG-0901-a-paid-order-records-totalamount-0-00-for-every-flat-plan-wh.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-0902",
+      "type": "BUG",
+      "title": "markTenantReady has no caller, so a paid workspace is never marked ready and its URL is never shown",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-0902-marktenantready-has-no-caller-so-a-paid-workspace-is-never-m.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "1dd74a25",
+        "created_at": "2026-08-23",
+        "updated_at": "2026-08-23",
+        "resolved_at": "2026-08-23"
+      },
+      "affected_modules": [
+        "services/api/src/modules/super-admin"
+      ],
+      "regressions": [
+        "REG-238"
+      ],
+      "qa_scenarios": [
+        "QA-ONBOARDING-001"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/super-admin"
+        ],
+        "verification_scope": "See docs/bugs/BUG-0902-marktenantready-has-no-caller-so-a-paid-workspace-is-never-m.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-0903",
+      "type": "BUG",
+      "title": "Production runs Stripe in test mode, so no real payment can be collected",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "OPEN",
+      "architect_disposition": "BLOCKED_EXTERNAL",
+      "source": {
+        "record_path": "docs/bugs/BUG-0903-production-runs-stripe-in-test-mode-so-no-real-payment-can-b.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "1dd74a25",
+        "created_at": "2026-08-23",
+        "updated_at": "2026-08-23",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/billing"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/billing"
+        ],
+        "verification_scope": "See docs/bugs/BUG-0903-production-runs-stripe-in-test-mode-so-no-real-payment-can-b.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-0904",
+      "type": "BUG",
+      "title": "Production is missing OUTBOX_WORKER_ENABLED, so no workspace is provisioned after payment",
+      "severity": "CRITICAL",
+      "priority": "P0",
+      "current_status": "OPEN",
+      "architect_disposition": "BLOCKED_EXTERNAL",
+      "source": {
+        "record_path": "docs/bugs/BUG-0904-production-is-missing-outbox-worker-enabled-so-no-workspace-.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "1dd74a25",
+        "created_at": "2026-08-23",
+        "updated_at": "2026-08-23",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/outbox"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/outbox"
+        ],
+        "verification_scope": "See docs/bugs/BUG-0904-production-is-missing-outbox-worker-enabled-so-no-workspace-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-0905",
+      "type": "BUG",
+      "title": "Production defines DIRECT_URL but the code reads DIRECT_DATABASE_URL, so migrations run over the pooled endpoint",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "BLOCKED_EXTERNAL",
+      "source": {
+        "record_path": "docs/bugs/BUG-0905-production-defines-direct-url-but-the-code-reads-direct-data.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "1dd74a25",
+        "created_at": "2026-08-23",
+        "updated_at": "2026-08-23",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/prisma",
+        "packages/config"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/prisma",
+          "packages/config"
+        ],
+        "verification_scope": "See docs/bugs/BUG-0905-production-defines-direct-url-but-the-code-reads-direct-data.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-0906",
+      "type": "BUG",
+      "title": "Production has no published legal documents, so purchases record no consent and the footer links to nothing",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "PRODUCT_DECISION",
+      "architect_disposition": "PRODUCT_DECISION",
+      "source": {
+        "record_path": "docs/bugs/BUG-0906-production-has-no-published-legal-documents-so-purchases-rec.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "1dd74a25",
+        "created_at": "2026-08-23",
+        "updated_at": "2026-08-23",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/legal",
+        "apps/landing"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/legal",
+          "apps/landing"
+        ],
+        "verification_scope": "See docs/bugs/BUG-0906-production-has-no-published-legal-documents-so-purchases-rec.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-0907",
+      "type": "BUG",
+      "title": "An unknown legal slug answers 200 and hangs on the loading shell instead of returning 404",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-0907-an-unknown-legal-slug-answers-200-and-hangs-on-the-loading-s.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "1dd74a25",
+        "created_at": "2026-08-23",
+        "updated_at": "2026-08-23",
+        "resolved_at": "2026-08-23"
+      },
+      "affected_modules": [
+        "apps/landing"
+      ],
+      "regressions": [
+        "REG-239"
+      ],
+      "qa_scenarios": [
+        "QA-LANDING-016"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/landing"
+        ],
+        "verification_scope": "See docs/bugs/BUG-0907-an-unknown-legal-slug-answers-200-and-hangs-on-the-loading-s.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
     },
     {
       "record_id": "ITEM-0001",
@@ -9384,9 +9832,9 @@
       "source": {
         "record_path": "docs/backlog/items/ITEM-0054-contract-placeholder-examples-fabricate-a-saudi-legal-entity.md",
         "provenance": "ARCHITECT",
+        "detected_in_sha": "",
         "created_at": "2026-08-18",
         "updated_at": "2026-08-18",
-        "detected_in_sha": "",
         "resolved_at": ""
       },
       "type": "DOCUMENTATION",
@@ -9426,9 +9874,9 @@
       "source": {
         "record_path": "docs/backlog/items/ITEM-0055-database-e2e-runs-serially-and-now-dominates-its-own-job.md",
         "provenance": "ARCHITECT",
+        "detected_in_sha": "",
         "created_at": "2026-08-18",
         "updated_at": "2026-08-19",
-        "detected_in_sha": "",
         "resolved_at": ""
       },
       "type": "PERFORMANCE",
@@ -9477,9 +9925,9 @@
       "source": {
         "record_path": "docs/backlog/items/ITEM-0056-ci-cache-hit-rate-is-not-observable-from-the-actions-rest-ap.md",
         "provenance": "ARCHITECT",
+        "detected_in_sha": "",
         "created_at": "2026-08-18",
         "updated_at": "2026-08-18",
-        "detected_in_sha": "",
         "resolved_at": ""
       },
       "type": "INFRA",
@@ -9524,9 +9972,9 @@
       "source": {
         "record_path": "docs/backlog/items/ITEM-0057-landing-production-env-examples-still-name-the-vercel-and-re.md",
         "provenance": "ARCHITECT",
+        "detected_in_sha": "",
         "created_at": "2026-08-19",
         "updated_at": "2026-08-22",
-        "detected_in_sha": "",
         "resolved_at": ""
       },
       "type": "PRODUCT_DECISION",
@@ -9574,9 +10022,9 @@
       "source": {
         "record_path": "docs/backlog/items/ITEM-0058-next-env-d-ts-churns-between-dev-and-build-forms-and-the-fou.md",
         "provenance": "ARCHITECT",
+        "detected_in_sha": "",
         "created_at": "2026-08-19",
         "updated_at": "2026-08-19",
-        "detected_in_sha": "",
         "resolved_at": ""
       },
       "type": "TECH_DEBT",
@@ -9625,9 +10073,9 @@
       "source": {
         "record_path": "docs/backlog/items/ITEM-0059-49-tracked-text-files-have-no-final-newline-and-nothing-enfo.md",
         "provenance": "ARCHITECT",
+        "detected_in_sha": "",
         "created_at": "2026-08-19",
         "updated_at": "2026-08-19",
-        "detected_in_sha": "",
         "resolved_at": ""
       },
       "type": "TECH_DEBT",
@@ -10810,6 +11258,196 @@
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
       "architect_disposition": "FIX_NOW",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0085",
+      "type": "INFRA",
+      "title": "No bulk command exists to sync plan prices to Stripe, so a launch needs 36 manual admin edits",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "TRIAGE_REQUIRED",
+      "architect_disposition": "PLAN_REQUIRED",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0085-no-bulk-command-exists-to-sync-plan-prices-to-stripe-so-a-la.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "",
+        "created_at": "2026-08-23",
+        "updated_at": "2026-08-23",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/super-admin"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/super-admin"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0085-no-bulk-command-exists-to-sync-plan-prices-to-stripe-so-a-la.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0086",
+      "type": "TEST_GAP",
+      "title": "smoke:deployment does not assert that a launched market has a purchasable price or a running outbox worker",
+      "severity": "HIGH",
+      "priority": "P2",
+      "current_status": "TRIAGE_REQUIRED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0086-smoke-deployment-does-not-assert-that-a-launched-market-has-.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "",
+        "created_at": "2026-08-23",
+        "updated_at": "2026-08-23",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "scripts"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "scripts"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0086-smoke-deployment-does-not-assert-that-a-launched-market-has-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0087",
+      "type": "DOCUMENTATION",
+      "title": "STRIPE_API_VERSION is commented out in the local API env and documented with two different values",
+      "severity": "LOW",
+      "priority": "P2",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0087-stripe-api-version-is-commented-out-in-the-local-api-env-and.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "",
+        "created_at": "2026-08-23",
+        "updated_at": "2026-08-23",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0087-stripe-api-version-is-commented-out-in-the-local-api-env-and.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0088",
+      "type": "TECH_DEBT",
+      "title": "npm --workspace api run start:dev always frees port 4000 regardless of PORT, killing any other API instance",
+      "severity": "LOW",
+      "priority": "P2",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0088-npm-workspace-api-run-start-dev-always-frees-port-4000-regar.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "",
+        "created_at": "2026-08-23",
+        "updated_at": "2026-08-23",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0088-npm-workspace-api-run-start-dev-always-frees-port-4000-regar.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0089",
+      "type": "SECURITY",
+      "title": "The contact form is the only public lead-creating form with no honeypot",
+      "severity": "LOW",
+      "priority": "P2",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0089-the-contact-form-is-the-only-public-lead-creating-form-with-.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "",
+        "created_at": "2026-08-23",
+        "updated_at": "2026-08-23",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/landing"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/landing"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0089-the-contact-form-is-the-only-public-lead-creating-form-with-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
       "verification_result": "NOT_VERIFIED"
     }
   ],

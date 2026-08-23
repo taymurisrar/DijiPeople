@@ -23,6 +23,27 @@ export function generateStaticParams() {
   return LEGAL_ROUTES.map((route) => ({ slug: route.slug }));
 }
 
+/**
+ * A slug that is not one of the ten is refused by the router, not by the page.
+ *
+ * `notFound()` below says the same thing and could not deliver it.
+ * `app/loading.tsx` puts a Suspense boundary above every route, so Next flushes
+ * the shell — with a **200** — before this segment runs. The status can no
+ * longer be changed and the not-found UI never replaces the loading fallback,
+ * so `/legal/anything` answered `200 OK` and sat on "Loading" forever: a soft
+ * 404 that a crawler indexes as a real page and a visitor reads as a hang.
+ *
+ * Established by experiment rather than inference — with `app/loading.tsx`
+ * removed the same URL returns 404 and renders "Page not found"; with it
+ * restored and this flag set, it returns 404 and the boundary still serves the
+ * routes that want it.
+ *
+ * `dynamicParams = false` moves the decision to the routing layer, where
+ * `generateStaticParams` above already enumerates every legitimate slug. An
+ * unknown one is then refused exactly as `/this-page-does-not-exist` is.
+ */
+export const dynamicParams = false;
+
 export async function generateMetadata({
   params,
 }: {
