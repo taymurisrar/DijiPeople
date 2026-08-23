@@ -3,13 +3,13 @@ ID: ITEM-0086
 aliases: [ITEM-0086]
 Title: smoke:deployment does not assert that a launched market has a purchasable price or a running outbox worker
 Type: TEST_GAP
-Status: TRIAGE_REQUIRED
+Status: DONE
 Priority: P2
 Severity: HIGH
 AffectedModules: [scripts]
 Source: QA_RUN
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 CreatedAt: 2026-08-23
 UpdatedAt: 2026-08-23
 RelatedBug: 

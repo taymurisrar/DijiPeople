@@ -2141,3 +2141,18 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | The page said the right thing and could not deliver it. Worth remembering as a property of streaming rather than of this route: any `notFound()` beneath a route-level `loading.tsx` has the same problem, so a static param list plus `dynamicParams = false` is the reliable way to refuse an unknown segment. |
 | **Fixed** | 2026-08-23, `agent/landing-e2e-go-live` |
 | **Active** | yes |
+
+### REG-240 — A refused CORS origin is a decision, not a server error
+
+| | |
+|---|---|
+| **Bug class** | `silent-degradation` |
+| **Module** | `services/api/src/config` |
+| **Bug record** | BUG-0976 |
+| **Root cause** | `buildCorsOptions` refused an unlisted origin with `callback(new Error(...), false)`. The `cors` middleware treats the first argument as an error channel, not a reason, so it rethrew and `HttpExceptionFilter` rendered `500 SYSTEM_UNEXPECTED_ERROR` — then persisted a row through `ErrorLogsService`. Any unauthenticated caller could grow the production error-log table indefinitely by varying one header, and real 500s were buried under the access control working correctly. |
+| **Regression test** | `services/api/src/config/cors-options.spec.ts` |
+| **Scenario** | An allowed origin is permitted and a missing Origin is permitted; `http://localhost:3001`, `https://evil.example` and `not-a-url` are each refused with `allow=false` and **no Error** handed to the callback. |
+| **Proven to fail without the fix** | Restoring `callback(new Error(...), false)` fails 3 of the 5 cases. Independently observed on production: the same endpoint returned 200 with no Origin and 500 with `Origin: http://localhost:3001`. |
+| **Note** | Found by accident. The ITEM-0086 smoke checks send `Origin` on every request, so they reported 500 where a plain fetch reported 200 — and the discrepancy was the product, not the script. A test that happens to exercise a path nothing else does is worth more than its stated purpose. |
+| **Fixed** | 2026-08-23, `agent/release-landing-e2e` |
+| **Active** | yes |

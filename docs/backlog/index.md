@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**232 records** — 143 bugs under [`docs/bugs/`](../bugs/), 89 non-bug items under [`items/`](items/).
+**233 records** — 144 bugs under [`docs/bugs/`](../bugs/), 89 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -17,10 +17,10 @@ see [`README.md`](README.md) for why.
 | Blocked | 1 |
 | Deferred | 21 |
 | Awaiting a product decision | 4 |
-| Completed / closed | 166 |
+| Completed / closed | 167 |
 | **Open CRITICAL** | **3** |
 | **Open HIGH** | **12** |
-| **Awaiting Architect triage** | **2** |
+| **Awaiting Architect triage** | **1** |
 
 ## Open by severity
 
@@ -41,9 +41,9 @@ see [`README.md`](README.md) for why.
 | FOLLOW_UP | 2 |
 | INFRA | 8 |
 | PRODUCT_DECISION | 1 |
-| SECURITY | 3 |
+| SECURITY | 4 |
 | TECH_DEBT | 4 |
-| TEST_GAP | 6 |
+| TEST_GAP | 5 |
 | UX | 3 |
 
 ## All records by status
@@ -54,12 +54,12 @@ see [`README.md`](README.md) for why.
 | BLOCKED | 1 |
 | DEFERRED | 21 |
 | PRODUCT_DECISION | 4 |
-| FIXED | 13 |
+| FIXED | 14 |
 | VERIFIED | 121 |
 | DUPLICATE | 2 |
-| TRIAGE_REQUIRED | 2 |
+| TRIAGE_REQUIRED | 1 |
 | READY | 21 |
-| DONE | 43 |
+| DONE | 44 |
 
 ## All records
 
@@ -145,6 +145,7 @@ see [`README.md`](README.md) for why.
 | [BUG-0902](../../docs/bugs/BUG-0902-marktenantready-has-no-caller-so-a-paid-workspace-is-never-m.md) | markTenantReady has no caller, so a paid workspace is never marked ready and its URL is never shown | BUG | HIGH | P1 | FIXED | api:super-admin | FIX_NOW |
 | [BUG-0903](../../docs/bugs/BUG-0903-production-runs-stripe-in-test-mode-so-no-real-payment-can-b.md) | Production runs Stripe in test mode, so no real payment can be collected | BUG | HIGH | P1 | OPEN | api:billing | BLOCKED_EXTERNAL |
 | [BUG-0906](../../docs/bugs/BUG-0906-production-has-no-published-legal-documents-so-purchases-rec.md) | Production has no published legal documents, so purchases record no consent and the footer links to nothing | BUG | HIGH | P1 | PRODUCT_DECISION | api:legal, apps/landing | PRODUCT_DECISION |
+| [BUG-0976](../../docs/bugs/BUG-0976-a-disallowed-cors-origin-returns-500-and-writes-an-error-log.md) | A disallowed CORS origin returns 500 and writes an error-log row, so anyone can fill the table | SECURITY | HIGH | P1 | FIXED | services/api/src/config | FIX_NOW |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | READY | apps/web, e2e | PLAN_REQUIRED |
@@ -152,7 +153,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0062](../../docs/backlog/items/ITEM-0062-no-multi-tenant-membership-one-user-belongs-to-one-tenant-so.md) | No multi-tenant membership — one user belongs to one tenant, so discovery and switching cannot exist | ARCHITECTURE | HIGH | P1 | PRODUCT_DECISION | auth, users, tenant-domains, web | PRODUCT_DECISION |
 | [ITEM-0063](../../docs/backlog/items/ITEM-0063-self-service-checkout-must-prove-the-owner-email-before-char.md) | Self-service checkout must prove the owner email before charging | SECURITY | HIGH | P1 | DONE | billing, platform-communications, landing | DONE |
 | [ITEM-0048](../../docs/backlog/items/ITEM-0048-replace-or-contain-active-win-and-the-xlsx-export-path.md) | Replace or contain active-win and the xlsx export path | SECURITY | HIGH | P2 | BLOCKED | apps/agent-desktop, services/api/src/common/excel, package-lock.json | BLOCKED_EXTERNAL |
-| [ITEM-0086](../../docs/backlog/items/ITEM-0086-smoke-deployment-does-not-assert-that-a-launched-market-has-.md) | smoke:deployment does not assert that a launched market has a purchasable price or a running outbox worker | TEST_GAP | HIGH | P2 | TRIAGE_REQUIRED | scripts | FIX_NOW |
+| [ITEM-0086](../../docs/backlog/items/ITEM-0086-smoke-deployment-does-not-assert-that-a-launched-market-has-.md) | smoke:deployment does not assert that a launched market has a purchasable price or a running outbox worker | TEST_GAP | HIGH | P2 | DONE | scripts | DONE |
 | [BUG-0051](../../docs/bugs/BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state.md) | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | P1 | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |
 | [ITEM-0018](../../docs/backlog/items/ITEM-0018-plans-and-prices-have-no-draft-publish-or-archive-lifecycle.md) | Plans and prices have no draft, publish or archive lifecycle | ARCHITECTURE | MEDIUM | P1 | DONE | services/api/prisma, api:super-admin, apps/admin, apps/landing | DONE |
 | [ITEM-0044](../../docs/backlog/items/ITEM-0044-validate-forwarded-host-before-tenant-web-workspace-resoluti.md) | Validate forwarded host before tenant web workspace resolution | SECURITY | MEDIUM | P1 | READY | apps/web | PLAN_REQUIRED |

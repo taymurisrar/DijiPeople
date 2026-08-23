@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 232,
+    "total_records": 233,
     "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
@@ -7304,6 +7304,48 @@
       "verification_result": "NOT_VERIFIED"
     },
     {
+      "record_id": "BUG-0976",
+      "type": "SECURITY",
+      "title": "A disallowed CORS origin returns 500 and writes an error-log row, so anyone can fill the table",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-0976-a-disallowed-cors-origin-returns-500-and-writes-an-error-log.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "be486ae1",
+        "created_at": "2026-08-23",
+        "updated_at": "2026-08-23",
+        "resolved_at": "2026-08-23"
+      },
+      "affected_modules": [
+        "services/api/src/config"
+      ],
+      "regressions": [
+        "REG-240"
+      ],
+      "qa_scenarios": [
+        "QA-SECURITY-001"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/config"
+        ],
+        "verification_scope": "See docs/bugs/BUG-0976-a-disallowed-cors-origin-returns-500-and-writes-an-error-log.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
       "record_id": "ITEM-0001",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md",
@@ -11304,8 +11346,8 @@
       "title": "smoke:deployment does not assert that a launched market has a purchasable price or a running outbox worker",
       "severity": "HIGH",
       "priority": "P2",
-      "current_status": "TRIAGE_REQUIRED",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0086-smoke-deployment-does-not-assert-that-a-launched-market-has-.md",
         "provenance": "QA_RUN",

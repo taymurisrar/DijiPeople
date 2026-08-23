@@ -13,7 +13,6 @@ The Architect reads this before planning any substantial change —
 
 | ID | Title | Type | Severity | Priority | Status | Affected | Architect |
 |---|---|---|---|---|---|---|---|
-| [ITEM-0086](../../docs/backlog/items/ITEM-0086-smoke-deployment-does-not-assert-that-a-launched-market-has-.md) | smoke:deployment does not assert that a launched market has a purchasable price or a running outbox worker | TEST_GAP | HIGH | P2 | TRIAGE_REQUIRED | scripts | FIX_NOW |
 | [ITEM-0085](../../docs/backlog/items/ITEM-0085-no-bulk-command-exists-to-sync-plan-prices-to-stripe-so-a-la.md) | No bulk command exists to sync plan prices to Stripe, so a launch needs 36 manual admin edits | INFRA | MEDIUM | P2 | TRIAGE_REQUIRED | api:super-admin | PLAN_REQUIRED |
 
 ## CRITICAL
@@ -38,8 +37,8 @@ The Architect reads this before planning any substantial change —
 | [BUG-0901](../../docs/bugs/BUG-0901-a-paid-order-records-totalamount-0-00-for-every-flat-plan-wh.md) | A paid order records totalAmount 0.00 for every FLAT plan while Stripe charges the full price | BUG | HIGH | P1 | FIXED | api:billing | FIX_NOW |
 | [BUG-0902](../../docs/bugs/BUG-0902-marktenantready-has-no-caller-so-a-paid-workspace-is-never-m.md) | markTenantReady has no caller, so a paid workspace is never marked ready and its URL is never shown | BUG | HIGH | P1 | FIXED | api:super-admin | FIX_NOW |
 | [BUG-0903](../../docs/bugs/BUG-0903-production-runs-stripe-in-test-mode-so-no-real-payment-can-b.md) | Production runs Stripe in test mode, so no real payment can be collected | BUG | HIGH | P1 | OPEN | api:billing | BLOCKED_EXTERNAL |
+| [BUG-0976](../../docs/bugs/BUG-0976-a-disallowed-cors-origin-returns-500-and-writes-an-error-log.md) | A disallowed CORS origin returns 500 and writes an error-log row, so anyone can fill the table | SECURITY | HIGH | P1 | FIXED | services/api/src/config | FIX_NOW |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | READY | apps/web, e2e | PLAN_REQUIRED |
-| [ITEM-0086](../../docs/backlog/items/ITEM-0086-smoke-deployment-does-not-assert-that-a-launched-market-has-.md) | smoke:deployment does not assert that a launched market has a purchasable price or a running outbox worker | TEST_GAP | HIGH | P2 | TRIAGE_REQUIRED | scripts | FIX_NOW |
 
 ## MEDIUM
 

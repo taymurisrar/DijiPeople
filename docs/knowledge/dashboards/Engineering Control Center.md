@@ -34,7 +34,7 @@ survives every review by being unfalsifiable.
 | No next action | 38 |
 | Aging — 7d / 30d / 90d | 8 / 0 / 0 |
 | Architecture and technical debt | 5 |
-| Security gaps | 3 |
+| Security gaps | 4 |
 | Database gaps | 1 |
 
 Ranked next-best actions weigh blast radius rather than severity alone, and

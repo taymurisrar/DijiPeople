@@ -13,7 +13,7 @@
 | Blocked | 1 |
 | Awaiting a product decision | 4 |
 | Deferred | 21 |
-| Completed | 166 |
+| Completed | 167 |
 | Awaiting Architect triage | 0 |
 
 ## Open Critical Bugs
@@ -38,8 +38,8 @@
 | [[BUG-0901-a-paid-order-records-totalamount-0-00-for-every-flat-plan-wh|BUG-0901]] | A paid order records totalAmount 0.00 for every FLAT plan while Stripe charges the full price | BUG | HIGH | FIXED | api:billing | FIX_NOW |
 | [[BUG-0902-marktenantready-has-no-caller-so-a-paid-workspace-is-never-m|BUG-0902]] | markTenantReady has no caller, so a paid workspace is never marked ready and its URL is never shown | BUG | HIGH | FIXED | api:super-admin | FIX_NOW |
 | [[BUG-0903-production-runs-stripe-in-test-mode-so-no-real-payment-can-b|BUG-0903]] | Production runs Stripe in test mode, so no real payment can be collected | BUG | HIGH | OPEN | api:billing | BLOCKED_EXTERNAL |
+| [[BUG-0976-a-disallowed-cors-origin-returns-500-and-writes-an-error-log|BUG-0976]] | A disallowed CORS origin returns 500 and writes an error-log row, so anyone can fill the table | SECURITY | HIGH | FIXED | services/api/src/config | FIX_NOW |
 | [[ITEM-0034-apps-web-has-zero-browser-e2e-coverage|ITEM-0034]] | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | READY | apps/web, e2e | PLAN_REQUIRED |
-| [[ITEM-0086-smoke-deployment-does-not-assert-that-a-launched-market-has-|ITEM-0086]] | smoke:deployment does not assert that a launched market has a purchasable price or a running outbox worker | TEST_GAP | HIGH | TRIAGE_REQUIRED | scripts | FIX_NOW |
 
 ## Product Decisions Needed
 
@@ -61,7 +61,6 @@
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
 | [[ITEM-0034-apps-web-has-zero-browser-e2e-coverage|ITEM-0034]] | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | READY | apps/web, e2e | PLAN_REQUIRED |
-| [[ITEM-0086-smoke-deployment-does-not-assert-that-a-launched-market-has-|ITEM-0086]] | smoke:deployment does not assert that a launched market has a purchasable price or a running outbox worker | TEST_GAP | HIGH | TRIAGE_REQUIRED | scripts | FIX_NOW |
 | [[ITEM-0052-verify-the-agent-update-feed-against-a-real-published-artefact|ITEM-0052]] | Verify the agent update feed against a real published artefact | TEST_GAP | MEDIUM | READY | apps/agent-desktop, api:app-releases | PLAN_REQUIRED |
 | [[ITEM-0077-re-read-the-packaged-agent-archive-after-the-node-pre-gyp-up|ITEM-0077]] | Re-read the packaged agent archive after the node-pre-gyp upgrade | TEST_GAP | MEDIUM | READY | apps/agent-desktop, package-lock.json | PLAN_REQUIRED |
 | [[ITEM-0078-no-end-to-end-payment-to-provisioned-tenant-run-against-stri|ITEM-0078]] | No end-to-end payment to provisioned tenant run against Stripe test mode | TEST_GAP | MEDIUM | READY | api:billing, api:tenant-control-plane, api:outbox, apps/landing | PLAN_REQUIRED |
@@ -159,6 +158,7 @@
 | [[BUG-0877-editing-a-plan-price-always-fails-with-property-synctostripe|BUG-0877]] | Editing a plan price always fails with property syncToStripe should not exist | BUG | HIGH | FIXED | apps/admin | FIX_NOW |
 | [[BUG-0901-a-paid-order-records-totalamount-0-00-for-every-flat-plan-wh|BUG-0901]] | A paid order records totalAmount 0.00 for every FLAT plan while Stripe charges the full price | BUG | HIGH | FIXED | api:billing | FIX_NOW |
 | [[BUG-0902-marktenantready-has-no-caller-so-a-paid-workspace-is-never-m|BUG-0902]] | markTenantReady has no caller, so a paid workspace is never marked ready and its URL is never shown | BUG | HIGH | FIXED | api:super-admin | FIX_NOW |
+| [[BUG-0976-a-disallowed-cors-origin-returns-500-and-writes-an-error-log|BUG-0976]] | A disallowed CORS origin returns 500 and writes an error-log row, so anyone can fill the table | SECURITY | HIGH | FIXED | services/api/src/config | FIX_NOW |
 | [[BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state|BUG-0051]] | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |
 | [[BUG-0009-session-revocation-depended-on-the-refresh-cookie|BUG-0009]] | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | VERIFIED | app:admin, api:auth | DONE |
 | [[BUG-0010-unguarded-cookie-options-could-turn-sign-out-into-a-500|BUG-0010]] | Unguarded cookie options could turn admin sign-out into a 500 | INFRA | MEDIUM | VERIFIED | app:admin | DONE |
@@ -297,7 +297,7 @@ _None. Nothing has been deployed through the release process._
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 143 |
+| Bug records | 144 |
 | Backlog items | 89 |
 | Known bug patterns | 26 |
 | QA runs | 23 |
