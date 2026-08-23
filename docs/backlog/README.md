@@ -131,6 +131,21 @@ node scripts/rebuild-backlog.mjs --check   # fail if they are stale (CI)
 node scripts/rebuild-backlog.mjs --json    # counts, for a dashboard
 ```
 
+A new record also needs a row in the remediation inventory
+(`docs/tasks/remediation/TASK-0005-inventory.json`), or `validate:framework`
+fails three checks on the row count. That row used to be written by hand, so
+every new bug broke framework validation until somebody noticed — and the
+failure named the count rather than the cause:
+
+```bash
+npm run remediation:sync    # add missing rows, refresh the derived fields
+npm run remediation:check   # fail if stale (CI)
+```
+
+It syncs only the fields `validate-framework.mjs` derives from the record, and
+never touches `current_evidence`, `dependencies` or the verification fields —
+those are judgements, and a generator has no business writing them.
+
 The script is **idempotent** (a second run writes nothing), **strict** (a
 duplicate id, an unknown status, a dangling reference or a malformed
 frontmatter block exits non-zero and regenerates nothing), **semantic**

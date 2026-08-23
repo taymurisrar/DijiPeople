@@ -2075,7 +2075,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Module** | `services/api/src/modules/billing` |
 | **Bug record** | BUG-0901 |
 | **Root cause** | The rule "how many units of `unitAmount` does this seat count bill" was written twice. `billing-seat-pricing.ts` branched on `billingModel` and was right; `SubscriptionOrderService` open-coded `seats - includedSeats` for every model. The catalogue's Starter FLAT price includes 25 seats and the wizard opens on a team size of 25, so the order priced at `12000 × (25 - 25) = 0` while Stripe — quoted the flat price with quantity 1 — charged 12,000 PKR. A PAID order recorded no revenue. |
-| **Regression test** | `services/api/src/modules/billing/billing-seat-pricing.spec.ts` — `describe('billable seats by billing model')` |
+| **Regression test** | `services/api/src/modules/billing/billing-seat-pricing.spec.ts` |
 | **Scenario** | A FLAT price bills exactly one unit at, below and above its included capacity, and the figure agrees with `calculateSeatPricing().estimatedMonthlyCharge`; a PER_SEAT price still bills per seat. |
 | **Proven to fail without the fix** | Replacing `resolveBillableSeats` with the old per-seat expression fails two of the three tests. |
 | **Note** | Three call sites needed this rule and two had it right. The wrong one was the only one that wrote to the database, which is why the disagreement was invisible until a real order was read back and compared to the Stripe session. |
@@ -2090,7 +2090,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Module** | `services/api/src/modules/permissions` |
 | **Bug record** | BUG-0900 |
 | **Root cause** | `bootstrapTenantRbac` wrote a tenant's **6,345** role-privilege rows with one `upsert` each, sequentially, inside the caller's interactive transaction. Prisma's default interactive transaction timeout is 5,000 ms, so self-service provisioning failed with `A query cannot be executed on an expired transaction … 5001 ms passed` *after* the card was charged; the outbox retried eight times and marked `PROVISIONING_REQUESTED` FAILED. The sibling `rolePermission` block in the same method already used a single `createMany`. |
-| **Regression test** | `services/api/src/modules/permissions/` (15 tests) plus the browser journey reaching `workspace-created = DONE` |
+| **Regression test** | `e2e/tests/landing-checkout-provisioning.spec.ts` |
 | **Scenario** | Provisioning a tenant from a paid order completes within the transaction budget and the outbox event reaches `PROCESSED`. |
 | **Proven to fail without the fix** | Observed directly: the same journey failed on the timeout before the change and succeeded after it, on the same machine. |
 | **Note** | Timing-dependent, so it passed whenever the machine was fast enough. The row count scales with `SYSTEM_ROLE_PRIVILEGES` × system roles, so it was getting worse with every entity added to the matrix. |
@@ -2105,7 +2105,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Module** | `services/api/src/modules/super-admin` |
 | **Bug record** | BUG-0902 |
 | **Root cause** | `OrderActivationService.markTenantReady` was defined once and called from nowhere in the repository, and `OrderActivationService` was not exported from `BillingModule`. `getOnboardingStatus` derives both the final "Finishing setup" step and the workspace link from `Tenant.readinessStatus`, so every tenant ever provisioned stayed `NOT_READY`: the buyer's progress page could never finish and never showed the address they had paid for. |
-| **Regression test** | The public onboarding status reaching `READY` with a `workspace` payload, driven by `e2e/drive-checkout.mjs` |
+| **Regression test** | `e2e/tests/landing-checkout-provisioning.spec.ts` |
 | **Scenario** | After a completed purchase, `GET /public/onboarding/:id/status` returns `state: READY`, all four steps `DONE`, and a `workspace` object carrying `hostname` and `url`. |
 | **Proven to fail without the fix** | Two tenants provisioned `ACTIVE` in this run sat at `readinessStatus = NOT_READY` with `workspace: null` until the call site was added. |
 | **Note** | The handler's own comment said "the customer is about to be told it is ready". Nothing told them. Same shape as the missing `PROVISIONING_REQUESTED` consumer documented at the top of that same file — the work was done and the last statement of it was not. |
@@ -2120,7 +2120,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Module** | `apps/landing` |
 | **Bug record** | BUG-0907 |
 | **Root cause** | `apps/landing/app/loading.tsx` puts a Suspense boundary above every route, so Next flushes the shell — and commits HTTP 200 — before the dynamic segment runs. The `notFound()` already written in `legal/[slug]/page.tsx` could therefore change neither the status nor, in practice, the rendered output: `/legal/anything` answered `200 OK` and sat on the loading fallback forever. A soft 404 a crawler indexes as a real page and a visitor reads as a hang. |
-| **Regression test** | `e2e/tests/landing-public-surface.spec.ts` — "an unknown legal slug is a real 404, not a 200 stuck on the loading shell" |
+| **Regression test** | `e2e/tests/landing-public-surface.spec.ts` |
 | **Scenario** | `/legal/<unknown>` returns 404 and renders the not-found page; the ten real slugs still return 200 with their own titles. |
 | **Proven to fail without the fix** | Run against production, which still carries the defect: the test fails there and passes against the fixed build. Root cause additionally established by experiment — removing `app/loading.tsx` alone turns the same URL into a 404. |
 | **Note** | The page said the right thing and could not deliver it. Worth remembering as a property of streaming rather than of this route: any `notFound()` beneath a route-level `loading.tsx` has the same problem, so a static param list plus `dynamicParams = false` is the reliable way to refuse an unknown segment. |

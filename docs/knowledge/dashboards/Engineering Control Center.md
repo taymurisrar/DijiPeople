@@ -7,16 +7,16 @@
 
 | | |
 |---|---|
-| Active sessions | **7** |
+| Active sessions | **8** |
 | Active parent tasks | 7 |
 | Active work packages | 2 |
 | Blocked work packages | 5 |
 | Work packages waiting on the user | 0 |
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
-| Open CRITICAL | **0** |
-| Open HIGH | 7 |
-| Awaiting Architect triage | 0 |
+| Open CRITICAL | **4** |
+| Open HIGH | 12 |
+| Awaiting Architect triage | 11 |
 | Owner decisions pending | 2 |
 | QA coverage gaps | 108 |
 | Scenarios blocked by infrastructure | 0 |
@@ -30,11 +30,11 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 27 |
-| No next action | 27 |
-| Aging — 7d / 30d / 90d | 1 / 0 / 0 |
-| Architecture and technical debt | 5 |
-| Security gaps | 3 |
+| No acceptance criteria | 42 |
+| No next action | 42 |
+| Aging — 7d / 30d / 90d | 8 / 0 / 0 |
+| Architecture and technical debt | 6 |
+| Security gaps | 4 |
 | Database gaps | 1 |
 
 Ranked next-best actions weigh blast radius rather than severity alone, and
@@ -49,6 +49,7 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 | Session | Task | Title | Status | Branch | Target | Leases | Schema |
 |---|---|---|---|---|---|---|---|
+| [[SESSION-0044-landing-site-full-e2e-ui-forms-checkout-payments-provisionin|SESSION-0044]] | — | Landing site full E2E: UI, forms, checkout, payments, provisioning, performance — local and production | ACTIVE | `agent/landing-e2e-go-live` | `develop` | — | NO |
 | [[SESSION-0043-release-develop-to-main-site-pricing-features-page-forms-che|SESSION-0043]] | — | Release develop to main: site pricing, features page, forms, checkout agreements, admin fixes | ACTIVE | `agent/release-site-ux-and-admin` | `main` | — | NO |
 | SESSION-0023 | — | First production release | ACTIVE | `agent/first-production-release` | `main` | — | NO |
 | [[SESSION-0022-go-live-readiness|SESSION-0022]] | TASK-0010 | Go-live readiness | ACTIVE | `agent/go-live-readiness` | `develop` | — | NO |
@@ -109,7 +110,12 @@ what they own, and what the backlog and QA systems currently say.
 
 ## Open Critical
 
-_None. Nothing open at CRITICAL._
+| ID | Title | Type | Severity | Status | Affected | Architect |
+|---|---|---|---|---|---|---|
+| [[BUG-0898-self-service-checkout-is-blocked-for-every-plan-no-plan-pric|BUG-0898]] | Self-service checkout is blocked for every plan: no plan price has ever been synced to Stripe | BUG | CRITICAL | OPEN | api:super-admin, app:landing | TRIAGE_REQUIRED |
+| [[BUG-0899-production-cannot-deploy-the-release-chain-always-fails-beca|BUG-0899]] | Production cannot deploy: the release chain always fails because seeded legal documents declare themselves drafts | BUG | CRITICAL | OPEN | services/api/prisma | TRIAGE_REQUIRED |
+| [[BUG-0900-tenant-provisioning-exceeds-the-5s-transaction-timeout-a-pai|BUG-0900]] | Tenant provisioning exceeds the 5s transaction timeout: a paid order is left with no workspace | BUG | CRITICAL | FIXED | api:permissions | FIX_NOW |
+| [[BUG-0904-production-is-missing-outbox-worker-enabled-so-no-workspace-|BUG-0904]] | Production is missing OUTBOX_WORKER_ENABLED, so no workspace is provisioned after payment | BUG | CRITICAL | OPEN | api:outbox | TRIAGE_REQUIRED |
 
 ## Owner Decisions Pending
 
@@ -239,13 +245,13 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 29 |
+| Open total | 44 |
 | Blocked | 1 |
 | Deferred | 18 |
 | Awaiting a product decision | 2 |
-| Awaiting Architect triage | 0 |
+| Awaiting Architect triage | 11 |
 
-Every ordinary record carries a disposition.
+**A record nobody has triaged is work nobody has decided about.** No ordinary record may stay `TRIAGE_REQUIRED` at the end of a task.
 
 ## Deployment
 
