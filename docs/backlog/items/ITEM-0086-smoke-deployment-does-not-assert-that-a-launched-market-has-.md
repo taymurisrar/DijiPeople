@@ -9,7 +9,7 @@ Severity: HIGH
 AffectedModules: [scripts]
 Source: QA_RUN
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: FIX_NOW
 CreatedAt: 2026-08-23
 UpdatedAt: 2026-08-23
 RelatedBug: 

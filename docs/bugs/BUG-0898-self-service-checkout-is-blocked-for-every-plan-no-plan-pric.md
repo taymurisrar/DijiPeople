@@ -11,7 +11,7 @@ DetectedDate: 2026-08-23
 DetectedInSha: 1dd74a25
 AffectedModules: [services/api/src/modules/super-admin, apps/landing/app/subscribe]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: BLOCKED_EXTERNAL
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:

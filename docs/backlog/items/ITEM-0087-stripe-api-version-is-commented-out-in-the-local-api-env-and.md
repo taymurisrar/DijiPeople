@@ -3,13 +3,13 @@ ID: ITEM-0087
 aliases: [ITEM-0087]
 Title: STRIPE_API_VERSION is commented out in the local API env and documented with two different values
 Type: DOCUMENTATION
-Status: TRIAGE_REQUIRED
+Status: DEFERRED
 Priority: P2
 Severity: LOW
 AffectedModules: [services/api]
 Source: QA_RUN
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: DEFER
 CreatedAt: 2026-08-23
 UpdatedAt: 2026-08-23
 RelatedBug: 

@@ -2,7 +2,7 @@
 ID: BUG-0906
 aliases: [BUG-0906]
 Title: Production has no published legal documents, so purchases record no consent and the footer links to nothing
-Status: OPEN
+Status: PRODUCT_DECISION
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -11,7 +11,7 @@ DetectedDate: 2026-08-23
 DetectedInSha: 1dd74a25
 AffectedModules: [services/api/src/modules/legal, apps/landing]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: PRODUCT_DECISION
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:

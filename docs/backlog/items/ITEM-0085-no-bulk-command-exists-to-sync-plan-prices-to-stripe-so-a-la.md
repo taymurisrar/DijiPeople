@@ -9,7 +9,7 @@ Severity: MEDIUM
 AffectedModules: [services/api/src/modules/super-admin]
 Source: QA_RUN
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: PLAN_REQUIRED
 CreatedAt: 2026-08-23
 UpdatedAt: 2026-08-23
 RelatedBug: BUG-0898

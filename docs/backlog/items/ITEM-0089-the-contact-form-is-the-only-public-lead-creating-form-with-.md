@@ -3,13 +3,13 @@ ID: ITEM-0089
 aliases: [ITEM-0089]
 Title: The contact form is the only public lead-creating form with no honeypot
 Type: SECURITY
-Status: TRIAGE_REQUIRED
+Status: DEFERRED
 Priority: P2
 Severity: LOW
 AffectedModules: [apps/landing]
 Source: QA_RUN
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: DEFER
 CreatedAt: 2026-08-23
 UpdatedAt: 2026-08-23
 RelatedBug: 

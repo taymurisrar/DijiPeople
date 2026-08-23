@@ -14,10 +14,10 @@
 | Work packages waiting on the user | 0 |
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
-| Open CRITICAL | **4** |
-| Open HIGH | 12 |
-| Awaiting Architect triage | 11 |
-| Owner decisions pending | 2 |
+| Open CRITICAL | **3** |
+| Open HIGH | 11 |
+| Awaiting Architect triage | 0 |
+| Owner decisions pending | 4 |
 | QA coverage gaps | 108 |
 | Scenarios blocked by infrastructure | 0 |
 
@@ -30,11 +30,11 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 42 |
-| No next action | 42 |
+| No acceptance criteria | 37 |
+| No next action | 37 |
 | Aging — 7d / 30d / 90d | 8 / 0 / 0 |
-| Architecture and technical debt | 6 |
-| Security gaps | 4 |
+| Architecture and technical debt | 5 |
+| Security gaps | 3 |
 | Database gaps | 1 |
 
 Ranked next-best actions weigh blast radius rather than severity alone, and
@@ -112,16 +112,17 @@ what they own, and what the backlog and QA systems currently say.
 
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
-| [[BUG-0898-self-service-checkout-is-blocked-for-every-plan-no-plan-pric|BUG-0898]] | Self-service checkout is blocked for every plan: no plan price has ever been synced to Stripe | BUG | CRITICAL | OPEN | api:super-admin, app:landing | TRIAGE_REQUIRED |
-| [[BUG-0899-production-cannot-deploy-the-release-chain-always-fails-beca|BUG-0899]] | Production cannot deploy: the release chain always fails because seeded legal documents declare themselves drafts | BUG | CRITICAL | OPEN | services/api/prisma | TRIAGE_REQUIRED |
+| [[BUG-0898-self-service-checkout-is-blocked-for-every-plan-no-plan-pric|BUG-0898]] | Self-service checkout is blocked for every plan: no plan price has ever been synced to Stripe | BUG | CRITICAL | OPEN | api:super-admin, app:landing | BLOCKED_EXTERNAL |
 | [[BUG-0900-tenant-provisioning-exceeds-the-5s-transaction-timeout-a-pai|BUG-0900]] | Tenant provisioning exceeds the 5s transaction timeout: a paid order is left with no workspace | BUG | CRITICAL | FIXED | api:permissions | FIX_NOW |
-| [[BUG-0904-production-is-missing-outbox-worker-enabled-so-no-workspace-|BUG-0904]] | Production is missing OUTBOX_WORKER_ENABLED, so no workspace is provisioned after payment | BUG | CRITICAL | OPEN | api:outbox | TRIAGE_REQUIRED |
+| [[BUG-0904-production-is-missing-outbox-worker-enabled-so-no-workspace-|BUG-0904]] | Production is missing OUTBOX_WORKER_ENABLED, so no workspace is provisioned after payment | BUG | CRITICAL | OPEN | api:outbox | BLOCKED_EXTERNAL |
 
 ## Owner Decisions Pending
 
 Questions where the engineering is understood and the **product answer is**
 **not**. No agent may resolve one by implementing a side of it.
 
+- [[BUG-0899-production-cannot-deploy-the-release-chain-always-fails-beca|BUG-0899]] — **Production cannot deploy: the release chain always fails because seeded legal documents declare themselves drafts**
+- [[BUG-0906-production-has-no-published-legal-documents-so-purchases-rec|BUG-0906]] — **Production has no published legal documents, so purchases record no consent and the footer links to nothing**
 - [[ITEM-0062-no-multi-tenant-membership-one-user-belongs-to-one-tenant-so|ITEM-0062]] — **No multi-tenant membership — one user belongs to one tenant, so discovery and switching cannot exist**
 - [[ITEM-0079-activation-does-not-gate-on-a-workspace-having-any-module-en|ITEM-0079]] — **Activation does not gate on a workspace having any module enabled**
 
@@ -245,13 +246,13 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 44 |
+| Open total | 39 |
 | Blocked | 1 |
-| Deferred | 18 |
-| Awaiting a product decision | 2 |
-| Awaiting Architect triage | 11 |
+| Deferred | 21 |
+| Awaiting a product decision | 4 |
+| Awaiting Architect triage | 0 |
 
-**A record nobody has triaged is work nobody has decided about.** No ordinary record may stay `TRIAGE_REQUIRED` at the end of a task.
+Every ordinary record carries a disposition.
 
 ## Deployment
 

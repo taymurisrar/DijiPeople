@@ -2,7 +2,7 @@
 ID: BUG-0899
 aliases: [BUG-0899]
 Title: "Production cannot deploy: the release chain always fails because seeded legal documents declare themselves drafts"
-Status: OPEN
+Status: PRODUCT_DECISION
 Severity: CRITICAL
 Priority: P0
 Type: BUG
@@ -11,7 +11,7 @@ DetectedDate: 2026-08-23
 DetectedInSha: 1dd74a25
 AffectedModules: [services/api/prisma]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: PRODUCT_DECISION
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:

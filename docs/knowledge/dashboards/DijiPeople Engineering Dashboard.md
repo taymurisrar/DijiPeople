@@ -7,23 +7,22 @@
 
 | | |
 |---|---|
-| Open CRITICAL | **4** |
-| Open HIGH | **12** |
-| Open total | 44 |
+| Open CRITICAL | **3** |
+| Open HIGH | **11** |
+| Open total | 39 |
 | Blocked | 1 |
-| Awaiting a product decision | 2 |
-| Deferred | 18 |
+| Awaiting a product decision | 4 |
+| Deferred | 21 |
 | Completed | 166 |
-| Awaiting Architect triage | 11 |
+| Awaiting Architect triage | 0 |
 
 ## Open Critical Bugs
 
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
-| [[BUG-0898-self-service-checkout-is-blocked-for-every-plan-no-plan-pric|BUG-0898]] | Self-service checkout is blocked for every plan: no plan price has ever been synced to Stripe | BUG | CRITICAL | OPEN | api:super-admin, app:landing | TRIAGE_REQUIRED |
-| [[BUG-0899-production-cannot-deploy-the-release-chain-always-fails-beca|BUG-0899]] | Production cannot deploy: the release chain always fails because seeded legal documents declare themselves drafts | BUG | CRITICAL | OPEN | services/api/prisma | TRIAGE_REQUIRED |
+| [[BUG-0898-self-service-checkout-is-blocked-for-every-plan-no-plan-pric|BUG-0898]] | Self-service checkout is blocked for every plan: no plan price has ever been synced to Stripe | BUG | CRITICAL | OPEN | api:super-admin, app:landing | BLOCKED_EXTERNAL |
 | [[BUG-0900-tenant-provisioning-exceeds-the-5s-transaction-timeout-a-pai|BUG-0900]] | Tenant provisioning exceeds the 5s transaction timeout: a paid order is left with no workspace | BUG | CRITICAL | FIXED | api:permissions | FIX_NOW |
-| [[BUG-0904-production-is-missing-outbox-worker-enabled-so-no-workspace-|BUG-0904]] | Production is missing OUTBOX_WORKER_ENABLED, so no workspace is provisioned after payment | BUG | CRITICAL | OPEN | api:outbox | TRIAGE_REQUIRED |
+| [[BUG-0904-production-is-missing-outbox-worker-enabled-so-no-workspace-|BUG-0904]] | Production is missing OUTBOX_WORKER_ENABLED, so no workspace is provisioned after payment | BUG | CRITICAL | OPEN | api:outbox | BLOCKED_EXTERNAL |
 
 ## Open High Bugs
 
@@ -37,15 +36,16 @@
 | [[BUG-0794-plan-record-page-pricing-tab-is-filtered-out-leaving-plan-pr|BUG-0794]] | Plan record page Pricing tab is filtered out, leaving plan price configuration unreachable | UX | HIGH | FIXED | apps/admin | FIX_NOW |
 | [[BUG-0901-a-paid-order-records-totalamount-0-00-for-every-flat-plan-wh|BUG-0901]] | A paid order records totalAmount 0.00 for every FLAT plan while Stripe charges the full price | BUG | HIGH | FIXED | api:billing | FIX_NOW |
 | [[BUG-0902-marktenantready-has-no-caller-so-a-paid-workspace-is-never-m|BUG-0902]] | markTenantReady has no caller, so a paid workspace is never marked ready and its URL is never shown | BUG | HIGH | FIXED | api:super-admin | FIX_NOW |
-| [[BUG-0903-production-runs-stripe-in-test-mode-so-no-real-payment-can-b|BUG-0903]] | Production runs Stripe in test mode, so no real payment can be collected | BUG | HIGH | OPEN | api:billing | TRIAGE_REQUIRED |
-| [[BUG-0906-production-has-no-published-legal-documents-so-purchases-rec|BUG-0906]] | Production has no published legal documents, so purchases record no consent and the footer links to nothing | BUG | HIGH | OPEN | api:legal, apps/landing | TRIAGE_REQUIRED |
+| [[BUG-0903-production-runs-stripe-in-test-mode-so-no-real-payment-can-b|BUG-0903]] | Production runs Stripe in test mode, so no real payment can be collected | BUG | HIGH | OPEN | api:billing | BLOCKED_EXTERNAL |
 | [[ITEM-0034-apps-web-has-zero-browser-e2e-coverage|ITEM-0034]] | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | READY | apps/web, e2e | PLAN_REQUIRED |
-| [[ITEM-0086-smoke-deployment-does-not-assert-that-a-launched-market-has-|ITEM-0086]] | smoke:deployment does not assert that a launched market has a purchasable price or a running outbox worker | TEST_GAP | HIGH | TRIAGE_REQUIRED | scripts | TRIAGE_REQUIRED |
+| [[ITEM-0086-smoke-deployment-does-not-assert-that-a-launched-market-has-|ITEM-0086]] | smoke:deployment does not assert that a launched market has a purchasable price or a running outbox worker | TEST_GAP | HIGH | TRIAGE_REQUIRED | scripts | FIX_NOW |
 
 ## Product Decisions Needed
 
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
+| [[BUG-0899-production-cannot-deploy-the-release-chain-always-fails-beca|BUG-0899]] | Production cannot deploy: the release chain always fails because seeded legal documents declare themselves drafts | BUG | CRITICAL | PRODUCT_DECISION | services/api/prisma | PRODUCT_DECISION |
+| [[BUG-0906-production-has-no-published-legal-documents-so-purchases-rec|BUG-0906]] | Production has no published legal documents, so purchases record no consent and the footer links to nothing | BUG | HIGH | PRODUCT_DECISION | api:legal, apps/landing | PRODUCT_DECISION |
 | [[ITEM-0062-no-multi-tenant-membership-one-user-belongs-to-one-tenant-so|ITEM-0062]] | No multi-tenant membership — one user belongs to one tenant, so discovery and switching cannot exist | ARCHITECTURE | HIGH | PRODUCT_DECISION | auth, users, tenant-domains, web | PRODUCT_DECISION |
 | [[ITEM-0079-activation-does-not-gate-on-a-workspace-having-any-module-en|ITEM-0079]] | Activation does not gate on a workspace having any module enabled | PRODUCT_DECISION | LOW | PRODUCT_DECISION | api:tenant-control-plane | PRODUCT_DECISION |
 
@@ -60,7 +60,7 @@
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
 | [[ITEM-0034-apps-web-has-zero-browser-e2e-coverage|ITEM-0034]] | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | READY | apps/web, e2e | PLAN_REQUIRED |
-| [[ITEM-0086-smoke-deployment-does-not-assert-that-a-launched-market-has-|ITEM-0086]] | smoke:deployment does not assert that a launched market has a purchasable price or a running outbox worker | TEST_GAP | HIGH | TRIAGE_REQUIRED | scripts | TRIAGE_REQUIRED |
+| [[ITEM-0086-smoke-deployment-does-not-assert-that-a-launched-market-has-|ITEM-0086]] | smoke:deployment does not assert that a launched market has a purchasable price or a running outbox worker | TEST_GAP | HIGH | TRIAGE_REQUIRED | scripts | FIX_NOW |
 | [[ITEM-0052-verify-the-agent-update-feed-against-a-real-published-artefact|ITEM-0052]] | Verify the agent update feed against a real published artefact | TEST_GAP | MEDIUM | READY | apps/agent-desktop, api:app-releases | PLAN_REQUIRED |
 | [[ITEM-0077-re-read-the-packaged-agent-archive-after-the-node-pre-gyp-up|ITEM-0077]] | Re-read the packaged agent archive after the node-pre-gyp upgrade | TEST_GAP | MEDIUM | READY | apps/agent-desktop, package-lock.json | PLAN_REQUIRED |
 | [[ITEM-0078-no-end-to-end-payment-to-provisioned-tenant-run-against-stri|ITEM-0078]] | No end-to-end payment to provisioned tenant run against Stripe test mode | TEST_GAP | MEDIUM | READY | api:billing, api:tenant-control-plane, api:outbox, apps/landing | PLAN_REQUIRED |
@@ -76,7 +76,7 @@
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0074-allocate-id-and-session-tooling-accept-a-session-id-that-doe|ITEM-0074]] | allocate-id and session tooling accept a session id that does not exist | INFRA | MEDIUM | READY | framework | PLAN_REQUIRED |
 | [[ITEM-0084-detect-drift-between-render-yaml-and-the-live-render-service|ITEM-0084]] | Detect drift between render.yaml and the live Render service | INFRA | MEDIUM | READY | render.yaml, scripts | FIX_NOW |
-| [[ITEM-0085-no-bulk-command-exists-to-sync-plan-prices-to-stripe-so-a-la|ITEM-0085]] | No bulk command exists to sync plan prices to Stripe, so a launch needs 36 manual admin edits | INFRA | MEDIUM | TRIAGE_REQUIRED | api:super-admin | TRIAGE_REQUIRED |
+| [[ITEM-0085-no-bulk-command-exists-to-sync-plan-prices-to-stripe-so-a-la|ITEM-0085]] | No bulk command exists to sync plan prices to Stripe, so a launch needs 36 manual admin edits | INFRA | MEDIUM | TRIAGE_REQUIRED | api:super-admin | PLAN_REQUIRED |
 | [[ITEM-0049-register-services-api-environment-reads-or-scope-the-rule|ITEM-0049]] | Register services/api environment reads or scope the rule to build inputs | INFRA | LOW | READY | services/api, turbo.json, docs/deployment | PLAN_REQUIRED |
 
 ## Recently Fixed Bugs
@@ -219,6 +219,7 @@
 
 ## Recent QA Runs
 
+- [[2026-08-23-landing-go-live-e2e-789eeac|QA Run — landing-go-live-e2e]]
 - [[2026-08-22-tenant-activation-be0fd00|QA Run — tenant-activation]]
 - [[2026-08-20-identity-and-membership-3008a13|QA Run — identity-and-membership]]
 - [[2026-08-19-self-service-onboarding-provisioning-f5bd870|QA Run — self-service-onboarding-provisioning]]
@@ -226,7 +227,6 @@
 - [[2026-08-18-primary-worktree-repository-health-494c44d|QA Run — primary-worktree-repository-health]]
 - [[2026-08-18-landing-uiux-remediation-verification-c332992|QA Run — landing-uiux-remediation-verification]]
 - [[2026-08-17-web-app-documentation-1af3690|QA Run — apps/web documentation audit (TASK-0003)]]
-- [[2026-08-17-record-state-reconciliation-d919e1a|QA Run — record-state-reconciliation]]
 
 ## Recent Implementations
 
@@ -258,7 +258,7 @@ _None. Nothing has been deployed through the release process._
 |---|---|---|---|---|---|---|
 | [[ITEM-0044-validate-forwarded-host-before-tenant-web-workspace-resoluti|ITEM-0044]] | Validate forwarded host before tenant web workspace resolution | SECURITY | MEDIUM | READY | apps/web | PLAN_REQUIRED |
 | [[BUG-0795-saved-table-preferences-hide-every-column-added-to-a-module-|BUG-0795]] | Saved table preferences hide every column added to a module afterwards | UX | MEDIUM | FIXED | apps/admin | FIX_NOW |
-| [[BUG-0905-production-defines-direct-url-but-the-code-reads-direct-data|BUG-0905]] | Production defines DIRECT_URL but the code reads DIRECT_DATABASE_URL, so migrations run over the pooled endpoint | BUG | MEDIUM | OPEN | services/api/prisma, pkg:config | TRIAGE_REQUIRED |
+| [[BUG-0905-production-defines-direct-url-but-the-code-reads-direct-data|BUG-0905]] | Production defines DIRECT_URL but the code reads DIRECT_DATABASE_URL, so migrations run over the pooled endpoint | BUG | MEDIUM | OPEN | services/api/prisma, pkg:config | BLOCKED_EXTERNAL |
 | [[BUG-0907-an-unknown-legal-slug-answers-200-and-hangs-on-the-loading-s|BUG-0907]] | An unknown legal slug answers 200 and hangs on the loading shell instead of returning 404 | BUG | MEDIUM | FIXED | apps/landing | FIX_NOW |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0020-contract-phase-drop-legacy-plan-pricing-columns|ITEM-0020]] | Contract phase: drop legacy Plan pricing columns | TECH_DEBT | MEDIUM | READY | services/api/prisma, api:super-admin, apps/admin | PLAN_REQUIRED |
@@ -276,11 +276,8 @@ _None. Nothing has been deployed through the release process._
 | [[ITEM-0078-no-end-to-end-payment-to-provisioned-tenant-run-against-stri|ITEM-0078]] | No end-to-end payment to provisioned tenant run against Stripe test mode | TEST_GAP | MEDIUM | READY | api:billing, api:tenant-control-plane, api:outbox, apps/landing | PLAN_REQUIRED |
 | [[ITEM-0081-nine-test-plans-are-needs-review-against-a-five-day-old-comm|ITEM-0081]] | Nine test plans are NEEDS_REVIEW against a five-day-old commit | TEST_GAP | MEDIUM | READY | docs/qa/test-plans | FIX_NOW |
 | [[ITEM-0084-detect-drift-between-render-yaml-and-the-live-render-service|ITEM-0084]] | Detect drift between render.yaml and the live Render service | INFRA | MEDIUM | READY | render.yaml, scripts | FIX_NOW |
-| [[ITEM-0085-no-bulk-command-exists-to-sync-plan-prices-to-stripe-so-a-la|ITEM-0085]] | No bulk command exists to sync plan prices to Stripe, so a launch needs 36 manual admin edits | INFRA | MEDIUM | TRIAGE_REQUIRED | api:super-admin | TRIAGE_REQUIRED |
+| [[ITEM-0085-no-bulk-command-exists-to-sync-plan-prices-to-stripe-so-a-la|ITEM-0085]] | No bulk command exists to sync plan prices to Stripe, so a launch needs 36 manual admin edits | INFRA | MEDIUM | TRIAGE_REQUIRED | api:super-admin | PLAN_REQUIRED |
 | [[ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning|ITEM-0023]] | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
-| [[ITEM-0087-stripe-api-version-is-commented-out-in-the-local-api-env-and|ITEM-0087]] | STRIPE_API_VERSION is commented out in the local API env and documented with two different values | DOCUMENTATION | LOW | TRIAGE_REQUIRED | services/api | TRIAGE_REQUIRED |
-| [[ITEM-0088-npm-workspace-api-run-start-dev-always-frees-port-4000-regar|ITEM-0088]] | npm --workspace api run start:dev always frees port 4000 regardless of PORT, killing any other API instance | TECH_DEBT | LOW | TRIAGE_REQUIRED | services/api | TRIAGE_REQUIRED |
-| [[ITEM-0089-the-contact-form-is-the-only-public-lead-creating-form-with-|ITEM-0089]] | The contact form is the only public lead-creating form with no honeypot | SECURITY | LOW | TRIAGE_REQUIRED | apps/landing | TRIAGE_REQUIRED |
 | [[BUG-0796-tenant-and-plan-list-summaries-omit-createdbyid-so-the-creat|BUG-0796]] | Tenant and plan list summaries omit createdById so the Created by me view is always empty | BUG | LOW | FIXED | api:super-admin | FIX_NOW |
 | [[ITEM-0049-register-services-api-environment-reads-or-scope-the-rule|ITEM-0049]] | Register services/api environment reads or scope the rule to build inputs | INFRA | LOW | READY | services/api, turbo.json, docs/deployment | PLAN_REQUIRED |
 | [[ITEM-0080-type-the-remaining-services-api-no-unsafe-warnings-module-by|ITEM-0080]] | Type the remaining services/api no-unsafe warnings module by module | TECH_DEBT | LOW | READY | services/api | FIX_NOW |
@@ -301,7 +298,7 @@ _None. Nothing has been deployed through the release process._
 | Bug records | 142 |
 | Backlog items | 89 |
 | Known bug patterns | 25 |
-| QA runs | 22 |
+| QA runs | 23 |
 | Engineering history records | 34 |
 | Release records | 0 |
 | Module notes | 28 |
@@ -309,7 +306,7 @@ _None. Nothing has been deployed through the release process._
 | Decision notes (ADR + generated) | 6 |
 | Implementation records | 6 |
 
-**Awaiting Architect triage: 11.** A record nobody has
+**Awaiting Architect triage: 0.** A record nobody has
 triaged is work nobody has decided about — the number that should stay near
 zero between tasks.
 

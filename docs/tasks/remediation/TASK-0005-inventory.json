@@ -6862,7 +6862,7 @@
       "severity": "CRITICAL",
       "priority": "P0",
       "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "BLOCKED_EXTERNAL",
       "source": {
         "record_path": "docs/bugs/BUG-0898-self-service-checkout-is-blocked-for-every-plan-no-plan-pric.md",
         "provenance": "QA_RUN",
@@ -6901,8 +6901,8 @@
       "title": "Production cannot deploy: the release chain always fails because seeded legal documents declare themselves drafts",
       "severity": "CRITICAL",
       "priority": "P0",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "PRODUCT_DECISION",
+      "architect_disposition": "PRODUCT_DECISION",
       "source": {
         "record_path": "docs/bugs/BUG-0899-production-cannot-deploy-the-release-chain-always-fails-beca.md",
         "provenance": "QA_RUN",
@@ -7066,7 +7066,7 @@
       "severity": "HIGH",
       "priority": "P1",
       "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "BLOCKED_EXTERNAL",
       "source": {
         "record_path": "docs/bugs/BUG-0903-production-runs-stripe-in-test-mode-so-no-real-payment-can-b.md",
         "provenance": "QA_RUN",
@@ -7104,7 +7104,7 @@
       "severity": "CRITICAL",
       "priority": "P0",
       "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "BLOCKED_EXTERNAL",
       "source": {
         "record_path": "docs/bugs/BUG-0904-production-is-missing-outbox-worker-enabled-so-no-workspace-.md",
         "provenance": "QA_RUN",
@@ -7142,7 +7142,7 @@
       "severity": "MEDIUM",
       "priority": "P2",
       "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "BLOCKED_EXTERNAL",
       "source": {
         "record_path": "docs/bugs/BUG-0905-production-defines-direct-url-but-the-code-reads-direct-data.md",
         "provenance": "QA_RUN",
@@ -7181,8 +7181,8 @@
       "title": "Production has no published legal documents, so purchases record no consent and the footer links to nothing",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "PRODUCT_DECISION",
+      "architect_disposition": "PRODUCT_DECISION",
       "source": {
         "record_path": "docs/bugs/BUG-0906-production-has-no-published-legal-documents-so-purchases-rec.md",
         "provenance": "QA_RUN",
@@ -11221,7 +11221,7 @@
       "severity": "MEDIUM",
       "priority": "P2",
       "current_status": "TRIAGE_REQUIRED",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "PLAN_REQUIRED",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0085-no-bulk-command-exists-to-sync-plan-prices-to-stripe-so-a-la.md",
         "provenance": "QA_RUN",
@@ -11259,7 +11259,7 @@
       "severity": "HIGH",
       "priority": "P2",
       "current_status": "TRIAGE_REQUIRED",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0086-smoke-deployment-does-not-assert-that-a-launched-market-has-.md",
         "provenance": "QA_RUN",
@@ -11296,8 +11296,8 @@
       "title": "STRIPE_API_VERSION is commented out in the local API env and documented with two different values",
       "severity": "LOW",
       "priority": "P2",
-      "current_status": "TRIAGE_REQUIRED",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0087-stripe-api-version-is-commented-out-in-the-local-api-env-and.md",
         "provenance": "QA_RUN",
@@ -11334,8 +11334,8 @@
       "title": "npm --workspace api run start:dev always frees port 4000 regardless of PORT, killing any other API instance",
       "severity": "LOW",
       "priority": "P2",
-      "current_status": "TRIAGE_REQUIRED",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0088-npm-workspace-api-run-start-dev-always-frees-port-4000-regar.md",
         "provenance": "QA_RUN",
@@ -11372,8 +11372,8 @@
       "title": "The contact form is the only public lead-creating form with no honeypot",
       "severity": "LOW",
       "priority": "P2",
-      "current_status": "TRIAGE_REQUIRED",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0089-the-contact-form-is-the-only-public-lead-creating-form-with-.md",
         "provenance": "QA_RUN",

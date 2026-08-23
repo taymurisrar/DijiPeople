@@ -3,13 +3,13 @@ ID: ITEM-0088
 aliases: [ITEM-0088]
 Title: npm --workspace api run start:dev always frees port 4000 regardless of PORT, killing any other API instance
 Type: TECH_DEBT
-Status: TRIAGE_REQUIRED
+Status: DEFERRED
 Priority: P2
 Severity: LOW
 AffectedModules: [services/api]
 Source: QA_RUN
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: DEFER
 CreatedAt: 2026-08-23
 UpdatedAt: 2026-08-23
 RelatedBug: 
