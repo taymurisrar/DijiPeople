@@ -83,10 +83,26 @@ describe('REG-229 — a document that calls itself a draft is not publishable', 
     expect(findDraftSelfDeclarations(published).length).toBeGreaterThan(0);
   });
 
-  it('still flags every draft banner in the current seed file', () => {
-    // The live state as of this commit: the seeded copy is not publishable.
-    // When this fails, the copy has been cleaned and can be published.
-    expect(findDraftSelfDeclarations(seedSource).length).toBeGreaterThan(0);
+  it('no longer flags the seed file, because the copy has been written', () => {
+    /*
+     * This assertion used to be `toBeGreaterThan(0)`, with the comment "the
+     * live state as of this commit: the seeded copy is not publishable. When
+     * this fails, the copy has been cleaned and can be published."
+     *
+     * It failed on 2026-08-23, which is the outcome it was watching for: the
+     * business supplied real Liability, Indemnity, Governing law, Tax, transfer,
+     * breach-notification and audit clauses, and the review banner came off all
+     * ten documents. So the assertion flips rather than being deleted — the
+     * pending state it recorded is now the state it asserts, and the file is
+     * still watched.
+     *
+     * Note this reads the seed file as *source*, so it sees comments as well as
+     * document text. That is deliberately the coarser check. Per-document
+     * verification against exactly the content the seed writes lives in
+     * `seed-legal-publishable.spec.ts`, which is what the release actually
+     * depends on.
+     */
+    expect(findDraftSelfDeclarations(seedSource)).toEqual([]);
   });
 
   it('passes a document that is genuinely ready', () => {

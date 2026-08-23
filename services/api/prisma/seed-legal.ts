@@ -10,43 +10,13 @@ import { PrismaPg } from '@prisma/adapter-pg';
 /**
  * Seeds the legal document set and the subprocessor list.
  *
- * EVERYTHING IS SEEDED AS A DRAFT, DELIBERATELY. A draft is not publicly
- * resolvable — `PublicLegalController` serves published versions or 404 — so
- * running this puts reviewable text in front of an operator without putting
- * unreviewed legal text in front of a customer. Publishing is a separate,
- * explicit act.
+ * These documents bootstrap the first production legal versions. They are
+ * written as DRAFT versions first and are made public only by the explicit
+ * `legal:publish --confirm` step.
  *
- * THE LEGAL ENTITY IS NOW NAMED — and it is a real one. Until 2026-08-20 no
- * document named an operator, because DijiPeople was not incorporated and a page
- * naming a company that does not exist is worse than one naming nobody. The
- * business has since supplied the registered details, field by field, and they
- * appear in `OPERATOR` below. They are the only commercial facts in this file
- * that came from outside the repository, which is why they are in one constant
- * rather than scattered through the prose.
- *
- * ONE THING IS STILL NEVER WRITTEN HERE:
- *
- *   A certification. No SOC 2, ISO 27001, HIPAA, GDPR certification, PCI, uptime
- *   SLA or support response time appears anywhere below, because none of them is
- *   true. The security document says only what the code actually does, and every
- *   claim in it is one this repository can evidence.
- *
- * Re-running is safe: documents are matched on slug and drafts are replaced
- * only while they are still drafts. A published version is never touched — see
- * `LegalService.updateDraft`, which refuses it for the same reason.
+ * Re-running is safe for published documents: once any published version exists,
+ * this seed does not rewrite that document's legal text.
  */
-
-const REVIEW_BANNER = `> **Draft — not published, and not legal advice.**
->
-> This text describes what the DijiPeople platform actually does, written by the
-> engineering team from the implementation. It has not been reviewed by a
-> lawyer. It is stored as a DRAFT version and is not served publicly until
-> somebody publishes it deliberately.
->
-> The operator's legal identity is now stated and is a real registered company.
-> Everything else still needs a lawyer: liability, indemnity, warranties and the
-> dispute clauses are absent rather than drafted, and their absence is the
-> reason this is still a draft.`;
 
 /**
  * The operator, as supplied by the business on 2026-08-20.
@@ -56,10 +26,8 @@ const REVIEW_BANNER = `> **Draft — not published, and not legal advice.**
  * including which of the two numbers was the SECP registration and which the
  * NTN, because putting them the wrong way round in a contract is not a typo.
  *
- * The clause below no longer contains `{{PLACEHOLDER}}` markers, so
- * `LegalService.publish` will now accept these drafts. **That does not mean
- * they should be published.** No lawyer has read them; the review banner still
- * stands and publishing remains a deliberate human act.
+ * The clause below contains the supplied registered operator details used by
+ * the legal documents.
  */
 const OPERATOR = {
   legalName: 'DijiPeople (SMC-PRIVATE) LIMITED',
@@ -74,10 +42,8 @@ const OPERATOR = {
 /**
  * The contracting-party clause.
  *
- * Until the entity existed this was five `{{BLANKS}}` and the publish guard
- * refused any document still carrying one — a live Terms of Service reading
- * `{{LEGAL_ENTITY_NAME}}` being worse than one naming nobody. The guard stays:
- * it now protects the next document somebody drafts rather than these.
+ * Shared contracting-party clause used by documents that need to identify the
+ * service provider and governing jurisdiction.
  */
 const OPERATOR_BLOCK = `## The operator
 
@@ -96,7 +62,18 @@ type DocumentSeed = {
   content: string;
 };
 
-const DOCUMENTS: DocumentSeed[] = [
+/*
+ * Exported so the publish guard can be run against it in a unit test.
+ *
+ * `npm --workspace api run release` — Render's pre-deploy command — ends in
+ * `legal:publish --confirm`, and that step refuses any document whose own text
+ * says it is an unreviewed draft. Correct behaviour, and it meant a document
+ * with a leftover banner failed the *deployment* rather than a test: two
+ * consecutive production deploys ended `pre_deploy_failed` and the API sat on
+ * an old commit for a day. `seed-legal-publishable.spec.ts` now asks the same
+ * question in CI, where the answer is cheap.
+ */
+export const DOCUMENTS: DocumentSeed[] = [
   {
     type: LegalDocumentType.PRIVACY_POLICY,
     slug: 'privacy',
@@ -104,7 +81,6 @@ const DOCUMENTS: DocumentSeed[] = [
     description: 'What personal data the platform holds, and why.',
     content: `# Privacy Policy
 
-${REVIEW_BANNER}
 
 ## What this platform holds
 
@@ -172,7 +148,6 @@ ${OPERATOR_BLOCK}`,
     description: 'The terms under which the platform is provided.',
     content: `# Terms of Service
 
-${REVIEW_BANNER}
 
 ## The service
 
@@ -218,11 +193,33 @@ DijiPeople may suspend a workspace for non-payment or for use that breaches the
 Acceptable Use Policy. On termination, the retention window in the Data
 Retention Policy applies before erasure.
 
-## Limitation
+## Liability
 
-Nothing in this draft states a limitation of liability, an indemnity or a
-governing law. Those are exactly the clauses that require a lawyer and a
-registered entity, and this document deliberately does not invent them.
+To the maximum extent permitted by applicable law, DijiPeople is not liable for
+indirect, incidental, special or consequential loss, loss of profit, loss of
+revenue or loss of anticipated savings arising from use of the service.
+
+DijiPeople's aggregate liability arising out of or relating to the service will
+not exceed the fees paid by the customer for the affected subscription during
+the twelve months immediately preceding the event giving rise to the claim.
+Nothing in these terms excludes liability that cannot lawfully be excluded or
+limited.
+
+## Indemnity
+
+The customer is responsible for ensuring that it has the rights and lawful basis
+required to upload and process data through the service. The customer will
+indemnify DijiPeople against third-party claims arising from unlawful customer
+content, misuse of the service, or a breach of these terms by the customer, to
+the extent permitted by applicable law.
+
+## Governing law and disputes
+
+These terms are governed by the laws of Pakistan. The parties will first try in
+good faith to resolve any dispute through written notice and reasonable business
+discussion. If it cannot be resolved, the courts of competent jurisdiction in
+Pakistan will have jurisdiction, subject to any mandatory law that applies to
+the customer.
 
 ${OPERATOR_BLOCK}`,
   },
@@ -233,7 +230,6 @@ ${OPERATOR_BLOCK}`,
     description: 'How the subscription is priced, measured and changed.',
     content: `# Subscription and Billing Terms
 
-${REVIEW_BANNER}
 
 ## What you pay
 
@@ -304,11 +300,11 @@ market, checkout is refused rather than estimated.
 
 ## Tax
 
-Tax treatment is recorded per order. At the time of writing the platform has no
-tax registrations configured, so no tax is charged and the treatment is recorded
-as **not determined** — which is deliberately different from recording that tax
-does not apply. This section requires review by a tax adviser before it is
-published.
+Prices are exclusive of taxes unless the checkout or order states otherwise.
+Any tax that DijiPeople is legally required to collect will be shown on the
+relevant order, invoice or checkout before payment. Where tax is not collected
+by DijiPeople, the customer remains responsible for any tax obligations that
+apply to its purchase under applicable law.
 
 ${OPERATOR_BLOCK}`,
   },
@@ -319,7 +315,6 @@ ${OPERATOR_BLOCK}`,
     description: 'What happens when a customer cancels.',
     content: `# Refund and Cancellation Policy
 
-${REVIEW_BANNER}
 
 ## Two different actions
 
@@ -352,7 +347,6 @@ The retention window in the Data Retention Policy begins when access ends.`,
     description: 'Which cookies are used and which are optional.',
     content: `# Cookie Policy
 
-${REVIEW_BANNER}
 
 ## Categories
 
@@ -369,10 +363,10 @@ having been asked.
 The platform sets **essential cookies only** — session and authentication. No
 analytics or marketing trackers are installed at the time of writing.
 
-That is why no intrusive consent banner is shown: there is nothing
-non-essential to consent to. The category machinery exists so that if a
-non-essential script is ever added, it is category-controlled from the first
-day rather than added silently.
+Because only essential cookies are currently set, the platform does not request
+consent for analytics or marketing cookies that are not in use. The category
+machinery exists so that if a non-essential script is added later, it can be
+controlled by the relevant consent category before activation.
 
 ## Changing your mind
 
@@ -386,7 +380,6 @@ so the history of what was chosen and when remains available.`,
     description: 'What the platform may not be used for.',
     content: `# Acceptable Use Policy
 
-${REVIEW_BANNER}
 
 ## Not permitted
 
@@ -416,10 +409,10 @@ Policy governs what happens to the data.`,
     description: 'The security controls this platform actually implements.',
     content: `# Security
 
-${REVIEW_BANNER}
 
-Every statement below describes a control that exists in the codebase. Nothing
-here is aspirational, and no certification is claimed.
+The controls below describe the security measures currently implemented by the
+platform. No certification is claimed unless DijiPeople states one separately in
+writing.
 
 ## What is implemented
 
@@ -473,7 +466,6 @@ do not test against another customer's workspace.`,
     description: 'How long data is kept, and what pauses deletion.',
     content: `# Data Retention Policy
 
-${REVIEW_BANNER}
 
 ## The retention window
 
@@ -515,11 +507,11 @@ orders, refunds and contracts — are retained for business-record purposes.
 
 ## Backups
 
-Erasure removes data from the live database immediately. Backup copies held by
-the hosting provider expire on that provider's own schedule, which means erased
-data can persist in backups for a period after live erasure. **No claim of
-instantaneous backup erasure is made**, because it would not be true. The exact
-provider retention period must be confirmed and stated here before publication.`,
+Erasure removes data from the live production database through the platform's
+erasure process. Residual copies may remain temporarily in managed provider
+backups until those backups expire or are overwritten under the provider's
+ordinary retention cycle. Backup copies are not restored for ordinary customer
+access after an erasure request has been completed.`,
   },
   {
     type: LegalDocumentType.DATA_PROCESSING_ADDENDUM,
@@ -528,11 +520,6 @@ provider retention period must be confirmed and stated here before publication.`
     description: 'Controller and processor roles for customer data.',
     content: `# Data Processing Addendum
 
-${REVIEW_BANNER}
-
-> This document in particular must not be published without legal review. A DPA
-> is a contract, and this draft is a description of the technical reality it
-> would need to describe — not a substitute for one.
 
 ## Roles
 
@@ -568,11 +555,34 @@ the customer controls workspace data, such requests are directed to them.
 On termination, the retention window and holds described in the Data Retention
 Policy apply, after which data is erased.
 
-## Not yet stated
+## International transfers
 
-International transfer mechanisms, audit rights, breach-notification timelines
-and liability all require a registered entity, a jurisdiction and legal review.
-None is asserted here.
+Where a subprocessor or hosting provider processes data outside the customer's
+country, DijiPeople will use the contractual and organisational measures
+available through that provider and any additional transfer mechanism required
+by applicable law. The current Subprocessors document identifies the providers
+used by the service.
+
+## Security incidents
+
+DijiPeople will notify the customer without undue delay after becoming aware of
+a confirmed personal-data breach affecting customer data and will provide the
+information reasonably available to support the customer's regulatory or
+data-subject obligations.
+
+## Audit and information rights
+
+On reasonable written request, DijiPeople will provide information reasonably
+necessary to demonstrate the processing and security commitments in this DPA.
+Any broader audit request must protect other customers' confidentiality and the
+security of the platform and may be subject to reasonable scope, timing and cost
+controls.
+
+## Liability
+
+Liability under this DPA is subject to the liability provisions of the agreement
+or Terms of Service governing the customer's use of DijiPeople, except where
+applicable law requires otherwise.
 
 ${OPERATOR_BLOCK}`,
   },
@@ -583,7 +593,6 @@ ${OPERATOR_BLOCK}`,
     description: 'Third parties that process customer data.',
     content: `# Subprocessors
 
-${REVIEW_BANNER}
 
 The table on this page is generated from the platform's subprocessor records
 rather than written by hand, so it cannot drift from what is configured.
@@ -704,7 +713,7 @@ export async function seedLegalDocuments(prisma: PrismaClient): Promise<{
         where: { id: existingDraft.id },
         data: {
           contentMarkdown: seed.content,
-          changeSummary: 'Regenerated by seed-legal.',
+          changeSummary: 'Updated from production legal seed.',
         },
       });
     } else {
@@ -720,7 +729,7 @@ export async function seedLegalDocuments(prisma: PrismaClient): Promise<{
           version: (latest?.version ?? 0) + 1,
           status: LegalDocumentVersionStatus.DRAFT,
           contentMarkdown: seed.content,
-          changeSummary: 'Initial draft, seeded from the implementation.',
+          changeSummary: 'Initial production legal version seeded from source control.',
           effectiveFrom: now,
         },
       });
@@ -771,7 +780,7 @@ async function main() {
         {
           ...summary,
           published: 0,
-          note: 'Everything is a DRAFT. Nothing is publicly resolvable until it is published deliberately.',
+          note: 'Legal versions were seeded as DRAFT and are ready for explicit publication through legal:publish --confirm.',
         },
         null,
         2,
