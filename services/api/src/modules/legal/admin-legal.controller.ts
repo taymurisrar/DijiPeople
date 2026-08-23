@@ -8,7 +8,13 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { IsISO8601, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import {
+  IsISO8601,
+  IsOptional,
+  IsString,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { AppError } from '../../common/errors/app-error';
@@ -117,7 +123,9 @@ export class AdminLegalController {
     await this.legal.updateDraft(versionId, {
       contentMarkdown: dto.contentMarkdown,
       changeSummary: dto.changeSummary,
-      effectiveFrom: dto.effectiveFrom ? new Date(dto.effectiveFrom) : undefined,
+      effectiveFrom: dto.effectiveFrom
+        ? new Date(dto.effectiveFrom)
+        : undefined,
     });
 
     // Return the blockers with the save, so the editor can show whether this
