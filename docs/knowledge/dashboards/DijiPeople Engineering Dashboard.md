@@ -7,13 +7,13 @@
 
 | | |
 |---|---|
-| Open CRITICAL | **4** |
-| Open HIGH | **12** |
-| Open total | 40 |
+| Open CRITICAL | **5** |
+| Open HIGH | **15** |
+| Open total | 44 |
 | Blocked | 1 |
 | Awaiting a product decision | 4 |
 | Deferred | 21 |
-| Completed | 169 |
+| Completed | 167 |
 | Awaiting Architect triage | 0 |
 
 ## Open Critical Bugs
@@ -24,11 +24,14 @@
 | [[BUG-0900-tenant-provisioning-exceeds-the-5s-transaction-timeout-a-pai|BUG-0900]] | Tenant provisioning exceeds the 5s transaction timeout: a paid order is left with no workspace | BUG | CRITICAL | FIXED | api:permissions | FIX_NOW |
 | [[BUG-0904-production-is-missing-outbox-worker-enabled-so-no-workspace-|BUG-0904]] | Production is missing OUTBOX_WORKER_ENABLED, so no workspace is provisioned after payment | BUG | CRITICAL | OPEN | api:outbox | BLOCKED_EXTERNAL |
 | [[BUG-0989-every-stripe-webhook-delivery-to-production-fails-so-a-payme|BUG-0989]] | Every Stripe webhook delivery to production fails, so a payment never reaches the platform | BUG | CRITICAL | OPEN | api:billing | BLOCKED_EXTERNAL |
+| [[BUG-0994-plan-entitlements-blank-out-on-save-and-the-next-save-delete|BUG-0994]] | Plan entitlements blank out on save and the next save deletes them | DATA_INTEGRITY | CRITICAL | FIXED | platform-runtime, super-admin, admin | FIX_NOW |
 
 ## Open High Bugs
 
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
+| [[BUG-0015-a-tenant-that-fails-before-identities-and-billing-is-unrecoverable|BUG-0015]] | A tenant that fails before identities-and-billing is permanently unrecoverable | STATE_MACHINE | HIGH | OPEN | api:tenant-control-plane | PLAN_REQUIRED |
+| [[BUG-0016-partner-onboarding-review-has-no-state-machine|BUG-0016]] | Partner onboarding review has no state machine | STATE_MACHINE | HIGH | OPEN | api:partner-experience | PLAN_REQUIRED |
 | [[BUG-0163-package-lock-json-cannot-be-regenerated-npm-overrides-are-si|BUG-0163]] | package-lock.json cannot be regenerated - npm overrides are silently ignored | INFRA | HIGH | FIXED | package-lock.json, apps/admin | DONE |
 | [[BUG-0714-customer-emails-link-to-the-vercel-app-host-and-api-base-url|BUG-0714]] | Customer emails link to the vercel.app host, and API_BASE_URL is plain HTTP | INFRA | HIGH | FIXED | services/api, apps/web, docs/deployment | FIX_NOW |
 | [[BUG-0767-render-yaml-is-not-what-production-runs-so-no-seed-or-legal-|BUG-0767]] | render.yaml is not what production runs, so no seed or legal publication has ever executed | INFRA | HIGH | FIXED | render.yaml, services/api/prisma, docs/deployment | DONE |
@@ -40,6 +43,7 @@
 | [[BUG-0902-marktenantready-has-no-caller-so-a-paid-workspace-is-never-m|BUG-0902]] | markTenantReady has no caller, so a paid workspace is never marked ready and its URL is never shown | BUG | HIGH | FIXED | api:super-admin | FIX_NOW |
 | [[BUG-0903-production-runs-stripe-in-test-mode-so-no-real-payment-can-b|BUG-0903]] | Production runs Stripe in test mode, so no real payment can be collected | BUG | HIGH | OPEN | api:billing | BLOCKED_EXTERNAL |
 | [[BUG-0976-a-disallowed-cors-origin-returns-500-and-writes-an-error-log|BUG-0976]] | A disallowed CORS origin returns 500 and writes an error-log row, so anyone can fill the table | SECURITY | HIGH | FIXED | services/api/src/config | FIX_NOW |
+| [[BUG-0995-editing-any-plan-price-500s-once-its-stripe-product-id-goes-|BUG-0995]] | Editing any plan price 500s once its Stripe product id goes stale | INTEGRATION | HIGH | FIXED | billing, super-admin | FIX_NOW |
 | [[ITEM-0034-apps-web-has-zero-browser-e2e-coverage|ITEM-0034]] | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | READY | apps/web, e2e | PLAN_REQUIRED |
 
 ## Product Decisions Needed
@@ -90,6 +94,7 @@
 | [[BUG-0047-seven-bug-records-are-verified-while-their-fixes-exist-only|BUG-0047]] | Seven bug records are VERIFIED while their fixes exist only on unmerged branches | SECURITY | CRITICAL | VERIFIED | api:organization, api:error-logs, api:employees, api:attendance, docs/qa/regressions | DONE |
 | [[BUG-0071-tenant-users-reach-every-platform-super-admin-endpoint|BUG-0071]] | Tenant users reach every platform super-admin endpoint | AUTHORIZATION | CRITICAL | VERIFIED | super-admin, platform-auth, platform-communications | DONE |
 | [[BUG-0900-tenant-provisioning-exceeds-the-5s-transaction-timeout-a-pai|BUG-0900]] | Tenant provisioning exceeds the 5s transaction timeout: a paid order is left with no workspace | BUG | CRITICAL | FIXED | api:permissions | FIX_NOW |
+| [[BUG-0994-plan-entitlements-blank-out-on-save-and-the-next-save-delete|BUG-0994]] | Plan entitlements blank out on save and the next save deletes them | DATA_INTEGRITY | CRITICAL | FIXED | platform-runtime, super-admin, admin | FIX_NOW |
 | [[BUG-0049-report-only-ci-jobs-swallow-security-and-database-e2e-failur|BUG-0049]] | Report-only CI jobs swallow security and database E2E failures | INFRA | HIGH | VERIFIED | .github/workflows, services/api/src/common/constants, services/api/test, docs/qa | DONE |
 | [[BUG-0052-production-dependency-graph-carries-critical-and-high-securi|BUG-0052]] | Production dependency graph carries critical and high security advisories | SECURITY | HIGH | VERIFIED | package-lock.json, apps/agent-desktop, apps/web, apps/admin, apps/landing, services/api | DONE |
 | [[BUG-0053-documents-self-scoped-users-can-read-tenant-wide-documents|BUG-0053]] | Self-scoped document readers can list and open tenant-wide documents | AUTHORIZATION | HIGH | VERIFIED | api:documents | DONE |
@@ -106,8 +111,6 @@
 | [[BUG-0011-signed-agreement-editable-defeating-the-lead-conversion-gate|BUG-0011]] | Signed agreements were editable, defeating the lead-conversion gate | STATE_MACHINE | HIGH | VERIFIED | api:contracts | DONE |
 | [[BUG-0012-onboarding-created-by-lead-conversion-was-born-uneditable|BUG-0012]] | Every onboarding created by lead conversion was born un-editable | STATE_MACHINE | HIGH | VERIFIED | api:super-admin | DONE |
 | [[BUG-0014-no-tenant-that-failed-provisioning-could-be-retried|BUG-0014]] | No tenant that failed provisioning could be retried | STATE_MACHINE | HIGH | VERIFIED | api:tenant-control-plane | DONE |
-| [[BUG-0015-a-tenant-that-fails-before-identities-and-billing-is-unrecoverable|BUG-0015]] | A tenant that fails before identities-and-billing is permanently unrecoverable | STATE_MACHINE | HIGH | VERIFIED | api:tenant-control-plane | DONE |
-| [[BUG-0016-partner-onboarding-review-has-no-state-machine|BUG-0016]] | Partner onboarding review has no state machine | STATE_MACHINE | HIGH | VERIFIED | api:partner-experience | DONE |
 | [[BUG-0019-partner-inquiry-and-onboarding-review-screens-are-unreachable|BUG-0019]] | Partner inquiry and onboarding review screens have no inbound link | UX | HIGH | VERIFIED | apps/admin | DONE |
 | [[BUG-0026-public-login-and-tenant-email-links-resolved-to-localhost-in|BUG-0026]] | Public Login and tenant email links resolved to localhost in production | INFRA | HIGH | VERIFIED | apps/landing, apps/web, apps/admin, services/api, pkg:config | DONE |
 | [[BUG-0031-public-subscribe-endpoint-has-no-rate-limiting|BUG-0031]] | Public subscribe endpoint has no rate limiting | SECURITY | HIGH | VERIFIED | api:billing, apps/landing | DONE |
@@ -159,6 +162,7 @@
 | [[BUG-0901-a-paid-order-records-totalamount-0-00-for-every-flat-plan-wh|BUG-0901]] | A paid order records totalAmount 0.00 for every FLAT plan while Stripe charges the full price | BUG | HIGH | FIXED | api:billing | FIX_NOW |
 | [[BUG-0902-marktenantready-has-no-caller-so-a-paid-workspace-is-never-m|BUG-0902]] | markTenantReady has no caller, so a paid workspace is never marked ready and its URL is never shown | BUG | HIGH | FIXED | api:super-admin | FIX_NOW |
 | [[BUG-0976-a-disallowed-cors-origin-returns-500-and-writes-an-error-log|BUG-0976]] | A disallowed CORS origin returns 500 and writes an error-log row, so anyone can fill the table | SECURITY | HIGH | FIXED | services/api/src/config | FIX_NOW |
+| [[BUG-0995-editing-any-plan-price-500s-once-its-stripe-product-id-goes-|BUG-0995]] | Editing any plan price 500s once its Stripe product id goes stale | INTEGRATION | HIGH | FIXED | billing, super-admin | FIX_NOW |
 | [[BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state|BUG-0051]] | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |
 | [[BUG-0009-session-revocation-depended-on-the-refresh-cookie|BUG-0009]] | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | VERIFIED | app:admin, api:auth | DONE |
 | [[BUG-0010-unguarded-cookie-options-could-turn-sign-out-into-a-500|BUG-0010]] | Unguarded cookie options could turn admin sign-out into a 500 | INFRA | MEDIUM | VERIFIED | app:admin | DONE |
@@ -187,7 +191,6 @@
 | [[BUG-0081-three-apps-claimed-a-forwarded-headers-invariant-test-that-d|BUG-0081]] | Three apps claimed a forwarded-headers invariant test that did not exist | TEST_GAP | MEDIUM | VERIFIED | landing, web, admin | DONE |
 | [[BUG-0221-schema-completed-form-fields-render-on-a-tab-the-form-never-|BUG-0221]] | Schema-completed form fields render on a tab the form never declares | UX | MEDIUM | VERIFIED | apps/admin | DONE |
 | [[BUG-0222-plan-related-record-panels-declare-no-tab-so-they-never-rend|BUG-0222]] | Plan related-record panels declare no tab, so they never render | UX | MEDIUM | VERIFIED | apps/admin | DONE |
-| [[BUG-0223-admin-cannot-set-a-plan-ispublic-flag-which-gates-self-servi|BUG-0223]] | Admin cannot set a plan isPublic flag which gates self-service checkout | UX | MEDIUM | VERIFIED | apps/admin, api:super-admin, api:billing | DONE |
 | [[BUG-0281-partner-attribution-is-lost-when-a-referred-buyer-purchases-|BUG-0281]] | Partner attribution is lost when a referred buyer purchases through self-service checkout | DATA_INTEGRITY | MEDIUM | VERIFIED | apps/landing, api:billing, api:partner-experience | DONE |
 | [[BUG-0283-a-regenerated-prisma-client-against-an-un-migrated-database-|BUG-0283]] | A regenerated Prisma client against an un-migrated database 500s every affected screen | INFRA | MEDIUM | VERIFIED | services/api, services/api/prisma, apps/admin | DONE |
 | [[BUG-0314-the-notifications-page-is-a-placeholder-under-a-permanently-|BUG-0314]] | The notifications page is a placeholder under a permanently lit badge | UX | MEDIUM | VERIFIED | apps/admin, api:platform-events | DONE |
@@ -296,7 +299,7 @@ _None. Nothing has been deployed through the release process._
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 145 |
+| Bug records | 147 |
 | Backlog items | 90 |
 | Known bug patterns | 26 |
 | QA runs | 23 |

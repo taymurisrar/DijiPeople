@@ -2,7 +2,7 @@
 ID: BUG-0016
 aliases: [BUG-0016]
 Title: Partner onboarding review has no state machine
-Status: VERIFIED
+Status: OPEN
 Severity: HIGH
 Priority: P1
 Type: STATE_MACHINE
@@ -11,7 +11,7 @@ DetectedDate: 2026-08-15
 DetectedInSha: 7bbab3d
 AffectedModules: [services/api/src/modules/partner-experience]
 OwnerAgent: architect
-ArchitectDisposition: DONE
+ArchitectDisposition: PLAN_REQUIRED
 QAReport: docs/qa/runs/2026-08-15-commercial-onboarding-e2e-7bbab3d.md
 RegressionId: REG-014
 RelatedBacklogItem:
@@ -119,6 +119,11 @@ by accident and not a fix.
 ## Resolution
 
 Not resolved.
+
+> Reopened 2026-08-23, for the same reason as [[BUG-0015]]: terminal status
+> above an unresolved Resolution. Its own QA Retest section already said so —
+> "the QA run records `PARTNER_FLOW` as `PASS_WITH_RISKS` because of this
+> record" — which is not something a VERIFIED bug can be true of.
 
 ## QA Retest
 

@@ -23,11 +23,19 @@ export function PlanEntitlementsPanel({
   planId,
   initialFeatureKeys,
   readOnly = false,
+  lockedHint,
   onSave,
 }: {
   planId: string;
   initialFeatureKeys: string[];
   readOnly?: boolean;
+  /**
+   * Why the checkboxes are inert, when they are inert because the record is
+   * merely not in edit mode. A disabled control with no explanation reads as a
+   * broken one — which is how "the entitlements are not editable" gets reported
+   * as a bug against a screen that is working as designed.
+   */
+  lockedHint?: string;
   onSave: (featureKeys: string[]) => Promise<void>;
 }) {
   const [catalog, setCatalog] = useState<CatalogFeature[] | null>(null);
@@ -198,6 +206,10 @@ export function PlanEntitlementsPanel({
           This plan grants {retired.join(", ")}, which the feature catalog no
           longer lists. It is kept until someone removes it deliberately.
         </p>
+      ) : null}
+
+      {readOnly && lockedHint ? (
+        <p className="mt-3 text-xs text-slate-500">{lockedHint}</p>
       ) : null}
 
       <div className="mt-4 flex flex-wrap items-center gap-3">

@@ -2,7 +2,7 @@
 ID: BUG-0015
 aliases: [BUG-0015]
 Title: A tenant that fails before identities-and-billing is permanently unrecoverable
-Status: VERIFIED
+Status: OPEN
 Severity: HIGH
 Priority: P1
 Type: STATE_MACHINE
@@ -11,7 +11,7 @@ DetectedDate: 2026-08-15
 DetectedInSha: 7bbab3d
 AffectedModules: [services/api/src/modules/tenant-control-plane]
 OwnerAgent: backend-api
-ArchitectDisposition: DONE
+ArchitectDisposition: PLAN_REQUIRED
 QAReport: docs/qa/runs/2026-08-15-commercial-onboarding-e2e-7bbab3d.md
 RegressionId: REG-013
 RelatedBacklogItem:
@@ -126,6 +126,14 @@ UX consequence tracked with [[BUG-0022-provision-tenant-has-no-confirmation-step
 ## Resolution
 
 Not resolved.
+
+> Reopened 2026-08-23. This record was `Status: VERIFIED` /
+> `ArchitectDisposition: DONE` above this very section, so every dashboard
+> and every go-live summary counted it finished. It is not: Platform Admin
+> still renders "No business unit exists — BLOCKING … This is BUG-0015 and
+> is not repairable from here" on a live tenant, and `tenant-operations.service.ts`
+> still marks that finding `repairable: false`. Needs a plan, because the
+> fix is a replayable identities-and-billing step rather than a patch.
 
 ## QA Retest
 

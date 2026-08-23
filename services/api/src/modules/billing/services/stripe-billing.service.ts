@@ -3,6 +3,7 @@ import {
   Inject,
   Injectable,
   InternalServerErrorException,
+  Logger,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
@@ -15,6 +16,8 @@ import {
 
 @Injectable()
 export class StripeBillingService {
+  private readonly logger = new Logger(StripeBillingService.name);
+
   constructor(
     @Inject(STRIPE_CLIENT) private readonly stripe: StripeClient,
     private readonly configService: ConfigService,
@@ -48,10 +51,44 @@ export class StripeBillingService {
     planId: string;
   }) {
     if (input.stripeProductId) {
-      const product = await this.stripe.products.retrieve(
-        input.stripeProductId,
-      );
-      if (!('deleted' in product) || !product.deleted) return product;
+      try {
+        const product = await this.stripe.products.retrieve(
+          input.stripeProductId,
+        );
+        if (!('deleted' in product) || !product.deleted) return product;
+      } catch (error) {
+        /*
+         * A stored id that Stripe does not recognise is not a failure — it is
+         * the exact case the "orCreate" half of this method's name promises to
+         * handle. Only the *deleted* case was covered, and `products.retrieve`
+         * does not return a deleted stub for an id that never existed here: it
+         * throws `resource_missing`.
+         *
+         * That turned one stale id into a permanent dead end. Every attempt to
+         * create or edit any price on the plan answered
+         * `500 SYSTEM_UNEXPECTED_ERROR — No such product: 'prod_…'`, and no
+         * screen offered a way to clear the id, so the plan could never be
+         * priced again. Seen on production 2026-08-23 against
+         * `prod_V4vU7oieZdX6kH`.
+         *
+         * An id goes stale for ordinary reasons: the Stripe sandbox was reset,
+         * the account was switched, or the product was removed in the Stripe
+         * dashboard. None of those should brick a plan.
+         *
+         * Only `resource_missing` is swallowed. An auth failure, a rate limit
+         * or a network error must still surface — creating a duplicate product
+         * because Stripe was briefly unreachable would be a worse outcome than
+         * the error.
+         */
+        const missing =
+          error instanceof Stripe.errors.StripeInvalidRequestError &&
+          error.code === 'resource_missing';
+        if (!missing) throw error;
+
+        this.logger.warn(
+          `Stripe product ${input.stripeProductId} no longer exists; creating a replacement for plan ${input.planId}.`,
+        );
+      }
     }
 
     return this.stripe.products.create({
@@ -90,6 +127,40 @@ export class StripeBillingService {
         billingInterval: input.billingInterval,
       },
     });
+  }
+
+  /**
+   * Retire a Stripe Price.
+   *
+   * Stripe Prices cannot be deleted, only deactivated — so this is what
+   * "delete" means on the Stripe side of removing a plan price. Best effort by
+   * design: the caller has already established that nothing is billed against
+   * the row, and a Stripe outage is not a reason to leave an unwanted price
+   * sitting in the local catalogue. It reports what happened so the caller can
+   * say so rather than imply a clean removal.
+   */
+  async archiveRecurringPrice(
+    stripePriceId: string,
+  ): Promise<{ archived: boolean; reason?: string }> {
+    try {
+      await this.stripe.prices.update(stripePriceId, { active: false });
+      return { archived: true };
+    } catch (error) {
+      const missing =
+        error instanceof Stripe.errors.StripeInvalidRequestError &&
+        error.code === 'resource_missing';
+      if (missing) {
+        // Already gone from Stripe's side. The outcome asked for.
+        return { archived: true };
+      }
+
+      const reason =
+        error instanceof Error ? error.message : 'Unknown Stripe error.';
+      this.logger.warn(
+        `Could not archive Stripe price ${stripePriceId}: ${reason}`,
+      );
+      return { archived: false, reason };
+    }
   }
 
   async verifyRecurringPrice(input: {

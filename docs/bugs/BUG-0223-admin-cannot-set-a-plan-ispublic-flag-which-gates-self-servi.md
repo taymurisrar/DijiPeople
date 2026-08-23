@@ -2,7 +2,7 @@
 ID: BUG-0223
 aliases: [BUG-0223]
 Title: Admin cannot set a plan isPublic flag which gates self-service checkout
-Status: VERIFIED
+Status: ACCEPTED_RISK
 Severity: MEDIUM
 Priority: P2
 Type: UX
@@ -11,7 +11,7 @@ DetectedDate: 2026-08-21
 DetectedInSha: 08b8661
 AffectedModules: [apps/admin, api:super-admin, api:billing]
 OwnerAgent: architect
-ArchitectDisposition: DONE
+ArchitectDisposition: ACCEPTED_RISK
 QAReport: REG-225
 RegressionId: REG-225
 RelatedBacklogItem: ITEM-0022
@@ -110,6 +110,13 @@ Overlaps [[ITEM-0022]]; should be sequenced with it rather than separately.
 [[BUG-0220]] — why the runtime record page cannot write it today.
 
 ## Resolution
+
+Accepted as a risk rather than fixed — see below.
+
+> Re-filed 2026-08-23. The prose was already honest; the frontmatter was not.
+> `VERIFIED` claims a fix was made and checked. Nothing was fixed: a
+> deliberate decision was taken not to, and `ACCEPTED_RISK` is the status
+> that says so. The distinction matters to anyone asking what is left.
 
 Not resolved. Recorded rather than fixed: adding the field to the DTO would
 create a second ungoverned way to change what customers can buy, which is the

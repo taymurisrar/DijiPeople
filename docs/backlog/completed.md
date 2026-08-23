@@ -35,8 +35,6 @@ the same defect again.
 | [BUG-0011](../../docs/bugs/BUG-0011-signed-agreement-editable-defeating-the-lead-conversion-gate.md) | Signed agreements were editable, defeating the lead-conversion gate | STATE_MACHINE | HIGH | P1 | VERIFIED | api:contracts | DONE |
 | [BUG-0012](../../docs/bugs/BUG-0012-onboarding-created-by-lead-conversion-was-born-uneditable.md) | Every onboarding created by lead conversion was born un-editable | STATE_MACHINE | HIGH | P1 | VERIFIED | api:super-admin | DONE |
 | [BUG-0014](../../docs/bugs/BUG-0014-no-tenant-that-failed-provisioning-could-be-retried.md) | No tenant that failed provisioning could be retried | STATE_MACHINE | HIGH | P1 | VERIFIED | api:tenant-control-plane | DONE |
-| [BUG-0015](../../docs/bugs/BUG-0015-a-tenant-that-fails-before-identities-and-billing-is-unrecoverable.md) | A tenant that fails before identities-and-billing is permanently unrecoverable | STATE_MACHINE | HIGH | P1 | VERIFIED | api:tenant-control-plane | DONE |
-| [BUG-0016](../../docs/bugs/BUG-0016-partner-onboarding-review-has-no-state-machine.md) | Partner onboarding review has no state machine | STATE_MACHINE | HIGH | P1 | VERIFIED | api:partner-experience | DONE |
 | [BUG-0019](../../docs/bugs/BUG-0019-partner-inquiry-and-onboarding-review-screens-are-unreachable.md) | Partner inquiry and onboarding review screens have no inbound link | UX | HIGH | P1 | VERIFIED | apps/admin | DONE |
 | [BUG-0026](../../docs/bugs/BUG-0026-public-login-and-tenant-email-links-resolved-to-localhost-in.md) | Public Login and tenant email links resolved to localhost in production | INFRA | HIGH | P1 | VERIFIED | apps/landing, apps/web, apps/admin, services/api, pkg:config | DONE |
 | [BUG-0031](../../docs/bugs/BUG-0031-public-subscribe-endpoint-has-no-rate-limiting.md) | Public subscribe endpoint has no rate limiting | SECURITY | HIGH | P1 | VERIFIED | api:billing, apps/landing | DONE |
@@ -112,7 +110,6 @@ the same defect again.
 | [BUG-0081](../../docs/bugs/BUG-0081-three-apps-claimed-a-forwarded-headers-invariant-test-that-d.md) | Three apps claimed a forwarded-headers invariant test that did not exist | TEST_GAP | MEDIUM | P2 | VERIFIED | landing, web, admin | DONE |
 | [BUG-0221](../../docs/bugs/BUG-0221-schema-completed-form-fields-render-on-a-tab-the-form-never-.md) | Schema-completed form fields render on a tab the form never declares | UX | MEDIUM | P2 | VERIFIED | apps/admin | DONE |
 | [BUG-0222](../../docs/bugs/BUG-0222-plan-related-record-panels-declare-no-tab-so-they-never-rend.md) | Plan related-record panels declare no tab, so they never render | UX | MEDIUM | P2 | VERIFIED | apps/admin | DONE |
-| [BUG-0223](../../docs/bugs/BUG-0223-admin-cannot-set-a-plan-ispublic-flag-which-gates-self-servi.md) | Admin cannot set a plan isPublic flag which gates self-service checkout | UX | MEDIUM | P2 | VERIFIED | apps/admin, api:super-admin, api:billing | DONE |
 | [BUG-0281](../../docs/bugs/BUG-0281-partner-attribution-is-lost-when-a-referred-buyer-purchases-.md) | Partner attribution is lost when a referred buyer purchases through self-service checkout | DATA_INTEGRITY | MEDIUM | P2 | VERIFIED | apps/landing, api:billing, api:partner-experience | DONE |
 | [BUG-0283](../../docs/bugs/BUG-0283-a-regenerated-prisma-client-against-an-un-migrated-database-.md) | A regenerated Prisma client against an un-migrated database 500s every affected screen | INFRA | MEDIUM | P2 | VERIFIED | services/api, services/api/prisma, apps/admin | DONE |
 | [BUG-0314](../../docs/bugs/BUG-0314-the-notifications-page-is-a-placeholder-under-a-permanently-.md) | The notifications page is a placeholder under a permanently lit badge | UX | MEDIUM | P2 | VERIFIED | apps/admin, api:platform-events | DONE |
@@ -183,7 +180,9 @@ the same defect again.
 
 ## Accepted risk
 
-_None._
+| ID | Title | Type | Severity | Priority | Status | Affected | Architect |
+|---|---|---|---|---|---|---|---|
+| [BUG-0223](../../docs/bugs/BUG-0223-admin-cannot-set-a-plan-ispublic-flag-which-gates-self-servi.md) | Admin cannot set a plan isPublic flag which gates self-service checkout | UX | MEDIUM | P2 | ACCEPTED_RISK | apps/admin, api:super-admin, api:billing | ACCEPTED_RISK |
 
 ## Not a bug, duplicate or cancelled
 

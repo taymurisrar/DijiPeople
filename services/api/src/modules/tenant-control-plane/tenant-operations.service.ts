@@ -809,8 +809,22 @@ export function deriveWorkspaceHealth(facts: WorkspaceFacts) {
     findings.push({
       key: 'missing-business-unit',
       title: 'No business unit exists',
+      /*
+       * Written for the operator reading it, not for us.
+       *
+       * This previously ended "This is BUG-0015 and is not repairable from here
+       * — the provisioning step that creates it is not replayed." A control-plane
+       * screen is the wrong place for either half: it quotes an internal tracker
+       * id at someone who cannot look it up, and it stops at "not repairable"
+       * with no next step, which reads as "this is broken and nobody is coming".
+       *
+       * The limitation itself is real and unchanged — `identities-and-billing`
+       * creates the business unit and is deliberately not replayable, because
+       * replaying it would mint a second owner and a second invoice. What
+       * changes is that the operator is now told what they can actually do.
+       */
       detail:
-        'Owners and employees hang off a business unit, so this workspace cannot be activated or staffed until one exists. This is BUG-0015 and is not repairable from here — the provisioning step that creates it is not replayed.',
+        'Owners and employees hang off a business unit, so this workspace cannot be activated or staffed until one exists. Repair cannot create it: the provisioning step that does is the same one that issues the owner and the first invoice, and replaying it would duplicate both. Provision a fresh workspace for this customer and archive this one.',
       repairable: false,
       severity: 'BLOCKING',
     });

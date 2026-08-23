@@ -132,7 +132,11 @@ The asymmetry between the two public lead forms is also why
 
 ## Resolution
 
-Not resolved.
+Superseded — see **Resolution — Wave 3** below, which is the real one.
+
+> This section read "Not resolved." long after Wave 3 fixed the defect, so
+> the record contradicted itself and every dashboard counted it finished on
+> the frontmatter alone. Corrected 2026-08-23.
 
 ## QA Retest
 

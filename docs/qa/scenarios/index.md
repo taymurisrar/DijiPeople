@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 178** · automated: 161 · manual: 6 · blocked by infrastructure: 0
+**Scenarios: 180** · automated: 163 · manual: 6 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -21,6 +21,7 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-AGENT-005](../../../docs/qa/scenarios/QA-AGENT-005-the-desktop-agent-re-sends-a-failed-heartbeat-batch-exactly-.md) | The desktop agent re-sends a failed heartbeat batch exactly once, in order | agent-desktop | UNIT | HIGH | AUTOMATED | `apps/agent-desktop/src/main/offline-queue.spec.ts` | ITEM-0033 | REG-212 |
 | [QA-AGENT-006](../../../docs/qa/scenarios/QA-AGENT-006-a-partial-agent-config-cannot-silently-disable-or-widen-what.md) | A partial agent config cannot silently disable or widen what is captured | agent-desktop | UNIT | HIGH | AUTOMATED | `apps/agent-desktop/src/main/config-manager.spec.ts` | ITEM-0033 | REG-213 |
 | [QA-AGENT-007](../../../docs/qa/scenarios/QA-AGENT-007-a-capability-that-is-off-captures-nothing-from-the-employee-.md) | A capability that is off captures nothing from the employee's machine | agent-desktop | SECURITY | HIGH | AUTOMATED | `apps/agent-desktop/src/main/activity-tracker.spec.ts` | ITEM-0033 | REG-214 |
+| [QA-API-001](../../../docs/qa/scenarios/QA-API-001-plan-entitlements-survive-a-save-and-are-never-silently-empt.md) | Plan entitlements survive a save and are never silently emptied | platform-admin | API | CRITICAL | AUTOMATED | `services/api/src/modules/platform-runtime/plan-record-shape.spec.ts` | BUG-0994 | REG-241 |
 | [QA-ATT-001](../../../docs/qa/scenarios/QA-ATT-001-punch-interpretation-pairs-punches-correctly-across-shift-bo.md) | Punch interpretation pairs punches correctly across shift boundaries | attendance | UNIT | CRITICAL | AUTOMATED | `services/api/src/modules/attendance-engine/punch-interpreter.service.spec.ts` | — | — |
 | [QA-ATT-002](../../../docs/qa/scenarios/QA-ATT-002-geofence-evaluation-treats-an-absent-location-as-outside.md) | Geofence evaluation treats an absent location as outside | attendance | UNIT | HIGH | AUTOMATED | `services/api/src/modules/attendance-engine/attendance-geofence.service.spec.ts` | — | — |
 | [QA-ATT-003](../../../docs/qa/scenarios/QA-ATT-003-impossible-travel-between-punches-is-detected.md) | Impossible travel between punches is detected | attendance | UNIT | MEDIUM | AUTOMATED | `services/api/src/modules/attendance-engine/impossible-travel-detector.service.spec.ts` | — | — |
@@ -86,6 +87,7 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-DEPLOY-019](../../../docs/qa/scenarios/QA-DEPLOY-019-the-api-names-pending-migrations-at-startup-instead-of-faili.md) | The API names pending migrations at startup instead of failing a screen later | deployment-release | UNIT | MEDIUM | AUTOMATED | `services/api/src/common/prisma/migration-drift.spec.ts` | BUG-0283 | REG-204 |
 | [QA-DEPLOY-020](../../../docs/qa/scenarios/QA-DEPLOY-020-the-two-apps-web-environment-examples-agree-with-each-other-.md) | The two apps/web environment examples agree with each other and with the code | deployment-release | UNIT | LOW | AUTOMATED | `packages/config/env-examples.test.js` | ITEM-0045 | REG-210 |
 | [QA-DEPLOY-021](../../../docs/qa/scenarios/QA-DEPLOY-021-the-production-dependency-graph-carries-no-critical-advisory.md) | The production dependency graph carries no critical advisory | deployment-release | SECURITY | HIGH | AUTOMATED | `scripts/check-production-advisories.mjs` | BUG-0052 | REG-217 |
+| [QA-INTEGRATION-001](../../../docs/qa/scenarios/QA-INTEGRATION-001-a-stale-stripe-product-id-is-replaced-rather-than-fatal.md) | A stale Stripe product id is replaced rather than fatal | billing | INTEGRATION | HIGH | AUTOMATED | `services/api/src/modules/billing/stripe-product-resolution.spec.ts` | BUG-0995 | REG-242 |
 | [QA-LANDING-001](../../../docs/qa/scenarios/QA-LANDING-001-public-pages-degrade-rather-than-500-when-the-plans-api-is-u.md) | Public pages degrade rather than 500 when the plans API is unreachable | landing | BROWSER_E2E | HIGH | AUTOMATED | `e2e/tests/flow-c-landing-public-surface.spec.ts` | BUG-0061 | REG-057 |
 | [QA-LANDING-002](../../../docs/qa/scenarios/QA-LANDING-002-mobile-navigation-dismisses-on-navigation-escape-and-outside.md) | Mobile navigation dismisses on navigation escape and outside click | landing | BROWSER_E2E | HIGH | AUTOMATED | `e2e/tests/flow-c-landing-public-surface.spec.ts` | BUG-0062 | REG-058 |
 | [QA-LANDING-003](../../../docs/qa/scenarios/QA-LANDING-003-the-demo-form-reports-validation-errors-accessibly-and-submi.md) | The demo form reports validation errors accessibly and submits | landing | BROWSER_E2E | HIGH | AUTOMATED | `e2e/tests/flow-c-landing-public-surface.spec.ts` | BUG-0063 | REG-059 |
