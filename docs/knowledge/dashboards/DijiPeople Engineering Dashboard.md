@@ -297,7 +297,7 @@ _None. Nothing has been deployed through the release process._
 |---|---|
 | Bug records | 142 |
 | Backlog items | 89 |
-| Known bug patterns | 25 |
+| Known bug patterns | 26 |
 | QA runs | 23 |
 | Engineering history records | 34 |
 | Release records | 0 |
