@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import {
   CheckCircle2,
   Loader2,
+  Pencil,
   Plus,
   Power,
   Save,
@@ -85,6 +86,25 @@ export function PlanPriceManager({
   const [error, setError] = useState<string | null>(null);
   const [actionId, setActionId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  /*
+   * Changing an amount is what an operator comes to this screen to do, and it
+   * used to cost two clicks and a hunt: Edit replaced the whole row with a
+   * seven-field form, the amount was one of the seven, then Save. Everything
+   * else on the row — cycle, model, seats, Stripe id — is set once and rarely
+   * touched again.
+   *
+   * So the amount is editable in place. The full form is still there behind
+   * Edit for the rare change; this is the common one, and it costs a click into
+   * the field and Enter.
+   */
+  const [amountEditId, setAmountEditId] = useState<string | null>(null);
+  const [amountDraft, setAmountDraft] = useState("");
+  /*
+   * The new-price form is collapsed by default. It was permanently expanded
+   * above the list, so the first thing on a Pricing tab was seven empty inputs
+   * and the prices you came to read started below them.
+   */
+  const [showNewPrice, setShowNewPrice] = useState(false);
 
   const groupedPrices = useMemo(() => {
     return prices.reduce<Record<string, PlanPriceRecord[]>>((groups, price) => {
@@ -93,9 +113,9 @@ export function PlanPriceManager({
     }, {});
   }, [prices]);
 
-  function beginEdit(price: PlanPriceRecord) {
-    setEditingId(price.id);
-    setEditingDraft({
+  /** A record as the form edits it. Shared by Edit and the inline amount save. */
+  function draftFromPrice(price: PlanPriceRecord): DraftPrice {
+    return {
       billingCycle: price.billingCycle,
       billingModel: price.billingModel,
       currency: price.currency,
@@ -106,8 +126,95 @@ export function PlanPriceManager({
       includedSeats: String(price.includedSeats),
       stripePriceId: price.stripePriceId ?? "",
       isActive: price.isActive,
-    });
+    };
+  }
+
+  function beginEdit(price: PlanPriceRecord) {
+    setAmountEditId(null);
+    setEditingId(price.id);
+    setEditingDraft(draftFromPrice(price));
     setError(null);
+  }
+
+  function beginAmountEdit(price: PlanPriceRecord) {
+    setEditingId(null);
+    setEditingDraft(null);
+    setAmountEditId(price.id);
+    setAmountDraft(String(price.unitAmount));
+    setError(null);
+  }
+
+  /**
+   * Save one field, through the same validation and endpoint as the full form.
+   *
+   * Deliberately not a narrower request: `updatePlanPrice` supersedes a row
+   * whose amount changed, so it needs the whole shape to build the replacement.
+   * Sending only `unitAmount` would work today and break the first time the
+   * server needs another field to construct the successor.
+   */
+  function saveAmount(price: PlanPriceRecord) {
+    const next = { ...draftFromPrice(price), unitAmount: amountDraft.trim() };
+    if (next.unitAmount === String(price.unitAmount)) {
+      setAmountEditId(null);
+      return;
+    }
+
+    setError(null);
+    const validationError = validateDraft(next);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    setActionId(price.id);
+    startTransition(async () => {
+      try {
+        const updated = await requestJson<PlanPriceRecord>(
+          `/api/super-admin/plans/${planId}/prices/${price.id}`,
+          { method: "PATCH", body: JSON.stringify(toUpdatePayload(next)) },
+        );
+        setPrices((current) =>
+          applyActivePriceChange(
+            current.map((item) => (item.id === price.id ? updated : item)),
+            updated,
+          ),
+        );
+        setAmountEditId(null);
+      } catch (requestError) {
+        setError(getErrorMessage(requestError, "Unable to update price."));
+      } finally {
+        setActionId(null);
+      }
+    });
+  }
+
+  /** Flip a price between active and inactive without opening the form. */
+  function setPriceActive(price: PlanPriceRecord, isActive: boolean) {
+    setError(null);
+    setActionId(price.id);
+    startTransition(async () => {
+      try {
+        const updated = await requestJson<PlanPriceRecord>(
+          `/api/super-admin/plans/${planId}/prices/${price.id}`,
+          {
+            method: "PATCH",
+            body: JSON.stringify(
+              toUpdatePayload({ ...draftFromPrice(price), isActive }),
+            ),
+          },
+        );
+        setPrices((current) =>
+          applyActivePriceChange(
+            current.map((item) => (item.id === price.id ? updated : item)),
+            updated,
+          ),
+        );
+      } catch (requestError) {
+        setError(getErrorMessage(requestError, "Unable to update price."));
+      } finally {
+        setActionId(null);
+      }
+    });
   }
 
   function saveDraft() {
@@ -125,7 +232,7 @@ export function PlanPriceManager({
           `/api/super-admin/plans/${planId}/prices`,
           {
             method: "POST",
-            body: JSON.stringify(toPayload(draft)),
+            body: JSON.stringify(toCreatePayload(draft)),
           },
         );
         setPrices((current) =>
@@ -156,7 +263,7 @@ export function PlanPriceManager({
           `/api/super-admin/plans/${planId}/prices/${priceId}`,
           {
             method: "PATCH",
-            body: JSON.stringify(toPayload(editingDraft)),
+            body: JSON.stringify(toUpdatePayload(editingDraft)),
           },
         );
         setPrices((current) =>
@@ -203,34 +310,58 @@ export function PlanPriceManager({
         </div>
       ) : null}
 
-      <section className="rounded-[24px] border border-slate-200 bg-slate-50 p-5">
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4 xl:items-end">
-          <PriceFields
-            draft={draft}
-            onChange={setDraft}
-            disabled={isPending}
-            note={
-              draft.isActive &&
-              hasOtherActivePrice(prices, draft.billingCycle, draft.currency)
-                ? "This will become the current checkout price. Existing active price will be deactivated."
-                : undefined
-            }
-          />
-          <button
-            type="button"
-            onClick={saveDraft}
-            disabled={isPending}
-            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400"
-          >
-            {actionId === "create" ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Plus className="h-4 w-4" />
-            )}
-            Add price
-          </button>
-        </div>
-      </section>
+      {showNewPrice ? (
+        <section className="rounded-[24px] border border-slate-200 bg-slate-50 p-5">
+          <div className="mb-4 flex items-center justify-between">
+            <p className="text-sm font-semibold text-slate-950">New price</p>
+            <button
+              type="button"
+              onClick={() => {
+                setShowNewPrice(false);
+                setDraft(emptyDraft(defaultCurrency));
+              }}
+              className="text-sm font-medium text-slate-500 hover:text-slate-900"
+            >
+              Cancel
+            </button>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4 xl:items-end">
+            <PriceFields
+              draft={draft}
+              onChange={setDraft}
+              disabled={isPending}
+              note={
+                draft.isActive &&
+                hasOtherActivePrice(prices, draft.billingCycle, draft.currency)
+                  ? "This will become the current checkout price. Existing active price will be deactivated."
+                  : undefined
+              }
+            />
+            <button
+              type="button"
+              onClick={saveDraft}
+              disabled={isPending}
+              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400"
+            >
+              {actionId === "create" ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Plus className="h-4 w-4" />
+              )}
+              Add price
+            </button>
+          </div>
+        </section>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setShowNewPrice(true)}
+          className="inline-flex items-center gap-2 rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50"
+        >
+          <Plus className="h-4 w-4" />
+          New price
+        </button>
+      )}
 
       {prices.length === 0 ? (
         <div className="rounded-[24px] border border-dashed border-slate-200 bg-white px-6 py-10 text-center">
@@ -328,12 +459,54 @@ export function PlanPriceManager({
                               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
                                 Amount
                               </p>
-                              <p className="mt-1 font-semibold text-slate-950">
-                                {formatCurrency(
-                                  price.unitAmount,
-                                  price.currency,
-                                )}
-                              </p>
+                              {/*
+                                Editable in place. Enter commits, Escape
+                                abandons, and leaving the field commits too —
+                                clicking away to check another row should not
+                                silently discard what was typed.
+                              */}
+                              {amountEditId === price.id ? (
+                                <input
+                                  autoFocus
+                                  type="number"
+                                  step="0.01"
+                                  min="0.01"
+                                  inputMode="decimal"
+                                  value={amountDraft}
+                                  disabled={isPending}
+                                  aria-label={`Amount in ${price.currency}`}
+                                  onChange={(event) =>
+                                    setAmountDraft(event.target.value)
+                                  }
+                                  onKeyDown={(event) => {
+                                    if (event.key === "Enter") {
+                                      event.preventDefault();
+                                      saveAmount(price);
+                                    }
+                                    if (event.key === "Escape")
+                                      setAmountEditId(null);
+                                  }}
+                                  onBlur={() => saveAmount(price)}
+                                  className="mt-1 h-9 w-32 rounded-xl border border-slate-900 bg-white px-2 text-sm font-semibold text-slate-950 outline-none"
+                                />
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => beginAmountEdit(price)}
+                                  title="Click to edit the amount"
+                                  className="mt-1 -ml-2 inline-flex items-center gap-1.5 rounded-lg px-2 py-1 font-semibold text-slate-950 transition hover:bg-slate-100"
+                                >
+                                  {formatCurrency(
+                                    price.unitAmount,
+                                    price.currency,
+                                  )}
+                                  {actionId === price.id && isPending ? (
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin text-slate-400" />
+                                  ) : (
+                                    <Pencil className="h-3 w-3 text-slate-400" />
+                                  )}
+                                </button>
+                              )}
                             </div>
                             <div>
                               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
@@ -362,21 +535,35 @@ export function PlanPriceManager({
                               >
                                 Edit
                               </button>
-                              {price.isActive ? (
-                                <button
-                                  type="button"
-                                  onClick={() => deactivatePrice(price.id)}
-                                  disabled={isPending}
-                                  className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
-                                >
-                                  {actionId === price.id ? (
-                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                  ) : (
-                                    <Power className="h-3.5 w-3.5" />
-                                  )}
-                                  Deactivate
-                                </button>
-                              ) : null}
+                              {/*
+                                Both directions. Deactivate was the only action
+                                offered, so bringing a superseded price back
+                                meant opening the full form, finding the Active
+                                checkbox among seven fields and saving — for a
+                                one-bit change.
+                              */}
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  price.isActive
+                                    ? deactivatePrice(price.id)
+                                    : setPriceActive(price, true)
+                                }
+                                disabled={isPending}
+                                className={[
+                                  "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-60",
+                                  price.isActive
+                                    ? "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100"
+                                    : "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100",
+                                ].join(" ")}
+                              >
+                                {actionId === price.id ? (
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                ) : (
+                                  <Power className="h-3.5 w-3.5" />
+                                )}
+                                {price.isActive ? "Deactivate" : "Activate"}
+                              </button>
                             </div>
                           </div>
                         )}
@@ -419,8 +606,10 @@ function PriceFields({
               billingModel,
               minimumSeats: billingModel === "FLAT" ? "1" : draft.minimumSeats,
               maximumSeats: billingModel === "FLAT" ? "" : draft.maximumSeats,
+              // Cleared for per-seat, kept for flat: included seats are a flat
+              // concept, and this reset them on the way in.
               includedSeats:
-                billingModel === "FLAT" ? "0" : draft.includedSeats,
+                billingModel === "PER_SEAT" ? "0" : draft.includedSeats,
             });
           }}
           className="mt-1.5 h-10 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus:border-[var(--admin-primary)]"
@@ -479,48 +668,74 @@ function PriceFields({
           className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-900"
         />
       </label>
-      <label className="block text-sm font-medium text-slate-700">
-        Minimum seats
-        <input
-          min="1"
-          step="1"
-          type="number"
-          value={draft.minimumSeats}
-          disabled={disabled || draft.billingModel === "FLAT"}
-          onChange={(event) =>
-            onChange({ ...draft, minimumSeats: event.target.value })
-          }
-          className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900"
-        />
-      </label>
-      <label className="block text-sm font-medium text-slate-700">
-        Maximum seats (optional)
-        <input
-          min={draft.minimumSeats || "1"}
-          step="1"
-          type="number"
-          value={draft.maximumSeats}
-          disabled={disabled || draft.billingModel === "FLAT"}
-          onChange={(event) =>
-            onChange({ ...draft, maximumSeats: event.target.value })
-          }
-          className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900"
-        />
-      </label>
-      <label className="block text-sm font-medium text-slate-700">
-        Included seats
-        <input
-          min="0"
-          step="1"
-          type="number"
-          value={draft.includedSeats}
-          disabled={disabled || draft.billingModel === "FLAT"}
-          onChange={(event) =>
-            onChange({ ...draft, includedSeats: event.target.value })
-          }
-          className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900"
-        />
-      </label>
+      {/*
+        Seat bounds belong to per-seat pricing and included seats to flat, so
+        each model shows only its own. They used to all render and grey out the
+        two that did not apply, which made every form seven fields wide when at
+        most five ever mattered — and a disabled input still reads as something
+        you are failing to fill in.
+      */}
+      {draft.billingModel === "PER_SEAT" ? (
+        <label className="block text-sm font-medium text-slate-700">
+          Minimum seats
+          <input
+            min="1"
+            step="1"
+            type="number"
+            value={draft.minimumSeats}
+            disabled={disabled}
+            onChange={(event) =>
+              onChange({ ...draft, minimumSeats: event.target.value })
+            }
+            className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900"
+          />
+          <span className="mt-1 block text-xs font-normal text-slate-500">
+            Billed even below this headcount.
+          </span>
+        </label>
+      ) : null}
+      {draft.billingModel === "PER_SEAT" ? (
+        <label className="block text-sm font-medium text-slate-700">
+          Maximum seats (optional)
+          <input
+            min={draft.minimumSeats || "1"}
+            step="1"
+            type="number"
+            value={draft.maximumSeats}
+            disabled={disabled}
+            onChange={(event) =>
+              onChange({ ...draft, maximumSeats: event.target.value })
+            }
+            className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900"
+          />
+        </label>
+      ) : null}
+      {/*
+        Flat only — and it was disabled on `billingModel === "FLAT"`, which is
+        the one model that uses it. `FLAT_SCHEDULE` in `pricing.catalog.ts`
+        carries `includedSeats` and `overage`; `PER_SEAT_SCHEDULE` carries
+        `minimumSeats`. The condition was inverted, so the headcount a flat
+        price includes could not be set from this screen at all.
+      */}
+      {draft.billingModel === "FLAT" ? (
+        <label className="block text-sm font-medium text-slate-700">
+          Included seats
+          <input
+            min="0"
+            step="1"
+            type="number"
+            value={draft.includedSeats}
+            disabled={disabled}
+            onChange={(event) =>
+              onChange({ ...draft, includedSeats: event.target.value })
+            }
+            className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900"
+          />
+          <span className="mt-1 block text-xs font-normal text-slate-500">
+            Headcount covered by the flat amount.
+          </span>
+        </label>
+      ) : null}
       <label className="block text-sm font-medium text-slate-700">
         Stripe Price ID (optional)
         <input
@@ -676,7 +891,16 @@ function validateDraft(draft: DraftPrice) {
   return null;
 }
 
-function toPayload(draft: DraftPrice) {
+/**
+ * The fields both endpoints accept.
+ *
+ * Kept separate from `syncToStripe` because the two endpoints do not take the
+ * same body, and the global `ValidationPipe` runs with
+ * `forbidNonWhitelisted: true` — an unknown property is a 400, not an ignored
+ * extra. One shared payload sent to both is what produced
+ * `property syncToStripe should not exist` on every attempt to edit a price.
+ */
+function toBasePayload(draft: DraftPrice) {
   return {
     billingCycle: draft.billingCycle,
     currency: draft.currency.toUpperCase(),
@@ -687,9 +911,27 @@ function toPayload(draft: DraftPrice) {
     maximumSeats: draft.maximumSeats ? Number(draft.maximumSeats) : null,
     includedSeats: Number(draft.includedSeats),
     stripePriceId: draft.stripePriceId.trim() || null,
-    syncToStripe: true,
     isActive: draft.isActive,
   };
+}
+
+/** `CreatePlanPriceDto` declares `syncToStripe`; a new price asks for the sync. */
+function toCreatePayload(draft: DraftPrice) {
+  return { ...toBasePayload(draft), syncToStripe: true };
+}
+
+/**
+ * `UpdatePlanPriceDto` declares no `syncToStripe`, and does not need one.
+ *
+ * A Stripe price is immutable, so `updatePlanPrice` cannot edit one in place:
+ * when a change touches amount, currency, interval or billing model it
+ * supersedes the row by calling `createPlanPrice` with `syncToStripe: true`
+ * hardcoded. The sync is therefore already guaranteed on exactly the edits that
+ * need it, and asking for it in the body only added a property the endpoint
+ * rejects.
+ */
+function toUpdatePayload(draft: DraftPrice) {
+  return toBasePayload(draft);
 }
 
 function normalizeCurrencyOption(currency: string) {

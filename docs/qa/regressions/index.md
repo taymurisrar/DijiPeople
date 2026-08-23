@@ -2066,3 +2066,18 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | The same shape as the "Active" view that matched a status a module never used — a control that looks functional and selects nothing. The registry comment warning about exactly this predates both, which is the useful part: knowing the class of defect did not stop the next instance. |
 | **Fixed** | 2026-08-22, `agent/site-ux-and-admin-fixes` |
 | **Active** | yes |
+
+### REG-235 — A browser payload carries only properties its DTO declares
+
+| | |
+|---|---|
+| **Bug class** | `client-payload-drifts-from-its-dto` |
+| **Module** | `apps/admin`, `services/api/src/modules/super-admin` |
+| **Bug record** | BUG-0877 |
+| **Root cause** | `PlanPriceManager` built one payload for both price endpoints and included `syncToStripe`, which `CreatePlanPriceDto` declares and `UpdatePlanPriceDto` does not. The global `ValidationPipe` runs with `forbidNonWhitelisted: true`, so creating a price worked and editing one returned 400 `property syncToStripe should not exist` — every time, for every field. |
+| **Regression test** | `services/api/src/modules/super-admin/plan-price-dto-contract.spec.ts` and `apps/admin/lib/runtime/plan-price-payload.spec.ts` |
+| **Scenario** | Run the real validator over the exact create and update payload shapes with `forbidNonWhitelisted: true`; both pass. Add `syncToStripe` to the update body and exactly that property is rejected. Separately, parse the component's payload builders and assert every key is declared by the DTO that receives it. |
+| **Proven to fail without the fix** | Restoring `syncToStripe` to the shared payload builder fails two cases in the admin spec. |
+| **Note** | The lesson is not the property, it is the reachability. This defect had existed as long as the panel had, and nobody could hit it because the Pricing tab was filtered out of the record page (REG-232 / BUG-0794). Restoring the tab made the screen reachable and this the first thing an operator met. A test that a tab *renders* says nothing about whether the thing behind it *works* — the two specs here are the pair that was missing, one per side of a contract that spans two workspaces and is held together by nothing the compiler can see. |
+| **Fixed** | 2026-08-23 |
+| **Active** | yes |

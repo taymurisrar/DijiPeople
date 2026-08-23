@@ -15,7 +15,7 @@
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **0** |
-| Open HIGH | 7 |
+| Open HIGH | 8 |
 | Awaiting Architect triage | 0 |
 | Owner decisions pending | 2 |
 | QA coverage gaps | 108 |
@@ -30,9 +30,9 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 27 |
-| No next action | 27 |
-| Aging — 7d / 30d / 90d | 1 / 0 / 0 |
+| No acceptance criteria | 28 |
+| No next action | 28 |
+| Aging — 7d / 30d / 90d | 8 / 0 / 0 |
 | Architecture and technical debt | 5 |
 | Security gaps | 3 |
 | Database gaps | 1 |
@@ -238,7 +238,7 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 29 |
+| Open total | 30 |
 | Blocked | 1 |
 | Deferred | 18 |
 | Awaiting a product decision | 2 |
