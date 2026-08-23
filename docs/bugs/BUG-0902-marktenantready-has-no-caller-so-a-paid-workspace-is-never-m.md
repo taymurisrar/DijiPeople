@@ -13,7 +13,7 @@ AffectedModules: [services/api/src/modules/super-admin]
 OwnerAgent: architect
 ArchitectDisposition: FIX_NOW
 QAReport: 
-RegressionId: REG-237
+RegressionId: REG-238
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
@@ -175,6 +175,6 @@ the public onboarding status to `READY`.
 ## Related
 
 - Modules — [[super-admin]]
-- Regression — REG-237 (see the regression register)
+- Regression — REG-238 (see the regression register)
 
 <!-- GRAPH:END -->

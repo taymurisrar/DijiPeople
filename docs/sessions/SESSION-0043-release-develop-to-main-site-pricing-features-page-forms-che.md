@@ -4,7 +4,7 @@ aliases: [SESSION-0043]
 TASK_ID:
 TITLE: Release develop to main: site pricing, features page, forms, checkout agreements, admin fixes
 ARCHITECT_INTENT: Release develop to main: site pricing, features page, forms, checkout agreements, admin fixes
-STATUS: ACTIVE
+STATUS: COMPLETE
 TASK_TYPE: RELEASE
 TASK_SIZE: MEDIUM
 BASE_BRANCH: origin/develop
@@ -16,8 +16,8 @@ AFFECTED_MODULES: [apps/landing, apps/admin, services/api/src/modules/super-admi
 WRITE_LEASES: []
 ACTIVE_WORK_PACKAGES: []
 SCHEMA_WRITE: NO
-CI_STATUS: NOT_RUN
-MERGE_STATUS: NOT_STARTED
+CI_STATUS: PASS
+MERGE_STATUS: MERGED
 STARTED_AT: 2026-08-22T23:34:11.402Z
 LAST_HEARTBEAT: 2026-08-22T23:34:11.402Z
 BLOCKERS: none
@@ -90,3 +90,36 @@ anything this session deliberately serialised behind another. Live state:
 - 2026-08-22 — session started from `origin/develop` at `01a88a9`.
 - 2026-08-22 — release delta measured: 12 commits, no migrations, no schema or lockfile change.
 - 2026-08-22 — production probed before releasing: every country resolves to `GCC`/PLANNED/USD with zero available offers, and QAR has disappeared from `availableCurrencies`.
+- 2026-08-23 — `CI required gate` PASS on `9cd2f40` (runs 32605915389 and 32606344362, the pull_request run). A third run passed in 3s with every dependency skipped; that verdict was not used.
+- 2026-08-23 — PR #40 merged. `main` = `1dd74a2`, and `develop` fast-forwarded to match, so the two are identical.
+- 2026-08-23 — **the deploy did not complete.** Render pre-deploy failed at `legal:publish` with exit 2: all ten legal documents were skipped as `the document declares itself an unpublished draft`. They had been `ALREADY_PUBLISHED` at 22:14 and withdrawn before 00:14 — correctly, since they were unreviewed drafts. The API therefore stayed on `ef57b2a`.
+- 2026-08-23 — **the commercial repair landed anyway**, because `seed:config` runs before the failing step and commits: `Country QA was served by market GCC and has been moved to QA`, `1 market(s) created; 12 price(s) created`. Verified live — Qatar resolves to `market=QA`, `LAUNCHED`, `QAR`, six purchasable offers.
+- 2026-08-23 — Vercel refused the landing and admin production builds: daily deployment cap, retry in 24h.
+
+## Outcome
+
+`MAIN_SYNC_STATUS = SYNCED`, `MAIN_CHANGE_STATUS = CHANGED` — the one task type
+permitted to change `main`, and the reason this session is `RELEASE`.
+
+The release is merged and **partially deployed**, which is the honest reading:
+
+| Surface | State |
+|---|---|
+| `main` / `develop` | identical at `1dd74a2` |
+| Qatar market and pricing | repaired in production, verified live |
+| API code | still `ef57b2a` — pre-deploy blocked on `legal:publish` |
+| Landing, admin | not deployed — Vercel daily build cap |
+| Published legal documents | zero — `/public/legal` returns none |
+
+Two blockers remain, and neither is this task's to decide:
+
+1. **`legal:publish` fails every deploy** until the documents stop declaring
+   themselves unreviewed drafts. That guard is correct — it exists because
+   drafts once reached production — but its non-zero exit means unrelated API
+   code can never ship while legal content is unresolved. Real text, or an
+   explicit decision to remove the draft language, is a human call. Filed
+   nowhere yet because the decision precedes the record.
+2. **Vercel rebuilds `diji-people-landing` and `diji-people-admin` on every push
+   to every branch.** `diji-people-web` has an Ignored Build Step and does not.
+   `npx turbo-ignore` on the other two is the durable fix; waiting out the
+   window or upgrading only buys a day.

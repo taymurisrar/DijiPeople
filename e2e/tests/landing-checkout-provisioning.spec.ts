@@ -182,7 +182,7 @@ test.describe('self-service checkout', () => {
     expect(page.url(), 'the test card should not be declined').toContain('/subscribe/success');
 
     /*
-     * REG-236 and REG-237. Provisioning is asynchronous — the webhook confirms
+     * REG-237 and REG-238. Provisioning is asynchronous — the webhook confirms
      * the payment, the outbox dispatches PROVISIONING_REQUESTED, and the
      * handler builds the tenant and marks it ready. Polling the public status
      * endpoint is exactly what the buyer's own page does.
@@ -208,7 +208,7 @@ test.describe('self-service checkout', () => {
       await fetch(`${TARGET.api}/public/onboarding/${orderId}/status`)
     ).json();
 
-    // REG-237 — every step done, and a workspace the buyer can actually open.
+    // REG-238 — every step done, and a workspace the buyer can actually open.
     expect(finalStatus.steps.map((s: { state: string }) => s.state)).toEqual([
       'DONE',
       'DONE',
@@ -218,7 +218,7 @@ test.describe('self-service checkout', () => {
     expect(finalStatus.workspace, 'the buyer must be given the workspace URL').toBeTruthy();
     expect(finalStatus.workspace.hostname).toContain(slug);
 
-    // REG-235 — the order records the money that actually moved.
+    // REG-236 — the order records the money that actually moved.
     const order = await withDatabase((client) =>
       client
         .query<{ status: string; totalAmount: string; unitAmount: string; tenantId: string | null }>(

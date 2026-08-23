@@ -9,7 +9,7 @@ RISK: MEDIUM
 AUTOMATION_STATUS: AUTOMATED
 TEST_REFERENCE: e2e/tests/landing-public-surface.spec.ts
 RELATED_BUGS: [BUG-0907]
-RELATED_REGRESSIONS: [REG-238]
+RELATED_REGRESSIONS: [REG-239]
 LAST_RUN: 
 LAST_RESULT: NOT_RUN
 CREATED_AT: 2026-08-23
@@ -41,6 +41,6 @@ Created 2026-08-23 at `539d99ce`.
 
 - Test plan — [[PLAN-013]]
 - Bugs — [[BUG-0907]]
-- Regressions — REG-238 (see the regression register)
+- Regressions — REG-239 (see the regression register)
 
 <!-- GRAPH:END -->

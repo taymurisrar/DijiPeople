@@ -13,7 +13,7 @@ AffectedModules: [services/api/src/modules/billing]
 OwnerAgent: architect
 ArchitectDisposition: FIX_NOW
 QAReport: 
-RegressionId: REG-235
+RegressionId: REG-236
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
@@ -176,6 +176,6 @@ Verified in this run by driving the browser journey end to end
 ## Related
 
 - Modules — [[billing]]
-- Regression — REG-235 (see the regression register)
+- Regression — REG-236 (see the regression register)
 
 <!-- GRAPH:END -->

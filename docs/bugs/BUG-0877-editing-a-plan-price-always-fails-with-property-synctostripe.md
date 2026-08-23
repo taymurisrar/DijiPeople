@@ -1,0 +1,148 @@
+---
+ID: BUG-0877
+aliases: [BUG-0877]
+Title: Editing a plan price always fails with property syncToStripe should not exist
+Status: FIXED
+Severity: HIGH
+Priority: P1
+Type: BUG
+Source: USER_REPORT
+DetectedDate: 2026-08-23
+DetectedInSha: 01a88a9
+AffectedModules: [apps/admin]
+OwnerAgent: architect
+ArchitectDisposition: FIX_NOW
+QAReport: 
+RegressionId: REG-235
+RelatedBacklogItem:
+RelatedDecision:
+RelatedImplementation:
+CreatedAt: 2026-08-23
+UpdatedAt: 2026-08-23
+ResolvedAt: 2026-08-23
+---
+
+# BUG-0877 — Editing a plan price always fails with property syncToStripe should not exist
+
+## Summary
+
+`PlanPriceManager` built one payload for both price endpoints and included
+`syncToStripe`. `CreatePlanPriceDto` declares that property; `UpdatePlanPriceDto`
+does not. The global `ValidationPipe` runs with `forbidNonWhitelisted: true`, so
+an undeclared property rejects the whole request.
+
+Creating a price worked. **Editing one failed every time**, for every field, on
+every plan, with `property syncToStripe should not exist`.
+
+## Expected Behavior
+
+Editing a plan price saves.
+
+## Actual Behavior
+
+`PATCH /super-admin/plans/:planId/prices/:priceId` returns 400
+`VALIDATION_FAILED` with `fieldErrors: [{ field: "syncToStripe" }]`.
+
+## Reproduction
+
+1. Open a plan in Platform Admin and select the Pricing tab.
+2. Press Edit on any price, change any field, press Save.
+3. 400 — `property syncToStripe should not exist`.
+
+## Evidence
+
+User-reported error log, reference `admin_dc974de7-0530-43dd-8846-6223ef7c51a0`,
+2026-08-23T00:22:20Z, development, actor `SUPER_ADMIN`:
+
+```
+PATCH /api/super-admin/plans/11111111-1111-4111-8111-111111111111/prices/fcd38ef4-...
+400 VALIDATION_FAILED — property syncToStripe should not exist
+```
+
+- `apps/admin/app/_components/plan-price-manager.tsx` — one `toPayload` used by both the POST and the PATCH call sites, carrying `syncToStripe: true`.
+- `services/api/src/modules/super-admin/dto/create-plan-price.dto.ts` — declares `syncToStripe`.
+- `services/api/src/modules/super-admin/dto/update-plan-price.dto.ts` — does not.
+- `services/api/src/main.ts` — `ValidationPipe` with `forbidNonWhitelisted: true`.
+
+## Root Cause
+
+Two endpoints with different bodies served by one payload builder. Nothing in
+the type system connects a `JSON.stringify` in a React component to a
+class-validator DTO in another workspace, and no test asserted the pair — the
+equivalent assertion existed for the plan *record* form
+(`plan-record-form.spec.ts`) and not for the price form.
+
+`UpdatePlanPriceDto` is right to omit the flag. A Stripe price is immutable, so
+`updatePlanPrice` cannot edit one in place: a change to amount, currency,
+interval or billing model supersedes the row by calling `createPlanPrice` with
+`syncToStripe: true` hardcoded. The sync is already guaranteed on exactly the
+edits that need one.
+
+## Impact
+
+Plan price editing was completely non-functional in Platform Admin. Reachable
+wherever the Pricing tab is — which, until [[BUG-0794]] was fixed, was nowhere.
+
+**This is a defect that fixing BUG-0794 exposed.** The panel had been mounted
+behind a tab the tab bar filtered out, so nothing could reach the form to submit
+it. Restoring the tab made the screen reachable and this the first thing an
+operator hit. The regression test for BUG-0794 asserted the tab *renders*; it
+asserted nothing about whether anything behind it *worked*.
+
+## Affected Areas
+
+`apps/admin` plan price manager; `super-admin` plan price endpoints.
+
+## Proposed Resolution
+
+Split the payload builder: `toCreatePayload` keeps `syncToStripe`,
+`toUpdatePayload` does not. Assert the pair from both sides.
+
+## Acceptance Criteria
+
+- Editing any field of an existing price saves.
+- Creating a price still requests a Stripe sync.
+- The update payload contains no property `UpdatePlanPriceDto` omits.
+
+## Regression Coverage
+
+REG-235. Two specs, one per side of the contract:
+`services/api/src/modules/super-admin/plan-price-dto-contract.spec.ts` runs the
+real validator over the real payload shapes, and
+`apps/admin/lib/runtime/plan-price-payload.spec.ts` asserts the component keeps
+sending them. Mutation-tested: putting `syncToStripe` back on the shared payload
+fails two cases.
+
+## Dependencies
+
+None.
+
+## Related Items
+
+[[BUG-0794]] — restoring the Pricing tab is what made this reachable.
+
+## Resolution
+
+Payload split, plus two contract specs. Also fixed alongside: `includedSeats`
+was disabled on `billingModel === "FLAT"`, which is the only model that uses it
+(`FLAT_SCHEDULE` carries `includedSeats`; `PER_SEAT_SCHEDULE` carries
+`minimumSeats`), so a flat price's included headcount could not be set at all.
+
+## QA Retest
+
+QA-PLATFORM-021. Manual: edit a price amount and save; confirm 200 and the new
+amount renders.
+
+## History
+
+- 2026-08-23 — reported by the user from a Platform Admin error log.
+- 2026-08-23 — fixed; two contract specs added.
+
+<!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
+
+## Related
+
+- Modules — [[platform-admin]]
+- Regression — REG-235 (see the regression register)
+
+<!-- GRAPH:END -->

@@ -9,7 +9,7 @@ RISK: HIGH
 AUTOMATION_STATUS: AUTOMATED
 TEST_REFERENCE: services/api/src/modules/billing/billing-seat-pricing.spec.ts
 RELATED_BUGS: [BUG-0901]
-RELATED_REGRESSIONS: [REG-235]
+RELATED_REGRESSIONS: [REG-236]
 LAST_RUN: 
 LAST_RESULT: NOT_RUN
 CREATED_AT: 2026-08-23
@@ -41,6 +41,6 @@ Created 2026-08-23 at `539d99ce`.
 
 - Test plan — [[PLAN-016]]
 - Bugs — [[BUG-0901]]
-- Regressions — REG-235 (see the regression register)
+- Regressions — REG-236 (see the regression register)
 
 <!-- GRAPH:END -->

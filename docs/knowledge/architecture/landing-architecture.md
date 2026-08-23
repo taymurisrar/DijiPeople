@@ -84,7 +84,7 @@ same URL into a 404, and restoring it brings the soft 404 back.
 `generateStaticParams`, so `export const dynamicParams = false` moves the
 refusal to the routing layer where it belongs and leaves the loading UI for the
 routes that want it. Any new dynamic route under this layout needs the same
-treatment, or its `notFound()` will be equally inert. See REG-238.
+treatment, or its `notFound()` will be equally inert. See REG-239.
 
 `sitemap.ts` omits `/request-demo` and `/partners`, both indexable conversion
 pages.

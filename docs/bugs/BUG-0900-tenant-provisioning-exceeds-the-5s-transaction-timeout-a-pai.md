@@ -13,7 +13,7 @@ AffectedModules: [services/api/src/modules/permissions]
 OwnerAgent: architect
 ArchitectDisposition: FIX_NOW
 QAReport: 
-RegressionId: REG-236
+RegressionId: REG-237
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
@@ -180,6 +180,6 @@ the public onboarding status to `workspace-created = DONE`.
 
 ## Related
 
-- Regression — REG-236 (see the regression register)
+- Regression — REG-237 (see the regression register)
 
 <!-- GRAPH:END -->

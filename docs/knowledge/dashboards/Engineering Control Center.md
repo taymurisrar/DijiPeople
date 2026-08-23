@@ -7,7 +7,7 @@
 
 | | |
 |---|---|
-| Active sessions | **8** |
+| Active sessions | **7** |
 | Active parent tasks | 7 |
 | Active work packages | 2 |
 | Blocked work packages | 5 |
@@ -15,7 +15,7 @@
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **3** |
-| Open HIGH | 11 |
+| Open HIGH | 12 |
 | Awaiting Architect triage | 0 |
 | Owner decisions pending | 4 |
 | QA coverage gaps | 108 |
@@ -30,8 +30,8 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 37 |
-| No next action | 37 |
+| No acceptance criteria | 38 |
+| No next action | 38 |
 | Aging — 7d / 30d / 90d | 8 / 0 / 0 |
 | Architecture and technical debt | 5 |
 | Security gaps | 3 |
@@ -50,7 +50,6 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 | Session | Task | Title | Status | Branch | Target | Leases | Schema |
 |---|---|---|---|---|---|---|---|
 | [[SESSION-0044-landing-site-full-e2e-ui-forms-checkout-payments-provisionin|SESSION-0044]] | — | Landing site full E2E: UI, forms, checkout, payments, provisioning, performance — local and production | ACTIVE | `agent/landing-e2e-go-live` | `develop` | — | NO |
-| [[SESSION-0043-release-develop-to-main-site-pricing-features-page-forms-che|SESSION-0043]] | — | Release develop to main: site pricing, features page, forms, checkout agreements, admin fixes | ACTIVE | `agent/release-site-ux-and-admin` | `main` | — | NO |
 | SESSION-0023 | — | First production release | ACTIVE | `agent/first-production-release` | `main` | — | NO |
 | [[SESSION-0022-go-live-readiness|SESSION-0022]] | TASK-0010 | Go-live readiness | ACTIVE | `agent/go-live-readiness` | `develop` | — | NO |
 | [[SESSION-0019-ci-browser-install-latency-and-database-e2e-fixture-contract|SESSION-0019]] | — | CI browser install latency and database e2e fixture contract | ACTIVE | `agent/ci-e2e-remediation` | `develop` | — | NO |
@@ -246,7 +245,7 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 39 |
+| Open total | 40 |
 | Blocked | 1 |
 | Deferred | 21 |
 | Awaiting a product decision | 4 |

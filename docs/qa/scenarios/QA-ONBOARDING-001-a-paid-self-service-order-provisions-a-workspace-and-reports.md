@@ -9,7 +9,7 @@ RISK: CRITICAL
 AUTOMATION_STATUS: AUTOMATED
 TEST_REFERENCE: e2e/tests/landing-checkout-provisioning.spec.ts
 RELATED_BUGS: [BUG-0900, BUG-0902]
-RELATED_REGRESSIONS: [REG-236, REG-237]
+RELATED_REGRESSIONS: [REG-237, REG-238]
 LAST_RUN: 
 LAST_RESULT: NOT_RUN
 CREATED_AT: 2026-08-23
@@ -41,6 +41,6 @@ Created 2026-08-23 at `539d99ce`.
 
 - Test plan — [[PLAN-004]]
 - Bugs — [[BUG-0900]], [[BUG-0902]]
-- Regressions — REG-236, REG-237 (see the regression register)
+- Regressions — REG-237, REG-238 (see the regression register)
 
 <!-- GRAPH:END -->

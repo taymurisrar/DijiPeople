@@ -106,10 +106,10 @@ skip loudly, naming what was missing.
 
 | Regression ID | Scenario | Result |
 |---|---|---|
-| REG-235 | A flat price bills one subscription | PASS (new) |
-| REG-236 | Tenant RBAC bootstrap writes a set as a set | PASS (new) |
-| REG-237 | A provisioned workspace is marked ready and its URL returned | PASS (new) |
-| REG-238 | An unknown dynamic slug returns a real 404 | PASS (new) |
+| REG-236 | A flat price bills one subscription | PASS (new) |
+| REG-237 | Tenant RBAC bootstrap writes a set as a set | PASS (new) |
+| REG-238 | A provisioned workspace is marked ready and its URL returned | PASS (new) |
+| REG-239 | An unknown dynamic slug returns a real 404 | PASS (new) |
 | REG-229..234 (landing, commerce, admin) | re-run via the existing `flow-c` suite | PASS |
 
 ## Bugs Found
@@ -118,14 +118,14 @@ skip loudly, naming what was missing.
 |---|---|---|---|---|
 | BUG-0898 | CRITICAL | No plan price is synced to Stripe — every plan shows DP-CHK-01 and no form. Nobody can buy. | `silent-config-fallback` | No — operational |
 | BUG-0899 | CRITICAL | The release chain can never succeed: `seed-legal` writes drafts `legal:publish` must refuse, and its exit 2 aborts the deploy. | `divergent-duplicate-guard` | No — owner decision |
-| BUG-0900 | CRITICAL | Provisioning exceeds the 5 s transaction timeout — a paid order is left with no workspace. | `unbounded-render` | REG-236 |
-| BUG-0901 | HIGH | A paid order records `totalAmount 0.00` for every FLAT plan. | `divergent-duplicate-guard` | REG-235 |
-| BUG-0902 | HIGH | `markTenantReady` has no caller — the workspace URL is never shown. | `declared-but-unwired-step` | REG-237 |
+| BUG-0900 | CRITICAL | Provisioning exceeds the 5 s transaction timeout — a paid order is left with no workspace. | `unbounded-render` | REG-237 |
+| BUG-0901 | HIGH | A paid order records `totalAmount 0.00` for every FLAT plan. | `divergent-duplicate-guard` | REG-236 |
+| BUG-0902 | HIGH | `markTenantReady` has no caller — the workspace URL is never shown. | `declared-but-unwired-step` | REG-238 |
 | BUG-0903 | HIGH | Production runs Stripe in test mode. | `silent-config-fallback` | No — operational |
 | BUG-0904 | CRITICAL | Production lacks `OUTBOX_WORKER_ENABLED`, which `render.yaml` declares. | `silent-config-fallback` | No — operational |
 | BUG-0905 | MEDIUM | Production defines `DIRECT_URL`; the code reads `DIRECT_DATABASE_URL`. | `silent-config-fallback` | No — operational |
 | BUG-0906 | HIGH | No legal document is published, so a purchase records no consent. | `declared-but-unwired-step` | No — blocked by BUG-0899 |
-| BUG-0907 | MEDIUM | Unknown legal slug answers 200 and hangs on the loading shell. | `silent-degradation` | REG-238 |
+| BUG-0907 | MEDIUM | Unknown legal slug answers 200 and hangs on the loading shell. | `silent-degradation` | REG-239 |
 
 Backlog: ITEM-0085 (no bulk Stripe sync), ITEM-0086 (no deployment assertion for
 a purchasable price or a running outbox worker), ITEM-0087 (`STRIPE_API_VERSION`

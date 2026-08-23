@@ -13,7 +13,7 @@ AffectedModules: [apps/landing]
 OwnerAgent: architect
 ArchitectDisposition: FIX_NOW
 QAReport: 
-RegressionId: REG-238
+RegressionId: REG-239
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
@@ -157,6 +157,6 @@ Retest with the surface spec pointed at the deployment:
 ## Related
 
 - Modules — [[landing-architecture]]
-- Regression — REG-238 (see the regression register)
+- Regression — REG-239 (see the regression register)
 
 <!-- GRAPH:END -->
