@@ -37,6 +37,52 @@ import { SubscriptionOrderService } from '../services/subscription-order.service
  * shape as BUG-0031 on the same handler). Class level is the form that survives
  * the next handler being added beside these ones.
  */
+/**
+ * Which country the *visitor* is in — not the machine that called this API.
+ *
+ * The order matters, and it used to be the other way round.
+ *
+ * `api.dijipeople.com` sits behind Cloudflare, which sets `cf-ipcountry` from
+ * the peer it is talking to. For a browser that is the visitor, and it is the
+ * best signal there is. For the landing site it is not: those pages are
+ * server-rendered on Vercel and fetch this API from a datacenter, so Cloudflare
+ * stamps the datacenter's country over the visitor's.
+ *
+ * Observed on 2026-08-24: a visitor Cloudflare geolocates to Qatar got QAR
+ * calling `/public/commercial-config` directly, and USD on the plans page —
+ * `X-Vercel-Id: bom1::iad1`, rendered in Washington. `x-vercel-ip-country: QA`
+ * was forwarded correctly and then lost to a `cf-ipcountry: US` that described
+ * the renderer.
+ *
+ * So an explicitly forwarded country wins over the CDN's view of the caller.
+ * It is a narrower, more specific claim: our own frontend saying "this is where
+ * the person is", rather than the edge saying "this is where the request came
+ * from". `cf-ipcountry` remains the fallback, which is exactly the direct-browser
+ * case where nothing is forwarded.
+ *
+ * The trade-off, stated rather than hidden: a caller can now set
+ * `x-vercel-ip-country` and be quoted another market's currency. That is a
+ * public catalogue — the same prices are visible by browsing from that country
+ * — so the exposure is choosing your own currency, not reading anything
+ * private. It is the same trust this endpoint already placed in these headers;
+ * what changed is which one wins when they disagree. If that becomes
+ * commercially unacceptable, the fix is a signed server-to-server header
+ * between the landing app and this API, not restoring an order that renders the
+ * feature inoperative for every server-rendered page.
+ */
+export function resolveVisitorCountry(headers: {
+  cloudflareCountry?: string;
+  vercelCountry?: string;
+  customCountry?: string;
+}): string | null {
+  return (
+    headers.vercelCountry?.trim() ||
+    headers.customCountry?.trim() ||
+    headers.cloudflareCountry?.trim() ||
+    null
+  );
+}
+
 @UseGuards(PublicRateLimitGuard)
 @Controller('public')
 export class PublicBillingController {
@@ -94,11 +140,11 @@ export class PublicBillingController {
       ).toLowerCase() === 'true';
 
     return this.commercialConfig.getPublicCommercialConfig({
-      countryCode:
-        cloudflareCountry?.trim() ||
-        vercelCountry?.trim() ||
-        customCountry?.trim() ||
-        null,
+      countryCode: resolveVisitorCountry({
+        cloudflareCountry,
+        vercelCountry,
+        customCountry,
+      }),
       marketCodeOverride: marketOverride ?? null,
       allowMarketOverride,
     });
@@ -124,11 +170,11 @@ export class PublicBillingController {
        */
       ipAddress: resolveClientIp(request),
       userAgent: request.headers['user-agent'] ?? null,
-      detectedCountry:
-        cloudflareCountry?.trim() ||
-        vercelCountry?.trim() ||
-        customCountry?.trim() ||
-        null,
+      detectedCountry: resolveVisitorCountry({
+        cloudflareCountry,
+        vercelCountry,
+        customCountry,
+      }),
     });
   }
 
