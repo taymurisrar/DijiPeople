@@ -1,0 +1,44 @@
+---
+SESSION_ID: SESSION-0046
+aliases: [SESSION-0046]
+TASK_ID:
+TITLE: Release: real legal copy, plan entitlement data loss, and the pricing screen
+ARCHITECT_INTENT: Release: real legal copy, plan entitlement data loss, and the pricing screen
+STATUS: COMPLETE
+TASK_TYPE: RELEASE
+TASK_SIZE: MEDIUM
+BASE_BRANCH: origin/develop
+BASE_SHA: 944a2d003a401b9f16d07a4a78eadf7dd4f998df
+TASK_BRANCH: agent/release-landing-e2e
+TARGET_BRANCH: main
+WORKTREE: D:/My Work/hrm-dijipeople/wt-landing-e2e
+AFFECTED_MODULES: [legal, billing, super-admin, platform-runtime, tenant-control-plane, admin]
+WRITE_LEASES: []
+ACTIVE_WORK_PACKAGES: []
+SCHEMA_WRITE: NO
+CI_STATUS: PASS
+MERGE_STATUS: MERGED
+STARTED_AT: 2026-08-23T21:25:29.213Z
+LAST_HEARTBEAT: 2026-08-23T21:25:29.213Z
+BLOCKERS: none
+---
+
+# SESSION-0046 — Release: real legal copy, plan entitlement data loss, and the pricing screen
+
+## Intent
+
+Release: real legal copy, plan entitlement data loss, and the pricing screen
+
+## Scope
+
+_To be established during planning._
+
+## Concurrency
+
+Write leases held, overlap classification against other active sessions, and
+anything this session deliberately serialised behind another. Live state:
+`node scripts/session.mjs list`.
+
+## History
+
+- 2026-08-23 — session started from `origin/develop` at `944a2d0`.
