@@ -29,7 +29,7 @@
     "prisma:seed": "prisma db seed --config prisma.config.ts",
     "prisma:studio": "prisma studio --config prisma.config.ts",
     "prisma:validate": "prisma validate --config prisma.config.ts",
-    "release": "npm run prisma:migrate:deploy && npm run seed:config && npm run seed:verify && npm run seed:admin && npm run seed:legal && npm run legal:publish -- --confirm",
+    "release": "npm run prisma:migrate:deploy && npm run seed:config && npm run seed:verify && npm run seed:admin && npm run repair:market-countries && npm run seed:legal && npm run legal:publish -- --confirm",
     "report:commercial": "ts-node prisma/report-commercial.ts",
     "seed:admin": "ts-node prisma/seed-admin.ts",
     "seed:all": "npm run seed:admin && npm run seed:config && npm run seed:platform-workflows && npm run seed:demo && npm run seed:legal",

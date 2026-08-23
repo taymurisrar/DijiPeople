@@ -14,12 +14,12 @@ import { PlansExperience } from "./plans-experience";
 export const metadata: Metadata = {
   title: "Plans and Pricing",
   description:
-    "DijiPeople pricing is one flat price per plan, shown in your region's currency. Compare Starter, Growth and Enterprise and start when you're ready.",
+    "DijiPeople is priced per employee, per month or per year, in your region's currency. Compare Starter, Growth and Enterprise and start when you're ready.",
   alternates: { canonical: "/plans" },
   openGraph: {
     title: "Plans and Pricing | DijiPeople",
     description:
-      "One flat price per plan, in your region's currency. Plans differ by what they include, not by headcount.",
+      "Priced per employee, in your region's currency. Pay for the people you have, and pick the plan whose capabilities you need.",
     url: "/plans",
     type: "website",
   },
@@ -103,12 +103,13 @@ export default async function PlansPage() {
       <section className="max-w-3xl py-10 sm:py-14">
         <Eyebrow>Plans and pricing</Eyebrow>
         <PageHeading className="mt-3">
-          Pricing that doesn&rsquo;t punish you for hiring.
+          Pay for the people you actually have.
         </PageHeading>
         <Lede className="mt-5">
-          One flat price per plan, in your region&rsquo;s currency — the same
-          whether you have ten people or ten thousand. Plans differ by what they
-          include, not by how many people you employ.
+          Priced per employee, in your region&rsquo;s currency. Each plan has a
+          minimum team size and differs by what it includes — so you choose the
+          capabilities you need, and the price follows your headcount rather
+          than a band you have to grow into.
         </Lede>
       </section>
 

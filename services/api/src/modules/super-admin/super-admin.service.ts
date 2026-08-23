@@ -14,6 +14,7 @@ import {
   BillingCycle,
   BillingInterval,
   BillingModel,
+  CommercialSalesModel,
   CommercialPublicationStatus,
   CustomerAccountStatus,
   DiscountType,
@@ -1907,6 +1908,7 @@ export class SuperAdminService {
           billingCycle,
           billingModel,
           billingInterval,
+          salesModel: this.resolveSalesModelForBillingModel(billingModel),
           currency,
           unitAmount: dto.unitAmount,
           minimumSeats,
@@ -2044,6 +2046,16 @@ export class SuperAdminService {
           billingCycle: dto.billingCycle,
           billingModel: dto.billingModel,
           billingInterval: dto.billingInterval,
+          /*
+           * Follows the billing model on the way through. Without this an
+           * existing per-seat row switched to FLAT in place would keep
+           * `SELF_SERVICE` and stay publicly sellable — the same leak as
+           * creation, reached by editing instead.
+           */
+          salesModel:
+            dto.billingModel === undefined
+              ? undefined
+              : this.resolveSalesModelForBillingModel(dto.billingModel),
           currency: dto.currency ? currency : undefined,
           unitAmount: dto.unitAmount,
           minimumSeats: dto.minimumSeats,
@@ -4485,6 +4497,34 @@ export class SuperAdminService {
       amountOff:
         promotion.amountOff === null ? null : Number(promotion.amountOff),
     };
+  }
+
+  /**
+   * Which channel a price may be sold on, given its billing model.
+   *
+   * The commercial rule: **per-seat is what the public buys; flat is internal.**
+   * Flat pricing exists for customers onboarded by hand, where somebody decides
+   * a flat rate suits them. It must never appear on the website, the plans page
+   * or self-service checkout.
+   *
+   * The offer resolver already enforces this correctly — it narrows candidates
+   * by channel *before* selecting one, so a `SALES_ASSISTED` price is invisible
+   * to a self-service visitor. `pricing.catalog.ts` seeds flat rows that way.
+   *
+   * The hole was here. `PlanPrice.salesModel` defaults to `SELF_SERVICE` in the
+   * schema, and neither the DTO nor this service ever set it — so every flat
+   * price created through Platform Admin was born publicly sellable, and would
+   * compete for the same currency-and-interval slot as the per-seat price the
+   * visitor was supposed to see. Which one won came down to effective date.
+   *
+   * Deciding it here rather than in the DTO is deliberate: this is a commercial
+   * invariant, not a form default, and a client must not be able to send a
+   * value that makes a flat price public.
+   */
+  private resolveSalesModelForBillingModel(billingModel: BillingModel) {
+    return billingModel === BillingModel.FLAT
+      ? CommercialSalesModel.SALES_ASSISTED
+      : CommercialSalesModel.SELF_SERVICE;
   }
 
   private async findPlanPriceOrThrow(planId: string, priceId: string) {

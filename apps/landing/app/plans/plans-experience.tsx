@@ -281,7 +281,7 @@ export function PlansExperience({ config }: { config: CommercialConfigView }) {
         <p className="mt-1 text-sm leading-6 text-muted">
           {perSeatPlans.length > 0
             ? "These plans are billed per active employee. Enter roughly how many people you employ and we will show what each would cost, including any minimum commitment."
-            : "Every plan available in your region is a single flat price, whatever your headcount, so there is nothing to estimate — the price on each card above is the price."}
+            : "No per-seat plan is available in your region yet, so there is nothing to estimate here. Get in touch and we will price it with you directly."}
         </p>
 
         {perSeatPlans.length > 0 ? (

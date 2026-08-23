@@ -134,6 +134,23 @@ export const DEFAULT_MARKET_DEFINITIONS = [
   },
 ] as const;
 
+/**
+ * The market a visitor falls back to when their country maps to nothing.
+ *
+ * Named, rather than derived from `sortOrder`. `resolveDefaultMarket` used to
+ * take the first published, launched, enabled market by sort order — which is
+ * `PK` at 10 — so every visitor outside a mapped country would have been quoted
+ * PKR. That was invisible while `MarketCountry` was empty and *everything*
+ * landed on the default, because the default happened to be the only market
+ * that resolved at all.
+ *
+ * The requirement is that an unmapped country sees USD, and `INTL` is the
+ * market that exists to serve exactly that: LAUNCHED, published, USD, and
+ * deliberately claiming no countries. Sort order is a display concern and must
+ * not decide what an unrecognised visitor is charged in.
+ */
+export const FALLBACK_MARKET_CODE = 'INTL';
+
 /*
  * `SEEDED_PRICE_MARKET_CODE` and `PLACEHOLDER_PKR_PRICES` used to live here and
  * were removed on 2026-08-20.
