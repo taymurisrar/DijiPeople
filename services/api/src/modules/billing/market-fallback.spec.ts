@@ -26,13 +26,31 @@ import {
  * visitor is charged in.
  */
 describe('market fallback', () => {
-  function service(markets: Array<Record<string, unknown>>) {
+  /*
+   * Returned as the class itself, with the injected doubles written through a
+   * separate alias.
+   *
+   * Intersecting `CommercialConfigService` with `{ prisma: unknown }` — the
+   * obvious way to write this — makes the whole type unresolvable to
+   * typescript-eslint, so every call on it raised `no-unsafe-*`. Eight
+   * warnings, which is enough to breach the repository's warning ceiling on
+   * its own. The ceiling is a ratchet and the instruction above it is explicit:
+   * reduce the warnings rather than raise the number.
+   */
+  function service(
+    markets: Array<Record<string, unknown>>,
+  ): CommercialConfigService {
     const instance = Object.create(
       CommercialConfigService.prototype,
-    ) as CommercialConfigService & { prisma: unknown; logger: unknown };
+    ) as CommercialConfigService;
 
-    instance.logger = { warn: jest.fn(), log: jest.fn(), error: jest.fn() };
-    instance.prisma = {
+    const internals = instance as unknown as {
+      prisma: unknown;
+      logger: unknown;
+    };
+
+    internals.logger = { warn: jest.fn(), log: jest.fn(), error: jest.fn() };
+    internals.prisma = {
       market: {
         findFirst: async ({ where }: { where: Record<string, unknown> }) => {
           const selling = markets.filter(
