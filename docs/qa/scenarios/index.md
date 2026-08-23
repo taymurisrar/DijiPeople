@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 177** · automated: 161 · manual: 5 · blocked by infrastructure: 0
+**Scenarios: 178** · automated: 161 · manual: 6 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -108,6 +108,7 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-LEAD-004](../../../docs/qa/scenarios/QA-LEAD-004-the-public-contact-form-never-fabricates-lead-data.md) | The public contact form never fabricates lead data | lead-management | API | HIGH | AUTOMATED | `services/api/src/modules/leads/public-lead-acquisition.spec.ts` | BUG-0021 | REG-021 |
 | [QA-LEAD-005](../../../docs/qa/scenarios/QA-LEAD-005-lead-status-transitions-reject-illegal-moves.md) | Lead status transitions reject illegal moves | lead-management | API | MEDIUM | AUTOMATED | `services/api/src/modules/leads/leads.status-transition.spec.ts` | — | — |
 | [QA-LEGAL-001](../../../docs/qa/scenarios/QA-LEGAL-001-a-legal-document-that-declares-itself-a-draft-is-never-publi.md) | A legal document that declares itself a draft is never published | legal | UNIT | HIGH | AUTOMATED | `services/api/src/modules/legal/draft-self-declaration.spec.ts` | BUG-0767 | REG-229 |
+| [QA-LEGAL-002](../../../docs/qa/scenarios/QA-LEGAL-002-a-legal-draft-is-edited-and-published-from-platform-admin-an.md) | A legal draft is edited and published from Platform Admin, and a published version stays immutable | legal | BROWSER_E2E | HIGH | MANUAL | — | BUG-0906 | — |
 | [QA-ONBOARD-001](../../../docs/qa/scenarios/QA-ONBOARD-001-a-signed-agreement-cannot-be-edited.md) | A signed agreement cannot be edited | commercial-onboarding | API | HIGH | AUTOMATED | `services/api/src/modules/contracts/contracts.agreement-immutability.spec.ts` | BUG-0011 | REG-009 |
 | [QA-ONBOARD-002](../../../docs/qa/scenarios/QA-ONBOARD-002-onboarding-created-by-lead-conversion-is-born-in-an-editable.md) | Onboarding created by lead conversion is born in an editable state | commercial-onboarding | API | HIGH | AUTOMATED | `services/api/src/modules/super-admin/platform-lifecycle.onboarding-seed.spec.ts` | BUG-0012 | REG-010 |
 | [QA-ONBOARD-003](../../../docs/qa/scenarios/QA-ONBOARD-003-commercial-bootstrap-runs-end-to-end-from-lead-to-provisione.md) | Commercial bootstrap runs end to end from lead to provisioned customer | commercial-onboarding | E2E | HIGH | AUTOMATED | `services/api/test/commercial-bootstrap.e2e-spec.ts` | BUG-0024 | — |

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { ArrowRight, Building2, Bug, CreditCard, DatabaseBackup, FileSignature, Handshake, Headphones, Mail, Palette, Search, Settings, ShieldCheck, SlidersHorizontal, Tags, Users, Workflow } from "lucide-react";
+import { ArrowRight, Building2, Bug, CreditCard, DatabaseBackup, FileSignature, Handshake, Headphones, Mail, Palette, Scale, Search, Settings, ShieldCheck, SlidersHorizontal, Tags, Users, Workflow } from "lucide-react";
 import { PageHeader } from "@/app/_components/ui/page-header";
 import type { SettingsCardProps } from "@/app/_components/settings/settings-card";
 
@@ -30,6 +30,7 @@ const groups: Group[] = [
     { title: "Invoice defaults", description: "Numbering, due dates, and invoice notes.", href: "/settings/invoices", icon: CreditCard },
   ]},
   { title: "Agreements", description: "Agreement, template, approval, and signing rules.", items: [
+    { title: "Legal documents", description: "Draft and publish the terms, privacy policy and billing terms the platform sells under.", href: "/settings/legal", icon: Scale },
     { title: "Agreement rules", description: "Approvals, expiry, consent, and signature methods.", href: "/settings/contracts", icon: FileSignature },
     { title: "Templates", description: "Reusable versioned agreement documents.", href: "/templates", icon: FileSignature },
     { title: "Signature requests", description: "Active and completed signing work.", href: "/signature-requests", icon: FileSignature },

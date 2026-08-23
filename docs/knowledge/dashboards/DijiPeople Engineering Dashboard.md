@@ -7,13 +7,13 @@
 
 | | |
 |---|---|
-| Open CRITICAL | **3** |
+| Open CRITICAL | **4** |
 | Open HIGH | **12** |
-| Open total | 39 |
+| Open total | 40 |
 | Blocked | 1 |
 | Awaiting a product decision | 4 |
 | Deferred | 21 |
-| Completed | 168 |
+| Completed | 169 |
 | Awaiting Architect triage | 0 |
 
 ## Open Critical Bugs
@@ -23,6 +23,7 @@
 | [[BUG-0898-self-service-checkout-is-blocked-for-every-plan-no-plan-pric|BUG-0898]] | Self-service checkout is blocked for every plan: no plan price has ever been synced to Stripe | BUG | CRITICAL | OPEN | api:super-admin, app:landing | BLOCKED_EXTERNAL |
 | [[BUG-0900-tenant-provisioning-exceeds-the-5s-transaction-timeout-a-pai|BUG-0900]] | Tenant provisioning exceeds the 5s transaction timeout: a paid order is left with no workspace | BUG | CRITICAL | FIXED | api:permissions | FIX_NOW |
 | [[BUG-0904-production-is-missing-outbox-worker-enabled-so-no-workspace-|BUG-0904]] | Production is missing OUTBOX_WORKER_ENABLED, so no workspace is provisioned after payment | BUG | CRITICAL | OPEN | api:outbox | BLOCKED_EXTERNAL |
+| [[BUG-0989-every-stripe-webhook-delivery-to-production-fails-so-a-payme|BUG-0989]] | Every Stripe webhook delivery to production fails, so a payment never reaches the platform | BUG | CRITICAL | OPEN | api:billing | BLOCKED_EXTERNAL |
 
 ## Open High Bugs
 
@@ -295,8 +296,8 @@ _None. Nothing has been deployed through the release process._
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 144 |
-| Backlog items | 89 |
+| Bug records | 145 |
+| Backlog items | 90 |
 | Known bug patterns | 26 |
 | QA runs | 23 |
 | Engineering history records | 36 |

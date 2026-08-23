@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { LegalService } from './legal.service';
 import { ConsentService } from './consent.service';
+import { AdminLegalController } from './admin-legal.controller';
 import { PublicLegalController } from './public-legal.controller';
 
 /**
@@ -10,7 +11,7 @@ import { PublicLegalController } from './public-legal.controller';
  * visible in the module graph rather than appearing by ambient magic.
  */
 @Module({
-  controllers: [PublicLegalController],
+  controllers: [PublicLegalController, AdminLegalController],
   providers: [LegalService, ConsentService],
   exports: [LegalService, ConsentService],
 })

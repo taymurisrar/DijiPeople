@@ -133,6 +133,123 @@ export class LegalService {
     return this.resolvePublished(document.type, document.marketId);
   }
 
+  /**
+   * Every document with its versions, for the Platform Admin editor.
+   *
+   * Deliberately separate from `listPublished`, which answers the *public*
+   * question — "what is in force for this visitor" — and therefore hides drafts.
+   * An operator needs the opposite: the draft they are about to edit, the
+   * published version they would supersede, and the history.
+   *
+   * This exists because until now there was **no way to author legal copy
+   * except editing `prisma/seed-legal.ts` and redeploying**. Ten documents of
+   * lawyer-supplied prose inside TypeScript template literals is not somewhere
+   * anyone can reasonably paste text, and whoever holds the approved copy is
+   * rarely whoever can run a deploy.
+   */
+  async listAllForAdministration() {
+    const documents = await this.prisma.legalDocument.findMany({
+      where: { isActive: true },
+      orderBy: { slug: 'asc' },
+      select: {
+        id: true,
+        slug: true,
+        title: true,
+        description: true,
+        type: true,
+        marketId: true,
+        versions: {
+          orderBy: { version: 'desc' },
+          select: {
+            id: true,
+            version: true,
+            status: true,
+            changeSummary: true,
+            effectiveFrom: true,
+            publishedAt: true,
+            updatedAt: true,
+          },
+        },
+      },
+    });
+
+    return documents.map((document) => ({
+      ...document,
+      publishedVersion:
+        document.versions.find(
+          (version) => version.status === LegalDocumentVersionStatus.PUBLISHED,
+        ) ?? null,
+      draftVersion:
+        document.versions.find(
+          (version) => version.status === LegalDocumentVersionStatus.DRAFT,
+        ) ?? null,
+    }));
+  }
+
+  /** One version's full text, for the editor. */
+  async getVersionForAdministration(versionId: string) {
+    const version = await this.prisma.legalDocumentVersion.findUnique({
+      where: { id: versionId },
+      select: {
+        id: true,
+        version: true,
+        status: true,
+        contentMarkdown: true,
+        changeSummary: true,
+        effectiveFrom: true,
+        publishedAt: true,
+        document: { select: { id: true, slug: true, title: true } },
+      },
+    });
+
+    if (!version) {
+      throw new AppError('LEGAL_VERSION_NOT_FOUND', {
+        message: 'That legal document version does not exist.',
+      });
+    }
+
+    return {
+      ...version,
+      publishBlockers: await this.describePublishBlockers(versionId),
+    };
+  }
+
+  /**
+   * Why this draft cannot be published yet, in an operator's words.
+   *
+   * The same two content gates `publish` enforces, asked ahead of time so the
+   * editor can say *why* rather than refusing on click. "Remove the review
+   * banner" is actionable; a disabled button with no reason is what drives
+   * people to edit the database by hand.
+   */
+  async describePublishBlockers(versionId: string): Promise<string[]> {
+    const version = await this.prisma.legalDocumentVersion.findUnique({
+      where: { id: versionId },
+      select: { status: true, contentMarkdown: true },
+    });
+
+    if (!version) return ['That version does not exist.'];
+    if (version.status !== LegalDocumentVersionStatus.DRAFT) {
+      return [`Version is ${version.status}; only a DRAFT can be published.`];
+    }
+
+    const blockers: string[] = [];
+
+    const unfilled = findUnfilledPlaceholders(version.contentMarkdown);
+    if (unfilled.length) {
+      blockers.push(`Unfilled placeholders: ${unfilled.join(', ')}`);
+    }
+
+    const declaredDraft = findDraftSelfDeclarations(version.contentMarkdown);
+    if (declaredDraft.length) {
+      blockers.push(
+        `The text ${declaredDraft.join('; ')} — remove that before publishing.`,
+      );
+    }
+
+    return blockers;
+  }
+
   /** Every document that currently has something published, for footer links. */
   async listPublished(marketId?: string | null) {
     const types = Object.values(LegalDocumentType);

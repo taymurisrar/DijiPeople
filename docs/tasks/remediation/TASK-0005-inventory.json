@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 233,
+    "total_records": 235,
     "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
@@ -7242,7 +7242,9 @@
         "apps/landing"
       ],
       "regressions": [],
-      "qa_scenarios": [],
+      "qa_scenarios": [
+        "QA-LEGAL-002"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -7334,6 +7336,44 @@
           "services/api/src/config"
         ],
         "verification_scope": "See docs/bugs/BUG-0976-a-disallowed-cors-origin-returns-500-and-writes-an-error-log.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-0989",
+      "type": "BUG",
+      "title": "Every Stripe webhook delivery to production fails, so a payment never reaches the platform",
+      "severity": "CRITICAL",
+      "priority": "P0",
+      "current_status": "OPEN",
+      "architect_disposition": "BLOCKED_EXTERNAL",
+      "source": {
+        "record_path": "docs/bugs/BUG-0989-every-stripe-webhook-delivery-to-production-fails-so-a-payme.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "c9e78072",
+        "created_at": "2026-08-23",
+        "updated_at": "2026-08-23",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/billing"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/billing"
+        ],
+        "verification_scope": "See docs/bugs/BUG-0989-every-stripe-webhook-delivery-to-production-fails-so-a-payme.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],
@@ -11481,6 +11521,46 @@
           "apps/landing"
         ],
         "verification_scope": "See docs/backlog/items/ITEM-0089-the-contact-form-is-the-only-public-lead-creating-form-with-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0090",
+      "type": "PRODUCT_DECISION",
+      "title": "Legal documents can be authored from Platform Admin instead of a seed file",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0090-legal-documents-can-be-authored-from-platform-admin-instead-.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-08-23",
+        "updated_at": "2026-08-23",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/admin",
+        "services/api/src/modules/legal"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/admin",
+          "services/api/src/modules/legal"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0090-legal-documents-can-be-authored-from-platform-admin-instead-.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],

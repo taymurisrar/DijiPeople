@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**233 records** — 144 bugs under [`docs/bugs/`](../bugs/), 89 non-bug items under [`items/`](items/).
+**235 records** — 145 bugs under [`docs/bugs/`](../bugs/), 90 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,12 +13,12 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 39 |
+| Open (active work) | 40 |
 | Blocked | 1 |
 | Deferred | 21 |
 | Awaiting a product decision | 4 |
-| Completed / closed | 168 |
-| **Open CRITICAL** | **3** |
+| Completed / closed | 169 |
+| **Open CRITICAL** | **4** |
 | **Open HIGH** | **12** |
 | **Awaiting Architect triage** | **0** |
 
@@ -26,7 +26,7 @@ see [`README.md`](README.md) for why.
 
 | Severity | Count |
 |---|---|
-| CRITICAL | 3 |
+| CRITICAL | 4 |
 | HIGH | 12 |
 | MEDIUM | 20 |
 | LOW | 4 |
@@ -36,7 +36,7 @@ see [`README.md`](README.md) for why.
 | Type | Count |
 |---|---|
 | ARCHITECTURE | 1 |
-| BUG | 11 |
+| BUG | 12 |
 | DATA_INTEGRITY | 1 |
 | FOLLOW_UP | 2 |
 | INFRA | 7 |
@@ -50,7 +50,7 @@ see [`README.md`](README.md) for why.
 
 | Status | Count |
 |---|---|
-| OPEN | 4 |
+| OPEN | 5 |
 | BLOCKED | 1 |
 | DEFERRED | 21 |
 | PRODUCT_DECISION | 4 |
@@ -58,7 +58,7 @@ see [`README.md`](README.md) for why.
 | VERIFIED | 121 |
 | DUPLICATE | 2 |
 | READY | 21 |
-| DONE | 45 |
+| DONE | 46 |
 
 ## All records
 
@@ -74,6 +74,7 @@ see [`README.md`](README.md) for why.
 | [BUG-0899](../../docs/bugs/BUG-0899-production-cannot-deploy-the-release-chain-always-fails-beca.md) | Production cannot deploy: the release chain always fails because seeded legal documents declare themselves drafts | BUG | CRITICAL | P0 | PRODUCT_DECISION | services/api/prisma | PRODUCT_DECISION |
 | [BUG-0900](../../docs/bugs/BUG-0900-tenant-provisioning-exceeds-the-5s-transaction-timeout-a-pai.md) | Tenant provisioning exceeds the 5s transaction timeout: a paid order is left with no workspace | BUG | CRITICAL | P0 | FIXED | api:permissions | FIX_NOW |
 | [BUG-0904](../../docs/bugs/BUG-0904-production-is-missing-outbox-worker-enabled-so-no-workspace-.md) | Production is missing OUTBOX_WORKER_ENABLED, so no workspace is provisioned after payment | BUG | CRITICAL | P0 | OPEN | api:outbox | BLOCKED_EXTERNAL |
+| [BUG-0989](../../docs/bugs/BUG-0989-every-stripe-webhook-delivery-to-production-fails-so-a-payme.md) | Every Stripe webhook delivery to production fails, so a payment never reaches the platform | BUG | CRITICAL | P0 | OPEN | api:billing | BLOCKED_EXTERNAL |
 | [BUG-0049](../../docs/bugs/BUG-0049-report-only-ci-jobs-swallow-security-and-database-e2e-failur.md) | Report-only CI jobs swallow security and database E2E failures | INFRA | HIGH | P0 | VERIFIED | .github/workflows, services/api/src/common/constants, services/api/test, docs/qa | DONE |
 | [BUG-0052](../../docs/bugs/BUG-0052-production-dependency-graph-carries-critical-and-high-securi.md) | Production dependency graph carries critical and high security advisories | SECURITY | HIGH | P0 | VERIFIED | package-lock.json, apps/agent-desktop, apps/web, apps/admin, apps/landing, services/api | DONE |
 | [BUG-0053](../../docs/bugs/BUG-0053-documents-self-scoped-users-can-read-tenant-wide-documents.md) | Self-scoped document readers can list and open tenant-wide documents | AUTHORIZATION | HIGH | P0 | VERIFIED | api:documents | DONE |
@@ -258,6 +259,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0081](../../docs/backlog/items/ITEM-0081-nine-test-plans-are-needs-review-against-a-five-day-old-comm.md) | Nine test plans are NEEDS_REVIEW against a five-day-old commit | TEST_GAP | MEDIUM | P2 | READY | docs/qa/test-plans | FIX_NOW |
 | [ITEM-0084](../../docs/backlog/items/ITEM-0084-detect-drift-between-render-yaml-and-the-live-render-service.md) | Detect drift between render.yaml and the live Render service | INFRA | MEDIUM | P2 | READY | render.yaml, scripts | FIX_NOW |
 | [ITEM-0085](../../docs/backlog/items/ITEM-0085-no-bulk-command-exists-to-sync-plan-prices-to-stripe-so-a-la.md) | No bulk command exists to sync plan prices to Stripe, so a launch needs 36 manual admin edits | INFRA | MEDIUM | P2 | DONE | api:super-admin | DONE |
+| [ITEM-0090](../../docs/backlog/items/ITEM-0090-legal-documents-can-be-authored-from-platform-admin-instead-.md) | Legal documents can be authored from Platform Admin instead of a seed file | PRODUCT_DECISION | MEDIUM | P2 | DONE | apps/admin, api:legal | DONE |
 | [ITEM-0021](../../docs/backlog/items/ITEM-0021-mechanical-guard-against-country-and-currency-literals-in-fr.md) | Mechanical guard against country and currency literals in frontends | TEST_GAP | LOW | P2 | DONE | scripts, apps/landing, apps/web, apps/admin | DONE |
 | [ITEM-0023](../../docs/backlog/items/ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning.md) | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | P2 | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
 | [ITEM-0024](../../docs/backlog/items/ITEM-0024-landing-depends-on-lucide-react-without-declaring-it.md) | Landing depends on lucide-react without declaring it | TECH_DEBT | LOW | P2 | DONE | apps/landing | DONE |
