@@ -1,5 +1,6 @@
 import {
   PrismaClient,
+  BillingModel,
   CustomerAccountStatus,
   SubscriptionOrderStatus,
   TaxTreatment,
@@ -190,10 +191,33 @@ describeWithDatabase()('Subscription orders (DB-backed)', () => {
       where: { id: planPriceId },
     });
 
-    const billable = Math.max(
-      0,
-      Math.max(7, planPrice.minimumSeats) - planPrice.includedSeats,
-    );
+    /*
+     * The expectation is the product rule, stated here in full, not a copy of
+     * the implementation's expression.
+     *
+     * This previously read
+     * `Math.max(0, Math.max(7, minimumSeats) - includedSeats)` — the exact
+     * arithmetic `SubscriptionOrderService` used at the time. A test that
+     * recomputes the implementation asserts only that the code does what the
+     * code does, and this one duly passed all the way through BUG-0901, where
+     * that arithmetic billed a FLAT plan `unitAmount × 0` and wrote a paid
+     * order recording no revenue.
+     *
+     * - `FLAT`: `unitAmount` is the price of the whole subscription and
+     *   `includedSeats` states what that one fee covers, so exactly one unit is
+     *   billed at any seat count.
+     * - `PER_SEAT`: `unitAmount` is the price of one seat, so every seat the
+     *   price does not already include is billed.
+     *
+     * The fixture is `findFirstOrThrow`, so which model this run exercises
+     * depends on the seed. Branching keeps the assertion true either way rather
+     * than quietly asserting nothing when the seed changes.
+     */
+    const seats = Math.max(7, planPrice.minimumSeats);
+    const billable =
+      planPrice.billingModel === BillingModel.PER_SEAT
+        ? Math.max(0, seats - planPrice.includedSeats)
+        : 1;
 
     expect(order.unitAmount.toString()).toBe(planPrice.unitAmount.toString());
     expect(order.subtotalAmount.toString()).toBe(
