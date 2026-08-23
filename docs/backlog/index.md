@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**229 records** — 141 bugs under [`docs/bugs/`](../bugs/), 88 non-bug items under [`items/`](items/).
+**231 records** — 142 bugs under [`docs/bugs/`](../bugs/), 89 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,14 +13,14 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 42 |
+| Open (active work) | 44 |
 | Blocked | 1 |
 | Deferred | 18 |
 | Awaiting a product decision | 2 |
 | Completed / closed | 166 |
 | **Open CRITICAL** | **4** |
 | **Open HIGH** | **12** |
-| **Awaiting Architect triage** | **10** |
+| **Awaiting Architect triage** | **11** |
 
 ## Open by severity
 
@@ -28,21 +28,21 @@ see [`README.md`](README.md) for why.
 |---|---|
 | CRITICAL | 4 |
 | HIGH | 12 |
-| MEDIUM | 20 |
-| LOW | 6 |
+| MEDIUM | 21 |
+| LOW | 7 |
 
 ## Open by type
 
 | Type | Count |
 |---|---|
 | ARCHITECTURE | 1 |
-| BUG | 11 |
+| BUG | 12 |
 | DATA_INTEGRITY | 1 |
 | DOCUMENTATION | 1 |
 | FOLLOW_UP | 2 |
 | INFRA | 8 |
 | PRODUCT_DECISION | 1 |
-| SECURITY | 3 |
+| SECURITY | 4 |
 | TECH_DEBT | 5 |
 | TEST_GAP | 6 |
 | UX | 3 |
@@ -55,10 +55,10 @@ see [`README.md`](README.md) for why.
 | BLOCKED | 1 |
 | DEFERRED | 18 |
 | PRODUCT_DECISION | 2 |
-| FIXED | 11 |
+| FIXED | 12 |
 | VERIFIED | 121 |
 | DUPLICATE | 2 |
-| TRIAGE_REQUIRED | 4 |
+| TRIAGE_REQUIRED | 5 |
 | READY | 21 |
 | DONE | 43 |
 
@@ -210,6 +210,7 @@ see [`README.md`](README.md) for why.
 | [BUG-0668](../../docs/bugs/BUG-0668-exchange-rate-resolution-ignored-the-effective-date-it-was-g.md) | Exchange rate resolution ignored the effective date it was given | DATA_INTEGRITY | MEDIUM | P2 | VERIFIED | api:tenant-settings | DONE |
 | [BUG-0795](../../docs/bugs/BUG-0795-saved-table-preferences-hide-every-column-added-to-a-module-.md) | Saved table preferences hide every column added to a module afterwards | UX | MEDIUM | P2 | FIXED | apps/admin | FIX_NOW |
 | [BUG-0905](../../docs/bugs/BUG-0905-production-defines-direct-url-but-the-code-reads-direct-data.md) | Production defines DIRECT_URL but the code reads DIRECT_DATABASE_URL, so migrations run over the pooled endpoint | BUG | MEDIUM | P2 | OPEN | services/api/prisma, pkg:config | TRIAGE_REQUIRED |
+| [BUG-0907](../../docs/bugs/BUG-0907-an-unknown-legal-slug-answers-200-and-hangs-on-the-loading-s.md) | An unknown legal slug answers 200 and hangs on the loading shell instead of returning 404 | BUG | MEDIUM | P2 | FIXED | apps/landing | FIX_NOW |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |
@@ -263,6 +264,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0070](../../docs/backlog/items/ITEM-0070-move-the-excel-write-path-off-xlsx-and-drop-the-dependency.md) | Move the Excel write path off xlsx and drop the dependency | SECURITY | LOW | P2 | DEFERRED | payroll, timesheets | DEFER |
 | [ITEM-0087](../../docs/backlog/items/ITEM-0087-stripe-api-version-is-commented-out-in-the-local-api-env-and.md) | STRIPE_API_VERSION is commented out in the local API env and documented with two different values | DOCUMENTATION | LOW | P2 | TRIAGE_REQUIRED | services/api | TRIAGE_REQUIRED |
 | [ITEM-0088](../../docs/backlog/items/ITEM-0088-npm-workspace-api-run-start-dev-always-frees-port-4000-regar.md) | npm --workspace api run start:dev always frees port 4000 regardless of PORT, killing any other API instance | TECH_DEBT | LOW | P2 | TRIAGE_REQUIRED | services/api | TRIAGE_REQUIRED |
+| [ITEM-0089](../../docs/backlog/items/ITEM-0089-the-contact-form-is-the-only-public-lead-creating-form-with-.md) | The contact form is the only public lead-creating form with no honeypot | SECURITY | LOW | P2 | TRIAGE_REQUIRED | apps/landing | TRIAGE_REQUIRED |
 | [BUG-0018](../../docs/bugs/BUG-0018-bulk-lead-delete-is-unreachable-for-every-role.md) | Bulk lead delete is unreachable for every role, including SUPER_ADMIN | AUTHORIZATION | LOW | P3 | DEFERRED | api:platform-auth, api:super-admin | DEFER |
 | [BUG-0023](../../docs/bugs/BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist.md) | The testing-architecture context claims two e2e specs do not exist | DOCUMENTATION | LOW | P3 | VERIFIED | .agent/context | DONE |
 | [BUG-0024](../../docs/bugs/BUG-0024-start-onboarding-api-and-proxy-have-no-caller.md) | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | P3 | VERIFIED | apps/admin, api:super-admin | DONE |

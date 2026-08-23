@@ -22,7 +22,7 @@ const DRY = process.argv.includes('--dry');
 
 function envValue(key) {
   const file = fs.readFileSync(
-    new URL('../services/api/.env', import.meta.url),
+    new URL('../../services/api/.env', import.meta.url),
     'utf8',
   );
   const match = file.match(new RegExp(`^${key}="?([^"\\n\\r]*)"?`, 'm'));

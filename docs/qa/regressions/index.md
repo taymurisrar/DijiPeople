@@ -2111,3 +2111,18 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | The handler's own comment said "the customer is about to be told it is ready". Nothing told them. Same shape as the missing `PROVISIONING_REQUESTED` consumer documented at the top of that same file — the work was done and the last statement of it was not. |
 | **Fixed** | 2026-08-23, `agent/landing-e2e-go-live` |
 | **Active** | yes |
+
+### REG-238 — An unknown dynamic slug returns a real 404, not a streamed 200
+
+| | |
+|---|---|
+| **Bug class** | `silent-degradation` |
+| **Module** | `apps/landing` |
+| **Bug record** | BUG-0907 |
+| **Root cause** | `apps/landing/app/loading.tsx` puts a Suspense boundary above every route, so Next flushes the shell — and commits HTTP 200 — before the dynamic segment runs. The `notFound()` already written in `legal/[slug]/page.tsx` could therefore change neither the status nor, in practice, the rendered output: `/legal/anything` answered `200 OK` and sat on the loading fallback forever. A soft 404 a crawler indexes as a real page and a visitor reads as a hang. |
+| **Regression test** | `e2e/tests/landing-public-surface.spec.ts` — "an unknown legal slug is a real 404, not a 200 stuck on the loading shell" |
+| **Scenario** | `/legal/<unknown>` returns 404 and renders the not-found page; the ten real slugs still return 200 with their own titles. |
+| **Proven to fail without the fix** | Run against production, which still carries the defect: the test fails there and passes against the fixed build. Root cause additionally established by experiment — removing `app/loading.tsx` alone turns the same URL into a 404. |
+| **Note** | The page said the right thing and could not deliver it. Worth remembering as a property of streaming rather than of this route: any `notFound()` beneath a route-level `loading.tsx` has the same problem, so a static param list plus `dynamicParams = false` is the reliable way to refuse an unknown segment. |
+| **Fixed** | 2026-08-23, `agent/landing-e2e-go-live` |
+| **Active** | yes |

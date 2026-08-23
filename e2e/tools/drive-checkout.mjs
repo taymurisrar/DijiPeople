@@ -30,7 +30,7 @@ if (/dijipeople\.com/i.test(BASE)) {
 }
 
 const DB_URL = fs
-  .readFileSync(new URL('../services/api/.env', import.meta.url), 'utf8')
+  .readFileSync(new URL('../../services/api/.env', import.meta.url), 'utf8')
   .match(/^DATABASE_URL="?([^"\n\r]*)"?/m)?.[1];
 
 if (!DB_URL || !/localhost/.test(DB_URL) || !/_e2e_/.test(DB_URL)) {
