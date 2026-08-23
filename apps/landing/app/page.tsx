@@ -146,7 +146,7 @@ export default async function HomePage() {
         <div className="max-w-3xl">
           <Eyebrow>Pricing</Eyebrow>
           <SectionHeading className="mt-2">
-            One flat price per plan
+            Priced per employee
           </SectionHeading>
         </div>
         <PlanPreview config={commercialConfig} />

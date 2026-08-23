@@ -7,6 +7,7 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { TENANT_FEATURE_DEFINITIONS } from '../../tenant-settings/tenant-settings.catalog';
+import { FALLBACK_MARKET_CODE } from '../../super-admin/markets.catalog';
 import {
   isPublicSafeReason,
   resolveCommercialOffer,
@@ -90,16 +91,44 @@ export class CommercialConfigService {
     return mapping?.market ?? null;
   }
 
-  /** The market a visitor with no resolvable country falls back to. */
+  /**
+   * The market a visitor with no resolvable country falls back to.
+   *
+   * The named fallback first, and only then the sort-order sweep.
+   *
+   * This used to be the sweep alone, which quietly made "what currency does an
+   * unrecognised visitor see" a function of display order. `PK` sorts at 10 and
+   * `INTL` at 25, so a visitor in Germany would have been quoted PKR — and the
+   * bug was invisible for as long as `MarketCountry` was empty, because then
+   * *every* visitor landed on the default and the default was the only market
+   * resolving at all. Restoring the country mappings is exactly what would have
+   * exposed it.
+   *
+   * The sweep is kept as a second resort rather than deleted: a database whose
+   * `INTL` market was never seeded, or was deliberately unpublished, should
+   * still serve somebody a price. Returning null there would take the whole
+   * public catalogue down for unmapped countries.
+   */
   async resolveDefaultMarket() {
-    return this.prisma.market.findFirst({
-      where: {
-        publicationStatus: CommercialPublicationStatus.PUBLISHED,
-        isEnabled: true,
-        launchStatus: {
-          in: [MarketLaunchStatus.LAUNCHED, MarketLaunchStatus.PILOT],
-        },
+    const publishedAndSelling = {
+      publicationStatus: CommercialPublicationStatus.PUBLISHED,
+      isEnabled: true,
+      launchStatus: {
+        in: [MarketLaunchStatus.LAUNCHED, MarketLaunchStatus.PILOT],
       },
+    };
+
+    const named = await this.prisma.market.findFirst({
+      where: { ...publishedAndSelling, code: FALLBACK_MARKET_CODE },
+    });
+    if (named) return named;
+
+    this.logger.warn(
+      `Fallback market ${FALLBACK_MARKET_CODE} is missing or not published; falling back to the lowest-sorted selling market, whose currency may not be USD.`,
+    );
+
+    return this.prisma.market.findFirst({
+      where: publishedAndSelling,
       orderBy: { sortOrder: 'asc' },
     });
   }
