@@ -224,11 +224,25 @@ function RuntimeRecordEditor({
         ((moduleKey === "contracts" && tab.key === "versions") ||
           (moduleKey === "tenants" && TENANT_PANEL_TABS.includes(tab.key)) ||
           /*
-           * Entitlements are a panel, not form fields, so without this the tab
-           * was filtered out as empty and the plan's capabilities had nowhere
-           * to be edited outside the legacy screen.
+           * Pricing and Entitlements are panels, not form fields, so without
+           * this they are filtered out as empty tabs and the panels below —
+           * which only render when their tab is the active one — become
+           * unreachable code.
+           *
+           * BUG-0794: `entitlements` was added here when exactly this happened
+           * to it, and `pricing` was not. `PlanPriceManager` has been mounted
+           * on `activeTab === "pricing"` the whole time, behind a tab the bar
+           * never rendered, so the only remaining route to plan price
+           * configuration was `/plans/<id>?workspace=legacy-commerce` — a
+           * query parameter nothing links to. "Where did the price
+           * configuration go from the Plan module" is this line.
+           *
+           * `plan-record-tabs.spec.ts` now derives the list rather than
+           * trusting it: a module that mounts a panel on a tab and does not
+           * name it here fails there instead of in somebody's browser.
            */
-          (moduleKey === "plans" && tab.key === "entitlements"));
+          (moduleKey === "plans" &&
+            ["pricing", "entitlements"].includes(tab.key)));
       return hasFields || hasRelationship || hasTimeline || hasRuntimePanel;
     });
     return { ...baseFormDefinition, tabs };

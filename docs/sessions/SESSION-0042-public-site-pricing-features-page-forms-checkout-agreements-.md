@@ -1,0 +1,92 @@
+---
+SESSION_ID: SESSION-0042
+aliases: [SESSION-0042]
+TASK_ID:
+TITLE: Public site pricing, features page, forms, checkout agreements, and admin plan/tenant list fixes
+ARCHITECT_INTENT: Public site pricing, features page, forms, checkout agreements, and admin plan/tenant list fixes
+STATUS: COMPLETE
+TASK_TYPE: FEATURE
+TASK_SIZE: LARGE
+BASE_BRANCH: origin/develop
+BASE_SHA: e7c39fe4a2898f046a0eeedb67bd1fe24e03f6cc
+TASK_BRANCH: agent/site-ux-and-admin-fixes
+TARGET_BRANCH: develop
+WORKTREE: D:/My Work/hrm-dijipeople/dijipeople-site-ux
+AFFECTED_MODULES: [apps/landing, apps/admin, services/api/src/modules/super-admin]
+WRITE_LEASES: []
+ACTIVE_WORK_PACKAGES: []
+SCHEMA_WRITE: NO
+CI_STATUS: PASS
+MERGE_STATUS: MERGED
+STARTED_AT: 2026-08-22T21:25:54.373Z
+LAST_HEARTBEAT: 2026-08-22T21:25:54.373Z
+BLOCKERS: none
+---
+
+# SESSION-0042 — Public site pricing, features page, forms, checkout agreements, and admin plan/tenant list fixes
+
+## Intent
+
+Public site pricing, features page, forms, checkout agreements, and admin plan/tenant list fixes
+
+## Scope
+
+Seven observations from the user after the production deploy — five on the public
+site, two in the admin app. Each was traced to a root cause before anything was
+changed.
+
+**Public site (`apps/landing`)**
+
+1. Home and Plans quote USD to a visitor in Doha while checkout quotes QAR. Two
+   independent defects: the Qatar market never resolves (BUG-0792, an API-side
+   seed problem), and `resolveSubscribeSelection` took its currency from the
+   alphabetically first plan price rather than the market (BUG-0793).
+2. The Features page carried its own visual language and an information
+   structure that did not build an argument. Rebuilt on shared typography.
+3. Copy pass across every public page — the site described itself in the
+   vocabulary of the people who built it.
+4. Contact and Partners had two divergent form kits and opposite conventions for
+   marking required fields. Unified; required marked `*`; the "* Required
+   fields" footnote removed as the user asked.
+5. The agreements step asked for ten separate checkbox ticks. Replaced with one
+   acceptance covering all ten documents, with the per-version evidence intact.
+
+**Admin (`apps/admin`, `services/api`)**
+
+6. The Tenants list "doesn't look updated" — saved table preferences silently
+   hid every column added since (BUG-0795), tenant name and meaningful columns
+   addressed per the user's follow-up, and the "Created by me" view was
+   permanently empty (BUG-0796).
+7. Plan price configuration had disappeared behind a tab the tab bar filters out
+   (BUG-0794).
+
+Out of scope, and stated rather than quietly dropped: the live production data
+repair for BUG-0792. The code fix stops the state recurring; clearing it needs
+`npm run seed:commercial` run once against production, which also reconciles plan
+prices and is therefore the owner's call.
+
+## Concurrency
+
+No write leases taken: no schema write, no migration, no shared-generator
+ownership beyond the record indexes, which are regenerated rather than edited.
+`session.mjs check` classified the work `SAFE_PARALLEL` against the seven other
+active sessions.
+
+One collision did occur, and it was in the id space the allocator does not
+cover. `origin/develop` advanced by six commits during the task, and the
+regression register — hand-maintained, no allocator — had `REG-229` claimed by
+both this branch and the merged work. Resolved by renumbering this branch's five
+entries to `REG-230`–`REG-234`; see the merge commit and the engineering history
+record for what the renumber nearly broke on the other side.
+
+## History
+
+- 2026-08-22 — session started from `origin/develop` at `e7c39fe`.
+- 2026-08-22 — task worktree created at `D:/My Work/hrm-dijipeople/dijipeople-site-ux`; the session record was moved out of the primary checkout, which ends clean.
+- 2026-08-22 — five commits: commerce currency, admin fixes, form kit and agreements, site theme and copy, records.
+- 2026-08-22 — `origin/develop` merged at `ef57b2a`; `REG-229` collision resolved by renumbering this branch's entries.
+- 2026-08-22 — pushed `66b864c`; awaiting the `CI required gate` verdict on that exact SHA.
+- 2026-08-22 — a price comparison against `pricing.catalog.ts` showed `seed:commercial` would supersede production's live prices, so a narrow `repair:market-countries` was added instead. Final task SHA `00ef62c`.
+- 2026-08-22 — `CI required gate` PASS on `00ef62c` (run 32603250502). Two earlier runs were correctly classified SUPERSEDED, not failed.
+- 2026-08-22 — integrated into `develop` by ref-push, so `develop` fast-forwards to the exact verified SHA. `main` untouched.
+- 2026-08-22 — Obsidian synced and verified (`OBSIDIAN_SYNC_STATUS = PASS`); session complete.

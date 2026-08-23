@@ -48,6 +48,7 @@
     "seed:system": "npm --workspace api run seed:system",
     "seed:config": "npm --workspace api run seed:config",
     "seed:commercial": "npm --workspace api run seed:commercial",
+    "repair:market-countries": "npm --workspace api run repair:market-countries",
     "report:commercial": "npm --workspace api run report:commercial",
     "seed:verify": "npm --workspace api run seed:verify",
     "seed:admin": "npm --workspace api run seed:admin",

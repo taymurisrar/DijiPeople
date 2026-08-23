@@ -6,12 +6,13 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 6** · completed: 34
+**Active: 7** · completed: 35
 
 ## Active
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0043](../../docs/sessions/SESSION-0043-release-develop-to-main-site-pricing-features-page-forms-che.md) | — | Release develop to main: site pricing, features page, forms, checkout agreements, admin fixes | ACTIVE | `agent/release-site-ux-and-admin` | `main` | — | 2026-08-22T23:34:11.402Z |
 | [SESSION-0023](../../docs/sessions/SESSION-0023-first-production-release.md) | — | First production release | ACTIVE | `agent/first-production-release` | `main` | — | 2026-08-20T16:21:59.286Z |
 | [SESSION-0022](../../docs/sessions/SESSION-0022-go-live-readiness.md) | TASK-0010 | Go-live readiness | ACTIVE | `agent/go-live-readiness` | `develop` | — | 2026-08-20T11:10:18.564Z |
 | [SESSION-0019](../../docs/sessions/SESSION-0019-ci-browser-install-latency-and-database-e2e-fixture-contract.md) | — | CI browser install latency and database e2e fixture contract | ACTIVE | `agent/ci-e2e-remediation` | `develop` | — | 2026-08-19T20:24:28.476Z |
@@ -23,6 +24,7 @@ see [`README.md`](README.md) for how they stay out of each other's way.
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0042](../../docs/sessions/SESSION-0042-public-site-pricing-features-page-forms-checkout-agreements-.md) | — | Public site pricing, features page, forms, checkout agreements, and admin plan/tenant list fixes | COMPLETE | `agent/site-ux-and-admin-fixes` | `develop` | — | 2026-08-22T21:25:54.373Z |
 | [SESSION-0041](../../docs/sessions/SESSION-0041-document-vercel-render-and-neon-platform-access-for-agents.md) | — | Document Vercel, Render and Neon platform access for agents | COMPLETE | `agent/platform-access-docs` | `develop` | — | 2026-08-22T13:30:26.204Z |
 | [SESSION-0040](../../docs/sessions/SESSION-0040-qa-verification-of-49-fixed-bugs-remaining-fix-now-items-and.md) | — | QA verification of 49 fixed bugs, remaining FIX_NOW items, and the lint burn-down | COMPLETE | `agent/qa-verify-and-burndown` | `develop` | — | 2026-08-22T09:25:45.183Z |
 | [SESSION-0039](../../docs/sessions/SESSION-0039-backlog-burn-down-open-bugs-and-ready-items.md) | — | Backlog burn-down: open bugs and ready items | COMPLETE | `agent/backlog-burndown` | `develop` | — | 2026-08-22T03:02:42.887Z |

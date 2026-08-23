@@ -165,3 +165,23 @@ export async function fetchPublishedLegalIndex(): Promise<LegalIndexEntry[]> {
     return [];
   }
 }
+
+/**
+ * The published Privacy Policy's route, or null if none is published.
+ *
+ * Both public forms carry a consent notice written around a link to it, and
+ * both rendered `privacyPolicyHref` as `null` because neither page ever passed
+ * one — so the notice read "We'll use these details to reply to you." with
+ * nothing to read. Asking for consent while withholding the document the
+ * consent refers to is the one thing that notice exists to avoid.
+ *
+ * Null when nothing is published rather than a hardcoded `/legal/privacy`: the
+ * route renders whether or not a document is behind it, and linking to a page
+ * that says "not published yet" from a consent notice is worse than the notice
+ * standing alone.
+ */
+export async function fetchPrivacyPolicyHref(): Promise<string | null> {
+  const documents = await fetchPublishedLegalIndex();
+  const privacy = documents.find((entry) => entry.slug === "privacy");
+  return privacy ? `/legal/${privacy.slug}` : null;
+}

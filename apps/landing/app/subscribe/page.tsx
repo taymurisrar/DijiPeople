@@ -5,12 +5,15 @@ import { resolveDisplayCurrency } from "../../lib/plans";
 import { getPublicPlans } from "../../lib/plans-server";
 import { fetchPublishedLegalIndex } from "../../lib/legal-server";
 import { landingEnv } from "../../lib/env";
+import { Eyebrow, PageHeading } from "../_components/marketing/typography";
 import { SubscribeForm } from "./subscribe-form";
 
 export const metadata: Metadata = {
-  title: "Subscribe",
+  title: "Get started",
+  // "Start a public DijiPeople subscription through a secure Stripe Checkout
+  // flow" described our integration, not the visitor's next five minutes.
   description:
-    "Start a public DijiPeople subscription through a secure Stripe Checkout flow.",
+    "Set up your DijiPeople workspace and pay securely. We start preparing it as soon as your payment goes through.",
 };
 
 type SearchParams = Promise<{
@@ -46,15 +49,14 @@ export default async function SubscribePage({
   return (
     <PageShell>
       <section className="max-w-3xl py-8">
-        <p className="text-sm font-semibold uppercase tracking-[0.16em] text-accent">
-          Subscribe
-        </p>
-        <h1 className="mt-3 font-serif text-4xl text-foreground sm:text-5xl">
-          Create your workspace and continue to secure checkout.
-        </h1>
+        <Eyebrow>Get started</Eyebrow>
+        <PageHeading className="mt-3">
+          Set up your workspace.
+        </PageHeading>
         <p className="mt-4 text-base leading-7 text-muted">
-          Tell us about your company, then continue to secure payment. We start
-          preparing your workspace as soon as your payment is confirmed.
+          A few details about your company, then secure payment. We start
+          setting up your workspace as soon as the payment goes through, and
+          email you when it&rsquo;s ready.
         </p>
       </section>
       <SubscribeForm

@@ -6,6 +6,7 @@ Sessions that reached a terminal state. Kept as history: the branch, the base it
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0042](../../docs/sessions/SESSION-0042-public-site-pricing-features-page-forms-checkout-agreements-.md) | — | Public site pricing, features page, forms, checkout agreements, and admin plan/tenant list fixes | COMPLETE | `agent/site-ux-and-admin-fixes` | `develop` | — | 2026-08-22T21:25:54.373Z |
 | [SESSION-0041](../../docs/sessions/SESSION-0041-document-vercel-render-and-neon-platform-access-for-agents.md) | — | Document Vercel, Render and Neon platform access for agents | COMPLETE | `agent/platform-access-docs` | `develop` | — | 2026-08-22T13:30:26.204Z |
 | [SESSION-0040](../../docs/sessions/SESSION-0040-qa-verification-of-49-fixed-bugs-remaining-fix-now-items-and.md) | — | QA verification of 49 fixed bugs, remaining FIX_NOW items, and the lint burn-down | COMPLETE | `agent/qa-verify-and-burndown` | `develop` | — | 2026-08-22T09:25:45.183Z |
 | [SESSION-0039](../../docs/sessions/SESSION-0039-backlog-burn-down-open-bugs-and-ready-items.md) | — | Backlog burn-down: open bugs and ready items | COMPLETE | `agent/backlog-burndown` | `develop` | — | 2026-08-22T03:02:42.887Z |

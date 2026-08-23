@@ -82,6 +82,37 @@ working agreement, not a permission boundary:
 | Listing projects, services, branches, endpoints | Creating or deleting a Neon branch |
 | Reading Neon branch/endpoint **settings** | Any write to production data |
 
+### Changing a Render service setting **is** triggering a deploy
+
+Not a separate action you take afterwards — Render redeploys the service on any
+configuration change, with trigger `service_updated`. So every row in the
+right-hand column above collapses into the first one: editing
+`preDeployCommand`, changing an environment variable or altering a build
+command all put a new deployment into production.
+
+**That deploy runs the code that is currently on `main`, not the code you are
+about to release.** On 2026-08-23 this was learned the expensive way. Ten legal
+documents carrying a "Draft — not published" banner had been published, then
+withdrawn. Setting `preDeployCommand` to run the release chain — the fix that
+would make publication safe — redeployed the *old* commit, which had no guard,
+and republished all ten. The guarded release landed thirty minutes later and
+reported `alreadyPublished: 10`, because a guard can refuse a publish and
+cannot undo one.
+
+Two rules follow, and the first is the cheap one:
+
+1. **After any service update, read `deploys?limit=5` and look for a
+   `service_updated` entry.** Verifying the configuration took hold is not the
+   same as verifying what the resulting deploy did.
+2. **Land the code first, then change the setting.** If a configuration change
+   makes a pipeline step run, that step runs against production's current build
+   the moment you save it.
+
+Worth noting that an *environment variable* change earlier the same day did
+**not** appear to trigger a redeploy — the new values sat inert until the next
+deploy. Do not generalise from one observation in either direction; read the
+deploy list.
+
 Reading environment variables is permitted but is not free: the response
 contains `STRIPE_SECRET_KEY`, `JWT_ACCESS_SECRET`, `SECRET_ENCRYPTION_KEY` and
 `DATABASE_URL` in plaintext. Filter the response down to the field being checked

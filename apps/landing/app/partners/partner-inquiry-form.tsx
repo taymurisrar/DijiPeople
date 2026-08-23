@@ -3,6 +3,16 @@
 import { useState } from "react";
 
 import {
+  ConsentBox,
+  ConsentCheckbox,
+  Field,
+  FormFeedback,
+  SubmitButton,
+  controlClass,
+  formCardClass,
+  textareaClass,
+} from "../_components/forms/form-kit";
+import {
   COUNTRY_OPTIONS,
   PARTNERSHIP_MODEL_OPTIONS,
   readAttribution,
@@ -105,7 +115,7 @@ export function PartnerInquiryForm({
   return (
     <form
       onSubmit={submit}
-      className="rounded-[28px] border border-border bg-white p-6 shadow-md"
+      className={formCardClass}
     >
       <div className="grid gap-x-4 gap-y-5 sm:grid-cols-2">
         {/* Partnership model */}
@@ -117,7 +127,7 @@ export function PartnerInquiryForm({
             <select
               name="partnershipModel"
               required
-              className={control}
+              className={controlClass}
               defaultValue=""
             >
               <option value="" disabled>
@@ -154,7 +164,7 @@ export function PartnerInquiryForm({
                   event.target.value as ApplicantType,
                 )
               }
-              className={control}
+              className={controlClass}
             >
               <option value="COMPANY">
                 A company or organization
@@ -177,7 +187,7 @@ export function PartnerInquiryForm({
               name="companyName"
               required
               autoComplete="organization"
-              className={control}
+              className={controlClass}
               placeholder="e.g. Maseer Group"
             />
           </Field>
@@ -189,7 +199,7 @@ export function PartnerInquiryForm({
             name="contactFirstName"
             required
             autoComplete="given-name"
-            className={control}
+            className={controlClass}
           />
         </Field>
 
@@ -198,7 +208,7 @@ export function PartnerInquiryForm({
             name="contactLastName"
             required
             autoComplete="family-name"
-            className={control}
+            className={controlClass}
           />
         </Field>
 
@@ -208,7 +218,7 @@ export function PartnerInquiryForm({
             type="email"
             required
             autoComplete="email"
-            className={control}
+            className={controlClass}
             placeholder="name@company.com"
           />
         </Field>
@@ -219,7 +229,7 @@ export function PartnerInquiryForm({
             type="tel"
             required
             autoComplete="tel"
-            className={control}
+            className={controlClass}
             placeholder="+974 0000 0000"
           />
         </Field>
@@ -228,7 +238,7 @@ export function PartnerInquiryForm({
           <select
             name="country"
             required
-            className={control}
+            className={controlClass}
             defaultValue=""
           >
             <option value="" disabled>
@@ -255,7 +265,7 @@ export function PartnerInquiryForm({
               name="website"
               type="url"
               autoComplete="url"
-              className={control}
+              className={controlClass}
               placeholder="https://example.com"
             />
           </Field>
@@ -272,7 +282,7 @@ export function PartnerInquiryForm({
               required
               rows={5}
               maxLength={2000}
-              className={textareaControl}
+              className={textareaClass}
               placeholder="Briefly describe your business, target market, and how you'd like to partner with DijiPeople."
             />
           </Field>
@@ -280,23 +290,11 @@ export function PartnerInquiryForm({
       </div>
 
       {/* Consent */}
-      <div className="mt-6 space-y-4 rounded-2xl border border-border bg-surface-muted p-4">
-        <label className="flex cursor-pointer items-start gap-3 text-sm leading-6 text-muted">
-          <input
-            name="consentAccepted"
-            required
-            type="checkbox"
-            className={checkboxControl}
-          />
-
-          <span>
-            <span className="text-danger" aria-hidden="true">
-              *{" "}
-            </span>
-
-            I acknowledge that DijiPeople will use the
-            information submitted to evaluate and respond to
-            this partnership inquiry
+      <div className="mt-6">
+        <ConsentBox>
+          <ConsentCheckbox name="consentAccepted" required>
+            We can use these details to review and reply to this partnership
+            inquiry
             {privacyPolicyHref ? (
               <>
                 , as described in our{" "}
@@ -309,109 +307,46 @@ export function PartnerInquiryForm({
               </>
             ) : null}
             .
-          </span>
-        </label>
+          </ConsentCheckbox>
 
-        <label className="flex cursor-pointer items-start gap-3 text-sm leading-6 text-muted">
-          <input
-            name="marketingConsent"
-            type="checkbox"
-            className={checkboxControl}
-          />
-
-          <span>
-            I&rsquo;d also like to receive partner and product
-            updates from DijiPeople.{" "}
+          <ConsentCheckbox name="marketingConsent">
+            I&rsquo;d also like partner and product updates from DijiPeople.{" "}
             <span className="text-muted-soft">
-              Optional — you can unsubscribe at any time.
+              Optional — you can ask us to stop at any time.
             </span>
-          </span>
-        </label>
+          </ConsentCheckbox>
+        </ConsentBox>
       </div>
 
       {/* Result */}
       {result ? (
-        <div
-          className={`mt-4 rounded-xl px-4 py-3 text-sm ${
-            result.referenceNumber
-              ? "bg-accent-soft text-accent-strong"
-              : "bg-red-50 text-danger"
-          }`}
-          role="status"
-          aria-live="polite"
-        >
-          {result.message}
-
-          {result.referenceNumber ? (
-            <strong className="ml-2">
-              Reference {result.referenceNumber}
-            </strong>
-          ) : null}
+        <div className="mt-4">
+          <FormFeedback tone={result.referenceNumber ? "success" : "error"}>
+            {result.message}
+            {result.referenceNumber ? (
+              <strong className="ml-2">
+                Reference {result.referenceNumber}
+              </strong>
+            ) : null}
+          </FormFeedback>
         </div>
       ) : null}
 
       {/* Submit */}
-      <button
-        type="submit"
-        disabled={busy}
-        className="mt-5 w-full rounded-xl bg-accent px-5 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-accent-strong focus:outline-none focus:ring-2 focus:ring-accent/30 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        {busy
-          ? "Submitting…"
-          : "Submit partner inquiry"}
-      </button>
+      <div className="mt-5">
+        <SubmitButton busy={busy} busyLabel="Submitting…">
+          Submit partner inquiry
+        </SubmitButton>
+      </div>
 
-      <p className="mt-3 text-center text-xs text-muted-soft">
-        <span className="text-danger">*</span> Required fields
-      </p>
+      {/*
+        No "* Required fields" footnote.
+
+        It explained the asterisk below the last field, which is after the point
+        anyone needed the explanation, and it occupied the line where a
+        submission error now appears. The asterisk carries "(required)" to a
+        screen reader on its own — see `RequiredMark` in the form kit.
+      */}
     </form>
-  );
-}
-
-const control =
-  "mt-1.5 h-11 w-full rounded-xl border border-border bg-white px-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted-soft focus:border-accent focus:ring-2 focus:ring-accent/10 disabled:cursor-not-allowed disabled:bg-surface-muted";
-
-const textareaControl =
-  "mt-1.5 min-h-[128px] w-full resize-y rounded-xl border border-border bg-white px-3 py-3 text-sm leading-6 text-foreground outline-none transition-colors placeholder:text-muted-soft focus:border-accent focus:ring-2 focus:ring-accent/10";
-
-const checkboxControl =
-  "mt-1 h-4 w-4 shrink-0 rounded border-border accent-accent";
-
-function Field({
-  label,
-  required = false,
-  hint,
-  children,
-}: {
-  label: string;
-  required?: boolean;
-  hint?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="block text-sm font-semibold text-foreground">
-      <span className="flex items-center justify-between gap-2">
-        <span>
-          {label}
-
-          {required ? (
-            <span
-              className="ml-1 text-danger"
-              aria-hidden="true"
-            >
-              *
-            </span>
-          ) : null}
-        </span>
-
-        {hint ? (
-          <span className="text-xs font-normal text-muted-soft">
-            {hint}
-          </span>
-        ) : null}
-      </span>
-
-      {children}
-    </label>
   );
 }

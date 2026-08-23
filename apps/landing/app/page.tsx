@@ -1,165 +1,233 @@
 import Link from "next/link";
-import { PlanCards } from "./_components/plan-cards";
-import { PageShell } from "./_components/site-shell";
-import { resolveDisplayCurrency } from "../lib/plans";
 import Image from "next/image";
-import { getCommercialConfig } from "../lib/commercial-config";
-import { getPublicPlans } from "../lib/plans-server";
 
-// Customer-facing copy. "Stripe webhook" and "PlanPrice record" are how this is
-// built, not what a buyer is choosing between — internal vocabulary on a public
-// page reads as unfinished and answers a question nobody asked.
+import { PlanPreview } from "./_components/plan-preview";
+import { PageShell } from "./_components/site-shell";
+import {
+  ClosingCta,
+  Eyebrow,
+  Lede,
+  PageHeading,
+  SectionHeading,
+} from "./_components/marketing/typography";
+import { getCommercialConfig } from "../lib/commercial-config";
+
+/*
+ * Customer-facing copy.
+ *
+ * The rule this page kept breaking: a buyer is not a tenant, does not have a
+ * "subscription-ready platform", and is not looking for "SaaS control". Those
+ * are how the product is built, not what someone is choosing between. Internal
+ * vocabulary on a public page reads as unfinished and answers a question nobody
+ * asked — and "tenant", specifically, describes the reader as a row in our
+ * database.
+ */
 const faqs = [
   {
-    question: "Can DijiPeople support multiple companies or workspaces?",
+    question: "Can we run more than one company on it?",
     answer:
-      "Yes. DijiPeople is built as a multi-tenant platform, so each organization gets its own workspace with separate branding, access, and billing.",
+      "Yes. Each company gets its own separate workspace, with its own branding, its own people, and its own billing. Nothing is shared between them.",
   },
   {
-    question: "Who controls the pricing shown here?",
+    question: "Is the price I see the price I pay?",
     answer:
-      "DijiPeople does. Published prices come from our commercial configuration, so the price you see is the price you are charged.",
+      "Yes. The prices on this site are the ones we charge, shown in your region's currency, with no setup fee.",
   },
   {
-    question: "When does my workspace become available?",
+    question: "How soon can we start using it?",
     answer:
-      "We begin preparing your workspace as soon as your payment is confirmed, and email you as soon as it is ready.",
+      "We start setting up your workspace as soon as your payment goes through, and email you the moment it's ready.",
+  },
+];
+
+/** What the product covers, in the terms an HR team would use. */
+const areas = [
+  {
+    title: "Your people",
+    body: "Employee records, org structure, documents and policies — with self-service so your team keeps their own details up to date.",
+  },
+  {
+    title: "Their time",
+    body: "Attendance, leave, timesheets and the payroll inputs that come out of them, without rebuilding a spreadsheet each month.",
+  },
+  {
+    title: "How you run it",
+    body: "Decide who can see what, turn on the modules you need, and apply your own branding across the whole workspace.",
   },
 ];
 
 export default async function HomePage() {
-  const [plansResponse, commercialConfig] = await Promise.all([
-    getPublicPlans(),
-    getCommercialConfig(),
-  ]);
-  const plans = plansResponse.plans;
-  const defaultCurrency = resolveDisplayCurrency(
-    plans,
-    commercialConfig.currency,
-  );
+  /*
+   * One source for what a visitor can buy and what it costs: published
+   * commercial configuration, resolved server-side for their market.
+   *
+   * This page used to also fetch `/public/plans` and reconcile the two. It
+   * could not: that endpoint is not market-scoped, so the reconciliation was a
+   * guess, and the guess disagreed with `/plans` and `/subscribe`. Asking one
+   * question of one source is what makes the three pages agree by construction
+   * rather than by three matching implementations.
+   */
+  const commercialConfig = await getCommercialConfig();
 
   return (
     <PageShell>
       <section className="grid gap-10 py-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
         <div className="space-y-6">
           <div className="inline-flex rounded-full border border-accent/20 bg-accent-soft px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-accent">
-            Public HR SaaS for operational teams
+            HR software for growing teams
           </div>
           <div className="space-y-4">
-            <h1 className="max-w-4xl font-serif text-4xl leading-tight text-foreground sm:text-5xl lg:text-6xl">
-              DijiPeople
-            </h1>
-            <p className="max-w-2xl text-lg leading-8 text-muted">
-              Run employee management, attendance, leave, payroll preparation,
-              onboarding, documents, recruitment, and tenant configuration from
-              one subscription-ready HR operations platform.
-            </p>
+            {/*
+              The heading was the word "DijiPeople" — the brand name where the
+              value proposition belongs. Someone arriving from a search result
+              learned only that they had found us, not what we do, and the page
+              had no h1 describing the product at all.
+            */}
+            <PageHeading className="max-w-4xl lg:text-6xl">
+              HR, attendance and payroll that finally talk to each other.
+            </PageHeading>
+            <Lede className="max-w-2xl">
+              Keep your people records, attendance, leave, hiring and payroll
+              preparation in one place — so a new hire is entered once, and the
+              hours your team works are the hours payroll sees.
+            </Lede>
           </div>
+          {/*
+            Two choices, not three.
+
+            This offered "View plans", "Contact sales" and "Start subscription"
+            side by side, which asks a first-time visitor to decide how ready
+            they are before they know what the product costs. Plans is the
+            honest first step and leads to checkout anyway.
+          */}
           <div className="flex flex-col gap-3 sm:flex-row">
-            <Link className="rounded-xl bg-accent px-5 py-3 text-center text-sm font-semibold text-white hover:bg-accent-strong" href="/plans">
-              View plans
+            <Link
+              className="rounded-xl bg-accent px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-accent-strong"
+              href="/plans"
+            >
+              See plans and pricing
             </Link>
-            <Link className="rounded-xl border border-border bg-white px-5 py-3 text-center text-sm font-semibold text-foreground hover:bg-surface-muted" href="/contact">
-              Contact sales
-            </Link>
-            <Link className="rounded-xl border border-border bg-white px-5 py-3 text-center text-sm font-semibold text-foreground hover:bg-surface-muted" href="/subscribe">
-              Start subscription
+            <Link
+              className="rounded-xl border border-border bg-white px-5 py-3 text-center text-sm font-semibold text-foreground transition hover:bg-surface-muted"
+              href="/contact"
+            >
+              Talk to us
             </Link>
           </div>
         </div>
 
-<div className="relative overflow-hidden">
-  <Image
-    src="/images/hero.png"
-    alt="DijiPeople HR platform dashboard"
-    width={1200}
-    height={900}
-    className="h-full w-full object-cover"
-    priority
-  />
-
-  {/* Optional subtle overlay */}
-  {/* <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/45 via-black/10 to-transparent p-6">
-    <h3 className="text-lg font-semibold text-white">
-      HR operations. Unified.
-    </h3>
-    <p className="mt-1 text-sm text-white/80">
-      Employee lifecycle, payroll, leave, onboarding, and recruitment in one platform.
-    </p>
-  </div> */}
-</div>
+        <div className="relative overflow-hidden">
+          <Image
+            alt="The DijiPeople dashboard, showing employee records and attendance"
+            className="h-full w-full object-cover"
+            height={900}
+            priority
+            src="/images/hero.png"
+            width={1200}
+          />
+        </div>
       </section>
 
       <section className="grid gap-4 py-8 md:grid-cols-3">
-        {[
-          ["People operations", "Core HR records, policies, documents, and self-service."],
-          ["Workforce execution", "Attendance, leave, timesheets, and payroll preparation."],
-          ["SaaS control", "Plans, tenant features, branding, roles, and billing lifecycle."],
-        ].map(([title, description]) => (
-          <article className="rounded-[24px] border border-border bg-white p-5 shadow-sm" key={title}>
-            <h2 className="text-lg font-semibold text-foreground">{title}</h2>
-            <p className="mt-2 text-sm leading-6 text-muted">{description}</p>
+        {areas.map((area) => (
+          <article
+            className="rounded-[24px] border border-border bg-white p-5 shadow-sm"
+            key={area.title}
+          >
+            <h2 className="text-lg font-semibold text-foreground">
+              {area.title}
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-muted">{area.body}</p>
           </article>
         ))}
       </section>
 
-      <section className="space-y-5 py-8">
+      <section className="space-y-5 border-t border-border py-10">
         <div className="max-w-3xl">
-          <p className="text-sm font-semibold uppercase tracking-[0.16em] text-accent">
-            Pricing preview
-          </p>
-          <h2 className="mt-2 text-3xl font-semibold text-foreground">
-            Simple pricing, published by us.
-          </h2>
+          <Eyebrow>Pricing</Eyebrow>
+          <SectionHeading className="mt-2">
+            One flat price per plan
+          </SectionHeading>
         </div>
-        <PlanCards
-          defaultCurrency={defaultCurrency}
-          error={plansResponse.error}
-          plans={plans}
-          compact
-        />
+        <PlanPreview config={commercialConfig} />
+        <p className="text-sm text-muted">
+          <Link
+            className="font-semibold text-accent underline-offset-4 hover:underline"
+            href="/plans"
+          >
+            Compare all plans in detail
+          </Link>{" "}
+          — including annual pricing and what each one includes.
+        </p>
       </section>
 
-      <section className="grid gap-5 py-8 lg:grid-cols-[0.8fr_1.2fr]">
+      <section className="grid gap-5 border-t border-border py-10 lg:grid-cols-[0.8fr_1.2fr]">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.16em] text-accent">
-            Trust and operations
-          </p>
-          <h2 className="mt-2 text-3xl font-semibold text-foreground">
-            Built for controlled rollout.
-          </h2>
+          <Eyebrow>Peace of mind</Eyebrow>
+          {/*
+            Was "Built for controlled rollout" over four bare labels. Neither the
+            heading nor the labels said anything a buyer could act on: "Your data
+            stays separated" separated from what?
+          */}
+          <SectionHeading className="mt-2">
+            Set up the way you&rsquo;d want it
+          </SectionHeading>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
-          {["Your data stays separated", "Secure card payments", "Role-based access", "Full change history"].map((item) => (
-            <div className="rounded-2xl border border-border bg-white p-4 text-sm font-semibold text-foreground" key={item}>
-              {item}
+          {[
+            {
+              title: "Your data stays yours",
+              body: "Each company's workspace is kept separate from every other one.",
+            },
+            {
+              title: "Secure payments",
+              body: "Cards are handled by our payment provider — we never see the details.",
+            },
+            {
+              title: "You control access",
+              body: "Decide who can see and change what, down to individual records.",
+            },
+            {
+              title: "Nothing changes silently",
+              body: "Every change is recorded, with who made it and when.",
+            },
+          ].map((item) => (
+            <div
+              className="rounded-2xl border border-border bg-white p-4"
+              key={item.title}
+            >
+              <p className="text-sm font-semibold text-foreground">
+                {item.title}
+              </p>
+              <p className="mt-1 text-sm leading-6 text-muted">{item.body}</p>
             </div>
           ))}
         </div>
       </section>
 
-      <section className="space-y-4 py-8">
-        <h2 className="text-3xl font-semibold text-foreground">FAQ</h2>
+      <section className="space-y-5 border-t border-border py-10">
+        <SectionHeading>Common questions</SectionHeading>
         <div className="grid gap-4 lg:grid-cols-3">
           {faqs.map((faq) => (
-            <article className="rounded-[24px] border border-border bg-white p-5" key={faq.question}>
-              <h3 className="text-base font-semibold text-foreground">{faq.question}</h3>
+            <article
+              className="rounded-[24px] border border-border bg-white p-5 shadow-sm"
+              key={faq.question}
+            >
+              <h3 className="text-base font-semibold text-foreground">
+                {faq.question}
+              </h3>
               <p className="mt-2 text-sm leading-6 text-muted">{faq.answer}</p>
             </article>
           ))}
         </div>
       </section>
 
-      <section className="my-8 rounded-[28px] bg-foreground p-6 text-white sm:p-8">
-        <h2 className="text-2xl font-semibold">Ready to launch cleaner HR operations?</h2>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-white/72">
-          Choose a plan, tell us about your company, and continue to secure
-          payment.
-        </p>
-        <Link className="mt-5 inline-flex rounded-xl bg-white px-5 py-3 text-sm font-semibold text-foreground" href="/subscribe">
-          Start subscription
-        </Link>
-      </section>
+      <ClosingCta
+        body="Pick the plan that fits your team and set up your workspace, or talk to us if you'd like help choosing."
+        primary={{ href: "/plans", label: "See plans and pricing" }}
+        secondary={{ href: "/contact", label: "Talk to us" }}
+        title="Ready to get your HR in one place?"
+      />
     </PageShell>
   );
 }

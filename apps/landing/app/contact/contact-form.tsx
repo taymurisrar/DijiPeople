@@ -1,7 +1,18 @@
 "use client";
 
-import { FormEvent, useId, useState } from "react";
+import { FormEvent, useState } from "react";
 
+import {
+  ConsentBox,
+  ConsentCheckbox,
+  Field,
+  Fieldset,
+  FormFeedback,
+  SubmitButton,
+  controlClass,
+  formCardClass,
+  textareaClass,
+} from "../_components/forms/form-kit";
 import {
   COMPANY_SIZE_OPTIONS,
   COUNTRY_OPTIONS,
@@ -66,7 +77,6 @@ export function ContactForm({
     inquiryIntent: initialIntent,
   });
   const [submission, setSubmission] = useState<Submission>({ state: "idle" });
-  const formId = useId();
 
   function update<Key extends keyof FormState>(key: Key, value: FormState[Key]) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -169,72 +179,67 @@ export function ContactForm({
   const isSending = submission.state === "sending";
 
   return (
-    <form
-      className="grid gap-5 rounded-[24px] border border-border bg-white p-5 shadow-sm sm:p-6"
-      onSubmit={submit}
-    >
+    <form className={`grid gap-5 ${formCardClass}`} onSubmit={submit}>
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field
-          autoComplete="given-name"
-          id={`${formId}-first`}
-          label="First name"
-          name="firstName"
-          onChange={(value) => update("firstName", value)}
-          required
-          value={form.firstName}
-        />
-        <Field
-          autoComplete="family-name"
-          id={`${formId}-last`}
-          label="Last name"
-          name="lastName"
-          onChange={(value) => update("lastName", value)}
-          optionalHint
-          value={form.lastName}
-        />
+        <Field label="First name" required>
+          <input
+            autoComplete="given-name"
+            className={controlClass}
+            name="firstName"
+            onChange={(event) => update("firstName", event.target.value)}
+            required
+            value={form.firstName}
+          />
+        </Field>
+        <Field label="Last name">
+          <input
+            autoComplete="family-name"
+            className={controlClass}
+            name="lastName"
+            onChange={(event) => update("lastName", event.target.value)}
+            value={form.lastName}
+          />
+        </Field>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field
-          autoComplete="email"
-          id={`${formId}-email`}
-          label="Work email"
-          name="email"
-          onChange={(value) => update("email", value)}
-          required
-          type="email"
-          value={form.email}
-        />
-        <Field
-          autoComplete="organization"
-          id={`${formId}-company`}
-          label="Company or organization"
-          name="company"
-          onChange={(value) => update("company", value)}
-          required
-          value={form.company}
-        />
+        <Field label="Work email" required>
+          <input
+            autoComplete="email"
+            className={controlClass}
+            name="email"
+            onChange={(event) => update("email", event.target.value)}
+            required
+            type="email"
+            value={form.email}
+          />
+        </Field>
+        <Field label="Company or organization" required>
+          <input
+            autoComplete="organization"
+            className={controlClass}
+            name="company"
+            onChange={(event) => update("company", event.target.value)}
+            required
+            value={form.company}
+          />
+        </Field>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field
-          autoComplete="tel"
-          id={`${formId}-phone`}
-          label="Phone number"
-          name="phone"
-          onChange={(value) => update("phone", value)}
-          optionalHint
-          type="tel"
-          value={form.phone}
-        />
-        <label
-          className="text-sm font-medium text-foreground"
-          htmlFor={`${formId}-country`}
-        >
-          Country or region
+        <Field label="Phone number">
+          <input
+            autoComplete="tel"
+            className={controlClass}
+            name="phone"
+            onChange={(event) => update("phone", event.target.value)}
+            type="tel"
+            value={form.phone}
+          />
+        </Field>
+        <Field label="Country or region">
           <select
-            className="mt-2 w-full rounded-xl border border-border bg-white px-3 py-2 font-normal"
-            id={`${formId}-country`}
+            className={controlClass}
             name="country"
             onChange={(event) => update("country", event.target.value)}
             value={form.country}
@@ -246,18 +251,13 @@ export function ContactForm({
               </option>
             ))}
           </select>
-        </label>
+        </Field>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <label
-          className="text-sm font-medium text-foreground"
-          htmlFor={`${formId}-intent`}
-        >
-          What can we help with?
+        <Field label="What can we help with?" required>
           <select
-            className="mt-2 w-full rounded-xl border border-border bg-white px-3 py-2 font-normal"
-            id={`${formId}-intent`}
+            className={controlClass}
             name="inquiryIntent"
             onChange={(event) =>
               update(
@@ -275,16 +275,10 @@ export function ContactForm({
               </option>
             ))}
           </select>
-        </label>
-        <label
-          className="text-sm font-medium text-foreground"
-          htmlFor={`${formId}-size`}
-        >
-          Company size{" "}
-          <span className="font-normal text-muted-soft">(optional)</span>
+        </Field>
+        <Field label="Company size">
           <select
-            className="mt-2 w-full rounded-xl border border-border bg-white px-3 py-2 font-normal"
-            id={`${formId}-size`}
+            className={controlClass}
             name="companySize"
             onChange={(event) => update("companySize", event.target.value)}
             value={form.companySize}
@@ -296,24 +290,18 @@ export function ContactForm({
               </option>
             ))}
           </select>
-        </label>
+        </Field>
       </div>
 
       {interestAreas.length > 0 ? (
-        <fieldset>
-          <legend className="text-sm font-medium text-foreground">
-            Which areas interest you?{" "}
-            <span className="font-normal text-muted-soft">
-              (optional, choose any)
-            </span>
-          </legend>
+        <Fieldset hint="Choose any" label="Which areas interest you?">
           <div className="mt-3 flex flex-wrap gap-2">
             {interestAreas.map((area) => {
               const checked = form.interestAreas.includes(area.key);
               return (
                 <label
                   className={[
-                    "cursor-pointer rounded-xl border px-3 py-2 text-sm transition",
+                    "cursor-pointer rounded-xl border px-3 py-2 text-sm font-normal transition",
                     checked
                       ? "border-accent bg-accent-soft font-semibold text-accent"
                       : "border-border text-muted hover:bg-surface-muted",
@@ -332,23 +320,19 @@ export function ContactForm({
               );
             })}
           </div>
-        </fieldset>
+        </Fieldset>
       ) : null}
 
-      <label
-        className="text-sm font-medium text-foreground"
-        htmlFor={`${formId}-message`}
-      >
-        Anything else we should know?
+      <Field label="Anything else we should know?">
         <textarea
-          className="mt-2 min-h-32 w-full rounded-xl border border-border px-3 py-2 font-normal"
-          id={`${formId}-message`}
-            name="message"
+          className={textareaClass}
           maxLength={1500}
+          name="message"
           onChange={(event) => update("message", event.target.value)}
+          placeholder="Tell us what you're trying to solve, and roughly when you'd like to start."
           value={form.message}
         />
-      </label>
+      </Field>
 
       {/*
         Privacy notice acknowledgement and marketing consent are separate on
@@ -356,14 +340,14 @@ export function ContactForm({
         agreement to be marketed to, and bundling them would make the
         distinction unrecoverable — and the consent unusable as evidence.
       */}
-      <div className="rounded-xl border border-border bg-surface-muted p-4">
+      <ConsentBox>
         <p className="text-sm leading-6 text-muted">
-          We&rsquo;ll use the details you provide to respond to this inquiry
+          We&rsquo;ll use these details to reply to you
           {privacyPolicyHref ? (
             <>
               , as described in our{" "}
               <a
-                className="font-semibold text-accent underline"
+                className="font-semibold text-accent underline underline-offset-2"
                 href={privacyPolicyHref}
               >
                 Privacy Policy
@@ -372,84 +356,26 @@ export function ContactForm({
           ) : null}
           .
         </p>
-        <label className="mt-3 flex items-start gap-3 text-sm text-muted">
-          <input
-            checked={form.marketingConsent}
-            className="mt-0.5 h-4 w-4 rounded border-border"
-            onChange={(event) =>
-              update("marketingConsent", event.target.checked)
-            }
-            type="checkbox"
-          />
-          <span>
-            I&rsquo;d also like occasional product and company updates from
-            DijiPeople.{" "}
-            <span className="text-muted-soft">
-              Optional — you can ask us to stop at any time.
-            </span>
+        <ConsentCheckbox
+          checked={form.marketingConsent}
+          name="marketingConsent"
+          onChange={(checked) => update("marketingConsent", checked)}
+        >
+          I&rsquo;d also like occasional product and company updates from
+          DijiPeople.{" "}
+          <span className="text-muted-soft">
+            Optional — you can ask us to stop at any time.
           </span>
-        </label>
-      </div>
+        </ConsentCheckbox>
+      </ConsentBox>
 
       {submission.state === "error" ? (
-        <p
-          aria-live="assertive"
-          className="rounded-xl bg-danger/5 px-4 py-3 text-sm text-danger"
-          role="alert"
-        >
-          {submission.message}
-        </p>
+        <FormFeedback tone="error">{submission.message}</FormFeedback>
       ) : null}
 
-      <button
-        aria-busy={isSending}
-        className="rounded-xl bg-accent px-5 py-3 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:opacity-60"
-        disabled={isSending}
-        type="submit"
-      >
-        {isSending ? "Sending…" : "Send inquiry"}
-      </button>
+      <SubmitButton busy={isSending} busyLabel="Sending…">
+        Send inquiry
+      </SubmitButton>
     </form>
-  );
-}
-
-function Field({
-  autoComplete,
-  id,
-  label,
-  name,
-  onChange,
-  optionalHint,
-  required,
-  type = "text",
-  value,
-}: {
-  autoComplete?: string;
-  id: string;
-  label: string;
-  name: string;
-  onChange: (value: string) => void;
-  optionalHint?: boolean;
-  required?: boolean;
-  type?: string;
-  value: string;
-}) {
-  return (
-    <label className="text-sm font-medium text-foreground" htmlFor={id}>
-      {label}
-      {optionalHint ? (
-        <span className="font-normal text-muted-soft"> (optional)</span>
-      ) : null}
-      <input
-        autoComplete={autoComplete}
-        className="mt-2 w-full rounded-xl border border-border px-3 py-2 font-normal"
-        id={id}
-        name={name}
-        onChange={(event) => onChange(event.target.value)}
-        required={required}
-        type={type}
-        value={value}
-      />
-    </label>
   );
 }
