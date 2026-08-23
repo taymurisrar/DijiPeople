@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**237 records** — 147 bugs under [`docs/bugs/`](../bugs/), 90 non-bug items under [`items/`](items/).
+**238 records** — 147 bugs under [`docs/bugs/`](../bugs/), 91 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -15,7 +15,7 @@ see [`README.md`](README.md) for why.
 |---|---|
 | Open (active work) | 44 |
 | Blocked | 1 |
-| Deferred | 21 |
+| Deferred | 22 |
 | Awaiting a product decision | 4 |
 | Completed / closed | 167 |
 | **Open CRITICAL** | **5** |
@@ -54,7 +54,7 @@ see [`README.md`](README.md) for why.
 |---|---|
 | OPEN | 7 |
 | BLOCKED | 1 |
-| DEFERRED | 21 |
+| DEFERRED | 22 |
 | PRODUCT_DECISION | 4 |
 | FIXED | 16 |
 | VERIFIED | 118 |
@@ -302,6 +302,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0082](../../docs/backlog/items/ITEM-0082-contract-phase-drop-the-inert-plan-ispublic-column.md) | Contract phase: drop the inert Plan.isPublic column | DATA_MIGRATION | LOW | P3 | DEFERRED | services/api/prisma, api:billing | DEFER |
 | [ITEM-0083](../../docs/backlog/items/ITEM-0083-scheduled-reconciliation-sweep-for-orders-stuck-awaiting-pay.md) | Scheduled reconciliation sweep for orders stuck awaiting payment | FOLLOW_UP | LOW | P3 | DEFERRED | api:billing | DEFER |
 | [ITEM-0057](../../docs/backlog/items/ITEM-0057-landing-production-env-examples-still-name-the-vercel-and-re.md) | Landing production env examples still name the vercel and render hosts, not the dijipeople.com apex | PRODUCT_DECISION | — | P2 | DONE | apps/landing | DONE |
+| [ITEM-0091](../../docs/backlog/items/ITEM-0091-repo-health-blocks-every-release-task-on-its-own-defining-ou.md) | repo:health blocks every RELEASE task on its own defining outcome | INFRA | — | P2 | DEFERRED | — | DEFER |
 | [ITEM-0058](../../docs/backlog/items/ITEM-0058-next-env-d-ts-churns-between-dev-and-build-forms-and-the-fou.md) | next-env.d.ts churns between dev and build forms and the four apps disagree | TECH_DEBT | — | P3 | DEFERRED | apps/landing, apps/web, apps/admin | DEFER |
 | [ITEM-0059](../../docs/backlog/items/ITEM-0059-49-tracked-text-files-have-no-final-newline-and-nothing-enfo.md) | 49 tracked text files have no final newline, and nothing enforces one | TECH_DEBT | — | P3 | DEFERRED | apps/admin, apps/web, apps/agent-desktop | DEFER |
 
