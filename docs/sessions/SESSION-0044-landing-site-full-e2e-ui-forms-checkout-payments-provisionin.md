@@ -4,7 +4,7 @@ aliases: [SESSION-0044]
 TASK_ID:
 TITLE: Landing site full E2E: UI, forms, checkout, payments, provisioning, performance — local and production
 ARCHITECT_INTENT: Landing site full E2E: UI, forms, checkout, payments, provisioning, performance — local and production
-STATUS: ACTIVE
+STATUS: COMPLETE
 TASK_TYPE: QA
 TASK_SIZE: LARGE
 BASE_BRANCH: origin/develop
