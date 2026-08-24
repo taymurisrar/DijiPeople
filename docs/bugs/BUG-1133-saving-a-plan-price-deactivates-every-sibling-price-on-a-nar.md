@@ -2,7 +2,7 @@
 ID: BUG-1133
 aliases: [BUG-1133]
 Title: Saving a plan price deactivates every sibling price on a narrower key than the unique index
-Status: FIXED
+Status: VERIFIED
 Severity: CRITICAL
 Priority: P0
 Type: DATA_INTEGRITY
@@ -11,7 +11,7 @@ DetectedDate: 2026-08-24
 DetectedInSha: 15f11c30
 AffectedModules: [api:super-admin, apps/admin]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: docs/qa/runs/2026-08-24-record-state-reconciliation-0a5586f.md
 RegressionId: REG-247
 RelatedBacklogItem:
@@ -183,6 +183,8 @@ Retest in production after `seed:commercial` by confirming Starter serves 12
 active prices and that a subsequent single-price edit leaves the other 11 alone.
 
 ## History
+
+- 2026-08-24 — Verified in production at `2609275`. The nine Starter prices lost to this defect are active again — `GET /api/public/plans` returns 12 for `starter` and 36 in total, restored by `seed:config` during the deploy. The supersede fix shipped in the same commit, so the repair could not re-arm the trap.
 
 - 2026-08-24 — found by re-measuring the commercial catalogue after the owner
   reported a 500 on the plan pricing screen. The catalogue had been verified

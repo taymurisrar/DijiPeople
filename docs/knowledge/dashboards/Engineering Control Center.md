@@ -8,14 +8,14 @@
 | | |
 |---|---|
 | Active sessions | **0** |
-| Active parent tasks | 7 |
-| Active work packages | 2 |
+| Active parent tasks | 6 |
+| Active work packages | 1 |
 | Blocked work packages | 0 |
 | Work packages waiting on the user | 0 |
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
-| Open CRITICAL | **5** |
-| Open HIGH | 6 |
+| Open CRITICAL | **4** |
+| Open HIGH | 5 |
 | Awaiting Architect triage | 0 |
 | Owner decisions pending | 2 |
 | QA coverage gaps | 108 |
@@ -30,12 +30,12 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 31 |
-| No next action | 31 |
+| No acceptance criteria | 29 |
+| No next action | 29 |
 | Aging — 7d / 30d / 90d | 13 / 0 / 0 |
 | Architecture and technical debt | 6 |
 | Security gaps | 2 |
-| Database gaps | 1 |
+| Database gaps | 0 |
 
 Ranked next-best actions weigh blast radius rather than severity alone, and
 are computed on demand so the reasons travel with the ranking:
@@ -59,7 +59,6 @@ _No session is currently registered as active._
 | [[TASK-0009-identity-and-multi-tenant-membership|TASK-0009]] | Identity and multi-tenant membership | FEATURE | LARGE | 11/12 | WP-09 | WP-09 | — |
 | [[TASK-0011-first-production-release|TASK-0011]] | First production release | RELEASE | MEDIUM | 2/2 | — | — | — |
 | [[TASK-0018-legacy-pricing-removed-and-the-commercial-catalogue-made-to-|TASK-0018]] | Legacy pricing removed and the commercial catalogue made to converge | FEATURE | MEDIUM | 4/4 | — | — | — |
-| [[TASK-0019-release-the-payment-path-and-pricing-fixes-to-production|TASK-0019]] | Release the payment-path and pricing fixes to production | RELEASE | MEDIUM | 0/2 | WP-01 | — | — |
 
 ## Branch model
 
@@ -107,7 +106,6 @@ what they own, and what the backlog and QA systems currently say.
 | [[BUG-0900-tenant-provisioning-exceeds-the-5s-transaction-timeout-a-pai|BUG-0900]] | Tenant provisioning exceeds the 5s transaction timeout: a paid order is left with no workspace | BUG | CRITICAL | FIXED | api:permissions | FIX_NOW |
 | [[BUG-0904-production-is-missing-outbox-worker-enabled-so-no-workspace-|BUG-0904]] | Production is missing OUTBOX_WORKER_ENABLED, so no workspace is provisioned after payment | BUG | CRITICAL | OPEN | api:outbox | BLOCKED_EXTERNAL |
 | [[BUG-1128-stripe-api-version-skew-invoice-paid-cannot-map-to-a-subscri|BUG-1128]] | Stripe API version skew: invoice.paid cannot map to a subscription because invoice.subscription no longer exists | INTEGRATION | CRITICAL | FIXED | api:billing | FIX_NOW |
-| [[BUG-1133-saving-a-plan-price-deactivates-every-sibling-price-on-a-nar|BUG-1133]] | Saving a plan price deactivates every sibling price on a narrower key than the unique index | DATA_INTEGRITY | CRITICAL | FIXED | api:super-admin, apps/admin | FIX_NOW |
 
 ## Owner Decisions Pending
 
@@ -237,7 +235,7 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 32 |
+| Open total | 30 |
 | Blocked | 1 |
 | Deferred | 22 |
 | Awaiting a product decision | 2 |
@@ -252,6 +250,7 @@ running is a separate fact with separate evidence, recorded per release under
 `docs/deployment/release-history/`.
 
 - [[2026-08-24-production-6ed7a44|Release — production — `6ed7a44`]]
+- [[2026-08-24-production-2609275|Release — production — `2609275`]]
 
 ## How this is maintained
 

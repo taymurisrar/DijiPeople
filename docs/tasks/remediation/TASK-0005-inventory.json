@@ -7534,8 +7534,8 @@
       "title": "Saving a plan price deactivates every sibling price on a narrower key than the unique index",
       "severity": "CRITICAL",
       "priority": "P0",
-      "current_status": "FIXED",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "VERIFIED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-1133-saving-a-plan-price-deactivates-every-sibling-price-on-a-nar.md",
         "provenance": "QA_RUN",
@@ -7578,8 +7578,8 @@
       "title": "A stale Stripe price id 500s the plan pricing screen because verifyRecurringPrice is unguarded",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "FIXED",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "VERIFIED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-1134-a-stale-stripe-price-id-500s-the-plan-pricing-screen-because.md",
         "provenance": "USER_REPORT",

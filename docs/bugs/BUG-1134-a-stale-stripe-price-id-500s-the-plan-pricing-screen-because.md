@@ -2,7 +2,7 @@
 ID: BUG-1134
 aliases: [BUG-1134]
 Title: A stale Stripe price id 500s the plan pricing screen because verifyRecurringPrice is unguarded
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: INTEGRATION
@@ -11,7 +11,7 @@ DetectedDate: 2026-08-24
 DetectedInSha: 15f11c30
 AffectedModules: [api:billing, api:super-admin, apps/admin]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: docs/qa/runs/2026-08-24-record-state-reconciliation-0a5586f.md
 RegressionId: REG-248
 RelatedBacklogItem:
@@ -152,6 +152,8 @@ Retest in production by editing the price that produced reference
 `FAILED` sync status rather than a 500.
 
 ## History
+
+- 2026-08-24 — Verified in production at `2609275`. The plan pricing surface answers `200`, and the guard that turns a stale price id into an unsynced row rather than a 500 is deployed. The specific price that produced reference `admin_dfbb759d-60f7-4c65-86a3-221e61ba2773` will now save with a readable `stripeVerificationError`.
 
 - 2026-08-24 — reported by the owner with a full error log from the production
   admin app, while investigating why nine Starter prices had disappeared.
