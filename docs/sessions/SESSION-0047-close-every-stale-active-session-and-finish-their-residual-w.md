@@ -59,7 +59,7 @@ release was carried out by later tasks. Recorded `ABANDONED`, not `COMPLETE`.
 Reconciling SESSION-0003's program, [[TASK-0005]], against the records its
 eleven packages owned found exactly one undischarged deliverable:
 **[[ITEM-0044]]**, a MEDIUM security item open since 2026-08-17. It was
-implemented under [`EXECPLAN-0003`](../../plans/EXECPLAN-0003-forwarded-host-trust-in-tenant-web-routing.md) rather than reclassified — see that plan for
+implemented under [`EXECPLAN-0003`](../plans/EXECPLAN-0003-forwarded-host-trust-in-tenant-web-routing.md) rather than reclassified — see that plan for
 why the trust rule moved into `packages/config` instead of being copied into
 `apps/web`, and REG-243 for the regression.
 

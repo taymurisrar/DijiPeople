@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 239,
+    "total_records": 240,
     "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
@@ -11729,6 +11729,44 @@
           "apps/web"
         ],
         "verification_scope": "See docs/backlog/items/ITEM-0092-widget-runtime-contract-test-js-fails-and-no-script-or-ci-jo.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0093",
+      "type": "TECH_DEBT",
+      "title": "Link validation skips untracked files, so a new record's broken links only surface in CI",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "READY",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0093-link-validation-skips-untracked-files-so-a-new-record-s-brok.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-08-24",
+        "updated_at": "2026-08-24",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "scripts"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "scripts"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0093-link-validation-skips-untracked-files-so-a-new-record-s-brok.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],

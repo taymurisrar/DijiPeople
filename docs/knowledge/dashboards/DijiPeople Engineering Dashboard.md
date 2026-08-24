@@ -9,7 +9,7 @@
 |---|---|
 | Open CRITICAL | **5** |
 | Open HIGH | **15** |
-| Open total | 44 |
+| Open total | 45 |
 | Blocked | 1 |
 | Awaiting a product decision | 4 |
 | Deferred | 22 |
@@ -286,6 +286,7 @@ _None. Nothing has been deployed through the release process._
 | [[BUG-0796-tenant-and-plan-list-summaries-omit-createdbyid-so-the-creat|BUG-0796]] | Tenant and plan list summaries omit createdById so the Created by me view is always empty | BUG | LOW | FIXED | api:super-admin | FIX_NOW |
 | [[ITEM-0049-register-services-api-environment-reads-or-scope-the-rule|ITEM-0049]] | Register services/api environment reads or scope the rule to build inputs | INFRA | LOW | READY | services/api, turbo.json, docs/deployment | PLAN_REQUIRED |
 | [[ITEM-0080-type-the-remaining-services-api-no-unsafe-warnings-module-by|ITEM-0080]] | Type the remaining services/api no-unsafe warnings module by module | TECH_DEBT | LOW | READY | services/api | FIX_NOW |
+| [[ITEM-0093-link-validation-skips-untracked-files-so-a-new-record-s-brok|ITEM-0093]] | Link validation skips untracked files, so a new record's broken links only surface in CI | TECH_DEBT | LOW | READY | scripts | FIX_NOW |
 
 ## Key Architecture Decisions
 
@@ -301,7 +302,7 @@ _None. Nothing has been deployed through the release process._
 | Knowledge | Count |
 |---|---|
 | Bug records | 147 |
-| Backlog items | 92 |
+| Backlog items | 93 |
 | Known bug patterns | 26 |
 | QA runs | 23 |
 | Engineering history records | 37 |
