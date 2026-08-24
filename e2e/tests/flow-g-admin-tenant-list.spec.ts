@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { BASE_URLS } from '../playwright.config';
-import { openAdmin } from '../fixtures/admin-session';
+import { openAdmin, signInToAdmin } from '../fixtures/admin-session';
 import { probeEnvironment } from '../fixtures/environment';
 
 /**
@@ -44,6 +44,7 @@ test.describe('Flow G — the admin tenant list', () => {
   });
 
   test('G1 — the list identifies each row by its own name', async ({ page }) => {
+    await signInToAdmin(page);
     await openAdmin(page, '/tenants');
 
     await expect(
@@ -51,25 +52,35 @@ test.describe('Flow G — the admin tenant list', () => {
     ).toBeVisible();
 
     /*
-     * The regression, stated as the thing that was wrong: the first column
-     * header was `Customer`.
+     * The regression, stated as the thing that was wrong: `Customer` led the
+     * table and no name column existed.
      *
-     * Asserted by position rather than by presence. `Customer` is a legitimate
-     * column on this list and must keep existing — the defect was that it came
-     * first, with nothing before it.
+     * Compared by position rather than by presence. `Customer` is a legitimate
+     * column here and must keep existing — the defect was that it came first,
+     * with nothing before it.
+     *
+     * Empty headers are dropped before comparing, because the selection
+     * checkbox occupies the real first column. Asserting on `headers.first()`
+     * would have tested that checkbox and passed no matter what the rest of the
+     * table did — a green test that proves nothing is worse than none.
      */
-    const headers = page.getByRole('columnheader');
-    await expect(headers.first()).not.toHaveText(/customer/i);
+    const labels = (await page.getByRole('columnheader').allTextContents())
+      .map((text) => text.trim())
+      .filter(Boolean);
 
-    // And the identity column is present, whatever the saved preference says.
-    await expect(
-      page.getByRole('columnheader', { name: /^name$/i }),
-    ).toBeVisible();
+    const nameAt = labels.findIndex((label) => /^name$/i.test(label));
+    const customerAt = labels.findIndex((label) => /^customer$/i.test(label));
+
+    expect(nameAt, `Name column missing. Headers: ${labels.join(', ')}`).toBeGreaterThanOrEqual(0);
+    expect(customerAt).toBeGreaterThanOrEqual(0);
+    expect(nameAt, 'the name column must come before the customer column').toBeLessThan(customerAt);
+    expect(labels[nameAt]).toBe(labels[0]);
   });
 
   test('G2 — the columns an operator triages by are all present', async ({
     page,
   }) => {
+    await signInToAdmin(page);
     await openAdmin(page, '/tenants');
 
     /*
@@ -95,6 +106,7 @@ test.describe('Flow G — the admin tenant list', () => {
   });
 
   test('G3 — the identity column cannot be switched off', async ({ page }) => {
+    await signInToAdmin(page);
     await openAdmin(page, '/tenants');
 
     await page.getByRole('button', { name: /columns/i }).click();
@@ -128,7 +140,19 @@ test.describe('Flow G — the admin tenant list', () => {
   test('G4 — every row shows a name, not an empty identity cell', async ({
     page,
   }) => {
+    await signInToAdmin(page);
     await openAdmin(page, '/tenants');
+
+    /*
+     * Locate the Name column by its header rather than assuming an index. The
+     * selection checkbox occupies a column of its own, so "the first cell" is
+     * the checkbox — a cell that always has a child and would satisfy a
+     * not-empty assertion however broken the table was.
+     */
+    const headerCells = page.getByRole('columnheader');
+    const labels = await headerCells.allTextContents();
+    const nameColumn = labels.findIndex((label) => /^name$/i.test(label.trim()));
+    expect(nameColumn, `Name column missing. Headers: ${labels.join(', ')}`).toBeGreaterThanOrEqual(0);
 
     const rows = page.getByRole('row');
     const count = await rows.count();
@@ -141,12 +165,12 @@ test.describe('Flow G — the admin tenant list', () => {
 
     /*
      * `displayName` is served as `displayName ?? name`, so a blank identity
-     * cell means the fallback stopped working — the other way this screen can
-     * become unreadable while every column header is still correct.
+     * cell means that fallback stopped working — the other way this screen
+     * becomes unreadable while every column header is still correct.
      */
     for (let index = 1; index < Math.min(count, 6); index += 1) {
-      const firstCell = rows.nth(index).getByRole('cell').first();
-      await expect(firstCell).not.toBeEmpty();
+      const cell = rows.nth(index).getByRole('cell').nth(nameColumn);
+      await expect(cell).not.toBeEmpty();
     }
   });
 });
