@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { getApiBaseUrl as getSharedApiBaseUrl } from "@repo/config";
+import {
+  getApiBaseUrl as getSharedApiBaseUrl,
+  resolveForwardedHostname,
+} from "@repo/config";
 import {
   ACCESS_TOKEN_COOKIE,
   AUTH_APP_CLIENT_ID,
@@ -160,8 +163,16 @@ type WorkspaceDecision = {
 async function resolveWorkspaceForRequest(
   request: NextRequest,
 ): Promise<WorkspaceDecision> {
+  /*
+   * `X-Forwarded-Host` is believed only when the deployment has declared a proxy
+   * in front of this app; otherwise `Host` wins. Preferring the forwarded header
+   * unconditionally — which this did until ITEM-0044 — hands workspace selection
+   * to anyone who can reach the server without a sanitising edge, because the
+   * hostname is the entire routing decision. The rule is the one the API already
+   * applies, shared rather than restated: see `packages/config/forwarded-host.js`.
+   */
   const classification = classifyHostname(
-    request.headers.get("x-forwarded-host") ?? request.headers.get("host"),
+    resolveForwardedHostname(request.headers, process.env),
   );
 
   if (classification.kind === "INVALID") {

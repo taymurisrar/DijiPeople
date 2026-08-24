@@ -115,7 +115,7 @@ The other coverage claims are unchanged and were not re-verified beyond that.
 
 ## Related
 
-- Scenarios — [[QA-TENANT-001]], [[QA-TENANT-002]], [[QA-TENANT-003]], [[QA-TENANT-004]], [[QA-TENANT-005]], [[QA-TENANT-006]], [[QA-TENANT-015]]
+- Scenarios — [[QA-TENANT-001]], [[QA-TENANT-002]], [[QA-TENANT-003]], [[QA-TENANT-004]], [[QA-TENANT-005]], [[QA-TENANT-006]], [[QA-TENANT-015]], [[QA-TENANT-016]]
 - Module — [[tenant-isolation]]
 - Bugs — [[BUG-0005]]
 - Regressions — REG-005 (see the regression register)

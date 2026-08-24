@@ -6,6 +6,8 @@ Parent tasks that reached a terminal state. `FINAL_STATUS` records how.
 
 | ID | Title | Type | Size | Priority | Status | Packages | Current |
 |---|---|---|---|---|---|---|---|
+| [TASK-0005](TASK-0005-dijipeople-global-technical-remediation.md) | DijiPeople Global Technical Remediation | BUG | PROGRAM | P0 | COMPLETE | 11/11 | NONE |
+| [TASK-0010](TASK-0010-go-live-readiness.md) | Go-live readiness | FEATURE | MEDIUM | P0 | COMPLETE | 8/8 | NONE |
 | [TASK-0012](TASK-0012-final-agent-operating-system-upgrade.md) | Final agent operating system upgrade | FRAMEWORK | PROGRAM | P0 | COMPLETE | 16/16 | WP-16 |
 | [TASK-0001](TASK-0001-framework-keyword-routing-task-orchestration-and-repository-.md) | Framework: keyword routing, task orchestration and repository health | FRAMEWORK | LARGE | P1 | COMPLETE | 6/6 | — |
 | [TASK-0002](TASK-0002-deep-documentation-of-apps-docs-apps-landing-and-apps-agent-.md) | Deep documentation of apps/docs, apps/landing and apps/agent-desktop | KNOWLEDGE | LARGE | P1 | COMPLETE | 9/9 | — |

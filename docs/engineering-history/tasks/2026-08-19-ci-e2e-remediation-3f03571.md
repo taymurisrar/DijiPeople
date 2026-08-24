@@ -15,10 +15,10 @@
 | **Base Branch** | `origin/develop` |
 | **Task Branch** | `agent/ci-e2e-remediation` |
 | **Base SHA** | `cda00331bd48ba1e809d54e98e2dbf7f28ebb7ca` |
-| **Final Task SHA** | `944ab4e41a8f16adb7c9a2153e911714a02ca37c` |
+| **Final Task SHA** | `5a47dfff0c4cb98cd10d8df533645147e7ac8c72` |
 | **Target Branch** | `develop` |
-| **Merge Commit** | TASK_FINALIZATION — ref-push integration, so there is no merge commit; filled with the develop tip |
-| **Final Target SHA** | TASK_FINALIZATION — filled after the target is pushed |
+| **Merge Commit** | None — ref-push integration, so develop's tip IS the verified SHA rather than a merge of it |
+| **Final Target SHA** | `5a47dfff0c4cb98cd10d8df533645147e7ac8c72` (develop) |
 
 ### Commits
 
@@ -138,18 +138,34 @@ Not applicable — no conflicts.
 
 | | |
 |---|---|
-| **CI Run ID** | TASK_FINALIZATION — filled from the run on the pushed task SHA |
-| **CI Result** | TASK_FINALIZATION — read on the exact SHA being merged |
+| **CI Run ID** | `32308844551` — on `5a47dff`, the exact SHA integrated |
+| **CI Result** | **PASS** — all fourteen jobs success, `CI required gate` included |
 
 A verdict must be read **on the exact SHA being merged**. A verdict from an
 earlier commit on the same branch is a verdict about different code.
 
 ## Post-Merge Validation
 
-TASK_FINALIZATION — run against the integrated `develop` SHA. What matters most
-here is not that the suites pass again but that `Database e2e` concludes
-success **as a required job**, which no run has ever done: the job has been
-report-only for its entire existence.
+`origin/develop` is `5a47dff` — byte-identical to the SHA CI verified, because
+ref-push integration keeps the tip equal rather than merging into it. So the
+run below IS the post-merge evidence; there is no second tree to re-prove.
+
+Run `32308844551`, and the run before it on the same content, `32307298504`:
+
+```
+Database e2e   25 suites / 304 tests / 92.43s   ← success AS A REQUIRED JOB
+Browser e2e    56 journeys / 5.5m               ← install step 12.6s
+CI required gate                                 success
+```
+
+That `Database e2e` line is what this task was for. The job has been
+report-only for its entire existence and had no completing run at all for three
+days; this is the first time it has passed, and the first time a failure in it
+could have blocked anything.
+
+Re-validated locally against the integrated SHA: framework validation 2795
+checks, all four record-index checks current, and the full database e2e suite
+green.
 
 ## Release / Deployment Impact
 
@@ -179,12 +195,33 @@ by instrumentation pointed at the right run that could not see the problem.
 
 ## Obsidian Sync
 
-TASK_FINALIZATION — `node scripts/knowledge:sync` then `knowledge:verify`.
+`npm run knowledge:sync` then `knowledge:verify`, the second because sync's exit
+code only says it wrote the files.
+
+```
+OBSIDIAN_SYNC_STATUS = PASS
+NOTES_VERIFIED              437
+WIKILINKS_CHECKED           2242
+OBSIDIAN_UNRESOLVED_LINKS   0
+OBSIDIAN_ORPHAN_COUNT       0
+OBSIDIAN_SOURCE_ORPHANS     0
+OBSIDIAN_GRAPH_ORPHANS      0
+OBSIDIAN_STALE_GENERATED    0
+OBSIDIAN_PARITY_DIFFS       0
+```
+
+Verify caught two things sync did not: a REG id written as a wikilink when
+REG ids have no per-id note, and the new bug pattern landing as a GRAPH_ORPHAN —
+unreachable in the graph, so findable only by someone who already knew it
+existed. Both fixed before this line was written.
 
 ## Cleanup
 
-TASK_FINALIZATION — worktree `D:/My Work/hrm-dijipeople/dijipeople-ci-e2e`
-removed and the local branch deleted after integration, or the reason neither
-was. The two throwaway databases `dijipeople_e2e_fix` and `dijipeople_e2e_fixt`
-are the task's own and are dropped at cleanup; the populated `dijipeople`
-development database was never touched.
+Worktree `D:/My Work/hrm-dijipeople/dijipeople-ci-e2e` removed and the local
+branch deleted after integration. The primary checkout was fast-forwarded from
+`953ab11` to `5a47dff` so `DEVELOP_SYNC_STATUS = SYNCED`; it was clean before
+and after, and nothing of the user's was staged, committed or reverted.
+
+The throwaway databases `dijipeople_e2e_fix` and `dijipeople_e2e_fixt` are this
+task's own and are dropped. The populated `dijipeople` development database was
+never touched — every run used a database this task created.

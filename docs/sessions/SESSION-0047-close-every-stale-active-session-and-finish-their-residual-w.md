@@ -1,0 +1,100 @@
+---
+SESSION_ID: SESSION-0047
+aliases: [SESSION-0047]
+TASK_ID:
+TITLE: Close every stale active session and finish their residual work
+ARCHITECT_INTENT: Close every stale active session and finish their residual work
+STATUS: COMPLETE
+TASK_TYPE: FRAMEWORK
+TASK_SIZE: LARGE
+BASE_BRANCH: origin/develop
+BASE_SHA: 004ee66668e2c0f35d287ae287a1bb991967b2cd
+TASK_BRANCH: agent/session-registry-closeout
+TARGET_BRANCH: develop
+WORKTREE: D:/My Work/hrm-dijipeople/dijipeople-session-closeout
+AFFECTED_MODULES: [apps/web, docs, scripts]
+WRITE_LEASES: []
+ACTIVE_WORK_PACKAGES: []
+SCHEMA_WRITE: NO
+CI_STATUS: PASS
+MERGE_STATUS: INTEGRATED
+STARTED_AT: 2026-08-24T06:04:22.590Z
+LAST_HEARTBEAT: 2026-08-24T06:04:22.590Z
+BLOCKERS: none
+---
+
+# SESSION-0047 — Close every stale active session and finish their residual work
+
+## Intent
+
+Close every stale active session and finish their residual work
+
+## Scope
+
+Eight sessions were `ACTIVE` in the live registry, every one of them with a
+stale heartbeat, the oldest running for seven days. The request was to find out
+which had actually finished, implement whatever had not, and leave none open.
+
+They fell into three groups, and the distinction is the finding:
+
+**Four were finished and never closed** — SESSION-0025, SESSION-0027,
+SESSION-0040 and SESSION-0046. Each had a durable record reading `COMPLETE` and
+work merged into `develop`; only the registry entry was left behind, because
+`session.mjs finish` was never run. Nothing to implement.
+
+**Three had landed their work but stopped short of their own paperwork** —
+SESSION-0003, SESSION-0019, SESSION-0022. Their branches contain nothing
+`origin/develop` does not, but their records still said `IMPLEMENTING`,
+`NOT_STARTED` and `BLOCKED`. SESSION-0019 had even written its closure commit,
+`b7382f00`, and never pushed it — so its CI evidence sat on a branch while every
+record describing that work said it had never run. That commit's engineering
+history is recovered here rather than rewritten.
+
+**One was superseded** — SESSION-0023 registered for the first production
+release, wrote a single history line, and stopped. Its branch is gone and the
+release was carried out by later tasks. Recorded `ABANDONED`, not `COMPLETE`.
+
+### The one piece of genuinely unfinished implementation
+
+Reconciling SESSION-0003's program, [[TASK-0005]], against the records its
+eleven packages owned found exactly one undischarged deliverable:
+**[[ITEM-0044]]**, a MEDIUM security item open since 2026-08-17. It was
+implemented under [`EXECPLAN-0003`](../plans/EXECPLAN-0003-forwarded-host-trust-in-tenant-web-routing.md) rather than reclassified — see that plan for
+why the trust rule moved into `packages/config` instead of being copied into
+`apps/web`, and REG-243 for the regression.
+
+## Concurrency
+
+`SAFE_PARALLEL` at registration; no sibling session was live, and the eight
+stale entries held no write leases between them. No lease taken: `SCHEMA_WRITE:
+NO`, no permission registry touched, and the one shared file written
+(`packages/config/index.js`) is not a leased resource.
+
+The user's primary checkout was dirty at two paths before this session started —
+`apps/landing/next-env.d.ts` and `services/api/prisma/seed-legal.ts` — and both
+are still dirty and untouched. Its local `develop` also lags `origin/develop`;
+fast-forwarding it would rewrite files under whatever they have open, so that is
+theirs to pull. All work was done in this session's own worktree.
+
+## History
+
+- 2026-08-24 — session started from `origin/develop` at `004ee66`.
+- 2026-08-24 — [[ITEM-0044]] implemented: the forwarded-host trust rule now has
+  one implementation in `packages/config/forwarded-host.js`, `apps/web/proxy.ts`
+  resolves through it, and the API's two entry points delegate the env half. The
+  API's existing specs pass unchanged, which is the evidence the refactor moved
+  no behaviour.
+- 2026-08-24 — [[TASK-0005]] and [[TASK-0010]] reconciled and closed; eight
+  session records closed; SESSION-0019's stranded engineering history recovered.
+- 2026-08-24 — integrated to `develop` at `1050195e` by ref-push, so the tip
+  equals the SHA CI verified. Run `32749930429` green on that exact SHA; the
+  task's code and record content verified one commit earlier by `32747885644` on
+  `e949cad9`. Live registry: **0 active sessions**.
+
+  Two corrections this session made to its own work, both recorded rather than
+  quietly fixed. A broken relative link reached CI because `validate:framework`
+  scans `git ls-files` and the record was unstaged — [[ITEM-0093]], with a
+  mutation test in its acceptance criteria. And the history record's
+  `Final Target SHA` cannot be written at all: the file sits inside the commit it
+  would name, so the field describes the rule instead. The first draft named a
+  SHA and was wrong the moment it was committed.

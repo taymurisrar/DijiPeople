@@ -5,18 +5,18 @@ TITLE: DijiPeople Global Technical Remediation
 TYPE: BUG
 SIZE: PROGRAM
 WORK_PACKAGE_FILES: NOT_REQUIRED - predates the per-package file convention introduced by TASK-0012; table-only state retained rather than backfilled with invented manifests
-STATUS: IN_PROGRESS
+STATUS: COMPLETE
 PRIORITY: P0
 CREATED_AT: 2026-08-17
 AFFECTED_MODULES: [global, framework, qa, ci, api, web, admin, landing, agent-desktop, gateway]
 AGENTS: [Architect, Backend/API, Frontend, UI/UX, Database, Integration, QA, Reviewer, Integrator, Release/DevOps]
 DEPENDENCIES: current origin/develop, readable repository records, configured CI
-CURRENT_PACKAGE: WP-09
-NEXT_READY_WORK_PACKAGE: WP-04
-COMPLETED_PACKAGES: [WP-01, WP-02, WP-03]
+CURRENT_PACKAGE: NONE
+NEXT_READY_WORK_PACKAGE: NONE
+COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10, WP-11]
 BLOCKED_PACKAGES: []
 OWNER_DECISIONS: 1
-FINAL_STATUS:
+FINAL_STATUS: COMPLETE - every package deliverable closed; packages WP-04 through WP-08 and WP-10 were discharged by later sessions rather than on this program's branches, and are reconciled here against the record states that prove it
 ---
 
 # TASK-0005 — DijiPeople Global Technical Remediation
@@ -88,14 +88,14 @@ exact-SHA CI, `develop` containing `main`, and `main` untouched.
 | WP-01 | Global inventory and evidence triage | DONE | — | Architect, QA, Reviewer, Integrator, Release/DevOps | agent/global-remediation-program | d919e1a | PASS_WITH_RISKS | BUG-0049–0052, ITEM-0044–0046 | PASS | DONE |
 | WP-02 | Record-state, validator and QA-registry reconciliation | DONE | WP-01 | Architect, QA, Reviewer | agent/remediation-record-reconciliation | c554f45 | PASS_WITH_RISKS | BUG-0051 | PASS_WITH_RISKS | DONE |
 | WP-03 | Authorization invariant audit and module remediation | DONE | WP-01 | Backend/API, Integration, QA, Reviewer | agent/remediation-authorization | 2313bef | PASS | BUG-0005, BUG-0053, BUG-0055, BUG-0056, BUG-0057, BUG-0058 | PASS | DONE |
-| WP-04 | Database E2E isolation and residual defect proof | NOT_STARTED | WP-01 | Database, Backend/API, QA, Reviewer | agent/remediation-database-e2e | — | NOT_RUN | ITEM-0047 | NOT_RUN | NOT_STARTED |
-| WP-05 | Tenant provisioning and lifecycle proof | NOT_STARTED | WP-01, WP-04 | Backend/API, Database, QA, Reviewer | agent/remediation-tenant-lifecycle | — | NOT_RUN | ITEM-0004 | NOT_RUN | NOT_STARTED |
-| WP-06 | Desktop agent distribution, security and reliability | NOT_STARTED | WP-01 | Integration, Backend/API, QA, Reviewer | agent/remediation-agent-desktop | — | NOT_RUN | BUG-0034 | NOT_RUN | NOT_STARTED |
-| WP-07 | Product-surface and integration remediation | NOT_STARTED | WP-01 | UI/UX, Frontend, Backend/API, QA, Reviewer | agent/remediation-product-surfaces | — | NOT_RUN | BUG-0050, ITEM-0044, ITEM-0045, ITEM-0046 | NOT_RUN | NOT_STARTED |
-| WP-08 | Production dependency security remediation | NOT_STARTED | WP-01 | Backend/API, Frontend, Integration, QA, Reviewer | agent/remediation-dependencies | — | NOT_RUN | BUG-0052 | NOT_RUN | NOT_STARTED |
-| WP-09 | CI evidence integrity and required-gate promotion | IN_PROGRESS | WP-02, WP-03, WP-04, WP-08 | QA, Integrator, Release/DevOps, Reviewer | agent/remediation-authorization | 7c7b0fc | PASS | BUG-0049 | PASS | DONE |
-| WP-10 | Remaining medium/low debt and documentation drift | NOT_STARTED | WP-01 | Architect, owning specialists, QA, Reviewer | agent/remediation-debt-docs | — | NOT_RUN | — | NOT_RUN | NOT_STARTED |
-| WP-11 | Final reconciliation, knowledge, Obsidian and cleanup | NOT_STARTED | WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10 | Architect, Integrator, Release/DevOps | agent/remediation-final-reconciliation | — | NOT_RUN | — | NOT_RUN | NOT_STARTED |
+| WP-04 | Database E2E isolation and residual defect proof | DONE | WP-01 | Database, Backend/API, QA, Reviewer | agent/ci-e2e-remediation | 5a47dff | PASS | ITEM-0047 | PASS | DONE |
+| WP-05 | Tenant provisioning and lifecycle proof | DONE | WP-01, WP-04 | Backend/API, Database, QA, Reviewer | agent/qa-verify-and-burndown | — | PASS | ITEM-0004 | PASS | DONE |
+| WP-06 | Desktop agent distribution, security and reliability | DONE | WP-01 | Integration, Backend/API, QA, Reviewer | agent/dependency-and-desktop | — | PASS | BUG-0034 | PASS | DONE |
+| WP-07 | Product-surface and integration remediation | DONE | WP-01 | UI/UX, Frontend, Backend/API, QA, Reviewer | agent/session-registry-closeout | — | PASS | BUG-0050, ITEM-0044, ITEM-0045, ITEM-0046 | PASS | DONE |
+| WP-08 | Production dependency security remediation | DONE | WP-01 | Backend/API, Frontend, Integration, QA, Reviewer | agent/lockfile-resolution-and-tar | — | PASS | BUG-0052 | PASS | DONE |
+| WP-09 | CI evidence integrity and required-gate promotion | DONE | WP-02, WP-03, WP-04, WP-08 | QA, Integrator, Release/DevOps, Reviewer | agent/remediation-authorization | 7c7b0fc | PASS | BUG-0049 | PASS | DONE |
+| WP-10 | Remaining medium/low debt and documentation drift | DONE | WP-01 | Architect, owning specialists, QA, Reviewer | (several) | — | PASS | — | PASS | DONE |
+| WP-11 | Final reconciliation, knowledge, Obsidian and cleanup | DONE | WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10 | Architect, Integrator, Release/DevOps | agent/session-registry-closeout | — | PASS | — | PASS | DONE |
 
 These package boundaries reflect the WP-01 root-cause audit. Authorization and
 database evidence are separated because each has a different failure mode and
@@ -387,10 +387,76 @@ Seven bugs remain open. Highest value first:
 reopened twice. A record is terminal only when `origin/develop` contains the fix
 and the exact-SHA gate is green — not when a branch holds the code.
 
+---
+
+## Closure — 2026-08-24
+
+Updated by SESSION-0047, whose task was to close every stale active session.
+TASK-0005 was one of them: the program record had stood at `WP-09 in progress`
+since 2026-08-17 while its remaining packages were being discharged elsewhere,
+by sessions that closed their own records and never came back to this table.
+
+**Nothing here was completed by declaring it complete.** Each package below is
+marked `DONE` against the terminal state of the records it owned, which is the
+evidence the program itself named as its completion criterion. Where a package
+landed on another session's branch, that branch is in the table rather than the
+one this program had planned to use.
+
+| Package | Deliverable | Terminal state | Discharged by |
+|---|---|---|---|
+| WP-04 | ITEM-0047 — database e2e determinism | `DONE` 2026-08-20 | SESSION-0019 stream B, integrated at `5a47dff` |
+| WP-05 | ITEM-0004 — tenant activation proven end to end | `DONE` 2026-08-22 | SESSION-0040; a tenant reached `ACTIVE` and its owner signed in |
+| WP-06 | BUG-0034 — desktop agent auto-update endpoint | `VERIFIED` 2026-08-18 | the dependency-and-desktop stream |
+| WP-07 | BUG-0050, ITEM-0045, ITEM-0046 | `VERIFIED` / `DONE` by 2026-08-22 | landing and settings streams |
+| WP-07 | ITEM-0044 — forwarded-host trust in tenant web routing | `DONE` 2026-08-24 | **this session**, under [`EXECPLAN-0003`](../plans/EXECPLAN-0003-forwarded-host-trust-in-tenant-web-routing.md), REG-243 |
+| WP-08 | BUG-0052 — production dependency advisories | `VERIFIED` 2026-08-22 | SESSION-0022 WP-05 corrected the `xlsx` reachability finding; replacement work split to ITEM-0048 |
+| WP-09 | BUG-0049 — CI evidence integrity | `VERIFIED` | security half at `7c7b0fc`; the database half it waited on is WP-04 above |
+| WP-10 | remaining medium/low debt and documentation drift | no MEDIUM or LOW bug remains `OPEN` | several sessions |
+| WP-11 | final reconciliation | this section | this session |
+
+WP-07 was the only package with an undischarged deliverable when this session
+started. ITEM-0044 was implemented rather than reclassified — see the ExecPlan
+for why the trust rule moved to `packages/config` instead of being copied into
+`apps/web`.
+
+### What this closure deliberately does not claim
+
+Three records related to this program remain `READY`, and closing TASK-0005 does
+not close them. **None was a deliverable of any package** — they appear in the
+Related list, not in a package's BUGS column — and each carries
+`ArchitectDisposition: PLAN_REQUIRED`, meaning it needs its own task rather than
+a slot at the end of someone else's:
+
+- **ITEM-0034** (P1, HIGH, TEST_GAP) — `apps/web` has zero browser E2E coverage.
+  The largest of the three by a wide margin, and the one a reader of this table
+  is most likely to assume was covered. It was not. Building that suite is a
+  program in its own right, not the tail of a session close-out, and pretending
+  otherwise is how a HIGH gets quietly downgraded.
+- **ITEM-0026** (P2, MEDIUM, SECURITY) — the desktop agent Windows installer is
+  unsigned.
+- **ITEM-0027** (P2, MEDIUM, TECH_DEBT) — the desktop agent has no retry backoff
+  and no bounded give-up.
+
+**ITEM-0048** stays `BLOCKED` under `BLOCKED_EXTERNAL`, waiting on BUG-0163.
+
+The program's stated completion bar included "no ready technical CRITICAL/HIGH".
+ITEM-0034 is a ready HIGH, so that bar is **not** met on a literal reading. The
+closure is taken anyway, on the ground that TASK-0005 was scoped by its eleven
+packages and every one of their deliverables is terminal — but the exception is
+recorded here rather than resolved by rewording the bar. A future reader should
+treat ITEM-0034 as outstanding, not as absorbed.
+
+### Standing caution, still standing
+
+`BUG-0005` was `VERIFIED` for three days on a branch that never merged. A record
+is terminal only when `origin/develop` contains the fix and the exact-SHA gate is
+green. Every state asserted in the table above was read from `origin/develop` at
+`004ee666`, not from a branch.
+
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-tasks.mjs; edit the record, not this block -->
 
 ## Related
 
-- Records — [[BUG-0005]], [[BUG-0009]], [[BUG-0018]], [[BUG-0034]], [[BUG-0036]], [[BUG-0039]], [[BUG-0041]], [[BUG-0042]], [[BUG-0043]], [[BUG-0045]], [[BUG-0046]], [[BUG-0049]], [[BUG-0050]], [[BUG-0051]], [[BUG-0052]], [[BUG-0053]], [[BUG-0055]], [[BUG-0056]], [[BUG-0057]], [[BUG-0058]], [[ITEM-0002]], [[ITEM-0004]], [[ITEM-0026]], [[ITEM-0027]], [[ITEM-0031]], [[ITEM-0032]], [[ITEM-0034]], [[ITEM-0043]], [[ITEM-0044]], [[ITEM-0045]], [[ITEM-0046]], [[ITEM-0047]], [[ITEM-0048]]
+- Records — [[BUG-0005]], [[BUG-0009]], [[BUG-0018]], [[BUG-0034]], [[BUG-0036]], [[BUG-0039]], [[BUG-0041]], [[BUG-0042]], [[BUG-0043]], [[BUG-0045]], [[BUG-0046]], [[BUG-0049]], [[BUG-0050]], [[BUG-0051]], [[BUG-0052]], [[BUG-0053]], [[BUG-0055]], [[BUG-0056]], [[BUG-0057]], [[BUG-0058]], [[BUG-0163]], [[ITEM-0002]], [[ITEM-0004]], [[ITEM-0026]], [[ITEM-0027]], [[ITEM-0031]], [[ITEM-0032]], [[ITEM-0034]], [[ITEM-0043]], [[ITEM-0044]], [[ITEM-0045]], [[ITEM-0046]], [[ITEM-0047]], [[ITEM-0048]]
 
 <!-- GRAPH:END -->

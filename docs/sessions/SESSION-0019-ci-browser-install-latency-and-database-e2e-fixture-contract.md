@@ -4,7 +4,7 @@ aliases: [SESSION-0019]
 TASK_ID:
 TITLE: CI browser install latency and database e2e fixture contract
 ARCHITECT_INTENT: CI browser install latency and database e2e fixture contract
-STATUS: ACTIVE
+STATUS: COMPLETE
 TASK_TYPE: BUG
 TASK_SIZE: LARGE
 BASE_BRANCH: origin/develop
@@ -16,8 +16,8 @@ AFFECTED_MODULES: [.github/workflows, e2e, scripts, services/api/test, services/
 WRITE_LEASES: []
 ACTIVE_WORK_PACKAGES: []
 SCHEMA_WRITE: NO
-CI_STATUS: NOT_RUN
-MERGE_STATUS: NOT_STARTED
+CI_STATUS: PASS
+MERGE_STATUS: INTEGRATED
 STARTED_AT: 2026-08-19T20:24:28.476Z
 LAST_HEARTBEAT: 2026-08-19T20:24:28.476Z
 BLOCKERS: none
@@ -64,3 +64,10 @@ Live state: `node scripts/session.mjs list`.
 ## History
 
 - 2026-08-19 — session started from `origin/develop` at `cda0033`.
+- 2026-08-19 — both streams integrated to `develop` at `5a47dff`.
+- 2026-08-24 — closed by SESSION-0047. This session had already written its own
+  closure commit, `b7382f00` on `agent/ci-e2e-remediation`, and never pushed it
+  to `develop` — so the work was live while every record describing it still
+  said `NOT_STARTED`. That commit is carried into this session's integration
+  rather than recreated, which is why the session index shows it closing at a
+  SHA older than the branch tip.

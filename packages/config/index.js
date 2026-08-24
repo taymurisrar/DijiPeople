@@ -487,7 +487,20 @@ const {
   describeMigrationUrlProblem,
 } = require("./database-urls");
 
+const {
+  isForwardedHostTrusted,
+  readForwardedHost,
+  readHost,
+  resolveForwardedHostname,
+  resolveTrustProxySetting,
+} = require("./forwarded-host");
+
 module.exports = {
+  isForwardedHostTrusted,
+  readForwardedHost,
+  readHost,
+  resolveForwardedHostname,
+  resolveTrustProxySetting,
   POOLED_HOST_INFIX,
   isPooledConnectionUrl,
   resolveMigrationDatabaseUrl,

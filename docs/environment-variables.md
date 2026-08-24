@@ -75,7 +75,7 @@ for the full production checklist.
 | `ADMIN_HOST` | optional | Platform admin host. Derived as `admin.<PUBLIC_BASE_DOMAIN>`. |
 | `API_HOST` | optional | API host. Derived as `api.<PUBLIC_BASE_DOMAIN>`. |
 | `LANDING_HOST` | optional | Marketing host. Defaults to the apex. |
-| `TRUST_PROXY_HEADERS` | API, when behind a proxy | `true` only when a proxy in front of the API sets `X-Forwarded-Host`/`Forwarded`. **Setting this on a directly reachable API lets any caller name any workspace.** |
+| `TRUST_PROXY_HEADERS` | API and tenant web, when behind a proxy | `true` only when a proxy in front sets `X-Forwarded-Host`/`Forwarded`. Read by both `services/api` and `apps/web` through `packages/config/forwarded-host.js`. Unset, Render and Vercel are inferred as one hop and everything else trusts nothing; an unrecognised value fails closed rather than falling back to that inference. **Setting this on a directly reachable server lets any caller name any workspace.** |
 | `DEFAULT_TENANT_SLUG` | development only | Local fallback workspace when the hostname names none. **Must not be set in production or staging** — it is ignored there, but leaving it set is misleading. |
 | `TENANT_SLUG_RESERVED_WORDS` | optional | Extra comma-separated slugs to reserve, on top of `RESERVED_HOST_LABELS`. |
 

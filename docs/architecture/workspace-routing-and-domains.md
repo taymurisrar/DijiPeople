@@ -76,9 +76,28 @@ Covered by `packages/config/platform-domains.test.js`.
 ### The Host header is only trusted behind a declared proxy
 
 `X-Forwarded-Host` and `Forwarded` are believed only when `TRUST_PROXY_HEADERS`
-says so, or when Express's own `trust proxy` is set (which `main.ts` configures
-for the hosting platform). Otherwise `Host` wins. Only the *first* hop of a
-forwarded chain is read. Covered by `request-hostname.spec.ts`.
+says so, or when the hosting platform is recognised (`RENDER`, `VERCEL`), or —
+on the API — when Express's own `trust proxy` is set, which `main.ts` configures
+from the same rule. Otherwise `Host` wins. Only the *first* hop of a forwarded
+chain is read, because reading the last would let any intermediate hop rewrite
+the host.
+
+**This holds on both surfaces that route by hostname**, and the rule has one
+implementation: `packages/config/forwarded-host.js`.
+
+| Surface | Entry point | Applies the rule via |
+|---|---|---|
+| API | `modules/tenant-domains/request-hostname.ts` | `isProxyTrusted()` — Express-aware, because only the API has an app to ask |
+| Tenant web | `apps/web/proxy.ts` (Next.js 16 middleware) | `resolveForwardedHostname(headers, process.env)` |
+
+Covered by `request-hostname.spec.ts`, `apps/web/lib/forwarded-host.spec.ts`
+and `packages/config/forwarded-host.test.js`.
+
+> Until [[ITEM-0044]] this section described the system as a whole while being
+> true only of the API: `apps/web/proxy.ts` preferred `x-forwarded-host`
+> unconditionally, in every environment. The citation was accurate and the
+> claim was not — the `doc-code-drift` shape, and the reason the table above
+> names each surface rather than asserting a property of "the system".
 
 **No tenant id is ever read from a header, body, query string or path param on an
 authenticated endpoint.** The hostname is the only routing input, and it is

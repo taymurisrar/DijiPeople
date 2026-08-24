@@ -9,11 +9,11 @@
 |---|---|
 | Open CRITICAL | **5** |
 | Open HIGH | **15** |
-| Open total | 44 |
+| Open total | 45 |
 | Blocked | 1 |
 | Awaiting a product decision | 4 |
-| Deferred | 21 |
-| Completed | 167 |
+| Deferred | 22 |
+| Completed | 168 |
 | Awaiting Architect triage | 0 |
 
 ## Open Critical Bugs
@@ -70,6 +70,7 @@
 | [[ITEM-0077-re-read-the-packaged-agent-archive-after-the-node-pre-gyp-up|ITEM-0077]] | Re-read the packaged agent archive after the node-pre-gyp upgrade | TEST_GAP | MEDIUM | READY | apps/agent-desktop, package-lock.json | PLAN_REQUIRED |
 | [[ITEM-0078-no-end-to-end-payment-to-provisioned-tenant-run-against-stri|ITEM-0078]] | No end-to-end payment to provisioned tenant run against Stripe test mode | TEST_GAP | MEDIUM | READY | api:billing, api:tenant-control-plane, api:outbox, apps/landing | PLAN_REQUIRED |
 | [[ITEM-0081-nine-test-plans-are-needs-review-against-a-five-day-old-comm|ITEM-0081]] | Nine test plans are NEEDS_REVIEW against a five-day-old commit | TEST_GAP | MEDIUM | READY | docs/qa/test-plans | FIX_NOW |
+| [[ITEM-0092-widget-runtime-contract-test-js-fails-and-no-script-or-ci-jo|ITEM-0092]] | widget-runtime-contract.test.js fails and no script or CI job runs it | TEST_GAP | MEDIUM | READY | pkg:config, apps/web | PLAN_REQUIRED |
 
 ## Current Infrastructure Gaps
 
@@ -244,6 +245,7 @@
 
 ## Recent Engineering History
 
+- [[2026-08-24-session-registry-closeout-cbc6f0b2|Engineering History — Close every stale active session and finish their residual work]]
 - [[2026-08-23-release-legal-copy-and-plan-pricing-944a2d00|Engineering History — Release legal copy and plan pricing]]
 - [[2026-08-23-landing-go-live-e2e-a92fef5e|Engineering History — Landing site full E2E: what a go-live actually requires]]
 - [[2026-08-23-landing-e2e-release-be486ae1|Engineering History — Release: promoting the checkout fixes to production, and what deployed]]
@@ -251,7 +253,6 @@
 - [[2026-08-22-tenant-commands-monitoring-bulk-delete-0f9addc|Engineering History — Tenant commands monitoring bulk delete]]
 - [[2026-08-22-site-ux-and-admin-fixes-00ef62c|Engineering History — Site ux and admin fixes]]
 - [[2026-08-22-qa-verify-and-burndown-bf1921e|Engineering History — QA verification and backlog burn-down]]
-- [[2026-08-22-plans-catalogue-converge-ffb188c|Engineering History — Plans catalogue converge]]
 
 ## Recent Releases
 
@@ -261,7 +262,6 @@ _None. Nothing has been deployed through the release process._
 
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
-| [[ITEM-0044-validate-forwarded-host-before-tenant-web-workspace-resoluti|ITEM-0044]] | Validate forwarded host before tenant web workspace resolution | SECURITY | MEDIUM | READY | apps/web | PLAN_REQUIRED |
 | [[BUG-0795-saved-table-preferences-hide-every-column-added-to-a-module-|BUG-0795]] | Saved table preferences hide every column added to a module afterwards | UX | MEDIUM | FIXED | apps/admin | FIX_NOW |
 | [[BUG-0905-production-defines-direct-url-but-the-code-reads-direct-data|BUG-0905]] | Production defines DIRECT_URL but the code reads DIRECT_DATABASE_URL, so migrations run over the pooled endpoint | BUG | MEDIUM | OPEN | services/api/prisma, pkg:config | BLOCKED_EXTERNAL |
 | [[BUG-0907-an-unknown-legal-slug-answers-200-and-hangs-on-the-loading-s|BUG-0907]] | An unknown legal slug answers 200 and hangs on the loading shell instead of returning 404 | BUG | MEDIUM | FIXED | apps/landing | FIX_NOW |
@@ -281,10 +281,12 @@ _None. Nothing has been deployed through the release process._
 | [[ITEM-0078-no-end-to-end-payment-to-provisioned-tenant-run-against-stri|ITEM-0078]] | No end-to-end payment to provisioned tenant run against Stripe test mode | TEST_GAP | MEDIUM | READY | api:billing, api:tenant-control-plane, api:outbox, apps/landing | PLAN_REQUIRED |
 | [[ITEM-0081-nine-test-plans-are-needs-review-against-a-five-day-old-comm|ITEM-0081]] | Nine test plans are NEEDS_REVIEW against a five-day-old commit | TEST_GAP | MEDIUM | READY | docs/qa/test-plans | FIX_NOW |
 | [[ITEM-0084-detect-drift-between-render-yaml-and-the-live-render-service|ITEM-0084]] | Detect drift between render.yaml and the live Render service | INFRA | MEDIUM | READY | render.yaml, scripts | FIX_NOW |
+| [[ITEM-0092-widget-runtime-contract-test-js-fails-and-no-script-or-ci-jo|ITEM-0092]] | widget-runtime-contract.test.js fails and no script or CI job runs it | TEST_GAP | MEDIUM | READY | pkg:config, apps/web | PLAN_REQUIRED |
 | [[ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning|ITEM-0023]] | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
 | [[BUG-0796-tenant-and-plan-list-summaries-omit-createdbyid-so-the-creat|BUG-0796]] | Tenant and plan list summaries omit createdById so the Created by me view is always empty | BUG | LOW | FIXED | api:super-admin | FIX_NOW |
 | [[ITEM-0049-register-services-api-environment-reads-or-scope-the-rule|ITEM-0049]] | Register services/api environment reads or scope the rule to build inputs | INFRA | LOW | READY | services/api, turbo.json, docs/deployment | PLAN_REQUIRED |
 | [[ITEM-0080-type-the-remaining-services-api-no-unsafe-warnings-module-by|ITEM-0080]] | Type the remaining services/api no-unsafe warnings module by module | TECH_DEBT | LOW | READY | services/api | FIX_NOW |
+| [[ITEM-0093-link-validation-skips-untracked-files-so-a-new-record-s-brok|ITEM-0093]] | Link validation skips untracked files, so a new record's broken links only surface in CI | TECH_DEBT | LOW | READY | scripts | FIX_NOW |
 
 ## Key Architecture Decisions
 
@@ -300,10 +302,10 @@ _None. Nothing has been deployed through the release process._
 | Knowledge | Count |
 |---|---|
 | Bug records | 147 |
-| Backlog items | 90 |
+| Backlog items | 93 |
 | Known bug patterns | 26 |
 | QA runs | 23 |
-| Engineering history records | 37 |
+| Engineering history records | 38 |
 | Release records | 0 |
 | Module notes | 28 |
 | Architecture notes | 20 |

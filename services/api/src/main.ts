@@ -1,6 +1,10 @@
 import { Logger, LogLevel, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import { getPlatformDomainConfig, validateDeploymentEnv } from '@repo/config';
+import {
+  getPlatformDomainConfig,
+  resolveTrustProxySetting,
+  validateDeploymentEnv,
+} from '@repo/config';
 import cookieParser from 'cookie-parser';
 import {
   type Express,
@@ -148,24 +152,6 @@ async function bootstrap() {
 }
 
 void bootstrap();
-
-/**
- * How many proxy hops to trust, or false for none.
- *
- * Render and Vercel both terminate TLS and forward, so one hop is correct
- * there. Anything else has to say so explicitly rather than be guessed at.
- */
-function resolveTrustProxySetting(env: NodeJS.ProcessEnv): number | false {
-  const configured = env.TRUST_PROXY_HEADERS?.trim().toLowerCase();
-  if (configured) {
-    if (['0', 'false', 'no', 'off'].includes(configured)) return false;
-    const hops = Number(configured);
-    if (Number.isInteger(hops) && hops > 0) return hops;
-    if (['1', 'true', 'yes', 'on'].includes(configured)) return 1;
-    return false;
-  }
-  return env.RENDER === 'true' || env.VERCEL === '1' ? 1 : false;
-}
 
 function configureBodyParsing(expressApp: {
   use: (...args: unknown[]) => void;
