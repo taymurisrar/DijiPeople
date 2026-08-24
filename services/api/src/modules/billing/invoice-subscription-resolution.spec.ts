@@ -49,7 +49,10 @@ describe('BUG-1128 — invoice subscription and metadata resolution', () => {
   const cloverInvoice = {
     id: 'in_legacy',
     subscription: 'sub_legacy',
-    metadata: { subscriptionOrderId: 'order-legacy', tenantId: 'tenant-legacy' },
+    metadata: {
+      subscriptionOrderId: 'order-legacy',
+      tenantId: 'tenant-legacy',
+    },
   };
 
   describe('invoiceSubscriptionId', () => {
@@ -77,7 +80,9 @@ describe('BUG-1128 — invoice subscription and metadata resolution', () => {
       );
       expect(
         invoiceSubscriptionId({
-          parent: { subscription_details: { subscription: { id: 'sub_deep' } } },
+          parent: {
+            subscription_details: { subscription: { id: 'sub_deep' } },
+          },
         }),
       ).toBe('sub_deep');
     });
