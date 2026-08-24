@@ -1,10 +1,36 @@
-import type { AgentConfig } from "./types";
+import type { AgentConfig, DlpConfig, DlpRuleConfig } from "./types";
 import { ApiClient } from "./api-client";
 import { agentEnv } from "../config/env";
 
 const MIN_HEARTBEAT_SECONDS = 10;
 const MAX_HEARTBEAT_SECONDS = 3600;
 const MAX_HEARTBEAT_BATCH_SIZE = 1000;
+
+// DLP capture bounds. The clipboard is polled no faster than every two seconds
+// (a tighter loop wakes the machine for no benefit) and no slower than once a
+// minute (beyond that a copy-then-paste can slip between samples). The default
+// keeps at most 1 MB of clipboard text per sample; a larger paste is recorded by
+// metadata only. `MAX_DLP_RULES` bounds a hostile or fat-fingered config.
+const MIN_CLIPBOARD_POLL_SECONDS = 2;
+const MAX_CLIPBOARD_POLL_SECONDS = 60;
+const DEFAULT_CLIPBOARD_POLL_SECONDS = 5;
+const MIN_CLIPBOARD_BYTES = 1024;
+const MAX_CLIPBOARD_BYTES = 5 * 1024 * 1024;
+const DEFAULT_CLIPBOARD_BYTES = 1024 * 1024;
+const MIN_TRIGGER_WINDOW_SECONDS = 5;
+const MAX_TRIGGER_WINDOW_SECONDS = 600;
+const DEFAULT_TRIGGER_WINDOW_SECONDS = 30;
+const MAX_DLP_RULES = 200;
+
+const DEFAULT_DLP_CONFIG: DlpConfig = {
+  clipboardCaptureEnabled: false,
+  screenshotCaptureEnabled: false,
+  clipboardFullContent: false,
+  clipboardPollIntervalSeconds: DEFAULT_CLIPBOARD_POLL_SECONDS,
+  maxClipboardBytes: DEFAULT_CLIPBOARD_BYTES,
+  triggerWindowSeconds: DEFAULT_TRIGGER_WINDOW_SECONDS,
+  rules: [],
+};
 
 export const DEFAULT_CONFIG: AgentConfig = {
   agentVersionPolicy: {
@@ -52,6 +78,8 @@ export const DEFAULT_CONFIG: AgentConfig = {
     microphoneAccess: false,
     locationAccess: false,
   },
+
+  dlp: DEFAULT_DLP_CONFIG,
 };
 
 export class ConfigManager {
@@ -91,6 +119,17 @@ export class ConfigManager {
       DEFAULT_CONFIG.tracking.idleThresholdSeconds,
     );
 
+    // The `privacy` booleans are the single master gate for DLP capture; the
+    // `dlp` block below carries only the detail and mirrors these two, so there
+    // is one source of truth for "may we capture at all" and no way for the two
+    // to disagree.
+    const allowClipboardTracking =
+      config.privacy?.allowClipboardTracking ??
+      DEFAULT_CONFIG.privacy.allowClipboardTracking;
+    const allowScreenshots =
+      config.privacy?.allowScreenshots ??
+      DEFAULT_CONFIG.privacy.allowScreenshots;
+
     return {
       agentVersionPolicy: {
         minimumSupportedVersion:
@@ -111,18 +150,13 @@ export class ConfigManager {
       },
 
       policy: {
-        mandatory:
-          config.policy?.mandatory ??
-          DEFAULT_CONFIG.policy.mandatory,
+        mandatory: config.policy?.mandatory ?? DEFAULT_CONFIG.policy.mandatory,
         allowUserQuit:
-          config.policy?.allowUserQuit ??
-          DEFAULT_CONFIG.policy.allowUserQuit,
+          config.policy?.allowUserQuit ?? DEFAULT_CONFIG.policy.allowUserQuit,
       },
 
       tracking: {
-        enabled:
-          config.tracking?.enabled ??
-          DEFAULT_CONFIG.tracking.enabled,
+        enabled: config.tracking?.enabled ?? DEFAULT_CONFIG.tracking.enabled,
 
         heartbeatIntervalSeconds: this.clampNumber(
           config.tracking?.heartbeatIntervalSeconds,
@@ -148,8 +182,11 @@ export class ConfigManager {
       },
 
       privacy: {
-        allowScreenshots: false,
-        allowClipboardTracking: false,
+        // Screenshots and clipboard capture are now server-controlled (TASK-0020),
+        // defaulting off. Keylogging is still refused whatever the server says —
+        // the one capability the server may not turn on.
+        allowScreenshots,
+        allowClipboardTracking,
         allowKeylogging: false,
         allowCameraAccess:
           config.privacy?.allowCameraAccess ??
@@ -185,16 +222,13 @@ export class ConfigManager {
           DEFAULT_CONFIG.features.windowTitleTracking,
 
         offlineQueue:
-          config.features?.offlineQueue ??
-          DEFAULT_CONFIG.features.offlineQueue,
+          config.features?.offlineQueue ?? DEFAULT_CONFIG.features.offlineQueue,
 
         autoUpdate:
-          config.features?.autoUpdate ??
-          DEFAULT_CONFIG.features.autoUpdate,
+          config.features?.autoUpdate ?? DEFAULT_CONFIG.features.autoUpdate,
 
         trayStatus:
-          config.features?.trayStatus ??
-          DEFAULT_CONFIG.features.trayStatus,
+          config.features?.trayStatus ?? DEFAULT_CONFIG.features.trayStatus,
 
         cameraAccess:
           config.features?.cameraAccess ?? DEFAULT_CONFIG.features.cameraAccess,
@@ -207,6 +241,84 @@ export class ConfigManager {
           config.features?.locationAccess ??
           DEFAULT_CONFIG.features.locationAccess,
       },
+
+      dlp: this.normalizeDlp(
+        config.dlp,
+        allowClipboardTracking,
+        allowScreenshots,
+      ),
+    };
+  }
+
+  /**
+   * Normalises the DLP block against bounds, and pins its two capture gates to
+   * the resolved `privacy` booleans. A rule with no source or channel pattern is
+   * dropped — it would either never fire or fire on everything — and the rule
+   * list is bounded so a bad config cannot make the agent evaluate thousands of
+   * patterns on every foreground change. Capture is off unless the corresponding
+   * privacy gate is on, so an inconsistent server payload (detail present, gate
+   * absent) resolves to "do not capture".
+   */
+  private normalizeDlp(
+    dlp: Partial<DlpConfig> | undefined,
+    allowClipboardTracking: boolean,
+    allowScreenshots: boolean,
+  ): DlpConfig {
+    const rules: DlpRuleConfig[] = Array.isArray(dlp?.rules)
+      ? dlp!.rules
+          .filter(
+            (rule): rule is DlpRuleConfig =>
+              !!rule &&
+              typeof rule.id === "string" &&
+              rule.id.length > 0 &&
+              (Array.isArray(rule.sourceAppPatterns)
+                ? rule.sourceAppPatterns.length > 0
+                : false) &&
+              Array.isArray(rule.channelAppPatterns) &&
+              rule.channelAppPatterns.length > 0,
+          )
+          .slice(0, MAX_DLP_RULES)
+          .map((rule) => ({
+            id: rule.id,
+            name: typeof rule.name === "string" ? rule.name : rule.id,
+            enabled: rule.enabled ?? true,
+            sourceAppPatterns: rule.sourceAppPatterns
+              .filter((p) => typeof p === "string" && p.trim().length > 0)
+              .map((p) => p.trim()),
+            channelAppPatterns: rule.channelAppPatterns
+              .filter((p) => typeof p === "string" && p.trim().length > 0)
+              .map((p) => p.trim()),
+            action:
+              rule.action === "ALERT" || rule.action === "BLOCK"
+                ? rule.action
+                : "OBSERVE",
+          }))
+      : [];
+
+    return {
+      clipboardCaptureEnabled: allowClipboardTracking,
+      screenshotCaptureEnabled: allowScreenshots,
+      clipboardFullContent:
+        dlp?.clipboardFullContent ?? DEFAULT_DLP_CONFIG.clipboardFullContent,
+      clipboardPollIntervalSeconds: this.clampNumber(
+        dlp?.clipboardPollIntervalSeconds,
+        MIN_CLIPBOARD_POLL_SECONDS,
+        MAX_CLIPBOARD_POLL_SECONDS,
+        DEFAULT_DLP_CONFIG.clipboardPollIntervalSeconds,
+      ),
+      maxClipboardBytes: this.clampNumber(
+        dlp?.maxClipboardBytes,
+        MIN_CLIPBOARD_BYTES,
+        MAX_CLIPBOARD_BYTES,
+        DEFAULT_DLP_CONFIG.maxClipboardBytes,
+      ),
+      triggerWindowSeconds: this.clampNumber(
+        dlp?.triggerWindowSeconds,
+        MIN_TRIGGER_WINDOW_SECONDS,
+        MAX_TRIGGER_WINDOW_SECONDS,
+        DEFAULT_DLP_CONFIG.triggerWindowSeconds,
+      ),
+      rules,
     };
   }
 

@@ -11,10 +11,12 @@ import type { ApiClient } from "./api-client";
  *   - **A partial config does not disable tracking.** The server may send two
  *     fields; the other twenty must fall back to defaults, not to `undefined`,
  *     which reads as "off" for a boolean and as `NaN` for an interval.
- *   - **The invasive capabilities are not negotiable.** Screenshots, clipboard
- *     and keylogging are hardcoded off. A server that asks for them — a
- *     compromised one, or a future feature nobody reviewed — is refused here,
- *     on the machine, rather than trusted.
+ *   - **Keylogging is not negotiable.** Screenshots and clipboard capture became
+ *     tenant-controllable DLP capabilities in TASK-0020, but keylogging is
+ *     hardcoded off. A server that asks for it — a compromised one, or a future
+ *     feature nobody reviewed — is refused here, on the machine, rather than
+ *     trusted. The two capabilities that *can* be enabled still default off and
+ *     are only on when the server says so.
  *   - **A failed refresh keeps the last good config.** The agent runs unattended
  *     from login; an API blip must not silently change what it captures.
  */
@@ -33,8 +35,12 @@ describe("ConfigManager", () => {
       expect(config.tracking.heartbeatIntervalSeconds).toBe(
         DEFAULT_CONFIG.tracking.heartbeatIntervalSeconds,
       );
-      expect(config.api.heartbeatBatchSize).toBe(DEFAULT_CONFIG.api.heartbeatBatchSize);
-      expect(config.features.trayStatus).toBe(DEFAULT_CONFIG.features.trayStatus);
+      expect(config.api.heartbeatBatchSize).toBe(
+        DEFAULT_CONFIG.api.heartbeatBatchSize,
+      );
+      expect(config.features.trayStatus).toBe(
+        DEFAULT_CONFIG.features.trayStatus,
+      );
     });
 
     it("leaves nothing undefined", async () => {
@@ -45,7 +51,9 @@ describe("ConfigManager", () => {
 
       const undefinedPaths: string[] = [];
       for (const [section, values] of Object.entries(config)) {
-        for (const [key, value] of Object.entries(values as Record<string, unknown>)) {
+        for (const [key, value] of Object.entries(
+          values as Record<string, unknown>,
+        )) {
           // `updateMessage` is legitimately nullable.
           if (value === undefined) undefinedPaths.push(`${section}.${key}`);
         }
@@ -63,10 +71,11 @@ describe("ConfigManager", () => {
   });
 
   describe("what the server may not turn on", () => {
-    it("refuses screenshots, clipboard tracking and keylogging", async () => {
-      // Hardcoded off, whatever the server says. These are the capabilities an
-      // employee cannot observe and did not agree to, and the decision belongs
-      // on the machine rather than to whoever can answer the config endpoint.
+    it("refuses keylogging whatever the server says", async () => {
+      // The one capability that stays off on the machine, not by the config
+      // endpoint's grace. It records what is typed, not what is copied or read,
+      // so it carries the most liability for the least protection against the
+      // exfiltration threat this feature exists for (TASK-0020).
       const { manager } = build({
         privacy: {
           allowScreenshots: true,
@@ -77,9 +86,102 @@ describe("ConfigManager", () => {
 
       const config = await manager.refresh();
 
+      expect(config.privacy.allowKeylogging).toBe(false);
+    });
+  });
+
+  describe("DLP capture, which the server now controls", () => {
+    it("stays off by default", async () => {
+      const { manager } = build({});
+      const config = await manager.refresh();
+
       expect(config.privacy.allowScreenshots).toBe(false);
       expect(config.privacy.allowClipboardTracking).toBe(false);
-      expect(config.privacy.allowKeylogging).toBe(false);
+      expect(config.dlp.clipboardCaptureEnabled).toBe(false);
+      expect(config.dlp.screenshotCaptureEnabled).toBe(false);
+    });
+
+    it("turns on when the tenant enabled it, and mirrors the gates into dlp", async () => {
+      const { manager } = build({
+        privacy: { allowScreenshots: true, allowClipboardTracking: true },
+        dlp: { clipboardFullContent: true },
+      });
+
+      const config = await manager.refresh();
+
+      expect(config.privacy.allowScreenshots).toBe(true);
+      expect(config.privacy.allowClipboardTracking).toBe(true);
+      // The dlp gates are derived from privacy, so the two can never disagree.
+      expect(config.dlp.clipboardCaptureEnabled).toBe(true);
+      expect(config.dlp.screenshotCaptureEnabled).toBe(true);
+      expect(config.dlp.clipboardFullContent).toBe(true);
+    });
+
+    it("does not capture on detail alone when the privacy gate is off", async () => {
+      // A payload with rules and full-content set but the master gate absent must
+      // resolve to "do not capture" — detail never overrides the gate.
+      const { manager } = build({
+        dlp: {
+          clipboardFullContent: true,
+          rules: [
+            {
+              id: "r1",
+              name: "r1",
+              enabled: true,
+              sourceAppPatterns: ["excel"],
+              channelAppPatterns: ["whatsapp"],
+              action: "OBSERVE",
+            },
+          ],
+        },
+      });
+
+      const config = await manager.refresh();
+
+      expect(config.dlp.clipboardCaptureEnabled).toBe(false);
+      expect(config.dlp.screenshotCaptureEnabled).toBe(false);
+    });
+
+    it("drops a rule with no source or channel pattern", async () => {
+      const { manager } = build({
+        privacy: { allowClipboardTracking: true },
+        dlp: {
+          rules: [
+            {
+              id: "ok",
+              name: "ok",
+              enabled: true,
+              sourceAppPatterns: ["excel"],
+              channelAppPatterns: ["whatsapp"],
+              action: "OBSERVE",
+            },
+            {
+              id: "no-channel",
+              name: "no-channel",
+              enabled: true,
+              sourceAppPatterns: ["excel"],
+              channelAppPatterns: [],
+              action: "OBSERVE",
+            },
+          ],
+        },
+      });
+
+      const config = await manager.refresh();
+
+      expect(config.dlp.rules.map((r) => r.id)).toEqual(["ok"]);
+    });
+
+    it("clamps an absurd clipboard poll interval", async () => {
+      const { manager } = build({
+        privacy: { allowClipboardTracking: true },
+        dlp: { clipboardPollIntervalSeconds: 100000 },
+      });
+
+      const config = await manager.refresh();
+
+      expect(config.dlp.clipboardPollIntervalSeconds).toBeLessThanOrEqual(60);
+      expect(config.dlp.clipboardPollIntervalSeconds).toBeGreaterThanOrEqual(2);
     });
   });
 
@@ -87,13 +189,17 @@ describe("ConfigManager", () => {
     it("clamps an absurd heartbeat interval rather than accepting it", async () => {
       const { manager } = build({ tracking: { heartbeatIntervalSeconds: 1 } });
       const config = await manager.refresh();
-      expect(config.tracking.heartbeatIntervalSeconds).toBeGreaterThanOrEqual(10);
+      expect(config.tracking.heartbeatIntervalSeconds).toBeGreaterThanOrEqual(
+        10,
+      );
 
       const { manager: slow } = build({
         tracking: { heartbeatIntervalSeconds: 999_999 },
       });
       const slowConfig = await slow.refresh();
-      expect(slowConfig.tracking.heartbeatIntervalSeconds).toBeLessThanOrEqual(3600);
+      expect(slowConfig.tracking.heartbeatIntervalSeconds).toBeLessThanOrEqual(
+        3600,
+      );
     });
 
     it("clamps the batch size", async () => {
@@ -164,11 +270,11 @@ describe("ConfigManager", () => {
   describe("concurrent refreshes", () => {
     it("does not issue a second request while one is in flight", async () => {
       let release!: (value: Partial<AgentConfig>) => void;
-      const getConfig = jest
-        .fn()
-        .mockReturnValue(new Promise((resolve) => {
+      const getConfig = jest.fn().mockReturnValue(
+        new Promise((resolve) => {
           release = resolve as (value: Partial<AgentConfig>) => void;
-        }));
+        }),
+      );
 
       const manager = new ConfigManager({ getConfig } as unknown as ApiClient);
 
