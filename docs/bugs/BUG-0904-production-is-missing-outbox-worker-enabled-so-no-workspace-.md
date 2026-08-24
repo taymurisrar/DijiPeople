@@ -141,9 +141,23 @@ class of defect rather than the instance:
 
 ## Acceptance Criteria
 
-- The production API logs `Outbox worker started`.
-- A test purchase reaches `workspace-created = DONE`.
-- No `OutboxEvent` older than a few minutes sits in `PENDING`.
+- ~~The production API logs `Outbox worker started`.~~ **Not satisfiable as
+  written; superseded by the criterion below.** The boot sequence of
+  2026-08-24T18:28:55Z contains neither `Outbox worker started` nor
+  `Outbox worker disabled` — only `WARN`-level lines appear from the
+  application. Both outbox messages are emitted at `log` level
+  (`outbox-worker.service.ts:47` and `:62`), so the service's `LOG_LEVEL`
+  filters them out. **The absence of the message is therefore not evidence that
+  the worker is off**, and a criterion that cannot tell the two states apart is
+  not a criterion.
+- **`OUTBOX_WORKER_ENABLED=true` in the running service's own environment**,
+  read from inside it rather than inferred from outside. `bash
+  scripts/go-live.sh` in the Render Shell reports it directly. **MET
+  2026-08-24.**
+- A test purchase reaches `workspace-created = DONE`. **Not yet met** — blocked
+  upstream by [[BUG-0989]] and covered by [[ITEM-0078]].
+- No `OutboxEvent` older than a few minutes sits in `PENDING`. **Not yet
+  checked** — requires database access.
 
 ## Regression Coverage
 
@@ -172,6 +186,38 @@ completing one test purchase through to `workspace-created = DONE`.
 
 ## History
 
+- 2026-08-24, later — **the defect is gone, and the entry below this one drew
+  the wrong conclusion from the right evidence.**
+
+  `bash scripts/go-live.sh` was run against production from the Render Shell and
+  reported:
+
+  ```
+  5. Is the outbox worker running?
+    OK    OUTBOX_WORKER_ENABLED=true
+  ```
+
+  That read the variable from the service's own environment, which is the thing
+  this record says is absent. It is not absent. The shell session ran on pod
+  `srv-…-684f78485c-4mhws`, which predates the environment change made later the
+  same day, so the variable was already set before anyone touched it in response
+  to this record.
+
+  **Where the earlier entry went wrong.** It reasoned from `f399563b`'s commit
+  message — *"Production: all four blockers reported"* — and assumed the outbox
+  worker was one of the four. It was not. The same script now reports **one**
+  blocker, `STRIPE_MODE=test`, with the outbox check passing. Counting blockers
+  in a commit message is not the same as reading which blockers they were, and
+  the difference was invisible until the script was actually run.
+
+  That is worth keeping as a lesson rather than quietly correcting: the earlier
+  entry cited real evidence, from inside the environment, and still reached a
+  false conclusion — because it inferred the *composition* of a total from the
+  total alone.
+
+  The record is **not yet closed**: the remaining acceptance criterion is a test
+  purchase reaching `workspace-created = DONE`, which is blocked upstream by
+  [[BUG-0989]] and belongs to [[ITEM-0078]].
 - 2026-08-24 — **still open, corroborated from inside the environment.** The
   commit message of `f399563b`, which added `scripts/go-live.sh`, records the
   script being run against both stacks: *"Local: … outbox on, Stripe test mode

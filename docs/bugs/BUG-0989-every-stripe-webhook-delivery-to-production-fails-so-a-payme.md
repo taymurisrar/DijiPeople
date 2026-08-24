@@ -225,6 +225,7 @@ Retest after the secret is corrected, against the Acceptance Criteria above.
 ## Related
 
 - Backlog item — [[ITEM-0078]]
+- Referenced by — [[ITEM-0094]]
 - Modules — [[billing]]
 
 <!-- GRAPH:END -->
