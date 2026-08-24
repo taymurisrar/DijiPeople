@@ -2,7 +2,7 @@
 ID: BUG-0792
 aliases: [BUG-0792]
 Title: Qatar market resolves to GCC because its country row is never repaired, so Doha visitors are quoted USD
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: DATA_INTEGRITY
@@ -11,14 +11,14 @@ DetectedDate: 2026-08-22
 DetectedInSha: 8c56006
 AffectedModules: [services/api/src/modules/super-admin]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
-QAReport:
+ArchitectDisposition: DONE
+QAReport: docs/qa/runs/2026-08-24-record-state-reconciliation-0a5586f.md
 RegressionId: REG-230
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-22
-UpdatedAt: 2026-08-22
+UpdatedAt: 2026-08-24
 ResolvedAt: 2026-08-22
 ---
 
@@ -178,8 +178,9 @@ every move instead of swallowing the unique violation. Branch
 
 ## QA Retest
 
-Pending: re-run step 1 of the reproduction after `seed:commercial` has been run
-against production, and confirm `market.code == "QA"` and `currency == "QAR"`.
+Verified by [`2026-08-24-record-state-reconciliation-0a5586f.md`](../qa/runs/2026-08-24-record-state-reconciliation-0a5586f.md) on 2026-08-24 at `0a5586f`.
+
+REG-230 — `commercial-bootstrap.reconcile.spec.ts` passes.
 
 ## History
 

@@ -2,7 +2,7 @@
 ID: BUG-0901
 aliases: [BUG-0901]
 Title: A paid order records totalAmount 0.00 for every FLAT plan while Stripe charges the full price
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -11,14 +11,14 @@ DetectedDate: 2026-08-23
 DetectedInSha: 1dd74a25
 AffectedModules: [services/api/src/modules/billing]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
-QAReport: 
+ArchitectDisposition: DONE
+QAReport: docs/qa/runs/2026-08-24-record-state-reconciliation-0a5586f.md
 RegressionId: REG-236
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-23
-UpdatedAt: 2026-08-23
+UpdatedAt: 2026-08-24
 ResolvedAt: 2026-08-23
 ---
 
@@ -163,8 +163,9 @@ units. Full API suite: 211 suites / 1681 tests pass.
 
 ## QA Retest
 
-Verified in this run by driving the browser journey end to end
-(`e2e/drive-checkout.mjs`) and comparing the order row to the Stripe session.
+Verified by [`2026-08-24-record-state-reconciliation-0a5586f.md`](../qa/runs/2026-08-24-record-state-reconciliation-0a5586f.md) on 2026-08-24 at `0a5586f`.
+
+REG-236 — `billing-seat-pricing.spec.ts` passes.
 
 ## History
 

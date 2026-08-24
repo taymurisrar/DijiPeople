@@ -2,7 +2,7 @@
 ID: BUG-0995
 aliases: [BUG-0995]
 Title: Editing any plan price 500s once its Stripe product id goes stale
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: INTEGRATION
@@ -11,14 +11,14 @@ DetectedDate: 2026-08-23
 DetectedInSha: a3e15568
 AffectedModules: [billing, super-admin]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
-QAReport: 
+ArchitectDisposition: DONE
+QAReport: docs/qa/runs/2026-08-24-record-state-reconciliation-0a5586f.md
 RegressionId: REG-242
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-23
-UpdatedAt: 2026-08-23
+UpdatedAt: 2026-08-24
 ResolvedAt: 2026-08-23
 ---
 
@@ -142,8 +142,9 @@ Fixed on `agent/plan-pricing-admin-ux`.
 
 ## QA Retest
 
-Covered by the regression spec, which passes and was mutation-tested. Retest
-against the reported plan once `develop` is deployed.
+Verified by [`2026-08-24-record-state-reconciliation-0a5586f.md`](../qa/runs/2026-08-24-record-state-reconciliation-0a5586f.md) on 2026-08-24 at `0a5586f`.
+
+REG-242 — `stripe-product-resolution.spec.ts` passes.
 
 ## History
 

@@ -2,7 +2,7 @@
 ID: BUG-0976
 aliases: [BUG-0976]
 Title: A disallowed CORS origin returns 500 and writes an error-log row, so anyone can fill the table
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: SECURITY
@@ -11,14 +11,14 @@ DetectedDate: 2026-08-23
 DetectedInSha: be486ae1
 AffectedModules: [services/api/src/config]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
-QAReport: 
+ArchitectDisposition: DONE
+QAReport: docs/qa/runs/2026-08-24-record-state-reconciliation-0a5586f.md
 RegressionId: REG-240
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-23
-UpdatedAt: 2026-08-23
+UpdatedAt: 2026-08-24
 ResolvedAt: 2026-08-23
 ---
 
@@ -162,11 +162,9 @@ than it looks. Full API suite: 213 suites / 1690 tests pass.
 
 ## QA Retest
 
-```bash
-curl -s -o /dev/null -w '%{http_code}\n' -H 'Origin: https://anything.example' \
-  https://api.dijipeople.com/api/public/plans
-# expect 200, and no Access-Control-Allow-Origin header
-```
+Verified by [`2026-08-24-record-state-reconciliation-0a5586f.md`](../qa/runs/2026-08-24-record-state-reconciliation-0a5586f.md) on 2026-08-24 at `0a5586f`.
+
+REG-240 — `cors-options.spec.ts` passes.
 
 ## History
 

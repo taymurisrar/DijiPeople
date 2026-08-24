@@ -96,6 +96,7 @@ Stripe test-mode credentials, and a decision about how CI holds them.
 ## Related
 
 - Bug — [[BUG-0078]]
+- Referenced by — [[BUG-0989]]
 - Modules — [[billing]], [[tenant-control-plane]], [[outbox]], [[landing-architecture]]
 
 <!-- GRAPH:END -->

@@ -6,8 +6,11 @@ import {
   findOffer,
   formatMoney,
   highlightLabel,
+  incrementalFeatures,
+  plansAreCumulative,
   resolvePlanCta,
 } from "../../lib/plan-presentation";
+import { CheckIcon } from "./marketing/feature-icon";
 
 /**
  * The pricing preview on the front door.
@@ -29,9 +32,24 @@ import {
  *
  * Monthly, because it is the smaller commitment and the number most people are
  * comparing when they land. `/plans` is one click away for the rest.
+ *
+ * **Included capabilities are shown, and that is not a contradiction of the
+ * paragraph above.** A price with no idea what it buys is the one thing a
+ * pricing preview must not be: the cards carried a name, a number and a button,
+ * so the only way to learn what separated Starter from Growth was to leave the
+ * page. The features come from `incrementalFeatures` and `plansAreCumulative` —
+ * the same helpers `/plans` calls, over the same `config` — so this is a second
+ * *rendering*, never a second implementation. The toggle and the estimator are
+ * excluded because each is a decision; a feature list is a fact.
  */
 export function PlanPreview({ config }: { config: CommercialConfigView }) {
-  const { plans } = config;
+  const { plans, featureCatalog } = config;
+  /*
+   * Computed once for the whole grid rather than per card: "cumulative" is a
+   * property of the ladder, not of any plan on it, and asking per card would
+   * let two cards disagree about what ladder they are on.
+   */
+  const cumulative = plansAreCumulative(plans);
 
   if (plans.length === 0) {
     return (
@@ -65,11 +83,12 @@ export function PlanPreview({ config }: { config: CommercialConfigView }) {
       ) : null}
 
       <div className="grid gap-4 lg:grid-cols-3">
-        {plans.map((plan) => {
+        {plans.map((plan, index) => {
           const offer = findOffer(plan, "MONTH");
           const cta = resolvePlanCta(plan, "MONTH", 1);
           const highlight = highlightLabel(plan);
           const unitLabel = billingUnitLabel(offer);
+          const adds = incrementalFeatures(plans, index, featureCatalog);
 
           return (
             <article
@@ -129,8 +148,45 @@ export function PlanPreview({ config }: { config: CommercialConfigView }) {
                 )}
               </div>
 
-              <div className="mt-5 flex-1" />
+              {/*
+                Included capabilities, mirroring `/plans`: the same helper, the
+                same "Everything in X, plus" phrasing, the same check mark.
+                Matching the wording matters as much as matching the data — a
+                visitor who reads both pages should recognise the second, not
+                have to re-learn it.
 
+                This also takes over from the bare spacer that used to sit here
+                pushing the CTA down. `flex-1` on the list does the same job and
+                gives the space something to hold.
+              */}
+              <div className="mt-5 flex-1 border-t border-border pt-5">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-soft">
+                  {index === 0 || !cumulative
+                    ? "Includes"
+                    : `Everything in ${plans[index - 1].name}, plus`}
+                </p>
+                <ul className="mt-3 space-y-2">
+                  {adds.length > 0 ? (
+                    adds.map((label) => (
+                      <li
+                        className="flex items-start gap-2 text-sm text-muted"
+                        key={label}
+                      >
+                        <span className="mt-0.5 text-accent">
+                          <CheckIcon />
+                        </span>
+                        {label}
+                      </li>
+                    ))
+                  ) : (
+                    <li className="text-sm text-muted">
+                      Same capabilities as {plans[index - 1]?.name ?? "below"}.
+                    </li>
+                  )}
+                </ul>
+              </div>
+
+              <div className="mt-5">
               {cta.kind === "UNAVAILABLE" ? (
                 <Link
                   className="inline-flex w-full items-center justify-center rounded-xl border border-border bg-white px-5 py-3 text-sm font-semibold text-foreground transition hover:bg-surface-muted"
@@ -151,6 +207,7 @@ export function PlanPreview({ config }: { config: CommercialConfigView }) {
                   {cta.label}
                 </Link>
               )}
+              </div>
             </article>
           );
         })}

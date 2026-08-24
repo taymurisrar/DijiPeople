@@ -11,10 +11,10 @@ AFFECTED_MODULES: [auth, users, legal, tenant-domains, super-admin, web, admin]
 AGENTS: [Architect, Database, Backend/API, Frontend, UI/UX, Security, QA, Reviewer, Integrator]
 DEPENDENCIES: origin/develop 844b6d3; TASK-0008 WP-02, WP-04, WP-05
 CURRENT_PACKAGE: WP-09
-NEXT_READY_WORK_PACKAGE: NONE
+NEXT_READY_WORK_PACKAGE: WP-09
 COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-10, WP-11, WP-12]
-BLOCKED_PACKAGES: [WP-09]
-OWNER_DECISIONS: 2
+BLOCKED_PACKAGES: []
+OWNER_DECISIONS: 1
 FINAL_STATUS:
 ---
 
@@ -102,7 +102,7 @@ the wrong design, however elegant it looks.
 | WP-06 | Generic login and the workspace picker | DONE | WP-05 | Backend/API, Frontend, UI/UX | agent/identity-and-membership | 8306936 | PASS | — | PASS | INTEGRATED |
 | WP-07 | In-app workspace switcher — closes TASK-0008 WP-06 | DONE | WP-06 | Frontend, UI/UX | agent/identity-and-membership | 8306936 | PASS | — | PASS | INTEGRATED |
 | WP-08 | Second workspace for an existing identity — no activation step | DONE | WP-04 | Backend/API, Integration | agent/identity-and-membership | 8306936 | PASS | — | PASS | INTEGRATED |
-| WP-09 | Contract phase — `identityId` required (written, held for a later deployment) | BLOCKED | WP-02/03 reaching production | Database, Backend/API | agent/identity-and-membership | — | — | — | — | — |
+| WP-09 | Contract phase — `identityId` required (written, held for a later deployment) | READY | WP-02/03 reaching production — **discharged 2026-08-24** | Database, Backend/API | agent/identity-and-membership | — | NOT_RUN | — | NOT_RUN | NOT_STARTED |
 | WP-10 | Security review — enumeration, credential stuffing, cross-tenant reach | DONE | WP-01..WP-08 | Security | agent/identity-and-membership | 8306936 | PASS | ITEM-0069 | PASS | INTEGRATED |
 | WP-11 | QA campaign, review, CI, integration, closure | DONE | WP-10 | QA, Reviewer, Integrator, Architect | agent/identity-and-membership | 8306936 | PASS_WITH_RISKS | ITEM-0069 | PASS | INTEGRATED |
 
@@ -704,12 +704,15 @@ lets the application boot against a database where the migration has not run.
 
 ### Owner decisions still outstanding
 
-| | |
-|---|---|
-| **[[ITEM-0069]]** | How should discovery be throttled without handing anybody a lockout weapon? Decoupling the counter, proof-of-work, or notify-on-lock — each trades usability against resistance. |
-| **Publish the legal drafts** | `npm --workspace api run legal:publish -- --confirm`, in production. Until then a purchase records no consent. |
-| **Real PKR and QAR prices** | The seeded schedule is a placeholder; Qatar has none. |
-| **Roll the Stripe test keys** | Pasted into a chat session. |
+**Reconciled 2026-08-24 — three of the four are resolved.** They were carried as
+outstanding for four days after the work that answered them had shipped.
+
+| | | |
+|---|---|---|
+| **[[ITEM-0069]]** | How should discovery be throttled without handing anybody a lockout weapon? | **RESOLVED.** `Status: DONE`. Answered by [[TASK-0010]] WP-01 — the throttle was decoupled from the credential lock, so a discovery flood can no longer lock a real account out. |
+| **Publish the legal drafts** | `legal:publish -- --confirm`, in production. Until then a purchase records no consent. | **RESOLVED.** The owner supplied real copy; `2852855e` replaced the drafts. Production serves all **ten** documents at version 1 and the footer links to all ten. See [[BUG-0899]] and [[BUG-0906]]. |
+| **Real PKR and QAR prices** | The seeded schedule is a placeholder; Qatar has none. | **RESOLVED.** The owner supplied a complete schedule on 2026-08-20. Production holds all 36 catalogue prices including **12 in QAR** — Qatar is priced. |
+| **Roll the Stripe test keys** | Pasted into a chat session. | **STILL OUTSTANDING**, and now more pointed: [[BUG-0989]] shows production rejects every Stripe webhook on a signing-secret mismatch. Whatever key material is set, it is not what Stripe is signing with — so rolling the keys and correcting `STRIPE_WEBHOOK_SECRET` are one job, not two. |
 
 ### Feedback promotion
 
@@ -762,7 +765,7 @@ TASK-0008's migrations to the local development database. WP-02 waits on it.
 
 ## Related
 
-- Records — [[BUG-0075]], [[ITEM-0060]], [[ITEM-0062]], [[ITEM-0068]], [[ITEM-0069]]
+- Records — [[BUG-0075]], [[BUG-0899]], [[BUG-0906]], [[BUG-0989]], [[ITEM-0060]], [[ITEM-0062]], [[ITEM-0068]], [[ITEM-0069]]
 - Modules — [[auth]], [[legal]], [[super-admin]]
 
 <!-- GRAPH:END -->

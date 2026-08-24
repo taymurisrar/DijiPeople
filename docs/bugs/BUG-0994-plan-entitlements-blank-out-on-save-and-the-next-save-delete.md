@@ -2,7 +2,7 @@
 ID: BUG-0994
 aliases: [BUG-0994]
 Title: Plan entitlements blank out on save and the next save deletes them
-Status: FIXED
+Status: VERIFIED
 Severity: CRITICAL
 Priority: P0
 Type: DATA_INTEGRITY
@@ -11,14 +11,14 @@ DetectedDate: 2026-08-23
 DetectedInSha: a3e15568
 AffectedModules: [platform-runtime, super-admin, admin]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
-QAReport: 
+ArchitectDisposition: DONE
+QAReport: docs/qa/runs/2026-08-24-record-state-reconciliation-0a5586f.md
 RegressionId: REG-241
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-23
-UpdatedAt: 2026-08-23
+UpdatedAt: 2026-08-24
 ResolvedAt: 2026-08-23
 ---
 
@@ -179,9 +179,9 @@ is the right contract for that endpoint. What was wrong was the set it was sent.
 
 ## QA Retest
 
-Covered by the two regression specs above; both pass, and the API-side one was
-mutation-tested. Not yet retested on a deployed environment — pending the next
-deploy of `develop`.
+Verified by [`2026-08-24-record-state-reconciliation-0a5586f.md`](../qa/runs/2026-08-24-record-state-reconciliation-0a5586f.md) on 2026-08-24 at `0a5586f`.
+
+REG-241 — `plan-record-shape.spec.ts` and `plan-entitlement-keys.spec.ts` pass.
 
 ## History
 

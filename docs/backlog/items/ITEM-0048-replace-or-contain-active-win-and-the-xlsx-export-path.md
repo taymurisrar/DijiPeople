@@ -17,7 +17,7 @@ RelatedQA:
 RelatedADR:
 RelatedImplementation:
 TargetMilestone:
-BlockedBy: BUG-0163
+BlockedBy:
 LastReviewed: 2026-08-21
 NextAction: Blocked on the BUG-0163 owner decision about accepting a full dependency refresh
 ---

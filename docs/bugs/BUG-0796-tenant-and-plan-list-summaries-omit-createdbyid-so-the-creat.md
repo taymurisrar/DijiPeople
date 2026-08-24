@@ -2,7 +2,7 @@
 ID: BUG-0796
 aliases: [BUG-0796]
 Title: Tenant and plan list summaries omit createdById so the Created by me view is always empty
-Status: FIXED
+Status: VERIFIED
 Severity: LOW
 Priority: P3
 Type: BUG
@@ -11,14 +11,14 @@ DetectedDate: 2026-08-22
 DetectedInSha: 8c56006
 AffectedModules: [services/api/src/modules/super-admin]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
-QAReport: 
+ArchitectDisposition: DONE
+QAReport: docs/qa/runs/2026-08-24-record-state-reconciliation-0a5586f.md
 RegressionId: REG-234
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-22
-UpdatedAt: 2026-08-22
+UpdatedAt: 2026-08-24
 ResolvedAt: 2026-08-22
 ---
 
@@ -97,8 +97,9 @@ None.
 
 ## QA Retest
 
-Pending: create a tenant as a platform operator, then confirm it appears under
-"Created by me".
+Verified by [`2026-08-24-record-state-reconciliation-0a5586f.md`](../qa/runs/2026-08-24-record-state-reconciliation-0a5586f.md) on 2026-08-24 at `0a5586f`.
+
+REG-234 — `platform-module-capabilities.spec.ts` and `tenant-runtime-definition.spec.ts` pass.
 
 ## History
 

@@ -2,7 +2,7 @@
 ID: BUG-0907
 aliases: [BUG-0907]
 Title: An unknown legal slug answers 200 and hangs on the loading shell instead of returning 404
-Status: FIXED
+Status: VERIFIED
 Severity: MEDIUM
 Priority: P2
 Type: BUG
@@ -11,14 +11,14 @@ DetectedDate: 2026-08-23
 DetectedInSha: 1dd74a25
 AffectedModules: [apps/landing]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
-QAReport: 
+ArchitectDisposition: DONE
+QAReport: docs/qa/runs/2026-08-24-record-state-reconciliation-0a5586f.md
 RegressionId: REG-239
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-23
-UpdatedAt: 2026-08-23
+UpdatedAt: 2026-08-24
 ResolvedAt: 2026-08-23
 ---
 
@@ -144,8 +144,9 @@ not found"; `/legal/terms` and `/legal/privacy` → 200 with their own titles.
 
 ## QA Retest
 
-Retest with the surface spec pointed at the deployment:
-`E2E_LANDING_URL=<url> npx playwright test landing-public-surface`.
+Verified by [`2026-08-24-record-state-reconciliation-0a5586f.md`](../qa/runs/2026-08-24-record-state-reconciliation-0a5586f.md) on 2026-08-24 at `0a5586f`.
+
+REG-239 — verified against production: `GET https://www.dijipeople.com/legal/not-a-real-document` returns `404` and `/legal/privacy` returns `200`.
 
 ## History
 

@@ -1891,10 +1891,31 @@ export class SuperAdminService {
 
     const price = await this.prisma.$transaction(async (tx) => {
       if (dto.isActive ?? true) {
+        /*
+         * BUG-1133 — supersede on exactly the key the database uses.
+         *
+         * This matched `{planId, billingCycle, currency}` while the partial
+         * unique index is on
+         * `(planId, marketId, billingCycle, currency, billingModel)
+         *  NULLS NOT DISTINCT WHERE isActive`. Deactivating on a *narrower* key
+         * than the one defining a slot does not resolve a conflict — it
+         * destroys rows that were never in conflict. Saving a PER_SEAT price
+         * silently retired the FLAT price beside it and, because `marketId` was
+         * absent too, the seeded prices for every other market as well.
+         *
+         * Nine Starter prices were lost this way on 2026-08-24 and nothing
+         * failed loudly: `updateMany` returns a count nobody reads.
+         *
+         * `marketId` is `null` here because this path never sets one — admin
+         * prices are market-agnostic, seeded prices are not. Naming it
+         * explicitly is what stops this query reaching across markets.
+         */
         await tx.planPrice.updateMany({
           where: {
             planId,
+            marketId: null,
             billingCycle,
+            billingModel,
             currency,
             isActive: true,
           },
@@ -2028,10 +2049,23 @@ export class SuperAdminService {
 
     const price = await this.prisma.$transaction(async (tx) => {
       if (nextIsActive) {
+        /*
+         * BUG-1133 — the same narrow key as `createPlanPrice`, and the same
+         * consequence. See the comment there for why this must match the
+         * partial unique index column for column.
+         *
+         * `marketId` comes from the row being edited rather than being assumed
+         * null: this path can edit a *seeded* price, which does carry one.
+         * `billingModel` is the effective value, since the DTO may change it —
+         * and if it does, the price is moving to a different slot, so the slot
+         * it is moving *into* is the one to clear.
+         */
         await tx.planPrice.updateMany({
           where: {
             planId,
+            marketId: existing.marketId,
             billingCycle,
+            billingModel: dto.billingModel ?? existing.billingModel,
             currency,
             isActive: true,
             id: { not: priceId },

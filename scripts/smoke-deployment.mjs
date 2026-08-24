@@ -210,6 +210,57 @@ await check("legal documents are published", async () => {
   }
 });
 
+/*
+ * BUG-0989 — a Stripe webhook secret that does not match its endpoint rejects
+ * every delivery, and the platform never learns that a customer paid.
+ *
+ * This check cannot prove the secret is *correct*, and nothing on this side
+ * can: a request carrying a deliberately-invalid signature is rejected whether
+ * the configured secret matches the endpoint or not. That is exactly why the
+ * probe used to diagnose BUG-0989 could exonerate the code and could not
+ * confirm the fix. Only Stripe, replaying a genuinely signed delivery, answers
+ * that question.
+ *
+ * What it can prove is that a secret is configured at all — the cheaper half of
+ * the same failure, and the half that produces an identical symptom. When it is
+ * missing, the message names the one action that finishes the diagnosis,
+ * because a check that reports a problem it cannot fully settle should say who
+ * can.
+ *
+ * Skipped rather than failed when the variable is absent from *this* process:
+ * the suite is run both from a developer machine, which has no production
+ * environment, and from the deployment itself, which does.
+ */
+await check("Stripe webhook secret is configured", async () => {
+  const secret = process.env.STRIPE_WEBHOOK_SECRET;
+
+  if (secret === undefined && !process.env.SMOKE_REQUIRE_STRIPE_WEBHOOK_SECRET) {
+    console.log(
+      "    skipped — STRIPE_WEBHOOK_SECRET is not in this process's " +
+        "environment; set SMOKE_REQUIRE_STRIPE_WEBHOOK_SECRET=1 to require it",
+    );
+    return;
+  }
+
+  if (!secret) {
+    throw new Error(
+      "STRIPE_WEBHOOK_SECRET is unset, so every Stripe delivery is rejected " +
+        "with 400 and no payment reaches the platform. Set it to the signing " +
+        "secret of the endpoint delivering to this service, then confirm with " +
+        "Stripe -> Developers -> Webhooks -> Recent deliveries -> Resend, " +
+        "which must return 200.",
+    );
+  }
+
+  if (!secret.startsWith("whsec_")) {
+    throw new Error(
+      "STRIPE_WEBHOOK_SECRET does not look like a Stripe signing secret — " +
+        "expected a whsec_ prefix. An API or publishable key here fails every " +
+        "signature check while looking configured.",
+    );
+  }
+});
+
 if (failures.length) {
   console.error(`Smoke checks failed: ${failures.length}`);
   process.exit(1);

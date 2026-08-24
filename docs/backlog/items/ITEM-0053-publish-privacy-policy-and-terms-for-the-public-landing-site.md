@@ -3,15 +3,15 @@ ID: ITEM-0053
 aliases: [ITEM-0053]
 Title: Publish privacy policy and terms for the public landing site
 Type: PRODUCT_DECISION
-Status: READY
+Status: DONE
 Priority: P2
 Severity: MEDIUM
 AffectedModules: [apps/landing]
 Source: QA_RUN
 OwnerAgent: release-devops
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 CreatedAt: 2026-08-18
-UpdatedAt: 2026-08-22
+UpdatedAt: 2026-08-24
 RelatedBug: 
 RelatedQA: docs/qa/runs/2026-08-17-landing-uiux-browser-qa-f58ee1d.md
 RelatedADR: 
@@ -134,6 +134,28 @@ release that would publish them has not run.
 
 ## History
 
+- 2026-08-24 — **closed.** All four acceptance criteria are met, verified against
+  production at `6ed7a44`:
+
+  1. *Approved copy exists, owned by a named person* — the owner supplied real
+     legal text; `2852855e` replaced the placeholder drafts, and [[BUG-0899]]
+     records why that had to happen before any deploy could succeed.
+  2. *Renders through the standard shell* — `GET /legal/privacy` returns `200`;
+     an unknown slug returns `404` rather than a streamed empty shell
+     ([[BUG-0907]]).
+  3. *Linked from the site footer* — the landing footer links all **ten**
+     published documents, privacy and terms included.
+  4. *`privacyNoticeVersion` matches the published version* — met by
+     construction: `leads.service.ts:147` derives it from the published notice
+     rather than from the request, and `public-lead-acquisition.spec.ts`
+     asserts an attacker-supplied value is ignored. Suite green, 27 tests.
+
+  `GET /api/public/legal` returns ten documents at version 1, published
+  2026-08-23T21:23Z.
+
+  This record was already annotated on 2026-08-22 ("the engineering is
+  finished") and left `READY` anyway. The annotation was correct; only the
+  status field lagged.
 - 2026-08-17 — split out of ITEM-0051 during the landing remediation, because
   inventing legal copy was explicitly out of scope and a placeholder would have
   been a false statement rather than a missing one.

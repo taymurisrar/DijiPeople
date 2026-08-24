@@ -59,9 +59,18 @@ const RULES: Array<{
     match: /^STRIPE_WEBHOOK|^WEBHOOK/,
     failed: {
       severity: 'CRITICAL',
-      title: 'Provider webhook failed',
+      title: 'Stripe could not tell us about a payment',
+      /*
+       * This said "Payments confirm through webhooks only. While these fail,
+       * paid orders will not advance." — true, and an operator reading it still
+       * had nothing to do. A CRITICAL notification that states a consequence
+       * and stops is a red dot with homework attached.
+       *
+       * Every rule here now answers "and then what", in the order somebody
+       * would actually work: see the failure, fix it, replay it.
+       */
       action:
-        'Payments confirm through webhooks only. While these fail, paid orders will not advance.',
+        'A customer may have paid without us knowing. In Stripe, open Developers → Webhooks → Recent deliveries to see why it was rejected. Once fixed, Resend the failed delivery — it will be retried, not lost.',
     },
   },
   {
@@ -180,6 +189,21 @@ function describe(event: NotifiableEvent) {
     event.metadata && typeof event.metadata === 'object'
       ? (event.metadata as Record<string, unknown>)
       : {};
+  /*
+   * `error` is in this list because leaving it out is what made the webhook
+   * notification meaningless.
+   *
+   * `WebhookService.processStripeEvent` records its failure as
+   * `{ error: getSafeErrorMessage(error) }` — the only key it uses — and none
+   * of the three names checked here matched it. So a real, specific reason
+   * ("Stripe invoice could not be mapped to a DijiPeople subscription") was
+   * discarded in favour of the fallback below, which humanises the event code
+   * into "Stripe webhook processed" and sits it under a title reading "Provider
+   * webhook failed". The operator was shown a contradiction and no reason.
+   *
+   * The order is deliberate: a message an emitter wrote on purpose beats an
+   * error string it happened to catch, and both beat the code.
+   */
   const message =
     typeof metadata.message === 'string'
       ? metadata.message
@@ -187,7 +211,9 @@ function describe(event: NotifiableEvent) {
         ? metadata.failureReason
         : typeof metadata.reason === 'string'
           ? metadata.reason
-          : null;
+          : typeof metadata.error === 'string'
+            ? metadata.error
+            : null;
   if (message?.trim()) return message.trim();
   return event.eventCode
     .toLowerCase()

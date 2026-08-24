@@ -2,7 +2,7 @@
 ID: BUG-0767
 aliases: [BUG-0767]
 Title: render.yaml is not what production runs, so no seed or legal publication has ever executed
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: INFRA
@@ -12,13 +12,13 @@ DetectedInSha: 3c0efdb
 AffectedModules: [render.yaml, services/api/prisma, docs/deployment]
 OwnerAgent: release-devops
 ArchitectDisposition: DONE
-QAReport: 
+QAReport: docs/qa/runs/2026-08-24-record-state-reconciliation-0a5586f.md
 RegressionId: REG-229
 RelatedBacklogItem: ITEM-0053
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-22
-UpdatedAt: 2026-08-23
+UpdatedAt: 2026-08-24
 ResolvedAt: 2026-08-23
 ---
 
@@ -198,9 +198,9 @@ fails when they diverge again. That is [[ITEM-0084]].
 
 ## QA Retest
 
-Production regression against `ef57b2a`: **16/16**, including
-`no draft document is published`. All ten public pages confirmed showing their
-unpublished state after forcing edge revalidation.
+Verified by [`2026-08-24-record-state-reconciliation-0a5586f.md`](../qa/runs/2026-08-24-record-state-reconciliation-0a5586f.md) on 2026-08-24 at `0a5586f`.
+
+REG-229 — `draft-self-declaration.spec.ts` passes, and the production deploy log shows the full release chain running `legal:publish` to completion.
 
 ## History
 

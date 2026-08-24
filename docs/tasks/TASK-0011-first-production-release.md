@@ -10,11 +10,11 @@ CREATED_AT: 2026-08-20
 AFFECTED_MODULES: [all]
 AGENTS: [Architect, Release/DevOps, Integrator]
 DEPENDENCIES: origin/develop 97b4cc5; TASK-0010
-CURRENT_PACKAGE: WP-02
+CURRENT_PACKAGE:
 NEXT_READY_WORK_PACKAGE: WP-02
-COMPLETED_PACKAGES: [WP-01]
+COMPLETED_PACKAGES: [WP-01, WP-02]
 BLOCKED_PACKAGES: []
-OWNER_DECISIONS: 1
+OWNER_DECISIONS: 0
 FINAL_STATUS:
 ---
 
@@ -65,7 +65,7 @@ A good package can be reviewed on its own and has one owning specialist.
 | WP_ID | TITLE | STATUS | DEPENDENCIES | AGENTS | BRANCH | SHA | QA_STATUS | BUGS | CI_STATUS | MERGE_STATUS |
 |---|---|---|---|---|---|---|---|---|---|---|
 | WP-01 | PR `develop` -> `main`, exact-SHA CI verdict, merge | DONE | TASK-0010 | Integrator | develop | 77fd2d7 | PASS | — | PASS | MERGED 270cde7 |
-| WP-02 | Deployment outcome and the release-history record | IN_PROGRESS | WP-01 | Release/DevOps | — | 270cde7 | — | — | PASS | — |
+| WP-02 | Deployment outcome and the release-history record | DONE | WP-01 | Release/DevOps | main | 6ed7a44 | PASS | — | PASS | RECORDED |
 
 ## WP-01 — merged
 
@@ -147,6 +147,28 @@ See `node scripts/repo-health.mjs`.
 
 ## History
 
+- 2026-08-24 — **WP-02 closed.** "Deployment outcome pending" had stood for four
+  days while eight releases shipped, because the release-history record it was
+  waiting on was never written — `docs/deployment/release-history/` held nothing
+  but its README.
+
+  Written now as
+  [`2026-08-24-production-6ed7a44.md`](../deployment/release-history/2026-08-24-production-6ed7a44.md),
+  from evidence gathered against the live system rather than reconstructed:
+  `scripts/smoke-deployment.mjs` passes every check it can run unauthenticated,
+  `/api/health` serves `6ed7a44` (= `origin/main`), and the deploy log shows the
+  full `preDeployCommand` chain completing with 219 migrations applied and all
+  ten legal documents published.
+
+  **The record documents deployed state, not the act of deploying**, and says so
+  in its own first paragraph. Nobody watched releases #38–#44 with the template
+  open, and the folder's README is explicit that inventing per-release detail
+  after the fact would put fiction in the one place that has to be trustworthy.
+  Those seven are listed from Git as a visible gap instead.
+
+  Verdict: **PASS with a named exception** — the platform is deployed and
+  healthy; self-service purchase does not work end to end, for configuration
+  reasons tracked as [[BUG-0989]] and [[BUG-0903]].
 - 2026-08-20 — merged. `main` = 270cde7, tree identical to the verified 77fd2d7,
   CI green on main. Deployment outcome pending.
 - 2026-08-20 — created at the owner's instruction to merge `develop` into `main`.
@@ -159,6 +181,6 @@ See `node scripts/repo-health.mjs`.
 
 ## Related
 
-- Records — [[BUG-0085]]
+- Records — [[BUG-0085]], [[BUG-0903]], [[BUG-0989]]
 
 <!-- GRAPH:END -->

@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 240,
+    "total_records": 246,
     "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
@@ -4466,14 +4466,14 @@
         "provenance": "ARCHITECT",
         "detected_in_sha": "34b699b",
         "created_at": "2026-08-21",
-        "updated_at": "2026-08-22",
+        "updated_at": "2026-08-24",
         "resolved_at": "2026-08-22"
       },
       "type": "INFRA",
       "title": "package-lock.json cannot be regenerated - npm overrides are silently ignored",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "FIXED",
+      "current_status": "VERIFIED",
       "current_evidence": {
         "paths": [
           "package-lock.json",
@@ -6532,14 +6532,14 @@
         "provenance": "DEPLOYMENT",
         "detected_in_sha": "b486a60",
         "created_at": "2026-08-22",
-        "updated_at": "2026-08-22",
-        "resolved_at": ""
+        "updated_at": "2026-08-24",
+        "resolved_at": "2026-08-24"
       },
       "type": "INFRA",
       "title": "Customer emails link to the vercel.app host, and API_BASE_URL is plain HTTP",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "FIXED",
+      "current_status": "VERIFIED",
       "current_evidence": {
         "paths": [
           "services/api/src/common/config/tenant-url.config.ts",
@@ -6572,7 +6572,7 @@
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "YES",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "verification_result": "NOT_VERIFIED"
     },
     {
@@ -6582,14 +6582,14 @@
         "provenance": "DEPLOYMENT",
         "detected_in_sha": "3c0efdb",
         "created_at": "2026-08-22",
-        "updated_at": "2026-08-23",
+        "updated_at": "2026-08-24",
         "resolved_at": "2026-08-23"
       },
       "type": "INFRA",
       "title": "render.yaml is not what production runs, so no seed or legal publication has ever executed",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "FIXED",
+      "current_status": "VERIFIED",
       "current_evidence": {
         "paths": [
           "render.yaml",
@@ -6632,8 +6632,8 @@
       "type": "DATA_INTEGRITY",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "FIXED",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "VERIFIED",
+      "architect_disposition": "DONE",
       "verification_result": "NOT_VERIFIED",
       "owner_decision_required": "YES",
       "active_session_conflict": "NONE",
@@ -6668,7 +6668,7 @@
         "provenance": "USER_REPORT",
         "detected_in_sha": "8c56006",
         "created_at": "2026-08-22",
-        "updated_at": "2026-08-22",
+        "updated_at": "2026-08-24",
         "resolved_at": "2026-08-22"
       }
     },
@@ -6678,8 +6678,8 @@
       "type": "BUG",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "FIXED",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "VERIFIED",
+      "architect_disposition": "DONE",
       "verification_result": "NOT_VERIFIED",
       "owner_decision_required": "NO",
       "active_session_conflict": "NONE",
@@ -6716,7 +6716,7 @@
         "provenance": "USER_REPORT",
         "detected_in_sha": "8c56006",
         "created_at": "2026-08-22",
-        "updated_at": "2026-08-22",
+        "updated_at": "2026-08-24",
         "resolved_at": "2026-08-22"
       }
     },
@@ -6726,8 +6726,8 @@
       "type": "UX",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "FIXED",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "VERIFIED",
+      "architect_disposition": "DONE",
       "verification_result": "NOT_VERIFIED",
       "owner_decision_required": "NO",
       "active_session_conflict": "NONE",
@@ -6761,7 +6761,7 @@
         "provenance": "USER_REPORT",
         "detected_in_sha": "8c56006",
         "created_at": "2026-08-22",
-        "updated_at": "2026-08-22",
+        "updated_at": "2026-08-24",
         "resolved_at": "2026-08-22"
       }
     },
@@ -6771,8 +6771,8 @@
       "type": "UX",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "FIXED",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "VERIFIED",
+      "architect_disposition": "DONE",
       "verification_result": "NOT_VERIFIED",
       "owner_decision_required": "NO",
       "active_session_conflict": "NONE",
@@ -6806,7 +6806,7 @@
         "provenance": "USER_REPORT",
         "detected_in_sha": "8c56006",
         "created_at": "2026-08-22",
-        "updated_at": "2026-08-22",
+        "updated_at": "2026-08-24",
         "resolved_at": "2026-08-22"
       }
     },
@@ -6816,8 +6816,8 @@
       "type": "BUG",
       "severity": "LOW",
       "priority": "P3",
-      "current_status": "FIXED",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "VERIFIED",
+      "architect_disposition": "DONE",
       "verification_result": "NOT_VERIFIED",
       "owner_decision_required": "NO",
       "active_session_conflict": "NONE",
@@ -6851,7 +6851,7 @@
         "provenance": "USER_REPORT",
         "detected_in_sha": "8c56006",
         "created_at": "2026-08-22",
-        "updated_at": "2026-08-22",
+        "updated_at": "2026-08-24",
         "resolved_at": "2026-08-22"
       }
     },
@@ -6861,8 +6861,8 @@
       "type": "BUG",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "FIXED",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "VERIFIED",
+      "architect_disposition": "DONE",
       "verification_result": "NOT_VERIFIED",
       "owner_decision_required": "NO",
       "active_session_conflict": "NONE",
@@ -6897,7 +6897,7 @@
         "provenance": "USER_REPORT",
         "detected_in_sha": "01a88a9",
         "created_at": "2026-08-23",
-        "updated_at": "2026-08-23",
+        "updated_at": "2026-08-24",
         "resolved_at": "2026-08-23"
       }
     },
@@ -6947,21 +6947,25 @@
       "title": "Production cannot deploy: the release chain always fails because seeded legal documents declare themselves drafts",
       "severity": "CRITICAL",
       "priority": "P0",
-      "current_status": "PRODUCT_DECISION",
-      "architect_disposition": "PRODUCT_DECISION",
+      "current_status": "VERIFIED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-0899-production-cannot-deploy-the-release-chain-always-fails-beca.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "1dd74a25",
         "created_at": "2026-08-23",
-        "updated_at": "2026-08-23",
-        "resolved_at": ""
+        "updated_at": "2026-08-24",
+        "resolved_at": "2026-08-23"
       },
       "affected_modules": [
         "services/api/prisma"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-244"
+      ],
+      "qa_scenarios": [
+        "QA-LEGAL-003"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -7027,14 +7031,14 @@
       "title": "A paid order records totalAmount 0.00 for every FLAT plan while Stripe charges the full price",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "FIXED",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "VERIFIED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-0901-a-paid-order-records-totalamount-0-00-for-every-flat-plan-wh.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "1dd74a25",
         "created_at": "2026-08-23",
-        "updated_at": "2026-08-23",
+        "updated_at": "2026-08-24",
         "resolved_at": "2026-08-23"
       },
       "affected_modules": [
@@ -7069,14 +7073,14 @@
       "title": "markTenantReady has no caller, so a paid workspace is never marked ready and its URL is never shown",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "FIXED",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "VERIFIED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-0902-marktenantready-has-no-caller-so-a-paid-workspace-is-never-m.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "1dd74a25",
         "created_at": "2026-08-23",
-        "updated_at": "2026-08-23",
+        "updated_at": "2026-08-24",
         "resolved_at": "2026-08-23"
       },
       "affected_modules": [
@@ -7227,23 +7231,26 @@
       "title": "Production has no published legal documents, so purchases record no consent and the footer links to nothing",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "PRODUCT_DECISION",
-      "architect_disposition": "PRODUCT_DECISION",
+      "current_status": "VERIFIED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-0906-production-has-no-published-legal-documents-so-purchases-rec.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "1dd74a25",
         "created_at": "2026-08-23",
-        "updated_at": "2026-08-23",
-        "resolved_at": ""
+        "updated_at": "2026-08-24",
+        "resolved_at": "2026-08-23"
       },
       "affected_modules": [
         "services/api/src/modules/legal",
         "apps/landing"
       ],
-      "regressions": [],
+      "regressions": [
+        "REG-244"
+      ],
       "qa_scenarios": [
-        "QA-LEGAL-002"
+        "QA-LEGAL-002",
+        "QA-LEGAL-003"
       ],
       "test_plan": [],
       "current_evidence": {
@@ -7269,14 +7276,14 @@
       "title": "An unknown legal slug answers 200 and hangs on the loading shell instead of returning 404",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "FIXED",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "VERIFIED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-0907-an-unknown-legal-slug-answers-200-and-hangs-on-the-loading-s.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "1dd74a25",
         "created_at": "2026-08-23",
-        "updated_at": "2026-08-23",
+        "updated_at": "2026-08-24",
         "resolved_at": "2026-08-23"
       },
       "affected_modules": [
@@ -7311,14 +7318,14 @@
       "title": "A disallowed CORS origin returns 500 and writes an error-log row, so anyone can fill the table",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "FIXED",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "VERIFIED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-0976-a-disallowed-cors-origin-returns-500-and-writes-an-error-log.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "be486ae1",
         "created_at": "2026-08-23",
-        "updated_at": "2026-08-23",
+        "updated_at": "2026-08-24",
         "resolved_at": "2026-08-23"
       },
       "affected_modules": [
@@ -7349,25 +7356,29 @@
     },
     {
       "record_id": "BUG-0989",
-      "type": "BUG",
+      "type": "INFRA",
       "title": "Every Stripe webhook delivery to production fails, so a payment never reaches the platform",
       "severity": "CRITICAL",
       "priority": "P0",
-      "current_status": "OPEN",
-      "architect_disposition": "BLOCKED_EXTERNAL",
+      "current_status": "VERIFIED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-0989-every-stripe-webhook-delivery-to-production-fails-so-a-payme.md",
         "provenance": "USER_REPORT",
         "detected_in_sha": "c9e78072",
         "created_at": "2026-08-23",
-        "updated_at": "2026-08-23",
-        "resolved_at": ""
+        "updated_at": "2026-08-24",
+        "resolved_at": "2026-08-24"
       },
       "affected_modules": [
         "services/api/src/modules/billing"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-245"
+      ],
+      "qa_scenarios": [
+        "QA-BILLING-017"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -7391,14 +7402,14 @@
       "title": "Plan entitlements blank out on save and the next save deletes them",
       "severity": "CRITICAL",
       "priority": "P0",
-      "current_status": "FIXED",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "VERIFIED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-0994-plan-entitlements-blank-out-on-save-and-the-next-save-delete.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "a3e15568",
         "created_at": "2026-08-23",
-        "updated_at": "2026-08-23",
+        "updated_at": "2026-08-24",
         "resolved_at": "2026-08-23"
       },
       "affected_modules": [
@@ -7437,14 +7448,14 @@
       "title": "Editing any plan price 500s once its Stripe product id goes stale",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "FIXED",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "VERIFIED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-0995-editing-any-plan-price-500s-once-its-stripe-product-id-goes-.md",
         "provenance": "USER_REPORT",
         "detected_in_sha": "a3e15568",
         "created_at": "2026-08-23",
-        "updated_at": "2026-08-23",
+        "updated_at": "2026-08-24",
         "resolved_at": "2026-08-23"
       },
       "affected_modules": [
@@ -7464,6 +7475,138 @@
           "super-admin"
         ],
         "verification_scope": "See docs/bugs/BUG-0995-editing-any-plan-price-500s-once-its-stripe-product-id-goes-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1128",
+      "type": "INTEGRATION",
+      "title": "Stripe API version skew: invoice.paid cannot map to a subscription because invoice.subscription no longer exists",
+      "severity": "CRITICAL",
+      "priority": "P0",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-1128-stripe-api-version-skew-invoice-paid-cannot-map-to-a-subscri.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "caacf80c",
+        "created_at": "2026-08-24",
+        "updated_at": "2026-08-24",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/billing"
+      ],
+      "regressions": [
+        "REG-246"
+      ],
+      "qa_scenarios": [
+        "QA-BILLING-018"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/billing"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1128-stripe-api-version-skew-invoice-paid-cannot-map-to-a-subscri.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1133",
+      "type": "DATA_INTEGRITY",
+      "title": "Saving a plan price deactivates every sibling price on a narrower key than the unique index",
+      "severity": "CRITICAL",
+      "priority": "P0",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-1133-saving-a-plan-price-deactivates-every-sibling-price-on-a-nar.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "15f11c30",
+        "created_at": "2026-08-24",
+        "updated_at": "2026-08-24",
+        "resolved_at": "2026-08-24"
+      },
+      "affected_modules": [
+        "api:super-admin",
+        "apps/admin"
+      ],
+      "regressions": [
+        "REG-247"
+      ],
+      "qa_scenarios": [
+        "QA-BILLING-019"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "api:super-admin",
+          "apps/admin"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1133-saving-a-plan-price-deactivates-every-sibling-price-on-a-nar.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1134",
+      "type": "INTEGRATION",
+      "title": "A stale Stripe price id 500s the plan pricing screen because verifyRecurringPrice is unguarded",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-1134-a-stale-stripe-price-id-500s-the-plan-pricing-screen-because.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "15f11c30",
+        "created_at": "2026-08-24",
+        "updated_at": "2026-08-24",
+        "resolved_at": "2026-08-24"
+      },
+      "affected_modules": [
+        "api:billing",
+        "api:super-admin",
+        "apps/admin"
+      ],
+      "regressions": [
+        "REG-248"
+      ],
+      "qa_scenarios": [
+        "QA-BILLING-020"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "api:billing",
+          "api:super-admin",
+          "apps/admin"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1134-a-stale-stripe-price-id-500s-the-plan-pricing-screen-because.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],
@@ -9963,14 +10106,14 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "",
         "created_at": "2026-08-18",
-        "updated_at": "2026-08-22",
+        "updated_at": "2026-08-24",
         "resolved_at": ""
       },
       "type": "PRODUCT_DECISION",
       "title": "Publish privacy policy and terms for the public landing site",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "READY",
+      "current_status": "DONE",
       "current_evidence": {
         "paths": [
           "docs/backlog/items/ITEM-0053-publish-privacy-policy-and-terms-for-the-public-landing-site.md",
@@ -9996,7 +10139,7 @@
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "YES",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "PRELIMINARY",
         "classification": "TERMINAL_AS_DOCUMENTED",
@@ -10674,11 +10817,11 @@
         "provenance": "IMPLEMENTATION",
         "detected_in_sha": "",
         "created_at": "2026-08-20",
-        "updated_at": "2026-08-20",
+        "updated_at": "2026-08-24",
         "resolved_at": ""
       },
       "type": "UX",
-      "title": "Legal documents have no operator UI, so publishing is a script",
+      "title": "Legal publication has an operator UI, but no diff before publishing",
       "severity": "MEDIUM",
       "priority": "P2",
       "current_status": "READY",
@@ -10705,7 +10848,7 @@
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "PLAN_REQUIRED",
+      "architect_disposition": "FIX_NOW",
       "verification_result": {
         "result": "OPEN",
         "classification": "PRELIMINARY",
@@ -11767,6 +11910,128 @@
           "scripts"
         ],
         "verification_scope": "See docs/backlog/items/ITEM-0093-link-validation-skips-untracked-files-so-a-new-record-s-brok.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0094",
+      "type": "TEST_GAP",
+      "title": "go-live.sh reports no blocker for a webhook endpoint that rejects every delivery",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "READY",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0094-go-live-sh-reports-no-blocker-for-a-webhook-endpoint-that-re.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-08-24",
+        "updated_at": "2026-08-24",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "scripts",
+        "api:billing",
+        "api:outbox"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "scripts",
+          "api:billing",
+          "api:outbox"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0094-go-live-sh-reports-no-blocker-for-a-webhook-endpoint-that-re.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0095",
+      "type": "UX",
+      "title": "Home page plan cards showed a price with no indication of what it buys",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0095-home-page-plan-cards-showed-a-price-with-no-indication-of-wh.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "",
+        "created_at": "2026-08-24",
+        "updated_at": "2026-08-24",
+        "resolved_at": "2026-08-24"
+      },
+      "affected_modules": [
+        "apps/landing"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/landing"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0095-home-page-plan-cards-showed-a-price-with-no-indication-of-wh.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0096",
+      "type": "UX",
+      "title": "A critical notification named no reason and no action, and the price estimate showed no working",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0096-a-critical-notification-named-no-reason-and-no-action-and-th.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "",
+        "created_at": "2026-08-24",
+        "updated_at": "2026-08-24",
+        "resolved_at": "2026-08-24"
+      },
+      "affected_modules": [
+        "api:platform-events",
+        "apps/admin",
+        "apps/landing"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "api:platform-events",
+          "apps/admin",
+          "apps/landing"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0096-a-critical-notification-named-no-reason-and-no-action-and-th.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],

@@ -11,11 +11,11 @@ CREATED_AT: 2026-08-18
 AFFECTED_MODULES: [billing, super-admin, tenant-control-plane, legal, notifications, platform-events, employees, landing, admin, web]
 AGENTS: [Architect, Database, Backend/API, Frontend, UI/UX, Integration, QA, Reviewer, Integrator, Release/DevOps]
 DEPENDENCIES: origin/develop c332992; PARENT-SCOPE-RECONCILIATION; schema and permissions leases
-CURRENT_PACKAGE: WP-11
+CURRENT_PACKAGE:
 NEXT_READY_WORK_PACKAGE: NONE
-COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10, WP-12]
-BLOCKED_PACKAGES: [WP-15]
-OWNER_DECISIONS: 2
+COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10, WP-11, WP-12, WP-13, WP-14, WP-15, WP-16]
+BLOCKED_PACKAGES: []
+OWNER_DECISIONS: 1
 FINAL_STATUS:
 ---
 
@@ -94,7 +94,7 @@ gate.
 | WP-12 | Notification ownership and business-event coverage | DONE | WP-01, WP-07 | Backend/API | agent/consent-legal-knowledge | e9cad20 | PASS | PASS | DONE |
 | WP-13 | Consolidated QA, regression, security, accessibility and visual campaign | DONE | WP-01..WP-12 | QA, Reviewer | agent/provisioning-ops-and-qa | a28d967 | PASS | PASS | PENDING_INTEGRATION |
 | WP-14 | Final review, exact-SHA CI, develop integration | DONE | WP-13 | Reviewer, Integrator | agent/provisioning-ops-and-qa | 1f6b508 | PASS | PASS | INTEGRATED |
-| WP-15 | Release, main promotion, deployment and production smoke | BLOCKED | WP-14 | Release/DevOps | — | — | NOT_RUN | NOT_RUN | BLOCKED_EXTERNAL |
+| WP-15 | Release, main promotion, deployment and production smoke | DONE | WP-14 | Release/DevOps | main | 6ed7a44 | PASS | PASS | DEPLOYED |
 | WP-16 | Knowledge, Obsidian, history and parent closure | DONE | WP-14 | Architect | agent/provisioning-ops-and-qa | 1f6b508 | PASS | PASS | INTEGRATED |
 
 WP-01, WP-02 and WP-04 are the roots: everything downstream either emits a
@@ -196,18 +196,24 @@ overlap rather than records alone.
 - **Architect position:** engineering completes without these. Checkout refuses safely rather than inventing a number.
 - **Blocked work:** publishing a live price only. No package waits on it.
 
-### OD-03 — deployment access (BLOCKED_EXTERNAL, not a decision)
+### OD-03 — deployment access (~~BLOCKED_EXTERNAL~~ — **discharged 2026-08-22**)
 
 - **Established as fact on 2026-08-18**, not assumed: no `RENDER_API_KEY`, no
   `VERCEL_TOKEN`, no `STRIPE_SECRET_KEY` in the environment, and neither the
   Render nor Vercel CLI is on `PATH`.
-- **Consequence:** WP-15 (release, main promotion, deployment, production smoke)
-  cannot be executed from here by anyone, agent or human. It is marked
-  `BLOCKED_EXTERNAL` rather than `NOT_STARTED`, because nothing about the
-  repository will unblock it.
-- **What is NOT blocked:** everything up to and including a validated `develop`.
-  WP-13 (QA campaign) and WP-14 (final review and exact-SHA CI) are ordinary
-  work and remain outstanding.
+- **That fact expired on 2026-08-22** and the record did not follow it. Both
+  CLIs are installed and both tokens live in User-scope environment variables;
+  `docs/deployment/platform-access.md` documents the access. The premise this
+  block rested on is simply no longer true.
+- **WP-15 is closed as `DONE`.** It did not need doing separately: five releases
+  have since been promoted to `main` and deployed — PRs #40, #42, #43, #44, #45.
+  Production runs `6ed7a44`, which is `origin/main`, confirmed at `/api/health`.
+  The deploy log shows the full `preDeployCommand` chain completing, including
+  `prisma migrate deploy` (219 migrations, none pending) and `legal:publish`.
+- **What this does not mean.** Deployment works; *selling* does not. That is
+  [[BUG-0989]] (every Stripe webhook rejected) and [[BUG-0903]] (test mode), and
+  both are configuration on the live service rather than anything in WP-15's
+  scope.
 
 ### OD-02 — legal operator identity
 
@@ -280,7 +286,7 @@ and WP-09 all depend on. Roots before leaves.
 
 ## Related
 
-- Records — [[BUG-0070]], [[BUG-0071]], [[BUG-0072]], [[BUG-0073]], [[BUG-0074]]
+- Records — [[BUG-0070]], [[BUG-0071]], [[BUG-0072]], [[BUG-0073]], [[BUG-0074]], [[BUG-0903]], [[BUG-0989]]
 - Modules — [[billing]], [[super-admin]], [[tenant-control-plane]], [[legal]], [[notifications]], [[employees]]
 
 <!-- GRAPH:END -->

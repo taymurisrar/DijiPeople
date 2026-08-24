@@ -2,7 +2,7 @@
 ID: BUG-0906
 aliases: [BUG-0906]
 Title: Production has no published legal documents, so purchases record no consent and the footer links to nothing
-Status: PRODUCT_DECISION
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-23
 DetectedInSha: 1dd74a25
 AffectedModules: [services/api/src/modules/legal, apps/landing]
 OwnerAgent: architect
-ArchitectDisposition: PRODUCT_DECISION
-QAReport: 
-RegressionId: 
+ArchitectDisposition: DONE
+QAReport: docs/qa/runs/2026-08-24-record-state-reconciliation-0a5586f.md
+RegressionId: REG-244
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-23
-UpdatedAt: 2026-08-23
-ResolvedAt:
+UpdatedAt: 2026-08-24
+ResolvedAt: 2026-08-23
 ---
 
 # BUG-0906 — Production has no published legal documents, so purchases record no consent and the footer links to nothing
@@ -142,7 +142,19 @@ complete.
 
 ## Resolution
 
-Not fixed here. The legal copy is the owner's to supply and review.
+Fixed in `2852855e` and published by the release chain on 2026-08-23.
+
+Verified against production on 2026-08-24: `GET /api/public/legal` returns
+all **ten** documents at version 1 — `terms`, `privacy`, `billing-terms`,
+`refund-policy`, `cookie-policy`, `acceptable-use`, `dpa`, `data-retention`,
+`security` and `subprocessors` — and the landing footer links to all ten.
+
+**One half of this record is verified by other means.** That a purchase now
+records the version ids the buyer accepted cannot be observed from outside,
+because no purchase can currently complete: [[BUG-0989]] rejects every Stripe
+webhook. The Agreements step has documents to offer again, which is the
+defect this record was filed for; proving the acknowledgement is written is
+[[ITEM-0078]]'s end-to-end run, and it is named there rather than claimed here.
 
 ## QA Retest
 
@@ -159,5 +171,6 @@ completing a purchase and confirming acknowledgement rows exist.
 
 - Referenced by — [[ITEM-0090]]
 - Modules — [[legal]], [[landing-architecture]]
+- Regression — REG-244 (see the regression register)
 
 <!-- GRAPH:END -->

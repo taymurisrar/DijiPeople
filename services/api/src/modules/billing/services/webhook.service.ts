@@ -62,10 +62,35 @@ type StripeSubscriptionObject = {
     }>;
   };
 };
+/**
+ * BUG-1128 — the invoice object carries its subscription in two different
+ * places depending on the API version the event was rendered at.
+ *
+ * Up to `2026-02-25.clover` it is a flat `invoice.subscription`, and the
+ * invoice's own `metadata` carries the checkout context. From
+ * `2026-07-29.dahlia` both moved to `invoice.parent.subscription_details`, and
+ * the top-level `metadata` arrives empty.
+ *
+ * Both shapes are declared and both are read, because **the version a webhook
+ * arrives at is not the version this service pins**. `STRIPE_API_VERSION`
+ * governs outbound calls only; Stripe renders events at the version configured
+ * on the endpoint. Reading only one shape means the handler works until
+ * somebody changes a dropdown in a dashboard, which is exactly how BUG-1128
+ * reached production and rejected a real PKR 12,000 payment.
+ */
+type StripeInvoiceParent = {
+  type?: string | null;
+  subscription_details?: {
+    subscription?: string | { id: string } | null;
+    metadata?: StripeMetadata | null;
+  } | null;
+} | null;
+
 type StripeInvoiceObject = {
   id: string;
   customer?: string | { id: string } | null;
   subscription?: string | { id: string } | null;
+  parent?: StripeInvoiceParent;
   number?: string | null;
   currency?: string | null;
   status?: string | null;
@@ -965,8 +990,14 @@ export class WebhookService {
     tx: PrismaTx,
     invoice: StripeInvoiceObject,
   ) {
-    const metadata = invoice.metadata ?? {};
-    const stripeSubscriptionId = getStripeId(invoice.subscription);
+    /*
+     * BUG-1128 — read both shapes. The newer location wins where both are
+     * present, because an event rendered at a version that populates `parent`
+     * is the authority on its own contents; the flat field is the fallback for
+     * older versions, not a second opinion.
+     */
+    const metadata = invoiceMetadata(invoice);
+    const stripeSubscriptionId = invoiceSubscriptionId(invoice);
     const stripeCustomerId = getStripeId(invoice.customer);
 
     let subscription = stripeSubscriptionId
@@ -1336,6 +1367,43 @@ function getStripeId(value: unknown) {
     return value.id;
   }
   return null;
+}
+
+/**
+ * BUG-1128 — the subscription an invoice belongs to, from either API shape.
+ *
+ * `invoice.parent.subscription_details.subscription` from `2026-07-29.dahlia`
+ * onwards; the flat `invoice.subscription` before it. Newer wins, and neither
+ * is assumed: an invoice with no subscription at all is legitimate — a one-off
+ * invoice has no parent of this type — so the answer is nullable and callers
+ * must keep handling null.
+ */
+export function invoiceSubscriptionId(invoice: {
+  subscription?: string | { id: string } | null;
+  parent?: StripeInvoiceParent;
+}) {
+  const fromParent =
+    invoice.parent?.subscription_details?.subscription ?? undefined;
+  return getStripeId(fromParent) ?? getStripeId(invoice.subscription);
+}
+
+/**
+ * BUG-1128 — the checkout context an invoice carries, from either API shape.
+ *
+ * The two are merged rather than one replacing the other, because they are not
+ * alternatives in principle: an invoice may carry its own metadata *and* belong
+ * to a subscription that carries more. The subscription's wins on conflict, for
+ * the same reason as above — it is the one the newer payload populates and the
+ * one the checkout actually stamps.
+ */
+export function invoiceMetadata(invoice: {
+  metadata?: StripeMetadata | null;
+  parent?: StripeInvoiceParent;
+}): StripeMetadata {
+  return {
+    ...(invoice.metadata ?? {}),
+    ...(invoice.parent?.subscription_details?.metadata ?? {}),
+  };
 }
 
 function fromUnix(value: number | null | undefined) {

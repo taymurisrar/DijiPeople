@@ -14,7 +14,7 @@ CURRENT_PACKAGE: NONE
 NEXT_READY_WORK_PACKAGE: NONE
 COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08]
 BLOCKED_PACKAGES: []
-OWNER_DECISIONS: 4
+OWNER_DECISIONS: 0
 FINAL_STATUS: COMPLETE - the merge hold WP-04 waited on was released and discharged by later release tasks; main now contains every develop commit but one. Stripe PKR/QAR presentment remains an owner action, tracked as BUG-0903 rather than as an open package
 ---
 

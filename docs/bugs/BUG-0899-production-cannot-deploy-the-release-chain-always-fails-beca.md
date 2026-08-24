@@ -2,7 +2,7 @@
 ID: BUG-0899
 aliases: [BUG-0899]
 Title: "Production cannot deploy: the release chain always fails because seeded legal documents declare themselves drafts"
-Status: PRODUCT_DECISION
+Status: VERIFIED
 Severity: CRITICAL
 Priority: P0
 Type: BUG
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-23
 DetectedInSha: 1dd74a25
 AffectedModules: [services/api/prisma]
 OwnerAgent: architect
-ArchitectDisposition: PRODUCT_DECISION
-QAReport: 
-RegressionId: 
+ArchitectDisposition: DONE
+QAReport: docs/qa/runs/2026-08-24-record-state-reconciliation-0a5586f.md
+RegressionId: REG-244
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-23
-UpdatedAt: 2026-08-23
-ResolvedAt:
+UpdatedAt: 2026-08-24
+ResolvedAt: 2026-08-23
 ---
 
 # BUG-0899 — Production cannot deploy: the release chain always fails because seeded legal documents declare themselves drafts
@@ -173,9 +173,17 @@ Blocks deployment of [[BUG-0900]], [[BUG-0901]] and [[BUG-0902]].
 
 ## Resolution
 
-Not fixed here. Both branches of the resolution are owner decisions: the legal
-copy is not an agent's to write, and loosening a production deploy gate is not a
-change to make inside a QA run.
+Fixed in `2852855e` (feat(legal): the real legal copy, and a test so it can
+never fail a deploy again), released to `main` in PR #42 and deployed.
+
+The owner supplied real legal copy, so `seed-legal.ts` no longer writes a
+`REVIEW_BANNER` declaring each document a draft. `legal:publish --confirm`
+therefore publishes rather than skipping, and the release chain completes.
+
+Verified against production on 2026-08-24: `/api/health` reports commit
+`6ed7a44`, which is `origin/main` — the deploy that this bug blocked has run.
+The deploy log shows the full chain, with `legal:publish` reporting
+`ALREADY_PUBLISHED` for all ten documents.
 
 ## QA Retest
 
@@ -191,5 +199,6 @@ Retest by merging to `main` and confirming the Render deploy reaches `live` and
 ## Related
 
 - Modules — [[database-architecture]]
+- Regression — REG-244 (see the regression register)
 
 <!-- GRAPH:END -->

@@ -2201,3 +2201,78 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | Two lessons. First, the resolver tests alone would not have caught a reverted call site — `proxy.ts` is not importable under the app's jest config — so the suite asserts the call site from source, the same shape as `forwarded-headers.invariant.spec.ts` and for the same reason. Second, the trust rule now has one implementation in `packages/config/forwarded-host.js` rather than three; the API's own `proxy-trust.ts` already carried the argument for why ("it is one question, so it has one answer") and a third copy in `apps/web` would have been the drift it warned about. |
 | **Fixed** | 2026-08-24, `agent/session-registry-closeout` |
 | **Active** | yes |
+
+### REG-244 — Seeded legal copy must be publishable, or the deploy dies
+
+| | |
+|---|---|
+| **Bug class** | `doc-code-drift` |
+| **Module** | `services/api/prisma/seed-legal.ts`, `services/api/src/modules/legal` |
+| **Bug record** | BUG-0899, BUG-0906 |
+| **Root cause** | `seed-legal.ts` wrote a `REVIEW_BANNER` reading "Draft — not published, and not legal advice … It has not been reviewed by a lawyer" into all ten documents on every run. `legal:publish --confirm` refuses to publish a document whose own text declares it a draft, and exits `2` when any document is skipped. Both scripts sit in Render's `preDeployCommand` chain, so the seed guaranteed the publish step would fail and the deploy would abort. The two were individually correct and jointly impossible — neither file was wrong on its own terms, which is why it survived review. |
+| **Regression test** | `services/api/src/modules/legal/seed-legal-publishable.spec.ts`, with `draft-self-declaration.spec.ts` and `services/api/test/legal-seed.e2e-spec.ts` |
+| **Scenario** | Every document `seed-legal.ts` emits is fed to the same draft self-declaration predicate `legal:publish` uses. All ten must be publishable. Restoring the review banner to any one of them fails the suite — which is the deploy failing in a test instead of in production. |
+| **Proven to fail without the fix** | The suite was written against the pre-fix seed and failed on all ten documents; `draft-self-declaration.spec.ts` additionally had an assertion pinning the seed as *still* declaring drafts, which had to be flipped in `944a2d00`. |
+| **Note** | The lesson is not "check the copy". It is that a **release chain of independently-correct steps can still be jointly impossible**, and nothing tested the chain as a chain. The deploy gate was the first thing to run both scripts together, and it did so in production. This is also why the record sat at `PRODUCT_DECISION` for a day: the fix genuinely needed the owner to supply real legal text, and no agent could have written it. |
+| **Fixed** | 2026-08-23, `2852855e`, released in PR #42 |
+| **Active** | yes |
+
+### REG-245 — A Stripe webhook secret that is missing or the wrong kind of key
+
+| | |
+|---|---|
+| **Bug class** | `silent-config-fallback` |
+| **Module** | `scripts/smoke-deployment.mjs`, `services/api/src/modules/billing` |
+| **Bug record** | BUG-0989 |
+| **Root cause** | `STRIPE_WEBHOOK_SECRET` on the production service was not the signing secret of the endpoint delivering to it, so `constructEvent` threw on every delivery and the handler returned `400 VALIDATION_FAILED`. A Stripe webhook is the only thing that tells the platform a payment succeeded, so a customer could pay and no workspace would ever be built. Nothing in the deployment asserted the variable was set, and nothing alerted on the failure ratio — the platform recorded a 400 nobody read, Stripe recorded a failure on its own side, and the order sat awaiting payment. Three facts, no connection between them. |
+| **Regression test** | `scripts/smoke-deployment.mjs` — the "Stripe webhook secret is configured" check |
+| **Scenario** | With `SMOKE_REQUIRE_STRIPE_WEBHOOK_SECRET=1` and no `STRIPE_WEBHOOK_SECRET`, the suite fails and names the Stripe **Resend** step. With an API key in the variable instead of a signing secret it also fails, on the `whsec_` prefix. With a well-formed secret it passes. Without the require flag and with no secret in the process it *skips*, so a developer running the suite from a laptop is not told their machine is a broken deployment. |
+| **Proven to fail without the fix** | Executed 2026-08-24, all four branches: unset-and-required → `not ok`; `sk_test_…` → `not ok` on the prefix; `whsec_…` → `ok`; absent-and-not-required → skipped with the reason printed. |
+| **Note** | **This check deliberately cannot prove the secret is correct**, and that limitation is the interesting part. A request carrying a deliberately-invalid signature is rejected whether the configured secret matches the endpoint or not — which is precisely why the probe used to diagnose BUG-0989 could exonerate the code and could not confirm the fix. Only Stripe, replaying a genuinely signed delivery, answers that. So the check proves the cheaper half (a secret exists, and is the right kind of thing) and its failure message names the one action that settles the rest. A check that reports a problem it cannot finish diagnosing should say who can. The expensive half is [[ITEM-0078]]; the operator-facing gap that let this reach production is [[ITEM-0094]]. |
+| **Fixed** | 2026-08-24, `agent/record-state-reconciliation` |
+| **Active** | yes |
+
+### REG-246 — An invoice whose subscription moved to `parent.subscription_details`
+
+| | |
+|---|---|
+| **Bug class** | `doc-code-drift` |
+| **Module** | `services/api/src/modules/billing` |
+| **Bug record** | BUG-1128 |
+| **Root cause** | `resolveInvoiceContext` read `invoice.subscription` and `invoice.metadata`. From Stripe API version `2026-07-29.dahlia` both moved to `invoice.parent.subscription_details`, and the invoice's own `metadata` arrives `{}`. All four resolution routes therefore missed and the handler threw `400` at a real paid invoice. The deeper cause is a **version skew nothing asserted**: `STRIPE_API_VERSION` pins outbound calls only, while Stripe renders events at the version configured on the endpoint — so the handler was written against one shape and exercised against another, and a dashboard dropdown nobody deployed could move the field. |
+| **Regression test** | `services/api/src/modules/billing/invoice-subscription-resolution.spec.ts` |
+| **Scenario** | The exact `dahlia` payload that failed in production (`evt_1U7WppHSlnE5ArNF2BykDaya`, PKR 12,000, `status: paid`) resolves to `sub_1U7WpoHSlnE5ArNFxsF2O6mA` and to metadata carrying `subscriptionOrderId` and `customerAccountId`. The legacy `clover` shape still resolves. Where both are present the parent wins; where neither is, the answer is `null` rather than a throw, because a one-off invoice legitimately has no subscription. |
+| **Proven to fail without the fix** | Executed 2026-08-24: reverting both helpers to the flat-field-only behaviour fails **6 of 10** cases. The four that still pass are the legacy-shape and null cases — which is the point of keeping them. |
+| **Note** | **Both shapes are asserted deliberately, and that is the lesson.** The instinct on finding a renamed field is to follow the rename; doing only that would have let the legacy path rot silently and produced the identical defect on the next version bump, in the other direction. The metadata helper merges rather than replaces for the same reason — an invoice may carry its own metadata *and* belong to a subscription carrying more, so they are not alternatives in principle. What remains uncovered is the skew itself: nothing yet asserts that the pinned version and the endpoint's version agree, and until something does, this class recurs on any field Stripe relocates. `payment_intent` on the same type is the next candidate. |
+| **Fixed** | 2026-08-24, `agent/record-state-reconciliation` |
+| **Active** | yes |
+
+### REG-247 — Superseding a plan price must use the key the database uses
+
+| | |
+|---|---|
+| **Bug class** | `divergent-duplicate-guard` |
+| **Module** | `services/api/src/modules/super-admin` |
+| **Bug record** | BUG-1133 |
+| **Root cause** | `createPlanPrice` and `updatePlanPrice` deactivated siblings on `{planId, billingCycle, currency}` while the partial unique index is `(planId, marketId, billingCycle, currency, billingModel) NULLS NOT DISTINCT WHERE isActive`. Deactivating on a **narrower** key than the one defining a slot does not resolve a conflict — it destroys rows that were never in conflict. Saving a PER_SEAT price retired the FLAT price beside it, and with no `marketId` filter it reached across every market. Nine of Starter's twelve production prices were lost this way, silently: `updateMany` returns a count nobody reads. |
+| **Regression test** | `services/api/src/modules/super-admin/plan-price-supersede-scope.spec.ts` |
+| **Scenario** | The column list is read **out of the migration** and every `planPrice.updateMany` that sets `isActive: false` must constrain all of them. Object shorthand (`planId,`) counts the same as an explicit value (`marketId: null`) — the question is whether the column narrows the query at all. A fourth case pins that each supersede stays confined to `isActive: true`, because widening the key is only safe while the query remains as partial as the index. |
+| **Proven to fail without the fix** | Executed 2026-08-24: restoring either `where` to its three-column form fails the suite. |
+| **Note** | **This was predicted and not tested for.** [[TASK-0018]] assumption A-06 is recorded at LOW confidence saying a fake Prisma client "cannot enforce the partial unique index … Disagreeing with that index is exactly the root cause of BUG-0030". The risk was written down, accepted, and left uncovered — so the lesson is not "add a test", it is that **an assumption recorded as LOW confidence with high impact is a test that has not been written yet**. The test asserts source against migration rather than behaviour through Prisma, deliberately: the defect is a disagreement between two declarations, and comparing the declarations is the most direct proof available. It also cannot drift — change the index and the expectation changes with it. |
+| **Fixed** | 2026-08-24, `agent/record-state-reconciliation` |
+| **Active** | yes |
+
+### REG-248 — A Stripe price id that no longer resolves
+
+| | |
+|---|---|
+| **Bug class** | `silent-config-fallback` |
+| **Module** | `services/api/src/modules/billing` |
+| **Bug record** | BUG-1134 |
+| **Root cause** | `verifyRecurringPrice` called `prices.retrieve` bare, so a `stripePriceId` naming a price absent from the connected Stripe account threw out of the request as a 500. The operator had no way to clear the dead id, so the price became uneditable. The id's prefix showed it came from a different account or sandbox entirely. |
+| **Regression test** | `services/api/src/modules/billing/stripe-price-resolution.spec.ts` |
+| **Scenario** | A `resource_missing` from `prices.retrieve` returns `valid: false` with a reason naming the price and telling the operator to re-sync, and reports the runtime mode rather than inventing a `livemode` for a price that is gone. A `StripeAuthenticationError` still propagates. A price that exists verifies unchanged. |
+| **Proven to fail without the fix** | Executed 2026-08-24 against the production stack trace, reproduced with the real `StripeInvalidRequestError` shape and code. |
+| **Note** | **The counterpart of `stripe-product-resolution.spec.ts`, and they should be read together.** BUG-0995 fixed the product path and left the price call eighty lines away bare — fixing one half of a symmetry is how the second half survives to be found in production. The asymmetry that remains is deliberate: the product path auto-creates a replacement, this one does not, because a price determines what customers are charged and minting one behind an operator's back is a pricing change, not a recovery. Note also that this bug was *limiting* [[BUG-1133]]'s blast radius — fixing it alone would have made that data loss easier to trigger, which is why the two landed together. |
+| **Fixed** | 2026-08-24, `agent/record-state-reconciliation` |
+| **Active** | yes |

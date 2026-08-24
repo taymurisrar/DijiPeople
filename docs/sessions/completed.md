@@ -6,6 +6,8 @@ Sessions that reached a terminal state. Kept as history: the branch, the base it
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0049](../../docs/sessions/SESSION-0049-record-state-reconciliation-verify-what-is-actually-resolved.md) | — | Record-state reconciliation — verify what is actually resolved | COMPLETE | `agent/record-state-reconciliation` | `develop` | — | 2026-08-24T18:35:00.000Z |
+| [SESSION-0048](../../docs/sessions/SESSION-0048-release-bring-main-up-to-develop-after-the-session-close-out.md) | — | Release: bring main up to develop after the session close-out | COMPLETE | `agent/session-registry-closeout` | `main` | — | 2026-08-24T16:44:39.394Z |
 | [SESSION-0047](../../docs/sessions/SESSION-0047-close-every-stale-active-session-and-finish-their-residual-w.md) | — | Close every stale active session and finish their residual work | COMPLETE | `agent/session-registry-closeout` | `develop` | — | 2026-08-24T06:04:22.590Z |
 | [SESSION-0046](../../docs/sessions/SESSION-0046-release-real-legal-copy-plan-entitlement-data-loss-and-the-p.md) | — | Release: real legal copy, plan entitlement data loss, and the pricing screen | COMPLETE | `agent/release-landing-e2e` | `main` | — | 2026-08-23T21:25:29.213Z |
 | [SESSION-0045](../../docs/sessions/SESSION-0045-release-develop-to-main-landing-e2e-findings-and-the-three-c.md) | — | Release develop to main: landing E2E findings and the three checkout fixes | COMPLETE | `agent/release-landing-e2e` | `main` | — | 2026-08-23T10:56:15.359Z |
