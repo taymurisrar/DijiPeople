@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**244 records** — 150 bugs under [`docs/bugs/`](../bugs/), 94 non-bug items under [`items/`](items/).
+**245 records** — 150 bugs under [`docs/bugs/`](../bugs/), 95 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -17,7 +17,7 @@ see [`README.md`](README.md) for why.
 | Blocked | 1 |
 | Deferred | 22 |
 | Awaiting a product decision | 2 |
-| Completed / closed | 187 |
+| Completed / closed | 188 |
 | **Open CRITICAL** | **5** |
 | **Open HIGH** | **6** |
 | **Awaiting Architect triage** | **0** |
@@ -60,7 +60,7 @@ see [`README.md`](README.md) for why.
 | DUPLICATE | 2 |
 | ACCEPTED_RISK | 1 |
 | READY | 22 |
-| DONE | 48 |
+| DONE | 49 |
 
 ## All records
 
@@ -269,6 +269,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0085](../../docs/backlog/items/ITEM-0085-no-bulk-command-exists-to-sync-plan-prices-to-stripe-so-a-la.md) | No bulk command exists to sync plan prices to Stripe, so a launch needs 36 manual admin edits | INFRA | MEDIUM | P2 | DONE | api:super-admin | DONE |
 | [ITEM-0090](../../docs/backlog/items/ITEM-0090-legal-documents-can-be-authored-from-platform-admin-instead-.md) | Legal documents can be authored from Platform Admin instead of a seed file | PRODUCT_DECISION | MEDIUM | P2 | DONE | apps/admin, api:legal | DONE |
 | [ITEM-0092](../../docs/backlog/items/ITEM-0092-widget-runtime-contract-test-js-fails-and-no-script-or-ci-jo.md) | widget-runtime-contract.test.js fails and no script or CI job runs it | TEST_GAP | MEDIUM | P2 | READY | pkg:config, apps/web | PLAN_REQUIRED |
+| [ITEM-0095](../../docs/backlog/items/ITEM-0095-home-page-plan-cards-showed-a-price-with-no-indication-of-wh.md) | Home page plan cards showed a price with no indication of what it buys | UX | MEDIUM | P2 | DONE | apps/landing | DONE |
 | [ITEM-0021](../../docs/backlog/items/ITEM-0021-mechanical-guard-against-country-and-currency-literals-in-fr.md) | Mechanical guard against country and currency literals in frontends | TEST_GAP | LOW | P2 | DONE | scripts, apps/landing, apps/web, apps/admin | DONE |
 | [ITEM-0023](../../docs/backlog/items/ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning.md) | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | P2 | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
 | [ITEM-0024](../../docs/backlog/items/ITEM-0024-landing-depends-on-lucide-react-without-declaring-it.md) | Landing depends on lucide-react without declaring it | TECH_DEBT | LOW | P2 | DONE | apps/landing | DONE |
