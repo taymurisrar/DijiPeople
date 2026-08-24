@@ -2231,3 +2231,18 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | **This check deliberately cannot prove the secret is correct**, and that limitation is the interesting part. A request carrying a deliberately-invalid signature is rejected whether the configured secret matches the endpoint or not — which is precisely why the probe used to diagnose BUG-0989 could exonerate the code and could not confirm the fix. Only Stripe, replaying a genuinely signed delivery, answers that. So the check proves the cheaper half (a secret exists, and is the right kind of thing) and its failure message names the one action that settles the rest. A check that reports a problem it cannot finish diagnosing should say who can. The expensive half is [[ITEM-0078]]; the operator-facing gap that let this reach production is [[ITEM-0094]]. |
 | **Fixed** | 2026-08-24, `agent/record-state-reconciliation` |
 | **Active** | yes |
+
+### REG-246 — An invoice whose subscription moved to `parent.subscription_details`
+
+| | |
+|---|---|
+| **Bug class** | `doc-code-drift` |
+| **Module** | `services/api/src/modules/billing` |
+| **Bug record** | BUG-1128 |
+| **Root cause** | `resolveInvoiceContext` read `invoice.subscription` and `invoice.metadata`. From Stripe API version `2026-07-29.dahlia` both moved to `invoice.parent.subscription_details`, and the invoice's own `metadata` arrives `{}`. All four resolution routes therefore missed and the handler threw `400` at a real paid invoice. The deeper cause is a **version skew nothing asserted**: `STRIPE_API_VERSION` pins outbound calls only, while Stripe renders events at the version configured on the endpoint — so the handler was written against one shape and exercised against another, and a dashboard dropdown nobody deployed could move the field. |
+| **Regression test** | `services/api/src/modules/billing/invoice-subscription-resolution.spec.ts` |
+| **Scenario** | The exact `dahlia` payload that failed in production (`evt_1U7WppHSlnE5ArNF2BykDaya`, PKR 12,000, `status: paid`) resolves to `sub_1U7WpoHSlnE5ArNFxsF2O6mA` and to metadata carrying `subscriptionOrderId` and `customerAccountId`. The legacy `clover` shape still resolves. Where both are present the parent wins; where neither is, the answer is `null` rather than a throw, because a one-off invoice legitimately has no subscription. |
+| **Proven to fail without the fix** | Executed 2026-08-24: reverting both helpers to the flat-field-only behaviour fails **6 of 10** cases. The four that still pass are the legacy-shape and null cases — which is the point of keeping them. |
+| **Note** | **Both shapes are asserted deliberately, and that is the lesson.** The instinct on finding a renamed field is to follow the rename; doing only that would have let the legacy path rot silently and produced the identical defect on the next version bump, in the other direction. The metadata helper merges rather than replaces for the same reason — an invoice may carry its own metadata *and* belong to a subscription carrying more, so they are not alternatives in principle. What remains uncovered is the skew itself: nothing yet asserts that the pinned version and the endpoint's version agree, and until something does, this class recurs on any field Stripe relocates. `payment_intent` on the same type is the next candidate. |
+| **Fixed** | 2026-08-24, `agent/record-state-reconciliation` |
+| **Active** | yes |

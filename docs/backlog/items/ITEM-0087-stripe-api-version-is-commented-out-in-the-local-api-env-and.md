@@ -58,6 +58,7 @@ Wikilinks to related bugs, items, modules and decisions.
 
 ## Related
 
+- Referenced by — [[BUG-1128]]
 - Modules — [[api-architecture]]
 
 <!-- GRAPH:END -->

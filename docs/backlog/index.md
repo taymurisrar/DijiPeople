@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**241 records** — 147 bugs under [`docs/bugs/`](../bugs/), 94 non-bug items under [`items/`](items/).
+**242 records** — 148 bugs under [`docs/bugs/`](../bugs/), 94 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,12 +13,12 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 29 |
+| Open (active work) | 30 |
 | Blocked | 1 |
 | Deferred | 22 |
 | Awaiting a product decision | 2 |
 | Completed / closed | 187 |
-| **Open CRITICAL** | **3** |
+| **Open CRITICAL** | **4** |
 | **Open HIGH** | **5** |
 | **Awaiting Architect triage** | **0** |
 
@@ -26,7 +26,7 @@ see [`README.md`](README.md) for why.
 
 | Severity | Count |
 |---|---|
-| CRITICAL | 3 |
+| CRITICAL | 4 |
 | HIGH | 5 |
 | MEDIUM | 17 |
 | LOW | 4 |
@@ -39,6 +39,7 @@ see [`README.md`](README.md) for why.
 | BUG | 5 |
 | FOLLOW_UP | 2 |
 | INFRA | 4 |
+| INTEGRATION | 1 |
 | SECURITY | 2 |
 | STATE_MACHINE | 2 |
 | TECH_DEBT | 5 |
@@ -53,7 +54,7 @@ see [`README.md`](README.md) for why.
 | BLOCKED | 1 |
 | DEFERRED | 22 |
 | PRODUCT_DECISION | 2 |
-| FIXED | 1 |
+| FIXED | 2 |
 | VERIFIED | 136 |
 | DUPLICATE | 2 |
 | ACCEPTED_RISK | 1 |
@@ -76,6 +77,7 @@ see [`README.md`](README.md) for why.
 | [BUG-0904](../../docs/bugs/BUG-0904-production-is-missing-outbox-worker-enabled-so-no-workspace-.md) | Production is missing OUTBOX_WORKER_ENABLED, so no workspace is provisioned after payment | BUG | CRITICAL | P0 | OPEN | api:outbox | BLOCKED_EXTERNAL |
 | [BUG-0989](../../docs/bugs/BUG-0989-every-stripe-webhook-delivery-to-production-fails-so-a-payme.md) | Every Stripe webhook delivery to production fails, so a payment never reaches the platform | INFRA | CRITICAL | P0 | VERIFIED | api:billing | DONE |
 | [BUG-0994](../../docs/bugs/BUG-0994-plan-entitlements-blank-out-on-save-and-the-next-save-delete.md) | Plan entitlements blank out on save and the next save deletes them | DATA_INTEGRITY | CRITICAL | P0 | VERIFIED | platform-runtime, super-admin, admin | DONE |
+| [BUG-1128](../../docs/bugs/BUG-1128-stripe-api-version-skew-invoice-paid-cannot-map-to-a-subscri.md) | Stripe API version skew: invoice.paid cannot map to a subscription because invoice.subscription no longer exists | INTEGRATION | CRITICAL | P0 | FIXED | api:billing | FIX_NOW |
 | [BUG-0049](../../docs/bugs/BUG-0049-report-only-ci-jobs-swallow-security-and-database-e2e-failur.md) | Report-only CI jobs swallow security and database E2E failures | INFRA | HIGH | P0 | VERIFIED | .github/workflows, services/api/src/common/constants, services/api/test, docs/qa | DONE |
 | [BUG-0052](../../docs/bugs/BUG-0052-production-dependency-graph-carries-critical-and-high-securi.md) | Production dependency graph carries critical and high security advisories | SECURITY | HIGH | P0 | VERIFIED | package-lock.json, apps/agent-desktop, apps/web, apps/admin, apps/landing, services/api | DONE |
 | [BUG-0053](../../docs/bugs/BUG-0053-documents-self-scoped-users-can-read-tenant-wide-documents.md) | Self-scoped document readers can list and open tenant-wide documents | AUTHORIZATION | HIGH | P0 | VERIFIED | api:documents | DONE |
