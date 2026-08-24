@@ -280,7 +280,7 @@ export function PlansExperience({ config }: { config: CommercialConfigView }) {
         */}
         <p className="mt-1 text-sm leading-6 text-muted">
           {perSeatPlans.length > 0
-            ? "These plans are billed per active employee. Enter roughly how many people you employ and we will show what each would cost, including any minimum commitment."
+            ? "These plans are billed per active employee, and each has a minimum number of seats you are billed for even with a smaller team. Enter roughly how many people you employ — every estimate below shows the seats it is charging and the rate per seat, so you can see how the figure is reached."
             : "No per-seat plan is available in your region yet, so there is nothing to estimate here. Get in touch and we will price it with you directly."}
         </p>
 
@@ -356,16 +356,54 @@ export function PlansExperience({ config }: { config: CommercialConfigView }) {
                       {estimate
                         ? formatMoney(estimate.total, estimate.currency)
                         : "On request"}
-                      {estimate ? (
-                        <span className="mt-1 block text-xs font-normal text-muted">
-                          estimated{" "}
-                          {interval === "MONTH" ? "per month" : "per year"}
-                          {estimate.belowMinimum
-                            ? " · below this plan's minimum"
-                            : estimate.aboveMaximum
-                              ? " · above the self-service maximum"
-                              : ""}
-                        </span>
+                      {/*
+                        `offer.available` is redundant at runtime — `estimate`
+                        is non-null only when it is true — but the compiler
+                        cannot see that through `estimateCost`, and an
+                        unavailable offer carries no `unitAmount` to show. The
+                        alternative was deriving the rate as `total / billable`,
+                        which would be a second calculation of a number the
+                        server already sent.
+                      */}
+                      {estimate && offer.available ? (
+                        <>
+                          <span className="mt-1 block text-xs font-normal text-muted">
+                            estimated{" "}
+                            {interval === "MONTH" ? "per month" : "per year"}
+                          </span>
+                          {/*
+                            Show the arithmetic, not only its answer.
+
+                            The card read "QAR 80 · below this plan's minimum"
+                            for a one-person company and left the reader to work
+                            out where 80 came from — the number they typed was
+                            1, and nothing on screen multiplied to 80. A minimum
+                            commitment that is *billed* has to appear as a
+                            quantity, or the estimate reads as wrong rather than
+                            as explained.
+
+                            `estimate.billable` is the seat count actually
+                            charged — `max(teamSize, minimumSeats, 1)`, the same
+                            expression the server bills on. This line restates
+                            the server's arithmetic; it does not perform its
+                            own, which is the mistake BUG-0080 was found through.
+                          */}
+                          <span className="mt-1 block text-xs font-normal leading-5 text-muted">
+                            {estimate.billable} seat
+                            {estimate.billable === 1 ? "" : "s"}
+                            {estimate.belowMinimum
+                              ? ` (this plan's minimum, not your ${teamSize})`
+                              : ""}{" "}
+                            × {formatMoney(offer.unitAmount, offer.currency)}{" "}
+                            each
+                          </span>
+                          {estimate.aboveMaximum ? (
+                            <span className="mt-1 block text-xs font-normal leading-5 text-muted">
+                              Above the self-service maximum — talk to us and
+                              we&rsquo;ll price it with you.
+                            </span>
+                          ) : null}
+                        </>
                       ) : null}
                     </dd>
                   </div>

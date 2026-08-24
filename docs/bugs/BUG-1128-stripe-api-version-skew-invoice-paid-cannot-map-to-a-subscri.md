@@ -256,6 +256,7 @@ invoice, it currently fails, and Stripe will replay it on demand.
 ## Related
 
 - Backlog item — [[ITEM-0087]]
+- Referenced by — [[ITEM-0096]]
 - Modules — [[billing]]
 - Regression — REG-246 (see the regression register)
 

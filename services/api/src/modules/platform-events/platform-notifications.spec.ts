@@ -55,7 +55,18 @@ describe('platform notifications', () => {
       READ_AT,
     )!;
     expect(notification.severity).toBe('CRITICAL');
-    expect(notification.action).toContain('will not advance');
+    /*
+     * This pinned the literal phrase "will not advance", which is why it had to
+     * change when the copy did. It now asserts the two things the action must
+     * carry rather than the words it carries them in: the stake, and the step.
+     *
+     * The old copy stated only the stake, and passed. That is the defect
+     * ITEM-0096 was raised for, and a test pinned to its exact wording could
+     * never have caught it — a rewrite that kept the phrase and still said
+     * nothing to do would have been green.
+     */
+    expect(notification.action).toMatch(/paid/i);
+    expect(notification.action).toMatch(/Stripe/);
   });
 
   it('stays quiet about a successful webhook', () => {
@@ -146,5 +157,78 @@ describe('platform notifications', () => {
     )!;
     // A link to a route that does not exist reads as a broken console.
     expect(notification.href).toBeNull();
+  });
+
+  /**
+   * ITEM-0096 — a notification that named no reason and no action.
+   *
+   * Reported by the owner looking at a live CRITICAL row: *"that notification is
+   * meaningless … what will the platform user do looking at it?"* It read
+   * "Provider webhook failed" over "Stripe webhook processed" — a title, a
+   * contradiction, and no instruction.
+   */
+  describe('a failed Stripe webhook says what happened and what to do', () => {
+    const failedWebhook = (metadata: unknown) =>
+      toNotification(
+        event({
+          eventCode: 'STRIPE_WEBHOOK_PROCESSED',
+          result: 'FAILED',
+          metadata,
+        }),
+        READ_AT,
+      )!;
+
+    it('uses the reason the emitter recorded under `error`', () => {
+      /*
+       * The exact shape WebhookService.processStripeEvent writes. `error` was
+       * the one key `describe` did not look for, so every webhook failure fell
+       * back to humanising the event code — putting the word "processed"
+       * underneath the word "failed".
+       */
+      const notification = failedWebhook({
+        duplicate: false,
+        processingStatus: 'FAILED',
+        error:
+          'Stripe invoice could not be mapped to a DijiPeople subscription.',
+      });
+
+      expect(notification.detail).toBe(
+        'Stripe invoice could not be mapped to a DijiPeople subscription.',
+      );
+      expect(notification.detail).not.toContain('processed');
+    });
+
+    it('prefers a deliberate message over a caught error string', () => {
+      const notification = failedWebhook({
+        message: 'Signature verification failed for endpoint we_123.',
+        error: 'Invalid Stripe webhook signature.',
+      });
+      // An emitter that wrote a message on purpose knows more than its catch.
+      expect(notification.detail).toBe(
+        'Signature verification failed for endpoint we_123.',
+      );
+    });
+
+    it('still falls back to the event code when there is nothing better', () => {
+      // Honest about being generic beats inventing detail that is not there.
+      expect(failedWebhook({}).detail).toBe('Stripe webhook processed');
+    });
+
+    it('names the next step, not just the consequence', () => {
+      const notification = failedWebhook({ error: 'boom' });
+
+      expect(notification.severity).toBe('CRITICAL');
+      // The failure this guards: an action that states the impact and stops.
+      expect(notification.action).toContain('Recent deliveries');
+      expect(notification.action).toContain('Resend');
+    });
+
+    it('titles it by what it means, not by the mechanism', () => {
+      // "Provider webhook failed" describes plumbing. An operator needs the
+      // consequence: somebody may have paid and we do not know.
+      expect(failedWebhook({ error: 'boom' }).title).toBe(
+        'Stripe could not tell us about a payment',
+      );
+    });
   });
 });

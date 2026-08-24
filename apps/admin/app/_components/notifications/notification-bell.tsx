@@ -273,6 +273,25 @@ export function NotificationBell() {
                         <p className="mt-0.5 line-clamp-2 text-xs leading-5 text-slate-600">
                           {item.detail}
                         </p>
+                        {/*
+                          What to do about it.
+
+                          The API has always returned `action`, and the full
+                          notifications page has always rendered it. This
+                          popover dropped it — so the surface an operator
+                          actually looks at was the one that said only that
+                          something had broken. "Provider webhook failed /
+                          Stripe webhook processed" was the result: a title, a
+                          contradiction, and no instruction.
+
+                          Clamped tighter than the detail, because this is still
+                          a glance. The page carries the full text.
+                        */}
+                        {item.action ? (
+                          <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">
+                            {item.action}
+                          </p>
+                        ) : null}
                         <p className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-slate-500">
                           {/* The severity in words: colour alone says nothing
                               to anybody who cannot see it. */}

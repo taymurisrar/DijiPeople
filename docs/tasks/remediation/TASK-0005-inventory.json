@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 245,
+    "total_records": 246,
     "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
@@ -11990,6 +11990,48 @@
           "apps/landing"
         ],
         "verification_scope": "See docs/backlog/items/ITEM-0095-home-page-plan-cards-showed-a-price-with-no-indication-of-wh.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0096",
+      "type": "UX",
+      "title": "A critical notification named no reason and no action, and the price estimate showed no working",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0096-a-critical-notification-named-no-reason-and-no-action-and-th.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "",
+        "created_at": "2026-08-24",
+        "updated_at": "2026-08-24",
+        "resolved_at": "2026-08-24"
+      },
+      "affected_modules": [
+        "api:platform-events",
+        "apps/admin",
+        "apps/landing"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "api:platform-events",
+          "apps/admin",
+          "apps/landing"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0096-a-critical-notification-named-no-reason-and-no-action-and-th.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],

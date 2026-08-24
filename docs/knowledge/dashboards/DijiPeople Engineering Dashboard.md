@@ -13,7 +13,7 @@
 | Blocked | 1 |
 | Awaiting a product decision | 2 |
 | Deferred | 22 |
-| Completed | 188 |
+| Completed | 189 |
 | Awaiting Architect triage | 0 |
 
 ## Open Critical Bugs
@@ -291,7 +291,7 @@
 | Knowledge | Count |
 |---|---|
 | Bug records | 150 |
-| Backlog items | 95 |
+| Backlog items | 96 |
 | Known bug patterns | 27 |
 | QA runs | 24 |
 | Engineering history records | 39 |
