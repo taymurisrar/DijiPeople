@@ -4,7 +4,7 @@ aliases: [SESSION-0047]
 TASK_ID:
 TITLE: Close every stale active session and finish their residual work
 ARCHITECT_INTENT: Close every stale active session and finish their residual work
-STATUS: ACTIVE
+STATUS: COMPLETE
 TASK_TYPE: FRAMEWORK
 TASK_SIZE: LARGE
 BASE_BRANCH: origin/develop
@@ -16,8 +16,8 @@ AFFECTED_MODULES: [apps/web, docs, scripts]
 WRITE_LEASES: []
 ACTIVE_WORK_PACKAGES: []
 SCHEMA_WRITE: NO
-CI_STATUS: NOT_RUN
-MERGE_STATUS: NOT_STARTED
+CI_STATUS: PASS
+MERGE_STATUS: INTEGRATED
 STARTED_AT: 2026-08-24T06:04:22.590Z
 LAST_HEARTBEAT: 2026-08-24T06:04:22.590Z
 BLOCKERS: none
@@ -86,3 +86,15 @@ theirs to pull. All work was done in this session's own worktree.
   no behaviour.
 - 2026-08-24 — [[TASK-0005]] and [[TASK-0010]] reconciled and closed; eight
   session records closed; SESSION-0019's stranded engineering history recovered.
+- 2026-08-24 — integrated to `develop` at `1050195e` by ref-push, so the tip
+  equals the SHA CI verified. Run `32749930429` green on that exact SHA; the
+  task's code and record content verified one commit earlier by `32747885644` on
+  `e949cad9`. Live registry: **0 active sessions**.
+
+  Two corrections this session made to its own work, both recorded rather than
+  quietly fixed. A broken relative link reached CI because `validate:framework`
+  scans `git ls-files` and the record was unstaged — [[ITEM-0093]], with a
+  mutation test in its acceptance criteria. And the history record's
+  `Final Target SHA` cannot be written at all: the file sits inside the commit it
+  would name, so the field describes the rule instead. The first draft named a
+  SHA and was wrong the moment it was committed.

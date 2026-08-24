@@ -6,18 +6,17 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 1** · completed: 45
+**Active: 0** · completed: 46
 
 ## Active
 
-| Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
-|---|---|---|---|---|---|---|---|
-| [SESSION-0047](../../docs/sessions/SESSION-0047-close-every-stale-active-session-and-finish-their-residual-w.md) | — | Close every stale active session and finish their residual work | ACTIVE | `agent/session-registry-closeout` | `develop` | — | 2026-08-24T06:04:22.590Z |
+_None. No session is currently running._
 
 ## Completed
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0047](../../docs/sessions/SESSION-0047-close-every-stale-active-session-and-finish-their-residual-w.md) | — | Close every stale active session and finish their residual work | COMPLETE | `agent/session-registry-closeout` | `develop` | — | 2026-08-24T06:04:22.590Z |
 | [SESSION-0046](../../docs/sessions/SESSION-0046-release-real-legal-copy-plan-entitlement-data-loss-and-the-p.md) | — | Release: real legal copy, plan entitlement data loss, and the pricing screen | COMPLETE | `agent/release-landing-e2e` | `main` | — | 2026-08-23T21:25:29.213Z |
 | [SESSION-0045](../../docs/sessions/SESSION-0045-release-develop-to-main-landing-e2e-findings-and-the-three-c.md) | — | Release develop to main: landing E2E findings and the three checkout fixes | COMPLETE | `agent/release-landing-e2e` | `main` | — | 2026-08-23T10:56:15.359Z |
 | [SESSION-0044](../../docs/sessions/SESSION-0044-landing-site-full-e2e-ui-forms-checkout-payments-provisionin.md) | — | Landing site full E2E: UI, forms, checkout, payments, provisioning, performance — local and production | COMPLETE | `agent/landing-e2e-go-live` | `develop` | — | 2026-08-23T00:33:25.629Z |
