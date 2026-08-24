@@ -91,7 +91,24 @@ test.describe('Flow G — the admin tenant list', () => {
      * `Customer` is asserted here too: it belongs on this list. The defect was
      * never that it appeared, only that it appeared *instead of* the name.
      */
-    for (const header of [
+    /*
+     * Matched against the headers' text, not their accessible names.
+     *
+     * Each header also contains a resize handle labelled "Resize <column>
+     * column", which contributes to the accessible name — so the header for
+     * Name computes as "Name Resize Name column" and an anchored
+     * `getByRole('columnheader', { name: /^name$/i })` never matches it. The
+     * handle is correct to be labelled; the assertion was wrong to assume the
+     * name was only the title.
+     *
+     * `allTextContents` returns the visible text alone, which is what an
+     * operator reads and what G1 and G4 already compare on.
+     */
+    const labels = (await page.getByRole('columnheader').allTextContents())
+      .map((text) => text.trim())
+      .filter(Boolean);
+
+    for (const expected of [
       /^name$/i,
       /^workspace$/i,
       /^customer$/i,
@@ -101,7 +118,10 @@ test.describe('Flow G — the admin tenant list', () => {
       /^environment$/i,
       /^employees$/i,
     ]) {
-      await expect(page.getByRole('columnheader', { name: header })).toBeVisible();
+      expect(
+        labels.some((label) => expected.test(label)),
+        `expected a ${expected} column. Headers: ${labels.join(', ')}`,
+      ).toBe(true);
     }
   });
 
