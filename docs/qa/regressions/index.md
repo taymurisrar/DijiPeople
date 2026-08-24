@@ -2216,3 +2216,18 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | The lesson is not "check the copy". It is that a **release chain of independently-correct steps can still be jointly impossible**, and nothing tested the chain as a chain. The deploy gate was the first thing to run both scripts together, and it did so in production. This is also why the record sat at `PRODUCT_DECISION` for a day: the fix genuinely needed the owner to supply real legal text, and no agent could have written it. |
 | **Fixed** | 2026-08-23, `2852855e`, released in PR #42 |
 | **Active** | yes |
+
+### REG-245 — A Stripe webhook secret that is missing or the wrong kind of key
+
+| | |
+|---|---|
+| **Bug class** | `silent-config-fallback` |
+| **Module** | `scripts/smoke-deployment.mjs`, `services/api/src/modules/billing` |
+| **Bug record** | BUG-0989 |
+| **Root cause** | `STRIPE_WEBHOOK_SECRET` on the production service was not the signing secret of the endpoint delivering to it, so `constructEvent` threw on every delivery and the handler returned `400 VALIDATION_FAILED`. A Stripe webhook is the only thing that tells the platform a payment succeeded, so a customer could pay and no workspace would ever be built. Nothing in the deployment asserted the variable was set, and nothing alerted on the failure ratio — the platform recorded a 400 nobody read, Stripe recorded a failure on its own side, and the order sat awaiting payment. Three facts, no connection between them. |
+| **Regression test** | `scripts/smoke-deployment.mjs` — the "Stripe webhook secret is configured" check |
+| **Scenario** | With `SMOKE_REQUIRE_STRIPE_WEBHOOK_SECRET=1` and no `STRIPE_WEBHOOK_SECRET`, the suite fails and names the Stripe **Resend** step. With an API key in the variable instead of a signing secret it also fails, on the `whsec_` prefix. With a well-formed secret it passes. Without the require flag and with no secret in the process it *skips*, so a developer running the suite from a laptop is not told their machine is a broken deployment. |
+| **Proven to fail without the fix** | Executed 2026-08-24, all four branches: unset-and-required → `not ok`; `sk_test_…` → `not ok` on the prefix; `whsec_…` → `ok`; absent-and-not-required → skipped with the reason printed. |
+| **Note** | **This check deliberately cannot prove the secret is correct**, and that limitation is the interesting part. A request carrying a deliberately-invalid signature is rejected whether the configured secret matches the endpoint or not — which is precisely why the probe used to diagnose BUG-0989 could exonerate the code and could not confirm the fix. Only Stripe, replaying a genuinely signed delivery, answers that. So the check proves the cheaper half (a secret exists, and is the right kind of thing) and its failure message names the one action that settles the rest. A check that reports a problem it cannot finish diagnosing should say who can. The expensive half is [[ITEM-0078]]; the operator-facing gap that let this reach production is [[ITEM-0094]]. |
+| **Fixed** | 2026-08-24, `agent/record-state-reconciliation` |
+| **Active** | yes |

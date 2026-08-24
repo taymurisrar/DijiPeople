@@ -13,12 +13,12 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 30 |
+| Open (active work) | 29 |
 | Blocked | 1 |
 | Deferred | 22 |
 | Awaiting a product decision | 2 |
-| Completed / closed | 186 |
-| **Open CRITICAL** | **4** |
+| Completed / closed | 187 |
+| **Open CRITICAL** | **3** |
 | **Open HIGH** | **5** |
 | **Awaiting Architect triage** | **0** |
 
@@ -26,7 +26,7 @@ see [`README.md`](README.md) for why.
 
 | Severity | Count |
 |---|---|
-| CRITICAL | 4 |
+| CRITICAL | 3 |
 | HIGH | 5 |
 | MEDIUM | 17 |
 | LOW | 4 |
@@ -38,7 +38,7 @@ see [`README.md`](README.md) for why.
 | ARCHITECTURE | 1 |
 | BUG | 5 |
 | FOLLOW_UP | 2 |
-| INFRA | 5 |
+| INFRA | 4 |
 | SECURITY | 2 |
 | STATE_MACHINE | 2 |
 | TECH_DEBT | 5 |
@@ -49,12 +49,12 @@ see [`README.md`](README.md) for why.
 
 | Status | Count |
 |---|---|
-| OPEN | 7 |
+| OPEN | 6 |
 | BLOCKED | 1 |
 | DEFERRED | 22 |
 | PRODUCT_DECISION | 2 |
 | FIXED | 1 |
-| VERIFIED | 135 |
+| VERIFIED | 136 |
 | DUPLICATE | 2 |
 | ACCEPTED_RISK | 1 |
 | READY | 22 |
@@ -74,7 +74,7 @@ see [`README.md`](README.md) for why.
 | [BUG-0899](../../docs/bugs/BUG-0899-production-cannot-deploy-the-release-chain-always-fails-beca.md) | Production cannot deploy: the release chain always fails because seeded legal documents declare themselves drafts | BUG | CRITICAL | P0 | VERIFIED | services/api/prisma | DONE |
 | [BUG-0900](../../docs/bugs/BUG-0900-tenant-provisioning-exceeds-the-5s-transaction-timeout-a-pai.md) | Tenant provisioning exceeds the 5s transaction timeout: a paid order is left with no workspace | BUG | CRITICAL | P0 | FIXED | api:permissions | FIX_NOW |
 | [BUG-0904](../../docs/bugs/BUG-0904-production-is-missing-outbox-worker-enabled-so-no-workspace-.md) | Production is missing OUTBOX_WORKER_ENABLED, so no workspace is provisioned after payment | BUG | CRITICAL | P0 | OPEN | api:outbox | BLOCKED_EXTERNAL |
-| [BUG-0989](../../docs/bugs/BUG-0989-every-stripe-webhook-delivery-to-production-fails-so-a-payme.md) | Every Stripe webhook delivery to production fails, so a payment never reaches the platform | INFRA | CRITICAL | P0 | OPEN | api:billing | BLOCKED_EXTERNAL |
+| [BUG-0989](../../docs/bugs/BUG-0989-every-stripe-webhook-delivery-to-production-fails-so-a-payme.md) | Every Stripe webhook delivery to production fails, so a payment never reaches the platform | INFRA | CRITICAL | P0 | VERIFIED | api:billing | DONE |
 | [BUG-0994](../../docs/bugs/BUG-0994-plan-entitlements-blank-out-on-save-and-the-next-save-delete.md) | Plan entitlements blank out on save and the next save deletes them | DATA_INTEGRITY | CRITICAL | P0 | VERIFIED | platform-runtime, super-admin, admin | DONE |
 | [BUG-0049](../../docs/bugs/BUG-0049-report-only-ci-jobs-swallow-security-and-database-e2e-failur.md) | Report-only CI jobs swallow security and database E2E failures | INFRA | HIGH | P0 | VERIFIED | .github/workflows, services/api/src/common/constants, services/api/test, docs/qa | DONE |
 | [BUG-0052](../../docs/bugs/BUG-0052-production-dependency-graph-carries-critical-and-high-securi.md) | Production dependency graph carries critical and high security advisories | SECURITY | HIGH | P0 | VERIFIED | package-lock.json, apps/agent-desktop, apps/web, apps/admin, apps/landing, services/api | DONE |

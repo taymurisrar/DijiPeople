@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 182** · automated: 165 · manual: 6 · blocked by infrastructure: 0
+**Scenarios: 183** · automated: 166 · manual: 6 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -62,6 +62,7 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-BILLING-014](../../../docs/qa/scenarios/QA-BILLING-014-a-payment-re-check-advances-an-order-only-when-stripe-says-i.md) | A payment re-check advances an order only when Stripe says it was paid | billing | UNIT | HIGH | AUTOMATED | `services/api/src/modules/billing/services/payment-recheck.service.spec.ts` | ITEM-0076 | REG-227 |
 | [QA-BILLING-015](../../../docs/qa/scenarios/QA-BILLING-015-market-country-claims-converge-on-the-catalog-so-a-launched-.md) | Market country claims converge on the catalog so a launched market resolves | billing | UNIT | HIGH | AUTOMATED | `services/api/src/modules/super-admin/commercial-bootstrap.reconcile.spec.ts` | BUG-0792 | REG-230 |
 | [QA-BILLING-016](../../../docs/qa/scenarios/QA-BILLING-016-a-flat-plan-price-bills-one-subscription-not-one-seat-per-he.md) | A flat plan price bills one subscription, not one seat per head | seat-billing | UNIT | HIGH | AUTOMATED | `services/api/src/modules/billing/billing-seat-pricing.spec.ts` | BUG-0901 | REG-236 |
+| [QA-BILLING-017](../../../docs/qa/scenarios/QA-BILLING-017-a-missing-or-malformed-stripe-webhook-secret-fails-the-deplo.md) | A missing or malformed Stripe webhook secret fails the deployment smoke suite | billing | DEPLOYMENT_SMOKE | CRITICAL | AUTOMATED | `scripts/smoke-deployment.mjs` | BUG-0989 | REG-245 |
 | [QA-CI-001](../../../docs/qa/scenarios/QA-CI-001-report-only-jobs-publish-an-explicit-pass-fail-verdict.md) | Report-only CI jobs publish an explicit PASS/FAIL verdict | deployment-release | DEPLOYMENT_SMOKE | HIGH | AUTOMATED | `scripts/validate-framework.mjs` | BUG-0049 | REG-047 |
 | [QA-CI-002](../../../docs/qa/scenarios/QA-CI-002-the-database-agent-verdict-cannot-report-pass-over-a-failing.md) | The Database Agent verdict cannot report PASS over a failing field | deployment-release | API | HIGH | AUTOMATED | `scripts/db-preflight.test.mjs` | BUG-0083, BUG-0060, BUG-0068 | REG-078 |
 | [QA-CI-003](../../../docs/qa/scenarios/QA-CI-003-declared-npm-overrides-are-reflected-in-the-lockfile.md) | Declared npm overrides are reflected in the lockfile | deployment-release | UNIT | HIGH | AUTOMATED | `scripts/check-overrides-applied.mjs` | BUG-0163 | REG-173 |
