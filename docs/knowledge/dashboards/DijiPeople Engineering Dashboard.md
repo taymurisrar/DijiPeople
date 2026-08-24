@@ -245,6 +245,7 @@
 
 ## Recent Engineering History
 
+- [[2026-08-24-session-registry-closeout-cbc6f0b2|Engineering History — Close every stale active session and finish their residual work]]
 - [[2026-08-23-release-legal-copy-and-plan-pricing-944a2d00|Engineering History — Release legal copy and plan pricing]]
 - [[2026-08-23-landing-go-live-e2e-a92fef5e|Engineering History — Landing site full E2E: what a go-live actually requires]]
 - [[2026-08-23-landing-e2e-release-be486ae1|Engineering History — Release: promoting the checkout fixes to production, and what deployed]]
@@ -252,7 +253,6 @@
 - [[2026-08-22-tenant-commands-monitoring-bulk-delete-0f9addc|Engineering History — Tenant commands monitoring bulk delete]]
 - [[2026-08-22-site-ux-and-admin-fixes-00ef62c|Engineering History — Site ux and admin fixes]]
 - [[2026-08-22-qa-verify-and-burndown-bf1921e|Engineering History — QA verification and backlog burn-down]]
-- [[2026-08-22-plans-catalogue-converge-ffb188c|Engineering History — Plans catalogue converge]]
 
 ## Recent Releases
 
@@ -305,7 +305,7 @@ _None. Nothing has been deployed through the release process._
 | Backlog items | 93 |
 | Known bug patterns | 26 |
 | QA runs | 23 |
-| Engineering history records | 37 |
+| Engineering history records | 38 |
 | Release records | 0 |
 | Module notes | 28 |
 | Architecture notes | 20 |
