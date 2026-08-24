@@ -8,7 +8,7 @@ graph and the block reasons. See
 
 | Bucket | Count |
 |---|---|
-| [Active](active.md) | 7 |
+| [Active](active.md) | 8 |
 | [Blocked](blocked.md) | 0 |
 | [Completed](completed.md) | 12 |
 
@@ -22,6 +22,7 @@ graph and the block reasons. See
 
 - [TASK-0007](TASK-0007-commercial-platform-completion-transactional-legal-and-lifec.md) — 1 owner decision(s) outstanding
 - [TASK-0009](TASK-0009-identity-and-multi-tenant-membership.md) — 1 owner decision(s) outstanding
+- [TASK-0020](TASK-0020-dlp-capture-for-desktop-agent-clipboard-and-triggered-screen.md) — 4 owner decision(s) outstanding
 
 ## All tasks
 
@@ -46,3 +47,4 @@ graph and the block reasons. See
 | [TASK-0016](TASK-0016-a-workspace-that-says-what-it-is-missing-metrics-you-can-act.md) | A workspace that says what it is missing, metrics you can act on, and a checkout block with a code | BUG | LARGE | P1 | COMPLETE | 5/5 | — |
 | [TASK-0017](TASK-0017-workspace-links-that-resolve-a-monitoring-page-you-can-work-.md) | Workspace links that resolve, a monitoring page you can work from, and Delete that either deletes or explains | BUG | LARGE | P1 | COMPLETE | 6/6 | — |
 | [TASK-0018](TASK-0018-legacy-pricing-removed-and-the-commercial-catalogue-made-to-.md) | Legacy pricing removed and the commercial catalogue made to converge | FEATURE | MEDIUM | P1 | IN_PROGRESS | 4/4 | — |
+| [TASK-0020](TASK-0020-dlp-capture-for-desktop-agent-clipboard-and-triggered-screen.md) | DLP capture for desktop agent: clipboard and triggered screenshots | SECURITY | LARGE | P1 | IN_PROGRESS | 0/6 | WP-04 |
