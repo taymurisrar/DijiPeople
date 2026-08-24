@@ -4,7 +4,7 @@ aliases: [SESSION-0014]
 TASK_ID: 
 TITLE: CI performance, cancellation RCA and autonomous CI adaptation
 ARCHITECT_INTENT: CI performance, cancellation RCA and autonomous CI adaptation
-STATUS: ACTIVE
+STATUS: COMPLETE
 TASK_TYPE: FRAMEWORK
 TASK_SIZE: LARGE
 BASE_BRANCH: origin/develop
@@ -82,3 +82,9 @@ Live state: `node scripts/session.mjs list`.
 - 2026-08-18 — the develop run for the same SHA did NOT reuse evidence, exposing
   a run-level filter in `ci-evidence.mjs` `find`. Fixed and verified live; see
   the engineering history record.
+- 2026-08-24 — closed by SESSION-0047. The work had integrated — `CI_STATUS:
+  PASS`, `MERGE_STATUS: INTEGRATED`, and the branch
+  `agent/ci-performance-adaptation` no longer exists — but `STATUS` was never
+  moved off `ACTIVE`. Its exact-SHA evidence reuse is visible working in
+  SESSION-0016's integration, where the develop run reused the task run's
+  verdict and the gate went green in 17 seconds.

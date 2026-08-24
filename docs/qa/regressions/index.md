@@ -2186,3 +2186,18 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | Two failure modes of the same external call looked alike and were not. The fourth case in the spec is the important one: swallowing every error here would mint duplicate Stripe products during an outage or on a bad key, which is worse than the failure and silent. |
 | **Fixed** | 2026-08-23, `agent/plan-pricing-admin-ux` |
 | **Active** | yes |
+
+### REG-243 — A forged X-Forwarded-Host must not select a tenant workspace
+
+| | |
+|---|---|
+| **Bug class** | `unsafe-client-trust` |
+| **Module** | `apps/web`, `packages/config` |
+| **Bug record** | ITEM-0044 |
+| **Root cause** | `apps/web/proxy.ts` resolved the request hostname as `x-forwarded-host ?? host`, preferring the forwarded header unconditionally in every environment. The hostname is the entire workspace routing decision — it selects the tenant, its branding, and the origin the browser scopes session cookies to — so any caller able to reach the Next.js server without a sanitising edge could name a workspace it had not arrived on. The API had applied a trusted-proxy rule since `request-hostname.ts` was written; the tenant web app never did, and `docs/architecture/workspace-routing-and-domains.md` described the rule as a property of the system while citing only the API's spec. |
+| **Regression test** | `apps/web/lib/forwarded-host.spec.ts`, `packages/config/forwarded-host.test.js` |
+| **Scenario** | A request carrying `Host: app.internal` and `X-Forwarded-Host: maseer.dijipeople.com`, with neither `TRUST_PROXY_HEADERS` nor a recognised platform variable set, classifies as `CANDIDATE` with no slug — while the same hostname in `Host` classifies as `WORKSPACE_HOST`. Behind a declared proxy (`VERCEL=1`, or `TRUST_PROXY_HEADERS=true`) the forwarded host still wins, and `TRUST_PROXY_HEADERS=false` overrides the platform inference. |
+| **Proven to fail without the fix** | Restoring `request.headers.get("x-forwarded-host") ?? request.headers.get("host")` in `proxy.ts` fails the two call-site cases; 9 of 11 still pass, which is the point of having them. |
+| **Note** | Two lessons. First, the resolver tests alone would not have caught a reverted call site — `proxy.ts` is not importable under the app's jest config — so the suite asserts the call site from source, the same shape as `forwarded-headers.invariant.spec.ts` and for the same reason. Second, the trust rule now has one implementation in `packages/config/forwarded-host.js` rather than three; the API's own `proxy-trust.ts` already carried the argument for why ("it is one question, so it has one answer") and a third copy in `apps/web` would have been the drift it warned about. |
+| **Fixed** | 2026-08-24, `agent/session-registry-closeout` |
+| **Active** | yes |

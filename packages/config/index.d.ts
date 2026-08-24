@@ -93,6 +93,45 @@ export declare function buildForwardedClientHeaders(
 ): Record<string, string>;
 
 /**
+ * How many proxy hops the deployment says may be trusted, or `false` for none.
+ *
+ * Explicit `TRUST_PROXY_HEADERS` wins; otherwise Render and Vercel are inferred
+ * as one hop. An unrecognised explicit value is `false`, never a fallback to
+ * inference.
+ */
+export declare function resolveTrustProxySetting(
+  env: Record<string, string | undefined>,
+): number | false;
+
+/** The same decision as a boolean. */
+export declare function isForwardedHostTrusted(
+  env: Record<string, string | undefined>,
+): boolean;
+
+/**
+ * The forwarded host a proxy claims the request arrived on, normalized, or null.
+ * Whether it may be believed is the caller's decision, not this function's.
+ */
+export declare function readForwardedHost(
+  headers: { get(name: string): string | null | undefined } | Headers,
+): string | null;
+
+/** The normalized `Host` header, or null. */
+export declare function readHost(
+  headers: { get(name: string): string | null | undefined } | Headers,
+): string | null;
+
+/**
+ * The hostname a request actually arrived on: `Host`, unless the deployment has
+ * declared a proxy in front, in which case the first hop of `Forwarded` or
+ * `X-Forwarded-Host` wins. Normalized, or null when there is no usable host.
+ */
+export declare function resolveForwardedHostname(
+  headers: { get(name: string): string | null | undefined } | Headers,
+  env: Record<string, string | undefined>,
+): string | null;
+
+/**
  * Every canonical app URL resolved from one env object. The only supported way
  * for application code to answer "where does the <x> app live" — call sites
  * must not re-derive an origin with their own loopback fallback.

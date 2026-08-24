@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 180** · automated: 163 · manual: 6 · blocked by infrastructure: 0
+**Scenarios: 181** · automated: 164 · manual: 6 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -194,3 +194,4 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-TENANT-013](../../../docs/qa/scenarios/QA-TENANT-013-a-failed-branding-upload-leaves-no-orphaned-document.md) | A failed branding upload leaves no orphaned document | platform-admin | UNIT | MEDIUM | AUTOMATED | `services/api/src/modules/tenant-settings/branding-assets.service.spec.ts` | BUG-0041 | REG-206 |
 | [QA-TENANT-014](../../../docs/qa/scenarios/QA-TENANT-014-every-tenant-control-plane-method-authorizes-before-it-queri.md) | Every tenant control-plane method authorizes before it queries | authorization | SECURITY | HIGH | AUTOMATED | `services/api/src/modules/tenant-control-plane/every-method-asserts.spec.ts` | ITEM-0015 | REG-209 |
 | [QA-TENANT-015](../../../docs/qa/scenarios/QA-TENANT-015-erasing-one-tenant-leaves-every-other-tenant-complete.md) | Erasing one tenant leaves every other tenant complete | tenant-isolation | DATABASE | CRITICAL | AUTOMATED | `services/api/test/tenant-erasure-survival.e2e-spec.ts` | ITEM-0003 | REG-220 |
+| [QA-TENANT-016](../../../docs/qa/scenarios/QA-TENANT-016-a-forged-forwarded-host-must-not-select-a-tenant-workspace.md) | A forged forwarded host must not select a tenant workspace | tenant-isolation | SECURITY | HIGH | AUTOMATED | `apps/web/lib/forwarded-host.spec.ts` | ITEM-0044 | REG-243 |

@@ -4,7 +4,7 @@ aliases: [SESSION-0023]
 TASK_ID:
 TITLE: First production release
 ARCHITECT_INTENT: First production release
-STATUS: ACTIVE
+STATUS: ABANDONED
 TASK_TYPE: RELEASE
 TASK_SIZE: MEDIUM
 BASE_BRANCH: origin/develop
@@ -16,8 +16,8 @@ AFFECTED_MODULES: []
 WRITE_LEASES: []
 ACTIVE_WORK_PACKAGES: []
 SCHEMA_WRITE: NO
-CI_STATUS: NOT_RUN
-MERGE_STATUS: NOT_STARTED
+CI_STATUS: NOT_REQUIRED - no commit was ever made on this branch
+MERGE_STATUS: NOT_REQUIRED - superseded
 STARTED_AT: 2026-08-20T16:21:59.286Z
 LAST_HEARTBEAT: 2026-08-20T16:21:59.286Z
 BLOCKERS: none
@@ -42,3 +42,13 @@ anything this session deliberately serialised behind another. Live state:
 ## History
 
 - 2026-08-20 — session started from `origin/develop` at `97b4cc5`.
+- 2026-08-24 — abandoned by SESSION-0047, as **superseded rather than
+  failed**. The session registered on 2026-08-20, wrote one history line, and
+  stopped: its Scope still reads "_To be established during planning._" and its
+  branch `agent/first-production-release` no longer exists. Nothing was lost —
+  the first production release it was opened for was carried out by the release
+  tasks that followed, and `origin/main` at `7d91c8a` is the result.
+
+  It is recorded `ABANDONED` and not `COMPLETE` on purpose. This session did no
+  work, and marking it complete would put a release it never performed to its
+  name.

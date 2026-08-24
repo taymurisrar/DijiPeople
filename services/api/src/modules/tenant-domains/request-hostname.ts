@@ -1,5 +1,5 @@
 import type { Request } from 'express';
-import { normalizeHostname } from '@repo/config';
+import { readForwardedHost, readHost } from '@repo/config';
 import { isProxyTrusted } from '../../common/security/proxy-trust';
 
 /**
@@ -18,38 +18,34 @@ import { isProxyTrusted } from '../../common/security/proxy-trust';
  * Nothing here reads a tenant id from a header. The hostname is the only routing
  * input, and it is resolved against the database — a caller that lies about the
  * host can only ask about a workspace it could already ask about.
+ *
+ * The header parsing — `Forwarded` before `X-Forwarded-Host`, first hop only —
+ * comes from `@repo/config`, which `apps/web` middleware reads too. The
+ * *decision* stays here because only the API has an Express app to ask.
  */
 export function resolveRequestHostname(request: Request): string | null {
+  const headers = expressHeaders(request);
+
   if (isProxyTrusted(request)) {
-    const forwarded =
-      readForwardedHeaderHost(request.headers.forwarded) ??
-      firstHeaderValue(request.headers['x-forwarded-host']);
-    const normalized = normalizeHostname(forwarded);
-    if (normalized) return normalized;
+    const forwarded = readForwardedHost(headers);
+    if (forwarded) return forwarded;
   }
 
-  return normalizeHostname(firstHeaderValue(request.headers.host)) || null;
+  return readHost(headers);
 }
 
 /**
- * `Forwarded: host=example.com;proto=https` — RFC 7239. Only the first element
- * is read, because that is the hop closest to the client.
+ * Node's `IncomingHttpHeaders` as the `get(name)` shape the shared reader takes.
+ *
+ * Header names arrive lowercased by Node, and a repeated header arrives as an
+ * array; the shared reader handles the array, so this only has to find it.
  */
-function readForwardedHeaderHost(value: string | string[] | undefined) {
-  const header = firstHeaderValue(value);
-  if (!header) return undefined;
-  const firstElement = header.split(',')[0] ?? '';
-  const match = /host\s*=\s*"?([^;",]+)"?/i.exec(firstElement);
-  return match?.[1];
-}
-
-/**
- * A header can legitimately arrive as a comma-separated chain. Only the first
- * entry is used; taking the last would let an intermediate hop rewrite the host.
- */
-function firstHeaderValue(value: string | string[] | undefined) {
-  const raw = Array.isArray(value) ? value[0] : value;
-  if (typeof raw !== 'string') return undefined;
-  const first = raw.split(',')[0];
-  return first?.trim() || undefined;
+function expressHeaders(request: Request) {
+  return {
+    get(name: string): string | null {
+      const value = request.headers[name.toLowerCase()];
+      if (Array.isArray(value)) return value[0] ?? null;
+      return typeof value === 'string' ? value : null;
+    },
+  };
 }
