@@ -2,7 +2,7 @@
 ID: BUG-0793
 aliases: [BUG-0793]
 Title: Checkout quotes the alphabetically first plan price currency instead of the visitor market currency
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -11,14 +11,14 @@ DetectedDate: 2026-08-22
 DetectedInSha: 8c56006
 AffectedModules: [apps/landing]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
-QAReport: 
+ArchitectDisposition: DONE
+QAReport: docs/qa/runs/2026-08-24-record-state-reconciliation-0a5586f.md
 RegressionId: REG-231
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-22
-UpdatedAt: 2026-08-22
+UpdatedAt: 2026-08-24
 ResolvedAt: 2026-08-22
 ---
 
@@ -116,8 +116,9 @@ implementations. Commit `5465697`.
 
 ## QA Retest
 
-Pending: with the Qatar market repaired, confirm `/`, `/plans` and `/subscribe`
-all show QAR for a visitor resolving to `QA`.
+Verified by [`2026-08-24-record-state-reconciliation-0a5586f.md`](../qa/runs/2026-08-24-record-state-reconciliation-0a5586f.md) on 2026-08-24 at `0a5586f`.
+
+REG-231 — `subscribe-selection.spec.ts` passes (19 tests).
 
 ## History
 

@@ -2201,3 +2201,18 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | Two lessons. First, the resolver tests alone would not have caught a reverted call site — `proxy.ts` is not importable under the app's jest config — so the suite asserts the call site from source, the same shape as `forwarded-headers.invariant.spec.ts` and for the same reason. Second, the trust rule now has one implementation in `packages/config/forwarded-host.js` rather than three; the API's own `proxy-trust.ts` already carried the argument for why ("it is one question, so it has one answer") and a third copy in `apps/web` would have been the drift it warned about. |
 | **Fixed** | 2026-08-24, `agent/session-registry-closeout` |
 | **Active** | yes |
+
+### REG-244 — Seeded legal copy must be publishable, or the deploy dies
+
+| | |
+|---|---|
+| **Bug class** | `doc-code-drift` |
+| **Module** | `services/api/prisma/seed-legal.ts`, `services/api/src/modules/legal` |
+| **Bug record** | BUG-0899, BUG-0906 |
+| **Root cause** | `seed-legal.ts` wrote a `REVIEW_BANNER` reading "Draft — not published, and not legal advice … It has not been reviewed by a lawyer" into all ten documents on every run. `legal:publish --confirm` refuses to publish a document whose own text declares it a draft, and exits `2` when any document is skipped. Both scripts sit in Render's `preDeployCommand` chain, so the seed guaranteed the publish step would fail and the deploy would abort. The two were individually correct and jointly impossible — neither file was wrong on its own terms, which is why it survived review. |
+| **Regression test** | `services/api/src/modules/legal/seed-legal-publishable.spec.ts`, with `draft-self-declaration.spec.ts` and `services/api/test/legal-seed.e2e-spec.ts` |
+| **Scenario** | Every document `seed-legal.ts` emits is fed to the same draft self-declaration predicate `legal:publish` uses. All ten must be publishable. Restoring the review banner to any one of them fails the suite — which is the deploy failing in a test instead of in production. |
+| **Proven to fail without the fix** | The suite was written against the pre-fix seed and failed on all ten documents; `draft-self-declaration.spec.ts` additionally had an assertion pinning the seed as *still* declaring drafts, which had to be flipped in `944a2d00`. |
+| **Note** | The lesson is not "check the copy". It is that a **release chain of independently-correct steps can still be jointly impossible**, and nothing tested the chain as a chain. The deploy gate was the first thing to run both scripts together, and it did so in production. This is also why the record sat at `PRODUCT_DECISION` for a day: the fix genuinely needed the owner to supply real legal text, and no agent could have written it. |
+| **Fixed** | 2026-08-23, `2852855e`, released in PR #42 |
+| **Active** | yes |

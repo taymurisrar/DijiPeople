@@ -2,7 +2,7 @@
 ID: BUG-0714
 aliases: [BUG-0714]
 Title: Customer emails link to the vercel.app host, and API_BASE_URL is plain HTTP
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: INFRA
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-22
 DetectedInSha: b486a60
 AffectedModules: [services/api, apps/web, docs/deployment]
 OwnerAgent: release-devops
-ArchitectDisposition: FIX_NOW
-QAReport: 
+ArchitectDisposition: DONE
+QAReport: docs/qa/runs/2026-08-24-record-state-reconciliation-0a5586f.md
 RegressionId: REG-228
 RelatedBacklogItem: ITEM-0057
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-22
-UpdatedAt: 2026-08-22
-ResolvedAt:
+UpdatedAt: 2026-08-24
+ResolvedAt: 2026-08-24
 ---
 
 # BUG-0714 — Customer emails link to the vercel.app host, and API_BASE_URL is plain HTTP
@@ -217,9 +217,9 @@ back tells them apart.
 
 ## QA Retest
 
-Pending the next deploy. Retest is: `/api/health` reports an `https` `apiBaseUrl`,
-and a tenant activation URL resolves on the customer domain rather than the
-Vercel host.
+Verified by [`2026-08-24-record-state-reconciliation-0a5586f.md`](../qa/runs/2026-08-24-record-state-reconciliation-0a5586f.md) on 2026-08-24 at `0a5586f`.
+
+REG-228 — `production-tenant-url.spec.ts` passes.
 
 ## History
 

@@ -6,11 +6,13 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 0** · completed: 47
+**Active: 1** · completed: 47
 
 ## Active
 
-_None. No session is currently running._
+| Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
+|---|---|---|---|---|---|---|---|
+| [SESSION-0049](../../docs/sessions/SESSION-0049-record-state-reconciliation-verify-what-is-actually-resolved.md) | — | Record-state reconciliation — verify what is actually resolved | ACTIVE | `agent/record-state-reconciliation` | `develop` | — | 2026-08-24T17:18:03.693Z |
 
 ## Completed
 

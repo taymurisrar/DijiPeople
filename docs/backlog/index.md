@@ -13,40 +13,38 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 45 |
+| Open (active work) | 30 |
 | Blocked | 1 |
 | Deferred | 22 |
-| Awaiting a product decision | 4 |
-| Completed / closed | 168 |
-| **Open CRITICAL** | **5** |
-| **Open HIGH** | **15** |
+| Awaiting a product decision | 2 |
+| Completed / closed | 185 |
+| **Open CRITICAL** | **4** |
+| **Open HIGH** | **4** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
 
 | Severity | Count |
 |---|---|
-| CRITICAL | 5 |
-| HIGH | 15 |
-| MEDIUM | 20 |
-| LOW | 5 |
+| CRITICAL | 4 |
+| HIGH | 4 |
+| MEDIUM | 18 |
+| LOW | 4 |
 
 ## Open by type
 
 | Type | Count |
 |---|---|
 | ARCHITECTURE | 1 |
-| BUG | 12 |
-| DATA_INTEGRITY | 2 |
+| BUG | 5 |
 | FOLLOW_UP | 2 |
-| INFRA | 7 |
-| INTEGRATION | 1 |
+| INFRA | 5 |
 | PRODUCT_DECISION | 1 |
-| SECURITY | 3 |
+| SECURITY | 2 |
 | STATE_MACHINE | 2 |
 | TECH_DEBT | 5 |
 | TEST_GAP | 6 |
-| UX | 3 |
+| UX | 1 |
 
 ## All records by status
 
@@ -55,9 +53,9 @@ see [`README.md`](README.md) for why.
 | OPEN | 7 |
 | BLOCKED | 1 |
 | DEFERRED | 22 |
-| PRODUCT_DECISION | 4 |
-| FIXED | 16 |
-| VERIFIED | 118 |
+| PRODUCT_DECISION | 2 |
+| FIXED | 1 |
+| VERIFIED | 135 |
 | DUPLICATE | 2 |
 | ACCEPTED_RISK | 1 |
 | READY | 22 |
@@ -74,11 +72,11 @@ see [`README.md`](README.md) for why.
 | [BUG-0047](../../docs/bugs/BUG-0047-seven-bug-records-are-verified-while-their-fixes-exist-only.md) | Seven bug records are VERIFIED while their fixes exist only on unmerged branches | SECURITY | CRITICAL | P0 | VERIFIED | api:organization, api:error-logs, api:employees, api:attendance, docs/qa/regressions | DONE |
 | [BUG-0071](../../docs/bugs/BUG-0071-tenant-users-reach-every-platform-super-admin-endpoint.md) | Tenant users reach every platform super-admin endpoint | AUTHORIZATION | CRITICAL | P0 | VERIFIED | super-admin, platform-auth, platform-communications | DONE |
 | [BUG-0898](../../docs/bugs/BUG-0898-self-service-checkout-is-blocked-for-every-plan-no-plan-pric.md) | Self-service checkout is blocked for every plan: no plan price has ever been synced to Stripe | BUG | CRITICAL | P0 | OPEN | api:super-admin, app:landing | BLOCKED_EXTERNAL |
-| [BUG-0899](../../docs/bugs/BUG-0899-production-cannot-deploy-the-release-chain-always-fails-beca.md) | Production cannot deploy: the release chain always fails because seeded legal documents declare themselves drafts | BUG | CRITICAL | P0 | PRODUCT_DECISION | services/api/prisma | PRODUCT_DECISION |
+| [BUG-0899](../../docs/bugs/BUG-0899-production-cannot-deploy-the-release-chain-always-fails-beca.md) | Production cannot deploy: the release chain always fails because seeded legal documents declare themselves drafts | BUG | CRITICAL | P0 | VERIFIED | services/api/prisma | DONE |
 | [BUG-0900](../../docs/bugs/BUG-0900-tenant-provisioning-exceeds-the-5s-transaction-timeout-a-pai.md) | Tenant provisioning exceeds the 5s transaction timeout: a paid order is left with no workspace | BUG | CRITICAL | P0 | FIXED | api:permissions | FIX_NOW |
 | [BUG-0904](../../docs/bugs/BUG-0904-production-is-missing-outbox-worker-enabled-so-no-workspace-.md) | Production is missing OUTBOX_WORKER_ENABLED, so no workspace is provisioned after payment | BUG | CRITICAL | P0 | OPEN | api:outbox | BLOCKED_EXTERNAL |
-| [BUG-0989](../../docs/bugs/BUG-0989-every-stripe-webhook-delivery-to-production-fails-so-a-payme.md) | Every Stripe webhook delivery to production fails, so a payment never reaches the platform | BUG | CRITICAL | P0 | OPEN | api:billing | BLOCKED_EXTERNAL |
-| [BUG-0994](../../docs/bugs/BUG-0994-plan-entitlements-blank-out-on-save-and-the-next-save-delete.md) | Plan entitlements blank out on save and the next save deletes them | DATA_INTEGRITY | CRITICAL | P0 | FIXED | platform-runtime, super-admin, admin | FIX_NOW |
+| [BUG-0989](../../docs/bugs/BUG-0989-every-stripe-webhook-delivery-to-production-fails-so-a-payme.md) | Every Stripe webhook delivery to production fails, so a payment never reaches the platform | INFRA | CRITICAL | P0 | OPEN | api:billing | BLOCKED_EXTERNAL |
+| [BUG-0994](../../docs/bugs/BUG-0994-plan-entitlements-blank-out-on-save-and-the-next-save-delete.md) | Plan entitlements blank out on save and the next save deletes them | DATA_INTEGRITY | CRITICAL | P0 | VERIFIED | platform-runtime, super-admin, admin | DONE |
 | [BUG-0049](../../docs/bugs/BUG-0049-report-only-ci-jobs-swallow-security-and-database-e2e-failur.md) | Report-only CI jobs swallow security and database E2E failures | INFRA | HIGH | P0 | VERIFIED | .github/workflows, services/api/src/common/constants, services/api/test, docs/qa | DONE |
 | [BUG-0052](../../docs/bugs/BUG-0052-production-dependency-graph-carries-critical-and-high-securi.md) | Production dependency graph carries critical and high security advisories | SECURITY | HIGH | P0 | VERIFIED | package-lock.json, apps/agent-desktop, apps/web, apps/admin, apps/landing, services/api | DONE |
 | [BUG-0053](../../docs/bugs/BUG-0053-documents-self-scoped-users-can-read-tenant-wide-documents.md) | Self-scoped document readers can list and open tenant-wide documents | AUTHORIZATION | HIGH | P0 | VERIFIED | api:documents | DONE |
@@ -125,7 +123,7 @@ see [`README.md`](README.md) for why.
 | [BUG-0083](../../docs/bugs/BUG-0083-the-database-agent-preflight-reports-pass-on-a-database-with.md) | The Database Agent preflight reports PASS on a database with every migration unapplied | INFRA | HIGH | P1 | VERIFIED | scripts, .agent, services/api | DONE |
 | [BUG-0085](../../docs/bugs/BUG-0085-the-release-command-aborted-a-first-deploy-and-otherwise-res.md) | The release command aborted a first deploy, and otherwise reset the super admin password | INFRA | HIGH | P1 | VERIFIED | platform-users, legal | DONE |
 | [BUG-0086](../../docs/bugs/BUG-0086-prisma-migrate-deploy-cannot-acquire-its-advisory-lock-throu.md) | Prisma migrate deploy cannot acquire its advisory lock through Neon pooled endpoint | INFRA | HIGH | P1 | VERIFIED | services/api/prisma | DONE |
-| [BUG-0163](../../docs/bugs/BUG-0163-package-lock-json-cannot-be-regenerated-npm-overrides-are-si.md) | package-lock.json cannot be regenerated - npm overrides are silently ignored | INFRA | HIGH | P1 | FIXED | package-lock.json, apps/admin | DONE |
+| [BUG-0163](../../docs/bugs/BUG-0163-package-lock-json-cannot-be-regenerated-npm-overrides-are-si.md) | package-lock.json cannot be regenerated - npm overrides are silently ignored | INFRA | HIGH | P1 | VERIFIED | package-lock.json, apps/admin | DONE |
 | [BUG-0220](../../docs/bugs/BUG-0220-saving-a-plan-from-the-runtime-record-page-always-returns-40.md) | Saving a plan from the runtime record page always returns 400 | BUG | HIGH | P1 | VERIFIED | apps/admin, api:platform-runtime, api:super-admin | DONE |
 | [BUG-0280](../../docs/bugs/BUG-0280-self-service-checkout-leaves-a-customer-with-no-plan-billing.md) | Self-service checkout leaves a customer with no plan, billing cycle or origin channel | DATA_INTEGRITY | HIGH | P1 | VERIFIED | api:billing, api:super-admin, apps/admin | DONE |
 | [BUG-0282](../../docs/bugs/BUG-0282-the-platform-runtime-schema-manifest-drifted-from-schema-pri.md) | The platform runtime schema manifest drifted from schema.prisma and no check noticed | DATA_INTEGRITY | HIGH | P1 | VERIFIED | pkg:config, apps/admin, services/api/prisma | DONE |
@@ -139,18 +137,18 @@ see [`README.md`](README.md) for why.
 | [BUG-0531](../../docs/bugs/BUG-0531-flat-prices-were-sellable-on-the-public-site-at-invented-amo.md) | Flat prices were sellable on the public site at invented amounts | DATA_INTEGRITY | HIGH | P1 | VERIFIED | super-admin, apps/admin | DONE |
 | [BUG-0533](../../docs/bugs/BUG-0533-seeding-the-commercial-catalogue-never-corrected-an-existing.md) | Seeding the commercial catalogue never corrected an existing plan or price | DATA_INTEGRITY | HIGH | P1 | VERIFIED | super-admin, apps/admin | DONE |
 | [BUG-0627](../../docs/bugs/BUG-0627-admin-sign-out-does-not-revoke-the-platform-session-when-the.md) | Admin sign-out does not revoke the platform session when the refresh cookie has expired | AUTHORIZATION | HIGH | P1 | VERIFIED | api:auth, apps/admin | DONE |
-| [BUG-0714](../../docs/bugs/BUG-0714-customer-emails-link-to-the-vercel-app-host-and-api-base-url.md) | Customer emails link to the vercel.app host, and API_BASE_URL is plain HTTP | INFRA | HIGH | P1 | FIXED | services/api, apps/web, docs/deployment | FIX_NOW |
-| [BUG-0767](../../docs/bugs/BUG-0767-render-yaml-is-not-what-production-runs-so-no-seed-or-legal-.md) | render.yaml is not what production runs, so no seed or legal publication has ever executed | INFRA | HIGH | P1 | FIXED | render.yaml, services/api/prisma, docs/deployment | DONE |
-| [BUG-0792](../../docs/bugs/BUG-0792-qatar-market-resolves-to-gcc-because-its-country-row-is-neve.md) | Qatar market resolves to GCC because its country row is never repaired, so Doha visitors are quoted USD | DATA_INTEGRITY | HIGH | P1 | FIXED | api:super-admin | FIX_NOW |
-| [BUG-0793](../../docs/bugs/BUG-0793-checkout-quotes-the-alphabetically-first-plan-price-currency.md) | Checkout quotes the alphabetically first plan price currency instead of the visitor market currency | BUG | HIGH | P1 | FIXED | apps/landing | FIX_NOW |
-| [BUG-0794](../../docs/bugs/BUG-0794-plan-record-page-pricing-tab-is-filtered-out-leaving-plan-pr.md) | Plan record page Pricing tab is filtered out, leaving plan price configuration unreachable | UX | HIGH | P1 | FIXED | apps/admin | FIX_NOW |
-| [BUG-0877](../../docs/bugs/BUG-0877-editing-a-plan-price-always-fails-with-property-synctostripe.md) | Editing a plan price always fails with property syncToStripe should not exist | BUG | HIGH | P1 | FIXED | apps/admin | FIX_NOW |
-| [BUG-0901](../../docs/bugs/BUG-0901-a-paid-order-records-totalamount-0-00-for-every-flat-plan-wh.md) | A paid order records totalAmount 0.00 for every FLAT plan while Stripe charges the full price | BUG | HIGH | P1 | FIXED | api:billing | FIX_NOW |
-| [BUG-0902](../../docs/bugs/BUG-0902-marktenantready-has-no-caller-so-a-paid-workspace-is-never-m.md) | markTenantReady has no caller, so a paid workspace is never marked ready and its URL is never shown | BUG | HIGH | P1 | FIXED | api:super-admin | FIX_NOW |
+| [BUG-0714](../../docs/bugs/BUG-0714-customer-emails-link-to-the-vercel-app-host-and-api-base-url.md) | Customer emails link to the vercel.app host, and API_BASE_URL is plain HTTP | INFRA | HIGH | P1 | VERIFIED | services/api, apps/web, docs/deployment | DONE |
+| [BUG-0767](../../docs/bugs/BUG-0767-render-yaml-is-not-what-production-runs-so-no-seed-or-legal-.md) | render.yaml is not what production runs, so no seed or legal publication has ever executed | INFRA | HIGH | P1 | VERIFIED | render.yaml, services/api/prisma, docs/deployment | DONE |
+| [BUG-0792](../../docs/bugs/BUG-0792-qatar-market-resolves-to-gcc-because-its-country-row-is-neve.md) | Qatar market resolves to GCC because its country row is never repaired, so Doha visitors are quoted USD | DATA_INTEGRITY | HIGH | P1 | VERIFIED | api:super-admin | DONE |
+| [BUG-0793](../../docs/bugs/BUG-0793-checkout-quotes-the-alphabetically-first-plan-price-currency.md) | Checkout quotes the alphabetically first plan price currency instead of the visitor market currency | BUG | HIGH | P1 | VERIFIED | apps/landing | DONE |
+| [BUG-0794](../../docs/bugs/BUG-0794-plan-record-page-pricing-tab-is-filtered-out-leaving-plan-pr.md) | Plan record page Pricing tab is filtered out, leaving plan price configuration unreachable | UX | HIGH | P1 | VERIFIED | apps/admin | DONE |
+| [BUG-0877](../../docs/bugs/BUG-0877-editing-a-plan-price-always-fails-with-property-synctostripe.md) | Editing a plan price always fails with property syncToStripe should not exist | BUG | HIGH | P1 | VERIFIED | apps/admin | DONE |
+| [BUG-0901](../../docs/bugs/BUG-0901-a-paid-order-records-totalamount-0-00-for-every-flat-plan-wh.md) | A paid order records totalAmount 0.00 for every FLAT plan while Stripe charges the full price | BUG | HIGH | P1 | VERIFIED | api:billing | DONE |
+| [BUG-0902](../../docs/bugs/BUG-0902-marktenantready-has-no-caller-so-a-paid-workspace-is-never-m.md) | markTenantReady has no caller, so a paid workspace is never marked ready and its URL is never shown | BUG | HIGH | P1 | VERIFIED | api:super-admin | DONE |
 | [BUG-0903](../../docs/bugs/BUG-0903-production-runs-stripe-in-test-mode-so-no-real-payment-can-b.md) | Production runs Stripe in test mode, so no real payment can be collected | BUG | HIGH | P1 | OPEN | api:billing | BLOCKED_EXTERNAL |
-| [BUG-0906](../../docs/bugs/BUG-0906-production-has-no-published-legal-documents-so-purchases-rec.md) | Production has no published legal documents, so purchases record no consent and the footer links to nothing | BUG | HIGH | P1 | PRODUCT_DECISION | api:legal, apps/landing | PRODUCT_DECISION |
-| [BUG-0976](../../docs/bugs/BUG-0976-a-disallowed-cors-origin-returns-500-and-writes-an-error-log.md) | A disallowed CORS origin returns 500 and writes an error-log row, so anyone can fill the table | SECURITY | HIGH | P1 | FIXED | services/api/src/config | FIX_NOW |
-| [BUG-0995](../../docs/bugs/BUG-0995-editing-any-plan-price-500s-once-its-stripe-product-id-goes-.md) | Editing any plan price 500s once its Stripe product id goes stale | INTEGRATION | HIGH | P1 | FIXED | billing, super-admin | FIX_NOW |
+| [BUG-0906](../../docs/bugs/BUG-0906-production-has-no-published-legal-documents-so-purchases-rec.md) | Production has no published legal documents, so purchases record no consent and the footer links to nothing | BUG | HIGH | P1 | VERIFIED | api:legal, apps/landing | DONE |
+| [BUG-0976](../../docs/bugs/BUG-0976-a-disallowed-cors-origin-returns-500-and-writes-an-error-log.md) | A disallowed CORS origin returns 500 and writes an error-log row, so anyone can fill the table | SECURITY | HIGH | P1 | VERIFIED | services/api/src/config | DONE |
+| [BUG-0995](../../docs/bugs/BUG-0995-editing-any-plan-price-500s-once-its-stripe-product-id-goes-.md) | Editing any plan price 500s once its Stripe product id goes stale | INTEGRATION | HIGH | P1 | VERIFIED | billing, super-admin | DONE |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | READY | apps/web, e2e | PLAN_REQUIRED |
@@ -214,9 +212,9 @@ see [`README.md`](README.md) for why.
 | [BUG-0532](../../docs/bugs/BUG-0532-plan-form-offered-editable-legacy-price-fields-that-bill-nob.md) | Plan form offered editable legacy price fields that bill nobody | UX | MEDIUM | P2 | DUPLICATE | apps/admin | DUPLICATE |
 | [BUG-0534](../../docs/bugs/BUG-0534-plan-form-offered-editable-legacy-price-fields-that-bill-nob.md) | Plan form offered editable legacy price fields that bill nobody | UX | MEDIUM | P2 | VERIFIED | super-admin, apps/admin | DONE |
 | [BUG-0668](../../docs/bugs/BUG-0668-exchange-rate-resolution-ignored-the-effective-date-it-was-g.md) | Exchange rate resolution ignored the effective date it was given | DATA_INTEGRITY | MEDIUM | P2 | VERIFIED | api:tenant-settings | DONE |
-| [BUG-0795](../../docs/bugs/BUG-0795-saved-table-preferences-hide-every-column-added-to-a-module-.md) | Saved table preferences hide every column added to a module afterwards | UX | MEDIUM | P2 | FIXED | apps/admin | FIX_NOW |
+| [BUG-0795](../../docs/bugs/BUG-0795-saved-table-preferences-hide-every-column-added-to-a-module-.md) | Saved table preferences hide every column added to a module afterwards | UX | MEDIUM | P2 | VERIFIED | apps/admin | DONE |
 | [BUG-0905](../../docs/bugs/BUG-0905-production-defines-direct-url-but-the-code-reads-direct-data.md) | Production defines DIRECT_URL but the code reads DIRECT_DATABASE_URL, so migrations run over the pooled endpoint | BUG | MEDIUM | P2 | OPEN | services/api/prisma, pkg:config | BLOCKED_EXTERNAL |
-| [BUG-0907](../../docs/bugs/BUG-0907-an-unknown-legal-slug-answers-200-and-hangs-on-the-loading-s.md) | An unknown legal slug answers 200 and hangs on the loading shell instead of returning 404 | BUG | MEDIUM | P2 | FIXED | apps/landing | FIX_NOW |
+| [BUG-0907](../../docs/bugs/BUG-0907-an-unknown-legal-slug-answers-200-and-hangs-on-the-loading-s.md) | An unknown legal slug answers 200 and hangs on the loading shell instead of returning 404 | BUG | MEDIUM | P2 | VERIFIED | apps/landing | DONE |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |
@@ -279,7 +277,7 @@ see [`README.md`](README.md) for why.
 | [BUG-0059](../../docs/bugs/BUG-0059-vault-wikilinks-to-task-records-and-four-module-notes-resolv.md) | Vault wikilinks to task records and four module notes resolve to nothing | DOCUMENTATION | LOW | P3 | VERIFIED | scripts, docs/tasks, docs/knowledge | DONE |
 | [BUG-0352](../../docs/bugs/BUG-0352-the-tenant-timeline-rendered-every-entry-with-no-count-and-n.md) | The tenant timeline rendered every entry with no count and no paging | UX | LOW | P3 | VERIFIED | apps/admin | DONE |
 | [BUG-0669](../../docs/bugs/BUG-0669-patch-my-preferences-never-used-its-dto-so-the-body-was-unva.md) | PATCH my-preferences never used its DTO so the body was unvalidated | SECURITY | LOW | P3 | VERIFIED | api:tenant-settings | DONE |
-| [BUG-0796](../../docs/bugs/BUG-0796-tenant-and-plan-list-summaries-omit-createdbyid-so-the-creat.md) | Tenant and plan list summaries omit createdById so the Created by me view is always empty | BUG | LOW | P3 | FIXED | api:super-admin | FIX_NOW |
+| [BUG-0796](../../docs/bugs/BUG-0796-tenant-and-plan-list-summaries-omit-createdbyid-so-the-creat.md) | Tenant and plan list summaries omit createdById so the Created by me view is always empty | BUG | LOW | P3 | VERIFIED | api:super-admin | DONE |
 | [ITEM-0007](../../docs/backlog/items/ITEM-0007-should-duplicate-website-leads-be-deduplicated.md) | Product decision — should duplicate website leads be deduplicated? | PRODUCT_DECISION | LOW | P3 | DONE | api:leads, apps/landing | DONE |
 | [ITEM-0008](../../docs/backlog/items/ITEM-0008-customeraccount-has-no-origin-channel.md) | Product decision — CustomerAccount carries no origin channel | PRODUCT_DECISION | LOW | P3 | DONE | services/api/prisma, api:super-admin | DONE |
 | [ITEM-0011](../../docs/backlog/items/ITEM-0011-framework-validation-should-catch-absence-claims.md) | Framework validation should catch false absence claims in context documents | TECH_DEBT | LOW | P3 | DONE | .agent/context, scripts | DONE |

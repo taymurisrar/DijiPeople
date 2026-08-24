@@ -67,8 +67,6 @@ See [[dijipeople-platform-overview|DijiPeople Platform Overview]] for the full p
 Questions where the engineering is understood and the **product answer**
 **is not**. No agent may resolve one by implementing a side of it.
 
-- [[BUG-0899-production-cannot-deploy-the-release-chain-always-fails-beca|BUG-0899]] — **Production cannot deploy: the release chain always fails because seeded legal documents declare themselves drafts** (CRITICAL)
-- [[BUG-0906-production-has-no-published-legal-documents-so-purchases-rec|BUG-0906]] — **Production has no published legal documents, so purchases record no consent and the footer links to nothing** (HIGH)
 - [[ITEM-0062-no-multi-tenant-membership-one-user-belongs-to-one-tenant-so|ITEM-0062]] — **No multi-tenant membership — one user belongs to one tenant, so discovery and switching cannot exist** (HIGH)
 - [[ITEM-0079-activation-does-not-gate-on-a-workspace-having-any-module-en|ITEM-0079]] — **Activation does not gate on a workspace having any module enabled** (LOW)
 
@@ -85,12 +83,8 @@ Questions where the engineering is understood and the **product answer**
 
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
-| [[BUG-0994-plan-entitlements-blank-out-on-save-and-the-next-save-delete|BUG-0994]] | Plan entitlements blank out on save and the next save deletes them | DATA_INTEGRITY | CRITICAL | FIXED | platform-runtime, super-admin, admin | FIX_NOW |
 | [[BUG-0015-a-tenant-that-fails-before-identities-and-billing-is-unrecoverable|BUG-0015]] | A tenant that fails before identities-and-billing is permanently unrecoverable | STATE_MACHINE | HIGH | OPEN | api:tenant-control-plane | PLAN_REQUIRED |
 | [[BUG-0016-partner-onboarding-review-has-no-state-machine|BUG-0016]] | Partner onboarding review has no state machine | STATE_MACHINE | HIGH | OPEN | api:partner-experience | PLAN_REQUIRED |
-| [[BUG-0792-qatar-market-resolves-to-gcc-because-its-country-row-is-neve|BUG-0792]] | Qatar market resolves to GCC because its country row is never repaired, so Doha visitors are quoted USD | DATA_INTEGRITY | HIGH | FIXED | api:super-admin | FIX_NOW |
-| [[BUG-0794-plan-record-page-pricing-tab-is-filtered-out-leaving-plan-pr|BUG-0794]] | Plan record page Pricing tab is filtered out, leaving plan price configuration unreachable | UX | HIGH | FIXED | apps/admin | FIX_NOW |
-| [[BUG-0795-saved-table-preferences-hide-every-column-added-to-a-module-|BUG-0795]] | Saved table preferences hide every column added to a module afterwards | UX | MEDIUM | FIXED | apps/admin | FIX_NOW |
 | [[ITEM-0068-legal-documents-have-no-operator-ui-so-publishing-is-a-scrip|ITEM-0068]] | Legal documents have no operator UI, so publishing is a script | UX | MEDIUM | READY | legal, admin | PLAN_REQUIRED |
 
 ## How to read this

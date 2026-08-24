@@ -2,7 +2,7 @@
 ID: BUG-0795
 aliases: [BUG-0795]
 Title: Saved table preferences hide every column added to a module afterwards
-Status: FIXED
+Status: VERIFIED
 Severity: MEDIUM
 Priority: P2
 Type: UX
@@ -11,14 +11,14 @@ DetectedDate: 2026-08-22
 DetectedInSha: 8c56006
 AffectedModules: [apps/admin]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
-QAReport: 
+ArchitectDisposition: DONE
+QAReport: docs/qa/runs/2026-08-24-record-state-reconciliation-0a5586f.md
 RegressionId: REG-233
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-22
-UpdatedAt: 2026-08-22
+UpdatedAt: 2026-08-24
 ResolvedAt: 2026-08-22
 ---
 
@@ -111,8 +111,9 @@ definition position. Both exported for test. Commit `cbc65c5`.
 
 ## QA Retest
 
-Pending: with saved table state on Tenants, confirm the new Workspace,
-Environment and Employees columns appear at their definition positions.
+Verified by [`2026-08-24-record-state-reconciliation-0a5586f.md`](../qa/runs/2026-08-24-record-state-reconciliation-0a5586f.md) on 2026-08-24 at `0a5586f`.
+
+REG-233 — `column-preferences.spec.ts` passes.
 
 ## History
 

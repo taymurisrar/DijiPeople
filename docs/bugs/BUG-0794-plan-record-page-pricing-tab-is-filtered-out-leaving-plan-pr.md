@@ -2,7 +2,7 @@
 ID: BUG-0794
 aliases: [BUG-0794]
 Title: Plan record page Pricing tab is filtered out, leaving plan price configuration unreachable
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: UX
@@ -11,14 +11,14 @@ DetectedDate: 2026-08-22
 DetectedInSha: 8c56006
 AffectedModules: [apps/admin]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
-QAReport: 
+ArchitectDisposition: DONE
+QAReport: docs/qa/runs/2026-08-24-record-state-reconciliation-0a5586f.md
 RegressionId: REG-232
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-22
-UpdatedAt: 2026-08-22
+UpdatedAt: 2026-08-24
 ResolvedAt: 2026-08-22
 ---
 
@@ -110,8 +110,9 @@ now offers".
 
 ## QA Retest
 
-Pending: open a plan in Platform Admin, select Pricing, confirm the price rows
-render and a change saves.
+Verified by [`2026-08-24-record-state-reconciliation-0a5586f.md`](../qa/runs/2026-08-24-record-state-reconciliation-0a5586f.md) on 2026-08-24 at `0a5586f`.
+
+REG-232 — `runtime-record-panels.spec.ts` passes.
 
 ## History
 

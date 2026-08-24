@@ -2,7 +2,7 @@
 ID: BUG-0877
 aliases: [BUG-0877]
 Title: Editing a plan price always fails with property syncToStripe should not exist
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -11,14 +11,14 @@ DetectedDate: 2026-08-23
 DetectedInSha: 01a88a9
 AffectedModules: [apps/admin]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
-QAReport: 
+ArchitectDisposition: DONE
+QAReport: docs/qa/runs/2026-08-24-record-state-reconciliation-0a5586f.md
 RegressionId: REG-235
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-23
-UpdatedAt: 2026-08-23
+UpdatedAt: 2026-08-24
 ResolvedAt: 2026-08-23
 ---
 
@@ -130,8 +130,9 @@ was disabled on `billingModel === "FLAT"`, which is the only model that uses it
 
 ## QA Retest
 
-QA-PLATFORM-021. Manual: edit a price amount and save; confirm 200 and the new
-amount renders.
+Verified by [`2026-08-24-record-state-reconciliation-0a5586f.md`](../qa/runs/2026-08-24-record-state-reconciliation-0a5586f.md) on 2026-08-24 at `0a5586f`.
+
+REG-235 — `plan-price-dto-contract.spec.ts` and `plan-price-payload.spec.ts` pass.
 
 ## History
 

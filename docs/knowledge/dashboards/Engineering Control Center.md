@@ -7,17 +7,17 @@
 
 | | |
 |---|---|
-| Active sessions | **0** |
+| Active sessions | **1** |
 | Active parent tasks | 5 |
 | Active work packages | 1 |
 | Blocked work packages | 4 |
 | Work packages waiting on the user | 0 |
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
-| Open CRITICAL | **5** |
-| Open HIGH | 15 |
+| Open CRITICAL | **4** |
+| Open HIGH | 4 |
 | Awaiting Architect triage | 0 |
-| Owner decisions pending | 4 |
+| Owner decisions pending | 2 |
 | QA coverage gaps | 108 |
 | Scenarios blocked by infrastructure | 0 |
 
@@ -30,12 +30,12 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 43 |
-| No next action | 43 |
+| No acceptance criteria | 29 |
+| No next action | 29 |
 | Aging — 7d / 30d / 90d | 13 / 0 / 0 |
 | Architecture and technical debt | 6 |
-| Security gaps | 3 |
-| Database gaps | 2 |
+| Security gaps | 2 |
+| Database gaps | 0 |
 
 Ranked next-best actions weigh blast radius rather than severity alone, and
 are computed on demand so the reasons travel with the ranking:
@@ -47,7 +47,9 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 ## Active Sessions
 
-_No session is currently registered as active._
+| Session | Task | Title | Status | Branch | Target | Leases | Schema |
+|---|---|---|---|---|---|---|---|
+| [[SESSION-0049-record-state-reconciliation-verify-what-is-actually-resolved|SESSION-0049]] | — | Record-state reconciliation — verify what is actually resolved | ACTIVE | `agent/record-state-reconciliation` | `develop` | — | NO |
 
 ## Active Tasks and Work Packages
 
@@ -104,16 +106,13 @@ what they own, and what the backlog and QA systems currently say.
 | [[BUG-0898-self-service-checkout-is-blocked-for-every-plan-no-plan-pric|BUG-0898]] | Self-service checkout is blocked for every plan: no plan price has ever been synced to Stripe | BUG | CRITICAL | OPEN | api:super-admin, app:landing | BLOCKED_EXTERNAL |
 | [[BUG-0900-tenant-provisioning-exceeds-the-5s-transaction-timeout-a-pai|BUG-0900]] | Tenant provisioning exceeds the 5s transaction timeout: a paid order is left with no workspace | BUG | CRITICAL | FIXED | api:permissions | FIX_NOW |
 | [[BUG-0904-production-is-missing-outbox-worker-enabled-so-no-workspace-|BUG-0904]] | Production is missing OUTBOX_WORKER_ENABLED, so no workspace is provisioned after payment | BUG | CRITICAL | OPEN | api:outbox | BLOCKED_EXTERNAL |
-| [[BUG-0989-every-stripe-webhook-delivery-to-production-fails-so-a-payme|BUG-0989]] | Every Stripe webhook delivery to production fails, so a payment never reaches the platform | BUG | CRITICAL | OPEN | api:billing | BLOCKED_EXTERNAL |
-| [[BUG-0994-plan-entitlements-blank-out-on-save-and-the-next-save-delete|BUG-0994]] | Plan entitlements blank out on save and the next save deletes them | DATA_INTEGRITY | CRITICAL | FIXED | platform-runtime, super-admin, admin | FIX_NOW |
+| [[BUG-0989-every-stripe-webhook-delivery-to-production-fails-so-a-payme|BUG-0989]] | Every Stripe webhook delivery to production fails, so a payment never reaches the platform | INFRA | CRITICAL | OPEN | api:billing | BLOCKED_EXTERNAL |
 
 ## Owner Decisions Pending
 
 Questions where the engineering is understood and the **product answer is**
 **not**. No agent may resolve one by implementing a side of it.
 
-- [[BUG-0899-production-cannot-deploy-the-release-chain-always-fails-beca|BUG-0899]] — **Production cannot deploy: the release chain always fails because seeded legal documents declare themselves drafts**
-- [[BUG-0906-production-has-no-published-legal-documents-so-purchases-rec|BUG-0906]] — **Production has no published legal documents, so purchases record no consent and the footer links to nothing**
 - [[ITEM-0062-no-multi-tenant-membership-one-user-belongs-to-one-tenant-so|ITEM-0062]] — **No multi-tenant membership — one user belongs to one tenant, so discovery and switching cannot exist**
 - [[ITEM-0079-activation-does-not-gate-on-a-workspace-having-any-module-en|ITEM-0079]] — **Activation does not gate on a workspace having any module enabled**
 
@@ -237,10 +236,10 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 45 |
+| Open total | 30 |
 | Blocked | 1 |
 | Deferred | 22 |
-| Awaiting a product decision | 4 |
+| Awaiting a product decision | 2 |
 | Awaiting Architect triage | 0 |
 
 Every ordinary record carries a disposition.

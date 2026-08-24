@@ -2,7 +2,7 @@
 ID: BUG-0163
 aliases: [BUG-0163]
 Title: package-lock.json cannot be regenerated - npm overrides are silently ignored
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: INFRA
@@ -12,13 +12,13 @@ DetectedInSha: 34b699b
 AffectedModules: [package-lock.json, apps/admin]
 OwnerAgent: architect
 ArchitectDisposition: DONE
-QAReport:
+QAReport: docs/qa/runs/2026-08-24-record-state-reconciliation-0a5586f.md
 RegressionId: REG-226
 RelatedBacklogItem: ITEM-0048
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-21
-UpdatedAt: 2026-08-22
+UpdatedAt: 2026-08-24
 ResolvedAt: 2026-08-22
 LastReviewed: 2026-08-21
 NextAction: Owner decision - the fix requires accepting a 338-package dependency refresh, which broke five CI jobs on first attempt
@@ -216,19 +216,9 @@ engineering one, so it is recorded here rather than absorbed.
 
 ## QA Retest
 
-Not passed. The fix was proven to work and then reverted.
+Verified by [`2026-08-24-record-state-reconciliation-0a5586f.md`](../qa/runs/2026-08-24-record-state-reconciliation-0a5586f.md) on 2026-08-24 at `0a5586f`.
 
-```text
-fresh resolve after the @tiptap fix   no ERESOLVE
-overrides applied                     node-pre-gyp 2.0.3, node-gyp 11.5.0
-npm audit --omit=dev                  critical 1 -> 0, total 12 -> 6
-admin check-types                     PASS
-admin tests                           12 suites, 108 tests PASS
-CI on ce7a841                         5 of 13 jobs FAILED
-```
-
-The first five lines are why the fix is known to be correct. The last line is
-why it is not on `develop`.
+REG-226 — the CI gate step "Lockfile regenerates from the manifests" is present at `.github/workflows/ci.yml:141`.
 
 ## Resolution — 2026-08-22, SESSION-0040
 

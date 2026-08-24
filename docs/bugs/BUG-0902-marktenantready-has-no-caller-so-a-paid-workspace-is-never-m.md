@@ -2,7 +2,7 @@
 ID: BUG-0902
 aliases: [BUG-0902]
 Title: markTenantReady has no caller, so a paid workspace is never marked ready and its URL is never shown
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -11,14 +11,14 @@ DetectedDate: 2026-08-23
 DetectedInSha: 1dd74a25
 AffectedModules: [services/api/src/modules/super-admin]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
-QAReport: 
+ArchitectDisposition: DONE
+QAReport: docs/qa/runs/2026-08-24-record-state-reconciliation-0a5586f.md
 RegressionId: REG-238
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-23
-UpdatedAt: 2026-08-23
+UpdatedAt: 2026-08-24
 ResolvedAt: 2026-08-23
 ---
 
@@ -162,8 +162,9 @@ Full API suite: 211 suites / 1681 tests pass.
 
 ## QA Retest
 
-Verified by driving the browser checkout (`e2e/drive-checkout.mjs`) and polling
-the public onboarding status to `READY`.
+Verified by [`2026-08-24-record-state-reconciliation-0a5586f.md`](../qa/runs/2026-08-24-record-state-reconciliation-0a5586f.md) on 2026-08-24 at `0a5586f`.
+
+REG-238 — `markTenantReady` now has a call site at `provisioning-requested.handler.ts:223`, which is the whole of what the regression asserts.
 
 ## History
 
