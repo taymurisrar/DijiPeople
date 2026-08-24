@@ -8,9 +8,9 @@
 | | |
 |---|---|
 | Active sessions | **1** |
-| Active parent tasks | 5 |
+| Active parent tasks | 6 |
 | Active work packages | 1 |
-| Blocked work packages | 4 |
+| Blocked work packages | 0 |
 | Work packages waiting on the user | 0 |
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
@@ -55,11 +55,12 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 | Task | Title | Type | Size | Progress | Current | Ready next | Blocked |
 |---|---|---|---|---|---|---|---|
-| [[TASK-0007-commercial-platform-completion-transactional-legal-and-lifec|TASK-0007]] | Commercial platform completion — transactional, legal and lifecycle half | FEATURE | PROGRAM | 15/16 | WP-11 | — | WP-15 |
-| [[TASK-0008-self-service-customer-onboarding-tenant-provisioning-domain-|TASK-0008]] | Self-service customer onboarding, tenant provisioning, domain routing and central login | FEATURE | LARGE | 10/11 | WP-06 | — | WP-06 |
-| [[TASK-0009-identity-and-multi-tenant-membership|TASK-0009]] | Identity and multi-tenant membership | FEATURE | LARGE | 11/12 | WP-09 | — | WP-09 |
-| [[TASK-0011-first-production-release|TASK-0011]] | First production release | RELEASE | MEDIUM | 1/2 | WP-02 | — | — |
-| [[TASK-0018-legacy-pricing-removed-and-the-commercial-catalogue-made-to-|TASK-0018]] | Legacy pricing removed and the commercial catalogue made to converge | FEATURE | MEDIUM | 3/4 | — | — | WP-04 |
+| [[TASK-0004-autonomous-framework-v2-architect-only-orchestration-multi-s|TASK-0004]] | Autonomous framework v2 — Architect-only orchestration, multi-session safety, develop integration, persistent QA | FRAMEWORK | PROGRAM | 11/11 | — | — | — |
+| [[TASK-0007-commercial-platform-completion-transactional-legal-and-lifec|TASK-0007]] | Commercial platform completion — transactional, legal and lifecycle half | FEATURE | PROGRAM | 16/16 | — | — | — |
+| [[TASK-0008-self-service-customer-onboarding-tenant-provisioning-domain-|TASK-0008]] | Self-service customer onboarding, tenant provisioning, domain routing and central login | FEATURE | LARGE | 11/11 | — | — | — |
+| [[TASK-0009-identity-and-multi-tenant-membership|TASK-0009]] | Identity and multi-tenant membership | FEATURE | LARGE | 11/12 | WP-09 | WP-09 | — |
+| [[TASK-0011-first-production-release|TASK-0011]] | First production release | RELEASE | MEDIUM | 2/2 | — | — | — |
+| [[TASK-0018-legacy-pricing-removed-and-the-commercial-catalogue-made-to-|TASK-0018]] | Legacy pricing removed and the commercial catalogue made to converge | FEATURE | MEDIUM | 4/4 | — | — | — |
 
 ## Branch model
 
@@ -250,7 +251,7 @@ Deployment state is **not** derivable from Git. A merge is Git state; what is
 running is a separate fact with separate evidence, recorded per release under
 `docs/deployment/release-history/`.
 
-_No release has been recorded. Nothing has been deployed through the release process._
+- [[2026-08-24-production-6ed7a44|Release — production — `6ed7a44`]]
 
 ## How this is maintained
 

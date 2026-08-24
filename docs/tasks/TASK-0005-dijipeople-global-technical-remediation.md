@@ -15,7 +15,7 @@ CURRENT_PACKAGE: NONE
 NEXT_READY_WORK_PACKAGE: NONE
 COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10, WP-11]
 BLOCKED_PACKAGES: []
-OWNER_DECISIONS: 1
+OWNER_DECISIONS: 0
 FINAL_STATUS: COMPLETE - every package deliverable closed; packages WP-04 through WP-08 and WP-10 were discharged by later sessions rather than on this program's branches, and are reconciled here against the record states that prove it
 ---
 

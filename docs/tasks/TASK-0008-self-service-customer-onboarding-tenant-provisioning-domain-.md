@@ -10,11 +10,11 @@ CREATED_AT: 2026-08-18
 AFFECTED_MODULES: [super-admin, tenant-domains, tenant-control-plane, auth, billing, notifications, legal, landing, web, admin]
 AGENTS: [Architect, Database, Backend/API, Frontend, UI/UX, Integration, Security, QA, Reviewer, Integrator]
 DEPENDENCIES: origin/develop 494c44d; TASK-0007 WP-01..WP-10, WP-12
-CURRENT_PACKAGE: WP-06
+CURRENT_PACKAGE:
 NEXT_READY_WORK_PACKAGE: NONE
-COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-04, WP-05, WP-07, WP-08, WP-09, WP-10, WP-11]
-BLOCKED_PACKAGES: [WP-06]
-OWNER_DECISIONS: 4
+COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10, WP-11]
+BLOCKED_PACKAGES: []
+OWNER_DECISIONS: 0
 FINAL_STATUS:
 ---
 
@@ -152,7 +152,7 @@ Both are recorded here rather than silently fixed, per the retrieval contract.
 | WP-04 | Onboarding API surface — organization profile, owner identity, agreements, draft session | DONE | WP-01, WP-02 | Backend/API, Database | agent/self-service-onboarding-provisioning | 09f24ea | PASS | PASS | INTEGRATED |
 | WP-11 | Public onboarding wizard UI — organization, workspace, owner, agreements, review | DONE | WP-04 | Frontend, UI/UX | agent/self-service-onboarding-provisioning | 09f24ea | PASS_WITH_RISKS | PASS | INTEGRATED |
 | WP-05 | Provisioning progress and workspace-ready experience | DONE | WP-03, WP-04 | Frontend, UI/UX | agent/self-service-onboarding-provisioning | 09f24ea | PASS | PASS | INTEGRATED |
-| WP-06 | Workspace switcher and last-used workspace | BLOCKED | ITEM-0062 | Frontend, UI/UX, Backend/API, Database, Security | — | — | NOT_RUN | NOT_RUN | NOT_STARTED |
+| WP-06 | Workspace switcher and last-used workspace | DONE | ITEM-0062 | Frontend, UI/UX, Backend/API, Database, Security | agent/identity-and-membership | 8306936 | PASS | PASS | INTEGRATED |
 | WP-07 | Security review — enumeration, abuse, rate limiting, redirect safety | DONE | WP-01..WP-05 | Security | agent/self-service-onboarding-provisioning | 09f24ea | PASS | PASS | INTEGRATED |
 | WP-08 | QA campaign — real PostgreSQL, concurrency, browser E2E | DONE | WP-07 | QA | agent/self-service-onboarding-provisioning | 09f24ea | PASS_WITH_RISKS | PASS | INTEGRATED |
 | WP-09 | Review, exact-SHA CI, develop integration, knowledge and closure | DONE | WP-08 | Reviewer, Integrator, Architect | agent/self-service-onboarding-provisioning | 09f24ea | PASS | PASS | INTEGRATED |
@@ -533,6 +533,16 @@ before WP-01 writes `schema.prisma`.
 
 ## History
 
+- 2026-08-24 — **WP-06 closed. It was delivered by another task and this record
+  never learned of it.** [[TASK-0009]] WP-07 is titled "In-app workspace switcher
+  — closes TASK-0008 WP-06" and reached `DONE` / `INTEGRATED` at `8306936`; the
+  component is `apps/web/app/components/workspace-switcher.tsx`, mounted from
+  `apps/web/app/(authenticated)/layout.tsx`. [[ITEM-0062]] was the stated blocker
+  and TASK-0009 is the task that resolved it.
+
+  With WP-06 closed every package in this task is `DONE`. The parent status is
+  left for the owner rather than flipped here — the instruction for this pass was
+  to make records match verified reality, not to run closures.
 - 2026-08-18 — created at `494c44d`. Reconciled the brief against the repository
   before planning: 33 requirements already built, 11 genuine gaps, 2 documentation
   drift findings. Nine packages sequenced from the gaps rather than from the

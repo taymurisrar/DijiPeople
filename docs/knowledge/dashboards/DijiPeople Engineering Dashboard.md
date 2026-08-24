@@ -242,7 +242,7 @@
 
 ## Recent Releases
 
-_None. Nothing has been deployed through the release process._
+- [[2026-08-24-production-6ed7a44|Release — production — `6ed7a44`]]
 
 ## Active / Recent Backlog
 
@@ -289,7 +289,7 @@ _None. Nothing has been deployed through the release process._
 | Known bug patterns | 26 |
 | QA runs | 24 |
 | Engineering history records | 38 |
-| Release records | 0 |
+| Release records | 1 |
 | Module notes | 28 |
 | Architecture notes | 20 |
 | Decision notes (ADR + generated) | 6 |
@@ -298,8 +298,6 @@ _None. Nothing has been deployed through the release process._
 **Awaiting Architect triage: 0.** A record nobody has
 triaged is work nobody has decided about — the number that should stay near
 zero between tasks.
-
-**No release records exist.** Nothing has been deployed through the release process yet; this is a true statement about the repository, not a gap in the dashboard.
 
 ## How this is maintained
 

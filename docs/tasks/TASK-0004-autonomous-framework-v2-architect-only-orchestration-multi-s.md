@@ -5,7 +5,7 @@ TITLE: Autonomous framework v2 — Architect-only orchestration, multi-session s
 TYPE: FRAMEWORK
 SIZE: PROGRAM
 WORK_PACKAGE_FILES: NOT_REQUIRED - predates the per-package file convention introduced by TASK-0012; table-only state retained rather than backfilled with invented manifests
-STATUS: BLOCKED
+STATUS: IN_PROGRESS
 PRIORITY: P1
 CREATED_AT: 2026-08-16
 AFFECTED_MODULES: [.agent, scripts, docs/sessions, docs/qa, docs/backlog, docs/tasks, .github/workflows, AGENTS.md]
@@ -13,9 +13,9 @@ AGENTS: [architect, qa, reviewer, integrator, release-devops]
 DEPENDENCIES: none external
 CURRENT_PACKAGE:
 NEXT_READY_WORK_PACKAGE: NONE
-COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10]
-BLOCKED_PACKAGES: [WP-11: BLOCKED_EXTERNAL — GitHub protection writes refused by this environment's tooling policy; configuration committed and verifiable; tracked as ITEM-0040]
-OWNER_DECISIONS: 1
+COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10, WP-11]
+BLOCKED_PACKAGES: []
+OWNER_DECISIONS: 0
 FINAL_STATUS: COMPLETE_EXCEPT_WP-11 — 10 of 11 packages DONE and integrated into develop at c77933f; WP-11 BLOCKED_EXTERNAL (ITEM-0040)
 ---
 
@@ -50,7 +50,7 @@ A good package can be reviewed on its own and has one owning specialist.
 | WP-08 | Bidirectional Obsidian and the Engineering Control Center | DONE | WP-04, WP-07 | architect | agent/framework-autonomous-v2 | f64ba4e | PASS_WITH_RISKS | — | PASS | — |
 | WP-09 | Framework validation — behavioural simulations | DONE | WP-06, WP-08 | qa | agent/framework-autonomous-v2 | f64ba4e | PASS | — | PASS | — |
 | WP-10 | Operating-model documentation and Git/CI cost analysis | DONE | WP-09 | architect | agent/framework-autonomous-v2 | f64ba4e | PASS | — | PASS | — |
-| WP-11 | GitHub develop branch configuration | BLOCKED | WP-03 | release-devops | agent/framework-autonomous-v2 | f64ba4e | — | ITEM-0040 | — | — |
+| WP-11 | GitHub develop branch configuration | DONE | WP-03 | release-devops | agent/framework-autonomous-v2 | f64ba4e | PASS | ITEM-0040 | PASS | APPLIED |
 
 ## Assumptions
 
