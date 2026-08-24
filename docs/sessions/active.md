@@ -10,6 +10,4 @@ leases actually held this minute, the develop merge queue — comes from
 `node scripts/session.mjs list`, which reads the shared Git directory and
 therefore sees sibling worktrees without anybody having pushed.
 
-| Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
-|---|---|---|---|---|---|---|---|
-| [SESSION-0049](../../docs/sessions/SESSION-0049-record-state-reconciliation-verify-what-is-actually-resolved.md) | — | Record-state reconciliation — verify what is actually resolved | ACTIVE | `agent/record-state-reconciliation` | `develop` | — | 2026-08-24T17:18:03.693Z |
+_None. No session is currently running._
