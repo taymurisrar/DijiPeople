@@ -9,6 +9,7 @@ Parent tasks currently in flight. `Current` is the work package executing now.
 | [TASK-0007](TASK-0007-commercial-platform-completion-transactional-legal-and-lifec.md) | Commercial platform completion — transactional, legal and lifecycle half | FEATURE | PROGRAM | P0 | IN_PROGRESS | 16/16 | — |
 | [TASK-0008](TASK-0008-self-service-customer-onboarding-tenant-provisioning-domain-.md) | Self-service customer onboarding, tenant provisioning, domain routing and central login | FEATURE | LARGE | P0 | IN_PROGRESS | 11/11 | — |
 | [TASK-0011](TASK-0011-first-production-release.md) | First production release | RELEASE | MEDIUM | P0 | IN_PROGRESS | 2/2 | — |
+| [TASK-0019](TASK-0019-release-the-payment-path-and-pricing-fixes-to-production.md) | Release the payment-path and pricing fixes to production | RELEASE | MEDIUM | P0 | IN_PROGRESS | 0/2 | WP-01 |
 | [TASK-0004](TASK-0004-autonomous-framework-v2-architect-only-orchestration-multi-s.md) | Autonomous framework v2 — Architect-only orchestration, multi-session safety, develop integration, persistent QA | FRAMEWORK | PROGRAM | P1 | IN_PROGRESS | 11/11 | — |
 | [TASK-0009](TASK-0009-identity-and-multi-tenant-membership.md) | Identity and multi-tenant membership | FEATURE | LARGE | P1 | IN_PROGRESS | 11/12 | WP-09 |
 | [TASK-0018](TASK-0018-legacy-pricing-removed-and-the-commercial-catalogue-made-to-.md) | Legacy pricing removed and the commercial catalogue made to converge | FEATURE | MEDIUM | P1 | IN_PROGRESS | 4/4 | — |

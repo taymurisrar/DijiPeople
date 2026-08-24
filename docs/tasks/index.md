@@ -8,7 +8,7 @@ graph and the block reasons. See
 
 | Bucket | Count |
 |---|---|
-| [Active](active.md) | 6 |
+| [Active](active.md) | 7 |
 | [Blocked](blocked.md) | 0 |
 | [Completed](completed.md) | 12 |
 
@@ -33,6 +33,7 @@ graph and the block reasons. See
 | [TASK-0010](TASK-0010-go-live-readiness.md) | Go-live readiness | FEATURE | MEDIUM | P0 | COMPLETE | 8/8 | NONE |
 | [TASK-0011](TASK-0011-first-production-release.md) | First production release | RELEASE | MEDIUM | P0 | IN_PROGRESS | 2/2 | — |
 | [TASK-0012](TASK-0012-final-agent-operating-system-upgrade.md) | Final agent operating system upgrade | FRAMEWORK | PROGRAM | P0 | COMPLETE | 16/16 | WP-16 |
+| [TASK-0019](TASK-0019-release-the-payment-path-and-pricing-fixes-to-production.md) | Release the payment-path and pricing fixes to production | RELEASE | MEDIUM | P0 | IN_PROGRESS | 0/2 | WP-01 |
 | [TASK-0001](TASK-0001-framework-keyword-routing-task-orchestration-and-repository-.md) | Framework: keyword routing, task orchestration and repository health | FRAMEWORK | LARGE | P1 | COMPLETE | 6/6 | — |
 | [TASK-0002](TASK-0002-deep-documentation-of-apps-docs-apps-landing-and-apps-agent-.md) | Deep documentation of apps/docs, apps/landing and apps/agent-desktop | KNOWLEDGE | LARGE | P1 | COMPLETE | 9/9 | — |
 | [TASK-0003](TASK-0003-deep-documentation-of-apps-web-the-tenant-product.md) | Deep documentation of apps/web, the tenant product | KNOWLEDGE | LARGE | P1 | COMPLETE | 9/9 | — |
