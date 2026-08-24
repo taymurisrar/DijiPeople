@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**246 records** — 150 bugs under [`docs/bugs/`](../bugs/), 96 non-bug items under [`items/`](items/).
+**247 records** — 150 bugs under [`docs/bugs/`](../bugs/), 97 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -17,7 +17,7 @@ see [`README.md`](README.md) for why.
 | Blocked | 1 |
 | Deferred | 22 |
 | Awaiting a product decision | 2 |
-| Completed / closed | 191 |
+| Completed / closed | 192 |
 | **Open CRITICAL** | **4** |
 | **Open HIGH** | **5** |
 | **Awaiting Architect triage** | **0** |
@@ -59,7 +59,7 @@ see [`README.md`](README.md) for why.
 | DUPLICATE | 2 |
 | ACCEPTED_RISK | 1 |
 | READY | 22 |
-| DONE | 50 |
+| DONE | 51 |
 
 ## All records
 
@@ -160,6 +160,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0063](../../docs/backlog/items/ITEM-0063-self-service-checkout-must-prove-the-owner-email-before-char.md) | Self-service checkout must prove the owner email before charging | SECURITY | HIGH | P1 | DONE | billing, platform-communications, landing | DONE |
 | [ITEM-0094](../../docs/backlog/items/ITEM-0094-go-live-sh-reports-no-blocker-for-a-webhook-endpoint-that-re.md) | go-live.sh reports no blocker for a webhook endpoint that rejects every delivery | TEST_GAP | HIGH | P1 | READY | scripts, api:billing, api:outbox | FIX_NOW |
 | [ITEM-0096](../../docs/backlog/items/ITEM-0096-a-critical-notification-named-no-reason-and-no-action-and-th.md) | A critical notification named no reason and no action, and the price estimate showed no working | UX | HIGH | P1 | DONE | api:platform-events, apps/admin, apps/landing | DONE |
+| [ITEM-0097](../../docs/backlog/items/ITEM-0097-a-saved-column-preference-could-hide-the-column-that-identif.md) | A saved column preference could hide the column that identifies the row | UX | HIGH | P1 | DONE | apps/admin, e2e | DONE |
 | [ITEM-0048](../../docs/backlog/items/ITEM-0048-replace-or-contain-active-win-and-the-xlsx-export-path.md) | Replace or contain active-win and the xlsx export path | SECURITY | HIGH | P2 | BLOCKED | apps/agent-desktop, services/api/src/common/excel, package-lock.json | BLOCKED_EXTERNAL |
 | [ITEM-0086](../../docs/backlog/items/ITEM-0086-smoke-deployment-does-not-assert-that-a-launched-market-has-.md) | smoke:deployment does not assert that a launched market has a purchasable price or a running outbox worker | TEST_GAP | HIGH | P2 | DONE | scripts | DONE |
 | [BUG-0051](../../docs/bugs/BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state.md) | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | P1 | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |

@@ -2523,7 +2523,22 @@ const definitions: PlatformModuleDefinition[] = [
        * previously reachable only by opening the record.
        */
       [
-        col("displayName", "Tenant", 220),
+        /*
+         * The row's identity, and `essential` so no saved preference can hide
+         * it. A tenant list with its name column off leads with `Customer`,
+         * addresses every row by somebody else's name, and stops being a list
+         * of tenants — which is exactly how this was found.
+         *
+         * Labelled "Name" rather than "Tenant": the header sits on a page
+         * already titled Tenants, so repeating the noun said nothing, and the
+         * question an operator is answering here is "which one".
+         *
+         * `displayName` rather than `name`, even though `name` is the required
+         * field: `mapTenantSummary` returns `displayName: tenant.displayName ??
+         * tenant.name`, so this is the friendly name where one is set and the
+         * real name otherwise, and is never empty.
+         */
+        { ...col("displayName", "Name", 220), essential: true },
         /*
          * The subdomain the customer actually signs in at. Not a lookup: it
          * addresses the same record the row already opens, so linking it
@@ -2568,9 +2583,30 @@ const definitions: PlatformModuleDefinition[] = [
         /*
          * Off by default. Each is a column an operator wants only while chasing
          * a specific workspace, and a list that shows everything shows nothing.
+         *
+         * They are declared rather than omitted because the column picker can
+         * only offer what the definition names — a field absent here is not
+         * "off", it is unreachable.
          */
         { ...col("users", "Users", 110, "number"), visible: false },
+        /*
+         * There is no owner column, and the reason is left here so nobody adds
+         * one casually. `mapTenantSummary` returns the owner under `owner`,
+         * while `validateRuntimeDefinition` resolves column paths against the
+         * Prisma graph, where the relation is `ownerUser`. So `owner.fullName`
+         * fails validation, and `ownerUser.fullName` passes it and then renders
+         * blank, because that key is not in the payload.
+         *
+         * A column that validates and shows nothing is the shape of BUG-0796.
+         * Adding one here means reconciling the mapper with the graph first.
+         */
         { ...col("tenantCode", "Tenant code", 150), visible: false },
+        /*
+         * The registered entity, which is not the workspace name. It appears on
+         * contracts and invoices, so it is the column that answers "is this the
+         * company we think it is" — needed rarely, and badly when needed.
+         */
+        { ...col("legalName", "Legal name", 200), visible: false },
         { ...col("updatedAt", "Updated", 160, "dateTime"), visible: false },
       ],
     ),

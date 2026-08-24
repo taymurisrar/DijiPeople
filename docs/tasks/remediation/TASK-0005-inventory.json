@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 246,
+    "total_records": 247,
     "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
@@ -12032,6 +12032,46 @@
           "apps/landing"
         ],
         "verification_scope": "See docs/backlog/items/ITEM-0096-a-critical-notification-named-no-reason-and-no-action-and-th.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0097",
+      "type": "UX",
+      "title": "A saved column preference could hide the column that identifies the row",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0097-a-saved-column-preference-could-hide-the-column-that-identif.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "",
+        "created_at": "2026-08-25",
+        "updated_at": "2026-08-25",
+        "resolved_at": "2026-08-25"
+      },
+      "affected_modules": [
+        "apps/admin",
+        "e2e"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/admin",
+          "e2e"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0097-a-saved-column-preference-could-hide-the-column-that-identif.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],
