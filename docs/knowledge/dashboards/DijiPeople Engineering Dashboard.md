@@ -285,7 +285,7 @@
 |---|---|
 | Bug records | 147 |
 | Backlog items | 93 |
-| Known bug patterns | 26 |
+| Known bug patterns | 27 |
 | QA runs | 24 |
 | Engineering history records | 38 |
 | Release records | 1 |
