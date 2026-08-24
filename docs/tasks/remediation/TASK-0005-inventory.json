@@ -9970,14 +9970,14 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "",
         "created_at": "2026-08-18",
-        "updated_at": "2026-08-22",
+        "updated_at": "2026-08-24",
         "resolved_at": ""
       },
       "type": "PRODUCT_DECISION",
       "title": "Publish privacy policy and terms for the public landing site",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "READY",
+      "current_status": "DONE",
       "current_evidence": {
         "paths": [
           "docs/backlog/items/ITEM-0053-publish-privacy-policy-and-terms-for-the-public-landing-site.md",
@@ -10003,7 +10003,7 @@
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "YES",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "PRELIMINARY",
         "classification": "TERMINAL_AS_DOCUMENTED",
@@ -10681,11 +10681,11 @@
         "provenance": "IMPLEMENTATION",
         "detected_in_sha": "",
         "created_at": "2026-08-20",
-        "updated_at": "2026-08-20",
+        "updated_at": "2026-08-24",
         "resolved_at": ""
       },
       "type": "UX",
-      "title": "Legal documents have no operator UI, so publishing is a script",
+      "title": "Legal publication has an operator UI, but no diff before publishing",
       "severity": "MEDIUM",
       "priority": "P2",
       "current_status": "READY",
@@ -10712,7 +10712,7 @@
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "PLAN_REQUIRED",
+      "architect_disposition": "FIX_NOW",
       "verification_result": {
         "result": "OPEN",
         "classification": "PRELIMINARY",

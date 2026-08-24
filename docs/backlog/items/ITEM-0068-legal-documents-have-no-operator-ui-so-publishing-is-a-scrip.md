@@ -1,7 +1,7 @@
 ---
 ID: ITEM-0068
 aliases: [ITEM-0068]
-Title: Legal documents have no operator UI, so publishing is a script
+Title: Legal publication has an operator UI, but no diff before publishing
 Type: UX
 Status: READY
 Priority: P2
@@ -9,9 +9,9 @@ Severity: MEDIUM
 AffectedModules: [legal, admin]
 Source: IMPLEMENTATION
 OwnerAgent: architect
-ArchitectDisposition: PLAN_REQUIRED
+ArchitectDisposition: FIX_NOW
 CreatedAt: 2026-08-20
-UpdatedAt: 2026-08-20
+UpdatedAt: 2026-08-24
 RelatedBug:
 RelatedQA:
 RelatedADR:
@@ -20,9 +20,27 @@ TargetMilestone:
 BlockedBy:
 ---
 
-# ITEM-0068 — Legal documents have no operator UI, so publishing is a script
+# ITEM-0068 — Legal publication has an operator UI, but no diff before publishing
+
+> **Rewritten 2026-08-24. Everything below the Summary describes the state on
+> 2026-08-20 and is kept as written**, because the sections that follow are the
+> argument for building the UI and that argument is what got it built. The
+> premise has since changed: `4b1f1953` delivered the platform-admin surface,
+> and five of the six acceptance criteria are met. See Acceptance Criteria for
+> what is verified and what is not.
+>
+> **What remains is the diff**, and only that.
 
 ## Summary
+
+*As of 2026-08-24:* the `legal` module now has `admin-legal.controller.ts`
+alongside the public one, `apps/admin` has a Legal settings screen and a
+document editor, and `LegalService.publish()` / `createDraft()` /
+`updateDraft()` all have callers. Publishing is no longer a script-only act. The
+one thing an operator still cannot do is **see what changed** against the
+version they are replacing.
+
+*As written on 2026-08-20:*
 
 The `legal` module has exactly one controller — `public-legal.controller.ts` —
 which serves published versions to anonymous visitors and 404s otherwise. There
@@ -78,12 +96,31 @@ and the permission keys are the part worth getting right first.
 
 ## Acceptance Criteria
 
-- An operator with the right permission can publish without database access.
-- The screen shows the rendered text and a diff before any publication.
-- Unfilled placeholders are listed before the attempt, not thrown after it.
-- `effectiveFrom` can be set to a future date.
-- The script keeps working and keeps sharing `LegalService`.
-- Publication is attributed to the acting platform user, never to a constant.
+**Five of six are met as of 2026-08-24.** The operator UI was built in
+`4b1f1953` ("feat(legal): author and publish legal documents from Platform
+Admin") and this record was never updated, so it still reads as though
+publishing is a script. It is not — but one criterion genuinely remains, so the
+item is narrowed rather than closed.
+
+| Criterion | State | Evidence |
+|---|---|---|
+| An operator with the right permission can publish without database access | **MET** | `admin-legal.controller.ts:93` guards with `JwtAuthGuard, RolesGuard, PlatformPermissionsGuard`; `POST versions/:versionId/publish` at `:159`. Screen at `apps/admin/app/(internal)/settings/legal/page.tsx`. |
+| The screen shows the rendered text **and a diff** before any publication | **PARTIAL** | The full markdown is shown and editable (`legal-document-editor.tsx:274`), and a `dirty` check stops a publish over unsaved edits. **There is no diff against the previously published version** — no diff view exists in the editor, the page or the controller. |
+| Unfilled placeholders are listed before the attempt, not thrown after it | **MET** | `legal.service.ts:240` collects them into `publishBlockers`; the editor renders them as a list at `:266` and disables Publish while any remain (`:294`). The throw at `:359` is the second line of defence, not the first. |
+| `effectiveFrom` can be set to a future date | **MET** | `legal.service.ts:315` takes `effectiveFrom?: Date`; `:364` uses `effectiveFrom ?? now`. |
+| The script keeps working and keeps sharing `LegalService` | **MET** | `prisma/publish-legal.ts:77` constructs `new LegalService(...)` — one implementation, two doors. |
+| Publication is attributed to the acting platform user, never to a constant | **MET** | `admin-legal.controller.ts:161` passes `@CurrentUser() user` into the publish call. |
+
+### What remains
+
+Only the diff. An operator publishing version *n* cannot see what changed
+against version *n−1* on the screen, which is the one thing that makes a
+publication reviewable rather than merely permitted — and legal text is exactly
+where a silent one-word change matters most.
+
+Scope is now small and well understood, so `PLAN_REQUIRED` no longer fits: the
+plan was written and executed, and what is left is a single addition to an
+existing screen.
 
 ## Evidence
 
