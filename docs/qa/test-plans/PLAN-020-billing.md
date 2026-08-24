@@ -161,7 +161,7 @@ manual — QA-PLATFORM-018 steps 7 to 9.
 
 ## Related
 
-- Scenarios — [[QA-BILLING-013]], [[QA-BILLING-014]], [[QA-BILLING-015]], [[QA-BILLING-017]], [[QA-BILLING-018]], [[QA-INTEGRATION-001]], [[QA-PLATFORM-018]]
+- Scenarios — [[QA-BILLING-013]], [[QA-BILLING-014]], [[QA-BILLING-015]], [[QA-BILLING-017]], [[QA-BILLING-018]], [[QA-BILLING-019]], [[QA-BILLING-020]], [[QA-INTEGRATION-001]], [[QA-PLATFORM-018]]
 - Module — [[billing]]
 - Bugs — [[BUG-0531]], [[BUG-0533]], [[BUG-0534]], [[BUG-0027]], [[BUG-0030]]
 - Regressions — REG-201, REG-202 (see the regression register)

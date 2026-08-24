@@ -2246,3 +2246,33 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | **Both shapes are asserted deliberately, and that is the lesson.** The instinct on finding a renamed field is to follow the rename; doing only that would have let the legacy path rot silently and produced the identical defect on the next version bump, in the other direction. The metadata helper merges rather than replaces for the same reason — an invoice may carry its own metadata *and* belong to a subscription carrying more, so they are not alternatives in principle. What remains uncovered is the skew itself: nothing yet asserts that the pinned version and the endpoint's version agree, and until something does, this class recurs on any field Stripe relocates. `payment_intent` on the same type is the next candidate. |
 | **Fixed** | 2026-08-24, `agent/record-state-reconciliation` |
 | **Active** | yes |
+
+### REG-247 — Superseding a plan price must use the key the database uses
+
+| | |
+|---|---|
+| **Bug class** | `divergent-duplicate-guard` |
+| **Module** | `services/api/src/modules/super-admin` |
+| **Bug record** | BUG-1133 |
+| **Root cause** | `createPlanPrice` and `updatePlanPrice` deactivated siblings on `{planId, billingCycle, currency}` while the partial unique index is `(planId, marketId, billingCycle, currency, billingModel) NULLS NOT DISTINCT WHERE isActive`. Deactivating on a **narrower** key than the one defining a slot does not resolve a conflict — it destroys rows that were never in conflict. Saving a PER_SEAT price retired the FLAT price beside it, and with no `marketId` filter it reached across every market. Nine of Starter's twelve production prices were lost this way, silently: `updateMany` returns a count nobody reads. |
+| **Regression test** | `services/api/src/modules/super-admin/plan-price-supersede-scope.spec.ts` |
+| **Scenario** | The column list is read **out of the migration** and every `planPrice.updateMany` that sets `isActive: false` must constrain all of them. Object shorthand (`planId,`) counts the same as an explicit value (`marketId: null`) — the question is whether the column narrows the query at all. A fourth case pins that each supersede stays confined to `isActive: true`, because widening the key is only safe while the query remains as partial as the index. |
+| **Proven to fail without the fix** | Executed 2026-08-24: restoring either `where` to its three-column form fails the suite. |
+| **Note** | **This was predicted and not tested for.** [[TASK-0018]] assumption A-06 is recorded at LOW confidence saying a fake Prisma client "cannot enforce the partial unique index … Disagreeing with that index is exactly the root cause of BUG-0030". The risk was written down, accepted, and left uncovered — so the lesson is not "add a test", it is that **an assumption recorded as LOW confidence with high impact is a test that has not been written yet**. The test asserts source against migration rather than behaviour through Prisma, deliberately: the defect is a disagreement between two declarations, and comparing the declarations is the most direct proof available. It also cannot drift — change the index and the expectation changes with it. |
+| **Fixed** | 2026-08-24, `agent/record-state-reconciliation` |
+| **Active** | yes |
+
+### REG-248 — A Stripe price id that no longer resolves
+
+| | |
+|---|---|
+| **Bug class** | `silent-config-fallback` |
+| **Module** | `services/api/src/modules/billing` |
+| **Bug record** | BUG-1134 |
+| **Root cause** | `verifyRecurringPrice` called `prices.retrieve` bare, so a `stripePriceId` naming a price absent from the connected Stripe account threw out of the request as a 500. The operator had no way to clear the dead id, so the price became uneditable. The id's prefix showed it came from a different account or sandbox entirely. |
+| **Regression test** | `services/api/src/modules/billing/stripe-price-resolution.spec.ts` |
+| **Scenario** | A `resource_missing` from `prices.retrieve` returns `valid: false` with a reason naming the price and telling the operator to re-sync, and reports the runtime mode rather than inventing a `livemode` for a price that is gone. A `StripeAuthenticationError` still propagates. A price that exists verifies unchanged. |
+| **Proven to fail without the fix** | Executed 2026-08-24 against the production stack trace, reproduced with the real `StripeInvalidRequestError` shape and code. |
+| **Note** | **The counterpart of `stripe-product-resolution.spec.ts`, and they should be read together.** BUG-0995 fixed the product path and left the price call eighty lines away bare — fixing one half of a symmetry is how the second half survives to be found in production. The asymmetry that remains is deliberate: the product path auto-creates a replacement, this one does not, because a price determines what customers are charged and minting one behind an operator's back is a pricing change, not a recovery. Note also that this bug was *limiting* [[BUG-1133]]'s blast radius — fixing it alone would have made that data loss easier to trigger, which is why the two landed together. |
+| **Fixed** | 2026-08-24, `agent/record-state-reconciliation` |
+| **Active** | yes |

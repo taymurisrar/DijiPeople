@@ -14,8 +14,8 @@
 | Work packages waiting on the user | 0 |
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
-| Open CRITICAL | **4** |
-| Open HIGH | 5 |
+| Open CRITICAL | **5** |
+| Open HIGH | 6 |
 | Awaiting Architect triage | 0 |
 | Owner decisions pending | 2 |
 | QA coverage gaps | 108 |
@@ -30,12 +30,12 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 29 |
-| No next action | 29 |
+| No acceptance criteria | 31 |
+| No next action | 31 |
 | Aging — 7d / 30d / 90d | 13 / 0 / 0 |
 | Architecture and technical debt | 6 |
 | Security gaps | 2 |
-| Database gaps | 0 |
+| Database gaps | 1 |
 
 Ranked next-best actions weigh blast radius rather than severity alone, and
 are computed on demand so the reasons travel with the ranking:
@@ -106,6 +106,7 @@ what they own, and what the backlog and QA systems currently say.
 | [[BUG-0900-tenant-provisioning-exceeds-the-5s-transaction-timeout-a-pai|BUG-0900]] | Tenant provisioning exceeds the 5s transaction timeout: a paid order is left with no workspace | BUG | CRITICAL | FIXED | api:permissions | FIX_NOW |
 | [[BUG-0904-production-is-missing-outbox-worker-enabled-so-no-workspace-|BUG-0904]] | Production is missing OUTBOX_WORKER_ENABLED, so no workspace is provisioned after payment | BUG | CRITICAL | OPEN | api:outbox | BLOCKED_EXTERNAL |
 | [[BUG-1128-stripe-api-version-skew-invoice-paid-cannot-map-to-a-subscri|BUG-1128]] | Stripe API version skew: invoice.paid cannot map to a subscription because invoice.subscription no longer exists | INTEGRATION | CRITICAL | FIXED | api:billing | FIX_NOW |
+| [[BUG-1133-saving-a-plan-price-deactivates-every-sibling-price-on-a-nar|BUG-1133]] | Saving a plan price deactivates every sibling price on a narrower key than the unique index | DATA_INTEGRITY | CRITICAL | FIXED | api:super-admin, apps/admin | FIX_NOW |
 
 ## Owner Decisions Pending
 
@@ -235,7 +236,7 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 30 |
+| Open total | 32 |
 | Blocked | 1 |
 | Deferred | 22 |
 | Awaiting a product decision | 2 |

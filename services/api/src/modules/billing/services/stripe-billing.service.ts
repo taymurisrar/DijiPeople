@@ -170,10 +170,70 @@ export class StripeBillingService {
     expectedUnitAmount: number;
     expectedBillingInterval: BillingInterval;
   }) {
-    const price = await this.stripe.prices.retrieve(input.stripePriceId);
+    const mode = this.getRuntimeMode();
+
+    /*
+     * BUG-1134 — a stale price id is a verdict, not a crash.
+     *
+     * This called `prices.retrieve` bare. A `stripePriceId` pointing at a price
+     * that no longer exists — a reset sandbox, a switched account, a price
+     * deleted in the dashboard — threw straight out of the request and became a
+     * 500 on the plan-pricing screen, with no way for an operator to clear the
+     * id. Seen on production 2026-08-24 against
+     * `price_1U4mO1Dx5h60TWDLy3zudsug`.
+     *
+     * That is the same defect BUG-0995 fixed for the *product* eighty lines
+     * above, and this call was left bare beside it. Fixing one half of a
+     * symmetry is how the second half survives to be found in production.
+     *
+     * This function already speaks in verdicts — `{ valid, reasons }` — and its
+     * caller turns an invalid one into `stripeSyncStatus: FAILED` with the
+     * reasons attached. So "the price is gone" belongs in `reasons`, where an
+     * operator can read it and re-sync, rather than in a stack trace.
+     *
+     * Only `resource_missing` is swallowed, for the reason given above: an auth
+     * failure or a network blip must still surface, because silently marking a
+     * good price unsynced during a Stripe outage is worse than the error.
+     */
+    // Derived from the call rather than written as `Stripe.Price`: this SDK
+    // does not expose that name on the default export, and deriving it means
+    // the annotation cannot drift from what `retrieve` actually returns.
+    let price: Awaited<ReturnType<StripeClient['prices']['retrieve']>>;
+    try {
+      price = await this.stripe.prices.retrieve(input.stripePriceId);
+    } catch (error) {
+      const missing =
+        error instanceof Stripe.errors.StripeInvalidRequestError &&
+        error.code === 'resource_missing';
+      if (!missing) throw error;
+
+      this.logger.warn(
+        `Stripe price ${input.stripePriceId} no longer exists; marking it unsynced so it can be re-synced.`,
+      );
+
+      return {
+        valid: false,
+        reasons: [
+          `Stripe Price ${input.stripePriceId} no longer exists in this Stripe account. Re-sync the price to create a replacement.`,
+        ],
+        productId: input.expectedProductId ?? null,
+        priceId: null,
+        active: false,
+        currency: input.expectedCurrency.toUpperCase(),
+        unitAmount: null,
+        recurringInterval: null,
+        usageType: null,
+        // The price is gone, so it has no livemode of its own. Report the
+        // runtime's, so the environment stamp stays consistent with every other
+        // row written in this mode rather than flipping to a false default.
+        livemode: mode === 'live',
+        mode,
+        verifiedAt: new Date(),
+      };
+    }
+
     const productId =
       typeof price.product === 'string' ? price.product : price.product.id;
-    const mode = this.getRuntimeMode();
     const reasons: string[] = [];
 
     if (!price.active) reasons.push('Stripe Price is inactive.');

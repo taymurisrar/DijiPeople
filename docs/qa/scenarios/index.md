@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 184** · automated: 167 · manual: 6 · blocked by infrastructure: 0
+**Scenarios: 186** · automated: 169 · manual: 6 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -64,6 +64,8 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-BILLING-016](../../../docs/qa/scenarios/QA-BILLING-016-a-flat-plan-price-bills-one-subscription-not-one-seat-per-he.md) | A flat plan price bills one subscription, not one seat per head | seat-billing | UNIT | HIGH | AUTOMATED | `services/api/src/modules/billing/billing-seat-pricing.spec.ts` | BUG-0901 | REG-236 |
 | [QA-BILLING-017](../../../docs/qa/scenarios/QA-BILLING-017-a-missing-or-malformed-stripe-webhook-secret-fails-the-deplo.md) | A missing or malformed Stripe webhook secret fails the deployment smoke suite | billing | DEPLOYMENT_SMOKE | CRITICAL | AUTOMATED | `scripts/smoke-deployment.mjs` | BUG-0989 | REG-245 |
 | [QA-BILLING-018](../../../docs/qa/scenarios/QA-BILLING-018-an-invoice-rendered-at-a-newer-stripe-api-version-still-reso.md) | An invoice rendered at a newer Stripe API version still resolves its subscription | billing | UNIT | CRITICAL | AUTOMATED | `services/api/src/modules/billing/invoice-subscription-resolution.spec.ts` | BUG-1128 | REG-246 |
+| [QA-BILLING-019](../../../docs/qa/scenarios/QA-BILLING-019-saving-one-plan-price-leaves-its-sibling-billing-models-and-.md) | Saving one plan price leaves its sibling billing models and markets active | billing | UNIT | CRITICAL | AUTOMATED | `services/api/src/modules/super-admin/plan-price-supersede-scope.spec.ts` | BUG-1133 | REG-247 |
+| [QA-BILLING-020](../../../docs/qa/scenarios/QA-BILLING-020-a-stale-stripe-price-id-marks-the-row-unsynced-instead-of-re.md) | A stale Stripe price id marks the row unsynced instead of returning 500 | billing | UNIT | HIGH | AUTOMATED | `services/api/src/modules/billing/stripe-price-resolution.spec.ts` | BUG-1134 | REG-248 |
 | [QA-CI-001](../../../docs/qa/scenarios/QA-CI-001-report-only-jobs-publish-an-explicit-pass-fail-verdict.md) | Report-only CI jobs publish an explicit PASS/FAIL verdict | deployment-release | DEPLOYMENT_SMOKE | HIGH | AUTOMATED | `scripts/validate-framework.mjs` | BUG-0049 | REG-047 |
 | [QA-CI-002](../../../docs/qa/scenarios/QA-CI-002-the-database-agent-verdict-cannot-report-pass-over-a-failing.md) | The Database Agent verdict cannot report PASS over a failing field | deployment-release | API | HIGH | AUTOMATED | `scripts/db-preflight.test.mjs` | BUG-0083, BUG-0060, BUG-0068 | REG-078 |
 | [QA-CI-003](../../../docs/qa/scenarios/QA-CI-003-declared-npm-overrides-are-reflected-in-the-lockfile.md) | Declared npm overrides are reflected in the lockfile | deployment-release | UNIT | HIGH | AUTOMATED | `scripts/check-overrides-applied.mjs` | BUG-0163 | REG-173 |
