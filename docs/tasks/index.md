@@ -8,7 +8,7 @@ graph and the block reasons. See
 
 | Bucket | Count |
 |---|---|
-| [Active](active.md) | 6 |
+| [Active](active.md) | 7 |
 | [Blocked](blocked.md) | 0 |
 | [Completed](completed.md) | 14 |
 
@@ -22,6 +22,7 @@ graph and the block reasons. See
 
 - [TASK-0007](TASK-0007-commercial-platform-completion-transactional-legal-and-lifec.md) — 1 owner decision(s) outstanding
 - [TASK-0009](TASK-0009-identity-and-multi-tenant-membership.md) — 1 owner decision(s) outstanding
+- [TASK-0022](TASK-0022-agent-ui-perception-browser-control-component-knowledge-ui-r.md) — 1 owner decision(s) outstanding
 
 ## All tasks
 
@@ -47,3 +48,4 @@ graph and the block reasons. See
 | [TASK-0017](TASK-0017-workspace-links-that-resolve-a-monitoring-page-you-can-work-.md) | Workspace links that resolve, a monitoring page you can work from, and Delete that either deletes or explains | BUG | LARGE | P1 | COMPLETE | 6/6 | — |
 | [TASK-0018](TASK-0018-legacy-pricing-removed-and-the-commercial-catalogue-made-to-.md) | Legacy pricing removed and the commercial catalogue made to converge | FEATURE | MEDIUM | P1 | IN_PROGRESS | 4/4 | — |
 | [TASK-0021](TASK-0021-release-the-tenant-list-identity-fix-and-the-first-admin-bro.md) | Release the tenant list identity fix and the first admin browser suite | RELEASE | SMALL | P1 | COMPLETE | 2/2 | — |
+| [TASK-0022](TASK-0022-agent-ui-perception-browser-control-component-knowledge-ui-r.md) | Agent UI perception: browser control, component knowledge, UI review skill | FEATURE | LARGE | P1 | IN_PROGRESS | 0/4 | WP-03 |

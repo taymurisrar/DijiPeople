@@ -7,9 +7,9 @@
 
 | | |
 |---|---|
-| Active sessions | **0** |
-| Active parent tasks | 6 |
-| Active work packages | 1 |
+| Active sessions | **1** |
+| Active parent tasks | 7 |
+| Active work packages | 4 |
 | Blocked work packages | 0 |
 | Work packages waiting on the user | 0 |
 | Open questions | 0 |
@@ -47,7 +47,9 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 ## Active Sessions
 
-_No session is currently registered as active._
+| Session | Task | Title | Status | Branch | Target | Leases | Schema |
+|---|---|---|---|---|---|---|---|
+| [[SESSION-0051-agent-ui-perception-browser-control-component-knowledge-ui-r|SESSION-0051]] | — | Agent UI perception: browser control, component knowledge, UI review skill | ACTIVE | `agent/agent-ui-perception` | `develop` | — | NO |
 
 ## Active Tasks and Work Packages
 
@@ -59,6 +61,7 @@ _No session is currently registered as active._
 | [[TASK-0009-identity-and-multi-tenant-membership|TASK-0009]] | Identity and multi-tenant membership | FEATURE | LARGE | 11/12 | WP-09 | WP-09 | — |
 | [[TASK-0011-first-production-release|TASK-0011]] | First production release | RELEASE | MEDIUM | 2/2 | — | — | — |
 | [[TASK-0018-legacy-pricing-removed-and-the-commercial-catalogue-made-to-|TASK-0018]] | Legacy pricing removed and the commercial catalogue made to converge | FEATURE | MEDIUM | 4/4 | — | — | — |
+| [[TASK-0022-agent-ui-perception-browser-control-component-knowledge-ui-r|TASK-0022]] | Agent UI perception: browser control, component knowledge, UI review skill | FEATURE | LARGE | 0/4 | WP-03 | — | — |
 
 ## Branch model
 
@@ -237,7 +240,7 @@ gap into scope — or files a `TEST_GAP` item and says so.
 |---|---|
 | Open total | 30 |
 | Blocked | 1 |
-| Deferred | 22 |
+| Deferred | 23 |
 | Awaiting a product decision | 2 |
 | Awaiting Architect triage | 0 |
 

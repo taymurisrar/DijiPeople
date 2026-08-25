@@ -121,6 +121,21 @@ jobs:
       - name: Validate agent framework
         run: node scripts/validate-framework.mjs
 
+      # The component index is harvested from doc-comments, so it goes stale
+      # the moment somebody edits one and does not regenerate. Checked here
+      # rather than trusted, for the same reason every other generated index in
+      # this repository is: a knowledge document that quietly stops matching
+      # the code is worse than no document, because agents believe it.
+      - name: Check component index is current
+        run: node scripts/generate-component-index.mjs --check
+
+      # Retrieval silently returning nothing is the worst failure this step
+      # has, because "no prior knowledge" is exactly the conclusion that
+      # produces a repeat defect. `command-bar` finding nothing while
+      # `command bar` found the answer is the case these pin.
+      - name: Knowledge term normalisation
+        run: node --test scripts/knowledge-terms.test.mjs
+
       # BUG-0163 — the lockfile must be REGENERABLE, not merely present.
       #
       # It had stopped being so, and nothing noticed for weeks, because
