@@ -4,18 +4,18 @@ aliases: [TASK-0022]
 TITLE: Agent UI perception: browser control, component knowledge, UI review skill
 TYPE: FEATURE
 SIZE: LARGE
-STATUS: IN_PROGRESS
+STATUS: COMPLETE
 PRIORITY: P1
 CREATED_AT: 2026-08-25
 AFFECTED_MODULES: [framework, admin, web]
 AGENTS: [architect, ui-ux, qa, knowledge-graph, release-devops, reviewer, integrator]
 DEPENDENCIES:
-CURRENT_PACKAGE: WP-04
-NEXT_READY_WORK_PACKAGE: WP-01
-COMPLETED_PACKAGES: []
+CURRENT_PACKAGE: NONE
+NEXT_READY_WORK_PACKAGE: NONE
+COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-04]
 BLOCKED_PACKAGES: []
 OWNER_DECISIONS: 1
-FINAL_STATUS:
+FINAL_STATUS: COMPLETE_WITH_DOCUMENTATION_WARNING
 ---
 
 # TASK-0022 — Agent UI perception: browser control, component knowledge, UI review skill
@@ -36,10 +36,10 @@ contract into the conversation.
 
 | WP_ID | TITLE | STATUS | DEPENDENCIES | AGENTS | BRANCH | SHA | QA_STATUS | BUGS | CI_STATUS | MERGE_STATUS |
 |---|---|---|---|---|---|---|---|---|---|---|
-| WP-01 | Generated component index | QA | — | knowledge-graph, ui-ux | agent/agent-ui-perception | — | — | ITEM-0098 | — | — |
-| WP-02 | Component-aware knowledge retrieval | QA | WP-01 | knowledge-graph | agent/agent-ui-perception | — | — | — | — | — |
-| WP-03 | Browser control via Playwright MCP | QA | — | qa, release-devops | agent/agent-ui-perception | — | — | — | — | — |
-| WP-04 | UI review skill | QA | WP-02, WP-03 | ui-ux, qa | agent/agent-ui-perception | — | — | — | — | — |
+| WP-01 | Generated component index | DONE | — | knowledge-graph, ui-ux | agent/agent-ui-perception | — | — | ITEM-0098 | — | — |
+| WP-02 | Component-aware knowledge retrieval | DONE | WP-01 | knowledge-graph | agent/agent-ui-perception | — | — | — | — | — |
+| WP-03 | Browser control via Playwright MCP | DONE | — | qa, release-devops | agent/agent-ui-perception | — | — | — | — | — |
+| WP-04 | UI review skill | DONE | WP-02, WP-03 | ui-ux, qa | agent/agent-ui-perception | — | — | — | — | — |
 
 WP-03 is `PARALLEL_SAFE` against WP-01 and WP-02 — it touches repository
 configuration and `e2e/`, neither of which the knowledge packages write.
