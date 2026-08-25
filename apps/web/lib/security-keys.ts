@@ -31,6 +31,9 @@ export const PERMISSION_KEYS = {
   GATEWAYS_MANAGE: "gateways.manage",
   APP_DOWNLOADS_READ: "appDownloads.read",
   APP_DOWNLOADS_MANAGE: "appDownloads.manage",
+  // Reviewing captured DLP content (clipboard/screenshots). Cosmetic gating only;
+  // the API is the authority (TASK-0020).
+  DLP_REVIEW: "dlp.review",
   API_TOKENS_MANAGE: "api-tokens.manage",
   AUDIT_VIEW: "audit.view",
   AUDIT_READ: "audit.read",

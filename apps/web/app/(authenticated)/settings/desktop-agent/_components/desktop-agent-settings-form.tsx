@@ -29,6 +29,13 @@ export type AgentSettingsRecord = {
   historyRetentionDays: number;
   installerUrl: string | null;
   releaseDate: string | null;
+
+  // DLP capture (TASK-0020). All default off.
+  allowClipboardCapture: boolean;
+  allowScreenshotCapture: boolean;
+  clipboardFullContent: boolean;
+  dlpConsentRequired: boolean;
+  screenshotRetentionDays: number;
 };
 
 export function DesktopAgentSettingsForm({
@@ -47,70 +54,80 @@ export function DesktopAgentSettingsForm({
     updateMessage: initialSettings.updateMessage ?? "",
     installerUrl: initialSettings.installerUrl ?? "",
     releaseDate: initialSettings.releaseDate?.slice(0, 10) ?? "",
+    allowClipboardCapture: initialSettings.allowClipboardCapture ?? false,
+    allowScreenshotCapture: initialSettings.allowScreenshotCapture ?? false,
+    clipboardFullContent: initialSettings.clipboardFullContent ?? false,
+    dlpConsentRequired: initialSettings.dlpConsentRequired ?? false,
+    screenshotRetentionDays: initialSettings.screenshotRetentionDays ?? 30,
   });
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
-async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-  event.preventDefault();
-  setError(null);
-  setMessage(null);
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    setMessage(null);
 
-  if (form.awayThresholdSeconds <= form.idleThresholdSeconds) {
-    setError("Away threshold must be greater than idle threshold.");
-    return;
+    if (form.awayThresholdSeconds <= form.idleThresholdSeconds) {
+      setError("Away threshold must be greater than idle threshold.");
+      return;
+    }
+
+    const payload = {
+      enabled: form.enabled,
+      mandatory: form.mandatory,
+      heartbeatIntervalSeconds: form.heartbeatIntervalSeconds,
+      idleThresholdSeconds: form.idleThresholdSeconds,
+      awayThresholdSeconds: form.awayThresholdSeconds,
+      captureActiveApp: form.captureActiveApp,
+      captureWindowTitle: form.captureWindowTitle,
+      allowCameraAccess: form.allowCameraAccess,
+      allowMicrophoneAccess: form.allowMicrophoneAccess,
+      allowLocationAccess: form.allowLocationAccess,
+      offlineQueueEnabled: form.offlineQueueEnabled,
+      heartbeatBatchSize: form.heartbeatBatchSize,
+      minimumSupportedVersion: form.minimumSupportedVersion,
+      latestVersion: form.latestVersion,
+      forceUpdate: form.forceUpdate,
+      updateMessage: form.updateMessage || null,
+      autoUpdateEnabled: form.autoUpdateEnabled,
+      historyRetentionDays: form.historyRetentionDays,
+      installerUrl: form.installerUrl || null,
+      releaseDate: form.releaseDate || null,
+      allowClipboardCapture: form.allowClipboardCapture,
+      allowScreenshotCapture: form.allowScreenshotCapture,
+      clipboardFullContent: form.clipboardFullContent,
+      dlpConsentRequired: form.dlpConsentRequired,
+      screenshotRetentionDays: form.screenshotRetentionDays,
+    };
+
+    setIsSaving(true);
+
+    const response = await fetch("/api/agent/settings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    const data = (await response.json().catch(() => null)) as {
+      message?: string | string[];
+    } | null;
+
+    setIsSaving(false);
+
+    if (!response.ok) {
+      const errorMessage = Array.isArray(data?.message)
+        ? data.message.join(", ")
+        : data?.message;
+
+      setError(errorMessage ?? "Unable to update desktop agent settings.");
+      return;
+    }
+
+    setMessage("Desktop agent settings saved.");
+    router.refresh();
   }
-
-  const payload = {
-    enabled: form.enabled,
-    mandatory: form.mandatory,
-    heartbeatIntervalSeconds: form.heartbeatIntervalSeconds,
-    idleThresholdSeconds: form.idleThresholdSeconds,
-    awayThresholdSeconds: form.awayThresholdSeconds,
-    captureActiveApp: form.captureActiveApp,
-    captureWindowTitle: form.captureWindowTitle,
-    allowCameraAccess: form.allowCameraAccess,
-    allowMicrophoneAccess: form.allowMicrophoneAccess,
-    allowLocationAccess: form.allowLocationAccess,
-    offlineQueueEnabled: form.offlineQueueEnabled,
-    heartbeatBatchSize: form.heartbeatBatchSize,
-    minimumSupportedVersion: form.minimumSupportedVersion,
-    latestVersion: form.latestVersion,
-    forceUpdate: form.forceUpdate,
-    updateMessage: form.updateMessage || null,
-    autoUpdateEnabled: form.autoUpdateEnabled,
-    historyRetentionDays: form.historyRetentionDays,
-    installerUrl: form.installerUrl || null,
-    releaseDate: form.releaseDate || null,
-  };
-
-  setIsSaving(true);
-
-  const response = await fetch("/api/agent/settings", {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-
-  const data = (await response.json().catch(() => null)) as {
-    message?: string | string[];
-  } | null;
-
-  setIsSaving(false);
-
-  if (!response.ok) {
-    const errorMessage = Array.isArray(data?.message)
-      ? data.message.join(", ")
-      : data?.message;
-
-    setError(errorMessage ?? "Unable to update desktop agent settings.");
-    return;
-  }
-
-  setMessage("Desktop agent settings saved.");
-  router.refresh();
-}
 
   return (
     <form className="grid gap-6" onSubmit={handleSubmit}>
@@ -216,6 +233,57 @@ async function handleSubmit(event: FormEvent<HTMLFormElement>) {
           label="Enable offline queue"
           onChange={(offlineQueueEnabled) =>
             setForm((current) => ({ ...current, offlineQueueEnabled }))
+          }
+        />
+      </section>
+
+      <section className="grid gap-4 rounded-[24px] border border-border bg-surface p-6 shadow-sm">
+        <div>
+          <h3 className="text-base font-semibold text-foreground">
+            Data-loss prevention (DLP)
+          </h3>
+          <p className="mt-1 text-sm text-muted">
+            Capture clipboard content and rule-triggered screenshots to
+            investigate data exfiltration. Off by default; enabling it collects
+            sensitive content, so review your monitoring policy and legal
+            obligations first. Employees always see an active-capture indicator
+            in the agent.
+          </p>
+        </div>
+        <CheckField
+          checked={form.allowClipboardCapture}
+          label="Capture clipboard content"
+          onChange={(allowClipboardCapture) =>
+            setForm((current) => ({ ...current, allowClipboardCapture }))
+          }
+        />
+        <CheckField
+          checked={form.allowScreenshotCapture}
+          label="Capture screenshots when a DLP rule fires"
+          onChange={(allowScreenshotCapture) =>
+            setForm((current) => ({ ...current, allowScreenshotCapture }))
+          }
+        />
+        <CheckField
+          checked={form.clipboardFullContent}
+          label="Store full clipboard content (off = metadata only: size, hash, source/destination app)"
+          onChange={(clipboardFullContent) =>
+            setForm((current) => ({ ...current, clipboardFullContent }))
+          }
+        />
+        <CheckField
+          checked={form.dlpConsentRequired}
+          label="Require an acknowledged monitoring policy before capturing (recommended where consent is legally required)"
+          onChange={(dlpConsentRequired) =>
+            setForm((current) => ({ ...current, dlpConsentRequired }))
+          }
+        />
+        <NumberField
+          label="Screenshot retention (days)"
+          min={1}
+          value={form.screenshotRetentionDays}
+          onChange={(screenshotRetentionDays) =>
+            setForm((current) => ({ ...current, screenshotRetentionDays }))
           }
         />
       </section>
