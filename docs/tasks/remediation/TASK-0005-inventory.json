@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 252,
+    "total_records": 257,
     "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
@@ -7703,36 +7703,226 @@
       "verification_result": "NOT_VERIFIED"
     },
     {
-      "record_id": "BUG-1261",
+      "record_id": "BUG-1302",
       "type": "UX",
-      "title": "The admin theme bootstrap script runs in head where React hydrates it against extension-injected scripts",
-      "severity": "MEDIUM",
-      "priority": "P2",
-      "current_status": "VERIFIED",
-      "architect_disposition": "DONE",
+      "title": "Annual per-seat price is labelled per month on the checkout page",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "OPEN",
+      "architect_disposition": "FIX_NOW",
       "source": {
-        "record_path": "docs/bugs/BUG-1261-the-admin-theme-bootstrap-script-runs-in-head-where-react-hy.md",
-        "provenance": "USER_REPORT",
+        "record_path": "docs/bugs/BUG-1302-annual-per-seat-price-is-labelled-per-month-on-the-checkout-.md",
+        "provenance": "QA_RUN",
         "detected_in_sha": "42435d59",
         "created_at": "2026-08-25",
         "updated_at": "2026-08-25",
-        "resolved_at": "2026-08-25"
+        "resolved_at": ""
       },
       "affected_modules": [
-        "apps/admin"
+        "apps/landing"
       ],
-      "regressions": [
-        "REG-251"
-      ],
-      "qa_scenarios": [
-        "QA-PLATFORM-022"
-      ],
+      "regressions": [],
+      "qa_scenarios": [],
       "test_plan": [],
       "current_evidence": {
         "paths": [
-          "apps/admin"
+          "apps/landing"
         ],
-        "verification_scope": "See docs/bugs/BUG-1261-the-admin-theme-bootstrap-script-runs-in-head-where-react-hy.md — Evidence, Reproduction and Acceptance Criteria."
+        "verification_scope": "See docs/bugs/BUG-1302-annual-per-seat-price-is-labelled-per-month-on-the-checkout-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1303",
+      "type": "DATA_INTEGRITY",
+      "title": "The DP-CHK-01 checkout-unavailable link writes a diagnostic code into the partner referral cookie",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "OPEN",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-1303-the-dp-chk-01-checkout-unavailable-link-writes-a-diagnostic-.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "42435d59",
+        "created_at": "2026-08-25",
+        "updated_at": "2026-08-25",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/landing"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/landing"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1303-the-dp-chk-01-checkout-unavailable-link-writes-a-diagnostic-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1304",
+      "type": "DATABASE",
+      "title": "Production subscribe wizard offers only eight countries because the ISO country sync never populates production",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "PLAN_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-1304-production-subscribe-wizard-offers-only-eight-countries-beca.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "42435d59",
+        "created_at": "2026-08-25",
+        "updated_at": "2026-08-25",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/lookups",
+        "apps/landing"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/lookups",
+          "apps/landing"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1304-production-subscribe-wizard-offers-only-eight-countries-beca.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1305",
+      "type": "DATABASE",
+      "title": "Priority country sortOrder collides with alphabetical sortOrder, scattering key markets mid-list",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "PLAN_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-1305-priority-country-sortorder-collides-with-alphabetical-sortor.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "42435d59",
+        "created_at": "2026-08-25",
+        "updated_at": "2026-08-25",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/lookups"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/lookups"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1305-priority-country-sortorder-collides-with-alphabetical-sortor.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1306",
+      "type": "UX",
+      "title": "The production footer publishes a reserved fictional US phone number as a tel link",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "PRODUCT_DECISION",
+      "architect_disposition": "PRODUCT_DECISION",
+      "source": {
+        "record_path": "docs/bugs/BUG-1306-the-production-footer-publishes-a-reserved-fictional-us-phon.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "42435d59",
+        "created_at": "2026-08-25",
+        "updated_at": "2026-08-25",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/landing"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/landing"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1306-the-production-footer-publishes-a-reserved-fictional-us-phon.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1307",
+      "type": "UX",
+      "title": "A raw MONTHLY enum value appears in customer-facing timesheets copy",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "PRODUCT_DECISION",
+      "architect_disposition": "PRODUCT_DECISION",
+      "source": {
+        "record_path": "docs/bugs/BUG-1307-a-raw-monthly-enum-value-appears-in-customer-facing-timeshee.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "42435d59",
+        "created_at": "2026-08-25",
+        "updated_at": "2026-08-25",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/tenant-settings",
+        "apps/landing"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/tenant-settings",
+          "apps/landing"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1307-a-raw-monthly-enum-value-appears-in-customer-facing-timeshee.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],
@@ -12252,15 +12442,15 @@
       "verification_result": "NOT_VERIFIED"
     },
     {
-      "record_id": "ITEM-0099",
-      "type": "DOCUMENTATION",
-      "title": "sync-obsidian does not map docs/plans, so every ExecPlan wikilink is an orphan",
-      "severity": "LOW",
-      "priority": "P3",
+      "record_id": "ITEM-0100",
+      "type": "INFRA",
+      "title": "apps/landing env examples omit NEXT_PUBLIC_WEB_ROOT_DOMAIN and no parity test guards them",
+      "severity": "",
+      "priority": "P2",
       "current_status": "DEFERRED",
       "architect_disposition": "DEFER",
       "source": {
-        "record_path": "docs/backlog/items/ITEM-0099-sync-obsidian-does-not-map-docs-plans-so-every-execplan-wiki.md",
+        "record_path": "docs/backlog/items/ITEM-0100-apps-landing-env-examples-omit-next-public-web-root-domain-a.md",
         "provenance": "ARCHITECT",
         "detected_in_sha": "",
         "created_at": "2026-08-25",
@@ -12268,16 +12458,18 @@
         "resolved_at": ""
       },
       "affected_modules": [
-        "scripts"
+        "apps/landing",
+        "packages/config"
       ],
       "regressions": [],
       "qa_scenarios": [],
       "test_plan": [],
       "current_evidence": {
         "paths": [
-          "scripts"
+          "apps/landing",
+          "packages/config"
         ],
-        "verification_scope": "See docs/backlog/items/ITEM-0099-sync-obsidian-does-not-map-docs-plans-so-every-execplan-wiki.md — Evidence, Reproduction and Acceptance Criteria."
+        "verification_scope": "See docs/backlog/items/ITEM-0100-apps-landing-env-examples-omit-next-public-web-root-domain-a.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],
