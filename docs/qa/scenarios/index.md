@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 188** · automated: 171 · manual: 6 · blocked by infrastructure: 0
+**Scenarios: 189** · automated: 171 · manual: 6 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -162,6 +162,7 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-PLATFORM-019](../../../docs/qa/scenarios/QA-PLATFORM-019-no-value-renders-as-object-object-in-an-error-path.md) | No value renders as object Object in an error path | platform-admin | UNIT | MEDIUM | AUTOMATED | `services/api/src/common/utils/display-string.spec.ts` | ITEM-0042 | REG-215 |
 | [QA-PLATFORM-020](../../../docs/qa/scenarios/QA-PLATFORM-020-a-personal-list-view-filters-on-a-field-the-list-payload-ret.md) | A personal list view filters on a field the list payload returns | platform-admin | UNIT | LOW | AUTOMATED | `apps/admin/lib/runtime/platform-module-capabilities.spec.ts` | BUG-0796 | REG-234 |
 | [QA-PLATFORM-021](../../../docs/qa/scenarios/QA-PLATFORM-021-editing-a-plan-price-saves-and-its-payload-matches-the-updat.md) | Editing a plan price saves, and its payload matches the update DTO | platform-admin | UNIT | HIGH | AUTOMATED | `services/api/src/modules/super-admin/plan-price-dto-contract.spec.ts` | BUG-0877 | REG-235 |
+| [QA-PLATFORM-022](../../../docs/qa/scenarios/QA-PLATFORM-022-the-console-hydrates-cleanly-when-a-browser-extension-writes.md) | The console hydrates cleanly when a browser extension writes into the head | platform-admin | UNIT | MEDIUM | PARTIAL | `apps/admin/lib/console-theme-bootstrap.spec.ts` | BUG-1261 | REG-251 |
 | [QA-PROV-001](../../../docs/qa/scenarios/QA-PROV-001-a-tenant-that-failed-provisioning-can-be-retried.md) | A tenant that failed provisioning can be retried | tenant-provisioning | UNIT | CRITICAL | AUTOMATED | `services/api/src/modules/tenant-control-plane/tenant-provisioning-retry.spec.ts` | BUG-0014 | REG-012 |
 | [QA-PROV-002](../../../docs/qa/scenarios/QA-PROV-002-provisioning-is-safe-to-submit-twice.md) | Provisioning is safe to submit twice | tenant-provisioning | UNIT | CRITICAL | AUTOMATED | `services/api/src/modules/super-admin/tenant-provisioning-idempotency.spec.ts` | BUG-0022 | REG-030 |
 | [QA-PROV-003](../../../docs/qa/scenarios/QA-PROV-003-issued-tenant-hostnames-honour-the-configured-base-domain.md) | Issued tenant hostnames honour the configured base domain | tenant-provisioning | UNIT | HIGH | AUTOMATED | `services/api/src/common/config/tenant-url.config.spec.ts` | BUG-0017, BUG-0026 | REG-016, REG-027 |

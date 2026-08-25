@@ -69,6 +69,7 @@ audit trail distinguishes it from a legitimate conversion.
 | REG-009 | `ContractsService.update()` vs `assertAgreementEditable` |
 | REG-179 | `apps/admin/lib/tenant-url.ts` vs `buildWorkspaceUrl` in `packages/config` |
 | REG-184 | `PublicTenantsService.getTenantSlugFromHost` vs `parseWorkspaceHostname` |
+| REG-251 | The theme bootstrap in `apps/admin/app/layout.tsx` vs the one in `apps/web/app/layout.tsx` |
 
 ### The lesson REG-184 adds
 
@@ -89,3 +90,31 @@ symptom is usually somewhere nobody was looking.
 A practical way to enumerate: search for every environment variable name that
 could plausibly express the same concept, not only the one the shared rule uses.
 Three names for one value is what hid this for two rounds.
+
+### The lesson REG-251 adds
+
+The first three occurrences are duplicated *rules* — a status list, a URL
+builder, a hostname parser. REG-251 is a duplicated *decision*, and it shows the
+pattern reaches further than code that looks like a guard.
+
+`apps/web` and `apps/admin` each render an inline theme bootstrap that has to run
+before the first paint. Web met the constraint that such a script must not live
+in `<head>` — React reconciles `<head>` positionally, and browser extensions
+write into it before React loads — and recorded it where it had learned it, in a
+comment in `apps/web/app/layout.tsx`. Admin's bootstrap was written afterwards
+and put the script in `<head>`, and every console load reported a hydration
+mismatch against `src="chrome-extension://…"`.
+
+Nothing drifted. The second copy was simply never told, because **a decision
+recorded as prose reaches exactly the file it is written in.** The two earlier
+occurrences were consolidated into one implementation; that is not available
+here, because each app owns its own root layout by design. What is available is
+the other half of the fix REG-179 and REG-184 already point at: express the rule
+as a test in the app that has to follow it. `console-theme-bootstrap.spec.ts`
+now fails if the script moves back into `<head>`, which is a sentence the next
+author cannot read past.
+
+The detection question generalises: when a fix is applied in one of the four
+frontends, ask which of the other three renders the same construct — not which
+of them shares the same code, because in this repository they deliberately do
+not.

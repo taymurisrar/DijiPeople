@@ -1520,7 +1520,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Bug record** | BUG-0495 |
 | **Root cause** | `ConsolePreferencesApplier` writes the theme attributes from a `useEffect`, which runs after the first paint, and its own doc comment claimed they were written "before the first paint an operator notices" — true of a client navigation, false of every full load. The server emitted no theme attribute, every dark rule keys on one, and `<body>` carried a hardcoded `bg-slate-100 text-slate-950` on the one element outside every route group and therefore outside anything that knows the preference. |
 | **Regression test** | `apps/admin/lib/console-theme-bootstrap.spec.ts` |
-| **Scenario** | The bootstrap script reads the cookie the console writes and resolves `prefers-color-scheme` before paint; switching Dark → System *removes* the pinned attribute rather than leaving it; the script survives a browser refusing cookies or `matchMedia`; the root layout stamps the preference from `cookies()`, runs the script in `<head>`, suppresses the hydration warning it deliberately creates, and paints `<body>` from tokens rather than a light class. |
+| **Scenario** | The bootstrap script reads the cookie the console writes and resolves `prefers-color-scheme` before paint; switching Dark → System *removes* the pinned attribute rather than leaving it; the script survives a browser refusing cookies or `matchMedia`; the root layout stamps the preference from `cookies()`, runs the script as the first child of `<body>` rather than in `<head>` (moved by REG-251, and asserted here since), suppresses the hydration warning it deliberately creates, and paints `<body>` from tokens rather than a light class. |
 | **Proven to fail without the fix** | Reverting `layout.tsx` fails four of the five layout assertions by name. |
 | **Note** | The cookie is a rendering hint and nothing else — no decision is made from it, so a forged value costs the forger a wrongly-coloured page. That is worth stating because a cookie carrying a preference across a trust boundary usually is not that, and the next reader will check. |
 | **Fixed** | 2026-08-22, branch `agent/tenant-commands-monitoring-bulk-delete` |
@@ -2305,4 +2305,19 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Proven to fail without the fix** | Executed 2026-08-25. Deleting the line-ending normalisation fails 2 cases; making the comparison always-equal fails 4. The first attempt at this mutation silently failed to apply and the suite stayed green — the mutation was re-run and confirmed applied before the result was believed. |
 | **Note** | Found on the first fresh worktree created after the generator shipped, which is the only reason it was caught quickly: CI could never have found it, because the failure requires a checkout the runner does not produce. **A check whose result depends on the platform is not one check but two, and only one of them was ever run.** |
 | **Fixed** | 2026-08-25, `agent/repo-health-task-sha` |
+| **Active** | yes |
+
+### REG-251 — An inline bootstrap script in `<head>`, hydrated against an extension's
+
+| | |
+|---|---|
+| **Bug class** | `divergent-duplicate-guard` |
+| **Module** | `apps/admin` |
+| **Bug record** | BUG-1261 |
+| **Root cause** | The theme bootstrap REG-198 added has to be inline and blocking, which is right and unchanged. It was put inside an explicit `<head>` element, which is the intuitive placement and the wrong one: React reconciles `<head>` positionally, and browser extensions insert their own `<script>` at the top of it before React loads — so React hydrated our inline script against `src="chrome-extension://…"` and reported a mismatch on every full console load. `apps/web` had already met this and moved its identical bootstrap to the first child of `<body>`, with the reason in a comment. The comment constrained the file it was in and nothing else. |
+| **Regression test** | `apps/admin/lib/console-theme-bootstrap.spec.ts` |
+| **Scenario** | The root layout renders no `<head>` element at all, the bootstrap `<script>` is the first thing inside `<body>`, and it precedes `{children}`. `<body>` carries `suppressHydrationWarning`, because extensions stamp attributes there too and that is not a mismatch this app can prevent. The five REG-198 assertions are unchanged around them — the placement must not be fixed by giving up the pre-paint theme. |
+| **Proven to fail without the fix** | Executed 2026-08-25. Putting the script back inside `<head>` fails 2 of the 10 cases. Confirmed end to end in a real Chromium against `next dev` on the same server, with an extension-equivalent node inserted at `document_start`: the `<head>` placement logged the hydration error from the report, the `<body>` placement logged none, and with `dp-admin-theme=dark` the fixed layout still resolved `data-admin-scheme="dark"` and painted `rgb(11, 18, 32)`. |
+| **Note** | **A rule that exists only as a comment in the app that learned it will be re-broken by the next app.** Both frontends render the same kind of pre-paint bootstrap, and the second one was written after the first had already paid for this. The spec is where the rule belongs, because a spec is the only form of a lesson that fails when someone disagrees with it. Note also what the fix costs: an inline `<script>` inside a React component draws a dev-only advisory that scripts rendered on the client are never executed. That is correct and harmless here — the script runs during document parse, and client navigations are `ConsolePreferencesApplier`'s job — and it is an info-level message, not the error it replaced. |
+| **Fixed** | 2026-08-25, `agent/admin-theme-bootstrap-hydration` |
 | **Active** | yes |

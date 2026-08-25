@@ -1,0 +1,67 @@
+---
+SESSION_ID: SESSION-0055
+aliases: [SESSION-0055]
+TASK_ID:
+TITLE: Admin theme bootstrap script triggers a hydration mismatch in head
+ARCHITECT_INTENT: Admin theme bootstrap script triggers a hydration mismatch in head
+STATUS: COMPLETE
+TASK_TYPE: BUG
+TASK_SIZE: SMALL
+BASE_BRANCH: origin/develop
+BASE_SHA: 42435d59d40bcbc6cd9a9dc7bc546459bc6ad79f
+TASK_BRANCH: agent/admin-theme-bootstrap-hydration
+TARGET_BRANCH: develop
+WORKTREE: D:/My Work/hrm-dijipeople/dijipeople-admin-hydration
+AFFECTED_MODULES: [apps/admin, apps/web]
+WRITE_LEASES: []
+ACTIVE_WORK_PACKAGES: []
+SCHEMA_WRITE: NO
+CI_STATUS: PASS
+MERGE_STATUS: MERGED
+STARTED_AT: 2026-08-25T17:02:26.566Z
+LAST_HEARTBEAT: 2026-08-25T17:02:26.566Z
+BLOCKERS: none
+---
+
+# SESSION-0055 — Admin theme bootstrap script triggers a hydration mismatch in head
+
+## Intent
+
+Fix the React hydration mismatch the admin console logs on every full page load,
+reported at `apps/admin/app/layout.tsx:66` — the inline theme bootstrap script.
+
+## Scope
+
+`apps/admin/app/layout.tsx` and its spec, plus the records the finding produces.
+One correction in `apps/web/app/layout.tsx`: a doc comment that still described
+the script as running in `<head>`, contradicting the placement comment above it
+in the same file, and therefore the most likely cause of the next repeat.
+
+Deliberately out of scope: the bootstrap script's contents, the cookie, the
+`ConsolePreferencesApplier` effect and everything else [[BUG-0495]] settled. The
+defect is *where* the script is rendered, not what it does.
+
+## Concurrency
+
+No write leases taken — none of the high-risk shared resources were written. No
+schema, no migration, no seed, no shared registry.
+
+`node scripts/session.mjs check --paths apps/admin/app/layout.tsx,apps/admin/lib/console-theme-bootstrap.spec.ts`
+returned `SAFE_PARALLEL` against the one other active session (SESSION-0054,
+`agent/dlp-go-live`), which touches neither path. Two other worktrees moved
+while this ran — `DijiPeople-dlp2` advanced and `wt-landing-e2e-qa` appeared —
+and neither was touched.
+
+The task ran in its own worktree, `D:/My Work/hrm-dijipeople/dijipeople-admin-hydration`,
+because the primary checkout has `develop` out and one dirty user-owned path
+(`apps/landing/next-env.d.ts`). The session record was written into the primary
+checkout by `session.mjs start` and moved into the task worktree before any other
+work, so it did not become an untracked file in the user's workspace.
+
+## History
+
+- 2026-08-25 — session started from `origin/develop` at `42435d5`.
+- 2026-08-25 — BUG-1261 recorded, root cause established, fix implemented and
+  reproduced in a browser both before and after; REG-251 and QA-PLATFORM-022
+  filed; CI run `32877520941` PASS on `a4503e3b`; integrated to `develop` by
+  ref-push, so `develop` equals the CI-verified SHA. Session complete.

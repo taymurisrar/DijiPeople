@@ -51,8 +51,10 @@ existed. A console that renders nothing would not be.
 
 The first frame is exactly what no test here can see, which is why steps 2–6 are
 manual and the automated half asserts the mechanism instead: a cookie the root
-layout can read, a blocking script in `<head>` that resolves SYSTEM, and a body
-painted from tokens.
+layout can read, a blocking script that resolves SYSTEM, and a body painted
+from tokens. That script was in `<head>` until BUG-1261 moved it to the first
+child of `<body>` — see QA-PLATFORM-022, which covers where it runs while this
+one covers when.
 
 Consideration: step 4's absent attribute is easy to miss and is the difference
 between "follow the system" and "pinned to whatever you last chose". Inspect
