@@ -7,8 +7,8 @@
 
 | | |
 |---|---|
-| Active sessions | **0** |
-| Active parent tasks | 4 |
+| Active sessions | **1** |
+| Active parent tasks | 5 |
 | Active work packages | 1 |
 | Blocked work packages | 0 |
 | Work packages waiting on the user | 0 |
@@ -47,7 +47,9 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 ## Active Sessions
 
-_No session is currently registered as active._
+| Session | Task | Title | Status | Branch | Target | Leases | Schema |
+|---|---|---|---|---|---|---|---|
+| [[SESSION-0054-dlp-capture-go-live-readiness-rule-ui-seeds-body-limit-captu|SESSION-0054]] | — | DLP capture go-live readiness: rule UI, seeds, body limit, captures view | ACTIVE | `agent/dlp-go-live` | `develop` | — | NO |
 
 ## Active Tasks and Work Packages
 
@@ -57,6 +59,7 @@ _No session is currently registered as active._
 | [[TASK-0007-commercial-platform-completion-transactional-legal-and-lifec|TASK-0007]] | Commercial platform completion — transactional, legal and lifecycle half | FEATURE | PROGRAM | 16/16 | — | — | — |
 | [[TASK-0008-self-service-customer-onboarding-tenant-provisioning-domain-|TASK-0008]] | Self-service customer onboarding, tenant provisioning, domain routing and central login | FEATURE | LARGE | 11/11 | — | — | — |
 | [[TASK-0009-identity-and-multi-tenant-membership|TASK-0009]] | Identity and multi-tenant membership | FEATURE | LARGE | 11/12 | WP-09 | WP-09 | — |
+| [[TASK-0023-dlp-capture-go-live-readiness|TASK-0023]] | DLP capture go-live readiness | FEATURE | LARGE | 4/4 | WP-04 | — | — |
 
 ## Branch model
 

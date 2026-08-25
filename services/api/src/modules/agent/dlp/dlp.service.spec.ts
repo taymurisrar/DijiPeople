@@ -62,9 +62,11 @@ describe('DlpService', () => {
           );
           return Promise.resolve({ id: 'cbe-1', ...(args.data as object) });
         }),
-        findMany: jest.fn().mockResolvedValue([
-          { id: 'cbe-1', employeeId: 'emp-1', occurredAt: new Date() },
-        ]),
+        findMany: jest
+          .fn()
+          .mockResolvedValue([
+            { id: 'cbe-1', employeeId: 'emp-1', occurredAt: new Date() },
+          ]),
       },
       legalDocumentAcknowledgement: {
         findFirst: jest
