@@ -7,8 +7,8 @@
 
 | | |
 |---|---|
-| Active sessions | **0** |
-| Active parent tasks | 7 |
+| Active sessions | **1** |
+| Active parent tasks | 8 |
 | Active work packages | 2 |
 | Blocked work packages | 0 |
 | Work packages waiting on the user | 0 |
@@ -32,7 +32,7 @@ survives every review by being unfalsifiable.
 | Ownerless actionable records | 0 |
 | No acceptance criteria | 31 |
 | No next action | 31 |
-| Aging — 7d / 30d / 90d | 13 / 0 / 0 |
+| Aging — 7d / 30d / 90d | 14 / 0 / 0 |
 | Architecture and technical debt | 6 |
 | Security gaps | 2 |
 | Database gaps | 1 |
@@ -47,7 +47,9 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 ## Active Sessions
 
-_No session is currently registered as active._
+| Session | Task | Title | Status | Branch | Target | Leases | Schema |
+|---|---|---|---|---|---|---|---|
+| [[SESSION-0050-dlp-capture-for-desktop-agent-clipboard-and-triggered-screen|SESSION-0050]] | — | DLP capture for desktop agent: clipboard and triggered screenshots | ACTIVE | `agent/dlp-desktop-agent` | `develop` | — | NO |
 
 ## Active Tasks and Work Packages
 
@@ -60,6 +62,7 @@ _No session is currently registered as active._
 | [[TASK-0011-first-production-release|TASK-0011]] | First production release | RELEASE | MEDIUM | 2/2 | — | — | — |
 | [[TASK-0018-legacy-pricing-removed-and-the-commercial-catalogue-made-to-|TASK-0018]] | Legacy pricing removed and the commercial catalogue made to converge | FEATURE | MEDIUM | 4/4 | — | — | — |
 | [[TASK-0019-release-the-payment-path-and-pricing-fixes-to-production|TASK-0019]] | Release the payment-path and pricing fixes to production | RELEASE | MEDIUM | 0/2 | WP-01 | — | — |
+| [[TASK-0020-dlp-capture-for-desktop-agent-clipboard-and-triggered-screen|TASK-0020]] | DLP capture for desktop agent: clipboard and triggered screenshots | SECURITY | LARGE | 6/6 | WP-06 | — | — |
 
 ## Branch model
 

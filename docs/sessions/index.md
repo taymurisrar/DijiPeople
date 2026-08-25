@@ -6,11 +6,13 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 0** · completed: 48
+**Active: 1** · completed: 48
 
 ## Active
 
-_None. No session is currently running._
+| Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
+|---|---|---|---|---|---|---|---|
+| [SESSION-0050](../../docs/sessions/SESSION-0050-dlp-capture-for-desktop-agent-clipboard-and-triggered-screen.md) | — | DLP capture for desktop agent: clipboard and triggered screenshots | ACTIVE | `agent/dlp-desktop-agent` | `develop` | — | 2026-08-24T22:06:09.192Z |
 
 ## Completed
 
