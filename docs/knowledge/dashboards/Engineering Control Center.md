@@ -7,8 +7,8 @@
 
 | | |
 |---|---|
-| Active sessions | **1** |
-| Active parent tasks | 4 |
+| Active sessions | **2** |
+| Active parent tasks | 5 |
 | Active work packages | 1 |
 | Blocked work packages | 0 |
 | Work packages waiting on the user | 0 |
@@ -49,6 +49,7 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 | Session | Task | Title | Status | Branch | Target | Leases | Schema |
 |---|---|---|---|---|---|---|---|
+| [[SESSION-0058-dlp-investigator-review-on-the-employee-form|SESSION-0058]] | — | DLP investigator review on the employee form | ACTIVE | `agent/dlp-employee-review` | `develop` | — | NO |
 | [[SESSION-0057-fix-the-six-landing-qa-bugs-run-ui-ux-review-unblock-provisi|SESSION-0057]] | — | Fix the six landing QA bugs, run UI/UX review, unblock provisioning and prod checkout, release to main | ACTIVE | `agent/landing-qa-fixes` | `develop` | — | NO |
 
 ## Active Tasks and Work Packages
@@ -59,6 +60,7 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 | [[TASK-0007-commercial-platform-completion-transactional-legal-and-lifec|TASK-0007]] | Commercial platform completion — transactional, legal and lifecycle half | FEATURE | PROGRAM | 16/16 | — | — | — |
 | [[TASK-0008-self-service-customer-onboarding-tenant-provisioning-domain-|TASK-0008]] | Self-service customer onboarding, tenant provisioning, domain routing and central login | FEATURE | LARGE | 11/11 | — | — | — |
 | [[TASK-0009-identity-and-multi-tenant-membership|TASK-0009]] | Identity and multi-tenant membership | FEATURE | LARGE | 11/12 | WP-09 | WP-09 | — |
+| [[TASK-0024-dlp-investigator-review-on-the-employee-record|TASK-0024]] | DLP investigator review on the employee record | FEATURE | MEDIUM | 0/1 | — | WP-01 | — |
 
 ## Branch model
 

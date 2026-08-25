@@ -6,12 +6,13 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 1** · completed: 54
+**Active: 2** · completed: 54
 
 ## Active
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0058](../../docs/sessions/SESSION-0058-dlp-investigator-review-on-the-employee-form.md) | — | DLP investigator review on the employee form | ACTIVE | `agent/dlp-employee-review` | `develop` | — | 2026-08-25T23:28:07.299Z |
 | [SESSION-0057](../../docs/sessions/SESSION-0057-fix-the-six-landing-qa-bugs-run-ui-ux-review-unblock-provisi.md) | — | Fix the six landing QA bugs, run UI/UX review, unblock provisioning and prod checkout, release to main | ACTIVE | `agent/landing-qa-fixes` | `develop` | — | 2026-08-25T19:18:33.032Z |
 
 ## Completed

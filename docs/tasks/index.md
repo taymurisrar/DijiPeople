@@ -8,7 +8,7 @@ graph and the block reasons. See
 
 | Bucket | Count |
 |---|---|
-| [Active](active.md) | 4 |
+| [Active](active.md) | 5 |
 | [Blocked](blocked.md) | 0 |
 | [Completed](completed.md) | 19 |
 
@@ -17,6 +17,7 @@ graph and the block reasons. See
 | Task | WP | Title |
 |---|---|---|
 | [TASK-0009](TASK-0009-identity-and-multi-tenant-membership.md) | WP-09 | Contract phase — `identityId` required (written, held for a later deployment) |
+| [TASK-0024](TASK-0024-dlp-investigator-review-on-the-employee-record.md) | WP-01 | <first package> |
 
 ## Needs a human
 
@@ -52,3 +53,4 @@ graph and the block reasons. See
 | [TASK-0021](TASK-0021-release-the-tenant-list-identity-fix-and-the-first-admin-bro.md) | Release the tenant list identity fix and the first admin browser suite | RELEASE | SMALL | P1 | COMPLETE | 2/2 | — |
 | [TASK-0022](TASK-0022-agent-ui-perception-browser-control-component-knowledge-ui-r.md) | Agent UI perception: browser control, component knowledge, UI review skill | FEATURE | LARGE | P1 | COMPLETE | 4/4 | NONE |
 | [TASK-0023](TASK-0023-dlp-capture-go-live-readiness.md) | DLP capture go-live readiness | FEATURE | LARGE | P1 | COMPLETE | 4/4 | WP-04 |
+| [TASK-0024](TASK-0024-dlp-investigator-review-on-the-employee-record.md) | DLP investigator review on the employee record | FEATURE | MEDIUM | P1 | IN_PROGRESS | 0/1 | — |
