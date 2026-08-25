@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**260 records** — 160 bugs under [`docs/bugs/`](../bugs/), 100 non-bug items under [`items/`](items/).
+**261 records** — 161 bugs under [`docs/bugs/`](../bugs/), 100 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,21 +13,21 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 32 |
+| Open (active work) | 33 |
 | Blocked | 1 |
 | Deferred | 23 |
 | Awaiting a product decision | 2 |
 | Completed / closed | 202 |
 | **Open CRITICAL** | **4** |
-| **Open HIGH** | **6** |
-| **Awaiting Architect triage** | **0** |
+| **Open HIGH** | **7** |
+| **Awaiting Architect triage** | **1** |
 
 ## Open by severity
 
 | Severity | Count |
 |---|---|
 | CRITICAL | 4 |
-| HIGH | 6 |
+| HIGH | 7 |
 | MEDIUM | 18 |
 | LOW | 4 |
 
@@ -36,7 +36,7 @@ see [`README.md`](README.md) for why.
 | Type | Count |
 |---|---|
 | ARCHITECTURE | 1 |
-| BUG | 5 |
+| BUG | 6 |
 | FOLLOW_UP | 2 |
 | INFRA | 6 |
 | INTEGRATION | 1 |
@@ -50,7 +50,7 @@ see [`README.md`](README.md) for why.
 
 | Status | Count |
 |---|---|
-| OPEN | 6 |
+| OPEN | 7 |
 | BLOCKED | 1 |
 | DEFERRED | 23 |
 | PRODUCT_DECISION | 2 |
@@ -155,6 +155,7 @@ see [`README.md`](README.md) for why.
 | [BUG-1203](../../docs/bugs/BUG-1203-repo-health-reports-changed-by-this-task-for-another-session.md) | repo-health reports CHANGED_BY_THIS_TASK for another session's merge | INFRA | HIGH | P1 | FIXED | framework | FIX_NOW |
 | [BUG-1302](../../docs/bugs/BUG-1302-annual-per-seat-price-is-labelled-per-month-on-the-checkout-.md) | Annual per-seat price is labelled per month on the checkout page | UX | HIGH | P1 | VERIFIED | apps/landing | DONE |
 | [BUG-1303](../../docs/bugs/BUG-1303-the-dp-chk-01-checkout-unavailable-link-writes-a-diagnostic-.md) | The DP-CHK-01 checkout-unavailable link writes a diagnostic code into the partner referral cookie | DATA_INTEGRITY | HIGH | P1 | VERIFIED | apps/landing | DONE |
+| [BUG-1369](../../docs/bugs/BUG-1369-checkout-resolves-a-plan-price-by-currency-and-cycle-only-so.md) | Checkout resolves a plan price by currency and cycle only, so it can quote a billing model the plans page never advertises | BUG | HIGH | P1 | OPEN | apps/landing | TRIAGE_REQUIRED |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | READY | apps/web, e2e | PLAN_REQUIRED |

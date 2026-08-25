@@ -187,6 +187,16 @@ completing one test purchase through to `workspace-created = DONE`.
 ## History
 
 - 2026-08-24, later — **the defect is gone, and the entry below this one drew
+- 2026-08-25 — re-measured against the live Render service while releasing
+  the landing fixes. `OUTBOX_WORKER_ENABLED` is now **present and `true`** in
+  production, so the declared-but-unset condition this record describes no
+  longer holds. Left `OPEN` deliberately rather than closed on the env var
+  alone: what this record is really about is that a paid customer receives a
+  workspace, and that has never been observed end to end *in production*. It
+  was proven on a local stack the same day — order ORD-2026-60EE553C reached
+  ACTIVATED with all 11 outbox events PROCESSED — which demonstrates the code
+  path works, not that production runs it. Close this when a production
+  payment provisions a workspace.
   the wrong conclusion from the right evidence.**
 
   `bash scripts/go-live.sh` was run against production from the Render Shell and

@@ -8,13 +8,13 @@
 | | |
 |---|---|
 | Open CRITICAL | **4** |
-| Open HIGH | **6** |
-| Open total | 32 |
+| Open HIGH | **7** |
+| Open total | 33 |
 | Blocked | 1 |
 | Awaiting a product decision | 2 |
 | Deferred | 23 |
 | Completed | 202 |
-| Awaiting Architect triage | 0 |
+| Awaiting Architect triage | 1 |
 
 ## Open Critical Bugs
 
@@ -33,6 +33,7 @@
 | [[BUG-0016-partner-onboarding-review-has-no-state-machine|BUG-0016]] | Partner onboarding review has no state machine | STATE_MACHINE | HIGH | OPEN | api:partner-experience | PLAN_REQUIRED |
 | [[BUG-0903-production-runs-stripe-in-test-mode-so-no-real-payment-can-b|BUG-0903]] | Production runs Stripe in test mode, so no real payment can be collected | BUG | HIGH | OPEN | api:billing | BLOCKED_EXTERNAL |
 | [[BUG-1203-repo-health-reports-changed-by-this-task-for-another-session|BUG-1203]] | repo-health reports CHANGED_BY_THIS_TASK for another session's merge | INFRA | HIGH | FIXED | framework | FIX_NOW |
+| [[BUG-1369-checkout-resolves-a-plan-price-by-currency-and-cycle-only-so|BUG-1369]] | Checkout resolves a plan price by currency and cycle only, so it can quote a billing model the plans page never advertises | BUG | HIGH | OPEN | apps/landing | TRIAGE_REQUIRED |
 | [[ITEM-0034-apps-web-has-zero-browser-e2e-coverage|ITEM-0034]] | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | READY | apps/web, e2e | PLAN_REQUIRED |
 | [[ITEM-0094-go-live-sh-reports-no-blocker-for-a-webhook-endpoint-that-re|ITEM-0094]] | go-live.sh reports no blocker for a webhook endpoint that rejects every delivery | TEST_GAP | HIGH | READY | scripts, api:billing, api:outbox | FIX_NOW |
 
@@ -250,13 +251,13 @@
 ## Recent Engineering History
 
 - [[2026-08-25-repo-health-task-sha-5f2648d6|Engineering History — Two checks that were argued correct rather than tested]]
+- [[2026-08-25-landing-qa-fixes-309abe0d|Engineering History — Fixing the six landing QA findings, and releasing them]]
 - [[2026-08-25-landing-e2e-qa-2e2ef16a|Engineering History — Landing E2E QA, local and production]]
 - [[2026-08-25-dlp-go-live-readiness-5f556842|Engineering History — DLP capture go-live readiness]]
 - [[2026-08-25-dlp-desktop-agent-capture-c0932f17|Engineering History — DLP capture for the desktop agent]]
 - [[2026-08-25-agent-ui-perception-c4035dbb|Engineering History — Agent UI perception]]
 - [[2026-08-25-admin-theme-bootstrap-hydration-a4503e3b|Engineering History — Admin theme bootstrap hydration mismatch]]
 - [[2026-08-24-session-registry-closeout-cbc6f0b2|Engineering History — Close every stale active session and finish their residual work]]
-- [[2026-08-24-record-state-reconciliation-b205fea8|Engineering History — Record-state reconciliation — verify what is actually resolved]]
 
 ## Recent Releases
 
@@ -304,18 +305,18 @@
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 160 |
+| Bug records | 161 |
 | Backlog items | 100 |
 | Known bug patterns | 28 |
 | QA runs | 26 |
-| Engineering history records | 45 |
+| Engineering history records | 46 |
 | Release records | 3 |
 | Module notes | 28 |
 | Architecture notes | 20 |
 | Decision notes (ADR + generated) | 6 |
 | Implementation records | 6 |
 
-**Awaiting Architect triage: 0.** A record nobody has
+**Awaiting Architect triage: 1.** A record nobody has
 triaged is work nobody has decided about — the number that should stay near
 zero between tasks.
 
