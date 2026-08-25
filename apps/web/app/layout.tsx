@@ -90,9 +90,13 @@ export default async function RootLayout({
 
 /*
  * Deliberately a string of plain JS rather than an imported module: it has to
- * execute synchronously in <head>, before React hydrates and before the first
- * paint. Kept small and defensive — a browser with storage blocked falls back
- * to the system preference rather than throwing during document parse.
+ * execute synchronously during document parse, before React hydrates and before
+ * the first paint. Kept small and defensive — a browser with storage blocked
+ * falls back to the system preference rather than throwing.
+ *
+ * It does not run in <head>, whatever this comment said until BUG-1261 — the
+ * placement note above <script> is the accurate one, and this line contradicting
+ * it is exactly what would send the next author to move the tag back.
  */
 const THEME_BOOTSTRAP_SCRIPT = `(function () {
   try {

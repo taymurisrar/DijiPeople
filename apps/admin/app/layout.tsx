@@ -58,24 +58,40 @@ export default async function RootLayout({
       lang="en"
       suppressHydrationWarning
     >
-      <head>
-        {/*
-          Blocking and inline on purpose: it has to run before the first paint,
-          and anything deferred is by definition after it.
-        */}
-        <script
-          dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP_SCRIPT }}
-          id="admin-theme-bootstrap"
-        />
-      </head>
       {/*
         Background and text come from the theme tokens. They were
         `bg-slate-100 text-slate-950` — hardcoded light, on the one element
         outside every route group and therefore outside anything that knows the
         preference. Even with the attribute set correctly, the page behind the
         shell stayed light.
+
+        `suppressHydrationWarning` because extensions stamp their own attributes
+        on `<body>` — Grammarly, password managers, translation tools — and a
+        warning this app cannot prevent is a warning that trains operators to
+        ignore the console.
       */}
-      <body className="min-h-full bg-[var(--admin-background)] font-sans text-[var(--admin-text)]">
+      <body
+        className="min-h-full bg-[var(--admin-background)] font-sans text-[var(--admin-text)]"
+        suppressHydrationWarning
+      >
+        {/*
+          Blocking, inline, and the first child of `<body>` — not in `<head>`.
+
+          Blocking and inline because it has to run before the first paint, and
+          anything deferred is by definition after it. First child of `<body>`
+          rather than `<head>` because React reconciles `<head>` position by
+          position, and browser extensions insert their own `<script>` there
+          before React loads: React then compares our inline bootstrap against
+          whatever the extension put in that slot and reports a hydration
+          mismatch — `src="chrome-extension://…"` on the client, `__html` on
+          the server — on every console load. It still precedes the paint here,
+          because nothing below it has been parsed yet. `apps/web` met this
+          first and moved its own bootstrap out of `<head>` for the same reason.
+        */}
+        <script
+          dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP_SCRIPT }}
+          id="admin-theme-bootstrap"
+        />
         {children}
       </body>
     </html>

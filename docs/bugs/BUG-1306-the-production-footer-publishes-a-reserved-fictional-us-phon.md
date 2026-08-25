@@ -1,0 +1,164 @@
+---
+ID: BUG-1306
+aliases: [BUG-1306]
+Title: The production footer publishes a reserved fictional US phone number as a tel link
+Status: VERIFIED
+Severity: LOW
+Priority: P3
+Type: UX
+Source: QA_RUN
+DetectedDate: 2026-08-25
+DetectedInSha: 42435d59
+AffectedModules: [apps/landing]
+OwnerAgent: architect
+ArchitectDisposition: DONE
+QAReport: docs/qa/runs/2026-08-25-landing-e2e-local-and-prod-42435d5.md
+RegressionId: REG-256
+RelatedBacklogItem:
+RelatedDecision:
+RelatedImplementation:
+CreatedAt: 2026-08-25
+UpdatedAt: 2026-08-25
+ResolvedAt: 2026-08-25
+---
+
+# BUG-1306 — The production footer publishes a reserved fictional US phone number as a tel link
+
+## Summary
+
+Every page of the live marketing site shows `+1 (312) 555-0184` in the footer's
+Contact column, as a clickable `tel:+13125550184` link. `555-0100` through
+`555-0199` is the range reserved for fictional use, so the number cannot
+connect. It is also a US (Chicago) number for a company that bills in QAR and
+whose own partner form suggests `+974` — so it is wrong twice over.
+
+## Expected Behavior
+
+The footer either lists a phone number that reaches DijiPeople, or omits the
+phone row. A placeholder is fine in a form's `placeholder` attribute; it is not
+fine as a published contact detail.
+
+## Actual Behavior
+
+A fictional number is published as a real contact channel on every page.
+
+## Reproduction
+
+1. Open any page of `https://www.dijipeople.com`.
+2. Scroll to the footer, Contact column.
+3. The third entry is `+1 (312) 555-0184`, linked as `tel:+13125550184`.
+
+## Evidence
+
+Confirmed in the rendered footer of `/`, `/plans`, `/contact`, `/partners`,
+`/subscribe` and `/features` on 2026-08-25.
+
+The value is a hardcoded constant in
+[`apps/landing/app/_components/marketing/content.ts:18`](../../apps/landing/app/_components/marketing/content.ts#L18):
+
+```ts
+export const contactInfo = {
+  businessEmail: "hello@dijipeople.com",
+  supportEmail: "support@dijipeople.com",
+  phone: "+1 (312) 555-0184",
+} as const;
+```
+
+The same string is used as the lead form's placeholder at
+[`lead-form-section.tsx:334`](../../apps/landing/app/_components/marketing/lead-form-section.tsx#L334)
+— which is a legitimate use — and the two uses share one constant, which is how
+a placeholder became a published contact detail.
+
+Corroborating the region mismatch: the partner form's phone placeholder is
+`+974 0000 0000`, and `/plans` states "Prices shown in QAR for Qatar".
+
+## Root Cause
+
+One constant serves two purposes: an example number to show inside an input, and
+the company's actual published contact number. The example value was correct for
+the first use and was never replaced for the second.
+
+## Impact
+
+Cosmetic but public and on every page. A prospect who calls it reaches nothing;
+the mismatch between a US number and a Qatar-billing business also reads as
+carelessness on a site whose job is to establish credibility before a purchase.
+No functional path depends on it.
+
+## Affected Areas
+
+- `apps/landing/app/_components/marketing/content.ts` — the constant.
+- The site footer, on every route.
+- `e2e/tests/flow-c-landing-public-surface.spec.ts:198` and
+  `flow-a-commercial-onboarding.spec.ts:30` use the same string as test input,
+  which is fine and should stay.
+
+## Proposed Resolution
+
+Split the two uses. Keep a `phonePlaceholder` for the form input, and either set
+`contactInfo.phone` to the real number or drop the footer row until there is
+one. If a number is published it should match the market the site sells to.
+
+Worth checking `supportEmail: "support@dijipeople.com"` at the same time — this
+QA run did not verify that address receives mail.
+
+## Acceptance Criteria
+
+- The footer shows either a reachable number or no number.
+- The form placeholder still shows an example.
+- No published contact detail sits in a reserved fictional range.
+
+## Regression Coverage
+
+A cheap assertion in the existing landing public-surface suite: the footer's
+`tel:` href must not match `/555-01\d\d/`.
+
+## Dependencies
+
+Needs the real contact number from the business — a product input, not an
+engineering one.
+
+## Related Items
+
+- [[BUG-0021]] — the landing contact form's other data-quality defects.
+
+## Resolution
+
+Fixed by separating the two uses, which is what the record proposed.
+
+[`content.ts`](../../apps/landing/app/_components/marketing/content.ts) now
+carries `phone` (published) and `phonePlaceholder` (illustrative) as distinct
+fields. `phone` is `null`, and both consumers — the site footer and the contact
+panel — omit their row entirely rather than render an empty one. The form
+placeholder is now `+974 0000 0000`, matching the partner form and the market
+the site actually bills in.
+
+**The product decision is deferred, not taken.** Engineering cannot invent a
+reachable phone number, and publishing a second placeholder would repeat the
+defect. Publishing nothing is the honest state until a real number exists; set
+`contactInfo.phone` and both rows return with no other change.
+
+Regression coverage: `published-contact-details.spec.ts` asserts the *rule*
+rather than the current value — no published number may fall in a reserved
+fictional range, and the two fields must stay distinct. Supplying a real number
+later is therefore not a test change.
+
+## QA Retest
+
+Verified in `docs/qa/runs/2026-08-25-landing-fixes-verification.md` (V15–V16) on the running footer: the Contact column shows
+"Contact us" and `hello@dijipeople.com` only, with no `tel:` link. The form
+placeholder still renders.
+
+## History
+
+- 2026-08-25 — created from qa run at `42435d59`.
+- 2026-08-25 — fixed, verified on the running product, and closed. See `docs/qa/runs/2026-08-25-landing-fixes-verification.md`.
+
+<!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
+
+## Related
+
+- Modules — [[landing-architecture]]
+- Regression — REG-256 (see the regression register)
+
+<!-- GRAPH:END -->

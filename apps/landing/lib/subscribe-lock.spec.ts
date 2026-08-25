@@ -121,8 +121,41 @@ describe("the subscribe form when checkout is unavailable", () => {
       form.indexOf("The honeypot"),
     );
     // So a support conversation starts already knowing which plan and region.
-    expect(notice).toContain("/contact?ref=");
+    expect(notice).toContain("/contact?checkout=");
     expect(notice).toContain('href="/plans"');
+  });
+
+  /*
+   * BUG-1303. This link carried the diagnostic through the partner referral
+   * parameter, so clicking it stored DP-CHK-01 as the visitor's referral code
+   * for thirty days and — because attribution is first-touch — every genuine
+   * partner code arriving afterwards was discarded.
+   *
+   * Asserted here as well as in referral.spec.ts on purpose: that suite proves
+   * the capture layer now refuses diagnostics, this one proves the link stopped
+   * emitting one. Either alone would let the defect return through the other
+   * half.
+   */
+  it("never routes the diagnostic code through the partner referral parameter", () => {
+    const notice = form.slice(
+      form.indexOf('id="subscribe-unavailable-notice"'),
+      form.indexOf("The honeypot"),
+    );
+
+    /*
+     * Comments are stripped before the assertion. This suite reads raw source,
+     * and the code above deliberately *names* the referral parameter while
+     * explaining why it must not be used — so scanning the text as-is would
+     * fail on the very comment that documents the fix, and the obvious way to
+     * "pass" would be to delete the explanation. Assert on what ships, not on
+     * what is written about it.
+     */
+    const code = notice
+      .replace(/\{\/\*[\s\S]*?\*\/\}/g, "")
+      .replace(/\/\*[\s\S]*?\*\//g, "");
+
+    expect(code).not.toContain("?ref=");
+    expect(code).toContain("?checkout=");
   });
 
   it("keeps the plan and billing selectors outside the blocked region", () => {

@@ -12,8 +12,8 @@
 | Open total | 32 |
 | Blocked | 1 |
 | Awaiting a product decision | 2 |
-| Deferred | 22 |
-| Completed | 193 |
+| Deferred | 23 |
+| Completed | 202 |
 | Awaiting Architect triage | 0 |
 
 ## Open Critical Bugs
@@ -159,6 +159,8 @@
 | [[BUG-0995-editing-any-plan-price-500s-once-its-stripe-product-id-goes-|BUG-0995]] | Editing any plan price 500s once its Stripe product id goes stale | INTEGRATION | HIGH | VERIFIED | billing, super-admin | DONE |
 | [[BUG-1134-a-stale-stripe-price-id-500s-the-plan-pricing-screen-because|BUG-1134]] | A stale Stripe price id 500s the plan pricing screen because verifyRecurringPrice is unguarded | INTEGRATION | HIGH | VERIFIED | api:billing, api:super-admin, apps/admin | DONE |
 | [[BUG-1203-repo-health-reports-changed-by-this-task-for-another-session|BUG-1203]] | repo-health reports CHANGED_BY_THIS_TASK for another session's merge | INFRA | HIGH | FIXED | framework | FIX_NOW |
+| [[BUG-1302-annual-per-seat-price-is-labelled-per-month-on-the-checkout-|BUG-1302]] | Annual per-seat price is labelled per month on the checkout page | UX | HIGH | VERIFIED | apps/landing | DONE |
+| [[BUG-1303-the-dp-chk-01-checkout-unavailable-link-writes-a-diagnostic-|BUG-1303]] | The DP-CHK-01 checkout-unavailable link writes a diagnostic code into the partner referral cookie | DATA_INTEGRITY | HIGH | VERIFIED | apps/landing | DONE |
 | [[BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state|BUG-0051]] | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |
 | [[BUG-0009-session-revocation-depended-on-the-refresh-cookie|BUG-0009]] | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | VERIFIED | app:admin, api:auth | DONE |
 | [[BUG-0010-unguarded-cookie-options-could-turn-sign-out-into-a-500|BUG-0010]] | Unguarded cookie options could turn admin sign-out into a 500 | INFRA | MEDIUM | VERIFIED | app:admin | DONE |
@@ -212,23 +214,29 @@
 | [[BUG-0795-saved-table-preferences-hide-every-column-added-to-a-module-|BUG-0795]] | Saved table preferences hide every column added to a module afterwards | UX | MEDIUM | VERIFIED | apps/admin | DONE |
 | [[BUG-0907-an-unknown-legal-slug-answers-200-and-hangs-on-the-loading-s|BUG-0907]] | An unknown legal slug answers 200 and hangs on the loading shell instead of returning 404 | BUG | MEDIUM | VERIFIED | apps/landing | DONE |
 | [[BUG-1208-component-index-check-fails-on-every-windows-checkout-passes|BUG-1208]] | component-index --check fails on every Windows checkout, passes in CI | INFRA | MEDIUM | FIXED | framework | FIX_NOW |
+| [[BUG-1261-the-admin-theme-bootstrap-script-runs-in-head-where-react-hy|BUG-1261]] | The admin theme bootstrap script runs in head where React hydrates it against extension-injected scripts | UX | MEDIUM | VERIFIED | apps/admin | DONE |
+| [[BUG-1304-production-subscribe-wizard-offers-only-eight-countries-beca|BUG-1304]] | Production subscribe wizard offers only eight countries because the ISO country sync never populates production | DATABASE | MEDIUM | VERIFIED | api:lookups, apps/landing | DONE |
+| [[BUG-1305-priority-country-sortorder-collides-with-alphabetical-sortor|BUG-1305]] | Priority country sortOrder collides with alphabetical sortOrder, scattering key markets mid-list | DATABASE | MEDIUM | VERIFIED | api:lookups | DONE |
+| [[BUG-1364-a-coordinate-leak-assertion-substring-matches-json-and-fails|BUG-1364]] | A coordinate-leak assertion substring-matches JSON and fails when the clock spells a coordinate | TEST_GAP | MEDIUM | VERIFIED | services/api/test | DONE |
 | [[BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist|BUG-0023]] | The testing-architecture context claims two e2e specs do not exist | DOCUMENTATION | LOW | VERIFIED | .agent/context | DONE |
 | [[BUG-0024-start-onboarding-api-and-proxy-have-no-caller|BUG-0024]] | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | VERIFIED | apps/admin, api:super-admin | DONE |
 | [[BUG-0059-vault-wikilinks-to-task-records-and-four-module-notes-resolv|BUG-0059]] | Vault wikilinks to task records and four module notes resolve to nothing | DOCUMENTATION | LOW | VERIFIED | scripts, docs/tasks, docs/knowledge | DONE |
 | [[BUG-0352-the-tenant-timeline-rendered-every-entry-with-no-count-and-n|BUG-0352]] | The tenant timeline rendered every entry with no count and no paging | UX | LOW | VERIFIED | apps/admin | DONE |
 | [[BUG-0669-patch-my-preferences-never-used-its-dto-so-the-body-was-unva|BUG-0669]] | PATCH my-preferences never used its DTO so the body was unvalidated | SECURITY | LOW | VERIFIED | api:tenant-settings | DONE |
 | [[BUG-0796-tenant-and-plan-list-summaries-omit-createdbyid-so-the-creat|BUG-0796]] | Tenant and plan list summaries omit createdById so the Created by me view is always empty | BUG | LOW | VERIFIED | api:super-admin | DONE |
+| [[BUG-1306-the-production-footer-publishes-a-reserved-fictional-us-phon|BUG-1306]] | The production footer publishes a reserved fictional US phone number as a tel link | UX | LOW | VERIFIED | apps/landing | DONE |
+| [[BUG-1307-a-raw-monthly-enum-value-appears-in-customer-facing-timeshee|BUG-1307]] | A raw MONTHLY enum value appears in customer-facing timesheets copy | UX | LOW | VERIFIED | api:tenant-settings, apps/landing | DONE |
 
 ## Recent QA Runs
 
+- [[2026-08-25-landing-fixes-verification|QA Run — landing-fixes-verification]]
+- [[2026-08-25-landing-e2e-local-and-prod-42435d5|QA Run — landing-e2e-local-and-prod]]
 - [[2026-08-24-record-state-reconciliation-0a5586f|QA Run — record-state-reconciliation]]
 - [[2026-08-23-landing-go-live-e2e-789eeac|QA Run — landing-go-live-e2e]]
 - [[2026-08-22-tenant-activation-be0fd00|QA Run — tenant-activation]]
 - [[2026-08-20-identity-and-membership-3008a13|QA Run — identity-and-membership]]
 - [[2026-08-19-self-service-onboarding-provisioning-f5bd870|QA Run — self-service-onboarding-provisioning]]
 - [[2026-08-19-ci-e2e-remediation-3f03571|QA Run — ci-e2e-remediation]]
-- [[2026-08-18-primary-worktree-repository-health-494c44d|QA Run — primary-worktree-repository-health]]
-- [[2026-08-18-landing-uiux-remediation-verification-c332992|QA Run — landing-uiux-remediation-verification]]
 
 ## Recent Implementations
 
@@ -242,13 +250,13 @@
 ## Recent Engineering History
 
 - [[2026-08-25-repo-health-task-sha-5f2648d6|Engineering History — Two checks that were argued correct rather than tested]]
+- [[2026-08-25-landing-e2e-qa-2e2ef16a|Engineering History — Landing E2E QA, local and production]]
+- [[2026-08-25-dlp-go-live-readiness-5f556842|Engineering History — DLP capture go-live readiness]]
+- [[2026-08-25-dlp-desktop-agent-capture-c0932f17|Engineering History — DLP capture for the desktop agent]]
 - [[2026-08-25-agent-ui-perception-c4035dbb|Engineering History — Agent UI perception]]
+- [[2026-08-25-admin-theme-bootstrap-hydration-a4503e3b|Engineering History — Admin theme bootstrap hydration mismatch]]
 - [[2026-08-24-session-registry-closeout-cbc6f0b2|Engineering History — Close every stale active session and finish their residual work]]
 - [[2026-08-24-record-state-reconciliation-b205fea8|Engineering History — Record-state reconciliation — verify what is actually resolved]]
-- [[2026-08-23-release-legal-copy-and-plan-pricing-944a2d00|Engineering History — Release legal copy and plan pricing]]
-- [[2026-08-23-landing-go-live-e2e-a92fef5e|Engineering History — Landing site full E2E: what a go-live actually requires]]
-- [[2026-08-23-landing-e2e-release-be486ae1|Engineering History — Release: promoting the checkout fixes to production, and what deployed]]
-- [[2026-08-22-tenant-repair-and-console-ux-f87335d|Engineering History — Tenant repair and console ux]]
 
 ## Recent Releases
 
@@ -296,11 +304,11 @@
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 152 |
-| Backlog items | 98 |
-| Known bug patterns | 27 |
-| QA runs | 24 |
-| Engineering history records | 41 |
+| Bug records | 160 |
+| Backlog items | 100 |
+| Known bug patterns | 28 |
+| QA runs | 26 |
+| Engineering history records | 45 |
 | Release records | 3 |
 | Module notes | 28 |
 | Architecture notes | 20 |

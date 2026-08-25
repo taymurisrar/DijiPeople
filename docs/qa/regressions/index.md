@@ -1520,7 +1520,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Bug record** | BUG-0495 |
 | **Root cause** | `ConsolePreferencesApplier` writes the theme attributes from a `useEffect`, which runs after the first paint, and its own doc comment claimed they were written "before the first paint an operator notices" — true of a client navigation, false of every full load. The server emitted no theme attribute, every dark rule keys on one, and `<body>` carried a hardcoded `bg-slate-100 text-slate-950` on the one element outside every route group and therefore outside anything that knows the preference. |
 | **Regression test** | `apps/admin/lib/console-theme-bootstrap.spec.ts` |
-| **Scenario** | The bootstrap script reads the cookie the console writes and resolves `prefers-color-scheme` before paint; switching Dark → System *removes* the pinned attribute rather than leaving it; the script survives a browser refusing cookies or `matchMedia`; the root layout stamps the preference from `cookies()`, runs the script in `<head>`, suppresses the hydration warning it deliberately creates, and paints `<body>` from tokens rather than a light class. |
+| **Scenario** | The bootstrap script reads the cookie the console writes and resolves `prefers-color-scheme` before paint; switching Dark → System *removes* the pinned attribute rather than leaving it; the script survives a browser refusing cookies or `matchMedia`; the root layout stamps the preference from `cookies()`, runs the script as the first child of `<body>` rather than in `<head>` (moved by REG-251, and asserted here since), suppresses the hydration warning it deliberately creates, and paints `<body>` from tokens rather than a light class. |
 | **Proven to fail without the fix** | Reverting `layout.tsx` fails four of the five layout assertions by name. |
 | **Note** | The cookie is a rendering hint and nothing else — no decision is made from it, so a forged value costs the forger a wrongly-coloured page. That is worth stating because a cookie carrying a preference across a trust boundary usually is not that, and the next reader will check. |
 | **Fixed** | 2026-08-22, branch `agent/tenant-commands-monitoring-bulk-delete` |
@@ -2305,4 +2305,124 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Proven to fail without the fix** | Executed 2026-08-25. Deleting the line-ending normalisation fails 2 cases; making the comparison always-equal fails 4. The first attempt at this mutation silently failed to apply and the suite stayed green — the mutation was re-run and confirmed applied before the result was believed. |
 | **Note** | Found on the first fresh worktree created after the generator shipped, which is the only reason it was caught quickly: CI could never have found it, because the failure requires a checkout the runner does not produce. **A check whose result depends on the platform is not one check but two, and only one of them was ever run.** |
 | **Fixed** | 2026-08-25, `agent/repo-health-task-sha` |
+| **Active** | yes |
+
+### REG-251 — An inline bootstrap script in `<head>`, hydrated against an extension's
+
+| | |
+|---|---|
+| **Bug class** | `divergent-duplicate-guard` |
+| **Module** | `apps/admin` |
+| **Bug record** | BUG-1261 |
+| **Root cause** | The theme bootstrap REG-198 added has to be inline and blocking, which is right and unchanged. It was put inside an explicit `<head>` element, which is the intuitive placement and the wrong one: React reconciles `<head>` positionally, and browser extensions insert their own `<script>` at the top of it before React loads — so React hydrated our inline script against `src="chrome-extension://…"` and reported a mismatch on every full console load. `apps/web` had already met this and moved its identical bootstrap to the first child of `<body>`, with the reason in a comment. The comment constrained the file it was in and nothing else. |
+| **Regression test** | `apps/admin/lib/console-theme-bootstrap.spec.ts` |
+| **Scenario** | The root layout renders no `<head>` element at all, the bootstrap `<script>` is the first thing inside `<body>`, and it precedes `{children}`. `<body>` carries `suppressHydrationWarning`, because extensions stamp attributes there too and that is not a mismatch this app can prevent. The five REG-198 assertions are unchanged around them — the placement must not be fixed by giving up the pre-paint theme. |
+| **Proven to fail without the fix** | Executed 2026-08-25. Putting the script back inside `<head>` fails 2 of the 10 cases. Confirmed end to end in a real Chromium against `next dev` on the same server, with an extension-equivalent node inserted at `document_start`: the `<head>` placement logged the hydration error from the report, the `<body>` placement logged none, and with `dp-admin-theme=dark` the fixed layout still resolved `data-admin-scheme="dark"` and painted `rgb(11, 18, 32)`. |
+| **Note** | **A rule that exists only as a comment in the app that learned it will be re-broken by the next app.** Both frontends render the same kind of pre-paint bootstrap, and the second one was written after the first had already paid for this. The spec is where the rule belongs, because a spec is the only form of a lesson that fails when someone disagrees with it. Note also what the fix costs: an inline `<script>` inside a React component draws a dev-only advisory that scripts rendered on the client are never executed. That is correct and harmless here — the script runs during document parse, and client navigations are `ConsolePreferencesApplier`'s job — and it is an info-level message, not the error it replaced. |
+| **Fixed** | 2026-08-25, `agent/admin-theme-bootstrap-hydration` |
+| **Active** | yes |
+
+### REG-252 — An annual price quoted as a monthly charge
+
+| | |
+|---|---|
+| **Bug class** | `doc-code-drift` |
+| **Module** | `apps/landing` |
+| **Bug record** | BUG-1302 |
+| **Root cause** | The seat-total estimate on `/subscribe` was built inline in JSX and ended in the literal string `per month.` for every per-seat price. `selectedPrice` carries both `billingCycle` and `billingInterval`; neither was consulted. The string was written when only monthly per-seat prices existed and was not revisited when annual ones became sellable, so one branch came to serve two cycles. `formatBillingUnit`, ten lines away in the same module, had always branched on `billingCycle` correctly — the codebase already knew the rule and this line did not use it. |
+| **Regression test** | `apps/landing/lib/plans.spec.ts` (the formatSeatTotalEstimate suite) |
+| **Scenario** | Six cases over the extracted helper. An `ANNUAL` per-seat price must name a yearly period and must not contain "per month"; a `MONTHLY` one must be unchanged; the total must equal `unitAmount × seats`; a `FLAT` price returns `null` so the caller renders "Billed as one subscription."; and the period must agree with `formatBillingUnit` for both cycles — the unit caption and the total can never disagree about the period again. |
+| **Proven to fail without the fix** | Executed 2026-08-25. Reintroducing the hardcoded `per month` literal fails 2 of the 13 cases in the file (`names a yearly period for an annual price`, `agrees with formatBillingUnit about the period`), then passes on restore. |
+| **Note** | The number was right and the noun was wrong, which is the hardest kind of pricing defect to see: nothing looks broken, the arithmetic checks out, and the page reads fluently. It was caught by driving the purchase to Stripe and comparing — the page said `$75.00 per month`, Stripe charged `QAR 284.40 per year`. **A price is only verified when the payment processor has been asked what it will actually charge**; every check short of that agreed with itself. Note the direction: this overstated cost by 12×, so it lost sales rather than overcharging, and would never have arrived as a customer complaint. |
+| **Fixed** | 2026-08-25, `agent/landing-qa-fixes` |
+| **Active** | yes |
+
+### REG-253 — A diagnostic code occupying the partner attribution slot
+
+| | |
+|---|---|
+| **Bug class** | `two-writers-one-field` |
+| **Module** | `apps/landing` |
+| **Bug record** | BUG-1303 |
+| **Root cause** | `?ref=` is the partner referral channel, captured to a 30-day first-party cookie under a deliberate first-touch-wins rule. The checkout-unavailable panel needed to pass a support diagnostic to `/contact` and reused `ref` for it, so clicking "Ask us to arrange this plan" stored `DP-CHK-01` as the visitor's referral code. The capture layer could not tell the two apart, because a diagnostic code and a partner code are syntactically identical — both satisfy `/^[A-Za-z0-9_-]{1,64}$/`. First-touch then made it permanent for thirty days: a genuine partner code arriving later was discarded. |
+| **Regression test** | `apps/landing/lib/referral.spec.ts`, with `apps/landing/lib/subscribe-lock.spec.ts` |
+| **Scenario** | Nine cases over `referral.ts`, plus one over the emitting link. The decisive pair: a diagnostic code must not be stored, and a genuine partner code arriving *after* one must be. A stored diagnostic must read as absent, because visitors are already carrying the poisoned cookie. Four near-miss codes (`DPCHK01`, `DP-CHK-01-X`, `DP-1`, `DPARTNER-2`) must still be accepted — a guard that ate real partner codes would be the same defect from the other side. `subscribe-lock.spec.ts` asserts the link emits `?checkout=` and no longer `?ref=`, scanning the source with comments stripped so the comment explaining the rule cannot fail the rule. |
+| **Proven to fail without the fix** | Executed 2026-08-25. Disabling both guards fails 5 of the 9 cases, then passes on restore. Verified live against production before the fix: after clicking through DP-CHK-01, navigating to `/?ref=REALPARTNER99` left `dijipeople_referral=DP-CHK-01` in place. |
+| **Note** | Two lessons. First, **fixing the read path mattered as much as the write path** — guarding capture alone would have stopped new poisoning and left the existing cohort attributing to an error code and still blocking partners, because capture bails whenever a code is already stored. A fix that only helps future visitors is half a fix when the cookie lasts a month. Second, this is BUG-0281 arriving from the opposite direction: that record widened referral capture to survive any entry page, correctly, and **widening a channel also widens whatever else can get into it**. The failure is silent and costs commission, so nobody reports it. |
+| **Fixed** | 2026-08-25, `agent/landing-qa-fixes` |
+| **Active** | yes |
+
+### REG-254 — A degraded lookup preferred over the list compiled into the page
+
+| | |
+|---|---|
+| **Bug class** | `silent-config-fallback` |
+| **Module** | `apps/landing`, `services/api/src/modules/lookups` |
+| **Bug record** | BUG-1304 |
+| **Root cause** | `useCountryOptions` preferred the remote lookup whenever it returned anything at all (`length > 0`), on the reasoning that an empty `200` is an outage wearing a success code. True, and insufficient: production answers with **eight** countries — the `ensureDefaultCountries` defaults — because the ISO widening fetch never succeeds there and is swallowed by a deliberate `try`. Eight is greater than zero, so the lookup won and the 31 bundled countries were discarded, leaving a buyer outside those eight markets with nothing to select on a required field and no error anywhere. |
+| **Regression test** | `apps/landing/lib/use-country-options.spec.ts` (the isUsableLookupList suite) |
+| **Scenario** | Eight cases over the extracted predicate. An answer narrower than `BUNDLED_COUNTRIES` is rejected — including the exact production shape of 8 — while the empty and malformed answers it always rejected still are. The full ISO set of 250 is accepted, and so is an answer exactly as wide as the bundle, because widening is the reason the lookup exists and a fix that blocked it would be worse than the defect. |
+| **Proven to fail without the fix** | Executed 2026-08-25. The two narrowing cases (`remote(8)` and `remote(BUNDLED_COUNTRIES.length - 1)`) fail against the old `length > 0` rule. |
+| **Note** | **A fallback that only triggers on total failure does not cover partial failure, and partial failure is the common case.** The guard was written against the outage it had seen. The silent half was fixed too: the sync now logs at `error` with the surviving row count and a hint that a count near `DEFAULT_COUNTRIES.length` means the ISO set never loaded — the failure is still swallowed, because a reference lookup must not block a purchase, but it is no longer invisible. Note what this does *not* fix: production still returns eight. Pulling a 250-row reference list from a third-party host on demand from a public endpoint is the underlying problem, and seeding it is the durable answer. |
+| **Fixed** | 2026-08-25, `agent/landing-qa-fixes` |
+| **Active** | yes |
+
+### REG-255 — A priority rank and an alphabetical index sharing one column
+
+| | |
+|---|---|
+| **Bug class** | `two-writers-one-field` |
+| **Module** | `services/api/src/modules/lookups` |
+| **Bug record** | BUG-1305 |
+| **Root cause** | `Country.sortOrder` had two writers filling the same numeric space and neither knew about the other. The ISO import numbered all 250 countries `0…249` by alphabetical position; `DEFAULT_COUNTRIES` separately assigned the eight priority markets `10, 20, … 80` as ranks. Under `[sortOrder asc, name asc]` the ranks landed *inside* the alphabetical range: `sortOrder: 10` was held by both Argentina and the United States, so "United States" rendered between Argentina and Armenia. Exactly eight values collided, and they were the eight markets DijiPeople sells to. The `orderBy` clause was correct throughout; the defect was entirely in the data. |
+| **Regression test** | `services/api/src/modules/lookups/geographic-lookup.service.spec.ts` (the country sort bands suite) |
+| **Scenario** | Four invariant cases plus a sort simulation. Every priority market must carry a negative `sortOrder`, the values must be distinct, and none may equal the unpinned default of `0` — that band separation is what makes the collision unrepresentable rather than merely absent. The simulation sorts the priority set together with two unpinned countries using the same comparison Prisma is given, and asserts the eight lead and that Argentina and Armenia are adjacent at the end. A sibling case pins that the ISO import writes `sortOrder: 0` rather than an index. |
+| **Proven to fail without the fix** | Executed 2026-08-25. The pre-fix catalog values (`10 … 80`) fail all four band assertions. Verified against the real database after migration: 250 rows, the eight priority markets first in intended order, then alphabetical, `out-of-order within a band: 0`. |
+| **Note** | **Assert the band, not the numbers.** A test pinning `US === -8` would pass while leaving the collision reintroducible by anyone who "tidied" the values into positives; a test asserting *negative and distinct from the unpinned default* fails on exactly that change. Two further details cost real time: `ensureDefaultCountries` used `update: {}`, so correcting the catalog would have fixed only brand-new databases — an already-seeded one keeps whatever it was created with, which is why a data migration was needed as well as a code change. And the defect was **latent in production**, which holds only the eight defaults: the moment the ISO widening is fixed (BUG-1304's durable fix), this becomes live for every buyer. A pattern dormant because the data is incomplete is not a pattern that has been fixed. |
+| **Fixed** | 2026-08-25, `agent/landing-qa-fixes` |
+| **Active** | yes |
+
+### REG-256 — A reserved fictional phone number published as a `tel:` link
+
+| | |
+|---|---|
+| **Bug class** | `doc-code-drift` |
+| **Module** | `apps/landing` |
+| **Bug record** | BUG-1306 |
+| **Root cause** | One constant, `contactInfo.phone`, served two purposes: the example number shown inside the lead form's phone input, and the number published in the site footer on every page as a live `tel:` link. The value `+1 (312) 555-0184` was correct for the first — `555-0100`–`555-0199` is the block reserved so fictional numbers cannot ring anyone — and had never been replaced for the second. It was also a US number for a company that bills in QAR and whose partner form suggests `+974`, so it was wrong on region as well as reachability. |
+| **Regression test** | `apps/landing/lib/published-contact-details.spec.ts` |
+| **Scenario** | The published number, if there is one, must not fall in a reserved fictional range (NANP `555-01XX`, or an all-zero subscriber number). `phone` and `phonePlaceholder` must remain distinct fields — collapsing them is how the defect happened. Published emails must be real `@dijipeople.com` addresses and not `example.com`. The suite asserts the *rule*, and skips the range check when nothing is published, so supplying a real number later is not a test change. |
+| **Proven to fail without the fix** | Executed 2026-08-25. Restoring `phone: "+1 (312) 555-0184"` fails the reserved-range case. |
+| **Note** | The fix deliberately publishes **nothing** rather than a replacement, because engineering cannot invent a reachable number and a second placeholder would repeat the defect exactly. `phone: null` and every consumer omits its row; setting a real value restores both rows with no other change. **A placeholder is safe only where it is understood to be one** — the same string is correct in an input's `placeholder` attribute and a lie in a footer, and nothing in the type system distinguishes those two uses of a `string`. Splitting the field is what makes the difference checkable. |
+| **Fixed** | 2026-08-25, `agent/landing-qa-fixes` |
+| **Active** | yes |
+
+### REG-257 — A raw enum value published as marketing copy
+
+| | |
+|---|---|
+| **Bug class** | `doc-code-drift` |
+| **Module** | `services/api/src/modules/tenant-settings` |
+| **Bug record** | BUG-1307 |
+| **Root cause** | The Timesheets entry in `TENANT_FEATURE_DEFINITIONS` read `MONTHLY timesheets, submission, and approval workflows.` — a `SCREAMING_SNAKE` enum value pasted into prose and never recased. That catalog feeds the tenant settings screens *and* the module list on the public `/features` and `/plans` pages, so the string was published to prospects. Every sibling entry in the same array is correctly sentence-cased, which is what made it read as a mistake rather than a house style. Nothing validated catalog copy. |
+| **Regression test** | `services/api/src/modules/tenant-settings/catalog-copy.spec.ts` |
+| **Scenario** | Six cases. No feature description, feature label or category label may contain a `SCREAMING_SNAKE` token, with an allow-list for acronyms that are legitimately upper-case in English (`HR`, `API`, `SLA`, `PDF`, …) — a rule that banned every capitalised run would fail on real copy and be deleted, which is worse than not having it. A guard case asserts the catalog is non-empty so the suite cannot pass vacuously, a named case pins the Timesheets string specifically, and every feature must carry a description of more than ten characters. |
+| **Proven to fail without the fix** | Executed 2026-08-25. Restoring `MONTHLY` fails 2 of the 6 cases (the description sweep and the named Timesheets case). |
+| **Note** | The product question the bug record raised — whether timesheet periods are configurable — was answered by the schema rather than deferred: `Timesheet` is keyed `@@unique([tenantId, employeeId, year, month])`, one per employee per calendar month, so "Monthly" is a fact and not a hedge. **Reviewers read the shape of a catalog entry and skim its strings**, which is how a defect this visible reached two marketing pages. The test sweeps the whole catalog rather than pinning the one string, because the next paste will be a different entry. |
+| **Fixed** | 2026-08-25, `agent/landing-qa-fixes` |
+| **Active** | yes |
+
+### REG-258 — A structural assertion written as a substring scan, failed by the clock
+
+| | |
+|---|---|
+| **Bug class** | `assertion-without-a-check` |
+| **Module** | `services/api/test` |
+| **Bug record** | BUG-1364 |
+| **Root cause** | `attendance-operational.e2e-spec.ts` guards a real privacy invariant — GPS coordinates must not leak through the generic serialisation of an attendance day — with `JSON.stringify(detail)` followed by `not.toContain('25.3')` and `not.toContain('51.6')`. The payload also carries `lastReconciledAt`, generated at run time, so a reconciliation at `…:51.6`41Z puts the literal `51.6` in the string and the test fails reporting a leak that never happened. `25.3` collides identically with a `:25.3xx` timestamp. `JSON.stringify` flattened a typed object into text, and a bare decimal is not a distinctive enough string to search a whole payload for. |
+| **Regression test** | `services/api/test/attendance-operational.e2e-spec.ts` |
+| **Scenario** | The assertion walks the parsed `detail` object instead of serialising it, collecting every key and every numeric value at any depth. No key may match `/latitude\|longitude\|accuracy\|coordinate/i`, and no number may equal `25.3` or `51.6`. Verified against four payloads before the change was trusted: clean-with-the-colliding-timestamp (passes), a top-level leak (caught), coordinates nested in `sessions[].evidence.position` (caught), and `{lat, lng}` under renamed keys (caught). |
+| **Proven to fail without the fix** | The defect proved itself: CI run `32895970738` failed on a branch that changed nothing in attendance, with `Expected substring: not "51.6"` against a payload whose only occurrence was `lastReconciledAt: "2026-08-25T20:36:51.641Z"`. Rate is about one run in three hundred — two values, each matching one second in sixty and one tenth within it. |
+| **Note** | Two lessons. **A structural claim asserted as a substring is not the same claim.** The intent — no coordinate in this object — is about types and keys; `toContain` on serialised JSON is about text, and the text carries timestamps, uuids and generated names the assertion was never about. The fix is not "make the string match narrower" but "stop turning the object into a string". Second, the replacement is **stronger than what it replaced**, which is the tell that the original was under-specified rather than merely fragile: it now catches a coordinate nested at any depth and one stored under a key that does not advertise itself (`{lat, lng}`), neither of which the old scan could see. A test that is both flaky and weak usually has one cause. Worth noting how close this came to being waved through: a red build naming a privacy leak, on a branch touching only the landing site, is the failure most likely to be re-run and forgotten — and a flake that has been dismissed once has stopped being evidence about the thing it guards. |
+| **Fixed** | 2026-08-25, `agent/landing-qa-fixes` |
 | **Active** | yes |

@@ -531,14 +531,49 @@ describe('Attendance operational (e2e)', () => {
     await reconcile();
 
     const detail = await engine.getDay(hrUser(), employeeId, DAY);
-    const serialised = JSON.stringify(detail);
 
-    // The ordinary attendance view shows the business result. Coordinates live
-    // behind their own permission and must not leak through generic
-    // serialisation of a day.
-    expect(serialised).not.toContain('25.3');
-    expect(serialised).not.toContain('51.6');
-    expect(serialised).not.toContain('latitude');
+    /*
+     * The ordinary attendance view shows the business result. Coordinates live
+     * behind their own permission and must not leak through generic
+     * serialisation of a day.
+     *
+     * Asserted over the parsed structure rather than as substrings of the
+     * serialised JSON. This read `expect(serialised).not.toContain('51.6')`,
+     * and that is **clock-dependent**: the payload carries `lastReconciledAt`,
+     * so a reconciliation at 20:36:**51.6**41Z contains the literal "51.6" and
+     * the test fails reporting a coordinate leak that never happened. `25.3`
+     * collides the same way with a `:25.3xx` timestamp.
+     *
+     * It cost a CI run to diagnose, and would have failed roughly one run in
+     * three hundred for as long as it stood — rare enough to be waved through
+     * as noise, which is what makes this kind of failure expensive.
+     *
+     * Walking the object also tests something the substring scan could not: a
+     * coordinate nested anywhere, under any key, at any depth.
+     */
+    const keys: string[] = [];
+    const numbers: number[] = [];
+    const walk = (node: unknown): void => {
+      if (Array.isArray(node)) {
+        node.forEach(walk);
+        return;
+      }
+      if (node && typeof node === 'object') {
+        for (const [key, value] of Object.entries(node)) {
+          keys.push(key);
+          walk(value);
+        }
+        return;
+      }
+      if (typeof node === 'number') numbers.push(node);
+    };
+    walk(detail);
+
+    expect(
+      keys.filter((key) => /latitude|longitude|accuracy|coordinate/i.test(key)),
+    ).toEqual([]);
+    expect(numbers).not.toContain(25.3);
+    expect(numbers).not.toContain(51.6);
   });
 
   // ---------------------------------------------------------- exceptions

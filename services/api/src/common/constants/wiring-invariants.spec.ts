@@ -74,6 +74,10 @@ function grantedPermissionKeys() {
  * screen behind it is dead for every real user.
  */
 const ADMIN_ONLY_PERMISSIONS = new Set<string>([
+  // Held by no role by default: reviewing captured DLP content is reachable only
+  // via the elevated-admin bypass until a tenant assigns a dedicated role
+  // (TASK-0020).
+  'dlp.review',
   'customers.create',
   'customers.read',
   'customers.write',

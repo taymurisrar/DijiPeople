@@ -85,7 +85,32 @@ test.describe("landing shell", () => {
     expect(undersized).toBe(0);
 
     await expect(page.locator('footer a[href^="mailto:"]')).not.toHaveCount(0);
-    await expect(page.locator('footer a[href^="tel:"]')).not.toHaveCount(0);
+
+    /*
+     * The `tel:` link is asserted *conditionally* — BUG-1306.
+     *
+     * This used to require one, which pinned the defect rather than the intent:
+     * the footer was publishing `+1 (312) 555-0184` on every page, a number
+     * from the `555-01XX` block reserved so fictional numbers cannot ring
+     * anyone. `contactInfo.phone` is now `null` until there is a real one, and
+     * the row is omitted rather than rendered empty.
+     *
+     * The invariant worth holding is that the footer offers a **reachable**
+     * contact route, and that any phone link it does render is well-formed —
+     * not that a phone link exists at all. The mailto assertion above already
+     * guarantees the reachable route; also demanding a `tel:` would push a
+     * placeholder back into production the moment someone made this pass again.
+     *
+     * When a real number is configured, this asserts it properly with no change
+     * here.
+     */
+    const telLinks = page.locator('footer a[href^="tel:"]');
+    if ((await telLinks.count()) > 0) {
+      const href = await telLinks.first().getAttribute("href");
+      expect(href).toMatch(/^tel:\+?\d{6,}$/);
+      // A reserved fictional range must never reach a published contact link.
+      expect(href).not.toMatch(/555-?01\d\d/);
+    }
   });
 });
 

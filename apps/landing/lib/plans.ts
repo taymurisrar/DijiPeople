@@ -200,6 +200,38 @@ export function formatPlanPrice(price: PublicPlanPrice | null) {
 }
 
 /**
+ * The seat-total estimate shown under the headline price on `/subscribe`.
+ *
+ * The period is derived from the price, never assumed. This sentence used to end
+ * in a hardcoded "per month" for every per-seat price, so an annual plan quoted
+ * its *yearly* total and called it a monthly charge — twelve times the real
+ * figure, on the last screen before payment, and contradicted by the amount
+ * Stripe then displayed. That was BUG-1302.
+ *
+ * `formatBillingUnit` below already branches on `billingCycle` for exactly this
+ * reason; this is its counterpart for the total rather than the unit, and the
+ * two must always agree about the period.
+ *
+ * Returns `null` for a non-per-seat price: a flat price has no seat arithmetic
+ * to show, and the caller renders "Billed as one subscription." instead.
+ */
+export function formatSeatTotalEstimate(
+  price: PublicPlanPrice | null,
+  seatQuantity: number,
+) {
+  if (!price || price.billingModel !== "PER_SEAT") return null;
+
+  const total = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: price.currency,
+  }).format(price.unitAmount * seatQuantity);
+  const period = price.billingCycle === "ANNUAL" ? "per year" : "per month";
+  const seats = `${seatQuantity} purchased seat${seatQuantity === 1 ? "" : "s"}`;
+
+  return `${seats} · estimated ${total} ${period}.`;
+}
+
+/**
  * What one unit of a per-seat price actually is.
  *
  * The billable unit is an **active employee**, not a login or a "user" — a

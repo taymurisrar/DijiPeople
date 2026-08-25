@@ -45,6 +45,15 @@ authorization or tenant decisions.
 - [[BUG-0018-bulk-lead-delete-is-unreachable-for-every-role]] — DEFERRED. The
   platform permission resolver has no `DELETE` mapping, so **every** platform
   `DELETE` route is dead. It fails closed.
+- [[BUG-1261]] — VERIFIED. **The standing lesson above, a second time.** The
+  theme bootstrap script sat in an explicit `<head>` element in `app/layout.tsx`,
+  where React reconciled it against the `<script src="chrome-extension://…">`
+  an extension had inserted, and every full console load logged a hydration
+  mismatch. `apps/web` had already met this and moved its identical bootstrap to
+  the first child of `<body>`, with the reason in a comment — in the other app,
+  where it constrained nothing. The fix is in `console-theme-bootstrap.spec.ts`
+  as much as in the layout: the two apps diverge silently, so the rule has to
+  live somewhere that fails.
 
 ## Shared console primitives
 

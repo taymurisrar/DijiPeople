@@ -6,6 +6,7 @@ import {
   AgentSettingsRecord,
   DesktopAgentSettingsForm,
 } from "./_components/desktop-agent-settings-form";
+import { DlpRulesManager } from "./_components/dlp-rules-manager";
 
 export default async function DesktopAgentSettingsPage() {
   await requireSettingsPermissions([
@@ -21,7 +22,10 @@ export default async function DesktopAgentSettingsPage() {
       eyebrow="Productivity & Tracking"
       title="Desktop Agent"
     >
-      <DesktopAgentSettingsForm initialSettings={settings} />
+      <div className="grid gap-6">
+        <DesktopAgentSettingsForm initialSettings={settings} />
+        <DlpRulesManager />
+      </div>
     </SettingsShell>
   );
 }

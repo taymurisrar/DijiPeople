@@ -1,4 +1,4 @@
-import { BUNDLED_COUNTRIES } from "./use-country-options";
+import { BUNDLED_COUNTRIES, isUsableLookupList } from "./use-country-options";
 
 /**
  * The country field is a list, and stays one.
@@ -41,5 +41,45 @@ describe("bundled country list", () => {
     // Duplicate keys make React drop options silently rather than loudly.
     const ids = new Set(BUNDLED_COUNTRIES.map((country) => country.id));
     expect(ids.size).toBe(BUNDLED_COUNTRIES.length);
+  });
+});
+
+describe("isUsableLookupList", () => {
+  function remote(count: number) {
+    return Array.from({ length: count }, (_unused, index) => ({
+      id: `iso:${index}`,
+      code: "ZZ",
+      name: `Country ${index}`,
+    }));
+  }
+
+  /*
+   * BUG-1304. Production's `/public/geography/countries` returns eight
+   * countries — the `ensureDefaultCountries` defaults — because the ISO
+   * widening never succeeded there and fails silently by design. The old test
+   * was `length > 0`, so eight beat the 31 bundled countries and a buyer
+   * outside those eight markets had nothing to select on a required field.
+   */
+  it("rejects a lookup answer narrower than the bundle", () => {
+    expect(isUsableLookupList(remote(8))).toBe(false);
+    expect(isUsableLookupList(remote(BUNDLED_COUNTRIES.length - 1))).toBe(
+      false,
+    );
+  });
+
+  it("still rejects the empty and malformed answers it always did", () => {
+    expect(isUsableLookupList([])).toBe(false);
+    expect(isUsableLookupList(null)).toBe(false);
+    expect(isUsableLookupList(undefined)).toBe(false);
+    expect(isUsableLookupList({ data: [] })).toBe(false);
+  });
+
+  // Widening is the whole point of the lookup; it must not be blocked.
+  it("accepts the full ISO set", () => {
+    expect(isUsableLookupList(remote(250))).toBe(true);
+  });
+
+  it("accepts an answer exactly as wide as the bundle", () => {
+    expect(isUsableLookupList(remote(BUNDLED_COUNTRIES.length))).toBe(true);
   });
 });

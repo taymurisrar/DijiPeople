@@ -21,5 +21,7 @@ Parent tasks that reached a terminal state. `FINAL_STATUS` records how.
 | [TASK-0016](TASK-0016-a-workspace-that-says-what-it-is-missing-metrics-you-can-act.md) | A workspace that says what it is missing, metrics you can act on, and a checkout block with a code | BUG | LARGE | P1 | COMPLETE | 5/5 | — |
 | [TASK-0017](TASK-0017-workspace-links-that-resolve-a-monitoring-page-you-can-work-.md) | Workspace links that resolve, a monitoring page you can work from, and Delete that either deletes or explains | BUG | LARGE | P1 | COMPLETE | 6/6 | — |
 | [TASK-0018](TASK-0018-legacy-pricing-removed-and-the-commercial-catalogue-made-to-.md) | Legacy pricing removed and the commercial catalogue made to converge | FEATURE | MEDIUM | P1 | COMPLETE | 4/4 | — |
+| [TASK-0020](TASK-0020-dlp-capture-for-desktop-agent-clipboard-and-triggered-screen.md) | DLP capture for desktop agent: clipboard and triggered screenshots | SECURITY | LARGE | P1 | COMPLETE | 6/6 | — |
 | [TASK-0021](TASK-0021-release-the-tenant-list-identity-fix-and-the-first-admin-bro.md) | Release the tenant list identity fix and the first admin browser suite | RELEASE | SMALL | P1 | COMPLETE | 2/2 | — |
 | [TASK-0022](TASK-0022-agent-ui-perception-browser-control-component-knowledge-ui-r.md) | Agent UI perception: browser control, component knowledge, UI review skill | FEATURE | LARGE | P1 | COMPLETE | 4/4 | NONE |
+| [TASK-0023](TASK-0023-dlp-capture-go-live-readiness.md) | DLP capture go-live readiness | FEATURE | LARGE | P1 | COMPLETE | 4/4 | WP-04 |

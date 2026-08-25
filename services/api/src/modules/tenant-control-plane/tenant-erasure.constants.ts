@@ -207,6 +207,14 @@ export const TENANT_ERASURE_DELETE_ORDER: string[] = [
   'agentLocationRequest',
   'agentRefreshToken',
   'agentTrackingSettings',
+  // DLP capture (TASK-0020). Tenant-owned forensic data — erased with the
+  // tenant. None points at another tenant-owned model with a blocking FK (they
+  // relate to Tenant with Cascade; employee/user/session/device are scalars), so
+  // ordering among them is free.
+  'clipboardCaptureEvent',
+  'screenCaptureEvent',
+  'dlpAlert',
+  'dlpRule',
   'application',
   'applicationHistory',
   'applicationStageHistory',

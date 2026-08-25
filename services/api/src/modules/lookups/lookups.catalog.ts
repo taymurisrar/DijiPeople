@@ -1,12 +1,32 @@
+/**
+ * The markets DijiPeople sells to, pinned to the top of every country picker.
+ *
+ * `sortOrder` is **negative on purpose**, and the sign is the whole design.
+ * `Country.sortOrder` defaults to `0`, and `listCountries` orders by
+ * `[{ sortOrder: 'asc' }, { name: 'asc' }]` — so a negative band sorts ahead of
+ * every ISO-imported country, those tie at `0`, and the tiebreak falls through
+ * to alphabetical. Priority order and alphabetical order can no longer collide,
+ * because they no longer share a range.
+ *
+ * These were `10, 20, … 80` (BUG-1305). The ISO import separately numbered all
+ * 250 countries `0…249` by alphabetical position, so the two writers filled the
+ * same space: `sortOrder: 10` was held by both Argentina and the United States,
+ * and the eight markets that matter most scattered into the middle of the list —
+ * "United States" rendered between Argentina and Armenia. Nothing threw, and the
+ * picker looked oddly sorted rather than broken.
+ *
+ * Keep these contiguous and negative. Do not renumber them into positives to
+ * "tidy" them: that reintroduces the collision the moment the ISO set loads.
+ */
 export const DEFAULT_COUNTRIES = [
-  { code: 'US', name: 'United States', sortOrder: 10 },
-  { code: 'SA', name: 'Saudi Arabia', sortOrder: 20 },
-  { code: 'PK', name: 'Pakistan', sortOrder: 30 },
-  { code: 'QA', name: 'Qatar', sortOrder: 40 },
-  { code: 'AE', name: 'United Arab Emirates', sortOrder: 50 },
-  { code: 'IN', name: 'India', sortOrder: 60 },
-  { code: 'GB', name: 'United Kingdom', sortOrder: 70 },
-  { code: 'CA', name: 'Canada', sortOrder: 80 },
+  { code: 'US', name: 'United States', sortOrder: -8 },
+  { code: 'SA', name: 'Saudi Arabia', sortOrder: -7 },
+  { code: 'PK', name: 'Pakistan', sortOrder: -6 },
+  { code: 'QA', name: 'Qatar', sortOrder: -5 },
+  { code: 'AE', name: 'United Arab Emirates', sortOrder: -4 },
+  { code: 'IN', name: 'India', sortOrder: -3 },
+  { code: 'GB', name: 'United Kingdom', sortOrder: -2 },
+  { code: 'CA', name: 'Canada', sortOrder: -1 },
 ] as const;
 
 export const CURRENCY_OPTIONS = [

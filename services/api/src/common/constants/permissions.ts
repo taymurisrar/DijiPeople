@@ -81,6 +81,11 @@ export const PERMISSION_KEYS = {
   GATEWAYS_MANAGE: 'gateways.manage',
   APP_DOWNLOADS_READ: 'appDownloads.read',
   APP_DOWNLOADS_MANAGE: 'appDownloads.manage',
+  // Reading captured DLP content (clipboard text, screenshots) is a distinct
+  // authority from configuring the agent — see TASK-0020. Held by no role by
+  // default; a tenant assigns it to a dedicated investigations role, and
+  // elevated admins reach it via the guard bypass.
+  DLP_REVIEW: 'dlp.review',
 
   TIMESHEETS_READ: 'timesheets.read',
   TIMESHEETS_READ_ALL: 'timesheets.read.all',
@@ -1120,6 +1125,12 @@ export const FOUNDATION_PERMISSION_DEFINITIONS: PermissionDefinition[] = [
     name: 'Manage apps and downloads',
     description:
       'Publish, update and retire downloadable DijiPeople application releases.',
+  },
+  {
+    key: PERMISSION_KEYS.DLP_REVIEW,
+    name: 'Review DLP captures',
+    description:
+      'View captured clipboard content and screenshots collected by the desktop agent for data-loss investigations.',
   },
   {
     key: PERMISSION_KEYS.ATTENDANCE_CORRECTION_READ,

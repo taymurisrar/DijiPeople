@@ -158,6 +158,11 @@ function configureBodyParsing(expressApp: {
 }) {
   const stripeWebhookPath = '/api/billing/stripe/webhook';
   const platformEmailTemplatePath = '/api/super-admin/platform-email/templates';
+  // DLP screenshot ingest carries base64 image bytes (TASK-0020/TASK-0023). A
+  // full-screen PNG easily exceeds the 1 MB default, so this route gets a larger
+  // limit — bounded so a hostile client cannot post an arbitrarily large body.
+  // Kept in step with ScreenCaptureBatchDto (per-image cap × batch size).
+  const dlpScreenshotPath = '/api/agent/dlp/screenshot-events';
   const jsonParser = json({ limit: '1mb' });
   const urlencodedParser = urlencoded({ extended: true, limit: '1mb' });
 
@@ -169,11 +174,16 @@ function configureBodyParsing(expressApp: {
     platformEmailTemplatePath,
     json({ type: 'application/json', limit: '10mb' }),
   );
+  expressApp.use(
+    dlpScreenshotPath,
+    json({ type: 'application/json', limit: '25mb' }),
+  );
 
   expressApp.use((req: Request, res: Response, next: NextFunction) => {
     if (
       isStripeWebhookRequest(req, stripeWebhookPath) ||
-      req.originalUrl.startsWith(platformEmailTemplatePath)
+      req.originalUrl.startsWith(platformEmailTemplatePath) ||
+      req.originalUrl.startsWith(dlpScreenshotPath)
     ) {
       return next();
     }

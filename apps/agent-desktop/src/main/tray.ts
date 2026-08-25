@@ -9,6 +9,12 @@ type CreateAgentTrayParams = {
   onShowLogin: () => void;
   onShowDevicePermissions: () => void;
   onCheckUpdates: () => void;
+  /**
+   * Whether DLP content capture (clipboard / screenshots) is currently active.
+   * Surfaced to the employee on purpose (TASK-0020): a background agent that can
+   * read the clipboard and screen must never do so invisibly.
+   */
+  isDlpCaptureActive?: () => boolean;
 };
 
 export function createAgentTray(params: CreateAgentTrayParams): Tray {
@@ -34,8 +40,8 @@ export function createAgentTray(params: CreateAgentTrayParams): Tray {
       !params.configManager.current.policy.allowUserQuit;
     const devicePermissionRequestsEnabled = Boolean(
       params.configManager.current.features.cameraAccess ||
-        params.configManager.current.features.microphoneAccess ||
-        params.configManager.current.features.locationAccess,
+      params.configManager.current.features.microphoneAccess ||
+      params.configManager.current.features.locationAccess,
     );
 
     tray.setToolTip(`DijiPeople Agent • ${status} • ${connection}`);
@@ -56,6 +62,12 @@ export function createAgentTray(params: CreateAgentTrayParams): Tray {
         },
         {
           label: `Connection: ${connection}`,
+          enabled: false,
+        },
+        {
+          label: params.isDlpCaptureActive?.()
+            ? "Content monitoring: ON (clipboard/screenshots)"
+            : "Content monitoring: off",
           enabled: false,
         },
         {
@@ -90,8 +102,8 @@ export function createAgentTray(params: CreateAgentTrayParams): Tray {
           label: "Sync heartbeat now",
           enabled: Boolean(
             params.sessionManager.user &&
-              params.sessionManager.sessionId &&
-              params.sessionManager.deviceId,
+            params.sessionManager.sessionId &&
+            params.sessionManager.deviceId,
           ),
           click: () => {
             void params.sessionManager.syncHeartbeat();

@@ -244,11 +244,14 @@ export function LeadFormSection() {
       label="Support"
       value={contactInfo.supportEmail}
     />
-    <ContactRow
-      icon={<Phone className="h-4 w-4 text-accent" />}
-      label="Phone"
-      value={contactInfo.phone}
-    />
+    {/* No row at all when no number is published — BUG-1306. */}
+    {contactInfo.phone ? (
+      <ContactRow
+        icon={<Phone className="h-4 w-4 text-accent" />}
+        label="Phone"
+        value={contactInfo.phone}
+      />
+    ) : null}
   </div>
 </div>
 
@@ -331,7 +334,7 @@ export function LeadFormSection() {
                   name="phoneNumber"
                   autoComplete="tel"
                   onChange={(value) => updateField("phoneNumber", value)}
-                  placeholder="+1 (312) 555-0184"
+                  placeholder={contactInfo.phonePlaceholder}
                   required
                   type="tel"
                   value={form.phoneNumber}
