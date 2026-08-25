@@ -8,8 +8,8 @@
 | | |
 |---|---|
 | Active sessions | **0** |
-| Active parent tasks | 6 |
-| Active work packages | 1 |
+| Active parent tasks | 7 |
+| Active work packages | 2 |
 | Blocked work packages | 0 |
 | Work packages waiting on the user | 0 |
 | Open questions | 0 |
@@ -32,7 +32,7 @@ survives every review by being unfalsifiable.
 | Ownerless actionable records | 0 |
 | No acceptance criteria | 29 |
 | No next action | 29 |
-| Aging — 7d / 30d / 90d | 13 / 0 / 0 |
+| Aging — 7d / 30d / 90d | 14 / 0 / 0 |
 | Architecture and technical debt | 6 |
 | Security gaps | 2 |
 | Database gaps | 0 |
@@ -59,6 +59,7 @@ _No session is currently registered as active._
 | [[TASK-0009-identity-and-multi-tenant-membership|TASK-0009]] | Identity and multi-tenant membership | FEATURE | LARGE | 11/12 | WP-09 | WP-09 | — |
 | [[TASK-0011-first-production-release|TASK-0011]] | First production release | RELEASE | MEDIUM | 2/2 | — | — | — |
 | [[TASK-0018-legacy-pricing-removed-and-the-commercial-catalogue-made-to-|TASK-0018]] | Legacy pricing removed and the commercial catalogue made to converge | FEATURE | MEDIUM | 4/4 | — | — | — |
+| [[TASK-0021-release-the-tenant-list-identity-fix-and-the-first-admin-bro|TASK-0021]] | Release the tenant list identity fix and the first admin browser suite | RELEASE | SMALL | 0/2 | WP-01 | — | — |
 
 ## Branch model
 

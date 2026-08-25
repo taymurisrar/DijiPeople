@@ -8,7 +8,7 @@ graph and the block reasons. See
 
 | Bucket | Count |
 |---|---|
-| [Active](active.md) | 6 |
+| [Active](active.md) | 7 |
 | [Blocked](blocked.md) | 0 |
 | [Completed](completed.md) | 13 |
 
@@ -46,3 +46,4 @@ graph and the block reasons. See
 | [TASK-0016](TASK-0016-a-workspace-that-says-what-it-is-missing-metrics-you-can-act.md) | A workspace that says what it is missing, metrics you can act on, and a checkout block with a code | BUG | LARGE | P1 | COMPLETE | 5/5 | — |
 | [TASK-0017](TASK-0017-workspace-links-that-resolve-a-monitoring-page-you-can-work-.md) | Workspace links that resolve, a monitoring page you can work from, and Delete that either deletes or explains | BUG | LARGE | P1 | COMPLETE | 6/6 | — |
 | [TASK-0018](TASK-0018-legacy-pricing-removed-and-the-commercial-catalogue-made-to-.md) | Legacy pricing removed and the commercial catalogue made to converge | FEATURE | MEDIUM | P1 | IN_PROGRESS | 4/4 | — |
+| [TASK-0021](TASK-0021-release-the-tenant-list-identity-fix-and-the-first-admin-bro.md) | Release the tenant list identity fix and the first admin browser suite | RELEASE | SMALL | P1 | IN_PROGRESS | 0/2 | WP-01 |
