@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 196** · automated: 176 · manual: 6 · blocked by infrastructure: 0
+**Scenarios: 198** · automated: 177 · manual: 6 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -67,6 +67,7 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-BILLING-018](../../../docs/qa/scenarios/QA-BILLING-018-an-invoice-rendered-at-a-newer-stripe-api-version-still-reso.md) | An invoice rendered at a newer Stripe API version still resolves its subscription | billing | UNIT | CRITICAL | AUTOMATED | `services/api/src/modules/billing/invoice-subscription-resolution.spec.ts` | BUG-1128 | REG-246 |
 | [QA-BILLING-019](../../../docs/qa/scenarios/QA-BILLING-019-saving-one-plan-price-leaves-its-sibling-billing-models-and-.md) | Saving one plan price leaves its sibling billing models and markets active | billing | UNIT | CRITICAL | AUTOMATED | `services/api/src/modules/super-admin/plan-price-supersede-scope.spec.ts` | BUG-1133 | REG-247 |
 | [QA-BILLING-020](../../../docs/qa/scenarios/QA-BILLING-020-a-stale-stripe-price-id-marks-the-row-unsynced-instead-of-re.md) | A stale Stripe price id marks the row unsynced instead of returning 500 | billing | UNIT | HIGH | AUTOMATED | `services/api/src/modules/billing/stripe-price-resolution.spec.ts` | BUG-1134 | REG-248 |
+| [QA-BILLING-021](../../../docs/qa/scenarios/QA-BILLING-021-the-public-plans-endpoint-never-publishes-a-price-the-visito.md) | The public plans endpoint never publishes a price the visitor cannot buy | billing | UNIT | HIGH | AUTOMATED | `services/api/src/modules/billing/flat-pricing-is-internal.spec.ts` | BUG-1378 | REG-259 |
 | [QA-CI-001](../../../docs/qa/scenarios/QA-CI-001-report-only-jobs-publish-an-explicit-pass-fail-verdict.md) | Report-only CI jobs publish an explicit PASS/FAIL verdict | deployment-release | DEPLOYMENT_SMOKE | HIGH | AUTOMATED | `scripts/validate-framework.mjs` | BUG-0049 | REG-047 |
 | [QA-CI-002](../../../docs/qa/scenarios/QA-CI-002-the-database-agent-verdict-cannot-report-pass-over-a-failing.md) | The Database Agent verdict cannot report PASS over a failing field | deployment-release | API | HIGH | AUTOMATED | `scripts/db-preflight.test.mjs` | BUG-0083, BUG-0060, BUG-0068 | REG-078 |
 | [QA-CI-003](../../../docs/qa/scenarios/QA-CI-003-declared-npm-overrides-are-reflected-in-the-lockfile.md) | Declared npm overrides are reflected in the lockfile | deployment-release | UNIT | HIGH | AUTOMATED | `scripts/check-overrides-applied.mjs` | BUG-0163 | REG-173 |
@@ -117,6 +118,7 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-LANDING-020](../../../docs/qa/scenarios/QA-LANDING-020-priority-markets-lead-the-country-picker-ahead-of-the-alphab.md) | Priority markets lead the country picker ahead of the alphabetical remainder | landing | DATABASE | MEDIUM | AUTOMATED | `services/api/src/modules/lookups/geographic-lookup.service.spec.ts` | BUG-1305 | REG-255 |
 | [QA-LANDING-021](../../../docs/qa/scenarios/QA-LANDING-021-no-published-contact-detail-sits-in-a-reserved-fictional-ran.md) | No published contact detail sits in a reserved fictional range | landing | UNIT | LOW | AUTOMATED | `apps/landing/lib/published-contact-details.spec.ts` | BUG-1306 | REG-256 |
 | [QA-LANDING-022](../../../docs/qa/scenarios/QA-LANDING-022-customer-facing-catalog-copy-carries-no-raw-enum-value.md) | Customer-facing catalog copy carries no raw enum value | landing | UNIT | LOW | AUTOMATED | `services/api/src/modules/tenant-settings/catalog-copy.spec.ts` | BUG-1307 | REG-257 |
+| [QA-LANDING-023](../../../docs/qa/scenarios/QA-LANDING-023-checkout-quotes-the-same-price-and-basis-the-plans-page-adve.md) | Checkout quotes the same price and basis the plans page advertises | landing | BROWSER_E2E | HIGH | PARTIAL | `apps/landing/lib/plans.spec.ts` | BUG-1369 | REG-260 |
 | [QA-LEAD-001](../../../docs/qa/scenarios/QA-LEAD-001-the-public-lead-endpoint-is-rate-limited.md) | The public lead endpoint is rate limited | lead-management | SECURITY | HIGH | AUTOMATED | `services/api/src/modules/leads/public-leads.rate-limit.spec.ts` | BUG-0013 | REG-011 |
 | [QA-LEAD-002](../../../docs/qa/scenarios/QA-LEAD-002-every-public-write-handler-carries-a-rate-limit-guard.md) | Every public write handler carries a rate-limit guard | lead-management | SECURITY | HIGH | AUTOMATED | `services/api/src/common/guards/public-write-rate-limit.invariant.spec.ts` | BUG-0031 | REG-023 |
 | [QA-LEAD-003](../../../docs/qa/scenarios/QA-LEAD-003-rate-limiting-identifies-the-visitor-not-the-proxy.md) | Rate limiting identifies the visitor, not the proxy | lead-management | UNIT | HIGH | AUTOMATED | `services/api/src/common/security/client-ip.spec.ts` | BUG-0032 | REG-024 |

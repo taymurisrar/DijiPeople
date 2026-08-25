@@ -9,6 +9,7 @@ import {
   BillingInterval,
   BillingModel,
   CommercialPublicationStatus,
+  CommercialSalesModel,
   Prisma,
   StripeEnvironment,
   StripeSyncStatus,
@@ -22,6 +23,9 @@ import {
   suggestTenantSlug,
 } from '../../../common/utils/slug.util';
 import { StripeBillingService } from './stripe-billing.service';
+// The one channel rule, shared with `/public/commercial-config` rather than
+// restated here — see the filter in `getPublicPlans`.
+import { narrowestSalesModel } from '../commercial-offer.resolver';
 import { LegalService } from '../../legal/legal.service';
 import { OwnerEmailVerificationService } from './owner-email-verification.service';
 import { SubscriptionOrderService } from './subscription-order.service';
@@ -45,6 +49,46 @@ export class BillingService {
     private readonly ownerEmailVerification: OwnerEmailVerificationService,
     private readonly legalService: LegalService,
   ) {}
+
+  /**
+   * Refuse a price an anonymous visitor is not entitled to buy — BUG-1378.
+   *
+   * `planPriceId` arrives from the client on both public write paths. The
+   * checks around this one establish that the price is real, active and
+   * published; none of them establishes that *this caller* may buy it. Flat
+   * rates carry `SALES_ASSISTED` precisely because they are negotiated by hand,
+   * and a self-service visitor must not be sold one at any price.
+   *
+   * Filtering them out of `/public/plans` is not sufficient and never was.
+   * Those ids were published by that endpoint until this change, so they are
+   * known; and an id a caller supplies is not evidence of anything they are
+   * entitled to. **A read filter with no matching write check is a listing
+   * preference, not an access control** — which is the whole shape of this
+   * defect.
+   *
+   * `NotFoundException`, with the same message as an unknown id, on purpose: a
+   * distinct error would confirm that a given price exists and is merely
+   * off-limits, which tells an enumerator exactly which ids are worth having.
+   *
+   * Deliberately **not** applied to the authenticated `createCheckoutSession`.
+   * That path is a tenant administrator acting on their own subscription behind
+   * `BILLING_MANAGE`, not an anonymous visitor, and a tenant already on a
+   * hand-negotiated flat plan may legitimately need to act on it. Widening this
+   * to that path is a separate commercial decision, not a tidy-up.
+   */
+  private assertSellableToAnonymousVisitor(planPrice: {
+    salesModel: CommercialSalesModel;
+    plan: { salesModel: CommercialSalesModel };
+  }) {
+    const effective = narrowestSalesModel(
+      planPrice.plan.salesModel,
+      planPrice.salesModel,
+    );
+
+    if (effective !== CommercialSalesModel.SELF_SERVICE) {
+      throw new NotFoundException('Plan price not found.');
+    }
+  }
 
   async getPublicPlans() {
     const featureCatalog = TENANT_FEATURE_DEFINITIONS.map((feature, index) => ({
@@ -87,7 +131,35 @@ export class BillingService {
       const metadata = normalizeJsonObject(plan.metadataJson);
       const billingCyclesByCurrency = new Map<string, Set<string>>();
 
-      for (const price of plan.prices) {
+      /*
+       * Only prices a visitor may actually be sold.
+       *
+       * Flat pricing is internal — see `flat-pricing-is-internal.spec.ts` and
+       * the owner's rule it records: the website, the plans page and
+       * self-service checkout show per-seat prices only. Flat rates exist for
+       * customers onboarded by hand, and must never be quoted to a visitor.
+       *
+       * `/public/commercial-config` has always honoured that, because
+       * `resolveCommercialOffer` narrows by channel before selecting. This
+       * endpoint did not: it filtered on `isActive` alone, so it published the
+       * `SALES_ASSISTED` flat rows to anonymous callers *and* computed
+       * `checkoutReady` for them. That is how BUG-1369 happened — the subscribe
+       * wizard reads this endpoint, found two candidates for one currency and
+       * cycle, and quoted the internal one.
+       *
+       * Reusing `narrowestSalesModel` rather than testing `billingModel` here is
+       * deliberate: a second, differently-shaped rule for one decision is how
+       * the two endpoints came to disagree in the first place. The plan's model
+       * narrows the price's and never widens it, so a `CUSTOM_ONLY` plan is
+       * excluded even where a price row says `SELF_SERVICE`.
+       */
+      const sellablePrices = plan.prices.filter(
+        (price) =>
+          narrowestSalesModel(plan.salesModel, price.salesModel) ===
+          CommercialSalesModel.SELF_SERVICE,
+      );
+
+      for (const price of sellablePrices) {
         const currency = price.currency.toUpperCase();
         const cycles = billingCyclesByCurrency.get(currency) ?? new Set();
         cycles.add(price.billingCycle);
@@ -107,7 +179,7 @@ export class BillingService {
         currency: plan.currency,
         monthlyBasePrice: Number(plan.monthlyBasePrice),
         annualBasePrice: Number(plan.annualBasePrice),
-        prices: plan.prices.map((price) => {
+        prices: sellablePrices.map((price) => {
           const contract = mapSeatPriceContract(price);
           const readiness = deriveCheckoutReadiness(
             {
@@ -260,6 +332,8 @@ export class BillingService {
       throw new NotFoundException('Plan price not found.');
     }
 
+    this.assertSellableToAnonymousVisitor(planPrice);
+
     const order = await this.subscriptionOrders.openOrder({
       planPriceId: planPrice.id,
       seatQuantity: normalizePurchasedSeats(input.seatQuantity, planPrice),
@@ -329,6 +403,8 @@ export class BillingService {
     ) {
       throw new NotFoundException('Plan price not found.');
     }
+
+    this.assertSellableToAnonymousVisitor(planPrice);
 
     const purchasedSeats = normalizePurchasedSeats(
       input.seatQuantity,

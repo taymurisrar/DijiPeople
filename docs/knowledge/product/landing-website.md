@@ -82,6 +82,43 @@ This is not a cosmetic inconsistency. It means:
 Tracked as [[BUG-0021-landing-contact-form-fabricates-lead-data]], still `OPEN`
 with disposition `FIX_NOW`, and re-verified unchanged at `78072d2`.
 
+## What a purchase actually needs, end to end
+
+Established on 2026-08-25 by driving the whole journey to a provisioned
+workspace, then releasing the fixes and re-checking production. Recorded because
+these are invisible until you try to buy something, and most of them fail
+*silently*.
+
+A completed purchase needs **all** of:
+
+1. **A checkout-ready price in the visitor's market.** Not a seeded price — a
+   synced one. `seed-commercial` deliberately never talks to Stripe, so a
+   freshly seeded deployment has a full catalogue and nothing purchasable. Check
+   `checkoutReady` on `/api/public/plans`, never the catalogue's appearance —
+   that is the `seeded-but-unsellable` pattern.
+2. **`stripeEnvironment` matching the runtime `STRIPE_MODE`.** It is baked in at
+   sync time, so syncing in test mode and then switching to live makes every
+   price unsellable again. **Switch the mode first, then sync.**
+3. **A reachable owner mailbox.** The wizard will not take payment until a
+   six-digit code sent to the administrator address is entered ([[ITEM-0063]]).
+   The code is stored hashed; `PlatformOutboundEmail.htmlBody` is the only way
+   to read it without a real mailbox.
+4. **A working Stripe webhook.** Without it the order sits at `PENDING_PAYMENT`
+   after a successful charge — the money moves and nothing else does
+   ([[BUG-0989]]).
+5. **`OUTBOX_WORKER_ENABLED=true`.** Provisioning is an outbox consumer, so
+   without the worker the payment succeeds, the webhook lands, and no workspace
+   is ever created ([[BUG-0904]]).
+
+Only the first two are visible on the page. The rest look like success right up
+to the point where the customer has paid and has nothing.
+
+**A price is only verified when Stripe has been asked what it will charge.**
+[[BUG-1302]] is the case in point: the page read `$75.00 per month` and the
+Stripe session charged `QAR 284.40 per year`. Every check short of opening the
+checkout session agreed with itself, because the arithmetic was right and only
+the period was wrong.
+
 ## Known open records
 
 | Record | State |

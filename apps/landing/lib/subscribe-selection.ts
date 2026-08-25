@@ -1,4 +1,4 @@
-import type { BillingCycle, PublicPlan } from "./plans";
+import type { BillingCycle, PublicPlan, PublicPlanPrice } from "./plans";
 
 /**
  * Resolving what a buyer chose on /plans into the subscribe form's initial state.
@@ -40,10 +40,16 @@ export type SubscribeSelection = {
  * (`MONTH`/`YEAR`) and the billing-cycle vocabulary the plan prices use
  * (`MONTHLY`/`ANNUAL`), because the URL is written by one and read by the other.
  */
-export function normalizeBillingCycle(value?: string | null): BillingCycle | null {
+export function normalizeBillingCycle(
+  value?: string | null,
+): BillingCycle | null {
   const normalized = value?.trim().toUpperCase();
   if (!normalized) return null;
-  if (normalized === "YEAR" || normalized === "ANNUAL" || normalized === "YEARLY")
+  if (
+    normalized === "YEAR" ||
+    normalized === "ANNUAL" ||
+    normalized === "YEARLY"
+  )
     return "ANNUAL";
   if (normalized === "MONTH" || normalized === "MONTHLY") return "MONTHLY";
   return null;
@@ -107,6 +113,19 @@ export function resolveSubscribeSelection(
    * currency instead, rather than quoting a price this visitor cannot be sold.
    */
   marketCurrency?: string | null,
+  /**
+   * Which billing model the market publishes, keyed `"<planKey>:<MONTH|YEAR>"`.
+   *
+   * The same third dimension `findPlanPrice` needs, for the same reason
+   * (BUG-1369) — and it matters here beyond the headline figure, because
+   * `minimumSeats` differs by model. QAR Starter is `minimumSeats: 1` as a flat
+   * price and `10` per seat, so resolving the wrong one opens the wizard on a
+   * seat count the real price will not accept.
+   *
+   * Optional: with no configuration to hand the older positional behaviour
+   * stands, which is no worse than before.
+   */
+  publishedBillingModels?: Record<string, "PER_SEAT" | "FLAT"> | null,
 ): SubscribeSelection {
   const requestedSeats = parseTeamSize(params.teamSize);
   const requestedCycle = normalizeBillingCycle(params.billingInterval);
@@ -161,21 +180,40 @@ export function resolveSubscribeSelection(
 
   // 4. Nothing usable was named — open on the first plan.
   const chosenPlan = planNamedByPriceId ?? planNamedByKey ?? plans[0];
-  const eligible = chosenPlan
+  const allEligible = chosenPlan
     ? pricesInMarketCurrency(chosenPlan, currency)
     : [];
 
   /*
-   * Prefer the requested cycle, then whatever this market does publish for the
-   * plan. `eligible[0]` is safe where `plan.prices[0]` was not: the list is
-   * already narrowed to one currency, so "first" can no longer mean "first
-   * alphabetically by currency".
+   * Narrow to the model this market publishes, where it named one — BUG-1369.
+   *
+   * Filtering rather than sorting, and only when a model is known, so a plan
+   * the configuration says nothing about behaves exactly as it did. If the
+   * filter empties the list the unfiltered one stands: opening on a price the
+   * market does not publish is wrong, but opening on nothing at all would turn
+   * a presentational defect into a dead wizard.
    */
+  const publishedModel = (cycle: BillingCycle | null) =>
+    chosenPlan && cycle
+      ? (publishedBillingModels?.[
+          `${chosenPlan.key}:${cycle === "ANNUAL" ? "YEAR" : "MONTH"}`
+        ] ?? null)
+      : null;
+
+  const inPublishedModel = (candidates: PublicPlanPrice[]) => {
+    const model = publishedModel(candidates[0]?.billingCycle ?? null);
+    if (!model) return candidates;
+    const narrowed = candidates.filter((item) => item.billingModel === model);
+    return narrowed.length ? narrowed : candidates;
+  };
+
   const price =
     (requestedCycle
-      ? eligible.find((item) => item.billingCycle === requestedCycle)
+      ? inPublishedModel(
+          allEligible.filter((item) => item.billingCycle === requestedCycle),
+        )[0]
       : null) ??
-    eligible[0] ??
+    inPublishedModel(allEligible)[0] ??
     null;
 
   const minimumSeats = price?.minimumSeats ?? 1;

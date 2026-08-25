@@ -13,7 +13,7 @@
 | Blocked | 1 |
 | Awaiting a product decision | 2 |
 | Deferred | 23 |
-| Completed | 202 |
+| Completed | 204 |
 | Awaiting Architect triage | 0 |
 
 ## Open Critical Bugs
@@ -161,6 +161,8 @@
 | [[BUG-1203-repo-health-reports-changed-by-this-task-for-another-session|BUG-1203]] | repo-health reports CHANGED_BY_THIS_TASK for another session's merge | INFRA | HIGH | FIXED | framework | FIX_NOW |
 | [[BUG-1302-annual-per-seat-price-is-labelled-per-month-on-the-checkout-|BUG-1302]] | Annual per-seat price is labelled per month on the checkout page | UX | HIGH | VERIFIED | apps/landing | DONE |
 | [[BUG-1303-the-dp-chk-01-checkout-unavailable-link-writes-a-diagnostic-|BUG-1303]] | The DP-CHK-01 checkout-unavailable link writes a diagnostic code into the partner referral cookie | DATA_INTEGRITY | HIGH | VERIFIED | apps/landing | DONE |
+| [[BUG-1369-checkout-resolves-a-plan-price-by-currency-and-cycle-only-so|BUG-1369]] | Checkout resolves a plan price by currency and cycle only, so it can quote a billing model the plans page never advertises | BUG | HIGH | VERIFIED | apps/landing | DONE |
+| [[BUG-1378-the-public-plans-endpoint-publishes-sales-assisted-internal-|BUG-1378]] | The public plans endpoint publishes sales-assisted internal pricing to anonymous visitors | SECURITY | HIGH | VERIFIED | api:billing | DONE |
 | [[BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state|BUG-0051]] | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |
 | [[BUG-0009-session-revocation-depended-on-the-refresh-cookie|BUG-0009]] | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | VERIFIED | app:admin, api:auth | DONE |
 | [[BUG-0010-unguarded-cookie-options-could-turn-sign-out-into-a-500|BUG-0010]] | Unguarded cookie options could turn admin sign-out into a 500 | INFRA | MEDIUM | VERIFIED | app:admin | DONE |
@@ -250,13 +252,13 @@
 ## Recent Engineering History
 
 - [[2026-08-25-repo-health-task-sha-5f2648d6|Engineering History — Two checks that were argued correct rather than tested]]
+- [[2026-08-25-landing-qa-fixes-309abe0d|Engineering History — Fixing the six landing QA findings, and releasing them]]
 - [[2026-08-25-landing-e2e-qa-2e2ef16a|Engineering History — Landing E2E QA, local and production]]
 - [[2026-08-25-dlp-go-live-readiness-5f556842|Engineering History — DLP capture go-live readiness]]
 - [[2026-08-25-dlp-desktop-agent-capture-c0932f17|Engineering History — DLP capture for the desktop agent]]
 - [[2026-08-25-agent-ui-perception-c4035dbb|Engineering History — Agent UI perception]]
 - [[2026-08-25-admin-theme-bootstrap-hydration-a4503e3b|Engineering History — Admin theme bootstrap hydration mismatch]]
 - [[2026-08-24-session-registry-closeout-cbc6f0b2|Engineering History — Close every stale active session and finish their residual work]]
-- [[2026-08-24-record-state-reconciliation-b205fea8|Engineering History — Record-state reconciliation — verify what is actually resolved]]
 
 ## Recent Releases
 
@@ -304,11 +306,11 @@
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 160 |
+| Bug records | 162 |
 | Backlog items | 100 |
 | Known bug patterns | 28 |
 | QA runs | 26 |
-| Engineering history records | 45 |
+| Engineering history records | 46 |
 | Release records | 3 |
 | Module notes | 28 |
 | Architecture notes | 20 |

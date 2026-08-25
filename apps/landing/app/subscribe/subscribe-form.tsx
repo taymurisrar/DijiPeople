@@ -76,6 +76,7 @@ export function SubscribeForm({
   error,
   selectionParams,
   agreements,
+  publishedBillingModels,
   tenantBaseDomain,
 }: {
   plans: PublicPlan[];
@@ -83,12 +84,23 @@ export function SubscribeForm({
   error?: string;
   selectionParams?: SubscribeSelectionParams;
   agreements: LegalIndexEntry[];
+  /**
+   * Which billing model the market publishes, keyed `"<planKey>:<MONTH|YEAR>"`.
+   *
+   * Resolved server-side from `/public/commercial-config` — the publisher
+   * `/plans` reads — so this wizard quotes the same price the plans page
+   * advertises. Without it, `findPlanPrice` matches on currency and cycle alone
+   * and takes whichever price the API lists first, which is BUG-1369: QAR 249
+   * flat quoted against an advertised QAR 8 per employee.
+   */
+  publishedBillingModels?: Record<string, "PER_SEAT" | "FLAT">;
   tenantBaseDomain: string;
 }) {
   const initialSelection = resolveSubscribeSelection(
     plans,
     selectionParams,
     defaultCurrency,
+    publishedBillingModels,
   );
   const [planId, setPlanId] = useState(initialSelection.planId);
   const [billingCycle, setBillingCycle] = useState<BillingCycle>(
@@ -123,8 +135,19 @@ export function SubscribeForm({
 
   const selectedPlan =
     plans.find((plan) => plan.id === planId) ?? plans[0] ?? null;
+  /*
+   * The market's published billing model for this plan and interval, if the
+   * commercial config named one. It is the third dimension that identifies a
+   * price; without it `findPlanPrice` takes whichever candidate comes first —
+   * BUG-1369.
+   */
+  const publishedBillingModel = selectedPlan
+    ? (publishedBillingModels?.[
+        `${selectedPlan.key}:${billingCycle === "ANNUAL" ? "YEAR" : "MONTH"}`
+      ] ?? null)
+    : null;
   const selectedPrice = selectedPlan
-    ? findPlanPrice(selectedPlan, currency, billingCycle)
+    ? findPlanPrice(selectedPlan, currency, billingCycle, publishedBillingModel)
     : null;
   // One decision, three consumers: the notice, the form and Continue.
   const block = checkoutBlock(selectedPrice);
@@ -329,7 +352,10 @@ export function SubscribeForm({
     setIsSubmitting(false);
 
     if (!response.ok) {
-      setStatus(payload?.message ?? "We couldn't open the payment page. Please try again in a moment.");
+      setStatus(
+        payload?.message ??
+          "We couldn't open the payment page. Please try again in a moment.",
+      );
       return;
     }
 
@@ -340,7 +366,10 @@ export function SubscribeForm({
     }
 
     if (!payload?.url) {
-      setStatus(payload?.message ?? "We couldn't open the payment page. Please try again in a moment.");
+      setStatus(
+        payload?.message ??
+          "We couldn't open the payment page. Please try again in a moment.",
+      );
       return;
     }
 
@@ -390,7 +419,10 @@ export function SubscribeForm({
     setIsSubmitting(false);
 
     if (!checkout.ok || !checkoutPayload?.url) {
-      setStatus(checkoutPayload?.message ?? "We couldn't open the payment page. Please try again in a moment.");
+      setStatus(
+        checkoutPayload?.message ??
+          "We couldn't open the payment page. Please try again in a moment.",
+      );
       return;
     }
 

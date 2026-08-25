@@ -12,7 +12,7 @@ only scenarios that cannot run here, fails `node scripts/rebuild-qa.mjs`.
 **part of that task's scope** — or, when that is too large, a `TEST_GAP` backlog
 item. See [`README.md`](README.md).
 
-**Areas: 21** · scenarios: 196 · automated: 176 · blocked by infrastructure: 0
+**Areas: 21** · scenarios: 198 · automated: 177 · blocked by infrastructure: 0
 
 **Open gaps: 108** · partial: 22
 

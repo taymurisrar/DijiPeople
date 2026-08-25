@@ -1,6 +1,7 @@
 import type { PublicPlanPrice } from "./plans";
 import {
   checkoutBlockedReason,
+  findPlanPrice,
   formatBillingUnit,
   formatSeatTotalEstimate,
   isCheckoutReady,
@@ -174,5 +175,90 @@ describe("formatSeatTotalEstimate", () => {
       expect(unit?.includes("/ year")).toBe(yearly);
       expect(total?.includes("per year")).toBe(yearly);
     }
+  });
+});
+
+describe("findPlanPrice — the published billing model", () => {
+  /*
+   * BUG-1369. A price is identified by three things: currency, billing cycle
+   * and billing *model*. This matched the first two and returned whichever
+   * candidate `/public/plans` happened to list first.
+   *
+   * It agreed with /plans only while one model per currency and cycle was
+   * sellable. When the QAR prices were synced to Stripe the FLAT rows became
+   * sellable too, and checkout began quoting "QAR 249, billed as one
+   * subscription" against an advertised "QAR 8 per active employee" — the same
+   * selection, two prices, about 25% apart at 25 seats.
+   *
+   * The fixture puts FLAT first deliberately: that is the order production
+   * returned, and a test with the per-seat price first would pass against the
+   * broken resolver.
+   */
+  const ambiguous = {
+    id: "plan-starter",
+    key: "starter",
+    prices: [
+      price({
+        id: "qar-monthly-flat",
+        billingCycle: "MONTHLY",
+        billingModel: "FLAT",
+        currency: "QAR",
+        unitAmount: 249,
+        minimumSeats: 1,
+      }),
+      price({
+        id: "qar-monthly-seat",
+        billingCycle: "MONTHLY",
+        billingModel: "PER_SEAT",
+        currency: "QAR",
+        unitAmount: 8,
+        minimumSeats: 10,
+      }),
+    ],
+  } as unknown as Parameters<typeof findPlanPrice>[0];
+
+  it("resolves the model the market publishes, not the first one listed", () => {
+    expect(findPlanPrice(ambiguous, "QAR", "MONTHLY", "PER_SEAT")?.id).toBe(
+      "qar-monthly-seat",
+    );
+  });
+
+  it("resolves a published FLAT model just as faithfully", () => {
+    // The fix is "honour the publisher", not "prefer per-seat" — deciding that
+    // here would author a commercial policy in the frontend.
+    expect(findPlanPrice(ambiguous, "QAR", "MONTHLY", "FLAT")?.id).toBe(
+      "qar-monthly-flat",
+    );
+  });
+
+  it("keeps the older positional behaviour when no model is known", () => {
+    // The degraded path: no commercial config, so no published model. Same
+    // answer as before the fix, which is no worse than before the fix.
+    expect(findPlanPrice(ambiguous, "QAR", "MONTHLY")?.id).toBe(
+      "qar-monthly-flat",
+    );
+  });
+
+  it("returns null rather than a model the market does not publish", () => {
+    const seatOnly = {
+      id: "plan-starter",
+      key: "starter",
+      prices: [
+        price({
+          id: "qar-monthly-seat",
+          billingCycle: "MONTHLY",
+          billingModel: "PER_SEAT",
+          currency: "QAR",
+        }),
+      ],
+    } as unknown as Parameters<typeof findPlanPrice>[0];
+
+    // Quoting a basis the market does not publish is a wrong number presented
+    // as a right one — the same argument the currency dimension already makes.
+    expect(findPlanPrice(seatOnly, "QAR", "MONTHLY", "FLAT")).toBeNull();
+  });
+
+  it("still refuses a currency the market does not use", () => {
+    expect(findPlanPrice(ambiguous, "USD", "MONTHLY", "PER_SEAT")).toBeNull();
   });
 });

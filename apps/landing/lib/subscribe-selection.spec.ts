@@ -210,8 +210,12 @@ describe("resolveSubscribeSelection — market currency", () => {
   it("quotes the market currency, not the first one the API listed", () => {
     // The regression itself: with no market currency this returns QAR, because
     // QAR sorts before USD. With one, it must return the market's.
-    expect(resolveSubscribeSelection(catalogue, {}, "USD").currency).toBe("USD");
-    expect(resolveSubscribeSelection(catalogue, {}, "QAR").currency).toBe("QAR");
+    expect(resolveSubscribeSelection(catalogue, {}, "USD").currency).toBe(
+      "USD",
+    );
+    expect(resolveSubscribeSelection(catalogue, {}, "QAR").currency).toBe(
+      "QAR",
+    );
   });
 
   it("picks the price in the market currency, not merely reports it", () => {
@@ -304,5 +308,98 @@ describe("parseTeamSize", () => {
     expect(parseTeamSize("abc")).toBeNull();
     expect(parseTeamSize("")).toBeNull();
     expect(parseTeamSize(undefined)).toBeNull();
+  });
+});
+
+describe("resolveSubscribeSelection — the published billing model", () => {
+  /*
+   * BUG-1369, in the half that decides seat counts rather than the headline
+   * price. `minimumSeats` differs by billing model — QAR Starter is 1 as a flat
+   * price and 10 per seat — so resolving the wrong one opens the wizard on a
+   * seat count the real price will not accept.
+   *
+   * FLAT is listed first because that is the order production returned.
+   */
+  const ambiguous = plan({
+    id: "plan-starter",
+    key: "starter",
+    prices: [
+      {
+        id: "qar-monthly-flat",
+        billingCycle: "MONTHLY",
+        billingModel: "FLAT",
+        currency: "QAR",
+        unitAmount: 249,
+        minimumSeats: 1,
+        maximumSeats: null,
+        hasStripePrice: true,
+        isCheckoutReady: true,
+      },
+      {
+        id: "qar-monthly-seat",
+        billingCycle: "MONTHLY",
+        billingModel: "PER_SEAT",
+        currency: "QAR",
+        unitAmount: 8,
+        minimumSeats: 10,
+        maximumSeats: null,
+        hasStripePrice: true,
+        isCheckoutReady: true,
+      },
+    ],
+  } as Partial<PublicPlan>);
+
+  const published = { "starter:MONTH": "PER_SEAT" as const };
+
+  it("opens on the published model's seat minimum, not the first price's", () => {
+    const selection = resolveSubscribeSelection(
+      [ambiguous],
+      { billingInterval: "MONTH" },
+      "QAR",
+      published,
+    );
+
+    expect(selection.minimumSeats).toBe(10);
+    expect(selection.seatQuantity).toBeGreaterThanOrEqual(10);
+  });
+
+  it("keeps the older behaviour when the configuration names no model", () => {
+    const selection = resolveSubscribeSelection(
+      [ambiguous],
+      { billingInterval: "MONTH" },
+      "QAR",
+    );
+
+    expect(selection.minimumSeats).toBe(1);
+  });
+
+  /*
+   * A plan the configuration says nothing about must still open. Narrowing to
+   * an empty list would turn a presentational defect into a dead wizard, so the
+   * filter falls back to the unfiltered candidates.
+   */
+  it("still resolves a price when the published model has no matching price", () => {
+    const selection = resolveSubscribeSelection(
+      [ambiguous],
+      { billingInterval: "MONTH" },
+      "QAR",
+      { "starter:MONTH": "FLAT" },
+    );
+
+    expect(selection.minimumSeats).toBe(1);
+    expect(selection.currency).toBe("QAR");
+  });
+
+  it("leaves the market currency authoritative", () => {
+    const selection = resolveSubscribeSelection(
+      [ambiguous],
+      { billingInterval: "MONTH" },
+      "USD",
+      published,
+    );
+
+    // No USD price exists, so the wizard opens blocked — in the market's own
+    // currency, which is what the blocked state has to name.
+    expect(selection.currency).toBe("USD");
   });
 });
