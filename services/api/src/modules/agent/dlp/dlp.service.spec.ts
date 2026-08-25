@@ -1,3 +1,11 @@
+/*
+ * These assertions reference mocked Prisma/audit methods by name
+ * (`expect(prisma.x.create).not.toHaveBeenCalled()`), which the typed mocks make
+ * `unbound-method` flag even though jest never calls them detached. Disabling the
+ * rule for this spec is the standard jest pattern and keeps the mocks strongly
+ * typed rather than cast to `any`.
+ */
+/* eslint-disable @typescript-eslint/unbound-method */
 import { Prisma } from '@prisma/client';
 import { DlpService } from './dlp.service';
 import type { PrismaService } from '../../../common/prisma/prisma.service';
