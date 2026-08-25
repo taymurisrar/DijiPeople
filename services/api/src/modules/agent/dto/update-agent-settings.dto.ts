@@ -60,6 +60,32 @@ export class UpdateAgentSettingsDto {
   @IsBoolean()
   allowLocationAccess?: boolean;
 
+  // DLP capture (TASK-0020). All default off; enabling clipboard or screenshot
+  // capture is a deliberate tenant decision. `dlpConsentRequired` gates capture
+  // behind an acknowledged monitoring policy when true.
+  @IsOptional()
+  @IsBoolean()
+  allowClipboardCapture?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  allowScreenshotCapture?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  clipboardFullContent?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  dlpConsentRequired?: boolean;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(3650)
+  screenshotRetentionDays?: number;
+
   @IsOptional()
   @IsBoolean()
   offlineQueueEnabled?: boolean;

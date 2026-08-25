@@ -1698,6 +1698,9 @@ export function legacyPermissionToMatrixPrivileges(
     [['permissions.read'], ENTITY_KEYS.ROLES, SecurityPrivilege.READ],
     [['appDownloads.read'], ENTITY_KEYS.AGENT, SecurityPrivilege.READ],
     [['appDownloads.manage'], ENTITY_KEYS.AGENT, SecurityPrivilege.MANAGE],
+    // Reviewing captured DLP content is an agent-domain read; the sensitive gate
+    // is the legacy `dlp.review` key, held by no role by default (TASK-0020).
+    [['dlp.review'], ENTITY_KEYS.AGENT, SecurityPrivilege.READ],
     [
       ['approval-matrices.read', 'sla.read', 'workflows.read'],
       ENTITY_KEYS.SETTINGS,

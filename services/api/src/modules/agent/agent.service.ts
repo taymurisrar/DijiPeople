@@ -833,8 +833,32 @@ export class AgentService {
   async getConfig(tenantId: string) {
     const settings = (await this.getOrCreateSettings(
       tenantId,
-    )) as ExtendedAgentSettings;
-    return toConfigResponse(settings);
+    )) as ExtendedAgentSettings & {
+      allowClipboardCapture: boolean;
+      allowScreenshotCapture: boolean;
+      clipboardFullContent: boolean;
+      screenshotRetentionDays: number;
+    };
+
+    // The agent needs the tenant's DLP rules to evaluate them, but only when a
+    // capture capability is actually on — no point shipping rules to an agent
+    // that will capture nothing.
+    const dlpRules =
+      settings.allowClipboardCapture || settings.allowScreenshotCapture
+        ? await this.prisma.dlpRule.findMany({
+            where: { tenantId, enabled: true },
+            select: {
+              id: true,
+              name: true,
+              enabled: true,
+              sourceAppPatterns: true,
+              channelAppPatterns: true,
+              action: true,
+            },
+          })
+        : [];
+
+    return toConfigResponse(settings, dlpRules);
   }
 
   async getSettings(currentUser: AuthenticatedUser) {
@@ -1602,28 +1626,35 @@ function startOfUtcDay(value: Date) {
   );
 }
 
-function toConfigResponse(settings: {
-  minimumSupportedVersion: string;
-  latestVersion: string;
-  forceUpdate: boolean;
-  updateMessage: string | null;
-  enabled: boolean;
-  heartbeatIntervalSeconds: number;
-  idleThresholdSeconds: number;
-  awayThresholdSeconds: number;
-  captureActiveApp: boolean;
-  captureWindowTitle: boolean;
-  allowCameraAccess: boolean;
-  allowMicrophoneAccess: boolean;
-  allowLocationAccess: boolean;
-  heartbeatBatchSize: number;
-  offlineQueueEnabled: boolean;
-  autoUpdateEnabled: boolean;
-  mandatory: boolean;
-  historyRetentionDays: number;
-  installerUrl: string | null;
-  releaseDate: Date | null;
-}) {
+function toConfigResponse(
+  settings: {
+    minimumSupportedVersion: string;
+    latestVersion: string;
+    forceUpdate: boolean;
+    updateMessage: string | null;
+    enabled: boolean;
+    heartbeatIntervalSeconds: number;
+    idleThresholdSeconds: number;
+    awayThresholdSeconds: number;
+    captureActiveApp: boolean;
+    captureWindowTitle: boolean;
+    allowCameraAccess: boolean;
+    allowMicrophoneAccess: boolean;
+    allowLocationAccess: boolean;
+    heartbeatBatchSize: number;
+    offlineQueueEnabled: boolean;
+    autoUpdateEnabled: boolean;
+    mandatory: boolean;
+    historyRetentionDays: number;
+    installerUrl: string | null;
+    releaseDate: Date | null;
+    allowClipboardCapture: boolean;
+    allowScreenshotCapture: boolean;
+    clipboardFullContent: boolean;
+    screenshotRetentionDays: number;
+  },
+  dlpRules: DlpRuleForConfig[] = [],
+) {
   return {
     agentVersionPolicy: {
       minimumSupportedVersion: settings.minimumSupportedVersion,
@@ -1644,8 +1675,10 @@ function toConfigResponse(settings: {
       captureWindowTitle: settings.captureWindowTitle,
     },
     privacy: {
-      allowScreenshots: false,
-      allowClipboardTracking: false,
+      // Screenshots and clipboard capture are now tenant-controlled (TASK-0020);
+      // keylogging is never available.
+      allowScreenshots: settings.allowScreenshotCapture,
+      allowClipboardTracking: settings.allowClipboardCapture,
       allowKeylogging: false,
       allowCameraAccess: settings.allowCameraAccess,
       allowMicrophoneAccess: settings.allowMicrophoneAccess,
@@ -1665,12 +1698,45 @@ function toConfigResponse(settings: {
       autoUpdate: settings.autoUpdateEnabled,
       trayStatus: true,
     },
+    dlp: {
+      clipboardCaptureEnabled: settings.allowClipboardCapture,
+      screenshotCaptureEnabled: settings.allowScreenshotCapture,
+      clipboardFullContent: settings.clipboardFullContent,
+      // The agent normalises these against its own bounds; the server sends its
+      // intent and lets the client clamp.
+      clipboardPollIntervalSeconds: 5,
+      maxClipboardBytes: 1_048_576,
+      triggerWindowSeconds: 30,
+      rules: dlpRules.map((rule) => ({
+        id: rule.id,
+        name: rule.name,
+        enabled: rule.enabled,
+        sourceAppPatterns: toStringArray(rule.sourceAppPatterns),
+        channelAppPatterns: toStringArray(rule.channelAppPatterns),
+        action: rule.action,
+      })),
+    },
     release: {
       installerUrl: settings.installerUrl,
       releaseDate: settings.releaseDate,
       historyRetentionDays: settings.historyRetentionDays,
     },
   };
+}
+
+type DlpRuleForConfig = {
+  id: string;
+  name: string;
+  enabled: boolean;
+  sourceAppPatterns: unknown;
+  channelAppPatterns: unknown;
+  action: string;
+};
+
+/** DLP rule patterns are stored as Prisma Json; coerce to a clean string list. */
+function toStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item): item is string => typeof item === 'string');
 }
 
 function normalizeSettingsDto(dto: UpdateAgentSettingsDto) {
