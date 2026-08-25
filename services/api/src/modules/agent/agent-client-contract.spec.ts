@@ -8,6 +8,10 @@ import {
 } from './dto/agent-auth.dto';
 import { AgentDeviceDto } from './dto/agent-device.dto';
 import { HeartbeatDto, StartAgentSessionDto } from './dto/agent-session.dto';
+import {
+  ClipboardCaptureBatchDto,
+  ScreenCaptureBatchDto,
+} from './dto/dlp-capture.dto';
 
 /**
  * CONTRACT — what `apps/agent-desktop` sends must satisfy the DTO that receives
@@ -101,6 +105,48 @@ describe('desktop agent request contract', () => {
       body: {
         deviceId: '4f8c2a1e-1d2b-4c3d-9e8f-7a6b5c4d3e2f',
         startedAt: '2026-08-16T09:00:00.000Z',
+      },
+    },
+    {
+      // TASK-0020: the DLP capture payloads DlpManager sends. A field here that
+      // the DTO does not declare is a 400 in production, so this crosses the
+      // same workspace boundary BUG-0035 slipped through.
+      endpoint: 'POST /agent/dlp/clipboard-events',
+      dto: ClipboardCaptureBatchDto,
+      body: {
+        events: [
+          {
+            sessionId: '4f8c2a1e-1d2b-4c3d-9e8f-7a6b5c4d3e2f',
+            deviceId: '5a9d3b2f-2e3c-4d5e-8f9a-1b2c3d4e5f60',
+            occurredAt: '2026-08-25T09:00:00.000Z',
+            sourceApp: 'Excel',
+            sourceAppPath: 'C:/Office/EXCEL.EXE',
+            contentBytes: 42,
+            contentSha256: 'a'.repeat(64),
+            text: 'salary data',
+            overCap: false,
+            agentVersion: '1.4.2',
+          },
+        ],
+      },
+    },
+    {
+      endpoint: 'POST /agent/dlp/screenshot-events',
+      dto: ScreenCaptureBatchDto,
+      body: {
+        events: [
+          {
+            sessionId: '4f8c2a1e-1d2b-4c3d-9e8f-7a6b5c4d3e2f',
+            deviceId: '5a9d3b2f-2e3c-4d5e-8f9a-1b2c3d4e5f60',
+            occurredAt: '2026-08-25T09:00:00.000Z',
+            firedRuleId: 'rule-1',
+            capturedReason: 'Payroll to WhatsApp: Excel -> WhatsApp',
+            contentBytes: 3,
+            contentSha256: 'b'.repeat(64),
+            imageBase64: 'aW1n',
+            agentVersion: '1.4.2',
+          },
+        ],
       },
     },
   ];
