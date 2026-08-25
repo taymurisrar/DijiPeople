@@ -10,4 +10,6 @@ leases actually held this minute, the develop merge queue — comes from
 `node scripts/session.mjs list`, which reads the shared Git directory and
 therefore sees sibling worktrees without anybody having pushed.
 
-_None. No session is currently running._
+| Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
+|---|---|---|---|---|---|---|---|
+| [SESSION-0058](../../docs/sessions/SESSION-0058-dlp-investigator-review-on-the-employee-form.md) | — | DLP investigator review on the employee form | ACTIVE | `agent/dlp-employee-review` | `develop` | — | 2026-08-25T23:28:07.299Z |
