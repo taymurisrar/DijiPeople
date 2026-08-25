@@ -2411,3 +2411,18 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | The product question the bug record raised — whether timesheet periods are configurable — was answered by the schema rather than deferred: `Timesheet` is keyed `@@unique([tenantId, employeeId, year, month])`, one per employee per calendar month, so "Monthly" is a fact and not a hedge. **Reviewers read the shape of a catalog entry and skim its strings**, which is how a defect this visible reached two marketing pages. The test sweeps the whole catalog rather than pinning the one string, because the next paste will be a different entry. |
 | **Fixed** | 2026-08-25, `agent/landing-qa-fixes` |
 | **Active** | yes |
+
+### REG-258 — A structural assertion written as a substring scan, failed by the clock
+
+| | |
+|---|---|
+| **Bug class** | `assertion-without-a-check` |
+| **Module** | `services/api/test` |
+| **Bug record** | BUG-1364 |
+| **Root cause** | `attendance-operational.e2e-spec.ts` guards a real privacy invariant — GPS coordinates must not leak through the generic serialisation of an attendance day — with `JSON.stringify(detail)` followed by `not.toContain('25.3')` and `not.toContain('51.6')`. The payload also carries `lastReconciledAt`, generated at run time, so a reconciliation at `…:51.6`41Z puts the literal `51.6` in the string and the test fails reporting a leak that never happened. `25.3` collides identically with a `:25.3xx` timestamp. `JSON.stringify` flattened a typed object into text, and a bare decimal is not a distinctive enough string to search a whole payload for. |
+| **Regression test** | `services/api/test/attendance-operational.e2e-spec.ts` |
+| **Scenario** | The assertion walks the parsed `detail` object instead of serialising it, collecting every key and every numeric value at any depth. No key may match `/latitude\|longitude\|accuracy\|coordinate/i`, and no number may equal `25.3` or `51.6`. Verified against four payloads before the change was trusted: clean-with-the-colliding-timestamp (passes), a top-level leak (caught), coordinates nested in `sessions[].evidence.position` (caught), and `{lat, lng}` under renamed keys (caught). |
+| **Proven to fail without the fix** | The defect proved itself: CI run `32895970738` failed on a branch that changed nothing in attendance, with `Expected substring: not "51.6"` against a payload whose only occurrence was `lastReconciledAt: "2026-08-25T20:36:51.641Z"`. Rate is about one run in three hundred — two values, each matching one second in sixty and one tenth within it. |
+| **Note** | Two lessons. **A structural claim asserted as a substring is not the same claim.** The intent — no coordinate in this object — is about types and keys; `toContain` on serialised JSON is about text, and the text carries timestamps, uuids and generated names the assertion was never about. The fix is not "make the string match narrower" but "stop turning the object into a string". Second, the replacement is **stronger than what it replaced**, which is the tell that the original was under-specified rather than merely fragile: it now catches a coordinate nested at any depth and one stored under a key that does not advertise itself (`{lat, lng}`), neither of which the old scan could see. A test that is both flaky and weak usually has one cause. Worth noting how close this came to being waved through: a red build naming a privacy leak, on a branch touching only the landing site, is the failure most likely to be re-run and forgotten — and a flake that has been dismissed once has stopped being evidence about the thing it guards. |
+| **Fixed** | 2026-08-25, `agent/landing-qa-fixes` |
+| **Active** | yes |

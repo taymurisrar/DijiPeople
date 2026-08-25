@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 195** · automated: 175 · manual: 6 · blocked by infrastructure: 0
+**Scenarios: 196** · automated: 176 · manual: 6 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -29,6 +29,7 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-ATT-005](../../../docs/qa/scenarios/QA-ATT-005-the-attendance-engine-produces-sessions-end-to-end.md) | The attendance engine produces sessions end to end | attendance | E2E | HIGH | AUTOMATED | `services/api/test/attendance-engine.e2e-spec.ts` | — | — |
 | [QA-ATT-006](../../../docs/qa/scenarios/QA-ATT-006-an-employee-cannot-approve-their-own-attendance-correction.md) | An employee cannot approve their own attendance correction | attendance | SECURITY | HIGH | AUTOMATED | `services/api/src/modules/attendance/attendance.correction-authorization.spec.ts` | BUG-0002, BUG-0047 | REG-002 |
 | [QA-ATT-007](../../../docs/qa/scenarios/QA-ATT-007-attendance-operational-workflows-complete-against-a-fresh-da.md) | Attendance operational workflows complete against a fresh database | attendance | E2E | HIGH | AUTOMATED | `services/api/test/attendance-operational.e2e-spec.ts` | BUG-0049 | — |
+| [QA-ATTENDANCE-001](../../../docs/qa/scenarios/QA-ATTENDANCE-001-attendance-coordinates-never-leak-through-the-day-payload.md) | Attendance coordinates never leak through the day payload | attendance | E2E | MEDIUM | AUTOMATED | `services/api/test/attendance-operational.e2e-spec.ts` | BUG-1364 | REG-258 |
 | [QA-AUTH-001](../../../docs/qa/scenarios/QA-AUTH-001-every-caller-and-its-auth-route-agree-on-http-method.md) | Every caller and its auth route agree on HTTP method | authentication | API | HIGH | AUTOMATED | `scripts/check-route-method-callers.mjs` | BUG-0008, BUG-0038 | REG-008, REG-033 |
 | [QA-AUTH-002](../../../docs/qa/scenarios/QA-AUTH-002-sign-out-always-revokes-the-session-and-never-500s-while-cle.md) | Sign-out always revokes the session and never 500s while clearing cookies | authentication | E2E | HIGH | AUTOMATED | `services/api/test/admin-logout-revocation.e2e-spec.ts` | BUG-0009, BUG-0010, BUG-0627 | REG-032, REG-221 |
 | [QA-AUTH-003](../../../docs/qa/scenarios/QA-AUTH-003-repeated-failed-sign-ins-lock-the-account.md) | Repeated failed sign-ins lock the account | authentication | UNIT | HIGH | AUTOMATED | `services/api/src/modules/auth/login-lockout.service.spec.ts` | — | — |
