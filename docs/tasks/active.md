@@ -13,4 +13,4 @@ Parent tasks currently in flight. `Current` is the work package executing now.
 | [TASK-0004](TASK-0004-autonomous-framework-v2-architect-only-orchestration-multi-s.md) | Autonomous framework v2 — Architect-only orchestration, multi-session safety, develop integration, persistent QA | FRAMEWORK | PROGRAM | P1 | IN_PROGRESS | 11/11 | — |
 | [TASK-0009](TASK-0009-identity-and-multi-tenant-membership.md) | Identity and multi-tenant membership | FEATURE | LARGE | P1 | IN_PROGRESS | 11/12 | WP-09 |
 | [TASK-0018](TASK-0018-legacy-pricing-removed-and-the-commercial-catalogue-made-to-.md) | Legacy pricing removed and the commercial catalogue made to converge | FEATURE | MEDIUM | P1 | IN_PROGRESS | 4/4 | — |
-| [TASK-0020](TASK-0020-dlp-capture-for-desktop-agent-clipboard-and-triggered-screen.md) | DLP capture for desktop agent: clipboard and triggered screenshots | SECURITY | LARGE | P1 | IN_PROGRESS | 0/6 | WP-04 |
+| [TASK-0020](TASK-0020-dlp-capture-for-desktop-agent-clipboard-and-triggered-screen.md) | DLP capture for desktop agent: clipboard and triggered screenshots | SECURITY | LARGE | P1 | IN_PROGRESS | 1/6 | WP-04 |
