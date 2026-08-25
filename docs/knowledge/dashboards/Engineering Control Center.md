@@ -7,7 +7,7 @@
 
 | | |
 |---|---|
-| Active sessions | **0** |
+| Active sessions | **1** |
 | Active parent tasks | 4 |
 | Active work packages | 1 |
 | Blocked work packages | 0 |
@@ -15,9 +15,9 @@
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **4** |
-| Open HIGH | 8 |
+| Open HIGH | 6 |
 | Awaiting Architect triage | 0 |
-| Owner decisions pending | 4 |
+| Owner decisions pending | 2 |
 | QA coverage gaps | 108 |
 | Scenarios blocked by infrastructure | 0 |
 
@@ -30,12 +30,12 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 35 |
-| No next action | 35 |
+| No acceptance criteria | 31 |
+| No next action | 31 |
 | Aging — 7d / 30d / 90d | 14 / 0 / 0 |
 | Architecture and technical debt | 6 |
 | Security gaps | 2 |
-| Database gaps | 3 |
+| Database gaps | 0 |
 
 Ranked next-best actions weigh blast radius rather than severity alone, and
 are computed on demand so the reasons travel with the ranking:
@@ -47,7 +47,9 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 ## Active Sessions
 
-_No session is currently registered as active._
+| Session | Task | Title | Status | Branch | Target | Leases | Schema |
+|---|---|---|---|---|---|---|---|
+| [[SESSION-0057-fix-the-six-landing-qa-bugs-run-ui-ux-review-unblock-provisi|SESSION-0057]] | — | Fix the six landing QA bugs, run UI/UX review, unblock provisioning and prod checkout, release to main | ACTIVE | `agent/landing-qa-fixes` | `develop` | — | NO |
 
 ## Active Tasks and Work Packages
 
@@ -111,8 +113,6 @@ Questions where the engineering is understood and the **product answer is**
 **not**. No agent may resolve one by implementing a side of it.
 
 - [[ITEM-0062-no-multi-tenant-membership-one-user-belongs-to-one-tenant-so|ITEM-0062]] — **No multi-tenant membership — one user belongs to one tenant, so discovery and switching cannot exist**
-- [[BUG-1306-the-production-footer-publishes-a-reserved-fictional-us-phon|BUG-1306]] — **The production footer publishes a reserved fictional US phone number as a tel link**
-- [[BUG-1307-a-raw-monthly-enum-value-appears-in-customer-facing-timeshee|BUG-1307]] — **A raw MONTHLY enum value appears in customer-facing timesheets copy**
 - [[ITEM-0079-activation-does-not-gate-on-a-workspace-having-any-module-en|ITEM-0079]] — **Activation does not gate on a workspace having any module enabled**
 
 ## QA Coverage Gaps
@@ -235,10 +235,10 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 36 |
+| Open total | 32 |
 | Blocked | 1 |
-| Deferred | 24 |
-| Awaiting a product decision | 4 |
+| Deferred | 23 |
+| Awaiting a product decision | 2 |
 | Awaiting Architect triage | 0 |
 
 Every ordinary record carries a disposition.

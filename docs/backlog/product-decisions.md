@@ -13,6 +13,4 @@ Each states the question, the options and what each option costs.
 | ID | Title | Type | Severity | Priority | Status | Affected | Architect |
 |---|---|---|---|---|---|---|---|
 | [ITEM-0062](../../docs/backlog/items/ITEM-0062-no-multi-tenant-membership-one-user-belongs-to-one-tenant-so.md) | No multi-tenant membership — one user belongs to one tenant, so discovery and switching cannot exist | ARCHITECTURE | HIGH | P1 | PRODUCT_DECISION | auth, users, tenant-domains, web | PRODUCT_DECISION |
-| [BUG-1306](../../docs/bugs/BUG-1306-the-production-footer-publishes-a-reserved-fictional-us-phon.md) | The production footer publishes a reserved fictional US phone number as a tel link | UX | LOW | P3 | PRODUCT_DECISION | apps/landing | PRODUCT_DECISION |
-| [BUG-1307](../../docs/bugs/BUG-1307-a-raw-monthly-enum-value-appears-in-customer-facing-timeshee.md) | A raw MONTHLY enum value appears in customer-facing timesheets copy | UX | LOW | P3 | PRODUCT_DECISION | api:tenant-settings, apps/landing | PRODUCT_DECISION |
 | [ITEM-0079](../../docs/backlog/items/ITEM-0079-activation-does-not-gate-on-a-workspace-having-any-module-en.md) | Activation does not gate on a workspace having any module enabled | PRODUCT_DECISION | LOW | P3 | PRODUCT_DECISION | api:tenant-control-plane | PRODUCT_DECISION |

@@ -3,13 +3,13 @@ ID: ITEM-0100
 aliases: [ITEM-0100]
 Title: apps/landing env examples omit NEXT_PUBLIC_WEB_ROOT_DOMAIN and no parity test guards them
 Type: INFRA
-Status: DEFERRED
+Status: DONE
 Priority: P2
 Severity: 
 AffectedModules: [apps/landing, packages/config]
 Source: ARCHITECT
 OwnerAgent: architect
-ArchitectDisposition: DEFER
+ArchitectDisposition: DONE
 CreatedAt: 2026-08-25
 UpdatedAt: 2026-08-25
 RelatedBug: 

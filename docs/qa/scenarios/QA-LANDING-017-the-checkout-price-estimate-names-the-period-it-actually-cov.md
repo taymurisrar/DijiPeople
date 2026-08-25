@@ -6,12 +6,12 @@ AREA: landing
 MODULE: apps/landing
 TYPE: BROWSER_E2E
 RISK: HIGH
-AUTOMATION_STATUS: MANUAL
-TEST_REFERENCE: 
+AUTOMATION_STATUS: PARTIAL
+TEST_REFERENCE: apps/landing/lib/plans.spec.ts
 RELATED_BUGS: [BUG-1302]
-RELATED_REGRESSIONS: []
+RELATED_REGRESSIONS: [REG-252]
 LAST_RUN: 2026-08-25
-LAST_RESULT: FAIL
+LAST_RESULT: PASS
 CREATED_AT: 2026-08-25
 UPDATED_AT: 2026-08-25
 ---
@@ -57,9 +57,7 @@ Created 2026-08-25 at `2e2ef16a`, from the run in
 `docs/qa/runs/2026-08-25-landing-e2e-local-and-prod-42435d5.md` (scenarios S8
 and S23), which is where it first failed.
 
-Recorded `FAIL` deliberately rather than `NOT_RUN`: it has been run, and the
-defect it guards ([[BUG-1302]]) is open. It should flip to `PASS` only when a
-retest against a fix says so.
+First run 2026-08-25 recorded FAIL; re-run the same day against the fix recorded PASS. The defect it guards is closed.
 
 The check is cheap and does not need a browser once the formatting is extracted
 — a unit test over the estimate expression covers steps 2–4. Step 5 is the part
@@ -75,5 +73,6 @@ covers *which period*. Both are properties of the same line of copy.
 
 - Test plan — [[PLAN-013]]
 - Bugs — [[BUG-1302]]
+- Regressions — REG-252 (see the regression register)
 
 <!-- GRAPH:END -->

@@ -10,4 +10,6 @@ leases actually held this minute, the develop merge queue — comes from
 `node scripts/session.mjs list`, which reads the shared Git directory and
 therefore sees sibling worktrees without anybody having pushed.
 
-_None. No session is currently running._
+| Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
+|---|---|---|---|---|---|---|---|
+| [SESSION-0057](../../docs/sessions/SESSION-0057-fix-the-six-landing-qa-bugs-run-ui-ux-review-unblock-provisi.md) | — | Fix the six landing QA bugs, run UI/UX review, unblock provisioning and prod checkout, release to main | ACTIVE | `agent/landing-qa-fixes` | `develop` | — | 2026-08-25T19:18:33.032Z |

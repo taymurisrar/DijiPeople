@@ -68,8 +68,6 @@ Questions where the engineering is understood and the **product answer**
 **is not**. No agent may resolve one by implementing a side of it.
 
 - [[ITEM-0062-no-multi-tenant-membership-one-user-belongs-to-one-tenant-so|ITEM-0062]] — **No multi-tenant membership — one user belongs to one tenant, so discovery and switching cannot exist** (HIGH)
-- [[BUG-1306-the-production-footer-publishes-a-reserved-fictional-us-phon|BUG-1306]] — **The production footer publishes a reserved fictional US phone number as a tel link** (LOW)
-- [[BUG-1307-a-raw-monthly-enum-value-appears-in-customer-facing-timeshee|BUG-1307]] — **A raw MONTHLY enum value appears in customer-facing timesheets copy** (LOW)
 - [[ITEM-0079-activation-does-not-gate-on-a-workspace-having-any-module-en|ITEM-0079]] — **Activation does not gate on a workspace having any module enabled** (LOW)
 
 ## Recent Product Changes
@@ -87,8 +85,6 @@ Questions where the engineering is understood and the **product answer**
 |---|---|---|---|---|---|---|
 | [[BUG-0015-a-tenant-that-fails-before-identities-and-billing-is-unrecoverable|BUG-0015]] | A tenant that fails before identities-and-billing is permanently unrecoverable | STATE_MACHINE | HIGH | OPEN | api:tenant-control-plane | PLAN_REQUIRED |
 | [[BUG-0016-partner-onboarding-review-has-no-state-machine|BUG-0016]] | Partner onboarding review has no state machine | STATE_MACHINE | HIGH | OPEN | api:partner-experience | PLAN_REQUIRED |
-| [[BUG-1302-annual-per-seat-price-is-labelled-per-month-on-the-checkout-|BUG-1302]] | Annual per-seat price is labelled per month on the checkout page | UX | HIGH | OPEN | apps/landing | FIX_NOW |
-| [[BUG-1303-the-dp-chk-01-checkout-unavailable-link-writes-a-diagnostic-|BUG-1303]] | The DP-CHK-01 checkout-unavailable link writes a diagnostic code into the partner referral cookie | DATA_INTEGRITY | HIGH | OPEN | apps/landing | FIX_NOW |
 | [[ITEM-0068-legal-documents-have-no-operator-ui-so-publishing-is-a-scrip|ITEM-0068]] | Legal publication has an operator UI, but no diff before publishing | UX | MEDIUM | READY | legal, admin | FIX_NOW |
 
 ## How to read this

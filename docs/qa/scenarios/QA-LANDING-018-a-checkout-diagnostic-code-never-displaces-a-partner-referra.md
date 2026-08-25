@@ -6,12 +6,12 @@ AREA: landing
 MODULE: apps/landing
 TYPE: BROWSER_E2E
 RISK: HIGH
-AUTOMATION_STATUS: MANUAL
-TEST_REFERENCE: 
+AUTOMATION_STATUS: PARTIAL
+TEST_REFERENCE: apps/landing/lib/referral.spec.ts
 RELATED_BUGS: [BUG-1303]
-RELATED_REGRESSIONS: []
+RELATED_REGRESSIONS: [REG-253]
 LAST_RUN: 2026-08-25
-LAST_RESULT: FAIL
+LAST_RESULT: PASS
 CREATED_AT: 2026-08-25
 UPDATED_AT: 2026-08-25
 ---
@@ -66,7 +66,7 @@ Created 2026-08-25 at `2e2ef16a`, from the run in
 `docs/qa/runs/2026-08-25-landing-e2e-local-and-prod-42435d5.md` (scenario S17),
 where steps 4 and 6 both failed against production.
 
-Recorded `FAIL` rather than `NOT_RUN`: it has been run and [[BUG-1303]] is open.
+First run 2026-08-25 recorded FAIL; re-run the same day against the fix recorded PASS. The defect it guards is closed.
 
 Most of this is plain browser logic in `apps/landing/lib/referral.ts` and can be
 automated as a unit test without a browser — capture one code, then another, and
@@ -83,5 +83,6 @@ overlap test, not a test of either writer alone.
 
 - Test plan — [[PLAN-013]]
 - Bugs — [[BUG-1303]]
+- Regressions — REG-253 (see the regression register)
 
 <!-- GRAPH:END -->

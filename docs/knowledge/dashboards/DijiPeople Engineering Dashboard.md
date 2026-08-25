@@ -8,12 +8,12 @@
 | | |
 |---|---|
 | Open CRITICAL | **4** |
-| Open HIGH | **8** |
-| Open total | 36 |
+| Open HIGH | **6** |
+| Open total | 32 |
 | Blocked | 1 |
-| Awaiting a product decision | 4 |
-| Deferred | 24 |
-| Completed | 194 |
+| Awaiting a product decision | 2 |
+| Deferred | 23 |
+| Completed | 201 |
 | Awaiting Architect triage | 0 |
 
 ## Open Critical Bugs
@@ -33,8 +33,6 @@
 | [[BUG-0016-partner-onboarding-review-has-no-state-machine|BUG-0016]] | Partner onboarding review has no state machine | STATE_MACHINE | HIGH | OPEN | api:partner-experience | PLAN_REQUIRED |
 | [[BUG-0903-production-runs-stripe-in-test-mode-so-no-real-payment-can-b|BUG-0903]] | Production runs Stripe in test mode, so no real payment can be collected | BUG | HIGH | OPEN | api:billing | BLOCKED_EXTERNAL |
 | [[BUG-1203-repo-health-reports-changed-by-this-task-for-another-session|BUG-1203]] | repo-health reports CHANGED_BY_THIS_TASK for another session's merge | INFRA | HIGH | FIXED | framework | FIX_NOW |
-| [[BUG-1302-annual-per-seat-price-is-labelled-per-month-on-the-checkout-|BUG-1302]] | Annual per-seat price is labelled per month on the checkout page | UX | HIGH | OPEN | apps/landing | FIX_NOW |
-| [[BUG-1303-the-dp-chk-01-checkout-unavailable-link-writes-a-diagnostic-|BUG-1303]] | The DP-CHK-01 checkout-unavailable link writes a diagnostic code into the partner referral cookie | DATA_INTEGRITY | HIGH | OPEN | apps/landing | FIX_NOW |
 | [[ITEM-0034-apps-web-has-zero-browser-e2e-coverage|ITEM-0034]] | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | READY | apps/web, e2e | PLAN_REQUIRED |
 | [[ITEM-0094-go-live-sh-reports-no-blocker-for-a-webhook-endpoint-that-re|ITEM-0094]] | go-live.sh reports no blocker for a webhook endpoint that rejects every delivery | TEST_GAP | HIGH | READY | scripts, api:billing, api:outbox | FIX_NOW |
 
@@ -43,8 +41,6 @@
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
 | [[ITEM-0062-no-multi-tenant-membership-one-user-belongs-to-one-tenant-so|ITEM-0062]] | No multi-tenant membership — one user belongs to one tenant, so discovery and switching cannot exist | ARCHITECTURE | HIGH | PRODUCT_DECISION | auth, users, tenant-domains, web | PRODUCT_DECISION |
-| [[BUG-1306-the-production-footer-publishes-a-reserved-fictional-us-phon|BUG-1306]] | The production footer publishes a reserved fictional US phone number as a tel link | UX | LOW | PRODUCT_DECISION | apps/landing | PRODUCT_DECISION |
-| [[BUG-1307-a-raw-monthly-enum-value-appears-in-customer-facing-timeshee|BUG-1307]] | A raw MONTHLY enum value appears in customer-facing timesheets copy | UX | LOW | PRODUCT_DECISION | api:tenant-settings, apps/landing | PRODUCT_DECISION |
 | [[ITEM-0079-activation-does-not-gate-on-a-workspace-having-any-module-en|ITEM-0079]] | Activation does not gate on a workspace having any module enabled | PRODUCT_DECISION | LOW | PRODUCT_DECISION | api:tenant-control-plane | PRODUCT_DECISION |
 
 ## Blocked Items
@@ -163,6 +159,8 @@
 | [[BUG-0995-editing-any-plan-price-500s-once-its-stripe-product-id-goes-|BUG-0995]] | Editing any plan price 500s once its Stripe product id goes stale | INTEGRATION | HIGH | VERIFIED | billing, super-admin | DONE |
 | [[BUG-1134-a-stale-stripe-price-id-500s-the-plan-pricing-screen-because|BUG-1134]] | A stale Stripe price id 500s the plan pricing screen because verifyRecurringPrice is unguarded | INTEGRATION | HIGH | VERIFIED | api:billing, api:super-admin, apps/admin | DONE |
 | [[BUG-1203-repo-health-reports-changed-by-this-task-for-another-session|BUG-1203]] | repo-health reports CHANGED_BY_THIS_TASK for another session's merge | INFRA | HIGH | FIXED | framework | FIX_NOW |
+| [[BUG-1302-annual-per-seat-price-is-labelled-per-month-on-the-checkout-|BUG-1302]] | Annual per-seat price is labelled per month on the checkout page | UX | HIGH | VERIFIED | apps/landing | DONE |
+| [[BUG-1303-the-dp-chk-01-checkout-unavailable-link-writes-a-diagnostic-|BUG-1303]] | The DP-CHK-01 checkout-unavailable link writes a diagnostic code into the partner referral cookie | DATA_INTEGRITY | HIGH | VERIFIED | apps/landing | DONE |
 | [[BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state|BUG-0051]] | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |
 | [[BUG-0009-session-revocation-depended-on-the-refresh-cookie|BUG-0009]] | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | VERIFIED | app:admin, api:auth | DONE |
 | [[BUG-0010-unguarded-cookie-options-could-turn-sign-out-into-a-500|BUG-0010]] | Unguarded cookie options could turn admin sign-out into a 500 | INFRA | MEDIUM | VERIFIED | app:admin | DONE |
@@ -217,15 +215,20 @@
 | [[BUG-0907-an-unknown-legal-slug-answers-200-and-hangs-on-the-loading-s|BUG-0907]] | An unknown legal slug answers 200 and hangs on the loading shell instead of returning 404 | BUG | MEDIUM | VERIFIED | apps/landing | DONE |
 | [[BUG-1208-component-index-check-fails-on-every-windows-checkout-passes|BUG-1208]] | component-index --check fails on every Windows checkout, passes in CI | INFRA | MEDIUM | FIXED | framework | FIX_NOW |
 | [[BUG-1261-the-admin-theme-bootstrap-script-runs-in-head-where-react-hy|BUG-1261]] | The admin theme bootstrap script runs in head where React hydrates it against extension-injected scripts | UX | MEDIUM | VERIFIED | apps/admin | DONE |
+| [[BUG-1304-production-subscribe-wizard-offers-only-eight-countries-beca|BUG-1304]] | Production subscribe wizard offers only eight countries because the ISO country sync never populates production | DATABASE | MEDIUM | VERIFIED | api:lookups, apps/landing | DONE |
+| [[BUG-1305-priority-country-sortorder-collides-with-alphabetical-sortor|BUG-1305]] | Priority country sortOrder collides with alphabetical sortOrder, scattering key markets mid-list | DATABASE | MEDIUM | VERIFIED | api:lookups | DONE |
 | [[BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist|BUG-0023]] | The testing-architecture context claims two e2e specs do not exist | DOCUMENTATION | LOW | VERIFIED | .agent/context | DONE |
 | [[BUG-0024-start-onboarding-api-and-proxy-have-no-caller|BUG-0024]] | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | VERIFIED | apps/admin, api:super-admin | DONE |
 | [[BUG-0059-vault-wikilinks-to-task-records-and-four-module-notes-resolv|BUG-0059]] | Vault wikilinks to task records and four module notes resolve to nothing | DOCUMENTATION | LOW | VERIFIED | scripts, docs/tasks, docs/knowledge | DONE |
 | [[BUG-0352-the-tenant-timeline-rendered-every-entry-with-no-count-and-n|BUG-0352]] | The tenant timeline rendered every entry with no count and no paging | UX | LOW | VERIFIED | apps/admin | DONE |
 | [[BUG-0669-patch-my-preferences-never-used-its-dto-so-the-body-was-unva|BUG-0669]] | PATCH my-preferences never used its DTO so the body was unvalidated | SECURITY | LOW | VERIFIED | api:tenant-settings | DONE |
 | [[BUG-0796-tenant-and-plan-list-summaries-omit-createdbyid-so-the-creat|BUG-0796]] | Tenant and plan list summaries omit createdById so the Created by me view is always empty | BUG | LOW | VERIFIED | api:super-admin | DONE |
+| [[BUG-1306-the-production-footer-publishes-a-reserved-fictional-us-phon|BUG-1306]] | The production footer publishes a reserved fictional US phone number as a tel link | UX | LOW | VERIFIED | apps/landing | DONE |
+| [[BUG-1307-a-raw-monthly-enum-value-appears-in-customer-facing-timeshee|BUG-1307]] | A raw MONTHLY enum value appears in customer-facing timesheets copy | UX | LOW | VERIFIED | api:tenant-settings, apps/landing | DONE |
 
 ## Recent QA Runs
 
+- [[2026-08-25-landing-fixes-verification|QA Run — landing-fixes-verification]]
 - [[2026-08-25-landing-e2e-local-and-prod-42435d5|QA Run — landing-e2e-local-and-prod]]
 - [[2026-08-24-record-state-reconciliation-0a5586f|QA Run — record-state-reconciliation]]
 - [[2026-08-23-landing-go-live-e2e-789eeac|QA Run — landing-go-live-e2e]]
@@ -233,7 +236,6 @@
 - [[2026-08-20-identity-and-membership-3008a13|QA Run — identity-and-membership]]
 - [[2026-08-19-self-service-onboarding-provisioning-f5bd870|QA Run — self-service-onboarding-provisioning]]
 - [[2026-08-19-ci-e2e-remediation-3f03571|QA Run — ci-e2e-remediation]]
-- [[2026-08-18-primary-worktree-repository-health-494c44d|QA Run — primary-worktree-repository-health]]
 
 ## Recent Implementations
 
@@ -267,8 +269,6 @@
 |---|---|---|---|---|---|---|
 | [[BUG-0905-production-defines-direct-url-but-the-code-reads-direct-data|BUG-0905]] | Production defines DIRECT_URL but the code reads DIRECT_DATABASE_URL, so migrations run over the pooled endpoint | BUG | MEDIUM | OPEN | services/api/prisma, pkg:config | BLOCKED_EXTERNAL |
 | [[BUG-1208-component-index-check-fails-on-every-windows-checkout-passes|BUG-1208]] | component-index --check fails on every Windows checkout, passes in CI | INFRA | MEDIUM | FIXED | framework | FIX_NOW |
-| [[BUG-1304-production-subscribe-wizard-offers-only-eight-countries-beca|BUG-1304]] | Production subscribe wizard offers only eight countries because the ISO country sync never populates production | DATABASE | MEDIUM | OPEN | api:lookups, apps/landing | PLAN_REQUIRED |
-| [[BUG-1305-priority-country-sortorder-collides-with-alphabetical-sortor|BUG-1305]] | Priority country sortOrder collides with alphabetical sortOrder, scattering key markets mid-list | DATABASE | MEDIUM | OPEN | api:lookups | PLAN_REQUIRED |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0020-contract-phase-drop-legacy-plan-pricing-columns|ITEM-0020]] | Contract phase: drop legacy Plan pricing columns | TECH_DEBT | MEDIUM | READY | services/api/prisma, api:super-admin, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur|ITEM-0022]] | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | READY | api:super-admin, apps/admin | PLAN_REQUIRED |
@@ -306,7 +306,7 @@
 | Bug records | 159 |
 | Backlog items | 100 |
 | Known bug patterns | 28 |
-| QA runs | 25 |
+| QA runs | 26 |
 | Engineering history records | 45 |
 | Release records | 3 |
 | Module notes | 28 |
