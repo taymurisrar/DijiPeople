@@ -4,7 +4,7 @@ aliases: [SESSION-0052]
 TASK_ID:
 TITLE: repo-health blames this task for another session's merge
 ARCHITECT_INTENT: repo-health blames this task for another session's merge
-STATUS: ACTIVE
+STATUS: COMPLETE
 TASK_TYPE: BUG
 TASK_SIZE: SMALL
 BASE_BRANCH: origin/develop

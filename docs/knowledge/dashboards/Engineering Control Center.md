@@ -7,7 +7,7 @@
 
 | | |
 |---|---|
-| Active sessions | **1** |
+| Active sessions | **0** |
 | Active parent tasks | 6 |
 | Active work packages | 1 |
 | Blocked work packages | 0 |
@@ -47,9 +47,7 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 ## Active Sessions
 
-| Session | Task | Title | Status | Branch | Target | Leases | Schema |
-|---|---|---|---|---|---|---|---|
-| [[SESSION-0052-repo-health-blames-this-task-for-another-session-s-merge|SESSION-0052]] | — | repo-health blames this task for another session's merge | ACTIVE | `agent/repo-health-task-sha` | `develop` | — | NO |
+_No session is currently registered as active._
 
 ## Active Tasks and Work Packages
 
