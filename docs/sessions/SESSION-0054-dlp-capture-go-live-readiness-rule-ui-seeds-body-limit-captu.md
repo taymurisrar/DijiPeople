@@ -4,7 +4,7 @@ aliases: [SESSION-0054]
 TASK_ID:
 TITLE: DLP capture go-live readiness: rule UI, seeds, body limit, captures view
 ARCHITECT_INTENT: DLP capture go-live readiness: rule UI, seeds, body limit, captures view
-STATUS: ACTIVE
+STATUS: COMPLETE
 TASK_TYPE: FEATURE
 TASK_SIZE: LARGE
 BASE_BRANCH: origin/develop

@@ -243,13 +243,13 @@
 ## Recent Engineering History
 
 - [[2026-08-25-repo-health-task-sha-5f2648d6|Engineering History — Two checks that were argued correct rather than tested]]
+- [[2026-08-25-dlp-go-live-readiness-5f556842|Engineering History — DLP capture go-live readiness]]
 - [[2026-08-25-dlp-desktop-agent-capture-c0932f17|Engineering History — DLP capture for the desktop agent]]
 - [[2026-08-25-agent-ui-perception-c4035dbb|Engineering History — Agent UI perception]]
 - [[2026-08-25-admin-theme-bootstrap-hydration-a4503e3b|Engineering History — Admin theme bootstrap hydration mismatch]]
 - [[2026-08-24-session-registry-closeout-cbc6f0b2|Engineering History — Close every stale active session and finish their residual work]]
 - [[2026-08-24-record-state-reconciliation-b205fea8|Engineering History — Record-state reconciliation — verify what is actually resolved]]
 - [[2026-08-23-release-legal-copy-and-plan-pricing-944a2d00|Engineering History — Release legal copy and plan pricing]]
-- [[2026-08-23-landing-go-live-e2e-a92fef5e|Engineering History — Landing site full E2E: what a go-live actually requires]]
 
 ## Recent Releases
 
@@ -301,7 +301,7 @@
 | Backlog items | 99 |
 | Known bug patterns | 27 |
 | QA runs | 24 |
-| Engineering history records | 43 |
+| Engineering history records | 44 |
 | Release records | 3 |
 | Module notes | 28 |
 | Architecture notes | 20 |

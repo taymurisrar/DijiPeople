@@ -6,19 +6,18 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 1** · completed: 52
+**Active: 0** · completed: 53
 
 ## Active
 
-| Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
-|---|---|---|---|---|---|---|---|
-| [SESSION-0054](../../docs/sessions/SESSION-0054-dlp-capture-go-live-readiness-rule-ui-seeds-body-limit-captu.md) | — | DLP capture go-live readiness: rule UI, seeds, body limit, captures view | ACTIVE | `agent/dlp-go-live` | `develop` | — | 2026-08-25T17:01:21.029Z |
+_None. No session is currently running._
 
 ## Completed
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
 | [SESSION-0055](../../docs/sessions/SESSION-0055-admin-theme-bootstrap-script-triggers-a-hydration-mismatch-i.md) | — | Admin theme bootstrap script triggers a hydration mismatch in head | COMPLETE | `agent/admin-theme-bootstrap-hydration` | `develop` | — | 2026-08-25T17:02:26.566Z |
+| [SESSION-0054](../../docs/sessions/SESSION-0054-dlp-capture-go-live-readiness-rule-ui-seeds-body-limit-captu.md) | — | DLP capture go-live readiness: rule UI, seeds, body limit, captures view | COMPLETE | `agent/dlp-go-live` | `develop` | — | 2026-08-25T17:01:21.029Z |
 | [SESSION-0052](../../docs/sessions/SESSION-0052-repo-health-blames-this-task-for-another-session-s-merge.md) | — | repo-health blames this task for another session's merge | COMPLETE | `agent/repo-health-task-sha` | `develop` | — | 2026-08-25T09:59:06.166Z |
 | [SESSION-0051](../../docs/sessions/SESSION-0051-agent-ui-perception-browser-control-component-knowledge-ui-r.md) | — | Agent UI perception: browser control, component knowledge, UI review skill | COMPLETE | `agent/agent-ui-perception` | `develop` | — | 2026-08-25T08:57:40.212Z |
 | [SESSION-0050](../../docs/sessions/SESSION-0050-dlp-capture-for-desktop-agent-clipboard-and-triggered-screen.md) | — | DLP capture for desktop agent: clipboard and triggered screenshots | COMPLETE | `agent/dlp-desktop-agent` | `develop` | — | 2026-08-24T22:06:09.192Z |

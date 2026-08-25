@@ -4,7 +4,7 @@ aliases: [TASK-0023]
 TITLE: DLP capture go-live readiness
 TYPE: FEATURE
 SIZE: LARGE
-STATUS: IN_PROGRESS
+STATUS: COMPLETE
 PRIORITY: P1
 CREATED_AT: 2026-08-25
 AFFECTED_MODULES: [apps/web, services/api, apps/agent-desktop]
@@ -14,7 +14,7 @@ CURRENT_PACKAGE: WP-04
 COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-04]
 BLOCKED_PACKAGES: []
 OWNER_DECISIONS: 0
-FINAL_STATUS:
+FINAL_STATUS: COMPLETE
 ---
 
 # TASK-0023 — DLP capture go-live readiness
@@ -32,10 +32,10 @@ alerts and clipboard captures end to end, CI-green and integrated to `develop`.
 
 | WP_ID | TITLE | STATUS | DEPENDENCIES | AGENTS | BRANCH | SHA | QA_STATUS | BUGS | CI_STATUS | MERGE_STATUS |
 |---|---|---|---|---|---|---|---|---|---|---|
-| WP-01 | Rule-config UI + recommended starter rules | DONE | — | frontend | agent/dlp-go-live | — | tested | local | — | UNMERGED |
-| WP-02 | Screenshot body-size limit (API route + DTO bounds + agent flush chunking) | DONE | — | backend | agent/dlp-go-live | — | tested | local | — | UNMERGED |
-| WP-03 | Browse-all-captures view + list endpoint | DONE | — | backend | agent/dlp-go-live | — | tested | local | — | UNMERGED |
-| WP-04 | Validation across workspaces | DONE | WP-01, WP-02, WP-03 | integration | agent/dlp-go-live | — | tested | local | — | UNMERGED |
+| WP-01 | Rule-config UI + recommended starter rules | DONE | — | frontend | agent/dlp-go-live | — | tested | local | — | MERGED |
+| WP-02 | Screenshot body-size limit (API route + DTO bounds + agent flush chunking) | DONE | — | backend | agent/dlp-go-live | — | tested | local | — | MERGED |
+| WP-03 | Browse-all-captures view + list endpoint | DONE | — | backend | agent/dlp-go-live | — | tested | local | — | MERGED |
+| WP-04 | Validation across workspaces | DONE | WP-01, WP-02, WP-03 | integration | agent/dlp-go-live | — | tested | local | — | MERGED |
 
 ## Assumptions
 
