@@ -124,6 +124,7 @@ REG-233 — `column-preferences.spec.ts` passes.
 
 ## Related
 
+- Referenced by — [[ITEM-0097]]
 - Modules — [[platform-admin]]
 - Regression — REG-233 (see the regression register)
 

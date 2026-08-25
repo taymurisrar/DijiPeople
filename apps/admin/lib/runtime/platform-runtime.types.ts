@@ -141,6 +141,25 @@ export type RuntimeColumnDefinition = {
   filterable?: boolean;
   visible?: boolean;
   pinned?: "left" | "right";
+  /**
+   * The column that says which row this is. It cannot be hidden.
+   *
+   * Saved table preferences are reapplied over the definition, and
+   * `mergeVisibleColumns` deliberately honours a column an operator turned off
+   * — "never offered" and "deliberately hidden" are different states and it can
+   * tell them apart.
+   *
+   * The identity column is the exception. With `Tenant` hidden, the tenant list
+   * led with `Customer`, every row was addressed by somebody else's name, and
+   * the screen stopped being a list of tenants at all. That is not a preference
+   * anyone holds on purpose, and recovering from it through the column picker
+   * requires already knowing which column is missing.
+   *
+   * So this one is forced visible however the saved state was written, and the
+   * picker will not offer to turn it off. Everything else stays the operator's
+   * to arrange.
+   */
+  essential?: boolean;
 };
 
 export type RuntimeFieldDefinition = {

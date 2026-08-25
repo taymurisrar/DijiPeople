@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**246 records** — 150 bugs under [`docs/bugs/`](../bugs/), 96 non-bug items under [`items/`](items/).
+**247 records** — 150 bugs under [`docs/bugs/`](../bugs/), 97 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,21 +13,21 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 32 |
+| Open (active work) | 30 |
 | Blocked | 1 |
 | Deferred | 22 |
 | Awaiting a product decision | 2 |
-| Completed / closed | 189 |
-| **Open CRITICAL** | **5** |
-| **Open HIGH** | **6** |
+| Completed / closed | 192 |
+| **Open CRITICAL** | **4** |
+| **Open HIGH** | **5** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
 
 | Severity | Count |
 |---|---|
-| CRITICAL | 5 |
-| HIGH | 6 |
+| CRITICAL | 4 |
+| HIGH | 5 |
 | MEDIUM | 17 |
 | LOW | 4 |
 
@@ -37,10 +37,9 @@ see [`README.md`](README.md) for why.
 |---|---|
 | ARCHITECTURE | 1 |
 | BUG | 5 |
-| DATA_INTEGRITY | 1 |
 | FOLLOW_UP | 2 |
 | INFRA | 4 |
-| INTEGRATION | 2 |
+| INTEGRATION | 1 |
 | SECURITY | 2 |
 | STATE_MACHINE | 2 |
 | TECH_DEBT | 5 |
@@ -55,12 +54,12 @@ see [`README.md`](README.md) for why.
 | BLOCKED | 1 |
 | DEFERRED | 22 |
 | PRODUCT_DECISION | 2 |
-| FIXED | 4 |
-| VERIFIED | 136 |
+| FIXED | 2 |
+| VERIFIED | 138 |
 | DUPLICATE | 2 |
 | ACCEPTED_RISK | 1 |
 | READY | 22 |
-| DONE | 50 |
+| DONE | 51 |
 
 ## All records
 
@@ -79,7 +78,7 @@ see [`README.md`](README.md) for why.
 | [BUG-0989](../../docs/bugs/BUG-0989-every-stripe-webhook-delivery-to-production-fails-so-a-payme.md) | Every Stripe webhook delivery to production fails, so a payment never reaches the platform | INFRA | CRITICAL | P0 | VERIFIED | api:billing | DONE |
 | [BUG-0994](../../docs/bugs/BUG-0994-plan-entitlements-blank-out-on-save-and-the-next-save-delete.md) | Plan entitlements blank out on save and the next save deletes them | DATA_INTEGRITY | CRITICAL | P0 | VERIFIED | platform-runtime, super-admin, admin | DONE |
 | [BUG-1128](../../docs/bugs/BUG-1128-stripe-api-version-skew-invoice-paid-cannot-map-to-a-subscri.md) | Stripe API version skew: invoice.paid cannot map to a subscription because invoice.subscription no longer exists | INTEGRATION | CRITICAL | P0 | FIXED | api:billing | FIX_NOW |
-| [BUG-1133](../../docs/bugs/BUG-1133-saving-a-plan-price-deactivates-every-sibling-price-on-a-nar.md) | Saving a plan price deactivates every sibling price on a narrower key than the unique index | DATA_INTEGRITY | CRITICAL | P0 | FIXED | api:super-admin, apps/admin | FIX_NOW |
+| [BUG-1133](../../docs/bugs/BUG-1133-saving-a-plan-price-deactivates-every-sibling-price-on-a-nar.md) | Saving a plan price deactivates every sibling price on a narrower key than the unique index | DATA_INTEGRITY | CRITICAL | P0 | VERIFIED | api:super-admin, apps/admin | DONE |
 | [BUG-0049](../../docs/bugs/BUG-0049-report-only-ci-jobs-swallow-security-and-database-e2e-failur.md) | Report-only CI jobs swallow security and database E2E failures | INFRA | HIGH | P0 | VERIFIED | .github/workflows, services/api/src/common/constants, services/api/test, docs/qa | DONE |
 | [BUG-0052](../../docs/bugs/BUG-0052-production-dependency-graph-carries-critical-and-high-securi.md) | Production dependency graph carries critical and high security advisories | SECURITY | HIGH | P0 | VERIFIED | package-lock.json, apps/agent-desktop, apps/web, apps/admin, apps/landing, services/api | DONE |
 | [BUG-0053](../../docs/bugs/BUG-0053-documents-self-scoped-users-can-read-tenant-wide-documents.md) | Self-scoped document readers can list and open tenant-wide documents | AUTHORIZATION | HIGH | P0 | VERIFIED | api:documents | DONE |
@@ -152,7 +151,7 @@ see [`README.md`](README.md) for why.
 | [BUG-0906](../../docs/bugs/BUG-0906-production-has-no-published-legal-documents-so-purchases-rec.md) | Production has no published legal documents, so purchases record no consent and the footer links to nothing | BUG | HIGH | P1 | VERIFIED | api:legal, apps/landing | DONE |
 | [BUG-0976](../../docs/bugs/BUG-0976-a-disallowed-cors-origin-returns-500-and-writes-an-error-log.md) | A disallowed CORS origin returns 500 and writes an error-log row, so anyone can fill the table | SECURITY | HIGH | P1 | VERIFIED | services/api/src/config | DONE |
 | [BUG-0995](../../docs/bugs/BUG-0995-editing-any-plan-price-500s-once-its-stripe-product-id-goes-.md) | Editing any plan price 500s once its Stripe product id goes stale | INTEGRATION | HIGH | P1 | VERIFIED | billing, super-admin | DONE |
-| [BUG-1134](../../docs/bugs/BUG-1134-a-stale-stripe-price-id-500s-the-plan-pricing-screen-because.md) | A stale Stripe price id 500s the plan pricing screen because verifyRecurringPrice is unguarded | INTEGRATION | HIGH | P1 | FIXED | api:billing, api:super-admin, apps/admin | FIX_NOW |
+| [BUG-1134](../../docs/bugs/BUG-1134-a-stale-stripe-price-id-500s-the-plan-pricing-screen-because.md) | A stale Stripe price id 500s the plan pricing screen because verifyRecurringPrice is unguarded | INTEGRATION | HIGH | P1 | VERIFIED | api:billing, api:super-admin, apps/admin | DONE |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | READY | apps/web, e2e | PLAN_REQUIRED |
@@ -161,6 +160,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0063](../../docs/backlog/items/ITEM-0063-self-service-checkout-must-prove-the-owner-email-before-char.md) | Self-service checkout must prove the owner email before charging | SECURITY | HIGH | P1 | DONE | billing, platform-communications, landing | DONE |
 | [ITEM-0094](../../docs/backlog/items/ITEM-0094-go-live-sh-reports-no-blocker-for-a-webhook-endpoint-that-re.md) | go-live.sh reports no blocker for a webhook endpoint that rejects every delivery | TEST_GAP | HIGH | P1 | READY | scripts, api:billing, api:outbox | FIX_NOW |
 | [ITEM-0096](../../docs/backlog/items/ITEM-0096-a-critical-notification-named-no-reason-and-no-action-and-th.md) | A critical notification named no reason and no action, and the price estimate showed no working | UX | HIGH | P1 | DONE | api:platform-events, apps/admin, apps/landing | DONE |
+| [ITEM-0097](../../docs/backlog/items/ITEM-0097-a-saved-column-preference-could-hide-the-column-that-identif.md) | A saved column preference could hide the column that identifies the row | UX | HIGH | P1 | DONE | apps/admin, e2e | DONE |
 | [ITEM-0048](../../docs/backlog/items/ITEM-0048-replace-or-contain-active-win-and-the-xlsx-export-path.md) | Replace or contain active-win and the xlsx export path | SECURITY | HIGH | P2 | BLOCKED | apps/agent-desktop, services/api/src/common/excel, package-lock.json | BLOCKED_EXTERNAL |
 | [ITEM-0086](../../docs/backlog/items/ITEM-0086-smoke-deployment-does-not-assert-that-a-launched-market-has-.md) | smoke:deployment does not assert that a launched market has a purchasable price or a running outbox worker | TEST_GAP | HIGH | P2 | DONE | scripts | DONE |
 | [BUG-0051](../../docs/bugs/BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state.md) | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | P1 | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |

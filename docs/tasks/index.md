@@ -10,7 +10,7 @@ graph and the block reasons. See
 |---|---|
 | [Active](active.md) | 7 |
 | [Blocked](blocked.md) | 0 |
-| [Completed](completed.md) | 12 |
+| [Completed](completed.md) | 13 |
 
 ## Next ready work package
 
@@ -33,7 +33,7 @@ graph and the block reasons. See
 | [TASK-0010](TASK-0010-go-live-readiness.md) | Go-live readiness | FEATURE | MEDIUM | P0 | COMPLETE | 8/8 | NONE |
 | [TASK-0011](TASK-0011-first-production-release.md) | First production release | RELEASE | MEDIUM | P0 | IN_PROGRESS | 2/2 | — |
 | [TASK-0012](TASK-0012-final-agent-operating-system-upgrade.md) | Final agent operating system upgrade | FRAMEWORK | PROGRAM | P0 | COMPLETE | 16/16 | WP-16 |
-| [TASK-0019](TASK-0019-release-the-payment-path-and-pricing-fixes-to-production.md) | Release the payment-path and pricing fixes to production | RELEASE | MEDIUM | P0 | IN_PROGRESS | 0/2 | WP-01 |
+| [TASK-0019](TASK-0019-release-the-payment-path-and-pricing-fixes-to-production.md) | Release the payment-path and pricing fixes to production | RELEASE | MEDIUM | P0 | COMPLETE | 2/2 | — |
 | [TASK-0001](TASK-0001-framework-keyword-routing-task-orchestration-and-repository-.md) | Framework: keyword routing, task orchestration and repository health | FRAMEWORK | LARGE | P1 | COMPLETE | 6/6 | — |
 | [TASK-0002](TASK-0002-deep-documentation-of-apps-docs-apps-landing-and-apps-agent-.md) | Deep documentation of apps/docs, apps/landing and apps/agent-desktop | KNOWLEDGE | LARGE | P1 | COMPLETE | 9/9 | — |
 | [TASK-0003](TASK-0003-deep-documentation-of-apps-web-the-tenant-product.md) | Deep documentation of apps/web, the tenant product | KNOWLEDGE | LARGE | P1 | COMPLETE | 9/9 | — |
@@ -46,3 +46,4 @@ graph and the block reasons. See
 | [TASK-0016](TASK-0016-a-workspace-that-says-what-it-is-missing-metrics-you-can-act.md) | A workspace that says what it is missing, metrics you can act on, and a checkout block with a code | BUG | LARGE | P1 | COMPLETE | 5/5 | — |
 | [TASK-0017](TASK-0017-workspace-links-that-resolve-a-monitoring-page-you-can-work-.md) | Workspace links that resolve, a monitoring page you can work from, and Delete that either deletes or explains | BUG | LARGE | P1 | COMPLETE | 6/6 | — |
 | [TASK-0018](TASK-0018-legacy-pricing-removed-and-the-commercial-catalogue-made-to-.md) | Legacy pricing removed and the commercial catalogue made to converge | FEATURE | MEDIUM | P1 | IN_PROGRESS | 4/4 | — |
+| [TASK-0021](TASK-0021-release-the-tenant-list-identity-fix-and-the-first-admin-bro.md) | Release the tenant list identity fix and the first admin browser suite | RELEASE | SMALL | P1 | IN_PROGRESS | 0/2 | WP-01 |

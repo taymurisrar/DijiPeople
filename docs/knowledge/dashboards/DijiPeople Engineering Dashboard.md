@@ -7,13 +7,13 @@
 
 | | |
 |---|---|
-| Open CRITICAL | **5** |
-| Open HIGH | **6** |
-| Open total | 32 |
+| Open CRITICAL | **4** |
+| Open HIGH | **5** |
+| Open total | 30 |
 | Blocked | 1 |
 | Awaiting a product decision | 2 |
 | Deferred | 22 |
-| Completed | 189 |
+| Completed | 192 |
 | Awaiting Architect triage | 0 |
 
 ## Open Critical Bugs
@@ -24,7 +24,6 @@
 | [[BUG-0900-tenant-provisioning-exceeds-the-5s-transaction-timeout-a-pai|BUG-0900]] | Tenant provisioning exceeds the 5s transaction timeout: a paid order is left with no workspace | BUG | CRITICAL | FIXED | api:permissions | FIX_NOW |
 | [[BUG-0904-production-is-missing-outbox-worker-enabled-so-no-workspace-|BUG-0904]] | Production is missing OUTBOX_WORKER_ENABLED, so no workspace is provisioned after payment | BUG | CRITICAL | OPEN | api:outbox | BLOCKED_EXTERNAL |
 | [[BUG-1128-stripe-api-version-skew-invoice-paid-cannot-map-to-a-subscri|BUG-1128]] | Stripe API version skew: invoice.paid cannot map to a subscription because invoice.subscription no longer exists | INTEGRATION | CRITICAL | FIXED | api:billing | FIX_NOW |
-| [[BUG-1133-saving-a-plan-price-deactivates-every-sibling-price-on-a-nar|BUG-1133]] | Saving a plan price deactivates every sibling price on a narrower key than the unique index | DATA_INTEGRITY | CRITICAL | FIXED | api:super-admin, apps/admin | FIX_NOW |
 
 ## Open High Bugs
 
@@ -33,7 +32,6 @@
 | [[BUG-0015-a-tenant-that-fails-before-identities-and-billing-is-unrecoverable|BUG-0015]] | A tenant that fails before identities-and-billing is permanently unrecoverable | STATE_MACHINE | HIGH | OPEN | api:tenant-control-plane | PLAN_REQUIRED |
 | [[BUG-0016-partner-onboarding-review-has-no-state-machine|BUG-0016]] | Partner onboarding review has no state machine | STATE_MACHINE | HIGH | OPEN | api:partner-experience | PLAN_REQUIRED |
 | [[BUG-0903-production-runs-stripe-in-test-mode-so-no-real-payment-can-b|BUG-0903]] | Production runs Stripe in test mode, so no real payment can be collected | BUG | HIGH | OPEN | api:billing | BLOCKED_EXTERNAL |
-| [[BUG-1134-a-stale-stripe-price-id-500s-the-plan-pricing-screen-because|BUG-1134]] | A stale Stripe price id 500s the plan pricing screen because verifyRecurringPrice is unguarded | INTEGRATION | HIGH | FIXED | api:billing, api:super-admin, apps/admin | FIX_NOW |
 | [[ITEM-0034-apps-web-has-zero-browser-e2e-coverage|ITEM-0034]] | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | READY | apps/web, e2e | PLAN_REQUIRED |
 | [[ITEM-0094-go-live-sh-reports-no-blocker-for-a-webhook-endpoint-that-re|ITEM-0094]] | go-live.sh reports no blocker for a webhook endpoint that rejects every delivery | TEST_GAP | HIGH | READY | scripts, api:billing, api:outbox | FIX_NOW |
 
@@ -86,7 +84,7 @@
 | [[BUG-0989-every-stripe-webhook-delivery-to-production-fails-so-a-payme|BUG-0989]] | Every Stripe webhook delivery to production fails, so a payment never reaches the platform | INFRA | CRITICAL | VERIFIED | api:billing | DONE |
 | [[BUG-0994-plan-entitlements-blank-out-on-save-and-the-next-save-delete|BUG-0994]] | Plan entitlements blank out on save and the next save deletes them | DATA_INTEGRITY | CRITICAL | VERIFIED | platform-runtime, super-admin, admin | DONE |
 | [[BUG-1128-stripe-api-version-skew-invoice-paid-cannot-map-to-a-subscri|BUG-1128]] | Stripe API version skew: invoice.paid cannot map to a subscription because invoice.subscription no longer exists | INTEGRATION | CRITICAL | FIXED | api:billing | FIX_NOW |
-| [[BUG-1133-saving-a-plan-price-deactivates-every-sibling-price-on-a-nar|BUG-1133]] | Saving a plan price deactivates every sibling price on a narrower key than the unique index | DATA_INTEGRITY | CRITICAL | FIXED | api:super-admin, apps/admin | FIX_NOW |
+| [[BUG-1133-saving-a-plan-price-deactivates-every-sibling-price-on-a-nar|BUG-1133]] | Saving a plan price deactivates every sibling price on a narrower key than the unique index | DATA_INTEGRITY | CRITICAL | VERIFIED | api:super-admin, apps/admin | DONE |
 | [[BUG-0049-report-only-ci-jobs-swallow-security-and-database-e2e-failur|BUG-0049]] | Report-only CI jobs swallow security and database E2E failures | INFRA | HIGH | VERIFIED | .github/workflows, services/api/src/common/constants, services/api/test, docs/qa | DONE |
 | [[BUG-0052-production-dependency-graph-carries-critical-and-high-securi|BUG-0052]] | Production dependency graph carries critical and high security advisories | SECURITY | HIGH | VERIFIED | package-lock.json, apps/agent-desktop, apps/web, apps/admin, apps/landing, services/api | DONE |
 | [[BUG-0053-documents-self-scoped-users-can-read-tenant-wide-documents|BUG-0053]] | Self-scoped document readers can list and open tenant-wide documents | AUTHORIZATION | HIGH | VERIFIED | api:documents | DONE |
@@ -156,7 +154,7 @@
 | [[BUG-0906-production-has-no-published-legal-documents-so-purchases-rec|BUG-0906]] | Production has no published legal documents, so purchases record no consent and the footer links to nothing | BUG | HIGH | VERIFIED | api:legal, apps/landing | DONE |
 | [[BUG-0976-a-disallowed-cors-origin-returns-500-and-writes-an-error-log|BUG-0976]] | A disallowed CORS origin returns 500 and writes an error-log row, so anyone can fill the table | SECURITY | HIGH | VERIFIED | services/api/src/config | DONE |
 | [[BUG-0995-editing-any-plan-price-500s-once-its-stripe-product-id-goes-|BUG-0995]] | Editing any plan price 500s once its Stripe product id goes stale | INTEGRATION | HIGH | VERIFIED | billing, super-admin | DONE |
-| [[BUG-1134-a-stale-stripe-price-id-500s-the-plan-pricing-screen-because|BUG-1134]] | A stale Stripe price id 500s the plan pricing screen because verifyRecurringPrice is unguarded | INTEGRATION | HIGH | FIXED | api:billing, api:super-admin, apps/admin | FIX_NOW |
+| [[BUG-1134-a-stale-stripe-price-id-500s-the-plan-pricing-screen-because|BUG-1134]] | A stale Stripe price id 500s the plan pricing screen because verifyRecurringPrice is unguarded | INTEGRATION | HIGH | VERIFIED | api:billing, api:super-admin, apps/admin | DONE |
 | [[BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state|BUG-0051]] | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |
 | [[BUG-0009-session-revocation-depended-on-the-refresh-cookie|BUG-0009]] | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | VERIFIED | app:admin, api:auth | DONE |
 | [[BUG-0010-unguarded-cookie-options-could-turn-sign-out-into-a-500|BUG-0010]] | Unguarded cookie options could turn admin sign-out into a 500 | INFRA | MEDIUM | VERIFIED | app:admin | DONE |
@@ -250,6 +248,7 @@
 ## Recent Releases
 
 - [[2026-08-24-production-6ed7a44|Release — production — `6ed7a44`]]
+- [[2026-08-24-production-2609275|Release — production — `2609275`]]
 
 ## Active / Recent Backlog
 
@@ -291,11 +290,11 @@
 | Knowledge | Count |
 |---|---|
 | Bug records | 150 |
-| Backlog items | 96 |
+| Backlog items | 97 |
 | Known bug patterns | 27 |
 | QA runs | 24 |
 | Engineering history records | 39 |
-| Release records | 1 |
+| Release records | 2 |
 | Module notes | 28 |
 | Architecture notes | 20 |
 | Decision notes (ADR + generated) | 6 |

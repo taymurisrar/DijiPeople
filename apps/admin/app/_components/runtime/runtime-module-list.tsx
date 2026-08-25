@@ -587,19 +587,46 @@ export function RuntimeModuleList({
                       key={column.key}
                       className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
                     >
-                      <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-2">
+                      <label
+                        className={[
+                          "flex min-w-0 flex-1 items-center gap-2",
+                          column.essential ? "cursor-default" : "cursor-pointer",
+                        ].join(" ")}
+                      >
+                        {/*
+                          An essential column is checked, disabled, and titled
+                          with the reason. Hiding the checkbox entirely would be
+                          tidier and worse: an operator looking for "Tenant"
+                          would find nothing and conclude the column was gone,
+                          which is the confusion this is meant to end.
+                        */}
                         <input
                           type="checkbox"
-                          checked={visibleColumns.includes(column.key)}
-                          onChange={() =>
+                          checked={
+                            column.essential ||
+                            visibleColumns.includes(column.key)
+                          }
+                          disabled={column.essential}
+                          title={
+                            column.essential
+                              ? `${column.label} identifies the row and cannot be hidden.`
+                              : undefined
+                          }
+                          onChange={() => {
+                            if (column.essential) return;
                             setVisibleColumns((current) =>
                               current.includes(column.key)
                                 ? current.filter((key) => key !== column.key)
                                 : [...current, column.key],
-                            )
-                          }
+                            );
+                          }}
                         />
                         <span className="truncate">{column.label}</span>
+                        {column.essential ? (
+                          <span className="shrink-0 text-[11px] text-slate-400">
+                            always shown
+                          </span>
+                        ) : null}
                       </label>
                       <button
                         type="button"
@@ -1306,7 +1333,22 @@ export function mergeVisibleColumns(
 
   return columns
     .filter((column) =>
-      known.has(column.key) ? visible.has(column.key) : column.visible !== false,
+      /*
+       * An essential column says which row this is, and no saved state may drop
+       * it. Checked ahead of the known/visible logic rather than after, because
+       * the point is that it outranks the preference.
+       *
+       * Without this the tenant list led with `Customer`, every row was
+       * addressed by somebody else's name, and the screen stopped being a list
+       * of tenants — the definition was right and the deploy had landed, but a
+       * preference written earlier had quietly removed the column the page
+       * exists to show.
+       */
+      column.essential
+        ? true
+        : known.has(column.key)
+          ? visible.has(column.key)
+          : column.visible !== false,
     )
     .map((column) => column.key);
 }
