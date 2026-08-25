@@ -7,7 +7,7 @@
 
 | | |
 |---|---|
-| Active sessions | **0** |
+| Active sessions | **1** |
 | Active parent tasks | 6 |
 | Active work packages | 1 |
 | Blocked work packages | 0 |
@@ -15,7 +15,7 @@
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **4** |
-| Open HIGH | 5 |
+| Open HIGH | 6 |
 | Awaiting Architect triage | 0 |
 | Owner decisions pending | 2 |
 | QA coverage gaps | 108 |
@@ -30,8 +30,8 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 29 |
-| No next action | 29 |
+| No acceptance criteria | 31 |
+| No next action | 31 |
 | Aging — 7d / 30d / 90d | 14 / 0 / 0 |
 | Architecture and technical debt | 6 |
 | Security gaps | 2 |
@@ -47,7 +47,9 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 ## Active Sessions
 
-_No session is currently registered as active._
+| Session | Task | Title | Status | Branch | Target | Leases | Schema |
+|---|---|---|---|---|---|---|---|
+| [[SESSION-0052-repo-health-blames-this-task-for-another-session-s-merge|SESSION-0052]] | — | repo-health blames this task for another session's merge | ACTIVE | `agent/repo-health-task-sha` | `develop` | — | NO |
 
 ## Active Tasks and Work Packages
 
@@ -235,7 +237,7 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 30 |
+| Open total | 32 |
 | Blocked | 1 |
 | Deferred | 23 |
 | Awaiting a product decision | 2 |

@@ -2276,3 +2276,33 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | **The counterpart of `stripe-product-resolution.spec.ts`, and they should be read together.** BUG-0995 fixed the product path and left the price call eighty lines away bare — fixing one half of a symmetry is how the second half survives to be found in production. The asymmetry that remains is deliberate: the product path auto-creates a replacement, this one does not, because a price determines what customers are charged and minting one behind an operator's back is a pricing change, not a recovery. Note also that this bug was *limiting* [[BUG-1133]]'s blast radius — fixing it alone would have made that data loss easier to trigger, which is why the two landed together. |
 | **Fixed** | 2026-08-24, `agent/record-state-reconciliation` |
 | **Active** | yes |
+
+### REG-249 — MAIN_CHANGE_STATUS must not blame this task for another session's merge
+
+| | |
+|---|---|
+| **Bug class** | `comment-without-a-constraint` |
+| **Module** | `scripts` |
+| **Bug record** | BUG-1203 |
+| **Root cause** | `MAIN_CHANGE_STATUS` is decided by containment — does `origin/main` contain this task's commits — so it rests entirely on which commits are called "this task's". `TASK_SHA` fell back to HEAD when no explicit task ref was given. HEAD is the task branch in a task worktree and is fine there; in the primary checkout HEAD is `develop`, which any release merges into `main`, so HEAD becomes an ancestor of `origin/main` and every task audited from that checkout is blamed for somebody else's merge. It fires hardest at the end of a task, once the task branch is deleted and the flag can no longer be passed. |
+| **Regression test** | `scripts/task-sha-ref.test.mjs` |
+| **Scenario** | Seven cases over the extracted decision in `scripts/lib/task-sha-ref.mjs`. Standing on the integration branch and standing on the production branch must both attribute nothing; a task worktree and a detached checkout must still attribute HEAD; an explicit task ref must win even on a shared branch, because a RELEASE task is the one kind that legitimately reports CHANGED_BY_THIS_TASK; an unreadable branch name must attribute nothing rather than guess. The last case uses non-default branch names, because the guard has to follow the resolved target — which is read from origin/HEAD, not hardcoded — and comparing against a literal main would silently unprotect a repository that renamed it. |
+| **Proven to fail without the fix** | Executed 2026-08-25. Removing the integration-branch guard fails 2 cases; removing the explicit-ref short-circuit fails 1. End to end, the same checkout and baseline reported CHANGED_BY_THIS_TASK before and UNTOUCHED after, while an explicit ref pointing at a commit genuinely on origin/main still produced the blocker. |
+| **Note** | **The logic was already right, and its comment already described this exact false positive** — that the first implementation "fired on its own first real run, for a task that had not touched main at all", and that "a production-safety field that cries wolf when a colleague merges is a field people learn to ignore". A fallback added later walked back into it. The lesson is not about branch names: a long correct comment guarding an untested decision is a defect waiting for its second author, and the fix that matters here is that the decision is now a testable unit rather than an inline expression. |
+| **Fixed** | 2026-08-25, `agent/repo-health-task-sha` |
+| **Active** | yes |
+
+### REG-250 — A drift check must not fire when nothing drifted
+
+| | |
+|---|---|
+| **Bug class** | `check-that-cries-wolf` |
+| **Module** | `scripts` |
+| **Bug record** | BUG-1208 |
+| **Root cause** | `generate-component-index.mjs --check` compared bytes. The generator writes `\n`; Git checks the file out as `\r\n` on Windows. So it reported every line of an untouched index as drifted in every Windows worktree, while passing in CI, which runs on Linux. The provenance stamp was already excluded from the comparison for the same underlying reason — it changes on every commit — so the defect was an incomplete idea rather than a missing one. |
+| **Regression test** | `scripts/index-drift.test.mjs` |
+| **Scenario** | Seven cases over `scripts/lib/index-drift.mjs`. The same content in two line endings must compare equal, and symmetrically; a changed provenance stamp must not count as drift; the realistic combination — a CRLF checkout from an older commit — must not either. Balanced against three cases in the opposite direction, because normalising too much produces a check that always passes, which is indistinguishable from having no check while looking like one: a changed summary is a drift, a changed row is a drift even across line endings, and a missing committed file is a drift rather than a match. A last case asserts the body survives normalisation untouched, to stop a future tidying pass quietly widening what counts as equal. |
+| **Proven to fail without the fix** | Executed 2026-08-25. Deleting the line-ending normalisation fails 2 cases; making the comparison always-equal fails 4. The first attempt at this mutation silently failed to apply and the suite stayed green — the mutation was re-run and confirmed applied before the result was believed. |
+| **Note** | Found on the first fresh worktree created after the generator shipped, which is the only reason it was caught quickly: CI could never have found it, because the failure requires a checkout the runner does not produce. **A check whose result depends on the platform is not one check but two, and only one of them was ever run.** |
+| **Fixed** | 2026-08-25, `agent/repo-health-task-sha` |
+| **Active** | yes |

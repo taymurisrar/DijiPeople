@@ -10,4 +10,6 @@ leases actually held this minute, the develop merge queue — comes from
 `node scripts/session.mjs list`, which reads the shared Git directory and
 therefore sees sibling worktrees without anybody having pushed.
 
-_None. No session is currently running._
+| Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
+|---|---|---|---|---|---|---|---|
+| [SESSION-0052](../../docs/sessions/SESSION-0052-repo-health-blames-this-task-for-another-session-s-merge.md) | — | repo-health blames this task for another session's merge | ACTIVE | `agent/repo-health-task-sha` | `develop` | — | 2026-08-25T09:59:06.166Z |

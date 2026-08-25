@@ -33,6 +33,8 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { taskShaRef } from './lib/task-sha-ref.mjs';
+
 function argValue(name) {
   const index = process.argv.indexOf(name);
   return index === -1 ? '' : (process.argv[index + 1] ?? '');
@@ -281,10 +283,22 @@ const developBehindMain = remoteIntegration && remoteTarget
  * task's commits? The baseline still matters — it distinguishes `main` moving
  * *forward* (ordinary) from `main` being rewritten (never ordinary).
  */
+/*
+ * BUG-1203 — the HEAD fallback that used to live here reintroduced the exact
+ * false positive the paragraph above describes, by a different route. The
+ * decision now lives in `lib/task-sha-ref.mjs`, where it is under test; the
+ * reasoning is recorded there rather than restated here.
+ */
 const TASK_SHA = (() => {
   const index = process.argv.indexOf('--task-sha');
   const supplied = index === -1 ? '' : (process.argv[index + 1] ?? '');
-  return git(['rev-parse', '--verify', '--quiet', supplied || 'HEAD'], '');
+  const ref = taskShaRef({
+    supplied,
+    head: git(['rev-parse', '--abbrev-ref', 'HEAD'], ''),
+    target: TARGET,
+    integration: INTEGRATION,
+  });
+  return ref ? git(['rev-parse', '--verify', '--quiet', ref], '') : '';
 })();
 
 let mainAdvancedBy = 0;

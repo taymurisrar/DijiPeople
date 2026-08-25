@@ -64,6 +64,8 @@
     "components:rebuild": "node scripts/generate-component-index.mjs",
     "components:check": "node scripts/generate-component-index.mjs --check",
     "test:knowledge-terms": "node --test scripts/knowledge-terms.test.mjs",
+    "test:task-sha-ref": "node --test scripts/task-sha-ref.test.mjs",
+    "test:index-drift": "node --test scripts/index-drift.test.mjs",
     "repo:health": "node scripts/repo-health.mjs",
     "backlog:rebuild": "node scripts/rebuild-backlog.mjs",
     "backlog:check": "node scripts/rebuild-backlog.mjs --check",

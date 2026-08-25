@@ -45,6 +45,8 @@ import { execFileSync } from 'node:child_process';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { indexIsCurrent } from './lib/index-drift.mjs';
+
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const OUTPUT = '.agent/context/component-index.md';
 const CHECK = process.argv.includes('--check');
@@ -317,16 +319,12 @@ const target = join(ROOT, OUTPUT);
 const existing = existsSync(target) ? readFileSync(target, 'utf8') : '';
 
 /*
- * Compare with the provenance lines removed. Those two lines change on every
- * commit, so comparing whole documents would make --check fail on any commit
- * that touched no component at all — which trains people to regenerate
- * reflexively and defeats the purpose of the check.
+ * What counts as drift lives in `lib/index-drift.mjs`, under test — the
+ * provenance stamp and the checkout's line endings are both ignored, and both
+ * for the same reason. BUG-1208 is what a byte comparison cost.
  */
-const withoutStamp = (text) =>
-  text.replace(/^> \*\*Last verified:\*\*.*$/m, '').replace(/^> \*\*Verified against commit:\*\*.*$/m, '');
-
 if (CHECK) {
-  if (withoutStamp(existing) === withoutStamp(document)) {
+  if (indexIsCurrent(existing, document)) {
     console.log(`${OUTPUT} is up to date (${totalDocumented} documented exports).`);
     process.exit(0);
   }

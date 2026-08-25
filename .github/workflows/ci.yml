@@ -136,6 +136,21 @@ jobs:
       - name: Knowledge term normalisation
         run: node --test scripts/knowledge-terms.test.mjs
 
+      # BUG-1203 — MAIN_CHANGE_STATUS is a terminal invariant of the completion
+      # contract, so a false CHANGED_BY_THIS_TASK fails healthy work, and a fix
+      # that oversuppressed it would hide an unauthorised production mutation.
+      # Both directions are pinned; neither is safe to leave to a comment — the
+      # bug existed because the correct reasoning was a comment and nothing else.
+      - name: Repo-health task attribution
+        run: node --test scripts/task-sha-ref.test.mjs
+
+      # BUG-1208 — the component-index drift check compared bytes, so it failed
+      # on every Windows checkout and passed here, on Linux. This runner could
+      # never have reproduced that; these cases construct both line endings in
+      # memory so the platform the runner does not have is still covered.
+      - name: Index drift comparison
+        run: node --test scripts/index-drift.test.mjs
+
       # BUG-0163 — the lockfile must be REGENERABLE, not merely present.
       #
       # It had stopped being so, and nothing noticed for weeks, because

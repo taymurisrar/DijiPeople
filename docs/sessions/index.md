@@ -6,11 +6,13 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 0** · completed: 49
+**Active: 1** · completed: 49
 
 ## Active
 
-_None. No session is currently running._
+| Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
+|---|---|---|---|---|---|---|---|
+| [SESSION-0052](../../docs/sessions/SESSION-0052-repo-health-blames-this-task-for-another-session-s-merge.md) | — | repo-health blames this task for another session's merge | ACTIVE | `agent/repo-health-task-sha` | `develop` | — | 2026-08-25T09:59:06.166Z |
 
 ## Completed
 
