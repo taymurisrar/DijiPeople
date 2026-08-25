@@ -44,9 +44,10 @@ import {
  *     a dedicated investigations role). Reading content is a different authority
  *     from configuring the agent, and every read is audited in the service.
  *
- * NOTE: screenshot ingest carries base64 image bytes; the Nest JSON body limit
- * must be raised to accept them (see the DTO's size cap). Tracked for WP-02
- * follow-up alongside the tenant body-size setting.
+ * NOTE: screenshot ingest carries base64 image bytes; `main.ts` gives
+ * `/agent/dlp/screenshot-events` a 25 MB JSON body limit (TASK-0023), matched to
+ * the DTO's per-image cap × batch size, so a legitimate batch is accepted and an
+ * oversized body is refused.
  */
 @Controller('agent/dlp')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -114,6 +115,16 @@ export class DlpController {
     @Query() query: DlpAlertQueryDto,
   ) {
     return this.dlp.listAlerts(user, query);
+  }
+
+  @Get('clipboard-events')
+  @Permissions('dlp.review')
+  @RequirePermission(ENTITY_KEYS.AGENT, 'read')
+  listClipboardCaptures(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() query: DlpAlertQueryDto,
+  ) {
+    return this.dlp.listClipboardCaptures(user, query);
   }
 
   @Get('clipboard-events/:id/content')

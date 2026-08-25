@@ -310,6 +310,39 @@ export class DlpService {
 
   // --------------------------------------------------------------- review
 
+  /**
+   * Lists recent clipboard captures for the tenant — metadata only, never the
+   * content, so browsing the list is not itself a content read. Reading the
+   * actual text still goes through `readClipboardContent`, which is audited.
+   * This is what surfaces clipboard captures that did not coincide with a fired
+   * rule (and so produced no alert).
+   */
+  async listClipboardCaptures(
+    user: AuthenticatedUser,
+    query: DlpAlertQueryDto,
+  ) {
+    const limit = Math.min(query.limit ?? DEFAULT_ALERT_LIMIT, MAX_ALERT_LIMIT);
+    return this.prisma.clipboardCaptureEvent.findMany({
+      where: {
+        tenantId: user.tenantId,
+        ...(query.employeeId ? { employeeId: query.employeeId } : {}),
+      },
+      orderBy: { occurredAt: 'desc' },
+      take: limit,
+      select: {
+        id: true,
+        employeeId: true,
+        occurredAt: true,
+        sourceApp: true,
+        destinationApp: true,
+        contentBytes: true,
+        contentSha256: true,
+        overCap: true,
+        firedRuleId: true,
+      },
+    });
+  }
+
   async listAlerts(user: AuthenticatedUser, query: DlpAlertQueryDto) {
     const limit = Math.min(query.limit ?? DEFAULT_ALERT_LIMIT, MAX_ALERT_LIMIT);
     return this.prisma.dlpAlert.findMany({

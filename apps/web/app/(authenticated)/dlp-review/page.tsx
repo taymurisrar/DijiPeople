@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable react-hooks/set-state-in-effect -- fetch-on-mount sets state after awaits; the one-shot loading cascade is intended */
 
 import { useCallback, useEffect, useState } from "react";
 
@@ -31,32 +32,53 @@ type ClipboardContent = {
   content: string | null;
 };
 
+type ClipboardCapture = {
+  id: string;
+  employeeId: string;
+  occurredAt: string;
+  sourceApp: string | null;
+  destinationApp: string | null;
+  contentBytes: number;
+  contentSha256: string;
+  overCap: boolean;
+  firedRuleId: string | null;
+};
+
+async function fetchList<T>(path: string): Promise<T[] | "denied"> {
+  const res = await fetch(path, { cache: "no-store" });
+  if (res.status === 403) return "denied";
+  const data = (await res.json().catch(() => null)) as
+    | T[]
+    | { items?: T[] }
+    | null;
+  return Array.isArray(data) ? data : (data?.items ?? []);
+}
+
 export default function DlpReviewPage() {
   const [alerts, setAlerts] = useState<DlpAlert[] | null>(null);
+  const [captures, setCaptures] = useState<ClipboardCapture[] | null>(null);
   const [denied, setDenied] = useState(false);
-  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    const [alertList, captureList] = await Promise.all([
+      fetchList<DlpAlert>("/api/agent/dlp/alerts"),
+      fetchList<ClipboardCapture>("/api/agent/dlp/clipboard-events"),
+    ]);
+    if (alertList === "denied" || captureList === "denied") {
+      setDenied(true);
+      return;
+    }
+    setAlerts(alertList);
+    setCaptures(captureList);
+  }, []);
 
   useEffect(() => {
-    let active = true;
-    (async () => {
-      const res = await fetch("/api/agent/dlp/alerts", { cache: "no-store" });
-      if (!active) return;
-      if (res.status === 403) {
-        setDenied(true);
-        setLoading(false);
-        return;
-      }
-      const data = (await res.json().catch(() => null)) as
-        | DlpAlert[]
-        | { items?: DlpAlert[] }
-        | null;
-      setAlerts(Array.isArray(data) ? data : (data?.items ?? []));
-      setLoading(false);
-    })();
-    return () => {
-      active = false;
-    };
-  }, []);
+    void load();
+  }, [load]);
+
+  // Loading is derived, not a separate state — avoids a true->false set in the
+  // effect that reads as a cascading render.
+  const loading = !denied && alerts === null && captures === null;
 
   if (loading) {
     return <p className="p-8 text-sm text-muted">Loading DLP alerts…</p>;
@@ -84,17 +106,39 @@ export default function DlpReviewPage() {
         </p>
       </header>
 
-      {!alerts || alerts.length === 0 ? (
-        <p className="rounded-2xl border border-border bg-surface p-6 text-sm text-muted">
-          No DLP alerts have been recorded.
-        </p>
-      ) : (
-        <ul className="grid gap-3">
-          {alerts.map((alert) => (
-            <DlpAlertRow key={alert.id} alert={alert} />
-          ))}
-        </ul>
-      )}
+      <section className="grid gap-3">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
+          Alerts (rule triggered)
+        </h2>
+        {!alerts || alerts.length === 0 ? (
+          <p className="rounded-2xl border border-border bg-surface p-6 text-sm text-muted">
+            No DLP alerts have been recorded.
+          </p>
+        ) : (
+          <ul className="grid gap-3">
+            {alerts.map((alert) => (
+              <DlpAlertRow key={alert.id} alert={alert} />
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="grid gap-3">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
+          Recent clipboard captures
+        </h2>
+        {!captures || captures.length === 0 ? (
+          <p className="rounded-2xl border border-border bg-surface p-6 text-sm text-muted">
+            No clipboard captures have been recorded.
+          </p>
+        ) : (
+          <ul className="grid gap-3">
+            {captures.map((capture) => (
+              <ClipboardCaptureRow key={capture.id} capture={capture} />
+            ))}
+          </ul>
+        )}
+      </section>
     </div>
   );
 }
@@ -176,6 +220,61 @@ function DlpAlertRow({ alert }: { alert: DlpAlert }) {
             className="w-full"
           />
         </div>
+      ) : null}
+    </li>
+  );
+}
+
+function ClipboardCaptureRow({ capture }: { capture: ClipboardCapture }) {
+  const [content, setContent] = useState<ClipboardContent | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const reveal = useCallback(async () => {
+    setLoading(true);
+    const res = await fetch(
+      `/api/agent/dlp/clipboard-events/${capture.id}/content`,
+      { cache: "no-store" },
+    );
+    const data = (await res
+      .json()
+      .catch(() => null)) as ClipboardContent | null;
+    setContent(data);
+    setLoading(false);
+  }, [capture.id]);
+
+  return (
+    <li className="rounded-2xl border border-border bg-surface p-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-foreground">
+            Employee {capture.employeeId}
+            {capture.firedRuleId ? (
+              <span className="ml-2 text-xs text-muted">
+                (rule {capture.firedRuleId})
+              </span>
+            ) : null}
+          </p>
+          <p className="truncate text-xs text-muted">
+            {new Date(capture.occurredAt).toLocaleString()} ·{" "}
+            {capture.sourceApp ?? "unknown"} →{" "}
+            {capture.destinationApp ?? "unknown"} · {capture.contentBytes} bytes
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={reveal}
+          className="rounded-xl border border-border px-3 py-1.5 text-sm font-medium text-foreground transition hover:bg-surface-strong"
+        >
+          {loading ? "Loading…" : "View content"}
+        </button>
+      </div>
+
+      {content ? (
+        <pre className="mt-3 max-h-64 overflow-auto whitespace-pre-wrap break-words rounded-xl bg-surface-strong p-4 text-sm text-foreground">
+          {content.overCap
+            ? "(content too large — stored as metadata only)"
+            : (content.content ?? "(metadata only — content not captured)")}
+        </pre>
       ) : null}
     </li>
   );

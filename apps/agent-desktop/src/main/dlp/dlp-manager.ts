@@ -36,6 +36,9 @@ export interface DlpSessionContext {
 }
 
 const MAX_PENDING = 200;
+// Matches ScreenCaptureBatchDto's ArrayMaxSize(3) on the API — screenshots are
+// large, so a flush of buffered ones goes out in chunks this size.
+const SCREENSHOT_FLUSH_CHUNK = 3;
 
 /**
  * Drives DLP capture on the agent (TASK-0020): it samples the clipboard, arms
@@ -246,15 +249,15 @@ export class DlpManager {
         this.pendingClipboard.unshift(...batch.slice(-MAX_PENDING));
       }
     }
-    if (this.pendingScreenshots.length > 0) {
-      const batch = this.pendingScreenshots.splice(
-        0,
-        this.pendingScreenshots.length,
-      );
+    // Screenshots are large (base64 PNGs), so flush them in small batches that
+    // stay under the API's 25 MB body limit — the ingest DTO caps a batch at 3.
+    while (this.pendingScreenshots.length > 0) {
+      const batch = this.pendingScreenshots.splice(0, SCREENSHOT_FLUSH_CHUNK);
       try {
         await this.api.sendScreenshotEvents(batch);
       } catch {
-        this.pendingScreenshots.unshift(...batch.slice(-MAX_PENDING));
+        this.pendingScreenshots.unshift(...batch);
+        break;
       }
     }
   }

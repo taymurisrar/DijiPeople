@@ -33,7 +33,7 @@ const MAX_CLIPBOARD_TEXT_LENGTH = 1_048_576;
  * a legitimate one. NOTE: the Nest JSON body limit must be at least this large
  * for screenshot ingest to succeed; see DlpController.
  */
-const MAX_SCREENSHOT_BASE64_LENGTH = 12_000_000;
+const MAX_SCREENSHOT_BASE64_LENGTH = 8_000_000;
 
 export class ClipboardCaptureEventDto {
   @IsUUID()
@@ -142,7 +142,7 @@ export class ScreenCaptureEventDto {
 
 export class ScreenCaptureBatchDto {
   @IsArray()
-  @ArrayMaxSize(50)
+  @ArrayMaxSize(3)
   @ValidateNested({ each: true })
   @Type(() => ScreenCaptureEventDto)
   events!: ScreenCaptureEventDto[];

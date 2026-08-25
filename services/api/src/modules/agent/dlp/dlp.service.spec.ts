@@ -62,6 +62,9 @@ describe('DlpService', () => {
           );
           return Promise.resolve({ id: 'cbe-1', ...(args.data as object) });
         }),
+        findMany: jest.fn().mockResolvedValue([
+          { id: 'cbe-1', employeeId: 'emp-1', occurredAt: new Date() },
+        ]),
       },
       legalDocumentAcknowledgement: {
         findFirst: jest
@@ -196,5 +199,26 @@ describe('DlpService', () => {
       expect.objectContaining({ action: 'DLP_CLIPBOARD_CONTENT_VIEWED' }),
     );
     expect(result.content).toBe('salary data');
+  });
+
+  it('lists clipboard captures scoped to the tenant, metadata only', async () => {
+    const { service, prisma } = build({ allowClipboardCapture: true });
+
+    const result = await service.listClipboardCaptures(user, {});
+
+    expect(Array.isArray(result)).toBe(true);
+    const findMany = (
+      prisma as unknown as {
+        clipboardCaptureEvent: { findMany: jest.Mock };
+      }
+    ).clipboardCaptureEvent.findMany;
+    const args = findMany.mock.calls[0][0] as {
+      where: { tenantId: string };
+      select: Record<string, boolean>;
+    };
+    expect(args.where.tenantId).toBe('tenant-1');
+    // Content is never selected by the list — reading it is the separate,
+    // audited path.
+    expect(args.select.encryptedContent).toBeUndefined();
   });
 });
