@@ -142,19 +142,52 @@ None reproduced.
 
 ## Bugs Found
 
-None new. This run verified fixes rather than exploring, and no fix introduced a
-defect.
+None from the verification itself — no fix introduced a defect.
+
+**Three found afterwards, while unblocking production checkout.** Syncing the
+QAR prices to Stripe was authorised in order to complete the production test
+purchase. It worked, and within minutes it exposed defects that had been latent
+for as long as the endpoint existed. Recorded here because this run is where the
+evidence lives.
+
+| ID | Severity | Description | Found by |
+|---|---|---|---|
+| [[BUG-1378]] | HIGH · SECURITY | `/public/plans` published `SALES_ASSISTED` internal flat pricing to anonymous callers and marked it `checkoutReady`; **neither public write path checked the channel at all**, so a caller holding an id could buy an internal rate | Tracing BUG-1369 to its cause, then reading the write paths |
+| [[BUG-1369]] | HIGH | Checkout resolved a price on two of its three dimensions, so it quoted QAR 249 flat against an advertised QAR 8 per employee | Comparing `/plans` and `/subscribe` immediately after the sync |
+| [[BUG-1364]] | MEDIUM | A coordinate-leak assertion substring-matched JSON and failed when the clock spelled a coordinate | CI, on a branch that changed nothing in attendance |
+
+All three are fixed, verified and closed. `REG-258`, `REG-259` and `REG-260`
+carry the coverage; `QA-BILLING-021`, `QA-LANDING-023` and `QA-ATTENDANCE-001`
+are the reusable scenarios.
+
+The sequence is worth keeping: **making a thing reachable is how its defects
+become findable.** BUG-1369 and BUG-1378 were both present before this task and
+invisible while no market had two sellable models. Nothing about the sync
+created them; it removed the condition that was hiding them.
 
 ## Known Limitations
 
-1. **The production test purchase is still not done.** Not for want of tooling —
-   production still has no sellable price in the visitor's market
-   ([[BUG-0898]]), and making one requires syncing prices to production Stripe
-   while it is in `TEST` mode ([[BUG-0903]]). That would make the live site
-   *appear* purchasable to real prospects while rejecting their real cards,
-   which is worse for them than today's honest "not available online" message.
-   That trade-off is a commercial decision, and it is raised with the user
-   rather than taken here.
+1. **The production test purchase is still not done** — and the reason changed
+   twice in one evening, which is worth recording in order.
+
+   It began as "no QAR price is sellable" ([[BUG-0898]]), and making one meant
+   syncing prices while production Stripe is in `TEST` mode ([[BUG-0903]]) —
+   which shows real prospects a payment form that declines real cards. That
+   trade-off is commercial, so it was put to the user, who chose to sync.
+
+   The sync succeeded: QAR went from 0/12 to 12/12 checkout-ready and the
+   wizard rendered for the first time. It then immediately quoted **QAR 249
+   flat against an advertised QAR 8 per employee** ([[BUG-1369]], caused by
+   [[BUG-1378]]).
+
+   **The purchase was deliberately not completed at that price.** Buying at a
+   figure the site does not advertise would have created a real subscription on
+   a rate the customer was never offered, and demonstrating a pricing defect by
+   paying it is not evidence anyone needs. Both defects are now fixed and
+   released; the purchase is worth attempting again once that deployment is
+   confirmed.
+
+   Note also what is still true: with `STRIPE_MODE=test`, only test cards work.
 2. **The API test suite was run for the changed modules, not in full.** The
    changes are confined to `lookups`, `tenant-settings` and the landing app; a
    full API run is CI's job and gates the merge.

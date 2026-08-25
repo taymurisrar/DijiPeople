@@ -140,6 +140,54 @@ Deployment confirmed rather than assumed, per the
 `node scripts/sync-obsidian.mjs` followed by `npm run knowledge:verify`; the
 resulting counts are in the session record.
 
+## Second phase — what unblocking checkout revealed
+
+The task continued after the release above, on the user's instruction to
+complete the production purchase and fix anything else found. It is recorded
+here rather than in a separate history because it is the same branch and the
+same session, and because the sequence is the point.
+
+**The sync worked.** With the user's decision to sync in test mode, the twelve
+QAR prices went from 0 to 12 checkout-ready and `/subscribe` rendered a live
+form for a Qatar visitor for the first time.
+
+**And within minutes it quoted the wrong price** — QAR 249 flat against an
+advertised QAR 8 per employee. Tracing that produced two records:
+
+- [[BUG-1369]] — `findPlanPrice` matched two of the three dimensions that
+  identify a price. The symptom.
+- [[BUG-1378]] — `/public/plans` published `SALES_ASSISTED` internal pricing to
+  anonymous callers and marked it `checkoutReady`, while
+  `/public/commercial-config` over the same rows had always excluded it. The
+  cause. **And neither public write path checked the channel at all**, so a
+  caller holding an id could buy an internal rate outright — the ids having been
+  public until the fix.
+
+Released as PR #50 (`21032aea`).
+
+Three things worth carrying forward:
+
+1. **Making a thing reachable is how its defects become findable.** Both
+   defects predated this task and were invisible while no market had two
+   sellable models. The sync did not create them; it removed the condition
+   hiding them. The instinct to treat "it broke right after I changed
+   something" as "I broke it" would have been wrong here — and the instinct to
+   treat it as "not my problem" would have been worse.
+2. **A read filter with no matching write check is a listing preference.**
+   Fixing `getPublicPlans` alone would have looked complete, passed review, and
+   changed nothing an attacker cares about.
+3. **The mutation test earned its place twice.** The first version of the
+   write-path wiring test failed only 2 of 5 cases when both guard calls were
+   deleted: two ordering assertions compared `indexOf` results, and `-1` is less
+   than every real index, so they passed with the guard gone — the one failure
+   they existed to catch. Running the mutation, rather than reasoning about it,
+   is what surfaced that.
+
+The production purchase was **deliberately not completed** at the wrong price.
+Buying at a figure the site does not advertise would have created a real
+subscription on a rate no customer was offered, and demonstrating a pricing
+defect by paying it is not evidence anyone needs.
+
 ## Cleanup
 
 - Local dev servers stopped and their ports released. Two stale servers from the
