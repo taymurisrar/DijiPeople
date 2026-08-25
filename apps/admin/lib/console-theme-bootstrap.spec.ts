@@ -36,6 +36,9 @@ const preferences = readFileSync(
  *   - the layout stamps what it knows;
  *   - a blocking script resolves SYSTEM, which needs `matchMedia` and therefore
  *     cannot be done on the server at all.
+ *
+ * A fourth thing has to hold about *where* the script goes, and it took a
+ * second bug to learn: see the placement spec below.
  */
 describe("theme bootstrap", () => {
   describe("the script", () => {
@@ -79,15 +82,41 @@ describe("theme bootstrap", () => {
       expect(rootLayout).toContain("cookies()");
     });
 
-    it("runs the bootstrap script in the head", () => {
+    it("runs the bootstrap script as the first child of the body, never in the head", () => {
+      /*
+       * BUG-1261. React reconciles `<head>` position by position, and browser
+       * extensions insert `<script>` elements of their own there before React
+       * loads — so an inline script in `<head>` is hydrated against whatever
+       * the extension put in that slot, and every console load reported a
+       * mismatch of `src="chrome-extension://…"` against our `__html`.
+       *
+       * The first child of `<body>` still precedes the first paint, because
+       * nothing below it has been parsed yet. `apps/web` met this first and its
+       * layout says so in a comment; this app repeated the placement anyway,
+       * which is why the rule is asserted here rather than only explained.
+       */
       expect(rootLayout).toContain("THEME_BOOTSTRAP_SCRIPT");
-      expect(rootLayout).toContain("<head>");
+      expect(rootLayout).not.toContain("<head>");
+      expect(rootLayout).toMatch(/<body[\s\S]*?>\s*<script/);
+      expect(rootLayout.indexOf('id="admin-theme-bootstrap"')).toBeLessThan(
+        rootLayout.indexOf("{children}"),
+      );
     });
 
     it("accepts that the served markup and the hydrated tree differ", () => {
       // The script edits `documentElement` before React hydrates; without this
       // React warns about a mismatch it was told to create.
       expect(rootLayout).toContain("suppressHydrationWarning");
+    });
+
+    it("does not warn about the attributes extensions stamp on the body", () => {
+      // Grammarly, password managers and translation tools all write their own
+      // attributes onto `<body>` before hydration. That is not a mismatch this
+      // app can prevent, and a warning it cannot act on is a warning it learns
+      // to ignore.
+      expect(rootLayout).toMatch(
+        /<body[\s\S]*?suppressHydrationWarning[\s\S]*?>/,
+      );
     });
 
     it("paints the page background from a token, not a hardcoded light class", () => {

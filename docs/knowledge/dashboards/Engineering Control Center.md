@@ -7,7 +7,7 @@
 
 | | |
 |---|---|
-| Active sessions | **0** |
+| Active sessions | **1** |
 | Active parent tasks | 4 |
 | Active work packages | 1 |
 | Blocked work packages | 0 |
@@ -47,7 +47,9 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 ## Active Sessions
 
-_No session is currently registered as active._
+| Session | Task | Title | Status | Branch | Target | Leases | Schema |
+|---|---|---|---|---|---|---|---|
+| [[SESSION-0055-admin-theme-bootstrap-script-triggers-a-hydration-mismatch-i|SESSION-0055]] | — | Admin theme bootstrap script triggers a hydration mismatch in head | ACTIVE | `agent/admin-theme-bootstrap-hydration` | `develop` | — | NO |
 
 ## Active Tasks and Work Packages
 

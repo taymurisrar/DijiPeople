@@ -6,11 +6,13 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 0** · completed: 51
+**Active: 1** · completed: 51
 
 ## Active
 
-_None. No session is currently running._
+| Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
+|---|---|---|---|---|---|---|---|
+| [SESSION-0055](../../docs/sessions/SESSION-0055-admin-theme-bootstrap-script-triggers-a-hydration-mismatch-i.md) | — | Admin theme bootstrap script triggers a hydration mismatch in head | ACTIVE | `agent/admin-theme-bootstrap-hydration` | `develop` | — | 2026-08-25T17:02:26.566Z |
 
 ## Completed
 

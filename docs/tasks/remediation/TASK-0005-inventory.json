@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 250,
+    "total_records": 251,
     "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
@@ -7691,6 +7691,48 @@
           "framework"
         ],
         "verification_scope": "See docs/bugs/BUG-1208-component-index-check-fails-on-every-windows-checkout-passes.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1261",
+      "type": "UX",
+      "title": "The admin theme bootstrap script runs in head where React hydrates it against extension-injected scripts",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "VERIFIED",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/bugs/BUG-1261-the-admin-theme-bootstrap-script-runs-in-head-where-react-hy.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "42435d59",
+        "created_at": "2026-08-25",
+        "updated_at": "2026-08-25",
+        "resolved_at": "2026-08-25"
+      },
+      "affected_modules": [
+        "apps/admin"
+      ],
+      "regressions": [
+        "REG-251"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-022"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/admin"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1261-the-admin-theme-bootstrap-script-runs-in-head-where-react-hy.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],

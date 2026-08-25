@@ -143,6 +143,15 @@ normal service/API layer.
 - Destructive platform operations (suspend tenant, cancel subscription, reset
   demo data, delete records) require an explicit confirmation step and must be
   audited server-side.
+- **A pre-paint inline script goes first in `<body>`, never in `<head>`.** The
+  theme bootstrap in `app/layout.tsx` has to run before the first paint, and the
+  intuitive placement is the one that breaks: React reconciles `<head>`
+  positionally, and browser extensions insert scripts of their own there before
+  React loads — so every full load reported a hydration mismatch against
+  `src="chrome-extension://…"`. Do not render a `<head>` element in this layout;
+  Next owns it. `apps/web` learned this first and `apps/admin` repeated it
+  anyway, which is why `lib/console-theme-bootstrap.spec.ts` now asserts the
+  placement rather than a comment explaining it. See BUG-1261 / REG-251.
 
 ---
 
