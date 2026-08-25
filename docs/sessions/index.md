@@ -6,11 +6,13 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 0** · completed: 53
+**Active: 1** · completed: 53
 
 ## Active
 
-_None. No session is currently running._
+| Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
+|---|---|---|---|---|---|---|---|
+| [SESSION-0056](../../docs/sessions/SESSION-0056-end-to-end-browser-qa-of-the-public-landing-site-on-local-an.md) | — | End-to-end browser QA of the public landing site on local and production | ACTIVE | `agent/landing-e2e-qa` | `develop` | — | 2026-08-25T17:30:09.143Z |
 
 ## Completed
 
