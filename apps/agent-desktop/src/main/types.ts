@@ -132,37 +132,34 @@ export type ClipboardCaptureEvent = {
   sessionId: string;
   deviceId: string;
   occurredAt: string;
-  sourceApp: string | null;
-  sourceAppPath: string | null;
+  sourceApp?: string | null;
+  sourceAppPath?: string | null;
+  destinationApp?: string | null;
   contentBytes: number;
   contentSha256: string;
-  text: string | null;
-  firedRuleId: string | null;
-  agentVersion: string;
-  /**
-   * Idempotency key: one clipboard sample is one instant in one session. The API
-   * makes this column uniquely indexed so a replayed batch — the offline queue
-   * re-sends whole batches — records each sample exactly once (the BUG-0036
-   * lesson, applied before the send path exists rather than after).
-   */
-  dedupeKey: string;
+  /** Present only in full-content mode and within the byte cap. */
+  text?: string | null;
+  overCap?: boolean;
+  firedRuleId?: string | null;
+  agentVersion?: string | null;
 };
 
 /**
  * A screenshot the agent captured because a DLP rule fired. Never taken on a
- * timer — only in response to a `DlpTrigger` — and the raw bytes ride separately
- * (base64) so this metadata row can be logged while the image never is.
+ * timer — only in response to a `DlpTrigger`. The bytes ride as base64 so this
+ * metadata can be logged while the image never is. The server computes the
+ * dedupe key and stores the bytes; the agent sends the payload below.
  */
 export type ScreenCaptureEvent = {
   sessionId: string;
   deviceId: string;
   occurredAt: string;
   firedRuleId: string;
-  capturedReason: string;
+  capturedReason?: string | null;
   contentBytes: number;
   contentSha256: string;
-  agentVersion: string;
-  dedupeKey: string;
+  imageBase64: string;
+  agentVersion?: string | null;
 };
 
 export type HeartbeatEvent = {

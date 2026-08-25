@@ -7,8 +7,10 @@ import type {
   AgentDevicePermissions,
   AgentLocationRequest,
   AgentLocationResult,
+  ClipboardCaptureEvent,
   HeartbeatEvent,
   LoginResult,
+  ScreenCaptureEvent,
 } from "./types";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
@@ -117,9 +119,7 @@ export class ApiClient {
         refreshToken: refreshToken.trim(),
         deviceFingerprint: this.deviceInfo.deviceFingerprint,
         agentVersion: this.deviceInfo.agentVersion,
-        ...(options.startNewSession
-          ? { startNewSession: true }
-          : {}),
+        ...(options.startNewSession ? { startNewSession: true } : {}),
       },
       auth: false,
     });
@@ -188,6 +188,46 @@ export class ApiClient {
     });
   }
 
+  /**
+   * DLP clipboard capture (TASK-0020). The server enforces the tenant capture
+   * flags again on write, so a response of `{ accepted: 0, captureEnabled:
+   * false }` is a normal answer — the tenant has capture off — not an error.
+   */
+  sendClipboardEvents(
+    events: ClipboardCaptureEvent[],
+  ): Promise<{ accepted: number; captureEnabled?: boolean }> {
+    if (!Array.isArray(events) || events.length === 0) {
+      return Promise.resolve({ accepted: 0 });
+    }
+
+    return this.request<{ accepted: number; captureEnabled?: boolean }>(
+      "/agent/dlp/clipboard-events",
+      {
+        method: "POST",
+        body: { events },
+        timeoutMs: HEARTBEAT_TIMEOUT_MS,
+      },
+    );
+  }
+
+  /** DLP screenshot capture (TASK-0020). Bytes ride as base64 in each event. */
+  sendScreenshotEvents(
+    events: ScreenCaptureEvent[],
+  ): Promise<{ accepted: number; captureEnabled?: boolean }> {
+    if (!Array.isArray(events) || events.length === 0) {
+      return Promise.resolve({ accepted: 0 });
+    }
+
+    return this.request<{ accepted: number; captureEnabled?: boolean }>(
+      "/agent/dlp/screenshot-events",
+      {
+        method: "POST",
+        body: { events },
+        timeoutMs: HEARTBEAT_TIMEOUT_MS,
+      },
+    );
+  }
+
   endSession(
     sessionId: string,
     deviceId: string,
@@ -209,7 +249,9 @@ export class ApiClient {
   updateDevicePermissions(
     deviceId: string,
     permissions: AgentDevicePermissions,
-  ): Promise<AgentDevicePermissions & { id: string; permissionUpdatedAt?: string }> {
+  ): Promise<
+    AgentDevicePermissions & { id: string; permissionUpdatedAt?: string }
+  > {
     if (!deviceId?.trim()) {
       throw new Error("Device id is required to update permission status.");
     }
@@ -381,9 +423,7 @@ export class ApiClient {
     const payload = this.toApiErrorPayload(data);
 
     const message =
-      payload.message ||
-      payload.error ||
-      this.getDefaultErrorMessage(status);
+      payload.message || payload.error || this.getDefaultErrorMessage(status);
 
     const error = new Error(message);
 
@@ -407,9 +447,11 @@ export class ApiClient {
   private getDefaultErrorMessage(status: number): string {
     if (status === 400) return "Invalid request.";
     if (status === 401) return "Invalid email or password.";
-    if (status === 403) return "You do not have permission to perform this action.";
+    if (status === 403)
+      return "You do not have permission to perform this action.";
     if (status === 404) return "Requested resource was not found.";
-    if (status === 409) return "Request could not be completed due to a conflict.";
+    if (status === 409)
+      return "Request could not be completed due to a conflict.";
     if (status === 422) return "Validation failed.";
     if (status >= 500) return "Server error. Please try again later.";
 
@@ -443,13 +485,7 @@ function normalizeLocationError(value?: string): string | undefined {
 function createDeviceFingerprint(): string {
   const username = safeGetUsername();
 
-  const raw = [
-    os.hostname(),
-    os.platform(),
-    os.arch(),
-    os.release(),
-    username,
-  ]
+  const raw = [os.hostname(), os.platform(), os.arch(), os.release(), username]
     .filter(Boolean)
     .join("|");
 

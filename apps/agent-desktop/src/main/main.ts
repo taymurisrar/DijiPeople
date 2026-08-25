@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, type Tray } from "electron";
+import { app, BrowserWindow, clipboard, ipcMain, type Tray } from "electron";
 import path from "node:path";
 import { ActivityTracker } from "./activity-tracker";
 import { ApiClient } from "./api-client";
@@ -9,6 +9,11 @@ import { SessionManager } from "./session-manager";
 import { createAgentTray } from "./tray";
 import { UpdateManager } from "./update-manager";
 import { AgentLogger } from "./logger";
+import { DlpManager } from "./dlp/dlp-manager";
+import {
+  ActiveWindowForegroundProvider,
+  ElectronScreenshotCapturer,
+} from "./dlp/electron-adapters";
 import { resolveAgentAsset } from "./assets";
 import {
   captureDesktopLocation,
@@ -35,6 +40,49 @@ const sessionManager = new SessionManager(
   logger,
 );
 const updateManager = new UpdateManager(logger);
+const dlpManager = new DlpManager(
+  clipboard,
+  new ActiveWindowForegroundProvider(),
+  new ElectronScreenshotCapturer(),
+  apiClient,
+  logger,
+);
+
+/**
+ * Keeps DLP capture in step with the session and the tenant config (TASK-0020).
+ * Called on every `changed` event — the config sync and session transitions both
+ * emit it — and `DlpManager.configure` is idempotent, so this does not reset the
+ * clipboard baseline on each heartbeat. Capture runs only while a session is live
+ * and the tenant enabled a capability.
+ */
+function syncDlpCapture(): void {
+  const hasSession = Boolean(
+    sessionManager.user && sessionManager.sessionId && sessionManager.deviceId,
+  );
+  if (!hasSession) {
+    dlpManager.stop();
+    return;
+  }
+
+  dlpManager.configure(configManager.current.dlp, () =>
+    sessionManager.sessionId && sessionManager.deviceId
+      ? {
+          sessionId: sessionManager.sessionId,
+          deviceId: sessionManager.deviceId,
+          agentVersion: app.getVersion(),
+        }
+      : null,
+  );
+}
+
+/** True when a DLP capture capability is on, for the tray indicator. */
+function isDlpCaptureActive(): boolean {
+  const dlp = configManager.current.dlp;
+  return (
+    Boolean(sessionManager.user) &&
+    (dlp.clipboardCaptureEnabled || dlp.screenshotCaptureEnabled)
+  );
+}
 
 type LoginPayload = {
   email: string;
@@ -194,12 +242,21 @@ function normalizeLoginError(error: unknown): LoginResult {
 }
 
 function wireEvents() {
-  sessionManager.on("login-required", createLoginWindow);
+  sessionManager.on("login-required", () => {
+    dlpManager.stop();
+    createLoginWindow();
+  });
 
   sessionManager.on("authenticated", () => {
     loginWindow?.close();
     maybeShowDevicePermissionPrompt();
+    syncDlpCapture();
   });
+
+  // `changed` fires on every config sync and session transition; DlpManager.configure
+  // is idempotent, so keeping capture in step here is cheap and never resets the
+  // clipboard baseline mid-session.
+  sessionManager.on("changed", syncDlpCapture);
 
   sessionManager.on("update-required", (policy) => {
     void updateManager.showRequiredUpdate(policy);
@@ -330,7 +387,9 @@ function hasEnabledDevicePermissions() {
   const features = configManager.current.features;
 
   return Boolean(
-    features.cameraAccess || features.microphoneAccess || features.locationAccess,
+    features.cameraAccess ||
+    features.microphoneAccess ||
+    features.locationAccess,
   );
 }
 
@@ -508,6 +567,7 @@ app.on("ready", async () => {
     onShowLogin: createLoginWindow,
     onShowDevicePermissions: createPermissionsWindow,
     onCheckUpdates: () => void updateManager.checkForUpdates(),
+    isDlpCaptureActive,
   });
 
   updateManager.start(
@@ -527,12 +587,14 @@ app.on("ready", async () => {
     createLoginWindow();
   } else {
     maybeShowDevicePermissionPrompt();
+    syncDlpCapture();
   }
 });
 
 app.on("before-quit", () => {
   void sessionManager.stopForAppQuit();
   updateManager.stop();
+  dlpManager.stop();
 });
 
 app.on("window-all-closed", () => {
