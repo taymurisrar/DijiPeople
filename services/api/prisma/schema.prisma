@@ -2253,6 +2253,10 @@ model Tenant {
   activityEvents                  ActivityEvent[]
   dailyProductivitySummaries      DailyProductivitySummary[]
   agentTrackingSettings           AgentTrackingSettings?
+  dlpRules                        DlpRule[]
+  clipboardCaptureEvents          ClipboardCaptureEvent[]
+  screenCaptureEvents             ScreenCaptureEvent[]
+  dlpAlerts                       DlpAlert[]
   seatUsageSamples                SeatUsageSample[]
   seatUsagePeriods                SeatUsagePeriod[]
   seatOverageEvents               SeatOverageEvent[]
@@ -10747,11 +10751,143 @@ model AgentTrackingSettings {
   historyRetentionDays     Int       @default(90)
   installerUrl             String?
   releaseDate              DateTime?
+  // Data-loss-prevention capture (TASK-0020). All default off: enabling clipboard
+  // or screenshot capture is a deliberate tenant decision made in Platform Admin.
+  // `dlpConsentRequired` is the consent gate — when true the API refuses captured
+  // events for an employee without a current monitoring-policy acknowledgement;
+  // it defaults false so it can be turned on later without a rebuild.
+  // Screenshots carry their own, shorter retention than telemetry.
+  allowClipboardCapture    Boolean   @default(false)
+  allowScreenshotCapture   Boolean   @default(false)
+  clipboardFullContent     Boolean   @default(false)
+  dlpConsentRequired       Boolean   @default(false)
+  screenshotRetentionDays  Int       @default(30)
   createdAt                DateTime  @default(now())
   updatedAt                DateTime  @updatedAt
   tenant                   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId, enabled])
+}
+
+/// The action a fired DLP rule takes. Only OBSERVE is honoured today (record
+/// only); ALERT and BLOCK exist so adding prevention later is a behaviour change,
+/// not a migration. See docs/plans/EXECPLAN-0022-dlp-desktop-agent-capture.md.
+enum DlpRuleAction {
+  OBSERVE
+  ALERT
+  BLOCK
+}
+
+/// A tenant-configured exfiltration rule: content copied while a source app is in
+/// front, then a channel app (WhatsApp, Telegram, personal webmail, removable
+/// drive) comes forward. Patterns are matched case-insensitively as substrings of
+/// the foreground app name/path by the desktop agent.
+model DlpRule {
+  id                  String        @id @default(uuid())
+  tenantId            String
+  name                String
+  enabled             Boolean       @default(true)
+  sourceAppPatterns   Json
+  channelAppPatterns  Json
+  action              DlpRuleAction @default(OBSERVE)
+  createdById         String?
+  updatedById         String?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  tenant              Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, enabled])
+}
+
+/// One clipboard change worth recording. `encryptedContent` holds the clipboard
+/// text (full-content mode only, within the byte cap) encrypted at rest via
+/// SecretEncryptionService; `contentSha256` and `contentBytes` are always present
+/// so even a metadata-only or over-cap sample proves a copy happened and how
+/// large it was, without the content.
+///
+/// employeeId / userId / sessionId / deviceId are indexed scalars rather than
+/// relations on purpose: this is forensic evidence, and it must not vanish
+/// because a WorkSession or EmployeeDevice row was later deleted. Its lifecycle is
+/// the tenant-scoped retention purge and explicit tenant erasure — both of which
+/// the Tenant cascade below and AgentService retention cover.
+model ClipboardCaptureEvent {
+  id               String   @id @default(uuid())
+  tenantId         String
+  employeeId       String
+  userId           String
+  sessionId        String
+  deviceId         String
+  occurredAt       DateTime
+  receivedAt       DateTime @default(now())
+  sourceApp        String?
+  sourceAppPath    String?
+  destinationApp   String?
+  contentBytes     Int
+  contentSha256    String
+  encryptedContent String?
+  overCap          Boolean  @default(false)
+  firedRuleId      String?
+  agentVersion     String
+  /// Idempotency key: one clipboard sample is one instant in one session. Unique
+  /// so a replayed batch (the offline queue re-sends whole batches) records each
+  /// sample exactly once — the BUG-0036 pattern. Nullable so any pre-existing
+  /// rows are excluded from the constraint.
+  dedupeKey        String?  @unique
+  createdAt        DateTime @default(now())
+  tenant           Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, employeeId, occurredAt])
+  @@index([tenantId, occurredAt])
+  @@index([tenantId, firedRuleId])
+}
+
+/// A screenshot captured because a DLP rule fired — never on a timer. The image
+/// bytes live in StorageService under `storageKey` (encrypted), never inline, so
+/// this row can be logged while the image never is.
+model ScreenCaptureEvent {
+  id             String   @id @default(uuid())
+  tenantId       String
+  employeeId     String
+  userId         String
+  sessionId      String
+  deviceId       String
+  occurredAt     DateTime
+  receivedAt     DateTime @default(now())
+  firedRuleId    String?
+  capturedReason String?
+  storageKey     String?
+  contentBytes   Int
+  contentSha256  String
+  agentVersion   String
+  dedupeKey      String?  @unique
+  createdAt      DateTime @default(now())
+  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, employeeId, occurredAt])
+  @@index([tenantId, occurredAt])
+  @@index([tenantId, firedRuleId])
+}
+
+/// The reviewable incident a fired rule produced, linking the clipboard event and
+/// any screenshot. ruleId / event ids are scalars for the same
+/// evidence-survivability reason as above.
+model DlpAlert {
+  id                String   @id @default(uuid())
+  tenantId          String
+  employeeId        String
+  ruleId            String
+  occurredAt        DateTime
+  clipboardEventId  String?
+  screenshotEventId String?
+  status            String   @default("OPEN")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  tenant            Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, occurredAt])
+  @@index([tenantId, employeeId, occurredAt])
+  @@index([tenantId, ruleId])
+  @@index([tenantId, status])
 }
 
 enum ModuleViewType {
