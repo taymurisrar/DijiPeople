@@ -6,7 +6,7 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 0** · completed: 50
+**Active: 0** · completed: 51
 
 ## Active
 
@@ -16,6 +16,7 @@ _None. No session is currently running._
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0053](../../docs/sessions/SESSION-0053-develop-record-hygiene-then-release-develop-to-main.md) | — | Develop record hygiene, then release develop to main | COMPLETE | `agent/develop-hygiene-and-release` | `main` | — | 2026-08-25T13:30:14.999Z |
 | [SESSION-0052](../../docs/sessions/SESSION-0052-repo-health-blames-this-task-for-another-session-s-merge.md) | — | repo-health blames this task for another session's merge | COMPLETE | `agent/repo-health-task-sha` | `develop` | — | 2026-08-25T09:59:06.166Z |
 | [SESSION-0051](../../docs/sessions/SESSION-0051-agent-ui-perception-browser-control-component-knowledge-ui-r.md) | — | Agent UI perception: browser control, component knowledge, UI review skill | COMPLETE | `agent/agent-ui-perception` | `develop` | — | 2026-08-25T08:57:40.212Z |
 | [SESSION-0049](../../docs/sessions/SESSION-0049-record-state-reconciliation-verify-what-is-actually-resolved.md) | — | Record-state reconciliation — verify what is actually resolved | COMPLETE | `agent/record-state-reconciliation` | `develop` | — | 2026-08-24T18:35:00.000Z |
