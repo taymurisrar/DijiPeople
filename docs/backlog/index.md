@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**262 records** — 162 bugs under [`docs/bugs/`](../bugs/), 100 non-bug items under [`items/`](items/).
+**263 records** — 162 bugs under [`docs/bugs/`](../bugs/), 101 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -15,7 +15,7 @@ see [`README.md`](README.md) for why.
 |---|---|
 | Open (active work) | 32 |
 | Blocked | 1 |
-| Deferred | 23 |
+| Deferred | 24 |
 | Awaiting a product decision | 2 |
 | Completed / closed | 204 |
 | **Open CRITICAL** | **4** |
@@ -52,7 +52,7 @@ see [`README.md`](README.md) for why.
 |---|---|
 | OPEN | 6 |
 | BLOCKED | 1 |
-| DEFERRED | 23 |
+| DEFERRED | 24 |
 | PRODUCT_DECISION | 2 |
 | FIXED | 4 |
 | VERIFIED | 148 |
@@ -325,6 +325,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0057](../../docs/backlog/items/ITEM-0057-landing-production-env-examples-still-name-the-vercel-and-re.md) | Landing production env examples still name the vercel and render hosts, not the dijipeople.com apex | PRODUCT_DECISION | — | P2 | DONE | apps/landing | DONE |
 | [ITEM-0091](../../docs/backlog/items/ITEM-0091-repo-health-blocks-every-release-task-on-its-own-defining-ou.md) | repo:health blocks every RELEASE task on its own defining outcome | INFRA | — | P2 | DONE | framework | DONE |
 | [ITEM-0100](../../docs/backlog/items/ITEM-0100-apps-landing-env-examples-omit-next-public-web-root-domain-a.md) | apps/landing env examples omit NEXT_PUBLIC_WEB_ROOT_DOMAIN and no parity test guards them | INFRA | — | P2 | DONE | apps/landing, pkg:config | DONE |
+| [ITEM-0101](../../docs/backlog/items/ITEM-0101-mailerservice-silently-logs-instead-of-sending-and-nothing-u.md) | MailerService silently logs instead of sending, and nothing uses it | TECH_DEBT | — | P2 | DEFERRED | services/api/src/common/mailer | DEFER |
 | [ITEM-0058](../../docs/backlog/items/ITEM-0058-next-env-d-ts-churns-between-dev-and-build-forms-and-the-fou.md) | next-env.d.ts churns between dev and build forms and the four apps disagree | TECH_DEBT | — | P3 | DEFERRED | apps/landing, apps/web, apps/admin | DEFER |
 | [ITEM-0059](../../docs/backlog/items/ITEM-0059-49-tracked-text-files-have-no-final-newline-and-nothing-enfo.md) | 49 tracked text files have no final newline, and nothing enforces one | TECH_DEBT | — | P3 | DEFERRED | apps/admin, apps/web, apps/agent-desktop | DEFER |
 

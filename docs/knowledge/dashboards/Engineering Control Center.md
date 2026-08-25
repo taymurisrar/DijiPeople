@@ -235,7 +235,7 @@ gap into scope — or files a `TEST_GAP` item and says so.
 |---|---|
 | Open total | 32 |
 | Blocked | 1 |
-| Deferred | 23 |
+| Deferred | 24 |
 | Awaiting a product decision | 2 |
 | Awaiting Architect triage | 0 |
 
