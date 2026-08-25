@@ -4,7 +4,7 @@ aliases: [SESSION-0050]
 TASK_ID:
 TITLE: DLP capture for desktop agent: clipboard and triggered screenshots
 ARCHITECT_INTENT: DLP capture for desktop agent: clipboard and triggered screenshots
-STATUS: ACTIVE
+STATUS: COMPLETE
 TASK_TYPE: FEATURE
 TASK_SIZE: LARGE
 BASE_BRANCH: origin/develop

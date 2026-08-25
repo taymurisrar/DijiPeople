@@ -4,17 +4,17 @@ aliases: [TASK-0020]
 TITLE: DLP capture for desktop agent: clipboard and triggered screenshots
 TYPE: SECURITY
 SIZE: LARGE
-STATUS: IN_PROGRESS
+STATUS: COMPLETE
 PRIORITY: P1
 CREATED_AT: 2026-08-24
 AFFECTED_MODULES: [apps/agent-desktop, services/api/src/modules/agent, services/api/prisma]
 AGENTS: [database, backend, security, integration, frontend, qa]
 DEPENDENCIES:
-CURRENT_PACKAGE: WP-06
+CURRENT_PACKAGE: —
 COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-04, WP-05, WP-06]
 BLOCKED_PACKAGES: []
 OWNER_DECISIONS: 4
-FINAL_STATUS:
+FINAL_STATUS: COMPLETE
 ---
 
 # TASK-0020 — DLP capture for desktop agent: clipboard and triggered screenshots
@@ -36,12 +36,12 @@ Owner decisions recorded in the ExecPlan's Business requirement section.
 
 | WP_ID | TITLE | STATUS | DEPENDENCIES | AGENTS | BRANCH | SHA | QA_STATUS | BUGS | CI_STATUS | MERGE_STATUS |
 |---|---|---|---|---|---|---|---|---|---|---|
-| WP-01 | Schema, migration, settings columns | DONE | — | database | agent/dlp-desktop-agent | e538989 | n/a | local | — | UNMERGED |
-| WP-02 | API capture ingest (clipboard + screenshot) | DONE | WP-01 | backend | agent/dlp-desktop-agent | c9433eb | tested | local | — | UNMERGED |
-| WP-03 | API review surface + `dlp.review` RBAC + audit | DONE | WP-01 | security | agent/dlp-desktop-agent | c9433eb | tested | local | — | UNMERGED |
-| WP-04 | Agent capture (clipboard, rule evaluator, screenshot, tray indicator, config flags) | DONE | — | integration | agent/dlp-desktop-agent | c372fc9 | tested | local | — | UNMERGED |
-| WP-05 | Tenant DLP config + investigator review UI | DONE | WP-01, WP-02, WP-03 | frontend | agent/dlp-desktop-agent | 78dd7bc | typecheck | local | — | UNMERGED |
-| WP-06 | Contract spec + QA | DONE | WP-02, WP-03, WP-04 | qa | agent/dlp-desktop-agent | 728b3c2 | tested | local | — | UNMERGED |
+| WP-01 | Schema, migration, settings columns | DONE | — | database | agent/dlp-desktop-agent | e538989 | n/a | local | — | MERGED |
+| WP-02 | API capture ingest (clipboard + screenshot) | DONE | WP-01 | backend | agent/dlp-desktop-agent | c9433eb | tested | local | — | MERGED |
+| WP-03 | API review surface + `dlp.review` RBAC + audit | DONE | WP-01 | security | agent/dlp-desktop-agent | c9433eb | tested | local | — | MERGED |
+| WP-04 | Agent capture (clipboard, rule evaluator, screenshot, tray indicator, config flags) | DONE | — | integration | agent/dlp-desktop-agent | c372fc9 | tested | local | — | MERGED |
+| WP-05 | Tenant DLP config + investigator review UI | DONE | WP-01, WP-02, WP-03 | frontend | agent/dlp-desktop-agent | 78dd7bc | typecheck | local | — | MERGED |
+| WP-06 | Contract spec + QA | DONE | WP-02, WP-03, WP-04 | qa | agent/dlp-desktop-agent | 728b3c2 | tested | local | — | MERGED |
 
 WP-04 is PARALLEL_SAFE (mocked endpoint, agreed DTO shapes) and is the starting
 package while the WP-01 database credential is obtained.
