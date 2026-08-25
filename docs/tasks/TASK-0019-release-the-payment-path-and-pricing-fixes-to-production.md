@@ -4,17 +4,17 @@ aliases: [TASK-0019]
 TITLE: Release the payment-path and pricing fixes to production
 TYPE: RELEASE
 SIZE: MEDIUM
-STATUS: IN_PROGRESS
+STATUS: COMPLETE
 PRIORITY: P0
 CREATED_AT: 2026-08-24
 AFFECTED_MODULES: [api:billing, api:super-admin, api:platform-events, apps/admin, apps/landing]
 AGENTS: [Architect, QA, Reviewer, Integrator, Release/DevOps]
 DEPENDENCIES: origin/develop b9acdf1b
-CURRENT_PACKAGE: WP-01
-COMPLETED_PACKAGES: []
+CURRENT_PACKAGE:
+COMPLETED_PACKAGES: [WP-01, WP-02]
 BLOCKED_PACKAGES: []
 OWNER_DECISIONS: 0
-FINAL_STATUS:
+FINAL_STATUS: COMPLETE - merged as 2609275, deployed and live 21:44Z, smoke green, and the nine Starter prices lost to BUG-1133 restored by the deploy itself (starter 3 -> 12, total 27 -> 36). STRIPE_MODE remains test by design; going live is BUG-0903 and an owner decision.
 ---
 
 # TASK-0019 — Release the payment-path and pricing fixes to production
@@ -44,8 +44,8 @@ this release.
 
 | WP_ID | TITLE | STATUS | DEPENDENCIES | AGENTS | BRANCH | SHA | QA_STATUS | BUGS | CI_STATUS | MERGE_STATUS |
 |---|---|---|---|---|---|---|---|---|---|---|
-| WP-01 | PR `develop` → `main`, exact-SHA CI verdict, merge | IN_PROGRESS | — | Integrator | develop | b9acdf1b | PASS | — | PASS | — |
-| WP-02 | Deployment outcome, smoke, and the release-history record | NOT_STARTED | WP-01 | Release/DevOps, QA | — | — | NOT_RUN | — | NOT_RUN | — |
+| WP-01 | PR `develop` → `main`, exact-SHA CI verdict, merge | DONE | — | Integrator | develop | bb740183 | PASS | — | PASS | MERGED 2609275 |
+| WP-02 | Deployment outcome, smoke, and the release-history record | DONE | WP-01 | Release/DevOps, QA | main | 2609275 | PASS | — | PASS | DEPLOYED |
 
 ## Why this release is lower risk than its size suggests
 
@@ -131,7 +131,7 @@ The warnings are the user's local `main` and `develop` refs lagging their
 remotes, which is expected — their primary checkout is not fast-forwarded
 because it holds open files.
 
-POST_TASK_REPO_HEALTH — on completion.
+POST_TASK_REPO_HEALTH — recorded on the engineering history for SESSION-0049.
 
 ## History
 
@@ -142,6 +142,6 @@ POST_TASK_REPO_HEALTH — on completion.
 
 ## Related
 
-- Records — [[BUG-0905]], [[BUG-1128]], [[BUG-1133]], [[BUG-1134]], [[ITEM-0044]], [[ITEM-0095]], [[ITEM-0096]]
+- Records — [[BUG-0903]], [[BUG-0905]], [[BUG-1128]], [[BUG-1133]], [[BUG-1134]], [[ITEM-0044]], [[ITEM-0095]], [[ITEM-0096]]
 
 <!-- GRAPH:END -->

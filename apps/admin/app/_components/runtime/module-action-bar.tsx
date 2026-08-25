@@ -38,6 +38,36 @@ export type ModuleActionHandler = (
   context: ModuleActionContext,
 ) => Promise<{ success?: boolean; message?: string } | void> | void;
 
+/**
+ * The command bar every admin list and record screen draws its buttons in.
+ *
+ * **This component does not decide which buttons exist.** It renders the
+ * `actions` it is handed, and those come from the module registry — `define()`
+ * merges a module's declared actions over the defaults its `capabilities` map
+ * earns, then force-sorts the standard six into one fixed order so Delete does
+ * not lead the bar on one module and trail it on another. A button that should
+ * appear and does not is almost always a registry or capability question, not
+ * a question about this file. See `.agent/context/runtime-module-system.md`
+ * and `withDefaultActions()` in `lib/runtime/platform-module-registry.ts`.
+ *
+ * What this component owns is everything downstream of that list:
+ *
+ * - **Visibility** (`isVisible`) — scope, role, permission, record status and
+ *   selection count, all five of which must pass. This is UX gating only; the
+ *   API is the authority, and an action hidden here is not an action refused.
+ * - **Placement** — `placement: "overflow"` falls into the ⋯ menu, everything
+ *   else stays inline. The registry decides which; this draws the split.
+ * - **Confirmation** — a `destructive` action routes through a confirm dialog
+ *   before `onAction` is ever called, so a handler cannot skip it by accident.
+ * - **Pending and result state** — one action at a time, with the outcome
+ *   surfaced as a notice rather than swallowed.
+ *
+ * `onAction` receives the action and the context and does the actual work.
+ * Handlers that only need Back / New / Refresh should delegate to
+ * `runStandardRecordCommand` rather than reimplementing them — a registry
+ * default reaching a bespoke page with no handler for it is how a Refresh
+ * button comes to render and do nothing.
+ */
 export function ModuleActionBar({
   actions,
   context,

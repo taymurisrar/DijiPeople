@@ -3,16 +3,16 @@ ID: ITEM-0091
 aliases: [ITEM-0091]
 Title: repo:health blocks every RELEASE task on its own defining outcome
 Type: INFRA
-Status: DEFERRED
+Status: DONE
 Priority: P2
 Severity: 
-AffectedModules: []
+AffectedModules: [framework]
 Source: ARCHITECT
 OwnerAgent: architect
-ArchitectDisposition: DEFER
+ArchitectDisposition: DONE
 CreatedAt: 2026-08-23
-UpdatedAt: 2026-08-23
-RelatedBug: 
+UpdatedAt: 2026-08-25
+RelatedBug: BUG-1203
 RelatedQA: 
 RelatedADR: 
 RelatedImplementation:
@@ -24,85 +24,84 @@ BlockedBy:
 
 ## Summary
 
-What this is, in one paragraph.
+`scripts/repo-health.mjs` raised a hard blocker whenever `MAIN_CHANGE_STATUS`
+was `CHANGED_BY_THIS_TASK` — while the message it raised named the three task
+types permitted to do exactly that, then blocked anyway, because the check had
+no way to know which type it was running under. Every successful RELEASE
+therefore ended on `Repository health — FAIL`.
 
 ## Why It Matters
-
-The cost of not doing it. An item with no stated cost never gets prioritised.
-
-## Evidence
-
-Paths, line numbers, QA scenario ids, CI runs. No credentials.
-
-## Proposed Approach
-
-A direction. Say plainly if this needs an ExecPlan under `PLANS.md`.
-
-## Acceptance Criteria
-
-Verifiable statements. "Better error handling" is not one.
-
-## Dependencies
-
-What must land first.
-
-## Related Items
-
-Wikilinks to related bugs, items, modules and decisions.
-
-## History
-
-- 2026-08-23 — created at `7d91c8a0`.
-
-## Problem
-
-`scripts/repo-health.mjs` raises a hard blocker whenever `MAIN_CHANGE_STATUS`
-is `CHANGED_BY_THIS_TASK`:
-
-> this task's commits are on origin/main — main is the production deployment
-> branch, and only a RELEASE, DEPLOY or HOTFIX_PRODUCTION task may put work
-> there
-
-The message names the three task types that are permitted to do it, and then
-blocks anyway, because the check has no way to know which type it is running
-under. It takes `--main-baseline` and `--task-branch` but no task type.
-
-So a RELEASE task reports `Repository health — FAIL` for having done the one
-thing that defines it. Observed on SESSION-0046 and again on the releases that
-followed it: main moved from `be486ae1` to `7d91c8a0` across PRs #42, #43 and
-#44, all deliberate, all deployed and verified.
-
-## Why it matters
 
 The completion contract requires `POST_TASK_REPO_HEALTH = PASS`. A gate that
 cannot pass on a legitimate task teaches the operator to read past it, which is
 the failure mode that lets a real blocker through unnoticed — the same reason
 the CI warning ceiling is a ratchet rather than a large number.
 
-## Proposed direction
+`MAIN_CHANGE_STATUS` is not an ordinary field to leave broken: it is the one
+that reports an unauthorised mutation of the production branch.
 
-Give `repo-health.mjs` a `--task-type` argument. When it is `RELEASE`, `DEPLOY`
-or `HOTFIX_PRODUCTION`, `CHANGED_BY_THIS_TASK` is the expected terminal state
-and should be reported as such rather than as a blocker — while `REWRITTEN`,
-`AHEAD` and `DIVERGED` must stay blocking for every task type, since none of
-those is something a release does.
+## Evidence
 
-The session record already carries `TASK_TYPE`, so the value can be read from
-there rather than passed by hand and trusted.
+Observed on SESSION-0046 and every release after it — `main` moved from
+`be486ae1` to `7d91c8a0` across PRs #42, #43 and #44, all deliberate, all
+deployed and verified, all reported as a health failure.
 
-## Acceptance
+Reproduced directly on 2026-08-25 before the fix:
 
-- A RELEASE task whose commits are on main reports PASS.
-- An ordinary task whose commits are on main still FAILS, with the current
+```
+node scripts/repo-health.mjs --main-baseline 7d91c8a0 --task-sha 08d79012
+  Repository health — FAIL
+  x this task's commits are on origin/main — main is the production deployment
+    branch, and only a RELEASE, DEPLOY or HOTFIX_PRODUCTION task may put work there
+```
+
+## Proposed Approach
+
+No ExecPlan needed — one script, no schema, no runtime surface.
+
+`--task-type`, consulted only for `CHANGED_BY_THIS_TASK`. Deliberately narrow:
+an absent or unrecognised type still blocks, so the flag cannot silence the
+field by a typo, and `REWRITTEN` blocks for every type without exception,
+because nothing in this framework rewrites the production branch — not a
+release either.
+
+## Acceptance Criteria
+
+- A RELEASE task whose commits are on `main` reports PASS, and says in its own
+  output that it moved production.
+- An ordinary task whose commits are on `main` still FAILS, with the existing
   message.
-- `main` being rewritten or diverged still blocks regardless of task type.
+- An unknown or absent `--task-type` blocks.
+- `REWRITTEN` blocks regardless of task type.
+
+## Dependencies
+
+None. Landed after [[BUG-1203]], which corrected how the same field decides
+*whose* commits it is looking at — the two are adjacent and the second is
+meaningless without the first being right.
+
+## Related Items
+
+- [[BUG-1203]] — the same field, misattributing commits to the wrong task
+- [[TASK-0011]] — the release whose health check first showed this
+
+## History
+
+- 2026-08-23 — created at `7d91c8a0`.
+- 2026-08-25 — implemented and closed. `scripts/lib/main-change-policy.mjs`,
+  pinned by `scripts/main-change-policy.test.mjs` (7 cases) in the Framework
+  validation CI job. Mutation-verified with each mutation confirmed applied
+  before its result was believed: allowing unknown types fails 2 cases,
+  dropping the `REWRITTEN` guard fails 1, dropping case normalisation fails 1.
+  Five of the seven cases assert `BLOCK`, because the risk in this change is
+  widening the field rather than narrowing it.
+  Found while preparing a release that would otherwise have had to report a
+  health failure it had earned by succeeding.
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
 
 ## Related
 
-- No related record, module or decision is declared in this record's
-  frontmatter. Declare one rather than adding a link here by hand — this
-  block is regenerated and a hand-written link inside it is lost.
+- Bug — [[BUG-1203]]
 
 <!-- GRAPH:END -->

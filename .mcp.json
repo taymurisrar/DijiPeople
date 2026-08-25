@@ -1,0 +1,22 @@
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@playwright/mcp@latest",
+        "--browser",
+        "chromium",
+        "--isolated",
+        "--viewport-size",
+        "1280x900",
+        "--console-level",
+        "warning",
+        "--test-id-attribute",
+        "data-testid",
+        "--blocked-origins",
+        "https://admin.dijipeople.com;https://app.dijipeople.com;https://api.dijipeople.com"
+      ]
+    }
+  }
+}

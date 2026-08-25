@@ -161,3 +161,84 @@ describe("normalizeColumnOrder", () => {
     ).toEqual(["name", "workspace", "status", "size"]);
   });
 });
+
+/**
+ * ITEM-0097 — the column that says which row this is cannot be hidden.
+ *
+ * The behaviour above deliberately honours a column an operator turned off,
+ * because "never offered" and "deliberately hidden" are different states. That
+ * is right for every column except one.
+ *
+ * In production the tenant list had `displayName` hidden in a saved preference.
+ * The list then led with `Customer`, addressed every row by somebody else's
+ * name, and read as a list of customers on the Tenants page — reported in
+ * exactly those words. Nothing was broken: the definition was right and the
+ * deploy had landed. The only way back was already knowing which column to
+ * re-tick.
+ */
+describe("an essential column outranks the saved preference", () => {
+  function withEssential(
+    ...specs: Array<[key: string, essential?: boolean, visible?: boolean]>
+  ): RuntimeColumnDefinition[] {
+    return specs.map(
+      ([key, essential, visible]) =>
+        ({
+          key,
+          field: key,
+          label: key,
+          width: 160,
+          format: "text",
+          sortable: true,
+          filterable: true,
+          visible: visible ?? true,
+          ...(essential ? { essential: true } : {}),
+        }) as RuntimeColumnDefinition,
+    );
+  }
+
+  it("shows the identity column even when the saved state hid it", () => {
+    // The exact production shape: `name` known to the saved state and absent
+    // from its visible set.
+    const merged = mergeVisibleColumns(
+      ["customer", "status"],
+      ["name", "customer", "status"],
+      withEssential(["name", true], ["customer"], ["status"]),
+    );
+    expect(merged).toContain("name");
+    expect(merged[0]).toBe("name");
+  });
+
+  it("still hides an ordinary column the operator turned off", () => {
+    // The counterweight. If this fails, `essential` has been applied too
+    // broadly and the preference has stopped meaning anything.
+    const merged = mergeVisibleColumns(
+      ["name", "status"],
+      ["name", "customer", "status"],
+      withEssential(["name", true], ["customer"], ["status"]),
+    );
+    expect(merged).not.toContain("customer");
+  });
+
+  it("needs no saved state to behave", () => {
+    const merged = mergeVisibleColumns(
+      [],
+      [],
+      withEssential(["name", true], ["customer"]),
+    );
+    expect(merged).toEqual(["name", "customer"]);
+  });
+
+  it("wins over a definition that also marks it not visible", () => {
+    /*
+     * A contradictory definition — `essential` with `visible: false` — resolves
+     * in favour of essential. The alternative is a column nothing can ever
+     * show, which is not a state worth honouring.
+     */
+    const merged = mergeVisibleColumns(
+      [],
+      [],
+      withEssential(["name", true, false], ["customer"]),
+    );
+    expect(merged).toContain("name");
+  });
+});

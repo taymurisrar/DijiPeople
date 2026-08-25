@@ -635,3 +635,17 @@ Reading a component and concluding the empty state is correct is a statement
 about the code. Whether the empty state actually renders depends on the response
 shape, the permission gate and the runtime adapter, none of which the component
 file shows.
+
+**The procedure is [`.agent/skills/ui-review.md`](../skills/ui-review.md).** It
+is mechanical — what to retrieve first, which axes to drive, what to capture,
+where findings go — and it leaves every judgement here, where it belongs.
+
+This stage was unenforceable until browser control landed. It asked for the
+running product while no workspace had a browser in it, so `BROWSER_E2E =
+BLOCKED_INFRASTRUCTURE` appeared in every QA run's Known Limitations and the
+requirement was quietly satisfied by reading source. Both halves now exist:
+[`docs/development/browser-control.md`](../../docs/development/browser-control.md)
+for driving the screen, and
+[`.agent/context/component-index.md`](../context/component-index.md) for what it
+was supposed to do. **A screen review that cites no route, viewport or console
+output is a source review wearing this stage's name.**

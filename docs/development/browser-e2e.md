@@ -12,6 +12,13 @@ it was load-bearing: every UI finding this repository has produced was read from
 code, never observed in a browser, so no UI defect could be *proven* fixed.
 Tracked as [`ITEM-0001`](../backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md).
 
+**This document covers the scripted suite.** For an agent driving a browser
+interactively — navigating, clicking and judging a screen a step at a time —
+see [`browser-control.md`](browser-control.md). Same engine, same Chromium
+install, same prerequisites; different job. This one produces a pass or a fail
+in CI. That one produces a judgement, and is not repeatable — a behaviour worth
+protecting ends up back here as a spec.
+
 ---
 
 ## The decision

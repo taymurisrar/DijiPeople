@@ -7,14 +7,14 @@
 
 | | |
 |---|---|
-| Active sessions | **1** |
-| Active parent tasks | 8 |
-| Active work packages | 2 |
+| Active sessions | **0** |
+| Active parent tasks | 4 |
+| Active work packages | 1 |
 | Blocked work packages | 0 |
 | Work packages waiting on the user | 0 |
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
-| Open CRITICAL | **5** |
+| Open CRITICAL | **4** |
 | Open HIGH | 6 |
 | Awaiting Architect triage | 0 |
 | Owner decisions pending | 2 |
@@ -35,7 +35,7 @@ survives every review by being unfalsifiable.
 | Aging — 7d / 30d / 90d | 14 / 0 / 0 |
 | Architecture and technical debt | 6 |
 | Security gaps | 2 |
-| Database gaps | 1 |
+| Database gaps | 0 |
 
 Ranked next-best actions weigh blast radius rather than severity alone, and
 are computed on demand so the reasons travel with the ranking:
@@ -47,9 +47,7 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 ## Active Sessions
 
-| Session | Task | Title | Status | Branch | Target | Leases | Schema |
-|---|---|---|---|---|---|---|---|
-| [[SESSION-0050-dlp-capture-for-desktop-agent-clipboard-and-triggered-screen|SESSION-0050]] | — | DLP capture for desktop agent: clipboard and triggered screenshots | ACTIVE | `agent/dlp-desktop-agent` | `develop` | — | NO |
+_No session is currently registered as active._
 
 ## Active Tasks and Work Packages
 
@@ -59,10 +57,6 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 | [[TASK-0007-commercial-platform-completion-transactional-legal-and-lifec|TASK-0007]] | Commercial platform completion — transactional, legal and lifecycle half | FEATURE | PROGRAM | 16/16 | — | — | — |
 | [[TASK-0008-self-service-customer-onboarding-tenant-provisioning-domain-|TASK-0008]] | Self-service customer onboarding, tenant provisioning, domain routing and central login | FEATURE | LARGE | 11/11 | — | — | — |
 | [[TASK-0009-identity-and-multi-tenant-membership|TASK-0009]] | Identity and multi-tenant membership | FEATURE | LARGE | 11/12 | WP-09 | WP-09 | — |
-| [[TASK-0011-first-production-release|TASK-0011]] | First production release | RELEASE | MEDIUM | 2/2 | — | — | — |
-| [[TASK-0018-legacy-pricing-removed-and-the-commercial-catalogue-made-to-|TASK-0018]] | Legacy pricing removed and the commercial catalogue made to converge | FEATURE | MEDIUM | 4/4 | — | — | — |
-| [[TASK-0019-release-the-payment-path-and-pricing-fixes-to-production|TASK-0019]] | Release the payment-path and pricing fixes to production | RELEASE | MEDIUM | 0/2 | WP-01 | — | — |
-| [[TASK-0020-dlp-capture-for-desktop-agent-clipboard-and-triggered-screen|TASK-0020]] | DLP capture for desktop agent: clipboard and triggered screenshots | SECURITY | LARGE | 6/6 | WP-06 | — | — |
 
 ## Branch model
 
@@ -110,7 +104,6 @@ what they own, and what the backlog and QA systems currently say.
 | [[BUG-0900-tenant-provisioning-exceeds-the-5s-transaction-timeout-a-pai|BUG-0900]] | Tenant provisioning exceeds the 5s transaction timeout: a paid order is left with no workspace | BUG | CRITICAL | FIXED | api:permissions | FIX_NOW |
 | [[BUG-0904-production-is-missing-outbox-worker-enabled-so-no-workspace-|BUG-0904]] | Production is missing OUTBOX_WORKER_ENABLED, so no workspace is provisioned after payment | BUG | CRITICAL | OPEN | api:outbox | BLOCKED_EXTERNAL |
 | [[BUG-1128-stripe-api-version-skew-invoice-paid-cannot-map-to-a-subscri|BUG-1128]] | Stripe API version skew: invoice.paid cannot map to a subscription because invoice.subscription no longer exists | INTEGRATION | CRITICAL | FIXED | api:billing | FIX_NOW |
-| [[BUG-1133-saving-a-plan-price-deactivates-every-sibling-price-on-a-nar|BUG-1133]] | Saving a plan price deactivates every sibling price on a narrower key than the unique index | DATA_INTEGRITY | CRITICAL | FIXED | api:super-admin, apps/admin | FIX_NOW |
 
 ## Owner Decisions Pending
 
@@ -254,7 +247,9 @@ Deployment state is **not** derivable from Git. A merge is Git state; what is
 running is a separate fact with separate evidence, recorded per release under
 `docs/deployment/release-history/`.
 
+- [[2026-08-25-production-08d7901|Release — production — `08d7901`]]
 - [[2026-08-24-production-6ed7a44|Release — production — `6ed7a44`]]
+- [[2026-08-24-production-2609275|Release — production — `2609275`]]
 
 ## How this is maintained
 

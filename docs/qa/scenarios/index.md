@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 186** · automated: 169 · manual: 6 · blocked by infrastructure: 0
+**Scenarios: 188** · automated: 171 · manual: 6 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -91,6 +91,8 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-DEPLOY-019](../../../docs/qa/scenarios/QA-DEPLOY-019-the-api-names-pending-migrations-at-startup-instead-of-faili.md) | The API names pending migrations at startup instead of failing a screen later | deployment-release | UNIT | MEDIUM | AUTOMATED | `services/api/src/common/prisma/migration-drift.spec.ts` | BUG-0283 | REG-204 |
 | [QA-DEPLOY-020](../../../docs/qa/scenarios/QA-DEPLOY-020-the-two-apps-web-environment-examples-agree-with-each-other-.md) | The two apps/web environment examples agree with each other and with the code | deployment-release | UNIT | LOW | AUTOMATED | `packages/config/env-examples.test.js` | ITEM-0045 | REG-210 |
 | [QA-DEPLOY-021](../../../docs/qa/scenarios/QA-DEPLOY-021-the-production-dependency-graph-carries-no-critical-advisory.md) | The production dependency graph carries no critical advisory | deployment-release | SECURITY | HIGH | AUTOMATED | `scripts/check-production-advisories.mjs` | BUG-0052 | REG-217 |
+| [QA-INFRA-002](../../../docs/qa/scenarios/QA-INFRA-002-repo-health-attributes-main-changes-to-the-right-task.md) | repo-health attributes main changes to the right task | deployment-release | API | HIGH | AUTOMATED | `scripts/task-sha-ref.test.mjs` | BUG-1203 | REG-249 |
+| [QA-INFRA-003](../../../docs/qa/scenarios/QA-INFRA-003-the-component-index-drift-check-is-platform-independent.md) | the component index drift check is platform-independent | deployment-release | API | MEDIUM | AUTOMATED | `scripts/index-drift.test.mjs` | BUG-1208 | REG-250 |
 | [QA-INTEGRATION-001](../../../docs/qa/scenarios/QA-INTEGRATION-001-a-stale-stripe-product-id-is-replaced-rather-than-fatal.md) | A stale Stripe product id is replaced rather than fatal | billing | INTEGRATION | HIGH | AUTOMATED | `services/api/src/modules/billing/stripe-product-resolution.spec.ts` | BUG-0995 | REG-242 |
 | [QA-LANDING-001](../../../docs/qa/scenarios/QA-LANDING-001-public-pages-degrade-rather-than-500-when-the-plans-api-is-u.md) | Public pages degrade rather than 500 when the plans API is unreachable | landing | BROWSER_E2E | HIGH | AUTOMATED | `e2e/tests/flow-c-landing-public-surface.spec.ts` | BUG-0061 | REG-057 |
 | [QA-LANDING-002](../../../docs/qa/scenarios/QA-LANDING-002-mobile-navigation-dismisses-on-navigation-escape-and-outside.md) | Mobile navigation dismisses on navigation escape and outside click | landing | BROWSER_E2E | HIGH | AUTOMATED | `e2e/tests/flow-c-landing-public-surface.spec.ts` | BUG-0062 | REG-058 |

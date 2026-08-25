@@ -121,6 +121,43 @@ jobs:
       - name: Validate agent framework
         run: node scripts/validate-framework.mjs
 
+      # The component index is harvested from doc-comments, so it goes stale
+      # the moment somebody edits one and does not regenerate. Checked here
+      # rather than trusted, for the same reason every other generated index in
+      # this repository is: a knowledge document that quietly stops matching
+      # the code is worse than no document, because agents believe it.
+      - name: Check component index is current
+        run: node scripts/generate-component-index.mjs --check
+
+      # Retrieval silently returning nothing is the worst failure this step
+      # has, because "no prior knowledge" is exactly the conclusion that
+      # produces a repeat defect. `command-bar` finding nothing while
+      # `command bar` found the answer is the case these pin.
+      - name: Knowledge term normalisation
+        run: node --test scripts/knowledge-terms.test.mjs
+
+      # BUG-1203 — MAIN_CHANGE_STATUS is a terminal invariant of the completion
+      # contract, so a false CHANGED_BY_THIS_TASK fails healthy work, and a fix
+      # that oversuppressed it would hide an unauthorised production mutation.
+      # Both directions are pinned; neither is safe to leave to a comment — the
+      # bug existed because the correct reasoning was a comment and nothing else.
+      - name: Repo-health task attribution
+        run: node --test scripts/task-sha-ref.test.mjs
+
+      # BUG-1208 — the component-index drift check compared bytes, so it failed
+      # on every Windows checkout and passed here, on Linux. This runner could
+      # never have reproduced that; these cases construct both line endings in
+      # memory so the platform the runner does not have is still covered.
+      - name: Index drift comparison
+        run: node --test scripts/index-drift.test.mjs
+
+      # ITEM-0091 — a RELEASE must not fail its own health check for doing the
+      # one thing that defines it. The risk in that fix is widening the field
+      # that reports an unauthorised mutation of main, so the cases that assert
+      # BLOCK matter more here than the one that asserts EXPECTED.
+      - name: Main-change policy
+        run: node --test scripts/main-change-policy.test.mjs
+
       # BUG-0163 — the lockfile must be REGENERABLE, not merely present.
       #
       # It had stopped being so, and nothing noticed for weeks, because
