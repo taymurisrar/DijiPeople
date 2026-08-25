@@ -7764,7 +7764,9 @@
         "apps/landing"
       ],
       "regressions": [],
-      "qa_scenarios": [],
+      "qa_scenarios": [
+        "QA-LANDING-017"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -7802,7 +7804,9 @@
         "apps/landing"
       ],
       "regressions": [],
-      "qa_scenarios": [],
+      "qa_scenarios": [
+        "QA-LANDING-018"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [

@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 189** · automated: 171 · manual: 6 · blocked by infrastructure: 0
+**Scenarios: 191** · automated: 171 · manual: 8 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -110,6 +110,8 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-LANDING-014](../../../docs/qa/scenarios/QA-LANDING-014-the-cost-estimator-only-lists-plans-headcount-can-change.md) | The cost estimator only lists plans headcount can change | landing | UNIT | MEDIUM | PARTIAL | `apps/landing/lib/plan-estimator.spec.ts` | BUG-0461 | REG-192 |
 | [QA-LANDING-015](../../../docs/qa/scenarios/QA-LANDING-015-checkout-quotes-the-visitor-market-currency-not-the-first-pr.md) | Checkout quotes the visitor market currency, not the first price listed | landing | UNIT | HIGH | AUTOMATED | `apps/landing/lib/subscribe-selection.spec.ts` | BUG-0793 | REG-231 |
 | [QA-LANDING-016](../../../docs/qa/scenarios/QA-LANDING-016-an-unknown-legal-slug-is-a-real-404-not-a-streamed-200.md) | An unknown legal slug is a real 404, not a streamed 200 | landing | BROWSER_E2E | MEDIUM | AUTOMATED | `e2e/tests/landing-public-surface.spec.ts` | BUG-0907 | REG-239 |
+| [QA-LANDING-017](../../../docs/qa/scenarios/QA-LANDING-017-the-checkout-price-estimate-names-the-period-it-actually-cov.md) | The checkout price estimate names the period it actually covers | landing | BROWSER_E2E | HIGH | MANUAL | — | BUG-1302 | — |
+| [QA-LANDING-018](../../../docs/qa/scenarios/QA-LANDING-018-a-checkout-diagnostic-code-never-displaces-a-partner-referra.md) | A checkout diagnostic code never displaces a partner referral code | landing | BROWSER_E2E | HIGH | MANUAL | — | BUG-1303 | — |
 | [QA-LEAD-001](../../../docs/qa/scenarios/QA-LEAD-001-the-public-lead-endpoint-is-rate-limited.md) | The public lead endpoint is rate limited | lead-management | SECURITY | HIGH | AUTOMATED | `services/api/src/modules/leads/public-leads.rate-limit.spec.ts` | BUG-0013 | REG-011 |
 | [QA-LEAD-002](../../../docs/qa/scenarios/QA-LEAD-002-every-public-write-handler-carries-a-rate-limit-guard.md) | Every public write handler carries a rate-limit guard | lead-management | SECURITY | HIGH | AUTOMATED | `services/api/src/common/guards/public-write-rate-limit.invariant.spec.ts` | BUG-0031 | REG-023 |
 | [QA-LEAD-003](../../../docs/qa/scenarios/QA-LEAD-003-rate-limiting-identifies-the-visitor-not-the-proxy.md) | Rate limiting identifies the visitor, not the proxy | lead-management | UNIT | HIGH | AUTOMATED | `services/api/src/common/security/client-ip.spec.ts` | BUG-0032 | REG-024 |
