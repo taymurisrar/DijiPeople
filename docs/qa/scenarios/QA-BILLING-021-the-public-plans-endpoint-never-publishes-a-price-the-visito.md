@@ -34,6 +34,9 @@ survived as long as it did.
 4. Compare the two.
 5. Repeat with the *plan's* `salesModel` set to `SALES_ASSISTED`, and again to
    `CUSTOM_ONLY`, leaving the price rows `SELF_SERVICE`.
+6. **Then attack it directly.** Take the id of the `SALES_ASSISTED` price — it
+   was public before this fix, so assume it is known — and `POST` it as
+   `planPriceId` to `/public/onboarding`, and again to `/public/subscribe`.
 
 ## Expected Result
 
@@ -45,6 +48,15 @@ survived as long as it did.
 - **Step 5** — a `SALES_ASSISTED` or `CUSTOM_ONLY` plan publishes **no** prices,
   even though every price row says `SELF_SERVICE`. The plan's model narrows the
   price's and never widens it.
+- **Step 6** — both write paths return **404**, with the same message as an
+  unknown id. No order is opened and no Stripe session is created. A distinct
+  error such as "not available on this channel" would fail this step: it
+  confirms the price exists and is merely off-limits, which tells an enumerator
+  which ids are worth having.
+
+Step 6 is the one that matters. Steps 1–5 check a *listing*; a read filter with
+no matching write check is a listing preference, not an access control, and the
+ids were published until the day this was fixed.
 
 The rule is `narrowestSalesModel(plan.salesModel, price.salesModel) ===
 SELF_SERVICE` — the same predicate `resolveCommercialOffer` uses. Asserting a

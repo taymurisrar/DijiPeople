@@ -231,3 +231,52 @@ describe('the public plans endpoint applies the same channel rule', () => {
     ).toBe(false);
   });
 });
+
+/*
+ * The write path — the half that actually matters.
+ *
+ * `/public/plans` no longer lists SALES_ASSISTED prices, but `planPriceId`
+ * arrives from the client on both public write paths and those ids were
+ * published by that endpoint until the fix, so they are known. A read filter
+ * with no matching write check is a listing preference, not an access control.
+ *
+ * `BillingService.assertSellableToAnonymousVisitor` is private, so these assert
+ * the predicate it applies. The wiring — that both `startPublicOnboarding` and
+ * `createPublicSubscriptionCheckout` call it — is asserted by
+ * `public-write-paths-check-the-channel.spec.ts` alongside.
+ */
+describe('an anonymous visitor cannot buy an internal price by id', () => {
+  const refuses = (
+    planSalesModel: CommercialSalesModel,
+    priceSalesModel: CommercialSalesModel,
+  ) =>
+    narrowestSalesModel(planSalesModel, priceSalesModel) !==
+    CommercialSalesModel.SELF_SERVICE;
+
+  it('refuses a sales-assisted flat price supplied by id', () => {
+    expect(
+      refuses(
+        CommercialSalesModel.SELF_SERVICE,
+        CommercialSalesModel.SALES_ASSISTED,
+      ),
+    ).toBe(true);
+  });
+
+  it('refuses every price of a custom-only plan', () => {
+    expect(
+      refuses(
+        CommercialSalesModel.CUSTOM_ONLY,
+        CommercialSalesModel.SELF_SERVICE,
+      ),
+    ).toBe(true);
+  });
+
+  it('still allows the per-seat price the visitor is meant to buy', () => {
+    expect(
+      refuses(
+        CommercialSalesModel.SELF_SERVICE,
+        CommercialSalesModel.SELF_SERVICE,
+      ),
+    ).toBe(false);
+  });
+});

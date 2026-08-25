@@ -50,6 +50,46 @@ export class BillingService {
     private readonly legalService: LegalService,
   ) {}
 
+  /**
+   * Refuse a price an anonymous visitor is not entitled to buy — BUG-1378.
+   *
+   * `planPriceId` arrives from the client on both public write paths. The
+   * checks around this one establish that the price is real, active and
+   * published; none of them establishes that *this caller* may buy it. Flat
+   * rates carry `SALES_ASSISTED` precisely because they are negotiated by hand,
+   * and a self-service visitor must not be sold one at any price.
+   *
+   * Filtering them out of `/public/plans` is not sufficient and never was.
+   * Those ids were published by that endpoint until this change, so they are
+   * known; and an id a caller supplies is not evidence of anything they are
+   * entitled to. **A read filter with no matching write check is a listing
+   * preference, not an access control** — which is the whole shape of this
+   * defect.
+   *
+   * `NotFoundException`, with the same message as an unknown id, on purpose: a
+   * distinct error would confirm that a given price exists and is merely
+   * off-limits, which tells an enumerator exactly which ids are worth having.
+   *
+   * Deliberately **not** applied to the authenticated `createCheckoutSession`.
+   * That path is a tenant administrator acting on their own subscription behind
+   * `BILLING_MANAGE`, not an anonymous visitor, and a tenant already on a
+   * hand-negotiated flat plan may legitimately need to act on it. Widening this
+   * to that path is a separate commercial decision, not a tidy-up.
+   */
+  private assertSellableToAnonymousVisitor(planPrice: {
+    salesModel: CommercialSalesModel;
+    plan: { salesModel: CommercialSalesModel };
+  }) {
+    const effective = narrowestSalesModel(
+      planPrice.plan.salesModel,
+      planPrice.salesModel,
+    );
+
+    if (effective !== CommercialSalesModel.SELF_SERVICE) {
+      throw new NotFoundException('Plan price not found.');
+    }
+  }
+
   async getPublicPlans() {
     const featureCatalog = TENANT_FEATURE_DEFINITIONS.map((feature, index) => ({
       key: feature.key,
@@ -292,6 +332,8 @@ export class BillingService {
       throw new NotFoundException('Plan price not found.');
     }
 
+    this.assertSellableToAnonymousVisitor(planPrice);
+
     const order = await this.subscriptionOrders.openOrder({
       planPriceId: planPrice.id,
       seatQuantity: normalizePurchasedSeats(input.seatQuantity, planPrice),
@@ -361,6 +403,8 @@ export class BillingService {
     ) {
       throw new NotFoundException('Plan price not found.');
     }
+
+    this.assertSellableToAnonymousVisitor(planPrice);
 
     const purchasedSeats = normalizePurchasedSeats(
       input.seatQuantity,

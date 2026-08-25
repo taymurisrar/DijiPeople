@@ -35,6 +35,13 @@ anonymous caller, and computed `checkoutReady` for them.
 `/api/public/commercial-config`, over the same rows, has always applied the
 channel rule correctly. One rule, two readers, and only one of them enforced it.
 
+**And neither public write path checked it at all.** `startPublicOnboarding` and
+`createPublicSubscriptionCheckout` both accept a client-supplied `planPriceId`
+and validated only that the price was real, active and published — so an
+anonymous caller who knew the id of an internal flat price could open an order
+against it and be sold it. Those ids were public until this fix, published by
+the very endpoint above.
+
 ## Expected Behavior
 
 Both public endpoints answer "what may this visitor be sold" the same way. A
@@ -122,13 +129,18 @@ Two distinct harms, and the second is how it was found.
    endpoint, found two candidates for one currency and cycle, and quoted the
    internal one — QAR 249 against an advertised QAR 8 per active employee. That
    is [[BUG-1369]], which is this defect's symptom rather than a separate cause.
+3. **Anyone holding an id could buy one deliberately.** Neither public write
+   path checked the channel, so the exposure was not limited to what the wizard
+   happened to select. A caller who kept an id from the listing — and the
+   listing was public — could open an order against an internal rate at will.
 
 Reachable in production for as long as the endpoint has existed. The disclosure
 was live throughout; the sellability became live only when prices were synced.
 
-Typed `SECURITY` for the disclosure rather than `BUG`, though it is not an
-authorization bypass: no guard was circumvented, and the endpoint is meant to be
-public. What leaked is data that should never have been in the response.
+Typed `SECURITY` for the disclosure and for (3). It is not an authorization
+*bypass* — no guard was circumvented, and the endpoint is meant to be public —
+but the channel rule is a commercial access control and it was absent from
+every path that enforces one.
 
 ## Affected Areas
 
@@ -169,14 +181,36 @@ None.
 
 ## Resolution
 
-Fixed. `getPublicPlans()` now narrows a plan's prices with the same
+Fixed in **two** places, and the second is the one that matters.
+
+**The read path.** `getPublicPlans()` now narrows a plan's prices with the same
 `narrowestSalesModel` predicate the offer resolver uses, before both the
 billing-cycle map and the price mapping are built — so a non-self-service price
 is absent from the response entirely rather than present and unpurchasable.
 
-Reusing the resolver's helper rather than writing a `billingModel` check here is
-deliberate and is the point of the fix: the defect was two rules for one
+**The write path.** Stopping the listing fixes nothing an attacker cares about.
+`planPriceId` arrives from the client on both public write paths —
+`startPublicOnboarding` and `createPublicSubscriptionCheckout` — and each
+validated that the price was real, active and published without ever checking
+that *this caller* was entitled to buy it. Those ids were published by
+`/public/plans` until this change, so they are known.
+
+**A read filter with no matching write check is a listing preference, not an
+access control.** Both paths now call a shared
+`assertSellableToAnonymousVisitor` before anything is created, which throws
+`NotFoundException` with the same message as an unknown id — a distinct error
+would confirm that a price exists and is merely off-limits, which tells an
+enumerator exactly which ids are worth having.
+
+Reusing the resolver's helper rather than writing a `billingModel` check is
+deliberate throughout, and is the point: the defect was two rules for one
 decision, and a second rule shaped differently would have reproduced it.
+
+Deliberately **not** applied to the authenticated `createCheckoutSession`. That
+path is a tenant administrator acting on their own subscription behind
+`BILLING_MANAGE`, not an anonymous visitor, and a tenant already on a
+hand-negotiated flat plan may legitimately need to act on it. Widening the rule
+to that path is a separate commercial decision, not a tidy-up.
 
 ## QA Retest
 
