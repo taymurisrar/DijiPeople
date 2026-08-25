@@ -15,9 +15,9 @@ see [`README.md`](README.md) for why.
 |---|---|
 | Open (active work) | 32 |
 | Blocked | 1 |
-| Deferred | 23 |
+| Deferred | 22 |
 | Awaiting a product decision | 2 |
-| Completed / closed | 192 |
+| Completed / closed | 193 |
 | **Open CRITICAL** | **4** |
 | **Open HIGH** | **6** |
 | **Awaiting Architect triage** | **0** |
@@ -52,14 +52,14 @@ see [`README.md`](README.md) for why.
 |---|---|
 | OPEN | 6 |
 | BLOCKED | 1 |
-| DEFERRED | 23 |
+| DEFERRED | 22 |
 | PRODUCT_DECISION | 2 |
 | FIXED | 4 |
 | VERIFIED | 138 |
 | DUPLICATE | 2 |
 | ACCEPTED_RISK | 1 |
 | READY | 22 |
-| DONE | 51 |
+| DONE | 52 |
 
 ## All records
 
@@ -312,7 +312,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0083](../../docs/backlog/items/ITEM-0083-scheduled-reconciliation-sweep-for-orders-stuck-awaiting-pay.md) | Scheduled reconciliation sweep for orders stuck awaiting payment | FOLLOW_UP | LOW | P3 | DEFERRED | api:billing | DEFER |
 | [ITEM-0093](../../docs/backlog/items/ITEM-0093-link-validation-skips-untracked-files-so-a-new-record-s-brok.md) | Link validation skips untracked files, so a new record's broken links only surface in CI | TECH_DEBT | LOW | P3 | READY | scripts | FIX_NOW |
 | [ITEM-0057](../../docs/backlog/items/ITEM-0057-landing-production-env-examples-still-name-the-vercel-and-re.md) | Landing production env examples still name the vercel and render hosts, not the dijipeople.com apex | PRODUCT_DECISION | — | P2 | DONE | apps/landing | DONE |
-| [ITEM-0091](../../docs/backlog/items/ITEM-0091-repo-health-blocks-every-release-task-on-its-own-defining-ou.md) | repo:health blocks every RELEASE task on its own defining outcome | INFRA | — | P2 | DEFERRED | — | DEFER |
+| [ITEM-0091](../../docs/backlog/items/ITEM-0091-repo-health-blocks-every-release-task-on-its-own-defining-ou.md) | repo:health blocks every RELEASE task on its own defining outcome | INFRA | — | P2 | DONE | framework | DONE |
 | [ITEM-0058](../../docs/backlog/items/ITEM-0058-next-env-d-ts-churns-between-dev-and-build-forms-and-the-fou.md) | next-env.d.ts churns between dev and build forms and the four apps disagree | TECH_DEBT | — | P3 | DEFERRED | apps/landing, apps/web, apps/admin | DEFER |
 | [ITEM-0059](../../docs/backlog/items/ITEM-0059-49-tracked-text-files-have-no-final-newline-and-nothing-enfo.md) | 49 tracked text files have no final newline, and nothing enforces one | TECH_DEBT | — | P3 | DEFERRED | apps/admin, apps/web, apps/agent-desktop | DEFER |
 

@@ -11899,17 +11899,19 @@
       "title": "repo:health blocks every RELEASE task on its own defining outcome",
       "severity": "",
       "priority": "P2",
-      "current_status": "DEFERRED",
-      "architect_disposition": "DEFER",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0091-repo-health-blocks-every-release-task-on-its-own-defining-ou.md",
         "provenance": "ARCHITECT",
         "detected_in_sha": "",
         "created_at": "2026-08-23",
-        "updated_at": "2026-08-23",
+        "updated_at": "2026-08-25",
         "resolved_at": ""
       },
-      "affected_modules": [],
+      "affected_modules": [
+        "framework"
+      ],
       "regressions": [],
       "qa_scenarios": [],
       "test_plan": [],

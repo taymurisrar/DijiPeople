@@ -206,6 +206,7 @@ positive still fires with its blocker, and the task-worktree path is unchanged.
 
 ## Related
 
+- Referenced by — [[ITEM-0091]]
 - Regression — REG-249 (see the regression register)
 
 <!-- GRAPH:END -->

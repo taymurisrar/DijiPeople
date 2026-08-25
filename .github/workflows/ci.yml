@@ -151,6 +151,13 @@ jobs:
       - name: Index drift comparison
         run: node --test scripts/index-drift.test.mjs
 
+      # ITEM-0091 — a RELEASE must not fail its own health check for doing the
+      # one thing that defines it. The risk in that fix is widening the field
+      # that reports an unauthorised mutation of main, so the cases that assert
+      # BLOCK matter more here than the one that asserts EXPECTED.
+      - name: Main-change policy
+        run: node --test scripts/main-change-policy.test.mjs
+
       # BUG-0163 — the lockfile must be REGENERABLE, not merely present.
       #
       # It had stopped being so, and nothing noticed for weeks, because

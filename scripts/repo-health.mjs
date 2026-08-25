@@ -34,6 +34,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { taskShaRef } from './lib/task-sha-ref.mjs';
+import { mainChangeVerdict } from './lib/main-change-policy.mjs';
 
 function argValue(name) {
   const index = process.argv.indexOf(name);
@@ -333,6 +334,15 @@ function mainChangeStatus() {
 }
 
 const mainChange = mainChangeStatus();
+
+/*
+ * ITEM-0091 — the task's type, so `CHANGED_BY_THIS_TASK` can be read as the
+ * defining outcome of a RELEASE rather than as a failure. Absent or
+ * unrecognised still blocks; see `lib/main-change-policy.mjs` for why that
+ * default is not negotiable.
+ */
+const TASK_TYPE = argValue('--task-type') ?? '';
+const mainChangeDecision = mainChangeVerdict(mainChange, TASK_TYPE);
 
 /* The live integration lock, so a health report says whether develop is busy. */
 let integrationLock = { holder: null, queued: 0 };
@@ -747,10 +757,18 @@ if (syncStatus === 'AHEAD') {
 if (syncStatus === 'FETCH_FAILED') blockers.push('remote state could not be read');
 if (syncStatus === 'UNKNOWN') blockers.push('sync status could not be determined');
 
-if (mainChange === 'CHANGED_BY_THIS_TASK') {
+/*
+ * ITEM-0091 — this used to block unconditionally, while its own message named
+ * the three task types allowed to do it. Policy lives in
+ * `lib/main-change-policy.mjs`, under test. An absent or unrecognised
+ * `--task-type` still blocks: that is the safe default, and it is why the flag
+ * cannot be used to silence the field by accident.
+ */
+if (mainChange === 'CHANGED_BY_THIS_TASK' && mainChangeDecision !== 'EXPECTED') {
   blockers.push(
     `this task's commits are on ${REMOTE_TARGET} — main is the production deployment ` +
-      'branch, and only a RELEASE, DEPLOY or HOTFIX_PRODUCTION task may put work there',
+      'branch, and only a RELEASE, DEPLOY or HOTFIX_PRODUCTION task may put work there' +
+      (TASK_TYPE ? ` (--task-type ${TASK_TYPE} is not one of them)` : ''),
   );
 }
 if (mainChange === 'REWRITTEN') {
@@ -784,6 +802,17 @@ if (unfinishedByWorktree.length) {
 }
 
 const warningList = [];
+/*
+ * ITEM-0091 — a release's commits reaching production is reported, not blocked,
+ * but it is never silent. A RELEASE that moved `main` should say so plainly in
+ * its own health output; the thing that was wrong was calling it a failure.
+ */
+if (mainChangeDecision === 'EXPECTED') {
+  warningList.push(
+    `this task's commits are on ${REMOTE_TARGET} — the defining outcome of a ` +
+      `${TASK_TYPE} task, so reported rather than blocked`,
+  );
+}
 if (syncStatus === 'BEHIND') warningList.push(`${TARGET} is ${behind} commit(s) behind — fast-forward before branching`);
 if (porcelain.length && currentBranch === TARGET) {
   warningList.push(`${TARGET} is dirty (${porcelain.length} path(s)) — work in a separate worktree`);
