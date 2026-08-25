@@ -80,6 +80,27 @@ together with [[BUG-0903]] and [[BUG-0898]].
   conflict, resolved by regeneration.
 - 2026-08-24 — integrated to `develop` in two fast-forwards, `363fe705` and
   `b205fea8`, each behind its own exact-SHA `CI required gate` PASS.
-- 2026-08-24 — **COMPLETE**, with one item of follow-up that is not this
-  session's to close: [[BUG-0989]] needs a Stripe **Resend** from the owner to
-  confirm the secret correction. The worktree and branch are retained until then.
+- 2026-08-24 — reconciliation **COMPLETE**, with one item of follow-up that was
+  not this session's to close: [[BUG-0989]] needed a Stripe **Resend** from the
+  owner to confirm the secret correction.
+- 2026-08-25 — **the session continued well past its stated scope, at the
+  owner's direction, and the record says so rather than pretending the plan
+  predicted it.**
+
+  That Resend confirmed BUG-0989 and immediately exposed [[BUG-1128]] beneath
+  it — `invoice.paid` unresolvable because Stripe had moved the fields to
+  `invoice.parent.subscription_details`. Re-measuring the catalogue afterwards
+  found nine Starter prices destroyed by [[BUG-1133]], whose blast radius had
+  been *limited* by [[BUG-1134]], the 500 the owner reported. Then a rendering
+  defect nothing in the pipeline could see: the tenant list leading with
+  `Customer` ([[ITEM-0097]]).
+
+  Two releases to production followed — `2609275` (PR #46) and `08d79012`
+  (PR #47) — under explicit, separately-granted authorisation each time. The
+  first repaired the nine prices by itself, which [[TASK-0019]] predicted before
+  the merge rather than explained after it.
+
+  Full narrative, including the four CI failures and the one false root cause,
+  in the engineering history.
+- 2026-08-25 — **CLOSED.** `MAIN_CHANGE_STATUS = UNTOUCHED` against the release
+  baseline, `UNEXPLAINED_DIRTY_FILES = 0`, task worktree clean.
