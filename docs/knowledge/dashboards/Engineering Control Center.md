@@ -8,14 +8,14 @@
 | | |
 |---|---|
 | Active sessions | **0** |
-| Active parent tasks | 7 |
-| Active work packages | 2 |
+| Active parent tasks | 4 |
+| Active work packages | 1 |
 | Blocked work packages | 0 |
 | Work packages waiting on the user | 0 |
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **4** |
-| Open HIGH | 5 |
+| Open HIGH | 6 |
 | Awaiting Architect triage | 0 |
 | Owner decisions pending | 2 |
 | QA coverage gaps | 108 |
@@ -30,8 +30,8 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 29 |
-| No next action | 29 |
+| No acceptance criteria | 31 |
+| No next action | 31 |
 | Aging — 7d / 30d / 90d | 14 / 0 / 0 |
 | Architecture and technical debt | 6 |
 | Security gaps | 2 |
@@ -57,9 +57,6 @@ _No session is currently registered as active._
 | [[TASK-0007-commercial-platform-completion-transactional-legal-and-lifec|TASK-0007]] | Commercial platform completion — transactional, legal and lifecycle half | FEATURE | PROGRAM | 16/16 | — | — | — |
 | [[TASK-0008-self-service-customer-onboarding-tenant-provisioning-domain-|TASK-0008]] | Self-service customer onboarding, tenant provisioning, domain routing and central login | FEATURE | LARGE | 11/11 | — | — | — |
 | [[TASK-0009-identity-and-multi-tenant-membership|TASK-0009]] | Identity and multi-tenant membership | FEATURE | LARGE | 11/12 | WP-09 | WP-09 | — |
-| [[TASK-0011-first-production-release|TASK-0011]] | First production release | RELEASE | MEDIUM | 2/2 | — | — | — |
-| [[TASK-0018-legacy-pricing-removed-and-the-commercial-catalogue-made-to-|TASK-0018]] | Legacy pricing removed and the commercial catalogue made to converge | FEATURE | MEDIUM | 4/4 | — | — | — |
-| [[TASK-0021-release-the-tenant-list-identity-fix-and-the-first-admin-bro|TASK-0021]] | Release the tenant list identity fix and the first admin browser suite | RELEASE | SMALL | 0/2 | WP-01 | — | — |
 
 ## Branch model
 
@@ -236,7 +233,7 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 30 |
+| Open total | 32 |
 | Blocked | 1 |
 | Deferred | 22 |
 | Awaiting a product decision | 2 |
@@ -250,6 +247,7 @@ Deployment state is **not** derivable from Git. A merge is Git state; what is
 running is a separate fact with separate evidence, recorded per release under
 `docs/deployment/release-history/`.
 
+- [[2026-08-25-production-08d7901|Release — production — `08d7901`]]
 - [[2026-08-24-production-6ed7a44|Release — production — `6ed7a44`]]
 - [[2026-08-24-production-2609275|Release — production — `2609275`]]
 

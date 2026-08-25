@@ -243,3 +243,69 @@ checkout gained a permission rule for the Render env-var API, at the user's
 instruction. **It did not take effect** — the call is still refused — so the
 rule is inert and harmless, but it is a real edit to a user-owned file and is
 named rather than left for them to find.
+
+## What happened after this record was filed
+
+This record was completed at `b205fea8`, when the session's stated scope —
+reconciling stale records — was finished. The session then continued at the
+owner's direction and did substantially more. Recording that here rather than
+leaving the history to describe a third of the work, because a history that
+stops where the plan stopped is the same defect this whole session was about.
+
+**Phase 2 — the payment path, from a single Resend.** Asking the owner to resend
+one failed Stripe delivery confirmed [[BUG-0989]] was fixed and immediately
+exposed [[BUG-1128]] underneath it: `invoice.paid` could not resolve, because
+`invoice.subscription` and `invoice.metadata` moved to
+`invoice.parent.subscription_details` in a newer Stripe API version. The handler
+was written against one version and exercised against another, and nothing
+asserted the two agreed. Fixed to read both shapes.
+
+**Phase 3 — silent data loss.** Re-measuring the catalogue afterwards found nine
+Starter prices gone. [[BUG-1133]]: both admin write paths superseded on
+`{planId, billingCycle, currency}` while the unique index is on five columns, so
+saving a PER_SEAT price destroyed the FLAT price beside it and reached across
+markets. [[BUG-1134]], the 500 the owner had reported, turned out to be
+*limiting* its blast radius — which is why they were fixed together.
+
+**Phase 4 — the first production release**, `2609275` via PR #46. The deploy
+repaired the nine prices by itself, as [[TASK-0019]] predicted before the merge
+rather than explained afterwards.
+
+**Phase 5 — a rendering defect nothing could see.** The tenant list led with
+`Customer` and showed no tenant name. Not caused by the release — verified
+before anything was changed — but a saved column preference overriding the
+definition. [[ITEM-0097]], and the first browser coverage of an admin screen.
+
+**Phase 6 — the second release**, `08d79012` via PR #47.
+
+### What this session got wrong
+
+Kept because the corrections are the useful part:
+
+- **A false root cause, stated with evidence and still wrong.** [[BUG-0904]] was
+  reasoned from a commit message counting four blockers, assuming the outbox
+  worker was among them. Running the script proved it was not. Real evidence,
+  from inside the environment, and a false conclusion — because the composition
+  of a total was inferred from the total.
+- **Four CI failures, all mine.** One prettier violation, then three in Flow G:
+  no sign-in, two assertions that would have passed while the table was broken,
+  and a selector matched against an accessible name containing more than the
+  title. Each Flow G failure was the same error the suite exists to catch,
+  committed while writing it.
+- **Backticks in a `git commit -m`**, expanded by bash, three words silently
+  deleted from a message. A standing note warns about exactly that.
+- **Claiming an integration that had not happened** — the landing parity commit
+  was reported as integrated while it sat on the branch. Corrected in the next
+  message.
+
+### Final state
+
+| | |
+|---|---|
+| Releases to production | 2 — `2609275`, `08d79012` |
+| Records closed | 17 bugs verified, 6 work packages, 3 tasks |
+| New records | BUG-1128, BUG-1133, BUG-1134, ITEM-0094 to ITEM-0097 |
+| New regressions | REG-244 to REG-248 |
+| New QA scenarios | QA-LEGAL-003, QA-BILLING-017 to QA-BILLING-020 |
+| Open CRITICAL | 5 → 4 |
+| Production price catalogue | 27 → 36 active, repaired by the deploy |

@@ -29,6 +29,7 @@ import {
   hasMeaningfulContent,
 } from './lib/obsidian-mappings.mjs';
 import { resolveObsidianConfig } from './lib/obsidian-config.mjs';
+import { scoreTerm } from './lib/knowledge-terms.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -72,6 +73,12 @@ function markdownFilesIn(dir, depth = 0) {
  * Score by where the term appears, not just how often. A term in the filename
  * or a heading is a much stronger signal of "this note is about that" than the
  * same word buried in a paragraph.
+ *
+ * Each term is scored across every spelling of itself — `command-bar`,
+ * `command bar`, `commandbar`, `CommandBar` — and counted once at its best.
+ * Before that, `command-bar` scored zero against the document whose heading
+ * reads "The record command bar is a default", and the caller had no way to
+ * know which spelling this repository had used. See `lib/knowledge-terms.mjs`.
  */
 function score(file, body) {
   const name = file.toLowerCase();
@@ -81,11 +88,7 @@ function score(file, body) {
   let total = 0;
   const matched = [];
   for (const term of terms) {
-    let termScore = 0;
-    if (name.includes(term)) termScore += 10;
-    if (headings.includes(term)) termScore += 5;
-    const occurrences = lower.split(term).length - 1;
-    if (occurrences) termScore += Math.min(occurrences, 5);
+    const termScore = scoreTerm(term, { name, headings, body: lower });
     if (termScore) matched.push(term);
     total += termScore;
   }

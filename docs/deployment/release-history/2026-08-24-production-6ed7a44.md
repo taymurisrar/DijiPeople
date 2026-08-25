@@ -20,7 +20,7 @@
 | **Configuration Status** | **PARTIAL** — the `preDeployCommand` chain completed, but two live-service settings are wrong and are tracked separately: [[BUG-0989]] (`STRIPE_WEBHOOK_SECRET` mismatch) and [[BUG-0903]] (`STRIPE_MODE=test`). |
 | **Deployment Sequence** | Render `preDeployCommand`: `prisma:migrate:deploy` → `seed:config` → `seed:verify` → `seed:admin` → `repair:market-countries` → `seed:legal` → `legal:publish --confirm`. All steps completed; `legal:publish` reported `ALREADY_PUBLISHED` for all ten documents. |
 | **Smoke Test Results** | **PASS** — `scripts/smoke-deployment.mjs` against `https://api.dijipeople.com/api`, 2026-08-24. See below. |
-| **Monitoring/Health Results** | `/api/health` returns `status: ok`, `environment: production`, `commit: 6ed7a4402c9ec1e8d9f50f9e7795e98325003298`. The served commit equals `origin/main`, so the merge did deploy — the failure mode in [[merging-main-does-not-guarantee-deploy]] is not present. |
+| **Monitoring/Health Results** | `/api/health` returns `status: ok`, `environment: production`, `commit: 6ed7a4402c9ec1e8d9f50f9e7795e98325003298`. The served commit equals `origin/main`, so the merge did deploy — the failure mode where a merge lands on `main` and Render never picks it up, leaving the old commit served with no error anywhere, is not present. (This sentence used to cite that failure mode as a wikilink to an agent-memory slug, which resolves to no note in the vault; stated in prose instead.) |
 | **Incidents** | None during this release. One standing production defect predates it and is unresolved: [[BUG-0989]]. |
 | **Rollback Classification** | NOT_REQUIRED — no rollback was performed or needed. |
 | **Rollback Result** | NOT_APPLICABLE — no rollback occurred. |
