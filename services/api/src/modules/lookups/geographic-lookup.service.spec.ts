@@ -107,10 +107,19 @@ describe('GeographicLookupService', () => {
 
     await service.listCountries();
 
+    /*
+     * `sortOrder: 0` for both, not 0 and 1 — BUG-1305.
+     *
+     * This assertion used to pin the alphabetical index the import wrote, which
+     * is exactly the behaviour that collided with the priority ranks in
+     * DEFAULT_COUNTRIES. Imported countries are now unpinned, and the `name`
+     * tiebreak in the `findMany` below already orders them alphabetically, so
+     * nothing is lost by not numbering them.
+     */
     expect(createMany).toHaveBeenCalledWith({
       data: [
         { code: 'PK', name: 'Pakistan', sortOrder: 0 },
-        { code: 'SA', name: 'Saudi Arabia', sortOrder: 1 },
+        { code: 'SA', name: 'Saudi Arabia', sortOrder: 0 },
       ],
       skipDuplicates: true,
     });
@@ -118,5 +127,64 @@ describe('GeographicLookupService', () => {
       where: { isActive: true },
       orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
     });
+  });
+});
+
+/*
+ * BUG-1305 — `sortOrder` had two writers filling the same range.
+ *
+ * The ISO import numbered all 250 countries 0..249 by alphabetical position;
+ * DEFAULT_COUNTRIES gave the eight priority markets 10, 20, .. 80 as ranks. The
+ * ranges overlapped, so `sortOrder: 10` was held by both Argentina and the
+ * United States and, under [sortOrder asc, name asc], "United States" rendered
+ * between Argentina and Armenia. Exactly eight values collided, and they were
+ * the eight markets that matter most.
+ *
+ * These assert the invariant that makes the collision impossible rather than
+ * re-checking the eight numbers: the priority band is negative, the unpinned
+ * default is 0, and the two cannot meet.
+ */
+describe('country sort bands', () => {
+  it('pins every priority market with a negative sortOrder', () => {
+    for (const country of DEFAULT_COUNTRIES) {
+      expect(country.sortOrder).toBeLessThan(0);
+    }
+  });
+
+  it('gives the priority markets distinct positions', () => {
+    const orders = DEFAULT_COUNTRIES.map((country) => country.sortOrder);
+    expect(new Set(orders).size).toBe(orders.length);
+  });
+
+  // The reserved band is what keeps the two writers apart. An ISO-imported
+  // country is written with sortOrder 0, so any non-negative priority value
+  // would put a pinned market back inside the unpinned range.
+  it('cannot collide with the unpinned default of 0', () => {
+    const UNPINNED = 0;
+    for (const country of DEFAULT_COUNTRIES) {
+      expect(country.sortOrder).not.toBe(UNPINNED);
+      expect(country.sortOrder).toBeLessThan(UNPINNED);
+    }
+  });
+
+  it('orders the priority markets ahead of an unpinned country', () => {
+    const rows = [
+      ...DEFAULT_COUNTRIES.map((country) => ({ ...country })),
+      { code: 'AR', name: 'Argentina', sortOrder: 0 },
+      { code: 'AM', name: 'Armenia', sortOrder: 0 },
+    ];
+
+    // The same comparison Prisma is asked for: [sortOrder asc, name asc].
+    const ordered = [...rows].sort(
+      (left, right) =>
+        left.sortOrder - right.sortOrder || left.name.localeCompare(right.name),
+    );
+
+    expect(
+      ordered.slice(0, DEFAULT_COUNTRIES.length).map((row) => row.code),
+    ).toEqual(DEFAULT_COUNTRIES.map((country) => country.code));
+    // The regression in one line: the US must not land mid-alphabet again.
+    expect(ordered[ordered.length - 2].code).toBe('AR');
+    expect(ordered[ordered.length - 1].code).toBe('AM');
   });
 });

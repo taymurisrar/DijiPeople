@@ -46,6 +46,32 @@ export const BUNDLED_COUNTRIES: CountryOption[] = COUNTRY_OPTIONS.filter(
 }));
 
 /**
+ * Is the lookup's answer good enough to replace the bundled list?
+ *
+ * The rule is **not a narrowing**, not merely "non-empty" — BUG-1304.
+ *
+ * The old test was `length > 0`, on the reasoning that an empty `200` is an
+ * outage wearing a success code. That is true, and it was not enough:
+ * production answered with **eight** countries — the `ensureDefaultCountries`
+ * defaults, because the ISO widening never succeeded there and fails silently
+ * by design. Eight is greater than zero, so the lookup won and the 31 countries
+ * compiled into the page were discarded.
+ *
+ * A buyer outside those eight then had no country to select, on a required
+ * field, with no error shown: from the app's point of view nothing had failed.
+ *
+ * Widening is still free — the full ISO set is far larger than the bundle, and
+ * that is the case this exists to allow.
+ */
+export function isUsableLookupList(
+  countries: unknown,
+): countries is CountryOption[] {
+  return (
+    Array.isArray(countries) && countries.length >= BUNDLED_COUNTRIES.length
+  );
+}
+
+/**
  * The countries this platform recognises, from the list that is actually real.
  *
  * The subscribe wizard used to render Country as a free-text input, so
@@ -81,8 +107,9 @@ export function useCountryOptions(): State {
       })
       .then((countries) => {
         if (!active) return;
-        // An empty 200 is an outage wearing a success code. Keep the bundle.
-        const usable = Array.isArray(countries) && countries.length > 0;
+        // An empty 200 is an outage wearing a success code — and so is a
+        // *narrower* one. See `isUsableLookupList`.
+        const usable = isUsableLookupList(countries);
         setState({
           countries: usable ? countries : BUNDLED_COUNTRIES,
           loading: false,

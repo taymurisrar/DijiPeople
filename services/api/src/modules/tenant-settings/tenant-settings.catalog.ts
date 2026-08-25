@@ -753,7 +753,11 @@ export const TENANT_FEATURE_DEFINITIONS = [
   {
     key: 'timesheets',
     label: 'Timesheets',
-    description: 'MONTHLY timesheets, submission, and approval workflows.',
+    // Sentence case, not the raw enum spelling — this string is published on
+    // the public /features and /plans pages (BUG-1307). "Monthly" is accurate
+    // rather than a hedge: `Timesheet` is keyed `@@unique([tenantId,
+    // employeeId, year, month])`, so a timesheet period *is* a calendar month.
+    description: 'Monthly timesheets, submission, and approval workflows.',
     defaultEnabled: true,
     categoryKey: 'workforce',
     categoryLabel: 'Workforce Operations',

@@ -8,6 +8,7 @@ import {
   checkoutBlock,
   findPlanPrice,
   formatPlanPrice,
+  formatSeatTotalEstimate,
 } from "../../lib/plans";
 import {
   buildSubmitPayload,
@@ -551,9 +552,8 @@ export function SubscribeForm({
             {formatPlanPrice(selectedPrice)}
           </p>
           <p className="mt-1 text-sm text-muted">
-            {selectedPrice?.billingModel === "PER_SEAT"
-              ? `${effectiveSeatQuantity} purchased seat${effectiveSeatQuantity === 1 ? "" : "s"} · estimated ${new Intl.NumberFormat("en-US", { style: "currency", currency: selectedPrice.currency }).format(selectedPrice.unitAmount * effectiveSeatQuantity)} per month.`
-              : "Billed as one subscription."}
+            {formatSeatTotalEstimate(selectedPrice, effectiveSeatQuantity) ??
+              "Billed as one subscription."}
           </p>
           {/*
             A short status line here; the full reason moved next to the form.
@@ -751,9 +751,23 @@ export function SubscribeForm({
               choosing a plan that is available brings the form straight back.
             </p>
             <div className="mt-4 flex flex-wrap gap-3">
+              {/*
+                A dedicated parameter, not the partner referral one. BUG-1303:
+                this passed the diagnostic through the partner attribution
+                channel, so clicking it stored DP-CHK-01 as the visitor's
+                referral code for thirty days — and because attribution is
+                deliberately first-touch, every genuine partner code that
+                arrived afterwards was discarded. A partner lost the commission
+                and nothing anywhere reported an error.
+
+                These are two different facts with two different owners. A
+                support diagnostic says which plan and region a visitor was
+                blocked on; a referral code says who introduced them. They must
+                not share a parameter.
+              */}
               <a
                 className="inline-flex items-center rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-accent-strong"
-                href={`/contact?ref=${encodeURIComponent(block.code)}`}
+                href={`/contact?checkout=${encodeURIComponent(block.code)}`}
               >
                 Ask us to arrange this plan
               </a>

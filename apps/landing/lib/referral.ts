@@ -22,6 +22,26 @@ const STORAGE_KEY = "dijipeople_referral";
 /** What a referral code may look like. Anything else is discarded, not fixed. */
 const CODE_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
 
+/**
+ * Codes this platform issues to *itself*, which are never partner codes.
+ *
+ * `DP-CHK-01` and its siblings are support diagnostics shown on `/subscribe`
+ * when a plan cannot be bought — see `CHECKOUT_BLOCK_CODES` in ./plans. They
+ * satisfy `CODE_PATTERN` exactly, because a diagnostic code and a partner code
+ * are syntactically identical, so nothing here could tell them apart.
+ *
+ * That is how BUG-1303 happened: the checkout-unavailable panel linked to
+ * `/contact?ref=DP-CHK-01`, this module stored it, and first-touch-wins then
+ * discarded every real partner code for the next thirty days. The link now
+ * passes a dedicated parameter, which is the actual fix.
+ *
+ * This pattern is the guard behind it, so the next feature to reach for the
+ * referral parameter by accident cannot repeat the failure. A rejection here is
+ * cheap; a lost commission is not. Anything shaped `DP-<letters>-<digits>` is
+ * ours, not a partner's.
+ */
+const PLATFORM_DIAGNOSTIC_PATTERN = /^DP-[A-Z]{2,6}-\d{1,4}$/i;
+
 /** Thirty days: long enough for a considered purchase, short enough to expire. */
 const COOKIE_MAX_AGE_SECONDS = 30 * 24 * 60 * 60;
 
@@ -45,6 +65,9 @@ export function captureReferralCodeFromUrl(): void {
 
   const fromUrl = new URLSearchParams(window.location.search).get("ref");
   if (!fromUrl || !CODE_PATTERN.test(fromUrl)) return;
+  // One of ours, not a partner's. Storing it would occupy the attribution slot
+  // that first-touch-wins then refuses to give up — BUG-1303.
+  if (PLATFORM_DIAGNOSTIC_PATTERN.test(fromUrl)) return;
   if (readReferralCode()) return;
 
   const normalized = fromUrl.toUpperCase();
@@ -91,7 +114,25 @@ export function readReferralCode(): string | undefined {
   const code =
     fromSession ?? (fromCookie ? safeDecode(fromCookie) : undefined);
 
-  return code && CODE_PATTERN.test(code) ? code.toUpperCase() : undefined;
+  if (!code || !CODE_PATTERN.test(code)) return undefined;
+
+  /*
+   * Reject a stored diagnostic on the way out, not only on the way in.
+   *
+   * Every visitor who clicked "Ask us to arrange this plan" before BUG-1303 was
+   * fixed is already carrying `dijipeople_referral=DP-CHK-01`, with up to
+   * thirty days left on it. Guarding only `captureReferralCodeFromUrl` would
+   * stop new poisoning and leave that cohort attributing purchases to an error
+   * code — and, worse, still blocking real partner codes, because
+   * `captureReferralCodeFromUrl` bails as soon as `readReferralCode()` returns
+   * anything at all.
+   *
+   * Treating it as absent here heals both: the stored value stops being sent,
+   * and the next genuine partner link is free to take the slot.
+   */
+  if (PLATFORM_DIAGNOSTIC_PATTERN.test(code)) return undefined;
+
+  return code.toUpperCase();
 }
 
 function safeDecode(value: string) {

@@ -205,19 +205,46 @@ export class GeographicLookupService {
         )
         .sort((left, right) => left.name.localeCompare(right.name));
 
+      /*
+       * `sortOrder: 0`, not the array index — BUG-1305.
+       *
+       * Writing the alphabetical position here filled `0…249`, the same range
+       * `DEFAULT_COUNTRIES` was using for priority ranks, and the two collided.
+       * The column now means one thing only: "how far up the list is this
+       * pinned". Everything unpinned is `0` and falls through to the `name`
+       * tiebreak in `listCountries`, which is already alphabetical — so nothing
+       * is lost by not numbering them, and the priority band (negative) stays
+       * unreachable from here.
+       */
       await this.prisma.country.createMany({
-        data: countries.map((country, index) => ({
+        data: countries.map((country) => ({
           code: country.code,
           name: country.name,
-          sortOrder: index,
+          sortOrder: 0,
         })),
         skipDuplicates: true,
       });
     } catch (error) {
-      this.logger.warn(
-        `Unable to refresh internet-backed countries. Falling back to cached records. ${
-          error instanceof Error ? error.message : 'Unknown error'
-        }`,
+      /*
+       * Swallowing the failure is right — a reference lookup being unreachable
+       * must never block a purchase. Swallowing it *quietly* is not: production
+       * sat on the eight `ensureDefaultCountries` defaults indefinitely and the
+       * only symptom was the shape of the data (BUG-1304). Nobody looks at the
+       * shape of a country list.
+       *
+       * `error` rather than `warn`, and the country count included, so the
+       * degraded state is greppable and an operator can tell "the refresh
+       * failed once" from "this database has never held more than the
+       * defaults".
+       */
+      const remaining = await this.prisma.country
+        .count({ where: { isActive: true } })
+        .catch(() => -1);
+
+      this.logger.error(
+        `Unable to refresh internet-backed countries; serving ${remaining} cached record(s). ` +
+          `A count at or near ${DEFAULT_COUNTRIES.length} means the ISO set has never loaded here. ` +
+          `${error instanceof Error ? error.message : 'Unknown error'}`,
       );
     }
   }
@@ -363,13 +390,26 @@ export class GeographicLookupService {
     }
   }
 
+  /*
+   * `update` carries `sortOrder` deliberately — it used to be `{}`.
+   *
+   * An empty update means an already-seeded database keeps whatever priority
+   * values it was first created with, so correcting `DEFAULT_COUNTRIES` would
+   * fix only brand-new databases and leave every existing one mis-ordered
+   * (BUG-1305). The migration normalises the rows that exist today; this keeps
+   * them correct if the catalog is ever re-tuned, without needing a second one.
+   *
+   * Only `sortOrder` is written back. `name` is left alone on purpose: the ISO
+   * import is the better source for it, and overwriting it here would make the
+   * eight priority markets the one group whose names never track the ISO set.
+   */
   private async ensureDefaultCountries() {
     await Promise.all(
       DEFAULT_COUNTRIES.map((country) =>
         this.prisma.country.upsert({
           where: { code: country.code },
           create: country,
-          update: {},
+          update: { sortOrder: country.sortOrder },
         }),
       ),
     );

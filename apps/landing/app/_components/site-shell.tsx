@@ -149,14 +149,21 @@ export async function SiteFooter() {
                 {contactInfo.businessEmail}
               </a>
             </li>
-            <li>
-              <a
-                className={footerLinkClass}
-                href={`tel:${contactInfo.phone.replace(/[^\d+]/g, "")}`}
-              >
-                {contactInfo.phone}
-              </a>
-            </li>
+            {/*
+              Omitted entirely when no number is published, rather than showing
+              an empty row or a placeholder — BUG-1306. A `tel:` link in a site
+              footer is a promise that somebody answers it.
+            */}
+            {contactInfo.phone ? (
+              <li>
+                <a
+                  className={footerLinkClass}
+                  href={`tel:${contactInfo.phone.replace(/[^\d+]/g, "")}`}
+                >
+                  {contactInfo.phone}
+                </a>
+              </li>
+            ) : null}
           </ul>
 
           {publishedLegal.length > 0 ? (
