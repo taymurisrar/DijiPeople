@@ -4,20 +4,20 @@ aliases: [SESSION-0056]
 TASK_ID:
 TITLE: End-to-end browser QA of the public landing site on local and production
 ARCHITECT_INTENT: End-to-end browser QA of the public landing site on local and production
-STATUS: ACTIVE
+STATUS: COMPLETE
 TASK_TYPE: QA
 TASK_SIZE: LARGE
 BASE_BRANCH: origin/develop
 BASE_SHA: 42435d59d40bcbc6cd9a9dc7bc546459bc6ad79f
 TASK_BRANCH: agent/landing-e2e-qa
 TARGET_BRANCH: develop
-WORKTREE: D:/My Work/hrm-dijipeople/DijiPeople
-AFFECTED_MODULES: []
+WORKTREE: D:/My Work/hrm-dijipeople/wt-landing-e2e-qa
+AFFECTED_MODULES: [apps/landing, services/api/src/modules/lookups]
 WRITE_LEASES: []
 ACTIVE_WORK_PACKAGES: []
 SCHEMA_WRITE: NO
-CI_STATUS: NOT_RUN
-MERGE_STATUS: NOT_STARTED
+CI_STATUS: PASS
+MERGE_STATUS: MERGED
 STARTED_AT: 2026-08-25T17:30:09.143Z
 LAST_HEARTBEAT: 2026-08-25T17:30:09.143Z
 BLOCKERS: none

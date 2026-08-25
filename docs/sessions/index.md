@@ -6,18 +6,17 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 1** · completed: 53
+**Active: 0** · completed: 54
 
 ## Active
 
-| Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
-|---|---|---|---|---|---|---|---|
-| [SESSION-0056](../../docs/sessions/SESSION-0056-end-to-end-browser-qa-of-the-public-landing-site-on-local-an.md) | — | End-to-end browser QA of the public landing site on local and production | ACTIVE | `agent/landing-e2e-qa` | `develop` | — | 2026-08-25T17:30:09.143Z |
+_None. No session is currently running._
 
 ## Completed
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0056](../../docs/sessions/SESSION-0056-end-to-end-browser-qa-of-the-public-landing-site-on-local-an.md) | — | End-to-end browser QA of the public landing site on local and production | COMPLETE | `agent/landing-e2e-qa` | `develop` | — | 2026-08-25T17:30:09.143Z |
 | [SESSION-0055](../../docs/sessions/SESSION-0055-admin-theme-bootstrap-script-triggers-a-hydration-mismatch-i.md) | — | Admin theme bootstrap script triggers a hydration mismatch in head | COMPLETE | `agent/admin-theme-bootstrap-hydration` | `develop` | — | 2026-08-25T17:02:26.566Z |
 | [SESSION-0054](../../docs/sessions/SESSION-0054-dlp-capture-go-live-readiness-rule-ui-seeds-body-limit-captu.md) | — | DLP capture go-live readiness: rule UI, seeds, body limit, captures view | COMPLETE | `agent/dlp-go-live` | `develop` | — | 2026-08-25T17:01:21.029Z |
 | [SESSION-0052](../../docs/sessions/SESSION-0052-repo-health-blames-this-task-for-another-session-s-merge.md) | — | repo-health blames this task for another session's merge | COMPLETE | `agent/repo-health-task-sha` | `develop` | — | 2026-08-25T09:59:06.166Z |

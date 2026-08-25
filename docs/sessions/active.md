@@ -10,6 +10,4 @@ leases actually held this minute, the develop merge queue — comes from
 `node scripts/session.mjs list`, which reads the shared Git directory and
 therefore sees sibling worktrees without anybody having pushed.
 
-| Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
-|---|---|---|---|---|---|---|---|
-| [SESSION-0056](../../docs/sessions/SESSION-0056-end-to-end-browser-qa-of-the-public-landing-site-on-local-an.md) | — | End-to-end browser QA of the public landing site on local and production | ACTIVE | `agent/landing-e2e-qa` | `develop` | — | 2026-08-25T17:30:09.143Z |
+_None. No session is currently running._
