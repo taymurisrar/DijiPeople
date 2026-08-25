@@ -29,7 +29,7 @@ the existing retention job. Keylogging remains impossible; the employee always
 sees when capture is active. Done when the ExecPlan's Definition of Done is
 fully checked and the work is integrated into `develop`.
 
-Full design: [[EXECPLAN-0022-dlp-desktop-agent-capture]] (`PLAN-022`).
+Full design: [EXECPLAN-0022](../plans/EXECPLAN-0022-dlp-desktop-agent-capture.md) (`PLAN-022`).
 Owner decisions recorded in the ExecPlan's Business requirement section.
 
 ## Work Packages
@@ -61,7 +61,7 @@ before work depends on it.
 ## Owner Decisions
 
 Recorded via `AskUserQuestion`, 2026-08-25. Full context in
-[[EXECPLAN-0022-dlp-desktop-agent-capture]] › Business requirement.
+[EXECPLAN-0022](../plans/EXECPLAN-0022-dlp-desktop-agent-capture.md) › Business requirement.
 
 1. **Keylogging — dropped.** Clipboard + triggered screenshots only;
    `allowKeylogging` stays hardcoded off.
