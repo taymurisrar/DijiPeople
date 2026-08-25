@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 257,
+    "total_records": 259,
     "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
@@ -7703,6 +7703,48 @@
       "verification_result": "NOT_VERIFIED"
     },
     {
+      "record_id": "BUG-1261",
+      "type": "UX",
+      "title": "The admin theme bootstrap script runs in head where React hydrates it against extension-injected scripts",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "VERIFIED",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/bugs/BUG-1261-the-admin-theme-bootstrap-script-runs-in-head-where-react-hy.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "42435d59",
+        "created_at": "2026-08-25",
+        "updated_at": "2026-08-25",
+        "resolved_at": "2026-08-25"
+      },
+      "affected_modules": [
+        "apps/admin"
+      ],
+      "regressions": [
+        "REG-251"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-022"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/admin"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1261-the-admin-theme-bootstrap-script-runs-in-head-where-react-hy.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
       "record_id": "BUG-1302",
       "type": "UX",
       "title": "Annual per-seat price is labelled per month on the checkout page",
@@ -12430,6 +12472,44 @@
           "web"
         ],
         "verification_scope": "See docs/backlog/items/ITEM-0098-753-of-846-shared-frontend-exports-carry-no-doc-comment.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0099",
+      "type": "DOCUMENTATION",
+      "title": "sync-obsidian does not map docs/plans, so every ExecPlan wikilink is an orphan",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0099-sync-obsidian-does-not-map-docs-plans-so-every-execplan-wiki.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-08-25",
+        "updated_at": "2026-08-25",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "scripts"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "scripts"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0099-sync-obsidian-does-not-map-docs-plans-so-every-execplan-wiki.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],
