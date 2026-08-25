@@ -8,8 +8,8 @@
 | | |
 |---|---|
 | Active sessions | **0** |
-| Active parent tasks | 7 |
-| Active work packages | 2 |
+| Active parent tasks | 6 |
+| Active work packages | 1 |
 | Blocked work packages | 0 |
 | Work packages waiting on the user | 0 |
 | Open questions | 0 |
@@ -59,7 +59,6 @@ _No session is currently registered as active._
 | [[TASK-0009-identity-and-multi-tenant-membership|TASK-0009]] | Identity and multi-tenant membership | FEATURE | LARGE | 11/12 | WP-09 | WP-09 | — |
 | [[TASK-0011-first-production-release|TASK-0011]] | First production release | RELEASE | MEDIUM | 2/2 | — | — | — |
 | [[TASK-0018-legacy-pricing-removed-and-the-commercial-catalogue-made-to-|TASK-0018]] | Legacy pricing removed and the commercial catalogue made to converge | FEATURE | MEDIUM | 4/4 | — | — | — |
-| [[TASK-0021-release-the-tenant-list-identity-fix-and-the-first-admin-bro|TASK-0021]] | Release the tenant list identity fix and the first admin browser suite | RELEASE | SMALL | 0/2 | WP-01 | — | — |
 
 ## Branch model
 
@@ -250,6 +249,7 @@ Deployment state is **not** derivable from Git. A merge is Git state; what is
 running is a separate fact with separate evidence, recorded per release under
 `docs/deployment/release-history/`.
 
+- [[2026-08-25-production-08d7901|Release — production — `08d7901`]]
 - [[2026-08-24-production-6ed7a44|Release — production — `6ed7a44`]]
 - [[2026-08-24-production-2609275|Release — production — `2609275`]]
 

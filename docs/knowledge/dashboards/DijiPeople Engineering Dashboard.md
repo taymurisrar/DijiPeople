@@ -247,6 +247,7 @@
 
 ## Recent Releases
 
+- [[2026-08-25-production-08d7901|Release — production — `08d7901`]]
 - [[2026-08-24-production-6ed7a44|Release — production — `6ed7a44`]]
 - [[2026-08-24-production-2609275|Release — production — `2609275`]]
 
@@ -294,7 +295,7 @@
 | Known bug patterns | 27 |
 | QA runs | 24 |
 | Engineering history records | 39 |
-| Release records | 2 |
+| Release records | 3 |
 | Module notes | 28 |
 | Architecture notes | 20 |
 | Decision notes (ADR + generated) | 6 |

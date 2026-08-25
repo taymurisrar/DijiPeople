@@ -4,17 +4,17 @@ aliases: [TASK-0021]
 TITLE: Release the tenant list identity fix and the first admin browser suite
 TYPE: RELEASE
 SIZE: SMALL
-STATUS: IN_PROGRESS
+STATUS: COMPLETE
 PRIORITY: P1
 CREATED_AT: 2026-08-25
 AFFECTED_MODULES: [apps/admin, e2e]
 AGENTS: [Architect, QA, Integrator, Release/DevOps]
 DEPENDENCIES: origin/develop 3d1e750c
-CURRENT_PACKAGE: WP-01
-COMPLETED_PACKAGES: []
+CURRENT_PACKAGE:
+COMPLETED_PACKAGES: [WP-01, WP-02]
 BLOCKED_PACKAGES: []
 OWNER_DECISIONS: 0
-FINAL_STATUS:
+FINAL_STATUS: COMPLETE - merged as 08d79012 via PR #47. Vercel admin Ready in 40s; Render correctly skipped because no file under its services/api rootDir changed, so /api/health still reporting 2609275 is the right outcome rather than a stalled deploy.
 ---
 
 # TASK-0021 — Release the tenant list identity fix and the first admin browser suite
@@ -42,8 +42,8 @@ choices survive.
 
 | WP_ID | TITLE | STATUS | DEPENDENCIES | AGENTS | BRANCH | SHA | QA_STATUS | BUGS | CI_STATUS | MERGE_STATUS |
 |---|---|---|---|---|---|---|---|---|---|---|
-| WP-01 | PR `develop` → `main`, exact-SHA CI verdict, merge | IN_PROGRESS | — | Integrator | develop | 3d1e750c | PASS | — | PASS | — |
-| WP-02 | Deployment outcome, production verification, release record | NOT_STARTED | WP-01 | Release/DevOps, QA | — | — | NOT_RUN | — | NOT_RUN | — |
+| WP-01 | PR `develop` → `main`, exact-SHA CI verdict, merge | DONE | — | Integrator | develop | 53e57a6c | PASS | — | PASS | MERGED 08d79012 |
+| WP-02 | Deployment outcome, production verification, release record | DONE | WP-01 | Release/DevOps, QA | main | 08d79012 | PASS | — | PASS | DEPLOYED |
 
 ## Risk
 
@@ -100,7 +100,7 @@ this change.
 PRE_TASK_REPO_HEALTH — `MAIN_CHANGE_STATUS = UNTOUCHED` against `2609275`;
 `UNEXPLAINED_DIRTY_FILES = 0`.
 
-POST_TASK_REPO_HEALTH — on completion.
+POST_TASK_REPO_HEALTH — recorded on the engineering history for SESSION-0049.
 
 ## History
 
