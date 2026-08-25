@@ -291,6 +291,40 @@ export function findOffer(
   return plan.offers.find((offer) => offer.billingInterval === billingInterval) ?? null;
 }
 
+/**
+ * Which billing model the market publishes, per plan and interval.
+ *
+ * Keyed `"<planKey>:<MONTH|YEAR>"` so it survives being handed to a client
+ * component. The subscribe wizard needs the *published* model to resolve the
+ * same price `/plans` shows — see `findPlanPrice` and BUG-1369, where the two
+ * disagreed by about 25% because the wizard matched on currency and cycle alone
+ * and took whichever price the API happened to list first.
+ *
+ * Built from the offers rather than from a rule about billing models, on
+ * purpose. This config is the publisher: it exposes exactly one offer per
+ * interval, and which one is a commercial decision Platform Admin governs.
+ * Re-deriving it in the frontend — "prefer per-seat", say — would put that
+ * decision back in the one place that cannot see the configuration, which is
+ * what BUG-0027 and BUG-0028 were.
+ *
+ * An unavailable offer contributes nothing: it names no model, and a plan
+ * missing from the map falls back to the wizard's older behaviour.
+ */
+export function publishedBillingModels(
+  config: CommercialConfigView,
+): Record<string, "PER_SEAT" | "FLAT"> {
+  const models: Record<string, "PER_SEAT" | "FLAT"> = {};
+
+  for (const plan of config.plans ?? []) {
+    for (const offer of plan.offers ?? []) {
+      if (!offer.available) continue;
+      models[`${plan.key}:${offer.billingInterval}`] = offer.billingModel;
+    }
+  }
+
+  return models;
+}
+
 /** Whether a plan can be bought online right now, per published configuration. */
 export function isSelfServiceAvailable(
   plan: CommercialPlanView,

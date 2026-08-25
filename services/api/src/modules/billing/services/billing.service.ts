@@ -9,6 +9,7 @@ import {
   BillingInterval,
   BillingModel,
   CommercialPublicationStatus,
+  CommercialSalesModel,
   Prisma,
   StripeEnvironment,
   StripeSyncStatus,
@@ -22,6 +23,9 @@ import {
   suggestTenantSlug,
 } from '../../../common/utils/slug.util';
 import { StripeBillingService } from './stripe-billing.service';
+// The one channel rule, shared with `/public/commercial-config` rather than
+// restated here — see the filter in `getPublicPlans`.
+import { narrowestSalesModel } from '../commercial-offer.resolver';
 import { LegalService } from '../../legal/legal.service';
 import { OwnerEmailVerificationService } from './owner-email-verification.service';
 import { SubscriptionOrderService } from './subscription-order.service';
@@ -87,7 +91,35 @@ export class BillingService {
       const metadata = normalizeJsonObject(plan.metadataJson);
       const billingCyclesByCurrency = new Map<string, Set<string>>();
 
-      for (const price of plan.prices) {
+      /*
+       * Only prices a visitor may actually be sold.
+       *
+       * Flat pricing is internal — see `flat-pricing-is-internal.spec.ts` and
+       * the owner's rule it records: the website, the plans page and
+       * self-service checkout show per-seat prices only. Flat rates exist for
+       * customers onboarded by hand, and must never be quoted to a visitor.
+       *
+       * `/public/commercial-config` has always honoured that, because
+       * `resolveCommercialOffer` narrows by channel before selecting. This
+       * endpoint did not: it filtered on `isActive` alone, so it published the
+       * `SALES_ASSISTED` flat rows to anonymous callers *and* computed
+       * `checkoutReady` for them. That is how BUG-1369 happened — the subscribe
+       * wizard reads this endpoint, found two candidates for one currency and
+       * cycle, and quoted the internal one.
+       *
+       * Reusing `narrowestSalesModel` rather than testing `billingModel` here is
+       * deliberate: a second, differently-shaped rule for one decision is how
+       * the two endpoints came to disagree in the first place. The plan's model
+       * narrows the price's and never widens it, so a `CUSTOM_ONLY` plan is
+       * excluded even where a price row says `SELF_SERVICE`.
+       */
+      const sellablePrices = plan.prices.filter(
+        (price) =>
+          narrowestSalesModel(plan.salesModel, price.salesModel) ===
+          CommercialSalesModel.SELF_SERVICE,
+      );
+
+      for (const price of sellablePrices) {
         const currency = price.currency.toUpperCase();
         const cycles = billingCyclesByCurrency.get(currency) ?? new Set();
         cycles.add(price.billingCycle);
@@ -107,7 +139,7 @@ export class BillingService {
         currency: plan.currency,
         monthlyBasePrice: Number(plan.monthlyBasePrice),
         annualBasePrice: Number(plan.annualBasePrice),
-        prices: plan.prices.map((price) => {
+        prices: sellablePrices.map((price) => {
           const contract = mapSeatPriceContract(price);
           const readiness = deriveCheckoutReadiness(
             {

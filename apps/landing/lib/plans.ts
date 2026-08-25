@@ -1,11 +1,18 @@
 export type BillingCycle = "MONTHLY" | "ANNUAL";
 
+/**
+ * How a price is charged. The third dimension that identifies a price, with
+ * currency and billing cycle — see `findPlanPrice`, and BUG-1369 for what
+ * happens when only the first two are matched on.
+ */
+export type BillingModel = "PER_SEAT" | "FLAT";
+
 export type PublicPlanPrice = {
   id: string;
   billingCycle: BillingCycle;
   currency: string;
   unitAmount: number;
-  billingModel?: "PER_SEAT" | "FLAT";
+  billingModel?: BillingModel;
   billingInterval?: "MONTH" | "YEAR";
   pricePerSeat?: number | null;
   minimumSeats?: number;
@@ -88,20 +95,48 @@ export function resolveDisplayCurrency(
   return available[0] ?? null;
 }
 
+/**
+ * The one price a plan has, for this market and cycle.
+ *
+ * A price is identified by three things — currency, billing cycle and billing
+ * **model** — and this used to match on the first two, returning whichever of
+ * the remaining candidates `/public/plans` happened to list first. That is not
+ * a contract, and it produced BUG-1369: once the QAR `FLAT` prices became
+ * sellable alongside the per-seat ones, `/subscribe` quoted "QAR 249, billed as
+ * one subscription" for a plan `/plans` advertises at "QAR 8 per active
+ * employee". Two prices for one selection, differing by about 25%.
+ *
+ * `publishedBillingModel` closes that. It comes from
+ * `/public/commercial-config` — the same publisher `/plans` reads — so both
+ * surfaces resolve to the same price by construction rather than by agreement.
+ * Deciding here which model *ought* to win would be authoring a commercial
+ * policy in the frontend, which is what BUG-0027 and BUG-0028 were; the backend
+ * publishes exactly one offer per interval and this honours it.
+ *
+ * Omitting it keeps the old positional behaviour. That path is only for a
+ * caller with no commercial configuration to hand — when the config request
+ * fails the plans page has no offers to render either, so the whole surface is
+ * already degraded, and refusing to quote would be a worse answer than an
+ * ambiguous one.
+ *
+ * Returning `null` is a real answer. No USD fallback, and no fallback to a
+ * model the market does not publish: quoting a plan in a currency or on a basis
+ * the visitor's market does not use is worse than showing no price, because it
+ * is a wrong number presented as a right one.
+ */
 export function findPlanPrice(
   plan: PublicPlan,
   currency: string,
   billingCycle: BillingCycle,
+  publishedBillingModel?: BillingModel | null,
 ) {
-  // No USD fallback. Quoting a plan in a currency the visitor's market does not
-  // use is worse than showing no price: it is a wrong number presented as a
-  // right one. The market's currency is resolved server-side; if there is no
-  // price in it, the plan has no public price and must say so.
   return (
     plan.prices.find(
       (price) =>
         price.currency.toUpperCase() === currency.toUpperCase() &&
-        price.billingCycle === billingCycle,
+        price.billingCycle === billingCycle &&
+        (!publishedBillingModel ||
+          price.billingModel === publishedBillingModel),
     ) ?? null
   );
 }

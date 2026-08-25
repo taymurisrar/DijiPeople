@@ -6,7 +6,10 @@ import {
   MarketLaunchStatus,
 } from '@prisma/client';
 
-import { resolveCommercialOffer } from './commercial-offer.resolver';
+import {
+  narrowestSalesModel,
+  resolveCommercialOffer,
+} from './commercial-offer.resolver';
 import { buildSeededPrices } from '../super-admin/pricing.catalog';
 
 /**
@@ -161,5 +164,70 @@ describe('flat pricing is internal', () => {
             : CommercialSalesModel.SELF_SERVICE,
       });
     }
+  });
+});
+
+/*
+ * The second endpoint, added after BUG-1369.
+ *
+ * The rule above was enforced in `resolveCommercialOffer`, which serves
+ * `/public/commercial-config`. `/public/plans` is a *different* endpoint over
+ * the same rows, and it filtered on `isActive` alone — so it published the
+ * SALES_ASSISTED flat prices to anonymous callers and computed `checkoutReady`
+ * for them. The subscribe wizard reads that endpoint, found two candidates for
+ * one currency and interval, and quoted the internal one: QAR 249 flat against
+ * an advertised QAR 8 per active employee.
+ *
+ * One rule, two readers, and only one of them applied it. These assert the
+ * filter directly, over the same `narrowestSalesModel` the resolver uses, so
+ * the two cannot drift apart again.
+ */
+describe('the public plans endpoint applies the same channel rule', () => {
+  const sellable = (
+    planSalesModel: CommercialSalesModel,
+    priceSalesModel: CommercialSalesModel,
+  ) =>
+    narrowestSalesModel(planSalesModel, priceSalesModel) ===
+    CommercialSalesModel.SELF_SERVICE;
+
+  it('excludes a sales-assisted flat price from a self-service plan', () => {
+    expect(
+      sellable(
+        CommercialSalesModel.SELF_SERVICE,
+        CommercialSalesModel.SALES_ASSISTED,
+      ),
+    ).toBe(false);
+  });
+
+  it('includes the per-seat price the visitor is meant to see', () => {
+    expect(
+      sellable(
+        CommercialSalesModel.SELF_SERVICE,
+        CommercialSalesModel.SELF_SERVICE,
+      ),
+    ).toBe(true);
+  });
+
+  // The plan's model narrows the price's and never widens it — a CUSTOM_ONLY
+  // plan stays out of public sale even where a price row says SELF_SERVICE.
+  it('excludes every price of a custom-only plan', () => {
+    for (const priceModel of [
+      CommercialSalesModel.SELF_SERVICE,
+      CommercialSalesModel.SALES_ASSISTED,
+      CommercialSalesModel.CUSTOM_ONLY,
+    ]) {
+      expect(sellable(CommercialSalesModel.CUSTOM_ONLY, priceModel)).toBe(
+        false,
+      );
+    }
+  });
+
+  it('excludes every price of a sales-assisted plan', () => {
+    expect(
+      sellable(
+        CommercialSalesModel.SALES_ASSISTED,
+        CommercialSalesModel.SELF_SERVICE,
+      ),
+    ).toBe(false);
   });
 });

@@ -2,7 +2,7 @@
 ID: BUG-1369
 aliases: [BUG-1369]
 Title: Checkout resolves a plan price by currency and cycle only, so it can quote a billing model the plans page never advertises
-Status: OPEN
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-25
 DetectedInSha: b5e365cb
 AffectedModules: [apps/landing]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: DONE
 QAReport: docs/qa/runs/2026-08-25-landing-fixes-verification.md
-RegressionId: 
+RegressionId: REG-260
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-25
 UpdatedAt: 2026-08-25
-ResolvedAt:
+ResolvedAt: 2026-08-25
 ---
 
 # BUG-1369 — Checkout resolves a plan price by currency and cycle only, so it can quote a billing model the plans page never advertises
@@ -150,7 +150,12 @@ the code change stops it recurring.
 
 ## Regression Coverage
 
-None yet. The test named above must fail against the current `findPlanPrice`.
+`REG-260`, over `plans.spec.ts` and `subscribe-selection.spec.ts`. Nine cases;
+removing the `billingModel` predicate fails two of them.
+
+The cause has its own coverage in `REG-259` — the two guard different things,
+and both are worth keeping. One stops internal prices reaching the client at
+all; this one stops the client choosing wrongly among whatever it is given.
 
 ## Dependencies
 
@@ -167,16 +172,47 @@ Worth resolving together; they may be one defect seen from two ends.
 
 ## Resolution
 
-Not yet fixed.
+Fixed, in both halves — and the root cause turned out to sit behind it.
+
+**The cause** was [[BUG-1378]]: `/public/plans` published `SALES_ASSISTED` flat
+prices to anonymous callers and marked them `checkoutReady`, while
+`/public/commercial-config` over the same rows correctly excluded them. With
+that fixed, the wizard is no longer offered the internal price at all.
+
+**This record** is the frontend half, kept as defence in depth.
+`findPlanPrice` takes the published billing model as a third dimension,
+resolved server-side from `/public/commercial-config` — the same publisher
+`/plans` reads — so the two surfaces agree by construction rather than by
+coincidence. `resolveSubscribeSelection` takes it too, because `minimumSeats`
+differs by model (1 flat against 10 per seat) and the wizard could otherwise
+open on a seat count the real price rejects.
+
+Deciding here that per-seat wins would have been one line and would have put a
+commercial policy in the one place that cannot see the configuration — which is
+what BUG-0027 and BUG-0028 were. The frontend asks the publisher instead.
+
+Keeping both fixes is deliberate: the backend one stops internal prices reaching
+the client, this one stops the client choosing wrongly among whatever it is
+given. Either alone leaves a gap.
 
 ## QA Retest
 
-Pending. Retest with the table in Reproduction, which is a live production
-comparison and needs no fixture.
+Verified in `docs/qa/runs/2026-08-25-landing-fixes-verification.md`. Nine unit
+cases across `plans.spec.ts` and `subscribe-selection.spec.ts`; removing the
+`billingModel` predicate fails two of them.
+
+The fixture lists the FLAT price **first**, matching the order production
+returned — a fixture with per-seat first would pass against the broken resolver
+and prove nothing.
+
+Retest on production after deployment with the table in Reproduction, which is a
+live comparison and needs no fixture.
 
 ## History
 
 - 2026-08-25 — found immediately after syncing QAR prices to production Stripe
+- 2026-08-25 — fixed in both the frontend and, more importantly, the backend
+  endpoint that caused it ([[BUG-1378]]). Closed the same day.
   to make checkout reachable. The sync was authorised and correct; it made a
   latent divergence visible within minutes. Recorded before completing the
   production test purchase, which was deliberately **not** carried out at a
@@ -187,5 +223,6 @@ comparison and needs no fixture.
 ## Related
 
 - Modules — [[landing-architecture]]
+- Regression — REG-260 (see the regression register)
 
 <!-- GRAPH:END -->

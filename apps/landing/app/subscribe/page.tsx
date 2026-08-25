@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { PageShell } from "../_components/site-shell";
-import { getCommercialConfig } from "../../lib/commercial-config";
+import {
+  getCommercialConfig,
+  publishedBillingModels,
+} from "../../lib/commercial-config";
 import { resolveDisplayCurrency } from "../../lib/plans";
 import { getPublicPlans } from "../../lib/plans-server";
 import { fetchPublishedLegalIndex } from "../../lib/legal-server";
@@ -50,20 +53,24 @@ export default async function SubscribePage({
     <PageShell>
       <section className="max-w-3xl py-8">
         <Eyebrow>Get started</Eyebrow>
-        <PageHeading className="mt-3">
-          Set up your workspace.
-        </PageHeading>
+        <PageHeading className="mt-3">Set up your workspace.</PageHeading>
         <p className="mt-4 text-base leading-7 text-muted">
           A few details about your company, then secure payment. We start
           setting up your workspace as soon as the payment goes through, and
           email you when it&rsquo;s ready.
         </p>
       </section>
+      {/*
+        The published billing model travels with the plans, so the wizard
+        resolves the same price /plans advertises rather than whichever one
+        /public/plans happens to list first — BUG-1369.
+      */}
       <SubscribeForm
         agreements={agreements}
         defaultCurrency={defaultCurrency}
         error={plansResponse.error}
         plans={plans}
+        publishedBillingModels={publishedBillingModels(commercialConfig)}
         selectionParams={selectionParams}
         tenantBaseDomain={landingEnv.tenantBaseDomain}
       />
