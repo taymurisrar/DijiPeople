@@ -8,13 +8,13 @@
 | | |
 |---|---|
 | Open CRITICAL | **5** |
-| Open HIGH | **16** |
-| Open total | 63 |
+| Open HIGH | **17** |
+| Open total | 64 |
 | Blocked | 1 |
 | Awaiting a product decision | 2 |
 | Deferred | 24 |
 | Completed | 204 |
-| Awaiting Architect triage | 29 |
+| Awaiting Architect triage | 30 |
 
 ## Open Critical Bugs
 
@@ -44,6 +44,7 @@
 | [[BUG-1542-monitoring-incident-detail-pages-return-404-for-every-incide|BUG-1542]] | Monitoring incident detail pages return 404 for every incident | BUG | HIGH | OPEN | platform-monitoring, error-logs | TRIAGE_REQUIRED |
 | [[BUG-1543-stripe-webhook-rejected-as-validation-failed-during-a-live-p|BUG-1543]] | Stripe webhook rejected as VALIDATION_FAILED during a live payment | INTEGRATION | HIGH | OPEN | billing | TRIAGE_REQUIRED |
 | [[BUG-1544-public-signup-advertises-a-workspace-domain-that-does-not-re|BUG-1544]] | Public signup advertises a workspace domain that does not resolve | UX | HIGH | OPEN | tenant-domains, leads | TRIAGE_REQUIRED |
+| [[BUG-1578-admin-customer-form-stores-a-country-lookup-id-where-every-r|BUG-1578]] | Admin customer form stores a country lookup id where every reader expects a name | DATA_INTEGRITY | HIGH | OPEN | super-admin, contracts, lookups | TRIAGE_REQUIRED |
 | [[ITEM-0034-apps-web-has-zero-browser-e2e-coverage|ITEM-0034]] | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | READY | apps/web, e2e | PLAN_REQUIRED |
 | [[ITEM-0094-go-live-sh-reports-no-blocker-for-a-webhook-endpoint-that-re|ITEM-0094]] | go-live.sh reports no blocker for a webhook endpoint that rejects every delivery | TEST_GAP | HIGH | READY | scripts, api:billing, api:outbox | FIX_NOW |
 
@@ -340,7 +341,7 @@
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 193 |
+| Bug records | 194 |
 | Backlog items | 101 |
 | Known bug patterns | 29 |
 | QA runs | 27 |
@@ -351,7 +352,7 @@
 | Decision notes (ADR + generated) | 6 |
 | Implementation records | 6 |
 
-**Awaiting Architect triage: 29.** A record nobody has
+**Awaiting Architect triage: 30.** A record nobody has
 triaged is work nobody has decided about — the number that should stay near
 zero between tasks.
 

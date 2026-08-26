@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 294,
+    "total_records": 295,
     "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
@@ -9348,6 +9348,48 @@
           "leads"
         ],
         "verification_scope": "See docs/bugs/BUG-1561-signup-verification-step-has-no-way-back-to-correct-a-mistyp.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1578",
+      "type": "DATA_INTEGRITY",
+      "title": "Admin customer form stores a country lookup id where every reader expects a name",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-1578-admin-customer-form-stores-a-country-lookup-id-where-every-r.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "21032ae",
+        "created_at": "2026-08-26",
+        "updated_at": "2026-08-26",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "super-admin",
+        "contracts",
+        "lookups"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "super-admin",
+          "contracts",
+          "lookups"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1578-admin-customer-form-stores-a-country-lookup-id-where-every-r.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],

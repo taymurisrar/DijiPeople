@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**294 records** — 193 bugs under [`docs/bugs/`](../bugs/), 101 non-bug items under [`items/`](items/).
+**295 records** — 194 bugs under [`docs/bugs/`](../bugs/), 101 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,21 +13,21 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 63 |
+| Open (active work) | 64 |
 | Blocked | 1 |
 | Deferred | 24 |
 | Awaiting a product decision | 2 |
 | Completed / closed | 204 |
 | **Open CRITICAL** | **5** |
-| **Open HIGH** | **16** |
-| **Awaiting Architect triage** | **29** |
+| **Open HIGH** | **17** |
+| **Awaiting Architect triage** | **30** |
 
 ## Open by severity
 
 | Severity | Count |
 |---|---|
 | CRITICAL | 5 |
-| HIGH | 16 |
+| HIGH | 17 |
 | MEDIUM | 32 |
 | LOW | 10 |
 
@@ -37,7 +37,7 @@ see [`README.md`](README.md) for why.
 |---|---|
 | ARCHITECTURE | 1 |
 | BUG | 15 |
-| DATA_INTEGRITY | 3 |
+| DATA_INTEGRITY | 4 |
 | FOLLOW_UP | 2 |
 | INFRA | 7 |
 | INTEGRATION | 3 |
@@ -51,7 +51,7 @@ see [`README.md`](README.md) for why.
 
 | Status | Count |
 |---|---|
-| OPEN | 35 |
+| OPEN | 36 |
 | BLOCKED | 1 |
 | DEFERRED | 24 |
 | PRODUCT_DECISION | 2 |
@@ -169,6 +169,7 @@ see [`README.md`](README.md) for why.
 | [BUG-1542](../../docs/bugs/BUG-1542-monitoring-incident-detail-pages-return-404-for-every-incide.md) | Monitoring incident detail pages return 404 for every incident | BUG | HIGH | P1 | OPEN | platform-monitoring, error-logs | TRIAGE_REQUIRED |
 | [BUG-1543](../../docs/bugs/BUG-1543-stripe-webhook-rejected-as-validation-failed-during-a-live-p.md) | Stripe webhook rejected as VALIDATION_FAILED during a live payment | INTEGRATION | HIGH | P1 | OPEN | billing | TRIAGE_REQUIRED |
 | [BUG-1544](../../docs/bugs/BUG-1544-public-signup-advertises-a-workspace-domain-that-does-not-re.md) | Public signup advertises a workspace domain that does not resolve | UX | HIGH | P1 | OPEN | tenant-domains, leads | TRIAGE_REQUIRED |
+| [BUG-1578](../../docs/bugs/BUG-1578-admin-customer-form-stores-a-country-lookup-id-where-every-r.md) | Admin customer form stores a country lookup id where every reader expects a name | DATA_INTEGRITY | HIGH | P1 | OPEN | super-admin, contracts, lookups | TRIAGE_REQUIRED |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | READY | apps/web, e2e | PLAN_REQUIRED |

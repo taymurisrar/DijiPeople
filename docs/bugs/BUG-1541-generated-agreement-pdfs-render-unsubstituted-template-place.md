@@ -74,43 +74,57 @@ once the fix is confirmed.
 
 ## Root Cause
 
-Not established, but substantially narrowed by reading the code at `6cc25b6a`.
+**Established** on 2026-08-26 by reading the contract's own field values from
+production, via `GET /api/contracts/dea80bb1-ccc1-4d8d-84b9-f4a06c1369d8/document-fields`
+as a platform owner.
 
-`renderContractPlaceholders` (`services/api/src/modules/contracts/contracts.service.ts`)
-keeps a raw token in the output only when the key is absent from the contract's
-placeholder values, or resolves to an empty string, *and* the registry
-definition's `fallbackBehavior` is not `EMPTY`. The renderer is therefore
-behaving as written: the tokens survive because the values were never there.
+The template carries **39 placeholders. 8 resolve; 31 do not.** The unresolved
+ones fall into whole namespaces, not a scatter:
 
-Creation through `POST /api/contracts/from-source` calls `resolveSource`, which
-for `sourceType: 'customer'` returns `customerSource()`. That function emits the
-`customer.*` namespace only, and explicitly sets `tenantId: undefined`. It emits
-no `tenant.*`, no SLA and no `commercial.*` billing keys. A template named
-"Tenant Provisioning & Service Order", populated from a customer that has no
-tenant yet, therefore cannot resolve its tenant name, workspace URL, admin
-contact, module list, SLA terms or billing dates. That much is established.
+| Namespace | In template | Unresolved |
+|---|---|---|
+| `tenant.*` | 12 | 12 |
+| `implementation.*` | 6 | 6 |
+| `hosting.*` | 5 | 5 |
+| `signature.*` | 4 | 4 |
+| `commercial.*` | 2 | 2 |
+| `integration.*` | 1 | 1 |
+| `serviceOrder.*` | 1 | 1 |
+| `sla.*` | 4 | 0 |
+| `customer.*` | 3 | 0 |
+| `contract.*` | 1 | 0 |
 
-What that does **not** explain is the customer legal name and registered
-address, which were also reported unsubstituted. `customer.legalName` falls back
-to `companyName` and `customer.address` is joined from the address columns, so
-both should resolve for any customer record. Two candidates remain:
+The agreement was created from a **customer** source. `resolveSource` routes
+that to `customerSource()`, which emits the `customer.*` namespace and nothing
+else — it explicitly sets `tenantId: undefined`. Nothing on that path produces
+`tenant.*`, `implementation.*`, `hosting.*`, `integration.*`, `commercial.*` or
+`serviceOrder.*`, and every one of those placeholders comes back with
+`source: null`. A tenant-provisioning service order populated from a customer
+that has no tenant cannot resolve two thirds of itself. That is the cause.
 
-1. The template body uses keys that are not in `CONTRACT_PLACEHOLDER_REGISTRY`.
-   `extractContractPlaceholders` invents a definition for an unknown key with no
-   `fallbackBehavior`, so such a token is always kept. This would also explain
-   why *every* body token survived while the title merged — the title is set
-   from `dto.title`, a plain string that never passes through the renderer.
-2. The QA customer record was created with those columns empty.
+The renderer is not at fault. It keeps a token when the key has no value, by
+design, so the signature gate can refuse an incomplete document — and
+`tenant.name` is `required: true` and unresolved, so the gate would have.
 
-**The discriminating step is to read the template body and compare its tokens
-against the registry keys.** That has not been done; the template lives on
-production and was not captured during the pass.
+Two things recorded on 2026-08-26 turn out to be **wrong**, and are corrected
+here:
 
-Note also that creation calls `assertValidContractPlaceholderValues` with
-`requireRequired` defaulting to `false`, so an agreement can legitimately be
-created with values missing — unresolved tokens are meant to survive until the
-signature gate refuses them. Any fix must not break that, which is why this
-needs the discriminating step before a patch rather than after one.
+1. *"Customer legal name and registered address are unsubstituted."* They are
+   not. `customer.legalName`, `customer.companyName` and `customer.address` all
+   resolved, as did all four `sla.*` fields. The report was made by reading the
+   rendered document; the field values disagree with that reading.
+2. *"The template uses keys absent from the registry."* It does not. Every one
+   of the 31 unresolved keys is returned with a registry label and dataType, so
+   all are declared.
+
+`signature.*` being empty is correct — those fill at signing, not at creation.
+The genuinely unresolved set is therefore 27, not 31.
+
+Separately, `customer.address` resolved to
+`ec7dbbe3-1179-4465-990f-06427a4ab59f`. That is a UUID rendered as a legal
+counterparty's registered address, and it is a distinct defect with its own
+record: [[BUG-1578]]. It is part of why this document was unusable, and it is
+worse than an unresolved token, because a populated field does not look broken.
 
 ## Impact
 
