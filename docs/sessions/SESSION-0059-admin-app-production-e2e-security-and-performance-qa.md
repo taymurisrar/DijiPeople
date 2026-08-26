@@ -4,7 +4,7 @@ aliases: [SESSION-0059]
 TASK_ID:
 TITLE: Admin app production E2E, security and performance QA
 ARCHITECT_INTENT: Admin app production E2E, security and performance QA
-STATUS: ACTIVE
+STATUS: COMPLETE
 TASK_TYPE: QA
 TASK_SIZE: LARGE
 BASE_BRANCH: origin/develop
@@ -16,8 +16,8 @@ AFFECTED_MODULES: [apps/admin, services/api/src/modules/platform-runtime]
 WRITE_LEASES: []
 ACTIVE_WORK_PACKAGES: []
 SCHEMA_WRITE: NO
-CI_STATUS: PENDING
-MERGE_STATUS: NOT_STARTED
+CI_STATUS: PASS
+MERGE_STATUS: MERGED
 STARTED_AT: 2026-08-25T23:50:19.069Z
 LAST_HEARTBEAT: 2026-08-26T02:10:00.000Z
 BLOCKERS: none
@@ -92,3 +92,6 @@ told about is a residue nobody removes.
 - 2026-08-26 — production run executed; 7 bugs filed (BUG-1419…BUG-1425), one
   fixed (BUG-1422) with REG-261, mutation-tested.
 - 2026-08-26 — rebased onto `origin/develop` after SESSION-0058 integrated.
+- 2026-08-26 — `CI required gate` PASS for `e7bd1e0`; integrated into `develop`
+  by ref-push, so the branch tip is exactly the SHA that was verified. `main`
+  untouched.

@@ -257,13 +257,13 @@
 ## Recent Engineering History
 
 - [[2026-08-26-dlp-employee-review-10e47f35|Engineering History — DLP investigator review on the employee record]]
+- [[2026-08-26-admin-prod-e2e-qa-e7bd1e05|Engineering History — Admin prod e2e qa]]
 - [[2026-08-25-repo-health-task-sha-5f2648d6|Engineering History — Two checks that were argued correct rather than tested]]
 - [[2026-08-25-landing-qa-fixes-309abe0d|Engineering History — Fixing the six landing QA findings, and releasing them]]
 - [[2026-08-25-landing-e2e-qa-2e2ef16a|Engineering History — Landing E2E QA, local and production]]
 - [[2026-08-25-dlp-go-live-readiness-5f556842|Engineering History — DLP capture go-live readiness]]
 - [[2026-08-25-dlp-desktop-agent-capture-c0932f17|Engineering History — DLP capture for the desktop agent]]
 - [[2026-08-25-agent-ui-perception-c4035dbb|Engineering History — Agent UI perception]]
-- [[2026-08-25-admin-theme-bootstrap-hydration-a4503e3b|Engineering History — Admin theme bootstrap hydration mismatch]]
 
 ## Recent Releases
 
@@ -318,7 +318,7 @@
 | Backlog items | 101 |
 | Known bug patterns | 29 |
 | QA runs | 27 |
-| Engineering history records | 47 |
+| Engineering history records | 48 |
 | Release records | 3 |
 | Module notes | 28 |
 | Architecture notes | 20 |
