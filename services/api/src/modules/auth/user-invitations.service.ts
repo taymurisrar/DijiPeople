@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -23,6 +24,8 @@ type PrismaDb = PrismaService | Prisma.TransactionClient;
 
 @Injectable()
 export class UserInvitationsService {
+  private readonly logger = new Logger(UserInvitationsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
@@ -105,6 +108,35 @@ export class UserInvitationsService {
             ? error.message
             : 'Activation delivery unavailable.';
         deliveryMode = 'disabled';
+      }
+
+      /*
+       * An invitation that was not delivered is a silent dead end, so say so.
+       *
+       * The send deliberately does not throw — a mail problem must not abort
+       * tenant provisioning that has otherwise succeeded. But the previous
+       * version recorded the reason only in the audit `afterSnapshot`, and no
+       * screen renders that. A customer paid, the tenant went ACTIVE, the owner
+       * sat at INVITED forever, and the one record explaining why was reachable
+       * only by querying the database directly.
+       *
+       * Both branches above are covered on purpose: `sent === false` is the
+       * SKIPPED path (tenant email disabled, event preference off, auth
+       * cooldown), which throws nothing at all and was therefore the quieter
+       * of the two failures.
+       */
+      if (deliveryMode !== 'sent') {
+        this.logger.warn(
+          JSON.stringify({
+            message: 'Account activation email was not delivered.',
+            tenantId: input.tenantId,
+            userId: input.userId,
+            invitationId: invitation.id,
+            email,
+            deliveryMode,
+            deliveryStatus,
+          }),
+        );
       }
     }
 

@@ -374,6 +374,7 @@ export function TenantAccessPanel({
                   tenantRequest<{
                     message: string;
                     activationLink?: string;
+                    delivered?: boolean;
                   }>(tenantId, `/access/${identity.id}/${endpoint}`, {
                     method: "POST",
                     body: JSON.stringify({}),
@@ -383,9 +384,19 @@ export function TenantAccessPanel({
               const payload = result as {
                 message?: string;
                 activationLink?: string;
+                delivered?: boolean;
               };
+              /*
+               * A request that succeeded is not an email that arrived.
+               *
+               * This panel used to force tone "success" for every accepted
+               * response, so an invitation the platform could not deliver still
+               * showed green. The API now reports `delivered` separately; only
+               * an explicit false is treated as a failure, so the endpoints
+               * that do not report it keep their previous behaviour.
+               */
               setNotice({
-                tone: "success",
+                tone: payload.delivered === false ? "error" : "success",
                 text: payload.message ?? "Done.",
                 secret:
                   action === "rotate-credential" && payload.activationLink
@@ -492,6 +503,22 @@ function identityColumns(options: {
           {row.invitationExpiresAt && row.invitationStatus.includes("pending") ? (
             <p className="text-[11px] text-slate-500">
               Expires {formatDate(row.invitationExpiresAt)}
+            </p>
+          ) : null}
+          {/*
+            An invitation nobody received looks identical to one in flight
+            unless the delivery outcome is shown next to it. Only a failed or
+            skipped send is called out — a delivered one needs no annotation,
+            and a null status means no send was attempted.
+          */}
+          {row.activationEmailDelivered === false ? (
+            <p className="text-[11px] font-medium text-rose-600">
+              Email not delivered
+              {row.activationEmailDetail
+                ? ` — ${row.activationEmailDetail}`
+                : row.activationEmailStatus
+                  ? ` — ${row.activationEmailStatus.toLowerCase()}`
+                  : ""}
             </p>
           ) : null}
         </div>

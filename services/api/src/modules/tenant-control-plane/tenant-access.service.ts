@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
+  EmailDeliveryStatus,
   Prisma,
   UserInvitationStatus,
   UserStatus,
@@ -117,8 +118,18 @@ export class TenantAccessService {
       users.flatMap((item) => (item.createdById ? [item.createdById] : [])),
     );
 
+    const activationDeliveries = await this.resolveActivationDeliveries(
+      tenant.id,
+      users.map((item) => item.email),
+    );
+
     const mapped = users.map((item) =>
-      this.mapIdentity(item, tenant.ownerUserId, actorNames),
+      this.mapIdentity(
+        item,
+        tenant.ownerUserId,
+        actorNames,
+        activationDeliveries,
+      ),
     );
 
     const owners = mapped.filter(
@@ -297,6 +308,9 @@ export class TenantAccessService {
         { ...created, userRoles: [], invitations: [] } as IdentityRecord,
         tenant.ownerUserId,
         new Map(),
+        // Freshly created: any activation send is still in flight, so there is
+        // no delivery outcome to report yet. The listing resolves it.
+        new Map(),
       ),
       /*
        * Shown once. The link is single-use and expires; it is not stored in a
@@ -452,13 +466,32 @@ export class TenantAccessService {
       after: {
         email: identity.email,
         expiresAt: invitation.expiresAt,
+        deliveryMode: invitation.deliveryMode,
         deliveryStatus: invitation.deliveryStatus,
       },
     });
 
+    /*
+     * Report what delivery actually did, not that the request was accepted.
+     *
+     * This used to return `success: true` and "An invitation has been sent"
+     * unconditionally. A resend whose email was skipped or failed therefore
+     * looked identical to one that arrived: the operator saw a green toast, the
+     * owner never received anything, and the reason existed only in an audit
+     * snapshot no screen renders. Issuing the invitation and delivering it are
+     * two outcomes, and the caller needs both.
+     */
+    const delivered = invitation.deliveryMode === 'sent';
+
     return {
-      success: true,
-      message: `An invitation has been sent to ${identity.email}.`,
+      success: delivered,
+      delivered,
+      message: delivered
+        ? `An invitation has been sent to ${identity.email}.`
+        : `A new invitation was issued for ${identity.email}, but it could not be delivered${
+            invitation.deliveryStatus ? `: ${invitation.deliveryStatus}` : '.'
+          }`,
+      deliveryStatus: invitation.deliveryStatus,
       activationLink: invitation.activationLink,
       expiresAt: invitation.expiresAt,
     };
@@ -741,14 +774,78 @@ export class TenantAccessService {
     return null;
   }
 
+  /**
+   * The delivery outcome of each identity's most recent activation email.
+   *
+   * `UserInvitation` records that an invitation was issued, not whether the
+   * email carrying it arrived — those are different facts, and only the first
+   * was visible. Rather than copy delivery state onto the invitation row, this
+   * reads the log that already holds it. A tenant whose activation email was
+   * skipped or failed therefore shows the reason on the owner row instead of
+   * requiring a database query to discover.
+   *
+   * Keyed by normalized recipient because that is what the delivery log stores
+   * and what `issueInvitation` normalizes to before sending.
+   */
+  private async resolveActivationDeliveries(
+    tenantId: string,
+    emails: string[],
+  ) {
+    const recipients = [...new Set(emails.map((item) => normalizeEmail(item)))];
+    if (recipients.length === 0) {
+      return new Map<string, { status: string; detail: string | null }>();
+    }
+
+    const logs = await this.prisma.emailDeliveryLog.findMany({
+      where: {
+        tenantId,
+        eventCode: 'AUTH_ACCOUNT_ACTIVATION',
+        recipient: { in: recipients },
+      },
+      orderBy: { requestedAt: 'desc' },
+      select: {
+        recipient: true,
+        status: true,
+        errorMessage: true,
+        metadata: true,
+      },
+    });
+
+    const latest = new Map<string, { status: string; detail: string | null }>();
+    for (const log of logs) {
+      // Ordered newest first, so the first entry per recipient is the one.
+      if (latest.has(log.recipient)) continue;
+      const skipReason =
+        log.metadata &&
+        typeof log.metadata === 'object' &&
+        !Array.isArray(log.metadata)
+          ? (log.metadata as Record<string, unknown>).skipReason
+          : undefined;
+      latest.set(log.recipient, {
+        status: log.status,
+        detail:
+          log.errorMessage ??
+          (typeof skipReason === 'string' ? skipReason : null),
+      });
+    }
+
+    return latest;
+  }
+
   private mapIdentity(
     identity: IdentityRecord,
     primaryOwnerUserId: string | null,
     actorNames: Map<string, string>,
+    activationDeliveries: Map<
+      string,
+      { status: string; detail: string | null }
+    >,
   ) {
     const invitation = identity.invitations?.[0] ?? null;
     const identityType =
       this.resolveIdentityType(identity, primaryOwnerUserId) ?? 'TENANT_OWNER';
+    const delivery =
+      activationDeliveries.get(normalizeEmail(identity.email)) ?? null;
     return {
       id: identity.id,
       identityType,
@@ -766,6 +863,18 @@ export class TenantAccessService {
         : null,
       invitationStatus: resolveInvitationStatus(identity.status, invitation),
       invitationExpiresAt: invitation?.expiresAt ?? null,
+      /*
+       * Whether the activation email actually left, alongside whether an
+       * invitation exists. `invitationStatus` answers "was one issued"; these
+       * answer "did it arrive", which is the question an operator looking at a
+       * stuck owner is really asking. Null when nothing was ever attempted.
+       */
+      activationEmailStatus: delivery?.status ?? null,
+      activationEmailDetail: delivery?.detail ?? null,
+      activationEmailDelivered: delivery
+        ? delivery.status === EmailDeliveryStatus.SENT ||
+          delivery.status === EmailDeliveryStatus.DELIVERED
+        : null,
       lastSignInAt: identity.lastLoginAt,
       credentialRotatedAt: identity.passwordChangedAt,
       createdAt: identity.createdAt,
