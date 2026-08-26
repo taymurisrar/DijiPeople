@@ -135,6 +135,13 @@ const navSections = [
       roleKeys: [],
       readPermission: "appDownloads.manage",
     },
+    {
+      href: "/agent-rollout",
+      label: "Agent rollout",
+      icon: Package,
+      roleKeys: [],
+      readPermission: "appDownloads.manage",
+    },
   ]),
   section("System", [
     {

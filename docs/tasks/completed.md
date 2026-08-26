@@ -28,3 +28,4 @@ Parent tasks that reached a terminal state. `FINAL_STATUS` records how.
 | [TASK-0024](TASK-0024-dlp-investigator-review-on-the-employee-record.md) | DLP investigator review on the employee record | FEATURE | MEDIUM | P1 | COMPLETE | 1/1 | — |
 | [TASK-0025](TASK-0025-agent-app-distribution-and-auto-release-pipeline.md) | Agent app distribution and auto-release pipeline | FEATURE | LARGE | P1 | COMPLETE | 6/6 | WP-06 |
 | [TASK-0026](TASK-0026-admin-releases-management-and-channel-promotion-ui.md) | Admin releases management and channel promotion UI | FEATURE | MEDIUM | P1 | COMPLETE | 1/1 | — |
+| [TASK-0027](TASK-0027-tenant-app-assignment-which-tenants-receive-a-release.md) | Tenant app assignment: which tenants receive a release | FEATURE | MEDIUM | P1 | COMPLETE | 1/1 | — |

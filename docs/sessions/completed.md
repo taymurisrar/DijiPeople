@@ -6,6 +6,7 @@ Sessions that reached a terminal state. Kept as history: the branch, the base it
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0064](../../docs/sessions/SESSION-0064-tenant-app-assignment-which-tenants-receive-a-release.md) | TASK-0027 | Tenant app assignment: which tenants receive a release | COMPLETE | `agent/tenant-app-assignment` | `develop` | — | 2026-08-26T16:27:52.547Z |
 | [SESSION-0063](../../docs/sessions/SESSION-0063-admin-releases-ui-versions-enable-disable-promote-assign.md) | — | Admin releases UI: versions, enable/disable, promote, assign | COMPLETE | `agent/admin-releases-ui` | `develop` | — | 2026-08-26T10:49:05.973Z |
 | [SESSION-0062](../../docs/sessions/SESSION-0062-agent-distribution-storage-ci-auto-build-publish-download-ad.md) | — | Agent distribution: storage, CI auto-build/publish, download, admin versioning | COMPLETE | `agent/agent-distribution` | `develop` | — | 2026-08-26T10:03:35.409Z |
 | [SESSION-0060](../../docs/sessions/SESSION-0060-guard-worktree-removal-against-destroying-the-primary-checko.md) | — | Guard worktree removal against destroying the primary checkout | COMPLETE | `agent/worktree-removal-guard` | `develop` | — | 2026-08-26T07:55:46.349Z |

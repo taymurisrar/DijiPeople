@@ -46,6 +46,7 @@ import { UpdateTenantCustomerAccountDto } from './dto/update-tenant-customer-acc
 import { UpdateTenantFeaturesDto } from './dto/update-tenant-features.dto';
 import { UpdateTenantSubscriptionDto } from './dto/update-tenant-subscription.dto';
 import { UpdateTenantStatusDto } from './dto/update-tenant-status.dto';
+import { SetAgentAssignmentDto } from './dto/set-agent-assignment.dto';
 import { UpdateTenantDto } from './dto/update-tenant.dto';
 import { UpdateTenantSlugDto } from '../tenants/dto/update-tenant-slug.dto';
 import { SuperAdminService } from './super-admin.service';
@@ -295,6 +296,24 @@ export class SuperAdminController {
     @Body() dto: UpdateTenantStatusDto,
   ) {
     return this.superAdminService.updateTenantStatus(user, tenantId, dto);
+  }
+
+  // Desktop-agent rollout (TASK-0027): which tenants receive a release, and on
+  // which channel. Platform-guarded like the rest of this controller.
+  @Get('agent-assignments')
+  @RequireRoles(ROLE_KEYS.SYSTEM_ADMIN)
+  listAgentAssignments() {
+    return this.superAdminService.listAgentAssignments();
+  }
+
+  @Patch('tenants/:tenantId/agent-assignment')
+  @RequireRoles(ROLE_KEYS.SYSTEM_ADMIN)
+  setAgentAssignment(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('tenantId', new ParseUUIDPipe()) tenantId: string,
+    @Body() dto: SetAgentAssignmentDto,
+  ) {
+    return this.superAdminService.setAgentAssignment(user, tenantId, dto);
   }
 
   @Get('tenants/:tenantId/audit-logs')

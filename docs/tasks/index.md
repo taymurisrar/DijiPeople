@@ -10,7 +10,7 @@ graph and the block reasons. See
 |---|---|
 | [Active](active.md) | 4 |
 | [Blocked](blocked.md) | 0 |
-| [Completed](completed.md) | 22 |
+| [Completed](completed.md) | 23 |
 
 ## Next ready work package
 
@@ -56,3 +56,4 @@ graph and the block reasons. See
 | [TASK-0024](TASK-0024-dlp-investigator-review-on-the-employee-record.md) | DLP investigator review on the employee record | FEATURE | MEDIUM | P1 | COMPLETE | 1/1 | — |
 | [TASK-0025](TASK-0025-agent-app-distribution-and-auto-release-pipeline.md) | Agent app distribution and auto-release pipeline | FEATURE | LARGE | P1 | COMPLETE | 6/6 | WP-06 |
 | [TASK-0026](TASK-0026-admin-releases-management-and-channel-promotion-ui.md) | Admin releases management and channel promotion UI | FEATURE | MEDIUM | P1 | COMPLETE | 1/1 | — |
+| [TASK-0027](TASK-0027-tenant-app-assignment-which-tenants-receive-a-release.md) | Tenant app assignment: which tenants receive a release | FEATURE | MEDIUM | P1 | COMPLETE | 1/1 | — |
