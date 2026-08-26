@@ -8,13 +8,13 @@
 | | |
 |---|---|
 | Open CRITICAL | **5** |
-| Open HIGH | **10** |
-| Open total | 40 |
+| Open HIGH | **12** |
+| Open total | 42 |
 | Blocked | 1 |
 | Awaiting a product decision | 2 |
 | Deferred | 24 |
 | Completed | 204 |
-| Awaiting Architect triage | 6 |
+| Awaiting Architect triage | 8 |
 
 ## Open Critical Bugs
 
@@ -38,6 +38,8 @@
 | [[BUG-1420-the-monitoring-severity-filter-cannot-match-99-7-percent-of-|BUG-1420]] | The monitoring severity filter cannot match 99.7 percent of stored incidents | DATA_INTEGRITY | HIGH | OPEN | apps/admin, api:error-logs | TRIAGE_REQUIRED |
 | [[BUG-1422-runtime-form-validation-discards-every-field-reason-and-show|BUG-1422]] | Runtime form validation discards every field reason and shows the user Bad Request Exception | BUG | HIGH | FIXED | api:platform-runtime, apps/admin | DONE |
 | [[BUG-1423-runtime-form-controls-have-no-accessible-name-so-screen-read|BUG-1423]] | Runtime form controls have no accessible name so screen readers announce every field as blank | UX | HIGH | OPEN | apps/admin | TRIAGE_REQUIRED |
+| [[BUG-1515-tenant-activation-invitation-reported-as-sent-when-it-was-ne|BUG-1515]] | Tenant activation invitation reported as sent when it was never delivered | STATE_MACHINE | HIGH | OPEN | auth, tenant-control-plane, notifications | TRIAGE_REQUIRED |
+| [[BUG-1516-public-signup-creates-duplicate-customer-records-breaking-st|BUG-1516]] | Public signup creates duplicate customer records, breaking Stripe tenant resolution | DATA_INTEGRITY | HIGH | OPEN | super-admin, billing, landing | TRIAGE_REQUIRED |
 | [[ITEM-0034-apps-web-has-zero-browser-e2e-coverage|ITEM-0034]] | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | READY | apps/web, e2e | PLAN_REQUIRED |
 | [[ITEM-0094-go-live-sh-reports-no-blocker-for-a-webhook-endpoint-that-re|ITEM-0094]] | go-live.sh reports no blocker for a webhook endpoint that rejects every delivery | TEST_GAP | HIGH | READY | scripts, api:billing, api:outbox | FIX_NOW |
 
@@ -317,7 +319,7 @@
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 170 |
+| Bug records | 172 |
 | Backlog items | 101 |
 | Known bug patterns | 29 |
 | QA runs | 27 |
@@ -328,7 +330,7 @@
 | Decision notes (ADR + generated) | 6 |
 | Implementation records | 6 |
 
-**Awaiting Architect triage: 6.** A record nobody has
+**Awaiting Architect triage: 8.** A record nobody has
 triaged is work nobody has decided about — the number that should stay near
 zero between tasks.
 

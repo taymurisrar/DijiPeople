@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**271 records** — 170 bugs under [`docs/bugs/`](../bugs/), 101 non-bug items under [`items/`](items/).
+**273 records** — 172 bugs under [`docs/bugs/`](../bugs/), 101 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,21 +13,21 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 40 |
+| Open (active work) | 42 |
 | Blocked | 1 |
 | Deferred | 24 |
 | Awaiting a product decision | 2 |
 | Completed / closed | 204 |
 | **Open CRITICAL** | **5** |
-| **Open HIGH** | **10** |
-| **Awaiting Architect triage** | **6** |
+| **Open HIGH** | **12** |
+| **Awaiting Architect triage** | **8** |
 
 ## Open by severity
 
 | Severity | Count |
 |---|---|
 | CRITICAL | 5 |
-| HIGH | 10 |
+| HIGH | 12 |
 | MEDIUM | 21 |
 | LOW | 4 |
 
@@ -37,12 +37,12 @@ see [`README.md`](README.md) for why.
 |---|---|
 | ARCHITECTURE | 1 |
 | BUG | 7 |
-| DATA_INTEGRITY | 2 |
+| DATA_INTEGRITY | 3 |
 | FOLLOW_UP | 2 |
 | INFRA | 7 |
 | INTEGRATION | 1 |
 | SECURITY | 3 |
-| STATE_MACHINE | 2 |
+| STATE_MACHINE | 3 |
 | TECH_DEBT | 5 |
 | TEST_GAP | 7 |
 | UX | 3 |
@@ -51,7 +51,7 @@ see [`README.md`](README.md) for why.
 
 | Status | Count |
 |---|---|
-| OPEN | 12 |
+| OPEN | 14 |
 | BLOCKED | 1 |
 | DEFERRED | 24 |
 | PRODUCT_DECISION | 2 |
@@ -163,6 +163,8 @@ see [`README.md`](README.md) for why.
 | [BUG-1420](../../docs/bugs/BUG-1420-the-monitoring-severity-filter-cannot-match-99-7-percent-of-.md) | The monitoring severity filter cannot match 99.7 percent of stored incidents | DATA_INTEGRITY | HIGH | P1 | OPEN | apps/admin, api:error-logs | TRIAGE_REQUIRED |
 | [BUG-1422](../../docs/bugs/BUG-1422-runtime-form-validation-discards-every-field-reason-and-show.md) | Runtime form validation discards every field reason and shows the user Bad Request Exception | BUG | HIGH | P1 | FIXED | api:platform-runtime, apps/admin | DONE |
 | [BUG-1423](../../docs/bugs/BUG-1423-runtime-form-controls-have-no-accessible-name-so-screen-read.md) | Runtime form controls have no accessible name so screen readers announce every field as blank | UX | HIGH | P1 | OPEN | apps/admin | TRIAGE_REQUIRED |
+| [BUG-1515](../../docs/bugs/BUG-1515-tenant-activation-invitation-reported-as-sent-when-it-was-ne.md) | Tenant activation invitation reported as sent when it was never delivered | STATE_MACHINE | HIGH | P1 | OPEN | auth, tenant-control-plane, notifications | TRIAGE_REQUIRED |
+| [BUG-1516](../../docs/bugs/BUG-1516-public-signup-creates-duplicate-customer-records-breaking-st.md) | Public signup creates duplicate customer records, breaking Stripe tenant resolution | DATA_INTEGRITY | HIGH | P1 | OPEN | super-admin, billing, landing | TRIAGE_REQUIRED |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | READY | apps/web, e2e | PLAN_REQUIRED |
