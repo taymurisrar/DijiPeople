@@ -108,30 +108,55 @@ has not is worse than one that starts unauthenticated.
 
 | Flag | Why |
 |---|---|
-| `--isolated` | The profile lives in memory and is discarded. No cookie or local-storage state survives between sessions to make one review depend on a previous one. |
-| `--viewport-size 1280x900` | A desktop default. Override per look for tablet and mobile — the agent can also use `--device "iPhone 15"` or `--mobile`. |
-| `--console-level warning` | Console errors and warnings reach the agent. A React key warning or a failed fetch is often the actual finding on a screen that looks fine. |
+| `--browser chrome` | Real Chrome rather than bundled Chromium. |
+| `--viewport-size 1440x900` | A desktop default. Override per look for tablet and mobile — the agent can also use `--device "iPhone 15"` or `--mobile`. |
+| `--console-level info` | Console errors and warnings reach the agent. A React key warning or a failed fetch is often the actual finding on a screen that looks fine. |
 | `--test-id-attribute data-testid` | Matches `apps/web`. Has no effect on admin, which has none. |
-| `--blocked-origins` | The three authenticated production hosts. |
+| `--snapshot-mode full`, `--snapshot-boxes` | Snapshots carry bounding boxes, so layout can be judged without a screenshot. |
+| `--caps vision,devtools,network,storage,testing,config` | Network and console panes, cookie/localStorage control, tracing and video. |
+| `--output-dir .playwright-mcp`, `--save-session` | Where snapshots, screenshots, downloads and session state are written. **Gitignored** — see below. |
+| `--allowed-origins` | An allowlist: the three authenticated production hosts plus `www.dijipeople.com`. |
 
-### The blocked origins are a guardrail, not a boundary
+### The origins list is an allowlist, and production is on it
 
-`admin.dijipeople.com`, `app.dijipeople.com` and `api.dijipeople.com` are
-blocked so an agent exploring a screen cannot wander into production and click
+This was `--blocked-origins` naming the three authenticated production hosts,
+so an agent exploring a screen could not wander into production and click
 something that matters — the admin console has an Erase Tenant dialog on it.
 
-Two limits, stated plainly because a guardrail believed to be a boundary is
-worse than no guardrail:
+It is now `--allowed-origins`, and it names those same hosts plus the public
+site. The owner made that call on 2026-08-26 so agents could QA production
+directly while it carries no live customer data. Two consequences, stated
+plainly because both have already cost time:
 
-- **Playwright's own documentation says this is not a security boundary, and
-  that it does not affect redirects.** It stops the ordinary case. It is not
-  something to rely on.
-- **`www.dijipeople.com` is deliberately reachable.** The public marketing site
-  is read-only, has no session, and is genuinely useful to look at. Blocking
-  the whole domain would have cost that for nothing.
+- **It is an allowlist, so everything not named is blocked** — including
+  `localhost` and `checkout.stripe.com`. A signup journey that reaches Stripe
+  Checkout dies at `ERR_BLOCKED_BY_CLIENT` unless Stripe's hosts are added.
+- **Neither form is a security boundary.** Playwright's own documentation says
+  so, and says it does not affect redirects.
 
-Neither replaces judgement: **do not point the browser at production to make a
-change.** Use it there to look, and only to look.
+**This is a decision with an expiry date.** It is safe while production holds no
+real customer data. Before the first paying tenant carries data worth losing,
+restore a block on the authenticated hosts, or accept that any agent given this
+repository can drive the production admin console.
+
+`.mcp.json` is read once when the MCP server process starts. **Editing it
+mid-session changes nothing** — the running browser keeps the arguments it was
+launched with. Restart the editor.
+
+Judgement still applies: prefer to look rather than change, and confirm before
+anything destructive.
+
+### The output directory is gitignored, and needs to be
+
+`--output-dir .playwright-mcp` plus `--save-session` means every navigation
+writes a snapshot, and sessions persist. A single production QA pass on
+2026-08-26 left 95 untracked files in the primary checkout — the user's own
+workspace, which they see in their Git client. `.gitignore` now covers
+`.playwright-mcp/`.
+
+Note that `--isolated` was removed in the same change, so the browser profile
+now survives between runs. Convenient — a signed-in admin session is reused —
+but it means a live production session sits on disk.
 
 ### If the server will not start in a git worktree
 
