@@ -36,6 +36,10 @@ user. The unauthenticated context must never be given cookies.
    `stripeCustomerId` and `isDemoData`.
 6. Attempt sign-in with a real address and a wrong password, then with an
    address that does not exist. Compare the two responses byte for byte.
+7. Create a `READ_ONLY_AUDITOR` — a role whose grant list is entirely `.read` —
+   sign in as it in a separate browser context, and attempt: a create on leads,
+   customers and partners; **creating a `PLATFORM_OWNER`**; and deleting its own
+   account. Delete the auditor afterwards.
 
 ## Expected Result
 
@@ -53,6 +57,14 @@ user. The unauthenticated context must never be given cookies.
    forged fields is a weaker pass and should be recorded as such.
 6. The two sign-in responses are **identical**, so the endpoint does not
    enumerate accounts.
+7. Every write is refused **403**, including the privilege-escalation case. The
+   role's reads succeed. Its own view preferences remain writable, which is
+   correct — those belong to the user.
+
+Step 7 is the one that carries weight. Steps 1-6 all run as the most privileged
+session available, and **a session that may do everything cannot demonstrate
+that a lesser one may not.** Without step 7 this scenario tests the front door
+and calls it a security review.
 
 ## Notes
 
@@ -60,11 +72,21 @@ Established 2026-08-26 against production at `8d6be21b`. Steps 1, 2, 3, 5 and 6
 passed. Step 4 failed on `Content-Security-Policy`, which is absent — BUG-1424.
 The other four headers are present.
 
-**What this scenario cannot tell you.** It ran as `PLATFORM_OWNER` holding
-`platform.*`. A role that can reach everything cannot demonstrate that a
-narrower role cannot, so nothing here is evidence about over-permissive access.
-Driving the same steps as a restricted platform role is the missing half, and
-the more valuable half.
+Step 7 passed on 2026-08-26: 5 of 5 writes refused 403, including creating a
+`PLATFORM_OWNER` and deleting its own account.
+
+**What this scenario still cannot tell you.** Two of fifteen platform roles have
+been exercised, and they are the two extremes — `platform.*` and read-only.
+That shows the enforcement mechanism works. It does not show that any of the
+thirteen roles between them has the right grant list, which is a different
+question: whether `SUPPORT_AGENT` can reach billing, or `PRESALES_USER` can
+reach contracts. An over-permissive grant would hide there, not at either end.
+
+One trap worth repeating from the run that established this. Reading partners as
+the auditor answered **400**, which reads as an authorization defect. It is not:
+`PartnerQueryDto` sets `@Min(10)` on `pageSize`, the probe passed 5, and
+`PLATFORM_OWNER` gets the same 400. Check a surprising status against a
+privileged session before concluding anything about the role.
 
 Login throttling was probed and deliberately *not* concluded on: ten bad
 attempts all returned 401 with no 429. Reading the code afterwards showed both

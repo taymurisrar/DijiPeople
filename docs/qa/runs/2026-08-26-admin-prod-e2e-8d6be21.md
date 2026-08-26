@@ -62,6 +62,9 @@ Expected behaviour written before execution.
 | S15 | Each screen is identifiable to assistive tech | UI-state | one `main`, one `h1`, distinct `title` | **FAIL** | 47–48 of 48 routes fail each → [[BUG-1421]] |
 | S16 | A rejected form value tells the user which field | contract | `errors: [{field, message}]` | **FAIL → FIXED** | was `"Bad Request Exception"` → [[BUG-1422]], fixed here |
 | S17 | The API holds up under modest concurrency | performance | no collapse at 8 concurrent | **PASS** | 1.4× degradation at n=8 (476ms → 690ms) |
+| S18 | A read-only role cannot write | permission | every write refused | **PASS** | `READ_ONLY_AUDITOR` refused 403 on 5/5 writes |
+| S19 | A read-only role cannot escalate its own privilege | permission | cannot mint a `PLATFORM_OWNER` | **PASS** | HTTP 403 |
+| S20 | A read-only role cannot delete its own account | permission | refused | **PASS** | HTTP 403 |
 
 ## Automated Suites
 
@@ -110,6 +113,8 @@ session, not by reading code.
 | Customer | `b509c56d-8f64-4420-b5b2-66c9508442f5` | DELETE 200 — gone |
 | Customer (mass-assign probe) | — | never created; refused 400 |
 | Partner | `a0016c2d-62ea-47d3-bcb2-9cbeb342e501` | DELETE 200 — gone |
+| Platform user (`READ_ONLY_AUDITOR`) | `c4702875-e5c1-4b44-a553-c5f5dd83d3f3` | DELETE 200 — gone |
+| Platform user (`READ_ONLY_AUDITOR`) | `070fc1c6-1b40-4677-b4b9-dd79d9e73ce8` | DELETE 200 — gone |
 | Plan | `221cf0ed-b038-4186-af26-5847e4674af6` | **still present**, see below |
 
 Final sweep across leads, customers, partners, support-cases and contracts
@@ -143,6 +148,32 @@ lists what survived gives no sense of how much did not:
 The same wrong body shape also invalidated the first mass-assignment result — it
 returned 400 for missing fields, not for refusing the forged ones. Re-run
 correctly, the refusal is explicit and complete.
+
+**Authorization, tested from below.** The most privileged session cannot
+demonstrate that a lesser one is constrained, so a `READ_ONLY_AUDITOR` was
+created — a role whose grant list is entirely `.read` — signed in, and driven
+against the same endpoints in its own browser context.
+
+It could read tenants, customers, leads and contracts. It was refused **403** on
+every write attempted: creating a lead, a customer and a partner; **creating a
+`PLATFORM_OWNER`**, which is the privilege-escalation case; and deleting its own
+account. It could write its own view preferences, which is correct — those are
+the user's own.
+
+One result needed chasing and turned out to be the test's fault. Reading
+partners answered **400**, not 200, on a permission the role holds. It answers
+400 for `PLATFORM_OWNER` too: `PartnerQueryDto` sets `@Min(10)` on `pageSize`
+and the probe passed 5. The `/partners` screen renders correctly for the
+auditor. Nothing role-related, and worth recording because a 400 where 200 was
+expected reads as an authorization defect until it is checked.
+
+That 400 is also the clearest illustration of what [[BUG-1422]] cost. Through the
+ordinary API path the error contract is exemplary — `traceId`, `errorCode:
+VALIDATION_FAILED`, and `details.fields: [{ field: "pageSize", message: "pageSize
+must not be less than 10" }]`. The `/validate` endpoint had all of that available
+and threw it away.
+
+Both auditor accounts were deleted, HTTP 200.
 
 **Login.** Three consecutive early attempts produced *no network request at
 all* — no error, no feedback — then three consecutive attempts succeeded. Not
@@ -181,10 +212,15 @@ form placeholders, not a recurrence of BUG-0073's sidebar class.
   this run says nothing about behaviour under sustained or write load, at
   concurrency above 8, or about Neon autoscaling under pressure. The 1.4×
   figure at n=8 is a floor, not a capacity statement.
-- **One platform role was exercised.** `test@dijipeople.com` is `PLATFORM_OWNER`
-  with `platform.*`. Nothing here tests what a *narrower* platform role can
-  reach, which is where authorization defects usually live. This is the largest
-  remaining gap on this surface.
+- **Two of fifteen platform roles were exercised** — `PLATFORM_OWNER`
+  (`platform.*`) and `READ_ONLY_AUDITOR` (only `.read` grants). The thirteen
+  between them are untested: `PLATFORM_ADMIN`, `PLATFORM_OPERATIONS`,
+  `PRESALES_MANAGER`, `PRESALES_USER`, `PARTNER_MANAGER`, `CONTRACT_MANAGER`,
+  `LEGAL_REVIEWER`, `FINANCE_MANAGER`, `BILLING_USER`, `SUPPORT_MANAGER`,
+  `SUPPORT_AGENT`, `MONITORING_OPERATOR` and `MEMBER`. Testing the two extremes
+  shows the mechanism works; it does not show that each middle role's grant list
+  is correct, which is a different question and the one most likely to hold a
+  defect.
 - **No tenant-side or cross-tenant testing.** Admin legitimately reads across
   tenants; proving isolation needs a tenant-user session, which this run did not
   have.
@@ -225,8 +261,11 @@ surface cannot currently be trusted at all, and that is not a cosmetic condition
    database access; no delete route exists. Owner action.
 2. **Triage BUG-1419 through BUG-1425.** BUG-1420 needs an ExecPlan; the rest
    are contained changes.
-3. **Test a narrower platform role.** The single biggest gap this run leaves.
-   `PLATFORM_OWNER` with `platform.*` cannot reveal an over-permissive endpoint.
+3. **Test the thirteen middle platform roles.** The two extremes now have
+   evidence and the mechanism is sound. What is untested is whether each
+   intermediate role's grant list matches what that role should actually reach —
+   e.g. whether `SUPPORT_AGENT` can reach billing, or `PRESALES_USER` can reach
+   contracts. That is where an over-permissive grant would hide.
 4. **Characterise the dead sign-in button.** A loop of cold-start sign-ins with
    full network capture would settle whether it is a hydration race or an
    artifact. Do not file until reproduced.
