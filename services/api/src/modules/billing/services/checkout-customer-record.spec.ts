@@ -122,7 +122,13 @@ function build(overrides: {
     {} as PartnerReferralResolverService,
   );
 
-  const resolveCustomer = (
+  /*
+   * Annotated rather than inferred. `.bind` widens the result to `any`, and
+   * every test in this file then destructures and calls it — two
+   * no-unsafe-* warnings each, against a --max-warnings ratchet that is a
+   * ratchet precisely so a test helper cannot quietly spend it.
+   */
+  const resolveCustomer: ResolveCustomer = (
     service as unknown as { resolveCustomer: ResolveCustomer }
   ).resolveCustomer.bind(service);
 
