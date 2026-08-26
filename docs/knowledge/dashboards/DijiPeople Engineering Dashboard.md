@@ -8,13 +8,13 @@
 | | |
 |---|---|
 | Open CRITICAL | **4** |
-| Open HIGH | **6** |
-| Open total | 32 |
+| Open HIGH | **10** |
+| Open total | 39 |
 | Blocked | 1 |
 | Awaiting a product decision | 2 |
 | Deferred | 24 |
 | Completed | 204 |
-| Awaiting Architect triage | 0 |
+| Awaiting Architect triage | 6 |
 
 ## Open Critical Bugs
 
@@ -33,6 +33,10 @@
 | [[BUG-0016-partner-onboarding-review-has-no-state-machine|BUG-0016]] | Partner onboarding review has no state machine | STATE_MACHINE | HIGH | OPEN | api:partner-experience | PLAN_REQUIRED |
 | [[BUG-0903-production-runs-stripe-in-test-mode-so-no-real-payment-can-b|BUG-0903]] | Production runs Stripe in test mode, so no real payment can be collected | BUG | HIGH | OPEN | api:billing | BLOCKED_EXTERNAL |
 | [[BUG-1203-repo-health-reports-changed-by-this-task-for-another-session|BUG-1203]] | repo-health reports CHANGED_BY_THIS_TASK for another session's merge | INFRA | HIGH | FIXED | framework | FIX_NOW |
+| [[BUG-1419-every-incident-on-the-monitoring-overview-links-to-a-route-t|BUG-1419]] | Every incident on the monitoring overview links to a route that does not exist | BUG | HIGH | OPEN | apps/admin | TRIAGE_REQUIRED |
+| [[BUG-1420-the-monitoring-severity-filter-cannot-match-99-7-percent-of-|BUG-1420]] | The monitoring severity filter cannot match 99.7 percent of stored incidents | DATA_INTEGRITY | HIGH | OPEN | apps/admin, api:error-logs | TRIAGE_REQUIRED |
+| [[BUG-1422-runtime-form-validation-discards-every-field-reason-and-show|BUG-1422]] | Runtime form validation discards every field reason and shows the user Bad Request Exception | BUG | HIGH | FIXED | api:platform-runtime, apps/admin | DONE |
+| [[BUG-1423-runtime-form-controls-have-no-accessible-name-so-screen-read|BUG-1423]] | Runtime form controls have no accessible name so screen readers announce every field as blank | UX | HIGH | OPEN | apps/admin | TRIAGE_REQUIRED |
 | [[ITEM-0034-apps-web-has-zero-browser-e2e-coverage|ITEM-0034]] | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | READY | apps/web, e2e | PLAN_REQUIRED |
 | [[ITEM-0094-go-live-sh-reports-no-blocker-for-a-webhook-endpoint-that-re|ITEM-0094]] | go-live.sh reports no blocker for a webhook endpoint that rejects every delivery | TEST_GAP | HIGH | READY | scripts, api:billing, api:outbox | FIX_NOW |
 
@@ -163,6 +167,7 @@
 | [[BUG-1303-the-dp-chk-01-checkout-unavailable-link-writes-a-diagnostic-|BUG-1303]] | The DP-CHK-01 checkout-unavailable link writes a diagnostic code into the partner referral cookie | DATA_INTEGRITY | HIGH | VERIFIED | apps/landing | DONE |
 | [[BUG-1369-checkout-resolves-a-plan-price-by-currency-and-cycle-only-so|BUG-1369]] | Checkout resolves a plan price by currency and cycle only, so it can quote a billing model the plans page never advertises | BUG | HIGH | VERIFIED | apps/landing | DONE |
 | [[BUG-1378-the-public-plans-endpoint-publishes-sales-assisted-internal-|BUG-1378]] | The public plans endpoint publishes sales-assisted internal pricing to anonymous visitors | SECURITY | HIGH | VERIFIED | api:billing | DONE |
+| [[BUG-1422-runtime-form-validation-discards-every-field-reason-and-show|BUG-1422]] | Runtime form validation discards every field reason and shows the user Bad Request Exception | BUG | HIGH | FIXED | api:platform-runtime, apps/admin | DONE |
 | [[BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state|BUG-0051]] | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |
 | [[BUG-0009-session-revocation-depended-on-the-refresh-cookie|BUG-0009]] | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | VERIFIED | app:admin, api:auth | DONE |
 | [[BUG-0010-unguarded-cookie-options-could-turn-sign-out-into-a-500|BUG-0010]] | Unguarded cookie options could turn admin sign-out into a 500 | INFRA | MEDIUM | VERIFIED | app:admin | DONE |
@@ -231,6 +236,7 @@
 
 ## Recent QA Runs
 
+- [[2026-08-26-admin-prod-e2e-8d6be21|QA Run — admin-prod-e2e]]
 - [[2026-08-25-landing-fixes-verification|QA Run — landing-fixes-verification]]
 - [[2026-08-25-landing-e2e-local-and-prod-42435d5|QA Run — landing-e2e-local-and-prod]]
 - [[2026-08-24-record-state-reconciliation-0a5586f|QA Run — record-state-reconciliation]]
@@ -238,7 +244,6 @@
 - [[2026-08-22-tenant-activation-be0fd00|QA Run — tenant-activation]]
 - [[2026-08-20-identity-and-membership-3008a13|QA Run — identity-and-membership]]
 - [[2026-08-19-self-service-onboarding-provisioning-f5bd870|QA Run — self-service-onboarding-provisioning]]
-- [[2026-08-19-ci-e2e-remediation-3f03571|QA Run — ci-e2e-remediation]]
 
 ## Recent Implementations
 
@@ -272,6 +277,9 @@
 |---|---|---|---|---|---|---|
 | [[BUG-0905-production-defines-direct-url-but-the-code-reads-direct-data|BUG-0905]] | Production defines DIRECT_URL but the code reads DIRECT_DATABASE_URL, so migrations run over the pooled endpoint | BUG | MEDIUM | OPEN | services/api/prisma, pkg:config | BLOCKED_EXTERNAL |
 | [[BUG-1208-component-index-check-fails-on-every-windows-checkout-passes|BUG-1208]] | component-index --check fails on every Windows checkout, passes in CI | INFRA | MEDIUM | FIXED | framework | FIX_NOW |
+| [[BUG-1421-every-admin-screen-shares-one-page-title-two-main-landmarks-|BUG-1421]] | Every admin screen shares one page title, two main landmarks and a duplicate h1 | UX | MEDIUM | OPEN | apps/admin | TRIAGE_REQUIRED |
+| [[BUG-1424-the-admin-console-serves-no-content-security-policy-header|BUG-1424]] | The admin console serves no Content-Security-Policy header | SECURITY | MEDIUM | OPEN | apps/admin | TRIAGE_REQUIRED |
+| [[BUG-1425-currencycode-accepts-any-string-of-three-characters-or-fewer|BUG-1425]] | currencyCode accepts any string of three characters or fewer | DATA_INTEGRITY | MEDIUM | OPEN | api:partners | TRIAGE_REQUIRED |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0020-contract-phase-drop-legacy-plan-pricing-columns|ITEM-0020]] | Contract phase: drop legacy Plan pricing columns | TECH_DEBT | MEDIUM | READY | services/api/prisma, api:super-admin, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur|ITEM-0022]] | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | READY | api:super-admin, apps/admin | PLAN_REQUIRED |
@@ -306,10 +314,10 @@
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 162 |
+| Bug records | 169 |
 | Backlog items | 101 |
 | Known bug patterns | 29 |
-| QA runs | 26 |
+| QA runs | 27 |
 | Engineering history records | 47 |
 | Release records | 3 |
 | Module notes | 28 |
@@ -317,7 +325,7 @@
 | Decision notes (ADR + generated) | 6 |
 | Implementation records | 6 |
 
-**Awaiting Architect triage: 0.** A record nobody has
+**Awaiting Architect triage: 6.** A record nobody has
 triaged is work nobody has decided about — the number that should stay near
 zero between tasks.
 
