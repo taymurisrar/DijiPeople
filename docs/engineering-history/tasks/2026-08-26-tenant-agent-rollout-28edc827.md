@@ -1,0 +1,91 @@
+# Engineering History — Tenant app assignment: which tenants receive a release
+
+| | |
+|---|---|
+| **Task Title** | Tenant app assignment: which tenants receive a release |
+| **Task Type** | FEATURE |
+| **Date** | 2026-08-26 |
+| **Architect Plan** | None — a focused admin page + two endpoints on the existing `TenantAppAssignment` model; the distribution decisions were settled in [[TASK-0025]] and the releases UI in [[TASK-0026]]. |
+| **Agents Used** | Backend (endpoints + permission mapping), Frontend (admin page), Security (platform guard, route-coverage invariant). |
+
+## Git
+
+| | |
+|---|---|
+| **Base Branch** | `origin/develop` |
+| **Task Branch** | `agent/tenant-app-assignment` |
+| **Base SHA** | `4f0da2be` |
+| **Final Task SHA** | `28edc827` |
+| **Target Branch** | `develop` |
+| **Merge Commit** | None — `develop` fast-forwarded (ref-push); tip equals the CI-verified SHA. |
+| **Final Target SHA** | `28edc827` |
+
+### Commits
+
+```
+feat(admin): tenant agent rollout — which tenants receive a release (TASK-0027)
+fix(platform-auth): map agent-assignments route to a platform permission (TASK-0027)
+```
+
+### Files Changed
+
+`super-admin.service.ts` (`listAgentAssignments`, `setAgentAssignment`, `AGENT_APP_KEY`);
+`super-admin.controller.ts` (`GET /agent-assignments`, `PATCH /tenants/:id/agent-assignment`);
+`dto/set-agent-assignment.dto.ts`; `agent-assignment.service.spec.ts`;
+`platform-auth/platform-permissions.ts` (route→permission mapping);
+`apps/admin` — the `(internal)/agent-rollout` page, its two API proxies, and the
+Operations sidebar entry. Records: TASK-0027, SESSION-0064.
+
+## Conflicts
+
+None. Branch already contained `origin/main`; `develop` did not advance.
+
+## Conflict Resolutions
+
+None.
+
+## QA
+
+| | |
+|---|---|
+| **QA Report** | No separate run. |
+| **Bug IDs** | None. |
+| **Backlog Items** | None filed. |
+
+`agent-assignment.service.spec` 3/3 (list defaults, audited upsert, unknown-tenant
+404); `platform-permissions.spec` green after the mapping fix; api + admin
+typecheck clean; admin and the new/changed api files lint clean; prettier clean.
+
+## CI
+
+| | |
+|---|---|
+| **CI Run ID** | `32992705522` |
+| **CI Result** | PASS on the exact merged SHA `28edc827`. The first SHA (`7dd8a496`) failed the `platform-permissions` route-coverage invariant — the new list route resolved to `null` (a 403-for-everyone route). Fixed by mapping `agent-assignment` paths to `tenants.read`/`tenants.update`. |
+
+## Post-Merge Validation
+
+`develop` fast-forwarded to `28edc827`; the merged SHA is the CI-verified SHA.
+
+## Release / Deployment Impact
+
+None — not deployed. `main` UNTOUCHED. The screen is gated by `appDownloads.manage`
+(cosmetic); the API enforces `@RequireRoles(SYSTEM_ADMIN)` and audits every change.
+Assigning a tenant points it at an existing channel — it never builds or promotes
+a release.
+
+## Knowledge Capture
+
+Reinforced [[trust-the-runtime-invariant-over-a-static-scan]]: a new super-admin
+route must be added to `resolvePlatformPermission` or `platform-permissions.spec`
+fails CI. No new durable note; the page reuses the self-gating client-panel
+pattern and the existing `TenantAppAssignment` model.
+
+## Obsidian Sync
+
+`knowledge:sync` needs a local vault config not present here; NOT_REQUIRED.
+
+## Cleanup
+
+Session SESSION-0064 marked COMPLETE; the worktree is removed after this record
+lands; the primary checkout was never written.
