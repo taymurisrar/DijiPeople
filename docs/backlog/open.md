@@ -17,6 +17,8 @@ The Architect reads this before planning any substantial change —
 | [BUG-1420](../../docs/bugs/BUG-1420-the-monitoring-severity-filter-cannot-match-99-7-percent-of-.md) | The monitoring severity filter cannot match 99.7 percent of stored incidents | DATA_INTEGRITY | HIGH | P1 | OPEN | apps/admin, api:error-logs | TRIAGE_REQUIRED |
 | [BUG-1423](../../docs/bugs/BUG-1423-runtime-form-controls-have-no-accessible-name-so-screen-read.md) | Runtime form controls have no accessible name so screen readers announce every field as blank | UX | HIGH | P1 | OPEN | apps/admin | TRIAGE_REQUIRED |
 | [BUG-1421](../../docs/bugs/BUG-1421-every-admin-screen-shares-one-page-title-two-main-landmarks-.md) | Every admin screen shares one page title, two main landmarks and a duplicate h1 | UX | MEDIUM | P2 | OPEN | apps/admin | TRIAGE_REQUIRED |
+| [BUG-1424](../../docs/bugs/BUG-1424-the-admin-console-serves-no-content-security-policy-header.md) | The admin console serves no Content-Security-Policy header | SECURITY | MEDIUM | P2 | OPEN | apps/admin | TRIAGE_REQUIRED |
+| [BUG-1425](../../docs/bugs/BUG-1425-currencycode-accepts-any-string-of-three-characters-or-fewer.md) | currencyCode accepts any string of three characters or fewer | DATA_INTEGRITY | MEDIUM | P2 | OPEN | api:partners | TRIAGE_REQUIRED |
 
 ## CRITICAL
 
@@ -49,6 +51,8 @@ The Architect reads this before planning any substantial change —
 | [BUG-0905](../../docs/bugs/BUG-0905-production-defines-direct-url-but-the-code-reads-direct-data.md) | Production defines DIRECT_URL but the code reads DIRECT_DATABASE_URL, so migrations run over the pooled endpoint | BUG | MEDIUM | P2 | OPEN | services/api/prisma, pkg:config | BLOCKED_EXTERNAL |
 | [BUG-1208](../../docs/bugs/BUG-1208-component-index-check-fails-on-every-windows-checkout-passes.md) | component-index --check fails on every Windows checkout, passes in CI | INFRA | MEDIUM | P2 | FIXED | framework | FIX_NOW |
 | [BUG-1421](../../docs/bugs/BUG-1421-every-admin-screen-shares-one-page-title-two-main-landmarks-.md) | Every admin screen shares one page title, two main landmarks and a duplicate h1 | UX | MEDIUM | P2 | OPEN | apps/admin | TRIAGE_REQUIRED |
+| [BUG-1424](../../docs/bugs/BUG-1424-the-admin-console-serves-no-content-security-policy-header.md) | The admin console serves no Content-Security-Policy header | SECURITY | MEDIUM | P2 | OPEN | apps/admin | TRIAGE_REQUIRED |
+| [BUG-1425](../../docs/bugs/BUG-1425-currencycode-accepts-any-string-of-three-characters-or-fewer.md) | currencyCode accepts any string of three characters or fewer | DATA_INTEGRITY | MEDIUM | P2 | OPEN | api:partners | TRIAGE_REQUIRED |
 | [ITEM-0009](../../docs/backlog/items/ITEM-0009-no-observability-platform-exists.md) | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | P2 | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [ITEM-0020](../../docs/backlog/items/ITEM-0020-contract-phase-drop-legacy-plan-pricing-columns.md) | Contract phase: drop legacy Plan pricing columns | TECH_DEBT | MEDIUM | P2 | READY | services/api/prisma, api:super-admin, apps/admin | PLAN_REQUIRED |
 | [ITEM-0022](../../docs/backlog/items/ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur.md) | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | P2 | READY | api:super-admin, apps/admin | PLAN_REQUIRED |

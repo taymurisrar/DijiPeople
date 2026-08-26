@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**268 records** — 167 bugs under [`docs/bugs/`](../bugs/), 101 non-bug items under [`items/`](items/).
+**270 records** — 169 bugs under [`docs/bugs/`](../bugs/), 101 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,14 +13,14 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 37 |
+| Open (active work) | 39 |
 | Blocked | 1 |
 | Deferred | 24 |
 | Awaiting a product decision | 2 |
 | Completed / closed | 204 |
 | **Open CRITICAL** | **4** |
 | **Open HIGH** | **10** |
-| **Awaiting Architect triage** | **4** |
+| **Awaiting Architect triage** | **6** |
 
 ## Open by severity
 
@@ -28,7 +28,7 @@ see [`README.md`](README.md) for why.
 |---|---|
 | CRITICAL | 4 |
 | HIGH | 10 |
-| MEDIUM | 19 |
+| MEDIUM | 21 |
 | LOW | 4 |
 
 ## Open by type
@@ -37,11 +37,11 @@ see [`README.md`](README.md) for why.
 |---|---|
 | ARCHITECTURE | 1 |
 | BUG | 7 |
-| DATA_INTEGRITY | 1 |
+| DATA_INTEGRITY | 2 |
 | FOLLOW_UP | 2 |
 | INFRA | 6 |
 | INTEGRATION | 1 |
-| SECURITY | 2 |
+| SECURITY | 3 |
 | STATE_MACHINE | 2 |
 | TECH_DEBT | 5 |
 | TEST_GAP | 7 |
@@ -51,7 +51,7 @@ see [`README.md`](README.md) for why.
 
 | Status | Count |
 |---|---|
-| OPEN | 10 |
+| OPEN | 12 |
 | BLOCKED | 1 |
 | DEFERRED | 24 |
 | PRODUCT_DECISION | 2 |
@@ -237,6 +237,8 @@ see [`README.md`](README.md) for why.
 | [BUG-1305](../../docs/bugs/BUG-1305-priority-country-sortorder-collides-with-alphabetical-sortor.md) | Priority country sortOrder collides with alphabetical sortOrder, scattering key markets mid-list | DATABASE | MEDIUM | P2 | VERIFIED | api:lookups | DONE |
 | [BUG-1364](../../docs/bugs/BUG-1364-a-coordinate-leak-assertion-substring-matches-json-and-fails.md) | A coordinate-leak assertion substring-matches JSON and fails when the clock spells a coordinate | TEST_GAP | MEDIUM | P2 | VERIFIED | services/api/test | DONE |
 | [BUG-1421](../../docs/bugs/BUG-1421-every-admin-screen-shares-one-page-title-two-main-landmarks-.md) | Every admin screen shares one page title, two main landmarks and a duplicate h1 | UX | MEDIUM | P2 | OPEN | apps/admin | TRIAGE_REQUIRED |
+| [BUG-1424](../../docs/bugs/BUG-1424-the-admin-console-serves-no-content-security-policy-header.md) | The admin console serves no Content-Security-Policy header | SECURITY | MEDIUM | P2 | OPEN | apps/admin | TRIAGE_REQUIRED |
+| [BUG-1425](../../docs/bugs/BUG-1425-currencycode-accepts-any-string-of-three-characters-or-fewer.md) | currencyCode accepts any string of three characters or fewer | DATA_INTEGRITY | MEDIUM | P2 | OPEN | api:partners | TRIAGE_REQUIRED |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |

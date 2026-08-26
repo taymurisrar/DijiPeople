@@ -7,7 +7,7 @@
 
 | | |
 |---|---|
-| Active sessions | **0** |
+| Active sessions | **1** |
 | Active parent tasks | 4 |
 | Active work packages | 1 |
 | Blocked work packages | 0 |
@@ -15,10 +15,10 @@
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **4** |
-| Open HIGH | 6 |
-| Awaiting Architect triage | 0 |
+| Open HIGH | 10 |
+| Awaiting Architect triage | 6 |
 | Owner decisions pending | 2 |
-| QA coverage gaps | 108 |
+| QA coverage gaps | 106 |
 | Scenarios blocked by infrastructure | 0 |
 
 ## Backlog health
@@ -30,12 +30,12 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 31 |
-| No next action | 31 |
+| No acceptance criteria | 38 |
+| No next action | 38 |
 | Aging — 7d / 30d / 90d | 14 / 0 / 0 |
 | Architecture and technical debt | 6 |
-| Security gaps | 2 |
-| Database gaps | 0 |
+| Security gaps | 3 |
+| Database gaps | 2 |
 
 Ranked next-best actions weigh blast radius rather than severity alone, and
 are computed on demand so the reasons travel with the ranking:
@@ -47,7 +47,9 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 ## Active Sessions
 
-_No session is currently registered as active._
+| Session | Task | Title | Status | Branch | Target | Leases | Schema |
+|---|---|---|---|---|---|---|---|
+| [[SESSION-0059-admin-app-production-e2e-security-and-performance-qa|SESSION-0059]] | — | Admin app production E2E, security and performance QA | ACTIVE | `agent/admin-prod-e2e-qa` | `develop` | — | NO |
 
 ## Active Tasks and Work Packages
 
@@ -211,8 +213,6 @@ gap into scope — or files a `TEST_GAP` item and says so.
 | [[PLAN-019-platform-admin|platform-admin]] | API |
 | [[PLAN-019-platform-admin|platform-admin]] | DATABASE |
 | [[PLAN-019-platform-admin|platform-admin]] | INTEGRATION |
-| [[PLAN-019-platform-admin|platform-admin]] | E2E |
-| [[PLAN-019-platform-admin|platform-admin]] | SECURITY |
 | [[PLAN-020-billing|billing]] | UNIT |
 | [[PLAN-020-billing|billing]] | API |
 | [[PLAN-020-billing|billing]] | DATABASE |
@@ -233,13 +233,13 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 32 |
+| Open total | 39 |
 | Blocked | 1 |
 | Deferred | 24 |
 | Awaiting a product decision | 2 |
-| Awaiting Architect triage | 0 |
+| Awaiting Architect triage | 6 |
 
-Every ordinary record carries a disposition.
+**A record nobody has triaged is work nobody has decided about.** No ordinary record may stay `TRIAGE_REQUIRED` at the end of a task.
 
 ## Deployment
 

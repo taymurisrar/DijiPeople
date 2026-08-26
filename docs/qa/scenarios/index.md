@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 199** · automated: 178 · manual: 6 · blocked by infrastructure: 0
+**Scenarios: 202** · automated: 178 · manual: 9 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -173,6 +173,9 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-PLATFORM-021](../../../docs/qa/scenarios/QA-PLATFORM-021-editing-a-plan-price-saves-and-its-payload-matches-the-updat.md) | Editing a plan price saves, and its payload matches the update DTO | platform-admin | UNIT | HIGH | AUTOMATED | `services/api/src/modules/super-admin/plan-price-dto-contract.spec.ts` | BUG-0877 | REG-235 |
 | [QA-PLATFORM-022](../../../docs/qa/scenarios/QA-PLATFORM-022-the-console-hydrates-cleanly-when-a-browser-extension-writes.md) | The console hydrates cleanly when a browser extension writes into the head | platform-admin | UNIT | MEDIUM | PARTIAL | `apps/admin/lib/console-theme-bootstrap.spec.ts` | BUG-1261 | REG-251 |
 | [QA-PLATFORM-023](../../../docs/qa/scenarios/QA-PLATFORM-023-runtime-form-validation-names-the-field-it-rejected.md) | Runtime form validation names the field it rejected | platform-admin | API | HIGH | AUTOMATED | `services/api/src/modules/platform-runtime/platform-runtime.validate-contract.spec.ts` | BUG-1422 | REG-261 |
+| [QA-PLATFORM-024](../../../docs/qa/scenarios/QA-PLATFORM-024-every-admin-route-and-sidebar-item-is-reachable-and-renders-.md) | Every admin route and sidebar item is reachable and renders its own screen | platform-admin | E2E | HIGH | MANUAL | — | BUG-1419 | — |
+| [QA-PLATFORM-025](../../../docs/qa/scenarios/QA-PLATFORM-025-the-admin-console-refuses-unauthenticated-access-and-hardens.md) | The admin console refuses unauthenticated access and hardens its session | platform-admin | SECURITY | CRITICAL | MANUAL | — | BUG-1424 | — |
+| [QA-PLATFORM-026](../../../docs/qa/scenarios/QA-PLATFORM-026-admin-page-and-api-latency-stay-within-the-established-basel.md) | Admin page and API latency stay within the established baseline | platform-admin | PERFORMANCE | MEDIUM | MANUAL | — | BUG-1419 | — |
 | [QA-PROV-001](../../../docs/qa/scenarios/QA-PROV-001-a-tenant-that-failed-provisioning-can-be-retried.md) | A tenant that failed provisioning can be retried | tenant-provisioning | UNIT | CRITICAL | AUTOMATED | `services/api/src/modules/tenant-control-plane/tenant-provisioning-retry.spec.ts` | BUG-0014 | REG-012 |
 | [QA-PROV-002](../../../docs/qa/scenarios/QA-PROV-002-provisioning-is-safe-to-submit-twice.md) | Provisioning is safe to submit twice | tenant-provisioning | UNIT | CRITICAL | AUTOMATED | `services/api/src/modules/super-admin/tenant-provisioning-idempotency.spec.ts` | BUG-0022 | REG-030 |
 | [QA-PROV-003](../../../docs/qa/scenarios/QA-PROV-003-issued-tenant-hostnames-honour-the-configured-base-domain.md) | Issued tenant hostnames honour the configured base domain | tenant-provisioning | UNIT | HIGH | AUTOMATED | `services/api/src/common/config/tenant-url.config.spec.ts` | BUG-0017, BUG-0026 | REG-016, REG-027 |
