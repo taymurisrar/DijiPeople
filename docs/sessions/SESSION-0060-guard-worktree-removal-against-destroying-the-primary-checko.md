@@ -4,7 +4,7 @@ aliases: [SESSION-0060]
 TASK_ID:
 TITLE: Guard worktree removal against destroying the primary checkout
 ARCHITECT_INTENT: Guard worktree removal against destroying the primary checkout
-STATUS: ACTIVE
+STATUS: COMPLETE
 TASK_TYPE: FRAMEWORK
 TASK_SIZE: MEDIUM
 BASE_BRANCH: origin/develop
@@ -16,8 +16,8 @@ AFFECTED_MODULES: []
 WRITE_LEASES: []
 ACTIVE_WORK_PACKAGES: []
 SCHEMA_WRITE: NO
-CI_STATUS: NOT_RUN
-MERGE_STATUS: NOT_STARTED
+CI_STATUS: PASS
+MERGE_STATUS: MERGED
 STARTED_AT: 2026-08-26T07:55:46.349Z
 LAST_HEARTBEAT: 2026-08-26T07:55:46.349Z
 BLOCKERS: none
@@ -31,7 +31,18 @@ Guard worktree removal against destroying the primary checkout
 
 ## Scope
 
-_To be established during planning._
+Guard the worktree-removal step so it cannot destroy the primary checkout, after
+it did exactly that at the end of SESSION-0059: 3,072 tracked files, every
+installed dependency and the generated Prisma client, removed from the user's
+own workspace by a routine cleanup command following a junction.
+
+In scope: the guard script, the npm entry point, both documents that teach the
+worktree lifecycle, nine mutation-tested validation checks, and the incident
+records (BUG-1494, REG-262, QA-PLATFORM-027).
+
+Out of scope: changing how worktrees are *created*. Junctioning node_modules
+stays — it saves minutes per worktree and is not the defect. The defect was that
+removal followed the link, and that is what the guard fixes.
 
 ## Concurrency
 
