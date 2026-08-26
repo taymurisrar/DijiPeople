@@ -6,18 +6,17 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 1** · completed: 59
+**Active: 0** · completed: 60
 
 ## Active
 
-| Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
-|---|---|---|---|---|---|---|---|
-| [SESSION-0063](../../docs/sessions/SESSION-0063-admin-releases-ui-versions-enable-disable-promote-assign.md) | — | Admin releases UI: versions, enable/disable, promote, assign | ACTIVE | `agent/admin-releases-ui` | `develop` | — | 2026-08-26T10:49:05.973Z |
+_None. No session is currently running._
 
 ## Completed
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0063](../../docs/sessions/SESSION-0063-admin-releases-ui-versions-enable-disable-promote-assign.md) | — | Admin releases UI: versions, enable/disable, promote, assign | COMPLETE | `agent/admin-releases-ui` | `develop` | — | 2026-08-26T10:49:05.973Z |
 | [SESSION-0062](../../docs/sessions/SESSION-0062-agent-distribution-storage-ci-auto-build-publish-download-ad.md) | — | Agent distribution: storage, CI auto-build/publish, download, admin versioning | COMPLETE | `agent/agent-distribution` | `develop` | — | 2026-08-26T10:03:35.409Z |
 | [SESSION-0060](../../docs/sessions/SESSION-0060-guard-worktree-removal-against-destroying-the-primary-checko.md) | — | Guard worktree removal against destroying the primary checkout | COMPLETE | `agent/worktree-removal-guard` | `develop` | — | 2026-08-26T07:55:46.349Z |
 | [SESSION-0059](../../docs/sessions/SESSION-0059-admin-app-production-e2e-security-and-performance-qa.md) | — | Admin app production E2E, security and performance QA | COMPLETE | `agent/admin-prod-e2e-qa` | `develop` | — | 2026-08-26T02:10:00.000Z |

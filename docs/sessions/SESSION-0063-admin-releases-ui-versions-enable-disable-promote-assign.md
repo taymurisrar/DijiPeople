@@ -4,7 +4,7 @@ aliases: [SESSION-0063]
 TASK_ID:
 TITLE: Admin releases UI: versions, enable/disable, promote, assign
 ARCHITECT_INTENT: Admin releases UI: versions, enable/disable, promote, assign
-STATUS: ACTIVE
+STATUS: COMPLETE
 TASK_TYPE: FEATURE
 TASK_SIZE: MEDIUM
 BASE_BRANCH: origin/develop

@@ -4,7 +4,7 @@ aliases: [TASK-0026]
 TITLE: Admin releases management and channel promotion UI
 TYPE: FEATURE
 SIZE: MEDIUM
-STATUS: IN_PROGRESS
+STATUS: COMPLETE
 PRIORITY: P1
 CREATED_AT: 2026-08-26
 AFFECTED_MODULES: [apps/admin, services/api]
@@ -14,7 +14,7 @@ CURRENT_PACKAGE:
 COMPLETED_PACKAGES: []
 BLOCKED_PACKAGES: []
 OWNER_DECISIONS: 0
-FINAL_STATUS:
+FINAL_STATUS: COMPLETE
 ---
 
 # TASK-0026 — Admin releases management and channel promotion UI
@@ -31,7 +31,7 @@ A good package can be reviewed on its own and has one owning specialist.
 
 | WP_ID | TITLE | STATUS | DEPENDENCIES | AGENTS | BRANCH | SHA | QA_STATUS | BUGS | CI_STATUS | MERGE_STATUS |
 |---|---|---|---|---|---|---|---|---|---|---|
-| WP-01 | <first package> | NOT_STARTED | — | <agent> | agent/<feature>-<scope> | — | — | — | — | — |
+| WP-01 | Manage list + promote API, admin page, nav | DONE | — | fullstack | agent/admin-releases-ui | 8732194 | tested | PASS | — | MERGED |
 
 ## Assumptions
 
