@@ -954,6 +954,12 @@ export const SYSTEM_ROLE_PRIVILEGES: Record<
     'business-trips:CREATE': SecurityAccessLevel.SELF,
     'business-trips:DELETE': SecurityAccessLevel.SELF,
     'hierarchy:READ': SecurityAccessLevel.SELF,
+    // Self-service download of the desktop agent, and the authenticated
+    // update-feed the installed agent checks (TASK-0025). The AGENT read
+    // privilege pairs with the `appDownloads.read` legacy key granted below;
+    // both are required by the download and feed routes. This deliberately does
+    // NOT grant agent settings management, which stays on its own keys.
+    'agent:READ': SecurityAccessLevel.SELF,
   }),
 };
 
@@ -1208,6 +1214,9 @@ export const SYSTEM_ROLE_MISC_PERMISSIONS: Record<SystemRoleKey, string[]> = {
     'benefits.read-own',
     'payslips.read-own',
     'payslips.download',
+    // Self-service desktop-agent download and the agent's own update-feed
+    // access (TASK-0025). Pairs with the AGENT read privilege above.
+    'appDownloads.read',
   ],
 };
 

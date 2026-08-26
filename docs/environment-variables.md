@@ -276,6 +276,7 @@ Read by `services/api` (the publisher endpoint) and by
 |---|---|---|---|
 | `RELEASE_PUBLISH_TOKEN` | API | only where publishing is allowed | The machine credential `ReleasePublishTokenGuard` checks. **Unset means publishing is disabled on that environment** — the guard fails closed, which is the intended default for any environment nobody publishes to. Minimum 32 characters. |
 | `RELEASE_ARTIFACT_MAX_BYTES` | API | optional | Ceiling for one release artefact. Defaults to 536870912 (512 MB). Deliberately separate from `FILE_UPLOAD_MAX_BYTES`, which governs tenant document uploads and must stay small. |
+| `FILE_STORAGE_DIR` | API | recommended in prod | Where `StorageService` writes uploaded files — tenant documents, branding assets, and published app-release installers. Defaults to `storage/uploads` (relative to cwd, ephemeral). In production set it to a path on a **persistent disk** (see `render.yaml`, mounted at `/var/data`) or the bytes are wiped on every deploy. TASK-0025. |
 | `DIJIPEOPLE_RELEASE_TOKEN` | CLI / CI | yes, to publish | The value of the target environment's `RELEASE_PUBLISH_TOKEN`. Never passed as a command-line flag — a flag lands in shell history and in CI logs. |
 | `DIJIPEOPLE_RELEASE_API_URL` | CLI / CI | optional | API base URL to publish to, including `/api`. Defaults to `http://localhost:4000/api`. |
 

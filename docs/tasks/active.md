@@ -10,3 +10,4 @@ Parent tasks currently in flight. `Current` is the work package executing now.
 | [TASK-0008](TASK-0008-self-service-customer-onboarding-tenant-provisioning-domain-.md) | Self-service customer onboarding, tenant provisioning, domain routing and central login | FEATURE | LARGE | P0 | IN_PROGRESS | 11/11 | — |
 | [TASK-0004](TASK-0004-autonomous-framework-v2-architect-only-orchestration-multi-s.md) | Autonomous framework v2 — Architect-only orchestration, multi-session safety, develop integration, persistent QA | FRAMEWORK | PROGRAM | P1 | IN_PROGRESS | 11/11 | — |
 | [TASK-0009](TASK-0009-identity-and-multi-tenant-membership.md) | Identity and multi-tenant membership | FEATURE | LARGE | P1 | IN_PROGRESS | 11/12 | WP-09 |
+| [TASK-0025](TASK-0025-agent-app-distribution-and-auto-release-pipeline.md) | Agent app distribution and auto-release pipeline | FEATURE | LARGE | P1 | IN_PROGRESS | 6/6 | WP-06 |

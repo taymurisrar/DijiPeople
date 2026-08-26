@@ -2496,6 +2496,8 @@ export const BASE_ROLE_PERMISSION_KEYS: Record<BaseRoleKey, string[]> = {
     'customers.read',
     'payslips.read-own',
     'payslips.download',
+    // Self-service desktop-agent download + the agent's update-feed (TASK-0025).
+    'appDownloads.read',
     'claims.read-own',
     'claims.create',
     'benefits.read-own',

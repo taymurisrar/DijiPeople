@@ -81,6 +81,10 @@ jobs:
     env:
       DIJIPEOPLE_RELEASE_TOKEN: ${{ secrets.DIJIPEOPLE_RELEASE_TOKEN }}
       DIJIPEOPLE_RELEASE_API_URL: ${{ secrets.DIJIPEOPLE_RELEASE_API_URL }}
+      # Drop-in code signing for the desktop agent: unset today (unsigned build),
+      # signs automatically once a certificate is added as these secrets.
+      CSC_LINK: ${{ secrets.AGENT_CSC_LINK }}
+      CSC_KEY_PASSWORD: ${{ secrets.AGENT_CSC_KEY_PASSWORD }}
 
     steps:
       - uses: actions/checkout@v4
@@ -108,6 +112,31 @@ jobs:
             echo "::error::DIJIPEOPLE_RELEASE_API_URL is not configured for the release-${{ inputs.environment }} environment."
             exit 1
           fi
+
+      # The desktop agent's `dist:win` loads `apps/agent-desktop/.env` and
+      # electron-builder bakes it into the installer as the agent's runtime
+      # config (TASK-0025). CI has no such file, so write it from repository/
+      # environment variables. The update URL defaults to this environment's own
+      # app-release feed, derived from the API base.
+      - name: Write desktop agent .env
+        if: ${{ inputs.app == 'agent-desktop' && inputs.promote != true }}
+        shell: bash
+        run: |
+          API_BASE="${{ vars.AGENT_API_BASE_URL || 'https://dijipeople.onrender.com/api' }}"
+          UPDATE_URL="${{ vars.DIJIPEOPLE_AGENT_UPDATE_URL }}"
+          if [ -z "$UPDATE_URL" ]; then
+            UPDATE_URL="${API_BASE%/api}/api/app-releases/feed/agent-desktop"
+          fi
+          VERSION=$(node -p "require('./apps/agent-desktop/package.json').version")
+          {
+            echo "AGENT_APP_NAME=DijiPeople Agent"
+            echo "AGENT_APP_VERSION=$VERSION"
+            echo "AGENT_API_BASE_URL=$API_BASE"
+            echo "AGENT_ACCESS_TOKEN_TTL=${{ vars.AGENT_ACCESS_TOKEN_TTL || '15m' }}"
+            echo "AGENT_REFRESH_TOKEN_TTL=${{ vars.AGENT_REFRESH_TOKEN_TTL || '30d' }}"
+            echo "DIJIPEOPLE_AGENT_UPDATE_URL=$UPDATE_URL"
+          } > apps/agent-desktop/.env
+          echo "Wrote apps/agent-desktop/.env (version $VERSION, api $API_BASE)"
 
       - name: Verify the publisher's own rules still hold
         # Cheap, and it runs before anything is built: if the version

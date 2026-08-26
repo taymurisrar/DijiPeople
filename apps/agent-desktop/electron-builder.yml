@@ -63,7 +63,14 @@ win:
   icon: assets/icon.ico
   target:
     - nsis
-  signExecutable: false
+  # Code signing is a DROP-IN (TASK-0025, ITEM-0026). electron-builder signs the
+  # installer automatically when the CSC_LINK (base64 or path to the .pfx/.p12
+  # certificate) and CSC_KEY_PASSWORD environment variables are present, and
+  # silently builds unsigned when they are not. So today's build is unsigned
+  # (SmartScreen shows an "unknown publisher" warning and electron-updater cannot
+  # verify the publisher); the moment an OV/EV certificate is added as those two
+  # CI secrets, every subsequent build is signed with no code change here. The
+  # release workflows already pass CSC_LINK / CSC_KEY_PASSWORD through.
 
 nsis:
   oneClick: false
