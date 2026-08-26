@@ -6,6 +6,7 @@ Sessions that reached a terminal state. Kept as history: the branch, the base it
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0062](../../docs/sessions/SESSION-0062-agent-distribution-storage-ci-auto-build-publish-download-ad.md) | — | Agent distribution: storage, CI auto-build/publish, download, admin versioning | COMPLETE | `agent/agent-distribution` | `develop` | — | 2026-08-26T10:03:35.409Z |
 | [SESSION-0060](../../docs/sessions/SESSION-0060-guard-worktree-removal-against-destroying-the-primary-checko.md) | — | Guard worktree removal against destroying the primary checkout | COMPLETE | `agent/worktree-removal-guard` | `develop` | — | 2026-08-26T07:55:46.349Z |
 | [SESSION-0059](../../docs/sessions/SESSION-0059-admin-app-production-e2e-security-and-performance-qa.md) | — | Admin app production E2E, security and performance QA | COMPLETE | `agent/admin-prod-e2e-qa` | `develop` | — | 2026-08-26T02:10:00.000Z |
 | [SESSION-0058](../../docs/sessions/SESSION-0058-dlp-investigator-review-on-the-employee-form.md) | — | DLP investigator review on the employee form | COMPLETE | `agent/dlp-employee-review` | `develop` | — | 2026-08-25T23:28:07.299Z |

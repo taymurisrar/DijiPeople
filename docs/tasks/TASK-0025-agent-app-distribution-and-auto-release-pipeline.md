@@ -4,7 +4,7 @@ aliases: [TASK-0025]
 TITLE: Agent app distribution and auto-release pipeline
 TYPE: FEATURE
 SIZE: LARGE
-STATUS: IN_PROGRESS
+STATUS: COMPLETE
 PRIORITY: P1
 CREATED_AT: 2026-08-26
 AFFECTED_MODULES: [services/api, apps/agent-desktop, render.yaml, .github]
@@ -14,7 +14,7 @@ CURRENT_PACKAGE: WP-06
 COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-04, WP-05]
 BLOCKED_PACKAGES: []
 OWNER_DECISIONS: 4
-FINAL_STATUS:
+FINAL_STATUS: COMPLETE
 ---
 
 # TASK-0025 — Agent app distribution and auto-release pipeline
@@ -38,12 +38,12 @@ auto-publish BETA with manual STABLE promotion; any employee may self-download.
 
 | WP_ID | TITLE | STATUS | DEPENDENCIES | AGENTS | BRANCH | SHA | QA_STATUS | BUGS | CI_STATUS | MERGE_STATUS |
 |---|---|---|---|---|---|---|---|---|---|---|
-| WP-01 | Persistent artifact storage (render.yaml disk + FILE_STORAGE_DIR) | DONE | — | release-devops | agent/agent-distribution | — | n/a | local | — | UNMERGED |
-| WP-02 | Agent packaging in the release CLI (release-apps.mjs) | DONE | — | release-devops | agent/agent-distribution | — | tested | local | — | UNMERGED |
-| WP-03 | CI: build the agent + auto-publish BETA on version bump | DONE | WP-02 | release-devops | agent/agent-distribution | — | n/a | local | — | UNMERGED |
-| WP-04 | Employee self-download + agent update-feed access (RBAC) | DONE | — | security | agent/agent-distribution | — | tested | local | — | UNMERGED |
-| WP-05 | Drop-in code signing (electron-builder + CI secrets) | DONE | — | release-devops | agent/agent-distribution | — | n/a | local | — | UNMERGED |
-| WP-06 | Validation + docs | DONE | WP-01..05 | integration | agent/agent-distribution | — | tested | local | — | UNMERGED |
+| WP-01 | Persistent artifact storage (render.yaml disk + FILE_STORAGE_DIR) | DONE | — | release-devops | agent/agent-distribution | — | n/a | local | — | MERGED |
+| WP-02 | Agent packaging in the release CLI (release-apps.mjs) | DONE | — | release-devops | agent/agent-distribution | — | tested | local | — | MERGED |
+| WP-03 | CI: build the agent + auto-publish BETA on version bump | DONE | WP-02 | release-devops | agent/agent-distribution | — | n/a | local | — | MERGED |
+| WP-04 | Employee self-download + agent update-feed access (RBAC) | DONE | — | security | agent/agent-distribution | — | tested | local | — | MERGED |
+| WP-05 | Drop-in code signing (electron-builder + CI secrets) | DONE | — | release-devops | agent/agent-distribution | — | n/a | local | — | MERGED |
+| WP-06 | Validation + docs | DONE | WP-01..05 | integration | agent/agent-distribution | — | tested | local | — | MERGED |
 
 Admin releases-management UI + in-app STABLE promotion is a follow-up
 ([[TASK-0026]]) — promotion is available today via the `release-app.yml`

@@ -8,9 +8,9 @@ graph and the block reasons. See
 
 | Bucket | Count |
 |---|---|
-| [Active](active.md) | 5 |
+| [Active](active.md) | 4 |
 | [Blocked](blocked.md) | 0 |
-| [Completed](completed.md) | 20 |
+| [Completed](completed.md) | 21 |
 
 ## Next ready work package
 
@@ -54,4 +54,4 @@ graph and the block reasons. See
 | [TASK-0022](TASK-0022-agent-ui-perception-browser-control-component-knowledge-ui-r.md) | Agent UI perception: browser control, component knowledge, UI review skill | FEATURE | LARGE | P1 | COMPLETE | 4/4 | NONE |
 | [TASK-0023](TASK-0023-dlp-capture-go-live-readiness.md) | DLP capture go-live readiness | FEATURE | LARGE | P1 | COMPLETE | 4/4 | WP-04 |
 | [TASK-0024](TASK-0024-dlp-investigator-review-on-the-employee-record.md) | DLP investigator review on the employee record | FEATURE | MEDIUM | P1 | COMPLETE | 1/1 | — |
-| [TASK-0025](TASK-0025-agent-app-distribution-and-auto-release-pipeline.md) | Agent app distribution and auto-release pipeline | FEATURE | LARGE | P1 | IN_PROGRESS | 6/6 | WP-06 |
+| [TASK-0025](TASK-0025-agent-app-distribution-and-auto-release-pipeline.md) | Agent app distribution and auto-release pipeline | FEATURE | LARGE | P1 | COMPLETE | 6/6 | WP-06 |

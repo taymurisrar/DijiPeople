@@ -4,7 +4,7 @@ aliases: [SESSION-0062]
 TASK_ID:
 TITLE: Agent distribution: storage, CI auto-build/publish, download, admin versioning
 ARCHITECT_INTENT: Agent distribution: storage, CI auto-build/publish, download, admin versioning
-STATUS: ACTIVE
+STATUS: COMPLETE
 TASK_TYPE: FEATURE
 TASK_SIZE: LARGE
 BASE_BRANCH: origin/develop
