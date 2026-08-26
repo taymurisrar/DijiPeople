@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**263 records** — 162 bugs under [`docs/bugs/`](../bugs/), 101 non-bug items under [`items/`](items/).
+**268 records** — 167 bugs under [`docs/bugs/`](../bugs/), 101 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,22 +13,22 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 32 |
+| Open (active work) | 37 |
 | Blocked | 1 |
 | Deferred | 24 |
 | Awaiting a product decision | 2 |
 | Completed / closed | 204 |
 | **Open CRITICAL** | **4** |
-| **Open HIGH** | **6** |
-| **Awaiting Architect triage** | **0** |
+| **Open HIGH** | **10** |
+| **Awaiting Architect triage** | **4** |
 
 ## Open by severity
 
 | Severity | Count |
 |---|---|
 | CRITICAL | 4 |
-| HIGH | 6 |
-| MEDIUM | 18 |
+| HIGH | 10 |
+| MEDIUM | 19 |
 | LOW | 4 |
 
 ## Open by type
@@ -36,7 +36,8 @@ see [`README.md`](README.md) for why.
 | Type | Count |
 |---|---|
 | ARCHITECTURE | 1 |
-| BUG | 5 |
+| BUG | 7 |
+| DATA_INTEGRITY | 1 |
 | FOLLOW_UP | 2 |
 | INFRA | 6 |
 | INTEGRATION | 1 |
@@ -44,17 +45,17 @@ see [`README.md`](README.md) for why.
 | STATE_MACHINE | 2 |
 | TECH_DEBT | 5 |
 | TEST_GAP | 7 |
-| UX | 1 |
+| UX | 3 |
 
 ## All records by status
 
 | Status | Count |
 |---|---|
-| OPEN | 6 |
+| OPEN | 10 |
 | BLOCKED | 1 |
 | DEFERRED | 24 |
 | PRODUCT_DECISION | 2 |
-| FIXED | 4 |
+| FIXED | 5 |
 | VERIFIED | 148 |
 | DUPLICATE | 2 |
 | ACCEPTED_RISK | 1 |
@@ -157,6 +158,10 @@ see [`README.md`](README.md) for why.
 | [BUG-1303](../../docs/bugs/BUG-1303-the-dp-chk-01-checkout-unavailable-link-writes-a-diagnostic-.md) | The DP-CHK-01 checkout-unavailable link writes a diagnostic code into the partner referral cookie | DATA_INTEGRITY | HIGH | P1 | VERIFIED | apps/landing | DONE |
 | [BUG-1369](../../docs/bugs/BUG-1369-checkout-resolves-a-plan-price-by-currency-and-cycle-only-so.md) | Checkout resolves a plan price by currency and cycle only, so it can quote a billing model the plans page never advertises | BUG | HIGH | P1 | VERIFIED | apps/landing | DONE |
 | [BUG-1378](../../docs/bugs/BUG-1378-the-public-plans-endpoint-publishes-sales-assisted-internal-.md) | The public plans endpoint publishes sales-assisted internal pricing to anonymous visitors | SECURITY | HIGH | P1 | VERIFIED | api:billing | DONE |
+| [BUG-1419](../../docs/bugs/BUG-1419-every-incident-on-the-monitoring-overview-links-to-a-route-t.md) | Every incident on the monitoring overview links to a route that does not exist | BUG | HIGH | P1 | OPEN | apps/admin | TRIAGE_REQUIRED |
+| [BUG-1420](../../docs/bugs/BUG-1420-the-monitoring-severity-filter-cannot-match-99-7-percent-of-.md) | The monitoring severity filter cannot match 99.7 percent of stored incidents | DATA_INTEGRITY | HIGH | P1 | OPEN | apps/admin, api:error-logs | TRIAGE_REQUIRED |
+| [BUG-1422](../../docs/bugs/BUG-1422-runtime-form-validation-discards-every-field-reason-and-show.md) | Runtime form validation discards every field reason and shows the user Bad Request Exception | BUG | HIGH | P1 | FIXED | api:platform-runtime, apps/admin | DONE |
+| [BUG-1423](../../docs/bugs/BUG-1423-runtime-form-controls-have-no-accessible-name-so-screen-read.md) | Runtime form controls have no accessible name so screen readers announce every field as blank | UX | HIGH | P1 | OPEN | apps/admin | TRIAGE_REQUIRED |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | READY | apps/web, e2e | PLAN_REQUIRED |
@@ -231,6 +236,7 @@ see [`README.md`](README.md) for why.
 | [BUG-1304](../../docs/bugs/BUG-1304-production-subscribe-wizard-offers-only-eight-countries-beca.md) | Production subscribe wizard offers only eight countries because the ISO country sync never populates production | DATABASE | MEDIUM | P2 | VERIFIED | api:lookups, apps/landing | DONE |
 | [BUG-1305](../../docs/bugs/BUG-1305-priority-country-sortorder-collides-with-alphabetical-sortor.md) | Priority country sortOrder collides with alphabetical sortOrder, scattering key markets mid-list | DATABASE | MEDIUM | P2 | VERIFIED | api:lookups | DONE |
 | [BUG-1364](../../docs/bugs/BUG-1364-a-coordinate-leak-assertion-substring-matches-json-and-fails.md) | A coordinate-leak assertion substring-matches JSON and fails when the clock spells a coordinate | TEST_GAP | MEDIUM | P2 | VERIFIED | services/api/test | DONE |
+| [BUG-1421](../../docs/bugs/BUG-1421-every-admin-screen-shares-one-page-title-two-main-landmarks-.md) | Every admin screen shares one page title, two main landmarks and a duplicate h1 | UX | MEDIUM | P2 | OPEN | apps/admin | TRIAGE_REQUIRED |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |

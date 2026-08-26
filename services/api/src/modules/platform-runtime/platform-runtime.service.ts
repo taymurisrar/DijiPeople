@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ForbiddenException,
+  HttpException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -941,10 +942,7 @@ export class PlatformRuntimeService {
       await dto(Class, validationValues);
       return { success: true };
     } catch (error) {
-      return {
-        success: false,
-        message: error instanceof Error ? error.message : 'Validation failed.',
-      };
+      return readValidationFailure(error);
     }
   }
   async export(
@@ -1297,10 +1295,71 @@ async function dto<T extends object>(
     forbidNonWhitelisted: true,
   });
   if (errors.length)
-    throw new BadRequestException(
-      errors.flatMap((error) => Object.values(error.constraints ?? {})),
-    );
+    /*
+     * `message` stays the flat array of constraint strings, because that is what
+     * every existing caller and every existing test reads.
+     *
+     * `fieldErrors` is added beside it, keeping each message with the property
+     * it came from. `HttpExceptionFilter.readFieldErrors` already looks for
+     * exactly this shape, so every caller that lets the exception reach the
+     * filter now answers with the standard contract instead of a bare message.
+     * `validate()` below reads it directly, which is what lets a runtime form
+     * put a reason under the field that earned it — before this, the property
+     * was flattened away here and the reason was unrecoverable downstream.
+     */
+    throw new BadRequestException({
+      message: errors.flatMap((error) =>
+        Object.values(error.constraints ?? {}),
+      ),
+      fieldErrors: errors.map((error) => ({
+        field: error.property,
+        message:
+          Object.values(error.constraints ?? {})[0] ?? 'This value is invalid.',
+      })),
+    });
   return instance;
+}
+/**
+ * Turn a failed `dto()` validation into the answer the runtime form consumes.
+ *
+ * `dto()` throws a BadRequestException carrying the reasons on its *payload*.
+ * A Nest exception built from a payload sets its own `.message` to the class's
+ * name — the literal string "Bad Request Exception" — so reading
+ * `error.message` returns that name and discards every field reason. The form
+ * asks for `errors`, got nothing, cleared its field errors, and showed the
+ * operator an exception class name as though it were advice. BUG-1422.
+ *
+ * `errors` is the shape `runtime-record-page.tsx` already reads. `message`
+ * falls back to the joined constraint text so the toast says something a person
+ * can act on, and only then to the raw error for anything that is not a
+ * validation failure at all.
+ */
+export function readValidationFailure(error: unknown): {
+  success: false;
+  message: string;
+  errors: Array<{ field: string; message: string }>;
+} {
+  const payload = error instanceof HttpException ? error.getResponse() : null;
+  const detail =
+    payload && typeof payload === 'object'
+      ? (payload as {
+          message?: unknown;
+          fieldErrors?: Array<{ field: string; message: string }>;
+        })
+      : null;
+  const errors = Array.isArray(detail?.fieldErrors) ? detail.fieldErrors : [];
+  const messages = Array.isArray(detail?.message)
+    ? detail.message.map(String)
+    : typeof detail?.message === 'string'
+      ? [detail.message]
+      : [];
+  return {
+    success: false,
+    message:
+      messages.join(' ') ||
+      (error instanceof Error ? error.message : 'Validation failed.'),
+    errors,
+  };
 }
 function positive(value: string | undefined, fallback: number) {
   const number = Number(value);
