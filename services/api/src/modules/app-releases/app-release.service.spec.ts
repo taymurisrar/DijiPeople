@@ -234,3 +234,84 @@ describe('AppReleaseService visibility', () => {
     });
   });
 });
+
+/**
+ * Promotion (TASK-0026). A promotion is a NEW row in the target channel that
+ * reuses the source's storage key, so the promoted channel ships the exact
+ * bytes tested in the source channel, and the source stays downloadable.
+ */
+describe('AppReleaseService.promote', () => {
+  const source = {
+    id: 'src-1',
+    appKey: 'AGENT_DESKTOP',
+    name: 'DijiPeople Desktop Agent',
+    description: null,
+    version: '1.2.0',
+    platform: 'WINDOWS',
+    architecture: 'X64',
+    channel: 'BETA',
+    storageKey: 'app-releases/AGENT_DESKTOP/1.2.0/setup.exe',
+    externalUrl: null,
+    fileName: 'setup.exe',
+    fileSizeBytes: 123,
+    checksumSha256: 'abc',
+    checksumSha512: 'def',
+    minimumSupportedVersion: null,
+    releaseNotes: null,
+    requiredPermission: null,
+    isActive: true,
+    publishedAt: new Date(),
+  };
+
+  function build() {
+    const created: Array<{ channel: string; storageKey: string | null }> = [];
+    const prisma = {
+      applicationRelease: {
+        findUnique: jest.fn().mockResolvedValue(source),
+        create: jest.fn().mockImplementation((args: { data: unknown }) => {
+          created.push(
+            args.data as { channel: string; storageKey: string | null },
+          );
+          return Promise.resolve({
+            id: 'promoted-1',
+            ...(args.data as object),
+          });
+        }),
+        update: jest.fn(),
+      },
+    };
+    const audit = { log: jest.fn().mockResolvedValue(undefined) };
+    const service = new AppReleaseService(
+      prisma as unknown as PrismaService,
+      {} as StorageService,
+      audit as unknown as AuditService,
+    );
+    return { service, prisma, audit, created };
+  }
+
+  const actor = { userId: 'u-1', tenantId: 'platform' } as never;
+
+  it('creates a STABLE row that reuses the source storage key, and audits it', async () => {
+    const { service, audit, created } = build();
+
+    const result = await service.promote(actor, 'src-1', 'STABLE' as never);
+
+    expect(created[0].channel).toBe('STABLE');
+    expect(created[0].storageKey).toBe(source.storageKey);
+    expect(result.channel).toBe('STABLE');
+    expect(audit.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'platform.application_release_promoted',
+      }),
+    );
+  });
+
+  it('is a no-op when the release is already in the target channel', async () => {
+    const { service, prisma } = build();
+
+    const result = await service.promote(actor, 'src-1', 'BETA' as never);
+
+    expect(result.channel).toBe('BETA');
+    expect(prisma.applicationRelease.create).not.toHaveBeenCalled();
+  });
+});

@@ -10,4 +10,6 @@ leases actually held this minute, the develop merge queue — comes from
 `node scripts/session.mjs list`, which reads the shared Git directory and
 therefore sees sibling worktrees without anybody having pushed.
 
-_None. No session is currently running._
+| Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
+|---|---|---|---|---|---|---|---|
+| [SESSION-0063](../../docs/sessions/SESSION-0063-admin-releases-ui-versions-enable-disable-promote-assign.md) | — | Admin releases UI: versions, enable/disable, promote, assign | ACTIVE | `agent/admin-releases-ui` | `develop` | — | 2026-08-26T10:49:05.973Z |

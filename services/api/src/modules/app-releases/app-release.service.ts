@@ -399,6 +399,109 @@ export class AppReleaseService {
     return this.toResponse(updated);
   }
 
+  /**
+   * The management catalogue (TASK-0026): every release including disabled ones
+   * and every channel, so the admin releases screen shows the full version
+   * history, not only the active download catalogue `list()` returns. Gated by
+   * `appDownloads.manage` at the controller.
+   */
+  async listForManagement() {
+    const releases = await this.prisma.applicationRelease.findMany({
+      orderBy: [{ appKey: 'asc' }, { channel: 'asc' }, { publishedAt: 'desc' }],
+    });
+    return { items: releases.map((release) => this.toResponse(release)) };
+  }
+
+  /**
+   * Promotes a release into another channel (TASK-0026) — the in-app equivalent
+   * of `release:promote`. A promotion is a NEW row that reuses the source's
+   * storage key, so the promoted channel ships the byte-for-byte artefact that
+   * was tested in the source channel and the source row stays downloadable for
+   * anyone pinned to it. Idempotent: promoting to a channel that already holds
+   * this version returns the existing row rather than failing.
+   */
+  async promote(
+    user: AuthenticatedUser,
+    id: string,
+    toChannel: ApplicationReleaseChannel,
+  ) {
+    const source = await this.prisma.applicationRelease.findUnique({
+      where: { id },
+    });
+    if (!source) {
+      throw new NotFoundException('Release could not be found.');
+    }
+    if (source.channel === toChannel) {
+      return this.toResponse(source);
+    }
+
+    const promotedData = {
+      appKey: source.appKey,
+      name: source.name,
+      description: source.description,
+      version: source.version,
+      platform: source.platform,
+      architecture: source.architecture,
+      channel: toChannel,
+      // Reuse the same bytes — the promoted channel is the tested artefact.
+      storageKey: source.storageKey,
+      externalUrl: source.externalUrl,
+      fileName: source.fileName,
+      fileSizeBytes: source.fileSizeBytes,
+      checksumSha256: source.checksumSha256,
+      checksumSha512: source.checksumSha512,
+      minimumSupportedVersion: source.minimumSupportedVersion,
+      releaseNotes: source.releaseNotes,
+      requiredPermission: source.requiredPermission,
+      isActive: true,
+      publishedAt: new Date(),
+      createdById: user.userId,
+      updatedById: user.userId,
+    };
+
+    let promoted;
+    try {
+      promoted = await this.prisma.applicationRelease.create({
+        data: promotedData,
+      });
+    } catch (error) {
+      const isDuplicate =
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002';
+      if (!isDuplicate) throw error;
+      const existing = await this.prisma.applicationRelease.findUnique({
+        where: {
+          appKey_version_platform_architecture_channel: {
+            appKey: source.appKey,
+            version: source.version,
+            platform: source.platform,
+            architecture: source.architecture,
+            channel: toChannel,
+          },
+        },
+      });
+      if (!existing) throw error;
+      // Re-activate a previously retired promotion so it is downloadable again.
+      promoted = await this.prisma.applicationRelease.update({
+        where: { id: existing.id },
+        data: { isActive: true, updatedById: user.userId },
+      });
+    }
+
+    await this.auditService.log({
+      tenantId: user.tenantId,
+      actorUserId: user.userId,
+      action: 'platform.application_release_promoted',
+      entityType: 'ApplicationRelease',
+      entityId: promoted.id,
+      sourceModule: 'app-releases',
+      beforeSnapshot: { fromChannel: source.channel, sourceId: source.id },
+      afterSnapshot: { toChannel, version: source.version },
+    });
+
+    return this.toResponse(promoted);
+  }
+
   /** Storage keys and internal URLs never cross this boundary. */
   private toResponse(release: {
     id: string;

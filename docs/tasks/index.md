@@ -8,7 +8,7 @@ graph and the block reasons. See
 
 | Bucket | Count |
 |---|---|
-| [Active](active.md) | 4 |
+| [Active](active.md) | 5 |
 | [Blocked](blocked.md) | 0 |
 | [Completed](completed.md) | 21 |
 
@@ -17,6 +17,7 @@ graph and the block reasons. See
 | Task | WP | Title |
 |---|---|---|
 | [TASK-0009](TASK-0009-identity-and-multi-tenant-membership.md) | WP-09 | Contract phase — `identityId` required (written, held for a later deployment) |
+| [TASK-0026](TASK-0026-admin-releases-management-and-channel-promotion-ui.md) | WP-01 | <first package> |
 
 ## Needs a human
 
@@ -55,3 +56,4 @@ graph and the block reasons. See
 | [TASK-0023](TASK-0023-dlp-capture-go-live-readiness.md) | DLP capture go-live readiness | FEATURE | LARGE | P1 | COMPLETE | 4/4 | WP-04 |
 | [TASK-0024](TASK-0024-dlp-investigator-review-on-the-employee-record.md) | DLP investigator review on the employee record | FEATURE | MEDIUM | P1 | COMPLETE | 1/1 | — |
 | [TASK-0025](TASK-0025-agent-app-distribution-and-auto-release-pipeline.md) | Agent app distribution and auto-release pipeline | FEATURE | LARGE | P1 | COMPLETE | 6/6 | WP-06 |
+| [TASK-0026](TASK-0026-admin-releases-management-and-channel-promotion-ui.md) | Admin releases management and channel promotion UI | FEATURE | MEDIUM | P1 | IN_PROGRESS | 0/1 | — |
