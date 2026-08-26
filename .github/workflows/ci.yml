@@ -266,10 +266,19 @@ jobs:
       # to 1027 without anything noticing, and its *error* count had already
       # grown from 2 to 15 the same way while the job was report-only.
       #
-      # 805 against 800 actual, measured on this branch on 2026-08-22. The
-      # five-warning margin is for environment drift in typescript-eslint's
-      # inference between a developer's tree and this runner — not headroom to
-      # spend. It was 975/971 before ITEM-0042's first pass.
+      # 789 against 784 actual, measured on this runner on 2026-08-26 — the
+      # count printed by the run that turned this line green, not a local
+      # figure. The five-warning margin is for environment drift in
+      # typescript-eslint's inference between a developer's tree and this
+      # runner — not headroom to spend. It was 805/800 on 2026-08-22, and
+      # 975/971 before ITEM-0042's first pass.
+      #
+      # 800 -> 784 was not a sweep. Annotating one bound test helper in
+      # checkout-customer-record.spec.ts took that file from 27 warnings to 1:
+      # `.bind()` widens to `any`, so every test paid two no-unsafe-*
+      # warnings, one for destructuring the helper and one for calling it.
+      # Lowered here in the same change that earned it, because a 21-warning
+      # gap is how a ratchet stops being one.
       #
       # When this fails, the fix is to reduce warnings, not to raise the number.
       # Lower it whenever the real count drops.
@@ -291,7 +300,7 @@ jobs:
       # including a .filter(Boolean) that never narrowed.
       - name: ESLint — services/api
         working-directory: services/api
-        run: npx eslint "{src,test}/**/*.ts" --max-warnings=805
+        run: npx eslint "{src,test}/**/*.ts" --max-warnings=789
       - name: Fail if lint modified the checkout
         # Defence in depth: if any lint step ever regains --fix, this catches it
         # rather than letting CI silently "pass" against rewritten files.
