@@ -65,6 +65,10 @@ Expected behaviour written before execution.
 | S18 | A read-only role cannot write | permission | every write refused | **PASS** | `READ_ONLY_AUDITOR` refused 403 on 5/5 writes |
 | S19 | A read-only role cannot escalate its own privilege | permission | cannot mint a `PLATFORM_OWNER` | **PASS** | HTTP 403 |
 | S20 | A read-only role cannot delete its own account | permission | refused | **PASS** | HTTP 403 |
+| S21 | List search narrows and restores | UI-state | filters down, clearing restores the baseline | **PASS** | customers 8→1→8, leads 7→1→7, tenants 3→1→3 |
+| S22 | Sorting a column does not error | UI-state | no failing request | **PASS** | 3/3 screens, zero API errors |
+| S23 | Driving a list screen produces no console or API errors | UI-state | clean | **PASS** | 3/3 screens clean |
+| S24 | No screen scrolls the body sideways | UI-state | no horizontal overflow at 390/768/1366px | **PASS** | 9/9 combinations |
 
 ## Automated Suites
 
@@ -73,7 +77,7 @@ Expected behaviour written before execution.
 | `npx jest` (from `services/api`) | API unit | 1800 | 0 | 0 | 44.2s |
 | `npm --workspace api run check-types` | tsc `--noEmit` | clean | 0 | — | — |
 | `npx eslint --fix` + `prettier --write` | changed files only | clean (0 errors, warnings pre-existing) | 0 | — | — |
-| Browser harness, 27 scripts | production E2E | see Scenarios | — | — | ~50 min |
+| Browser harness, 30 scripts | production E2E | see Scenarios | — | — | ~70 min |
 
 An earlier invocation of `jest --rootDir services/api` from the repo root
 reported 8 failures. Those were an artifact of that invocation — the specs
