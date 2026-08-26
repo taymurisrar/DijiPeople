@@ -69,6 +69,8 @@ Expected behaviour written before execution.
 | S22 | Sorting a column does not error | UI-state | no failing request | **PASS** | 3/3 screens, zero API errors |
 | S23 | Driving a list screen produces no console or API errors | UI-state | clean | **PASS** | 3/3 screens clean |
 | S24 | No screen scrolls the body sideways | UI-state | no horizontal overflow at 390/768/1366px | **PASS** | 9/9 combinations |
+| S25 | Every module's record page opens and shows that record | happy | 200, record rendered, no failing call | **PASS** | 7/7 non-empty modules; 2 empty (invoices, support cases) |
+| S26 | Every record command bar offers Back and Refresh | contract | the registry's defaults are present | **PASS** | 7/7 — none had lost its defaults |
 
 ## Automated Suites
 
@@ -178,6 +180,28 @@ must not be less than 10" }]`. The `/validate` endpoint had all of that availabl
 and threw it away.
 
 Both auditor accounts were deleted, HTTP 200.
+
+**Record pages.** All seven non-empty modules open their record page at HTTP
+200, render the record, and make no failing API call: customers, leads,
+partners, tenants, contracts, subscriptions and contract-templates. Invoices and
+support cases hold no records to open.
+
+Every one keeps the registry's default actions — `Back` and `Refresh` are present
+on all seven. That is the specific regression `apps/admin/AGENTS.md` warns about,
+where a detail page declaring its own action array loses every default the
+registry adds later and seven record pages ended up with a single Back button. It
+has not recurred.
+
+Two modules initially reported "0 fields" and were **not** defects: `tenants` and
+`contract-templates` are bespoke record pages rather than runtime forms, so they
+carry no `data-field-key` attributes. Checked directly, they render 2,546 and
+7,978 characters of real content with tabs and sections. The assertion was
+written against the runtime form and did not fit them.
+
+That check did surface one real detail, folded into [[BUG-1421]]:
+`/contract-templates/<id>` renders **three** `<h1>` elements — the shell's
+"Control Hub" plus its own title twice. Every other record page renders the
+expected two.
 
 **Login.** Three consecutive early attempts produced *no network request at
 all* — no error, no feedback — then three consecutive attempts succeeded. Not

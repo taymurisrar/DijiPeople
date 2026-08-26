@@ -117,6 +117,18 @@ scattered.
 The one screen that sets its own title, `/operations/provisioning`, shows the
 mechanism works and is simply not used elsewhere.
 
+Record pages inherit the same fault and one screen compounds it. A later pass
+over the nine record routes found `/contract-templates/<id>` rendering **three**
+`<h1>` elements — "Control Hub" from the shell, then its own title twice:
+
+```
+h1s: ["Control Hub", "Company Partner Agreement", "Company Partner Agreement"]
+```
+
+Every other record page renders the expected two. The duplicate is that screen's
+own, so fixing the shell leaves it at two rather than one; it needs its own
+correction in the same pass.
+
 ## Root Cause
 
 Not yet established beyond the shell being the common ancestor. The likely shape:
@@ -146,6 +158,8 @@ data defect; all are reachable by every user on every screen.
 - `apps/admin/app/_components/admin-shell.tsx`
 - `apps/admin/app/_components/admin-sidebar.tsx`
 - `apps/admin/app/(internal)/layout.tsx` and every route beneath it
+- `apps/admin/app/(internal)/contract-templates/[templateId]/` — renders its own
+  heading twice, on top of the shell's
 
 ## Proposed Resolution
 
@@ -164,7 +178,8 @@ sequencing as shell-first, then titles.
 
 ## Acceptance Criteria
 
-- Every admin route reports exactly one `<main>` and one `<h1>`.
+- Every admin route reports exactly one `<main>` and one `<h1>` — record routes
+  included, and `/contract-templates/<id>` specifically.
 - No two admin routes share a `<title>`.
 - The sidebar is inside a `<nav>` landmark on every route.
 - A skip link is the first focusable element and moves focus to page content.
