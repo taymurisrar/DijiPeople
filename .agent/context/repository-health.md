@@ -247,6 +247,33 @@ The same sweep, plus: the merge actually landed, `MAIN_SYNC_STATUS = SYNCED`,
 the task worktree removed, merged local task branches deleted, and no unfinished
 Git operation left behind.
 
+**Remove a worktree with the script, never with `git worktree remove`:**
+
+```bash
+npm run worktree:remove -- ../<worktree> --branch agent/<x>
+```
+
+`git worktree remove` deletes recursively, and a junction is a directory to that
+recursion — it walks through and destroys the target. A task worktree's
+`node_modules` is routinely junctioned to the primary's, and npm workspaces puts
+its own links *inside* `node_modules` (`node_modules/admin -> apps/admin` and so
+on), so the delete chains two levels down into the real source tree. On
+2026-08-26 that removed 3,072 tracked files from the user's primary checkout
+plus every installed dependency, while Git reported only
+`failed to delete ...: Directory not empty`.
+
+`scripts/remove-worktree.mjs` unlinks every reparse point first with a call that cannot follow one,
+verifies the primary's sentinel paths before and after, and refuses if the path
+is the primary worktree or is not a registered worktree. `--dry-run` shows what
+it would do.
+
+Recovery, if it happens anyway — the tracked half loses nothing:
+`git status --short` to confirm every entry is a deletion and nothing is `??`,
+then `git restore .`, then `npm ci` and `npm run prisma:generate`, because
+`node_modules` and the generated client are gitignored and `restore` cannot
+bring them back. See
+[`docs/development/git-worktrees.md`](../../docs/development/git-worktrees.md).
+
 And, against the pre-task baseline:
 
 ```

@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**270 records** — 169 bugs under [`docs/bugs/`](../bugs/), 101 non-bug items under [`items/`](items/).
+**271 records** — 170 bugs under [`docs/bugs/`](../bugs/), 101 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,12 +13,12 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 39 |
+| Open (active work) | 40 |
 | Blocked | 1 |
 | Deferred | 24 |
 | Awaiting a product decision | 2 |
 | Completed / closed | 204 |
-| **Open CRITICAL** | **4** |
+| **Open CRITICAL** | **5** |
 | **Open HIGH** | **10** |
 | **Awaiting Architect triage** | **6** |
 
@@ -26,7 +26,7 @@ see [`README.md`](README.md) for why.
 
 | Severity | Count |
 |---|---|
-| CRITICAL | 4 |
+| CRITICAL | 5 |
 | HIGH | 10 |
 | MEDIUM | 21 |
 | LOW | 4 |
@@ -39,7 +39,7 @@ see [`README.md`](README.md) for why.
 | BUG | 7 |
 | DATA_INTEGRITY | 2 |
 | FOLLOW_UP | 2 |
-| INFRA | 6 |
+| INFRA | 7 |
 | INTEGRATION | 1 |
 | SECURITY | 3 |
 | STATE_MACHINE | 2 |
@@ -55,7 +55,7 @@ see [`README.md`](README.md) for why.
 | BLOCKED | 1 |
 | DEFERRED | 24 |
 | PRODUCT_DECISION | 2 |
-| FIXED | 5 |
+| FIXED | 6 |
 | VERIFIED | 148 |
 | DUPLICATE | 2 |
 | ACCEPTED_RISK | 1 |
@@ -80,6 +80,7 @@ see [`README.md`](README.md) for why.
 | [BUG-0994](../../docs/bugs/BUG-0994-plan-entitlements-blank-out-on-save-and-the-next-save-delete.md) | Plan entitlements blank out on save and the next save deletes them | DATA_INTEGRITY | CRITICAL | P0 | VERIFIED | platform-runtime, super-admin, admin | DONE |
 | [BUG-1128](../../docs/bugs/BUG-1128-stripe-api-version-skew-invoice-paid-cannot-map-to-a-subscri.md) | Stripe API version skew: invoice.paid cannot map to a subscription because invoice.subscription no longer exists | INTEGRATION | CRITICAL | P0 | FIXED | api:billing | FIX_NOW |
 | [BUG-1133](../../docs/bugs/BUG-1133-saving-a-plan-price-deactivates-every-sibling-price-on-a-nar.md) | Saving a plan price deactivates every sibling price on a narrower key than the unique index | DATA_INTEGRITY | CRITICAL | P0 | VERIFIED | api:super-admin, apps/admin | DONE |
+| [BUG-1494](../../docs/bugs/BUG-1494-git-worktree-remove-follows-node-modules-junctions-and-delet.md) | git worktree remove follows node_modules junctions and deletes the primary checkout | INFRA | CRITICAL | P1 | FIXED | scripts | DONE |
 | [BUG-0049](../../docs/bugs/BUG-0049-report-only-ci-jobs-swallow-security-and-database-e2e-failur.md) | Report-only CI jobs swallow security and database E2E failures | INFRA | HIGH | P0 | VERIFIED | .github/workflows, services/api/src/common/constants, services/api/test, docs/qa | DONE |
 | [BUG-0052](../../docs/bugs/BUG-0052-production-dependency-graph-carries-critical-and-high-securi.md) | Production dependency graph carries critical and high security advisories | SECURITY | HIGH | P0 | VERIFIED | package-lock.json, apps/agent-desktop, apps/web, apps/admin, apps/landing, services/api | DONE |
 | [BUG-0053](../../docs/bugs/BUG-0053-documents-self-scoped-users-can-read-tenant-wide-documents.md) | Self-scoped document readers can list and open tenant-wide documents | AUTHORIZATION | HIGH | P0 | VERIFIED | api:documents | DONE |

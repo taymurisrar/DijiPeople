@@ -2471,3 +2471,18 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | The client was already right. This is the failure mode where one half of a contract is written correctly, the other half never fills it in, and nothing fails — the form degrades to a toast instead of erroring, so it looks like a working form with an unhelpful message rather than a broken channel. Worth noting what the fix deliberately kept: `message` on the thrown payload stays the flat array of constraint strings, because existing callers and tests read it; `fieldErrors` is *added* beside it. That shape is not new — `HttpExceptionFilter.readFieldErrors` already looks for it — so every other `dto()` caller that lets the exception reach the filter now answers with the documented contract as a side effect, rather than needing its own repair. |
 | **Fixed** | 2026-08-26, `agent/admin-prod-e2e-qa` |
 | **Active** | yes |
+
+### REG-262 — A worktree delete reaching through a junction into the primary checkout
+
+| | |
+|---|---|
+| **Bug class** | `safe-steps-composing-into-an-unsafe-one` |
+| **Module** | `scripts` |
+| **Bug record** | BUG-1494 |
+| **Root cause** | `git worktree remove` deletes recursively, and a Windows junction is a directory to that recursion — it walks through and destroys the target. Task worktrees here junction `node_modules` to the primary's, because a real `npm ci` per worktree costs minutes, and npm workspaces puts *its own* links inside `node_modules` (`node_modules/admin -> apps/admin`, `node_modules/api -> services/api`, `node_modules/@repo/* -> packages/*`). The delete therefore chained two levels of link into the real source tree and removed 3,072 tracked files from the user's primary checkout, plus every dependency and the generated Prisma client. Both steps were established practice on their own; nothing connected them, and the only error Git printed named the *worktree* as non-empty — never the primary. |
+| **Regression test** | `scripts/validate-framework.mjs` — nine checks guarding `scripts/remove-worktree.mjs` |
+| **Scenario** | The guard must refuse the primary worktree by name; refuse a path that is not a registered worktree; find reparse points without descending into one; unlink them with `rmdirSync`/`unlinkSync` rather than any recursive delete; verify the primary's sentinel paths after removing and print the `git restore .` recovery if they are gone; be reachable as `npm run worktree:remove`; and be named in both documents that teach the worktree lifecycle. |
+| **Proven to fail without the fix** | Mutation-tested 2026-08-26. Deleting the primary-worktree refusal fails 1 check; replacing `rmdirSync(link)` with `rmSync(link, { recursive: true })` fails 2. Also proven positively against a live fixture: a worktree whose `node_modules` junction pointed at a directory of five files. Removed through the guard, all five survived and the worktree was gone. |
+| **Note** | Two details worth keeping. First, the "never deletes recursively" check **strips comments before scanning**, because the guard names `rm -rf` in its own header in order to forbid it — without that, the sentence that prevents the mistake fails the check that enforces it, exactly as a record breaks the link check by quoting a wikilink. Second, the recovery is only safe because it was verified first: every one of the 3,072 entries was a deletion, with nothing modified, untracked or stashed, which is what made `git restore .` purely additive. Had real edits been mixed in, the same command would have destroyed them. The guard prints that recovery, but the instruction to check `git status` before running it is the part that matters. |
+| **Fixed** | 2026-08-26, `agent/worktree-removal-guard` |
+| **Active** | yes |

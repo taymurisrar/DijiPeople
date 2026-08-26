@@ -7,14 +7,14 @@
 
 | | |
 |---|---|
-| Active sessions | **0** |
+| Active sessions | **1** |
 | Active parent tasks | 4 |
 | Active work packages | 1 |
 | Blocked work packages | 0 |
 | Work packages waiting on the user | 0 |
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
-| Open CRITICAL | **4** |
+| Open CRITICAL | **5** |
 | Open HIGH | 10 |
 | Awaiting Architect triage | 6 |
 | Owner decisions pending | 2 |
@@ -30,8 +30,8 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 38 |
-| No next action | 38 |
+| No acceptance criteria | 39 |
+| No next action | 39 |
 | Aging — 7d / 30d / 90d | 14 / 0 / 0 |
 | Architecture and technical debt | 6 |
 | Security gaps | 3 |
@@ -47,7 +47,9 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 ## Active Sessions
 
-_No session is currently registered as active._
+| Session | Task | Title | Status | Branch | Target | Leases | Schema |
+|---|---|---|---|---|---|---|---|
+| [[SESSION-0060-guard-worktree-removal-against-destroying-the-primary-checko|SESSION-0060]] | — | Guard worktree removal against destroying the primary checkout | ACTIVE | `agent/worktree-removal-guard` | `develop` | — | NO |
 
 ## Active Tasks and Work Packages
 
@@ -104,6 +106,7 @@ what they own, and what the backlog and QA systems currently say.
 | [[BUG-0900-tenant-provisioning-exceeds-the-5s-transaction-timeout-a-pai|BUG-0900]] | Tenant provisioning exceeds the 5s transaction timeout: a paid order is left with no workspace | BUG | CRITICAL | FIXED | api:permissions | FIX_NOW |
 | [[BUG-0904-production-is-missing-outbox-worker-enabled-so-no-workspace-|BUG-0904]] | Production is missing OUTBOX_WORKER_ENABLED, so no workspace is provisioned after payment | BUG | CRITICAL | OPEN | api:outbox | BLOCKED_EXTERNAL |
 | [[BUG-1128-stripe-api-version-skew-invoice-paid-cannot-map-to-a-subscri|BUG-1128]] | Stripe API version skew: invoice.paid cannot map to a subscription because invoice.subscription no longer exists | INTEGRATION | CRITICAL | FIXED | api:billing | FIX_NOW |
+| [[BUG-1494-git-worktree-remove-follows-node-modules-junctions-and-delet|BUG-1494]] | git worktree remove follows node_modules junctions and deletes the primary checkout | INFRA | CRITICAL | FIXED | scripts | DONE |
 
 ## Owner Decisions Pending
 
@@ -231,7 +234,7 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 39 |
+| Open total | 40 |
 | Blocked | 1 |
 | Deferred | 24 |
 | Awaiting a product decision | 2 |

@@ -7,9 +7,9 @@
 
 | | |
 |---|---|
-| Open CRITICAL | **4** |
+| Open CRITICAL | **5** |
 | Open HIGH | **10** |
-| Open total | 39 |
+| Open total | 40 |
 | Blocked | 1 |
 | Awaiting a product decision | 2 |
 | Deferred | 24 |
@@ -24,6 +24,7 @@
 | [[BUG-0900-tenant-provisioning-exceeds-the-5s-transaction-timeout-a-pai|BUG-0900]] | Tenant provisioning exceeds the 5s transaction timeout: a paid order is left with no workspace | BUG | CRITICAL | FIXED | api:permissions | FIX_NOW |
 | [[BUG-0904-production-is-missing-outbox-worker-enabled-so-no-workspace-|BUG-0904]] | Production is missing OUTBOX_WORKER_ENABLED, so no workspace is provisioned after payment | BUG | CRITICAL | OPEN | api:outbox | BLOCKED_EXTERNAL |
 | [[BUG-1128-stripe-api-version-skew-invoice-paid-cannot-map-to-a-subscri|BUG-1128]] | Stripe API version skew: invoice.paid cannot map to a subscription because invoice.subscription no longer exists | INTEGRATION | CRITICAL | FIXED | api:billing | FIX_NOW |
+| [[BUG-1494-git-worktree-remove-follows-node-modules-junctions-and-delet|BUG-1494]] | git worktree remove follows node_modules junctions and deletes the primary checkout | INFRA | CRITICAL | FIXED | scripts | DONE |
 
 ## Open High Bugs
 
@@ -69,6 +70,7 @@
 
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
+| [[BUG-1494-git-worktree-remove-follows-node-modules-junctions-and-delet|BUG-1494]] | git worktree remove follows node_modules junctions and deletes the primary checkout | INFRA | CRITICAL | FIXED | scripts | DONE |
 | [[BUG-1203-repo-health-reports-changed-by-this-task-for-another-session|BUG-1203]] | repo-health reports CHANGED_BY_THIS_TASK for another session's merge | INFRA | HIGH | FIXED | framework | FIX_NOW |
 | [[BUG-1208-component-index-check-fails-on-every-windows-checkout-passes|BUG-1208]] | component-index --check fails on every Windows checkout, passes in CI | INFRA | MEDIUM | FIXED | framework | FIX_NOW |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
@@ -92,6 +94,7 @@
 | [[BUG-0994-plan-entitlements-blank-out-on-save-and-the-next-save-delete|BUG-0994]] | Plan entitlements blank out on save and the next save deletes them | DATA_INTEGRITY | CRITICAL | VERIFIED | platform-runtime, super-admin, admin | DONE |
 | [[BUG-1128-stripe-api-version-skew-invoice-paid-cannot-map-to-a-subscri|BUG-1128]] | Stripe API version skew: invoice.paid cannot map to a subscription because invoice.subscription no longer exists | INTEGRATION | CRITICAL | FIXED | api:billing | FIX_NOW |
 | [[BUG-1133-saving-a-plan-price-deactivates-every-sibling-price-on-a-nar|BUG-1133]] | Saving a plan price deactivates every sibling price on a narrower key than the unique index | DATA_INTEGRITY | CRITICAL | VERIFIED | api:super-admin, apps/admin | DONE |
+| [[BUG-1494-git-worktree-remove-follows-node-modules-junctions-and-delet|BUG-1494]] | git worktree remove follows node_modules junctions and deletes the primary checkout | INFRA | CRITICAL | FIXED | scripts | DONE |
 | [[BUG-0049-report-only-ci-jobs-swallow-security-and-database-e2e-failur|BUG-0049]] | Report-only CI jobs swallow security and database E2E failures | INFRA | HIGH | VERIFIED | .github/workflows, services/api/src/common/constants, services/api/test, docs/qa | DONE |
 | [[BUG-0052-production-dependency-graph-carries-critical-and-high-securi|BUG-0052]] | Production dependency graph carries critical and high security advisories | SECURITY | HIGH | VERIFIED | package-lock.json, apps/agent-desktop, apps/web, apps/admin, apps/landing, services/api | DONE |
 | [[BUG-0053-documents-self-scoped-users-can-read-tenant-wide-documents|BUG-0053]] | Self-scoped document readers can list and open tenant-wide documents | AUTHORIZATION | HIGH | VERIFIED | api:documents | DONE |
@@ -314,7 +317,7 @@
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 169 |
+| Bug records | 170 |
 | Backlog items | 101 |
 | Known bug patterns | 29 |
 | QA runs | 27 |

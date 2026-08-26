@@ -6,7 +6,7 @@ One evergreen plan per product area: scope, risks, the cases that must always
 be covered, and the declared coverage per dimension. QA loads the plan for
 every area a change touches **before** designing anything new.
 
-**Plans: 21** · scenarios across them: 202
+**Plans: 21** · scenarios across them: 203
 
 | Plan | Area | Risk | Status | Scenarios | Related bugs | Verified against |
 |---|---|---|---|---|---|---|
@@ -16,7 +16,7 @@ every area a change touches **before** designing anything new.
 | [PLAN-002](../../../docs/qa/test-plans/PLAN-002-authorization.md) | authorization | CRITICAL | NEEDS_REVIEW | 18 | BUG-0003, BUG-0004, BUG-0006, BUG-0007, BUG-0047, BUG-0071, BUG-0072 | `714632d` |
 | [PLAN-020](../../../docs/qa/test-plans/PLAN-020-billing.md) | billing | CRITICAL | CURRENT | 10 | BUG-0531, BUG-0533, BUG-0534, BUG-0027, BUG-0030 | `99dc70a` |
 | [PLAN-004](../../../docs/qa/test-plans/PLAN-004-commercial-onboarding.md) | commercial-onboarding | HIGH | NEEDS_REVIEW | 9 | BUG-0011, BUG-0012, BUG-0024, BUG-0027, BUG-0028, BUG-0029, BUG-0030 | `714632d` |
-| [PLAN-012](../../../docs/qa/test-plans/PLAN-012-deployment-release.md) | deployment-release | HIGH | NEEDS_REVIEW | 26 | BUG-0023, BUG-0026, BUG-0037, BUG-0042, BUG-0047 | `714632d` |
+| [PLAN-012](../../../docs/qa/test-plans/PLAN-012-deployment-release.md) | deployment-release | HIGH | NEEDS_REVIEW | 27 | BUG-0023, BUG-0026, BUG-0037, BUG-0042, BUG-0047 | `714632d` |
 | [PLAN-013](../../../docs/qa/test-plans/PLAN-013-landing.md) | landing | HIGH | CURRENT | 23 | BUG-0061, BUG-0062, BUG-0063, BUG-0064, BUG-0065, BUG-0066 | `c332992` |
 | [PLAN-005](../../../docs/qa/test-plans/PLAN-005-lead-management.md) | lead-management | HIGH | NEEDS_REVIEW | 5 | BUG-0013, BUG-0018, BUG-0021, BUG-0031, BUG-0032 | `714632d` |
 | [PLAN-015](../../../docs/qa/test-plans/PLAN-015-legal.md) | legal | HIGH | CURRENT | 5 | — | `bd0fb36` |

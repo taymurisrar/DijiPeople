@@ -6,11 +6,13 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 0** · completed: 57
+**Active: 1** · completed: 57
 
 ## Active
 
-_None. No session is currently running._
+| Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
+|---|---|---|---|---|---|---|---|
+| [SESSION-0060](../../docs/sessions/SESSION-0060-guard-worktree-removal-against-destroying-the-primary-checko.md) | — | Guard worktree removal against destroying the primary checkout | ACTIVE | `agent/worktree-removal-guard` | `develop` | — | 2026-08-26T07:55:46.349Z |
 
 ## Completed
 
