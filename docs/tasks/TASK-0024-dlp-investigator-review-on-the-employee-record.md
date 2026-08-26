@@ -4,7 +4,7 @@ aliases: [TASK-0024]
 TITLE: DLP investigator review on the employee record
 TYPE: FEATURE
 SIZE: MEDIUM
-STATUS: IN_PROGRESS
+STATUS: COMPLETE
 PRIORITY: P1
 CREATED_AT: 2026-08-25
 AFFECTED_MODULES: [apps/web]
@@ -14,7 +14,7 @@ CURRENT_PACKAGE:
 COMPLETED_PACKAGES: []
 BLOCKED_PACKAGES: []
 OWNER_DECISIONS: 0
-FINAL_STATUS:
+FINAL_STATUS: COMPLETE
 ---
 
 # TASK-0024 — DLP investigator review on the employee record
@@ -31,7 +31,7 @@ A good package can be reviewed on its own and has one owning specialist.
 
 | WP_ID | TITLE | STATUS | DEPENDENCIES | AGENTS | BRANCH | SHA | QA_STATUS | BUGS | CI_STATUS | MERGE_STATUS |
 |---|---|---|---|---|---|---|---|---|---|---|
-| WP-01 | <first package> | NOT_STARTED | — | <agent> | agent/<feature>-<scope> | — | — | — | — | — |
+| WP-01 | EmployeeDlpCaptures panel on the employee record | DONE | — | frontend | agent/dlp-employee-review | 10e47f3 | tested | PASS | — | MERGED |
 
 ## Assumptions
 

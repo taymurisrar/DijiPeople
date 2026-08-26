@@ -4,7 +4,7 @@ aliases: [SESSION-0058]
 TASK_ID:
 TITLE: DLP investigator review on the employee form
 ARCHITECT_INTENT: DLP investigator review on the employee form
-STATUS: ACTIVE
+STATUS: COMPLETE
 TASK_TYPE: FEATURE
 TASK_SIZE: MEDIUM
 BASE_BRANCH: origin/develop

@@ -6,18 +6,17 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 1** · completed: 55
+**Active: 0** · completed: 56
 
 ## Active
 
-| Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
-|---|---|---|---|---|---|---|---|
-| [SESSION-0058](../../docs/sessions/SESSION-0058-dlp-investigator-review-on-the-employee-form.md) | — | DLP investigator review on the employee form | ACTIVE | `agent/dlp-employee-review` | `develop` | — | 2026-08-25T23:28:07.299Z |
+_None. No session is currently running._
 
 ## Completed
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0058](../../docs/sessions/SESSION-0058-dlp-investigator-review-on-the-employee-form.md) | — | DLP investigator review on the employee form | COMPLETE | `agent/dlp-employee-review` | `develop` | — | 2026-08-25T23:28:07.299Z |
 | [SESSION-0057](../../docs/sessions/SESSION-0057-fix-the-six-landing-qa-bugs-run-ui-ux-review-unblock-provisi.md) | — | Fix the six landing QA bugs, run UI/UX review, unblock provisioning and prod checkout, release to main | COMPLETE | `agent/landing-qa-fixes` | `develop` | — | 2026-08-25T19:18:33.032Z |
 | [SESSION-0056](../../docs/sessions/SESSION-0056-end-to-end-browser-qa-of-the-public-landing-site-on-local-an.md) | — | End-to-end browser QA of the public landing site on local and production | COMPLETE | `agent/landing-e2e-qa` | `develop` | — | 2026-08-25T17:30:09.143Z |
 | [SESSION-0055](../../docs/sessions/SESSION-0055-admin-theme-bootstrap-script-triggers-a-hydration-mismatch-i.md) | — | Admin theme bootstrap script triggers a hydration mismatch in head | COMPLETE | `agent/admin-theme-bootstrap-hydration` | `develop` | — | 2026-08-25T17:02:26.566Z |
