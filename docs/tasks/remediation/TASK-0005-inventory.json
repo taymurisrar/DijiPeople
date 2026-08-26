@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 273,
+    "total_records": 294,
     "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
@@ -8534,6 +8534,820 @@
           "landing"
         ],
         "verification_scope": "See docs/bugs/BUG-1516-public-signup-creates-duplicate-customer-records-breaking-st.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1541",
+      "type": "BUG",
+      "title": "Generated agreement PDFs render unsubstituted template placeholders",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-1541-generated-agreement-pdfs-render-unsubstituted-template-place.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "21032ae",
+        "created_at": "2026-08-26",
+        "updated_at": "2026-08-26",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "contracts",
+        "legal"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "contracts",
+          "legal"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1541-generated-agreement-pdfs-render-unsubstituted-template-place.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1542",
+      "type": "BUG",
+      "title": "Monitoring incident detail pages return 404 for every incident",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-1542-monitoring-incident-detail-pages-return-404-for-every-incide.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "21032ae",
+        "created_at": "2026-08-26",
+        "updated_at": "2026-08-26",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "platform-monitoring",
+        "error-logs"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "platform-monitoring",
+          "error-logs"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1542-monitoring-incident-detail-pages-return-404-for-every-incide.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1543",
+      "type": "INTEGRATION",
+      "title": "Stripe webhook rejected as VALIDATION_FAILED during a live payment",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-1543-stripe-webhook-rejected-as-validation-failed-during-a-live-p.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "21032ae",
+        "created_at": "2026-08-26",
+        "updated_at": "2026-08-26",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "billing"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "billing"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1543-stripe-webhook-rejected-as-validation-failed-during-a-live-p.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1544",
+      "type": "UX",
+      "title": "Public signup advertises a workspace domain that does not resolve",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-1544-public-signup-advertises-a-workspace-domain-that-does-not-re.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "21032ae",
+        "created_at": "2026-08-26",
+        "updated_at": "2026-08-26",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "tenant-domains",
+        "leads"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "tenant-domains",
+          "leads"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1544-public-signup-advertises-a-workspace-domain-that-does-not-re.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1545",
+      "type": "BUG",
+      "title": "Manual customer onboarding creation fails on an owner foreign key",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-1545-manual-customer-onboarding-creation-fails-on-an-owner-foreig.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "21032ae",
+        "created_at": "2026-08-26",
+        "updated_at": "2026-08-26",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "platform-runtime",
+        "onboarding"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "platform-runtime",
+          "onboarding"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1545-manual-customer-onboarding-creation-fails-on-an-owner-foreig.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1546",
+      "type": "UX",
+      "title": "Required fields on unfocused tabs give no indication of where they are",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-1546-required-fields-on-unfocused-tabs-give-no-indication-of-wher.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "21032ae",
+        "created_at": "2026-08-26",
+        "updated_at": "2026-08-26",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "customization"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "customization"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1546-required-fields-on-unfocused-tabs-give-no-indication-of-wher.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1547",
+      "type": "UX",
+      "title": "Onboarding prerequisite message states the inverse of the truth",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-1547-onboarding-prerequisite-message-states-the-inverse-of-the-tr.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "21032ae",
+        "created_at": "2026-08-26",
+        "updated_at": "2026-08-26",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "onboarding"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "onboarding"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1547-onboarding-prerequisite-message-states-the-inverse-of-the-tr.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1548",
+      "type": "BUG",
+      "title": "Customer onboarding validate accepts payloads that create rejects",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-1548-customer-onboarding-validate-accepts-payloads-that-create-re.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "21032ae",
+        "created_at": "2026-08-26",
+        "updated_at": "2026-08-26",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "onboarding"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "onboarding"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1548-customer-onboarding-validate-accepts-payloads-that-create-re.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1549",
+      "type": "UX",
+      "title": "Database and validator internals are surfaced in user-facing errors",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-1549-database-and-validator-internals-are-surfaced-in-user-facing.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "21032ae",
+        "created_at": "2026-08-26",
+        "updated_at": "2026-08-26",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "error-logs"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "error-logs"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1549-database-and-validator-internals-are-surfaced-in-user-facing.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1550",
+      "type": "BUG",
+      "title": "Lead record shows two different owners on the same screen",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-1550-lead-record-shows-two-different-owners-on-the-same-screen.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "21032ae",
+        "created_at": "2026-08-26",
+        "updated_at": "2026-08-26",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "leads"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "leads"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1550-lead-record-shows-two-different-owners-on-the-same-screen.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1551",
+      "type": "INTEGRATION",
+      "title": "Desktop agent auto-update manifest returns 404",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-1551-desktop-agent-auto-update-manifest-returns-404.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "21032ae",
+        "created_at": "2026-08-26",
+        "updated_at": "2026-08-26",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "agent",
+        "app-releases"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "agent",
+          "app-releases"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1551-desktop-agent-auto-update-manifest-returns-404.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1552",
+      "type": "UX",
+      "title": "Admin form inputs have no accessible name",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-1552-admin-form-inputs-have-no-accessible-name.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "21032ae",
+        "created_at": "2026-08-26",
+        "updated_at": "2026-08-26",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "leads",
+        "super-admin"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "leads",
+          "super-admin"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1552-admin-form-inputs-have-no-accessible-name.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1553",
+      "type": "UX",
+      "title": "Owner and template pickers list indistinguishable duplicate entries",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-1553-owner-and-template-pickers-list-indistinguishable-duplicate-.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "21032ae",
+        "created_at": "2026-08-26",
+        "updated_at": "2026-08-26",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "contracts",
+        "platform-users"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "contracts",
+          "platform-users"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1553-owner-and-template-pickers-list-indistinguishable-duplicate-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1554",
+      "type": "BUG",
+      "title": "Admin requests its own partners API with a rejected pageSize",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-1554-admin-requests-its-own-partners-api-with-a-rejected-pagesize.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "21032ae",
+        "created_at": "2026-08-26",
+        "updated_at": "2026-08-26",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "partners"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "partners"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1554-admin-requests-its-own-partners-api-with-a-rejected-pagesize.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1555",
+      "type": "BUG",
+      "title": "An inactive plan with no prices is offered as a customer preferred plan",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-1555-an-inactive-plan-with-no-prices-is-offered-as-a-customer-pre.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "21032ae",
+        "created_at": "2026-08-26",
+        "updated_at": "2026-08-26",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "super-admin",
+        "billing"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "super-admin",
+          "billing"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1555-an-inactive-plan-with-no-prices-is-offered-as-a-customer-pre.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1556",
+      "type": "UX",
+      "title": "Contract dates with no value render as the Unix epoch",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-1556-contract-dates-with-no-value-render-as-the-unix-epoch.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "21032ae",
+        "created_at": "2026-08-26",
+        "updated_at": "2026-08-26",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "contracts"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "contracts"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1556-contract-dates-with-no-value-render-as-the-unix-epoch.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1557",
+      "type": "BUG",
+      "title": "React hydration error 418 on the admin dashboard",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-1557-react-hydration-error-418-on-the-admin-dashboard.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "21032ae",
+        "created_at": "2026-08-26",
+        "updated_at": "2026-08-26",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "dashboard"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "dashboard"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1557-react-hydration-error-418-on-the-admin-dashboard.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1558",
+      "type": "UX",
+      "title": "Admin list copy uses incorrect pluralisation and articles",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-1558-admin-list-copy-uses-incorrect-pluralisation-and-articles.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "21032ae",
+        "created_at": "2026-08-26",
+        "updated_at": "2026-08-26",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "super-admin"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "super-admin"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1558-admin-list-copy-uses-incorrect-pluralisation-and-articles.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1559",
+      "type": "UX",
+      "title": "Empty states instruct the user to create records on screens with no create control",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-1559-empty-states-instruct-the-user-to-create-records-on-screens-.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "21032ae",
+        "created_at": "2026-08-26",
+        "updated_at": "2026-08-26",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "billing"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "billing"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1559-empty-states-instruct-the-user-to-create-records-on-screens-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1560",
+      "type": "UX",
+      "title": "Delete confirmation does not name the record being deleted",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-1560-delete-confirmation-does-not-name-the-record-being-deleted.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "21032ae",
+        "created_at": "2026-08-26",
+        "updated_at": "2026-08-26",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "leads"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "leads"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1560-delete-confirmation-does-not-name-the-record-being-deleted.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1561",
+      "type": "UX",
+      "title": "Signup verification step has no way back to correct a mistyped email",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-1561-signup-verification-step-has-no-way-back-to-correct-a-mistyp.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "21032ae",
+        "created_at": "2026-08-26",
+        "updated_at": "2026-08-26",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "leads"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "leads"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1561-signup-verification-step-has-no-way-back-to-correct-a-mistyp.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],

@@ -8,13 +8,13 @@
 | | |
 |---|---|
 | Open CRITICAL | **5** |
-| Open HIGH | **12** |
-| Open total | 42 |
+| Open HIGH | **16** |
+| Open total | 63 |
 | Blocked | 1 |
 | Awaiting a product decision | 2 |
 | Deferred | 24 |
 | Completed | 204 |
-| Awaiting Architect triage | 8 |
+| Awaiting Architect triage | 29 |
 
 ## Open Critical Bugs
 
@@ -40,6 +40,10 @@
 | [[BUG-1423-runtime-form-controls-have-no-accessible-name-so-screen-read|BUG-1423]] | Runtime form controls have no accessible name so screen readers announce every field as blank | UX | HIGH | OPEN | apps/admin | TRIAGE_REQUIRED |
 | [[BUG-1515-tenant-activation-invitation-reported-as-sent-when-it-was-ne|BUG-1515]] | Tenant activation invitation reported as sent when it was never delivered | STATE_MACHINE | HIGH | OPEN | auth, tenant-control-plane, notifications | TRIAGE_REQUIRED |
 | [[BUG-1516-public-signup-creates-duplicate-customer-records-breaking-st|BUG-1516]] | Public signup creates duplicate customer records, breaking Stripe tenant resolution | DATA_INTEGRITY | HIGH | OPEN | super-admin, billing, landing | TRIAGE_REQUIRED |
+| [[BUG-1541-generated-agreement-pdfs-render-unsubstituted-template-place|BUG-1541]] | Generated agreement PDFs render unsubstituted template placeholders | BUG | HIGH | OPEN | contracts, legal | TRIAGE_REQUIRED |
+| [[BUG-1542-monitoring-incident-detail-pages-return-404-for-every-incide|BUG-1542]] | Monitoring incident detail pages return 404 for every incident | BUG | HIGH | OPEN | platform-monitoring, error-logs | TRIAGE_REQUIRED |
+| [[BUG-1543-stripe-webhook-rejected-as-validation-failed-during-a-live-p|BUG-1543]] | Stripe webhook rejected as VALIDATION_FAILED during a live payment | INTEGRATION | HIGH | OPEN | billing | TRIAGE_REQUIRED |
+| [[BUG-1544-public-signup-advertises-a-workspace-domain-that-does-not-re|BUG-1544]] | Public signup advertises a workspace domain that does not resolve | UX | HIGH | OPEN | tenant-domains, leads | TRIAGE_REQUIRED |
 | [[ITEM-0034-apps-web-has-zero-browser-e2e-coverage|ITEM-0034]] | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | READY | apps/web, e2e | PLAN_REQUIRED |
 | [[ITEM-0094-go-live-sh-reports-no-blocker-for-a-webhook-endpoint-that-re|ITEM-0094]] | go-live.sh reports no blocker for a webhook endpoint that rejects every delivery | TEST_GAP | HIGH | READY | scripts, api:billing, api:outbox | FIX_NOW |
 
@@ -285,6 +289,17 @@
 | [[BUG-1421-every-admin-screen-shares-one-page-title-two-main-landmarks-|BUG-1421]] | Every admin screen shares one page title, two main landmarks and a duplicate h1 | UX | MEDIUM | OPEN | apps/admin | TRIAGE_REQUIRED |
 | [[BUG-1424-the-admin-console-serves-no-content-security-policy-header|BUG-1424]] | The admin console serves no Content-Security-Policy header | SECURITY | MEDIUM | OPEN | apps/admin | TRIAGE_REQUIRED |
 | [[BUG-1425-currencycode-accepts-any-string-of-three-characters-or-fewer|BUG-1425]] | currencyCode accepts any string of three characters or fewer | DATA_INTEGRITY | MEDIUM | OPEN | api:partners | TRIAGE_REQUIRED |
+| [[BUG-1545-manual-customer-onboarding-creation-fails-on-an-owner-foreig|BUG-1545]] | Manual customer onboarding creation fails on an owner foreign key | BUG | MEDIUM | OPEN | platform-runtime, onboarding | TRIAGE_REQUIRED |
+| [[BUG-1546-required-fields-on-unfocused-tabs-give-no-indication-of-wher|BUG-1546]] | Required fields on unfocused tabs give no indication of where they are | UX | MEDIUM | OPEN | customization | TRIAGE_REQUIRED |
+| [[BUG-1547-onboarding-prerequisite-message-states-the-inverse-of-the-tr|BUG-1547]] | Onboarding prerequisite message states the inverse of the truth | UX | MEDIUM | OPEN | onboarding | TRIAGE_REQUIRED |
+| [[BUG-1548-customer-onboarding-validate-accepts-payloads-that-create-re|BUG-1548]] | Customer onboarding validate accepts payloads that create rejects | BUG | MEDIUM | OPEN | onboarding | TRIAGE_REQUIRED |
+| [[BUG-1549-database-and-validator-internals-are-surfaced-in-user-facing|BUG-1549]] | Database and validator internals are surfaced in user-facing errors | UX | MEDIUM | OPEN | error-logs | TRIAGE_REQUIRED |
+| [[BUG-1550-lead-record-shows-two-different-owners-on-the-same-screen|BUG-1550]] | Lead record shows two different owners on the same screen | BUG | MEDIUM | OPEN | leads | TRIAGE_REQUIRED |
+| [[BUG-1551-desktop-agent-auto-update-manifest-returns-404|BUG-1551]] | Desktop agent auto-update manifest returns 404 | INTEGRATION | MEDIUM | OPEN | agent, app-releases | TRIAGE_REQUIRED |
+| [[BUG-1552-admin-form-inputs-have-no-accessible-name|BUG-1552]] | Admin form inputs have no accessible name | UX | MEDIUM | OPEN | leads, super-admin | TRIAGE_REQUIRED |
+| [[BUG-1553-owner-and-template-pickers-list-indistinguishable-duplicate-|BUG-1553]] | Owner and template pickers list indistinguishable duplicate entries | UX | MEDIUM | OPEN | contracts, platform-users | TRIAGE_REQUIRED |
+| [[BUG-1554-admin-requests-its-own-partners-api-with-a-rejected-pagesize|BUG-1554]] | Admin requests its own partners API with a rejected pageSize | BUG | MEDIUM | OPEN | partners | TRIAGE_REQUIRED |
+| [[BUG-1555-an-inactive-plan-with-no-prices-is-offered-as-a-customer-pre|BUG-1555]] | An inactive plan with no prices is offered as a customer preferred plan | BUG | MEDIUM | OPEN | super-admin, billing | TRIAGE_REQUIRED |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0020-contract-phase-drop-legacy-plan-pricing-columns|ITEM-0020]] | Contract phase: drop legacy Plan pricing columns | TECH_DEBT | MEDIUM | READY | services/api/prisma, api:super-admin, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur|ITEM-0022]] | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | READY | api:super-admin, apps/admin | PLAN_REQUIRED |
@@ -302,6 +317,12 @@
 | [[ITEM-0084-detect-drift-between-render-yaml-and-the-live-render-service|ITEM-0084]] | Detect drift between render.yaml and the live Render service | INFRA | MEDIUM | READY | render.yaml, scripts | FIX_NOW |
 | [[ITEM-0092-widget-runtime-contract-test-js-fails-and-no-script-or-ci-jo|ITEM-0092]] | widget-runtime-contract.test.js fails and no script or CI job runs it | TEST_GAP | MEDIUM | READY | pkg:config, apps/web | PLAN_REQUIRED |
 | [[ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning|ITEM-0023]] | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
+| [[BUG-1556-contract-dates-with-no-value-render-as-the-unix-epoch|BUG-1556]] | Contract dates with no value render as the Unix epoch | UX | LOW | OPEN | contracts | TRIAGE_REQUIRED |
+| [[BUG-1557-react-hydration-error-418-on-the-admin-dashboard|BUG-1557]] | React hydration error 418 on the admin dashboard | BUG | LOW | OPEN | dashboard | TRIAGE_REQUIRED |
+| [[BUG-1558-admin-list-copy-uses-incorrect-pluralisation-and-articles|BUG-1558]] | Admin list copy uses incorrect pluralisation and articles | UX | LOW | OPEN | super-admin | TRIAGE_REQUIRED |
+| [[BUG-1559-empty-states-instruct-the-user-to-create-records-on-screens-|BUG-1559]] | Empty states instruct the user to create records on screens with no create control | UX | LOW | OPEN | billing | TRIAGE_REQUIRED |
+| [[BUG-1560-delete-confirmation-does-not-name-the-record-being-deleted|BUG-1560]] | Delete confirmation does not name the record being deleted | UX | LOW | OPEN | leads | TRIAGE_REQUIRED |
+| [[BUG-1561-signup-verification-step-has-no-way-back-to-correct-a-mistyp|BUG-1561]] | Signup verification step has no way back to correct a mistyped email | UX | LOW | OPEN | leads | TRIAGE_REQUIRED |
 | [[ITEM-0049-register-services-api-environment-reads-or-scope-the-rule|ITEM-0049]] | Register services/api environment reads or scope the rule to build inputs | INFRA | LOW | READY | services/api, turbo.json, docs/deployment | PLAN_REQUIRED |
 | [[ITEM-0080-type-the-remaining-services-api-no-unsafe-warnings-module-by|ITEM-0080]] | Type the remaining services/api no-unsafe warnings module by module | TECH_DEBT | LOW | READY | services/api | FIX_NOW |
 | [[ITEM-0093-link-validation-skips-untracked-files-so-a-new-record-s-brok|ITEM-0093]] | Link validation skips untracked files, so a new record's broken links only surface in CI | TECH_DEBT | LOW | READY | scripts | FIX_NOW |
@@ -319,7 +340,7 @@
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 172 |
+| Bug records | 193 |
 | Backlog items | 101 |
 | Known bug patterns | 29 |
 | QA runs | 27 |
@@ -330,7 +351,7 @@
 | Decision notes (ADR + generated) | 6 |
 | Implementation records | 6 |
 
-**Awaiting Architect triage: 8.** A record nobody has
+**Awaiting Architect triage: 29.** A record nobody has
 triaged is work nobody has decided about — the number that should stay near
 zero between tasks.
 
