@@ -102,8 +102,12 @@ function build(overrides: {
     },
   };
 
+  const identityCalls: Record<string, unknown>[] = [];
   const identity = {
-    findExisting: () => Promise.resolve(overrides.existing ?? null),
+    findExisting: (_tx: unknown, args: Record<string, unknown>) => {
+      identityCalls.push(args);
+      return Promise.resolve(overrides.existing ?? null);
+    },
   } as unknown as CustomerIdentityService;
 
   const outbox = { emit: () => Promise.resolve() } as unknown as OutboxService;
@@ -122,10 +126,48 @@ function build(overrides: {
     service as unknown as { resolveCustomer: ResolveCustomer }
   ).resolveCustomer.bind(service);
 
-  return { resolveCustomer, tx, created, updated };
+  return { resolveCustomer, tx, created, updated, identityCalls };
 }
 
 describe('checkout customer record', () => {
+  /*
+   * BUG-1516. `findExisting` matches on a lower-cased e-mail, so a create that
+   * stored the caller's casing verbatim would be unfindable by the next
+   * submission and would duplicate the customer instead of merging into it.
+   * That held together only because `PublicSubscribeDto` lower-cases `email`
+   * before the service sees it — the service itself made no such guarantee, and
+   * any future caller reaching `openOrder` another way would have reintroduced
+   * the duplicate silently.
+   */
+  it('stores the contact e-mail case-folded, whatever casing the caller used', async () => {
+    const { resolveCustomer, tx, created } = build({ existing: null });
+
+    await resolveCustomer(
+      tx,
+      { ...INPUT, email: '  Nora@Maseer.Example  ' },
+      SELECTION,
+    );
+
+    expect(created[0]).toMatchObject({
+      primaryContactEmail: 'nora@maseer.example',
+      contactEmail: 'nora@maseer.example',
+      billingContactEmail: 'nora@maseer.example',
+    });
+  });
+
+  it('matches an existing customer on the case-folded e-mail, not the raw one', async () => {
+    const { resolveCustomer, tx, identityCalls } = build({ existing: null });
+
+    await resolveCustomer(
+      tx,
+      { ...INPUT, email: '  Nora@Maseer.Example  ' },
+      SELECTION,
+    );
+
+    expect(identityCalls).toHaveLength(1);
+    expect(identityCalls[0]).toMatchObject({ email: 'nora@maseer.example' });
+  });
+
   it('records the plan, billing cycle and channel a new customer is buying on', async () => {
     const { resolveCustomer, tx, created } = build({ existing: null });
 

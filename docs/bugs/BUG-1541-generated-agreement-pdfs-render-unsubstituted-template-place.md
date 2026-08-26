@@ -74,10 +74,43 @@ once the fix is confirmed.
 
 ## Root Cause
 
-Not established. The title rendering correctly while the body does not suggests
-two different rendering paths, or a body that is stored and re-emitted without
-ever being passed through the template engine. That is a hypothesis, not a
-finding — it must be confirmed against `contracts` before any fix is designed.
+Not established, but substantially narrowed by reading the code at `6cc25b6a`.
+
+`renderContractPlaceholders` (`services/api/src/modules/contracts/contracts.service.ts`)
+keeps a raw token in the output only when the key is absent from the contract's
+placeholder values, or resolves to an empty string, *and* the registry
+definition's `fallbackBehavior` is not `EMPTY`. The renderer is therefore
+behaving as written: the tokens survive because the values were never there.
+
+Creation through `POST /api/contracts/from-source` calls `resolveSource`, which
+for `sourceType: 'customer'` returns `customerSource()`. That function emits the
+`customer.*` namespace only, and explicitly sets `tenantId: undefined`. It emits
+no `tenant.*`, no SLA and no `commercial.*` billing keys. A template named
+"Tenant Provisioning & Service Order", populated from a customer that has no
+tenant yet, therefore cannot resolve its tenant name, workspace URL, admin
+contact, module list, SLA terms or billing dates. That much is established.
+
+What that does **not** explain is the customer legal name and registered
+address, which were also reported unsubstituted. `customer.legalName` falls back
+to `companyName` and `customer.address` is joined from the address columns, so
+both should resolve for any customer record. Two candidates remain:
+
+1. The template body uses keys that are not in `CONTRACT_PLACEHOLDER_REGISTRY`.
+   `extractContractPlaceholders` invents a definition for an unknown key with no
+   `fallbackBehavior`, so such a token is always kept. This would also explain
+   why *every* body token survived while the title merged — the title is set
+   from `dto.title`, a plain string that never passes through the renderer.
+2. The QA customer record was created with those columns empty.
+
+**The discriminating step is to read the template body and compare its tokens
+against the registry keys.** That has not been done; the template lives on
+production and was not captured during the pass.
+
+Note also that creation calls `assertValidContractPlaceholderValues` with
+`requireRequired` defaulting to `false`, so an agreement can legitimately be
+created with values missing — unresolved tokens are meant to survive until the
+signature gate refuses them. Any fix must not break that, which is why this
+needs the discriminating step before a patch rather than after one.
 
 ## Impact
 

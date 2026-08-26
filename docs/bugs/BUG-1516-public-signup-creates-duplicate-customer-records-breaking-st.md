@@ -86,10 +86,46 @@ appears twice (2026-08-25 23:18 and 23:19).
 
 ## Root Cause
 
-Not established. The wizard submits to `/api/public/subscribe` on more than one
-step transition, and the endpoint creates rather than upserts. Whether the fix
-belongs in the client (submit once, or carry the created id forward) or the
-endpoint (idempotency key, or upsert on a natural key) is a design decision.
+Not established, but the hypothesis recorded here on 2026-08-26 — "the endpoint
+creates rather than upserts" — is **wrong**, and is corrected below. Read at
+`6cc25b6a`.
+
+`/api/public/subscribe` does not create blindly. `SubscriptionOrderService.resolveCustomer`
+calls `CustomerIdentityService.findExisting` inside the same transaction as the
+write, and when it matches it updates the existing customer instead of creating
+a second one. Deduplication exists and is transactional.
+
+The rule it applies is deliberately conservative, and documented as such in
+`customer-identity.service.ts`. Two submissions are the same customer when
+either:
+
+- the contact e-mail matches exactly **and** the normalised company name
+  matches; or
+- the e-mail domain matches **and** the normalised company name matches.
+
+Free e-mail domains are excluded from the second test, `gmail.com` among them,
+with an explicit comment that a duplicate in that case "is the intended
+outcome" — because a shared consumer domain is not evidence of a shared
+employer.
+
+So if the two QA submissions used different local parts at a generic domain,
+the duplicate is designed behaviour rather than a defect. **The discriminating
+step is to read `contactEmail` on the two duplicate customer records.** That
+has not been done.
+
+**Ruled out:** a case-sensitivity mismatch between the stored and the queried
+e-mail. `subscription-order.service.ts` writes `contactEmail: input.email`
+without normalising, while `findExisting` queries `input.email.toLowerCase()` —
+a real asymmetry, and it would silently defeat the strongest of the two match
+rules. It does not bite here because `PublicSubscribeDto` applies
+`@Transform(normalizeEmail)` to `email`, so the value is already lower-cased
+before the service sees it. Worth fixing anyway, because it makes the service
+correct only by virtue of one caller's DTO.
+
+The serious half of this record — Stripe tenant resolution breaking — is not
+answered either way by the identity rule, and should be treated as its own
+defect: resolution must not be ambiguous when duplicates legitimately exist.
+See [[BUG-1543]].
 
 ## Impact
 
