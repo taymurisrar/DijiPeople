@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 207** · automated: 182 · manual: 9 · blocked by infrastructure: 0
+**Scenarios: 208** · automated: 182 · manual: 9 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -221,3 +221,4 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-TENANT-018](../../../docs/qa/scenarios/QA-TENANT-018-api-proxy-routes-never-advertise-an-encoding-they-did-not-ap.md) | API proxy routes never advertise an encoding they did not apply | runtime-modules | UNIT | HIGH | AUTOMATED | `apps/web/app/api/proxy-response-headers.spec.ts` | BUG-1649 | REG-264 |
 | [QA-TENANT-019](../../../docs/qa/scenarios/QA-TENANT-019-an-empty-list-distinguishes-no-data-from-no-matches.md) | An empty list distinguishes no data from no matches | runtime-modules | UNIT | MEDIUM | AUTOMATED | `apps/web/app/components/data-table/empty-state-message.spec.ts` | BUG-1654 | REG-265 |
 | [QA-TENANT-020](../../../docs/qa/scenarios/QA-TENANT-020-one-paid-signup-produces-exactly-one-customer-record.md) | One paid signup produces exactly one customer record | subscription-orders | UNIT | HIGH | AUTOMATED | `services/api/src/modules/billing/services/checkout-customer-record.spec.ts` | BUG-1516 | REG-266 |
+| [QA-TENANT-021](../../../docs/qa/scenarios/QA-TENANT-021-country-reaches-the-database-as-a-name-whichever-surface-wro.md) | Country reaches the database as a name, whichever surface wrote it | platform-admin | UNIT | HIGH | PARTIAL | `apps/admin/lib/runtime/country-field-submits-name.spec.ts` | BUG-1578 | REG-267 |

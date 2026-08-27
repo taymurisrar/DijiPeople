@@ -51,11 +51,11 @@ see [`README.md`](README.md) for why.
 
 | Status | Count |
 |---|---|
-| OPEN | 16 |
+| OPEN | 15 |
 | BLOCKED | 2 |
 | DEFERRED | 44 |
 | PRODUCT_DECISION | 2 |
-| FIXED | 9 |
+| FIXED | 10 |
 | VERIFIED | 150 |
 | DUPLICATE | 4 |
 | ACCEPTED_RISK | 1 |
@@ -171,7 +171,7 @@ see [`README.md`](README.md) for why.
 | [BUG-1542](../../docs/bugs/BUG-1542-monitoring-incident-detail-pages-return-404-for-every-incide.md) | Monitoring incident detail pages return 404 for every incident | BUG | HIGH | P1 | DUPLICATE | platform-monitoring, error-logs | DUPLICATE |
 | [BUG-1543](../../docs/bugs/BUG-1543-stripe-webhook-rejected-as-validation-failed-during-a-live-p.md) | Stripe webhook rejected as VALIDATION_FAILED during a live payment | INTEGRATION | HIGH | P1 | DEFERRED | billing | DEFER |
 | [BUG-1544](../../docs/bugs/BUG-1544-public-signup-advertises-a-workspace-domain-that-does-not-re.md) | Public signup advertises a workspace domain that does not resolve | UX | HIGH | P1 | OPEN | tenant-domains, leads | FIX_NOW |
-| [BUG-1578](../../docs/bugs/BUG-1578-admin-customer-form-stores-a-country-lookup-id-where-every-r.md) | Admin customer form stores a country lookup id where every reader expects a name | DATA_INTEGRITY | HIGH | P1 | OPEN | super-admin, contracts, lookups | FIX_NOW |
+| [BUG-1578](../../docs/bugs/BUG-1578-admin-customer-form-stores-a-country-lookup-id-where-every-r.md) | Admin customer form stores a country lookup id where every reader expects a name | DATA_INTEGRITY | HIGH | P1 | FIXED | super-admin, contracts, lookups | FIX_NOW |
 | [BUG-1649](../../docs/bugs/BUG-1649-api-proxy-routes-copy-the-upstream-content-encoding-onto-an-.md) | API proxy routes copy the upstream Content-Encoding onto an already-decompressed body | BUG | HIGH | P1 | FIXED | settings-runtime, tenant-settings | FIX_NOW |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |

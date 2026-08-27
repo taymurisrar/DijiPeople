@@ -89,7 +89,7 @@ Questions where the engineering is understood and the **product answer**
 | [[BUG-1423-runtime-form-controls-have-no-accessible-name-so-screen-read|BUG-1423]] | Runtime form controls have no accessible name so screen readers announce every field as blank | UX | HIGH | OPEN | apps/admin | PLAN_REQUIRED |
 | [[BUG-1516-public-signup-creates-duplicate-customer-records-breaking-st|BUG-1516]] | Public signup creates duplicate customer records, breaking Stripe tenant resolution | DATA_INTEGRITY | HIGH | FIXED | super-admin, billing, landing | FIX_NOW |
 | [[BUG-1544-public-signup-advertises-a-workspace-domain-that-does-not-re|BUG-1544]] | Public signup advertises a workspace domain that does not resolve | UX | HIGH | OPEN | tenant-domains, leads | FIX_NOW |
-| [[BUG-1578-admin-customer-form-stores-a-country-lookup-id-where-every-r|BUG-1578]] | Admin customer form stores a country lookup id where every reader expects a name | DATA_INTEGRITY | HIGH | OPEN | super-admin, contracts, lookups | FIX_NOW |
+| [[BUG-1578-admin-customer-form-stores-a-country-lookup-id-where-every-r|BUG-1578]] | Admin customer form stores a country lookup id where every reader expects a name | DATA_INTEGRITY | HIGH | FIXED | super-admin, contracts, lookups | FIX_NOW |
 | [[BUG-1654-every-empty-list-in-a-new-workspace-blames-filters-that-are-|BUG-1654]] | Every empty list in a new workspace blames filters that are not set | UX | MEDIUM | FIXED | views, employees | FIX_NOW |
 | [[ITEM-0068-legal-documents-have-no-operator-ui-so-publishing-is-a-scrip|ITEM-0068]] | Legal publication has an operator UI, but no diff before publishing | UX | MEDIUM | READY | legal, admin | FIX_NOW |
 

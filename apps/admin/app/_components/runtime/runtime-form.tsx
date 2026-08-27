@@ -833,10 +833,20 @@ function RuntimeLookup({
    * declares a static list keeps that list. Memoised because it feeds the
    * memo below, and a fresh array each render would defeat it.
    */
-  const options = useMemo(
-    () => (field.lookupPath ? lookup.options : (field.options ?? [])),
-    [field.lookupPath, field.options, lookup.options],
-  );
+  const options = useMemo(() => {
+    const base = field.lookupPath ? lookup.options : (field.options ?? []);
+
+    /*
+     * BUG-1578. A field whose column stores the display name takes that name as
+     * the option value too. Collapsing the two here rather than translating at
+     * submit keeps one representation throughout: the picker matches the stored
+     * value, the selection round-trips, and nothing has to remember which side
+     * of the control it is on.
+     */
+    return field.submitsLabel
+      ? base.map((option) => ({ value: option.label, label: option.label }))
+      : base;
+  }, [field.lookupPath, field.options, field.submitsLabel, lookup.options]);
   const lookupError = lookup.error;
   const loading = lookup.loading;
   /*

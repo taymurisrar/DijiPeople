@@ -2546,3 +2546,18 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | The draft could not simply be deferred until the e-mail is known, which was the first proposal. It is load-bearing for anti-enumeration, and removing it would trade a duplicate record for an oracle over the customer base. The fix tells the server which draft this is instead of making it infer. The id is a hint and not an authorisation: it only ever selects a customer this same flow created, and an unknown id changes nothing. |
 | **Fixed** | 2026-08-27, `agent/invitation-delivery-visibility` |
 | **Active** | yes |
+
+### REG-267 — A lookup id written into a column that holds a display name
+
+| | |
+|---|---|
+| **Bug class** | `two-writers-one-column-two-formats` |
+| **Module** | `apps/admin` |
+| **Bug record** | BUG-1578 |
+| **Root cause** | `CustomerAccount.country` is a plain string column holding a country name — public signup writes "Qatar", and every reader assumes a name. The admin form declared the field a lookup, and a lookup control submits the selected record's id, so a customer created there held `ec7dbbe3-1179-4465-990f-06427a4ab59f`. It surfaced on a legal document: `customerSource()` joins the address columns with `.filter(Boolean)`, and with the rest empty the counterparty's registered address *was* that value, so a generated agreement named a UUID as where the counterparty is registered. One of thirteen production customers was affected — the only one created through the admin form — and that 1-of-13 split is what localised it to the write path rather than the column or its readers. |
+| **Regression test** | `apps/admin/lib/runtime/country-field-submits-name.spec.ts` |
+| **Scenario** | Every country lookup declared anywhere in the platform module registry must set `submitsLabel`, so the control's option value is the country name rather than its id. The walk asserts it found fields and found country lookups before asserting anything about them. |
+| **Proven to fail without the fix** | Mutation-tested 2026-08-27. Removing `submitsLabel` from `countryField` fails 9 of 11. |
+| **Note** | Guarded at the registry rather than on the single field that was wrong, because the recurrence is the next country field added to the next module, and it is invisible until something renders it. A populated wrong value is worse than an empty one: nothing looks broken, and no validator objects to a well-formed string. The affected production row was corrected to "Pakistan", the country that id names. |
+| **Fixed** | 2026-08-27, `agent/invitation-delivery-visibility` |
+| **Active** | yes |

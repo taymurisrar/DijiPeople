@@ -2,7 +2,7 @@
 ID: BUG-1578
 aliases: [BUG-1578]
 Title: Admin customer form stores a country lookup id where every reader expects a name
-Status: OPEN
+Status: FIXED
 Severity: HIGH
 Priority: P1
 Type: DATA_INTEGRITY
@@ -13,7 +13,7 @@ AffectedModules: [super-admin, contracts, lookups]
 OwnerAgent: architect
 ArchitectDisposition: FIX_NOW
 QAReport: 
-RegressionId: 
+RegressionId: REG-267
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
@@ -165,7 +165,27 @@ admin-initiated create on the same surface.
 
 ## Resolution
 
-Not yet resolved.
+Fixed 2026-08-27 on `agent/invitation-delivery-visibility`.
+
+`RuntimeFieldDefinition` gains `submitsLabel`, and the runtime form's lookup
+control collapses such a field's options so the value and the label are the same
+string. `countryField` sets it, so the admin form now writes the country name
+the column has always held.
+
+Collapsing at the option rather than translating at submit keeps one
+representation throughout — the picker matches the stored value, the selection
+round-trips, and nothing has to remember which side of the control it is on.
+
+The owner chose storing the name over storing the id: twelve of thirteen rows
+already held one and every reader assumes it, where the id model would be an
+expand/backfill/contract migration across every reader.
+
+The affected production row was corrected. `ec7dbbe3-1179-4465-990f-06427a4ab59f`
+is Pakistan, and `QA E2E Customer 20260826` now reads `Pakistan`. A scan across
+all customers returns no UUID-shaped country.
+
+Guarded by REG-267 and QA-TENANT-021, at the registry rather than the one field
+that was wrong — the recurrence is the next country field on the next module.
 
 ## QA Retest
 
@@ -184,5 +204,6 @@ its own id as a selected label and look correct.
 ## Related
 
 - Modules — [[super-admin]], [[contracts-and-agreements]]
+- Regression — REG-267 (see the regression register)
 
 <!-- GRAPH:END -->
