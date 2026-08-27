@@ -1,7 +1,7 @@
 # Component Index
 
-> **Last verified:** 2026-08-26
-> **Verified against commit:** d8cc7cb1
+> **Last verified:** 2026-08-28
+> **Verified against commit:** 075eaa54
 >
 > **This file is generated. Do not hand-edit it.**
 > `node scripts/generate-component-index.mjs` rebuilds it;
@@ -17,7 +17,7 @@ comment beside it is the reasoning; this document is a route to both. Every row
 carries `file`:`line` for that reason — read the source before changing it.
 
 **An export missing from here is undocumented, not absent.** 753 of
-846 exports across these kits carry no
+847 exports across these kits carry no
 doc-comment and are omitted rather than listed as bare names. That ratio is
 itself worth knowing: it is where a UI/UX or Frontend agent is working without
 stated rationale, and where adding one is worth more than a new abstraction.
@@ -111,7 +111,7 @@ re-derived on each run.
 
 Metadata-driven UI is the default. New modules are declared through `lib/runtime/` and rendered by the standard runtime pages; a bespoke page needs a stated reason in the plan.
 
-36 documented export(s); 510 undocumented export(s) omitted.
+37 documented export(s); 510 undocumented export(s) omitted.
 
 | Export | Kind | Used by | Where | What it is |
 |---|---|---|---|---|
@@ -132,6 +132,7 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `isVisibleByRules` | function | 3 | `apps/web/lib/runtime/visibility.resolver.ts`:57 | True when every rule passes. |
 | `commandContextSubtitle` | function | 1 | `apps/web/lib/runtime/command-context-labels.ts`:25 | A shift is only ever called a shift, and a work site only ever a work site. |
 | `commandsForPlacement` | function | 1 | `apps/web/lib/runtime/command-catalog.ts`:191 | Commands that make sense on a given bar, for filtering the picker. |
+| `emptyStateMessage` | function | 1 | `apps/web/app/components/data-table/utils.ts`:274 | Which empty state is true. |
 | `useSideToast` | function | 1 | `apps/web/app/components/notifications/use-side-toast.tsx`:19 | Local toast state plus the element that renders it. |
 | `validateDraft` | function | 1 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:191 | Checks a draft before it is sent. |
 | `fieldsFor` | function | 0 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:100 | The fields a given correction type actually uses. |
