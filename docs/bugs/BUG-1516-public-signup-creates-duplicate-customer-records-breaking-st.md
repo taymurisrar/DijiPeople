@@ -89,46 +89,50 @@ appears twice (2026-08-25 23:18 and 23:19).
 
 ## Root Cause
 
-Not established, but the hypothesis recorded here on 2026-08-26 — "the endpoint
-creates rather than upserts" — is **wrong**, and is corrected below. Read at
-`6cc25b6a`.
+**Established 2026-08-27**, by running a fresh paid signup through the browser
+and reading both records it produced. Two earlier hypotheses are recorded below
+and both were wrong.
 
-`/api/public/subscribe` does not create blindly. `SubscriptionOrderService.resolveCustomer`
-calls `CustomerIdentityService.findExisting` inside the same transaction as the
-write, and when it matches it updates the existing customer instead of creating
-a second one. Deduplication exists and is transactional.
+The landing wizard creates a **draft customer before it has collected the
+buyer's e-mail**. `apps/landing/app/subscribe/subscribe-form.tsx:183`:
 
-The rule it applies is deliberately conservative, and documented as such in
-`customer-identity.service.ts`. Two submissions are the same customer when
-either:
+```ts
+const emailForDraft = form.email.trim() || "pending@onboarding.invalid";
+```
 
-- the contact e-mail matches exactly **and** the normalised company name
-  matches; or
-- the e-mail domain matches **and** the normalised company name matches.
+The organisation step is step 1; the e-mail is not asked for until step 3. So
+the draft is written with a literal placeholder address. After payment,
+`SubscriptionOrderService.resolveCustomer` runs with the buyer's real e-mail and
+calls `CustomerIdentityService.findExisting`, which matches on `contactEmail`.
+The record it is looking for holds `pending@onboarding.invalid`, so nothing
+matches and a second customer is created.
 
-Free e-mail domains are excluded from the second test, `gmail.com` among them,
-with an explicit comment that a duplicate in that case "is the intended
-outcome" — because a shared consumer domain is not evidence of a shared
-employer.
+The two records from one signup, timestamps a wizard-step apart:
 
-So if the two QA submissions used different local parts at a generic domain,
-the duplicate is designed behaviour rather than a defect. **The discriminating
-step is to read `contactEmail` on the two duplicate customer records.** That
-has not been done.
+```
+e816098c…  17:50:16Z  pending@onboarding.invalid   PROSPECT  "Checkout started"
+b409c57c…  17:51:48Z  taimurisrar806@gmail.com     ACTIVE    "Workspace provisioned"
+```
 
-**Ruled out:** a case-sensitivity mismatch between the stored and the queried
-e-mail. `subscription-order.service.ts` writes `contactEmail: input.email`
-without normalising, while `findExisting` queries `input.email.toLowerCase()` —
-a real asymmetry, and it would silently defeat the strongest of the two match
-rules. It does not bite here because `PublicSubscribeDto` applies
-`@Transform(normalizeEmail)` to `email`, so the value is already lower-cased
-before the service sees it. Worth fixing anyway, because it makes the service
-correct only by virtue of one caller's DTO.
+The first also carries none of the organisation profile — no legal name, no
+registration number, no address — while the second carries all of it. That
+asymmetry is the tell: they are written by two different paths, and only the
+second one has the buyer's details.
 
-The serious half of this record — Stripe tenant resolution breaking — is not
-answered either way by the identity rule, and should be treated as its own
-defect: resolution must not be ambiguous when duplicates legitimately exist.
-See [[BUG-1543]].
+The identity rule is not at fault and neither is the generic e-mail domain. The
+match had no chance of succeeding, because the value it matches on was never the
+buyer's address.
+
+**Superseded hypotheses, kept so nobody re-treads them.**
+
+1. *"The endpoint creates rather than upserts."* Recorded 2026-08-26. Wrong —
+   `resolveCustomer` calls `findExisting` inside the write transaction and
+   updates when it matches.
+2. *"A generic e-mail domain declined the merge."* Recorded 2026-08-27, by me,
+   and also wrong. `gmail.com` is on the generic list and would indeed block
+   *domain* matching, but the exact-e-mail rule is checked first and would have
+   matched had the draft held a real address. The placeholder is upstream of
+   both rules.
 
 ## Impact
 
@@ -149,16 +153,27 @@ Two effects, the second serious:
 
 ## Proposed Resolution
 
-Make signup submission idempotent. Options, in preference order:
+Do not write a customer record before the data that identifies one exists, or
+carry the draft forward by something that does not change.
 
-1. Client carries the customer id returned by the first call and sends it on
-   subsequent steps; the endpoint updates when an id is present.
-2. Endpoint accepts an idempotency key minted once per wizard session.
+Three directions, in preference order:
 
-Then make the Stripe resolver's failure mode explicit rather than a 400 —
-duplicates should not be able to silently drop a payment event.
+1. **Defer the draft** until the e-mail is known. Simplest, and it removes the
+   placeholder entirely.
+2. **Carry the draft id forward** through the wizard and update that record at
+   payment rather than resolving by e-mail. Robust to the buyer changing their
+   address mid-wizard.
+3. **Match on the submission hash** rather than the e-mail for the draft-to-order
+   transition. `buildSubmissionHash` already exists and deliberately excludes
+   anything that changes between a refresh and its retry.
 
-Worth an ExecPlan if option 2 is chosen, since it changes a public contract.
+Whichever is chosen, `pending@onboarding.invalid` should stop being written to a
+column the identity rule matches on. A placeholder in an identity field is a
+record that cannot be found by design.
+
+Independently of this, the asymmetry is worth closing: a draft that carries no
+organisation profile while its successor carries all of it means the two are
+written by paths that do not share a shape.
 
 ## Acceptance Criteria
 
