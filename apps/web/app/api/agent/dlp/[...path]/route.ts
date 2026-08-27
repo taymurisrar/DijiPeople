@@ -1,4 +1,8 @@
-import { apiRequest, proxyApiJsonResponse } from "@/lib/server-api";
+import {
+  apiRequest,
+  proxyApiFileResponse,
+  proxyApiJsonResponse,
+} from "@/lib/server-api";
 
 /**
  * Proxy for the desktop-agent DLP surfaces (TASK-0020): tenant rule config and
@@ -28,10 +32,7 @@ async function proxy(request: Request, context: RouteContext) {
 
   const contentType = response.headers.get("content-type") ?? "";
   if (!contentType.includes("application/json")) {
-    return new Response(response.body, {
-      status: response.status,
-      headers: response.headers,
-    });
+    return proxyApiFileResponse(response);
   }
 
   return proxyApiJsonResponse(response);

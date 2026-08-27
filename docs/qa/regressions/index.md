@@ -2486,3 +2486,123 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | Two details worth keeping. First, the "never deletes recursively" check **strips comments before scanning**, because the guard names `rm -rf` in its own header in order to forbid it — without that, the sentence that prevents the mistake fails the check that enforces it, exactly as a record breaks the link check by quoting a wikilink. Second, the recovery is only safe because it was verified first: every one of the 3,072 entries was a deletion, with nothing modified, untracked or stashed, which is what made `git restore .` purely additive. Had real edits been mixed in, the same command would have destroyed them. The guard prints that recovery, but the instruction to check `git status` before running it is the part that matters. |
 | **Fixed** | 2026-08-26, `agent/worktree-removal-guard` |
 | **Active** | yes |
+
+### REG-263 — A configured email provider that the delivery path cannot see
+
+| | |
+|---|---|
+| **Bug class** | `two-stores-for-one-capability` |
+| **Module** | `notifications` |
+| **Bug record** | BUG-1595, BUG-1515 |
+| **Root cause** | Platform email and tenant email were two independent configurations, and only the working one was visible. The admin Settings → Email screen writes a `PlatformSetting` row and `PlatformEmailSettingsService` reads it; the delivery path reads `EmailProviderSetting` scoped by `tenantId`, then falls back to `EMAIL_*` environment variables. Nothing in provisioning creates a tenant provider, `EMAIL_PROVIDER` was declared in `render.yaml` and never in effect on the service, and the console fallback is guarded by `NODE_ENV !== 'production'` — so production had no option left and resolution returned null. A grep for `platformSetting` under the notifications module returned nothing: the delivery path could not see the working provider even in principle. Every paid signup therefore provisioned a tenant whose owner could never sign in, while the platform delivery log looked healthy because it was exercising the half that worked. `ResolvedEmailProvider.source` had declared `'platform'` as a valid value the whole time and nothing ever produced it. |
+| **Regression test** | `services/api/src/modules/notifications/email/platform-email-provider.resolver.spec.ts` — eleven checks over the resolver and the origin routing |
+| **Scenario** | The stored platform row must resolve into a provider carrying source platform, with the SMTP password decrypted; a missing row and a disabled provider must each return null rather than throw, so the caller's chain continues; the resolver must never re-enter the tenant factory, because the settings service used to fall back to resolveProvider with the literal string platform as a tenant id and the two would otherwise loop. On routing: platform-originated mail must use the platform provider even when the tenant has an enabled provider of its own; tenant-originated mail must prefer the tenant's, then the platform's, then the environment; and an empty chain must resolve to null rather than throw. |
+| **Proven to fail without the fix** | Mutation-tested 2026-08-27. Reverting `resolveProviderForOrigin` to the previous single call fails 4 of the 11. Proven positively against production the same day: after deploying `5762b2b2`, a resend on tenant `f959c5ff-c8f2-419b-ae79-e99989557771` returned `delivered: true` and `deliveryStatus: SENT`, and the access endpoint reported `activationEmailStatus: SENT` where it had reported `FAILED — No enabled email provider is configured.` |
+| **Note** | The reporting defect and the delivery defect were separate, and fixing the first is what made the second findable. Until BUG-1515 landed, the resend endpoint returned `success: true` regardless of what delivery did and the admin panel forced a green toast, so a send that delivered nothing was indistinguishable from one that worked. The lasting guard is not only this spec but the response shape: `success`, `delivered` and `deliveryStatus` are now separate fields, so a caller cannot read the first and infer the others. |
+| **Fixed** | 2026-08-27, `agent/invitation-delivery-visibility` |
+| **Active** | yes |
+
+### REG-264 — A proxy that lies about how its body is encoded
+
+| | |
+|---|---|
+| **Bug class** | `helper-exists-but-is-bypassed` |
+| **Module** | `apps/web` |
+| **Bug record** | BUG-1649 |
+| **Root cause** | Nine Next.js route handlers returned the upstream response's headers verbatim onto a body `fetch` had already decompressed, so the response advertised `Content-Encoding: br` while carrying plain JSON and the browser failed with ERR_CONTENT_DECODING_FAILED. On the tenant workspace that surfaced as a modal reading "Server unavailable" which also intercepted pointer events, leaving the first screen of a new workspace inert until dismissed, on every navigation. The correct helpers already existed — `proxyApiJsonResponse` rebuilds the response, and `proxyApiFileResponse` copies an allowlist and documents why `Content-Length` must not be among it. The same reasoning was written down for the file path and never applied to the JSON one. |
+| **Regression test** | `apps/web/app/api/proxy-response-headers.spec.ts` — a structural check over every route handler |
+| **Scenario** | Every `route.ts` under the app's API directory must be free of `headers: response.headers`. The test walks the tree and asserts per file, and separately asserts the walker found something, so a broken walker cannot pass for the wrong reason. |
+| **Proven to fail without the fix** | Mutation-tested 2026-08-27. Reintroducing the pattern in `settings/resolved-context/route.ts` fails 1 of 418 checks. |
+| **Note** | Deliberately structural rather than behavioural. The defect was not that any one route was wrong; it was the same wrong line existing nine times, so fixing nine without stopping the tenth would leave the fault in place. Two of the nine were the binary branches of catch-all proxies, including the one that streams the desktop agent installer — a corrupted download there is a plausible second cause of the auto-update failures in BUG-1551. |
+| **Fixed** | 2026-08-27, `agent/invitation-delivery-visibility` |
+| **Active** | yes |
+
+### REG-265 — One empty state for two opposite conditions
+
+| | |
+|---|---|
+| **Bug class** | `one-message-two-meanings` |
+| **Module** | `apps/web` |
+| **Bug record** | BUG-1654 |
+| **Root cause** | The shared data table rendered "No records match the selected search or filters." whenever it had no rows, whether or not anything was filtered. A freshly provisioned workspace has neither records nor filters, so every list told its first customer that a search they had never run was hiding data that did not exist — next to a "Server unavailable" dialog that was also false. A healthy workspace looked broken. The same ambiguity was already documented in the opposite direction by `standard-module-views.spec.ts`, which exists because a view naming a field its module lacks filters everything out and the sentence then reads as "there is no data" rather than "this view is broken". |
+| **Regression test** | `apps/web/app/components/data-table/empty-state-message.spec.ts` |
+| **Scenario** | The message must differ between the filtered and unfiltered states, must not mention search or filters when nothing is applied, and must explain the filter when one is. |
+| **Proven to fail without the fix** | Mutation-tested 2026-08-27. Collapsing the branch back to the single shared string fails 2 of 3. |
+| **Note** | The decision is taken from the table's own `hasActiveSearchOrFilters` rather than recomputed, because a second definition of "is filtering" would disagree with the first the moment either changed — and the first already accounts for operators that filter without a value. It cannot be taken from row counts: in server mode the rows are already the filtered page. |
+| **Fixed** | 2026-08-27, `agent/invitation-delivery-visibility` |
+| **Active** | yes |
+
+### REG-266 — A draft record that cannot be found again
+
+| | |
+|---|---|
+| **Bug class** | `placeholder-in-an-identity-field` |
+| **Module** | `billing` |
+| **Bug record** | BUG-1516 |
+| **Root cause** | The public wizard opens a draft order on the workspace step, because the address check is deliberately session-bound: answering "is maseer taken" should cost a rate-limited, durably recorded row. The buyer has not been asked for their e-mail at that point, so the draft's customer was written with `pending@onboarding.invalid`. That placeholder defeated both routes back to the record — `CustomerIdentityService.findExisting` matches on the contact e-mail, and `submissionHash` is built from it — so the real submission matched nothing and one signup produced two orders and two customers. Stripe could then not tell which customer had paid. |
+| **Regression test** | `services/api/src/modules/billing/services/checkout-customer-record.spec.ts` |
+| **Scenario** | A submission naming its draft order continues that draft's customer rather than creating a second; the placeholder identity is replaced with the real one; a genuinely returning buyer's identity is not rewritten; and an unknown or consumed draft id falls through to the identity rules unchanged. |
+| **Proven to fail without the fix** | Mutation-tested 2026-08-27. Ignoring the draft id fails 2 of 16. |
+| **Note** | The draft could not simply be deferred until the e-mail is known, which was the first proposal. It is load-bearing for anti-enumeration, and removing it would trade a duplicate record for an oracle over the customer base. The fix tells the server which draft this is instead of making it infer. The id is a hint and not an authorisation: it only ever selects a customer this same flow created, and an unknown id changes nothing. |
+| **Fixed** | 2026-08-27, `agent/invitation-delivery-visibility` |
+| **Active** | yes |
+
+### REG-267 — A lookup id written into a column that holds a display name
+
+| | |
+|---|---|
+| **Bug class** | `two-writers-one-column-two-formats` |
+| **Module** | `apps/admin` |
+| **Bug record** | BUG-1578 |
+| **Root cause** | `CustomerAccount.country` is a plain string column holding a country name — public signup writes "Qatar", and every reader assumes a name. The admin form declared the field a lookup, and a lookup control submits the selected record's id, so a customer created there held `ec7dbbe3-1179-4465-990f-06427a4ab59f`. It surfaced on a legal document: `customerSource()` joins the address columns with `.filter(Boolean)`, and with the rest empty the counterparty's registered address *was* that value, so a generated agreement named a UUID as where the counterparty is registered. One of thirteen production customers was affected — the only one created through the admin form — and that 1-of-13 split is what localised it to the write path rather than the column or its readers. |
+| **Regression test** | `apps/admin/lib/runtime/country-field-submits-name.spec.ts` |
+| **Scenario** | Every country lookup declared anywhere in the platform module registry must set `submitsLabel`, so the control's option value is the country name rather than its id. The walk asserts it found fields and found country lookups before asserting anything about them. |
+| **Proven to fail without the fix** | Mutation-tested 2026-08-27. Removing `submitsLabel` from `countryField` fails 9 of 11. |
+| **Note** | Guarded at the registry rather than on the single field that was wrong, because the recurrence is the next country field added to the next module, and it is invisible until something renders it. A populated wrong value is worse than an empty one: nothing looks broken, and no validator objects to a well-formed string. The affected production row was corrected to "Pakistan", the country that id names. |
+| **Fixed** | 2026-08-27, `agent/invitation-delivery-visibility` |
+| **Active** | yes |
+
+### REG-268 — A template paired with a source that cannot fill it
+
+| | |
+|---|---|
+| **Bug class** | `unfillable-pairing-accepted` |
+| **Module** | `contracts` |
+| **Bug record** | BUG-1541 |
+| **Root cause** | A "Tenant Provisioning & Service Order" was created from a **customer**. `customerSource()` emits the `customer.*` namespace and nothing else, setting `tenantId: undefined` explicitly, so of the template's 39 placeholders 8 resolved and 31 did not — every `tenant.*`, every `implementation.*`, every `hosting.*`, both `commercial.*`. The generated agreement rendered raw handlebars where a counterparty would read their own workspace address. `GET /api/contracts/{id}/document-fields` returned `source: null` for every unresolved one: nothing on that path had ever been going to fill them. The renderer was not at fault — it keeps an unresolved token so the signature gate can refuse the document. What was missing was anyone refusing the *pairing*, which is knowable before a byte is generated. |
+| **Regression test** | `services/api/src/modules/contracts/source-fills-template.spec.ts` |
+| **Scenario** | A provisioning template created from a customer is refused, and the refusal names the namespaces that cannot be filled so the operator knows which source would work. The same template from a tenant is allowed, a customer-shaped template from a customer is allowed, and a contract drafted without a template is unaffected. A separate check asserts the rule is reached from `createFromSource`. |
+| **Proven to fail without the fix** | Mutation-tested 2026-08-27, twice. Removing the rule fails 3 of 7; removing only its call site — which the first version of the spec did not catch — fails 1 of 7. |
+| **Note** | Two things this deliberately does not do. It considers only `required` placeholders, because optional terms are meant to be completed later and failing on those would break the progressive filling the document-fields editor exists for. And it ignores the namespaces the create step fills — `contract`, `platform`, `counterparty`, `sla`, `signature` — which the first implementation did not, and which made it refuse every creation until the spec caught it. |
+| **Fixed** | 2026-08-27, `agent/invitation-delivery-visibility` |
+| **Active** | yes |
+
+### REG-269 — A link to a route that was never built
+
+| | |
+|---|---|
+| **Bug class** | `link-without-a-destination` |
+| **Module** | `apps/admin` |
+| **Bug record** | BUG-1419 |
+| **Root cause** | `monitoring-overview.tsx` linked each incident title to `${QUEUE}/${incident.id}`, composing a record route under a constant that names the *queue*. No dynamic segment has ever existed under `settings/monitoring`, so every incident title on the overview was a link to a 404. With 1,495 incidents recorded, one critical and none ever resolved, the queue could be counted and sorted and never worked — and the "0 resolved" figure read as a backlog rather than as the absence of a working tool. |
+| **Regression test** | `apps/admin/app/_components/monitoring/monitoring-incident-link.spec.ts` |
+| **Scenario** | The incident link must resolve to a route that exists. The guard reads the component and asserts it does not compose a record path under the queue constant, and that it carries the incident's reference number as a query instead. |
+| **Proven to fail without the fix** | Mutation-tested 2026-08-27. Restoring the record-path href fails the check. |
+| **Note** | The incident now opens the queue filtered to its reference number rather than a detail page, because the queue already carries the filters, the assignment and the support-case link — everything working an incident needs. A dedicated record page may still be worth building; it belongs in a plan rather than in an href. |
+| **Fixed** | 2026-08-27, `agent/invitation-delivery-visibility` |
+| **Active** | yes |
+
+### REG-270 — A filter that could not see the rows it filtered
+
+| | |
+|---|---|
+| **Bug class** | `convention-only-in-the-reader` |
+| **Module** | `platform-monitoring` |
+| **Bug record** | BUG-1420 |
+| **Root cause** | `ErrorLog.severity` is a free-text column and production holds both spellings — a census found 1,466 rows lowercase against 5 uppercase. Every consumer compared against uppercase literals with strict equality, so the Critical view could see 1 of the 15 errors that existed. It did not fail and did not look empty; it answered a different question than the one asked. The readers were correct about the convention. The convention was never enforced by the schema, the DTO or the type system, and the minority spelling won by volume. |
+| **Regression test** | `services/api/src/modules/platform-monitoring/incident-severity-case.spec.ts` |
+| **Scenario** | The critical view must match `ERROR`, `FATAL`, `error` and `fatal`, and every level it lists must appear in both spellings — so adding a level in one case only fails. The status-driven views are asserted unchanged, since `supportStatus` is an enum and needs no case handling. |
+| **Proven to fail without the fix** | Mutation-tested 2026-08-27. Reverting to uppercase-only fails 3 of 6. |
+| **Note** | The duplication in the `in` list looks redundant and is load-bearing: Prisma's `in` has no insensitive mode, unlike `equals`, so the levels are listed rather than folded. The test exists partly so a tidying pass cannot quietly remove it. Normalising the column itself is the deeper fix and needs a migration — recorded on the bug, not attempted here. |
+| **Fixed** | 2026-08-27, `agent/invitation-delivery-visibility` |
+| **Active** | yes |

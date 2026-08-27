@@ -52,7 +52,20 @@ export class PlatformMonitoringService {
           : {},
         query.tenantId === 'platform' ? { tenantId: null } : {},
         query.userId ? { userId: query.userId } : {},
-        query.severity ? { severity: query.severity } : {},
+        /*
+         * BUG-1420. `ErrorLog.severity` is free text and production holds both
+         * spellings — a census on 2026-08-27 found 1,466 rows lowercase against
+         * 5 uppercase. An exact match therefore hid 14 of the 15 errors that
+         * existed, and did it silently: the screen was not empty and reported
+         * nothing wrong, it simply answered a different question.
+         *
+         * Matched case-insensitively so the rows already stored are reachable.
+         * `equals` with `mode: 'insensitive'` rather than a `toUpperCase()` on
+         * the input, which would only have moved the mismatch to the other side.
+         */
+        query.severity
+          ? { severity: { equals: query.severity, mode: 'insensitive' } }
+          : {},
         query.status ? { supportStatus: query.status } : {},
         incidentViewWhere(query.viewKey),
         query.category
@@ -608,8 +621,17 @@ function readPlatformActor(details: unknown) {
  * Severity is stored as free text rather than an enum, so the critical view
  * matches the two levels the ingest path writes.
  */
-function incidentViewWhere(viewKey?: string): Prisma.ErrorLogWhereInput {
-  if (viewKey === 'critical') return { severity: { in: ['ERROR', 'FATAL'] } };
+export function incidentViewWhere(viewKey?: string): Prisma.ErrorLogWhereInput {
+  if (viewKey === 'critical') {
+    /*
+     * BUG-1420. Both spellings, for the same reason the filter above matches
+     * insensitively: Prisma's `in` is case-sensitive and has no insensitive
+     * mode, so the levels are listed rather than folded.
+     */
+    return {
+      severity: { in: ['ERROR', 'FATAL', 'error', 'fatal'] },
+    };
+  }
   /* supportStatus is non-nullable and defaults to NEW, so untriaged rows match. */
   if (viewKey === 'new') return { supportStatus: 'NEW' };
   if (viewKey === 'investigating')

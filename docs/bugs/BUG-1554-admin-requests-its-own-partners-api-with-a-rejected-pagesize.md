@@ -2,7 +2,7 @@
 ID: BUG-1554
 aliases: [BUG-1554]
 Title: Admin requests its own partners API with a rejected pageSize
-Status: OPEN
+Status: DEFERRED
 Severity: MEDIUM
 Priority: P2
 Type: BUG
@@ -11,18 +11,21 @@ DetectedDate: 2026-08-26
 DetectedInSha: 21032ae
 AffectedModules: [partners]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: DEFER
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-26
-UpdatedAt: 2026-08-26
+UpdatedAt: 2026-08-27
 ResolvedAt:
 ---
 
 # BUG-1554 — Admin requests its own partners API with a rejected pageSize
+
+> **Architect triage, 2026-08-27 — `DEFER`.** An unconditional 400 on a sparse screen. Noise, not breakage.
+
 
 ## Summary
 

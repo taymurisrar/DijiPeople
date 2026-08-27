@@ -74,6 +74,12 @@ export type OpenOrderInput = {
   message?: string | null;
   leadId?: string | null;
   /**
+   * The draft order this submission continues, when the public wizard opened
+   * one. See `resolveCustomer` for why it exists. Absent on the sales-assisted
+   * path, which has no draft.
+   */
+  onboardingId?: string | null;
+  /**
    * The workspace slug the buyer chose. Optional, because the sales-assisted
    * path does not collect one and provisioning still derives a slug when this
    * is absent.
@@ -545,11 +551,39 @@ export class SubscriptionOrderService {
      * writes whatever the next caller passes.
      */
     const email = normalizeEmail(input.email);
-    const existing = await this.identity.findExisting(tx, {
-      companyName: input.companyName,
-      email,
-      country: input.country,
-    });
+    /*
+     * BUG-1516. The wizard opens a draft order on the workspace step, because
+     * the address check is deliberately session-bound — answering "is maseer
+     * taken" should cost a rate-limited, durably recorded row. At that point
+     * the buyer has not been asked for their e-mail, so the draft's customer is
+     * written with a placeholder.
+     *
+     * That placeholder defeats both ways this method could find the record
+     * again: `findExisting` matches on the contact e-mail, and the caller's
+     * `submissionHash` is built from it too. One signup therefore produced two
+     * customers, and Stripe could not tell which one had paid.
+     *
+     * Being told which draft this is removes the guess. The id is a hint and
+     * not an authorisation — it only ever selects a customer this same flow
+     * created, and an unknown or already-consumed id falls through to the
+     * identity rules unchanged.
+     */
+    const draftCustomerId = input.onboardingId
+      ? ((
+          await tx.subscriptionOrder.findUnique({
+            where: { id: input.onboardingId },
+            select: { customerAccountId: true },
+          })
+        )?.customerAccountId ?? null)
+      : null;
+
+    const existing = draftCustomerId
+      ? { id: draftCustomerId }
+      : await this.identity.findExisting(tx, {
+          companyName: input.companyName,
+          email,
+          country: input.country,
+        });
 
     const profile = buildOrganizationProfile(input);
 
@@ -584,6 +618,22 @@ export class SubscriptionOrderService {
       });
       const updates = {
         ...profile,
+        /*
+         * A draft we are continuing still carries the placeholder identity it
+         * was opened with, so the real one is written now. Only on that path:
+         * a genuinely returning buyer keeps the identity their earlier order
+         * established, which is the gap-filling rule the rest of this object
+         * follows.
+         */
+        ...(draftCustomerId
+          ? {
+              contactEmail: email,
+              primaryContactEmail: email,
+              billingContactEmail: email,
+              companyName: input.companyName.trim(),
+              country: input.country.trim(),
+            }
+          : {}),
         ...(current.selectedPlanId ? {} : { selectedPlanId: selection.planId }),
         ...(current.preferredBillingCycle
           ? {}

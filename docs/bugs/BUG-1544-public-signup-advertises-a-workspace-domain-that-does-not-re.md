@@ -11,18 +11,21 @@ DetectedDate: 2026-08-26
 DetectedInSha: 21032ae
 AffectedModules: [tenant-domains, leads]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: FIX_NOW
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-26
-UpdatedAt: 2026-08-26
+UpdatedAt: 2026-08-27
 ResolvedAt:
 ---
 
 # BUG-1544 — Public signup advertises a workspace domain that does not resolve
+
+> **Architect triage, 2026-08-27 — `FIX_NOW`.** Misinforms a buyer at the moment of purchase. Cheap to correct.
+
 
 ## Summary
 
@@ -65,10 +68,23 @@ Observed on production, 2026-08-26:
 
 ## Root Cause
 
-Not established. The signup step appears to build the display hostname from a
-different rule than the provisioning path uses, but which of the two is the
-stale one — and whether the availability check queries the same hostname it
-displays — has not been confirmed.
+**Established 2026-08-27.** The landing app reads its workspace hostname from
+`getPlatformDomainConfig`, which takes the first of `TENANT_BASE_DOMAIN`,
+`NEXT_PUBLIC_TENANT_BASE_DOMAIN`, `NEXT_PUBLIC_TENANT_ROOT_DOMAIN`,
+`WEB_APP_PROD_ROOT_DOMAIN` or `NEXT_PUBLIC_WEB_ROOT_DOMAIN` — and **falls back
+to the marketing apex when none is set**.
+
+`docs/environment-variables.md` declared none of them for the landing
+deployment. So production composed `<slug>.dijipeople.com` from the fallback,
+displayed it, and asserted it was available.
+
+That fallback is the reason this is silent. An unset variable produces a
+plausible hostname rather than an obviously missing one, so nothing looks wrong
+until someone resolves it.
+
+Same family as [[BUG-1644]], which is the same missing configuration seen from
+`apps/web`, where the consequence is worse: there it breaks login rather than a
+display string.
 
 ## Impact
 
@@ -119,7 +135,24 @@ Independent of both.
 
 ## Resolution
 
-Not yet resolved.
+Partially fixed 2026-08-27 on `agent/invitation-delivery-visibility`; the
+remainder is a deployment change only.
+
+`docs/environment-variables.md` now declares
+`NEXT_PUBLIC_TENANT_BASE_DOMAIN=ws.dijipeople.com` for the landing deployment,
+which previously declared no tenant domain at all, and corrects
+`NEXT_PUBLIC_WEB_ROOT_DOMAIN` from `dijipeople.com` to `ws.dijipeople.com` for
+both web and admin. A note above the three blocks explains what each reads, what
+breaks when it is wrong, and that `NEXT_PUBLIC_*` needs a rebuild rather than a
+restart.
+
+That matters because the documented values were the wrong ones: a deployment
+configured from this reference reproduced both this defect and [[BUG-1644]]
+exactly.
+
+**Not closed, because no code change can close it.** The variable has to be set
+on the landing Vercel project and that project redeployed. Until then signup
+keeps advertising a hostname that does not resolve.
 
 ## QA Retest
 

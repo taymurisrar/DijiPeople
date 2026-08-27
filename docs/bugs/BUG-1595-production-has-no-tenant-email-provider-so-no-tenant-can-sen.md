@@ -2,7 +2,7 @@
 ID: BUG-1595
 aliases: [BUG-1595]
 Title: Production has no tenant email provider so no tenant can send any email
-Status: OPEN
+Status: VERIFIED
 Severity: CRITICAL
 Priority: P0
 Type: INFRA
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-27
 DetectedInSha: 21032ae
 AffectedModules: [notifications, tenants]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: DONE
 QAReport: 
-RegressionId: 
+RegressionId: REG-263
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-27
 UpdatedAt: 2026-08-27
-ResolvedAt:
+ResolvedAt: 2026-08-27
 ---
 
 # BUG-1595 — Production has no tenant email provider so no tenant can send any email
@@ -132,6 +132,21 @@ succeeded on 2026-08-26. Both were exercising the working half.
 
 Changing anything on that screen will not deliver a single tenant message.
 
+## A correction about who could see it
+
+The 2026-08-26 handoff recorded that the delivery reason sat in a row "no admin
+screen can reach". That is true of the **platform** console and was the reason
+this took a day to find — but the **tenant** workspace has had
+`/settings/notifications/delivery/delivery-logs` all along, listing every
+attempt with its status and failure diagnostics.
+
+Nobody looked there because nobody could get into a tenant workspace: the
+activation email that would have let them in is the thing that was broken. The
+screen that would have explained the fault was behind the fault.
+
+Confirmed 2026-08-27 on `dijipeople-demo`, where that screen now shows the
+activation email as `SENT` with a message id on `@dijipeople.com`.
+
 ## Impact
 
 Critical, and customer-facing on the revenue path.
@@ -210,19 +225,38 @@ storage.
 
 ## Resolution
 
-Not yet resolved.
+Fixed by PLAN-023 on `a26fa39e`, released to production as `5762b2b2`.
+
+`SendTemplateEmailInput` gained an `origin`. Platform-originated mail resolves
+the platform provider and does not consult tenant configuration; tenant mail
+prefers its own provider, then the platform's, then the environment. Provider
+resolution moved into `notifications` as `PlatformEmailProviderResolver`, and
+`PlatformEmailSettingsService` delegates to it, so there is one implementation
+and no `forwardRef` was needed.
+
+`ResolvedEmailProvider.source` had declared `'platform'` since it was written
+and nothing produced it. This added the producer.
+
+Note what was **not** required: no change to the SMTP configuration itself, and
+no `EMAIL_*` variable on Render. The credentials were correct the whole time;
+the delivery path simply could not see them.
 
 ## QA Retest
 
-Not yet retested. **The 2026-08-27 deploy may already have changed this**, if
-the service is Blueprint-synced from `render.yaml`; `EMAIL_PROVIDER` carries a
-literal value, though the SMTP credentials beside it are `sync: false` and would
-still need setting by hand.
+Verified against production on 2026-08-27, on tenant
+`f959c5ff-c8f2-419b-ae79-e99989557771`, after `5762b2b2` deployed. Scenario
+QA-TENANT-017.
 
-Retest by resending the invitation for tenant
-`f959c5ff-c8f2-419b-ae79-e99989557771` and reading `activationEmailStatus` on
-the access endpoint — the field now reports the outcome truthfully. Do not judge
-it by the toast alone; that is what [[BUG-1515]] was.
+- Resend returned `success: true`, `delivered: true`, `deliveryStatus: SENT` —
+  three separate fields, which is the point.
+- The access endpoint reported `activationEmailStatus: SENT`,
+  `activationEmailDelivered: true`, no `activationEmailDetail`.
+- **The email arrived.** Its link opened an activation page naming the right
+  person, work email and workspace.
+- After activation: owner `ACTIVE`, `invitationStatus: Activated`,
+  `credentialRotatedAt` set, `activeOwnerCount: 1`.
+- The owner signed in successfully and saw an empty employee list — their own
+  tenant's data, with no leakage from any other.
 
 ## History
 
@@ -234,5 +268,6 @@ it by the toast alone; that is what [[BUG-1515]] was.
 ## Related
 
 - Modules — [[notifications]], [[tenant-control-plane]]
+- Regression — REG-263 (see the regression register)
 
 <!-- GRAPH:END -->

@@ -2,7 +2,7 @@
 ID: BUG-1419
 aliases: [BUG-1419]
 Title: Every incident on the monitoring overview links to a route that does not exist
-Status: OPEN
+Status: FIXED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -11,18 +11,21 @@ DetectedDate: 2026-08-26
 DetectedInSha: 8d6be21b
 AffectedModules: [apps/admin]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: FIX_NOW
 QAReport: docs/qa/runs/2026-08-26-admin-prod-e2e-8d6be21.md
-RegressionId: 
+RegressionId: REG-269
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-26
-UpdatedAt: 2026-08-26
+UpdatedAt: 2026-08-27
 ResolvedAt:
 ---
 
 # BUG-1419 — Every incident on the monitoring overview links to a route that does not exist
+
+> **Architect triage, 2026-08-27 — `FIX_NOW`.** Operators are blind: 1,495 incidents and not one openable. Same area as BUG-1420, fix together.
+
 
 ## Summary
 
@@ -185,7 +188,21 @@ None.
 
 ## Resolution
 
-Not yet fixed.
+Fixed 2026-08-27 on `agent/invitation-delivery-visibility`.
+
+The incident title now links to the queue filtered by the incident's reference
+number, rather than to a record route under the queue constant that has never
+existed.
+
+The queue was chosen over building a detail page because it already carries
+everything working an incident needs — the filters, the assignment, the
+support-case link and the download. A dedicated record page may still be worth
+having; it belongs in a plan rather than in an href.
+
+Guarded by REG-269 and QA-TENANT-023. The guard strips comments before scanning,
+because the fix explains the broken href in its own comment — the same trap
+REG-262 records about the worktree guard naming a destructive command in order
+to forbid it.
 
 ## QA Retest
 
@@ -200,5 +217,6 @@ Pending.
 ## Related
 
 - Modules — [[platform-admin]]
+- Regression — REG-269 (see the regression register)
 
 <!-- GRAPH:END -->

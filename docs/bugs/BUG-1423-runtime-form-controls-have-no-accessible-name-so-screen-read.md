@@ -11,18 +11,21 @@ DetectedDate: 2026-08-26
 DetectedInSha: 8d6be21b
 AffectedModules: [apps/admin]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: PLAN_REQUIRED
 QAReport: docs/qa/runs/2026-08-26-admin-prod-e2e-8d6be21.md
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-26
-UpdatedAt: 2026-08-26
+UpdatedAt: 2026-08-27
 ResolvedAt:
 ---
 
 # BUG-1423 — Runtime form controls have no accessible name so screen readers announce every field as blank
+
+> **Architect triage, 2026-08-27 — `PLAN_REQUIRED`.** The shared runtime form, across every metadata-driven screen in two apps. Needs a plan, not a patch, and it subsumes BUG-1552 and touches BUG-1421.
+
 
 ## Summary
 

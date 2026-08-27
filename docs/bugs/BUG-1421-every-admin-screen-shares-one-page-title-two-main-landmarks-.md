@@ -2,7 +2,7 @@
 ID: BUG-1421
 aliases: [BUG-1421]
 Title: Every admin screen shares one page title, two main landmarks and a duplicate h1
-Status: OPEN
+Status: DEFERRED
 Severity: MEDIUM
 Priority: P2
 Type: UX
@@ -11,18 +11,21 @@ DetectedDate: 2026-08-26
 DetectedInSha: 8d6be21b
 AffectedModules: [apps/admin]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: DEFER
 QAReport: docs/qa/runs/2026-08-26-admin-prod-e2e-8d6be21.md
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-26
-UpdatedAt: 2026-08-26
+UpdatedAt: 2026-08-27
 ResolvedAt:
 ---
 
 # BUG-1421 — Every admin screen shares one page title, two main landmarks and a duplicate h1
+
+> **Architect triage, 2026-08-27 — `DEFER`.** Real, and part of the same accessibility family as BUG-1423. Sequenced behind that plan so the shared shell is fixed once.
+
 
 ## Summary
 

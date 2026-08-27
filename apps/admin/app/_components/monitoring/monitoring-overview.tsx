@@ -299,7 +299,21 @@ export function MonitoringOverview({
                   <SeverityPill value={incident.severity} />
                   <Link
                     className="min-w-0 flex-1 text-sm font-semibold text-slate-950 hover:underline"
-                    href={`${QUEUE}/${incident.id}`}
+                    /*
+                     * BUG-1419. This was `${QUEUE}/${incident.id}` — a record
+                     * route under the queue that has never existed, so every
+                     * incident title on the overview was a link to a 404. With
+                     * 1,495 incidents recorded and none ever resolved, the
+                     * queue could be counted and never worked.
+                     *
+                     * The queue itself already searches by reference number, so
+                     * the incident opens there rather than in a detail page
+                     * nobody has built — in the tool that carries the filters,
+                     * the assignment and the support-case link. If a dedicated
+                     * record page is wanted later it belongs in a plan, not in
+                     * an href.
+                     */
+                    href={`${QUEUE}?search=${encodeURIComponent(incident.referenceNumber)}`}
                   >
                     {incident.message}
                   </Link>

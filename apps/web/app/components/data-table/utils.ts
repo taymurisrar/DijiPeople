@@ -252,3 +252,27 @@ export function searchRows<T>(
     }),
   );
 }
+
+/*
+ * Which empty state is true.
+ *
+ * BUG-1654. One sentence — "No records match the selected search or filters." —
+ * used to cover both an over-filtered list and a module with nothing in it, and
+ * it only described the first. A freshly provisioned workspace has neither
+ * records nor filters, so every list told its first customer that a search they
+ * had never run was hiding data that did not exist.
+ *
+ * Takes the caller's own notion of "is filtering" rather than recomputing it.
+ * The table already tracks that, including the operators that filter without a
+ * value ("is empty" and friends), and a second definition here would disagree
+ * with the first the moment either changed.
+ *
+ * The decision cannot come from row counts: in server mode `rows` is already
+ * the filtered page, so "fewer rows than we have" cannot separate an empty
+ * module from an over-filtered one.
+ */
+export function emptyStateMessage(hasActiveSearchOrFilters: boolean): string {
+  return hasActiveSearchOrFilters
+    ? "No records match the selected search or filters."
+    : "No records yet.";
+}

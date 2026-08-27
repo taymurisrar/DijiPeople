@@ -1535,6 +1535,7 @@ export class ContractsService {
       dto.lifecycleGatePurpose,
       source,
     );
+    await this.assertSourceCanFillTemplate(dto.templateId, source);
     return this.create(user, {
       title: dto.title ?? `${source.counterpartyName} services agreement`,
       contractType,
@@ -1563,6 +1564,98 @@ export class ContractsService {
             }
           : {}),
       }),
+    });
+  }
+
+  /**
+   * Refuse a template the chosen source cannot fill.
+   *
+   * BUG-1541. A "Tenant Provisioning & Service Order" was created from a
+   * **customer**. `customerSource()` emits the `customer.*` namespace and
+   * nothing else — it sets `tenantId: undefined` explicitly — so of the
+   * template's 39 placeholders, 8 resolved and 31 did not: every `tenant.*`,
+   * every `implementation.*`, every `hosting.*`, both `commercial.*`. The
+   * document rendered raw `{{handlebars}}` where a counterparty would read
+   * their own workspace address, and nothing said why.
+   *
+   * The renderer was never at fault. It keeps an unresolved token so the
+   * signature gate can refuse the document, which is correct. What was missing
+   * is anyone refusing the *pairing* — a source that cannot populate a
+   * template's required fields is the wrong source for it, and that is knowable
+   * before a single byte is generated.
+   *
+   * Only `required` placeholders are considered. Optional terms a platform does
+   * not hold are meant to be filled in later or resolve to nothing; failing on
+   * those would break the progressive completion the document-fields editor
+   * exists for.
+   */
+  private async assertSourceCanFillTemplate(
+    templateId: string | undefined,
+    source: ResolvedContractSource,
+  ) {
+    if (!templateId) return;
+
+    const templateVersion = await this.prisma.contractTemplateVersion.findFirst(
+      {
+        where: { templateId, isPublished: true },
+        orderBy: { version: 'desc' },
+        select: { contentHtml: true },
+      },
+    );
+
+    // An unpublished template is already refused by `create`, with its own
+    // message. Saying it twice differently would be worse than saying it once.
+    if (!templateVersion?.contentHtml) return;
+
+    const values = applyDeprecatedPlaceholderAliases(
+      compactStringRecord(source.placeholderValues),
+    );
+
+    /*
+     * Namespaces the source is not responsible for, and which are therefore not
+     * evidence of a wrong pairing:
+     *
+     *   contract.*      the create step fills from the DTO — number, title, dates
+     *   platform.*      the platform's own company profile
+     *   counterparty.*  derived from the source's counterparty name and e-mail
+     *   sla.*           platform service defaults, identical for every source
+     *   signature.*     filled at signing, necessarily empty before it
+     *
+     * Checking against them refuses every creation, valid or not — which the
+     * first version of this did, and which the accompanying spec caught before
+     * it reached anyone.
+     */
+    const FILLED_AFTER_SOURCE = new Set([
+      'contract',
+      'platform',
+      'counterparty',
+      'sla',
+      'signature',
+    ]);
+
+    const unfillable = extractContractPlaceholders(templateVersion.contentHtml)
+      .filter((definition) => definition.required)
+      .filter(
+        (definition) => !FILLED_AFTER_SOURCE.has(definition.key.split('.')[0]),
+      )
+      .filter((definition) => !values[definition.key]?.trim())
+      .map((definition) => definition.key);
+
+    if (!unfillable.length) return;
+
+    const namespaces = [
+      ...new Set(unfillable.map((key) => key.split('.')[0])),
+    ].sort();
+
+    throw new BadRequestException({
+      code: 'CONTRACT_SOURCE_CANNOT_FILL_TEMPLATE',
+      message:
+        `This template needs details a ${source.counterpartyType.toLowerCase()} ` +
+        `does not carry (${namespaces.join(', ')}), so the document would be ` +
+        `generated with those fields blank. Create it from a source that has ` +
+        `them — a provisioned tenant or an onboarding — or choose a template ` +
+        `written for this source.`,
+      details: { unfillable, namespaces },
     });
   }
 

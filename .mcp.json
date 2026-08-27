@@ -34,7 +34,7 @@
         "104857600",
         "--save-session",
         "--allowed-origins",
-        "https://admin.dijipeople.com;https://app.dijipeople.com;https://api.dijipeople.com;https://www.dijipeople.com"
+        "https://admin.dijipeople.com;https://app.dijipeople.com;https://api.dijipeople.com;https://www.dijipeople.com;https://*.ws.dijipeople.com"
       ]
     }
   }

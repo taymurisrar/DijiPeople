@@ -11,18 +11,21 @@ DetectedDate: 2026-08-26
 DetectedInSha: 8d6be21b
 AffectedModules: [apps/admin]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: PLAN_REQUIRED
 QAReport: docs/qa/runs/2026-08-26-admin-prod-e2e-8d6be21.md
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-26
-UpdatedAt: 2026-08-26
+UpdatedAt: 2026-08-27
 ResolvedAt:
 ---
 
 # BUG-1424 — The admin console serves no Content-Security-Policy header
+
+> **Architect triage, 2026-08-27 — `PLAN_REQUIRED`.** A Content-Security-Policy is an architecture decision with a real breakage surface. ExecPlan.
+
 
 ## Summary
 

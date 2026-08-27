@@ -2,7 +2,7 @@
 ID: BUG-1420
 aliases: [BUG-1420]
 Title: The monitoring severity filter cannot match 99.7 percent of stored incidents
-Status: OPEN
+Status: FIXED
 Severity: HIGH
 Priority: P1
 Type: DATA_INTEGRITY
@@ -11,18 +11,21 @@ DetectedDate: 2026-08-26
 DetectedInSha: 8d6be21b
 AffectedModules: [apps/admin, services/api/src/modules/error-logs]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: FIX_NOW
 QAReport: docs/qa/runs/2026-08-26-admin-prod-e2e-8d6be21.md
-RegressionId: 
+RegressionId: REG-270
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-26
-UpdatedAt: 2026-08-26
+UpdatedAt: 2026-08-27
 ResolvedAt:
 ---
 
 # BUG-1420 — The monitoring severity filter cannot match 99.7 percent of stored incidents
+
+> **Architect triage, 2026-08-27 — `FIX_NOW`.** The severity filter cannot match 99.7% of stored incidents. Same screen as BUG-1419.
+
 
 ## Summary
 
@@ -175,7 +178,21 @@ backfill.
 
 ## Resolution
 
-Not yet fixed.
+Fixed 2026-08-27 on `agent/invitation-delivery-visibility`.
+
+The severity filter matches with `mode: 'insensitive'`, and the critical view
+lists both spellings of each level — Prisma's `in` has no insensitive mode,
+unlike `equals`, so the duplication is load-bearing rather than untidy.
+
+Matched insensitively rather than upper-casing the input, which would only have
+moved the mismatch to the other side of the comparison.
+
+**The column itself is not normalised.** 1,466 rows still hold lowercase, and
+changing that is a data migration plus a write-side constraint, which is the
+real fix and wants a plan. This makes the existing rows reachable; it does not
+make the storage consistent. Recorded rather than quietly left.
+
+Guarded by REG-270 and QA-TENANT-024.
 
 ## QA Retest
 
@@ -190,5 +207,6 @@ Pending.
 ## Related
 
 - Modules — [[platform-admin]]
+- Regression — REG-270 (see the regression register)
 
 <!-- GRAPH:END -->

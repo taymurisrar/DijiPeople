@@ -2,7 +2,7 @@
 ID: BUG-1553
 aliases: [BUG-1553]
 Title: Owner and template pickers list indistinguishable duplicate entries
-Status: OPEN
+Status: DEFERRED
 Severity: MEDIUM
 Priority: P2
 Type: UX
@@ -11,18 +11,21 @@ DetectedDate: 2026-08-26
 DetectedInSha: 21032ae
 AffectedModules: [contracts, platform-users]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: DEFER
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-26
-UpdatedAt: 2026-08-26
+UpdatedAt: 2026-08-27
 ResolvedAt:
 ---
 
 # BUG-1553 — Owner and template pickers list indistinguishable duplicate entries
+
+> **Architect triage, 2026-08-27 — `DEFER`.** Picker disambiguation. The template half is masked by BUG-1541 anyway.
+
 
 ## Summary
 

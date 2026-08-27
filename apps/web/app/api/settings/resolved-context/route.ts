@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import { apiRequest } from "@/lib/server-api";
+import { NextRequest } from "next/server";
+import { apiRequest, proxyApiJsonResponse } from "@/lib/server-api";
 
 export async function GET(request: NextRequest) {
   const url = new URL(request.url);
@@ -8,8 +8,5 @@ export async function GET(request: NextRequest) {
     { method: "GET" },
   );
 
-  return new NextResponse(response.body, {
-    status: response.status,
-    headers: response.headers,
-  });
+  return proxyApiJsonResponse(response);
 }

@@ -4416,6 +4416,13 @@ function countryField(
   return {
     ...field("country", label, "lookup", section, required),
     lookupPath: COUNTRY_LOOKUP_PATH,
+    /*
+     * The column holds a country name, not a country id — see BUG-1578, where
+     * an id reached a legal agreement as the counterparty's registered address.
+     * Public signup has always written the name here; this makes the admin form
+     * agree with it.
+     */
+    submitsLabel: true,
   };
 }
 

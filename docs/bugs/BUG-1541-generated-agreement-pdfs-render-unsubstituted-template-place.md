@@ -2,7 +2,7 @@
 ID: BUG-1541
 aliases: [BUG-1541]
 Title: Generated agreement PDFs render unsubstituted template placeholders
-Status: OPEN
+Status: FIXED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -11,18 +11,21 @@ DetectedDate: 2026-08-26
 DetectedInSha: 21032ae
 AffectedModules: [contracts, legal]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: FIX_NOW
 QAReport: 
-RegressionId: 
+RegressionId: REG-268
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-26
-UpdatedAt: 2026-08-26
+UpdatedAt: 2026-08-27
 ResolvedAt:
 ---
 
 # BUG-1541 — Generated agreement PDFs render unsubstituted template placeholders
+
+> **Architect triage, 2026-08-27 — `FIX_NOW`.** Every generated agreement is unusable. This is the document a customer signs.
+
 
 ## Summary
 
@@ -180,7 +183,26 @@ Found during the same production admin E2E pass as [[BUG-1515]] and
 
 ## Resolution
 
-Not yet resolved.
+Fixed 2026-08-27 on `agent/invitation-delivery-visibility`, by the owner's
+choice of refusing at creation in the API rather than filtering the picker.
+
+`createFromSource` now calls `assertSourceCanFillTemplate`, which loads the
+published template, extracts its placeholders, and refuses when a **required**
+one has no producer in the source — naming the namespaces so the operator knows
+which source would work.
+
+Two boundaries were drawn deliberately, and the spec is what found them. Only
+required placeholders count, because optional terms are meant to be completed
+later and failing on those would break the document-fields editor's purpose. And
+the namespaces the create step fills — contract, platform, counterparty, sla,
+signature — are excluded, which the first implementation did not do and which
+made it refuse *every* creation until a test caught it.
+
+Mutation-tested twice. Removing the rule fails 3 of 7; removing only its call
+site fails 1 of 7 — a gap the spec did not cover until the first mutation run
+exposed it.
+
+Guarded by REG-268 and QA-TENANT-022.
 
 ## QA Retest
 
@@ -197,5 +219,6 @@ production, then against a freshly generated agreement.
 ## Related
 
 - Modules — [[contracts-and-agreements]], [[legal]]
+- Regression — REG-268 (see the regression register)
 
 <!-- GRAPH:END -->

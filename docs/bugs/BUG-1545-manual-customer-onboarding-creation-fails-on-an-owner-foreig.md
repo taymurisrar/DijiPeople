@@ -11,18 +11,21 @@ DetectedDate: 2026-08-26
 DetectedInSha: 21032ae
 AffectedModules: [platform-runtime, onboarding]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: PLAN_REQUIRED
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-26
-UpdatedAt: 2026-08-26
+UpdatedAt: 2026-08-27
 ResolvedAt:
 ---
 
 # BUG-1545 — Manual customer onboarding creation fails on an owner foreign key
+
+> **Architect triage, 2026-08-27 — `PLAN_REQUIRED`.** The owner relation is a modelling decision -- whether a platform user may own an onboarding -- not a null check. May need an ADR.
+
 
 ## Summary
 

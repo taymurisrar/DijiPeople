@@ -252,4 +252,23 @@ export class PublicSubscribeDto {
   @ArrayMaxSize(20)
   @IsUUID('4', { each: true })
   acceptedLegalVersionIds?: string[];
+
+  /**
+   * The draft order this submission continues, when the wizard opened one.
+   *
+   * BUG-1516. A draft is opened on the workspace step so the address check has
+   * a session to be bound to, and at that point the buyer has not been asked
+   * for their e-mail. `submissionHash` is built from the e-mail, so the draft
+   * and the real submission hashed differently, the "an identical submission is
+   * the same order" reuse missed, and one signup produced two orders and two
+   * customers.
+   *
+   * Being told which draft this is removes the guess. It is a hint, not an
+   * authorisation: the server still verifies the order is reusable and still
+   * falls back to the hash when it is absent, so a forged or stale id buys
+   * nothing.
+   */
+  @IsOptional()
+  @IsUUID('4')
+  onboardingId?: string;
 }

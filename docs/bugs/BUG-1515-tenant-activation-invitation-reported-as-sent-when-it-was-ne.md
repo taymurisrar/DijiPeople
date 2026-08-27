@@ -2,7 +2,7 @@
 ID: BUG-1515
 aliases: [BUG-1515]
 Title: Tenant activation invitation reported as sent when it was never delivered
-Status: OPEN
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: STATE_MACHINE
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-26
 DetectedInSha: 21032ae
 AffectedModules: [auth, tenant-control-plane, notifications]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: DONE
 QAReport: 
-RegressionId: 
+RegressionId: REG-263
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-26
-UpdatedAt: 2026-08-26
-ResolvedAt:
+UpdatedAt: 2026-08-27
+ResolvedAt: 2026-08-27
 ---
 
 # BUG-1515 — Tenant activation invitation reported as sent when it was never delivered
@@ -190,16 +190,39 @@ readable from production.
 
 ## Resolution
 
-Part 1 committed as `378fb6ab` on `agent/invitation-delivery-visibility`.
-Validated: api `check-types`, admin `check-types`, `eslint` (0 errors), and the
-`tenant-access | invitation | notification` suites — 55 tests passing.
-Not yet integrated: GitHub Actions was in a major outage from 15:11Z on
-2026-08-26 and produced no `CI required gate` verdict.
+Both halves are fixed and released.
+
+*Reporting* — `93971563`, released as `2eadac97`. `issueInvitation` logs a
+delivery failure instead of swallowing it, `resendInvitation` returns
+`delivered` and `deliveryStatus` alongside `success`, and the admin panel takes
+its toast tone from the delivery outcome rather than forcing `success`. The
+owner row shows "Email not delivered" where it used to show only "Invitation
+pending".
+
+*Delivery* — the underlying cause was [[BUG-1595]]: no email provider was
+resolvable for any tenant. Fixed by PLAN-023 on `a26fa39e`, released as
+`5762b2b2`.
+
+The order mattered. The reporting fix is what made the delivery failure
+findable at all — until it shipped, the platform reported success regardless,
+and the reason sat in a log no screen could reach.
 
 ## QA Retest
 
-Pending. Retest is: provision a tenant from a paid signup, then read the owner
-row — it must either show a delivered invitation or name the failure.
+Verified against production on 2026-08-27, on tenant
+`f959c5ff-c8f2-419b-ae79-e99989557771`, after `5762b2b2` deployed. Scenario
+QA-TENANT-017.
+
+- Resend returned `success: true`, `delivered: true`, `deliveryStatus: SENT` —
+  three separate fields, which is the point.
+- The access endpoint reported `activationEmailStatus: SENT`,
+  `activationEmailDelivered: true`, no `activationEmailDetail`.
+- **The email arrived.** Its link opened an activation page naming the right
+  person, work email and workspace.
+- After activation: owner `ACTIVE`, `invitationStatus: Activated`,
+  `credentialRotatedAt` set, `activeOwnerCount: 1`.
+- The owner signed in successfully and saw an empty employee list — their own
+  tenant's data, with no leakage from any other.
 
 ## History
 
@@ -211,5 +234,6 @@ row — it must either show a delivered invitation or name the failure.
 ## Related
 
 - Modules — [[auth]], [[tenant-control-plane]], [[notifications]]
+- Regression — REG-263 (see the regression register)
 
 <!-- GRAPH:END -->

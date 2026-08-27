@@ -2,7 +2,7 @@
 ID: BUG-1547
 aliases: [BUG-1547]
 Title: Onboarding prerequisite message states the inverse of the truth
-Status: OPEN
+Status: DEFERRED
 Severity: MEDIUM
 Priority: P2
 Type: UX
@@ -11,18 +11,21 @@ DetectedDate: 2026-08-26
 DetectedInSha: 21032ae
 AffectedModules: [onboarding]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: DEFER
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-26
-UpdatedAt: 2026-08-26
+UpdatedAt: 2026-08-27
 ResolvedAt:
 ---
 
 # BUG-1547 — Onboarding prerequisite message states the inverse of the truth
+
+> **Architect triage, 2026-08-27 — `DEFER`.** Same form as BUG-1545. Confirm whether the evaluation is inverted or only its label when that is fixed.
+
 
 ## Summary
 

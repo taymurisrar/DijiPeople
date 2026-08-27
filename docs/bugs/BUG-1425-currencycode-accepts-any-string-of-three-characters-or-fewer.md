@@ -2,7 +2,7 @@
 ID: BUG-1425
 aliases: [BUG-1425]
 Title: currencyCode accepts any string of three characters or fewer
-Status: OPEN
+Status: DEFERRED
 Severity: MEDIUM
 Priority: P2
 Type: DATA_INTEGRITY
@@ -11,18 +11,21 @@ DetectedDate: 2026-08-26
 DetectedInSha: 8d6be21b
 AffectedModules: [services/api/src/modules/partners]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: DEFER
 QAReport: docs/qa/runs/2026-08-26-admin-prod-e2e-8d6be21.md
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-26
-UpdatedAt: 2026-08-26
+UpdatedAt: 2026-08-27
 ResolvedAt:
 ---
 
 # BUG-1425 — currencyCode accepts any string of three characters or fewer
+
+> **Architect triage, 2026-08-27 — `DEFER`.** A validation bound, not a live defect on any observed path. Worth doing with the next billing change.
+
 
 ## Summary
 

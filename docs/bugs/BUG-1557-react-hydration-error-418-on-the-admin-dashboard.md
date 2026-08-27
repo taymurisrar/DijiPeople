@@ -2,7 +2,7 @@
 ID: BUG-1557
 aliases: [BUG-1557]
 Title: React hydration error 418 on the admin dashboard
-Status: OPEN
+Status: DEFERRED
 Severity: LOW
 Priority: P3
 Type: BUG
@@ -11,18 +11,21 @@ DetectedDate: 2026-08-26
 DetectedInSha: 21032ae
 AffectedModules: [dashboard]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: DEFER
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-26
-UpdatedAt: 2026-08-26
+UpdatedAt: 2026-08-27
 ResolvedAt:
 ---
 
 # BUG-1557 — React hydration error 418 on the admin dashboard
+
+> **Architect triage, 2026-08-27 — `DEFER`.** A console error with no user-visible effect. Worth fixing to keep the console readable, not before the above.
+
 
 ## Summary
 

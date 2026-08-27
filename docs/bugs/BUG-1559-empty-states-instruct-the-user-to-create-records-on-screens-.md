@@ -2,7 +2,7 @@
 ID: BUG-1559
 aliases: [BUG-1559]
 Title: Empty states instruct the user to create records on screens with no create control
-Status: OPEN
+Status: DEFERRED
 Severity: LOW
 Priority: P3
 Type: UX
@@ -11,18 +11,21 @@ DetectedDate: 2026-08-26
 DetectedInSha: 21032ae
 AffectedModules: [billing]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: DEFER
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-26
-UpdatedAt: 2026-08-26
+UpdatedAt: 2026-08-27
 ResolvedAt:
 ---
 
 # BUG-1559 — Empty states instruct the user to create records on screens with no create control
+
+> **Architect triage, 2026-08-27 — `DEFER`.** Copy, though the fix is a real one -- say where the records come from.
+
 
 ## Summary
 

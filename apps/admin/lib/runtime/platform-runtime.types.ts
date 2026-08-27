@@ -183,6 +183,21 @@ export type RuntimeFieldDefinition = {
   lookupModule?: PlatformModuleKey;
   lookupPath?: string;
   /**
+   * Submit the chosen option's label rather than its id.
+   *
+   * BUG-1578. `CustomerAccount.country` is a plain string column holding a
+   * country *name* — twelve of thirteen production rows held one, and every
+   * reader assumed it. The admin form declared it a lookup, so it submitted the
+   * lookup's id, and a generated agreement rendered
+   * `ec7dbbe3-1179-4465-990f-06427a4ab59f` as a counterparty's registered
+   * address.
+   *
+   * Set this only where the stored column is the display value. It makes the
+   * option's value and label the same string, so selection, matching and
+   * submission all speak the language the column is written in.
+   */
+  submitsLabel?: boolean;
+  /**
    * Business presentation metadata: where the human-readable label for this
    * value lives on the record. Schema tells the runtime that `customerAccountId`
    * is a required string; only this says it should read as "Maseer Group".
