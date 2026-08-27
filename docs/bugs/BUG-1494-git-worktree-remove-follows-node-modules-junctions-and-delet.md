@@ -18,7 +18,7 @@ RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-26
-UpdatedAt: 2026-08-26
+UpdatedAt: 2026-08-27
 ResolvedAt: 2026-08-26
 ---
 
@@ -115,10 +115,27 @@ in the direction that matters: the error names the worktree, never the primary.
 ## Impact
 
 The user's interactive workspace, which is the one place `AGENTS.md` says must
-never be treated as scratch. Fully recoverable — every deleted file was tracked,
-nothing was modified, untracked or stashed — but only because that was checked
-before acting. Had the checkout held uncommitted work, `git restore .` would have
-destroyed it.
+never be treated as scratch. The *tracked* files were fully recoverable, and only
+because that was checked before acting — had the checkout held uncommitted work,
+`git restore .` would have destroyed it.
+
+**Correction, 2026-08-27.** This section read "nothing was modified, untracked or
+stashed", and that was wrong. The delete also took the **`.env` files**, which are
+gitignored and therefore untracked: `services/api/.env`, and the local env files
+for `apps/web`, `apps/admin` and `apps/landing`. `git restore .` could not bring
+them back for the same reason it could not bring back `node_modules`.
+
+The claim was not harmless. It is precisely why nobody went looking: the record
+said there was nothing to recover, so the loss went unnoticed until the owner
+tried to build the desktop agent on 2026-08-27 and the build failed on a missing
+`.env` — two days later. `node_modules` and the Prisma client were named as
+unrecoverable and were regenerated; the env files were not named, and were not.
+
+Restored on 2026-08-27 from the committed `.env*.example` templates, with fresh
+local JWT secrets generated. `DATABASE_URL`, `SECRET_ENCRYPTION_KEY` and the
+Stripe keys could not be restored from any template and had to be re-supplied by
+the owner — anything the old encryption key had encrypted locally is
+unrecoverable.
 
 `node_modules` and the generated Prisma client are gitignored, so `restore` could
 not bring them back; those needed `npm ci` and `npm run prisma:generate`.

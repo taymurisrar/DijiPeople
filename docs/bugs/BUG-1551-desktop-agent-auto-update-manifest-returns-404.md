@@ -155,8 +155,32 @@ Not yet resolved.
 
 ## QA Retest
 
-Not yet retested. Retest end to end from an installed agent, not only by
-requesting the URL.
+**The URL half is verified.** The owner rebuilt and reinstalled the agent on
+2026-08-27 from a `.env` carrying the corrected feed. Production platform events
+show the change directly:
+
+```
+10:39:28  Cannot GET /api/agent/updates/latest.yml?noCache=…      <- the old build
+11:59:33  GET /api/app-releases/feed/agent-desktop/latest.yml?noCache=…
+          category AUTH_TOKEN_MISSING
+```
+
+The `noCache` parameter is `electron-updater`'s own, so that is the updater
+speaking, not a probe. The dead path stops being requested; the correct one
+starts. A 401 rather than a 404 is the expected shape here — the feed is gated
+behind `appDownloads.read`, and `UpdateManager.start()` re-reads the access token
+before every check, so a check that fires before the employee signs in carries no
+header. The six-hour tick after sign-in carries one.
+
+**Two things remain unproven, and neither is this record's fix.**
+
+1. `GET /api/app-releases` returns **zero published releases**. The feed has
+   nothing to serve, so a correctly authenticated check still answers 404 —
+   which is the right answer to an empty feed, and indistinguishable from the
+   defect this record describes. Auto-update cannot be proven end to end until a
+   release is published and promoted to the channel the agent requests.
+2. Every *other* agent installed before 2026-08-18 still holds the dead URL. This
+   verifies one reinstalled machine, not the fleet.
 
 ## History
 
