@@ -14,8 +14,8 @@
 | Work packages waiting on the user | 0 |
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
-| Open CRITICAL | **6** |
-| Open HIGH | 15 |
+| Open CRITICAL | **5** |
+| Open HIGH | 16 |
 | Awaiting Architect triage | 0 |
 | Owner decisions pending | 2 |
 | QA coverage gaps | 106 |
@@ -106,7 +106,6 @@ what they own, and what the backlog and QA systems currently say.
 | [[BUG-0900-tenant-provisioning-exceeds-the-5s-transaction-timeout-a-pai|BUG-0900]] | Tenant provisioning exceeds the 5s transaction timeout: a paid order is left with no workspace | BUG | CRITICAL | FIXED | api:permissions | FIX_NOW |
 | [[BUG-0904-production-is-missing-outbox-worker-enabled-so-no-workspace-|BUG-0904]] | Production is missing OUTBOX_WORKER_ENABLED, so no workspace is provisioned after payment | BUG | CRITICAL | OPEN | api:outbox | BLOCKED_EXTERNAL |
 | [[BUG-1128-stripe-api-version-skew-invoice-paid-cannot-map-to-a-subscri|BUG-1128]] | Stripe API version skew: invoice.paid cannot map to a subscription because invoice.subscription no longer exists | INTEGRATION | CRITICAL | FIXED | api:billing | FIX_NOW |
-| [[BUG-1644-tenant-root-domain-is-misconfigured-so-no-customer-can-reach|BUG-1644]] | Tenant root domain is misconfigured so no customer can reach their workspace login | INFRA | CRITICAL | OPEN | tenant-domains, tenants | FIX_NOW |
 | [[BUG-1494-git-worktree-remove-follows-node-modules-junctions-and-delet|BUG-1494]] | git worktree remove follows node_modules junctions and deletes the primary checkout | INFRA | CRITICAL | FIXED | scripts | DONE |
 
 ## Owner Decisions Pending

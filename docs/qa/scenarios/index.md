@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 211** · automated: 185 · manual: 9 · blocked by infrastructure: 0
+**Scenarios: 212** · automated: 185 · manual: 9 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -35,6 +35,7 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-AUTH-003](../../../docs/qa/scenarios/QA-AUTH-003-repeated-failed-sign-ins-lock-the-account.md) | Repeated failed sign-ins lock the account | authentication | UNIT | HIGH | AUTOMATED | `services/api/src/modules/auth/login-lockout.service.spec.ts` | — | — |
 | [QA-AUTH-004](../../../docs/qa/scenarios/QA-AUTH-004-password-policy-is-enforced-on-set-and-on-change.md) | Password policy is enforced on set and on change | authentication | UNIT | MEDIUM | AUTOMATED | `services/api/src/modules/auth/password-policy.service.spec.ts` | — | — |
 | [QA-AUTH-005](../../../docs/qa/scenarios/QA-AUTH-005-a-token-minted-for-one-app-client-is-rejected-by-another.md) | A token minted for one app client is rejected by another | authentication | SECURITY | CRITICAL | AUTOMATED | `services/api/src/common/guards/jwt-auth.guard.spec.ts` | — | — |
+| [QA-AUTH-006](../../../docs/qa/scenarios/QA-AUTH-006-a-tenant-workspace-url-survives-a-multi-label-root-domain.md) | A tenant workspace URL survives a multi-label root domain | authentication | E2E | CRITICAL | PARTIAL | `apps/web/lib/tenant-root-domain.spec.ts` | BUG-1644, BUG-1544 | REG-271 |
 | [QA-AUTHZ-001](../../../docs/qa/scenarios/QA-AUTHZ-001-every-permission-gated-route-declares-both-permission-famili.md) | Every permission-gated route declares both permission families | authorization | SECURITY | CRITICAL | AUTOMATED | `services/api/src/common/constants/wiring-invariants.spec.ts` | BUG-0049, ITEM-0043 | REG-040 |
 | [QA-AUTHZ-002](../../../docs/qa/scenarios/QA-AUTHZ-002-no-unguarded-duplicate-of-a-permission-gated-route-exists.md) | No unguarded duplicate of a permission-gated route exists | authorization | SECURITY | CRITICAL | AUTOMATED | `services/api/src/common/constants/wiring-invariants.spec.ts` | BUG-0007 | REG-007 |
 | [QA-AUTHZ-003](../../../docs/qa/scenarios/QA-AUTHZ-003-a-team-scoped-role-cannot-read-outside-its-subtree.md) | A TEAM-scoped role cannot read outside its subtree | authorization | UNIT | HIGH | AUTOMATED | `services/api/src/modules/employees/employee-access.service.spec.ts` | BUG-0003 | REG-003 |

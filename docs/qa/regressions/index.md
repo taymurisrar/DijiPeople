@@ -2606,3 +2606,18 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | The duplication in the `in` list looks redundant and is load-bearing: Prisma's `in` has no insensitive mode, unlike `equals`, so the levels are listed rather than folded. The test exists partly so a tidying pass cannot quietly remove it. Normalising the column itself is the deeper fix and needs a migration — recorded on the bug, not attempted here. |
 | **Fixed** | 2026-08-27, `agent/invitation-delivery-visibility` |
 | **Active** | yes |
+
+### REG-271 — A workspace root domain the app only half believed in
+
+| | |
+|---|---|
+| **Bug class** | `config-value-inlined-at-build` |
+| **Module** | `web` |
+| **Bug record** | BUG-1644 |
+| **Root cause** | Workspaces are served from `ws.dijipeople.com`, a two-label root beneath the apex, while the deployed bundle had been built with `NEXT_PUBLIC_WEB_ROOT_DOMAIN=dijipeople.com` — the value the documentation prescribed at the time. One wrong value broke the login in two directions at once. Outbound, `buildTenantPortalUrl` composed `<slug>.dijipeople.com`, which does not resolve, so the company-code step navigated to a dead host. Inbound, host resolution strips the root and requires the remainder to contain no dot, so `<slug>.ws.dijipeople.com` left `<slug>.ws` and a request arriving at the correct workspace was read as belonging to no tenant. |
+| **Regression test** | `apps/web/lib/tenant-root-domain.spec.ts` |
+| **Scenario** | A slug composed into a login URL must round-trip back out of the resulting hostname when the root domain matches how workspaces are actually served. Both directions are asserted, plus the apex-root pairing that shipped, plus the unconfigured case falling back to the app's own login rather than inventing a subdomain. |
+| **Proven to fail without the fix** | Mutation-tested 2026-08-28. Collapsing a multi-label root to its apex fails 2 of 6. |
+| **Note** | The value itself is deployment configuration and cannot be asserted from the repository; what this holds is the code's behaviour *given* the value, so multi-label roots keep working. The inbound half is the dangerous one — it degrades to "which company are you?" rather than to an error, which is why a paying customer hit it before anyone else did. The fix was a rebuild, not an edit: `NEXT_PUBLIC_*` is inlined at build time, so a correct setting and a stale bundle are indistinguishable from the browser. |
+| **Fixed** | 2026-08-28, deployed as `e0aeabcd` |
+| **Active** | yes |

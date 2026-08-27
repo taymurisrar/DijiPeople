@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**303 records** — 201 bugs under [`docs/bugs/`](../bugs/), 102 non-bug items under [`items/`](items/).
+**304 records** — 201 bugs under [`docs/bugs/`](../bugs/), 103 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -17,17 +17,17 @@ see [`README.md`](README.md) for why.
 | Blocked | 2 |
 | Deferred | 44 |
 | Awaiting a product decision | 2 |
-| Completed / closed | 208 |
-| **Open CRITICAL** | **6** |
-| **Open HIGH** | **15** |
+| Completed / closed | 209 |
+| **Open CRITICAL** | **5** |
+| **Open HIGH** | **16** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
 
 | Severity | Count |
 |---|---|
-| CRITICAL | 6 |
-| HIGH | 15 |
+| CRITICAL | 5 |
+| HIGH | 16 |
 | MEDIUM | 22 |
 | LOW | 4 |
 
@@ -39,27 +39,27 @@ see [`README.md`](README.md) for why.
 | BUG | 11 |
 | DATA_INTEGRITY | 3 |
 | FOLLOW_UP | 2 |
-| INFRA | 8 |
+| INFRA | 7 |
 | INTEGRATION | 1 |
 | SECURITY | 3 |
 | STATE_MACHINE | 2 |
 | TECH_DEBT | 5 |
-| TEST_GAP | 7 |
+| TEST_GAP | 8 |
 | UX | 4 |
 
 ## All records by status
 
 | Status | Count |
 |---|---|
-| OPEN | 12 |
+| OPEN | 11 |
 | BLOCKED | 2 |
 | DEFERRED | 44 |
 | PRODUCT_DECISION | 2 |
 | FIXED | 13 |
-| VERIFIED | 150 |
+| VERIFIED | 151 |
 | DUPLICATE | 4 |
 | ACCEPTED_RISK | 1 |
-| READY | 22 |
+| READY | 23 |
 | DONE | 53 |
 
 ## All records
@@ -81,7 +81,7 @@ see [`README.md`](README.md) for why.
 | [BUG-1128](../../docs/bugs/BUG-1128-stripe-api-version-skew-invoice-paid-cannot-map-to-a-subscri.md) | Stripe API version skew: invoice.paid cannot map to a subscription because invoice.subscription no longer exists | INTEGRATION | CRITICAL | P0 | FIXED | api:billing | FIX_NOW |
 | [BUG-1133](../../docs/bugs/BUG-1133-saving-a-plan-price-deactivates-every-sibling-price-on-a-nar.md) | Saving a plan price deactivates every sibling price on a narrower key than the unique index | DATA_INTEGRITY | CRITICAL | P0 | VERIFIED | api:super-admin, apps/admin | DONE |
 | [BUG-1595](../../docs/bugs/BUG-1595-production-has-no-tenant-email-provider-so-no-tenant-can-sen.md) | Production has no tenant email provider so no tenant can send any email | INFRA | CRITICAL | P0 | VERIFIED | notifications, tenants | DONE |
-| [BUG-1644](../../docs/bugs/BUG-1644-tenant-root-domain-is-misconfigured-so-no-customer-can-reach.md) | Tenant root domain is misconfigured so no customer can reach their workspace login | INFRA | CRITICAL | P0 | OPEN | tenant-domains, tenants | FIX_NOW |
+| [BUG-1644](../../docs/bugs/BUG-1644-tenant-root-domain-is-misconfigured-so-no-customer-can-reach.md) | Tenant root domain is misconfigured so no customer can reach their workspace login | INFRA | CRITICAL | P0 | VERIFIED | tenant-domains, tenants | DONE |
 | [BUG-1494](../../docs/bugs/BUG-1494-git-worktree-remove-follows-node-modules-junctions-and-delet.md) | git worktree remove follows node_modules junctions and deletes the primary checkout | INFRA | CRITICAL | P1 | FIXED | scripts | DONE |
 | [BUG-0049](../../docs/bugs/BUG-0049-report-only-ci-jobs-swallow-security-and-database-e2e-failur.md) | Report-only CI jobs swallow security and database E2E failures | INFRA | HIGH | P0 | VERIFIED | .github/workflows, services/api/src/common/constants, services/api/test, docs/qa | DONE |
 | [BUG-0052](../../docs/bugs/BUG-0052-production-dependency-graph-carries-critical-and-high-securi.md) | Production dependency graph carries critical and high security advisories | SECURITY | HIGH | P0 | VERIFIED | package-lock.json, apps/agent-desktop, apps/web, apps/admin, apps/landing, services/api | DONE |
@@ -182,6 +182,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0094](../../docs/backlog/items/ITEM-0094-go-live-sh-reports-no-blocker-for-a-webhook-endpoint-that-re.md) | go-live.sh reports no blocker for a webhook endpoint that rejects every delivery | TEST_GAP | HIGH | P1 | READY | scripts, api:billing, api:outbox | FIX_NOW |
 | [ITEM-0096](../../docs/backlog/items/ITEM-0096-a-critical-notification-named-no-reason-and-no-action-and-th.md) | A critical notification named no reason and no action, and the price estimate showed no working | UX | HIGH | P1 | DONE | api:platform-events, apps/admin, apps/landing | DONE |
 | [ITEM-0097](../../docs/backlog/items/ITEM-0097-a-saved-column-preference-could-hide-the-column-that-identif.md) | A saved column preference could hide the column that identifies the row | UX | HIGH | P1 | DONE | apps/admin, e2e | DONE |
+| [ITEM-0103](../../docs/backlog/items/ITEM-0103-deployment-check-the-composed-tenant-workspace-host-must-res.md) | Deployment check: the composed tenant workspace host must resolve | TEST_GAP | HIGH | P1 | READY | web, tenant-domains | PLAN_REQUIRED |
 | [ITEM-0048](../../docs/backlog/items/ITEM-0048-replace-or-contain-active-win-and-the-xlsx-export-path.md) | Replace or contain active-win and the xlsx export path | SECURITY | HIGH | P2 | BLOCKED | apps/agent-desktop, services/api/src/common/excel, package-lock.json | BLOCKED_EXTERNAL |
 | [ITEM-0086](../../docs/backlog/items/ITEM-0086-smoke-deployment-does-not-assert-that-a-launched-market-has-.md) | smoke:deployment does not assert that a launched market has a purchasable price or a running outbox worker | TEST_GAP | HIGH | P2 | DONE | scripts | DONE |
 | [BUG-0051](../../docs/bugs/BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state.md) | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | P1 | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |

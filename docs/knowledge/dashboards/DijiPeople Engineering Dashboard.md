@@ -7,13 +7,13 @@
 
 | | |
 |---|---|
-| Open CRITICAL | **6** |
-| Open HIGH | **15** |
+| Open CRITICAL | **5** |
+| Open HIGH | **16** |
 | Open total | 47 |
 | Blocked | 2 |
 | Awaiting a product decision | 2 |
 | Deferred | 44 |
-| Completed | 208 |
+| Completed | 209 |
 | Awaiting Architect triage | 0 |
 
 ## Open Critical Bugs
@@ -24,7 +24,6 @@
 | [[BUG-0900-tenant-provisioning-exceeds-the-5s-transaction-timeout-a-pai|BUG-0900]] | Tenant provisioning exceeds the 5s transaction timeout: a paid order is left with no workspace | BUG | CRITICAL | FIXED | api:permissions | FIX_NOW |
 | [[BUG-0904-production-is-missing-outbox-worker-enabled-so-no-workspace-|BUG-0904]] | Production is missing OUTBOX_WORKER_ENABLED, so no workspace is provisioned after payment | BUG | CRITICAL | OPEN | api:outbox | BLOCKED_EXTERNAL |
 | [[BUG-1128-stripe-api-version-skew-invoice-paid-cannot-map-to-a-subscri|BUG-1128]] | Stripe API version skew: invoice.paid cannot map to a subscription because invoice.subscription no longer exists | INTEGRATION | CRITICAL | FIXED | api:billing | FIX_NOW |
-| [[BUG-1644-tenant-root-domain-is-misconfigured-so-no-customer-can-reach|BUG-1644]] | Tenant root domain is misconfigured so no customer can reach their workspace login | INFRA | CRITICAL | OPEN | tenant-domains, tenants | FIX_NOW |
 | [[BUG-1494-git-worktree-remove-follows-node-modules-junctions-and-delet|BUG-1494]] | git worktree remove follows node_modules junctions and deletes the primary checkout | INFRA | CRITICAL | FIXED | scripts | DONE |
 
 ## Open High Bugs
@@ -46,6 +45,7 @@
 | [[BUG-1649-api-proxy-routes-copy-the-upstream-content-encoding-onto-an-|BUG-1649]] | API proxy routes copy the upstream Content-Encoding onto an already-decompressed body | BUG | HIGH | FIXED | settings-runtime, tenant-settings | FIX_NOW |
 | [[ITEM-0034-apps-web-has-zero-browser-e2e-coverage|ITEM-0034]] | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | READY | apps/web, e2e | PLAN_REQUIRED |
 | [[ITEM-0094-go-live-sh-reports-no-blocker-for-a-webhook-endpoint-that-re|ITEM-0094]] | go-live.sh reports no blocker for a webhook endpoint that rejects every delivery | TEST_GAP | HIGH | READY | scripts, api:billing, api:outbox | FIX_NOW |
+| [[ITEM-0103-deployment-check-the-composed-tenant-workspace-host-must-res|ITEM-0103]] | Deployment check: the composed tenant workspace host must resolve | TEST_GAP | HIGH | READY | web, tenant-domains | PLAN_REQUIRED |
 
 ## Product Decisions Needed
 
@@ -67,6 +67,7 @@
 |---|---|---|---|---|---|---|
 | [[ITEM-0034-apps-web-has-zero-browser-e2e-coverage|ITEM-0034]] | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | READY | apps/web, e2e | PLAN_REQUIRED |
 | [[ITEM-0094-go-live-sh-reports-no-blocker-for-a-webhook-endpoint-that-re|ITEM-0094]] | go-live.sh reports no blocker for a webhook endpoint that rejects every delivery | TEST_GAP | HIGH | READY | scripts, api:billing, api:outbox | FIX_NOW |
+| [[ITEM-0103-deployment-check-the-composed-tenant-workspace-host-must-res|ITEM-0103]] | Deployment check: the composed tenant workspace host must resolve | TEST_GAP | HIGH | READY | web, tenant-domains | PLAN_REQUIRED |
 | [[ITEM-0052-verify-the-agent-update-feed-against-a-real-published-artefact|ITEM-0052]] | Verify the agent update feed against a real published artefact | TEST_GAP | MEDIUM | READY | apps/agent-desktop, api:app-releases | PLAN_REQUIRED |
 | [[ITEM-0077-re-read-the-packaged-agent-archive-after-the-node-pre-gyp-up|ITEM-0077]] | Re-read the packaged agent archive after the node-pre-gyp upgrade | TEST_GAP | MEDIUM | READY | apps/agent-desktop, package-lock.json | PLAN_REQUIRED |
 | [[ITEM-0078-no-end-to-end-payment-to-provisioned-tenant-run-against-stri|ITEM-0078]] | No end-to-end payment to provisioned tenant run against Stripe test mode | TEST_GAP | MEDIUM | READY | api:billing, api:tenant-control-plane, api:outbox, apps/landing | PLAN_REQUIRED |
@@ -77,7 +78,6 @@
 
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
-| [[BUG-1644-tenant-root-domain-is-misconfigured-so-no-customer-can-reach|BUG-1644]] | Tenant root domain is misconfigured so no customer can reach their workspace login | INFRA | CRITICAL | OPEN | tenant-domains, tenants | FIX_NOW |
 | [[BUG-1494-git-worktree-remove-follows-node-modules-junctions-and-delet|BUG-1494]] | git worktree remove follows node_modules junctions and deletes the primary checkout | INFRA | CRITICAL | FIXED | scripts | DONE |
 | [[BUG-1203-repo-health-reports-changed-by-this-task-for-another-session|BUG-1203]] | repo-health reports CHANGED_BY_THIS_TASK for another session's merge | INFRA | HIGH | FIXED | framework | FIX_NOW |
 | [[BUG-1208-component-index-check-fails-on-every-windows-checkout-passes|BUG-1208]] | component-index --check fails on every Windows checkout, passes in CI | INFRA | MEDIUM | FIXED | framework | FIX_NOW |
@@ -103,6 +103,7 @@
 | [[BUG-1128-stripe-api-version-skew-invoice-paid-cannot-map-to-a-subscri|BUG-1128]] | Stripe API version skew: invoice.paid cannot map to a subscription because invoice.subscription no longer exists | INTEGRATION | CRITICAL | FIXED | api:billing | FIX_NOW |
 | [[BUG-1133-saving-a-plan-price-deactivates-every-sibling-price-on-a-nar|BUG-1133]] | Saving a plan price deactivates every sibling price on a narrower key than the unique index | DATA_INTEGRITY | CRITICAL | VERIFIED | api:super-admin, apps/admin | DONE |
 | [[BUG-1595-production-has-no-tenant-email-provider-so-no-tenant-can-sen|BUG-1595]] | Production has no tenant email provider so no tenant can send any email | INFRA | CRITICAL | VERIFIED | notifications, tenants | DONE |
+| [[BUG-1644-tenant-root-domain-is-misconfigured-so-no-customer-can-reach|BUG-1644]] | Tenant root domain is misconfigured so no customer can reach their workspace login | INFRA | CRITICAL | VERIFIED | tenant-domains, tenants | DONE |
 | [[BUG-1494-git-worktree-remove-follows-node-modules-junctions-and-delet|BUG-1494]] | git worktree remove follows node_modules junctions and deletes the primary checkout | INFRA | CRITICAL | FIXED | scripts | DONE |
 | [[BUG-0049-report-only-ci-jobs-swallow-security-and-database-e2e-failur|BUG-0049]] | Report-only CI jobs swallow security and database E2E failures | INFRA | HIGH | VERIFIED | .github/workflows, services/api/src/common/constants, services/api/test, docs/qa | DONE |
 | [[BUG-0052-production-dependency-graph-carries-critical-and-high-securi|BUG-0052]] | Production dependency graph carries critical and high security advisories | SECURITY | HIGH | VERIFIED | package-lock.json, apps/agent-desktop, apps/web, apps/admin, apps/landing, services/api | DONE |
@@ -336,7 +337,7 @@
 | Knowledge | Count |
 |---|---|
 | Bug records | 201 |
-| Backlog items | 102 |
+| Backlog items | 103 |
 | Known bug patterns | 29 |
 | QA runs | 27 |
 | Engineering history records | 52 |
