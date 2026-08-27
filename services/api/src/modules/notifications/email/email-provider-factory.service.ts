@@ -29,8 +29,17 @@ export class EmailProviderFactory {
     private readonly smtpProvider: SmtpEmailProvider,
   ) {}
 
+  /**
+   * @param options.tenantOnly stop after the tenant's own providers instead of
+   * falling through to the environment and the dev console. `EmailExecutionService`
+   * uses it to slot the platform provider between the two — see PLAN-023. The
+   * platform provider cannot be resolved here, because
+   * `PlatformEmailProviderResolver` depends on this factory for `getProvider`
+   * and injecting it back would be a dependency cycle.
+   */
   async resolveProvider(
     tenantId: string,
+    options: { tenantOnly?: boolean } = {},
   ): Promise<ResolvedEmailProvider | null> {
     const enabledTenantProviders =
       await this.repository.listEnabledProviders(tenantId);
@@ -49,6 +58,10 @@ export class EmailProviderFactory {
 
     if (tenantProvider) {
       return this.fromTenantProvider(tenantProvider);
+    }
+
+    if (options.tenantOnly) {
+      return null;
     }
 
     const envProvider = this.fromEnvironment();

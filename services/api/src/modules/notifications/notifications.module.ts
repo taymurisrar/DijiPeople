@@ -6,6 +6,7 @@ import { WorkflowsModule } from '../workflows/workflows.module';
 import { EmailDeliveryLogService } from './email/email-delivery-log.service';
 import { EmailExecutionService } from './email/email-execution.service';
 import { EmailProviderFactory } from './email/email-provider-factory.service';
+import { PlatformEmailProviderResolver } from './email/platform-email-provider.resolver';
 import { EmailProviderService } from './email/email-provider.service';
 import { EmailService } from './email/email.service';
 import { EmailTemplateRendererService } from './email/email-template-renderer.service';
@@ -44,6 +45,7 @@ import { LifecycleNotificationHandler } from './lifecycle-notification.handler';
     NotificationQueueService,
     NotificationsRepository,
     NotificationsService,
+    PlatformEmailProviderResolver,
     SecretEncryptionService,
     SmtpEmailProvider,
     JwtAuthGuard,
@@ -53,6 +55,7 @@ import { LifecycleNotificationHandler } from './lifecycle-notification.handler';
     EmailDeliveryLogService,
     EmailExecutionService,
     EmailProviderFactory,
+    PlatformEmailProviderResolver,
     EmailProviderService,
     EmailService,
     EmailTemplateRendererService,

@@ -14,6 +14,7 @@ import {
   userHasPlatformPermission,
 } from '../platform-auth/platform-permissions';
 import { EmailProviderFactory } from '../notifications/email/email-provider-factory.service';
+import { PlatformEmailProviderResolver } from '../notifications/email/platform-email-provider.resolver';
 import {
   maskSensitiveConfiguration,
   redactEmailError,
@@ -21,15 +22,18 @@ import {
 } from '../notifications/email/email-safety';
 import type { ResolvedEmailProvider } from '../notifications/email/email-provider-factory.service';
 import type {
-  PlatformEmailProviderType,
-  SmtpSecurityMode,
   UpdatePlatformEmailSettingsDto,
   UpdatePlatformEmailTemplateDto,
 } from './dto/platform-email-settings.dto';
 import { AuditService } from '../audit/audit.service';
 import { AppError } from '../../common/errors/app-error';
 
-const SETTINGS_KEY = 'email-provider';
+import {
+  DEFAULT_PLATFORM_EMAIL_SETTINGS as DEFAULT_SETTINGS,
+  PLATFORM_EMAIL_SETTINGS_KEY as SETTINGS_KEY,
+  normalizePlatformEmailSettings as normalizeStoredSettings,
+  type StoredPlatformEmailSettings,
+} from '../notifications/email/platform-email-settings.shared';
 const TEMPLATE_SETTINGS_KEY = 'platform-email-templates';
 const PLATFORM_TEMPLATE_ID_PATTERN = /^platform:[A-Z][A-Z0-9_]{1,99}$/;
 
@@ -97,39 +101,6 @@ const PLATFORM_TEMPLATE_DEFAULTS: PlatformTemplate[] = [
   ),
 ];
 
-type StoredPlatformEmailSettings = {
-  enabled: boolean;
-  providerType: PlatformEmailProviderType;
-  fromName: string;
-  fromEmail: string;
-  replyToEmail: string | null;
-  smtp: {
-    host: string;
-    port: number;
-    authEnabled: boolean;
-    username: string;
-    password?: string;
-    security: SmtpSecurityMode;
-    connectionTimeoutMs: number;
-  };
-};
-
-const DEFAULT_SETTINGS: StoredPlatformEmailSettings = {
-  enabled: false,
-  providerType: 'CONSOLE',
-  fromName: 'DijiPeople',
-  fromEmail: 'notifications@dijipeople.local',
-  replyToEmail: null,
-  smtp: {
-    host: '',
-    port: 587,
-    authEnabled: true,
-    username: '',
-    security: 'STARTTLS',
-    connectionTimeoutMs: 10000,
-  },
-};
-
 @Injectable()
 export class PlatformEmailSettingsService {
   constructor(
@@ -138,6 +109,7 @@ export class PlatformEmailSettingsService {
     private readonly encryption: SecretEncryptionService,
     private readonly providers: EmailProviderFactory,
     private readonly audit: AuditService,
+    private readonly platformProvider: PlatformEmailProviderResolver,
   ) {}
 
   async getSettings(actor: AuthenticatedUser) {
@@ -272,29 +244,24 @@ export class PlatformEmailSettingsService {
     this.assertPermission(actor, 'settings.email.test');
   }
 
+  /**
+   * Delegates to `PlatformEmailProviderResolver`, which is the one
+   * implementation of this and lives in `notifications` so the delivery path
+   * can reach it too (PLAN-023). This service still owns reading, validating
+   * and auditing the settings; it no longer owns resolving them into a
+   * provider.
+   *
+   * The `resolveProvider('platform')` fallback this method used to carry — the
+   * literal string as a tenant id — is preserved below for the
+   * no-settings-stored case, and is *not* reachable from the resolver, so the
+   * two cannot recurse into each other.
+   */
   async resolveProvider(): Promise<ResolvedEmailProvider | null> {
     const stored = await this.readStoredSettings();
     if (!stored) return this.providers.resolveProvider('platform');
     if (!stored.enabled) return null;
     this.validate(stored);
-
-    const providerType =
-      stored.providerType === 'SMTP'
-        ? EmailProviderType.SMTP
-        : EmailProviderType.CONSOLE;
-    return {
-      provider: this.providers.getProvider(providerType),
-      providerType,
-      providerSettingId: null,
-      fromEmail: stored.fromEmail,
-      fromName: stored.fromName,
-      replyToEmail: stored.replyToEmail,
-      configuration:
-        providerType === EmailProviderType.SMTP
-          ? this.smtpProviderConfiguration(stored)
-          : {},
-      source: 'platform',
-    };
+    return this.platformProvider.resolve();
   }
 
   async listRecentDeliveries(actor: AuthenticatedUser, limit = 25) {
@@ -528,53 +495,6 @@ export class PlatformEmailSettingsService {
   }
 }
 
-function normalizeStoredSettings(value: Prisma.JsonValue) {
-  const source = isRecord(value) ? value : {};
-  const smtp = isRecord(source.smtp) ? source.smtp : {};
-  const providerType: PlatformEmailProviderType =
-    source.providerType === 'SMTP' || source.provider === 'smtp'
-      ? 'SMTP'
-      : 'CONSOLE';
-  return {
-    enabled: source.enabled === true,
-    providerType,
-    fromName: text(source.fromName) || DEFAULT_SETTINGS.fromName,
-    fromEmail: text(source.fromEmail) || DEFAULT_SETTINGS.fromEmail,
-    replyToEmail: text(source.replyToEmail) || null,
-    smtp: {
-      host: text(smtp.host) || text(source.host),
-      port: number(smtp.port ?? source.port, DEFAULT_SETTINGS.smtp.port),
-      authEnabled: (smtp.authEnabled ?? source.authEnabled) !== false,
-      username: text(smtp.username) || text(source.username),
-      ...(text(smtp.password) || text(source.password)
-        ? { password: text(smtp.password) || text(source.password) }
-        : {}),
-      security: security(smtp.security ?? source.security),
-      connectionTimeoutMs: number(
-        smtp.connectionTimeoutMs ?? source.connectionTimeoutMs,
-        DEFAULT_SETTINGS.smtp.connectionTimeoutMs,
-      ),
-    },
-  } satisfies StoredPlatformEmailSettings;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value && typeof value === 'object' && !Array.isArray(value));
-}
-
-function text(value: unknown) {
-  return typeof value === 'string' ? value.trim() : '';
-}
-
-function number(value: unknown, fallback: number) {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : fallback;
-}
-
-function security(value: unknown): SmtpSecurityMode {
-  return value === 'NONE' || value === 'TLS' ? value : 'STARTTLS';
-}
-
 function platformTemplate(
   eventCode: string,
   name: string,
@@ -597,6 +517,15 @@ function platformTemplate(
     version: 1,
     updatedAt: '2026-08-12T00:00:00.000Z',
   };
+}
+
+/*
+ * Kept local. The email-settings normalisation that used to live in this file
+ * moved to the shared module in `notifications`; this predicate serves template
+ * parsing, which did not move and has nothing to do with providers.
+ */
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === 'object' && !Array.isArray(value));
 }
 
 function isPlatformTemplate(value: unknown): value is PlatformTemplate {
