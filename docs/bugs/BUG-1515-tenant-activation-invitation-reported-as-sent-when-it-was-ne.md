@@ -88,21 +88,51 @@ Code paths:
 
 ## Root Cause
 
-**The reporting defect is established**: three layers each discarded the
-delivery outcome, so a failure was indistinguishable from a success.
+**Both halves are now established.**
 
-**The underlying delivery failure is not yet established.** It is one of the
-silent branches above, and which one is recorded in the tenant
-`EmailDeliveryLog` row (`status`, `skipReason`) for
-`eventCode = AUTH_ACCOUNT_ACTIVATION`. That row was not reachable from the
-admin console: `/api/notifications/email-delivery-logs` is a tenant route and
-returns 404 through the admin origin, and the tenant timeline endpoint strips
-`afterSnapshot`.
+*The reporting defect*: three layers each discarded the delivery outcome, so a
+failure was indistinguishable from a success. Fixed on `93971563`.
 
-Note a hypothesis that did **not** survive: a missing per-tenant
-`AUTH_ACCOUNT_ACTIVATION` template. `notificationScopeChain` already falls back
-to `NOTIFICATION_SYSTEM_SCOPE_KEY`, and `seedSystemEmailTemplates()` runs on
-every release, so the fallback should resolve.
+*The delivery failure*: **no email provider was resolvable for the tenant.**
+Read from production on 2026-08-27, once `2eadac97` deployed and made the field
+legible:
+
+```
+activationEmailStatus:    FAILED
+activationEmailDetail:    "No enabled email provider is configured."
+activationEmailDelivered: false
+```
+
+`EmailProviderFactoryService.resolveProvider(tenantId)` tries three sources in
+order: the tenant's own enabled providers, then an environment-configured
+fallback, then — **only when `NODE_ENV !== 'production'`** — the console
+provider. Production has no fourth option, so it returned `null` and
+`email-execution.service.ts` logged the `CONFIGURATION` failure above.
+
+The tenant had no provider of its own, which is expected: nothing in
+provisioning configures one. So delivery depended entirely on the environment
+fallback, and `fromEnvironment()` returns `null` the moment `EMAIL_PROVIDER` is
+unset.
+
+`render.yaml` *does* declare `EMAIL_PROVIDER: SMTP`, with `EMAIL_SMTP_HOST`,
+`EMAIL_SMTP_USER`, `EMAIL_SMTP_PASSWORD` and `EMAIL_FROM` marked `sync: false`
+for the dashboard. The variables were therefore declared and not in effect —
+the same file-versus-dashboard divergence recorded at the top of `render.yaml`
+as BUG-0767, which is the reason that comment exists.
+
+**This is not specific to one invitation.** Tenant email has no working
+provider at all, so every tenant-scoped message — activation, notifications,
+approvals, signature requests — fails the same way. Platform email is
+unaffected and demonstrably works: a platform test message delivered through
+`live.smtp.mailtrap.io` on 2026-08-26. The two paths do not share a provider,
+which is exactly why the platform delivery log looked healthy while no tenant
+mail was going out.
+
+Ruled out along the way, and recorded so nobody re-treads them: a missing
+`AUTH_ACCOUNT_ACTIVATION` template (the scope chain falls back to
+`NOTIFICATION_SYSTEM_SCOPE_KEY`, and `seedSystemEmailTemplates()` runs on every
+release), and the platform delivery log's silence (it covers platform mail
+only).
 
 ## Impact
 

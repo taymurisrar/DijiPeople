@@ -7,14 +7,14 @@
 
 | | |
 |---|---|
-| Open CRITICAL | **5** |
+| Open CRITICAL | **6** |
 | Open HIGH | **17** |
-| Open total | 64 |
+| Open total | 65 |
 | Blocked | 1 |
 | Awaiting a product decision | 2 |
 | Deferred | 24 |
 | Completed | 204 |
-| Awaiting Architect triage | 30 |
+| Awaiting Architect triage | 31 |
 
 ## Open Critical Bugs
 
@@ -24,6 +24,7 @@
 | [[BUG-0900-tenant-provisioning-exceeds-the-5s-transaction-timeout-a-pai|BUG-0900]] | Tenant provisioning exceeds the 5s transaction timeout: a paid order is left with no workspace | BUG | CRITICAL | FIXED | api:permissions | FIX_NOW |
 | [[BUG-0904-production-is-missing-outbox-worker-enabled-so-no-workspace-|BUG-0904]] | Production is missing OUTBOX_WORKER_ENABLED, so no workspace is provisioned after payment | BUG | CRITICAL | OPEN | api:outbox | BLOCKED_EXTERNAL |
 | [[BUG-1128-stripe-api-version-skew-invoice-paid-cannot-map-to-a-subscri|BUG-1128]] | Stripe API version skew: invoice.paid cannot map to a subscription because invoice.subscription no longer exists | INTEGRATION | CRITICAL | FIXED | api:billing | FIX_NOW |
+| [[BUG-1595-production-has-no-tenant-email-provider-so-no-tenant-can-sen|BUG-1595]] | Production has no tenant email provider so no tenant can send any email | INFRA | CRITICAL | OPEN | notifications, tenants | TRIAGE_REQUIRED |
 | [[BUG-1494-git-worktree-remove-follows-node-modules-junctions-and-delet|BUG-1494]] | git worktree remove follows node_modules junctions and deletes the primary checkout | INFRA | CRITICAL | FIXED | scripts | DONE |
 
 ## Open High Bugs
@@ -77,6 +78,7 @@
 
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
+| [[BUG-1595-production-has-no-tenant-email-provider-so-no-tenant-can-sen|BUG-1595]] | Production has no tenant email provider so no tenant can send any email | INFRA | CRITICAL | OPEN | notifications, tenants | TRIAGE_REQUIRED |
 | [[BUG-1494-git-worktree-remove-follows-node-modules-junctions-and-delet|BUG-1494]] | git worktree remove follows node_modules junctions and deletes the primary checkout | INFRA | CRITICAL | FIXED | scripts | DONE |
 | [[BUG-1203-repo-health-reports-changed-by-this-task-for-another-session|BUG-1203]] | repo-health reports CHANGED_BY_THIS_TASK for another session's merge | INFRA | HIGH | FIXED | framework | FIX_NOW |
 | [[BUG-1208-component-index-check-fails-on-every-windows-checkout-passes|BUG-1208]] | component-index --check fails on every Windows checkout, passes in CI | INFRA | MEDIUM | FIXED | framework | FIX_NOW |
@@ -341,7 +343,7 @@
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 194 |
+| Bug records | 195 |
 | Backlog items | 101 |
 | Known bug patterns | 29 |
 | QA runs | 27 |
@@ -352,7 +354,7 @@
 | Decision notes (ADR + generated) | 6 |
 | Implementation records | 6 |
 
-**Awaiting Architect triage: 30.** A record nobody has
+**Awaiting Architect triage: 31.** A record nobody has
 triaged is work nobody has decided about — the number that should stay near
 zero between tasks.
 
