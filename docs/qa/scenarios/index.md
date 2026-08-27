@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 203** · automated: 179 · manual: 9 · blocked by infrastructure: 0
+**Scenarios: 204** · automated: 179 · manual: 9 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -217,3 +217,4 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-TENANT-014](../../../docs/qa/scenarios/QA-TENANT-014-every-tenant-control-plane-method-authorizes-before-it-queri.md) | Every tenant control-plane method authorizes before it queries | authorization | SECURITY | HIGH | AUTOMATED | `services/api/src/modules/tenant-control-plane/every-method-asserts.spec.ts` | ITEM-0015 | REG-209 |
 | [QA-TENANT-015](../../../docs/qa/scenarios/QA-TENANT-015-erasing-one-tenant-leaves-every-other-tenant-complete.md) | Erasing one tenant leaves every other tenant complete | tenant-isolation | DATABASE | CRITICAL | AUTOMATED | `services/api/test/tenant-erasure-survival.e2e-spec.ts` | ITEM-0003 | REG-220 |
 | [QA-TENANT-016](../../../docs/qa/scenarios/QA-TENANT-016-a-forged-forwarded-host-must-not-select-a-tenant-workspace.md) | A forged forwarded host must not select a tenant workspace | tenant-isolation | SECURITY | HIGH | AUTOMATED | `apps/web/lib/forwarded-host.spec.ts` | ITEM-0044 | REG-243 |
+| [QA-TENANT-017](../../../docs/qa/scenarios/QA-TENANT-017-activation-email-delivers-for-a-tenant-with-no-email-provide.md) | Activation email delivers for a tenant with no email provider of its own | tenant-provisioning | API | CRITICAL | PARTIAL | `services/api/src/modules/notifications/email/platform-email-provider.resolver.spec.ts` | BUG-1595, BUG-1515 | REG-263 |

@@ -8467,23 +8467,27 @@
       "title": "Tenant activation invitation reported as sent when it was never delivered",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "VERIFIED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-1515-tenant-activation-invitation-reported-as-sent-when-it-was-ne.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "21032ae",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-26",
-        "resolved_at": ""
+        "updated_at": "2026-08-27",
+        "resolved_at": "2026-08-27"
       },
       "affected_modules": [
         "auth",
         "tenant-control-plane",
         "notifications"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-263"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-017"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -9407,22 +9411,26 @@
       "title": "Production has no tenant email provider so no tenant can send any email",
       "severity": "CRITICAL",
       "priority": "P0",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "VERIFIED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-1595-production-has-no-tenant-email-provider-so-no-tenant-can-sen.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "21032ae",
         "created_at": "2026-08-27",
         "updated_at": "2026-08-27",
-        "resolved_at": ""
+        "resolved_at": "2026-08-27"
       },
       "affected_modules": [
         "notifications",
         "tenants"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-263"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-017"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [

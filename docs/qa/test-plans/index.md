@@ -6,7 +6,7 @@ One evergreen plan per product area: scope, risks, the cases that must always
 be covered, and the declared coverage per dimension. QA loads the plan for
 every area a change touches **before** designing anything new.
 
-**Plans: 21** · scenarios across them: 203
+**Plans: 21** · scenarios across them: 204
 
 | Plan | Area | Risk | Status | Scenarios | Related bugs | Verified against |
 |---|---|---|---|---|---|---|
@@ -30,4 +30,4 @@ every area a change touches **before** designing anything new.
 | [PLAN-018](../../../docs/qa/test-plans/PLAN-018-subscription-changes.md) | subscription-changes | CRITICAL | CURRENT | 1 | — | `ce9bb56` |
 | [PLAN-017](../../../docs/qa/test-plans/PLAN-017-subscription-orders.md) | subscription-orders | CRITICAL | CURRENT | 3 | — | `2051133` |
 | [PLAN-003](../../../docs/qa/test-plans/PLAN-003-tenant-isolation.md) | tenant-isolation | CRITICAL | CURRENT | 8 | BUG-0005 | `0c61b7e` |
-| [PLAN-007](../../../docs/qa/test-plans/PLAN-007-tenant-provisioning.md) | tenant-provisioning | CRITICAL | CURRENT | 14 | BUG-0014, BUG-0015, BUG-0017, BUG-0022 | `0c61b7e` |
+| [PLAN-007](../../../docs/qa/test-plans/PLAN-007-tenant-provisioning.md) | tenant-provisioning | CRITICAL | CURRENT | 15 | BUG-0014, BUG-0015, BUG-0017, BUG-0022 | `0c61b7e` |
