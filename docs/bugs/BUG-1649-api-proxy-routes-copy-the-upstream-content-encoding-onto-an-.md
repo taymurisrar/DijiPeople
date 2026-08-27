@@ -130,6 +130,24 @@ saying the server cannot be reached. It can — it answered in full. The message
 not merely unhelpful, it is false, and it points an operator at infrastructure
 when the fault is a header.
 
+**It also blocks the page beneath it.** Established 2026-08-27 while trying to
+create the first employee: the click on "New" failed, and Playwright reported
+
+```
+<div role="presentation" class="fixed inset-0 z-[110] … bg-black/40 …">
+intercepts pointer events
+```
+
+The dialog is a modal overlay covering the viewport, so nothing on the page can
+be clicked until it is dismissed — and it returns on every navigation, because
+`/api/settings/resolved-context` is fetched on each page. Dismissing it let the
+same click through immediately.
+
+So the sequence a new customer meets is: sign in, read that the server is
+unavailable, find the page inert, and dismiss a dialog on every screen they
+open. Each of those is false or unnecessary. The workspace is healthy
+throughout.
+
 Customers, projects, timesheets, saved preferences, DLP capture review and admin
 support cases all route through the same pattern, so the failure is not confined
 to settings. Whether each one surfaces depends on how its caller handles a failed
@@ -165,6 +183,7 @@ Several of them only ever return JSON.
 - `/api/settings/resolved-context` returns a body whose declared encoding matches
   its bytes, for both success and error responses.
 - The tenant workspace overview loads with no error dialog and no console error.
+- No modal overlay intercepts pointer events on a healthy page load.
 - A request with `Accept-Encoding: identity` receives an unencoded response.
 - All nine routes are covered by whatever shared helper is introduced.
 
