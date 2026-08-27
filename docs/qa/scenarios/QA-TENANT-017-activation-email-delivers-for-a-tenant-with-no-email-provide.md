@@ -53,6 +53,27 @@ UPDATED_AT: 2026-08-27
 
 ## Notes
 
+**A better retest path than the one in Steps.** The tenant workspace has its own
+delivery log at
+`/settings/notifications/delivery/delivery-logs`, which shows the outcome
+without any platform credentials at all. Verified there on 2026-08-27 for
+`dijipeople-demo`:
+
+```
+Activate your DijiPeople account for DijiPeople Demo
+taimurisrar806@gmail.com     SENT
+<f48dee24-…@dijipeople.com>  08/27/2026
+```
+
+The message id is on `@dijipeople.com` — the platform sender carrying
+tenant-scoped mail, which is PLAN-023 working exactly as designed and is the
+single clearest piece of evidence for it.
+
+Note also `/settings/notifications/providers` — "Configure tenant sender
+identities and provider settings" — so a tenant that wants its own relay has a
+screen for it. The platform provider is a default, not a ceiling.
+
+
 Run against production on 2026-08-27 after `5762b2b2`, on tenant
 `f959c5ff-c8f2-419b-ae79-e99989557771`. Every step above passed, including a
 real email arriving and the owner signing in; the employee list came back empty

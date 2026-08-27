@@ -132,6 +132,21 @@ succeeded on 2026-08-26. Both were exercising the working half.
 
 Changing anything on that screen will not deliver a single tenant message.
 
+## A correction about who could see it
+
+The 2026-08-26 handoff recorded that the delivery reason sat in a row "no admin
+screen can reach". That is true of the **platform** console and was the reason
+this took a day to find — but the **tenant** workspace has had
+`/settings/notifications/delivery/delivery-logs` all along, listing every
+attempt with its status and failure diagnostics.
+
+Nobody looked there because nobody could get into a tenant workspace: the
+activation email that would have let them in is the thing that was broken. The
+screen that would have explained the fault was behind the fault.
+
+Confirmed 2026-08-27 on `dijipeople-demo`, where that screen now shows the
+activation email as `SENT` with a message id on `@dijipeople.com`.
+
 ## Impact
 
 Critical, and customer-facing on the revenue path.
