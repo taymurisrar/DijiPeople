@@ -62,9 +62,38 @@ Note that the incident detail pages are themselves unreachable — see
 
 ## Root Cause
 
-Not established. A missing published manifest, a channel with no release
-promoted to it, and an unimplemented route would all present as 404 and have not
-been told apart.
+Established on 2026-08-27, and it is not a new defect. **This is
+[[BUG-0034]] still happening in production after that record was closed.**
+
+`/api/agent/updates/latest.yml` has never existed. The real feed is
+`GET /api/app-releases/feed/:appKey/latest.yml`, which is live and healthy —
+it answers `401 Unauthorized`, not `404`. The 404 path appears nowhere in the
+source; `grep` finds it only in documentation and in this record.
+
+BUG-0034 recorded exactly this in August and is marked `Status: VERIFIED`,
+`ArchitectDisposition: DONE`, `ResolvedAt: 2026-08-18`. The fix landed for the
+things a build reads today: `.env.example`,
+`.env.production.example` and `docs/environment-variables.md` all now carry
+`/api/app-releases/feed/agent-desktop`.
+
+Two things nonetheless keep the 404s coming.
+
+1. **The fix cannot reach the agents that need it.** `DIJIPEOPLE_AGENT_UPDATE_URL`
+   is baked into an installed build. Any agent installed before 2026-08-18
+   still holds the dead URL and polls it every six hours — which matches the
+   observed cadence exactly. The mechanism that would deliver the corrected URL
+   *is* the auto-updater, so those installs cannot fix themselves. They are
+   permanently stranded and need a manual reinstall.
+
+2. **One file was missed.** `apps/agent-desktop/.env.development.example:21`
+   still reads `http://localhost:4000/api/agent/updates`. It points at
+   localhost, so it is not the cause of the production 404s, but it is a live
+   trap for the next developer and the last remnant of BUG-0034.
+
+The confirmed 404s in the production log on 2026-08-26 were, in part, my own
+probes while investigating — a request to that URL is recorded as
+`Cannot GET /api/agent/updates/latest.yml`. The older entries, hours apart and
+predating this session, are the stranded installs.
 
 ## Impact
 
@@ -112,8 +141,10 @@ detail for these entries.
 
 ## Related Items
 
-Related to [[BUG-1542]]. Concerns the agent distribution pipeline delivered
-under TASK-0026.
+The unresolved remainder of [[BUG-0034]], which is closed while its symptom
+continues in production. Concerns the agent distribution pipeline delivered
+under TASK-0025 and TASK-0026. Adjacent to [[BUG-1542]] only in that the
+incident detail pages made the log hard to work.
 
 ## Resolution
 
