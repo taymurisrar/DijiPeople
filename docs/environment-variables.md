@@ -286,6 +286,26 @@ record refers to the credential — only the first 12 characters of its SHA-256
 appear in the platform audit trail — so rotating one breaks nothing already
 published.
 
+> **Workspaces are served from `ws.dijipeople.com`, not the apex.** This is the
+> value that has to be right in three places, and getting it wrong is silent in
+> a particular way: the app composes a plausible hostname that simply does not
+> resolve.
+>
+> - **Web** and **Admin** read `NEXT_PUBLIC_WEB_ROOT_DOMAIN`. Wrong here and a
+>   tenant subdomain stops being recognised as a tenant *and* the company-code
+>   step redirects to a dead host — BUG-1644, where no customer could reach
+>   their workspace login at all.
+> - **Landing** reads `NEXT_PUBLIC_TENANT_BASE_DOMAIN`, and falls back to the
+>   marketing apex when it is unset. That fallback is why signup told buyers
+>   their workspace would be at `<slug>.dijipeople.com` — BUG-1544.
+>
+> Both documented values were `dijipeople.com` until 2026-08-27, so a deployment
+> configured from this reference reproduced both defects exactly.
+>
+> **`NEXT_PUBLIC_*` is inlined at build time.** Setting it in the Vercel project
+> changes nothing until that project is redeployed; a running deployment keeps
+> serving the old string however the dashboard reads.
+
 ## Web: Vercel
 
 ```env
@@ -300,7 +320,7 @@ API_BASE_URL=https://api.dijipeople.com/api
 API_ORIGIN=https://api.dijipeople.com
 WEB_ACCESS_TOKEN_COOKIE=web_access_token
 WEB_REFRESH_TOKEN_COOKIE=web_refresh_token
-NEXT_PUBLIC_WEB_ROOT_DOMAIN=dijipeople.com
+NEXT_PUBLIC_WEB_ROOT_DOMAIN=ws.dijipeople.com
 NEXT_PUBLIC_DEFAULT_TENANT_SLUG=
 SESSION_IDLE_TIMEOUT_SECONDS=3600
 SESSION_ABSOLUTE_TIMEOUT_SECONDS=28800
@@ -323,7 +343,7 @@ API_BASE_URL=https://api.dijipeople.com/api
 API_ORIGIN=https://api.dijipeople.com
 ADMIN_ACCESS_TOKEN_COOKIE=admin_access_token
 ADMIN_REFRESH_TOKEN_COOKIE=admin_refresh_token
-NEXT_PUBLIC_WEB_ROOT_DOMAIN=dijipeople.com
+NEXT_PUBLIC_WEB_ROOT_DOMAIN=ws.dijipeople.com
 NEXT_PUBLIC_DEFAULT_TENANT_SLUG=
 SESSION_IDLE_TIMEOUT_SECONDS=3600
 SESSION_ABSOLUTE_TIMEOUT_SECONDS=28800
@@ -343,6 +363,7 @@ NEXT_PUBLIC_ADMIN_APP_URL=https://admin.dijipeople.com
 NEXT_PUBLIC_API_BASE_URL=https://api.dijipeople.com/api
 API_BASE_URL=https://api.dijipeople.com/api
 API_ORIGIN=https://api.dijipeople.com
+NEXT_PUBLIC_TENANT_BASE_DOMAIN=ws.dijipeople.com
 ```
 
 ## Agent Desktop

@@ -143,8 +143,15 @@ somebody's memory:
 - **It is not a Render variable.** `render.yaml` declares exactly one service,
   `dijipeople-api`. `app.dijipeople.com` answers with `Server: Vercel`. The
   owner set the correct value on Render first, where the API — which never reads
-  it — happily ignored it. Nothing in the documentation says which platform
-  serves which app, and this record is the second time that gap has bitten.
+  it — happily ignored it.
+
+  *Correction, later the same day:* this bullet first claimed nothing documents
+  which platform serves which app. That was wrong.
+  `docs/environment-variables.md` has said "Web: Vercel", "Admin: Vercel",
+  "Landing: Vercel" and "API: Render" throughout. What the document had wrong
+  was the *value*, not the platform — and this record's own first draft implied
+  a single deployment, which is likelier what sent the variable to the wrong
+  console.
 - **A restart is not enough.** `NEXT_PUBLIC_*` is inlined into the client bundle
   at build time, so the value only takes effect on a rebuild. A running
   deployment will keep serving the old string however the dashboard reads.
