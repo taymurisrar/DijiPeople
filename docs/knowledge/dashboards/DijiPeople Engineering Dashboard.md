@@ -8,8 +8,8 @@
 | | |
 |---|---|
 | Open CRITICAL | **6** |
-| Open HIGH | **14** |
-| Open total | 45 |
+| Open HIGH | **15** |
+| Open total | 46 |
 | Blocked | 2 |
 | Awaiting a product decision | 2 |
 | Deferred | 40 |
@@ -43,6 +43,7 @@
 | [[BUG-1541-generated-agreement-pdfs-render-unsubstituted-template-place|BUG-1541]] | Generated agreement PDFs render unsubstituted template placeholders | BUG | HIGH | OPEN | contracts, legal | FIX_NOW |
 | [[BUG-1544-public-signup-advertises-a-workspace-domain-that-does-not-re|BUG-1544]] | Public signup advertises a workspace domain that does not resolve | UX | HIGH | OPEN | tenant-domains, leads | FIX_NOW |
 | [[BUG-1578-admin-customer-form-stores-a-country-lookup-id-where-every-r|BUG-1578]] | Admin customer form stores a country lookup id where every reader expects a name | DATA_INTEGRITY | HIGH | OPEN | super-admin, contracts, lookups | FIX_NOW |
+| [[BUG-1649-api-proxy-routes-copy-the-upstream-content-encoding-onto-an-|BUG-1649]] | API proxy routes copy the upstream Content-Encoding onto an already-decompressed body | BUG | HIGH | OPEN | settings-runtime, tenant-settings | FIX_NOW |
 | [[ITEM-0034-apps-web-has-zero-browser-e2e-coverage|ITEM-0034]] | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | READY | apps/web, e2e | PLAN_REQUIRED |
 | [[ITEM-0094-go-live-sh-reports-no-blocker-for-a-webhook-endpoint-that-re|ITEM-0094]] | go-live.sh reports no blocker for a webhook endpoint that rejects every delivery | TEST_GAP | HIGH | READY | scripts, api:billing, api:outbox | FIX_NOW |
 
@@ -326,7 +327,7 @@
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 196 |
+| Bug records | 197 |
 | Backlog items | 101 |
 | Known bug patterns | 29 |
 | QA runs | 27 |
