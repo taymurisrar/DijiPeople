@@ -128,6 +128,20 @@ const navSections = [
   section("Support", [moduleItem("support-cases", "Support cases")]),
   section("Operations", [
     moduleItem("monitoring-incidents", "Monitoring", "/settings/monitoring"),
+    {
+      href: "/app-releases",
+      label: "App releases",
+      icon: Package,
+      roleKeys: [],
+      readPermission: "appDownloads.manage",
+    },
+    {
+      href: "/agent-rollout",
+      label: "Agent rollout",
+      icon: Package,
+      roleKeys: [],
+      readPermission: "appDownloads.manage",
+    },
   ]),
   section("System", [
     {

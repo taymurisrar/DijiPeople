@@ -20,6 +20,7 @@ import type { FieldSecurityRule } from "@/lib/runtime/security-runtime.types";
 import { TenantResolvedSettingsResponse } from "../../settings/types";
 import type { EmployeeWorkSitesResponse } from "../../settings/integrations/attendance/_lib/types";
 import { EmployeeWorkSites } from "../_components/employee-work-sites";
+import { EmployeeDlpCaptures } from "../_components/employee-dlp-captures";
 import type { EmployeeProfile } from "../types";
 
 type EmployeeDetailPageProps = {
@@ -173,7 +174,13 @@ export default async function EmployeeDetailPage({
         ).catch(() => null),
         canManageWorkSites
           ? apiRequestJson<
-              | { items?: Array<{ id: string; name: string; isActive: boolean }> }
+              | {
+                  items?: Array<{
+                    id: string;
+                    name: string;
+                    isActive: boolean;
+                  }>;
+                }
               | Array<{ id: string; name: string; isActive: boolean }>
             >("/locations").catch(() => ({ items: [] }))
           : Promise.resolve({ items: [] }),
@@ -216,6 +223,13 @@ export default async function EmployeeDetailPage({
           locations={locationOptions}
         />
       ) : null}
+
+      {/*
+       * DLP captures for this employee (TASK-0024). The panel gates itself on the
+       * server via `dlp.review` — it renders nothing for a viewer who lacks it,
+       * so it is safe to mount unconditionally here.
+       */}
+      <EmployeeDlpCaptures employeeId={employee.id} />
     </main>
   );
 }

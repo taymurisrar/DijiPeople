@@ -1,7 +1,7 @@
 # Component Index
 
-> **Last verified:** 2026-08-25
-> **Verified against commit:** c4035dbb
+> **Last verified:** 2026-08-26
+> **Verified against commit:** d8cc7cb1
 >
 > **This file is generated. Do not hand-edit it.**
 > `node scripts/generate-component-index.mjs` rebuilds it;
@@ -76,22 +76,22 @@ re-derived on each run.
 | `TenantRecordHeader` | component | 1 | `apps/admin/app/_components/tenants/tenant-record-header.tsx`:21 | The tenant record header. |
 | `TenantSystemPanel` | component | 1 | `apps/admin/app/_components/tenants/tenant-system-panel.tsx`:28 | System — internal platform metadata, and the one place tenant erasure lives. |
 | `TenantTimelinePanel` | component | 1 | `apps/admin/app/_components/tenants/tenant-timeline-panel.tsx`:54 | Timeline — readable operational history, not the compliance audit log. |
-| `TenantControlPlaneError` | component | 0 | `apps/admin/app/_components/tenants/tenant-control-plane.client.ts`:499 | An API failure with the context needed to chase it. |
-| `useTenantResource` | function | 10 | `apps/admin/app/_components/tenants/tenant-control-plane.client.ts`:593 | Load one tab's data. Every tab owns its own request and is only fired when that tab is opened, so arriving on Overview does not pull Commercial, Apps and Operations with it. |
+| `TenantControlPlaneError` | component | 0 | `apps/admin/app/_components/tenants/tenant-control-plane.client.ts`:506 | An API failure with the context needed to chase it. |
+| `useTenantResource` | function | 10 | `apps/admin/app/_components/tenants/tenant-control-plane.client.ts`:600 | Load one tab's data. Every tab owns its own request and is only fired when that tab is opened, so arriving on Overview does not pull Commercial, Apps and Operations with it. |
 | `relativeTime` | function | 5 | `apps/admin/app/_components/tenants/tenant-panel-ui.tsx`:405 | Relative time for heartbeat and last-seen columns. |
 | `runStandardRecordCommand` | function | 4 | `apps/admin/lib/runtime/standard-record-commands.ts`:23 | Back, New and Refresh for the record pages that are **not** the runtime. |
 | `useReasonPrompt` | function | 3 | `apps/admin/app/_components/runtime/use-reason-prompt.tsx`:62 | Collects a governed reason through the design system instead of `window.prompt` (BUG-0020). |
 | `formatWhen` | function | 2 | `apps/admin/app/_components/notifications/notification-model.ts`:86 | "4 minutes ago", falling back to an absolute time once relative stops being the more useful phrasing. |
 | `useRuntimeLookupOptions` | function | 2 | `apps/admin/lib/runtime/use-runtime-lookup-options.ts`:20 | Read an allowlisted runtime lookup. |
 | `buildLookupRecordHref` | function | 1 | `apps/admin/lib/runtime/lookup-record-href.ts`:64 | The link for a resolved lookup value. |
-| `isTransportFailure` | function | 1 | `apps/admin/app/_components/tenants/tenant-control-plane.client.ts`:670 | Whether a failure means "the request never got an answer" rather than "the server said no". |
+| `isTransportFailure` | function | 1 | `apps/admin/app/_components/tenants/tenant-control-plane.client.ts`:677 | Whether a failure means "the request never got an answer" rather than "the server said no". |
 | `planEntitlementKeys` | function | 1 | `apps/admin/lib/runtime/plan-entitlement-keys.ts`:29 | The entitlement keys a plan record grants, whatever shape the record is in. |
 | `readRuntimeLookupLabel` | function | 1 | `apps/admin/lib/runtime/runtime-lookups.ts`:77 | The display name of a related record, wherever this schema happens to keep it. |
-| `reconcileWithErasureReceipt` | function | 1 | `apps/admin/app/_components/tenants/tenant-control-plane.client.ts`:695 | Ask the receipt what happened when the response did not arrive. |
+| `reconcileWithErasureReceipt` | function | 1 | `apps/admin/app/_components/tenants/tenant-control-plane.client.ts`:702 | Ask the receipt what happened when the response did not arrive. |
 | `recordHeaderWritePermission` | function | 1 | `apps/admin/lib/runtime/runtime-permissions.ts`:54 | The permission a header slot's write route is governed by. |
 | `useConfirmAction` | function | 1 | `apps/admin/app/_components/runtime/use-confirm-action.tsx`:40 | Confirmation for an irreversible, billable create (BUG-0022). |
 | `useTenantRecordActions` | function | 1 | `apps/admin/app/_components/tenants/use-tenant-record-actions.tsx`:99 | Routes tenant action-bar requests to whichever surface owns the change. |
-| `fetchErasureReceipts` | function | 0 | `apps/admin/app/_components/tenants/tenant-control-plane.client.ts`:650 | Erasure receipts for one tenant, read without addressing the tenant itself. |
+| `fetchErasureReceipts` | function | 0 | `apps/admin/app/_components/tenants/tenant-control-plane.client.ts`:657 | Erasure receipts for one tenant, read without addressing the tenant itself. |
 | `mergeVisibleColumns` | function | 0 | `apps/admin/app/_components/runtime/runtime-module-list.tsx`:1326 | Which columns are visible, given a saved preference written against an older version of the module. |
 | `normalizeColumnOrder` | function | 0 | `apps/admin/app/_components/runtime/runtime-module-list.tsx`:1277 | Merge a saved column order with the module's current one. |
 | `resolveLookupRecordRoute` | function | 0 | `apps/admin/lib/runtime/lookup-record-href.ts`:44 | The module a lookup reads from, if Platform Admin can show that record. |
@@ -105,7 +105,7 @@ re-derived on each run.
 | `RUNTIME_ELEVATED_ROLES` | constant | 0 | `apps/admin/lib/runtime/runtime-permissions.ts`:21 | Roles that reach every platform module regardless of the granted key set. |
 | `Notification` | type | 0 | `apps/admin/app/_components/notifications/notification-model.ts`:11 | One row of the feed, as `platform-notifications.ts` projects it. |
 | `OverviewIncident` | type | 0 | `apps/admin/app/_components/monitoring/monitoring-overview.tsx`:39 | Monitoring, as a place to start work rather than a place to read numbers. |
-| `TenantWorkspaceHealth` | type | 0 | `apps/admin/app/_components/tenants/tenant-control-plane.client.ts`:167 | What is missing from a workspace, as facts about the tenant rather than about a provisioning run that may never have been recorded. |
+| `TenantWorkspaceHealth` | type | 0 | `apps/admin/app/_components/tenants/tenant-control-plane.client.ts`:174 | What is missing from a workspace, as facts about the tenant rather than about a provisioning run that may never have been recorded. |
 
 ### Tenant product kit — `apps/web`
 

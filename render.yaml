@@ -37,7 +37,27 @@ services:
     # every deploy instead of once.
     preDeployCommand: npm --workspace api run release
     healthCheckPath: /api
+
+    # Durable file storage (TASK-0025). StorageService writes uploaded files —
+    # tenant documents, branding assets, and published app-release installers —
+    # under FILE_STORAGE_DIR. Without a persistent disk that path is on the
+    # instance's ephemeral filesystem and every deploy wipes it, so a published
+    # agent installer (or any uploaded document) vanishes on the next deploy.
+    # This disk gives those bytes a durable home.
+    #
+    # TRADEOFF: a Render disk pins this service to a SINGLE INSTANCE — it cannot
+    # be attached to a horizontally scaled service. `starter` runs one instance,
+    # so this is free today; if the API ever needs to scale out, file storage
+    # must move to object storage (S3/R2) via a release `externalUrl` instead.
+    disk:
+      name: dijipeople-storage
+      mountPath: /var/data
+      sizeGB: 5
     envVars:
+      # Absolute path on the persistent disk above. StorageService resolves
+      # relative paths against cwd; an absolute path pins it to the disk.
+      - key: FILE_STORAGE_DIR
+        value: /var/data/storage
       - key: NODE_ENV
         value: production
       - key: APP_ENV

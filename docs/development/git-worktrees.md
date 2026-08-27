@@ -153,13 +153,64 @@ Branching from another agent's branch (a `DEPENDENCY_BLOCKED` task):
 git worktree add ../dijipeople-overtime-api -b agent/overtime-api agent/overtime-db
 ```
 
-Cleaning up after merge:
+Cleaning up after merge — **use the script, not `git worktree remove`**:
 
 ```bash
 cd "d:/My Work/hrm-dijipeople/DijiPeople"
-git worktree remove ../dijipeople-overtime-api
-git branch -d agent/overtime-api
-git worktree prune          # if a directory was deleted manually
+node scripts/remove-worktree.mjs ../dijipeople-overtime-api --branch agent/overtime-api
+```
+
+Add `--dry-run` to see what it would unlink and remove without touching
+anything.
+
+### Why not `git worktree remove` directly
+
+`git worktree remove` deletes the directory recursively, and **a junction is a
+directory to that recursion**. It walks straight through and destroys whatever
+the junction points at.
+
+That is not hypothetical here. A worktree's `node_modules` is routinely
+junctioned to the primary's, because a real `npm ci` per worktree costs minutes
+(see [Baseline requirement](#baseline-requirement-learned-the-hard-way)). And
+npm workspaces puts *its own* links inside `node_modules`:
+
+```
+node_modules/admin   -> apps/admin
+node_modules/web     -> apps/web
+node_modules/api     -> services/api
+node_modules/@repo/* -> packages/*
+```
+
+So the delete chains through **two** levels of link and lands in the real source
+tree. On 2026-08-26 that removed **3,072 tracked files** from the primary
+checkout — `apps/admin`, `apps/web`, `docs` and every workspace npm had linked —
+along with every installed dependency and the generated Prisma client. Git
+reported only `failed to delete ...: Directory not empty`, which reads like the
+removal did nothing.
+
+`scripts/remove-worktree.mjs` unlinks every reparse point first, using a call
+that cannot follow one, then checks the primary still has its sentinel paths
+before *and* after handing the directory to Git. It refuses outright if the path
+given is the primary worktree or is not a registered worktree at all.
+
+If it ever does happen, the tracked half is fully recoverable — nothing is lost
+that Git tracks:
+
+```bash
+cd "d:/My Work/hrm-dijipeople/DijiPeople"
+git status --short          # confirm every entry is ` D` and nothing is `??`
+git restore .               # restores tracked files; overwrites nothing
+npm ci                      # node_modules is gitignored, so restore cannot bring it back
+npm run prisma:generate     # and neither is the generated client
+```
+
+Check `git status` first. `git restore .` is safe *because* every entry is a
+deletion; it would discard real edits if any were mixed in.
+
+If a worktree directory was deleted by hand and Git still lists it:
+
+```bash
+git worktree prune
 ```
 
 ### PowerShell note

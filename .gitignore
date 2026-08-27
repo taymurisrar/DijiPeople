@@ -148,6 +148,13 @@ uat-runtime-tests/
 uat-out/
 uat-out-prod/
 
+# Snapshots, screenshots, downloads and saved sessions written by the
+# @playwright/mcp server. `.mcp.json` sets --output-dir to this path and
+# --save-session, so every agent that drives the browser writes here — a single
+# QA pass on 2026-08-26 left 95 untracked files in the primary checkout, which
+# is the user's own workspace and shows up in their Git client.
+.playwright-mcp/
+
 # =========================================================
 # Agent framework — local-only configuration
 # The Obsidian vault lives outside the repository and its

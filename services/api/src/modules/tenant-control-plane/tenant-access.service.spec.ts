@@ -50,20 +50,22 @@ describe('TenantAccessService', () => {
         findUnique: jest.fn(),
       },
       employee: { findFirst: jest.fn().mockResolvedValue(null) },
+      emailDeliveryLog: { findMany: jest.fn().mockResolvedValue([]) },
       refreshToken: { updateMany: jest.fn().mockResolvedValue({ count: 0 }) },
       businessUnit: { findFirst: jest.fn() },
       $transaction: jest.fn(),
       ...overrides,
     };
+    const userInvitations = { issueInvitation: jest.fn() };
     const service = new TenantAccessService(
       prisma as never,
       { findByKeyAndTenant: jest.fn() } as never,
-      { issueInvitation: jest.fn() } as never,
+      userInvitations as never,
       { issuePasswordResetForUser: jest.fn() } as never,
       { log: jest.fn() } as never,
       { record: jest.fn() } as never,
     );
-    return { service, prisma };
+    return { service, prisma, userInvitations };
   }
 
   const tenant = {
@@ -270,5 +272,58 @@ describe('TenantAccessService', () => {
         isEnabled: false,
       }),
     ).rejects.toThrow(/managed inside the tenant application/);
+  });
+
+  /*
+   * Issuing an invitation and delivering it are separate outcomes.
+   *
+   * This surface used to answer `success: true` for both, so a resend whose
+   * email never left produced a green toast and an owner stuck at INVITED. A
+   * tenant provisioned from a paid signup sat that way in production while the
+   * only record of the reason lived in an audit snapshot no screen renders.
+   */
+  it('reports a resent invitation that was not delivered as undelivered', async () => {
+    const { service, prisma, userInvitations } = build();
+    prisma.tenant.findUnique.mockResolvedValue(tenant);
+    prisma.user.findFirst.mockResolvedValue(owner);
+    userInvitations.issueInvitation.mockResolvedValue({
+      invitationId: 'inv-1',
+      deliveryMode: 'disabled',
+      deliveryStatus: 'TENANT_EMAIL_DISABLED',
+      expiresAt: new Date(),
+    });
+
+    const result = await service.resendInvitation(
+      platformUser,
+      'tenant-1',
+      'owner-1',
+    );
+
+    expect(result.delivered).toBe(false);
+    expect(result.success).toBe(false);
+    expect(result.message).toMatch(/could not be delivered/i);
+    expect(result.message).toContain('TENANT_EMAIL_DISABLED');
+  });
+
+  it('reports a resent invitation that was delivered as sent', async () => {
+    const { service, prisma, userInvitations } = build();
+    prisma.tenant.findUnique.mockResolvedValue(tenant);
+    prisma.user.findFirst.mockResolvedValue(owner);
+    userInvitations.issueInvitation.mockResolvedValue({
+      invitationId: 'inv-2',
+      deliveryMode: 'sent',
+      deliveryStatus: 'SENT',
+      expiresAt: new Date(),
+    });
+
+    const result = await service.resendInvitation(
+      platformUser,
+      'tenant-1',
+      'owner-1',
+    );
+
+    expect(result.delivered).toBe(true);
+    expect(result.success).toBe(true);
+    expect(result.message).toMatch(/has been sent/i);
   });
 });

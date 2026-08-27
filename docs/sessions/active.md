@@ -12,4 +12,4 @@ therefore sees sibling worktrees without anybody having pushed.
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
-| [SESSION-0057](../../docs/sessions/SESSION-0057-fix-the-six-landing-qa-bugs-run-ui-ux-review-unblock-provisi.md) | — | Fix the six landing QA bugs, run UI/UX review, unblock provisioning and prod checkout, release to main | ACTIVE | `agent/landing-qa-fixes` | `develop` | — | 2026-08-25T19:18:33.032Z |
+| [SESSION-0061](../../docs/sessions/SESSION-0061-unblock-the-production-hosts-for-the-mcp-browser.md) | — | Production admin E2E QA and invitation delivery visibility | ACTIVE | `agent/invitation-delivery-visibility` | `develop` | — | 2026-08-26T09:54:37.336Z |

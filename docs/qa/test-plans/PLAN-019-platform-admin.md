@@ -10,14 +10,14 @@ COVERAGE_UNIT: GAP
 COVERAGE_API: GAP
 COVERAGE_DATABASE: GAP
 COVERAGE_INTEGRATION: GAP
-COVERAGE_E2E: GAP
+COVERAGE_E2E: PARTIAL
 COVERAGE_BROWSER: PARTIAL
-COVERAGE_SECURITY: GAP
-COVERAGE_PERFORMANCE: NOT_APPLICABLE
-RELATED_BUGS: [BUG-0073, BUG-0074]
-RELATED_REGRESSIONS: [REG-068]
+COVERAGE_SECURITY: PARTIAL
+COVERAGE_PERFORMANCE: PARTIAL
+RELATED_BUGS: [BUG-0073, BUG-0074, BUG-1419, BUG-1420, BUG-1421, BUG-1422, BUG-1423, BUG-1424, BUG-1425]
+RELATED_REGRESSIONS: [REG-068, REG-261]
 CREATED_AT: 2026-08-19
-UPDATED_AT: 2026-08-19
+UPDATED_AT: 2026-08-26
 VERIFIED_AGAINST_SHA: 4290c03
 ---
 
@@ -88,10 +88,30 @@ seeding them directly is the only way to test the states without waiting hours.
 
 ## Security Cases
 
-Deferred to PLAN-002, which owns the platform authorization boundary. Recorded
-here so the omission is a decision rather than a gap nobody noticed: a tenant
-user must receive 403 from every `super-admin` route, and frontend gating must
-never be the only thing preventing an action.
+The authorization *boundary* stays with PLAN-002, which owns it: a tenant user
+must receive 403 from every `super-admin` route, and frontend gating must never
+be the only thing preventing an action.
+
+The console's own posture is covered here, because it is a property of this
+surface rather than of the boundary. Established against production 2026-08-26:
+
+- Every platform API answers 401 to an unauthenticated caller, and every
+  protected page redirects to `/login` without rendering the shell.
+- The four auth cookies are `httpOnly`, `secure` and `SameSite=Lax`; only the
+  theme cookie is script-readable, which is correct.
+- Sign-in returns a byte-identical response for a known and an unknown address,
+  so it does not enumerate accounts.
+- Create refuses client-supplied `id`, `tenantId`, `createdAt`, `createdById`,
+  `stripeCustomerId` and `isDemoData` explicitly, by `forbidNonWhitelisted`.
+- `Content-Security-Policy` is absent — BUG-1424. The other four headers are
+  present.
+
+`COVERAGE_SECURITY` is `PARTIAL` and not `GOOD` for one reason worth stating:
+every check above ran as `PLATFORM_OWNER` holding `platform.*`. **The role that
+can reach everything cannot demonstrate that a narrower role cannot.** Until a
+restricted platform role is driven across the same endpoints, this surface has
+no evidence about over-permissive access, which is where its authorization
+defects would actually live.
 
 ## Negative Cases
 
@@ -120,22 +140,75 @@ and the device connectors are reached through their own modules and plans.
   or serious accessibility violation, and neither scrolls the body sideways at
   any of the three widths.
 
-Two screens out of many, which is why `COVERAGE_BROWSER` is `PARTIAL` rather
-than `GOOD`. A plan claiming more would be worse than no plan.
+- 2026-08-26 - all 63 declared routes driven against production: every one
+  responds 200 and renders its own heading, and all 19 sidebar items resolve.
+  That run produced the shell findings below, which screen-by-screen coverage
+  had missed for as long as the shell has existed.
+
+`COVERAGE_BROWSER` stays `PARTIAL` rather than `GOOD`: the sweep proves every
+screen *renders*, which is not the same as proving every screen *works*. Two
+screens have their behaviour asserted. A plan claiming more would be worse than
+no plan.
+
+## Performance Cases
+
+`COVERAGE_PERFORMANCE` moved from `NOT_APPLICABLE` to `PARTIAL` on 2026-08-26.
+It was never truly not-applicable - it was unmeasured, and the measurement found
+the slowest screen in the app.
+
+Baseline against production, single user, median of three:
+
+- TTFB is flat at **202ms** across every route, so the edge and the server are
+  not the constraint.
+- A page settles in **~4s**, which is client waterfall rather than latency.
+- The runtime list APIs answer in **465-835ms**.
+- At 8 concurrent read requests the server degrades **1.4x** (476ms -> 690ms).
+- `/settings/monitoring` settles in **25-31s** - BUG-1419, a prefetch storm
+  against a route that does not exist. Re-baseline it after that fix.
+
+One methodological trap is worth recording, because it produced a convincing
+false result: concurrency measured with **identical** URLs shows a clean linear
+ladder (1.0x, 2.0x, 4.3x, 6.1x, 9.4x) that reads exactly like server-side
+serialization. It is the browser coalescing identical in-flight requests. At
+n=8: identical URL 4216ms, distinct URL 667ms. Always vary the URL, or measure
+outside the browser.
+
+Sustained and write load remain untested against production by owner decision -
+the tenant app and landing site share the service.
 
 ## Regression Links
 
 - REG-068 - the admin surfaces carry no critical or serious accessibility
   violation. Guards BUG-0073 (contrast, shared shell) and BUG-0074 (a scrollable
   region reachable only by pointer).
+- REG-261 - runtime validation names the field it rejected. Guards BUG-1422.
+
+The 2026-08-26 production run added five open findings that this plan predicted
+in shape but had no coverage for. Four are shared-component defects, which is
+this plan's stated central risk:
+
+- BUG-1419, BUG-1420 - both on `/settings/monitoring`, both silent: a dead link
+  that looks live, and a filter that answers confidently and wrongly.
+- BUG-1421 - one `<title>` across 47 of 48 routes, two `<main>`, two `<h1>`,
+  the sidebar in no landmark, no skip link anywhere.
+- BUG-1423 - 28 form controls with no accessible name, in the shared runtime
+  form. The bespoke forms pass, which is what identified the component.
+- BUG-1424 - no CSP on the highest-blast-radius surface.
+
+Note what REG-068 did **not** catch. It gates axe on the admin surfaces, and
+BUG-1421 and BUG-1423 are both accessibility defects that were live throughout.
+REG-068 covers two screens; BUG-1423 lives on create forms and BUG-1421's
+landmark faults are `best-practice`-tagged rules that a `wcag2a`/`wcag2aa` run
+does not report at all. A regression test scoped to two screens and four rule
+tags is not coverage of a surface - and this is the concrete example of it.
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-qa.mjs; edit the frontmatter, not this block -->
 
 ## Related
 
-- Scenarios — [[QA-API-001]], [[QA-PLATFORM-002]], [[QA-PLATFORM-003]], [[QA-PLATFORM-004]], [[QA-PLATFORM-005]], [[QA-PLATFORM-006]], [[QA-PLATFORM-007]], [[QA-PLATFORM-008]], [[QA-PLATFORM-009]], [[QA-PLATFORM-010]], [[QA-PLATFORM-011]], [[QA-PLATFORM-012]], [[QA-PLATFORM-013]], [[QA-PLATFORM-014]], [[QA-PLATFORM-015]], [[QA-PLATFORM-016]], [[QA-PLATFORM-017]], [[QA-PLATFORM-019]], [[QA-PLATFORM-020]], [[QA-PLATFORM-021]], [[QA-PLATFORM-022]], [[QA-TENANT-013]]
+- Scenarios — [[QA-API-001]], [[QA-PLATFORM-002]], [[QA-PLATFORM-003]], [[QA-PLATFORM-004]], [[QA-PLATFORM-005]], [[QA-PLATFORM-006]], [[QA-PLATFORM-007]], [[QA-PLATFORM-008]], [[QA-PLATFORM-009]], [[QA-PLATFORM-010]], [[QA-PLATFORM-011]], [[QA-PLATFORM-012]], [[QA-PLATFORM-013]], [[QA-PLATFORM-014]], [[QA-PLATFORM-015]], [[QA-PLATFORM-016]], [[QA-PLATFORM-017]], [[QA-PLATFORM-019]], [[QA-PLATFORM-020]], [[QA-PLATFORM-021]], [[QA-PLATFORM-022]], [[QA-PLATFORM-023]], [[QA-PLATFORM-024]], [[QA-PLATFORM-025]], [[QA-PLATFORM-026]], [[QA-TENANT-013]]
 - Module — [[platform-admin]]
-- Bugs — [[BUG-0073]], [[BUG-0074]]
-- Regressions — REG-068 (see the regression register)
+- Bugs — [[BUG-0073]], [[BUG-0074]], [[BUG-1419]], [[BUG-1420]], [[BUG-1421]], [[BUG-1422]], [[BUG-1423]], [[BUG-1424]], [[BUG-1425]]
+- Regressions — REG-068, REG-261 (see the regression register)
 
 <!-- GRAPH:END -->

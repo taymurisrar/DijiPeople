@@ -48,6 +48,10 @@ class ListReleasesDto {
   channel?: ApplicationReleaseChannel;
 }
 
+class PromoteReleaseChannelDto {
+  @IsEnum(ApplicationReleaseChannel) channel!: ApplicationReleaseChannel;
+}
+
 class LatestReleaseDto {
   @IsString() @MaxLength(64) appKey!: string;
   @IsOptional() @IsEnum(ApplicationPlatform) platform?: ApplicationPlatform;
@@ -110,6 +114,16 @@ export class AppReleaseController {
     @Query() query: LatestReleaseDto,
   ) {
     return this.service.latest(AppReleaseService.toViewer(user), query);
+  }
+
+  // Declared before the `:id` route so the literal path matches first. The
+  // management catalogue (TASK-0026) includes disabled releases and every
+  // channel, gated by the downloads-management permission.
+  @Get('manage')
+  @Permissions('appDownloads.manage')
+  @RequirePermission(ENTITY_KEYS.AGENT, 'manage')
+  manage() {
+    return this.service.listForManagement();
   }
 
   @Get(':id')
@@ -183,5 +197,22 @@ export class AppReleaseController {
     @Param('id', new ParseUUIDPipe()) id: string,
   ) {
     return this.service.setActive(user, id, true);
+  }
+
+  /**
+   * Promote a release into another channel from the admin releases screen
+   * (TASK-0026) — the in-app equivalent of `release:promote`. STABLE is the
+   * channel every assigned tenant's agent auto-updates from, so promoting to it
+   * is the deliberate "ship to the fleet" step.
+   */
+  @Post(':id/promote')
+  @Permissions('appDownloads.manage')
+  @RequirePermission(ENTITY_KEYS.AGENT, 'manage')
+  promote(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: PromoteReleaseChannelDto,
+  ) {
+    return this.service.promote(user, id, dto.channel);
   }
 }

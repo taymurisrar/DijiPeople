@@ -14,11 +14,11 @@
 | Work packages waiting on the user | 0 |
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
-| Open CRITICAL | **4** |
-| Open HIGH | 6 |
-| Awaiting Architect triage | 0 |
+| Open CRITICAL | **5** |
+| Open HIGH | 17 |
+| Awaiting Architect triage | 30 |
 | Owner decisions pending | 2 |
-| QA coverage gaps | 108 |
+| QA coverage gaps | 106 |
 | Scenarios blocked by infrastructure | 0 |
 
 ## Backlog health
@@ -30,12 +30,12 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 31 |
-| No next action | 31 |
-| Aging — 7d / 30d / 90d | 14 / 0 / 0 |
+| No acceptance criteria | 63 |
+| No next action | 63 |
+| Aging — 7d / 30d / 90d | 15 / 0 / 0 |
 | Architecture and technical debt | 6 |
-| Security gaps | 2 |
-| Database gaps | 0 |
+| Security gaps | 3 |
+| Database gaps | 4 |
 
 Ranked next-best actions weigh blast radius rather than severity alone, and
 are computed on demand so the reasons travel with the ranking:
@@ -49,7 +49,7 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 | Session | Task | Title | Status | Branch | Target | Leases | Schema |
 |---|---|---|---|---|---|---|---|
-| [[SESSION-0057-fix-the-six-landing-qa-bugs-run-ui-ux-review-unblock-provisi|SESSION-0057]] | — | Fix the six landing QA bugs, run UI/UX review, unblock provisioning and prod checkout, release to main | ACTIVE | `agent/landing-qa-fixes` | `develop` | — | NO |
+| [[SESSION-0061-unblock-the-production-hosts-for-the-mcp-browser|SESSION-0061]] | — | Production admin E2E QA and invitation delivery visibility | ACTIVE | `agent/invitation-delivery-visibility` | `develop` | — | NO |
 
 ## Active Tasks and Work Packages
 
@@ -106,6 +106,7 @@ what they own, and what the backlog and QA systems currently say.
 | [[BUG-0900-tenant-provisioning-exceeds-the-5s-transaction-timeout-a-pai|BUG-0900]] | Tenant provisioning exceeds the 5s transaction timeout: a paid order is left with no workspace | BUG | CRITICAL | FIXED | api:permissions | FIX_NOW |
 | [[BUG-0904-production-is-missing-outbox-worker-enabled-so-no-workspace-|BUG-0904]] | Production is missing OUTBOX_WORKER_ENABLED, so no workspace is provisioned after payment | BUG | CRITICAL | OPEN | api:outbox | BLOCKED_EXTERNAL |
 | [[BUG-1128-stripe-api-version-skew-invoice-paid-cannot-map-to-a-subscri|BUG-1128]] | Stripe API version skew: invoice.paid cannot map to a subscription because invoice.subscription no longer exists | INTEGRATION | CRITICAL | FIXED | api:billing | FIX_NOW |
+| [[BUG-1494-git-worktree-remove-follows-node-modules-junctions-and-delet|BUG-1494]] | git worktree remove follows node_modules junctions and deletes the primary checkout | INFRA | CRITICAL | FIXED | scripts | DONE |
 
 ## Owner Decisions Pending
 
@@ -213,8 +214,6 @@ gap into scope — or files a `TEST_GAP` item and says so.
 | [[PLAN-019-platform-admin|platform-admin]] | API |
 | [[PLAN-019-platform-admin|platform-admin]] | DATABASE |
 | [[PLAN-019-platform-admin|platform-admin]] | INTEGRATION |
-| [[PLAN-019-platform-admin|platform-admin]] | E2E |
-| [[PLAN-019-platform-admin|platform-admin]] | SECURITY |
 | [[PLAN-020-billing|billing]] | UNIT |
 | [[PLAN-020-billing|billing]] | API |
 | [[PLAN-020-billing|billing]] | DATABASE |
@@ -235,13 +234,13 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 32 |
+| Open total | 64 |
 | Blocked | 1 |
-| Deferred | 23 |
+| Deferred | 24 |
 | Awaiting a product decision | 2 |
-| Awaiting Architect triage | 0 |
+| Awaiting Architect triage | 30 |
 
-Every ordinary record carries a disposition.
+**A record nobody has triaged is work nobody has decided about.** No ordinary record may stay `TRIAGE_REQUIRED` at the end of a task.
 
 ## Deployment
 

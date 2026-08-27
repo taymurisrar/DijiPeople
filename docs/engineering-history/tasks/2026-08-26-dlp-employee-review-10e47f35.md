@@ -1,0 +1,87 @@
+# Engineering History — DLP investigator review on the employee record
+
+| | |
+|---|---|
+| **Task Title** | DLP investigator review on the employee record |
+| **Task Type** | FEATURE |
+| **Date** | 2026-08-26 |
+| **Architect Plan** | None — a single-component UI addition on top of [[TASK-0020]]/[[TASK-0023]]; no schema, API or permission change, so no ExecPlan (PLANS.md allows this). |
+| **Agents Used** | Frontend. |
+
+## Git
+
+| | |
+|---|---|
+| **Base Branch** | `origin/develop` |
+| **Task Branch** | `agent/dlp-employee-review` |
+| **Base SHA** | `08ae8a15` |
+| **Final Task SHA** | `10e47f35` |
+| **Target Branch** | `develop` |
+| **Merge Commit** | None — `develop` fast-forwarded (ref-push); tip equals the CI-verified SHA. |
+| **Final Target SHA** | `10e47f35` |
+
+### Commits
+
+```
+feat(web): DLP investigator review on the employee record (TASK-0024)
+(plus a merge of origin/main to satisfy DEVELOP_CONTAINS_MAIN, and a merge of
+origin/develop for concurrent sessions' commits)
+```
+
+### Files Changed
+
+`apps/web/app/(authenticated)/employees/_components/employee-dlp-captures.tsx`
+(new client component) and its one-line wiring on the employee detail page
+`[employeeId]/page.tsx`. No backend change — the API's `listAlerts` /
+`listClipboardCaptures` already accept `?employeeId=`.
+
+## Conflicts
+
+Merges of `origin/main` (content-empty reconcile, clean) and `origin/develop`
+(develop advanced under concurrent sessions). The develop merge conflicted only
+in generated index files (dashboard, `docs/sessions/active.md`, `index.md`).
+
+## Conflict Resolutions
+
+Generated indexes resolved by taking develop's side and regenerating from the
+records — the only correct resolution for generated files. No source conflicts.
+
+## QA
+
+| | |
+|---|---|
+| **QA Report** | None — presentational component; behaviour proven by web typecheck + lint and the existing API specs it consumes. |
+| **Bug IDs** | None. |
+| **Backlog Items** | None. |
+
+## CI
+
+| | |
+|---|---|
+| **CI Run ID** | `32912273402` |
+| **CI Result** | PASS on the exact merged SHA `10e47f35`. |
+
+## Post-Merge Validation
+
+`develop` fast-forwarded to `10e47f35`; the merged SHA is the CI-verified SHA.
+Framework validation 3895 checks pass; `origin/develop` contains `origin/main`.
+
+## Release / Deployment Impact
+
+None — not deployed. `main` UNTOUCHED. The panel is invisible to any viewer
+without `dlp.review`, so it changes nothing for ordinary users.
+
+## Knowledge Capture
+
+Nothing new durable — reuses the established pattern (a self-gating client panel
+that hides on 403, keeping authorization on the server) already captured for the
+`/dlp-review` page.
+
+## Obsidian Sync
+
+`knowledge:sync` needs a local vault config not present here; NOT_REQUIRED.
+
+## Cleanup
+
+Task worktree `D:/My Work/hrm-dijipeople/DijiPeople-dlp3` removed after
+integration; SESSION-0058 marked COMPLETE; primary checkout never written.

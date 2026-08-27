@@ -1,0 +1,97 @@
+---
+SESSION_ID: SESSION-0059
+aliases: [SESSION-0059]
+TASK_ID:
+TITLE: Admin app production E2E, security and performance QA
+ARCHITECT_INTENT: Admin app production E2E, security and performance QA
+STATUS: COMPLETE
+TASK_TYPE: QA
+TASK_SIZE: LARGE
+BASE_BRANCH: origin/develop
+BASE_SHA: 8d6be21b963ea45a43fc1a85f07ca24507e53a44
+TASK_BRANCH: agent/admin-prod-e2e-qa
+TARGET_BRANCH: develop
+WORKTREE: D:/My Work/hrm-dijipeople/wt-admin-qa
+AFFECTED_MODULES: [apps/admin, services/api/src/modules/platform-runtime]
+WRITE_LEASES: []
+ACTIVE_WORK_PACKAGES: []
+SCHEMA_WRITE: NO
+CI_STATUS: PASS
+MERGE_STATUS: MERGED
+STARTED_AT: 2026-08-25T23:50:19.069Z
+LAST_HEARTBEAT: 2026-08-26T02:10:00.000Z
+BLOCKERS: none
+---
+
+# SESSION-0059 — Admin app production E2E, security and performance QA
+
+## Intent
+
+Drive `apps/admin` end to end against **production** and establish what actually
+works: every route and sidebar item, the CRUD lifecycle on the runtime modules,
+accessibility, security posture, authorization from below, and a performance
+baseline. [`PLAN-019`](../qa/test-plans/PLAN-019-platform-admin.md) declared this
+surface `GAP` on unit, API, database, integration, E2E and security, so most of
+this is first coverage rather than re-verification.
+
+Fix what the run finds where the fix is contained; record the rest for triage.
+
+## Scope
+
+**In scope, and done.** 63 routes and 19 sidebar items; record pages for 7
+modules; create/read/edit/assign/delete against production; list-screen controls
+and three viewport widths; axe over 17 routes; unauthenticated reach, cookie
+hygiene, security headers, mass assignment, account enumeration; a
+`READ_ONLY_AUDITOR` driven against the same endpoints; single-user latency and a
+bounded concurrency probe.
+
+**Out of scope by the owner's explicit decision:** sustained load and stress
+against production. The owner chose a bounded read-only probe (GET only, ≤8
+concurrent, short bursts) because the tenant app and the landing site share the
+Render service. Nothing here says anything about behaviour under write load or
+above 8 concurrent, and the run report says so rather than implying coverage.
+
+**Not reached:** the thirteen platform roles between `PLATFORM_OWNER` and
+`READ_ONLY_AUDITOR`; tenant-side and cross-tenant isolation, which needs a tenant
+session this run did not have; real email delivery; any Stripe flow driven to a
+charge, since Stripe stays in test mode by instruction.
+
+## Concurrency
+
+No write leases taken — this session wrote no shared high-risk resource. The
+database was read through the product's own API and never written directly.
+
+Ran alongside SESSION-0058 (`agent/dlp-employee-review`), which integrated into
+`develop` mid-run. Handled by rebasing onto `origin/develop`, taking origin's
+side wholesale on the two conflicting generated indexes and re-running every
+generator, rather than hand-merging hunks into an index that would match neither
+branch. That other session's worktree was dirty throughout and was left
+untouched.
+
+## Production writes
+
+This session created real records in the production database. Every one was
+removed and the removal verified, with a single exception:
+
+| Record | Disposal |
+|---|---|
+| 2 customers, 1 partner | deleted, HTTP 200 |
+| 2 platform users (`READ_ONLY_AUDITOR`) | deleted, HTTP 200 |
+| Plan `221cf0ed-b038-4186-af26-5847e4674af6` | **still present** |
+
+The plan cannot be deleted through the product: there is no
+`@Delete('plans/:planId')` route, only one for prices, so `DELETE` answers 405.
+It was neutralised instead — `isActive: false`, zero `PlanPrice` rows, therefore
+not sellable and not quotable — and needs removing by someone with database
+access. Recorded here as well as in the run report because a residue nobody is
+told about is a residue nobody removes.
+
+## History
+
+- 2026-08-25 — session started from `origin/develop` at `8d6be21`.
+- 2026-08-26 — production run executed; 7 bugs filed (BUG-1419…BUG-1425), one
+  fixed (BUG-1422) with REG-261, mutation-tested.
+- 2026-08-26 — rebased onto `origin/develop` after SESSION-0058 integrated.
+- 2026-08-26 — `CI required gate` PASS for `e7bd1e0`; integrated into `develop`
+  by ref-push, so the branch tip is exactly the SHA that was verified. `main`
+  untouched.

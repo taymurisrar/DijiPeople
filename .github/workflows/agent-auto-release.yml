@@ -1,0 +1,147 @@
+name: Auto-release desktop agent (BETA)
+
+# Automated build-and-publish of the desktop agent to the BETA channel when its
+# version is bumped on develop (TASK-0025).
+#
+# The design decision (owner, 2026-08-26): a version bump auto-builds and
+# publishes to BETA; promoting to STABLE — the channel every assigned tenant's
+# agent auto-updates from — stays a deliberate action (the admin releases screen
+# or `release:promote`). So a bad build reaches BETA testers, never the whole
+# fleet, without a human first choosing to promote it.
+#
+# This does NOT auto-assign the release to any tenant. TenantAppAssignment still
+# decides which tenants become eligible — publishing and rollout stay separate.
+on:
+  push:
+    branches: [develop]
+    paths:
+      - apps/agent-desktop/package.json
+  workflow_dispatch:
+    inputs:
+      force:
+        description: Publish even if the version did not change
+        type: boolean
+        default: false
+
+concurrency:
+  group: agent-auto-release
+  cancel-in-progress: false
+
+jobs:
+  publish-beta:
+    name: Build + publish agent-desktop -> BETA
+    runs-on: windows-latest
+    # Reuses the same protected environment as the manual release workflow, so
+    # the release credential and any required reviewers apply here too. Set the
+    # repository variable AGENT_AUTO_RELEASE_ENVIRONMENT to target a different
+    # one (e.g. `staging` for zero-touch BETA without a production reviewer gate).
+    environment: release-${{ vars.AGENT_AUTO_RELEASE_ENVIRONMENT || 'production' }}
+
+    env:
+      DIJIPEOPLE_RELEASE_TOKEN: ${{ secrets.DIJIPEOPLE_RELEASE_TOKEN }}
+      DIJIPEOPLE_RELEASE_API_URL: ${{ secrets.DIJIPEOPLE_RELEASE_API_URL }}
+      RELEASE_ENVIRONMENT: ${{ vars.AGENT_AUTO_RELEASE_ENVIRONMENT || 'production' }}
+      # Drop-in code signing: unset today (unsigned build), signs automatically
+      # once an OV/EV certificate is added as these secrets. See electron-builder.yml.
+      CSC_LINK: ${{ secrets.AGENT_CSC_LINK }}
+      CSC_KEY_PASSWORD: ${{ secrets.AGENT_CSC_KEY_PASSWORD }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Need the previous commit to compare the version field.
+          fetch-depth: 2
+
+      - name: Detect version bump
+        id: bump
+        shell: bash
+        run: |
+          NEW=$(node -p "require('./apps/agent-desktop/package.json').version")
+          git show HEAD~1:apps/agent-desktop/package.json > /tmp/prev.json 2>/dev/null || echo '{"version":""}' > /tmp/prev.json
+          OLD=$(node -p "require('/tmp/prev.json').version" 2>/dev/null || echo "")
+          echo "version=$NEW" >> "$GITHUB_OUTPUT"
+          if [ "$NEW" != "$OLD" ] || [ "${{ inputs.force }}" = "true" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "Version $OLD -> $NEW: will build and publish to BETA."
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Version unchanged ($NEW); nothing to do."
+          fi
+
+      - uses: actions/setup-node@v4
+        if: ${{ steps.bump.outputs.changed == 'true' }}
+        with:
+          node-version: '22.x'
+          cache: npm
+
+      - name: Refuse to run without a credential
+        if: ${{ steps.bump.outputs.changed == 'true' }}
+        shell: bash
+        run: |
+          if [ -z "$DIJIPEOPLE_RELEASE_TOKEN" ] || [ -z "$DIJIPEOPLE_RELEASE_API_URL" ]; then
+            echo "::error::DIJIPEOPLE_RELEASE_TOKEN / DIJIPEOPLE_RELEASE_API_URL are not configured for release-$RELEASE_ENVIRONMENT."
+            exit 1
+          fi
+
+      - name: Install
+        if: ${{ steps.bump.outputs.changed == 'true' }}
+        run: npm ci
+
+      - name: Write desktop agent .env
+        if: ${{ steps.bump.outputs.changed == 'true' }}
+        shell: bash
+        run: |
+          API_BASE="${{ vars.AGENT_API_BASE_URL || 'https://dijipeople.onrender.com/api' }}"
+          UPDATE_URL="${{ vars.DIJIPEOPLE_AGENT_UPDATE_URL }}"
+          if [ -z "$UPDATE_URL" ]; then
+            UPDATE_URL="${API_BASE%/api}/api/app-releases/feed/agent-desktop"
+          fi
+          {
+            echo "AGENT_APP_NAME=DijiPeople Agent"
+            echo "AGENT_APP_VERSION=${{ steps.bump.outputs.version }}"
+            echo "AGENT_API_BASE_URL=$API_BASE"
+            echo "AGENT_ACCESS_TOKEN_TTL=${{ vars.AGENT_ACCESS_TOKEN_TTL || '15m' }}"
+            echo "AGENT_REFRESH_TOKEN_TTL=${{ vars.AGENT_REFRESH_TOKEN_TTL || '30d' }}"
+            echo "DIJIPEOPLE_AGENT_UPDATE_URL=$UPDATE_URL"
+          } > apps/agent-desktop/.env
+
+      # Builds (electron-builder) + checksums the installer without uploading,
+      # so a version disagreement fails before anything is published.
+      - name: Dry run
+        if: ${{ steps.bump.outputs.changed == 'true' }}
+        run: >-
+          npm run release:app --
+          --app agent-desktop
+          --channel beta
+          --environment ${{ env.RELEASE_ENVIRONMENT }}
+          --dry-run
+
+      # --no-build reuses the artefact the dry run just produced; --yes because
+      # CI has no terminal and the environment gate already authorised the run.
+      - name: Publish to BETA
+        if: ${{ steps.bump.outputs.changed == 'true' }}
+        run: >-
+          npm run release:app --
+          --app agent-desktop
+          --channel beta
+          --environment ${{ env.RELEASE_ENVIRONMENT }}
+          --no-build
+          --yes
+
+      - name: Summarise
+        if: ${{ always() && steps.bump.outputs.changed == 'true' }}
+        shell: bash
+        run: |
+          {
+            echo "### Desktop agent auto-release (BETA)"
+            echo ""
+            echo "| Field | Value |"
+            echo "|---|---|"
+            echo "| Version | ${{ steps.bump.outputs.version }} |"
+            echo "| Channel | BETA |"
+            echo "| Environment | $RELEASE_ENVIRONMENT |"
+            echo ""
+            echo "Published to BETA. Promote to STABLE from the admin releases"
+            echo "screen (or \`npm run release:promote\`) when it is ready for the"
+            echo "whole fleet. Publishing does not assign the release to any tenant."
+          } >> "$GITHUB_STEP_SUMMARY"

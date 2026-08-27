@@ -30,6 +30,13 @@ export type TenantIdentity = {
   purpose: string | null;
   invitationStatus: string;
   invitationExpiresAt: string | null;
+  /*
+   * Whether the activation email reached the provider, as distinct from
+   * whether an invitation was issued. Null when no send was ever attempted.
+   */
+  activationEmailStatus: string | null;
+  activationEmailDetail: string | null;
+  activationEmailDelivered: boolean | null;
   lastSignInAt: string | null;
   credentialRotatedAt: string | null;
   createdAt: string;

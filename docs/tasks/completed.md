@@ -25,3 +25,7 @@ Parent tasks that reached a terminal state. `FINAL_STATUS` records how.
 | [TASK-0021](TASK-0021-release-the-tenant-list-identity-fix-and-the-first-admin-bro.md) | Release the tenant list identity fix and the first admin browser suite | RELEASE | SMALL | P1 | COMPLETE | 2/2 | — |
 | [TASK-0022](TASK-0022-agent-ui-perception-browser-control-component-knowledge-ui-r.md) | Agent UI perception: browser control, component knowledge, UI review skill | FEATURE | LARGE | P1 | COMPLETE | 4/4 | NONE |
 | [TASK-0023](TASK-0023-dlp-capture-go-live-readiness.md) | DLP capture go-live readiness | FEATURE | LARGE | P1 | COMPLETE | 4/4 | WP-04 |
+| [TASK-0024](TASK-0024-dlp-investigator-review-on-the-employee-record.md) | DLP investigator review on the employee record | FEATURE | MEDIUM | P1 | COMPLETE | 1/1 | — |
+| [TASK-0025](TASK-0025-agent-app-distribution-and-auto-release-pipeline.md) | Agent app distribution and auto-release pipeline | FEATURE | LARGE | P1 | COMPLETE | 6/6 | WP-06 |
+| [TASK-0026](TASK-0026-admin-releases-management-and-channel-promotion-ui.md) | Admin releases management and channel promotion UI | FEATURE | MEDIUM | P1 | COMPLETE | 1/1 | — |
+| [TASK-0027](TASK-0027-tenant-app-assignment-which-tenants-receive-a-release.md) | Tenant app assignment: which tenants receive a release | FEATURE | MEDIUM | P1 | COMPLETE | 1/1 | — |

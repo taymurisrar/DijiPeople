@@ -1,0 +1,47 @@
+---
+SESSION_ID: SESSION-0064
+aliases: [SESSION-0064]
+TASK_ID: TASK-0027
+TITLE: Tenant app assignment: which tenants receive a release
+ARCHITECT_INTENT: Tenant app assignment: which tenants receive a release
+STATUS: COMPLETE
+TASK_TYPE: FEATURE
+TASK_SIZE: MEDIUM
+BASE_BRANCH: origin/develop
+BASE_SHA: 4f0da2bef672b19a989c6cd4aa937e3b0ec8e020
+TASK_BRANCH: agent/tenant-app-assignment
+TARGET_BRANCH: develop
+WORKTREE: D:/My Work/hrm-dijipeople/DijiPeople-assign
+AFFECTED_MODULES: []
+WRITE_LEASES: []
+ACTIVE_WORK_PACKAGES: []
+SCHEMA_WRITE: NO
+CI_STATUS: NOT_RUN
+MERGE_STATUS: NOT_STARTED
+STARTED_AT: 2026-08-26T16:27:52.547Z
+LAST_HEARTBEAT: 2026-08-26T16:27:52.547Z
+BLOCKERS: none
+---
+
+# SESSION-0064 — Tenant app assignment: which tenants receive a release
+
+## Intent
+
+Tenant app assignment: which tenants receive a release
+
+## Scope
+
+Platform-admin control over which tenants receive the desktop agent and on which
+release channel. Adds `listAgentAssignments()` / `setAgentAssignment()` to
+`SuperAdminService`, two platform-guarded routes, and the admin **Agent rollout**
+page over `TenantAppAssignment`. No schema change, no `main` change.
+
+## Concurrency
+
+Write leases held, overlap classification against other active sessions, and
+anything this session deliberately serialised behind another. Live state:
+`node scripts/session.mjs list`.
+
+## History
+
+- 2026-08-26 — session started from `origin/develop` at `4f0da2b`.

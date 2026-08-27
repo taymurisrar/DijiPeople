@@ -446,6 +446,12 @@ export function resolvePlatformPermission(
   if (path.includes('customer-onboarding'))
     return actionFor(method, 'onboarding');
   if (path.includes('customers')) return actionFor(method, 'customers');
+  // Desktop-agent rollout (TASK-0027): the list reads tenant config; the
+  // per-tenant `tenants/:id/agent-assignment` PATCH also matches the `tenants`
+  // branch below, but is mapped here explicitly so the read list — whose path
+  // does not contain `tenants` — resolves and the mutation still takes `.update`.
+  if (path.includes('agent-assignment'))
+    return reads ? 'tenants.read' : 'tenants.update';
   if (path.includes('tenants')) return actionFor(method, 'tenants');
 
   if (path.includes('payments'))

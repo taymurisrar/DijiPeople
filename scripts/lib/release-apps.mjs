@@ -50,14 +50,20 @@ export const RELEASE_APPS = [
     platform: "WINDOWS",
     architecture: "X64",
     /**
-     * No packaging command yet. The Electron agent is built by its own
-     * workspace and has no repository-level package step, so publishing it
-     * requires `--artifact`. Declared rather than omitted so `--app
-     * agent-desktop` gives a precise message instead of "unknown app".
+     * Builds the NSIS installer via the agent's own workspace (TASK-0025). This
+     * is what lets CI (and `release:app --app agent-desktop`) build and publish
+     * the agent without a hand-supplied `--artifact`. `dist:win` runs
+     * electron-builder, which writes to `apps/agent-desktop/release/`.
+     * Windows-only, like electron-builder's NSIS target.
      */
-    packageCommand: null,
-    artifactDirectory: null,
-    artifactPattern: null,
+    packageCommand: {
+      command: "npm",
+      args: ["--workspace", "agent-desktop", "run", "dist:win"],
+      requiresWindows: true,
+    },
+    artifactDirectory: "apps/agent-desktop/release",
+    // electron-builder's artifactName is `DijiPeople-Agent-Setup-${version}.${ext}`.
+    artifactPattern: /^DijiPeople-Agent-Setup-(.+)\.exe$/,
     metadataFile: null,
     versionSource: {
       file: "apps/agent-desktop/package.json",
@@ -92,7 +98,9 @@ export function resolveReleaseApp(value) {
 }
 
 export function normalizeChannel(value) {
-  const upper = String(value ?? "").trim().toUpperCase();
+  const upper = String(value ?? "")
+    .trim()
+    .toUpperCase();
   return RELEASE_CHANNELS.includes(upper) ? upper : undefined;
 }
 
@@ -103,7 +111,9 @@ export function normalizeChannel(value) {
  * the CLI and the API cannot disagree about whether "prod" is production.
  */
 export function normalizeEnvironment(value) {
-  const raw = String(value ?? "").trim().toLowerCase();
+  const raw = String(value ?? "")
+    .trim()
+    .toLowerCase();
   if (!raw) return undefined;
   if (raw === "production" || raw === "prod") return "production";
   if (raw === "staging" || raw === "stage" || raw === "uat") return "staging";
@@ -171,7 +181,9 @@ export function reconcileVersions(sources) {
     // 2.0.0 and 2.0.0.0 are the same release: .NET writes a four-part assembly
     // version from a three-part product version, and treating them as different
     // would fail every gateway build.
-    String(version).trim().replace(/^(\d+\.\d+\.\d+)\.0$/, "$1"),
+    String(version)
+      .trim()
+      .replace(/^(\d+\.\d+\.\d+)\.0$/, "$1"),
   ]);
 
   const distinct = [...new Set(normalized.map(([, version]) => version))];

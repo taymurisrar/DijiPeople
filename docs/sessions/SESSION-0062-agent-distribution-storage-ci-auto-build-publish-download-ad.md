@@ -1,0 +1,44 @@
+---
+SESSION_ID: SESSION-0062
+aliases: [SESSION-0062]
+TASK_ID:
+TITLE: Agent distribution: storage, CI auto-build/publish, download, admin versioning
+ARCHITECT_INTENT: Agent distribution: storage, CI auto-build/publish, download, admin versioning
+STATUS: COMPLETE
+TASK_TYPE: FEATURE
+TASK_SIZE: LARGE
+BASE_BRANCH: origin/develop
+BASE_SHA: 837ec8ed38e40fb107995edeb1e47ca42de2ce60
+TASK_BRANCH: agent/agent-distribution
+TARGET_BRANCH: develop
+WORKTREE: D:/My Work/hrm-dijipeople/DijiPeople-dist
+AFFECTED_MODULES: []
+WRITE_LEASES: []
+ACTIVE_WORK_PACKAGES: []
+SCHEMA_WRITE: NO
+CI_STATUS: NOT_RUN
+MERGE_STATUS: NOT_STARTED
+STARTED_AT: 2026-08-26T10:03:35.409Z
+LAST_HEARTBEAT: 2026-08-26T10:03:35.409Z
+BLOCKERS: none
+---
+
+# SESSION-0062 — Agent distribution: storage, CI auto-build/publish, download, admin versioning
+
+## Intent
+
+Agent distribution: storage, CI auto-build/publish, download, admin versioning
+
+## Scope
+
+_To be established during planning._
+
+## Concurrency
+
+Write leases held, overlap classification against other active sessions, and
+anything this session deliberately serialised behind another. Live state:
+`node scripts/session.mjs list`.
+
+## History
+
+- 2026-08-26 — session started from `origin/develop` at `837ec8e`.

@@ -68,6 +68,7 @@
     "test:index-drift": "node --test scripts/index-drift.test.mjs",
     "test:main-change-policy": "node --test scripts/main-change-policy.test.mjs",
     "repo:health": "node scripts/repo-health.mjs",
+    "worktree:remove": "node scripts/remove-worktree.mjs",
     "backlog:rebuild": "node scripts/rebuild-backlog.mjs",
     "backlog:check": "node scripts/rebuild-backlog.mjs --check",
     "remediation:sync": "node scripts/sync-remediation-inventory.mjs",

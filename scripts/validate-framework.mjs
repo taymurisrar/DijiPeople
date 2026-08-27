@@ -2418,6 +2418,80 @@ if (existsSync(join(ROOT, 'scripts/repo-health.mjs'))) {
   );
 }
 
+/*
+ * Removing a task worktree must go through the guard.
+ *
+ * `git worktree remove` deletes recursively, and a junction is a directory to
+ * that recursion — it walks through and destroys the target. Task worktrees here
+ * junction `node_modules` to the primary's, and npm workspaces puts its own
+ * links inside `node_modules` (`node_modules/admin -> apps/admin`), so the
+ * delete chains two levels into the real source tree. On 2026-08-26 that removed
+ * 3,072 tracked files from the user's primary checkout, and Git reported only
+ * "failed to delete ...: Directory not empty".
+ *
+ * These checks assert the guard exists, is reachable, is documented where the
+ * lifecycle is taught, and still refuses the two cases that make it a guard
+ * rather than a wrapper. They deliberately do NOT grep the docs for the raw
+ * command: both documents must *name* it in order to explain why it is unsafe,
+ * so a naive scan would fail on the very prose that prevents the mistake.
+ */
+if (existsSync(join(ROOT, 'scripts/remove-worktree.mjs'))) {
+  const guard = read('scripts/remove-worktree.mjs');
+  check(
+    'the worktree-removal guard refuses the primary worktree',
+    /REFUSING: \$\{worktree\} is the PRIMARY worktree/.test(guard),
+    'a delete aimed at the primary is the failure this exists to stop',
+  );
+  check(
+    'the worktree-removal guard refuses an unregistered path',
+    /is not a registered worktree/.test(guard),
+  );
+  check(
+    'the worktree-removal guard unlinks reparse points before removing',
+    /findLinks\(worktree\)/.test(guard) && /rmdirSync\(link\)/.test(guard),
+    'rmdirSync on a link removes the link; a recursive delete follows it',
+  );
+  /*
+   * Strip comments first. The guard names `rm -rf` in its own header in order
+   * to forbid it, so scanning the raw source fails on the sentence that
+   * prevents the mistake — the same trap as a record that breaks the link
+   * check by quoting a wikilink.
+   */
+  const guardCode = guard
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/^\s*\/\/.*$/gm, '');
+  check(
+    'the worktree-removal guard never deletes recursively itself',
+    !/rmSync\s*\([^)]*recursive/.test(guardCode) && !/rm\s+-rf/.test(guardCode),
+    'unlink the links; never recurse, because recursion is what follows them',
+  );
+  check(
+    'the worktree-removal guard verifies the primary after removing',
+    /missingAfter/.test(guard) && /git restore \./.test(guard),
+    'the delete is the dangerous step, so it is checked on both sides',
+  );
+  check(
+    'npm exposes the worktree-removal guard',
+    read('package.json').includes('"worktree:remove"'),
+  );
+  for (const doc of [
+    'docs/development/git-worktrees.md',
+    '.agent/context/repository-health.md',
+  ]) {
+    check(
+      `${doc} points at the worktree-removal guard`,
+      existsSync(join(ROOT, doc)) && read(doc).includes('remove-worktree.mjs'),
+      'the lifecycle must be taught with the guard, not the raw command',
+    );
+  }
+} else {
+  check(
+    'scripts/remove-worktree.mjs exists',
+    false,
+    'the guard that stops a worktree delete destroying the primary checkout',
+  );
+}
+
 if (existsSync(join(ROOT, 'scripts/rebuild-tasks.mjs'))) {
   const result = runScript('scripts/rebuild-tasks.mjs', ['--check']);
   check(

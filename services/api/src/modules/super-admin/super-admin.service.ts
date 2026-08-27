@@ -15,9 +15,11 @@ import {
   BillingInterval,
   BillingModel,
   CommercialSalesModel,
+  ApplicationReleaseChannel,
   CommercialPublicationStatus,
   CustomerAccountStatus,
   DiscountType,
+  TenantAppUpdatePolicy,
   InvoiceStatus,
   PaymentStatus,
   Prisma,
@@ -210,6 +212,13 @@ import {
   type InvoicePdfModel,
   type InvoicePdfParty,
 } from './invoice-pdf.template';
+
+/**
+ * The app key of the desktop agent — matches `ApplicationRelease.appKey` and
+ * `TenantAppAssignment.appKey` (TASK-0027). The rollout controls here are
+ * agent-specific; a generic multi-app surface would be a broader change.
+ */
+const AGENT_APP_KEY = 'AGENT_DESKTOP';
 
 @Injectable()
 export class SuperAdminService {
@@ -808,6 +817,98 @@ export class SuperAdminService {
     return Promise.all(
       tenants.map(async (tenant) => this.mapTenantSummary(tenant)),
     );
+  }
+
+  // ------------------------------------------- desktop agent rollout (TASK-0027)
+
+  /**
+   * Every tenant with its desktop-agent assignment — the "which tenants receive
+   * a release" view. A tenant on STABLE receives the latest STABLE release,
+   * one on BETA the latest BETA, and a disabled/unassigned tenant none.
+   * Publishing/promotion decides what exists on a channel; this decides which
+   * channel a tenant follows.
+   */
+  async listAgentAssignments() {
+    const [tenants, assignments] = await Promise.all([
+      this.prisma.tenant.findMany({
+        select: { id: true, name: true, displayName: true, slug: true },
+        orderBy: { name: 'asc' },
+      }),
+      this.prisma.tenantAppAssignment.findMany({
+        where: { appKey: AGENT_APP_KEY },
+      }),
+    ]);
+    const byTenant = new Map(
+      assignments.map((assignment) => [assignment.tenantId, assignment]),
+    );
+    return {
+      items: tenants.map((tenant) => {
+        const assignment = byTenant.get(tenant.id) ?? null;
+        return {
+          tenantId: tenant.id,
+          name: tenant.displayName || tenant.name,
+          slug: tenant.slug,
+          isAssigned: Boolean(assignment),
+          isEnabled: assignment?.isEnabled ?? false,
+          channel: assignment?.channel ?? ApplicationReleaseChannel.STABLE,
+          updatePolicy:
+            assignment?.updatePolicy ?? TenantAppUpdatePolicy.AUTOMATIC,
+        };
+      }),
+    };
+  }
+
+  /**
+   * Assign (or update) the desktop agent for one tenant: enable/disable it and
+   * set the channel their agents update from. Upserts the assignment and audits
+   * it. Builds/publishes nothing — it only points the tenant at an existing
+   * channel.
+   */
+  async setAgentAssignment(
+    user: AuthenticatedUser,
+    tenantId: string,
+    input: { isEnabled: boolean; channel: ApplicationReleaseChannel },
+  ) {
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { id: true },
+    });
+    if (!tenant) {
+      throw new NotFoundException('Tenant not found.');
+    }
+
+    const before = await this.prisma.tenantAppAssignment.findUnique({
+      where: { tenantId_appKey: { tenantId, appKey: AGENT_APP_KEY } },
+    });
+    const assignment = await this.prisma.tenantAppAssignment.upsert({
+      where: { tenantId_appKey: { tenantId, appKey: AGENT_APP_KEY } },
+      create: {
+        tenantId,
+        appKey: AGENT_APP_KEY,
+        isEnabled: input.isEnabled,
+        channel: input.channel,
+      },
+      update: { isEnabled: input.isEnabled, channel: input.channel },
+    });
+
+    await this.auditService.log({
+      tenantId: 'platform',
+      actorUserId: user.userId,
+      action: 'platform.tenant_agent_assignment_updated',
+      entityType: 'TenantAppAssignment',
+      entityId: assignment.id,
+      sourceModule: 'super-admin',
+      beforeSnapshot: before
+        ? { isEnabled: before.isEnabled, channel: before.channel }
+        : null,
+      afterSnapshot: {
+        tenantId,
+        isEnabled: input.isEnabled,
+        channel: input.channel,
+      },
+    });
+
+    return assignment;
   }
 
   /**

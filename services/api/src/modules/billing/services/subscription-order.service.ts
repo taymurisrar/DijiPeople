@@ -9,6 +9,7 @@ import {
 } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../../../common/prisma/prisma.service';
+import { normalizeEmail } from '../../../common/utils/email.util';
 import { assertValidTenantSlug } from '../../../common/utils/slug.util';
 import { OutboxService } from '../../outbox/outbox.service';
 import {
@@ -530,9 +531,23 @@ export class SubscriptionOrderService {
     input: OpenOrderInput,
     selection: CommercialSelection,
   ): Promise<string> {
+    /*
+     * Normalised here rather than trusted from the caller. `PublicSubscribeDto`
+     * lower-cases `email` on the way in, which is the only reason the exact
+     * e-mail match has ever worked: `findExisting` compares against a
+     * lower-cased value while the create below wrote `input.email` verbatim.
+     * The two agree for exactly as long as every caller happens to arrive
+     * through that one DTO. One that does not would store a mixed-case
+     * `contactEmail` that the next submission could never match, and would
+     * silently produce the duplicate customer records of BUG-1516 rather than
+     * merging into the existing one. Same rule as `requestedSlug` above — a
+     * service that trusts its caller to have validated is a service that
+     * writes whatever the next caller passes.
+     */
+    const email = normalizeEmail(input.email);
     const existing = await this.identity.findExisting(tx, {
       companyName: input.companyName,
-      email: input.email,
+      email,
       country: input.country,
     });
 
@@ -622,11 +637,11 @@ export class SubscriptionOrderService {
         companyName: input.companyName.trim(),
         primaryContactFirstName: firstName,
         primaryContactLastName: lastName,
-        primaryContactEmail: input.email,
+        primaryContactEmail: email,
         primaryContactPhone: input.phone ?? null,
-        contactEmail: input.email,
+        contactEmail: email,
         contactPhone: input.phone ?? null,
-        billingContactEmail: input.email,
+        billingContactEmail: email,
         country: input.country.trim(),
         /*
          * The organization profile is spread in only when the caller collected
