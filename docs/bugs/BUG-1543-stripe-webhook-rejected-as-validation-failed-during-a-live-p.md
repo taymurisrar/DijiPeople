@@ -2,7 +2,7 @@
 ID: BUG-1543
 aliases: [BUG-1543]
 Title: Stripe webhook rejected as VALIDATION_FAILED during a live payment
-Status: OPEN
+Status: DEFERRED
 Severity: HIGH
 Priority: P1
 Type: INTEGRATION
@@ -11,18 +11,21 @@ DetectedDate: 2026-08-26
 DetectedInSha: 21032ae
 AffectedModules: [billing]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: DEFER
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-26
-UpdatedAt: 2026-08-26
+UpdatedAt: 2026-08-27
 ResolvedAt:
 ---
 
 # BUG-1543 — Stripe webhook rejected as VALIDATION_FAILED during a live payment
+
+> **Architect triage, 2026-08-27 — `DEFER`.** Diagnosis is blocked behind BUG-1516, which is the most likely cause and is FIX_NOW. Re-evaluate once that lands; the symptom may simply go.
+
 
 ## Summary
 

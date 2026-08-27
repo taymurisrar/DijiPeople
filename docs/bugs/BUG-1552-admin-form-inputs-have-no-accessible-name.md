@@ -2,7 +2,7 @@
 ID: BUG-1552
 aliases: [BUG-1552]
 Title: Admin form inputs have no accessible name
-Status: OPEN
+Status: DUPLICATE
 Severity: MEDIUM
 Priority: P2
 Type: UX
@@ -11,18 +11,21 @@ DetectedDate: 2026-08-26
 DetectedInSha: 21032ae
 AffectedModules: [leads, super-admin]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: DUPLICATE
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-26
-UpdatedAt: 2026-08-26
+UpdatedAt: 2026-08-27
 ResolvedAt:
 ---
 
 # BUG-1552 — Admin form inputs have no accessible name
+
+> **Architect triage, 2026-08-27 — `DUPLICATE`.** Duplicate of [[BUG-1423]]. Same defect: runtime form controls carry no accessible name. BUG-1423 was filed first, rates it axe-core critical and covers four screens. Same missed retrieval as BUG-1542.
+
 
 ## Summary
 

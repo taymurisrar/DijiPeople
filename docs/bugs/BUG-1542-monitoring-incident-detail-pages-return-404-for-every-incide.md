@@ -2,7 +2,7 @@
 ID: BUG-1542
 aliases: [BUG-1542]
 Title: Monitoring incident detail pages return 404 for every incident
-Status: OPEN
+Status: DUPLICATE
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -11,18 +11,21 @@ DetectedDate: 2026-08-26
 DetectedInSha: 21032ae
 AffectedModules: [platform-monitoring, error-logs]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: DUPLICATE
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-26
-UpdatedAt: 2026-08-26
+UpdatedAt: 2026-08-27
 ResolvedAt:
 ---
 
 # BUG-1542 — Monitoring incident detail pages return 404 for every incident
+
+> **Architect triage, 2026-08-27 — `DUPLICATE`.** Duplicate of [[BUG-1419]]. Same defect: every monitoring incident detail returns 404. BUG-1419 was filed first and carries the fuller evidence. Filed on 2026-08-26 without running knowledge retrieval first, which is exactly the repeat AGENTS.md step 0 exists to prevent.
+
 
 ## Summary
 

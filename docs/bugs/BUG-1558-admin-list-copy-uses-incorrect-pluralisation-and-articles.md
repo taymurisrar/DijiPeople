@@ -2,7 +2,7 @@
 ID: BUG-1558
 aliases: [BUG-1558]
 Title: Admin list copy uses incorrect pluralisation and articles
-Status: OPEN
+Status: DEFERRED
 Severity: LOW
 Priority: P3
 Type: UX
@@ -11,18 +11,21 @@ DetectedDate: 2026-08-26
 DetectedInSha: 21032ae
 AffectedModules: [super-admin]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: DEFER
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-26
-UpdatedAt: 2026-08-26
+UpdatedAt: 2026-08-27
 ResolvedAt:
 ---
 
 # BUG-1558 — Admin list copy uses incorrect pluralisation and articles
+
+> **Architect triage, 2026-08-27 — `DEFER`.** Copy.
+
 
 ## Summary
 

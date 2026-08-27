@@ -11,18 +11,21 @@ DetectedDate: 2026-08-26
 DetectedInSha: 21032ae
 AffectedModules: [contracts, legal]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: FIX_NOW
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-26
-UpdatedAt: 2026-08-26
+UpdatedAt: 2026-08-27
 ResolvedAt:
 ---
 
 # BUG-1541 — Generated agreement PDFs render unsubstituted template placeholders
+
+> **Architect triage, 2026-08-27 — `FIX_NOW`.** Every generated agreement is unusable. This is the document a customer signs.
+
 
 ## Summary
 

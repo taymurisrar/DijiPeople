@@ -2,7 +2,7 @@
 ID: BUG-1556
 aliases: [BUG-1556]
 Title: Contract dates with no value render as the Unix epoch
-Status: OPEN
+Status: DEFERRED
 Severity: LOW
 Priority: P3
 Type: UX
@@ -11,18 +11,21 @@ DetectedDate: 2026-08-26
 DetectedInSha: 21032ae
 AffectedModules: [contracts]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: DEFER
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-26
-UpdatedAt: 2026-08-26
+UpdatedAt: 2026-08-27
 ResolvedAt:
 ---
 
 # BUG-1556 — Contract dates with no value render as the Unix epoch
+
+> **Architect triage, 2026-08-27 — `DEFER`.** Presentation. Group with the other list-rendering fixes.
+
 
 ## Summary
 

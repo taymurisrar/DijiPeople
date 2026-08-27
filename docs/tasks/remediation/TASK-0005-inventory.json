@@ -8133,13 +8133,13 @@
       "severity": "HIGH",
       "priority": "P1",
       "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-1419-every-incident-on-the-monitoring-overview-links-to-a-route-t.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "8d6be21b",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-26",
+        "updated_at": "2026-08-27",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -8176,13 +8176,13 @@
       "severity": "HIGH",
       "priority": "P1",
       "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-1420-the-monitoring-severity-filter-cannot-match-99-7-percent-of-.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "8d6be21b",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-26",
+        "updated_at": "2026-08-27",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -8217,14 +8217,14 @@
       "title": "Every admin screen shares one page title, two main landmarks and a duplicate h1",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/bugs/BUG-1421-every-admin-screen-shares-one-page-title-two-main-landmarks-.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "8d6be21b",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-26",
+        "updated_at": "2026-08-27",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -8304,13 +8304,13 @@
       "severity": "HIGH",
       "priority": "P1",
       "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "PLAN_REQUIRED",
       "source": {
         "record_path": "docs/bugs/BUG-1423-runtime-form-controls-have-no-accessible-name-so-screen-read.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "8d6be21b",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-26",
+        "updated_at": "2026-08-27",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -8344,13 +8344,13 @@
       "severity": "MEDIUM",
       "priority": "P2",
       "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "PLAN_REQUIRED",
       "source": {
         "record_path": "docs/bugs/BUG-1424-the-admin-console-serves-no-content-security-policy-header.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "8d6be21b",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-26",
+        "updated_at": "2026-08-27",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -8385,14 +8385,14 @@
       "title": "currencyCode accepts any string of three characters or fewer",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/bugs/BUG-1425-currencycode-accepts-any-string-of-three-characters-or-fewer.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "8d6be21b",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-26",
+        "updated_at": "2026-08-27",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -8514,13 +8514,13 @@
       "severity": "HIGH",
       "priority": "P1",
       "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-1516-public-signup-creates-duplicate-customer-records-breaking-st.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "21032ae",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-26",
+        "updated_at": "2026-08-27",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -8556,13 +8556,13 @@
       "severity": "HIGH",
       "priority": "P1",
       "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-1541-generated-agreement-pdfs-render-unsubstituted-template-place.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "21032ae",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-26",
+        "updated_at": "2026-08-27",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -8595,14 +8595,14 @@
       "title": "Monitoring incident detail pages return 404 for every incident",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DUPLICATE",
+      "architect_disposition": "DUPLICATE",
       "source": {
         "record_path": "docs/bugs/BUG-1542-monitoring-incident-detail-pages-return-404-for-every-incide.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "21032ae",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-26",
+        "updated_at": "2026-08-27",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -8635,14 +8635,14 @@
       "title": "Stripe webhook rejected as VALIDATION_FAILED during a live payment",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/bugs/BUG-1543-stripe-webhook-rejected-as-validation-failed-during-a-live-p.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "21032ae",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-26",
+        "updated_at": "2026-08-27",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -8674,13 +8674,13 @@
       "severity": "HIGH",
       "priority": "P1",
       "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-1544-public-signup-advertises-a-workspace-domain-that-does-not-re.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "21032ae",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-26",
+        "updated_at": "2026-08-27",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -8714,13 +8714,13 @@
       "severity": "MEDIUM",
       "priority": "P2",
       "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "PLAN_REQUIRED",
       "source": {
         "record_path": "docs/bugs/BUG-1545-manual-customer-onboarding-creation-fails-on-an-owner-foreig.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "21032ae",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-26",
+        "updated_at": "2026-08-27",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -8753,14 +8753,14 @@
       "title": "Required fields on unfocused tabs give no indication of where they are",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/bugs/BUG-1546-required-fields-on-unfocused-tabs-give-no-indication-of-wher.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "21032ae",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-26",
+        "updated_at": "2026-08-27",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -8791,14 +8791,14 @@
       "title": "Onboarding prerequisite message states the inverse of the truth",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/bugs/BUG-1547-onboarding-prerequisite-message-states-the-inverse-of-the-tr.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "21032ae",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-26",
+        "updated_at": "2026-08-27",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -8829,14 +8829,14 @@
       "title": "Customer onboarding validate accepts payloads that create rejects",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/bugs/BUG-1548-customer-onboarding-validate-accepts-payloads-that-create-re.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "21032ae",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-26",
+        "updated_at": "2026-08-27",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -8867,14 +8867,14 @@
       "title": "Database and validator internals are surfaced in user-facing errors",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/bugs/BUG-1549-database-and-validator-internals-are-surfaced-in-user-facing.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "21032ae",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-26",
+        "updated_at": "2026-08-27",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -8905,14 +8905,14 @@
       "title": "Lead record shows two different owners on the same screen",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/bugs/BUG-1550-lead-record-shows-two-different-owners-on-the-same-screen.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "21032ae",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-26",
+        "updated_at": "2026-08-27",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -8943,14 +8943,14 @@
       "title": "Desktop agent auto-update manifest returns 404",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "BLOCKED",
+      "architect_disposition": "BLOCKED_EXTERNAL",
       "source": {
         "record_path": "docs/bugs/BUG-1551-desktop-agent-auto-update-manifest-returns-404.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "21032ae",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-26",
+        "updated_at": "2026-08-27",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -8983,14 +8983,14 @@
       "title": "Admin form inputs have no accessible name",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DUPLICATE",
+      "architect_disposition": "DUPLICATE",
       "source": {
         "record_path": "docs/bugs/BUG-1552-admin-form-inputs-have-no-accessible-name.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "21032ae",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-26",
+        "updated_at": "2026-08-27",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -9023,14 +9023,14 @@
       "title": "Owner and template pickers list indistinguishable duplicate entries",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/bugs/BUG-1553-owner-and-template-pickers-list-indistinguishable-duplicate-.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "21032ae",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-26",
+        "updated_at": "2026-08-27",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -9063,14 +9063,14 @@
       "title": "Admin requests its own partners API with a rejected pageSize",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/bugs/BUG-1554-admin-requests-its-own-partners-api-with-a-rejected-pagesize.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "21032ae",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-26",
+        "updated_at": "2026-08-27",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -9102,13 +9102,13 @@
       "severity": "MEDIUM",
       "priority": "P2",
       "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-1555-an-inactive-plan-with-no-prices-is-offered-as-a-customer-pre.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "21032ae",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-26",
+        "updated_at": "2026-08-27",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -9141,14 +9141,14 @@
       "title": "Contract dates with no value render as the Unix epoch",
       "severity": "LOW",
       "priority": "P3",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/bugs/BUG-1556-contract-dates-with-no-value-render-as-the-unix-epoch.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "21032ae",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-26",
+        "updated_at": "2026-08-27",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -9179,14 +9179,14 @@
       "title": "React hydration error 418 on the admin dashboard",
       "severity": "LOW",
       "priority": "P3",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/bugs/BUG-1557-react-hydration-error-418-on-the-admin-dashboard.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "21032ae",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-26",
+        "updated_at": "2026-08-27",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -9217,14 +9217,14 @@
       "title": "Admin list copy uses incorrect pluralisation and articles",
       "severity": "LOW",
       "priority": "P3",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/bugs/BUG-1558-admin-list-copy-uses-incorrect-pluralisation-and-articles.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "21032ae",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-26",
+        "updated_at": "2026-08-27",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -9255,14 +9255,14 @@
       "title": "Empty states instruct the user to create records on screens with no create control",
       "severity": "LOW",
       "priority": "P3",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/bugs/BUG-1559-empty-states-instruct-the-user-to-create-records-on-screens-.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "21032ae",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-26",
+        "updated_at": "2026-08-27",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -9293,14 +9293,14 @@
       "title": "Delete confirmation does not name the record being deleted",
       "severity": "LOW",
       "priority": "P3",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/bugs/BUG-1560-delete-confirmation-does-not-name-the-record-being-deleted.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "21032ae",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-26",
+        "updated_at": "2026-08-27",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -9331,14 +9331,14 @@
       "title": "Signup verification step has no way back to correct a mistyped email",
       "severity": "LOW",
       "priority": "P3",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/bugs/BUG-1561-signup-verification-step-has-no-way-back-to-correct-a-mistyp.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "21032ae",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-26",
+        "updated_at": "2026-08-27",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -9370,13 +9370,13 @@
       "severity": "HIGH",
       "priority": "P1",
       "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-1578-admin-customer-form-stores-a-country-lookup-id-where-every-r.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "21032ae",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-26",
+        "updated_at": "2026-08-27",
         "resolved_at": ""
       },
       "affected_modules": [

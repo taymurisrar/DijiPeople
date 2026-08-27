@@ -11,18 +11,21 @@ DetectedDate: 2026-08-26
 DetectedInSha: 8d6be21b
 AffectedModules: [apps/admin, services/api/src/modules/error-logs]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: FIX_NOW
 QAReport: docs/qa/runs/2026-08-26-admin-prod-e2e-8d6be21.md
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-26
-UpdatedAt: 2026-08-26
+UpdatedAt: 2026-08-27
 ResolvedAt:
 ---
 
 # BUG-1420 — The monitoring severity filter cannot match 99.7 percent of stored incidents
+
+> **Architect triage, 2026-08-27 — `FIX_NOW`.** The severity filter cannot match 99.7% of stored incidents. Same screen as BUG-1419.
+
 
 ## Summary
 

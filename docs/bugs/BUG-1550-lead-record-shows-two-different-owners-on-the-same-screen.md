@@ -2,7 +2,7 @@
 ID: BUG-1550
 aliases: [BUG-1550]
 Title: Lead record shows two different owners on the same screen
-Status: OPEN
+Status: DEFERRED
 Severity: MEDIUM
 Priority: P2
 Type: BUG
@@ -11,18 +11,21 @@ DetectedDate: 2026-08-26
 DetectedInSha: 21032ae
 AffectedModules: [leads]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: DEFER
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-26
-UpdatedAt: 2026-08-26
+UpdatedAt: 2026-08-27
 ResolvedAt:
 ---
 
 # BUG-1550 — Lead record shows two different owners on the same screen
+
+> **Architect triage, 2026-08-27 — `DEFER`.** Ownership display, on a screen with little live data. Cheap, not urgent.
+
 
 ## Summary
 

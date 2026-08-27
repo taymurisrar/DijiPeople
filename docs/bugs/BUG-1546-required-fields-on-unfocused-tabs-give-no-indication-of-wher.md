@@ -2,7 +2,7 @@
 ID: BUG-1546
 aliases: [BUG-1546]
 Title: Required fields on unfocused tabs give no indication of where they are
-Status: OPEN
+Status: DEFERRED
 Severity: MEDIUM
 Priority: P2
 Type: UX
@@ -11,18 +11,21 @@ DetectedDate: 2026-08-26
 DetectedInSha: 21032ae
 AffectedModules: [customization]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: DEFER
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-26
-UpdatedAt: 2026-08-26
+UpdatedAt: 2026-08-27
 ResolvedAt:
 ---
 
 # BUG-1546 — Required fields on unfocused tabs give no indication of where they are
+
+> **Architect triage, 2026-08-27 — `DEFER`.** Same form as BUG-1545, which blocks the screen outright. No value fixing discoverability on a screen that cannot save.
+
 
 ## Summary
 

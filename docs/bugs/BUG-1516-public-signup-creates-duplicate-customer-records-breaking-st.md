@@ -11,18 +11,21 @@ DetectedDate: 2026-08-26
 DetectedInSha: 21032ae
 AffectedModules: [super-admin, billing, landing]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: FIX_NOW
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-26
-UpdatedAt: 2026-08-26
+UpdatedAt: 2026-08-27
 ResolvedAt:
 ---
 
 # BUG-1516 — Public signup creates duplicate customer records, breaking Stripe tenant resolution
+
+> **Architect triage, 2026-08-27 — `FIX_NOW`.** Revenue attribution. Also the most likely cause of BUG-1543, so this goes first.
+
 
 ## Summary
 

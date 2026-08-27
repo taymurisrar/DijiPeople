@@ -11,18 +11,21 @@ DetectedDate: 2026-08-26
 DetectedInSha: 8d6be21b
 AffectedModules: [apps/admin]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: FIX_NOW
 QAReport: docs/qa/runs/2026-08-26-admin-prod-e2e-8d6be21.md
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-26
-UpdatedAt: 2026-08-26
+UpdatedAt: 2026-08-27
 ResolvedAt:
 ---
 
 # BUG-1419 — Every incident on the monitoring overview links to a route that does not exist
+
+> **Architect triage, 2026-08-27 — `FIX_NOW`.** Operators are blind: 1,495 incidents and not one openable. Same area as BUG-1420, fix together.
+
 
 ## Summary
 

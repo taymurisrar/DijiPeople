@@ -11,18 +11,21 @@ DetectedDate: 2026-08-26
 DetectedInSha: 21032ae
 AffectedModules: [super-admin, contracts, lookups]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: FIX_NOW
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-26
-UpdatedAt: 2026-08-26
+UpdatedAt: 2026-08-27
 ResolvedAt:
 ---
 
 # BUG-1578 — Admin customer form stores a country lookup id where every reader expects a name
+
+> **Architect triage, 2026-08-27 — `FIX_NOW`.** A UUID rendered as a legal counterparty address. Same area as BUG-1541; fix together.
+
 
 ## Summary
 

@@ -2,7 +2,7 @@
 ID: BUG-1561
 aliases: [BUG-1561]
 Title: Signup verification step has no way back to correct a mistyped email
-Status: OPEN
+Status: DEFERRED
 Severity: LOW
 Priority: P3
 Type: UX
@@ -11,18 +11,21 @@ DetectedDate: 2026-08-26
 DetectedInSha: 21032ae
 AffectedModules: [leads]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: DEFER
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-26
-UpdatedAt: 2026-08-26
+UpdatedAt: 2026-08-27
 ResolvedAt:
 ---
 
 # BUG-1561 — Signup verification step has no way back to correct a mistyped email
+
+> **Architect triage, 2026-08-27 — `DEFER`.** On the paid funnel, which argues for urgency, but signup completes correctly when the address is right.
+
 
 ## Summary
 

@@ -11,18 +11,21 @@ DetectedDate: 2026-08-26
 DetectedInSha: 21032ae
 AffectedModules: [tenant-domains, leads]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: FIX_NOW
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-26
-UpdatedAt: 2026-08-26
+UpdatedAt: 2026-08-27
 ResolvedAt:
 ---
 
 # BUG-1544 — Public signup advertises a workspace domain that does not resolve
+
+> **Architect triage, 2026-08-27 — `FIX_NOW`.** Misinforms a buyer at the moment of purchase. Cheap to correct.
+
 
 ## Summary
 

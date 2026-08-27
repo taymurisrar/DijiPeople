@@ -2,7 +2,7 @@
 ID: BUG-1551
 aliases: [BUG-1551]
 Title: Desktop agent auto-update manifest returns 404
-Status: OPEN
+Status: BLOCKED
 Severity: MEDIUM
 Priority: P2
 Type: INTEGRATION
@@ -11,18 +11,21 @@ DetectedDate: 2026-08-26
 DetectedInSha: 21032ae
 AffectedModules: [agent, app-releases]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: BLOCKED_EXTERNAL
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-26
-UpdatedAt: 2026-08-26
+UpdatedAt: 2026-08-27
 ResolvedAt:
 ---
 
 # BUG-1551 — Desktop agent auto-update manifest returns 404
+
+> **Architect triage, 2026-08-27 — `BLOCKED_EXTERNAL`.** The code is already corrected. What remains is operational: agents installed before 2026-08-18 carry the dead URL baked into the build and the auto-updater is the thing that would replace it, so they cannot repair themselves. Needs a manual reinstall of the deployed fleet, which no code change can deliver.
+
 
 ## Summary
 

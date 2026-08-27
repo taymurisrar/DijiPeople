@@ -11,18 +11,21 @@ DetectedDate: 2026-08-26
 DetectedInSha: 21032ae
 AffectedModules: [super-admin, billing]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: FIX_NOW
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-26
-UpdatedAt: 2026-08-26
+UpdatedAt: 2026-08-27
 ResolvedAt:
 ---
 
 # BUG-1555 — An inactive plan with no prices is offered as a customer preferred plan
+
+> **Architect triage, 2026-08-27 — `FIX_NOW`.** An unsellable plan is offered for sale. Commercial correctness on the revenue path.
+
 
 ## Summary
 

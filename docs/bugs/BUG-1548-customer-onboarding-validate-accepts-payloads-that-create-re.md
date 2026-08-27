@@ -2,7 +2,7 @@
 ID: BUG-1548
 aliases: [BUG-1548]
 Title: Customer onboarding validate accepts payloads that create rejects
-Status: OPEN
+Status: DEFERRED
 Severity: MEDIUM
 Priority: P2
 Type: BUG
@@ -11,18 +11,21 @@ DetectedDate: 2026-08-26
 DetectedInSha: 21032ae
 AffectedModules: [onboarding]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: DEFER
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-26
-UpdatedAt: 2026-08-26
+UpdatedAt: 2026-08-27
 ResolvedAt:
 ---
 
 # BUG-1548 — Customer onboarding validate accepts payloads that create rejects
+
+> **Architect triage, 2026-08-27 — `DEFER`.** Same form as BUG-1545. Fixing that removes the 409 case and isolates the 400.
+
 
 ## Summary
 

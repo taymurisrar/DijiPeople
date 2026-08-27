@@ -2,7 +2,7 @@
 ID: BUG-1549
 aliases: [BUG-1549]
 Title: Database and validator internals are surfaced in user-facing errors
-Status: OPEN
+Status: DEFERRED
 Severity: MEDIUM
 Priority: P2
 Type: UX
@@ -11,18 +11,21 @@ DetectedDate: 2026-08-26
 DetectedInSha: 21032ae
 AffectedModules: [error-logs]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: DEFER
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-26
-UpdatedAt: 2026-08-26
+UpdatedAt: 2026-08-27
 ResolvedAt:
 ---
 
 # BUG-1549 — Database and validator internals are surfaced in user-facing errors
+
+> **Architect triage, 2026-08-27 — `DEFER`.** Overlaps BUG-1546 -- both concern how field-level validation reaches the operator. Fix with the onboarding cluster.
+
 
 ## Summary
 
