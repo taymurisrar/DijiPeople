@@ -1,15 +1,12 @@
-import { NextRequest, NextResponse } from "next/server";
-import { apiRequest } from "@/lib/server-api";
+import { NextRequest } from "next/server";
+import { apiRequest, proxyApiJsonResponse } from "@/lib/server-api";
 
 export async function GET() {
   const response = await apiRequest("/settings/my-preferences", {
     method: "GET",
   });
 
-  return new NextResponse(response.body, {
-    status: response.status,
-    headers: response.headers,
-  });
+  return proxyApiJsonResponse(response);
 }
 
 export async function PATCH(request: NextRequest) {
@@ -20,8 +17,5 @@ export async function PATCH(request: NextRequest) {
     headers: { "Content-Type": "application/json" },
   });
 
-  return new NextResponse(response.body, {
-    status: response.status,
-    headers: response.headers,
-  });
+  return proxyApiJsonResponse(response);
 }

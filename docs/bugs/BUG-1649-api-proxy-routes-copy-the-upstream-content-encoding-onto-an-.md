@@ -2,7 +2,7 @@
 ID: BUG-1649
 aliases: [BUG-1649]
 Title: API proxy routes copy the upstream Content-Encoding onto an already-decompressed body
-Status: OPEN
+Status: FIXED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -13,7 +13,7 @@ AffectedModules: [settings-runtime, tenant-settings]
 OwnerAgent: architect
 ArchitectDisposition: FIX_NOW
 QAReport: 
-RegressionId: 
+RegressionId: REG-264
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
@@ -211,7 +211,25 @@ redirect.
 
 ## Resolution
 
-Not yet resolved.
+Fixed 2026-08-27 on `agent/invitation-delivery-visibility`.
+
+The correct helpers already existed and the nine routes bypassed them. Six JSON
+routes now return `proxyApiJsonResponse(response)`, which rebuilds the response
+through `NextResponse.json` and copies only `x-request-id`. Three binary paths —
+the DLP and app-releases catch-alls, and the admin support-cases route — now
+return `proxyApiFileResponse(response)`, which copies an explicit allowlist and
+already documents why `Content-Length` must not be among it.
+
+Nothing new was written. The reasoning for the file path was correct and had
+simply never been applied to the JSON one.
+
+Guarded by REG-264 and QA-TENANT-018 — a structural check over every route
+handler, because the defect was one wrong line existing nine times rather than
+any single route being wrong. Reintroducing it in one route fails the suite.
+
+Worth noting for [[BUG-1551]]: one of the binary paths streams the desktop agent
+installer, so a corrupted download there is a plausible second cause of the
+auto-update failures recorded separately.
 
 ## QA Retest
 
@@ -228,5 +246,6 @@ will happily hand back the body, so a command-line check can look like a pass.
 ## Related
 
 - Modules — [[settings]]
+- Regression — REG-264 (see the regression register)
 
 <!-- GRAPH:END -->

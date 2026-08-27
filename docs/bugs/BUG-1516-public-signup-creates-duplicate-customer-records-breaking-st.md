@@ -2,7 +2,7 @@
 ID: BUG-1516
 aliases: [BUG-1516]
 Title: Public signup creates duplicate customer records, breaking Stripe tenant resolution
-Status: OPEN
+Status: FIXED
 Severity: HIGH
 Priority: P1
 Type: DATA_INTEGRITY
@@ -13,7 +13,7 @@ AffectedModules: [super-admin, billing, landing]
 OwnerAgent: architect
 ArchitectDisposition: FIX_NOW
 QAReport: 
-RegressionId: 
+RegressionId: REG-266
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
@@ -198,7 +198,31 @@ None. Independently fixable.
 
 ## Resolution
 
-Not started.
+Fixed 2026-08-27 on `agent/invitation-delivery-visibility`.
+
+The wizard already held the draft's `onboardingId` and now sends it with the
+submission, on both the initial post and the one repeated after verification.
+`resolveCustomer` continues that draft's customer instead of resolving a fresh
+one, and replaces the placeholder identity it was opened with.
+
+**The first proposal was wrong and is worth recording.** Deferring the draft
+until the e-mail is known would have removed the session the workspace-address
+check binds to — a deliberate control, so that answering "is maseer taken" costs
+a rate-limited, durably recorded row rather than being a free oracle over the
+customer base. The fix tells the server which draft this is instead of removing
+the draft.
+
+Investigating also corrected the root cause a second time. The placeholder
+defeats **two** mechanisms, not one: `findExisting` matches on the contact
+e-mail, and `submissionHash` is built from it, so the "an identical submission
+is the same order" reuse missed as well. The record's earlier text named only
+the first.
+
+The id is a hint and not an authorisation. It selects only a customer this same
+flow created, and an unknown or consumed id falls through to the identity rules
+unchanged — covered by a test.
+
+Guarded by REG-266 and QA-TENANT-020.
 
 ## QA Retest
 
@@ -215,5 +239,6 @@ CRITICAL Stripe resolution event.
 ## Related
 
 - Modules — [[super-admin]], [[billing]], [[landing-architecture]]
+- Regression — REG-266 (see the regression register)
 
 <!-- GRAPH:END -->

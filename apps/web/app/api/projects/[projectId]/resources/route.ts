@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import { apiRequest } from "@/lib/server-api";
+import { NextRequest } from "next/server";
+import { apiRequest, proxyApiJsonResponse } from "@/lib/server-api";
 
 type RouteContext = {
   params: Promise<{ projectId: string }>;
@@ -13,8 +13,5 @@ export async function POST(request: NextRequest, context: RouteContext) {
     headers: { "Content-Type": "application/json" },
   });
 
-  return new NextResponse(response.body, {
-    status: response.status,
-    headers: response.headers,
-  });
+  return proxyApiJsonResponse(response);
 }

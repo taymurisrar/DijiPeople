@@ -2501,3 +2501,48 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | The reporting defect and the delivery defect were separate, and fixing the first is what made the second findable. Until BUG-1515 landed, the resend endpoint returned `success: true` regardless of what delivery did and the admin panel forced a green toast, so a send that delivered nothing was indistinguishable from one that worked. The lasting guard is not only this spec but the response shape: `success`, `delivered` and `deliveryStatus` are now separate fields, so a caller cannot read the first and infer the others. |
 | **Fixed** | 2026-08-27, `agent/invitation-delivery-visibility` |
 | **Active** | yes |
+
+### REG-264 — A proxy that lies about how its body is encoded
+
+| | |
+|---|---|
+| **Bug class** | `helper-exists-but-is-bypassed` |
+| **Module** | `apps/web` |
+| **Bug record** | BUG-1649 |
+| **Root cause** | Nine Next.js route handlers returned the upstream response's headers verbatim onto a body `fetch` had already decompressed, so the response advertised `Content-Encoding: br` while carrying plain JSON and the browser failed with ERR_CONTENT_DECODING_FAILED. On the tenant workspace that surfaced as a modal reading "Server unavailable" which also intercepted pointer events, leaving the first screen of a new workspace inert until dismissed, on every navigation. The correct helpers already existed — `proxyApiJsonResponse` rebuilds the response, and `proxyApiFileResponse` copies an allowlist and documents why `Content-Length` must not be among it. The same reasoning was written down for the file path and never applied to the JSON one. |
+| **Regression test** | `apps/web/app/api/proxy-response-headers.spec.ts` — a structural check over every route handler |
+| **Scenario** | Every `route.ts` under the app's API directory must be free of `headers: response.headers`. The test walks the tree and asserts per file, and separately asserts the walker found something, so a broken walker cannot pass for the wrong reason. |
+| **Proven to fail without the fix** | Mutation-tested 2026-08-27. Reintroducing the pattern in `settings/resolved-context/route.ts` fails 1 of 418 checks. |
+| **Note** | Deliberately structural rather than behavioural. The defect was not that any one route was wrong; it was the same wrong line existing nine times, so fixing nine without stopping the tenth would leave the fault in place. Two of the nine were the binary branches of catch-all proxies, including the one that streams the desktop agent installer — a corrupted download there is a plausible second cause of the auto-update failures in BUG-1551. |
+| **Fixed** | 2026-08-27, `agent/invitation-delivery-visibility` |
+| **Active** | yes |
+
+### REG-265 — One empty state for two opposite conditions
+
+| | |
+|---|---|
+| **Bug class** | `one-message-two-meanings` |
+| **Module** | `apps/web` |
+| **Bug record** | BUG-1654 |
+| **Root cause** | The shared data table rendered "No records match the selected search or filters." whenever it had no rows, whether or not anything was filtered. A freshly provisioned workspace has neither records nor filters, so every list told its first customer that a search they had never run was hiding data that did not exist — next to a "Server unavailable" dialog that was also false. A healthy workspace looked broken. The same ambiguity was already documented in the opposite direction by `standard-module-views.spec.ts`, which exists because a view naming a field its module lacks filters everything out and the sentence then reads as "there is no data" rather than "this view is broken". |
+| **Regression test** | `apps/web/app/components/data-table/empty-state-message.spec.ts` |
+| **Scenario** | The message must differ between the filtered and unfiltered states, must not mention search or filters when nothing is applied, and must explain the filter when one is. |
+| **Proven to fail without the fix** | Mutation-tested 2026-08-27. Collapsing the branch back to the single shared string fails 2 of 3. |
+| **Note** | The decision is taken from the table's own `hasActiveSearchOrFilters` rather than recomputed, because a second definition of "is filtering" would disagree with the first the moment either changed — and the first already accounts for operators that filter without a value. It cannot be taken from row counts: in server mode the rows are already the filtered page. |
+| **Fixed** | 2026-08-27, `agent/invitation-delivery-visibility` |
+| **Active** | yes |
+
+### REG-266 — A draft record that cannot be found again
+
+| | |
+|---|---|
+| **Bug class** | `placeholder-in-an-identity-field` |
+| **Module** | `billing` |
+| **Bug record** | BUG-1516 |
+| **Root cause** | The public wizard opens a draft order on the workspace step, because the address check is deliberately session-bound: answering "is maseer taken" should cost a rate-limited, durably recorded row. The buyer has not been asked for their e-mail at that point, so the draft's customer was written with `pending@onboarding.invalid`. That placeholder defeated both routes back to the record — `CustomerIdentityService.findExisting` matches on the contact e-mail, and `submissionHash` is built from it — so the real submission matched nothing and one signup produced two orders and two customers. Stripe could then not tell which customer had paid. |
+| **Regression test** | `services/api/src/modules/billing/services/checkout-customer-record.spec.ts` |
+| **Scenario** | A submission naming its draft order continues that draft's customer rather than creating a second; the placeholder identity is replaced with the real one; a genuinely returning buyer's identity is not rewritten; and an unknown or consumed draft id falls through to the identity rules unchanged. |
+| **Proven to fail without the fix** | Mutation-tested 2026-08-27. Ignoring the draft id fails 2 of 16. |
+| **Note** | The draft could not simply be deferred until the e-mail is known, which was the first proposal. It is load-bearing for anti-enumeration, and removing it would trade a duplicate record for an oracle over the customer base. The fix tells the server which draft this is instead of making it infer. The id is a hint and not an authorisation: it only ever selects a customer this same flow created, and an unknown id changes nothing. |
+| **Fixed** | 2026-08-27, `agent/invitation-delivery-visibility` |
+| **Active** | yes |

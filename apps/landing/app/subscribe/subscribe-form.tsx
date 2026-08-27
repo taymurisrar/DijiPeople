@@ -341,12 +341,27 @@ export function SubscribeForm({
     const response = await fetch("/api/public/subscribe", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(
-        buildSubmitPayloadWithReferral(form, {
+      body: JSON.stringify({
+        ...buildSubmitPayloadWithReferral(form, {
           planPriceId: selectedPrice.id,
           seatQuantity: effectiveSeatQuantity,
         }),
-      ),
+        /*
+         * BUG-1516. The draft opened on the workspace step carries a
+         * placeholder address, because the owner's e-mail is not collected
+         * until the step after it. The server identifies a repeat submission by
+         * a hash built from that e-mail, so the real submission hashed
+         * differently, matched nothing, and created a second order and a second
+         * customer for one signup.
+         *
+         * Sending the draft's own id lets the server continue the order it
+         * already holds rather than infer which one this is. The draft cannot
+         * simply be deferred: the workspace-address check is session-bound to a
+         * live order on purpose, so that answering "is maseer taken" costs an
+         * attacker a rate-limited, durably recorded row per question.
+         */
+        onboardingId: onboardingId ?? undefined,
+      }),
     });
     const payload = await response.json().catch(() => null);
     setIsSubmitting(false);
@@ -408,12 +423,27 @@ export function SubscribeForm({
     const checkout = await fetch("/api/public/subscribe", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(
-        buildSubmitPayloadWithReferral(form, {
+      body: JSON.stringify({
+        ...buildSubmitPayloadWithReferral(form, {
           planPriceId: selectedPrice.id,
           seatQuantity: effectiveSeatQuantity,
         }),
-      ),
+        /*
+         * BUG-1516. The draft opened on the workspace step carries a
+         * placeholder address, because the owner's e-mail is not collected
+         * until the step after it. The server identifies a repeat submission by
+         * a hash built from that e-mail, so the real submission hashed
+         * differently, matched nothing, and created a second order and a second
+         * customer for one signup.
+         *
+         * Sending the draft's own id lets the server continue the order it
+         * already holds rather than infer which one this is. The draft cannot
+         * simply be deferred: the workspace-address check is session-bound to a
+         * live order on purpose, so that answering "is maseer taken" costs an
+         * attacker a rate-limited, durably recorded row per question.
+         */
+        onboardingId: onboardingId ?? undefined,
+      }),
     });
     const checkoutPayload = await checkout.json().catch(() => null);
     setIsSubmitting(false);

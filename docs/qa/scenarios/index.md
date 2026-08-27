@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 204** · automated: 179 · manual: 9 · blocked by infrastructure: 0
+**Scenarios: 207** · automated: 182 · manual: 9 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -218,3 +218,6 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-TENANT-015](../../../docs/qa/scenarios/QA-TENANT-015-erasing-one-tenant-leaves-every-other-tenant-complete.md) | Erasing one tenant leaves every other tenant complete | tenant-isolation | DATABASE | CRITICAL | AUTOMATED | `services/api/test/tenant-erasure-survival.e2e-spec.ts` | ITEM-0003 | REG-220 |
 | [QA-TENANT-016](../../../docs/qa/scenarios/QA-TENANT-016-a-forged-forwarded-host-must-not-select-a-tenant-workspace.md) | A forged forwarded host must not select a tenant workspace | tenant-isolation | SECURITY | HIGH | AUTOMATED | `apps/web/lib/forwarded-host.spec.ts` | ITEM-0044 | REG-243 |
 | [QA-TENANT-017](../../../docs/qa/scenarios/QA-TENANT-017-activation-email-delivers-for-a-tenant-with-no-email-provide.md) | Activation email delivers for a tenant with no email provider of its own | tenant-provisioning | API | CRITICAL | PARTIAL | `services/api/src/modules/notifications/email/platform-email-provider.resolver.spec.ts` | BUG-1595, BUG-1515 | REG-263 |
+| [QA-TENANT-018](../../../docs/qa/scenarios/QA-TENANT-018-api-proxy-routes-never-advertise-an-encoding-they-did-not-ap.md) | API proxy routes never advertise an encoding they did not apply | runtime-modules | UNIT | HIGH | AUTOMATED | `apps/web/app/api/proxy-response-headers.spec.ts` | BUG-1649 | REG-264 |
+| [QA-TENANT-019](../../../docs/qa/scenarios/QA-TENANT-019-an-empty-list-distinguishes-no-data-from-no-matches.md) | An empty list distinguishes no data from no matches | runtime-modules | UNIT | MEDIUM | AUTOMATED | `apps/web/app/components/data-table/empty-state-message.spec.ts` | BUG-1654 | REG-265 |
+| [QA-TENANT-020](../../../docs/qa/scenarios/QA-TENANT-020-one-paid-signup-produces-exactly-one-customer-record.md) | One paid signup produces exactly one customer record | subscription-orders | UNIT | HIGH | AUTOMATED | `services/api/src/modules/billing/services/checkout-customer-record.spec.ts` | BUG-1516 | REG-266 |

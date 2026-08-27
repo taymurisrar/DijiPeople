@@ -2,7 +2,7 @@
 ID: BUG-1654
 aliases: [BUG-1654]
 Title: Every empty list in a new workspace blames filters that are not set
-Status: OPEN
+Status: FIXED
 Severity: MEDIUM
 Priority: P2
 Type: UX
@@ -13,7 +13,7 @@ AffectedModules: [views, employees]
 OwnerAgent: architect
 ArchitectDisposition: FIX_NOW
 QAReport: 
-RegressionId: 
+RegressionId: REG-265
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
@@ -147,7 +147,22 @@ on the same screens. Same family as [[BUG-1559]] in the admin console.
 
 ## Resolution
 
-Not yet resolved.
+Fixed 2026-08-27 on `agent/invitation-delivery-visibility`.
+
+The table now chooses between two messages. With nothing searched or filtered it
+reads "No records yet."; with a filter applied it keeps the original sentence.
+
+The decision is taken from the table's existing `hasActiveSearchOrFilters`
+rather than recomputed. A first attempt introduced a second definition, which
+would have disagreed with the first on operators that filter without a value —
+`is empty` and its siblings — and a second source of truth for "is filtering"
+is the same class of defect one layer down.
+
+It cannot be derived from row counts either: in server mode the rows are already
+the filtered page, so "fewer than we have" cannot separate an empty module from
+an over-filtered one.
+
+Guarded by REG-265 and QA-TENANT-019.
 
 ## QA Retest
 
@@ -165,5 +180,6 @@ first real first-run.
 ## Related
 
 - Modules — [[employees]]
+- Regression — REG-265 (see the regression register)
 
 <!-- GRAPH:END -->

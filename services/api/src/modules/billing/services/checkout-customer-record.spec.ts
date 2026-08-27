@@ -76,11 +76,20 @@ const INPUT = {
 function build(overrides: {
   existing?: { id: string; status: CustomerAccountStatus } | null;
   current?: Record<string, unknown>;
+  draftCustomerId?: string;
 }) {
   const created: Record<string, unknown>[] = [];
   const updated: Record<string, unknown>[] = [];
 
   const tx = {
+    subscriptionOrder: {
+      findUnique: () =>
+        Promise.resolve(
+          overrides.draftCustomerId
+            ? { customerAccountId: overrides.draftCustomerId }
+            : null,
+        ),
+    },
     customerAccount: {
       create: (args: { data: Record<string, unknown> }) => {
         created.push(args.data);
@@ -136,6 +145,80 @@ function build(overrides: {
 }
 
 describe('checkout customer record', () => {
+  /*
+   * BUG-1516. The wizard opens a draft order on the workspace step so the
+   * address check has a session to bind to — answering "is maseer taken" is
+   * meant to cost a rate-limited, durably recorded row. The buyer has not been
+   * asked for their e-mail yet, so that draft's customer is written with
+   * `pending@onboarding.invalid`.
+   *
+   * That placeholder defeated both routes back to the record: findExisting
+   * matches on the contact e-mail, and submissionHash is built from it. One
+   * signup produced two customers, and the Stripe webhook could not tell which
+   * had paid. Observed on production: two `DijiPeople Demo` rows 92 seconds
+   * apart, the first holding the placeholder and none of the organisation
+   * profile, the second holding all of it.
+   */
+  it('continues the draft customer when the wizard names its order', async () => {
+    const { resolveCustomer, tx, created, updated } = build({
+      draftCustomerId: 'customer-draft',
+      existing: null,
+    });
+
+    const id = await resolveCustomer(
+      tx,
+      { ...INPUT, onboardingId: 'order-1' },
+      SELECTION,
+    );
+
+    expect(id).toBe('customer-draft');
+    expect(created).toHaveLength(0);
+    expect(updated).toHaveLength(1);
+  });
+
+  it('replaces the placeholder identity the draft was opened with', async () => {
+    const { resolveCustomer, tx, updated } = build({
+      draftCustomerId: 'customer-draft',
+      existing: null,
+    });
+
+    await resolveCustomer(tx, { ...INPUT, onboardingId: 'order-1' }, SELECTION);
+
+    expect(updated[0]).toMatchObject({
+      contactEmail: 'nora@maseer.example',
+      primaryContactEmail: 'nora@maseer.example',
+      billingContactEmail: 'nora@maseer.example',
+    });
+  });
+
+  it('does not rewrite the identity of a genuinely returning buyer', async () => {
+    // Gap-filling, not overwriting: a second order from someone who already
+    // exists must not have their earlier identity replaced by this one.
+    const { resolveCustomer, tx, updated } = build({
+      existing: {
+        id: 'customer-existing',
+        status: CustomerAccountStatus.ACTIVE,
+      },
+    });
+
+    await resolveCustomer(tx, INPUT, SELECTION);
+
+    expect(updated[0]).not.toHaveProperty('contactEmail');
+  });
+
+  it('falls back to the identity rules when the draft id is unknown', async () => {
+    // A forged or already-consumed id must buy nothing.
+    const { resolveCustomer, tx, created } = build({ existing: null });
+
+    await resolveCustomer(
+      tx,
+      { ...INPUT, onboardingId: 'order-that-does-not-exist' },
+      SELECTION,
+    );
+
+    expect(created).toHaveLength(1);
+  });
+
   /*
    * BUG-1516. `findExisting` matches on a lower-cased e-mail, so a create that
    * stored the caller's casing verbatim would be unfindable by the next

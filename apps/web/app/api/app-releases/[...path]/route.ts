@@ -1,4 +1,8 @@
-import { apiRequest, proxyApiJsonResponse } from "@/lib/server-api";
+import {
+  apiRequest,
+  proxyApiFileResponse,
+  proxyApiJsonResponse,
+} from "@/lib/server-api";
 
 /**
  * Proxy for application releases.
@@ -30,10 +34,7 @@ async function proxy(request: Request, context: RouteContext) {
   // A download is a binary stream, not JSON; pass it through untouched.
   const contentType = response.headers.get("content-type") ?? "";
   if (!contentType.includes("application/json")) {
-    return new Response(response.body, {
-      status: response.status,
-      headers: response.headers,
-    });
+    return proxyApiFileResponse(response);
   }
 
   return proxyApiJsonResponse(response);

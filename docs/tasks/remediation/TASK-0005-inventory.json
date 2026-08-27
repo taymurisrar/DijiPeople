@@ -8513,7 +8513,7 @@
       "title": "Public signup creates duplicate customer records, breaking Stripe tenant resolution",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
+      "current_status": "FIXED",
       "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-1516-public-signup-creates-duplicate-customer-records-breaking-st.md",
@@ -8528,8 +8528,12 @@
         "billing",
         "landing"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-266"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-020"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -9495,7 +9499,7 @@
       "title": "API proxy routes copy the upstream Content-Encoding onto an already-decompressed body",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
+      "current_status": "FIXED",
       "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-1649-api-proxy-routes-copy-the-upstream-content-encoding-onto-an-.md",
@@ -9509,8 +9513,12 @@
         "settings-runtime",
         "tenant-settings"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-264"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-018"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -9535,7 +9543,7 @@
       "title": "Every empty list in a new workspace blames filters that are not set",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
+      "current_status": "FIXED",
       "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-1654-every-empty-list-in-a-new-workspace-blames-filters-that-are-.md",
@@ -9549,8 +9557,12 @@
         "views",
         "employees"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-265"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-019"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [

@@ -21,7 +21,12 @@ import {
   VALUELESS_FILTER_OPERATORS,
 } from "./types";
 
-import { filterRows, searchRows, sortRows } from "./utils";
+import {
+  emptyStateMessage,
+  filterRows,
+  searchRows,
+  sortRows,
+} from "./utils";
 
 const EMPTY_FILTERS: DataTableFilterState[] = [];
 
@@ -666,7 +671,21 @@ export function DataTable<T>({
                   colSpan={columns.length + (enableSelection ? 1 : 0)}
                   className="px-3 py-8 text-center text-sm text-muted"
                 >
-                  No records match the selected search or filters.
+                  {/*
+                   * BUG-1654. One sentence used to cover two opposite states,
+                   * and it only described one of them. A freshly provisioned
+                   * workspace has no records and no filters, so every list told
+                   * its first customer that a search they had not run was
+                   * hiding data that did not exist.
+                   *
+                   * The ambiguity was already known in the other direction:
+                   * standard-module-views.spec.ts exists because a view naming
+                   * a field its module lacks filters everything out and this
+                   * same sentence then "reads as 'there is no data' rather
+                   * than 'this view is broken'". Both readings were wrong
+                   * because both states shared a message.
+                   */}
+                  {emptyStateMessage(hasActiveSearchOrFilters)}
                 </td>
               </tr>
             )}

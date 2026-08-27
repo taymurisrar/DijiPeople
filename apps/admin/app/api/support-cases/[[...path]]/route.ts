@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
-import { apiRequest, proxyApiJsonResponse } from "@/lib/server-api";
+import { apiRequest, proxyApiJsonResponse,
+  proxyApiFileResponse,
+} from "@/lib/server-api";
 
 type Context = { params: Promise<{ path?: string[] }> };
 
@@ -24,7 +26,7 @@ async function forward(request: Request, context: Context, method: string) {
     );
     return response.headers.get("content-type")?.includes("application/json")
       ? proxyApiJsonResponse(response)
-      : new NextResponse(response.body, { status: response.status, headers: response.headers });
+      : proxyApiFileResponse(response);
   } catch (error) {
     return NextResponse.json(
       {

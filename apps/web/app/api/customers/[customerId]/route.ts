@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import { apiRequest } from "@/lib/server-api";
+import { NextRequest } from "next/server";
+import { apiRequest, proxyApiJsonResponse } from "@/lib/server-api";
 
 type RouteContext = {
   params: Promise<{ customerId: string }>;
@@ -11,10 +11,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
     method: "GET",
   });
 
-  return new NextResponse(response.body, {
-    status: response.status,
-    headers: response.headers,
-  });
+  return proxyApiJsonResponse(response);
 }
 
 export async function PATCH(request: NextRequest, context: RouteContext) {
@@ -25,8 +22,5 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     headers: { "Content-Type": "application/json" },
   });
 
-  return new NextResponse(response.body, {
-    status: response.status,
-    headers: response.headers,
-  });
+  return proxyApiJsonResponse(response);
 }
