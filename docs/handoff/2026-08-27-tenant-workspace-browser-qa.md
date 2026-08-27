@@ -27,14 +27,15 @@ follow rather than skim.
 
 ### Three things that will waste your time if you do not know them
 
-1. **`*.ws.dijipeople.com` is NOT in the MCP allowlist.** `.mcp.json` allows
-   exactly `admin` · `app` · `api` · `www` `.dijipeople.com`. The tenant
-   workspace lives at `<slug>.ws.dijipeople.com`, so **every navigation to it
-   will fail with `ERR_BLOCKED_BY_CLIENT`** until that origin is added. This is
-   the single biggest blocker to the work below. Adding it is an owner
-   decision, and the file is read **only at MCP server start** — the editor
-   must be restarted afterwards. Budget for that before planning a session
-   around the workspace.
+1. **Confirm the allowlist actually loaded before planning around it.**
+   `https://*.ws.dijipeople.com` was added to `.mcp.json` on 2026-08-27, so the
+   tenant workspace *should* be reachable. But the file is read **only at MCP
+   server start**: on 2026-08-27 the edit was made and
+   `browser_get_config` still reported only the four original origins, so every
+   navigation failed with `ERR_BLOCKED_BY_CLIENT`. Restart the editor, then
+   **call `browser_get_config` and read `network.allowedOrigins` back** before
+   concluding anything. Do not infer it from the file; infer it from the
+   running server.
 2. **The browser profile is single-instance.** `--isolated` was removed, so a
    second session holding the profile gives
    `Browser is already in use … use --isolated`. Check whether another session
@@ -53,12 +54,11 @@ follow rather than skim.
 `helloworld`. `PLATFORM_OWNER`, `permissionKeys: ["platform.*"]`. Sessions
 expire after ~30 minutes; the `?next=` redirect returns you where you were.
 
-**Tenant workspace** — `qa-e2e-signup-b-20260826.ws.dijipeople.com`. Owner
-`taimurisrar806@gmail.com`, role `system-admin`, status `ACTIVE` since
-2026-08-27T09:51Z. **The password is not recorded here and must not be** —
-credentials never go in a record, per `docs/bugs/README.md` and
-[`.agent/agents/qa.md`](../../.agent/agents/qa.md). Ask the owner at the start
-of the session. It was shared in chat on 2026-08-27 and should be rotated.
+**Tenant workspace** — this tenant is being erased (§6), so expect to
+provision your own. Run a paid signup on `www.dijipeople.com`, then activate
+the owner from the email. **Credentials never go in a record**, per
+`docs/bugs/README.md` and [`.agent/agents/qa.md`](../../.agent/agents/qa.md) —
+keep whatever password you set out of every file you commit.
 
 **API** — `POST /api/admin/auth/login` for platform, `POST /api/auth/login`
 with `X-DijiPeople-App: web` for tenant. Both return a bearer token. Useful for
@@ -100,7 +100,14 @@ neither does a healthy platform delivery log. Both exercise the working half.
 Nobody has ever driven this product with a real tenant. Everything here is new
 ground, and it is where undiscovered defects are densest.
 
-Blocked on the allowlist in §1. Once unblocked:
+**Check the tenant still exists before planning this section.** The owner
+stated on 2026-08-27 that `QA E2E Signup B 20260826` will be erased. If it has
+been, everything below needs a **fresh paid signup first** — the funnel works
+end to end and takes about four seconds to provision, but the activation email
+and owner activation must be repeated to get back inside. That is now a
+supported path rather than a blocker, which is the whole change from yesterday.
+
+Once you have a live tenant and the allowlist confirmed:
 
 1. **First-run experience.** A workspace with one user and no data. Every list
    is empty, so every empty state renders here first. Check they say something
@@ -176,7 +183,7 @@ Missing and worth adding, in order:
 
 | What | Keep or clear |
 |---|---|
-| Tenant `QA E2E Signup B 20260826` (`f959c5ff-…`), ACTIVE, paid, owner activated | **Keep.** The only working provisioned tenant and the whole basis of §4A. |
+| Tenant `QA E2E Signup B 20260826` (`f959c5ff-…`), ACTIVE, paid, owner activated | **Being erased** by owner decision, 2026-08-27. It was the only working provisioned tenant, so §4A needs a fresh paid signup once it is gone. Its owner password was shared in chat and dies with it — no rotation needed. |
 | `QA E2E Customer 20260826` + `CON-20260826-DCA95FD5` | **Keep** until BUG-1541 and BUG-1578 are fixed — the only reproduction of both. |
 | `QA E2E Signup 20260826` ×2, `QA E2E Signup B` ×2 | Duplicate evidence for BUG-1516. Keep until fixed. |
 | QA leads | **Already deleted** 2026-08-27 (7 → 5). |
@@ -218,8 +225,9 @@ Missing and worth adding, in order:
 
 ## 9. Suggested order
 
-1. Get `*.ws.dijipeople.com` into `.mcp.json`, restart the editor, confirm the
-   workspace loads. Without this, §4A is unreachable.
+1. Restart the editor, then confirm `browser_get_config` reports
+   `https://*.ws.dijipeople.com` in `network.allowedOrigins`. Then provision a
+   tenant if the one in §6 is gone. Without both, §4A is unreachable.
 2. Drive the tenant first-run and onboard one employee. Largest untested
    surface, densest in undiscovered defects.
 3. Reproduce the five HIGH bugs in the browser and record what you find.
