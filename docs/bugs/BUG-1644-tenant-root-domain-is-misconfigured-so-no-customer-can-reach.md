@@ -18,7 +18,7 @@ RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-27
-UpdatedAt: 2026-08-27
+UpdatedAt: 2026-08-28
 ResolvedAt:
 ---
 
@@ -75,6 +75,48 @@ dijipeople-demo.ws.dijipeople.com   RESOLVES, GET /login -> 200
 The backend is unaffected. `POST /api/auth/login` with the same credentials and
 `X-DijiPeople-App: web` returns the user, the tenant and a `system-admin` role.
 The defect is entirely in how the frontend derives hosts.
+
+### Re-verified on production 2026-08-28, still broken
+
+Driven through the browser against the real tenant
+`qa-e2e-signup-b-20260826`, after the documentation fix in `21dc63fe` shipped.
+
+The API half is now provably correct. `GET /api/public/tenants/resolve` answers
+`200` for **both** forms, so nothing server-side is confused about the domain:
+
+```
+?slug=qa-e2e-signup-b-20260826                       -> 200  TEN-000001 ACTIVE
+?host=qa-e2e-signup-b-20260826.ws.dijipeople.com     -> 200  TEN-000001 ACTIVE
+```
+
+The browser half is unchanged. Entering the slug at `app.dijipeople.com/login`
+and pressing Continue navigates to:
+
+```
+qa-e2e-signup-b-20260826.dijipeople.com     <- no `ws.`, DNS failure
+```
+
+**This narrows the fix from "set the variable" to "correct the value that is
+already set."** `buildTenantPortalUrl` runs in the browser, so only a
+`NEXT_PUBLIC_*` name is inlined into the bundle — `WEB_APP_PROD_ROOT_DOMAIN` is
+invisible there. Had `NEXT_PUBLIC_WEB_ROOT_DOMAIN` been *absent*,
+`supportsTenantSubdomains()` would have returned false and the fallback would
+have kept the user on `app.dijipeople.com/login`. A `<slug>.dijipeople.com`
+target can therefore only be produced by the variable being present and holding
+`dijipeople.com`.
+
+So the Vercel project for `apps/web` has the variable set to the value the
+documentation used to prescribe. Editing it is not enough on its own:
+`NEXT_PUBLIC_*` is inlined at **build** time, so the project must be redeployed
+before the running bundle changes.
+
+One earlier reading here was wrong and is corrected rather than removed. A
+branded login page served from a *non-existent* subdomain was briefly taken as
+proof that host resolution worked. It was not: that host resolves to no tenant
+at all, and the emerald palette it rendered is the platform default, not tenant
+branding. The tenant's own colours are teal (`#0f766e`). A page looking
+tenant-specific is not evidence that a tenant was resolved.
+
 
 ## Root Cause
 
