@@ -12,7 +12,7 @@
 | Open total | 47 |
 | Blocked | 2 |
 | Awaiting a product decision | 2 |
-| Deferred | 41 |
+| Deferred | 42 |
 | Completed | 208 |
 | Awaiting Architect triage | 0 |
 
@@ -328,7 +328,7 @@
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 199 |
+| Bug records | 200 |
 | Backlog items | 101 |
 | Known bug patterns | 29 |
 | QA runs | 27 |
