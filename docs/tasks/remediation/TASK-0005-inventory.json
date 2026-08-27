@@ -8132,7 +8132,7 @@
       "title": "Every incident on the monitoring overview links to a route that does not exist",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
+      "current_status": "FIXED",
       "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-1419-every-incident-on-the-monitoring-overview-links-to-a-route-t.md",
@@ -8145,10 +8145,13 @@
       "affected_modules": [
         "apps/admin"
       ],
-      "regressions": [],
+      "regressions": [
+        "REG-269"
+      ],
       "qa_scenarios": [
         "QA-PLATFORM-024",
-        "QA-PLATFORM-026"
+        "QA-PLATFORM-026",
+        "QA-TENANT-023"
       ],
       "test_plan": [
         "PLAN-019"
@@ -8175,7 +8178,7 @@
       "title": "The monitoring severity filter cannot match 99.7 percent of stored incidents",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
+      "current_status": "FIXED",
       "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-1420-the-monitoring-severity-filter-cannot-match-99-7-percent-of-.md",
@@ -8189,8 +8192,12 @@
         "apps/admin",
         "services/api/src/modules/error-logs"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-270"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-024"
+      ],
       "test_plan": [
         "PLAN-019"
       ],
@@ -8559,7 +8566,7 @@
       "title": "Generated agreement PDFs render unsubstituted template placeholders",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
+      "current_status": "FIXED",
       "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-1541-generated-agreement-pdfs-render-unsubstituted-template-place.md",
@@ -8573,8 +8580,12 @@
         "contracts",
         "legal"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-268"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-022"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [

@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 208** · automated: 182 · manual: 9 · blocked by infrastructure: 0
+**Scenarios: 211** · automated: 185 · manual: 9 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -222,3 +222,6 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-TENANT-019](../../../docs/qa/scenarios/QA-TENANT-019-an-empty-list-distinguishes-no-data-from-no-matches.md) | An empty list distinguishes no data from no matches | runtime-modules | UNIT | MEDIUM | AUTOMATED | `apps/web/app/components/data-table/empty-state-message.spec.ts` | BUG-1654 | REG-265 |
 | [QA-TENANT-020](../../../docs/qa/scenarios/QA-TENANT-020-one-paid-signup-produces-exactly-one-customer-record.md) | One paid signup produces exactly one customer record | subscription-orders | UNIT | HIGH | AUTOMATED | `services/api/src/modules/billing/services/checkout-customer-record.spec.ts` | BUG-1516 | REG-266 |
 | [QA-TENANT-021](../../../docs/qa/scenarios/QA-TENANT-021-country-reaches-the-database-as-a-name-whichever-surface-wro.md) | Country reaches the database as a name, whichever surface wrote it | platform-admin | UNIT | HIGH | PARTIAL | `apps/admin/lib/runtime/country-field-submits-name.spec.ts` | BUG-1578 | REG-267 |
+| [QA-TENANT-022](../../../docs/qa/scenarios/QA-TENANT-022-an-agreement-template-refuses-a-source-that-cannot-fill-it.md) | An agreement template refuses a source that cannot fill it | platform-admin | UNIT | HIGH | AUTOMATED | `services/api/src/modules/contracts/source-fills-template.spec.ts` | BUG-1541 | REG-268 |
+| [QA-TENANT-023](../../../docs/qa/scenarios/QA-TENANT-023-a-monitoring-incident-opens-somewhere-that-exists.md) | A monitoring incident opens somewhere that exists | platform-admin | UNIT | HIGH | AUTOMATED | `apps/admin/app/_components/monitoring/monitoring-incident-link.spec.ts` | BUG-1419 | REG-269 |
+| [QA-TENANT-024](../../../docs/qa/scenarios/QA-TENANT-024-the-critical-incident-view-sees-severity-in-either-case.md) | The critical incident view sees severity in either case | platform-admin | UNIT | HIGH | AUTOMATED | `services/api/src/modules/platform-monitoring/incident-severity-case.spec.ts` | BUG-1420 | REG-270 |

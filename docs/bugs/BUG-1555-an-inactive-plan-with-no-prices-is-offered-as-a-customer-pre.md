@@ -108,7 +108,25 @@ Found in the same production admin E2E pass as [[BUG-1515]] and [[BUG-1516]].
 
 ## Resolution
 
-Not yet resolved.
+**Not fixed on 2026-08-27, deliberately.** Attempted and stopped, with what was
+learned recorded here rather than a rushed change left in a payment-adjacent
+area.
+
+The picker's options come from `/super-admin/plans`, which takes no filter and
+is shared with the Plans admin screen — a screen that must show inactive plans.
+Narrowing it there would break that screen; narrowing it in the lookup layer
+means introducing a per-field filter concept that does not exist yet.
+
+There is a second reason not to rush. A picker filter alone is a read filter,
+and this repository already records what that is worth: `/public/plans` hid
+internal prices while both write paths still sold them by id. The durable fix is
+a check on the write path, and `selectedPlanId` is written through the generic
+platform-runtime update, which has no per-field validation hook.
+
+Neither half is large, but together they are a small design decision rather than
+a patch, and the defect is data quality on a preference field — an unsellable
+plan surfaces at quoting, not as an access-control failure. That is why this was
+the one FIX_NOW record left open rather than the one hurried.
 
 ## QA Retest
 

@@ -2561,3 +2561,48 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | Guarded at the registry rather than on the single field that was wrong, because the recurrence is the next country field added to the next module, and it is invisible until something renders it. A populated wrong value is worse than an empty one: nothing looks broken, and no validator objects to a well-formed string. The affected production row was corrected to "Pakistan", the country that id names. |
 | **Fixed** | 2026-08-27, `agent/invitation-delivery-visibility` |
 | **Active** | yes |
+
+### REG-268 — A template paired with a source that cannot fill it
+
+| | |
+|---|---|
+| **Bug class** | `unfillable-pairing-accepted` |
+| **Module** | `contracts` |
+| **Bug record** | BUG-1541 |
+| **Root cause** | A "Tenant Provisioning & Service Order" was created from a **customer**. `customerSource()` emits the `customer.*` namespace and nothing else, setting `tenantId: undefined` explicitly, so of the template's 39 placeholders 8 resolved and 31 did not — every `tenant.*`, every `implementation.*`, every `hosting.*`, both `commercial.*`. The generated agreement rendered raw handlebars where a counterparty would read their own workspace address. `GET /api/contracts/{id}/document-fields` returned `source: null` for every unresolved one: nothing on that path had ever been going to fill them. The renderer was not at fault — it keeps an unresolved token so the signature gate can refuse the document. What was missing was anyone refusing the *pairing*, which is knowable before a byte is generated. |
+| **Regression test** | `services/api/src/modules/contracts/source-fills-template.spec.ts` |
+| **Scenario** | A provisioning template created from a customer is refused, and the refusal names the namespaces that cannot be filled so the operator knows which source would work. The same template from a tenant is allowed, a customer-shaped template from a customer is allowed, and a contract drafted without a template is unaffected. A separate check asserts the rule is reached from `createFromSource`. |
+| **Proven to fail without the fix** | Mutation-tested 2026-08-27, twice. Removing the rule fails 3 of 7; removing only its call site — which the first version of the spec did not catch — fails 1 of 7. |
+| **Note** | Two things this deliberately does not do. It considers only `required` placeholders, because optional terms are meant to be completed later and failing on those would break the progressive filling the document-fields editor exists for. And it ignores the namespaces the create step fills — `contract`, `platform`, `counterparty`, `sla`, `signature` — which the first implementation did not, and which made it refuse every creation until the spec caught it. |
+| **Fixed** | 2026-08-27, `agent/invitation-delivery-visibility` |
+| **Active** | yes |
+
+### REG-269 — A link to a route that was never built
+
+| | |
+|---|---|
+| **Bug class** | `link-without-a-destination` |
+| **Module** | `apps/admin` |
+| **Bug record** | BUG-1419 |
+| **Root cause** | `monitoring-overview.tsx` linked each incident title to `${QUEUE}/${incident.id}`, composing a record route under a constant that names the *queue*. No dynamic segment has ever existed under `settings/monitoring`, so every incident title on the overview was a link to a 404. With 1,495 incidents recorded, one critical and none ever resolved, the queue could be counted and sorted and never worked — and the "0 resolved" figure read as a backlog rather than as the absence of a working tool. |
+| **Regression test** | `apps/admin/app/_components/monitoring/monitoring-incident-link.spec.ts` |
+| **Scenario** | The incident link must resolve to a route that exists. The guard reads the component and asserts it does not compose a record path under the queue constant, and that it carries the incident's reference number as a query instead. |
+| **Proven to fail without the fix** | Mutation-tested 2026-08-27. Restoring the record-path href fails the check. |
+| **Note** | The incident now opens the queue filtered to its reference number rather than a detail page, because the queue already carries the filters, the assignment and the support-case link — everything working an incident needs. A dedicated record page may still be worth building; it belongs in a plan rather than in an href. |
+| **Fixed** | 2026-08-27, `agent/invitation-delivery-visibility` |
+| **Active** | yes |
+
+### REG-270 — A filter that could not see the rows it filtered
+
+| | |
+|---|---|
+| **Bug class** | `convention-only-in-the-reader` |
+| **Module** | `platform-monitoring` |
+| **Bug record** | BUG-1420 |
+| **Root cause** | `ErrorLog.severity` is a free-text column and production holds both spellings — a census found 1,466 rows lowercase against 5 uppercase. Every consumer compared against uppercase literals with strict equality, so the Critical view could see 1 of the 15 errors that existed. It did not fail and did not look empty; it answered a different question than the one asked. The readers were correct about the convention. The convention was never enforced by the schema, the DTO or the type system, and the minority spelling won by volume. |
+| **Regression test** | `services/api/src/modules/platform-monitoring/incident-severity-case.spec.ts` |
+| **Scenario** | The critical view must match `ERROR`, `FATAL`, `error` and `fatal`, and every level it lists must appear in both spellings — so adding a level in one case only fails. The status-driven views are asserted unchanged, since `supportStatus` is an enum and needs no case handling. |
+| **Proven to fail without the fix** | Mutation-tested 2026-08-27. Reverting to uppercase-only fails 3 of 6. |
+| **Note** | The duplication in the `in` list looks redundant and is load-bearing: Prisma's `in` has no insensitive mode, unlike `equals`, so the levels are listed rather than folded. The test exists partly so a tidying pass cannot quietly remove it. Normalising the column itself is the deeper fix and needs a migration — recorded on the bug, not attempted here. |
+| **Fixed** | 2026-08-27, `agent/invitation-delivery-visibility` |
+| **Active** | yes |
