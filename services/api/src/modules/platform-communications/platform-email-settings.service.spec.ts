@@ -63,12 +63,31 @@ describe('PlatformEmailSettingsService', () => {
       resolveProvider: jest.fn(async () => null),
     };
     const audit = { log: jest.fn(async () => undefined) };
+    /*
+     * Resolving the stored row into a provider moved to
+     * PlatformEmailProviderResolver in notifications, so the delivery path can
+     * reach it too (PLAN-023). This service delegates; the real resolution is
+     * covered by platform-email-provider.resolver.spec.ts.
+     */
+    const platformProvider = {
+      resolve: jest.fn(async () => ({
+        provider,
+        providerType: 'SMTP',
+        providerSettingId: null,
+        fromEmail: 'ops@dijipeople.com',
+        fromName: 'DijiPeople',
+        replyToEmail: null,
+        configuration: {},
+        source: 'platform',
+      })),
+    };
     const service = new PlatformEmailSettingsService(
       prisma as never,
       { get: jest.fn(() => environment) } as never,
       encryption as never,
       providers as never,
       audit as never,
+      platformProvider as never,
     );
     return {
       service,
@@ -77,6 +96,7 @@ describe('PlatformEmailSettingsService', () => {
       validateConfig,
       testConnection,
       audit,
+      platformProvider,
       readStored: () => stored,
     };
   }
@@ -148,8 +168,27 @@ describe('PlatformEmailSettingsService', () => {
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
-  it('tests the saved provider with the decrypted configuration', async () => {
-    const { service, testConnection } = setup();
+  /*
+   * Decryption itself moved to PlatformEmailProviderResolver with PLAN-023, and
+   * platform-email-provider.resolver.spec.ts asserts it directly -- that the
+   * stored ciphertext is passed to decrypt() and the plaintext reaches the
+   * configuration. What remains this service's responsibility, and what this
+   * covers, is that it connection-tests whatever the resolver handed back
+   * rather than rebuilding a configuration of its own.
+   */
+  it('tests the provider configuration exactly as the resolver returned it', async () => {
+    const { service, testConnection, platformProvider } = setup();
+    platformProvider.resolve.mockResolvedValueOnce({
+      provider: { validateConfig: jest.fn(), testConnection },
+      providerType: 'SMTP',
+      providerSettingId: null,
+      fromEmail: 'ops@dijipeople.com',
+      fromName: 'DijiPeople',
+      replyToEmail: null,
+      configuration: { host: 'smtp.example', password: 'resolved-secret' },
+      source: 'platform',
+    } as never);
+
     await service.updateSettings(owner, smtpInput);
     await expect(service.testConnection(owner)).resolves.toEqual({
       success: true,
@@ -158,7 +197,7 @@ describe('PlatformEmailSettingsService', () => {
       source: 'platform',
     });
     expect(testConnection).toHaveBeenCalledWith(
-      expect.objectContaining({ password: 'first-secret' }),
+      expect.objectContaining({ password: 'resolved-secret' }),
     );
   });
 

@@ -11,6 +11,7 @@ import { SecretEncryptionService } from '../../../common/security/secret-encrypt
 import { SECRET_KEY_PATTERN } from './email-safety';
 import { NotificationsRepository } from '../notifications.repository';
 import { EmailProviderFactory } from './email-provider-factory.service';
+import { PlatformEmailProviderResolver } from './platform-email-provider.resolver';
 import {
   EmailTemplateRendererService,
   EmailTemplateRenderResult,
@@ -44,6 +45,19 @@ export type SendTemplateEmailInput = {
   metadata?: Record<string, unknown> | null;
   requestedByUserId?: string | null;
   dryRun?: boolean;
+  /*
+   * Who is sending, not who it is about. A tenant id says which workspace the
+   * message concerns; it does not say whether DijiPeople or the tenant is the
+   * sender. Activation links are issued by the platform during provisioning and
+   * go out over the platform's own relay — a tenant that has not finished
+   * onboarding has no working SMTP, and one that has should not be relaying our
+   * account-security mail.
+   *
+   * Defaults to TENANT, so every existing caller keeps the behaviour it had.
+   * Never accepted from a request body: the global ValidationPipe runs
+   * forbidNonWhitelisted and no DTO exposes this. See PLAN-023.
+   */
+  origin?: 'PLATFORM' | 'TENANT';
 };
 
 export type SendTemplateEmailResult = {
@@ -73,7 +87,42 @@ export class EmailExecutionService {
     private readonly providerFactory: EmailProviderFactory,
     private readonly tenantSettingsResolver: TenantSettingsResolverService,
     private readonly secretEncryption: SecretEncryptionService,
+    private readonly platformProvider: PlatformEmailProviderResolver,
   ) {}
+
+  /**
+   * Which provider sends this message.
+   *
+   * Platform-originated mail uses the platform provider and does not consult
+   * tenant configuration at all — an activation link from DijiPeople is sent by
+   * DijiPeople, never relayed through a customer's server, and a tenant mid-
+   * provisioning has no relay to offer anyway.
+   *
+   * Tenant-originated mail prefers the tenant's own provider, then falls back
+   * to the platform's. The platform sits ahead of the environment fallback
+   * deliberately: it is the configuration an operator can see and change on a
+   * screen, whereas `EMAIL_*` is deployment config that, on this deployment,
+   * was declared in `render.yaml` and never actually in effect (BUG-1595).
+   *
+   * Both paths end at the same base chain, so nothing that worked before stops
+   * working. See PLAN-023.
+   */
+  private async resolveProviderForOrigin(input: SendTemplateEmailInput) {
+    if (input.origin === 'PLATFORM') {
+      return (
+        (await this.platformProvider.resolve()) ??
+        (await this.providerFactory.resolveProvider(input.tenantId))
+      );
+    }
+
+    return (
+      (await this.providerFactory.resolveProvider(input.tenantId, {
+        tenantOnly: true,
+      })) ??
+      (await this.platformProvider.resolve()) ??
+      (await this.providerFactory.resolveProvider(input.tenantId))
+    );
+  }
 
   /*
    * Explicit placement always wins; the employee lookup only fills what the
@@ -247,9 +296,7 @@ export class EmailExecutionService {
     }
 
     const providerResolutionStartedAt = performance.now();
-    const resolvedProvider = await this.providerFactory.resolveProvider(
-      input.tenantId,
-    );
+    const resolvedProvider = await this.resolveProviderForOrigin(input);
     const providerResolutionDurationMs = Math.round(
       performance.now() - providerResolutionStartedAt,
     );

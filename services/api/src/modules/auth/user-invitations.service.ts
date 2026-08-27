@@ -428,6 +428,15 @@ export class UserInvitationsService {
     return this.emailService.sendTemplateEmail({
       tenantId: input.tenantId,
       subjectUserId: input.userId,
+      /*
+       * The platform issues this, not the tenant. It carries an account
+       * activation link and is the only way into a workspace that has just
+       * been provisioned — at which point the tenant has no email provider of
+       * its own, because nothing in provisioning creates one. Sending it over
+       * the tenant's relay is what left a paying customer's owner permanently
+       * at INVITED with no way in (BUG-1515, BUG-1595). PLAN-023.
+       */
+      origin: 'PLATFORM',
       eventCode: 'AUTH_ACCOUNT_ACTIVATION',
       templateKey: 'AUTH_ACCOUNT_ACTIVATION',
       recipient: input.email,
