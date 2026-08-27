@@ -32,7 +32,7 @@ survives every review by being unfalsifiable.
 | Ownerless actionable records | 0 |
 | No acceptance criteria | 63 |
 | No next action | 63 |
-| Aging — 7d / 30d / 90d | 14 / 0 / 0 |
+| Aging — 7d / 30d / 90d | 15 / 0 / 0 |
 | Architecture and technical debt | 6 |
 | Security gaps | 3 |
 | Database gaps | 4 |
