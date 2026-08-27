@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**301 records** — 200 bugs under [`docs/bugs/`](../bugs/), 101 non-bug items under [`items/`](items/).
+**303 records** — 201 bugs under [`docs/bugs/`](../bugs/), 102 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -15,7 +15,7 @@ see [`README.md`](README.md) for why.
 |---|---|
 | Open (active work) | 47 |
 | Blocked | 2 |
-| Deferred | 42 |
+| Deferred | 44 |
 | Awaiting a product decision | 2 |
 | Completed / closed | 208 |
 | **Open CRITICAL** | **6** |
@@ -53,7 +53,7 @@ see [`README.md`](README.md) for why.
 |---|---|
 | OPEN | 19 |
 | BLOCKED | 2 |
-| DEFERRED | 42 |
+| DEFERRED | 44 |
 | PRODUCT_DECISION | 2 |
 | FIXED | 6 |
 | VERIFIED | 150 |
@@ -264,6 +264,7 @@ see [`README.md`](README.md) for why.
 | [BUG-1654](../../docs/bugs/BUG-1654-every-empty-list-in-a-new-workspace-blames-filters-that-are-.md) | Every empty list in a new workspace blames filters that are not set | UX | MEDIUM | P2 | OPEN | views, employees | FIX_NOW |
 | [BUG-1655](../../docs/bugs/BUG-1655-tenant-login-password-field-has-no-accessible-name-and-no-au.md) | Tenant login password field has no accessible name and no autocomplete hint | UX | MEDIUM | P2 | DEFERRED | auth | DEFER |
 | [BUG-1668](../../docs/bugs/BUG-1668-tenant-workspace-pages-scroll-horizontally-at-mobile-width.md) | Tenant workspace pages scroll horizontally at mobile width | UX | MEDIUM | P2 | DEFERRED | views | DEFER |
+| [BUG-1673](../../docs/bugs/BUG-1673-tenant-workspace-shell-repeats-three-h1-headings-and-two-mai.md) | Tenant workspace shell repeats three h1 headings and two main landmarks on every screen | UX | MEDIUM | P2 | DEFERRED | views | DEFER |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |
@@ -365,6 +366,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0091](../../docs/backlog/items/ITEM-0091-repo-health-blocks-every-release-task-on-its-own-defining-ou.md) | repo:health blocks every RELEASE task on its own defining outcome | INFRA | — | P2 | DONE | framework | DONE |
 | [ITEM-0100](../../docs/backlog/items/ITEM-0100-apps-landing-env-examples-omit-next-public-web-root-domain-a.md) | apps/landing env examples omit NEXT_PUBLIC_WEB_ROOT_DOMAIN and no parity test guards them | INFRA | — | P2 | DONE | apps/landing, pkg:config | DONE |
 | [ITEM-0101](../../docs/backlog/items/ITEM-0101-mailerservice-silently-logs-instead-of-sending-and-nothing-u.md) | MailerService silently logs instead of sending, and nothing uses it | TECH_DEBT | — | P2 | DEFERRED | services/api/src/common/mailer | DEFER |
+| [ITEM-0102](../../docs/backlog/items/ITEM-0102-move-switch-workspace-into-the-avatar-menu.md) | Move Switch workspace into the avatar menu | UX | — | P2 | DEFERRED | views | DEFER |
 | [ITEM-0058](../../docs/backlog/items/ITEM-0058-next-env-d-ts-churns-between-dev-and-build-forms-and-the-fou.md) | next-env.d.ts churns between dev and build forms and the four apps disagree | TECH_DEBT | — | P3 | DEFERRED | apps/landing, apps/web, apps/admin | DEFER |
 | [ITEM-0059](../../docs/backlog/items/ITEM-0059-49-tracked-text-files-have-no-final-newline-and-nothing-enfo.md) | 49 tracked text files have no final newline, and nothing enforces one | TECH_DEBT | — | P3 | DEFERRED | apps/admin, apps/web, apps/agent-desktop | DEFER |
 

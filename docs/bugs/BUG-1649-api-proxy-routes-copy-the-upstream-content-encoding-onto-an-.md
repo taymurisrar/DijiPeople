@@ -120,8 +120,13 @@ apps/web/app/api/projects/[projectId]/resources/route.ts
 apps/web/app/api/projects/[projectId]/timesheets/route.ts
 apps/web/app/api/settings/my-preferences/route.ts
 apps/web/app/api/settings/resolved-context/route.ts
-apps/admin/app/api/support-cases/[[...path]]/route.ts
+apps/admin/app/api/support-cases/<optional-catch-all>/route.ts
 ```
+
+The admin route's real segment is an optional catch-all whose doubled
+brackets are indistinguishable from a wikilink, so it is written above as
+`<optional-catch-all>`. Backticks do not escape the syntax — a record naming
+the file breaks the link check that reads it.
 
 ## Impact
 
