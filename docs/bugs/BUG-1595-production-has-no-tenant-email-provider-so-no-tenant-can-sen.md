@@ -101,6 +101,37 @@ instance of the same class.
 Whether the variables are now present after the 2026-08-27 deploy has **not**
 been confirmed — see QA Retest.
 
+## The platform SMTP screen is not the fix
+
+Settings → Email in the admin console shows a fully configured, working SMTP
+provider — `live.smtp.mailtrap.io:2525`, STARTTLS, authenticated, sending as
+`notifications@dijipeople.com`, password stored. It is reasonable to look at
+that and conclude this record is wrong. It is not, and the reason is worth
+stating plainly because anyone diagnosing this will land on that screen first.
+
+**That screen configures the platform provider, and the tenant delivery path
+never reads it.** The screen says so itself, above the provider cards: "One
+platform-level provider supplies internal DijiPeople messages. Tenant email
+configuration is separate and is not exposed here."
+
+Two separate stores, with no bridge:
+
+| | Platform email | Tenant email |
+|---|---|---|
+| Stored in | `PlatformSetting`, one settings key | `EmailProviderSetting`, `WHERE tenantId = <tenant>` |
+| Read by | `PlatformEmailSettingsService` | `EmailProviderFactoryService.resolveProvider(tenantId)` |
+| Fallback | none | `EMAIL_*` environment variables |
+
+Verified by grep: `platformSetting` does not appear anywhere under
+`services/api/src/modules/notifications/`. The tenant path cannot see the
+platform row even in principle.
+
+This is also why the platform delivery log looked healthy while no tenant mail
+was going out, and why the platform test email to an external Gmail inbox
+succeeded on 2026-08-26. Both were exercising the working half.
+
+Changing anything on that screen will not deliver a single tenant message.
+
 ## Impact
 
 Critical, and customer-facing on the revenue path.
