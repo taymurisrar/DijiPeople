@@ -121,7 +121,8 @@ the API, never through the login screen.
 
 ## Affected Areas
 
-- `NEXT_PUBLIC_WEB_ROOT_DOMAIN` on the `apps/web` deployment
+- `NEXT_PUBLIC_WEB_ROOT_DOMAIN` on the **Vercel** project for `apps/web` —
+  not Render, which serves only `dijipeople-api`
 - `docs/environment-variables.md:303,326` — prescribes the wrong value
 - `apps/web/lib/tenant-resolution.ts` — `getTenantRootDomain`, host hint parsing
 - `apps/web/lib/tenant-url.ts` — `buildTenantPortalUrl`, `buildTenantLoginUrl`,
@@ -131,9 +132,22 @@ the API, never through the login screen.
 
 ## Proposed Resolution
 
-Set `NEXT_PUBLIC_WEB_ROOT_DOMAIN=ws.dijipeople.com` on the `apps/web` deployment
-and correct both lines in `docs/environment-variables.md`. That alone fixes both
-symptoms, because the dot check passes once the root domain is right.
+**Set `NEXT_PUBLIC_WEB_ROOT_DOMAIN=ws.dijipeople.com` on the Vercel project for
+`apps/web`, then redeploy**, and correct both lines in
+`docs/environment-variables.md`. That alone fixes both symptoms, because the dot
+check passes once the root domain is right.
+
+Two details that cost time on 2026-08-27 and belong here rather than in
+somebody's memory:
+
+- **It is not a Render variable.** `render.yaml` declares exactly one service,
+  `dijipeople-api`. `app.dijipeople.com` answers with `Server: Vercel`. The
+  owner set the correct value on Render first, where the API — which never reads
+  it — happily ignored it. Nothing in the documentation says which platform
+  serves which app, and this record is the second time that gap has bitten.
+- **A restart is not enough.** `NEXT_PUBLIC_*` is inlined into the client bundle
+  at build time, so the value only takes effect on a rebuild. A running
+  deployment will keep serving the old string however the dashboard reads.
 
 Then harden, because a configuration value that silently produces an unreachable
 product is the actual defect:

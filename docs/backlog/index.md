@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**298 records** — 197 bugs under [`docs/bugs/`](../bugs/), 101 non-bug items under [`items/`](items/).
+**300 records** — 199 bugs under [`docs/bugs/`](../bugs/), 101 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,9 +13,9 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 46 |
+| Open (active work) | 47 |
 | Blocked | 2 |
-| Deferred | 40 |
+| Deferred | 41 |
 | Awaiting a product decision | 2 |
 | Completed / closed | 208 |
 | **Open CRITICAL** | **6** |
@@ -28,7 +28,7 @@ see [`README.md`](README.md) for why.
 |---|---|
 | CRITICAL | 6 |
 | HIGH | 15 |
-| MEDIUM | 21 |
+| MEDIUM | 22 |
 | LOW | 4 |
 
 ## Open by type
@@ -45,15 +45,15 @@ see [`README.md`](README.md) for why.
 | STATE_MACHINE | 2 |
 | TECH_DEBT | 5 |
 | TEST_GAP | 7 |
-| UX | 3 |
+| UX | 4 |
 
 ## All records by status
 
 | Status | Count |
 |---|---|
-| OPEN | 18 |
+| OPEN | 19 |
 | BLOCKED | 2 |
-| DEFERRED | 40 |
+| DEFERRED | 41 |
 | PRODUCT_DECISION | 2 |
 | FIXED | 6 |
 | VERIFIED | 150 |
@@ -261,6 +261,8 @@ see [`README.md`](README.md) for why.
 | [BUG-1553](../../docs/bugs/BUG-1553-owner-and-template-pickers-list-indistinguishable-duplicate-.md) | Owner and template pickers list indistinguishable duplicate entries | UX | MEDIUM | P2 | DEFERRED | contracts, platform-users | DEFER |
 | [BUG-1554](../../docs/bugs/BUG-1554-admin-requests-its-own-partners-api-with-a-rejected-pagesize.md) | Admin requests its own partners API with a rejected pageSize | BUG | MEDIUM | P2 | DEFERRED | partners | DEFER |
 | [BUG-1555](../../docs/bugs/BUG-1555-an-inactive-plan-with-no-prices-is-offered-as-a-customer-pre.md) | An inactive plan with no prices is offered as a customer preferred plan | BUG | MEDIUM | P2 | OPEN | super-admin, billing | FIX_NOW |
+| [BUG-1654](../../docs/bugs/BUG-1654-every-empty-list-in-a-new-workspace-blames-filters-that-are-.md) | Every empty list in a new workspace blames filters that are not set | UX | MEDIUM | P2 | OPEN | views, employees | FIX_NOW |
+| [BUG-1655](../../docs/bugs/BUG-1655-tenant-login-password-field-has-no-accessible-name-and-no-au.md) | Tenant login password field has no accessible name and no autocomplete hint | UX | MEDIUM | P2 | DEFERRED | auth | DEFER |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |

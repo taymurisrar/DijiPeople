@@ -9,10 +9,10 @@
 |---|---|
 | Open CRITICAL | **6** |
 | Open HIGH | **15** |
-| Open total | 46 |
+| Open total | 47 |
 | Blocked | 2 |
 | Awaiting a product decision | 2 |
-| Deferred | 40 |
+| Deferred | 41 |
 | Completed | 208 |
 | Awaiting Architect triage | 0 |
 
@@ -293,6 +293,7 @@
 | [[BUG-1424-the-admin-console-serves-no-content-security-policy-header|BUG-1424]] | The admin console serves no Content-Security-Policy header | SECURITY | MEDIUM | OPEN | apps/admin | PLAN_REQUIRED |
 | [[BUG-1545-manual-customer-onboarding-creation-fails-on-an-owner-foreig|BUG-1545]] | Manual customer onboarding creation fails on an owner foreign key | BUG | MEDIUM | OPEN | platform-runtime, onboarding | PLAN_REQUIRED |
 | [[BUG-1555-an-inactive-plan-with-no-prices-is-offered-as-a-customer-pre|BUG-1555]] | An inactive plan with no prices is offered as a customer preferred plan | BUG | MEDIUM | OPEN | super-admin, billing | FIX_NOW |
+| [[BUG-1654-every-empty-list-in-a-new-workspace-blames-filters-that-are-|BUG-1654]] | Every empty list in a new workspace blames filters that are not set | UX | MEDIUM | OPEN | views, employees | FIX_NOW |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0020-contract-phase-drop-legacy-plan-pricing-columns|ITEM-0020]] | Contract phase: drop legacy Plan pricing columns | TECH_DEBT | MEDIUM | READY | services/api/prisma, api:super-admin, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur|ITEM-0022]] | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | READY | api:super-admin, apps/admin | PLAN_REQUIRED |
@@ -327,7 +328,7 @@
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 197 |
+| Bug records | 199 |
 | Backlog items | 101 |
 | Known bug patterns | 29 |
 | QA runs | 27 |
