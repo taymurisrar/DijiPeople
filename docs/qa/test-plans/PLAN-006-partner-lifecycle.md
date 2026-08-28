@@ -3,7 +3,7 @@ PLAN_ID: PLAN-006
 aliases: [PLAN-006]
 TITLE: Partner Lifecycle
 AREA: partner-lifecycle
-STATUS: NEEDS_REVIEW
+STATUS: CURRENT
 MODULES: [services/api/src/modules/partners, services/api/src/modules/partner-experience]
 RISK: HIGH
 COVERAGE_UNIT: GAP
@@ -17,13 +17,23 @@ COVERAGE_PERFORMANCE: NOT_APPLICABLE
 RELATED_BUGS: [BUG-0016, BUG-0019, BUG-0025, BUG-0048]
 RELATED_REGRESSIONS: [REG-014, REG-015, REG-022, REG-028, REG-039]
 CREATED_AT: 2026-08-16
-UPDATED_AT: 2026-08-17
-VERIFIED_AGAINST_SHA: 714632d
+UPDATED_AT: 2026-08-29
+VERIFIED_AGAINST_SHA: 287612d
 ---
 
-> **TASK-0005 revalidation:** `VERIFIED_AGAINST_SHA` remains historical. The
-> browser suite has one stale skipped BUG-0019 assertion, so WP-07 must restore
-> that proof and re-audit the lifecycle before `CURRENT` is restored.
+> **Reviewed 2026-08-29 against `287612d`** (ITEM-0081). The note this replaces held the plan on a stale skipped BUG-0019 browser assertion, owned by WP-07. WP-07 is `DONE` and the assertion is no longer skipped.
+>
+> Checked rather than assumed, for every plan in this sweep: each path in
+> `MODULES` exists, each `RELATED_BUGS` id resolves to a record, and each
+> `RELATED_REGRESSIONS` id resolves to an entry in the register. All resolved.
+> Verified directly: `e2e/tests/flow-b-partner-journey.spec.ts` case **B4**
+> navigates to the inquiry the way a reviewer would and asserts what is
+> reachable. The `test.skip` calls remaining in that file are conditional data
+> guards — "B1 did not produce an inquiry to review" — not the BUG-0019 skip.
+>
+> **The coverage fields are unchanged, and that is deliberate.** Returning a
+> plan to `CURRENT` says its description matches the system today — not that the
+> system is well covered. Every `GAP` below is still a gap.
 
 # PLAN-006 — Partner Lifecycle
 

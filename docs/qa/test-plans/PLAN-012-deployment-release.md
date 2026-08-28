@@ -3,7 +3,7 @@ PLAN_ID: PLAN-012
 aliases: [PLAN-012]
 TITLE: Deployment and Release
 AREA: deployment-release
-STATUS: NEEDS_REVIEW
+STATUS: CURRENT
 MODULES: [scripts, services/api/src/config, services/api/src/modules/app-releases, docs/deployment]
 RISK: HIGH
 COVERAGE_UNIT: GOOD
@@ -17,13 +17,24 @@ COVERAGE_PERFORMANCE: NOT_APPLICABLE
 RELATED_BUGS: [BUG-0023, BUG-0026, BUG-0037, BUG-0042, BUG-0047]
 RELATED_REGRESSIONS: [REG-016, REG-018, REG-035, REG-036, REG-038]
 CREATED_AT: 2026-08-16
-UPDATED_AT: 2026-08-17
-VERIFIED_AGAINST_SHA: 714632d
+UPDATED_AT: 2026-08-29
+VERIFIED_AGAINST_SHA: 287612d
 ---
 
-> **TASK-0005 revalidation:** `VERIFIED_AGAINST_SHA` remains historical. CI now
-> has 11 required jobs, browser E2E is required, and database/security reports
-> still need WP-09 integrity work; WP-08 through WP-10 own the full re-audit.
+> **Reviewed 2026-08-29 against `287612d`** (ITEM-0081). The note this replaces assigned the re-audit to WP-08 through WP-10 of TASK-0005, pending WP-09 CI integrity work. All are `DONE`; WP-09 put the dual-permission invariant inside the required gate and deleted the report-only job.
+>
+> Checked rather than assumed, for every plan in this sweep: each path in
+> `MODULES` exists, each `RELATED_BUGS` id resolves to a record, and each
+> `RELATED_REGRESSIONS` id resolves to an entry in the register. All resolved.
+> **One factual correction.** That note said "CI now has 11 required jobs". It
+> is **fourteen**, counted from the gate's own `needs` list in
+> `.github/workflows/ci.yml`: resolve, validate, typecheck, lint, test-api,
+> test-web, test-admin, test-landing, test-agent-desktop, test-runtime,
+> database-migration, database-e2e-report, build, browser-e2e.
+>
+> **The coverage fields are unchanged, and that is deliberate.** Returning a
+> plan to `CURRENT` says its description matches the system today — not that the
+> system is well covered. Every `GAP` below is still a gap.
 
 # PLAN-012 — Deployment and Release
 

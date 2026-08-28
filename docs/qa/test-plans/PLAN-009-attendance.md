@@ -3,7 +3,7 @@ PLAN_ID: PLAN-009
 aliases: [PLAN-009]
 TITLE: Attendance
 AREA: attendance
-STATUS: NEEDS_REVIEW
+STATUS: CURRENT
 MODULES: [services/api/src/modules/attendance, services/api/src/modules/attendance-engine, services/api/src/modules/attendance-integrations]
 RISK: CRITICAL
 COVERAGE_UNIT: GOOD
@@ -17,13 +17,24 @@ COVERAGE_PERFORMANCE: GAP
 RELATED_BUGS: [BUG-0002, BUG-0047]
 RELATED_REGRESSIONS: [REG-002]
 CREATED_AT: 2026-08-16
-UPDATED_AT: 2026-08-17
-VERIFIED_AGAINST_SHA: 714632d
+UPDATED_AT: 2026-08-29
+VERIFIED_AGAINST_SHA: 287612d
 ---
 
-> **TASK-0005 revalidation:** `VERIFIED_AGAINST_SHA` remains historical. Exact
-> CI has failing attendance-engine and attendance-integration suites; WP-04 and
-> WP-06 must classify them before `CURRENT` is restored.
+> **Reviewed 2026-08-29 against `287612d`** (ITEM-0081). The note this replaces held the plan on failing attendance-engine and attendance-integration suites in exact CI, for WP-04 and WP-06 to classify. Both are `DONE`, and the suites pass.
+>
+> Checked rather than assumed, for every plan in this sweep: each path in
+> `MODULES` exists, each `RELATED_BUGS` id resolves to a record, and each
+> `RELATED_REGRESSIONS` id resolves to an entry in the register. All resolved.
+> Measured rather than read: `attendance-integrations-http`,
+> `attendance-operational` and `attendance-review` were run against a database
+> on 2026-08-29 — 3 suites, 87 tests, all passing. They were also edited that
+> day for the identity contract phase, so this is a fresh result rather than an
+> inherited one.
+>
+> **The coverage fields are unchanged, and that is deliberate.** Returning a
+> plan to `CURRENT` says its description matches the system today — not that the
+> system is well covered. Every `GAP` below is still a gap.
 
 # PLAN-009 — Attendance
 

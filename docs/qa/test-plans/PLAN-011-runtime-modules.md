@@ -3,7 +3,7 @@ PLAN_ID: PLAN-011
 aliases: [PLAN-011]
 TITLE: Runtime Module System
 AREA: runtime-modules
-STATUS: NEEDS_REVIEW
+STATUS: CURRENT
 MODULES: [services/api/src/modules/data, services/api/src/modules/customization, apps/web/lib/runtime, apps/admin/lib/runtime]
 RISK: HIGH
 COVERAGE_UNIT: GOOD
@@ -17,13 +17,24 @@ COVERAGE_PERFORMANCE: NOT_APPLICABLE
 RELATED_BUGS: [BUG-0019, BUG-0020, BUG-0044]
 RELATED_REGRESSIONS: [REG-028, REG-029, REG-037]
 CREATED_AT: 2026-08-16
-UPDATED_AT: 2026-08-17
-VERIFIED_AGAINST_SHA: 714632d
+UPDATED_AT: 2026-08-29
+VERIFIED_AGAINST_SHA: 287612d
 ---
 
-> **TASK-0005 revalidation:** `VERIFIED_AGAINST_SHA` remains historical. The
-> documented workflow now matches the live path, but browser runtime coverage
-> remains manual; WP-07 and WP-10 own the full re-audit.
+> **Reviewed 2026-08-29 against `287612d`** (ITEM-0081). The note this replaces assigned the full re-audit to WP-07 and WP-10 of TASK-0005. Both are `DONE`.
+>
+> Checked rather than assumed, for every plan in this sweep: each path in
+> `MODULES` exists, each `RELATED_BUGS` id resolves to a record, and each
+> `RELATED_REGRESSIONS` id resolves to an entry in the register. All resolved.
+> The runtime moved under this plan on 2026-08-28 and the plan still fits:
+> `remove` and `bulkDelete` in `platform-runtime.service.ts` were collapsed onto
+> one `deleteRecords`, so a module can no longer be deletable one way and not
+> the other. `generic-delete.spec.ts` drives both paths for all seventeen
+> modules.
+>
+> **The coverage fields are unchanged, and that is deliberate.** Returning a
+> plan to `CURRENT` says its description matches the system today — not that the
+> system is well covered. Every `GAP` below is still a gap.
 
 # PLAN-011 — Runtime Module System
 

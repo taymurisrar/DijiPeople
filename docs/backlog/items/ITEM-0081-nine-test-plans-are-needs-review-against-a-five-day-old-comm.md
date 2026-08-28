@@ -3,15 +3,15 @@ ID: ITEM-0081
 aliases: [ITEM-0081]
 Title: Nine test plans are NEEDS_REVIEW against a five-day-old commit
 Type: TEST_GAP
-Status: READY
+Status: DONE
 Priority: P2
 Severity: MEDIUM
 AffectedModules: [docs/qa/test-plans]
 Source: USER_REPORT
 OwnerAgent: qa
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 CreatedAt: 2026-08-22
-UpdatedAt: 2026-08-22
+UpdatedAt: 2026-08-29
 RelatedBug: 
 RelatedQA: 
 RelatedADR: 
@@ -107,6 +107,48 @@ None.
 ## Related Items
 
 [[BUG-0627]] · [[ITEM-0034]] · [[ITEM-0078]].
+
+
+## Resolution — 2026-08-29
+
+All nine reviewed and returned to `CURRENT` against `287612d`. **21 of 21 test
+plans are now `CURRENT`.**
+
+Every one was held by a `TASK-0005 revalidation` note naming work packages that
+had to re-audit it first. The finding is that **all of those packages were
+already `DONE`** — WP-02 and WP-04 through WP-10 — some of them for eleven days.
+The plans were not waiting on work; they were waiting on somebody to notice the
+work had finished. That is the same shape as ITEM-0062 and BUG-0018 this week:
+a record outliving its own premise.
+
+### What was actually checked
+
+Mechanically, for all nine: every path in `MODULES` exists, every
+`RELATED_BUGS` id resolves to a record, every `RELATED_REGRESSIONS` id resolves
+to a register entry. No dangling reference in any of them.
+
+Then the specific claim each note made, because a discharged dependency is not
+the same as a discharged claim:
+
+| Plan | The claim | What it is now |
+|---|---|---|
+| PLAN-002 | 796 dual-permission violations, WP-03 to re-audit | **Zero.** WP-03 restored the wiring across 30 controllers at `2313bef`; WP-09 moved the invariant inside the required gate. `wiring-invariants` (6) and `dual-permission-remediation` (30) both pass. |
+| PLAN-006 | a stale skipped BUG-0019 browser assertion | **Not skipped.** `flow-b-partner-journey` B4 asserts reachability. The remaining `test.skip` calls in that file are conditional data guards. |
+| PLAN-009 | failing attendance-engine and attendance-integration suites | **Passing.** Run against a database on 2026-08-29: 3 suites, 87 tests. Freshly run rather than inherited — those suites were edited the same day for the identity contract phase. |
+| PLAN-012 | "CI now has 11 required jobs" | **Fourteen**, counted from the gate's own `needs` list. Corrected in the plan. |
+
+### What this deliberately does not claim
+
+**No coverage field was changed.** Every `GAP` is still a gap —
+`COVERAGE_API`, `COVERAGE_DATABASE`, `COVERAGE_INTEGRATION` and
+`COVERAGE_BROWSER` on PLAN-002 among them. `CURRENT` means the plan describes
+the system; it does not mean the system is well tested, and conflating the two
+is how a status stops being worth reading.
+
+The underlying complaint in this record — that nothing was maintaining the
+plans — is not fixed by one sweep. Nothing yet ages a plan automatically or
+flags one whose `VERIFIED_AGAINST_SHA` has fallen far behind `develop`. That is
+worth a check in `rebuild-qa.mjs`, and it is not in this change.
 
 ## History
 

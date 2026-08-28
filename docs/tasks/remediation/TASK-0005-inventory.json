@@ -14471,14 +14471,14 @@
         "provenance": "USER_REPORT",
         "detected_in_sha": "",
         "created_at": "2026-08-22",
-        "updated_at": "2026-08-22",
+        "updated_at": "2026-08-29",
         "resolved_at": ""
       },
       "type": "TEST_GAP",
       "title": "Nine test plans are NEEDS_REVIEW against a five-day-old commit",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "READY",
+      "current_status": "DONE",
       "current_evidence": {
         "paths": [
           "docs/qa/test-plans"
@@ -14503,7 +14503,7 @@
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "verification_result": "NOT_VERIFIED"
     },
     {
@@ -14984,14 +14984,14 @@
       "title": "go-live.sh reports no blocker for a webhook endpoint that rejects every delivery",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "READY",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0094-go-live-sh-reports-no-blocker-for-a-webhook-endpoint-that-re.md",
         "provenance": "ARCHITECT",
         "detected_in_sha": "",
         "created_at": "2026-08-24",
-        "updated_at": "2026-08-24",
+        "updated_at": "2026-08-29",
         "resolved_at": ""
       },
       "affected_modules": [

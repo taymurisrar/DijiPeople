@@ -3,7 +3,7 @@ PLAN_ID: PLAN-005
 aliases: [PLAN-005]
 TITLE: Lead Management and Public Acquisition
 AREA: lead-management
-STATUS: NEEDS_REVIEW
+STATUS: CURRENT
 MODULES: [services/api/src/modules/leads, services/api/src/common/guards, services/api/src/common/security, apps/landing]
 RISK: HIGH
 COVERAGE_UNIT: GOOD
@@ -17,13 +17,23 @@ COVERAGE_PERFORMANCE: NOT_APPLICABLE
 RELATED_BUGS: [BUG-0013, BUG-0018, BUG-0021, BUG-0031, BUG-0032]
 RELATED_REGRESSIONS: [REG-011, REG-021, REG-023, REG-024]
 CREATED_AT: 2026-08-16
-UPDATED_AT: 2026-08-17
-VERIFIED_AGAINST_SHA: 714632d
+UPDATED_AT: 2026-08-29
+VERIFIED_AGAINST_SHA: 287612d
 ---
 
-> **TASK-0005 revalidation:** `VERIFIED_AGAINST_SHA` remains historical. Lead
-> acquisition and public-surface changes were not fully re-audited in WP-02;
-> WP-07 and WP-10 own the revalidation before `CURRENT` is restored.
+> **Reviewed 2026-08-29 against `287612d`** (ITEM-0081). The note this replaces assigned revalidation to WP-07 and WP-10 of TASK-0005. Both are `DONE`.
+>
+> Checked rather than assumed, for every plan in this sweep: each path in
+> `MODULES` exists, each `RELATED_BUGS` id resolves to a record, and each
+> `RELATED_REGRESSIONS` id resolves to an entry in the register. All resolved.
+> One change since it was written, and it belongs in this plan: BUG-0018 was
+> decided twice on 2026-08-28 — bulk lead delete withdrawn, then restored the
+> same day as part of making bulk delete generic. `QA-TENANT-050` was rewritten
+> to match and now guards the rule rather than the exception.
+>
+> **The coverage fields are unchanged, and that is deliberate.** Returning a
+> plan to `CURRENT` says its description matches the system today — not that the
+> system is well covered. Every `GAP` below is still a gap.
 
 # PLAN-005 — Lead Management and Public Acquisition
 

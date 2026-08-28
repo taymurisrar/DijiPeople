@@ -3,15 +3,15 @@ ID: ITEM-0094
 aliases: [ITEM-0094]
 Title: go-live.sh reports no blocker for a webhook endpoint that rejects every delivery
 Type: TEST_GAP
-Status: READY
+Status: DONE
 Priority: P1
 Severity: HIGH
 AffectedModules: [scripts, api:billing, api:outbox]
 Source: ARCHITECT
 OwnerAgent: release-devops
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 CreatedAt: 2026-08-24
-UpdatedAt: 2026-08-24
+UpdatedAt: 2026-08-29
 RelatedBug: BUG-0989
 RelatedQA: docs/qa/runs/2026-08-24-record-state-reconciliation-0a5586f.md
 RelatedADR: 
@@ -117,6 +117,52 @@ script rather than by a customer.
   silent.
 - [[unowned-verification-step]] — the pattern. A check exists, and the step it
   does not cover belongs to nobody.
+
+
+## Resolution — 2026-08-29
+
+Done, and **half of it turned out to be done already** — which is the part worth
+recording, because this record would have had someone implement it twice.
+
+**Step 2 was already in the tree.** `scripts/smoke-deployment.mjs` checks
+`STRIPE_WEBHOOK_SECRET`: unset is a failure, a value that does not look like a
+signing secret is a failure, and absent-from-this-process is an explicit skip
+that `SMOKE_REQUIRE_STRIPE_WEBHOOK_SECRET=1` turns into a requirement. Nothing
+was added there.
+
+**Step 1 is new.** `go-live.sh` gains check 6, in two halves:
+
+- `STRIPE_WEBHOOK_SECRET` set and shaped like `whsec_` — a blocker otherwise,
+  because without it every delivery is rejected.
+- Delivery history, read through `scripts/webhook-delivery-health.mjs`, which
+  asks `billing/diagnostics` for the failure count and the last successful and
+  failed deliveries. That endpoint already computed all three; nothing new was
+  added to the API.
+
+**What is deliberately not done: sending a probe.** A deliberately-invalid
+signature is rejected whether the secret is right or wrong, which is exactly why
+the probe used while diagnosing BUG-0989 could not confirm the fix. A green
+probe would have been worse than no probe.
+
+Three states, and the middle one is the point:
+
+| | |
+|---|---|
+| `BLOCK` | deliveries arriving and failing |
+| `WARN` | nothing has ever arrived — expected before the first sale, and the silent-failure signature after it, so the operator decides which they are looking at |
+| `OK` | arriving, none failed in seven days |
+
+**Unknown is never reported as health.** Without admin credentials in the shell,
+or when the endpoint cannot be read, the script says the history was not
+checked. That is the whole complaint this record was filed about: on 2026-08-24
+it reported "1 blocker" while every delivery was being rejected, because silence
+looked like success.
+
+Step 3, an alert on the failure ratio, is not done and remains
+[[ITEM-0009-no-observability-platform-exists]]'s territory. A durable guard for
+a silent failure is monitoring, not a script somebody has to remember to run —
+and the script now says so, naming the one thing that proves it end to end:
+Stripe Dashboard → Developers → Webhooks → Recent deliveries → Resend.
 
 ## History
 
