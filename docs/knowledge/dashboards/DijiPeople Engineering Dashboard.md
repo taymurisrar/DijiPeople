@@ -8,12 +8,12 @@
 | | |
 |---|---|
 | Open CRITICAL | **0** |
-| Open HIGH | **2** |
-| Open total | 21 |
+| Open HIGH | **1** |
+| Open total | 20 |
 | Blocked | 2 |
 | Awaiting a product decision | 1 |
 | Deferred | 26 |
-| Completed | 273 |
+| Completed | 274 |
 | Awaiting Architect triage | 0 |
 
 ## Open Critical Bugs
@@ -25,7 +25,6 @@ _None. Nothing open at CRITICAL._
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
 | [[ITEM-0034-apps-web-has-zero-browser-e2e-coverage|ITEM-0034]] | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | READY | apps/web, e2e | PLAN_REQUIRED |
-| [[ITEM-0103-deployment-check-the-composed-tenant-workspace-host-must-res|ITEM-0103]] | Deployment check: the composed tenant workspace host must resolve | TEST_GAP | HIGH | READY | web, tenant-domains | PLAN_REQUIRED |
 
 ## Product Decisions Needed
 
@@ -45,7 +44,6 @@ _None. Nothing open at CRITICAL._
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
 | [[ITEM-0034-apps-web-has-zero-browser-e2e-coverage|ITEM-0034]] | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | READY | apps/web, e2e | PLAN_REQUIRED |
-| [[ITEM-0103-deployment-check-the-composed-tenant-workspace-host-must-res|ITEM-0103]] | Deployment check: the composed tenant workspace host must resolve | TEST_GAP | HIGH | READY | web, tenant-domains | PLAN_REQUIRED |
 | [[ITEM-0052-verify-the-agent-update-feed-against-a-real-published-artefact|ITEM-0052]] | Verify the agent update feed against a real published artefact | TEST_GAP | MEDIUM | READY | apps/agent-desktop, api:app-releases | PLAN_REQUIRED |
 | [[ITEM-0077-re-read-the-packaged-agent-archive-after-the-node-pre-gyp-up|ITEM-0077]] | Re-read the packaged agent archive after the node-pre-gyp upgrade | TEST_GAP | MEDIUM | READY | apps/agent-desktop, package-lock.json | PLAN_REQUIRED |
 | [[ITEM-0078-no-end-to-end-payment-to-provisioned-tenant-run-against-stri|ITEM-0078]] | No end-to-end payment to provisioned tenant run against Stripe test mode | TEST_GAP | MEDIUM | READY | api:billing, api:tenant-control-plane, api:outbox, apps/landing | PLAN_REQUIRED |

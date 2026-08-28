@@ -13,20 +13,20 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 21 |
+| Open (active work) | 20 |
 | Blocked | 2 |
 | Deferred | 26 |
 | Awaiting a product decision | 1 |
-| Completed / closed | 273 |
+| Completed / closed | 274 |
 | **Open CRITICAL** | **0** |
-| **Open HIGH** | **2** |
+| **Open HIGH** | **1** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
 
 | Severity | Count |
 |---|---|
-| HIGH | 2 |
+| HIGH | 1 |
 | MEDIUM | 15 |
 | LOW | 4 |
 
@@ -39,7 +39,7 @@ see [`README.md`](README.md) for why.
 | INFRA | 4 |
 | SECURITY | 2 |
 | TECH_DEBT | 5 |
-| TEST_GAP | 6 |
+| TEST_GAP | 5 |
 | UX | 1 |
 
 ## All records by status
@@ -52,8 +52,8 @@ see [`README.md`](README.md) for why.
 | VERIFIED | 209 |
 | DUPLICATE | 4 |
 | ACCEPTED_RISK | 3 |
-| READY | 21 |
-| DONE | 57 |
+| READY | 20 |
+| DONE | 58 |
 
 ## All records
 
@@ -184,7 +184,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0094](../../docs/backlog/items/ITEM-0094-go-live-sh-reports-no-blocker-for-a-webhook-endpoint-that-re.md) | go-live.sh reports no blocker for a webhook endpoint that rejects every delivery | TEST_GAP | HIGH | P1 | DONE | scripts, api:billing, api:outbox | DONE |
 | [ITEM-0096](../../docs/backlog/items/ITEM-0096-a-critical-notification-named-no-reason-and-no-action-and-th.md) | A critical notification named no reason and no action, and the price estimate showed no working | UX | HIGH | P1 | DONE | api:platform-events, apps/admin, apps/landing | DONE |
 | [ITEM-0097](../../docs/backlog/items/ITEM-0097-a-saved-column-preference-could-hide-the-column-that-identif.md) | A saved column preference could hide the column that identifies the row | UX | HIGH | P1 | DONE | apps/admin, e2e | DONE |
-| [ITEM-0103](../../docs/backlog/items/ITEM-0103-deployment-check-the-composed-tenant-workspace-host-must-res.md) | Deployment check: the composed tenant workspace host must resolve | TEST_GAP | HIGH | P1 | READY | web, tenant-domains | PLAN_REQUIRED |
+| [ITEM-0103](../../docs/backlog/items/ITEM-0103-deployment-check-the-composed-tenant-workspace-host-must-res.md) | Deployment check: the composed tenant workspace host must resolve | TEST_GAP | HIGH | P1 | DONE | web, tenant-domains | DONE |
 | [ITEM-0048](../../docs/backlog/items/ITEM-0048-replace-or-contain-active-win-and-the-xlsx-export-path.md) | Replace or contain active-win and the xlsx export path | SECURITY | HIGH | P2 | BLOCKED | apps/agent-desktop, services/api/src/common/excel, package-lock.json | BLOCKED_EXTERNAL |
 | [ITEM-0086](../../docs/backlog/items/ITEM-0086-smoke-deployment-does-not-assert-that-a-launched-market-has-.md) | smoke:deployment does not assert that a launched market has a purchasable price or a running outbox worker | TEST_GAP | HIGH | P2 | DONE | scripts | DONE |
 | [BUG-0051](../../docs/bugs/BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state.md) | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | P1 | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |
