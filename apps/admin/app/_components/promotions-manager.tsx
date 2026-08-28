@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { Loader2, Plus, Power, Trash2 } from "lucide-react";
+import { useConfirmAction } from "@/app/_components/runtime/use-confirm-action";
 
 type Promotion = {
   id: string;
@@ -59,6 +60,7 @@ export function PromotionsManager({
   const [draft, setDraft] = useState(emptyDraft);
   const [targets, setTargets] = useState<LookupOption[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const { confirmAction, confirmDialog } = useConfirmAction();
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
@@ -173,15 +175,30 @@ export function PromotionsManager({
   }
 
   function remove(promotion: Promotion) {
-    // Named, and honest about being permanent — a confirmation that says
-    // "this item" teaches nobody which row they are about to lose.
-    if (
-      !window.confirm(
-        `Delete the promotion "${promotion.name}" permanently? ` +
-          `This cannot be undone.`,
-      )
-    )
-      return;
+    /*
+     * The app's own dialog, not `window.confirm`.
+     *
+     * A native confirm is unstyled, unescapable in any meaningful way and
+     * outside the app's theme — the same objections BUG-0020 raised about
+     * `window.prompt`. It also cannot name what it is about to delete beyond a
+     * single string, which is the thing BUG-1560 and BUG-1756 exist to fix.
+     */
+    void (async () => {
+      const confirmed = await confirmAction({
+        title: `Delete ${promotion.name}?`,
+        description:
+          "This permanently deletes the promotion. It cannot be undone.",
+        creates: [promotion.name],
+        intent: "delete",
+        confirmLabel: "Delete promotion",
+        tone: "danger",
+      });
+      if (!confirmed) return;
+      doRemove(promotion);
+    })();
+  }
+
+  function doRemove(promotion: Promotion) {
     startTransition(async () => {
       const response = await fetch(`/api/super-admin/promotions/${promotion.id}`, {
         method: "DELETE",
@@ -204,6 +221,7 @@ export function PromotionsManager({
 
   return (
     <div className="space-y-4">
+      {confirmDialog}
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <Field label="Name">

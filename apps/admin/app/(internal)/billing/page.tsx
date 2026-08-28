@@ -25,6 +25,15 @@ import { TenantStatusBadge } from "@/app/_components/tenant-status-badge";
 import { formatCurrency, formatNumber } from "@/lib/formatters";
 import { apiRequestJson } from "@/lib/server-api";
 import { DEFAULT_PLATFORM_DEFAULTS } from "@/lib/reference-data/platform-reference-data";
+import type { Metadata } from "next";
+
+/* Each screen titles itself. 47 of 48 shared one title, so a tab, a
+   bookmark and a screen reader's announcement said the same thing on
+   every route (BUG-1421). */
+export const metadata: Metadata = {
+  title: "Billing",
+};
+
 
 type InvoiceRecord = {
   id: string;

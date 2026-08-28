@@ -1,6 +1,15 @@
+import type { Metadata } from "next";
 import { PartnerInquiryReview } from "@/app/_components/partners/partner-inquiry-review";
 import { requireSystemAdminUser } from "@/lib/auth";
 import { apiRequestJson } from "@/lib/server-api";
+
+/* Each screen titles itself. 47 of 48 shared one title, so a tab, a
+   bookmark and a screen reader's announcement said the same thing on
+   every route (BUG-1421). */
+export const metadata: Metadata = {
+  title: "Partner Inquiries",
+};
+
 
 type Inquiry = {
   id: string;

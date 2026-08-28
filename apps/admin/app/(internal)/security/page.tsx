@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import {
   AdminKeyValueGrid,
   AdminPageHeader,
@@ -9,6 +10,14 @@ import { requireSystemAdminUser } from "@/lib/auth";
 import { apiRequestJson } from "@/lib/server-api";
 import { formatPlatformRole, type PlatformRole } from "@/lib/platform-rbac";
 import { formatDateTime } from "@/lib/formatters";
+
+/* Each screen titles itself. 47 of 48 shared one title, so a tab, a
+   bookmark and a screen reader's announcement said the same thing on
+   every route (BUG-1421). */
+export const metadata: Metadata = {
+  title: "Security",
+};
+
 
 type SecurityOverview = {
   account: {

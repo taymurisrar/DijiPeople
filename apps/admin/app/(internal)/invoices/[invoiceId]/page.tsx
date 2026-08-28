@@ -1,9 +1,18 @@
+import type { Metadata } from "next";
 import { InvoiceActions } from "@/app/_components/invoice-actions";
 import { RecordCommandBar } from "@/app/_components/runtime/record-command-bar";
 import { RecordStatusGroup } from "@/app/_components/runtime/record-status-group";
 import { requireSystemAdminUser } from "@/lib/auth";
 import { getPlatformModuleDefinition } from "@/lib/runtime/platform-module-registry";
 import { apiRequestJson } from "@/lib/server-api";
+
+/* Each screen titles itself. 47 of 48 shared one title, so a tab, a
+   bookmark and a screen reader's announcement said the same thing on
+   every route (BUG-1421). */
+export const metadata: Metadata = {
+  title: "Invoices",
+};
+
 
 type InvoiceDetail = {
   id: string;

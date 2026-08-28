@@ -13,9 +13,9 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 65 |
+| Open (active work) | 68 |
 | Blocked | 2 |
-| Deferred | 38 |
+| Deferred | 35 |
 | Awaiting a product decision | 2 |
 | Completed / closed | 213 |
 | **Open CRITICAL** | **8** |
@@ -28,7 +28,7 @@ see [`README.md`](README.md) for why.
 |---|---|
 | CRITICAL | 8 |
 | HIGH | 18 |
-| MEDIUM | 30 |
+| MEDIUM | 33 |
 | LOW | 9 |
 
 ## Open by type
@@ -45,17 +45,17 @@ see [`README.md`](README.md) for why.
 | STATE_MACHINE | 2 |
 | TECH_DEBT | 5 |
 | TEST_GAP | 8 |
-| UX | 12 |
+| UX | 15 |
 
 ## All records by status
 
 | Status | Count |
 |---|---|
-| OPEN | 11 |
+| OPEN | 10 |
 | BLOCKED | 2 |
-| DEFERRED | 38 |
+| DEFERRED | 35 |
 | PRODUCT_DECISION | 2 |
-| FIXED | 31 |
+| FIXED | 35 |
 | VERIFIED | 155 |
 | DUPLICATE | 4 |
 | ACCEPTED_RISK | 1 |
@@ -167,7 +167,7 @@ see [`README.md`](README.md) for why.
 | [BUG-1419](../../docs/bugs/BUG-1419-every-incident-on-the-monitoring-overview-links-to-a-route-t.md) | Every incident on the monitoring overview links to a route that does not exist | BUG | HIGH | P1 | VERIFIED | apps/admin | DONE |
 | [BUG-1420](../../docs/bugs/BUG-1420-the-monitoring-severity-filter-cannot-match-99-7-percent-of-.md) | The monitoring severity filter cannot match 99.7 percent of stored incidents | DATA_INTEGRITY | HIGH | P1 | FIXED | apps/admin, api:error-logs | FIX_NOW |
 | [BUG-1422](../../docs/bugs/BUG-1422-runtime-form-validation-discards-every-field-reason-and-show.md) | Runtime form validation discards every field reason and shows the user Bad Request Exception | BUG | HIGH | P1 | VERIFIED | api:platform-runtime, apps/admin | DONE |
-| [BUG-1423](../../docs/bugs/BUG-1423-runtime-form-controls-have-no-accessible-name-so-screen-read.md) | Runtime form controls have no accessible name so screen readers announce every field as blank | UX | HIGH | P1 | OPEN | apps/admin | PLAN_REQUIRED |
+| [BUG-1423](../../docs/bugs/BUG-1423-runtime-form-controls-have-no-accessible-name-so-screen-read.md) | Runtime form controls have no accessible name so screen readers announce every field as blank | UX | HIGH | P1 | FIXED | apps/admin | FIX_NOW |
 | [BUG-1515](../../docs/bugs/BUG-1515-tenant-activation-invitation-reported-as-sent-when-it-was-ne.md) | Tenant activation invitation reported as sent when it was never delivered | STATE_MACHINE | HIGH | P1 | VERIFIED | auth, tenant-control-plane, notifications | DONE |
 | [BUG-1516](../../docs/bugs/BUG-1516-public-signup-creates-duplicate-customer-records-breaking-st.md) | Public signup creates duplicate customer records, breaking Stripe tenant resolution | DATA_INTEGRITY | HIGH | P1 | FIXED | super-admin, billing, landing | FIX_NOW |
 | [BUG-1541](../../docs/bugs/BUG-1541-generated-agreement-pdfs-render-unsubstituted-template-place.md) | Generated agreement PDFs render unsubstituted template placeholders | BUG | HIGH | P1 | VERIFIED | contracts, legal | DONE |
@@ -257,7 +257,7 @@ see [`README.md`](README.md) for why.
 | [BUG-1304](../../docs/bugs/BUG-1304-production-subscribe-wizard-offers-only-eight-countries-beca.md) | Production subscribe wizard offers only eight countries because the ISO country sync never populates production | DATABASE | MEDIUM | P2 | VERIFIED | api:lookups, apps/landing | DONE |
 | [BUG-1305](../../docs/bugs/BUG-1305-priority-country-sortorder-collides-with-alphabetical-sortor.md) | Priority country sortOrder collides with alphabetical sortOrder, scattering key markets mid-list | DATABASE | MEDIUM | P2 | VERIFIED | api:lookups | DONE |
 | [BUG-1364](../../docs/bugs/BUG-1364-a-coordinate-leak-assertion-substring-matches-json-and-fails.md) | A coordinate-leak assertion substring-matches JSON and fails when the clock spells a coordinate | TEST_GAP | MEDIUM | P2 | VERIFIED | services/api/test | DONE |
-| [BUG-1421](../../docs/bugs/BUG-1421-every-admin-screen-shares-one-page-title-two-main-landmarks-.md) | Every admin screen shares one page title, two main landmarks and a duplicate h1 | UX | MEDIUM | P2 | DEFERRED | apps/admin | DEFER |
+| [BUG-1421](../../docs/bugs/BUG-1421-every-admin-screen-shares-one-page-title-two-main-landmarks-.md) | Every admin screen shares one page title, two main landmarks and a duplicate h1 | UX | MEDIUM | P2 | FIXED | apps/admin | FIX_NOW |
 | [BUG-1424](../../docs/bugs/BUG-1424-the-admin-console-serves-no-content-security-policy-header.md) | The admin console serves no Content-Security-Policy header | SECURITY | MEDIUM | P2 | OPEN | apps/admin | PLAN_REQUIRED |
 | [BUG-1425](../../docs/bugs/BUG-1425-currencycode-accepts-any-string-of-three-characters-or-fewer.md) | currencyCode accepts any string of three characters or fewer | DATA_INTEGRITY | MEDIUM | P2 | FIXED | api:partners | FIX_NOW |
 | [BUG-1545](../../docs/bugs/BUG-1545-manual-customer-onboarding-creation-fails-on-an-owner-foreig.md) | Manual customer onboarding creation fails on an owner foreign key | BUG | MEDIUM | P2 | OPEN | platform-runtime, onboarding | PLAN_REQUIRED |
@@ -272,9 +272,9 @@ see [`README.md`](README.md) for why.
 | [BUG-1554](../../docs/bugs/BUG-1554-admin-requests-its-own-partners-api-with-a-rejected-pagesize.md) | Admin requests its own partners API with a rejected pageSize | BUG | MEDIUM | P2 | DEFERRED | partners | DEFER |
 | [BUG-1555](../../docs/bugs/BUG-1555-an-inactive-plan-with-no-prices-is-offered-as-a-customer-pre.md) | An inactive plan with no prices is offered as a customer preferred plan | BUG | MEDIUM | P2 | OPEN | super-admin, billing | FIX_NOW |
 | [BUG-1654](../../docs/bugs/BUG-1654-every-empty-list-in-a-new-workspace-blames-filters-that-are-.md) | Every empty list in a new workspace blames filters that are not set | UX | MEDIUM | P2 | FIXED | views, employees | FIX_NOW |
-| [BUG-1655](../../docs/bugs/BUG-1655-tenant-login-password-field-has-no-accessible-name-and-no-au.md) | Tenant login password field has no accessible name and no autocomplete hint | UX | MEDIUM | P2 | DEFERRED | auth | DEFER |
+| [BUG-1655](../../docs/bugs/BUG-1655-tenant-login-password-field-has-no-accessible-name-and-no-au.md) | Tenant login password field has no accessible name and no autocomplete hint | UX | MEDIUM | P2 | FIXED | auth | FIX_NOW |
 | [BUG-1668](../../docs/bugs/BUG-1668-tenant-workspace-pages-scroll-horizontally-at-mobile-width.md) | Tenant workspace pages scroll horizontally at mobile width | UX | MEDIUM | P2 | DEFERRED | views | DEFER |
-| [BUG-1673](../../docs/bugs/BUG-1673-tenant-workspace-shell-repeats-three-h1-headings-and-two-mai.md) | Tenant workspace shell repeats three h1 headings and two main landmarks on every screen | UX | MEDIUM | P2 | DEFERRED | views | DEFER |
+| [BUG-1673](../../docs/bugs/BUG-1673-tenant-workspace-shell-repeats-three-h1-headings-and-two-mai.md) | Tenant workspace shell repeats three h1 headings and two main landmarks on every screen | UX | MEDIUM | P2 | FIXED | views | FIX_NOW |
 | [BUG-1746](../../docs/bugs/BUG-1746-required-fields-on-unselected-tabs-are-undiscoverable-so-cre.md) | Required fields on unselected tabs are undiscoverable so create forms dead-end | UX | MEDIUM | P2 | FIXED | apps/admin | FIX_NOW |
 | [BUG-1748](../../docs/bugs/BUG-1748-the-subscription-record-page-cannot-resolve-its-own-tenant-p.md) | The subscription record page cannot resolve its own tenant plan or price | BUG | MEDIUM | P2 | FIXED | apps/admin, api:platform-runtime | FIX_NOW |
 | [BUG-1754](../../docs/bugs/BUG-1754-the-incident-queue-counts-routine-401s-and-unknown-route-404.md) | The incident queue counts routine 401s and unknown-route 404s as incidents needing triage | BUG | MEDIUM | P2 | FIXED | api:platform-monitoring, api:error-logs | FIX_NOW |

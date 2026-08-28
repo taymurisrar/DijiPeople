@@ -1,6 +1,15 @@
+import type { Metadata } from "next";
 import { PageHeader } from "@/app/_components/ui/page-header";
 import { OperationalSettingsForm } from "@/app/_components/settings/operational-settings-form";
 import { apiRequestJson } from "@/lib/server-api";
+
+/* Each screen titles itself. 47 of 48 shared one title, so a tab, a
+   bookmark and a screen reader's announcement said the same thing on
+   every route (BUG-1421). */
+export const metadata: Metadata = {
+  title: "Contracts",
+};
+
 
 export default async function Page() {
   const data = await apiRequestJson<{ contractSettings: Record<string, unknown> }>(

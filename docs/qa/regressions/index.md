@@ -2846,3 +2846,48 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | Only the name is rewritten, never the constraint — the constraint is the part that says what is actually wrong, and inventing wording for it would mean guessing at rules the frontend cannot see. `partner` must not rewrite the start of `partnerId must be a UUID`, which is why the match is anchored and word-bounded rather than a `startsWith`. The other half of this record — field errors marking the control rather than only appearing in a modal — arrived with REG-274 in the same sweep. |
 | **Fixed** | 2026-08-28 |
 | **Active** | yes |
+
+### REG-287 — A form whose labels labelled nothing
+
+| | |
+|---|---|
+| **Bug class** | `visible-but-not-accessible` |
+| **Module** | `apps/admin` runtime forms |
+| **Bug record** | BUG-1423 |
+| **Root cause** | The shared runtime form drew each field's label as a `<span>` and never connected it to the control: no `<label>`, no `id`, no `name`, no `aria-label`, no `aria-labelledby`. The text was visible, so the form looked correct — axe-core rated it critical and found 28 unlabelled controls across four create screens on production. The bespoke forms on the same site were clean, which is what identified the shared component as the cause. |
+| **Regression test** | `apps/admin/lib/runtime/form-accessibility.spec.ts` |
+| **Scenario** | The field renders a real `<label htmlFor>` bound to a derived id; the control carries that id and a `name`; the error text is associated with `aria-describedby` and `aria-invalid`; the required marker is not the asterisk alone; composite controls point back at the label with `aria-labelledby`; and the attributes reach every control the component can return. |
+| **Proven to fail without the fix** | Every assertion names an attribute the component did not render. |
+| **Note** | The last assertion counts `{...a11y}` applications rather than naming control types, deliberately: a new control added without them is a new unlabelled field, which is how twenty-eight accumulated. `name` was added alongside `id` because the two do different jobs — one binds the label, the other is what autofill reads — and neither was present, so the fields were both unlabelled and un-autofillable. The second looked like a product decision and was a missing attribute. |
+| **Fixed** | 2026-08-28 |
+| **Active** | yes |
+
+### REG-288 — Two shells, one mistake, on every screen
+
+| | |
+|---|---|
+| **Bug class** | `shared-shell-defect` |
+| **Module** | `apps/admin`, `apps/web` |
+| **Bug record** | BUG-1421, BUG-1673, BUG-0073 |
+| **Root cause** | Both application shells owned document structure that belongs to the page. In admin: an outer `<main>` (two landmarks on 47 of 48 audited routes), a "Control Hub" `<h1>` ahead of the page's own (two on all 48), a sidebar outside any `<nav>` landmark, no skip link, and one shared `<title>` on 47. In the tenant workspace: two constant "Workspace" `<h1>` elements before the page's own, so heading navigation announced "Workspace, Workspace, Dashboard" on the payroll screen, the settings screen and an employee's record alike. |
+| **Regression test** | `apps/admin/lib/shell-landmarks.spec.ts`, `apps/web/app/components/workspace-shell-headings.spec.ts` |
+| **Scenario** | Neither shell renders a `<main>` or an `<h1>`; the admin sidebar is a named `<nav>`; a skip link is the first focusable element and targets the content region; every admin route that can export `metadata` does; and the root layout composes with a title template rather than replacing. |
+| **Proven to fail without the fix** | Each assertion names an element the shell rendered or an export the routes lacked. The route walk enumerates the tree rather than a fixed list, so a new page without a title fails it. |
+| **Note** | PLAN-019 already warned about this shape — *"The shell is shared, so a defect in it is a defect everywhere"* — and BUG-0073 was the same class, one sidebar class name failing contrast on every screen. Screen-by-screen review keeps missing these because every screen looks equally wrong, so they read as the design rather than as a defect; that is the argument for asserting against the shell rather than against pages. Both records asked to be fixed together because it is the only way the convention ends up shared, and the two specs now hold the same invariants in the same shape. **Two known gaps:** three admin routes are client components, which Next forbids from exporting `metadata`, so they keep the default title; and the duplicate `<main>` the tenant audit reported is not reachable from the source — no shell renders one and no shared layout nests one — so it stays open pending the browser pass that found it. |
+| **Fixed** | 2026-08-28 |
+| **Active** | yes |
+
+### REG-289 — A password field nothing could name
+
+| | |
+|---|---|
+| **Bug class** | `layout-decision-removes-a11y` |
+| **Module** | `apps/web` |
+| **Bug record** | BUG-1655 |
+| **Root cause** | The tenant login renders its password control with `label=""` and the shared field shell's label span suppressed via `[&>span]:hidden`, so the visible "Password" text could sit in the heading row beside the "Forgot password?" link. That left the input with no accessible name and no `autocomplete`: a screen reader announced it as unlabelled and password managers were not told what it was. The email field beside it had both. |
+| **Regression test** | `apps/web/app/components/ui/login-field-accessibility.spec.ts` |
+| **Scenario** | The password control carries an explicit accessible name and `current-password`; the identifier field carries `username` so the two are recognisable as a credential pair; the duplicate visible label stays hidden; and `TextField` declares and actually applies both props. |
+| **Proven to fail without the fix** | `TextField` accepted neither prop, so the login could not have passed them. |
+| **Note** | The defect is a layout decision with an accessibility consequence, which is why the fix is a name rather than a second visible label — showing the label twice would undo the layout the hiding exists for. The record asked for the admin login to be checked on the theory the two forms shared a starting point; it already binds both labels and declares `current-password`, and that is now asserted rather than merely noted. |
+| **Fixed** | 2026-08-28 |
+| **Active** | yes |

@@ -1,1 +1,10 @@
+import type { Metadata } from "next";
+
+/* Each screen titles itself. 47 of 48 shared one title, so a tab, a
+   bookmark and a screen reader's announcement said the same thing on
+   every route (BUG-1421). */
+export const metadata: Metadata = {
+  title: "Customers",
+};
+
 import{PageHeader}from"@/app/_components/ui/page-header";import{OperationalSettingsForm}from"@/app/_components/settings/operational-settings-form";import{apiRequestJson}from"@/lib/server-api";export default async function Page(){const data=await apiRequestJson<{customerSettings:Record<string,unknown>}>("/super-admin/platform-settings");return <main className="space-y-5"><PageHeader eyebrow="Settings / Customers" title="Customer activation" description="Configure commercial, agreement, provisioning, and activation prerequisites."/><OperationalSettingsForm title="Customer lifecycle policy" description="Provisioning checks use these settings together with persisted workflow evidence." settingKey="customerSettings" initialValues={data.customerSettings} fields={[{key:'contractRequiredForTenantActivation',label:'Require signed customer agreement',description:'A linked fully signed agreement is verified before provisioning.',type:'boolean'},{key:'commercialApprovalRequired',label:'Require commercial approval',description:'Commercial terms must be approved before subscription creation.',type:'boolean'},{key:'paymentRequiredForProvisioning',label:'Require payment confirmation',description:'Payment confirmation is part of tenant readiness.',type:'boolean'},{key:'trainingRequiredForActivation',label:'Require training plan',description:'A customer training plan is required for activation.',type:'boolean'}]}/></main>}

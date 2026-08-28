@@ -17,6 +17,16 @@ export type ConfirmActionRequest = {
   creates: string[];
   confirmLabel: string;
   tone?: "default" | "danger";
+  /*
+   * Whether the listed items are about to be made or unmade.
+   *
+   * The hook was written for an irreversible *create* and its heading said so.
+   * A delete needs the same treatment for the same reason — naming what it
+   * affects rather than asking "Are you sure?" (BUG-1560, BUG-1756) — and it
+   * needs the heading to say the opposite thing, or the dialog tells the
+   * operator a deletion will create something.
+   */
+  intent?: "create" | "delete";
 };
 
 type PendingConfirm = ConfirmActionRequest & {
@@ -72,7 +82,7 @@ export function useConfirmAction() {
       }
     >
       <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
-        This will create
+        {pending.intent === "delete" ? "This will delete" : "This will create"}
       </p>
       <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-700">
         {pending.creates.map((item) => (

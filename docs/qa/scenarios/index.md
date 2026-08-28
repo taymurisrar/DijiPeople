@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 227** · automated: 200 · manual: 9 · blocked by infrastructure: 0
+**Scenarios: 230** · automated: 203 · manual: 9 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -241,3 +241,6 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-TENANT-036](../../../docs/qa/scenarios/QA-TENANT-036-a-destructive-dialog-names-what-it-will-destroy.md) | A destructive dialog names what it will destroy | platform-admin | UNIT | HIGH | AUTOMATED | `apps/admin/lib/runtime/destructive-confirm.spec.ts` | BUG-1560, BUG-1756 | REG-284 |
 | [QA-TENANT-037](../../../docs/qa/scenarios/QA-TENANT-037-dropdown-labels-keep-their-acronyms-and-ranges.md) | Dropdown labels keep their acronyms and ranges | platform-admin | UNIT | LOW | AUTOMATED | `apps/admin/lib/runtime/humanize-label.spec.ts` | BUG-1753 | REG-285 |
 | [QA-TENANT-038](../../../docs/qa/scenarios/QA-TENANT-038-a-field-error-names-the-field-on-the-screen.md) | A field error names the field on the screen | platform-admin | UNIT | MEDIUM | AUTOMATED | `apps/admin/lib/runtime/humanize-field-error.spec.ts` | BUG-1549, BUG-1546 | REG-286 |
+| [QA-TENANT-039](../../../docs/qa/scenarios/QA-TENANT-039-runtime-form-controls-have-accessible-names.md) | Runtime form controls have accessible names | platform-admin | UNIT | HIGH | AUTOMATED | `apps/admin/lib/runtime/form-accessibility.spec.ts` | BUG-1423 | REG-287 |
+| [QA-TENANT-040](../../../docs/qa/scenarios/QA-TENANT-040-a-shell-owns-no-headings-or-landmarks-the-page-should-own.md) | A shell owns no headings or landmarks the page should own | platform-admin | UNIT | MEDIUM | AUTOMATED | `apps/admin/lib/shell-landmarks.spec.ts` | BUG-1421, BUG-1673, BUG-0073 | REG-288 |
+| [QA-TENANT-041](../../../docs/qa/scenarios/QA-TENANT-041-the-login-password-field-names-itself.md) | The login password field names itself | platform-admin | UNIT | MEDIUM | AUTOMATED | `apps/web/app/components/ui/login-field-accessibility.spec.ts` | BUG-1655 | REG-289 |

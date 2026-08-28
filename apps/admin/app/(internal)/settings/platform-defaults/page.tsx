@@ -10,6 +10,15 @@ import { ACCESS_DENIED_ROUTE } from "@/lib/auth-config";
 import { apiRequestJson } from "@/lib/server-api";
 import { redirect } from "next/navigation";
 import { isPlatformSuperAdmin } from "@/lib/platform-rbac";
+import type { Metadata } from "next";
+
+/* Each screen titles itself. 47 of 48 shared one title, so a tab, a
+   bookmark and a screen reader's announcement said the same thing on
+   every route (BUG-1421). */
+export const metadata: Metadata = {
+  title: "Platform Defaults",
+};
+
 
 export default async function PlatformDefaultsPage() {
   const sessionUser = await getSessionUser();

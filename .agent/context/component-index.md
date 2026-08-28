@@ -1,7 +1,7 @@
 # Component Index
 
 > **Last verified:** 2026-08-28
-> **Verified against commit:** 79f313fc
+> **Verified against commit:** fb67698b
 >
 > **This file is generated. Do not hand-edit it.**
 > `node scripts/generate-component-index.mjs` rebuilds it;
@@ -16,8 +16,8 @@ question an agent can answer by retrieval rather than by reading a directory.
 comment beside it is the reasoning; this document is a route to both. Every row
 carries `file`:`line` for that reason — read the source before changing it.
 
-**An export missing from here is undocumented, not absent.** 753 of
-853 exports across these kits carry no
+**An export missing from here is undocumented, not absent.** 755 of
+860 exports across these kits carry no
 doc-comment and are omitted rather than listed as bare names. That ratio is
 itself worth knowing: it is where a UI/UX or Frontend agent is working without
 stated rationale, and where adding one is worth more than a new abstraction.
@@ -45,7 +45,7 @@ re-derived on each run.
 
 `ProDataTable` (`crm/data-table.tsx`) is the required table for every production admin screen. A hand-rolled table here is a review failure.
 
-63 documented export(s); 240 undocumented export(s) omitted.
+68 documented export(s); 242 undocumented export(s) omitted.
 
 | Export | Kind | Used by | Where | What it is |
 |---|---|---|---|---|
@@ -82,18 +82,23 @@ re-derived on each run.
 | `runStandardRecordCommand` | function | 4 | `apps/admin/lib/runtime/standard-record-commands.ts`:23 | Back, New and Refresh for the record pages that are **not** the runtime. |
 | `useReasonPrompt` | function | 3 | `apps/admin/app/_components/runtime/use-reason-prompt.tsx`:62 | Collects a governed reason through the design system instead of `window.prompt` (BUG-0020). |
 | `formatWhen` | function | 2 | `apps/admin/app/_components/notifications/notification-model.ts`:86 | "4 minutes ago", falling back to an absolute time once relative stops being the more useful phrasing. |
+| `humanizeLabel` | function | 2 | `apps/admin/lib/runtime/humanize-label.ts`:89 | Display text for a stored enum value, lookup key or similar. |
+| `recordDisplayName` | function | 2 | `apps/admin/lib/runtime/destructive-confirm.ts`:95 | The best display name for a record, from whatever the row happens to carry. |
+| `useConfirmAction` | function | 2 | `apps/admin/app/_components/runtime/use-confirm-action.tsx`:50 | Confirmation for an irreversible, billable create (BUG-0022). |
 | `useRuntimeLookupOptions` | function | 2 | `apps/admin/lib/runtime/use-runtime-lookup-options.ts`:20 | Read an allowlisted runtime lookup. |
 | `buildLookupRecordHref` | function | 1 | `apps/admin/lib/runtime/lookup-record-href.ts`:64 | The link for a resolved lookup value. |
 | `buildWritePayload` | function | 1 | `apps/admin/lib/runtime/runtime-write-payload.ts`:73 | The values a create or update request should actually carry. |
 | `describeBlockedSave` | function | 1 | `apps/admin/lib/runtime/blocked-save-feedback.ts`:52 | The summary message. Names the fields so it stands on its own even when the tab strip has scrolled out of view — the message was previously the only feedback available and said nothing. |
+| `describeDestructiveConfirm` | function | 1 | `apps/admin/lib/runtime/destructive-confirm.ts`:47 | Title, description and names for a destructive confirmation. |
 | `errorCountByTab` | function | 1 | `apps/admin/lib/runtime/blocked-save-feedback.ts`:33 | How many failures sit on each tab, for the tab strip's badges. |
 | `firstFailingTab` | function | 1 | `apps/admin/lib/runtime/blocked-save-feedback.ts`:22 | The tab holding the first failure, or null when none of them declare one. |
+| `humanizeErrorMessage` | function | 1 | `apps/admin/lib/runtime/humanize-field-error.ts`:62 | Whether this message is implementation detail rather than user-facing text. |
+| `humanizeFieldError` | function | 1 | `apps/admin/lib/runtime/humanize-field-error.ts`:24 | Replace a leading DTO property name with the label the operator sees. |
 | `isTransportFailure` | function | 1 | `apps/admin/app/_components/tenants/tenant-control-plane.client.ts`:677 | Whether a failure means "the request never got an answer" rather than "the server said no". |
 | `planEntitlementKeys` | function | 1 | `apps/admin/lib/runtime/plan-entitlement-keys.ts`:29 | The entitlement keys a plan record grants, whatever shape the record is in. |
 | `readRuntimeLookupLabel` | function | 1 | `apps/admin/lib/runtime/runtime-lookups.ts`:77 | The display name of a related record, wherever this schema happens to keep it. |
 | `reconcileWithErasureReceipt` | function | 1 | `apps/admin/app/_components/tenants/tenant-control-plane.client.ts`:702 | Ask the receipt what happened when the response did not arrive. |
 | `recordHeaderWritePermission` | function | 1 | `apps/admin/lib/runtime/runtime-permissions.ts`:54 | The permission a header slot's write route is governed by. |
-| `useConfirmAction` | function | 1 | `apps/admin/app/_components/runtime/use-confirm-action.tsx`:40 | Confirmation for an irreversible, billable create (BUG-0022). |
 | `useTenantRecordActions` | function | 1 | `apps/admin/app/_components/tenants/use-tenant-record-actions.tsx`:99 | Routes tenant action-bar requests to whichever surface owns the change. |
 | `acceptsField` | function | 0 | `apps/admin/lib/runtime/runtime-write-payload.ts`:20 | Whether the runtime will accept this field on this kind of write. |
 | `fetchErasureReceipts` | function | 0 | `apps/admin/app/_components/tenants/tenant-control-plane.client.ts`:657 | Erasure receipts for one tenant, read without addressing the tenant itself. |

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import {
   ErrorLogsTable,
   type PlatformErrorEvent,
@@ -11,6 +12,14 @@ import { requireSystemAdminUser } from "@/lib/auth";
 import { apiRequestJson } from "@/lib/server-api";
 import { getPlatformModuleDefinition } from "@/lib/runtime/platform-module-registry";
 import { MonitoringNav } from "@/app/_components/monitoring/monitoring-nav";
+
+/* Each screen titles itself. 47 of 48 shared one title, so a tab, a
+   bookmark and a screen reader's announcement said the same thing on
+   every route (BUG-1421). */
+export const metadata: Metadata = {
+  title: "Error Logs",
+};
+
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
