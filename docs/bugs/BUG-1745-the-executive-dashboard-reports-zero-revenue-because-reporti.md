@@ -204,6 +204,22 @@ honest value for.
 Guarded by `platform-fx.service.spec.ts` and `dashboard-fx.spec.ts`;
 `promotion-safety.spec.ts` was rewritten to assert the filter has not come back.
 
+## Migration verification
+
+Applied and verified on 2026-08-29, against a throwaway database created for the
+purpose and dropped afterwards. The populated `dijipeople` development database
+was not touched.
+
+All 211 migrations applied cleanly in order, this one last. The created table
+carries exactly the 14 columns, the two indexes and the composite unique the
+schema declares.
+
+`prisma migrate diff --from-config-datasource --to-schema` against the applied
+database reports **69 drifted objects and `PlatformExchangeRate` is not among
+them** — so this migration matches its model exactly. The 69 are pre-existing
+and are [[ITEM-0060-schema-prisma-and-the-applied-migration-history-do-not-agree]],
+which is deferred; that count is a useful measurement for it.
+
 ## QA Retest
 
 Not retested in a browser — production cannot be driven from here.
