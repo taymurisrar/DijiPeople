@@ -1,7 +1,7 @@
 # Component Index
 
 > **Last verified:** 2026-08-28
-> **Verified against commit:** 53db392b
+> **Verified against commit:** fd73257d
 >
 > **This file is generated. Do not hand-edit it.**
 > `node scripts/generate-component-index.mjs` rebuilds it;
@@ -112,7 +112,7 @@ re-derived on each run.
 | `NOTIFICATIONS_READ_EVENT` | constant | 2 | `apps/admin/app/_components/notifications/notification-model.ts`:47 | The badge and the page read the same count from the same endpoint, so clearing it in one place has to reach the other. |
 | `SEVERITY` | constant | 2 | `apps/admin/app/_components/notifications/notification-model.ts`:57 | Severity as it is drawn. |
 | `TENANT_PANEL_TABS` | constant | 1 | `apps/admin/app/_components/tenants/use-tenant-record-actions.tsx`:21 | Tabs whose content comes from a tenant panel rather than from form fields. |
-| `DASHBOARD_WIDGET_REGISTRY` | constant | 0 | `apps/admin/app/_components/dashboard/platform-dashboard.tsx`:167 | Canonical widget capability registry. |
+| `DASHBOARD_WIDGET_REGISTRY` | constant | 0 | `apps/admin/app/_components/dashboard/platform-dashboard.tsx`:168 | Canonical widget capability registry. |
 | `RUNTIME_ELEVATED_ROLES` | constant | 0 | `apps/admin/lib/runtime/runtime-permissions.ts`:21 | Roles that reach every platform module regardless of the granted key set. |
 | `Notification` | type | 0 | `apps/admin/app/_components/notifications/notification-model.ts`:11 | One row of the feed, as `platform-notifications.ts` projects it. |
 | `OverviewIncident` | type | 0 | `apps/admin/app/_components/monitoring/monitoring-overview.tsx`:39 | Monitoring, as a place to start work rather than a place to read numbers. |

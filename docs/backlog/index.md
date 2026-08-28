@@ -13,13 +13,13 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 73 |
+| Open (active work) | 74 |
 | Blocked | 2 |
-| Deferred | 30 |
-| Awaiting a product decision | 2 |
-| Completed / closed | 214 |
+| Deferred | 27 |
+| Awaiting a product decision | 3 |
+| Completed / closed | 215 |
 | **Open CRITICAL** | **8** |
-| **Open HIGH** | **18** |
+| **Open HIGH** | **17** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
@@ -27,16 +27,16 @@ see [`README.md`](README.md) for why.
 | Severity | Count |
 |---|---|
 | CRITICAL | 8 |
-| HIGH | 18 |
+| HIGH | 17 |
 | MEDIUM | 37 |
-| LOW | 10 |
+| LOW | 12 |
 
 ## Open by type
 
 | Type | Count |
 |---|---|
 | ARCHITECTURE | 1 |
-| BUG | 22 |
+| BUG | 23 |
 | DATA_INTEGRITY | 4 |
 | FOLLOW_UP | 2 |
 | INFRA | 8 |
@@ -51,12 +51,12 @@ see [`README.md`](README.md) for why.
 
 | Status | Count |
 |---|---|
-| OPEN | 6 |
+| OPEN | 5 |
 | BLOCKED | 2 |
-| DEFERRED | 30 |
-| PRODUCT_DECISION | 2 |
-| FIXED | 44 |
-| VERIFIED | 156 |
+| DEFERRED | 27 |
+| PRODUCT_DECISION | 3 |
+| FIXED | 46 |
+| VERIFIED | 157 |
 | DUPLICATE | 4 |
 | ACCEPTED_RISK | 1 |
 | READY | 23 |
@@ -173,7 +173,7 @@ see [`README.md`](README.md) for why.
 | [BUG-1541](../../docs/bugs/BUG-1541-generated-agreement-pdfs-render-unsubstituted-template-place.md) | Generated agreement PDFs render unsubstituted template placeholders | BUG | HIGH | P1 | VERIFIED | contracts, legal | DONE |
 | [BUG-1542](../../docs/bugs/BUG-1542-monitoring-incident-detail-pages-return-404-for-every-incide.md) | Monitoring incident detail pages return 404 for every incident | BUG | HIGH | P1 | DUPLICATE | platform-monitoring, error-logs | DUPLICATE |
 | [BUG-1543](../../docs/bugs/BUG-1543-stripe-webhook-rejected-as-validation-failed-during-a-live-p.md) | Stripe webhook rejected as VALIDATION_FAILED during a live payment | INTEGRATION | HIGH | P1 | DEFERRED | billing | DEFER |
-| [BUG-1544](../../docs/bugs/BUG-1544-public-signup-advertises-a-workspace-domain-that-does-not-re.md) | Public signup advertises a workspace domain that does not resolve | UX | HIGH | P1 | OPEN | tenant-domains, leads | FIX_NOW |
+| [BUG-1544](../../docs/bugs/BUG-1544-public-signup-advertises-a-workspace-domain-that-does-not-re.md) | Public signup advertises a workspace domain that does not resolve | UX | HIGH | P1 | VERIFIED | tenant-domains, leads | DONE |
 | [BUG-1578](../../docs/bugs/BUG-1578-admin-customer-form-stores-a-country-lookup-id-where-every-r.md) | Admin customer form stores a country lookup id where every reader expects a name | DATA_INTEGRITY | HIGH | P1 | VERIFIED | super-admin, contracts, lookups | DONE |
 | [BUG-1649](../../docs/bugs/BUG-1649-api-proxy-routes-copy-the-upstream-content-encoding-onto-an-.md) | API proxy routes copy the upstream Content-Encoding onto an already-decompressed body | BUG | HIGH | P1 | FIXED | settings-runtime, tenant-settings | FIX_NOW |
 | [BUG-1745](../../docs/bugs/BUG-1745-the-executive-dashboard-reports-zero-revenue-because-reporti.md) | The executive dashboard reports zero revenue because reporting currency is PKR and all money is QAR | BUG | HIGH | P1 | FIXED | apps/admin, api:super-admin | FIX_NOW |
@@ -339,7 +339,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0088](../../docs/backlog/items/ITEM-0088-npm-workspace-api-run-start-dev-always-frees-port-4000-regar.md) | npm --workspace api run start:dev always frees port 4000 regardless of PORT, killing any other API instance | TECH_DEBT | LOW | P2 | DEFERRED | services/api | DEFER |
 | [ITEM-0089](../../docs/backlog/items/ITEM-0089-the-contact-form-is-the-only-public-lead-creating-form-with-.md) | The contact form is the only public lead-creating form with no honeypot | SECURITY | LOW | P2 | DEFERRED | apps/landing | DEFER |
 | [ITEM-0098](../../docs/backlog/items/ITEM-0098-753-of-846-shared-frontend-exports-carry-no-doc-comment.md) | 753 of 846 shared frontend exports carry no doc-comment | DOCUMENTATION | LOW | P2 | DEFERRED | admin, web | DEFER |
-| [BUG-0018](../../docs/bugs/BUG-0018-bulk-lead-delete-is-unreachable-for-every-role.md) | Bulk lead delete is unreachable for every role, including SUPER_ADMIN | AUTHORIZATION | LOW | P3 | DEFERRED | api:platform-auth, api:super-admin | DEFER |
+| [BUG-0018](../../docs/bugs/BUG-0018-bulk-lead-delete-is-unreachable-for-every-role.md) | Bulk lead delete is unreachable for every role, including SUPER_ADMIN | AUTHORIZATION | LOW | P3 | PRODUCT_DECISION | api:platform-auth, api:super-admin | PRODUCT_DECISION |
 | [BUG-0023](../../docs/bugs/BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist.md) | The testing-architecture context claims two e2e specs do not exist | DOCUMENTATION | LOW | P3 | VERIFIED | .agent/context | DONE |
 | [BUG-0024](../../docs/bugs/BUG-0024-start-onboarding-api-and-proxy-have-no-caller.md) | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | P3 | VERIFIED | apps/admin, api:super-admin | DONE |
 | [BUG-0059](../../docs/bugs/BUG-0059-vault-wikilinks-to-task-records-and-four-module-notes-resolv.md) | Vault wikilinks to task records and four module notes resolve to nothing | DOCUMENTATION | LOW | P3 | VERIFIED | scripts, docs/tasks, docs/knowledge | DONE |
@@ -349,11 +349,11 @@ see [`README.md`](README.md) for why.
 | [BUG-1306](../../docs/bugs/BUG-1306-the-production-footer-publishes-a-reserved-fictional-us-phon.md) | The production footer publishes a reserved fictional US phone number as a tel link | UX | LOW | P3 | VERIFIED | apps/landing | DONE |
 | [BUG-1307](../../docs/bugs/BUG-1307-a-raw-monthly-enum-value-appears-in-customer-facing-timeshee.md) | A raw MONTHLY enum value appears in customer-facing timesheets copy | UX | LOW | P3 | VERIFIED | api:tenant-settings, apps/landing | DONE |
 | [BUG-1556](../../docs/bugs/BUG-1556-contract-dates-with-no-value-render-as-the-unix-epoch.md) | Contract dates with no value render as the Unix epoch | UX | LOW | P3 | FIXED | contracts | FIX_NOW |
-| [BUG-1557](../../docs/bugs/BUG-1557-react-hydration-error-418-on-the-admin-dashboard.md) | React hydration error 418 on the admin dashboard | BUG | LOW | P3 | DEFERRED | dashboard | DEFER |
+| [BUG-1557](../../docs/bugs/BUG-1557-react-hydration-error-418-on-the-admin-dashboard.md) | React hydration error 418 on the admin dashboard | BUG | LOW | P3 | FIXED | dashboard | FIX_NOW |
 | [BUG-1558](../../docs/bugs/BUG-1558-admin-list-copy-uses-incorrect-pluralisation-and-articles.md) | Admin list copy uses incorrect pluralisation and articles | UX | LOW | P3 | FIXED | super-admin | FIX_NOW |
 | [BUG-1559](../../docs/bugs/BUG-1559-empty-states-instruct-the-user-to-create-records-on-screens-.md) | Empty states instruct the user to create records on screens with no create control | UX | LOW | P3 | FIXED | billing | FIX_NOW |
 | [BUG-1560](../../docs/bugs/BUG-1560-delete-confirmation-does-not-name-the-record-being-deleted.md) | Delete confirmation does not name the record being deleted | UX | LOW | P3 | FIXED | leads | FIX_NOW |
-| [BUG-1561](../../docs/bugs/BUG-1561-signup-verification-step-has-no-way-back-to-correct-a-mistyp.md) | Signup verification step has no way back to correct a mistyped email | UX | LOW | P3 | DEFERRED | leads | DEFER |
+| [BUG-1561](../../docs/bugs/BUG-1561-signup-verification-step-has-no-way-back-to-correct-a-mistyp.md) | Signup verification step has no way back to correct a mistyped email | UX | LOW | P3 | FIXED | leads | FIX_NOW |
 | [BUG-1752](../../docs/bugs/BUG-1752-admin-empty-states-blame-filters-that-are-not-set.md) | Admin empty states blame filters that are not set | UX | LOW | P3 | FIXED | apps/admin | FIX_NOW |
 | [BUG-1753](../../docs/bugs/BUG-1753-lookup-display-labels-mangle-acronyms-and-numeric-ranges-acr.md) | Lookup display labels mangle acronyms and numeric ranges across the admin console | BUG | LOW | P3 | FIXED | apps/admin | FIX_NOW |
 | [ITEM-0007](../../docs/backlog/items/ITEM-0007-should-duplicate-website-leads-be-deduplicated.md) | Product decision — should duplicate website leads be deduplicated? | PRODUCT_DECISION | LOW | P3 | DONE | api:leads, apps/landing | DONE |

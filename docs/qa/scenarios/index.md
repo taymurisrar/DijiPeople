@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 237** · automated: 209 · manual: 10 · blocked by infrastructure: 0
+**Scenarios: 239** · automated: 211 · manual: 10 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -251,3 +251,5 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-TENANT-045](../../../docs/qa/scenarios/QA-TENANT-045-duplicate-picker-entries-tell-themselves-apart.md) | Duplicate picker entries tell themselves apart | platform-admin | UNIT | MEDIUM | AUTOMATED | `apps/admin/lib/runtime/lookup-disambiguation.spec.ts` | BUG-1553 | REG-293 |
 | [QA-TENANT-046](../../../docs/qa/scenarios/QA-TENANT-046-creating-a-promotion-does-not-publish-it.md) | Creating a promotion does not publish it | platform-admin | UNIT | HIGH | AUTOMATED | `services/api/src/modules/super-admin/promotion-safety.spec.ts` | BUG-1751 | REG-294 |
 | [QA-TENANT-047](../../../docs/qa/scenarios/QA-TENANT-047-a-filtered-revenue-figure-says-what-it-excludes.md) | A filtered revenue figure says what it excludes | platform-admin | UNIT | HIGH | AUTOMATED | `services/api/src/modules/super-admin/promotion-safety.spec.ts` | BUG-1745 | REG-294 |
+| [QA-TENANT-048](../../../docs/qa/scenarios/QA-TENANT-048-nothing-formats-against-the-runtime-locale-across-a-hydratio.md) | Nothing formats against the runtime locale across a hydration boundary | platform-admin | UNIT | LOW | AUTOMATED | `apps/admin/lib/dashboard-hydration.spec.ts` | BUG-1557, BUG-1561 | REG-296 |
+| [QA-TENANT-049](../../../docs/qa/scenarios/QA-TENANT-049-the-signup-wizard-advertises-the-address-the-tenant-will-get.md) | The signup wizard advertises the address the tenant will get | landing | UNIT | MEDIUM | AUTOMATED | `apps/landing/lib/workspace-address.spec.ts` | BUG-1544, BUG-1644, BUG-0017 | REG-297, REG-271 |

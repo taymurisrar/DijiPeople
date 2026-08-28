@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { RuntimeViewSelector } from "@/app/_components/runtime/runtime-view-selector";
 import { DASHBOARD_VIEWS } from "@/lib/runtime/platform-module-registry";
+import { formatDate } from "@/lib/formatters";
 
 type TrendPoint = {
   key: string;
@@ -225,7 +226,20 @@ export function PlatformDashboard({
   const viewKey = available.some((item) => item.key === selectedKey)
     ? selectedKey
     : (available[0]?.key ?? "executive");
-  const money = new Intl.NumberFormat(undefined, {
+  /*
+   * A fixed locale, not the runtime's (BUG-1557).
+   *
+   * `undefined` means "whatever locale this JavaScript happens to be running
+   * in" — which is the server's during SSR and the browser's during hydration.
+   * Currency grouping and symbol placement differ between them, so every money
+   * figure on this page was a hydration mismatch waiting to be counted.
+   *
+   * `en-US` matches `lib/formatters`, so the dashboard and every other admin
+   * screen now format money the same way. Unlike the refresh timestamp above,
+   * there is no reading of this value where the viewer's own locale is the
+   * right answer and the server's is wrong — an amount is an amount.
+   */
+  const money = new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: summary.reportingCurrency,
     maximumFractionDigits: 0,
@@ -300,7 +314,26 @@ export function PlatformDashboard({
               {content.subtitle}
             </p>
             <div className="mt-4 flex flex-wrap gap-2 text-xs text-slate-600">
-              <span className="rounded-full border border-slate-200 bg-white px-3 py-1.5 shadow-sm">
+              {/*
+                `suppressHydrationWarning`, because this text is *supposed* to
+                differ between server and client (BUG-1557).
+
+                `toLocaleString()` with no arguments formats in the runtime's
+                own locale and timezone. Next server-renders this client
+                component on a UTC server and then hydrates it in a browser
+                somewhere else, so the two strings disagree by definition and
+                React logs error #418 on every dashboard load.
+
+                Formatting deterministically would fix the warning by showing
+                every operator the server's clock, which is the wrong answer for
+                a "when was this refreshed" stamp — the useful reading is the
+                viewer's own time. So the difference is declared rather than
+                removed.
+              */}
+              <span
+                className="rounded-full border border-slate-200 bg-white px-3 py-1.5 shadow-sm"
+                suppressHydrationWarning
+              >
                 Refreshed {new Date(summary.refreshedAt).toLocaleString()}
               </span>
               <span className="rounded-full border border-slate-200 bg-white px-3 py-1.5 shadow-sm">
@@ -1520,9 +1553,9 @@ function OperationsQueue({
               item.contractNumber ??
               item.status ??
               (item.expiryDate
-                ? new Date(String(item.expiryDate)).toLocaleDateString()
+                ? formatDate(String(item.expiryDate))
                 : item.createdAt
-                  ? new Date(String(item.createdAt)).toLocaleDateString()
+                  ? formatDate(String(item.createdAt))
                   : ""),
             );
             return (

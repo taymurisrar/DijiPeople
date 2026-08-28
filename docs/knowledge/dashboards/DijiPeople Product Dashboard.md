@@ -68,6 +68,7 @@ Questions where the engineering is understood and the **product answer**
 **is not**. No agent may resolve one by implementing a side of it.
 
 - [[ITEM-0062-no-multi-tenant-membership-one-user-belongs-to-one-tenant-so|ITEM-0062]] — **No multi-tenant membership — one user belongs to one tenant, so discovery and switching cannot exist** (HIGH)
+- [[BUG-0018-bulk-lead-delete-is-unreachable-for-every-role|BUG-0018]] — **Bulk lead delete is unreachable for every role, including SUPER_ADMIN** (LOW)
 - [[ITEM-0079-activation-does-not-gate-on-a-workspace-having-any-module-en|ITEM-0079]] — **Activation does not gate on a workspace having any module enabled** (LOW)
 
 ## Recent Product Changes
@@ -89,7 +90,6 @@ Questions where the engineering is understood and the **product answer**
 | [[BUG-1420-the-monitoring-severity-filter-cannot-match-99-7-percent-of-|BUG-1420]] | The monitoring severity filter cannot match 99.7 percent of stored incidents | DATA_INTEGRITY | HIGH | FIXED | apps/admin, api:error-logs | FIX_NOW |
 | [[BUG-1423-runtime-form-controls-have-no-accessible-name-so-screen-read|BUG-1423]] | Runtime form controls have no accessible name so screen readers announce every field as blank | UX | HIGH | FIXED | apps/admin | FIX_NOW |
 | [[BUG-1516-public-signup-creates-duplicate-customer-records-breaking-st|BUG-1516]] | Public signup creates duplicate customer records, breaking Stripe tenant resolution | DATA_INTEGRITY | HIGH | FIXED | super-admin, billing, landing | FIX_NOW |
-| [[BUG-1544-public-signup-advertises-a-workspace-domain-that-does-not-re|BUG-1544]] | Public signup advertises a workspace domain that does not resolve | UX | HIGH | OPEN | tenant-domains, leads | FIX_NOW |
 | [[BUG-1421-every-admin-screen-shares-one-page-title-two-main-landmarks-|BUG-1421]] | Every admin screen shares one page title, two main landmarks and a duplicate h1 | UX | MEDIUM | FIXED | apps/admin | FIX_NOW |
 | [[BUG-1425-currencycode-accepts-any-string-of-three-characters-or-fewer|BUG-1425]] | currencyCode accepts any string of three characters or fewer | DATA_INTEGRITY | MEDIUM | FIXED | api:partners | FIX_NOW |
 | [[BUG-1546-required-fields-on-unfocused-tabs-give-no-indication-of-wher|BUG-1546]] | Required fields on unfocused tabs give no indication of where they are | UX | MEDIUM | FIXED | customization | FIX_NOW |
@@ -106,6 +106,7 @@ Questions where the engineering is understood and the **product answer**
 | [[BUG-1558-admin-list-copy-uses-incorrect-pluralisation-and-articles|BUG-1558]] | Admin list copy uses incorrect pluralisation and articles | UX | LOW | FIXED | super-admin | FIX_NOW |
 | [[BUG-1559-empty-states-instruct-the-user-to-create-records-on-screens-|BUG-1559]] | Empty states instruct the user to create records on screens with no create control | UX | LOW | FIXED | billing | FIX_NOW |
 | [[BUG-1560-delete-confirmation-does-not-name-the-record-being-deleted|BUG-1560]] | Delete confirmation does not name the record being deleted | UX | LOW | FIXED | leads | FIX_NOW |
+| [[BUG-1561-signup-verification-step-has-no-way-back-to-correct-a-mistyp|BUG-1561]] | Signup verification step has no way back to correct a mistyped email | UX | LOW | FIXED | leads | FIX_NOW |
 | [[BUG-1752-admin-empty-states-blame-filters-that-are-not-set|BUG-1752]] | Admin empty states blame filters that are not set | UX | LOW | FIXED | apps/admin | FIX_NOW |
 
 ## How to read this

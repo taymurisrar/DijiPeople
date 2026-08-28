@@ -15,9 +15,9 @@
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **8** |
-| Open HIGH | 18 |
+| Open HIGH | 17 |
 | Awaiting Architect triage | 0 |
-| Owner decisions pending | 2 |
+| Owner decisions pending | 3 |
 | QA coverage gaps | 106 |
 | Scenarios blocked by infrastructure | 0 |
 
@@ -30,8 +30,8 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 72 |
-| No next action | 72 |
+| No acceptance criteria | 73 |
+| No next action | 73 |
 | Aging — 7d / 30d / 90d | 16 / 0 / 0 |
 | Architecture and technical debt | 6 |
 | Security gaps | 2 |
@@ -118,6 +118,7 @@ Questions where the engineering is understood and the **product answer is**
 **not**. No agent may resolve one by implementing a side of it.
 
 - [[ITEM-0062-no-multi-tenant-membership-one-user-belongs-to-one-tenant-so|ITEM-0062]] — **No multi-tenant membership — one user belongs to one tenant, so discovery and switching cannot exist**
+- [[BUG-0018-bulk-lead-delete-is-unreachable-for-every-role|BUG-0018]] — **Bulk lead delete is unreachable for every role, including SUPER_ADMIN**
 - [[ITEM-0079-activation-does-not-gate-on-a-workspace-having-any-module-en|ITEM-0079]] — **Activation does not gate on a workspace having any module enabled**
 
 ## QA Coverage Gaps
@@ -238,10 +239,10 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 73 |
+| Open total | 74 |
 | Blocked | 2 |
-| Deferred | 30 |
-| Awaiting a product decision | 2 |
+| Deferred | 27 |
+| Awaiting a product decision | 3 |
 | Awaiting Architect triage | 0 |
 
 Every ordinary record carries a disposition.

@@ -2981,3 +2981,33 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | Found while *measuring* BUG-1424's premise rather than trusting it — that record says the admin console serves no CSP at all, and all three apps do. The measurement is what turned up the scheme difference, which is an argument for checking a stale-looking record rather than closing it on the strength of the code. The guard follows the stance `packages/config` already takes on loopback URLs: a development value reaching production is a configuration error raised at build time, not something a customer discovers. It cannot assert the deployed value — that lives on the service (see BUG-0905) — only refuse to build a policy around a bad one. |
 | **Fixed** | 2026-08-28 |
 | **Active** | yes |
+
+### REG-296 — Values formatted against whatever was running them
+
+| | |
+|---|---|
+| **Bug class** | `runtime-locale-crosses-the-hydration-boundary` |
+| **Module** | `apps/admin`, `apps/landing` |
+| **Bug record** | BUG-1557, BUG-1561 |
+| **Root cause** | Next server-renders a client component on a UTC server and hydrates it in the viewer's browser. Two formatters on the admin dashboard were told to use the runtime's own locale — `new Intl.NumberFormat(undefined, ...)` for every money figure, and `toLocaleString()` for the refresh timestamp — so server and client produced different markup and React logged error #418 on every load. Separately, the signup verification step had no way back, so a buyer who mistyped their admin email could not correct it: the code went to the wrong address and the only route forward was to restart all five wizard steps. |
+| **Regression test** | `apps/admin/lib/dashboard-hydration.spec.ts` |
+| **Scenario** | Money formats against a fixed locale; the refresh timestamp carries `suppressHydrationWarning`; dates go through the shared formatter; and no client component in `apps/admin` formats against an explicit `undefined` locale. |
+| **Proven to fail without the fix** | Each assertion names the exact construct that was there. |
+| **Note** | The two halves of the dashboard fix are deliberately opposite and the distinction is the interesting part. An *amount* is the same number everywhere, so it is made deterministic. A *"refreshed at" timestamp* is only useful in the viewer's own time, so the difference is real and is declared rather than removed — formatting it deterministically would have silenced the warning by showing every operator the server's clock, which is a worse screen with a cleaner console. The last assertion walks every client component rather than the dashboard, because the dashboard was unlikely to be the only place somebody reached for a runtime-locale formatter. On BUG-1561: the API already invalidated the previous code on reissue, so the only thing missing was the way back — worth checking before adding invalidation nobody needed. |
+| **Fixed** | 2026-08-28 |
+| **Active** | yes |
+
+### REG-297 — A workspace address advertised to a buyer that did not resolve
+
+| | |
+|---|---|
+| **Bug class** | `config-value-inlined-at-build` |
+| **Module** | `apps/landing` |
+| **Bug record** | BUG-1544, BUG-1644, BUG-0017 |
+| **Root cause** | Step 2 of public signup told a prospective customer that `<slug>.dijipeople.com` "is available". Workspaces are served from `<slug>.ws.dijipeople.com`, which the success page and the provisioned tenant both used — so the only wrong statement was the one made while the buyer was deciding to purchase. The value is build-time configuration: `apps/landing/lib/env.ts` reads the canonical resolver, and the deployed bundle had been built with an apex root domain. |
+| **Regression test** | `apps/landing/lib/workspace-address.spec.ts` |
+| **Scenario** | The landing app resolves the tenant base domain through `getPlatformDomainConfig` and never reads the variable itself; the availability check sends a slug rather than a composed hostname; and the wizard renders the domain it was given rather than composing a second one. |
+| **Proven to fail without the fix** | Nothing here fails today — production was measured correct on 2026-08-28 and no code changed. These assertions hold the *property* that kept it correct, and fail for the local env lookup or the hardcoded domain that would break it. |
+| **Note** | Closed on measurement rather than on a code read, which is the point worth keeping: `curl -s https://www.dijipeople.com/subscribe` returns `tenantBaseDomain":"ws.dijipeople.com"`. The rebuild that fixed BUG-1644 (REG-271) carried this with it. The record's own caution was worth taking and turned out reassuring — it asks to confirm what the availability check queries before changing any display string, because a check against the wrong hostname would keep answering "available" for the right one. It sends only the slug, so it was never affected. `NEXT_PUBLIC_*` and build-time values are inlined into the bundle, so a corrected variable and a stale bundle look identical from a browser; the evidence above is the *served* value, which is what a customer sees. |
+| **Fixed** | 2026-08-28 |
+| **Active** | yes |

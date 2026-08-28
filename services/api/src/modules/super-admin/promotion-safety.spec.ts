@@ -126,7 +126,7 @@ describe('BUG-1745 — a zero says which kind of zero it is', () => {
   it('reports what the filter excluded', () => {
     expect(service).toContain('excludedCurrencies: excludedCurrencyTotals');
     expect(service).toContain(
-      "filter((row) => row.currency !== reportingCurrency)",
+      'filter((row) => row.currency !== reportingCurrency)',
     );
   });
 

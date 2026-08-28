@@ -8,12 +8,12 @@
 | | |
 |---|---|
 | Open CRITICAL | **8** |
-| Open HIGH | **18** |
-| Open total | 73 |
+| Open HIGH | **17** |
+| Open total | 74 |
 | Blocked | 2 |
-| Awaiting a product decision | 2 |
-| Deferred | 30 |
-| Completed | 214 |
+| Awaiting a product decision | 3 |
+| Deferred | 27 |
+| Completed | 215 |
 | Awaiting Architect triage | 0 |
 
 ## Open Critical Bugs
@@ -40,7 +40,6 @@
 | [[BUG-1420-the-monitoring-severity-filter-cannot-match-99-7-percent-of-|BUG-1420]] | The monitoring severity filter cannot match 99.7 percent of stored incidents | DATA_INTEGRITY | HIGH | FIXED | apps/admin, api:error-logs | FIX_NOW |
 | [[BUG-1423-runtime-form-controls-have-no-accessible-name-so-screen-read|BUG-1423]] | Runtime form controls have no accessible name so screen readers announce every field as blank | UX | HIGH | FIXED | apps/admin | FIX_NOW |
 | [[BUG-1516-public-signup-creates-duplicate-customer-records-breaking-st|BUG-1516]] | Public signup creates duplicate customer records, breaking Stripe tenant resolution | DATA_INTEGRITY | HIGH | FIXED | super-admin, billing, landing | FIX_NOW |
-| [[BUG-1544-public-signup-advertises-a-workspace-domain-that-does-not-re|BUG-1544]] | Public signup advertises a workspace domain that does not resolve | UX | HIGH | OPEN | tenant-domains, leads | FIX_NOW |
 | [[BUG-1649-api-proxy-routes-copy-the-upstream-content-encoding-onto-an-|BUG-1649]] | API proxy routes copy the upstream Content-Encoding onto an already-decompressed body | BUG | HIGH | FIXED | settings-runtime, tenant-settings | FIX_NOW |
 | [[BUG-1745-the-executive-dashboard-reports-zero-revenue-because-reporti|BUG-1745]] | The executive dashboard reports zero revenue because reporting currency is PKR and all money is QAR | BUG | HIGH | FIXED | apps/admin, api:super-admin | FIX_NOW |
 | [[BUG-1747-partner-currency-is-a-required-numeric-input-so-partner-crea|BUG-1747]] | Partner Currency is a required numeric input so partner creation forces a corrupt currency code | BUG | HIGH | FIXED | apps/admin, api:super-admin | FIX_NOW |
@@ -57,6 +56,7 @@
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
 | [[ITEM-0062-no-multi-tenant-membership-one-user-belongs-to-one-tenant-so|ITEM-0062]] | No multi-tenant membership — one user belongs to one tenant, so discovery and switching cannot exist | ARCHITECTURE | HIGH | PRODUCT_DECISION | auth, users, tenant-domains, web | PRODUCT_DECISION |
+| [[BUG-0018-bulk-lead-delete-is-unreachable-for-every-role|BUG-0018]] | Bulk lead delete is unreachable for every role, including SUPER_ADMIN | AUTHORIZATION | LOW | PRODUCT_DECISION | api:platform-auth, api:super-admin | PRODUCT_DECISION |
 | [[ITEM-0079-activation-does-not-gate-on-a-workspace-having-any-module-en|ITEM-0079]] | Activation does not gate on a workspace having any module enabled | PRODUCT_DECISION | LOW | PRODUCT_DECISION | api:tenant-control-plane | PRODUCT_DECISION |
 
 ## Blocked Items
@@ -197,6 +197,7 @@
 | [[BUG-1515-tenant-activation-invitation-reported-as-sent-when-it-was-ne|BUG-1515]] | Tenant activation invitation reported as sent when it was never delivered | STATE_MACHINE | HIGH | VERIFIED | auth, tenant-control-plane, notifications | DONE |
 | [[BUG-1516-public-signup-creates-duplicate-customer-records-breaking-st|BUG-1516]] | Public signup creates duplicate customer records, breaking Stripe tenant resolution | DATA_INTEGRITY | HIGH | FIXED | super-admin, billing, landing | FIX_NOW |
 | [[BUG-1541-generated-agreement-pdfs-render-unsubstituted-template-place|BUG-1541]] | Generated agreement PDFs render unsubstituted template placeholders | BUG | HIGH | VERIFIED | contracts, legal | DONE |
+| [[BUG-1544-public-signup-advertises-a-workspace-domain-that-does-not-re|BUG-1544]] | Public signup advertises a workspace domain that does not resolve | UX | HIGH | VERIFIED | tenant-domains, leads | DONE |
 | [[BUG-1578-admin-customer-form-stores-a-country-lookup-id-where-every-r|BUG-1578]] | Admin customer form stores a country lookup id where every reader expects a name | DATA_INTEGRITY | HIGH | VERIFIED | super-admin, contracts, lookups | DONE |
 | [[BUG-1649-api-proxy-routes-copy-the-upstream-content-encoding-onto-an-|BUG-1649]] | API proxy routes copy the upstream Content-Encoding onto an already-decompressed body | BUG | HIGH | FIXED | settings-runtime, tenant-settings | FIX_NOW |
 | [[BUG-1745-the-executive-dashboard-reports-zero-revenue-because-reporti|BUG-1745]] | The executive dashboard reports zero revenue because reporting currency is PKR and all money is QAR | BUG | HIGH | FIXED | apps/admin, api:super-admin | FIX_NOW |
@@ -291,9 +292,11 @@
 | [[BUG-1306-the-production-footer-publishes-a-reserved-fictional-us-phon|BUG-1306]] | The production footer publishes a reserved fictional US phone number as a tel link | UX | LOW | VERIFIED | apps/landing | DONE |
 | [[BUG-1307-a-raw-monthly-enum-value-appears-in-customer-facing-timeshee|BUG-1307]] | A raw MONTHLY enum value appears in customer-facing timesheets copy | UX | LOW | VERIFIED | api:tenant-settings, apps/landing | DONE |
 | [[BUG-1556-contract-dates-with-no-value-render-as-the-unix-epoch|BUG-1556]] | Contract dates with no value render as the Unix epoch | UX | LOW | FIXED | contracts | FIX_NOW |
+| [[BUG-1557-react-hydration-error-418-on-the-admin-dashboard|BUG-1557]] | React hydration error 418 on the admin dashboard | BUG | LOW | FIXED | dashboard | FIX_NOW |
 | [[BUG-1558-admin-list-copy-uses-incorrect-pluralisation-and-articles|BUG-1558]] | Admin list copy uses incorrect pluralisation and articles | UX | LOW | FIXED | super-admin | FIX_NOW |
 | [[BUG-1559-empty-states-instruct-the-user-to-create-records-on-screens-|BUG-1559]] | Empty states instruct the user to create records on screens with no create control | UX | LOW | FIXED | billing | FIX_NOW |
 | [[BUG-1560-delete-confirmation-does-not-name-the-record-being-deleted|BUG-1560]] | Delete confirmation does not name the record being deleted | UX | LOW | FIXED | leads | FIX_NOW |
+| [[BUG-1561-signup-verification-step-has-no-way-back-to-correct-a-mistyp|BUG-1561]] | Signup verification step has no way back to correct a mistyped email | UX | LOW | FIXED | leads | FIX_NOW |
 | [[BUG-1752-admin-empty-states-blame-filters-that-are-not-set|BUG-1752]] | Admin empty states blame filters that are not set | UX | LOW | FIXED | apps/admin | FIX_NOW |
 | [[BUG-1753-lookup-display-labels-mangle-acronyms-and-numeric-ranges-acr|BUG-1753]] | Lookup display labels mangle acronyms and numeric ranges across the admin console | BUG | LOW | FIXED | apps/admin | FIX_NOW |
 
@@ -377,9 +380,11 @@
 | [[ITEM-0092-widget-runtime-contract-test-js-fails-and-no-script-or-ci-jo|ITEM-0092]] | widget-runtime-contract.test.js fails and no script or CI job runs it | TEST_GAP | MEDIUM | READY | pkg:config, apps/web | PLAN_REQUIRED |
 | [[ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning|ITEM-0023]] | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
 | [[BUG-1556-contract-dates-with-no-value-render-as-the-unix-epoch|BUG-1556]] | Contract dates with no value render as the Unix epoch | UX | LOW | FIXED | contracts | FIX_NOW |
+| [[BUG-1557-react-hydration-error-418-on-the-admin-dashboard|BUG-1557]] | React hydration error 418 on the admin dashboard | BUG | LOW | FIXED | dashboard | FIX_NOW |
 | [[BUG-1558-admin-list-copy-uses-incorrect-pluralisation-and-articles|BUG-1558]] | Admin list copy uses incorrect pluralisation and articles | UX | LOW | FIXED | super-admin | FIX_NOW |
 | [[BUG-1559-empty-states-instruct-the-user-to-create-records-on-screens-|BUG-1559]] | Empty states instruct the user to create records on screens with no create control | UX | LOW | FIXED | billing | FIX_NOW |
 | [[BUG-1560-delete-confirmation-does-not-name-the-record-being-deleted|BUG-1560]] | Delete confirmation does not name the record being deleted | UX | LOW | FIXED | leads | FIX_NOW |
+| [[BUG-1561-signup-verification-step-has-no-way-back-to-correct-a-mistyp|BUG-1561]] | Signup verification step has no way back to correct a mistyped email | UX | LOW | FIXED | leads | FIX_NOW |
 | [[BUG-1752-admin-empty-states-blame-filters-that-are-not-set|BUG-1752]] | Admin empty states blame filters that are not set | UX | LOW | FIXED | apps/admin | FIX_NOW |
 | [[BUG-1753-lookup-display-labels-mangle-acronyms-and-numeric-ranges-acr|BUG-1753]] | Lookup display labels mangle acronyms and numeric ranges across the admin console | BUG | LOW | FIXED | apps/admin | FIX_NOW |
 | [[ITEM-0049-register-services-api-environment-reads-or-scope-the-rule|ITEM-0049]] | Register services/api environment reads or scope the rule to build inputs | INFRA | LOW | READY | services/api, turbo.json, docs/deployment | PLAN_REQUIRED |
