@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -20,6 +20,21 @@ type Outcome =
   | "EXPIRED"
   | "PROCESSING"
   | "NO_SESSION";
+
+/**
+ * What the customer's payment is doing, before the operator is offered a way to
+ * ask Stripe about it.
+ *
+ * `NONE` covers a customer with no order, and one whose order was abandoned or
+ * cancelled — nothing for anyone to chase either way.
+ */
+type PaymentState = {
+  state: "CONFIRMED" | "AWAITING" | "FAILED" | "NONE";
+  orderNumber?: string;
+  paidAt?: string | null;
+  amount?: number;
+  currency?: string;
+};
 
 type RecheckResult = {
   orderNumber?: string;
@@ -56,6 +71,40 @@ export function PaymentRecheckPanel({
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [payment, setPayment] = useState<PaymentState | null>(null);
+
+  /*
+   * Ask what state the payment is in before rendering anything.
+   *
+   * This panel used to render on every customer record with a primary black
+   * button, so the most prominent action on a settled, provisioned account was
+   * an invitation to go and query Stripe about a payment that succeeded weeks
+   * ago. The API always knew there was nothing to re-check — it answers
+   * `NO_RECHECKABLE_ORDER` — but the screen never asked.
+   *
+   * A failed probe falls through to the full panel rather than hiding it:
+   * withholding an operator's tool because a status request failed is worse
+   * than showing a button that might answer "nothing to do".
+   */
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const response = await fetch(
+          `/api/super-admin/customers/${encodeURIComponent(customerId)}/payment-state`,
+          { cache: "no-store" },
+        );
+        if (!response.ok) throw new Error("unavailable");
+        const payload = (await response.json()) as PaymentState;
+        if (!cancelled) setPayment(payload);
+      } catch {
+        if (!cancelled) setPayment({ state: "AWAITING" });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [customerId]);
 
   function recheck() {
     setError(null);
@@ -100,6 +149,55 @@ export function PaymentRecheckPanel({
   }
 
   const tone = result ? OUTCOME_TONES[result.outcome] : null;
+
+  // Still asking. Rendering the button and then withdrawing it would be worse
+  // than a beat of nothing on a panel nobody is waiting for.
+  if (payment === null) return null;
+
+  /*
+   * Nothing to chase: no order, or one that was abandoned or cancelled. A
+   * customer record is not the place to explain the absence of a payment that
+   * was never started.
+   */
+  if (payment.state === "NONE") return null;
+
+  /*
+   * Paid. State it and stop.
+   *
+   * The re-check action still exists — it is on the order — but it is not what
+   * this screen should be offering as its primary control on an account whose
+   * money arrived and whose workspace is provisioned. Nothing here is a button,
+   * because there is nothing here to press.
+   */
+  if (payment.state === "CONFIRMED" && !result) {
+    return (
+      <section className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4 shadow-sm">
+        <div className="flex items-start gap-2">
+          <CheckCircle2
+            aria-hidden
+            className="mt-0.5 h-5 w-5 shrink-0 text-emerald-700"
+          />
+          <div className="min-w-0">
+            <h2 className="text-sm font-semibold text-emerald-900">
+              Payment confirmed
+            </h2>
+            <p className="mt-1 text-sm leading-6 text-emerald-900">
+              {typeof payment.amount === "number" && payment.currency
+                ? `${payment.currency} ${payment.amount.toLocaleString()} received`
+                : "Payment received"}
+              {payment.paidAt
+                ? ` on ${new Date(payment.paidAt).toLocaleDateString()}`
+                : ""}
+              {payment.orderNumber ? ` · order ${payment.orderNumber}` : ""}.
+            </p>
+            <p className="mt-1 text-xs leading-5 text-emerald-800">
+              Confirmed by a signed Stripe webhook. Nothing needs re-checking.
+            </p>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">

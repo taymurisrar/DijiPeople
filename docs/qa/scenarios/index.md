@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 241** · automated: 213 · manual: 10 · blocked by infrastructure: 0
+**Scenarios: 243** · automated: 215 · manual: 10 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -21,6 +21,7 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-AGENT-005](../../../docs/qa/scenarios/QA-AGENT-005-the-desktop-agent-re-sends-a-failed-heartbeat-batch-exactly-.md) | The desktop agent re-sends a failed heartbeat batch exactly once, in order | agent-desktop | UNIT | HIGH | AUTOMATED | `apps/agent-desktop/src/main/offline-queue.spec.ts` | ITEM-0033 | REG-212 |
 | [QA-AGENT-006](../../../docs/qa/scenarios/QA-AGENT-006-a-partial-agent-config-cannot-silently-disable-or-widen-what.md) | A partial agent config cannot silently disable or widen what is captured | agent-desktop | UNIT | HIGH | AUTOMATED | `apps/agent-desktop/src/main/config-manager.spec.ts` | ITEM-0033 | REG-213 |
 | [QA-AGENT-007](../../../docs/qa/scenarios/QA-AGENT-007-a-capability-that-is-off-captures-nothing-from-the-employee-.md) | A capability that is off captures nothing from the employee's machine | agent-desktop | SECURITY | HIGH | AUTOMATED | `apps/agent-desktop/src/main/activity-tracker.spec.ts` | ITEM-0033 | REG-214 |
+| [QA-AGENT-008](../../../docs/qa/scenarios/QA-AGENT-008-the-desktop-agent-is-one-settings-screen-on-the-shared-shell.md) | The desktop agent is one settings screen on the shared shell | platform-admin | UNIT | MEDIUM | AUTOMATED | `apps/admin/lib/desktop-agent-settings.spec.ts` | BUG-1883 | REG-300 |
 | [QA-API-001](../../../docs/qa/scenarios/QA-API-001-plan-entitlements-survive-a-save-and-are-never-silently-empt.md) | Plan entitlements survive a save and are never silently emptied | platform-admin | API | CRITICAL | AUTOMATED | `services/api/src/modules/platform-runtime/plan-record-shape.spec.ts` | BUG-0994 | REG-241 |
 | [QA-ATT-001](../../../docs/qa/scenarios/QA-ATT-001-punch-interpretation-pairs-punches-correctly-across-shift-bo.md) | Punch interpretation pairs punches correctly across shift boundaries | attendance | UNIT | CRITICAL | AUTOMATED | `services/api/src/modules/attendance-engine/punch-interpreter.service.spec.ts` | — | — |
 | [QA-ATT-002](../../../docs/qa/scenarios/QA-ATT-002-geofence-evaluation-treats-an-absent-location-as-outside.md) | Geofence evaluation treats an absent location as outside | attendance | UNIT | HIGH | AUTOMATED | `services/api/src/modules/attendance-engine/attendance-geofence.service.spec.ts` | — | — |
@@ -253,5 +254,6 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-TENANT-047](../../../docs/qa/scenarios/QA-TENANT-047-a-filtered-revenue-figure-says-what-it-excludes.md) | A filtered revenue figure says what it excludes | platform-admin | UNIT | HIGH | AUTOMATED | `services/api/src/modules/super-admin/promotion-safety.spec.ts` | BUG-1745 | REG-294 |
 | [QA-TENANT-048](../../../docs/qa/scenarios/QA-TENANT-048-nothing-formats-against-the-runtime-locale-across-a-hydratio.md) | Nothing formats against the runtime locale across a hydration boundary | platform-admin | UNIT | LOW | AUTOMATED | `apps/admin/lib/dashboard-hydration.spec.ts` | BUG-1557, BUG-1561 | REG-296 |
 | [QA-TENANT-049](../../../docs/qa/scenarios/QA-TENANT-049-the-signup-wizard-advertises-the-address-the-tenant-will-get.md) | The signup wizard advertises the address the tenant will get | landing | UNIT | MEDIUM | AUTOMATED | `apps/landing/lib/workspace-address.spec.ts` | BUG-1544, BUG-1644, BUG-0017 | REG-297, REG-271 |
-| [QA-TENANT-050](../../../docs/qa/scenarios/QA-TENANT-050-leads-are-withdrawn-rather-than-bulk-deleted.md) | Leads are withdrawn rather than bulk deleted | lead-management | UNIT | MEDIUM | AUTOMATED | `services/api/src/modules/leads/bulk-delete-withdrawn.spec.ts` | BUG-0018, BUG-0015, BUG-0016 | REG-298 |
+| [QA-TENANT-050](../../../docs/qa/scenarios/QA-TENANT-050-leads-are-withdrawn-rather-than-bulk-deleted.md) | One deletion rule, for one record and for many | lead-management | UNIT | MEDIUM | AUTOMATED | `services/api/src/modules/platform-runtime/generic-delete.spec.ts` | BUG-0018, BUG-0015, BUG-0016 | REG-298 |
 | [QA-TENANT-051](../../../docs/qa/scenarios/QA-TENANT-051-a-rejected-stripe-webhook-names-the-check-that-refused-it.md) | A rejected Stripe webhook names the check that refused it | billing | UNIT | MEDIUM | AUTOMATED | `services/api/src/modules/billing/webhook-rejection-diagnostics.spec.ts` | BUG-1543, BUG-1516 | REG-299 |
+| [QA-TENANT-052](../../../docs/qa/scenarios/QA-TENANT-052-the-payment-panel-asks-what-the-payment-is-doing-before-offe.md) | The payment panel asks what the payment is doing before offering to re-check it | billing | UNIT | MEDIUM | AUTOMATED | `services/api/src/modules/billing/services/payment-state.spec.ts` | BUG-1884 | REG-301 |

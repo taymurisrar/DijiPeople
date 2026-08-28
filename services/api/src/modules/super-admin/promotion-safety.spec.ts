@@ -104,40 +104,53 @@ describe('BUG-1751 — the form asks rather than assumes', () => {
 /**
  * BUG-1745 — the dashboard reported a confident zero.
  *
- * Every money aggregate filters on `currency: reportingCurrency`, and
+ * Every money aggregate filtered on `currency: reportingCurrency`, and
  * production's stored default said PKR while every payment, invoice and price
  * was QAR. "Collected revenue PKR 0" is indistinguishable, on the screen, from
  * having earned nothing — and there were two succeeded payments totalling
  * QAR 160.
  *
- * Which currency the business reports in is a commercial decision and is not
- * fixed here. What is fixed is a zero meaning two different things.
+ * The first fix made that zero *honest*: the screen listed the currencies it
+ * had left out. This suite used to assert exactly that, and those assertions
+ * are gone because the behaviour is — on 2026-08-28 the repository owner asked
+ * for the money to be converted and counted instead, with rates maintained in
+ * Settings. What survives is the property both fixes were for, and it is
+ * stronger now: **no money is silently absent from a total**.
+ *
+ * The arithmetic itself is covered by `dashboard-fx.spec.ts` and
+ * `platform-fx.service.spec.ts`, which run it rather than read it. What is
+ * checked here is that the filter has not come back.
  */
-describe('BUG-1745 — a zero says which kind of zero it is', () => {
+describe('BUG-1745 — no money is silently absent from a total', () => {
   const service = normalized(SERVICE);
 
-  it('counts payments in every currency, not only the reporting one', () => {
+  it('groups money by currency instead of filtering to one', () => {
     expect(service).toContain('paymentsByCurrency');
     expect(service).toMatch(
       /payment\.groupBy\(\{[\s\S]{0,200}by: \['currency'\]/,
     );
   });
 
-  it('reports what the filter excluded', () => {
-    expect(service).toContain('excludedCurrencies: excludedCurrencyTotals');
-    expect(service).toContain(
-      'filter((row) => row.currency !== reportingCurrency)',
-    );
+  it('has no money aggregate filtered to the reporting currency', () => {
+    /*
+     * The regression this file exists to catch. Reintroducing
+     * `currency: reportingCurrency` in a `where` is what produced the confident
+     * zero, and it is a single line somebody could add back while "restoring"
+     * a filter that looks like it belongs.
+     */
+    expect(service).not.toContain('currency: reportingCurrency');
+    expect(service).not.toContain('currencyCode: reportingCurrency');
   });
 
-  it('carries the amounts, not just the currency codes', () => {
-    // "Excludes QAR" invites the question "how much?". The answer travels with
-    // it so the screen can answer without another request.
-    const derivation = service.slice(
-      service.indexOf('const excludedCurrencyTotals'),
-      service.indexOf('const excludedCurrencyTotals') + 600,
-    );
-    expect(derivation).toContain('collected:');
-    expect(derivation).toContain('payments:');
+  it('converts through one shared converter, so every figure uses one rate', () => {
+    expect(service).toContain('await this.fx.loadConverter(reportingCurrency)');
+    expect(service).toContain('fx.convert');
+  });
+
+  it('names money it cannot convert rather than dropping or par-counting it', () => {
+    // A currency with no rate must reach the screen as itself. Counting it at
+    // par would make QAR 160 read as PKR 160 with nothing to say so.
+    expect(service).toContain('unconvertible');
+    expect(service).toContain('foldCurrencies');
   });
 });

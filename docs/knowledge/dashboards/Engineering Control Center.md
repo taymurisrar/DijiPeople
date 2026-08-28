@@ -7,7 +7,7 @@
 
 | | |
 |---|---|
-| Active sessions | **1** |
+| Active sessions | **2** |
 | Active parent tasks | 4 |
 | Active work packages | 1 |
 | Blocked work packages | 0 |
@@ -30,8 +30,8 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 68 |
-| No next action | 68 |
+| No acceptance criteria | 70 |
+| No next action | 70 |
 | Aging — 7d / 30d / 90d | 15 / 0 / 0 |
 | Architecture and technical debt | 6 |
 | Security gaps | 3 |
@@ -49,6 +49,7 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 | Session | Task | Title | Status | Branch | Target | Leases | Schema |
 |---|---|---|---|---|---|---|---|
+| [[SESSION-0068-admin-console-fx-reporting-desktop-agent-settings-generic-bu|SESSION-0068]] | — | Admin console: FX reporting, desktop agent settings, generic bulk delete, payment recheck and profile capture | ACTIVE | `agent/admin-console-fx-and-agent-settings` | `develop` | — | NO |
 | [[SESSION-0061-unblock-the-production-hosts-for-the-mcp-browser|SESSION-0061]] | — | Production admin E2E QA and invitation delivery visibility | ACTIVE | `agent/invitation-delivery-visibility` | `develop` | — | NO |
 
 ## Active Tasks and Work Packages
@@ -237,9 +238,9 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 69 |
+| Open total | 71 |
 | Blocked | 2 |
-| Deferred | 27 |
+| Deferred | 26 |
 | Awaiting a product decision | 4 |
 | Awaiting Architect triage | 0 |
 

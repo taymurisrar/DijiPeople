@@ -64,6 +64,13 @@ export type WizardForm = {
   registrationNumber: string;
   taxId: string;
   industry: string;
+  /*
+   * A size band, not a headcount. `estimatedEmployeeCount` beside it is the
+   * precise number and answers a different question — Platform Admin's
+   * Customers module segments on the band, and it stood empty on every
+   * self-service customer because this wizard never asked for it (ITEM-0075).
+   */
+  companySize: string;
   estimatedEmployeeCount: string;
   addressLine1: string;
   addressLine2: string;
@@ -90,6 +97,7 @@ export function emptyWizardForm(): WizardForm {
     registrationNumber: "",
     taxId: "",
     industry: "",
+    companySize: "",
     estimatedEmployeeCount: "",
     addressLine1: "",
     addressLine2: "",
@@ -271,6 +279,9 @@ export function buildSubmitPayload(
     registrationNumber: text(form.registrationNumber),
     taxId: text(form.taxId),
     industry: text(form.industry),
+    // Sent only when chosen. Absent is absent — "Unknown" in a reportable
+    // column is indistinguishable from a real answer (BUG-0077).
+    companySize: text(form.companySize),
     estimatedEmployeeCount:
       Number.isFinite(employeeCount) && employeeCount > 0
         ? employeeCount

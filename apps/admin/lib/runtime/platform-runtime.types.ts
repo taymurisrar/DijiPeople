@@ -377,19 +377,20 @@ export type PlatformModuleDefinition = {
 export type RuntimeModuleCapabilities = {
   create: boolean;
   update: boolean;
-  delete: boolean;
   /*
-   * Whether *many* records may be deleted at once.
+   * Whether records may be deleted at all — one of them, or a selection.
    *
-   * Separate from `delete` because the two are different risks. Deleting one
-   * lead is a deliberate act on a record somebody is looking at; deleting an
-   * unbounded selection destroys commercial attribution — which partner
-   * referred whom — for records nobody reviewed. BUG-0018 asked whether bulk
-   * lead delete should exist and the answer was no, while single delete stays.
+   * There was briefly a separate `bulkDelete` flag, so that leads could permit
+   * single deletion and refuse the bulk kind (BUG-0018). That decision was
+   * reversed on 2026-08-28: bulk delete is generic across the console, and a
+   * module either permits deletion or does not. The flag went with it, because
+   * an unused opt-out is an invitation to reintroduce the drift it caused —
+   * the API had a matching pair of lists and they disagreed in production.
    *
-   * Defaults to `delete` when unset, so every other module is unchanged.
+   * A module that must refuse deletion says so in `DELETE_REFUSALS`, which
+   * explains *why* on the disabled control rather than merely hiding it.
    */
-  bulkDelete?: boolean;
+  delete: boolean;
 };
 
 export type RuntimeRecordHeaderSlot = {

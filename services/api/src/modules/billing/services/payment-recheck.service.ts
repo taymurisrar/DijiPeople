@@ -84,6 +84,61 @@ export class PaymentRecheckService {
     });
   }
 
+  /**
+   * What this customer's payment is actually doing, for a screen that has to
+   * decide whether to offer the re-check button at all.
+   *
+   * The console rendered that button on every customer record, including ones
+   * whose payment succeeded weeks ago and whose workspace is provisioned — so
+   * the primary action on a settled account invited the operator to go and ask
+   * Stripe about it. The API always knew better: `findRecheckableOrder` returns
+   * nothing for such a customer and the POST answers `NO_RECHECKABLE_ORDER`.
+   * The screen simply never asked.
+   *
+   * Deliberately built on the same query the POST uses, so the button and the
+   * endpoint behind it cannot disagree about whether there is anything to
+   * re-check.
+   */
+  async getCustomerPaymentState(customerAccountId: string) {
+    const order = await this.prisma.subscriptionOrder.findFirst({
+      where: { customerAccountId },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        orderNumber: true,
+        status: true,
+        paidAt: true,
+        totalAmount: true,
+        currency: true,
+        stripeCheckoutSessionId: true,
+      },
+    });
+
+    if (!order) return { state: 'NONE' as const };
+
+    const state =
+      order.status === SubscriptionOrderStatus.PAID ||
+      order.status === SubscriptionOrderStatus.ACTIVATED
+        ? ('CONFIRMED' as const)
+        : order.status === SubscriptionOrderStatus.PENDING_PAYMENT
+          ? ('AWAITING' as const)
+          : order.status === SubscriptionOrderStatus.FAILED
+            ? ('FAILED' as const)
+            : // DRAFT, ABANDONED and CANCELLED are not payments in flight and
+              // are not settled payments either. There is nothing for an
+              // operator to chase, so the panel shows nothing at all.
+              ('NONE' as const);
+
+    return {
+      state,
+      orderNumber: order.orderNumber,
+      status: order.status,
+      paidAt: order.paidAt ? order.paidAt.toISOString() : null,
+      amount: Number(order.totalAmount),
+      currency: order.currency,
+      hasCheckoutSession: Boolean(order.stripeCheckoutSessionId),
+    };
+  }
+
   async recheckCustomerPayment(
     user: AuthenticatedUser,
     customerAccountId: string,

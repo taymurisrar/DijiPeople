@@ -12,4 +12,5 @@ therefore sees sibling worktrees without anybody having pushed.
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0068](../../docs/sessions/SESSION-0068-admin-console-fx-reporting-desktop-agent-settings-generic-bu.md) | — | Admin console: FX reporting, desktop agent settings, generic bulk delete, payment recheck and profile capture | ACTIVE | `agent/admin-console-fx-and-agent-settings` | `develop` | — | 2026-08-28T19:06:31.882Z |
 | [SESSION-0061](../../docs/sessions/SESSION-0061-unblock-the-production-hosts-for-the-mcp-browser.md) | — | Production admin E2E QA and invitation delivery visibility | ACTIVE | `agent/invitation-delivery-visibility` | `develop` | — | 2026-08-26T09:54:37.336Z |

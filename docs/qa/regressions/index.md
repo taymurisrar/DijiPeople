@@ -3012,18 +3012,18 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fixed** | 2026-08-28 |
 | **Active** | yes |
 
-### REG-298 — Three decisions, and two of them already made
+### REG-298 — One deletion rule, for one record and for many
 
 | | |
 |---|---|
 | **Bug class** | `record-outlived-its-fix`, `capability-too-coarse` |
 | **Module** | `leads`, `platform-runtime`, `super-admin`, `partner-experience` |
 | **Bug record** | BUG-0018, BUG-0015, BUG-0016 |
-| **Root cause** | Bulk lead delete existed and destroyed commercial attribution — which partner referred whom, and what a commission is calculated from — for an unbounded selection nobody reviewed. Removing it revealed a second problem: the console's `delete` capability gated single-record and bulk deletion together, so withholding one withheld the other. |
-| **Regression test** | `services/api/src/modules/leads/bulk-delete-withdrawn.spec.ts` |
-| **Scenario** | No bulk delete route on the leads controller, no `leads` arm in the runtime's `bulkDelete`, and no console action — while the runtime's `remove` path still deletes a single lead, and `RuntimeModuleCapabilities` separates `bulkDelete` from `delete`. |
-| **Proven to fail without the fix** | Each assertion names a route, an arm or a capability that was there. The single-delete assertion is the load-bearing one: the obvious implementation (`delete: false`) passes every other assertion in this suite and fails that one. |
-| **Note** | The interesting part of this entry is what was *not* changed. BUG-0015 and BUG-0016 were both already fixed, and both exactly as their records specified — `identities-and-billing` is idempotent against owner email, subscription and invoice anchors and is marked retryable; partner onboarding review refuses decisions from non-reviewable states and closes `ACTIVE` partners to review entirely. Both were verified by reading the implementation and running its spec, and no code was written for either. Five records in this sweep turned out to have stale premises, which is an argument for measuring a record before implementing against it. **Still untested:** BUG-0015's convergence under a real replay. A local database was offered for it and the credential supplied did not authenticate, so a failed provisioning was never actually retried. |
+| **Root cause** | `PlatformRuntimeService.remove` and `PlatformRuntimeService.bulkDelete` were two independent switch statements over the same modules, so a module could be deletable one way and not the other. They drifted exactly that way: `leads` was in one and absent from the other, and an operator who selected leads and pressed Delete got `400 Bulk delete is not available for this module` while deleting the same leads one at a time worked. The console offered an action the API refused. |
+| **Regression test** | `services/api/src/modules/platform-runtime/generic-delete.spec.ts` |
+| **Scenario** | Both paths are driven for all seventeen runtime modules and must answer identically — the six deletable ones delete through each, and the eleven retention-refused ones refuse through each with one message. Deletion requires module write **and** a platform admin role, on both paths. |
+| **Proven to fail without the fix** | Mutation-tested, not assumed. Reintroducing the leads exclusion in the bulk case fails two assertions; dropping the admin half of the authorization union fails a third. The suite is deliberately written so the *easy* fix — adding a missing `leads` arm to a second list — would not satisfy it: what is asserted is that both paths agree for every module, which a second list cannot guarantee. |
+| **Note** | This entry was rewritten on 2026-08-28, the same day it was written. Its first version guarded the *opposite* behaviour — bulk lead delete withdrawn, decided by the repository owner that morning — and the owner reversed that decision hours later after the production 400 above, asking for bulk delete to be generic across the console. The behaviour it guards changed; the class of defect it guards against did not, and is now stated more strongly. BUG-0015 and BUG-0016, recorded here originally, were both verified as already fixed with no code written; BUG-0015's convergence under a real replay is **still untested** — a local database was offered and the credential supplied did not authenticate. |
 | **Fixed** | 2026-08-28 |
 | **Active** | yes |
 
@@ -3040,4 +3040,34 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Proven to fail without the fix** | There was no logging on this path at all, and the verification failure had no `try` around it. |
 | **Note** | This is diagnosability, not a fix — **the cause of BUG-1543 is still unknown** and that record stays deferred. The three checks need opposite responses, which is why flattening them mattered: a missing header is a caller that is not Stripe, a non-Buffer body is raw-body middleware not running for the route, and a failed verification is either the wrong webhook secret or a forgery. What is deliberately absent from the log is the body and the signature — one is a customer's payment detail, the other is a credential, and neither is the thing worth knowing. Also worth keeping: the rejection raised "a customer may have paid without us knowing", which is the right thing to be paged for. A change that silenced the alert rather than explaining the rejection would have been the wrong one. |
 | **Fixed** | 2026-08-28 (diagnostics only) |
+| **Active** | yes |
+
+### REG-300 — A screen that did not look like the product it was in
+
+| | |
+|---|---|
+| **Bug class** | `styling-for-a-mode-that-does-not-exist`, `parallel-shell` |
+| **Module** | `apps/admin` |
+| **Bug record** | BUG-1883 |
+| **Root cause** | `/app-releases` and `/agent-rollout` were hand-rolled pages with their own `<main>` and Tailwind `dark:` variants. The admin console has no dark mode to switch those on, so on a light product the empty state rendered as a dark navy panel and the heading floated outside the standard page header. Both were also top-level Operations entries, a click apart, despite being two halves of one decision. |
+| **Regression test** | `apps/admin/lib/desktop-agent-settings.spec.ts` |
+| **Scenario** | The screen is on `SettingsShell` and declares no `<main>` of its own; neither it nor its manager component contains a `dark:` variant; both tabs exist on one screen; `/app-releases` and `/agent-rollout` still resolve, as redirects; and the sidebar no longer lists either while the settings index does. |
+| **Proven to fail without the fix** | Every assertion names something that was there — the `<main>`, the `dark:` classes, the two sidebar hrefs — or something that was not: the settings route and the redirects. |
+| **Note** | The `dark:` classes are the part worth remembering. They were not dead code that happened to be unused; they were the *cause*, because Tailwind emits them and something upstream matched. A variant for a mode a product does not have is not harmless, and nothing else in this app carries one. The redirects are deliberate: the URLs are in bookmarks and in the release runbook, and a move should not read as a deletion. |
+| **Fixed** | 2026-08-28 |
+| **Active** | yes |
+
+### REG-301 — An action offered where it could only be refused
+
+| | |
+|---|---|
+| **Bug class** | `screen-never-asked-what-the-api-knew` |
+| **Module** | `apps/admin`, `billing` |
+| **Bug record** | BUG-1884 |
+| **Root cause** | `PaymentRecheckPanel` rendered on every customer record with "Re-check payment with Stripe" as a primary button. On a customer whose payment had succeeded and whose workspace was provisioned, the most prominent action on the record existed only to answer `NO_RECHECKABLE_ORDER`. The API had always known better — `findRecheckableOrder` restricts to `PENDING_PAYMENT`, `PAID` and `FAILED` — but no read exposed it, so the frontend had nothing to branch on. |
+| **Regression test** | `services/api/src/modules/billing/services/payment-state.spec.ts` |
+| **Scenario** | Every `SubscriptionOrderStatus` maps to exactly one of `CONFIRMED`, `AWAITING`, `FAILED` or `NONE`; a customer with no order is `NONE`; a confirmed state carries the amount, currency, paid date and order number the panel prints; and no unsettled status can report `CONFIRMED`. |
+| **Proven to fail without the fix** | The method did not exist. The last assertion is the load-bearing one for future edits: a settled panel on an unsettled payment tells an operator to stop chasing money that has not arrived. |
+| **Note** | `DRAFT`, `ABANDONED` and `CANCELLED` all map to `NONE` deliberately — they are neither settled payments nor payments in flight, and a customer record is not the place to explain the absence of a payment nobody started. One decision is not tested here because it is a judgement rather than a mapping: when the state probe itself fails, the panel falls back to showing the full re-check UI. Withholding an operator's tool because a status request failed is worse than showing a button that might answer "nothing to do". |
+| **Fixed** | 2026-08-28 |
 | **Active** | yes |

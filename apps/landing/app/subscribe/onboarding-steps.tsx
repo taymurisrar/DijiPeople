@@ -64,6 +64,21 @@ function FieldError({ name, missing }: { name: string; missing: string[] }) {
  * deliberately: a closed list with no escape hatch pushes people into whichever
  * nearby value is least wrong, which is worse than an honest Other.
  */
+/**
+ * Size bands, matching the list the contact form and Platform Admin offer.
+ *
+ * A band rather than the exact headcount beside it: the Customers module
+ * segments on this, and "47" and "50" are the same segment for every question
+ * anyone asks of it.
+ */
+const COMPANY_SIZE_OPTIONS = [
+  "1-10",
+  "11-50",
+  "51-200",
+  "201-500",
+  "500+",
+] as const;
+
 const INDUSTRY_OPTIONS = [
   "Healthcare",
   "IT / Software",
@@ -182,6 +197,12 @@ export function OrganizationStep({ form, set, missing }: StepProps) {
         number — which the brief calls out directly.
       */}
 
+      {/*
+        Three optional facts about the organization, asked once here rather
+        than chased later. None of them gates checkout: a buyer who skips them
+        is a customer with a gap in their profile, and a buyer blocked by them
+        is not a customer at all.
+      */}
       <div className="grid gap-4 sm:grid-cols-2">
         <label className={labelClass} htmlFor="industry">
           Industry
@@ -199,6 +220,25 @@ export function OrganizationStep({ form, set, missing }: StepProps) {
             ))}
           </select>
         </label>
+        <label className={labelClass} htmlFor="companySize">
+          Company size
+          <select
+            className={inputClass}
+            id="companySize"
+            onChange={(event) => set({ companySize: event.target.value })}
+            value={form.companySize}
+          >
+            <option value="">Select a size</option>
+            {COMPANY_SIZE_OPTIONS.map((size) => (
+              <option key={size} value={size}>
+                {size} employees
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
         <label className={labelClass} htmlFor="estimatedEmployeeCount">
           Approximate employees
           <input

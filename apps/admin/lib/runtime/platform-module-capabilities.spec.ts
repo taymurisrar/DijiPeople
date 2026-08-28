@@ -32,13 +32,21 @@ describe("platform module capabilities", () => {
     expect(source).toContain("export class PlatformRuntimeService");
     expect(methodBody(source, "create")).toContain("switch (key)");
     expect(methodBody(source, "update")).toContain("switch (key)");
-    expect(methodBody(source, "remove")).toContain("switch (key)");
+    /*
+     * Deletion is `deleteRecords`, not `remove`.
+     *
+     * `remove` and `bulkDelete` were two switch statements over the same
+     * modules and they drifted — `leads` was in one and not the other, which
+     * an operator met as a 400. They share one method now, so this spec reads
+     * the one that decides, and one record and a selection cannot disagree.
+     */
+    expect(methodBody(source, "deleteRecords")).toContain("switch (key)");
   });
 
   it.each([
     ["create", "create"],
     ["update", "update"],
-    ["remove", "delete"],
+    ["deleteRecords", "delete"],
   ] as const)(
     "declares %s for exactly the modules the runtime API implements",
     (method, capability) => {
@@ -158,10 +166,13 @@ describe("platform module capabilities", () => {
   });
 });
 
-/** The body of `async <name>(`, bounded by the next class member. */
+/** The body of `async <name>(` — public or private — bounded by the next member. */
 function methodBody(source: string, name: string) {
-  const start = source.indexOf(`  async ${name}(`);
-  if (start === -1) throw new Error(`PlatformRuntimeService.${name} not found`);
+  const start = [`  async ${name}(`, `  private async ${name}(`]
+    .map((signature) => source.indexOf(signature))
+    .find((index) => index !== -1);
+  if (start === undefined)
+    throw new Error(`PlatformRuntimeService.${name} not found`);
   const rest = source.slice(start + 4);
   const next = rest.search(/\n {2}(?:async |private |get |[a-zA-Z]+\()/);
   return next === -1 ? rest : rest.slice(0, next);

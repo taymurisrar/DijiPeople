@@ -103,6 +103,20 @@ describe("BUG-1421 — every admin route titles itself", () => {
        * a known and accepted gap rather than an oversight.
        */
       if (/^\s*["']use client["']/.test(source)) return false;
+      /*
+       * A redirect-only route never paints, so it has no title to declare.
+       * `/app-releases` and `/agent-rollout` are in that state: both moved into
+       * Settings on 2026-08-28 and are kept as redirects rather than deleted,
+       * because the URLs are in bookmarks and in the release runbook.
+       *
+       * Narrow on purpose — it exempts a file that calls `redirect()` and
+       * renders no markup at all, not any page that happens to redirect
+       * somewhere down a branch.
+       */
+      const code = source
+        .replace(/\/\*[\s\S]*?\*\//g, "")
+        .replace(/^\s*\/\/.*$/gm, "");
+      if (code.includes("next/navigation") && !code.includes("<")) return false;
       return (
         !source.includes("export const metadata") &&
         !source.includes("generateMetadata")

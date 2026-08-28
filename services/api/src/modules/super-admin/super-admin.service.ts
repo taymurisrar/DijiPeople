@@ -79,6 +79,7 @@ import { UpdateTenantSlugDto } from '../tenants/dto/update-tenant-slug.dto';
 import { CreateInvoiceFromSubscriptionDto } from './dto/create-invoice-from-subscription.dto';
 import { PlansRepository } from './plans.repository';
 import { bootstrapCommercialDefaults } from './commercial-bootstrap';
+import { PlatformFxService } from './platform-fx.service';
 import { PlatformLifecycleService } from './platform-lifecycle.service';
 import { PlatformOnboardingService } from './platform-onboarding.service';
 import { PaymentsService } from './payments.service';
@@ -143,24 +144,89 @@ function monthlyBuckets(start: Date) {
   });
 }
 
-function buildMonthlyTrend(
+/**
+ * The revenue trend, in the reporting currency.
+ *
+ * Every row carries its own currency and is converted as it is added, rather
+ * than the query being filtered to one currency up front. A month in which the
+ * platform collected QAR and PKR used to render as a month of PKR alone
+ * (BUG-1745); it now renders as both, expressed in one.
+ *
+ * A row whose currency has no rate is skipped rather than added at par — the
+ * total it belongs to is reported separately as unconvertible, so nothing is
+ * quietly counted at the wrong value.
+ */
+export function buildMonthlyTrend(
   start: Date,
   invoices: Array<{
     createdAt: Date;
     amount: Prisma.Decimal;
     amountPaid: Prisma.Decimal | null;
+    currency: string;
   }>,
-  payments: Array<{ createdAt: Date; amount: Prisma.Decimal }>,
+  payments: Array<{
+    createdAt: Date;
+    amount: Prisma.Decimal;
+    currency: string;
+  }>,
+  convert: (amount: number, currency: string) => number | null,
 ) {
+  const sumConverted = (
+    rows: Array<{ createdAt: Date; amount: Prisma.Decimal; currency: string }>,
+    key: string,
+  ) =>
+    rows
+      .filter((item) => monthKey(item.createdAt) === key)
+      .reduce(
+        (sum, item) => sum + (convert(Number(item.amount), item.currency) ?? 0),
+        0,
+      );
+
   return monthlyBuckets(start).map((bucket) => ({
     ...bucket,
-    invoiced: invoices
-      .filter((item) => monthKey(item.createdAt) === bucket.key)
-      .reduce((sum, item) => sum + Number(item.amount), 0),
-    collected: payments
-      .filter((item) => monthKey(item.createdAt) === bucket.key)
-      .reduce((sum, item) => sum + Number(item.amount), 0),
+    invoiced: round2(sumConverted(invoices, bucket.key)),
+    collected: round2(sumConverted(payments, bucket.key)),
   }));
+}
+
+/** Money is presented to two places; summing converted rows must not drift past it. */
+function round2(value: number): number {
+  return Math.round((value + Number.EPSILON) * 100) / 100;
+}
+
+/**
+ * Fold a `groupBy(['currency'])` result into one reporting-currency total, and
+ * say which currencies could not be folded in.
+ *
+ * The alternative — filtering the query on one currency — is what made
+ * production report "Collected revenue PKR 0" beside two succeeded QAR
+ * payments. A zero must mean "no money", never "no money in the currency this
+ * happened to be configured with".
+ */
+export function foldCurrencies(
+  rows: Array<{ currency: string; amount: number; count?: number }>,
+  convert: (amount: number, currency: string) => number | null,
+) {
+  let total = 0;
+  const unconvertible: Array<{
+    currency: string;
+    amount: number;
+    count: number;
+  }> = [];
+  for (const row of rows) {
+    const converted = convert(row.amount, row.currency);
+    if (converted === null) {
+      unconvertible.push({
+        currency: row.currency,
+        amount: round2(row.amount),
+        count: row.count ?? 0,
+      });
+      continue;
+    }
+    total += converted;
+  }
+  unconvertible.sort((a, b) => b.amount - a.amount);
+  return { total: round2(total), unconvertible };
 }
 
 function buildLeadTrend(
@@ -241,6 +307,7 @@ export class SuperAdminService {
     private readonly webhookService: WebhookService,
     private readonly stripeBillingService: StripeBillingService,
     private readonly tenantDomains: TenantDomainService,
+    private readonly fx: PlatformFxService,
   ) {}
 
   getLifecycleOptions() {
@@ -264,21 +331,7 @@ export class SuperAdminService {
   }
 
   async getDashboardSummary(range?: string) {
-    const platformDefaultsRow = await this.prisma.platformSetting.findUnique({
-      where: { key: 'platform-defaults' },
-    });
-    const storedDefaults =
-      platformDefaultsRow?.value &&
-      typeof platformDefaultsRow.value === 'object' &&
-      !Array.isArray(platformDefaultsRow.value)
-        ? (platformDefaultsRow.value as Record<string, unknown>)
-        : {};
-    const reportingCurrency =
-      typeof storedDefaults.reportingCurrency === 'string'
-        ? storedDefaults.reportingCurrency
-        : typeof storedDefaults.currency === 'string'
-          ? storedDefaults.currency
-          : DEFAULT_PLATFORM_DEFAULTS.reportingCurrency;
+    const reportingCurrency = await this.fx.resolveReportingCurrency();
 
     const monthCount =
       range === '30d' ? 1 : range === '3m' ? 3 : range === '12m' ? 12 : 6;
@@ -296,12 +349,22 @@ export class SuperAdminService {
       );
     const now = new Date();
 
+    /*
+     * Rates before figures.
+     *
+     * `ensureFresh` is bounded and never fatal: if the provider is slow or down
+     * the dashboard renders from the rates already stored and says how old they
+     * are. What it must not do is filter money out — every aggregate below now
+     * groups by currency and folds through this converter (BUG-1745).
+     */
+    await this.fx.ensureFresh(reportingCurrency);
+    const fx = await this.fx.loadConverter(reportingCurrency);
+
     const [
       customerCount,
       tenantCount,
       activeSubscriptions,
       invoicesDue,
-      payments,
       paymentsByCurrency,
       leadBreakdown,
       onboardingBreakdown,
@@ -361,17 +424,13 @@ export class SuperAdminService {
           status: { in: [InvoiceStatus.ISSUED, InvoiceStatus.OVERDUE] },
         },
       }),
-      this.prisma.payment.aggregate({
-        _sum: { amount: true },
-        where: {
-          status: PaymentStatus.SUCCEEDED,
-          currency: reportingCurrency,
-        },
-      }),
       /*
-       * The same succeeded payments, grouped by currency and unfiltered — so
-       * the dashboard can name what its reporting-currency filter excluded
-       * rather than reporting a confident zero (BUG-1745).
+       * Every succeeded payment, grouped by currency rather than filtered to
+       * one (BUG-1745). There used to be two queries here — this one, and the
+       * same set filtered to the reporting currency — and the filtered one was
+       * what the headline figure came from. Production stored PKR while every
+       * payment was QAR, so the headline was zero and this query was only used
+       * to print a footnote about it.
        */
       this.prisma.payment.groupBy({
         by: ['currency'],
@@ -384,19 +443,22 @@ export class SuperAdminService {
         by: ['status'],
         _count: { _all: true },
       }),
+      // A count of invoices by status. It was scoped to the reporting currency,
+      // which meant the status tiles under-reported for the same reason the
+      // money did — and a count of invoices has no currency to be in.
       this.prisma.invoice.groupBy({
         by: ['status'],
-        where: { currency: reportingCurrency },
         _count: { _all: true },
       }),
       this.prisma.errorLog.groupBy({
         by: ['supportStatus'],
         _count: { _all: true },
       }),
-      this.prisma.invoice.aggregate({
+      this.prisma.invoice.groupBy({
+        by: ['currency'],
         _sum: { amountDue: true },
+        _count: { _all: true },
         where: {
-          currency: reportingCurrency,
           status: {
             in: [
               InvoiceStatus.ISSUED,
@@ -465,27 +527,24 @@ export class SuperAdminService {
         by: ['status'],
         _count: { _all: true },
       }),
-      this.prisma.partnerCommission.aggregate({
+      this.prisma.partnerCommission.groupBy({
+        by: ['currencyCode'],
         _sum: { commissionAmount: true },
-        where: {
-          currencyCode: reportingCurrency,
-          status: { in: ['PENDING', 'APPROVED', 'PAYABLE'] },
-        },
+        _count: { _all: true },
+        where: { status: { in: ['PENDING', 'APPROVED', 'PAYABLE'] } },
       }),
       this.prisma.invoice.findMany({
-        where: {
-          currency: reportingCurrency,
-          createdAt: { gte: rangeStart },
+        where: { createdAt: { gte: rangeStart } },
+        select: {
+          createdAt: true,
+          amount: true,
+          amountPaid: true,
+          currency: true,
         },
-        select: { createdAt: true, amount: true, amountPaid: true },
       }),
       this.prisma.payment.findMany({
-        where: {
-          currency: reportingCurrency,
-          status: 'SUCCEEDED',
-          createdAt: { gte: rangeStart },
-        },
-        select: { createdAt: true, amount: true },
+        where: { status: 'SUCCEEDED', createdAt: { gte: rangeStart } },
+        select: { createdAt: true, amount: true, currency: true },
       }),
       this.prisma.lead.findMany({
         where: { createdAt: { gte: rangeStart } },
@@ -550,18 +609,18 @@ export class SuperAdminService {
       this.prisma.lead.count({
         where: { createdAt: { gte: previousRangeStart, lt: rangeStart } },
       }),
-      this.prisma.payment.aggregate({
+      this.prisma.payment.groupBy({
+        by: ['currency'],
         _sum: { amount: true },
         where: {
-          currency: reportingCurrency,
           status: PaymentStatus.SUCCEEDED,
           createdAt: { gte: rangeStart },
         },
       }),
-      this.prisma.payment.aggregate({
+      this.prisma.payment.groupBy({
+        by: ['currency'],
         _sum: { amount: true },
         where: {
-          currency: reportingCurrency,
           status: PaymentStatus.SUCCEEDED,
           createdAt: { gte: previousRangeStart, lt: rangeStart },
         },
@@ -639,41 +698,83 @@ export class SuperAdminService {
     ]);
 
     /*
-     * Currencies the money figures above do not include. See the note on
-     * `excludedCurrencies` in the returned object (BUG-1745).
+     * Every figure below is folded through one converter, so the same rate is
+     * used by the headline, the trend and the comparison. A currency with no
+     * rate lands in `unconvertible` instead of being counted at par.
      */
-    const excludedCurrencyTotals = paymentsByCurrency
-      .filter((row) => row.currency !== reportingCurrency)
-      .map((row) => ({
+    const collected = foldCurrencies(
+      paymentsByCurrency.map((row) => ({
         currency: row.currency,
-        collected: Number(row._sum.amount ?? 0),
-        payments: row._count._all,
-      }))
-      .sort((a, b) => b.collected - a.collected);
+        amount: Number(row._sum.amount ?? 0),
+        count: row._count._all,
+      })),
+      fx.convert,
+    );
+    const outstandingTotals = foldCurrencies(
+      outstanding.map((row) => ({
+        currency: row.currency,
+        amount: Number(row._sum.amountDue ?? 0),
+        count: row._count._all,
+      })),
+      fx.convert,
+    );
+    const commissionTotals = foldCurrencies(
+      commissionExposure.map((row) => ({
+        currency: row.currencyCode,
+        amount: Number(row._sum.commissionAmount ?? 0),
+        count: row._count._all,
+      })),
+      fx.convert,
+    );
+    const currentCollected = foldCurrencies(
+      currentCollections.map((row) => ({
+        currency: row.currency,
+        amount: Number(row._sum.amount ?? 0),
+      })),
+      fx.convert,
+    );
+    const previousCollected = foldCurrencies(
+      previousCollections.map((row) => ({
+        currency: row.currency,
+        amount: Number(row._sum.amount ?? 0),
+      })),
+      fx.convert,
+    );
+
+    /*
+     * What could not be expressed in the reporting currency, in its own terms.
+     *
+     * The predecessor of this field, `excludedCurrencies`, listed every
+     * currency that was not the reporting one — which on production was all of
+     * them, because the reporting currency matched nothing. Now a currency
+     * appears here only when the platform genuinely has no rate for it, so an
+     * entry is a prompt to add one rather than a permanent footnote.
+     */
+    const unconvertible = collected.unconvertible;
 
     return {
       customers: customerCount,
       tenants: tenantCount,
       activeSubscriptions,
       openInvoices: invoicesDue,
-      collectedRevenue: Number(payments._sum.amount ?? 0),
+      collectedRevenue: collected.total,
       reportingCurrency,
-      outstandingRevenue: Number(outstanding._sum.amountDue ?? 0),
+      outstandingRevenue: outstandingTotals.total,
       /*
-       * What the reporting-currency filter left out.
+       * The rates this screen was computed with, and what it could not compute.
        *
-       * Every money figure above is filtered to `reportingCurrency`, and a
-       * platform whose default says PKR while every payment, invoice and price
-       * is QAR reports "Collected revenue PKR 0" — indistinguishable, on the
-       * screen, from having earned nothing. Production was in exactly that
-       * state with two succeeded payments totalling QAR 160 (BUG-1745).
-       *
-       * Which currency the business reports in is a commercial decision and is
-       * not this code's to make. What is this code's to do is stop a zero
-       * meaning two different things: the dashboard can now say that other
-       * currencies exist and are not counted here.
+       * Shown on the dashboard rather than buried in Settings, because a
+       * converted figure is only as trustworthy as the rate behind it and the
+       * operator should never have to go looking for that rate. `unconvertible`
+       * is normally empty; a currency lands there only when no rate exists for
+       * it at all, which is a prompt to add one (BUG-1745).
        */
-      excludedCurrencies: excludedCurrencyTotals,
+      fx: {
+        base: fx.base,
+        ratesAsOf: fx.ratesAsOf,
+        rates: fx.rates,
+        unconvertible,
+      },
       partners: partnerCount,
       leadBreakdown: toCountMap(leadBreakdown),
       onboardingBreakdown: toCountMap(onboardingBreakdown),
@@ -715,13 +816,13 @@ export class SuperAdminService {
       criticalCases,
       breachedCases,
       failedPayments,
-      commissionExposure: Number(commissionExposure._sum.commissionAmount ?? 0),
+      commissionExposure: commissionTotals.total,
       comparisons: {
         customers: periodComparison(currentCustomers, previousCustomers),
         leads: periodComparison(currentLeads, previousLeads),
         collectedRevenue: periodComparison(
-          Number(currentCollections._sum.amount ?? 0),
-          Number(previousCollections._sum.amount ?? 0),
+          currentCollected.total,
+          previousCollected.total,
         ),
       },
       timeRange: rangeKey,
@@ -731,6 +832,7 @@ export class SuperAdminService {
         rangeStart,
         recentInvoices,
         recentPayments,
+        fx.convert,
       ),
       leadTrend: buildLeadTrend(rangeStart, recentLeads),
       recentPartnerReferrals,
