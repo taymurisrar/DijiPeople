@@ -2,7 +2,7 @@
 ID: BUG-1578
 aliases: [BUG-1578]
 Title: Admin customer form stores a country lookup id where every reader expects a name
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: DATA_INTEGRITY
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-26
 DetectedInSha: 21032ae
 AffectedModules: [super-admin, contracts, lookups]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
-QAReport: 
+ArchitectDisposition: DONE
+QAReport: docs/qa/runs/2026-08-28-admin-console-e2e-912f4e6.md
 RegressionId: REG-267
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-26
-UpdatedAt: 2026-08-27
-ResolvedAt:
+UpdatedAt: 2026-08-28
+ResolvedAt: 2026-08-28
 ---
 
 # BUG-1578 — Admin customer form stores a country lookup id where every reader expects a name
@@ -189,13 +189,27 @@ that was wrong — the recurrence is the next country field on the next module.
 
 ## QA Retest
 
-Not yet retested. Retest by creating a customer through the admin form and
-reading the stored value, not by reading the form back — the form will redisplay
-its own id as a selected label and look correct.
+Verified against production `e0aeabcd` on 2026-08-28.
+
+Created a customer through **Customers > New customer** with Country set to
+`Qatar` from the picker, then read the stored value back through the API
+rather than the form:
+
+```
+GET /api/super-admin/customers/36f984ab-0461-48db-a604-b85cc86b47ea
+companyName = "QA E2E Customer 20260828"
+country     = "Qatar"
+```
+
+`country` holds the country name, not a lookup UUID. Read through the API for
+exactly the reason this record warns about: the form redisplays its own id as
+a selected label and looks correct either way. The test customer was deleted
+afterwards.
 
 ## History
 
 - 2026-08-26 — found while reading production contract `CON-20260826-DCA95FD5`
+- 2026-08-28 — verified fixed against production `e0aeabcd`, confirmed via API read-back rather than the rendered form.
   to establish the root cause of [[BUG-1541]]. Not observed during the original
   QA pass, which read the rendered document rather than the field values.
 

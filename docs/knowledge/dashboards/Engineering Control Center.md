@@ -7,16 +7,16 @@
 
 | | |
 |---|---|
-| Active sessions | **1** |
+| Active sessions | **2** |
 | Active parent tasks | 4 |
 | Active work packages | 1 |
 | Blocked work packages | 0 |
 | Work packages waiting on the user | 0 |
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
-| Open CRITICAL | **5** |
-| Open HIGH | 16 |
-| Awaiting Architect triage | 0 |
+| Open CRITICAL | **8** |
+| Open HIGH | 18 |
+| Awaiting Architect triage | 16 |
 | Owner decisions pending | 2 |
 | QA coverage gaps | 106 |
 | Scenarios blocked by infrastructure | 0 |
@@ -30,9 +30,9 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 46 |
-| No next action | 46 |
-| Aging — 7d / 30d / 90d | 15 / 0 / 0 |
+| No acceptance criteria | 58 |
+| No next action | 58 |
+| Aging — 7d / 30d / 90d | 16 / 0 / 0 |
 | Architecture and technical debt | 6 |
 | Security gaps | 3 |
 | Database gaps | 3 |
@@ -49,6 +49,7 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 | Session | Task | Title | Status | Branch | Target | Leases | Schema |
 |---|---|---|---|---|---|---|---|
+| [[SESSION-0065-admin-console-end-to-end-browser-qa-and-go-live-assessment|SESSION-0065]] | — | Admin console end-to-end browser QA and go-live assessment | ACTIVE | `agent/admin-console-e2e-qa` | `develop` | — | NO |
 | [[SESSION-0061-unblock-the-production-hosts-for-the-mcp-browser|SESSION-0061]] | — | Production admin E2E QA and invitation delivery visibility | ACTIVE | `agent/invitation-delivery-visibility` | `develop` | — | NO |
 
 ## Active Tasks and Work Packages
@@ -106,6 +107,9 @@ what they own, and what the backlog and QA systems currently say.
 | [[BUG-0900-tenant-provisioning-exceeds-the-5s-transaction-timeout-a-pai|BUG-0900]] | Tenant provisioning exceeds the 5s transaction timeout: a paid order is left with no workspace | BUG | CRITICAL | FIXED | api:permissions | FIX_NOW |
 | [[BUG-0904-production-is-missing-outbox-worker-enabled-so-no-workspace-|BUG-0904]] | Production is missing OUTBOX_WORKER_ENABLED, so no workspace is provisioned after payment | BUG | CRITICAL | OPEN | api:outbox | BLOCKED_EXTERNAL |
 | [[BUG-1128-stripe-api-version-skew-invoice-paid-cannot-map-to-a-subscri|BUG-1128]] | Stripe API version skew: invoice.paid cannot map to a subscription because invoice.subscription no longer exists | INTEGRATION | CRITICAL | FIXED | api:billing | FIX_NOW |
+| [[BUG-1742-lead-creation-is-impossible-the-runtime-form-always-sends-pa|BUG-1742]] | Lead creation is impossible: the runtime form always sends partnerId as an empty string | BUG | CRITICAL | OPEN | apps/admin, api:platform-runtime, api:super-admin | TRIAGE_REQUIRED |
+| [[BUG-1743-customers-and-partners-cannot-be-edited-the-runtime-form-ech|BUG-1743]] | Customers and partners cannot be edited: the runtime form echoes fields the update DTO forbids | BUG | CRITICAL | OPEN | apps/admin, api:platform-runtime, api:super-admin | TRIAGE_REQUIRED |
+| [[BUG-1744-every-subscription-has-a-zero-length-billing-period-and-a-re|BUG-1744]] | Every subscription has a zero-length billing period and a renewal date in the past | DATA_INTEGRITY | CRITICAL | OPEN | api:super-admin, api:billing, integration:stripe | TRIAGE_REQUIRED |
 | [[BUG-1494-git-worktree-remove-follows-node-modules-junctions-and-delet|BUG-1494]] | git worktree remove follows node_modules junctions and deletes the primary checkout | INFRA | CRITICAL | FIXED | scripts | DONE |
 
 ## Owner Decisions Pending
@@ -234,13 +238,13 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 47 |
+| Open total | 59 |
 | Blocked | 2 |
 | Deferred | 44 |
 | Awaiting a product decision | 2 |
-| Awaiting Architect triage | 0 |
+| Awaiting Architect triage | 16 |
 
-Every ordinary record carries a disposition.
+**A record nobody has triaged is work nobody has decided about.** No ordinary record may stay `TRIAGE_REQUIRED` at the end of a task.
 
 ## Deployment
 
