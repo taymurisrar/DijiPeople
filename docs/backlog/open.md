@@ -11,10 +11,7 @@ The Architect reads this before planning any substantial change —
 
 ## Awaiting Architect triage
 
-| ID | Title | Type | Severity | Priority | Status | Affected | Architect |
-|---|---|---|---|---|---|---|---|
-| [BUG-1745](../../docs/bugs/BUG-1745-the-executive-dashboard-reports-zero-revenue-because-reporti.md) | The executive dashboard reports zero revenue because reporting currency is PKR and all money is QAR | BUG | HIGH | P1 | OPEN | apps/admin, api:super-admin | TRIAGE_REQUIRED |
-| [BUG-1751](../../docs/bugs/BUG-1751-a-promotion-goes-live-against-every-subscription-the-instant.md) | A promotion goes live against every subscription the instant it is created | BUG | HIGH | P1 | OPEN | apps/admin, api:super-admin, integration:stripe | TRIAGE_REQUIRED |
+_None._
 
 ## CRITICAL
 
@@ -42,11 +39,11 @@ The Architect reads this before planning any substantial change —
 | [BUG-1516](../../docs/bugs/BUG-1516-public-signup-creates-duplicate-customer-records-breaking-st.md) | Public signup creates duplicate customer records, breaking Stripe tenant resolution | DATA_INTEGRITY | HIGH | P1 | FIXED | super-admin, billing, landing | FIX_NOW |
 | [BUG-1544](../../docs/bugs/BUG-1544-public-signup-advertises-a-workspace-domain-that-does-not-re.md) | Public signup advertises a workspace domain that does not resolve | UX | HIGH | P1 | OPEN | tenant-domains, leads | FIX_NOW |
 | [BUG-1649](../../docs/bugs/BUG-1649-api-proxy-routes-copy-the-upstream-content-encoding-onto-an-.md) | API proxy routes copy the upstream Content-Encoding onto an already-decompressed body | BUG | HIGH | P1 | FIXED | settings-runtime, tenant-settings | FIX_NOW |
-| [BUG-1745](../../docs/bugs/BUG-1745-the-executive-dashboard-reports-zero-revenue-because-reporti.md) | The executive dashboard reports zero revenue because reporting currency is PKR and all money is QAR | BUG | HIGH | P1 | OPEN | apps/admin, api:super-admin | TRIAGE_REQUIRED |
+| [BUG-1745](../../docs/bugs/BUG-1745-the-executive-dashboard-reports-zero-revenue-because-reporti.md) | The executive dashboard reports zero revenue because reporting currency is PKR and all money is QAR | BUG | HIGH | P1 | FIXED | apps/admin, api:super-admin | FIX_NOW |
 | [BUG-1747](../../docs/bugs/BUG-1747-partner-currency-is-a-required-numeric-input-so-partner-crea.md) | Partner Currency is a required numeric input so partner creation forces a corrupt currency code | BUG | HIGH | P1 | FIXED | apps/admin, api:super-admin | FIX_NOW |
 | [BUG-1749](../../docs/bugs/BUG-1749-admin-creates-plans-that-can-never-be-sold-and-can-never-be-.md) | Admin creates plans that can never be sold and can never be deleted | BUG | HIGH | P1 | FIXED | apps/admin, api:super-admin | FIX_NOW |
 | [BUG-1750](../../docs/bugs/BUG-1750-the-monitoring-critical-tile-miscounts-and-links-to-a-filter.md) | The monitoring critical tile miscounts and links to a filter that matches nothing | BUG | HIGH | P1 | FIXED | apps/admin, api:platform-monitoring | FIX_NOW |
-| [BUG-1751](../../docs/bugs/BUG-1751-a-promotion-goes-live-against-every-subscription-the-instant.md) | A promotion goes live against every subscription the instant it is created | BUG | HIGH | P1 | OPEN | apps/admin, api:super-admin, integration:stripe | TRIAGE_REQUIRED |
+| [BUG-1751](../../docs/bugs/BUG-1751-a-promotion-goes-live-against-every-subscription-the-instant.md) | A promotion goes live against every subscription the instant it is created | BUG | HIGH | P1 | FIXED | apps/admin, api:super-admin, integration:stripe | FIX_NOW |
 | [BUG-1755](../../docs/bugs/BUG-1755-the-plans-list-cannot-show-publication-status-or-sales-model.md) | The plans list cannot show publication status or sales model because the API omits them | BUG | HIGH | P1 | FIXED | apps/admin, api:super-admin | FIX_NOW |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | READY | apps/web, e2e | PLAN_REQUIRED |
 | [ITEM-0094](../../docs/backlog/items/ITEM-0094-go-live-sh-reports-no-blocker-for-a-webhook-endpoint-that-re.md) | go-live.sh reports no blocker for a webhook endpoint that rejects every delivery | TEST_GAP | HIGH | P1 | READY | scripts, api:billing, api:outbox | FIX_NOW |
@@ -59,13 +56,13 @@ The Architect reads this before planning any substantial change —
 | [BUG-0905](../../docs/bugs/BUG-0905-production-defines-direct-url-but-the-code-reads-direct-data.md) | Production defines DIRECT_URL but the code reads DIRECT_DATABASE_URL, so migrations run over the pooled endpoint | BUG | MEDIUM | P2 | FIXED | services/api/prisma, pkg:config | FIX_NOW |
 | [BUG-1208](../../docs/bugs/BUG-1208-component-index-check-fails-on-every-windows-checkout-passes.md) | component-index --check fails on every Windows checkout, passes in CI | INFRA | MEDIUM | P2 | FIXED | framework | FIX_NOW |
 | [BUG-1421](../../docs/bugs/BUG-1421-every-admin-screen-shares-one-page-title-two-main-landmarks-.md) | Every admin screen shares one page title, two main landmarks and a duplicate h1 | UX | MEDIUM | P2 | FIXED | apps/admin | FIX_NOW |
-| [BUG-1424](../../docs/bugs/BUG-1424-the-admin-console-serves-no-content-security-policy-header.md) | The admin console serves no Content-Security-Policy header | SECURITY | MEDIUM | P2 | OPEN | apps/admin | PLAN_REQUIRED |
 | [BUG-1425](../../docs/bugs/BUG-1425-currencycode-accepts-any-string-of-three-characters-or-fewer.md) | currencyCode accepts any string of three characters or fewer | DATA_INTEGRITY | MEDIUM | P2 | FIXED | api:partners | FIX_NOW |
 | [BUG-1545](../../docs/bugs/BUG-1545-manual-customer-onboarding-creation-fails-on-an-owner-foreig.md) | Manual customer onboarding creation fails on an owner foreign key | BUG | MEDIUM | P2 | FIXED | platform-runtime, onboarding | FIX_NOW |
 | [BUG-1546](../../docs/bugs/BUG-1546-required-fields-on-unfocused-tabs-give-no-indication-of-wher.md) | Required fields on unfocused tabs give no indication of where they are | UX | MEDIUM | P2 | FIXED | customization | FIX_NOW |
 | [BUG-1547](../../docs/bugs/BUG-1547-onboarding-prerequisite-message-states-the-inverse-of-the-tr.md) | Onboarding prerequisite message states the inverse of the truth | UX | MEDIUM | P2 | FIXED | onboarding | FIX_NOW |
 | [BUG-1549](../../docs/bugs/BUG-1549-database-and-validator-internals-are-surfaced-in-user-facing.md) | Database and validator internals are surfaced in user-facing errors | UX | MEDIUM | P2 | FIXED | error-logs | FIX_NOW |
 | [BUG-1550](../../docs/bugs/BUG-1550-lead-record-shows-two-different-owners-on-the-same-screen.md) | Lead record shows two different owners on the same screen | BUG | MEDIUM | P2 | FIXED | leads | FIX_NOW |
+| [BUG-1553](../../docs/bugs/BUG-1553-owner-and-template-pickers-list-indistinguishable-duplicate-.md) | Owner and template pickers list indistinguishable duplicate entries | UX | MEDIUM | P2 | FIXED | contracts, platform-users | FIX_NOW |
 | [BUG-1554](../../docs/bugs/BUG-1554-admin-requests-its-own-partners-api-with-a-rejected-pagesize.md) | Admin requests its own partners API with a rejected pageSize | BUG | MEDIUM | P2 | FIXED | partners | FIX_NOW |
 | [BUG-1555](../../docs/bugs/BUG-1555-an-inactive-plan-with-no-prices-is-offered-as-a-customer-pre.md) | An inactive plan with no prices is offered as a customer preferred plan | BUG | MEDIUM | P2 | FIXED | super-admin, billing | FIX_NOW |
 | [BUG-1654](../../docs/bugs/BUG-1654-every-empty-list-in-a-new-workspace-blames-filters-that-are-.md) | Every empty list in a new workspace blames filters that are not set | UX | MEDIUM | P2 | FIXED | views, employees | FIX_NOW |
@@ -76,6 +73,7 @@ The Architect reads this before planning any substantial change —
 | [BUG-1754](../../docs/bugs/BUG-1754-the-incident-queue-counts-routine-401s-and-unknown-route-404.md) | The incident queue counts routine 401s and unknown-route 404s as incidents needing triage | BUG | MEDIUM | P2 | FIXED | api:platform-monitoring, api:error-logs | FIX_NOW |
 | [BUG-1756](../../docs/bugs/BUG-1756-bulk-delete-confirms-without-naming-how-many-records-or-whic.md) | Bulk delete confirms without naming how many records or which ones | UX | MEDIUM | P2 | FIXED | apps/admin | FIX_NOW |
 | [BUG-1757](../../docs/bugs/BUG-1757-promotions-cannot-be-deleted-and-the-delete-route-silently-d.md) | Promotions cannot be deleted and the DELETE route silently deactivates instead | BUG | MEDIUM | P2 | FIXED | apps/admin, api:super-admin | FIX_NOW |
+| [BUG-1822](../../docs/bugs/BUG-1822-landing-csp-permits-the-api-over-http-so-its-own-connect-src.md) | Landing CSP permits the API over http, so its own connect-src does not match | INFRA | MEDIUM | P2 | OPEN | apps/landing, pkg:config | BLOCKED_EXTERNAL |
 | [ITEM-0009](../../docs/backlog/items/ITEM-0009-no-observability-platform-exists.md) | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | P2 | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [ITEM-0020](../../docs/backlog/items/ITEM-0020-contract-phase-drop-legacy-plan-pricing-columns.md) | Contract phase: drop legacy Plan pricing columns | TECH_DEBT | MEDIUM | P2 | READY | services/api/prisma, api:super-admin, apps/admin | PLAN_REQUIRED |
 | [ITEM-0022](../../docs/backlog/items/ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur.md) | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | P2 | READY | api:super-admin, apps/admin | PLAN_REQUIRED |

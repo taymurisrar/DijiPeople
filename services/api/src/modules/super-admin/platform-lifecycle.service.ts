@@ -2450,15 +2450,22 @@ export class PlatformLifecycleService {
     const checks = [
       {
         label: 'Customer is active',
+        unmet: 'the customer is not active',
         passed: customerStatus === CustomerAccountStatus.ACTIVE,
       },
-      { label: 'Plan selected', passed: Boolean(onboarding.selectedPlanId) },
+      {
+        label: 'Plan selected',
+        unmet: 'no plan is selected',
+        passed: Boolean(onboarding.selectedPlanId),
+      },
       {
         label: 'Billing cycle selected',
+        unmet: 'no billing cycle is selected',
         passed: Boolean(onboarding.billingCycle),
       },
       {
         label: 'Primary owner details complete',
+        unmet: 'primary owner details are incomplete',
         passed: Boolean(
           onboarding.primaryOwnerFirstName &&
           onboarding.primaryOwnerLastName &&
@@ -2467,24 +2474,52 @@ export class PlatformLifecycleService {
       },
       {
         label: 'Service account details complete',
+        unmet: 'service account details are incomplete',
         passed:
           !onboarding.createServiceAccount ||
           Boolean(onboarding.serviceAccountEmail),
       },
-      { label: 'Contract signed', passed: onboarding.contractSigned },
-      { label: 'Payment confirmed', passed: onboarding.paymentConfirmed },
-      { label: 'Configuration ready', passed: onboarding.configurationReady },
-      { label: 'Training planned', passed: onboarding.trainingPlanned },
+      {
+        label: 'Contract signed',
+        unmet: 'the contract is not signed',
+        passed: onboarding.contractSigned,
+      },
+      {
+        label: 'Payment confirmed',
+        unmet: 'payment is not confirmed',
+        passed: onboarding.paymentConfirmed,
+      },
+      {
+        label: 'Configuration ready',
+        unmet: 'configuration is not ready',
+        passed: onboarding.configurationReady,
+      },
+      {
+        label: 'Training planned',
+        unmet: 'training is not planned',
+        passed: onboarding.trainingPlanned,
+      },
       {
         label: 'Tenant not already created',
+        unmet: 'the tenant has already been created',
         passed: !onboarding.tenantCreated,
       },
     ];
 
     const passedCount = checks.filter((item) => item.passed).length;
+    /*
+     * Same reasoning as `getOnboardingPrerequisites` — see the note there.
+     * `label` states the condition positively for the checklist's ticks;
+     * `blockers` is a list of what is *wrong* and needs its own phrasing, or it
+     * reports the missing things as present (BUG-1547).
+     *
+     * This second copy is why the spec asserts across the whole file rather
+     * than one function: the first fix corrected the readable one and left this
+     * one, and only CI's LF checkout noticed.
+     */
     const blockers = checks
       .filter((item) => !item.passed)
-      .map((item) => item.label);
+      .map((item) => item.unmet);
 
     return {
       checks,

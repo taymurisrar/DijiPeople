@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 320,
+    "total_records": 321,
     "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
@@ -2277,10 +2277,12 @@
         "ITEM-0039"
       ],
       "regressions": [
-        "REG-035"
+        "REG-035",
+        "REG-295"
       ],
       "qa_scenarios": [
-        "QA-DEPLOY-006"
+        "QA-DEPLOY-006",
+        "QA-DEPLOY-023"
       ],
       "test_plan": [],
       "active_session_conflict": "NONE",
@@ -8376,21 +8378,24 @@
       "title": "The admin console serves no Content-Security-Policy header",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "PLAN_REQUIRED",
+      "current_status": "VERIFIED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-1424-the-admin-console-serves-no-content-security-policy-header.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "8d6be21b",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-27",
-        "resolved_at": ""
+        "updated_at": "2026-08-28",
+        "resolved_at": "2026-08-28"
       },
       "affected_modules": [
         "apps/admin"
       ],
-      "regressions": [],
+      "regressions": [
+        "REG-295"
+      ],
       "qa_scenarios": [
+        "QA-DEPLOY-023",
         "QA-PLATFORM-025"
       ],
       "test_plan": [
@@ -9091,14 +9096,14 @@
       "title": "Owner and template pickers list indistinguishable duplicate entries",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "DEFERRED",
-      "architect_disposition": "DEFER",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-1553-owner-and-template-pickers-list-indistinguishable-duplicate-.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "21032ae",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-27",
+        "updated_at": "2026-08-28",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -9950,8 +9955,8 @@
       "title": "The executive dashboard reports zero revenue because reporting currency is PKR and all money is QAR",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-1745-the-executive-dashboard-reports-zero-revenue-because-reporti.md",
         "provenance": "QA_RUN",
@@ -9964,8 +9969,12 @@
         "apps/admin",
         "api:super-admin"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-294"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-047"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -10208,8 +10217,8 @@
       "title": "A promotion goes live against every subscription the instant it is created",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-1751-a-promotion-goes-live-against-every-subscription-the-instant.md",
         "provenance": "QA_RUN",
@@ -10223,8 +10232,12 @@
         "api:super-admin",
         "integration:stripe"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-294"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-046"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -10491,6 +10504,50 @@
           "api:super-admin"
         ],
         "verification_scope": "See docs/bugs/BUG-1757-promotions-cannot-be-deleted-and-the-delete-route-silently-d.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1822",
+      "type": "INFRA",
+      "title": "Landing CSP permits the API over http, so its own connect-src does not match",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "BLOCKED_EXTERNAL",
+      "source": {
+        "record_path": "docs/bugs/BUG-1822-landing-csp-permits-the-api-over-http-so-its-own-connect-src.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "e0aeabcd",
+        "created_at": "2026-08-28",
+        "updated_at": "2026-08-28",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/landing",
+        "packages/config"
+      ],
+      "regressions": [
+        "REG-295"
+      ],
+      "qa_scenarios": [
+        "QA-DEPLOY-023"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/landing",
+          "packages/config"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1822-landing-csp-permits-the-api-over-http-so-its-own-connect-src.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],

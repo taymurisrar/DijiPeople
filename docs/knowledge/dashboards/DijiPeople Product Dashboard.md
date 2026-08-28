@@ -95,6 +95,7 @@ Questions where the engineering is understood and the **product answer**
 | [[BUG-1546-required-fields-on-unfocused-tabs-give-no-indication-of-wher|BUG-1546]] | Required fields on unfocused tabs give no indication of where they are | UX | MEDIUM | FIXED | customization | FIX_NOW |
 | [[BUG-1547-onboarding-prerequisite-message-states-the-inverse-of-the-tr|BUG-1547]] | Onboarding prerequisite message states the inverse of the truth | UX | MEDIUM | FIXED | onboarding | FIX_NOW |
 | [[BUG-1549-database-and-validator-internals-are-surfaced-in-user-facing|BUG-1549]] | Database and validator internals are surfaced in user-facing errors | UX | MEDIUM | FIXED | error-logs | FIX_NOW |
+| [[BUG-1553-owner-and-template-pickers-list-indistinguishable-duplicate-|BUG-1553]] | Owner and template pickers list indistinguishable duplicate entries | UX | MEDIUM | FIXED | contracts, platform-users | FIX_NOW |
 | [[BUG-1654-every-empty-list-in-a-new-workspace-blames-filters-that-are-|BUG-1654]] | Every empty list in a new workspace blames filters that are not set | UX | MEDIUM | FIXED | views, employees | FIX_NOW |
 | [[BUG-1655-tenant-login-password-field-has-no-accessible-name-and-no-au|BUG-1655]] | Tenant login password field has no accessible name and no autocomplete hint | UX | MEDIUM | FIXED | auth | FIX_NOW |
 | [[BUG-1673-tenant-workspace-shell-repeats-three-h1-headings-and-two-mai|BUG-1673]] | Tenant workspace shell repeats three h1 headings and two main landmarks on every screen | UX | MEDIUM | FIXED | views | FIX_NOW |

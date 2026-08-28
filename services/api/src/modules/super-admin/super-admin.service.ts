@@ -302,6 +302,7 @@ export class SuperAdminService {
       activeSubscriptions,
       invoicesDue,
       payments,
+      paymentsByCurrency,
       leadBreakdown,
       onboardingBreakdown,
       invoiceBreakdown,
@@ -366,6 +367,17 @@ export class SuperAdminService {
           status: PaymentStatus.SUCCEEDED,
           currency: reportingCurrency,
         },
+      }),
+      /*
+       * The same succeeded payments, grouped by currency and unfiltered — so
+       * the dashboard can name what its reporting-currency filter excluded
+       * rather than reporting a confident zero (BUG-1745).
+       */
+      this.prisma.payment.groupBy({
+        by: ['currency'],
+        where: { status: PaymentStatus.SUCCEEDED },
+        _sum: { amount: true },
+        _count: { _all: true },
       }),
       this.prisma.lead.groupBy({ by: ['status'], _count: { _all: true } }),
       this.prisma.customerOnboarding.groupBy({
@@ -626,6 +638,19 @@ export class SuperAdminService {
       }),
     ]);
 
+    /*
+     * Currencies the money figures above do not include. See the note on
+     * `excludedCurrencies` in the returned object (BUG-1745).
+     */
+    const excludedCurrencyTotals = paymentsByCurrency
+      .filter((row) => row.currency !== reportingCurrency)
+      .map((row) => ({
+        currency: row.currency,
+        collected: Number(row._sum.amount ?? 0),
+        payments: row._count._all,
+      }))
+      .sort((a, b) => b.collected - a.collected);
+
     return {
       customers: customerCount,
       tenants: tenantCount,
@@ -634,6 +659,21 @@ export class SuperAdminService {
       collectedRevenue: Number(payments._sum.amount ?? 0),
       reportingCurrency,
       outstandingRevenue: Number(outstanding._sum.amountDue ?? 0),
+      /*
+       * What the reporting-currency filter left out.
+       *
+       * Every money figure above is filtered to `reportingCurrency`, and a
+       * platform whose default says PKR while every payment, invoice and price
+       * is QAR reports "Collected revenue PKR 0" — indistinguishable, on the
+       * screen, from having earned nothing. Production was in exactly that
+       * state with two succeeded payments totalling QAR 160 (BUG-1745).
+       *
+       * Which currency the business reports in is a commercial decision and is
+       * not this code's to make. What is this code's to do is stop a zero
+       * meaning two different things: the dashboard can now say that other
+       * currencies exist and are not counted here.
+       */
+      excludedCurrencies: excludedCurrencyTotals,
       partners: partnerCount,
       leadBreakdown: toCountMap(leadBreakdown),
       onboardingBreakdown: toCountMap(onboardingBreakdown),
@@ -2561,7 +2601,20 @@ export class SuperAdminService {
         startsAt: dto.startsAt ? new Date(dto.startsAt) : undefined,
         redeemBy: dto.redeemBy ? new Date(dto.redeemBy) : null,
         maximumRedemptions: dto.maximumRedemptions ?? null,
-        isActive: dto.isActive ?? true,
+        /*
+         * Created inactive. Publishing commercial terms is a second act.
+         *
+         * "Add promotion" with the form's own defaults published a 10% discount
+         * against every eligible subscription, immediately, with no draft state
+         * and no confirmation — one press (BUG-1751). Creating and activating
+         * are now separate, so a mistyped promotion costs an edit rather than
+         * money.
+         *
+         * `dto.isActive` still wins when a caller states it: a caller that says
+         * `isActive: true` has said something deliberate, and this is about the
+         * default for one that says nothing.
+         */
+        isActive: dto.isActive ?? false,
         createdById: actor.userId,
         updatedById: actor.userId,
       },

@@ -2951,3 +2951,33 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | Applied only where a label actually repeats. Showing everyone's email beside their name would clutter every picker in the console to solve a problem that exists in two of them, and a disambiguator is only informative when there is something to disambiguate from. The shortened id is a poor answer and is last for that reason — but two identical entries with no way to choose between them is a worse one. The template half of the record asked whether the duplication is display-level or two real records; this makes them distinguishable either way, and which *should* be selectable remains the product decision the record identifies. |
 | **Fixed** | 2026-08-28 |
 | **Active** | yes |
+
+### REG-294 — Commercial terms published by not touching a field
+
+| | |
+|---|---|
+| **Bug class** | `dangerous-default`, `filtered-zero-reads-as-nothing` |
+| **Module** | `super-admin`, `apps/admin` |
+| **Bug record** | BUG-1751, BUG-1745 |
+| **Root cause** | The promotions form defaulted Scope to GLOBAL, pre-filled Percent off with 10, and created the promotion Active — so one press of "Add promotion" published a 10% discount against every eligible subscription, with no draft state and no confirmation. Separately, every money aggregate on the Control Hub filters on `currency: reportingCurrency`, and production's stored default said PKR while every payment was QAR: "Collected revenue PKR 0" against two succeeded payments totalling QAR 160, indistinguishable on the screen from having earned nothing. |
+| **Regression test** | `services/api/src/modules/super-admin/promotion-safety.spec.ts` |
+| **Scenario** | Promotions are created inactive while an explicit `isActive: true` still wins; the form starts with no scope and no amount and refuses to submit without either; an explicit Activate exists and confirms, treating a global scope as the dangerous case. And the dashboard payload reports the currencies its filter excluded, with amounts. |
+| **Proven to fail without the fix** | Every assertion names a default that was the opposite, or a field that did not exist. |
+| **Note** | Two things deliberately not done, both because they are decisions rather than changes. Whether Stripe or the platform is authoritative for discounts is a product question, so `syncToStripe` stays opt-in — changing the default would be answering it by implementation. And which currency the business reports in is a commercial decision that QA explicitly declined to make; the dashboard now says what it excludes rather than having its filter changed. The honest zero is the fix; the right number is somebody's call. |
+| **Fixed** | 2026-08-28 |
+| **Active** | yes |
+
+### REG-295 — A policy that could not permit what the page needed
+
+| | |
+|---|---|
+| **Bug class** | `config-value-cannot-work` |
+| **Module** | `packages/config`, `apps/landing` |
+| **Bug record** | BUG-1822, BUG-1424, BUG-0040 |
+| **Root cause** | The landing deployment's API base URL is configured with an `http://` scheme, so its generated CSP permits `http://api.dijipeople.com/api` while admin and the tenant app permit `https://`. A browser on an HTTPS page blocks a plain-http request as mixed content before CSP is consulted, so the `connect-src` entry matches nothing — harmless while the policy is report-only, and a live break for checkout, plan browsing and lead capture the moment anyone enforces it. |
+| **Regression test** | `packages/config/security-headers.test.js` |
+| **Scenario** | `securityHeadersForApp` refuses a non-loopback `http://` API origin, failing the build rather than emitting a policy that cannot work. `http://localhost` and `http://127.0.0.1` stay allowed, because those are the correct local answers. |
+| **Proven to fail without the fix** | No such check existed; the origin was passed through verbatim into the header. |
+| **Note** | Found while *measuring* BUG-1424's premise rather than trusting it — that record says the admin console serves no CSP at all, and all three apps do. The measurement is what turned up the scheme difference, which is an argument for checking a stale-looking record rather than closing it on the strength of the code. The guard follows the stance `packages/config` already takes on loopback URLs: a development value reaching production is a configuration error raised at build time, not something a customer discovers. It cannot assert the deployed value — that lives on the service (see BUG-0905) — only refuse to build a policy around a bad one. |
+| **Fixed** | 2026-08-28 |
+| **Active** | yes |

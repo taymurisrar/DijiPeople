@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 234** · automated: 206 · manual: 10 · blocked by infrastructure: 0
+**Scenarios: 237** · automated: 209 · manual: 10 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -95,6 +95,7 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-DEPLOY-020](../../../docs/qa/scenarios/QA-DEPLOY-020-the-two-apps-web-environment-examples-agree-with-each-other-.md) | The two apps/web environment examples agree with each other and with the code | deployment-release | UNIT | LOW | AUTOMATED | `packages/config/env-examples.test.js` | ITEM-0045 | REG-210 |
 | [QA-DEPLOY-021](../../../docs/qa/scenarios/QA-DEPLOY-021-the-production-dependency-graph-carries-no-critical-advisory.md) | The production dependency graph carries no critical advisory | deployment-release | SECURITY | HIGH | AUTOMATED | `scripts/check-production-advisories.mjs` | BUG-0052 | REG-217 |
 | [QA-DEPLOY-022](../../../docs/qa/scenarios/QA-DEPLOY-022-the-deployment-says-whether-it-is-draining-the-outbox.md) | The deployment says whether it is draining the outbox | outbox | DEPLOYMENT_SMOKE | HIGH | AUTOMATED | `services/api/src/app.service.spec.ts` | BUG-0904, BUG-0767 | REG-280 |
+| [QA-DEPLOY-023](../../../docs/qa/scenarios/QA-DEPLOY-023-every-app-serves-a-usable-content-security-policy.md) | Every app serves a usable content security policy | deployment-release | DEPLOYMENT_SMOKE | MEDIUM | AUTOMATED | `packages/config/security-headers.test.js` | BUG-1822, BUG-1424, BUG-0040 | REG-295 |
 | [QA-INFRA-002](../../../docs/qa/scenarios/QA-INFRA-002-repo-health-attributes-main-changes-to-the-right-task.md) | repo-health attributes main changes to the right task | deployment-release | API | HIGH | AUTOMATED | `scripts/task-sha-ref.test.mjs` | BUG-1203 | REG-249 |
 | [QA-INFRA-003](../../../docs/qa/scenarios/QA-INFRA-003-the-component-index-drift-check-is-platform-independent.md) | the component index drift check is platform-independent | deployment-release | API | MEDIUM | AUTOMATED | `scripts/index-drift.test.mjs` | BUG-1208 | REG-250 |
 | [QA-INTEGRATION-001](../../../docs/qa/scenarios/QA-INTEGRATION-001-a-stale-stripe-product-id-is-replaced-rather-than-fatal.md) | A stale Stripe product id is replaced rather than fatal | billing | INTEGRATION | HIGH | AUTOMATED | `services/api/src/modules/billing/stripe-product-resolution.spec.ts` | BUG-0995 | REG-242 |
@@ -248,3 +249,5 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-TENANT-043](../../../docs/qa/scenarios/QA-TENANT-043-a-tenant-is-never-provisioned-onto-a-plan-nothing-can-bill.md) | A tenant is never provisioned onto a plan nothing can bill | platform-admin | UNIT | HIGH | AUTOMATED | `services/api/src/modules/super-admin/onboarding-prerequisites.spec.ts` | BUG-1555, BUG-1554 | REG-291 |
 | [QA-TENANT-044](../../../docs/qa/scenarios/QA-TENANT-044-absent-dates-render-as-absent-rather-than-as-1970.md) | Absent dates render as absent rather than as 1970 | platform-admin | UNIT | LOW | MANUAL | `apps/admin/lib/formatters.ts` | BUG-1556, BUG-1550 | REG-292 |
 | [QA-TENANT-045](../../../docs/qa/scenarios/QA-TENANT-045-duplicate-picker-entries-tell-themselves-apart.md) | Duplicate picker entries tell themselves apart | platform-admin | UNIT | MEDIUM | AUTOMATED | `apps/admin/lib/runtime/lookup-disambiguation.spec.ts` | BUG-1553 | REG-293 |
+| [QA-TENANT-046](../../../docs/qa/scenarios/QA-TENANT-046-creating-a-promotion-does-not-publish-it.md) | Creating a promotion does not publish it | platform-admin | UNIT | HIGH | AUTOMATED | `services/api/src/modules/super-admin/promotion-safety.spec.ts` | BUG-1751 | REG-294 |
+| [QA-TENANT-047](../../../docs/qa/scenarios/QA-TENANT-047-a-filtered-revenue-figure-says-what-it-excludes.md) | A filtered revenue figure says what it excludes | platform-admin | UNIT | HIGH | AUTOMATED | `services/api/src/modules/super-admin/promotion-safety.spec.ts` | BUG-1745 | REG-294 |

@@ -2,7 +2,21 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const SERVICE = join(__dirname, 'platform-lifecycle.service.ts');
-const source = readFileSync(SERVICE, 'utf8');
+/*
+ * Line endings normalised before anything is matched.
+ *
+ * The first version of this file asserted against a literal containing `\n`.
+ * On a Windows checkout the file is CRLF, so the pattern matched nothing and
+ * `not.toContain` passed trivially — while on CI's LF checkout it matched and
+ * failed, having found a *second* prerequisite function still building its
+ * list from the positive labels. The assertion was right and the local run
+ * could not see it.
+ *
+ * That is BUG-1208's class exactly: a byte comparison that means different
+ * things on different platforms. Normalising here means this file asserts the
+ * same thing everywhere.
+ */
+const source = readFileSync(SERVICE, 'utf8').replace(/\r\n/g, '\n');
 
 /**
  * BUG-1547 — the prerequisite message stated the inverse of the truth.
@@ -52,11 +66,19 @@ describe('BUG-1547 — the failure message says what is missing', () => {
     );
     expect(unmet.length).toBeGreaterThan(4);
     for (const phrase of unmet) {
-      const negated =
+      /*
+       * "already" belongs here alongside the negations. Not every unmet state
+       * is an absence: the check "Tenant not already created" fails when the
+       * tenant *has* been created, and "the tenant has already been created" is
+       * the correct wording for that. A list of only negation words would
+       * reject it and push somebody toward a worse phrasing.
+       */
+      const statesAProblem =
         /^no\b/.test(phrase) ||
         /\bnot\b/.test(phrase) ||
-        /\bincomplete\b/.test(phrase);
-      expect([phrase, negated]).toEqual([phrase, true]);
+        /\bincomplete\b/.test(phrase) ||
+        /\balready\b/.test(phrase);
+      expect([phrase, statesAProblem]).toEqual([phrase, true]);
     }
   });
 

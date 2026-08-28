@@ -43,6 +43,15 @@ export type PlatformDashboardSummary = {
   collectedRevenue: number;
   outstandingRevenue: number;
   reportingCurrency: string;
+  /*
+   * Currencies the money figures exclude, because every one of them is filtered
+   * to `reportingCurrency` (BUG-1745). Empty when nothing was left out.
+   */
+  excludedCurrencies?: Array<{
+    currency: string;
+    collected: number;
+    payments: number;
+  }>;
   partners: number;
   platformUsers: number;
   activePlatformUsers: number;
@@ -300,6 +309,32 @@ export function PlatformDashboard({
               <span className="rounded-full border border-slate-200 bg-white px-3 py-1.5 shadow-sm">
                 Currency {summary.reportingCurrency}
               </span>
+              {/*
+                A zero has to mean one thing.
+                
+                Every money figure here is filtered to the reporting currency,
+                so a platform reporting in PKR while every payment is QAR shows
+                "Collected revenue PKR 0" — which reads as having earned
+                nothing. Production was in exactly that state with two succeeded
+                payments (BUG-1745). Which currency to report in is a commercial
+                decision; saying what is not counted is not.
+              */}
+              {summary.excludedCurrencies?.length ? (
+                <span
+                  className="rounded-full border border-amber-300 bg-amber-50 px-3 py-1.5 font-medium text-amber-800 shadow-sm"
+                  title={summary.excludedCurrencies
+                    .map(
+                      (entry) =>
+                        `${entry.currency}: ${entry.payments} payment(s) totalling ${entry.collected}`,
+                    )
+                    .join("\n")}
+                >
+                  Excludes{" "}
+                  {summary.excludedCurrencies
+                    .map((entry) => entry.currency)
+                    .join(", ")}
+                </span>
+              ) : null}
             </div>
           </div>
           <div className="grid min-w-0 gap-3 rounded-2xl border border-slate-200 bg-white/85 p-3 shadow-sm sm:grid-cols-2 sm:items-end xl:grid-cols-[minmax(220px,1fr)_minmax(150px,auto)_auto_auto]">
