@@ -16,8 +16,8 @@ see [`README.md`](README.md) for why.
 | Open (active work) | 23 |
 | Blocked | 2 |
 | Deferred | 26 |
-| Awaiting a product decision | 2 |
-| Completed / closed | 270 |
+| Awaiting a product decision | 1 |
+| Completed / closed | 271 |
 | **Open CRITICAL** | **0** |
 | **Open HIGH** | **3** |
 | **Awaiting Architect triage** | **0** |
@@ -48,12 +48,12 @@ see [`README.md`](README.md) for why.
 |---|---|
 | BLOCKED | 2 |
 | DEFERRED | 26 |
-| PRODUCT_DECISION | 2 |
+| PRODUCT_DECISION | 1 |
 | VERIFIED | 209 |
 | DUPLICATE | 4 |
 | ACCEPTED_RISK | 3 |
 | READY | 23 |
-| DONE | 54 |
+| DONE | 55 |
 
 ## All records
 
@@ -179,7 +179,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | READY | apps/web, e2e | PLAN_REQUIRED |
 | [ITEM-0047](../../docs/backlog/items/ITEM-0047-database-e2e-suites-fail-against-an-ephemeral-postgresql.md) | Database e2e suites fail against an ephemeral PostgreSQL | TEST_GAP | HIGH | P1 | DONE | services/api/test, .github/workflows, database | DONE |
-| [ITEM-0062](../../docs/backlog/items/ITEM-0062-no-multi-tenant-membership-one-user-belongs-to-one-tenant-so.md) | No multi-tenant membership — one user belongs to one tenant, so discovery and switching cannot exist | ARCHITECTURE | HIGH | P1 | PRODUCT_DECISION | auth, users, tenant-domains, web | PRODUCT_DECISION |
+| [ITEM-0062](../../docs/backlog/items/ITEM-0062-no-multi-tenant-membership-one-user-belongs-to-one-tenant-so.md) | No multi-tenant membership — one user belongs to one tenant, so discovery and switching cannot exist | ARCHITECTURE | HIGH | P1 | DONE | auth, users, tenant-domains, web | DONE |
 | [ITEM-0063](../../docs/backlog/items/ITEM-0063-self-service-checkout-must-prove-the-owner-email-before-char.md) | Self-service checkout must prove the owner email before charging | SECURITY | HIGH | P1 | DONE | billing, platform-communications, landing | DONE |
 | [ITEM-0094](../../docs/backlog/items/ITEM-0094-go-live-sh-reports-no-blocker-for-a-webhook-endpoint-that-re.md) | go-live.sh reports no blocker for a webhook endpoint that rejects every delivery | TEST_GAP | HIGH | P1 | READY | scripts, api:billing, api:outbox | FIX_NOW |
 | [ITEM-0096](../../docs/backlog/items/ITEM-0096-a-critical-notification-named-no-reason-and-no-action-and-th.md) | A critical notification named no reason and no action, and the price estimate showed no working | UX | HIGH | P1 | DONE | api:platform-events, apps/admin, apps/landing | DONE |

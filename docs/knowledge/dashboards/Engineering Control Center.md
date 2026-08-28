@@ -8,8 +8,8 @@
 | | |
 |---|---|
 | Active sessions | **2** |
-| Active parent tasks | 4 |
-| Active work packages | 1 |
+| Active parent tasks | 3 |
+| Active work packages | 0 |
 | Blocked work packages | 0 |
 | Work packages waiting on the user | 0 |
 | Open questions | 0 |
@@ -17,7 +17,7 @@
 | Open CRITICAL | **0** |
 | Open HIGH | 3 |
 | Awaiting Architect triage | 0 |
-| Owner decisions pending | 2 |
+| Owner decisions pending | 1 |
 | QA coverage gaps | 106 |
 | Scenarios blocked by infrastructure | 0 |
 
@@ -59,7 +59,6 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 | [[TASK-0004-autonomous-framework-v2-architect-only-orchestration-multi-s|TASK-0004]] | Autonomous framework v2 — Architect-only orchestration, multi-session safety, develop integration, persistent QA | FRAMEWORK | PROGRAM | 11/11 | — | — | — |
 | [[TASK-0007-commercial-platform-completion-transactional-legal-and-lifec|TASK-0007]] | Commercial platform completion — transactional, legal and lifecycle half | FEATURE | PROGRAM | 16/16 | — | — | — |
 | [[TASK-0008-self-service-customer-onboarding-tenant-provisioning-domain-|TASK-0008]] | Self-service customer onboarding, tenant provisioning, domain routing and central login | FEATURE | LARGE | 11/11 | — | — | — |
-| [[TASK-0009-identity-and-multi-tenant-membership|TASK-0009]] | Identity and multi-tenant membership | FEATURE | LARGE | 11/12 | WP-09 | WP-09 | — |
 
 ## Branch model
 
@@ -108,7 +107,6 @@ _None. Nothing open at CRITICAL._
 Questions where the engineering is understood and the **product answer is**
 **not**. No agent may resolve one by implementing a side of it.
 
-- [[ITEM-0062-no-multi-tenant-membership-one-user-belongs-to-one-tenant-so|ITEM-0062]] — **No multi-tenant membership — one user belongs to one tenant, so discovery and switching cannot exist**
 - [[ITEM-0079-activation-does-not-gate-on-a-workspace-having-any-module-en|ITEM-0079]] — **Activation does not gate on a workspace having any module enabled**
 
 ## QA Coverage Gaps
@@ -232,7 +230,7 @@ gap into scope — or files a `TEST_GAP` item and says so.
 | Open total | 23 |
 | Blocked | 2 |
 | Deferred | 26 |
-| Awaiting a product decision | 2 |
+| Awaiting a product decision | 1 |
 | Awaiting Architect triage | 0 |
 
 Every ordinary record carries a disposition.

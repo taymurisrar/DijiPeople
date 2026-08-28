@@ -4,18 +4,18 @@ aliases: [TASK-0009]
 TITLE: Identity and multi-tenant membership
 TYPE: FEATURE
 SIZE: LARGE
-STATUS: IN_PROGRESS
+STATUS: COMPLETE
 PRIORITY: P1
 CREATED_AT: 2026-08-20
 AFFECTED_MODULES: [auth, users, legal, tenant-domains, super-admin, web, admin]
 AGENTS: [Architect, Database, Backend/API, Frontend, UI/UX, Security, QA, Reviewer, Integrator]
 DEPENDENCIES: origin/develop 844b6d3; TASK-0008 WP-02, WP-04, WP-05
-CURRENT_PACKAGE: WP-09
-NEXT_READY_WORK_PACKAGE: WP-09
-COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-10, WP-11, WP-12]
+CURRENT_PACKAGE: —
+NEXT_READY_WORK_PACKAGE: —
+COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08, WP-09, WP-10, WP-11, WP-12]
 BLOCKED_PACKAGES: []
 OWNER_DECISIONS: 1
-FINAL_STATUS:
+FINAL_STATUS: COMPLETE - WP-09, the last package, ran on 2026-08-29 nine days after the other eleven, because the contract phase had to reach production in a deployment of its own and that gate cleared on 2026-08-24. Verified against a throwaway database: 212 migrations in order, identityId is NOT NULL, no drift. Two guards were retired rather than adapted - their premise, a User with no Identity, has stopped existing.
 ---
 
 # TASK-0009 — Identity and multi-tenant membership
@@ -102,9 +102,73 @@ the wrong design, however elegant it looks.
 | WP-06 | Generic login and the workspace picker | DONE | WP-05 | Backend/API, Frontend, UI/UX | agent/identity-and-membership | 8306936 | PASS | — | PASS | INTEGRATED |
 | WP-07 | In-app workspace switcher — closes TASK-0008 WP-06 | DONE | WP-06 | Frontend, UI/UX | agent/identity-and-membership | 8306936 | PASS | — | PASS | INTEGRATED |
 | WP-08 | Second workspace for an existing identity — no activation step | DONE | WP-04 | Backend/API, Integration | agent/identity-and-membership | 8306936 | PASS | — | PASS | INTEGRATED |
-| WP-09 | Contract phase — `identityId` required (written, held for a later deployment) | READY | WP-02/03 reaching production — **discharged 2026-08-24** | Database, Backend/API | agent/identity-and-membership | — | NOT_RUN | — | NOT_RUN | NOT_STARTED |
+| WP-09 | Contract phase — `identityId` required | DONE | WP-02/03 reaching production — discharged 2026-08-24 | Database, Backend/API | agent/backlog-burndown | — | PASS | — | PASS | READY_TO_INTEGRATE |
 | WP-10 | Security review — enumeration, credential stuffing, cross-tenant reach | DONE | WP-01..WP-08 | Security | agent/identity-and-membership | 8306936 | PASS | ITEM-0069 | PASS | INTEGRATED |
 | WP-11 | QA campaign, review, CI, integration, closure | DONE | WP-10 | QA, Reviewer, Integrator, Architect | agent/identity-and-membership | 8306936 | PASS_WITH_RISKS | ITEM-0069 | PASS | INTEGRATED |
+
+
+## WP-09 — the contract phase, 2026-08-29
+
+The last package, run on `agent/backlog-burndown` rather than
+`agent/identity-and-membership`, because the branch it was scoped to had long
+since integrated and cutting a new one from it would have been theatre.
+
+`20260829090000_identity_contract` makes `User.identityId` NOT NULL, after
+refusing first: `ALTER TABLE ... SET NOT NULL` on a column with nulls fails
+naming the column and nothing else, which strands an operator mid-deployment
+with no idea which rows or how many. The migration counts them and says so.
+
+**The gate was genuinely clear.** `prisma migrate status` against production
+reported 217 of 217 applied on 2026-08-22, with expand and backfill both live —
+recorded in that day's engineering history rather than inferred here.
+
+### What it cost, measured rather than estimated
+
+The record said "eleven e2e suites create `User` rows directly and will need
+identities". It was seven suites and ten call sites, and two things nobody had
+counted:
+
+- **Six teardowns set `identityId: null`** before deleting users, to release the
+  `Restrict` foreign key. That write is now impossible. The `updateMany` was
+  redundant anyway — deleting the user releases the key — so it is gone.
+- **Prisma refuses to mix a scalar `tenantId` with a nested `identity` write.**
+  The first attempt used `identity: { connectOrCreate }` and failed on every
+  site, because one nested relation forces `tenant` and `businessUnit` to be
+  nested too. The identity is resolved to a scalar id by an `upsert` instead —
+  `upsert` rather than `create`, because a fixture reusing an address across two
+  tenants is modelling one person in two workspaces and `Identity.email` is
+  globally unique.
+
+### Two guards whose premise the contract phase removed
+
+Neither was deleted quietly.
+
+- **`identity-backfill.e2e-spec.ts` is retired**, and could not be adapted: all
+  seven of its tests build `User` rows with a null `identityId`, which is the
+  state that has stopped existing. Its merge rules — which credential survives,
+  how a `lastLoginAt` tie breaks, lockout carried forward at its most
+  restrictive — remain documented at length in the backfill migration itself.
+  `identity-contract.e2e-spec.ts` replaces it, asserting the invariant the
+  backfill was working toward **in raw SQL**, underneath the client: a `db push`
+  against a stale schema or a rolled-back migration would leave the column
+  nullable with Prisma's types still claiming otherwise.
+- **`identity-login`'s `source: 'USER'` fallback test is retired.** Its own
+  comment said "not dead code — `identityId` is nullable until the contract
+  phase". It is now. The branch in `resolveLoginCredential` is **kept** and
+  marked unreachable: deleting a fallback in the authentication path to tidy up
+  is a poor trade against a migration ordering mistake locking every user out.
+
+### The constraint this creates, and it is one-way
+
+Once this reaches production, **do not roll the API back** past the build that
+writes `identityId` on every creation path. The old build does not set the
+column and the column no longer permits null, so a rollback breaks user creation
+entirely. `user-creation-links-identity.invariant.spec.ts` pins that every
+current path writes it.
+
+Verified against a throwaway database: 212 migrations applied in order, the
+column is `is_nullable: NO`, and `migrate diff` shows no drift attributable to
+this change.
 
 **WP-01 is not identity work, and it is here because it was unblocked and
 nothing else was.** The owner asked for the legal drafts to be published;

@@ -551,6 +551,12 @@ export class TenantControlPlaneService {
         `This tenant is already ${humanize(dto.status)}.`,
       );
     }
+    /*
+     * Readiness problems that did not stop the activation, carried out to the
+     * caller so the operator sees them (ITEM-0079).
+     */
+    let activationAdvisories: string[] = [];
+
     const allowed = TENANT_STATUS_TRANSITIONS[tenant.status] ?? [];
     if (!allowed.includes(dto.status)) {
       throw new BadRequestException(
@@ -591,6 +597,27 @@ export class TenantControlPlaneService {
             .join(' ')}`,
         );
       }
+
+      /*
+       * A third way a workspace can be live and useless, and the one that is
+       * warned about rather than refused (ITEM-0079).
+       *
+       * Readiness marks "no module is enabled" a BLOCKER, and it is right to —
+       * the owner is told the workspace is live and finds nothing to open. But
+       * unlike the two gates above it is recoverable from inside the product in
+       * a minute, and an operator activating deliberately ahead of enabling
+       * modules is a real workflow. The repository owner decided on 2026-08-29
+       * that this warns and allows.
+       *
+       * Warning means the operator is actually told: it travels back on the
+       * response, into the audit entry, and onto the platform event at WARNING
+       * severity. A "warning" nobody receives is just an activation.
+       */
+      activationAdvisories = readiness.checks
+        .filter(
+          (check) => check.severity === 'BLOCKER' && check.key === 'modules',
+        )
+        .map((check) => check.message);
     }
 
     const updated = await this.prisma.tenant.update({
@@ -637,12 +664,18 @@ export class TenantControlPlaneService {
         status: updated.status,
         subStatus: updated.subStatus,
         reason: dto.reason,
+        // Present only when something was true and allowed anyway. An empty
+        // key here would read as "checked and fine", which is a different fact.
+        ...(activationAdvisories.length ? { activationAdvisories } : {}),
       },
     });
     await this.events.record({
       eventCode: action,
       source: 'API',
-      severity: dto.status === TenantStatus.SUSPENDED ? 'WARNING' : 'INFO',
+      severity:
+        dto.status === TenantStatus.SUSPENDED || activationAdvisories.length
+          ? 'WARNING'
+          : 'INFO',
       entityType: 'Tenant',
       entityId: tenant.id,
       tenantId: tenant.id,
@@ -655,10 +688,14 @@ export class TenantControlPlaneService {
         from: tenant.status,
         to: dto.status,
         reason: dto.reason,
+        ...(activationAdvisories.length ? { activationAdvisories } : {}),
       },
     });
 
-    return this.overview(user, tenant.id);
+    const overview = await this.overview(user, tenant.id);
+    return activationAdvisories.length
+      ? { ...overview, activationAdvisories }
+      : overview;
   }
 
   /**

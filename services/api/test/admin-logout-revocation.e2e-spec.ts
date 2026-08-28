@@ -238,6 +238,35 @@ describeWithDatabase()('Admin sign-out revokes the persisted session', () => {
           lastName: 'Probe',
           email: `web-logout-${runId}@example.invalid`,
           passwordHash: await bcrypt.hash(`password-${runId}`, 4),
+          /*
+           * TASK-0009 WP-09 — `identityId` is required since the contract phase.
+           *
+           * `upsert` rather than `create`: a fixture that puts the same address in
+           * two tenants is modelling one person in two workspaces, which is what
+           * Identity is for — and `Identity.email` is globally unique, so a plain
+           * create would collide on the second.
+           *
+           * Resolved to a scalar rather than written as a nested relation because
+           * Prisma refuses to mix the two: one nested write here would require
+           * `tenant` and `businessUnit` to be nested as well.
+           */
+          identityId: (
+            await prisma.identity.upsert({
+              where: {
+                email: `web-logout-${runId}@example.invalid`
+                  .trim()
+                  .toLowerCase(),
+              },
+              update: {},
+              create: {
+                email: `web-logout-${runId}@example.invalid`
+                  .trim()
+                  .toLowerCase(),
+                passwordHash: await bcrypt.hash(`password-${runId}`, 4),
+              },
+              select: { id: true },
+            })
+          ).id,
         },
         select: { id: true },
       });
@@ -301,6 +330,35 @@ describeWithDatabase()('Admin sign-out revokes the persisted session', () => {
           lastName: 'Probe',
           email: `agent-logout-${runId}@example.invalid`,
           passwordHash: await bcrypt.hash(`password-${runId}`, 4),
+          /*
+           * TASK-0009 WP-09 — `identityId` is required since the contract phase.
+           *
+           * `upsert` rather than `create`: a fixture that puts the same address in
+           * two tenants is modelling one person in two workspaces, which is what
+           * Identity is for — and `Identity.email` is globally unique, so a plain
+           * create would collide on the second.
+           *
+           * Resolved to a scalar rather than written as a nested relation because
+           * Prisma refuses to mix the two: one nested write here would require
+           * `tenant` and `businessUnit` to be nested as well.
+           */
+          identityId: (
+            await prisma.identity.upsert({
+              where: {
+                email: `agent-logout-${runId}@example.invalid`
+                  .trim()
+                  .toLowerCase(),
+              },
+              update: {},
+              create: {
+                email: `agent-logout-${runId}@example.invalid`
+                  .trim()
+                  .toLowerCase(),
+                passwordHash: await bcrypt.hash(`password-${runId}`, 4),
+              },
+              select: { id: true },
+            })
+          ).id,
         },
         select: { id: true },
       });

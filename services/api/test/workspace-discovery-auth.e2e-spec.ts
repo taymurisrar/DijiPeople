@@ -95,10 +95,7 @@ describeWithDatabase()('Workspace discovery by credential (DB-backed)', () => {
   });
 
   afterAll(async () => {
-    await prisma.user.updateMany({
-      where: { id: { in: userIds } },
-      data: { identityId: null },
-    });
+    // Users are deleted outright rather than unlinked first: the `Restrict` FK is released by the delete, and since the contract phase (TASK-0009 WP-09) `identityId` cannot be set to null at all.
     await prisma.user.deleteMany({ where: { id: { in: userIds } } });
     await prisma.identity.deleteMany({ where: { id: { in: identityIds } } });
     await fixtures.cleanup();

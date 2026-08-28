@@ -4324,15 +4324,19 @@ model User {
 
   /// The person this workspace account belongs to.
   ///
-  /// Still nullable, deliberately. Expand and backfill have landed and every
-  /// creation path writes it — pinned by
-  /// `user-creation-links-identity.invariant.spec.ts` — but the **contract
-  /// phase must ship in a later deployment than the backfill**, or a code
-  /// rollback leaves old code unable to create users at all against a NOT NULL
-  /// column. TASK-0009 WP-09 carries the migration, written and verified,
-  /// waiting on this one reaching production. See the task record.
-  identityId                     String?
-  identity                       Identity?                     @relation(fields: [identityId], references: [id], onDelete: Restrict)
+  /// Required since the contract phase (TASK-0009 WP-09, 2026-08-29). Expand,
+  /// backfill and contract each shipped in their own deployment, which is what
+  /// this column's history is really about: after the contract phase a **code**
+  /// rollback past the build that writes `identityId` leaves the old build
+  /// unable to create users at all, because it does not set the column and the
+  /// column no longer permits null.
+  ///
+  /// Every creation path writes it, pinned by
+  /// `user-creation-links-identity.invariant.spec.ts`. One `User` per tenant,
+  /// many `User` rows per `Identity` — that relation is what makes one person
+  /// reachable in several workspaces with one credential.
+  identityId                     String
+  identity                       Identity                      @relation(fields: [identityId], references: [id], onDelete: Restrict)
   businessUnitId                 String
   firstName                      String
   lastName                       String

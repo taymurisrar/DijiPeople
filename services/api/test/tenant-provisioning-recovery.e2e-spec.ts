@@ -98,6 +98,29 @@ describeWithDatabase()(
           lastName: 'Owner',
           email: ownerEmail,
           passwordHash: 'not-a-real-hash-recovery-fixture',
+          /*
+           * TASK-0009 WP-09 — `identityId` is required since the contract phase.
+           *
+           * `upsert` rather than `create`: a fixture that puts the same address in
+           * two tenants is modelling one person in two workspaces, which is what
+           * Identity is for — and `Identity.email` is globally unique, so a plain
+           * create would collide on the second.
+           *
+           * Resolved to a scalar rather than written as a nested relation because
+           * Prisma refuses to mix the two: one nested write here would require
+           * `tenant` and `businessUnit` to be nested as well.
+           */
+          identityId: (
+            await prisma.identity.upsert({
+              where: { email: ownerEmail.trim().toLowerCase() },
+              update: {},
+              create: {
+                email: ownerEmail.trim().toLowerCase(),
+                passwordHash: 'not-a-real-hash-recovery-fixture',
+              },
+              select: { id: true },
+            })
+          ).id,
         },
       });
 
@@ -126,6 +149,29 @@ describeWithDatabase()(
             lastName: 'Duplicate',
             email: ownerEmail,
             passwordHash: 'not-a-real-hash-recovery-fixture',
+            /*
+             * TASK-0009 WP-09 — `identityId` is required since the contract phase.
+             *
+             * `upsert` rather than `create`: a fixture that puts the same address in
+             * two tenants is modelling one person in two workspaces, which is what
+             * Identity is for — and `Identity.email` is globally unique, so a plain
+             * create would collide on the second.
+             *
+             * Resolved to a scalar rather than written as a nested relation because
+             * Prisma refuses to mix the two: one nested write here would require
+             * `tenant` and `businessUnit` to be nested as well.
+             */
+            identityId: (
+              await prisma.identity.upsert({
+                where: { email: ownerEmail.trim().toLowerCase() },
+                update: {},
+                create: {
+                  email: ownerEmail.trim().toLowerCase(),
+                  passwordHash: 'not-a-real-hash-recovery-fixture',
+                },
+                select: { id: true },
+              })
+            ).id,
           },
         }),
       ).rejects.toThrow();
@@ -163,6 +209,29 @@ describeWithDatabase()(
           lastName: 'Neighbour',
           email: ownerEmail,
           passwordHash: 'not-a-real-hash-recovery-fixture',
+          /*
+           * TASK-0009 WP-09 — `identityId` is required since the contract phase.
+           *
+           * `upsert` rather than `create`: a fixture that puts the same address in
+           * two tenants is modelling one person in two workspaces, which is what
+           * Identity is for — and `Identity.email` is globally unique, so a plain
+           * create would collide on the second.
+           *
+           * Resolved to a scalar rather than written as a nested relation because
+           * Prisma refuses to mix the two: one nested write here would require
+           * `tenant` and `businessUnit` to be nested as well.
+           */
+          identityId: (
+            await prisma.identity.upsert({
+              where: { email: ownerEmail.trim().toLowerCase() },
+              update: {},
+              create: {
+                email: ownerEmail.trim().toLowerCase(),
+                passwordHash: 'not-a-real-hash-recovery-fixture',
+              },
+              select: { id: true },
+            })
+          ).id,
         },
         select: { id: true, tenantId: true },
       });

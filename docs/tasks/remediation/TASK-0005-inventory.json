@@ -13595,14 +13595,14 @@
         "provenance": "ARCHITECT",
         "detected_in_sha": "",
         "created_at": "2026-08-19",
-        "updated_at": "2026-08-22",
+        "updated_at": "2026-08-29",
         "resolved_at": ""
       },
       "type": "ARCHITECTURE",
       "title": "No multi-tenant membership — one user belongs to one tenant, so discovery and switching cannot exist",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "PRODUCT_DECISION",
+      "current_status": "DONE",
       "current_evidence": {
         "paths": [
           "services/api/prisma/schema.prisma",
@@ -13628,7 +13628,7 @@
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "YES",
-      "architect_disposition": "PRODUCT_DECISION",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "PRODUCT_DECISION",
         "classification": "TERMINAL_AS_DOCUMENTED",

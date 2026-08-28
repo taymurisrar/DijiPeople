@@ -84,9 +84,9 @@ describeWithDatabase()('Identity model (DB-backed)', () => {
 
   afterAll(async () => {
     if (identityIds.length) {
-      await prisma.user.updateMany({
+      // Users are deleted outright rather than unlinked first: the `Restrict` FK is released by the delete, and since the contract phase (TASK-0009 WP-09) `identityId` cannot be set to null at all.
+      await prisma.user.deleteMany({
         where: { identityId: { in: identityIds } },
-        data: { identityId: null },
       });
       await prisma.identity.deleteMany({ where: { id: { in: identityIds } } });
     }
@@ -194,11 +194,19 @@ describeWithDatabase()('Identity model (DB-backed)', () => {
    * makes `identityId` NOT NULL, and every row it cannot fill is a deployment
    * that fails at the worst possible moment.
    */
-  it('leaves no seeded user without an identity', async () => {
-    const unlinked = await prisma.user.count({ where: { identityId: null } });
-
-    expect(unlinked).toBe(0);
-  });
+  /*
+   * The "no unlinked user" guard moved, it did not disappear.
+   *
+   * It was a *precondition* for the contract phase, and the contract phase has
+   * landed (WP-09, 2026-08-29): `identityId` is NOT NULL, so Prisma will not
+   * even compile `where: { identityId: null }` and the database would reject
+   * such a row anyway. A guard whose failure state cannot be represented is not
+   * a guard.
+   *
+   * `identity-contract.e2e-spec.ts` asserts the same invariant where it can
+   * still fail — against the column, in raw SQL, underneath the client — which
+   * catches a rolled-back migration that the type system would hide.
+   */
 
   it('gives distinct people distinct identities', async () => {
     /*
@@ -207,8 +215,9 @@ describeWithDatabase()('Identity model (DB-backed)', () => {
      * addresses must not collapse onto one identity merely because the code
      * that links them ran in the same loop.
      */
+    // No `not: null` filter any more — every user has an identity since the
+    // contract phase, so the filter would be a no-op that no longer compiles.
     const linkedPeople = await prisma.user.findMany({
-      where: { identityId: { not: null } },
       select: { identityId: true },
       distinct: ['identityId'],
     });

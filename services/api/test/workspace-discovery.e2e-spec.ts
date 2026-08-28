@@ -91,10 +91,7 @@ describeWithDatabase()('Workspace discovery (DB-backed)', () => {
   });
 
   afterAll(async () => {
-    await prisma.user.updateMany({
-      where: { id: { in: userIds } },
-      data: { identityId: null },
-    });
+    // Users are deleted outright rather than unlinked first: the `Restrict` FK is released by the delete, and since the contract phase (TASK-0009 WP-09) `identityId` cannot be set to null at all.
     await prisma.user.deleteMany({ where: { id: { in: userIds } } });
     await prisma.identity.deleteMany({ where: { id: identityId } });
     await fixtures.cleanup();
@@ -189,10 +186,7 @@ describeWithDatabase()('Workspace discovery (DB-backed)', () => {
       // Only their own workspace, never the one the other person also uses.
       expect(result.workspaces.map((w) => w.tenantId)).toEqual([tenants.b.id]);
     } finally {
-      await prisma.user.update({
-        where: { id: strangerUser.id },
-        data: { identityId: null },
-      });
+      // Users are deleted outright rather than unlinked first: the `Restrict` FK is released by the delete, and since the contract phase (TASK-0009 WP-09) `identityId` cannot be set to null at all.
       await prisma.user.delete({ where: { id: strangerUser.id } });
       await prisma.identity.delete({ where: { id: stranger.id } });
     }
