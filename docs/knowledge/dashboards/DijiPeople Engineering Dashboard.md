@@ -282,6 +282,7 @@
 
 ## Recent Engineering History
 
+- [[2026-08-28-admin-console-e2e-qa-d78f0fc4|Engineering History — Admin console e2e qa]]
 - [[2026-08-26-worktree-removal-guard-d6f46a9a|Engineering History — Worktree removal guard]]
 - [[2026-08-26-tenant-agent-rollout-28edc827|Engineering History — Tenant app assignment: which tenants receive a release]]
 - [[2026-08-26-dlp-employee-review-10e47f35|Engineering History — DLP investigator review on the employee record]]
@@ -289,7 +290,6 @@
 - [[2026-08-26-admin-releases-ui-8732194b|Engineering History — Admin releases management and channel promotion UI]]
 - [[2026-08-26-admin-prod-e2e-qa-e7bd1e05|Engineering History — Admin prod e2e qa]]
 - [[2026-08-25-repo-health-task-sha-5f2648d6|Engineering History — Two checks that were argued correct rather than tested]]
-- [[2026-08-25-landing-qa-fixes-309abe0d|Engineering History — Fixing the six landing QA findings, and releasing them]]
 
 ## Recent Releases
 
@@ -352,7 +352,7 @@
 | Backlog items | 103 |
 | Known bug patterns | 30 |
 | QA runs | 28 |
-| Engineering history records | 52 |
+| Engineering history records | 53 |
 | Release records | 3 |
 | Module notes | 28 |
 | Architecture notes | 20 |
