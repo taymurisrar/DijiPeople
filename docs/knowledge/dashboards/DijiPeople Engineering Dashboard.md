@@ -9,10 +9,10 @@
 |---|---|
 | Open CRITICAL | **8** |
 | Open HIGH | **18** |
-| Open total | 68 |
+| Open total | 72 |
 | Blocked | 2 |
 | Awaiting a product decision | 2 |
-| Deferred | 35 |
+| Deferred | 31 |
 | Completed | 213 |
 | Awaiting Architect triage | 2 |
 
@@ -262,8 +262,13 @@
 | [[BUG-1364-a-coordinate-leak-assertion-substring-matches-json-and-fails|BUG-1364]] | A coordinate-leak assertion substring-matches JSON and fails when the clock spells a coordinate | TEST_GAP | MEDIUM | VERIFIED | services/api/test | DONE |
 | [[BUG-1421-every-admin-screen-shares-one-page-title-two-main-landmarks-|BUG-1421]] | Every admin screen shares one page title, two main landmarks and a duplicate h1 | UX | MEDIUM | FIXED | apps/admin | FIX_NOW |
 | [[BUG-1425-currencycode-accepts-any-string-of-three-characters-or-fewer|BUG-1425]] | currencyCode accepts any string of three characters or fewer | DATA_INTEGRITY | MEDIUM | FIXED | api:partners | FIX_NOW |
+| [[BUG-1545-manual-customer-onboarding-creation-fails-on-an-owner-foreig|BUG-1545]] | Manual customer onboarding creation fails on an owner foreign key | BUG | MEDIUM | FIXED | platform-runtime, onboarding | FIX_NOW |
 | [[BUG-1546-required-fields-on-unfocused-tabs-give-no-indication-of-wher|BUG-1546]] | Required fields on unfocused tabs give no indication of where they are | UX | MEDIUM | FIXED | customization | FIX_NOW |
+| [[BUG-1547-onboarding-prerequisite-message-states-the-inverse-of-the-tr|BUG-1547]] | Onboarding prerequisite message states the inverse of the truth | UX | MEDIUM | FIXED | onboarding | FIX_NOW |
 | [[BUG-1549-database-and-validator-internals-are-surfaced-in-user-facing|BUG-1549]] | Database and validator internals are surfaced in user-facing errors | UX | MEDIUM | FIXED | error-logs | FIX_NOW |
+| [[BUG-1550-lead-record-shows-two-different-owners-on-the-same-screen|BUG-1550]] | Lead record shows two different owners on the same screen | BUG | MEDIUM | FIXED | leads | FIX_NOW |
+| [[BUG-1554-admin-requests-its-own-partners-api-with-a-rejected-pagesize|BUG-1554]] | Admin requests its own partners API with a rejected pageSize | BUG | MEDIUM | FIXED | partners | FIX_NOW |
+| [[BUG-1555-an-inactive-plan-with-no-prices-is-offered-as-a-customer-pre|BUG-1555]] | An inactive plan with no prices is offered as a customer preferred plan | BUG | MEDIUM | FIXED | super-admin, billing | FIX_NOW |
 | [[BUG-1654-every-empty-list-in-a-new-workspace-blames-filters-that-are-|BUG-1654]] | Every empty list in a new workspace blames filters that are not set | UX | MEDIUM | FIXED | views, employees | FIX_NOW |
 | [[BUG-1655-tenant-login-password-field-has-no-accessible-name-and-no-au|BUG-1655]] | Tenant login password field has no accessible name and no autocomplete hint | UX | MEDIUM | FIXED | auth | FIX_NOW |
 | [[BUG-1673-tenant-workspace-shell-repeats-three-h1-headings-and-two-mai|BUG-1673]] | Tenant workspace shell repeats three h1 headings and two main landmarks on every screen | UX | MEDIUM | FIXED | views | FIX_NOW |
@@ -280,6 +285,7 @@
 | [[BUG-0796-tenant-and-plan-list-summaries-omit-createdbyid-so-the-creat|BUG-0796]] | Tenant and plan list summaries omit createdById so the Created by me view is always empty | BUG | LOW | VERIFIED | api:super-admin | DONE |
 | [[BUG-1306-the-production-footer-publishes-a-reserved-fictional-us-phon|BUG-1306]] | The production footer publishes a reserved fictional US phone number as a tel link | UX | LOW | VERIFIED | apps/landing | DONE |
 | [[BUG-1307-a-raw-monthly-enum-value-appears-in-customer-facing-timeshee|BUG-1307]] | A raw MONTHLY enum value appears in customer-facing timesheets copy | UX | LOW | VERIFIED | api:tenant-settings, apps/landing | DONE |
+| [[BUG-1556-contract-dates-with-no-value-render-as-the-unix-epoch|BUG-1556]] | Contract dates with no value render as the Unix epoch | UX | LOW | FIXED | contracts | FIX_NOW |
 | [[BUG-1558-admin-list-copy-uses-incorrect-pluralisation-and-articles|BUG-1558]] | Admin list copy uses incorrect pluralisation and articles | UX | LOW | FIXED | super-admin | FIX_NOW |
 | [[BUG-1559-empty-states-instruct-the-user-to-create-records-on-screens-|BUG-1559]] | Empty states instruct the user to create records on screens with no create control | UX | LOW | FIXED | billing | FIX_NOW |
 | [[BUG-1560-delete-confirmation-does-not-name-the-record-being-deleted|BUG-1560]] | Delete confirmation does not name the record being deleted | UX | LOW | FIXED | leads | FIX_NOW |
@@ -332,10 +338,13 @@
 | [[BUG-1421-every-admin-screen-shares-one-page-title-two-main-landmarks-|BUG-1421]] | Every admin screen shares one page title, two main landmarks and a duplicate h1 | UX | MEDIUM | FIXED | apps/admin | FIX_NOW |
 | [[BUG-1424-the-admin-console-serves-no-content-security-policy-header|BUG-1424]] | The admin console serves no Content-Security-Policy header | SECURITY | MEDIUM | OPEN | apps/admin | PLAN_REQUIRED |
 | [[BUG-1425-currencycode-accepts-any-string-of-three-characters-or-fewer|BUG-1425]] | currencyCode accepts any string of three characters or fewer | DATA_INTEGRITY | MEDIUM | FIXED | api:partners | FIX_NOW |
-| [[BUG-1545-manual-customer-onboarding-creation-fails-on-an-owner-foreig|BUG-1545]] | Manual customer onboarding creation fails on an owner foreign key | BUG | MEDIUM | OPEN | platform-runtime, onboarding | PLAN_REQUIRED |
+| [[BUG-1545-manual-customer-onboarding-creation-fails-on-an-owner-foreig|BUG-1545]] | Manual customer onboarding creation fails on an owner foreign key | BUG | MEDIUM | FIXED | platform-runtime, onboarding | FIX_NOW |
 | [[BUG-1546-required-fields-on-unfocused-tabs-give-no-indication-of-wher|BUG-1546]] | Required fields on unfocused tabs give no indication of where they are | UX | MEDIUM | FIXED | customization | FIX_NOW |
+| [[BUG-1547-onboarding-prerequisite-message-states-the-inverse-of-the-tr|BUG-1547]] | Onboarding prerequisite message states the inverse of the truth | UX | MEDIUM | FIXED | onboarding | FIX_NOW |
 | [[BUG-1549-database-and-validator-internals-are-surfaced-in-user-facing|BUG-1549]] | Database and validator internals are surfaced in user-facing errors | UX | MEDIUM | FIXED | error-logs | FIX_NOW |
-| [[BUG-1555-an-inactive-plan-with-no-prices-is-offered-as-a-customer-pre|BUG-1555]] | An inactive plan with no prices is offered as a customer preferred plan | BUG | MEDIUM | OPEN | super-admin, billing | FIX_NOW |
+| [[BUG-1550-lead-record-shows-two-different-owners-on-the-same-screen|BUG-1550]] | Lead record shows two different owners on the same screen | BUG | MEDIUM | FIXED | leads | FIX_NOW |
+| [[BUG-1554-admin-requests-its-own-partners-api-with-a-rejected-pagesize|BUG-1554]] | Admin requests its own partners API with a rejected pageSize | BUG | MEDIUM | FIXED | partners | FIX_NOW |
+| [[BUG-1555-an-inactive-plan-with-no-prices-is-offered-as-a-customer-pre|BUG-1555]] | An inactive plan with no prices is offered as a customer preferred plan | BUG | MEDIUM | FIXED | super-admin, billing | FIX_NOW |
 | [[BUG-1654-every-empty-list-in-a-new-workspace-blames-filters-that-are-|BUG-1654]] | Every empty list in a new workspace blames filters that are not set | UX | MEDIUM | FIXED | views, employees | FIX_NOW |
 | [[BUG-1655-tenant-login-password-field-has-no-accessible-name-and-no-au|BUG-1655]] | Tenant login password field has no accessible name and no autocomplete hint | UX | MEDIUM | FIXED | auth | FIX_NOW |
 | [[BUG-1673-tenant-workspace-shell-repeats-three-h1-headings-and-two-mai|BUG-1673]] | Tenant workspace shell repeats three h1 headings and two main landmarks on every screen | UX | MEDIUM | FIXED | views | FIX_NOW |
@@ -361,6 +370,7 @@
 | [[ITEM-0084-detect-drift-between-render-yaml-and-the-live-render-service|ITEM-0084]] | Detect drift between render.yaml and the live Render service | INFRA | MEDIUM | READY | render.yaml, scripts | FIX_NOW |
 | [[ITEM-0092-widget-runtime-contract-test-js-fails-and-no-script-or-ci-jo|ITEM-0092]] | widget-runtime-contract.test.js fails and no script or CI job runs it | TEST_GAP | MEDIUM | READY | pkg:config, apps/web | PLAN_REQUIRED |
 | [[ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning|ITEM-0023]] | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
+| [[BUG-1556-contract-dates-with-no-value-render-as-the-unix-epoch|BUG-1556]] | Contract dates with no value render as the Unix epoch | UX | LOW | FIXED | contracts | FIX_NOW |
 | [[BUG-1558-admin-list-copy-uses-incorrect-pluralisation-and-articles|BUG-1558]] | Admin list copy uses incorrect pluralisation and articles | UX | LOW | FIXED | super-admin | FIX_NOW |
 | [[BUG-1559-empty-states-instruct-the-user-to-create-records-on-screens-|BUG-1559]] | Empty states instruct the user to create records on screens with no create control | UX | LOW | FIXED | billing | FIX_NOW |
 | [[BUG-1560-delete-confirmation-does-not-name-the-record-being-deleted|BUG-1560]] | Delete confirmation does not name the record being deleted | UX | LOW | FIXED | leads | FIX_NOW |

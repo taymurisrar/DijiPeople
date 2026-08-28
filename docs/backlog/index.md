@@ -13,9 +13,9 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 68 |
+| Open (active work) | 72 |
 | Blocked | 2 |
-| Deferred | 35 |
+| Deferred | 31 |
 | Awaiting a product decision | 2 |
 | Completed / closed | 213 |
 | **Open CRITICAL** | **8** |
@@ -28,15 +28,15 @@ see [`README.md`](README.md) for why.
 |---|---|
 | CRITICAL | 8 |
 | HIGH | 18 |
-| MEDIUM | 33 |
-| LOW | 9 |
+| MEDIUM | 36 |
+| LOW | 10 |
 
 ## Open by type
 
 | Type | Count |
 |---|---|
 | ARCHITECTURE | 1 |
-| BUG | 20 |
+| BUG | 22 |
 | DATA_INTEGRITY | 4 |
 | FOLLOW_UP | 2 |
 | INFRA | 7 |
@@ -45,17 +45,17 @@ see [`README.md`](README.md) for why.
 | STATE_MACHINE | 2 |
 | TECH_DEBT | 5 |
 | TEST_GAP | 8 |
-| UX | 15 |
+| UX | 17 |
 
 ## All records by status
 
 | Status | Count |
 |---|---|
-| OPEN | 10 |
+| OPEN | 8 |
 | BLOCKED | 2 |
-| DEFERRED | 35 |
+| DEFERRED | 31 |
 | PRODUCT_DECISION | 2 |
-| FIXED | 35 |
+| FIXED | 41 |
 | VERIFIED | 155 |
 | DUPLICATE | 4 |
 | ACCEPTED_RISK | 1 |
@@ -260,17 +260,17 @@ see [`README.md`](README.md) for why.
 | [BUG-1421](../../docs/bugs/BUG-1421-every-admin-screen-shares-one-page-title-two-main-landmarks-.md) | Every admin screen shares one page title, two main landmarks and a duplicate h1 | UX | MEDIUM | P2 | FIXED | apps/admin | FIX_NOW |
 | [BUG-1424](../../docs/bugs/BUG-1424-the-admin-console-serves-no-content-security-policy-header.md) | The admin console serves no Content-Security-Policy header | SECURITY | MEDIUM | P2 | OPEN | apps/admin | PLAN_REQUIRED |
 | [BUG-1425](../../docs/bugs/BUG-1425-currencycode-accepts-any-string-of-three-characters-or-fewer.md) | currencyCode accepts any string of three characters or fewer | DATA_INTEGRITY | MEDIUM | P2 | FIXED | api:partners | FIX_NOW |
-| [BUG-1545](../../docs/bugs/BUG-1545-manual-customer-onboarding-creation-fails-on-an-owner-foreig.md) | Manual customer onboarding creation fails on an owner foreign key | BUG | MEDIUM | P2 | OPEN | platform-runtime, onboarding | PLAN_REQUIRED |
+| [BUG-1545](../../docs/bugs/BUG-1545-manual-customer-onboarding-creation-fails-on-an-owner-foreig.md) | Manual customer onboarding creation fails on an owner foreign key | BUG | MEDIUM | P2 | FIXED | platform-runtime, onboarding | FIX_NOW |
 | [BUG-1546](../../docs/bugs/BUG-1546-required-fields-on-unfocused-tabs-give-no-indication-of-wher.md) | Required fields on unfocused tabs give no indication of where they are | UX | MEDIUM | P2 | FIXED | customization | FIX_NOW |
-| [BUG-1547](../../docs/bugs/BUG-1547-onboarding-prerequisite-message-states-the-inverse-of-the-tr.md) | Onboarding prerequisite message states the inverse of the truth | UX | MEDIUM | P2 | DEFERRED | onboarding | DEFER |
+| [BUG-1547](../../docs/bugs/BUG-1547-onboarding-prerequisite-message-states-the-inverse-of-the-tr.md) | Onboarding prerequisite message states the inverse of the truth | UX | MEDIUM | P2 | FIXED | onboarding | FIX_NOW |
 | [BUG-1548](../../docs/bugs/BUG-1548-customer-onboarding-validate-accepts-payloads-that-create-re.md) | Customer onboarding validate accepts payloads that create rejects | BUG | MEDIUM | P2 | DEFERRED | onboarding | DEFER |
 | [BUG-1549](../../docs/bugs/BUG-1549-database-and-validator-internals-are-surfaced-in-user-facing.md) | Database and validator internals are surfaced in user-facing errors | UX | MEDIUM | P2 | FIXED | error-logs | FIX_NOW |
-| [BUG-1550](../../docs/bugs/BUG-1550-lead-record-shows-two-different-owners-on-the-same-screen.md) | Lead record shows two different owners on the same screen | BUG | MEDIUM | P2 | DEFERRED | leads | DEFER |
+| [BUG-1550](../../docs/bugs/BUG-1550-lead-record-shows-two-different-owners-on-the-same-screen.md) | Lead record shows two different owners on the same screen | BUG | MEDIUM | P2 | FIXED | leads | FIX_NOW |
 | [BUG-1551](../../docs/bugs/BUG-1551-desktop-agent-auto-update-manifest-returns-404.md) | Desktop agent auto-update manifest returns 404 | INTEGRATION | MEDIUM | P2 | BLOCKED | agent, app-releases | BLOCKED_EXTERNAL |
 | [BUG-1552](../../docs/bugs/BUG-1552-admin-form-inputs-have-no-accessible-name.md) | Admin form inputs have no accessible name | UX | MEDIUM | P2 | DUPLICATE | leads, super-admin | DUPLICATE |
 | [BUG-1553](../../docs/bugs/BUG-1553-owner-and-template-pickers-list-indistinguishable-duplicate-.md) | Owner and template pickers list indistinguishable duplicate entries | UX | MEDIUM | P2 | DEFERRED | contracts, platform-users | DEFER |
-| [BUG-1554](../../docs/bugs/BUG-1554-admin-requests-its-own-partners-api-with-a-rejected-pagesize.md) | Admin requests its own partners API with a rejected pageSize | BUG | MEDIUM | P2 | DEFERRED | partners | DEFER |
-| [BUG-1555](../../docs/bugs/BUG-1555-an-inactive-plan-with-no-prices-is-offered-as-a-customer-pre.md) | An inactive plan with no prices is offered as a customer preferred plan | BUG | MEDIUM | P2 | OPEN | super-admin, billing | FIX_NOW |
+| [BUG-1554](../../docs/bugs/BUG-1554-admin-requests-its-own-partners-api-with-a-rejected-pagesize.md) | Admin requests its own partners API with a rejected pageSize | BUG | MEDIUM | P2 | FIXED | partners | FIX_NOW |
+| [BUG-1555](../../docs/bugs/BUG-1555-an-inactive-plan-with-no-prices-is-offered-as-a-customer-pre.md) | An inactive plan with no prices is offered as a customer preferred plan | BUG | MEDIUM | P2 | FIXED | super-admin, billing | FIX_NOW |
 | [BUG-1654](../../docs/bugs/BUG-1654-every-empty-list-in-a-new-workspace-blames-filters-that-are-.md) | Every empty list in a new workspace blames filters that are not set | UX | MEDIUM | P2 | FIXED | views, employees | FIX_NOW |
 | [BUG-1655](../../docs/bugs/BUG-1655-tenant-login-password-field-has-no-accessible-name-and-no-au.md) | Tenant login password field has no accessible name and no autocomplete hint | UX | MEDIUM | P2 | FIXED | auth | FIX_NOW |
 | [BUG-1668](../../docs/bugs/BUG-1668-tenant-workspace-pages-scroll-horizontally-at-mobile-width.md) | Tenant workspace pages scroll horizontally at mobile width | UX | MEDIUM | P2 | DEFERRED | views | DEFER |
@@ -347,7 +347,7 @@ see [`README.md`](README.md) for why.
 | [BUG-0796](../../docs/bugs/BUG-0796-tenant-and-plan-list-summaries-omit-createdbyid-so-the-creat.md) | Tenant and plan list summaries omit createdById so the Created by me view is always empty | BUG | LOW | P3 | VERIFIED | api:super-admin | DONE |
 | [BUG-1306](../../docs/bugs/BUG-1306-the-production-footer-publishes-a-reserved-fictional-us-phon.md) | The production footer publishes a reserved fictional US phone number as a tel link | UX | LOW | P3 | VERIFIED | apps/landing | DONE |
 | [BUG-1307](../../docs/bugs/BUG-1307-a-raw-monthly-enum-value-appears-in-customer-facing-timeshee.md) | A raw MONTHLY enum value appears in customer-facing timesheets copy | UX | LOW | P3 | VERIFIED | api:tenant-settings, apps/landing | DONE |
-| [BUG-1556](../../docs/bugs/BUG-1556-contract-dates-with-no-value-render-as-the-unix-epoch.md) | Contract dates with no value render as the Unix epoch | UX | LOW | P3 | DEFERRED | contracts | DEFER |
+| [BUG-1556](../../docs/bugs/BUG-1556-contract-dates-with-no-value-render-as-the-unix-epoch.md) | Contract dates with no value render as the Unix epoch | UX | LOW | P3 | FIXED | contracts | FIX_NOW |
 | [BUG-1557](../../docs/bugs/BUG-1557-react-hydration-error-418-on-the-admin-dashboard.md) | React hydration error 418 on the admin dashboard | BUG | LOW | P3 | DEFERRED | dashboard | DEFER |
 | [BUG-1558](../../docs/bugs/BUG-1558-admin-list-copy-uses-incorrect-pluralisation-and-articles.md) | Admin list copy uses incorrect pluralisation and articles | UX | LOW | P3 | FIXED | super-admin | FIX_NOW |
 | [BUG-1559](../../docs/bugs/BUG-1559-empty-states-instruct-the-user-to-create-records-on-screens-.md) | Empty states instruct the user to create records on screens with no create control | UX | LOW | P3 | FIXED | billing | FIX_NOW |

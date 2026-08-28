@@ -25,7 +25,18 @@ export class PartnerQueryDto {
   @IsOptional() @IsString() search?: string;
   @IsOptional() @IsEnum(PartnerStatus) status?: PartnerStatus;
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) page = 1;
-  @IsOptional() @Type(() => Number) @IsInt() @Min(10) @Max(100) pageSize = 20;
+  /*
+   * `Min(1)`, not `Min(10)` (BUG-1554).
+   *
+   * The admin console asks its own partners API for `pageSize=5` and got a 400
+   * every time the screen loaded — the client and the server disagreeing about
+   * a constraint entirely internal to the product. This bound was the outlier:
+   * every other query DTO in the repository uses `Min(1)`.
+   *
+   * A *lower* bound on a page size protects nothing. The upper bound does, and
+   * stays: an unbounded page size is a way to ask for the whole table.
+   */
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100) pageSize = 20;
   @IsOptional() @IsString() viewKey?: string;
   @IsOptional() @IsString() filters?: string;
   @IsOptional() @IsString() sort?: string;

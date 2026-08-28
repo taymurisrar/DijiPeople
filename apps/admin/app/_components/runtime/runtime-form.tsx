@@ -418,6 +418,20 @@ function FieldDisplay({
 
   if (field.type === "date" || field.type === "dateTime") {
     const date = new Date(String(value));
+    /*
+     * The Unix epoch is not a date anybody meant.
+     *
+     * An absent contract date arrives as an epoch-zero timestamp rather than as
+     * null, so it passed the `value == null` check above and rendered as
+     * "Jan 1, 1970" — two of seven contracts on production showed it. A date
+     * that looks real and is not is worse than no date at all (BUG-1556).
+     *
+     * Exactly zero, not "before some cutoff": a timestamp of midnight UTC on
+     * 1 January 1970 to the millisecond is the sentinel, and any other 1970
+     * date is somebody's real data.
+     */
+    if (date.getTime() === 0)
+      return <span className={`${base} text-slate-400`}>Not set</span>;
     return (
       <span className={base}>
         {Number.isNaN(date.getTime())

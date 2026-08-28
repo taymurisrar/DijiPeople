@@ -529,8 +529,11 @@ export class SuperAdminController {
   }
 
   @Get('plans')
-  listPlans() {
-    return this.superAdminService.listPlans();
+  listPlans(@Query('sellable') sellable?: string) {
+    // `?sellable=true` narrows to plans a customer could be put on — see
+    // `listPlans`. Absent, the full catalogue, which is what the Plans screen
+    // itself needs (BUG-1555).
+    return this.superAdminService.listPlans(sellable === 'true');
   }
 
   @Get('feature-catalog')

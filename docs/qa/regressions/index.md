@@ -2891,3 +2891,63 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | The defect is a layout decision with an accessibility consequence, which is why the fix is a name rather than a second visible label — showing the label twice would undo the layout the hiding exists for. The record asked for the admin login to be checked on the theory the two forms shared a starting point; it already binds both labels and declares `current-password`, and that is now asserted rather than merely noted. |
 | **Fixed** | 2026-08-28 |
 | **Active** | yes |
+
+### REG-290 — An onboarding that could not start, and a message that lied about why
+
+| | |
+|---|---|
+| **Bug class** | `one-string-two-purposes`, `wrong-relation-target` |
+| **Module** | `super-admin` |
+| **Bug record** | BUG-1547, BUG-1545 |
+| **Root cause** | Two defects on the same screen. The prerequisite failure message reused the checklist's positively-phrased labels — "Onboarding prerequisites are not complete: Industry is selected, Company size is selected" — so the header contradicted the list and the list stated the inverse of the truth. Separately, `CustomerOnboarding.onboardingOwnerUserId` is declared `User?` while the create expression fell back to `customer.assignedToUserId` (declared `PlatformUser?`) and then `actor.platform?.id`, so every admin-created onboarding was rejected by the foreign key. |
+| **Regression test** | `services/api/src/modules/super-admin/onboarding-prerequisites.spec.ts` |
+| **Scenario** | Every prerequisite check declares both a positive `label` and a negative `unmet`; the failure message is built from `unmet`; no pair is identical bar capitalisation. And the onboarding create writes neither `actor.platform?.id` nor `customer.assignedToUserId` into the owner column. |
+| **Proven to fail without the fix** | The `unmet` phrasings did not exist, and the message was built from `label`. Both fallbacks are asserted by name because each was independently wrong. |
+| **Note** | The evaluation was never wrong in either case, which is what made both hard to see: `missingItems` filtered correctly and the owner expression was reaching for a sensible value. **BUG-1545 is only half fixed and deliberately so.** Two reads in the same file filter this column by `actor.platform?.id`, so the *relation* is what is wrong — and this codebase's own convention agrees, since `CustomerAccount` carries platform owners as `PlatformUser` and tenant owners as `User`. Repointing a foreign key is a migration with a data question behind it, and the record asks for that to be settled rather than patched. |
+| **Fixed** | 2026-08-28 |
+| **Active** | yes |
+
+### REG-291 — A plan that could not be sold, and a page size that could not be asked for
+
+| | |
+|---|---|
+| **Bug class** | `picker-offers-what-the-write-path-rejects`, `constraint-protects-nothing` |
+| **Module** | `super-admin`, `partners` |
+| **Bug record** | BUG-1555, BUG-1554 |
+| **Root cause** | The customer form's plan picker listed every plan, including `QA00591` — inactive, zero prices — and selecting it produced a customer whose preferred plan nothing could bill, because checkout and subscription pricing both read `PlanPrice`. Tenant creation checked only that a plan id was non-null. Separately, `PartnerQueryDto.pageSize` carried `@Min(10)` while the admin console asked its own API for `pageSize=5`, so the screen 400'd on every load — a client and a server disagreeing about a constraint entirely internal to the product. |
+| **Regression test** | `services/api/src/modules/super-admin/onboarding-prerequisites.spec.ts` |
+| **Scenario** | Tenant creation refuses a plan that is inactive or carries no active price, and names which of the two applies. `listPlans` narrows on `?sellable=true` and the two preferred-plan pickers request it. |
+| **Proven to fail without the fix** | The plan guard did not exist — a non-null id was the whole check. |
+| **Note** | The picker filter and the write-path check are deliberately both present and are not the same thing: a plan id still arrives from a lead's `agreedPlanId`, from a customer chosen before the plan was retired, or straight from the API, and only the second of the two can refuse those. The guard counts *active* prices, because a plan carrying only inactive ones is as unsellable as a plan carrying none. On the page size: a census found `Min(1)` twice and `Min(10)` once, so the floor was an outlier rather than a rule — and a lower bound on a page size protects nothing, while the upper bound stays because an unbounded page is a way to ask for the whole table. |
+| **Fixed** | 2026-08-28 |
+| **Active** | yes |
+
+### REG-292 — Dates and owners that were confidently wrong
+
+| | |
+|---|---|
+| **Bug class** | `sentinel-rendered-as-data` |
+| **Module** | `apps/admin` |
+| **Bug record** | BUG-1556, BUG-1550 |
+| **Root cause** | An absent contract date arrives as an epoch-zero timestamp rather than as null, so it passed every `!value` guard and rendered as `Jan 1, 1970` — two of seven contracts on production showed it. Separately, a lead record displayed `Test User` in its header and `Not set` in its body at the same time, with nothing on screen to say which was right. |
+| **Regression test** | `apps/admin/lib/runtime/lookup-disambiguation.spec.ts` and the epoch guards in `apps/admin/lib/formatters.ts` and the runtime date display |
+| **Scenario** | A timestamp of exactly zero renders as absent rather than as 1 January 1970, in the shared formatters and in the runtime record page's inline formatter. The lead's owner field names its relation explicitly, the same way the record header does. |
+| **Proven to fail without the fix** | The epoch check did not exist; `!value` cannot see a truthy zero-date. |
+| **Note** | Exactly zero, not "before a cutoff": midnight UTC on 1 January 1970 to the millisecond is the sentinel, and any other 1970 date is somebody's real data. **BUG-1550's divergence was not reproduced.** Both surfaces read `assignedToUserId`, `readRelationLabel` already composes the name shape the leads repository selects, and from the source they should agree — so the cause is a payload difference the source does not show. What changed is that the body now names the relation explicitly rather than deriving it, removing the one structural difference between the two routes. If a lead still shows two owners, the payloads are where to look. |
+| **Fixed** | 2026-08-28 |
+| **Active** | yes |
+
+### REG-293 — Pickers offering entries nobody could choose between
+
+| | |
+|---|---|
+| **Bug class** | `identical-options` |
+| **Module** | `apps/admin` runtime lookups |
+| **Bug record** | BUG-1553 |
+| **Root cause** | Lookup labels resolve from the first available name field, so two platform users called "Taimur Israr" — genuinely different accounts — rendered identically, as did two contract templates sharing an agreement name. The operator had to guess, and a wrong guess assigns the wrong owner or generates from the wrong template. The email was on the record all along and was never reached. |
+| **Regression test** | `apps/admin/lib/runtime/lookup-disambiguation.spec.ts` |
+| **Scenario** | Two entries sharing a label gain a disambiguator — email, then code, key, contract number, version, status, and a shortened id last; a unique label is left alone; a disambiguator identical to the label is skipped; and the option count is unchanged. |
+| **Proven to fail without the fix** | Labels were emitted verbatim, so duplicates stayed duplicates. |
+| **Note** | Applied only where a label actually repeats. Showing everyone's email beside their name would clutter every picker in the console to solve a problem that exists in two of them, and a disambiguator is only informative when there is something to disambiguate from. The shortened id is a poor answer and is last for that reason — but two identical entries with no way to choose between them is a worse one. The template half of the record asked whether the duplication is display-level or two real records; this makes them distinguishable either way, and which *should* be selectable remains the product decision the record identifies. |
+| **Fixed** | 2026-08-28 |
+| **Active** | yes |

@@ -1128,6 +1128,19 @@ const definitions: PlatformModuleDefinition[] = [
             "lead-information",
           ),
           lookupPath: "/platform-users/owner-candidates",
+          /*
+           * The same relation the record header reads (BUG-1550).
+           *
+           * A lead showed `Test User` in the header and `Not set` in the body
+           * at the same time, and the screen gave the operator no way to tell
+           * which was right. Both surfaces resolve `assignedToUserId`, and the
+           * header names the relation explicitly through
+           * `OWNER_FIELD_CANDIDATES` while the body was deriving it by
+           * stripping the `Id` suffix — two routes to the same place, and only
+           * one of them stated where it was going. Naming it here means they
+           * cannot answer differently.
+           */
+          displayValueField: "assignedToUser",
         },
         field("contactFirstName", "First name", "text", "contact", true),
         field("contactLastName", "Last name", "text", "contact", true),
@@ -1908,7 +1921,13 @@ const definitions: PlatformModuleDefinition[] = [
         field("addressLine2", "Address line 2", "text", "address"),
         {
           ...field("selectedPlanId", "Preferred plan", "lookup", "commercial"),
-          lookupPath: "/super-admin/plans",
+          /*
+           * Only plans a customer could actually be put on. An inactive plan
+           * with no `PlanPrice` was selectable here, producing a customer whose
+           * preferred plan nothing could bill (BUG-1555). The filter is a
+           * usability fix; the enforcement is on the write path.
+           */
+          lookupPath: "/super-admin/plans?sellable=true",
         },
         field(
           "preferredBillingCycle",
@@ -2344,7 +2363,8 @@ const definitions: PlatformModuleDefinition[] = [
         },
         {
           ...field("selectedPlanId", "Plan", "lookup", "commercial"),
-          lookupPath: "/super-admin/plans",
+          /* Sellable plans only — see the customer form's picker (BUG-1555). */
+          lookupPath: "/super-admin/plans?sellable=true",
         },
         field("billingCycle", "Billing cycle", "option", "commercial", false, [
           "MONTHLY",

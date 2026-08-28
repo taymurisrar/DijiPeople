@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 230** · automated: 203 · manual: 9 · blocked by infrastructure: 0
+**Scenarios: 234** · automated: 206 · manual: 10 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -244,3 +244,7 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-TENANT-039](../../../docs/qa/scenarios/QA-TENANT-039-runtime-form-controls-have-accessible-names.md) | Runtime form controls have accessible names | platform-admin | UNIT | HIGH | AUTOMATED | `apps/admin/lib/runtime/form-accessibility.spec.ts` | BUG-1423 | REG-287 |
 | [QA-TENANT-040](../../../docs/qa/scenarios/QA-TENANT-040-a-shell-owns-no-headings-or-landmarks-the-page-should-own.md) | A shell owns no headings or landmarks the page should own | platform-admin | UNIT | MEDIUM | AUTOMATED | `apps/admin/lib/shell-landmarks.spec.ts` | BUG-1421, BUG-1673, BUG-0073 | REG-288 |
 | [QA-TENANT-041](../../../docs/qa/scenarios/QA-TENANT-041-the-login-password-field-names-itself.md) | The login password field names itself | platform-admin | UNIT | MEDIUM | AUTOMATED | `apps/web/app/components/ui/login-field-accessibility.spec.ts` | BUG-1655 | REG-289 |
+| [QA-TENANT-042](../../../docs/qa/scenarios/QA-TENANT-042-the-onboarding-prerequisite-message-names-what-is-missing.md) | The onboarding prerequisite message names what is missing | platform-admin | UNIT | MEDIUM | AUTOMATED | `services/api/src/modules/super-admin/onboarding-prerequisites.spec.ts` | BUG-1547, BUG-1545 | REG-290 |
+| [QA-TENANT-043](../../../docs/qa/scenarios/QA-TENANT-043-a-tenant-is-never-provisioned-onto-a-plan-nothing-can-bill.md) | A tenant is never provisioned onto a plan nothing can bill | platform-admin | UNIT | HIGH | AUTOMATED | `services/api/src/modules/super-admin/onboarding-prerequisites.spec.ts` | BUG-1555, BUG-1554 | REG-291 |
+| [QA-TENANT-044](../../../docs/qa/scenarios/QA-TENANT-044-absent-dates-render-as-absent-rather-than-as-1970.md) | Absent dates render as absent rather than as 1970 | platform-admin | UNIT | LOW | MANUAL | `apps/admin/lib/formatters.ts` | BUG-1556, BUG-1550 | REG-292 |
+| [QA-TENANT-045](../../../docs/qa/scenarios/QA-TENANT-045-duplicate-picker-entries-tell-themselves-apart.md) | Duplicate picker entries tell themselves apart | platform-admin | UNIT | MEDIUM | AUTOMATED | `apps/admin/lib/runtime/lookup-disambiguation.spec.ts` | BUG-1553 | REG-293 |

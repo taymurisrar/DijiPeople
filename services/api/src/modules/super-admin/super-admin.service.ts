@@ -1815,9 +1815,20 @@ export class SuperAdminService {
    * production GET returned 409 when the insert hit the partial unique index
    * on PlanPrice. Bootstrap is now explicit; see commercial-bootstrap.ts.
    */
-  async listPlans() {
+  /**
+   * @param sellable  When true, only plans a customer could actually be put on.
+   *
+   * A plan that is inactive, or carries no `PlanPrice`, cannot be sold —
+   * checkout reads `PlanPrice`. Both were being offered in the customer form's
+   * plan picker, so an operator could set a preferred plan that nothing could
+   * ever bill: `QA00591`, inactive with zero prices, was selectable in
+   * production (BUG-1555).
+   */
+  async listPlans(sellable = false) {
     const plans = await this.plansRepository.findMany();
-    return plans.map((plan) => this.mapPlan(plan));
+    const mapped = plans.map((plan) => this.mapPlan(plan));
+    if (!sellable) return mapped;
+    return mapped.filter((plan) => plan.isActive && plan.priceCount > 0);
   }
 
   getFeatureCatalog() {

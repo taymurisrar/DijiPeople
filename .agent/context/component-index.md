@@ -1,7 +1,7 @@
 # Component Index
 
 > **Last verified:** 2026-08-28
-> **Verified against commit:** fb67698b
+> **Verified against commit:** af8b5bc1
 >
 > **This file is generated. Do not hand-edit it.**
 > `node scripts/generate-component-index.mjs` rebuilds it;
@@ -96,7 +96,7 @@ re-derived on each run.
 | `humanizeFieldError` | function | 1 | `apps/admin/lib/runtime/humanize-field-error.ts`:24 | Replace a leading DTO property name with the label the operator sees. |
 | `isTransportFailure` | function | 1 | `apps/admin/app/_components/tenants/tenant-control-plane.client.ts`:677 | Whether a failure means "the request never got an answer" rather than "the server said no". |
 | `planEntitlementKeys` | function | 1 | `apps/admin/lib/runtime/plan-entitlement-keys.ts`:29 | The entitlement keys a plan record grants, whatever shape the record is in. |
-| `readRuntimeLookupLabel` | function | 1 | `apps/admin/lib/runtime/runtime-lookups.ts`:77 | The display name of a related record, wherever this schema happens to keep it. |
+| `readRuntimeLookupLabel` | function | 1 | `apps/admin/lib/runtime/runtime-lookups.ts`:138 | The display name of a related record, wherever this schema happens to keep it. |
 | `reconcileWithErasureReceipt` | function | 1 | `apps/admin/app/_components/tenants/tenant-control-plane.client.ts`:702 | Ask the receipt what happened when the response did not arrive. |
 | `recordHeaderWritePermission` | function | 1 | `apps/admin/lib/runtime/runtime-permissions.ts`:54 | The permission a header slot's write route is governed by. |
 | `useTenantRecordActions` | function | 1 | `apps/admin/app/_components/tenants/use-tenant-record-actions.tsx`:99 | Routes tenant action-bar requests to whichever surface owns the change. |

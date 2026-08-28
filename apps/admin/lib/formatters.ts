@@ -38,11 +38,29 @@ export function formatCurrency(
   }).format(value);
 }
 
+/*
+ * The Unix epoch is not a date anybody meant.
+ *
+ * Contract dates with no value rendered as `Jan 1, 1970` — two of seven
+ * contracts on production showed it — because the absent value arrives as an
+ * epoch-zero timestamp rather than as null, so the `!value` guard below never
+ * saw it. A screen presenting a date that looks real and is not is worse than
+ * one presenting no date (BUG-1556).
+ *
+ * Exactly zero, not "before some cutoff". A business date of
+ * 1970-01-01T00:00:00.000Z to the millisecond is the sentinel; 1970 dates that
+ * are not exactly midnight UTC are somebody's real data and are left alone.
+ */
+function isEpochSentinel(date: Date): boolean {
+  return date.getTime() === 0;
+}
+
 export function formatDate(value: string | Date | null | undefined): string {
   if (!value) return "Not available";
 
   const date = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(date.getTime())) return "Invalid date";
+  if (isEpochSentinel(date)) return "Not available";
 
   return new Intl.DateTimeFormat("en-US", {
     dateStyle: "medium",
@@ -54,6 +72,7 @@ export function formatDateTime(value: string | Date | null | undefined): string 
 
   const date = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(date.getTime())) return "Invalid date";
+  if (isEpochSentinel(date)) return "Not available";
 
   return new Intl.DateTimeFormat("en-US", {
     dateStyle: "medium",

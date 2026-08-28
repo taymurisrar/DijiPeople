@@ -46,12 +46,73 @@ export function normalizeRuntimeLookupPayload(
       ? record.items
       : [];
 
-  return items.flatMap((item) => {
+  const options = items.flatMap((item) => {
     if (!isRecord(item)) return [];
     const value = item.id ?? item.value;
     if (typeof value !== "string" || !value) return [];
-    return [{ value, label: getRuntimeLookupLabel(item) }];
+    return [{ value, label: getRuntimeLookupLabel(item), item }];
   });
+
+  return disambiguateLookupLabels(options);
+}
+
+/**
+ * Make entries the operator cannot tell apart tell themselves apart.
+ *
+ * The owner picker listed "Taimur Israr" twice — two genuinely different
+ * accounts — and the contract template list showed the same agreement name
+ * twice. In both cases the operator had to guess, and a wrong guess assigns the
+ * wrong owner or generates from the wrong template (BUG-1553).
+ *
+ * Applied only where a label actually repeats. Showing everyone's email beside
+ * their name would clutter every picker in the console to solve a problem that
+ * exists in two of them, and the disambiguator is only informative when there
+ * is something to disambiguate from.
+ */
+function disambiguateLookupLabels(
+  options: Array<{ value: string; label: string; item: Record<string, unknown> }>,
+): RuntimeLookupOption[] {
+  const counts = new Map<string, number>();
+  for (const option of options)
+    counts.set(option.label, (counts.get(option.label) ?? 0) + 1);
+
+  return options.map(({ value, label, item }) => {
+    if ((counts.get(label) ?? 0) < 2) return { value, label };
+    const detail = lookupDisambiguator(item, label);
+    return { value, label: detail ? `${label} (${detail})` : label };
+  });
+}
+
+/**
+ * Something short and true that separates two records sharing a name.
+ *
+ * Ordered by how much it tells a person: an email identifies a colleague, a
+ * version or a code identifies a document. The id is last and is a poor answer
+ * — but two identical entries and no way to choose is a worse one, so it is
+ * shortened rather than omitted.
+ */
+function lookupDisambiguator(
+  item: Record<string, unknown>,
+  label: string,
+): string | null {
+  const candidates = [
+    item.email,
+    item.code,
+    item.key,
+    item.contractNumber,
+    item.version === undefined || item.version === null
+      ? null
+      : `v${String(item.version)}`,
+    item.status,
+    typeof item.id === "string" ? item.id.slice(0, 8) : null,
+  ];
+  for (const candidate of candidates) {
+    if (typeof candidate !== "string" || !candidate.trim()) continue;
+    // A disambiguator identical to the label disambiguates nothing.
+    if (candidate.trim() === label) continue;
+    return candidate.trim();
+  }
+  return null;
 }
 
 export function mergeRuntimeLookupOptions(
