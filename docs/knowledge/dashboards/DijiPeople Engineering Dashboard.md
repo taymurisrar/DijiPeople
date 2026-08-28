@@ -321,6 +321,7 @@
 
 ## Recent Engineering History
 
+- [[2026-08-28-promote-open-bug-sweep-to-production-3d2931c4|Engineering History — Promote open bug sweep to production]]
 - [[2026-08-28-open-bug-sweep-cd4edb86|Engineering History — Open bug sweep]]
 - [[2026-08-28-admin-console-e2e-qa-d78f0fc4|Engineering History — Admin console e2e qa]]
 - [[2026-08-26-worktree-removal-guard-d6f46a9a|Engineering History — Worktree removal guard]]
@@ -328,7 +329,6 @@
 - [[2026-08-26-dlp-employee-review-10e47f35|Engineering History — DLP investigator review on the employee record]]
 - [[2026-08-26-agent-distribution-6b7ea704|Engineering History — Agent app distribution and auto-release pipeline]]
 - [[2026-08-26-admin-releases-ui-8732194b|Engineering History — Admin releases management and channel promotion UI]]
-- [[2026-08-26-admin-prod-e2e-qa-e7bd1e05|Engineering History — Admin prod e2e qa]]
 
 ## Recent Releases
 
@@ -407,7 +407,7 @@
 | Backlog items | 103 |
 | Known bug patterns | 30 |
 | QA runs | 28 |
-| Engineering history records | 54 |
+| Engineering history records | 55 |
 | Release records | 3 |
 | Module notes | 28 |
 | Architecture notes | 20 |
