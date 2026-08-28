@@ -3026,3 +3026,18 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | The interesting part of this entry is what was *not* changed. BUG-0015 and BUG-0016 were both already fixed, and both exactly as their records specified — `identities-and-billing` is idempotent against owner email, subscription and invoice anchors and is marked retryable; partner onboarding review refuses decisions from non-reviewable states and closes `ACTIVE` partners to review entirely. Both were verified by reading the implementation and running its spec, and no code was written for either. Five records in this sweep turned out to have stale premises, which is an argument for measuring a record before implementing against it. **Still untested:** BUG-0015's convergence under a real replay. A local database was offered for it and the credential supplied did not authenticate, so a failed provisioning was never actually retried. |
 | **Fixed** | 2026-08-28 |
 | **Active** | yes |
+
+### REG-299 — A rejection that would not say what it rejected
+
+| | |
+|---|---|
+| **Bug class** | `one-error-code-for-several-causes` |
+| **Module** | `billing` |
+| **Bug record** | BUG-1543 |
+| **Root cause** | The Stripe webhook endpoint can refuse a request for three unrelated reasons — no signature header, a body that is not a raw Buffer, or a signature that does not verify — and all three surface as `400 VALIDATION_FAILED`, because that is the error catalog's code for every 400. Two of Stripe's callbacks were rejected during a real payment on production and working out which had fired meant log archaeology. |
+| **Regression test** | `services/api/src/modules/billing/webhook-rejection-diagnostics.spec.ts` |
+| **Scenario** | Each refusal logs `stripe.webhook.rejected` naming which check refused it; the signature verification failure is caught rather than propagating uncaught; neither the payload nor the signature is logged; and the response to Stripe is unchanged. |
+| **Proven to fail without the fix** | There was no logging on this path at all, and the verification failure had no `try` around it. |
+| **Note** | This is diagnosability, not a fix — **the cause of BUG-1543 is still unknown** and that record stays deferred. The three checks need opposite responses, which is why flattening them mattered: a missing header is a caller that is not Stripe, a non-Buffer body is raw-body middleware not running for the route, and a failed verification is either the wrong webhook secret or a forgery. What is deliberately absent from the log is the body and the signature — one is a customer's payment detail, the other is a credential, and neither is the thing worth knowing. Also worth keeping: the rejection raised "a customer may have paid without us knowing", which is the right thing to be paged for. A change that silenced the alert rather than explaining the rejection would have been the wrong one. |
+| **Fixed** | 2026-08-28 (diagnostics only) |
+| **Active** | yes |

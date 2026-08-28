@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 240** · automated: 212 · manual: 10 · blocked by infrastructure: 0
+**Scenarios: 241** · automated: 213 · manual: 10 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -254,3 +254,4 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-TENANT-048](../../../docs/qa/scenarios/QA-TENANT-048-nothing-formats-against-the-runtime-locale-across-a-hydratio.md) | Nothing formats against the runtime locale across a hydration boundary | platform-admin | UNIT | LOW | AUTOMATED | `apps/admin/lib/dashboard-hydration.spec.ts` | BUG-1557, BUG-1561 | REG-296 |
 | [QA-TENANT-049](../../../docs/qa/scenarios/QA-TENANT-049-the-signup-wizard-advertises-the-address-the-tenant-will-get.md) | The signup wizard advertises the address the tenant will get | landing | UNIT | MEDIUM | AUTOMATED | `apps/landing/lib/workspace-address.spec.ts` | BUG-1544, BUG-1644, BUG-0017 | REG-297, REG-271 |
 | [QA-TENANT-050](../../../docs/qa/scenarios/QA-TENANT-050-leads-are-withdrawn-rather-than-bulk-deleted.md) | Leads are withdrawn rather than bulk deleted | lead-management | UNIT | MEDIUM | AUTOMATED | `services/api/src/modules/leads/bulk-delete-withdrawn.spec.ts` | BUG-0018, BUG-0015, BUG-0016 | REG-298 |
+| [QA-TENANT-051](../../../docs/qa/scenarios/QA-TENANT-051-a-rejected-stripe-webhook-names-the-check-that-refused-it.md) | A rejected Stripe webhook names the check that refused it | billing | UNIT | MEDIUM | AUTOMATED | `services/api/src/modules/billing/webhook-rejection-diagnostics.spec.ts` | BUG-1543, BUG-1516 | REG-299 |
