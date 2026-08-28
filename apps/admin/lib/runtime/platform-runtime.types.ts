@@ -378,6 +378,18 @@ export type RuntimeModuleCapabilities = {
   create: boolean;
   update: boolean;
   delete: boolean;
+  /*
+   * Whether *many* records may be deleted at once.
+   *
+   * Separate from `delete` because the two are different risks. Deleting one
+   * lead is a deliberate act on a record somebody is looking at; deleting an
+   * unbounded selection destroys commercial attribution — which partner
+   * referred whom — for records nobody reviewed. BUG-0018 asked whether bulk
+   * lead delete should exist and the answer was no, while single delete stays.
+   *
+   * Defaults to `delete` when unset, so every other module is unchanged.
+   */
+  bulkDelete?: boolean;
 };
 
 export type RuntimeRecordHeaderSlot = {

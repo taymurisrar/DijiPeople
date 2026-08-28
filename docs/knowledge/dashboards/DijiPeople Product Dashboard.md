@@ -68,7 +68,6 @@ Questions where the engineering is understood and the **product answer**
 **is not**. No agent may resolve one by implementing a side of it.
 
 - [[ITEM-0062-no-multi-tenant-membership-one-user-belongs-to-one-tenant-so|ITEM-0062]] — **No multi-tenant membership — one user belongs to one tenant, so discovery and switching cannot exist** (HIGH)
-- [[BUG-0018-bulk-lead-delete-is-unreachable-for-every-role|BUG-0018]] — **Bulk lead delete is unreachable for every role, including SUPER_ADMIN** (LOW)
 - [[ITEM-0079-activation-does-not-gate-on-a-workspace-having-any-module-en|ITEM-0079]] — **Activation does not gate on a workspace having any module enabled** (LOW)
 
 ## Recent Product Changes
@@ -85,8 +84,6 @@ Questions where the engineering is understood and the **product answer**
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
 | [[BUG-1744-every-subscription-has-a-zero-length-billing-period-and-a-re|BUG-1744]] | Every subscription has a zero-length billing period and a renewal date in the past | DATA_INTEGRITY | CRITICAL | FIXED | api:super-admin, api:billing, integration:stripe | FIX_NOW |
-| [[BUG-0015-a-tenant-that-fails-before-identities-and-billing-is-unrecoverable|BUG-0015]] | A tenant that fails before identities-and-billing is permanently unrecoverable | STATE_MACHINE | HIGH | OPEN | api:tenant-control-plane | PLAN_REQUIRED |
-| [[BUG-0016-partner-onboarding-review-has-no-state-machine|BUG-0016]] | Partner onboarding review has no state machine | STATE_MACHINE | HIGH | OPEN | api:partner-experience | PLAN_REQUIRED |
 | [[BUG-1420-the-monitoring-severity-filter-cannot-match-99-7-percent-of-|BUG-1420]] | The monitoring severity filter cannot match 99.7 percent of stored incidents | DATA_INTEGRITY | HIGH | FIXED | apps/admin, api:error-logs | FIX_NOW |
 | [[BUG-1423-runtime-form-controls-have-no-accessible-name-so-screen-read|BUG-1423]] | Runtime form controls have no accessible name so screen readers announce every field as blank | UX | HIGH | FIXED | apps/admin | FIX_NOW |
 | [[BUG-1516-public-signup-creates-duplicate-customer-records-breaking-st|BUG-1516]] | Public signup creates duplicate customer records, breaking Stripe tenant resolution | DATA_INTEGRITY | HIGH | FIXED | super-admin, billing, landing | FIX_NOW |

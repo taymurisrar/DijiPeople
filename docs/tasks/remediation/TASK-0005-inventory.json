@@ -787,14 +787,14 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "7bbab3d",
         "created_at": "2026-08-15",
-        "updated_at": "2026-08-17",
-        "resolved_at": "2026-08-15"
+        "updated_at": "2026-08-28",
+        "resolved_at": "2026-08-28"
       },
       "type": "STATE_MACHINE",
       "title": "A tenant that fails before identities-and-billing is permanently unrecoverable",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
+      "current_status": "VERIFIED",
       "current_evidence": {
         "paths": [
           "docs/bugs/BUG-0015-a-tenant-that-fails-before-identities-and-billing-is-unrecoverable.md",
@@ -820,17 +820,19 @@
         "ITEM-0004"
       ],
       "regressions": [
-        "REG-013"
+        "REG-013",
+        "REG-298"
       ],
       "qa_scenarios": [
-        "QA-PROV-004"
+        "QA-PROV-004",
+        "QA-TENANT-050"
       ],
       "test_plan": [
         "PLAN-007"
       ],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "PLAN_REQUIRED",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "PRELIMINARY",
         "classification": "TERMINAL_STATUS_WITH_STALE_ARCHITECT_DISPOSITION",
@@ -846,14 +848,14 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "7bbab3d",
         "created_at": "2026-08-15",
-        "updated_at": "2026-08-17",
-        "resolved_at": "2026-08-15"
+        "updated_at": "2026-08-28",
+        "resolved_at": "2026-08-28"
       },
       "type": "STATE_MACHINE",
       "title": "Partner onboarding review has no state machine",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
+      "current_status": "VERIFIED",
       "current_evidence": {
         "paths": [
           "docs/bugs/BUG-0016-partner-onboarding-review-has-no-state-machine.md",
@@ -874,17 +876,19 @@
       ],
       "related_backlog": [],
       "regressions": [
-        "REG-014"
+        "REG-014",
+        "REG-298"
       ],
       "qa_scenarios": [
-        "QA-PARTNER-001"
+        "QA-PARTNER-001",
+        "QA-TENANT-050"
       ],
       "test_plan": [
         "PLAN-006"
       ],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "PLAN_REQUIRED",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "PRELIMINARY",
         "classification": "TERMINAL_STATUS_WITH_STALE_ARCHITECT_DISPOSITION",
@@ -967,7 +971,7 @@
       "title": "Bulk lead delete is unreachable for every role, including SUPER_ADMIN",
       "severity": "LOW",
       "priority": "P3",
-      "current_status": "PRODUCT_DECISION",
+      "current_status": "FIXED",
       "current_evidence": {
         "paths": [
           "docs/bugs/BUG-0018-bulk-lead-delete-is-unreachable-for-every-role.md",
@@ -987,14 +991,18 @@
         "BUG-0014"
       ],
       "related_backlog": [],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-298"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-050"
+      ],
       "test_plan": [
         "PLAN-005"
       ],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "PRODUCT_DECISION",
+      "architect_disposition": "FIX_NOW",
       "verification_result": {
         "result": "VERIFIED",
         "classification": "DEFERRED_AS_DOCUMENTED",

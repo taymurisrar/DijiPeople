@@ -3011,3 +3011,18 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | Closed on measurement rather than on a code read, which is the point worth keeping: `curl -s https://www.dijipeople.com/subscribe` returns `tenantBaseDomain":"ws.dijipeople.com"`. The rebuild that fixed BUG-1644 (REG-271) carried this with it. The record's own caution was worth taking and turned out reassuring — it asks to confirm what the availability check queries before changing any display string, because a check against the wrong hostname would keep answering "available" for the right one. It sends only the slug, so it was never affected. `NEXT_PUBLIC_*` and build-time values are inlined into the bundle, so a corrected variable and a stale bundle look identical from a browser; the evidence above is the *served* value, which is what a customer sees. |
 | **Fixed** | 2026-08-28 |
 | **Active** | yes |
+
+### REG-298 — Three decisions, and two of them already made
+
+| | |
+|---|---|
+| **Bug class** | `record-outlived-its-fix`, `capability-too-coarse` |
+| **Module** | `leads`, `platform-runtime`, `super-admin`, `partner-experience` |
+| **Bug record** | BUG-0018, BUG-0015, BUG-0016 |
+| **Root cause** | Bulk lead delete existed and destroyed commercial attribution — which partner referred whom, and what a commission is calculated from — for an unbounded selection nobody reviewed. Removing it revealed a second problem: the console's `delete` capability gated single-record and bulk deletion together, so withholding one withheld the other. |
+| **Regression test** | `services/api/src/modules/leads/bulk-delete-withdrawn.spec.ts` |
+| **Scenario** | No bulk delete route on the leads controller, no `leads` arm in the runtime's `bulkDelete`, and no console action — while the runtime's `remove` path still deletes a single lead, and `RuntimeModuleCapabilities` separates `bulkDelete` from `delete`. |
+| **Proven to fail without the fix** | Each assertion names a route, an arm or a capability that was there. The single-delete assertion is the load-bearing one: the obvious implementation (`delete: false`) passes every other assertion in this suite and fails that one. |
+| **Note** | The interesting part of this entry is what was *not* changed. BUG-0015 and BUG-0016 were both already fixed, and both exactly as their records specified — `identities-and-billing` is idempotent against owner email, subscription and invoice anchors and is marked retryable; partner onboarding review refuses decisions from non-reviewable states and closes `ACTIVE` partners to review entirely. Both were verified by reading the implementation and running its spec, and no code was written for either. Five records in this sweep turned out to have stale premises, which is an argument for measuring a record before implementing against it. **Still untested:** BUG-0015's convergence under a real replay. A local database was offered for it and the credential supplied did not authenticate, so a failed provisioning was never actually retried. |
+| **Fixed** | 2026-08-28 |
+| **Active** | yes |

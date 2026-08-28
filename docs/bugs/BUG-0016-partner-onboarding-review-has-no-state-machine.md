@@ -2,7 +2,7 @@
 ID: BUG-0016
 aliases: [BUG-0016]
 Title: Partner onboarding review has no state machine
-Status: OPEN
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: STATE_MACHINE
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-15
 DetectedInSha: 7bbab3d
 AffectedModules: [services/api/src/modules/partner-experience]
 OwnerAgent: architect
-ArchitectDisposition: PLAN_REQUIRED
+ArchitectDisposition: DONE
 QAReport: docs/qa/runs/2026-08-15-commercial-onboarding-e2e-7bbab3d.md
-RegressionId: REG-014
+RegressionId: REG-298
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-15
-UpdatedAt: 2026-08-17
-ResolvedAt: 2026-08-15
+UpdatedAt: 2026-08-28
+ResolvedAt: 2026-08-28
 ---
 
 # BUG-0016 — Partner onboarding review has no state machine
@@ -118,25 +118,47 @@ by accident and not a fix.
 
 ## Resolution
 
-Not resolved.
+**Already fixed, and the two questions with engineering answers were answered
+the way the reviewer would have.** Verified 2026-08-28.
 
-> Reopened 2026-08-23, for the same reason as [[BUG-0015]]: terminal status
-> above an unresolved Resolution. Its own QA Retest section already said so —
-> "the QA run records `PARTNER_FLOW` as `PASS_WITH_RISKS` because of this
-> record" — which is not something a VERIFIED bug can be true of.
+`partner-onboarding.state-machine.ts` exists and `reviewOnboarding` calls
+`partnerOnboardingReviewRefusal` before writing any status. Against this
+record's three questions:
+
+1. **Which states may be reviewed** — `SUBMITTED`, `UNDER_REVIEW`,
+   `CHANGES_REQUESTED`. `APPROVED` and `REJECTED` are absent because they are
+   decisions already taken. A `submittedAt` check backs it up, on the reasoning
+   that a review is a review *of* something: an application with no submission
+   has no validated legal or bank details to approve.
+
+2. **May an `ACTIVE` partner be demoted here** — no. `ACTIVE`, `SUSPENDED`,
+   `INACTIVE` and `TERMINATED` are closed to onboarding review, and the refusal
+   points the operator at the governed `partnerTransition` actions, which own
+   those moves and write a `PartnerTimeline` entry for each. The
+   implementation's note puts it well: letting a compliance review reach an
+   `ACTIVE` partner "was the two files disagreeing, not a second policy".
+
+3. **Live referral links and in-flight attributed leads on demotion** — still
+   open, and deliberately. It is recorded as a product question in the state
+   machine's own header. It is also now *narrower* than when this record was
+   written: demotion cannot happen through this endpoint at all, so the question
+   only arises via `partnerTransition`, which is governed and audited.
+
+Covered by `partner-onboarding.state-machine.spec.ts`, 13 assertions passing.
+
+No change was made on 2026-08-28. The decision confirmed by the repository owner
+that day — reviewable from SUBMITTED / UNDER_REVIEW / CHANGES_REQUESTED, and
+`ACTIVE` demotion through the governed transitions instead — is what the code
+already does.
 
 ## QA Retest
 
-Not applicable. The QA run records `PARTNER_FLOW` as `PASS_WITH_RISKS` because of
-this record.
+Verified by reading the state machine and running its spec.
 
-Retested at the merged SHA `d1768cb` during the open-bug closure wave.
-
-The linked regression suite runs green: 7 API suites / 85 assertions across
-REG-013 – REG-021, `npm run test:app-urls` 16/16, and REG-020's
-`commercial-bootstrap.e2e-spec.ts` in the `Database migration gate` against a
-real PostgreSQL 16. Each of these tests was proven to fail without its fix when
-it was written; re-running them is what confirms the fix still holds.
+The residual product question is unchanged and is the thing to pick up next:
+what should happen to a live referral link and its in-flight attributed leads if
+a partner is demoted after activation. That now belongs to `partnerTransition`
+rather than to onboarding review.
 
 ## History
 
@@ -150,6 +172,7 @@ it was written; re-running them is what confirms the fix still holds.
   product decision.
 
 - 2026-08-15 — Architect triage: the record was filed PRODUCT_DECISION on three questions. Two were already answered elsewhere in the code and merely contradicted here, which makes them technical inconsistencies rather than product choices: `partnerTransition` already declares `reject` illegal from ACTIVE and already owns suspend/deactivate/reactivate, and `submitOnboarding` already validates the required compliance fields against `partner-settings`. Requiring a submission before a review therefore inherits the existing completeness rule instead of inventing one. Fixed to that extent. The genuinely undecided remainder — whether an APPROVED application may be re-opened, and what happens to a live referral link and its in-flight attributed leads on a post-activation demotion — is split out so it is tracked as a decision rather than as an unfixed defect.
+- 2026-08-28 - verified already fixed; the implemented rules match the decision confirmed the same day. The referral-link question remains open, on the lifecycle actions rather than here.
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
 
@@ -157,6 +180,6 @@ it was written; re-running them is what confirms the fix still holds.
 
 - Referenced by — [[ITEM-0016]]
 - Modules — [[partners]]
-- Regression — REG-014 (see the regression register)
+- Regression — REG-298 (see the regression register)
 
 <!-- GRAPH:END -->

@@ -30,8 +30,6 @@ _None._
 
 | ID | Title | Type | Severity | Priority | Status | Affected | Architect |
 |---|---|---|---|---|---|---|---|
-| [BUG-0015](../../docs/bugs/BUG-0015-a-tenant-that-fails-before-identities-and-billing-is-unrecoverable.md) | A tenant that fails before identities-and-billing is permanently unrecoverable | STATE_MACHINE | HIGH | P1 | OPEN | api:tenant-control-plane | PLAN_REQUIRED |
-| [BUG-0016](../../docs/bugs/BUG-0016-partner-onboarding-review-has-no-state-machine.md) | Partner onboarding review has no state machine | STATE_MACHINE | HIGH | P1 | OPEN | api:partner-experience | PLAN_REQUIRED |
 | [BUG-0903](../../docs/bugs/BUG-0903-production-runs-stripe-in-test-mode-so-no-real-payment-can-b.md) | Production runs Stripe in test mode, so no real payment can be collected | BUG | HIGH | P1 | OPEN | api:billing | BLOCKED_EXTERNAL |
 | [BUG-1203](../../docs/bugs/BUG-1203-repo-health-reports-changed-by-this-task-for-another-session.md) | repo-health reports CHANGED_BY_THIS_TASK for another session's merge | INFRA | HIGH | P1 | FIXED | framework | FIX_NOW |
 | [BUG-1420](../../docs/bugs/BUG-1420-the-monitoring-severity-filter-cannot-match-99-7-percent-of-.md) | The monitoring severity filter cannot match 99.7 percent of stored incidents | DATA_INTEGRITY | HIGH | P1 | FIXED | apps/admin, api:error-logs | FIX_NOW |
@@ -95,6 +93,7 @@ _None._
 | ID | Title | Type | Severity | Priority | Status | Affected | Architect |
 |---|---|---|---|---|---|---|---|
 | [ITEM-0023](../../docs/backlog/items/ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning.md) | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | P2 | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
+| [BUG-0018](../../docs/bugs/BUG-0018-bulk-lead-delete-is-unreachable-for-every-role.md) | Bulk lead delete is unreachable for every role, including SUPER_ADMIN | AUTHORIZATION | LOW | P3 | FIXED | api:platform-auth, api:super-admin | FIX_NOW |
 | [BUG-1556](../../docs/bugs/BUG-1556-contract-dates-with-no-value-render-as-the-unix-epoch.md) | Contract dates with no value render as the Unix epoch | UX | LOW | P3 | FIXED | contracts | FIX_NOW |
 | [BUG-1557](../../docs/bugs/BUG-1557-react-hydration-error-418-on-the-admin-dashboard.md) | React hydration error 418 on the admin dashboard | BUG | LOW | P3 | FIXED | dashboard | FIX_NOW |
 | [BUG-1558](../../docs/bugs/BUG-1558-admin-list-copy-uses-incorrect-pluralisation-and-articles.md) | Admin list copy uses incorrect pluralisation and articles | UX | LOW | P3 | FIXED | super-admin | FIX_NOW |

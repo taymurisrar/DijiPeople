@@ -136,6 +136,9 @@ screen.
 
 ## Resolution
 
+> **Update, 2026-08-28 — the third change landed too.** This record left "whether Stripe or the platform is authoritative for discounts" as a product decision, and the repository owner answered it that day: **the platform is authoritative.** `syncToStripe` now defaults to on, because a promotion the platform knows about and Stripe does not is a divergence rather than a valid state. It stays a checkbox rather than becoming mandatory — a promotion created while Stripe is unreachable should still be creatable — and unticking it now says what it costs: without the sync, Stripe will not apply the discount. All three of this record's separable changes are therefore done.
+
+
 Fixed 2026-08-28 on `agent/open-bug-sweep`. Two of the three changes this record
 separates; the third is a decision rather than a change.
 

@@ -8,12 +8,12 @@
 | | |
 |---|---|
 | Open CRITICAL | **8** |
-| Open HIGH | **17** |
-| Open total | 74 |
+| Open HIGH | **15** |
+| Open total | 73 |
 | Blocked | 2 |
-| Awaiting a product decision | 3 |
+| Awaiting a product decision | 2 |
 | Deferred | 27 |
-| Completed | 215 |
+| Completed | 217 |
 | Awaiting Architect triage | 0 |
 
 ## Open Critical Bugs
@@ -33,8 +33,6 @@
 
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
-| [[BUG-0015-a-tenant-that-fails-before-identities-and-billing-is-unrecoverable|BUG-0015]] | A tenant that fails before identities-and-billing is permanently unrecoverable | STATE_MACHINE | HIGH | OPEN | api:tenant-control-plane | PLAN_REQUIRED |
-| [[BUG-0016-partner-onboarding-review-has-no-state-machine|BUG-0016]] | Partner onboarding review has no state machine | STATE_MACHINE | HIGH | OPEN | api:partner-experience | PLAN_REQUIRED |
 | [[BUG-0903-production-runs-stripe-in-test-mode-so-no-real-payment-can-b|BUG-0903]] | Production runs Stripe in test mode, so no real payment can be collected | BUG | HIGH | OPEN | api:billing | BLOCKED_EXTERNAL |
 | [[BUG-1203-repo-health-reports-changed-by-this-task-for-another-session|BUG-1203]] | repo-health reports CHANGED_BY_THIS_TASK for another session's merge | INFRA | HIGH | FIXED | framework | FIX_NOW |
 | [[BUG-1420-the-monitoring-severity-filter-cannot-match-99-7-percent-of-|BUG-1420]] | The monitoring severity filter cannot match 99.7 percent of stored incidents | DATA_INTEGRITY | HIGH | FIXED | apps/admin, api:error-logs | FIX_NOW |
@@ -56,7 +54,6 @@
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
 | [[ITEM-0062-no-multi-tenant-membership-one-user-belongs-to-one-tenant-so|ITEM-0062]] | No multi-tenant membership — one user belongs to one tenant, so discovery and switching cannot exist | ARCHITECTURE | HIGH | PRODUCT_DECISION | auth, users, tenant-domains, web | PRODUCT_DECISION |
-| [[BUG-0018-bulk-lead-delete-is-unreachable-for-every-role|BUG-0018]] | Bulk lead delete is unreachable for every role, including SUPER_ADMIN | AUTHORIZATION | LOW | PRODUCT_DECISION | api:platform-auth, api:super-admin | PRODUCT_DECISION |
 | [[ITEM-0079-activation-does-not-gate-on-a-workspace-having-any-module-en|ITEM-0079]] | Activation does not gate on a workspace having any module enabled | PRODUCT_DECISION | LOW | PRODUCT_DECISION | api:tenant-control-plane | PRODUCT_DECISION |
 
 ## Blocked Items
@@ -131,6 +128,8 @@
 | [[BUG-0011-signed-agreement-editable-defeating-the-lead-conversion-gate|BUG-0011]] | Signed agreements were editable, defeating the lead-conversion gate | STATE_MACHINE | HIGH | VERIFIED | api:contracts | DONE |
 | [[BUG-0012-onboarding-created-by-lead-conversion-was-born-uneditable|BUG-0012]] | Every onboarding created by lead conversion was born un-editable | STATE_MACHINE | HIGH | VERIFIED | api:super-admin | DONE |
 | [[BUG-0014-no-tenant-that-failed-provisioning-could-be-retried|BUG-0014]] | No tenant that failed provisioning could be retried | STATE_MACHINE | HIGH | VERIFIED | api:tenant-control-plane | DONE |
+| [[BUG-0015-a-tenant-that-fails-before-identities-and-billing-is-unrecoverable|BUG-0015]] | A tenant that fails before identities-and-billing is permanently unrecoverable | STATE_MACHINE | HIGH | VERIFIED | api:tenant-control-plane | DONE |
+| [[BUG-0016-partner-onboarding-review-has-no-state-machine|BUG-0016]] | Partner onboarding review has no state machine | STATE_MACHINE | HIGH | VERIFIED | api:partner-experience | DONE |
 | [[BUG-0019-partner-inquiry-and-onboarding-review-screens-are-unreachable|BUG-0019]] | Partner inquiry and onboarding review screens have no inbound link | UX | HIGH | VERIFIED | apps/admin | DONE |
 | [[BUG-0026-public-login-and-tenant-email-links-resolved-to-localhost-in|BUG-0026]] | Public Login and tenant email links resolved to localhost in production | INFRA | HIGH | VERIFIED | apps/landing, apps/web, apps/admin, services/api, pkg:config | DONE |
 | [[BUG-0031-public-subscribe-endpoint-has-no-rate-limiting|BUG-0031]] | Public subscribe endpoint has no rate limiting | SECURITY | HIGH | VERIFIED | api:billing, apps/landing | DONE |
@@ -283,6 +282,7 @@
 | [[BUG-1754-the-incident-queue-counts-routine-401s-and-unknown-route-404|BUG-1754]] | The incident queue counts routine 401s and unknown-route 404s as incidents needing triage | BUG | MEDIUM | FIXED | api:platform-monitoring, api:error-logs | FIX_NOW |
 | [[BUG-1756-bulk-delete-confirms-without-naming-how-many-records-or-whic|BUG-1756]] | Bulk delete confirms without naming how many records or which ones | UX | MEDIUM | FIXED | apps/admin | FIX_NOW |
 | [[BUG-1757-promotions-cannot-be-deleted-and-the-delete-route-silently-d|BUG-1757]] | Promotions cannot be deleted and the DELETE route silently deactivates instead | BUG | MEDIUM | FIXED | apps/admin, api:super-admin | FIX_NOW |
+| [[BUG-0018-bulk-lead-delete-is-unreachable-for-every-role|BUG-0018]] | Bulk lead delete is unreachable for every role, including SUPER_ADMIN | AUTHORIZATION | LOW | FIXED | api:platform-auth, api:super-admin | FIX_NOW |
 | [[BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist|BUG-0023]] | The testing-architecture context claims two e2e specs do not exist | DOCUMENTATION | LOW | VERIFIED | .agent/context | DONE |
 | [[BUG-0024-start-onboarding-api-and-proxy-have-no-caller|BUG-0024]] | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | VERIFIED | apps/admin, api:super-admin | DONE |
 | [[BUG-0059-vault-wikilinks-to-task-records-and-four-module-notes-resolv|BUG-0059]] | Vault wikilinks to task records and four module notes resolve to nothing | DOCUMENTATION | LOW | VERIFIED | scripts, docs/tasks, docs/knowledge | DONE |
@@ -379,6 +379,7 @@
 | [[ITEM-0084-detect-drift-between-render-yaml-and-the-live-render-service|ITEM-0084]] | Detect drift between render.yaml and the live Render service | INFRA | MEDIUM | READY | render.yaml, scripts | FIX_NOW |
 | [[ITEM-0092-widget-runtime-contract-test-js-fails-and-no-script-or-ci-jo|ITEM-0092]] | widget-runtime-contract.test.js fails and no script or CI job runs it | TEST_GAP | MEDIUM | READY | pkg:config, apps/web | PLAN_REQUIRED |
 | [[ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning|ITEM-0023]] | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
+| [[BUG-0018-bulk-lead-delete-is-unreachable-for-every-role|BUG-0018]] | Bulk lead delete is unreachable for every role, including SUPER_ADMIN | AUTHORIZATION | LOW | FIXED | api:platform-auth, api:super-admin | FIX_NOW |
 | [[BUG-1556-contract-dates-with-no-value-render-as-the-unix-epoch|BUG-1556]] | Contract dates with no value render as the Unix epoch | UX | LOW | FIXED | contracts | FIX_NOW |
 | [[BUG-1557-react-hydration-error-418-on-the-admin-dashboard|BUG-1557]] | React hydration error 418 on the admin dashboard | BUG | LOW | FIXED | dashboard | FIX_NOW |
 | [[BUG-1558-admin-list-copy-uses-incorrect-pluralisation-and-articles|BUG-1558]] | Admin list copy uses incorrect pluralisation and articles | UX | LOW | FIXED | super-admin | FIX_NOW |

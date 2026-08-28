@@ -1,7 +1,6 @@
 import {
   Body,
   Controller,
-  Delete,
   Get,
   Param,
   ParseUUIDPipe,
@@ -19,7 +18,6 @@ import type { AuthenticatedUser } from '../../common/interfaces/authenticated-re
 import { PlatformPermissionsGuard } from '../platform-auth/platform-permissions';
 import {
   BulkAssignLeadsDto,
-  BulkDeleteLeadsDto,
   CreateAdminLeadDto,
   CorrectLeadAttributionDto,
   LeadQueryDto,
@@ -72,13 +70,22 @@ export class AdminLeadsController {
     return this.leadsService.correctAttribution(user, leadId, dto);
   }
 
-  @Delete()
-  bulkDelete(
-    @CurrentUser() user: AuthenticatedUser,
-    @Body() dto: BulkDeleteLeadsDto,
-  ) {
-    return this.leadsService.bulkDeleteLeads(user, dto.ids);
-  }
+  /*
+   * Bulk lead delete is deliberately absent (BUG-0018).
+   *
+   * A lead carries commercial attribution — which partner referred whom, and
+   * when — and that history outlives the lead's own usefulness: it is what a
+   * commission is calculated from and what a partner dispute is settled with.
+   * Deleting leads in bulk destroys it for an unbounded number of records at
+   * once, and the record made "should this exist at all?" the first question
+   * rather than the last.
+   *
+   * Answered on 2026-08-28: no. Converted leads were already refused; the rest
+   * are withdrawn from sale rather than removed, the same stance this platform
+   * takes on plans, promotions and invoices.
+   *
+   * `DELETE /:leadId` for a single lead is unaffected and still exists.
+   */
 
   @Patch('bulk/assign')
   bulkAssign(

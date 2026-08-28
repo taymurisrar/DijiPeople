@@ -977,8 +977,12 @@ export class PlatformRuntimeService {
     ids: string[],
   ) {
     this.assertAdmin(user);
-    if (key === 'leads')
-      return result(await this.leads.bulkDeleteLeads(user, ids));
+    /*
+     * `leads` is absent, and that is the fix rather than an omission
+     * (BUG-0018). A lead carries the commercial attribution a commission is
+     * calculated from, so it is withdrawn rather than deleted. Falling through
+     * here answers "Bulk delete is not available for this module".
+     */
     if (key === 'customers')
       return result(await this.superAdmin.bulkDeleteCustomers(user, { ids }));
     if (key === 'customer-onboarding')

@@ -13,13 +13,13 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 74 |
+| Open (active work) | 73 |
 | Blocked | 2 |
 | Deferred | 27 |
-| Awaiting a product decision | 3 |
-| Completed / closed | 215 |
+| Awaiting a product decision | 2 |
+| Completed / closed | 217 |
 | **Open CRITICAL** | **8** |
-| **Open HIGH** | **17** |
+| **Open HIGH** | **15** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
@@ -27,22 +27,22 @@ see [`README.md`](README.md) for why.
 | Severity | Count |
 |---|---|
 | CRITICAL | 8 |
-| HIGH | 17 |
+| HIGH | 15 |
 | MEDIUM | 37 |
-| LOW | 12 |
+| LOW | 13 |
 
 ## Open by type
 
 | Type | Count |
 |---|---|
 | ARCHITECTURE | 1 |
+| AUTHORIZATION | 1 |
 | BUG | 23 |
 | DATA_INTEGRITY | 4 |
 | FOLLOW_UP | 2 |
 | INFRA | 8 |
 | INTEGRATION | 1 |
 | SECURITY | 2 |
-| STATE_MACHINE | 2 |
 | TECH_DEBT | 5 |
 | TEST_GAP | 8 |
 | UX | 18 |
@@ -51,12 +51,12 @@ see [`README.md`](README.md) for why.
 
 | Status | Count |
 |---|---|
-| OPEN | 5 |
+| OPEN | 3 |
 | BLOCKED | 2 |
 | DEFERRED | 27 |
-| PRODUCT_DECISION | 3 |
-| FIXED | 46 |
-| VERIFIED | 157 |
+| PRODUCT_DECISION | 2 |
+| FIXED | 47 |
+| VERIFIED | 159 |
 | DUPLICATE | 4 |
 | ACCEPTED_RISK | 1 |
 | READY | 23 |
@@ -102,8 +102,8 @@ see [`README.md`](README.md) for why.
 | [BUG-0011](../../docs/bugs/BUG-0011-signed-agreement-editable-defeating-the-lead-conversion-gate.md) | Signed agreements were editable, defeating the lead-conversion gate | STATE_MACHINE | HIGH | P1 | VERIFIED | api:contracts | DONE |
 | [BUG-0012](../../docs/bugs/BUG-0012-onboarding-created-by-lead-conversion-was-born-uneditable.md) | Every onboarding created by lead conversion was born un-editable | STATE_MACHINE | HIGH | P1 | VERIFIED | api:super-admin | DONE |
 | [BUG-0014](../../docs/bugs/BUG-0014-no-tenant-that-failed-provisioning-could-be-retried.md) | No tenant that failed provisioning could be retried | STATE_MACHINE | HIGH | P1 | VERIFIED | api:tenant-control-plane | DONE |
-| [BUG-0015](../../docs/bugs/BUG-0015-a-tenant-that-fails-before-identities-and-billing-is-unrecoverable.md) | A tenant that fails before identities-and-billing is permanently unrecoverable | STATE_MACHINE | HIGH | P1 | OPEN | api:tenant-control-plane | PLAN_REQUIRED |
-| [BUG-0016](../../docs/bugs/BUG-0016-partner-onboarding-review-has-no-state-machine.md) | Partner onboarding review has no state machine | STATE_MACHINE | HIGH | P1 | OPEN | api:partner-experience | PLAN_REQUIRED |
+| [BUG-0015](../../docs/bugs/BUG-0015-a-tenant-that-fails-before-identities-and-billing-is-unrecoverable.md) | A tenant that fails before identities-and-billing is permanently unrecoverable | STATE_MACHINE | HIGH | P1 | VERIFIED | api:tenant-control-plane | DONE |
+| [BUG-0016](../../docs/bugs/BUG-0016-partner-onboarding-review-has-no-state-machine.md) | Partner onboarding review has no state machine | STATE_MACHINE | HIGH | P1 | VERIFIED | api:partner-experience | DONE |
 | [BUG-0019](../../docs/bugs/BUG-0019-partner-inquiry-and-onboarding-review-screens-are-unreachable.md) | Partner inquiry and onboarding review screens have no inbound link | UX | HIGH | P1 | VERIFIED | apps/admin | DONE |
 | [BUG-0026](../../docs/bugs/BUG-0026-public-login-and-tenant-email-links-resolved-to-localhost-in.md) | Public Login and tenant email links resolved to localhost in production | INFRA | HIGH | P1 | VERIFIED | apps/landing, apps/web, apps/admin, services/api, pkg:config | DONE |
 | [BUG-0031](../../docs/bugs/BUG-0031-public-subscribe-endpoint-has-no-rate-limiting.md) | Public subscribe endpoint has no rate limiting | SECURITY | HIGH | P1 | VERIFIED | api:billing, apps/landing | DONE |
@@ -339,7 +339,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0088](../../docs/backlog/items/ITEM-0088-npm-workspace-api-run-start-dev-always-frees-port-4000-regar.md) | npm --workspace api run start:dev always frees port 4000 regardless of PORT, killing any other API instance | TECH_DEBT | LOW | P2 | DEFERRED | services/api | DEFER |
 | [ITEM-0089](../../docs/backlog/items/ITEM-0089-the-contact-form-is-the-only-public-lead-creating-form-with-.md) | The contact form is the only public lead-creating form with no honeypot | SECURITY | LOW | P2 | DEFERRED | apps/landing | DEFER |
 | [ITEM-0098](../../docs/backlog/items/ITEM-0098-753-of-846-shared-frontend-exports-carry-no-doc-comment.md) | 753 of 846 shared frontend exports carry no doc-comment | DOCUMENTATION | LOW | P2 | DEFERRED | admin, web | DEFER |
-| [BUG-0018](../../docs/bugs/BUG-0018-bulk-lead-delete-is-unreachable-for-every-role.md) | Bulk lead delete is unreachable for every role, including SUPER_ADMIN | AUTHORIZATION | LOW | P3 | PRODUCT_DECISION | api:platform-auth, api:super-admin | PRODUCT_DECISION |
+| [BUG-0018](../../docs/bugs/BUG-0018-bulk-lead-delete-is-unreachable-for-every-role.md) | Bulk lead delete is unreachable for every role, including SUPER_ADMIN | AUTHORIZATION | LOW | P3 | FIXED | api:platform-auth, api:super-admin | FIX_NOW |
 | [BUG-0023](../../docs/bugs/BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist.md) | The testing-architecture context claims two e2e specs do not exist | DOCUMENTATION | LOW | P3 | VERIFIED | .agent/context | DONE |
 | [BUG-0024](../../docs/bugs/BUG-0024-start-onboarding-api-and-proxy-have-no-caller.md) | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | P3 | VERIFIED | apps/admin, api:super-admin | DONE |
 | [BUG-0059](../../docs/bugs/BUG-0059-vault-wikilinks-to-task-records-and-four-module-notes-resolv.md) | Vault wikilinks to task records and four module notes resolve to nothing | DOCUMENTATION | LOW | P3 | VERIFIED | scripts, docs/tasks, docs/knowledge | DONE |

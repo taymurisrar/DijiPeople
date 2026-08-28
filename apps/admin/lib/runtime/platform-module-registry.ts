@@ -380,7 +380,16 @@ const MODULE_CAPABILITIES: Record<
   RuntimeModuleCapabilities
 > = {
   dashboard: { create: false, update: false, delete: false },
-  leads: { create: true, update: true, delete: true },
+  /*
+   * `bulkDelete: false` — one lead at a time, or none (BUG-0018).
+   *
+   * A lead carries the commercial attribution a partner commission is
+   * calculated from and a partner dispute is settled with. Deleting one is a
+   * deliberate act on a record somebody is looking at; deleting a selection
+   * destroys that history for an unbounded number nobody reviewed. The API no
+   * longer offers a bulk arm for this module either, so the two agree.
+   */
+  leads: { create: true, update: true, delete: true, bulkDelete: false },
   partners: { create: true, update: true, delete: true },
   "partner-inquiries": { create: false, update: false, delete: true },
   customers: { create: true, update: true, delete: true },
@@ -421,7 +430,14 @@ function defaultActionsFor(
     ACTION.recordRefresh,
     ...(capabilities.update ? [ACTION.save, ACTION.saveClose] : []),
     ...(capabilities.delete
-      ? [ACTION.delete, ACTION.bulkDelete]
+      ? [
+          ACTION.delete,
+          // Bulk deletion is a separate permission to grant. Unset, it follows
+          // `delete`; leads withhold it deliberately (BUG-0018).
+          ...((capabilities.bulkDelete ?? capabilities.delete)
+            ? [ACTION.bulkDelete]
+            : []),
+        ]
       : refusingDeleteActions(key)),
   ];
 }

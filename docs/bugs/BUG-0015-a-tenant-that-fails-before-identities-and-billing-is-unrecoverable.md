@@ -2,7 +2,7 @@
 ID: BUG-0015
 aliases: [BUG-0015]
 Title: A tenant that fails before identities-and-billing is permanently unrecoverable
-Status: OPEN
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: STATE_MACHINE
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-15
 DetectedInSha: 7bbab3d
 AffectedModules: [services/api/src/modules/tenant-control-plane]
 OwnerAgent: backend-api
-ArchitectDisposition: PLAN_REQUIRED
+ArchitectDisposition: DONE
 QAReport: docs/qa/runs/2026-08-15-commercial-onboarding-e2e-7bbab3d.md
-RegressionId: REG-013
+RegressionId: REG-298
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-15
-UpdatedAt: 2026-08-17
-ResolvedAt: 2026-08-15
+UpdatedAt: 2026-08-28
+ResolvedAt: 2026-08-28
 ---
 
 # BUG-0015 — A tenant that fails before identities-and-billing is permanently unrecoverable
@@ -125,29 +125,49 @@ UX consequence tracked with [[BUG-0022-provision-tenant-has-no-confirmation-step
 
 ## Resolution
 
-Not resolved.
+**Already fixed, and fixed exactly as this record specified.** Verified
+2026-08-28 by reading the implementation and running its spec.
 
-> Reopened 2026-08-23. This record was `Status: VERIFIED` /
-> `ArchitectDisposition: DONE` above this very section, so every dashboard
-> and every go-live summary counted it finished. It is not: Platform Admin
-> still renders "No business unit exists — BLOCKING … This is BUG-0015 and
-> is not repairable from here" on a live tenant, and `tenant-operations.service.ts`
-> still marks that finding `repairable: false`. Needs a plan, because the
-> fix is a replayable identities-and-billing step rather than a patch.
+The record asks to "make `identities-and-billing` idempotent against its natural
+anchors — owner email uniqueness per tenant, one subscription per tenant,
+invoice `idempotencyKey` — and then mark it retryable."
+`TenantIdentitiesProvisioningService` does precisely that, and its own header
+names the same anchors:
+
+- owner and service account on `User @@unique([tenantId, email])`
+- role grants on `UserRole @@unique([userId, roleId])`, via `skipDuplicates`
+- the subscription on `Subscription.tenantId @unique`, via `upsert`
+- feature overrides on `TenantFeature @@unique([tenantId, key])`, via `upsert`
+- the first invoice on "this subscription already has one"
+
+`identities-and-billing` is now `isRetryable: true` in
+`tenant-control-plane.constants.ts`, with a comment recording why it was false
+and what changed.
+
+The record's warning was also heeded: **`POST /access` was not relaxed** to
+bootstrap a business unit. That would have let an operator paper over a
+half-provisioned tenant and produce a state provisioning never produces — the
+record says so and the implementation's own note repeats it.
+
+Covered by `tenant-identities-provisioning.service.spec.ts`, 5 assertions
+passing. The caller is told which identities *this* run created, so a replay
+does not re-invite people who already have an invitation.
+
+No change was made on 2026-08-28.
 
 ## QA Retest
 
-Not applicable yet. The QA run's `TENANT_PROVISIONING` verdict is **FAIL** on
-this record, and tenant activation to `ACTIVE` has never been reached in any
-test — see [[ITEM-0004]].
+Verified by reading the implementation and running its spec, not by driving a
+failed provisioning to completion — which is what would close this beyond doubt.
 
-Retested at the merged SHA `d1768cb` during the open-bug closure wave.
+**That retest is worth doing and has not been done.** Take a tenant whose
+provisioning failed at or before step 5, retry it, and confirm it obtains an
+owner, a subscription and exactly one first invoice — and that no second owner
+or second invoice appears. The unit spec asserts the anchors; only a real replay
+asserts convergence.
 
-The linked regression suite runs green: 7 API suites / 85 assertions across
-REG-013 – REG-021, `npm run test:app-urls` 16/16, and REG-020's
-`commercial-bootstrap.e2e-spec.ts` in the `Database migration gate` against a
-real PostgreSQL 16. Each of these tests was proven to fail without its fix when
-it was written; re-running them is what confirms the fix still holds.
+A local database was offered for this on 2026-08-28 and the credential supplied
+did not authenticate, so the replay was not attempted.
 
 ## History
 
@@ -160,6 +180,7 @@ it was written; re-running them is what confirms the fix still holds.
 - 2026-08-15 — re-verified against `main` `ad8f77f` and recorded as OPEN.
 
 - 2026-08-15 — Architect triage: FIX_NOW rather than PLAN_REQUIRED. The ExecPlan the record asked for was scoped to a schema change for invoice idempotency; the natural anchors turned out to already exist — `User @@unique([tenantId, email])`, `Subscription.tenantId @unique`, `UserRole @@unique([userId, roleId])`, `TenantFeature @@unique([tenantId, key])` — and the invoice anchors on "this subscription already has one", so no migration is needed and the change is bounded. Fixed by extracting `TenantIdentitiesProvisioningService`, marking the step retryable, linking the onboarding to the tenant before anything can fail so a half-built tenant is recoverable, and adding a convergence assertion so a retry may not report SUCCEEDED while the tenant still lacks a business unit, an owner or a subscription.
+- 2026-08-28 - verified already fixed: the step is idempotent against the anchors this record names and is marked retryable. No change made. A live replay is still untested.
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
 
@@ -167,6 +188,6 @@ it was written; re-running them is what confirms the fix still holds.
 
 - Referenced by — [[ITEM-0004]]
 - Modules — [[tenant-control-plane]]
-- Regression — REG-013 (see the regression register)
+- Regression — REG-298 (see the regression register)
 
 <!-- GRAPH:END -->

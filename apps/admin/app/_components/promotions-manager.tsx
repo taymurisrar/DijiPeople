@@ -61,7 +61,20 @@ const emptyDraft: PromotionDraft = {
   durationMonths: "",
   scope: "" as PromotionDraft["scope"],
   targetId: "",
-  syncToStripe: false,
+  /*
+   * On by default (BUG-1751).
+   *
+   * The platform is authoritative for discounts — decided 2026-08-28 — so a
+   * promotion the platform knows about and Stripe does not is a divergence, not
+   * a valid state. It was an unticked box, which meant that divergence was the
+   * default and what the platform believed could differ from what Stripe
+   * applied from the moment a promotion existed.
+   *
+   * Still a box rather than a removed choice: a promotion created while Stripe
+   * is unreachable should be creatable, and the operator should be the one who
+   * decides to accept the gap.
+   */
+  syncToStripe: true,
 };
 
 export function PromotionsManager({
@@ -432,6 +445,16 @@ export function PromotionsManager({
               }
             />
             Create Stripe coupon now
+            {!draft.syncToStripe ? (
+              /*
+               * Unticking is a deliberate divergence and says so. The platform
+               * is authoritative for discounts, so a promotion Stripe does not
+               * know about will not be applied by Stripe (BUG-1751).
+               */
+              <span className="text-xs font-medium text-amber-700">
+                — without this, Stripe will not apply the discount
+              </span>
+            ) : null}
           </label>
           <button
             type="button"
