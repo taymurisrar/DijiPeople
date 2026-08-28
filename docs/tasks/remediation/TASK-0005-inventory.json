@@ -6914,7 +6914,7 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "1dd74a25",
         "created_at": "2026-08-23",
-        "updated_at": "2026-08-23",
+        "updated_at": "2026-08-28",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -7122,7 +7122,7 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "1dd74a25",
         "created_at": "2026-08-23",
-        "updated_at": "2026-08-23",
+        "updated_at": "2026-08-28",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -7160,7 +7160,7 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "1dd74a25",
         "created_at": "2026-08-23",
-        "updated_at": "2026-08-23",
+        "updated_at": "2026-08-28",
         "resolved_at": ""
       },
       "affected_modules": [

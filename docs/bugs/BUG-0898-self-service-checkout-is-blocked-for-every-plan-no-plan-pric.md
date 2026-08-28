@@ -12,13 +12,13 @@ DetectedInSha: 1dd74a25
 AffectedModules: [services/api/src/modules/super-admin, apps/landing/app/subscribe]
 OwnerAgent: architect
 ArchitectDisposition: BLOCKED_EXTERNAL
-QAReport: 
+QAReport: docs/qa/runs/2026-08-28-admin-console-e2e-912f4e6.md
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-23
-UpdatedAt: 2026-08-23
+UpdatedAt: 2026-08-28
 ResolvedAt:
 ---
 
@@ -202,13 +202,36 @@ rendered and a complete purchase went through. The mechanism works.
 
 ## QA Retest
 
-Retest by opening `/subscribe` for each plan and confirming the wizard renders,
-then completing one purchase in Stripe test mode.
+Retested against production on 2026-08-28. **Partly stale, and the remaining
+part is not what this title says.**
+
+Plan prices HAVE been synced to Stripe since this was written. Starter,
+Growth and Enterprise each carry synced prices with real Stripe ids
+(`price_1U8Ry...`, `prod_V7yv9eTLMzMq57`), 14 of them active and
+`isCheckoutReady: true`, and two subscriptions were actually sold through
+them. The literal claim in the title — "no plan price has ever been synced to
+Stripe" — is no longer true.
+
+What remains:
+
+- All 14 checkout-ready prices are `stripeEnvironment: "TEST"`. They are
+  synced to the wrong Stripe environment, which is [[BUG-0903]], not this
+  record.
+- 22 further active prices are `stripeSyncStatus: "NOT_SYNCED"` with no
+  Stripe id at all, so those cannot be bought.
+- `Enterprise+` has no prices whatsoever and is still offered publicly
+  ([[BUG-1749]], [[BUG-1555]]).
+
+Recommend re-scoping this record to "22 active prices are unsynced and
+Enterprise+ has none", or closing it and letting [[BUG-0903]] carry the
+environment problem. As written, its own acceptance criteria may now pass
+while checkout is still not sellable for real money.
 
 ## History
 
 - 2026-08-23 — created from qa run at `1dd74a25`.
 - 2026-08-24 — re-measured against production at `0a5586f`. Two `starter` prices
+- 2026-08-28 — retested: prices ARE synced now, but all to TEST; 22 active prices remain unsynced. Title no longer describes the live defect.
   are now synced and checkout-ready in `TEST`; the other 34 are unsynced and
   three of four plans still refuse to sell. Scope narrowed in Actual Behavior;
   record stays `OPEN`.

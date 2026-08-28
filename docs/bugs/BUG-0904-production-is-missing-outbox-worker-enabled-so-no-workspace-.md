@@ -12,13 +12,13 @@ DetectedInSha: 1dd74a25
 AffectedModules: [services/api/src/modules/outbox]
 OwnerAgent: architect
 ArchitectDisposition: BLOCKED_EXTERNAL
-QAReport: 
+QAReport: docs/qa/runs/2026-08-28-admin-console-e2e-912f4e6.md
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-23
-UpdatedAt: 2026-08-23
+UpdatedAt: 2026-08-28
 ResolvedAt:
 ---
 
@@ -181,13 +181,33 @@ credentials is logs, status and health only.
 
 ## QA Retest
 
-Retest by checking the production startup log for `Outbox worker started` and
-completing one test purchase through to `workspace-created = DONE`.
+Retested against production on 2026-08-28. **Contradicted by observed
+behaviour — this record appears stale.**
+
+Two tenants have been provisioned end to end after payment:
+
+```
+DijiPeople Demo            ACTIVE   subscription ecaa6e49  paid 2026-08-27
+QA E2E Signup B 20260826   ACTIVE   subscription 2890b93b  paid 2026-08-26
+```
+
+Both have a live Stripe subscription id, a PAID invoice and a SUCCEEDED
+payment, and both appear as ACTIVE tenants with working workspaces. Whatever
+the environment variable now says, the outcome this record predicts — "no
+workspace is provisioned after payment" — is not what production does.
+
+Not closed from QA, because the underlying configuration was not inspected;
+only the outcome was. The Architect should confirm the variable is set and
+then close, rather than closing on this evidence alone.
+
+Note the provisioning worked in Stripe TEST mode ([[BUG-0903]]), so this
+should be re-confirmed once the platform is switched to live.
 
 ## History
 
 - 2026-08-24, later — **the defect is gone, and the entry below this one drew
 - 2026-08-25 — re-measured against the live Render service while releasing
+- 2026-08-28 — outcome contradicts the record: two tenants provisioned end to end after payment. Needs confirmation of the variable itself before closing.
   the landing fixes. `OUTBOX_WORKER_ENABLED` is now **present and `true`** in
   production, so the declared-but-unset condition this record describes no
   longer holds. Left `OPEN` deliberately rather than closed on the env var
