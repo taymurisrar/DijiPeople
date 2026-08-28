@@ -82,6 +82,47 @@ await check("API reports the commit it is serving", async () => {
   }
 });
 
+/*
+ * BUG-0904 — production ran with no outbox worker, so a customer could pay and
+ * no workspace was ever built.
+ *
+ * `render.yaml` declares `OUTBOX_WORKER_ENABLED: "true"` and always did; the
+ * live service was configured by hand and the file was never applied, the same
+ * drift as BUG-0767. Nothing could detect it. The worker announces itself in a
+ * startup log that scrolls away, and the API answered `status: ok` either way,
+ * so the only symptom was `PROVISIONING_REQUESTED` rows quietly accumulating.
+ *
+ * This is the only durable guard available for that class: the value lives on
+ * the service, not in this repository, so no unit test can reach it. A smoke
+ * check can.
+ *
+ * A hard failure rather than a warning. "Exactly one deployed service should
+ * have it true" means the service this suite points at is that service — if it
+ * is not, nothing is draining the outbox and the deployment cannot complete a
+ * paid signup.
+ */
+await check("outbox worker is draining events", async () => {
+  const response = await request("/health");
+  if (!response.ok) throw new Error(`Expected 2xx, got ${response.status}`);
+
+  const payload = await response.json().catch(() => null);
+  const enabled = payload?.outboxWorker?.enabled;
+
+  if (enabled === undefined) {
+    throw new Error(
+      "health does not report outboxWorker.enabled — the deployment predates " +
+        "the BUG-0904 fix, so whether the worker runs cannot be observed.",
+    );
+  }
+  if (enabled !== true) {
+    throw new Error(
+      'OUTBOX_WORKER_ENABLED is not "true" on this service. Provisioning is an ' +
+        "outbox consumer, so a customer can pay and no workspace is built. See " +
+        "BUG-0904.",
+    );
+  }
+});
+
 await check("protected profile rejects unauthenticated request", async () => {
   const response = await request("/auth/me");
   if (![401, 403].includes(response.status)) {

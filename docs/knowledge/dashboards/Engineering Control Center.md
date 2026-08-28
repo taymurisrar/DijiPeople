@@ -16,7 +16,7 @@
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **8** |
 | Open HIGH | 18 |
-| Awaiting Architect triage | 12 |
+| Awaiting Architect triage | 7 |
 | Owner decisions pending | 2 |
 | QA coverage gaps | 106 |
 | Scenarios blocked by infrastructure | 0 |
@@ -105,11 +105,11 @@ what they own, and what the backlog and QA systems currently say.
 |---|---|---|---|---|---|---|
 | [[BUG-0898-self-service-checkout-is-blocked-for-every-plan-no-plan-pric|BUG-0898]] | Self-service checkout is blocked for every plan: no plan price has ever been synced to Stripe | BUG | CRITICAL | OPEN | api:super-admin, app:landing | BLOCKED_EXTERNAL |
 | [[BUG-0900-tenant-provisioning-exceeds-the-5s-transaction-timeout-a-pai|BUG-0900]] | Tenant provisioning exceeds the 5s transaction timeout: a paid order is left with no workspace | BUG | CRITICAL | FIXED | api:permissions | FIX_NOW |
-| [[BUG-0904-production-is-missing-outbox-worker-enabled-so-no-workspace-|BUG-0904]] | Production is missing OUTBOX_WORKER_ENABLED, so no workspace is provisioned after payment | BUG | CRITICAL | OPEN | api:outbox | BLOCKED_EXTERNAL |
+| [[BUG-0904-production-is-missing-outbox-worker-enabled-so-no-workspace-|BUG-0904]] | Production is missing OUTBOX_WORKER_ENABLED, so no workspace is provisioned after payment | BUG | CRITICAL | FIXED | api:outbox | FIX_NOW |
 | [[BUG-1128-stripe-api-version-skew-invoice-paid-cannot-map-to-a-subscri|BUG-1128]] | Stripe API version skew: invoice.paid cannot map to a subscription because invoice.subscription no longer exists | INTEGRATION | CRITICAL | FIXED | api:billing | FIX_NOW |
 | [[BUG-1742-lead-creation-is-impossible-the-runtime-form-always-sends-pa|BUG-1742]] | Lead creation is impossible: the runtime form always sends partnerId as an empty string | BUG | CRITICAL | FIXED | apps/admin, api:platform-runtime, api:super-admin | FIX_NOW |
 | [[BUG-1743-customers-and-partners-cannot-be-edited-the-runtime-form-ech|BUG-1743]] | Customers and partners cannot be edited: the runtime form echoes fields the update DTO forbids | BUG | CRITICAL | FIXED | apps/admin, api:platform-runtime, api:super-admin | FIX_NOW |
-| [[BUG-1744-every-subscription-has-a-zero-length-billing-period-and-a-re|BUG-1744]] | Every subscription has a zero-length billing period and a renewal date in the past | DATA_INTEGRITY | CRITICAL | OPEN | api:super-admin, api:billing, integration:stripe | TRIAGE_REQUIRED |
+| [[BUG-1744-every-subscription-has-a-zero-length-billing-period-and-a-re|BUG-1744]] | Every subscription has a zero-length billing period and a renewal date in the past | DATA_INTEGRITY | CRITICAL | FIXED | api:super-admin, api:billing, integration:stripe | FIX_NOW |
 | [[BUG-1494-git-worktree-remove-follows-node-modules-junctions-and-delet|BUG-1494]] | git worktree remove follows node_modules junctions and deletes the primary checkout | INFRA | CRITICAL | FIXED | scripts | DONE |
 
 ## Owner Decisions Pending
@@ -242,7 +242,7 @@ gap into scope — or files a `TEST_GAP` item and says so.
 | Blocked | 2 |
 | Deferred | 42 |
 | Awaiting a product decision | 2 |
-| Awaiting Architect triage | 12 |
+| Awaiting Architect triage | 7 |
 
 **A record nobody has triaged is work nobody has decided about.** No ordinary record may stay `TRIAGE_REQUIRED` at the end of a task.
 

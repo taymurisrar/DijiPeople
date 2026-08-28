@@ -1858,6 +1858,22 @@ export class SuperAdminService {
       annualBasePrice: dto.annualBasePrice,
       currency: (dto.currency ?? 'USD').toUpperCase(),
       sortOrder: dto.sortOrder ?? 0,
+      /*
+       * A plan is born a draft, because it is born without a price.
+       *
+       * A plan created here carries no `PlanPrice` rows at all, and checkout
+       * sells from `PlanPrice`. Left to reach the catalogue it advertises
+       * itself and cannot be bought: two are in production in that state
+       * (BUG-1749). Prices are added afterwards, so the honest state at
+       * creation is DRAFT, and publication stays a separate deliberate act —
+       * ITEM-0022 owns making it a governed one.
+       *
+       * `isPublic` is deliberately not set here even though it defaults to
+       * `true`. It is the retired second gate from BUG-0223, and writing it
+       * would re-create the disagreement that record exists to prevent.
+       * `publicationStatus` is the only gate, and DRAFT is already the answer.
+       */
+      publicationStatus: CommercialPublicationStatus.DRAFT,
       createdById: actor.userId,
       updatedById: actor.userId,
       features: {
@@ -1871,6 +1887,62 @@ export class SuperAdminService {
     });
 
     return this.mapPlan(plan);
+  }
+
+  /*
+   * Remove a plan nothing has ever been sold on.
+   *
+   * There was no delete route for a plan at all, which only became a problem
+   * once the console could create one that was unsellable: born active and
+   * public with no `PlanPrice` rows, advertised, unbuyable, and permanent
+   * (BUG-1749). Two are in that state in production.
+   *
+   * The same line as promotions, for the same reason. A plan with a
+   * subscription is somebody's billing history and stays; a plan with prices
+   * has been configured deliberately enough that removing it silently would be
+   * destructive, so those are refused too and deactivation remains the route.
+   * What is deletable is the mistake: created, never priced, never sold.
+   */
+  async deletePlan(actor: AuthenticatedUser, planId: string) {
+    const plan = await this.prisma.plan.findUnique({
+      where: { id: planId },
+      select: {
+        id: true,
+        key: true,
+        name: true,
+        _count: { select: { subscriptions: true, prices: true } },
+      },
+    });
+    if (!plan) throw new NotFoundException('Plan not found.');
+
+    const reasons: string[] = [];
+    if (plan._count.subscriptions > 0)
+      reasons.push(
+        `${plan._count.subscriptions} subscription(s) are billed on it`,
+      );
+    if (plan._count.prices > 0)
+      reasons.push(`${plan._count.prices} price(s) are configured on it`);
+
+    if (reasons.length) {
+      throw new BadRequestException(
+        `"${plan.name}" cannot be deleted because ${reasons.join(' and ')}. ` +
+          `Deactivate it instead to withdraw it from sale while keeping its ` +
+          `history.`,
+      );
+    }
+
+    await this.prisma.plan.delete({ where: { id: planId } });
+    await this.auditService.log({
+      tenantId: 'platform',
+      actorUserId: actor.userId,
+      action: 'platform.plan_deleted',
+      entityType: 'Plan',
+      entityId: planId,
+      sourceModule: 'super-admin',
+      beforeSnapshot: { id: plan.id, key: plan.key, name: plan.name },
+      afterSnapshot: null,
+    });
+    return { success: true, id: planId };
   }
 
   async updatePlan(
@@ -2637,6 +2709,51 @@ export class SuperAdminService {
     return this.mapPromotion(updated);
   }
 
+  /*
+   * Remove a promotion that never applied to anything.
+   *
+   * `DELETE` used to be wired straight to `deactivatePromotion`, so it answered
+   * 200 with the record body while the row stayed exactly where it was, merely
+   * inactive. The verb said one thing and the handler did another, and because
+   * the UI offered only Deactivate there was no way to remove a promotion at
+   * all — a mistyped one was permanent (BUG-1757).
+   *
+   * Not hard-deleting commercial records is a defensible policy and the reason
+   * it was written that way. But that policy protects *history*, and a
+   * promotion with no redemptions has none: nothing was discounted, no invoice
+   * references it, no customer saw a price because of it. So the line is drawn
+   * at redemption rather than at existence — once a promotion has applied to a
+   * single subscription it stays, and deactivation is the only route.
+   */
+  async deletePromotion(actor: AuthenticatedUser, promotionId: string) {
+    const existing = await this.prisma.promotion.findUnique({
+      where: { id: promotionId },
+      select: { id: true, name: true, redemptionCount: true },
+    });
+    if (!existing) throw new NotFoundException('Promotion not found.');
+
+    if (existing.redemptionCount > 0) {
+      throw new BadRequestException(
+        `"${existing.name}" has been redeemed ${existing.redemptionCount} ` +
+          `time(s) and carries commercial history, so it cannot be deleted. ` +
+          `Deactivate it instead to stop it applying to anything further.`,
+      );
+    }
+
+    await this.prisma.promotion.delete({ where: { id: promotionId } });
+    await this.auditService.log({
+      tenantId: 'platform',
+      actorUserId: actor.userId,
+      action: 'platform.promotion_deleted',
+      entityType: 'Promotion',
+      entityId: promotionId,
+      sourceModule: 'super-admin',
+      beforeSnapshot: existing,
+      afterSnapshot: null,
+    });
+    return { success: true, id: promotionId };
+  }
+
   async updateTenantSubscription(
     actor: AuthenticatedUser,
     tenantId: string,
@@ -2733,20 +2850,46 @@ export class SuperAdminService {
     };
   }
 
-  async listSubscriptions() {
-    const subscriptions = await this.prisma.subscription.findMany({
-      include: {
-        tenant: {
-          include: {
-            customerAccount: true,
-          },
-        },
-        plan: true,
-      },
-      orderBy: [{ updatedAt: 'desc' }],
-    });
+  /*
+   * What a subscription's relations are loaded as, for the list and the record
+   * alike.
+   *
+   * The record page used to fetch a subscription with a bare `findUnique` and
+   * no `include` at all, so it showed Tenant, Plan and Price as "Not set" for
+   * rows the list one screen earlier rendered correctly — the ids were in the
+   * payload and nothing resolved them (BUG-1748). Two endpoints answering the
+   * same question differently is the defect, so the include and the projection
+   * are declared once and shared.
+   */
+  private static readonly SUBSCRIPTION_INCLUDE = {
+    tenant: { include: { customerAccount: true } },
+    plan: true,
+    planPrice: true,
+  } as const;
 
-    return subscriptions.map((subscription) => ({
+  private projectSubscription(
+    subscription: Parameters<SuperAdminService['mapSubscription']>[0] & {
+      tenant: {
+        id: string;
+        name: string;
+        slug: string;
+        status: unknown;
+        customerAccount: {
+          id: string;
+          companyName: string;
+          status: unknown;
+        } | null;
+      };
+      planPrice?: {
+        id: string;
+        currency: string;
+        unitAmount: Prisma.Decimal;
+        billingCycle: string;
+        billingModel: string;
+      } | null;
+    },
+  ) {
+    return {
       ...this.mapSubscription(subscription),
       tenant: {
         id: subscription.tenant.id,
@@ -2761,7 +2904,29 @@ export class SuperAdminService {
             status: subscription.tenant.customerAccount.status,
           }
         : null,
-    }));
+      planPrice: describePlanPrice(subscription.planPrice ?? null),
+    };
+  }
+
+  async listSubscriptions() {
+    const subscriptions = await this.prisma.subscription.findMany({
+      include: SuperAdminService.SUBSCRIPTION_INCLUDE,
+      orderBy: [{ updatedAt: 'desc' }],
+    });
+
+    return subscriptions.map((subscription) =>
+      this.projectSubscription(subscription),
+    );
+  }
+
+  /** One subscription, in the shape the list uses. */
+  async getSubscription(id: string) {
+    const subscription = await this.prisma.subscription.findUnique({
+      where: { id },
+      include: SuperAdminService.SUBSCRIPTION_INCLUDE,
+    });
+    if (!subscription) return null;
+    return this.projectSubscription(subscription);
   }
 
   async listInvoices() {
@@ -4336,6 +4501,31 @@ export class SuperAdminService {
       // "Created by me" view filtering on this, and without it the tab
       // selected nothing for anybody.
       createdById: plan.createdById,
+      /*
+       * Publication state, which is what actually governs whether a plan
+       * reaches the public catalogue.
+       *
+       * The Plans list declares Publication as its leading column and Sales
+       * model beside it, and this serializer — built by hand — was never
+       * extended when those columns were added. Both rendered as an em dash for
+       * every plan, so the screen built to tell an operator which plans are
+       * sellable answered neither question (BUG-1755).
+       *
+       * Read-only on this surface by design: ITEM-0022 owns making publication
+       * a governed action, so this sends state and grants no new write path.
+       */
+      publicationStatus: plan.publicationStatus,
+      salesModel: plan.salesModel,
+      publishedAt: plan.publishedAt,
+      archivedAt: plan.archivedAt,
+      /*
+       * Derived, never read from the column. `Plan.isPublic` is the retired
+       * gate from BUG-0223 — a boolean that could disagree with publication and
+       * did. The field stays in the response because the landing site consumes
+       * it; its *value* comes from the one authority.
+       */
+      isPublic:
+        plan.publicationStatus === CommercialPublicationStatus.PUBLISHED,
     };
   }
 
@@ -5024,4 +5214,41 @@ function readInvoiceMetadataString(
 ) {
   const source = objectValue(metadata);
   return stringSetting(source, keys);
+}
+
+/**
+ * A plan price as something a person can read, and cannot misread.
+ *
+ * The record page renders `planPriceId` as a lookup, and the runtime resolves a
+ * lookup's label from the relation object beside it — `label`, `name`,
+ * `displayName`. A `PlanPrice` row carries none of those, only an amount, a
+ * currency and a cadence, so the field read "Not set" while the id sat right
+ * there in the payload (BUG-1748).
+ *
+ * The unit matters as much as the number. A per-seat price shown as a bare
+ * amount reads as the total bill, which is wrong by a factor of the seat count
+ * — 300 against 25 seats is not 300. So the label always says what the number
+ * is per.
+ */
+function describePlanPrice(
+  price: {
+    id: string;
+    currency: string;
+    unitAmount: Prisma.Decimal;
+    billingCycle: string;
+    billingModel: string;
+  } | null,
+) {
+  if (!price) return null;
+  const amount = `${price.currency} ${price.unitAmount.toString()}`;
+  const per = price.billingModel === 'PER_SEAT' ? ' per seat' : '';
+  const cycle = price.billingCycle === 'ANNUAL' ? 'year' : 'month';
+  return {
+    id: price.id,
+    currency: price.currency,
+    unitAmount: price.unitAmount,
+    billingCycle: price.billingCycle,
+    billingModel: price.billingModel,
+    label: `${amount}${per} / ${cycle}`,
+  };
 }

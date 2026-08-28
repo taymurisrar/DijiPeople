@@ -4447,7 +4447,8 @@
         "REG-203"
       ],
       "qa_scenarios": [
-        "QA-DEPLOY-018"
+        "QA-DEPLOY-018",
+        "QA-TENANT-028"
       ],
       "test_plan": [],
       "active_session_conflict": "NONE",
@@ -4720,7 +4721,8 @@
         "REG-225"
       ],
       "qa_scenarios": [
-        "QA-BILLING-013"
+        "QA-BILLING-013",
+        "QA-TENANT-031"
       ],
       "test_plan": [],
       "active_session_conflict": "NONE",
@@ -6616,9 +6618,11 @@
         "ITEM-0053"
       ],
       "regressions": [
-        "REG-229"
+        "REG-229",
+        "REG-280"
       ],
       "qa_scenarios": [
+        "QA-DEPLOY-022",
         "QA-LEGAL-001"
       ],
       "test_plan": [],
@@ -7154,8 +7158,8 @@
       "title": "Production is missing OUTBOX_WORKER_ENABLED, so no workspace is provisioned after payment",
       "severity": "CRITICAL",
       "priority": "P0",
-      "current_status": "OPEN",
-      "architect_disposition": "BLOCKED_EXTERNAL",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-0904-production-is-missing-outbox-worker-enabled-so-no-workspace-.md",
         "provenance": "QA_RUN",
@@ -7167,8 +7171,12 @@
       "affected_modules": [
         "services/api/src/modules/outbox"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-280"
+      ],
+      "qa_scenarios": [
+        "QA-DEPLOY-022"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -7192,22 +7200,26 @@
       "title": "Production defines DIRECT_URL but the code reads DIRECT_DATABASE_URL, so migrations run over the pooled endpoint",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "BLOCKED_EXTERNAL",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-0905-production-defines-direct-url-but-the-code-reads-direct-data.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "1dd74a25",
         "created_at": "2026-08-23",
-        "updated_at": "2026-08-23",
+        "updated_at": "2026-08-28",
         "resolved_at": ""
       },
       "affected_modules": [
         "services/api/prisma",
         "packages/config"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-275"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-028"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -7510,7 +7522,8 @@
         "REG-246"
       ],
       "qa_scenarios": [
-        "QA-BILLING-018"
+        "QA-BILLING-018",
+        "QA-TENANT-029"
       ],
       "test_plan": [],
       "current_evidence": {
@@ -9823,8 +9836,8 @@
       "title": "Every subscription has a zero-length billing period and a renewal date in the past",
       "severity": "CRITICAL",
       "priority": "P0",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-1744-every-subscription-has-a-zero-length-billing-period-and-a-re.md",
         "provenance": "QA_RUN",
@@ -9838,8 +9851,12 @@
         "api:billing",
         "integration:stripe"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-276"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-029"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -9991,8 +10008,8 @@
       "title": "The subscription record page cannot resolve its own tenant plan or price",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-1748-the-subscription-record-page-cannot-resolve-its-own-tenant-p.md",
         "provenance": "QA_RUN",
@@ -10005,8 +10022,12 @@
         "apps/admin",
         "api:platform-runtime"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-277"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-030"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -10031,8 +10052,8 @@
       "title": "Admin creates plans that can never be sold and can never be deleted",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-1749-admin-creates-plans-that-can-never-be-sold-and-can-never-be-.md",
         "provenance": "QA_RUN",
@@ -10045,8 +10066,12 @@
         "apps/admin",
         "api:super-admin"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-278"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-031"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -10269,8 +10294,8 @@
       "title": "The plans list cannot show publication status or sales model because the API omits them",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-1755-the-plans-list-cannot-show-publication-status-or-sales-model.md",
         "provenance": "QA_RUN",
@@ -10283,8 +10308,12 @@
         "apps/admin",
         "api:super-admin"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-278"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-031"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -10347,8 +10376,8 @@
       "title": "Promotions cannot be deleted and the DELETE route silently deactivates instead",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-1757-promotions-cannot-be-deleted-and-the-delete-route-silently-d.md",
         "provenance": "QA_RUN",
@@ -10361,8 +10390,12 @@
         "apps/admin",
         "api:super-admin"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-279"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-032"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [

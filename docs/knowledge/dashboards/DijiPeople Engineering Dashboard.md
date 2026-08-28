@@ -14,7 +14,7 @@
 | Awaiting a product decision | 2 |
 | Deferred | 42 |
 | Completed | 213 |
-| Awaiting Architect triage | 12 |
+| Awaiting Architect triage | 7 |
 
 ## Open Critical Bugs
 
@@ -22,11 +22,11 @@
 |---|---|---|---|---|---|---|
 | [[BUG-0898-self-service-checkout-is-blocked-for-every-plan-no-plan-pric|BUG-0898]] | Self-service checkout is blocked for every plan: no plan price has ever been synced to Stripe | BUG | CRITICAL | OPEN | api:super-admin, app:landing | BLOCKED_EXTERNAL |
 | [[BUG-0900-tenant-provisioning-exceeds-the-5s-transaction-timeout-a-pai|BUG-0900]] | Tenant provisioning exceeds the 5s transaction timeout: a paid order is left with no workspace | BUG | CRITICAL | FIXED | api:permissions | FIX_NOW |
-| [[BUG-0904-production-is-missing-outbox-worker-enabled-so-no-workspace-|BUG-0904]] | Production is missing OUTBOX_WORKER_ENABLED, so no workspace is provisioned after payment | BUG | CRITICAL | OPEN | api:outbox | BLOCKED_EXTERNAL |
+| [[BUG-0904-production-is-missing-outbox-worker-enabled-so-no-workspace-|BUG-0904]] | Production is missing OUTBOX_WORKER_ENABLED, so no workspace is provisioned after payment | BUG | CRITICAL | FIXED | api:outbox | FIX_NOW |
 | [[BUG-1128-stripe-api-version-skew-invoice-paid-cannot-map-to-a-subscri|BUG-1128]] | Stripe API version skew: invoice.paid cannot map to a subscription because invoice.subscription no longer exists | INTEGRATION | CRITICAL | FIXED | api:billing | FIX_NOW |
 | [[BUG-1742-lead-creation-is-impossible-the-runtime-form-always-sends-pa|BUG-1742]] | Lead creation is impossible: the runtime form always sends partnerId as an empty string | BUG | CRITICAL | FIXED | apps/admin, api:platform-runtime, api:super-admin | FIX_NOW |
 | [[BUG-1743-customers-and-partners-cannot-be-edited-the-runtime-form-ech|BUG-1743]] | Customers and partners cannot be edited: the runtime form echoes fields the update DTO forbids | BUG | CRITICAL | FIXED | apps/admin, api:platform-runtime, api:super-admin | FIX_NOW |
-| [[BUG-1744-every-subscription-has-a-zero-length-billing-period-and-a-re|BUG-1744]] | Every subscription has a zero-length billing period and a renewal date in the past | DATA_INTEGRITY | CRITICAL | OPEN | api:super-admin, api:billing, integration:stripe | TRIAGE_REQUIRED |
+| [[BUG-1744-every-subscription-has-a-zero-length-billing-period-and-a-re|BUG-1744]] | Every subscription has a zero-length billing period and a renewal date in the past | DATA_INTEGRITY | CRITICAL | FIXED | api:super-admin, api:billing, integration:stripe | FIX_NOW |
 | [[BUG-1494-git-worktree-remove-follows-node-modules-junctions-and-delet|BUG-1494]] | git worktree remove follows node_modules junctions and deletes the primary checkout | INFRA | CRITICAL | FIXED | scripts | DONE |
 
 ## Open High Bugs
@@ -44,10 +44,10 @@
 | [[BUG-1649-api-proxy-routes-copy-the-upstream-content-encoding-onto-an-|BUG-1649]] | API proxy routes copy the upstream Content-Encoding onto an already-decompressed body | BUG | HIGH | FIXED | settings-runtime, tenant-settings | FIX_NOW |
 | [[BUG-1745-the-executive-dashboard-reports-zero-revenue-because-reporti|BUG-1745]] | The executive dashboard reports zero revenue because reporting currency is PKR and all money is QAR | BUG | HIGH | OPEN | apps/admin, api:super-admin | TRIAGE_REQUIRED |
 | [[BUG-1747-partner-currency-is-a-required-numeric-input-so-partner-crea|BUG-1747]] | Partner Currency is a required numeric input so partner creation forces a corrupt currency code | BUG | HIGH | FIXED | apps/admin, api:super-admin | FIX_NOW |
-| [[BUG-1749-admin-creates-plans-that-can-never-be-sold-and-can-never-be-|BUG-1749]] | Admin creates plans that can never be sold and can never be deleted | BUG | HIGH | OPEN | apps/admin, api:super-admin | TRIAGE_REQUIRED |
+| [[BUG-1749-admin-creates-plans-that-can-never-be-sold-and-can-never-be-|BUG-1749]] | Admin creates plans that can never be sold and can never be deleted | BUG | HIGH | FIXED | apps/admin, api:super-admin | FIX_NOW |
 | [[BUG-1750-the-monitoring-critical-tile-miscounts-and-links-to-a-filter|BUG-1750]] | The monitoring critical tile miscounts and links to a filter that matches nothing | BUG | HIGH | OPEN | apps/admin, api:platform-monitoring | TRIAGE_REQUIRED |
 | [[BUG-1751-a-promotion-goes-live-against-every-subscription-the-instant|BUG-1751]] | A promotion goes live against every subscription the instant it is created | BUG | HIGH | OPEN | apps/admin, api:super-admin, integration:stripe | TRIAGE_REQUIRED |
-| [[BUG-1755-the-plans-list-cannot-show-publication-status-or-sales-model|BUG-1755]] | The plans list cannot show publication status or sales model because the API omits them | BUG | HIGH | OPEN | apps/admin, api:super-admin | TRIAGE_REQUIRED |
+| [[BUG-1755-the-plans-list-cannot-show-publication-status-or-sales-model|BUG-1755]] | The plans list cannot show publication status or sales model because the API omits them | BUG | HIGH | FIXED | apps/admin, api:super-admin | FIX_NOW |
 | [[ITEM-0034-apps-web-has-zero-browser-e2e-coverage|ITEM-0034]] | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | READY | apps/web, e2e | PLAN_REQUIRED |
 | [[ITEM-0094-go-live-sh-reports-no-blocker-for-a-webhook-endpoint-that-re|ITEM-0094]] | go-live.sh reports no blocker for a webhook endpoint that rejects every delivery | TEST_GAP | HIGH | READY | scripts, api:billing, api:outbox | FIX_NOW |
 | [[ITEM-0103-deployment-check-the-composed-tenant-workspace-host-must-res|ITEM-0103]] | Deployment check: the composed tenant workspace host must resolve | TEST_GAP | HIGH | READY | web, tenant-domains | PLAN_REQUIRED |
@@ -103,6 +103,7 @@
 | [[BUG-0071-tenant-users-reach-every-platform-super-admin-endpoint|BUG-0071]] | Tenant users reach every platform super-admin endpoint | AUTHORIZATION | CRITICAL | VERIFIED | super-admin, platform-auth, platform-communications | DONE |
 | [[BUG-0899-production-cannot-deploy-the-release-chain-always-fails-beca|BUG-0899]] | Production cannot deploy: the release chain always fails because seeded legal documents declare themselves drafts | BUG | CRITICAL | VERIFIED | services/api/prisma | DONE |
 | [[BUG-0900-tenant-provisioning-exceeds-the-5s-transaction-timeout-a-pai|BUG-0900]] | Tenant provisioning exceeds the 5s transaction timeout: a paid order is left with no workspace | BUG | CRITICAL | FIXED | api:permissions | FIX_NOW |
+| [[BUG-0904-production-is-missing-outbox-worker-enabled-so-no-workspace-|BUG-0904]] | Production is missing OUTBOX_WORKER_ENABLED, so no workspace is provisioned after payment | BUG | CRITICAL | FIXED | api:outbox | FIX_NOW |
 | [[BUG-0989-every-stripe-webhook-delivery-to-production-fails-so-a-payme|BUG-0989]] | Every Stripe webhook delivery to production fails, so a payment never reaches the platform | INFRA | CRITICAL | VERIFIED | api:billing | DONE |
 | [[BUG-0994-plan-entitlements-blank-out-on-save-and-the-next-save-delete|BUG-0994]] | Plan entitlements blank out on save and the next save deletes them | DATA_INTEGRITY | CRITICAL | VERIFIED | platform-runtime, super-admin, admin | DONE |
 | [[BUG-1128-stripe-api-version-skew-invoice-paid-cannot-map-to-a-subscri|BUG-1128]] | Stripe API version skew: invoice.paid cannot map to a subscription because invoice.subscription no longer exists | INTEGRATION | CRITICAL | FIXED | api:billing | FIX_NOW |
@@ -111,6 +112,7 @@
 | [[BUG-1644-tenant-root-domain-is-misconfigured-so-no-customer-can-reach|BUG-1644]] | Tenant root domain is misconfigured so no customer can reach their workspace login | INFRA | CRITICAL | VERIFIED | tenant-domains, tenants | DONE |
 | [[BUG-1742-lead-creation-is-impossible-the-runtime-form-always-sends-pa|BUG-1742]] | Lead creation is impossible: the runtime form always sends partnerId as an empty string | BUG | CRITICAL | FIXED | apps/admin, api:platform-runtime, api:super-admin | FIX_NOW |
 | [[BUG-1743-customers-and-partners-cannot-be-edited-the-runtime-form-ech|BUG-1743]] | Customers and partners cannot be edited: the runtime form echoes fields the update DTO forbids | BUG | CRITICAL | FIXED | apps/admin, api:platform-runtime, api:super-admin | FIX_NOW |
+| [[BUG-1744-every-subscription-has-a-zero-length-billing-period-and-a-re|BUG-1744]] | Every subscription has a zero-length billing period and a renewal date in the past | DATA_INTEGRITY | CRITICAL | FIXED | api:super-admin, api:billing, integration:stripe | FIX_NOW |
 | [[BUG-1494-git-worktree-remove-follows-node-modules-junctions-and-delet|BUG-1494]] | git worktree remove follows node_modules junctions and deletes the primary checkout | INFRA | CRITICAL | FIXED | scripts | DONE |
 | [[BUG-0049-report-only-ci-jobs-swallow-security-and-database-e2e-failur|BUG-0049]] | Report-only CI jobs swallow security and database E2E failures | INFRA | HIGH | VERIFIED | .github/workflows, services/api/src/common/constants, services/api/test, docs/qa | DONE |
 | [[BUG-0052-production-dependency-graph-carries-critical-and-high-securi|BUG-0052]] | Production dependency graph carries critical and high security advisories | SECURITY | HIGH | VERIFIED | package-lock.json, apps/agent-desktop, apps/web, apps/admin, apps/landing, services/api | DONE |
@@ -196,6 +198,8 @@
 | [[BUG-1578-admin-customer-form-stores-a-country-lookup-id-where-every-r|BUG-1578]] | Admin customer form stores a country lookup id where every reader expects a name | DATA_INTEGRITY | HIGH | VERIFIED | super-admin, contracts, lookups | DONE |
 | [[BUG-1649-api-proxy-routes-copy-the-upstream-content-encoding-onto-an-|BUG-1649]] | API proxy routes copy the upstream Content-Encoding onto an already-decompressed body | BUG | HIGH | FIXED | settings-runtime, tenant-settings | FIX_NOW |
 | [[BUG-1747-partner-currency-is-a-required-numeric-input-so-partner-crea|BUG-1747]] | Partner Currency is a required numeric input so partner creation forces a corrupt currency code | BUG | HIGH | FIXED | apps/admin, api:super-admin | FIX_NOW |
+| [[BUG-1749-admin-creates-plans-that-can-never-be-sold-and-can-never-be-|BUG-1749]] | Admin creates plans that can never be sold and can never be deleted | BUG | HIGH | FIXED | apps/admin, api:super-admin | FIX_NOW |
+| [[BUG-1755-the-plans-list-cannot-show-publication-status-or-sales-model|BUG-1755]] | The plans list cannot show publication status or sales model because the API omits them | BUG | HIGH | FIXED | apps/admin, api:super-admin | FIX_NOW |
 | [[BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state|BUG-0051]] | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |
 | [[BUG-0009-session-revocation-depended-on-the-refresh-cookie|BUG-0009]] | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | VERIFIED | app:admin, api:auth | DONE |
 | [[BUG-0010-unguarded-cookie-options-could-turn-sign-out-into-a-500|BUG-0010]] | Unguarded cookie options could turn admin sign-out into a 500 | INFRA | MEDIUM | VERIFIED | app:admin | DONE |
@@ -247,6 +251,7 @@
 | [[BUG-0534-plan-form-offered-editable-legacy-price-fields-that-bill-nob|BUG-0534]] | Plan form offered editable legacy price fields that bill nobody | UX | MEDIUM | VERIFIED | super-admin, apps/admin | DONE |
 | [[BUG-0668-exchange-rate-resolution-ignored-the-effective-date-it-was-g|BUG-0668]] | Exchange rate resolution ignored the effective date it was given | DATA_INTEGRITY | MEDIUM | VERIFIED | api:tenant-settings | DONE |
 | [[BUG-0795-saved-table-preferences-hide-every-column-added-to-a-module-|BUG-0795]] | Saved table preferences hide every column added to a module afterwards | UX | MEDIUM | VERIFIED | apps/admin | DONE |
+| [[BUG-0905-production-defines-direct-url-but-the-code-reads-direct-data|BUG-0905]] | Production defines DIRECT_URL but the code reads DIRECT_DATABASE_URL, so migrations run over the pooled endpoint | BUG | MEDIUM | FIXED | services/api/prisma, pkg:config | FIX_NOW |
 | [[BUG-0907-an-unknown-legal-slug-answers-200-and-hangs-on-the-loading-s|BUG-0907]] | An unknown legal slug answers 200 and hangs on the loading shell instead of returning 404 | BUG | MEDIUM | VERIFIED | apps/landing | DONE |
 | [[BUG-1208-component-index-check-fails-on-every-windows-checkout-passes|BUG-1208]] | component-index --check fails on every Windows checkout, passes in CI | INFRA | MEDIUM | FIXED | framework | FIX_NOW |
 | [[BUG-1261-the-admin-theme-bootstrap-script-runs-in-head-where-react-hy|BUG-1261]] | The admin theme bootstrap script runs in head where React hydrates it against extension-injected scripts | UX | MEDIUM | VERIFIED | apps/admin | DONE |
@@ -257,6 +262,8 @@
 | [[BUG-1546-required-fields-on-unfocused-tabs-give-no-indication-of-wher|BUG-1546]] | Required fields on unfocused tabs give no indication of where they are | UX | MEDIUM | FIXED | customization | FIX_NOW |
 | [[BUG-1654-every-empty-list-in-a-new-workspace-blames-filters-that-are-|BUG-1654]] | Every empty list in a new workspace blames filters that are not set | UX | MEDIUM | FIXED | views, employees | FIX_NOW |
 | [[BUG-1746-required-fields-on-unselected-tabs-are-undiscoverable-so-cre|BUG-1746]] | Required fields on unselected tabs are undiscoverable so create forms dead-end | UX | MEDIUM | FIXED | apps/admin | FIX_NOW |
+| [[BUG-1748-the-subscription-record-page-cannot-resolve-its-own-tenant-p|BUG-1748]] | The subscription record page cannot resolve its own tenant plan or price | BUG | MEDIUM | FIXED | apps/admin, api:platform-runtime | FIX_NOW |
+| [[BUG-1757-promotions-cannot-be-deleted-and-the-delete-route-silently-d|BUG-1757]] | Promotions cannot be deleted and the DELETE route silently deactivates instead | BUG | MEDIUM | FIXED | apps/admin, api:super-admin | FIX_NOW |
 | [[BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist|BUG-0023]] | The testing-architecture context claims two e2e specs do not exist | DOCUMENTATION | LOW | VERIFIED | .agent/context | DONE |
 | [[BUG-0024-start-onboarding-api-and-proxy-have-no-caller|BUG-0024]] | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | VERIFIED | apps/admin, api:super-admin | DONE |
 | [[BUG-0059-vault-wikilinks-to-task-records-and-four-module-notes-resolv|BUG-0059]] | Vault wikilinks to task records and four module notes resolve to nothing | DOCUMENTATION | LOW | VERIFIED | scripts, docs/tasks, docs/knowledge | DONE |
@@ -307,7 +314,7 @@
 
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
-| [[BUG-0905-production-defines-direct-url-but-the-code-reads-direct-data|BUG-0905]] | Production defines DIRECT_URL but the code reads DIRECT_DATABASE_URL, so migrations run over the pooled endpoint | BUG | MEDIUM | OPEN | services/api/prisma, pkg:config | BLOCKED_EXTERNAL |
+| [[BUG-0905-production-defines-direct-url-but-the-code-reads-direct-data|BUG-0905]] | Production defines DIRECT_URL but the code reads DIRECT_DATABASE_URL, so migrations run over the pooled endpoint | BUG | MEDIUM | FIXED | services/api/prisma, pkg:config | FIX_NOW |
 | [[BUG-1208-component-index-check-fails-on-every-windows-checkout-passes|BUG-1208]] | component-index --check fails on every Windows checkout, passes in CI | INFRA | MEDIUM | FIXED | framework | FIX_NOW |
 | [[BUG-1424-the-admin-console-serves-no-content-security-policy-header|BUG-1424]] | The admin console serves no Content-Security-Policy header | SECURITY | MEDIUM | OPEN | apps/admin | PLAN_REQUIRED |
 | [[BUG-1425-currencycode-accepts-any-string-of-three-characters-or-fewer|BUG-1425]] | currencyCode accepts any string of three characters or fewer | DATA_INTEGRITY | MEDIUM | FIXED | api:partners | FIX_NOW |
@@ -316,10 +323,10 @@
 | [[BUG-1555-an-inactive-plan-with-no-prices-is-offered-as-a-customer-pre|BUG-1555]] | An inactive plan with no prices is offered as a customer preferred plan | BUG | MEDIUM | OPEN | super-admin, billing | FIX_NOW |
 | [[BUG-1654-every-empty-list-in-a-new-workspace-blames-filters-that-are-|BUG-1654]] | Every empty list in a new workspace blames filters that are not set | UX | MEDIUM | FIXED | views, employees | FIX_NOW |
 | [[BUG-1746-required-fields-on-unselected-tabs-are-undiscoverable-so-cre|BUG-1746]] | Required fields on unselected tabs are undiscoverable so create forms dead-end | UX | MEDIUM | FIXED | apps/admin | FIX_NOW |
-| [[BUG-1748-the-subscription-record-page-cannot-resolve-its-own-tenant-p|BUG-1748]] | The subscription record page cannot resolve its own tenant plan or price | BUG | MEDIUM | OPEN | apps/admin, api:platform-runtime | TRIAGE_REQUIRED |
+| [[BUG-1748-the-subscription-record-page-cannot-resolve-its-own-tenant-p|BUG-1748]] | The subscription record page cannot resolve its own tenant plan or price | BUG | MEDIUM | FIXED | apps/admin, api:platform-runtime | FIX_NOW |
 | [[BUG-1754-the-incident-queue-counts-routine-401s-and-unknown-route-404|BUG-1754]] | The incident queue counts routine 401s and unknown-route 404s as incidents needing triage | BUG | MEDIUM | OPEN | api:platform-monitoring, api:error-logs | TRIAGE_REQUIRED |
 | [[BUG-1756-bulk-delete-confirms-without-naming-how-many-records-or-whic|BUG-1756]] | Bulk delete confirms without naming how many records or which ones | UX | MEDIUM | OPEN | apps/admin | TRIAGE_REQUIRED |
-| [[BUG-1757-promotions-cannot-be-deleted-and-the-delete-route-silently-d|BUG-1757]] | Promotions cannot be deleted and the DELETE route silently deactivates instead | BUG | MEDIUM | OPEN | apps/admin, api:super-admin | TRIAGE_REQUIRED |
+| [[BUG-1757-promotions-cannot-be-deleted-and-the-delete-route-silently-d|BUG-1757]] | Promotions cannot be deleted and the DELETE route silently deactivates instead | BUG | MEDIUM | FIXED | apps/admin, api:super-admin | FIX_NOW |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0020-contract-phase-drop-legacy-plan-pricing-columns|ITEM-0020]] | Contract phase: drop legacy Plan pricing columns | TECH_DEBT | MEDIUM | READY | services/api/prisma, api:super-admin, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur|ITEM-0022]] | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | READY | api:super-admin, apps/admin | PLAN_REQUIRED |
@@ -367,7 +374,7 @@
 | Decision notes (ADR + generated) | 6 |
 | Implementation records | 6 |
 
-**Awaiting Architect triage: 12.** A record nobody has
+**Awaiting Architect triage: 7.** A record nobody has
 triaged is work nobody has decided about — the number that should stay near
 zero between tasks.
 

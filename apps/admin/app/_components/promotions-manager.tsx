@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { Loader2, Plus, Power } from "lucide-react";
+import { Loader2, Plus, Power, Trash2 } from "lucide-react";
 
 type Promotion = {
   id: string;
@@ -17,6 +17,9 @@ type Promotion = {
   isActive: boolean;
   stripeSyncStatus: string;
   version: number;
+  /* Whether this promotion has ever applied to anything — the line between a
+   * record that can be removed and one that carries commercial history. */
+  redemptionCount: number;
 };
 
 type LookupOption = { value: string; label: string };
@@ -143,15 +146,58 @@ export function PromotionsManager({
     });
   }
 
+  /*
+   * Deactivate and delete are two different things and used to be one.
+   *
+   * `DELETE /promotions/:id` was wired to `deactivatePromotion`, so this button
+   * sent a delete, got 200 back, and left the row in place — and it was the
+   * only action offered, which meant a mistyped promotion could never be
+   * removed (BUG-1757). Deactivation now has its own route, and delete
+   * genuinely deletes.
+   */
   function deactivate(id: string) {
     startTransition(async () => {
-      const response = await fetch(`/api/super-admin/promotions/${id}`, {
-        method: "DELETE",
-      });
-      if (!response.ok) return;
+      const response = await fetch(
+        `/api/super-admin/promotions/${id}/deactivate`,
+        { method: "POST" },
+      );
+      if (!response.ok) {
+        setError("Unable to deactivate this promotion.");
+        return;
+      }
       const updated = (await response.json()) as Promotion;
       setPromotions((current) =>
         current.map((item) => (item.id === id ? updated : item)),
+      );
+    });
+  }
+
+  function remove(promotion: Promotion) {
+    // Named, and honest about being permanent — a confirmation that says
+    // "this item" teaches nobody which row they are about to lose.
+    if (
+      !window.confirm(
+        `Delete the promotion "${promotion.name}" permanently? ` +
+          `This cannot be undone.`,
+      )
+    )
+      return;
+    startTransition(async () => {
+      const response = await fetch(`/api/super-admin/promotions/${promotion.id}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) {
+        // A redeemed promotion is refused by the API and says why. Show that
+        // reason rather than a generic failure: it tells the operator to
+        // deactivate instead.
+        const payload = (await response.json().catch(() => null)) as {
+          message?: string;
+        } | null;
+        setError(payload?.message ?? "Unable to delete this promotion.");
+        return;
+      }
+      setPromotions((current) =>
+        current.filter((item) => item.id !== promotion.id),
       );
     });
   }
@@ -357,20 +403,40 @@ export function PromotionsManager({
                     </Badge>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    {promotion.isActive ? (
-                      <button
-                        onClick={() => deactivate(promotion.id)}
-                        disabled={isPending}
-                        className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700"
-                      >
-                        {isPending ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        ) : (
-                          <Power className="h-3.5 w-3.5" />
-                        )}
-                        Deactivate
-                      </button>
-                    ) : null}
+                    <div className="flex items-center justify-end gap-3">
+                      {promotion.isActive ? (
+                        <button
+                          onClick={() => deactivate(promotion.id)}
+                          disabled={isPending}
+                          className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700"
+                        >
+                          {isPending ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Power className="h-3.5 w-3.5" />
+                          )}
+                          Deactivate
+                        </button>
+                      ) : null}
+                      {promotion.redemptionCount === 0 ? (
+                        <button
+                          onClick={() => remove(promotion)}
+                          disabled={isPending}
+                          className="inline-flex items-center gap-1 text-xs font-semibold text-rose-700"
+                          title="This promotion has never been redeemed, so it can be removed."
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          Delete
+                        </button>
+                      ) : (
+                        <span
+                          className="text-xs text-slate-400"
+                          title={`Redeemed ${promotion.redemptionCount} time(s), so it carries commercial history and cannot be deleted.`}
+                        >
+                          Redeemed
+                        </span>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

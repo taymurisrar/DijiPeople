@@ -2666,3 +2666,93 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | The server's field errors take the same path as the client's. That half is what made BUG-1742 read as "nothing on either tab is marked as the offending field" — the API named `partnerId`, and the operator was looking at a different tab. |
 | **Fixed** | 2026-08-28 |
 | **Active** | yes |
+
+### REG-275 — A direct database URL that did nothing
+
+| | |
+|---|---|
+| **Bug class** | `config-key-spelled-two-ways` |
+| **Module** | `packages/config`, `services/api/prisma` |
+| **Bug record** | BUG-0905 |
+| **Root cause** | `resolveMigrationDatabaseUrl` read `DIRECT_DATABASE_URL`; production defined `DIRECT_URL`, which is the name Prisma's own documentation and Neon's setup guide use and therefore what anyone configuring the service by hand reaches for. The override was inert, `prisma migrate deploy` ran over the pooled endpoint, and that is exactly the configuration BUG-0086 exists to prevent — a session-scoped advisory lock cannot be held through a transaction pooler, so the deploy dies on `P1002` after its lock timeout. A variable that looks set and does nothing is worse than one that is absent. |
+| **Regression test** | `packages/config/database-urls.test.js` |
+| **Scenario** | `DIRECT_URL` alone resolves the migration connection; `DIRECT_DATABASE_URL` wins when both are set, so an existing deployment does not silently change connection; a blank value falls through rather than blanking the connection; and a pooled url is reported under whichever name actually supplied it. |
+| **Proven to fail without the fix** | The `DIRECT_URL` cases assert a code path that did not exist — the resolver read one variable name. |
+| **Note** | The production half was fixed separately by the repository owner adding `DIRECT_DATABASE_URL` to the live service. Accepting both names is the durable half: it stops the next person rediscovering this through a failed deploy. Nothing here can be confirmed from the repository, because the variable's value lives on the service. |
+| **Fixed** | 2026-08-28 |
+| **Active** | yes |
+
+### REG-276 — Stripe moved the billing period and nobody followed
+
+| | |
+|---|---|
+| **Bug class** | `provider-api-version-skew` |
+| **Module** | `billing` |
+| **Bug record** | BUG-1744 |
+| **Root cause** | Stripe removed `current_period_start` / `current_period_end` from the Subscription object in `2025-03-31.basil` and moved them onto each SubscriptionItem, because a subscription may hold items on different cadences. `webhook.service.ts` read only the top-level fields, so on an endpoint rendering at that version or later they are `undefined`, `fromUnix` returns null, and the platform's copy of the billing period is written as nothing — leaving renewal, dunning, the Renewal column and every MRR figure with nothing to read. Separately, `createOrUpdateSubscription` never wrote the period at all, so a subscription created through provisioning had none until an event arrived. |
+| **Regression test** | `services/api/src/modules/billing/subscription-billing-period.spec.ts` |
+| **Scenario** | The period resolves from the legacy top-level fields and from the item-level ones; the top level wins when a version renders both; several items resolve to the widest span rather than the first; and an absent period resolves to null rather than to a wrong instant. |
+| **Proven to fail without the fix** | The item-level cases assert a read that did not exist — the type did not even declare the fields on `items.data[]`. |
+| **Note** | Precisely BUG-1128 one field pair over, in the same file, which already documents why both shapes must be read: `STRIPE_API_VERSION` pins outbound calls only, and the version a webhook arrives at is set by a dashboard dropdown nobody deployed. That note was written for `invoice.parent` and the period read never got the same treatment — worth remembering that this file has now been wrong twice for one reason. The widest-span rule is deliberately more than today's single-item subscriptions need; taking `items.data[0]` would be correct now and quietly wrong later. **The two wrong production rows were not backfilled** — that needs live Stripe access, which was out of scope on 2026-08-28. |
+| **Fixed** | 2026-08-28 |
+| **Active** | yes |
+
+### REG-277 — The subscription record could not name its own tenant
+
+| | |
+|---|---|
+| **Bug class** | `two-endpoints-one-question` |
+| **Module** | `super-admin`, `platform-runtime` |
+| **Bug record** | BUG-1748 |
+| **Root cause** | The runtime record path fell through to a bare `prisma.subscription.findUnique({ where: { id } })` with no `include`, while the list called `listSubscriptions()`, which loads `tenant` and `plan` and projects them. So a subscription showed Tenant, Plan and Price as "Not set" one screen after the list had rendered all three correctly. The ids were in the payload; nothing resolved them. The price had a second cause: the runtime resolves a lookup's label from `label` / `name` / `displayName` on the relation beside it, and a `PlanPrice` row carries none of those. |
+| **Regression test** | `services/api/src/modules/super-admin/subscription-record-shape.spec.ts` |
+| **Scenario** | The include is declared once and used by both the list and the single-record read; both project through one function; the runtime record path resolves subscriptions through it rather than bare-fetching; and the composed price label names its unit and cadence. |
+| **Proven to fail without the fix** | Every assertion names a symbol that did not exist before — `SUBSCRIPTION_INCLUDE`, `projectSubscription`, `getSubscription`, `describePlanPrice`. |
+| **Note** | Asserted against the source rather than executed, because the defect is *two code paths diverging* and neither path was wrong on its own terms — a behavioural test would pass against whichever one it happened to call. The price label carries the unit for a reason worth keeping: a per-seat amount rendered bare reads as the whole bill, and 300 against 25 seats is not 300. |
+| **Fixed** | 2026-08-28 |
+| **Active** | yes |
+
+### REG-278 — Plans that could not be sold and could not be removed
+
+| | |
+|---|---|
+| **Bug class** | `schema-default-decides-policy` |
+| **Module** | `super-admin` |
+| **Bug record** | BUG-1749, BUG-1755 |
+| **Root cause** | `Plan.isPublic` defaults to `true`, so a plan created through the console reached the catalogue while carrying no `PlanPrice` rows — and checkout sells from `PlanPrice`. The plan advertised itself and could not be bought. With no delete route for a plan it could not be withdrawn either; two are in production in that state. Alongside it, `mapPlan()` never serialized `publicationStatus` or `salesModel`, so the Plans list — which declares Publication as its leading column — rendered an em dash for every row and could not answer the question it exists to answer. |
+| **Regression test** | `services/api/src/modules/super-admin/plan-lifecycle.spec.ts` |
+| **Scenario** | A plan is created `DRAFT` and writes no `isPublic` literal; a plan with no prices and no subscriptions can be deleted; one with either is refused with a message naming the reasons and pointing at deactivation; the deletion is audited; and `mapPlan` serializes the publication fields while deriving `isPublic` from publication rather than reading the column. |
+| **Proven to fail without the fix** | The delete cases exercise a method that did not exist. The serialization cases assert fields the mapper did not send. |
+| **Note** | The instructive part is what the *first* attempt got wrong. Writing `isPublic: false` at creation is the obvious fix and `one-self-service-gate.spec.ts` rejected it — BUG-0223 retired that boolean precisely because two gates can disagree, and `publicationStatus` is the only authority. The existing invariant caught a regression being introduced by the fix for a different bug, which is the whole argument for source-level invariants. **Not done:** the bespoke `/plans/new` page still collects legacy base prices and creates no `PlanPrice`. Retiring it needs a runtime create arm that does not exist yet. |
+| **Fixed** | 2026-08-28 |
+| **Active** | yes |
+
+### REG-279 — A DELETE that did not delete
+
+| | |
+|---|---|
+| **Bug class** | `verb-and-handler-disagree` |
+| **Module** | `super-admin` |
+| **Bug record** | BUG-1757 |
+| **Root cause** | `DELETE /super-admin/promotions/:id` was wired to `deactivatePromotion()`. It answered 200 with the record body while the row stayed exactly where it was, merely inactive, and since the UI offered only Deactivate there was no way to remove a promotion at all — a mistyped one was permanent. |
+| **Regression test** | `services/api/src/modules/super-admin/promotion-deletion.spec.ts` |
+| **Scenario** | A promotion with no redemptions is deleted and audited; one with redemptions is refused without touching the row; the refusal names the promotion, the redemption count and deactivation as the alternative; a missing promotion 404s. |
+| **Proven to fail without the fix** | `deletePromotion` did not exist; `DELETE` reached the deactivation handler. |
+| **Note** | Not hard-deleting commercial records is a defensible policy and the reason this was written the way it was. It protects *history* — so the line is drawn at redemption rather than at existence: a promotion that never applied to anything discounted nothing, is referenced by no invoice, and was seen by no customer. The UI change matters as much as the route: the API's refusal message is surfaced verbatim, because a generic failure sends the operator back to the button that never worked. |
+| **Fixed** | 2026-08-28 |
+| **Active** | yes |
+
+### REG-280 — A worker that was not running, and could not be seen not running
+
+| | |
+|---|---|
+| **Bug class** | `deployment-config-drift` |
+| **Module** | `outbox`, deployment |
+| **Bug record** | BUG-0904, BUG-0767 |
+| **Root cause** | `render.yaml` declares `OUTBOX_WORKER_ENABLED: "true"` and always did, but the live service was configured by hand in the dashboard and the file has never been applied. With the flag absent `OutboxDispatcherService` never polled, and `ProvisioningRequestedHandler` is an outbox consumer — by its own header the only thing that creates a self-service tenant. So on production a customer could pay and no workspace was ever built; `PROVISIONING_REQUESTED` rows simply accumulated undelivered. |
+| **Regression test** | `services/api/src/app.service.spec.ts` |
+| **Scenario** | `/api/health` reports `outboxWorker.enabled`, distinguishing "off" from "not reported at all". The deployment-side half is the `outbox worker is draining events` check in `scripts/smoke-deployment.mjs`, which fails when the service it points at is not draining the outbox and fails differently when the service is too old to answer. |
+| **Proven to fail without the fix** | The health payload had no such field, so the smoke check fails against any deployment predating this change — including production as of 2026-08-28. |
+| **Note** | The repository half was never wrong: `render.yaml` and `docs/environment-variables.md` both declared this correctly the whole time. So no unit test could have caught it, and this entry exists to record that the *only* durable guard for a config-drift class is making the drift observable from outside. The startup log already said the worker was disabled — once, at boot, into a stream nobody reads — while `/api/health` answered `status: ok` regardless. A log is not a check. **The production fix itself was made by the repository owner adding the variable, not by this branch**, and the value on the service still cannot be asserted from here; what changed is that a smoke run can now ask. |
+| **Fixed** | 2026-08-28 |
+| **Active** | yes |

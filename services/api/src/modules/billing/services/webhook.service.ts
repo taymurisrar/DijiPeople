@@ -54,6 +54,24 @@ type StripeSubscriptionObject = {
     data?: Array<{
       id?: string;
       quantity?: number | null;
+      /*
+       * The billing period lives here from `2025-03-31.basil` onwards.
+       *
+       * Stripe removed `current_period_start` / `current_period_end` from the
+       * Subscription object in that version and moved them onto each
+       * SubscriptionItem, because a subscription may now hold items on
+       * different cadences. On an endpoint rendering at that version or later
+       * the top-level fields are simply absent, `fromUnix` returns null, and
+       * the platform's copy of the period is written as nothing at all —
+       * which is what BUG-1744 found on every production subscription.
+       *
+       * Exactly the shape of BUG-1128, one field pair over: this file already
+       * reads `invoice.parent.subscription_details` and the legacy
+       * `invoice.subscription` for the same reason, and the period read never
+       * got the same treatment.
+       */
+      current_period_start?: number | null;
+      current_period_end?: number | null;
       price?: {
         id?: string;
         currency?: string | null;
@@ -401,8 +419,9 @@ export class WebhookService {
           stripeCheckoutSessionId: session.id,
           stripeStatus: stripeSubscription.status ?? null,
           stripeLatestInvoiceId: getStripeId(stripeSubscription.latest_invoice),
-          currentPeriodStart: fromUnix(stripeSubscription.current_period_start),
-          currentPeriodEnd: fromUnix(stripeSubscription.current_period_end),
+          currentPeriodStart:
+            resolveSubscriptionPeriodStart(stripeSubscription),
+          currentPeriodEnd: resolveSubscriptionPeriodEnd(stripeSubscription),
           cancelAtPeriodEnd: Boolean(stripeSubscription.cancel_at_period_end),
           canceledAt: fromUnix(stripeSubscription.canceled_at),
           trialStart: fromUnix(stripeSubscription.trial_start),
@@ -428,8 +447,9 @@ export class WebhookService {
           stripeCheckoutSessionId: session.id,
           stripeStatus: stripeSubscription.status ?? null,
           stripeLatestInvoiceId: getStripeId(stripeSubscription.latest_invoice),
-          currentPeriodStart: fromUnix(stripeSubscription.current_period_start),
-          currentPeriodEnd: fromUnix(stripeSubscription.current_period_end),
+          currentPeriodStart:
+            resolveSubscriptionPeriodStart(stripeSubscription),
+          currentPeriodEnd: resolveSubscriptionPeriodEnd(stripeSubscription),
           cancelAtPeriodEnd: Boolean(stripeSubscription.cancel_at_period_end),
           canceledAt: fromUnix(stripeSubscription.canceled_at),
           trialStart: fromUnix(stripeSubscription.trial_start),
@@ -824,8 +844,8 @@ export class WebhookService {
         stripeSubscriptionId: subscription.id,
         stripeStatus: subscription.status ?? null,
         stripeLatestInvoiceId: getStripeId(subscription.latest_invoice),
-        currentPeriodStart: fromUnix(subscription.current_period_start),
-        currentPeriodEnd: fromUnix(subscription.current_period_end),
+        currentPeriodStart: resolveSubscriptionPeriodStart(subscription),
+        currentPeriodEnd: resolveSubscriptionPeriodEnd(subscription),
         cancelAtPeriodEnd: Boolean(subscription.cancel_at_period_end),
         canceledAt: fromUnix(subscription.canceled_at),
         trialStart: fromUnix(subscription.trial_start),
@@ -848,8 +868,8 @@ export class WebhookService {
         stripeSubscriptionId: subscription.id,
         stripeStatus: subscription.status ?? null,
         stripeLatestInvoiceId: getStripeId(subscription.latest_invoice),
-        currentPeriodStart: fromUnix(subscription.current_period_start),
-        currentPeriodEnd: fromUnix(subscription.current_period_end),
+        currentPeriodStart: resolveSubscriptionPeriodStart(subscription),
+        currentPeriodEnd: resolveSubscriptionPeriodEnd(subscription),
         cancelAtPeriodEnd: Boolean(subscription.cancel_at_period_end),
         canceledAt: fromUnix(subscription.canceled_at),
         trialStart: fromUnix(subscription.trial_start),
@@ -1410,6 +1430,43 @@ function fromUnix(value: number | null | undefined) {
   return typeof value === 'number' && Number.isFinite(value)
     ? new Date(value * 1000)
     : null;
+}
+
+/**
+ * The subscription's current period, under whichever shape the event arrived in.
+ *
+ * `STRIPE_API_VERSION` pins outbound calls only — Stripe renders webhooks at the
+ * version configured on the endpoint, so both shapes have to be read. Reading
+ * only the top-level one means the period is correct until somebody changes a
+ * dropdown in a dashboard, which is how BUG-1128 reached production.
+ *
+ * Where a subscription carries several items on different cadences, the widest
+ * span is the subscription's period: the earliest start and the latest end.
+ * Taking the first item would be right for the single-item subscriptions this
+ * platform sells today and quietly wrong the moment that stops being true.
+ */
+export function resolveSubscriptionPeriodStart(
+  subscription: StripeSubscriptionObject,
+) {
+  const top = fromUnix(subscription.current_period_start);
+  if (top) return top;
+  const starts = (subscription.items?.data ?? [])
+    .map((item) => fromUnix(item.current_period_start))
+    .filter((value): value is Date => value !== null);
+  if (!starts.length) return null;
+  return new Date(Math.min(...starts.map((value) => value.getTime())));
+}
+
+export function resolveSubscriptionPeriodEnd(
+  subscription: StripeSubscriptionObject,
+) {
+  const top = fromUnix(subscription.current_period_end);
+  if (top) return top;
+  const ends = (subscription.items?.data ?? [])
+    .map((item) => fromUnix(item.current_period_end))
+    .filter((value): value is Date => value !== null);
+  if (!ends.length) return null;
+  return new Date(Math.max(...ends.map((value) => value.getTime())));
 }
 
 function resolveInvoicePeriodStart(invoice: StripeInvoiceObject) {

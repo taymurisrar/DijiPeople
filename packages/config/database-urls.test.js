@@ -133,3 +133,52 @@ test("validateDeploymentEnv still accepts a single local url", () => {
     validateDeploymentEnv({ DATABASE_URL: LOCAL, APP_ENV: "development" }, { app: "api" }),
   );
 });
+
+/*
+ * BUG-0905. `DIRECT_URL` is the name Prisma's docs and Neon's setup guide use,
+ * and it is what someone configuring the service by hand reaches for. This
+ * repository read `DIRECT_DATABASE_URL`; production defined `DIRECT_URL`. The
+ * override was therefore inert and `migrate deploy` ran over the pooled
+ * endpoint — the exact configuration BUG-0086 exists to prevent, reached
+ * through a spelling rather than a decision.
+ */
+test("DIRECT_URL names the direct connection too", () => {
+  assert.equal(
+    resolveMigrationDatabaseUrl({
+      DATABASE_URL: "postgresql://u:p@host-pooler.neon.tech/db",
+      DIRECT_URL: "postgresql://u:p@host.neon.tech/db",
+    }),
+    "postgresql://u:p@host.neon.tech/db",
+  );
+});
+
+test("DIRECT_DATABASE_URL wins when a deployment sets both", () => {
+  // Precedence matters: a deployment already setting both must keep the value
+  // it has rather than silently switching connection.
+  assert.equal(
+    resolveMigrationDatabaseUrl({
+      DATABASE_URL: "postgresql://u:p@pooled-pooler/db",
+      DIRECT_DATABASE_URL: "postgresql://u:p@chosen/db",
+      DIRECT_URL: "postgresql://u:p@other/db",
+    }),
+    "postgresql://u:p@chosen/db",
+  );
+});
+
+test("a blank DIRECT_URL falls through rather than blanking the connection", () => {
+  assert.equal(
+    resolveMigrationDatabaseUrl({
+      DATABASE_URL: "postgresql://u:p@host/db",
+      DIRECT_URL: "   ",
+    }),
+    "postgresql://u:p@host/db",
+  );
+});
+
+test("a pooled DIRECT_URL is reported under its own name", () => {
+  const problem = describeMigrationUrlProblem({
+    DATABASE_URL: "postgresql://u:p@host/db",
+    DIRECT_URL: "postgresql://u:p@host-pooler.neon.tech/db",
+  });
+  assert.match(problem, /^DIRECT_URL names a pooled Postgres endpoint/);
+});
