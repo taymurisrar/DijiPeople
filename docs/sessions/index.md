@@ -6,19 +6,19 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 2** · completed: 62
+**Active: 1** · completed: 63
 
 ## Active
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
-| [SESSION-0066](../../docs/sessions/SESSION-0066-fix-all-open-and-deferred-bugs.md) | — | Fix all open and deferred bugs | ACTIVE | `agent/open-bug-sweep` | `develop` | — | 2026-08-28T10:03:13.370Z |
 | [SESSION-0061](../../docs/sessions/SESSION-0061-unblock-the-production-hosts-for-the-mcp-browser.md) | — | Production admin E2E QA and invitation delivery visibility | ACTIVE | `agent/invitation-delivery-visibility` | `develop` | — | 2026-08-26T09:54:37.336Z |
 
 ## Completed
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0066](../../docs/sessions/SESSION-0066-fix-all-open-and-deferred-bugs.md) | — | Fix all open and deferred bugs | COMPLETE | `agent/open-bug-sweep` | `develop` | — | 2026-08-28T10:03:13.370Z |
 | [SESSION-0065](../../docs/sessions/SESSION-0065-admin-console-end-to-end-browser-qa-and-go-live-assessment.md) | — | Admin console end-to-end browser QA and go-live assessment | COMPLETE | `agent/admin-console-e2e-qa` | `develop` | — | 2026-08-28T00:45:00.000Z |
 | [SESSION-0064](../../docs/sessions/SESSION-0064-tenant-app-assignment-which-tenants-receive-a-release.md) | TASK-0027 | Tenant app assignment: which tenants receive a release | COMPLETE | `agent/tenant-app-assignment` | `develop` | — | 2026-08-26T16:27:52.547Z |
 | [SESSION-0063](../../docs/sessions/SESSION-0063-admin-releases-ui-versions-enable-disable-promote-assign.md) | — | Admin releases UI: versions, enable/disable, promote, assign | COMPLETE | `agent/admin-releases-ui` | `develop` | — | 2026-08-26T10:49:05.973Z |
