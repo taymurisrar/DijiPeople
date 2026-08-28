@@ -23,6 +23,10 @@ import {
   describeBlockedSave,
   firstFailingTab,
 } from "@/lib/runtime/blocked-save-feedback";
+import {
+  humanizeErrorMessage,
+  humanizeFieldError,
+} from "@/lib/runtime/humanize-field-error";
 import { executeRuntimeRecordAction } from "@/lib/runtime/runtime-record-action-handler";
 import { ModuleActionBar } from "./module-action-bar";
 import {
@@ -323,10 +327,29 @@ function RuntimeRecordEditor({
       record.id || undefined,
     );
     if (!validation.success) {
+      /*
+       * The API names fields as the DTO does — `primaryContactFirstName must be
+       * shorter than or equal to 100 characters` — which corresponds to nothing
+       * the operator can see on screen (BUG-1549). The form knows what it calls
+       * that field, so the property name is swapped for the label and the
+       * constraint half is left exactly as it arrived.
+       */
+      const labels = new Map(
+        formDefinition.fields.map((field) => [field.key, field.label]),
+      );
       const serverErrors = Object.fromEntries(
         (validation.errors ?? [])
           .filter((item) => item.field)
-          .map((item) => [item.field!, item.message]),
+          .map((item) => [
+            item.field!,
+            humanizeErrorMessage(
+              humanizeFieldError(
+                item.field!,
+                item.message,
+                labels.get(item.field!),
+              ),
+            ),
+          ]),
       );
       setErrors(serverErrors);
       // A rejected field can sit on a tab the operator is not looking at just
@@ -552,6 +575,10 @@ function RuntimeRecordEditor({
         context={{
           scope: "record",
           record: form.values,
+          // So a destructive confirmation can name this record rather than
+          // asking the operator to confirm deleting "a record" (BUG-1560).
+          displayName: definition.displayName,
+          pluralDisplayName: definition.pluralDisplayName,
           roleKeys,
           permissionKeys,
           isDirty: form.isDirty,

@@ -445,6 +445,10 @@ const {
   runtimeViewLabel,
 } = require("./platform-runtime-views");
 const {
+  emptyListDescription,
+  emptyListTitle,
+} = require("./empty-list-message");
+const {
   PLATFORM_CURRENCIES,
   PLATFORM_CURRENCY_CODES,
   isSupportedCurrencyCode,
@@ -556,6 +560,8 @@ module.exports = {
   PLATFORM_CURRENCY_CODES,
   isSupportedCurrencyCode,
   resolvePlatformCurrency,
+  emptyListDescription,
+  emptyListTitle,
   PLATFORM_ENVIRONMENTS,
   RESERVED_HOST_LABELS,
   buildWorkspaceHostname,

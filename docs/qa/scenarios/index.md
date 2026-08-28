@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 221** · automated: 194 · manual: 9 · blocked by infrastructure: 0
+**Scenarios: 227** · automated: 200 · manual: 9 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -235,3 +235,9 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-TENANT-030](../../../docs/qa/scenarios/QA-TENANT-030-a-subscription-record-names-its-tenant-plan-and-price.md) | A subscription record names its tenant plan and price | platform-admin | UNIT | MEDIUM | AUTOMATED | `services/api/src/modules/super-admin/subscription-record-shape.spec.ts` | BUG-1748 | REG-277 |
 | [QA-TENANT-031](../../../docs/qa/scenarios/QA-TENANT-031-a-plan-cannot-be-sold-unpriced-and-can-be-removed-unsold.md) | A plan cannot be sold unpriced and can be removed unsold | platform-admin | UNIT | HIGH | AUTOMATED | `services/api/src/modules/super-admin/plan-lifecycle.spec.ts` | BUG-1749, BUG-1755, BUG-0223 | REG-278 |
 | [QA-TENANT-032](../../../docs/qa/scenarios/QA-TENANT-032-deleting-a-promotion-removes-it-or-says-why-not.md) | Deleting a promotion removes it or says why not | platform-admin | UNIT | MEDIUM | AUTOMATED | `services/api/src/modules/super-admin/promotion-deletion.spec.ts` | BUG-1757 | REG-279 |
+| [QA-TENANT-033](../../../docs/qa/scenarios/QA-TENANT-033-the-critical-tile-and-the-screen-it-opens-agree.md) | The critical tile and the screen it opens agree | platform-admin | UNIT | HIGH | AUTOMATED | `services/api/src/modules/platform-monitoring/incident-severity-case.spec.ts` | BUG-1750, BUG-1420 | REG-281 |
+| [QA-TENANT-034](../../../docs/qa/scenarios/QA-TENANT-034-routine-protocol-outcomes-stay-out-of-the-triage-queue.md) | Routine protocol outcomes stay out of the triage queue | platform-admin | UNIT | MEDIUM | AUTOMATED | `services/api/src/modules/error-logs/expected-protocol-outcome.spec.ts` | BUG-1754, BUG-1742 | REG-282 |
+| [QA-TENANT-035](../../../docs/qa/scenarios/QA-TENANT-035-an-empty-list-says-which-kind-of-empty-it-is.md) | An empty list says which kind of empty it is | platform-admin | UNIT | MEDIUM | AUTOMATED | `packages/config/empty-list-message.test.js` | BUG-1752, BUG-1559, BUG-1558, BUG-1654 | REG-283 |
+| [QA-TENANT-036](../../../docs/qa/scenarios/QA-TENANT-036-a-destructive-dialog-names-what-it-will-destroy.md) | A destructive dialog names what it will destroy | platform-admin | UNIT | HIGH | AUTOMATED | `apps/admin/lib/runtime/destructive-confirm.spec.ts` | BUG-1560, BUG-1756 | REG-284 |
+| [QA-TENANT-037](../../../docs/qa/scenarios/QA-TENANT-037-dropdown-labels-keep-their-acronyms-and-ranges.md) | Dropdown labels keep their acronyms and ranges | platform-admin | UNIT | LOW | AUTOMATED | `apps/admin/lib/runtime/humanize-label.spec.ts` | BUG-1753 | REG-285 |
+| [QA-TENANT-038](../../../docs/qa/scenarios/QA-TENANT-038-a-field-error-names-the-field-on-the-screen.md) | A field error names the field on the screen | platform-admin | UNIT | MEDIUM | AUTOMATED | `apps/admin/lib/runtime/humanize-field-error.spec.ts` | BUG-1549, BUG-1546 | REG-286 |

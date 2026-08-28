@@ -11,6 +11,7 @@ import { ContractDocumentEditor } from "@/app/_components/documents/contract-doc
 import type { RuntimeLookupOption } from "@/lib/runtime/runtime-lookups";
 import { buildLookupRecordHref } from "@/lib/runtime/lookup-record-href";
 import { errorCountByTab } from "@/lib/runtime/blocked-save-feedback";
+import { humanizeLabel } from "@/lib/runtime/humanize-label";
 import { useRuntimeLookupOptions } from "@/lib/runtime/use-runtime-lookup-options";
 
 type RuntimeValues = Record<string, unknown>;
@@ -566,12 +567,9 @@ function isLookupField(field: RuntimeFieldDefinition) {
   return field.type === "lookup" || field.type.includes("Lookup");
 }
 
+/* See `humanizeLabel` — acronyms and digit ranges survive it (BUG-1753). */
 function titleCase(value: string) {
-  return value
-    .toLowerCase()
-    .replaceAll("_", " ")
-    .replaceAll("-", " ")
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+  return humanizeLabel(value);
 }
 
 function FieldControl({

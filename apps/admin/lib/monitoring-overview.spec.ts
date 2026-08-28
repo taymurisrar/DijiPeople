@@ -64,7 +64,17 @@ describe("monitoring overview", () => {
     );
     expect(band.length).toBeGreaterThan(200);
     expect((band.match(/href=\{`\$\{QUEUE\}\?/g) ?? []).length).toBe(4);
-    expect(band).toContain("severity=CRITICAL&status=NEW");
+    /*
+     * The critical tile links to the *view*, not to a severity value.
+     *
+     * It used to link to `severity=CRITICAL&status=NEW`, and nothing in the
+     * system stores "CRITICAL" — severity is free text holding ERROR and FATAL
+     * in either case — so the destination returned 0 of 0 while the tile above
+     * it counted 11 (BUG-1750). Asserted negatively as well, because the
+     * failure mode is a link that looks plausible and filters on nothing.
+     */
+    expect(band).toContain("viewId=critical&status=NEW");
+    expect(band).not.toContain("severity=CRITICAL");
     expect(band).toContain("status=NEW");
     expect(band).toContain("status=RESOLVED");
   });

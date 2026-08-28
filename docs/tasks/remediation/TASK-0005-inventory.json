@@ -8207,10 +8207,12 @@
         "services/api/src/modules/error-logs"
       ],
       "regressions": [
-        "REG-270"
+        "REG-270",
+        "REG-281"
       ],
       "qa_scenarios": [
-        "QA-TENANT-024"
+        "QA-TENANT-024",
+        "QA-TENANT-033"
       ],
       "test_plan": [
         "PLAN-019"
@@ -8805,7 +8807,8 @@
         "REG-274"
       ],
       "qa_scenarios": [
-        "QA-TENANT-027"
+        "QA-TENANT-027",
+        "QA-TENANT-038"
       ],
       "test_plan": [],
       "current_evidence": {
@@ -8906,21 +8909,25 @@
       "title": "Database and validator internals are surfaced in user-facing errors",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "DEFERRED",
-      "architect_disposition": "DEFER",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-1549-database-and-validator-internals-are-surfaced-in-user-facing.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "21032ae",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-27",
+        "updated_at": "2026-08-28",
         "resolved_at": ""
       },
       "affected_modules": [
         "error-logs"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-286"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-038"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -9256,21 +9263,25 @@
       "title": "Admin list copy uses incorrect pluralisation and articles",
       "severity": "LOW",
       "priority": "P3",
-      "current_status": "DEFERRED",
-      "architect_disposition": "DEFER",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-1558-admin-list-copy-uses-incorrect-pluralisation-and-articles.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "21032ae",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-27",
+        "updated_at": "2026-08-28",
         "resolved_at": ""
       },
       "affected_modules": [
         "super-admin"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-283"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-035"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -9294,21 +9305,25 @@
       "title": "Empty states instruct the user to create records on screens with no create control",
       "severity": "LOW",
       "priority": "P3",
-      "current_status": "DEFERRED",
-      "architect_disposition": "DEFER",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-1559-empty-states-instruct-the-user-to-create-records-on-screens-.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "21032ae",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-27",
+        "updated_at": "2026-08-28",
         "resolved_at": ""
       },
       "affected_modules": [
         "billing"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-283"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-035"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -9332,21 +9347,25 @@
       "title": "Delete confirmation does not name the record being deleted",
       "severity": "LOW",
       "priority": "P3",
-      "current_status": "DEFERRED",
-      "architect_disposition": "DEFER",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-1560-delete-confirmation-does-not-name-the-record-being-deleted.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "21032ae",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-27",
+        "updated_at": "2026-08-28",
         "resolved_at": ""
       },
       "affected_modules": [
         "leads"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-284"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-036"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -9601,10 +9620,12 @@
         "employees"
       ],
       "regressions": [
-        "REG-265"
+        "REG-265",
+        "REG-283"
       ],
       "qa_scenarios": [
-        "QA-TENANT-019"
+        "QA-TENANT-019",
+        "QA-TENANT-035"
       ],
       "test_plan": [],
       "current_evidence": {
@@ -9763,7 +9784,8 @@
         "REG-272"
       ],
       "qa_scenarios": [
-        "QA-TENANT-025"
+        "QA-TENANT-025",
+        "QA-TENANT-034"
       ],
       "test_plan": [],
       "current_evidence": {
@@ -10096,8 +10118,8 @@
       "title": "The monitoring critical tile miscounts and links to a filter that matches nothing",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-1750-the-monitoring-critical-tile-miscounts-and-links-to-a-filter.md",
         "provenance": "QA_RUN",
@@ -10110,8 +10132,12 @@
         "apps/admin",
         "api:platform-monitoring"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-281"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-033"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -10178,8 +10204,8 @@
       "title": "Admin empty states blame filters that are not set",
       "severity": "LOW",
       "priority": "P3",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-1752-admin-empty-states-blame-filters-that-are-not-set.md",
         "provenance": "QA_RUN",
@@ -10191,8 +10217,12 @@
       "affected_modules": [
         "apps/admin"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-283"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-035"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -10216,8 +10246,8 @@
       "title": "Lookup display labels mangle acronyms and numeric ranges across the admin console",
       "severity": "LOW",
       "priority": "P3",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-1753-lookup-display-labels-mangle-acronyms-and-numeric-ranges-acr.md",
         "provenance": "QA_RUN",
@@ -10229,8 +10259,12 @@
       "affected_modules": [
         "apps/admin"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-285"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-037"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -10254,8 +10288,8 @@
       "title": "The incident queue counts routine 401s and unknown-route 404s as incidents needing triage",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-1754-the-incident-queue-counts-routine-401s-and-unknown-route-404.md",
         "provenance": "QA_RUN",
@@ -10268,8 +10302,12 @@
         "api:platform-monitoring",
         "api:error-logs"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-282"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-034"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -10338,8 +10376,8 @@
       "title": "Bulk delete confirms without naming how many records or which ones",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-1756-bulk-delete-confirms-without-naming-how-many-records-or-whic.md",
         "provenance": "QA_RUN",
@@ -10351,8 +10389,12 @@
       "affected_modules": [
         "apps/admin"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-284"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-036"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [

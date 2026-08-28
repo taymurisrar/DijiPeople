@@ -1,7 +1,7 @@
 # Component Index
 
 > **Last verified:** 2026-08-28
-> **Verified against commit:** 1b85b0b5
+> **Verified against commit:** 79f313fc
 >
 > **This file is generated. Do not hand-edit it.**
 > `node scripts/generate-component-index.mjs` rebuilds it;
@@ -50,7 +50,7 @@ re-derived on each run.
 | Export | Kind | Used by | Where | What it is |
 |---|---|---|---|---|
 | `PanelCard` | component | 9 | `apps/admin/app/_components/tenants/tenant-panel-ui.tsx`:16 | The pieces every tenant panel is built from. |
-| `ModuleActionBar` | component | 8 | `apps/admin/app/_components/runtime/module-action-bar.tsx`:71 | The command bar every admin list and record screen draws its buttons in. |
+| `ModuleActionBar` | component | 8 | `apps/admin/app/_components/runtime/module-action-bar.tsx`:85 | The command bar every admin list and record screen draws its buttons in. |
 | `PanelDialog` | component | 8 | `apps/admin/app/_components/tenants/tenant-panel-ui.tsx`:270 | A modal that traps focus, restores it on close and can always be dismissed with Escape. |
 | `StatePill` | component | 8 | `apps/admin/app/_components/tenants/tenant-panel-ui.tsx`:147 | A status word carrying its own icon and text, never colour alone — the same pill has to be readable to someone who cannot distinguish red from green. |
 | `RecordStatusGroup` | component | 5 | `apps/admin/app/_components/runtime/record-status-group.tsx`:42 | The record header status group. |
@@ -97,8 +97,8 @@ re-derived on each run.
 | `useTenantRecordActions` | function | 1 | `apps/admin/app/_components/tenants/use-tenant-record-actions.tsx`:99 | Routes tenant action-bar requests to whichever surface owns the change. |
 | `acceptsField` | function | 0 | `apps/admin/lib/runtime/runtime-write-payload.ts`:20 | Whether the runtime will accept this field on this kind of write. |
 | `fetchErasureReceipts` | function | 0 | `apps/admin/app/_components/tenants/tenant-control-plane.client.ts`:657 | Erasure receipts for one tenant, read without addressing the tenant itself. |
-| `mergeVisibleColumns` | function | 0 | `apps/admin/app/_components/runtime/runtime-module-list.tsx`:1326 | Which columns are visible, given a saved preference written against an older version of the module. |
-| `normalizeColumnOrder` | function | 0 | `apps/admin/app/_components/runtime/runtime-module-list.tsx`:1277 | Merge a saved column order with the module's current one. |
+| `mergeVisibleColumns` | function | 0 | `apps/admin/app/_components/runtime/runtime-module-list.tsx`:1385 | Which columns are visible, given a saved preference written against an older version of the module. |
+| `normalizeColumnOrder` | function | 0 | `apps/admin/app/_components/runtime/runtime-module-list.tsx`:1336 | Merge a saved column order with the module's current one. |
 | `normalizeWriteValue` | function | 0 | `apps/admin/lib/runtime/runtime-write-payload.ts`:49 | What an empty optional field should be sent as — or whether to send it. |
 | `resolveLookupRecordRoute` | function | 0 | `apps/admin/lib/runtime/lookup-record-href.ts`:44 | The module a lookup reads from, if Platform Admin can show that record. |
 | `standardRecordActions` | function | 0 | `apps/admin/lib/runtime/standard-record-commands.ts`:56 | The registry's command bar for a module, with the page's own commands merged in on top — same rule the registry itself uses, so a bespoke page can override a default's label or states without losing the rest. |

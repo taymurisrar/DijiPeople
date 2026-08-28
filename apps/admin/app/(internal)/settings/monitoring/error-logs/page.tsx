@@ -76,6 +76,7 @@ function buildQueryString(searchParams: Record<string, string | string[] | undef
     "search",
     "reference",
     "severity",
+    "viewKey",
     "status",
     "sourceApp",
     "environment",
@@ -96,7 +97,21 @@ function buildQueryString(searchParams: Record<string, string | string[] | undef
   const viewId = Array.isArray(searchParams.viewId)
     ? searchParams.viewId[0]
     : searchParams.viewId;
-  if (viewId === "critical" && !params.has("severity")) params.set("severity", "ERROR");
+  /*
+   * The critical view is named, not spelled out.
+   *
+   * This used to translate `viewId=critical` into `severity=ERROR`, an exact
+   * match — while the API had already been taught to fold case (BUG-1420).
+   * `severity` is free text and production holds 1,466 lowercase rows against
+   * 5 uppercase, so the filter returned almost nothing while the tile that
+   * linked here counted 11 (BUG-1750).
+   *
+   * Passing the view key instead lets `incidentViewWhere` answer, which is the
+   * one place that decides what "critical" means.
+   */
+  if (viewId === "critical" && !params.has("severity")) {
+    params.set("viewKey", "critical");
+  }
   if (["new", "investigating", "resolved"].includes(viewId ?? "") && !params.has("status")) {
     params.set("status", String(viewId).toUpperCase());
   }

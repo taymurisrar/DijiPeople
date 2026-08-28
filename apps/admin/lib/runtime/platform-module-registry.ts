@@ -17,6 +17,8 @@ import {
   validateRuntimeDefinition,
 } from "@repo/config";
 import { PLATFORM_CURRENCY_OPTIONS } from "@/lib/reference-data/platform-reference-data";
+import { emptyListDescription, emptyListTitle } from "@repo/config";
+import { humanizeLabel } from "./humanize-label";
 
 const PLATFORM_OPERATORS = ["PLATFORM_OWNER", "PLATFORM_ADMIN", "SUPER_ADMIN"];
 const ALL_PLATFORM_ROLES = [
@@ -992,6 +994,38 @@ const FORM_EXCLUDED_FIELDS: Partial<Record<PlatformModuleKey, string[]>> = {
     "annualBasePrice",
     "legacyPricingMigratedAt",
   ],
+};
+
+/**
+ * Where a module's records come from, for screens that cannot create them.
+ *
+ * An empty state that says "create one" on a screen with no create control is
+ * an instruction the operator cannot follow (BUG-1559). Saying nothing is
+ * better; saying where the records actually come from is better still, and that
+ * is knowledge only the module has.
+ *
+ * Only modules whose `create` capability is false need an entry. Anything
+ * missing falls back to a bare "Nothing here yet.", which is honest.
+ */
+const RECORD_ORIGINS: Partial<Record<PlatformModuleKey, string>> = {
+  invoices:
+    "Invoices are raised automatically when a subscription bills.",
+  payments:
+    "Payments appear when a customer pays an invoice through Stripe.",
+  commissions:
+    "Commissions are calculated when a partner-referred subscription bills.",
+  subscriptions:
+    "Subscriptions are created by checkout, or from a customer onboarding.",
+  tenants:
+    "Tenants are provisioned from a paid subscription or a customer onboarding.",
+  "partner-inquiries":
+    "Enquiries arrive from the partner form on the public site.",
+  "partner-onboarding":
+    "Applications appear when an enquiry is accepted for onboarding.",
+  "monitoring-incidents":
+    "Incidents are recorded automatically when a request fails.",
+  "signature-requests":
+    "Signature requests appear when a contract is sent for signing.",
 };
 
 const definitions: PlatformModuleDefinition[] = [
@@ -4031,9 +4065,32 @@ function define(
     actions: input.actions ?? READ_ONLY_ACTIONS,
     relatedRecords: input.relatedRecords ?? [],
     permissions: input.permissions ?? modulePermissions(input.key),
+    /*
+     * The default said "Create a <thing> or adjust the current view and
+     * filters" for every empty list, and was wrong twice: it blamed filters
+     * that were not set (BUG-1752, and BUG-1654 before it, fixed in apps/web
+     * only), and it told the operator to create a record on screens with no
+     * create control — invoices, payments and commissions arrive from
+     * elsewhere, so the instruction could not be followed from where it was
+     * given (BUG-1559).
+     *
+     * The unfiltered wording is composed here; the filtered wording depends on
+     * what the operator has typed and is resolved by the list at render time.
+     * `origin` explains where records come from on a screen that cannot make
+     * them, and is declared per module — a generic sentence would be as useless
+     * as the one it replaces.
+     */
     emptyState: input.emptyState ?? {
-      title: `No ${input.pluralDisplayName.toLowerCase()} found`,
-      description: `Create a ${input.displayName.toLowerCase()} or adjust the current view and filters.`,
+      title: emptyListTitle({
+        filtered: false,
+        plural: input.pluralDisplayName,
+      }),
+      description: emptyListDescription({
+        filtered: false,
+        canCreate: MODULE_CAPABILITIES[input.key]?.create ?? false,
+        singular: input.displayName,
+        origin: RECORD_ORIGINS[input.key],
+      }),
       actionLabel: `New ${input.displayName.toLowerCase()}`,
     },
     importExport: input.importExport ?? { export: true, formats: ["csv"] },
@@ -4825,10 +4882,12 @@ function status(value: string): RuntimeStatusDefinition {
             : "neutral",
   };
 }
+/*
+ * Display text for a stored value. See `humanizeLabel` for why this is not a
+ * `toLowerCase()` and a capitalise: that spelling turned `IT / Software` into
+ * `It / Software` and a company size of `11-50` into `11 50`, in every dropdown
+ * in the console (BUG-1753).
+ */
 function title(value: string) {
-  return value
-    .toLowerCase()
-    .replaceAll("_", " ")
-    .replaceAll("-", " ")
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+  return humanizeLabel(value);
 }

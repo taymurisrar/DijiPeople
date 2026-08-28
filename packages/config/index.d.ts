@@ -346,3 +346,21 @@ export declare function isSupportedCurrencyCode(
 export declare function resolvePlatformCurrency(
   value: unknown,
 ): PlatformCurrency | null;
+
+/**
+ * What an empty list should say (BUG-1752, BUG-1559, BUG-1654).
+ *
+ * The admin default blamed filters that were not set and told operators to
+ * create records on screens with no create control. One implementation, shared,
+ * so the next correction is not made twice.
+ */
+export declare function emptyListDescription(input: {
+  filtered: boolean;
+  canCreate?: boolean;
+  singular?: string;
+  origin?: string;
+}): string;
+export declare function emptyListTitle(input: {
+  filtered: boolean;
+  plural?: string;
+}): string;

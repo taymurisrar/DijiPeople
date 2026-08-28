@@ -12,8 +12,16 @@ import { getErrorFrameworkConfig } from '../../common/errors/error-config';
 import { sanitizeForErrorLog } from '../../common/errors/sanitize-error-log';
 import { formatErrorLogText } from './error-log.formatter';
 import { toErrorMessage } from '../../common/utils/display-string';
+import { initialSupportStatus } from './expected-protocol-outcome';
 
 export type PersistErrorLogInput = {
+  /*
+   * True when the request matched no route at all — a scanner, a stale
+   * bookmark or a probe, rather than a broken feature. Decided by the
+   * exception filter, which is the only thing that can see it, and used to
+   * keep such rows out of the triage queue (BUG-1754).
+   */
+  unmatchedRoute?: boolean;
   traceId: string;
   errorCode: string;
   statusCode: number;
@@ -127,6 +135,21 @@ export class ErrorLogsService implements OnModuleInit, OnModuleDestroy {
                 firstSeenAt: new Date(),
                 lastSeenAt: new Date(),
                 occurrenceCount: 1,
+                /*
+                 * `supportStatus` defaults to NEW, which means "a human needs
+                 * to look at this". Ordinary session expiry and requests for
+                 * routes that do not exist never did, and defaulting them to
+                 * NEW is what put 1,588 rows in the triage queue and buried
+                 * eleven untouched critical incidents underneath (BUG-1754).
+                 *
+                 * Recorded, not dropped: support still needs to answer "why
+                 * was I signed out". Just not queued.
+                 */
+                supportStatus: initialSupportStatus({
+                  statusCode: input.statusCode,
+                  errorCode: input.errorCode,
+                  unmatchedRoute: input.unmatchedRoute,
+                }),
               },
             });
         await tx.errorLogOccurrence.upsert({

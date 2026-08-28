@@ -2756,3 +2756,93 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | The repository half was never wrong: `render.yaml` and `docs/environment-variables.md` both declared this correctly the whole time. So no unit test could have caught it, and this entry exists to record that the *only* durable guard for a config-drift class is making the drift observable from outside. The startup log already said the worker was disabled — once, at boot, into a stream nobody reads — while `/api/health` answered `status: ok` regardless. A log is not a check. **The production fix itself was made by the repository owner adding the variable, not by this branch**, and the value on the service still cannot be asserted from here; what changed is that a smoke run can now ask. |
 | **Fixed** | 2026-08-28 |
 | **Active** | yes |
+
+### REG-281 — A tile that counted 11 and linked to 0
+
+| | |
+|---|---|
+| **Bug class** | `one-rule-spelled-three-times` |
+| **Module** | `platform-monitoring`, `apps/admin` |
+| **Bug record** | BUG-1750, BUG-1420 |
+| **Root cause** | "Critical" was defined in three places and they disagreed. The overview metric counted `severity: 'ERROR'` exactly; the incidents view had been taught to fold case by BUG-1420; and the tile's link filtered on `severity=CRITICAL`, a value nothing in the system stores. `severity` is free text and production holds 1,466 lowercase rows against 5 uppercase, so the metric read 11 and the screen it opened returned 0 of 0. A fourth copy sat in the admin page, translating `viewId=critical` into `severity=ERROR`. |
+| **Regression test** | `services/api/src/modules/platform-monitoring/incident-severity-case.spec.ts` |
+| **Scenario** | The metric and the view produce the same where clause; the severity list appears exactly once in the service source; and the metric counts through the shared definition rather than a literal. Separately, `apps/admin/lib/monitoring-overview.spec.ts` asserts the tile links to the view and *not* to a severity value. |
+| **Proven to fail without the fix** | The single-definition assertion counts occurrences in the source, so restoring either duplicate fails it. The link assertion is written negatively for the same reason. |
+| **Note** | BUG-1420 fixed the view and left the metric carrying the original defect — which is the shape worth remembering: a case-folding fix applied to the reader somebody noticed, and not to the reader they did not. Promoting `severity` to an enum with a normalising migration is still the deeper fix and still needs an ExecPlan; the duplicated spellings in the `in` list stay load-bearing until then. |
+| **Fixed** | 2026-08-28 |
+| **Active** | yes |
+
+### REG-282 — A triage queue full of things nobody should triage
+
+| | |
+|---|---|
+| **Bug class** | `expected-outcome-recorded-as-failure` |
+| **Module** | `error-logs`, `platform-monitoring` |
+| **Bug record** | BUG-1754 |
+| **Root cause** | The ingest path recorded every non-2xx response with `supportStatus` defaulting to `NEW`, which means "a human needs to look at this". Ordinary session expiry (`401`) and requests for routes that do not exist (`404`) never did. 1,588 rows accumulated and the newest pages were almost entirely these, burying eleven critical items nobody had touched. |
+| **Regression test** | `services/api/src/modules/error-logs/expected-protocol-outcome.spec.ts` |
+| **Scenario** | Session `401`s and unmatched-route `404`s are classified as routine and recorded as `NOT_AN_INCIDENT`; everything else keeps its place in the queue, including `400` validation rejections, `404`s naming a record, `401`s that are not about the session, and anything unrecognised. |
+| **Proven to fail without the fix** | The classifier did not exist; every row was born `NEW`. |
+| **Note** | The load-bearing assertions here are the negative ones. The record proposing this fix also suggested sweeping `400` client validation rejections, and that would have been a serious mistake: BUG-1742 — no lead could be created from Platform Admin, for anyone, in production — presented as exactly that, a 400 saying `partnerId must be a UUID`. The distinction is not "did the client send something invalid" but "could the client have sent something valid". A classifier that guesses wrong in this direction hides defects; guessing wrong the other way costs one row somebody dismisses. **The existing 1,588 rows were not repaired** — `npm run repair:routine-incidents` exists, has a `--dry-run`, touches only rows still `NEW`, and has not been run against production. |
+| **Fixed** | 2026-08-28 |
+| **Active** | yes |
+
+### REG-283 — Empty lists that blamed filters nobody set
+
+| | |
+|---|---|
+| **Bug class** | `one-message-for-two-states` |
+| **Module** | `packages/config`, `apps/admin` |
+| **Bug record** | BUG-1752, BUG-1559, BUG-1558, BUG-1654 |
+| **Root cause** | The admin registry composed one static string for every empty list: "Create a &lt;thing&gt; or adjust the current view and filters." It blamed filters whether or not any were set, so a new workspace told its first operator that a search they had never run was hiding data that did not exist; and it instructed the operator to create a record on invoices, payments and commissions, which offer no create control and whose records arrive from elsewhere. The same sentence also produced "Create a invoice", and the row count read "1 records". |
+| **Regression test** | `packages/config/empty-list-message.test.js` |
+| **Scenario** | The unfiltered message mentions neither "filter" nor "search"; the filtered message says the filters are why and offers to clear them; a create suggestion appears only where a create control exists and never on a filtered list; screens that cannot create records say where they come from; and the indefinite article is chosen by sound, so "an invoice" and "a user" and "an hour". |
+| **Proven to fail without the fix** | The unfiltered assertion is written as a negative on the exact words the old string contained. |
+| **Note** | BUG-1654 fixed the first half in `apps/web` and `apps/admin` kept the defect for months, which is the entire reason this lives in `packages/config` rather than in either app. Whether a list is filtered is decided by the list and passed in, never recomputed here — the table already tracks it, including operators that filter without a value. The view key is deliberately not counted as a filter: a view is where the operator navigated to, and "Resolved" being empty is good news rather than something to clear. |
+| **Fixed** | 2026-08-28 |
+| **Active** | yes |
+
+### REG-284 — Destructive dialogs that did not say what they destroyed
+
+| | |
+|---|---|
+| **Bug class** | `confirmation-without-information` |
+| **Module** | `apps/admin` runtime |
+| **Bug record** | BUG-1560, BUG-1756 |
+| **Root cause** | The single-record dialog rendered the action's static `confirmTitle`, which cannot name a record. The bulk dialog said "Delete selected records?" with no count and no names, and the list showed no selection count either — so nothing anywhere on screen told the operator whether they were about to delete one row or every row on the page. |
+| **Regression test** | `apps/admin/lib/runtime/destructive-confirm.spec.ts` |
+| **Scenario** | A single delete names the record in its title; a bulk delete states the count, agrees in number, names up to five and counts the rest; a selection whose names are unknown is still counted; the action's own wording remains the fallback when there is nothing to name; and the list shows "n selected of m" before any dialog opens. |
+| **Proven to fail without the fix** | Every assertion exercises copy that did not previously exist. The spec additionally asserts the action bar no longer renders `confirmAction.confirmTitle ?? "Confirm action"`, so reintroducing the static path fails. |
+| **Note** | Five is the naming cutoff because forty names turn a dialog into a wall nobody reads, which fails the same way naming none does. The toolbar count matters more than the dialog: a dialog is a last chance, not the first place an operator should learn what they selected. |
+| **Fixed** | 2026-08-28 |
+| **Active** | yes |
+
+### REG-285 — A humaniser that mangled what it touched
+
+| | |
+|---|---|
+| **Bug class** | `normalisation-destroys-meaning` |
+| **Module** | `apps/admin` runtime |
+| **Bug record** | BUG-1753 |
+| **Root cause** | The label humaniser lowercased the whole value, replaced every hyphen and underscore with a space, then capitalised each word. That turned `IT / Software` into `It / Software`, `NDA` into `Nda`, `LINKEDIN` into `Linkedin`, and a company size of `11-50` into `11 50` — in every dropdown in the console. Display only; the stored values were always correct. |
+| **Regression test** | `apps/admin/lib/runtime/humanize-label.spec.ts` |
+| **Scenario** | A hyphen between digits joins them and a hyphen elsewhere still separates words; words with a canonical spelling keep it; ordinary values still title-case as before; and a word that merely *contains* an acronym is not corrupted. |
+| **Proven to fail without the fix** | Every range and acronym case asserts output the old implementation could not produce. |
+| **Note** | Canonical spellings are a table, not a rule, because no heuristic distinguishes `linkedin` → `LinkedIn` from `facebook` → `Facebook`. The bug record preferred explicit labels over a cleverer humaniser and was right. Two things to know: `title` stays a hoisted function declaration rather than `const title = humanizeLabel`, because `definitions` is evaluated at module scope and calls it from above — a const puts it in its own temporal dead zone and every import throws, which is how this was first written and immediately caught. And six other copies of the old implementation remain elsewhere in the admin app; they render things other than lookup values and were left alone, so they are the likeliest place for this to recur. |
+| **Fixed** | 2026-08-28 |
+| **Active** | yes |
+
+### REG-286 — Error modals that showed implementation detail
+
+| | |
+|---|---|
+| **Bug class** | `internal-vocabulary-reaches-the-user` |
+| **Module** | `apps/admin` runtime |
+| **Bug record** | BUG-1549 |
+| **Root cause** | class-validator composes messages as `<property> <constraint>`, and the property is the DTO's name for the field rather than the form's — so the modal read "primaryContactFirstName must be shorter than or equal to 100 characters", naming something invisible on screen. Separately, "Database constraint failed" is a Postgres failure class rendered as though it were a sentence about the form. |
+| **Regression test** | `apps/admin/lib/runtime/humanize-field-error.spec.ts` |
+| **Scenario** | The leading DTO property is replaced by the form's label and the constraint half is left exactly as it arrived; nothing changes without a label, or when the message does not begin with the property, or when a shorter property merely prefixes a longer one; and an internal failure class is replaced with a sentence that says where to look without naming a field it cannot identify. |
+| **Proven to fail without the fix** | The substitution did not exist; messages were rendered as received. |
+| **Note** | Only the name is rewritten, never the constraint — the constraint is the part that says what is actually wrong, and inventing wording for it would mean guessing at rules the frontend cannot see. `partner` must not rewrite the start of `partnerId must be a UUID`, which is why the match is anchored and word-bounded rather than a `startsWith`. The other half of this record — field errors marking the control rather than only appearing in a modal — arrived with REG-274 in the same sweep. |
+| **Fixed** | 2026-08-28 |
+| **Active** | yes |

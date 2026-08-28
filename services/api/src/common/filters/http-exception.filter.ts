@@ -142,6 +142,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
       tenantId: request.user?.tenantId,
       organizationId: request.user?.accessContext?.organizationId,
       businessUnitId: request.user?.accessContext?.businessUnitId,
+      unmatchedRoute: isUnmatchedRoute(
+        normalized.statusCode,
+        normalized.message,
+      ),
     });
 
     response.status(normalized.statusCode).json(contract);
@@ -408,6 +412,25 @@ function enrichErrorDetails(details: unknown, user?: AuthenticatedUser) {
  * about any Platform Admin failure and the one the caller's own `tenantId`
  * cannot answer.
  */
+/*
+ * Whether this 404 means "no such route" rather than "no such record".
+ *
+ * The two are the same status code and completely different events. A 404 for a
+ * record an operator asked for may be a real defect — a broken link, a deleted
+ * row something still references. A 404 for a path the application does not
+ * serve is a scanner, a stale bookmark or a probe, and there were enough of
+ * them to bury the monitoring queue (BUG-1754).
+ *
+ * Nest's default handler answers an unrouted request with `Cannot GET /path`,
+ * which is the only thing distinguishing the two by the time the filter sees
+ * them — a domain 404 carries a catalog code and a written message. Matched on
+ * the method prefix rather than the path so a record-not-found message that
+ * happens to contain the word cannot is not swept up with it.
+ */
+function isUnmatchedRoute(statusCode: number, message: string): boolean {
+  return statusCode === 404 && /^Cannot [A-Z]+ \//.test(message);
+}
+
 function readRouteContext(request: {
   params?: Record<string, unknown>;
 }): Record<string, unknown> {

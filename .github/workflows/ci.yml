@@ -445,6 +445,12 @@ jobs:
         # `@MaxLength(3)` accepted "5" as a currency, and partners in production
         # carry it. BUG-1425, reachable through the console via BUG-1747.
         run: npm run test:platform-currencies
+      - name: Empty lists say which kind of empty they are
+        # "Adjust the current view and filters" on a screen with no filters set
+        # told a new workspace that a search nobody ran was hiding data that did
+        # not exist — and told operators to create records on screens with no
+        # create control. BUG-1752, BUG-1559, BUG-1654.
+        run: npm run test:empty-list-message
       - name: Release publisher rules
         # Version reconciliation and the production confirmation rule. Both
         # decide what reaches customers, and neither is exercised by any other
