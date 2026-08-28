@@ -2621,3 +2621,48 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | The value itself is deployment configuration and cannot be asserted from the repository; what this holds is the code's behaviour *given* the value, so multi-label roots keep working. The inbound half is the dangerous one — it degrades to "which company are you?" rather than to an error, which is why a paying customer hit it before anyone else did. The fix was a rebuild, not an edit: `NEXT_PUBLIC_*` is inlined at build time, so a correct setting and a stale bundle are indistinguishable from the browser. |
 | **Fixed** | 2026-08-28, deployed as `e0aeabcd` |
 | **Active** | yes |
+
+### REG-272 — Runtime forms offered fields the API would reject
+
+| | |
+|---|---|
+| **Bug class** | `generated-artifact-answers-the-wrong-question` |
+| **Module** | `apps/admin`, `platform-runtime` |
+| **Bug record** | BUG-1743, BUG-1742 |
+| **Root cause** | `creatable`/`editable` in the runtime manifest were derived from `schema.prisma` — "is this a writable column?" — while `PlatformRuntimeService` validates the same payload against a per-module DTO with `forbidNonWhitelisted: true`. Two statements about different things, with nothing reconciling them: any writable column the DTO did not declare became an editable form field whose presence then rejected the entire request. Customers failed on `originChannel`, partners on `partnershipModel`, neither of which the operator had touched. Separately, an untouched optional lookup serialized as `""`, and `@IsOptional()` skips `null` and `undefined` and nothing else, so `@IsUUID()` ran on the empty string and blocked every lead creation. |
+| **Regression test** | `apps/admin/lib/runtime/runtime-write-contract.spec.ts` |
+| **Scenario** | For every module in the manifest, the payload built from an all-blank form must contain no key the module's create or update DTO would reject, and a module with no arm in the service switch must advertise nothing as writable. Plus: an untouched optional lookup is omitted on create and sent as `null` on edit. |
+| **Proven to fail without the fix** | Mutation-tested 2026-08-28, both halves. Restoring `customers.originChannel.editable = true` fails 2 of 39; disabling the empty-string normalization fails 2 of 39. |
+| **Note** | BUG-0220 fixed this for plans in 2026-08 and left `plan-record-form.spec.ts` behind — a test that is plans-shaped by construction and so could never fail for customers or partners. That test still passes and was deliberately left in place; the gap was not that it was wrong but that it could not fail for anyone else. This entry exists because the *shape* of the earlier fix was the problem. Deriving per-module writability also broke an aliasing nobody had written down: `modules.<key>.fields` and `models.<Model>.fields` were the same object, and the `contracts.contentHtml` projection depended on it — now written to both explicitly. |
+| **Fixed** | 2026-08-28 |
+| **Active** | yes |
+
+### REG-273 — "5" was a currency
+
+| | |
+|---|---|
+| **Bug class** | `validation-measures-the-wrong-property` |
+| **Module** | `partners`, `packages/config`, `apps/admin` |
+| **Bug record** | BUG-1425, BUG-1747 |
+| **Root cause** | `currencyCode` was validated as `@IsString() @MaxLength(3)`, which measures length and calls the result a currency: `"5"`, `"X"` and `"ZZZ"` were stored, and `"NOT_A_CURRENCY"` was rejected only for being fourteen characters. The admin form made it reachable rather than theoretical — Currency was rendered as `<input type="number">` because the registry's `"currency"` control means a money *amount*, so a number was the only value an operator could enter. The reason it had never been fixed is that there was nothing to validate against: `apps/admin` listed thirty-five currencies, `services/api/src/common/reference-data` listed eight, and nothing read the API one. |
+| **Regression test** | `packages/config/platform-currencies.test.js`, `services/api/src/modules/partners/dto/partner-currency.spec.ts` |
+| **Scenario** | `"5"`, `"X"`, `"ZZZ"`, `""`, `"qar"` and `"NOT_A_CURRENCY"` are rejected on partner create, partner update and commission create; the currencies the platform sells in are accepted; the field stays optional. Separately, the declared `PlatformCurrencyCode` union and the runtime array must describe the same set. |
+| **Proven to fail without the fix** | The API spec asserts on decorators that did not exist before this change — `@IsIn` replaced `@MaxLength(3)`, and every rejection case in it passed validation beforehand. |
+| **Note** | Deliberately scoped to partners and commissions. `currencyCode` appears in roughly twenty other DTOs across tenant-facing modules, and whether a tenant may transact in a currency outside the platform's own sales catalog is a product question nobody has answered — narrowing those would reject input that is valid today. Minor units are carried per currency because they are not all 2: the Gulf dinars are 3 and JPY and KRW are 0, and the API list omitted the field entirely. |
+| **Fixed** | 2026-08-28 |
+| **Active** | yes |
+
+### REG-274 — A form that refused to save and marked nothing
+
+| | |
+|---|---|
+| **Bug class** | `state-computed-globally-rendered-locally` |
+| **Module** | `apps/admin` runtime forms |
+| **Bug record** | BUG-1746, BUG-1546 |
+| **Root cause** | Validation state is computed for the whole form but rendered per field, and per-field rendering only reaches the mounted tab. Nothing lifted "this tab contains a failure" to the tab strip, so a multi-tab create form refused to save with a generic message while the visible tab looked complete and no element anywhere in the DOM carried an error marker. On the Partner form the failing field was worded differently and lived two tabs away, which made it a total dead end. |
+| **Regression test** | `apps/admin/lib/runtime/blocked-save-feedback.spec.ts` |
+| **Scenario** | Given failures on an unmounted tab: the tab strip reports a count for that tab, the first failing tab is identified for the switch, and the summary message names the fields rather than only asserting that some exist. Asserted against the real partner form definition, not a fixture — every required field it declares must be reachable by both the badge and the switch. |
+| **Proven to fail without the fix** | The behaviour did not exist before this change; the helper and its assertions were written together. The real-form assertion is the load-bearing one — it fails for any module that declares a required field with no tab, which is the exact state that produced the dead end. |
+| **Note** | The server's field errors take the same path as the client's. That half is what made BUG-1742 read as "nothing on either tab is marked as the offending field" — the API named `partnerId`, and the operator was looking at a different tab. |
+| **Fixed** | 2026-08-28 |
+| **Active** | yes |

@@ -911,7 +911,23 @@ const partnerFields: RuntimeFieldDefinition[] = [
     "commercial",
     true,
   ),
-  field("currencyCode", "Currency", "currency", "commercial", true),
+  /*
+   * A currency *code*, not an amount.
+   *
+   * `"currency"` names two different things in this registry — the money
+   * control, which renders `<input type="number">`, and the ISO code that says
+   * which money it is. `currencyCode` was given the first, so the only value an
+   * operator could enter on Partners → New was a number, and the API stored it:
+   * a partner created through the console carries `currencyCode: "5"`
+   * (BUG-1747).
+   *
+   * Contracts already declares this field as an option over
+   * `PLATFORM_CURRENCY_OPTIONS`. Partners now says the same thing the same way.
+   */
+  {
+    ...field("currencyCode", "Currency", "option", "commercial", true),
+    options: PLATFORM_CURRENCY_OPTIONS,
+  },
   {
     ...field("assignedToUserId", "Internal owner", "userLookup", "ownership"),
     lookupPath: "/platform-users/owner-candidates",
@@ -3812,7 +3828,11 @@ const definitions: PlatformModuleDefinition[] = [
       field("baseAmount", "Base amount", "currency", "commercial"),
       field("commissionRate", "Commission rate", "percentage", "commercial"),
       field("commissionAmount", "Commission amount", "currency", "commercial"),
-      field("currencyCode", "Currency", "text", "commercial"),
+      // A code, like the two above — see the note on the partner declaration.
+      {
+        ...field("currencyCode", "Currency", "option", "commercial"),
+        options: PLATFORM_CURRENCY_OPTIONS,
+      },
       field("earnedAt", "Earned", "dateTime", "dates"),
       field("dueAt", "Due", "dateTime", "dates"),
       field("paidAt", "Paid", "dateTime", "dates"),

@@ -4562,7 +4562,8 @@
       ],
       "qa_scenarios": [
         "QA-PLATFORM-003",
-        "QA-PLATFORM-004"
+        "QA-PLATFORM-004",
+        "QA-TENANT-025"
       ],
       "test_plan": [],
       "active_session_conflict": "NONE",
@@ -8392,8 +8393,8 @@
       "title": "currencyCode accepts any string of three characters or fewer",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "DEFERRED",
-      "architect_disposition": "DEFER",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-1425-currencycode-accepts-any-string-of-three-characters-or-fewer.md",
         "provenance": "QA_RUN",
@@ -8405,8 +8406,12 @@
       "affected_modules": [
         "services/api/src/modules/partners"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-273"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-026"
+      ],
       "test_plan": [
         "PLAN-019"
       ],
@@ -8770,21 +8775,25 @@
       "title": "Required fields on unfocused tabs give no indication of where they are",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "DEFERRED",
-      "architect_disposition": "DEFER",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-1546-required-fields-on-unfocused-tabs-give-no-indication-of-wher.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "21032ae",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-27",
+        "updated_at": "2026-08-28",
         "resolved_at": ""
       },
       "affected_modules": [
         "customization"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-274"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-027"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -9722,8 +9731,8 @@
       "title": "Lead creation is impossible: the runtime form always sends partnerId as an empty string",
       "severity": "CRITICAL",
       "priority": "P0",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-1742-lead-creation-is-impossible-the-runtime-form-always-sends-pa.md",
         "provenance": "QA_RUN",
@@ -9737,8 +9746,12 @@
         "api:platform-runtime",
         "api:super-admin"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-272"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-025"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -9764,8 +9777,8 @@
       "title": "Customers and partners cannot be edited: the runtime form echoes fields the update DTO forbids",
       "severity": "CRITICAL",
       "priority": "P0",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-1743-customers-and-partners-cannot-be-edited-the-runtime-form-ech.md",
         "provenance": "QA_RUN",
@@ -9779,8 +9792,12 @@
         "api:platform-runtime",
         "api:super-admin"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-272"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-025"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -9888,8 +9905,8 @@
       "title": "Required fields on unselected tabs are undiscoverable so create forms dead-end",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-1746-required-fields-on-unselected-tabs-are-undiscoverable-so-cre.md",
         "provenance": "QA_RUN",
@@ -9901,8 +9918,12 @@
       "affected_modules": [
         "apps/admin"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-274"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-027"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -9926,8 +9947,8 @@
       "title": "Partner Currency is a required numeric input so partner creation forces a corrupt currency code",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-1747-partner-currency-is-a-required-numeric-input-so-partner-crea.md",
         "provenance": "QA_RUN",
@@ -9940,8 +9961,12 @@
         "apps/admin",
         "api:super-admin"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-273"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-026"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [

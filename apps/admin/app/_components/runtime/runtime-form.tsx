@@ -10,6 +10,7 @@ import type {
 import { ContractDocumentEditor } from "@/app/_components/documents/contract-document-editor";
 import type { RuntimeLookupOption } from "@/lib/runtime/runtime-lookups";
 import { buildLookupRecordHref } from "@/lib/runtime/lookup-record-href";
+import { errorCountByTab } from "@/lib/runtime/blocked-save-feedback";
 import { useRuntimeLookupOptions } from "@/lib/runtime/use-runtime-lookup-options";
 
 type RuntimeValues = Record<string, unknown>;
@@ -49,6 +50,20 @@ export function RuntimeForm({
   const visibleSections = definition.sections.filter(
     (section) => !section.tab || section.tab === activeTab,
   );
+  /*
+   * How many failures each tab is hiding.
+   *
+   * Field errors render only on the mounted tab, so a form could refuse to save
+   * with "Complete the required fields." while every visible field looked fine
+   * and nothing anywhere in the DOM carried an error marker — the operator had
+   * no way to discover the failure was two tabs away (BUG-1746). Lifting the
+   * count to the tab strip means a blocked save always points somewhere.
+   */
+  const errorsByTab = errorCountByTab(
+    definition.fields,
+    errors,
+    definition.tabs?.[0]?.key,
+  );
   return (
     <form
       id={formId}
@@ -60,16 +75,35 @@ export function RuntimeForm({
     >
       {definition.tabs?.length ? (
         <div className="flex overflow-x-auto rounded-xl border border-slate-200 bg-white p-1">
-          {definition.tabs.map((tab) => (
-            <button
-              type="button"
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={`rounded-lg px-4 py-2 text-sm font-semibold ${activeTab === tab.key ? "bg-[var(--admin-primary)] text-white" : "text-slate-600"}`}
-            >
-              {tab.label}
-            </button>
-          ))}
+          {definition.tabs.map((tab) => {
+            const tabErrors = errorsByTab.get(tab.key) ?? 0;
+            return (
+              <button
+                type="button"
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                aria-current={activeTab === tab.key ? "true" : undefined}
+                data-error-count={tabErrors || undefined}
+                className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold ${activeTab === tab.key ? "bg-[var(--admin-primary)] text-white" : tabErrors ? "text-rose-600" : "text-slate-600"}`}
+              >
+                {tab.label}
+                {tabErrors ? (
+                  <span
+                    // Not colour alone: the badge carries the count as text and
+                    // names itself for a screen reader.
+                    className={`inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-xs font-bold ${activeTab === tab.key ? "bg-white text-rose-600" : "bg-rose-100 text-rose-700"}`}
+                  >
+                    <span aria-hidden="true">{tabErrors}</span>
+                    <span className="sr-only">
+                      {tabErrors === 1
+                        ? "1 field needs attention"
+                        : `${tabErrors} fields need attention`}
+                    </span>
+                  </span>
+                ) : null}
+              </button>
+            );
+          })}
         </div>
       ) : null}
       {visibleSections.map((section) => {

@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 212** · automated: 185 · manual: 9 · blocked by infrastructure: 0
+**Scenarios: 215** · automated: 188 · manual: 9 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -226,3 +226,6 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-TENANT-022](../../../docs/qa/scenarios/QA-TENANT-022-an-agreement-template-refuses-a-source-that-cannot-fill-it.md) | An agreement template refuses a source that cannot fill it | platform-admin | UNIT | HIGH | AUTOMATED | `services/api/src/modules/contracts/source-fills-template.spec.ts` | BUG-1541 | REG-268 |
 | [QA-TENANT-023](../../../docs/qa/scenarios/QA-TENANT-023-a-monitoring-incident-opens-somewhere-that-exists.md) | A monitoring incident opens somewhere that exists | platform-admin | UNIT | HIGH | AUTOMATED | `apps/admin/app/_components/monitoring/monitoring-incident-link.spec.ts` | BUG-1419 | REG-269 |
 | [QA-TENANT-024](../../../docs/qa/scenarios/QA-TENANT-024-the-critical-incident-view-sees-severity-in-either-case.md) | The critical incident view sees severity in either case | platform-admin | UNIT | HIGH | AUTOMATED | `services/api/src/modules/platform-monitoring/incident-severity-case.spec.ts` | BUG-1420 | REG-270 |
+| [QA-TENANT-025](../../../docs/qa/scenarios/QA-TENANT-025-every-admin-module-writes-only-what-its-dto-accepts.md) | Every admin module writes only what its DTO accepts | platform-admin | UNIT | HIGH | AUTOMATED | `apps/admin/lib/runtime/runtime-write-contract.spec.ts` | BUG-1743, BUG-1742, BUG-0220 | REG-272 |
+| [QA-TENANT-026](../../../docs/qa/scenarios/QA-TENANT-026-a-currency-code-is-a-currency-not-a-three-character-string.md) | A currency code is a currency, not a three-character string | platform-admin | UNIT | MEDIUM | AUTOMATED | `services/api/src/modules/partners/dto/partner-currency.spec.ts` | BUG-1425, BUG-1747 | REG-273 |
+| [QA-TENANT-027](../../../docs/qa/scenarios/QA-TENANT-027-a-blocked-save-always-points-at-the-field-that-blocked-it.md) | A blocked save always points at the field that blocked it | platform-admin | UNIT | MEDIUM | AUTOMATED | `apps/admin/lib/runtime/blocked-save-feedback.spec.ts` | BUG-1746, BUG-1546 | REG-274 |

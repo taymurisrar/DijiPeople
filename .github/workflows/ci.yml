@@ -439,6 +439,12 @@ jobs:
         # are the suffix-confusion and reserved-label cases that would otherwise
         # hand one customer another customer's workspace.
         run: npm run test:platform-domains
+      - name: Supported currency catalog
+        # One catalog for the API and the admin app. There were two lists of
+        # different lengths and nothing validated a code against either:
+        # `@MaxLength(3)` accepted "5" as a currency, and partners in production
+        # carry it. BUG-1425, reachable through the console via BUG-1747.
+        run: npm run test:platform-currencies
       - name: Release publisher rules
         # Version reconciliation and the production confirmation rule. Both
         # decide what reaches customers, and neither is exercised by any other

@@ -445,6 +445,12 @@ const {
   runtimeViewLabel,
 } = require("./platform-runtime-views");
 const {
+  PLATFORM_CURRENCIES,
+  PLATFORM_CURRENCY_CODES,
+  isSupportedCurrencyCode,
+  resolvePlatformCurrency,
+} = require("./platform-currencies");
+const {
   PLATFORM_ENVIRONMENTS,
   RESERVED_HOST_LABELS,
   buildWorkspaceHostname,
@@ -546,6 +552,10 @@ module.exports = {
   listRuntimeViewKeys,
   resolveRuntimeViewRule,
   runtimeViewLabel,
+  PLATFORM_CURRENCIES,
+  PLATFORM_CURRENCY_CODES,
+  isSupportedCurrencyCode,
+  resolvePlatformCurrency,
   PLATFORM_ENVIRONMENTS,
   RESERVED_HOST_LABELS,
   buildWorkspaceHostname,

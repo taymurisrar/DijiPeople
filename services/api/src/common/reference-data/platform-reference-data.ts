@@ -9,16 +9,24 @@ export const PLATFORM_COUNTRIES = [
   { code: 'GB', name: 'United Kingdom' },
 ] as const;
 
-export const PLATFORM_CURRENCIES = [
-  { code: 'QAR', name: 'Qatari Riyal' },
-  { code: 'SAR', name: 'Saudi Riyal' },
-  { code: 'AED', name: 'UAE Dirham' },
-  { code: 'BHD', name: 'Bahraini Dinar' },
-  { code: 'KWD', name: 'Kuwaiti Dinar' },
-  { code: 'OMR', name: 'Omani Rial' },
-  { code: 'USD', name: 'US Dollar' },
-  { code: 'GBP', name: 'Pound Sterling' },
-] as const;
+/*
+ * The currency catalog is `@repo/config`'s, not this file's (BUG-1425).
+ *
+ * There were two lists. This one knew eight currencies and nothing read it;
+ * `apps/admin` offered thirty-five to the operator; and no DTO checked a code
+ * against either, because `@IsString() @MaxLength(3)` measures length and calls
+ * the result a currency. A partner created through the console carries
+ * `currencyCode: "5"`.
+ *
+ * Re-exported rather than deleted: the name is part of this module's surface,
+ * and a caller asking for the platform's currencies should keep getting them.
+ */
+export {
+  PLATFORM_CURRENCIES,
+  PLATFORM_CURRENCY_CODES,
+  isSupportedCurrencyCode,
+  resolvePlatformCurrency,
+} from '@repo/config';
 
 export const PLATFORM_TIMEZONES = [
   'Asia/Qatar',

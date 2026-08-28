@@ -18,7 +18,11 @@ import type {
   RuntimeColumnDefinition,
   RuntimeRecord,
 } from "@/lib/runtime/platform-runtime.types";
-import { getRuntimeSchema } from "@repo/config";
+import { buildWritePayload } from "@/lib/runtime/runtime-write-payload";
+import {
+  describeBlockedSave,
+  firstFailingTab,
+} from "@/lib/runtime/blocked-save-feedback";
 import { executeRuntimeRecordAction } from "@/lib/runtime/runtime-record-action-handler";
 import { ModuleActionBar } from "./module-action-bar";
 import {
@@ -276,30 +280,42 @@ function RuntimeRecordEditor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [adapter, isCreate, record.id]);
 
+  /*
+   * Move to whichever tab is actually holding a failure.
+   *
+   * "Complete the required fields." in the toolbar corner was the only feedback
+   * a blocked save gave, and per-field errors render only on the mounted tab —
+   * so on a multi-tab form the operator saw a complete-looking tab and no error
+   * anywhere (BUG-1746). On the Partner form that was a total dead end.
+   */
+  function revealFailures(fieldErrors: Record<string, string>) {
+    const tab = firstFailingTab(formDefinition.fields, fieldErrors);
+    if (tab && tab !== activeTab) setActiveTab(tab);
+  }
+
   async function save(close: boolean) {
     const clientErrors = validateRuntimeValues(formDefinition, form.values);
     setErrors(clientErrors);
-    if (Object.keys(clientErrors).length)
-      return { success: false, message: "Complete the required fields." };
-    const payload = Object.fromEntries(
-      formDefinition.fields
-        .filter(
-          (field) =>
-            !["timeline", "relatedRecords", "process"].includes(field.type) &&
-            !field.readOnly &&
-            !(
-              field.readOnlyWhen &&
-              form.values[field.readOnlyWhen.field] ===
-                field.readOnlyWhen.equals
-            ) &&
-            field.key in form.values &&
-            Boolean(
-              isCreate
-                ? getRuntimeSchema(moduleKey)?.fields[field.key]?.creatable
-                : getRuntimeSchema(moduleKey)?.fields[field.key]?.editable,
-            ),
-        )
-        .map((field) => [field.key, form.values[field.key]]),
+    if (Object.keys(clientErrors).length) {
+      revealFailures(clientErrors);
+      return {
+        success: false,
+        message: describeBlockedSave(formDefinition.fields, clientErrors),
+      };
+    }
+    const payload = buildWritePayload(
+      moduleKey,
+      formDefinition.fields.filter(
+        (field) =>
+          !["timeline", "relatedRecords", "process"].includes(field.type) &&
+          !field.readOnly &&
+          !(
+            field.readOnlyWhen &&
+            form.values[field.readOnlyWhen.field] === field.readOnlyWhen.equals
+          ),
+      ),
+      form.values,
+      isCreate,
     );
     const validation = await adapter.validateRecord(
       payload,
@@ -307,13 +323,16 @@ function RuntimeRecordEditor({
       record.id || undefined,
     );
     if (!validation.success) {
-      setErrors(
-        Object.fromEntries(
-          (validation.errors ?? [])
-            .filter((item) => item.field)
-            .map((item) => [item.field!, item.message]),
-        ),
+      const serverErrors = Object.fromEntries(
+        (validation.errors ?? [])
+          .filter((item) => item.field)
+          .map((item) => [item.field!, item.message]),
       );
+      setErrors(serverErrors);
+      // A rejected field can sit on a tab the operator is not looking at just
+      // as easily as a blank required one, so the server's verdict gets the
+      // same treatment as the client's.
+      revealFailures(serverErrors);
       return validation;
     }
     const response = isCreate

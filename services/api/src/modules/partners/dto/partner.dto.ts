@@ -19,6 +19,7 @@ import {
   PartnerStatus,
   PartnerType,
 } from '@prisma/client';
+import { PLATFORM_CURRENCY_CODES } from '@repo/config';
 
 export class PartnerQueryDto {
   @IsOptional() @IsString() search?: string;
@@ -47,7 +48,19 @@ export class CreatePartnerDto {
   @Min(0)
   @Max(100)
   defaultCommissionRate!: number;
-  @IsOptional() @IsString() @MaxLength(3) currencyCode?: string;
+  /*
+   * A currency, not a three-character string (BUG-1425).
+   *
+   * `@MaxLength(3)` rejected `"NOT_A_CURRENCY"` for being fourteen
+   * characters and accepted `"5"`, `"X"` and `"ZZZ"` for fitting. The
+   * partner form offered a numeric input for this field, so `"5"` is not
+   * hypothetical — partners in production carry it (BUG-1747).
+   */
+  @IsOptional()
+  @IsIn(PLATFORM_CURRENCY_CODES as readonly string[], {
+    message: 'currencyCode must be a supported currency code.',
+  })
+  currencyCode?: string;
   @IsOptional() @IsEnum(PartnerStatus) status?: PartnerStatus;
   @IsOptional() @IsUUID() assignedToUserId?: string;
   @IsOptional() @IsString() @MaxLength(4000) notes?: string;
@@ -59,7 +72,19 @@ export class CreatePartnerCommissionDto {
   @IsOptional() @IsUUID() invoiceId?: string;
   @Type(() => Number) @IsNumber() @Min(0) baseAmount!: number;
   @Type(() => Number) @IsNumber() @Min(0) @Max(100) commissionRate!: number;
-  @IsOptional() @IsString() @MaxLength(3) currencyCode?: string;
+  /*
+   * A currency, not a three-character string (BUG-1425).
+   *
+   * `@MaxLength(3)` rejected `"NOT_A_CURRENCY"` for being fourteen
+   * characters and accepted `"5"`, `"X"` and `"ZZZ"` for fitting. The
+   * partner form offered a numeric input for this field, so `"5"` is not
+   * hypothetical — partners in production carry it (BUG-1747).
+   */
+  @IsOptional()
+  @IsIn(PLATFORM_CURRENCY_CODES as readonly string[], {
+    message: 'currencyCode must be a supported currency code.',
+  })
+  currencyCode?: string;
   @IsOptional() @IsString() description?: string;
   @IsOptional() @IsDateString() earnedAt?: string;
   @IsOptional() @IsDateString() dueAt?: string;

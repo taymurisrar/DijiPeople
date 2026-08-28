@@ -13,14 +13,14 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 59 |
+| Open (active work) | 61 |
 | Blocked | 2 |
-| Deferred | 44 |
+| Deferred | 42 |
 | Awaiting a product decision | 2 |
 | Completed / closed | 213 |
 | **Open CRITICAL** | **8** |
 | **Open HIGH** | **18** |
-| **Awaiting Architect triage** | **16** |
+| **Awaiting Architect triage** | **12** |
 
 ## Open by severity
 
@@ -28,7 +28,7 @@ see [`README.md`](README.md) for why.
 |---|---|
 | CRITICAL | 8 |
 | HIGH | 18 |
-| MEDIUM | 27 |
+| MEDIUM | 29 |
 | LOW | 6 |
 
 ## Open by type
@@ -37,7 +37,7 @@ see [`README.md`](README.md) for why.
 |---|---|
 | ARCHITECTURE | 1 |
 | BUG | 20 |
-| DATA_INTEGRITY | 3 |
+| DATA_INTEGRITY | 4 |
 | FOLLOW_UP | 2 |
 | INFRA | 7 |
 | INTEGRATION | 1 |
@@ -45,17 +45,17 @@ see [`README.md`](README.md) for why.
 | STATE_MACHINE | 2 |
 | TECH_DEBT | 5 |
 | TEST_GAP | 8 |
-| UX | 7 |
+| UX | 8 |
 
 ## All records by status
 
 | Status | Count |
 |---|---|
-| OPEN | 27 |
+| OPEN | 23 |
 | BLOCKED | 2 |
-| DEFERRED | 44 |
+| DEFERRED | 42 |
 | PRODUCT_DECISION | 2 |
-| FIXED | 9 |
+| FIXED | 15 |
 | VERIFIED | 155 |
 | DUPLICATE | 4 |
 | ACCEPTED_RISK | 1 |
@@ -82,8 +82,8 @@ see [`README.md`](README.md) for why.
 | [BUG-1133](../../docs/bugs/BUG-1133-saving-a-plan-price-deactivates-every-sibling-price-on-a-nar.md) | Saving a plan price deactivates every sibling price on a narrower key than the unique index | DATA_INTEGRITY | CRITICAL | P0 | VERIFIED | api:super-admin, apps/admin | DONE |
 | [BUG-1595](../../docs/bugs/BUG-1595-production-has-no-tenant-email-provider-so-no-tenant-can-sen.md) | Production has no tenant email provider so no tenant can send any email | INFRA | CRITICAL | P0 | VERIFIED | notifications, tenants | DONE |
 | [BUG-1644](../../docs/bugs/BUG-1644-tenant-root-domain-is-misconfigured-so-no-customer-can-reach.md) | Tenant root domain is misconfigured so no customer can reach their workspace login | INFRA | CRITICAL | P0 | VERIFIED | tenant-domains, tenants | DONE |
-| [BUG-1742](../../docs/bugs/BUG-1742-lead-creation-is-impossible-the-runtime-form-always-sends-pa.md) | Lead creation is impossible: the runtime form always sends partnerId as an empty string | BUG | CRITICAL | P0 | OPEN | apps/admin, api:platform-runtime, api:super-admin | TRIAGE_REQUIRED |
-| [BUG-1743](../../docs/bugs/BUG-1743-customers-and-partners-cannot-be-edited-the-runtime-form-ech.md) | Customers and partners cannot be edited: the runtime form echoes fields the update DTO forbids | BUG | CRITICAL | P0 | OPEN | apps/admin, api:platform-runtime, api:super-admin | TRIAGE_REQUIRED |
+| [BUG-1742](../../docs/bugs/BUG-1742-lead-creation-is-impossible-the-runtime-form-always-sends-pa.md) | Lead creation is impossible: the runtime form always sends partnerId as an empty string | BUG | CRITICAL | P0 | FIXED | apps/admin, api:platform-runtime, api:super-admin | FIX_NOW |
+| [BUG-1743](../../docs/bugs/BUG-1743-customers-and-partners-cannot-be-edited-the-runtime-form-ech.md) | Customers and partners cannot be edited: the runtime form echoes fields the update DTO forbids | BUG | CRITICAL | P0 | FIXED | apps/admin, api:platform-runtime, api:super-admin | FIX_NOW |
 | [BUG-1744](../../docs/bugs/BUG-1744-every-subscription-has-a-zero-length-billing-period-and-a-re.md) | Every subscription has a zero-length billing period and a renewal date in the past | DATA_INTEGRITY | CRITICAL | P0 | OPEN | api:super-admin, api:billing, integration:stripe | TRIAGE_REQUIRED |
 | [BUG-1494](../../docs/bugs/BUG-1494-git-worktree-remove-follows-node-modules-junctions-and-delet.md) | git worktree remove follows node_modules junctions and deletes the primary checkout | INFRA | CRITICAL | P1 | FIXED | scripts | DONE |
 | [BUG-0049](../../docs/bugs/BUG-0049-report-only-ci-jobs-swallow-security-and-database-e2e-failur.md) | Report-only CI jobs swallow security and database E2E failures | INFRA | HIGH | P0 | VERIFIED | .github/workflows, services/api/src/common/constants, services/api/test, docs/qa | DONE |
@@ -177,7 +177,7 @@ see [`README.md`](README.md) for why.
 | [BUG-1578](../../docs/bugs/BUG-1578-admin-customer-form-stores-a-country-lookup-id-where-every-r.md) | Admin customer form stores a country lookup id where every reader expects a name | DATA_INTEGRITY | HIGH | P1 | VERIFIED | super-admin, contracts, lookups | DONE |
 | [BUG-1649](../../docs/bugs/BUG-1649-api-proxy-routes-copy-the-upstream-content-encoding-onto-an-.md) | API proxy routes copy the upstream Content-Encoding onto an already-decompressed body | BUG | HIGH | P1 | FIXED | settings-runtime, tenant-settings | FIX_NOW |
 | [BUG-1745](../../docs/bugs/BUG-1745-the-executive-dashboard-reports-zero-revenue-because-reporti.md) | The executive dashboard reports zero revenue because reporting currency is PKR and all money is QAR | BUG | HIGH | P1 | OPEN | apps/admin, api:super-admin | TRIAGE_REQUIRED |
-| [BUG-1747](../../docs/bugs/BUG-1747-partner-currency-is-a-required-numeric-input-so-partner-crea.md) | Partner Currency is a required numeric input so partner creation forces a corrupt currency code | BUG | HIGH | P1 | OPEN | apps/admin, api:super-admin | TRIAGE_REQUIRED |
+| [BUG-1747](../../docs/bugs/BUG-1747-partner-currency-is-a-required-numeric-input-so-partner-crea.md) | Partner Currency is a required numeric input so partner creation forces a corrupt currency code | BUG | HIGH | P1 | FIXED | apps/admin, api:super-admin | FIX_NOW |
 | [BUG-1749](../../docs/bugs/BUG-1749-admin-creates-plans-that-can-never-be-sold-and-can-never-be-.md) | Admin creates plans that can never be sold and can never be deleted | BUG | HIGH | P1 | OPEN | apps/admin, api:super-admin | TRIAGE_REQUIRED |
 | [BUG-1750](../../docs/bugs/BUG-1750-the-monitoring-critical-tile-miscounts-and-links-to-a-filter.md) | The monitoring critical tile miscounts and links to a filter that matches nothing | BUG | HIGH | P1 | OPEN | apps/admin, api:platform-monitoring | TRIAGE_REQUIRED |
 | [BUG-1751](../../docs/bugs/BUG-1751-a-promotion-goes-live-against-every-subscription-the-instant.md) | A promotion goes live against every subscription the instant it is created | BUG | HIGH | P1 | OPEN | apps/admin, api:super-admin, integration:stripe | TRIAGE_REQUIRED |
@@ -259,9 +259,9 @@ see [`README.md`](README.md) for why.
 | [BUG-1364](../../docs/bugs/BUG-1364-a-coordinate-leak-assertion-substring-matches-json-and-fails.md) | A coordinate-leak assertion substring-matches JSON and fails when the clock spells a coordinate | TEST_GAP | MEDIUM | P2 | VERIFIED | services/api/test | DONE |
 | [BUG-1421](../../docs/bugs/BUG-1421-every-admin-screen-shares-one-page-title-two-main-landmarks-.md) | Every admin screen shares one page title, two main landmarks and a duplicate h1 | UX | MEDIUM | P2 | DEFERRED | apps/admin | DEFER |
 | [BUG-1424](../../docs/bugs/BUG-1424-the-admin-console-serves-no-content-security-policy-header.md) | The admin console serves no Content-Security-Policy header | SECURITY | MEDIUM | P2 | OPEN | apps/admin | PLAN_REQUIRED |
-| [BUG-1425](../../docs/bugs/BUG-1425-currencycode-accepts-any-string-of-three-characters-or-fewer.md) | currencyCode accepts any string of three characters or fewer | DATA_INTEGRITY | MEDIUM | P2 | DEFERRED | api:partners | DEFER |
+| [BUG-1425](../../docs/bugs/BUG-1425-currencycode-accepts-any-string-of-three-characters-or-fewer.md) | currencyCode accepts any string of three characters or fewer | DATA_INTEGRITY | MEDIUM | P2 | FIXED | api:partners | FIX_NOW |
 | [BUG-1545](../../docs/bugs/BUG-1545-manual-customer-onboarding-creation-fails-on-an-owner-foreig.md) | Manual customer onboarding creation fails on an owner foreign key | BUG | MEDIUM | P2 | OPEN | platform-runtime, onboarding | PLAN_REQUIRED |
-| [BUG-1546](../../docs/bugs/BUG-1546-required-fields-on-unfocused-tabs-give-no-indication-of-wher.md) | Required fields on unfocused tabs give no indication of where they are | UX | MEDIUM | P2 | DEFERRED | customization | DEFER |
+| [BUG-1546](../../docs/bugs/BUG-1546-required-fields-on-unfocused-tabs-give-no-indication-of-wher.md) | Required fields on unfocused tabs give no indication of where they are | UX | MEDIUM | P2 | FIXED | customization | FIX_NOW |
 | [BUG-1547](../../docs/bugs/BUG-1547-onboarding-prerequisite-message-states-the-inverse-of-the-tr.md) | Onboarding prerequisite message states the inverse of the truth | UX | MEDIUM | P2 | DEFERRED | onboarding | DEFER |
 | [BUG-1548](../../docs/bugs/BUG-1548-customer-onboarding-validate-accepts-payloads-that-create-re.md) | Customer onboarding validate accepts payloads that create rejects | BUG | MEDIUM | P2 | DEFERRED | onboarding | DEFER |
 | [BUG-1549](../../docs/bugs/BUG-1549-database-and-validator-internals-are-surfaced-in-user-facing.md) | Database and validator internals are surfaced in user-facing errors | UX | MEDIUM | P2 | DEFERRED | error-logs | DEFER |
@@ -275,7 +275,7 @@ see [`README.md`](README.md) for why.
 | [BUG-1655](../../docs/bugs/BUG-1655-tenant-login-password-field-has-no-accessible-name-and-no-au.md) | Tenant login password field has no accessible name and no autocomplete hint | UX | MEDIUM | P2 | DEFERRED | auth | DEFER |
 | [BUG-1668](../../docs/bugs/BUG-1668-tenant-workspace-pages-scroll-horizontally-at-mobile-width.md) | Tenant workspace pages scroll horizontally at mobile width | UX | MEDIUM | P2 | DEFERRED | views | DEFER |
 | [BUG-1673](../../docs/bugs/BUG-1673-tenant-workspace-shell-repeats-three-h1-headings-and-two-mai.md) | Tenant workspace shell repeats three h1 headings and two main landmarks on every screen | UX | MEDIUM | P2 | DEFERRED | views | DEFER |
-| [BUG-1746](../../docs/bugs/BUG-1746-required-fields-on-unselected-tabs-are-undiscoverable-so-cre.md) | Required fields on unselected tabs are undiscoverable so create forms dead-end | UX | MEDIUM | P2 | OPEN | apps/admin | TRIAGE_REQUIRED |
+| [BUG-1746](../../docs/bugs/BUG-1746-required-fields-on-unselected-tabs-are-undiscoverable-so-cre.md) | Required fields on unselected tabs are undiscoverable so create forms dead-end | UX | MEDIUM | P2 | FIXED | apps/admin | FIX_NOW |
 | [BUG-1748](../../docs/bugs/BUG-1748-the-subscription-record-page-cannot-resolve-its-own-tenant-p.md) | The subscription record page cannot resolve its own tenant plan or price | BUG | MEDIUM | P2 | OPEN | apps/admin, api:platform-runtime | TRIAGE_REQUIRED |
 | [BUG-1754](../../docs/bugs/BUG-1754-the-incident-queue-counts-routine-401s-and-unknown-route-404.md) | The incident queue counts routine 401s and unknown-route 404s as incidents needing triage | BUG | MEDIUM | P2 | OPEN | api:platform-monitoring, api:error-logs | TRIAGE_REQUIRED |
 | [BUG-1756](../../docs/bugs/BUG-1756-bulk-delete-confirms-without-naming-how-many-records-or-whic.md) | Bulk delete confirms without naming how many records or which ones | UX | MEDIUM | P2 | OPEN | apps/admin | TRIAGE_REQUIRED |

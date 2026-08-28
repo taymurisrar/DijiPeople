@@ -280,3 +280,69 @@ export declare function resolveMigrationDatabaseUrl(
 export declare function describeMigrationUrlProblem(
   env?: NodeJS.ProcessEnv,
 ): string | null;
+
+/**
+ * The currencies the platform supports (BUG-1425).
+ *
+ * One catalog for the API and the admin app, which previously held two lists of
+ * different lengths while neither validated a code: partner and commission DTOs
+ * checked `@MaxLength(3)` and stored whatever fitted, so `"5"` was a currency.
+ */
+/*
+ * The union is spelled out so consumers keep literal types: `apps/admin`
+ * derives `PlatformCurrencyCode` from it and uses it in `satisfies` positions
+ * that a bare `string` would silently widen. `platform-currencies.test.js`
+ * asserts this list and the runtime array describe the same set, so the two
+ * halves of this package cannot drift the way the app-level lists did.
+ */
+export type PlatformCurrencyCode =
+  | "QAR"
+  | "SAR"
+  | "AED"
+  | "BHD"
+  | "KWD"
+  | "OMR"
+  | "USD"
+  | "GBP"
+  | "EUR"
+  | "PKR"
+  | "INR"
+  | "BDT"
+  | "LKR"
+  | "NPR"
+  | "PHP"
+  | "MYR"
+  | "SGD"
+  | "CNY"
+  | "JPY"
+  | "KRW"
+  | "TRY"
+  | "EGP"
+  | "ZAR"
+  | "NGN"
+  | "KES"
+  | "CAD"
+  | "AUD"
+  | "NZD"
+  | "CHF"
+  | "SEK"
+  | "NOK"
+  | "DKK"
+  | "MXN"
+  | "BRL"
+  | "ARS";
+
+export interface PlatformCurrency {
+  readonly code: PlatformCurrencyCode;
+  readonly name: string;
+  readonly symbol: string;
+  readonly decimals: number;
+}
+export declare const PLATFORM_CURRENCIES: readonly PlatformCurrency[];
+export declare const PLATFORM_CURRENCY_CODES: readonly PlatformCurrencyCode[];
+export declare function isSupportedCurrencyCode(
+  value: unknown,
+): value is PlatformCurrencyCode;
+export declare function resolvePlatformCurrency(
+  value: unknown,
+): PlatformCurrency | null;
