@@ -110,8 +110,12 @@ await check("outbox worker is draining events", async () => {
 
   if (enabled === undefined) {
     throw new Error(
-      "health does not report outboxWorker.enabled — the deployment predates " +
-        "the BUG-0904 fix, so whether the worker runs cannot be observed.",
+      "health does not report outboxWorker.enabled, so whether the worker " +
+        "runs cannot be observed. Either the deployment predates the BUG-0904 " +
+        "fix, or it carries the first version of it — which added the field to " +
+        "AppService while `/api/health` is answered by an express handler in " +
+        "main.ts that bypasses the Nest controller entirely. Check main.ts " +
+        "before concluding the deployment is simply old.",
     );
   }
   if (enabled !== true) {

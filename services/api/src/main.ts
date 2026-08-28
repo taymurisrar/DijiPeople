@@ -16,6 +16,7 @@ import {
   type Response,
 } from 'express';
 import { AppModule } from './app.module';
+import { OutboxWorkerService } from './modules/outbox/outbox-worker.service';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { assertAuthEnvironment } from './common/config/auth.config';
 import { ConfigService } from '@nestjs/config';
@@ -95,7 +96,28 @@ async function bootstrap() {
     );
   }
 
-  const healthPayload = () => getRuntimeHealthPayload(process.env);
+  /*
+   * These express handlers answer before Nest's router, so `AppController` is
+   * not what serves `/api/health` in production — it is unreachable for these
+   * three paths.
+   *
+   * That mattered on 2026-08-28. The outbox worker's state was added to
+   * `AppService.getHealth()` to make BUG-0904's configuration drift
+   * observable; every test passed, the release deployed, and the field did not
+   * appear — because nothing asks `AppService` anything on this route. A fix
+   * that ships and has no effect is worse than an unfixed bug, because the
+   * record says it is done.
+   *
+   * The worker is resolved from the container rather than reading
+   * `OUTBOX_WORKER_ENABLED` here a second time, so this reports what the
+   * running process actually decided rather than a second interpretation of
+   * the same variable.
+   */
+  const outboxWorker = app.get(OutboxWorkerService, { strict: false });
+  const healthPayload = () => ({
+    ...getRuntimeHealthPayload(process.env),
+    outboxWorker: { enabled: outboxWorker.isEnabled() },
+  });
   expressApp.get('/', (_req, res) => res.json(healthPayload()));
   expressApp.get('/api', (_req, res) => res.json(healthPayload()));
   expressApp.get('/api/health', (_req, res) => res.json(healthPayload()));
