@@ -10,6 +10,8 @@ import type {
 import { ContractDocumentEditor } from "@/app/_components/documents/contract-document-editor";
 import type { RuntimeLookupOption } from "@/lib/runtime/runtime-lookups";
 import { buildLookupRecordHref } from "@/lib/runtime/lookup-record-href";
+import { errorCountByTab } from "@/lib/runtime/blocked-save-feedback";
+import { humanizeLabel } from "@/lib/runtime/humanize-label";
 import { useRuntimeLookupOptions } from "@/lib/runtime/use-runtime-lookup-options";
 
 type RuntimeValues = Record<string, unknown>;
@@ -49,6 +51,20 @@ export function RuntimeForm({
   const visibleSections = definition.sections.filter(
     (section) => !section.tab || section.tab === activeTab,
   );
+  /*
+   * How many failures each tab is hiding.
+   *
+   * Field errors render only on the mounted tab, so a form could refuse to save
+   * with "Complete the required fields." while every visible field looked fine
+   * and nothing anywhere in the DOM carried an error marker — the operator had
+   * no way to discover the failure was two tabs away (BUG-1746). Lifting the
+   * count to the tab strip means a blocked save always points somewhere.
+   */
+  const errorsByTab = errorCountByTab(
+    definition.fields,
+    errors,
+    definition.tabs?.[0]?.key,
+  );
   return (
     <form
       id={formId}
@@ -60,16 +76,35 @@ export function RuntimeForm({
     >
       {definition.tabs?.length ? (
         <div className="flex overflow-x-auto rounded-xl border border-slate-200 bg-white p-1">
-          {definition.tabs.map((tab) => (
-            <button
-              type="button"
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={`rounded-lg px-4 py-2 text-sm font-semibold ${activeTab === tab.key ? "bg-[var(--admin-primary)] text-white" : "text-slate-600"}`}
-            >
-              {tab.label}
-            </button>
-          ))}
+          {definition.tabs.map((tab) => {
+            const tabErrors = errorsByTab.get(tab.key) ?? 0;
+            return (
+              <button
+                type="button"
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                aria-current={activeTab === tab.key ? "true" : undefined}
+                data-error-count={tabErrors || undefined}
+                className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold ${activeTab === tab.key ? "bg-[var(--admin-primary)] text-white" : tabErrors ? "text-rose-600" : "text-slate-600"}`}
+              >
+                {tab.label}
+                {tabErrors ? (
+                  <span
+                    // Not colour alone: the badge carries the count as text and
+                    // names itself for a screen reader.
+                    className={`inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-xs font-bold ${activeTab === tab.key ? "bg-white text-rose-600" : "bg-rose-100 text-rose-700"}`}
+                  >
+                    <span aria-hidden="true">{tabErrors}</span>
+                    <span className="sr-only">
+                      {tabErrors === 1
+                        ? "1 field needs attention"
+                        : `${tabErrors} fields need attention`}
+                    </span>
+                  </span>
+                ) : null}
+              </button>
+            );
+          })}
         </div>
       ) : null}
       {visibleSections.map((section) => {
@@ -205,15 +240,39 @@ function RuntimeField({
       </div>
     );
   }
+  /*
+   * A real label, bound to a real control (BUG-1423).
+   *
+   * The label used to be a `<span>` with nothing connecting it to the input:
+   * visible, so the form looked correct, and invisible to a screen reader,
+   * which announced 28 unlabelled controls across four create screens. The
+   * bespoke forms on the same site were clean, which is what identified this
+   * shared component as the cause.
+   *
+   * `id` also restores browser autofill, which cannot work on an input with no
+   * `id` or `name` — a second thing that looked like a preference and was a
+   * missing attribute.
+   */
+  const controlId = `field-${field.key}`;
+  const errorId = error ? `${controlId}-error` : undefined;
+
   return (
     <div
       data-field-key={field.key}
       className={`flex flex-col gap-1.5 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500 ${span}`}
     >
-      <span className="block min-h-4">
+      <label htmlFor={controlId} id={`${controlId}-label`} className="block min-h-4">
         {field.label}
-        {required ? <span className="ml-1 text-rose-600">*</span> : null}
-      </span>
+        {required ? (
+          <span className="ml-1 text-rose-600" aria-hidden="true">
+            *
+          </span>
+        ) : null}
+        {/* The asterisk is decorative; `required` on the control is what a
+            screen reader reads, and this says it in words for the cases where
+            the control cannot carry it. */}
+        {required ? <span className="sr-only"> (required)</span> : null}
+      </label>
       {/*
         A value nobody can change is not a form control. Rendering read-only
         fields as inputs is what produced every one of the field defects on this
@@ -232,10 +291,16 @@ function RuntimeField({
           readOnly={readOnly}
           required={required}
           onChange={onChange}
+          controlId={controlId}
+          errorId={errorId}
         />
       )}
       {error ? (
-        <span className="text-xs font-normal normal-case tracking-normal text-rose-600">
+        <span
+          id={errorId}
+          role="alert"
+          className="text-xs font-normal normal-case tracking-normal text-rose-600"
+        >
           {error}
         </span>
       ) : null}
@@ -353,6 +418,20 @@ function FieldDisplay({
 
   if (field.type === "date" || field.type === "dateTime") {
     const date = new Date(String(value));
+    /*
+     * The Unix epoch is not a date anybody meant.
+     *
+     * An absent contract date arrives as an epoch-zero timestamp rather than as
+     * null, so it passed the `value == null` check above and rendered as
+     * "Jan 1, 1970" — two of seven contracts on production showed it. A date
+     * that looks real and is not is worse than no date at all (BUG-1556).
+     *
+     * Exactly zero, not "before some cutoff": a timestamp of midnight UTC on
+     * 1 January 1970 to the millisecond is the sentinel, and any other 1970
+     * date is somebody's real data.
+     */
+    if (date.getTime() === 0)
+      return <span className={`${base} text-slate-400`}>Not set</span>;
     return (
       <span className={base}>
         {Number.isNaN(date.getTime())
@@ -532,12 +611,9 @@ function isLookupField(field: RuntimeFieldDefinition) {
   return field.type === "lookup" || field.type.includes("Lookup");
 }
 
+/* See `humanizeLabel` — acronyms and digit ranges survive it (BUG-1753). */
 function titleCase(value: string) {
-  return value
-    .toLowerCase()
-    .replaceAll("_", " ")
-    .replaceAll("-", " ")
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+  return humanizeLabel(value);
 }
 
 function FieldControl({
@@ -547,6 +623,8 @@ function FieldControl({
   readOnly,
   required,
   onChange,
+  controlId,
+  errorId,
 }: {
   field: RuntimeFieldDefinition;
   value: unknown;
@@ -554,7 +632,25 @@ function FieldControl({
   readOnly: boolean;
   required: boolean;
   onChange: (value: unknown) => void;
+  /* The id the wrapper's `<label htmlFor>` points at (BUG-1423). */
+  controlId?: string;
+  /* The error text's id, so the control announces why it is invalid. */
+  errorId?: string;
 }) {
+  /*
+   * Applied to every control this function can return.
+   *
+   * `name` is here as well as `id` because the two do different jobs: `id`
+   * binds the label, `name` is what a password manager and browser autofill
+   * read. Neither was present, which is why the fields were both unlabelled and
+   * un-autofillable.
+   */
+  const a11y = {
+    id: controlId,
+    name: field.key,
+    "aria-invalid": errorId ? true : undefined,
+    "aria-describedby": errorId,
+  } as const;
   const className = `min-h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-normal normal-case tracking-normal text-slate-900 outline-none focus:border-[var(--admin-primary)] focus:ring-2 focus:ring-[var(--admin-primary)]/10 disabled:bg-slate-50 disabled:text-slate-500`;
   if (field.type === "richText")
     return (
@@ -568,6 +664,7 @@ function FieldControl({
   if (field.type === "longText")
     return (
       <textarea
+        {...a11y}
         rows={4}
         className={`${className} py-3`}
         disabled={readOnly}
@@ -581,6 +678,7 @@ function FieldControl({
   if (field.type === "json")
     return (
       <textarea
+        {...a11y}
         rows={6}
         className={`${className} py-3 font-mono text-xs`}
         disabled
@@ -600,6 +698,7 @@ function FieldControl({
         className={`flex min-h-10 items-center gap-2 rounded-lg border border-slate-200 px-3 text-sm font-normal normal-case tracking-normal ${readOnly ? "bg-slate-50 text-slate-500" : "bg-white text-slate-700"}`}
       >
         <input
+          {...a11y}
           className="h-4 w-4 rounded border-slate-300 accent-[var(--admin-primary)]"
           disabled={readOnly}
           type="checkbox"
@@ -612,7 +711,14 @@ function FieldControl({
   if (field.type === "option" || field.type === "multiSelect")
     return (
       <SearchableSelect
+        /*
+         * Composite: it renders a button and a listbox rather than one focusable
+         * control, so it cannot take the label's `htmlFor` id. It names itself
+         * instead and points back at the label element (BUG-1423).
+         */
         ariaLabel={field.label}
+        labelledBy={controlId ? `${controlId}-label` : undefined}
+        describedBy={errorId}
         options={resolveFieldOptions(field, values)}
         disabled={readOnly}
         required={required}
@@ -637,6 +743,8 @@ function FieldControl({
         disabled={readOnly}
         required={required}
         onChange={onChange}
+        labelledBy={controlId ? `${controlId}-label` : undefined}
+        describedBy={errorId}
       />
     );
   if (field.type === "file")
@@ -652,6 +760,7 @@ function FieldControl({
   if (field.type === "signature")
     return (
       <input
+        {...a11y}
         className={className}
         disabled={readOnly}
         required={required}
@@ -685,6 +794,7 @@ function FieldControl({
                 : "text";
   return (
     <input
+      {...a11y}
       className={className}
       disabled={readOnly}
       required={required}
@@ -819,6 +929,8 @@ function RuntimeLookup({
   disabled,
   required,
   onChange,
+  labelledBy,
+  describedBy,
 }: {
   field: RuntimeFieldDefinition;
   value: string;
@@ -826,6 +938,9 @@ function RuntimeLookup({
   disabled: boolean;
   required: boolean;
   onChange: (value: unknown) => void;
+  /* Passed through to the select — see `SearchableSelect` (BUG-1423). */
+  labelledBy?: string;
+  describedBy?: string;
 }) {
   const lookup = useRuntimeLookupOptions(field.lookupPath);
   /*
@@ -871,6 +986,8 @@ function RuntimeLookup({
     <div className="space-y-1.5 font-normal normal-case tracking-normal">
       <SearchableSelect
         ariaLabel={field.label}
+        labelledBy={labelledBy}
+        describedBy={describedBy}
         options={resolvedOptions}
         /*
          * The control stays usable while options load. Disabling it turned a
@@ -898,6 +1015,8 @@ function RuntimeLookup({
 
 export function SearchableSelect({
   ariaLabel,
+  labelledBy,
+  describedBy,
   options,
   value,
   placeholder,
@@ -907,6 +1026,15 @@ export function SearchableSelect({
   onChange,
 }: {
   ariaLabel: string;
+  /*
+   * The id of the field's `<label>`, when this select sits inside a runtime
+   * form. It renders a button and a listbox rather than one focusable control,
+   * so it cannot be the target of `htmlFor` — it points back at the label
+   * instead, which keeps the visible text and the announced name the same
+   * thing (BUG-1423).
+   */
+  labelledBy?: string;
+  describedBy?: string;
   options: RuntimeLookupOption[];
   value: string | string[];
   placeholder: string;
@@ -963,7 +1091,11 @@ export function SearchableSelect({
     >
       <button
         type="button"
-        aria-label={ariaLabel}
+        // `aria-labelledby` wins where a label element exists, so the announced
+        // name is the text the operator can actually see.
+        aria-label={labelledBy ? undefined : ariaLabel}
+        aria-labelledby={labelledBy}
+        aria-describedby={describedBy}
         aria-haspopup="listbox"
         aria-expanded={open}
         disabled={disabled}

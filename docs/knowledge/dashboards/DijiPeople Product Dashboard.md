@@ -67,6 +67,8 @@ See [[dijipeople-platform-overview|DijiPeople Platform Overview]] for the full p
 Questions where the engineering is understood and the **product answer**
 **is not**. No agent may resolve one by implementing a side of it.
 
+- [[BUG-0898-self-service-checkout-is-blocked-for-every-plan-no-plan-pric|BUG-0898]] — **Self-service checkout is blocked for every plan: no plan price has ever been synced to Stripe** (CRITICAL)
+- [[BUG-0903-production-runs-stripe-in-test-mode-so-no-real-payment-can-b|BUG-0903]] — **Production runs Stripe in test mode, so no real payment can be collected** (HIGH)
 - [[ITEM-0062-no-multi-tenant-membership-one-user-belongs-to-one-tenant-so|ITEM-0062]] — **No multi-tenant membership — one user belongs to one tenant, so discovery and switching cannot exist** (HIGH)
 - [[ITEM-0079-activation-does-not-gate-on-a-workspace-having-any-module-en|ITEM-0079]] — **Activation does not gate on a workspace having any module enabled** (LOW)
 
@@ -83,15 +85,28 @@ Questions where the engineering is understood and the **product answer**
 
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
-| [[BUG-0015-a-tenant-that-fails-before-identities-and-billing-is-unrecoverable|BUG-0015]] | A tenant that fails before identities-and-billing is permanently unrecoverable | STATE_MACHINE | HIGH | OPEN | api:tenant-control-plane | PLAN_REQUIRED |
-| [[BUG-0016-partner-onboarding-review-has-no-state-machine|BUG-0016]] | Partner onboarding review has no state machine | STATE_MACHINE | HIGH | OPEN | api:partner-experience | PLAN_REQUIRED |
+| [[BUG-1744-every-subscription-has-a-zero-length-billing-period-and-a-re|BUG-1744]] | Every subscription has a zero-length billing period and a renewal date in the past | DATA_INTEGRITY | CRITICAL | FIXED | api:super-admin, api:billing, integration:stripe | FIX_NOW |
 | [[BUG-1420-the-monitoring-severity-filter-cannot-match-99-7-percent-of-|BUG-1420]] | The monitoring severity filter cannot match 99.7 percent of stored incidents | DATA_INTEGRITY | HIGH | FIXED | apps/admin, api:error-logs | FIX_NOW |
-| [[BUG-1423-runtime-form-controls-have-no-accessible-name-so-screen-read|BUG-1423]] | Runtime form controls have no accessible name so screen readers announce every field as blank | UX | HIGH | OPEN | apps/admin | PLAN_REQUIRED |
+| [[BUG-1423-runtime-form-controls-have-no-accessible-name-so-screen-read|BUG-1423]] | Runtime form controls have no accessible name so screen readers announce every field as blank | UX | HIGH | FIXED | apps/admin | FIX_NOW |
 | [[BUG-1516-public-signup-creates-duplicate-customer-records-breaking-st|BUG-1516]] | Public signup creates duplicate customer records, breaking Stripe tenant resolution | DATA_INTEGRITY | HIGH | FIXED | super-admin, billing, landing | FIX_NOW |
-| [[BUG-1544-public-signup-advertises-a-workspace-domain-that-does-not-re|BUG-1544]] | Public signup advertises a workspace domain that does not resolve | UX | HIGH | OPEN | tenant-domains, leads | FIX_NOW |
-| [[BUG-1578-admin-customer-form-stores-a-country-lookup-id-where-every-r|BUG-1578]] | Admin customer form stores a country lookup id where every reader expects a name | DATA_INTEGRITY | HIGH | FIXED | super-admin, contracts, lookups | FIX_NOW |
+| [[BUG-1421-every-admin-screen-shares-one-page-title-two-main-landmarks-|BUG-1421]] | Every admin screen shares one page title, two main landmarks and a duplicate h1 | UX | MEDIUM | FIXED | apps/admin | FIX_NOW |
+| [[BUG-1425-currencycode-accepts-any-string-of-three-characters-or-fewer|BUG-1425]] | currencyCode accepts any string of three characters or fewer | DATA_INTEGRITY | MEDIUM | FIXED | api:partners | FIX_NOW |
+| [[BUG-1546-required-fields-on-unfocused-tabs-give-no-indication-of-wher|BUG-1546]] | Required fields on unfocused tabs give no indication of where they are | UX | MEDIUM | FIXED | customization | FIX_NOW |
+| [[BUG-1547-onboarding-prerequisite-message-states-the-inverse-of-the-tr|BUG-1547]] | Onboarding prerequisite message states the inverse of the truth | UX | MEDIUM | FIXED | onboarding | FIX_NOW |
+| [[BUG-1549-database-and-validator-internals-are-surfaced-in-user-facing|BUG-1549]] | Database and validator internals are surfaced in user-facing errors | UX | MEDIUM | FIXED | error-logs | FIX_NOW |
+| [[BUG-1553-owner-and-template-pickers-list-indistinguishable-duplicate-|BUG-1553]] | Owner and template pickers list indistinguishable duplicate entries | UX | MEDIUM | FIXED | contracts, platform-users | FIX_NOW |
 | [[BUG-1654-every-empty-list-in-a-new-workspace-blames-filters-that-are-|BUG-1654]] | Every empty list in a new workspace blames filters that are not set | UX | MEDIUM | FIXED | views, employees | FIX_NOW |
+| [[BUG-1655-tenant-login-password-field-has-no-accessible-name-and-no-au|BUG-1655]] | Tenant login password field has no accessible name and no autocomplete hint | UX | MEDIUM | FIXED | auth | FIX_NOW |
+| [[BUG-1673-tenant-workspace-shell-repeats-three-h1-headings-and-two-mai|BUG-1673]] | Tenant workspace shell repeats three h1 headings and two main landmarks on every screen | UX | MEDIUM | FIXED | views | FIX_NOW |
+| [[BUG-1746-required-fields-on-unselected-tabs-are-undiscoverable-so-cre|BUG-1746]] | Required fields on unselected tabs are undiscoverable so create forms dead-end | UX | MEDIUM | FIXED | apps/admin | FIX_NOW |
+| [[BUG-1756-bulk-delete-confirms-without-naming-how-many-records-or-whic|BUG-1756]] | Bulk delete confirms without naming how many records or which ones | UX | MEDIUM | FIXED | apps/admin | FIX_NOW |
 | [[ITEM-0068-legal-documents-have-no-operator-ui-so-publishing-is-a-scrip|ITEM-0068]] | Legal publication has an operator UI, but no diff before publishing | UX | MEDIUM | READY | legal, admin | FIX_NOW |
+| [[BUG-1556-contract-dates-with-no-value-render-as-the-unix-epoch|BUG-1556]] | Contract dates with no value render as the Unix epoch | UX | LOW | FIXED | contracts | FIX_NOW |
+| [[BUG-1558-admin-list-copy-uses-incorrect-pluralisation-and-articles|BUG-1558]] | Admin list copy uses incorrect pluralisation and articles | UX | LOW | FIXED | super-admin | FIX_NOW |
+| [[BUG-1559-empty-states-instruct-the-user-to-create-records-on-screens-|BUG-1559]] | Empty states instruct the user to create records on screens with no create control | UX | LOW | FIXED | billing | FIX_NOW |
+| [[BUG-1560-delete-confirmation-does-not-name-the-record-being-deleted|BUG-1560]] | Delete confirmation does not name the record being deleted | UX | LOW | FIXED | leads | FIX_NOW |
+| [[BUG-1561-signup-verification-step-has-no-way-back-to-correct-a-mistyp|BUG-1561]] | Signup verification step has no way back to correct a mistyped email | UX | LOW | FIXED | leads | FIX_NOW |
+| [[BUG-1752-admin-empty-states-blame-filters-that-are-not-set|BUG-1752]] | Admin empty states blame filters that are not set | UX | LOW | FIXED | apps/admin | FIX_NOW |
 
 ## How to read this
 

@@ -12,6 +12,7 @@ import type { AuthenticatedUser } from '../../common/interfaces/authenticated-re
 import { userHasPlatformPermission } from '../platform-auth/platform-permissions';
 import { AuditService } from '../audit/audit.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { NOT_AN_INCIDENT } from '../error-logs/expected-protocol-outcome';
 
 const LOG_FILE_PATTERN =
   /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,180}\.(log|txt|json|ndjson)$/;
@@ -100,14 +101,33 @@ export class PlatformMonitoringService {
         take: pageSize,
       }),
       this.prisma.errorLog.count({ where }),
+      /*
+       * The same definition of "critical" the view uses.
+       *
+       * This counted `severity: 'ERROR'` exactly, while the view had already
+       * been taught to fold case by BUG-1420 — so the tile said 11 and the
+       * view it linked to returned 0 of 0. BUG-1420 fixed the view and left
+       * the metric carrying the original defect (BUG-1750). One definition,
+       * three call sites, is the actual fix.
+       */
       this.prisma.errorLog.count({
-        where: { AND: [where, { severity: 'ERROR' }] },
+        where: { AND: [where, criticalIncidentWhere()] },
       }),
       this.prisma.errorLog.count({
         where: { AND: [where, { sourceApp: 'web' }] },
       }),
+      /*
+       * "Waiting for triage" means waiting for a person. `not: 'RESOLVED'`
+       * counted expected protocol outcomes as open work, which is the same
+       * miscount that filled the queue — just expressed as a number.
+       */
       this.prisma.errorLog.count({
-        where: { AND: [where, { supportStatus: { not: 'RESOLVED' } }] },
+        where: {
+          AND: [
+            where,
+            { supportStatus: { notIn: ['RESOLVED', NOT_AN_INCIDENT] } },
+          ],
+        },
       }),
       this.prisma.errorLog.count({
         where: { AND: [where, { supportStatus: 'RESOLVED' }] },
@@ -621,17 +641,32 @@ function readPlatformActor(details: unknown) {
  * Severity is stored as free text rather than an enum, so the critical view
  * matches the two levels the ingest path writes.
  */
+/**
+ * What "critical" means, in the one place that decides it.
+ *
+ * `severity` is unconstrained free text, so this is a list rather than a
+ * comparison. Prisma's `in` is case-sensitive and has no insensitive mode, so
+ * the spellings are enumerated rather than folded — a census on 2026-08-27
+ * found 1,466 rows lowercase against 5 uppercase, which is why an exact match
+ * on `'ERROR'` returned almost nothing.
+ *
+ * Promoting `severity` to an enum with a normalising migration is the deeper
+ * fix and needs an ExecPlan; until then this is the definition, and the metric,
+ * the view and the tile's link all read it rather than each spelling their own.
+ */
+export const CRITICAL_INCIDENT_SEVERITIES = [
+  'ERROR',
+  'FATAL',
+  'error',
+  'fatal',
+] as const;
+
+export function criticalIncidentWhere(): Prisma.ErrorLogWhereInput {
+  return { severity: { in: [...CRITICAL_INCIDENT_SEVERITIES] } };
+}
+
 export function incidentViewWhere(viewKey?: string): Prisma.ErrorLogWhereInput {
-  if (viewKey === 'critical') {
-    /*
-     * BUG-1420. Both spellings, for the same reason the filter above matches
-     * insensitively: Prisma's `in` is case-sensitive and has no insensitive
-     * mode, so the levels are listed rather than folded.
-     */
-    return {
-      severity: { in: ['ERROR', 'FATAL', 'error', 'fatal'] },
-    };
-  }
+  if (viewKey === 'critical') return criticalIncidentWhere();
   /* supportStatus is non-nullable and defaults to NEW, so untriaged rows match. */
   if (viewKey === 'new') return { supportStatus: 'NEW' };
   if (viewKey === 'investigating')
@@ -646,6 +681,15 @@ const SUPPORT_STATUSES = new Set([
   'WAITING_ON_CUSTOMER',
   'FIX_IN_PROGRESS',
   'RESOLVED',
+  /*
+   * Recorded, never queued. Ordinary session expiry and requests for routes
+   * that do not exist are answers the protocol is for, not defects — see
+   * `expected-protocol-outcome.ts`. They are still searchable, because support
+   * needs to answer "why was I signed out", but they were never something a
+   * human should pick up and treating them as NEW put 1,588 rows in the queue
+   * (BUG-1754).
+   */
+  NOT_AN_INCIDENT,
 ]);
 const SUPPORT_TEAMS = new Set([
   'Customer Support',

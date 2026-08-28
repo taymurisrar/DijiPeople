@@ -491,6 +491,8 @@ export function TextField({
   touched,
   dirty,
   validationStatus,
+  autoComplete,
+  ariaLabel,
 }: BaseFieldProps & {
   onChange: (value: string) => void;
   placeholder?: string;
@@ -499,6 +501,19 @@ export function TextField({
   type?: "text" | "email" | "url" | "password" | "search";
   variant?: TextFieldVariant;
   maxLength?: number;
+  /*
+   * What a password manager should put here. Absent, browsers guess from the
+   * surrounding markup and get it wrong — the tenant login's password field had
+   * none at all, so nothing offered to fill it (BUG-1655).
+   */
+  autoComplete?: string;
+  /*
+   * An accessible name for a field whose visible label is hidden. The login
+   * screen renders `label=""` with the shell's span suppressed so the heading
+   * row can hold the "Forgot password?" link, which left the control with no
+   * name at all for a screen reader.
+   */
+  ariaLabel?: string;
 }) {
   function formatCNIC(input: string) {
     const digits = input.replace(/\D/g, "").slice(0, 13);
@@ -547,6 +562,8 @@ export function TextField({
     >
       <input
         aria-invalid={Boolean(errorMessage)}
+        aria-label={ariaLabel}
+        autoComplete={autoComplete}
         className={controlClassName(errorMessage, validationStatus)}
         disabled={disabled}
         onChange={(event) => handleChange(event.target.value)}

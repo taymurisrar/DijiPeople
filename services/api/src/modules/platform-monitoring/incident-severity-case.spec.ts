@@ -1,4 +1,9 @@
-import { incidentViewWhere } from './platform-monitoring.service';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import {
+  criticalIncidentWhere,
+  incidentViewWhere,
+} from './platform-monitoring.service';
 
 /*
  * BUG-1420. `ErrorLog.severity` is a free-text column and production holds both
@@ -41,5 +46,45 @@ describe('the critical incident view matches severity in either case', () => {
     // insensitivity is understood as specific to severity, not general.
     expect(incidentViewWhere('new')).toEqual({ supportStatus: 'NEW' });
     expect(incidentViewWhere(undefined)).toEqual({});
+  });
+});
+
+/*
+ * BUG-1750. BUG-1420 taught the critical *view* to fold case and left the
+ * overview *metric* comparing `severity: 'ERROR'` exactly — so the tile read 11
+ * and the view it linked to returned 0 of 0. Two answers to one question, from
+ * the same screen.
+ *
+ * The fix is one definition rather than two corrections, so what is asserted is
+ * that there is only one.
+ */
+describe('BUG-1750 — the metric and the view agree on what critical means', () => {
+  const source = readFileSync(
+    join(__dirname, 'platform-monitoring.service.ts'),
+    'utf8',
+  );
+
+  it('is the same where clause', () => {
+    expect(incidentViewWhere('critical')).toEqual(criticalIncidentWhere());
+  });
+
+  it('spells the severity list in exactly one place', () => {
+    // The literal belongs to `CRITICAL_INCIDENT_SEVERITIES` alone. A second
+    // occurrence is a second definition, which is the defect returning.
+    const occurrences = source.match(/'ERROR',\s+'FATAL'/g) ?? [];
+    expect(occurrences.length).toBe(1);
+  });
+
+  it('counts the metric through that definition, not a literal', () => {
+    const listEvents = source.slice(
+      source.indexOf('const [logs, total, critical'),
+      source.indexOf('const items = await this.enrichEvents(logs)'),
+    );
+    // Comments stripped: the note above the metric quotes the old code by
+    // design, and an assertion that cannot tell code from prose would either
+    // fail on the explanation or force the explanation to be vague.
+    const code = listEvents.replace(/\/\*[\s\S]*?\*\//g, '');
+    expect(code).toContain('criticalIncidentWhere()');
+    expect(code).not.toContain("severity: 'ERROR'");
   });
 });

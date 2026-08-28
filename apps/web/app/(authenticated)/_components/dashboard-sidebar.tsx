@@ -247,9 +247,18 @@ function SidebarBrand({
           <p className="truncate text-xs font-semibold uppercase tracking-[0.18em] text-accent">
             {effectiveBrandName}
           </p>
-          <h1 className="truncate text-lg font-semibold text-foreground">
+          {/*
+            Identity, not document structure (BUG-1673).
+
+            This was an `<h1>`, and so was its compact twin below, and so was the
+            page's own heading — three on every screen, so somebody navigating
+            by headings heard "Workspace, Workspace, Dashboard" on the payroll
+            screen, the settings screen and an employee's record alike. The word
+            is a brand label; the page owns the only h1.
+          */}
+          <p className="truncate text-lg font-semibold text-foreground">
             Workspace
-          </h1>
+          </p>
         </div>
       </div>
 
@@ -285,9 +294,10 @@ function CompactBrand({
         <p className="truncate text-[11px] font-semibold uppercase tracking-[0.18em] text-accent">
           {effectiveBrandName}
         </p>
-        <h1 className="truncate text-base font-semibold text-foreground">
+        {/* See the expanded brand above — a label, not a heading (BUG-1673). */}
+        <p className="truncate text-base font-semibold text-foreground">
           Workspace
-        </h1>
+        </p>
       </div>
     </div>
   );

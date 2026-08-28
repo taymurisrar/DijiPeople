@@ -231,7 +231,10 @@ export function LoginForm({
           </span>
           <input
             autoCapitalize="none"
-            autoComplete="email"
+            // `username`, not `email`: it is the identifier half of a
+            // credential pair, and that is what pairs it with the password
+            // field for a password manager.
+            autoComplete="username"
             autoCorrect="off"
             className="block w-full min-w-0 rounded-2xl border border-border bg-white px-4 py-3 text-sm text-foreground outline-none transition placeholder:text-muted focus:border-accent focus:ring-2 focus:ring-accent/20"
             inputMode="email"
@@ -263,6 +266,14 @@ export function LoginForm({
         <div className="relative">
           <TextField
             label=""
+            /*
+             * The visible "Password" text sits in the heading row above, beside
+             * the "Forgot password?" link, and the shell's own label span is
+             * hidden — so this control had no accessible name at all and a
+             * screen reader announced it as unlabelled (BUG-1655).
+             */
+            ariaLabel="Password"
+            autoComplete="current-password"
             placeholder="Enter your password"
             type={showPassword ? "text" : "password"}
             value={form.password}

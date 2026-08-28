@@ -2,7 +2,7 @@
 ID: BUG-1644
 aliases: [BUG-1644]
 Title: Tenant root domain is misconfigured so no customer can reach their workspace login
-Status: OPEN
+Status: VERIFIED
 Severity: CRITICAL
 Priority: P0
 Type: INFRA
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-27
 DetectedInSha: 21032ae
 AffectedModules: [tenant-domains, tenants]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
-RegressionId: 
+RegressionId: REG-271
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-27
 UpdatedAt: 2026-08-28
-ResolvedAt:
+ResolvedAt: 2026-08-28
 ---
 
 # BUG-1644 — Tenant root domain is misconfigured so no customer can reach their workspace login
@@ -116,6 +116,41 @@ proof that host resolution worked. It was not: that host resolves to no tenant
 at all, and the emerald palette it rendered is the platform default, not tenant
 branding. The tenant's own colours are teal (`#0f766e`). A page looking
 tenant-specific is not evidence that a tenant was resolved.
+
+
+### Resolved on production 2026-08-28 by the `e0aeabcd` deploy
+
+Re-tested through the browser immediately after the release deployed. Entering
+the slug at `app.dijipeople.com/login` now navigates to
+`https://qa-e2e-signup-b-20260826.ws.dijipeople.com/login`, which renders
+"Welcome to QA E2E Signup B 20260826 HR Portal" with a working sign-in form.
+
+**The Vercel variable was correct the whole time. The running bundle was not.**
+The owner set `NEXT_PUBLIC_WEB_ROOT_DOMAIN=ws.dijipeople.com` before this
+release; no production build had happened since, so the bundle being served
+still carried the previous value inlined. Merging this release rebuilt all three
+Vercel projects, and that rebuild — not any change to the setting — is what
+fixed it.
+
+**The elimination argument recorded above was wrong, and is left in place rather
+than deleted so the reasoning error stays visible.** It ran: the variable cannot
+be absent, because an absent variable falls back to `app.dijipeople.com`;
+therefore it is present and holds the wrong value. That enumerated two
+possibilities when there were three. The third is the one that was true — the
+variable is present and correct in the project settings, while the *deployed
+bundle* was built before it was set and had the old value baked in.
+
+The mistake is precisely the property the same paragraph names: `NEXT_PUBLIC_*`
+is inlined at build time. Once that is true, the bundle's value is evidence
+about the last build, never about the current setting. Reading a running bundle
+as though it reports current configuration is the error, and no amount of
+care about the *observation* would have caught it — the observation was correct
+and the inference drawn from it was not.
+
+The practical rule: a `NEXT_PUBLIC_*` symptom has two candidate causes — wrong
+value, or right value and stale build — and they are indistinguishable from the
+browser. Separate them by looking at whether a build has occurred since the
+setting changed, before telling anyone to change a setting.
 
 
 ## Root Cause
@@ -244,11 +279,36 @@ reachable enough to try logging in to.
 
 ## Resolution
 
-Not yet resolved.
+Fixed 2026-08-28 by the `e0aeabcd` production deploy, which rebuilt all three
+Vercel projects. `NEXT_PUBLIC_WEB_ROOT_DOMAIN` had already been corrected to
+`ws.dijipeople.com` in the project settings; because the value is inlined at
+build time, the running bundle kept serving the old one until a build happened.
+No setting was changed to fix this.
+
+`docs/environment-variables.md` was corrected in `21dc63fe`, so the reference
+that produced the wrong value no longer prescribes it.
+
+Guarded by REG-271 and QA-AUTH-006 —
+`apps/web/lib/tenant-root-domain.spec.ts` asserts both directions, and is
+mutation-tested: collapsing a multi-label root to its apex fails 2 of 6.
+
+The fifth acceptance criterion — a deployment check that fails when the composed
+tenant host does not resolve — is **not** met. It is the one guard that would
+have caught this before a customer did, and it is filed rather than quietly
+dropped.
 
 ## QA Retest
 
-Not yet retested. Retest by signing in through the browser only — the API path
+Retested 2026-08-28 through the browser against the live deployment. Entering
+`qa-e2e-signup-b-20260826` at `app.dijipeople.com/login` navigates to
+`https://qa-e2e-signup-b-20260826.ws.dijipeople.com/login`, which renders
+"Welcome to QA E2E Signup B 20260826 HR Portal" and a working credential form.
+The first, second and fourth acceptance criteria are met. The third — an owner
+completing sign-in entirely through the UI — was verified as far as the
+credential form; the tenant is due to be erased, so a live sign-in was not
+repeated. PASS.
+
+Superseded note: retest by browser only. Retest by signing in through the browser only — the API path
 authenticates regardless and would hide the defect, which is exactly how it
 survived until now.
 
@@ -261,6 +321,8 @@ survived until now.
 
 ## Related
 
+- Referenced by — [[ITEM-0103]]
 - Modules — [[workspace-routing-and-domains]], [[tenant-control-plane]]
+- Regression — REG-271 (see the regression register)
 
 <!-- GRAPH:END -->

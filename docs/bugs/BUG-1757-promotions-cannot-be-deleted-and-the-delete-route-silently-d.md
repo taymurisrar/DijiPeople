@@ -1,0 +1,178 @@
+---
+ID: BUG-1757
+aliases: [BUG-1757]
+Title: Promotions cannot be deleted and the DELETE route silently deactivates instead
+Status: FIXED
+Severity: MEDIUM
+Priority: P2
+Type: BUG
+Source: QA_RUN
+DetectedDate: 2026-08-28
+DetectedInSha: 912f4e61
+AffectedModules: [apps/admin, api:super-admin]
+OwnerAgent: architect
+ArchitectDisposition: FIX_NOW
+QAReport: docs/qa/runs/2026-08-28-admin-console-e2e-912f4e6.md
+RegressionId: REG-279
+RelatedBacklogItem:
+RelatedDecision:
+RelatedImplementation:
+CreatedAt: 2026-08-28
+UpdatedAt: 2026-08-28
+ResolvedAt:
+---
+
+# BUG-1757 — Promotions cannot be deleted and the DELETE route silently deactivates instead
+
+## Summary
+
+`DELETE /api/super-admin/promotions/:promotionId` is wired to
+`deactivatePromotion()`. It returns `200` with the record body while the row
+remains, with `isActive: false`. The UI offers only **Deactivate**, so there is
+no way to remove a promotion at all. Not hard-deleting commercial records is a
+defensible policy — the same stance the platform takes on plans and invoices —
+but the HTTP verb says something the handler does not do, and a mistyped
+promotion is permanent.
+
+## Expected Behavior
+
+Either promotions can be removed, or the API does not offer `DELETE` for them.
+A caller that issues `DELETE` and receives `200` is entitled to believe the
+resource is gone.
+
+## Actual Behavior
+
+`DELETE` deactivates. The row persists and still appears in
+`GET /api/super-admin/promotions`.
+
+## Reproduction
+
+1. Create a promotion from Platform Admin, **Promotions**.
+2. `DELETE /api/super-admin/promotions/<id>` → `200`, body is the promotion.
+3. `GET /api/super-admin/promotions` → the promotion is still listed, with
+   `isActive: false`.
+
+## Evidence
+
+`services/api/src/modules/super-admin/super-admin.controller.ts:635`:
+
+```ts
+@Delete('promotions/:promotionId')
+deactivatePromotion(
+  @CurrentUser() user: AuthenticatedUser,
+  @Param('promotionId', new ParseUUIDPipe()) promotionId: string,
+) {
+  return this.superAdminService.deactivatePromotion(user, promotionId);
+}
+```
+
+The method name states the intent plainly; only the verb disagrees.
+
+Verified against production: after the `DELETE`, the promotions list still
+returned one record, `isActive: false`.
+
+## Root Cause
+
+A deliberate soft-delete policy mapped onto the `DELETE` verb, with no
+alternative route and no UI affordance for removal.
+
+## Impact
+
+Low operational risk, moderate hygiene cost. Promotions accumulate permanently,
+including mistakes and test records. Any integration that issues `DELETE` and
+trusts the `200` will hold a wrong belief about the resource.
+
+This record exists partly as an accountability note: the QA pass that produced it
+created one promotion to verify the feature and **could not remove it**. See
+Related Items.
+
+## Affected Areas
+
+`super-admin` promotions controller and service; the Promotions screen.
+
+## Proposed Resolution
+
+Pick one and make it consistent:
+
+- keep the soft-delete policy, rename the route to `POST .../deactivate`, and
+  remove `DELETE`; or
+- keep `DELETE` and have it actually delete promotions that have never been
+  redeemed (`redemptionCount === 0`), refusing those that have.
+
+The second is closer to what an operator expects and still protects the records
+that carry commercial history. Either way the UI should say which one it is.
+
+## Acceptance Criteria
+
+- The verb and the behaviour agree.
+- An unredeemed promotion created by mistake can be removed, or the UI explains
+  why it cannot.
+- A regression test asserts the route's actual effect.
+
+## Regression Coverage
+
+None yet.
+
+## Dependencies
+
+None.
+
+## Related Items
+
+[[BUG-1751]] — how easily a promotion is published in the first place, which is
+what makes an inability to remove one matter.
+[[BUG-1749]] — the same create-but-never-delete asymmetry on plans.
+
+## Resolution
+
+Fixed 2026-08-28 on `agent/open-bug-sweep`, taking the second option this record
+offered.
+
+`DELETE /super-admin/promotions/:id` now deletes. Deactivation moved to
+`POST .../deactivate` and kept its old behaviour, so the two things the verb was
+conflating are two routes.
+
+A promotion with `redemptionCount > 0` is refused, with a message naming it, the
+number of redemptions, and deactivation as the alternative. The soft-delete
+policy this record calls defensible is defensible because it protects *history* —
+and a promotion that never applied to anything has none: nothing was discounted,
+no invoice references it, no customer saw a price because of it. So the line is
+redemption rather than existence.
+
+The UI now says which is which. Delete appears only where the promotion has never
+been redeemed, and a redeemed one shows why it cannot be. The confirmation names
+the promotion rather than calling it "this item", and the API's refusal message is
+surfaced verbatim rather than replaced with a generic failure — otherwise the
+operator is sent back to the button that never worked.
+
+Deletion is audited as `platform.promotion_deleted`.
+
+Guarded by REG-279.
+
+## QA Retest
+
+Not retested in a browser. `promotion-deletion.spec.ts` covers both sides of the
+rule, the message content and the audit entry.
+
+Worth a browser pass because the UI changed shape: the actions column now holds
+two controls where it held one, and an operator who knew the old screen will see
+Delete where nothing was before.
+
+## History
+
+- 2026-08-28 — created from the admin console end-to-end QA pass at `912f4e61`.
+  The pass left one deactivated promotion in production,
+  `177c2e07-67d0-4a2f-be69-3e357fb0cac1`
+  ("QA E2E Promo 20260828 DELETE ME", `isActive: false`), which could not be
+  removed through any supported path. It is inert but it is residue, and
+  removing it needs a database-level delete.
+- 2026-08-28 - DELETE deletes an unredeemed promotion and refuses a redeemed one; deactivate got its own route and the UI got both. REG-279.
+
+<!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
+
+## Related
+
+- Modules — [[platform-admin]], [[super-admin]]
+- Regression — REG-279 (see the regression register)
+
+<!-- GRAPH:END -->

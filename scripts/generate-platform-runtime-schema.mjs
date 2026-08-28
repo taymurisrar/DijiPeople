@@ -1,6 +1,7 @@
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { readRuntimeWriteContract } from "./lib/runtime-write-contract.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const schemaPath = path.join(root, "services/api/prisma/schema.prisma");
@@ -125,20 +126,67 @@ for (const [modelName, body] of Object.entries(modelBodies)) {
   models[modelName] = { model: modelName, fields };
 }
 
+/*
+ * `creatable` / `editable` answer "will the runtime accept this on a write?",
+ * which is a question about the module's DTO — not about the Prisma column.
+ *
+ * Deriving them from the schema alone is what BUG-1743 was: `originChannel` is
+ * a writable column, `UpdateCustomerDto` does not declare it, the form offered
+ * it anyway, and `forbidNonWhitelisted` then rejected every customer edit. The
+ * per-module workaround BUG-0220 applied to plans could not generalise, so the
+ * derivation moves here, where every module is covered at once.
+ *
+ * A module with no create (or update) arm in the service switch cannot be
+ * written through the runtime at all, so nothing is creatable (or editable)
+ * there — such a request is answered with "not available for this module"
+ * regardless of what the form chose to render.
+ */
+const writeContract = readRuntimeWriteContract(
+  path.join(
+    root,
+    "services/api/src/modules/platform-runtime/platform-runtime.service.ts",
+  ),
+);
+
 const modules = Object.fromEntries(
-  Object.entries(moduleModels).map(([moduleKey, model]) => [
-    moduleKey,
-    { moduleKey, model, fields: models[model]?.fields ?? {} },
-  ]),
+  Object.entries(moduleModels).map(([moduleKey, model]) => {
+    const contract = writeContract[moduleKey];
+    const fields = Object.fromEntries(
+      Object.entries(models[model]?.fields ?? {}).map(([key, field]) => [
+        key,
+        {
+          ...field,
+          creatable: field.creatable && Boolean(contract?.creatable?.has(key)),
+          editable: field.editable && Boolean(contract?.editable?.has(key)),
+        },
+      ]),
+    );
+    return [moduleKey, { moduleKey, model, fields }];
+  }),
 );
 // Adapter projections must still point to a real Prisma field. Contract editing
 // exposes the active ContractVersion content through the Contract adapter.
-modules.contracts.fields.contentHtml = {
+//
+// `contentHtml` is writable but appears in no contract DTO: `update()`
+// destructures it out of `values` before validating and routes it to
+// `contracts.saveVersion`. So it is exempt from the DTO derivation above —
+// the contract it satisfies is the destructuring, not `UpdateContractDto`.
+//
+// It is written to the model as well as the module. `resolveRuntimeField`
+// resolves a form's field path through `models[module.model]`, not through
+// `module.fields`, so a projection present only on the module fails the
+// registry's own coverage check. That used to happen for free because the two
+// were the same object by reference; deriving per-module `creatable`/`editable`
+// means the module now holds its own copy, and the aliasing that was carrying
+// this has to be stated instead.
+const contentHtmlProjection = {
   ...models.ContractVersion.fields.contentHtml,
   key: "contentHtml",
   sourcePath: "versions.contentHtml",
   relationProjection: true,
 };
+models.Contract.fields.contentHtml = contentHtmlProjection;
+modules.contracts.fields.contentHtml = contentHtmlProjection;
 const manifest = {
   version: 1,
   generatedFrom: "services/api/prisma/schema.prisma",

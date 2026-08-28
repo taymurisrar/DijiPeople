@@ -550,6 +550,31 @@ export function SubscribeForm({
           >
             Send a new code
           </button>
+          {/*
+            A way back out (BUG-1561).
+
+            A buyer who mistyped their admin email could not correct it: the
+            code went to the wrong address and the only route forward was to
+            restart all five steps. Every answer they gave is still in this
+            component's state, so returning to the wizard costs them nothing —
+            they land back on the review step with the form intact.
+
+            The concern that omitting Back protects the issued code is handled
+            by the API rather than by the UI: `issueCode` overwrites
+            `emailVerificationCodeHash`, so the moment a new code is sent the
+            previous one stops working.
+          */}
+          <button
+            className="text-sm font-medium text-muted underline"
+            onClick={() => {
+              setAwaitingCode(false);
+              setStatus(null);
+              setCode("");
+            }}
+            type="button"
+          >
+            Change email address
+          </button>
         </div>
       </form>
     );

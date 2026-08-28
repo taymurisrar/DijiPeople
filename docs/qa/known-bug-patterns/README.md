@@ -46,6 +46,7 @@ pattern. New patterns come out of the bug learning loop in
 | [unvalidated-seed-state](unvalidated-seed-state.md) | Deployment | `seed-config` required rows |
 | [hidden-write-on-read](hidden-write-on-read.md) | Domain integrity | Read paths that mutate |
 | [declared-but-unwired-step](declared-but-unwired-step.md) | Process | Pipeline steps declared and never run |
+| [per-module-fix-behind-a-per-module-test](per-module-fix-behind-a-per-module-test.md) | Process / Correctness | BUG-0220’s plan-only runtime fix |
 
 > Seven of these rows were missing from this index while their files existed —
 > a pattern nobody can find is a pattern nobody applies. Added when

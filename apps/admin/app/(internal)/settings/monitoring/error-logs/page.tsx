@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import {
   ErrorLogsTable,
   type PlatformErrorEvent,
@@ -11,6 +12,14 @@ import { requireSystemAdminUser } from "@/lib/auth";
 import { apiRequestJson } from "@/lib/server-api";
 import { getPlatformModuleDefinition } from "@/lib/runtime/platform-module-registry";
 import { MonitoringNav } from "@/app/_components/monitoring/monitoring-nav";
+
+/* Each screen titles itself. 47 of 48 shared one title, so a tab, a
+   bookmark and a screen reader's announcement said the same thing on
+   every route (BUG-1421). */
+export const metadata: Metadata = {
+  title: "Error Logs",
+};
+
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
@@ -76,6 +85,7 @@ function buildQueryString(searchParams: Record<string, string | string[] | undef
     "search",
     "reference",
     "severity",
+    "viewKey",
     "status",
     "sourceApp",
     "environment",
@@ -96,7 +106,21 @@ function buildQueryString(searchParams: Record<string, string | string[] | undef
   const viewId = Array.isArray(searchParams.viewId)
     ? searchParams.viewId[0]
     : searchParams.viewId;
-  if (viewId === "critical" && !params.has("severity")) params.set("severity", "ERROR");
+  /*
+   * The critical view is named, not spelled out.
+   *
+   * This used to translate `viewId=critical` into `severity=ERROR`, an exact
+   * match — while the API had already been taught to fold case (BUG-1420).
+   * `severity` is free text and production holds 1,466 lowercase rows against
+   * 5 uppercase, so the filter returned almost nothing while the tile that
+   * linked here counted 11 (BUG-1750).
+   *
+   * Passing the view key instead lets `incidentViewWhere` answer, which is the
+   * one place that decides what "critical" means.
+   */
+  if (viewId === "critical" && !params.has("severity")) {
+    params.set("viewKey", "critical");
+  }
   if (["new", "investigating", "resolved"].includes(viewId ?? "") && !params.has("status")) {
     params.set("status", String(viewId).toUpperCase());
   }

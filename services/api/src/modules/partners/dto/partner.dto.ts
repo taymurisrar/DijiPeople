@@ -19,12 +19,24 @@ import {
   PartnerStatus,
   PartnerType,
 } from '@prisma/client';
+import { PLATFORM_CURRENCY_CODES } from '@repo/config';
 
 export class PartnerQueryDto {
   @IsOptional() @IsString() search?: string;
   @IsOptional() @IsEnum(PartnerStatus) status?: PartnerStatus;
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) page = 1;
-  @IsOptional() @Type(() => Number) @IsInt() @Min(10) @Max(100) pageSize = 20;
+  /*
+   * `Min(1)`, not `Min(10)` (BUG-1554).
+   *
+   * The admin console asks its own partners API for `pageSize=5` and got a 400
+   * every time the screen loaded — the client and the server disagreeing about
+   * a constraint entirely internal to the product. This bound was the outlier:
+   * every other query DTO in the repository uses `Min(1)`.
+   *
+   * A *lower* bound on a page size protects nothing. The upper bound does, and
+   * stays: an unbounded page size is a way to ask for the whole table.
+   */
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100) pageSize = 20;
   @IsOptional() @IsString() viewKey?: string;
   @IsOptional() @IsString() filters?: string;
   @IsOptional() @IsString() sort?: string;
@@ -47,7 +59,19 @@ export class CreatePartnerDto {
   @Min(0)
   @Max(100)
   defaultCommissionRate!: number;
-  @IsOptional() @IsString() @MaxLength(3) currencyCode?: string;
+  /*
+   * A currency, not a three-character string (BUG-1425).
+   *
+   * `@MaxLength(3)` rejected `"NOT_A_CURRENCY"` for being fourteen
+   * characters and accepted `"5"`, `"X"` and `"ZZZ"` for fitting. The
+   * partner form offered a numeric input for this field, so `"5"` is not
+   * hypothetical — partners in production carry it (BUG-1747).
+   */
+  @IsOptional()
+  @IsIn(PLATFORM_CURRENCY_CODES as readonly string[], {
+    message: 'currencyCode must be a supported currency code.',
+  })
+  currencyCode?: string;
   @IsOptional() @IsEnum(PartnerStatus) status?: PartnerStatus;
   @IsOptional() @IsUUID() assignedToUserId?: string;
   @IsOptional() @IsString() @MaxLength(4000) notes?: string;
@@ -59,7 +83,19 @@ export class CreatePartnerCommissionDto {
   @IsOptional() @IsUUID() invoiceId?: string;
   @Type(() => Number) @IsNumber() @Min(0) baseAmount!: number;
   @Type(() => Number) @IsNumber() @Min(0) @Max(100) commissionRate!: number;
-  @IsOptional() @IsString() @MaxLength(3) currencyCode?: string;
+  /*
+   * A currency, not a three-character string (BUG-1425).
+   *
+   * `@MaxLength(3)` rejected `"NOT_A_CURRENCY"` for being fourteen
+   * characters and accepted `"5"`, `"X"` and `"ZZZ"` for fitting. The
+   * partner form offered a numeric input for this field, so `"5"` is not
+   * hypothetical — partners in production carry it (BUG-1747).
+   */
+  @IsOptional()
+  @IsIn(PLATFORM_CURRENCY_CODES as readonly string[], {
+    message: 'currencyCode must be a supported currency code.',
+  })
+  currencyCode?: string;
   @IsOptional() @IsString() description?: string;
   @IsOptional() @IsDateString() earnedAt?: string;
   @IsOptional() @IsDateString() dueAt?: string;

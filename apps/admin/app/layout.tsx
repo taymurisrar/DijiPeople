@@ -19,7 +19,19 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "DijiPeople Admin",
+  /*
+   * A template, so a per-route title composes rather than replaces (BUG-1421).
+   *
+   * 47 of 48 audited screens shared this one title, which made every browser
+   * tab, every bookmark and every screen reader page announcement say the same
+   * thing. `default` still covers the routes that set none — the three client
+   * components that cannot export metadata, and the auth screens outside the
+   * console.
+   */
+  title: {
+    template: "%s · DijiPeople Admin",
+    default: "DijiPeople Admin",
+  },
   description: "Internal SaaS control panel for DijiPeople operations.",
   icons: {
     icon: [

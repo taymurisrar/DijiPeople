@@ -1,5 +1,14 @@
+import type { Metadata } from "next";
 import { SettingsFormCard } from "@/app/_components/settings/settings-form-card";
 import { SettingsShell } from "@/app/_components/settings/settings-shell";
+
+/* Each screen titles itself. 47 of 48 shared one title, so a tab, a
+   bookmark and a screen reader's announcement said the same thing on
+   every route (BUG-1421). */
+export const metadata: Metadata = {
+  title: "Security",
+};
+
 
 export default async function SecuritySettingsPage() {
   return (

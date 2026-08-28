@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { Loader2, Plus, Power } from "lucide-react";
+import { Loader2, Plus, Power, Trash2 } from "lucide-react";
+import { useConfirmAction } from "@/app/_components/runtime/use-confirm-action";
 
 type Promotion = {
   id: string;
@@ -13,10 +14,14 @@ type Promotion = {
   currency: string | null;
   duration: "ONCE" | "REPEATING" | "FOREVER";
   durationMonths: number | null;
-  scope: "GLOBAL" | "PLAN" | "PRICE" | "CUSTOMER" | "SUBSCRIPTION";
+  /* "" until the operator chooses — see `emptyDraft` (BUG-1751). */
+  scope: "" | "GLOBAL" | "PLAN" | "PRICE" | "CUSTOMER" | "SUBSCRIPTION";
   isActive: boolean;
   stripeSyncStatus: string;
   version: number;
+  /* Whether this promotion has ever applied to anything — the line between a
+   * record that can be removed and one that carries commercial history. */
+  redemptionCount: number;
 };
 
 type LookupOption = { value: string; label: string };
@@ -34,17 +39,42 @@ type PromotionDraft = {
   syncToStripe: boolean;
 };
 
+/*
+ * Defaults for a form that writes commercial terms.
+ *
+ * These were chosen for convenience and added up to something dangerous: the
+ * widest scope, a pre-filled 10%, and immediate activation meant one press of
+ * "Add promotion" published a 10% discount against every eligible subscription
+ * (BUG-1751).
+ *
+ * Scope now starts unset so the operator has to say what the promotion applies
+ * to, and the percentage is blank so the number is one somebody chose. Creation
+ * no longer activates — that is a separate act, on the API side.
+ */
 const emptyDraft: PromotionDraft = {
   name: "",
   code: "",
   discountType: "PERCENTAGE" as const,
-  value: "10",
+  value: "",
   currency: "QAR",
   duration: "ONCE" as const,
   durationMonths: "",
-  scope: "GLOBAL" as const,
+  scope: "" as PromotionDraft["scope"],
   targetId: "",
-  syncToStripe: false,
+  /*
+   * On by default (BUG-1751).
+   *
+   * The platform is authoritative for discounts — decided 2026-08-28 — so a
+   * promotion the platform knows about and Stripe does not is a divergence, not
+   * a valid state. It was an unticked box, which meant that divergence was the
+   * default and what the platform believed could differ from what Stripe
+   * applied from the moment a promotion existed.
+   *
+   * Still a box rather than a removed choice: a promotion created while Stripe
+   * is unreachable should be creatable, and the operator should be the one who
+   * decides to accept the gap.
+   */
+  syncToStripe: true,
 };
 
 export function PromotionsManager({
@@ -56,6 +86,7 @@ export function PromotionsManager({
   const [draft, setDraft] = useState(emptyDraft);
   const [targets, setTargets] = useState<LookupOption[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const { confirmAction, confirmDialog } = useConfirmAction();
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
@@ -96,6 +127,19 @@ export function PromotionsManager({
 
   function createPromotion() {
     if (!draft.name.trim()) return setError("Name is required.");
+    /*
+     * Scope has to be chosen rather than defaulted (BUG-1751). It used to
+     * start at GLOBAL, so the widest possible commercial term was what an
+     * operator got for not touching the field.
+     */
+    if (!draft.scope)
+      return setError("Choose what this promotion applies to.");
+    if (!draft.value.trim())
+      return setError(
+        draft.discountType === "PERCENTAGE"
+          ? "Enter the percentage to discount."
+          : "Enter the amount to discount.",
+      );
     if (draft.scope !== "GLOBAL" && !draft.targetId)
       return setError("Select the record this promotion applies to.");
     if (draft.duration === "REPEATING" && Number(draft.durationMonths) < 1)
@@ -143,12 +187,71 @@ export function PromotionsManager({
     });
   }
 
+  /*
+   * Deactivate and delete are two different things and used to be one.
+   *
+   * `DELETE /promotions/:id` was wired to `deactivatePromotion`, so this button
+   * sent a delete, got 200 back, and left the row in place — and it was the
+   * only action offered, which meant a mistyped promotion could never be
+   * removed (BUG-1757). Deactivation now has its own route, and delete
+   * genuinely deletes.
+   */
+  /*
+   * Publishing is its own act now.
+   *
+   * Promotions are created inactive (BUG-1751), so there has to be a way to
+   * turn one on deliberately — and it confirms, because activating a global
+   * discount is the thing that used to happen by accident.
+   */
+  function activate(promotion: Promotion) {
+    void (async () => {
+      const scope =
+        promotion.scope === "GLOBAL"
+          ? "every eligible subscription"
+          : `the selected ${promotion.scope.toLowerCase()}`;
+      const confirmed = await confirmAction({
+        title: `Activate ${promotion.name}?`,
+        description: `This applies the discount to ${scope} from now on.`,
+        creates: [
+          promotion.discountType === "PERCENTAGE"
+            ? `${promotion.percentOff ?? 0}% off, applied to ${scope}`
+            : `${promotion.currency ?? ""} ${promotion.amountOff ?? 0} off, applied to ${scope}`,
+        ],
+        confirmLabel: "Activate promotion",
+        tone: promotion.scope === "GLOBAL" ? "danger" : "default",
+      });
+      if (!confirmed) return;
+      startTransition(async () => {
+        const response = await fetch(
+          `/api/super-admin/promotions/${promotion.id}`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ isActive: true }),
+          },
+        );
+        if (!response.ok) {
+          setError("Unable to activate this promotion.");
+          return;
+        }
+        const updated = (await response.json()) as Promotion;
+        setPromotions((current) =>
+          current.map((item) => (item.id === promotion.id ? updated : item)),
+        );
+      });
+    })();
+  }
+
   function deactivate(id: string) {
     startTransition(async () => {
-      const response = await fetch(`/api/super-admin/promotions/${id}`, {
-        method: "DELETE",
-      });
-      if (!response.ok) return;
+      const response = await fetch(
+        `/api/super-admin/promotions/${id}/deactivate`,
+        { method: "POST" },
+      );
+      if (!response.ok) {
+        setError("Unable to deactivate this promotion.");
+        return;
+      }
       const updated = (await response.json()) as Promotion;
       setPromotions((current) =>
         current.map((item) => (item.id === id ? updated : item)),
@@ -156,8 +259,54 @@ export function PromotionsManager({
     });
   }
 
+  function remove(promotion: Promotion) {
+    /*
+     * The app's own dialog, not `window.confirm`.
+     *
+     * A native confirm is unstyled, unescapable in any meaningful way and
+     * outside the app's theme — the same objections BUG-0020 raised about
+     * `window.prompt`. It also cannot name what it is about to delete beyond a
+     * single string, which is the thing BUG-1560 and BUG-1756 exist to fix.
+     */
+    void (async () => {
+      const confirmed = await confirmAction({
+        title: `Delete ${promotion.name}?`,
+        description:
+          "This permanently deletes the promotion. It cannot be undone.",
+        creates: [promotion.name],
+        intent: "delete",
+        confirmLabel: "Delete promotion",
+        tone: "danger",
+      });
+      if (!confirmed) return;
+      doRemove(promotion);
+    })();
+  }
+
+  function doRemove(promotion: Promotion) {
+    startTransition(async () => {
+      const response = await fetch(`/api/super-admin/promotions/${promotion.id}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) {
+        // A redeemed promotion is refused by the API and says why. Show that
+        // reason rather than a generic failure: it tells the operator to
+        // deactivate instead.
+        const payload = (await response.json().catch(() => null)) as {
+          message?: string;
+        } | null;
+        setError(payload?.message ?? "Unable to delete this promotion.");
+        return;
+      }
+      setPromotions((current) =>
+        current.filter((item) => item.id !== promotion.id),
+      );
+    });
+  }
+
   return (
     <div className="space-y-4">
+      {confirmDialog}
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <Field label="Name">
@@ -296,6 +445,16 @@ export function PromotionsManager({
               }
             />
             Create Stripe coupon now
+            {!draft.syncToStripe ? (
+              /*
+               * Unticking is a deliberate divergence and says so. The platform
+               * is authoritative for discounts, so a promotion Stripe does not
+               * know about will not be applied by Stripe (BUG-1751).
+               */
+              <span className="text-xs font-medium text-amber-700">
+                — without this, Stripe will not apply the discount
+              </span>
+            ) : null}
           </label>
           <button
             type="button"
@@ -357,20 +516,50 @@ export function PromotionsManager({
                     </Badge>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    {promotion.isActive ? (
-                      <button
-                        onClick={() => deactivate(promotion.id)}
-                        disabled={isPending}
-                        className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700"
-                      >
-                        {isPending ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        ) : (
+                    <div className="flex items-center justify-end gap-3">
+                      {promotion.isActive ? null : (
+                        <button
+                          onClick={() => activate(promotion)}
+                          disabled={isPending}
+                          className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700"
+                        >
                           <Power className="h-3.5 w-3.5" />
-                        )}
-                        Deactivate
-                      </button>
-                    ) : null}
+                          Activate
+                        </button>
+                      )}
+                      {promotion.isActive ? (
+                        <button
+                          onClick={() => deactivate(promotion.id)}
+                          disabled={isPending}
+                          className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700"
+                        >
+                          {isPending ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Power className="h-3.5 w-3.5" />
+                          )}
+                          Deactivate
+                        </button>
+                      ) : null}
+                      {promotion.redemptionCount === 0 ? (
+                        <button
+                          onClick={() => remove(promotion)}
+                          disabled={isPending}
+                          className="inline-flex items-center gap-1 text-xs font-semibold text-rose-700"
+                          title="This promotion has never been redeemed, so it can be removed."
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          Delete
+                        </button>
+                      ) : (
+                        <span
+                          className="text-xs text-slate-400"
+                          title={`Redeemed ${promotion.redemptionCount} time(s), so it carries commercial history and cannot be deleted.`}
+                        >
+                          Redeemed
+                        </span>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

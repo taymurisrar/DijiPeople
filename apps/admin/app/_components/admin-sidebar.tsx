@@ -197,7 +197,13 @@ export function AdminSidebar({
         />
       ) : null}
 
-      <aside
+      {/*
+        A `<nav>` landmark, not a bare `<aside>`. The sidebar is the console's
+        navigation and announced itself as a complementary region on all 48
+        screens audited, so there was no way to jump to it (BUG-1421).
+      */}
+      <nav
+        aria-label="Platform admin"
         className={[
           "fixed inset-y-3 left-3 z-50 flex max-w-[calc(100vw-1.5rem)] flex-col overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-xl transition-[width,transform] duration-200 ease-out",
           "lg:sticky lg:top-4 lg:inset-auto lg:z-auto lg:h-[calc(100dvh-2rem)] lg:shrink-0 lg:self-start lg:shadow-sm",
@@ -326,7 +332,7 @@ export function AdminSidebar({
             </div>
           ))}
         </div>
-      </aside>
+      </nav>
     </>
   );
 }

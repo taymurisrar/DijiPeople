@@ -192,8 +192,15 @@ export function AdminTopbar({
             </div>
 
             <div className="mt-1 flex flex-col gap-1 sm:flex-row sm:items-end sm:gap-3">
-              <h1 className="truncate text-xl font-semibold tracking-tight text-slate-950 sm:text-2xl">
-                Control Hub              </h1>
+              {/*
+                Not an `<h1>`. Every page already has its own, so this made two
+                on all 48 audited screens — and because the shell renders first,
+                the first heading a screen reader announced was "Control Hub" on
+                every one of them, whatever the page actually was (BUG-1421).
+              */}
+              <p className="truncate text-xl font-semibold tracking-tight text-slate-950 sm:text-2xl">
+                Control Hub
+              </p>
 
               <p className="text-xs font-medium text-slate-500 sm:pb-1">
                 {currentDate}

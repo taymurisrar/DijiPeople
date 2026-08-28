@@ -17,6 +17,8 @@ import {
   validateRuntimeDefinition,
 } from "@repo/config";
 import { PLATFORM_CURRENCY_OPTIONS } from "@/lib/reference-data/platform-reference-data";
+import { emptyListDescription, emptyListTitle } from "@repo/config";
+import { humanizeLabel } from "./humanize-label";
 
 const PLATFORM_OPERATORS = ["PLATFORM_OWNER", "PLATFORM_ADMIN", "SUPER_ADMIN"];
 const ALL_PLATFORM_ROLES = [
@@ -378,7 +380,16 @@ const MODULE_CAPABILITIES: Record<
   RuntimeModuleCapabilities
 > = {
   dashboard: { create: false, update: false, delete: false },
-  leads: { create: true, update: true, delete: true },
+  /*
+   * `bulkDelete: false` — one lead at a time, or none (BUG-0018).
+   *
+   * A lead carries the commercial attribution a partner commission is
+   * calculated from and a partner dispute is settled with. Deleting one is a
+   * deliberate act on a record somebody is looking at; deleting a selection
+   * destroys that history for an unbounded number nobody reviewed. The API no
+   * longer offers a bulk arm for this module either, so the two agree.
+   */
+  leads: { create: true, update: true, delete: true, bulkDelete: false },
   partners: { create: true, update: true, delete: true },
   "partner-inquiries": { create: false, update: false, delete: true },
   customers: { create: true, update: true, delete: true },
@@ -419,7 +430,14 @@ function defaultActionsFor(
     ACTION.recordRefresh,
     ...(capabilities.update ? [ACTION.save, ACTION.saveClose] : []),
     ...(capabilities.delete
-      ? [ACTION.delete, ACTION.bulkDelete]
+      ? [
+          ACTION.delete,
+          // Bulk deletion is a separate permission to grant. Unset, it follows
+          // `delete`; leads withhold it deliberately (BUG-0018).
+          ...((capabilities.bulkDelete ?? capabilities.delete)
+            ? [ACTION.bulkDelete]
+            : []),
+        ]
       : refusingDeleteActions(key)),
   ];
 }
@@ -911,7 +929,23 @@ const partnerFields: RuntimeFieldDefinition[] = [
     "commercial",
     true,
   ),
-  field("currencyCode", "Currency", "currency", "commercial", true),
+  /*
+   * A currency *code*, not an amount.
+   *
+   * `"currency"` names two different things in this registry — the money
+   * control, which renders `<input type="number">`, and the ISO code that says
+   * which money it is. `currencyCode` was given the first, so the only value an
+   * operator could enter on Partners → New was a number, and the API stored it:
+   * a partner created through the console carries `currencyCode: "5"`
+   * (BUG-1747).
+   *
+   * Contracts already declares this field as an option over
+   * `PLATFORM_CURRENCY_OPTIONS`. Partners now says the same thing the same way.
+   */
+  {
+    ...field("currencyCode", "Currency", "option", "commercial", true),
+    options: PLATFORM_CURRENCY_OPTIONS,
+  },
   {
     ...field("assignedToUserId", "Internal owner", "userLookup", "ownership"),
     lookupPath: "/platform-users/owner-candidates",
@@ -976,6 +1010,38 @@ const FORM_EXCLUDED_FIELDS: Partial<Record<PlatformModuleKey, string[]>> = {
     "annualBasePrice",
     "legacyPricingMigratedAt",
   ],
+};
+
+/**
+ * Where a module's records come from, for screens that cannot create them.
+ *
+ * An empty state that says "create one" on a screen with no create control is
+ * an instruction the operator cannot follow (BUG-1559). Saying nothing is
+ * better; saying where the records actually come from is better still, and that
+ * is knowledge only the module has.
+ *
+ * Only modules whose `create` capability is false need an entry. Anything
+ * missing falls back to a bare "Nothing here yet.", which is honest.
+ */
+const RECORD_ORIGINS: Partial<Record<PlatformModuleKey, string>> = {
+  invoices:
+    "Invoices are raised automatically when a subscription bills.",
+  payments:
+    "Payments appear when a customer pays an invoice through Stripe.",
+  commissions:
+    "Commissions are calculated when a partner-referred subscription bills.",
+  subscriptions:
+    "Subscriptions are created by checkout, or from a customer onboarding.",
+  tenants:
+    "Tenants are provisioned from a paid subscription or a customer onboarding.",
+  "partner-inquiries":
+    "Enquiries arrive from the partner form on the public site.",
+  "partner-onboarding":
+    "Applications appear when an enquiry is accepted for onboarding.",
+  "monitoring-incidents":
+    "Incidents are recorded automatically when a request fails.",
+  "signature-requests":
+    "Signature requests appear when a contract is sent for signing.",
 };
 
 const definitions: PlatformModuleDefinition[] = [
@@ -1078,6 +1144,19 @@ const definitions: PlatformModuleDefinition[] = [
             "lead-information",
           ),
           lookupPath: "/platform-users/owner-candidates",
+          /*
+           * The same relation the record header reads (BUG-1550).
+           *
+           * A lead showed `Test User` in the header and `Not set` in the body
+           * at the same time, and the screen gave the operator no way to tell
+           * which was right. Both surfaces resolve `assignedToUserId`, and the
+           * header names the relation explicitly through
+           * `OWNER_FIELD_CANDIDATES` while the body was deriving it by
+           * stripping the `Id` suffix — two routes to the same place, and only
+           * one of them stated where it was going. Naming it here means they
+           * cannot answer differently.
+           */
+          displayValueField: "assignedToUser",
         },
         field("contactFirstName", "First name", "text", "contact", true),
         field("contactLastName", "Last name", "text", "contact", true),
@@ -1858,7 +1937,13 @@ const definitions: PlatformModuleDefinition[] = [
         field("addressLine2", "Address line 2", "text", "address"),
         {
           ...field("selectedPlanId", "Preferred plan", "lookup", "commercial"),
-          lookupPath: "/super-admin/plans",
+          /*
+           * Only plans a customer could actually be put on. An inactive plan
+           * with no `PlanPrice` was selectable here, producing a customer whose
+           * preferred plan nothing could bill (BUG-1555). The filter is a
+           * usability fix; the enforcement is on the write path.
+           */
+          lookupPath: "/super-admin/plans?sellable=true",
         },
         field(
           "preferredBillingCycle",
@@ -2294,7 +2379,8 @@ const definitions: PlatformModuleDefinition[] = [
         },
         {
           ...field("selectedPlanId", "Plan", "lookup", "commercial"),
-          lookupPath: "/super-admin/plans",
+          /* Sellable plans only — see the customer form's picker (BUG-1555). */
+          lookupPath: "/super-admin/plans?sellable=true",
         },
         field("billingCycle", "Billing cycle", "option", "commercial", false, [
           "MONTHLY",
@@ -3812,7 +3898,11 @@ const definitions: PlatformModuleDefinition[] = [
       field("baseAmount", "Base amount", "currency", "commercial"),
       field("commissionRate", "Commission rate", "percentage", "commercial"),
       field("commissionAmount", "Commission amount", "currency", "commercial"),
-      field("currencyCode", "Currency", "text", "commercial"),
+      // A code, like the two above — see the note on the partner declaration.
+      {
+        ...field("currencyCode", "Currency", "option", "commercial"),
+        options: PLATFORM_CURRENCY_OPTIONS,
+      },
       field("earnedAt", "Earned", "dateTime", "dates"),
       field("dueAt", "Due", "dateTime", "dates"),
       field("paidAt", "Paid", "dateTime", "dates"),
@@ -4011,9 +4101,32 @@ function define(
     actions: input.actions ?? READ_ONLY_ACTIONS,
     relatedRecords: input.relatedRecords ?? [],
     permissions: input.permissions ?? modulePermissions(input.key),
+    /*
+     * The default said "Create a <thing> or adjust the current view and
+     * filters" for every empty list, and was wrong twice: it blamed filters
+     * that were not set (BUG-1752, and BUG-1654 before it, fixed in apps/web
+     * only), and it told the operator to create a record on screens with no
+     * create control — invoices, payments and commissions arrive from
+     * elsewhere, so the instruction could not be followed from where it was
+     * given (BUG-1559).
+     *
+     * The unfiltered wording is composed here; the filtered wording depends on
+     * what the operator has typed and is resolved by the list at render time.
+     * `origin` explains where records come from on a screen that cannot make
+     * them, and is declared per module — a generic sentence would be as useless
+     * as the one it replaces.
+     */
     emptyState: input.emptyState ?? {
-      title: `No ${input.pluralDisplayName.toLowerCase()} found`,
-      description: `Create a ${input.displayName.toLowerCase()} or adjust the current view and filters.`,
+      title: emptyListTitle({
+        filtered: false,
+        plural: input.pluralDisplayName,
+      }),
+      description: emptyListDescription({
+        filtered: false,
+        canCreate: MODULE_CAPABILITIES[input.key]?.create ?? false,
+        singular: input.displayName,
+        origin: RECORD_ORIGINS[input.key],
+      }),
       actionLabel: `New ${input.displayName.toLowerCase()}`,
     },
     importExport: input.importExport ?? { export: true, formats: ["csv"] },
@@ -4805,10 +4918,12 @@ function status(value: string): RuntimeStatusDefinition {
             : "neutral",
   };
 }
+/*
+ * Display text for a stored value. See `humanizeLabel` for why this is not a
+ * `toLowerCase()` and a capitalise: that spelling turned `IT / Software` into
+ * `It / Software` and a company size of `11-50` into `11 50`, in every dropdown
+ * in the console (BUG-1753).
+ */
 function title(value: string) {
-  return value
-    .toLowerCase()
-    .replaceAll("_", " ")
-    .replaceAll("-", " ")
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+  return humanizeLabel(value);
 }

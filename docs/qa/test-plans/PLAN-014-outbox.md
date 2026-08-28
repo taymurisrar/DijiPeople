@@ -128,7 +128,7 @@ appropriate the first time a delivery defect is found in the wild.
 
 ## Related
 
-- Scenarios — [[QA-BILLING-002]]
+- Scenarios — [[QA-BILLING-002]], [[QA-DEPLOY-022]]
 - Module — [[outbox]]
 - Bugs — [[BUG-0070]]
 - Regressions — REG-064 (see the regression register)

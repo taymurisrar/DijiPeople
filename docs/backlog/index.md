@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**303 records** — 201 bugs under [`docs/bugs/`](../bugs/), 102 non-bug items under [`items/`](items/).
+**321 records** — 218 bugs under [`docs/bugs/`](../bugs/), 103 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,53 +13,52 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 47 |
+| Open (active work) | 70 |
 | Blocked | 2 |
-| Deferred | 44 |
-| Awaiting a product decision | 2 |
-| Completed / closed | 208 |
-| **Open CRITICAL** | **6** |
-| **Open HIGH** | **15** |
+| Deferred | 27 |
+| Awaiting a product decision | 4 |
+| Completed / closed | 218 |
+| **Open CRITICAL** | **7** |
+| **Open HIGH** | **14** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
 
 | Severity | Count |
 |---|---|
-| CRITICAL | 6 |
-| HIGH | 15 |
-| MEDIUM | 22 |
-| LOW | 4 |
+| CRITICAL | 7 |
+| HIGH | 14 |
+| MEDIUM | 36 |
+| LOW | 13 |
 
 ## Open by type
 
 | Type | Count |
 |---|---|
 | ARCHITECTURE | 1 |
-| BUG | 11 |
-| DATA_INTEGRITY | 3 |
+| AUTHORIZATION | 1 |
+| BUG | 21 |
+| DATA_INTEGRITY | 4 |
 | FOLLOW_UP | 2 |
-| INFRA | 8 |
+| INFRA | 7 |
 | INTEGRATION | 1 |
-| SECURITY | 3 |
-| STATE_MACHINE | 2 |
+| SECURITY | 2 |
 | TECH_DEBT | 5 |
-| TEST_GAP | 7 |
-| UX | 4 |
+| TEST_GAP | 8 |
+| UX | 18 |
 
 ## All records by status
 
 | Status | Count |
 |---|---|
-| OPEN | 12 |
 | BLOCKED | 2 |
-| DEFERRED | 44 |
-| PRODUCT_DECISION | 2 |
-| FIXED | 13 |
-| VERIFIED | 150 |
+| DEFERRED | 27 |
+| PRODUCT_DECISION | 4 |
+| FIXED | 47 |
+| VERIFIED | 160 |
 | DUPLICATE | 4 |
 | ACCEPTED_RISK | 1 |
-| READY | 22 |
+| READY | 23 |
 | DONE | 53 |
 
 ## All records
@@ -72,16 +71,19 @@ see [`README.md`](README.md) for why.
 | [BUG-0030](../../docs/bugs/BUG-0030-plan-list-get-mutates-commercial-pricing-and-can-fail-on-pla.md) | Plan list GET mutates commercial pricing and can fail on PlanPrice unique constraint | DATA_INTEGRITY | CRITICAL | P0 | VERIFIED | services/api, services/api/prisma | DONE |
 | [BUG-0047](../../docs/bugs/BUG-0047-seven-bug-records-are-verified-while-their-fixes-exist-only.md) | Seven bug records are VERIFIED while their fixes exist only on unmerged branches | SECURITY | CRITICAL | P0 | VERIFIED | api:organization, api:error-logs, api:employees, api:attendance, docs/qa/regressions | DONE |
 | [BUG-0071](../../docs/bugs/BUG-0071-tenant-users-reach-every-platform-super-admin-endpoint.md) | Tenant users reach every platform super-admin endpoint | AUTHORIZATION | CRITICAL | P0 | VERIFIED | super-admin, platform-auth, platform-communications | DONE |
-| [BUG-0898](../../docs/bugs/BUG-0898-self-service-checkout-is-blocked-for-every-plan-no-plan-pric.md) | Self-service checkout is blocked for every plan: no plan price has ever been synced to Stripe | BUG | CRITICAL | P0 | OPEN | api:super-admin, app:landing | BLOCKED_EXTERNAL |
+| [BUG-0898](../../docs/bugs/BUG-0898-self-service-checkout-is-blocked-for-every-plan-no-plan-pric.md) | Self-service checkout is blocked for every plan: no plan price has ever been synced to Stripe | BUG | CRITICAL | P0 | PRODUCT_DECISION | api:super-admin, app:landing | PRODUCT_DECISION |
 | [BUG-0899](../../docs/bugs/BUG-0899-production-cannot-deploy-the-release-chain-always-fails-beca.md) | Production cannot deploy: the release chain always fails because seeded legal documents declare themselves drafts | BUG | CRITICAL | P0 | VERIFIED | services/api/prisma | DONE |
 | [BUG-0900](../../docs/bugs/BUG-0900-tenant-provisioning-exceeds-the-5s-transaction-timeout-a-pai.md) | Tenant provisioning exceeds the 5s transaction timeout: a paid order is left with no workspace | BUG | CRITICAL | P0 | FIXED | api:permissions | FIX_NOW |
-| [BUG-0904](../../docs/bugs/BUG-0904-production-is-missing-outbox-worker-enabled-so-no-workspace-.md) | Production is missing OUTBOX_WORKER_ENABLED, so no workspace is provisioned after payment | BUG | CRITICAL | P0 | OPEN | api:outbox | BLOCKED_EXTERNAL |
+| [BUG-0904](../../docs/bugs/BUG-0904-production-is-missing-outbox-worker-enabled-so-no-workspace-.md) | Production is missing OUTBOX_WORKER_ENABLED, so no workspace is provisioned after payment | BUG | CRITICAL | P0 | FIXED | api:outbox | FIX_NOW |
 | [BUG-0989](../../docs/bugs/BUG-0989-every-stripe-webhook-delivery-to-production-fails-so-a-payme.md) | Every Stripe webhook delivery to production fails, so a payment never reaches the platform | INFRA | CRITICAL | P0 | VERIFIED | api:billing | DONE |
 | [BUG-0994](../../docs/bugs/BUG-0994-plan-entitlements-blank-out-on-save-and-the-next-save-delete.md) | Plan entitlements blank out on save and the next save deletes them | DATA_INTEGRITY | CRITICAL | P0 | VERIFIED | platform-runtime, super-admin, admin | DONE |
 | [BUG-1128](../../docs/bugs/BUG-1128-stripe-api-version-skew-invoice-paid-cannot-map-to-a-subscri.md) | Stripe API version skew: invoice.paid cannot map to a subscription because invoice.subscription no longer exists | INTEGRATION | CRITICAL | P0 | FIXED | api:billing | FIX_NOW |
 | [BUG-1133](../../docs/bugs/BUG-1133-saving-a-plan-price-deactivates-every-sibling-price-on-a-nar.md) | Saving a plan price deactivates every sibling price on a narrower key than the unique index | DATA_INTEGRITY | CRITICAL | P0 | VERIFIED | api:super-admin, apps/admin | DONE |
 | [BUG-1595](../../docs/bugs/BUG-1595-production-has-no-tenant-email-provider-so-no-tenant-can-sen.md) | Production has no tenant email provider so no tenant can send any email | INFRA | CRITICAL | P0 | VERIFIED | notifications, tenants | DONE |
-| [BUG-1644](../../docs/bugs/BUG-1644-tenant-root-domain-is-misconfigured-so-no-customer-can-reach.md) | Tenant root domain is misconfigured so no customer can reach their workspace login | INFRA | CRITICAL | P0 | OPEN | tenant-domains, tenants | FIX_NOW |
+| [BUG-1644](../../docs/bugs/BUG-1644-tenant-root-domain-is-misconfigured-so-no-customer-can-reach.md) | Tenant root domain is misconfigured so no customer can reach their workspace login | INFRA | CRITICAL | P0 | VERIFIED | tenant-domains, tenants | DONE |
+| [BUG-1742](../../docs/bugs/BUG-1742-lead-creation-is-impossible-the-runtime-form-always-sends-pa.md) | Lead creation is impossible: the runtime form always sends partnerId as an empty string | BUG | CRITICAL | P0 | FIXED | apps/admin, api:platform-runtime, api:super-admin | FIX_NOW |
+| [BUG-1743](../../docs/bugs/BUG-1743-customers-and-partners-cannot-be-edited-the-runtime-form-ech.md) | Customers and partners cannot be edited: the runtime form echoes fields the update DTO forbids | BUG | CRITICAL | P0 | FIXED | apps/admin, api:platform-runtime, api:super-admin | FIX_NOW |
+| [BUG-1744](../../docs/bugs/BUG-1744-every-subscription-has-a-zero-length-billing-period-and-a-re.md) | Every subscription has a zero-length billing period and a renewal date in the past | DATA_INTEGRITY | CRITICAL | P0 | FIXED | api:super-admin, api:billing, integration:stripe | FIX_NOW |
 | [BUG-1494](../../docs/bugs/BUG-1494-git-worktree-remove-follows-node-modules-junctions-and-delet.md) | git worktree remove follows node_modules junctions and deletes the primary checkout | INFRA | CRITICAL | P1 | FIXED | scripts | DONE |
 | [BUG-0049](../../docs/bugs/BUG-0049-report-only-ci-jobs-swallow-security-and-database-e2e-failur.md) | Report-only CI jobs swallow security and database E2E failures | INFRA | HIGH | P0 | VERIFIED | .github/workflows, services/api/src/common/constants, services/api/test, docs/qa | DONE |
 | [BUG-0052](../../docs/bugs/BUG-0052-production-dependency-graph-carries-critical-and-high-securi.md) | Production dependency graph carries critical and high security advisories | SECURITY | HIGH | P0 | VERIFIED | package-lock.json, apps/agent-desktop, apps/web, apps/admin, apps/landing, services/api | DONE |
@@ -99,8 +101,8 @@ see [`README.md`](README.md) for why.
 | [BUG-0011](../../docs/bugs/BUG-0011-signed-agreement-editable-defeating-the-lead-conversion-gate.md) | Signed agreements were editable, defeating the lead-conversion gate | STATE_MACHINE | HIGH | P1 | VERIFIED | api:contracts | DONE |
 | [BUG-0012](../../docs/bugs/BUG-0012-onboarding-created-by-lead-conversion-was-born-uneditable.md) | Every onboarding created by lead conversion was born un-editable | STATE_MACHINE | HIGH | P1 | VERIFIED | api:super-admin | DONE |
 | [BUG-0014](../../docs/bugs/BUG-0014-no-tenant-that-failed-provisioning-could-be-retried.md) | No tenant that failed provisioning could be retried | STATE_MACHINE | HIGH | P1 | VERIFIED | api:tenant-control-plane | DONE |
-| [BUG-0015](../../docs/bugs/BUG-0015-a-tenant-that-fails-before-identities-and-billing-is-unrecoverable.md) | A tenant that fails before identities-and-billing is permanently unrecoverable | STATE_MACHINE | HIGH | P1 | OPEN | api:tenant-control-plane | PLAN_REQUIRED |
-| [BUG-0016](../../docs/bugs/BUG-0016-partner-onboarding-review-has-no-state-machine.md) | Partner onboarding review has no state machine | STATE_MACHINE | HIGH | P1 | OPEN | api:partner-experience | PLAN_REQUIRED |
+| [BUG-0015](../../docs/bugs/BUG-0015-a-tenant-that-fails-before-identities-and-billing-is-unrecoverable.md) | A tenant that fails before identities-and-billing is permanently unrecoverable | STATE_MACHINE | HIGH | P1 | VERIFIED | api:tenant-control-plane | DONE |
+| [BUG-0016](../../docs/bugs/BUG-0016-partner-onboarding-review-has-no-state-machine.md) | Partner onboarding review has no state machine | STATE_MACHINE | HIGH | P1 | VERIFIED | api:partner-experience | DONE |
 | [BUG-0019](../../docs/bugs/BUG-0019-partner-inquiry-and-onboarding-review-screens-are-unreachable.md) | Partner inquiry and onboarding review screens have no inbound link | UX | HIGH | P1 | VERIFIED | apps/admin | DONE |
 | [BUG-0026](../../docs/bugs/BUG-0026-public-login-and-tenant-email-links-resolved-to-localhost-in.md) | Public Login and tenant email links resolved to localhost in production | INFRA | HIGH | P1 | VERIFIED | apps/landing, apps/web, apps/admin, services/api, pkg:config | DONE |
 | [BUG-0031](../../docs/bugs/BUG-0031-public-subscribe-endpoint-has-no-rate-limiting.md) | Public subscribe endpoint has no rate limiting | SECURITY | HIGH | P1 | VERIFIED | api:billing, apps/landing | DONE |
@@ -151,7 +153,7 @@ see [`README.md`](README.md) for why.
 | [BUG-0877](../../docs/bugs/BUG-0877-editing-a-plan-price-always-fails-with-property-synctostripe.md) | Editing a plan price always fails with property syncToStripe should not exist | BUG | HIGH | P1 | VERIFIED | apps/admin | DONE |
 | [BUG-0901](../../docs/bugs/BUG-0901-a-paid-order-records-totalamount-0-00-for-every-flat-plan-wh.md) | A paid order records totalAmount 0.00 for every FLAT plan while Stripe charges the full price | BUG | HIGH | P1 | VERIFIED | api:billing | DONE |
 | [BUG-0902](../../docs/bugs/BUG-0902-marktenantready-has-no-caller-so-a-paid-workspace-is-never-m.md) | markTenantReady has no caller, so a paid workspace is never marked ready and its URL is never shown | BUG | HIGH | P1 | VERIFIED | api:super-admin | DONE |
-| [BUG-0903](../../docs/bugs/BUG-0903-production-runs-stripe-in-test-mode-so-no-real-payment-can-b.md) | Production runs Stripe in test mode, so no real payment can be collected | BUG | HIGH | P1 | OPEN | api:billing | BLOCKED_EXTERNAL |
+| [BUG-0903](../../docs/bugs/BUG-0903-production-runs-stripe-in-test-mode-so-no-real-payment-can-b.md) | Production runs Stripe in test mode, so no real payment can be collected | BUG | HIGH | P1 | PRODUCT_DECISION | api:billing | PRODUCT_DECISION |
 | [BUG-0906](../../docs/bugs/BUG-0906-production-has-no-published-legal-documents-so-purchases-rec.md) | Production has no published legal documents, so purchases record no consent and the footer links to nothing | BUG | HIGH | P1 | VERIFIED | api:legal, apps/landing | DONE |
 | [BUG-0976](../../docs/bugs/BUG-0976-a-disallowed-cors-origin-returns-500-and-writes-an-error-log.md) | A disallowed CORS origin returns 500 and writes an error-log row, so anyone can fill the table | SECURITY | HIGH | P1 | VERIFIED | services/api/src/config | DONE |
 | [BUG-0995](../../docs/bugs/BUG-0995-editing-any-plan-price-500s-once-its-stripe-product-id-goes-.md) | Editing any plan price 500s once its Stripe product id goes stale | INTEGRATION | HIGH | P1 | VERIFIED | billing, super-admin | DONE |
@@ -161,18 +163,24 @@ see [`README.md`](README.md) for why.
 | [BUG-1303](../../docs/bugs/BUG-1303-the-dp-chk-01-checkout-unavailable-link-writes-a-diagnostic-.md) | The DP-CHK-01 checkout-unavailable link writes a diagnostic code into the partner referral cookie | DATA_INTEGRITY | HIGH | P1 | VERIFIED | apps/landing | DONE |
 | [BUG-1369](../../docs/bugs/BUG-1369-checkout-resolves-a-plan-price-by-currency-and-cycle-only-so.md) | Checkout resolves a plan price by currency and cycle only, so it can quote a billing model the plans page never advertises | BUG | HIGH | P1 | VERIFIED | apps/landing | DONE |
 | [BUG-1378](../../docs/bugs/BUG-1378-the-public-plans-endpoint-publishes-sales-assisted-internal-.md) | The public plans endpoint publishes sales-assisted internal pricing to anonymous visitors | SECURITY | HIGH | P1 | VERIFIED | api:billing | DONE |
-| [BUG-1419](../../docs/bugs/BUG-1419-every-incident-on-the-monitoring-overview-links-to-a-route-t.md) | Every incident on the monitoring overview links to a route that does not exist | BUG | HIGH | P1 | FIXED | apps/admin | FIX_NOW |
+| [BUG-1419](../../docs/bugs/BUG-1419-every-incident-on-the-monitoring-overview-links-to-a-route-t.md) | Every incident on the monitoring overview links to a route that does not exist | BUG | HIGH | P1 | VERIFIED | apps/admin | DONE |
 | [BUG-1420](../../docs/bugs/BUG-1420-the-monitoring-severity-filter-cannot-match-99-7-percent-of-.md) | The monitoring severity filter cannot match 99.7 percent of stored incidents | DATA_INTEGRITY | HIGH | P1 | FIXED | apps/admin, api:error-logs | FIX_NOW |
-| [BUG-1422](../../docs/bugs/BUG-1422-runtime-form-validation-discards-every-field-reason-and-show.md) | Runtime form validation discards every field reason and shows the user Bad Request Exception | BUG | HIGH | P1 | FIXED | api:platform-runtime, apps/admin | DONE |
-| [BUG-1423](../../docs/bugs/BUG-1423-runtime-form-controls-have-no-accessible-name-so-screen-read.md) | Runtime form controls have no accessible name so screen readers announce every field as blank | UX | HIGH | P1 | OPEN | apps/admin | PLAN_REQUIRED |
+| [BUG-1422](../../docs/bugs/BUG-1422-runtime-form-validation-discards-every-field-reason-and-show.md) | Runtime form validation discards every field reason and shows the user Bad Request Exception | BUG | HIGH | P1 | VERIFIED | api:platform-runtime, apps/admin | DONE |
+| [BUG-1423](../../docs/bugs/BUG-1423-runtime-form-controls-have-no-accessible-name-so-screen-read.md) | Runtime form controls have no accessible name so screen readers announce every field as blank | UX | HIGH | P1 | FIXED | apps/admin | FIX_NOW |
 | [BUG-1515](../../docs/bugs/BUG-1515-tenant-activation-invitation-reported-as-sent-when-it-was-ne.md) | Tenant activation invitation reported as sent when it was never delivered | STATE_MACHINE | HIGH | P1 | VERIFIED | auth, tenant-control-plane, notifications | DONE |
 | [BUG-1516](../../docs/bugs/BUG-1516-public-signup-creates-duplicate-customer-records-breaking-st.md) | Public signup creates duplicate customer records, breaking Stripe tenant resolution | DATA_INTEGRITY | HIGH | P1 | FIXED | super-admin, billing, landing | FIX_NOW |
-| [BUG-1541](../../docs/bugs/BUG-1541-generated-agreement-pdfs-render-unsubstituted-template-place.md) | Generated agreement PDFs render unsubstituted template placeholders | BUG | HIGH | P1 | FIXED | contracts, legal | FIX_NOW |
+| [BUG-1541](../../docs/bugs/BUG-1541-generated-agreement-pdfs-render-unsubstituted-template-place.md) | Generated agreement PDFs render unsubstituted template placeholders | BUG | HIGH | P1 | VERIFIED | contracts, legal | DONE |
 | [BUG-1542](../../docs/bugs/BUG-1542-monitoring-incident-detail-pages-return-404-for-every-incide.md) | Monitoring incident detail pages return 404 for every incident | BUG | HIGH | P1 | DUPLICATE | platform-monitoring, error-logs | DUPLICATE |
 | [BUG-1543](../../docs/bugs/BUG-1543-stripe-webhook-rejected-as-validation-failed-during-a-live-p.md) | Stripe webhook rejected as VALIDATION_FAILED during a live payment | INTEGRATION | HIGH | P1 | DEFERRED | billing | DEFER |
-| [BUG-1544](../../docs/bugs/BUG-1544-public-signup-advertises-a-workspace-domain-that-does-not-re.md) | Public signup advertises a workspace domain that does not resolve | UX | HIGH | P1 | OPEN | tenant-domains, leads | FIX_NOW |
-| [BUG-1578](../../docs/bugs/BUG-1578-admin-customer-form-stores-a-country-lookup-id-where-every-r.md) | Admin customer form stores a country lookup id where every reader expects a name | DATA_INTEGRITY | HIGH | P1 | FIXED | super-admin, contracts, lookups | FIX_NOW |
+| [BUG-1544](../../docs/bugs/BUG-1544-public-signup-advertises-a-workspace-domain-that-does-not-re.md) | Public signup advertises a workspace domain that does not resolve | UX | HIGH | P1 | VERIFIED | tenant-domains, leads | DONE |
+| [BUG-1578](../../docs/bugs/BUG-1578-admin-customer-form-stores-a-country-lookup-id-where-every-r.md) | Admin customer form stores a country lookup id where every reader expects a name | DATA_INTEGRITY | HIGH | P1 | VERIFIED | super-admin, contracts, lookups | DONE |
 | [BUG-1649](../../docs/bugs/BUG-1649-api-proxy-routes-copy-the-upstream-content-encoding-onto-an-.md) | API proxy routes copy the upstream Content-Encoding onto an already-decompressed body | BUG | HIGH | P1 | FIXED | settings-runtime, tenant-settings | FIX_NOW |
+| [BUG-1745](../../docs/bugs/BUG-1745-the-executive-dashboard-reports-zero-revenue-because-reporti.md) | The executive dashboard reports zero revenue because reporting currency is PKR and all money is QAR | BUG | HIGH | P1 | FIXED | apps/admin, api:super-admin | FIX_NOW |
+| [BUG-1747](../../docs/bugs/BUG-1747-partner-currency-is-a-required-numeric-input-so-partner-crea.md) | Partner Currency is a required numeric input so partner creation forces a corrupt currency code | BUG | HIGH | P1 | FIXED | apps/admin, api:super-admin | FIX_NOW |
+| [BUG-1749](../../docs/bugs/BUG-1749-admin-creates-plans-that-can-never-be-sold-and-can-never-be-.md) | Admin creates plans that can never be sold and can never be deleted | BUG | HIGH | P1 | FIXED | apps/admin, api:super-admin | FIX_NOW |
+| [BUG-1750](../../docs/bugs/BUG-1750-the-monitoring-critical-tile-miscounts-and-links-to-a-filter.md) | The monitoring critical tile miscounts and links to a filter that matches nothing | BUG | HIGH | P1 | FIXED | apps/admin, api:platform-monitoring | FIX_NOW |
+| [BUG-1751](../../docs/bugs/BUG-1751-a-promotion-goes-live-against-every-subscription-the-instant.md) | A promotion goes live against every subscription the instant it is created | BUG | HIGH | P1 | FIXED | apps/admin, api:super-admin, integration:stripe | FIX_NOW |
+| [BUG-1755](../../docs/bugs/BUG-1755-the-plans-list-cannot-show-publication-status-or-sales-model.md) | The plans list cannot show publication status or sales model because the API omits them | BUG | HIGH | P1 | FIXED | apps/admin, api:super-admin | FIX_NOW |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | READY | apps/web, e2e | PLAN_REQUIRED |
@@ -182,6 +190,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0094](../../docs/backlog/items/ITEM-0094-go-live-sh-reports-no-blocker-for-a-webhook-endpoint-that-re.md) | go-live.sh reports no blocker for a webhook endpoint that rejects every delivery | TEST_GAP | HIGH | P1 | READY | scripts, api:billing, api:outbox | FIX_NOW |
 | [ITEM-0096](../../docs/backlog/items/ITEM-0096-a-critical-notification-named-no-reason-and-no-action-and-th.md) | A critical notification named no reason and no action, and the price estimate showed no working | UX | HIGH | P1 | DONE | api:platform-events, apps/admin, apps/landing | DONE |
 | [ITEM-0097](../../docs/backlog/items/ITEM-0097-a-saved-column-preference-could-hide-the-column-that-identif.md) | A saved column preference could hide the column that identifies the row | UX | HIGH | P1 | DONE | apps/admin, e2e | DONE |
+| [ITEM-0103](../../docs/backlog/items/ITEM-0103-deployment-check-the-composed-tenant-workspace-host-must-res.md) | Deployment check: the composed tenant workspace host must resolve | TEST_GAP | HIGH | P1 | READY | web, tenant-domains | PLAN_REQUIRED |
 | [ITEM-0048](../../docs/backlog/items/ITEM-0048-replace-or-contain-active-win-and-the-xlsx-export-path.md) | Replace or contain active-win and the xlsx export path | SECURITY | HIGH | P2 | BLOCKED | apps/agent-desktop, services/api/src/common/excel, package-lock.json | BLOCKED_EXTERNAL |
 | [ITEM-0086](../../docs/backlog/items/ITEM-0086-smoke-deployment-does-not-assert-that-a-launched-market-has-.md) | smoke:deployment does not assert that a launched market has a purchasable price or a running outbox worker | TEST_GAP | HIGH | P2 | DONE | scripts | DONE |
 | [BUG-0051](../../docs/bugs/BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state.md) | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | P1 | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |
@@ -240,31 +249,37 @@ see [`README.md`](README.md) for why.
 | [BUG-0534](../../docs/bugs/BUG-0534-plan-form-offered-editable-legacy-price-fields-that-bill-nob.md) | Plan form offered editable legacy price fields that bill nobody | UX | MEDIUM | P2 | VERIFIED | super-admin, apps/admin | DONE |
 | [BUG-0668](../../docs/bugs/BUG-0668-exchange-rate-resolution-ignored-the-effective-date-it-was-g.md) | Exchange rate resolution ignored the effective date it was given | DATA_INTEGRITY | MEDIUM | P2 | VERIFIED | api:tenant-settings | DONE |
 | [BUG-0795](../../docs/bugs/BUG-0795-saved-table-preferences-hide-every-column-added-to-a-module-.md) | Saved table preferences hide every column added to a module afterwards | UX | MEDIUM | P2 | VERIFIED | apps/admin | DONE |
-| [BUG-0905](../../docs/bugs/BUG-0905-production-defines-direct-url-but-the-code-reads-direct-data.md) | Production defines DIRECT_URL but the code reads DIRECT_DATABASE_URL, so migrations run over the pooled endpoint | BUG | MEDIUM | P2 | OPEN | services/api/prisma, pkg:config | BLOCKED_EXTERNAL |
+| [BUG-0905](../../docs/bugs/BUG-0905-production-defines-direct-url-but-the-code-reads-direct-data.md) | Production defines DIRECT_URL but the code reads DIRECT_DATABASE_URL, so migrations run over the pooled endpoint | BUG | MEDIUM | P2 | FIXED | services/api/prisma, pkg:config | FIX_NOW |
 | [BUG-0907](../../docs/bugs/BUG-0907-an-unknown-legal-slug-answers-200-and-hangs-on-the-loading-s.md) | An unknown legal slug answers 200 and hangs on the loading shell instead of returning 404 | BUG | MEDIUM | P2 | VERIFIED | apps/landing | DONE |
 | [BUG-1208](../../docs/bugs/BUG-1208-component-index-check-fails-on-every-windows-checkout-passes.md) | component-index --check fails on every Windows checkout, passes in CI | INFRA | MEDIUM | P2 | FIXED | framework | FIX_NOW |
 | [BUG-1261](../../docs/bugs/BUG-1261-the-admin-theme-bootstrap-script-runs-in-head-where-react-hy.md) | The admin theme bootstrap script runs in head where React hydrates it against extension-injected scripts | UX | MEDIUM | P2 | VERIFIED | apps/admin | DONE |
 | [BUG-1304](../../docs/bugs/BUG-1304-production-subscribe-wizard-offers-only-eight-countries-beca.md) | Production subscribe wizard offers only eight countries because the ISO country sync never populates production | DATABASE | MEDIUM | P2 | VERIFIED | api:lookups, apps/landing | DONE |
 | [BUG-1305](../../docs/bugs/BUG-1305-priority-country-sortorder-collides-with-alphabetical-sortor.md) | Priority country sortOrder collides with alphabetical sortOrder, scattering key markets mid-list | DATABASE | MEDIUM | P2 | VERIFIED | api:lookups | DONE |
 | [BUG-1364](../../docs/bugs/BUG-1364-a-coordinate-leak-assertion-substring-matches-json-and-fails.md) | A coordinate-leak assertion substring-matches JSON and fails when the clock spells a coordinate | TEST_GAP | MEDIUM | P2 | VERIFIED | services/api/test | DONE |
-| [BUG-1421](../../docs/bugs/BUG-1421-every-admin-screen-shares-one-page-title-two-main-landmarks-.md) | Every admin screen shares one page title, two main landmarks and a duplicate h1 | UX | MEDIUM | P2 | DEFERRED | apps/admin | DEFER |
-| [BUG-1424](../../docs/bugs/BUG-1424-the-admin-console-serves-no-content-security-policy-header.md) | The admin console serves no Content-Security-Policy header | SECURITY | MEDIUM | P2 | OPEN | apps/admin | PLAN_REQUIRED |
-| [BUG-1425](../../docs/bugs/BUG-1425-currencycode-accepts-any-string-of-three-characters-or-fewer.md) | currencyCode accepts any string of three characters or fewer | DATA_INTEGRITY | MEDIUM | P2 | DEFERRED | api:partners | DEFER |
-| [BUG-1545](../../docs/bugs/BUG-1545-manual-customer-onboarding-creation-fails-on-an-owner-foreig.md) | Manual customer onboarding creation fails on an owner foreign key | BUG | MEDIUM | P2 | OPEN | platform-runtime, onboarding | PLAN_REQUIRED |
-| [BUG-1546](../../docs/bugs/BUG-1546-required-fields-on-unfocused-tabs-give-no-indication-of-wher.md) | Required fields on unfocused tabs give no indication of where they are | UX | MEDIUM | P2 | DEFERRED | customization | DEFER |
-| [BUG-1547](../../docs/bugs/BUG-1547-onboarding-prerequisite-message-states-the-inverse-of-the-tr.md) | Onboarding prerequisite message states the inverse of the truth | UX | MEDIUM | P2 | DEFERRED | onboarding | DEFER |
+| [BUG-1421](../../docs/bugs/BUG-1421-every-admin-screen-shares-one-page-title-two-main-landmarks-.md) | Every admin screen shares one page title, two main landmarks and a duplicate h1 | UX | MEDIUM | P2 | FIXED | apps/admin | FIX_NOW |
+| [BUG-1424](../../docs/bugs/BUG-1424-the-admin-console-serves-no-content-security-policy-header.md) | The admin console serves no Content-Security-Policy header | SECURITY | MEDIUM | P2 | VERIFIED | apps/admin | DONE |
+| [BUG-1425](../../docs/bugs/BUG-1425-currencycode-accepts-any-string-of-three-characters-or-fewer.md) | currencyCode accepts any string of three characters or fewer | DATA_INTEGRITY | MEDIUM | P2 | FIXED | api:partners | FIX_NOW |
+| [BUG-1545](../../docs/bugs/BUG-1545-manual-customer-onboarding-creation-fails-on-an-owner-foreig.md) | Manual customer onboarding creation fails on an owner foreign key | BUG | MEDIUM | P2 | FIXED | platform-runtime, onboarding | FIX_NOW |
+| [BUG-1546](../../docs/bugs/BUG-1546-required-fields-on-unfocused-tabs-give-no-indication-of-wher.md) | Required fields on unfocused tabs give no indication of where they are | UX | MEDIUM | P2 | FIXED | customization | FIX_NOW |
+| [BUG-1547](../../docs/bugs/BUG-1547-onboarding-prerequisite-message-states-the-inverse-of-the-tr.md) | Onboarding prerequisite message states the inverse of the truth | UX | MEDIUM | P2 | FIXED | onboarding | FIX_NOW |
 | [BUG-1548](../../docs/bugs/BUG-1548-customer-onboarding-validate-accepts-payloads-that-create-re.md) | Customer onboarding validate accepts payloads that create rejects | BUG | MEDIUM | P2 | DEFERRED | onboarding | DEFER |
-| [BUG-1549](../../docs/bugs/BUG-1549-database-and-validator-internals-are-surfaced-in-user-facing.md) | Database and validator internals are surfaced in user-facing errors | UX | MEDIUM | P2 | DEFERRED | error-logs | DEFER |
-| [BUG-1550](../../docs/bugs/BUG-1550-lead-record-shows-two-different-owners-on-the-same-screen.md) | Lead record shows two different owners on the same screen | BUG | MEDIUM | P2 | DEFERRED | leads | DEFER |
+| [BUG-1549](../../docs/bugs/BUG-1549-database-and-validator-internals-are-surfaced-in-user-facing.md) | Database and validator internals are surfaced in user-facing errors | UX | MEDIUM | P2 | FIXED | error-logs | FIX_NOW |
+| [BUG-1550](../../docs/bugs/BUG-1550-lead-record-shows-two-different-owners-on-the-same-screen.md) | Lead record shows two different owners on the same screen | BUG | MEDIUM | P2 | FIXED | leads | FIX_NOW |
 | [BUG-1551](../../docs/bugs/BUG-1551-desktop-agent-auto-update-manifest-returns-404.md) | Desktop agent auto-update manifest returns 404 | INTEGRATION | MEDIUM | P2 | BLOCKED | agent, app-releases | BLOCKED_EXTERNAL |
 | [BUG-1552](../../docs/bugs/BUG-1552-admin-form-inputs-have-no-accessible-name.md) | Admin form inputs have no accessible name | UX | MEDIUM | P2 | DUPLICATE | leads, super-admin | DUPLICATE |
-| [BUG-1553](../../docs/bugs/BUG-1553-owner-and-template-pickers-list-indistinguishable-duplicate-.md) | Owner and template pickers list indistinguishable duplicate entries | UX | MEDIUM | P2 | DEFERRED | contracts, platform-users | DEFER |
-| [BUG-1554](../../docs/bugs/BUG-1554-admin-requests-its-own-partners-api-with-a-rejected-pagesize.md) | Admin requests its own partners API with a rejected pageSize | BUG | MEDIUM | P2 | DEFERRED | partners | DEFER |
-| [BUG-1555](../../docs/bugs/BUG-1555-an-inactive-plan-with-no-prices-is-offered-as-a-customer-pre.md) | An inactive plan with no prices is offered as a customer preferred plan | BUG | MEDIUM | P2 | OPEN | super-admin, billing | FIX_NOW |
+| [BUG-1553](../../docs/bugs/BUG-1553-owner-and-template-pickers-list-indistinguishable-duplicate-.md) | Owner and template pickers list indistinguishable duplicate entries | UX | MEDIUM | P2 | FIXED | contracts, platform-users | FIX_NOW |
+| [BUG-1554](../../docs/bugs/BUG-1554-admin-requests-its-own-partners-api-with-a-rejected-pagesize.md) | Admin requests its own partners API with a rejected pageSize | BUG | MEDIUM | P2 | FIXED | partners | FIX_NOW |
+| [BUG-1555](../../docs/bugs/BUG-1555-an-inactive-plan-with-no-prices-is-offered-as-a-customer-pre.md) | An inactive plan with no prices is offered as a customer preferred plan | BUG | MEDIUM | P2 | FIXED | super-admin, billing | FIX_NOW |
 | [BUG-1654](../../docs/bugs/BUG-1654-every-empty-list-in-a-new-workspace-blames-filters-that-are-.md) | Every empty list in a new workspace blames filters that are not set | UX | MEDIUM | P2 | FIXED | views, employees | FIX_NOW |
-| [BUG-1655](../../docs/bugs/BUG-1655-tenant-login-password-field-has-no-accessible-name-and-no-au.md) | Tenant login password field has no accessible name and no autocomplete hint | UX | MEDIUM | P2 | DEFERRED | auth | DEFER |
+| [BUG-1655](../../docs/bugs/BUG-1655-tenant-login-password-field-has-no-accessible-name-and-no-au.md) | Tenant login password field has no accessible name and no autocomplete hint | UX | MEDIUM | P2 | FIXED | auth | FIX_NOW |
 | [BUG-1668](../../docs/bugs/BUG-1668-tenant-workspace-pages-scroll-horizontally-at-mobile-width.md) | Tenant workspace pages scroll horizontally at mobile width | UX | MEDIUM | P2 | DEFERRED | views | DEFER |
-| [BUG-1673](../../docs/bugs/BUG-1673-tenant-workspace-shell-repeats-three-h1-headings-and-two-mai.md) | Tenant workspace shell repeats three h1 headings and two main landmarks on every screen | UX | MEDIUM | P2 | DEFERRED | views | DEFER |
+| [BUG-1673](../../docs/bugs/BUG-1673-tenant-workspace-shell-repeats-three-h1-headings-and-two-mai.md) | Tenant workspace shell repeats three h1 headings and two main landmarks on every screen | UX | MEDIUM | P2 | FIXED | views | FIX_NOW |
+| [BUG-1746](../../docs/bugs/BUG-1746-required-fields-on-unselected-tabs-are-undiscoverable-so-cre.md) | Required fields on unselected tabs are undiscoverable so create forms dead-end | UX | MEDIUM | P2 | FIXED | apps/admin | FIX_NOW |
+| [BUG-1748](../../docs/bugs/BUG-1748-the-subscription-record-page-cannot-resolve-its-own-tenant-p.md) | The subscription record page cannot resolve its own tenant plan or price | BUG | MEDIUM | P2 | FIXED | apps/admin, api:platform-runtime | FIX_NOW |
+| [BUG-1754](../../docs/bugs/BUG-1754-the-incident-queue-counts-routine-401s-and-unknown-route-404.md) | The incident queue counts routine 401s and unknown-route 404s as incidents needing triage | BUG | MEDIUM | P2 | FIXED | api:platform-monitoring, api:error-logs | FIX_NOW |
+| [BUG-1756](../../docs/bugs/BUG-1756-bulk-delete-confirms-without-naming-how-many-records-or-whic.md) | Bulk delete confirms without naming how many records or which ones | UX | MEDIUM | P2 | FIXED | apps/admin | FIX_NOW |
+| [BUG-1757](../../docs/bugs/BUG-1757-promotions-cannot-be-deleted-and-the-delete-route-silently-d.md) | Promotions cannot be deleted and the DELETE route silently deactivates instead | BUG | MEDIUM | P2 | FIXED | apps/admin, api:super-admin | FIX_NOW |
+| [BUG-1822](../../docs/bugs/BUG-1822-landing-csp-permits-the-api-over-http-so-its-own-connect-src.md) | Landing CSP permits the API over http, so its own connect-src does not match | INFRA | MEDIUM | P2 | VERIFIED | apps/landing, pkg:config | DONE |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |
@@ -323,7 +338,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0088](../../docs/backlog/items/ITEM-0088-npm-workspace-api-run-start-dev-always-frees-port-4000-regar.md) | npm --workspace api run start:dev always frees port 4000 regardless of PORT, killing any other API instance | TECH_DEBT | LOW | P2 | DEFERRED | services/api | DEFER |
 | [ITEM-0089](../../docs/backlog/items/ITEM-0089-the-contact-form-is-the-only-public-lead-creating-form-with-.md) | The contact form is the only public lead-creating form with no honeypot | SECURITY | LOW | P2 | DEFERRED | apps/landing | DEFER |
 | [ITEM-0098](../../docs/backlog/items/ITEM-0098-753-of-846-shared-frontend-exports-carry-no-doc-comment.md) | 753 of 846 shared frontend exports carry no doc-comment | DOCUMENTATION | LOW | P2 | DEFERRED | admin, web | DEFER |
-| [BUG-0018](../../docs/bugs/BUG-0018-bulk-lead-delete-is-unreachable-for-every-role.md) | Bulk lead delete is unreachable for every role, including SUPER_ADMIN | AUTHORIZATION | LOW | P3 | DEFERRED | api:platform-auth, api:super-admin | DEFER |
+| [BUG-0018](../../docs/bugs/BUG-0018-bulk-lead-delete-is-unreachable-for-every-role.md) | Bulk lead delete is unreachable for every role, including SUPER_ADMIN | AUTHORIZATION | LOW | P3 | FIXED | api:platform-auth, api:super-admin | FIX_NOW |
 | [BUG-0023](../../docs/bugs/BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist.md) | The testing-architecture context claims two e2e specs do not exist | DOCUMENTATION | LOW | P3 | VERIFIED | .agent/context | DONE |
 | [BUG-0024](../../docs/bugs/BUG-0024-start-onboarding-api-and-proxy-have-no-caller.md) | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | P3 | VERIFIED | apps/admin, api:super-admin | DONE |
 | [BUG-0059](../../docs/bugs/BUG-0059-vault-wikilinks-to-task-records-and-four-module-notes-resolv.md) | Vault wikilinks to task records and four module notes resolve to nothing | DOCUMENTATION | LOW | P3 | VERIFIED | scripts, docs/tasks, docs/knowledge | DONE |
@@ -332,12 +347,14 @@ see [`README.md`](README.md) for why.
 | [BUG-0796](../../docs/bugs/BUG-0796-tenant-and-plan-list-summaries-omit-createdbyid-so-the-creat.md) | Tenant and plan list summaries omit createdById so the Created by me view is always empty | BUG | LOW | P3 | VERIFIED | api:super-admin | DONE |
 | [BUG-1306](../../docs/bugs/BUG-1306-the-production-footer-publishes-a-reserved-fictional-us-phon.md) | The production footer publishes a reserved fictional US phone number as a tel link | UX | LOW | P3 | VERIFIED | apps/landing | DONE |
 | [BUG-1307](../../docs/bugs/BUG-1307-a-raw-monthly-enum-value-appears-in-customer-facing-timeshee.md) | A raw MONTHLY enum value appears in customer-facing timesheets copy | UX | LOW | P3 | VERIFIED | api:tenant-settings, apps/landing | DONE |
-| [BUG-1556](../../docs/bugs/BUG-1556-contract-dates-with-no-value-render-as-the-unix-epoch.md) | Contract dates with no value render as the Unix epoch | UX | LOW | P3 | DEFERRED | contracts | DEFER |
-| [BUG-1557](../../docs/bugs/BUG-1557-react-hydration-error-418-on-the-admin-dashboard.md) | React hydration error 418 on the admin dashboard | BUG | LOW | P3 | DEFERRED | dashboard | DEFER |
-| [BUG-1558](../../docs/bugs/BUG-1558-admin-list-copy-uses-incorrect-pluralisation-and-articles.md) | Admin list copy uses incorrect pluralisation and articles | UX | LOW | P3 | DEFERRED | super-admin | DEFER |
-| [BUG-1559](../../docs/bugs/BUG-1559-empty-states-instruct-the-user-to-create-records-on-screens-.md) | Empty states instruct the user to create records on screens with no create control | UX | LOW | P3 | DEFERRED | billing | DEFER |
-| [BUG-1560](../../docs/bugs/BUG-1560-delete-confirmation-does-not-name-the-record-being-deleted.md) | Delete confirmation does not name the record being deleted | UX | LOW | P3 | DEFERRED | leads | DEFER |
-| [BUG-1561](../../docs/bugs/BUG-1561-signup-verification-step-has-no-way-back-to-correct-a-mistyp.md) | Signup verification step has no way back to correct a mistyped email | UX | LOW | P3 | DEFERRED | leads | DEFER |
+| [BUG-1556](../../docs/bugs/BUG-1556-contract-dates-with-no-value-render-as-the-unix-epoch.md) | Contract dates with no value render as the Unix epoch | UX | LOW | P3 | FIXED | contracts | FIX_NOW |
+| [BUG-1557](../../docs/bugs/BUG-1557-react-hydration-error-418-on-the-admin-dashboard.md) | React hydration error 418 on the admin dashboard | BUG | LOW | P3 | FIXED | dashboard | FIX_NOW |
+| [BUG-1558](../../docs/bugs/BUG-1558-admin-list-copy-uses-incorrect-pluralisation-and-articles.md) | Admin list copy uses incorrect pluralisation and articles | UX | LOW | P3 | FIXED | super-admin | FIX_NOW |
+| [BUG-1559](../../docs/bugs/BUG-1559-empty-states-instruct-the-user-to-create-records-on-screens-.md) | Empty states instruct the user to create records on screens with no create control | UX | LOW | P3 | FIXED | billing | FIX_NOW |
+| [BUG-1560](../../docs/bugs/BUG-1560-delete-confirmation-does-not-name-the-record-being-deleted.md) | Delete confirmation does not name the record being deleted | UX | LOW | P3 | FIXED | leads | FIX_NOW |
+| [BUG-1561](../../docs/bugs/BUG-1561-signup-verification-step-has-no-way-back-to-correct-a-mistyp.md) | Signup verification step has no way back to correct a mistyped email | UX | LOW | P3 | FIXED | leads | FIX_NOW |
+| [BUG-1752](../../docs/bugs/BUG-1752-admin-empty-states-blame-filters-that-are-not-set.md) | Admin empty states blame filters that are not set | UX | LOW | P3 | FIXED | apps/admin | FIX_NOW |
+| [BUG-1753](../../docs/bugs/BUG-1753-lookup-display-labels-mangle-acronyms-and-numeric-ranges-acr.md) | Lookup display labels mangle acronyms and numeric ranges across the admin console | BUG | LOW | P3 | FIXED | apps/admin | FIX_NOW |
 | [ITEM-0007](../../docs/backlog/items/ITEM-0007-should-duplicate-website-leads-be-deduplicated.md) | Product decision — should duplicate website leads be deduplicated? | PRODUCT_DECISION | LOW | P3 | DONE | api:leads, apps/landing | DONE |
 | [ITEM-0008](../../docs/backlog/items/ITEM-0008-customeraccount-has-no-origin-channel.md) | Product decision — CustomerAccount carries no origin channel | PRODUCT_DECISION | LOW | P3 | DONE | services/api/prisma, api:super-admin | DONE |
 | [ITEM-0011](../../docs/backlog/items/ITEM-0011-framework-validation-should-catch-absence-claims.md) | Framework validation should catch false absence claims in context documents | TECH_DEBT | LOW | P3 | DONE | .agent/context, scripts | DONE |

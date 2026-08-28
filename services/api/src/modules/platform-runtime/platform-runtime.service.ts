@@ -977,8 +977,12 @@ export class PlatformRuntimeService {
     ids: string[],
   ) {
     this.assertAdmin(user);
-    if (key === 'leads')
-      return result(await this.leads.bulkDeleteLeads(user, ids));
+    /*
+     * `leads` is absent, and that is the fix rather than an omission
+     * (BUG-0018). A lead carries the commercial attribution a commission is
+     * calculated from, so it is withdrawn rather than deleted. Falling through
+     * here answers "Bulk delete is not available for this module".
+     */
     if (key === 'customers')
       return result(await this.superAdmin.bulkDeleteCustomers(user, { ids }));
     if (key === 'customer-onboarding')
@@ -1122,12 +1126,20 @@ export class PlatformRuntimeService {
           .map((feature) => feature.featureKey),
       };
     }
-    const model =
-      key === 'subscriptions'
-        ? 'subscription'
-        : key === 'payments'
-          ? 'payment'
-          : null;
+    /*
+     * A subscription's relations come from the same projection the list uses.
+     *
+     * This used to fall through to the bare `findUnique` below, which loads no
+     * relations at all — so the record page showed Tenant, Plan and Price as
+     * "Not set" for rows the list had just rendered correctly. The ids were in
+     * the payload; nothing resolved them (BUG-1748).
+     */
+    if (key === 'subscriptions') {
+      const subscription = await this.superAdmin.getSubscription(id);
+      if (!subscription) throw new NotFoundException('Record was not found.');
+      return subscription;
+    }
+    const model = key === 'payments' ? 'payment' : null;
     if (!model) throw new NotFoundException('Record is not available.');
     const item = await (
       this.prisma[model] as never as {

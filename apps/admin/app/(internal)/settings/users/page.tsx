@@ -5,6 +5,15 @@ import { getSessionUser } from "@/lib/auth";
 import { apiRequestJson } from "@/lib/server-api";
 import { redirect } from "next/navigation";
 import { isPlatformSuperAdmin, type PlatformRole } from "@/lib/platform-rbac";
+import type { Metadata } from "next";
+
+/* Each screen titles itself. 47 of 48 shared one title, so a tab, a
+   bookmark and a screen reader's announcement said the same thing on
+   every route (BUG-1421). */
+export const metadata: Metadata = {
+  title: "Users",
+};
+
 
 type PlatformUser = {
   userId: string;

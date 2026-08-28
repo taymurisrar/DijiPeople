@@ -106,6 +106,20 @@ export function AdminShell({
         } as React.CSSProperties
       }
     >
+      {/*
+        The first focusable element on every screen (BUG-1421).
+
+        Every admin route puts the same sidebar ahead of its content, so
+        reaching the page by keyboard meant tabbing past the whole navigation,
+        every time. Visible only on focus, because a permanently visible skip
+        link is a design decision this shell has not made.
+      */}
+      <a
+        href="#admin-content"
+        className="sr-only rounded-lg bg-slate-950 px-4 py-2 text-sm font-semibold text-white focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[200]"
+      >
+        Skip to main content
+      </a>
       <div className="mx-auto flex min-h-screen max-w-[1600px] gap-0 px-3 py-3 md:px-4 md:py-4 lg:gap-4">
         <AdminSidebar
           collapsed={sidebarCollapsed}
@@ -116,7 +130,14 @@ export function AdminShell({
           permissionKeys={user.permissionKeys}
         />
 
-        <main className="flex min-w-0 flex-1 flex-col gap-4">
+        {/*
+          A `<div>`, not a `<main>`.
+          
+          Each page renders its own `<main>`, so this wrapper made two on every
+          screen — 47 of the 48 audited — and a screen reader offering two "main"
+          landmarks is offering neither (BUG-1421).
+        */}
+        <div className="flex min-w-0 flex-1 flex-col gap-4" id="admin-content">
           <AdminTopbar
             email={user.email}
             firstName={user.firstName}
@@ -141,7 +162,7 @@ export function AdminShell({
             about a panel that already declared `sticky`.
           */}
           <div className="min-w-0 overflow-x-clip">{children}</div>
-        </main>
+        </div>
       </div>
       {sessionExpired ? (
         <SessionExpiredDialog

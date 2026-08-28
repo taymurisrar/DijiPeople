@@ -1,0 +1,44 @@
+---
+SESSION_ID: SESSION-0066
+aliases: [SESSION-0066]
+TASK_ID:
+TITLE: Fix all open and deferred bugs
+ARCHITECT_INTENT: Fix all open and deferred bugs
+STATUS: COMPLETE
+TASK_TYPE: BUG
+TASK_SIZE: LARGE
+BASE_BRANCH: origin/develop
+BASE_SHA: 1b85b0b5acfbfd6353843fe95740c21675733256
+TASK_BRANCH: agent/open-bug-sweep
+TARGET_BRANCH: develop
+WORKTREE: D:/My Work/hrm-dijipeople/DijiPeople
+AFFECTED_MODULES: []
+WRITE_LEASES: []
+ACTIVE_WORK_PACKAGES: []
+SCHEMA_WRITE: NO
+CI_STATUS: NOT_RUN
+MERGE_STATUS: NOT_STARTED
+STARTED_AT: 2026-08-28T10:03:13.370Z
+LAST_HEARTBEAT: 2026-08-28T10:03:13.370Z
+BLOCKERS: none
+---
+
+# SESSION-0066 — Fix all open and deferred bugs
+
+## Intent
+
+Fix all open and deferred bugs
+
+## Scope
+
+_To be established during planning._
+
+## Concurrency
+
+Write leases held, overlap classification against other active sessions, and
+anything this session deliberately serialised behind another. Live state:
+`node scripts/session.mjs list`.
+
+## History
+
+- 2026-08-28 — session started from `origin/develop` at `1b85b0b`.

@@ -183,6 +183,26 @@ export class BillingService {
     return renewalDate;
   }
 
+  /*
+   * The first billing period, so the row is never born without one.
+   *
+   * `currentPeriodStart` and `currentPeriodEnd` are nullable with no default,
+   * and this method never set them — the only writer was the Stripe webhook.
+   * A subscription created here therefore carried no period until an event
+   * arrived, and every reader of those columns (renewal, dunning, the Renewal
+   * column, any MRR figure) had nothing to read. BUG-1744.
+   *
+   * This is the platform's own view of the cycle, not Stripe's. The webhook
+   * still overwrites both from the Stripe subscription as soon as one arrives,
+   * because Stripe owns proration, trials and clock skew and this does not.
+   */
+  resolveInitialPeriod(startDate: Date, billingCycle: BillingCycle) {
+    return {
+      currentPeriodStart: startDate,
+      currentPeriodEnd: this.resolveRenewalDate(startDate, billingCycle),
+    };
+  }
+
   async createOrUpdateSubscription(
     db: PrismaDb,
     input: {
@@ -236,6 +256,7 @@ export class BillingService {
         renewalDate:
           input.renewalDate ??
           this.resolveRenewalDate(startDate, pricing.billingCycle),
+        ...this.resolveInitialPeriod(startDate, pricing.billingCycle),
         autoRenew: input.autoRenew ?? true,
         stripeSubscriptionId: input.stripeSubscriptionId,
         purchasedSeats: input.purchasedSeats ?? 1,

@@ -1,0 +1,87 @@
+---
+SESSION_ID: SESSION-0065
+aliases: [SESSION-0065]
+TASK_ID:
+TITLE: Admin console end-to-end browser QA and go-live assessment
+ARCHITECT_INTENT: Admin console end-to-end browser QA and go-live assessment
+STATUS: COMPLETE
+TASK_TYPE: QA
+TASK_SIZE: LARGE
+BASE_BRANCH: origin/develop
+BASE_SHA: 912f4e610759e3809ad1a77d3123df253f34a158
+TASK_BRANCH: agent/admin-console-e2e-qa
+TARGET_BRANCH: develop
+WORKTREE: D:/My Work/hrm-dijipeople/dijipeople-admin-qa
+AFFECTED_MODULES: [apps/admin, api:super-admin, api:platform-runtime, api:platform-monitoring]
+WRITE_LEASES: []
+ACTIVE_WORK_PACKAGES: []
+SCHEMA_WRITE: NO
+CI_STATUS: PASS
+MERGE_STATUS: MERGED
+STARTED_AT: 2026-08-27T23:16:05.792Z
+LAST_HEARTBEAT: 2026-08-28T00:45:00.000Z
+COMPLETED_AT: 2026-08-28T00:45:00.000Z
+BLOCKERS: none
+---
+
+# SESSION-0065 — Admin console end-to-end browser QA and go-live assessment
+
+## Intent
+
+Admin console end-to-end browser QA and go-live assessment
+
+## Scope
+
+_To be established during planning._
+
+## Concurrency
+
+Write leases held, overlap classification against other active sessions, and
+anything this session deliberately serialised behind another. Live state:
+`node scripts/session.mjs list`.
+
+## History
+
+- 2026-08-27 — session started from `origin/develop` at `912f4e6`.
+
+## Outcome
+
+Browser-driven end-to-end QA over all 19 Platform Admin screens against
+production `e0aeabcd`. No product code changed; the diff is records.
+
+**Verdict: FAIL — the admin console is not go-live ready.** Three of the four
+record types an operator works with cannot complete a lifecycle: leads cannot
+be created, customers and partners cannot be edited. Separately the dashboard
+reports no revenue while revenue exists, and every subscription carries a
+zero-length billing period.
+
+The finding that changed the go-live picture: all 14 checkout-ready plan
+prices are `stripeEnvironment: TEST` and none are LIVE, so the two "real paid
+signups" the previous handoff reasoned from were test-mode transactions. No
+real money has been collected. [[BUG-0903]] stands and gates the rest.
+
+16 records created (BUG-1742 … BUG-1757), 12 existing records updated, 4 of
+the eight `e0aeabcd` fixes moved to VERIFIED, and one new bug pattern
+registered. Integrated into develop by ref-push at `d78f0fc4` with CI PASS
+on that exact SHA. `main` untouched.
+
+Capped at **COMPLETE_WITH_DOCUMENTATION_WARNING**: `knowledge:verify` reports
+two vault problems, both committed by other tasks on 2026-08-26 and neither
+produced here.
+
+## Blockers
+
+None blocking this session. Two things it could not do, recorded rather than
+worked around:
+
+- No tenant login was available, so QA-TENANT-018 and QA-TENANT-019 could not
+  be retested on the surface those scenarios actually name.
+- A fresh paid signup ([[BUG-1516]]) and the erasure paths were not exercised,
+  because both mean creating real production records the session could not
+  guarantee it could remove.
+
+One item of residue it could not clear: promotion
+`177c2e07-67d0-4a2f-be69-3e357fb0cac1`, deactivated but not removable, because
+`DELETE` on a promotion deactivates ([[BUG-1757]]).
+
+Architect triage of all 16 new records is outstanding.

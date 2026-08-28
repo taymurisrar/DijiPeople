@@ -529,8 +529,11 @@ export class SuperAdminController {
   }
 
   @Get('plans')
-  listPlans() {
-    return this.superAdminService.listPlans();
+  listPlans(@Query('sellable') sellable?: string) {
+    // `?sellable=true` narrows to plans a customer could be put on — see
+    // `listPlans`. Absent, the full catalogue, which is what the Plans screen
+    // itself needs (BUG-1555).
+    return this.superAdminService.listPlans(sellable === 'true');
   }
 
   @Get('feature-catalog')
@@ -558,6 +561,24 @@ export class SuperAdminController {
     @Body() dto: UpdatePlanDto,
   ) {
     return this.superAdminService.updatePlan(user, planId, dto);
+  }
+
+  /*
+   * There was no way to remove a plan at all.
+   *
+   * A plan created through the console was born active with no `PlanPrice`
+   * rows, so it advertised itself and could not be bought — and with no delete
+   * route it could not be removed either. Two are stuck in production in
+   * exactly that state (BUG-1749).
+   *
+   * Refused once a plan has subscriptions or prices: see `deletePlan`.
+   */
+  @Delete('plans/:planId')
+  deletePlan(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('planId', new ParseUUIDPipe()) planId: string,
+  ) {
+    return this.superAdminService.deletePlan(user, planId);
   }
 
   @Get('plans/:planId/prices')
@@ -632,7 +653,25 @@ export class SuperAdminController {
     return this.superAdminService.updatePromotion(user, promotionId, dto);
   }
 
+  /*
+   * `DELETE` removes the promotion. It used to call `deactivatePromotion`,
+   * answering 200 with the record body while the row stayed put — the verb said
+   * one thing and the handler did another, and with only Deactivate in the UI a
+   * mistyped promotion was permanent (BUG-1757).
+   *
+   * A redeemed promotion is refused: see `deletePromotion` for where the line
+   * is drawn and why it is redemption rather than existence.
+   */
   @Delete('promotions/:promotionId')
+  deletePromotion(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('promotionId', new ParseUUIDPipe()) promotionId: string,
+  ) {
+    return this.superAdminService.deletePromotion(user, promotionId);
+  }
+
+  /** Stop a promotion applying further, keeping the record and its history. */
+  @Post('promotions/:promotionId/deactivate')
   deactivatePromotion(
     @CurrentUser() user: AuthenticatedUser,
     @Param('promotionId', new ParseUUIDPipe()) promotionId: string,

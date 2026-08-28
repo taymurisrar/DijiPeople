@@ -86,7 +86,46 @@ function contentSecurityPolicy({ apiOrigin } = {}) {
  *
  * @param {{ apiOrigin?: string, frameable?: boolean }} options
  */
+/**
+ * Whether an API origin is one a browser on an HTTPS page could ever reach.
+ *
+ * The landing site shipped a CSP permitting `http://api.dijipeople.com/api`
+ * while admin and the tenant app permitted `https://` — one environment
+ * variable, configured with the wrong scheme (BUG-1822). On an HTTPS page a
+ * plain-http origin is blocked as mixed content before CSP is consulted, so the
+ * clause was there and matched nothing: harmless while the policy is
+ * report-only, and a live break for checkout the moment anyone enforces it.
+ *
+ * Loopback stays allowed, because `http://localhost:4000` is the correct local
+ * answer. Anything else over plain http is the same class of mistake this
+ * module already refuses elsewhere: a development value that reached
+ * production, raised at build time rather than discovered by a customer.
+ */
+function assertUsableApiOrigin(apiOrigin) {
+  if (!apiOrigin) return;
+  let parsed;
+  try {
+    parsed = new URL(String(apiOrigin));
+  } catch {
+    // Not a URL this can reason about. `getApiBaseUrl` owns that complaint.
+    return;
+  }
+  if (parsed.protocol !== "http:") return;
+  if (LOOPBACK_HOSTS.includes(parsed.hostname.toLowerCase())) return;
+
+  throw new Error(
+    `Content-Security-Policy would permit the API over plain http ` +
+      `("${apiOrigin}"). A browser on an HTTPS page blocks that as mixed ` +
+      `content before CSP is consulted, so the connect-src entry matches ` +
+      `nothing and every API call violates the policy. Configure the API base ` +
+      `URL with https. See BUG-1822.`,
+  );
+}
+
+const LOOPBACK_HOSTS = ["localhost", "127.0.0.1", "0.0.0.0", "::1", "[::1]"];
+
 function securityHeadersForApp(options = {}) {
+  assertUsableApiOrigin(options.apiOrigin);
   return [
     {
       source: "/:path*",
@@ -105,4 +144,5 @@ module.exports = {
   baselineSecurityHeaders,
   contentSecurityPolicy,
   securityHeadersForApp,
+  assertUsableApiOrigin,
 };

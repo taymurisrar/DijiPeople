@@ -2606,3 +2606,438 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | The duplication in the `in` list looks redundant and is load-bearing: Prisma's `in` has no insensitive mode, unlike `equals`, so the levels are listed rather than folded. The test exists partly so a tidying pass cannot quietly remove it. Normalising the column itself is the deeper fix and needs a migration — recorded on the bug, not attempted here. |
 | **Fixed** | 2026-08-27, `agent/invitation-delivery-visibility` |
 | **Active** | yes |
+
+### REG-271 — A workspace root domain the app only half believed in
+
+| | |
+|---|---|
+| **Bug class** | `config-value-inlined-at-build` |
+| **Module** | `web` |
+| **Bug record** | BUG-1644 |
+| **Root cause** | Workspaces are served from `ws.dijipeople.com`, a two-label root beneath the apex, while the deployed bundle had been built with `NEXT_PUBLIC_WEB_ROOT_DOMAIN=dijipeople.com` — the value the documentation prescribed at the time. One wrong value broke the login in two directions at once. Outbound, `buildTenantPortalUrl` composed `<slug>.dijipeople.com`, which does not resolve, so the company-code step navigated to a dead host. Inbound, host resolution strips the root and requires the remainder to contain no dot, so `<slug>.ws.dijipeople.com` left `<slug>.ws` and a request arriving at the correct workspace was read as belonging to no tenant. |
+| **Regression test** | `apps/web/lib/tenant-root-domain.spec.ts` |
+| **Scenario** | A slug composed into a login URL must round-trip back out of the resulting hostname when the root domain matches how workspaces are actually served. Both directions are asserted, plus the apex-root pairing that shipped, plus the unconfigured case falling back to the app's own login rather than inventing a subdomain. |
+| **Proven to fail without the fix** | Mutation-tested 2026-08-28. Collapsing a multi-label root to its apex fails 2 of 6. |
+| **Note** | The value itself is deployment configuration and cannot be asserted from the repository; what this holds is the code's behaviour *given* the value, so multi-label roots keep working. The inbound half is the dangerous one — it degrades to "which company are you?" rather than to an error, which is why a paying customer hit it before anyone else did. The fix was a rebuild, not an edit: `NEXT_PUBLIC_*` is inlined at build time, so a correct setting and a stale bundle are indistinguishable from the browser. |
+| **Fixed** | 2026-08-28, deployed as `e0aeabcd` |
+| **Active** | yes |
+
+### REG-272 — Runtime forms offered fields the API would reject
+
+| | |
+|---|---|
+| **Bug class** | `generated-artifact-answers-the-wrong-question` |
+| **Module** | `apps/admin`, `platform-runtime` |
+| **Bug record** | BUG-1743, BUG-1742 |
+| **Root cause** | `creatable`/`editable` in the runtime manifest were derived from `schema.prisma` — "is this a writable column?" — while `PlatformRuntimeService` validates the same payload against a per-module DTO with `forbidNonWhitelisted: true`. Two statements about different things, with nothing reconciling them: any writable column the DTO did not declare became an editable form field whose presence then rejected the entire request. Customers failed on `originChannel`, partners on `partnershipModel`, neither of which the operator had touched. Separately, an untouched optional lookup serialized as `""`, and `@IsOptional()` skips `null` and `undefined` and nothing else, so `@IsUUID()` ran on the empty string and blocked every lead creation. |
+| **Regression test** | `apps/admin/lib/runtime/runtime-write-contract.spec.ts` |
+| **Scenario** | For every module in the manifest, the payload built from an all-blank form must contain no key the module's create or update DTO would reject, and a module with no arm in the service switch must advertise nothing as writable. Plus: an untouched optional lookup is omitted on create and sent as `null` on edit. |
+| **Proven to fail without the fix** | Mutation-tested 2026-08-28, both halves. Restoring `customers.originChannel.editable = true` fails 2 of 39; disabling the empty-string normalization fails 2 of 39. |
+| **Note** | BUG-0220 fixed this for plans in 2026-08 and left `plan-record-form.spec.ts` behind — a test that is plans-shaped by construction and so could never fail for customers or partners. That test still passes and was deliberately left in place; the gap was not that it was wrong but that it could not fail for anyone else. This entry exists because the *shape* of the earlier fix was the problem. Deriving per-module writability also broke an aliasing nobody had written down: `modules.<key>.fields` and `models.<Model>.fields` were the same object, and the `contracts.contentHtml` projection depended on it — now written to both explicitly. |
+| **Fixed** | 2026-08-28 |
+| **Active** | yes |
+
+### REG-273 — "5" was a currency
+
+| | |
+|---|---|
+| **Bug class** | `validation-measures-the-wrong-property` |
+| **Module** | `partners`, `packages/config`, `apps/admin` |
+| **Bug record** | BUG-1425, BUG-1747 |
+| **Root cause** | `currencyCode` was validated as `@IsString() @MaxLength(3)`, which measures length and calls the result a currency: `"5"`, `"X"` and `"ZZZ"` were stored, and `"NOT_A_CURRENCY"` was rejected only for being fourteen characters. The admin form made it reachable rather than theoretical — Currency was rendered as `<input type="number">` because the registry's `"currency"` control means a money *amount*, so a number was the only value an operator could enter. The reason it had never been fixed is that there was nothing to validate against: `apps/admin` listed thirty-five currencies, `services/api/src/common/reference-data` listed eight, and nothing read the API one. |
+| **Regression test** | `packages/config/platform-currencies.test.js`, `services/api/src/modules/partners/dto/partner-currency.spec.ts` |
+| **Scenario** | `"5"`, `"X"`, `"ZZZ"`, `""`, `"qar"` and `"NOT_A_CURRENCY"` are rejected on partner create, partner update and commission create; the currencies the platform sells in are accepted; the field stays optional. Separately, the declared `PlatformCurrencyCode` union and the runtime array must describe the same set. |
+| **Proven to fail without the fix** | The API spec asserts on decorators that did not exist before this change — `@IsIn` replaced `@MaxLength(3)`, and every rejection case in it passed validation beforehand. |
+| **Note** | Deliberately scoped to partners and commissions. `currencyCode` appears in roughly twenty other DTOs across tenant-facing modules, and whether a tenant may transact in a currency outside the platform's own sales catalog is a product question nobody has answered — narrowing those would reject input that is valid today. Minor units are carried per currency because they are not all 2: the Gulf dinars are 3 and JPY and KRW are 0, and the API list omitted the field entirely. |
+| **Fixed** | 2026-08-28 |
+| **Active** | yes |
+
+### REG-274 — A form that refused to save and marked nothing
+
+| | |
+|---|---|
+| **Bug class** | `state-computed-globally-rendered-locally` |
+| **Module** | `apps/admin` runtime forms |
+| **Bug record** | BUG-1746, BUG-1546 |
+| **Root cause** | Validation state is computed for the whole form but rendered per field, and per-field rendering only reaches the mounted tab. Nothing lifted "this tab contains a failure" to the tab strip, so a multi-tab create form refused to save with a generic message while the visible tab looked complete and no element anywhere in the DOM carried an error marker. On the Partner form the failing field was worded differently and lived two tabs away, which made it a total dead end. |
+| **Regression test** | `apps/admin/lib/runtime/blocked-save-feedback.spec.ts` |
+| **Scenario** | Given failures on an unmounted tab: the tab strip reports a count for that tab, the first failing tab is identified for the switch, and the summary message names the fields rather than only asserting that some exist. Asserted against the real partner form definition, not a fixture — every required field it declares must be reachable by both the badge and the switch. |
+| **Proven to fail without the fix** | The behaviour did not exist before this change; the helper and its assertions were written together. The real-form assertion is the load-bearing one — it fails for any module that declares a required field with no tab, which is the exact state that produced the dead end. |
+| **Note** | The server's field errors take the same path as the client's. That half is what made BUG-1742 read as "nothing on either tab is marked as the offending field" — the API named `partnerId`, and the operator was looking at a different tab. |
+| **Fixed** | 2026-08-28 |
+| **Active** | yes |
+
+### REG-275 — A direct database URL that did nothing
+
+| | |
+|---|---|
+| **Bug class** | `config-key-spelled-two-ways` |
+| **Module** | `packages/config`, `services/api/prisma` |
+| **Bug record** | BUG-0905 |
+| **Root cause** | `resolveMigrationDatabaseUrl` read `DIRECT_DATABASE_URL`; production defined `DIRECT_URL`, which is the name Prisma's own documentation and Neon's setup guide use and therefore what anyone configuring the service by hand reaches for. The override was inert, `prisma migrate deploy` ran over the pooled endpoint, and that is exactly the configuration BUG-0086 exists to prevent — a session-scoped advisory lock cannot be held through a transaction pooler, so the deploy dies on `P1002` after its lock timeout. A variable that looks set and does nothing is worse than one that is absent. |
+| **Regression test** | `packages/config/database-urls.test.js` |
+| **Scenario** | `DIRECT_URL` alone resolves the migration connection; `DIRECT_DATABASE_URL` wins when both are set, so an existing deployment does not silently change connection; a blank value falls through rather than blanking the connection; and a pooled url is reported under whichever name actually supplied it. |
+| **Proven to fail without the fix** | The `DIRECT_URL` cases assert a code path that did not exist — the resolver read one variable name. |
+| **Note** | The production half was fixed separately by the repository owner adding `DIRECT_DATABASE_URL` to the live service. Accepting both names is the durable half: it stops the next person rediscovering this through a failed deploy. Nothing here can be confirmed from the repository, because the variable's value lives on the service. |
+| **Fixed** | 2026-08-28 |
+| **Active** | yes |
+
+### REG-276 — Stripe moved the billing period and nobody followed
+
+| | |
+|---|---|
+| **Bug class** | `provider-api-version-skew` |
+| **Module** | `billing` |
+| **Bug record** | BUG-1744 |
+| **Root cause** | Stripe removed `current_period_start` / `current_period_end` from the Subscription object in `2025-03-31.basil` and moved them onto each SubscriptionItem, because a subscription may hold items on different cadences. `webhook.service.ts` read only the top-level fields, so on an endpoint rendering at that version or later they are `undefined`, `fromUnix` returns null, and the platform's copy of the billing period is written as nothing — leaving renewal, dunning, the Renewal column and every MRR figure with nothing to read. Separately, `createOrUpdateSubscription` never wrote the period at all, so a subscription created through provisioning had none until an event arrived. |
+| **Regression test** | `services/api/src/modules/billing/subscription-billing-period.spec.ts` |
+| **Scenario** | The period resolves from the legacy top-level fields and from the item-level ones; the top level wins when a version renders both; several items resolve to the widest span rather than the first; and an absent period resolves to null rather than to a wrong instant. |
+| **Proven to fail without the fix** | The item-level cases assert a read that did not exist — the type did not even declare the fields on `items.data[]`. |
+| **Note** | Precisely BUG-1128 one field pair over, in the same file, which already documents why both shapes must be read: `STRIPE_API_VERSION` pins outbound calls only, and the version a webhook arrives at is set by a dashboard dropdown nobody deployed. That note was written for `invoice.parent` and the period read never got the same treatment — worth remembering that this file has now been wrong twice for one reason. The widest-span rule is deliberately more than today's single-item subscriptions need; taking `items.data[0]` would be correct now and quietly wrong later. **The two wrong production rows were not backfilled** — that needs live Stripe access, which was out of scope on 2026-08-28. |
+| **Fixed** | 2026-08-28 |
+| **Active** | yes |
+
+### REG-277 — The subscription record could not name its own tenant
+
+| | |
+|---|---|
+| **Bug class** | `two-endpoints-one-question` |
+| **Module** | `super-admin`, `platform-runtime` |
+| **Bug record** | BUG-1748 |
+| **Root cause** | The runtime record path fell through to a bare `prisma.subscription.findUnique({ where: { id } })` with no `include`, while the list called `listSubscriptions()`, which loads `tenant` and `plan` and projects them. So a subscription showed Tenant, Plan and Price as "Not set" one screen after the list had rendered all three correctly. The ids were in the payload; nothing resolved them. The price had a second cause: the runtime resolves a lookup's label from `label` / `name` / `displayName` on the relation beside it, and a `PlanPrice` row carries none of those. |
+| **Regression test** | `services/api/src/modules/super-admin/subscription-record-shape.spec.ts` |
+| **Scenario** | The include is declared once and used by both the list and the single-record read; both project through one function; the runtime record path resolves subscriptions through it rather than bare-fetching; and the composed price label names its unit and cadence. |
+| **Proven to fail without the fix** | Every assertion names a symbol that did not exist before — `SUBSCRIPTION_INCLUDE`, `projectSubscription`, `getSubscription`, `describePlanPrice`. |
+| **Note** | Asserted against the source rather than executed, because the defect is *two code paths diverging* and neither path was wrong on its own terms — a behavioural test would pass against whichever one it happened to call. The price label carries the unit for a reason worth keeping: a per-seat amount rendered bare reads as the whole bill, and 300 against 25 seats is not 300. |
+| **Fixed** | 2026-08-28 |
+| **Active** | yes |
+
+### REG-278 — Plans that could not be sold and could not be removed
+
+| | |
+|---|---|
+| **Bug class** | `schema-default-decides-policy` |
+| **Module** | `super-admin` |
+| **Bug record** | BUG-1749, BUG-1755 |
+| **Root cause** | `Plan.isPublic` defaults to `true`, so a plan created through the console reached the catalogue while carrying no `PlanPrice` rows — and checkout sells from `PlanPrice`. The plan advertised itself and could not be bought. With no delete route for a plan it could not be withdrawn either; two are in production in that state. Alongside it, `mapPlan()` never serialized `publicationStatus` or `salesModel`, so the Plans list — which declares Publication as its leading column — rendered an em dash for every row and could not answer the question it exists to answer. |
+| **Regression test** | `services/api/src/modules/super-admin/plan-lifecycle.spec.ts` |
+| **Scenario** | A plan is created `DRAFT` and writes no `isPublic` literal; a plan with no prices and no subscriptions can be deleted; one with either is refused with a message naming the reasons and pointing at deactivation; the deletion is audited; and `mapPlan` serializes the publication fields while deriving `isPublic` from publication rather than reading the column. |
+| **Proven to fail without the fix** | The delete cases exercise a method that did not exist. The serialization cases assert fields the mapper did not send. |
+| **Note** | The instructive part is what the *first* attempt got wrong. Writing `isPublic: false` at creation is the obvious fix and `one-self-service-gate.spec.ts` rejected it — BUG-0223 retired that boolean precisely because two gates can disagree, and `publicationStatus` is the only authority. The existing invariant caught a regression being introduced by the fix for a different bug, which is the whole argument for source-level invariants. **Not done:** the bespoke `/plans/new` page still collects legacy base prices and creates no `PlanPrice`. Retiring it needs a runtime create arm that does not exist yet. |
+| **Fixed** | 2026-08-28 |
+| **Active** | yes |
+
+### REG-279 — A DELETE that did not delete
+
+| | |
+|---|---|
+| **Bug class** | `verb-and-handler-disagree` |
+| **Module** | `super-admin` |
+| **Bug record** | BUG-1757 |
+| **Root cause** | `DELETE /super-admin/promotions/:id` was wired to `deactivatePromotion()`. It answered 200 with the record body while the row stayed exactly where it was, merely inactive, and since the UI offered only Deactivate there was no way to remove a promotion at all — a mistyped one was permanent. |
+| **Regression test** | `services/api/src/modules/super-admin/promotion-deletion.spec.ts` |
+| **Scenario** | A promotion with no redemptions is deleted and audited; one with redemptions is refused without touching the row; the refusal names the promotion, the redemption count and deactivation as the alternative; a missing promotion 404s. |
+| **Proven to fail without the fix** | `deletePromotion` did not exist; `DELETE` reached the deactivation handler. |
+| **Note** | Not hard-deleting commercial records is a defensible policy and the reason this was written the way it was. It protects *history* — so the line is drawn at redemption rather than at existence: a promotion that never applied to anything discounted nothing, is referenced by no invoice, and was seen by no customer. The UI change matters as much as the route: the API's refusal message is surfaced verbatim, because a generic failure sends the operator back to the button that never worked. |
+| **Fixed** | 2026-08-28 |
+| **Active** | yes |
+
+### REG-280 — A worker that was not running, and could not be seen not running
+
+| | |
+|---|---|
+| **Bug class** | `deployment-config-drift` |
+| **Module** | `outbox`, deployment |
+| **Bug record** | BUG-0904, BUG-0767 |
+| **Root cause** | `render.yaml` declares `OUTBOX_WORKER_ENABLED: "true"` and always did, but the live service was configured by hand in the dashboard and the file has never been applied. With the flag absent `OutboxDispatcherService` never polled, and `ProvisioningRequestedHandler` is an outbox consumer — by its own header the only thing that creates a self-service tenant. So on production a customer could pay and no workspace was ever built; `PROVISIONING_REQUESTED` rows simply accumulated undelivered. |
+| **Regression test** | `services/api/src/app.service.spec.ts` |
+| **Scenario** | `/api/health` reports `outboxWorker.enabled`, distinguishing "off" from "not reported at all". The deployment-side half is the `outbox worker is draining events` check in `scripts/smoke-deployment.mjs`, which fails when the service it points at is not draining the outbox and fails differently when the service is too old to answer. |
+| **Proven to fail without the fix** | The health payload had no such field, so the smoke check fails against any deployment predating this change — including production as of 2026-08-28. |
+| **Note** | The repository half was never wrong: `render.yaml` and `docs/environment-variables.md` both declared this correctly the whole time. So no unit test could have caught it, and this entry exists to record that the *only* durable guard for a config-drift class is making the drift observable from outside. The startup log already said the worker was disabled — once, at boot, into a stream nobody reads — while `/api/health` answered `status: ok` regardless. A log is not a check. **The production fix itself was made by the repository owner adding the variable, not by this branch**, and the value on the service still cannot be asserted from here; what changed is that a smoke run can now ask. |
+| **Fixed** | 2026-08-28 |
+| **Active** | yes |
+
+### REG-281 — A tile that counted 11 and linked to 0
+
+| | |
+|---|---|
+| **Bug class** | `one-rule-spelled-three-times` |
+| **Module** | `platform-monitoring`, `apps/admin` |
+| **Bug record** | BUG-1750, BUG-1420 |
+| **Root cause** | "Critical" was defined in three places and they disagreed. The overview metric counted `severity: 'ERROR'` exactly; the incidents view had been taught to fold case by BUG-1420; and the tile's link filtered on `severity=CRITICAL`, a value nothing in the system stores. `severity` is free text and production holds 1,466 lowercase rows against 5 uppercase, so the metric read 11 and the screen it opened returned 0 of 0. A fourth copy sat in the admin page, translating `viewId=critical` into `severity=ERROR`. |
+| **Regression test** | `services/api/src/modules/platform-monitoring/incident-severity-case.spec.ts` |
+| **Scenario** | The metric and the view produce the same where clause; the severity list appears exactly once in the service source; and the metric counts through the shared definition rather than a literal. Separately, `apps/admin/lib/monitoring-overview.spec.ts` asserts the tile links to the view and *not* to a severity value. |
+| **Proven to fail without the fix** | The single-definition assertion counts occurrences in the source, so restoring either duplicate fails it. The link assertion is written negatively for the same reason. |
+| **Note** | BUG-1420 fixed the view and left the metric carrying the original defect — which is the shape worth remembering: a case-folding fix applied to the reader somebody noticed, and not to the reader they did not. Promoting `severity` to an enum with a normalising migration is still the deeper fix and still needs an ExecPlan; the duplicated spellings in the `in` list stay load-bearing until then. |
+| **Fixed** | 2026-08-28 |
+| **Active** | yes |
+
+### REG-282 — A triage queue full of things nobody should triage
+
+| | |
+|---|---|
+| **Bug class** | `expected-outcome-recorded-as-failure` |
+| **Module** | `error-logs`, `platform-monitoring` |
+| **Bug record** | BUG-1754 |
+| **Root cause** | The ingest path recorded every non-2xx response with `supportStatus` defaulting to `NEW`, which means "a human needs to look at this". Ordinary session expiry (`401`) and requests for routes that do not exist (`404`) never did. 1,588 rows accumulated and the newest pages were almost entirely these, burying eleven critical items nobody had touched. |
+| **Regression test** | `services/api/src/modules/error-logs/expected-protocol-outcome.spec.ts` |
+| **Scenario** | Session `401`s and unmatched-route `404`s are classified as routine and recorded as `NOT_AN_INCIDENT`; everything else keeps its place in the queue, including `400` validation rejections, `404`s naming a record, `401`s that are not about the session, and anything unrecognised. |
+| **Proven to fail without the fix** | The classifier did not exist; every row was born `NEW`. |
+| **Note** | The load-bearing assertions here are the negative ones. The record proposing this fix also suggested sweeping `400` client validation rejections, and that would have been a serious mistake: BUG-1742 — no lead could be created from Platform Admin, for anyone, in production — presented as exactly that, a 400 saying `partnerId must be a UUID`. The distinction is not "did the client send something invalid" but "could the client have sent something valid". A classifier that guesses wrong in this direction hides defects; guessing wrong the other way costs one row somebody dismisses. **The existing 1,588 rows were not repaired** — `npm run repair:routine-incidents` exists, has a `--dry-run`, touches only rows still `NEW`, and has not been run against production. |
+| **Fixed** | 2026-08-28 |
+| **Active** | yes |
+
+### REG-283 — Empty lists that blamed filters nobody set
+
+| | |
+|---|---|
+| **Bug class** | `one-message-for-two-states` |
+| **Module** | `packages/config`, `apps/admin` |
+| **Bug record** | BUG-1752, BUG-1559, BUG-1558, BUG-1654 |
+| **Root cause** | The admin registry composed one static string for every empty list: "Create a &lt;thing&gt; or adjust the current view and filters." It blamed filters whether or not any were set, so a new workspace told its first operator that a search they had never run was hiding data that did not exist; and it instructed the operator to create a record on invoices, payments and commissions, which offer no create control and whose records arrive from elsewhere. The same sentence also produced "Create a invoice", and the row count read "1 records". |
+| **Regression test** | `packages/config/empty-list-message.test.js` |
+| **Scenario** | The unfiltered message mentions neither "filter" nor "search"; the filtered message says the filters are why and offers to clear them; a create suggestion appears only where a create control exists and never on a filtered list; screens that cannot create records say where they come from; and the indefinite article is chosen by sound, so "an invoice" and "a user" and "an hour". |
+| **Proven to fail without the fix** | The unfiltered assertion is written as a negative on the exact words the old string contained. |
+| **Note** | BUG-1654 fixed the first half in `apps/web` and `apps/admin` kept the defect for months, which is the entire reason this lives in `packages/config` rather than in either app. Whether a list is filtered is decided by the list and passed in, never recomputed here — the table already tracks it, including operators that filter without a value. The view key is deliberately not counted as a filter: a view is where the operator navigated to, and "Resolved" being empty is good news rather than something to clear. |
+| **Fixed** | 2026-08-28 |
+| **Active** | yes |
+
+### REG-284 — Destructive dialogs that did not say what they destroyed
+
+| | |
+|---|---|
+| **Bug class** | `confirmation-without-information` |
+| **Module** | `apps/admin` runtime |
+| **Bug record** | BUG-1560, BUG-1756 |
+| **Root cause** | The single-record dialog rendered the action's static `confirmTitle`, which cannot name a record. The bulk dialog said "Delete selected records?" with no count and no names, and the list showed no selection count either — so nothing anywhere on screen told the operator whether they were about to delete one row or every row on the page. |
+| **Regression test** | `apps/admin/lib/runtime/destructive-confirm.spec.ts` |
+| **Scenario** | A single delete names the record in its title; a bulk delete states the count, agrees in number, names up to five and counts the rest; a selection whose names are unknown is still counted; the action's own wording remains the fallback when there is nothing to name; and the list shows "n selected of m" before any dialog opens. |
+| **Proven to fail without the fix** | Every assertion exercises copy that did not previously exist. The spec additionally asserts the action bar no longer renders `confirmAction.confirmTitle ?? "Confirm action"`, so reintroducing the static path fails. |
+| **Note** | Five is the naming cutoff because forty names turn a dialog into a wall nobody reads, which fails the same way naming none does. The toolbar count matters more than the dialog: a dialog is a last chance, not the first place an operator should learn what they selected. |
+| **Fixed** | 2026-08-28 |
+| **Active** | yes |
+
+### REG-285 — A humaniser that mangled what it touched
+
+| | |
+|---|---|
+| **Bug class** | `normalisation-destroys-meaning` |
+| **Module** | `apps/admin` runtime |
+| **Bug record** | BUG-1753 |
+| **Root cause** | The label humaniser lowercased the whole value, replaced every hyphen and underscore with a space, then capitalised each word. That turned `IT / Software` into `It / Software`, `NDA` into `Nda`, `LINKEDIN` into `Linkedin`, and a company size of `11-50` into `11 50` — in every dropdown in the console. Display only; the stored values were always correct. |
+| **Regression test** | `apps/admin/lib/runtime/humanize-label.spec.ts` |
+| **Scenario** | A hyphen between digits joins them and a hyphen elsewhere still separates words; words with a canonical spelling keep it; ordinary values still title-case as before; and a word that merely *contains* an acronym is not corrupted. |
+| **Proven to fail without the fix** | Every range and acronym case asserts output the old implementation could not produce. |
+| **Note** | Canonical spellings are a table, not a rule, because no heuristic distinguishes `linkedin` → `LinkedIn` from `facebook` → `Facebook`. The bug record preferred explicit labels over a cleverer humaniser and was right. Two things to know: `title` stays a hoisted function declaration rather than `const title = humanizeLabel`, because `definitions` is evaluated at module scope and calls it from above — a const puts it in its own temporal dead zone and every import throws, which is how this was first written and immediately caught. And six other copies of the old implementation remain elsewhere in the admin app; they render things other than lookup values and were left alone, so they are the likeliest place for this to recur. |
+| **Fixed** | 2026-08-28 |
+| **Active** | yes |
+
+### REG-286 — Error modals that showed implementation detail
+
+| | |
+|---|---|
+| **Bug class** | `internal-vocabulary-reaches-the-user` |
+| **Module** | `apps/admin` runtime |
+| **Bug record** | BUG-1549 |
+| **Root cause** | class-validator composes messages as `<property> <constraint>`, and the property is the DTO's name for the field rather than the form's — so the modal read "primaryContactFirstName must be shorter than or equal to 100 characters", naming something invisible on screen. Separately, "Database constraint failed" is a Postgres failure class rendered as though it were a sentence about the form. |
+| **Regression test** | `apps/admin/lib/runtime/humanize-field-error.spec.ts` |
+| **Scenario** | The leading DTO property is replaced by the form's label and the constraint half is left exactly as it arrived; nothing changes without a label, or when the message does not begin with the property, or when a shorter property merely prefixes a longer one; and an internal failure class is replaced with a sentence that says where to look without naming a field it cannot identify. |
+| **Proven to fail without the fix** | The substitution did not exist; messages were rendered as received. |
+| **Note** | Only the name is rewritten, never the constraint — the constraint is the part that says what is actually wrong, and inventing wording for it would mean guessing at rules the frontend cannot see. `partner` must not rewrite the start of `partnerId must be a UUID`, which is why the match is anchored and word-bounded rather than a `startsWith`. The other half of this record — field errors marking the control rather than only appearing in a modal — arrived with REG-274 in the same sweep. |
+| **Fixed** | 2026-08-28 |
+| **Active** | yes |
+
+### REG-287 — A form whose labels labelled nothing
+
+| | |
+|---|---|
+| **Bug class** | `visible-but-not-accessible` |
+| **Module** | `apps/admin` runtime forms |
+| **Bug record** | BUG-1423 |
+| **Root cause** | The shared runtime form drew each field's label as a `<span>` and never connected it to the control: no `<label>`, no `id`, no `name`, no `aria-label`, no `aria-labelledby`. The text was visible, so the form looked correct — axe-core rated it critical and found 28 unlabelled controls across four create screens on production. The bespoke forms on the same site were clean, which is what identified the shared component as the cause. |
+| **Regression test** | `apps/admin/lib/runtime/form-accessibility.spec.ts` |
+| **Scenario** | The field renders a real `<label htmlFor>` bound to a derived id; the control carries that id and a `name`; the error text is associated with `aria-describedby` and `aria-invalid`; the required marker is not the asterisk alone; composite controls point back at the label with `aria-labelledby`; and the attributes reach every control the component can return. |
+| **Proven to fail without the fix** | Every assertion names an attribute the component did not render. |
+| **Note** | The last assertion counts `{...a11y}` applications rather than naming control types, deliberately: a new control added without them is a new unlabelled field, which is how twenty-eight accumulated. `name` was added alongside `id` because the two do different jobs — one binds the label, the other is what autofill reads — and neither was present, so the fields were both unlabelled and un-autofillable. The second looked like a product decision and was a missing attribute. |
+| **Fixed** | 2026-08-28 |
+| **Active** | yes |
+
+### REG-288 — Two shells, one mistake, on every screen
+
+| | |
+|---|---|
+| **Bug class** | `shared-shell-defect` |
+| **Module** | `apps/admin`, `apps/web` |
+| **Bug record** | BUG-1421, BUG-1673, BUG-0073 |
+| **Root cause** | Both application shells owned document structure that belongs to the page. In admin: an outer `<main>` (two landmarks on 47 of 48 audited routes), a "Control Hub" `<h1>` ahead of the page's own (two on all 48), a sidebar outside any `<nav>` landmark, no skip link, and one shared `<title>` on 47. In the tenant workspace: two constant "Workspace" `<h1>` elements before the page's own, so heading navigation announced "Workspace, Workspace, Dashboard" on the payroll screen, the settings screen and an employee's record alike. |
+| **Regression test** | `apps/admin/lib/shell-landmarks.spec.ts`, `apps/web/app/components/workspace-shell-headings.spec.ts` |
+| **Scenario** | Neither shell renders a `<main>` or an `<h1>`; the admin sidebar is a named `<nav>`; a skip link is the first focusable element and targets the content region; every admin route that can export `metadata` does; and the root layout composes with a title template rather than replacing. |
+| **Proven to fail without the fix** | Each assertion names an element the shell rendered or an export the routes lacked. The route walk enumerates the tree rather than a fixed list, so a new page without a title fails it. |
+| **Note** | PLAN-019 already warned about this shape — *"The shell is shared, so a defect in it is a defect everywhere"* — and BUG-0073 was the same class, one sidebar class name failing contrast on every screen. Screen-by-screen review keeps missing these because every screen looks equally wrong, so they read as the design rather than as a defect; that is the argument for asserting against the shell rather than against pages. Both records asked to be fixed together because it is the only way the convention ends up shared, and the two specs now hold the same invariants in the same shape. **Two known gaps:** three admin routes are client components, which Next forbids from exporting `metadata`, so they keep the default title; and the duplicate `<main>` the tenant audit reported is not reachable from the source — no shell renders one and no shared layout nests one — so it stays open pending the browser pass that found it. |
+| **Fixed** | 2026-08-28 |
+| **Active** | yes |
+
+### REG-289 — A password field nothing could name
+
+| | |
+|---|---|
+| **Bug class** | `layout-decision-removes-a11y` |
+| **Module** | `apps/web` |
+| **Bug record** | BUG-1655 |
+| **Root cause** | The tenant login renders its password control with `label=""` and the shared field shell's label span suppressed via `[&>span]:hidden`, so the visible "Password" text could sit in the heading row beside the "Forgot password?" link. That left the input with no accessible name and no `autocomplete`: a screen reader announced it as unlabelled and password managers were not told what it was. The email field beside it had both. |
+| **Regression test** | `apps/web/app/components/ui/login-field-accessibility.spec.ts` |
+| **Scenario** | The password control carries an explicit accessible name and `current-password`; the identifier field carries `username` so the two are recognisable as a credential pair; the duplicate visible label stays hidden; and `TextField` declares and actually applies both props. |
+| **Proven to fail without the fix** | `TextField` accepted neither prop, so the login could not have passed them. |
+| **Note** | The defect is a layout decision with an accessibility consequence, which is why the fix is a name rather than a second visible label — showing the label twice would undo the layout the hiding exists for. The record asked for the admin login to be checked on the theory the two forms shared a starting point; it already binds both labels and declares `current-password`, and that is now asserted rather than merely noted. |
+| **Fixed** | 2026-08-28 |
+| **Active** | yes |
+
+### REG-290 — An onboarding that could not start, and a message that lied about why
+
+| | |
+|---|---|
+| **Bug class** | `one-string-two-purposes`, `wrong-relation-target` |
+| **Module** | `super-admin` |
+| **Bug record** | BUG-1547, BUG-1545 |
+| **Root cause** | Two defects on the same screen. The prerequisite failure message reused the checklist's positively-phrased labels — "Onboarding prerequisites are not complete: Industry is selected, Company size is selected" — so the header contradicted the list and the list stated the inverse of the truth. Separately, `CustomerOnboarding.onboardingOwnerUserId` is declared `User?` while the create expression fell back to `customer.assignedToUserId` (declared `PlatformUser?`) and then `actor.platform?.id`, so every admin-created onboarding was rejected by the foreign key. |
+| **Regression test** | `services/api/src/modules/super-admin/onboarding-prerequisites.spec.ts` |
+| **Scenario** | Every prerequisite check declares both a positive `label` and a negative `unmet`; the failure message is built from `unmet`; no pair is identical bar capitalisation. And the onboarding create writes neither `actor.platform?.id` nor `customer.assignedToUserId` into the owner column. |
+| **Proven to fail without the fix** | The `unmet` phrasings did not exist, and the message was built from `label`. Both fallbacks are asserted by name because each was independently wrong. |
+| **Note** | The evaluation was never wrong in either case, which is what made both hard to see: `missingItems` filtered correctly and the owner expression was reaching for a sensible value. **BUG-1545 is only half fixed and deliberately so.** Two reads in the same file filter this column by `actor.platform?.id`, so the *relation* is what is wrong — and this codebase's own convention agrees, since `CustomerAccount` carries platform owners as `PlatformUser` and tenant owners as `User`. Repointing a foreign key is a migration with a data question behind it, and the record asks for that to be settled rather than patched. |
+| **Fixed** | 2026-08-28 |
+| **Active** | yes |
+
+### REG-291 — A plan that could not be sold, and a page size that could not be asked for
+
+| | |
+|---|---|
+| **Bug class** | `picker-offers-what-the-write-path-rejects`, `constraint-protects-nothing` |
+| **Module** | `super-admin`, `partners` |
+| **Bug record** | BUG-1555, BUG-1554 |
+| **Root cause** | The customer form's plan picker listed every plan, including `QA00591` — inactive, zero prices — and selecting it produced a customer whose preferred plan nothing could bill, because checkout and subscription pricing both read `PlanPrice`. Tenant creation checked only that a plan id was non-null. Separately, `PartnerQueryDto.pageSize` carried `@Min(10)` while the admin console asked its own API for `pageSize=5`, so the screen 400'd on every load — a client and a server disagreeing about a constraint entirely internal to the product. |
+| **Regression test** | `services/api/src/modules/super-admin/onboarding-prerequisites.spec.ts` |
+| **Scenario** | Tenant creation refuses a plan that is inactive or carries no active price, and names which of the two applies. `listPlans` narrows on `?sellable=true` and the two preferred-plan pickers request it. |
+| **Proven to fail without the fix** | The plan guard did not exist — a non-null id was the whole check. |
+| **Note** | The picker filter and the write-path check are deliberately both present and are not the same thing: a plan id still arrives from a lead's `agreedPlanId`, from a customer chosen before the plan was retired, or straight from the API, and only the second of the two can refuse those. The guard counts *active* prices, because a plan carrying only inactive ones is as unsellable as a plan carrying none. On the page size: a census found `Min(1)` twice and `Min(10)` once, so the floor was an outlier rather than a rule — and a lower bound on a page size protects nothing, while the upper bound stays because an unbounded page is a way to ask for the whole table. |
+| **Fixed** | 2026-08-28 |
+| **Active** | yes |
+
+### REG-292 — Dates and owners that were confidently wrong
+
+| | |
+|---|---|
+| **Bug class** | `sentinel-rendered-as-data` |
+| **Module** | `apps/admin` |
+| **Bug record** | BUG-1556, BUG-1550 |
+| **Root cause** | An absent contract date arrives as an epoch-zero timestamp rather than as null, so it passed every `!value` guard and rendered as `Jan 1, 1970` — two of seven contracts on production showed it. Separately, a lead record displayed `Test User` in its header and `Not set` in its body at the same time, with nothing on screen to say which was right. |
+| **Regression test** | `apps/admin/lib/runtime/lookup-disambiguation.spec.ts` and the epoch guards in `apps/admin/lib/formatters.ts` and the runtime date display |
+| **Scenario** | A timestamp of exactly zero renders as absent rather than as 1 January 1970, in the shared formatters and in the runtime record page's inline formatter. The lead's owner field names its relation explicitly, the same way the record header does. |
+| **Proven to fail without the fix** | The epoch check did not exist; `!value` cannot see a truthy zero-date. |
+| **Note** | Exactly zero, not "before a cutoff": midnight UTC on 1 January 1970 to the millisecond is the sentinel, and any other 1970 date is somebody's real data. **BUG-1550's divergence was not reproduced.** Both surfaces read `assignedToUserId`, `readRelationLabel` already composes the name shape the leads repository selects, and from the source they should agree — so the cause is a payload difference the source does not show. What changed is that the body now names the relation explicitly rather than deriving it, removing the one structural difference between the two routes. If a lead still shows two owners, the payloads are where to look. |
+| **Fixed** | 2026-08-28 |
+| **Active** | yes |
+
+### REG-293 — Pickers offering entries nobody could choose between
+
+| | |
+|---|---|
+| **Bug class** | `identical-options` |
+| **Module** | `apps/admin` runtime lookups |
+| **Bug record** | BUG-1553 |
+| **Root cause** | Lookup labels resolve from the first available name field, so two platform users called "Taimur Israr" — genuinely different accounts — rendered identically, as did two contract templates sharing an agreement name. The operator had to guess, and a wrong guess assigns the wrong owner or generates from the wrong template. The email was on the record all along and was never reached. |
+| **Regression test** | `apps/admin/lib/runtime/lookup-disambiguation.spec.ts` |
+| **Scenario** | Two entries sharing a label gain a disambiguator — email, then code, key, contract number, version, status, and a shortened id last; a unique label is left alone; a disambiguator identical to the label is skipped; and the option count is unchanged. |
+| **Proven to fail without the fix** | Labels were emitted verbatim, so duplicates stayed duplicates. |
+| **Note** | Applied only where a label actually repeats. Showing everyone's email beside their name would clutter every picker in the console to solve a problem that exists in two of them, and a disambiguator is only informative when there is something to disambiguate from. The shortened id is a poor answer and is last for that reason — but two identical entries with no way to choose between them is a worse one. The template half of the record asked whether the duplication is display-level or two real records; this makes them distinguishable either way, and which *should* be selectable remains the product decision the record identifies. |
+| **Fixed** | 2026-08-28 |
+| **Active** | yes |
+
+### REG-294 — Commercial terms published by not touching a field
+
+| | |
+|---|---|
+| **Bug class** | `dangerous-default`, `filtered-zero-reads-as-nothing` |
+| **Module** | `super-admin`, `apps/admin` |
+| **Bug record** | BUG-1751, BUG-1745 |
+| **Root cause** | The promotions form defaulted Scope to GLOBAL, pre-filled Percent off with 10, and created the promotion Active — so one press of "Add promotion" published a 10% discount against every eligible subscription, with no draft state and no confirmation. Separately, every money aggregate on the Control Hub filters on `currency: reportingCurrency`, and production's stored default said PKR while every payment was QAR: "Collected revenue PKR 0" against two succeeded payments totalling QAR 160, indistinguishable on the screen from having earned nothing. |
+| **Regression test** | `services/api/src/modules/super-admin/promotion-safety.spec.ts` |
+| **Scenario** | Promotions are created inactive while an explicit `isActive: true` still wins; the form starts with no scope and no amount and refuses to submit without either; an explicit Activate exists and confirms, treating a global scope as the dangerous case. And the dashboard payload reports the currencies its filter excluded, with amounts. |
+| **Proven to fail without the fix** | Every assertion names a default that was the opposite, or a field that did not exist. |
+| **Note** | Two things deliberately not done, both because they are decisions rather than changes. Whether Stripe or the platform is authoritative for discounts is a product question, so `syncToStripe` stays opt-in — changing the default would be answering it by implementation. And which currency the business reports in is a commercial decision that QA explicitly declined to make; the dashboard now says what it excludes rather than having its filter changed. The honest zero is the fix; the right number is somebody's call. |
+| **Fixed** | 2026-08-28 |
+| **Active** | yes |
+
+### REG-295 — A policy that could not permit what the page needed
+
+| | |
+|---|---|
+| **Bug class** | `config-value-cannot-work` |
+| **Module** | `packages/config`, `apps/landing` |
+| **Bug record** | BUG-1822, BUG-1424, BUG-0040 |
+| **Root cause** | The landing deployment's API base URL is configured with an `http://` scheme, so its generated CSP permits `http://api.dijipeople.com/api` while admin and the tenant app permit `https://`. A browser on an HTTPS page blocks a plain-http request as mixed content before CSP is consulted, so the `connect-src` entry matches nothing — harmless while the policy is report-only, and a live break for checkout, plan browsing and lead capture the moment anyone enforces it. |
+| **Regression test** | `packages/config/security-headers.test.js` |
+| **Scenario** | `securityHeadersForApp` refuses a non-loopback `http://` API origin, failing the build rather than emitting a policy that cannot work. `http://localhost` and `http://127.0.0.1` stay allowed, because those are the correct local answers. |
+| **Proven to fail without the fix** | No such check existed; the origin was passed through verbatim into the header. |
+| **Note** | Found while *measuring* BUG-1424's premise rather than trusting it — that record says the admin console serves no CSP at all, and all three apps do. The measurement is what turned up the scheme difference, which is an argument for checking a stale-looking record rather than closing it on the strength of the code. The guard follows the stance `packages/config` already takes on loopback URLs: a development value reaching production is a configuration error raised at build time, not something a customer discovers. It cannot assert the deployed value — that lives on the service (see BUG-0905) — only refuse to build a policy around a bad one. |
+| **Fixed** | 2026-08-28 |
+| **Active** | yes |
+
+### REG-296 — Values formatted against whatever was running them
+
+| | |
+|---|---|
+| **Bug class** | `runtime-locale-crosses-the-hydration-boundary` |
+| **Module** | `apps/admin`, `apps/landing` |
+| **Bug record** | BUG-1557, BUG-1561 |
+| **Root cause** | Next server-renders a client component on a UTC server and hydrates it in the viewer's browser. Two formatters on the admin dashboard were told to use the runtime's own locale — `new Intl.NumberFormat(undefined, ...)` for every money figure, and `toLocaleString()` for the refresh timestamp — so server and client produced different markup and React logged error #418 on every load. Separately, the signup verification step had no way back, so a buyer who mistyped their admin email could not correct it: the code went to the wrong address and the only route forward was to restart all five wizard steps. |
+| **Regression test** | `apps/admin/lib/dashboard-hydration.spec.ts` |
+| **Scenario** | Money formats against a fixed locale; the refresh timestamp carries `suppressHydrationWarning`; dates go through the shared formatter; and no client component in `apps/admin` formats against an explicit `undefined` locale. |
+| **Proven to fail without the fix** | Each assertion names the exact construct that was there. |
+| **Note** | The two halves of the dashboard fix are deliberately opposite and the distinction is the interesting part. An *amount* is the same number everywhere, so it is made deterministic. A *"refreshed at" timestamp* is only useful in the viewer's own time, so the difference is real and is declared rather than removed — formatting it deterministically would have silenced the warning by showing every operator the server's clock, which is a worse screen with a cleaner console. The last assertion walks every client component rather than the dashboard, because the dashboard was unlikely to be the only place somebody reached for a runtime-locale formatter. On BUG-1561: the API already invalidated the previous code on reissue, so the only thing missing was the way back — worth checking before adding invalidation nobody needed. |
+| **Fixed** | 2026-08-28 |
+| **Active** | yes |
+
+### REG-297 — A workspace address advertised to a buyer that did not resolve
+
+| | |
+|---|---|
+| **Bug class** | `config-value-inlined-at-build` |
+| **Module** | `apps/landing` |
+| **Bug record** | BUG-1544, BUG-1644, BUG-0017 |
+| **Root cause** | Step 2 of public signup told a prospective customer that `<slug>.dijipeople.com` "is available". Workspaces are served from `<slug>.ws.dijipeople.com`, which the success page and the provisioned tenant both used — so the only wrong statement was the one made while the buyer was deciding to purchase. The value is build-time configuration: `apps/landing/lib/env.ts` reads the canonical resolver, and the deployed bundle had been built with an apex root domain. |
+| **Regression test** | `apps/landing/lib/workspace-address.spec.ts` |
+| **Scenario** | The landing app resolves the tenant base domain through `getPlatformDomainConfig` and never reads the variable itself; the availability check sends a slug rather than a composed hostname; and the wizard renders the domain it was given rather than composing a second one. |
+| **Proven to fail without the fix** | Nothing here fails today — production was measured correct on 2026-08-28 and no code changed. These assertions hold the *property* that kept it correct, and fail for the local env lookup or the hardcoded domain that would break it. |
+| **Note** | Closed on measurement rather than on a code read, which is the point worth keeping: `curl -s https://www.dijipeople.com/subscribe` returns `tenantBaseDomain":"ws.dijipeople.com"`. The rebuild that fixed BUG-1644 (REG-271) carried this with it. The record's own caution was worth taking and turned out reassuring — it asks to confirm what the availability check queries before changing any display string, because a check against the wrong hostname would keep answering "available" for the right one. It sends only the slug, so it was never affected. `NEXT_PUBLIC_*` and build-time values are inlined into the bundle, so a corrected variable and a stale bundle look identical from a browser; the evidence above is the *served* value, which is what a customer sees. |
+| **Fixed** | 2026-08-28 |
+| **Active** | yes |
+
+### REG-298 — Three decisions, and two of them already made
+
+| | |
+|---|---|
+| **Bug class** | `record-outlived-its-fix`, `capability-too-coarse` |
+| **Module** | `leads`, `platform-runtime`, `super-admin`, `partner-experience` |
+| **Bug record** | BUG-0018, BUG-0015, BUG-0016 |
+| **Root cause** | Bulk lead delete existed and destroyed commercial attribution — which partner referred whom, and what a commission is calculated from — for an unbounded selection nobody reviewed. Removing it revealed a second problem: the console's `delete` capability gated single-record and bulk deletion together, so withholding one withheld the other. |
+| **Regression test** | `services/api/src/modules/leads/bulk-delete-withdrawn.spec.ts` |
+| **Scenario** | No bulk delete route on the leads controller, no `leads` arm in the runtime's `bulkDelete`, and no console action — while the runtime's `remove` path still deletes a single lead, and `RuntimeModuleCapabilities` separates `bulkDelete` from `delete`. |
+| **Proven to fail without the fix** | Each assertion names a route, an arm or a capability that was there. The single-delete assertion is the load-bearing one: the obvious implementation (`delete: false`) passes every other assertion in this suite and fails that one. |
+| **Note** | The interesting part of this entry is what was *not* changed. BUG-0015 and BUG-0016 were both already fixed, and both exactly as their records specified — `identities-and-billing` is idempotent against owner email, subscription and invoice anchors and is marked retryable; partner onboarding review refuses decisions from non-reviewable states and closes `ACTIVE` partners to review entirely. Both were verified by reading the implementation and running its spec, and no code was written for either. Five records in this sweep turned out to have stale premises, which is an argument for measuring a record before implementing against it. **Still untested:** BUG-0015's convergence under a real replay. A local database was offered for it and the credential supplied did not authenticate, so a failed provisioning was never actually retried. |
+| **Fixed** | 2026-08-28 |
+| **Active** | yes |
+
+### REG-299 — A rejection that would not say what it rejected
+
+| | |
+|---|---|
+| **Bug class** | `one-error-code-for-several-causes` |
+| **Module** | `billing` |
+| **Bug record** | BUG-1543 |
+| **Root cause** | The Stripe webhook endpoint can refuse a request for three unrelated reasons — no signature header, a body that is not a raw Buffer, or a signature that does not verify — and all three surface as `400 VALIDATION_FAILED`, because that is the error catalog's code for every 400. Two of Stripe's callbacks were rejected during a real payment on production and working out which had fired meant log archaeology. |
+| **Regression test** | `services/api/src/modules/billing/webhook-rejection-diagnostics.spec.ts` |
+| **Scenario** | Each refusal logs `stripe.webhook.rejected` naming which check refused it; the signature verification failure is caught rather than propagating uncaught; neither the payload nor the signature is logged; and the response to Stripe is unchanged. |
+| **Proven to fail without the fix** | There was no logging on this path at all, and the verification failure had no `try` around it. |
+| **Note** | This is diagnosability, not a fix — **the cause of BUG-1543 is still unknown** and that record stays deferred. The three checks need opposite responses, which is why flattening them mattered: a missing header is a caller that is not Stripe, a non-Buffer body is raw-body middleware not running for the route, and a failed verification is either the wrong webhook secret or a forgery. What is deliberately absent from the log is the body and the signature — one is a customer's payment detail, the other is a credential, and neither is the thing worth knowing. Also worth keeping: the rejection raised "a customer may have paid without us knowing", which is the right thing to be paged for. A change that silenced the alert rather than explaining the rejection would have been the wrong one. |
+| **Fixed** | 2026-08-28 (diagnostics only) |
+| **Active** | yes |

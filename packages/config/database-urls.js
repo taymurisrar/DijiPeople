@@ -21,6 +21,7 @@
  *
  *   DATABASE_URL         the runtime connection. Pooled is fine, often better.
  *   DIRECT_DATABASE_URL  the migration connection. Must be direct.
+ *   DIRECT_URL           the same thing under Prisma's and Neon's own name.
  *
  * `DIRECT_DATABASE_URL` is optional: unset, migrations fall back to
  * `DATABASE_URL`, which is exactly right for local development and CI where a
@@ -37,6 +38,12 @@
  * check below is a heuristic that reports rather than a validator that parses.
  */
 const POOLED_HOST_INFIX = "-pooler";
+
+/**
+ * The environment variables that may name the direct connection, in precedence
+ * order. See `readDirectUrl` for why there are two.
+ */
+const DIRECT_URL_VARIABLES = ["DIRECT_DATABASE_URL", "DIRECT_URL"];
 
 /**
  * True when `url` names a connection that is, as far as we can tell, in front of
@@ -74,11 +81,33 @@ function isPooledConnectionUrl(url) {
  * Prisma's own missing-datasource error surfaces instead of a mangled one.
  */
 function resolveMigrationDatabaseUrl(env = process.env) {
-  const direct = typeof env.DIRECT_DATABASE_URL === "string" ? env.DIRECT_DATABASE_URL.trim() : "";
-  if (direct.length > 0) return direct;
+  const direct = readDirectUrl(env);
+  if (direct) return direct;
 
   const runtime = typeof env.DATABASE_URL === "string" ? env.DATABASE_URL.trim() : "";
   return runtime.length > 0 ? runtime : undefined;
+}
+
+/**
+ * The direct connection, under either name.
+ *
+ * `DIRECT_URL` is the name Prisma's own documentation and Neon's setup guide
+ * use, and it is what someone configuring this service by hand will reach for.
+ * This repository reads `DIRECT_DATABASE_URL`. Production defined `DIRECT_URL`,
+ * so the override was inert and `migrate deploy` ran over the pooled endpoint —
+ * the exact configuration BUG-0086 exists to prevent, arrived at through a
+ * spelling rather than a decision (BUG-0905).
+ *
+ * Both are accepted, `DIRECT_DATABASE_URL` first so an existing deployment that
+ * sets both keeps the value it already had. The point is that neither spelling
+ * can silently do nothing.
+ */
+function readDirectUrl(env) {
+  for (const key of DIRECT_URL_VARIABLES) {
+    const value = typeof env[key] === "string" ? env[key].trim() : "";
+    if (value.length > 0) return value;
+  }
+  return "";
 }
 
 /**
@@ -93,9 +122,10 @@ function describeMigrationUrlProblem(env = process.env) {
   if (!migrationUrl) return null; // Absence is DATABASE_URL's problem, not ours.
   if (!isPooledConnectionUrl(migrationUrl)) return null;
 
-  const source = typeof env.DIRECT_DATABASE_URL === "string" && env.DIRECT_DATABASE_URL.trim()
-    ? "DIRECT_DATABASE_URL"
-    : "DATABASE_URL";
+  const source =
+    DIRECT_URL_VARIABLES.find(
+      (key) => typeof env[key] === "string" && env[key].trim(),
+    ) ?? "DATABASE_URL";
 
   return (
     `${source} names a pooled Postgres endpoint, and Prisma migrations cannot ` +
@@ -110,6 +140,7 @@ function describeMigrationUrlProblem(env = process.env) {
 
 module.exports = {
   POOLED_HOST_INFIX,
+  DIRECT_URL_VARIABLES,
   isPooledConnectionUrl,
   resolveMigrationDatabaseUrl,
   describeMigrationUrlProblem,

@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 303,
+    "total_records": 321,
     "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
@@ -787,14 +787,14 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "7bbab3d",
         "created_at": "2026-08-15",
-        "updated_at": "2026-08-17",
-        "resolved_at": "2026-08-15"
+        "updated_at": "2026-08-28",
+        "resolved_at": "2026-08-28"
       },
       "type": "STATE_MACHINE",
       "title": "A tenant that fails before identities-and-billing is permanently unrecoverable",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
+      "current_status": "VERIFIED",
       "current_evidence": {
         "paths": [
           "docs/bugs/BUG-0015-a-tenant-that-fails-before-identities-and-billing-is-unrecoverable.md",
@@ -820,17 +820,19 @@
         "ITEM-0004"
       ],
       "regressions": [
-        "REG-013"
+        "REG-013",
+        "REG-298"
       ],
       "qa_scenarios": [
-        "QA-PROV-004"
+        "QA-PROV-004",
+        "QA-TENANT-050"
       ],
       "test_plan": [
         "PLAN-007"
       ],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "PLAN_REQUIRED",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "PRELIMINARY",
         "classification": "TERMINAL_STATUS_WITH_STALE_ARCHITECT_DISPOSITION",
@@ -846,14 +848,14 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "7bbab3d",
         "created_at": "2026-08-15",
-        "updated_at": "2026-08-17",
-        "resolved_at": "2026-08-15"
+        "updated_at": "2026-08-28",
+        "resolved_at": "2026-08-28"
       },
       "type": "STATE_MACHINE",
       "title": "Partner onboarding review has no state machine",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
+      "current_status": "VERIFIED",
       "current_evidence": {
         "paths": [
           "docs/bugs/BUG-0016-partner-onboarding-review-has-no-state-machine.md",
@@ -874,17 +876,19 @@
       ],
       "related_backlog": [],
       "regressions": [
-        "REG-014"
+        "REG-014",
+        "REG-298"
       ],
       "qa_scenarios": [
-        "QA-PARTNER-001"
+        "QA-PARTNER-001",
+        "QA-TENANT-050"
       ],
       "test_plan": [
         "PLAN-006"
       ],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "PLAN_REQUIRED",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "PRELIMINARY",
         "classification": "TERMINAL_STATUS_WITH_STALE_ARCHITECT_DISPOSITION",
@@ -931,11 +935,13 @@
         "ITEM-0006"
       ],
       "regressions": [
-        "REG-027"
+        "REG-027",
+        "REG-297"
       ],
       "qa_scenarios": [
         "QA-PROV-003",
-        "QA-TENANT-004"
+        "QA-TENANT-004",
+        "QA-TENANT-049"
       ],
       "test_plan": [
         "PLAN-007"
@@ -958,14 +964,14 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "7bbab3d",
         "created_at": "2026-08-15",
-        "updated_at": "2026-08-15",
+        "updated_at": "2026-08-28",
         "resolved_at": ""
       },
       "type": "AUTHORIZATION",
       "title": "Bulk lead delete is unreachable for every role, including SUPER_ADMIN",
       "severity": "LOW",
       "priority": "P3",
-      "current_status": "DEFERRED",
+      "current_status": "FIXED",
       "current_evidence": {
         "paths": [
           "docs/bugs/BUG-0018-bulk-lead-delete-is-unreachable-for-every-role.md",
@@ -985,14 +991,18 @@
         "BUG-0014"
       ],
       "related_backlog": [],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-298"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-050"
+      ],
       "test_plan": [
         "PLAN-005"
       ],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "DEFER",
+      "architect_disposition": "FIX_NOW",
       "verification_result": {
         "result": "VERIFIED",
         "classification": "DEFERRED_AS_DOCUMENTED",
@@ -2277,10 +2287,12 @@
         "ITEM-0039"
       ],
       "regressions": [
-        "REG-035"
+        "REG-035",
+        "REG-295"
       ],
       "qa_scenarios": [
-        "QA-DEPLOY-006"
+        "QA-DEPLOY-006",
+        "QA-DEPLOY-023"
       ],
       "test_plan": [],
       "active_session_conflict": "NONE",
@@ -3765,10 +3777,12 @@
       ],
       "related_backlog": [],
       "regressions": [
-        "REG-068"
+        "REG-068",
+        "REG-288"
       ],
       "qa_scenarios": [
-        "QA-PLATFORM-002"
+        "QA-PLATFORM-002",
+        "QA-TENANT-040"
       ],
       "test_plan": [
         "PLAN-019"
@@ -4447,7 +4461,8 @@
         "REG-203"
       ],
       "qa_scenarios": [
-        "QA-DEPLOY-018"
+        "QA-DEPLOY-018",
+        "QA-TENANT-028"
       ],
       "test_plan": [],
       "active_session_conflict": "NONE",
@@ -4562,7 +4577,8 @@
       ],
       "qa_scenarios": [
         "QA-PLATFORM-003",
-        "QA-PLATFORM-004"
+        "QA-PLATFORM-004",
+        "QA-TENANT-025"
       ],
       "test_plan": [],
       "active_session_conflict": "NONE",
@@ -4719,7 +4735,8 @@
         "REG-225"
       ],
       "qa_scenarios": [
-        "QA-BILLING-013"
+        "QA-BILLING-013",
+        "QA-TENANT-031"
       ],
       "test_plan": [],
       "active_session_conflict": "NONE",
@@ -6615,9 +6632,11 @@
         "ITEM-0053"
       ],
       "regressions": [
-        "REG-229"
+        "REG-229",
+        "REG-280"
       ],
       "qa_scenarios": [
+        "QA-DEPLOY-022",
         "QA-LEGAL-001"
       ],
       "test_plan": [],
@@ -6907,14 +6926,14 @@
       "title": "Self-service checkout is blocked for every plan: no plan price has ever been synced to Stripe",
       "severity": "CRITICAL",
       "priority": "P0",
-      "current_status": "OPEN",
-      "architect_disposition": "BLOCKED_EXTERNAL",
+      "current_status": "PRODUCT_DECISION",
+      "architect_disposition": "PRODUCT_DECISION",
       "source": {
         "record_path": "docs/bugs/BUG-0898-self-service-checkout-is-blocked-for-every-plan-no-plan-pric.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "1dd74a25",
         "created_at": "2026-08-23",
-        "updated_at": "2026-08-23",
+        "updated_at": "2026-08-28",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -7115,14 +7134,14 @@
       "title": "Production runs Stripe in test mode, so no real payment can be collected",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
-      "architect_disposition": "BLOCKED_EXTERNAL",
+      "current_status": "PRODUCT_DECISION",
+      "architect_disposition": "PRODUCT_DECISION",
       "source": {
         "record_path": "docs/bugs/BUG-0903-production-runs-stripe-in-test-mode-so-no-real-payment-can-b.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "1dd74a25",
         "created_at": "2026-08-23",
-        "updated_at": "2026-08-23",
+        "updated_at": "2026-08-28",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -7153,21 +7172,25 @@
       "title": "Production is missing OUTBOX_WORKER_ENABLED, so no workspace is provisioned after payment",
       "severity": "CRITICAL",
       "priority": "P0",
-      "current_status": "OPEN",
-      "architect_disposition": "BLOCKED_EXTERNAL",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-0904-production-is-missing-outbox-worker-enabled-so-no-workspace-.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "1dd74a25",
         "created_at": "2026-08-23",
-        "updated_at": "2026-08-23",
+        "updated_at": "2026-08-28",
         "resolved_at": ""
       },
       "affected_modules": [
         "services/api/src/modules/outbox"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-280"
+      ],
+      "qa_scenarios": [
+        "QA-DEPLOY-022"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -7191,22 +7214,26 @@
       "title": "Production defines DIRECT_URL but the code reads DIRECT_DATABASE_URL, so migrations run over the pooled endpoint",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "BLOCKED_EXTERNAL",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-0905-production-defines-direct-url-but-the-code-reads-direct-data.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "1dd74a25",
         "created_at": "2026-08-23",
-        "updated_at": "2026-08-23",
+        "updated_at": "2026-08-28",
         "resolved_at": ""
       },
       "affected_modules": [
         "services/api/prisma",
         "packages/config"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-275"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-028"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -7509,7 +7536,8 @@
         "REG-246"
       ],
       "qa_scenarios": [
-        "QA-BILLING-018"
+        "QA-BILLING-018",
+        "QA-TENANT-029"
       ],
       "test_plan": [],
       "current_evidence": {
@@ -8132,15 +8160,15 @@
       "title": "Every incident on the monitoring overview links to a route that does not exist",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "FIXED",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "VERIFIED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-1419-every-incident-on-the-monitoring-overview-links-to-a-route-t.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "8d6be21b",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-27",
-        "resolved_at": ""
+        "updated_at": "2026-08-28",
+        "resolved_at": "2026-08-28"
       },
       "affected_modules": [
         "apps/admin"
@@ -8185,7 +8213,7 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "8d6be21b",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-27",
+        "updated_at": "2026-08-28",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -8193,10 +8221,12 @@
         "services/api/src/modules/error-logs"
       ],
       "regressions": [
-        "REG-270"
+        "REG-270",
+        "REG-281"
       ],
       "qa_scenarios": [
-        "QA-TENANT-024"
+        "QA-TENANT-024",
+        "QA-TENANT-033"
       ],
       "test_plan": [
         "PLAN-019"
@@ -8224,21 +8254,25 @@
       "title": "Every admin screen shares one page title, two main landmarks and a duplicate h1",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "DEFERRED",
-      "architect_disposition": "DEFER",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-1421-every-admin-screen-shares-one-page-title-two-main-landmarks-.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "8d6be21b",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-27",
+        "updated_at": "2026-08-28",
         "resolved_at": ""
       },
       "affected_modules": [
         "apps/admin"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-288"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-040"
+      ],
       "test_plan": [
         "PLAN-019"
       ],
@@ -8264,15 +8298,15 @@
       "title": "Runtime form validation discards every field reason and shows the user Bad Request Exception",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "FIXED",
+      "current_status": "VERIFIED",
       "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-1422-runtime-form-validation-discards-every-field-reason-and-show.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "8d6be21b",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-26",
-        "resolved_at": "2026-08-26"
+        "updated_at": "2026-08-28",
+        "resolved_at": "2026-08-28"
       },
       "affected_modules": [
         "services/api/src/modules/platform-runtime",
@@ -8310,21 +8344,25 @@
       "title": "Runtime form controls have no accessible name so screen readers announce every field as blank",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
-      "architect_disposition": "PLAN_REQUIRED",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-1423-runtime-form-controls-have-no-accessible-name-so-screen-read.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "8d6be21b",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-27",
+        "updated_at": "2026-08-28",
         "resolved_at": ""
       },
       "affected_modules": [
         "apps/admin"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-287"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-039"
+      ],
       "test_plan": [
         "PLAN-019"
       ],
@@ -8350,21 +8388,24 @@
       "title": "The admin console serves no Content-Security-Policy header",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "PLAN_REQUIRED",
+      "current_status": "VERIFIED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-1424-the-admin-console-serves-no-content-security-policy-header.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "8d6be21b",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-27",
-        "resolved_at": ""
+        "updated_at": "2026-08-28",
+        "resolved_at": "2026-08-28"
       },
       "affected_modules": [
         "apps/admin"
       ],
-      "regressions": [],
+      "regressions": [
+        "REG-295"
+      ],
       "qa_scenarios": [
+        "QA-DEPLOY-023",
         "QA-PLATFORM-025"
       ],
       "test_plan": [
@@ -8392,21 +8433,25 @@
       "title": "currencyCode accepts any string of three characters or fewer",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "DEFERRED",
-      "architect_disposition": "DEFER",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-1425-currencycode-accepts-any-string-of-three-characters-or-fewer.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "8d6be21b",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-27",
+        "updated_at": "2026-08-28",
         "resolved_at": ""
       },
       "affected_modules": [
         "services/api/src/modules/partners"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-273"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-026"
+      ],
       "test_plan": [
         "PLAN-019"
       ],
@@ -8539,7 +8584,8 @@
         "REG-266"
       ],
       "qa_scenarios": [
-        "QA-TENANT-020"
+        "QA-TENANT-020",
+        "QA-TENANT-051"
       ],
       "test_plan": [],
       "current_evidence": {
@@ -8566,15 +8612,15 @@
       "title": "Generated agreement PDFs render unsubstituted template placeholders",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "FIXED",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "VERIFIED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-1541-generated-agreement-pdfs-render-unsubstituted-template-place.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "21032ae",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-27",
-        "resolved_at": ""
+        "updated_at": "2026-08-28",
+        "resolved_at": "2026-08-28"
       },
       "affected_modules": [
         "contracts",
@@ -8657,14 +8703,18 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "21032ae",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-27",
+        "updated_at": "2026-08-28",
         "resolved_at": ""
       },
       "affected_modules": [
         "billing"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-299"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-051"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -8688,22 +8738,27 @@
       "title": "Public signup advertises a workspace domain that does not resolve",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "VERIFIED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-1544-public-signup-advertises-a-workspace-domain-that-does-not-re.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "21032ae",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-27",
-        "resolved_at": ""
+        "updated_at": "2026-08-28",
+        "resolved_at": "2026-08-28"
       },
       "affected_modules": [
         "tenant-domains",
         "leads"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-297"
+      ],
+      "qa_scenarios": [
+        "QA-AUTH-006",
+        "QA-TENANT-049"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -8728,22 +8783,26 @@
       "title": "Manual customer onboarding creation fails on an owner foreign key",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "PLAN_REQUIRED",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-1545-manual-customer-onboarding-creation-fails-on-an-owner-foreig.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "21032ae",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-27",
+        "updated_at": "2026-08-28",
         "resolved_at": ""
       },
       "affected_modules": [
         "platform-runtime",
         "onboarding"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-290"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-042"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -8768,21 +8827,26 @@
       "title": "Required fields on unfocused tabs give no indication of where they are",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "DEFERRED",
-      "architect_disposition": "DEFER",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-1546-required-fields-on-unfocused-tabs-give-no-indication-of-wher.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "21032ae",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-27",
+        "updated_at": "2026-08-28",
         "resolved_at": ""
       },
       "affected_modules": [
         "customization"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-274"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-027",
+        "QA-TENANT-038"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -8806,21 +8870,25 @@
       "title": "Onboarding prerequisite message states the inverse of the truth",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "DEFERRED",
-      "architect_disposition": "DEFER",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-1547-onboarding-prerequisite-message-states-the-inverse-of-the-tr.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "21032ae",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-27",
+        "updated_at": "2026-08-28",
         "resolved_at": ""
       },
       "affected_modules": [
         "onboarding"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-290"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-042"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -8882,21 +8950,25 @@
       "title": "Database and validator internals are surfaced in user-facing errors",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "DEFERRED",
-      "architect_disposition": "DEFER",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-1549-database-and-validator-internals-are-surfaced-in-user-facing.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "21032ae",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-27",
+        "updated_at": "2026-08-28",
         "resolved_at": ""
       },
       "affected_modules": [
         "error-logs"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-286"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-038"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -8920,21 +8992,25 @@
       "title": "Lead record shows two different owners on the same screen",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "DEFERRED",
-      "architect_disposition": "DEFER",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-1550-lead-record-shows-two-different-owners-on-the-same-screen.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "21032ae",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-27",
+        "updated_at": "2026-08-28",
         "resolved_at": ""
       },
       "affected_modules": [
         "leads"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-292"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-044"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -9038,22 +9114,26 @@
       "title": "Owner and template pickers list indistinguishable duplicate entries",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "DEFERRED",
-      "architect_disposition": "DEFER",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-1553-owner-and-template-pickers-list-indistinguishable-duplicate-.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "21032ae",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-27",
+        "updated_at": "2026-08-28",
         "resolved_at": ""
       },
       "affected_modules": [
         "contracts",
         "platform-users"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-293"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-045"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -9078,21 +9158,25 @@
       "title": "Admin requests its own partners API with a rejected pageSize",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "DEFERRED",
-      "architect_disposition": "DEFER",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-1554-admin-requests-its-own-partners-api-with-a-rejected-pagesize.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "21032ae",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-27",
+        "updated_at": "2026-08-28",
         "resolved_at": ""
       },
       "affected_modules": [
         "partners"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-291"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-043"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -9116,22 +9200,26 @@
       "title": "An inactive plan with no prices is offered as a customer preferred plan",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
+      "current_status": "FIXED",
       "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-1555-an-inactive-plan-with-no-prices-is-offered-as-a-customer-pre.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "21032ae",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-27",
+        "updated_at": "2026-08-28",
         "resolved_at": ""
       },
       "affected_modules": [
         "super-admin",
         "billing"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-291"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-043"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -9156,21 +9244,25 @@
       "title": "Contract dates with no value render as the Unix epoch",
       "severity": "LOW",
       "priority": "P3",
-      "current_status": "DEFERRED",
-      "architect_disposition": "DEFER",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-1556-contract-dates-with-no-value-render-as-the-unix-epoch.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "21032ae",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-27",
+        "updated_at": "2026-08-28",
         "resolved_at": ""
       },
       "affected_modules": [
         "contracts"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-292"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-044"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -9194,21 +9286,25 @@
       "title": "React hydration error 418 on the admin dashboard",
       "severity": "LOW",
       "priority": "P3",
-      "current_status": "DEFERRED",
-      "architect_disposition": "DEFER",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-1557-react-hydration-error-418-on-the-admin-dashboard.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "21032ae",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-27",
+        "updated_at": "2026-08-28",
         "resolved_at": ""
       },
       "affected_modules": [
         "dashboard"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-296"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-048"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -9232,21 +9328,25 @@
       "title": "Admin list copy uses incorrect pluralisation and articles",
       "severity": "LOW",
       "priority": "P3",
-      "current_status": "DEFERRED",
-      "architect_disposition": "DEFER",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-1558-admin-list-copy-uses-incorrect-pluralisation-and-articles.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "21032ae",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-27",
+        "updated_at": "2026-08-28",
         "resolved_at": ""
       },
       "affected_modules": [
         "super-admin"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-283"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-035"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -9270,21 +9370,25 @@
       "title": "Empty states instruct the user to create records on screens with no create control",
       "severity": "LOW",
       "priority": "P3",
-      "current_status": "DEFERRED",
-      "architect_disposition": "DEFER",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-1559-empty-states-instruct-the-user-to-create-records-on-screens-.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "21032ae",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-27",
+        "updated_at": "2026-08-28",
         "resolved_at": ""
       },
       "affected_modules": [
         "billing"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-283"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-035"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -9308,21 +9412,25 @@
       "title": "Delete confirmation does not name the record being deleted",
       "severity": "LOW",
       "priority": "P3",
-      "current_status": "DEFERRED",
-      "architect_disposition": "DEFER",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-1560-delete-confirmation-does-not-name-the-record-being-deleted.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "21032ae",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-27",
+        "updated_at": "2026-08-28",
         "resolved_at": ""
       },
       "affected_modules": [
         "leads"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-284"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-036"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -9346,21 +9454,25 @@
       "title": "Signup verification step has no way back to correct a mistyped email",
       "severity": "LOW",
       "priority": "P3",
-      "current_status": "DEFERRED",
-      "architect_disposition": "DEFER",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-1561-signup-verification-step-has-no-way-back-to-correct-a-mistyp.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "21032ae",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-27",
+        "updated_at": "2026-08-28",
         "resolved_at": ""
       },
       "affected_modules": [
         "leads"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-296"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-048"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -9384,15 +9496,15 @@
       "title": "Admin customer form stores a country lookup id where every reader expects a name",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "FIXED",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "VERIFIED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-1578-admin-customer-form-stores-a-country-lookup-id-where-every-r.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "21032ae",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-27",
-        "resolved_at": ""
+        "updated_at": "2026-08-28",
+        "resolved_at": "2026-08-28"
       },
       "affected_modules": [
         "super-admin",
@@ -9474,22 +9586,28 @@
       "title": "Tenant root domain is misconfigured so no customer can reach their workspace login",
       "severity": "CRITICAL",
       "priority": "P0",
-      "current_status": "OPEN",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "VERIFIED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-1644-tenant-root-domain-is-misconfigured-so-no-customer-can-reach.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "21032ae",
         "created_at": "2026-08-27",
         "updated_at": "2026-08-28",
-        "resolved_at": ""
+        "resolved_at": "2026-08-28"
       },
       "affected_modules": [
         "tenant-domains",
         "tenants"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-271",
+        "REG-297"
+      ],
+      "qa_scenarios": [
+        "QA-AUTH-006",
+        "QA-TENANT-049"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -9521,7 +9639,7 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "21032ae",
         "created_at": "2026-08-27",
-        "updated_at": "2026-08-27",
+        "updated_at": "2026-08-28",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -9565,7 +9683,7 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "21032ae",
         "created_at": "2026-08-27",
-        "updated_at": "2026-08-27",
+        "updated_at": "2026-08-28",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -9573,10 +9691,12 @@
         "employees"
       ],
       "regressions": [
-        "REG-265"
+        "REG-265",
+        "REG-283"
       ],
       "qa_scenarios": [
-        "QA-TENANT-019"
+        "QA-TENANT-019",
+        "QA-TENANT-035"
       ],
       "test_plan": [],
       "current_evidence": {
@@ -9602,21 +9722,25 @@
       "title": "Tenant login password field has no accessible name and no autocomplete hint",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "DEFERRED",
-      "architect_disposition": "DEFER",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-1655-tenant-login-password-field-has-no-accessible-name-and-no-au.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "21032ae",
         "created_at": "2026-08-27",
-        "updated_at": "2026-08-27",
+        "updated_at": "2026-08-28",
         "resolved_at": ""
       },
       "affected_modules": [
         "auth"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-289"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-041"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -9678,27 +9802,780 @@
       "title": "Tenant workspace shell repeats three h1 headings and two main landmarks on every screen",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "DEFERRED",
-      "architect_disposition": "DEFER",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-1673-tenant-workspace-shell-repeats-three-h1-headings-and-two-mai.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "21032ae",
         "created_at": "2026-08-27",
-        "updated_at": "2026-08-27",
+        "updated_at": "2026-08-28",
         "resolved_at": ""
       },
       "affected_modules": [
         "views"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-288"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-040"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
           "views"
         ],
         "verification_scope": "See docs/bugs/BUG-1673-tenant-workspace-shell-repeats-three-h1-headings-and-two-mai.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1742",
+      "type": "BUG",
+      "title": "Lead creation is impossible: the runtime form always sends partnerId as an empty string",
+      "severity": "CRITICAL",
+      "priority": "P0",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-1742-lead-creation-is-impossible-the-runtime-form-always-sends-pa.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "912f4e61",
+        "created_at": "2026-08-28",
+        "updated_at": "2026-08-28",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/admin",
+        "api:platform-runtime",
+        "api:super-admin"
+      ],
+      "regressions": [
+        "REG-272"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-025",
+        "QA-TENANT-034"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/admin",
+          "api:platform-runtime",
+          "api:super-admin"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1742-lead-creation-is-impossible-the-runtime-form-always-sends-pa.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1743",
+      "type": "BUG",
+      "title": "Customers and partners cannot be edited: the runtime form echoes fields the update DTO forbids",
+      "severity": "CRITICAL",
+      "priority": "P0",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-1743-customers-and-partners-cannot-be-edited-the-runtime-form-ech.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "912f4e61",
+        "created_at": "2026-08-28",
+        "updated_at": "2026-08-28",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/admin",
+        "api:platform-runtime",
+        "api:super-admin"
+      ],
+      "regressions": [
+        "REG-272"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-025"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/admin",
+          "api:platform-runtime",
+          "api:super-admin"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1743-customers-and-partners-cannot-be-edited-the-runtime-form-ech.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1744",
+      "type": "DATA_INTEGRITY",
+      "title": "Every subscription has a zero-length billing period and a renewal date in the past",
+      "severity": "CRITICAL",
+      "priority": "P0",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-1744-every-subscription-has-a-zero-length-billing-period-and-a-re.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "912f4e61",
+        "created_at": "2026-08-28",
+        "updated_at": "2026-08-28",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "api:super-admin",
+        "api:billing",
+        "integration:stripe"
+      ],
+      "regressions": [
+        "REG-276"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-029"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "api:super-admin",
+          "api:billing",
+          "integration:stripe"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1744-every-subscription-has-a-zero-length-billing-period-and-a-re.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1745",
+      "type": "BUG",
+      "title": "The executive dashboard reports zero revenue because reporting currency is PKR and all money is QAR",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-1745-the-executive-dashboard-reports-zero-revenue-because-reporti.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "912f4e61",
+        "created_at": "2026-08-28",
+        "updated_at": "2026-08-28",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/admin",
+        "api:super-admin"
+      ],
+      "regressions": [
+        "REG-294"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-047"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/admin",
+          "api:super-admin"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1745-the-executive-dashboard-reports-zero-revenue-because-reporti.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1746",
+      "type": "UX",
+      "title": "Required fields on unselected tabs are undiscoverable so create forms dead-end",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-1746-required-fields-on-unselected-tabs-are-undiscoverable-so-cre.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "912f4e61",
+        "created_at": "2026-08-28",
+        "updated_at": "2026-08-28",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/admin"
+      ],
+      "regressions": [
+        "REG-274"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-027"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/admin"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1746-required-fields-on-unselected-tabs-are-undiscoverable-so-cre.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1747",
+      "type": "BUG",
+      "title": "Partner Currency is a required numeric input so partner creation forces a corrupt currency code",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-1747-partner-currency-is-a-required-numeric-input-so-partner-crea.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "912f4e61",
+        "created_at": "2026-08-28",
+        "updated_at": "2026-08-28",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/admin",
+        "api:super-admin"
+      ],
+      "regressions": [
+        "REG-273"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-026"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/admin",
+          "api:super-admin"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1747-partner-currency-is-a-required-numeric-input-so-partner-crea.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1748",
+      "type": "BUG",
+      "title": "The subscription record page cannot resolve its own tenant plan or price",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-1748-the-subscription-record-page-cannot-resolve-its-own-tenant-p.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "912f4e61",
+        "created_at": "2026-08-28",
+        "updated_at": "2026-08-28",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/admin",
+        "api:platform-runtime"
+      ],
+      "regressions": [
+        "REG-277"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-030"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/admin",
+          "api:platform-runtime"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1748-the-subscription-record-page-cannot-resolve-its-own-tenant-p.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1749",
+      "type": "BUG",
+      "title": "Admin creates plans that can never be sold and can never be deleted",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-1749-admin-creates-plans-that-can-never-be-sold-and-can-never-be-.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "912f4e61",
+        "created_at": "2026-08-28",
+        "updated_at": "2026-08-28",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/admin",
+        "api:super-admin"
+      ],
+      "regressions": [
+        "REG-278"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-031"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/admin",
+          "api:super-admin"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1749-admin-creates-plans-that-can-never-be-sold-and-can-never-be-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1750",
+      "type": "BUG",
+      "title": "The monitoring critical tile miscounts and links to a filter that matches nothing",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-1750-the-monitoring-critical-tile-miscounts-and-links-to-a-filter.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "912f4e61",
+        "created_at": "2026-08-28",
+        "updated_at": "2026-08-28",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/admin",
+        "api:platform-monitoring"
+      ],
+      "regressions": [
+        "REG-281"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-033"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/admin",
+          "api:platform-monitoring"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1750-the-monitoring-critical-tile-miscounts-and-links-to-a-filter.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1751",
+      "type": "BUG",
+      "title": "A promotion goes live against every subscription the instant it is created",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-1751-a-promotion-goes-live-against-every-subscription-the-instant.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "912f4e61",
+        "created_at": "2026-08-28",
+        "updated_at": "2026-08-28",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/admin",
+        "api:super-admin",
+        "integration:stripe"
+      ],
+      "regressions": [
+        "REG-294"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-046"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/admin",
+          "api:super-admin",
+          "integration:stripe"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1751-a-promotion-goes-live-against-every-subscription-the-instant.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1752",
+      "type": "UX",
+      "title": "Admin empty states blame filters that are not set",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-1752-admin-empty-states-blame-filters-that-are-not-set.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "912f4e61",
+        "created_at": "2026-08-28",
+        "updated_at": "2026-08-28",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/admin"
+      ],
+      "regressions": [
+        "REG-283"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-035"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/admin"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1752-admin-empty-states-blame-filters-that-are-not-set.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1753",
+      "type": "BUG",
+      "title": "Lookup display labels mangle acronyms and numeric ranges across the admin console",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-1753-lookup-display-labels-mangle-acronyms-and-numeric-ranges-acr.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "912f4e61",
+        "created_at": "2026-08-28",
+        "updated_at": "2026-08-28",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/admin"
+      ],
+      "regressions": [
+        "REG-285"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-037"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/admin"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1753-lookup-display-labels-mangle-acronyms-and-numeric-ranges-acr.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1754",
+      "type": "BUG",
+      "title": "The incident queue counts routine 401s and unknown-route 404s as incidents needing triage",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-1754-the-incident-queue-counts-routine-401s-and-unknown-route-404.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "912f4e61",
+        "created_at": "2026-08-28",
+        "updated_at": "2026-08-28",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "api:platform-monitoring",
+        "api:error-logs"
+      ],
+      "regressions": [
+        "REG-282"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-034"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "api:platform-monitoring",
+          "api:error-logs"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1754-the-incident-queue-counts-routine-401s-and-unknown-route-404.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1755",
+      "type": "BUG",
+      "title": "The plans list cannot show publication status or sales model because the API omits them",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-1755-the-plans-list-cannot-show-publication-status-or-sales-model.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "912f4e61",
+        "created_at": "2026-08-28",
+        "updated_at": "2026-08-28",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/admin",
+        "api:super-admin"
+      ],
+      "regressions": [
+        "REG-278"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-031"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/admin",
+          "api:super-admin"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1755-the-plans-list-cannot-show-publication-status-or-sales-model.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1756",
+      "type": "UX",
+      "title": "Bulk delete confirms without naming how many records or which ones",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-1756-bulk-delete-confirms-without-naming-how-many-records-or-whic.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "912f4e61",
+        "created_at": "2026-08-28",
+        "updated_at": "2026-08-28",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/admin"
+      ],
+      "regressions": [
+        "REG-284"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-036"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/admin"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1756-bulk-delete-confirms-without-naming-how-many-records-or-whic.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1757",
+      "type": "BUG",
+      "title": "Promotions cannot be deleted and the DELETE route silently deactivates instead",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-1757-promotions-cannot-be-deleted-and-the-delete-route-silently-d.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "912f4e61",
+        "created_at": "2026-08-28",
+        "updated_at": "2026-08-28",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/admin",
+        "api:super-admin"
+      ],
+      "regressions": [
+        "REG-279"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-032"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/admin",
+          "api:super-admin"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1757-promotions-cannot-be-deleted-and-the-delete-route-silently-d.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1822",
+      "type": "INFRA",
+      "title": "Landing CSP permits the API over http, so its own connect-src does not match",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "VERIFIED",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/bugs/BUG-1822-landing-csp-permits-the-api-over-http-so-its-own-connect-src.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "e0aeabcd",
+        "created_at": "2026-08-28",
+        "updated_at": "2026-08-28",
+        "resolved_at": "2026-08-28"
+      },
+      "affected_modules": [
+        "apps/landing",
+        "packages/config"
+      ],
+      "regressions": [
+        "REG-295"
+      ],
+      "qa_scenarios": [
+        "QA-DEPLOY-023"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/landing",
+          "packages/config"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1822-landing-csp-permits-the-api-over-http-so-its-own-connect-src.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],
@@ -14360,6 +15237,46 @@
           "views"
         ],
         "verification_scope": "See docs/backlog/items/ITEM-0102-move-switch-workspace-into-the-avatar-menu.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0103",
+      "type": "TEST_GAP",
+      "title": "Deployment check: the composed tenant workspace host must resolve",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "READY",
+      "architect_disposition": "PLAN_REQUIRED",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0103-deployment-check-the-composed-tenant-workspace-host-must-res.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-08-27",
+        "updated_at": "2026-08-28",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "web",
+        "tenant-domains"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "web",
+          "tenant-domains"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0103-deployment-check-the-composed-tenant-workspace-host-must-res.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],

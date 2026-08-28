@@ -171,7 +171,13 @@ export function MonitoringOverview({
       */}
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatLink
-          href={`${QUEUE}?severity=CRITICAL&status=NEW`}
+          /*
+           * `viewId=critical`, not `severity=CRITICAL`. Nothing in the system
+           * stores the value "CRITICAL" — severity is free text holding ERROR
+           * and FATAL in either case — so this link returned 0 of 0 while the
+           * tile above it counted 11 (BUG-1750).
+           */
+          href={`${QUEUE}?viewId=critical&status=NEW`}
           icon={ShieldAlert}
           label="Critical, untriaged"
           tone={metrics.critical ? "danger" : "calm"}

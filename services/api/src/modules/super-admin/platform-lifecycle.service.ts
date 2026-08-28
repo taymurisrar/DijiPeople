@@ -951,11 +951,26 @@ export class PlatformLifecycleService {
         customerId,
         leadId: customer.leadId,
         plannedTenantSlug,
-        onboardingOwnerUserId:
-          dto?.onboardingOwnerUserId ??
-          customer.assignedToUserId ??
-          actor.platform?.id ??
-          null,
+        /*
+         * No platform id here, whatever the reads elsewhere assume.
+         *
+         * `onboardingOwnerUserId` is declared `User?` — a *tenant* user. Both
+         * fallbacks removed from this expression supplied a `PlatformUser` id:
+         * `customer.assignedToUserId` is declared `PlatformUser?`, and
+         * `actor.platform?.id` obviously is one. So every admin-initiated
+         * onboarding was rejected by the foreign key, while the paid-signup
+         * path, which sets the owner differently, was unaffected (BUG-1545).
+         *
+         * **The modelling question is deliberately left open.** Two reads in
+         * this same file filter this column by `actor.platform?.id`, so the
+         * code's own intent is plainly a platform user and the *relation* is
+         * what is wrong — but repointing a foreign key is a migration with a
+         * data question behind it (any row already holding a real `User` id
+         * would fail it), and the bug record asks for that to be settled rather
+         * than patched. What this change does is stop writing a value the
+         * column cannot hold. See BUG-1545 for the remaining half.
+         */
+        onboardingOwnerUserId: dto?.onboardingOwnerUserId ?? null,
         selectedPlanId: dto?.selectedPlanId ?? customer.selectedPlanId ?? null,
         billingCycle:
           dto?.billingCycle ?? customer.preferredBillingCycle ?? null,
@@ -1472,6 +1487,37 @@ export class PlatformLifecycleService {
     if (!selectedPlanId || !billingCycle) {
       throw new BadRequestException(
         'Plan and billing cycle are required before tenant creation.',
+      );
+    }
+
+    /*
+     * The plan has to be one that can actually be billed.
+     *
+     * A non-null plan id was the whole check, and an inactive plan carrying no
+     * `PlanPrice` satisfies it — checkout and subscription pricing both read
+     * `PlanPrice`, so such a tenant is provisioned onto a plan nothing can
+     * charge for. The picker no longer offers those (BUG-1555), but a picker is
+     * a usability improvement and this is the enforcement point: the id can
+     * still arrive from a lead's `agreedPlanId`, from a customer chosen before
+     * the plan was retired, or straight from the API.
+     */
+    const plan = await this.prisma.plan.findUnique({
+      where: { id: selectedPlanId },
+      select: {
+        id: true,
+        name: true,
+        isActive: true,
+        _count: { select: { prices: { where: { isActive: true } } } },
+      },
+    });
+    if (!plan) {
+      throw new BadRequestException('The selected plan no longer exists.');
+    }
+    if (!plan.isActive || plan._count.prices === 0) {
+      throw new BadRequestException(
+        `"${plan.name}" cannot be sold: it is ` +
+          (plan.isActive ? 'active but has no active price' : 'inactive') +
+          '. Choose a plan that is active and priced before creating the tenant.',
       );
     }
 
@@ -2316,6 +2362,7 @@ export class PlatformLifecycleService {
       {
         key: 'customer-status',
         label: 'Customer status allows onboarding',
+        unmet: 'the customer status does not allow onboarding',
         passed: (
           [
             CustomerAccountStatus.PROSPECT,
@@ -2327,6 +2374,7 @@ export class PlatformLifecycleService {
       {
         key: 'primary-contact',
         label: 'Primary contact details are complete',
+        unmet: 'primary contact details are incomplete',
         passed: Boolean(
           customer.primaryContactFirstName &&
           customer.primaryContactLastName &&
@@ -2336,28 +2384,44 @@ export class PlatformLifecycleService {
       {
         key: 'industry',
         label: 'Industry is selected',
+        unmet: 'no industry is selected',
         passed: Boolean(customer.industry),
       },
       {
         key: 'company-size',
         label: 'Company size is selected',
+        unmet: 'no company size is selected',
         passed: Boolean(customer.companySize),
       },
       {
         key: 'plan',
         label: 'Plan is selected',
+        unmet: 'no plan is selected',
         passed: Boolean(customer.selectedPlanId),
       },
       {
         key: 'billing-cycle',
         label: 'Billing cycle is selected',
+        unmet: 'no billing cycle is selected',
         passed: Boolean(customer.preferredBillingCycle),
       },
     ];
 
+    /*
+     * Two phrasings, because they are read in two directions.
+     *
+     * `label` states the condition positively — "Industry is selected" — which
+     * is right beside a tick or a cross in the checklist. The failure message
+     * listed those same labels under "prerequisites are not complete", so it
+     * announced that the missing things were present: the header contradicted
+     * the list, and the list stated the inverse of the truth (BUG-1547).
+     *
+     * `unmet` says what is actually wrong, so the sentence reads as one
+     * statement rather than two arguing with each other.
+     */
     const missingItems = checks
       .filter((item) => !item.passed)
-      .map((item) => item.label);
+      .map((item) => item.unmet);
 
     return {
       checks,
@@ -2386,15 +2450,22 @@ export class PlatformLifecycleService {
     const checks = [
       {
         label: 'Customer is active',
+        unmet: 'the customer is not active',
         passed: customerStatus === CustomerAccountStatus.ACTIVE,
       },
-      { label: 'Plan selected', passed: Boolean(onboarding.selectedPlanId) },
+      {
+        label: 'Plan selected',
+        unmet: 'no plan is selected',
+        passed: Boolean(onboarding.selectedPlanId),
+      },
       {
         label: 'Billing cycle selected',
+        unmet: 'no billing cycle is selected',
         passed: Boolean(onboarding.billingCycle),
       },
       {
         label: 'Primary owner details complete',
+        unmet: 'primary owner details are incomplete',
         passed: Boolean(
           onboarding.primaryOwnerFirstName &&
           onboarding.primaryOwnerLastName &&
@@ -2403,24 +2474,52 @@ export class PlatformLifecycleService {
       },
       {
         label: 'Service account details complete',
+        unmet: 'service account details are incomplete',
         passed:
           !onboarding.createServiceAccount ||
           Boolean(onboarding.serviceAccountEmail),
       },
-      { label: 'Contract signed', passed: onboarding.contractSigned },
-      { label: 'Payment confirmed', passed: onboarding.paymentConfirmed },
-      { label: 'Configuration ready', passed: onboarding.configurationReady },
-      { label: 'Training planned', passed: onboarding.trainingPlanned },
+      {
+        label: 'Contract signed',
+        unmet: 'the contract is not signed',
+        passed: onboarding.contractSigned,
+      },
+      {
+        label: 'Payment confirmed',
+        unmet: 'payment is not confirmed',
+        passed: onboarding.paymentConfirmed,
+      },
+      {
+        label: 'Configuration ready',
+        unmet: 'configuration is not ready',
+        passed: onboarding.configurationReady,
+      },
+      {
+        label: 'Training planned',
+        unmet: 'training is not planned',
+        passed: onboarding.trainingPlanned,
+      },
       {
         label: 'Tenant not already created',
+        unmet: 'the tenant has already been created',
         passed: !onboarding.tenantCreated,
       },
     ];
 
     const passedCount = checks.filter((item) => item.passed).length;
+    /*
+     * Same reasoning as `getOnboardingPrerequisites` — see the note there.
+     * `label` states the condition positively for the checklist's ticks;
+     * `blockers` is a list of what is *wrong* and needs its own phrasing, or it
+     * reports the missing things as present (BUG-1547).
+     *
+     * This second copy is why the spec asserts across the whole file rather
+     * than one function: the first fix corrected the readable one and left this
+     * one, and only CI's LF checkout noticed.
+     */
     const blockers = checks
       .filter((item) => !item.passed)
-      .map((item) => item.label);
+      .map((item) => item.unmet);
 
     return {
       checks,

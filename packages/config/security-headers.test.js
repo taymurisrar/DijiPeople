@@ -68,3 +68,44 @@ test("HSTS is long-lived and covers subdomains", () => {
   assert.match(hsts.value, /max-age=63072000/);
   assert.match(hsts.value, /includeSubDomains/);
 });
+
+/*
+ * BUG-1822 — the landing site's CSP permitted the API over plain http while
+ * the other two apps permitted https. On an HTTPS page that is blocked as
+ * mixed content before CSP is consulted, so the connect-src entry matched
+ * nothing: harmless while report-only, a live break for checkout under
+ * enforcement.
+ *
+ * Refused at build time rather than shipped, which is the stance this package
+ * already takes on loopback URLs reaching production.
+ */
+test("refuses an API origin a browser on HTTPS could never reach", () => {
+  assert.throws(
+    () => securityHeadersForApp({ apiOrigin: "http://api.dijipeople.com/api" }),
+    /plain http/i,
+  );
+});
+
+test("allows the loopback origins local development actually uses", () => {
+  for (const origin of [
+    "http://localhost:4000",
+    "http://127.0.0.1:4000",
+    "http://[::1]:4000",
+  ]) {
+    assert.doesNotThrow(() => securityHeadersForApp({ apiOrigin: origin }));
+  }
+});
+
+test("allows https, and says nothing about an absent origin", () => {
+  assert.doesNotThrow(() =>
+    securityHeadersForApp({ apiOrigin: "https://api.dijipeople.com/api" }),
+  );
+  // An unset origin is getApiBaseUrl's complaint to make, not this one's.
+  assert.doesNotThrow(() => securityHeadersForApp({}));
+});
+
+test("does not choke on a value that is not a URL", () => {
+  // Malformed input belongs to whoever parses it; this check only refuses the
+  // one thing it can be certain about.
+  assert.doesNotThrow(() => securityHeadersForApp({ apiOrigin: "not a url" }));
+});

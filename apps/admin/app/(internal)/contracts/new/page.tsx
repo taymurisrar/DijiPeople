@@ -1,6 +1,15 @@
+import type { Metadata } from "next";
 import { RuntimeRecordRoute } from "@/app/_components/runtime/runtime-record-route";
 import { ContractCreationLauncher } from "@/app/_components/documents/contract-creation-launcher";
 import { apiRequestJson } from "@/lib/server-api";
+
+/* Each screen titles itself. 47 of 48 shared one title, so a tab, a
+   bookmark and a screen reader's announcement said the same thing on
+   every route (BUG-1421). */
+export const metadata: Metadata = {
+  title: "New contracts",
+};
+
 export default async function Page({
   searchParams,
 }: {

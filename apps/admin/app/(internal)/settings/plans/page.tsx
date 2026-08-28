@@ -3,6 +3,15 @@ import { SettingsFormCard } from "@/app/_components/settings/settings-form-card"
 import { SettingsShell } from "@/app/_components/settings/settings-shell";
 import { apiRequestJson } from "@/lib/server-api";
 import { DEFAULT_PLATFORM_DEFAULTS } from "@/lib/reference-data/platform-reference-data";
+import type { Metadata } from "next";
+
+/* Each screen titles itself. 47 of 48 shared one title, so a tab, a
+   bookmark and a screen reader's announcement said the same thing on
+   every route (BUG-1421). */
+export const metadata: Metadata = {
+  title: "Plans",
+};
+
 
 export default async function PlanVisibilitySettingsPage() {
   const settings = await apiRequestJson<{

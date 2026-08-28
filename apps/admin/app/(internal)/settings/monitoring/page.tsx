@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { MonitoringNav } from "@/app/_components/monitoring/monitoring-nav";
 import {
   MonitoringOverview,
@@ -8,6 +9,14 @@ import {
 import { PageHeader } from "@/app/_components/ui/page-header";
 import { requireSystemAdminUser } from "@/lib/auth";
 import { apiRequestJson } from "@/lib/server-api";
+
+/* Each screen titles itself. 47 of 48 shared one title, so a tab, a
+   bookmark and a screen reader's announcement said the same thing on
+   every route (BUG-1421). */
+export const metadata: Metadata = {
+  title: "Monitoring",
+};
+
 
 /**
  * The monitoring landing page.

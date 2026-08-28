@@ -43,6 +43,8 @@ import { RuntimeViewSelector } from "./runtime-view-selector";
 import { useReasonPrompt } from "./use-reason-prompt";
 import { openExternal } from "@/lib/open-external";
 import { buildTenantLoginUrl } from "@/lib/tenant-url";
+import { emptyListDescription, emptyListTitle } from "@repo/config";
+import { recordDisplayName } from "@/lib/runtime/destructive-confirm";
 
 type Operator = {
   id: string;
@@ -125,6 +127,37 @@ export function RuntimeModuleList({
     [moduleKey, searchParams],
   );
   const [draftFilters, setDraftFilters] = useState<RuntimeFilter[]>(filters);
+  /*
+   * Whether the operator has narrowed the list themselves.
+   *
+   * An empty list means two different things and used to say only one of them:
+   * every empty screen told the operator to "adjust the current view and
+   * filters" whether or not any were set, so a new workspace claimed a search
+   * nobody had run was hiding data that did not exist (BUG-1752).
+   *
+   * The view key is deliberately excluded. A view is where the operator
+   * navigated to, not something they typed, and "Resolved" being empty is good
+   * news rather than a filter to clear.
+   */
+  /*
+   * Display names for the selected rows, so a destructive confirmation can name
+   * what it is about to delete rather than calling it "selected records".
+   * Resolved from the loaded page — the selection cannot contain a row the
+   * operator has not seen.
+   */
+  const selectedLabels = useMemo(() => {
+    const selected = new Set(selectedIds);
+    return (data?.items ?? [])
+      .filter((item) => selected.has(String(item.id)))
+      .map((item) => recordDisplayName(item as Record<string, unknown>))
+      .filter((label): label is string => Boolean(label));
+  }, [data, selectedIds]);
+
+  const hasActiveSearchOrFilters = Boolean(
+    (searchParams.get("search") ?? "").trim() ||
+      status ||
+      filters.length > 0,
+  );
   const sorts = useMemo<RuntimeSort[]>(
     () =>
       readSorts(searchParams.get("sort"), moduleKey) ?? [
@@ -469,11 +502,26 @@ export function RuntimeModuleList({
 
       <ModuleActionBar
         actions={definition.actions}
-        context={{ scope: "list", selectedIds, roleKeys, permissionKeys }}
+        context={{
+          scope: "list",
+          selectedIds,
+          selectedLabels,
+          displayName: definition.displayName,
+          pluralDisplayName: definition.pluralDisplayName,
+          roleKeys,
+          permissionKeys,
+        }}
         onAction={handleAction}
         statusSlot={
           <span className="text-xs font-medium text-slate-500">
-            {formatNumber(data.meta.total)} records
+            {/*
+              The selection was invisible until the confirmation dialog opened,
+              so an operator had nothing on screen telling them whether they had
+              one row selected or every row on the page (BUG-1756).
+            */}
+            {selectedIds.length
+              ? `${formatNumber(selectedIds.length)} selected of ${formatNumber(data.meta.total)}`
+              : `${formatNumber(data.meta.total)} ${data.meta.total === 1 ? "record" : "records"}`}
           </span>
         }
       />
@@ -854,8 +902,19 @@ export function RuntimeModuleList({
               onPageSizeChange: (next) =>
                 updateQuery({ pageSize: String(next), page: "1" }),
             }}
-            emptyTitle={definition.emptyState.title}
-            emptyDescription={definition.emptyState.description}
+            emptyTitle={
+              hasActiveSearchOrFilters
+                ? emptyListTitle({
+                    filtered: true,
+                    plural: definition.pluralDisplayName,
+                  })
+                : definition.emptyState.title
+            }
+            emptyDescription={
+              hasActiveSearchOrFilters
+                ? emptyListDescription({ filtered: true })
+                : definition.emptyState.description
+            }
             compact
           />
         ) : null}

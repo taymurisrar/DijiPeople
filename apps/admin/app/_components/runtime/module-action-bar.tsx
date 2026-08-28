@@ -23,10 +23,24 @@ import type { LucideIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import type { RuntimeActionDefinition } from "@/lib/runtime/platform-runtime.types";
 import { hasRuntimePermission } from "@/lib/runtime/runtime-permissions";
+import {
+  describeDestructiveConfirm,
+  recordDisplayName,
+} from "@/lib/runtime/destructive-confirm";
 
 export type ModuleActionContext = {
   scope: "list" | "record";
   selectedIds?: string[];
+  /*
+   * Display names for the selection, so a destructive confirmation can say what
+   * it is about to delete. Ids alone told the operator nothing — the bulk
+   * dialog read "Delete selected records?" with no count and no names
+   * (BUG-1756, BUG-1560).
+   */
+  selectedLabels?: string[];
+  /** What this module calls one record and many, for the same dialog. */
+  displayName?: string;
+  pluralDisplayName?: string;
   record?: Record<string, unknown>;
   roleKeys?: string[];
   permissionKeys?: string[];
@@ -110,6 +124,35 @@ export function ModuleActionBar({
     document.addEventListener("pointerdown", close);
     return () => document.removeEventListener("pointerdown", close);
   }, [overflowOpen]);
+  /*
+   * What the confirmation actually says.
+   *
+   * The action's own `confirmTitle` / `confirmDescription` are static strings
+   * and cannot name a record or count a selection, which is exactly what both
+   * dialogs were missing (BUG-1560, BUG-1756). They stay as the fallback for an
+   * action with nothing to name.
+   */
+  const confirmCopy = useMemo(
+    () =>
+      describeDestructiveConfirm({
+        labels:
+          context.scope === "record"
+            ? [recordDisplayName(context.record) ?? ""].filter(Boolean)
+            : (context.selectedLabels ?? []),
+        count:
+          context.scope === "record"
+            ? context.record
+              ? 1
+              : 0
+            : (context.selectedIds?.length ?? 0),
+        singular: context.displayName ?? "record",
+        plural: context.pluralDisplayName ?? "records",
+        fallbackTitle: confirmAction?.confirmTitle,
+        fallbackDescription: confirmAction?.confirmDescription,
+      }),
+    [confirmAction, context],
+  );
+
   function execute(action: RuntimeActionDefinition) {
     if (action.destructive && !confirmAction) {
       setConfirmAction(action);
@@ -223,12 +266,20 @@ export function ModuleActionBar({
               id="runtime-confirm-title"
               className="mt-4 text-lg font-semibold text-slate-950"
             >
-              {confirmAction.confirmTitle ?? "Confirm action"}
+              {confirmCopy.title}
             </h2>
             <p className="mt-2 text-sm leading-6 text-slate-600">
-              {confirmAction.confirmDescription ??
-                "This action may not be reversible."}
+              {confirmCopy.description}
             </p>
+            {confirmCopy.names.length ? (
+              <ul className="mt-3 max-h-40 space-y-1 overflow-y-auto rounded-xl bg-slate-50 p-3 text-sm text-slate-700">
+                {confirmCopy.names.map((name) => (
+                  <li key={name} className="truncate">
+                    {name}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
             <div className="mt-6 flex justify-end gap-2">
               <button
                 type="button"

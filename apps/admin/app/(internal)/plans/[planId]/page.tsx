@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import {
   BadgeDollarSign,
   CalendarDays,
@@ -15,6 +16,14 @@ import { PlanDetailActionBar } from "@/app/_components/plans/plan-detail-action-
 import { TenantStatusBadge } from "@/app/_components/tenant-status-badge";
 import { apiRequestJson } from "@/lib/server-api";
 import { RuntimeRecordRoute } from "@/app/_components/runtime/runtime-record-route";
+
+/* Each screen titles itself. 47 of 48 shared one title, so a tab, a
+   bookmark and a screen reader's announcement said the same thing on
+   every route (BUG-1421). */
+export const metadata: Metadata = {
+  title: "Plans",
+};
+
 
 type PlanRecord = {
   id: string;
