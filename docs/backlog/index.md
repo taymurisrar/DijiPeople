@@ -13,12 +13,12 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 70 |
+| Open (active work) | 69 |
 | Blocked | 2 |
 | Deferred | 27 |
 | Awaiting a product decision | 4 |
-| Completed / closed | 218 |
-| **Open CRITICAL** | **7** |
+| Completed / closed | 219 |
+| **Open CRITICAL** | **6** |
 | **Open HIGH** | **14** |
 | **Awaiting Architect triage** | **0** |
 
@@ -26,7 +26,7 @@ see [`README.md`](README.md) for why.
 
 | Severity | Count |
 |---|---|
-| CRITICAL | 7 |
+| CRITICAL | 6 |
 | HIGH | 14 |
 | MEDIUM | 36 |
 | LOW | 13 |
@@ -37,7 +37,7 @@ see [`README.md`](README.md) for why.
 |---|---|
 | ARCHITECTURE | 1 |
 | AUTHORIZATION | 1 |
-| BUG | 21 |
+| BUG | 20 |
 | DATA_INTEGRITY | 4 |
 | FOLLOW_UP | 2 |
 | INFRA | 7 |
@@ -54,8 +54,8 @@ see [`README.md`](README.md) for why.
 | BLOCKED | 2 |
 | DEFERRED | 27 |
 | PRODUCT_DECISION | 4 |
-| FIXED | 47 |
-| VERIFIED | 160 |
+| FIXED | 46 |
+| VERIFIED | 161 |
 | DUPLICATE | 4 |
 | ACCEPTED_RISK | 1 |
 | READY | 23 |
@@ -74,7 +74,7 @@ see [`README.md`](README.md) for why.
 | [BUG-0898](../../docs/bugs/BUG-0898-self-service-checkout-is-blocked-for-every-plan-no-plan-pric.md) | Self-service checkout is blocked for every plan: no plan price has ever been synced to Stripe | BUG | CRITICAL | P0 | PRODUCT_DECISION | api:super-admin, app:landing | PRODUCT_DECISION |
 | [BUG-0899](../../docs/bugs/BUG-0899-production-cannot-deploy-the-release-chain-always-fails-beca.md) | Production cannot deploy: the release chain always fails because seeded legal documents declare themselves drafts | BUG | CRITICAL | P0 | VERIFIED | services/api/prisma | DONE |
 | [BUG-0900](../../docs/bugs/BUG-0900-tenant-provisioning-exceeds-the-5s-transaction-timeout-a-pai.md) | Tenant provisioning exceeds the 5s transaction timeout: a paid order is left with no workspace | BUG | CRITICAL | P0 | FIXED | api:permissions | FIX_NOW |
-| [BUG-0904](../../docs/bugs/BUG-0904-production-is-missing-outbox-worker-enabled-so-no-workspace-.md) | Production is missing OUTBOX_WORKER_ENABLED, so no workspace is provisioned after payment | BUG | CRITICAL | P0 | FIXED | api:outbox | FIX_NOW |
+| [BUG-0904](../../docs/bugs/BUG-0904-production-is-missing-outbox-worker-enabled-so-no-workspace-.md) | Production is missing OUTBOX_WORKER_ENABLED, so no workspace is provisioned after payment | BUG | CRITICAL | P0 | VERIFIED | api:outbox | DONE |
 | [BUG-0989](../../docs/bugs/BUG-0989-every-stripe-webhook-delivery-to-production-fails-so-a-payme.md) | Every Stripe webhook delivery to production fails, so a payment never reaches the platform | INFRA | CRITICAL | P0 | VERIFIED | api:billing | DONE |
 | [BUG-0994](../../docs/bugs/BUG-0994-plan-entitlements-blank-out-on-save-and-the-next-save-delete.md) | Plan entitlements blank out on save and the next save deletes them | DATA_INTEGRITY | CRITICAL | P0 | VERIFIED | platform-runtime, super-admin, admin | DONE |
 | [BUG-1128](../../docs/bugs/BUG-1128-stripe-api-version-skew-invoice-paid-cannot-map-to-a-subscri.md) | Stripe API version skew: invoice.paid cannot map to a subscription because invoice.subscription no longer exists | INTEGRATION | CRITICAL | P0 | FIXED | api:billing | FIX_NOW |

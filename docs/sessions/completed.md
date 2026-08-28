@@ -6,6 +6,7 @@ Sessions that reached a terminal state. Kept as history: the branch, the base it
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0067](../../docs/sessions/SESSION-0067-promote-the-open-bug-sweep-to-production.md) | — | Promote the open bug sweep to production | COMPLETE | `agent/release-bug-sweep` | `main` | — | 2026-08-28T16:30:01.021Z |
 | [SESSION-0066](../../docs/sessions/SESSION-0066-fix-all-open-and-deferred-bugs.md) | — | Fix all open and deferred bugs | COMPLETE | `agent/open-bug-sweep` | `develop` | — | 2026-08-28T10:03:13.370Z |
 | [SESSION-0065](../../docs/sessions/SESSION-0065-admin-console-end-to-end-browser-qa-and-go-live-assessment.md) | — | Admin console end-to-end browser QA and go-live assessment | COMPLETE | `agent/admin-console-e2e-qa` | `develop` | — | 2026-08-28T00:45:00.000Z |
 | [SESSION-0064](../../docs/sessions/SESSION-0064-tenant-app-assignment-which-tenants-receive-a-release.md) | TASK-0027 | Tenant app assignment: which tenants receive a release | COMPLETE | `agent/tenant-app-assignment` | `develop` | — | 2026-08-26T16:27:52.547Z |
