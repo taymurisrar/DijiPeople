@@ -4,22 +4,23 @@ aliases: [SESSION-0068]
 TASK_ID:
 TITLE: Admin console: FX reporting, desktop agent settings, generic bulk delete, payment recheck and profile capture
 ARCHITECT_INTENT: Admin console: FX reporting, desktop agent settings, generic bulk delete, payment recheck and profile capture
-STATUS: ACTIVE
+STATUS: COMPLETE
 TASK_TYPE: FEATURE
 TASK_SIZE: LARGE
 BASE_BRANCH: origin/develop
 BASE_SHA: 1003a2ac80edabb5ea0c57e4f647deb278d000a5
 TASK_BRANCH: agent/admin-console-fx-and-agent-settings
 TARGET_BRANCH: develop
-WORKTREE: D:/My Work/hrm-dijipeople/DijiPeople
-AFFECTED_MODULES: []
+WORKTREE: D:/My Work/hrm-dijipeople/dijipeople-admin-fx
+AFFECTED_MODULES: [apps/admin, apps/landing, api:super-admin, api:billing, api:platform-runtime, api:leads, services/api/prisma]
 WRITE_LEASES: []
 ACTIVE_WORK_PACKAGES: []
-SCHEMA_WRITE: NO
-CI_STATUS: NOT_RUN
-MERGE_STATUS: NOT_STARTED
+SCHEMA_WRITE: YES
+CI_STATUS: PASS
+MERGE_STATUS: INTEGRATED
 STARTED_AT: 2026-08-28T19:06:31.882Z
 LAST_HEARTBEAT: 2026-08-28T19:06:31.882Z
+MERGED_SHA: 9e55663b39f2599acd3490a2b1c2b0b6db8ea63a
 BLOCKERS: none
 ---
 
@@ -31,7 +32,21 @@ Admin console: FX reporting, desktop agent settings, generic bulk delete, paymen
 
 ## Scope
 
-_To be established during planning._
+Five defects the repository owner reported against production on 2026-08-28,
+planned as [[EXECPLAN-0024]] and shipped as one change because four of them meet
+in the same admin runtime.
+
+1. Dashboard money converted rather than excluded — new `PlatformExchangeRate`,
+   live rates with a manual override, Settings → Exchange rates (BUG-1745).
+2. App releases and Agent rollout moved onto the shared settings shell as one
+   Settings → Desktop agent screen (BUG-1883).
+3. Bulk delete made generic — `remove` and `bulkDelete` collapsed onto one
+   method so the two cannot drift again (BUG-0018, reversed the same day).
+4. The payment re-check panel asks payment state before offering itself
+   (BUG-1884), and the subscribe wizard collects company size (ITEM-0075).
+
+Integrated into `develop` at `9e55663`, CI green on the exact SHA. `main`
+untouched.
 
 ## Concurrency
 
