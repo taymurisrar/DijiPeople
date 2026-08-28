@@ -7,17 +7,17 @@
 
 | | |
 |---|---|
-| Active sessions | **1** |
+| Active sessions | **2** |
 | Active parent tasks | 4 |
 | Active work packages | 1 |
 | Blocked work packages | 0 |
 | Work packages waiting on the user | 0 |
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
-| Open CRITICAL | **8** |
-| Open HIGH | 15 |
+| Open CRITICAL | **7** |
+| Open HIGH | 14 |
 | Awaiting Architect triage | 0 |
-| Owner decisions pending | 2 |
+| Owner decisions pending | 4 |
 | QA coverage gaps | 106 |
 | Scenarios blocked by infrastructure | 0 |
 
@@ -30,8 +30,8 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 72 |
-| No next action | 72 |
+| No acceptance criteria | 69 |
+| No next action | 69 |
 | Aging — 7d / 30d / 90d | 15 / 0 / 0 |
 | Architecture and technical debt | 6 |
 | Security gaps | 3 |
@@ -49,6 +49,7 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 | Session | Task | Title | Status | Branch | Target | Leases | Schema |
 |---|---|---|---|---|---|---|---|
+| [[SESSION-0067-promote-the-open-bug-sweep-to-production|SESSION-0067]] | — | Promote the open bug sweep to production | ACTIVE | `agent/release-bug-sweep` | `main` | — | NO |
 | [[SESSION-0061-unblock-the-production-hosts-for-the-mcp-browser|SESSION-0061]] | — | Production admin E2E QA and invitation delivery visibility | ACTIVE | `agent/invitation-delivery-visibility` | `develop` | — | NO |
 
 ## Active Tasks and Work Packages
@@ -102,7 +103,6 @@ what they own, and what the backlog and QA systems currently say.
 
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
-| [[BUG-0898-self-service-checkout-is-blocked-for-every-plan-no-plan-pric|BUG-0898]] | Self-service checkout is blocked for every plan: no plan price has ever been synced to Stripe | BUG | CRITICAL | OPEN | api:super-admin, app:landing | BLOCKED_EXTERNAL |
 | [[BUG-0900-tenant-provisioning-exceeds-the-5s-transaction-timeout-a-pai|BUG-0900]] | Tenant provisioning exceeds the 5s transaction timeout: a paid order is left with no workspace | BUG | CRITICAL | FIXED | api:permissions | FIX_NOW |
 | [[BUG-0904-production-is-missing-outbox-worker-enabled-so-no-workspace-|BUG-0904]] | Production is missing OUTBOX_WORKER_ENABLED, so no workspace is provisioned after payment | BUG | CRITICAL | FIXED | api:outbox | FIX_NOW |
 | [[BUG-1128-stripe-api-version-skew-invoice-paid-cannot-map-to-a-subscri|BUG-1128]] | Stripe API version skew: invoice.paid cannot map to a subscription because invoice.subscription no longer exists | INTEGRATION | CRITICAL | FIXED | api:billing | FIX_NOW |
@@ -116,6 +116,8 @@ what they own, and what the backlog and QA systems currently say.
 Questions where the engineering is understood and the **product answer is**
 **not**. No agent may resolve one by implementing a side of it.
 
+- [[BUG-0898-self-service-checkout-is-blocked-for-every-plan-no-plan-pric|BUG-0898]] — **Self-service checkout is blocked for every plan: no plan price has ever been synced to Stripe**
+- [[BUG-0903-production-runs-stripe-in-test-mode-so-no-real-payment-can-b|BUG-0903]] — **Production runs Stripe in test mode, so no real payment can be collected**
 - [[ITEM-0062-no-multi-tenant-membership-one-user-belongs-to-one-tenant-so|ITEM-0062]] — **No multi-tenant membership — one user belongs to one tenant, so discovery and switching cannot exist**
 - [[ITEM-0079-activation-does-not-gate-on-a-workspace-having-any-module-en|ITEM-0079]] — **Activation does not gate on a workspace having any module enabled**
 
@@ -237,10 +239,10 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 73 |
+| Open total | 70 |
 | Blocked | 2 |
 | Deferred | 27 |
-| Awaiting a product decision | 2 |
+| Awaiting a product decision | 4 |
 | Awaiting Architect triage | 0 |
 
 Every ordinary record carries a disposition.

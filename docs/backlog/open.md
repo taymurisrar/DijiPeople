@@ -17,7 +17,6 @@ _None._
 
 | ID | Title | Type | Severity | Priority | Status | Affected | Architect |
 |---|---|---|---|---|---|---|---|
-| [BUG-0898](../../docs/bugs/BUG-0898-self-service-checkout-is-blocked-for-every-plan-no-plan-pric.md) | Self-service checkout is blocked for every plan: no plan price has ever been synced to Stripe | BUG | CRITICAL | P0 | OPEN | api:super-admin, app:landing | BLOCKED_EXTERNAL |
 | [BUG-0900](../../docs/bugs/BUG-0900-tenant-provisioning-exceeds-the-5s-transaction-timeout-a-pai.md) | Tenant provisioning exceeds the 5s transaction timeout: a paid order is left with no workspace | BUG | CRITICAL | P0 | FIXED | api:permissions | FIX_NOW |
 | [BUG-0904](../../docs/bugs/BUG-0904-production-is-missing-outbox-worker-enabled-so-no-workspace-.md) | Production is missing OUTBOX_WORKER_ENABLED, so no workspace is provisioned after payment | BUG | CRITICAL | P0 | FIXED | api:outbox | FIX_NOW |
 | [BUG-1128](../../docs/bugs/BUG-1128-stripe-api-version-skew-invoice-paid-cannot-map-to-a-subscri.md) | Stripe API version skew: invoice.paid cannot map to a subscription because invoice.subscription no longer exists | INTEGRATION | CRITICAL | P0 | FIXED | api:billing | FIX_NOW |
@@ -30,7 +29,6 @@ _None._
 
 | ID | Title | Type | Severity | Priority | Status | Affected | Architect |
 |---|---|---|---|---|---|---|---|
-| [BUG-0903](../../docs/bugs/BUG-0903-production-runs-stripe-in-test-mode-so-no-real-payment-can-b.md) | Production runs Stripe in test mode, so no real payment can be collected | BUG | HIGH | P1 | OPEN | api:billing | BLOCKED_EXTERNAL |
 | [BUG-1203](../../docs/bugs/BUG-1203-repo-health-reports-changed-by-this-task-for-another-session.md) | repo-health reports CHANGED_BY_THIS_TASK for another session's merge | INFRA | HIGH | P1 | FIXED | framework | FIX_NOW |
 | [BUG-1420](../../docs/bugs/BUG-1420-the-monitoring-severity-filter-cannot-match-99-7-percent-of-.md) | The monitoring severity filter cannot match 99.7 percent of stored incidents | DATA_INTEGRITY | HIGH | P1 | FIXED | apps/admin, api:error-logs | FIX_NOW |
 | [BUG-1423](../../docs/bugs/BUG-1423-runtime-form-controls-have-no-accessible-name-so-screen-read.md) | Runtime form controls have no accessible name so screen readers announce every field as blank | UX | HIGH | P1 | FIXED | apps/admin | FIX_NOW |
@@ -70,7 +68,6 @@ _None._
 | [BUG-1754](../../docs/bugs/BUG-1754-the-incident-queue-counts-routine-401s-and-unknown-route-404.md) | The incident queue counts routine 401s and unknown-route 404s as incidents needing triage | BUG | MEDIUM | P2 | FIXED | api:platform-monitoring, api:error-logs | FIX_NOW |
 | [BUG-1756](../../docs/bugs/BUG-1756-bulk-delete-confirms-without-naming-how-many-records-or-whic.md) | Bulk delete confirms without naming how many records or which ones | UX | MEDIUM | P2 | FIXED | apps/admin | FIX_NOW |
 | [BUG-1757](../../docs/bugs/BUG-1757-promotions-cannot-be-deleted-and-the-delete-route-silently-d.md) | Promotions cannot be deleted and the DELETE route silently deactivates instead | BUG | MEDIUM | P2 | FIXED | apps/admin, api:super-admin | FIX_NOW |
-| [BUG-1822](../../docs/bugs/BUG-1822-landing-csp-permits-the-api-over-http-so-its-own-connect-src.md) | Landing CSP permits the API over http, so its own connect-src does not match | INFRA | MEDIUM | P2 | OPEN | apps/landing, pkg:config | BLOCKED_EXTERNAL |
 | [ITEM-0009](../../docs/backlog/items/ITEM-0009-no-observability-platform-exists.md) | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | P2 | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [ITEM-0020](../../docs/backlog/items/ITEM-0020-contract-phase-drop-legacy-plan-pricing-columns.md) | Contract phase: drop legacy Plan pricing columns | TECH_DEBT | MEDIUM | P2 | READY | services/api/prisma, api:super-admin, apps/admin | PLAN_REQUIRED |
 | [ITEM-0022](../../docs/backlog/items/ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur.md) | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | P2 | READY | api:super-admin, apps/admin | PLAN_REQUIRED |

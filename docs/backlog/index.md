@@ -13,22 +13,22 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 73 |
+| Open (active work) | 70 |
 | Blocked | 2 |
 | Deferred | 27 |
-| Awaiting a product decision | 2 |
-| Completed / closed | 217 |
-| **Open CRITICAL** | **8** |
-| **Open HIGH** | **15** |
+| Awaiting a product decision | 4 |
+| Completed / closed | 218 |
+| **Open CRITICAL** | **7** |
+| **Open HIGH** | **14** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
 
 | Severity | Count |
 |---|---|
-| CRITICAL | 8 |
-| HIGH | 15 |
-| MEDIUM | 37 |
+| CRITICAL | 7 |
+| HIGH | 14 |
+| MEDIUM | 36 |
 | LOW | 13 |
 
 ## Open by type
@@ -37,10 +37,10 @@ see [`README.md`](README.md) for why.
 |---|---|
 | ARCHITECTURE | 1 |
 | AUTHORIZATION | 1 |
-| BUG | 23 |
+| BUG | 21 |
 | DATA_INTEGRITY | 4 |
 | FOLLOW_UP | 2 |
-| INFRA | 8 |
+| INFRA | 7 |
 | INTEGRATION | 1 |
 | SECURITY | 2 |
 | TECH_DEBT | 5 |
@@ -51,12 +51,11 @@ see [`README.md`](README.md) for why.
 
 | Status | Count |
 |---|---|
-| OPEN | 3 |
 | BLOCKED | 2 |
 | DEFERRED | 27 |
-| PRODUCT_DECISION | 2 |
+| PRODUCT_DECISION | 4 |
 | FIXED | 47 |
-| VERIFIED | 159 |
+| VERIFIED | 160 |
 | DUPLICATE | 4 |
 | ACCEPTED_RISK | 1 |
 | READY | 23 |
@@ -72,7 +71,7 @@ see [`README.md`](README.md) for why.
 | [BUG-0030](../../docs/bugs/BUG-0030-plan-list-get-mutates-commercial-pricing-and-can-fail-on-pla.md) | Plan list GET mutates commercial pricing and can fail on PlanPrice unique constraint | DATA_INTEGRITY | CRITICAL | P0 | VERIFIED | services/api, services/api/prisma | DONE |
 | [BUG-0047](../../docs/bugs/BUG-0047-seven-bug-records-are-verified-while-their-fixes-exist-only.md) | Seven bug records are VERIFIED while their fixes exist only on unmerged branches | SECURITY | CRITICAL | P0 | VERIFIED | api:organization, api:error-logs, api:employees, api:attendance, docs/qa/regressions | DONE |
 | [BUG-0071](../../docs/bugs/BUG-0071-tenant-users-reach-every-platform-super-admin-endpoint.md) | Tenant users reach every platform super-admin endpoint | AUTHORIZATION | CRITICAL | P0 | VERIFIED | super-admin, platform-auth, platform-communications | DONE |
-| [BUG-0898](../../docs/bugs/BUG-0898-self-service-checkout-is-blocked-for-every-plan-no-plan-pric.md) | Self-service checkout is blocked for every plan: no plan price has ever been synced to Stripe | BUG | CRITICAL | P0 | OPEN | api:super-admin, app:landing | BLOCKED_EXTERNAL |
+| [BUG-0898](../../docs/bugs/BUG-0898-self-service-checkout-is-blocked-for-every-plan-no-plan-pric.md) | Self-service checkout is blocked for every plan: no plan price has ever been synced to Stripe | BUG | CRITICAL | P0 | PRODUCT_DECISION | api:super-admin, app:landing | PRODUCT_DECISION |
 | [BUG-0899](../../docs/bugs/BUG-0899-production-cannot-deploy-the-release-chain-always-fails-beca.md) | Production cannot deploy: the release chain always fails because seeded legal documents declare themselves drafts | BUG | CRITICAL | P0 | VERIFIED | services/api/prisma | DONE |
 | [BUG-0900](../../docs/bugs/BUG-0900-tenant-provisioning-exceeds-the-5s-transaction-timeout-a-pai.md) | Tenant provisioning exceeds the 5s transaction timeout: a paid order is left with no workspace | BUG | CRITICAL | P0 | FIXED | api:permissions | FIX_NOW |
 | [BUG-0904](../../docs/bugs/BUG-0904-production-is-missing-outbox-worker-enabled-so-no-workspace-.md) | Production is missing OUTBOX_WORKER_ENABLED, so no workspace is provisioned after payment | BUG | CRITICAL | P0 | FIXED | api:outbox | FIX_NOW |
@@ -154,7 +153,7 @@ see [`README.md`](README.md) for why.
 | [BUG-0877](../../docs/bugs/BUG-0877-editing-a-plan-price-always-fails-with-property-synctostripe.md) | Editing a plan price always fails with property syncToStripe should not exist | BUG | HIGH | P1 | VERIFIED | apps/admin | DONE |
 | [BUG-0901](../../docs/bugs/BUG-0901-a-paid-order-records-totalamount-0-00-for-every-flat-plan-wh.md) | A paid order records totalAmount 0.00 for every FLAT plan while Stripe charges the full price | BUG | HIGH | P1 | VERIFIED | api:billing | DONE |
 | [BUG-0902](../../docs/bugs/BUG-0902-marktenantready-has-no-caller-so-a-paid-workspace-is-never-m.md) | markTenantReady has no caller, so a paid workspace is never marked ready and its URL is never shown | BUG | HIGH | P1 | VERIFIED | api:super-admin | DONE |
-| [BUG-0903](../../docs/bugs/BUG-0903-production-runs-stripe-in-test-mode-so-no-real-payment-can-b.md) | Production runs Stripe in test mode, so no real payment can be collected | BUG | HIGH | P1 | OPEN | api:billing | BLOCKED_EXTERNAL |
+| [BUG-0903](../../docs/bugs/BUG-0903-production-runs-stripe-in-test-mode-so-no-real-payment-can-b.md) | Production runs Stripe in test mode, so no real payment can be collected | BUG | HIGH | P1 | PRODUCT_DECISION | api:billing | PRODUCT_DECISION |
 | [BUG-0906](../../docs/bugs/BUG-0906-production-has-no-published-legal-documents-so-purchases-rec.md) | Production has no published legal documents, so purchases record no consent and the footer links to nothing | BUG | HIGH | P1 | VERIFIED | api:legal, apps/landing | DONE |
 | [BUG-0976](../../docs/bugs/BUG-0976-a-disallowed-cors-origin-returns-500-and-writes-an-error-log.md) | A disallowed CORS origin returns 500 and writes an error-log row, so anyone can fill the table | SECURITY | HIGH | P1 | VERIFIED | services/api/src/config | DONE |
 | [BUG-0995](../../docs/bugs/BUG-0995-editing-any-plan-price-500s-once-its-stripe-product-id-goes-.md) | Editing any plan price 500s once its Stripe product id goes stale | INTEGRATION | HIGH | P1 | VERIFIED | billing, super-admin | DONE |
@@ -280,7 +279,7 @@ see [`README.md`](README.md) for why.
 | [BUG-1754](../../docs/bugs/BUG-1754-the-incident-queue-counts-routine-401s-and-unknown-route-404.md) | The incident queue counts routine 401s and unknown-route 404s as incidents needing triage | BUG | MEDIUM | P2 | FIXED | api:platform-monitoring, api:error-logs | FIX_NOW |
 | [BUG-1756](../../docs/bugs/BUG-1756-bulk-delete-confirms-without-naming-how-many-records-or-whic.md) | Bulk delete confirms without naming how many records or which ones | UX | MEDIUM | P2 | FIXED | apps/admin | FIX_NOW |
 | [BUG-1757](../../docs/bugs/BUG-1757-promotions-cannot-be-deleted-and-the-delete-route-silently-d.md) | Promotions cannot be deleted and the DELETE route silently deactivates instead | BUG | MEDIUM | P2 | FIXED | apps/admin, api:super-admin | FIX_NOW |
-| [BUG-1822](../../docs/bugs/BUG-1822-landing-csp-permits-the-api-over-http-so-its-own-connect-src.md) | Landing CSP permits the API over http, so its own connect-src does not match | INFRA | MEDIUM | P2 | OPEN | apps/landing, pkg:config | BLOCKED_EXTERNAL |
+| [BUG-1822](../../docs/bugs/BUG-1822-landing-csp-permits-the-api-over-http-so-its-own-connect-src.md) | Landing CSP permits the API over http, so its own connect-src does not match | INFRA | MEDIUM | P2 | VERIFIED | apps/landing, pkg:config | DONE |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |

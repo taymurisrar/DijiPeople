@@ -7,20 +7,19 @@
 
 | | |
 |---|---|
-| Open CRITICAL | **8** |
-| Open HIGH | **15** |
-| Open total | 73 |
+| Open CRITICAL | **7** |
+| Open HIGH | **14** |
+| Open total | 70 |
 | Blocked | 2 |
-| Awaiting a product decision | 2 |
+| Awaiting a product decision | 4 |
 | Deferred | 27 |
-| Completed | 217 |
+| Completed | 218 |
 | Awaiting Architect triage | 0 |
 
 ## Open Critical Bugs
 
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
-| [[BUG-0898-self-service-checkout-is-blocked-for-every-plan-no-plan-pric|BUG-0898]] | Self-service checkout is blocked for every plan: no plan price has ever been synced to Stripe | BUG | CRITICAL | OPEN | api:super-admin, app:landing | BLOCKED_EXTERNAL |
 | [[BUG-0900-tenant-provisioning-exceeds-the-5s-transaction-timeout-a-pai|BUG-0900]] | Tenant provisioning exceeds the 5s transaction timeout: a paid order is left with no workspace | BUG | CRITICAL | FIXED | api:permissions | FIX_NOW |
 | [[BUG-0904-production-is-missing-outbox-worker-enabled-so-no-workspace-|BUG-0904]] | Production is missing OUTBOX_WORKER_ENABLED, so no workspace is provisioned after payment | BUG | CRITICAL | FIXED | api:outbox | FIX_NOW |
 | [[BUG-1128-stripe-api-version-skew-invoice-paid-cannot-map-to-a-subscri|BUG-1128]] | Stripe API version skew: invoice.paid cannot map to a subscription because invoice.subscription no longer exists | INTEGRATION | CRITICAL | FIXED | api:billing | FIX_NOW |
@@ -33,7 +32,6 @@
 
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
-| [[BUG-0903-production-runs-stripe-in-test-mode-so-no-real-payment-can-b|BUG-0903]] | Production runs Stripe in test mode, so no real payment can be collected | BUG | HIGH | OPEN | api:billing | BLOCKED_EXTERNAL |
 | [[BUG-1203-repo-health-reports-changed-by-this-task-for-another-session|BUG-1203]] | repo-health reports CHANGED_BY_THIS_TASK for another session's merge | INFRA | HIGH | FIXED | framework | FIX_NOW |
 | [[BUG-1420-the-monitoring-severity-filter-cannot-match-99-7-percent-of-|BUG-1420]] | The monitoring severity filter cannot match 99.7 percent of stored incidents | DATA_INTEGRITY | HIGH | FIXED | apps/admin, api:error-logs | FIX_NOW |
 | [[BUG-1423-runtime-form-controls-have-no-accessible-name-so-screen-read|BUG-1423]] | Runtime form controls have no accessible name so screen readers announce every field as blank | UX | HIGH | FIXED | apps/admin | FIX_NOW |
@@ -53,6 +51,8 @@
 
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
+| [[BUG-0898-self-service-checkout-is-blocked-for-every-plan-no-plan-pric|BUG-0898]] | Self-service checkout is blocked for every plan: no plan price has ever been synced to Stripe | BUG | CRITICAL | PRODUCT_DECISION | api:super-admin, app:landing | PRODUCT_DECISION |
+| [[BUG-0903-production-runs-stripe-in-test-mode-so-no-real-payment-can-b|BUG-0903]] | Production runs Stripe in test mode, so no real payment can be collected | BUG | HIGH | PRODUCT_DECISION | api:billing | PRODUCT_DECISION |
 | [[ITEM-0062-no-multi-tenant-membership-one-user-belongs-to-one-tenant-so|ITEM-0062]] | No multi-tenant membership — one user belongs to one tenant, so discovery and switching cannot exist | ARCHITECTURE | HIGH | PRODUCT_DECISION | auth, users, tenant-domains, web | PRODUCT_DECISION |
 | [[ITEM-0079-activation-does-not-gate-on-a-workspace-having-any-module-en|ITEM-0079]] | Activation does not gate on a workspace having any module enabled | PRODUCT_DECISION | LOW | PRODUCT_DECISION | api:tenant-control-plane | PRODUCT_DECISION |
 
@@ -83,7 +83,6 @@
 | [[BUG-1494-git-worktree-remove-follows-node-modules-junctions-and-delet|BUG-1494]] | git worktree remove follows node_modules junctions and deletes the primary checkout | INFRA | CRITICAL | FIXED | scripts | DONE |
 | [[BUG-1203-repo-health-reports-changed-by-this-task-for-another-session|BUG-1203]] | repo-health reports CHANGED_BY_THIS_TASK for another session's merge | INFRA | HIGH | FIXED | framework | FIX_NOW |
 | [[BUG-1208-component-index-check-fails-on-every-windows-checkout-passes|BUG-1208]] | component-index --check fails on every Windows checkout, passes in CI | INFRA | MEDIUM | FIXED | framework | FIX_NOW |
-| [[BUG-1822-landing-csp-permits-the-api-over-http-so-its-own-connect-src|BUG-1822]] | Landing CSP permits the API over http, so its own connect-src does not match | INFRA | MEDIUM | OPEN | apps/landing, pkg:config | BLOCKED_EXTERNAL |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0074-allocate-id-and-session-tooling-accept-a-session-id-that-doe|ITEM-0074]] | allocate-id and session tooling accept a session id that does not exist | INFRA | MEDIUM | READY | framework | PLAN_REQUIRED |
 | [[ITEM-0084-detect-drift-between-render-yaml-and-the-live-render-service|ITEM-0084]] | Detect drift between render.yaml and the live Render service | INFRA | MEDIUM | READY | render.yaml, scripts | FIX_NOW |
@@ -282,6 +281,7 @@
 | [[BUG-1754-the-incident-queue-counts-routine-401s-and-unknown-route-404|BUG-1754]] | The incident queue counts routine 401s and unknown-route 404s as incidents needing triage | BUG | MEDIUM | FIXED | api:platform-monitoring, api:error-logs | FIX_NOW |
 | [[BUG-1756-bulk-delete-confirms-without-naming-how-many-records-or-whic|BUG-1756]] | Bulk delete confirms without naming how many records or which ones | UX | MEDIUM | FIXED | apps/admin | FIX_NOW |
 | [[BUG-1757-promotions-cannot-be-deleted-and-the-delete-route-silently-d|BUG-1757]] | Promotions cannot be deleted and the DELETE route silently deactivates instead | BUG | MEDIUM | FIXED | apps/admin, api:super-admin | FIX_NOW |
+| [[BUG-1822-landing-csp-permits-the-api-over-http-so-its-own-connect-src|BUG-1822]] | Landing CSP permits the API over http, so its own connect-src does not match | INFRA | MEDIUM | VERIFIED | apps/landing, pkg:config | DONE |
 | [[BUG-0018-bulk-lead-delete-is-unreachable-for-every-role|BUG-0018]] | Bulk lead delete is unreachable for every role, including SUPER_ADMIN | AUTHORIZATION | LOW | FIXED | api:platform-auth, api:super-admin | FIX_NOW |
 | [[BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist|BUG-0023]] | The testing-architecture context claims two e2e specs do not exist | DOCUMENTATION | LOW | VERIFIED | .agent/context | DONE |
 | [[BUG-0024-start-onboarding-api-and-proxy-have-no-caller|BUG-0024]] | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | VERIFIED | apps/admin, api:super-admin | DONE |
@@ -361,7 +361,6 @@
 | [[BUG-1754-the-incident-queue-counts-routine-401s-and-unknown-route-404|BUG-1754]] | The incident queue counts routine 401s and unknown-route 404s as incidents needing triage | BUG | MEDIUM | FIXED | api:platform-monitoring, api:error-logs | FIX_NOW |
 | [[BUG-1756-bulk-delete-confirms-without-naming-how-many-records-or-whic|BUG-1756]] | Bulk delete confirms without naming how many records or which ones | UX | MEDIUM | FIXED | apps/admin | FIX_NOW |
 | [[BUG-1757-promotions-cannot-be-deleted-and-the-delete-route-silently-d|BUG-1757]] | Promotions cannot be deleted and the DELETE route silently deactivates instead | BUG | MEDIUM | FIXED | apps/admin, api:super-admin | FIX_NOW |
-| [[BUG-1822-landing-csp-permits-the-api-over-http-so-its-own-connect-src|BUG-1822]] | Landing CSP permits the API over http, so its own connect-src does not match | INFRA | MEDIUM | OPEN | apps/landing, pkg:config | BLOCKED_EXTERNAL |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0020-contract-phase-drop-legacy-plan-pricing-columns|ITEM-0020]] | Contract phase: drop legacy Plan pricing columns | TECH_DEBT | MEDIUM | READY | services/api/prisma, api:super-admin, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur|ITEM-0022]] | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | READY | api:super-admin, apps/admin | PLAN_REQUIRED |
