@@ -38,6 +38,24 @@ export const CLIENT_ERROR_CATALOG: Record<
     message: "Access denied",
     description: "You do not have permission to perform this action.",
   },
+  /*
+   * Same 403 as ACCESS_DENIED, a different thing entirely (BUG-1952). Without
+   * its own entry a tenant administrator who holds every permission there is
+   * would be told they lack permission, and would report a permissions bug.
+   * The copy names the plan, because that is what the person can act on.
+   */
+  TENANT_FEATURE_NOT_ENTITLED: {
+    statusCode: 403,
+    message: "Not included in your plan",
+    description:
+      "This module is not part of your current subscription plan. Ask your administrator to upgrade the plan to use it.",
+  },
+  TENANT_ENTITLEMENT_UNAVAILABLE: {
+    statusCode: 503,
+    message: "Plan check unavailable",
+    description:
+      "Your subscription entitlements could not be verified just now. Try again in a moment.",
+  },
   LOCATION_PERMISSION_DENIED: {
     statusCode: 403,
     message: "Location permission denied",

@@ -1,5 +1,8 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
-import { SubscriptionStatus } from '@prisma/client';
+import {
+  isSubscriptionLive,
+  resolveTenantFeatureState,
+} from '../../common/security/tenant-entitlement.rule';
 import { TenantSettingsRepository } from './tenant-settings.repository';
 import { TENANT_FEATURE_DEFINITIONS } from './tenant-settings.catalog';
 
@@ -18,9 +21,15 @@ export class FeatureAccessService {
     const tenantOverrideMap = new Map(
       tenantOverrides.map((feature) => [feature.key, feature.isEnabled]),
     );
+    /*
+     * The subscription-live test and the plan/override combination both moved
+     * to `common/security/tenant-entitlement.rule.ts` when BUG-1952 put a guard
+     * on the same question. Behaviour here is unchanged; what changed is that
+     * there is now exactly one implementation of the rule, so the screen and the
+     * gate cannot come to disagree by a boolean.
+     */
     const planFeatureMap = new Map(
-      subscription?.status === SubscriptionStatus.ACTIVE ||
-        subscription?.status === SubscriptionStatus.TRIALING
+      isSubscriptionLive(subscription?.status)
         ? (subscription?.plan?.features.map((feature) => [
             feature.featureKey,
             feature.isEnabled,
@@ -31,10 +40,10 @@ export class FeatureAccessService {
     const items = TENANT_FEATURE_DEFINITIONS.map((definition) => {
       const isIncludedInPlan = planFeatureMap.get(definition.key) ?? false;
       const tenantOverride = tenantOverrideMap.get(definition.key);
-      const isEnabled =
-        typeof tenantOverride === 'boolean'
-          ? isIncludedInPlan && tenantOverride
-          : isIncludedInPlan;
+      const isEnabled = resolveTenantFeatureState({
+        isIncludedInPlan,
+        tenantOverride,
+      });
 
       return {
         key: definition.key,
@@ -75,6 +84,16 @@ export class FeatureAccessService {
     return (enabledKeys as string[]).includes(featureKey);
   }
 
+  /**
+   * Throws when a feature is off for the tenant.
+   *
+   * Not the enforcement layer, and never was: it had zero call sites for as long
+   * as it existed, which is BUG-1952. Request-path enforcement is
+   * `EntitlementGuard` plus `@RequireEntitlement`, which is declarative,
+   * covered by a wiring invariant, and governed by the platform enforcement
+   * mode. This remains for a domain service that needs the check mid-operation
+   * rather than at the route boundary — reach for the guard first.
+   */
   async assertFeatureEnabled(tenantId: string, featureKey: string) {
     const isEnabled = await this.isFeatureEnabled(tenantId, featureKey);
 

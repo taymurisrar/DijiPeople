@@ -199,6 +199,38 @@ export const ERROR_CATALOG = {
     'warning',
     'tenant',
   ),
+  /*
+   * Distinct from ACCESS_DENIED on purpose (BUG-1952). A commercial boundary and
+   * an authorization boundary produce the same 403 status, and a client that
+   * cannot tell them apart shows "you do not have permission" to a tenant
+   * administrator who holds every permission there is — which reads as a
+   * permissions bug and gets reported as one. The code carries the difference,
+   * and each frontend maps it to its own copy.
+   */
+  TENANT_FEATURE_NOT_ENTITLED: entry(
+    403,
+    'Not included in your plan',
+    'This module is not part of your current subscription plan.',
+    'warning',
+    'tenant',
+    'Ask your administrator to upgrade the subscription plan to use it.',
+  ),
+  /*
+   * 503 and retryable, not 403. When the platform cannot resolve what a tenant
+   * bought, the honest statement is "we could not check", not "you did not buy
+   * this" — and only one of those is something a customer can act on. The
+   * resolver reaches this only on a cold cache; a tenant that resolved a moment
+   * ago keeps its last answer instead of being refused.
+   */
+  TENANT_ENTITLEMENT_UNAVAILABLE: entry(
+    503,
+    'Plan check unavailable',
+    'Your subscription entitlements could not be verified just now.',
+    'error',
+    'tenant',
+    'Try again in a moment.',
+    true,
+  ),
   ORGANIZATION_NOT_FOUND: entry(
     404,
     'Organization not found',

@@ -52,13 +52,15 @@ describe('TenantModulesService', () => {
           .map((item) => item.key),
       }),
     };
+    const entitlements = { invalidate: jest.fn() };
     const service = new TenantModulesService(
       prisma as never,
       featureAccess as never,
       { log: jest.fn() } as never,
       { record: jest.fn() } as never,
+      entitlements as never,
     );
-    return { service, prisma, featureAccess };
+    return { service, prisma, featureAccess, entitlements };
   }
 
   const resolved = [
@@ -134,6 +136,33 @@ describe('TenantModulesService', () => {
       }),
     ).rejects.toThrow(/Unknown module/);
     expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  /*
+   * The request-path gate caches a tenant's entitlements for a minute. Without
+   * this, an operator who turned a module off would watch the screen agree while
+   * the API kept serving it, and would read that as the toggle not working.
+   */
+  it('drops the cached entitlement snapshot when an override is written', async () => {
+    const { service, entitlements } = build(resolved);
+
+    await service.update(platformUser, 'tenant-1', {
+      overrides: [{ key: 'leave', isEnabled: false }],
+    });
+
+    expect(entitlements.invalidate).toHaveBeenCalledWith('tenant-1');
+  });
+
+  it('does not drop the snapshot when the override was refused', async () => {
+    const { service, entitlements } = build(resolved);
+
+    await expect(
+      service.update(platformUser, 'tenant-1', {
+        overrides: [{ key: 'payroll', isEnabled: true }],
+      }),
+    ).rejects.toThrow(/does not include payroll/);
+
+    expect(entitlements.invalidate).not.toHaveBeenCalled();
   });
 
   it('reports no plan entitlement while the subscription is not live', async () => {

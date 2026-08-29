@@ -17,6 +17,9 @@ import {
 } from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
+import { EntitlementGuard } from '../../common/guards/entitlement.guard';
+import { RequireEntitlement } from '../../common/decorators/require-entitlement.decorator';
+import { TENANT_FEATURE_KEYS } from '../../common/constants/tenant-features';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { CreateJobOpeningDto } from './dto/create-job-opening.dto';
 import { JobOpeningQueryDto } from './dto/job-opening-query.dto';
@@ -24,7 +27,8 @@ import { UpdateJobOpeningDto } from './dto/update-job-opening.dto';
 import { RecruitmentService } from './recruitment.service';
 
 @Controller('job-openings')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, EntitlementGuard)
+@RequireEntitlement(TENANT_FEATURE_KEYS.RECRUITMENT)
 export class JobOpeningsController {
   constructor(private readonly recruitmentService: RecruitmentService) {}
 
