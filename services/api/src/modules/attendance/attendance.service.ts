@@ -2455,13 +2455,12 @@ export class AttendanceService {
      * takes no zone), so the same tenant-level zone is what the future-date
      * bound has to be measured against for the two to agree.
      */
-    const importTimezone = await this.configurationResolverService.resolveTimezone(
-      {
+    const importTimezone =
+      await this.configurationResolverService.resolveTimezone({
         tenantId: currentUser.tenantId,
         module: 'attendance',
         effectiveDate: new Date(),
-      },
-    );
+      });
 
     for (const row of rows) {
       try {

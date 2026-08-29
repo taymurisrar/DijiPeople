@@ -96,7 +96,9 @@ describe('mandated attendance settings', () => {
       ).rejects.toMatchObject({
         response: expect.objectContaining({
           code: 'ATTENDANCE_SETTING_ENFORCED_BY_PLATFORM',
-          message: expect.stringContaining('attendance.locationCaptureRequired'),
+          message: expect.stringContaining(
+            'attendance.locationCaptureRequired',
+          ),
         }),
       });
     });

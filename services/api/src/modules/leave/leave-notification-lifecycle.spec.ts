@@ -75,7 +75,10 @@ describe('BUG-2016 — a terminal leave transition resolves its approval notific
     updateLeaveRequest: jest.Mock;
     updateLeaveApprovalStep: jest.Mock;
   };
-  let notificationsService: { emit: jest.Mock; resolveActionRequired: jest.Mock };
+  let notificationsService: {
+    emit: jest.Mock;
+    resolveActionRequired: jest.Mock;
+  };
   let employeesRepository: { findByUserIdAndTenant: jest.Mock };
   let service: LeaveService;
 

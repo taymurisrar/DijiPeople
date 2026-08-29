@@ -583,8 +583,7 @@ export class AttendanceRepository {
         }
       }
 
-      workSchedule ??=
-        schedules.find((schedule) => schedule.isDefault) ?? null;
+      workSchedule ??= schedules.find((schedule) => schedule.isDefault) ?? null;
 
       workScheduleByEmployee.set(employee.id, workSchedule);
 

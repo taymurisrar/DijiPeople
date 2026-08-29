@@ -72,7 +72,6 @@ export type InertReasonCode = keyof typeof INERT_REASONS;
 export const INERT_TENANT_SETTING_KEYS: Readonly<
   Record<string, InertReasonCode>
 > = Object.freeze({
-
   // organization (6)
   'organization.businessDateSource': 'NOT_IMPLEMENTED',
   'organization.businessDateTimezone': 'NOT_IMPLEMENTED',
@@ -239,24 +238,29 @@ export const INERT_TENANT_SETTING_KEYS: Readonly<
   'recruitment.duplicateMatchingStrategy': 'NOT_IMPLEMENTED',
   'recruitment.automaticallyParseSkillsAndExperience': 'NOT_IMPLEMENTED',
   'recruitment.automaticallyCreateCandidateAfterCvUpload': 'NOT_IMPLEMENTED',
-  'recruitment.automaticallyMoveRejectedCandidatesToTalentPool': 'NOT_IMPLEMENTED',
+  'recruitment.automaticallyMoveRejectedCandidatesToTalentPool':
+    'NOT_IMPLEMENTED',
   'recruitment.defaultOnboardingPlanId': 'NOT_IMPLEMENTED',
-  'recruitment.automaticallyActivateEmployeeAfterSuccessfulOnboarding': 'NOT_IMPLEMENTED',
+  'recruitment.automaticallyActivateEmployeeAfterSuccessfulOnboarding':
+    'NOT_IMPLEMENTED',
   'recruitment.defaultRecruiterAssignmentRuleId': 'NOT_IMPLEMENTED',
   'recruitment.defaultHiringManagerAssignmentRuleId': 'NOT_IMPLEMENTED',
   'recruitment.defaultInterviewPanelRuleId': 'NOT_IMPLEMENTED',
   'recruitment.automaticallyStartOnboardingAfterHiring': 'NOT_IMPLEMENTED',
-  'recruitment.requireMandatoryOnboardingTasksBeforeActivation': 'NOT_IMPLEMENTED',
+  'recruitment.requireMandatoryOnboardingTasksBeforeActivation':
+    'NOT_IMPLEMENTED',
   'recruitment.requireOfferApprovalBeforeHiring': 'NOT_IMPLEMENTED',
   'recruitment.requireBackgroundVerificationBeforeHiring': 'NOT_IMPLEMENTED',
-  'recruitment.requireDocumentVerificationBeforeEmployeeActivation': 'NOT_IMPLEMENTED',
+  'recruitment.requireDocumentVerificationBeforeEmployeeActivation':
+    'NOT_IMPLEMENTED',
   'recruitment.candidateDocumentChecklistId': 'NOT_IMPLEMENTED',
   'recruitment.mandatoryEmployeeDocumentChecklistId': 'NOT_IMPLEMENTED',
   'recruitment.defaultCandidateEmailTemplateId': 'NOT_IMPLEMENTED',
   'recruitment.defaultOfferLetterTemplateId': 'NOT_IMPLEMENTED',
   'recruitment.defaultRejectionEmailTemplateId': 'NOT_IMPLEMENTED',
   'recruitment.defaultWelcomeEmailTemplateId': 'NOT_IMPLEMENTED',
-  'recruitment.automaticallyCloseJobOpeningWhenPositionsFilled': 'NOT_IMPLEMENTED',
+  'recruitment.automaticallyCloseJobOpeningWhenPositionsFilled':
+    'NOT_IMPLEMENTED',
   'recruitment.automaticallyScheduleOnboardingTasks': 'NOT_IMPLEMENTED',
   'recruitment.notifyHiringManagerWhenCandidateHired': 'NOT_IMPLEMENTED',
   'recruitment.notifyEmployeeWhenOnboardingStarts': 'NOT_IMPLEMENTED',

@@ -653,11 +653,7 @@ export class TenantSettingsService {
       return {
         category,
         key,
-        value: enforceCriticalAttendanceSetting(
-          category,
-          key,
-          normalizedValue,
-        ),
+        value: enforceCriticalAttendanceSetting(category, key, normalizedValue),
         actorUserId: currentUser.userId,
       };
     });

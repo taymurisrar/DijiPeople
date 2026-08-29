@@ -205,23 +205,23 @@ export class TenantControlPlaneService {
     const [domains, organization, system, storedLocalizationRows] =
       await Promise.all([
         this.prisma.tenantDomain.findMany({
-        where: { tenantId: tenant.id },
-        /*
-         * Explicitly projected. The row also carries `verificationToken`, which
-         * belongs only to the Domains surface that has to display it — the
-         * configuration payload has no use for it and should not carry it.
-         */
-        select: {
-          id: true,
-          domain: true,
-          type: true,
-          isPrimary: true,
-          verificationStatus: true,
-          tlsStatus: true,
-          verifiedAt: true,
-        },
-        orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
-      }),
+          where: { tenantId: tenant.id },
+          /*
+           * Explicitly projected. The row also carries `verificationToken`, which
+           * belongs only to the Domains surface that has to display it — the
+           * configuration payload has no use for it and should not carry it.
+           */
+          select: {
+            id: true,
+            domain: true,
+            type: true,
+            isPrimary: true,
+            verificationStatus: true,
+            tlsStatus: true,
+            verifiedAt: true,
+          },
+          orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
+        }),
         /*
          * Resolved, not raw rows.
          *

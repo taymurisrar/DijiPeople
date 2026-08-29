@@ -93,9 +93,7 @@ describe('AttendanceRepository.resolveWorkDayForEmployees', () => {
   it('marks the day off when the schedule day says it is not worked', async () => {
     const db = buildDb({
       employees: [employee('e1', { defaultWorkScheduleId: 'schedule-1' })],
-      schedules: [
-        schedule('schedule-1', { days: [{ isWorkingDay: false }] }),
-      ],
+      schedules: [schedule('schedule-1', { days: [{ isWorkingDay: false }] })],
     });
 
     const result = await resolve(db);
@@ -145,7 +143,9 @@ describe('AttendanceRepository.resolveWorkDayForEmployees', () => {
 
   it('prefers an effective-dated assignment over the employee default', async () => {
     const db = buildDb({
-      employees: [employee('e1', { defaultWorkScheduleId: 'employee-default' })],
+      employees: [
+        employee('e1', { defaultWorkScheduleId: 'employee-default' }),
+      ],
       assignments: [{ employeeId: 'e1', workScheduleId: 'assigned' }],
       schedules: [
         schedule('assigned', { days: [{ isWorkingDay: true }] }),

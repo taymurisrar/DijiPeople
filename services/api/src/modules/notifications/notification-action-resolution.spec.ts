@@ -37,12 +37,13 @@ describe('NotificationsRepository.resolveActionRequiredNotificationsForRecord', 
     const prisma = buildPrisma(['notification-1', 'notification-2']);
     const repository = new NotificationsRepository(prisma as never);
 
-    const result =
-      await repository.resolveActionRequiredNotificationsForRecord({
+    const result = await repository.resolveActionRequiredNotificationsForRecord(
+      {
         tenantId: TENANT_ID,
         relatedEntityType: 'leaveRequest',
         relatedEntityId: 'leave-request-1',
-      });
+      },
+    );
 
     expect(result).toEqual({ resolved: 2 });
 
@@ -102,12 +103,13 @@ describe('NotificationsRepository.resolveActionRequiredNotificationsForRecord', 
     const prisma = buildPrisma([]);
     const repository = new NotificationsRepository(prisma as never);
 
-    const result =
-      await repository.resolveActionRequiredNotificationsForRecord({
+    const result = await repository.resolveActionRequiredNotificationsForRecord(
+      {
         tenantId: TENANT_ID,
         relatedEntityType: 'leaveRequest',
         relatedEntityId: 'leave-request-1',
-      });
+      },
+    );
 
     expect(result).toEqual({ resolved: 0 });
     expect(prisma.notificationRecipient.updateMany).not.toHaveBeenCalled();

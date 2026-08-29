@@ -62,9 +62,12 @@ describe('ApprovalMatricesService approver validation', () => {
       create: jest.fn().mockResolvedValue({ id: 'matrix-1' }),
     };
 
-    service = new ApprovalMatricesService(repository as never, {
-      log: jest.fn(),
-    } as never);
+    service = new ApprovalMatricesService(
+      repository as never,
+      {
+        log: jest.fn(),
+      } as never,
+    );
   });
 
   it('rejects an invited approver by account status, not by tenancy', async () => {

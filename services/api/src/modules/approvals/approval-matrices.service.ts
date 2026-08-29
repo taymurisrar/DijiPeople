@@ -285,9 +285,7 @@ export class ApprovalMatricesService {
         );
 
       if (approver.status !== UserStatus.ACTIVE)
-        throw new BadRequestException(
-          approverStatusMessage(approver.status),
-        );
+        throw new BadRequestException(approverStatusMessage(approver.status));
     }
   }
 
