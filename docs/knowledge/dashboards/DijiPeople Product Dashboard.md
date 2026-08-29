@@ -82,6 +82,9 @@ Questions where the engineering is understood and the **product answer**
 
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
+| [[BUG-1986-tenant-settings-has-four-blocking-accessibility-violations-i|BUG-1986]] | Tenant settings has four blocking accessibility violations including buttons with no name | UX | HIGH | OPEN | apps/web | FIX_NOW |
+| [[BUG-1950-every-tenant-workspace-screen-renders-the-same-h1-so-no-page|BUG-1950]] | Every tenant workspace screen renders the same h1, so no page announces what it is | UX | MEDIUM | OPEN | apps/web | FIX_NOW |
+| [[BUG-1951-most-tenant-workspace-pages-render-no-main-landmark-includin|BUG-1951]] | Most tenant workspace pages render no main landmark, including every settings category | UX | MEDIUM | OPEN | apps/web | FIX_NOW |
 | [[ITEM-0068-legal-documents-have-no-operator-ui-so-publishing-is-a-scrip|ITEM-0068]] | Legal publication has an operator UI, but no diff before publishing | UX | MEDIUM | READY | legal, admin | FIX_NOW |
 
 ## How to read this

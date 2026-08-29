@@ -80,18 +80,88 @@ export async function probePublicSurface(
   return { ready: missing.length === 0, missing, detail };
 }
 
-export async function probeEnvironment(urls: {
-  landing: string;
-  admin: string;
+/**
+ * The precondition the tenant-product flows actually have.
+ *
+ * `probeEnvironment` demands landing, admin, a platform session and a database,
+ * because the commercial journeys sign in to admin and write rows through it.
+ * Flows H, I and J open **only** `apps/web` — they never load the landing site
+ * and never touch the admin console — so requiring those would skip the tenant
+ * product because a marketing page was down.
+ *
+ * That is not hypothetical: it happened the first time these flows were run
+ * against a live stack. Twenty tests reported "skipped" with the API and the
+ * tenant app both up and serving, because the probe wanted two apps the suite
+ * does not use. A green run that is really an unnoticed skip is the exact
+ * failure mode this file exists to prevent, and it caught itself.
+ *
+ * The database is still required, and deliberately: these flows read the tenant
+ * and its entitlements from it, and compare list screens against row counts to
+ * observe tenant isolation. Without it they would be asserting far less than
+ * they appear to.
+ */
+export async function probeTenantProduct(urls: {
+  web: string;
   api: string;
 }): Promise<EnvironmentReport> {
   const missing: string[] = [];
   const detail: Record<string, string> = {};
 
-  const [landingUp, adminUp, apiUp] = await Promise.all([
+  const [webUp, apiUp] = await Promise.all([
+    reachable(`${urls.web}/login`),
+    reachable(`${urls.api}/api/health`),
+  ]);
+
+  if (!webUp) missing.push(`tenant product at ${urls.web}`);
+  if (!apiUp) missing.push(`API at ${urls.api}`);
+  detail.web = webUp ? 'up' : 'unreachable';
+  detail.api = apiUp ? 'up' : 'unreachable';
+
+  const url = databaseUrl();
+  if (!url) {
+    missing.push('a disposable local database (E2E_DATABASE_URL)');
+    detail.database = 'absent or not demonstrably disposable';
+  } else {
+    const client = new Client({ connectionString: url });
+    try {
+      await client.connect();
+      await client.query('select 1');
+      detail.database = 'reachable';
+    } catch (error) {
+      missing.push('a reachable database');
+      detail.database = error instanceof Error ? error.message : 'unreachable';
+    } finally {
+      await client.end().catch(() => undefined);
+    }
+  }
+
+  return { ready: missing.length === 0, missing, detail };
+}
+
+export async function probeEnvironment(urls: {
+  landing: string;
+  admin: string;
+  api: string;
+  /*
+   * Optional, and only because the flows that predate ITEM-0034 do not need it.
+   * A suite that never opens the tenant product should not be skipped because
+   * port 3001 is down — demanding more than a suite uses turns a green run into
+   * an unnoticed skip, which is the failure mode this file exists to avoid.
+   *
+   * When it *is* asked for, its absence is reported like any other. Until
+   * 2026-08-29 web was not probed at all, so its absence could not even produce
+   * a skip: it was invisible rather than missing.
+   */
+  web?: string;
+}): Promise<EnvironmentReport> {
+  const missing: string[] = [];
+  const detail: Record<string, string> = {};
+
+  const [landingUp, adminUp, apiUp, webUp] = await Promise.all([
     reachable(urls.landing),
     reachable(`${urls.admin}/login`),
     reachable(`${urls.api}/api/health`),
+    urls.web ? reachable(`${urls.web}/login`) : Promise.resolve(null),
   ]);
 
   if (!landingUp) missing.push(`landing app at ${urls.landing}`);
@@ -100,6 +170,10 @@ export async function probeEnvironment(urls: {
   detail.landing = landingUp ? 'up' : 'unreachable';
   detail.admin = adminUp ? 'up' : 'unreachable';
   detail.api = apiUp ? 'up' : 'unreachable';
+  if (urls.web) {
+    if (!webUp) missing.push(`tenant product at ${urls.web}`);
+    detail.web = webUp ? 'up' : 'unreachable';
+  }
 
   if (!platformCredentials()) {
     missing.push(

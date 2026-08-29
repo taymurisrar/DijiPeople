@@ -106,7 +106,7 @@ None blocking. The suite, the job and the fixtures all exist; this extends them.
 
 ## Plan written — 2026-08-29
 
-[[EXECPLAN-0025]] covers this. It is `AWAITING_OWNER_DECISION` on one point and
+[[EXECPLAN-0025-apps-web-browser-e2e-coverage]] covers this. It is `AWAITING_OWNER_DECISION` on one point and
 one only: **which journeys the first slice covers.** 253 pages cannot be covered
 and should not be attempted, so the plan proposes three flows — sign-in and
 landing, the daily journeys (attendance, leave, payslip), and one
@@ -141,6 +141,7 @@ Measured at `eb457d9`:
 ## Related
 
 - Bug — [[BUG-0043]]
+- Referenced by — [[BUG-1950]], [[BUG-1951]], [[BUG-1986]]
 - Modules — [[tenant-application]], [[qa-and-ci-architecture]]
 - Implementation — [[EXECPLAN-0025-apps-web-browser-e2e-coverage]]
 - QA run — [[2026-08-17-web-app-documentation-1af3690]]

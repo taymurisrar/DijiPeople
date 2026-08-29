@@ -8,8 +8,8 @@
 | | |
 |---|---|
 | Open CRITICAL | **0** |
-| Open HIGH | **1** |
-| Open total | 20 |
+| Open HIGH | **2** |
+| Open total | 23 |
 | Blocked | 2 |
 | Awaiting a product decision | 1 |
 | Deferred | 25 |
@@ -24,6 +24,7 @@ _None. Nothing open at CRITICAL._
 
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
+| [[BUG-1986-tenant-settings-has-four-blocking-accessibility-violations-i|BUG-1986]] | Tenant settings has four blocking accessibility violations including buttons with no name | UX | HIGH | OPEN | apps/web | FIX_NOW |
 | [[ITEM-0034-apps-web-has-zero-browser-e2e-coverage|ITEM-0034]] | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | READY | apps/web, e2e | PLAN_REQUIRED |
 
 ## Product Decisions Needed
@@ -313,6 +314,8 @@ _None. Nothing open at CRITICAL._
 
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
+| [[BUG-1950-every-tenant-workspace-screen-renders-the-same-h1-so-no-page|BUG-1950]] | Every tenant workspace screen renders the same h1, so no page announces what it is | UX | MEDIUM | OPEN | apps/web | FIX_NOW |
+| [[BUG-1951-most-tenant-workspace-pages-render-no-main-landmark-includin|BUG-1951]] | Most tenant workspace pages render no main landmark, including every settings category | UX | MEDIUM | OPEN | apps/web | FIX_NOW |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0020-contract-phase-drop-legacy-plan-pricing-columns|ITEM-0020]] | Contract phase: drop legacy Plan pricing columns | TECH_DEBT | MEDIUM | READY | services/api/prisma, api:super-admin, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur|ITEM-0022]] | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | READY | api:super-admin, apps/admin | PLAN_REQUIRED |
@@ -346,7 +349,7 @@ _None. Nothing open at CRITICAL._
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 220 |
+| Bug records | 223 |
 | Backlog items | 103 |
 | Known bug patterns | 30 |
 | QA runs | 29 |

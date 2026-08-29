@@ -21,12 +21,15 @@ _None._
 
 | ID | Title | Type | Severity | Priority | Status | Affected | Architect |
 |---|---|---|---|---|---|---|---|
+| [BUG-1986](../../docs/bugs/BUG-1986-tenant-settings-has-four-blocking-accessibility-violations-i.md) | Tenant settings has four blocking accessibility violations including buttons with no name | UX | HIGH | P1 | OPEN | apps/web | FIX_NOW |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | READY | apps/web, e2e | PLAN_REQUIRED |
 
 ## MEDIUM
 
 | ID | Title | Type | Severity | Priority | Status | Affected | Architect |
 |---|---|---|---|---|---|---|---|
+| [BUG-1950](../../docs/bugs/BUG-1950-every-tenant-workspace-screen-renders-the-same-h1-so-no-page.md) | Every tenant workspace screen renders the same h1, so no page announces what it is | UX | MEDIUM | P2 | OPEN | apps/web | FIX_NOW |
+| [BUG-1951](../../docs/bugs/BUG-1951-most-tenant-workspace-pages-render-no-main-landmark-includin.md) | Most tenant workspace pages render no main landmark, including every settings category | UX | MEDIUM | P2 | OPEN | apps/web | FIX_NOW |
 | [ITEM-0009](../../docs/backlog/items/ITEM-0009-no-observability-platform-exists.md) | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | P2 | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [ITEM-0020](../../docs/backlog/items/ITEM-0020-contract-phase-drop-legacy-plan-pricing-columns.md) | Contract phase: drop legacy Plan pricing columns | TECH_DEBT | MEDIUM | P2 | READY | services/api/prisma, api:super-admin, apps/admin | PLAN_REQUIRED |
 | [ITEM-0022](../../docs/backlog/items/ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur.md) | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | P2 | READY | api:super-admin, apps/admin | PLAN_REQUIRED |

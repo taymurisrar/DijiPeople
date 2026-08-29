@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**323 records** — 220 bugs under [`docs/bugs/`](../bugs/), 103 non-bug items under [`items/`](items/).
+**326 records** — 223 bugs under [`docs/bugs/`](../bugs/), 103 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,21 +13,21 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 20 |
+| Open (active work) | 23 |
 | Blocked | 2 |
 | Deferred | 25 |
 | Awaiting a product decision | 1 |
 | Completed / closed | 275 |
 | **Open CRITICAL** | **0** |
-| **Open HIGH** | **1** |
+| **Open HIGH** | **2** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
 
 | Severity | Count |
 |---|---|
-| HIGH | 1 |
-| MEDIUM | 15 |
+| HIGH | 2 |
+| MEDIUM | 17 |
 | LOW | 4 |
 
 ## Open by type
@@ -40,12 +40,13 @@ see [`README.md`](README.md) for why.
 | SECURITY | 2 |
 | TECH_DEBT | 5 |
 | TEST_GAP | 5 |
-| UX | 1 |
+| UX | 4 |
 
 ## All records by status
 
 | Status | Count |
 |---|---|
+| OPEN | 3 |
 | BLOCKED | 2 |
 | DEFERRED | 25 |
 | PRODUCT_DECISION | 1 |
@@ -175,6 +176,7 @@ see [`README.md`](README.md) for why.
 | [BUG-1750](../../docs/bugs/BUG-1750-the-monitoring-critical-tile-miscounts-and-links-to-a-filter.md) | The monitoring critical tile miscounts and links to a filter that matches nothing | BUG | HIGH | P1 | VERIFIED | apps/admin, api:platform-monitoring | DONE |
 | [BUG-1751](../../docs/bugs/BUG-1751-a-promotion-goes-live-against-every-subscription-the-instant.md) | A promotion goes live against every subscription the instant it is created | BUG | HIGH | P1 | VERIFIED | apps/admin, api:super-admin, integration:stripe | DONE |
 | [BUG-1755](../../docs/bugs/BUG-1755-the-plans-list-cannot-show-publication-status-or-sales-model.md) | The plans list cannot show publication status or sales model because the API omits them | BUG | HIGH | P1 | VERIFIED | apps/admin, api:super-admin | DONE |
+| [BUG-1986](../../docs/bugs/BUG-1986-tenant-settings-has-four-blocking-accessibility-violations-i.md) | Tenant settings has four blocking accessibility violations including buttons with no name | UX | HIGH | P1 | OPEN | apps/web | FIX_NOW |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | READY | apps/web, e2e | PLAN_REQUIRED |
@@ -276,6 +278,8 @@ see [`README.md`](README.md) for why.
 | [BUG-1822](../../docs/bugs/BUG-1822-landing-csp-permits-the-api-over-http-so-its-own-connect-src.md) | Landing CSP permits the API over http, so its own connect-src does not match | INFRA | MEDIUM | P2 | VERIFIED | apps/landing, pkg:config | DONE |
 | [BUG-1883](../../docs/bugs/BUG-1883-app-releases-and-agent-rollout-render-on-a-shell-no-other-ad.md) | App releases and Agent rollout render on a shell no other admin screen uses | UX | MEDIUM | P2 | VERIFIED | apps/admin | DONE |
 | [BUG-1884](../../docs/bugs/BUG-1884-the-re-check-payment-action-is-offered-on-every-customer-inc.md) | The re-check payment action is offered on every customer, including ones who have paid | UX | MEDIUM | P2 | VERIFIED | apps/admin, api:billing | DONE |
+| [BUG-1950](../../docs/bugs/BUG-1950-every-tenant-workspace-screen-renders-the-same-h1-so-no-page.md) | Every tenant workspace screen renders the same h1, so no page announces what it is | UX | MEDIUM | P2 | OPEN | apps/web | FIX_NOW |
+| [BUG-1951](../../docs/bugs/BUG-1951-most-tenant-workspace-pages-render-no-main-landmark-includin.md) | Most tenant workspace pages render no main landmark, including every settings category | UX | MEDIUM | P2 | OPEN | apps/web | FIX_NOW |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |
