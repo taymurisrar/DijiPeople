@@ -12,5 +12,4 @@ therefore sees sibling worktrees without anybody having pushed.
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
-| [SESSION-0069](../../docs/sessions/SESSION-0069-backlog-burndown-verify-the-fixed-decide-the-deferred-close-.md) | — | Backlog burndown: verify the fixed, decide the deferred, close what is genuinely open | ACTIVE | `agent/backlog-burndown` | `develop` | — | 2026-08-28T22:11:11.433Z |
 | [SESSION-0061](../../docs/sessions/SESSION-0061-unblock-the-production-hosts-for-the-mcp-browser.md) | — | Production admin E2E QA and invitation delivery visibility | ACTIVE | `agent/invitation-delivery-visibility` | `develop` | — | 2026-08-26T09:54:37.336Z |

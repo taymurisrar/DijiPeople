@@ -4,7 +4,7 @@ aliases: [SESSION-0069]
 TASK_ID:
 TITLE: Backlog burndown: verify the fixed, decide the deferred, close what is genuinely open
 ARCHITECT_INTENT: Backlog burndown: verify the fixed, decide the deferred, close what is genuinely open
-STATUS: ACTIVE
+STATUS: COMPLETE
 TASK_TYPE: BACKLOG
 TASK_SIZE: LARGE
 BASE_BRANCH: origin/develop
@@ -12,14 +12,15 @@ BASE_SHA: 9e55663b39f2599acd3490a2b1c2b0b6db8ea63a
 TASK_BRANCH: agent/backlog-burndown
 TARGET_BRANCH: develop
 WORKTREE: D:/My Work/hrm-dijipeople/dijipeople-admin-fx
-AFFECTED_MODULES: []
+AFFECTED_MODULES: [apps/web, apps/admin, api:tenant-control-plane, api:users, services/api/prisma, e2e, scripts, docs]
 WRITE_LEASES: []
 ACTIVE_WORK_PACKAGES: []
-SCHEMA_WRITE: NO
-CI_STATUS: NOT_RUN
-MERGE_STATUS: NOT_STARTED
+SCHEMA_WRITE: YES
+CI_STATUS: PASS
+MERGE_STATUS: INTEGRATED
 STARTED_AT: 2026-08-28T22:11:11.433Z
 LAST_HEARTBEAT: 2026-08-28T22:11:11.433Z
+MERGED_SHA: 9353872e
 BLOCKERS: none
 ---
 
@@ -31,7 +32,23 @@ Backlog burndown: verify the fixed, decide the deferred, close what is genuinely
 
 ## Scope
 
-_To be established during planning._
+The backlog burndown the repository owner asked for after items 1-4 shipped.
+
+**Open records: 71 to 22. CRITICAL 6 to 0. HIGH 14 to 1.**
+
+- 48 records verified FIXED to VERIFIED, with a QA run recording exactly what
+  that evidence does and does not establish.
+- BUG-0898 and BUG-0903 decided as accepted pre-launch state, with the go-live
+  ordering written down so nobody rediscovers it.
+- TASK-0009 closed by running WP-09, its contract migration, nine days after the
+  other eleven packages.
+- ITEM-0079, ITEM-0081, ITEM-0094, ITEM-0099, ITEM-0103 done; ITEM-0062 and
+  ITEM-0034 closed; ITEM-0001 corrected.
+- `apps/web` opened by a browser test for the first time, which found three
+  defects and a reproduction for a fourth.
+
+Integrated into `develop` across five CI-verified SHAs, ending at `9353872e`.
+`main` untouched throughout.
 
 ## Concurrency
 

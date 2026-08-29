@@ -293,6 +293,7 @@ _None. Nothing open at CRITICAL._
 
 ## Recent Engineering History
 
+- [[2026-08-29-backlog-burndown-9353872e|Engineering History — Backlog burndown]]
 - [[2026-08-28-promote-open-bug-sweep-to-production-3d2931c4|Engineering History — Promote open bug sweep to production]]
 - [[2026-08-28-open-bug-sweep-cd4edb86|Engineering History — Open bug sweep]]
 - [[2026-08-28-admin-console-fx-and-agent-settings-9e55663b|Engineering History — Admin console fx and agent settings]]
@@ -300,7 +301,6 @@ _None. Nothing open at CRITICAL._
 - [[2026-08-26-worktree-removal-guard-d6f46a9a|Engineering History — Worktree removal guard]]
 - [[2026-08-26-tenant-agent-rollout-28edc827|Engineering History — Tenant app assignment: which tenants receive a release]]
 - [[2026-08-26-dlp-employee-review-10e47f35|Engineering History — DLP investigator review on the employee record]]
-- [[2026-08-26-agent-distribution-6b7ea704|Engineering History — Agent app distribution and auto-release pipeline]]
 
 ## Recent Releases
 
@@ -351,7 +351,7 @@ _None. Nothing open at CRITICAL._
 | Backlog items | 103 |
 | Known bug patterns | 30 |
 | QA runs | 29 |
-| Engineering history records | 56 |
+| Engineering history records | 57 |
 | Release records | 3 |
 | Module notes | 28 |
 | Architecture notes | 20 |
