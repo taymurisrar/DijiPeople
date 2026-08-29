@@ -18,10 +18,12 @@
  * `resolveAuditActionAliases()`.
  *
  * This catalog is not yet exhaustive. It declares the actions written by the
- * call sites added for BUG-2044 plus the legacy names needed to read the log
- * consistently. Migrating the remaining literals across 82 files is its own
- * task; a call site that still passes a literal is not broken, it is simply not
- * yet declared.
+ * call sites added for BUG-2044, the attendance/project/auth call sites
+ * migrated to canonical form for BUG-2046 (the ones the bug report cited as
+ * evidence, plus their direct siblings in the same files), and the legacy
+ * names needed to read the log consistently. Migrating the remaining
+ * literals across the rest of the ~82 files is its own task; a call site
+ * that still passes a literal is not broken, it is simply not yet declared.
  */
 export const AUDIT_ACTIONS = {
   /* Employee lifecycle — BUG-2044. */
@@ -51,6 +53,25 @@ export const AUDIT_ACTIONS = {
   LEAVE_POLICY_UPDATED: 'LEAVE_POLICY_UPDATED',
   LEAVE_POLICY_RULE_CREATED: 'LEAVE_POLICY_RULE_CREATED',
   LEAVE_POLICY_ASSIGNMENT_CREATED: 'LEAVE_POLICY_ASSIGNMENT_CREATED',
+
+  /*
+   * Migrated to canonical form for BUG-2046. These five call sites are the
+   * ones the bug report cited as evidence of the dotted convention —
+   * `attendance.manual_created`, `attendance.deleted`, `project.create`,
+   * `project.update`, `auth.login.succeeded` — plus their direct siblings in
+   * the same files (`attendance.manual_updated`, the project-allocation
+   * delete, and the login-failure branches). New rows are written under
+   * these names; the dotted spelling a row was written under before this fix
+   * stays in `LEGACY_AUDIT_ACTION_ALIASES` below so it is still findable.
+   */
+  ATTENDANCE_MANUAL_CREATED: 'ATTENDANCE_MANUAL_CREATED',
+  ATTENDANCE_MANUAL_UPDATED: 'ATTENDANCE_MANUAL_UPDATED',
+  ATTENDANCE_DELETED: 'ATTENDANCE_DELETED',
+  PROJECT_CREATED: 'PROJECT_CREATED',
+  PROJECT_UPDATED: 'PROJECT_UPDATED',
+  PROJECT_ALLOCATION_DELETED: 'PROJECT_ALLOCATION_DELETED',
+  AUTH_LOGIN_SUCCEEDED: 'AUTH_LOGIN_SUCCEEDED',
+  AUTH_LOGIN_FAILED: 'AUTH_LOGIN_FAILED',
 } as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];
@@ -74,14 +95,13 @@ export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];
  */
 export const LEGACY_AUDIT_ACTION_ALIASES: Readonly<Record<string, string>> = {
   'attendance.manual_created': 'ATTENDANCE_MANUAL_CREATED',
+  'attendance.manual_updated': 'ATTENDANCE_MANUAL_UPDATED',
   'attendance.deleted': 'ATTENDANCE_DELETED',
-  'attendance.updated': 'ATTENDANCE_UPDATED',
   'project.create': 'PROJECT_CREATED',
   'project.update': 'PROJECT_UPDATED',
-  'project.delete': 'PROJECT_DELETED',
+  'project-allocation.delete': 'PROJECT_ALLOCATION_DELETED',
   'auth.login.succeeded': 'AUTH_LOGIN_SUCCEEDED',
   'auth.login.failed': 'AUTH_LOGIN_FAILED',
-  'auth.logout': 'AUTH_LOGOUT',
 };
 
 /** Canonical name → every stored spelling that means it, canonical included. */
@@ -117,7 +137,11 @@ export function resolveAuditActionAliases(action: string): string[] {
 
   const canonical = canonicalAuditAction(trimmed);
   return [
-    ...new Set([trimmed, canonical, ...(STORED_SPELLINGS_BY_CANONICAL[canonical] ?? [])]),
+    ...new Set([
+      trimmed,
+      canonical,
+      ...(STORED_SPELLINGS_BY_CANONICAL[canonical] ?? []),
+    ]),
   ];
 }
 

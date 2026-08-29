@@ -2,7 +2,7 @@
 ID: BUG-2046
 aliases: [BUG-2046]
 Title: Audit actions use two naming conventions and the Result column is populated only by login events
-Status: OPEN
+Status: FIXED
 Severity: LOW
 Priority: P3
 Type: BUG
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-29
 DetectedInSha: eb457d9d
 AffectedModules: [services/api/src/modules/audit]
 OwnerAgent: architect
-ArchitectDisposition: PLAN_REQUIRED
+ArchitectDisposition: DONE
 QAReport: 
-RegressionId: 
+RegressionId: REG-356
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-29
-UpdatedAt: 2026-08-29
-ResolvedAt:
+UpdatedAt: 2026-08-30
+ResolvedAt: 2026-08-30
 ---
 
 # BUG-2046 — Audit actions use two naming conventions and the Result column is populated only by login events
@@ -178,17 +178,102 @@ that displays all of this.
 
 ## Resolution
 
-Open. No fix has been written.
+Fixed on two independent tracks, matching the two defects this record
+describes.
+
+**1. Two naming conventions.** `SCREAMING_SNAKE` is now the canonical
+convention, declared in a new catalog —
+`services/api/src/common/constants/audit-actions.ts` — alongside the
+`LEGACY_AUDIT_ACTION_ALIASES` map and two functions:
+`canonicalAuditAction()` (stored spelling → canonical name, unknown values
+pass through unchanged rather than being dropped) and
+`resolveAuditActionAliases()` (canonical or legacy name → every stored
+spelling that means it).
+
+**Existing rows are not rewritten.** Rewriting a historical `action` value
+would be the audit trail editing itself — the one thing an audit trail must
+not do. The reconciliation happens on read, in three places:
+
+- `AuditRepository.findByTenant()` expands a requested `action` filter to
+  every known spelling via `resolveAuditActionAliases()`, so a filter on
+  either the canonical or the legacy name finds rows written under both
+  (`services/api/src/modules/audit/audit.repository.ts:67-69`).
+- `AuditRepository.getFilterMetadata()` deduplicates the filter's action list
+  by canonical name (`audit.repository.ts:151-153`), so the dropdown offers
+  one entry per logical action instead of one per spelling.
+- `AuditService`'s projection adds `actionCanonical` and `actionLabel` beside
+  the untouched `action` (`audit.service.ts:194-196`), so a row stored as
+  `attendance.manual_created` and one stored as `ATTENDANCE_MANUAL_CREATED`
+  read identically without either row changing.
+
+**New writes.** The three call sites this record cited as live evidence —
+`attendance.service.ts` (`attendance.manual_created`, `attendance.deleted`,
+plus the direct sibling `attendance.manual_updated`), `projects.service.ts`
+(`project.create`, `project.update`, plus the sibling
+`project-allocation.delete`), and `auth.service.ts`
+(`auth.login.succeeded`/`auth.login.failed`, all call sites) — now write
+through `AUDIT_ACTIONS.*` constants instead of the dotted literal. A new row
+from any of these paths is written `SCREAMING_SNAKE`, going forward.
+
+**Not migrated, and deliberately so:** the remaining `dot.lower_snake` call
+sites elsewhere in the ~82 files that call `AuditService.log()` — for
+example `attendance-engine.service.ts`, `attendance-integrations/`, and
+`data/custom-data.service.ts` — still pass literals. Converting all of them
+is a mechanical but much larger change than this LOW-severity record
+warrants; each one that surfaces on a tenant's log is still findable (the
+alias resolver passes an undeclared name through unchanged) and each is a
+one-line addition to the catalog when its module is next touched. Migrating
+"the rest" was explicitly out of scope per the fix instructions — the
+directive was to convert the enumerable set of call sites this record
+already named as evidence, not every dotted literal in the codebase.
+
+**2. The Result column.** Made the screen honest rather than adding a
+migration. `AuditLog` gained no new column. The general Audit Events adapter
+(`apps/web/app/(authenticated)/settings/_lib/settings-adapter-registry.ts`,
+the `audit-logs` adapter) no longer offers Result, Failure Reason, IP
+Address, App Client or Session ID — the five columns that were blank on
+every row but auth events. `actionLabel` replaces raw `action` as the
+primary column so both naming conventions read the same; `action` stays
+available as its own field, as stored, because that is what an export or an
+alert is keyed on. The five auth-shaped columns remain on the Login History
+adapter, where every row is an authentication event and every one of them is
+populated.
+
+The alternative — promoting `result` (and the other four) to real columns —
+was rejected for this record. It costs an expand/backfill/contract migration
+on the largest table in the product (`AuditLog`, 13,703-line schema file,
+447 `Cascade` relations across it), backfills `null` for every historical
+row because the value was never captured for non-auth writers, and would
+still read empty for every module except auth, because only an
+authentication event has a result. That is not what an audit-log column
+scoped to "LOW, consumption not correctness" should cost. The
+snapshot-scraping projection in `AuditService` is unchanged — it is a
+legitimate read of what the auth module actually writes, and stays in place
+for Login History and for the `result`/`failureReason`/etc. fields the API
+still returns (they are just no longer offered as adapter columns most rows
+cannot fill).
+
+**Verification.** `npm --workspace api run test -- audit` and `tsc --noEmit`
+against `services/api/tsconfig.build.json`; results in the finalization
+report for this task. See `docs/qa/regressions/_incoming/audit.md` (REG-356)
+for the regression scenario and the mutation evidence.
 
 ## QA Retest
 
-Awaiting a fix — nothing to retest yet.
+Not yet re-run against a live tenant. The fix is covered by
+`services/api/src/modules/audit/audit-actions.spec.ts` (catalog and alias
+behavior) and `services/api/src/modules/audit/audit-canonical-writes.spec.ts`
+(the three call sites now write `AUDIT_ACTIONS.*`, not the dotted literal).
+A live retest against the DijiPeople Demo tenant — filtering by both a
+legacy and a canonical action and confirming the merged result set — is
+follow-up QA work, not blocking this fix.
 
 ## History
 
 - 2026-08-29 — created from the Starter-plan production QA run (SESSION-0070) at `eb457d9d`; observed against production API `949f461c`.
 - 2026-08-29 — while filing, the empty Result column was traced to `AuditLog` having no such column: the field is scraped from `afterSnapshot` and only the auth module writes it. Four further columns are empty for the same reason.
 - 2026-08-29 — triaged by the Architect for SESSION-0070: ArchitectDisposition PLAN_REQUIRED — pick one convention and migrate; it touches every module and every existing row.
+- 2026-08-30 — fixed: `SCREAMING_SNAKE` declared canonical in a new catalog, legacy aliases reconciled on read (never by rewriting stored rows), the five evidence call sites migrated to the catalog, and the Audit Events screen stopped offering the five columns only auth rows ever populated. ArchitectDisposition DONE; RegressionId REG-356.
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
 

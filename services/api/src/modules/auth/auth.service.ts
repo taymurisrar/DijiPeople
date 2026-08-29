@@ -12,6 +12,7 @@ import * as bcrypt from 'bcryptjs';
 import type { Request, Response } from 'express';
 import { createHash, randomUUID } from 'node:crypto';
 import type { StringValue } from 'ms';
+import { AUDIT_ACTIONS } from '../../common/constants/audit-actions';
 import { FOUNDATION_PERMISSION_DEFINITIONS } from '../../common/constants/permissions';
 import { ROLE_KEYS } from '../../common/constants/rbac-matrix';
 import {
@@ -290,7 +291,7 @@ export class AuthService {
       await this.logTenantAuthEvent({
         tenantId: user.tenantId,
         actorUserId: user.id,
-        action: 'auth.login.failed',
+        action: AUDIT_ACTIONS.AUTH_LOGIN_FAILED,
         entityId: user.id,
         email: user.email,
         result: 'FAILED',
@@ -323,7 +324,7 @@ export class AuthService {
       await this.logTenantAuthEvent({
         tenantId: user.tenantId,
         actorUserId: user.id,
-        action: 'auth.login.failed',
+        action: AUDIT_ACTIONS.AUTH_LOGIN_FAILED,
         entityId: user.id,
         email: user.email,
         result: 'FAILED',
@@ -371,7 +372,7 @@ export class AuthService {
     await this.logTenantAuthEvent({
       tenantId: refreshedUser.tenantId,
       actorUserId: refreshedUser.id,
-      action: 'auth.login.succeeded',
+      action: AUDIT_ACTIONS.AUTH_LOGIN_SUCCEEDED,
       entityId: refreshedUser.id,
       email: refreshedUser.email,
       result: 'SUCCESS',
@@ -1219,7 +1220,7 @@ export class AuthService {
       );
       await this.logTenantAuthEvent({
         tenantId: tenantContext.id,
-        action: 'auth.login.failed',
+        action: AUDIT_ACTIONS.AUTH_LOGIN_FAILED,
         entityId: normalizedEmail,
         email: normalizedEmail,
         result: 'FAILED',
@@ -1249,7 +1250,7 @@ export class AuthService {
       await this.logTenantAuthEvent({
         tenantId: user.tenantId,
         actorUserId: user.id,
-        action: 'auth.login.failed',
+        action: AUDIT_ACTIONS.AUTH_LOGIN_FAILED,
         entityId: user.id,
         email: user.email,
         result: 'FAILED',
@@ -1289,7 +1290,7 @@ export class AuthService {
       await this.logTenantAuthEvent({
         tenantId: user.tenantId,
         actorUserId: user.id,
-        action: 'auth.login.failed',
+        action: AUDIT_ACTIONS.AUTH_LOGIN_FAILED,
         entityId: user.id,
         email: user.email,
         result: 'FAILED',
@@ -1330,7 +1331,7 @@ export class AuthService {
       await this.logTenantAuthEvent({
         tenantId: user.tenantId,
         actorUserId: user.id,
-        action: 'auth.login.failed',
+        action: AUDIT_ACTIONS.AUTH_LOGIN_FAILED,
         entityId: user.id,
         email: user.email,
         result: 'FAILED',

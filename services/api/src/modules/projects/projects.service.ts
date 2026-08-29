@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma, SecurityAccessLevel, SecurityPrivilege } from '@prisma/client';
+import { AUDIT_ACTIONS } from '../../common/constants/audit-actions';
 import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
 import { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { resolveEffectiveAccessLevel } from '../../common/security/rbac-query-scope';
@@ -256,7 +257,7 @@ export class ProjectsService {
       await this.auditService.log({
         tenantId: currentUser.tenantId,
         actorUserId: currentUser.userId,
-        action: 'project.create',
+        action: AUDIT_ACTIONS.PROJECT_CREATED,
         entityType: 'Project',
         entityId: project.id,
         afterSnapshot: project,
@@ -441,7 +442,7 @@ export class ProjectsService {
       await this.auditService.log({
         tenantId: currentUser.tenantId,
         actorUserId: currentUser.userId,
-        action: 'project.update',
+        action: AUDIT_ACTIONS.PROJECT_UPDATED,
         entityType: 'Project',
         entityId: projectId,
         beforeSnapshot: existing,
@@ -623,7 +624,7 @@ export class ProjectsService {
     await this.auditService.log({
       tenantId: currentUser.tenantId,
       actorUserId: currentUser.userId,
-      action: 'project-allocation.delete',
+      action: AUDIT_ACTIONS.PROJECT_ALLOCATION_DELETED,
       entityType: 'ProjectAssignment',
       entityId: assignmentId,
       beforeSnapshot: existing,

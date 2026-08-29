@@ -5,7 +5,9 @@ import {
   resolveAuditActionAliases,
 } from '../../common/constants/audit-actions';
 import { AuditService } from './audit.service';
-import type { AuditRepository } from './audit.repository';
+import { AuditRepository } from './audit.repository';
+import type { AuditLogQueryDto } from './dto/audit-log-query.dto';
+import type { PrismaService } from '../../common/prisma/prisma.service';
 
 /**
  * BUG-2046 — two naming conventions in one column, with no mapping between
@@ -60,15 +62,15 @@ describe('audit action catalog', () => {
      * holds rows under both conventions; an exact match on `action` finds half
      * of them while looking like a complete answer.
      */
-    expect(resolveAuditActionAliases('ATTENDANCE_MANUAL_CREATED').sort()).toEqual(
-      ['ATTENDANCE_MANUAL_CREATED', 'attendance.manual_created'],
-    );
+    expect(
+      resolveAuditActionAliases('ATTENDANCE_MANUAL_CREATED').sort(),
+    ).toEqual(['ATTENDANCE_MANUAL_CREATED', 'attendance.manual_created']);
   });
 
   it('expands a legacy filter to the same set', () => {
-    expect(resolveAuditActionAliases('attendance.manual_created').sort()).toEqual(
-      ['ATTENDANCE_MANUAL_CREATED', 'attendance.manual_created'],
-    );
+    expect(
+      resolveAuditActionAliases('attendance.manual_created').sort(),
+    ).toEqual(['ATTENDANCE_MANUAL_CREATED', 'attendance.manual_created']);
   });
 
   it('returns a single spelling for an action with no legacy form', () => {
@@ -79,6 +81,34 @@ describe('audit action catalog', () => {
 
   it('returns nothing for an empty filter', () => {
     expect(resolveAuditActionAliases('   ')).toEqual([]);
+  });
+
+  it('resolves the attendance-update alias to the call site that actually writes it', () => {
+    /*
+     * BUG-2046 follow-up. The alias table originally declared
+     * `'attendance.updated': 'ATTENDANCE_UPDATED'`, but no call site ever
+     * wrote either spelling — the real writer is `attendance.manual_updated`
+     * (the sibling of `attendance.manual_created`, in the same service). The
+     * dead entry has been replaced with the one that matches a real row.
+     */
+    expect(canonicalAuditAction('attendance.manual_updated')).toBe(
+      'ATTENDANCE_MANUAL_UPDATED',
+    );
+    expect(LEGACY_AUDIT_ACTION_ALIASES['attendance.updated']).toBeUndefined();
+  });
+
+  it('resolves the project-allocation-delete alias to the call site that actually writes it', () => {
+    /*
+     * Same class of defect: the alias table declared `'project.delete'`, but
+     * the real call site in `projects.service.ts` writes
+     * `'project-allocation.delete'` — deleting a project assignment, not a
+     * project. The dead entry has been replaced with the one that matches a
+     * real row.
+     */
+    expect(canonicalAuditAction('project-allocation.delete')).toBe(
+      'PROJECT_ALLOCATION_DELETED',
+    );
+    expect(LEGACY_AUDIT_ACTION_ALIASES['project.delete']).toBeUndefined();
   });
 });
 
@@ -137,5 +167,69 @@ describe('audit log projection', () => {
 
     expect(legacy.actionLabel).toBe('Attendance Manual Created');
     expect(canonical.actionLabel).toBe(legacy.actionLabel);
+  });
+});
+
+describe('audit repository filtering', () => {
+  /*
+   * BUG-2046 — the load-bearing proof for the repository half of the fix.
+   * `AuditRepository.findByTenant` is what the Audit Events screen actually
+   * calls; this confirms *it* builds a `where.action` that reaches a row
+   * under either spelling, not just that `resolveAuditActionAliases()`
+   * returns the right array in isolation (the previous two `describe`
+   * blocks already cover that in full).
+   */
+  type FindManyArgs = [{ where: { action?: unknown } }];
+
+  function fakeDb(rows: Array<{ action: string }>) {
+    const findMany = jest.fn().mockResolvedValue(rows);
+    const count = jest.fn().mockResolvedValue(rows.length);
+    return {
+      db: { auditLog: { findMany, count } } as unknown as PrismaService,
+      findMany,
+      count,
+    };
+  }
+
+  function query(action: string) {
+    return { action, page: 1, pageSize: 20 } as unknown as AuditLogQueryDto;
+  }
+
+  it('a canonical filter reaches a row stored under the legacy spelling', async () => {
+    const { db, findMany } = fakeDb([{ action: 'attendance.manual_created' }]);
+    const repository = new AuditRepository({} as unknown as PrismaService);
+
+    await repository.findByTenant(
+      'tenant-1',
+      query('ATTENDANCE_MANUAL_CREATED'),
+      db,
+    );
+
+    const [{ where }] = findMany.mock.calls[0] as FindManyArgs;
+    expect(where.action).toEqual({
+      in: expect.arrayContaining([
+        'ATTENDANCE_MANUAL_CREATED',
+        'attendance.manual_created',
+      ]),
+    });
+  });
+
+  it('a legacy filter reaches a row stored under the canonical spelling', async () => {
+    const { db, findMany } = fakeDb([{ action: 'ATTENDANCE_MANUAL_CREATED' }]);
+    const repository = new AuditRepository({} as unknown as PrismaService);
+
+    await repository.findByTenant(
+      'tenant-1',
+      query('attendance.manual_created'),
+      db,
+    );
+
+    const [{ where }] = findMany.mock.calls[0] as FindManyArgs;
+    expect(where.action).toEqual({
+      in: expect.arrayContaining([
+        'ATTENDANCE_MANUAL_CREATED',
+        'attendance.manual_created',
+      ]),
+    });
   });
 });
