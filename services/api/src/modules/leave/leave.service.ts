@@ -13,6 +13,7 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { CreateLeavePolicyRuleDto } from './dto/create-leave-policy-rule.dto';
@@ -33,6 +34,8 @@ import { EmployeesRepository } from '../employees/employees.repository';
 import { UsersRepository } from '../users/users.repository';
 import { CancelLeaveRequestDto } from './dto/cancel-leave-request.dto';
 import { CreateLeavePolicyAssignmentDto } from './dto/create-leave-policy-assignment.dto';
+import { LeaveEntitlementService } from './leave-entitlement.service';
+import { LeavePolicyResolverService } from './leave-policy-resolver.service';
 import { CreateLeavePolicyDto } from './dto/create-leave-policy.dto';
 import { CreateLeaveTypeDto } from './dto/create-leave-type.dto';
 import { LeaveRequestActionDto } from './dto/leave-request-action.dto';
@@ -119,6 +122,8 @@ type LeavePolicyAssignmentShape = {
 
 @Injectable()
 export class LeaveService {
+  private readonly logger = new Logger(LeaveService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly leaveRepository: LeaveRepository,
@@ -127,6 +132,8 @@ export class LeaveService {
     private readonly auditService: AuditService,
     private readonly approvalResolver: ApprovalMatrixResolverService,
     private readonly notificationsService: NotificationsService,
+    private readonly policyResolver: LeavePolicyResolverService,
+    private readonly entitlementService: LeaveEntitlementService,
   ) {}
 
   findLeaveTypes(tenantId: string, query: ListLeaveConfigDto) {
@@ -1332,7 +1339,7 @@ export class LeaveService {
     await this.ensureLeavePolicyExists(currentUser.tenantId, dto.leavePolicyId);
     await this.validateLeavePolicyAssignment(currentUser.tenantId, dto);
 
-    return this.leaveRepository.createLeavePolicyAssignment({
+    const assignment = await this.leaveRepository.createLeavePolicyAssignment({
       tenantId: currentUser.tenantId,
       leavePolicyId: dto.leavePolicyId,
       scopeType: dto.scopeType,
@@ -1349,6 +1356,36 @@ export class LeaveService {
       createdById: currentUser.userId,
       updatedById: currentUser.userId,
     });
+
+    await this.reconcileEntitlementAfterAssignmentChange(currentUser.tenantId);
+    return assignment;
+  }
+
+  /*
+   * BUG-1967 — an assignment change is what allocates entitlement.
+   *
+   * Deliberately reconciles the whole tenant rather than the employees this
+   * assignment names. An assignment change alters who wins for employees it
+   * does not itself cover — deactivating a DEPARTMENT assignment promotes the
+   * TENANT one for everyone in that department — and computing the affected set
+   * exactly is harder than recomputing an answer that is idempotent anyway.
+   *
+   * Failure here must not fail the assignment write. The administrator's change
+   * is saved and correct; entitlement is a derived consequence, and the next
+   * assignment change reconciles it again. Losing the write to a reconciliation
+   * error would be the worse outcome, so this logs and continues.
+   */
+  private async reconcileEntitlementAfterAssignmentChange(tenantId: string) {
+    try {
+      await this.entitlementService.reconcileTenant(tenantId, new Date());
+    } catch (error) {
+      this.logger.error(
+        `Leave entitlement reconciliation failed for tenant ${tenantId}. ` +
+          `The assignment was saved; balances are unchanged until the next ` +
+          `assignment change or a manual reconcile.`,
+        error instanceof Error ? error.stack : undefined,
+      );
+    }
   }
 
   async updateLeavePolicyAssignment(
@@ -1446,6 +1483,7 @@ export class LeaveService {
       throw new NotFoundException('Leave policy assignment not found.');
     }
 
+    await this.reconcileEntitlementAfterAssignmentChange(currentUser.tenantId);
     return this.leaveRepository.findLeavePolicyAssignmentById(
       currentUser.tenantId,
       assignmentId,
@@ -1466,6 +1504,7 @@ export class LeaveService {
       throw new NotFoundException('Leave policy assignment not found.');
     }
 
+    await this.reconcileEntitlementAfterAssignmentChange(currentUser.tenantId);
     return { ok: true };
   }
 
@@ -1943,7 +1982,13 @@ export class LeaveService {
     return approvalSteps.sort((a, b) => a.stepOrder - b.stepOrder);
   }
 
-  private async resolveApplicableLeavePolicy(
+  /*
+   * Moved to `LeavePolicyResolverService` (EXECPLAN-0026). Entitlement
+   * allocation has to answer exactly this question, and answering it in two
+   * places is how the allocated number and the enforced number drift apart.
+   * Kept as a private wrapper so the call sites below read unchanged.
+   */
+  private resolveApplicableLeavePolicy(
     tenantId: string,
     employee: {
       id: string;
@@ -1953,72 +1998,11 @@ export class LeaveService {
     },
     at: Date,
   ) {
-    const assignments =
-      await this.leaveRepository.findActiveLeavePolicyAssignments(tenantId, at);
-    const businessUnit = employee.businessUnitId
-      ? await this.prisma.businessUnit.findFirst({
-          where: { id: employee.businessUnitId, tenantId },
-          select: { organizationId: true },
-        })
-      : null;
-
-    const specificity = [
-      { scopeType: ApprovalScopes.EMPLOYEE, scopeId: employee.id, rank: 6 },
-      {
-        scopeType: ApprovalScopes.EMPLOYEE_LEVEL,
-        scopeId: employee.employeeLevelId,
-        rank: 5,
-      },
-      {
-        scopeType: ApprovalScopes.DEPARTMENT,
-        scopeId: employee.departmentId,
-        rank: 4,
-      },
-      {
-        scopeType: ApprovalScopes.BUSINESS_UNIT,
-        scopeId: employee.businessUnitId,
-        rank: 3,
-      },
-      {
-        scopeType: ApprovalScopes.ORGANIZATION,
-        scopeId: businessUnit?.organizationId,
-        rank: 2,
-      },
-      { scopeType: ApprovalScopes.TENANT, scopeId: null, rank: 1 },
-    ];
-
-    const matches = assignments
-      .filter((assignment) => assignment.leavePolicy?.isActive)
-      .map((assignment) => {
-        const matchedScope = specificity.find(
-          (scope) =>
-            assignment.scopeType === scope.scopeType &&
-            (scope.scopeType === ApprovalScopes.TENANT ||
-              assignment.scopeId === scope.scopeId),
-        );
-
-        return matchedScope ? { assignment, rank: matchedScope.rank } : null;
-      })
-      /*
-       * A type predicate rather than `filter(Boolean)`: the latter removes the
-       * nulls at runtime and leaves them in the type, so every read in the
-       * comparator below was on a possibly-null value. TypeScript said so as
-       * soon as the `any` came off the Prisma client.
-       */
-      .filter((match): match is NonNullable<typeof match> => match !== null)
-      .sort((left, right) => {
-        if (left.rank !== right.rank) return right.rank - left.rank;
-        if (left.assignment.priority !== right.assignment.priority) {
-          return right.assignment.priority - left.assignment.priority;
-        }
-
-        return (
-          right.assignment.effectiveFrom.getTime() -
-          left.assignment.effectiveFrom.getTime()
-        );
-      });
-
-    return matches[0]?.assignment.leavePolicy ?? null;
+    return this.policyResolver.resolveApplicableLeavePolicy(
+      tenantId,
+      employee,
+      at,
+    );
   }
 
   private validateAndCalculateRange(startDateRaw: string, endDateRaw: string) {

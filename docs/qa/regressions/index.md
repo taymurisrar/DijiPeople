@@ -3133,3 +3133,19 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | **Six of the seven failed loudly and the seventh did not, which is the part worth remembering.** Department > Teams returned **201** and created a team with `departmentId = null` - a team that never appears in any department list, so nothing surfaces it and no error is ever raised. A guard that can be wrong in a way that returns success cannot be trusted to announce itself, which is why the regression asserts the request body rather than the response. There was **no test anywhere in `apps/web`** exercising related-record creation when this was found; the nearest miss, `standard-module-views.spec.ts`, already iterated every module spec and asserted nothing about `relatedTabs` sitting in the same object. The spec walks the settings adapter registry too, where six of the seven live and which is not in `SPECS` at all - a guard over only the standard modules would have reported the class closed with most instances still open. It also asserts that it found tabs to check, because an `it.each` over an empty array is green. |
 | **Fixed** | 2026-08-29 |
 | **Active** | yes |
+
+### REG-306 - A leave entitlement that never became a balance
+
+| | |
+|---|---|
+| **Bug class** | `half-built-model` |
+| **Module** | `leave` |
+| **Bug record** | BUG-1967 |
+| **Scenario id** | QA-RUNTIME-021 |
+| **Root cause** | The allocation half of the leave balance model was never implemented. `LeavePolicyRule.entitlementDays` was validated, stored and displayed, and nothing read it into a balance. `LeaveBalance` was written in exactly one place - on approval - and that write only ever decremented: `totalAllocated` was created as literal `new Prisma.Decimal(0)` and incremented nowhere. Since `LeaveType.consumesBalance` defaults to true, the balance gate refused every leave request on every tenant unless a row had been seeded by hand. |
+| **Regression test** | `services/api/src/modules/leave/leave-entitlement.service.spec.ts` |
+| **Scenario** | Allocation follows the policy that **wins** for each employee, not the assignment that triggered it; `totalRemaining` is derived and `totalUsed` never moves; it is idempotent; an employee covered by no policy is left alone rather than zeroed; a negative remaining is not clamped. |
+| **Proven to fail without the fix** | Mutation-tested: an implementation that resolves the policy once rather than per employee passes five of the six assertions and fails only the first. |
+| **Note** | **Configuration can be validated, stored, displayed and reviewed while the thing it configures does not exist.** Nothing about `entitlementDays` looked wrong in isolation; what was missing was a reader, and a missing reader has no code to inspect. Worth carrying to any other configured-number-with-a-consumer in this codebase. The design decision is the part most likely to be got wrong twice: exactly one policy wins per employee by specificity, so allocation re-resolves **per employee** exactly as the balance gate does. Allocating the triggering assignment's own entitlements would write a number no governing policy justifies - worse than the original bug, because uniformly blocking is at least visible. That is why `resolveApplicableLeavePolicy` was extracted to `LeavePolicyResolverService` and shared rather than reimplemented. **Deliberately not done:** no backfill of existing tenants, whose balances stay at zero until the next assignment write. A backfill rewrites balances on live tenants including one configured around this bug, and belongs in a RELEASE task with its own rollback. |
+| **Fixed** | 2026-08-29 |
+| **Active** | yes |

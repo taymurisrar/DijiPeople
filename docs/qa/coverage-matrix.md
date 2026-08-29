@@ -12,9 +12,9 @@ only scenarios that cannot run here, fails `node scripts/rebuild-qa.mjs`.
 **part of that task's scope** — or, when that is too large, a `TEST_GAP` backlog
 item. See [`README.md`](README.md).
 
-**Areas: 22** · scenarios: 247 · automated: 219 · blocked by infrastructure: 0
+**Areas: 23** · scenarios: 248 · automated: 220 · blocked by infrastructure: 0
 
-**Open gaps: 113** · partial: 26
+**Open gaps: 120** · partial: 27
 
 | Area | UNIT | API | DATABASE | INTEGRATION | E2E | BROWSER | SECURITY | PERFORMANCE |
 |---|---|---|---|---|---|---|---|---|
@@ -28,6 +28,7 @@ item. See [`README.md`](README.md).
 | [deployment-release](../../docs/qa/test-plans/PLAN-012-deployment-release.md) | GOOD | **GAP** | PARTIAL | **GAP** | **GAP** | **GAP** | **GAP** | n/a |
 | [landing](../../docs/qa/test-plans/PLAN-013-landing.md) | **GAP** | **GAP** | **GAP** | **GAP** | **GAP** | GOOD | **GAP** | **GAP** |
 | [lead-management](../../docs/qa/test-plans/PLAN-005-lead-management.md) | GOOD | GOOD | **GAP** | **GAP** | **GAP** | **GAP** | GOOD | n/a |
+| [leave](../../docs/qa/test-plans/PLAN-023-leave.md) | PARTIAL | **GAP** | **GAP** | **GAP** | **GAP** | **GAP** | **GAP** | **GAP** |
 | [legal](../../docs/qa/test-plans/PLAN-015-legal.md) | **GAP** | **GAP** | GOOD | n/a | **GAP** | **GAP** | **GAP** | n/a |
 | [outbox](../../docs/qa/test-plans/PLAN-014-outbox.md) | **GAP** | n/a | GOOD | **GAP** | **GAP** | n/a | n/a | **GAP** |
 | [partner-lifecycle](../../docs/qa/test-plans/PLAN-006-partner-lifecycle.md) | **GAP** | GOOD | **GAP** | **GAP** | **GAP** | PARTIAL | **GAP** | n/a |

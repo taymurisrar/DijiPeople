@@ -6,7 +6,7 @@ One evergreen plan per product area: scope, risks, the cases that must always
 be covered, and the declared coverage per dimension. QA loads the plan for
 every area a change touches **before** designing anything new.
 
-**Plans: 22** · scenarios across them: 247
+**Plans: 23** · scenarios across them: 248
 
 | Plan | Area | Risk | Status | Scenarios | Related bugs | Verified against |
 |---|---|---|---|---|---|---|
@@ -20,6 +20,7 @@ every area a change touches **before** designing anything new.
 | [PLAN-012](../../../docs/qa/test-plans/PLAN-012-deployment-release.md) | deployment-release | HIGH | CURRENT | 28 | BUG-0023, BUG-0026, BUG-0037, BUG-0042, BUG-0047 | `287612d` |
 | [PLAN-013](../../../docs/qa/test-plans/PLAN-013-landing.md) | landing | HIGH | CURRENT | 24 | BUG-0061, BUG-0062, BUG-0063, BUG-0064, BUG-0065, BUG-0066 | `c332992` |
 | [PLAN-005](../../../docs/qa/test-plans/PLAN-005-lead-management.md) | lead-management | HIGH | CURRENT | 6 | BUG-0013, BUG-0018, BUG-0021, BUG-0031, BUG-0032 | `287612d` |
+| [PLAN-023](../../../docs/qa/test-plans/PLAN-023-leave.md) | leave | HIGH | CURRENT | 1 | BUG-1967, BUG-1966, BUG-1962, BUG-1970 | `9def9971` |
 | [PLAN-015](../../../docs/qa/test-plans/PLAN-015-legal.md) | legal | HIGH | CURRENT | 5 | — | `bd0fb36` |
 | [PLAN-014](../../../docs/qa/test-plans/PLAN-014-outbox.md) | outbox | HIGH | CURRENT | 2 | BUG-0070 | `bd0fb36` |
 | [PLAN-006](../../../docs/qa/test-plans/PLAN-006-partner-lifecycle.md) | partner-lifecycle | HIGH | CURRENT | 6 | BUG-0016, BUG-0019, BUG-0025, BUG-0048 | `287612d` |

@@ -458,6 +458,26 @@ export class LeaveRepository {
     });
   }
 
+  /**
+   * The employees entitlement reconciliation runs over (BUG-1967).
+   *
+   * Filters `isDeleted` because `Employee` is one of the few models carrying
+   * soft delete — allocating leave to a deleted employee would bring them back
+   * in every balance report that reads `LeaveBalance`.
+   */
+  findEmployeesForEntitlement(tenantId: string) {
+    return this.prisma.employee.findMany({
+      where: { tenantId, isDeleted: false },
+      select: {
+        id: true,
+        departmentId: true,
+        businessUnitId: true,
+        employeeLevelId: true,
+      },
+      orderBy: { id: 'asc' },
+    });
+  }
+
   listActiveLeavePolicyRules(tenantId: string, leavePolicyId: string) {
     return this.prisma.leavePolicyRule.findMany({
       where: {

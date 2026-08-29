@@ -2,7 +2,7 @@
 ID: BUG-1967
 aliases: [BUG-1967]
 Title: Leave entitlement is never allocated to a balance, so every leave request is refused
-Status: OPEN
+Status: FIXED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-29
 DetectedInSha: eb457d9d
 AffectedModules: [services/api/src/modules/leave]
 OwnerAgent: architect
-ArchitectDisposition: PLAN_REQUIRED
+ArchitectDisposition: FIX_NOW
 QAReport: 
-RegressionId: 
+RegressionId: REG-306
 RelatedBacklogItem:
 RelatedDecision:
-RelatedImplementation:
+RelatedImplementation: EXECPLAN-0026
 CreatedAt: 2026-08-29
 UpdatedAt: 2026-08-29
-ResolvedAt:
+ResolvedAt: 2026-08-29
 ---
 
 # BUG-1967 — Leave entitlement is never allocated to a balance, so every leave request is refused
@@ -188,11 +188,76 @@ never executed.
 
 ## Resolution
 
-Open. No fix has been written.
+Fixed under EXECPLAN-0026 (docs/plans/), which this record correctly insisted on: this was
+a missing capability, not a patch.
+
+**The decision the plan had to make**, taken by the repository owner on
+2026-08-29: allocate the **full annual entitlement up front, at policy
+assignment**. Not a scheduled accrual driven by `accrualType`, and not a balance
+computed on read.
+
+- New `LeaveEntitlementService`. `reconcileTenant` walks the tenant's employees
+  in chunks; `reconcileEmployee` resolves the employee's winning policy and
+  writes `totalAllocated` from each active rule's `entitlementDays`, deriving
+  `totalRemaining` as allocated minus used.
+- `resolveApplicableLeavePolicy` was extracted from `LeaveService` into
+  `LeavePolicyResolverService` and is now shared. Allocation must answer exactly
+  the question the balance gate answers, and answering it in two places is how
+  the allocated number and the enforced number drift apart.
+- Reconciliation is triggered by all three assignment mutations — create, update
+  and deactivate — and is deliberately tenant-wide rather than scoped to the
+  employees the assignment names, because an assignment change alters who wins
+  for employees it does not itself cover.
+- A reconciliation failure logs and does not fail the assignment write. The
+  administrator's change is correct and saved; entitlement is derived and the
+  next change recomputes it.
+
+**The design point worth keeping.** Exactly one policy wins per employee, by
+specificity. Allocating the *triggering assignment's* entitlements would
+overwrite the balance of an employee that assignment does not govern, and the
+gate would then enforce a number no applicable policy justifies — silently wrong,
+which is worse than the uniform blocking this record describes. Allocation
+therefore re-resolves per employee. The first test in the suite pins exactly
+this, and the naive implementation passes the other five.
+
+**Two things deliberately not done**, both flagged rather than assumed:
+
+- **No backfill.** Existing tenants keep `totalAllocated = 0` until their next
+  assignment write. A backfill rewrites balances across live tenants — including
+  the demo tenant, deliberately configured around this bug — and that is a data
+  migration belonging to a `RELEASE` task with its own rollback section, not
+  folded into a defect fix. `reconcileTenant` is written so the backfill is later
+  a loop over tenants calling it. **This is a question for the repository owner.**
+- **No leave-year handling.** Nothing resets or carries a balance forward at a
+  year boundary, and allocating a full annual entitlement up front makes that
+  question due rather than optional. It was not in scope here and is recorded in
+  [[PLAN-023]] as the uncovered state transition.
+
 
 ## QA Retest
 
-Awaiting a fix — nothing to retest yet.
+Retested by the regression suite: six assertions in
+`leave-entitlement.service.spec.ts` pass, and the first was confirmed to fail
+against an implementation that resolves the policy once rather than per employee.
+The full api suite — 2,039 tests across 248 files — passes, which matters here
+because the resolver extraction touched a method the request path uses.
+
+That extraction was verified rather than assumed, and not by inspection: the
+existing `leave.service.spec.ts` failed when the resolver was first stubbed out,
+which is how it was established that the leave-type test genuinely exercises
+policy resolution. It now constructs the real `LeavePolicyResolverService` over
+the same mocked repository, and passes.
+
+**Not retested live, and the first acceptance criterion is therefore only
+half-met.** An employee covered by an assignment granting 20 days is shown by
+test to have 20 allocated; that they can then *submit* a three-day request end to
+end has not been observed, because submission additionally needs a routable
+approval chain, which a seeded tenant does not have (BUG-1968, and ITEM-0113 for
+the seed itself). The balance gate is no longer the blocker; it is no longer the
+only one either.
+
+Criteria 2, 3 and 4 are met and covered.
+
 
 ## History
 
@@ -204,5 +269,6 @@ Awaiting a fix — nothing to retest yet.
 ## Related
 
 - Referenced by — [[ITEM-0105]]
+- Regression — REG-306 (see the regression register)
 
 <!-- GRAPH:END -->

@@ -18,7 +18,7 @@
 | Open HIGH | 19 |
 | Awaiting Architect triage | 0 |
 | Owner decisions pending | 8 |
-| QA coverage gaps | 113 |
+| QA coverage gaps | 120 |
 | Scenarios blocked by infrastructure | 0 |
 
 ## Backlog health
@@ -236,6 +236,13 @@ gap into scope — or files a `TEST_GAP` item and says so.
 | [[PLAN-022-approvals|approvals]] | BROWSER |
 | [[PLAN-022-approvals|approvals]] | SECURITY |
 | [[PLAN-022-approvals|approvals]] | PERFORMANCE |
+| [[PLAN-023-leave|leave]] | API |
+| [[PLAN-023-leave|leave]] | DATABASE |
+| [[PLAN-023-leave|leave]] | INTEGRATION |
+| [[PLAN-023-leave|leave]] | E2E |
+| [[PLAN-023-leave|leave]] | BROWSER |
+| [[PLAN-023-leave|leave]] | SECURITY |
+| [[PLAN-023-leave|leave]] | PERFORMANCE |
 
 ## Backlog Health
 
