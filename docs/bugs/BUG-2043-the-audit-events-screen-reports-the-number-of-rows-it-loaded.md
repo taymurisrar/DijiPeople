@@ -13,7 +13,7 @@ AffectedModules: [apps/web, services/api/src/modules/audit]
 OwnerAgent: architect
 ArchitectDisposition: DONE
 QAReport: 
-RegressionId: 
+RegressionId: REG-354
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
