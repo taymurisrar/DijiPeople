@@ -20,6 +20,11 @@
 | **Merge Commit** | `6d17989a916b73a28030b04393d85259238a0de0` — PR #56, merged 2026-08-29 13:42:45 UTC |
 | **Final Target SHA** | `6d17989a916b73a28030b04393d85259238a0de0` — and production serves it |
 
+> This record's filename carries `219d9551`, the task-branch head when the
+> record was generated. That commit no longer exists: it was this session's own
+> back-merge, discarded when another session's landed first (see Conflicts). The
+> SHA that matters is the Merge Commit above, and it is real.
+
 ### Commits
 
 ```
@@ -406,11 +411,19 @@ M	services/api/test/workspace-discovery.e2e-spec.ts
 time and `main` carried nothing `develop` lacked, so the merge commit's tree is
 exactly the tree CI verified at `4d10f62c`.
 
-One merge afterwards, also clean: `main` back into `develop`, to return the
-release merge commit to the integration branch. `develop` had moved one docs
-commit (`fcb0af67`) past the released SHA while the deploy ran, so this could
-not be a fast-forward — it is a real merge, and git resolved it with no
-conflicted file.
+The back-merge of `main` into `develop` — returning the release commit to the
+integration branch — **was done by another session**, `2ee22c79` on
+`agent/reconcile-main-into-develop`. This session had made its own and had to
+discard it: `develop` moved twice more while this closure sat in CI, and by the
+time it came to integrate, the back-merge already existed. Pushing a second one
+would have put two merges of the same commit into the history for no gain.
+
+Worth recording because the discard was nearly an accident. The obvious response
+to "your branch is behind" is `git rebase`, and **a plain rebase silently drops
+a merge commit** — which would have left `develop` without the release commit
+while the branch still looked correct. That was caught by asserting the ancestry
+(`git merge-base --is-ancestor origin/main HEAD`) instead of trusting that the
+rebase preserved it.
 
 The interruption worth recording is not a conflict but a **moving head**. PR #56
 was opened against `25dfd43a` and merged at `4d10f62c`: SESSION-0071 pushed
