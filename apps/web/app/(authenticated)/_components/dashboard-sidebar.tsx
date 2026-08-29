@@ -88,7 +88,18 @@ export function DashboardSidebar({
     <aside
       aria-label="Dashboard navigation"
       className={[
-        "dp-theme-scope dp-sidebar-scope flex h-[calc(100vh-2rem)] min-h-0 flex-col overflow-hidden rounded-[24px] border border-border/70 bg-surface/80 p-2 shadow-[0_10px_30px_rgba(15,23,42,0.05)] backdrop-blur transition-all xl:sticky xl:top-4",
+        /*
+         * BUG-1668 — below `xl` this carried no width class at all, so the
+         * flex item's width came from its content: full nav-item labels that
+         * do not wrap, which measured 217px at every width under `xl` on a
+         * populated tenant — 56% of a 390px screen, with the collapse
+         * control unreachable there (see below) so nothing could shrink it.
+         * `w-16` below `xl` fixes the same icon-only rail width the
+         * collapsed desktop state already uses, rather than a new size.
+         * `shrink-0` stops the flex item from being asked to shrink below
+         * that regardless of sibling content width.
+         */
+        "dp-theme-scope dp-sidebar-scope flex h-[calc(100vh-2rem)] w-16 min-h-0 shrink-0 flex-col overflow-hidden rounded-[24px] border border-border/70 bg-surface/80 p-2 shadow-[0_10px_30px_rgba(15,23,42,0.05)] backdrop-blur transition-all xl:sticky xl:top-4",
         isCollapsed ? "xl:w-[76px]" : "xl:w-[280px]",
       ].join(" ")}
     >
@@ -172,7 +183,16 @@ function SidebarNavItem({
       className={[
         "group relative flex w-full items-center rounded-2xl border px-2 py-1 text-left outline-none transition-all",
         "focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent/20",
-        isCollapsed ? "justify-center gap-0" : "gap-3",
+        /*
+         * BUG-1668 — the label span is `sr-only` (zero visual width) below
+         * `xl` whenever `isCollapsed` is false, since `isCollapsed` cannot
+         * become true there (its only toggle is `hidden ... xl:block`). Icon
+         * stays centred with no reserved gap for invisible text until `xl`,
+         * where a real label appears and the original spacing returns.
+         */
+        isCollapsed
+          ? "justify-center gap-0"
+          : "justify-center gap-0 xl:justify-normal xl:gap-3",
         isActive
           ? "border-accent/30 bg-[color-mix(in_oklab,var(--dp-accent)_14%,var(--dp-mix-base))] text-foreground shadow-sm"
           : "border-transparent bg-transparent text-foreground hover:border-border/80 hover:bg-muted/30",
@@ -194,7 +214,17 @@ function SidebarNavItem({
       </span>
 
       {!isCollapsed ? (
-        <span className="min-w-0 flex-1">
+        /*
+         * BUG-1668 — visually hidden rather than unrendered below `xl`: the
+         * label text is what forced this row past the icon-only rail width
+         * fixed on the `<aside>` above (`w-16` cannot contain unwrapped
+         * label text), and the collapse control that would otherwise let a
+         * user choose this is `hidden ... xl:block` and unreachable below
+         * `xl` regardless. `sr-only` keeps the label in the link's
+         * accessible name rather than depending on `title`, which is not
+         * reliably exposed by every screen reader.
+         */
+        <span className="sr-only min-w-0 flex-1 xl:not-sr-only">
           <span className="block truncate text-xs font-semibold">{label}</span>
         </span>
       ) : null}
@@ -269,6 +299,17 @@ function SidebarBrand({
   );
 }
 
+/*
+ * BUG-1668 — this used to render the full brand card (logo, name, and the
+ * "Workspace" label) at every width below `xl`, on the assumption that the
+ * sidebar itself was full width there. Now that the same width is a `w-16`
+ * icon-only rail below `xl` (see the `<aside>` above), that card is wider
+ * than its container on its own — the logo alone (`h-10 w-10` plus padding)
+ * does not fit inside 64px, before any text. Reduced to the logo, centred,
+ * matching the rail rather than reintroducing the overflow this fix removes.
+ * Brand identity is not lost: `DashboardTopbar` (rendered alongside this
+ * sidebar on every authenticated route) carries the tenant name separately.
+ */
 function CompactBrand({
   brandLogoUrl,
   brandName,
@@ -282,23 +323,13 @@ function CompactBrand({
   );
 
   return (
-    <div className="flex items-center gap-3 rounded-2xl border border-border/70 bg-white/60 px-3 py-3">
+    <div className="flex items-center justify-center rounded-2xl border border-border/70 bg-white/60 p-2">
       <TenantLogo
-        className="h-10 w-10 shrink-0"
+        className="h-8 w-8 shrink-0"
         logoUrl={brandLogoUrl}
         name={effectiveBrandName}
-        sizeClassName="h-10 w-10"
+        sizeClassName="h-8 w-8"
       />
-
-      <div className="min-w-0">
-        <p className="truncate text-[11px] font-semibold uppercase tracking-[0.18em] text-accent">
-          {effectiveBrandName}
-        </p>
-        {/* See the expanded brand above — a label, not a heading (BUG-1673). */}
-        <p className="truncate text-base font-semibold text-foreground">
-          Workspace
-        </p>
-      </div>
     </div>
   );
 }
