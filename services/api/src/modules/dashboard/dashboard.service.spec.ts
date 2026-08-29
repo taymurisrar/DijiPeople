@@ -140,7 +140,7 @@ describe('DashboardService attendance operations', () => {
             ) => Promise<{
               absent: number;
               nonWorking: number;
-              exceptions: { key: string; value: number; severity: string }[];
+              exceptions: { key: string; value: number; status: string }[];
             }>;
           }
         ).getAttendanceOperations(currentUser, today),
@@ -181,7 +181,7 @@ describe('DashboardService attendance operations', () => {
     const absentRow = result.exceptions.find((row) => row.key === 'absent');
 
     expect(absentRow?.value).toBe(0);
-    expect(absentRow?.severity).toBe('good');
+    expect(absentRow?.status).toBe('good');
   });
 
   it('still counts a genuine absence on a working day', async () => {
@@ -199,7 +199,7 @@ describe('DashboardService attendance operations', () => {
     expect(result.absent).toBe(2);
     expect(result.nonWorking).toBe(0);
     expect(absentRow?.value).toBe(2);
-    expect(absentRow?.severity).toBe('warning');
+    expect(absentRow?.status).toBe('warning');
   });
 
   it('does not count an excused employee as absent alongside working colleagues', async () => {

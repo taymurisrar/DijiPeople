@@ -2,7 +2,7 @@
 ID: BUG-2008
 aliases: [BUG-2008]
 Title: Every employee is counted absent on a non-working day and raised as an exception
-Status: OPEN
+Status: FIXED
 Severity: HIGH
 Priority: P1
 Type: DATA_INTEGRITY
@@ -11,7 +11,7 @@ DetectedDate: 2026-08-29
 DetectedInSha: eb457d9d
 AffectedModules: [services/api/src/modules/attendance, services/api/src/modules/dashboard]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
@@ -19,7 +19,7 @@ RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-29
 UpdatedAt: 2026-08-29
-ResolvedAt:
+ResolvedAt: 2026-08-29
 ---
 
 # BUG-2008 — Every employee is counted absent on a non-working day and raised as an exception
@@ -157,7 +157,89 @@ Check In button whose tooltip is the evidence that the schedule is known.
 
 ## Resolution
 
-Open. No fix has been written.
+Fixed. The premise held exactly as filed. The absent count was
+`Math.max(activeEmployeeCount - entries.length, 0)`
+(`services/api/src/modules/dashboard/dashboard.service.ts:1502` and `:1524` at
+the time of the report) — headcount minus whoever had an attendance row, with no
+reference to any work schedule or holiday calendar. The same number fed the
+"Absent employees" exception row and the manager view's "Absent today" metric.
+
+**Root cause, established.** Two readers of the same calendar, one of which did
+not read it. The check-in gate resolves the employee's work configuration
+through `AttendanceRepository.resolveEmployeeWorkConfiguration` and knows the day
+is off; the dashboard never asked. It could not cheaply ask, either: that
+resolver answers for one employee in up to eight round trips, so calling it per
+head would have turned the landing screen of a large tenant into thousands of
+queries.
+
+**What changed.**
+
+- `services/api/src/modules/attendance/attendance.repository.ts` — new
+  `resolveWorkDayForEmployees(tenantId, employeeWhere, effectiveDate, dayOfWeek)`
+  returning an `EmployeeWorkDayResolution` per employee. It resolves a whole
+  population in **five queries** — employees, effective-dated schedule
+  assignments, every active work schedule with its row for the weekday, every
+  active holiday calendar, and the holidays on that date — then picks in memory.
+  The precedence is **not** restated: it comes from
+  `work-configuration-hierarchy.ts`, the same module the single-employee
+  resolver uses, so the two cannot disagree about who wins. The comment on the
+  method says what is duplicated (query shape) and what is not (the rule), and
+  tells the next reader to change both together.
+
+- `services/api/src/modules/attendance/attendance.service.ts` — new
+  `resolveAttendanceExpectation(tenantId, attendanceDate, employeeWhere)`,
+  splitting a population into `expectedEmployeeIds` and
+  `nonWorkingEmployeeIds`. The work calendar is an attendance concept, so the
+  attendance module owns the answer.
+
+- `services/api/src/modules/dashboard/dashboard.service.ts` — `absent` is now
+  the count of employees the calendar **expected** to attend who have no
+  attendance row, rather than headcount minus attendance rows. The exception row
+  is built from the same number, so no absence exception is raised on a
+  non-working day. A `nonWorking` count is reported alongside so the tile can say
+  "nobody was expected today" instead of showing four zeroes that read as missing
+  data. `toAttendanceDate` converts the tile's server-local day to the UTC
+  midnight that attendance dates are stored at; its comment records that the
+  dashboard's use of the server's day rather than the tenant's is pre-existing
+  and deliberately unchanged, because the two halves of the tile must at least
+  agree with each other.
+
+- `services/api/src/modules/dashboard/dashboard.module.ts` — imports
+  `AttendanceModule` rather than re-querying schedules and holidays.
+
+**Behaviour on the reported case.** An employee with no work schedule at all is
+still counted as expected — nothing has said they do not work, and guessing
+"off" would silently excuse them. This mirrors `resolveSelfServiceContext`,
+which computes `isOffDay` as `Boolean(workSchedule && !isWorkingDay)`.
+
+**Holidays are covered too**, which the record asked for and the run did not
+test: a holiday on the employee's resolved calendar excuses them, with the
+TENANT / DEPARTMENT / WORK_SITE scope matching the check-in path applies.
+
+**Tests.**
+
+- `services/api/src/modules/attendance/attendance-work-day-resolution.spec.ts`
+  (new, 17 cases) pins the resolution itself: schedule-day wins over the weekly
+  pattern; an employee with no schedule is not excused; assignment beats employee
+  default beats team beats department; business-unit scope beats organization
+  scope; tenant default is last; a tenant-scoped holiday applies, a
+  department-scoped one does not apply across departments, a work-site one
+  applies at that site, a holiday on an unresolved calendar is ignored, and the
+  owning schedule's calendar is consulted before the tenant default. Two cases
+  guard the shape: the whole population resolves in one pass, and no holiday
+  query is issued when nobody resolves to a calendar.
+- `services/api/src/modules/dashboard/dashboard.service.spec.ts` — the absent
+  count is 0 when the calendar excuses the whole workforce, no exception is
+  raised on such a day, a genuine absence on a working day is still counted and
+  still raised as a warning, an excused employee is not counted alongside working
+  colleagues, and the date handed to the attendance module is the UTC midnight of
+  the day the tile is reporting on.
+
+**Not done.** The record asked to check the other consumers of the absent
+calculation before closing. `getAttendanceOperations` is the only place that
+computes it; the HR, manager and employee views all read that one method, so all
+three are fixed by this change. The reports screen was already correct — it
+counts entries rather than deriving absence.
 
 ## QA Retest
 
