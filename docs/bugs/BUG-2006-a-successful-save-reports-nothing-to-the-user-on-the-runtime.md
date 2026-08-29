@@ -137,6 +137,18 @@ nothing" is currently the default by omission rather than by choice.
   outcome.
 - Verified together with BUG-1966, so both branches of the same Save are covered.
 
+## Regression Coverage
+
+REG-340. `apps/web/app/(authenticated)/attendance/_components/manual-attendance-form.spec.ts`
+asserts over the source (no jsdom in this app's jest config) that the success
+branch calls `notifySuccess(...)` before `setForm(initialForm)`, and that
+`{toast}` is rendered. Mutation-tested: removing the `notifySuccess(...)` call
+fails the "calls notifySuccess on the 201 branch" assertion; reverted
+immediately after confirming.
+
+No test was added for the branding page, because no code changed there — its
+behaviour was already correct and is not this task's evidence to claim.
+
 ## Dependencies
 
 None technically. Should be scheduled with BUG-1966.
@@ -179,18 +191,6 @@ layer to fix once. Both now use the same shared primitive
 (`useSideToast`/`SideToast`), which is the closest thing to "one mechanism"
 available without inventing a new abstraction for two call sites.
 
-## Regression Coverage
-
-REG-340. `apps/web/app/(authenticated)/attendance/_components/manual-attendance-form.spec.ts`
-asserts over the source (no jsdom in this app's jest config) that the success
-branch calls `notifySuccess(...)` before `setForm(initialForm)`, and that
-`{toast}` is rendered. Mutation-tested: removing the `notifySuccess(...)` call
-fails the "calls notifySuccess on the 201 branch" assertion; reverted
-immediately after confirming.
-
-No test was added for the branding page, because no code changed there — its
-behaviour was already correct and is not this task's evidence to claim.
-
 ## QA Retest
 
 Not retested live against a running tenant. Verified from source: the
@@ -209,5 +209,6 @@ did (unchanged, read at the cited line numbers).
 ## Related
 
 - Modules — [[tenant-application]]
+- Regression — REG-340 (see the regression register)
 
 <!-- GRAPH:END -->

@@ -200,6 +200,6 @@ Not retested — not yet fixed.
 
 - Backlog item — [[ITEM-0034]]
 - Modules — [[tenant-application]]
-- Regression — REG-302 (see the regression register)
+- Regression — REG-335 (see the regression register)
 
 <!-- GRAPH:END -->

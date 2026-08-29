@@ -214,5 +214,6 @@ Not retested — not yet fixed.
 
 - Backlog item — [[ITEM-0034]]
 - Modules — [[tenant-application]]
+- Regression — REG-337 (see the regression register)
 
 <!-- GRAPH:END -->

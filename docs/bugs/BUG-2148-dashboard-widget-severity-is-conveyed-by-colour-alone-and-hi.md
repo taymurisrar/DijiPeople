@@ -172,5 +172,6 @@ Not yet retested.
 ## Related
 
 - Backlog item — [[ITEM-0114]]
+- Regression — REG-336 (see the regression register)
 
 <!-- GRAPH:END -->

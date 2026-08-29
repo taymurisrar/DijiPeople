@@ -178,6 +178,32 @@ fixes.
 - A repository check fails when a declared display label is absent and the key
   would be rendered instead.
 
+## Regression Coverage
+
+REG-341. Three specs, one per surface (no jsdom in this app, so each asserts
+pure logic rather than rendering):
+
+- `apps/web/app/(authenticated)/settings/branding/_components/branding-field-labels.spec.ts`
+  — walks **every** key in `BRANDING_COLOR_KEYS` and `BRANDING_TEXT_KEYS`
+  (not just the ten reported) asserting the resolved label never equals the
+  key, plus the ten reported labels by exact value. This is the "add a check
+  that no rendered label equals its own field key" the Proposed Resolution
+  named as worth more than the three fixes: a seventeenth colour token added
+  later without a label fails this test rather than shipping unlabelled.
+- `apps/web/lib/runtime/runtime-value-formatter.spec.ts` — a declared
+  optionset label wins; an undeclared optionset value and a field with no
+  metadata both humanise; ordinary prose (`"Fatima Ahmed"`) passes through
+  unchanged.
+- `apps/web/app/components/dashboard/dashboard-widget-formatting.spec.ts` —
+  shared with BUG-2010; its enum-humanisation cases cover this record.
+
+Mutation-tested, three separate mutations: reverting `resolveColorFieldLabel`
+to `COLOR_FIELD_LABELS[key] ?? key` fails the "hypothetical undeclared key"
+assertion; reverting the optionset fallback to `declaredLabel ?? rawValue`
+fails the "no matching declared option" assertion; reverting the final
+fallback to `String(value)` fails the "no field metadata at all" assertion.
+Each reverted immediately after confirming.
+
 ## Dependencies
 
 None identified.
@@ -242,32 +268,6 @@ fallback in three otherwise-independent places.**
 Verified from source and by the specs below; not verified live against a
 running tenant.
 
-## Regression Coverage
-
-REG-341. Three specs, one per surface (no jsdom in this app, so each asserts
-pure logic rather than rendering):
-
-- `apps/web/app/(authenticated)/settings/branding/_components/branding-field-labels.spec.ts`
-  — walks **every** key in `BRANDING_COLOR_KEYS` and `BRANDING_TEXT_KEYS`
-  (not just the ten reported) asserting the resolved label never equals the
-  key, plus the ten reported labels by exact value. This is the "add a check
-  that no rendered label equals its own field key" the Proposed Resolution
-  named as worth more than the three fixes: a seventeenth colour token added
-  later without a label fails this test rather than shipping unlabelled.
-- `apps/web/lib/runtime/runtime-value-formatter.spec.ts` — a declared
-  optionset label wins; an undeclared optionset value and a field with no
-  metadata both humanise; ordinary prose (`"Fatima Ahmed"`) passes through
-  unchanged.
-- `apps/web/app/components/dashboard/dashboard-widget-formatting.spec.ts` —
-  shared with BUG-2010; its enum-humanisation cases cover this record.
-
-Mutation-tested, three separate mutations: reverting `resolveColorFieldLabel`
-to `COLOR_FIELD_LABELS[key] ?? key` fails the "hypothetical undeclared key"
-assertion; reverting the optionset fallback to `declaredLabel ?? rawValue`
-fails the "no matching declared option" assertion; reverting the final
-fallback to `String(value)` fails the "no field metadata at all" assertion.
-Each reverted immediately after confirming.
-
 ## QA Retest
 
 Not retested live against a running tenant. Verified from source and by the
@@ -285,5 +285,6 @@ completeness check the record itself asked for.
 ## Related
 
 - Modules — [[tenant-application]]
+- Regression — REG-341 (see the regression register)
 
 <!-- GRAPH:END -->

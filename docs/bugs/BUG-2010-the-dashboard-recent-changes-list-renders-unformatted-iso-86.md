@@ -122,6 +122,24 @@ scoping work beyond this record and should be raised on its own if it is wanted.
   format and timezone.
 - The column is not truncated at its default width.
 
+## Regression Coverage
+
+REG-342.
+`apps/web/app/components/dashboard/dashboard-widget-formatting.spec.ts`
+exports `formatValue` for direct testing (no jsdom in this app) and asserts,
+with `setDefaultFormattingContext` set to representative tenant configurations:
+an ISO timestamp formats to the configured `MM/dd/yyyy` + 12h shape and
+contains no `T`; a different configuration (`dd/MM/yyyy`, 24h) produces a
+different, correctly-ordered result over the *same* input, proving the tenant
+configuration is actually read rather than a lucky default; a date-only ISO
+string formats through the same path.
+
+Mutation-tested: reverting the timestamp branch to
+`parsed.toLocaleString(undefined, {...})` fails both the `MM/dd/yyyy` and
+`dd/MM/yyyy` format assertions (3 of 6 tests in the file, including the two
+enum ones from BUG-2009 sharing the file); reverted immediately after
+confirming.
+
 ## Dependencies
 
 None identified.
@@ -164,24 +182,6 @@ This shares a commit with BUG-2009 (surface 3, the same widget's Label
 column): both are fixes to the same `formatValue` function in the same file,
 found while investigating this record.
 
-## Regression Coverage
-
-REG-342.
-`apps/web/app/components/dashboard/dashboard-widget-formatting.spec.ts`
-exports `formatValue` for direct testing (no jsdom in this app) and asserts,
-with `setDefaultFormattingContext` set to representative tenant configurations:
-an ISO timestamp formats to the configured `MM/dd/yyyy` + 12h shape and
-contains no `T`; a different configuration (`dd/MM/yyyy`, 24h) produces a
-different, correctly-ordered result over the *same* input, proving the tenant
-configuration is actually read rather than a lucky default; a date-only ISO
-string formats through the same path.
-
-Mutation-tested: reverting the timestamp branch to
-`parsed.toLocaleString(undefined, {...})` fails both the `MM/dd/yyyy` and
-`dd/MM/yyyy` format assertions (3 of 6 tests in the file, including the two
-enum ones from BUG-2009 sharing the file); reverted immediately after
-confirming.
-
 ## QA Retest
 
 Not retested live against a running tenant. Verified from source and by the
@@ -200,5 +200,6 @@ tenant's format.
 ## Related
 
 - Modules — [[tenant-application]]
+- Regression — REG-342 (see the regression register)
 
 <!-- GRAPH:END -->

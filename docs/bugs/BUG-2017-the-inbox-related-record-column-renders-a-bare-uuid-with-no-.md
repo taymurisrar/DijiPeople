@@ -122,6 +122,23 @@ lookup and no link at all.
   the leave, approval and attendance notification types.
 - No internal identifier is rendered as the sole content of a cell on the inbox.
 
+## Regression Coverage
+
+REG-343.
+`apps/web/app/components/inbox/inbox-related-record-cell.spec.ts` exports and
+exercises `relatedRecordCell` directly (`apps/web` has no jsdom): a bare UUID
+with nothing else set never appears as the cell's content; a `targetUrl` plus
+`relatedRecordNumber` renders a `Link` whose `href` and visible text match
+exactly; a `targetUrl` with no record number falls back to the humanised
+entity type; no `targetUrl` renders plain text, not a link; nothing at all
+renders the literal "No record".
+
+Mutation-tested: reverting `relatedRecordCell` to
+`row.relatedRecordNumber ?? row.relatedEntityId ?? "No record"` (the pre-fix
+behaviour) fails 4 of the 5 assertions — every case that exercised the link,
+the entity-type fallback, or the no-link text path; reverted immediately
+after confirming.
+
 ## Dependencies
 
 None identified.
@@ -160,23 +177,6 @@ missing.
 No API or notification-payload change was needed — both fields already
 existed and were already trusted elsewhere in this app for the same purpose.
 
-## Regression Coverage
-
-REG-343.
-`apps/web/app/components/inbox/inbox-related-record-cell.spec.ts` exports and
-exercises `relatedRecordCell` directly (`apps/web` has no jsdom): a bare UUID
-with nothing else set never appears as the cell's content; a `targetUrl` plus
-`relatedRecordNumber` renders a `Link` whose `href` and visible text match
-exactly; a `targetUrl` with no record number falls back to the humanised
-entity type; no `targetUrl` renders plain text, not a link; nothing at all
-renders the literal "No record".
-
-Mutation-tested: reverting `relatedRecordCell` to
-`row.relatedRecordNumber ?? row.relatedEntityId ?? "No record"` (the pre-fix
-behaviour) fails 4 of the 5 assertions — every case that exercised the link,
-the entity-type fallback, or the no-link text path; reverted immediately
-after confirming.
-
 ## QA Retest
 
 Not retested live against a running tenant. Verified from source and by the
@@ -193,5 +193,6 @@ spec above against every item in Acceptance Criteria.
 ## Related
 
 - Modules — [[tenant-application]]
+- Regression — REG-343 (see the regression register)
 
 <!-- GRAPH:END -->

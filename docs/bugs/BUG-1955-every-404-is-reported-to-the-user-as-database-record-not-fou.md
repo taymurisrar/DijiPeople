@@ -194,5 +194,6 @@ Awaiting a natural reproduction before any retest is meaningful.
 ## Related
 
 - Modules — [[tenant-application]]
+- Regression — REG-334 (see the regression register)
 
 <!-- GRAPH:END -->
