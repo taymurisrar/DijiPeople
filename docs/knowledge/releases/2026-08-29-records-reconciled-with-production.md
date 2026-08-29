@@ -6,6 +6,8 @@ date: 2026-08-29
 
 # Release — the records reconciled with production
 
+Produced by [[SESSION-0075]].
+
 A documentation-only promotion. No source, no schema, no migration, and
 deliberately no behaviour change.
 
