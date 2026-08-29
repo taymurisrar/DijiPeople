@@ -13,7 +13,7 @@ AffectedModules: [onboarding]
 OwnerAgent: architect
 ArchitectDisposition: DONE
 QAReport: 
-RegressionId: 
+RegressionId: REG-352
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:

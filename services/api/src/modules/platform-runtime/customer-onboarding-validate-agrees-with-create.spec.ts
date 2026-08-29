@@ -53,10 +53,14 @@ const VALID_VALUES = {
 };
 
 function validate(service: PlatformRuntimeService, values = VALID_VALUES) {
-  return service.validate({ platform: { id: 'pu-1' } } as never, 'customer-onboarding', {
-    values,
-    mode: 'create',
-  });
+  return service.validate(
+    { platform: { id: 'pu-1' } } as never,
+    'customer-onboarding',
+    {
+      values,
+      mode: 'create',
+    },
+  );
 }
 
 describe('customer-onboarding validate answers for the save, not only the schema', () => {
@@ -70,7 +74,9 @@ describe('customer-onboarding validate answers for the save, not only the schema
   it("reports the 409 create would answer, in create's own words", async () => {
     // The overlap with the foreign-key case recorded as BUG-1545.
     const { service } = buildService(
-      new ConflictException('Customer already has an active onboarding record.'),
+      new ConflictException(
+        'Customer already has an active onboarding record.',
+      ),
     );
 
     await expect(validate(service)).resolves.toEqual({
@@ -87,7 +93,10 @@ describe('customer-onboarding validate answers for the save, not only the schema
       ),
     );
 
-    const result = (await validate(service)) as { success: boolean; message: string };
+    const result = (await validate(service)) as {
+      success: boolean;
+      message: string;
+    };
 
     expect(result.success).toBe(false);
     expect(result.message).toBe(
@@ -126,10 +135,14 @@ describe('customer-onboarding validate answers for the save, not only the schema
     // *is* that onboarding would refuse every edit.
     const { service, assertCustomerOnboardingCreatable } = buildService(null);
 
-    await service.validate({ platform: { id: 'pu-1' } } as never, 'customer-onboarding', {
-      values: { notes: 'A note.' },
-      mode: 'update',
-    });
+    await service.validate(
+      { platform: { id: 'pu-1' } } as never,
+      'customer-onboarding',
+      {
+        values: { notes: 'A note.' },
+        mode: 'update',
+      },
+    );
 
     expect(assertCustomerOnboardingCreatable).not.toHaveBeenCalled();
   });
@@ -159,6 +172,8 @@ describe('one rule set, not two', () => {
       lifecycle.split('Customer already has an active onboarding record.')
         .length - 1,
     ).toBe(1);
-    expect(lifecycle.split('Tenant slug is already in use.').length - 1).toBe(1);
+    expect(lifecycle.split('Tenant slug is already in use.').length - 1).toBe(
+      1,
+    );
   });
 });

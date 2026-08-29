@@ -43,7 +43,9 @@ function buildService(options: {
     subscription: { findFirst: jest.fn().mockResolvedValue(null) },
     tenant: { findUnique: jest.fn().mockResolvedValue(null) },
     customerAccount: { findFirst: jest.fn().mockResolvedValue(null) },
-    subscriptionOrder: { findFirst: jest.fn().mockResolvedValue(options.order) },
+    subscriptionOrder: {
+      findFirst: jest.fn().mockResolvedValue(options.order),
+    },
   };
 
   const prisma = {

@@ -13,7 +13,7 @@ AffectedModules: [apps/admin, services/api/src/modules/super-admin]
 OwnerAgent: architect
 ArchitectDisposition: DONE
 QAReport: 
-RegressionId: 
+RegressionId: REG-350
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
