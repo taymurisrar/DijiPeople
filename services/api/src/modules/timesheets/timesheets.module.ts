@@ -9,6 +9,7 @@ import { AttendanceModule } from '../attendance/attendance.module';
 import { EmployeesModule } from '../employees/employees.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { TenantSettingsModule } from '../tenant-settings/tenant-settings.module';
+import { TimesheetAuditSettingsService } from './timesheet-audit-settings.service';
 import { TimesheetCalculationService } from './timesheet-calculation.service';
 import { TimesheetExportService } from './timesheet-export.service';
 import { TimesheetExportsController } from './timesheet-exports.controller';
@@ -41,6 +42,7 @@ import { TimesheetWorkflowService } from './timesheet-workflow.service';
   providers: [
     TimesheetsRepository,
     TimesheetsService,
+    TimesheetAuditSettingsService,
     TimesheetPolicyResolverService,
     TimesheetCalculationService,
     TimesheetGenerationService,

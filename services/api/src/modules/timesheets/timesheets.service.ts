@@ -38,6 +38,7 @@ import {
   TimesheetsRepository,
 } from './timesheets.repository';
 import { TimesheetGenerationService } from './timesheet-generation.service';
+import { TimesheetAuditSettingsService } from './timesheet-audit-settings.service';
 import { TimesheetPolicyResolverService } from './timesheet-policy-resolver.service';
 
 type UploadedExcelFile = {
@@ -128,6 +129,7 @@ export class TimesheetsService {
     private readonly auditService: AuditService,
     private readonly timesheetGenerationService: TimesheetGenerationService,
     private readonly timesheetPolicyResolverService: TimesheetPolicyResolverService,
+    private readonly timesheetAuditSettings: TimesheetAuditSettingsService,
   ) {}
 
   async getMyMONTHLYTimesheet(
@@ -1865,12 +1867,27 @@ export class TimesheetsService {
     );
   }
 
-  private auditTimesheet(
+  /**
+   * BUG-2206 — `timesheets.auditEntryChanges` was rendered, saved and read by
+   * nothing. It gates exactly these rows: the before/after record of a change
+   * an actor made to a timesheet. It defaults on, and a settings read failure
+   * audits anyway; see `TimesheetAuditSettingsService`.
+   */
+  private async auditTimesheet(
     currentUser: AuthenticatedUser,
     action: string,
     beforeSnapshot: TimesheetWithRelations,
     afterSnapshot: TimesheetWithRelations,
   ) {
+    if (
+      !(await this.timesheetAuditSettings.shouldAudit(
+        currentUser.tenantId,
+        'auditEntryChanges',
+      ))
+    ) {
+      return undefined;
+    }
+
     return this.auditService.log({
       tenantId: currentUser.tenantId,
       businessUnitId: beforeSnapshot.businessUnitId,

@@ -42,7 +42,14 @@ export function TenantConfigurationPanel({ tenantId }: { tenantId: string }) {
     );
   if (!data) return null;
 
-  const localizationEntries = Object.entries(data.localization.values);
+  /*
+   * Blank values are dropped rather than rendered as an empty row: `country`
+   * has no platform default, so an unset one would otherwise read as a field
+   * whose value is the empty string.
+   */
+  const localizationEntries = Object.entries(data.localization.values).filter(
+    ([, value]) => String(value ?? "").trim().length > 0,
+  );
 
   return (
     <div className="space-y-5">
@@ -105,7 +112,11 @@ export function TenantConfigurationPanel({ tenantId }: { tenantId: string }) {
 
       <PanelCard
         title="Localization"
-        description={`Read-only. Source: ${data.localization.source}. These are tenant organization settings and are changed inside the tenant application.`}
+        description={`Read-only. Source: ${data.localization.source}. These are tenant organization settings and are changed inside the tenant application.${
+          data.localization.configured
+            ? ""
+            : " This tenant has not changed any of them, so these are the platform defaults."
+        }`}
       >
         {localizationEntries.length ? (
           <DefinitionList

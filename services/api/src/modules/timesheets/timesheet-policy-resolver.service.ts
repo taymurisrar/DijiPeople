@@ -11,6 +11,7 @@ import {
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
+import { TimesheetAuditSettingsService } from './timesheet-audit-settings.service';
 import { DEFAULT_TENANT_SETTINGS } from '../tenant-settings/tenant-settings.catalog';
 import {
   CreateTimesheetPolicyDto,
@@ -80,7 +81,22 @@ export class TimesheetPolicyResolverService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
+    private readonly timesheetAuditSettings: TimesheetAuditSettingsService,
   ) {}
+
+  /**
+   * BUG-2206 — `timesheets.auditPolicyResolution` was rendered, saved and read
+   * by nothing. It gates the policy lifecycle rows below, which are the record
+   * of how timesheet policy resolution is decided for a tenant. It defaults on,
+   * and a settings read failure audits anyway; see
+   * `TimesheetAuditSettingsService`.
+   */
+  private shouldAuditPolicyResolution(tenantId: string) {
+    return this.timesheetAuditSettings.shouldAudit(
+      tenantId,
+      'auditPolicyResolution',
+    );
+  }
 
   async list(tenantId: string, enabled?: boolean) {
     const policies = await this.prisma.timesheetPolicy.findMany({
@@ -146,15 +162,16 @@ export class TimesheetPolicyResolverService {
       },
     });
 
-    await this.auditService.log({
-      tenantId: user.tenantId,
-      actorUserId: user.userId,
-      action: 'TIMESHEET_POLICY_CREATED',
-      entityType: 'TimesheetPolicy',
-      entityId: created.id,
-      sourceModule: 'timesheets',
-      afterSnapshot: this.mapPolicy(created),
-    });
+    if (await this.shouldAuditPolicyResolution(user.tenantId))
+      await this.auditService.log({
+        tenantId: user.tenantId,
+        actorUserId: user.userId,
+        action: 'TIMESHEET_POLICY_CREATED',
+        entityType: 'TimesheetPolicy',
+        entityId: created.id,
+        sourceModule: 'timesheets',
+        afterSnapshot: this.mapPolicy(created),
+      });
     return this.mapPolicy(created);
   }
 
@@ -213,16 +230,17 @@ export class TimesheetPolicyResolverService {
       });
     });
 
-    await this.auditService.log({
-      tenantId: user.tenantId,
-      actorUserId: user.userId,
-      action: 'TIMESHEET_POLICY_VERSION_CREATED',
-      entityType: 'TimesheetPolicy',
-      entityId: next.id,
-      sourceModule: 'timesheets',
-      beforeSnapshot: this.mapPolicy(existing),
-      afterSnapshot: this.mapPolicy(next),
-    });
+    if (await this.shouldAuditPolicyResolution(user.tenantId))
+      await this.auditService.log({
+        tenantId: user.tenantId,
+        actorUserId: user.userId,
+        action: 'TIMESHEET_POLICY_VERSION_CREATED',
+        entityType: 'TimesheetPolicy',
+        entityId: next.id,
+        sourceModule: 'timesheets',
+        beforeSnapshot: this.mapPolicy(existing),
+        afterSnapshot: this.mapPolicy(next),
+      });
     return this.mapPolicy(next);
   }
 
@@ -232,16 +250,17 @@ export class TimesheetPolicyResolverService {
       where: { id: existing.id },
       data: { enabled: false, updatedById: user.userId },
     });
-    await this.auditService.log({
-      tenantId: user.tenantId,
-      actorUserId: user.userId,
-      action: 'TIMESHEET_POLICY_DISABLED',
-      entityType: 'TimesheetPolicy',
-      entityId: updated.id,
-      sourceModule: 'timesheets',
-      beforeSnapshot: this.mapPolicy(existing),
-      afterSnapshot: this.mapPolicy(updated),
-    });
+    if (await this.shouldAuditPolicyResolution(user.tenantId))
+      await this.auditService.log({
+        tenantId: user.tenantId,
+        actorUserId: user.userId,
+        action: 'TIMESHEET_POLICY_DISABLED',
+        entityType: 'TimesheetPolicy',
+        entityId: updated.id,
+        sourceModule: 'timesheets',
+        beforeSnapshot: this.mapPolicy(existing),
+        afterSnapshot: this.mapPolicy(updated),
+      });
     return this.mapPolicy(updated);
   }
 

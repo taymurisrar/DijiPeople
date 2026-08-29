@@ -131,7 +131,8 @@ export const employeeSettingsSections: SettingsSectionConfig[] = [
       },
       {
         category: "employees",
-        key: "requirePrimaryWorkLocation",
+        // BUG-1976 — was `requirePrimaryWorkLocation`, which nothing reads.
+        key: "requireWorkLocation",
         label: "Require primary work location",
         type: "checkbox",
       },
@@ -156,7 +157,10 @@ export const employeeSettingsSections: SettingsSectionConfig[] = [
     fields: [
       {
         category: "employees",
-        key: "maximumReportingLevels",
+        // BUG-1976 — was `maximumReportingLevels`, which nothing reads.
+        // `employees.service.ts` enforces the depth limit from
+        // `maxReportingLevels`, so the control now writes that.
+        key: "maxReportingLevels",
         label: "Maximum reporting levels",
         type: "number",
       },
@@ -166,12 +170,14 @@ export const employeeSettingsSections: SettingsSectionConfig[] = [
         label: "Maximum direct reports",
         type: "number",
       },
-      {
-        category: "employees",
-        key: "allowSkipLevelReporting",
-        label: "Allow skip-level reporting",
-        type: "checkbox",
-      },
+      /*
+       * BUG-1976 pair 2 — "Allow skip-level reporting" was removed rather than
+       * repointed. It wrote `allowSkipLevelReporting`, which nothing reads; the
+       * name it looks like a typo of, `allowSkipLevelApprovals`, is exposed by
+       * the resolver and read by nothing either. Skip-level approval behaviour
+       * is not implemented at all, so renaming the control would have fixed
+       * nothing and kept the assurance on screen.
+       */
       {
         category: "employees",
         key: "allowMatrixReporting",
@@ -180,7 +186,9 @@ export const employeeSettingsSections: SettingsSectionConfig[] = [
       },
       {
         category: "employees",
-        key: "allowEmployeeWithoutReportingManager",
+        // BUG-1976 — was `allowEmployeeWithoutReportingManager`, which nothing
+        // reads.
+        key: "allowEmployeeWithoutManager",
         label: "Allow employee without reporting manager",
         type: "checkbox",
       },
@@ -205,7 +213,10 @@ export const employeeSettingsSections: SettingsSectionConfig[] = [
     fields: [
       {
         category: "employees",
-        key: "preventDuplicatePersonalEmail",
+        // BUG-1976 — was `preventDuplicatePersonalEmail`, which nothing reads,
+        // while `checkDuplicates` enforced `preventDuplicateByPersonalEmail`
+        // at its catalog default no matter what the administrator chose.
+        key: "preventDuplicateByPersonalEmail",
         label: "Prevent duplicate by personal email",
         type: "checkbox",
       },
@@ -217,13 +228,15 @@ export const employeeSettingsSections: SettingsSectionConfig[] = [
       },
       {
         category: "employees",
-        key: "preventDuplicatePhone",
+        // BUG-1976 — was `preventDuplicatePhone`, which nothing reads.
+        key: "preventDuplicateByPhoneNumber",
         label: "Prevent duplicate by phone",
         type: "checkbox",
       },
       {
         category: "employees",
-        key: "preventDuplicateNationalId",
+        // BUG-1976 — was `preventDuplicateNationalId`, which nothing reads.
+        key: "preventDuplicateByNationalId",
         label: "Prevent duplicate national ID",
         type: "checkbox",
       },

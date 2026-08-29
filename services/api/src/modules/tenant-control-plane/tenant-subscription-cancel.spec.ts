@@ -52,6 +52,7 @@ function build(subscription: Record<string, unknown> | null) {
     {} as never, // domains
     { log: jest.fn() } as never, // audit
     { record: jest.fn() } as never, // platform events
+    {} as never, // tenant settings resolver
   );
   return { service, prisma };
 }

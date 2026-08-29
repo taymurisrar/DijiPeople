@@ -4,7 +4,6 @@ import {
   COMPANY_SIZE_OPTIONS,
   DATE_FORMAT_OPTIONS,
   TIME_FORMAT_OPTIONS,
-  WEEK_START_DAY_OPTIONS,
 } from "./settings-options";
 
 export const organizationSettingsSections: SettingsSectionConfig[] = [
@@ -114,13 +113,18 @@ export const organizationSettingsSections: SettingsSectionConfig[] = [
         type: "select",
         options: TIME_FORMAT_OPTIONS,
       },
-      {
-        category: "organization",
-        key: "weekStartDay",
-        label: "Week start day",
-        type: "select",
-        options: WEEK_START_DAY_OPTIONS,
-      },
+      /*
+       * BUG-1976 pair 8 — "Week start day" was removed here rather than
+       * repointed at `organization.weekStartsOn`.
+       *
+       * The precedence is decided: `system.defaultWeekStartDay` wins. Both
+       * `ConfigurationResolverService.resolveAppContext` and the web
+       * `ResolvedSettingsProvider` fall back to `organization.weekStartsOn`
+       * only when the system value is absent, and the system value resolves
+       * through a validated enum with a `MONDAY` default, so it never is.
+       * Offering a second control that could never take effect is the defect;
+       * the working control lives on Settings > System.
+       */
       {
         category: "organization",
         key: "companySize",

@@ -49,6 +49,7 @@ describe('TimesheetPolicyResolverService', () => {
     const service = new TimesheetPolicyResolverService(
       prisma as never,
       { log: jest.fn() } as never,
+      { shouldAudit: jest.fn().mockResolvedValue(true) } as never,
     );
 
     const result = await service.resolveForEmployee(
