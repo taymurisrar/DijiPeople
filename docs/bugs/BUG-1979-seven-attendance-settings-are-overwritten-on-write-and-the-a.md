@@ -2,7 +2,7 @@
 ID: BUG-1979
 aliases: [BUG-1979]
 Title: Seven mandated attendance settings are still rendered editable and the refusal is never reported
-Status: OPEN
+Status: FIXED
 Severity: MEDIUM
 Priority: P2
 Type: BUG
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-29
 DetectedInSha: eb457d9d
 AffectedModules: [services/api/src/modules/tenant-settings]
 OwnerAgent: backend-api
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
-RegressionId: 
+RegressionId: REG-320
 RelatedBacklogItem: ITEM-0112
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-29
 UpdatedAt: 2026-08-29
-ResolvedAt:
+ResolvedAt: 2026-08-29
 ---
 
 # BUG-1979 — Seven mandated attendance settings are still rendered editable and the refusal is never reported
@@ -307,7 +307,84 @@ investigation.
 
 ## Resolution
 
-Open. No fix has been written.
+Fixed, in the direction this record insists on: **the mandate is kept and the
+refusal is made audible.** `enforceCriticalAttendanceSetting` still forces all
+seven keys.
+
+The premise held. All seven were live, enabled controls, and the substitution
+ran inside `normalizeSettingUpdates` before the change-diff, so a discarded
+submission was indistinguishable from a no-op.
+
+**What changed.**
+
+- `tenant-settings.service.ts` — new `assertAttendanceSettingIsChangeable`,
+  called immediately before `enforceCriticalAttendanceSetting`. A submitted
+  value that **differs** from the mandate now fails the request with
+  `ATTENDANCE_SETTING_ENFORCED_BY_PLATFORM`, naming the key and saying no other
+  setting in the submission was saved. A value that already **matches** the
+  mandate is accepted as an ordinary no-op — refusing that would break any
+  client that re-sends what it read, and it is not an attempted change.
+  Comparison uses the same `normalizeComparableValue` the change-diff uses, so
+  `locationRequiredForModes` in a different array order is not mistaken for an
+  edit.
+
+- The mandate map is now declared once, as `MANDATORY_ATTENDANCE_SETTINGS`, and
+  read by both the assertion and the lock. It previously lived inline inside
+  `enforceCriticalAttendanceSetting`, so the two could not have disagreed
+  because there was only one; there are two consumers now, and one map.
+
+- `enforceCriticalAttendanceSetting` is **kept**, with the explanatory comment
+  it never had, pointing at migration `20260728234000` and stating plainly that
+  deleting it restores nothing. Its own comment now says it is the guarantee and
+  the assertion is the disclosure.
+
+- `apps/web/.../settings/_lib/settings-page-config.ts` — all seven controls are
+  rendered `disabled: true` with the description "Enforced by platform policy
+  and cannot be changed." The section carries a comment explaining the mandate
+  and naming the enforcement point.
+
+- `docs/decisions/ADR-0003-attendance-location-capture-is-mandatory.md` — the
+  ADR this record's resolution asked for, written under BUG-2091. Its **Agent
+  Rules** section says explicitly not to delete this lock. That is the durable
+  part of this fix: the code comment protects the function, the ADR protects the
+  decision.
+
+**On the audit trail.** The acceptance criterion asked that the trail
+distinguish "no change requested" from "change overridden". With a hard refusal
+there is no overridden change to record — the write never happens and the caller
+is told why. That satisfies the intent more directly than an audit row would,
+and it is why the "move the override after the change-diff" option in the
+proposed resolution was not taken.
+
+**Tests** — `services/api/src/modules/tenant-settings/attendance-settings-mandate.spec.ts`
+(new, 24 cases) and
+`apps/web/app/(authenticated)/settings/_lib/attendance-settings-fields.spec.ts`
+(new, 18 cases). This closes the coverage gap ITEM-0112 records: the lock had
+**zero** tests of any kind, which is exactly what made deleting it look safe.
+
+The API suite asserts the refusal for each of the six boolean mandated keys and
+for `locationRequiredForModes`; that the error names the key; that the whole
+submission is rejected so no other key is written; that a matching value is
+accepted; that a contradicting value already stored is rewritten to the mandate
+on the next accepted write; that unmandated attendance keys are untouched; and
+that an identically-named key in another category is not policed.
+
+A note the register carries too: the lock is now **unreachable from this
+endpoint by construction**, because the refusal fires first. The tests therefore
+pin the invariant — no path through `updateTenantSettings` leaves a mandated key
+stored at another value — rather than the substitution itself. A future reader
+must not read that as the lock being dead code.
+
+The web suite asserts every mandated control is disabled and each says why, that
+the genuinely configurable location settings (`allowIpFallback`,
+`locationTimeoutSeconds`, `locationRetryAttempts`, `maxAllowedAccuracyMeters`)
+stay editable, and that the field list is non-empty before anything is asserted
+about it.
+
+**Mutation-tested.** Removing the `assertAttendanceSettingIsChangeable` call
+fails nine of the twenty-four API cases — every refusal case and no acceptance
+case. Re-enabling one mandated control in the page config fails exactly that
+control's two web cases.
 
 ## QA Retest
 
