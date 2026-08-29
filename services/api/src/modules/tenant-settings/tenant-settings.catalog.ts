@@ -82,21 +82,27 @@ export const DEFAULT_TENANT_SETTINGS: TenantSettingDefaults = {
     warnOnPossibleDuplicate: true,
     onboardingChecklistTemplate: 'standard',
   },
-  access: {
-    allowDirectPermissions: true,
-    allowCustomRoles: true,
-    defaultManagerRoleKey: 'manager',
-    defaultEmployeeRoleKey: 'employee',
-    lockSystemRoles: true,
-  },
-  leave: {
-    defaultApprovalFlow: 'manager_then_hr',
-    allowHalfDayRequests: true,
-    documentReminderAfterDays: 3,
-    defaultCarryForwardEnabled: false,
-    defaultHolidayCalendarName: 'Company Calendar',
-    allowManualLeaveMarking: true,
-  },
+  /*
+   * BUG-1974 — `access` and `leave` were dead in their entirety: eleven keys,
+   * no reader anywhere in the tree, and no UI surface either, so they bit an
+   * integrator rather than an administrator. Because both are members of
+   * `TENANT_SETTING_CATEGORIES`, `getAllowedKeysByCategory()` allowlisted all
+   * eleven for `PATCH /tenant-settings`: a partner could PATCH
+   * `leave.defaultCarryForwardEnabled: true`, get a 200 with the value echoed
+   * back, and ship against a setting nothing had ever read. Carry-forward is a
+   * `LeavePolicyRule` field.
+   *
+   * The categories are kept and left empty rather than removed from
+   * `TENANT_SETTING_CATEGORIES`, because that union is a type across three
+   * frontends. Empty means the write path now rejects every key in them, which
+   * is the correction: the API no longer accepts settings it does not honour.
+   *
+   * Real leave behaviour runs on `LeaveType` / `LeavePolicy` / `LeavePolicyRule`
+   * / `LeavePolicyAssignment`, reached through the "Leave & Approvals"
+   * navigation group — a navigation key, not this settings category.
+   */
+  access: {},
+  leave: {},
   attendance: {
     defaultGraceMinutes: 10,
     allowManualAdjustments: true,
@@ -250,10 +256,15 @@ export const DEFAULT_TENANT_SETTINGS: TenantSettingDefaults = {
     managerApprovalDeadlineDays: 5,
     allowFutureEntries: false,
     maximumBackdatedDays: 30,
-    defaultPolicyId: '',
-    requirePolicyAssignment: false,
-    allowEmployeeExemption: true,
-    policyEffectiveDateMode: 'ENTRY_DATE',
+    /*
+     * BUG-1974 — `defaultPolicyId`, `requirePolicyAssignment`,
+     * `allowEmployeeExemption` and `policyEffectiveDateMode` were removed. They
+     * had no reader and no control, and they duplicated `TimesheetPolicy`,
+     * which owns scope, precedence and effective dating for real
+     * (`timesheet-policy-resolver.service.ts`). A second, inert copy of that
+     * model in the settings catalog is the "no duplicate sources of truth"
+     * failure, not a missing feature.
+     */
     generateNextMonthAutomatically: true,
     generationLeadDays: 7,
     visiblePastMonths: 12,
@@ -449,7 +460,11 @@ export const DEFAULT_TENANT_SETTINGS: TenantSettingDefaults = {
     payrollExportFormat: 'CSV',
     bankPaymentFileFormat: 'GENERIC_BANK_TRANSFER',
     paymentReferenceFormat: 'PAY-{RUN}-{EMPLOYEE}',
-    payslipTemplate: 'STANDARD',
+    /*
+     * BUG-1974 — `payslipTemplate: 'STANDARD'` was removed. It had no reader and
+     * no control, and sat directly beside `payslipTemplateId`, which is the one
+     * that identifies a real template record.
+     */
     payslipTemplateId: '',
     taxStatementTemplateId: '',
     publishPayslipAfterApproval: false,
