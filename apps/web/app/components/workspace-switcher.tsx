@@ -1,7 +1,9 @@
 import { cookies } from "next/headers";
-import Link from "next/link";
 import { getApiBaseUrl } from "@repo/config";
-import { ACCESS_TOKEN_COOKIE, AUTH_APP_CLIENT_ID } from "@/lib/auth-config";
+import {
+  ACCESS_TOKEN_COOKIE,
+  AUTH_APP_CLIENT_ID,
+} from "@/lib/auth-config";
 
 type Workspace = {
   tenantId: string;
@@ -14,108 +16,257 @@ type Workspace = {
   isCurrent?: boolean;
 };
 
-/**
- * The id the section's own label carries, so the list of workspaces is named
- * once and the links inside it inherit that name rather than repeating it.
- * ITEM-0102 recorded the previous control announcing itself twice — the
- * disclosure carried a visually hidden "Switch workspace." *and* a visible
- * "Switch workspace", which a screen reader read back as both.
- */
 const SECTION_LABEL_ID = "workspace-switcher-label";
 
-/**
- * Moving between the workspaces one person belongs to.
- *
- * This is TASK-0008's WP-06, which sat `BLOCKED` because it could not be built:
- * `/workspaces/mine` returned a one-element array **by construction** — it read
- * `user.tenantId` from the session — so a switcher would have been a control
- * with nowhere to go. TASK-0009 gave it somewhere.
- *
- * **It renders nothing when there is nothing to switch to**, which is most
- * people. A menu offering one item is noise on every screen of the product, and
- * the cost of noise is that people stop reading the header.
- *
- * ITEM-0102 moved it into the avatar menu, where identity-scoped actions
- * already live. It used to be a `<details>` disclosure sitting alone in the
- * band between the page header and the record action bar, which read as page
- * content rather than as a property of the session — a person scanning that row
- * for Edit or Delete passed over a control that changes their entire context.
- *
- * It is therefore **a section, not a disclosure**: a dropdown nested inside the
- * avatar dropdown would be two menus deep for a list that is almost always two
- * items long. The links themselves keep the earlier intent — switching is a
- * full navigation to another hostname under a different session scope, so it
- * should feel like leaving, because it is.
- *
- * It also renders its own separator rather than letting the caller draw one.
- * The caller receives this as an already-rendered slot and cannot see whether
- * it resolved to null, so a caller-drawn divider would hang in the menu of
- * every single-workspace user — which is nearly all of them.
- */
 export async function WorkspaceSwitcher() {
   const token = (await cookies()).get(ACCESS_TOKEN_COOKIE)?.value;
-  if (!token) return null;
+
+  if (!token) {
+    return null;
+  }
 
   const workspaces = await loadWorkspaces(token);
 
-  /*
-   * One workspace, or none, or the call failed. All three render nothing: a
-   * switcher is an affordance, and an affordance that cannot be honoured is
-   * worse than its absence. A failed load must not put a broken control in the
-   * header of every page.
-   */
-  if (!workspaces || workspaces.length < 2) return null;
+  if (!workspaces || workspaces.length < 2) {
+    return null;
+  }
 
-  const others = workspaces.filter((workspace) => !workspace.isCurrent);
-  if (!others.length) return null;
+  const otherWorkspaces = workspaces.filter(
+    (workspace) => !workspace.isCurrent,
+  );
+
+  if (!otherWorkspaces.length) {
+    return null;
+  }
 
   return (
-    <div className="mt-3 border-t border-border pt-3">
-      <p
-        className="px-4 pb-1 text-xs font-medium uppercase tracking-[0.16em] text-muted"
-        id={SECTION_LABEL_ID}
-      >
-        Switch workspace
-      </p>
+    <section className="mt-3 border-t border-border pt-3">
+      <div className="mb-1 flex items-center justify-between px-4">
+        <p
+          id={SECTION_LABEL_ID}
+          className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted"
+        >
+          Switch workspace
+        </p>
 
-      <ul aria-labelledby={SECTION_LABEL_ID} className="grid gap-1">
-        {others.map((workspace) => (
+        <span className="text-[11px] text-muted">
+          {otherWorkspaces.length}
+        </span>
+      </div>
+
+      <ul
+        aria-labelledby={SECTION_LABEL_ID}
+        className="grid max-h-64 gap-1 overflow-y-auto px-2"
+      >
+        {otherWorkspaces.map((workspace) => (
           <li key={workspace.tenantId}>
-            {workspace.canOpen ? (
-              <Link
-                className="block rounded-2xl px-4 py-2.5 transition hover:bg-surface hover:text-accent"
-                href={workspace.url}
-              >
-                <span className="block truncate text-sm font-medium text-foreground">
-                  {workspace.name}
-                </span>
-                <span className="block truncate text-xs text-muted">
-                  {hostOf(workspace.url)}
-                </span>
-              </Link>
-            ) : (
-              /*
-               * Shown, but not a link. Somebody whose second workspace is
-               * suspended should see that it exists and why they cannot open
-               * it — a workspace that silently disappears reads as data loss.
-               */
-              <div className="rounded-2xl px-4 py-2.5">
-                <span className="block truncate text-sm font-medium text-muted">
-                  {workspace.name}
-                </span>
-                <span className="block text-xs text-muted">
-                  {workspace.unavailableReason ?? "Currently unavailable."}
-                </span>
-              </div>
-            )}
+            <WorkspaceItem workspace={workspace} />
           </li>
         ))}
       </ul>
-    </div>
+    </section>
   );
 }
 
-/** The hostname, or the raw value if it is not a URL this can parse. */
+function WorkspaceItem({ workspace }: { workspace: Workspace }) {
+  const initials = getWorkspaceInitials(workspace.name);
+  const environment = formatEnvironment(workspace.environmentType);
+
+  if (!workspace.canOpen) {
+    return (
+      <div
+        className="
+          flex cursor-not-allowed items-center gap-3
+          rounded-xl px-3 py-2.5
+          opacity-65
+        "
+        aria-disabled="true"
+      >
+        <WorkspaceAvatar initials={initials} />
+
+        <div className="min-w-0 flex-1">
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="truncate text-sm font-medium text-muted">
+              {workspace.name}
+            </span>
+
+            {environment && (
+              <EnvironmentBadge environment={environment} />
+            )}
+          </div>
+
+          <p className="mt-0.5 truncate text-xs text-muted">
+            {workspace.unavailableReason ?? "Currently unavailable"}
+          </p>
+        </div>
+
+        <UnavailableIcon />
+      </div>
+    );
+  }
+
+  return (
+    <a
+      href={workspace.url}
+      className="
+        group flex items-center gap-3
+        rounded-xl px-3 py-2.5
+        outline-none transition-colors
+        hover:bg-surface
+        focus-visible:ring-2
+        focus-visible:ring-accent
+        focus-visible:ring-offset-2
+        focus-visible:ring-offset-background
+      "
+      aria-label={`Switch to ${workspace.name}`}
+    >
+      <WorkspaceAvatar initials={initials} />
+
+      <div className="min-w-0 flex-1">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="min-w-0 truncate text-sm font-semibold text-foreground">
+            {workspace.name}
+          </span>
+
+          {environment && (
+            <EnvironmentBadge environment={environment} />
+          )}
+        </div>
+
+        <p className="mt-0.5 truncate text-xs text-muted">
+          {hostOf(workspace.url)}
+        </p>
+      </div>
+
+      <ChevronIcon />
+    </a>
+  );
+}
+
+function WorkspaceAvatar({ initials }: { initials: string }) {
+  return (
+    <span
+      aria-hidden="true"
+      className="
+        flex h-9 w-9 shrink-0 items-center justify-center
+        rounded-lg border border-border
+        bg-background text-xs font-semibold text-foreground
+        transition-colors
+        group-hover:border-accent/30
+        group-hover:bg-accent/5
+      "
+    >
+      {initials}
+    </span>
+  );
+}
+
+function EnvironmentBadge({ environment }: { environment: string }) {
+  return (
+    <span
+      className="
+        shrink-0 rounded-full
+        border border-border
+        bg-background
+        px-1.5 py-0.5
+        text-[9px] font-semibold uppercase
+        tracking-[0.08em] text-muted
+      "
+    >
+      {environment}
+    </span>
+  );
+}
+
+function ChevronIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 20 20"
+      fill="none"
+      className="
+        h-4 w-4 shrink-0 text-muted
+        transition-transform
+        group-hover:translate-x-0.5
+        group-hover:text-foreground
+      "
+    >
+      <path
+        d="M7.5 5 12.5 10l-5 5"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function UnavailableIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 20 20"
+      fill="none"
+      className="h-4 w-4 shrink-0 text-muted"
+    >
+      <circle
+        cx="10"
+        cy="10"
+        r="6.5"
+        stroke="currentColor"
+        strokeWidth="1.4"
+      />
+      <path
+        d="M7.5 7.5 12.5 12.5M12.5 7.5l-5 5"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function getWorkspaceInitials(name: string) {
+  const words = name
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  if (!words.length) {
+    return "WS";
+  }
+
+  if (words.length === 1) {
+    return words[0].slice(0, 2).toUpperCase();
+  }
+
+  return `${words[0][0]}${words[1][0]}`.toUpperCase();
+}
+
+function formatEnvironment(value: string | null | undefined) {
+  if (!value) {
+    return null;
+  }
+
+  const normalized = value.trim().toLowerCase();
+
+  const labels: Record<string, string> = {
+    production: "Prod",
+    prod: "Prod",
+    uat: "UAT",
+    staging: "Stage",
+    stage: "Stage",
+    development: "Dev",
+    dev: "Dev",
+    sandbox: "Sandbox",
+    test: "Test",
+    qa: "QA",
+  };
+
+  return labels[normalized] ?? value;
+}
+
 function hostOf(url: string) {
   try {
     return new URL(url).host;
@@ -124,24 +275,31 @@ function hostOf(url: string) {
   }
 }
 
-async function loadWorkspaces(token: string): Promise<Workspace[] | null> {
+async function loadWorkspaces(
+  token: string,
+): Promise<Workspace[] | null> {
   try {
-    const response = await fetch(`${getApiBaseUrl()}/workspaces/mine`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "X-DijiPeople-App": AUTH_APP_CLIENT_ID,
+    const response = await fetch(
+      `${getApiBaseUrl()}/workspaces/mine`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "X-DijiPeople-App": AUTH_APP_CLIENT_ID,
+        },
+        cache: "no-store",
       },
-      cache: "no-store",
-    });
-    if (!response.ok) return null;
-    const body = (await response.json()) as { workspaces?: Workspace[] };
+    );
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const body = (await response.json()) as {
+      workspaces?: Workspace[];
+    };
+
     return body.workspaces ?? null;
   } catch {
-    /*
-     * Swallowed on purpose. This renders inside the authenticated shell on
-     * every page; a network blip must not take the whole application down to
-     * avoid drawing an optional menu.
-     */
     return null;
   }
 }
