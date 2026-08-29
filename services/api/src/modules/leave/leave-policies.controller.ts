@@ -18,6 +18,9 @@ import {
 } from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
+import { EntitlementGuard } from '../../common/guards/entitlement.guard';
+import { RequireEntitlement } from '../../common/decorators/require-entitlement.decorator';
+import { TENANT_FEATURE_KEYS } from '../../common/constants/tenant-features';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { CreateLeavePolicyDto } from './dto/create-leave-policy.dto';
 import { CreateLeavePolicyRuleDto } from './dto/create-leave-policy-rule.dto';
@@ -29,7 +32,8 @@ import { UpdateLeavePolicyAssignmentDto } from './dto/update-leave-policy-assign
 import { LeaveService } from './leave.service';
 
 @Controller('leave-policies')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, EntitlementGuard)
+@RequireEntitlement(TENANT_FEATURE_KEYS.LEAVE)
 export class LeavePoliciesController {
   constructor(private readonly leaveService: LeaveService) {}
 

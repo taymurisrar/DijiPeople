@@ -270,6 +270,30 @@ export function resolveVisibleDashboardNavItems(
       return [];
     }
 
+    /*
+     * Also ahead of the privileged shortcut, and for a stronger reason than the
+     * rules above (BUG-1952). A plan entitlement is a commercial boundary, not a
+     * permission: a tenant administrator legitimately bypasses their own
+     * tenant's permission model and cannot bypass their own tenant's contract.
+     * This shortcut used to sit above the check, which is why every Starter
+     * tenant's administrator was offered Timesheets, Projects, Payroll,
+     * Recruitment and Onboarding — five modules that plan does not sell.
+     *
+     * A null `enabledFeatureKeys` still allows, deliberately. It means the
+     * availability fetch failed, so there is no server decision to mirror, and
+     * blanking a whole sidebar on a transient error is a worse failure than
+     * offering a link whose endpoint answers TENANT_FEATURE_NOT_ENTITLED. The
+     * API is the boundary now; this is the convenience layered on top of it.
+     */
+    const hasRequiredFeature =
+      !item.requiredFeatureKey ||
+      !input.enabledFeatureKeys ||
+      input.enabledFeatureKeys.includes(item.requiredFeatureKey);
+
+    if (!hasRequiredFeature) {
+      return [];
+    }
+
     if (hasPrivilegedSidebar) {
       return [item];
     }

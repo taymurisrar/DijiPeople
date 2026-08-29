@@ -16,6 +16,9 @@ import { Permissions } from '../../common/decorators/permissions.decorator';
 import { RequirePermission } from '../../common/decorators/require-permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
+import { EntitlementGuard } from '../../common/guards/entitlement.guard';
+import { RequireEntitlement } from '../../common/decorators/require-entitlement.decorator';
+import { TENANT_FEATURE_KEYS } from '../../common/constants/tenant-features';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { CreatePayComponentDto } from './dto/create-pay-component.dto';
 import { ListPayComponentsDto } from './dto/list-pay-components.dto';
@@ -23,7 +26,8 @@ import { UpdatePayComponentDto } from './dto/update-pay-component.dto';
 import { PayComponentsService } from './pay-components.service';
 
 @Controller('pay-components')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, EntitlementGuard)
+@RequireEntitlement(TENANT_FEATURE_KEYS.PAYROLL)
 export class PayComponentsController {
   constructor(private readonly payComponentsService: PayComponentsService) {}
 

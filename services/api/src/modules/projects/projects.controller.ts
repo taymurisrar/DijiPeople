@@ -18,6 +18,9 @@ import {
 } from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
+import { EntitlementGuard } from '../../common/guards/entitlement.guard';
+import { RequireEntitlement } from '../../common/decorators/require-entitlement.decorator';
+import { TENANT_FEATURE_KEYS } from '../../common/constants/tenant-features';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { AssignProjectEmployeeDto } from './dto/assign-project-employee.dto';
 import { CreateProjectDto } from './dto/create-project.dto';
@@ -27,7 +30,8 @@ import { ProjectsService } from './projects.service';
 import { AuditService } from '../audit/audit.service';
 
 @Controller('projects')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, EntitlementGuard)
+@RequireEntitlement(TENANT_FEATURE_KEYS.PROJECTS)
 export class ProjectsController {
   constructor(
     private readonly projectsService: ProjectsService,

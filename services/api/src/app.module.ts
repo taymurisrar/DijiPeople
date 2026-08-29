@@ -14,6 +14,7 @@ import { RequestIdMiddleware } from './common/middleware/request-id.middleware';
 import { PrismaModule } from './common/prisma/prisma.module';
 import { RequestContextModule } from './common/request-context/request-context.module';
 import { StorageModule } from './common/storage/storage.module';
+import { TenantEntitlementModule } from './common/security/tenant-entitlement.module';
 import { AttendanceModule } from './modules/attendance/attendance.module';
 import { AttendanceIntegrationsModule } from './modules/attendance-integrations/attendance-integrations.module';
 import { AttendanceEngineModule } from './modules/attendance-engine/attendance-engine.module';
@@ -87,6 +88,7 @@ import { SupportCasesModule } from './modules/support-cases/support-cases.module
     PrismaModule,
     RequestContextModule,
     StorageModule,
+    TenantEntitlementModule,
     AttendanceModule,
     AttendanceIntegrationsModule,
     AttendanceEngineModule,

@@ -18,6 +18,9 @@ import {
 } from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
+import { EntitlementGuard } from '../../common/guards/entitlement.guard';
+import { RequireEntitlement } from '../../common/decorators/require-entitlement.decorator';
+import { TENANT_FEATURE_KEYS } from '../../common/constants/tenant-features';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import {
   CreateTimesheetPolicyDto,
@@ -27,7 +30,8 @@ import {
 import { TimesheetPolicyResolverService } from './timesheet-policy-resolver.service';
 
 @Controller('timesheet-policies')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, EntitlementGuard)
+@RequireEntitlement(TENANT_FEATURE_KEYS.TIMESHEETS)
 export class TimesheetPoliciesController {
   constructor(
     private readonly policyResolver: TimesheetPolicyResolverService,
