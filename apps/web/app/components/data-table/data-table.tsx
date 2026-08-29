@@ -603,9 +603,24 @@ export function DataTable<T>({
                    * runtime list in the product, could not be done from the
                    * keyboard at all. BUG-0043.
                    *
-                   * `role="button"` and the two activation keys are added only
-                   * when the row is actually clickable; a static row stays a
-                   * plain row rather than becoming a tab stop that does nothing.
+                   * The two activation keys are added only when the row is
+                   * actually clickable; a static row stays a plain row rather
+                   * than becoming a tab stop that does nothing.
+                   *
+                   * BUG-1986 — that fix also gave the row `role="button"`,
+                   * which produced the two axe violations reported on the same
+                   * `.cursor-pointer` node, and they are the same mistake seen
+                   * twice. `nested-interactive`: a button is a leaf widget, and
+                   * this one contains a selection checkbox and every link and
+                   * action button its cells render. `aria-allowed-attr`:
+                   * `aria-selected` is not supported on `button` — it is
+                   * supported on `row`, which is what a `tr` already is.
+                   *
+                   * So the role goes and the keyboard access stays. `tabIndex`
+                   * and the key handler are what BUG-0043 was actually about;
+                   * the role added nothing a screen reader could use, because a
+                   * button containing a dozen focusable children is not a
+                   * button to begin with.
                    */
                   <tr
                     key={rowKey}
@@ -625,7 +640,6 @@ export function DataTable<T>({
                           }
                         : undefined
                     }
-                    role={onRowClick ? "button" : undefined}
                     tabIndex={onRowClick ? 0 : undefined}
                   >
                     {enableSelection ? (
