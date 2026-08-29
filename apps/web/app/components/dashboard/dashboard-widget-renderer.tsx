@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { formatDate, formatDateTime } from "@/lib/formatting-context";
+import { humanizeEnumValue } from "@/lib/text/inflection";
 import type {
   DashboardAction,
   DashboardSeverity,
@@ -174,7 +176,7 @@ function ChartCard({ widget }: { widget: DashboardWidget }) {
         <EmptyState message={widget.emptyState} />
       )}
 
-      <WidgetAction action={widget.action} />
+      <WidgetAction action={widget.action} context={widget.title} />
     </article>
   );
 }
@@ -196,7 +198,7 @@ function MetricCard({ widget }: { widget: DashboardWidget }) {
           {widget.subtitle}
         </p>
       ) : null}
-      <WidgetAction action={widget.action} />
+      <WidgetAction action={widget.action} context={widget.title} />
     </article>
   );
 }
@@ -226,7 +228,7 @@ function SummaryCard({ widget }: { widget: DashboardWidget }) {
       ) : (
         <EmptyState message={widget.emptyState} />
       )}
-      <WidgetAction action={widget.action} />
+      <WidgetAction action={widget.action} context={widget.title} />
     </article>
   );
 }
@@ -286,7 +288,7 @@ function RowsCard({
       ) : (
         <EmptyState message={widget.emptyState} />
       )}
-      <WidgetAction action={widget.action} />
+      <WidgetAction action={widget.action} context={widget.title} />
     </article>
   );
 }
@@ -342,13 +344,34 @@ function CardHeader({ widget }: { widget: DashboardWidget }) {
   );
 }
 
-function WidgetAction({ action }: { action?: DashboardAction }) {
+function WidgetAction({
+  action,
+  context,
+}: {
+  action?: DashboardAction;
+  context?: string;
+}) {
   if (!action) {
     return null;
   }
 
+  /*
+   * BUG-2149 — the API builds every metric card's action with the constant
+   * label "Open", so six cards on the overview offered six links whose
+   * accessible names were identical. A link list read "Open, Open, Open,
+   * Open, Open, Open".
+   *
+   * Fixed in the renderer rather than in `dashboard.service.ts`, which keeps a
+   * presentation string out of the API contract: the renderer already has the
+   * card title in scope, and the visible text stays "Open" because six cards
+   * reading "Open" is a deliberate visual rhythm. The defect is the accessible
+   * name, not the visible one.
+   */
+  const accessibleName = context ? `${action.label} ${context}` : undefined;
+
   return (
     <Link
+      aria-label={accessibleName}
       className="mt-4 inline-flex text-sm font-semibold text-accent hover:underline"
       href={action.href}
     >
@@ -393,22 +416,47 @@ function RowValue({ row, value }: { row: DashboardRow; value: unknown }) {
   );
 }
 
+/*
+ * BUG-2148 — one map, read by both renderings of the same idea.
+ *
+ * The dot and the pill answer the same question about the same union and each
+ * owned its own copy of the answer. Two maps drift, and the dot's copy was the
+ * one that had already stopped being a copy: it held colours, not words.
+ */
+const SEVERITY_LABELS: Record<DashboardSeverity, string> = {
+  critical: "Critical",
+  warning: "Review",
+  good: "OK",
+  neutral: "Info",
+};
+
+const SEVERITY_DOT_COLORS: Record<DashboardSeverity, string> = {
+  critical: "bg-danger",
+  warning: "bg-warning",
+  good: "bg-success",
+  neutral: "bg-muted",
+};
+
 function SeverityDot({
   severity = "neutral",
 }: {
   severity?: DashboardSeverity;
 }) {
-  const color =
-    severity === "critical"
-      ? "bg-danger"
-      : severity === "warning"
-        ? "bg-warning"
-        : severity === "good"
-          ? "bg-success"
-          : "bg-muted";
-
+  /*
+   * BUG-2148 — this was `aria-hidden` with a background colour as its entire
+   * output, so a widget's state reached sighted users as hue and reached
+   * everyone else not at all. The number beside it is the metric; the dot is
+   * the judgement about the metric, and nothing else carried that.
+   *
+   * Named rather than replaced by the pill: the visual design is right, and a
+   * pill in a card header would be heavier than the header wants.
+   */
   return (
-    <span aria-hidden className={`mt-1 h-2.5 w-2.5 rounded-full ${color}`} />
+    <span
+      aria-label={`Status: ${SEVERITY_LABELS[severity]}`}
+      className={`mt-1 h-2.5 w-2.5 rounded-full ${SEVERITY_DOT_COLORS[severity]}`}
+      role="img"
+    />
   );
 }
 
@@ -417,18 +465,9 @@ function SeverityPill({
 }: {
   severity?: DashboardSeverity;
 }) {
-  const label =
-    severity === "critical"
-      ? "Critical"
-      : severity === "warning"
-        ? "Review"
-        : severity === "good"
-          ? "OK"
-          : "Info";
-
   return (
     <span className="rounded-full border border-border px-2 py-1 text-xs text-muted">
-      {label}
+      {SEVERITY_LABELS[severity]}
     </span>
   );
 }
@@ -493,39 +532,48 @@ function humanize(value: string) {
 const ISO_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/;
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
-function formatValue(value: unknown): string {
+/**
+ * Exported only for `dashboard-widget-formatting.spec.ts` — `apps/web` has no
+ * jsdom, so this is the widest surface this app's jest can reach directly
+ * rather than reading the source for a string.
+ */
+export function formatValue(value: unknown): string {
   if (value === null || value === undefined || value === "") {
     return "-";
   }
 
   if (typeof value === "string") {
+    /*
+     * BUG-2010 — this used to call `Date.prototype.toLocaleString(undefined,
+     * {...})` directly, which is the browser's locale and local timezone, not
+     * the tenant's. A tenant configured for `MM/dd/yyyy`, 12h, UTC saw
+     * whatever the visiting browser happened to be set to instead — on the
+     * demo tenant that read as an unformatted-looking timestamp because the
+     * browser's own locale rendering did not resemble the product's dates
+     * anywhere else on the page. `formatDateTime`/`formatDate`
+     * (`lib/formatting-context.ts`) read the tenant's resolved settings that
+     * `resolved-settings-provider.tsx` installs for the whole authenticated
+     * shell — the same helpers every other screen already uses, per
+     * AGENTS.md's "never call toLocaleDateString ad hoc".
+     */
     if (ISO_TIMESTAMP.test(value)) {
-      const parsed = new Date(value);
-      if (!Number.isNaN(parsed.getTime())) {
-        return parsed.toLocaleString(undefined, {
-          day: "numeric",
-          month: "short",
-          year: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-        });
-      }
+      const formatted = formatDateTime(value);
+      if (formatted) return formatted;
     }
 
     if (ISO_DATE.test(value)) {
-      // Parsed as UTC so a date-only value cannot slip a day in a west offset.
-      const parsed = new Date(`${value}T00:00:00Z`);
-      if (!Number.isNaN(parsed.getTime())) {
-        return parsed.toLocaleDateString(undefined, {
-          day: "numeric",
-          month: "short",
-          year: "numeric",
-          timeZone: "UTC",
-        });
-      }
+      const formatted = formatDate(value);
+      if (formatted) return formatted;
     }
 
-    return value;
+    /*
+     * BUG-2009 — a raw enum constant ("DRAFT",
+     * "EMPLOYEE_SYSTEM_ACCESS_PROVISIONED") reached this widget's Label
+     * column unchanged. `humanizeEnumValue` only touches strings that look
+     * like a stored enum constant (`looksLikeEnumToken`) and returns
+     * anything else — an entity display name such as "Timesheet" — as-is.
+     */
+    return humanizeEnumValue(value);
   }
 
   if (typeof value === "number") {

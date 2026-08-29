@@ -55,12 +55,12 @@ export default async function CandidateDetailPage({
       (error.status === 403 || error.status === 404)
     ) {
       return (
-        <main className="grid gap-6">
+        <div className="grid gap-6">
           <AccessDeniedState
             description="This candidate is outside your accessible business-unit scope."
             title="You cannot view this candidate record."
           />
-        </main>
+        </div>
       );
     }
 
@@ -80,7 +80,7 @@ export default async function CandidateDetailPage({
   );
 
   return (
-    <main className="dp-theme-scope grid gap-6">
+    <div className="dp-theme-scope grid gap-6">
       <StandardModuleRecordPage
         activeForm={activeForm}
         lookupDisplayValues={candidateLookupDisplayValues(candidate)}
@@ -97,7 +97,7 @@ export default async function CandidateDetailPage({
         }}
         title={candidate.fullName || "Candidate"}
       />
-    </main>
+    </div>
   );
 }
 

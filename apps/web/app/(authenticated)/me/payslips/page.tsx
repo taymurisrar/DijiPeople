@@ -23,7 +23,7 @@ export default async function MyPayslipsPage() {
   const payslips = await apiRequestJson<PayslipRecord[]>("/me/payslips");
 
   return (
-    <main className="grid gap-6">
+    <div className="grid gap-6">
       <section className="rounded-[28px] border border-border bg-surface p-8 shadow-sm">
         <p className="text-sm uppercase tracking-[0.18em] text-muted">
           Self Service
@@ -78,6 +78,6 @@ export default async function MyPayslipsPage() {
           <p className="text-sm text-muted">No published payslips yet.</p>
         )}
       </section>
-    </main>
+    </div>
   );
 }

@@ -10,6 +10,7 @@ import {
   TopAlert,
 } from "@/app/components/notifications";
 import { ColorPickerField } from "@/app/components/settings";
+import { humanizeFieldKey } from "@/lib/text/inflection";
 import {
   BRANDING_COLOR_KEYS,
   BRANDING_FONT_OPTIONS,
@@ -56,6 +57,15 @@ const ALLOWED_FAVICON_TYPES = new Set([
 const MAX_LOGO_SIZE_BYTES = 3 * 1024 * 1024;
 const MAX_FAVICON_SIZE_BYTES = 1 * 1024 * 1024;
 
+/*
+ * BUG-2009 — six of these twelve-plus tokens had no entry here, so the label
+ * fell through to the raw camelCase key: `mutedTextColor`,
+ * `sidebarBackgroundColor`, and so on, on a page a customer configures during
+ * onboarding. Every reported key is filled in below; `resolveColorFieldLabel`
+ * humanises anything still missing (including a token added after this fix,
+ * such as a future status color) rather than leaving the fallback as the raw
+ * key again.
+ */
 const COLOR_FIELD_LABELS: Partial<Record<BrandingColorKey, string>> = {
   primaryColor: "Primary color",
   secondaryColor: "Secondary color",
@@ -63,6 +73,16 @@ const COLOR_FIELD_LABELS: Partial<Record<BrandingColorKey, string>> = {
   backgroundColor: "Background color",
   surfaceColor: "Surface / card color",
   textColor: "Text color",
+  mutedTextColor: "Muted text color",
+  borderColor: "Border color",
+  sidebarBackgroundColor: "Sidebar background color",
+  sidebarTextColor: "Sidebar text color",
+  sidebarActiveBackgroundColor: "Sidebar active background color",
+  sidebarActiveTextColor: "Sidebar active text color",
+  successColor: "Success color",
+  warningColor: "Warning color",
+  dangerColor: "Danger color",
+  infoColor: "Info color",
 };
 
 const COLOR_FIELD_DESCRIPTIONS: Partial<Record<BrandingColorKey, string>> = {
@@ -72,8 +92,22 @@ const COLOR_FIELD_DESCRIPTIONS: Partial<Record<BrandingColorKey, string>> = {
   backgroundColor: "Base page background color for branded areas.",
   surfaceColor: "Card and panel background color.",
   textColor: "Primary text color for headings and body text.",
+  mutedTextColor: "Secondary text color for hints and metadata.",
+  borderColor: "Border color for cards, tables, and dividers.",
+  sidebarBackgroundColor: "Background color of the navigation sidebar.",
+  sidebarTextColor: "Text color for inactive sidebar items.",
+  sidebarActiveBackgroundColor: "Background color of the active sidebar item.",
+  sidebarActiveTextColor: "Text color of the active sidebar item.",
+  successColor: "Used for success states and confirmations.",
+  warningColor: "Used for warning states and cautions.",
+  dangerColor: "Used for destructive actions and errors.",
+  infoColor: "Used for informational states and hints.",
 };
 
+/*
+ * BUG-2009 — four of these thirteen text fields had no entry:
+ * `supportEmail`, `supportPhone`, `privacyPolicyUrl`, `termsOfUseUrl`.
+ */
 const TEXT_FIELD_LABELS: Partial<Record<BrandingTextKey, string>> = {
   appTitle: "App/page title",
   brandName: "Company/display name",
@@ -84,7 +118,26 @@ const TEXT_FIELD_LABELS: Partial<Record<BrandingTextKey, string>> = {
   footerText: "Footer text",
   dashboardGreeting: "Dashboard greeting",
   employeePortalMessage: "Employee portal message",
+  supportEmail: "Support email",
+  supportPhone: "Support phone",
+  privacyPolicyUrl: "Privacy policy URL",
+  termsOfUseUrl: "Terms of use URL",
 };
+
+/**
+ * A rendered label never equals its own field key — the shape of BUG-2009.
+ * A declared label always wins; `humanizeFieldKey` is only the floor under a
+ * key nobody has hand-labelled yet, current or future.
+ */
+// Exported only for branding-field-labels.spec.ts — this component needs
+// jsdom to render, which apps/web's jest does not have.
+export function resolveColorFieldLabel(key: BrandingColorKey): string {
+  return COLOR_FIELD_LABELS[key] ?? humanizeFieldKey(key);
+}
+
+export function resolveTextFieldLabel(key: BrandingTextKey): string {
+  return TEXT_FIELD_LABELS[key] ?? humanizeFieldKey(key);
+}
 
 export function BrandingSettingsForm({
   initialValues,
@@ -498,7 +551,7 @@ export function BrandingSettingsForm({
           {BRANDING_TEXT_KEYS.map((key) => (
             <label className="grid gap-2 text-sm" key={key}>
               <span className="font-medium text-foreground">
-                {TEXT_FIELD_LABELS[key] ?? key}
+                {resolveTextFieldLabel(key)}
               </span>
               {key === "welcomeSubtitle" ||
               key === "portalTagline" ||
@@ -586,7 +639,7 @@ export function BrandingSettingsForm({
               description={
                 COLOR_FIELD_DESCRIPTIONS[key] ?? "Branding color token."
               }
-              label={COLOR_FIELD_LABELS[key] ?? key}
+              label={resolveColorFieldLabel(key)}
               onChange={(nextValue) => handleColorChange(key, nextValue)}
               value={draftBranding[key]}
             />

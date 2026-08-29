@@ -48,12 +48,12 @@ export default async function EmployeesPage({
     !hasBusinessUnitScope(businessUnitAccess)
   ) {
     return (
-      <main className="dp-theme-scope dp-employees-scope grid gap-6">
+      <div className="dp-theme-scope dp-employees-scope grid gap-6">
         <AccessDeniedState
           description="Your current business-unit scope does not include employee records."
           title="Employees are unavailable for your current business unit access."
         />
-      </main>
+      </div>
     );
   }
 
@@ -195,7 +195,7 @@ export default async function EmployeesPage({
     await import("./_components/employee-runtime-list-wrapper");
 
   return (
-    <main className="dp-theme-scope dp-employees-scope grid gap-3">
+    <div className="dp-theme-scope dp-employees-scope grid gap-3">
       <EmployeeRuntimeListWrapper
         activeView={activeRuntimeView}
         employees={employees.items}
@@ -217,7 +217,7 @@ export default async function EmployeesPage({
         }}
         runtime={employeeRuntimeContext}
       />
-    </main>
+    </div>
   );
 }
 

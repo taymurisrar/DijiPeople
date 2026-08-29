@@ -1,6 +1,7 @@
 "use client";
 
 import { Archive, Check, ExternalLink, Eye, X } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useState } from "react";
 import { DataTable } from "@/app/components/data-table/data-table";
@@ -105,7 +106,17 @@ export function InboxTable({ response }: InboxTableProps) {
         header: "Related record",
         searchable: true,
         searchAccessor: (row) => row.relatedRecordNumber ?? row.relatedEntityId ?? "",
-        render: (row) => row.relatedRecordNumber ?? row.relatedEntityId ?? "No record",
+        /*
+         * BUG-2017 — this rendered the bare `relatedEntityId` UUID with no
+         * label and no link, the one unfinished cell on an otherwise
+         * correctly-rendered row. `relatedRecordNumber` (a denormalised,
+         * human-readable identifier) and `targetUrl` (the direct navigation
+         * target) already exist on the notification — `targetUrl` is the
+         * same field `notification-bell.tsx` already links with — so no new
+         * API call or route resolver was needed, only using what the
+         * notification already carried.
+         */
+        render: (row) => relatedRecordCell(row),
       },
       {
         key: "actions",
@@ -188,6 +199,37 @@ async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
 
 function label(value: string | null) {
   return value ? value.replace(/[_-]/g, " ").toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase()) : "None";
+}
+
+/**
+ * BUG-2017 — see the column definition above. A declared
+ * `relatedRecordNumber` always wins; the entity type (e.g. "leave-request" →
+ * "Leave Request") is the floor under a notification that never got one.
+ * Only `relatedEntityId` with nothing else to show it by is the case this
+ * record reported — and even then it is never rendered as the cell's sole
+ * content: it becomes the accessible name of a "No label" link when a target
+ * exists, or plain "No record" text when there is truly nothing to open.
+ */
+// Exported only for inbox-related-record-cell.spec.ts — apps/web has no
+// jsdom to render this table in.
+export function relatedRecordCell(row: InboxNotification) {
+  const recordLabel =
+    row.relatedRecordNumber ??
+    (row.relatedEntityType ? label(row.relatedEntityType) : null);
+
+  if (!row.targetUrl) {
+    return recordLabel ?? (row.relatedEntityId ? "Related record" : "No record");
+  }
+
+  return (
+    <Link
+      className="font-medium text-accent hover:underline"
+      href={row.targetUrl}
+      onClick={(event) => event.stopPropagation()}
+    >
+      {recordLabel ?? "View record"}
+    </Link>
+  );
 }
 
 function readableOpenState(state: string) {

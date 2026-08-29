@@ -35,12 +35,12 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
 
     if (!hasBusinessUnitScope(businessUnitAccess)) {
         return (
-            <main className="grid gap-6">
+            <div className="grid gap-6">
                 <AccessDeniedState
                     title="Users are unavailable for your current business unit access."
                     description="Your scope does not allow access to user records."
                 />
-            </main>
+            </div>
         );
     }
 
@@ -145,7 +145,7 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
     };
 
     return (
-        <main className="grid gap-6">
+        <div className="grid gap-6">
             <ModuleViewSelector
                 configureHref="/settings/customization/tables/users"
                 enabled
@@ -189,7 +189,7 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
                     visibleColumnKeys={visibleColumnKeys}
                 />
             )}
-        </main>
+        </div>
     );
 }
 

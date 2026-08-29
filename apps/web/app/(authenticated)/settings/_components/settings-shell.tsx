@@ -54,7 +54,13 @@ export function SettingsShell({
       title={title}
       sidebar={
         showSidebar ? (
-          <aside
+          /*
+            BUG-1986 — a `div`, not an `aside`. `SettingsLayout` already wraps
+            whatever it is handed in an `aside` of its own, so this made two
+            nested complementary landmarks on every settings screen and
+            landmark navigation had to step through both to reach one thing.
+          */
+          <div
             className={[
               "space-y-6 transition-all duration-200",
               isSidebarCollapsed ? "w-[56px]" : "w-[260px]",
@@ -104,7 +110,7 @@ export function SettingsShell({
               currentPath={pathname}
               isCollapsed={isSidebarCollapsed}
             />
-          </aside>
+          </div>
         ) : undefined
       }
     >

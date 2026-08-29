@@ -22,7 +22,7 @@ export function SettingsLayout({
   title,
 }: SettingsLayoutProps) {
   return (
-    <main className="flex w-full min-w-0 max-w-none gap-6">
+    <div className="flex w-full min-w-0 max-w-none gap-6">
       {sidebar ? (
         <aside className="shrink-0 rounded-[28px] border border-border bg-surface p-5 shadow-lg xl:sticky xl:top-6 xl:h-fit">
           {sidebar}
@@ -52,9 +52,9 @@ export function SettingsLayout({
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
               {eyebrow}
             </p>
-            <h1 className="mt-2 text-2xl font-semibold tracking-tight text-foreground">
+            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-foreground">
               {title}
-            </h1>
+            </h2>
             <p className="mt-2 max-w-4xl text-sm leading-6 text-muted">
               {description}
             </p>
@@ -63,6 +63,6 @@ export function SettingsLayout({
 
         {children}
       </div>
-    </main>
+    </div>
   );
 }

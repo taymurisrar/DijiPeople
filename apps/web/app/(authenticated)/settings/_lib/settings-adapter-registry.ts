@@ -1,4 +1,5 @@
 import { stableRuntimeMetadataId } from "@/lib/runtime/metadata-id";
+import { singularize } from "@/lib/text/inflection";
 import type { FormSectionMetadata } from "@/lib/runtime/metadata-runtime.types";
 import type {
   StandardModuleFieldSpec,
@@ -435,7 +436,15 @@ function adapter(input: {
     entityLogicalName: `settings_${input.key.replaceAll("-", "_")}`,
     collectionName: input.key,
     label: input.label,
-    singularLabel: input.singular ?? input.label.replace(/s$/, ""),
+    /*
+     * BUG-1964 — this was `input.label.replace(/s$/, "")`, which turned
+     * "Leave Policies" into "Leave Policie" and put that on a record header in
+     * capitals and on a "New Leave Policie" action, on the tenant used for
+     * demonstrations. A declared `singular` still wins; `singularize` covers
+     * the labels that never declared one, and leaves a word it does not
+     * recognise alone rather than guessing at it.
+     */
+    singularLabel: input.singular ?? singularize(input.label),
     createCommandLabel: input.createCommandLabel,
     routeBase,
     recordNavigation: mode !== "specialized",

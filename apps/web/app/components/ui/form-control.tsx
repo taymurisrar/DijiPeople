@@ -1,4 +1,9 @@
 import * as React from "react";
+import {
+  activeDescendantId,
+  listboxOptionId,
+  nextActiveIndex,
+} from "@/lib/a11y/listbox-navigation";
 import { createPortal } from "react-dom";
 import { Button } from "./button";
 
@@ -184,6 +189,12 @@ export function SelectField({
   const listboxId = React.useId();
   const menuRef = React.useRef<HTMLDivElement | null>(null);
   const [isOpen, setIsOpen] = React.useState(false);
+  /*
+   * BUG-1956 — which option the keyboard is on. The popup had none: it was a
+   * list of buttons, so moving through it meant Tab, and the combobox never
+   * set `aria-activedescendant` because there was no descendant to name.
+   */
+  const [activeIndex, setActiveIndex] = React.useState(-1);
   const [menuPosition, setMenuPosition] = React.useState<{
     left: number;
     top: number;
@@ -237,14 +248,44 @@ export function SelectField({
     };
   }, [isOpen]);
 
+  /*
+   * BUG-1956 — the popup's rows, as options rather than as buttons. The
+   * placeholder row is one of them: it is a choice ("none"), and leaving it
+   * out of the list would make the keyboard unable to reach the only way to
+   * clear the field.
+   */
+  const entries = React.useMemo(
+    () => [
+      { value: "", label: placeholder, key: "__placeholder" },
+      ...options.map((option, index) => {
+        const optionValue = option.value ?? option.id ?? "";
+        return {
+          value: optionValue,
+          label: option.label ?? option.name ?? optionValue,
+          key: option.id ?? option.value ?? `${label}-${index}`,
+        };
+      }),
+    ],
+    [label, options, placeholder],
+  );
+
   function handleOpen() {
     if (disabled) return;
-    setIsOpen((current) => !current);
+    setIsOpen((current) => {
+      const next = !current;
+      // Opening highlights whatever is selected, so the first arrow press
+      // moves from where the user is rather than from the top of the list.
+      if (next) {
+        setActiveIndex(entries.findIndex((entry) => entry.value === value));
+      }
+      return next;
+    });
   }
 
   function handleSelect(nextValue: string) {
     onChange(nextValue);
     setIsOpen(false);
+    setActiveIndex(-1);
   }
 
   const selectMenu =
@@ -266,37 +307,45 @@ export function SelectField({
               className="overflow-y-auto"
               style={{ maxHeight: menuPosition.maxHeight - 16 }}
             >
-              <button
-                className={[
-                  "block w-full rounded-xl border px-4 py-3 text-left text-sm transition",
-                  value
-                    ? "border-transparent hover:border-border hover:bg-slate-50"
-                    : "border-accent bg-accent/5",
-                ].join(" ")}
-                onClick={() => handleSelect("")}
-                type="button"
-              >
-                <span className="text-muted">{placeholder}</span>
-              </button>
-              {options.map((option, index) => {
-                const optionValue = option.value ?? option.id ?? "";
-                const optionLabel = option.label ?? option.name ?? optionValue;
-                const isSelected = optionValue === value;
+              {/*
+                BUG-1956 — these were `button` elements. A `listbox` whose
+                children are buttons is worse than one with no roles at all:
+                the container claims to own options, none exist, and every
+                button is a focusable child of a widget role, which is the
+                `nested-interactive` violation as well.
+
+                They are `div`s with `role="option"` now, not focusable. The
+                keyboard lives on the combobox and moves through them by
+                `aria-activedescendant`, which is the pattern the trigger has
+                been claiming to implement since the attributes were written.
+              */}
+              {entries.map((entry, index) => {
+                const isSelected = entry.value === value;
+                const isActive = index === activeIndex;
 
                 return (
-                  <button
+                  <div
+                    aria-selected={isSelected}
                     className={[
-                      "mt-1 block w-full rounded-xl border px-4 py-3 text-left text-sm transition",
+                      index === 0 ? "" : "mt-1",
+                      "block w-full cursor-pointer rounded-xl border px-4 py-3 text-left text-sm transition",
                       isSelected
                         ? "border-accent bg-accent/5 text-foreground"
                         : "border-transparent text-foreground hover:border-border hover:bg-slate-50",
+                      isActive ? "border-border bg-slate-50" : "",
                     ].join(" ")}
-                    key={option.id ?? option.value ?? `${label}-${index}`}
-                    onClick={() => handleSelect(optionValue)}
-                    type="button"
+                    id={listboxOptionId(listboxId, index)}
+                    key={entry.key}
+                    onClick={() => handleSelect(entry.value)}
+                    onMouseEnter={() => setActiveIndex(index)}
+                    role="option"
                   >
-                    {optionLabel}
-                  </button>
+                    {index === 0 ? (
+                      <span className="text-muted">{entry.label}</span>
+                    ) : (
+                      entry.label
+                    )}
+                  </div>
                 );
               })}
             </div>
@@ -319,7 +368,18 @@ export function SelectField({
     >
       <div className="relative" ref={containerRef}>
         <div
-          aria-controls={listboxId}
+          aria-activedescendant={activeDescendantId(
+            listboxId,
+            isOpen,
+            activeIndex,
+            entries.length,
+          )}
+          /*
+            BUG-1956 — `aria-controls` only while the popup exists. It named a
+            portalled element that is not rendered when the field is closed,
+            which is a dangling reference for most of the control's life.
+          */
+          aria-controls={isOpen ? listboxId : undefined}
           aria-expanded={isOpen}
           aria-haspopup="listbox"
           aria-invalid={Boolean(error)}
@@ -331,12 +391,35 @@ export function SelectField({
           onClick={handleOpen}
           onKeyDown={(event) => {
             if (disabled) return;
+
+            /*
+              BUG-1956 — arrowing through the options. There was none: the
+              rows were buttons, so moving through them meant Tab, and Tab out
+              of an open popup left it open behind the next control.
+            */
+            const moved = nextActiveIndex(
+              event.key,
+              activeIndex,
+              entries.length,
+            );
+            if (moved !== null) {
+              event.preventDefault();
+              setActiveIndex(moved);
+              if (!isOpen) setIsOpen(true);
+              return;
+            }
+
             if (event.key === "Enter" || event.key === " ") {
               event.preventDefault();
+              if (isOpen && activeIndex >= 0 && activeIndex < entries.length) {
+                handleSelect(entries[activeIndex].value);
+                return;
+              }
               handleOpen();
             }
             if (event.key === "Escape") {
               setIsOpen(false);
+              setActiveIndex(-1);
             }
           }}
           role="combobox"
@@ -871,6 +954,14 @@ export function LookupField({
     maxHeight: number;
   } | null>(null);
   const [query, setQuery] = React.useState("");
+  /*
+   * BUG-1956 — which option the keyboard is on. This control announced
+   * `aria-haspopup="listbox"` and `aria-controls`, and the element it named
+   * was a bare `div` of `button`s: no `role="listbox"`, no `role="option"`,
+   * no `aria-selected`, and `aria-activedescendant` never set. A screen
+   * reader was told a list existed and given nothing to move through.
+   */
+  const [activeIndex, setActiveIndex] = React.useState(-1);
   const onSearchRef = React.useRef(onSearch);
 
   const uniqueOptions = React.useMemo(
@@ -900,6 +991,18 @@ export function LookupField({
       return haystack.includes(normalizedQuery);
     });
   }, [uniqueOptions, query]);
+
+  /*
+   * Typing narrows the list under the highlight, so an index that named the
+   * fourth match can outlive a list of two — and `aria-activedescendant` would
+   * then point at no element, which is the same class of defect as the one
+   * being fixed.
+   */
+  React.useEffect(() => {
+    setActiveIndex((current) =>
+      current >= filteredOptions.length ? -1 : current,
+    );
+  }, [filteredOptions.length]);
 
   React.useEffect(() => {
     onSearchRef.current = onSearch;
@@ -972,21 +1075,53 @@ export function LookupField({
   function handleOpen() {
     if (disabled) return;
     setIsOpen(true);
+    setActiveIndex(-1);
     window.requestAnimationFrame(() => {
       inputRef.current?.focus();
       inputRef.current?.select();
     });
   }
 
-  function handleSelect(
-    optionId: string,
-    event: React.MouseEvent<HTMLButtonElement>,
-  ) {
-    event.preventDefault();
-    event.stopPropagation();
+  function handleSelect(optionId: string, event?: React.SyntheticEvent) {
+    event?.preventDefault();
+    event?.stopPropagation();
     onChange(optionId);
     setIsOpen(false);
     setQuery("");
+    setActiveIndex(-1);
+  }
+
+  /*
+   * The search input is what has focus while the popup is open, so the
+   * movement keys are handled there and `aria-activedescendant` is set on it
+   * as well as on the trigger — a textbox supports the attribute, and the
+   * user must be able to arrow to a record without leaving the box they are
+   * typing in.
+   */
+  function handleListNavigation(event: React.KeyboardEvent) {
+    const moved = nextActiveIndex(
+      event.key,
+      activeIndex,
+      filteredOptions.length,
+    );
+    if (moved !== null) {
+      event.preventDefault();
+      setActiveIndex(moved);
+      return;
+    }
+
+    if (event.key === "Enter") {
+      if (activeIndex >= 0 && activeIndex < filteredOptions.length) {
+        handleSelect(filteredOptions[activeIndex].id, event);
+      }
+      return;
+    }
+
+    if (event.key === "Escape") {
+      event.preventDefault();
+      setIsOpen(false);
+      setActiveIndex(-1);
+    }
   }
 
   function handleClear(event: React.MouseEvent<HTMLButtonElement>) {
@@ -1002,7 +1137,6 @@ export function LookupField({
       ? createPortal(
           <div
             className="fixed z-[80] rounded-2xl border border-border bg-white p-3 shadow-xl"
-            id={listboxId}
             ref={menuRef}
             style={{
               left: menuPosition.left,
@@ -1013,9 +1147,18 @@ export function LookupField({
           >
             <div className="mb-3 flex items-center gap-2">
               <input
+                aria-activedescendant={activeDescendantId(
+                  listboxId,
+                  isOpen,
+                  activeIndex,
+                  filteredOptions.length,
+                )}
+                aria-controls={filteredOptions.length ? listboxId : undefined}
+                aria-label={`Search ${label || "options"}`}
                 ref={inputRef}
                 className={baseInputClassName}
                 onChange={(event) => setQuery(event.target.value)}
+                onKeyDown={handleListNavigation}
                 placeholder={placeholder}
                 value={query}
               />
@@ -1035,22 +1178,41 @@ export function LookupField({
               className="overflow-y-auto"
               style={{ maxHeight: Math.max(120, menuPosition.maxHeight - 92) }}
             >
+              {/*
+                BUG-1956 - `role=listbox` belongs here rather than on the
+                popup: the popup also contains the search box and a Clear
+                button, and a listbox owning focusable controls is the
+                `nested-interactive` violation. The options are `div`s, not
+                `button`s, for the same reason - they are reached by
+                `aria-activedescendant` from the input, not by Tab.
+
+                Rendered only when there are matches, so the `aria-controls`
+                on the trigger and on the input never name an element that
+                is not there. The empty state is a sibling: a listbox with
+                no options is a list a user is invited to move through and
+                cannot.
+              */}
               {filteredOptions.length ? (
-                <div className="space-y-1">
-                  {filteredOptions.map((option) => {
+                <div className="space-y-1" id={listboxId} role="listbox">
+                  {filteredOptions.map((option, index) => {
                     const isSelected = lookupOptionMatchesValue(option, value);
+                    const isActive = index === activeIndex;
                     const display = lookupOptionDisplay(option);
 
                     return (
-                      <button
+                      <div
+                        aria-selected={isSelected}
+                        id={listboxOptionId(listboxId, index)}
                         key={option.id}
                         onClick={(event) => handleSelect(option.id, event)}
-                        type="button"
+                        onMouseEnter={() => setActiveIndex(index)}
+                        role="option"
                         className={[
-                          "block w-full rounded-xl border px-4 py-3 text-left transition",
+                          "block w-full cursor-pointer rounded-xl border px-4 py-3 text-left transition",
                           isSelected
                             ? "border-accent bg-accent/5"
                             : "border-transparent hover:border-border hover:bg-slate-50",
+                          isActive ? "border-border bg-slate-50" : "",
                         ].join(" ")}
                       >
                         <span className="block text-xs font-medium text-foreground">
@@ -1062,7 +1224,7 @@ export function LookupField({
                             {option.subtitle}
                           </span>
                         ) : null}
-                      </button>
+                      </div>
                     );
                   })}
                 </div>
@@ -1091,7 +1253,21 @@ export function LookupField({
     >
       <div className="relative" ref={containerRef}>
         <div
-          aria-controls={listboxId}
+          aria-activedescendant={activeDescendantId(
+            listboxId,
+            isOpen,
+            activeIndex,
+            filteredOptions.length,
+          )}
+          /*
+            BUG-1956 - `aria-controls` only while there is something to control.
+            It named a portalled element that does not exist when the field is
+            closed, and does not exist when the search matches nothing either,
+            so for most of this control's life it was a dangling reference.
+          */
+          aria-controls={
+            isOpen && filteredOptions.length ? listboxId : undefined
+          }
           aria-expanded={isOpen}
           aria-haspopup="listbox"
           className={[
@@ -1105,6 +1281,16 @@ export function LookupField({
             if (event.key === "Enter" || event.key === " ") {
               event.preventDefault();
               handleOpen();
+              return;
+            }
+            if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+              event.preventDefault();
+              handleOpen();
+              return;
+            }
+            if (event.key === "Escape") {
+              setIsOpen(false);
+              setActiveIndex(-1);
             }
           }}
           role="combobox"
@@ -1112,20 +1298,8 @@ export function LookupField({
         >
           <span className="min-w-0 flex-1">
             {selectedOption ? (
-              <span className="block min-w-0">
-                {selectedHref ? (
-                  <a
-                    className="block truncate font-semibold text-accent underline-offset-4 hover:underline"
-                    href={selectedHref}
-                    onClick={(event) => event.stopPropagation()}
-                  >
-                    {lookupOptionDisplay(selectedOption).name}
-                  </a>
-                ) : (
-                  <span className="block truncate font-medium text-foreground">
-                    {lookupOptionDisplay(selectedOption).name}
-                  </span>
-                )}
+              <span className="block truncate font-medium text-foreground">
+                {lookupOptionDisplay(selectedOption).name}
               </span>
             ) : (
               <span className="text-muted">{placeholder}</span>
@@ -1146,6 +1320,23 @@ export function LookupField({
             </span>
           </span>
         </div>
+
+        {/*
+          BUG-1956 - the link to the selected record used to sit inside the
+          combobox. A combobox is a leaf widget and may not own focusable
+          children, so an anchor in there was a `nested-interactive` violation
+          and, worse in practice, a Tab stop inside a control the user was
+          trying to open. It is a sibling now, and it names the record it opens
+          rather than relying on the reader to infer it from the row above.
+        */}
+        {selectedOption && selectedHref ? (
+          <a
+            className="mt-1 inline-block max-w-full truncate text-xs font-semibold text-accent underline-offset-4 hover:underline"
+            href={selectedHref}
+          >
+            Open {lookupOptionDisplay(selectedOption).name}
+          </a>
+        ) : null}
 
         {lookupMenu}
         {false && isOpen ? (

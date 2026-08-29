@@ -27,12 +27,12 @@ export default async function NewEmployeePage({
 
   if (!hasBusinessUnitScope(businessUnitAccess)) {
     return (
-      <main className="dp-theme-scope dp-employees-scope grid gap-6">
+      <div className="dp-theme-scope dp-employees-scope grid gap-6">
         <AccessDeniedState
           description="Your current business-unit scope does not allow employee creation."
           title="Create employee is unavailable for your current business unit access."
         />
-      </main>
+      </div>
     );
   }
 
@@ -107,7 +107,7 @@ export default async function NewEmployeePage({
     await import("../_components/employee-runtime-form-wrapper");
 
   return (
-    <main className="dp-theme-scope dp-employees-scope grid gap-6">
+    <div className="dp-theme-scope dp-employees-scope grid gap-6">
       <EmployeeRuntimeFormWrapper
         activeForm={activeRuntimeForm}
         lookupOptions={mapEmployeeLookupOptions({
@@ -123,6 +123,6 @@ export default async function NewEmployeePage({
         })}
         runtime={employeeRuntimeContext}
       />
-    </main>
+    </div>
   );
 }

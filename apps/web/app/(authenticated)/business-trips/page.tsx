@@ -13,7 +13,7 @@ export default async function BusinessTripsPage() {
   }
   const trips = await apiRequestJson<BusinessTripRecord[]>("/business-trips");
   return (
-    <main className="grid gap-6">
+    <div className="grid gap-6">
       <section className="rounded-[28px] border border-border bg-surface p-8 shadow-sm">
         <p className="text-sm uppercase tracking-[0.18em] text-muted">Travel</p>
         <h2 className="mt-3 font-serif text-4xl text-foreground">Business Trips</h2>
@@ -34,6 +34,6 @@ export default async function BusinessTripsPage() {
           </Link>
         )) : <p className="text-sm text-muted">No business trips found.</p>}
       </section>
-    </main>
+    </div>
   );
 }

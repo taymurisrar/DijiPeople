@@ -16,7 +16,7 @@ export default async function ClaimDetailPage({ params }: PageProps) {
   }
   const claim = await apiRequestJson<ClaimRecord>(`/claims/${claimId}`);
   return (
-    <main className="grid gap-6">
+    <div className="grid gap-6">
       <section className="rounded-[28px] border border-border bg-surface p-8 shadow-sm">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div>
@@ -51,6 +51,6 @@ export default async function ClaimDetailPage({ params }: PageProps) {
           ))}
         </div>
       </section>
-    </main>
+    </div>
   );
 }

@@ -28,7 +28,7 @@ export default async function EmployeeBankAccountDetailPage({
   });
 
   return (
-    <main className="grid gap-6">
+    <div className="grid gap-6">
       <StandardModuleRecordPage
         activeForm={resolveStandardActiveForm(
           runtime.metadata.forms,
@@ -45,6 +45,6 @@ export default async function EmployeeBankAccountDetailPage({
             : "Employee Bank Account"
         }
       />
-    </main>
+    </div>
   );
 }

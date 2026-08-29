@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
+import { useSideToast } from "@/app/components/notifications";
 import {
   AttendanceLocationOption,
   AttendanceMode,
@@ -37,6 +38,11 @@ export function ManualAttendanceForm({
   const [form, setForm] = useState(initialForm);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // BUG-2006 — a 201 response left the page silent: no toast, no inline
+  // confirmation, nothing to distinguish a save that worked from one that
+  // never fired. The form was already being cleared on success; only the
+  // outcome was never reported.
+  const { notifySuccess, toast } = useSideToast();
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -90,6 +96,10 @@ export function ManualAttendanceForm({
       return;
     }
 
+    notifySuccess(
+      "Manual attendance entry created",
+      `Saved for ${form.date}. The form has been cleared for the next entry.`,
+    );
     router.refresh();
     setIsSubmitting(false);
     setForm(initialForm);
@@ -100,6 +110,7 @@ export function ManualAttendanceForm({
       className="grid gap-4 rounded-[24px] border border-border bg-surface p-6 shadow-sm md:grid-cols-2 xl:grid-cols-3"
       onSubmit={handleSubmit}
     >
+      {toast}
       <SelectField
         label="Employee"
         onChange={(value) =>

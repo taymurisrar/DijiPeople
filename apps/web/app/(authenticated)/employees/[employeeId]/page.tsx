@@ -65,12 +65,12 @@ export default async function EmployeeDetailPage({
       (error.status === 403 || error.status === 404)
     ) {
       return (
-        <main className="dp-theme-scope dp-employees-scope grid gap-6">
+        <div className="dp-theme-scope dp-employees-scope grid gap-6">
           <AccessDeniedState
             description={`${error.status}: ${error.message}`}
             title="You cannot view this employee record."
           />
-        </main>
+        </div>
       );
     }
 
@@ -192,7 +192,7 @@ export default async function EmployeeDetailPage({
     : (locations.items ?? []);
 
   return (
-    <main className="dp-theme-scope dp-employees-scope grid gap-6">
+    <div className="dp-theme-scope dp-employees-scope grid gap-6">
       <EmployeeRuntimeFormWrapper
         activeForm={activeRuntimeForm}
         lookupDisplayValues={mapEmployeeLookupDisplayValues(employee)}
@@ -230,7 +230,7 @@ export default async function EmployeeDetailPage({
        * so it is safe to mount unconditionally here.
        */}
       <EmployeeDlpCaptures employeeId={employee.id} />
-    </main>
+    </div>
   );
 }
 

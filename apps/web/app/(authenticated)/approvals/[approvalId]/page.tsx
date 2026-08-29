@@ -44,14 +44,18 @@ export default async function ApprovalDetailPage({
       (error.status === 404 || error.status === 400)
     ) {
       return (
-        <main className="grid gap-6">
+        {/*
+          A div, not a main: the authenticated layout owns the single `main`
+          landmark (BUG-1951), and a second one here would give the page two.
+        */}
+        <div className="grid gap-6">
           <RecordNotFoundState
             title="This approval was not found."
             description="Approvals are raised by other modules and cannot be created here. The request may have been withdrawn, or the link may be out of date."
             actionHref="/approvals"
             actionLabel="Back to approvals"
           />
-        </main>
+        </div>
       );
     }
 
@@ -69,7 +73,7 @@ export default async function ApprovalDetailPage({
   );
 
   return (
-    <main className="grid gap-6">
+    <div className="grid gap-6">
       <StandardModuleRecordPage
         activeForm={activeForm}
         mode="read"
@@ -97,7 +101,7 @@ export default async function ApprovalDetailPage({
         spec={approvalRuntimeSpec}
         title={approval.title}
       />
-    </main>
+    </div>
   );
 }
 

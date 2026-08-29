@@ -49,20 +49,20 @@ export default async function TimesheetsPage({
 
   if (!hasBusinessUnitScope(businessUnitAccess)) {
     return (
-      <main className="grid gap-6">
+      <div className="grid gap-6">
         <AccessDeniedState
           description="Your current business-unit scope does not include timesheet records."
           title="Timesheets are unavailable for your current business unit access."
         />
-      </main>
+      </div>
     );
   }
 
   if (!currentEmployeeContext.employee && !canReadAllTimesheets) {
     return (
-      <main className="grid gap-6">
+      <div className="grid gap-6">
         <EmployeeLinkRequiredState />
-      </main>
+      </div>
     );
   }
 
@@ -143,7 +143,7 @@ export default async function TimesheetsPage({
   }));
 
   return (
-    <main className="grid gap-6">
+    <div className="grid gap-6">
       <TimesheetListWorkspace
         activeView={activeView}
         exportOptions={{
@@ -198,7 +198,7 @@ export default async function TimesheetsPage({
         runtime={runtime}
         title="Timesheets"
       />
-    </main>
+    </div>
   );
 }
 

@@ -1,6 +1,6 @@
 export default function DashboardLoading() {
   return (
-    <main className="dp-theme-scope grid gap-6 px-4 py-6 md:px-6 lg:px-8">
+    <div className="dp-theme-scope grid gap-6 px-4 py-6 md:px-6 lg:px-8">
       <div className="flex items-start justify-between gap-4">
         <div className="grid gap-2">
           <div className="h-4 w-28 rounded bg-muted/20" />
@@ -22,6 +22,6 @@ export default function DashboardLoading() {
           </div>
         ))}
       </div>
-    </main>
+    </div>
   );
 }

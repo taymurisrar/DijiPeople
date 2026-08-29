@@ -2,7 +2,7 @@
 ID: BUG-2148
 aliases: [BUG-2148]
 Title: Dashboard widget severity is conveyed by colour alone, and hidden from assistive technology
-Status: DEFERRED
+Status: FIXED
 Severity: MEDIUM
 Priority: P2
 Type: UX
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-29
 DetectedInSha: 48273a47
 AffectedModules: [views, dashboard]
 OwnerAgent: architect
-ArchitectDisposition: DEFER
+ArchitectDisposition: DONE
 QAReport: 
-RegressionId: 
+RegressionId: REG-336
 RelatedBacklogItem: ITEM-0114
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-29
 UpdatedAt: 2026-08-29
-ResolvedAt:
+ResolvedAt: 2026-08-29
 ---
 
 # BUG-2148 — Dashboard widget severity is conveyed by colour alone, and hidden from assistive technology
@@ -132,7 +132,31 @@ class of defect as [[BUG-1673]], which fixed the shell's headings.
 
 ## Resolution
 
-Not yet fixed.
+Fixed, batched with BUG-2149 as the triage note directed — same file, same
+class of defect, and the second cost almost nothing once the first was open.
+
+`SeverityDot` in
+`apps/web/app/components/dashboard/dashboard-widget-renderer.tsx` now renders
+`role="img"` with `aria-label={`Status: ${SEVERITY_LABELS[severity]}`}` and no
+`aria-hidden`. The dot is named rather than replaced by `SeverityPill`, for the
+reason the record gave: the visual design is right and a pill in a card header
+would be heavier than the header wants.
+
+`SEVERITY_LABELS` is one map, declared once and read by both the dot and the
+pill. That was the more important half. The two were separate copies of an
+answer to the same question about the same union, and the dot's copy had
+already stopped being a copy — it held colour classes where the pill held
+words, which is exactly how the defect existed at all. `SEVERITY_DOT_COLORS`
+sits beside it as the presentational half, keyed by the same union so a new
+member cannot be added to one and forgotten in the other.
+
+Covered by
+`apps/web/app/components/dashboard/dashboard-widget-accessibility.spec.ts`,
+which asserts the `aria-hidden` literal is gone, that the dot has a name, that
+`SEVERITY_LABELS` is declared exactly once and read at least twice, and that
+every member of `DashboardSeverity` has an entry. Source-reading, in the style
+this record proposed and for the reason it gave: `apps/web` runs jest with no
+jsdom.
 
 ## QA Retest
 

@@ -16,7 +16,7 @@ export default async function EmployeeBankAccountsPage() {
     return { ...row, employeeName: [employee.firstName, employee.lastName].filter((value) => typeof value === "string").join(" "), bankName: bank.name };
   });
   const runtime = buildStandardRouteRuntime({ pageKind: "list", sessionUser: user, spec: employeeBankAccountRuntimeSpec });
-  return <main className="grid gap-6"><StandardModuleListPage records={records} runtime={runtime} spec={employeeBankAccountRuntimeSpec} title="Employee Bank Accounts" /></main>;
+  return <div className="grid gap-6"><StandardModuleListPage records={records} runtime={runtime} spec={employeeBankAccountRuntimeSpec} title="Employee Bank Accounts" /></div>;
 }
 function isRecord(value: unknown): value is Record<string, unknown> { return typeof value === "object" && value !== null && !Array.isArray(value); }
 function readRecordList(data: unknown): Record<string, unknown>[] {

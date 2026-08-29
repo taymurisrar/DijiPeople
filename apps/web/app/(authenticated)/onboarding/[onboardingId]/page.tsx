@@ -64,7 +64,7 @@ export default async function OnboardingDetailPage({
   }));
 
   return (
-    <main className="grid gap-5">
+    <div className="grid gap-5">
       <section className="rounded-[24px] border border-border bg-surface p-3 shadow-sm">
         <div className="flex flex-wrap items-center gap-2">
           <Button
@@ -90,9 +90,9 @@ export default async function OnboardingDetailPage({
 
             <div className="mt-3 grid gap-4 lg:grid-cols-[minmax(0,1fr)_200px] lg:items-end">
               <div className="min-w-0">
-                <h1 className="truncate text-2xl font-semibold tracking-tight text-foreground lg:text-3xl">
+                <h2 className="truncate text-2xl font-semibold tracking-tight text-foreground lg:text-3xl">
                   {pageTitle}
-                </h1>
+                </h2>
                 <p className="mt-2 text-sm text-muted">
                   {subjectName} / {subjectMeta}
                 </p>
@@ -292,7 +292,7 @@ export default async function OnboardingDetailPage({
           )}
         </div>
       </section>
-    </main>
+    </div>
   );
 }
 

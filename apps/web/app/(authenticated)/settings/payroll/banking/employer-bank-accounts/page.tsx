@@ -19,14 +19,14 @@ export default async function EmployerBankAccountsPage() {
     spec: employerBankAccountRuntimeSpec,
   });
   return (
-    <main className="grid gap-6">
+    <div className="grid gap-6">
       <StandardModuleListPage
         records={records}
         runtime={runtime}
         spec={employerBankAccountRuntimeSpec}
         title="Employer Bank Accounts"
       />
-    </main>
+    </div>
   );
 }
 

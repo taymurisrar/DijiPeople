@@ -2,7 +2,7 @@
 ID: BUG-1963
 aliases: [BUG-1963]
 Title: Runtime dialogs show the end user the raw server message and the HTTP method and path
-Status: OPEN
+Status: FIXED
 Severity: MEDIUM
 Priority: P2
 Type: UX
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-29
 DetectedInSha: eb457d9d
 AffectedModules: [apps/web]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
-RegressionId: 
+RegressionId: REG-334
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-29
 UpdatedAt: 2026-08-29
-ResolvedAt:
+ResolvedAt: 2026-08-29
 ---
 
 # BUG-1963 — Runtime dialogs show the end user the raw server message and the HTTP method and path
@@ -130,7 +130,50 @@ different app and different layer.
 
 ## Resolution
 
-Open. No fix has been written.
+Fixed on `agent/bugfix-webux` (commit `fdce2fea`), in the shared layer rather
+than on the dialog, so every module the runtime serves is covered at once.
+
+**Where the method and path came from.**
+`apps/web/lib/runtime/modules/standard-module-data.adapter.ts:640` threw
+``new Error(`${message} (${init?.method ?? "GET"} ${path})`)``, and
+`apps/web/lib/runtime/command-execution.service.ts:101` puts a caught handler's
+`error.message` straight into the command result, which the record page then
+renders. That is the whole of
+`leavePolicyId must be a UUID (POST /api/leave-policies/assignments)`. The
+adapter now throws the server's message alone; the method and the path stay on
+`error.data`, which is what the error log and the downloadable report already
+carry, and are written to `console.warn` at the point of failure.
+
+**Where the DTO property name came from.**
+The dialog rendered the contract's `message`, which is the developer-facing
+half. `resolveUserFacingMessage` in `apps/web/lib/api-error.ts` now decides:
+the contract's `description` for a validation failure or whenever field-level
+reasons are present, and `message` otherwise — a domain refusal such as
+"An attendance entry already exists for this employee on this date." is more
+use to the reader than a generic sentence, and telling those two cases apart is
+what the contract's two fields are for.
+
+Changed:
+
+- `apps/web/lib/api-error.ts` — `sanitizeUserFacingMessage` (strips a trailing
+  method+path, refuses markup and over-long strings) and
+  `resolveUserFacingMessage`; both applied inside `normalizeApiError`.
+- `apps/web/lib/runtime/command-failure-message.ts` — new; one reader for the
+  failure contract, shared by the command handler and the record page.
+- `apps/web/app/components/errors/error-modal.tsx:34` — the headline is the
+  resolved user-facing message; `formatFieldMessages` now also reads root-level
+  `fieldErrors`, which it never did, and humanises the property name.
+- `apps/web/app/components/runtime/module-record-page.tsx:441` — the toast on a
+  failed save carries the description, not the raw message.
+- `apps/web/app/components/runtime/module-runtime-command-handler.tsx` —
+  `readCommandFailureError` delegates to the shared reader.
+
+The `traceId` is untouched on every path: it is the only thing joining a
+customer's screenshot to a log row.
+
+Covered by `apps/web/lib/api-error.spec.ts` — 13 cases, including that no
+resolved message contains `/api/` or a DTO property name for a validation
+failure.
 
 ## QA Retest
 

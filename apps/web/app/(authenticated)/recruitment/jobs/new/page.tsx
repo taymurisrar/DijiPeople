@@ -28,12 +28,12 @@ export default async function NewJobOpeningPage({
 
   if (!hasBusinessUnitScope(businessUnitAccess)) {
     return (
-      <main className="grid gap-6">
+      <div className="grid gap-6">
         <AccessDeniedState
           description="Your current business-unit scope does not allow job opening creation."
           title="Create job opening is unavailable for your current business unit access."
         />
-      </main>
+      </div>
     );
   }
 
@@ -49,7 +49,7 @@ export default async function NewJobOpeningPage({
   );
 
   return (
-    <main className="grid gap-6">
+    <div className="grid gap-6">
       <StandardModuleRecordPage
         activeForm={activeForm}
         mode="create"
@@ -71,6 +71,6 @@ export default async function NewJobOpeningPage({
         spec={jobOpeningRuntimeSpec}
         title="Create job opening"
       />
-    </main>
+    </div>
   );
 }

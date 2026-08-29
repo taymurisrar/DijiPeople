@@ -12,7 +12,7 @@ export default async function RecruitmentPipelinesPage() {
     );
 
   return (
-    <main className="grid gap-6">
+    <div className="grid gap-6">
       <section className="rounded-[28px] border border-border bg-[linear-gradient(135deg,rgba(255,255,255,0.95),rgba(239,248,245,0.9))] p-8 shadow-lg">
         <p className="text-sm uppercase tracking-[0.18em] text-muted">
           Recruitment
@@ -29,6 +29,6 @@ export default async function RecruitmentPipelinesPage() {
       <RecruitmentPipelineManager
         initialPipelines={(response.items ?? []) as RecruitmentPipelineRecord[]}
       />
-    </main>
+    </div>
   );
 }

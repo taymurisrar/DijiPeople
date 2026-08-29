@@ -7,6 +7,7 @@ import {
   validateRuntimeForm,
   type RuntimeFormValues,
 } from "./runtime-form-validation";
+import { singularize } from "@/lib/text/inflection";
 
 /**
  * Quick-create metadata and the gate in front of it.
@@ -75,7 +76,15 @@ export function buildSubgridQuickCreate(
   const form: FormMetadata = {
     id: `quick:${entityLogicalName}`,
     logicalName: `${entityLogicalName}.quickCreate`,
-    displayName: `New ${subgrid.title}`,
+    /*
+     * BUG-1964 — a subgrid titled "Departments" opened a dialog headed "New
+     * Departments". The title is a collection label, so the singular has to be
+     * derived; `singularize` knows the cases that stripping a trailing "s"
+     * gets wrong. This arrived with the web-UX stream, which still had this
+     * function inline here; it is applied to the extracted copy so the fix
+     * survives the move.
+     */
+    displayName: `New ${singularize(subgrid.title)}`,
     version: "1.0.0",
     lifecycleState: "published",
     layer: "system",

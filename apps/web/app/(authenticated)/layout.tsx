@@ -191,6 +191,17 @@ export default async function DashboardLayout({
           remembered to add it.
         */}
         <WorkspaceEnvironmentBanner />
+        {/*
+          BUG-1951 - the first focusable element on every authenticated screen
+          skips the sidebar. It was meaningless before, because there was no
+          `main` landmark to skip to.
+        */}
+        <a
+          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100] focus:rounded-xl focus:border focus:border-border focus:bg-surface focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-foreground focus:shadow-lg"
+          href="#main-content"
+        >
+          Skip to content
+        </a>
         <div
           className="dp-theme-scope min-h-screen bg-background py-2 md:py-4"
           data-theme={
@@ -256,7 +267,19 @@ export default async function DashboardLayout({
                     </p>
                   </div>
                 ) : null}
-                {children}
+                {/*
+                  BUG-1951 - 143 of 232 authenticated pages rendered no `main`
+                  landmark and neither layout supplied one, so landmark
+                  navigation and skip-to-content did not work at all; the 89
+                  pages that did render one now render a `div` instead, because
+                  supplying it here and leaving those in place would have made
+                  those 89 worse (two landmarks) while making 143 better. It is
+                  outside the topbar deliberately: the page header is banner
+                  content, not the page's content.
+                */}
+                <main className="flex min-w-0 flex-col gap-6" id="main-content">
+                  {children}
+                </main>
               </ErrorProvider>
             </div>
           </div>

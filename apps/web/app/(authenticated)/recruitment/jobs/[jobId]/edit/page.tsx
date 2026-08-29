@@ -27,16 +27,16 @@ export default async function EditJobOpeningPage({
   const hasConfiguredScoring = hasMatchCriteriaConfigured(job.matchCriteria);
 
   return (
-    <main className="grid gap-6">
+    <div className="grid gap-6">
       <section className="rounded-[28px] border border-border bg-[linear-gradient(135deg,rgba(255,255,255,0.97),rgba(239,248,245,0.92))] p-8 shadow-lg">
         <div className="space-y-4">
           <div className="space-y-3">
             <p className="text-sm uppercase tracking-[0.18em] text-muted">
               Recruitment
             </p>
-            <h1 className="font-serif text-4xl text-foreground">
+            <h2 className="font-serif text-4xl text-foreground">
               Edit job opening
-            </h1>
+            </h2>
             <p className="max-w-3xl text-sm leading-7 text-muted">
               Update the opening details, hiring requirements, and scoring
               configuration without disrupting the current application pipeline.
@@ -66,7 +66,7 @@ export default async function EditJobOpeningPage({
       </section>
 
       <JobOpeningForm mode="edit" jobOpening={job} />
-    </main>
+    </div>
   );
 }
 

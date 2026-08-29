@@ -40,12 +40,12 @@ export default async function AttendanceExceptionDetailPage({
 
   if (!hasAnyPermission(user.permissionKeys, [PERMISSION_KEYS.ATTENDANCE_READ])) {
     return (
-      <main className="dp-theme-scope dp-attendance-scope grid gap-6">
+      <div className="dp-theme-scope dp-attendance-scope grid gap-6">
         <AccessDeniedState
           description="Your role does not include attendance access."
           title="This attendance exception is unavailable for your account."
         />
-      </main>
+      </div>
     );
   }
 
@@ -57,12 +57,12 @@ export default async function AttendanceExceptionDetailPage({
   } catch (error) {
     if (error instanceof ApiRequestError && error.status === 403) {
       return (
-        <main className="dp-theme-scope dp-attendance-scope grid gap-6">
+        <div className="dp-theme-scope dp-attendance-scope grid gap-6">
           <AccessDeniedState
             description={error.message}
             title="You cannot view this attendance exception."
           />
-        </main>
+        </div>
       );
     }
     if (error instanceof ApiRequestError && error.status === 404) notFound();
@@ -75,7 +75,7 @@ export default async function AttendanceExceptionDetailPage({
   const day = detail.attendanceDay;
 
   return (
-    <main className="dp-theme-scope dp-attendance-scope grid gap-6">
+    <div className="dp-theme-scope dp-attendance-scope grid gap-6">
       <header className="grid gap-2">
         <Link
           className="text-sm text-muted hover:underline"
@@ -83,9 +83,9 @@ export default async function AttendanceExceptionDetailPage({
         >
           ← Back to exceptions
         </Link>
-        <h1 className="text-2xl font-semibold text-foreground">
+        <h2 className="text-2xl font-semibold text-foreground">
           {exceptionTypeLabel(detail.type)}
-        </h1>
+        </h2>
         <p className="text-sm text-muted">{detail.message}</p>
       </header>
 
@@ -355,7 +355,7 @@ export default async function AttendanceExceptionDetailPage({
           ))}
         </ol>
       </SectionCard>
-    </main>
+    </div>
   );
 }
 

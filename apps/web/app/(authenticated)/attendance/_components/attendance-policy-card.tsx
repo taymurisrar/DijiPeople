@@ -54,9 +54,9 @@ export function AttendancePolicyCard({
       body: JSON.stringify(payload),
     });
 
-    const payload = (await response.json()) as { message?: string };
+    const responseBody = (await response.json()) as { message?: string };
     if (!response.ok) {
-      setError(payload.message ?? "Unable to update attendance policy.");
+      setError(responseBody.message ?? "Unable to update attendance policy.");
       setIsSubmitting(false);
       return;
     }

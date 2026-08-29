@@ -96,7 +96,7 @@ export default function DashboardError({ error, reset }: DashboardErrorProps) {
   )}`;
 
   return (
-    <main className="grid min-h-[calc(100vh-180px)] place-items-center gap-6">
+    <div className="grid min-h-[calc(100vh-180px)] place-items-center gap-6">
       <section className="w-full max-w-4xl overflow-hidden rounded-[32px] border border-border bg-surface shadow-sm">
         <div className="border-b border-border bg-[linear-gradient(135deg,rgba(255,255,255,0.98),rgba(248,250,252,0.92))] px-6 py-5 sm:px-8">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -217,7 +217,7 @@ export default function DashboardError({ error, reset }: DashboardErrorProps) {
           </div>
         </div>
       </section>
-    </main>
+    </div>
   );
 }
 

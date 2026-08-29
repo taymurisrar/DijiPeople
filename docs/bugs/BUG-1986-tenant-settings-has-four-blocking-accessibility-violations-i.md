@@ -2,7 +2,7 @@
 ID: BUG-1986
 aliases: [BUG-1986]
 Title: Tenant settings has four blocking accessibility violations including buttons with no name
-Status: OPEN
+Status: FIXED
 Severity: HIGH
 Priority: P1
 Type: UX
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-29
 DetectedInSha: 41eaadb4
 AffectedModules: [apps/web]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport:
-RegressionId:
+RegressionId: REG-337
 RelatedBacklogItem: ITEM-0034
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-29
 UpdatedAt: 2026-08-29
-ResolvedAt:
+ResolvedAt: 2026-08-29
 ---
 
 # BUG-1986 — Tenant settings has four blocking accessibility violations including buttons with no name
@@ -141,8 +141,63 @@ which is `VERIFIED` for the admin console and was never checkable for web.
 
 ## Resolution
 
-Not fixed. Recorded rather than fixed inside the coverage task, per
-[[EXECPLAN-0025-apps-web-browser-e2e-coverage]].
+Fixed. All four, and — as the record predicted — three of them were in shared
+components rather than on that one page, so the fix reaches far more than
+`/settings/organization`.
+
+The Root Cause section asked for the components behind the Tailwind selectors.
+They are:
+
+**`button-name`, five nodes** —
+`apps/web/app/(authenticated)/settings/_components/settings-runtime-nav.tsx:84`.
+The selector `.rounded-[20px]:nth-child(1..5) > … > .h-7` is the category
+expand/collapse toggle, one per settings category, and the `.rounded-[20px]`
+ancestor is the category `section`. Its only child is a lucide chevron, which
+renders an `svg` with no title, so the button had no name at all. It now
+carries `aria-label={`${categoryOpen ? "Collapse" : "Expand"} ${category.label}`}`,
+and both chevrons are `aria-hidden`. `aria-label` rather than visible text
+deliberately: the visible name is the category link immediately beside it, and
+repeating it would announce every category twice.
+
+**`color-contrast`, including the current-page indicator** —
+same file, the active item's `bg-accent-soft font-semibold text-accent`. This
+one could not be tuned. `--accent-soft` is the tenant primary mixed 18% into
+white (`apps/web/app/globals.css:222`) and `--accent` is that same primary, so
+the pairing is a colour on a tint of itself and **no tenant palette can pass**.
+The text is `--foreground` now. The soft background, the weight and
+`aria-current="page"` still carry the state, so nothing rests on hue.
+
+**`aria-allowed-attr` and `nested-interactive`, both on `.cursor-pointer`** —
+`apps/web/app/components/data-table/data-table.tsx:613`. The record's guess that
+"one component is doing both wrong" was right, and it is not a settings
+component at all: it is the clickable row of the shared data table, which every
+runtime list in the tenant product renders. BUG-0043 made the row keyboard
+reachable and gave it `role="button"` along the way. A button is a leaf widget,
+and this one contains the selection checkbox and every link and action button
+its cells render — `nested-interactive`. And `aria-selected` is not supported
+on `button`, though it is supported on `row`, which a `tr` already is —
+`aria-allowed-attr`. The role is removed; `tabIndex` and the key handler, which
+are what BUG-0043 was actually about, stay. A button containing a dozen
+focusable children was never announcing anything useful.
+
+**Also, unreported but adjacent:**
+`apps/web/app/(authenticated)/settings/_components/settings-shell.tsx` wrapped
+its nav in an `aside` and handed it to `SettingsLayout`, which wraps whatever
+it is given in an `aside` of its own — two nested complementary landmarks on
+every settings screen. The inner one is a `div` now.
+
+**On "audit more than one page before closing".** Two of the four fixes are in
+`data-table.tsx` and one is in the settings runtime nav, both of which are
+shared, so this cannot have been unique to that screen — every runtime list in
+the product carried the row defect. That is an argument from the source rather
+than a second audit: the browser audit itself is Flow J's to run.
+
+Covered by
+`apps/web/app/(authenticated)/settings/settings-accessibility.spec.ts`, which
+pins each of the four to the component it was found in, so the next reader is
+not re-deriving components from utility-class selectors. It asserts the absence
+of the literals that were the defects, and that what the defective code was
+there for — keyboard reachability, the current-page marker — survived the fix.
 
 ## QA Retest
 

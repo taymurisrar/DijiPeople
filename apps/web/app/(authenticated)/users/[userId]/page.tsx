@@ -81,12 +81,12 @@ export default async function UserDetailPage({
 
   if (!canReadUsers) {
     return (
-      <main className="dp-theme-scope grid gap-6">
+      <div className="dp-theme-scope grid gap-6">
         <AccessDeniedState
           title="You cannot view this user record."
           description="You do not have permission to read user records."
         />
-      </main>
+      </div>
     );
   }
 
@@ -123,25 +123,30 @@ export default async function UserDetailPage({
      */
     if (error instanceof ApiRequestError && error.status === 404) {
       return (
-        <main className="dp-theme-scope grid gap-6">
+        {/*
+          A div, not a main: the authenticated layout owns the single `main`
+          landmark (BUG-1951). The 403 branch just below already used a div,
+          so this was also the odd one out of the two.
+        */}
+        <div className="dp-theme-scope grid gap-6">
           <RecordNotFoundState
             title="This user record was not found."
             description={`No user exists here for this tenant. ${error.message}`}
             actionHref="/users"
             actionLabel="Back to users"
           />
-        </main>
+        </div>
       );
     }
 
     if (error instanceof ApiRequestError && error.status === 403) {
       return (
-        <main className="dp-theme-scope grid gap-6">
+        <div className="dp-theme-scope grid gap-6">
           <AccessDeniedState
             title="You cannot view this user record."
             description={`${error.status}: ${error.message}`}
           />
-        </main>
+        </div>
       );
     }
 
@@ -180,7 +185,7 @@ export default async function UserDetailPage({
     formatDateTimeWithTenantSettings(value, formattingOptions);
 
   return (
-    <main className="dp-theme-scope grid gap-6">
+    <div className="dp-theme-scope grid gap-6">
       <UserProfileHeader
         canDeleteUser={canDeleteUser}
         canUpdateUser={canUpdateUser}
@@ -241,7 +246,7 @@ export default async function UserDetailPage({
       {activeTab === "security" ? (
         <UserSecurityDiagnosticsCard user={user} />
       ) : null}
-    </main>
+    </div>
   );
 }
 

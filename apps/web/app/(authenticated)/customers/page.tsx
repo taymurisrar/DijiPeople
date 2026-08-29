@@ -34,12 +34,12 @@ export default async function CustomersPage({
 
   if (!hasBusinessUnitScope(businessUnitAccess)) {
     return (
-      <main className="grid gap-6">
+      <div className="grid gap-6">
         <AccessDeniedState
           description="Your current business-unit scope does not include customer records."
           title="Customers are unavailable for your current business unit access."
         />
-      </main>
+      </div>
     );
   }
 
@@ -66,7 +66,7 @@ export default async function CustomersPage({
   }));
 
   return (
-    <main className="grid gap-6">
+    <div className="grid gap-6">
       <StandardModuleListPage
         activeView={activeView}
         formatting={{
@@ -87,7 +87,7 @@ export default async function CustomersPage({
         runtime={runtime}
         title="Customers"
       />
-    </main>
+    </div>
   );
 }
 

@@ -28,12 +28,12 @@ export default async function NewCandidatePage({
 
   if (!hasBusinessUnitScope(businessUnitAccess)) {
     return (
-      <main className="grid gap-6">
+      <div className="grid gap-6">
         <AccessDeniedState
           description="Your current business-unit scope does not allow candidate creation."
           title="Create candidate is unavailable for your current business unit access."
         />
-      </main>
+      </div>
     );
   }
 
@@ -49,7 +49,7 @@ export default async function NewCandidatePage({
   );
 
   return (
-    <main className="grid gap-6">
+    <div className="grid gap-6">
       <StandardModuleRecordPage
         activeForm={activeForm}
         mode="create"
@@ -66,6 +66,6 @@ export default async function NewCandidatePage({
         spec={recruitmentCandidateRuntimeSpec}
         title="Create candidate"
       />
-    </main>
+    </div>
   );
 }
