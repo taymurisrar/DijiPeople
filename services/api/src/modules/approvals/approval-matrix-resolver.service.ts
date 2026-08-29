@@ -49,11 +49,94 @@ export class ApprovalMatrixResolverService {
       return this.resolveFallback(input);
     }
 
+    /*
+     * BUG-1968 - every step is attempted, and the refusal names all of them.
+     *
+     * The policy is unchanged, deliberately: a chain with a step nobody can
+     * approve is a misconfiguration, and submitting into it would leave a
+     * request stuck with no route out.
+     *
+     * What changed is that this used to throw on the **first** unresolvable
+     * step, so an administrator fixed one, resubmitted, and met the next - with
+     * a message that never said which step it belonged to, or what to do. A
+     * fresh tenant satisfies neither of its two seeded steps, so the module was
+     * unusable and the error said only "Approval route requires a reporting
+     * manager with a linked active user."
+     */
     const route: ResolvedApprovalStep[] = [];
+    const unresolved: string[] = [];
     for (const matrix of selected) {
-      route.push(await this.resolveApprovers(input, matrix));
+      try {
+        route.push(await this.resolveApprovers(input, matrix));
+      } catch (error) {
+        if (!(error instanceof BadRequestException)) throw error;
+        unresolved.push(
+          `Step ${matrix.sequence} (${this.humanizeApproverType(matrix.approverType)}): ${this.remediation(this.messageOf(error))}`,
+        );
+      }
     }
+
+    if (unresolved.length) {
+      const heading =
+        unresolved.length === 1
+          ? 'This request cannot be submitted because its approval route has a step nobody can approve.'
+          : `This request cannot be submitted because its approval route has ${unresolved.length} steps nobody can approve.`;
+      throw new BadRequestException({
+        code: 'APPROVAL_ROUTE_UNRESOLVED',
+        message: [
+          heading,
+          '',
+          ...unresolved,
+          '',
+          'Ask an administrator to configure the approvers above, or to edit the approval matrix for this module, then submit again.',
+        ].join('\n'),
+      });
+    }
+
     return mergeResolvedSteps(route);
+  }
+
+  /*
+   * What the administrator has to *do*, keyed off the refusal each step raised.
+   *
+   * Derived from the thrown message rather than from a new error type per step
+   * on purpose: the six refusals in `resolveApprovers` are the single list of
+   * what can go wrong, and a parallel enum would be a second list to drift from
+   * the first. The fallback returns the original message, so a refusal added
+   * later degrades to today's behaviour instead of losing its text.
+   */
+  private remediation(message: string): string {
+    if (/reporting manager/i.test(message))
+      return 'the requester has no manager, or their manager has no active user account. Set a reporting manager on the employee record.';
+    if (/department head/i.test(message))
+      return 'the department has no active head or owner with a linked user. Set one on the department.';
+    if (/business-unit head/i.test(message))
+      return 'the business unit has no active head or owner with a linked user. Set one on the business unit.';
+    if (/user approver without a selected user/i.test(message))
+      return 'the step names a specific user but none is selected. Choose one, or change the approver type.';
+    if (/role approver without a selected role/i.test(message))
+      return 'the step names a role but none is selected. Choose one, or change the approver type.';
+    if (/role has no active users/i.test(message))
+      return 'the named role has no active users. Assign somebody to it, or point the step at a different approver.';
+    return message;
+  }
+
+  private humanizeApproverType(approverType: ApprovalActorType): string {
+    return approverType.toLowerCase().replace(/_/g, ' ');
+  }
+
+  /*
+   * A `BadRequestException` built from a string carries it on `.message`; one
+   * built from an object carries the object on `getResponse()`. Every refusal
+   * in `resolveApprovers` uses the string form today, but reading only
+   * `.message` would silently yield "Bad Request Exception" if one were changed.
+   */
+  private messageOf(error: BadRequestException): string {
+    const response = error.getResponse();
+    if (typeof response === 'string') return response;
+    const message = (response as { message?: unknown }).message;
+    if (typeof message === 'string') return message;
+    return error.message;
   }
 
   private async hydrateScope(input: ResolveApprovalRouteInput) {

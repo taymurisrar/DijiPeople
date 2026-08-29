@@ -17,8 +17,8 @@
 | Open CRITICAL | **0** |
 | Open HIGH | 19 |
 | Awaiting Architect triage | 0 |
-| Owner decisions pending | 7 |
-| QA coverage gaps | 106 |
+| Owner decisions pending | 8 |
+| QA coverage gaps | 113 |
 | Scenarios blocked by infrastructure | 0 |
 
 ## Backlog health
@@ -112,6 +112,7 @@ Questions where the engineering is understood and the **product answer is**
 - [[BUG-1981-resolvepolicy-hardcodes-seven-location-values-and-inverts-tw|BUG-1981]] — **resolvePolicy hardcodes seven location values and inverts two AttendancePolicy column defaults**
 - [[BUG-2045-timesheet-background-job-completions-make-up-71-percent-of-t|BUG-2045]] — **Timesheet background-job completions make up 71 percent of the tenant audit trail**
 - [[ITEM-0106-an-employee-cannot-use-self-service-until-their-manager-acti|ITEM-0106]] — **An employee cannot use self-service until their manager activates their own account**
+- [[ITEM-0113-the-seeded-leave-approval-chain-cannot-route-on-a-newly-prov|ITEM-0113]] — **The seeded leave approval chain cannot route on a newly provisioned tenant, and the Approval Matrices screen gives no warning**
 - [[ITEM-0108-decide-whether-the-roughly-one-hour-session-lifetime-is-idle|ITEM-0108]] — **Decide whether the roughly one-hour session lifetime is idle or absolute**
 - [[BUG-2007-projects-and-customers-can-be-created-but-never-deleted|BUG-2007]] — **Projects and customers can be created but never deleted**
 
@@ -228,6 +229,13 @@ gap into scope — or files a `TEST_GAP` item and says so.
 | [[PLAN-021-settings|settings]] | BROWSER |
 | [[PLAN-021-settings|settings]] | SECURITY |
 | [[PLAN-021-settings|settings]] | PERFORMANCE |
+| [[PLAN-022-approvals|approvals]] | API |
+| [[PLAN-022-approvals|approvals]] | DATABASE |
+| [[PLAN-022-approvals|approvals]] | INTEGRATION |
+| [[PLAN-022-approvals|approvals]] | E2E |
+| [[PLAN-022-approvals|approvals]] | BROWSER |
+| [[PLAN-022-approvals|approvals]] | SECURITY |
+| [[PLAN-022-approvals|approvals]] | PERFORMANCE |
 
 ## Backlog Health
 
@@ -236,7 +244,7 @@ gap into scope — or files a `TEST_GAP` item and says so.
 | Open total | 65 |
 | Blocked | 2 |
 | Deferred | 29 |
-| Awaiting a product decision | 7 |
+| Awaiting a product decision | 8 |
 | Awaiting Architect triage | 0 |
 
 Every ordinary record carries a disposition.

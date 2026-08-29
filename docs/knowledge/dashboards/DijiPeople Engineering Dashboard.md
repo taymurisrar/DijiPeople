@@ -11,7 +11,7 @@
 | Open HIGH | **19** |
 | Open total | 65 |
 | Blocked | 2 |
-| Awaiting a product decision | 7 |
+| Awaiting a product decision | 8 |
 | Deferred | 29 |
 | Completed | 277 |
 | Awaiting Architect triage | 0 |
@@ -31,7 +31,7 @@ _None. Nothing open at CRITICAL._
 | [[BUG-1965-the-leave-request-form-sends-ownerid-and-status-which-the-ap|BUG-1965]] | The leave request form sends ownerId and status, which the API rejects as forbidden properties | BUG | HIGH | OPEN | apps/web, api:leave | FIX_NOW |
 | [[BUG-1966-a-failed-save-in-the-runtime-form-is-swallowed-with-no-messa|BUG-1966]] | A failed save in the runtime form is swallowed with no message, toast or inline error | UX | HIGH | OPEN | apps/web | FIX_NOW |
 | [[BUG-1967-leave-entitlement-is-never-allocated-to-a-balance-so-every-l|BUG-1967]] | Leave entitlement is never allocated to a balance, so every leave request is refused | BUG | HIGH | OPEN | api:leave | PLAN_REQUIRED |
-| [[BUG-1968-leave-approval-routing-requires-an-active-reporting-manager-|BUG-1968]] | Leave approval routing rejects the submission unless every rule in the chain resolves to an active approver | BUG | HIGH | OPEN | api:leave, api:approvals | PLAN_REQUIRED |
+| [[BUG-1968-leave-approval-routing-requires-an-active-reporting-manager-|BUG-1968]] | Leave approval routing rejects the submission unless every rule in the chain resolves to an active approver | BUG | HIGH | FIXED | api:leave, api:approvals | FIX_NOW |
 | [[BUG-1970-the-elevated-role-bypass-precedes-the-self-requester-check-o|BUG-1970]] | The elevated-role bypass precedes the self-requester check on leave approval steps | AUTHORIZATION | HIGH | OPEN | api:leave | FIX_NOW |
 | [[BUG-1974-246-of-591-tenant-setting-keys-have-no-reader-and-230-of-the|BUG-1974]] | 246 of 591 tenant setting keys have no reader and 230 of them are editable in the UI | BUG | HIGH | OPEN | api:tenant-settings, apps/web | PLAN_REQUIRED |
 | [[BUG-1976-eight-settings-controls-write-a-key-name-the-resolver-never-|BUG-1976]] | Eight settings controls write a key name the resolver never reads | BUG | HIGH | OPEN | api:tenant-settings, apps/web | FIX_NOW |
@@ -53,6 +53,7 @@ _None. Nothing open at CRITICAL._
 | [[BUG-1981-resolvepolicy-hardcodes-seven-location-values-and-inverts-tw|BUG-1981]] | resolvePolicy hardcodes seven location values and inverts two AttendancePolicy column defaults | BUG | MEDIUM | PRODUCT_DECISION | api:attendance | PRODUCT_DECISION |
 | [[BUG-2045-timesheet-background-job-completions-make-up-71-percent-of-t|BUG-2045]] | Timesheet background-job completions make up 71 percent of the tenant audit trail | BUG | MEDIUM | PRODUCT_DECISION | api:timesheets, api:audit, api:tenant-settings | PRODUCT_DECISION |
 | [[ITEM-0106-an-employee-cannot-use-self-service-until-their-manager-acti|ITEM-0106]] | An employee cannot use self-service until their manager activates their own account | PRODUCT_DECISION | MEDIUM | PRODUCT_DECISION | api:leave, api:employees | PRODUCT_DECISION |
+| [[ITEM-0113-the-seeded-leave-approval-chain-cannot-route-on-a-newly-prov|ITEM-0113]] | The seeded leave approval chain cannot route on a newly provisioned tenant, and the Approval Matrices screen gives no warning | PRODUCT_DECISION | MEDIUM | PRODUCT_DECISION | services/api/prisma, api:approvals, apps/web | PRODUCT_DECISION |
 | [[ITEM-0108-decide-whether-the-roughly-one-hour-session-lifetime-is-idle|ITEM-0108]] | Decide whether the roughly one-hour session lifetime is idle or absolute | PRODUCT_DECISION | LOW | PRODUCT_DECISION | api:auth | PRODUCT_DECISION |
 | [[BUG-2007-projects-and-customers-can-be-created-but-never-deleted|BUG-2007]] | Projects and customers can be created but never deleted | BUG | LOW | PRODUCT_DECISION | api:projects | PRODUCT_DECISION |
 
@@ -197,6 +198,7 @@ _None. Nothing open at CRITICAL._
 | [[BUG-1750-the-monitoring-critical-tile-miscounts-and-links-to-a-filter|BUG-1750]] | The monitoring critical tile miscounts and links to a filter that matches nothing | BUG | HIGH | VERIFIED | apps/admin, api:platform-monitoring | DONE |
 | [[BUG-1751-a-promotion-goes-live-against-every-subscription-the-instant|BUG-1751]] | A promotion goes live against every subscription the instant it is created | BUG | HIGH | VERIFIED | apps/admin, api:super-admin, integration:stripe | DONE |
 | [[BUG-1755-the-plans-list-cannot-show-publication-status-or-sales-model|BUG-1755]] | The plans list cannot show publication status or sales model because the API omits them | BUG | HIGH | VERIFIED | apps/admin, api:super-admin | DONE |
+| [[BUG-1968-leave-approval-routing-requires-an-active-reporting-manager-|BUG-1968]] | Leave approval routing rejects the submission unless every rule in the chain resolves to an active approver | BUG | HIGH | FIXED | api:leave, api:approvals | FIX_NOW |
 | [[BUG-2015-approving-and-rejecting-leave-is-gated-on-read-permission-an|BUG-2015]] | Approving and rejecting leave is gated on read permission and the dedicated approve keys are never required | AUTHORIZATION | HIGH | FIXED | api:leave | FIX_NOW |
 | [[BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state|BUG-0051]] | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |
 | [[BUG-0009-session-revocation-depended-on-the-refresh-cookie|BUG-0009]] | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | VERIFIED | app:admin, api:auth | DONE |
@@ -398,7 +400,7 @@ _None. Nothing open at CRITICAL._
 | Knowledge | Count |
 |---|---|
 | Bug records | 269 |
-| Backlog items | 111 |
+| Backlog items | 112 |
 | Known bug patterns | 30 |
 | QA runs | 30 |
 | Engineering history records | 58 |

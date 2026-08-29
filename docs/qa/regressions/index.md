@@ -3101,3 +3101,19 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | The negative assertions are the load-bearing ones and the reason this guard is worth more than "the key is present". `toContain('approve')` passes while `read` is *also* declared — and on the matrix side that is not a widening but a total defeat, because `PermissionsGuard` requires **at least one** matrix privilege rather than all of them. A guard written the obvious way would have gone green over the live defect. Read through the `Reflector`, not by grepping: decorators are inherited and composed, and the source cannot show what Nest assembles. |
 | **Fixed** | 2026-08-29 |
 | **Active** | yes |
+
+### REG-304 - A refusal that named neither the step nor the remedy
+
+| | |
+|---|---|
+| **Bug class** | `unactionable-refusal` |
+| **Module** | `approvals` |
+| **Bug record** | BUG-1968 |
+| **Scenario id** | QA-RUNTIME-017 |
+| **Root cause** | `ApprovalMatrixResolverService.resolveApprovalRoute` expanded every matched matrix rule into a step and `throw`ed on the **first** step that could not bind to an active approver. The message named the internal requirement ("Approval route requires a reporting manager with a linked active user.") and nothing else - not which step in the chain, not what to configure, and not that other steps were also unresolvable. Because the shipped seed gives every tenant a two-step chain (`LINE_MANAGER`, then `ROLE(hr)`) that a new tenant satisfies neither half of, an administrator fixed one step, resubmitted, and met the next with an equally bare message. |
+| **Regression test** | `services/api/src/modules/approvals/approval-matrix-resolver.service.spec.ts` |
+| **Scenario** | The three-row table in BUG-1968, as unit tests. Both steps unresolvable: refused, naming both by sequence with a remedy each. Sequence 1 resolvable and sequence 2 not: still refused, naming **only** step 2. A fully resolvable chain: unchanged. |
+| **Proven to fail without the fix** | Mutation-tested: restoring the fail-fast `throw` fails three of the four new assertions, and leaves the fourth - the resolvable-chain control - passing, which is what it is there for. |
+| **Note** | The policy deliberately did **not** change: a chain with a step nobody can approve still refuses, because submitting into it would strand the request with no route out. Only the refusal changed. Two things are worth carrying forward. The **negative** assertion is again the load-bearing one - `not.toBe('Approval route requires a reporting manager with a linked active user.')` is the whole difference between the fix and the defect, and any test merely looking for "manager" would have passed against the live bug. And the remedy text is derived from the thrown message rather than from a new error type per step, on purpose: the six refusals in `resolveApprovers` are the single list of what can go wrong, and a parallel enum would be a second list to drift from the first. The fallback returns the original message, so a refusal added later degrades to the old behaviour instead of losing its text. **What this does not fix:** the seed still ships a chain no new tenant can satisfy, and the Approval Matrices screen still gives no configuration-time warning. Both are open product decisions on BUG-1968. |
+| **Fixed** | 2026-08-29 |
+| **Active** | yes |

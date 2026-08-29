@@ -2,7 +2,7 @@
 ID: BUG-1968
 aliases: [BUG-1968]
 Title: Leave approval routing rejects the submission unless every rule in the chain resolves to an active approver
-Status: OPEN
+Status: FIXED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-29
 DetectedInSha: eb457d9d
 AffectedModules: [services/api/src/modules/leave, services/api/src/modules/approvals]
 OwnerAgent: architect
-ArchitectDisposition: PLAN_REQUIRED
+ArchitectDisposition: FIX_NOW
 QAReport: 
-RegressionId: 
-RelatedBacklogItem:
+RegressionId: REG-304
+RelatedBacklogItem: ITEM-0113
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-29
 UpdatedAt: 2026-08-29
-ResolvedAt:
+ResolvedAt: 2026-08-29
 ---
 
 # BUG-1968 — Leave approval routing rejects the submission unless every rule in the chain resolves to an active approver
@@ -153,10 +153,21 @@ there rather than inferred from the three probes.
 
 ## Root Cause
 
-Not established in code. Observably: the router expands the matched approval
-matrix rules into steps and requires each step to bind to at least one active
-approver before the request is created, treating an unbindable step as a fatal
-validation error rather than as a step to skip, defer or re-route.
+**Established in code, in `approvals` rather than `leave`** — the question this
+record left open.
+
+`ApprovalMatrixResolverService.resolveApprovalRoute`
+(`services/api/src/modules/approvals/approval-matrix-resolver.service.ts`) selects
+the matched matrix rules, then loops them and calls `resolveApprovers` for each.
+`resolveApprovers` throws `BadRequestException` at six places — one per approver
+type it cannot bind. The loop did not catch, so the **first** throw aborted the
+whole submission and became the response.
+
+That is the entire mechanism. It is not a leave-specific rule: `leave` never
+decides anything here, which is why probing from the leave side made the policy
+look like it lived somewhere it did not. Every module that routes through the
+approval matrix — timesheets, loans, claims — shares the behaviour.
+
 
 ## Impact
 
@@ -184,41 +195,47 @@ indication that a rule cannot currently bind.
 
 ## Proposed Resolution
 
-Decide the resolution policy first — it is a product decision, not an
-implementation detail — then make the error actionable wherever it still has to
-be raised.
+> **Superseded by the decision below.** The three options offered here — skip,
+> fall-through, configuration-time validation — were put to the repository owner
+> on 2026-08-29. They chose a fourth: **keep refusing, but say what is missing.**
+> The reasoning is recorded under Resolution. The configuration-time half of this
+> section, and the question of the seed, were split into ITEM-0113 rather than
+> dropped.
 
-- Choose between skip, fall-through and configuration-time validation. A blocking
-  runtime error is defensible for a chain where every step is a required control;
-  it is not defensible as the default for a chain the product itself seeded.
-- Surface unbindable rules in the Approval Matrices screen, at the moment the
-  administrator is looking at the configuration.
-- If a runtime failure remains possible, the message must name the tenant-level
-  cause and the remedy, not the internal requirement.
-- Revisit the seed: shipping a chain that no new tenant can satisfy guarantees
-  this failure on day one for every customer.
-
-Whether an `INVITED` user may hold an approval step is a decision that must be
-made in the same pass; see BUG-1969 and ITEM-0106.
 
 ## Acceptance Criteria
 
-- With the seeded chain in place and no reporting manager or `hr` role holder
-  configured, a newly provisioned tenant can either submit a leave request, or is
-  told at configuration time — before an employee tries — that the chain cannot
-  route.
-- With sequence 1 resolvable and sequence 2 unresolvable, the chosen policy is
-  applied deterministically and is covered by a test that pins it.
-- When a submission is refused for a routing reason, the message names the
-  missing configuration in the tenant's terms.
-- A test reproduces the three-row table above and asserts the intended outcome
-  for each row.
+Revised 2026-08-29 to the policy the owner chose. The original criteria assumed
+the answer would be skip or fall-through; two of them presumed a submission would
+succeed where the owner decided it should still fail.
+
+- With sequence 1 resolvable and sequence 2 unresolvable, the submission is
+  **refused** — deterministically, and covered by a test that pins it. *(Row 2 of
+  the table above; this is the criterion that would have been inverted under a
+  skip policy.)*
+- The refusal names every unresolvable step by sequence, not just the first.
+- It names, per step, what an administrator must configure, in tenant terms
+  rather than the internal requirement.
+- A step that resolves is **not** named, so nobody is sent to fix something
+  already correct.
+- A fully resolvable chain is unaffected.
+- Carried to ITEM-0113: a newly provisioned tenant being able to submit without
+  manual configuration, and the Approval Matrices screen warning at
+  configuration time.
+
 
 ## Regression Coverage
 
-None yet. The regression test is the three-row table: one request body, three
-chain states. Row 2 is the one that fails today under any policy other than "all
-rules must resolve", and is the row that pins whichever policy is chosen.
+REG-304. `services/api/src/modules/approvals/approval-matrix-resolver.service.spec.ts`,
+the `BUG-1968` describe block — four tests plus the row-2 case, alongside the
+seven that were already there.
+
+The three-row table is covered as unit tests rather than by re-running the live
+probe: both steps unresolvable, sequence 1 resolvable with sequence 2 not, and a
+fully resolvable chain. Mutation-tested — restoring the fail-fast `throw` fails
+three of the four new assertions and leaves the resolvable-chain control passing,
+which is what that control is for.
+
 
 ## Dependencies
 
@@ -239,31 +256,82 @@ the requester as the approver, and therefore does not prove that bypass.
 
 ## Resolution
 
-Open. No fix has been written.
+Fixed on `agent/web-shell-accessibility`, on top of `a86362cf`.
+
+**The policy did not change, deliberately.** Asked to choose between skipping an
+unresolvable step, falling through, validating at configuration time, or
+refusing with a better message, the repository owner chose to **refuse, but say
+what is missing**. That is the right call and worth recording why: a step in an
+approval chain is a control somebody put there, and skipping it would silently
+approve around an authorisation the tenant configured. Submitting into a chain
+that cannot route would instead strand the request with no route out and no way
+for the employee to tell.
+
+What changed is the refusal:
+
+- `resolveApprovalRoute` now attempts **every** step and collects the failures,
+  instead of throwing on the first. An administrator previously fixed one step,
+  resubmitted, and met the next.
+- Each collected failure is rendered as `Step <n> (<approver type>): <remedy>`,
+  where the remedy names the tenant-level cause and the action — "the requester
+  has no manager, or their manager has no active user account. Set a reporting
+  manager on the employee record."
+- The response carries `code: APPROVAL_ROUTE_UNRESOLVED`, so the frontend can
+  recognise the class of failure rather than matching on prose.
+- A step that resolved is not mentioned.
+
+The remedy text is derived from the thrown message rather than from a new error
+type per step. The six refusals in `resolveApprovers` are the single list of what
+can go wrong here, and a parallel enum would be a second list to drift from the
+first. The fallback returns the original message unchanged, so a seventh refusal
+added later degrades to current behaviour rather than losing its text.
+
+**What this does not fix**, split into ITEM-0113 so it is tracked rather than
+implied: the seed still ships a chain no new tenant can satisfy, and the Approval
+Matrices screen still gives no configuration-time warning. Leave still does not
+work on day one for a new tenant — the administrator is now simply told exactly
+why, and what to do about it, instead of the employee seeing a bare 400.
+
 
 ## QA Retest
 
-Awaiting a fix — nothing to retest yet.
+Retested by the regression suite rather than in a browser: eleven assertions in
+`approval-matrix-resolver.service.spec.ts` pass, and the four describing the new
+behaviour were confirmed to fail against the previous code.
 
-**Environment note.** The two seeded matrices
+**Not retested live.** The three-row probe was not re-run against the demo
+tenant, so what is established is that the resolver refuses with an actionable
+message; what is **not** established is the wording as an employee actually
+encounters it, because BUG-1966 means the runtime form still swallows the
+failure. Until BUG-1966 is fixed the improved message reaches the API response
+and not the screen — worth being plain about, since the point of this fix was
+that somebody could read it.
+
+**Environment note, unchanged and still true.** The two seeded matrices
 (`596c013b-f6f2-4566-87e9-7d11b9d772c5`,
 `c207225d-4a77-4a01-afea-3883094f21b7`) were left **deactivated** on the demo
 tenant, with the probe rule `8cd076e5-139c-4680-b9f2-b808824b7867` left active,
 so that leave works end to end for demonstrations. Restore the shipped default by
 reversing both, and expect leave to stop working on that tenant again until the
-hierarchy and the `hr` role are populated.
+hierarchy and the `hr` role are populated — now with a message that says so.
+
 
 ## History
 
 - 2026-08-29 — created from the Starter-plan production QA run (SESSION-0070) at `eb457d9d`; observed against production API `949f461c`.
 - 2026-08-29 — **corrected.** The original mechanism ("the matrix is never consulted") was disproved by further live testing. Title, Summary, Actual Behavior, Reproduction, Evidence, Root Cause, Impact, Proposed Resolution, Acceptance Criteria and Regression Coverage all rewritten to the resolution-policy mechanism established by the three-row probe. Severity held at HIGH. The filename slug still reflects the original title; the id is what the indexes key on, and renaming the file would strand the path recorded in the remediation inventory's `current_evidence`.
 - 2026-08-29 — triaged by the Architect for SESSION-0070: ArchitectDisposition PLAN_REQUIRED — needs a designed fallback/skip policy and a configuration-time validation story.
+- 2026-08-29 — **the open question answered in code.** This record asked which layer decides that an unresolvable step is fatal, and required it be located rather than inferred. It is `ApprovalMatrixResolverService.resolveApprovalRoute` in `approvals`; `leave` decides nothing.
+- 2026-08-29 — **product decision taken by the repository owner:** refuse, but say what is missing. Neither skip nor fall-through. Proposed Resolution superseded, Acceptance Criteria revised — two of the original criteria assumed a submission would succeed where the owner decided it should still fail.
+- 2026-08-29 — **fixed** and guarded by REG-304. The seed question and the configuration-time warning were split into ITEM-0113 rather than closed with the defect; this record is FIXED for the scope the owner chose, and that scope is narrower than the criteria it was created with.
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
 
 ## Related
 
+- Backlog item — [[ITEM-0113]]
 - Referenced by — [[ITEM-0106]]
 - Modules — [[approvals]]
+- Regression — REG-304 (see the regression register)
 
 <!-- GRAPH:END -->

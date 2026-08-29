@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**380 records** — 269 bugs under [`docs/bugs/`](../bugs/), 111 non-bug items under [`items/`](items/).
+**381 records** — 269 bugs under [`docs/bugs/`](../bugs/), 112 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -16,7 +16,7 @@ see [`README.md`](README.md) for why.
 | Open (active work) | 65 |
 | Blocked | 2 |
 | Deferred | 29 |
-| Awaiting a product decision | 7 |
+| Awaiting a product decision | 8 |
 | Completed / closed | 277 |
 | **Open CRITICAL** | **0** |
 | **Open HIGH** | **19** |
@@ -49,11 +49,11 @@ see [`README.md`](README.md) for why.
 
 | Status | Count |
 |---|---|
-| OPEN | 41 |
+| OPEN | 40 |
 | BLOCKED | 2 |
 | DEFERRED | 29 |
-| PRODUCT_DECISION | 7 |
-| FIXED | 1 |
+| PRODUCT_DECISION | 8 |
+| FIXED | 2 |
 | VERIFIED | 209 |
 | DUPLICATE | 4 |
 | ACCEPTED_RISK | 3 |
@@ -187,7 +187,7 @@ see [`README.md`](README.md) for why.
 | [BUG-1965](../../docs/bugs/BUG-1965-the-leave-request-form-sends-ownerid-and-status-which-the-ap.md) | The leave request form sends ownerId and status, which the API rejects as forbidden properties | BUG | HIGH | P1 | OPEN | apps/web, api:leave | FIX_NOW |
 | [BUG-1966](../../docs/bugs/BUG-1966-a-failed-save-in-the-runtime-form-is-swallowed-with-no-messa.md) | A failed save in the runtime form is swallowed with no message, toast or inline error | UX | HIGH | P1 | OPEN | apps/web | FIX_NOW |
 | [BUG-1967](../../docs/bugs/BUG-1967-leave-entitlement-is-never-allocated-to-a-balance-so-every-l.md) | Leave entitlement is never allocated to a balance, so every leave request is refused | BUG | HIGH | P1 | OPEN | api:leave | PLAN_REQUIRED |
-| [BUG-1968](../../docs/bugs/BUG-1968-leave-approval-routing-requires-an-active-reporting-manager-.md) | Leave approval routing rejects the submission unless every rule in the chain resolves to an active approver | BUG | HIGH | P1 | OPEN | api:leave, api:approvals | PLAN_REQUIRED |
+| [BUG-1968](../../docs/bugs/BUG-1968-leave-approval-routing-requires-an-active-reporting-manager-.md) | Leave approval routing rejects the submission unless every rule in the chain resolves to an active approver | BUG | HIGH | P1 | FIXED | api:leave, api:approvals | FIX_NOW |
 | [BUG-1970](../../docs/bugs/BUG-1970-the-elevated-role-bypass-precedes-the-self-requester-check-o.md) | The elevated-role bypass precedes the self-requester check on leave approval steps | AUTHORIZATION | HIGH | P1 | OPEN | api:leave | FIX_NOW |
 | [BUG-1974](../../docs/bugs/BUG-1974-246-of-591-tenant-setting-keys-have-no-reader-and-230-of-the.md) | 246 of 591 tenant setting keys have no reader and 230 of them are editable in the UI | BUG | HIGH | P1 | OPEN | api:tenant-settings, apps/web | PLAN_REQUIRED |
 | [BUG-1976](../../docs/bugs/BUG-1976-eight-settings-controls-write-a-key-name-the-resolver-never-.md) | Eight settings controls write a key name the resolver never reads | BUG | HIGH | P1 | OPEN | api:tenant-settings, apps/web | FIX_NOW |
@@ -377,6 +377,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0105](../../docs/backlog/items/ITEM-0105-the-leave-entitlement-dialog-cannot-set-accrualtype-which-th.md) | The leave entitlement dialog cannot set accrualType, which the API requires | UX | MEDIUM | P2 | READY | apps/web, api:leave | FIX_NOW |
 | [ITEM-0106](../../docs/backlog/items/ITEM-0106-an-employee-cannot-use-self-service-until-their-manager-acti.md) | An employee cannot use self-service until their manager activates their own account | PRODUCT_DECISION | MEDIUM | P2 | PRODUCT_DECISION | api:leave, api:employees | PRODUCT_DECISION |
 | [ITEM-0107](../../docs/backlog/items/ITEM-0107-three-separate-users-screens-exist-in-the-tenant-app.md) | Four Users screens exist in the tenant app and two of them are unreachable | ARCHITECTURE | MEDIUM | P2 | READY | apps/web | FIX_NOW |
+| [ITEM-0113](../../docs/backlog/items/ITEM-0113-the-seeded-leave-approval-chain-cannot-route-on-a-newly-prov.md) | The seeded leave approval chain cannot route on a newly provisioned tenant, and the Approval Matrices screen gives no warning | PRODUCT_DECISION | MEDIUM | P2 | PRODUCT_DECISION | services/api/prisma, api:approvals, apps/web | PRODUCT_DECISION |
 | [ITEM-0021](../../docs/backlog/items/ITEM-0021-mechanical-guard-against-country-and-currency-literals-in-fr.md) | Mechanical guard against country and currency literals in frontends | TEST_GAP | LOW | P2 | DONE | scripts, apps/landing, apps/web, apps/admin | DONE |
 | [ITEM-0023](../../docs/backlog/items/ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning.md) | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | P2 | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
 | [ITEM-0024](../../docs/backlog/items/ITEM-0024-landing-depends-on-lucide-react-without-declaring-it.md) | Landing depends on lucide-react without declaring it | TECH_DEBT | LOW | P2 | DONE | apps/landing | DONE |

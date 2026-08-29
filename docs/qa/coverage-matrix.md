@@ -12,13 +12,14 @@ only scenarios that cannot run here, fails `node scripts/rebuild-qa.mjs`.
 **part of that task's scope** — or, when that is too large, a `TEST_GAP` backlog
 item. See [`README.md`](README.md).
 
-**Areas: 21** · scenarios: 245 · automated: 217 · blocked by infrastructure: 0
+**Areas: 22** · scenarios: 246 · automated: 218 · blocked by infrastructure: 0
 
-**Open gaps: 106** · partial: 25
+**Open gaps: 113** · partial: 26
 
 | Area | UNIT | API | DATABASE | INTEGRATION | E2E | BROWSER | SECURITY | PERFORMANCE |
 |---|---|---|---|---|---|---|---|---|
 | [agent-desktop](../../docs/qa/test-plans/PLAN-008-agent-desktop.md) | **GAP** | **GAP** | **GAP** | GOOD | **GAP** | n/a | PARTIAL | n/a |
+| [approvals](../../docs/qa/test-plans/PLAN-022-approvals.md) | PARTIAL | **GAP** | **GAP** | **GAP** | **GAP** | **GAP** | **GAP** | **GAP** |
 | [attendance](../../docs/qa/test-plans/PLAN-009-attendance.md) | GOOD | **GAP** | **GAP** | PARTIAL | PARTIAL | **GAP** | PARTIAL | **GAP** |
 | [authentication](../../docs/qa/test-plans/PLAN-001-authentication.md) | GOOD | PARTIAL | **GAP** | **GAP** | PARTIAL | **GAP** | PARTIAL | n/a |
 | [authorization](../../docs/qa/test-plans/PLAN-002-authorization.md) | GOOD | **GAP** | **GAP** | **GAP** | PARTIAL | **GAP** | GOOD | n/a |

@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 245** · automated: 217 · manual: 10 · blocked by infrastructure: 0
+**Scenarios: 246** · automated: 218 · manual: 10 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -201,6 +201,7 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-RUNTIME-014](../../../docs/qa/scenarios/QA-RUNTIME-014-no-governed-value-is-collected-with-a-native-prompt.md) | No governed value is collected with a native prompt | runtime-modules | UNIT | MEDIUM | AUTOMATED | `scripts/check-no-native-prompt.mjs` | ITEM-0031 | REG-219 |
 | [QA-RUNTIME-015](../../../docs/qa/scenarios/QA-RUNTIME-015-every-runtime-record-panel-is-mounted-on-a-tab-an-operator-c.md) | Every runtime record panel is mounted on a tab an operator can reach | runtime-modules | UNIT | HIGH | AUTOMATED | `apps/admin/lib/runtime/runtime-record-panels.spec.ts` | BUG-0794 | REG-232 |
 | [QA-RUNTIME-016](../../../docs/qa/scenarios/QA-RUNTIME-016-a-column-added-to-a-module-reaches-operators-who-saved-table.md) | A column added to a module reaches operators who saved table preferences | runtime-modules | UNIT | MEDIUM | AUTOMATED | `apps/admin/lib/runtime/column-preferences.spec.ts` | BUG-0795 | REG-233 |
+| [QA-RUNTIME-017](../../../docs/qa/scenarios/QA-RUNTIME-017-an-unroutable-approval-chain-refuses-the-submission-and-name.md) | An unroutable approval chain refuses the submission and names every step that cannot bind | approvals | UNIT | HIGH | AUTOMATED | `services/api/src/modules/approvals/approval-matrix-resolver.service.spec.ts` | BUG-1968 | REG-304 |
 | [QA-SECURITY-001](../../../docs/qa/scenarios/QA-SECURITY-001-a-refused-cors-origin-returns-a-normal-status-and-no-allow-o.md) | A refused CORS origin returns a normal status and no allow-origin header | authorization | SECURITY | HIGH | AUTOMATED | `services/api/src/config/cors-options.spec.ts` | BUG-0976 | REG-240 |
 | [QA-SETTINGS-001](../../../docs/qa/scenarios/QA-SETTINGS-001-resolved-settings-reject-arbitrary-context-preview.md) | Resolved settings reject arbitrary context preview | authorization | SECURITY | CRITICAL | AUTOMATED | `services/api/src/modules/tenant-settings/settings-context-authorization.spec.ts` | BUG-0057 | REG-044 |
 | [QA-SETTINGS-002](../../../docs/qa/scenarios/QA-SETTINGS-002-email-providers-offered-are-providers-implemented.md) | Email providers offered are email providers implemented | runtime-modules | UNIT | MEDIUM | AUTOMATED | `services/api/src/modules/notifications/email/email-provider-support.spec.ts` | BUG-0050 | REG-053 |
