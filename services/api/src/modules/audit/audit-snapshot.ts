@@ -66,7 +66,9 @@ export function redactAuditSnapshot<T>(value: T, depth = 0): T {
   if (value === null || value === undefined) return value;
   if (depth > MAX_DEPTH) return '[Max depth reached]' as T;
   if (Array.isArray(value)) {
-    return value.map((item) => redactAuditSnapshot(item, depth + 1)) as T;
+    return (value as unknown[]).map((item) =>
+      redactAuditSnapshot(item, depth + 1),
+    ) as T;
   }
   if (value instanceof Date) return value as T;
   if (typeof value !== 'object') return value;
