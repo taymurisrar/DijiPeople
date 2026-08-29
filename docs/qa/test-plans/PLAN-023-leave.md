@@ -127,7 +127,7 @@ The balance an employee sees must equal what the gate enforces. Unprovable today
 
 ## Related
 
-- Scenarios — [[QA-RUNTIME-021]]
+- Scenarios — [[QA-RUNTIME-021]], [[QA-RUNTIME-029]], [[QA-RUNTIME-033]]
 - Bugs — [[BUG-1967]], [[BUG-1966]], [[BUG-1962]], [[BUG-1970]]
 - Regressions — REG-306 (see the regression register)
 

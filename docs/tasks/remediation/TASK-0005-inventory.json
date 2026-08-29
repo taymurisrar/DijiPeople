@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 387,
+    "total_records": 388,
     "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
@@ -4327,14 +4327,14 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "bab45ad",
         "created_at": "2026-08-20",
-        "updated_at": "2026-08-20",
+        "updated_at": "2026-08-29",
         "resolved_at": ""
       },
       "type": "DATA_INTEGRITY",
       "title": "Seven unique constraints in schema.prisma are absent from the migration chain",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "DEFERRED",
+      "current_status": "BLOCKED",
       "current_evidence": {
         "paths": [
           "services/api/prisma/schema.prisma",
@@ -4364,7 +4364,7 @@
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "DEFER",
+      "architect_disposition": "BLOCKED_EXTERNAL",
       "verification_result": {
         "result": "DEFERRED",
         "classification": "TERMINAL_AS_DOCUMENTED",
@@ -8696,23 +8696,25 @@
       "title": "Stripe webhook rejected as VALIDATION_FAILED during a live payment",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "DEFERRED",
-      "architect_disposition": "DEFER",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-1543-stripe-webhook-rejected-as-validation-failed-during-a-live-p.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "21032ae",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-28",
-        "resolved_at": ""
+        "updated_at": "2026-08-29",
+        "resolved_at": "2026-08-29"
       },
       "affected_modules": [
         "billing"
       ],
       "regressions": [
-        "REG-299"
+        "REG-299",
+        "REG-351"
       ],
       "qa_scenarios": [
+        "QA-BILLING-024",
         "QA-TENANT-051"
       ],
       "test_plan": [],
@@ -8912,21 +8914,25 @@
       "title": "Customer onboarding validate accepts payloads that create rejects",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "DEFERRED",
-      "architect_disposition": "DEFER",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-1548-customer-onboarding-validate-accepts-payloads-that-create-re.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "21032ae",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-27",
-        "resolved_at": ""
+        "updated_at": "2026-08-29",
+        "resolved_at": "2026-08-29"
       },
       "affected_modules": [
         "onboarding"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-352"
+      ],
+      "qa_scenarios": [
+        "QA-BILLING-025"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -9034,22 +9040,26 @@
       "title": "Desktop agent auto-update manifest returns 404",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "BLOCKED",
-      "architect_disposition": "BLOCKED_EXTERNAL",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-1551-desktop-agent-auto-update-manifest-returns-404.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "21032ae",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-27",
-        "resolved_at": ""
+        "updated_at": "2026-08-30",
+        "resolved_at": "2026-08-30"
       },
       "affected_modules": [
         "agent",
         "app-releases"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-358"
+      ],
+      "qa_scenarios": [
+        "QA-RUNTIME-032"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -9764,21 +9774,25 @@
       "title": "Tenant workspace pages scroll horizontally at mobile width",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "DEFERRED",
-      "architect_disposition": "DEFER",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-1668-tenant-workspace-pages-scroll-horizontally-at-mobile-width.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "21032ae",
         "created_at": "2026-08-27",
-        "updated_at": "2026-08-29",
-        "resolved_at": ""
+        "updated_at": "2026-08-30",
+        "resolved_at": "2026-08-30"
       },
       "affected_modules": [
         "views"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-344"
+      ],
+      "qa_scenarios": [
+        "QA-AUTH-008"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -10679,23 +10693,25 @@
       "title": "Every tenant workspace screen renders the same h1, so no page announces what it is",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-1950-every-tenant-workspace-screen-renders-the-same-h1-so-no-page.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "41eaadb4",
         "created_at": "2026-08-29",
         "updated_at": "2026-08-29",
-        "resolved_at": ""
+        "resolved_at": "2026-08-29"
       },
       "affected_modules": [
         "apps/web"
       ],
       "regressions": [
-        "REG-302"
+        "REG-302",
+        "REG-335"
       ],
       "qa_scenarios": [
+        "QA-AUTH-007",
         "QA-TENANT-053"
       ],
       "test_plan": [],
@@ -10721,23 +10737,25 @@
       "title": "Most tenant workspace pages render no main landmark, including every settings category",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-1951-most-tenant-workspace-pages-render-no-main-landmark-includin.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "41eaadb4",
         "created_at": "2026-08-29",
         "updated_at": "2026-08-29",
-        "resolved_at": ""
+        "resolved_at": "2026-08-29"
       },
       "affected_modules": [
         "apps/web"
       ],
       "regressions": [
-        "REG-302"
+        "REG-302",
+        "REG-335"
       ],
       "qa_scenarios": [
+        "QA-AUTH-007",
         "QA-TENANT-053"
       ],
       "test_plan": [],
@@ -10763,22 +10781,26 @@
       "title": "Plan entitlements gate nothing, so a Starter tenant can use every module it has not bought",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
-      "architect_disposition": "PLAN_REQUIRED",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-1952-plan-entitlements-gate-nothing-so-a-starter-tenant-can-use-e.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "eb457d9d",
         "created_at": "2026-08-29",
         "updated_at": "2026-08-29",
-        "resolved_at": ""
+        "resolved_at": "2026-08-29"
       },
       "affected_modules": [
         "services/api/src/modules/tenant-settings",
         "apps/web"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-353"
+      ],
+      "qa_scenarios": [
+        "QA-BILLING-026"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -10803,22 +10825,26 @@
       "title": "Plan detail reports zero subscriptions while the plans list and subscriptions both show two",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-1953-plan-detail-reports-zero-subscriptions-while-the-plans-list-.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "eb457d9d",
         "created_at": "2026-08-29",
         "updated_at": "2026-08-29",
-        "resolved_at": ""
+        "resolved_at": "2026-08-29"
       },
       "affected_modules": [
         "apps/admin",
         "services/api/src/modules/super-admin"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-349"
+      ],
+      "qa_scenarios": [
+        "QA-BILLING-022"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -10843,22 +10869,26 @@
       "title": "The Starter annual price tile renders PKR 120,000.00 for a PKR 3,000 annual price",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-1954-the-starter-annual-price-tile-renders-pkr-120-000-00-for-a-p.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "eb457d9d",
         "created_at": "2026-08-29",
         "updated_at": "2026-08-29",
-        "resolved_at": ""
+        "resolved_at": "2026-08-29"
       },
       "affected_modules": [
         "apps/admin",
         "services/api/src/modules/super-admin"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-350"
+      ],
+      "qa_scenarios": [
+        "QA-BILLING-023"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -10883,21 +10913,25 @@
       "title": "Every 404 is reported to the user as DATABASE_RECORD_NOT_FOUND with the raw HTML body as its message",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "DEFERRED",
-      "architect_disposition": "DEFER",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-1955-every-404-is-reported-to-the-user-as-database-record-not-fou.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "eb457d9d",
         "created_at": "2026-08-29",
         "updated_at": "2026-08-29",
-        "resolved_at": ""
+        "resolved_at": "2026-08-29"
       },
       "affected_modules": [
         "apps/web"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-334"
+      ],
+      "qa_scenarios": [
+        "QA-RUNTIME-034"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -10921,21 +10955,25 @@
       "title": "Runtime lookup comboboxes expose no listbox or option semantics to assistive technology",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "PLAN_REQUIRED",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-1956-runtime-lookup-comboboxes-expose-no-listbox-or-option-semant.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "eb457d9d",
         "created_at": "2026-08-29",
         "updated_at": "2026-08-29",
-        "resolved_at": ""
+        "resolved_at": "2026-08-29"
       },
       "affected_modules": [
         "apps/web"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-338"
+      ],
+      "qa_scenarios": [
+        "QA-RUNTIME-036"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -10959,21 +10997,25 @@
       "title": "A department with no business unit cannot be listed, opened, edited or deleted, yet still holds its name",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-1957-a-department-with-no-business-unit-cannot-be-listed-opened-e.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "eb457d9d",
         "created_at": "2026-08-29",
         "updated_at": "2026-08-29",
-        "resolved_at": ""
+        "resolved_at": "2026-08-29"
       },
       "affected_modules": [
         "services/api/src/modules/organization"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-310"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-057"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -10997,21 +11039,25 @@
       "title": "Deleting a department never releases its name, so it can never be recreated",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "PLAN_REQUIRED",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-1958-deleting-a-department-never-releases-its-name-so-it-can-neve.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "eb457d9d",
         "created_at": "2026-08-29",
         "updated_at": "2026-08-29",
-        "resolved_at": ""
+        "resolved_at": "2026-08-29"
       },
       "affected_modules": [
         "services/api/src/modules/organization"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-311"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-058"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -11035,22 +11081,26 @@
       "title": "The departments list returns a bare array and rejects the page size its own table offers",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-1959-the-departments-list-returns-a-bare-array-and-rejects-the-pa.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "eb457d9d",
         "created_at": "2026-08-29",
         "updated_at": "2026-08-29",
-        "resolved_at": ""
+        "resolved_at": "2026-08-29"
       },
       "affected_modules": [
         "services/api/src/modules/organization",
         "apps/web"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-312"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-059"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -11082,14 +11132,18 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "eb457d9d",
         "created_at": "2026-08-29",
-        "updated_at": "2026-08-29",
+        "updated_at": "2026-08-30",
         "resolved_at": ""
       },
       "affected_modules": [
         "apps/web"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-345"
+      ],
+      "qa_scenarios": [
+        "QA-SETTINGS-016"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -11113,8 +11167,8 @@
       "title": "A leave policy assignment cannot be created from the UI because the parent id is never sent",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "FIXED",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "VERIFIED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-1961-a-leave-policy-assignment-cannot-be-created-from-the-ui-beca.md",
         "provenance": "QA_RUN",
@@ -11157,22 +11211,26 @@
       "title": "Assigned On is required by the leave assignment API and rendered as an optional field",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "IN_PROGRESS",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-1962-assigned-on-is-required-by-the-leave-assignment-api-and-rend.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "eb457d9d",
         "created_at": "2026-08-29",
         "updated_at": "2026-08-29",
-        "resolved_at": ""
+        "resolved_at": "2026-08-29"
       },
       "affected_modules": [
         "apps/web",
         "services/api/src/modules/leave"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-333"
+      ],
+      "qa_scenarios": [
+        "QA-RUNTIME-031"
+      ],
       "test_plan": [
         "PLAN-023"
       ],
@@ -11199,21 +11257,25 @@
       "title": "Runtime dialogs show the end user the raw server message and the HTTP method and path",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-1963-runtime-dialogs-show-the-end-user-the-raw-server-message-and.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "eb457d9d",
         "created_at": "2026-08-29",
         "updated_at": "2026-08-29",
-        "resolved_at": ""
+        "resolved_at": "2026-08-29"
       },
       "affected_modules": [
         "apps/web"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-334"
+      ],
+      "qa_scenarios": [
+        "QA-RUNTIME-034"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -11237,21 +11299,25 @@
       "title": "Record headings and dialog titles are singularised by stripping a trailing s",
       "severity": "LOW",
       "priority": "P3",
-      "current_status": "OPEN",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-1964-record-headings-and-dialog-titles-are-singularised-by-stripp.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "eb457d9d",
         "created_at": "2026-08-29",
-        "updated_at": "2026-08-29",
-        "resolved_at": ""
+        "updated_at": "2026-08-30",
+        "resolved_at": "2026-08-30"
       },
       "affected_modules": [
         "apps/web"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-339"
+      ],
+      "qa_scenarios": [
+        "QA-SETTINGS-014"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -11275,22 +11341,26 @@
       "title": "The leave request form sends ownerId and status, which the API rejects as forbidden properties",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "IN_PROGRESS",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-1965-the-leave-request-form-sends-ownerid-and-status-which-the-ap.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "eb457d9d",
         "created_at": "2026-08-29",
         "updated_at": "2026-08-29",
-        "resolved_at": ""
+        "resolved_at": "2026-08-29"
       },
       "affected_modules": [
         "apps/web",
         "services/api/src/modules/leave"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-332"
+      ],
+      "qa_scenarios": [
+        "QA-RUNTIME-030"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -11316,14 +11386,14 @@
       "severity": "HIGH",
       "priority": "P1",
       "current_status": "FIXED",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-1966-a-failed-save-in-the-runtime-form-is-swallowed-with-no-messa.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "eb457d9d",
         "created_at": "2026-08-29",
         "updated_at": "2026-08-29",
-        "resolved_at": ""
+        "resolved_at": "2026-08-29"
       },
       "affected_modules": [
         "apps/web"
@@ -11359,8 +11429,8 @@
       "title": "Leave entitlement is never allocated to a balance, so every leave request is refused",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "FIXED",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "VERIFIED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-1967-leave-entitlement-is-never-allocated-to-a-balance-so-every-l.md",
         "provenance": "QA_RUN",
@@ -11403,8 +11473,8 @@
       "title": "Leave approval routing rejects the submission unless every rule in the chain resolves to an active approver",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "FIXED",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "VERIFIED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-1968-leave-approval-routing-requires-an-active-reporting-manager-.md",
         "provenance": "QA_RUN",
@@ -11450,21 +11520,25 @@
       "title": "An invited approver is rejected with a message that blames tenancy instead of account status",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-1969-an-invited-approver-is-rejected-with-a-message-that-blames-t.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "eb457d9d",
         "created_at": "2026-08-29",
         "updated_at": "2026-08-29",
-        "resolved_at": ""
+        "resolved_at": "2026-08-29"
       },
       "affected_modules": [
         "services/api/src/modules/approvals"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-330"
+      ],
+      "qa_scenarios": [
+        "QA-RUNTIME-028"
+      ],
       "test_plan": [
         "PLAN-022"
       ],
@@ -11490,21 +11564,25 @@
       "title": "The elevated-role bypass precedes the self-requester check on leave approval steps",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-1970-the-elevated-role-bypass-precedes-the-self-requester-check-o.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "eb457d9d",
         "created_at": "2026-08-29",
         "updated_at": "2026-08-29",
-        "resolved_at": ""
+        "resolved_at": "2026-08-29"
       },
       "affected_modules": [
         "services/api/src/modules/leave"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-329"
+      ],
+      "qa_scenarios": [
+        "QA-RUNTIME-027"
+      ],
       "test_plan": [
         "PLAN-022",
         "PLAN-023"
@@ -11531,22 +11609,26 @@
       "title": "246 of 591 tenant setting keys have no reader and 230 of them are editable in the UI",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
-      "architect_disposition": "PLAN_REQUIRED",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-1974-246-of-591-tenant-setting-keys-have-no-reader-and-230-of-the.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "eb457d9d",
         "created_at": "2026-08-29",
         "updated_at": "2026-08-29",
-        "resolved_at": ""
+        "resolved_at": "2026-08-29"
       },
       "affected_modules": [
         "services/api/src/modules/tenant-settings",
         "apps/web"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-325"
+      ],
+      "qa_scenarios": [
+        "QA-SETTINGS-006"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -11571,22 +11653,26 @@
       "title": "Eight settings controls write a key name the resolver never reads",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-1976-eight-settings-controls-write-a-key-name-the-resolver-never-.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "eb457d9d",
         "created_at": "2026-08-29",
         "updated_at": "2026-08-29",
-        "resolved_at": ""
+        "resolved_at": "2026-08-29"
       },
       "affected_modules": [
         "services/api/src/modules/tenant-settings",
         "apps/web"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-326"
+      ],
+      "qa_scenarios": [
+        "QA-SETTINGS-007"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -11611,22 +11697,26 @@
       "title": "The platform Localization panel queries dotted setting keys that no row can ever hold",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-1977-the-platform-localization-panel-queries-dotted-setting-keys-.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "eb457d9d",
         "created_at": "2026-08-29",
         "updated_at": "2026-08-29",
-        "resolved_at": ""
+        "resolved_at": "2026-08-29"
       },
       "affected_modules": [
         "services/api/src/modules/tenant-control-plane",
         "apps/admin"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-327"
+      ],
+      "qa_scenarios": [
+        "QA-BILLING-027"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -11651,22 +11741,26 @@
       "title": "Two attendance checkboxes are not catalog keys, so touching either rejects the whole settings save",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-1978-two-attendance-checkboxes-are-not-catalog-keys-so-touching-e.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "eb457d9d",
         "created_at": "2026-08-29",
         "updated_at": "2026-08-29",
-        "resolved_at": ""
+        "resolved_at": "2026-08-29"
       },
       "affected_modules": [
         "apps/web",
         "services/api/src/modules/tenant-settings"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-321"
+      ],
+      "qa_scenarios": [
+        "QA-SETTINGS-010"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -11691,21 +11785,25 @@
       "title": "Seven mandated attendance settings are still rendered editable and the refusal is never reported",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-1979-seven-attendance-settings-are-overwritten-on-write-and-the-a.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "eb457d9d",
         "created_at": "2026-08-29",
         "updated_at": "2026-08-29",
-        "resolved_at": ""
+        "resolved_at": "2026-08-29"
       },
       "affected_modules": [
         "services/api/src/modules/tenant-settings"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-320"
+      ],
+      "qa_scenarios": [
+        "QA-SETTINGS-009"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -11736,14 +11834,20 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "eb457d9d",
         "created_at": "2026-08-29",
-        "updated_at": "2026-08-29",
+        "updated_at": "2026-08-30",
         "resolved_at": ""
       },
       "affected_modules": [
         "services/api/src/modules/attendance"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-323",
+        "REG-359"
+      ],
+      "qa_scenarios": [
+        "QA-ATT-011",
+        "QA-ATT-012"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -11767,21 +11871,25 @@
       "title": "resolvePolicy hardcodes seven location values and two AttendancePolicy columns are dead",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-1981-resolvepolicy-hardcodes-seven-location-values-and-inverts-tw.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "eb457d9d",
         "created_at": "2026-08-29",
         "updated_at": "2026-08-29",
-        "resolved_at": ""
+        "resolved_at": "2026-08-29"
       },
       "affected_modules": [
         "services/api/src/modules/attendance"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-322"
+      ],
+      "qa_scenarios": [
+        "QA-ATT-010"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -11805,21 +11913,25 @@
       "title": "Tenant settings has four blocking accessibility violations including buttons with no name",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-1986-tenant-settings-has-four-blocking-accessibility-violations-i.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "41eaadb4",
         "created_at": "2026-08-29",
         "updated_at": "2026-08-29",
-        "resolved_at": ""
+        "resolved_at": "2026-08-29"
       },
       "affected_modules": [
         "apps/web"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-337"
+      ],
+      "qa_scenarios": [
+        "QA-SETTINGS-013"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -11843,22 +11955,26 @@
       "title": "The tenant Users screen requests an entity the data registry does not have, so it never renders",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "IN_PROGRESS",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-2003-the-tenant-users-screen-crashes-into-the-error-boundary-for-.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "eb457d9d",
         "created_at": "2026-08-29",
         "updated_at": "2026-08-29",
-        "resolved_at": ""
+        "resolved_at": "2026-08-29"
       },
       "affected_modules": [
         "apps/web",
         "services/api/src/modules/data"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-313"
+      ],
+      "qa_scenarios": [
+        "QA-RUNTIME-023"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -11883,21 +11999,25 @@
       "title": "The approvals module emits a New action for a page that does not exist, and the detail route throws on it",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "IN_PROGRESS",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-2004-the-approvals-inbox-offers-a-new-action-whose-page-crashes-i.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "eb457d9d",
         "created_at": "2026-08-29",
         "updated_at": "2026-08-29",
-        "resolved_at": ""
+        "resolved_at": "2026-08-29"
       },
       "affected_modules": [
         "apps/web"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-314"
+      ],
+      "qa_scenarios": [
+        "QA-RUNTIME-024"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -11921,21 +12041,25 @@
       "title": "Manual attendance accepts a date arbitrarily far in the future",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-2005-manual-attendance-accepts-a-date-arbitrarily-far-in-the-futu.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "eb457d9d",
         "created_at": "2026-08-29",
         "updated_at": "2026-08-29",
-        "resolved_at": ""
+        "resolved_at": "2026-08-29"
       },
       "affected_modules": [
         "services/api/src/modules/attendance"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-319"
+      ],
+      "qa_scenarios": [
+        "QA-ATT-009"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -11959,21 +12083,25 @@
       "title": "A successful save reports nothing to the user on the runtime forms and the branding page",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-2006-a-successful-save-reports-nothing-to-the-user-on-the-runtime.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "eb457d9d",
         "created_at": "2026-08-29",
-        "updated_at": "2026-08-29",
-        "resolved_at": ""
+        "updated_at": "2026-08-30",
+        "resolved_at": "2026-08-30"
       },
       "affected_modules": [
         "apps/web"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-340"
+      ],
+      "qa_scenarios": [
+        "QA-ATT-013"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -12035,22 +12163,26 @@
       "title": "Every employee is counted absent on a non-working day and raised as an exception",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-2008-every-employee-is-counted-absent-on-a-non-working-day-and-ra.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "eb457d9d",
         "created_at": "2026-08-29",
         "updated_at": "2026-08-29",
-        "resolved_at": ""
+        "resolved_at": "2026-08-29"
       },
       "affected_modules": [
         "services/api/src/modules/attendance",
         "services/api/src/modules/dashboard"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-318"
+      ],
+      "qa_scenarios": [
+        "QA-ATT-008"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -12075,21 +12207,25 @@
       "title": "Display labels fall through to the raw field key or raw enum value on three tenant surfaces",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-2009-display-labels-fall-through-to-the-raw-field-key-or-raw-enum.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "eb457d9d",
         "created_at": "2026-08-29",
-        "updated_at": "2026-08-29",
-        "resolved_at": ""
+        "updated_at": "2026-08-30",
+        "resolved_at": "2026-08-30"
       },
       "affected_modules": [
         "apps/web"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-341"
+      ],
+      "qa_scenarios": [
+        "QA-SETTINGS-015"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -12113,21 +12249,25 @@
       "title": "The dashboard Recent changes list renders unformatted ISO-8601 timestamps",
       "severity": "LOW",
       "priority": "P3",
-      "current_status": "OPEN",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-2010-the-dashboard-recent-changes-list-renders-unformatted-iso-86.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "eb457d9d",
         "created_at": "2026-08-29",
-        "updated_at": "2026-08-29",
-        "resolved_at": ""
+        "updated_at": "2026-08-30",
+        "resolved_at": "2026-08-30"
       },
       "affected_modules": [
         "apps/web"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-342"
+      ],
+      "qa_scenarios": [
+        "QA-RUNTIME-037"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -12151,8 +12291,8 @@
       "title": "Seven related-list dialogs never send the parent foreign key and one of them creates an orphan",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "FIXED",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "VERIFIED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-2011-seven-related-list-dialogs-never-send-the-parent-foreign-key.md",
         "provenance": "QA_RUN",
@@ -12193,21 +12333,25 @@
       "title": "The related-list create dialog pre-fills child fields with the parent record values",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "PLAN_REQUIRED",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-2012-the-related-list-create-dialog-pre-fills-child-fields-with-t.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "eb457d9d",
         "created_at": "2026-08-29",
         "updated_at": "2026-08-29",
-        "resolved_at": ""
+        "resolved_at": "2026-08-29"
       },
       "affected_modules": [
         "apps/web"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-316"
+      ],
+      "qa_scenarios": [
+        "QA-RUNTIME-026"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -12231,21 +12375,25 @@
       "title": "The dashboard error boundary classifies server-component failures by a message it can never receive",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-2013-the-dashboard-error-boundary-classifies-server-component-fai.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "eb457d9d",
         "created_at": "2026-08-29",
         "updated_at": "2026-08-29",
-        "resolved_at": ""
+        "resolved_at": "2026-08-29"
       },
       "affected_modules": [
         "apps/web"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-315"
+      ],
+      "qa_scenarios": [
+        "QA-RUNTIME-025"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -12269,21 +12417,25 @@
       "title": "Users new and Users import fall through to the user detail route and report a permissions refusal",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-2014-users-new-and-users-import-are-shadowed-by-the-user-detail-r.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "eb457d9d",
         "created_at": "2026-08-29",
         "updated_at": "2026-08-29",
-        "resolved_at": ""
+        "resolved_at": "2026-08-29"
       },
       "affected_modules": [
         "apps/web"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-314"
+      ],
+      "qa_scenarios": [
+        "QA-RUNTIME-024"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -12307,15 +12459,15 @@
       "title": "Approving and rejecting leave is gated on read permission and the dedicated approve keys are never required",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "FIXED",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "VERIFIED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-2015-approving-and-rejecting-leave-is-gated-on-read-permission-an.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "eb457d9d",
         "created_at": "2026-08-29",
         "updated_at": "2026-08-29",
-        "resolved_at": ""
+        "resolved_at": "2026-08-29"
       },
       "affected_modules": [
         "services/api/src/modules/leave"
@@ -12351,22 +12503,26 @@
       "title": "Cancelling a leave request leaves its needs-approval notification outstanding in the inbox",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-2016-cancelling-a-leave-request-leaves-its-needs-approval-notific.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "eb457d9d",
         "created_at": "2026-08-29",
         "updated_at": "2026-08-29",
-        "resolved_at": ""
+        "resolved_at": "2026-08-29"
       },
       "affected_modules": [
         "services/api/src/modules/notifications",
         "services/api/src/modules/leave"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-331"
+      ],
+      "qa_scenarios": [
+        "QA-RUNTIME-029"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -12391,21 +12547,25 @@
       "title": "The inbox Related record column renders a bare UUID with no label and no link",
       "severity": "LOW",
       "priority": "P3",
-      "current_status": "OPEN",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-2017-the-inbox-related-record-column-renders-a-bare-uuid-with-no-.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "eb457d9d",
         "created_at": "2026-08-29",
-        "updated_at": "2026-08-29",
-        "resolved_at": ""
+        "updated_at": "2026-08-30",
+        "resolved_at": "2026-08-30"
       },
       "affected_modules": [
         "apps/web"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-343"
+      ],
+      "qa_scenarios": [
+        "QA-RUNTIME-038"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -12429,22 +12589,25 @@
       "title": "The employee export produces columns the employee import template does not accept",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-2026-the-employee-export-produces-columns-the-employee-import-tem.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "eb457d9d",
         "created_at": "2026-08-29",
         "updated_at": "2026-08-29",
-        "resolved_at": ""
+        "resolved_at": "2026-08-29"
       },
       "affected_modules": [
         "services/api/src/modules/employees"
       ],
-      "regressions": [],
+      "regressions": [
+        "REG-357"
+      ],
       "qa_scenarios": [
-        "QA-TENANT-056"
+        "QA-TENANT-056",
+        "QA-TENANT-060"
       ],
       "test_plan": [],
       "current_evidence": {
@@ -12469,22 +12632,26 @@
       "title": "The Audit Events screen reports the number of rows it loaded as the tenant's total audit count",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-2043-the-audit-events-screen-reports-the-number-of-rows-it-loaded.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "eb457d9d",
         "created_at": "2026-08-29",
         "updated_at": "2026-08-29",
-        "resolved_at": ""
+        "resolved_at": "2026-08-29"
       },
       "affected_modules": [
         "apps/web",
         "services/api/src/modules/audit"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-354"
+      ],
+      "qa_scenarios": [
+        "QA-SETTINGS-012"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -12509,23 +12676,27 @@
       "title": "No employee lifecycle event is audited, including employee creation and reporting-manager assignment",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
-      "architect_disposition": "PLAN_REQUIRED",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-2044-no-employee-lifecycle-event-is-audited-including-employee-cr.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "eb457d9d",
         "created_at": "2026-08-29",
         "updated_at": "2026-08-29",
-        "resolved_at": ""
+        "resolved_at": "2026-08-29"
       },
       "affected_modules": [
         "services/api/src/modules/employees",
         "services/api/src/modules/organization",
         "services/api/src/modules/leave"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-355"
+      ],
+      "qa_scenarios": [
+        "QA-RUNTIME-033"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -12551,8 +12722,8 @@
       "title": "Timesheet background-job completions make up 71 percent of the tenant audit trail",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "FIXED",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "VERIFIED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-2045-timesheet-background-job-completions-make-up-71-percent-of-t.md",
         "provenance": "QA_RUN",
@@ -12597,21 +12768,25 @@
       "title": "Audit actions use two naming conventions and the Result column is populated only by login events",
       "severity": "LOW",
       "priority": "P3",
-      "current_status": "OPEN",
-      "architect_disposition": "PLAN_REQUIRED",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-2046-audit-actions-use-two-naming-conventions-and-the-result-colu.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "eb457d9d",
         "created_at": "2026-08-29",
-        "updated_at": "2026-08-29",
-        "resolved_at": ""
+        "updated_at": "2026-08-30",
+        "resolved_at": "2026-08-30"
       },
       "affected_modules": [
         "services/api/src/modules/audit"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-356"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-061"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -12635,21 +12810,25 @@
       "title": "The canonical settings contract still describes attendance geolocation as configurable and Remote-Hybrid only",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-2091-the-canonical-settings-contract-still-describes-attendance-g.md",
         "provenance": "ARCHITECT",
         "detected_in_sha": "70391242",
         "created_at": "2026-08-29",
         "updated_at": "2026-08-29",
-        "resolved_at": ""
+        "resolved_at": "2026-08-29"
       },
       "affected_modules": [
         "docs/architecture"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-324"
+      ],
+      "qa_scenarios": [
+        "QA-SETTINGS-011"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -12673,22 +12852,26 @@
       "title": "Dashboard widget severity is conveyed by colour alone, and hidden from assistive technology",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "DEFERRED",
-      "architect_disposition": "DEFER",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-2148-dashboard-widget-severity-is-conveyed-by-colour-alone-and-hi.md",
         "provenance": "USER_REPORT",
         "detected_in_sha": "48273a47",
         "created_at": "2026-08-29",
         "updated_at": "2026-08-29",
-        "resolved_at": ""
+        "resolved_at": "2026-08-29"
       },
       "affected_modules": [
         "views",
         "dashboard"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-336"
+      ],
+      "qa_scenarios": [
+        "QA-RUNTIME-035"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -12713,22 +12896,26 @@
       "title": "Every dashboard metric card offers a link named only Open",
       "severity": "LOW",
       "priority": "P3",
-      "current_status": "DEFERRED",
-      "architect_disposition": "DEFER",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-2149-every-dashboard-metric-card-offers-a-link-named-only-open.md",
         "provenance": "USER_REPORT",
         "detected_in_sha": "48273a47",
         "created_at": "2026-08-29",
         "updated_at": "2026-08-29",
-        "resolved_at": ""
+        "resolved_at": "2026-08-29"
       },
       "affected_modules": [
         "views",
         "dashboard"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-336"
+      ],
+      "qa_scenarios": [
+        "QA-RUNTIME-035"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -12753,23 +12940,27 @@
       "title": "Three timesheet audit toggles render on screen and are read by nothing",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-2206-three-timesheet-audit-toggles-render-on-screen-and-are-read-.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "f2d367d0",
         "created_at": "2026-08-29",
         "updated_at": "2026-08-29",
-        "resolved_at": ""
+        "resolved_at": "2026-08-29"
       },
       "affected_modules": [
         "services/api/src/modules/timesheets",
         "services/api/src/modules/tenant-settings",
         "apps/web"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-328"
+      ],
+      "qa_scenarios": [
+        "QA-SETTINGS-008"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -17911,6 +18102,46 @@
           "views"
         ],
         "verification_scope": "See docs/backlog/items/ITEM-0114-the-workspace-shell-states-the-tenant-s-identity-four-times-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0115",
+      "type": "PRODUCT_DECISION",
+      "title": "Provisioning seeds four departments with no business unit on every tenant",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "PRODUCT_DECISION",
+      "architect_disposition": "PRODUCT_DECISION",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0115-provisioning-seeds-four-departments-with-no-business-unit-on.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-08-29",
+        "updated_at": "2026-08-29",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/prisma",
+        "services/api/src/modules/organization"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/prisma",
+          "services/api/src/modules/organization"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0115-provisioning-seeds-four-departments-with-no-business-unit-on.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],
