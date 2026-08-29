@@ -250,7 +250,6 @@ export declare function resolveSystemWidgetAvailability(input: {
 export * from "./platform-runtime-schema";
 export * from "./platform-runtime-views";
 export * from "./platform-domains";
-export * from "./tenant-setting-dispositions";
 
 /**
  * Email provider types with a working implementation behind them (BUG-0050).

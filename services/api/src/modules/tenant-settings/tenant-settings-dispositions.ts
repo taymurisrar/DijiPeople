@@ -1,3 +1,49 @@
+import { DEFAULT_TENANT_SETTINGS } from './tenant-settings.catalog';
+
+/**
+ * Why a catalog key is inert. Every entry carries one, because "no reader" is a
+ * symptom and the right disposition depends on the cause.
+ */
+export const INERT_REASONS = {
+  /**
+   * The behaviour the key describes is not implemented. The key stays declared
+   * — removing it would break `PATCH /tenant-settings` for a tenant that
+   * already stored a value — but nothing honours it and no control offers it.
+   */
+  NOT_IMPLEMENTED: 'The behaviour this key describes is not implemented.',
+
+  /**
+   * A real domain model or platform setting already owns this decision, and the
+   * catalog copy is a second, inert source of truth for it. The fix is to use
+   * the model, not to wire the key: wiring it would create exactly the
+   * duplication `AGENTS.md` forbids.
+   */
+  DUPLICATE_OF_DOMAIN_MODEL:
+    'A domain model or platform setting already owns this; the catalog copy is a duplicate.',
+
+  /**
+   * The behaviour exists and is deliberately not optional. The key offers a
+   * choice the domain cannot honour — payroll cannot compute pay without an
+   * active compensation assignment, and a reporting line that closes a cycle is
+   * not a preference. A switch here would be a worse lie than no switch.
+   */
+  UNCONDITIONAL_BY_DESIGN:
+    'The behaviour is unconditional; the key offers a choice the domain cannot honour.',
+
+  /**
+   * Inert, and its control is **not** yet withdrawn, because another in-flight
+   * change owns these entries — the attendance settings work covering BUG-1978,
+   * BUG-1979, BUG-1980, BUG-1981 and BUG-2091. Every key here is a known lie
+   * still on screen. This is the one temporary reason code and it must reach
+   * zero: either those keys gain readers and leave this file, or they take one
+   * of the reasons above and their controls go with them.
+   */
+  DEFERRED_ATTENDANCE_WORK:
+    'Owned by the concurrent attendance settings work; control not yet withdrawn.',
+} as const;
+
+export type InertReasonCode = keyof typeof INERT_REASONS;
+
 /**
  * Tenant setting keys the catalog declares that no production code reads.
  *
@@ -8,72 +54,24 @@
  * the value survived a reload — and nothing in the platform ever read it. There
  * was no error and no warning to give the lie away.
  *
- * Twenty-four of those keys were deleted outright (see the catalog). The rest
- * are listed here, and this list is what withdraws their controls: the tenant
- * settings UI filters its field definitions through it, so a key named here
- * cannot be rendered as an editable control, and the API reports the list on
- * `GET /tenant-settings` so an integrator can see which declared keys are inert
+ * Twenty-four keys were deleted outright; see the comments in
+ * `tenant-settings.catalog.ts`. The rest are listed here, and their editable
+ * controls have been removed from the settings pages. `GET /tenant-settings`
+ * reports this list so an integrator can see which declared keys are inert
  * rather than discovering it from behaviour that never changes.
  *
  * **This list may only shrink.** Removing an entry is how a key becomes live:
- * write the reader, delete the line, and the control returns on its own. The
- * check in `tenant-settings-reader-coverage.spec.ts` fails both ways — on a
- * declared key that is neither read nor listed here, and on a key listed here
- * that something now reads — so neither side can drift.
+ * write the reader and delete the line. `tenant-settings-reader-coverage.spec.ts`
+ * fails both ways — on a declared key that is neither read nor listed here, and
+ * on a key listed here that something now reads — so the two cannot drift.
  *
- * It lives in `@repo/config` rather than beside the catalog because both halves
- * need it: `services/api` for the catalog contract and the coverage check, and
- * `apps/web` for the UI filter. One definition, two consumers.
+ * Keyed `'<category>.<key>'`, because 24 keys share a name across two
+ * categories and a bare key name cannot tell them apart. That confusion is what
+ * BUG-1977 was.
  */
-
-/**
- * Why a key is inert. Every entry carries one, because "no reader" is a
- * symptom and the disposition depends on the cause.
- */
-const INERT_REASONS = Object.freeze({
-  /**
-   * The behaviour the key describes does not exist. The key stays declared —
-   * removing it would break `PATCH /tenant-settings` for a tenant that already
-   * stored a value — but nothing honours it and no control offers it.
-   */
-  NOT_IMPLEMENTED: 'The behaviour this key describes is not implemented.',
-
-  /**
-   * A real domain model owns this decision, and the catalog copy is a second,
-   * inert source of truth for it. The fix is to use the model, not to wire the
-   * key: doing that would create exactly the duplication AGENTS.md forbids.
-   */
-  DUPLICATE_OF_DOMAIN_MODEL:
-    'A domain model or platform setting already owns this; the catalog copy is a duplicate.',
-
-  /**
-   * The behaviour exists and is deliberately not optional. The key offers a
-   * choice the domain cannot honour — payroll cannot compute pay without an
-   * active compensation assignment, and a reporting line that closes a cycle is
-   * not a preference. Rendering a switch here would be a worse lie than
-   * rendering none.
-   */
-  UNCONDITIONAL_BY_DESIGN:
-    'The behaviour is unconditional; the key offers a choice the domain cannot honour.',
-
-  /**
-   * Inert, and its control is NOT yet withdrawn, because another in-flight
-   * change owns these entries — the attendance settings work covering
-   * BUG-1978, BUG-1979, BUG-1980, BUG-1981 and BUG-2091. Every key here is a
-   * known lie still on screen. This is the one reason code that is temporary,
-   * and it must reach zero: either those keys gain readers and leave this file,
-   * or they take one of the reasons above and their controls go with them.
-   */
-  DEFERRED_ATTENDANCE_WORK:
-    'Owned by the concurrent attendance settings work; control not yet withdrawn.',
-});
-
-/**
- * `'<category>.<key>'` -> reason code. Derived by measurement, not by hand: an
- * identifier index over every tracked file, excluding the catalog itself, the
- * two settings-UI config files, specs, `e2e/` and documentation.
- */
-const INERT_TENANT_SETTING_KEYS = Object.freeze({
+export const INERT_TENANT_SETTING_KEYS: Readonly<
+  Record<string, InertReasonCode>
+> = Object.freeze({
 
   // organization (6)
   'organization.businessDateSource': 'NOT_IMPLEMENTED',
@@ -312,20 +310,23 @@ const INERT_TENANT_SETTING_KEYS = Object.freeze({
 });
 
 /**
- * Keys that are inert but whose editable control is still rendered.
+ * Inert keys whose editable control is still rendered.
  *
  * Only `DEFERRED_ATTENDANCE_WORK` qualifies, and only until that work lands.
- * The UI filter consults this so those controls survive; everything else in
- * `INERT_TENANT_SETTING_KEYS` is withdrawn from the settings pages.
+ * The coverage spec allows a control for these and for nothing else.
  */
-const INERT_KEYS_WITH_PENDING_UI_REMOVAL = Object.freeze(
-  Object.keys(INERT_TENANT_SETTING_KEYS).filter(
-    (id) => INERT_TENANT_SETTING_KEYS[id] === 'DEFERRED_ATTENDANCE_WORK',
-  ),
-);
+export const INERT_KEYS_WITH_PENDING_UI_REMOVAL: readonly string[] =
+  Object.freeze(
+    Object.keys(INERT_TENANT_SETTING_KEYS).filter(
+      (id) => INERT_TENANT_SETTING_KEYS[id] === 'DEFERRED_ATTENDANCE_WORK',
+    ),
+  );
 
 /** True when the catalog declares this key but nothing reads it. */
-function isInertTenantSettingKey(category, key) {
+export function isInertTenantSettingKey(
+  category: string,
+  key: string,
+): boolean {
   return Object.prototype.hasOwnProperty.call(
     INERT_TENANT_SETTING_KEYS,
     `${category}.${key}`,
@@ -333,26 +334,40 @@ function isInertTenantSettingKey(category, key) {
 }
 
 /**
- * True when an editable control may be rendered for this key.
+ * The inert keys a tenant can still see and set, grouped for the API contract.
  *
- * A key is renderable unless it is inert — with the deferred attendance keys
- * as the one temporary exception above.
+ * `GET /tenant-settings` carries this so a client is told which of the keys in
+ * its response the platform does not honour. That is the half of BUG-1974's
+ * acceptance criteria that deleting the keys would have satisfied by removing
+ * them; keeping them and saying so preserves compatibility for the tenants that
+ * already stored values.
  */
-function isTenantSettingControlRenderable(category, key) {
-  const id = `${category}.${key}`;
-  // hasOwnProperty rather than a bare lookup: the composite id happens to make
-  // a prototype collision impossible today, but that is a property of the key
-  // format rather than of this function, and it should not be load-bearing.
-  if (!Object.prototype.hasOwnProperty.call(INERT_TENANT_SETTING_KEYS, id)) {
-    return true;
-  }
-  return INERT_TENANT_SETTING_KEYS[id] === 'DEFERRED_ATTENDANCE_WORK';
+export function describeInertTenantSettingKeys(): Array<{
+  category: string;
+  key: string;
+  reason: InertReasonCode;
+  description: string;
+}> {
+  return Object.entries(INERT_TENANT_SETTING_KEYS)
+    .map(([id, reason]) => {
+      const separator = id.indexOf('.');
+      const category = id.slice(0, separator);
+      const key = id.slice(separator + 1);
+      return {
+        category,
+        key,
+        reason,
+        description: INERT_REASONS[reason],
+      };
+    })
+    .filter(
+      (entry) =>
+        // Defensive: an entry naming a key the catalog no longer declares is a
+        // stale line, and reporting it would advertise a key that does not
+        // exist. The coverage spec fails on one; this keeps the response honest
+        // in the meantime.
+        DEFAULT_TENANT_SETTINGS[
+          entry.category as keyof typeof DEFAULT_TENANT_SETTINGS
+        ]?.[entry.key] !== undefined,
+    );
 }
-
-module.exports = {
-  INERT_REASONS,
-  INERT_TENANT_SETTING_KEYS,
-  INERT_KEYS_WITH_PENDING_UI_REMOVAL,
-  isInertTenantSettingKey,
-  isTenantSettingControlRenderable,
-};
