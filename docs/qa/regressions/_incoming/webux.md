@@ -146,3 +146,18 @@ claim more coverage than exists.
 | **Note** | `formatDateTime`/`formatDate` are called with no explicit context argument — both fall back to the module-level `runtimeDefaultContext` that `resolved-settings-provider.tsx` installs for the whole authenticated shell from the tenant's resolved settings, so no prop needed threading through the widget renderer to reach it. The truncation this record's Acceptance Criteria also named was a symptom of the 39-character raw-looking string, not a separate defect — a formatted date is short enough on its own. Shares a commit and a file with REG-341 (BUG-2009 surface 3, the same function's enum-humanisation branch, found while investigating this record). Not verified in a browser. |
 | **Fixed** | 2026-08-30 |
 | **Active** | yes |
+
+### REG-343 — A cell that already had a link and a label, neither ever read
+
+| | |
+|---|---|
+| **Bug class** | `unwired-existing-data` |
+| **Module** | `apps/web` inbox |
+| **Bug record** | BUG-2017 |
+| **Root cause** | The inbox's "Related record" column rendered `row.relatedRecordNumber ?? row.relatedEntityId ?? "No record"` as plain text — no link at all, and a bare UUID whenever the denormalised number was absent. `InboxNotification` already carried `targetUrl` (the direct navigation target, already used by `notification-bell.tsx` and `notification-popup-provider.tsx` for exactly this purpose) and `relatedRecordNumber` (the denormalised human label the bug record's own Proposed Resolution asked for); neither was read by this one cell. |
+| **Regression test** | `apps/web/app/components/inbox/inbox-related-record-cell.spec.ts` |
+| **Scenario** | A bare UUID with nothing else set never appears as the cell's content. `targetUrl` + `relatedRecordNumber` renders a link whose `href` and visible text match exactly. `targetUrl` with no record number falls back to the humanised entity type ("leave-request" → "Leave Request"). No `targetUrl` renders plain text, not a link. Nothing at all renders the literal "No record". |
+| **Proven to fail without the fix** | Mutation-tested: reverting `relatedRecordCell` to the pre-fix expression (`row.relatedRecordNumber ?? row.relatedEntityId ?? "No record"`) fails 4 of 5 assertions — every case that exercised the link, the entity-type fallback, or the plain-text-without-a-link path. Reverted immediately after confirming. |
+| **Note** | No API or notification-payload change was needed. Both fields the fix depends on already existed on the type, were already populated by the API, and were already trusted for the identical purpose elsewhere in this app — the defect was one cell in one component never reading them, not a missing capability. The one case this fix cannot close without an API change — an id with no target and no label at all — no longer shows the id either: it reads "Related record" as inert text rather than a UUID or a guessed link. Not verified in a browser; no flow in the ITEM-0034 E2E suite opens `/inbox`. |
+| **Fixed** | 2026-08-30 |
+| **Active** | yes |
