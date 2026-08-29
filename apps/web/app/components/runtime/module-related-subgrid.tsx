@@ -21,6 +21,7 @@ import { ModuleEmptyState } from "./module-empty-state";
 import { ModuleQuickCreatePanel } from "./module-quick-create-panel";
 import type { RuntimeRecordData } from "./module-runtime-ui.types";
 import { formatRuntimeFieldValue } from "@/lib/runtime/runtime-value-formatter";
+import { humanizeFieldKey, singularize } from "@/lib/text/inflection";
 import { useDialogBehavior } from "@/app/components/ui/dialog";
 
 export function ModuleRelatedSubgrid({
@@ -245,7 +246,18 @@ export function ModuleRelatedSubgrid({
         return {
           key: column.fieldLogicalName,
           entityField: column.fieldLogicalName,
-          header: column.label ?? field?.displayName ?? column.fieldLogicalName,
+          /*
+           * BUG-2009 — the final fallback was the raw field key, so the
+           * Attendance tab on an employee record was headed `attendanceDate`,
+           * `attendanceStatus`, `checkInAt`, `checkOutAt` while the standalone
+           * `/attendance` list over the same data was headed properly. A
+           * declared label and the entity's display name still win; this only
+           * replaces printing the column of a database table at the reader.
+           */
+          header:
+            column.label ??
+            field?.displayName ??
+            humanizeFieldKey(column.fieldLogicalName),
           render: (row: RuntimeRecordData) =>
             formatRuntimeFieldValue({
               field,
@@ -1431,10 +1443,17 @@ function buildGenericQuickCreate(
     (field) =>
       field.logicalName !== parentLookupField && field.behavior !== "readonly",
   );
+  /*
+   * BUG-1964 / BUG-2009 — a generic entity carries no display name, only its
+   * logical name, and both the entity's label and the quick-create dialog's
+   * title were rendering that key: "New leave_entitlements". Humanised and
+   * singularised here, once, so the two cannot disagree.
+   */
+  const entityLabel = humanizeFieldKey(metadata.logicalName);
   const entity: EntityMetadata = {
     id: `entity:${metadata.logicalName}`,
     logicalName: metadata.logicalName,
-    displayName: metadata.logicalName,
+    displayName: entityLabel,
     collectionName: metadata.logicalName,
     version: "1.0.0",
     lifecycleState: "published",
@@ -1446,7 +1465,7 @@ function buildGenericQuickCreate(
   const form: FormMetadata = {
     id: `quick:${metadata.logicalName}`,
     logicalName: `${metadata.logicalName}.quickCreate`,
-    displayName: `New ${metadata.logicalName}`,
+    displayName: `New ${singularize(entityLabel)}`,
     version: "1.0.0",
     lifecycleState: "published",
     layer: "unmanaged",
@@ -1528,7 +1547,14 @@ function buildSubgridQuickCreate(
   const form: FormMetadata = {
     id: `quick:${entityLogicalName}`,
     logicalName: `${entityLogicalName}.quickCreate`,
-    displayName: `New ${subgrid.title}`,
+    /*
+     * BUG-1964 — a dialog that creates one record was titled with the tab's
+     * plural: "New Entitlements", "New Assignments". The record header and
+     * this title were two mechanisms — one singularised badly, the other not
+     * at all — so they could disagree about the same entity on the same
+     * screen. Both read `singularize` now.
+     */
+    displayName: `New ${singularize(subgrid.title)}`,
     version: "1.0.0",
     lifecycleState: "published",
     layer: "system",
