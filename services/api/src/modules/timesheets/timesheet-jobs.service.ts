@@ -23,6 +23,7 @@ import { TimesheetExportService } from './timesheet-export.service';
 import { TimesheetGenerationService } from './timesheet-generation.service';
 import { TimesheetPolicyResolverService } from './timesheet-policy-resolver.service';
 import { TimesheetWorkflowService } from './timesheet-workflow.service';
+import { TenantSettingsService } from '../tenant-settings/tenant-settings.service';
 
 @Injectable()
 export class TimesheetJobsService implements OnModuleInit, OnModuleDestroy {
@@ -39,6 +40,7 @@ export class TimesheetJobsService implements OnModuleInit, OnModuleDestroy {
     private readonly workflow: TimesheetWorkflowService,
     private readonly notifications: NotificationsService,
     private readonly audit: AuditService,
+    private readonly tenantSettings: TenantSettingsService,
   ) {}
 
   onModuleInit() {
@@ -117,16 +119,18 @@ export class TimesheetJobsService implements OnModuleInit, OnModuleDestroy {
           completedAt: new Date(),
         },
       });
-      await this.audit.log({
-        tenantId: user.tenantId,
-        actorUserId: user.userId,
-        action: 'TIMESHEET_BACKGROUND_JOB_COMPLETED',
-        entityType: 'TimesheetJobExecution',
-        entityId: execution.id,
-        sourceModule: 'timesheets',
-        scope: { jobType: dto.jobType, idempotencyKey: key },
-        afterSnapshot: result,
-      });
+      if (await this.shouldAuditBackgroundJobs(user.tenantId)) {
+        await this.audit.log({
+          tenantId: user.tenantId,
+          actorUserId: user.userId,
+          action: 'TIMESHEET_BACKGROUND_JOB_COMPLETED',
+          entityType: 'TimesheetJobExecution',
+          entityId: execution.id,
+          sourceModule: 'timesheets',
+          scope: { jobType: dto.jobType, idempotencyKey: key },
+          afterSnapshot: result,
+        });
+      }
       return completed;
     } catch (error) {
       await this.prisma.timesheetJobExecution.update({
@@ -571,6 +575,50 @@ export class TimesheetJobsService implements OnModuleInit, OnModuleDestroy {
       }
     } finally {
       this.scheduledCycleRunning = false;
+    }
+  }
+  /*
+   * BUG-2045 — `timesheets.auditBackgroundJobs`, which existed and nothing read.
+   *
+   * 216 of 305 audit rows on one tenant were `TIMESHEET_BACKGROUND_JOB_COMPLETED`
+   * — machine events with no actor decision behind them, generated as a side
+   * effect of 61 manual attendance entries, crowding out the human actions an
+   * auditor opens the log to find. The toggle that answers this was already in
+   * the settings catalog and already rendered on screen as "Audit background
+   * jobs". It was simply not wired to anything.
+   *
+   * The repository owner chose (2026-08-29) to wire it and default it **off**:
+   * the audit log is for actor decisions, and a tenant that wants the machine
+   * events can ask for them. That is a deliberate behaviour change for existing
+   * tenants on upgrade, not an accident of the default.
+   *
+   * Note the default here is `false` while the catalog still declares `true`.
+   * That is not a contradiction to tidy away — the catalog value is what an
+   * unconfigured tenant is *shown*, and changing it is a settings-catalog
+   * migration. Until that lands this reader treats "not explicitly enabled" as
+   * off, which is the decided behaviour. Whoever changes the catalog should
+   * delete this comment and the `?? false` together.
+   *
+   * A failure to read settings must not lose the job result, so this fails
+   * closed to the decided default rather than throwing.
+   */
+  private async shouldAuditBackgroundJobs(tenantId: string): Promise<boolean> {
+    try {
+      const category = await this.tenantSettings.getTenantSettingsCategory(
+        tenantId,
+        'timesheets',
+      );
+      const value = (category.settings as Record<string, unknown>)
+        .auditBackgroundJobs;
+      return value === true;
+    } catch (error) {
+      this.logger.warn(
+        `Could not read timesheets.auditBackgroundJobs for tenant ${tenantId}; ` +
+          `not auditing this background job. ${
+            error instanceof Error ? error.message : ''
+          }`,
+      );
+      return false;
     }
   }
 }

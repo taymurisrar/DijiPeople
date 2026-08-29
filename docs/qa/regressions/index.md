@@ -3164,3 +3164,35 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | Suppressing a dialog "because the errors will render inline" is a claim about the form, made in a component that never looked at the form. The fix does not add an error surface; it stops the runtime asserting something it had not checked. Because the check keys off the active form rather than an exempt-field list, any DTO that grows a field the form does not render now fails loudly rather than silently. |
 | **Fixed** | 2026-08-29, branch `agent/starter-blocker-fixes` |
 | **Active** | yes |
+
+### REG-308 - A settings toggle wired to nothing
+
+| | |
+|---|---|
+| **Bug class** | `declared-but-unwired-control` |
+| **Module** | `timesheets` |
+| **Bug record** | BUG-2045 |
+| **Scenario id** | QA-SETTINGS-005 |
+| **Root cause** | `timesheets.auditBackgroundJobs` existed in the settings catalog, rendered on screen as "Audit background jobs", and was read by nothing. Every `TIMESHEET_BACKGROUND_JOB_COMPLETED` was audited regardless. On one tenant 216 of 305 audit rows were that action - machine events with no actor decision behind them, produced as a side effect of 61 manual attendance entries, crowding out the human actions an auditor opens the log to find. |
+| **Regression test** | `services/api/src/modules/timesheets/timesheet-job-audit.spec.ts` |
+| **Scenario** | Turning the setting off stops the audit row; turning it on writes it; a tenant that expressed no preference gets the decided default of off; a settings read failure fails closed without losing the job. |
+| **Proven to fail without the fix** | The off case is the assertion that did not hold: nothing read the value, so the row was written whatever the setting said. |
+| **Note** | Third instance of this class in the register, after REG-303 (a permission key nothing enforced) and REG-224 (a validation DTO nothing referenced). **A control that exists and is not connected is worse than an absent one**, because the administrator who set it believes they have drawn a boundary. The decided default is `off` and deliberately differs from the catalog's declared `true` - the catalog value is what an unconfigured tenant is *shown*, and changing it is a settings-catalog migration. **Three siblings remain unwired:** `auditEntryChanges`, `auditPolicyResolution` and `auditExports`, in the same category, all on screen, all read by nothing. Only `auditBackgroundJobs` was in scope. |
+| **Fixed** | 2026-08-29 |
+| **Active** | yes |
+
+### REG-309 - A seeded approval chain no new tenant could satisfy
+
+| | |
+|---|---|
+| **Bug class** | `unsatisfiable-default` |
+| **Module** | `approvals` |
+| **Bug record** | ITEM-0113 |
+| **Scenario id** | QA-RUNTIME-022 |
+| **Root cause** | Provisioning seeded leave as two **active** steps - sequence 1 `LINE_MANAGER`, sequence 2 `ROLE(hr)`. Every matched step must bind to an active approver or the whole submission is refused, and a newly provisioned tenant satisfies neither: nobody has a reporting manager, and nobody holds `hr`. Leave was blocked on day one for every customer, by default rather than by misconfiguration. The seed did guard against a role that does not exist - but checked only that the role *existed*, never that anybody *held* it, and `ROLE(hr)` passed that guard on every tenant while being unroutable on all of them. |
+| **Regression test** | `services/api/src/modules/approvals/default-approval-matrices.spec.ts` |
+| **Scenario** | Every **active** seeded step must be bindable on a freshly provisioned tenant - which today means a `ROLE` step naming a role provisioning guarantees a member for. The richer line-manager chain is kept, seeded inactive, as a template. |
+| **Proven to fail without the fix** | Mutation-tested: restoring the shipped chain - both steps active - fails three of the eight assertions. |
+| **Note** | The constant was moved from `prisma/seed-config.ts` to `src/modules/approvals/default-approval-matrices.ts` **so that it could be tested at all**: the seed file creates a Prisma client at import time and jest's rootDir is `src`, so no spec could have imported it and none placed beside it would have run. That is worth generalising - a default nothing can import is a default nothing can check, and this one was wrong for every tenant the product ever provisioned. **Satisfiable is not satisfied:** provisioning creates the owner `INVITED` and the resolver requires `ACTIVE`, so the chain routes from the owner's first sign-in rather than from the instant the tenant exists. That is still a real improvement, because signing in is a precondition of using the product and building a hierarchy is not. |
+| **Fixed** | 2026-08-29 |
+| **Active** | yes |

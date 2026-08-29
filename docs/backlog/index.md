@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**386 records** — 272 bugs under [`docs/bugs/`](../bugs/), 114 non-bug items under [`items/`](items/).
+**387 records** — 273 bugs under [`docs/bugs/`](../bugs/), 114 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,11 +13,11 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 70 |
+| Open (active work) | 72 |
 | Blocked | 2 |
 | Deferred | 30 |
-| Awaiting a product decision | 6 |
-| Completed / closed | 278 |
+| Awaiting a product decision | 4 |
+| Completed / closed | 279 |
 | **Open CRITICAL** | **0** |
 | **Open HIGH** | **19** |
 | **Awaiting Architect triage** | **0** |
@@ -27,7 +27,7 @@ see [`README.md`](README.md) for why.
 | Severity | Count |
 |---|---|
 | HIGH | 19 |
-| MEDIUM | 41 |
+| MEDIUM | 43 |
 | LOW | 10 |
 
 ## Open by type
@@ -36,7 +36,7 @@ see [`README.md`](README.md) for why.
 |---|---|
 | ARCHITECTURE | 2 |
 | AUTHORIZATION | 2 |
-| BUG | 25 |
+| BUG | 27 |
 | DATA_INTEGRITY | 6 |
 | DOCUMENTATION | 1 |
 | FOLLOW_UP | 2 |
@@ -50,17 +50,17 @@ see [`README.md`](README.md) for why.
 
 | Status | Count |
 |---|---|
-| OPEN | 36 |
+| OPEN | 37 |
 | IN_PROGRESS | 4 |
 | BLOCKED | 2 |
 | DEFERRED | 30 |
-| PRODUCT_DECISION | 6 |
-| FIXED | 6 |
+| PRODUCT_DECISION | 4 |
+| FIXED | 7 |
 | VERIFIED | 209 |
 | DUPLICATE | 4 |
 | ACCEPTED_RISK | 3 |
 | READY | 24 |
-| DONE | 62 |
+| DONE | 63 |
 
 ## All records
 
@@ -325,9 +325,10 @@ see [`README.md`](README.md) for why.
 | [BUG-2014](../../docs/bugs/BUG-2014-users-new-and-users-import-are-shadowed-by-the-user-detail-r.md) | Users new and Users import fall through to the user detail route and report a permissions refusal | BUG | MEDIUM | P2 | OPEN | apps/web | FIX_NOW |
 | [BUG-2016](../../docs/bugs/BUG-2016-cancelling-a-leave-request-leaves-its-needs-approval-notific.md) | Cancelling a leave request leaves its needs-approval notification outstanding in the inbox | BUG | MEDIUM | P2 | OPEN | api:notifications, api:leave | FIX_NOW |
 | [BUG-2026](../../docs/bugs/BUG-2026-the-employee-export-produces-columns-the-employee-import-tem.md) | The employee export produces columns the employee import template does not accept | BUG | MEDIUM | P2 | OPEN | api:employees | FIX_NOW |
-| [BUG-2045](../../docs/bugs/BUG-2045-timesheet-background-job-completions-make-up-71-percent-of-t.md) | Timesheet background-job completions make up 71 percent of the tenant audit trail | BUG | MEDIUM | P2 | PRODUCT_DECISION | api:timesheets, api:audit, api:tenant-settings | PRODUCT_DECISION |
+| [BUG-2045](../../docs/bugs/BUG-2045-timesheet-background-job-completions-make-up-71-percent-of-t.md) | Timesheet background-job completions make up 71 percent of the tenant audit trail | BUG | MEDIUM | P2 | FIXED | api:timesheets, api:audit, api:tenant-settings | FIX_NOW |
 | [BUG-2091](../../docs/bugs/BUG-2091-the-canonical-settings-contract-still-describes-attendance-g.md) | The canonical settings contract still describes attendance geolocation as configurable and Remote-Hybrid only | DOCUMENTATION | MEDIUM | P2 | OPEN | docs/architecture | FIX_NOW |
 | [BUG-2148](../../docs/bugs/BUG-2148-dashboard-widget-severity-is-conveyed-by-colour-alone-and-hi.md) | Dashboard widget severity is conveyed by colour alone, and hidden from assistive technology | UX | MEDIUM | P2 | DEFERRED | views, dashboard | DEFER |
+| [BUG-2206](../../docs/bugs/BUG-2206-three-timesheet-audit-toggles-render-on-screen-and-are-read-.md) | Three timesheet audit toggles render on screen and are read by nothing | BUG | MEDIUM | P2 | OPEN | api:timesheets, api:tenant-settings, apps/web | FIX_NOW |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |
@@ -382,7 +383,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0106](../../docs/backlog/items/ITEM-0106-an-employee-cannot-use-self-service-until-their-manager-acti.md) | An employee cannot use self-service until their manager activates their own account | PRODUCT_DECISION | MEDIUM | P2 | PRODUCT_DECISION | api:leave, api:employees | PRODUCT_DECISION |
 | [ITEM-0107](../../docs/backlog/items/ITEM-0107-three-separate-users-screens-exist-in-the-tenant-app.md) | Four Users screens exist in the tenant app and two of them are unreachable | ARCHITECTURE | MEDIUM | P2 | READY | apps/web | FIX_NOW |
 | [ITEM-0112](../../docs/backlog/items/ITEM-0112-enforcecriticalattendancesetting-has-no-test-coverage-despit.md) | enforceCriticalAttendanceSetting has no test coverage despite enforcing a mandatory integrity control | TEST_GAP | MEDIUM | P2 | READY | api:tenant-settings | FIX_NOW |
-| [ITEM-0113](../../docs/backlog/items/ITEM-0113-the-seeded-leave-approval-chain-cannot-route-on-a-newly-prov.md) | The seeded leave approval chain cannot route on a newly provisioned tenant, and the Approval Matrices screen gives no warning | PRODUCT_DECISION | MEDIUM | P2 | PRODUCT_DECISION | services/api/prisma, api:approvals, apps/web | PRODUCT_DECISION |
+| [ITEM-0113](../../docs/backlog/items/ITEM-0113-the-seeded-leave-approval-chain-cannot-route-on-a-newly-prov.md) | The seeded leave approval chain cannot route on a newly provisioned tenant, and the Approval Matrices screen gives no warning | PRODUCT_DECISION | MEDIUM | P2 | DONE | services/api/prisma, api:approvals, apps/web | DONE |
 | [ITEM-0021](../../docs/backlog/items/ITEM-0021-mechanical-guard-against-country-and-currency-literals-in-fr.md) | Mechanical guard against country and currency literals in frontends | TEST_GAP | LOW | P2 | DONE | scripts, apps/landing, apps/web, apps/admin | DONE |
 | [ITEM-0023](../../docs/backlog/items/ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning.md) | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | P2 | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
 | [ITEM-0024](../../docs/backlog/items/ITEM-0024-landing-depends-on-lucide-react-without-declaring-it.md) | Landing depends on lucide-react without declaring it | TECH_DEBT | LOW | P2 | DONE | apps/landing | DONE |
