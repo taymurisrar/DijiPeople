@@ -7,7 +7,7 @@
 
 | | |
 |---|---|
-| Active sessions | **3** |
+| Active sessions | **2** |
 | Active parent tasks | 3 |
 | Active work packages | 0 |
 | Blocked work packages | 0 |
@@ -49,11 +49,6 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 | Session | Task | Title | Status | Branch | Target | Leases | Schema |
 |---|---|---|---|---|---|---|---|
-<<<<<<< HEAD
-| [[SESSION-0073-move-switch-workspace-into-the-avatar-menu-item-0102|SESSION-0073]] | — | Move Switch workspace into the avatar menu (ITEM-0102) | ACTIVE | `agent/workspace-switcher-avatar-menu` | `develop` | — | NO |
-=======
-| [[SESSION-0072-starter-release-blockers-the-fixes-that-make-leave-and-entit|SESSION-0072]] | — | Starter release blockers: the fixes that make leave and entitlements work | ACTIVE | `agent/starter-blocker-fixes` | `develop` | — | NO |
->>>>>>> 72ad6102 (docs(history): the run recorded, the vault synced, SESSION-0073 closed)
 | [[SESSION-0071-tenant-workspace-accessibility-the-three-defects-the-browser|SESSION-0071]] | — | Tenant workspace accessibility: the three defects the browser coverage found | ACTIVE | `agent/web-shell-accessibility` | `develop` | — | NO |
 | [[SESSION-0061-unblock-the-production-hosts-for-the-mcp-browser|SESSION-0061]] | — | Production admin E2E QA and invitation delivery visibility | ACTIVE | `agent/invitation-delivery-visibility` | `develop` | — | NO |
 

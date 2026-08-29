@@ -332,7 +332,6 @@ _None. Nothing open at CRITICAL._
 - [[2026-08-28-open-bug-sweep-cd4edb86|Engineering History — Open bug sweep]]
 - [[2026-08-28-admin-console-fx-and-agent-settings-9e55663b|Engineering History — Admin console fx and agent settings]]
 - [[2026-08-28-admin-console-e2e-qa-d78f0fc4|Engineering History — Admin console e2e qa]]
-- [[2026-08-26-worktree-removal-guard-d6f46a9a|Engineering History — Worktree removal guard]]
 
 ## Recent Releases
 
@@ -413,7 +412,7 @@ _None. Nothing open at CRITICAL._
 | Backlog items | 114 |
 | Known bug patterns | 30 |
 | QA runs | 31 |
-| Engineering history records | 59 |
+| Engineering history records | 60 |
 | Release records | 3 |
 | Module notes | 29 |
 | Architecture notes | 21 |
