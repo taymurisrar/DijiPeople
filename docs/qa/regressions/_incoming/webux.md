@@ -86,3 +86,18 @@ claim more coverage than exists.
 | **Note** | The value here is the mapping from utility-class selector to component, which the audit could not give and which cost most of the time: the spec pins each violation to where it was found so nobody re-derives it. **Two of the four were in `data-table.tsx`**, which every runtime list in the tenant product renders — so this was never one screen's problem, and the record's instruction to audit more than one page is answered from the source rather than by a second audit. The contrast failure is the one worth carrying: it was not a badly chosen pair of values but a colour on a tint of *itself*, which no amount of tenant theming can rescue, so the fix had to change which token is used rather than what it resolves to. And `role="button"` on the row was added *by an accessibility fix* — the keyboard access it came with is what BUG-0043 was actually about, and it survives; the role added nothing a screen reader could use. |
 | **Fixed** | 2026-08-29 |
 | **Active** | yes |
+
+### REG-339 — A singular derived by deleting a letter, and a title never derived at all
+
+| | |
+|---|---|
+| **Bug class** | `naive-string-derivation` |
+| **Module** | `apps/web` settings runtime, `apps/web` runtime related lists |
+| **Bug record** | BUG-1964 |
+| **Root cause** | The settings adapter registry derived every record header's singular from its plural with `input.label.replace(/s$/, "")`, so "Leave Policies" produced "Leave Policie". The related-list quick-create dialog titles (`buildGenericQuickCreate`, `buildSubgridQuickCreate` in `module-related-subgrid.tsx`) applied no derivation at all, printing the tab's plural title verbatim — "New Entitlements", "New Assignments". Two mechanisms, one wrong and one absent, free to disagree about the same entity on the same screen. |
+| **Regression test** | `apps/web/lib/text/inflection.spec.ts`, `apps/web/lib/text/label-call-sites.spec.ts` |
+| **Scenario** | `singularize()` handles irregular plurals, `-ies`/`-es` endings and words already singular that a trailing-`s` strip would mangle ("Status", "Address"), and returns an unrecognised word unchanged. Over the source: the settings registry no longer contains the `replace(/s$/, "")` literal and does contain `singularize(input.label)`, with a declared `input.singular` still taking priority; the related-subgrid dialog titles read `New ${singularize(...)}` at both call sites, not the raw label. |
+| **Proven to fail without the fix** | Mutation-tested. Reverting `settings-adapter-registry.ts:432` to `input.singular ?? input.label.replace(/s$/, "")` fails 2 of 6 assertions in `label-call-sites.spec.ts` (the literal-absence and `singularize`-call assertions); reverted immediately after confirming. |
+| **Note** | The helper alone does not prove the fix — a correct `singularize()` sitting unused would have left "LEAVE POLICIE" on screen. `label-call-sites.spec.ts` asserts over the call sites' source text specifically so a correct-but-uncalled helper cannot pass. A declared `singular` (dozens of settings modules already have one, e.g. "Compensation Package", "Field Security Policy") always wins over the derived form; `singularize` is only the floor under labels nobody hand-labelled, which is why "Leave Policies" — undeclared — now resolves through derivation to "Leave Policy". Not verified live against a running tenant; verified from source and by the specs above, which was sufficient to reproduce and disprove the exact reported strings ("LEAVE POLICIE", "New Entitlements", "New Assignments") as pure-logic assertions. |
+| **Fixed** | 2026-08-30 |
+| **Active** | yes |
