@@ -1044,6 +1044,123 @@ describe('AttendanceService', () => {
       }),
     );
   });
+
+  /*
+   * BUG-2005 - attendance is a record of what happened.
+   *
+   * The endpoint enforced its other invariants correctly (a duplicate day is a
+   * 409, a reversed pair of times is a 400) but had no upper bound on the date
+   * at all, so an entry ten months in the future was accepted and stored, and
+   * flowed into the absent and exception calculations, the reports, and
+   * anything downstream consuming attendance as a payroll input.
+   *
+   * These tests derive "today" from the tenant timezone the service resolved
+   * rather than hardcoding a date, so they keep testing the rule instead of
+   * expiring the moment the calendar moves past a literal.
+   */
+  function businessDateKeyIn(timezone: string, offsetDays = 0) {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: timezone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(new Date());
+    const read = (type: string) =>
+      Number(parts.find((part) => part.type === type)?.value);
+    const shifted = new Date(
+      Date.UTC(read('year'), read('month') - 1, read('day') + offsetDays),
+    );
+
+    return shifted.toISOString().slice(0, 10);
+  }
+
+  it('refuses a manual attendance entry dated after today', async () => {
+    await expect(
+      service.createManualEntry(currentUser, {
+        employeeId: 'employee-1',
+        date: businessDateKeyIn('Asia/Riyadh', 1),
+        attendanceMode: AttendanceMode.OFFICE,
+        officeLocationId: 'location-1',
+        checkInTime: '09:00',
+        checkOutTime: '17:00',
+        adjustmentReason: 'Tomorrow should not be recordable',
+      }),
+    ).rejects.toMatchObject({
+      response: expect.objectContaining({
+        code: 'ATTENDANCE_DATE_IN_FUTURE',
+      }),
+    });
+
+    expect(attendanceRepository.createAttendanceEntry).not.toHaveBeenCalled();
+  });
+
+  it('refuses a manual attendance entry dated far in the future', async () => {
+    await expect(
+      service.createManualEntry(currentUser, {
+        employeeId: 'employee-1',
+        date: '2099-06-15',
+        attendanceMode: AttendanceMode.OFFICE,
+        officeLocationId: 'location-1',
+        adjustmentReason: 'A mistyped year is the ordinary case',
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    expect(attendanceRepository.createAttendanceEntry).not.toHaveBeenCalled();
+  });
+
+  it('still accepts an entry dated today in the tenant timezone', async () => {
+    await service.createManualEntry(currentUser, {
+      employeeId: 'employee-1',
+      date: businessDateKeyIn('Asia/Riyadh'),
+      attendanceMode: AttendanceMode.OFFICE,
+      officeLocationId: 'location-1',
+      checkInTime: '09:00',
+      adjustmentReason: 'Today is not the future',
+    });
+
+    expect(attendanceRepository.createAttendanceEntry).toHaveBeenCalled();
+  });
+
+  it('still accepts a back-dated entry', async () => {
+    await service.createManualEntry(currentUser, {
+      employeeId: 'employee-1',
+      date: businessDateKeyIn('Asia/Riyadh', -1),
+      attendanceMode: AttendanceMode.OFFICE,
+      officeLocationId: 'location-1',
+      checkInTime: '09:00',
+      adjustmentReason: 'Correcting yesterday is the whole point of the screen',
+    });
+
+    expect(attendanceRepository.createAttendanceEntry).toHaveBeenCalled();
+  });
+
+  it('refuses moving an existing entry to a future date', async () => {
+    attendanceRepository.findAttendanceEntryById.mockResolvedValueOnce({
+      id: 'attendance-1',
+      employeeId: 'employee-1',
+      date: new Date('2026-06-10T00:00:00.000Z'),
+      attendanceMode: AttendanceMode.OFFICE,
+      officeLocationId: 'location-1',
+      remoteLatitude: null,
+      remoteLongitude: null,
+      checkIn: null,
+      checkOut: null,
+      shiftTemplate: null,
+    });
+
+    await expect(
+      service.updateManualEntry(currentUser, 'attendance-1', {
+        date: '2099-06-15',
+        adjustmentReason: 'Moving it forward is the same defect',
+      }),
+    ).rejects.toMatchObject({
+      response: expect.objectContaining({
+        code: 'ATTENDANCE_DATE_IN_FUTURE',
+      }),
+    });
+
+    expect(attendanceRepository.updateAttendanceEntry).not.toHaveBeenCalled();
+  });
 });
 
 function deviceLocation() {
