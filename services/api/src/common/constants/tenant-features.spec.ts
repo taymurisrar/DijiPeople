@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import { TENANT_FEATURE_DEFINITIONS } from '../../modules/tenant-settings/tenant-settings.catalog';
 import {
   ENTITLEMENT_GATED_MODULES,
+  ENTITLEMENT_UNGATED_FEATURE_KEYS,
   ENTITLEMENT_UNGATED_MODULES,
   TENANT_FEATURE_KEY_LIST,
   isTenantFeatureKey,
@@ -87,6 +88,61 @@ describe('entitlement module map', () => {
 
     for (const key of differentiating) {
       expect(gatedKeys.has(key as never)).toBe(true);
+    }
+  });
+});
+
+/*
+ * The structural guard, and the one that matters most over time.
+ *
+ * A test naming the modules that happen to be gated today goes green while the
+ * next capability ships ungated — which is the defect class this record is:
+ * something built, and nothing reaching it. So the assertion is over the plan
+ * catalog rather than over the gate: every key a plan can withhold must be
+ * accounted for by one register or the other, and a new one belongs to neither
+ * until somebody decides.
+ */
+describe('entitlement coverage of the plan catalog', () => {
+  it('accounts for every feature key a plan can withhold', () => {
+    const gatedKeys = new Set<string>(Object.values(ENTITLEMENT_GATED_MODULES));
+    const exemptKeys = new Set<string>(
+      Object.keys(ENTITLEMENT_UNGATED_FEATURE_KEYS),
+    );
+
+    const unaccounted = TENANT_FEATURE_DEFINITIONS.map(
+      (definition) => definition.key,
+    ).filter((key) => !gatedKeys.has(key) && !exemptKeys.has(key));
+
+    expect(unaccounted).toEqual([]);
+  });
+
+  it('never both gates and exempts the same feature key', () => {
+    const gatedKeys = new Set<string>(Object.values(ENTITLEMENT_GATED_MODULES));
+    const contradictions = Object.keys(ENTITLEMENT_UNGATED_FEATURE_KEYS).filter(
+      (key) => gatedKeys.has(key),
+    );
+
+    expect(contradictions).toEqual([]);
+  });
+
+  it('exempts only keys the catalog actually defines', () => {
+    const catalog = new Set<string>(
+      TENANT_FEATURE_DEFINITIONS.map((definition) => definition.key),
+    );
+    const unknown = Object.keys(ENTITLEMENT_UNGATED_FEATURE_KEYS).filter(
+      (key) => !catalog.has(key),
+    );
+
+    expect(unknown).toEqual([]);
+  });
+
+  it('gives every exemption a stated reason', () => {
+    for (const [key, reason] of Object.entries(
+      ENTITLEMENT_UNGATED_FEATURE_KEYS,
+    )) {
+      expect(typeof reason).toBe('string');
+      expect((reason ?? '').length).toBeGreaterThan(30);
+      expect(key.length).toBeGreaterThan(0);
     }
   });
 });

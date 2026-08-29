@@ -151,9 +151,7 @@ describe('EntitlementGuard', () => {
       const guard = buildGuard(entitlements);
 
       await expect(
-        guard.canActivate(
-          buildContext({ ...tenantUser, roleKeys: [roleKey] }),
-        ),
+        guard.canActivate(buildContext({ ...tenantUser, roleKeys: [roleKey] })),
       ).rejects.toMatchObject({ errorCode: 'TENANT_FEATURE_NOT_ENTITLED' });
     },
   );

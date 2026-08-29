@@ -80,8 +80,10 @@ type CacheEntry = {
 export class TenantEntitlementService {
   private readonly logger = new Logger(TenantEntitlementService.name);
   private readonly cache = new Map<string, CacheEntry>();
-  private modeCache: { mode: EntitlementEnforcementMode; expiresAt: number } | null =
-    null;
+  private modeCache: {
+    mode: EntitlementEnforcementMode;
+    expiresAt: number;
+  } | null = null;
 
   constructor(private readonly prisma: PrismaService) {}
 

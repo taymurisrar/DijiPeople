@@ -1,4 +1,9 @@
-import { CanActivate, ExecutionContext, Injectable, Logger } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  Injectable,
+  Logger,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { REQUIRED_ENTITLEMENTS_KEY } from '../decorators/require-entitlement.decorator';
 import type { TenantFeatureKey } from '../constants/tenant-features';

@@ -66,6 +66,33 @@ export const ENTITLEMENT_GATED_MODULES: Readonly<
 };
 
 /**
+ * Feature keys that no gated module answers for, and why.
+ *
+ * The catalog is the list of capabilities a plan can withhold, so every key in
+ * it is a commercial boundary somebody had to decide about. This is where the
+ * decision "not this one" is written down, and `tenant-features.spec.ts`
+ * asserts the two registers together cover the catalog exactly.
+ *
+ * A capability added to the catalog later therefore fails a test until someone
+ * chooses. It cannot ship silently ungated — which is precisely how the whole
+ * entitlement layer came to gate nothing (BUG-1952).
+ */
+export const ENTITLEMENT_UNGATED_FEATURE_KEYS: Readonly<
+  Partial<Record<TenantFeatureKey, string>>
+> = {
+  [TENANT_FEATURE_KEYS.EMPLOYEES]:
+    'Enabled on every shipped plan, and the substrate every other module reads through.',
+  [TENANT_FEATURE_KEYS.ORGANIZATION]:
+    'Enabled on every shipped plan, and read by everything.',
+  [TENANT_FEATURE_KEYS.DOCUMENTS]:
+    'Cross-cutting: it holds references owned by other modules rather than being bought on its own.',
+  [TENANT_FEATURE_KEYS.NOTIFICATIONS]:
+    'Delivery infrastructure, invoked by modules rather than bought by a tenant.',
+  [TENANT_FEATURE_KEYS.BRANDING]:
+    'A settings surface rather than a route module; enforced where settings resolve.',
+};
+
+/**
  * Modules deliberately left ungated, and why.
  *
  * Recorded rather than omitted, because "this module has no entitlement check"
