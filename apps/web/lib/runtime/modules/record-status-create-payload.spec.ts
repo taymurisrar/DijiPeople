@@ -17,7 +17,7 @@
  */
 import { createStandardModuleDataAdapter } from "./standard-module-data.adapter";
 import * as standardModuleSpecs from "./standard-module-specs";
-import type { StandardModuleRuntimeSpec } from "./standard-module-specs";
+import type { StandardModuleRuntimeSpec } from "./standard-module-runtime";
 
 const specs = Object.entries(standardModuleSpecs).filter(
   (entry): entry is [string, StandardModuleRuntimeSpec] =>

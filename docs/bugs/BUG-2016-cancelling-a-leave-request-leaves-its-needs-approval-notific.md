@@ -169,8 +169,10 @@ say in the plan whether this record is being fixed or the class is.
 
 ## Regression Coverage
 
-None yet. A service test that submits, cancels, and asserts the approver has no
-outstanding action-required notification for that request would fail today.
+REG-331. `services/api/src/modules/notifications/notification-action-resolution.spec.ts`
+for the mechanics and
+`services/api/src/modules/leave/leave-notification-lifecycle.spec.ts` for the
+three transitions that call them. Detail in Resolution.
 
 ## Dependencies
 

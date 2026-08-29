@@ -137,7 +137,11 @@ path; the decision belongs with BUG-1968 and ITEM-0106.
 
 ## Regression Coverage
 
-None yet.
+REG-330. `services/api/src/modules/approvals/approval-matrices.service.spec.ts`
+— four cases, including the negative assertion that the refusal does **not**
+say the user belongs to another tenant, and that the resolution-time
+`findUserById` is no longer called from configuration-time validation. Detail in
+Resolution.
 
 ## Dependencies
 

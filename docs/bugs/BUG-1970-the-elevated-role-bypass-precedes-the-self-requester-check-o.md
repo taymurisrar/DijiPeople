@@ -124,8 +124,10 @@ precedes the elevated-role bypass, matching `attendance.service.ts:1820`.
 
 ## Regression Coverage
 
-None yet, and here the regression test is also the verification: this record
-cannot leave `BLOCKED` until that test exists.
+REG-329. `services/api/src/modules/leave/leave-self-approval.spec.ts` — seven
+cases, and the verification this record was filed without. Mutation-tested by
+restoring the original ordering, which fails five and leaves the two negative
+controls passing. Detail in Resolution.
 
 ## Dependencies
 
