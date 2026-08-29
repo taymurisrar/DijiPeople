@@ -6,9 +6,14 @@ import {
 } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { Prisma, SecurityAccessLevel, SecurityPrivilege } from '@prisma/client';
+import {
+  AUDIT_ACTIONS,
+  AUDIT_ENTITY_TYPES,
+} from '../../common/constants/audit-actions';
 import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
 import { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { AuditService } from '../audit/audit.service';
 import { resolveEffectiveAccessLevel } from '../../common/security/rbac-query-scope';
 import { CreateBusinessUnitDto } from './dto/create-business-unit.dto';
 import { CreateDepartmentDto } from './dto/create-department.dto';
@@ -71,6 +76,12 @@ export class OrganizationService {
   constructor(
     private readonly organizationRepository: OrganizationRepository,
     private readonly prisma: PrismaService,
+    /*
+     * BUG-2044 — no file in this module referenced `AuditService`, so
+     * department and designation writes had no audit path to omit. This is the
+     * dependency that gives them one.
+     */
+    private readonly auditService: AuditService,
   ) {}
 
   findOrganizations(tenantId: string) {
@@ -933,7 +944,7 @@ export class OrganizationService {
       dto.ownerUserId,
     );
     try {
-      return await this.organizationRepository.createDepartment({
+      const department = await this.organizationRepository.createDepartment({
         tenantId: currentUser.tenantId,
         businessUnitId: dto.businessUnitId,
         name: dto.name.trim(),
@@ -947,6 +958,17 @@ export class OrganizationService {
         createdById: currentUser.userId,
         updatedById: currentUser.userId,
       });
+
+      await this.auditService.log({
+        tenantId: currentUser.tenantId,
+        actorUserId: currentUser.userId,
+        action: AUDIT_ACTIONS.DEPARTMENT_CREATED,
+        entityType: AUDIT_ENTITY_TYPES.DEPARTMENT,
+        entityId: department.id,
+        afterSnapshot: department,
+      });
+
+      return department;
     } catch (error) {
       this.handleUniqueError(error, 'Department');
     }
@@ -1035,11 +1057,23 @@ export class OrganizationService {
       throw new NotFoundException('Department was not found for this tenant.');
     }
 
-    return this.findDepartmentForUser(
+    const updated = await this.findDepartmentForUser(
       currentUser,
       id,
       SecurityPrivilege.MANAGE,
     );
+
+    await this.auditService.log({
+      tenantId: currentUser.tenantId,
+      actorUserId: currentUser.userId,
+      action: AUDIT_ACTIONS.DEPARTMENT_UPDATED,
+      entityType: AUDIT_ENTITY_TYPES.DEPARTMENT,
+      entityId: id,
+      beforeSnapshot: existing,
+      afterSnapshot: updated,
+    });
+
+    return updated;
   }
 
   findDesignations(tenantId: string, query: ListMasterDataDto) {
@@ -1072,7 +1106,7 @@ export class OrganizationService {
     try {
       await this.prepareDesignationNameForActiveUse(currentUser.tenantId, name);
 
-      return await this.organizationRepository.createDesignation({
+      const designation = await this.organizationRepository.createDesignation({
         tenantId: currentUser.tenantId,
         name,
         level: employeeLevel
@@ -1084,6 +1118,17 @@ export class OrganizationService {
         createdById: currentUser.userId,
         updatedById: currentUser.userId,
       });
+
+      await this.auditService.log({
+        tenantId: currentUser.tenantId,
+        actorUserId: currentUser.userId,
+        action: AUDIT_ACTIONS.DESIGNATION_CREATED,
+        entityType: AUDIT_ENTITY_TYPES.DESIGNATION,
+        entityId: designation.id,
+        afterSnapshot: designation,
+      });
+
+      return designation;
     } catch (error) {
       this.handleUniqueError(error, 'Designation');
     }
@@ -1110,6 +1155,7 @@ export class OrganizationService {
       );
     }
 
+    const existing = await this.findDesignationById(currentUser.tenantId, id);
     const result = await this.organizationRepository.updateDesignation(
       currentUser.tenantId,
       id,
@@ -1138,7 +1184,19 @@ export class OrganizationService {
       throw new NotFoundException('Designation was not found for this tenant.');
     }
 
-    return this.findDesignationById(currentUser.tenantId, id);
+    const updated = await this.findDesignationById(currentUser.tenantId, id);
+
+    await this.auditService.log({
+      tenantId: currentUser.tenantId,
+      actorUserId: currentUser.userId,
+      action: AUDIT_ACTIONS.DESIGNATION_UPDATED,
+      entityType: AUDIT_ENTITY_TYPES.DESIGNATION,
+      entityId: id,
+      beforeSnapshot: existing,
+      afterSnapshot: updated,
+    });
+
+    return updated;
   }
 
   async deleteDesignation(currentUser: AuthenticatedUser, id: string) {
@@ -1183,7 +1241,26 @@ export class OrganizationService {
       throw new NotFoundException('Designation was not found for this tenant.');
     }
 
-    return this.findDesignationById(currentUser.tenantId, id);
+    const archived = await this.findDesignationById(currentUser.tenantId, id);
+
+    /*
+     * Recorded as a delete rather than an update because that is what the
+     * caller asked for and what the tenant sees, even though the row survives
+     * under an archived name. `deleteDepartment` needs no equivalent: it
+     * delegates to `updateDepartment`, which audits it as the status change it
+     * actually is.
+     */
+    await this.auditService.log({
+      tenantId: currentUser.tenantId,
+      actorUserId: currentUser.userId,
+      action: AUDIT_ACTIONS.DESIGNATION_DELETED,
+      entityType: AUDIT_ENTITY_TYPES.DESIGNATION,
+      entityId: id,
+      beforeSnapshot: currentDesignation,
+      afterSnapshot: archived,
+    });
+
+    return archived;
   }
 
   private async prepareDesignationNameForActiveUse(

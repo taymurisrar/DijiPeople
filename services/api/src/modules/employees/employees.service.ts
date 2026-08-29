@@ -51,6 +51,10 @@ import {
   EmployeeWithRelations,
 } from './employees.repository';
 import { AuditService } from '../audit/audit.service';
+import {
+  AUDIT_ACTIONS,
+  AUDIT_ENTITY_TYPES,
+} from '../../common/constants/audit-actions';
 import { EmployeeAccessService } from './employee-access.service';
 import {
   EmployeeSettingsResolved,
@@ -488,8 +492,6 @@ export class EmployeesService {
       throw new NotFoundException('Employee was not found for this tenant.');
     }
 
-    //const beforeSnapshot = this.mapEmployee(employee);
-
     const managerEmployeeId = dto.reportingManagerEmployeeId ?? undefined;
 
     await this.validateManagerAssignment(
@@ -503,7 +505,34 @@ export class EmployeesService {
       updatedById: actorId,
     });
 
-    return this.findById(tenantId, employeeId);
+    const updated = await this.findById(tenantId, employeeId);
+
+    /*
+     * BUG-2044 — a reporting-line change is one of the two questions an HRM
+     * audit trail exists to answer, and it wrote no row at all. The snapshot is
+     * narrowed to the reporting line deliberately: this operation changes one
+     * field, and a whole-employee snapshot on either side would bury it.
+     *
+     * The `beforeSnapshot` line above this was commented out rather than
+     * written, which is how the gap survived review.
+     */
+    await this.auditService.log({
+      tenantId,
+      actorUserId: actorId,
+      action: AUDIT_ACTIONS.EMPLOYEE_REPORTING_MANAGER_ASSIGNED,
+      entityType: AUDIT_ENTITY_TYPES.EMPLOYEE,
+      entityId: employeeId,
+      beforeSnapshot: {
+        employeeId,
+        managerEmployeeId: employee.managerEmployeeId ?? null,
+      },
+      afterSnapshot: {
+        employeeId,
+        managerEmployeeId: dto.reportingManagerEmployeeId ?? null,
+      },
+    });
+
+    return updated;
   }
 
   async getHierarchy(tenantId: string, employeeId: string) {
@@ -1039,7 +1068,29 @@ export class EmployeesService {
       new Date(createDto.hireDate),
     );
 
-    return this.findById(tenantId, createdEmployeeId);
+    const createdEmployee = await this.findById(tenantId, createdEmployeeId);
+
+    /*
+     * BUG-2044 — "who added this person to the system" had no answer. This
+     * service audited update, archive, owner assignment, import and access
+     * provisioning; creation was the one lifecycle event missing.
+     *
+     * Logged after the record settles rather than inside the transaction, so
+     * the snapshot reflects what was actually created — provisioned access and
+     * default benefits included. Sensitive fields are redacted centrally in
+     * `AuditService.log()`; the identifiers this snapshot would otherwise carry
+     * are `cnic` and `taxIdentifier`.
+     */
+    await this.auditService.log({
+      tenantId,
+      actorUserId: currentUser.userId,
+      action: AUDIT_ACTIONS.EMPLOYEE_CREATED,
+      entityType: AUDIT_ENTITY_TYPES.EMPLOYEE,
+      entityId: createdEmployeeId,
+      afterSnapshot: createdEmployee,
+    });
+
+    return createdEmployee;
   }
 
   /**

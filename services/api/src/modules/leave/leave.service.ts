@@ -27,6 +27,10 @@ import {
   type CsvFile,
 } from '../../common/utils/csv.util';
 import { hasElevatedTenantRole } from '../../common/security/elevated-tenant-roles';
+import {
+  AUDIT_ACTIONS,
+  AUDIT_ENTITY_TYPES,
+} from '../../common/constants/audit-actions';
 import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
 import { buildScopedAccessWhere } from '../../common/security/rbac-query-scope';
 import { AuditService } from '../audit/audit.service';
@@ -189,7 +193,7 @@ export class LeaveService {
   ) {
     this.validateLeaveType(dto);
     try {
-      return await this.leaveRepository.createLeaveType({
+      const leaveType = await this.leaveRepository.createLeaveType({
         tenantId: currentUser.tenantId,
         name: dto.name.trim(),
         code: normalizeCode(dto.code ?? dto.name),
@@ -502,10 +506,27 @@ export class LeaveService {
       return created;
     });
 
+    const mapped = this.mapLeaveRequest(leaveRequest, currentUser);
+
+    /*
+     * BUG-2044 — only the decision was audited, so the log could show a leave
+     * request being approved with no record of it ever having been asked for.
+     * Written after the transaction commits, matching the decision path: an
+     * audit row for a request that rolled back would be worse than none.
+     */
+    await this.auditService.log({
+      tenantId: currentUser.tenantId,
+      actorUserId: currentUser.userId,
+      action: AUDIT_ACTIONS.LEAVE_REQUEST_SUBMITTED,
+      entityType: AUDIT_ENTITY_TYPES.LEAVE_REQUEST,
+      entityId: leaveRequest.id,
+      afterSnapshot: mapped,
+    });
+
     await this.notifyPendingApprovers(leaveRequest, currentUser);
     await this.syncGenericLeaveApproval(leaveRequest, currentUser, 'SUBMITTED');
 
-    return this.mapLeaveRequest(leaveRequest, currentUser);
+    return mapped;
   }
 
   private async resolveLeavePolicyRuleForRequest(
@@ -933,6 +954,16 @@ export class LeaveService {
       currentUser.tenantId,
       leaveRequestId,
     );
+
+    await this.auditService.log({
+      tenantId: currentUser.tenantId,
+      actorUserId: currentUser.userId,
+      action: AUDIT_ACTIONS.LEAVE_REQUEST_CANCELLED,
+      entityType: AUDIT_ENTITY_TYPES.LEAVE_REQUEST,
+      entityId: leaveRequestId,
+      beforeSnapshot: this.mapLeaveRequest(leaveRequest, currentUser),
+      afterSnapshot: this.mapLeaveRequest(updated, currentUser),
+    });
 
     return this.mapLeaveRequest(updated, currentUser);
   }

@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { AuditRepository } from './audit.repository';
+import { redactAuditSnapshot } from './audit-snapshot';
 import { AuditLogQueryDto } from './dto/audit-log-query.dto';
 
 @Injectable()
@@ -239,7 +240,16 @@ function normalizeSnapshot(value: unknown): Prisma.InputJsonValue | undefined {
     return undefined;
   }
 
-  return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
+  /*
+   * Redaction happens here rather than at the call site, because the call site
+   * is what gets forgotten. The existing `EMPLOYEE_UPDATED` writer passes
+   * `mapEmployee()` straight through, which carries `cnic` and `taxIdentifier`;
+   * the serialised form is what reaches the database, so this is the last point
+   * at which a snapshot can still be cleaned.
+   */
+  return redactAuditSnapshot(
+    JSON.parse(JSON.stringify(value)),
+  ) as Prisma.InputJsonValue;
 }
 
 function mergeAuditScope(
