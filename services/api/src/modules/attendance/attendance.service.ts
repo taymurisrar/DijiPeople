@@ -2921,7 +2921,13 @@ export class AttendanceService {
      * constants, so a tenant that had configured a 10-minute grace in Settings
      * silently dropped to whatever the constant said (BUG-1980). Falling back
      * to the currently *effective* value instead means the row starts out
-     * saying exactly what the tenant already had.
+     * saying exactly what the tenant already had. That fallback originally
+     * missed `lateCheckInGraceMinutes`, `lateCheckOutGraceMinutes` and
+     * `requireOfficeLocationForOfficeMode` - the three fields fed by the
+     * attendance settings category rather than by a policy-only constant -
+     * so those three still fell to the column default of 0/0/true on first
+     * save even after the rest of this fix landed; BUG-1980's follow-up
+     * closes that gap.
      *
      * This does not settle the precedence question - the policy row still wins
      * over later settings edits, which is what EXECPLAN-0027 addresses - but it
@@ -2931,10 +2937,13 @@ export class AttendanceService {
       currentUser.tenantId,
       {
         tenantId: currentUser.tenantId,
-        lateCheckInGraceMinutes: dto.lateCheckInGraceMinutes,
-        lateCheckOutGraceMinutes: dto.lateCheckOutGraceMinutes,
+        lateCheckInGraceMinutes:
+          dto.lateCheckInGraceMinutes ?? effective.lateCheckInGraceMinutes,
+        lateCheckOutGraceMinutes:
+          dto.lateCheckOutGraceMinutes ?? effective.lateCheckOutGraceMinutes,
         requireOfficeLocationForOfficeMode:
-          dto.requireOfficeLocationForOfficeMode,
+          dto.requireOfficeLocationForOfficeMode ??
+          effective.requireOfficeLocationForOfficeMode,
         allowManualAdjustments: dto.allowManualAdjustments,
         preventDuplicateAttendance: dto.preventDuplicateAttendance,
         allowCheckInOnApprovedLeave: dto.allowCheckInOnApprovedLeave,
