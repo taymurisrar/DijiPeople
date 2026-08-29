@@ -33,6 +33,7 @@ import {
 } from '@nestjs/common';
 import { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { AuditService } from '../audit/audit.service';
+import { AUDIT_ACTIONS } from '../../common/constants/audit-actions';
 import {
   ENTITY_KEYS,
   ROLE_KEYS,
@@ -697,7 +698,7 @@ export class AttendanceService {
     await this.auditService.log({
       tenantId: currentUser.tenantId,
       actorUserId: currentUser.userId,
-      action: 'attendance.deleted',
+      action: AUDIT_ACTIONS.ATTENDANCE_DELETED,
       entityType: 'AttendanceEntry',
       entityId: entry.id,
       beforeSnapshot: {
@@ -1237,7 +1238,7 @@ export class AttendanceService {
     await this.auditService.log({
       tenantId: currentUser.tenantId,
       actorUserId: currentUser.userId,
-      action: 'attendance.manual_created',
+      action: AUDIT_ACTIONS.ATTENDANCE_MANUAL_CREATED,
       entityType: 'AttendanceEntry',
       entityId: entry.id,
       afterSnapshot: {
@@ -1442,7 +1443,7 @@ export class AttendanceService {
     await this.auditService.log({
       tenantId: currentUser.tenantId,
       actorUserId: currentUser.userId,
-      action: 'attendance.manual_updated',
+      action: AUDIT_ACTIONS.ATTENDANCE_MANUAL_UPDATED,
       entityType: 'AttendanceEntry',
       entityId: updated.id,
       beforeSnapshot: {

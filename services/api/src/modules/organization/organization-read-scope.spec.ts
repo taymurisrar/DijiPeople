@@ -54,6 +54,7 @@ describe('OrganizationService hierarchy read scope', () => {
       findDepartments: jest.fn(async () => departments),
     } as never,
     {} as never,
+    { log: jest.fn() } as never,
   );
 
   it('limits an organization-scoped reader to its organization', async () => {

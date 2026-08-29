@@ -41,7 +41,7 @@ describe('AuditService record Timeline', () => {
       items: [
         {
           id: 'audit-2',
-          actionLabel: 'TIMESHEET APPROVED',
+          actionLabel: 'Timesheet Approved',
           actionType: 'TIMESHEET_APPROVED',
           actorDisplayName: 'Taimur Israr',
           occurredAt: '2026-06-10T12:00:00.000Z',
@@ -53,7 +53,7 @@ describe('AuditService record Timeline', () => {
         },
         {
           id: 'audit-1',
-          actionLabel: 'TIMESHEET SUBMITTED',
+          actionLabel: 'Timesheet Submitted',
           actionType: 'TIMESHEET_SUBMITTED',
           actorDisplayName: 'System',
           occurredAt: '2026-06-10T10:00:00.000Z',

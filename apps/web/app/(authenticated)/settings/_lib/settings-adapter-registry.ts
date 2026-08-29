@@ -50,6 +50,15 @@ export type SettingsRuntimeAdapter = {
   spec: StandardModuleRuntimeSpec;
   serverApiPath: string;
   collectionKey?: string;
+  /*
+   * BUG-2043 - the settings list may only ask the API for one page when the API
+   * accepts `page`/`pageSize` and answers with a total. The global
+   * ValidationPipe runs with `forbidNonWhitelisted`, so sending those
+   * parameters to an endpoint whose query DTO does not declare them is a 400,
+   * not a harmless extra. The flag is therefore opt-in per adapter and must
+   * only be set once the backing endpoint has been read.
+   */
+  supportsServerPagination?: boolean;
   initialValues: Readonly<Record<string, unknown>>;
   lookupSources: Readonly<Record<string, string>>;
   choiceLists: readonly string[];
@@ -284,7 +293,12 @@ function workSiteFormSections(): readonly FormSectionMetadata[] {
       tabKey: WORK_SITE_TAB_KEYS.general,
       columns: 2,
       columnSpan: 2,
-      fields: [{ key: "name", required: true }, "code", "description", "isActive"],
+      fields: [
+        { key: "name", required: true },
+        "code",
+        "description",
+        "isActive",
+      ],
     }),
     formSection({
       id: WORK_SITE_SECTION_IDS.address,
@@ -377,6 +391,7 @@ function adapter(input: {
   permissions?: StandardModuleRuntimeSpec["permissions"];
   initialValues?: Readonly<Record<string, unknown>>;
   collectionKey?: string;
+  supportsServerPagination?: boolean;
   mode?: SettingsAdapterMode;
   softDelete?: boolean;
   timelineApiPath?: string;
@@ -467,6 +482,7 @@ function adapter(input: {
     spec,
     serverApiPath: input.serverApiPath,
     collectionKey: input.collectionKey,
+    supportsServerPagination: input.supportsServerPagination ?? false,
     initialValues: input.initialValues ?? {},
     lookupSources,
     choiceLists: input.fields
@@ -2276,11 +2292,20 @@ const adapters: readonly SettingsRuntimeAdapter[] = [
        * currently resolves to. The specs stay here so validation, views,
        * import/export and the API payload continue to know these columns.
        */
-      field("maximumAccuracyMeters", "Location Accuracy Requirement (m)", "number"),
+      field(
+        "maximumAccuracyMeters",
+        "Location Accuracy Requirement (m)",
+        "number",
+      ),
       field("attendanceEnabled", "Attendance Enabled", "boolean"),
-      field("allowedAttendanceMethods", "Allowed Attendance Methods", "multi-optionset", {
-        options: choices("DEVICE", "WEB", "MOBILE", "MANUAL"),
-      }),
+      field(
+        "allowedAttendanceMethods",
+        "Allowed Attendance Methods",
+        "multi-optionset",
+        {
+          options: choices("DEVICE", "WEB", "MOBILE", "MANUAL"),
+        },
+      ),
       field("webAttendancePolicy", "Web Attendance", "optionset", {
         options: choices("ALLOWED", "DISALLOWED", "FALLBACK_ONLY"),
       }),
@@ -6572,6 +6597,7 @@ const adapters: readonly SettingsRuntimeAdapter[] = [
     singular: "Delivery Log",
     serverApiPath: "/notifications/email-delivery-logs",
     collectionKey: "items",
+    supportsServerPagination: true,
     mode: "read-only",
     primaryName: "subject",
     fields: [
@@ -6596,28 +6622,50 @@ const adapters: readonly SettingsRuntimeAdapter[] = [
     singular: "Audit Event",
     serverApiPath: "/audit-logs",
     collectionKey: "items",
+    supportsServerPagination: true,
     mode: "read-only",
     primaryName: "action",
+    /*
+     * BUG-2046 - this column set no longer offers Result, Failure Reason, IP
+     * Address, App Client or Session ID.
+     *
+     * `AuditLog` has no such columns. The API projects all five by scraping
+     * `afterSnapshot` for well-known keys, a convention only the auth module
+     * follows, so they were blank on every non-authentication row - which reads
+     * as data that went missing rather than data never captured. They are kept
+     * on the Login History adapter below, where every row is an auth event and
+     * every one of them is populated.
+     *
+     * The alternative was promoting `result` to a real column: an
+     * expand/backfill/contract migration on the largest table in the product,
+     * backfilling null for every historical row, and still empty for every
+     * non-auth writer, because only an authentication event has a result.
+     *
+     * `actionLabel` replaces the raw `action` as the primary column so both
+     * naming conventions read the same. `action` stays available as a field, as
+     * stored, because that is what an export and an alert are keyed on.
+     */
     fields: [
-      field("action", "Action", "string", {
+      field("actionLabel", "Action", "string", {
         isPrimaryName: true,
         isReadOnly: true,
       }),
+      field("action", "Action Code", "string", { isReadOnly: true }),
       field("entityType", "Record Type", "string", { isReadOnly: true }),
       field("entityId", "Record ID", "string", { isReadOnly: true }),
       field("userDisplayName", "User", "string", { isReadOnly: true }),
       field("email", "Email", "email", { isReadOnly: true }),
-      field("result", "Result", "string", { isReadOnly: true }),
-      field("failureReason", "Failure Reason", "string", {
-        isReadOnly: true,
-      }),
-      field("ipAddress", "IP Address", "string", { isReadOnly: true }),
-      field("appClientId", "App Client", "string", { isReadOnly: true }),
       field("sourceModule", "Source Module", "string", { isReadOnly: true }),
-      field("sessionId", "Session ID", "string", { isReadOnly: true }),
       field("requestId", "Request ID", "string", { isReadOnly: true }),
       field("traceId", "Trace ID", "string", { isReadOnly: true }),
       field("createdAt", "Occurred At", "datetime", { isReadOnly: true }),
+    ],
+    columns: [
+      "actionLabel",
+      "entityType",
+      "userDisplayName",
+      "sourceModule",
+      "createdAt",
     ],
     formSections: [
       formSection({
@@ -6626,8 +6674,8 @@ const adapters: readonly SettingsRuntimeAdapter[] = [
         order: 10,
         columns: 2,
         fields: [
+          "actionLabel",
           "action",
-          "result",
           "userDisplayName",
           "email",
           "createdAt",
@@ -6640,13 +6688,6 @@ const adapters: readonly SettingsRuntimeAdapter[] = [
         order: 20,
         columns: 2,
         fields: ["entityType", "entityId", "requestId", "traceId"],
-      }),
-      formSection({
-        id: "audit-event-client",
-        label: "Client",
-        order: 30,
-        columns: 2,
-        fields: ["ipAddress", "appClientId", "sessionId", "failureReason"],
       }),
     ],
     permissions: { read: "audit.read" },
@@ -6891,6 +6932,7 @@ const adapters: readonly SettingsRuntimeAdapter[] = [
     serverApiPath: "/audit-logs?entityType=AUTH_LOGIN",
     clientApiPath: "/api/audit-logs?entityType=AUTH_LOGIN",
     collectionKey: "items",
+    supportsServerPagination: true,
     mode: "read-only",
     primaryName: "userDisplayName",
     fields: [
@@ -6978,6 +7020,7 @@ const adapters: readonly SettingsRuntimeAdapter[] = [
     label: "Data Access History",
     serverApiPath: "/audit-logs?entityType=DATA_ACCESS",
     collectionKey: "items",
+    supportsServerPagination: true,
     mode: "read-only",
     primaryName: "action",
     fields: [
@@ -7256,6 +7299,98 @@ export function readSettingsRecords(
         .map((record) => normalizeSettingsRecord(record, adapter));
   }
   return [];
+}
+
+/*
+ * Builds the API path a settings list fetches.
+ *
+ * Lives here rather than in the page component so it can be tested. BUG-2043
+ * was a wrong query string, and a wrong query string is exactly the kind of
+ * defect `tsc` cannot see.
+ */
+export function settingsListApiPath(
+  adapter: SettingsRuntimeAdapter,
+  requestedPage?: { readonly page: number; readonly pageSize: number },
+) {
+  const wantsActiveOnly = shouldDefaultToActiveRecords(adapter);
+  const wantsPagination = Boolean(
+    requestedPage && adapter.supportsServerPagination,
+  );
+  if (!wantsActiveOnly && !wantsPagination) return adapter.serverApiPath;
+
+  const [path, query = ""] = adapter.serverApiPath.split("?", 2);
+  const params = new URLSearchParams(query);
+
+  if (wantsActiveOnly) {
+    if (!params.has("isActive") && !params.has("includeInactive")) {
+      params.set("isActive", "true");
+    }
+
+    params.delete("includeInactive");
+  }
+
+  if (requestedPage && wantsPagination) {
+    params.set("page", String(requestedPage.page));
+    /*
+     * The audit and delivery-log query DTOs both cap `pageSize` at 100, and an
+     * over-cap value is a 400 rather than a clamp. The table only offers
+     * 10/25/50/100, but the value arrives from the URL and a hand-typed one
+     * must not take the screen down.
+     */
+    params.set("pageSize", String(Math.min(requestedPage.pageSize, 100)));
+  }
+
+  const nextQuery = params.toString();
+  return nextQuery ? `${path}?${nextQuery}` : path;
+}
+
+function shouldDefaultToActiveRecords(adapter: SettingsRuntimeAdapter) {
+  return (
+    adapter.softDelete &&
+    adapter.spec.fields.some((field) => field.logicalName === "isActive")
+  );
+}
+
+/*
+ * BUG-2043 - reads the server's pagination envelope off a list response.
+ *
+ * Two shapes are in use and both are answered here: the audit module nests the
+ * counts under `meta`, the notifications module returns them flat beside
+ * `items`. A response carrying neither returns null, and the caller then keeps
+ * client pagination - which is the honest mode there, because the whole
+ * collection really was loaded.
+ */
+export function readSettingsListPagination(value: unknown): {
+  readonly page: number;
+  readonly pageSize: number;
+  readonly total: number;
+  readonly totalPages: number;
+} | null {
+  if (!isRecord(value)) return null;
+  const envelope = isRecord(value.meta) ? value.meta : value;
+  const total = envelope.total;
+  if (typeof total !== "number" || !Number.isFinite(total) || total < 0) {
+    return null;
+  }
+
+  const page = positiveIntegerOr(envelope.page, 1);
+  const pageSize = positiveIntegerOr(envelope.pageSize, 1);
+
+  return {
+    page,
+    pageSize,
+    total,
+    totalPages: positiveIntegerOr(
+      envelope.totalPages,
+      Math.max(1, Math.ceil(total / pageSize)),
+    ),
+  };
+}
+
+function positiveIntegerOr(value: unknown, fallback: number) {
+  return typeof value === "number" && Number.isInteger(value) && value > 0
+    ? value
+    : fallback;
 }
 
 export function readSettingsRecord(

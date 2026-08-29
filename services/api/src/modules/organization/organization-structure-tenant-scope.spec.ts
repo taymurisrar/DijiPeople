@@ -82,6 +82,7 @@ function createService(overrides: Partial<RepositoryStub> = {}) {
   const service = new OrganizationService(
     organizationRepository as never,
     prisma as never,
+    { log: jest.fn() } as never,
   );
 
   return { service, organizationRepository, prisma };
