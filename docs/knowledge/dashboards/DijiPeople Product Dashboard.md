@@ -72,9 +72,7 @@ Questions where the engineering is understood and the **product answer**
 - [[BUG-1979-seven-attendance-settings-are-overwritten-on-write-and-the-a|BUG-1979]] — **Seven attendance settings are overwritten on write and the admin is never told** (MEDIUM)
 - [[BUG-1980-one-saved-attendance-policy-permanently-overrides-the-attend|BUG-1980]] — **One saved attendance policy permanently overrides the attendance settings category** (MEDIUM)
 - [[BUG-1981-resolvepolicy-hardcodes-seven-location-values-and-inverts-tw|BUG-1981]] — **resolvePolicy hardcodes seven location values and inverts two AttendancePolicy column defaults** (MEDIUM)
-- [[BUG-2045-timesheet-background-job-completions-make-up-71-percent-of-t|BUG-2045]] — **Timesheet background-job completions make up 71 percent of the tenant audit trail** (MEDIUM)
 - [[ITEM-0106-an-employee-cannot-use-self-service-until-their-manager-acti|ITEM-0106]] — **An employee cannot use self-service until their manager activates their own account** (MEDIUM)
-- [[ITEM-0113-the-seeded-leave-approval-chain-cannot-route-on-a-newly-prov|ITEM-0113]] — **The seeded leave approval chain cannot route on a newly provisioned tenant, and the Approval Matrices screen gives no warning** (MEDIUM)
 - [[ITEM-0108-decide-whether-the-roughly-one-hour-session-lifetime-is-idle|ITEM-0108]] — **Decide whether the roughly one-hour session lifetime is idle or absolute** (LOW)
 - [[BUG-2007-projects-and-customers-can-be-created-but-never-deleted|BUG-2007]] — **Projects and customers can be created but never deleted** (LOW)
 

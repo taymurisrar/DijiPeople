@@ -222,12 +222,23 @@ this, and the naive implementation passes the other five.
 
 **Two things deliberately not done**, both flagged rather than assumed:
 
-- **No backfill.** Existing tenants keep `totalAllocated = 0` until their next
-  assignment write. A backfill rewrites balances across live tenants — including
-  the demo tenant, deliberately configured around this bug — and that is a data
-  migration belonging to a `RELEASE` task with its own rollback section, not
-  folded into a defect fix. `reconcileTenant` is written so the backfill is later
-  a loop over tenants calling it. **This is a question for the repository owner.**
+- ~~**No backfill.**~~ **Superseded 2026-08-29.** The question was put to the
+  repository owner, who chose to backfill. `npm --workspace api run
+  backfill:leave-entitlement` reconciles every tenant, with `--dry-run` and
+  `--tenant=slug`. It is idempotent because `reconcileTenant` is.
+
+  Verified against a throwaway database rather than by inspection: migrations
+  applied, a fixture built with the pre-fix state — a balance allocated 0 with 3
+  days already taken — then dry run, real run, and a second real run. The row
+  went to `totalAllocated 20, totalUsed 3, totalRemaining 17` and was byte-identical
+  after the second run. The database was dropped afterwards; the populated
+  development database was never touched.
+
+  **It has not run against production and cannot yet**, which is a fact about
+  ordering rather than a hedge: the script reuses `LeaveEntitlementService`, so
+  the code has to ship before the backfill can execute. It runs as part of the
+  release, and `--dry-run` should be read first — the demo tenant in particular
+  was deliberately configured around this bug.
 - **No leave-year handling.** Nothing resets or carries a balance forward at a
   year boundary, and allocating a full annual entitlement up front makes that
   question due rather than optional. It was not in scope here and is recorded in

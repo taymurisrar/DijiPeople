@@ -2,7 +2,7 @@
 ID: BUG-2045
 aliases: [BUG-2045]
 Title: Timesheet background-job completions make up 71 percent of the tenant audit trail
-Status: PRODUCT_DECISION
+Status: FIXED
 Severity: MEDIUM
 Priority: P2
 Type: BUG
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-29
 DetectedInSha: eb457d9d
 AffectedModules: [services/api/src/modules/timesheets, services/api/src/modules/audit, services/api/src/modules/tenant-settings]
 OwnerAgent: architect
-ArchitectDisposition: PRODUCT_DECISION
+ArchitectDisposition: FIX_NOW
 QAReport: 
-RegressionId: 
+RegressionId: REG-307
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-29
 UpdatedAt: 2026-08-29
-ResolvedAt:
+ResolvedAt: 2026-08-29
 ---
 
 # BUG-2045 — Timesheet background-job completions make up 71 percent of the tenant audit trail
@@ -164,11 +164,44 @@ the four unread `timesheets.audit*` toggles are counted.
 
 ## Resolution
 
-Open — awaiting the product decision described above. No fix has been written.
+Fixed on `agent/web-shell-accessibility`.
+
+**The decision**, taken by the repository owner on 2026-08-29: wire the existing
+`timesheets.auditBackgroundJobs` toggle and default it **off**. The audit log is
+for actor decisions; a tenant that wants the machine events can ask for them.
+That is a deliberate behaviour change for existing tenants on upgrade rather than
+an accident of the default, and it is the reason the choice was put rather than
+assumed.
+
+`TimesheetJobsService` now reads the setting before writing the completion audit
+row. The reader fails closed: a settings lookup that throws logs a warning and
+skips the audit row rather than losing a background job that completed
+successfully.
+
+**The default here is `false` while the catalog still declares `true`**, and that
+is not an inconsistency to tidy away. The catalog value is what an unconfigured
+tenant is *shown*; changing it is a settings-catalog migration with its own
+consequences. Until that lands, the reader treats "not explicitly enabled" as
+off, which is the decided behaviour. The code says so at the point it matters.
+
+**Not fixed, and the more interesting half.** Three sibling toggles in the same
+category are also read by nothing: `auditEntryChanges`, `auditPolicyResolution`
+and `auditExports`. They render on screen exactly as this one did. Only
+`auditBackgroundJobs` was in scope for this record; the other three are recorded
+in ITEM-0114 rather than silently left.
+
 
 ## QA Retest
 
-Awaiting a decision and a fix — nothing to retest yet.
+Retested by the regression suite: five assertions in `timesheet-job-audit.spec.ts`
+pass, covering on, off, unset and a settings-read failure, plus that the read is
+scoped to the calling tenant.
+
+**Not retested live.** The audit-row counts in this record came from a production
+tenant and have not been re-measured; what is established is that the toggle now
+governs the write. Re-measuring after this ships is the honest confirmation, and
+it needs the release.
+
 
 ## History
 
@@ -181,5 +214,6 @@ Awaiting a decision and a fix — nothing to retest yet.
 ## Related
 
 - Modules — [[audit-and-events]], [[settings]]
+- Regression — REG-307 (see the regression register)
 
 <!-- GRAPH:END -->

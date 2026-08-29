@@ -169,7 +169,7 @@ built; it is the second half of [[ITEM-0113]].
 
 ## Related
 
-- Scenarios — [[QA-RUNTIME-017]]
+- Scenarios — [[QA-RUNTIME-017]], [[QA-RUNTIME-022]]
 - Module — [[approvals]]
 - Bugs — [[BUG-1968]], [[BUG-2015]], [[BUG-1970]], [[BUG-1969]]
 - Regressions — REG-303, REG-304 (see the regression register)

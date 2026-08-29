@@ -6,12 +6,12 @@ One evergreen plan per product area: scope, risks, the cases that must always
 be covered, and the declared coverage per dimension. QA loads the plan for
 every area a change touches **before** designing anything new.
 
-**Plans: 23** · scenarios across them: 248
+**Plans: 23** · scenarios across them: 250
 
 | Plan | Area | Risk | Status | Scenarios | Related bugs | Verified against |
 |---|---|---|---|---|---|---|
 | [PLAN-008](../../../docs/qa/test-plans/PLAN-008-agent-desktop.md) | agent-desktop | HIGH | CURRENT | 7 | BUG-0033, BUG-0034, BUG-0035, BUG-0036 | `287612d` |
-| [PLAN-022](../../../docs/qa/test-plans/PLAN-022-approvals.md) | approvals | HIGH | CURRENT | 1 | BUG-1968, BUG-2015, BUG-1970, BUG-1969 | `a86362cf` |
+| [PLAN-022](../../../docs/qa/test-plans/PLAN-022-approvals.md) | approvals | HIGH | CURRENT | 2 | BUG-1968, BUG-2015, BUG-1970, BUG-1969 | `a86362cf` |
 | [PLAN-009](../../../docs/qa/test-plans/PLAN-009-attendance.md) | attendance | CRITICAL | CURRENT | 8 | BUG-0002, BUG-0047 | `287612d` |
 | [PLAN-001](../../../docs/qa/test-plans/PLAN-001-authentication.md) | authentication | CRITICAL | CURRENT | 6 | BUG-0008, BUG-0009, BUG-0010, BUG-0627 | `0c61b7e` |
 | [PLAN-002](../../../docs/qa/test-plans/PLAN-002-authorization.md) | authorization | CRITICAL | CURRENT | 19 | BUG-0003, BUG-0004, BUG-0006, BUG-0007, BUG-0047, BUG-0071, BUG-0072 | `287612d` |
@@ -28,7 +28,7 @@ every area a change touches **before** designing anything new.
 | [PLAN-019](../../../docs/qa/test-plans/PLAN-019-platform-admin.md) | platform-admin | HIGH | CURRENT | 55 | BUG-0073, BUG-0074, BUG-1419, BUG-1420, BUG-1421, BUG-1422, BUG-1423, BUG-1424, BUG-1425 | `4290c03` |
 | [PLAN-011](../../../docs/qa/test-plans/PLAN-011-runtime-modules.md) | runtime-modules | HIGH | CURRENT | 18 | BUG-0019, BUG-0020, BUG-0044 | `287612d` |
 | [PLAN-016](../../../docs/qa/test-plans/PLAN-016-seat-billing.md) | seat-billing | CRITICAL | CURRENT | 4 | — | `39bd665` |
-| [PLAN-021](../../../docs/qa/test-plans/PLAN-021-settings.md) | settings | HIGH | CURRENT | 2 | BUG-0668, BUG-0669 | `d5d9ce7` |
+| [PLAN-021](../../../docs/qa/test-plans/PLAN-021-settings.md) | settings | HIGH | CURRENT | 3 | BUG-0668, BUG-0669 | `d5d9ce7` |
 | [PLAN-018](../../../docs/qa/test-plans/PLAN-018-subscription-changes.md) | subscription-changes | CRITICAL | CURRENT | 1 | — | `ce9bb56` |
 | [PLAN-017](../../../docs/qa/test-plans/PLAN-017-subscription-orders.md) | subscription-orders | CRITICAL | CURRENT | 4 | — | `2051133` |
 | [PLAN-003](../../../docs/qa/test-plans/PLAN-003-tenant-isolation.md) | tenant-isolation | CRITICAL | CURRENT | 8 | BUG-0005 | `0c61b7e` |

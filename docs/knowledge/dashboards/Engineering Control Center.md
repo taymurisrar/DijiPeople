@@ -17,7 +17,7 @@
 | Open CRITICAL | **0** |
 | Open HIGH | 19 |
 | Awaiting Architect triage | 0 |
-| Owner decisions pending | 8 |
+| Owner decisions pending | 6 |
 | QA coverage gaps | 120 |
 | Scenarios blocked by infrastructure | 0 |
 
@@ -30,8 +30,8 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 64 |
-| No next action | 64 |
+| No acceptance criteria | 66 |
+| No next action | 66 |
 | Aging — 7d / 30d / 90d | 17 / 0 / 0 |
 | Architecture and technical debt | 7 |
 | Security gaps | 4 |
@@ -110,9 +110,7 @@ Questions where the engineering is understood and the **product answer is**
 - [[BUG-1979-seven-attendance-settings-are-overwritten-on-write-and-the-a|BUG-1979]] — **Seven attendance settings are overwritten on write and the admin is never told**
 - [[BUG-1980-one-saved-attendance-policy-permanently-overrides-the-attend|BUG-1980]] — **One saved attendance policy permanently overrides the attendance settings category**
 - [[BUG-1981-resolvepolicy-hardcodes-seven-location-values-and-inverts-tw|BUG-1981]] — **resolvePolicy hardcodes seven location values and inverts two AttendancePolicy column defaults**
-- [[BUG-2045-timesheet-background-job-completions-make-up-71-percent-of-t|BUG-2045]] — **Timesheet background-job completions make up 71 percent of the tenant audit trail**
 - [[ITEM-0106-an-employee-cannot-use-self-service-until-their-manager-acti|ITEM-0106]] — **An employee cannot use self-service until their manager activates their own account**
-- [[ITEM-0113-the-seeded-leave-approval-chain-cannot-route-on-a-newly-prov|ITEM-0113]] — **The seeded leave approval chain cannot route on a newly provisioned tenant, and the Approval Matrices screen gives no warning**
 - [[ITEM-0108-decide-whether-the-roughly-one-hour-session-lifetime-is-idle|ITEM-0108]] — **Decide whether the roughly one-hour session lifetime is idle or absolute**
 - [[BUG-2007-projects-and-customers-can-be-created-but-never-deleted|BUG-2007]] — **Projects and customers can be created but never deleted**
 
@@ -248,10 +246,10 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 65 |
+| Open total | 67 |
 | Blocked | 2 |
 | Deferred | 29 |
-| Awaiting a product decision | 8 |
+| Awaiting a product decision | 6 |
 | Awaiting Architect triage | 0 |
 
 Every ordinary record carries a disposition.

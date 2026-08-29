@@ -3,13 +3,13 @@ ID: ITEM-0113
 aliases: [ITEM-0113]
 Title: The seeded leave approval chain cannot route on a newly provisioned tenant, and the Approval Matrices screen gives no warning
 Type: PRODUCT_DECISION
-Status: PRODUCT_DECISION
+Status: DONE
 Priority: P2
 Severity: MEDIUM
 AffectedModules: [services/api/prisma, services/api/src/modules/approvals, apps/web]
 Source: ARCHITECT
 OwnerAgent: architect
-ArchitectDisposition: PRODUCT_DECISION
+ArchitectDisposition: DONE
 CreatedAt: 2026-08-29
 UpdatedAt: 2026-08-29
 RelatedBug: BUG-1968
@@ -110,6 +110,41 @@ employee is blocked until their manager activates their own account) are the
 onboarding consequences of the same resolution policy and should be decided in
 the same pass. [[BUG-1966]] is why the employee currently sees nothing at all
 when the refusal fires through the UI.
+
+## Resolution
+
+Decided and done on 2026-08-29. The repository owner chose **option 1 — seed a
+chain a new tenant can satisfy** — keeping the line-manager chain as a template.
+
+The seeded leave and timesheet chains now route sequence 1 to `ROLE(system-admin)`,
+the one role `provisionTenantForCustomer` guarantees: it assigns it to the tenant
+owner and throws if it cannot be provisioned. The line-manager step and the
+`ROLE(hr)` step are still seeded, now **inactive**, so an administrator sees the
+intended shape and switches it on once reporting lines and the HR role exist,
+rather than facing a blank Approval Matrices screen.
+
+**Satisfiable is not satisfied.** Provisioning creates the owner with status
+`INVITED` and `findActiveUsersByRoleId` requires `ACTIVE`, so the chain begins
+routing when the owner accepts their invitation and signs in — not the instant
+the tenant exists. That is a genuine improvement rather than a rename: signing in
+is a precondition of using the product at all, whereas building a reporting
+hierarchy and hiring into an HR role are not. The invited-approver question
+itself is unchanged and belongs to [[BUG-1969]] and [[ITEM-0106]].
+
+`DEFAULT_APPROVAL_MATRICES` moved from `prisma/seed-config.ts` to
+`src/modules/approvals/default-approval-matrices.ts` **so it could be tested**.
+The seed file creates a Prisma client at import time and jest's rootDir is `src`,
+so no spec could import it and none placed beside it would have run. That is the
+part worth generalising: a default nothing can import is a default nothing can
+check, and this one was wrong for every tenant the product ever provisioned.
+
+Guarded by REG-308 and [[QA-RUNTIME-022]], mutation-tested against the shipped
+chain.
+
+**Option 3 was not built.** The Approval Matrices screen still gives no
+configuration-time warning that a rule cannot bind. It is no longer urgent — the
+seeded chain routes and the runtime refusal now names the remedy ([[BUG-1968]]) —
+so it is left as the remaining idea here rather than carried into a new item.
 
 ## History
 
