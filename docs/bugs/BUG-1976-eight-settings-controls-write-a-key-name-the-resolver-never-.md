@@ -2,7 +2,7 @@
 ID: BUG-1976
 aliases: [BUG-1976]
 Title: Eight settings controls write a key name the resolver never reads
-Status: OPEN
+Status: FIXED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -11,7 +11,7 @@ DetectedDate: 2026-08-29
 DetectedInSha: eb457d9d
 AffectedModules: [services/api/src/modules/tenant-settings, apps/web]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
@@ -19,7 +19,7 @@ RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-29
 UpdatedAt: 2026-08-29
-ResolvedAt:
+ResolvedAt: 2026-08-29
 ---
 
 # BUG-1976 — Eight settings controls write a key name the resolver never reads
@@ -204,16 +204,88 @@ another name. BUG-1978 covers two UI fields that are not catalog keys at all.
 
 ## Resolution
 
-Open. No fix has been written.
+Fixed on `agent/bugfix-settings`. All eight pairs were re-verified against the
+code before anything was changed and every one held, including the two the record
+itself flagged as weaker.
+
+**The six enforceable controls now write the key their enforcement reads.** All
+in `apps/web/app/(authenticated)/settings/_lib/settings-page-config.ts`, each
+with a comment naming the dead key it replaced:
+
+| Was | Now | Line | Enforced at |
+|---|---|---|---|
+| `maximumReportingLevels` | `maxReportingLevels` | `:160-163` | `employees.service.ts:2596, 2605, 2627` |
+| `requirePrimaryWorkLocation` | `requireWorkLocation` | `:134-136` | `employees.service.ts:2716, 2892, 2928` |
+| `allowEmployeeWithoutReportingManager` | `allowEmployeeWithoutManager` | `:189-192` | `employees.service.ts:2708, 2883, 2921` |
+| `preventDuplicatePersonalEmail` | `preventDuplicateByPersonalEmail` | `:216-220` | `employees.service.ts:821, 2950` |
+| `preventDuplicatePhone` | `preventDuplicateByPhoneNumber` | `:231-233` | `employees.service.ts:831, 2960` |
+| `preventDuplicateNationalId` | `preventDuplicateByNationalId` | `:238-240` | `employees.service.ts:841, 2970` |
+
+**Pair 2 was removed, not renamed** — as the record argued it should be. The
+"Allow skip-level reporting" control is gone
+(`settings-page-config.ts:171-179`, replaced by a comment recording why). Both
+halves were dead: `allowSkipLevelReporting` had no reader, and
+`allowSkipLevelApprovals` is exposed by the resolver and read by nothing either,
+because skip-level approval behaviour is not implemented. Renaming would have
+left the same assurance on screen under a different name. The live half stays in
+the catalog and is declared inert under BUG-1974, so the fact that nothing
+honours it is now recorded rather than merely true.
+
+**Pair 8's precedence is decided: `system.defaultWeekStartDay` wins, and only one
+control is offered.** The Organization page's "Week start day" control — which
+wrote the dead `organization.weekStartDay` — was removed
+(`apps/web/app/(authenticated)/settings/_lib/organization-settings-config.ts:117-128`),
+leaving the working control on Settings > System. The reasoning is recorded at
+the consumer as well:
+`services/api/src/modules/tenant-settings/configuration-resolver.service.ts:55-62`
+notes that `system.defaultWeekStartDay` resolves through a validated enum with a
+`MONDAY` default and so is never falsy, which is why the
+`|| organization.weekStartsOn` fallback beside it can never fire. The fallback is
+kept rather than deleted so a tenant holding an old `organization.weekStartsOn`
+row is not silently re-pointed. Note the near-miss the record warned about:
+`timesheets.weekStartDay` **is** live (`timesheet-generation.service.ts:128`) and
+was not touched — only the `organization` copy went.
+
+**The seven dead names were removed from the catalog**
+(`services/api/src/modules/tenant-settings/tenant-settings.catalog.ts`):
+`employees.maximumReportingLevels`, `employees.requirePrimaryWorkLocation`,
+`employees.allowEmployeeWithoutReportingManager`,
+`employees.preventDuplicatePersonalEmail`, `employees.preventDuplicatePhone`,
+`employees.preventDuplicateNationalId`, `employees.allowSkipLevelReporting`, plus
+`organization.weekStartDay`. Each sat directly beside its live twin with an
+identical default, so no behaviour depended on the value. A word-boundary grep
+over the whole tree — `apps/agent-desktop` and `gateway/` included — returns only
+the explanatory comments above; neither the Electron agent nor the .NET gateway
+consumes tenant settings at all. None appears in `seed-config.ts`, whose only
+`tenantSetting` write is `notifications.emailEnabled`.
+
+**Stored values under the dead names are deliberately not migrated.** The record
+asks for a decision, and this is it, with the reasoning: those rows were never
+read, so every tenant's *observed* behaviour has always been the live key's
+value. Promoting a dead value on upgrade would therefore be the change in
+behaviour — and in the worst case a silent one, switching duplicate prevention
+off for a tenant that believed it had been off for months and had in fact been
+protected the whole time. The rows are left in place rather than deleted, so a
+later decision to migrate is still available; they are simply no longer written
+or echoed, because the catalog no longer declares the key.
+
+The durable check both this record and BUG-1974 ask for — every editable UI
+field's `(category, key)` pair must exist in the catalog and have a production
+reader — is implemented under BUG-1974 on the same branch, and fails on all eight
+of these pairs against the old code.
 
 ## QA Retest
 
-Awaiting a fix — nothing to retest yet.
+Awaiting a QA run. The record's own reproduction is the retest: turn off
+"Prevent duplicate by personal email" in Settings > Employees > Duplicate
+Prevention, then create two employees sharing a personal email. It should now
+succeed.
 
 ## History
 
 - 2026-08-29 — created from the Starter-plan production QA run (SESSION-0070) at `eb457d9d`; each pair verified individually, and a ninth previously-claimed pair dropped as reconciled.
 - 2026-08-29 — triaged by the Architect for SESSION-0070: ArchitectDisposition FIX_NOW — pure rename; each pair is a two-line fix.
+- 2026-08-29 — fixed in SESSION-0076 on `agent/bugfix-settings`. Six renames; pairs 2 and 8 resolved by withdrawing the control, on the record's own reasoning. The triage note "pure rename" held for six of the eight and not for those two.
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
 

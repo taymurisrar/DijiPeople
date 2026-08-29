@@ -2,7 +2,7 @@
 ID: BUG-1977
 aliases: [BUG-1977]
 Title: The platform Localization panel queries dotted setting keys that no row can ever hold
-Status: OPEN
+Status: FIXED
 Severity: MEDIUM
 Priority: P2
 Type: BUG
@@ -11,7 +11,7 @@ DetectedDate: 2026-08-29
 DetectedInSha: eb457d9d
 AffectedModules: [services/api/src/modules/tenant-control-plane, apps/admin]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
@@ -19,7 +19,7 @@ RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-29
 UpdatedAt: 2026-08-29
-ResolvedAt:
+ResolvedAt: 2026-08-29
 ---
 
 # BUG-1977 — The platform Localization panel queries dotted setting keys that no row can ever hold
@@ -206,16 +206,75 @@ than a tenant-facing control.
 
 ## Resolution
 
-Open. No fix has been written.
+Fixed on `agent/bugfix-settings`. The panel now resolves its values through the
+settings resolver instead of filtering a column on a composite it can never
+hold, and all three compounding errors the record identified are handled
+explicitly rather than by accident.
+
+**The query.**
+`services/api/src/modules/tenant-control-plane/tenant-control-plane.service.ts:204-257`
+— the `tenantSetting.findMany` that filtered `key IN ('organization.country', …)`
+is gone. `configuration()` now calls
+`TenantSettingsResolverService.getOrganizationSettings(tenant.id)` and
+`getSystemSettings(tenant.id)`, so the panel shows the tenant's *effective*
+values rather than only those that happen to have a persisted row. The comment
+at `:224-235` records why the old shape could never match, so the next reader
+does not reintroduce it.
+
+**`locale` comes from the category that owns it.**
+`tenant-control-plane.service.ts:275-278` reads `system.locale`. There is no
+`organization.locale`, which is why the naive fix — rewriting the query as
+`{ category: 'organization', key: { in: [...] } }` — would still have returned
+nothing for it.
+
+**`dateFormat`'s source category is chosen and documented.**
+`tenant-control-plane.service.ts:279-287` takes the `organization` copy, because
+`ConfigurationResolverService.resolveAppContext`
+(`services/api/src/modules/tenant-settings/configuration-resolver.service.ts:55`)
+computes `organization.dateFormat || system.dateFormat` — so the organization
+copy is the one the tenant application actually renders with, and therefore the
+one a support engineer needs to see.
+
+**`country` was not resolvable at all.** `OrganizationSettingsResolved` did not
+carry it, so it was added:
+`services/api/src/modules/tenant-settings/tenant-settings-resolver.service.ts:52`
+(type) and `:509` (`country: stringValue(category.country, '')`).
+
+**The empty state now means "unset".** The payload carries a new
+`localization.configured` flag —
+`tenant-control-plane.service.ts:265-272`, typed at
+`apps/admin/app/_components/tenants/tenant-control-plane.client.ts:419-430` —
+set from a narrow existence query over the five `(category, key)` pairs. The
+panel (`apps/admin/app/_components/tenants/tenant-configuration-panel.tsx:45-52`
+and `:107-118`) drops blank values before deciding, and when nothing has been
+configured it says so in the card description rather than denying the values
+exist. Values are still shown, because an operator needs to see the effective
+setting either way.
+
+**Coverage.**
+`services/api/src/modules/tenant-control-plane/tenant-localization-panel.spec.ts`
+— five tests. Two of them fail against the old code for the reasons the record
+gives: `returns the tenant configured localization instead of an empty object`,
+and `never filters TenantSetting on a dotted composite key`, which asserts on the
+serialised Prisma arguments so the defect cannot return in a different shape. The
+`dateFormat` test pins the organization copy by making the system copy differ.
+
+Three existing specs construct `TenantControlPlaneService` positionally and were
+updated for the new dependency: `tenant-control-plane.service.spec.ts`,
+`tenant-subscription-cancel.spec.ts`, `activation-advisories.spec.ts`.
 
 ## QA Retest
 
-Awaiting a fix — nothing to retest yet.
+Awaiting a QA run. The acceptance criteria are directly checkable on the
+DijiPeople Demo tenant: Platform Admin > Tenants > DijiPeople Demo >
+Configuration > Localization should now show the timezone, currency and date
+format that `GET /api/tenant-settings/resolved` reports for the same tenant.
 
 ## History
 
 - 2026-08-29 — created from the Starter-plan production QA run (SESSION-0070) at `eb457d9d`.
 - 2026-08-29 — triaged by the Architect for SESSION-0070: ArchitectDisposition FIX_NOW — query bug, now reproduced live.
+- 2026-08-29 — fixed in SESSION-0076 on `agent/bugfix-settings`. The premise held exactly as recorded, including the compounding `locale` and `dateFormat` errors. Resolved by resolving through the settings resolver rather than repairing the query, which also fixes the case the record did not raise: a tenant whose values are defaults rather than rows.
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
 
