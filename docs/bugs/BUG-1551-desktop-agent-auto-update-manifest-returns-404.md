@@ -282,8 +282,6 @@ header. The six-hour tick after sign-in carries one.
 
 ## Related
 
-- No related record, module or decision is declared in this record's
-  frontmatter. Declare one rather than adding a link here by hand — this
-  block is regenerated and a hand-written link inside it is lost.
+- Regression — REG-358 (see the regression register)
 
 <!-- GRAPH:END -->

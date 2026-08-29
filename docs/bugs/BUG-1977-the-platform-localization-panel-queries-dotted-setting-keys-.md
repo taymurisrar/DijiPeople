@@ -281,5 +281,6 @@ format that `GET /api/tenant-settings/resolved` reports for the same tenant.
 ## Related
 
 - Modules — [[tenant-control-plane]], [[platform-admin]]
+- Regression — REG-327 (see the regression register)
 
 <!-- GRAPH:END -->

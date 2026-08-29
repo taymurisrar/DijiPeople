@@ -292,5 +292,6 @@ succeed.
 ## Related
 
 - Modules — [[settings]], [[tenant-application]]
+- Regression — REG-326 (see the regression register)
 
 <!-- GRAPH:END -->

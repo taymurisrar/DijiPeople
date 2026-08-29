@@ -225,5 +225,6 @@ that kind appears.
 ## Related
 
 - Modules — [[settings]], [[tenant-application]]
+- Regression — REG-328 (see the regression register)
 
 <!-- GRAPH:END -->
