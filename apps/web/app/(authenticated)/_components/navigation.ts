@@ -313,14 +313,6 @@ export function resolveVisibleDashboardNavItems(
       return [];
     }
 
-    const hasRequiredFeature =
-      !item.requiredFeatureKey ||
-      !input.enabledFeatureKeys ||
-      input.enabledFeatureKeys.includes(item.requiredFeatureKey);
-
-    if (!hasRequiredFeature) {
-      return [];
-    }
 
     const isEmployeesItem = item.href === "/employees";
 

@@ -1,9 +1,11 @@
 import {
   applyDashboardNavOverrides,
   dashboardNavItems,
+  resolveVisibleDashboardNavItems,
   type DashboardNavItem,
   type DashboardNavOverride,
 } from "./navigation";
+import { ROLE_KEYS } from "@/lib/security-keys";
 
 /*
  * The sidebar merge lays a tenant's saved changes over the code-defined list.
@@ -134,5 +136,92 @@ describe("dashboardNavItems", () => {
   it("has a unique href per entry, since href is the override key", () => {
     const hrefs = dashboardNavItems.map((item) => item.href);
     expect(new Set(hrefs).size).toBe(hrefs.length);
+  });
+});
+
+/*
+ * BUG-1952. The sidebar was the only consumer of plan entitlements, and it
+ * skipped itself for the tenant’s own administrator roles — which is why every
+ * Starter tenant admin was offered Timesheets, Projects, Payroll, Recruitment
+ * and Onboarding, five modules that plan does not sell.
+ *
+ * An entitlement is a commercial boundary, not a permission. A tenant
+ * administrator legitimately bypasses their own tenant’s permission model; they
+ * cannot bypass their own tenant’s contract.
+ */
+describe("resolveVisibleDashboardNavItems plan entitlements", () => {
+  const STARTER_KEYS = [
+    "employees",
+    "organization",
+    "leave",
+    "attendance",
+    "documents",
+    "notifications",
+    "branding",
+  ];
+
+  function visibleHrefs(roleKeys: string[], enabledFeatureKeys: string[] | null) {
+    return resolveVisibleDashboardNavItems({
+      enabledFeatureKeys,
+      isReportingManager: false,
+      isSelfService: false,
+      permissionKeys: [],
+      roleKeys,
+      businessUnitAccess: {
+        accessibleBusinessUnitIds: ["bu-1"],
+      } as never,
+    }).map((item) => item.href);
+  }
+
+  const UNENTITLED_ON_STARTER = [
+    "/timesheets",
+    "/projects",
+    "/payroll/cycles",
+    "/recruitment",
+    "/onboarding",
+  ];
+
+  it.each([
+    ROLE_KEYS.GLOBAL_ADMIN,
+    ROLE_KEYS.SYSTEM_ADMIN,
+    ROLE_KEYS.SYSTEM_CUSTOMIZER,
+  ])("hides unentitled modules from the privileged role %s", (roleKey) => {
+    const hrefs = visibleHrefs([roleKey], STARTER_KEYS);
+
+    for (const href of UNENTITLED_ON_STARTER) {
+      expect(hrefs).not.toContain(href);
+    }
+  });
+
+  it("still shows a privileged role the modules the plan does include", () => {
+    const hrefs = visibleHrefs([ROLE_KEYS.GLOBAL_ADMIN], STARTER_KEYS);
+
+    expect(hrefs).toContain("/employees");
+    expect(hrefs).toContain("/leaves");
+    expect(hrefs).toContain("/attendance");
+  });
+
+  it("shows every module once the plan enables them", () => {
+    const hrefs = visibleHrefs(
+      [ROLE_KEYS.GLOBAL_ADMIN],
+      [...STARTER_KEYS, "timesheets", "projects", "payroll", "recruitment", "onboarding"],
+    );
+
+    for (const href of UNENTITLED_ON_STARTER) {
+      expect(hrefs).toContain(href);
+    }
+  });
+
+  /*
+   * Deliberate, and the one place this layer still fails open. A null list
+   * means the availability fetch failed, so there is no server decision to
+   * mirror — and blanking a whole sidebar on a transient error is worse than
+   * offering a link whose endpoint now answers TENANT_FEATURE_NOT_ENTITLED.
+   */
+  it("keeps navigation intact when entitlements could not be fetched", () => {
+    const hrefs = visibleHrefs([ROLE_KEYS.GLOBAL_ADMIN], null);
+
+    expect(hrefs).toContain("/employees");
+    expect(hrefs).toContain("/payroll/cycles");
   });
 });
