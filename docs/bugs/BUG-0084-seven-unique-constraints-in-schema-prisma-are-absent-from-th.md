@@ -2,7 +2,7 @@
 ID: BUG-0084
 aliases: [BUG-0084]
 Title: Seven unique constraints in schema.prisma are absent from the migration chain
-Status: DEFERRED
+Status: BLOCKED
 Severity: MEDIUM
 Priority: P2
 Type: DATA_INTEGRITY
@@ -11,14 +11,14 @@ DetectedDate: 2026-08-20
 DetectedInSha: bab45ad
 AffectedModules: [contracts, partner-experience, support-cases, approvals, tenant-settings]
 OwnerAgent: architect
-ArchitectDisposition: DEFER
+ArchitectDisposition: BLOCKED_EXTERNAL
 QAReport:
 RegressionId:
 RelatedBacklogItem: ITEM-0060
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-20
-UpdatedAt: 2026-08-20
+UpdatedAt: 2026-08-29
 ResolvedAt:
 ---
 
@@ -175,6 +175,106 @@ Relates to [[ITEM-0060]], which carries the wider drift.
 
 ## Resolution
 
+**Still BLOCKED as of 2026-08-29 — now blocked on one read-only query against
+production, with that query written and committed.** The 2026-08-20 triage below
+stands as the record of why it was deferred; what follows is what changed.
+
+### The finding was re-derived, and it is still exactly seven
+
+Measured statically at `dca93c47` by
+`services/api/src/common/prisma/schema-unique-drift.ts`, which parses every
+unique declaration in `schema.prisma`, replays every `CREATE UNIQUE INDEX`,
+`ADD CONSTRAINT ... UNIQUE`, rename and drop across all 223 migrations, and
+matches the two by **(table, column set)** rather than by name — 55 indexes in
+this chain carry a name Prisma would not have chosen, and name matching reports
+all of them as missing.
+
+288 schema declarations, 291 unique indexes live in the chain, seven
+declarations with no index — the same seven this record listed. The original
+measurement applied the chain to an empty database and ran `prisma migrate diff`;
+this one reads the SQL text. Two independent methods, one answer, so the finding
+is not an artefact of either.
+
+### What is delivered
+
+- `services/api/prisma/checks/bug-0084-unique-constraint-precheck.sql` — the
+  read-only query the platform owner runs against production. One summary row
+  per constraint plus per-constraint detail queries. NULLs are excluded for
+  `PartnerPortalUser.invitationTokenHash`, the one nullable column of the seven,
+  because a unique index treats NULLs as distinct and counting them would invent
+  duplicates the index would allow.
+- `docs/plans/EXECPLAN-0028-bug-0084-missing-unique-constraints.md` — the
+  expand/backfill/contract staging, dedupe SQL for the two constraints that have
+  a safe remediation, the full `DROP INDEX` rollback, and the phase-2 migration
+  drafted but deliberately uncommitted.
+- `services/api/src/common/prisma/schema-unique-drift.ts` and its spec — 23
+  tests, the second acceptance criterion of this record. It needs no database,
+  so it runs in the ordinary unit suite on every push rather than in a job that
+  must first stand a Postgres up. Mutation-tested: removing one entry from
+  `KNOWN_MISSING_UNIQUE_CONSTRAINTS` fails it.
+
+### Why the migration is not committed
+
+`npm run release:api` is Render's `preDeployCommand`, so a migration that
+raises an error aborts the deployment. `CREATE UNIQUE INDEX` raises an error on
+a table already holding duplicates. Whether production holds such rows cannot be
+determined from the repository, and this session has no production database
+access and must not acquire any. A migration committed now would therefore not
+fail in review — it would fail during a release, with the API not coming up.
+
+`CREATE UNIQUE INDEX CONCURRENTLY` does not avoid this and is not available
+regardless: it cannot run inside a transaction block, Prisma Migrate wraps each
+migration file in one, and zero of the 223 migrations in this chain use it. A
+`DO $$ ... IF NOT EXISTS (duplicates) THEN CREATE` guard was considered and
+rejected — it cannot abort a deploy, but it silently no-ops, leaving the drift
+in place while appearing fixed, which is worse than a loud failure in a
+controlled window.
+
+### One of the seven is probably wrong in the schema, not missing from the database
+
+`HolidayCalendar_tenantId_name_key` should not be added without a product
+decision. `assertNoOverlappingHolidayCalendar`
+(`enterprise-configuration.service.ts:2263`) enforces scope plus effective-date
+overlap and **never** checks the name, so two calendars named "Standard
+Calendar" under different business units are legitimate configuration today. The
+chain carries `HolidayCalendar_tenantId_name_date_key` on
+`(tenantId, name, date)`, and `date` is a vestigial nullable column that
+current code never populates — holidays live in the separate `Holiday` table —
+so that index constrains nothing for modern rows and duplicates by
+`(tenantId, name)` are not merely possible but expected. The likely correct fix
+is to drop the declaration from the schema. That is phase 2b in the plan, and it
+needs an ADR.
+
+### What is needed to unblock, and from whom
+
+**The platform owner runs
+`services/api/prisma/checks/bug-0084-unique-constraint-precheck.sql` against the
+production Neon database and reports the summary table.** It is read-only: no
+DDL, no DML, no locks beyond a sequential read. Nobody else can supply this.
+
+- Every row `duplicate_groups = 0` -> the phase 2 migration is safe, and it plus
+  the emptying of `KNOWN_MISSING_UNIQUE_CONSTRAINTS` becomes a small
+  `RELEASE`-class task.
+- Any row above zero -> that constraint takes its phase 1b decision first, on
+  the specific rows its detail query returns.
+
+A second, smaller follow-up regardless of the result: `nextVersion` at
+`partner-experience.service.ts:568` is read outside the transaction that writes
+it, so once `PartnerOnboardingSubmission_applicationId_version_key` exists a
+concurrent double-submit raises `P2002` where it previously inserted a
+duplicate. There is no `P2002` handling at `partner-experience.service.ts:569`,
+so it would surface as a 500. Ship that handling with the migration.
+
+### Assessment, stated plainly
+
+This cannot be shipped safely without first inspecting production data. Leaving
+it BLOCKED with the pre-check in hand is the correct outcome, and better than a
+migration that breaks a deploy.
+
+---
+
+### Original triage, retained
+
 **Deferred, not fixed.** The triage below is the decision; there is no code
 change to describe yet.
 
@@ -194,6 +294,7 @@ reasoning is deliberately visible:
 
 It should be the first migration **after** launch, when the production database
 is known and can be checked for duplicates directly.
+
 
 ## QA Retest
 

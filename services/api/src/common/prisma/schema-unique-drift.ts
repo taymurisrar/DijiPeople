@@ -295,6 +295,8 @@ export function readMigrationSources(prismaDir: string): MigrationSource[] {
     .sort()
     .flatMap((name) => {
       const file = join(migrationsDir, name, 'migration.sql');
-      return existsSync(file) ? [{ name, sql: readFileSync(file, 'utf8') }] : [];
+      return existsSync(file)
+        ? [{ name, sql: readFileSync(file, 'utf8') }]
+        : [];
     });
 }
