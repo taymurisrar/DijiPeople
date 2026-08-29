@@ -934,7 +934,39 @@ export class LeaveService {
       leaveRequestId,
     );
 
+    await this.resolveOutstandingApprovalNotifications(
+      currentUser.tenantId,
+      leaveRequestId,
+    );
+
     return this.mapLeaveRequest(updated, currentUser);
+  }
+
+  /**
+   * BUG-2016 — the request is settled, so nothing may still be asking anyone to
+   * approve it.
+   *
+   * Cancelling used to leave the approver's "Leave request needs approval" row
+   * unread and priority 1 in their inbox, pointing at a `CANCELLED` record, and
+   * counted by the dashboard badge. The delivery half of the notification
+   * machinery was working; the resolution half did not exist. It lives in the
+   * notifications module because every approvable record type raises the same
+   * kind of row.
+   *
+   * Called after the transaction rather than inside it, alongside the `emit`
+   * calls it mirrors: the notification tables are not part of the leave
+   * request's consistency boundary, and a decision must not be rolled back
+   * because an inbox row could not be tidied.
+   */
+  private resolveOutstandingApprovalNotifications(
+    tenantId: string,
+    leaveRequestId: string,
+  ) {
+    return this.notificationsService.resolveActionRequired({
+      tenantId,
+      relatedEntityType: 'leaveRequest',
+      relatedEntityId: leaveRequestId,
+    });
   }
 
   async listLeavePolicyRules(currentUser: AuthenticatedUser, policyId: string) {
@@ -1545,6 +1577,21 @@ export class LeaveService {
       leaveRequestId,
     );
 
+    /*
+     * BUG-1970 — self-approval is refused here as well as in
+     * `canUserActOnStep`, and it is refused before anything else.
+     *
+     * The reordering inside `canUserActOnStep` is what closes the hole; this
+     * states the rule at the entry point so the decision does not depend on two
+     * helpers continuing to agree, and so the caller is told what was actually
+     * wrong instead of "you are not assigned to action this leave request".
+     */
+    if (leaveRequest.employee.userId === currentUser.userId) {
+      throw new ForbiddenException(
+        'You cannot approve or reject your own leave request.',
+      );
+    }
+
     if (leaveRequest.status !== LeaveRequestStatus.PENDING) {
       throw new ConflictException(
         'Only pending leave requests can be actioned.',
@@ -1682,6 +1729,16 @@ export class LeaveService {
       currentUser,
       action === 'approve' ? 'APPROVED' : 'REJECTED',
       comments,
+    );
+    /*
+     * BUG-2016 — before the outcome notification, not after. The step just
+     * decided can no longer be acted on, so the request for that action is
+     * retired first and the employee's "approved"/"rejected" row is then raised
+     * against a clean slate.
+     */
+    await this.resolveOutstandingApprovalNotifications(
+      currentUser.tenantId,
+      leaveRequestId,
     );
     await this.notificationsService.emit({
       tenantId: currentUser.tenantId,
@@ -2104,12 +2161,29 @@ export class LeaveService {
     pendingStep: LeaveRequestWithRelations['approvalSteps'][number],
     currentUser: AuthenticatedUser,
   ) {
-    if (hasElevatedTenantRole(currentUser)) {
-      return true;
-    }
-
+    /*
+     * BUG-1970 — the self-requester test comes first, before any role path.
+     *
+     * It used to come second, after `hasElevatedTenantRole`, which made
+     * self-approval reachable for a global-admin or system-admin: they are the
+     * requester and the assigned-approver answer at once, and
+     * `processLeaveRequestDecision` treats a true answer here as "assigned
+     * approver" and so never consults `canOverrideLeaveDecision` — which does
+     * order the two checks correctly. The override check was therefore not a
+     * second line of defence on that path; it was unreachable.
+     *
+     * An elevated role widens *which* records a user may act on. It is not an
+     * exemption from the self-approval prohibition, and the elevated-role bypass
+     * may not be widened without an explicit decision. `attendance.service.ts`
+     * bars both parties to a correction before any permission or role path, for
+     * exactly this reason.
+     */
     if (leaveRequest.employee.userId === currentUser.userId) {
       return false;
+    }
+
+    if (hasElevatedTenantRole(currentUser)) {
+      return true;
     }
 
     if (pendingStep.approverUserId) {

@@ -2,7 +2,7 @@
 ID: BUG-1962
 aliases: [BUG-1962]
 Title: Assigned On is required by the leave assignment API and rendered as an optional field
-Status: IN_PROGRESS
+Status: FIXED
 Severity: MEDIUM
 Priority: P2
 Type: UX
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-29
 DetectedInSha: eb457d9d
 AffectedModules: [apps/web, services/api/src/modules/leave]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
-RegressionId: 
+RegressionId: REG-333
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-29
 UpdatedAt: 2026-08-29
-ResolvedAt:
+ResolvedAt: 2026-08-29
 ---
 
 # BUG-1962 — Assigned On is required by the leave assignment API and rendered as an optional field
@@ -77,10 +77,26 @@ should be located before the fix so the two can be made to agree at one source.
 
 ## Root Cause
 
-Not established. The form metadata for this field and the `class-validator` rule
-on the DTO disagree about optionality; which one is intended is a product
-question (is an assignment's effective date genuinely mandatory, or should it
-default to today?).
+**Established, in two parts.** The field metadata and the DTO disagreed about
+optionality, and behind that the dialog had no way to act on the answer even
+once they agreed.
+
+The product question the original text left open — is an assignment's effective
+date genuinely mandatory — is settled by the API: `CreateLeavePolicyAssignmentDto`
+requires `effectiveFrom`, so the form must too. It is not defaulted to today,
+because an assignment's effective date is a decision an administrator makes
+(a policy can be assigned to take effect at the start of the next cycle), and
+silently substituting today would make a wrong date the easiest one to produce.
+
+The second part is why marking the field required was not enough. The
+quick-create dialog runs no client-side validation: its Save and Save & Close
+buttons are `type="button"` with plain click handlers, so there is no form
+submit for the browser's native `required` to gate, and the panel passed the
+renderer neither `fieldErrors` nor `touchedFields`. `validateRuntimeForm`
+produces exactly the wanted sentence, "Assigned On is required.", and was
+imported by `module-record-page.tsx` and by nothing else. The related-list path
+never reached it — so this was not a leave defect but a gap under every
+related-list dialog in the product.
 
 ## Impact
 
@@ -111,7 +127,10 @@ message the user sees must name "Assigned On", not `effectiveFrom`.
 
 ## Regression Coverage
 
-None yet.
+REG-333. `apps/web/lib/runtime/quick-create-validation.spec.ts` — the gate the
+dialog runs before saving, driven from the subgrid metadata the settings tabs
+actually declare. Mutation-tested at 3 failed / 4 passed with the gate
+neutered. Detail in Resolution.
 
 ## Dependencies
 
@@ -125,68 +144,82 @@ theme of required fields being undiscoverable in the admin console.
 
 ## Resolution
 
-**The field is now marked required; nothing yet stops the submission. One of
-three acceptance criteria is met, so this record stays open.**
+**Fixed. All three acceptance criteria are met, and the fix is the dialog's
+rather than this field's.**
 
-Commit `d3ffb3aa` on `agent/starter-blocker-fixes` — on that branch only, not yet on `develop` or `main`,
-added `required: true` to the `effectiveFrom` quick-create field on **both**
-leave-policy assignment tabs in
+Criterion 1 was already met before this session: `required: true` on the
+`effectiveFrom` quick-create field of **both** leave-policy assignment tabs in
 `apps/web/app/(authenticated)/settings/_lib/settings-adapter-registry.ts` — the
-Eligibility tab at `:2985` and the Assignments tab at `:3191` — each with a
-comment naming `CreateLeavePolicyAssignmentDto` as the reason. Both were needed:
-the two tabs are separate declarations of the same relationship and fixing one
-would have left the other rendering the field as optional.
+Eligibility tab and the Assignments tab, which are separate declarations of the
+same relationship. That is what produces the asterisk and
+`input.required === true`.
 
-`required` propagates into the generated quick-create form metadata as
-`requirementLevel: "required"` (`module-related-subgrid.tsx:1424` and `:1498`),
-which the form renderer passes down to `FormControl`, producing the `*` marker
-and `input.required === true`.
+Criteria 2 and 3 are what this session closed, together, by giving the dialog a
+gate:
 
-Against the acceptance criteria:
+- `apps/web/lib/runtime/quick-create-metadata.ts` — new module.
+  `buildSubgridQuickCreate` moved here **unchanged** from
+  `module-related-subgrid.tsx`, where nothing could reach it: `apps/web` runs
+  its tests in a node environment with no jsdom, so importing that component to
+  check what the dialog does is not possible. Alongside it,
+  `resolveQuickCreateSubmission` wraps `validateRuntimeForm` and returns either
+  `valid` or `blocked` with the per-field errors and a summary. Absent metadata
+  returns `valid`, because the panel already renders its own "form metadata is
+  not available yet" state and refusing to save would strand it.
+- `apps/web/app/components/runtime/module-quick-create-panel.tsx` — both Save
+  buttons now go through `handleSave`, which runs the gate before `onSave`. A
+  blocked submission sets `fieldErrors`, marks every offending field touched —
+  otherwise the renderer holds the error back waiting for a blur that never
+  comes — and shows the summary in the dialog's existing `role="alert"` region.
+  The renderer already accepted `fieldErrors` and `touchedFields`; they were
+  simply never passed.
 
-- **1, the control is marked required** — met. This is the exact inverse of the
-  Actual Behavior recorded above, where `input.required` was `false`.
-- **2, an inline error on the field before any request is sent** — **not met.**
-  The quick-create dialog runs no client-side validation at all. Its Save and
-  Save & Close buttons are `type="button"` with plain click handlers
-  (`module-quick-create-panel.tsx:65-80`), so there is no form submit for the
-  browser's native `required` to gate, and the panel passes neither `fieldErrors`
-  nor `touchedFields` to the renderer. `runtime-form-validation.ts` — which does
-  produce exactly the wanted message, "Assigned On is required." — is imported by
-  `module-record-page.tsx` and by nothing else. The related-subgrid path never
-  reaches it.
-- **3, no API property name in the message the user reads** — **not met**, and it
-  follows from 2. With no client gate the request still goes out empty and the
-  API still answers `effectiveFrom must be a valid ISO 8601 date string`. What
-  changed, from BUG-1966's fix in the same commit, is that this message is now
-  reliably shown rather than sometimes swallowed.
+So the user now reads "Assigned On is required." against the control, before any
+request is sent. `effectiveFrom` and `ISO 8601` never reach the screen.
 
-### To finish it
+Because the gate belongs to the dialog rather than to this field, it closes the
+same hole for **every** required quick-create field in settings, which is the
+scope the "To finish it" note asked for.
 
-Wire the quick-create panel to `validateRuntimeForm` before calling `onSave`,
-surfacing the result through the `fieldErrors` and `touchedFields` props the
-renderer already accepts. That closes 2 and 3 together, for every related-list
-dialog rather than for this field, and it is the same gap that lets any other
-required quick-create field reach the API empty.
+### Regression coverage
+
+`apps/web/lib/runtime/quick-create-validation.spec.ts`, seven cases, driving the
+real path: the subgrid metadata a settings tab declares, the quick-create entity
+and form the dialog builds from it, and the gate itself. It asserts the message
+the user reads — that the error is `Assigned On is required.` on `effectiveFrom`,
+and that nothing shown anywhere contains `effectiveFrom` or `ISO 8601`, which is
+the whole of criterion 3 and would pass unnoticed by a test asserting only that
+validation ran. It also asserts both leave-policy tabs are found, so relabelling
+one cannot silently halve the check, and sweeps every other registry-declared
+required quick-create field.
+
+**Mutation-tested.** With `resolveQuickCreateSubmission` forced to return
+`valid`, the suite reports 3 failed / 4 passed — both tab cases and the
+class sweep fail, the controls pass. The one thing no node-environment test can
+reach is the two-line wiring inside the panel component; `tsc` covers its shape,
+and the gate it calls is covered here.
 
 ## QA Retest
 
-Not yet performed, and it cannot be performed today: the fix is not on `develop`
-and production runs `main` at `949f461c`, which does not contain it. This task
-did not touch `main`, so **nothing here is verified in production** and the
-field still renders optional on the demo tenant.
+Not performed live. This task did not touch `main`, so nothing here is verified
+in production.
 
-Live verification is pending a release: open the Assignments dialog, confirm
+The retest is the Reproduction section: open the Assignments dialog, confirm
 "Assigned On" carries the required marker and `input.required === true`, then
-submit without it. Expect the raw DTO message — criteria 2 and 3, still open,
-not a new finding. Repeat on the Eligibility tab, which is the second
-declaration and was fixed in the same change.
+Save & Close with it empty. Expect the dialog to stay open showing
+"Assigned On is required." against the control and a count in the alert region,
+with **no** network request made — check the network panel, because a visible
+message over a request that still went out is the state this record was in
+before. Repeat on the Eligibility tab, which is the second declaration of the
+same relationship.
 
 ## History
 
 - 2026-08-29 — created from the Starter-plan production QA run (SESSION-0070) at `eb457d9d`; observed against production API `949f461c`.
 - 2026-08-29 — triaged by the Architect for SESSION-0070: ArchitectDisposition FIX_NOW — same dialog, same fix window.
 - 2026-08-29 — partially fixed in SESSION-0072 at `d3ffb3aa`, on `agent/starter-blocker-fixes`: `effectiveFrom` is now `required: true` on both leave-policy assignment tabs. Status OPEN to IN_PROGRESS, not FIXED — the quick-create dialog runs no client-side validation, so the field is marked required but nothing blocks an empty submission and the raw DTO message still reaches the user. **Not deployed** — production runs `main` at `949f461c`.
+- 2026-08-29 — **fixed** in SESSION-0076 on `agent/bugfix-leave`. Criteria 2 and 3 closed by giving the quick-create dialog a validation gate rather than by changing this field again: `resolveQuickCreateSubmission` runs before `onSave`, and the panel passes `fieldErrors` and `touchedFields` the renderer already accepted. `buildSubgridQuickCreate` moved to `lib/runtime/quick-create-metadata.ts` unchanged so the behaviour could be tested at all. Covered by `quick-create-validation.spec.ts`, mutation-tested at 3 failed / 4 passed with the gate neutered. Status IN_PROGRESS to FIXED.
+
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
 

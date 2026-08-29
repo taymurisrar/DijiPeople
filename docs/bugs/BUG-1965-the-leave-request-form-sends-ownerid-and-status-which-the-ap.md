@@ -2,7 +2,7 @@
 ID: BUG-1965
 aliases: [BUG-1965]
 Title: The leave request form sends ownerId and status, which the API rejects as forbidden properties
-Status: IN_PROGRESS
+Status: FIXED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -11,30 +11,32 @@ DetectedDate: 2026-08-29
 DetectedInSha: eb457d9d
 AffectedModules: [apps/web, services/api/src/modules/leave]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
-RegressionId: 
+RegressionId: REG-332
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-29
 UpdatedAt: 2026-08-29
-ResolvedAt:
+ResolvedAt: 2026-08-29
 ---
 
 # BUG-1965 — The leave request form sends ownerId and status, which the API rejects as forbidden properties
 
 ## Summary
 
-The new-leave-request form serialises its "Record Status" widget — owner and
+The new-leave-request form serialised its "Record Status" widget — owner and
 status — into the request body. `SubmitLeaveRequestDto` whitelists neither field
 (this record originally named it `CreateLeaveRequestDto`; the class is
 `SubmitLeaveRequestDto`) and the global `ValidationPipe` runs with
-`forbidNonWhitelisted: true`, so the whole request is rejected. No employee can
-submit a leave request through the UI.
+`forbidNonWhitelisted: true`, so the whole request was rejected. No employee
+could submit a leave request through the UI.
 
-**Half fixed as of `d3ffb3aa`.** `ownerId` no longer travels; `status` still
-does, so the request is still rejected. See Resolution.
+**Fixed.** Both fields are read-only on `leaveRuntimeSpec`, the payload
+assertion is in place, and the fourth acceptance criterion — the other create
+forms that render the same widget — is now closed by a sweep that found and
+fixed one more instance. See Resolution.
 
 (The absence of any error message on screen is a second, separate defect —
 BUG-1966 — because it is generic to the runtime form layer rather than to this
@@ -129,10 +131,12 @@ writable on the spec *and* present in the draft.
 
 - **`ownerId`** was writable on `leaveRuntimeSpec` and populated by the
   record-status header. **Fixed** — see Resolution.
-- **`status`** is still writable on `leaveRuntimeSpec`
-  (`standard-module-specs.ts:1129`, `isStatus: true` with no `isReadOnly`), and
-  `apps/web/app/(authenticated)/leaves/new/page.tsx` seeds the draft with
-  `record={{ status: "PENDING" }}` literally. **Not fixed.**
+- **`status`** was writable on `leaveRuntimeSpec` while
+  `apps/web/app/(authenticated)/leaves/new/page.tsx` seeded the draft with
+  `record={{ status: "PENDING" }}` literally, which is why marking only
+  `ownerId` was half a fix. **Fixed** — `standard-module-specs.ts:1129-1148` now
+  carries `isReadOnly: true`. The seed stays; it is display state for the
+  record-status header, and read-only keeps the value out of the body anyway.
 
 The receiving DTO is `SubmitLeaveRequestDto`
 (`services/api/src/modules/leave/dto/submit-leave-request.dto.ts`) — note the
@@ -186,15 +190,14 @@ state that shipped in `d3ffb3aa` and read as fixed. A test asserting the spec's
 field flags, or one a level above the payload, would have passed there; that is
 why the assertion is on the body.
 
-Still outstanding: the fourth acceptance criterion. This covers `leaveRuntimeSpec`
-only. A wider version of the same assertion, run over every
-`StandardModuleRuntimeSpec` that renders the record-status widget and has a known
-create endpoint, would close it — and would say whether any other module is
-sending owner or status to a DTO that forbids them.
+That wider assertion now exists:
+`apps/web/lib/runtime/modules/record-status-create-payload.spec.ts` runs the same
+kind of check over every `StandardModuleRuntimeSpec`, and it did find another
+module sending an owner. See Resolution.
 
-No regression-register entry yet, which is why this record is `IN_PROGRESS`
-rather than `FIXED`: `backlog:check` requires an active REG naming the bug, and
-the REG has not been written.
+The fourth acceptance criterion is now closed too — see Resolution.
+REG-332 covers both specs: `leave-create-payload.spec.ts` for the payload and
+`record-status-create-payload.spec.ts` for the widget class.
 
 ## Dependencies
 
@@ -210,69 +213,90 @@ BUG-1967 and BUG-1968 block the same journey further down.
 
 ## Resolution
 
-**Partially fixed. This record stays open, and the journey it blocks is still
-blocked.**
+**Fixed.** Both halves of the payload defect are on `develop`, and the widget
+class the record left open has been swept.
 
-Commit `d3ffb3aa` on `agent/starter-blocker-fixes` — on that branch only, not yet on `develop` or `main`
-marked `ownerId` read-only on `leaveRuntimeSpec`
-(`apps/web/lib/runtime/modules/standard-module-specs.ts:1107`), with a comment
-explaining that neither owner nor status is the client's to propose. That
-removes `ownerId` from the create body.
+### The payload
 
-`status` was **not** changed and is still sent. The comment covers both fields;
-the code covers one. Two things have to be true for `status` to stop reaching
-the API, and neither is:
+Marking `ownerId` read-only on `leaveRuntimeSpec` was half a fix, as this record
+recorded; the other half — `status` — landed with it before this session picked
+the record up. Verified in the tree at `1c711dff`:
+`apps/web/lib/runtime/modules/standard-module-specs.ts:1106-1113` carries
+`isOwner: true, isReadOnly: true` and `:1129-1148` carries
+`isStatus: true, isReadOnly: true`, each with the comment naming
+`SubmitLeaveRequestDto`. So `sanitizeStandardMutationValues`
+(`standard-module-data.adapter.ts:809-833`) treats neither as writable, and
+neither survives into the create body regardless of the draft `/leaves/new`
+seeds.
 
-1. `status` on `leaveRuntimeSpec` (`standard-module-specs.ts:1129`) carries no
-   `isReadOnly: true`, so `sanitizeStandardMutationValues` still treats it as
-   writable.
-2. `apps/web/app/(authenticated)/leaves/new/page.tsx` still passes
-   `record={{ status: "PENDING" }}`, so the value is present in the draft for
-   that filter to find.
+`record={{ status: "PENDING" }}` on the create page was left in place
+deliberately, for the reason the "To finish it" note allowed: it is display
+state for the record-status header before the record exists, and read-only on
+the field keeps it out of the body either way.
 
-The consequence is that `POST /api/leave-requests` still carries
-`{"status":"PENDING"}` and `SubmitLeaveRequestDto` still rejects it with
-`property status should not exist`. The observable symptom on the demo tenant is
-unchanged apart from its visibility: BUG-1966's fix, in the same commit, means
-the 400 now reaches the error dialog instead of failing in silence. **A visible
-400 is not a fixed submission.**
+### The fourth acceptance criterion
 
-Marking one of two fields read-only and leaving the other is a small instance of
-the class this record already names in Related Items — the form and the DTO have
-to be reconciled as a set, not field by field.
+The record's own words: "Other create forms rendering the record-status widget
+are checked and covered." That is now a test rather than an inspection.
 
-### To finish it
+`apps/web/lib/runtime/modules/record-status-create-payload.spec.ts` sweeps
+**every** exported `StandardModuleRuntimeSpec`, drives the real adapter's
+`create()` with a draft carrying an owner under the spec's own `ownerField` and
+under both spellings the widget has used, and asserts the request body carries
+none of them. `AGENTS.md` lists `createdById` beside `tenantId` and `id` among
+the fields a client must never set, so the invariant is not leave-specific. The
+sweep guards itself with a count assertion, because an empty or halved spec list
+would make every case vacuous while still reporting green.
 
-- Mark `status` `isReadOnly: true` on `leaveRuntimeSpec`, for the reason already
-  written in the `ownerId` comment: the status of a leave request belongs to the
-  approval workflow.
-- Decide what `record={{ status: "PENDING" }}` on the create page is for. If it
-  exists only to make the record-status header read "Pending" before the record
-  exists, it is display state and should not be in the draft the save serialises;
-  read-only on the field is enough to keep it out of the body either way, and the
-  seed can stay.
-- Add the key-set assertion described under Regression Coverage, and only then
-  move this record to `FIXED`.
-- The fourth acceptance criterion is still untouched: no other create form
-  rendering the record-status widget has been checked, and the widget is shared.
+It found one more instance. `attendanceRuntimeSpec` declared `ownerId` with
+`isOwner: true` and no `isReadOnly`, and no attendance DTO whitelists `ownerId`
+— so a runtime create there would have been rejected exactly as the leave one
+was. Fixed at `standard-module-specs.ts:1327-1339`. Attendance's `/attendance/new`
+page uses a bespoke `ManualAttendanceForm` rather than the runtime record page,
+which is why nobody had hit it; the latent defect is closed anyway.
+
+Every other spec already passed: `customerRuntimeSpec` and `projectRuntimeSpec`
+mark their `createdById` owner field read-only, and the remaining specs declare
+no owner field at all.
+
+`status` was not swept the same way. It reaches a create body only when a page
+seeds it into the draft, and `/leaves/new` is the only one that does — asserting
+its absence everywhere would have forced read-only onto status fields that edit
+forms legitimately write.
+
+### Regression coverage
+
+- `apps/web/lib/runtime/modules/leave-create-payload.spec.ts` — unchanged, two
+  cases, asserting the request body.
+- `apps/web/lib/runtime/modules/record-status-create-payload.spec.ts` — new, the
+  class assertion above. It fails against the tree as it stood: eleven specs
+  pass and `attendanceRuntimeSpec` fails, which is how the sibling was found.
+
+Against the acceptance criteria: 1 and 2 met by the read-only flags and the
+payload spec, 3 unchanged (the DTO still declares only its five fields, so it
+still rejects both), 4 met by the sweep.
+
+The register entry is REG-332, drafted in `docs/qa/regressions/_incoming/leave.md`
+for central merge into the register.
 
 ## QA Retest
 
-Not performed, and there is nothing to pass yet. The fix is partial, and it is
-also not deployed: production runs `main` at `949f461c`, which contains neither
-half, and this task did not touch `main`. **Nothing here is verified in
-production.**
+Not performed live. This task did not touch `main`, so nothing here is verified
+in production.
 
-When the remaining half lands and a release goes out, the retest is the
-Reproduction section with the acceptance criteria as written — in particular
-that the request body contains neither `ownerId` nor `status`, checked in the
-network panel rather than inferred from the request succeeding.
+The retest is the Reproduction section with the acceptance criteria as written —
+in particular that the request body contains neither `ownerId` nor `status`,
+read in the network panel rather than inferred from the request succeeding. Add
+one step for the sibling: a runtime-driven attendance create, if one is ever
+routed through `StandardModuleRecordPage`, must not carry `ownerId` either.
 
 ## History
 
 - 2026-08-29 — created from the Starter-plan production QA run (SESSION-0070) at `eb457d9d`; observed against production API `949f461c`.
 - 2026-08-29 — triaged by the Architect for SESSION-0070: ArchitectDisposition FIX_NOW — release blocker; small fix.
 - 2026-08-29 — **partially fixed** in SESSION-0072 at `d3ffb3aa`, on `agent/starter-blocker-fixes`. `ownerId` is now read-only on `leaveRuntimeSpec`; `status` is not, and `/leaves/new` still seeds `record={{ status: "PENDING" }}`, so the create body still carries it and the API still answers 400. Status OPEN to IN_PROGRESS, not FIXED. Root Cause rewritten from "not established" to the two sources feeding `sanitizeStandardMutationValues`, and the receiving DTO corrected from `CreateLeaveRequestDto` to `SubmitLeaveRequestDto`. Established by reading the code at `d3ffb3aa`, not by a live request — production does not contain either half of the fix.
+- 2026-08-29 — **fixed** in SESSION-0076 on `agent/bugfix-leave`. The payload half was already complete on `develop` at `1c711dff` — both `ownerId` and `status` read-only on `leaveRuntimeSpec`, with the body assertion in place — so this session closed the fourth acceptance criterion instead: a sweep over every `StandardModuleRuntimeSpec` now asserts no owner field reaches a create body, and it found `attendanceRuntimeSpec` sending `ownerId`, which is fixed. Status IN_PROGRESS to FIXED.
+
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
 
