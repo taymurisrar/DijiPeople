@@ -13,7 +13,7 @@ AffectedModules: [services/api/src/modules/attendance]
 OwnerAgent: backend-api
 ArchitectDisposition: FIX_NOW
 QAReport: 
-RegressionId: 
+RegressionId: REG-323
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
@@ -221,7 +221,89 @@ independently.
 
 ## Resolution
 
-Open. No fix has been written.
+**Partly fixed. Status stays OPEN, deliberately** — two of the four acceptance
+criteria are not met, and the remainder is a schema migration with a backfill
+that this bug-burndown branch is not the right vehicle for. What landed and what
+did not is set out below so the next agent does not have to re-derive it.
+
+## The premise, measured
+
+**The core claim is true.** `resolvePolicy`
+(`services/api/src/modules/attendance/attendance.service.ts`) reads each value as
+`policy?.X ?? attendanceSettings.X`, and every `AttendancePolicy` column
+consulted that way is non-nullable with a Prisma default — so the fallback fires
+only when the whole **row** is absent, never per field. `maxAllowedAccuracyMeters
+Int?` is the single exception and behaves correctly. The row is not seeded.
+
+**One sub-claim is false**, and it is worth recording rather than quietly
+fixing. Actual Behavior says "a partial PATCH of the policy persists hardcoded
+defaults for the fields it omits". That is true of the **create** branch — the
+lines the record cites, `attendance.service.ts:2780-2795` — and **not** of the
+update branch, which already read `dto.X ?? existing?.X ?? default` and left
+omitted fields alone. Acceptance criterion 3, "a partial PATCH of the policy
+leaves untouched fields untouched", was therefore already satisfied for updates
+before this work.
+
+**The reproduction cannot have been performed as written.** Step 2 is "open the
+attendance policy screen and press Save once". That save could not succeed:
+`AttendancePolicyCard` posted the whole resolved policy back, which carries
+`allowedModes`, `locationRetryAttempts` and `standardWorkHoursPerDay` — none of
+them in the DTO — and the global `ValidationPipe` runs with
+`forbidNonWhitelisted`. Every save on that screen returned 400. That is fixed
+under BUG-1981, and it means the trap this record describes is armed by an API
+client, not by the screen. The trap itself is real.
+
+## What was fixed
+
+`updatePolicy` no longer fills omitted fields with hardcoded constants when it
+creates the row. It resolves the currently **effective** policy first and seeds
+from that, so the row starts out saying exactly what the tenant already had.
+Before this, a tenant with `defaultGraceMinutes: 10` configured in Settings had
+`locationTimeoutSeconds`, `storeIpAddress`, `highAccuracyLocation`,
+`allowIpFallback` and `maxAllowedAccuracyMeters` replaced by constants the moment
+the row appeared — the act of creating the row changed behaviour by itself.
+
+Covered by `services/api/src/modules/attendance/attendance-policy-write.spec.ts`,
+which asserts six fields whose effective values all differ from the constants
+that used to be written, so a regression cannot pass by coincidence.
+Mutation-tested: restoring `dto.locationTimeoutSeconds ?? 15` fails that case.
+
+## What is NOT fixed
+
+**The precedence itself.** Once the row exists, later edits to the attendance
+settings category still have no effect, and the settings UI still gives no sign
+of it. Acceptance criteria 1, 2 and 4 remain open:
+
+- 1 — precedence documented and implemented consistently: **not done**
+- 2 — saving a policy does not freeze the settings value: **not done** (the
+  value is no longer *reset*, but it is still frozen)
+- 3 — a partial PATCH leaves untouched fields untouched: **done**, and was
+  already true for updates
+- 4 — the settings UI indicates which values come from the policy: **not done**
+
+## Why it was not fixed here
+
+The repository owner's decision of 2026-08-29 (recorded above) is that
+`AttendancePolicy` wins and the settings screen writes through to it. Executing
+that is **EXECPLAN-0027**, and its own sequencing forbids doing it piecemeal:
+the columns are stale relative to what the engine enforces, so pointing the
+resolver at them without correcting the data first would change behaviour on
+every tenant that has ever saved the attendance policy screen. It requires a
+defaults migration, a backfill of every existing row, a routing change in the
+settings write path, and the owner's answer to that plan's Risk 3 before its
+final step may merge.
+
+Three things make that unsuitable for this branch: it is a `DATA_MIGRATION`
+rollback class; the settings write path it must change is under concurrent work
+by another stream; and the plan explicitly gates its last step on a question
+only the repository owner can answer.
+
+## For whoever picks this up
+
+The alternative the record recommends — making the consulted columns nullable so
+`??` means what it was written to mean — is **not** the direction the owner
+chose. Read the Decision section above and EXECPLAN-0027 before starting, not
+the Proposed Resolution, which predates the decision.
 
 ## QA Retest
 
