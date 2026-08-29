@@ -483,6 +483,32 @@ export const ERROR_CATALOG = {
     'Try again later.',
     true,
   ),
+  /*
+   * A provider callback that arrived before the record it is about exists.
+   *
+   * Distinct from `VALIDATION_FAILED`, which is what every 400 renders as and
+   * which asserts the caller sent something malformed. Stripe's subscription
+   * and invoice callbacks for a public self-service signup can beat tenant
+   * provisioning to the database by a second or two, and answering those with
+   * a 400 said the payload was invalid and raised the critical "a customer may
+   * have paid without us knowing" alert on a payment that had in fact
+   * succeeded (BUG-1543).
+   *
+   * `info` severity and `retryable`, because the provider redelivering it a
+   * minute later is the resolution, not an escalation. The status is a 409
+   * rather than a 2xx on purpose: the delivery genuinely has not been
+   * processed, and Stripe's redelivery is what eventually writes the invoice
+   * and payment rows.
+   */
+  INTEGRATION_EVENT_NOT_READY: entry(
+    409,
+    'Integration event arrived early',
+    'The record this provider event refers to does not exist yet.',
+    'info',
+    'integration',
+    'No action needed — the provider will deliver it again.',
+    true,
+  ),
   AGENT_HEARTBEAT_FAILED: entry(
     502,
     'Agent heartbeat failed',

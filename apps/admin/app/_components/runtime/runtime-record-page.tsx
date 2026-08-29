@@ -12,6 +12,7 @@ import { PageHeader } from "@/app/_components/ui/page-header";
 import { createHttpModuleRuntimeAdapter } from "@/lib/runtime/http-module-runtime-adapter";
 import { getPlatformModuleDefinition } from "@/lib/runtime/platform-module-registry";
 import { planEntitlementKeys } from "@/lib/runtime/plan-entitlement-keys";
+import { planSubscriptionCount } from "@/lib/runtime/plan-subscription-count";
 import type {
   PlatformModuleKey,
   RuntimeActionDefinition,
@@ -542,11 +543,15 @@ function RuntimeRecordEditor({
         <PlanCommercialSummary
           prices={planPrices}
           featureCount={planFeatureKeys.length}
-          subscriptionCount={
-            Array.isArray(form.values.subscriptions)
-              ? form.values.subscriptions.length
-              : 0
-          }
+          /*
+           * `mapPlan` sends this count as a number under both
+           * `subscriptionCount` and `subscriptions`. This used to test
+           * `Array.isArray(form.values.subscriptions)`, which a number never
+           * satisfies — so the tile read 0 and offered "No tenant is billed on
+           * this plan yet" for a plan the list showed 2 subscriptions on
+           * (BUG-1953).
+           */
+          subscriptionCount={planSubscriptionCount(form.values)}
         />
       ) : null}
       {definition.process && !isCreate ? (

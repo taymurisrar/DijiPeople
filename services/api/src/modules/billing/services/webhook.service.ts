@@ -15,10 +15,12 @@ import {
   PlatformEventResult,
   PlatformEventSource,
   Prisma,
+  SubscriptionOrderStatus,
   SubscriptionStatus,
   TenantStatus,
   WebhookProcessingStatus,
 } from '@prisma/client';
+import { AppError } from '../../../common/errors/app-error';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { PlatformEventsService } from '../../platform-events/platform-events.service';
 import type { StripeClient, StripeEvent } from '../constants/stripe.constants';
@@ -207,6 +209,42 @@ export class WebhookService {
         status: updated.processingStatus,
       };
     } catch (error) {
+      /*
+       * An event that arrived before the record it is about is not a failure.
+       *
+       * The row stays `RECEIVED` rather than becoming `FAILED`, because the
+       * duplicate short-circuit above skips only `PROCESSED` and `IGNORED` —
+       * so Stripe's redelivery reprocesses this event properly once
+       * provisioning has finished, and that redelivery is what writes the
+       * invoice and payment rows. The platform event is recorded as `IGNORED`,
+       * which the notification rules do not surface, so the critical
+       * "a customer may have paid without us knowing" alert no longer fires on
+       * a payment that succeeded (BUG-1543).
+       *
+       * The error is still rethrown: it renders as `409
+       * INTEGRATION_EVENT_NOT_READY`, which is a non-2xx and therefore asks
+       * Stripe to deliver it again. Answering 2xx would end the redelivery and
+       * lose the rows.
+       */
+      if (isEventNotReadyError(error)) {
+        await this.prisma.stripeWebhookEvent.update({
+          where: { id: record.id },
+          data: {
+            processingStatus: WebhookProcessingStatus.RECEIVED,
+            errorMessage: getSafeErrorMessage(error),
+          },
+        });
+
+        await this.recordWebhookEvent(event, PlatformEventResult.IGNORED, {
+          duplicate: false,
+          processingStatus: WebhookProcessingStatus.RECEIVED,
+          awaitingProvisioning: true,
+          reason: getSafeErrorMessage(error),
+        });
+
+        throw error;
+      }
+
       await this.prisma.stripeWebhookEvent.update({
         where: { id: record.id },
         data: {
@@ -942,6 +980,10 @@ export class WebhookService {
     });
 
     if (!customerAccount || customerAccount.tenants.length !== 1) {
+      await this.assertNotAwaitingProvisioning(tx, {
+        stripeCustomerId,
+        subject: 'subscription',
+      });
       throw new BadRequestException(
         'Stripe subscription customer could not be resolved to one tenant.',
       );
@@ -952,6 +994,70 @@ export class WebhookService {
       stripeCustomerId,
       existingSubscription: customerAccount.tenants[0].subscription,
     };
+  }
+
+  /**
+   * "The tenant does not exist yet" is not "the payload is invalid".
+   *
+   * A public self-service signup has no tenant until the payment authorises
+   * provisioning to create one (BUG-0077), and Stripe's `customer.subscription`
+   * and `invoice.*` callbacks routinely reach us before provisioning finishes.
+   * Both resolvers then fail to find a tenant and, until this existed, both
+   * threw `BadRequestException` — which the filter renders as
+   * `400 VALIDATION_FAILED`, telling Stripe its payload was malformed and
+   * raising the critical "a customer may have paid without us knowing" alert on
+   * a payment that had in fact succeeded (BUG-1543).
+   *
+   * When an unactivated `SubscriptionOrder` exists for this Stripe customer,
+   * the race is the explanation and the answer is `INTEGRATION_EVENT_NOT_READY`
+   * — a 409, so Stripe redelivers, which is what eventually writes the invoice
+   * and payment rows. Only the redelivery does that: nothing else in this
+   * codebase creates them for a self-service order, so answering 2xx here would
+   * lose them.
+   *
+   * Absent such an order, nothing changes. An unattributable payment is a
+   * genuine failure and must keep alerting.
+   */
+  private async assertNotAwaitingProvisioning(
+    tx: PrismaTx,
+    input: {
+      stripeCustomerId?: string | null;
+      stripeCheckoutSessionId?: string | null;
+      subject: 'subscription' | 'invoice';
+    },
+  ) {
+    const identifiers: Prisma.SubscriptionOrderWhereInput[] = [];
+    if (input.stripeCustomerId)
+      identifiers.push({ stripeCustomerId: input.stripeCustomerId });
+    if (input.stripeCheckoutSessionId)
+      identifiers.push({
+        stripeCheckoutSessionId: input.stripeCheckoutSessionId,
+      });
+    if (!identifiers.length) return;
+
+    const order = await tx.subscriptionOrder.findFirst({
+      where: {
+        OR: identifiers,
+        // Provisioning fills these in. Both null is precisely "not yet".
+        tenantId: null,
+        subscriptionId: null,
+        status: {
+          in: [
+            SubscriptionOrderStatus.DRAFT,
+            SubscriptionOrderStatus.PENDING_PAYMENT,
+            SubscriptionOrderStatus.PAID,
+          ],
+        },
+      },
+      select: { orderNumber: true, status: true },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (!order) return;
+
+    throw new AppError('INTEGRATION_EVENT_NOT_READY', {
+      message: `Stripe ${input.subject} arrived before order ${order.orderNumber} finished provisioning.`,
+      details: { orderNumber: order.orderNumber, orderStatus: order.status },
+    });
   }
 
   private async resolvePlanPriceForSubscription(
@@ -1059,6 +1165,10 @@ export class WebhookService {
     }
 
     if (!subscription) {
+      await this.assertNotAwaitingProvisioning(tx, {
+        stripeCustomerId,
+        subject: 'invoice',
+      });
       throw new BadRequestException(
         'Stripe invoice could not be mapped to a DijiPeople subscription.',
       );
@@ -1494,6 +1604,20 @@ function getSafeErrorMessage(error: unknown) {
   }
 
   return 'Stripe webhook processing failed.';
+}
+
+/**
+ * The deferral, told apart from every other failure by its catalog code.
+ *
+ * Matched on `errorCode` rather than on a bespoke error class so that the
+ * distinction lives in one place — the catalog — and so a caller reading the
+ * HTTP response and this service reading the exception agree on what happened.
+ */
+function isEventNotReadyError(error: unknown): boolean {
+  return (
+    error instanceof AppError &&
+    error.errorCode === 'INTEGRATION_EVENT_NOT_READY'
+  );
 }
 
 function toPrismaJson(value: unknown): Prisma.InputJsonValue {
