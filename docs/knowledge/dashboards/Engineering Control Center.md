@@ -7,7 +7,7 @@
 
 | | |
 |---|---|
-| Active sessions | **1** |
+| Active sessions | **2** |
 | Active parent tasks | 3 |
 | Active work packages | 0 |
 | Blocked work packages | 0 |
@@ -15,9 +15,9 @@
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **0** |
-| Open HIGH | 1 |
+| Open HIGH | 19 |
 | Awaiting Architect triage | 0 |
-| Owner decisions pending | 1 |
+| Owner decisions pending | 8 |
 | QA coverage gaps | 106 |
 | Scenarios blocked by infrastructure | 0 |
 
@@ -30,12 +30,12 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 21 |
-| No next action | 21 |
+| No acceptance criteria | 64 |
+| No next action | 64 |
 | Aging — 7d / 30d / 90d | 17 / 0 / 0 |
-| Architecture and technical debt | 6 |
-| Security gaps | 2 |
-| Database gaps | 0 |
+| Architecture and technical debt | 7 |
+| Security gaps | 4 |
+| Database gaps | 6 |
 
 Ranked next-best actions weigh blast radius rather than severity alone, and
 are computed on demand so the reasons travel with the ranking:
@@ -49,6 +49,7 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 | Session | Task | Title | Status | Branch | Target | Leases | Schema |
 |---|---|---|---|---|---|---|---|
+| [[SESSION-0070-starter-plan-e2e-qa-on-the-demo-tenant|SESSION-0070]] | — | Starter plan E2E QA on the demo tenant | ACTIVE | `agent/starter-plan-e2e-qa` | `develop` | — | NO |
 | [[SESSION-0061-unblock-the-production-hosts-for-the-mcp-browser|SESSION-0061]] | — | Production admin E2E QA and invitation delivery visibility | ACTIVE | `agent/invitation-delivery-visibility` | `develop` | — | NO |
 
 ## Active Tasks and Work Packages
@@ -106,6 +107,13 @@ _None. Nothing open at CRITICAL._
 Questions where the engineering is understood and the **product answer is**
 **not**. No agent may resolve one by implementing a side of it.
 
+- [[BUG-1979-seven-attendance-settings-are-overwritten-on-write-and-the-a|BUG-1979]] — **Seven attendance settings are overwritten on write and the admin is never told**
+- [[BUG-1980-one-saved-attendance-policy-permanently-overrides-the-attend|BUG-1980]] — **One saved attendance policy permanently overrides the attendance settings category**
+- [[BUG-1981-resolvepolicy-hardcodes-seven-location-values-and-inverts-tw|BUG-1981]] — **resolvePolicy hardcodes seven location values and inverts two AttendancePolicy column defaults**
+- [[BUG-2045-timesheet-background-job-completions-make-up-71-percent-of-t|BUG-2045]] — **Timesheet background-job completions make up 71 percent of the tenant audit trail**
+- [[ITEM-0106-an-employee-cannot-use-self-service-until-their-manager-acti|ITEM-0106]] — **An employee cannot use self-service until their manager activates their own account**
+- [[ITEM-0108-decide-whether-the-roughly-one-hour-session-lifetime-is-idle|ITEM-0108]] — **Decide whether the roughly one-hour session lifetime is idle or absolute**
+- [[BUG-2007-projects-and-customers-can-be-created-but-never-deleted|BUG-2007]] — **Projects and customers can be created but never deleted**
 - [[ITEM-0079-activation-does-not-gate-on-a-workspace-having-any-module-en|ITEM-0079]] — **Activation does not gate on a workspace having any module enabled**
 
 ## QA Coverage Gaps
@@ -226,10 +234,10 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 22 |
+| Open total | 65 |
 | Blocked | 2 |
-| Deferred | 25 |
-| Awaiting a product decision | 1 |
+| Deferred | 29 |
+| Awaiting a product decision | 8 |
 | Awaiting Architect triage | 0 |
 
 Every ordinary record carries a disposition.

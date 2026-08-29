@@ -12,4 +12,5 @@ therefore sees sibling worktrees without anybody having pushed.
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0070](../../docs/sessions/SESSION-0070-starter-plan-e2e-qa-on-the-demo-tenant.md) | — | Starter plan E2E QA on the demo tenant | ACTIVE | `agent/starter-plan-e2e-qa` | `develop` | — | 2026-08-28T23:46:01.955Z |
 | [SESSION-0061](../../docs/sessions/SESSION-0061-unblock-the-production-hosts-for-the-mcp-browser.md) | — | Production admin E2E QA and invitation delivery visibility | ACTIVE | `agent/invitation-delivery-visibility` | `develop` | — | 2026-08-26T09:54:37.336Z |

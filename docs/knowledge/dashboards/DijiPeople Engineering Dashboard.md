@@ -8,11 +8,11 @@
 | | |
 |---|---|
 | Open CRITICAL | **0** |
-| Open HIGH | **1** |
-| Open total | 22 |
+| Open HIGH | **19** |
+| Open total | 65 |
 | Blocked | 2 |
-| Awaiting a product decision | 1 |
-| Deferred | 25 |
+| Awaiting a product decision | 8 |
+| Deferred | 29 |
 | Completed | 276 |
 | Awaiting Architect triage | 0 |
 
@@ -24,12 +24,37 @@ _None. Nothing open at CRITICAL._
 
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
+| [[BUG-1952-plan-entitlements-gate-nothing-so-a-starter-tenant-can-use-e|BUG-1952]] | Plan entitlements gate nothing, so a Starter tenant can use every module it has not bought | BUG | HIGH | OPEN | api:tenant-settings, apps/web | PLAN_REQUIRED |
+| [[BUG-1954-the-starter-annual-price-tile-renders-pkr-120-000-00-for-a-p|BUG-1954]] | The Starter annual price tile renders PKR 120,000.00 for a PKR 3,000 annual price | BUG | HIGH | OPEN | apps/admin, api:super-admin | FIX_NOW |
+| [[BUG-1957-a-department-with-no-business-unit-cannot-be-listed-opened-e|BUG-1957]] | A department with no business unit cannot be listed, opened, edited or deleted, yet still holds its name | DATA_INTEGRITY | HIGH | OPEN | api:organization | FIX_NOW |
+| [[BUG-1961-a-leave-policy-assignment-cannot-be-created-from-the-ui-beca|BUG-1961]] | A leave policy assignment cannot be created from the UI because the parent id is never sent | BUG | HIGH | OPEN | apps/web, api:leave | FIX_NOW |
+| [[BUG-1965-the-leave-request-form-sends-ownerid-and-status-which-the-ap|BUG-1965]] | The leave request form sends ownerId and status, which the API rejects as forbidden properties | BUG | HIGH | OPEN | apps/web, api:leave | FIX_NOW |
+| [[BUG-1966-a-failed-save-in-the-runtime-form-is-swallowed-with-no-messa|BUG-1966]] | A failed save in the runtime form is swallowed with no message, toast or inline error | UX | HIGH | OPEN | apps/web | FIX_NOW |
+| [[BUG-1967-leave-entitlement-is-never-allocated-to-a-balance-so-every-l|BUG-1967]] | Leave entitlement is never allocated to a balance, so every leave request is refused | BUG | HIGH | OPEN | api:leave | PLAN_REQUIRED |
+| [[BUG-1968-leave-approval-routing-requires-an-active-reporting-manager-|BUG-1968]] | Leave approval routing rejects the submission unless every rule in the chain resolves to an active approver | BUG | HIGH | OPEN | api:leave, api:approvals | PLAN_REQUIRED |
+| [[BUG-1970-the-elevated-role-bypass-precedes-the-self-requester-check-o|BUG-1970]] | The elevated-role bypass precedes the self-requester check on leave approval steps | AUTHORIZATION | HIGH | OPEN | api:leave | FIX_NOW |
+| [[BUG-1974-246-of-591-tenant-setting-keys-have-no-reader-and-230-of-the|BUG-1974]] | 246 of 591 tenant setting keys have no reader and 230 of them are editable in the UI | BUG | HIGH | OPEN | api:tenant-settings, apps/web | PLAN_REQUIRED |
+| [[BUG-1976-eight-settings-controls-write-a-key-name-the-resolver-never-|BUG-1976]] | Eight settings controls write a key name the resolver never reads | BUG | HIGH | OPEN | api:tenant-settings, apps/web | FIX_NOW |
 | [[BUG-1986-tenant-settings-has-four-blocking-accessibility-violations-i|BUG-1986]] | Tenant settings has four blocking accessibility violations including buttons with no name | UX | HIGH | OPEN | apps/web | FIX_NOW |
+| [[BUG-2003-the-tenant-users-screen-crashes-into-the-error-boundary-for-|BUG-2003]] | The tenant Users screen requests an entity the data registry does not have, so it never renders | BUG | HIGH | OPEN | apps/web, api:data | FIX_NOW |
+| [[BUG-2008-every-employee-is-counted-absent-on-a-non-working-day-and-ra|BUG-2008]] | Every employee is counted absent on a non-working day and raised as an exception | DATA_INTEGRITY | HIGH | OPEN | api:attendance, api:dashboard | FIX_NOW |
+| [[BUG-2011-seven-related-list-dialogs-never-send-the-parent-foreign-key|BUG-2011]] | Seven related-list dialogs never send the parent foreign key and one of them creates an orphan | BUG | HIGH | OPEN | apps/web | FIX_NOW |
+| [[BUG-2013-the-dashboard-error-boundary-classifies-server-component-fai|BUG-2013]] | The dashboard error boundary classifies server-component failures by a message it can never receive | BUG | HIGH | OPEN | apps/web | FIX_NOW |
+| [[BUG-2015-approving-and-rejecting-leave-is-gated-on-read-permission-an|BUG-2015]] | Approving and rejecting leave is gated on read permission and the dedicated approve keys are never required | AUTHORIZATION | HIGH | OPEN | api:leave | FIX_NOW |
+| [[BUG-2043-the-audit-events-screen-reports-the-number-of-rows-it-loaded|BUG-2043]] | The Audit Events screen reports the number of rows it loaded as the tenant's total audit count | BUG | HIGH | OPEN | apps/web, api:audit | FIX_NOW |
+| [[BUG-2044-no-employee-lifecycle-event-is-audited-including-employee-cr|BUG-2044]] | No employee lifecycle event is audited, including employee creation and reporting-manager assignment | DATA_INTEGRITY | HIGH | OPEN | api:employees, api:organization, api:leave | PLAN_REQUIRED |
 
 ## Product Decisions Needed
 
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
+| [[BUG-1979-seven-attendance-settings-are-overwritten-on-write-and-the-a|BUG-1979]] | Seven attendance settings are overwritten on write and the admin is never told | BUG | MEDIUM | PRODUCT_DECISION | api:tenant-settings | PRODUCT_DECISION |
+| [[BUG-1980-one-saved-attendance-policy-permanently-overrides-the-attend|BUG-1980]] | One saved attendance policy permanently overrides the attendance settings category | BUG | MEDIUM | PRODUCT_DECISION | api:attendance | PRODUCT_DECISION |
+| [[BUG-1981-resolvepolicy-hardcodes-seven-location-values-and-inverts-tw|BUG-1981]] | resolvePolicy hardcodes seven location values and inverts two AttendancePolicy column defaults | BUG | MEDIUM | PRODUCT_DECISION | api:attendance | PRODUCT_DECISION |
+| [[BUG-2045-timesheet-background-job-completions-make-up-71-percent-of-t|BUG-2045]] | Timesheet background-job completions make up 71 percent of the tenant audit trail | BUG | MEDIUM | PRODUCT_DECISION | api:timesheets, api:audit, api:tenant-settings | PRODUCT_DECISION |
+| [[ITEM-0106-an-employee-cannot-use-self-service-until-their-manager-acti|ITEM-0106]] | An employee cannot use self-service until their manager activates their own account | PRODUCT_DECISION | MEDIUM | PRODUCT_DECISION | api:leave, api:employees | PRODUCT_DECISION |
+| [[ITEM-0108-decide-whether-the-roughly-one-hour-session-lifetime-is-idle|ITEM-0108]] | Decide whether the roughly one-hour session lifetime is idle or absolute | PRODUCT_DECISION | LOW | PRODUCT_DECISION | api:auth | PRODUCT_DECISION |
+| [[BUG-2007-projects-and-customers-can-be-created-but-never-deleted|BUG-2007]] | Projects and customers can be created but never deleted | BUG | LOW | PRODUCT_DECISION | api:projects | PRODUCT_DECISION |
 | [[ITEM-0079-activation-does-not-gate-on-a-workspace-having-any-module-en|ITEM-0079]] | Activation does not gate on a workspace having any module enabled | PRODUCT_DECISION | LOW | PRODUCT_DECISION | api:tenant-control-plane | PRODUCT_DECISION |
 
 ## Blocked Items
@@ -273,6 +298,7 @@ _None. Nothing open at CRITICAL._
 
 ## Recent QA Runs
 
+- [[2026-08-29-starter-plan-e2e-eb457d9|QA Run — starter-plan-e2e]]
 - [[2026-08-28-regression-guard-sweep-9e55663|QA Run — regression-guard-sweep]]
 - [[2026-08-28-admin-console-e2e-912f4e6|QA Run — Admin console end-to-end, browser-driven]]
 - [[2026-08-26-admin-prod-e2e-8d6be21|QA Run — admin-prod-e2e]]
@@ -280,7 +306,6 @@ _None. Nothing open at CRITICAL._
 - [[2026-08-25-landing-e2e-local-and-prod-42435d5|QA Run — landing-e2e-local-and-prod]]
 - [[2026-08-24-record-state-reconciliation-0a5586f|QA Run — record-state-reconciliation]]
 - [[2026-08-23-landing-go-live-e2e-789eeac|QA Run — landing-go-live-e2e]]
-- [[2026-08-22-tenant-activation-be0fd00|QA Run — tenant-activation]]
 
 ## Recent Implementations
 
@@ -314,6 +339,23 @@ _None. Nothing open at CRITICAL._
 |---|---|---|---|---|---|---|
 | [[BUG-1950-every-tenant-workspace-screen-renders-the-same-h1-so-no-page|BUG-1950]] | Every tenant workspace screen renders the same h1, so no page announces what it is | UX | MEDIUM | OPEN | apps/web | FIX_NOW |
 | [[BUG-1951-most-tenant-workspace-pages-render-no-main-landmark-includin|BUG-1951]] | Most tenant workspace pages render no main landmark, including every settings category | UX | MEDIUM | OPEN | apps/web | FIX_NOW |
+| [[BUG-1953-plan-detail-reports-zero-subscriptions-while-the-plans-list-|BUG-1953]] | Plan detail reports zero subscriptions while the plans list and subscriptions both show two | BUG | MEDIUM | OPEN | apps/admin, api:super-admin | FIX_NOW |
+| [[BUG-1956-runtime-lookup-comboboxes-expose-no-listbox-or-option-semant|BUG-1956]] | Runtime lookup comboboxes expose no listbox or option semantics to assistive technology | UX | MEDIUM | OPEN | apps/web | PLAN_REQUIRED |
+| [[BUG-1958-deleting-a-department-never-releases-its-name-so-it-can-neve|BUG-1958]] | Deleting a department never releases its name, so it can never be recreated | DATA_INTEGRITY | MEDIUM | OPEN | api:organization | PLAN_REQUIRED |
+| [[BUG-1959-the-departments-list-returns-a-bare-array-and-rejects-the-pa|BUG-1959]] | The departments list returns a bare array and rejects the page size its own table offers | BUG | MEDIUM | OPEN | api:organization, apps/web | FIX_NOW |
+| [[BUG-1962-assigned-on-is-required-by-the-leave-assignment-api-and-rend|BUG-1962]] | Assigned On is required by the leave assignment API and rendered as an optional field | UX | MEDIUM | OPEN | apps/web, api:leave | FIX_NOW |
+| [[BUG-1963-runtime-dialogs-show-the-end-user-the-raw-server-message-and|BUG-1963]] | Runtime dialogs show the end user the raw server message and the HTTP method and path | UX | MEDIUM | OPEN | apps/web | FIX_NOW |
+| [[BUG-1969-an-invited-approver-is-rejected-with-a-message-that-blames-t|BUG-1969]] | An invited approver is rejected with a message that blames tenancy instead of account status | BUG | MEDIUM | OPEN | api:approvals | FIX_NOW |
+| [[BUG-1977-the-platform-localization-panel-queries-dotted-setting-keys-|BUG-1977]] | The platform Localization panel queries dotted setting keys that no row can ever hold | BUG | MEDIUM | OPEN | api:tenant-control-plane, apps/admin | FIX_NOW |
+| [[BUG-1978-two-attendance-checkboxes-are-not-catalog-keys-so-touching-e|BUG-1978]] | Two attendance checkboxes are not catalog keys, so touching either rejects the whole settings save | BUG | MEDIUM | OPEN | apps/web, api:tenant-settings | FIX_NOW |
+| [[BUG-2004-the-approvals-inbox-offers-a-new-action-whose-page-crashes-i|BUG-2004]] | The approvals module emits a New action for a page that does not exist, and the detail route throws on it | BUG | MEDIUM | OPEN | apps/web | FIX_NOW |
+| [[BUG-2005-manual-attendance-accepts-a-date-arbitrarily-far-in-the-futu|BUG-2005]] | Manual attendance accepts a date arbitrarily far in the future | DATA_INTEGRITY | MEDIUM | OPEN | api:attendance | FIX_NOW |
+| [[BUG-2006-a-successful-save-reports-nothing-to-the-user-on-the-runtime|BUG-2006]] | A successful save reports nothing to the user on the runtime forms and the branding page | UX | MEDIUM | OPEN | apps/web | FIX_NOW |
+| [[BUG-2009-display-labels-fall-through-to-the-raw-field-key-or-raw-enum|BUG-2009]] | Display labels fall through to the raw field key or raw enum value on three tenant surfaces | UX | MEDIUM | OPEN | apps/web | FIX_NOW |
+| [[BUG-2012-the-related-list-create-dialog-pre-fills-child-fields-with-t|BUG-2012]] | The related-list create dialog pre-fills child fields with the parent record values | DATA_INTEGRITY | MEDIUM | OPEN | apps/web | PLAN_REQUIRED |
+| [[BUG-2014-users-new-and-users-import-are-shadowed-by-the-user-detail-r|BUG-2014]] | Users new and Users import fall through to the user detail route and report a permissions refusal | BUG | MEDIUM | OPEN | apps/web | FIX_NOW |
+| [[BUG-2016-cancelling-a-leave-request-leaves-its-needs-approval-notific|BUG-2016]] | Cancelling a leave request leaves its needs-approval notification outstanding in the inbox | BUG | MEDIUM | OPEN | api:notifications, api:leave | FIX_NOW |
+| [[BUG-2026-the-employee-export-produces-columns-the-employee-import-tem|BUG-2026]] | The employee export produces columns the employee import template does not accept | BUG | MEDIUM | OPEN | api:employees | FIX_NOW |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0020-contract-phase-drop-legacy-plan-pricing-columns|ITEM-0020]] | Contract phase: drop legacy Plan pricing columns | TECH_DEBT | MEDIUM | READY | services/api/prisma, api:super-admin, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur|ITEM-0022]] | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | READY | api:super-admin, apps/admin | PLAN_REQUIRED |
@@ -329,10 +371,18 @@ _None. Nothing open at CRITICAL._
 | [[ITEM-0078-no-end-to-end-payment-to-provisioned-tenant-run-against-stri|ITEM-0078]] | No end-to-end payment to provisioned tenant run against Stripe test mode | TEST_GAP | MEDIUM | READY | api:billing, api:tenant-control-plane, api:outbox, apps/landing | PLAN_REQUIRED |
 | [[ITEM-0084-detect-drift-between-render-yaml-and-the-live-render-service|ITEM-0084]] | Detect drift between render.yaml and the live Render service | INFRA | MEDIUM | READY | render.yaml, scripts | FIX_NOW |
 | [[ITEM-0092-widget-runtime-contract-test-js-fails-and-no-script-or-ci-jo|ITEM-0092]] | widget-runtime-contract.test.js fails and no script or CI job runs it | TEST_GAP | MEDIUM | READY | pkg:config, apps/web | PLAN_REQUIRED |
+| [[ITEM-0105-the-leave-entitlement-dialog-cannot-set-accrualtype-which-th|ITEM-0105]] | The leave entitlement dialog cannot set accrualType, which the API requires | UX | MEDIUM | READY | apps/web, api:leave | FIX_NOW |
+| [[ITEM-0107-three-separate-users-screens-exist-in-the-tenant-app|ITEM-0107]] | Four Users screens exist in the tenant app and two of them are unreachable | ARCHITECTURE | MEDIUM | READY | apps/web | FIX_NOW |
 | [[ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning|ITEM-0023]] | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
+| [[BUG-1964-record-headings-and-dialog-titles-are-singularised-by-stripp|BUG-1964]] | Record headings and dialog titles are singularised by stripping a trailing s | UX | LOW | OPEN | apps/web | FIX_NOW |
+| [[BUG-2010-the-dashboard-recent-changes-list-renders-unformatted-iso-86|BUG-2010]] | The dashboard Recent changes list renders unformatted ISO-8601 timestamps | UX | LOW | OPEN | apps/web | FIX_NOW |
+| [[BUG-2017-the-inbox-related-record-column-renders-a-bare-uuid-with-no-|BUG-2017]] | The inbox Related record column renders a bare UUID with no label and no link | UX | LOW | OPEN | apps/web | FIX_NOW |
+| [[BUG-2046-audit-actions-use-two-naming-conventions-and-the-result-colu|BUG-2046]] | Audit actions use two naming conventions and the Result column is populated only by login events | BUG | LOW | OPEN | api:audit | PLAN_REQUIRED |
 | [[ITEM-0049-register-services-api-environment-reads-or-scope-the-rule|ITEM-0049]] | Register services/api environment reads or scope the rule to build inputs | INFRA | LOW | READY | services/api, turbo.json, docs/deployment | PLAN_REQUIRED |
 | [[ITEM-0080-type-the-remaining-services-api-no-unsafe-warnings-module-by|ITEM-0080]] | Type the remaining services/api no-unsafe warnings module by module | TECH_DEBT | LOW | READY | services/api | FIX_NOW |
 | [[ITEM-0093-link-validation-skips-untracked-files-so-a-new-record-s-brok|ITEM-0093]] | Link validation skips untracked files, so a new record's broken links only surface in CI | TECH_DEBT | LOW | READY | scripts | FIX_NOW |
+| [[ITEM-0109-the-disabled-check-in-button-explains-itself-only-in-a-title|ITEM-0109]] | The disabled Check In button explains itself only in a title tooltip | UX | LOW | READY | apps/web | FIX_NOW |
+| [[ITEM-0111-protected-route-prefixes-omits-twelve-authenticated-route-tr|ITEM-0111]] | PROTECTED_ROUTE_PREFIXES omits twelve authenticated route trees, so deep links to them are lost at sign-in | UX | LOW | READY | apps/web | FIX_NOW |
 
 ## Key Architecture Decisions
 
@@ -347,14 +397,14 @@ _None. Nothing open at CRITICAL._
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 223 |
-| Backlog items | 103 |
+| Bug records | 269 |
+| Backlog items | 111 |
 | Known bug patterns | 30 |
-| QA runs | 29 |
+| QA runs | 30 |
 | Engineering history records | 57 |
 | Release records | 3 |
-| Module notes | 28 |
-| Architecture notes | 20 |
+| Module notes | 29 |
+| Architecture notes | 21 |
 | Decision notes (ADR + generated) | 6 |
 | Implementation records | 6 |
 

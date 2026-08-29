@@ -42,4 +42,7 @@ REG-003, REG-004 — `approvals.scope.spec.ts`.
 ## Related
 
 [[rbac]] · [[attendance]] · [[multi-tenancy]] ·
+[[leave-attendance-approvals]] — the operator's map: route resolution requires
+*every* rule in the chain to resolve, and `/api/approvals` has no action
+endpoint ·
 patterns [[search-filter-scope-overwrite]], [[fail-open-scope]]

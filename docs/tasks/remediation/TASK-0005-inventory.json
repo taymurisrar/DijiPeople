@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 326,
+    "total_records": 380,
     "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
@@ -10758,6 +10758,1018 @@
       "verification_result": "NOT_VERIFIED"
     },
     {
+      "record_id": "BUG-1952",
+      "type": "BUG",
+      "title": "Plan entitlements gate nothing, so a Starter tenant can use every module it has not bought",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "OPEN",
+      "architect_disposition": "PLAN_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-1952-plan-entitlements-gate-nothing-so-a-starter-tenant-can-use-e.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "eb457d9d",
+        "created_at": "2026-08-29",
+        "updated_at": "2026-08-29",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/tenant-settings",
+        "apps/web"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/tenant-settings",
+          "apps/web"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1952-plan-entitlements-gate-nothing-so-a-starter-tenant-can-use-e.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1953",
+      "type": "BUG",
+      "title": "Plan detail reports zero subscriptions while the plans list and subscriptions both show two",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-1953-plan-detail-reports-zero-subscriptions-while-the-plans-list-.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "eb457d9d",
+        "created_at": "2026-08-29",
+        "updated_at": "2026-08-29",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/admin",
+        "services/api/src/modules/super-admin"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/admin",
+          "services/api/src/modules/super-admin"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1953-plan-detail-reports-zero-subscriptions-while-the-plans-list-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1954",
+      "type": "BUG",
+      "title": "The Starter annual price tile renders PKR 120,000.00 for a PKR 3,000 annual price",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "OPEN",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-1954-the-starter-annual-price-tile-renders-pkr-120-000-00-for-a-p.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "eb457d9d",
+        "created_at": "2026-08-29",
+        "updated_at": "2026-08-29",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/admin",
+        "services/api/src/modules/super-admin"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/admin",
+          "services/api/src/modules/super-admin"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1954-the-starter-annual-price-tile-renders-pkr-120-000-00-for-a-p.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1955",
+      "type": "UX",
+      "title": "Every 404 is reported to the user as DATABASE_RECORD_NOT_FOUND with the raw HTML body as its message",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
+      "source": {
+        "record_path": "docs/bugs/BUG-1955-every-404-is-reported-to-the-user-as-database-record-not-fou.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "eb457d9d",
+        "created_at": "2026-08-29",
+        "updated_at": "2026-08-29",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1955-every-404-is-reported-to-the-user-as-database-record-not-fou.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1956",
+      "type": "UX",
+      "title": "Runtime lookup comboboxes expose no listbox or option semantics to assistive technology",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "PLAN_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-1956-runtime-lookup-comboboxes-expose-no-listbox-or-option-semant.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "eb457d9d",
+        "created_at": "2026-08-29",
+        "updated_at": "2026-08-29",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1956-runtime-lookup-comboboxes-expose-no-listbox-or-option-semant.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1957",
+      "type": "DATA_INTEGRITY",
+      "title": "A department with no business unit cannot be listed, opened, edited or deleted, yet still holds its name",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "OPEN",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-1957-a-department-with-no-business-unit-cannot-be-listed-opened-e.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "eb457d9d",
+        "created_at": "2026-08-29",
+        "updated_at": "2026-08-29",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/organization"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/organization"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1957-a-department-with-no-business-unit-cannot-be-listed-opened-e.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1958",
+      "type": "DATA_INTEGRITY",
+      "title": "Deleting a department never releases its name, so it can never be recreated",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "PLAN_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-1958-deleting-a-department-never-releases-its-name-so-it-can-neve.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "eb457d9d",
+        "created_at": "2026-08-29",
+        "updated_at": "2026-08-29",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/organization"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/organization"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1958-deleting-a-department-never-releases-its-name-so-it-can-neve.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1959",
+      "type": "BUG",
+      "title": "The departments list returns a bare array and rejects the page size its own table offers",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-1959-the-departments-list-returns-a-bare-array-and-rejects-the-pa.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "eb457d9d",
+        "created_at": "2026-08-29",
+        "updated_at": "2026-08-29",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/organization",
+        "apps/web"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/organization",
+          "apps/web"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1959-the-departments-list-returns-a-bare-array-and-rejects-the-pa.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1960",
+      "type": "UX",
+      "title": "The departments table overflows its settings panel by 111px at 1440px",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
+      "source": {
+        "record_path": "docs/bugs/BUG-1960-the-departments-table-overflows-its-settings-panel-by-111px-.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "eb457d9d",
+        "created_at": "2026-08-29",
+        "updated_at": "2026-08-29",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1960-the-departments-table-overflows-its-settings-panel-by-111px-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1961",
+      "type": "BUG",
+      "title": "A leave policy assignment cannot be created from the UI because the parent id is never sent",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "OPEN",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-1961-a-leave-policy-assignment-cannot-be-created-from-the-ui-beca.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "eb457d9d",
+        "created_at": "2026-08-29",
+        "updated_at": "2026-08-29",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web",
+        "services/api/src/modules/leave"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web",
+          "services/api/src/modules/leave"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1961-a-leave-policy-assignment-cannot-be-created-from-the-ui-beca.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1962",
+      "type": "UX",
+      "title": "Assigned On is required by the leave assignment API and rendered as an optional field",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-1962-assigned-on-is-required-by-the-leave-assignment-api-and-rend.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "eb457d9d",
+        "created_at": "2026-08-29",
+        "updated_at": "2026-08-29",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web",
+        "services/api/src/modules/leave"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web",
+          "services/api/src/modules/leave"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1962-assigned-on-is-required-by-the-leave-assignment-api-and-rend.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1963",
+      "type": "UX",
+      "title": "Runtime dialogs show the end user the raw server message and the HTTP method and path",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-1963-runtime-dialogs-show-the-end-user-the-raw-server-message-and.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "eb457d9d",
+        "created_at": "2026-08-29",
+        "updated_at": "2026-08-29",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1963-runtime-dialogs-show-the-end-user-the-raw-server-message-and.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1964",
+      "type": "UX",
+      "title": "Record headings and dialog titles are singularised by stripping a trailing s",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "OPEN",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-1964-record-headings-and-dialog-titles-are-singularised-by-stripp.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "eb457d9d",
+        "created_at": "2026-08-29",
+        "updated_at": "2026-08-29",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1964-record-headings-and-dialog-titles-are-singularised-by-stripp.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1965",
+      "type": "BUG",
+      "title": "The leave request form sends ownerId and status, which the API rejects as forbidden properties",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "OPEN",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-1965-the-leave-request-form-sends-ownerid-and-status-which-the-ap.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "eb457d9d",
+        "created_at": "2026-08-29",
+        "updated_at": "2026-08-29",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web",
+        "services/api/src/modules/leave"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web",
+          "services/api/src/modules/leave"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1965-the-leave-request-form-sends-ownerid-and-status-which-the-ap.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1966",
+      "type": "UX",
+      "title": "A failed save in the runtime form is swallowed with no message, toast or inline error",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "OPEN",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-1966-a-failed-save-in-the-runtime-form-is-swallowed-with-no-messa.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "eb457d9d",
+        "created_at": "2026-08-29",
+        "updated_at": "2026-08-29",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1966-a-failed-save-in-the-runtime-form-is-swallowed-with-no-messa.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1967",
+      "type": "BUG",
+      "title": "Leave entitlement is never allocated to a balance, so every leave request is refused",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "OPEN",
+      "architect_disposition": "PLAN_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-1967-leave-entitlement-is-never-allocated-to-a-balance-so-every-l.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "eb457d9d",
+        "created_at": "2026-08-29",
+        "updated_at": "2026-08-29",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/leave"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/leave"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1967-leave-entitlement-is-never-allocated-to-a-balance-so-every-l.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1968",
+      "type": "BUG",
+      "title": "Leave approval routing rejects the submission unless every rule in the chain resolves to an active approver",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "OPEN",
+      "architect_disposition": "PLAN_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-1968-leave-approval-routing-requires-an-active-reporting-manager-.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "eb457d9d",
+        "created_at": "2026-08-29",
+        "updated_at": "2026-08-29",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/leave",
+        "services/api/src/modules/approvals"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/leave",
+          "services/api/src/modules/approvals"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1968-leave-approval-routing-requires-an-active-reporting-manager-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1969",
+      "type": "BUG",
+      "title": "An invited approver is rejected with a message that blames tenancy instead of account status",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-1969-an-invited-approver-is-rejected-with-a-message-that-blames-t.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "eb457d9d",
+        "created_at": "2026-08-29",
+        "updated_at": "2026-08-29",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/approvals"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/approvals"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1969-an-invited-approver-is-rejected-with-a-message-that-blames-t.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1970",
+      "type": "AUTHORIZATION",
+      "title": "The elevated-role bypass precedes the self-requester check on leave approval steps",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "OPEN",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-1970-the-elevated-role-bypass-precedes-the-self-requester-check-o.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "eb457d9d",
+        "created_at": "2026-08-29",
+        "updated_at": "2026-08-29",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/leave"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/leave"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1970-the-elevated-role-bypass-precedes-the-self-requester-check-o.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1974",
+      "type": "BUG",
+      "title": "246 of 591 tenant setting keys have no reader and 230 of them are editable in the UI",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "OPEN",
+      "architect_disposition": "PLAN_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-1974-246-of-591-tenant-setting-keys-have-no-reader-and-230-of-the.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "eb457d9d",
+        "created_at": "2026-08-29",
+        "updated_at": "2026-08-29",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/tenant-settings",
+        "apps/web"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/tenant-settings",
+          "apps/web"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1974-246-of-591-tenant-setting-keys-have-no-reader-and-230-of-the.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1976",
+      "type": "BUG",
+      "title": "Eight settings controls write a key name the resolver never reads",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "OPEN",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-1976-eight-settings-controls-write-a-key-name-the-resolver-never-.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "eb457d9d",
+        "created_at": "2026-08-29",
+        "updated_at": "2026-08-29",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/tenant-settings",
+        "apps/web"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/tenant-settings",
+          "apps/web"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1976-eight-settings-controls-write-a-key-name-the-resolver-never-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1977",
+      "type": "BUG",
+      "title": "The platform Localization panel queries dotted setting keys that no row can ever hold",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-1977-the-platform-localization-panel-queries-dotted-setting-keys-.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "eb457d9d",
+        "created_at": "2026-08-29",
+        "updated_at": "2026-08-29",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/tenant-control-plane",
+        "apps/admin"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/tenant-control-plane",
+          "apps/admin"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1977-the-platform-localization-panel-queries-dotted-setting-keys-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1978",
+      "type": "BUG",
+      "title": "Two attendance checkboxes are not catalog keys, so touching either rejects the whole settings save",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-1978-two-attendance-checkboxes-are-not-catalog-keys-so-touching-e.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "eb457d9d",
+        "created_at": "2026-08-29",
+        "updated_at": "2026-08-29",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web",
+        "services/api/src/modules/tenant-settings"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web",
+          "services/api/src/modules/tenant-settings"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1978-two-attendance-checkboxes-are-not-catalog-keys-so-touching-e.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1979",
+      "type": "BUG",
+      "title": "Seven attendance settings are overwritten on write and the admin is never told",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "PRODUCT_DECISION",
+      "architect_disposition": "PRODUCT_DECISION",
+      "source": {
+        "record_path": "docs/bugs/BUG-1979-seven-attendance-settings-are-overwritten-on-write-and-the-a.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "eb457d9d",
+        "created_at": "2026-08-29",
+        "updated_at": "2026-08-29",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/tenant-settings"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/tenant-settings"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1979-seven-attendance-settings-are-overwritten-on-write-and-the-a.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1980",
+      "type": "BUG",
+      "title": "One saved attendance policy permanently overrides the attendance settings category",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "PRODUCT_DECISION",
+      "architect_disposition": "PRODUCT_DECISION",
+      "source": {
+        "record_path": "docs/bugs/BUG-1980-one-saved-attendance-policy-permanently-overrides-the-attend.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "eb457d9d",
+        "created_at": "2026-08-29",
+        "updated_at": "2026-08-29",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/attendance"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/attendance"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1980-one-saved-attendance-policy-permanently-overrides-the-attend.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-1981",
+      "type": "BUG",
+      "title": "resolvePolicy hardcodes seven location values and inverts two AttendancePolicy column defaults",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "PRODUCT_DECISION",
+      "architect_disposition": "PRODUCT_DECISION",
+      "source": {
+        "record_path": "docs/bugs/BUG-1981-resolvepolicy-hardcodes-seven-location-values-and-inverts-tw.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "eb457d9d",
+        "created_at": "2026-08-29",
+        "updated_at": "2026-08-29",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/attendance"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/attendance"
+        ],
+        "verification_scope": "See docs/bugs/BUG-1981-resolvepolicy-hardcodes-seven-location-values-and-inverts-tw.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
       "record_id": "BUG-1986",
       "type": "UX",
       "title": "Tenant settings has four blocking accessibility violations including buttons with no name",
@@ -10784,6 +11796,782 @@
           "apps/web"
         ],
         "verification_scope": "See docs/bugs/BUG-1986-tenant-settings-has-four-blocking-accessibility-violations-i.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-2003",
+      "type": "BUG",
+      "title": "The tenant Users screen requests an entity the data registry does not have, so it never renders",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "OPEN",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-2003-the-tenant-users-screen-crashes-into-the-error-boundary-for-.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "eb457d9d",
+        "created_at": "2026-08-29",
+        "updated_at": "2026-08-29",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web",
+        "services/api/src/modules/data"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web",
+          "services/api/src/modules/data"
+        ],
+        "verification_scope": "See docs/bugs/BUG-2003-the-tenant-users-screen-crashes-into-the-error-boundary-for-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-2004",
+      "type": "BUG",
+      "title": "The approvals module emits a New action for a page that does not exist, and the detail route throws on it",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-2004-the-approvals-inbox-offers-a-new-action-whose-page-crashes-i.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "eb457d9d",
+        "created_at": "2026-08-29",
+        "updated_at": "2026-08-29",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web"
+        ],
+        "verification_scope": "See docs/bugs/BUG-2004-the-approvals-inbox-offers-a-new-action-whose-page-crashes-i.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-2005",
+      "type": "DATA_INTEGRITY",
+      "title": "Manual attendance accepts a date arbitrarily far in the future",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-2005-manual-attendance-accepts-a-date-arbitrarily-far-in-the-futu.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "eb457d9d",
+        "created_at": "2026-08-29",
+        "updated_at": "2026-08-29",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/attendance"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/attendance"
+        ],
+        "verification_scope": "See docs/bugs/BUG-2005-manual-attendance-accepts-a-date-arbitrarily-far-in-the-futu.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-2006",
+      "type": "UX",
+      "title": "A successful save reports nothing to the user on the runtime forms and the branding page",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-2006-a-successful-save-reports-nothing-to-the-user-on-the-runtime.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "eb457d9d",
+        "created_at": "2026-08-29",
+        "updated_at": "2026-08-29",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web"
+        ],
+        "verification_scope": "See docs/bugs/BUG-2006-a-successful-save-reports-nothing-to-the-user-on-the-runtime.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-2007",
+      "type": "BUG",
+      "title": "Projects and customers can be created but never deleted",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "PRODUCT_DECISION",
+      "architect_disposition": "PRODUCT_DECISION",
+      "source": {
+        "record_path": "docs/bugs/BUG-2007-projects-and-customers-can-be-created-but-never-deleted.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "eb457d9d",
+        "created_at": "2026-08-29",
+        "updated_at": "2026-08-29",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/projects"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/projects"
+        ],
+        "verification_scope": "See docs/bugs/BUG-2007-projects-and-customers-can-be-created-but-never-deleted.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-2008",
+      "type": "DATA_INTEGRITY",
+      "title": "Every employee is counted absent on a non-working day and raised as an exception",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "OPEN",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-2008-every-employee-is-counted-absent-on-a-non-working-day-and-ra.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "eb457d9d",
+        "created_at": "2026-08-29",
+        "updated_at": "2026-08-29",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/attendance",
+        "services/api/src/modules/dashboard"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/attendance",
+          "services/api/src/modules/dashboard"
+        ],
+        "verification_scope": "See docs/bugs/BUG-2008-every-employee-is-counted-absent-on-a-non-working-day-and-ra.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-2009",
+      "type": "UX",
+      "title": "Display labels fall through to the raw field key or raw enum value on three tenant surfaces",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-2009-display-labels-fall-through-to-the-raw-field-key-or-raw-enum.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "eb457d9d",
+        "created_at": "2026-08-29",
+        "updated_at": "2026-08-29",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web"
+        ],
+        "verification_scope": "See docs/bugs/BUG-2009-display-labels-fall-through-to-the-raw-field-key-or-raw-enum.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-2010",
+      "type": "UX",
+      "title": "The dashboard Recent changes list renders unformatted ISO-8601 timestamps",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "OPEN",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-2010-the-dashboard-recent-changes-list-renders-unformatted-iso-86.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "eb457d9d",
+        "created_at": "2026-08-29",
+        "updated_at": "2026-08-29",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web"
+        ],
+        "verification_scope": "See docs/bugs/BUG-2010-the-dashboard-recent-changes-list-renders-unformatted-iso-86.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-2011",
+      "type": "BUG",
+      "title": "Seven related-list dialogs never send the parent foreign key and one of them creates an orphan",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "OPEN",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-2011-seven-related-list-dialogs-never-send-the-parent-foreign-key.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "eb457d9d",
+        "created_at": "2026-08-29",
+        "updated_at": "2026-08-29",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web"
+        ],
+        "verification_scope": "See docs/bugs/BUG-2011-seven-related-list-dialogs-never-send-the-parent-foreign-key.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-2012",
+      "type": "DATA_INTEGRITY",
+      "title": "The related-list create dialog pre-fills child fields with the parent record values",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "PLAN_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-2012-the-related-list-create-dialog-pre-fills-child-fields-with-t.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "eb457d9d",
+        "created_at": "2026-08-29",
+        "updated_at": "2026-08-29",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web"
+        ],
+        "verification_scope": "See docs/bugs/BUG-2012-the-related-list-create-dialog-pre-fills-child-fields-with-t.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-2013",
+      "type": "BUG",
+      "title": "The dashboard error boundary classifies server-component failures by a message it can never receive",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "OPEN",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-2013-the-dashboard-error-boundary-classifies-server-component-fai.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "eb457d9d",
+        "created_at": "2026-08-29",
+        "updated_at": "2026-08-29",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web"
+        ],
+        "verification_scope": "See docs/bugs/BUG-2013-the-dashboard-error-boundary-classifies-server-component-fai.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-2014",
+      "type": "BUG",
+      "title": "Users new and Users import fall through to the user detail route and report a permissions refusal",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-2014-users-new-and-users-import-are-shadowed-by-the-user-detail-r.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "eb457d9d",
+        "created_at": "2026-08-29",
+        "updated_at": "2026-08-29",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web"
+        ],
+        "verification_scope": "See docs/bugs/BUG-2014-users-new-and-users-import-are-shadowed-by-the-user-detail-r.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-2015",
+      "type": "AUTHORIZATION",
+      "title": "Approving and rejecting leave is gated on read permission and the dedicated approve keys are never required",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "OPEN",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-2015-approving-and-rejecting-leave-is-gated-on-read-permission-an.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "eb457d9d",
+        "created_at": "2026-08-29",
+        "updated_at": "2026-08-29",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/leave"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/leave"
+        ],
+        "verification_scope": "See docs/bugs/BUG-2015-approving-and-rejecting-leave-is-gated-on-read-permission-an.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-2016",
+      "type": "BUG",
+      "title": "Cancelling a leave request leaves its needs-approval notification outstanding in the inbox",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-2016-cancelling-a-leave-request-leaves-its-needs-approval-notific.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "eb457d9d",
+        "created_at": "2026-08-29",
+        "updated_at": "2026-08-29",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/notifications",
+        "services/api/src/modules/leave"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/notifications",
+          "services/api/src/modules/leave"
+        ],
+        "verification_scope": "See docs/bugs/BUG-2016-cancelling-a-leave-request-leaves-its-needs-approval-notific.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-2017",
+      "type": "UX",
+      "title": "The inbox Related record column renders a bare UUID with no label and no link",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "OPEN",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-2017-the-inbox-related-record-column-renders-a-bare-uuid-with-no-.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "eb457d9d",
+        "created_at": "2026-08-29",
+        "updated_at": "2026-08-29",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web"
+        ],
+        "verification_scope": "See docs/bugs/BUG-2017-the-inbox-related-record-column-renders-a-bare-uuid-with-no-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-2026",
+      "type": "BUG",
+      "title": "The employee export produces columns the employee import template does not accept",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-2026-the-employee-export-produces-columns-the-employee-import-tem.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "eb457d9d",
+        "created_at": "2026-08-29",
+        "updated_at": "2026-08-29",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/employees"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/employees"
+        ],
+        "verification_scope": "See docs/bugs/BUG-2026-the-employee-export-produces-columns-the-employee-import-tem.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-2043",
+      "type": "BUG",
+      "title": "The Audit Events screen reports the number of rows it loaded as the tenant's total audit count",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "OPEN",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-2043-the-audit-events-screen-reports-the-number-of-rows-it-loaded.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "eb457d9d",
+        "created_at": "2026-08-29",
+        "updated_at": "2026-08-29",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web",
+        "services/api/src/modules/audit"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web",
+          "services/api/src/modules/audit"
+        ],
+        "verification_scope": "See docs/bugs/BUG-2043-the-audit-events-screen-reports-the-number-of-rows-it-loaded.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-2044",
+      "type": "DATA_INTEGRITY",
+      "title": "No employee lifecycle event is audited, including employee creation and reporting-manager assignment",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "OPEN",
+      "architect_disposition": "PLAN_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-2044-no-employee-lifecycle-event-is-audited-including-employee-cr.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "eb457d9d",
+        "created_at": "2026-08-29",
+        "updated_at": "2026-08-29",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/employees",
+        "services/api/src/modules/organization",
+        "services/api/src/modules/leave"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/employees",
+          "services/api/src/modules/organization",
+          "services/api/src/modules/leave"
+        ],
+        "verification_scope": "See docs/bugs/BUG-2044-no-employee-lifecycle-event-is-audited-including-employee-cr.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-2045",
+      "type": "BUG",
+      "title": "Timesheet background-job completions make up 71 percent of the tenant audit trail",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "PRODUCT_DECISION",
+      "architect_disposition": "PRODUCT_DECISION",
+      "source": {
+        "record_path": "docs/bugs/BUG-2045-timesheet-background-job-completions-make-up-71-percent-of-t.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "eb457d9d",
+        "created_at": "2026-08-29",
+        "updated_at": "2026-08-29",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/timesheets",
+        "services/api/src/modules/audit",
+        "services/api/src/modules/tenant-settings"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/timesheets",
+          "services/api/src/modules/audit",
+          "services/api/src/modules/tenant-settings"
+        ],
+        "verification_scope": "See docs/bugs/BUG-2045-timesheet-background-job-completions-make-up-71-percent-of-t.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-2046",
+      "type": "BUG",
+      "title": "Audit actions use two naming conventions and the Result column is populated only by login events",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "OPEN",
+      "architect_disposition": "PLAN_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-2046-audit-actions-use-two-naming-conventions-and-the-result-colu.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "eb457d9d",
+        "created_at": "2026-08-29",
+        "updated_at": "2026-08-29",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/audit"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/audit"
+        ],
+        "verification_scope": "See docs/bugs/BUG-2046-audit-actions-use-two-naming-conventions-and-the-result-colu.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],
@@ -15485,6 +17273,316 @@
           "tenant-domains"
         ],
         "verification_scope": "See docs/backlog/items/ITEM-0103-deployment-check-the-composed-tenant-workspace-host-must-res.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0104",
+      "type": "UX",
+      "title": "The customization settings category renders no leaf pages in server HTML",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0104-the-customization-settings-category-renders-no-leaf-pages-in.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "",
+        "created_at": "2026-08-29",
+        "updated_at": "2026-08-29",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0104-the-customization-settings-category-renders-no-leaf-pages-in.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0105",
+      "type": "UX",
+      "title": "The leave entitlement dialog cannot set accrualType, which the API requires",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "READY",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0105-the-leave-entitlement-dialog-cannot-set-accrualtype-which-th.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "",
+        "created_at": "2026-08-29",
+        "updated_at": "2026-08-29",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web",
+        "services/api/src/modules/leave"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web",
+          "services/api/src/modules/leave"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0105-the-leave-entitlement-dialog-cannot-set-accrualtype-which-th.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0106",
+      "type": "PRODUCT_DECISION",
+      "title": "An employee cannot use self-service until their manager activates their own account",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "PRODUCT_DECISION",
+      "architect_disposition": "PRODUCT_DECISION",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0106-an-employee-cannot-use-self-service-until-their-manager-acti.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "",
+        "created_at": "2026-08-29",
+        "updated_at": "2026-08-29",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/leave",
+        "services/api/src/modules/employees"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/leave",
+          "services/api/src/modules/employees"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0106-an-employee-cannot-use-self-service-until-their-manager-acti.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0107",
+      "type": "ARCHITECTURE",
+      "title": "Four Users screens exist in the tenant app and two of them are unreachable",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "READY",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0107-three-separate-users-screens-exist-in-the-tenant-app.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "",
+        "created_at": "2026-08-29",
+        "updated_at": "2026-08-29",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0107-three-separate-users-screens-exist-in-the-tenant-app.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0108",
+      "type": "PRODUCT_DECISION",
+      "title": "Decide whether the roughly one-hour session lifetime is idle or absolute",
+      "severity": "LOW",
+      "priority": "P2",
+      "current_status": "PRODUCT_DECISION",
+      "architect_disposition": "PRODUCT_DECISION",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0108-decide-whether-the-roughly-one-hour-session-lifetime-is-idle.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "",
+        "created_at": "2026-08-29",
+        "updated_at": "2026-08-29",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/auth"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/auth"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0108-decide-whether-the-roughly-one-hour-session-lifetime-is-idle.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0109",
+      "type": "UX",
+      "title": "The disabled Check In button explains itself only in a title tooltip",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "READY",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0109-the-disabled-check-in-button-explains-itself-only-in-a-title.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "",
+        "created_at": "2026-08-29",
+        "updated_at": "2026-08-29",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0109-the-disabled-check-in-button-explains-itself-only-in-a-title.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0110",
+      "type": "PRODUCT_DECISION",
+      "title": "Attendance entry appears to create Timesheet drafts on a tenant without the Timesheets entitlement",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0110-attendance-entry-appears-to-create-timesheet-drafts-on-a-ten.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "",
+        "created_at": "2026-08-29",
+        "updated_at": "2026-08-29",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/timesheets",
+        "services/api/src/modules/attendance"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/timesheets",
+          "services/api/src/modules/attendance"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0110-attendance-entry-appears-to-create-timesheet-drafts-on-a-ten.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0111",
+      "type": "UX",
+      "title": "PROTECTED_ROUTE_PREFIXES omits twelve authenticated route trees, so deep links to them are lost at sign-in",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "READY",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0111-protected-route-prefixes-omits-twelve-authenticated-route-tr.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "",
+        "created_at": "2026-08-29",
+        "updated_at": "2026-08-29",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0111-protected-route-prefixes-omits-twelve-authenticated-route-tr.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],

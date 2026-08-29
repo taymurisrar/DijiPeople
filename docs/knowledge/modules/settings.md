@@ -18,6 +18,12 @@ tenant name or id.**
 `docs/architecture/settings-and-branding.md` is the **canonical contract** for
 settings, branding and formatting. Read it before touching any settings surface.
 
+[[settings-and-configuration]] is the mechanism as it actually behaves at
+`eb457d9d` — the six stores and the registries whose names collide with them,
+the four-layer resolution order, the two caches, and the seven traps that make a
+setting save successfully and change nothing. **Read it before concluding that a
+setting is broken**; the most common answer is that the key has no reader.
+
 ## Important business rules
 
 - Settings, branding and regional formatting resolve through the settings
