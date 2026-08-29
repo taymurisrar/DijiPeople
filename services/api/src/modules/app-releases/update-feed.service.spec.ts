@@ -23,7 +23,9 @@ function buildService(release: unknown) {
 
 const release = {
   id: 'release-1',
-  appKey: 'agent-desktop',
+  // Releases are persisted under the APP_KEYS value by the publisher, not
+  // under the cliAlias that appears in the feed URL. BUG-1551.
+  appKey: 'AGENT_DESKTOP',
   version: '1.10.0',
   platform: ApplicationPlatform.WINDOWS,
   channel: ApplicationReleaseChannel.STABLE,
@@ -96,6 +98,66 @@ describe('UpdateFeedService', () => {
     ).resolves.toBeNull();
   });
 
+  /*
+   * BUG-1551 — the feed 404d even for a published release.
+   *
+   * electron-updater is pointed at `/api/app-releases/feed/agent-desktop`, the
+   * catalogue cliAlias, while the publisher stores `appKey` as `AGENT_DESKTOP`.
+   * Both queries filtered on the raw URL segment, so the two never matched.
+   *
+   * The empty feed is what hid it: with no releases published at all, a correct
+   * lookup and a broken one both answer 404, so the mismatch was indistinguish-
+   * able from "nothing to serve yet" and would have survived the release that
+   * was supposed to prove auto-update worked.
+   *
+   * These assert the query, not the response, because a mocked findFirst returns
+   * its fixture whatever it is asked — which is exactly why the original spec
+   * passed over the live defect.
+   */
+  it('queries the catalogue app key when asked for the URL alias', async () => {
+    const { service, prisma } = buildService(release);
+
+    await service.latestYml('agent-desktop', ApplicationPlatform.WINDOWS);
+
+    const where = prisma.applicationRelease.findFirst.mock.calls[0][0].where;
+    expect(where.appKey).toBe('AGENT_DESKTOP');
+  });
+
+  it('accepts the catalogue key itself as well as the alias', async () => {
+    const { service, prisma } = buildService(release);
+
+    await service.latestYml('AGENT_DESKTOP', ApplicationPlatform.WINDOWS);
+
+    const where = prisma.applicationRelease.findFirst.mock.calls[0][0].where;
+    expect(where.appKey).toBe('AGENT_DESKTOP');
+  });
+
+  it('resolves the alias for the artefact lookup too', async () => {
+    // The artefact URL electron-updater derives from the feed goes through the
+    // sibling query. A fix to only one half would leave the download 404ing.
+    const { service, prisma } = buildService(release);
+
+    await service.findPublishableByFileName(
+      'agent-desktop',
+      'DijiPeople-Agent-Setup-1.10.0.exe',
+    );
+
+    const where = prisma.applicationRelease.findFirst.mock.calls[0][0].where;
+    expect(where.appKey).toBe('AGENT_DESKTOP');
+  });
+
+  it('serves nothing for an app that is not in the catalogue', async () => {
+    const { service, prisma } = buildService(release);
+
+    await expect(
+      service.latestYml('not-an-app', ApplicationPlatform.WINDOWS),
+    ).resolves.toBeNull();
+    await expect(
+      service.findPublishableByFileName('not-an-app', 'anything.exe'),
+    ).resolves.toBeNull();
+    // It must not fall through to an unfiltered query.
+    expect(prisma.applicationRelease.findFirst).not.toHaveBeenCalled();
+  });
   it('falls back to createdAt when publishedAt is absent', async () => {
     const { service } = buildService({ ...release, publishedAt: null });
 

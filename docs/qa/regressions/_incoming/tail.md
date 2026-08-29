@@ -1,0 +1,35 @@
+# Incoming regression entries — SESSION-0076 bug burndown, tail stream
+
+Staged for merge into `docs/qa/regressions/index.md` by the coordinating
+session. Ids REG-357 to REG-359 were allocated centrally to this stream;
+REG-359 is unused because BUG-0084 stays BLOCKED and no fix shipped for it.
+
+### REG-357 — An export the product could not re-import
+
+| | |
+|---|---|
+| **Bug class** | `two-sources-of-truth-for-one-contract` |
+| **Module** | `employees` |
+| **Bug record** | BUG-2026 |
+| **Root cause** | `GET /employees/export` and `GET /employees/export-template` were built independently and each owned its own column list. The export emitted eleven human titles from `EMPLOYEE_EXPORT_COLUMN_LABELS` (`Employee Code`, `Full Name`, `Reporting Manager`, …); the template emitted twenty-one field keys from a second list inlined in `exportEmployeeTemplate()`. **No column name was shared between the two files.** So the export → edit in a spreadsheet → re-upload round trip an HR administrator attempts during onboarding could not work: `Full Name` had to be split three ways into `firstName` / `middleName` / `lastName`, the manager arrived as a display name where the importer resolves an employee code, and the four emergency-contact columns the create path requires under this tenant's settings were absent entirely, so even a perfectly renamed export created nobody. |
+| **Regression test** | `services/api/src/modules/employees/employees.export-import-contract.spec.ts` |
+| **Scenario** | Seven tests. The export header row equals the template header row; the template equals the declared `EMPLOYEE_IMPORT_COLUMNS` contract; every contract column is **populated** for a fully-populated employee; the manager code, split name and emergency-contact values are the exported values; a three-column view selection still yields the full contract; an empty export still carries its header row; and a **round trip** feeds the bytes `exportEmployees()` produced straight back into `importEmployees()` unedited, which parses the row and calls `create` with department, designation and relation type resolved back into ids. |
+| **Proven to fail without the fix** | Mutation-tested twice, adding a column to one side only. Adding `nationalIdNumber` to the contract without wiring it into the export projection fails the populated-columns test (1 of 7). Making `exportEmployeeTemplate()` emit one extra column the export does not carry fails three of seven, including the header-equality test. |
+| **Note** | The populated-columns assertion is the load-bearing one and is easy to leave out. Header equality alone stays green when a column is added to the contract and never wired into the projection: the header appears and every cell under it is blank, which is a file that imports and silently loses a field — the same shape of failure as the original defect. The other decision worth carrying forward is that `resolveExportColumns()` was **inverted** rather than extended: a saved view's `columns` selection can now only *append* report-only columns (`fullName`, `reportingManager`, `ownerName`, which the importer ignores as unknown headers) and can never narrow the file below the contract, so no view configuration can produce a non-importable export. Older view keys (`departmentId`, `ownerUserId`, …) are aliased rather than dropped, because saved views are tenant data. `toCsv` also had to learn explicit headers: it returned an empty buffer for zero rows, and `parseCsvRows` rejects a file with no header row, so an export of an empty list was a second, narrower way the round trip failed. **Not fixed here, and deliberately:** `employeeCode`, `reportingManagerEmployeeCode` and `ownerEmail` are template columns `buildImportCreateDto` does not read, so a re-import does not restore the manager link or the owner, and every row routes through `create`, so a re-import adds people rather than updating them. Both predate this record and neither is a column-set disagreement. |
+| **Fixed** | 2026-08-29 |
+| **Active** | yes |
+
+### REG-358 — A feed that would have 404d even after the release it was waiting for
+
+| | |
+|---|---|
+| **Bug class** | `read-side-and-write-side-disagree-on-a-key` |
+| **Module** | `app-releases`, `agent` |
+| **Bug record** | BUG-1551 |
+| **Root cause** | The publisher and the update feed disagreed about what an application is called. `release-publisher.service.ts` persists `appKey` from the catalogue — `APP_KEYS.AGENT_DESKTOP`, the string `AGENT_DESKTOP`. `update-feed.service.ts` filtered both its queries on the **raw URL segment**, and the feed URL every `.env` example carries is `/api/app-releases/feed/agent-desktop`, the `cliAlias`, because that is what a URL segment looks like. `'agent-desktop'` never matched `'AGENT_DESKTOP'`, so the manifest query and the artefact-by-filename query both returned nothing and the endpoint answered 404 — and would have gone on answering 404 after a release was finally published. |
+| **Regression test** | `services/api/src/modules/app-releases/update-feed.service.spec.ts` |
+| **Scenario** | Asking for the URL alias queries the catalogue key; passing the catalogue key directly still works; the artefact-by-filename lookup resolves the alias too, since electron-updater derives the download URL from the feed and a fix to only one half would leave the download 404ing; an app outside the catalogue serves nothing and does not fall through to an unfiltered query. |
+| **Proven to fail without the fix** | Mutation-tested: reverting the resolution fails two of the four, and leaves the third — which passes the catalogue key directly — green, as the control it is meant to be. |
+| **Note** | **The empty feed hid this, and very nearly closed the record over it.** With zero published releases, a correct lookup and a broken one both answer 404, so the mismatch was indistinguishable from "nothing to serve yet" — which is exactly the reading the 2026-08-27 triage settled on when it marked the record `BLOCKED_EXTERNAL` on the premise that "the code is already corrected". It was not. Two lessons carry forward. First, the tests assert the **query**, not the response: a mocked `findFirst` returns its fixture whatever it is asked, which is why the original five tests passed over the live defect, and the old fixture even declared `appKey: 'agent-desktop'`, encoding the wrong assumption as a fact. Second, the fix routes the read side through `resolvePublishableApp()`, the same catalogue resolver the write side already used, rather than adding a second mapping — the two now agree by construction instead of by a duplicate that could drift. **Still outstanding and not a defect:** no release has been published, so the feed correctly serves 404, and end-to-end proof needs the platform owner to publish one — the publisher is gated by `RELEASE_PUBLISH_TOKEN`, which fails closed when unset. Agents installed before 2026-08-18 still hold the dead URL in their build and need a manual reinstall, which no code change can deliver. |
+| **Fixed** | 2026-08-30 |
+| **Active** | yes |
