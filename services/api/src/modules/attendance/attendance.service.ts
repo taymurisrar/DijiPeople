@@ -116,6 +116,46 @@ type AttendancePolicyShape = {
   standardWorkHoursPerDay: number;
 };
 
+/**
+ * Device location capture is a platform mandate, not tenant configuration.
+ *
+ * THESE ARE NOT AN OVERSIGHT. They were literals scattered through
+ * `resolvePolicy` and were twice filed as a bug (BUG-1981) by readers who took
+ * them for a hardcoding mistake. They are the deliberate mandate landed on
+ * 2026-07-29 by commit `a8c04f16`, whose migration
+ * `20260728234000_attendance_mandatory_location_capture` opens with:
+ *
+ *   -- Attendance location is a mandatory integrity control for all
+ *   -- self-service modes.
+ *
+ * WHAT ACTUALLY ENFORCES IT is `validateAttendanceLocationPayload`, which
+ * throws `LOCATION_CAPTURE_REQUIRED` unconditionally and consults none of these
+ * fields. They are what the client is *told*, so that the browser asks for a
+ * position the server is going to insist on anyway. Reading them from the
+ * policy row or from tenant settings would therefore change the message and not
+ * the behaviour - and would make the client stop asking for a position it still
+ * has to supply. Relaxing the mandate is a change to that enforcement path and
+ * to the attendance engine's work-mode derivation, not to this constant.
+ *
+ * The matching write-side lock is `enforceCriticalAttendanceSetting` in
+ * `tenant-settings.service.ts`. The two lists are related but NOT identical -
+ * that file's list is about tenant settings keys, this one about resolved
+ * policy fields.
+ */
+const MANDATORY_LOCATION_CAPTURE = {
+  requireRemoteLocationForRemoteMode: true,
+  allowRemoteWithoutLocation: false,
+  locationCaptureRequired: true,
+  locationRequiredForModes: [
+    AttendanceMode.OFFICE,
+    AttendanceMode.REMOTE,
+    AttendanceMode.HYBRID,
+  ],
+  allowManualLocationException: false,
+  captureLocationOnCheckIn: true,
+  captureLocationOnCheckOut: true,
+};
+
 const ATTENDANCE_IMPORT_MIME_TYPES = [
   'text/csv',
   'application/vnd.ms-excel',
@@ -1020,6 +1060,38 @@ export class AttendanceService {
     );
   }
 
+  /**
+   * Attendance is a record of what happened, so it cannot be dated after today.
+   *
+   * THE TENANT'S TODAY, NOT THE SERVER'S. A tenant in Doha is already on the
+   * 30th while a server on UTC is still on the 29th, so comparing against the
+   * server clock would refuse a legitimate same-day entry for every tenant east
+   * of Greenwich. The comparison therefore runs against the business date in the
+   * timezone the rest of the entry was resolved in.
+   *
+   * The bound is "today", with no tolerance beyond it: a future-dated row flows
+   * straight into the absent and exception calculations, the attendance reports
+   * and anything downstream that consumes attendance as a payroll input, and a
+   * mistyped year is the most ordinary data-entry error there is.
+   */
+  private assertAttendanceDateIsNotInFuture(
+    attendanceDate: Date,
+    timezone: string,
+  ) {
+    const today = businessDateAtUtcMidnight(new Date(), timezone);
+
+    if (attendanceDate.getTime() > today.getTime()) {
+      throw new BadRequestException({
+        code: 'ATTENDANCE_DATE_IN_FUTURE',
+        message: `Attendance cannot be recorded for ${formatBusinessDateKey(
+          attendanceDate,
+        )} because it is later than ${formatBusinessDateKey(
+          today,
+        )}, the current date for this tenant.`,
+      });
+    }
+  }
+
   async createManualEntry(
     currentUser: AuthenticatedUser,
     dto: CreateManualAttendanceEntryDto,
@@ -1049,6 +1121,12 @@ export class AttendanceService {
       parseBusinessDateInput(dto.date),
     );
     const attendanceDate = resolvedContext.attendanceDate;
+
+    this.assertAttendanceDateIsNotInFuture(
+      attendanceDate,
+      resolvedContext.timezone,
+    );
+
     const existing =
       await this.attendanceRepository.findAttendanceEntryByEmployeeAndDate(
         currentUser.tenantId,
@@ -1218,6 +1296,18 @@ export class AttendanceService {
     const attendanceDate = dto.date
       ? resolvedContext.attendanceDate
       : existing.date;
+
+    /*
+     * Only a submitted date is bounded. An entry that is already stored is left
+     * alone: refusing to edit a row someone else created in the future would
+     * make the offending record uncorrectable through the product.
+     */
+    if (dto.date) {
+      this.assertAttendanceDateIsNotInFuture(
+        attendanceDate,
+        resolvedContext.timezone,
+      );
+    }
 
     if (
       targetEmployeeId !== existing.employeeId ||
@@ -2358,6 +2448,20 @@ export class AttendanceService {
     const rowErrors: Array<{ row: number; message: string }> = [];
     let successCount = 0;
 
+    /*
+     * Resolved once for the whole file rather than per row. The import already
+     * builds its timestamps from the tenant-level clock (`combineDateAndTime`
+     * takes no zone), so the same tenant-level zone is what the future-date
+     * bound has to be measured against for the two to agree.
+     */
+    const importTimezone = await this.configurationResolverService.resolveTimezone(
+      {
+        tenantId: currentUser.tenantId,
+        module: 'attendance',
+        effectiveDate: new Date(),
+      },
+    );
+
     for (const row of rows) {
       try {
         await this.importRow(
@@ -2366,6 +2470,7 @@ export class AttendanceService {
           row,
           employeeByCode,
           employeeByEmail,
+          importTimezone,
         );
         successCount += 1;
       } catch (error) {
@@ -2539,6 +2644,48 @@ export class AttendanceService {
 
   async getPolicy(currentUser: AuthenticatedUser) {
     return this.resolvePolicy(currentUser.tenantId);
+  }
+
+  /**
+   * Who was expected to attend on a date, and who was excused by the calendar.
+   *
+   * Owned by this module because the work calendar is an attendance concept:
+   * before this existed, the dashboard derived absence from "no attendance row
+   * today" alone and reported the entire workforce absent every weekend, on the
+   * first screen a customer sees, while the check-in button on the same day
+   * correctly said it was a scheduled off day (BUG-2008).
+   *
+   * `attendanceDate` is UTC midnight of the work date, matching how attendance
+   * dates are stored everywhere else in this module.
+   */
+  async resolveAttendanceExpectation(
+    tenantId: string,
+    attendanceDate: Date,
+    employeeWhere: Prisma.EmployeeWhereInput,
+  ): Promise<{
+    expectedEmployeeIds: string[];
+    nonWorkingEmployeeIds: string[];
+  }> {
+    const resolutions =
+      await this.attendanceRepository.resolveWorkDayForEmployees(
+        tenantId,
+        employeeWhere,
+        attendanceDate,
+        toWeekday(attendanceDate),
+      );
+
+    const expectedEmployeeIds: string[] = [];
+    const nonWorkingEmployeeIds: string[] = [];
+
+    for (const resolution of resolutions.values()) {
+      if (resolution.isOffDay || resolution.holiday) {
+        nonWorkingEmployeeIds.push(resolution.employeeId);
+      } else {
+        expectedEmployeeIds.push(resolution.employeeId);
+      }
+    }
+
+    return { expectedEmployeeIds, nonWorkingEmployeeIds };
   }
 
   async getTodayAttendance(currentUser: AuthenticatedUser) {
@@ -2759,10 +2906,27 @@ export class AttendanceService {
     currentUser: AuthenticatedUser,
     dto: UpdateAttendancePolicyDto,
   ) {
-    const existing = await this.attendanceRepository.findAttendancePolicy(
-      currentUser.tenantId,
-    );
+    const [existing, effective] = await Promise.all([
+      this.attendanceRepository.findAttendancePolicy(currentUser.tenantId),
+      this.resolvePolicy(currentUser.tenantId),
+    ]);
 
+    /*
+     * CREATING THE ROW MUST NOT CHANGE BEHAVIOUR.
+     *
+     * The `AttendancePolicy` row is not seeded; it appears the first time
+     * anyone saves this screen, and from that moment `resolvePolicy` reads its
+     * columns instead of the attendance settings for every field it consults.
+     * The create branch used to fill fields the caller omitted with hardcoded
+     * constants, so a tenant that had configured a 10-minute grace in Settings
+     * silently dropped to whatever the constant said (BUG-1980). Falling back
+     * to the currently *effective* value instead means the row starts out
+     * saying exactly what the tenant already had.
+     *
+     * This does not settle the precedence question - the policy row still wins
+     * over later settings edits, which is what EXECPLAN-0027 addresses - but it
+     * stops the act of saving this screen from changing anything by itself.
+     */
     const policy = await this.attendanceRepository.upsertAttendancePolicy(
       currentUser.tenantId,
       {
@@ -2771,27 +2935,26 @@ export class AttendanceService {
         lateCheckOutGraceMinutes: dto.lateCheckOutGraceMinutes,
         requireOfficeLocationForOfficeMode:
           dto.requireOfficeLocationForOfficeMode,
-        requireRemoteLocationForRemoteMode:
-          dto.requireRemoteLocationForRemoteMode,
-        allowRemoteWithoutLocation: dto.allowRemoteWithoutLocation,
         allowManualAdjustments: dto.allowManualAdjustments,
         preventDuplicateAttendance: dto.preventDuplicateAttendance,
         allowCheckInOnApprovedLeave: dto.allowCheckInOnApprovedLeave,
         markMissingCheckout: dto.markMissingCheckout,
-        allowOffDayCheckIn: dto.allowOffDayCheckIn ?? false,
-        allowHolidayCheckIn: dto.allowHolidayCheckIn ?? false,
-        allowHrAdminOverride: dto.allowHrAdminOverride ?? true,
-        locationCaptureRequired: dto.locationCaptureRequired ?? false,
-        locationRequiredForModes: dto.locationRequiredForModes ?? [],
-        allowIpFallback: dto.allowIpFallback ?? false,
-        allowManualLocationException: dto.allowManualLocationException ?? false,
-        locationTimeoutSeconds: dto.locationTimeoutSeconds ?? 15,
-        highAccuracyLocation: dto.highAccuracyLocation ?? true,
-        maxAllowedAccuracyMeters: dto.maxAllowedAccuracyMeters ?? null,
-        captureLocationOnCheckIn: dto.captureLocationOnCheckIn ?? false,
-        captureLocationOnCheckOut: dto.captureLocationOnCheckOut ?? false,
-        storeIpAddress: dto.storeIpAddress ?? false,
-        storeUserAgent: dto.storeUserAgent ?? false,
+        allowOffDayCheckIn:
+          dto.allowOffDayCheckIn ?? effective.allowOffDayCheckIn,
+        allowHolidayCheckIn:
+          dto.allowHolidayCheckIn ?? effective.allowHolidayCheckIn,
+        allowHrAdminOverride:
+          dto.allowHrAdminOverride ?? effective.allowHrAdminOverride,
+        allowIpFallback: dto.allowIpFallback ?? effective.allowIpFallback,
+        locationTimeoutSeconds:
+          dto.locationTimeoutSeconds ?? effective.locationTimeoutSeconds,
+        highAccuracyLocation:
+          dto.highAccuracyLocation ?? effective.highAccuracyLocation,
+        maxAllowedAccuracyMeters:
+          dto.maxAllowedAccuracyMeters ?? effective.maxAllowedAccuracyMeters,
+        storeIpAddress: dto.storeIpAddress ?? effective.storeIpAddress,
+        storeUserAgent: dto.storeUserAgent ?? effective.storeUserAgent,
+        ...MANDATORY_LOCATION_CAPTURE,
         createdById: currentUser.userId,
         updatedById: currentUser.userId,
       },
@@ -2800,9 +2963,6 @@ export class AttendanceService {
         lateCheckOutGraceMinutes: dto.lateCheckOutGraceMinutes,
         requireOfficeLocationForOfficeMode:
           dto.requireOfficeLocationForOfficeMode,
-        requireRemoteLocationForRemoteMode:
-          dto.requireRemoteLocationForRemoteMode,
-        allowRemoteWithoutLocation: dto.allowRemoteWithoutLocation,
         allowManualAdjustments: dto.allowManualAdjustments,
         preventDuplicateAttendance: dto.preventDuplicateAttendance,
         allowCheckInOnApprovedLeave: dto.allowCheckInOnApprovedLeave,
@@ -2813,20 +2973,8 @@ export class AttendanceService {
           dto.allowHolidayCheckIn ?? existing?.allowHolidayCheckIn ?? false,
         allowHrAdminOverride:
           dto.allowHrAdminOverride ?? existing?.allowHrAdminOverride ?? true,
-        locationCaptureRequired:
-          dto.locationCaptureRequired ??
-          existing?.locationCaptureRequired ??
-          false,
-        locationRequiredForModes:
-          dto.locationRequiredForModes ??
-          existing?.locationRequiredForModes ??
-          [],
         allowIpFallback:
           dto.allowIpFallback ?? existing?.allowIpFallback ?? false,
-        allowManualLocationException:
-          dto.allowManualLocationException ??
-          existing?.allowManualLocationException ??
-          false,
         locationTimeoutSeconds:
           dto.locationTimeoutSeconds ?? existing?.locationTimeoutSeconds ?? 15,
         highAccuracyLocation:
@@ -2835,16 +2983,17 @@ export class AttendanceService {
           dto.maxAllowedAccuracyMeters ??
           existing?.maxAllowedAccuracyMeters ??
           null,
-        captureLocationOnCheckIn:
-          dto.captureLocationOnCheckIn ??
-          existing?.captureLocationOnCheckIn ??
-          false,
-        captureLocationOnCheckOut:
-          dto.captureLocationOnCheckOut ??
-          existing?.captureLocationOnCheckOut ??
-          false,
         storeIpAddress: dto.storeIpAddress ?? existing?.storeIpAddress ?? false,
         storeUserAgent: dto.storeUserAgent ?? existing?.storeUserAgent ?? false,
+        /*
+         * Written on every save so the stored row stops contradicting the
+         * engine. These seven columns are the location mandate; the schema
+         * defaults for six of them still say the opposite, which is what makes
+         * anyone reading the schema to understand attendance behaviour wrong
+         * (BUG-1981). Aligning the defaults themselves is a migration and is
+         * deliberately not done here.
+         */
+        ...MANDATORY_LOCATION_CAPTURE,
         updatedById: currentUser.userId,
       },
     );
@@ -2876,6 +3025,7 @@ export class AttendanceService {
     row: ParsedCsvRow,
     employeeByCode: Map<string, { id: string; employeeCode: string }>,
     employeeByEmail: Map<string, { id: string; workEmail?: string | null }>,
+    timezone: string,
   ) {
     const employee = resolveEmployeeFromImportRow(
       row,
@@ -2900,6 +3050,8 @@ export class AttendanceService {
     } catch {
       throw new BadRequestException('date must be a valid ISO date.');
     }
+
+    this.assertAttendanceDateIsNotInFuture(attendanceDate, timezone);
 
     const existing =
       await this.attendanceRepository.findAttendanceEntryByEmployeeAndDate(
@@ -3553,17 +3705,9 @@ export class AttendanceService {
       requireOfficeLocationForOfficeMode:
         policy?.requireOfficeLocationForOfficeMode ??
         attendanceSettings.enforceOfficeLocationForOfficeMode,
-      requireRemoteLocationForRemoteMode: true,
-      allowRemoteWithoutLocation: false,
-      locationCaptureRequired: true,
-      locationRequiredForModes: [
-        AttendanceMode.OFFICE,
-        AttendanceMode.REMOTE,
-        AttendanceMode.HYBRID,
-      ],
+      ...MANDATORY_LOCATION_CAPTURE,
       allowIpFallback:
         policy?.allowIpFallback ?? attendanceSettings.allowIpFallback,
-      allowManualLocationException: false,
       locationTimeoutSeconds:
         policy?.locationTimeoutSeconds ??
         attendanceSettings.locationTimeoutSeconds,
@@ -3573,8 +3717,6 @@ export class AttendanceService {
       maxAllowedAccuracyMeters:
         policy?.maxAllowedAccuracyMeters ??
         attendanceSettings.maxAllowedAccuracyMeters,
-      captureLocationOnCheckIn: true,
-      captureLocationOnCheckOut: true,
       storeIpAddress:
         policy?.storeIpAddress ?? attendanceSettings.storeIpAddress,
       storeUserAgent:

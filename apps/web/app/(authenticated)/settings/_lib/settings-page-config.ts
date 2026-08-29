@@ -287,23 +287,47 @@ const legacyAttendanceSettingsSections: SettingsSectionConfig[] = [
         label: "Require office location for office mode",
         type: "checkbox",
       },
+      /*
+       * MANDATED, NOT CONFIGURABLE.
+       *
+       * The seven fields marked `disabled` below are shown for transparency and
+       * cannot be changed. Device location capture is a platform integrity
+       * control for every self-service mode - see the enforcement point,
+       * `validateAttendanceLocationPayload` in the API's attendance service,
+       * which throws unconditionally and reads none of these keys, and the
+       * migration `20260728234000_attendance_mandatory_location_capture` that
+       * introduced it.
+       *
+       * They were live, enabled controls until BUG-1979: an administrator
+       * changed one, saw "Settings saved successfully", reloaded, and found the
+       * old value back, with nothing in the response or the audit trail saying
+       * why. The API now refuses a submitted value that differs from the
+       * mandate instead of silently substituting it, and these controls no
+       * longer invite the submission.
+       */
       {
         category: "attendance",
         key: "requireRemoteLocationCapture",
         label: "Require remote location capture",
+        description: "Enforced by platform policy and cannot be changed.",
         type: "checkbox",
+        disabled: true,
       },
       {
         category: "attendance",
         key: "locationCaptureRequired",
         label: "Require attendance location capture",
+        description: "Enforced by platform policy and cannot be changed.",
         type: "checkbox",
+        disabled: true,
       },
       {
         category: "attendance",
         key: "locationRequiredForModes",
         label: "Location required for modes",
+        description: "Enforced by platform policy and cannot be changed.",
         type: "multiselect",
+        disabled: true,
         options: [
           { label: "Office", value: "OFFICE" },
           { label: "Remote", value: "REMOTE" },
@@ -314,13 +338,17 @@ const legacyAttendanceSettingsSections: SettingsSectionConfig[] = [
         category: "attendance",
         key: "captureLocationOnCheckIn",
         label: "Capture location on check-in",
+        description: "Enforced by platform policy and cannot be changed.",
         type: "checkbox",
+        disabled: true,
       },
       {
         category: "attendance",
         key: "captureLocationOnCheckOut",
         label: "Capture location on check-out",
+        description: "Enforced by platform policy and cannot be changed.",
         type: "checkbox",
+        disabled: true,
       },
       {
         category: "attendance",
@@ -332,7 +360,9 @@ const legacyAttendanceSettingsSections: SettingsSectionConfig[] = [
         category: "attendance",
         key: "allowManualLocationException",
         label: "Allow manual location exception",
+        description: "Enforced by platform policy and cannot be changed.",
         type: "checkbox",
+        disabled: true,
       },
       {
         category: "attendance",
@@ -350,7 +380,9 @@ const legacyAttendanceSettingsSections: SettingsSectionConfig[] = [
         category: "attendance",
         key: "highAccuracyLocation",
         label: "Use high accuracy location",
+        description: "Enforced by platform policy and cannot be changed.",
         type: "checkbox",
+        disabled: true,
       },
       {
         category: "attendance",
@@ -487,18 +519,17 @@ const legacyAttendanceSettingsSections: SettingsSectionConfig[] = [
           },
         ],
       },
-      {
-        category: "attendance",
-        key: "allowOffDayCheckIn",
-        label: "Allow off-day check-in",
-        type: "checkbox",
-      },
-      {
-        category: "attendance",
-        key: "allowHolidayCheckIn",
-        label: "Allow holiday check-in",
-        type: "checkbox",
-      },
+      /*
+       * "Allow off-day check-in" and "Allow holiday check-in" used to be here.
+       *
+       * Neither is a tenant-settings catalog key - they are `AttendancePolicy`
+       * columns, and the settings save path rejects any key the catalog does
+       * not know. So touching either control failed the entire PATCH with
+       * "Unsupported setting key attendance.allowOffDayCheckIn" and discarded
+       * every other unsaved change in the same submission (BUG-1978). They now
+       * live on the attendance policy screen, which writes the columns that
+       * actually back them.
+       */
       {
         category: "attendance",
         key: "requireReasonForOffdayHolidayCheckIn",

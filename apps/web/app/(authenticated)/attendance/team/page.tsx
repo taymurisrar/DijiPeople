@@ -114,21 +114,34 @@ export default async function TeamAttendancePage({
     ),
     canManageAttendance
       ? apiRequestJson<AttendancePolicyRecord>("/attendance/policy")
-      : Promise.resolve<AttendancePolicyRecord>({
+      : /*
+         * Placeholder for a viewer who may not read the policy at all. It is
+         * never rendered - the policy card below is gated on the same
+         * permission - so its only job is to describe the server honestly.
+         * It previously carried the PRE-MANDATE values
+         * (`allowRemoteWithoutLocation: true`, `captureLocationOnCheckIn:
+         * false`, `locationRequiredForModes: []`), which contradicted what the
+         * API enforces for every tenant (BUG-1981).
+         */
+        Promise.resolve<AttendancePolicyRecord>({
           lateCheckInGraceMinutes: 0,
           lateCheckOutGraceMinutes: 0,
           requireOfficeLocationForOfficeMode: true,
-          requireRemoteLocationForRemoteMode: false,
-          allowRemoteWithoutLocation: true,
-          locationCaptureRequired: false,
-          locationRequiredForModes: [],
+          allowManualAdjustments: false,
+          preventDuplicateAttendance: true,
+          allowCheckInOnApprovedLeave: false,
+          markMissingCheckout: true,
+          allowOffDayCheckIn: false,
+          allowHolidayCheckIn: false,
+          locationCaptureRequired: true,
+          locationRequiredForModes: ["OFFICE", "REMOTE", "HYBRID"],
           allowIpFallback: false,
           allowManualLocationException: false,
           locationTimeoutSeconds: 15,
           highAccuracyLocation: true,
           maxAllowedAccuracyMeters: null,
-          captureLocationOnCheckIn: false,
-          captureLocationOnCheckOut: false,
+          captureLocationOnCheckIn: true,
+          captureLocationOnCheckOut: true,
           storeIpAddress: false,
           storeUserAgent: false,
         }),

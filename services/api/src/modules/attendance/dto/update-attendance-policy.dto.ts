@@ -1,14 +1,5 @@
 import { Type } from 'class-transformer';
-import {
-  IsArray,
-  IsBoolean,
-  IsEnum,
-  IsInt,
-  IsOptional,
-  Max,
-  Min,
-} from 'class-validator';
-import { AttendanceMode } from '@prisma/client';
+import { IsBoolean, IsInt, IsOptional, Max, Min } from 'class-validator';
 
 export class UpdateAttendancePolicyDto {
   @Type(() => Number)
@@ -27,13 +18,15 @@ export class UpdateAttendancePolicyDto {
   @IsBoolean()
   requireOfficeLocationForOfficeMode!: boolean;
 
-  @Type(() => Boolean)
-  @IsBoolean()
-  requireRemoteLocationForRemoteMode!: boolean;
-
-  @Type(() => Boolean)
-  @IsBoolean()
-  allowRemoteWithoutLocation!: boolean;
+  /*
+   * `requireRemoteLocationForRemoteMode` and `allowRemoteWithoutLocation` used
+   * to be accepted here. They are removed rather than deprecated: device
+   * location capture is a platform mandate (see MANDATORY_LOCATION_CAPTURE in
+   * attendance.service.ts), neither column has ever been read in an enforcement
+   * branch, and offering input that can never take effect is exactly the defect
+   * BUG-1981 records. The columns are still written - at the mandated values -
+   * so the stored policy agrees with what the engine actually does.
+   */
 
   @Type(() => Boolean)
   @IsBoolean()
@@ -66,25 +59,17 @@ export class UpdateAttendancePolicyDto {
   @IsBoolean()
   allowHrAdminOverride?: boolean;
 
-  @IsOptional()
-  @Type(() => Boolean)
-  @IsBoolean()
-  locationCaptureRequired?: boolean;
-
-  @IsOptional()
-  @IsArray()
-  @IsEnum(AttendanceMode, { each: true })
-  locationRequiredForModes?: AttendanceMode[];
+  /*
+   * `locationCaptureRequired`, `locationRequiredForModes` and
+   * `allowManualLocationException` were accepted here too, for the same reason
+   * and with the same effect: none of them is read by the enforcement path.
+   * They are part of the same mandate and are written at its values.
+   */
 
   @IsOptional()
   @Type(() => Boolean)
   @IsBoolean()
   allowIpFallback?: boolean;
-
-  @IsOptional()
-  @Type(() => Boolean)
-  @IsBoolean()
-  allowManualLocationException?: boolean;
 
   @IsOptional()
   @Type(() => Number)
@@ -105,15 +90,10 @@ export class UpdateAttendancePolicyDto {
   @Max(100000)
   maxAllowedAccuracyMeters?: number;
 
-  @IsOptional()
-  @Type(() => Boolean)
-  @IsBoolean()
-  captureLocationOnCheckIn?: boolean;
-
-  @IsOptional()
-  @Type(() => Boolean)
-  @IsBoolean()
-  captureLocationOnCheckOut?: boolean;
+  /*
+   * `captureLocationOnCheckIn` and `captureLocationOnCheckOut` are likewise
+   * mandated rather than configurable.
+   */
 
   @IsOptional()
   @Type(() => Boolean)

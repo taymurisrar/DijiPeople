@@ -18,6 +18,19 @@ import { AttendanceQueryDto } from './dto/attendance-query.dto';
 
 type PrismaDb = PrismaService | Prisma.TransactionClient;
 
+/**
+ * What the work calendar says about one employee on one date.
+ *
+ * `isOffDay` mirrors the self-service context deliberately: an employee with no
+ * work schedule at all is not off, because nothing has said so.
+ */
+export interface EmployeeWorkDayResolution {
+  readonly employeeId: string;
+  readonly hasWorkSchedule: boolean;
+  readonly isOffDay: boolean;
+  readonly holiday: { id: string; name: string } | null;
+}
+
 const attendanceInclude = {
   employee: {
     select: {
@@ -385,6 +398,299 @@ export class AttendanceRepository {
       holidayCalendarId: calendar.holidayCalendarId,
       holidayCalendarSource: calendar.source,
     };
+  }
+
+  /**
+   * The same resolution as above, for a whole population, in five queries.
+   *
+   * WHY THIS EXISTS. Anything that has to answer "who was expected to work
+   * today" - the dashboard's absent count and its attendance exception row
+   * being the first - needs the schedule for every employee in scope at once.
+   * `resolveEmployeeWorkConfiguration` answers for one employee in up to eight
+   * round trips, so calling it per head turns the landing screen of a
+   * thousand-person tenant into thousands of queries. Before this method
+   * existed the calculation simply did not consult the calendar at all, and
+   * counted the entire workforce absent every weekend (BUG-2008).
+   *
+   * THE PRECEDENCE IS NOT RESTATED HERE. The order comes from
+   * `work-configuration-hierarchy.ts`, the same module the single-employee
+   * resolver uses, so the two cannot disagree about who wins. What is
+   * duplicated is only the shape of the queries: this method loads every
+   * candidate schedule and calendar for the tenant once and then picks in
+   * memory, instead of asking the database once per candidate. If you change a
+   * predicate in `resolveEmployeeWorkConfiguration`, change it here too.
+   *
+   * NO SHIFT TEMPLATES ARE LOADED. Whether the day is worked at all is decided
+   * by `WorkScheduleDay.isWorkingDay` and the schedule's `weeklyWorkDays`; the
+   * shift only matters once someone is expected, so loading it here would cost
+   * a join nothing reads.
+   */
+  async resolveWorkDayForEmployees(
+    tenantId: string,
+    employeeWhere: Prisma.EmployeeWhereInput,
+    effectiveDate: Date,
+    dayOfWeek: WorkWeekday,
+    db: PrismaDb = this.prisma,
+  ): Promise<Map<string, EmployeeWorkDayResolution>> {
+    const employees = await db.employee.findMany({
+      where: { ...employeeWhere, tenantId, isDeleted: false },
+      select: {
+        id: true,
+        organizationId: true,
+        businessUnitId: true,
+        departmentId: true,
+        teamId: true,
+        locationId: true,
+        defaultWorkScheduleId: true,
+        holidayCalendarId: true,
+        team: {
+          select: { defaultWorkScheduleId: true, holidayCalendarId: true },
+        },
+        department: {
+          select: { defaultWorkScheduleId: true, holidayCalendarId: true },
+        },
+      },
+    });
+
+    const resolutions = new Map<string, EmployeeWorkDayResolution>();
+    if (employees.length === 0) return resolutions;
+
+    const employeeIds = employees.map((employee) => employee.id);
+    const effectiveWindow = {
+      OR: [
+        { effectiveStartDate: null },
+        { effectiveStartDate: { lte: effectiveDate } },
+      ],
+      AND: [
+        {
+          OR: [
+            { effectiveEndDate: null },
+            { effectiveEndDate: { gte: effectiveDate } },
+          ],
+        },
+      ],
+    };
+
+    const [assignments, schedules, calendars] = await Promise.all([
+      db.employeeScheduleAssignment.findMany({
+        where: {
+          tenantId,
+          employeeId: { in: employeeIds },
+          isActive: true,
+          effectiveFrom: { lte: effectiveDate },
+          OR: [{ effectiveTo: null }, { effectiveTo: { gte: effectiveDate } }],
+          workSchedule: {
+            isActive: true,
+            status: 'ACTIVE',
+            ...effectiveWindow,
+          },
+        },
+        select: { employeeId: true, workScheduleId: true },
+        orderBy: [{ effectiveFrom: 'desc' }, { createdAt: 'desc' }],
+      }),
+      db.workSchedule.findMany({
+        where: {
+          tenantId,
+          isActive: true,
+          status: 'ACTIVE',
+          ...effectiveWindow,
+        },
+        select: {
+          id: true,
+          isDefault: true,
+          businessUnitId: true,
+          organizationId: true,
+          holidayCalendarId: true,
+          weeklyWorkDays: true,
+          days: {
+            where: { dayOfWeek },
+            select: { isWorkingDay: true },
+          },
+        },
+        orderBy: [{ isDefault: 'desc' }, { createdAt: 'asc' }],
+      }),
+      db.holidayCalendar.findMany({
+        where: { tenantId, status: 'ACTIVE', ...effectiveWindow },
+        select: {
+          id: true,
+          isDefault: true,
+          businessUnitId: true,
+          organizationId: true,
+        },
+        orderBy: [{ isDefault: 'desc' }, { createdAt: 'asc' }],
+      }),
+    ]);
+
+    /* First row wins: the query is already ordered most-recent-first. */
+    const assignmentByEmployee = new Map<string, string>();
+    for (const assignment of assignments) {
+      if (!assignmentByEmployee.has(assignment.employeeId)) {
+        assignmentByEmployee.set(
+          assignment.employeeId,
+          assignment.workScheduleId,
+        );
+      }
+    }
+
+    const scheduleById = new Map(
+      schedules.map((schedule) => [schedule.id, schedule]),
+    );
+    const calendarById = new Map(
+      calendars.map((calendar) => [calendar.id, calendar]),
+    );
+
+    const resolvedCalendarIdByEmployee = new Map<string, string>();
+    const workScheduleByEmployee = new Map<
+      string,
+      (typeof schedules)[number] | null
+    >();
+
+    for (const employee of employees) {
+      const hierarchy: EmployeeHierarchy = {
+        teamId: employee.teamId,
+        departmentId: employee.departmentId,
+        businessUnitId: employee.businessUnitId,
+        organizationId: employee.organizationId,
+      };
+
+      let workSchedule: (typeof schedules)[number] | null = null;
+
+      for (const candidate of scheduleCandidates({
+        assignmentScheduleId: assignmentByEmployee.get(employee.id),
+        employeeScheduleId: employee.defaultWorkScheduleId,
+        teamScheduleId: employee.team?.defaultWorkScheduleId,
+        departmentScheduleId: employee.department?.defaultWorkScheduleId,
+      })) {
+        const found = scheduleById.get(candidate.id);
+        if (found) {
+          workSchedule = found;
+          break;
+        }
+      }
+
+      if (!workSchedule) {
+        for (const scope of organizationalScopes(hierarchy)) {
+          const scoped = schedules.find((schedule) =>
+            scope.businessUnitId
+              ? schedule.businessUnitId === scope.businessUnitId
+              : schedule.businessUnitId === null &&
+                schedule.organizationId === scope.organizationId,
+          );
+          if (scoped) {
+            workSchedule = scoped;
+            break;
+          }
+        }
+      }
+
+      workSchedule ??=
+        schedules.find((schedule) => schedule.isDefault) ?? null;
+
+      workScheduleByEmployee.set(employee.id, workSchedule);
+
+      let holidayCalendarId: string | null = null;
+
+      for (const candidate of calendarCandidates({
+        employeeCalendarId: employee.holidayCalendarId,
+        teamCalendarId: employee.team?.holidayCalendarId,
+        departmentCalendarId: employee.department?.holidayCalendarId,
+      })) {
+        if (calendarById.has(candidate.id)) {
+          holidayCalendarId = candidate.id;
+          break;
+        }
+      }
+
+      if (!holidayCalendarId) {
+        for (const scope of organizationalScopes(hierarchy)) {
+          const scoped = calendars.find((calendar) =>
+            scope.businessUnitId
+              ? calendar.businessUnitId === scope.businessUnitId
+              : calendar.businessUnitId === null &&
+                calendar.organizationId === scope.organizationId,
+          );
+          if (scoped) {
+            holidayCalendarId = scoped.id;
+            break;
+          }
+        }
+      }
+
+      if (
+        !holidayCalendarId &&
+        workSchedule?.holidayCalendarId &&
+        calendarById.has(workSchedule.holidayCalendarId)
+      ) {
+        holidayCalendarId = workSchedule.holidayCalendarId;
+      }
+
+      holidayCalendarId ??=
+        calendars.find((calendar) => calendar.isDefault)?.id ?? null;
+
+      if (holidayCalendarId) {
+        resolvedCalendarIdByEmployee.set(employee.id, holidayCalendarId);
+      }
+    }
+
+    const holidayCalendarIds = [
+      ...new Set(resolvedCalendarIdByEmployee.values()),
+    ];
+    const holidays = holidayCalendarIds.length
+      ? await db.holiday.findMany({
+          where: {
+            tenantId,
+            holidayCalendarId: { in: holidayCalendarIds },
+            holidayDate: effectiveDate,
+            isActive: true,
+            status: 'ACTIVE',
+          },
+          select: {
+            id: true,
+            name: true,
+            scopeType: true,
+            departmentId: true,
+            locationId: true,
+            holidayCalendarId: true,
+          },
+        })
+      : [];
+
+    for (const employee of employees) {
+      const workSchedule = workScheduleByEmployee.get(employee.id) ?? null;
+      const scheduleDay = workSchedule?.days[0] ?? null;
+      /*
+       * Identical to the self-service path: an explicit day row wins, the
+       * schedule's weekly pattern answers when there is no row for the day, and
+       * an employee with no schedule at all is NOT treated as off - nothing has
+       * said they do not work, and guessing "off" would silently excuse them.
+       */
+      const isWorkingDay = scheduleDay
+        ? scheduleDay.isWorkingDay
+        : Boolean(workSchedule?.weeklyWorkDays.includes(dayOfWeek));
+      const holidayCalendarId =
+        resolvedCalendarIdByEmployee.get(employee.id) ?? null;
+      const holiday =
+        holidays.find(
+          (candidate) =>
+            candidate.holidayCalendarId === holidayCalendarId &&
+            (candidate.scopeType === 'TENANT' ||
+              (candidate.scopeType === 'DEPARTMENT' &&
+                candidate.departmentId !== null &&
+                candidate.departmentId === employee.departmentId) ||
+              (candidate.scopeType === 'WORK_SITE' &&
+                candidate.locationId !== null &&
+                candidate.locationId === employee.locationId)),
+        ) ?? null;
+
+      resolutions.set(employee.id, {
+        employeeId: employee.id,
+        hasWorkSchedule: Boolean(workSchedule),
+        isOffDay: Boolean(workSchedule && !isWorkingDay),
+        holiday: holiday ? { id: holiday.id, name: holiday.name } : null,
+      });
+    }
+
+    return resolutions;
   }
 
   /**

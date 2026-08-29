@@ -622,13 +622,28 @@ export class TenantSettingsService {
         );
       }
 
+      const normalizedValue = normalizeSettingValue(category, key, item.value);
+
+      /*
+       * Reported, then still enforced.
+       *
+       * The refusal below is the disclosure half: a submitted value that will
+       * not be honoured now fails the request and names the key, instead of
+       * being swapped for the mandated one so quietly that the change-diff
+       * dropped it as a no-op and the audit row recorded nothing (BUG-1979).
+       * `enforceCriticalAttendanceSetting` is kept underneath it deliberately -
+       * it is the lock, and a future caller that reaches this map by another
+       * route must not be able to write past the mandate.
+       */
+      assertAttendanceSettingIsChangeable(category, key, normalizedValue);
+
       return {
         category,
         key,
         value: enforceCriticalAttendanceSetting(
           category,
           key,
-          normalizeSettingValue(category, key, item.value),
+          normalizedValue,
         ),
         actorUserId: currentUser.userId,
       };
