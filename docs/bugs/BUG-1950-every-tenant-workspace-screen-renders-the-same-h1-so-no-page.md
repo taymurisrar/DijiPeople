@@ -2,7 +2,7 @@
 ID: BUG-1950
 aliases: [BUG-1950]
 Title: Every tenant workspace screen renders the same h1, so no page announces what it is
-Status: OPEN
+Status: FIXED
 Severity: MEDIUM
 Priority: P2
 Type: UX
@@ -11,7 +11,7 @@ DetectedDate: 2026-08-29
 DetectedInSha: 41eaadb4
 AffectedModules: [apps/web]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport:
 RegressionId: REG-302
 RelatedBacklogItem: ITEM-0034
@@ -19,7 +19,7 @@ RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-29
 UpdatedAt: 2026-08-29
-ResolvedAt:
+ResolvedAt: 2026-08-29
 ---
 
 # BUG-1950 — Every tenant workspace screen renders the same h1, so no page announces what it is
@@ -148,9 +148,55 @@ Modules [[platform-admin|Platform Admin]] carries the fixed precedent.
 
 ## Resolution
 
-Not fixed. Found while building the coverage that found it; fixing it inside
-that task would have conflated "we can now see" with "we have now fixed", and
-[[EXECPLAN-0025-apps-web-browser-e2e-coverage]] commits to keeping those separate.
+Fixed. The Root Cause section guessed correctly: the heading is the shell's,
+and the shell never learned which page it was wrapping.
+
+**The defect, exactly.**
+`apps/web/app/(authenticated)/_components/dashboard-topbar.tsx:36` declared
+`pageTitle = "Dashboard"` as a default, and
+`apps/web/app/(authenticated)/layout.tsx` — the only caller — never passed one.
+So the heading was per-page in shape and constant in fact. That is why every
+functional check passed: nothing was broken, one string was simply never
+supplied.
+
+**The fix.** The topbar resolves the title from the path
+(`dashboard-topbar.tsx:61-62`), using `resolveRouteTitle` from
+`apps/web/lib/tenant-branding-client.ts` — the same resolver that already names
+the browser tab from `generateMetadata`. Two consequences worth stating: 232
+routes are covered without each having to remember, and the in-page heading and
+the document title can no longer disagree. A route with a better name than its
+path gives still passes `pageTitle` and wins.
+
+The topbar becomes a client component for this. A shared layout is not
+re-rendered on client navigation in the App Router, so resolving the path on
+the server would have left the heading naming whichever screen was loaded
+first — a subtler version of the same bug.
+
+**Exactly one h1 per page.** With the shell heading now naming the route, the
+sixteen pages and three shared components that rendered a competing `h1` would
+have produced two. They are `h2` now, which is also the correct hierarchy:
+"Attendance" (the screen) above "Create manual attendance" (the section). Files
+include `app/(authenticated)/attendance/new/page.tsx`,
+`app/(authenticated)/page.tsx`,
+`app/(authenticated)/payroll/_components/payroll-layout-shell.tsx`,
+`app/components/dashboard/role-dashboard-page.tsx` and
+`app/components/settings/settings-layout.tsx`.
+
+The generic subtitle "Manage your workspace from one place." is now rendered
+only on the overview it was written for; under "Employees" it said nothing.
+
+**Coverage.** `apps/web/app/components/workspace-shell-headings.spec.ts` gains
+a BUG-1950 block asserting the topbar resolves from `usePathname`, that the
+literal `pageTitle = "Dashboard"` default is gone, that a route may still
+override, and that the heading and the document title share one resolver. The
+existing BUG-1673 assertions still hold: one `h1` in the shell, and the sidebar
+owns none.
+
+Note the earlier fix that made this survivable: BUG-1673 kept this `h1`
+deliberately, on the stated grounds that it "renders pageTitle rather than a
+constant, so it is the page's own". That was true of the code and false of the
+product, because the prop had a constant default and no caller. It is true of
+both now.
 
 ## QA Retest
 

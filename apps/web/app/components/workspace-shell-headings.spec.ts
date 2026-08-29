@@ -109,7 +109,7 @@ describe("BUG-1951 — exactly one main landmark, and the layout owns it", () =>
 
   it("the authenticated layout renders the landmark, once", () => {
     const layout = codeOnly(layoutPath);
-    expect(layout.match(/<main/g) ?? []).toHaveLength(1);
+    expect(layout.match(/<main/g) ?? []).toHaveLength(1);
     expect(layout).toContain('id="main-content"');
   });
 

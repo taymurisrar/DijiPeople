@@ -2,7 +2,7 @@
 ID: BUG-1951
 aliases: [BUG-1951]
 Title: Most tenant workspace pages render no main landmark, including every settings category
-Status: OPEN
+Status: FIXED
 Severity: MEDIUM
 Priority: P2
 Type: UX
@@ -11,7 +11,7 @@ DetectedDate: 2026-08-29
 DetectedInSha: 41eaadb4
 AffectedModules: [apps/web]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport:
 RegressionId: REG-302
 RelatedBacklogItem: ITEM-0034
@@ -19,7 +19,7 @@ RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-29
 UpdatedAt: 2026-08-29
-ResolvedAt:
+ResolvedAt: 2026-08-29
 ---
 
 # BUG-1951 — Most tenant workspace pages render no main landmark, including every settings category
@@ -142,9 +142,47 @@ which is `VERIFIED` for admin.
 
 ## Resolution
 
-Not fixed. Recorded rather than fixed inside the coverage task, per
-[[EXECPLAN-0025-apps-web-browser-e2e-coverage]] — conflating "we can now see" with "we have now fixed" makes
-the coverage deliverable unmeasurable.
+Fixed, in the order the Proposed Resolution section called for — which is the
+part that made this more than a one-line change.
+
+**The landmark is the layout's, once.**
+`apps/web/app/(authenticated)/layout.tsx:280` renders
+`<main className="flex min-w-0 flex-col gap-6" id="main-content">` around
+`{children}`, inside the error boundary and outside the topbar: the page header
+band is banner content, not the page's content. Every one of the 232
+authenticated routes now has exactly one.
+
+**And the 89 that had their own no longer do.** Adding the layout landmark
+without removing those would have given 89 pages two, which is precisely
+BUG-1421's defect in `apps/admin`. All of them — page files, `loading.tsx`,
+`error.tsx`, and the shared `app/components/dashboard/role-dashboard-page.tsx`
+and `app/components/settings/settings-layout.tsx` — render a `div` with the
+same classes. `main` and `div` are both block-level with no default styling of
+their own, so nothing moved.
+
+The `(public)` routes, `not-found.tsx`, `global-error.tsx`, `app/workspace` and
+`app/partner` keep their own landmarks: they render outside this layout and
+would otherwise have none.
+
+**Skip to content.** `layout.tsx:198-204` puts a visually hidden skip link as
+the first focusable element of the shell, targeting `#main-content`. It is new
+rather than restored — there was nothing to skip to before, which is the point
+the record makes about a keyboard user tabbing the whole sidebar on every
+navigation.
+
+**Settings categories specifically**, where this was found: they render through
+`app/components/settings/settings-layout.tsx`, which did supply a `main` — but
+`/settings/organization` redirects to `/settings/organizations`, which is served
+by the settings runtime and did not. Both are covered now by the layout, so the
+distinction stops mattering.
+
+**Coverage.** `apps/web/app/components/workspace-shell-headings.spec.ts`
+replaces the old holding assertion with a BUG-1951 block that walks every
+`.tsx` under `app/(authenticated)` and asserts the landmark appears exactly
+once, in the layout, with the skip link pointing at it, and nowhere else —
+including the two shared components. Both halves are asserted because either
+one alone is a defect: zero landmarks and two landmarks are the same failure
+seen from opposite sides.
 
 ## QA Retest
 
