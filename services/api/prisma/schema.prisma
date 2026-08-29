@@ -1082,7 +1082,7 @@ enum AttendanceCorrectionType {
   TIME_ADJUSTMENT
   MANUAL_CORRECTION
   /// Approving time already worked as payable overtime.
-  //
+  ///
   /// Carried here rather than in a second request model: this system has no
   /// overtime request of its own (OvertimePolicy is calculation configuration,
   /// and TimePayrollInput sits downstream of attendance), and this is the
@@ -2596,7 +2596,7 @@ model CustomerAccount {
   id                         String                      @id @default(uuid())
   companyName                String
   /// Where this customer came from. See CustomerOriginChannel (ITEM-0008).
-  //
+  ///
   /// Nullable because rows created before this existed cannot all be classified:
   /// the migration backfills every customer that has a lead to read from, and
   /// leaves the rest NULL rather than guessing DIRECT for a customer whose lead
@@ -2857,13 +2857,13 @@ model Partner {
   code                   String                         @unique
   type                   PartnerType                    @default(COMPANY)
   /// The commercial relationship this partner was taken on under (ITEM-0030).
-  //
+  ///
   /// Distinct from `type`, which is the contracting entity — INDIVIDUAL or
   /// COMPANY — and says nothing about the partnership. `PartnerInquiry` has
   /// captured this since Wave 3, and converting an inquiry used to discard it,
   /// so the one field an operator triages on did not survive the moment the
   /// relationship actually began.
-  //
+  ///
   /// Nullable: partners created before this existed were taken on under a model
   /// nobody recorded, and inventing one for them would be a fabricated
   /// commercial fact.
@@ -3983,7 +3983,7 @@ model PlanPrice {
   /// price's currency. Null means this price does not charge overage, which is
   /// correct for every PER_SEAT row: there is no "above included" when every
   /// seat is billed. Only the FLAT rows carry a rate.
-  //
+  ///
   /// The schema has measured overage since the seat engine landed
   /// (`SeatUsage.overage`, `SeatOverageEvent.peakOverage`) and had nowhere to
   /// price it, so a flat plan's allowance could be exceeded and never billed.
@@ -4284,7 +4284,7 @@ model Identity {
   /// Lockout is global because credentials are. Leaving it per tenant would
   /// give an attacker a fresh allowance of attempts for every workspace the
   /// address belongs to, which is the opposite of what a lockout is for.
-  //
+  ///
   /// **Only the tenant-scoped login path writes these.** The public discovery
   /// endpoint used to, and that made it a weapon: twenty unauthenticated
   /// requests could lock a known address out of every workspace for an hour
@@ -4294,7 +4294,7 @@ model Identity {
   lockedUntil         DateTime?
 
   /// Throttles the public workspace-discovery endpoint, per address.
-  //
+  ///
   /// Separate from the credential lock on purpose, and the separation *is* the
   /// fix. Discovery is unauthenticated, so anybody can drive it — which means
   /// whatever it can trigger, anybody can trigger against any address they
@@ -4323,14 +4323,14 @@ model User {
   tenantId                       String
 
   /// The person this workspace account belongs to.
-  //
+  ///
   /// Required since the contract phase (TASK-0009 WP-09, 2026-08-29). Expand,
   /// backfill and contract each shipped in their own deployment, which is what
   /// this column's history is really about: after the contract phase a **code**
   /// rollback past the build that writes `identityId` leaves the old build
   /// unable to create users at all, because it does not set the column and the
   /// column no longer permits null.
-  //
+  ///
   /// Every creation path writes it, pinned by
   /// `user-creation-links-identity.invariant.spec.ts`. One `User` per tenant,
   /// many `User` rows per `Identity` — that relation is what makes one person
@@ -4764,7 +4764,7 @@ model Team {
   businessUnitId         String?
   departmentId           String?
   /// Team-level work schedule and calendar.
-  //
+  ///
   /// A single office holds teams that work different hours — Finance 09:00-18:00,
   /// Support on a 24/7 rotation — which is exactly why schedule resolution runs
   /// down the organizational hierarchy and not through the Work Site.
@@ -5372,7 +5372,7 @@ model Location {
   validFrom                DateTime?
   validTo                  DateTime?
   /// DEPRECATED as an attendance input.
-  //
+  ///
   /// A Work Site is a physical place, not a schedule authority: one office holds
   /// teams on different hours and employees on different regional calendars.
   /// Schedule and calendar now resolve down the organizational hierarchy
@@ -5950,7 +5950,7 @@ model AttendanceEntry {
   lateCheckOutMinutes              Int?
   machineDeviceId                  String?
   /// Written by the reconciliation engine.
-  //
+  ///
   /// checkOut - checkIn is not worked time on a day with more than one session:
   /// office 08:05-12:30 plus remote 14:00-18:05 is 8h30m of work, not the 10h
   /// that subtraction would report to timesheets and payroll. Null on legacy rows
@@ -6006,7 +6006,7 @@ model AttendanceCorrectionRequest {
   actionedByUserId       String?
   actionComment          String?
   /// The work day this correction is about.
-  //
+  ///
   /// Added because a correction for a day with no AttendanceEntry — a wholly
   /// missing day — previously had nowhere to say which day it meant.
   attendanceDate         DateTime?
@@ -10696,13 +10696,13 @@ model ActivityEvent {
   receivedAt      DateTime           @default(now())
   createdAt       DateTime           @default(now())
   /// Idempotency key for one heartbeat sample: tenant + session + instant.
-  //
+  ///
   /// BUG-0036. The desktop agent re-sends a whole batch when a send fails, and
   /// the server created every event unconditionally while *incrementing* running
   /// totals — so a replayed batch permanently inflated
   /// `WorkSession.totalActiveSeconds` and `DailyProductivitySummary`, which is
   /// what `utilizationPercent` is computed from.
-  //
+  ///
   /// A separate nullable column rather than `@@unique([tenantId, sessionId,
   /// occurredAt])` over the existing fields, because rows written before this
   /// fix already contain the duplicates the bug created: a unique index across
@@ -11126,7 +11126,7 @@ model CustomizationColumn {
   isValidForViewDesigner   Boolean                    @default(true)
   isReadOnly               Boolean                    @default(false)
   /// The column that names a record of this module.
-  //
+  ///
   /// A lookup to this module shows this column's value, and list and detail
   /// screens use it as the record title. At most one column per table may set
   /// it — enforced by a partial unique index in the migration, because Prisma
@@ -12343,7 +12343,7 @@ model RawAttendanceEvent {
   /// has no stable transaction id.
   eventFingerprint    String
   /// Non-null source identity that scopes the uniqueness constraint.
-  //
+  ///
   /// The fingerprint alone is not safe to key on. Slice 1 keyed uniqueness on
   /// (tenantId, captureSource, eventFingerprint), which silently assumes every
   /// connector folds device identity into its hash. The ZKTeco adapter does
@@ -12351,7 +12351,7 @@ model RawAttendanceEvent {
   /// hashed only user + timestamp + punch fields would make two devices'
   /// legitimate simultaneous punches collide, and the second would be dropped as
   /// a duplicate — silent data loss.
-  //
+  ///
   /// The ingestion service derives this server-side ("device:<id>",
   /// "integration:<id>", "tenant") so source identity is always part of the key
   /// no matter what the connector hashed.
@@ -12443,12 +12443,12 @@ model ApplicationRelease {
   fileSizeBytes           Int?
   checksumSha256          String?
   /// Base64 SHA-512, required by the electron-updater feed (BUG-0034).
-  //
+  ///
   /// electron-updater verifies a downloaded artefact against the sha512 in
   /// `latest.yml` and refuses to install on a mismatch, so `checksumSha256`
   /// cannot serve that feed however it is re-encoded — they are different
   /// digests, not two formats of one.
-  //
+  ///
   /// Nullable because releases published before this column existed have no
   /// sha512 and cannot have one computed without the original artefact. The
   /// feed skips a release that lacks it rather than advertising one the updater
@@ -12858,7 +12858,7 @@ model OutboxEvent {
   eventType DomainEventType
 
   /// The business identity of this transition, not a random value.
-  //
+  ///
   /// Two writers announcing the same transition — a webhook delivered twice, a
   /// retried activation, a reconciliation job re-deriving a state it already
   /// derived — construct the same key, and the unique index collapses them into
@@ -13434,7 +13434,7 @@ model SubscriptionOrder {
   /// Business identity of the submission, used to absorb refreshes and double
   /// submits. Unique, so the database — not a pre-check racing itself — is what
   /// refuses the second one.
-  //
+  ///
   /// **Nullable on purpose, and released when the order stops being open.**
   /// The hash identifies the one *live* order for a submission, not the
   /// submission forever. Held permanently, an abandoned checkout would make
@@ -13444,13 +13444,13 @@ model SubscriptionOrder {
 
   /// The workspace slug the customer asked for, reserved from the moment they
   /// ask rather than at provisioning time.
-  //
+  ///
   /// Tenant.slug is already unique, but a Tenant does not exist until payment
   /// has been confirmed — so without this column two people can both be shown
   /// "maseer is available", both pay, and only the second one's provisioning
   /// discovers the collision, after the money has moved. The reservation has to
   /// outlive the availability check that promised it.
-  //
+  ///
   /// **Nullable-unique, and released the same way submissionHash is**, for the
   /// same reason: held permanently, one abandoned checkout would make a name
   /// unclaimable forever. PostgreSQL treats NULLs as distinct, so clearing it on
@@ -13461,7 +13461,7 @@ model SubscriptionOrder {
 
   /// Proof that the person buying controls the address the workspace owner will
   /// be created at, established **before** payment.
-  //
+  ///
   /// A card proves somebody can pay. It does not prove they typed their own
   /// email, and the owner address is the one credential that can never be
   /// corrected from inside the workspace — get it wrong and nobody can sign in
@@ -13479,7 +13479,7 @@ model SubscriptionOrder {
   emailVerificationAttempts  Int      @default(0)
 
   /// What the buyer does — "HR Director", not "Primary Owner".
-  //
+  ///
   /// Carried here because `CustomerContact`, its eventual home, does not exist
   /// until provisioning runs. `CustomerContact.role` is free text and
   /// `isPrimaryContact` already carries the relationship, so the role column can
