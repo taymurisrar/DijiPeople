@@ -75,6 +75,14 @@ const COVERAGE: readonly Coverage[] = [
       'deleteDesignation',
     ],
     exempt: {
+      /*
+       * Arrived from the organization stream of the same sweep, and this guard
+       * is what surfaced it — which is the point of enumerating the prototype
+       * rather than hardcoding a list. TypeScript's `private` is compile-time
+       * only, so a private helper still shows up here and has to be decided.
+       */
+      updateDepartmentRow:
+        'Private helper wrapping the repository write in the P2002 try/catch BUG-1958 needed. Its callers (createDepartment, updateDepartment) write the audit row; auditing here too would double-count every department write.',
       deleteDepartment:
         'Delegates to updateDepartment, which audits the INACTIVE/ARCHIVED status change that actually happens.',
       createOrganization:
