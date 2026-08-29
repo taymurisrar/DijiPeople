@@ -13,9 +13,9 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 72 |
+| Open (active work) | 73 |
 | Blocked | 2 |
-| Deferred | 24 |
+| Deferred | 23 |
 | Awaiting a product decision | 5 |
 | Completed / closed | 285 |
 | **Open CRITICAL** | **0** |
@@ -27,7 +27,7 @@ see [`README.md`](README.md) for why.
 | Severity | Count |
 |---|---|
 | HIGH | 15 |
-| MEDIUM | 46 |
+| MEDIUM | 47 |
 | LOW | 11 |
 
 ## Open by type
@@ -45,7 +45,7 @@ see [`README.md`](README.md) for why.
 | SECURITY | 2 |
 | TECH_DEBT | 5 |
 | TEST_GAP | 5 |
-| UX | 19 |
+| UX | 20 |
 
 ## All records by status
 
@@ -53,9 +53,9 @@ see [`README.md`](README.md) for why.
 |---|---|
 | OPEN | 1 |
 | BLOCKED | 2 |
-| DEFERRED | 24 |
+| DEFERRED | 23 |
 | PRODUCT_DECISION | 5 |
-| FIXED | 47 |
+| FIXED | 48 |
 | VERIFIED | 215 |
 | DUPLICATE | 4 |
 | ACCEPTED_RISK | 3 |
@@ -292,7 +292,7 @@ see [`README.md`](README.md) for why.
 | [BUG-1555](../../docs/bugs/BUG-1555-an-inactive-plan-with-no-prices-is-offered-as-a-customer-pre.md) | An inactive plan with no prices is offered as a customer preferred plan | BUG | MEDIUM | P2 | VERIFIED | super-admin, billing | DONE |
 | [BUG-1654](../../docs/bugs/BUG-1654-every-empty-list-in-a-new-workspace-blames-filters-that-are-.md) | Every empty list in a new workspace blames filters that are not set | UX | MEDIUM | P2 | VERIFIED | views, employees | DONE |
 | [BUG-1655](../../docs/bugs/BUG-1655-tenant-login-password-field-has-no-accessible-name-and-no-au.md) | Tenant login password field has no accessible name and no autocomplete hint | UX | MEDIUM | P2 | VERIFIED | auth | DONE |
-| [BUG-1668](../../docs/bugs/BUG-1668-tenant-workspace-pages-scroll-horizontally-at-mobile-width.md) | Tenant workspace pages scroll horizontally at mobile width | UX | MEDIUM | P2 | DEFERRED | views | DEFER |
+| [BUG-1668](../../docs/bugs/BUG-1668-tenant-workspace-pages-scroll-horizontally-at-mobile-width.md) | Tenant workspace pages scroll horizontally at mobile width | UX | MEDIUM | P2 | FIXED | views | DONE |
 | [BUG-1673](../../docs/bugs/BUG-1673-tenant-workspace-shell-repeats-three-h1-headings-and-two-mai.md) | Tenant workspace shell repeats three h1 headings and two main landmarks on every screen | UX | MEDIUM | P2 | VERIFIED | views | DONE |
 | [BUG-1746](../../docs/bugs/BUG-1746-required-fields-on-unselected-tabs-are-undiscoverable-so-cre.md) | Required fields on unselected tabs are undiscoverable so create forms dead-end | UX | MEDIUM | P2 | VERIFIED | apps/admin | DONE |
 | [BUG-1748](../../docs/bugs/BUG-1748-the-subscription-record-page-cannot-resolve-its-own-tenant-p.md) | The subscription record page cannot resolve its own tenant plan or price | BUG | MEDIUM | P2 | VERIFIED | apps/admin, api:platform-runtime | DONE |

@@ -43,6 +43,7 @@ _None._
 |---|---|---|---|---|---|---|---|
 | [BUG-1548](../../docs/bugs/BUG-1548-customer-onboarding-validate-accepts-payloads-that-create-re.md) | Customer onboarding validate accepts payloads that create rejects | BUG | MEDIUM | P2 | FIXED | onboarding | DONE |
 | [BUG-1551](../../docs/bugs/BUG-1551-desktop-agent-auto-update-manifest-returns-404.md) | Desktop agent auto-update manifest returns 404 | INTEGRATION | MEDIUM | P2 | FIXED | agent, app-releases | DONE |
+| [BUG-1668](../../docs/bugs/BUG-1668-tenant-workspace-pages-scroll-horizontally-at-mobile-width.md) | Tenant workspace pages scroll horizontally at mobile width | UX | MEDIUM | P2 | FIXED | views | DONE |
 | [BUG-1950](../../docs/bugs/BUG-1950-every-tenant-workspace-screen-renders-the-same-h1-so-no-page.md) | Every tenant workspace screen renders the same h1, so no page announces what it is | UX | MEDIUM | P2 | FIXED | apps/web | DONE |
 | [BUG-1951](../../docs/bugs/BUG-1951-most-tenant-workspace-pages-render-no-main-landmark-includin.md) | Most tenant workspace pages render no main landmark, including every settings category | UX | MEDIUM | P2 | FIXED | apps/web | DONE |
 | [BUG-1953](../../docs/bugs/BUG-1953-plan-detail-reports-zero-subscriptions-while-the-plans-list-.md) | Plan detail reports zero subscriptions while the plans list and subscriptions both show two | BUG | MEDIUM | P2 | FIXED | apps/admin, api:super-admin | DONE |
