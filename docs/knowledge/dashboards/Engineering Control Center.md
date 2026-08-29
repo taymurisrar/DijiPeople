@@ -17,7 +17,7 @@
 | Open CRITICAL | **0** |
 | Open HIGH | 19 |
 | Awaiting Architect triage | 0 |
-| Owner decisions pending | 6 |
+| Owner decisions pending | 4 |
 | QA coverage gaps | 120 |
 | Scenarios blocked by infrastructure | 0 |
 
@@ -30,8 +30,8 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 69 |
-| No next action | 69 |
+| No acceptance criteria | 71 |
+| No next action | 71 |
 | Aging — 7d / 30d / 90d | 17 / 0 / 0 |
 | Architecture and technical debt | 7 |
 | Security gaps | 4 |
@@ -107,9 +107,7 @@ _None. Nothing open at CRITICAL._
 Questions where the engineering is understood and the **product answer is**
 **not**. No agent may resolve one by implementing a side of it.
 
-- [[BUG-2045-timesheet-background-job-completions-make-up-71-percent-of-t|BUG-2045]] — **Timesheet background-job completions make up 71 percent of the tenant audit trail**
 - [[ITEM-0106-an-employee-cannot-use-self-service-until-their-manager-acti|ITEM-0106]] — **An employee cannot use self-service until their manager activates their own account**
-- [[ITEM-0113-the-seeded-leave-approval-chain-cannot-route-on-a-newly-prov|ITEM-0113]] — **The seeded leave approval chain cannot route on a newly provisioned tenant, and the Approval Matrices screen gives no warning**
 - [[ITEM-0108-decide-whether-the-roughly-one-hour-session-lifetime-is-idle|ITEM-0108]] — **Decide whether the roughly one-hour session lifetime is idle or absolute**
 - [[BUG-2007-projects-and-customers-can-be-created-but-never-deleted|BUG-2007]] — **Projects and customers can be created but never deleted**
 - [[ITEM-0114-the-workspace-shell-states-the-tenant-s-identity-four-times-|ITEM-0114]] — **The workspace shell states the tenant's identity four times and its purpose twice**
@@ -246,10 +244,10 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 70 |
+| Open total | 72 |
 | Blocked | 2 |
 | Deferred | 30 |
-| Awaiting a product decision | 6 |
+| Awaiting a product decision | 4 |
 | Awaiting Architect triage | 0 |
 
 Every ordinary record carries a disposition.

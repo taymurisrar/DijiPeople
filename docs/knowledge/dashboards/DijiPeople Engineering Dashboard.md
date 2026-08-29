@@ -9,11 +9,11 @@
 |---|---|
 | Open CRITICAL | **0** |
 | Open HIGH | **19** |
-| Open total | 70 |
+| Open total | 72 |
 | Blocked | 2 |
-| Awaiting a product decision | 6 |
+| Awaiting a product decision | 4 |
 | Deferred | 30 |
-| Completed | 278 |
+| Completed | 279 |
 | Awaiting Architect triage | 0 |
 
 ## Open Critical Bugs
@@ -48,9 +48,7 @@ _None. Nothing open at CRITICAL._
 
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
-| [[BUG-2045-timesheet-background-job-completions-make-up-71-percent-of-t|BUG-2045]] | Timesheet background-job completions make up 71 percent of the tenant audit trail | BUG | MEDIUM | PRODUCT_DECISION | api:timesheets, api:audit, api:tenant-settings | PRODUCT_DECISION |
 | [[ITEM-0106-an-employee-cannot-use-self-service-until-their-manager-acti|ITEM-0106]] | An employee cannot use self-service until their manager activates their own account | PRODUCT_DECISION | MEDIUM | PRODUCT_DECISION | api:leave, api:employees | PRODUCT_DECISION |
-| [[ITEM-0113-the-seeded-leave-approval-chain-cannot-route-on-a-newly-prov|ITEM-0113]] | The seeded leave approval chain cannot route on a newly provisioned tenant, and the Approval Matrices screen gives no warning | PRODUCT_DECISION | MEDIUM | PRODUCT_DECISION | services/api/prisma, api:approvals, apps/web | PRODUCT_DECISION |
 | [[ITEM-0108-decide-whether-the-roughly-one-hour-session-lifetime-is-idle|ITEM-0108]] | Decide whether the roughly one-hour session lifetime is idle or absolute | PRODUCT_DECISION | LOW | PRODUCT_DECISION | api:auth | PRODUCT_DECISION |
 | [[BUG-2007-projects-and-customers-can-be-created-but-never-deleted|BUG-2007]] | Projects and customers can be created but never deleted | BUG | LOW | PRODUCT_DECISION | api:projects | PRODUCT_DECISION |
 | [[ITEM-0114-the-workspace-shell-states-the-tenant-s-identity-four-times-|ITEM-0114]] | The workspace shell states the tenant's identity four times and its purpose twice | UX | — | PRODUCT_DECISION | views | PRODUCT_DECISION |
@@ -283,6 +281,7 @@ _None. Nothing open at CRITICAL._
 | [[BUG-1822-landing-csp-permits-the-api-over-http-so-its-own-connect-src|BUG-1822]] | Landing CSP permits the API over http, so its own connect-src does not match | INFRA | MEDIUM | VERIFIED | apps/landing, pkg:config | DONE |
 | [[BUG-1883-app-releases-and-agent-rollout-render-on-a-shell-no-other-ad|BUG-1883]] | App releases and Agent rollout render on a shell no other admin screen uses | UX | MEDIUM | VERIFIED | apps/admin | DONE |
 | [[BUG-1884-the-re-check-payment-action-is-offered-on-every-customer-inc|BUG-1884]] | The re-check payment action is offered on every customer, including ones who have paid | UX | MEDIUM | VERIFIED | apps/admin, api:billing | DONE |
+| [[BUG-2045-timesheet-background-job-completions-make-up-71-percent-of-t|BUG-2045]] | Timesheet background-job completions make up 71 percent of the tenant audit trail | BUG | MEDIUM | FIXED | api:timesheets, api:audit, api:tenant-settings | FIX_NOW |
 | [[BUG-0018-bulk-lead-delete-is-unreachable-for-every-role|BUG-0018]] | Bulk lead delete is unreachable for every role, including SUPER_ADMIN | AUTHORIZATION | LOW | VERIFIED | api:platform-auth, api:super-admin | DONE |
 | [[BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist|BUG-0023]] | The testing-architecture context claims two e2e specs do not exist | DOCUMENTATION | LOW | VERIFIED | .agent/context | DONE |
 | [[BUG-0024-start-onboarding-api-and-proxy-have-no-caller|BUG-0024]] | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | VERIFIED | apps/admin, api:super-admin | DONE |
@@ -365,7 +364,9 @@ _None. Nothing open at CRITICAL._
 | [[BUG-2014-users-new-and-users-import-are-shadowed-by-the-user-detail-r|BUG-2014]] | Users new and Users import fall through to the user detail route and report a permissions refusal | BUG | MEDIUM | OPEN | apps/web | FIX_NOW |
 | [[BUG-2016-cancelling-a-leave-request-leaves-its-needs-approval-notific|BUG-2016]] | Cancelling a leave request leaves its needs-approval notification outstanding in the inbox | BUG | MEDIUM | OPEN | api:notifications, api:leave | FIX_NOW |
 | [[BUG-2026-the-employee-export-produces-columns-the-employee-import-tem|BUG-2026]] | The employee export produces columns the employee import template does not accept | BUG | MEDIUM | OPEN | api:employees | FIX_NOW |
+| [[BUG-2045-timesheet-background-job-completions-make-up-71-percent-of-t|BUG-2045]] | Timesheet background-job completions make up 71 percent of the tenant audit trail | BUG | MEDIUM | FIXED | api:timesheets, api:audit, api:tenant-settings | FIX_NOW |
 | [[BUG-2091-the-canonical-settings-contract-still-describes-attendance-g|BUG-2091]] | The canonical settings contract still describes attendance geolocation as configurable and Remote-Hybrid only | DOCUMENTATION | MEDIUM | OPEN | docs/architecture | FIX_NOW |
+| [[BUG-2206-three-timesheet-audit-toggles-render-on-screen-and-are-read-|BUG-2206]] | Three timesheet audit toggles render on screen and are read by nothing | BUG | MEDIUM | OPEN | api:timesheets, api:tenant-settings, apps/web | FIX_NOW |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0020-contract-phase-drop-legacy-plan-pricing-columns|ITEM-0020]] | Contract phase: drop legacy Plan pricing columns | TECH_DEBT | MEDIUM | READY | services/api/prisma, api:super-admin, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur|ITEM-0022]] | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | READY | api:super-admin, apps/admin | PLAN_REQUIRED |
@@ -408,7 +409,7 @@ _None. Nothing open at CRITICAL._
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 272 |
+| Bug records | 273 |
 | Backlog items | 114 |
 | Known bug patterns | 30 |
 | QA runs | 31 |

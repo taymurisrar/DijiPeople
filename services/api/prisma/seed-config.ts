@@ -16,6 +16,7 @@ import type { ApprovalActorType, ApprovalModuleKey } from '@prisma/client';
 import { createPrismaClient } from './create-prisma-client';
 import { bootstrapCommercialDefaults } from '../src/modules/super-admin/commercial-bootstrap';
 import { PermissionBootstrapService } from '../src/modules/permissions/permission-bootstrap.service';
+import { DEFAULT_APPROVAL_MATRICES } from '../src/modules/approvals/default-approval-matrices';
 import { NOTIFICATION_EVENT_CATALOG } from '../src/modules/notifications/notification-events.catalog';
 import { SYSTEM_EMAIL_TEMPLATE_PLACEHOLDERS } from '../src/modules/notifications/notification-events.catalog';
 import { buildTenantNotificationScopeKey } from '../src/modules/notifications/notifications.constants';
@@ -2484,45 +2485,13 @@ if (require.main === module) {
  * Only seeded when a tenant has no matrix for that module, so any configuration
  * an administrator has already made is never overwritten.
  */
-const DEFAULT_APPROVAL_MATRICES: Array<{
-  moduleKey: ApprovalModuleKey;
-  recordType: string;
-  steps: Array<{
-    name: string;
-    sequence: number;
-    approverType: ApprovalActorType;
-    roleKey?: string;
-  }>;
-}> = [
-  {
-    moduleKey: 'LEAVE_REQUEST' as ApprovalModuleKey,
-    recordType: 'leaveRequest',
-    steps: [
-      {
-        name: 'Leave request to line manager',
-        sequence: 1,
-        approverType: 'LINE_MANAGER' as ApprovalActorType,
-      },
-      {
-        name: 'Leave request to HR',
-        sequence: 2,
-        approverType: 'ROLE' as ApprovalActorType,
-        roleKey: 'hr',
-      },
-    ],
-  },
-  {
-    moduleKey: 'TIMESHEET' as ApprovalModuleKey,
-    recordType: 'timesheet',
-    steps: [
-      {
-        name: 'Timesheet to line manager',
-        sequence: 1,
-        approverType: 'LINE_MANAGER' as ApprovalActorType,
-      },
-    ],
-  },
-];
+/*
+ * The default approval chains moved to
+ * `src/modules/approvals/default-approval-matrices.ts` (ITEM-0113), so the
+ * invariant they must satisfy can be tested. This file creates a Prisma
+ * client at import time, so a spec cannot import it - and jest's rootDir is
+ * `src`, so a spec next to this file would never run either.
+ */
 
 export async function seedTenantDefaultApprovalMatrices(
   client: PrismaClient,
@@ -2549,8 +2518,16 @@ export async function seedTenantDefaultApprovalMatrices(
             )?.id
           : undefined;
 
-        // A role-based step without its role would create an unroutable
-        // approval, so skip it rather than seed a dead end.
+        /*
+         * A role-based step without its role would create an unroutable
+         * approval, so skip it rather than seed a dead end.
+         *
+         * Note what this does and does not check: that the role *exists*, not
+         * that anybody *holds* it. `ROLE(hr)` passed this guard on every tenant
+         * and was unroutable on all of them, which is how ITEM-0113 happened.
+         * The active step now routes to `system-admin` precisely because
+         * provisioning guarantees a member for it.
+         */
         if (step.roleKey && !approverRoleId) continue;
 
         await client.approvalMatrix.create({
@@ -2562,7 +2539,7 @@ export async function seedTenantDefaultApprovalMatrices(
             sequence: step.sequence,
             approverType: step.approverType,
             approvalMode: 'ANY_ONE',
-            isActive: true,
+            isActive: step.isActive ?? true,
             ...(approverRoleId ? { approverRoleId } : {}),
           },
         });
