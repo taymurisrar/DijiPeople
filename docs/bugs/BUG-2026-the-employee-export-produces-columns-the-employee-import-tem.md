@@ -2,7 +2,7 @@
 ID: BUG-2026
 aliases: [BUG-2026]
 Title: The employee export produces columns the employee import template does not accept
-Status: OPEN
+Status: FIXED
 Severity: MEDIUM
 Priority: P2
 Type: BUG
@@ -11,7 +11,7 @@ DetectedDate: 2026-08-29
 DetectedInSha: eb457d9d
 AffectedModules: [services/api/src/modules/employees]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
@@ -19,7 +19,7 @@ RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-29
 UpdatedAt: 2026-08-29
-ResolvedAt:
+ResolvedAt: 2026-08-29
 ---
 
 # BUG-2026 — The employee export produces columns the employee import template does not accept
@@ -180,7 +180,66 @@ same capability failing on a different entity.
 
 ## Resolution
 
-Open. No fix has been written.
+**Fixed 2026-08-29.** The import template was taken as canonical and the export
+brought in line with it; the export now emits the template's exact column set,
+under the template's field keys.
+
+### What changed
+
+- `services/api/src/modules/employees/employees.service.ts:115` — the
+  eleven-entry `EMPLOYEE_EXPORT_COLUMN_LABELS` map (human titles) is replaced by
+  `EMPLOYEE_IMPORT_COLUMNS`, an exported constant holding the twenty-one-column
+  import contract. It is the single source of truth for both artefacts.
+- `employees.service.ts:1908` — `exportEmployeeTemplate()` now renders that
+  constant instead of its own inline copy of the list, so the template cannot
+  drift from the contract by construction.
+- `employees.service.ts:1817` — `exportEmployees()` projects the contract
+  columns: the name is emitted as `firstName` / `middleName` / `lastName`
+  rather than a single `Full Name`, the manager as
+  `reportingManagerEmployeeCode` rather than a display name, and the four
+  emergency-contact columns are carried, with the relation type emitted as its
+  lookup **name** because that is what the importer resolves against.
+- `employees.service.ts:1890` — `resolveExportColumns()` inverts its old
+  behaviour. A view's `columns` selection can no longer narrow the export below
+  the contract; it can only append report-only columns (`fullName`,
+  `reportingManager`, `ownerName`), which the importer ignores as unknown
+  headers. Older view keys (`departmentId`, `ownerUserId`, …) are aliased
+  rather than dropped, since saved views are tenant data.
+- `employees.service.ts:262` — `toCsv()` accepts explicit headers, so an
+  export of zero employees still carries its header row. It previously returned
+  an empty buffer, and `parseCsvRows` rejects a file with no header — a second,
+  narrower way the round trip failed.
+
+### Regression coverage
+
+`services/api/src/modules/employees/employees.export-import-contract.spec.ts`,
+seven tests, is the actual fix — it is what stops the two column sets drifting
+apart again:
+
+- the export header row equals the template header row;
+- the template equals the declared contract;
+- every contract column is **populated** for a fully-populated employee, so a
+  column added to the contract and never wired into the projection fails rather
+  than silently exporting blanks;
+- manager code, split name and emergency-contact values are the exported values;
+- a three-column view selection still produces the full contract;
+- an empty export still carries its header row;
+- **round trip** — the bytes produced by `exportEmployees()` are fed unedited
+  into `importEmployees()`, which parses one row and calls `create` with the
+  department, designation and relation type resolved back into ids.
+
+### Known remainder, deliberately not fixed here
+
+`employeeCode`, `reportingManagerEmployeeCode` and `ownerEmail` are columns of
+the template that `buildImportCreateDto` does not read
+(`employees.service.ts:1746`). The importer therefore accepts an export
+unedited but does not restore the manager link or the owner from it, and every
+row is routed through `create`, so a re-import adds people rather than updating
+them. Both predate this record, neither is a column-set disagreement, and
+resolving names into those foreign keys is a separate change to the import path
+with its own tenant-scoping questions. Recorded here so it is not mistaken for
+part of this fix.
+
 
 ## QA Retest
 

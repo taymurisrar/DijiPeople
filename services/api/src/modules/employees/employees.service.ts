@@ -93,22 +93,70 @@ const EMPLOYEE_OWNER_ROLES = [
   'hr manager',
 ] as const;
 
-const EMPLOYEE_EXPORT_COLUMN_LABELS: Record<string, string> = {
-  employeeCode: 'Employee Code',
-  fullName: 'Full Name',
-  workEmail: 'Work Email',
-  phone: 'Phone',
-  employmentStatus: 'Employment Status',
-  departmentId: 'Department',
-  department: 'Department',
-  designationId: 'Designation',
-  designation: 'Designation',
-  reportingManagerEmployeeId: 'Reporting Manager',
-  reportingManager: 'Reporting Manager',
-  ownerUserId: 'Owner',
-  ownerName: 'Owner',
-  ownerEmail: 'Owner Email',
-  hireDate: 'Hire Date',
+/**
+ * The employee import contract.
+ *
+ * This is the exact column set that `GET /employees/export-template` hands the
+ * customer and that `POST /employees/import` reads, and it is the single source
+ * of truth for both the template and the export header row.
+ *
+ * The export used to emit its own, smaller, human-titled column set — eleven
+ * headings such as `Full Name` and `Reporting Manager` — so no column name was
+ * shared with the template and the export → edit in a spreadsheet → re-upload
+ * round trip could not work at all. Every export now carries these columns,
+ * under these keys, so a downloaded export is a valid import file.
+ * `employees.export-import-contract.spec.ts` pins the two together so they
+ * cannot drift apart again.
+ *
+ * Tenant employee settings can require emergency contact details, and the
+ * create path rejects rows without them, so those four columns are part of the
+ * contract rather than optional extras.
+ */
+export const EMPLOYEE_IMPORT_COLUMNS = [
+  'employeeCode',
+  'firstName',
+  'middleName',
+  'lastName',
+  'preferredName',
+  'workEmail',
+  'personalEmail',
+  'phone',
+  'hireDate',
+  'employmentStatus',
+  'employeeType',
+  'workMode',
+  'contractType',
+  'department',
+  'designation',
+  'reportingManagerEmployeeCode',
+  'ownerEmail',
+  'emergencyContactName',
+  'emergencyContactPhone',
+  'emergencyContactRelation',
+  'emergencyContactRelationType',
+] as const;
+
+/**
+ * Report-only columns the export can additionally produce. They are not part of
+ * the import contract — the importer ignores headers it does not know — so they
+ * are appended only when a saved view explicitly asks for them, and they can
+ * never displace a contract column.
+ */
+export const EMPLOYEE_EXPORT_REPORT_COLUMNS = [
+  'fullName',
+  'reportingManager',
+  'ownerName',
+] as const;
+
+/**
+ * Column keys older saved views still request, mapped onto what the export now
+ * emits. Views are tenant data, so the keys they hold outlive a rename here.
+ */
+const EMPLOYEE_EXPORT_COLUMN_ALIASES: Record<string, string> = {
+  departmentId: 'department',
+  designationId: 'designation',
+  reportingManagerEmployeeId: 'reportingManager',
+  ownerUserId: 'ownerName',
 };
 
 function escapeRegExp(value: string) {
@@ -203,16 +251,27 @@ function normalizeComparableValue(value?: string | null) {
   return value?.trim() || undefined;
 }
 
-function toCsv(rows: Array<Record<string, unknown>>) {
-  if (rows.length === 0) {
+/**
+ * Renders rows as CSV.
+ *
+ * `headers` may be given explicitly so a file still carries its header row when
+ * there is nothing to export. A headerless empty file is not a valid import
+ * file — `parseCsvRows` rejects it — so an export of zero employees would
+ * otherwise break the round trip in a way no non-empty export does.
+ */
+function toCsv(
+  rows: Array<Record<string, unknown>>,
+  headers?: readonly string[],
+) {
+  if (!headers && rows.length === 0) {
     return '';
   }
 
-  const headers = Object.keys(rows[0]);
+  const resolvedHeaders = headers ?? Object.keys(rows[0]);
   const lines = [
-    headers.join(','),
+    resolvedHeaders.join(','),
     ...rows.map((row) =>
-      headers.map((header) => csvCell(row[header])).join(','),
+      resolvedHeaders.map((header) => csvCell(row[header])).join(','),
     ),
   ];
 
@@ -232,17 +291,6 @@ function csvCell(value: unknown) {
             : JSON.stringify(value);
 
   return `"${text.replace(/"/g, '""')}"`;
-}
-
-function exportRowKey(column: string) {
-  const map: Record<string, string> = {
-    departmentId: 'department',
-    designationId: 'designation',
-    reportingManagerEmployeeId: 'reportingManager',
-    ownerUserId: 'ownerName',
-  };
-
-  return map[column] ?? column;
 }
 
 @Injectable()
@@ -1778,95 +1826,89 @@ export class EmployeesService {
 
     const selectedColumns = this.resolveExportColumns(query.columns);
     const rows = response.items.map((employee) => ({
-      employeeCode: employee.employeeCode,
-      fullName: employee.fullName,
+      // Import-contract columns, in template order.
+      employeeCode: employee.employeeCode ?? '',
+      firstName: employee.firstName ?? '',
+      middleName: employee.middleName ?? '',
+      lastName: employee.lastName ?? '',
+      preferredName: employee.preferredName ?? '',
       workEmail: employee.workEmail ?? '',
-      phone: employee.phone,
-      employmentStatus: employee.employmentStatus,
+      personalEmail: employee.personalEmail ?? '',
+      phone: employee.phone ?? '',
+      hireDate: employee.hireDate
+        ? new Date(employee.hireDate).toISOString().slice(0, 10)
+        : '',
+      employmentStatus: employee.employmentStatus ?? '',
+      employeeType: employee.employeeType ?? '',
+      workMode: employee.workMode ?? '',
+      contractType: employee.contractType ?? '',
       department: employee.department?.name ?? '',
       designation: employee.designation?.name ?? '',
+      // The importer resolves the manager by employee code, not by display
+      // name, so the export has to carry the code for the round trip to work.
+      reportingManagerEmployeeCode:
+        employee.reportingManager?.employeeCode ?? '',
+      ownerEmail: employee.ownerUser?.email ?? '',
+      emergencyContactName: employee.emergencyContactName ?? '',
+      emergencyContactPhone: employee.emergencyContactPhone ?? '',
+      emergencyContactRelation: employee.emergencyContactRelation ?? '',
+      // The importer resolves the relation type by name against the tenant's
+      // and the global relation-type lookups.
+      emergencyContactRelationType:
+        employee.emergencyContactRelationType?.name ?? '',
+
+      // Report-only columns, emitted only when a view asks for them.
+      fullName: employee.fullName,
       reportingManager: employee.reportingManager
         ? `${employee.reportingManager.firstName} ${employee.reportingManager.lastName}`.trim()
         : '',
       ownerName: employee.ownerUser?.fullName ?? '',
-      ownerEmail: employee.ownerUser?.email ?? '',
-      hireDate: employee.hireDate
-        ? new Date(employee.hireDate).toISOString().slice(0, 10)
-        : '',
     }));
     const projectedRows = rows.map((row) =>
       Object.fromEntries(
         selectedColumns.map((column) => [
-          EMPLOYEE_EXPORT_COLUMN_LABELS[column] ?? column,
-          row[exportRowKey(column) as keyof typeof row],
+          column,
+          row[column as keyof typeof row],
         ]),
       ),
     );
 
     return {
       filename: `employees-export-${formatDateForFilename(new Date())}.csv`,
-      buffer: Buffer.from(toCsv(projectedRows), 'utf8'),
+      buffer: Buffer.from(toCsv(projectedRows, selectedColumns), 'utf8'),
     };
   }
 
-  private resolveExportColumns(columns: readonly string[] | undefined) {
-    const fallback = [
-      'employeeCode',
-      'fullName',
-      'workEmail',
-      'phone',
-      'employmentStatus',
-      'department',
-      'designation',
-      'reportingManager',
-      'ownerName',
-      'ownerEmail',
-      'hireDate',
-    ];
-
-    if (!columns) return fallback;
-
-    const requested = columns
-      .map((column) => column.trim())
-      .filter((column) => column.length > 0);
-    const allowed = requested.filter(
-      (column) => EMPLOYEE_EXPORT_COLUMN_LABELS[column],
+  /**
+   * Resolves the export's column set.
+   *
+   * Every import-contract column is always emitted, in template order. An
+   * export that dropped one would stop being a valid import file, which is the
+   * defect this method exists to prevent, so a view's column selection can only
+   * *add* report-only columns — it can never take a contract column away.
+   */
+  private resolveExportColumns(
+    columns: readonly string[] | undefined,
+  ): string[] {
+    const requested = new Set(
+      (columns ?? [])
+        .map((column) => column.trim())
+        .filter((column) => column.length > 0)
+        .map((column) => EMPLOYEE_EXPORT_COLUMN_ALIASES[column] ?? column),
     );
 
-    return allowed.length ? allowed : fallback;
+    return [
+      ...EMPLOYEE_IMPORT_COLUMNS,
+      ...EMPLOYEE_EXPORT_REPORT_COLUMNS.filter((column) =>
+        requested.has(column),
+      ),
+    ];
   }
 
   exportEmployeeTemplate(): CsvFile {
-    const columns = [
-      'employeeCode',
-      'firstName',
-      'middleName',
-      'lastName',
-      'preferredName',
-      'workEmail',
-      'personalEmail',
-      'phone',
-      'hireDate',
-      'employmentStatus',
-      'employeeType',
-      'workMode',
-      'contractType',
-      'department',
-      'designation',
-      'reportingManagerEmployeeCode',
-      'ownerEmail',
-      // Tenant employee settings can require emergency contact details, and the
-      // create path rejects rows without them. Shipping the columns in the
-      // template means a file filled from it can actually import.
-      'emergencyContactName',
-      'emergencyContactPhone',
-      'emergencyContactRelation',
-      'emergencyContactRelationType',
-    ];
-
     return {
       filename: 'employees-import-template.csv',
-      buffer: Buffer.from(`${columns.join(',')}\n`, 'utf8'),
+      buffer: Buffer.from(`${EMPLOYEE_IMPORT_COLUMNS.join(',')}\n`, 'utf8'),
     };
   }
 
