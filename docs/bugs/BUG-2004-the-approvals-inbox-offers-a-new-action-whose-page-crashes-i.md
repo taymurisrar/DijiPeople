@@ -232,13 +232,30 @@ Against the acceptance criteria:
   boundary. What changed is that nothing in the UI takes you there any more — the
   crash is now reachable only by typing the URL, from a bookmark, or from a stale
   link.
-- **3, a route-integrity test** — **not done.** Nothing yet fails when a standard
+- **3, a route-integrity test** — **done**, in
+  `apps/web/lib/routing/route-integrity.spec.ts`. It fails when a standard
   module spec has neither a `new/page.tsx` nor `disableCreate`, which is the
-  assertion this record proposed and which would also catch BUG-2014.
+  assertion this record proposed, and it does also catch BUG-2014. One
+  documented limit: the link scan sees literal strings only, so paths built from
+  template literals are out of scope by design.
 
-The distinction matters for triage: the severity of the *reachable* defect has
-dropped, because a user following the product's own affordances can no longer
-land on it. The underlying route shadowing is unchanged.
+The distinction mattered for triage while the crash was still reachable.
+
+> **Corrected 2026-08-30.** The two paragraphs above were written when only the
+> link half had landed, and were not revised when the rest followed in the same
+> session — so the record asserted `Status: FIXED` while its own text said the
+> fix was not met and the shadowing was unchanged. `rebuild-backlog` rejected
+> it, correctly.
+>
+> What is now true: `approvals/[approvalId]/page.tsx:36-59` answers a 404 or 400
+> with a not-found state instead of throwing uncaught into the error boundary.
+> So the crash is gone for a typed URL, a bookmark and a stale link as well, not
+> only for the UI affordance — and the same change covers withdrawn requests,
+> which were never part of this record. No `approvals/new/page.tsx` was added
+> and that is deliberate: a module that must not have a create screen should not
+> be given one to satisfy a route. Acceptance criterion 2 is therefore met by a
+> different route than it proposed, which is why it is worth saying plainly here
+> rather than quietly ticking it.
 
 
 ### 2026-08-29 - the shadowed route, and the test that catches the shape

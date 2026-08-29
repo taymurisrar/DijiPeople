@@ -307,8 +307,21 @@ Against the acceptance criteria:
   longer passes `useEntityDataApi`, so the prop defaults to `false`, the table
   runs in `mode="client"` and `entityLogicalName` is `undefined`. The dead prop
   was left in place; it is inert, not correct.
-- **4, a contract test over `buildEntityDataUrl` call sites** — **not done.**
-  Nothing yet fails when a call site names an entity the registry does not hold.
+- **4, a contract test over `buildEntityDataUrl` call sites** — **done**, in
+  `apps/web/app/components/entity-data/entity-registry-contract.spec.ts`. It
+  reads `ENTITY_REGISTRY` out of the API source, because `apps/web` must not
+  import from `services/api`, and asserts every `buildEntityDataUrl` call site
+  names an entity the registry holds. It also asserts that its own scan found
+  entities *and* found call sites — without that, deleting the registry would
+  turn it green.
+
+  > This bullet read "**not done**" until 2026-08-30. It was written when only
+  > the code half had landed and was not revised when the test followed in the
+  > same session, so the record contradicted its own `Status: FIXED` and
+  > `rebuild-backlog` rejected it. The dead-prop note above has also moved on:
+  > `useEntityDataApi` was subsequently removed from `users-table.tsx`
+  > altogether, so the table is no longer correct only by default, one prop away
+  > from regressing.
 
 ### The three secondary defects are still there
 
