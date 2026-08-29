@@ -1,4 +1,9 @@
 import * as React from "react";
+import {
+  activeDescendantId,
+  listboxOptionId,
+  nextActiveIndex,
+} from "@/lib/a11y/listbox-navigation";
 import { createPortal } from "react-dom";
 import { Button } from "./button";
 
@@ -184,6 +189,12 @@ export function SelectField({
   const listboxId = React.useId();
   const menuRef = React.useRef<HTMLDivElement | null>(null);
   const [isOpen, setIsOpen] = React.useState(false);
+  /*
+   * BUG-1956 — which option the keyboard is on. The popup had none: it was a
+   * list of buttons, so moving through it meant Tab, and the combobox never
+   * set `aria-activedescendant` because there was no descendant to name.
+   */
+  const [activeIndex, setActiveIndex] = React.useState(-1);
   const [menuPosition, setMenuPosition] = React.useState<{
     left: number;
     top: number;
