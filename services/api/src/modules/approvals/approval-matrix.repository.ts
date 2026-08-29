@@ -137,6 +137,23 @@ export class ApprovalMatrixRepository {
     });
   }
 
+  /**
+   * The same user, without the `ACTIVE` filter.
+   *
+   * `findUserById` answers "may this user be routed an approval right now",
+   * which is a resolution-time question and must stay restricted to active
+   * accounts. Configuration-time validation asks two questions instead — is
+   * this user in my tenant, and is their account usable — and answering both
+   * from one query is what let BUG-1969 report a tenancy failure for a user the
+   * tenant had just provisioned. Callers get the status and decide.
+   */
+  findTenantUserById(tenantId: string, id: string) {
+    return this.prisma.user.findFirst({
+      where: { tenantId, id },
+      select: { id: true, status: true },
+    });
+  }
+
   findActiveUsersByRoleId(tenantId: string, roleId: string) {
     return this.prisma.user.findMany({
       where: {

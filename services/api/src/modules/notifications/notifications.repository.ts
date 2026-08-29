@@ -913,6 +913,78 @@ export class NotificationsRepository {
     });
   }
 
+  /**
+   * Retire the outstanding action-required notifications that point at one
+   * record, because the record has reached a state where nobody can act on it.
+   *
+   * BUG-2016: the inbox had no way to say this. A notification's lifecycle ran
+   * only forwards from delivery — read, archived, dismissed by the recipient —
+   * so cancelling a leave request left its approver holding an unread,
+   * priority-1 "needs approval" row pointing at a `CANCELLED` record, and the
+   * dashboard badge counted it. Every approvable record type raises the same
+   * kind of notification, so this is keyed on the related record rather than on
+   * leave.
+   *
+   * Both rows are written. `Notification.status` is what
+   * `findActiveNotificationByDedupeKey` reads, so leaving it would suppress a
+   * later, legitimate notification for the same record; `NotificationRecipient`
+   * is what the inbox listing and the unread count read, and `archivedAt` is
+   * what removes the row from the default (non-archived) view. `readAt` is only
+   * filled where it was empty, so a recipient who had already read the row keeps
+   * the time they read it.
+   */
+  async resolveActionRequiredNotificationsForRecord(
+    input: {
+      tenantId: string;
+      relatedEntityType: string;
+      relatedEntityId: string;
+    },
+    db: PrismaDb = this.prisma,
+  ) {
+    const outstanding = await db.notification.findMany({
+      where: {
+        tenantId: input.tenantId,
+        relatedEntityType: input.relatedEntityType,
+        relatedEntityId: input.relatedEntityId,
+        requiresAction: true,
+        status: { in: [NotificationStatus.UNREAD, NotificationStatus.READ] },
+      },
+      select: { id: true },
+    });
+
+    if (!outstanding.length) {
+      return { resolved: 0 };
+    }
+
+    const notificationIds = outstanding.map((notification) => notification.id);
+    const now = new Date();
+
+    await db.notificationRecipient.updateMany({
+      where: {
+        tenantId: input.tenantId,
+        notificationId: { in: notificationIds },
+        readAt: null,
+      },
+      data: { readAt: now },
+    });
+
+    await db.notificationRecipient.updateMany({
+      where: {
+        tenantId: input.tenantId,
+        notificationId: { in: notificationIds },
+        status: { in: [NotificationStatus.UNREAD, NotificationStatus.READ] },
+      },
+      data: { status: NotificationStatus.ACTIONED, archivedAt: now },
+    });
+
+    await db.notification.updateMany({
+      where: { tenantId: input.tenantId, id: { in: notificationIds } },
+      data: { status: NotificationStatus.ACTIONED },
+    });
+
+    return { resolved: notificationIds.length };
+  }
+
   async createTrackedNotification(
     input: {
       tenantId: string;
