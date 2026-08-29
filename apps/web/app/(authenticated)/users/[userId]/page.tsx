@@ -8,6 +8,7 @@ import {
   formatDateWithTenantSettings,
 } from "@/lib/date-format";
 import { AccessDeniedState } from "@/app/(authenticated)/_components/access-denied-state";
+import { RecordNotFoundState } from "@/app/(authenticated)/_components/record-not-found-state";
 import { Button } from "@/app/components/ui/button";
 import { TenantResolvedSettingsResponse } from "../../settings/types";
 import {
@@ -114,10 +115,26 @@ export default async function UserDetailPage({
       redirect("/login?reason=session-expired");
     }
 
-    if (
-      error instanceof ApiRequestError &&
-      (error.status === 403 || error.status === 404)
-    ) {
+    /*
+     * BUG-2014 — a 404 and a 403 are different answers and used to share one
+     * ACCESS DENIED panel, so `/users/new` and `/users/import` (which have no
+     * page and fall through to this route with the literal segment as the id)
+     * told an administrator they lacked a permission they hold.
+     */
+    if (error instanceof ApiRequestError && error.status === 404) {
+      return (
+        <main className="dp-theme-scope grid gap-6">
+          <RecordNotFoundState
+            title="This user record was not found."
+            description={`No user exists here for this tenant. ${error.message}`}
+            actionHref="/users"
+            actionLabel="Back to users"
+          />
+        </main>
+      );
+    }
+
+    if (error instanceof ApiRequestError && error.status === 403) {
       return (
         <main className="dp-theme-scope grid gap-6">
           <AccessDeniedState

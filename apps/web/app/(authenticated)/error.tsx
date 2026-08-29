@@ -18,6 +18,11 @@ import {
   enrichClientError,
   persistClientError,
 } from "@/app/components/errors/client-error-log";
+import {
+  classifyDashboardError,
+  getDashboardErrorStatus,
+  type DashboardErrorVariant,
+} from "./_lib/classify-dashboard-error";
 
 type DashboardErrorProps = {
   error: Error & {
@@ -29,135 +34,18 @@ type DashboardErrorProps = {
   reset: () => void;
 };
 
-type ErrorVariant =
-  | "session-expired"
-  | "access-denied"
-  | "not-found"
-  | "api-error"
-  | "unexpected";
-
-type ErrorConfig = {
-  variant: ErrorVariant;
-  eyebrow: string;
-  title: string;
-  description: string;
-  icon: typeof AlertTriangle;
-  toneClassName: string;
-  primaryAction: "login" | "retry" | "dashboard";
+/*
+ * Variant -> icon. The classification itself lives in `_lib/classify-dashboard-error`
+ * so it can be unit-tested without jsdom; only the icon needs React. BUG-2013.
+ */
+const VARIANT_ICONS: Record<DashboardErrorVariant, typeof AlertTriangle> = {
+  "session-expired": LogIn,
+  "access-denied": Lock,
+  "not-found": ShieldAlert,
+  "api-error": AlertTriangle,
+  "server-error": AlertTriangle,
+  unexpected: AlertTriangle,
 };
-
-function normalize(value: unknown) {
-  return String(value ?? "").toLowerCase();
-}
-
-function getErrorStatus(error: DashboardErrorProps["error"]) {
-  return error.status ?? error.statusCode;
-}
-
-function classifyDashboardError(error: DashboardErrorProps["error"]): ErrorConfig {
-  const message = normalize(error.message);
-  const code = normalize(error.code);
-  const status = getErrorStatus(error);
-
-  const sessionExpired =
-    status === 401 ||
-    code.includes("unauthorized") ||
-    code.includes("token_expired") ||
-    message.includes("access token") ||
-    message.includes("refresh token") ||
-    message.includes("jwt expired") ||
-    message.includes("session expired") ||
-    message.includes("invalid or expired") ||
-    message.includes("unauthorized");
-
-  if (sessionExpired) {
-    return {
-      variant: "session-expired",
-      eyebrow: "Session expired",
-      title: "Your session is no longer valid.",
-      description:
-        "Please sign in again to continue working safely in your workspace. Any unsaved changes may need to be re-entered.",
-      icon: LogIn,
-      toneClassName: "border-amber-200 bg-amber-50 text-amber-700",
-      primaryAction: "login",
-    };
-  }
-
-  const accessDenied =
-    status === 403 ||
-    code.includes("forbidden") ||
-    message.includes("forbidden") ||
-    message.includes("permission") ||
-    message.includes("access denied") ||
-    message.includes("not allowed") ||
-    message.includes("not authorized");
-
-  if (accessDenied) {
-    return {
-      variant: "access-denied",
-      eyebrow: "Access denied",
-      title: "You do not have access to this page.",
-      description:
-        "Your account is active, but this feature is not available for your current role, permission set, business unit, or tenant scope.",
-      icon: Lock,
-      toneClassName: "border-red-200 bg-red-50 text-red-700",
-      primaryAction: "dashboard",
-    };
-  }
-
-  const notFound =
-    status === 404 ||
-    code.includes("not_found") ||
-    message.includes("not found") ||
-    message.includes("record does not exist");
-
-  if (notFound) {
-    return {
-      variant: "not-found",
-      eyebrow: "Record not found",
-      title: "The requested page or record could not be found.",
-      description:
-        "It may have been deleted, moved, archived, or you may no longer have visibility based on your current access scope.",
-      icon: ShieldAlert,
-      toneClassName: "border-slate-200 bg-slate-50 text-slate-700",
-      primaryAction: "dashboard",
-    };
-  }
-
-  const apiError =
-    status === 500 ||
-    status === 502 ||
-    status === 503 ||
-    status === 504 ||
-    message.includes("failed to fetch") ||
-    message.includes("network") ||
-    message.includes("api") ||
-    message.includes("timeout");
-
-  if (apiError) {
-    return {
-      variant: "api-error",
-      eyebrow: "Service unavailable",
-      title: "The system could not load this page right now.",
-      description:
-        "This usually happens when the API, database, network, or authentication service is temporarily unavailable.",
-      icon: AlertTriangle,
-      toneClassName: "border-orange-200 bg-orange-50 text-orange-700",
-      primaryAction: "retry",
-    };
-  }
-
-  return {
-    variant: "unexpected",
-    eyebrow: "Unexpected error",
-    title: "We hit an unexpected problem while loading this page.",
-    description:
-      "Please try again. If this keeps happening, share the error reference with your administrator or support team.",
-    icon: AlertTriangle,
-    toneClassName: "border-slate-200 bg-slate-50 text-slate-700",
-    primaryAction: "retry",
-  };
-}
 
 function getCurrentPath() {
   if (typeof window === "undefined") {
@@ -169,13 +57,13 @@ function getCurrentPath() {
 
 export default function DashboardError({ error, reset }: DashboardErrorProps) {
   const config = useMemo(() => classifyDashboardError(error), [error]);
-  const Icon = config.icon;
+  const Icon = VARIANT_ICONS[config.variant];
 
   const errorReference = error.digest ?? error.code ?? undefined;
   const clientTraceId = `client_boundary_${stableErrorReference(
     error.digest ?? error.code ?? error.message,
   )}`;
-  const status = getErrorStatus(error);
+  const status = getDashboardErrorStatus(error);
 
   useEffect(() => {
     console.error("[DashboardErrorBoundary]", {
