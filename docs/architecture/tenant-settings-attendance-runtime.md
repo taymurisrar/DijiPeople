@@ -43,11 +43,22 @@ schedule. The weekday mapping must reference an active Shift or explicitly
 represent an Off Day. Work Calendar and Holiday state are resolved after the
 schedule and before policy validation.
 
-Office mode requires an active tenant Work Site. Remote and Hybrid modes require
-browser coordinates when the resolved policy enables location capture.
+Office mode requires an active tenant Work Site. **Every self-service mode -**
+**OFFICE, REMOTE and HYBRID alike - requires browser coordinates,**
+**unconditionally.** This is a platform mandate rather than resolved policy:
+`validateAttendanceLocationPayload` throws `LOCATION_CAPTURE_REQUIRED` without
+consulting any setting or policy field. The sentence this replaces said
+"when the resolved policy enables location capture", which has been false
+since commit `a8c04f16` on 2026-07-29. See
+[the settings contract](./settings-and-branding.md#attendance-location-capture-is-mandatory)
+and
+[ADR-0003](../decisions/ADR-0003-attendance-location-capture-is-mandatory.md).
+
 Attendance records persist the resolved schedule, shift, mode, Work Site, and
 captured location fields. Late and early-exit calculations use shift times and
 shift grace values before tenant policy fallbacks.
+
+> Re-derived against the code on 2026-08-29.
 
 ## Owner persistence
 
