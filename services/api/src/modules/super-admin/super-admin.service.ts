@@ -916,6 +916,23 @@ export class SuperAdminService {
     return this.platformLifecycleService.createCustomerOnboarding(actor, dto);
   }
 
+  /**
+   * The same rules `createCustomerOnboarding` applies, with nothing written.
+   *
+   * Exists so the runtime validate endpoint can answer the question the form
+   * actually asks - "will this save?" - rather than only "does this parse?".
+   * See BUG-1548.
+   */
+  assertCustomerOnboardingCreatable(
+    actor: AuthenticatedUser,
+    dto: CreateCustomerOnboardingRecordDto,
+  ) {
+    return this.platformLifecycleService.assertCustomerOnboardingCreatable(
+      actor,
+      dto,
+    );
+  }
+
   updateCustomerOnboarding(
     actor: AuthenticatedUser,
     onboardingId: string,
