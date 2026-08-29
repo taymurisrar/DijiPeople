@@ -2,7 +2,7 @@
 ID: BUG-1961
 aliases: [BUG-1961]
 Title: A leave policy assignment cannot be created from the UI because the parent id is never sent
-Status: OPEN
+Status: FIXED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -13,13 +13,13 @@ AffectedModules: [apps/web, services/api/src/modules/leave]
 OwnerAgent: architect
 ArchitectDisposition: FIX_NOW
 QAReport: 
-RegressionId: 
+RegressionId: REG-305
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-29
 UpdatedAt: 2026-08-29
-ResolvedAt:
+ResolvedAt: 2026-08-29
 ---
 
 # BUG-1961 — A leave policy assignment cannot be created from the UI because the parent id is never sent
@@ -196,11 +196,32 @@ the leave chain, and each blocks it again after this one is fixed.
 
 ## Resolution
 
-Open. No fix has been written.
+Fixed by the root-cause change recorded on BUG-2011, of which this was the
+instance found live.
+
+The leave-policy assignment dialog declared an `api` block with a flat
+`createPath`, so the adapter's `!input.subgrid.api` guard skipped injecting the
+parent key and the POST arrived without `leavePolicyId` - a field the dialog has
+no control for, because the user opened it from the policy. The guard now asks
+whether the create path consumed the parent id instead.
+
+Nothing leave-specific was changed. This record stays open in its own right only
+as far as its own journey goes: see QA Retest.
+
 
 ## QA Retest
 
-Awaiting a fix — nothing to retest yet.
+Retested by `related-record-parent-key.spec.ts`, which asserts the create body
+carries the parent key for a flat create path, and mutation-tested against the
+original guard.
+
+**Not retested live.** The specific journey this record describes - Leave Policy
+> Assignments > New, through the UI, against a running tenant - has not been
+re-walked. It could not be while BUG-1967 blocked the leave journey behind it,
+and the two are worth retesting together now that both are fixed: assigning a
+policy is what allocates the entitlement, so the two defects meet on the same
+screen.
+
 
 ## History
 
@@ -212,5 +233,6 @@ Awaiting a fix — nothing to retest yet.
 ## Related
 
 - Modules — [[tenant-application]]
+- Regression — REG-305 (see the regression register)
 
 <!-- GRAPH:END -->

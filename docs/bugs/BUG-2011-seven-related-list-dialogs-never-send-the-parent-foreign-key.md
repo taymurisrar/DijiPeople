@@ -2,7 +2,7 @@
 ID: BUG-2011
 aliases: [BUG-2011]
 Title: Seven related-list dialogs never send the parent foreign key and one of them creates an orphan
-Status: OPEN
+Status: FIXED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -13,13 +13,13 @@ AffectedModules: [apps/web]
 OwnerAgent: architect
 ArchitectDisposition: FIX_NOW
 QAReport: 
-RegressionId: 
+RegressionId: REG-305
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-29
 UpdatedAt: 2026-08-29
-ResolvedAt:
+ResolvedAt: 2026-08-29
 ---
 
 # BUG-2011 — Seven related-list dialogs never send the parent foreign key and one of them creates an orphan
@@ -329,13 +329,53 @@ the six loud failures are still hard to act on from the screen.
 
 ## Resolution
 
-Open. No fix has been written.
+Fixed on `agent/web-shell-accessibility`, exactly as this record proposed - at
+the guard, not with another per-entity special case.
+
+- `relatedRecordPaths` now reports `createConsumedParentId`, computed from the
+  raw create template rather than the interpolated path, since after
+  interpolation the token is gone by definition.
+- `standard-module-data.adapter.ts` injects the parent key when the path did
+  **not** consume it, replacing the `!input.subgrid.api` test. That test asked
+  whether the subgrid was configured; the question that matters is whether the
+  configured path took the parent id.
+- `employee-data.adapter.ts` now does the same. It had no injection at all.
+  Nothing is broken there today - every employee subgrid names `{parentId}` -
+  so this is the mirror the record asked for rather than a fix to an observed
+  failure, and it is worth saying which of the two it is.
+
+`withRelatedRecordDefaults` was left alone deliberately, per this record.
+
+**One acceptance criterion is not met and is not being quietly dropped:** the
+orphan teams already created on the demo tenant are not identified here. They
+carry `departmentId = null` and will not surface on their own. That is a data
+question on a live tenant rather than a code fix, and it is tracked as its own
+line in this record's QA Retest rather than assumed away.
+
 
 ## QA Retest
 
-Awaiting a fix — nothing to retest yet. The retest is the seven-row table above,
-plus a check that the created record appears in the parent's list — which is what
-would have caught row 5.
+Retested by the regression suite, not in a browser: 39 assertions in
+`related-record-parent-key.spec.ts` pass, and the body assertion was confirmed
+to fail against the previous guard.
+
+The suite covers all 33 declared subgrids across both registries by
+construction, which is broader than the seven this record found and is the point
+of asserting over the registries rather than over a list of known-bad rows.
+
+**Not retested live**, and two things are therefore still open:
+
+- The seven journeys have not been walked in a browser against a running
+  tenant. The unit coverage establishes that the request body now carries the
+  key; it does not establish that each of the seven endpoints accepts the body
+  it now receives. Six were failing on a *missing* field, so they should - but
+  should is not the same as observed.
+- **The existing orphan teams on the demo tenant have not been identified.**
+  Any team created through Department > Teams before this fix has
+  `departmentId = null` and is invisible in the UI, so it needs a direct query
+  rather than a screen. Nothing here deletes or reassigns them; that is a
+  decision for whoever owns that tenant.
+
 
 ## History
 
@@ -346,5 +386,6 @@ would have caught row 5.
 ## Related
 
 - Modules — [[tenant-application]]
+- Regression — REG-305 (see the regression register)
 
 <!-- GRAPH:END -->

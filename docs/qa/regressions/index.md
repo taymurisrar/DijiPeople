@@ -3117,3 +3117,19 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | The policy deliberately did **not** change: a chain with a step nobody can approve still refuses, because submitting into it would strand the request with no route out. Only the refusal changed. Two things are worth carrying forward. The **negative** assertion is again the load-bearing one - `not.toBe('Approval route requires a reporting manager with a linked active user.')` is the whole difference between the fix and the defect, and any test merely looking for "manager" would have passed against the live bug. And the remedy text is derived from the thrown message rather than from a new error type per step, on purpose: the six refusals in `resolveApprovers` are the single list of what can go wrong, and a parallel enum would be a second list to drift from the first. The fallback returns the original message, so a refusal added later degrades to the old behaviour instead of losing its text. **What this does not fix:** the seed still ships a chain no new tenant can satisfy, and the Approval Matrices screen still gives no configuration-time warning. Both are open product decisions on BUG-1968. |
 | **Fixed** | 2026-08-29 |
 | **Active** | yes |
+
+### REG-305 - A related record created without its parent
+
+| | |
+|---|---|
+| **Bug class** | `wrong-question-in-a-guard` |
+| **Module** | `apps/web` runtime |
+| **Bug record** | BUG-2011, BUG-1961 |
+| **Scenario id** | QA-RUNTIME-020 |
+| **Root cause** | `standard-module-data.adapter.ts` injected the parent foreign key into the create body only when `!input.subgrid.api` - whether the subgrid was *configured* - instead of whether the resolved create path had actually consumed `{parentId}`. Seven declared subgrids configure an `api` block with a **flat** create path, so for those the parent id went in neither the path nor the body. `employee-data.adapter.ts` had no injection at all and was one flat `createPath` from the same failure. |
+| **Regression test** | `apps/web/lib/runtime/related-record-parent-key.spec.ts` |
+| **Scenario** | Creating from a related list posts the parent foreign key in the body when the create path does not name `{parentId}`, and does not duplicate it into the body when the path does. Every declared subgrid in both registries - standard modules and the settings adapter registry - can supply the parent id one way or the other. |
+| **Proven to fail without the fix** | Mutation-tested: restoring the `!input.subgrid.api` guard fails the body assertion. |
+| **Note** | **Six of the seven failed loudly and the seventh did not, which is the part worth remembering.** Department > Teams returned **201** and created a team with `departmentId = null` - a team that never appears in any department list, so nothing surfaces it and no error is ever raised. A guard that can be wrong in a way that returns success cannot be trusted to announce itself, which is why the regression asserts the request body rather than the response. There was **no test anywhere in `apps/web`** exercising related-record creation when this was found; the nearest miss, `standard-module-views.spec.ts`, already iterated every module spec and asserted nothing about `relatedTabs` sitting in the same object. The spec walks the settings adapter registry too, where six of the seven live and which is not in `SPECS` at all - a guard over only the standard modules would have reported the class closed with most instances still open. It also asserts that it found tabs to check, because an `it.each` over an empty array is green. |
+| **Fixed** | 2026-08-29 |
+| **Active** | yes |
