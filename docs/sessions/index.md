@@ -6,13 +6,12 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 2** · completed: 69
+**Active: 1** · completed: 70
 
 ## Active
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
-| [SESSION-0071](../../docs/sessions/SESSION-0071-tenant-workspace-accessibility-the-three-defects-the-browser.md) | — | Tenant workspace accessibility: the three defects the browser coverage found | ACTIVE | `agent/web-shell-accessibility` | `develop` | — | 2026-08-29T09:58:17.272Z |
 | [SESSION-0061](../../docs/sessions/SESSION-0061-unblock-the-production-hosts-for-the-mcp-browser.md) | — | Production admin E2E QA and invitation delivery visibility | ACTIVE | `agent/invitation-delivery-visibility` | `develop` | — | 2026-08-26T09:54:37.336Z |
 
 ## Completed
@@ -21,6 +20,7 @@ see [`README.md`](README.md) for how they stay out of each other's way.
 |---|---|---|---|---|---|---|---|
 | [SESSION-0073](../../docs/sessions/SESSION-0073-move-switch-workspace-into-the-avatar-menu-item-0102.md) | — | Move Switch workspace into the avatar menu (ITEM-0102) | COMPLETE | `agent/workspace-switcher-avatar-menu` | `develop` | — | 2026-08-29T10:55:55.248Z |
 | [SESSION-0072](../../docs/sessions/SESSION-0072-starter-release-blockers-the-fixes-that-make-leave-and-entit.md) | — | Starter release blockers: the fixes that make leave and entitlements work | COMPLETE | `agent/starter-blocker-fixes` | `develop` | — | 2026-08-29T10:06:50.221Z |
+| [SESSION-0071](../../docs/sessions/SESSION-0071-tenant-workspace-accessibility-the-three-defects-the-browser.md) | — | Tenant workspace accessibility: the three defects the browser coverage found | COMPLETE | `agent/web-shell-accessibility` | `develop` | — | 2026-08-29T09:58:17.272Z |
 | [SESSION-0070](../../docs/sessions/SESSION-0070-starter-plan-e2e-qa-on-the-demo-tenant.md) | — | Starter plan E2E QA on the demo tenant | COMPLETE | `agent/starter-plan-e2e-qa` | `develop` | — | 2026-08-28T23:46:01.955Z |
 | [SESSION-0069](../../docs/sessions/SESSION-0069-backlog-burndown-verify-the-fixed-decide-the-deferred-close-.md) | — | Backlog burndown: verify the fixed, decide the deferred, close what is genuinely open | COMPLETE | `agent/backlog-burndown` | `develop` | — | 2026-08-28T22:11:11.433Z |
 | [SESSION-0068](../../docs/sessions/SESSION-0068-admin-console-fx-reporting-desktop-agent-settings-generic-bu.md) | — | Admin console: FX reporting, desktop agent settings, generic bulk delete, payment recheck and profile capture | COMPLETE | `agent/admin-console-fx-and-agent-settings` | `develop` | — | 2026-08-28T19:06:31.882Z |
