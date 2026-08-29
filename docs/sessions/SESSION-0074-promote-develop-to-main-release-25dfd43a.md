@@ -1,0 +1,80 @@
+---
+SESSION_ID: SESSION-0074
+aliases: [SESSION-0074]
+TASK_ID:
+TITLE: Promote develop to main — release 25dfd43a
+ARCHITECT_INTENT: Promote develop to main — release 25dfd43a
+STATUS: COMPLETE
+TASK_TYPE: RELEASE
+TASK_SIZE: MEDIUM
+BASE_BRANCH: origin/develop
+BASE_SHA: 25dfd43a7122b30a13e37f7d930f4184e5c5d1c4
+TASK_BRANCH: agent/release-closeout-6d17989a
+TARGET_BRANCH: main
+WORKTREE: D:/My Work/hrm-dijipeople/wt-release
+AFFECTED_MODULES: []
+WRITE_LEASES: []
+ACTIVE_WORK_PACKAGES: []
+SCHEMA_WRITE: NO
+CI_STATUS: PASS
+MERGE_STATUS: MERGED
+STARTED_AT: 2026-08-29T13:18:23.003Z
+LAST_HEARTBEAT: 2026-08-29T13:18:23.003Z
+BLOCKERS: none
+---
+
+# SESSION-0074 — Promote develop to main — release 25dfd43a
+
+## Intent
+
+Promote develop to main — release 25dfd43a
+
+## Scope
+
+Promotion of `develop` to `main`, and the deployment that follows it. **No code
+was written by this session** — its output is a merge commit, a verified
+production rollout, and the records describing both.
+
+| | |
+|---|---|
+| Released tree | `4d10f62c` — 28 commits, 99 code files |
+| Merge commit | `6d17989a` — PR #56, 13:42:45 UTC |
+| Production before | `949f461c` |
+| Production after | `6d17989a`, live 13:49:03 UTC |
+| Migrations applied | `platform_exchange_rate`, `identity_contract` |
+
+`SCHEMA_WRITE: NO` is accurate but easy to misread: this session authored no
+migration, and it *applied* two to the production database by deploying them.
+The distinction is the one the field means — no schema was written on a branch —
+and it is worth naming because the effect on production was not nothing.
+
+Records: the release note, the engineering history, and this record. `ITEM-0102`
+(closed earlier today by SESSION-0073) reached production here.
+
+## Concurrency
+
+**No write leases.** A release takes none — it writes no schema, no registry and
+no seed of its own; it deploys what other sessions already merged.
+
+The concurrency that mattered here was not a lease conflict but a **moving
+target**. `develop` moved three times during this session:
+
+1. `25dfd43a` → `4d10f62c` while PR #56 was open, which cancelled the PR's first
+   CI run. SESSION-0071's two commits. Re-measured, no new migration, PR body
+   corrected before merging.
+2. → `fcb0af67` while the deploy was running, which is why merging `main` back
+   into `develop` is a real merge rather than a fast-forward.
+
+The owner approved a release measured at `25dfd43a` and what shipped was
+`4d10f62c`. That gap is recorded in the engineering history's Conflict
+Resolutions rather than smoothed over — the check that made continuing
+defensible was that the delta contained no migration, and had it contained one
+this would have gone back to the owner.
+
+SESSION-0071 remains `ACTIVE` with an unmerged closure branch; its records are
+the `ORPHAN_GENERATED_NODE` finding in this session's Obsidian verification, and
+nothing of its was touched. Live state: `node scripts/session.mjs list`.
+
+## History
+
+- 2026-08-29 — session started from `origin/develop` at `25dfd43`.

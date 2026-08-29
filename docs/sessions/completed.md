@@ -6,6 +6,7 @@ Sessions that reached a terminal state. Kept as history: the branch, the base it
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0074](../../docs/sessions/SESSION-0074-promote-develop-to-main-release-25dfd43a.md) | — | Promote develop to main — release 25dfd43a | COMPLETE | `agent/release-closeout-6d17989a` | `main` | — | 2026-08-29T13:18:23.003Z |
 | [SESSION-0073](../../docs/sessions/SESSION-0073-move-switch-workspace-into-the-avatar-menu-item-0102.md) | — | Move Switch workspace into the avatar menu (ITEM-0102) | COMPLETE | `agent/workspace-switcher-avatar-menu` | `develop` | — | 2026-08-29T10:55:55.248Z |
 | [SESSION-0072](../../docs/sessions/SESSION-0072-starter-release-blockers-the-fixes-that-make-leave-and-entit.md) | — | Starter release blockers: the fixes that make leave and entitlements work | COMPLETE | `agent/starter-blocker-fixes` | `develop` | — | 2026-08-29T10:06:50.221Z |
 | [SESSION-0071](../../docs/sessions/SESSION-0071-tenant-workspace-accessibility-the-three-defects-the-browser.md) | — | Tenant workspace accessibility: the three defects the browser coverage found | COMPLETE | `agent/web-shell-accessibility` | `develop` | — | 2026-08-29T09:58:17.272Z |
