@@ -247,5 +247,60 @@ describe('AttendanceService.updatePolicy', () => {
         expect.objectContaining({ tenantId: 'tenant-1' }),
       );
     });
+
+    it('seeds the grace-minute and office-location fields from the effective settings, not the column default, when the DTO omits them', async () => {
+      service = build();
+
+      /*
+       * These three fields are fed by the attendance settings category
+       * (`defaultGraceMinutes`, `enforceOfficeLocationForOfficeMode`) rather
+       * than by a policy-only constant. The rest of REQUIRED_INPUT's fix
+       * covered the other create-branch fields; these three kept falling to
+       * the column default (0/0/true) on first save regardless of what the
+       * tenant had configured, because the create branch wrote `dto.X` bare
+       * with no `?? effective.X` fallback. `markMissingCheckout` is flipped
+       * here to prove the omission - not a same-value patch - is what is
+       * under test.
+       */
+      const {
+        lateCheckInGraceMinutes: _omittedGraceIn,
+        lateCheckOutGraceMinutes: _omittedGraceOut,
+        requireOfficeLocationForOfficeMode: _omittedOfficeLocation,
+        ...dtoWithoutSettingsBackedFields
+      } = REQUIRED_INPUT;
+
+      await service.updatePolicy(currentUser, {
+        ...dtoWithoutSettingsBackedFields,
+        markMissingCheckout: false,
+      } as never);
+
+      expect(created()).toEqual(
+        expect.objectContaining({
+          lateCheckInGraceMinutes: SETTINGS.defaultGraceMinutes,
+          lateCheckOutGraceMinutes: SETTINGS.defaultGraceMinutes,
+          requireOfficeLocationForOfficeMode:
+            SETTINGS.enforceOfficeLocationForOfficeMode,
+        }),
+      );
+
+      /*
+       * Round-trip through the same path a client actually observes: a
+       * second read of the tenant's policy after the row exists. This is the
+       * exact repro from BUG-1980 - `defaultGraceMinutes: 10` configured in
+       * Settings, no policy row yet, one save that leaves grace minutes
+       * untouched - and it is what a regression to `dto.X` with no fallback
+       * would fail, reporting `0` instead of `10`.
+       */
+      attendanceRepository.findAttendancePolicy.mockResolvedValue(created());
+
+      await expect(service.getPolicy(currentUser)).resolves.toEqual(
+        expect.objectContaining({
+          lateCheckInGraceMinutes: SETTINGS.defaultGraceMinutes,
+          lateCheckOutGraceMinutes: SETTINGS.defaultGraceMinutes,
+          requireOfficeLocationForOfficeMode:
+            SETTINGS.enforceOfficeLocationForOfficeMode,
+        }),
+      );
+    });
   });
 });
