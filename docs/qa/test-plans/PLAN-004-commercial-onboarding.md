@@ -3,7 +3,7 @@ PLAN_ID: PLAN-004
 aliases: [PLAN-004]
 TITLE: Commercial Onboarding
 AREA: commercial-onboarding
-STATUS: NEEDS_REVIEW
+STATUS: CURRENT
 MODULES: [services/api/src/modules/contracts, services/api/src/modules/onboarding, services/api/src/modules/super-admin]
 RISK: HIGH
 COVERAGE_UNIT: GAP
@@ -17,13 +17,23 @@ COVERAGE_PERFORMANCE: NOT_APPLICABLE
 RELATED_BUGS: [BUG-0011, BUG-0012, BUG-0024, BUG-0027, BUG-0028, BUG-0029, BUG-0030]
 RELATED_REGRESSIONS: [REG-009, REG-010, REG-017, REG-018, REG-019, REG-020, REG-028]
 CREATED_AT: 2026-08-16
-UPDATED_AT: 2026-08-17
-VERIFIED_AGAINST_SHA: 714632d
+UPDATED_AT: 2026-08-29
+VERIFIED_AGAINST_SHA: 287612d
 ---
 
-> **TASK-0005 revalidation:** `VERIFIED_AGAINST_SHA` remains historical. WP-04,
-> WP-05 and WP-07 must re-audit the full lifecycle; WP-02 only reconciled its
-> executable bootstrap, pricing and browser evidence.
+> **Reviewed 2026-08-29 against `287612d`** (ITEM-0081). The note this replaces held the plan pending re-audit by WP-04, WP-05 and WP-07 of TASK-0005. All three are `DONE`.
+>
+> Checked rather than assumed, for every plan in this sweep: each path in
+> `MODULES` exists, each `RELATED_BUGS` id resolves to a record, and each
+> `RELATED_REGRESSIONS` id resolves to an entry in the register. All resolved.
+> The scope — lead conversion into a signed agreement, the onboarding record
+> it creates, and the bootstrap that provisions from both — still describes the
+> code: `convertLeadToCustomer`, `platform-onboarding.service.ts` and the
+> contracts module are all where this plan says they are.
+>
+> **The coverage fields are unchanged, and that is deliberate.** Returning a
+> plan to `CURRENT` says its description matches the system today — not that the
+> system is well covered. Every `GAP` below is still a gap.
 
 # PLAN-004 — Commercial Onboarding
 

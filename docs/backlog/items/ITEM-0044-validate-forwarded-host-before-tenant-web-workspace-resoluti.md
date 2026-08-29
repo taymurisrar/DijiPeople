@@ -90,6 +90,7 @@ Deployment proxy behavior must be verified; independent work does not wait.
 ## Related
 
 - Modules — [[tenant-application]]
+- Decision — [[EXECPLAN-0003-forwarded-host-trust-in-tenant-web-routing]]
 - QA run — [[2026-08-17-web-app-documentation-1af3690]]
 
 <!-- GRAPH:END -->

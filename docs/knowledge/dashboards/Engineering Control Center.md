@@ -8,17 +8,17 @@
 | | |
 |---|---|
 | Active sessions | **2** |
-| Active parent tasks | 4 |
-| Active work packages | 1 |
+| Active parent tasks | 3 |
+| Active work packages | 0 |
 | Blocked work packages | 0 |
 | Work packages waiting on the user | 0 |
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
-| Open CRITICAL | **7** |
-| Open HIGH | 14 |
+| Open CRITICAL | **0** |
+| Open HIGH | 19 |
 | Awaiting Architect triage | 0 |
 | Owner decisions pending | 4 |
-| QA coverage gaps | 106 |
+| QA coverage gaps | 120 |
 | Scenarios blocked by infrastructure | 0 |
 
 ## Backlog health
@@ -30,12 +30,12 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 69 |
-| No next action | 69 |
-| Aging — 7d / 30d / 90d | 15 / 0 / 0 |
-| Architecture and technical debt | 6 |
-| Security gaps | 3 |
-| Database gaps | 4 |
+| No acceptance criteria | 71 |
+| No next action | 71 |
+| Aging — 7d / 30d / 90d | 17 / 0 / 0 |
+| Architecture and technical debt | 7 |
+| Security gaps | 4 |
+| Database gaps | 6 |
 
 Ranked next-best actions weigh blast radius rather than severity alone, and
 are computed on demand so the reasons travel with the ranking:
@@ -49,7 +49,7 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 | Session | Task | Title | Status | Branch | Target | Leases | Schema |
 |---|---|---|---|---|---|---|---|
-| [[SESSION-0067-promote-the-open-bug-sweep-to-production|SESSION-0067]] | — | Promote the open bug sweep to production | ACTIVE | `agent/release-bug-sweep` | `main` | — | NO |
+| [[SESSION-0071-tenant-workspace-accessibility-the-three-defects-the-browser|SESSION-0071]] | — | Tenant workspace accessibility: the three defects the browser coverage found | ACTIVE | `agent/web-shell-accessibility` | `develop` | — | NO |
 | [[SESSION-0061-unblock-the-production-hosts-for-the-mcp-browser|SESSION-0061]] | — | Production admin E2E QA and invitation delivery visibility | ACTIVE | `agent/invitation-delivery-visibility` | `develop` | — | NO |
 
 ## Active Tasks and Work Packages
@@ -59,7 +59,6 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 | [[TASK-0004-autonomous-framework-v2-architect-only-orchestration-multi-s|TASK-0004]] | Autonomous framework v2 — Architect-only orchestration, multi-session safety, develop integration, persistent QA | FRAMEWORK | PROGRAM | 11/11 | — | — | — |
 | [[TASK-0007-commercial-platform-completion-transactional-legal-and-lifec|TASK-0007]] | Commercial platform completion — transactional, legal and lifecycle half | FEATURE | PROGRAM | 16/16 | — | — | — |
 | [[TASK-0008-self-service-customer-onboarding-tenant-provisioning-domain-|TASK-0008]] | Self-service customer onboarding, tenant provisioning, domain routing and central login | FEATURE | LARGE | 11/11 | — | — | — |
-| [[TASK-0009-identity-and-multi-tenant-membership|TASK-0009]] | Identity and multi-tenant membership | FEATURE | LARGE | 11/12 | WP-09 | WP-09 | — |
 
 ## Branch model
 
@@ -101,25 +100,17 @@ what they own, and what the backlog and QA systems currently say.
 
 ## Open Critical
 
-| ID | Title | Type | Severity | Status | Affected | Architect |
-|---|---|---|---|---|---|---|
-| [[BUG-0900-tenant-provisioning-exceeds-the-5s-transaction-timeout-a-pai|BUG-0900]] | Tenant provisioning exceeds the 5s transaction timeout: a paid order is left with no workspace | BUG | CRITICAL | FIXED | api:permissions | FIX_NOW |
-| [[BUG-0904-production-is-missing-outbox-worker-enabled-so-no-workspace-|BUG-0904]] | Production is missing OUTBOX_WORKER_ENABLED, so no workspace is provisioned after payment | BUG | CRITICAL | FIXED | api:outbox | FIX_NOW |
-| [[BUG-1128-stripe-api-version-skew-invoice-paid-cannot-map-to-a-subscri|BUG-1128]] | Stripe API version skew: invoice.paid cannot map to a subscription because invoice.subscription no longer exists | INTEGRATION | CRITICAL | FIXED | api:billing | FIX_NOW |
-| [[BUG-1742-lead-creation-is-impossible-the-runtime-form-always-sends-pa|BUG-1742]] | Lead creation is impossible: the runtime form always sends partnerId as an empty string | BUG | CRITICAL | FIXED | apps/admin, api:platform-runtime, api:super-admin | FIX_NOW |
-| [[BUG-1743-customers-and-partners-cannot-be-edited-the-runtime-form-ech|BUG-1743]] | Customers and partners cannot be edited: the runtime form echoes fields the update DTO forbids | BUG | CRITICAL | FIXED | apps/admin, api:platform-runtime, api:super-admin | FIX_NOW |
-| [[BUG-1744-every-subscription-has-a-zero-length-billing-period-and-a-re|BUG-1744]] | Every subscription has a zero-length billing period and a renewal date in the past | DATA_INTEGRITY | CRITICAL | FIXED | api:super-admin, api:billing, integration:stripe | FIX_NOW |
-| [[BUG-1494-git-worktree-remove-follows-node-modules-junctions-and-delet|BUG-1494]] | git worktree remove follows node_modules junctions and deletes the primary checkout | INFRA | CRITICAL | FIXED | scripts | DONE |
+_None. Nothing open at CRITICAL._
 
 ## Owner Decisions Pending
 
 Questions where the engineering is understood and the **product answer is**
 **not**. No agent may resolve one by implementing a side of it.
 
-- [[BUG-0898-self-service-checkout-is-blocked-for-every-plan-no-plan-pric|BUG-0898]] — **Self-service checkout is blocked for every plan: no plan price has ever been synced to Stripe**
-- [[BUG-0903-production-runs-stripe-in-test-mode-so-no-real-payment-can-b|BUG-0903]] — **Production runs Stripe in test mode, so no real payment can be collected**
-- [[ITEM-0062-no-multi-tenant-membership-one-user-belongs-to-one-tenant-so|ITEM-0062]] — **No multi-tenant membership — one user belongs to one tenant, so discovery and switching cannot exist**
-- [[ITEM-0079-activation-does-not-gate-on-a-workspace-having-any-module-en|ITEM-0079]] — **Activation does not gate on a workspace having any module enabled**
+- [[ITEM-0106-an-employee-cannot-use-self-service-until-their-manager-acti|ITEM-0106]] — **An employee cannot use self-service until their manager activates their own account**
+- [[ITEM-0108-decide-whether-the-roughly-one-hour-session-lifetime-is-idle|ITEM-0108]] — **Decide whether the roughly one-hour session lifetime is idle or absolute**
+- [[BUG-2007-projects-and-customers-can-be-created-but-never-deleted|BUG-2007]] — **Projects and customers can be created but never deleted**
+- [[ITEM-0114-the-workspace-shell-states-the-tenant-s-identity-four-times-|ITEM-0114]] — **The workspace shell states the tenant's identity four times and its purpose twice**
 
 ## QA Coverage Gaps
 
@@ -234,14 +225,28 @@ gap into scope — or files a `TEST_GAP` item and says so.
 | [[PLAN-021-settings|settings]] | BROWSER |
 | [[PLAN-021-settings|settings]] | SECURITY |
 | [[PLAN-021-settings|settings]] | PERFORMANCE |
+| [[PLAN-022-approvals|approvals]] | API |
+| [[PLAN-022-approvals|approvals]] | DATABASE |
+| [[PLAN-022-approvals|approvals]] | INTEGRATION |
+| [[PLAN-022-approvals|approvals]] | E2E |
+| [[PLAN-022-approvals|approvals]] | BROWSER |
+| [[PLAN-022-approvals|approvals]] | SECURITY |
+| [[PLAN-022-approvals|approvals]] | PERFORMANCE |
+| [[PLAN-023-leave|leave]] | API |
+| [[PLAN-023-leave|leave]] | DATABASE |
+| [[PLAN-023-leave|leave]] | INTEGRATION |
+| [[PLAN-023-leave|leave]] | E2E |
+| [[PLAN-023-leave|leave]] | BROWSER |
+| [[PLAN-023-leave|leave]] | SECURITY |
+| [[PLAN-023-leave|leave]] | PERFORMANCE |
 
 ## Backlog Health
 
 | | |
 |---|---|
-| Open total | 70 |
+| Open total | 72 |
 | Blocked | 2 |
-| Deferred | 27 |
+| Deferred | 30 |
 | Awaiting a product decision | 4 |
 | Awaiting Architect triage | 0 |
 

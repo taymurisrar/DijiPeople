@@ -27,6 +27,7 @@ import {
 } from "@/lib/location/location-capture";
 import { AttendanceActionFeedback } from "./attendance-action-feedback";
 import { debugRuntime } from "@/lib/runtime/runtime-debug";
+import { fieldValidationErrorsAreVisible } from "@/lib/runtime/command-failure-visibility";
 import type { CommandDefinition } from "@/lib/runtime/command-runtime.types";
 import type {
   FormMetadata,
@@ -307,7 +308,10 @@ export function ModuleRuntimeCommandHandler({
     setLastResult(result);
     onResult?.(result);
 
-    if (result.status === "failure" && !hasFieldValidationErrors(result.data)) {
+    if (
+      result.status === "failure" &&
+      !fieldValidationErrorsAreVisible(result.data, activeForm)
+    ) {
       /*
        * Expected attendance outcomes are answered in place; only genuine
        * defects reach the platform's technical dialog. Routing a

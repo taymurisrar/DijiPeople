@@ -1,3 +1,4 @@
+import { LeavePolicyResolverService } from './leave-policy-resolver.service';
 import { BadRequestException } from '@nestjs/common';
 import { LeaveService } from './leave.service';
 
@@ -32,6 +33,19 @@ describe('LeaveService', () => {
       { log: jest.fn() } as never,
       { resolveApprovalRoute: jest.fn().mockResolvedValue([]) } as never,
       { dispatch: jest.fn() } as never,
+      /*
+       * The policy resolver moved out of this service (EXECPLAN-0026), so it
+       * has to be supplied - and supplied for real, over the same mocked
+       * repository. These tests do exercise resolution: the leave-type test
+       * mocks findActiveLeavePolicyAssignments and asserts the resolved policy
+       * comes back in the payload. A stub returning null passed the other two
+       * and quietly gutted that one.
+       */
+      new LeavePolicyResolverService(
+        { businessUnit: { findFirst: jest.fn() } } as never,
+        leaveRepository as never,
+      ) as never,
+      { reconcileTenant: jest.fn().mockResolvedValue(undefined) } as never,
     );
   });
 

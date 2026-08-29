@@ -126,22 +126,14 @@ const navSections = [
     moduleItem("commissions"),
   ]),
   section("Support", [moduleItem("support-cases", "Support cases")]),
+  /*
+   * App releases and Agent rollout used to sit here as top-level entries. They
+   * are one Settings screen now (Settings → Desktop agent): both are platform
+   * configuration rather than daily operations, and they were rendered on a
+   * shell nothing else in the console used.
+   */
   section("Operations", [
     moduleItem("monitoring-incidents", "Monitoring", "/settings/monitoring"),
-    {
-      href: "/app-releases",
-      label: "App releases",
-      icon: Package,
-      roleKeys: [],
-      readPermission: "appDownloads.manage",
-    },
-    {
-      href: "/agent-rollout",
-      label: "Agent rollout",
-      icon: Package,
-      roleKeys: [],
-      readPermission: "appDownloads.manage",
-    },
   ]),
   section("System", [
     {

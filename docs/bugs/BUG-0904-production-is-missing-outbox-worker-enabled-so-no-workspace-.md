@@ -2,7 +2,7 @@
 ID: BUG-0904
 aliases: [BUG-0904]
 Title: Production is missing OUTBOX_WORKER_ENABLED, so no workspace is provisioned after payment
-Status: FIXED
+Status: VERIFIED
 Severity: CRITICAL
 Priority: P0
 Type: BUG
@@ -11,7 +11,7 @@ DetectedDate: 2026-08-23
 DetectedInSha: 1dd74a25
 AffectedModules: [services/api/src/modules/outbox]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: docs/qa/runs/2026-08-28-admin-console-e2e-912f4e6.md
 RegressionId: REG-280
 RelatedBacklogItem:
@@ -19,7 +19,7 @@ RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-23
 UpdatedAt: 2026-08-28
-ResolvedAt:
+ResolvedAt: 2026-08-28
 ---
 
 # BUG-0904 — Production is missing OUTBOX_WORKER_ENABLED, so no workspace is provisioned after payment
@@ -193,50 +193,45 @@ observable in production.
 
 ## Resolution
 
-Fixed 2026-08-28 in two parts, only one of which is code.
+**Verified in production 2026-08-28, and the two things this record could never
+establish are now both established.**
 
-**Production**, by the repository owner: `OUTBOX_WORKER_ENABLED` is now set on
-the live Render service. An inventory on 2026-08-28 returned 80 environment
-variables including it, where this record found none matching `OUTBOX_*` at all.
-The premise this record was written against no longer holds.
+The history is worth keeping because the first fix was wrong in an instructive
+way — see the correction note above. `outboxWorker.enabled` was added to
+`AppService.getHealth()`, shipped as `6e00395a`, and had no effect: `main.ts`
+answers `/`, `/api` and `/api/health` with express handlers registered ahead of
+Nest's router, so `AppController` is unreachable for those paths. Corrected at
+the served handler and deployed as `949f461c`.
 
-**Observability**, on this branch. The repository half was never wrong —
-`render.yaml` declared the flag and `docs/environment-variables.md` documented
-it — so there was no code defect to fix and no unit test that could have caught
-this. What was wrong is that the drift was undetectable: the worker announces
-itself in a startup log, once, into a stream nobody reads, and `/api/health`
-answered `status: ok` whether or not anything was draining the queue. The only
-symptom was rows quietly accumulating.
+What production now reports:
 
-`/api/health` now reports `outboxWorker.enabled`, and `smoke:deployment` fails
-when the service it points at is not draining the outbox — distinguishing "off"
-from "too old to answer", because those need different responses.
+```
+GET https://api.dijipeople.com/api/health
+{ "commitShort": "949f461", "status": "ok", "outboxWorker": { "enabled": true } }
+```
 
-That is the only durable guard this class admits. The value lives on the
-service, so nothing in this repository can assert what it is; what a check can
-do is ask.
+That answers the open question this record carried since it was filed. The
+variable is genuinely `"true"` rather than merely present — a distinction the
+key inventory could not make, and one that matters because
+`OUTBOX_WORKER_ENABLED` is read as a boolean and anything other than `"true"`
+leaves the dispatcher as idle as its absence did.
 
-Guarded by REG-280.
+`npm run smoke:deployment` against production passes, including
+`ok - outbox worker is draining events`.
+
+The remaining behavioural check — a paid signup producing a provisioned
+workspace — is now gated on the Stripe go-live decision ([[BUG-0903]]) rather
+than on this record. The dispatcher is running; whether a customer can reach it
+is a commercial question.
 
 ## QA Retest
 
-Not retested end to end. `app.service.spec.ts` covers the payload;
-`smoke:deployment` covers the deployment.
+Verified in production on 2026-08-28 at commit `949f461c`, by the health
+endpoint and by a full `smoke:deployment` run.
 
-**Two things are still unconfirmed, and they are the ones that matter:**
-
-1. The variable's *value*. Reading environment variable values on the live
-   service is blocked in this session, so "the key exists" is the strongest
-   claim the evidence supports. Anything other than `"true"` leaves the
-   dispatcher as idle as its absence did.
-2. The behaviour. The check that actually closes this is a paid signup on
-   production producing a provisioned workspace, or `PlatformOutboxEvent`
-   showing `PROVISIONING_REQUESTED` rows reaching a delivered state instead of
-   accumulating.
-
-Running `npm run smoke:deployment` against production answers (1) directly, and
-will fail until the deployment carries this change. Left `FIXED` rather than
-`VERIFIED` for both reasons.
+Re-run `npm run smoke:deployment` after any deployment that changes environment
+variables. The check now fails loudly rather than reporting `status: ok` over an
+idle worker, which is the whole point of it.
 
 ## History
 
@@ -304,6 +299,7 @@ will fail until the deployment carries this change. Left `FIXED` rather than
 - 2026-08-28 - OUTBOX_WORKER_ENABLED added to the live service by the owner; the record's premise (no OUTBOX_* key exists) is stale. Value not independently confirmed.
 - 2026-08-28 - the owner set the variable on production; this branch made the gap observable via /api/health and a smoke check, since no repository test can see a value that lives on the service. REG-280.
 - 2026-08-28 - the observability fix shipped without effect: /api/health is served by an express handler in main.ts, not by AppController. Corrected at the served handler and guarded there.
+- 2026-08-28 - VERIFIED in production: /api/health reports outboxWorker.enabled true at 949f461c and smoke:deployment passes. The first observability fix had no effect and is recorded above.
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
 

@@ -270,8 +270,20 @@ export const employeeModuleDataAdapter: ModuleDataAdapter<
       );
     }
 
+    /*
+     * BUG-2011 — the same parent-foreign-key injection the standard adapter
+     * does. This adapter had none at all: every employee subgrid happens to
+     * declare a create path naming `{parentId}`, so nothing was broken here,
+     * and the first flat `createPath` added would have failed the same way the
+     * other seven did. Mirrored rather than left to be rediscovered.
+     */
     const data = await requestJson(endpoint.create, {
-      body: JSON.stringify(input.values),
+      body: JSON.stringify({
+        ...input.values,
+        ...(!endpoint.createConsumedParentId && input.parentLookupField
+          ? { [input.parentLookupField]: input.parentRecordId }
+          : {}),
+      }),
       method: "POST",
     });
 

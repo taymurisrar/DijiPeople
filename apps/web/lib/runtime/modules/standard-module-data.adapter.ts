@@ -440,7 +440,7 @@ export function createStandardModuleDataAdapter(
     async createRelatedRecord(
       input: RelatedRecordMutationInput<RuntimeRecord>,
     ) {
-      const path = relatedRecordPaths(input).create;
+      const { create: path, createConsumedParentId } = relatedRecordPaths(input);
       if (!path)
         throw new Error(
           `Related list ${input.subgrid.relationshipName} has no create API metadata.`,
@@ -450,7 +450,14 @@ export function createStandardModuleDataAdapter(
         body: JSON.stringify(
           withRelatedRecordDefaults(input.subgrid.relatedEntityLogicalName, {
             ...sanitizeRelatedMutationValues(input.values, input.subgrid),
-            ...(!input.subgrid.api && input.parentLookupField
+            /*
+             * BUG-2011 — the parent id goes in the body unless the path already
+             * carried it. This used to ask `!input.subgrid.api`, which is
+             * whether the subgrid was *configured*, not whether the configured
+             * path consumed the parent id. A declared `api` block with a flat
+             * `createPath` therefore sent it in neither place.
+             */
+            ...(!createConsumedParentId && input.parentLookupField
               ? { [input.parentLookupField]: input.parentRecordId }
               : {}),
           }),

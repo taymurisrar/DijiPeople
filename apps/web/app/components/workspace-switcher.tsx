@@ -15,6 +15,15 @@ type Workspace = {
 };
 
 /**
+ * The id the section's own label carries, so the list of workspaces is named
+ * once and the links inside it inherit that name rather than repeating it.
+ * ITEM-0102 recorded the previous control announcing itself twice — the
+ * disclosure carried a visually hidden "Switch workspace." *and* a visible
+ * "Switch workspace", which a screen reader read back as both.
+ */
+const SECTION_LABEL_ID = "workspace-switcher-label";
+
+/**
  * Moving between the workspaces one person belongs to.
  *
  * This is TASK-0008's WP-06, which sat `BLOCKED` because it could not be built:
@@ -26,10 +35,22 @@ type Workspace = {
  * people. A menu offering one item is noise on every screen of the product, and
  * the cost of noise is that people stop reading the header.
  *
- * Deliberately a plain list of links rather than a dropdown. Switching
- * workspace is a full navigation to another hostname and a different session
- * scope — the interaction should feel like leaving, because it is. A dropdown
- * that quietly re-renders the page underneath would suggest otherwise.
+ * ITEM-0102 moved it into the avatar menu, where identity-scoped actions
+ * already live. It used to be a `<details>` disclosure sitting alone in the
+ * band between the page header and the record action bar, which read as page
+ * content rather than as a property of the session — a person scanning that row
+ * for Edit or Delete passed over a control that changes their entire context.
+ *
+ * It is therefore **a section, not a disclosure**: a dropdown nested inside the
+ * avatar dropdown would be two menus deep for a list that is almost always two
+ * items long. The links themselves keep the earlier intent — switching is a
+ * full navigation to another hostname under a different session scope, so it
+ * should feel like leaving, because it is.
+ *
+ * It also renders its own separator rather than letting the caller draw one.
+ * The caller receives this as an already-rendered slot and cannot see whether
+ * it resolved to null, so a caller-drawn divider would hang in the menu of
+ * every single-workspace user — which is nearly all of them.
  */
 export async function WorkspaceSwitcher() {
   const token = (await cookies()).get(ACCESS_TOKEN_COOKIE)?.value;
@@ -49,49 +70,48 @@ export async function WorkspaceSwitcher() {
   if (!others.length) return null;
 
   return (
-    <details className="group relative">
-      <summary className="flex cursor-pointer list-none items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium text-muted hover:bg-surface-muted hover:text-foreground">
-        <span className="sr-only">Switch workspace. </span>
-        <span aria-hidden="true">⌂</span>
-        <span>Switch workspace</span>
-      </summary>
+    <div className="mt-3 border-t border-border pt-3">
+      <p
+        className="px-4 pb-1 text-xs font-medium uppercase tracking-[0.16em] text-muted"
+        id={SECTION_LABEL_ID}
+      >
+        Switch workspace
+      </p>
 
-      <div className="absolute right-0 z-30 mt-1 w-64 rounded-xl border border-border bg-background p-1 shadow-lg">
-        <ul>
-          {others.map((workspace) => (
-            <li key={workspace.tenantId}>
-              {workspace.canOpen ? (
-                <Link
-                  className="block rounded-lg px-3 py-2 hover:bg-surface-muted"
-                  href={workspace.url}
-                >
-                  <span className="block truncate text-sm font-medium text-foreground">
-                    {workspace.name}
-                  </span>
-                  <span className="block truncate text-xs text-muted">
-                    {hostOf(workspace.url)}
-                  </span>
-                </Link>
-              ) : (
-                /*
-                 * Shown, but not a link. Somebody whose second workspace is
-                 * suspended should see that it exists and why they cannot open
-                 * it — a workspace that silently disappears reads as data loss.
-                 */
-                <div className="rounded-lg px-3 py-2">
-                  <span className="block truncate text-sm font-medium text-muted">
-                    {workspace.name}
-                  </span>
-                  <span className="block text-xs text-muted">
-                    {workspace.unavailableReason ?? "Currently unavailable."}
-                  </span>
-                </div>
-              )}
-            </li>
-          ))}
-        </ul>
-      </div>
-    </details>
+      <ul aria-labelledby={SECTION_LABEL_ID} className="grid gap-1">
+        {others.map((workspace) => (
+          <li key={workspace.tenantId}>
+            {workspace.canOpen ? (
+              <Link
+                className="block rounded-2xl px-4 py-2.5 transition hover:bg-surface hover:text-accent"
+                href={workspace.url}
+              >
+                <span className="block truncate text-sm font-medium text-foreground">
+                  {workspace.name}
+                </span>
+                <span className="block truncate text-xs text-muted">
+                  {hostOf(workspace.url)}
+                </span>
+              </Link>
+            ) : (
+              /*
+               * Shown, but not a link. Somebody whose second workspace is
+               * suspended should see that it exists and why they cannot open
+               * it — a workspace that silently disappears reads as data loss.
+               */
+              <div className="rounded-2xl px-4 py-2.5">
+                <span className="block truncate text-sm font-medium text-muted">
+                  {workspace.name}
+                </span>
+                <span className="block text-xs text-muted">
+                  {workspace.unavailableReason ?? "Currently unavailable."}
+                </span>
+              </div>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 

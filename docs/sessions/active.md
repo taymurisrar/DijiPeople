@@ -12,5 +12,5 @@ therefore sees sibling worktrees without anybody having pushed.
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
-| [SESSION-0067](../../docs/sessions/SESSION-0067-promote-the-open-bug-sweep-to-production.md) | — | Promote the open bug sweep to production | ACTIVE | `agent/release-bug-sweep` | `main` | — | 2026-08-28T16:30:01.021Z |
+| [SESSION-0071](../../docs/sessions/SESSION-0071-tenant-workspace-accessibility-the-three-defects-the-browser.md) | — | Tenant workspace accessibility: the three defects the browser coverage found | ACTIVE | `agent/web-shell-accessibility` | `develop` | — | 2026-08-29T09:58:17.272Z |
 | [SESSION-0061](../../docs/sessions/SESSION-0061-unblock-the-production-hosts-for-the-mcp-browser.md) | — | Production admin E2E QA and invitation delivery visibility | ACTIVE | `agent/invitation-delivery-visibility` | `develop` | — | 2026-08-26T09:54:37.336Z |

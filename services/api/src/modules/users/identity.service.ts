@@ -172,6 +172,15 @@ export async function resolveLoginCredential(
     };
   }
 
+  /*
+   * Unreachable since the contract phase (TASK-0009 WP-09, 2026-08-29) made
+   * `User.identityId` NOT NULL, and kept anyway.
+   *
+   * It exists for the window where the code had shipped and the backfill had
+   * not, and that window is closed. Deleting a fallback in the authentication
+   * path to tidy up is a poor trade against what it protects from: a migration
+   * ordering mistake that locks every user out. It costs one branch.
+   */
   return {
     passwordHash: user.passwordHash,
     source: 'USER',

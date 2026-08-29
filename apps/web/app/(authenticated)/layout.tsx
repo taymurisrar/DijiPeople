@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
-import { CSSProperties, cache } from "react";
+import { CSSProperties, Suspense, cache } from "react";
 import { requireSessionUser } from "@/lib/auth";
 import { LOGIN_ROUTE } from "@/lib/auth-config";
 import {
@@ -147,6 +147,25 @@ export default async function DashboardLayout({
       15,
   );
 
+  /*
+   * ITEM-0102: the switcher lives in the avatar menu, where identity-scoped
+   * actions belong, rather than alone in the band between the page header and
+   * the record action bar — where it was the only thing on its row, and read
+   * as page content rather than as a property of the session.
+   *
+   * Resolved here rather than inside the menu, and behind a Suspense boundary,
+   * for the reason it used to sit outside the topbar altogether: a slow or
+   * failing `/workspaces/mine` must not delay the header everybody needs. The
+   * fallback is `null` because the switcher itself renders null for the common
+   * case — one workspace — so a placeholder would announce a control that is
+   * about to not exist.
+   */
+  const workspaceSection = (
+    <Suspense fallback={null}>
+      <WorkspaceSwitcher />
+    </Suspense>
+  );
+
   return (
     <SystemPreferencesProvider initialResolvedSettings={resolvedSettings}>
       <AuthenticatedShellProvider
@@ -210,17 +229,8 @@ export default async function DashboardLayout({
                 roleLabel={roleLabel}
                 tenantId={user.tenantId}
                 tenantName={effectiveTenantName}
+                workspaceSection={workspaceSection}
               />
-
-              {/*
-                Rendered beside the topbar rather than inside it, so a slow or
-                failing `/workspaces/mine` cannot delay the header everybody
-                needs. It returns null for the common case — one workspace —
-                and costs nothing when there is nothing to switch to.
-              */}
-              <div className="flex justify-end px-2">
-                <WorkspaceSwitcher />
-              </div>
 
               <ErrorProvider user={{ roleKeys: user.roleKeys }}>
                 <NotificationPopupProvider />

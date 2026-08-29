@@ -77,4 +77,6 @@ where they stop, are mapped in [[monorepo-application-map]]:
 ## Related
 
 [[dijipeople-platform-overview]] · [[employee-hr-platform]] ·
-[[system-architecture]] · [[monorepo-application-map]]
+[[system-architecture]] · [[monorepo-application-map]] ·
+[[starter-plan-scope]] — which of these areas each plan sells, and why buying
+fewer of them does not currently stop a tenant using them

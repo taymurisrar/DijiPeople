@@ -3012,18 +3012,18 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fixed** | 2026-08-28 |
 | **Active** | yes |
 
-### REG-298 — Three decisions, and two of them already made
+### REG-298 — One deletion rule, for one record and for many
 
 | | |
 |---|---|
 | **Bug class** | `record-outlived-its-fix`, `capability-too-coarse` |
 | **Module** | `leads`, `platform-runtime`, `super-admin`, `partner-experience` |
 | **Bug record** | BUG-0018, BUG-0015, BUG-0016 |
-| **Root cause** | Bulk lead delete existed and destroyed commercial attribution — which partner referred whom, and what a commission is calculated from — for an unbounded selection nobody reviewed. Removing it revealed a second problem: the console's `delete` capability gated single-record and bulk deletion together, so withholding one withheld the other. |
-| **Regression test** | `services/api/src/modules/leads/bulk-delete-withdrawn.spec.ts` |
-| **Scenario** | No bulk delete route on the leads controller, no `leads` arm in the runtime's `bulkDelete`, and no console action — while the runtime's `remove` path still deletes a single lead, and `RuntimeModuleCapabilities` separates `bulkDelete` from `delete`. |
-| **Proven to fail without the fix** | Each assertion names a route, an arm or a capability that was there. The single-delete assertion is the load-bearing one: the obvious implementation (`delete: false`) passes every other assertion in this suite and fails that one. |
-| **Note** | The interesting part of this entry is what was *not* changed. BUG-0015 and BUG-0016 were both already fixed, and both exactly as their records specified — `identities-and-billing` is idempotent against owner email, subscription and invoice anchors and is marked retryable; partner onboarding review refuses decisions from non-reviewable states and closes `ACTIVE` partners to review entirely. Both were verified by reading the implementation and running its spec, and no code was written for either. Five records in this sweep turned out to have stale premises, which is an argument for measuring a record before implementing against it. **Still untested:** BUG-0015's convergence under a real replay. A local database was offered for it and the credential supplied did not authenticate, so a failed provisioning was never actually retried. |
+| **Root cause** | `PlatformRuntimeService.remove` and `PlatformRuntimeService.bulkDelete` were two independent switch statements over the same modules, so a module could be deletable one way and not the other. They drifted exactly that way: `leads` was in one and absent from the other, and an operator who selected leads and pressed Delete got `400 Bulk delete is not available for this module` while deleting the same leads one at a time worked. The console offered an action the API refused. |
+| **Regression test** | `services/api/src/modules/platform-runtime/generic-delete.spec.ts` |
+| **Scenario** | Both paths are driven for all seventeen runtime modules and must answer identically — the six deletable ones delete through each, and the eleven retention-refused ones refuse through each with one message. Deletion requires module write **and** a platform admin role, on both paths. |
+| **Proven to fail without the fix** | Mutation-tested, not assumed. Reintroducing the leads exclusion in the bulk case fails two assertions; dropping the admin half of the authorization union fails a third. The suite is deliberately written so the *easy* fix — adding a missing `leads` arm to a second list — would not satisfy it: what is asserted is that both paths agree for every module, which a second list cannot guarantee. |
+| **Note** | This entry was rewritten on 2026-08-28, the same day it was written. Its first version guarded the *opposite* behaviour — bulk lead delete withdrawn, decided by the repository owner that morning — and the owner reversed that decision hours later after the production 400 above, asking for bulk delete to be generic across the console. The behaviour it guards changed; the class of defect it guards against did not, and is now stated more strongly. BUG-0015 and BUG-0016, recorded here originally, were both verified as already fixed with no code written; BUG-0015's convergence under a real replay is **still untested** — a local database was offered and the credential supplied did not authenticate. |
 | **Fixed** | 2026-08-28 |
 | **Active** | yes |
 
@@ -3040,4 +3040,159 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Proven to fail without the fix** | There was no logging on this path at all, and the verification failure had no `try` around it. |
 | **Note** | This is diagnosability, not a fix — **the cause of BUG-1543 is still unknown** and that record stays deferred. The three checks need opposite responses, which is why flattening them mattered: a missing header is a caller that is not Stripe, a non-Buffer body is raw-body middleware not running for the route, and a failed verification is either the wrong webhook secret or a forgery. What is deliberately absent from the log is the body and the signature — one is a customer's payment detail, the other is a credential, and neither is the thing worth knowing. Also worth keeping: the rejection raised "a customer may have paid without us knowing", which is the right thing to be paged for. A change that silenced the alert rather than explaining the rejection would have been the wrong one. |
 | **Fixed** | 2026-08-28 (diagnostics only) |
+| **Active** | yes |
+
+### REG-300 — A screen that did not look like the product it was in
+
+| | |
+|---|---|
+| **Bug class** | `styling-for-a-mode-that-does-not-exist`, `parallel-shell` |
+| **Module** | `apps/admin` |
+| **Bug record** | BUG-1883 |
+| **Root cause** | `/app-releases` and `/agent-rollout` were hand-rolled pages with their own `<main>` and Tailwind `dark:` variants. The admin console has no dark mode to switch those on, so on a light product the empty state rendered as a dark navy panel and the heading floated outside the standard page header. Both were also top-level Operations entries, a click apart, despite being two halves of one decision. |
+| **Regression test** | `apps/admin/lib/desktop-agent-settings.spec.ts` |
+| **Scenario** | The screen is on `SettingsShell` and declares no `<main>` of its own; neither it nor its manager component contains a `dark:` variant; both tabs exist on one screen; `/app-releases` and `/agent-rollout` still resolve, as redirects; and the sidebar no longer lists either while the settings index does. |
+| **Proven to fail without the fix** | Every assertion names something that was there — the `<main>`, the `dark:` classes, the two sidebar hrefs — or something that was not: the settings route and the redirects. |
+| **Note** | The `dark:` classes are the part worth remembering. They were not dead code that happened to be unused; they were the *cause*, because Tailwind emits them and something upstream matched. A variant for a mode a product does not have is not harmless, and nothing else in this app carries one. The redirects are deliberate: the URLs are in bookmarks and in the release runbook, and a move should not read as a deletion. |
+| **Fixed** | 2026-08-28 |
+| **Active** | yes |
+
+### REG-301 — An action offered where it could only be refused
+
+| | |
+|---|---|
+| **Bug class** | `screen-never-asked-what-the-api-knew` |
+| **Module** | `apps/admin`, `billing` |
+| **Bug record** | BUG-1884 |
+| **Root cause** | `PaymentRecheckPanel` rendered on every customer record with "Re-check payment with Stripe" as a primary button. On a customer whose payment had succeeded and whose workspace was provisioned, the most prominent action on the record existed only to answer `NO_RECHECKABLE_ORDER`. The API had always known better — `findRecheckableOrder` restricts to `PENDING_PAYMENT`, `PAID` and `FAILED` — but no read exposed it, so the frontend had nothing to branch on. |
+| **Regression test** | `services/api/src/modules/billing/services/payment-state.spec.ts` |
+| **Scenario** | Every `SubscriptionOrderStatus` maps to exactly one of `CONFIRMED`, `AWAITING`, `FAILED` or `NONE`; a customer with no order is `NONE`; a confirmed state carries the amount, currency, paid date and order number the panel prints; and no unsettled status can report `CONFIRMED`. |
+| **Proven to fail without the fix** | The method did not exist. The last assertion is the load-bearing one for future edits: a settled panel on an unsettled payment tells an operator to stop chasing money that has not arrived. |
+| **Note** | `DRAFT`, `ABANDONED` and `CANCELLED` all map to `NONE` deliberately — they are neither settled payments nor payments in flight, and a customer record is not the place to explain the absence of a payment nobody started. One decision is not tested here because it is a judgement rather than a mapping: when the state probe itself fails, the panel falls back to showing the full re-check UI. Withholding an operator's tool because a status request failed is worse than showing a button that might answer "nothing to do". |
+| **Fixed** | 2026-08-28 |
+| **Active** | yes |
+
+### REG-302 — The tenant product could not be opened by a test at all
+
+| | |
+|---|---|
+| **Bug class** | `surface-with-no-observer` |
+| **Module** | `apps/web`, `e2e`, `ci` |
+| **Bug record** | BUG-1950, BUG-1951 |
+| **Root cause** | `apps/web` — 254 pages, 207 client components, the application every employee of every tenant uses — was never opened by a test. Its `jest.config.js` is `testEnvironment: node` with no jsdom, so nothing in it could be tested through a DOM by any mechanism, and CI started `dev:landing` and `dev:admin` but never port 3001. `playwright.config.ts` defined a `web` base URL that no test consumed, so the config read as though it were in scope; `fixtures/environment.ts` probed landing, admin and api only, so its absence could not even produce a skip. It was invisible rather than missing. |
+| **Regression test** | `e2e/tests/flow-h-tenant-sign-in.spec.ts`, `e2e/tests/flow-i-growth-modules.spec.ts`, `e2e/tests/flow-j-tenant-settings.spec.ts` |
+| **Scenario** | Sign-in, the workspace picker, and the authenticated shell; every module the Growth plan entitles; settings and the three entitlements that live inside it. Each screen must reach an **intentional state** — its own content or a refusal that explains itself with an error reference — never a blank page and never an unhandled client exception. A list screen shows only the signed-in tenant's records. CI starts `dev:web` and polls 3001, and `probeTenantProduct` reports its absence. |
+| **Proven to fail without the fix** | It could not run without the fix: there was no way to reach the app. Its value was immediate rather than theoretical — three defects on the first real run, and a reproduction for a fourth that had been deferred for want of one. |
+| **Note** | It closes the backlog item that asked for it, and a third finding — five buttons with no accessible name — is guarded by its own `fixme` in Flow J rather than by this entry. Two things learned building it are worth more than the tests. **A screen that renders is not a screen that passes:** four of the author's own assertions were wrong and only *running* them showed it — the module headings asserted do not exist, which is how BUG-1950 surfaced. **And a fixture can manufacture its own flakiness:** signing in per test spent ~15 logins in five minutes against a limit of 20 per 10 minutes, so `PublicRateLimitGuard` correctly answered 429 partway through and tests that passed one run failed the next on a stuck `/login` — which reads exactly like a broken product. The lockout counters were checked first (zero on both `User` and `Identity`) before the API log gave the real answer. The throttle is not the defect; a login endpoint that did not throttle would be. Documented in `docs/development/browser-e2e.md` with the queries that tell the two apart. |
+| **Fixed** | 2026-08-29 |
+| **Active** | yes |
+
+### REG-303 — A permission key that nothing enforced
+
+| | |
+|---|---|
+| **Bug class** | `declared-but-unwired-permission` |
+| **Module** | `leave` |
+| **Bug record** | BUG-2015 |
+| **Root cause** | `POST /leave-requests/:id/approve` and `/reject` were decorated with `leave-requests.read` in **both** permission systems. The dedicated `leave-requests.approve` and `leave-requests.reject` keys existed, were mapped in the RBAC matrix and were granted to roles — and were consulted only for deciding what the dashboard and inbox *display*. An administrator withholding approve from a role hid the button and did not stop the action; anyone who could read a leave request could approve it, including by calling the endpoint directly. |
+| **Regression test** | `services/api/src/modules/leave/leave-approval-permissions.spec.ts` |
+| **Scenario** | Both routes declare their own legacy key and their own matrix privilege, and **do not** declare `read`. `cancel` is asserted unchanged, because it was always correct. |
+| **Proven to fail without the fix** | Mutation-tested: restoring the original decorators fails three of six assertions. |
+| **Note** | The negative assertions are the load-bearing ones and the reason this guard is worth more than "the key is present". `toContain('approve')` passes while `read` is *also* declared — and on the matrix side that is not a widening but a total defeat, because `PermissionsGuard` requires **at least one** matrix privilege rather than all of them. A guard written the obvious way would have gone green over the live defect. Read through the `Reflector`, not by grepping: decorators are inherited and composed, and the source cannot show what Nest assembles. |
+| **Fixed** | 2026-08-29 |
+| **Active** | yes |
+
+### REG-304 - A refusal that named neither the step nor the remedy
+
+| | |
+|---|---|
+| **Bug class** | `unactionable-refusal` |
+| **Module** | `approvals` |
+| **Bug record** | BUG-1968 |
+| **Scenario id** | QA-RUNTIME-017 |
+| **Root cause** | `ApprovalMatrixResolverService.resolveApprovalRoute` expanded every matched matrix rule into a step and `throw`ed on the **first** step that could not bind to an active approver. The message named the internal requirement ("Approval route requires a reporting manager with a linked active user.") and nothing else - not which step in the chain, not what to configure, and not that other steps were also unresolvable. Because the shipped seed gives every tenant a two-step chain (`LINE_MANAGER`, then `ROLE(hr)`) that a new tenant satisfies neither half of, an administrator fixed one step, resubmitted, and met the next with an equally bare message. |
+| **Regression test** | `services/api/src/modules/approvals/approval-matrix-resolver.service.spec.ts` |
+| **Scenario** | The three-row table in BUG-1968, as unit tests. Both steps unresolvable: refused, naming both by sequence with a remedy each. Sequence 1 resolvable and sequence 2 not: still refused, naming **only** step 2. A fully resolvable chain: unchanged. |
+| **Proven to fail without the fix** | Mutation-tested: restoring the fail-fast `throw` fails three of the four new assertions, and leaves the fourth - the resolvable-chain control - passing, which is what it is there for. |
+| **Note** | The policy deliberately did **not** change: a chain with a step nobody can approve still refuses, because submitting into it would strand the request with no route out. Only the refusal changed. Two things are worth carrying forward. The **negative** assertion is again the load-bearing one - `not.toBe('Approval route requires a reporting manager with a linked active user.')` is the whole difference between the fix and the defect, and any test merely looking for "manager" would have passed against the live bug. And the remedy text is derived from the thrown message rather than from a new error type per step, on purpose: the six refusals in `resolveApprovers` are the single list of what can go wrong, and a parallel enum would be a second list to drift from the first. The fallback returns the original message, so a refusal added later degrades to the old behaviour instead of losing its text. **What this does not fix:** the seed still ships a chain no new tenant can satisfy, and the Approval Matrices screen still gives no configuration-time warning. Both are open product decisions on BUG-1968. |
+| **Fixed** | 2026-08-29 |
+| **Active** | yes |
+
+### REG-305 - A related record created without its parent
+
+| | |
+|---|---|
+| **Bug class** | `wrong-question-in-a-guard` |
+| **Module** | `apps/web` runtime |
+| **Bug record** | BUG-2011, BUG-1961 |
+| **Scenario id** | QA-RUNTIME-020 |
+| **Root cause** | `standard-module-data.adapter.ts` injected the parent foreign key into the create body only when `!input.subgrid.api` - whether the subgrid was *configured* - instead of whether the resolved create path had actually consumed `{parentId}`. Seven declared subgrids configure an `api` block with a **flat** create path, so for those the parent id went in neither the path nor the body. `employee-data.adapter.ts` had no injection at all and was one flat `createPath` from the same failure. |
+| **Regression test** | `apps/web/lib/runtime/related-record-parent-key.spec.ts` |
+| **Scenario** | Creating from a related list posts the parent foreign key in the body when the create path does not name `{parentId}`, and does not duplicate it into the body when the path does. Every declared subgrid in both registries - standard modules and the settings adapter registry - can supply the parent id one way or the other. |
+| **Proven to fail without the fix** | Mutation-tested: restoring the `!input.subgrid.api` guard fails the body assertion. |
+| **Note** | **Six of the seven failed loudly and the seventh did not, which is the part worth remembering.** Department > Teams returned **201** and created a team with `departmentId = null` - a team that never appears in any department list, so nothing surfaces it and no error is ever raised. A guard that can be wrong in a way that returns success cannot be trusted to announce itself, which is why the regression asserts the request body rather than the response. There was **no test anywhere in `apps/web`** exercising related-record creation when this was found; the nearest miss, `standard-module-views.spec.ts`, already iterated every module spec and asserted nothing about `relatedTabs` sitting in the same object. The spec walks the settings adapter registry too, where six of the seven live and which is not in `SPECS` at all - a guard over only the standard modules would have reported the class closed with most instances still open. It also asserts that it found tabs to check, because an `it.each` over an empty array is green. |
+| **Fixed** | 2026-08-29 |
+| **Active** | yes |
+
+### REG-306 - A leave entitlement that never became a balance
+
+| | |
+|---|---|
+| **Bug class** | `half-built-model` |
+| **Module** | `leave` |
+| **Bug record** | BUG-1967 |
+| **Scenario id** | QA-RUNTIME-021 |
+| **Root cause** | The allocation half of the leave balance model was never implemented. `LeavePolicyRule.entitlementDays` was validated, stored and displayed, and nothing read it into a balance. `LeaveBalance` was written in exactly one place - on approval - and that write only ever decremented: `totalAllocated` was created as literal `new Prisma.Decimal(0)` and incremented nowhere. Since `LeaveType.consumesBalance` defaults to true, the balance gate refused every leave request on every tenant unless a row had been seeded by hand. |
+| **Regression test** | `services/api/src/modules/leave/leave-entitlement.service.spec.ts` |
+| **Scenario** | Allocation follows the policy that **wins** for each employee, not the assignment that triggered it; `totalRemaining` is derived and `totalUsed` never moves; it is idempotent; an employee covered by no policy is left alone rather than zeroed; a negative remaining is not clamped. |
+| **Proven to fail without the fix** | Mutation-tested: an implementation that resolves the policy once rather than per employee passes five of the six assertions and fails only the first. |
+| **Note** | **Configuration can be validated, stored, displayed and reviewed while the thing it configures does not exist.** Nothing about `entitlementDays` looked wrong in isolation; what was missing was a reader, and a missing reader has no code to inspect. Worth carrying to any other configured-number-with-a-consumer in this codebase. The design decision is the part most likely to be got wrong twice: exactly one policy wins per employee by specificity, so allocation re-resolves **per employee** exactly as the balance gate does. Allocating the triggering assignment's own entitlements would write a number no governing policy justifies - worse than the original bug, because uniformly blocking is at least visible. That is why `resolveApplicableLeavePolicy` was extracted to `LeavePolicyResolverService` and shared rather than reimplemented. **Deliberately not done:** no backfill of existing tenants, whose balances stay at zero until the next assignment write. A backfill rewrites balances on live tenants including one configured around this bug, and belongs in a RELEASE task with its own rollback. |
+| **Fixed** | 2026-08-29 |
+| **Active** | yes |
+
+### REG-307 - A save that failed with field errors the form could not render
+
+| | |
+|---|---|
+| **Bug class** | `silent-degradation` |
+| **Module** | `apps/web` |
+| **Bug record** | BUG-1966 |
+| **Root cause** | `ModuleRuntimeCommandHandler` withheld the runtime's technical error dialog whenever a failed command carried field-level errors, assuming each would be rendered inline against its own control. That holds only while the form renders a control for every field the server can name, and it does not. `SubmitLeaveRequestDto` rejects `ownerId` and `status`; both live in the record-status header and appear in no form section, so the inline path had nothing to draw and the dialog had already been suppressed. A 400 produced no toast, no banner, no invalid field and no `[role=alert]` anywhere in `main` — the request was visible only in the network panel. |
+| **Regression test** | `apps/web/lib/runtime/command-failure-visibility.spec.ts` |
+| **Scenario** | `fieldValidationErrorsAreVisible` answers the only question that licenses silence: is at least one errored field actually on the active form? False for the real leave-request pair against a form of leave type, dates and reason; true when one named field is on the form, and true when only some are. Both error shapes are read — the array form the API contract emits and the map form — at the root and under `details`. False when there are no field errors, and false when there is no active form, so a failure with nowhere to render always reaches the dialog. |
+| **Proven to fail without the fix** | The predicate it replaced, `hasFieldValidationErrors(result.data)`, returned true for any field error whatever the form contained. The first spec case is the exact production payload and now returns `false`, the value that lets the dialog through; under the old predicate the same input returned `true`. The function is new, so the proof is that inversion at the call site rather than a revert of the function. |
+| **Note** | Suppressing a dialog "because the errors will render inline" is a claim about the form, made in a component that never looked at the form. The fix does not add an error surface; it stops the runtime asserting something it had not checked. Because the check keys off the active form rather than an exempt-field list, any DTO that grows a field the form does not render now fails loudly rather than silently. |
+| **Fixed** | 2026-08-29, branch `agent/starter-blocker-fixes` |
+| **Active** | yes |
+
+### REG-308 - A settings toggle wired to nothing
+
+| | |
+|---|---|
+| **Bug class** | `declared-but-unwired-control` |
+| **Module** | `timesheets` |
+| **Bug record** | BUG-2045 |
+| **Scenario id** | QA-SETTINGS-005 |
+| **Root cause** | `timesheets.auditBackgroundJobs` existed in the settings catalog, rendered on screen as "Audit background jobs", and was read by nothing. Every `TIMESHEET_BACKGROUND_JOB_COMPLETED` was audited regardless. On one tenant 216 of 305 audit rows were that action - machine events with no actor decision behind them, produced as a side effect of 61 manual attendance entries, crowding out the human actions an auditor opens the log to find. |
+| **Regression test** | `services/api/src/modules/timesheets/timesheet-job-audit.spec.ts` |
+| **Scenario** | Turning the setting off stops the audit row; turning it on writes it; a tenant that expressed no preference gets the decided default of off; a settings read failure fails closed without losing the job. |
+| **Proven to fail without the fix** | The off case is the assertion that did not hold: nothing read the value, so the row was written whatever the setting said. |
+| **Note** | Third instance of this class in the register, after REG-303 (a permission key nothing enforced) and REG-224 (a validation DTO nothing referenced). **A control that exists and is not connected is worse than an absent one**, because the administrator who set it believes they have drawn a boundary. The decided default is `off` and deliberately differs from the catalog's declared `true` - the catalog value is what an unconfigured tenant is *shown*, and changing it is a settings-catalog migration. **Three siblings remain unwired:** `auditEntryChanges`, `auditPolicyResolution` and `auditExports`, in the same category, all on screen, all read by nothing. Only `auditBackgroundJobs` was in scope. |
+| **Fixed** | 2026-08-29 |
+| **Active** | yes |
+
+### REG-309 - A seeded approval chain no new tenant could satisfy
+
+| | |
+|---|---|
+| **Bug class** | `unsatisfiable-default` |
+| **Module** | `approvals` |
+| **Bug record** | ITEM-0113 |
+| **Scenario id** | QA-RUNTIME-022 |
+| **Root cause** | Provisioning seeded leave as two **active** steps - sequence 1 `LINE_MANAGER`, sequence 2 `ROLE(hr)`. Every matched step must bind to an active approver or the whole submission is refused, and a newly provisioned tenant satisfies neither: nobody has a reporting manager, and nobody holds `hr`. Leave was blocked on day one for every customer, by default rather than by misconfiguration. The seed did guard against a role that does not exist - but checked only that the role *existed*, never that anybody *held* it, and `ROLE(hr)` passed that guard on every tenant while being unroutable on all of them. |
+| **Regression test** | `services/api/src/modules/approvals/default-approval-matrices.spec.ts` |
+| **Scenario** | Every **active** seeded step must be bindable on a freshly provisioned tenant - which today means a `ROLE` step naming a role provisioning guarantees a member for. The richer line-manager chain is kept, seeded inactive, as a template. |
+| **Proven to fail without the fix** | Mutation-tested: restoring the shipped chain - both steps active - fails three of the eight assertions. |
+| **Note** | The constant was moved from `prisma/seed-config.ts` to `src/modules/approvals/default-approval-matrices.ts` **so that it could be tested at all**: the seed file creates a Prisma client at import time and jest's rootDir is `src`, so no spec could have imported it and none placed beside it would have run. That is worth generalising - a default nothing can import is a default nothing can check, and this one was wrong for every tenant the product ever provisioned. **Satisfiable is not satisfied:** provisioning creates the owner `INVITED` and the resolver requires `ACTIVE`, so the chain routes from the owner's first sign-in rather than from the instant the tenant exists. That is still a real improvement, because signing in is a precondition of using the product and building a hierarchy is not. |
+| **Fixed** | 2026-08-29 |
 | **Active** | yes |

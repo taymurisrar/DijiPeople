@@ -3,7 +3,7 @@ PLAN_ID: PLAN-010
 aliases: [PLAN-010]
 TITLE: Payroll
 AREA: payroll
-STATUS: NEEDS_REVIEW
+STATUS: CURRENT
 MODULES: [services/api/src/modules/payroll, services/api/src/modules/compensation, services/api/src/modules/payslips, services/api/src/modules/pay-components, services/api/src/modules/benefits]
 RISK: CRITICAL
 COVERAGE_UNIT: GOOD
@@ -17,13 +17,22 @@ COVERAGE_PERFORMANCE: GAP
 RELATED_BUGS: [BUG-0001, BUG-0039]
 RELATED_REGRESSIONS: [REG-001]
 CREATED_AT: 2026-08-16
-UPDATED_AT: 2026-08-17
-VERIFIED_AGAINST_SHA: 714632d
+UPDATED_AT: 2026-08-29
+VERIFIED_AGAINST_SHA: 287612d
 ---
 
-> **TASK-0005 revalidation:** `VERIFIED_AGAINST_SHA` remains historical. WP-02
-> corrected QA-PAY-001 metadata but did not re-audit the whole payroll domain;
-> WP-10 owns the remaining plan review.
+> **Reviewed 2026-08-29 against `287612d`** (ITEM-0081). The note this replaces assigned the remaining payroll-domain review to WP-10 of TASK-0005. WP-10 is `DONE`, with no MEDIUM or LOW bug left `OPEN`.
+>
+> Checked rather than assumed, for every plan in this sweep: each path in
+> `MODULES` exists, each `RELATED_BUGS` id resolves to a record, and each
+> `RELATED_REGRESSIONS` id resolves to an entry in the register. All resolved.
+> `COVERAGE_E2E` and the payroll gaps are untouched. Payroll correctness is the
+> highest-consequence area in this repository and this review does not claim to
+> have re-derived it — it confirms the plan still describes the system.
+>
+> **The coverage fields are unchanged, and that is deliberate.** Returning a
+> plan to `CURRENT` says its description matches the system today — not that the
+> system is well covered. Every `GAP` below is still a gap.
 
 # PLAN-010 — Payroll
 

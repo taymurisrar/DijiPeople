@@ -3,15 +3,15 @@ ID: ITEM-0103
 aliases: [ITEM-0103]
 Title: Deployment check: the composed tenant workspace host must resolve
 Type: TEST_GAP
-Status: READY
+Status: DONE
 Priority: P1
 Severity: HIGH
 AffectedModules: [web, tenant-domains]
 Source: ARCHITECT
 OwnerAgent: architect
-ArchitectDisposition: PLAN_REQUIRED
+ArchitectDisposition: DONE
 CreatedAt: 2026-08-27
-UpdatedAt: 2026-08-28
+UpdatedAt: 2026-08-29
 RelatedBug: BUG-1644
 RelatedQA: QA-AUTH-006
 RelatedADR: 
@@ -87,6 +87,45 @@ None. [[BUG-1644]] is fixed; this prevents its recurrence.
 ## Related Items
 
 [[BUG-1644]] · [[BUG-1544]] · [[QA-AUTH-006]]
+
+
+## Resolution — 2026-08-29
+
+The check exists, in `scripts/smoke-deployment.mjs` — the home this record
+names, and the right one, because it is already something that runs against a
+deployed artifact rather than a local build.
+
+All four acceptance criteria are met, and the second and fourth were tested by
+making them fail rather than by reading the code:
+
+| Criterion | How |
+|---|---|
+| fails when the composed host does not resolve | `fetch` failure is caught and reported. Exercised: `demo.nonexistent-root-abc123.invalid` produces "could not be reached… every customer sent there sees a browser error rather than a login page". |
+| fails when both roots are individually valid but disagree | a host that resolves and answers 200 is still a failure if the body presents the company-code step — which is what a wildcard catching the wrong apex looks like from outside |
+| runs against a deployed artifact | it is a smoke check; there is no local build in the path |
+| names the composed host | the message leads with the full URL, so the missing label is visible rather than inferred |
+
+**It is composed the way `buildTenantPortalUrl` composes it, deliberately.** A
+check that built the host its own way would pass while the frontend's version
+was broken — which is precisely the defect it exists to catch.
+
+Skipped, not failed, when `SMOKE_TENANT_SLUG` and a tenant root domain are
+absent. A smoke run against a target with no tenants is a real situation, and
+inventing a slug would test DNS for a workspace nobody has.
+
+### What is not done, and it is the half this record called PLAN_REQUIRED
+
+**The check is not yet wired into the promotion path.** It runs when
+`smoke:deployment` runs, with those two variables set. This record's Proposed
+Approach says the interesting question is *where* it runs — a post-deploy gate
+that fails after traffic has moved is worth less than one that blocks
+promotion — and the frontends deploy on Vercel independently of the API's
+Render deploy, so a gate has to know which artifact it is asserting about.
+
+That is an operations decision about the deploy pipeline, not a coding one, and
+it is left open deliberately rather than answered by an agent. The acceptance
+criteria this record actually wrote down are met; the placement question needs
+the repository owner.
 
 ## History
 

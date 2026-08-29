@@ -4,11 +4,6 @@ import { getSessionUser } from "@/lib/auth";
 import { hasPermission, isSelfServiceUser } from "@/lib/permissions";
 import { apiRequestJson } from "@/lib/server-api";
 import { UserListItem, UserListResponse } from "./types";
-import { buildEntityDataUrl } from "@/app/components/entity-data/entity-query-builder";
-import {
-    EntityDataResponse, EntityFilter,
-    EntityOrderBy
-} from "@/app/components/entity-data/entity-query-types";
 import { ModuleViewSelector } from "@/app/components/runtime/module-view-selector";
 
 import {
@@ -81,19 +76,17 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
     query.set("page", String(page));
     query.set("pageSize", String(pageSize));
 
-    const useEntityDataApi = process.env.USE_ENTITY_DATA_API === "true";
-
+    // Always the REST list endpoint. This used to branch on USE_ENTITY_DATA_API
+    // and ask the generic entity-data API for an entity called "users", but
+    // `entity-registry.ts` registers only `employees`, so the request 404'd with
+    // "Entity is not available: users" and the throw escaped this Server
+    // Component — the page has never rendered for any tenant with the flag on.
+    // The branch was lossy as well as broken: it hardcoded `userRoles: []`,
+    // `employee: null` and `businessUnit: null`, which are three of the columns
+    // this screen exists to show. Re-introduce it only after `users` is a
+    // registered entity that projects those relations.
     const [rawUsers, resolvedSettings, publishedViews] = await Promise.all([
-        useEntityDataApi
-            ? fetchUsersFromEntityData({
-                search,
-                status,
-                businessUnitId,
-                orderBy,
-                page,
-                pageSize,
-            })
-            : apiRequestJson<UserListResponse>(`/users?${query.toString()}`),
+        apiRequestJson<UserListResponse>(`/users?${query.toString()}`),
         apiRequestJson<TenantResolvedSettingsResponse>(
             "/tenant-settings/resolved",
         ).catch(() => null),
@@ -197,112 +190,10 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
                         searchParams: { search, status, businessUnitId, orderBy },
                     }}
                     visibleColumnKeys={visibleColumnKeys}
-                    useEntityDataApi={useEntityDataApi}
                 />
             )}
         </main>
     );
-}
-
-type UserEntityRecord = {
-    id: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-    status: string;
-    businessUnitId: string;
-    isServiceAccount: boolean;
-    lastLoginAt?: string | null;
-    createdAt?: string | null;
-};
-
-async function fetchUsersFromEntityData(input: {
-    search: string;
-    status: string;
-    businessUnitId: string;
-    orderBy: string;
-    page: number;
-    pageSize: number;
-}): Promise<UserListResponse> {
-    const filter: EntityFilter[] = [];
-
-    if (input.status) {
-        filter.push({
-            field: "status",
-            operator: "eq",
-            value: input.status,
-        });
-    }
-
-    if (input.businessUnitId) {
-        filter.push({
-            field: "businessUnitId",
-            operator: "eq",
-            value: input.businessUnitId,
-        });
-    }
-
-    const url = buildEntityDataUrl({
-        entityLogicalName: "users",
-        select: [
-            "id",
-            "firstName",
-            "lastName",
-            "email",
-            "status",
-            "businessUnitId",
-            "isServiceAccount",
-            "lastLoginAt",
-            "createdAt",
-        ],
-        filter,
-        orderBy: resolveEntityOrderBy(input.orderBy),
-        search: input.search,
-        page: input.page,
-        pageSize: input.pageSize,
-    }).replace(/^\/api/, "");
-
-    const response =
-        await apiRequestJson<EntityDataResponse<UserEntityRecord>>(url);
-
-    return {
-        items: response.items.map((u) => ({
-            id: u.id,
-            firstName: u.firstName,
-            lastName: u.lastName,
-            fullName: [u.firstName, u.lastName].filter(Boolean).join(" "),
-            email: u.email,
-            status: u.status,
-            businessUnitId: u.businessUnitId,
-            businessUnit: null,
-            userRoles: [],
-            employee: null,
-            isServiceAccount: u.isServiceAccount,
-            lastLoginAt: u.lastLoginAt ?? null,
-            createdAt: u.createdAt ?? null,
-        })),
-        meta: response.meta,
-        filters: {
-            search: input.search || null,
-            status: input.status || null,
-            businessUnitId: input.businessUnitId || null,
-        },
-    };
-}
-
-function resolveEntityOrderBy(orderBy: string): EntityOrderBy[] {
-    const match = orderBy.match(/^([A-Za-z][A-Za-z0-9_]*)\s+(asc|desc)$/);
-
-    if (match) {
-        return [
-            {
-                field: match[1],
-                direction: match[2] === "desc" ? "desc" : "asc",
-            },
-        ];
-    }
-
-    return [{ field: "firstName", direction: "asc" }];
 }
 
 function resolveUserSort(sorting: unknown): {

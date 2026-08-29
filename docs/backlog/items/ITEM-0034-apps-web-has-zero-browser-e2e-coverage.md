@@ -3,19 +3,19 @@ ID: ITEM-0034
 aliases: [ITEM-0034]
 Title: apps/web has zero browser E2E coverage
 Type: TEST_GAP
-Status: READY
+Status: DONE
 Priority: P1
 Severity: HIGH
 AffectedModules: [apps/web, e2e]
 Source: QA_RUN
 OwnerAgent: qa
-ArchitectDisposition: PLAN_REQUIRED
+ArchitectDisposition: DONE
 CreatedAt: 2026-08-17
-UpdatedAt: 2026-08-17
+UpdatedAt: 2026-08-29
 RelatedBug: BUG-0043
 RelatedQA: docs/qa/runs/2026-08-17-web-app-documentation-1af3690.md
 RelatedADR:
-RelatedImplementation:
+RelatedImplementation: docs/plans/EXECPLAN-0025-apps-web-browser-e2e-coverage.md
 TargetMilestone:
 BlockedBy:
 ---
@@ -103,12 +103,109 @@ None blocking. The suite, the job and the fixtures all exist; this extends them.
   usual for a test gap because it is the *only* possible test mechanism for the
   largest app, not merely an additional one.
 
+
+## Plan written — 2026-08-29
+
+[[EXECPLAN-0025-apps-web-browser-e2e-coverage]] covers this. It is `AWAITING_OWNER_DECISION` on one point and
+one only: **which journeys the first slice covers.** 253 pages cannot be covered
+and should not be attempted, so the plan proposes three flows — sign-in and
+landing, the daily journeys (attendance, leave, payslip), and one
+metadata-driven runtime module — with its reasoning, for the owner to confirm or
+replace.
+
+### Two of this record's facts had gone stale, and are corrected there
+
+Measured at `eb457d9`:
+
+- **"`e2e/tests/` contains exactly two specs"** — there are **ten**. Flows A
+  through G plus three landing specs; the suite went from 18 tests to 48.
+- **"`browser-e2e` retains `continue-on-error: true`, so a failed browser step
+  is still fail-open"** — that was **removed on 2026-08-18**, with a comment in
+  `ci.yml` explaining that it made the job's promotion fail-open. The job is
+  genuinely required now.
+
+### What is still exactly true, which is the whole finding
+
+- No test consumes the `web` base URL. `playwright.config.ts:37` defines it and
+  grepping the entire `e2e/` tree for a consumer returns nothing.
+- CI starts `dev:landing` and `dev:admin`. Port 3001 is never started, never
+  polled.
+- `fixtures/environment.ts` probes landing, admin and api only, so web's absence
+  cannot even produce a skip — it is invisible rather than reported.
+- 254 `page.tsx` files and 207 client components, none ever rendered by a test,
+  in the one app that has no other way to be tested through a DOM.
+
+
+
+## Done — 2026-08-29
+
+`apps/web` is opened by a browser test. Integrated into `develop` at `9be5256`
+behind a green exact-SHA gate, **Browser e2e included** — the first CI run that
+started the tenant product at all.
+
+Three flows, on the slice the repository owner chose: the modules a Growth-plan
+tenant is entitled to, plus settings. 17 passing, 5 skipped with named reasons,
+0 failing, against a live stack with a migrated and seeded disposable database.
+
+CI now starts `dev:web` and polls 3001, and `probeTenantProduct` reports the
+app's absence rather than letting it be invisible.
+
+### What it found, which is the point
+
+| | |
+|---|---|
+| [[BUG-1950-every-tenant-workspace-screen-renders-the-same-h1-so-no-page]] | every authenticated screen renders `<h1>Dashboard</h1>` — nine snapshots, identical |
+| [[BUG-1951-most-tenant-workspace-pages-render-no-main-landmark-includin]] | 89 of 232 pages render a `main` landmark; 143 render none |
+| [[BUG-1986-tenant-settings-has-four-blocking-accessibility-violations-i]] | four blocking axe violations, two critical, five buttons with no name |
+
+All three are the tenant half of what BUG-1421 and BUG-1423 fixed for admin, and
+none was checkable before. [[BUG-1668-tenant-workspace-pages-scroll-horizontally-at-mobile-width]]
+also gained the reproduction it was deferred for want of; its disposition is
+unchanged, because evidence is not a decision.
+
+**None of them was fixed here.** Conflating "we can now see" with "we have now
+fixed" makes the coverage deliverable unmeasurable, and the plan committed to
+keeping them separate.
+
+### Two things worth keeping from building it
+
+**Four of my own assertions were wrong, and only running them showed it.** The
+headings I asserted do not exist — that failure is how BUG-1950 surfaced. The
+environment probe demanded landing and admin, which these flows never open, so
+twenty tests reported "skipped" with the stack up and serving. And three of the
+seven modules refuse for a least-privileged user, all correctly — so the
+assertion is now "reaches an intentional state", meaning its own content or a
+refusal that explains itself, never a blank page.
+
+**The suite was flaky and the cause was mine.** Signing in per test spent
+roughly fifteen logins in five minutes against a limit of 20 per 10 minutes, and
+`PublicRateLimitGuard` correctly answered 429 partway through — which reads
+exactly like a broken login. Checked the lockout counters first (zero on both
+`User` and `Identity`) before reading the API log. Flows I and J now sign in
+once and share a page; Flow H still signs in for real, because it is the flow
+about signing in. Documented in `docs/development/browser-e2e.md` with the two
+SQL queries that tell the two apart.
+
+### What is not covered, stated rather than left to inference
+
+`documents` — the one Growth entitlement with no route and no settings page — is
+reached from an employee record and is out of this slice. Recruitment renders
+but was not asserted beyond reaching an intentional state. 232 pages remain
+mostly unopened; this is a first slice and does not claim otherwise.
+
+[[ITEM-0001]] has been corrected: its title claims no browser tooling existed,
+which was true, but it reads as a claim about coverage and is the reason this
+record had to be filed.
+
+
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
 
 ## Related
 
 - Bug — [[BUG-0043]]
+- Referenced by — [[BUG-1950]], [[BUG-1951]], [[BUG-1986]]
 - Modules — [[tenant-application]], [[qa-and-ci-architecture]]
+- Implementation — [[EXECPLAN-0025-apps-web-browser-e2e-coverage]]
 - QA run — [[2026-08-17-web-app-documentation-1af3690]]
 
 <!-- GRAPH:END -->

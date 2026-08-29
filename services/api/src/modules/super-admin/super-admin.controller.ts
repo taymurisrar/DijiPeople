@@ -7,6 +7,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Put,
   Query,
   Res,
   StreamableFile,
@@ -15,6 +16,8 @@ import {
 import type { Response } from 'express';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { PaymentRecheckService } from '../billing/services/payment-recheck.service';
+import { PlatformFxService } from './platform-fx.service';
+import type { PlatformRateView } from './platform-fx.service';
 import { RequireRoles } from '../../common/decorators/require-roles.decorator';
 import { ROLE_KEYS } from '../../common/constants/rbac-matrix';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -41,6 +44,7 @@ import { UpdatePlanDto } from './dto/update-plan.dto';
 import { UpdatePlanPriceDto } from './dto/update-plan-price.dto';
 import { CreatePromotionDto, UpdatePromotionDto } from './dto/promotion.dto';
 import { UpdatePlatformSettingsDto } from './dto/update-platform-settings.dto';
+import { SetExchangeRateDto } from './dto/exchange-rate.dto';
 import { UpdatePrimaryOwnerDto } from './dto/update-primary-owner.dto';
 import { UpdateTenantCustomerAccountDto } from './dto/update-tenant-customer-account.dto';
 import { UpdateTenantFeaturesDto } from './dto/update-tenant-features.dto';
@@ -75,6 +79,7 @@ export class SuperAdminController {
     private readonly platformEmailSettings: PlatformEmailSettingsService,
     private readonly platformCommunications: PlatformCommunicationsService,
     private readonly paymentRecheck: PaymentRecheckService,
+    private readonly fx: PlatformFxService,
   ) {}
 
   @Get('dashboard-summary')
@@ -695,6 +700,20 @@ export class SuperAdminController {
    * paid that Stripe does not agree was paid. The response carries a diagnosis
    * the operator can relay to the customer; see `payment-diagnosis.ts`.
    */
+  /**
+   * Read-only: what the payment on this customer is doing.
+   *
+   * Resolves to `customers.read` through the same path rule the record page
+   * already needed to render, so the screen that shows a customer can always
+   * ask this about them.
+   */
+  @Get('customers/:customerAccountId/payment-state')
+  getCustomerPaymentState(
+    @Param('customerAccountId', new ParseUUIDPipe()) customerAccountId: string,
+  ) {
+    return this.paymentRecheck.getCustomerPaymentState(customerAccountId);
+  }
+
   @Post('customers/:customerAccountId/recheck-payment')
   recheckCustomerPayment(
     @CurrentUser() user: AuthenticatedUser,
@@ -756,6 +775,54 @@ export class SuperAdminController {
     @Body() dto: UpdatePlatformSettingsDto,
   ) {
     return this.superAdminService.updatePlatformSettings(user, dto);
+  }
+
+  /*
+   * Exchange rates live under `platform-settings/` deliberately.
+   *
+   * `resolvePlatformPermission` maps by route path: anything containing
+   * `platform-settings` is `settings.read` on a GET and `settings.manage`
+   * otherwise. Mounting here means these four routes are governed by the rule
+   * that already governs every other platform setting, rather than by a new
+   * permission key that someone would have to remember to grant.
+   */
+  @Get('platform-settings/exchange-rates')
+  async getExchangeRates() {
+    const base = await this.fx.resolveReportingCurrency();
+    const rates = await this.fx.listRates(base);
+    return { base, rates, ratesAsOf: newestFetch(rates) };
+  }
+
+  @Post('platform-settings/exchange-rates/refresh')
+  async refreshExchangeRates(@CurrentUser() user: AuthenticatedUser) {
+    const base = await this.fx.resolveReportingCurrency();
+    const rates = await this.fx.refreshFromProvider(base, user);
+    return { base, rates, ratesAsOf: newestFetch(rates) };
+  }
+
+  @Put('platform-settings/exchange-rates/:quoteCurrency')
+  async setExchangeRate(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('quoteCurrency') quoteCurrency: string,
+    @Body() dto: SetExchangeRateDto,
+  ) {
+    const base = await this.fx.resolveReportingCurrency();
+    return this.fx.setManualRate(
+      base,
+      quoteCurrency.toUpperCase(),
+      dto.rate,
+      dto.reason,
+      user,
+    );
+  }
+
+  @Delete('platform-settings/exchange-rates/:quoteCurrency')
+  async clearExchangeRateOverride(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('quoteCurrency') quoteCurrency: string,
+  ) {
+    const base = await this.fx.resolveReportingCurrency();
+    return this.fx.clearManualOverride(base, quoteCurrency.toUpperCase(), user);
   }
 
   @Get('platform-email')
@@ -834,4 +901,13 @@ export class SuperAdminController {
   ) {
     return this.platformEmailSettings.updateTemplate(user, templateId, dto);
   }
+}
+
+/** The most recent time any of these rates was fetched, for the "as of" line. */
+function newestFetch(rates: PlatformRateView[]): string | null {
+  const stamps = rates
+    .map((rate) => rate.fetchedAt)
+    .filter((value): value is string => Boolean(value))
+    .sort();
+  return stamps.length ? stamps[stamps.length - 1] : null;
 }

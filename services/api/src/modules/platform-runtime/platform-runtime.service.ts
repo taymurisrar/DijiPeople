@@ -556,31 +556,58 @@ export class PlatformRuntimeService {
         );
     }
   }
-  async remove(user: AuthenticatedUser, moduleKey: string, id: string) {
-    const key = this.key(moduleKey);
+  /**
+   * Delete one record, or many, through one rule.
+   *
+   * `remove` and `bulkDelete` used to be two independent switch statements over
+   * the same modules, and they had already drifted apart: `leads` was reachable
+   * through one and absent from the other. Selecting five leads and pressing
+   * Delete answered 400 "Bulk delete is not available for this module" while
+   * deleting the same five one at a time succeeded — the console offering an
+   * action the API refused, which is what an operator hit in production on
+   * 2026-08-28.
+   *
+   * Two lists describing one decision will diverge again, so there is now one.
+   * What a module refuses, it refuses both ways; what it allows, it allows both
+   * ways. `generic-delete.spec.ts` asserts that equality directly, so restoring
+   * the drift fails a test rather than reaching an operator.
+   */
+  private async deleteRecords(
+    user: AuthenticatedUser,
+    key: PlatformRuntimeModuleKey,
+    ids: string[],
+  ) {
+    /*
+     * Both checks, for one record or for a hundred.
+     *
+     * These had split too: single delete asked only for the module's write
+     * permission, bulk delete asked only for a platform admin role. The union
+     * is deliberate and was decided on 2026-08-28 — it narrows single-record
+     * delete for the presales roles, which hold `leads.*` without being
+     * administrators. Deleting a commercial record is an administrative act
+     * whether it is one row or five.
+     */
     this.assertModuleWrite(user, key);
+    this.assertAdmin(user);
+
     switch (key) {
       case 'leads':
-        return result(await this.leads.bulkDeleteLeads(user, [id]));
+        return result(await this.leads.bulkDeleteLeads(user, ids));
       case 'customers':
-        return result(
-          await this.superAdmin.bulkDeleteCustomers(user, { ids: [id] }),
-        );
+        return result(await this.superAdmin.bulkDeleteCustomers(user, { ids }));
       case 'customer-onboarding':
         return result(
-          await this.superAdmin.bulkDeleteCustomerOnboardings(user, {
-            ids: [id],
-          }),
+          await this.superAdmin.bulkDeleteCustomerOnboardings(user, { ids }),
         );
       case 'partners':
-        return result(await this.partnerDeletion.deletePartners(user, [id]));
+        return result(await this.partnerDeletion.deletePartners(user, ids));
       case 'partner-inquiries':
         return result(
-          await this.partnerDeletion.deletePartnerInquiries(user, [id]),
+          await this.partnerDeletion.deletePartnerInquiries(user, ids),
         );
       case 'partner-onboarding':
         return result(
-          await this.partnerDeletion.deletePartnerOnboarding(user, [id]),
+          await this.partnerDeletion.deletePartnerOnboarding(user, ids),
         );
       default:
         /*
@@ -590,12 +617,21 @@ export class PlatformRuntimeService {
          * tenants, an entire customer workspace behind a cascade. The console
          * says which of those applies rather than offering a button that would
          * be wrong to press; see `DELETE_REFUSALS` in the module registry.
+         *
+         * One message for one refusal: the operator is told the module does not
+         * permit deletion, rather than being told that some other quantity of it
+         * might be permitted.
          */
         throw new BadRequestException(
           'Delete is not available for this module or is prevented by retention policy.',
         );
     }
   }
+
+  async remove(user: AuthenticatedUser, moduleKey: string, id: string) {
+    return this.deleteRecords(user, this.key(moduleKey), [id]);
+  }
+
   async execute(
     user: AuthenticatedUser,
     moduleKey: string,
@@ -606,7 +642,7 @@ export class PlatformRuntimeService {
     const key = this.key(moduleKey);
     this.assertModuleWrite(user, key);
     if (action === 'bulk-delete')
-      return this.bulkDelete(user, key, toIds(input.ids));
+      return this.deleteRecords(user, key, toIds(input.ids));
     if (action === 'bulk-assign')
       return this.bulkAssign(
         user,
@@ -970,38 +1006,6 @@ export class PlatformRuntimeService {
           .join(','),
       ),
     ].join('\n');
-  }
-  private async bulkDelete(
-    user: AuthenticatedUser,
-    key: PlatformRuntimeModuleKey,
-    ids: string[],
-  ) {
-    this.assertAdmin(user);
-    /*
-     * `leads` is absent, and that is the fix rather than an omission
-     * (BUG-0018). A lead carries the commercial attribution a commission is
-     * calculated from, so it is withdrawn rather than deleted. Falling through
-     * here answers "Bulk delete is not available for this module".
-     */
-    if (key === 'customers')
-      return result(await this.superAdmin.bulkDeleteCustomers(user, { ids }));
-    if (key === 'customer-onboarding')
-      return result(
-        await this.superAdmin.bulkDeleteCustomerOnboardings(user, { ids }),
-      );
-    if (key === 'partners')
-      return result(await this.partnerDeletion.deletePartners(user, ids));
-    if (key === 'partner-inquiries')
-      return result(
-        await this.partnerDeletion.deletePartnerInquiries(user, ids),
-      );
-    if (key === 'partner-onboarding')
-      return result(
-        await this.partnerDeletion.deletePartnerOnboarding(user, ids),
-      );
-    throw new BadRequestException(
-      'Bulk delete is not available for this module.',
-    );
   }
   private async bulkAssign(
     user: AuthenticatedUser,

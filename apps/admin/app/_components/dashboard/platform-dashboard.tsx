@@ -45,14 +45,29 @@ export type PlatformDashboardSummary = {
   outstandingRevenue: number;
   reportingCurrency: string;
   /*
-   * Currencies the money figures exclude, because every one of them is filtered
-   * to `reportingCurrency` (BUG-1745). Empty when nothing was left out.
+   * The rates every money figure above was computed with, and anything they
+   * could not express (BUG-1745).
+   *
+   * Its predecessor, `excludedCurrencies`, listed every currency that was not
+   * the reporting one — which on production was all of them, because the
+   * figures were *filtered* to a currency no record used. They are converted
+   * now, so `unconvertible` is normally empty and an entry in it means a rate
+   * is genuinely missing.
+   *
+   * Optional, so a bundle loaded against an API without it renders no chip
+   * rather than throwing.
    */
-  excludedCurrencies?: Array<{
-    currency: string;
-    collected: number;
-    payments: number;
-  }>;
+  fx?: {
+    base: string;
+    ratesAsOf: string | null;
+    rates: Array<{
+      currency: string;
+      rate: number;
+      source: string;
+      manualOverride: boolean;
+    }>;
+    unconvertible: Array<{ currency: string; amount: number; count: number }>;
+  };
   partners: number;
   platformUsers: number;
   activePlatformUsers: number;
@@ -343,30 +358,55 @@ export function PlatformDashboard({
                 Currency {summary.reportingCurrency}
               </span>
               {/*
-                A zero has to mean one thing.
-                
-                Every money figure here is filtered to the reporting currency,
-                so a platform reporting in PKR while every payment is QAR shows
-                "Collected revenue PKR 0" — which reads as having earned
-                nothing. Production was in exactly that state with two succeeded
-                payments (BUG-1745). Which currency to report in is a commercial
-                decision; saying what is not counted is not.
+                The rate behind the numbers, on the same line as the numbers.
+
+                A converted figure is only as trustworthy as its rate, and an
+                operator should never have to go looking for the rate to decide
+                whether to believe a revenue total. The chip links to the screen
+                where that rate can be corrected (BUG-1745).
               */}
-              {summary.excludedCurrencies?.length ? (
-                <span
-                  className="rounded-full border border-amber-300 bg-amber-50 px-3 py-1.5 font-medium text-amber-800 shadow-sm"
-                  title={summary.excludedCurrencies
+              {summary.fx?.rates.length ? (
+                <Link
+                  className="rounded-full border border-slate-200 bg-white px-3 py-1.5 font-medium text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
+                  href="/settings/exchange-rates"
+                  title={summary.fx.rates
                     .map(
-                      (entry) =>
-                        `${entry.currency}: ${entry.payments} payment(s) totalling ${entry.collected}`,
+                      (rate) =>
+                        `1 ${rate.currency} = ${rate.rate} ${summary.reportingCurrency}` +
+                        (rate.manualOverride ? " (manual override)" : ""),
                     )
                     .join("\n")}
                 >
-                  Excludes{" "}
-                  {summary.excludedCurrencies
+                  Rates{" "}
+                  {summary.fx.ratesAsOf
+                    ? formatDate(summary.fx.ratesAsOf)
+                    : "manual"}
+                </Link>
+              ) : null}
+              {/*
+                A zero still has to mean one thing.
+
+                Money held in a currency the platform has no rate for is named
+                here rather than dropped from the totals or, worse, added to
+                them at par. Normally empty; an entry is a prompt to add a rate,
+                not a permanent footnote.
+              */}
+              {summary.fx?.unconvertible.length ? (
+                <Link
+                  className="rounded-full border border-amber-300 bg-amber-50 px-3 py-1.5 font-medium text-amber-800 shadow-sm transition hover:bg-amber-100"
+                  href="/settings/exchange-rates"
+                  title={summary.fx.unconvertible
+                    .map(
+                      (entry) =>
+                        `${entry.currency} ${entry.amount} is not counted — no exchange rate is set`,
+                    )
+                    .join("\n")}
+                >
+                  No rate for{" "}
+                  {summary.fx.unconvertible
                     .map((entry) => entry.currency)
                     .join(", ")}
-                </span>
+                </Link>
               ) : null}
             </div>
           </div>

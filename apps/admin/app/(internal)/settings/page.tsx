@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { ArrowRight, Building2, Bug, CreditCard, DatabaseBackup, FileSignature, Handshake, Headphones, Mail, Palette, Scale, Search, Settings, ShieldCheck, SlidersHorizontal, Tags, Users, Workflow } from "lucide-react";
+import { ArrowRight, Building2, Bug, CreditCard, DatabaseBackup, FileSignature, Handshake, Headphones, Mail, MonitorSmartphone, Palette, Scale, Search, Settings, ShieldCheck, SlidersHorizontal, Tags, Users, Workflow } from "lucide-react";
 import { PageHeader } from "@/app/_components/ui/page-header";
 import type { SettingsCardProps } from "@/app/_components/settings/settings-card";
 
@@ -27,6 +27,7 @@ const groups: Group[] = [
     { title: "Plans & pricing", description: "Plan visibility and commercial defaults.", href: "/settings/plans", icon: Tags },
     { title: "Promotions", description: "Versioned discounts and eligibility scopes.", href: "/promotions", icon: Tags },
     { title: "Billing defaults", description: "Billing cycles, taxes, and payment terms.", href: "/settings/billing", icon: CreditCard },
+    { title: "Exchange rates", description: "Rates used to report money collected in other currencies, live or set by hand.", href: "/settings/exchange-rates", icon: Tags },
     { title: "Invoice defaults", description: "Numbering, due dates, and invoice notes.", href: "/settings/invoices", icon: CreditCard },
   ]},
   { title: "Agreements", description: "Agreement, template, approval, and signing rules.", items: [
@@ -48,6 +49,7 @@ const groups: Group[] = [
   { title: "Operations", description: "Monitoring, support, and controlled test data.", items: [
     { title: "Monitoring", description: "Overview, incidents, events, and integrations.", href: "/settings/monitoring", icon: Bug },
     { title: "Support policy", description: "Case numbering, severity targets, and SLA.", href: "/settings/support", icon: Headphones },
+    { title: "Desktop agent", description: "Published agent versions by channel, and which tenants receive them.", href: "/settings/desktop-agent", icon: MonitorSmartphone },
     { title: "Demo/test data", description: "Manage explicitly tagged local demonstration data.", href: "/settings/demo-data", icon: DatabaseBackup },
   ]},
 ];

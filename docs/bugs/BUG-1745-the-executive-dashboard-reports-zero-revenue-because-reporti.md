@@ -2,7 +2,7 @@
 ID: BUG-1745
 aliases: [BUG-1745]
 Title: The executive dashboard reports zero revenue because reporting currency is PKR and all money is QAR
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-28
 DetectedInSha: 912f4e61
 AffectedModules: [apps/admin, api:super-admin]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: docs/qa/runs/2026-08-28-admin-console-e2e-912f4e6.md
 RegressionId: REG-294
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-28
-UpdatedAt: 2026-08-28
-ResolvedAt:
+UpdatedAt: 2026-08-29
+ResolvedAt: 2026-08-29
 ---
 
 # BUG-1745 — The executive dashboard reports zero revenue because reporting currency is PKR and all money is QAR
@@ -158,24 +158,122 @@ the figure right; it makes it honest, which is what this record asks for. The
 deeper options it lists — converting to a reporting currency, or showing
 per-currency totals — are larger product work and remain open.
 
+## Follow-through — 2026-08-28, later the same day
+
+The owner decision this record was waiting on was made, and it was neither of
+the two options above: **convert, do not exclude, and do not change the
+reporting currency.** Reporting stays **PKR**; live rates come from
+open.er-api.com, with a manual override per pair maintained in
+Settings → Exchange rates.
+
+`excludedCurrencies` is therefore gone, replaced by `fx`:
+
+```json
+{ "base": "PKR", "ratesAsOf": "…", "rates": [ … ], "unconvertible": [ … ] }
+```
+
+The difference between the two is the point. `excludedCurrencies` listed every
+currency that was not the reporting one, which on production was all of them.
+`unconvertible` lists only currencies for which no rate exists at all, so it is
+normally empty and an entry in it is a prompt to add a rate rather than a
+permanent footnote.
+
+All eight money aggregates now group by currency and fold through one converter:
+collected revenue, outstanding, commission exposure, the two trend series, and
+the current/previous period comparison. `invoiceBreakdown` lost its currency
+filter outright — it is a count of invoices by status and never had a currency
+to be in.
+
+Two rules make the converted figure safe to read, and both are tested:
+
+- **A missing rate is never a guess.** `convert` returns `null`, never a par
+  conversion — QAR 160 must not silently read as PKR 160.
+- **An operator's override outranks the provider.** `manualOverride` survives
+  every refresh until explicitly cleared.
+
+The rate itself is shown on the dashboard, on the same line as the numbers it
+produced, linking to the screen where it can be corrected. Every rate mutation
+is audited: a revenue figure whose rate changed without a record is a figure
+nobody can explain later.
+
+New model `PlatformExchangeRate` (additive migration, no backfill, reversible by
+dropping the table). Not tenant-owned: `ExchangeRateSnapshot` already covers the
+tenant-scoped case and requires a real `Tenant` FK, which a platform rate has no
+honest value for.
+
+Guarded by `platform-fx.service.spec.ts` and `dashboard-fx.spec.ts`;
+`promotion-safety.spec.ts` was rewritten to assert the filter has not come back.
+
+## Migration verification
+
+Applied and verified on 2026-08-29, against a throwaway database created for the
+purpose and dropped afterwards. The populated `dijipeople` development database
+was not touched.
+
+All 211 migrations applied cleanly in order, this one last. The created table
+carries exactly the 14 columns, the two indexes and the composite unique the
+schema declares.
+
+`prisma migrate diff --from-config-datasource --to-schema` against the applied
+database reports **69 drifted objects and `PlatformExchangeRate` is not among
+them** — so this migration matches its model exactly. The 69 are pre-existing
+and are [[ITEM-0060-schema-prisma-and-the-applied-migration-history-do-not-agree]],
+which is deferred; that count is a useful measurement for it.
+
 ## QA Retest
+Retested 2026-08-29 by the regression-guard sweep: `services/api/src/modules/super-admin/promotion-safety.spec.ts` ran and passed, as part of `npm --workspace api run test` (2016 passing).
 
-Not retested in a browser, and **the owner decision is still outstanding**.
+Not retested in production, and that boundary is the point of saying so — this environment cannot drive the deployed system, so what is established is that the fix is still present and its guard still passes, not that the screen behaves. See [[2026-08-28-regression-guard-sweep-9e55663]].
 
-The check: the Control Hub with the reporting currency set to PKR should show
-the exclusion note naming QAR. Setting the reporting currency to QAR in
-Settings → Platform → General should make both the note disappear and the
-figures populate — that single edit is what this record asks the owner to make,
-and it is reversible.
+### What this record said before the sweep
 
-If the note appears when nothing is actually excluded, that is a regression in
-the opposite direction and worth reporting.
+Not retested in a browser — production cannot be driven from here.
+
+The check, after deploy: the Control Hub should read a non-zero
+"Collected revenue PKR …" and carry a `Rates <date>` chip rather than
+`Excludes QAR`. Settings → Exchange rates → Refresh rates now should list QAR
+with source `Live`; overriding it should move the dashboard total and the badge
+should read `Manual`.
+
+If `No rate for …` appears while a rate for that currency exists, that is a
+regression in the opposite direction and worth reporting.
 
 ## History
 
 - 2026-08-28 — created from the admin console end-to-end QA pass at `912f4e61`,
   observed against production `e0aeabcd`.
 - 2026-08-28 - the dashboard now names the currencies its filter excludes. The reporting-currency setting is the owner's call and was NOT changed. REG-294.
+- 2026-08-28 - owner decided: convert rather than exclude, live rates from open.er-api.com with a manual override, reporting currency stays PKR. Every money aggregate now groups by currency and folds through one converter; `excludedCurrencies` replaced by `fx`.
+
+## Verification — 2026-08-29
+
+Verified by re-reading the guard and running it, not by a browser pass. The
+repository owner asked for this sweep after 48 records had accumulated in
+`FIXED` — fixed, but with nobody having confirmed them against a running
+system.
+
+What was checked for this record:
+
+- its regression guard exists on disk at this commit;
+- the suite containing it passes.
+
+Guard:
+
+- `services/api/src/modules/super-admin/promotion-safety.spec.ts`
+
+Proven by:
+
+- `npm --workspace api run test` — 2016 passing
+
+**What this does not establish.** No screen was opened. A guard that reads
+source and asserts a string is weaker evidence than one that runs the code, and
+this sweep does not distinguish between them — it establishes that the fix is
+still present and its test still passes, which is what separates a real fix from
+one that was silently reverted. Behaviour against production remains unverified
+here, and a browser QA pass would still be worth having.
+
+Part of a sweep over all 48: every one of the 206 regression test files named in
+the register was confirmed to exist, and every suite containing one was run.
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
 

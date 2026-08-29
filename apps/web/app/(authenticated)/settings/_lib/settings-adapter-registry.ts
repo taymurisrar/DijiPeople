@@ -2981,6 +2981,11 @@ const adapters: readonly SettingsRuntimeAdapter[] = [
             fieldLogicalName: "effectiveFrom",
             label: "Assigned On",
             dataType: "date",
+            // CreateLeavePolicyAssignmentDto requires this. Rendered optional, a
+            // blank value reached the API and came back as a raw validation
+            // string, so the field has to carry its own requirement and stop the
+            // submission first.
+            required: true,
           },
         ],
         permissions: {
@@ -3182,6 +3187,11 @@ const adapters: readonly SettingsRuntimeAdapter[] = [
             fieldLogicalName: "effectiveFrom",
             label: "Assigned On",
             dataType: "date",
+            // CreateLeavePolicyAssignmentDto requires this. Rendered optional, a
+            // blank value reached the API and came back as a raw validation
+            // string, so the field has to carry its own requirement and stop the
+            // submission first.
+            required: true,
           },
         ],
         permissions: {

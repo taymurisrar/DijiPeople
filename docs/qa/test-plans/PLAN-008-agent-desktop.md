@@ -3,7 +3,7 @@ PLAN_ID: PLAN-008
 aliases: [PLAN-008]
 TITLE: Agent Desktop
 AREA: agent-desktop
-STATUS: NEEDS_REVIEW
+STATUS: CURRENT
 MODULES: [services/api/src/modules/agent, apps/agent-desktop]
 RISK: HIGH
 COVERAGE_UNIT: GAP
@@ -17,13 +17,23 @@ COVERAGE_PERFORMANCE: NOT_APPLICABLE
 RELATED_BUGS: [BUG-0033, BUG-0034, BUG-0035, BUG-0036]
 RELATED_REGRESSIONS: [REG-025, REG-026, REG-031]
 CREATED_AT: 2026-08-16
-UPDATED_AT: 2026-08-17
-VERIFIED_AGAINST_SHA: 714632d
+UPDATED_AT: 2026-08-29
+VERIFIED_AGAINST_SHA: 287612d
 ---
 
-> **TASK-0005 revalidation:** `VERIFIED_AGAINST_SHA` remains historical. The
-> desktop has no dedicated test suite and its current distribution/security
-> surface was not fully re-audited in WP-02; WP-06 owns the revalidation.
+> **Reviewed 2026-08-29 against `287612d`** (ITEM-0081). The note this replaces assigned revalidation to WP-06 of TASK-0005, on the grounds that the desktop agent had no dedicated suite. WP-06 is `DONE` and BUG-0034 verified with it.
+>
+> Checked rather than assumed, for every plan in this sweep: each path in
+> `MODULES` exists, each `RELATED_BUGS` id resolves to a record, and each
+> `RELATED_REGRESSIONS` id resolves to an entry in the register. All resolved.
+> The agent does have a suite now — CI runs **Desktop agent tests** as one of
+> the fourteen jobs behind the required gate. `COVERAGE_E2E` stays as it is:
+> a unit suite is not an end-to-end proof, and ITEM-0052 still asks for the
+> update feed to be verified against a real published artefact.
+>
+> **The coverage fields are unchanged, and that is deliberate.** Returning a
+> plan to `CURRENT` says its description matches the system today — not that the
+> system is well covered. Every `GAP` below is still a gap.
 
 # PLAN-008 — Agent Desktop
 

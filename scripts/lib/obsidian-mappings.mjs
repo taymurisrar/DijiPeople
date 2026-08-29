@@ -36,6 +36,23 @@ export const DEFAULT_MAPPINGS = [
     to: '06 - Implementation Plans/Generated',
     nodeType: 'implementation',
   },
+  /*
+   * ExecPlans (ITEM-0099). Absent from this table until 2026-08-29, which made
+   * **every `[[EXECPLAN-nnnn]]` wikilink in the vault resolve to nothing** —
+   * and the plans are the one artefact bug records, task records and session
+   * records all point at when they explain why something was built the way it
+   * was. The graph was missing its most-referenced node type.
+   *
+   * A sibling of `knowledge/implementations` rather than the same folder: an
+   * implementation note is written after the fact and describes what exists, a
+   * plan is written before and describes what is intended. Merging them would
+   * lose which of the two a reader is looking at.
+   */
+  {
+    from: 'docs/plans',
+    to: '06 - Implementation Plans/Generated/ExecPlans',
+    nodeType: 'exec-plan',
+  },
   { from: 'docs/bugs', to: '07 - Bugs/Generated', nodeType: 'bug' },
   { from: 'docs/knowledge/releases', to: '08 - Releases/Generated', nodeType: 'release' },
   {

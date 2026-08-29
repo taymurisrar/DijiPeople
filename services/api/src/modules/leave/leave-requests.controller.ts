@@ -122,9 +122,22 @@ export class LeaveRequestsController {
     });
   }
 
+  /*
+   * BUG-2015 — approving was gated on **read**, in both permission systems.
+   *
+   * `leave-requests.approve` and `leave-requests.reject` already existed, were
+   * already mapped in the RBAC matrix and were already granted to roles. They
+   * were consulted only for deciding what the dashboard and inbox *display*.
+   * Withholding approve from a role hid the button and did not stop the action:
+   * anyone who could read a leave request could approve it, including by
+   * calling the endpoint directly.
+   *
+   * `cancel`, three routes below, was always correct — which is what makes this
+   * a slip rather than a design.
+   */
   @Post(':id/approve')
-  @Permissions('leave-requests.read')
-  @RequirePermission(ENTITY_KEYS.LEAVE_REQUESTS, 'read')
+  @Permissions('leave-requests.approve')
+  @RequirePermission(ENTITY_KEYS.LEAVE_REQUESTS, 'approve')
   approve(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -133,9 +146,10 @@ export class LeaveRequestsController {
     return this.leaveService.approveLeaveRequest(user, id, dto);
   }
 
+  /* BUG-2015, the other half. See the note on `approve`. */
   @Post(':id/reject')
-  @Permissions('leave-requests.read')
-  @RequirePermission(ENTITY_KEYS.LEAVE_REQUESTS, 'read')
+  @Permissions('leave-requests.reject')
+  @RequirePermission(ENTITY_KEYS.LEAVE_REQUESTS, 'reject')
   reject(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,

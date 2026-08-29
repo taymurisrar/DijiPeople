@@ -186,6 +186,29 @@ describeWithDatabase()('Tenant activation reaches ACTIVE (DB-backed)', () => {
         lastName: 'Owner',
         email: ownerEmail,
         passwordHash: await bcrypt.hash(OWNER_PASSWORD, 10),
+        /*
+         * TASK-0009 WP-09 — `identityId` is required since the contract phase.
+         *
+         * `upsert` rather than `create`: a fixture that puts the same address in
+         * two tenants is modelling one person in two workspaces, which is what
+         * Identity is for — and `Identity.email` is globally unique, so a plain
+         * create would collide on the second.
+         *
+         * Resolved to a scalar rather than written as a nested relation because
+         * Prisma refuses to mix the two: one nested write here would require
+         * `tenant` and `businessUnit` to be nested as well.
+         */
+        identityId: (
+          await prisma.identity.upsert({
+            where: { email: ownerEmail.trim().toLowerCase() },
+            update: {},
+            create: {
+              email: ownerEmail.trim().toLowerCase(),
+              passwordHash: await bcrypt.hash(OWNER_PASSWORD, 10),
+            },
+            select: { id: true },
+          })
+        ).id,
         status: 'ACTIVE',
       },
       select: { id: true },

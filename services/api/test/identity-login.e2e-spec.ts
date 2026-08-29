@@ -100,10 +100,7 @@ describeWithDatabase()('Identity-backed login (DB-backed)', () => {
   });
 
   afterAll(async () => {
-    await prisma.user.updateMany({
-      where: { id: { in: userIds } },
-      data: { identityId: null },
-    });
+    // Users are deleted outright rather than unlinked first: the `Restrict` FK is released by the delete, and since the contract phase (TASK-0009 WP-09) `identityId` cannot be set to null at all.
     await prisma.user.deleteMany({ where: { id: { in: userIds } } });
     await prisma.identity.deleteMany({ where: { id: { in: identityIds } } });
     await fixtures.cleanup();
@@ -134,25 +131,21 @@ describeWithDatabase()('Identity-backed login (DB-backed)', () => {
     ).resolves.toBe(false);
   });
 
-  it('falls back to the workspace account when the backfill has not reached it', async () => {
-    const { userId } = await makeUser({
-      email: `no-identity-${NOW}@dijipeople.test`,
-      userPasswordHash: await bcrypt.hash(PASSWORD, 10),
-    });
-
-    const credential = await resolveLoginCredential(prisma, userId);
-
-    /*
-     * Not dead code. `identityId` is nullable until the contract phase, so a
-     * deployment where the code has shipped and the backfill has not must still
-     * authenticate. Removing this fallback turns a migration ordering problem
-     * into every user being locked out.
-     */
-    expect(credential?.source).toBe('USER');
-    await expect(
-      bcrypt.compare(PASSWORD, credential!.passwordHash),
-    ).resolves.toBe(true);
-  });
+  /*
+   * The `source: 'USER'` fallback was tested here, and cannot be any more.
+   *
+   * That test created a user with no identity to prove the login path still
+   * authenticates during the window where the code had shipped and the backfill
+   * had not. Its own comment said "not dead code — `identityId` is nullable
+   * until the contract phase". The contract phase landed on 2026-08-29, so the
+   * window has closed and the state cannot be built: the column is NOT NULL and
+   * Prisma will not construct the row.
+   *
+   * `resolveLoginCredential` keeps the fallback branch anyway, and deliberately.
+   * It is unreachable rather than wrong, and deleting a fallback in the
+   * authentication path to tidy up is a poor trade against the thing it was
+   * protecting from — every user locked out by a migration ordering mistake.
+   */
 
   it('refuses a suspended identity however healthy the workspace account is', async () => {
     const { userId } = await makeUser({

@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseUUIDPipe,
@@ -18,6 +19,7 @@ import type { AuthenticatedUser } from '../../common/interfaces/authenticated-re
 import { PlatformPermissionsGuard } from '../platform-auth/platform-permissions';
 import {
   BulkAssignLeadsDto,
+  BulkDeleteLeadsDto,
   CreateAdminLeadDto,
   CorrectLeadAttributionDto,
   LeadQueryDto,
@@ -70,22 +72,28 @@ export class AdminLeadsController {
     return this.leadsService.correctAttribution(user, leadId, dto);
   }
 
-  /*
-   * Bulk lead delete is deliberately absent (BUG-0018).
+  /**
+   * Bulk lead delete, restored on 2026-08-28 (BUG-0018).
    *
-   * A lead carries commercial attribution — which partner referred whom, and
-   * when — and that history outlives the lead's own usefulness: it is what a
-   * commission is calculated from and what a partner dispute is settled with.
-   * Deleting leads in bulk destroys it for an unbounded number of records at
-   * once, and the record made "should this exist at all?" the first question
-   * rather than the last.
+   * This route was removed earlier the same day on the reasoning that a lead
+   * carries partner attribution a commission is calculated from, so a selection
+   * should never be deletable at once. The repository owner reversed that later
+   * the same day: bulk delete is to be generically available across the admin
+   * console, and leads are not an exception to it.
    *
-   * Answered on 2026-08-28: no. Converted leads were already refused; the rest
-   * are withdrawn from sale rather than removed, the same stance this platform
-   * takes on plans, promotions and invoices.
-   *
-   * `DELETE /:leadId` for a single lead is unaffected and still exists.
+   * The attribution argument was not wrong, and it is not discarded here — it
+   * is answered elsewhere. Deletion is audited, the console confirmation names
+   * the count and the records it is about to remove, and converted leads are
+   * still refused individually by the service. What changed is who decides, and
+   * they decided.
    */
+  @Delete()
+  bulkDelete(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: BulkDeleteLeadsDto,
+  ) {
+    return this.leadsService.bulkDeleteLeads(user, dto.ids);
+  }
 
   @Patch('bulk/assign')
   bulkAssign(

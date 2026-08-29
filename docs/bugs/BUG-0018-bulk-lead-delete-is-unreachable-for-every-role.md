@@ -2,7 +2,7 @@
 ID: BUG-0018
 aliases: [BUG-0018]
 Title: Bulk lead delete is unreachable for every role, including SUPER_ADMIN
-Status: FIXED
+Status: VERIFIED
 Severity: LOW
 Priority: P3
 Type: AUTHORIZATION
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-15
 DetectedInSha: 7bbab3d
 AffectedModules: [services/api/src/modules/platform-auth, services/api/src/modules/super-admin]
 OwnerAgent: backend-api
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: docs/qa/runs/2026-08-15-commercial-onboarding-e2e-7bbab3d.md
 RegressionId: REG-298
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-15
-UpdatedAt: 2026-08-28
-ResolvedAt:
+UpdatedAt: 2026-08-29
+ResolvedAt: 2026-08-29
 ---
 
 # BUG-0018 — Bulk lead delete is unreachable for every role, including SUPER_ADMIN
@@ -125,14 +125,72 @@ this record asks for.
 
 Guarded by REG-298.
 
+## Reversal — 2026-08-28, later the same day
+
+The decision above was reversed by the repository owner within hours of being
+implemented, and the reversal is the durable part of this record.
+
+**Bulk delete is generic across the admin console, and leads are not an
+exception to it.** The trigger was a production error log: an operator selected
+leads, pressed Delete, and got
+`400 Bulk delete is not available for this module` — while deleting the same
+leads one at a time worked. Asked whether to restore leads or leave them
+withheld, the owner chose to restore, and to make the rule uniform rather than
+per-module.
+
+What was restored:
+
+- `DELETE /api/super-admin/leads` on `admin-leads.controller`
+- leads in the runtime's deletion path
+- the console action, by removing the `bulkDelete` capability entirely so
+  `delete` governs both
+
+The attribution argument that justified the withdrawal was not refuted and is
+not discarded. It is answered elsewhere: deletion is audited, the console
+confirmation names the count and the records (BUG-1756's mechanism), and
+converted leads are still refused individually by the service. What changed is
+who decides, and they decided.
+
+**The structural fix is the part worth keeping.** `remove` and `bulkDelete` were
+two independent switch statements over the same modules, which is *why* they
+could disagree — the withdrawal removed leads from one of them, and the console
+still offered the action. There is now one method, `deleteRecords`, and
+`generic-delete.spec.ts` asserts that every module answers identically through
+both paths. A second list is what cannot exist.
+
+Retention refusals are untouched: invoices, payments, commissions, executed
+agreements, signature evidence, subscriptions, plans, templates, monitoring
+incidents and tenants still refuse deletion in both directions, with the same
+reason text.
+
+**One authorization change, decided at the same time.** The two paths asked for
+different things — module write for one record, a platform admin role for many.
+They now require both. This narrows single-record delete for the presales roles,
+which hold `leads.*` without being administrators: deleting a commercial record
+is an administrative act at any quantity.
+
+Guarded by REG-298 (rewritten) and QA-TENANT-050 (rewritten).
+
 ## QA Retest
+Retested 2026-08-29 by the regression-guard sweep: `services/api/src/modules/platform-runtime/generic-delete.spec.ts` ran and passed, as part of `npm --workspace api run test` (2016 passing).
 
-Not retested in a browser. `bulk-delete-withdrawn.spec.ts` asserts the absence
-on all three surfaces, and asserts single-record delete survives — that last one
-matters most, because the obvious implementation would have removed it too.
+Not retested in production, and that boundary is the point of saying so — this environment cannot drive the deployed system, so what is established is that the fix is still present and its guard still passes, not that the screen behaves. See [[2026-08-28-regression-guard-sweep-9e55663]].
 
-The browser check: select several leads and confirm no bulk delete action is
-offered; open one lead and confirm delete still is.
+### What this record said before the sweep
+
+Not retested in a browser. `generic-delete.spec.ts` drives both paths for all
+seventeen runtime modules and asserts the answers are identical — including the
+leads case that reached production as a 400, and including the eleven modules
+that refuse deletion for retention.
+
+Mutation-tested rather than assumed: reintroducing the leads exclusion fails two
+of its assertions, and dropping the admin half of the authorization union fails
+a third.
+
+The browser check: select several leads and confirm the confirmation names the
+count and the records, then confirm they are gone and no 400 reaches the error
+log. On Invoices, confirm the bulk control still refuses with its retention
+reason.
 
 ## History
 
@@ -140,6 +198,37 @@ offered; open one lead and confirm delete still is.
 - 2026-08-15 — re-verified against `main` `ad8f77f`; deferred with a reason.
 - 2026-08-28 - premise verified stale: the DELETE mapping and the exhaustiveness check both exist. Reclassified PRODUCT_DECISION - whether bulk lead delete should exist is unanswered.
 - 2026-08-28 - owner decided bulk lead delete should not exist. Removed from the REST route, the runtime arm and the console; single delete kept by separating the capability. REG-298.
+- 2026-08-28 - reversed by the owner the same day, after a production 400. Bulk delete restored for leads and made generic: one deletion method serves one record and many, so the two paths cannot drift again. Retention refusals unchanged. Deletion now requires module write AND platform admin.
+
+## Verification — 2026-08-29
+
+Verified by re-reading the guard and running it, not by a browser pass. The
+repository owner asked for this sweep after 48 records had accumulated in
+`FIXED` — fixed, but with nobody having confirmed them against a running
+system.
+
+What was checked for this record:
+
+- its regression guard exists on disk at this commit;
+- the suite containing it passes.
+
+Guard:
+
+- `services/api/src/modules/platform-runtime/generic-delete.spec.ts`
+
+Proven by:
+
+- `npm --workspace api run test` — 2016 passing
+
+**What this does not establish.** No screen was opened. A guard that reads
+source and asserts a string is weaker evidence than one that runs the code, and
+this sweep does not distinguish between them — it establishes that the fix is
+still present and its test still passes, which is what separates a real fix from
+one that was silently reverted. Behaviour against production remains unverified
+here, and a browser QA pass would still be worth having.
+
+Part of a sweep over all 48: every one of the 206 regression test files named in
+the register was confirmed to exist, and every suite containing one was run.
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
 

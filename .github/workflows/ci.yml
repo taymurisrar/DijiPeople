@@ -1077,15 +1077,23 @@ jobs:
         # reintroduce the cache without a measurement showing it helps; the
         # baseline to beat is now the browser download alone.
         run: npm run test:browser:install
-      - name: Start the API, landing and admin
+      - name: Start the API, landing, admin and the tenant product
         # Backgrounded with logs to files. The readiness loop is what makes this
         # deterministic — a fixed sleep would be exactly the flakiness this job
         # must not have if it is ever to become a gate.
+        #
+        # `dev:web` joined on 2026-08-29 (ITEM-0034). Port 3001 was never
+        # started and never polled, so `apps/web` — 254 pages, the app every
+        # employee of every tenant uses — could not be reached by a test even
+        # though `playwright.config.ts` had defined a base URL for it all along.
+        # Its absence could not even produce a skip: it was invisible rather
+        # than missing.
         run: |
           npm run dev:api      > api.log     2>&1 &
           npm run dev:landing  > landing.log 2>&1 &
           npm run dev:admin    > admin.log   2>&1 &
-          for url in http://localhost:4000/api/health http://localhost:3000 http://localhost:3002/login; do
+          npm run dev:web      > web.log     2>&1 &
+          for url in http://localhost:4000/api/health http://localhost:3000 http://localhost:3002/login http://localhost:3001/login; do
             for i in $(seq 1 60); do
               if curl -sf -o /dev/null "$url"; then echo "ready: $url"; break; fi
               if [ "$i" = "60" ]; then echo "::warning::$url never became ready"; fi
@@ -1105,6 +1113,7 @@ jobs:
             api.log
             landing.log
             admin.log
+            web.log
           retention-days: 30
 
   ci-required:

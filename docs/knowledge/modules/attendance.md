@@ -53,7 +53,10 @@ isolation on the ingestion path.
 
 [[rbac]] · [[approvals]] · [[employees]] · [[payroll]] ·
 [[integration-architecture]] · [[desktop-api-gateway-relationship]] ·
-[[monorepo-application-map]] · patterns [[self-approval]], [[fail-open-scope]]
+[[monorepo-application-map]] ·
+[[leave-attendance-approvals]] — setup order, the two competing date engines,
+the location-capture gate and the five thin scope checks ·
+patterns [[self-approval]], [[fail-open-scope]]
 
 > **The Electron desktop agent does not feed attendance.** It writes only to
 > `WorkSession`, `ActivityEvent` and `DailyProductivitySummary`, and

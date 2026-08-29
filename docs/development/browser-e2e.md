@@ -68,9 +68,12 @@ export PLATFORM_SUPER_ADMIN_EMAIL="e2e-admin@dijipeople.test"
 export PLATFORM_SUPER_ADMIN_PASSWORD="<a local-only password, 12+ chars>"
 npm --workspace api run seed:admin
 
-# 3. The three servers.
+# 3. The four servers. `dev:web` joined on 2026-08-29 (ITEM-0034) — until then
+#    port 3001 was never started, so apps/web could not be reached by a test
+#    even though playwright.config.ts had defined a base URL for it.
 npm run dev:api      # :4000
 npm run dev:landing  # :3000
+npm run dev:web      # :3001  — the tenant product
 npm run dev:admin    # :3002
 
 # 4. Browser binaries, once.
@@ -83,9 +86,53 @@ Then:
 export E2E_PLATFORM_ADMIN_EMAIL="$PLATFORM_SUPER_ADMIN_EMAIL"
 export E2E_PLATFORM_ADMIN_PASSWORD="$PLATFORM_SUPER_ADMIN_PASSWORD"
 export E2E_DATABASE_URL="$DATABASE_URL"
+
+# The tenant product needs a tenant user. Flows H, I and J skip with a named
+# message without these rather than failing — a missing environment must never
+# look like a product defect.
+#
+# Deliberately NOT a platform admin and preferably not a tenant owner: a browser
+# flow signed in as a privileged user asserts what the privileged path renders
+# and hides exactly the authorization defects this product most needs caught.
+export E2E_TENANT_USER_EMAIL="<a seeded tenant user>"
+export E2E_TENANT_USER_PASSWORD="<their password>"
+export E2E_TENANT_SLUG="dijipeople-demo"   # optional; newest ACTIVE tenant otherwise
+
 npm run test:browser
 npm --workspace e2e run test:e2e:report   # HTML report, traces, screenshots
 ```
+
+### Running it twice in ten minutes
+
+`PublicRateLimitGuard` allows **20 POSTs per 10-minute window, per client IP and
+path** (`services/api/src/common/guards/public-rate-limit.guard.ts`). A full run
+of flows H, I and J spends five of those on `/api/auth/login` — three in Flow H,
+which signs in for real because it is the flow *about* signing in, and one each
+in Flows I and J, which sign in once and share a page.
+
+Four consecutive runs therefore exhaust the budget, and the symptom is
+misleading: tests that passed a moment ago fail on a `/login` URL that never
+changes, which reads exactly like a broken sign-in and is not one. The API log
+is where the truth is:
+
+```
+{"path":"/api/auth/login","statusCode":429,"errorCode":"RATE_LIMIT_EXCEEDED"}
+```
+
+**Check the lockout counters before concluding anything**, because the two look
+identical from the browser and have different fixes:
+
+```sql
+select "failedLoginAttempts", "lockedUntil" from "User"     where email = '...';
+select "failedLoginAttempts", "lockedUntil" from "Identity" where email = '...';
+```
+
+Zero on both means it is the rate limit, not a locked account. Restarting the
+API clears the window, which is held in memory.
+
+**The throttle is not the problem.** A login endpoint that did not throttle would
+be the finding. This is recorded so the next person spends a minute on it rather
+than an hour.
 
 ### Pointing it at another environment
 
@@ -110,6 +157,44 @@ leads, partners and tenants.
 |---|---|
 | `tests/flow-a-commercial-onboarding.spec.ts` | Landing request-demo → Lead → admin sign-in → lead list → lead record → tenant operations surface |
 | `tests/flow-b-partner-journey.spec.ts` | Landing partner inquiry → dedup on resubmission → admin partner surfaces → inquiry reachability |
+| `tests/flow-c-landing-public-surface.spec.ts` | The public marketing surface, anonymous |
+| `tests/flow-d-provisioning-operations.spec.ts` | The provisioning queue in admin |
+| `tests/flow-e-accessibility-and-layout.spec.ts` | Accessibility and layout across landing and admin |
+| `tests/flow-f-public-seo.spec.ts` | The public SEO contract |
+| `tests/flow-g-admin-tenant-list.spec.ts` | The admin tenant list |
+| `tests/flow-h-tenant-sign-in.spec.ts` | **apps/web** — tenant login, the workspace picker, the authenticated shell |
+| `tests/flow-i-growth-modules.spec.ts` | **apps/web** — every module the Growth plan entitles, plus tenant isolation observed from the browser |
+| `tests/flow-j-tenant-settings.spec.ts` | **apps/web** — settings, and the Growth entitlements that live inside it |
+| `tests/landing-*.spec.ts` | Landing checkout, public forms, public surface |
+
+### The tenant product, and why this slice
+
+`apps/web` had **no browser coverage at all** until 2026-08-29 (ITEM-0034), and
+uniquely no other way to get any: its `jest.config.js` is
+`testEnvironment: node` with no jsdom, so nothing in it can be tested through a
+DOM by any other mechanism. 254 pages, 207 client components, never rendered by
+a test.
+
+**The slice is the Growth plan's entitlements**, chosen by the repository owner
+on 2026-08-29. The reason it is a good boundary is that it is *checkable* rather
+than a judgement about importance — `plans.catalog.ts` states exactly what
+Growth grants:
+
+```
+employees · organization · leave · attendance · timesheets
+projects · recruitment · onboarding · documents · notifications · branding
+```
+
+**Payroll is not in it**, and that matters: an earlier draft of Flow I had a
+payslip journey, which is a screen no Growth tenant can open. It would have
+asserted an empty state or a 403 and reported it as coverage. Reading the
+catalog removed a test that proved nothing.
+
+Three of the eleven — `organization`, `notifications`, `branding` — have no
+top-level route and live in settings, which is Flow J. The fourth,
+`documents`, is reached from an employee record and is **not covered by this
+slice**; that is stated in Flow J's header so a reader counting entitlements
+against tests finds the answer rather than assuming an oversight.
 
 ### What it deliberately does not fake
 

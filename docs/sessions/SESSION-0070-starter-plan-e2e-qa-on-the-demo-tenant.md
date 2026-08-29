@@ -1,0 +1,75 @@
+---
+SESSION_ID: SESSION-0070
+aliases: [SESSION-0070]
+TASK_ID:
+TITLE: Starter plan E2E QA on the demo tenant
+ARCHITECT_INTENT: Starter plan E2E QA on the demo tenant
+STATUS: COMPLETE
+TASK_TYPE: QA
+TASK_SIZE: LARGE
+BASE_BRANCH: origin/develop
+BASE_SHA: eb457d9db084fa3a9369dbb4620e3da9ec4c9615
+TASK_BRANCH: agent/starter-plan-e2e-qa
+TARGET_BRANCH: develop
+WORKTREE: D:/My Work/hrm-dijipeople/dijipeople-starter-qa
+AFFECTED_MODULES: [docs]
+WRITE_LEASES: []
+ACTIVE_WORK_PACKAGES: []
+SCHEMA_WRITE: NO
+CI_STATUS: PASS
+MERGE_STATUS: INTEGRATED
+STARTED_AT: 2026-08-28T23:46:01.955Z
+LAST_HEARTBEAT: 2026-08-28T23:46:01.955Z
+BLOCKERS: none
+---
+
+# SESSION-0070 — Starter plan E2E QA on the demo tenant
+
+## Intent
+
+Starter plan E2E QA on the demo tenant
+
+## Scope
+
+A live end-to-end pass over the **Starter** plan on the production demo tenant
+`dijipeople-demo` (`91ab031f-…`, `TEN-000002`), driven through the browser as the
+tenant owner and through the platform admin console.
+
+In scope: the seven capabilities Starter grants — employees, organization, leave,
+attendance, documents, notifications, branding — plus the five it does not grant,
+probed deliberately to test whether entitlement is enforced. Also: a deep
+documentation pass over the settings system, and building reusable demo data on
+the tenant.
+
+Out of scope by instruction: Stripe and billing. Out of scope by nature: no
+source change, no deployment, `main` untouched.
+
+## Concurrency
+
+Overlap classification at start: `SAFE_PARALLEL`. **No write leases were taken** —
+this task writes only `docs/`, and never the schema, so it contended for nothing
+high-risk. `DATABASE_WRITER` was never held.
+
+`origin/develop` moved twice mid-task (`eb457d9d` → `9353872e` → `60e164fe`) while
+a concurrent session landed the first browser E2E coverage for `apps/web` and
+closed SESSION-0069. That session's records were reconciled against this one
+before integration rather than after: BUG-1986 was checked against BUG-1956 and
+both were kept as distinct with a cross-reference, and five of this session's
+records had their "no browser E2E coverage exists" claims softened because that
+statement stopped being true during the run. Integrated through the develop merge
+queue by ref-push.
+
+## History
+
+- 2026-08-28 — session started from `origin/develop` at `eb457d9`.
+- 2026-08-29 — 43 findings from the live run; 46 bug records and 8 backlog items
+  filed, all triaged by the Architect, none left `TRIAGE_REQUIRED`.
+- 2026-08-29 — three claims disproved during the run and corrected rather than
+  filed: the approval matrix *is* consulted (the defect is that every rule must
+  resolve), React #441 is a server-component throw rather than a client bug, and
+  notifications work (the first check was taken before any notification-generating
+  event had succeeded).
+- 2026-08-29 — QA run recorded with verdict **FAIL**; three knowledge documents
+  published; vault synced (`OBSIDIAN_SYNC_STATUS = PASS`, 997 nodes, 0 orphans).
+- 2026-08-29 — CI `33228598251` PASS on `ee69f49f`; ref-pushed to `develop`;
+  session closed.

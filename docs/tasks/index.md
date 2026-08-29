@@ -8,15 +8,13 @@ graph and the block reasons. See
 
 | Bucket | Count |
 |---|---|
-| [Active](active.md) | 4 |
+| [Active](active.md) | 3 |
 | [Blocked](blocked.md) | 0 |
-| [Completed](completed.md) | 23 |
+| [Completed](completed.md) | 24 |
 
 ## Next ready work package
 
-| Task | WP | Title |
-|---|---|---|
-| [TASK-0009](TASK-0009-identity-and-multi-tenant-membership.md) | WP-09 | Contract phase — `identityId` required (written, held for a later deployment) |
+Nothing ready.
 
 ## Needs a human
 
@@ -42,7 +40,7 @@ graph and the block reasons. See
 | [TASK-0003](TASK-0003-deep-documentation-of-apps-web-the-tenant-product.md) | Deep documentation of apps/web, the tenant product | KNOWLEDGE | LARGE | P1 | COMPLETE | 9/9 | — |
 | [TASK-0004](TASK-0004-autonomous-framework-v2-architect-only-orchestration-multi-s.md) | Autonomous framework v2 — Architect-only orchestration, multi-session safety, develop integration, persistent QA | FRAMEWORK | PROGRAM | P1 | IN_PROGRESS | 11/11 | — |
 | [TASK-0006](TASK-0006-landing-ui-ux-remediation-package.md) | Landing UI/UX remediation package | BUG | LARGE | P1 | COMPLETE | 5/5 | — |
-| [TASK-0009](TASK-0009-identity-and-multi-tenant-membership.md) | Identity and multi-tenant membership | FEATURE | LARGE | P1 | IN_PROGRESS | 11/12 | WP-09 |
+| [TASK-0009](TASK-0009-identity-and-multi-tenant-membership.md) | Identity and multi-tenant membership | FEATURE | LARGE | P1 | COMPLETE | 12/12 | — |
 | [TASK-0013](TASK-0013-platform-admin-and-landing-ux-program-payment-diagnosis-work.md) | Platform Admin and landing UX program: payment diagnosis, workspace routing, notifications, preferences, field types | FEATURE | LARGE | P1 | COMPLETE | 8/8 | — |
 | [TASK-0014](TASK-0014-second-ux-round-lookups-that-stay-lookups-a-notification-pop.md) | Second UX round: lookups that stay lookups, a notification popover, a modern features page and configurable signatures | FEATURE | LARGE | P1 | COMPLETE | 7/7 | — |
 | [TASK-0015](TASK-0015-documents-that-read-like-documents-a-console-theme-that-repa.md) | Documents that read like documents, a console theme that repaints, and a stuck tenant with a way out | BUG | LARGE | P1 | COMPLETE | 7/7 | — |

@@ -106,6 +106,29 @@ describe('Attendance integration HTTP auth/RBAC (e2e)', () => {
         lastName: label,
         email,
         passwordHash: 'not-used-in-this-test',
+        /*
+         * TASK-0009 WP-09 — `identityId` is required since the contract phase.
+         *
+         * `upsert` rather than `create`: a fixture that puts the same address in
+         * two tenants is modelling one person in two workspaces, which is what
+         * Identity is for — and `Identity.email` is globally unique, so a plain
+         * create would collide on the second.
+         *
+         * Resolved to a scalar rather than written as a nested relation because
+         * Prisma refuses to mix the two: one nested write here would require
+         * `tenant` and `businessUnit` to be nested as well.
+         */
+        identityId: (
+          await prisma.identity.upsert({
+            where: { email: email.trim().toLowerCase() },
+            update: {},
+            create: {
+              email: email.trim().toLowerCase(),
+              passwordHash: 'not-used-in-this-test',
+            },
+            select: { id: true },
+          })
+        ).id,
         status: 'ACTIVE',
       },
     });

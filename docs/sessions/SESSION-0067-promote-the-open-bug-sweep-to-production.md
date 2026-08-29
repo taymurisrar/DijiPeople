@@ -4,7 +4,7 @@ aliases: [SESSION-0067]
 TASK_ID:
 TITLE: Promote the open bug sweep to production
 ARCHITECT_INTENT: Promote the open bug sweep to production
-STATUS: ACTIVE
+STATUS: COMPLETE
 TASK_TYPE: RELEASE
 TASK_SIZE: MEDIUM
 BASE_BRANCH: origin/develop

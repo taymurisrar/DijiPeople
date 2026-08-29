@@ -20,6 +20,7 @@ import { BillingService } from './billing.service';
 import { PaymentsService } from './payments.service';
 import { PlansRepository } from './plans.repository';
 import { PlatformLifecycleService } from './platform-lifecycle.service';
+import { PlatformFxService } from './platform-fx.service';
 import { PlatformOnboardingService } from './platform-onboarding.service';
 import { ProvisioningRequestedHandler } from './provisioning-requested.handler';
 import { SuperAdminController } from './super-admin.controller';
@@ -49,6 +50,7 @@ import { TenantIdentitiesProvisioningService } from './tenant-identities-provisi
     LeadsRepository,
     BillingService,
     PaymentsService,
+    PlatformFxService,
     PlatformOnboardingService,
     PlatformLifecycleService,
     TenantProvisioningService,

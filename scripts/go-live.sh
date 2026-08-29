@@ -102,8 +102,54 @@ else
   note "never receives a workspace. Environment tab → set it to true."
 fi
 
+say "6. Can Stripe actually reach us?"
+#
+# The check this script did not have, and the reason ITEM-0094 was filed. On
+# 2026-08-24 it reported "1 blocker" — Stripe test mode — while every webhook
+# delivery was being rejected with 400 VALIDATION_FAILED (BUG-0989). The single
+# most consequential failure in the payment path, a customer charged and the
+# platform never told, was invisible to the script written to find exactly that.
+#
+# Note what is deliberately NOT done here: sending a probe request. A
+# deliberately-invalid signature is rejected whether the secret is right or
+# wrong, which is precisely why the probe used during that diagnosis could not
+# confirm the fix. A green probe would have been worse than no probe.
+if [ -n "${STRIPE_WEBHOOK_SECRET:-}" ]; then
+  case "${STRIPE_WEBHOOK_SECRET}" in
+    whsec_*) ok "STRIPE_WEBHOOK_SECRET is set" ;;
+    *) bad "STRIPE_WEBHOOK_SECRET does not start with whsec_ — deliveries will be rejected" ;;
+  esac
+else
+  bad "STRIPE_WEBHOOK_SECRET is unset — every Stripe delivery is rejected"
+  note "It must be the secret for THIS destination. A secret from another"
+  note "endpoint verifies nothing and fails identically."
+fi
+
+# Delivery history, when this shell can reach it. `billing/diagnostics` is
+# platform-guarded, so without credentials the honest answer is that we do not
+# know — never silence reported as health, which is the whole complaint above.
+if [ -n "${SYNC_ADMIN_EMAIL:-${BOOTSTRAP_ADMIN_EMAIL:-}}" ] &&    [ -n "${SYNC_ADMIN_PASSWORD:-${BOOTSTRAP_ADMIN_PASSWORD:-}}" ]; then
+  diag=$(node scripts/webhook-delivery-health.mjs --api "$API" 2>/dev/null || echo '')
+  if [ -n "$diag" ]; then
+    verdict=${diag%%|*}
+    detail=${diag#*|}
+    case "$verdict" in
+      OK)   ok "$detail" ;;
+      WARN) ok "$detail"; note "not a blocker, but worth a look before taking money" ;;
+      *)    bad "$detail" ;;
+    esac
+  else
+    note "delivery history unavailable — could not read billing/diagnostics"
+  fi
+else
+  note "delivery history not checked: no admin credentials in this shell."
+  note "Set SYNC_ADMIN_EMAIL and SYNC_ADMIN_PASSWORD to include it."
+fi
+note "Only one thing proves this end to end, and no script can do it:"
+note "Stripe Dashboard → Developers → Webhooks → Recent deliveries → Resend."
+
 if [ "$SYNC_PRICES" = "1" ]; then
-  say "6. Syncing plan prices to Stripe"
+  say "7. Syncing plan prices to Stripe"
   if [ "${STRIPE_MODE:-}" != "live" ]; then
     note "STRIPE_MODE is not live — syncing now would stamp every price TEST"
     note "and they would all need re-syncing after the switch. Skipping."

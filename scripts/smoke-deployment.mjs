@@ -306,6 +306,83 @@ await check("Stripe webhook secret is configured", async () => {
   }
 });
 
+/*
+ * The composed tenant workspace host must actually resolve (ITEM-0103).
+ *
+ * BUG-1644 shipped a bundle that sent every customer to
+ * `<slug>.dijipeople.com`, which has no DNS record. The first thing to notice
+ * was a paying customer who could not log in.
+ *
+ * No test in this repository can catch that class of defect, and it is worth
+ * being exact about why: `NEXT_PUBLIC_*` values are inlined at build time, so
+ * the project settings can be right while the running bundle serves a stale
+ * value, and the two are indistinguishable from a browser. The value under test
+ * is not in the repository. Only something that inspects a deployed artifact
+ * can see it — which is what this script already is.
+ *
+ * Skipped rather than failed when there is no slug to compose with: a smoke run
+ * against a target with no tenants is a real situation, and inventing a slug
+ * would test DNS for a workspace nobody has.
+ */
+await check("the composed tenant workspace host resolves", async () => {
+  const slug = process.env.SMOKE_TENANT_SLUG;
+  const root =
+    process.env.SMOKE_TENANT_ROOT_DOMAIN ||
+    process.env.TENANT_BASE_DOMAIN ||
+    process.env.NEXT_PUBLIC_TENANT_BASE_DOMAIN ||
+    process.env.NEXT_PUBLIC_TENANT_ROOT_DOMAIN;
+
+  if (!slug || !root) {
+    console.log(
+      "    skipped — set SMOKE_TENANT_SLUG and a tenant root domain " +
+        "(SMOKE_TENANT_ROOT_DOMAIN, TENANT_BASE_DOMAIN or " +
+        "NEXT_PUBLIC_TENANT_BASE_DOMAIN) to check workspace routing",
+    );
+    return;
+  }
+
+  // Composed the way `buildTenantPortalUrl` composes it, deliberately: a check
+  // that builds the host its own way would pass while the frontend's version
+  // was broken, which is the failure it exists to catch.
+  const host = `${String(slug).trim().toLowerCase()}.${String(root).trim().toLowerCase().replace(/^\.+|\.+$/g, "")}`;
+  const url = `https://${host}/login`;
+
+  let response;
+  try {
+    response = await fetch(url, { redirect: "follow" });
+  } catch (error) {
+    throw new Error(
+      `${url} could not be reached (${error.message}). The workspace host the ` +
+        `frontend composes does not resolve, so every customer sent there sees ` +
+        `a browser error rather than a login page.`,
+    );
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      `${url} answered ${response.status}. The host resolves but does not serve ` +
+        `the workspace login, so the composed address and the address ` +
+        `workspaces are actually served from disagree.`,
+    );
+  }
+
+  /*
+   * Resolving is necessary and not sufficient. A wildcard that answers the
+   * generic login would satisfy a status check while sending the customer to a
+   * page asking for the company code they should never have been asked for —
+   * so the body is checked for that step, which is what "the two roots are
+   * individually valid but disagree" looks like from outside.
+   */
+  const body = await response.text();
+  if (/company\s*code|tenant\s*code|workspace\s*code/i.test(body)) {
+    throw new Error(
+      `${url} resolves but presents the company-code step, so it is not being ` +
+        `served as a tenant workspace. The bundle's root domain and the domain ` +
+        `workspaces are served from are both valid and do not agree.`,
+    );
+  }
+});
+
 if (failures.length) {
   console.error(`Smoke checks failed: ${failures.length}`);
   process.exit(1);
