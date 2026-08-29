@@ -13,7 +13,7 @@ AffectedModules: [apps/web]
 OwnerAgent: architect
 ArchitectDisposition: FIX_NOW
 QAReport:
-RegressionId:
+RegressionId: REG-302
 RelatedBacklogItem: ITEM-0034
 RelatedDecision:
 RelatedImplementation:
@@ -167,5 +167,6 @@ Not retested — not yet fixed.
 
 - Backlog item — [[ITEM-0034]]
 - Modules — [[tenant-application]]
+- Regression — REG-302 (see the regression register)
 
 <!-- GRAPH:END -->

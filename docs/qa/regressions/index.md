@@ -3071,3 +3071,18 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | `DRAFT`, `ABANDONED` and `CANCELLED` all map to `NONE` deliberately — they are neither settled payments nor payments in flight, and a customer record is not the place to explain the absence of a payment nobody started. One decision is not tested here because it is a judgement rather than a mapping: when the state probe itself fails, the panel falls back to showing the full re-check UI. Withholding an operator's tool because a status request failed is worse than showing a button that might answer "nothing to do". |
 | **Fixed** | 2026-08-28 |
 | **Active** | yes |
+
+### REG-302 — The tenant product could not be opened by a test at all
+
+| | |
+|---|---|
+| **Bug class** | `surface-with-no-observer` |
+| **Module** | `apps/web`, `e2e`, `ci` |
+| **Bug record** | BUG-1950, BUG-1951 |
+| **Root cause** | `apps/web` — 254 pages, 207 client components, the application every employee of every tenant uses — was never opened by a test. Its `jest.config.js` is `testEnvironment: node` with no jsdom, so nothing in it could be tested through a DOM by any mechanism, and CI started `dev:landing` and `dev:admin` but never port 3001. `playwright.config.ts` defined a `web` base URL that no test consumed, so the config read as though it were in scope; `fixtures/environment.ts` probed landing, admin and api only, so its absence could not even produce a skip. It was invisible rather than missing. |
+| **Regression test** | `e2e/tests/flow-h-tenant-sign-in.spec.ts`, `e2e/tests/flow-i-growth-modules.spec.ts`, `e2e/tests/flow-j-tenant-settings.spec.ts` |
+| **Scenario** | Sign-in, the workspace picker, and the authenticated shell; every module the Growth plan entitles; settings and the three entitlements that live inside it. Each screen must reach an **intentional state** — its own content or a refusal that explains itself with an error reference — never a blank page and never an unhandled client exception. A list screen shows only the signed-in tenant's records. CI starts `dev:web` and polls 3001, and `probeTenantProduct` reports its absence. |
+| **Proven to fail without the fix** | It could not run without the fix: there was no way to reach the app. Its value was immediate rather than theoretical — three defects on the first real run, and a reproduction for a fourth that had been deferred for want of one. |
+| **Note** | It closes the backlog item that asked for it, and a third finding — five buttons with no accessible name — is guarded by its own `fixme` in Flow J rather than by this entry. Two things learned building it are worth more than the tests. **A screen that renders is not a screen that passes:** four of the author's own assertions were wrong and only *running* them showed it — the module headings asserted do not exist, which is how BUG-1950 surfaced. **And a fixture can manufacture its own flakiness:** signing in per test spent ~15 logins in five minutes against a limit of 20 per 10 minutes, so `PublicRateLimitGuard` correctly answered 429 partway through and tests that passed one run failed the next on a stuck `/login` — which reads exactly like a broken product. The lockout counters were checked first (zero on both `User` and `Identity`) before the API log gave the real answer. The throttle is not the defect; a login endpoint that did not throttle would be. Documented in `docs/development/browser-e2e.md` with the queries that tell the two apart. |
+| **Fixed** | 2026-08-29 |
+| **Active** | yes |

@@ -10692,8 +10692,12 @@
       "affected_modules": [
         "apps/web"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-302"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-053"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -10730,8 +10734,12 @@
       "affected_modules": [
         "apps/web"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-302"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-053"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -10794,7 +10802,7 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "",
         "created_at": "2026-08-15",
-        "updated_at": "2026-08-15",
+        "updated_at": "2026-08-29",
         "resolved_at": ""
       },
       "type": "TEST_GAP",
@@ -12455,7 +12463,7 @@
       "title": "apps/web has zero browser E2E coverage",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "READY",
+      "current_status": "DONE",
       "current_evidence": {
         "paths": [
           "docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md",
@@ -12484,7 +12492,7 @@
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "PLAN_REQUIRED",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "VERIFIED",
         "classification": "ACTIVE_AS_DOCUMENTED",
