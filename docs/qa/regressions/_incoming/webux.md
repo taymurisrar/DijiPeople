@@ -101,3 +101,18 @@ claim more coverage than exists.
 | **Note** | The helper alone does not prove the fix — a correct `singularize()` sitting unused would have left "LEAVE POLICIE" on screen. `label-call-sites.spec.ts` asserts over the call sites' source text specifically so a correct-but-uncalled helper cannot pass. A declared `singular` (dozens of settings modules already have one, e.g. "Compensation Package", "Field Security Policy") always wins over the derived form; `singularize` is only the floor under labels nobody hand-labelled, which is why "Leave Policies" — undeclared — now resolves through derivation to "Leave Policy". Not verified live against a running tenant; verified from source and by the specs above, which was sufficient to reproduce and disprove the exact reported strings ("LEAVE POLICIE", "New Entitlements", "New Assignments") as pure-logic assertions. |
 | **Fixed** | 2026-08-30 |
 | **Active** | yes |
+
+### REG-340 — One surface that stayed silent, and one that was never silent at all
+
+| | |
+|---|---|
+| **Bug class** | `missing-success-feedback` |
+| **Module** | `apps/web` attendance, `apps/web` settings branding |
+| **Bug record** | BUG-2006 |
+| **Root cause** | The manual attendance create form (`manual-attendance-form.tsx`) already reset itself on a 201 (`setForm(initialForm)`) but reported nothing — no toast, no inline confirmation — so the next feedback the user got was the 409 from pressing Save a second time. The branding settings form, by contrast, already called `setToast({ title: "Branding updated", …, variant: "success" })` on its own 2xx branch (`branding-settings-form.tsx:315-321`, present since `ee10f739`, unrelated to this session) — the record's premise that it stayed silent no longer held by the time this task investigated it. The two surfaces do not share a submit handler — one is a bespoke attendance form, the other a bespoke settings form — so there was never a single layer where fixing one would fix both, contrary to the record's Proposed Resolution. |
+| **Regression test** | `apps/web/app/(authenticated)/attendance/_components/manual-attendance-form.spec.ts` |
+| **Scenario** | Source-level, because `apps/web` has no jsdom: the attendance form imports and calls the shared `useSideToast()` hook, calls `notifySuccess(...)` on the 201 branch strictly before `setForm(initialForm)` in the same branch, and renders the returned `{toast}` element. No assertion was written for branding, because no code there changed. |
+| **Proven to fail without the fix** | Mutation-tested: removing the `notifySuccess(...)` call from the attendance form's success branch fails the "calls notifySuccess on the 201 branch" assertion; reverted immediately after confirming. |
+| **Note** | Verify-before-fix mattered here: treating this as one defect and patching a shared layer that does not exist would have either missed the attendance form or duplicated logic already present on branding. The fix reuses `useSideToast`/`SideToast` (already used by `leave-request-action-buttons.tsx`) rather than adding a second toast mechanism, which is the closest available thing to "one mechanism" for two call sites that were never one component. Not verified in a browser — the assertions are over the source, matching the precedent this app already uses (`label-call-sites.spec.ts`) for surfaces jsdom cannot reach. |
+| **Fixed** | 2026-08-30 |
+| **Active** | yes |
