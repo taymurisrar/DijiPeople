@@ -6,6 +6,7 @@ Sessions that reached a terminal state. Kept as history: the branch, the base it
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0070](../../docs/sessions/SESSION-0070-starter-plan-e2e-qa-on-the-demo-tenant.md) | — | Starter plan E2E QA on the demo tenant | COMPLETE | `agent/starter-plan-e2e-qa` | `develop` | — | 2026-08-28T23:46:01.955Z |
 | [SESSION-0069](../../docs/sessions/SESSION-0069-backlog-burndown-verify-the-fixed-decide-the-deferred-close-.md) | — | Backlog burndown: verify the fixed, decide the deferred, close what is genuinely open | COMPLETE | `agent/backlog-burndown` | `develop` | — | 2026-08-28T22:11:11.433Z |
 | [SESSION-0068](../../docs/sessions/SESSION-0068-admin-console-fx-reporting-desktop-agent-settings-generic-bu.md) | — | Admin console: FX reporting, desktop agent settings, generic bulk delete, payment recheck and profile capture | COMPLETE | `agent/admin-console-fx-and-agent-settings` | `develop` | — | 2026-08-28T19:06:31.882Z |
 | [SESSION-0067](../../docs/sessions/SESSION-0067-promote-the-open-bug-sweep-to-production.md) | — | Promote the open bug sweep to production | COMPLETE | `agent/release-bug-sweep` | `main` | — | 2026-08-28T16:30:01.021Z |
