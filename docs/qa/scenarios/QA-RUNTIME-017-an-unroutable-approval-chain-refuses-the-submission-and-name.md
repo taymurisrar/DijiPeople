@@ -64,11 +64,12 @@ from "the first resolvable step wins", and it is the one that inverts under any
 of the three policies that were rejected. It corresponds to row 2 of the probe
 table in BUG-1968.
 
-**Steps 2 to 4 cannot currently be run through the browser.** BUG-1966 means the
-runtime form swallows the failure, so the employee sees nothing at all — the
-improved message reaches the API response and not the screen. Run them against
-the API directly until BUG-1966 is fixed, then re-run through the UI, because the
-whole point of the fix is that somebody can read it.
+**Steps 2 to 4 can now be run through the browser.** They could not when this
+scenario was written: BUG-1966 meant the runtime form swallowed the failure and
+the employee saw nothing at all. That was fixed by SESSION-0072 (REG-307) while
+this work was in flight, and both fixes are on `develop` together — so run these
+steps through the UI, which is where the refusal was always meant to be read.
+Running them against the API directly still works and is the faster check.
 
 **The demo tenant is not in the shipped default state.** Its two seeded matrices
 were deactivated during the original investigation and a probe rule left active,
