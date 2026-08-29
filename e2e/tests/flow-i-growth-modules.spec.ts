@@ -200,13 +200,25 @@ test.describe('Flow I — the Growth plan, module by module', () => {
     await expect(main.getByText(/what to check/i)).toBeVisible();
   });
 
-  test('I — a module the plan does not entitle is not offered as if it were', async () => {
+  test('I — a module the plan does not entitle is not offered in navigation', async () => {
     /*
-     * The negative half, and the reason the slice was worth reading from the
-     * catalog. Payroll is Enterprise-only, so a Growth tenant must not find it
-     * in navigation. What this asserts is the *absence of an offer*, not a 403 —
-     * a link that leads to a refusal is a worse experience than no link, and
-     * both are indistinguishable from a passing status check.
+     * **This asserts a cosmetic property, and says so, because taking it for
+     * enforcement would be the dangerous reading.**
+     *
+     * BUG-1952 — found by SESSION-0070's live Starter-plan pass, after this
+     * test was written — establishes that plan entitlements gate *nothing*: the
+     * only throwing entitlement primitive has zero call sites, and the one
+     * consumer that exists hides sidebar links, fails open, and is skipped
+     * entirely for the tenant's own administrator roles. The API serves every
+     * unentitled module's endpoints normally.
+     *
+     * So a hidden link means the link is hidden. It does not mean the module is
+     * unreachable, and `apps/web/AGENTS.md` is explicit that frontend gating is
+     * UX only and every gated action must also be enforced server-side.
+     *
+     * The enforcement half is the `fixme` below. Leaving only this test would
+     * have been worse than having no test: a green "not offered as if it were"
+     * reads as an entitlement guarantee that does not exist.
      */
     const entitled = await withDatabase(async (client) => {
       // `key`, not `featureKey` — read from schema.prisma rather than guessed
@@ -232,6 +244,31 @@ test.describe('Flow I — the Growth plan, module by module', () => {
       shared.getByRole('navigation').getByRole('link', { name: /payroll/i }),
     ).toHaveCount(0);
   });
+
+  test.fixme(
+    'I — a module the plan does not entitle is actually unreachable',
+    async () => {
+      /*
+       * BUG-1952. The assertion that would matter, and it fails today.
+       *
+       * Navigating straight to an unentitled module must not serve it. A tenant
+       * paying for Starter can currently open Payroll by typing the URL, and
+       * the API answers its endpoints — which makes the plan tiers a
+       * presentation detail rather than a commercial boundary.
+       *
+       * Written now, failing now, deliberately: when entitlement enforcement
+       * lands this starts passing on its own, and until then the gap is visible
+       * in the suite rather than only in a record.
+       */
+      await openWeb(shared, BASE_URLS.web, tenant!, '/payroll');
+      await expect(
+        shared
+          .getByRole('main')
+          .getByText(/not available on your plan|upgrade|not entitled/i)
+          .first(),
+      ).toBeVisible({ timeout: 45_000 });
+    },
+  );
 
   test('I — a list screen shows only this tenant’s records', async () => {
     /*

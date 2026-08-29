@@ -16,8 +16,8 @@ see [`README.md`](README.md) for why.
 | Open (active work) | 65 |
 | Blocked | 2 |
 | Deferred | 29 |
-| Awaiting a product decision | 8 |
-| Completed / closed | 276 |
+| Awaiting a product decision | 7 |
+| Completed / closed | 277 |
 | **Open CRITICAL** | **0** |
 | **Open HIGH** | **19** |
 | **Awaiting Architect triage** | **0** |
@@ -49,15 +49,16 @@ see [`README.md`](README.md) for why.
 
 | Status | Count |
 |---|---|
-| OPEN | 42 |
+| OPEN | 41 |
 | BLOCKED | 2 |
 | DEFERRED | 29 |
-| PRODUCT_DECISION | 8 |
+| PRODUCT_DECISION | 7 |
+| FIXED | 1 |
 | VERIFIED | 209 |
 | DUPLICATE | 4 |
 | ACCEPTED_RISK | 3 |
 | READY | 23 |
-| DONE | 60 |
+| DONE | 61 |
 
 ## All records
 
@@ -195,7 +196,7 @@ see [`README.md`](README.md) for why.
 | [BUG-2008](../../docs/bugs/BUG-2008-every-employee-is-counted-absent-on-a-non-working-day-and-ra.md) | Every employee is counted absent on a non-working day and raised as an exception | DATA_INTEGRITY | HIGH | P1 | OPEN | api:attendance, api:dashboard | FIX_NOW |
 | [BUG-2011](../../docs/bugs/BUG-2011-seven-related-list-dialogs-never-send-the-parent-foreign-key.md) | Seven related-list dialogs never send the parent foreign key and one of them creates an orphan | BUG | HIGH | P1 | OPEN | apps/web | FIX_NOW |
 | [BUG-2013](../../docs/bugs/BUG-2013-the-dashboard-error-boundary-classifies-server-component-fai.md) | The dashboard error boundary classifies server-component failures by a message it can never receive | BUG | HIGH | P1 | OPEN | apps/web | FIX_NOW |
-| [BUG-2015](../../docs/bugs/BUG-2015-approving-and-rejecting-leave-is-gated-on-read-permission-an.md) | Approving and rejecting leave is gated on read permission and the dedicated approve keys are never required | AUTHORIZATION | HIGH | P1 | OPEN | api:leave | FIX_NOW |
+| [BUG-2015](../../docs/bugs/BUG-2015-approving-and-rejecting-leave-is-gated-on-read-permission-an.md) | Approving and rejecting leave is gated on read permission and the dedicated approve keys are never required | AUTHORIZATION | HIGH | P1 | FIXED | api:leave | FIX_NOW |
 | [BUG-2043](../../docs/bugs/BUG-2043-the-audit-events-screen-reports-the-number-of-rows-it-loaded.md) | The Audit Events screen reports the number of rows it loaded as the tenant's total audit count | BUG | HIGH | P1 | OPEN | apps/web, api:audit | FIX_NOW |
 | [BUG-2044](../../docs/bugs/BUG-2044-no-employee-lifecycle-event-is-audited-including-employee-cr.md) | No employee lifecycle event is audited, including employee creation and reporting-manager assignment | DATA_INTEGRITY | HIGH | P1 | OPEN | api:employees, api:organization, api:leave | PLAN_REQUIRED |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
@@ -426,7 +427,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0067](../../docs/backlog/items/ITEM-0067-three-e2e-suites-need-two-seeded-tenants-and-no-seed-produce.md) | Three e2e suites need two seeded tenants and no seed produces them | TEST_GAP | LOW | P3 | DUPLICATE | attendance, attendance-integrations, agent | DUPLICATE |
 | [ITEM-0072](../../docs/backlog/items/ITEM-0072-six-published-self-service-prices-with-no-market-and-a-zero-.md) | Six published self-service prices with no market and a zero amount exist on every database | TECH_DEBT | LOW | P3 | DEFERRED | billing, super-admin | DEFER |
 | [ITEM-0075](../../docs/backlog/items/ITEM-0075-the-subscribe-wizard-never-collects-companysize-which-the-ap.md) | The subscribe wizard never collects companySize, which the API and Customers module both expect | UX | LOW | P3 | DONE | apps/landing, api:billing | DONE |
-| [ITEM-0079](../../docs/backlog/items/ITEM-0079-activation-does-not-gate-on-a-workspace-having-any-module-en.md) | Activation does not gate on a workspace having any module enabled | PRODUCT_DECISION | LOW | P3 | PRODUCT_DECISION | api:tenant-control-plane | PRODUCT_DECISION |
+| [ITEM-0079](../../docs/backlog/items/ITEM-0079-activation-does-not-gate-on-a-workspace-having-any-module-en.md) | Activation does not gate on a workspace having any module enabled | PRODUCT_DECISION | LOW | P3 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0080](../../docs/backlog/items/ITEM-0080-type-the-remaining-services-api-no-unsafe-warnings-module-by.md) | Type the remaining services/api no-unsafe warnings module by module | TECH_DEBT | LOW | P3 | READY | services/api | FIX_NOW |
 | [ITEM-0082](../../docs/backlog/items/ITEM-0082-contract-phase-drop-the-inert-plan-ispublic-column.md) | Contract phase: drop the inert Plan.isPublic column | DATA_MIGRATION | LOW | P3 | DEFERRED | services/api/prisma, api:billing | DEFER |
 | [ITEM-0083](../../docs/backlog/items/ITEM-0083-scheduled-reconciliation-sweep-for-orders-stuck-awaiting-pay.md) | Scheduled reconciliation sweep for orders stuck awaiting payment | FOLLOW_UP | LOW | P3 | DEFERRED | api:billing | DEFER |

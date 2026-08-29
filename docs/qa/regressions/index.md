@@ -3086,3 +3086,18 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | It closes the backlog item that asked for it, and a third finding — five buttons with no accessible name — is guarded by its own `fixme` in Flow J rather than by this entry. Two things learned building it are worth more than the tests. **A screen that renders is not a screen that passes:** four of the author's own assertions were wrong and only *running* them showed it — the module headings asserted do not exist, which is how BUG-1950 surfaced. **And a fixture can manufacture its own flakiness:** signing in per test spent ~15 logins in five minutes against a limit of 20 per 10 minutes, so `PublicRateLimitGuard` correctly answered 429 partway through and tests that passed one run failed the next on a stuck `/login` — which reads exactly like a broken product. The lockout counters were checked first (zero on both `User` and `Identity`) before the API log gave the real answer. The throttle is not the defect; a login endpoint that did not throttle would be. Documented in `docs/development/browser-e2e.md` with the queries that tell the two apart. |
 | **Fixed** | 2026-08-29 |
 | **Active** | yes |
+
+### REG-303 — A permission key that nothing enforced
+
+| | |
+|---|---|
+| **Bug class** | `declared-but-unwired-permission` |
+| **Module** | `leave` |
+| **Bug record** | BUG-2015 |
+| **Root cause** | `POST /leave-requests/:id/approve` and `/reject` were decorated with `leave-requests.read` in **both** permission systems. The dedicated `leave-requests.approve` and `leave-requests.reject` keys existed, were mapped in the RBAC matrix and were granted to roles — and were consulted only for deciding what the dashboard and inbox *display*. An administrator withholding approve from a role hid the button and did not stop the action; anyone who could read a leave request could approve it, including by calling the endpoint directly. |
+| **Regression test** | `services/api/src/modules/leave/leave-approval-permissions.spec.ts` |
+| **Scenario** | Both routes declare their own legacy key and their own matrix privilege, and **do not** declare `read`. `cancel` is asserted unchanged, because it was always correct. |
+| **Proven to fail without the fix** | Mutation-tested: restoring the original decorators fails three of six assertions. |
+| **Note** | The negative assertions are the load-bearing ones and the reason this guard is worth more than "the key is present". `toContain('approve')` passes while `read` is *also* declared — and on the matrix side that is not a widening but a total defeat, because `PermissionsGuard` requires **at least one** matrix privilege rather than all of them. A guard written the obvious way would have gone green over the live defect. Read through the `Reflector`, not by grepping: decorators are inherited and composed, and the source cannot show what Nest assembles. |
+| **Fixed** | 2026-08-29 |
+| **Active** | yes |

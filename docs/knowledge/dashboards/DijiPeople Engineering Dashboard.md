@@ -11,9 +11,9 @@
 | Open HIGH | **19** |
 | Open total | 65 |
 | Blocked | 2 |
-| Awaiting a product decision | 8 |
+| Awaiting a product decision | 7 |
 | Deferred | 29 |
-| Completed | 276 |
+| Completed | 277 |
 | Awaiting Architect triage | 0 |
 
 ## Open Critical Bugs
@@ -40,7 +40,7 @@ _None. Nothing open at CRITICAL._
 | [[BUG-2008-every-employee-is-counted-absent-on-a-non-working-day-and-ra|BUG-2008]] | Every employee is counted absent on a non-working day and raised as an exception | DATA_INTEGRITY | HIGH | OPEN | api:attendance, api:dashboard | FIX_NOW |
 | [[BUG-2011-seven-related-list-dialogs-never-send-the-parent-foreign-key|BUG-2011]] | Seven related-list dialogs never send the parent foreign key and one of them creates an orphan | BUG | HIGH | OPEN | apps/web | FIX_NOW |
 | [[BUG-2013-the-dashboard-error-boundary-classifies-server-component-fai|BUG-2013]] | The dashboard error boundary classifies server-component failures by a message it can never receive | BUG | HIGH | OPEN | apps/web | FIX_NOW |
-| [[BUG-2015-approving-and-rejecting-leave-is-gated-on-read-permission-an|BUG-2015]] | Approving and rejecting leave is gated on read permission and the dedicated approve keys are never required | AUTHORIZATION | HIGH | OPEN | api:leave | FIX_NOW |
+| [[BUG-2015-approving-and-rejecting-leave-is-gated-on-read-permission-an|BUG-2015]] | Approving and rejecting leave is gated on read permission and the dedicated approve keys are never required | AUTHORIZATION | HIGH | FIXED | api:leave | FIX_NOW |
 | [[BUG-2043-the-audit-events-screen-reports-the-number-of-rows-it-loaded|BUG-2043]] | The Audit Events screen reports the number of rows it loaded as the tenant's total audit count | BUG | HIGH | OPEN | apps/web, api:audit | FIX_NOW |
 | [[BUG-2044-no-employee-lifecycle-event-is-audited-including-employee-cr|BUG-2044]] | No employee lifecycle event is audited, including employee creation and reporting-manager assignment | DATA_INTEGRITY | HIGH | OPEN | api:employees, api:organization, api:leave | PLAN_REQUIRED |
 
@@ -55,7 +55,6 @@ _None. Nothing open at CRITICAL._
 | [[ITEM-0106-an-employee-cannot-use-self-service-until-their-manager-acti|ITEM-0106]] | An employee cannot use self-service until their manager activates their own account | PRODUCT_DECISION | MEDIUM | PRODUCT_DECISION | api:leave, api:employees | PRODUCT_DECISION |
 | [[ITEM-0108-decide-whether-the-roughly-one-hour-session-lifetime-is-idle|ITEM-0108]] | Decide whether the roughly one-hour session lifetime is idle or absolute | PRODUCT_DECISION | LOW | PRODUCT_DECISION | api:auth | PRODUCT_DECISION |
 | [[BUG-2007-projects-and-customers-can-be-created-but-never-deleted|BUG-2007]] | Projects and customers can be created but never deleted | BUG | LOW | PRODUCT_DECISION | api:projects | PRODUCT_DECISION |
-| [[ITEM-0079-activation-does-not-gate-on-a-workspace-having-any-module-en|ITEM-0079]] | Activation does not gate on a workspace having any module enabled | PRODUCT_DECISION | LOW | PRODUCT_DECISION | api:tenant-control-plane | PRODUCT_DECISION |
 
 ## Blocked Items
 
@@ -198,6 +197,7 @@ _None. Nothing open at CRITICAL._
 | [[BUG-1750-the-monitoring-critical-tile-miscounts-and-links-to-a-filter|BUG-1750]] | The monitoring critical tile miscounts and links to a filter that matches nothing | BUG | HIGH | VERIFIED | apps/admin, api:platform-monitoring | DONE |
 | [[BUG-1751-a-promotion-goes-live-against-every-subscription-the-instant|BUG-1751]] | A promotion goes live against every subscription the instant it is created | BUG | HIGH | VERIFIED | apps/admin, api:super-admin, integration:stripe | DONE |
 | [[BUG-1755-the-plans-list-cannot-show-publication-status-or-sales-model|BUG-1755]] | The plans list cannot show publication status or sales model because the API omits them | BUG | HIGH | VERIFIED | apps/admin, api:super-admin | DONE |
+| [[BUG-2015-approving-and-rejecting-leave-is-gated-on-read-permission-an|BUG-2015]] | Approving and rejecting leave is gated on read permission and the dedicated approve keys are never required | AUTHORIZATION | HIGH | FIXED | api:leave | FIX_NOW |
 | [[BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state|BUG-0051]] | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |
 | [[BUG-0009-session-revocation-depended-on-the-refresh-cookie|BUG-0009]] | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | VERIFIED | app:admin, api:auth | DONE |
 | [[BUG-0010-unguarded-cookie-options-could-turn-sign-out-into-a-500|BUG-0010]] | Unguarded cookie options could turn admin sign-out into a 500 | INFRA | MEDIUM | VERIFIED | app:admin | DONE |

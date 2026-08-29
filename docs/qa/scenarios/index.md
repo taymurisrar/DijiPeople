@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 244** · automated: 216 · manual: 10 · blocked by infrastructure: 0
+**Scenarios: 245** · automated: 217 · manual: 10 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -49,6 +49,7 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-AUTHZ-010](../../../docs/qa/scenarios/QA-AUTHZ-010-a-tenant-subject-cannot-satisfy-a-platform-permission.md) | A tenant subject cannot satisfy a platform permission | authorization | SECURITY | CRITICAL | AUTOMATED | `services/api/src/modules/platform-auth/platform-permissions.spec.ts` | BUG-0071 | REG-066 |
 | [QA-AUTHZ-011](../../../docs/qa/scenarios/QA-AUTHZ-011-a-mutating-platform-route-is-never-satisfied-by-a-read-permi.md) | A mutating platform route is never satisfied by a read permission | authorization | SECURITY | HIGH | AUTOMATED | `services/api/src/modules/platform-auth/platform-permissions.spec.ts` | BUG-0072 | REG-067 |
 | [QA-AUTHZ-012](../../../docs/qa/scenarios/QA-AUTHZ-012-no-route-proxy-reads-a-permission-or-derives-a-monetary-valu.md) | No route proxy reads a permission or derives a monetary value | authorization | SECURITY | MEDIUM | AUTOMATED | `scripts/check-proxies-decide-nothing.mjs` | BUG-0041 | REG-218 |
+| [QA-AUTHZ-013](../../../docs/qa/scenarios/QA-AUTHZ-013-approving-leave-requires-the-permission-to-approve-not-merel.md) | Approving leave requires the permission to approve, not merely to read | authorization | UNIT | HIGH | AUTOMATED | `services/api/src/modules/leave/leave-approval-permissions.spec.ts` | BUG-2015 | REG-303 |
 | [QA-BILLING-001](../../../docs/qa/scenarios/QA-BILLING-001-billing-reads-and-writes-require-distinct-capabilities.md) | Billing reads and writes require distinct capabilities | authorization | SECURITY | CRITICAL | AUTOMATED | `services/api/src/modules/billing/billing-authorization.spec.ts` | BUG-0056 | REG-043 |
 | [QA-BILLING-002](../../../docs/qa/scenarios/QA-BILLING-002-an-outbox-event-is-delivered-at-least-once-and-consumed-exac.md) | An outbox event is delivered at least once and consumed exactly once | outbox | DATABASE | HIGH | AUTOMATED | `services/api/test/outbox-delivery.e2e-spec.ts` | BUG-0070 | REG-064 |
 | [QA-BILLING-003](../../../docs/qa/scenarios/QA-BILLING-003-a-published-legal-version-cannot-be-edited-and-acknowledgeme.md) | A published legal version cannot be edited and acknowledgements keep pointing at it | legal | DATABASE | HIGH | AUTOMATED | `services/api/test/legal-documents.e2e-spec.ts` | — | — |
