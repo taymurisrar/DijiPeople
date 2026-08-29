@@ -24,7 +24,6 @@ type UsersTableProps = {
   visibleColumnKeys?: string[];
   initialSortColumnKey?: string;
   initialSortDirection?: "asc" | "desc";
-  useEntityDataApi?: boolean;
 };
 
 export function UsersTable({
@@ -34,7 +33,6 @@ export function UsersTable({
   visibleColumnKeys,
   initialSortColumnKey = "user",
   initialSortDirection = "asc",
-  useEntityDataApi = false,
 }: UsersTableProps) {
   const columns: DataTableColumn<UserListItem>[] = [
     {
@@ -189,8 +187,11 @@ export function UsersTable({
 
   return (
     <DataTable
-      mode={useEntityDataApi ? "server" : "client"}
-      entityLogicalName={useEntityDataApi ? "users" : undefined}
+      /* BUG-2003 — this used to switch to mode="server" with
+         entityLogicalName="users", an entity the API's ENTITY_REGISTRY has
+         never held. The page stopped passing the flag when the server-side
+         branch was removed; the prop is now gone rather than left inert. */
+      mode="client"
       rows={users}
       columns={visibleColumns.length ? visibleColumns : columns}
 getRowKey={(user) => getUserRecordId(user) || user.email}

@@ -345,6 +345,13 @@ export interface RelatedSubgridMetadata {
   readonly pageSize?: number;
   readonly emptyStateTitle?: string;
   readonly emptyStateDescription?: string;
+  /*
+   * Fields a child record inherits from its parent when the quick-create
+   * dialog opens. BUG-2012 — the dialog used to seed *every* field whose name
+   * matched one on the parent, so a business unit created from an organization
+   * opened named after it. Inheritance is now declared, never inferred.
+   */
+  readonly inheritParentFields?: readonly string[];
   readonly quickCreateFields?: readonly {
     readonly fieldLogicalName: string;
     readonly label?: string;

@@ -2,7 +2,7 @@
 ID: BUG-2012
 aliases: [BUG-2012]
 Title: The related-list create dialog pre-fills child fields with the parent record values
-Status: OPEN
+Status: FIXED
 Severity: MEDIUM
 Priority: P2
 Type: DATA_INTEGRITY
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-29
 DetectedInSha: eb457d9d
 AffectedModules: [apps/web]
 OwnerAgent: architect
-ArchitectDisposition: PLAN_REQUIRED
+ArchitectDisposition: DONE
 QAReport: 
-RegressionId: 
+RegressionId: REG-316
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-29
 UpdatedAt: 2026-08-29
-ResolvedAt:
+ResolvedAt: 2026-08-29
 ---
 
 # BUG-2012 — The related-list create dialog pre-fills child fields with the parent record values
@@ -194,16 +194,105 @@ other form-versus-DTO gaps in the same dialogs.
 
 ## Resolution
 
-Open. No fix has been written.
+Fixed as the record proposed: inheritance is now **declared** rather than
+inferred from a matching field name.
+
+**The premise was verified first.** At this branch's base
+`module-quick-create-panel.tsx:52-59` still spread `contextValues` - the parent
+record in full, forwarded from `module-related-subgrid.tsx:787` - into the
+dialog's value map, and `runtime-metadata-form-renderer.tsx:333` still passed
+`parentRecord={values}`. The defect was live.
+
+**What `contextValues` was for.** The record asked this question first, and the
+answer is that it had exactly one producer and one consumer: the related-list
+subgrid handing the panel the parent record, whole. Nothing narrowed it, and
+nothing declared an intent to inherit anything. The one *deliberate* inheritance
+in this file is `withAssignmentParentDefaults`
+(`module-related-subgrid.tsx:1285-1302`), which copies a project's
+`currencyCode` onto a `projectAssignment` - and it is on the assignment panel's
+path, not the quick-create dialog's, so it is untouched here and stays the
+precedent for how a wanted inheritance should look.
+
+**The change.**
+
+- `RelatedSubgridMetadata` gains `inheritParentFields?: readonly string[]`
+  (`metadata-runtime.types.ts:348-354`). No subgrid declares it today, which is
+  the correct starting state: none of the four confirmed collisions is wanted.
+- The value assembly moved out of the client component into
+  `apps/web/lib/runtime/related-record-create-values.ts`, so it can be tested -
+  `resolveInheritedParentValues` narrows the parent record to the declared
+  fields, `buildQuickCreateValues` assembles the dialog's value map, and
+  `filterToFormFields` (which was `formValues`, moved verbatim) drops anything
+  the child form does not declare.
+- `module-related-subgrid.tsx:108-112` computes the narrowed set and `:798`
+  passes that as `contextValues` instead of the parent record.
+- `module-quick-create-panel.tsx:61-66` calls the shared assembly.
+
+**BUG-2011 is not undone, and is asserted not to be.** The parent foreign key
+still reaches the server by both routes it did before: `buildQuickCreateValues`
+sets `[parentBinding.fieldLogicalName]` last, so it cannot be overwritten by a
+draft value, and the data adapters still inject it when the configured create
+path did not consume it. `related-record-parent-key.spec.ts` - 39 assertions
+across all 33 declared subgrids - passes unchanged after this change, and the
+new suite carries two assertions of its own guarding that the key survives.
+
+Against the acceptance criteria:
+
+- **1, New opens empty except the parent foreign key and declared defaults** -
+  met.
+- **2, a business unit does not inherit the organization's name or
+  description** - met, asserted directly.
+- **3, a second team from the same department does not fail on a derived
+  duplicate key** - met at the cause: the name is no longer inherited, so
+  nothing derives a colliding `key` from it. Not observed against a running
+  API, and that is the honest limit - see QA Retest.
+- **4, any dialog that is supposed to inherit declares it** - met by
+  construction. Nothing declares it, because nothing was found that wants it;
+  the mechanism exists for when something does.
+
+**The inferred Salary Package Rule > Components lead is untouched and remains
+open.** The record recorded it as a lead rather than a finding. This change
+makes it *less* likely to bite - `status` and `effectiveFrom` can no longer
+bleed from the parent - but the underlying mismatch, `quickCreateFields`
+declaring fields the DTO does not accept, is a form-versus-DTO gap of the kind
+BUG-1962 and ITEM-0105 cover, and nothing here addresses it.
+
+15 assertions in `related-record-create-values.spec.ts`, all passing. Five of
+them - the four confirmed collisions plus the narrowing itself - fail if
+`resolveInheritedParentValues` is made to return the parent record whole, which
+is the previous behaviour; that mutation was run and reverted.
 
 ## QA Retest
 
-Awaiting a fix — nothing to retest yet.
+Retested by unit coverage, not in a browser.
+
+- 15 assertions in `apps/web/lib/runtime/related-record-create-values.spec.ts`
+  pass. The four confirmed collisions from the table above are encoded as data
+  and each asserts the posted body contains **only** the parent foreign key.
+- BUG-2011's `related-record-parent-key.spec.ts` still passes - 39 assertions,
+  unchanged - which is the specific thing this change had to not break.
+- The full `apps/web` suite passes: 36 suites, 998 tests.
+
+**Not retested live**, and three things are therefore still open:
+
+- None of the four dialogs has been walked in a browser against a running
+  tenant. The unit coverage establishes what the dialog assembles and posts; it
+  does not establish how the form renders it.
+- **Acceptance criterion 3 is met at the cause, not observed.** That a second
+  team can now be created from the same department without a 409 follows from
+  the name no longer being inherited, but it was not tried against a running
+  API.
+- Nothing here identifies or repairs records already created with an inherited
+  value - business units named after their organization, departments named after
+  their business unit. They are indistinguishable from a deliberate choice
+  without knowing when they were created, and that is a data question on a live
+  tenant rather than a code fix.
 
 ## History
 
 - 2026-08-29 — created from the Starter-plan production QA run (SESSION-0070) at `eb457d9d`; found by the related-list code sweep that also produced BUG-2011, which recommended recording it separately because the fix is a behaviour change.
 - 2026-08-29 — disposition PLAN_REQUIRED. The SESSION-0070 Architect triage ruled on the related-list sweep as FIX_NOW for the foreign-key defect; it did not separately rule on this pre-fill collision, which is a behaviour change touching a deliberate mechanism. Recorded as PLAN_REQUIRED so it is scheduled with BUG-2011 rather than patched inside it.
+- 2026-08-29 - fixed in SESSION-0076 on `agent/bugfix-runtime`. Premise re-verified at the branch base first, and `contextValues` established to have exactly one producer and one consumer with no deliberate inheritance among them. `RelatedSubgridMetadata.inheritParentFields` added; the value assembly extracted to `lib/runtime/related-record-create-values.ts` and narrowed to declared fields only; 15 assertions added, mutation-tested against the previous spread. BUG-2011's 39 assertions confirmed still passing. All four acceptance criteria met. Status OPEN to FIXED, disposition PLAN_REQUIRED to DONE. **Not deployed.**
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
 

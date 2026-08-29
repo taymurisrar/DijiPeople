@@ -2,7 +2,7 @@
 ID: BUG-2003
 aliases: [BUG-2003]
 Title: The tenant Users screen requests an entity the data registry does not have, so it never renders
-Status: IN_PROGRESS
+Status: FIXED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-29
 DetectedInSha: eb457d9d
 AffectedModules: [apps/web, services/api/src/modules/data]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
-RegressionId: 
+RegressionId: REG-313
 RelatedBacklogItem: ITEM-0107
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-29
 UpdatedAt: 2026-08-29
-ResolvedAt:
+ResolvedAt: 2026-08-29
 ---
 
 # BUG-2003 — The tenant Users screen requests an entity the data registry does not have, so it never renders
@@ -328,6 +328,52 @@ None of these is a crash and none was in scope for this commit, but a reviewer
 opening `/users` after the fix will see two empty columns and a pager that does
 not page, and should not read that as a new regression.
 
+
+### 2026-08-29 - the fourth criterion, and the prop that was inert rather than correct
+
+**The earlier fix is no longer branch-local.** The Resolution above records
+commit `d3ffb3aa` as living only on `agent/starter-blocker-fixes`. It reached
+`origin/develop` as `3fff9cc9`, and is in this branch's base, so the page is
+already on the REST list endpoint here. That paragraph was accurate when written
+and is now stale; it is left standing rather than rewritten, because the history
+of where a fix lived is worth keeping.
+
+Two things remained, and both are done.
+
+**Criterion 4, the contract test** - written, at
+`apps/web/app/components/entity-data/entity-registry-contract.spec.ts`. It reads
+`ENTITY_REGISTRY` out of the API source rather than importing it, because
+`apps/web` does not depend on `services/api` and must not start it, then scans
+every `.ts`/`.tsx` under `apps/web/app` and `apps/web/lib` for
+`buildEntityDataUrl({ entityLogicalName: "..." })` and asserts each name is one
+the registry holds.
+
+It is guarded against passing for the wrong reason, which is the failure mode
+that matters for a test built on a regex: `:82-90` asserts the registry parse
+returned entities at all and that `employees` is among them, and `:92-94`
+asserts at least one call site was found. Without those two, deleting the
+registry or breaking the scan would turn the suite green.
+
+Mutation-tested rather than assumed: changing `employees/page.tsx:234` to
+`entityLogicalName: "users"` - which is precisely this bug - fails the suite
+with `"entity": "users"` in the diff. Restored afterwards.
+
+**Criterion 3, no client request to `/api/data/users`** - now met at the source
+rather than by a default. The Resolution above recorded the prop as "inert, not
+correct". `users-table.tsx:190-194` no longer takes `useEntityDataApi` at all:
+the table is `mode="client"` outright, and `entityLogicalName="users"` is gone
+with it, so there is nothing left to re-enable by accident.
+
+All four acceptance criteria are now met.
+
+**The three secondary defects are still there**, exactly as the Resolution above
+records - the `userRoles`/`employee` field mismatch, the fabricated pagination,
+and `UsersFilterBar` imported and never rendered. They are unchanged and remain
+out of scope here; ITEM-0107 may delete the screen that carries them. One of the
+two links the record listed under those defects has changed, but for BUG-2014's
+reasons rather than these: the empty state now uses the shared `EmptyState` and
+points at the settings user-create route.
+
 ## QA Retest
 
 Not yet performed, and it cannot be performed today: the fix is not on `develop` and
@@ -341,12 +387,20 @@ dashboard links; sort and page the table with the network panel open and confirm
 no request to `/api/data/users`. Expect the three secondary defects above to be
 visible, and do not file them again.
 
+
+**Updated 2026-08-29.** The unit-level half of the retest now exists and passes:
+the contract test above fails against the defect and passes against the fix. The
+live half is unchanged - production still runs `main` at `949f461c`, this work
+is on a task branch, and `/users` has not been opened by a browser since. The
+walkthrough described above is still the thing to do on the next release.
+
 ## History
 
 - 2026-08-29 — created from the Starter-plan production QA run (SESSION-0070) at `eb457d9d`; observed against production API `949f461c`.
 - 2026-08-29 — root cause established by static analysis plus read-only HTTP probes; title, Summary, Evidence, Root Cause and Proposed Resolution rewritten from "not established" to the entity-registry mismatch. Disposition set to FIX_NOW by the SESSION-0070 Architect triage.
 - 2026-08-29 — Regression Coverage updated: browser E2E coverage for `apps/web` landed on `origin/develop` (ITEM-0034, 2026-08-29). The claim that no Playwright suite exists was stale; the accurate statement is that the new suite does not open this screen.
 - 2026-08-29 — code fixed in SESSION-0072 at `d3ffb3aa`, on `agent/starter-blocker-fixes`: the `USE_ENTITY_DATA_API` branch and its dead helpers were removed and the page always uses the REST list endpoint. Status OPEN to IN_PROGRESS, **not** FIXED: three of the four acceptance criteria are met, but the fourth — a contract test over `buildEntityDataUrl` call sites — is not, and `backlog:check` requires an active regression entry before a bug may claim `FIXED`. Also recorded that the three secondary defects are now reachable rather than resolved. **Not deployed** — production runs `main` at `949f461c`.
+- 2026-08-29 - closed in SESSION-0076 on `agent/bugfix-runtime`. The `d3ffb3aa` fix was confirmed present in this branch's base (it reached `origin/develop` as `3fff9cc9`), the contract test over `buildEntityDataUrl` call sites was written and mutation-tested, and the dead `useEntityDataApi` prop was removed from `users-table.tsx` so criterion 3 holds at the source rather than by default. All four acceptance criteria met. Status IN_PROGRESS to FIXED, disposition DONE. **Not deployed.**
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
 

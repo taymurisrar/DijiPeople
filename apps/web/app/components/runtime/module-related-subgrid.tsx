@@ -19,6 +19,7 @@ import type { ModuleDataAdapter } from "../../../lib/runtime/module-data-adapter
 import type { ModuleRuntimeContext } from "../../../lib/runtime/module-runtime.types";
 import { ModuleEmptyState } from "./module-empty-state";
 import { ModuleQuickCreatePanel } from "./module-quick-create-panel";
+import { resolveInheritedParentValues } from "@/lib/runtime/related-record-create-values";
 import type { RuntimeRecordData } from "./module-runtime-ui.types";
 import { formatRuntimeFieldValue } from "@/lib/runtime/runtime-value-formatter";
 import { useDialogBehavior } from "@/app/components/ui/dialog";
@@ -99,6 +100,16 @@ export function ModuleRelatedSubgrid({
   const effectiveQuickCreateForm =
     quickCreateForm ?? generatedQuickCreate?.form ?? null;
   const effectiveRelatedEntity = generatedQuickCreate?.entity;
+  /*
+   * BUG-2012 — the dialog used to receive the parent record whole and spread
+   * it over the child form, so every shared field name inherited the parent's
+   * value. Only what the subgrid declares is carried down now.
+   */
+  const inheritedParentValues = useMemo(
+    () =>
+      resolveInheritedParentValues(parentRecord, subgrid.inheritParentFields),
+    [parentRecord, subgrid.inheritParentFields],
+  );
   const refreshRelatedRecords = useCallback(async () => {
     if (!runtime || !parentBinding || !dataAdapter?.getRelatedRecords) {
       return false;
@@ -784,7 +795,7 @@ export function ModuleRelatedSubgrid({
       </section>
       {runtime ? (
         <ModuleQuickCreatePanel
-          contextValues={parentRecord}
+          contextValues={inheritedParentValues}
           dataAdapter={dataAdapter}
           form={effectiveQuickCreateForm}
           entity={effectiveRelatedEntity}
