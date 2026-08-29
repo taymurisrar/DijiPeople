@@ -13,7 +13,7 @@ AffectedModules: [apps/web]
 OwnerAgent: architect
 ArchitectDisposition: DONE
 QAReport:
-RegressionId:
+RegressionId: REG-337
 RelatedBacklogItem: ITEM-0034
 RelatedDecision:
 RelatedImplementation:
