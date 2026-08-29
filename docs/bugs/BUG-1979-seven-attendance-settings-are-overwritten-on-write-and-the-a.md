@@ -427,5 +427,6 @@ that has ever saved the attendance policy screen.
 
 - Backlog item — [[ITEM-0112]]
 - Modules — [[settings]]
+- Regression — REG-320 (see the regression register)
 
 <!-- GRAPH:END -->

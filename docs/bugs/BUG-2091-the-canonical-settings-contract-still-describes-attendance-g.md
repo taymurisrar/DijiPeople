@@ -264,8 +264,6 @@ Awaiting a fix — nothing to retest yet.
 
 ## Related
 
-- No related record, module or decision is declared in this record's
-  frontmatter. Declare one rather than adding a link here by hand — this
-  block is regenerated and a hand-written link inside it is lost.
+- Regression — REG-324 (see the regression register)
 
 <!-- GRAPH:END -->

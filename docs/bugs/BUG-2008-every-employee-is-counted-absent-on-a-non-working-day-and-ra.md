@@ -256,5 +256,6 @@ Saturday on this tenant's schedule, or a temporary schedule change.
 
 - Referenced by — [[ITEM-0109]]
 - Modules — [[attendance]]
+- Regression — REG-318 (see the regression register)
 
 <!-- GRAPH:END -->

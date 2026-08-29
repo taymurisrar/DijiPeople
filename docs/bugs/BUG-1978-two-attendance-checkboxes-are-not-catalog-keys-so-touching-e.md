@@ -280,5 +280,6 @@ Awaiting a fix — nothing to retest yet.
 ## Related
 
 - Modules — [[tenant-application]], [[settings]]
+- Regression — REG-321 (see the regression register)
 
 <!-- GRAPH:END -->

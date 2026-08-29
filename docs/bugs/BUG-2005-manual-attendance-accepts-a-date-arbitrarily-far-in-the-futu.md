@@ -210,5 +210,6 @@ Awaiting a fix — nothing to retest yet.
 ## Related
 
 - Modules — [[attendance]]
+- Regression — REG-319 (see the regression register)
 
 <!-- GRAPH:END -->

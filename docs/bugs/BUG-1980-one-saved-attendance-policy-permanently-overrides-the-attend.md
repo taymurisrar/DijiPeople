@@ -345,5 +345,6 @@ that has ever saved the attendance policy screen.
 ## Related
 
 - Modules — [[attendance]]
+- Regression — REG-323 (see the regression register)
 
 <!-- GRAPH:END -->
