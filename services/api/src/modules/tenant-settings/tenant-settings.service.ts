@@ -635,13 +635,28 @@ export class TenantSettingsService {
         );
       }
 
+      const normalizedValue = normalizeSettingValue(category, key, item.value);
+
+      /*
+       * Reported, then still enforced.
+       *
+       * The refusal below is the disclosure half: a submitted value that will
+       * not be honoured now fails the request and names the key, instead of
+       * being swapped for the mandated one so quietly that the change-diff
+       * dropped it as a no-op and the audit row recorded nothing (BUG-1979).
+       * `enforceCriticalAttendanceSetting` is kept underneath it deliberately -
+       * it is the lock, and a future caller that reaches this map by another
+       * route must not be able to write past the mandate.
+       */
+      assertAttendanceSettingIsChangeable(category, key, normalizedValue);
+
       return {
         category,
         key,
         value: enforceCriticalAttendanceSetting(
           category,
           key,
-          normalizeSettingValue(category, key, item.value),
+          normalizedValue,
         ),
         actorUserId: currentUser.userId,
       };
@@ -755,6 +770,89 @@ export class TenantSettingsService {
   }
 }
 
+/**
+ * The attendance settings the platform mandates, and their mandated values.
+ *
+ * THIS IS DELIBERATE POLICY, NOT AN OVERSIGHT. Device location capture is an
+ * integrity control for every self-service attendance mode. It landed on
+ * 2026-07-29 in commit `a8c04f16`, whose migration
+ * `20260728234000_attendance_mandatory_location_capture` opens with:
+ *
+ *   -- Attendance location is a mandatory integrity control for all
+ *   -- self-service modes.
+ *
+ * DO NOT DELETE THIS MAP TO "RESTORE CONFIGURABILITY". It would restore none:
+ * the enforcement is `validateAttendanceLocationPayload` in the attendance
+ * service, which throws `LOCATION_CAPTURE_REQUIRED` unconditionally and reads
+ * no setting at all. Removing the lock would only make these keys start
+ * *looking* live while behaving identically. Relaxing the mandate is a change
+ * to that enforcement path and to the attendance engine's work-mode
+ * derivation, and needs an ExecPlan.
+ *
+ * These are settings keys. The attendance service holds a related but NOT
+ * identical list of resolved policy fields, `MANDATORY_LOCATION_CAPTURE`; the
+ * two overlap in five entries and differ in the rest.
+ */
+const MANDATORY_ATTENDANCE_SETTINGS: Record<
+  string,
+  Prisma.InputJsonValue | typeof Prisma.JsonNull
+> = {
+  requireRemoteLocationCapture: true,
+  locationCaptureRequired: true,
+  locationRequiredForModes: ['OFFICE', 'REMOTE', 'HYBRID'],
+  captureLocationOnCheckIn: true,
+  captureLocationOnCheckOut: true,
+  allowManualLocationException: false,
+  highAccuracyLocation: true,
+};
+
+/**
+ * Refuses a mandated attendance setting instead of silently overruling it.
+ *
+ * The mandate itself is correct and stays. What was defective was everything
+ * around it: the submitted value was replaced with the mandate's before the
+ * change-diff ran, so the update was dropped as a no-op. The administrator got
+ * a successful save, no warning, an audit row recording no change, and the old
+ * value back on reload (BUG-1979).
+ *
+ * A submission that already matches the mandate is not an error - it is a
+ * no-op, and refusing it would break any client that re-sends everything it
+ * read. Only a value that differs is refused, and the message names the key.
+ */
+function assertAttendanceSettingIsChangeable(
+  category: string,
+  key: string,
+  value: Prisma.InputJsonValue | typeof Prisma.JsonNull,
+) {
+  if (category !== 'attendance') return;
+
+  const mandatoryValue = MANDATORY_ATTENDANCE_SETTINGS[key];
+  if (mandatoryValue === undefined) return;
+
+  /* Same normalization the change-diff uses, so an array in a different
+   * order is not mistaken for an attempted change. */
+  const submitted = JSON.stringify(normalizeComparableValue(value));
+  const mandated = JSON.stringify(normalizeComparableValue(mandatoryValue));
+
+  if (submitted !== mandated) {
+    throw new BadRequestException({
+      code: 'ATTENDANCE_SETTING_ENFORCED_BY_PLATFORM',
+      message:
+        `attendance.${key} is enforced by platform policy and was not applied. ` +
+        `Attendance location capture is mandatory for all self-service modes. ` +
+        `No other setting in this submission was saved.`,
+    });
+  }
+}
+/**
+ * The write-side lock on the mandated attendance settings.
+ *
+ * Kept even though `assertAttendanceSettingIsChangeable` now refuses a
+ * differing value before this runs. The assertion is the disclosure; this is
+ * the guarantee - a caller that reaches this normalization by some other route
+ * still cannot write past the mandate. It reads the same map so the two can't
+ * disagree about which keys are locked.
+ */
 function enforceCriticalAttendanceSetting(
   category: string,
   key: string,
@@ -762,20 +860,7 @@ function enforceCriticalAttendanceSetting(
 ) {
   if (category !== 'attendance') return value;
 
-  const mandatoryValues: Record<
-    string,
-    Prisma.InputJsonValue | typeof Prisma.JsonNull
-  > = {
-    requireRemoteLocationCapture: true,
-    locationCaptureRequired: true,
-    locationRequiredForModes: ['OFFICE', 'REMOTE', 'HYBRID'],
-    captureLocationOnCheckIn: true,
-    captureLocationOnCheckOut: true,
-    allowManualLocationException: false,
-    highAccuracyLocation: true,
-  };
-
-  const mandatoryValue = mandatoryValues[key];
+  const mandatoryValue = MANDATORY_ATTENDANCE_SETTINGS[key];
   return mandatoryValue === undefined ? value : mandatoryValue;
 }
 

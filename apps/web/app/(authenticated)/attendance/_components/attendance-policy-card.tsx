@@ -2,7 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
-import type { AttendancePolicyRecord } from "../types";
+import type {
+  AttendancePolicyRecord,
+  AttendancePolicyUpdate,
+} from "../types";
 
 export function AttendancePolicyCard({
   initialPolicy,
@@ -21,10 +24,34 @@ export function AttendancePolicyCard({
     setMessage(null);
     setIsSubmitting(true);
 
+    /*
+     * Only the fields the API accepts, listed explicitly.
+     *
+     * The card used to post the whole form back, which is the object
+     * `GET /attendance/policy` returned - the RESOLVED policy. That shape also
+     * carries `allowedModes`, `locationRetryAttempts` and
+     * `standardWorkHoursPerDay`, none of which the update DTO declares, and the
+     * global ValidationPipe runs with `forbidNonWhitelisted`. Every save on
+     * this screen was therefore rejected with a 400 naming a field the
+     * administrator never touched.
+     */
+    const payload: AttendancePolicyUpdate = {
+      lateCheckInGraceMinutes: form.lateCheckInGraceMinutes,
+      lateCheckOutGraceMinutes: form.lateCheckOutGraceMinutes,
+      requireOfficeLocationForOfficeMode:
+        form.requireOfficeLocationForOfficeMode,
+      allowManualAdjustments: form.allowManualAdjustments,
+      preventDuplicateAttendance: form.preventDuplicateAttendance,
+      allowCheckInOnApprovedLeave: form.allowCheckInOnApprovedLeave,
+      markMissingCheckout: form.markMissingCheckout,
+      allowOffDayCheckIn: form.allowOffDayCheckIn,
+      allowHolidayCheckIn: form.allowHolidayCheckIn,
+    };
+
     const response = await fetch("/api/attendance/policy", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
+      body: JSON.stringify(payload),
     });
 
     const payload = (await response.json()) as { message?: string };
@@ -81,23 +108,77 @@ export function AttendancePolicyCard({
             }))
           }
         />
+        {/*
+          "Require remote location for remote mode" and "Allow remote
+          attendance without captured location" used to sit here. Both were
+          removed: device location capture is mandatory for every self-service
+          mode, so neither control could ever change what the engine does, and
+          the two columns behind them were never read.
+        */}
         <CheckboxField
-          checked={form.requireRemoteLocationForRemoteMode}
-          label="Require remote location for remote mode"
+          checked={form.allowManualAdjustments}
+          label="Allow manual attendance adjustments"
           onChange={(checked) =>
             setForm((current) => ({
               ...current,
-              requireRemoteLocationForRemoteMode: checked,
+              allowManualAdjustments: checked,
             }))
           }
         />
         <CheckboxField
-          checked={form.allowRemoteWithoutLocation}
-          label="Allow remote attendance without captured location"
+          checked={form.preventDuplicateAttendance}
+          label="Prevent duplicate attendance on the same day"
           onChange={(checked) =>
             setForm((current) => ({
               ...current,
-              allowRemoteWithoutLocation: checked,
+              preventDuplicateAttendance: checked,
+            }))
+          }
+        />
+        <CheckboxField
+          checked={form.allowCheckInOnApprovedLeave}
+          label="Allow check-in during approved leave"
+          onChange={(checked) =>
+            setForm((current) => ({
+              ...current,
+              allowCheckInOnApprovedLeave: checked,
+            }))
+          }
+        />
+        <CheckboxField
+          checked={form.markMissingCheckout}
+          label="Mark a missing check-out"
+          onChange={(checked) =>
+            setForm((current) => ({
+              ...current,
+              markMissingCheckout: checked,
+            }))
+          }
+        />
+        {/*
+          These two live here, not in Settings > Attendance. They are
+          `AttendancePolicy` columns with no tenant-settings catalog key, so the
+          settings page could render them but never save them: touching either
+          one there failed the whole submission with "Unsupported setting key"
+          and discarded every other unsaved change with it (BUG-1978).
+        */}
+        <CheckboxField
+          checked={form.allowOffDayCheckIn}
+          label="Allow off-day check-in"
+          onChange={(checked) =>
+            setForm((current) => ({
+              ...current,
+              allowOffDayCheckIn: checked,
+            }))
+          }
+        />
+        <CheckboxField
+          checked={form.allowHolidayCheckIn}
+          label="Allow holiday check-in"
+          onChange={(checked) =>
+            setForm((current) => ({
+              ...current,
+              allowHolidayCheckIn: checked,
             }))
           }
         />

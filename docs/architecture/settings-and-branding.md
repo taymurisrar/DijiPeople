@@ -301,25 +301,74 @@ not permitted.
 
 ### Attendance Rules
 
+> Re-derived against the code on 2026-08-29. A future attendance change
+> re-derives this section rather than trusting it.
+
 Attendance Rules define allowed work modes (Office, Remote, Hybrid), Office
-Work Site requirement, Remote/Hybrid browser-geolocation requirement,
-duplicate check-in prevention, approved-leave behavior, off-day and holiday
-check-in behavior, missing-checkout behavior, manual correction policy, and
-HR/Admin override policy.
+Work Site requirement, duplicate check-in prevention, approved-leave
+behavior, off-day and holiday check-in behavior, missing-checkout behavior,
+manual correction policy, and HR/Admin override policy.
+
+**Device location capture is not one of them.** It is a platform mandate, not
+tenant configuration: every self-service check-in and check-out requires a
+device position, in **all** of OFFICE, REMOTE and HYBRID. See
+[Attendance location capture is mandatory](#attendance-location-capture-is-mandatory)
+below.
 
 ### Attendance Runtime Consumption
 
 Check In resolves current User to linked Employee, tenant business date,
 schedule by the documented priority, weekday Shift, Work Calendar,
-holiday/off-day state, and Attendance Rules. Office requires an active Work
-Site lookup value. Remote and Hybrid require browser geolocation. The created
-Attendance record stores the resolved schedule, Shift, mode, Work Site,
-business date, and location evidence.
+holiday/off-day state, and Attendance Rules. Office additionally requires an
+active Work Site lookup value. **Every mode requires a device position** - see
+below. The created Attendance record stores the resolved schedule, Shift,
+mode, Work Site, business date, and location evidence.
 
-Check Out resolves the same business-date record, requires checkout
-geolocation for Remote/Hybrid when configured, updates that record, calculates
-working duration and late/early behavior from the resolved Shift, and writes an
+Check Out resolves the same business-date record, requires a device position
+on the same unconditional terms, updates that record, calculates working
+duration and late/early behavior from the resolved Shift, and writes an
 audit/timeline event.
+
+### Attendance location capture is mandatory
+
+Device location is a **mandatory integrity control for all self-service**
+**attendance modes**. It is not tenant-configurable, and nothing turns it off.
+
+- **The enforcement point** is `validateAttendanceLocationPayload`
+  (`services/api/src/modules/attendance/attendance.service.ts`), called on both
+  the check-in and the check-out path. It throws `LOCATION_CAPTURE_REQUIRED`
+  when latitude or longitude is absent, with **no mode check, no policy check
+  and no settings check**.
+- **The origin** is commit `a8c04f16` (2026-07-29) and its migration
+  `20260728234000_attendance_mandatory_location_capture`, whose first line
+  states the intent verbatim: `-- Attendance location is a mandatory integrity
+  control for all self-service modes.` The mandate is recorded as
+  [ADR-0003](../decisions/ADR-0003-attendance-location-capture-is-mandatory.md).
+- **The August 2026 attendance engine depends on it.** Server-side work-mode
+  derivation, geofencing and the office-device rule are all built on a position
+  always being present.
+
+**Nine settings and policy fields are reported but do not enforce anything.**
+`locationCaptureRequired`, `locationRequiredForModes`,
+`captureLocationOnCheckIn`, `captureLocationOnCheckOut`,
+`requireRemoteLocationCapture`, `highAccuracyLocation`,
+`allowManualLocationException`, `requireRemoteLocationForRemoteMode` and
+`allowRemoteWithoutLocation` appear in the resolved policy and the audit
+snapshot only. Do not read them as controls: they are read in **zero**
+enforcement branches. (`highAccuracyLocation` reaches the browser
+`enableHighAccuracy` flag; `allowManualLocationException` and `allowIpFallback`
+appear only in the accuracy-limit and IP-source conditions, never in the
+unconditional throw.)
+
+Seven of those keys are locked on write in `tenant-settings.service.ts` and are
+rendered as disabled controls under Settings > Attendance. A submitted value
+that differs from the mandate is refused with
+`ATTENDANCE_SETTING_ENFORCED_BY_PLATFORM` rather than silently substituted.
+
+Relaxing the mandate is not a configuration change. It would require the
+unconditional throws to become policy-driven and the attendance engine to
+define a behaviour when no position is supplied - an ExecPlan, not an edit
+here.
 
 ### Settings UI Standard
 

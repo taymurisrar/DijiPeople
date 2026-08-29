@@ -2,7 +2,7 @@
 ID: BUG-2005
 aliases: [BUG-2005]
 Title: Manual attendance accepts a date arbitrarily far in the future
-Status: OPEN
+Status: FIXED
 Severity: MEDIUM
 Priority: P2
 Type: DATA_INTEGRITY
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-29
 DetectedInSha: eb457d9d
 AffectedModules: [services/api/src/modules/attendance]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
-RegressionId: 
+RegressionId: REG-319
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-29
 UpdatedAt: 2026-08-29
-ResolvedAt:
+ResolvedAt: 2026-08-29
 ---
 
 # BUG-2005 — Manual attendance accepts a date arbitrarily far in the future
@@ -145,7 +145,57 @@ tiles.
 
 ## Resolution
 
-Open. No fix has been written.
+Fixed. The premise held. The record collected no file:line evidence, so the
+first job was to find where the bound belonged: `createManualEntry`
+(`services/api/src/modules/attendance/attendance.service.ts`) resolves the
+business date through `resolveSelfServiceContext` and then checks for a
+duplicate day and for reversed check-in/check-out times, and had no comparison
+against today anywhere. `CreateManualAttendanceEntryDto` declares `date` as a
+bare `@IsDateString()`.
+
+**What changed.**
+
+- New private helper `assertAttendanceDateIsNotInFuture(attendanceDate,
+  timezone)` on `AttendanceService`. It compares the resolved business date
+  against `businessDateAtUtcMidnight(new Date(), timezone)` and throws a
+  `BadRequestException` carrying `code: 'ATTENDANCE_DATE_IN_FUTURE'` and a
+  message naming both dates.
+
+- **The tenant's today, not the server's.** This is the reason the check sits
+  after context resolution rather than in the DTO: a tenant in Doha is already
+  on the 30th while a server on UTC is still on the 29th, so a server-clock
+  comparison would refuse a legitimate same-day entry for every tenant east of
+  Greenwich. The tolerance the record asked to "decide deliberately" is
+  therefore zero — the timezone question it was hedging against is answered by
+  using the tenant's own date, and no slack is needed on top.
+
+**The other write paths**, which the record asked to check:
+
+- `POST /attendance/manual` — bounded.
+- `PATCH` of a manual entry (`updateManualEntry`) — bounded, but only when the
+  caller submits a date. An entry that is already stored keeps its own date
+  untouched: refusing to edit a row somebody else created in the future would
+  make the offending record uncorrectable through the product.
+- `POST /attendance/override` — delegates to `updateManualEntry`, so it is
+  covered by the same check.
+- **CSV import** (`importRow`) — bounded. It had no timezone context at all; the
+  tenant-level zone is now resolved once per file via
+  `ConfigurationResolverService.resolveTimezone` and passed in, which is the
+  same zone the import's own `combineDateAndTime` timestamps are built from, so
+  the two agree.
+- Correction requests do not create entries and carry no date of their own.
+
+**Tests** in `attendance.service.spec.ts`. They derive "today" from the tenant
+timezone the service resolved rather than hardcoding a date, so they test the
+rule rather than expiring the moment the calendar passes a literal:
+
+- tomorrow in the tenant timezone is refused, with the error code asserted and
+  no entry created;
+- a date far in the future (2099) is refused;
+- today in the tenant timezone is still accepted;
+- yesterday is still accepted — back-dating is the whole point of the screen;
+- moving an existing entry to a future date through `updateManualEntry` is
+  refused and writes nothing.
 
 ## QA Retest
 

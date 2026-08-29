@@ -239,12 +239,26 @@ export type AttendanceLocationOption = {
   timezone?: string | null;
 };
 
+/**
+ * What `GET /attendance/policy` returns: the RESOLVED policy, which is wider
+ * than what the policy screen may write. The mandated location fields
+ * (`locationCaptureRequired`, `locationRequiredForModes`,
+ * `allowManualLocationException`, `captureLocationOnCheckIn`,
+ * `captureLocationOnCheckOut`) are reported for display only - the API no
+ * longer accepts them, and neither do `requireRemoteLocationForRemoteMode` or
+ * `allowRemoteWithoutLocation`, which were removed outright.
+ */
 export type AttendancePolicyRecord = {
   lateCheckInGraceMinutes: number;
   lateCheckOutGraceMinutes: number;
   requireOfficeLocationForOfficeMode: boolean;
-  requireRemoteLocationForRemoteMode: boolean;
-  allowRemoteWithoutLocation: boolean;
+  allowManualAdjustments: boolean;
+  preventDuplicateAttendance: boolean;
+  allowCheckInOnApprovedLeave: boolean;
+  markMissingCheckout: boolean;
+  allowOffDayCheckIn: boolean;
+  allowHolidayCheckIn: boolean;
+  allowHrAdminOverride?: boolean;
   locationCaptureRequired?: boolean;
   locationRequiredForModes?: AttendanceMode[];
   allowIpFallback?: boolean;
@@ -257,6 +271,27 @@ export type AttendancePolicyRecord = {
   captureLocationOnCheckOut?: boolean;
   storeIpAddress?: boolean;
   storeUserAgent?: boolean;
+};
+
+/**
+ * Exactly the fields `PATCH /attendance/policy` accepts.
+ *
+ * Declared separately because the card used to post the whole resolved policy
+ * back, which the API rejects: the global `ValidationPipe` runs with
+ * `forbidNonWhitelisted`, and the resolved shape carries `allowedModes`,
+ * `locationRetryAttempts` and `standardWorkHoursPerDay`, none of which the DTO
+ * accepts. Building the payload explicitly is what keeps the two in step.
+ */
+export type AttendancePolicyUpdate = {
+  lateCheckInGraceMinutes: number;
+  lateCheckOutGraceMinutes: number;
+  requireOfficeLocationForOfficeMode: boolean;
+  allowManualAdjustments: boolean;
+  preventDuplicateAttendance: boolean;
+  allowCheckInOnApprovedLeave: boolean;
+  markMissingCheckout: boolean;
+  allowOffDayCheckIn: boolean;
+  allowHolidayCheckIn: boolean;
 };
 
 export type AttendanceIntegrationRecord = {
