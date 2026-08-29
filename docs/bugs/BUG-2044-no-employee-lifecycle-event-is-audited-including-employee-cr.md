@@ -2,7 +2,7 @@
 ID: BUG-2044
 aliases: [BUG-2044]
 Title: No employee lifecycle event is audited, including employee creation and reporting-manager assignment
-Status: OPEN
+Status: FIXED
 Severity: HIGH
 Priority: P1
 Type: DATA_INTEGRITY
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-29
 DetectedInSha: eb457d9d
 AffectedModules: [services/api/src/modules/employees, services/api/src/modules/organization, services/api/src/modules/leave]
 OwnerAgent: architect
-ArchitectDisposition: PLAN_REQUIRED
+ArchitectDisposition: DONE
 QAReport: 
-RegressionId: 
+RegressionId: REG-355
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-29
 UpdatedAt: 2026-08-29
-ResolvedAt:
+ResolvedAt: 2026-08-29
 ---
 
 # BUG-2044 — No employee lifecycle event is audited, including employee creation and reporting-manager assignment
@@ -206,16 +206,111 @@ human actions and full of machine ones.
 
 ## Resolution
 
-Open. No fix has been written.
+Fixed on `agent/bugfix-audit`, across three commits — one per module, so a
+partial merge is still a coherent improvement.
+
+**The auditable event set**, as decided:
+
+| Operation | Action | Snapshots |
+|---|---|---|
+| `employees.service.ts:1042-1090` `create()` | `EMPLOYEE_CREATED` | after only |
+| `employees.service.ts:497-536` `assignManager()` | `EMPLOYEE_REPORTING_MANAGER_ASSIGNED` | before/after, reporting line only |
+| `organization.service.ts:958-972` `createDepartment()` | `DEPARTMENT_CREATED` | after |
+| `organization.service.ts:1062-1077` `updateDepartment()` | `DEPARTMENT_UPDATED` | before/after |
+| `organization.service.ts:1118-1132` `createDesignation()` | `DESIGNATION_CREATED` | after |
+| `organization.service.ts:1185-1199` `updateDesignation()` | `DESIGNATION_UPDATED` | before/after |
+| `organization.service.ts:1249-1263` `deleteDesignation()` | `DESIGNATION_DELETED` | before/after |
+| `leave.service.ts:565-580` `submitLeaveRequest()` | `LEAVE_REQUEST_SUBMITTED` | after |
+| `leave.service.ts:1006-1020` `cancelLeaveRequest()` | `LEAVE_REQUEST_CANCELLED` | before/after |
+| `leave.service.ts:211-225` / `:300-314` leave type create/update | `LEAVE_TYPE_CREATED` / `_UPDATED` | after / before+after |
+| `leave.service.ts:371-385` / `:414-428` leave policy create/update | `LEAVE_POLICY_CREATED` / `_UPDATED` | after / before+after |
+| `leave.service.ts:1138-1152` `createLeavePolicyRule()` | `LEAVE_POLICY_RULE_CREATED` | after |
+| `leave.service.ts:1455-1469` `createLeavePolicyAssignment()` | `LEAVE_POLICY_ASSIGNMENT_CREATED` | after |
+
+Three of these needed no call site of their own and deliberately do not have
+one: `deleteDepartment()`, `deactivateLeaveType()` and `deactivateLeavePolicy()`
+each delegate to their update method, which records the status change that
+actually happens. A second row would be a second story about one event.
+
+`organization` had no `AuditService` dependency at all before this — the module
+is where the injection was added, along with `AuditModule` in
+`organization.module.ts`.
+
+**Closing the invisibility, which was the record's real finding.**
+`services/api/src/modules/audit/lifecycle-audit-coverage.spec.ts` enumerates the
+write methods each of the three services exposes **at runtime, off the
+prototype**, and requires each to sit in either an `audited` list or an `exempt`
+map carrying its reason. A method added later lands in neither and fails, so the
+next gap is a failing test rather than a QA run a year from now. It fails from
+the other direction too, when a listed name no longer exists.
+
+The `exempt` map is the load-bearing half. An entry there is a decision written
+down; an entry in neither list is a decision nobody has made.
+
+**Snapshots and sensitive data.** The Proposed Resolution called the projection
+a real design question rather than a `mapEmployee()` reuse, and it was right for
+a reason it did not state: the *existing* `EMPLOYEE_UPDATED` writer already
+passed `mapEmployee()` straight through, so `cnic` and `taxIdentifier` were
+reaching `AuditLog` on every employee edit before this record was filed.
+
+Rather than hand-projecting at each call site, redaction runs centrally in
+`AuditService.log()` (`audit-snapshot.ts`), covering national ids, tax
+identifiers, account numbers, IBANs, SWIFT codes and credential-shaped keys.
+That placement is the whole point: a call site is exactly what gets forgotten,
+which is the shape of this entire record. It also fixes the pre-existing leak on
+the update path, which no call-site projection would have.
+
+Money is deliberately **not** redacted. A compensation change is precisely what
+an auditor opens the log to find, and a substring match on "account" would have
+taken the bank's name and the accounting code with it — so the personal-data set
+is matched by exact key name and only the credential set by substring.
+
+**Volume, against BUG-2045.** Every new writer emits one row per operation and
+none inside a loop; employee import still writes its single `EMPLOYEES_IMPORTED`
+row rather than one per employee. Twelve employee creations produce twelve rows.
+That is the correct side of the trade REG-308 records — the trail was
+simultaneously missing the human actions and full of machine ones, and adding
+back the human actions is what makes the machine ones worth suppressing.
+
+**Not fixed, and recorded rather than silently left.** Organizations, business
+units and locations in the `organization` module, and update/delete of leave
+policy rules and assignments, are still unaudited. Each sits in the coverage
+spec's `exempt` map naming this record, so they are visible and undecided rather
+than invisible and forgotten. They were out of scope: this record's acceptance
+criteria name departments, designations, and leave configuration creation.
+
+`GET /api/employees/:id/history` is untouched. The `EmployeeHistory` store and
+`AuditLog` remain two parallel stores, and which one owns the record timeline is
+the `divergent-duplicate-guard` question the record raised — a design decision,
+not a defect fix, and it is not answered here.
 
 ## QA Retest
 
-Awaiting a fix — nothing to retest yet.
+Retested by five specs, 30 assertions:
+
+- `services/api/src/modules/audit/lifecycle-audit-coverage.spec.ts` — 8, the
+  structural guard.
+- `services/api/src/modules/audit/audit-snapshot.spec.ts` — 7, redaction,
+  including that it applies on the way into the database and not only in the
+  helper.
+- `services/api/src/modules/employees/employee-lifecycle-audit.spec.ts` — 5.
+- `services/api/src/modules/organization/organization-audit.spec.ts` — 8.
+- `services/api/src/modules/leave/leave-audit.spec.ts` — 9.
+
+Each module also asserts the two negatives that matter: an operation the service
+refused writes no row, and the row is written against the acting user's tenant
+rather than one supplied in the payload.
+
+**Not retested live.** The 305-row aggregate in this record came from a
+production tenant and has not been re-measured. What is established is that each
+covered operation writes its row with the expected action and snapshots.
+Re-measuring needs the release.
 
 ## History
 
 - 2026-08-29 — created from the Starter-plan production QA run (SESSION-0070) at `eb457d9d`; observed against production API `949f461c`. The parallel `EmployeeHistory` store was checked before filing, to rule out a wrong-store reading.
 - 2026-08-29 — triaged by the Architect for SESSION-0070: ArchitectDisposition PLAN_REQUIRED — needs a considered list of auditable employee events with before/after snapshots, not a single call.
+- 2026-08-29 — fixed on `agent/bugfix-audit`. While writing the snapshot projection the record asked for, the *existing* `EMPLOYEE_UPDATED` writer was found to be carrying `cnic` and `taxIdentifier` into `AuditLog` on every employee edit — a pre-existing leak this record did not name. Redaction was therefore placed centrally in `AuditService.log()` rather than at the new call sites, which fixes that path too.
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
 
