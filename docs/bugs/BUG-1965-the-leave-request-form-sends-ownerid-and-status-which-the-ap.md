@@ -303,5 +303,6 @@ routed through `StandardModuleRecordPage`, must not carry `ownerId` either.
 ## Related
 
 - Modules — [[tenant-application]]
+- Regression — REG-332 (see the regression register)
 
 <!-- GRAPH:END -->

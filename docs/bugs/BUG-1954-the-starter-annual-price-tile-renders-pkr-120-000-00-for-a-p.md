@@ -213,5 +213,6 @@ read the two tiles.
 ## Related
 
 - Modules — [[platform-admin]], [[super-admin]]
+- Regression — REG-350 (see the regression register)
 
 <!-- GRAPH:END -->

@@ -287,5 +287,6 @@ the reference, and the digest in the reference block.
 ## Related
 
 - Modules — [[tenant-application]]
+- Regression — REG-315 (see the regression register)
 
 <!-- GRAPH:END -->

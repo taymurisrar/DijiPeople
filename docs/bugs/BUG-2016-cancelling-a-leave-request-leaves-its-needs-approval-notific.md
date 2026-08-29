@@ -267,5 +267,6 @@ transition, so rows stranded before the release stay where they are.
 ## Related
 
 - Modules — [[notifications]]
+- Regression — REG-331 (see the regression register)
 
 <!-- GRAPH:END -->

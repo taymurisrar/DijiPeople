@@ -280,6 +280,6 @@ run or a 409 naming an order number, and no critical alert.
 ## Related
 
 - Modules — [[billing]]
-- Regression — REG-299 (see the regression register)
+- Regression — REG-351 (see the regression register)
 
 <!-- GRAPH:END -->

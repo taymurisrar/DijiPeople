@@ -241,6 +241,8 @@ Business Unit, and each should open and accept a business unit.
 
 ## Related
 
+- Referenced by — [[ITEM-0115]]
 - Modules — [[organization]]
+- Regression — REG-310 (see the regression register)
 
 <!-- GRAPH:END -->

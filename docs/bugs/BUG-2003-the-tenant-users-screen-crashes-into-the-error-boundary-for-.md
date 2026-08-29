@@ -421,5 +421,6 @@ walkthrough described above is still the thing to do on the next release.
 
 - Backlog item — [[ITEM-0107]]
 - Modules — [[tenant-application]]
+- Regression — REG-313 (see the regression register)
 
 <!-- GRAPH:END -->

@@ -281,5 +281,6 @@ fails against the defect.
 
 - Backlog item — [[ITEM-0107]]
 - Modules — [[tenant-application]]
+- Regression — REG-314 (see the regression register)
 
 <!-- GRAPH:END -->

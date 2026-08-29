@@ -307,5 +307,6 @@ cold-cache resolver failure denying, and report-only logging and allowing.
 
 - Referenced by — [[ITEM-0110]]
 - Modules — [[settings]], [[tenant-application]]
+- Regression — REG-353 (see the regression register)
 
 <!-- GRAPH:END -->

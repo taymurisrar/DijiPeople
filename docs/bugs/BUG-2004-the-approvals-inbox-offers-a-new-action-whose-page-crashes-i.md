@@ -345,5 +345,6 @@ appears there, criterion 2 has regressed rather than never having been met.
 
 - Referenced by — [[ITEM-0111]]
 - Modules — [[tenant-application]]
+- Regression — REG-314 (see the regression register)
 
 <!-- GRAPH:END -->

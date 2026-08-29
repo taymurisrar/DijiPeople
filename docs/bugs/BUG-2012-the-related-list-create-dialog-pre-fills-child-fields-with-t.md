@@ -299,5 +299,6 @@ Retested by unit coverage, not in a browser.
 ## Related
 
 - Modules — [[tenant-application]]
+- Regression — REG-316 (see the regression register)
 
 <!-- GRAPH:END -->

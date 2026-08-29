@@ -230,8 +230,6 @@ always had, and it belongs to BUG-1546 rather than to this record.
 
 ## Related
 
-- No related record, module or decision is declared in this record's
-  frontmatter. Declare one rather than adding a link here by hand — this
-  block is regenerated and a hand-written link inside it is lost.
+- Regression — REG-352 (see the regression register)
 
 <!-- GRAPH:END -->

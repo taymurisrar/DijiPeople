@@ -227,5 +227,6 @@ survive, because the fix narrows when it is said rather than removing it.
 ## Related
 
 - Modules — [[approvals]]
+- Regression — REG-330 (see the regression register)
 
 <!-- GRAPH:END -->

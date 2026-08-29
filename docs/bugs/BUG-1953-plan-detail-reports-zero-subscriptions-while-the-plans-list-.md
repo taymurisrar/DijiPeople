@@ -175,5 +175,6 @@ Overview tile.
 ## Related
 
 - Modules — [[platform-admin]], [[super-admin]]
+- Regression — REG-349 (see the regression register)
 
 <!-- GRAPH:END -->
