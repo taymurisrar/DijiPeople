@@ -6625,26 +6625,47 @@ const adapters: readonly SettingsRuntimeAdapter[] = [
     supportsServerPagination: true,
     mode: "read-only",
     primaryName: "action",
+    /*
+     * BUG-2046 - this column set no longer offers Result, Failure Reason, IP
+     * Address, App Client or Session ID.
+     *
+     * `AuditLog` has no such columns. The API projects all five by scraping
+     * `afterSnapshot` for well-known keys, a convention only the auth module
+     * follows, so they were blank on every non-authentication row - which reads
+     * as data that went missing rather than data never captured. They are kept
+     * on the Login History adapter below, where every row is an auth event and
+     * every one of them is populated.
+     *
+     * The alternative was promoting `result` to a real column: an
+     * expand/backfill/contract migration on the largest table in the product,
+     * backfilling null for every historical row, and still empty for every
+     * non-auth writer, because only an authentication event has a result.
+     *
+     * `actionLabel` replaces the raw `action` as the primary column so both
+     * naming conventions read the same. `action` stays available as a field, as
+     * stored, because that is what an export and an alert are keyed on.
+     */
     fields: [
-      field("action", "Action", "string", {
+      field("actionLabel", "Action", "string", {
         isPrimaryName: true,
         isReadOnly: true,
       }),
+      field("action", "Action Code", "string", { isReadOnly: true }),
       field("entityType", "Record Type", "string", { isReadOnly: true }),
       field("entityId", "Record ID", "string", { isReadOnly: true }),
       field("userDisplayName", "User", "string", { isReadOnly: true }),
       field("email", "Email", "email", { isReadOnly: true }),
-      field("result", "Result", "string", { isReadOnly: true }),
-      field("failureReason", "Failure Reason", "string", {
-        isReadOnly: true,
-      }),
-      field("ipAddress", "IP Address", "string", { isReadOnly: true }),
-      field("appClientId", "App Client", "string", { isReadOnly: true }),
       field("sourceModule", "Source Module", "string", { isReadOnly: true }),
-      field("sessionId", "Session ID", "string", { isReadOnly: true }),
       field("requestId", "Request ID", "string", { isReadOnly: true }),
       field("traceId", "Trace ID", "string", { isReadOnly: true }),
       field("createdAt", "Occurred At", "datetime", { isReadOnly: true }),
+    ],
+    columns: [
+      "actionLabel",
+      "entityType",
+      "userDisplayName",
+      "sourceModule",
+      "createdAt",
     ],
     formSections: [
       formSection({
@@ -6653,8 +6674,8 @@ const adapters: readonly SettingsRuntimeAdapter[] = [
         order: 10,
         columns: 2,
         fields: [
+          "actionLabel",
           "action",
-          "result",
           "userDisplayName",
           "email",
           "createdAt",
@@ -6667,13 +6688,6 @@ const adapters: readonly SettingsRuntimeAdapter[] = [
         order: 20,
         columns: 2,
         fields: ["entityType", "entityId", "requestId", "traceId"],
-      }),
-      formSection({
-        id: "audit-event-client",
-        label: "Client",
-        order: 30,
-        columns: 2,
-        fields: ["ipAddress", "appClientId", "sessionId", "failureReason"],
       }),
     ],
     permissions: { read: "audit.read" },

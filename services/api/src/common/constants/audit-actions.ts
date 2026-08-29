@@ -55,6 +55,72 @@ export const AUDIT_ACTIONS = {
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];
 
+/**
+ * Stored spellings that mean the same thing as a canonical action.
+ *
+ * BUG-2046. These are the `dot.lower_snake` names observed live on a tenant.
+ * They are **not** a migration plan: the rows carrying them stay exactly as
+ * written. Rewriting historical `action` values would be an audit trail editing
+ * itself, which is the one thing an audit trail must not do — so the two
+ * conventions are reconciled when the log is read, and never in the table.
+ *
+ * Keyed by the stored value, valued by the canonical one. A name absent here is
+ * its own canonical form, which is the correct answer for every action already
+ * written in `SCREAMING_SNAKE`.
+ *
+ * The dotted set is not internally consistent either — `project.create` against
+ * `attendance.manual_created` mixes tense as well as convention — so the mapping
+ * is per-name rather than a transformation rule. A rule would have to guess.
+ */
+export const LEGACY_AUDIT_ACTION_ALIASES: Readonly<Record<string, string>> = {
+  'attendance.manual_created': 'ATTENDANCE_MANUAL_CREATED',
+  'attendance.deleted': 'ATTENDANCE_DELETED',
+  'attendance.updated': 'ATTENDANCE_UPDATED',
+  'project.create': 'PROJECT_CREATED',
+  'project.update': 'PROJECT_UPDATED',
+  'project.delete': 'PROJECT_DELETED',
+  'auth.login.succeeded': 'AUTH_LOGIN_SUCCEEDED',
+  'auth.login.failed': 'AUTH_LOGIN_FAILED',
+  'auth.logout': 'AUTH_LOGOUT',
+};
+
+/** Canonical name → every stored spelling that means it, canonical included. */
+const STORED_SPELLINGS_BY_CANONICAL = Object.entries(
+  LEGACY_AUDIT_ACTION_ALIASES,
+).reduce<Record<string, string[]>>((accumulator, [stored, canonical]) => {
+  accumulator[canonical] = [...(accumulator[canonical] ?? []), stored];
+  return accumulator;
+}, {});
+
+/**
+ * The canonical name for a stored action.
+ *
+ * An unknown value returns unchanged rather than null. The log holds actions
+ * written by call sites this catalog has not yet reached, and dropping them
+ * would hide rows — a worse outcome than presenting an undeclared name.
+ */
+export function canonicalAuditAction(action: string) {
+  const trimmed = action.trim();
+  return LEGACY_AUDIT_ACTION_ALIASES[trimmed] ?? trimmed;
+}
+
+/**
+ * Every stored spelling a filter on `action` should match.
+ *
+ * This is the read-side half of the fix. A tenant whose log spans the change
+ * holds rows under both conventions; filtering by either name must find all of
+ * them, or the screen answers a compliance question with half the evidence.
+ */
+export function resolveAuditActionAliases(action: string): string[] {
+  const trimmed = action.trim();
+  if (!trimmed) return [];
+
+  const canonical = canonicalAuditAction(trimmed);
+  return [
+    ...new Set([trimmed, canonical, ...(STORED_SPELLINGS_BY_CANONICAL[canonical] ?? [])]),
+  ];
+}
+
 /** The entity types the actions above are recorded against. */
 export const AUDIT_ENTITY_TYPES = {
   EMPLOYEE: 'Employee',
