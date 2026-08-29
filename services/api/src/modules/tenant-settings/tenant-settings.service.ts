@@ -21,6 +21,7 @@ import {
   TENANT_FEATURE_DEFINITIONS,
   TENANT_SETTING_CATEGORIES,
 } from './tenant-settings.catalog';
+import { describeInertTenantSettingKeys } from './tenant-settings-dispositions';
 import { TenantSettingsRepository } from './tenant-settings.repository';
 import { TenantSettingsResolverService } from './tenant-settings-resolver.service';
 import { ActiveOrganizationService } from './active-organization.service';
@@ -32,6 +33,17 @@ type SettingsResponse = {
   settings: SettingsMap;
   tenant?: { id: string; name: string; slug: string } | null;
   categories: string[];
+  /**
+   * The keys in `settings` that the platform declares but does not honour.
+   *
+   * BUG-1974: 246 of 591 declared keys had no reader anywhere, and the write
+   * path treated them as first-class — validated, stored, cached, audited and
+   * echoed back. A client had no way to tell them from the ones that work. It
+   * still gets the keys, so nothing that already stores a value breaks, but it
+   * is now told which ones are inert instead of inferring it from behaviour
+   * that never changes.
+   */
+  inertKeys: ReturnType<typeof describeInertTenantSettingKeys>;
 };
 
 type JsonValueInput = TenantSettingJsonInput;
@@ -165,6 +177,7 @@ export class TenantSettingsService {
       settings,
       tenant,
       categories: [...TENANT_SETTING_CATEGORIES],
+      inertKeys: describeInertTenantSettingKeys(),
     };
   }
 
