@@ -314,6 +314,7 @@ _None. Nothing open at CRITICAL._
 
 ## Recent Implementations
 
+- [[2026-08-29-workspace-switcher-avatar-menu|Workspace Switcher Moves Into the Avatar Menu]]
 - [[2026-08-20-self-service-acquisition-path|Self-Service Acquisition Path]]
 - [[2026-08-20-identity-and-membership|Identity and Multi-Tenant Membership]]
 - [[2026-08-17-web-app-documentation|2026-08-17 — Documenting `apps/web`, the tenant product]]
@@ -323,6 +324,7 @@ _None. Nothing open at CRITICAL._
 
 ## Recent Engineering History
 
+- [[2026-08-29-workspace-switcher-avatar-menu-9f32c407|Engineering History — Workspace switcher avatar menu]]
 - [[2026-08-29-starter-plan-e2e-qa-ee69f49f|Engineering History — Starter plan e2e qa]]
 - [[2026-08-29-starter-blocker-fixes-3fff9cc9|Engineering History — Starter blocker fixes]]
 - [[2026-08-29-backlog-burndown-9353872e|Engineering History — Backlog burndown]]
@@ -416,7 +418,7 @@ _None. Nothing open at CRITICAL._
 | Module notes | 29 |
 | Architecture notes | 21 |
 | Decision notes (ADR + generated) | 6 |
-| Implementation records | 6 |
+| Implementation records | 7 |
 
 **Awaiting Architect triage: 0.** A record nobody has
 triaged is work nobody has decided about — the number that should stay near

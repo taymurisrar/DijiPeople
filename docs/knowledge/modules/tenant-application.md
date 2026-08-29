@@ -75,6 +75,17 @@ Shared kit under `app/components/` — `data-table/`, `runtime/`, `ui/`
   ([[BUG-0046-tenant-theme-mode-and-runtime-settings-saves-do-not-take-eff]]).
 - **`moduleKey` string equality** selects command handlers and derives the API
   path. Renaming a spec's key silently changes both.
+- **A server-rendered node handed to a client component is always truthy**, even
+  when the server component inside it rendered `null`. An async server component
+  cannot be awaited by a client component, so the shell pattern is to resolve it
+  in the layout and pass it down as a slot — `layout.tsx` does this for the
+  workspace switcher inside `<Suspense fallback={null}>`. The consequence is
+  that the *receiving* component cannot branch on whether the slot is empty: a
+  Suspense boundary is a node whichever way it resolves. **Anything conditional
+  on the slot's presence — a divider, a heading, a wrapper with padding — has to
+  be drawn by the slot itself.** Getting this wrong leaves a separator to nowhere
+  in the menu of every user the section renders nothing for, which for the
+  workspace switcher is nearly all of them. See [[ITEM-0102]].
 
 ## Required states
 
@@ -110,7 +121,8 @@ should not be read as covering this app.
 [[BUG-0045-the-canonical-settings-and-branding-contract-is-materially-s]] ·
 [[BUG-0046-tenant-theme-mode-and-runtime-settings-saves-do-not-take-eff]] ·
 [[BUG-0020-window-prompt-used-for-governed-reasons]] (VERIFIED) ·
-[[ITEM-0034]] · [[ITEM-0035]] · [[ITEM-0036]] · [[ITEM-0037]] · [[ITEM-0012]]
+[[ITEM-0034]] · [[ITEM-0035]] · [[ITEM-0036]] · [[ITEM-0037]] · [[ITEM-0012]] ·
+[[ITEM-0102]] (DONE) · [[ITEM-0114]] · [[BUG-2148]] · [[BUG-2149]]
 
 ## Related
 
