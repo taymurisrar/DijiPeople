@@ -109,6 +109,53 @@ describe('OrganizationService hierarchy read scope', () => {
     ).rejects.toThrow('Department was not found for this tenant.');
   });
 
+  /*
+   * BUG-1957. `dep-unscoped` has no business unit, which is not the same thing
+   * as having one the caller cannot see — and the filter used to answer "hide
+   * it" to both questions. That made the row unreachable on every path: the
+   * list, fetch-by-id, and therefore update and delete, which resolve their
+   * target through this same function. It kept its name reserved throughout.
+   *
+   * `seedTenantWorkforceReferenceData` writes exactly these rows, so the four
+   * default department names were stranded on every tenant.
+   */
+  it('shows a department with no business unit to a tenant-scoped reader', async () => {
+    await expect(
+      service.findDepartmentsForUser(user(SecurityAccessLevel.TENANT), {}),
+    ).resolves.toEqual(departments);
+    await expect(
+      service.findDepartmentForUser(
+        user(SecurityAccessLevel.TENANT),
+        'dep-unscoped',
+      ),
+    ).resolves.toEqual(departments[3]);
+  });
+
+  it('keeps a department with no business unit outside a narrower reader scope', async () => {
+    await expect(
+      service.findDepartmentsForUser(
+        user(SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT),
+        {},
+      ),
+    ).resolves.not.toContain(departments[3]);
+    await expect(
+      service.findDepartmentForUser(
+        user(SecurityAccessLevel.ORGANIZATION),
+        'dep-unscoped',
+      ),
+    ).rejects.toThrow('Department was not found for this tenant.');
+  });
+
+  it('lets a tenant-scoped manager reach an unscoped department to repair it', async () => {
+    await expect(
+      service.findDepartmentForUser(
+        user(SecurityAccessLevel.TENANT, SecurityPrivilege.MANAGE),
+        'dep-unscoped',
+        SecurityPrivilege.MANAGE,
+      ),
+    ).resolves.toEqual(departments[3]);
+  });
+
   it('applies manage scope to mutations and rejects root creation below tenant scope', async () => {
     const scopedManager = user(
       SecurityAccessLevel.ORGANIZATION,
