@@ -96,6 +96,7 @@ function build(checks: Check[]) {
         return Promise.resolve(undefined);
       },
     } as never,
+    {} as never, // tenant settings resolver
   );
 
   // `readiness` and `overview` are the service's own methods; stubbing them

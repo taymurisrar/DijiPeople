@@ -419,6 +419,12 @@ export type TenantConfigurationView = {
   localization: {
     readOnly: boolean;
     source: string;
+    /**
+     * False when every value below is still the platform default — the tenant
+     * has never written one. The panel needs it to tell "the tenant chose UTC"
+     * from "nobody ever set this" (BUG-1977).
+     */
+    configured: boolean;
     values: Record<string, string>;
   };
   customerRelationship: {

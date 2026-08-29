@@ -826,6 +826,21 @@ export class EmployeesService {
           }),
         },
         {
+          /*
+           * BUG-1974 — the control existed on the Duplicate Prevention section
+           * and no rule was ever built from it. `Employee.email` is the work
+           * email; `personalEmail` above is the other one.
+           */
+          key: 'workEmail',
+          label: 'Work email',
+          enabled: employeeSettings.preventDuplicateWorkEmail,
+          severity: 'BLOCK',
+          value: (payload) => normalizeComparableEmail(payload.workEmail),
+          buildWhere: (value) => ({
+            email: value,
+          }),
+        },
+        {
           key: 'phone',
           label: 'Phone number',
           enabled: employeeSettings.preventDuplicateByPhoneNumber,
@@ -2665,8 +2680,11 @@ export class EmployeesService {
         | 'emergencyContactName'
         | 'emergencyContactRelationTypeId'
         | 'emergencyContactPhone'
+        | 'countryId'
+        | 'businessUnitId'
         | 'departmentId'
         | 'designationId'
+        | 'employeeLevelId'
         | 'hireDate'
         | 'reportingManagerEmployeeId'
         | 'locationId'
@@ -2685,10 +2703,33 @@ export class EmployeesService {
     if (settings.requireEmergencyContact) {
       issues.push(...emergencyContactFieldErrors(dto));
     }
+    /*
+     * BUG-1974 — country, business unit and employee level were rendered under
+     * "Required Fields" beside the rules below and enforced by nothing. They
+     * follow the same shape as their siblings rather than a new mechanism.
+     */
+    if (settings.requireCountry && !dto.countryId?.trim()) {
+      issues.push({
+        field: 'countryId',
+        message: 'Country is required by tenant employee settings.',
+      });
+    }
+    if (settings.requireBusinessUnit && !dto.businessUnitId?.trim()) {
+      issues.push({
+        field: 'businessUnitId',
+        message: 'Business unit is required by tenant employee settings.',
+      });
+    }
     if (settings.requireDepartment && !dto.departmentId?.trim()) {
       issues.push({
         field: 'departmentId',
         message: 'Department is required by tenant employee settings.',
+      });
+    }
+    if (settings.requireEmployeeLevel && !dto.employeeLevelId?.trim()) {
+      issues.push({
+        field: 'employeeLevelId',
+        message: 'Employee level is required by tenant employee settings.',
       });
     }
     if (settings.requireDesignation && !dto.designationId?.trim()) {
@@ -2935,7 +2976,10 @@ export class EmployeesService {
 
   private async assertEmployeeDuplicateRules(
     tenantId: string,
-    dto: Pick<CreateEmployeeDto, 'personalEmail' | 'phone' | 'cnic'>,
+    dto: Pick<
+      CreateEmployeeDto,
+      'personalEmail' | 'workEmail' | 'phone' | 'cnic'
+    >,
     settings: EmployeeSettingsResolved,
     excludeEmployeeId?: string,
   ) {
@@ -2952,6 +2996,18 @@ export class EmployeesService {
           value: (payload) => normalizeComparableEmail(payload.personalEmail),
           buildWhere: (value) => ({
             personalEmail: value,
+          }),
+        },
+        {
+          // BUG-1974 — see `checkDuplicates`; the same rule, on the enforcing
+          // path rather than the preview one.
+          key: 'workEmail',
+          label: 'Work email',
+          enabled: settings.preventDuplicateWorkEmail,
+          severity: 'BLOCK',
+          value: (payload) => normalizeComparableEmail(payload.workEmail),
+          buildWhere: (value) => ({
+            email: value,
           }),
         },
         {

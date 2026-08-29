@@ -12,6 +12,7 @@ import { ExcelExportService } from '../../common/excel/excel-export.service';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
+import { TimesheetAuditSettingsService } from './timesheet-audit-settings.service';
 import { TenantSettingsResolverService } from '../tenant-settings/tenant-settings-resolver.service';
 import { CreateTimesheetExportDto } from './dto/timesheet-export.dto';
 import { toDisplayString } from '../../common/utils/display-string';
@@ -58,6 +59,7 @@ export class TimesheetExportService {
     private readonly excel: ExcelExportService,
     private readonly tenantSettings: TenantSettingsResolverService,
     private readonly auditService: AuditService,
+    private readonly timesheetAuditSettings: TimesheetAuditSettingsService,
   ) {}
 
   async exportCurrent(
@@ -551,13 +553,28 @@ export class TimesheetExportService {
     return item;
   }
 
-  private auditExport(
+  /**
+   * BUG-2206 — `timesheets.auditExports` was rendered, saved and read by
+   * nothing. It gates exactly these rows: who exported whose hours, with which
+   * filters. It defaults on, and a settings read failure audits anyway; see
+   * `TimesheetAuditSettingsService`.
+   */
+  private async auditExport(
     user: AuthenticatedUser,
     action: string,
     requestId: string | null,
     filters: unknown,
     rowCount: number,
   ) {
+    if (
+      !(await this.timesheetAuditSettings.shouldAudit(
+        user.tenantId,
+        'auditExports',
+      ))
+    ) {
+      return undefined;
+    }
+
     return this.auditService.log({
       tenantId: user.tenantId,
       actorUserId: user.userId,

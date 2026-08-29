@@ -54,6 +54,7 @@ function build(tenantStatus: TenantStatus = TenantStatus.ACTIVE) {
     {} as never, // domains
     { log: jest.fn() } as never, // audit
     { record: jest.fn() } as never, // platform events
+    {} as never, // tenant settings resolver
   );
   jest.spyOn(service, 'overview').mockResolvedValue({} as never);
   return { service, prisma, access };
