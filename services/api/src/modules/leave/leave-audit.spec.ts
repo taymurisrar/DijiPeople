@@ -63,6 +63,7 @@ function createService() {
     }),
     findActiveLeavePolicyAssignments: jest.fn().mockResolvedValue([]),
     listActiveLeavePolicyRules: jest.fn().mockResolvedValue([]),
+    findOverlappingLeaveRequests: jest.fn().mockResolvedValue([]),
   };
 
   const service = new LeaveService(
@@ -187,6 +188,7 @@ describe('leave configuration auditing', () => {
     await service.createLeavePolicyRule(currentUser, 'leave-policy-1', {
       leaveTypeId: 'leave-type-1',
       entitlementDays: 20,
+      accrualType: 'ANNUAL_GRANT',
     } as never);
 
     expect(auditService.log).toHaveBeenCalledWith(
@@ -207,6 +209,7 @@ describe('leave configuration auditing', () => {
     await expect(
       service.createLeavePolicyRule(currentUser, 'leave-policy-1', {
         leaveTypeId: 'leave-type-1',
+        accrualType: 'ANNUAL_GRANT',
       } as never),
     ).rejects.toThrow();
 
@@ -223,6 +226,110 @@ describe('leave configuration auditing', () => {
 
     expect(auditService.log).toHaveBeenCalledWith(
       expect.objectContaining({ tenantId: 'tenant-1' }),
+    );
+  });
+});
+
+function leaveRequestRow(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'leave-request-1',
+    tenantId: 'tenant-1',
+    employeeId: 'employee-1',
+    leaveTypeId: 'leave-type-1',
+    startDate: new Date('2026-04-10'),
+    endDate: new Date('2026-04-11'),
+    totalDays: 2,
+    reason: 'Family',
+    status: 'PENDING',
+    attachmentRequired: false,
+    attachmentReference: null,
+    documentLinks: [],
+    createdAt: new Date('2026-04-01'),
+    updatedAt: new Date('2026-04-01'),
+    employee: {
+      id: 'employee-1',
+      employeeCode: 'EMP-0002',
+      firstName: 'Ada',
+      lastName: 'Lovelace',
+      preferredName: null,
+    },
+    leaveType: { id: 'leave-type-1', name: 'Annual Leave' },
+    approvalSteps: [],
+    ...overrides,
+  };
+}
+
+describe('leave request auditing', () => {
+  it('writes an audit row when a leave request is submitted', async () => {
+    /*
+     * Only the decision was audited, so the trail could show a request being
+     * approved with no record of it ever having been asked for.
+     */
+    const { service, auditService, leaveRepository } = createService();
+    const prisma = (service as unknown as { prisma: Record<string, unknown> })
+      .prisma;
+    (prisma.$transaction as jest.Mock).mockImplementation(
+      async (callback: (tx: unknown) => Promise<unknown>) => callback({}),
+    );
+    Object.assign(leaveRepository, {
+      createLeaveRequest: jest.fn().mockResolvedValue(leaveRequestRow()),
+    });
+    /*
+     * A leave type that does not draw down a balance keeps this test on the
+     * audit call rather than on the entitlement model, which REG-306 covers.
+     */
+    leaveRepository.findLeaveTypeById.mockResolvedValue({
+      id: 'leave-type-1',
+      name: 'Annual Leave',
+      isActive: true,
+      employeeRequestAllowed: true,
+      consumesBalance: false,
+      requiresAttachment: false,
+    });
+    Object.assign(prisma, {
+      leaveRequest: { findFirst: jest.fn().mockResolvedValue(null) },
+      leaveBalance: {
+        findUnique: jest.fn().mockResolvedValue({ totalRemaining: 20 }),
+      },
+      approvalRequest: {
+        upsert: jest.fn().mockResolvedValue({ id: 'approval-request-1' }),
+      },
+      approvalStep: {
+        deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+        createMany: jest.fn().mockResolvedValue({ count: 0 }),
+      },
+      approvalAction: {
+        create: jest.fn().mockResolvedValue({ id: 'approval-action-1' }),
+      },
+    });
+    const employeesRepository = (
+      service as unknown as {
+        employeesRepository: { findByUserIdAndTenant: jest.Mock };
+      }
+    ).employeesRepository;
+    employeesRepository.findByUserIdAndTenant.mockResolvedValue({
+      id: 'employee-1',
+      managerEmployeeId: null,
+      manager: null,
+      departmentId: null,
+      businessUnitId: null,
+      employeeLevelId: null,
+    });
+
+    await service.submitLeaveRequest(currentUser, {
+      leaveTypeId: '6f314f65-cd24-42f2-88ea-5f712fa96f55',
+      startDate: '2026-04-10',
+      endDate: '2026-04-11',
+    } as never);
+
+    expect(auditService.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tenantId: 'tenant-1',
+        actorUserId: 'user-1',
+        action: AUDIT_ACTIONS.LEAVE_REQUEST_SUBMITTED,
+        entityType: 'LeaveRequest',
+        entityId: 'leave-request-1',
+      }),
     );
   });
 });
