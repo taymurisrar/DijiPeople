@@ -20,42 +20,42 @@ export async function RoleDashboardPage({
         ? error.message
         : "This dashboard could not be loaded.";
     return (
-      <main className="dp-theme-scope px-4 py-6">
+      <div className="dp-theme-scope px-4 py-6">
         <div className="rounded-xl border border-border bg-surface p-6 shadow-sm">
           <p className="text-sm font-medium uppercase text-danger">Dashboard unavailable</p>
-          <h1 className="mt-2 text-2xl font-semibold text-foreground">{title}</h1>
+          <h2 className="mt-2 text-2xl font-semibold text-foreground">{title}</h2>
           <p className="mt-2 text-sm text-muted">{message}</p>
           <Link className="mt-5 inline-flex rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white" href="/">
             Open my overview
           </Link>
         </div>
-      </main>
+      </div>
     );
   }
   const selectedView = summary.views.find((view) => view.key === viewKey);
   if (!selectedView) {
     return (
-      <main className="dp-theme-scope px-4 py-6">
+      <div className="dp-theme-scope px-4 py-6">
         <div className="rounded-xl border border-border bg-surface p-6 shadow-sm">
           <p className="text-sm font-medium uppercase text-danger">Access denied</p>
-          <h1 className="mt-2 text-2xl font-semibold text-foreground">{title}</h1>
+          <h2 className="mt-2 text-2xl font-semibold text-foreground">{title}</h2>
           <p className="mt-2 text-sm text-muted">This dashboard is not available for your role or organization scope.</p>
           <Link className="mt-5 inline-flex rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white" href="/">Open my overview</Link>
         </div>
-      </main>
+      </div>
     );
   }
   summary = { defaultView: viewKey, views: [selectedView] };
   return (
-    <main className="dp-theme-scope grid gap-6 px-1 py-2 md:px-2 lg:px-4">
+    <div className="dp-theme-scope grid gap-6 px-1 py-2 md:px-2 lg:px-4">
       <div className="flex items-center justify-between gap-4 rounded-xl bg-surface">
         <div>
           <p className="text-sm font-medium text-muted">Operational dashboard</p>
-          <h1 className="text-2xl font-semibold text-foreground">{title}</h1>
+          <h2 className="text-2xl font-semibold text-foreground">{title}</h2>
         </div>
         <DashboardRefreshButton />
       </div>
       <DashboardShell selectedViewKey={viewKey} summary={summary} />
-    </main>
+    </div>
   );
 }

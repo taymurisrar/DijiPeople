@@ -87,7 +87,7 @@ export default function DlpReviewPage() {
   if (denied) {
     return (
       <div className="p-8">
-        <h1 className="text-lg font-semibold text-foreground">DLP review</h1>
+        <h2 className="text-lg font-semibold text-foreground">DLP review</h2>
         <p className="mt-2 text-sm text-muted">
           You do not have permission to review captured content. This requires
           the <code>dlp.review</code> permission.
@@ -99,7 +99,7 @@ export default function DlpReviewPage() {
   return (
     <div className="mx-auto grid max-w-4xl gap-6 p-6 md:p-8">
       <header>
-        <h1 className="text-lg font-semibold text-foreground">DLP review</h1>
+        <h2 className="text-lg font-semibold text-foreground">DLP review</h2>
         <p className="mt-1 text-sm text-muted">
           Data-loss alerts from the desktop agent. Viewing captured content is
           audited.

@@ -8,7 +8,7 @@ export default function LeaveError({
   reset: () => void;
 }) {
   return (
-    <main className="grid gap-6">
+    <div className="grid gap-6">
       <section className="rounded-[24px] border border-danger/20 bg-danger/5 p-8 shadow-sm">
         <p className="text-sm uppercase tracking-[0.18em] text-danger">
           Leave module error
@@ -25,6 +25,6 @@ export default function LeaveError({
           Try again
         </button>
       </section>
-    </main>
+    </div>
   );
 }

@@ -39,12 +39,12 @@ export default async function EditEmployeePage({
 
   if (!canEditEmployeeCoreProfile(sessionUser)) {
     return (
-      <main className="dp-theme-scope dp-employees-scope grid gap-6">
+      <div className="dp-theme-scope dp-employees-scope grid gap-6">
         <AccessDeniedState
           description="You do not have permission to edit this employee record."
           title="You cannot edit this employee record."
         />
-      </main>
+      </div>
     );
   }
 
@@ -63,12 +63,12 @@ export default async function EditEmployeePage({
 
   if (!canManageEmployeeRecord(employee.accessMode)) {
     return (
-      <main className="dp-theme-scope dp-employees-scope grid gap-6">
+      <div className="dp-theme-scope dp-employees-scope grid gap-6">
         <AccessDeniedState
           description="Your access to this employee profile is view-only."
           title="You cannot edit this employee record."
         />
-      </main>
+      </div>
     );
   }
 
@@ -135,7 +135,7 @@ export default async function EditEmployeePage({
     await import("../../_components/employee-runtime-form-wrapper");
 
   return (
-    <main className="dp-theme-scope dp-employees-scope grid gap-6">
+    <div className="dp-theme-scope dp-employees-scope grid gap-6">
       <EmployeeRuntimeFormWrapper
         activeForm={activeRuntimeForm}
         lookupDisplayValues={mapEmployeeLookupDisplayValues(employee)}
@@ -149,6 +149,6 @@ export default async function EditEmployeePage({
         record={mapEmployeeRecordToRuntimeValues(employee)}
         runtime={employeeRuntimeContext}
       />
-    </main>
+    </div>
   );
 }

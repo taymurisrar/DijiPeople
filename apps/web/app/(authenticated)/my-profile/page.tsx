@@ -57,12 +57,12 @@ export default async function MyProfilePage({
   if (!sessionUser) redirect("/login?reason=session-expired");
   if (!currentEmployeeContext.employee) {
     return (
-      <main className="grid gap-6">
+      <div className="grid gap-6">
         <AccessDeniedState
           description="An administrator must link this account to an Employee record."
           title="Employee profile not linked."
         />
-      </main>
+      </div>
     );
   }
 
@@ -135,7 +135,7 @@ export default async function MyProfilePage({
     await import("../employees/_components/employee-runtime-form-wrapper");
 
   return (
-    <main className="dp-theme-scope dp-employees-scope grid gap-6">
+    <div className="dp-theme-scope dp-employees-scope grid gap-6">
       <EmployeeRuntimeFormWrapper
         activeForm={activeForm}
         lookupDisplayValues={mapEmployeeLookupDisplayValues(employee)}
@@ -147,7 +147,7 @@ export default async function MyProfilePage({
         record={mapEmployeeRecordToRuntimeValues(employee)}
         runtime={runtime}
       />
-    </main>
+    </div>
   );
 }
 

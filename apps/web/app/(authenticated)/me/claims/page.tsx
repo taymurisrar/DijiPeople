@@ -13,7 +13,7 @@ export default async function MyClaimsPage() {
   }
   const claims = await apiRequestJson<ClaimRecord[]>("/me/claims");
   return (
-    <main className="grid gap-6">
+    <div className="grid gap-6">
       <section className="rounded-[28px] border border-border bg-surface p-8 shadow-sm">
         <p className="text-sm uppercase tracking-[0.18em] text-muted">Self Service</p>
         <h2 className="mt-3 font-serif text-4xl text-foreground">My Claims</h2>
@@ -32,6 +32,6 @@ export default async function MyClaimsPage() {
           </Link>
         )) : <p className="text-sm text-muted">No claims found.</p>}
       </section>
-    </main>
+    </div>
   );
 }

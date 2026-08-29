@@ -26,7 +26,7 @@ export default async function NewProjectPage({ searchParams }: PageProps) {
   );
 
   return (
-    <main className="dp-theme-scope dp-projects-scope grid gap-6">
+    <div className="dp-theme-scope dp-projects-scope grid gap-6">
       <StandardModuleRecordPage
         activeForm={activeForm}
         mode="create"
@@ -35,6 +35,6 @@ export default async function NewProjectPage({ searchParams }: PageProps) {
         spec={projectRuntimeSpec}
         title="New Project"
       />
-    </main>
+    </div>
   );
 }

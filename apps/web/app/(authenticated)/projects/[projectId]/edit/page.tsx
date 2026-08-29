@@ -35,7 +35,7 @@ export default async function EditProjectPage({
   );
 
   return (
-    <main className="dp-theme-scope dp-projects-scope grid gap-6">
+    <div className="dp-theme-scope dp-projects-scope grid gap-6">
       <StandardModuleRecordPage
         activeForm={activeForm}
         mode="edit"
@@ -49,6 +49,6 @@ export default async function EditProjectPage({
         spec={projectRuntimeSpec}
         title={`Edit ${project.name}`}
       />
-    </main>
+    </div>
   );
 }

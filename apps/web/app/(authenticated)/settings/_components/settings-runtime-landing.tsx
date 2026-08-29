@@ -49,15 +49,15 @@ export function SettingsWorkspaceLanding() {
     user?.roleKeys ?? [],
   );
   return (
-    <main className="min-h-screen bg-background px-2 py-4 sm:px-4 lg:px-6">
+    <div className="min-h-screen bg-background px-2 py-4 sm:px-4 lg:px-6">
       <div className="mx-auto w-full max-w-7xl">
         <section className="rounded-[28px] border border-border bg-surface p-7 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">
             Tenant Settings
           </p>
-          <h1 className="mt-3 text-3xl font-semibold tracking-tight text-foreground">
+          <h2 className="mt-3 text-3xl font-semibold tracking-tight text-foreground">
             Configuration workspace
-          </h1>
+          </h2>
           <p className="mt-3 max-w-3xl text-sm leading-7 text-muted">
             Configure the organization through structured categories and
             reusable setting groups.
@@ -101,7 +101,7 @@ export function SettingsWorkspaceLanding() {
           })}
         </div>
       </div>
-    </main>
+    </div>
   );
 }
 

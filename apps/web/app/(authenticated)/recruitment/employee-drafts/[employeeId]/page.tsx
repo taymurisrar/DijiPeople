@@ -33,12 +33,12 @@ export default async function EmployeeDraftPage({
       (error.status === 403 || error.status === 404)
     ) {
       return (
-        <main className="grid gap-6">
+        <div className="grid gap-6">
           <AccessDeniedState
             description="This employee draft is outside your accessible business-unit scope."
             title="You cannot view this employee draft."
           />
-        </main>
+        </div>
       );
     }
 
@@ -54,14 +54,14 @@ export default async function EmployeeDraftPage({
   }
 
   return (
-    <main className="grid gap-6">
+    <div className="grid gap-6">
       <section className="rounded-[24px] border border-border bg-surface p-6 shadow-sm">
         <p className="text-sm uppercase tracking-[0.18em] text-muted">
           Recruitment to Employee Draft
         </p>
-        <h1 className="mt-3 text-3xl font-semibold text-foreground">
+        <h2 className="mt-3 text-3xl font-semibold text-foreground">
           {employee.fullName} - Draft Employee
-        </h1>
+        </h2>
         <p className="mt-2 max-w-3xl text-muted">
           This draft was generated automatically when the application moved to
           Hired. Complete these essentials before final onboarding conversion.
@@ -105,6 +105,6 @@ export default async function EmployeeDraftPage({
           ) : null}
         </div>
       </section>
-    </main>
+    </div>
   );
 }

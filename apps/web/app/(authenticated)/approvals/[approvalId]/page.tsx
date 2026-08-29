@@ -39,7 +39,7 @@ export default async function ApprovalDetailPage({
   );
 
   return (
-    <main className="grid gap-6">
+    <div className="grid gap-6">
       <StandardModuleRecordPage
         activeForm={activeForm}
         mode="read"
@@ -67,7 +67,7 @@ export default async function ApprovalDetailPage({
         spec={approvalRuntimeSpec}
         title={approval.title}
       />
-    </main>
+    </div>
   );
 }
 

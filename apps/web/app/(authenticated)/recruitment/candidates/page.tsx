@@ -25,12 +25,12 @@ export default async function RecruitmentCandidatesPage({
 
   if (!hasBusinessUnitScope(businessUnitAccess)) {
     return (
-      <main className="grid gap-6">
+      <div className="grid gap-6">
         <AccessDeniedState
           description="Your current business-unit scope does not include candidate records."
           title="Candidates are unavailable for your current business unit access."
         />
-      </main>
+      </div>
     );
   }
 
@@ -47,7 +47,7 @@ export default async function RecruitmentCandidatesPage({
   ]);
 
   return (
-    <main className="grid gap-6">
+    <div className="grid gap-6">
       <StandardModuleListPage
         commandRecord={{
           candidateCount: candidates.meta.total,
@@ -64,7 +64,7 @@ export default async function RecruitmentCandidatesPage({
         spec={recruitmentCandidateRuntimeSpec}
         title="Candidates"
       />
-    </main>
+    </div>
   );
 }
 

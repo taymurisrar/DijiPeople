@@ -33,7 +33,7 @@ export default async function AttendanceRecordPage({
   } catch (error) {
     if (error instanceof ApiRequestError && error.status === 403) {
       return (
-        <main className="dp-theme-scope dp-attendance-scope grid gap-6">
+        <div className="dp-theme-scope dp-attendance-scope grid gap-6">
           <AccessDeniedState
             description={error.message}
             errorCode={error.errorCode ?? "ACCESS_DENIED"}
@@ -42,7 +42,7 @@ export default async function AttendanceRecordPage({
             title="You cannot view this attendance record."
             traceId={error.traceId}
           />
-        </main>
+        </div>
       );
     }
     throw error;
@@ -60,7 +60,7 @@ export default async function AttendanceRecordPage({
   const runtimeRecord = toAttendanceRuntimeRecord(record);
 
   return (
-    <main className="dp-theme-scope dp-attendance-scope grid gap-6">
+    <div className="dp-theme-scope dp-attendance-scope grid gap-6">
       <StandardModuleRecordPage
         activeForm={activeForm}
         lookupDisplayValues={{ ownerId: record.employee.fullName }}
@@ -81,7 +81,7 @@ export default async function AttendanceRecordPage({
         date={attendanceDateKey(record)}
         employeeId={record.employeeId}
       />
-    </main>
+    </div>
   );
 }
 

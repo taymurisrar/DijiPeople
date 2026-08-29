@@ -37,7 +37,7 @@ export default async function LeaveDetailPage({
   );
 
   return (
-    <main className="dp-theme-scope dp-leaves-scope grid gap-6">
+    <div className="dp-theme-scope dp-leaves-scope grid gap-6">
       <StandardModuleRecordPage
         activeForm={activeForm}
         mode="read"
@@ -46,7 +46,7 @@ export default async function LeaveDetailPage({
         runtime={runtime}
         spec={leaveRuntimeSpec}
       />
-    </main>
+    </div>
   );
 }
 

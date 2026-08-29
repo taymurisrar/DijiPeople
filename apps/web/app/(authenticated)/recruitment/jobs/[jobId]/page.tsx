@@ -48,12 +48,12 @@ export default async function JobDetailPage({
       (error.status === 403 || error.status === 404)
     ) {
       return (
-        <main className="grid gap-6">
+        <div className="grid gap-6">
           <AccessDeniedState
             description="This job opening is outside your accessible business-unit scope."
             title="You cannot view this job opening."
           />
-        </main>
+        </div>
       );
     }
 
@@ -73,7 +73,7 @@ export default async function JobDetailPage({
   const runtimeRecord = mapJobRecord(job);
 
   return (
-    <main className="dp-theme-scope grid gap-6">
+    <div className="dp-theme-scope grid gap-6">
       <StandardModuleRecordPage
         activeForm={activeForm}
         formSlot={<JobOpeningDetailWorkspace job={job} />}
@@ -84,7 +84,7 @@ export default async function JobDetailPage({
         spec={jobOpeningRuntimeSpec}
         title={job.title}
       />
-    </main>
+    </div>
   );
 }
 

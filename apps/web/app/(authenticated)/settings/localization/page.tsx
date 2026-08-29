@@ -7,15 +7,15 @@ export default async function LocalizationSettingsPage() {
   ).catch(() => null);
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-6 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-slate-50 px-4 py-6 sm:px-6 lg:px-8">
       <section className="mx-auto grid max-w-5xl gap-5 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
             Enterprise settings
           </p>
-          <h1 className="mt-2 text-3xl font-semibold text-slate-950">
+          <h2 className="mt-2 text-3xl font-semibold text-slate-950">
             Localization
-          </h1>
+          </h2>
           <p className="mt-2 text-sm leading-6 text-slate-500">
             Locale, date, time, number, timezone, and first-day-of-week values
             are resolved globally through the settings context provider.
@@ -41,6 +41,6 @@ export default async function LocalizationSettingsPage() {
           ))}
         </dl>
       </section>
-    </main>
+    </div>
   );
 }

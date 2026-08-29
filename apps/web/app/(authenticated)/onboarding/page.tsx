@@ -25,12 +25,12 @@ export default async function OnboardingPage({
 
   if (!hasBusinessUnitScope(businessUnitAccess)) {
     return (
-      <main className="grid gap-6">
+      <div className="grid gap-6">
         <AccessDeniedState
           description="Your current business-unit scope does not include onboarding records."
           title="Onboarding is unavailable for your current business unit access."
         />
-      </main>
+      </div>
     );
   }
 
@@ -47,7 +47,7 @@ export default async function OnboardingPage({
   ]);
 
   return (
-    <main className="grid gap-6">
+    <div className="grid gap-6">
       <StandardModuleListPage
         commandRecord={{
           onboardingCount: onboardings.meta.total,
@@ -64,7 +64,7 @@ export default async function OnboardingPage({
         spec={onboardingRuntimeSpec}
         title="Onboarding"
       />
-    </main>
+    </div>
   );
 }
 

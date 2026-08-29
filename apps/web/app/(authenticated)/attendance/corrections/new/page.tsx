@@ -17,17 +17,17 @@ export default async function NewAttendanceCorrectionPage() {
     ])
   ) {
     return (
-      <main className="dp-theme-scope dp-attendance-scope grid gap-6">
+      <div className="dp-theme-scope dp-attendance-scope grid gap-6">
         <AccessDeniedState
           description="Your role does not include attendance correction submission."
           title="Attendance correction submission is unavailable."
         />
-      </main>
+      </div>
     );
   }
 
   return (
-    <main className="dp-theme-scope dp-attendance-scope space-y-6">
+    <div className="dp-theme-scope dp-attendance-scope space-y-6">
       <section>
         <Link
           className="text-sm font-medium text-accent transition hover:text-accent-strong"
@@ -47,6 +47,6 @@ export default async function NewAttendanceCorrectionPage() {
         </p>
       </section>
       <AttendanceCorrectionForm />
-    </main>
+    </div>
   );
 }

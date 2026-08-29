@@ -80,12 +80,12 @@ export default async function UserDetailPage({
 
   if (!canReadUsers) {
     return (
-      <main className="dp-theme-scope grid gap-6">
+      <div className="dp-theme-scope grid gap-6">
         <AccessDeniedState
           title="You cannot view this user record."
           description="You do not have permission to read user records."
         />
-      </main>
+      </div>
     );
   }
 
@@ -119,12 +119,12 @@ export default async function UserDetailPage({
       (error.status === 403 || error.status === 404)
     ) {
       return (
-        <main className="dp-theme-scope grid gap-6">
+        <div className="dp-theme-scope grid gap-6">
           <AccessDeniedState
             title="You cannot view this user record."
             description={`${error.status}: ${error.message}`}
           />
-        </main>
+        </div>
       );
     }
 
@@ -163,7 +163,7 @@ export default async function UserDetailPage({
     formatDateTimeWithTenantSettings(value, formattingOptions);
 
   return (
-    <main className="dp-theme-scope grid gap-6">
+    <div className="dp-theme-scope grid gap-6">
       <UserProfileHeader
         canDeleteUser={canDeleteUser}
         canUpdateUser={canUpdateUser}
@@ -224,7 +224,7 @@ export default async function UserDetailPage({
       {activeTab === "security" ? (
         <UserSecurityDiagnosticsCard user={user} />
       ) : null}
-    </main>
+    </div>
   );
 }
 

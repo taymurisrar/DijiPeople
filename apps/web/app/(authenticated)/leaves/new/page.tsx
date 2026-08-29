@@ -40,7 +40,7 @@ export default async function NewLeavePage({ searchParams }: PageProps) {
   );
 
   return (
-    <main className="dp-theme-scope dp-leaves-scope grid gap-6">
+    <div className="dp-theme-scope dp-leaves-scope grid gap-6">
       {leaveTypeConfig.status !== "AVAILABLE" ? (
         <TopAlert
           description={
@@ -68,6 +68,6 @@ export default async function NewLeavePage({ searchParams }: PageProps) {
         spec={leaveRuntimeSpec}
         title="New Leave Request"
       />
-    </main>
+    </div>
   );
 }

@@ -15,7 +15,7 @@ export default async function MyClaimDetailPage({ params }: PageProps) {
   }
   const claim = await apiRequestJson<ClaimRecord>(`/me/claims/${claimId}`);
   return (
-    <main className="grid gap-6">
+    <div className="grid gap-6">
       <section className="rounded-[28px] border border-border bg-surface p-8 shadow-sm">
         <p className="text-sm uppercase tracking-[0.18em] text-muted">{claim.status}</p>
         <h2 className="mt-3 font-serif text-4xl text-foreground">{claim.title}</h2>
@@ -31,6 +31,6 @@ export default async function MyClaimDetailPage({ params }: PageProps) {
           </div>
         ))}
       </section>
-    </main>
+    </div>
   );
 }

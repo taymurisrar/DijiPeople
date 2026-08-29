@@ -12,7 +12,7 @@ export default async function BenefitAssignmentsPage() {
   const rows = readRecordList(data);
   const records = rows.map(normalizeAssignment);
   const runtime = buildStandardRouteRuntime({ pageKind: "list", sessionUser: user, spec: benefitAssignmentRuntimeSpec });
-  return <main className="grid gap-6"><StandardModuleListPage records={records} runtime={runtime} spec={benefitAssignmentRuntimeSpec} title="Employee Benefit Assignments" /></main>;
+  return <div className="grid gap-6"><StandardModuleListPage records={records} runtime={runtime} spec={benefitAssignmentRuntimeSpec} title="Employee Benefit Assignments" /></div>;
 }
 
 function normalizeAssignment(row: Record<string, unknown>) {

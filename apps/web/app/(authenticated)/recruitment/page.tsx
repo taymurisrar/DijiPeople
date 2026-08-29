@@ -58,17 +58,17 @@ async function RecruitmentIndexContent() {
 
   if (!hasBusinessUnitScope(businessUnitAccess)) {
     return (
-      <main className="grid gap-6">
+      <div className="grid gap-6">
         <AccessDeniedState
           description="Your current business-unit scope does not include recruitment data."
           title="Recruitment is unavailable for your current business unit access."
         />
-      </main>
+      </div>
     );
   }
 
   return (
-    <main className="grid gap-6">
+    <div className="grid gap-6">
       <section className="rounded-[28px] border border-border bg-[linear-gradient(135deg,rgba(255,255,255,0.95),rgba(239,248,245,0.9))] p-8 shadow-lg">
         <p className="text-sm uppercase tracking-[0.18em] text-muted">
           Recruitment
@@ -103,6 +103,6 @@ async function RecruitmentIndexContent() {
           </article>
         ))}
       </section>
-    </main>
+    </div>
   );
 }

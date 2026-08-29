@@ -53,7 +53,7 @@ export default async function CustomerDetailPage({
   );
 
   return (
-    <main className="grid gap-6">
+    <div className="grid gap-6">
       <StandardModuleRecordPage
         activeForm={activeForm}
         mode="read"
@@ -66,6 +66,6 @@ export default async function CustomerDetailPage({
         spec={customerRuntimeSpec}
         title={customer.name}
       />
-    </main>
+    </div>
   );
 }

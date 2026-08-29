@@ -15,12 +15,12 @@ export default async function ReportsPage() {
 
   if (!hasBusinessUnitScope(businessUnitAccess)) {
     return (
-      <main className="grid gap-8">
+      <div className="grid gap-8">
         <AccessDeniedState
           description="Your current business-unit scope does not include reportable records."
           title="Reports are unavailable for your current business unit access."
         />
-      </main>
+      </div>
     );
   }
 
@@ -47,14 +47,14 @@ export default async function ReportsPage() {
     ]);
 
   return (
-    <main className="grid gap-8">
+    <div className="grid gap-8">
       <section className="rounded-[28px] border border-border bg-[linear-gradient(135deg,rgba(255,255,255,0.98),rgba(224,242,254,0.9))] p-8 shadow-lg">
         <p className="text-sm uppercase tracking-[0.18em] text-muted">
           Analytics
         </p>
-        <h1 className="mt-3 font-serif text-4xl text-foreground">
+        <h2 className="mt-3 font-serif text-4xl text-foreground">
           Reports and Summaries
-        </h1>
+        </h2>
         <p className="mt-3 max-w-3xl text-muted">
           Track high-value workforce, leave, attendance, and hiring signals
           without leaving the platform. This reporting layer is intentionally
@@ -68,6 +68,6 @@ export default async function ReportsPage() {
         leaveSummary={leaveSummary}
         recruitmentSummary={recruitmentSummary}
       />
-    </main>
+    </div>
   );
 }

@@ -43,7 +43,7 @@ export default async function EditCustomerPage({
   );
 
   return (
-    <main className="grid gap-6">
+    <div className="grid gap-6">
       <StandardModuleRecordPage
         activeForm={activeForm}
         mode="edit"
@@ -53,6 +53,6 @@ export default async function EditCustomerPage({
         spec={customerRuntimeSpec}
         title={`Edit ${customer.name ?? "Customer"}`}
       />
-    </main>
+    </div>
   );
 }

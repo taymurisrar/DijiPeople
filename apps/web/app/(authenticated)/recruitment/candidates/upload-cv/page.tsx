@@ -12,7 +12,7 @@ export default async function UploadCvPage() {
   ]);
 
   return (
-    <main className="grid gap-6">
+    <div className="grid gap-6">
       <section className="grid gap-3">
         <div>
           <p className="text-sm uppercase tracking-[0.18em] text-muted">
@@ -44,6 +44,6 @@ export default async function UploadCvPage() {
         documentTypes={documentTypes}
         documentCategories={documentCategories}
       />
-    </main>
+    </div>
   );
 }

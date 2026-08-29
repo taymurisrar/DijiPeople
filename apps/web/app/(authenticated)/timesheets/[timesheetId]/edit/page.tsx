@@ -25,13 +25,13 @@ export default async function EditTimesheetPage({ params }: PageProps) {
     ]);
 
   return (
-    <main className="grid gap-6">
+    <div className="grid gap-6">
       <TimesheetMONTHLYEditor
         projectOptions={projectOptions}
         timesheet={timesheet}
         workLocationOptions={workLocationOptions}
       />
-    </main>
+    </div>
   );
 }
 

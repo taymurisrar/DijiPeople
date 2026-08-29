@@ -8,5 +8,5 @@ export default async function BenefitAssignmentDetailPage({ params }: { params: 
   const { id } = await params;
   const [record, user] = await Promise.all([apiRequestJson<Record<string, unknown>>(`/benefits/assignments/${id}`), getSessionUser()]);
   const runtime = buildStandardRouteRuntime({ pageKind: "detail", recordId: id, sessionUser: user, spec: benefitAssignmentRuntimeSpec });
-  return <main className="grid gap-6"><StandardModuleRecordPage activeForm={resolveStandardActiveForm(runtime.metadata.forms, "")} mode="read" record={record} recordId={id} runtime={runtime} spec={benefitAssignmentRuntimeSpec} title="Benefit Assignment" /></main>;
+  return <div className="grid gap-6"><StandardModuleRecordPage activeForm={resolveStandardActiveForm(runtime.metadata.forms, "")} mode="read" record={record} recordId={id} runtime={runtime} spec={benefitAssignmentRuntimeSpec} title="Benefit Assignment" /></div>;
 }

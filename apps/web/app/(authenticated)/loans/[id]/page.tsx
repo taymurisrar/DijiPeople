@@ -8,5 +8,5 @@ export default async function LoanDetailPage({ params }: { params: Promise<{ id:
   const { id } = await params;
   const [record, user] = await Promise.all([apiRequestJson<Record<string, unknown>>(`/loans/${id}`), getSessionUser()]);
   const runtime = buildStandardRouteRuntime({ pageKind: "detail", recordId: id, sessionUser: user, spec: loanRuntimeSpec });
-  return <main className="grid gap-6"><StandardModuleRecordPage activeForm={resolveStandardActiveForm(runtime.metadata.forms, "")} mode="read" record={record} recordId={id} runtime={runtime} spec={loanRuntimeSpec} title={typeof record.requestNumber === "string" ? record.requestNumber : "Loan Request"} /></main>;
+  return <div className="grid gap-6"><StandardModuleRecordPage activeForm={resolveStandardActiveForm(runtime.metadata.forms, "")} mode="read" record={record} recordId={id} runtime={runtime} spec={loanRuntimeSpec} title={typeof record.requestNumber === "string" ? record.requestNumber : "Loan Request"} /></div>;
 }

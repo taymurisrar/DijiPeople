@@ -9,7 +9,7 @@ export default async function LeaveApprovalsPage() {
 
   if (shouldEnforceSelfScope(businessUnitAccess)) {
     return (
-      <main className="grid gap-6">
+      <div className="grid gap-6">
         <section className="rounded-[24px] border border-dashed border-border bg-surface p-10 text-center shadow-sm">
           <p className="text-sm uppercase tracking-[0.18em] text-muted">
             Self scope active
@@ -21,7 +21,7 @@ export default async function LeaveApprovalsPage() {
             Your access is scoped to your own records only.
           </p>
         </section>
-      </main>
+      </div>
     );
   }
 
@@ -41,7 +41,7 @@ export default async function LeaveApprovalsPage() {
   }
 
   return (
-    <main className="grid gap-6">
+    <div className="grid gap-6">
       <section className="flex flex-col gap-4 rounded-[28px] border border-border bg-[linear-gradient(135deg,rgba(255,255,255,0.95),rgba(237,248,255,0.9))] p-8 shadow-lg lg:flex-row lg:items-end lg:justify-between">
         <div className="space-y-3">
           <p className="text-sm uppercase tracking-[0.18em] text-muted">
@@ -83,6 +83,6 @@ export default async function LeaveApprovalsPage() {
           requests={requests}
         />
       )}
-    </main>
+    </div>
   );
 }

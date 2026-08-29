@@ -29,12 +29,12 @@ export default async function RecruitmentJobsPage({
 
   if (!hasBusinessUnitScope(businessUnitAccess)) {
     return (
-      <main className="grid gap-6">
+      <div className="grid gap-6">
         <AccessDeniedState
           description="Your current business-unit scope does not include job opening records."
           title="Job openings are unavailable for your current business unit access."
         />
-      </main>
+      </div>
     );
   }
 
@@ -51,7 +51,7 @@ export default async function RecruitmentJobsPage({
   ]);
 
   return (
-    <main className="grid gap-6">
+    <div className="grid gap-6">
       <StandardModuleListPage
         commandRecord={{
           jobOpeningCount: jobs.meta.total,
@@ -68,7 +68,7 @@ export default async function RecruitmentJobsPage({
         spec={jobOpeningRuntimeSpec}
         title="Job Openings"
       />
-    </main>
+    </div>
   );
 }
 
