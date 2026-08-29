@@ -227,6 +227,31 @@ Open. No fix has been written.
 
 Awaiting a fix — nothing to retest yet.
 
+## Decision — 2026-08-29, from the repository owner
+
+Asked which of the places that decide an attendance value should be the source of
+truth, the repository owner chose: **`AttendancePolicy` wins, and the settings
+screen edits it.** One home, with the settings UI writing through rather than
+into a parallel store.
+
+This is the answer BUG-1979, BUG-1980 and BUG-1981 were all waiting on, and it is
+recorded on each of the three because each reads as a separate defect and none of
+them can be fixed without it.
+
+Sequencing is in EXECPLAN-0027 (`docs/plans/`): change the column defaults,
+backfill existing rows, and only then point the resolver at the columns. The
+order matters — the columns are stale relative to what the engine enforces, so
+reading them before correcting the data would change behaviour on every tenant
+that has ever saved the attendance policy screen.
+
+> Added by SESSION-0071, which planned this work before noticing SESSION-0072 was
+> already inside it. The correction section above is theirs and is better sourced
+> than the account this session first wrote: the "inverted defaults" framing is
+> wrong, the two values are logical complements that have always been consumed as
+> complements, and those columns were never read in an enforcement branch at all.
+> EXECPLAN-0027 has been amended to say so. Where the two accounts differ, that
+> one is right.
+
 ## History
 
 - 2026-08-29 — created from the Starter-plan production QA run (SESSION-0070) at `eb457d9d`.
