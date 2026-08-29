@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { formatDate, formatDateTime } from "@/lib/formatting-context";
+import { humanizeEnumValue } from "@/lib/text/inflection";
 import type {
   DashboardAction,
   DashboardSeverity,
@@ -530,39 +532,48 @@ function humanize(value: string) {
 const ISO_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/;
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
-function formatValue(value: unknown): string {
+/**
+ * Exported only for `dashboard-widget-formatting.spec.ts` — `apps/web` has no
+ * jsdom, so this is the widest surface this app's jest can reach directly
+ * rather than reading the source for a string.
+ */
+export function formatValue(value: unknown): string {
   if (value === null || value === undefined || value === "") {
     return "-";
   }
 
   if (typeof value === "string") {
+    /*
+     * BUG-2010 — this used to call `Date.prototype.toLocaleString(undefined,
+     * {...})` directly, which is the browser's locale and local timezone, not
+     * the tenant's. A tenant configured for `MM/dd/yyyy`, 12h, UTC saw
+     * whatever the visiting browser happened to be set to instead — on the
+     * demo tenant that read as an unformatted-looking timestamp because the
+     * browser's own locale rendering did not resemble the product's dates
+     * anywhere else on the page. `formatDateTime`/`formatDate`
+     * (`lib/formatting-context.ts`) read the tenant's resolved settings that
+     * `resolved-settings-provider.tsx` installs for the whole authenticated
+     * shell — the same helpers every other screen already uses, per
+     * AGENTS.md's "never call toLocaleDateString ad hoc".
+     */
     if (ISO_TIMESTAMP.test(value)) {
-      const parsed = new Date(value);
-      if (!Number.isNaN(parsed.getTime())) {
-        return parsed.toLocaleString(undefined, {
-          day: "numeric",
-          month: "short",
-          year: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-        });
-      }
+      const formatted = formatDateTime(value);
+      if (formatted) return formatted;
     }
 
     if (ISO_DATE.test(value)) {
-      // Parsed as UTC so a date-only value cannot slip a day in a west offset.
-      const parsed = new Date(`${value}T00:00:00Z`);
-      if (!Number.isNaN(parsed.getTime())) {
-        return parsed.toLocaleDateString(undefined, {
-          day: "numeric",
-          month: "short",
-          year: "numeric",
-          timeZone: "UTC",
-        });
-      }
+      const formatted = formatDate(value);
+      if (formatted) return formatted;
     }
 
-    return value;
+    /*
+     * BUG-2009 — a raw enum constant ("DRAFT",
+     * "EMPLOYEE_SYSTEM_ACCESS_PROVISIONED") reached this widget's Label
+     * column unchanged. `humanizeEnumValue` only touches strings that look
+     * like a stored enum constant (`looksLikeEnumToken`) and returns
+     * anything else — an entity display name such as "Timesheet" — as-is.
+     */
+    return humanizeEnumValue(value);
   }
 
   if (typeof value === "number") {

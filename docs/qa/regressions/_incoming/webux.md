@@ -116,3 +116,33 @@ claim more coverage than exists.
 | **Note** | Verify-before-fix mattered here: treating this as one defect and patching a shared layer that does not exist would have either missed the attendance form or duplicated logic already present on branding. The fix reuses `useSideToast`/`SideToast` (already used by `leave-request-action-buttons.tsx`) rather than adding a second toast mechanism, which is the closest available thing to "one mechanism" for two call sites that were never one component. Not verified in a browser — the assertions are over the source, matching the precedent this app already uses (`label-call-sites.spec.ts`) for surfaces jsdom cannot reach. |
 | **Fixed** | 2026-08-30 |
 | **Active** | yes |
+
+### REG-341 — Three places a value's label was never declared, one helper for the floor under all three
+
+| | |
+|---|---|
+| **Bug class** | `raw-token-reaches-user` |
+| **Module** | `apps/web` settings branding, `apps/web` runtime, `apps/web` dashboard |
+| **Bug record** | BUG-2009 |
+| **Root cause** | Three independent label-resolution paths each had a gap that fell through to the raw stored token. `branding-settings-form.tsx`'s `COLOR_FIELD_LABELS`/`TEXT_FIELD_LABELS` maps were missing entries for six of sixteen colour tokens and four of thirteen text fields, falling back to the bare key (`mutedTextColor`, `supportEmail`, …). `runtime-value-formatter.ts`'s `formatRuntimeFieldValue` printed the raw stored value for an optionset field with no matching declared option, and for any field with no metadata at all — the shape a generic related list frequently has. `dashboard-widget-renderer.tsx`'s `formatValue` printed a raw enum constant (`DRAFT`, `EMPLOYEE_SYSTEM_ACCESS_PROVISIONED`) verbatim. None of the three shared a lookup; they shared only the symptom. |
+| **Regression test** | `apps/web/app/(authenticated)/settings/branding/_components/branding-field-labels.spec.ts`, `apps/web/lib/runtime/runtime-value-formatter.spec.ts`, `apps/web/app/components/dashboard/dashboard-widget-formatting.spec.ts` |
+| **Scenario** | Branding: every key in `BRANDING_COLOR_KEYS`/`BRANDING_TEXT_KEYS` — not just the ten reported — resolves to a label that is never equal to the key itself, plus the ten reported labels by exact value, plus a hypothetical undeclared key to prove the fallback humanises rather than repeats. Runtime formatter: a declared optionset label wins; an undeclared optionset value and a field with no metadata at all both humanise; ordinary prose passes through unchanged. Dashboard: an enum constant humanises, an entity display name does not. |
+| **Proven to fail without the fix** | Mutation-tested, three separate mutations, one per surface. Branding: reverting `resolveColorFieldLabel` to `COLOR_FIELD_LABELS[key] ?? key` fails the undeclared-key assertion. Runtime formatter: reverting the optionset fallback to `declaredLabel ?? rawValue` fails the no-matching-option assertion; reverting the final fallback to `String(value)` fails the no-metadata assertion. Dashboard: covered under REG-342 (same function, same file). Each reverted immediately after confirming. |
+| **Note** | The completeness assertion in the branding spec is the part of this record's Proposed Resolution worth more than the three fixes: it walks every declared key rather than the ten the QA run happened to observe, so a seventeenth colour token added later without a label fails the test instead of shipping unlabelled — which is exactly what happened here, since the schema had already grown from twelve tokens to sixteen (`successColor`, `warningColor`, `dangerColor`, `infoColor`) between the record being filed and this fix, none of which the record could have named. Not verified in a browser; the specs are over pure logic, which is what this app's jest can reach. |
+| **Fixed** | 2026-08-30 |
+| **Active** | yes |
+
+### REG-342 — A recognised timestamp, formatted for the wrong tenant
+
+| | |
+|---|---|
+| **Bug class** | `unenforced-formatting-convention` |
+| **Module** | `apps/web` dashboard |
+| **Bug record** | BUG-2010 |
+| **Root cause** | `dashboard-widget-renderer.tsx`'s `formatValue` already recognised an ISO-8601 timestamp and formatted it, but with `Date.prototype.toLocaleString(undefined, {...})` — the visiting browser's own locale and local timezone, not the tenant's configured `dateFormat`/`timeFormat`/`timezone`. This is the direct violation of the AGENTS.md rule this record's own Evidence section cites ("never call `toLocaleDateString` ad hoc"), on the one widget that had partially tried to handle it and gotten the source of truth wrong. |
+| **Regression test** | `apps/web/app/components/dashboard/dashboard-widget-formatting.spec.ts` |
+| **Scenario** | With `setDefaultFormattingContext` set to one tenant configuration (`MM/dd/yyyy`, 12h, UTC), a timestamp formats to that shape and contains no raw `T`. With a *different* configuration (`dd/MM/yyyy`, 24h) over the *same* input, the result changes accordingly — proving the fix reads configuration rather than coincidentally matching one tenant's format. A date-only ISO string formats through the same helper. |
+| **Proven to fail without the fix** | Mutation-tested: reverting the timestamp branch to `parsed.toLocaleString(undefined, {...})` fails both configuration-format assertions; reverted immediately after confirming. |
+| **Note** | `formatDateTime`/`formatDate` are called with no explicit context argument — both fall back to the module-level `runtimeDefaultContext` that `resolved-settings-provider.tsx` installs for the whole authenticated shell from the tenant's resolved settings, so no prop needed threading through the widget renderer to reach it. The truncation this record's Acceptance Criteria also named was a symptom of the 39-character raw-looking string, not a separate defect — a formatted date is short enough on its own. Shares a commit and a file with REG-341 (BUG-2009 surface 3, the same function's enum-humanisation branch, found while investigating this record). Not verified in a browser. |
+| **Fixed** | 2026-08-30 |
+| **Active** | yes |

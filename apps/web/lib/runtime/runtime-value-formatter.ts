@@ -4,6 +4,7 @@ import {
   formatMoney,
   formatNumber,
 } from "@/lib/formatting-context";
+import { humanizeEnumValue } from "@/lib/text/inflection";
 import type { FieldMetadata } from "./metadata-runtime.types";
 import type { TenantRuntimeConfig } from "./tenant-runtime.types";
 
@@ -32,10 +33,17 @@ export function formatRuntimeFieldValue({
   }
   if (field?.dataType === "optionset") {
     const rawValue = stringValue(value);
-    return (
-      field.options?.find((option) => option.value === rawValue)?.label ??
-      rawValue
-    );
+    const declaredLabel = field.options?.find(
+      (option) => option.value === rawValue,
+    )?.label;
+    /*
+     * BUG-2009 — an optionset field with no matching declared option (or
+     * whose options were never loaded onto this field's metadata, which is
+     * how a related list ends up here) printed the raw stored value —
+     * `PRESENT` rather than "Present". A declared option label still wins;
+     * this is only the floor under a value nothing declared a label for.
+     */
+    return declaredLabel ?? humanizeEnumValue(rawValue);
   }
   const inferredDateType = inferDateType(fieldLogicalName);
   if (field?.dataType === "date" || (!field && inferredDateType === "date")) {
@@ -60,7 +68,18 @@ export function formatRuntimeFieldValue({
   if (Array.isArray(value)) return value.length ? value.join(", ") : "";
   if (value === null || value === undefined || value === "") return "";
   if (typeof value === "boolean") return value ? "Yes" : "No";
-  return readableObjectValue(value) || String(value);
+  const readable = readableObjectValue(value);
+  if (readable) return readable;
+  /*
+   * BUG-2009 — a related-list cell with no field metadata at all (a generic
+   * entity, or a column the metadata registry has no entry for) fell through
+   * to the raw stored string, which is how the employee record's Attendance
+   * tab printed `PRESENT` while the standalone `/attendance` list — which
+   * does carry field metadata and hits the optionset branch above — printed
+   * "Present" for the same data. Only touches a string that looks like a
+   * stored enum constant; ordinary text passes through unchanged.
+   */
+  return typeof value === "string" ? humanizeEnumValue(value) : String(value);
 }
 
 function resolveRecordCurrencyCode(
