@@ -19,6 +19,7 @@ import type { ModuleDataAdapter } from "../../../lib/runtime/module-data-adapter
 import type { ModuleRuntimeContext } from "../../../lib/runtime/module-runtime.types";
 import { ModuleEmptyState } from "./module-empty-state";
 import { ModuleQuickCreatePanel } from "./module-quick-create-panel";
+import { buildSubgridQuickCreate } from "@/lib/runtime/quick-create-metadata";
 import type { RuntimeRecordData } from "./module-runtime-ui.types";
 import { formatRuntimeFieldValue } from "@/lib/runtime/runtime-value-formatter";
 import { useDialogBehavior } from "@/app/components/ui/dialog";
@@ -1472,88 +1473,6 @@ function buildGenericQuickCreate(
   return { entity, form };
 }
 
-function buildSubgridQuickCreate(
-  subgrid: RelatedSubgridMetadata,
-  parentEntity?: EntityMetadata,
-): {
-  entity: EntityMetadata;
-  form: FormMetadata;
-} {
-  const parentFieldsByName = new Map(
-    (parentEntity?.fields ?? []).map((field) => [field.logicalName, field]),
-  );
-  const fields = (subgrid.quickCreateFields ?? []).map((field) => {
-    const sourceField = parentFieldsByName.get(field.fieldLogicalName);
-    return {
-      id: `${subgrid.relatedEntityLogicalName}.${field.fieldLogicalName}`,
-      logicalName: field.fieldLogicalName,
-      displayName:
-        field.label ?? sourceField?.displayName ?? field.fieldLogicalName,
-      version: "1.0.0",
-      lifecycleState: "published" as const,
-      layer: "system" as const,
-      entityLogicalName:
-        subgrid.relatedEntityLogicalName ?? subgrid.relationshipName,
-      dataType: field.dataType ?? sourceField?.dataType,
-      requirementLevel: field.required
-        ? ("required" as const)
-        : (sourceField?.requirementLevel ?? ("none" as const)),
-      behavior: sourceField?.behavior ?? ("normal" as const),
-      maxLength: field.maxLength ?? sourceField?.maxLength,
-      minLength: sourceField?.minLength,
-      min: sourceField?.min,
-      max: sourceField?.max,
-      pattern: sourceField?.pattern,
-      lookupTargets: sourceField?.lookupTargets,
-      options: field.options ?? sourceField?.options,
-      dependsOnFieldId: sourceField?.dependsOnFieldId,
-      dependencyFilterKey: sourceField?.dependencyFilterKey,
-      resetOnParentChange: sourceField?.resetOnParentChange,
-    };
-  });
-  const entityLogicalName =
-    subgrid.relatedEntityLogicalName ?? subgrid.relationshipName;
-  const entity: EntityMetadata = {
-    id: `entity:${entityLogicalName}`,
-    logicalName: entityLogicalName,
-    displayName: subgrid.title,
-    collectionName: entityLogicalName,
-    version: "1.0.0",
-    lifecycleState: "published",
-    layer: "system",
-    primaryIdField: "id",
-    primaryNameField: fields[0]?.logicalName ?? "id",
-    fields,
-  };
-  const form: FormMetadata = {
-    id: `quick:${entityLogicalName}`,
-    logicalName: `${entityLogicalName}.quickCreate`,
-    displayName: `New ${subgrid.title}`,
-    version: "1.0.0",
-    lifecycleState: "published",
-    layer: "system",
-    entityLogicalName,
-    mode: "edit",
-    formType: "quickCreate",
-    columns: 1,
-    sections: [
-      {
-        id: `quick:${entityLogicalName}:section`,
-        label: "Details",
-        order: 10,
-        layout: "single-column",
-        columns: 1,
-        fields: fields.map((field, index) => ({
-          fieldLogicalName: field.logicalName,
-          order: (index + 1) * 10,
-          requirementLevel: field.requirementLevel,
-        })),
-      },
-    ],
-  };
-
-  return { entity, form };
-}
 
 function hasRelatedPermission(
   runtime: ModuleRuntimeContext | undefined,

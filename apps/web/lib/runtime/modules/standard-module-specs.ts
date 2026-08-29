@@ -1329,6 +1329,13 @@ export const attendanceRuntimeSpec: StandardModuleRuntimeSpec = {
       displayName: "Owner",
       dataType: "lookup",
       isOwner: true,
+      // BUG-1965 sibling. The record-status header populates the draft with
+      // an owner on every standard module, and no attendance DTO whitelists
+      // `ownerId`, so a runtime create here would have been rejected exactly
+      // as the leave one was. The header still displays the owner; it just
+      // stops proposing one. Leave, customers and projects already read this
+      // way.
+      isReadOnly: true,
     },
     {
       logicalName: "attendanceDate",
