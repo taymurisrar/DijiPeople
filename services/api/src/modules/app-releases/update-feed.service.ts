@@ -5,6 +5,7 @@ import {
   type ApplicationRelease,
 } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { resolvePublishableApp } from './release-publisher.constants';
 
 /*
  * The electron-updater feed for the desktop agent.
@@ -44,9 +45,12 @@ export class UpdateFeedService {
    * by guessing its filename.
    */
   async findPublishableByFileName(appKey: string, fileName: string) {
+    const catalogueAppKey = resolveCatalogueAppKey(appKey);
+    if (!catalogueAppKey) return null;
+
     return this.prisma.applicationRelease.findFirst({
       where: {
-        appKey,
+        appKey: catalogueAppKey,
         fileName,
         channel: ApplicationReleaseChannel.STABLE,
         isActive: true,
@@ -61,9 +65,18 @@ export class UpdateFeedService {
     appKey: string,
     platform: ApplicationPlatform,
   ): Promise<string | null> {
+    const catalogueAppKey = resolveCatalogueAppKey(appKey);
+
+    if (!catalogueAppKey) {
+      this.logger.debug(
+        `Update feed requested for unknown appKey=${appKey}`,
+      );
+      return null;
+    }
+
     const release = await this.prisma.applicationRelease.findFirst({
       where: {
-        appKey,
+        appKey: catalogueAppKey,
         platform,
         channel: ApplicationReleaseChannel.STABLE,
         isActive: true,
@@ -81,7 +94,7 @@ export class UpdateFeedService {
 
     if (!release) {
       this.logger.debug(
-        `No publishable release for appKey=${appKey} platform=${platform}`,
+        `No publishable release for appKey=${catalogueAppKey} platform=${platform}`,
       );
       return null;
     }
@@ -122,4 +135,29 @@ export class UpdateFeedService {
 
 function quote(value: string): string {
   return `'${value.replace(/'/g, "''")}'`;
+}
+
+/**
+ * Map the app segment in the feed URL onto the key releases are stored under.
+ *
+ * BUG-1551. `electron-updater` is pointed at
+ * `/api/app-releases/feed/agent-desktop` — the catalogue `cliAlias`, because
+ * that is what a URL segment looks like and what every `.env` example has
+ * always carried. The publisher, meanwhile, persists `appKey` from `APP_KEYS`,
+ * which is `AGENT_DESKTOP`. Both queries here filtered on the raw URL segment,
+ * so `'agent-desktop'` never matched `'AGENT_DESKTOP'` and the feed answered 404
+ * for every request — including the ones it would answer after a release was
+ * finally published. The empty feed hid the mismatch: with no releases at all,
+ * a correct lookup and a broken one return the same 404.
+ *
+ * `resolvePublishableApp` already normalises case and `_`/`-` in both
+ * directions and is what the publisher uses, so routing through it makes the
+ * read side agree with the write side by construction rather than by a second
+ * mapping that could drift.
+ *
+ * An unrecognised segment resolves to `null` and the caller answers 404, which
+ * is the right answer for an app that does not exist.
+ */
+function resolveCatalogueAppKey(appKey: string): string | null {
+  return resolvePublishableApp(appKey)?.appKey ?? null;
 }
