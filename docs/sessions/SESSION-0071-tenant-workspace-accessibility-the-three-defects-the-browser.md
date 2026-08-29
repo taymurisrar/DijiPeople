@@ -4,7 +4,7 @@ aliases: [SESSION-0071]
 TASK_ID:
 TITLE: Tenant workspace accessibility: the three defects the browser coverage found
 ARCHITECT_INTENT: Tenant workspace accessibility: the three defects the browser coverage found
-STATUS: ACTIVE
+STATUS: COMPLETE
 TASK_TYPE: BUG
 TASK_SIZE: MEDIUM
 BASE_BRANCH: origin/develop
@@ -16,8 +16,8 @@ AFFECTED_MODULES: []
 WRITE_LEASES: []
 ACTIVE_WORK_PACKAGES: []
 SCHEMA_WRITE: NO
-CI_STATUS: NOT_RUN
-MERGE_STATUS: NOT_STARTED
+CI_STATUS: PASS
+MERGE_STATUS: MERGED
 STARTED_AT: 2026-08-29T09:58:17.272Z
 LAST_HEARTBEAT: 2026-08-29T09:58:17.272Z
 BLOCKERS: none

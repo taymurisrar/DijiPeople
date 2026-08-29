@@ -176,7 +176,8 @@ needs two things a new tenant does not have: employees whose reporting manager
 has an *activated* user account, and at least one active user holding the `hr`
 role. Until both exist, every leave request 400s. Nothing in the product tells an
 administrator that this is the cause — and through the UI the employee sees
-nothing at all, because the runtime form swallows the failure (BUG-1966).
+nothing at all, because the runtime form swallowed the failure (BUG-1966 —
+since fixed, and shipping alongside this).
 
 It also makes the chain brittle after onboarding: deactivating the last `hr` role
 holder, or an employee losing their manager, silently stops leave for everyone
@@ -248,7 +249,7 @@ for the probes above.
 BUG-1969 (an invited approver is rejected with a message blaming tenancy) and
 ITEM-0106 (an employee is blocked until their manager activates their own
 account) are the onboarding consequences of the same resolution policy. BUG-1967
-is the previous block on this journey. BUG-1966 is why the employee sees nothing
+is the previous block on this journey. BUG-1966 was why the employee saw nothing
 when this fires through the UI. BUG-1970 (the elevated-role bypass preceding the
 self-requester check) remains code-confirmed and live-unverified: the row-3
 approval above was self-approval **by configuration**, since the probe rule named
@@ -302,10 +303,15 @@ behaviour were confirmed to fail against the previous code.
 **Not retested live.** The three-row probe was not re-run against the demo
 tenant, so what is established is that the resolver refuses with an actionable
 message; what is **not** established is the wording as an employee actually
-encounters it, because BUG-1966 means the runtime form still swallows the
-failure. Until BUG-1966 is fixed the improved message reaches the API response
-and not the screen — worth being plain about, since the point of this fix was
-that somebody could read it.
+encounters it.
+
+> **Updated 2026-08-29.** This paragraph originally said the improved message
+> could not reach the screen at all, because BUG-1966 meant the runtime form
+> swallowed the failure. **BUG-1966 was fixed by SESSION-0072** (REG-307) while
+> this work was in flight, and both fixes are on `develop` together — so the
+> message now does reach the employee. That was the outcome this fix existed
+> for, and it arrived from another session rather than this one. What remains
+> unverified is the live wording, not whether anyone can see it.
 
 **Environment note, unchanged and still true.** The two seeded matrices
 (`596c013b-f6f2-4566-87e9-7d11b9d772c5`,
