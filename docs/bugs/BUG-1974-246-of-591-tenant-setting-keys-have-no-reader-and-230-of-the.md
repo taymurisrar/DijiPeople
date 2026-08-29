@@ -13,7 +13,7 @@ AffectedModules: [services/api/src/modules/tenant-settings, apps/web]
 OwnerAgent: architect
 ArchitectDisposition: PLAN_REQUIRED
 QAReport: 
-RegressionId: 
+RegressionId: REG-325
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
