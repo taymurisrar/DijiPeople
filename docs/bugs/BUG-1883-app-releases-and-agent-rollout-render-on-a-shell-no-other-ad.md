@@ -191,6 +191,7 @@ the register was confirmed to exist, and every suite containing one was run.
 ## Related
 
 - Modules — [[platform-admin]]
+- Implementation — [[EXECPLAN-0024-admin-console-fx-reporting-desktop-agent-settings-and-generic-bulk-delete]]
 - Regression — REG-300 (see the regression register)
 
 <!-- GRAPH:END -->

@@ -7,7 +7,7 @@ SIZE: MEDIUM
 STATUS: COMPLETE
 PRIORITY: P1
 CREATED_AT: 2026-08-25
-AFFECTED_MODULES: [apps/web]
+AFFECTED_MODULES: [apps/web, employees]
 AGENTS: []
 DEPENDENCIES:
 CURRENT_PACKAGE:
@@ -62,7 +62,6 @@ See `node scripts/repo-health.mjs`.
 
 ## Related
 
-- `STANDALONE_ALLOWED` — this task names no bug, backlog item or known
-  module. Name one in the record rather than adding a link here by hand.
+- Modules — [[employees]]
 
 <!-- GRAPH:END -->

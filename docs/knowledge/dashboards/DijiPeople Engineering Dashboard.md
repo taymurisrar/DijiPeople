@@ -12,8 +12,8 @@
 | Open total | 20 |
 | Blocked | 2 |
 | Awaiting a product decision | 1 |
-| Deferred | 26 |
-| Completed | 274 |
+| Deferred | 25 |
+| Completed | 275 |
 | Awaiting Architect triage | 0 |
 
 ## Open Critical Bugs

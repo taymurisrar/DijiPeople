@@ -142,6 +142,7 @@ Measured at `eb457d9`:
 
 - Bug — [[BUG-0043]]
 - Modules — [[tenant-application]], [[qa-and-ci-architecture]]
+- Implementation — [[EXECPLAN-0025-apps-web-browser-e2e-coverage]]
 - QA run — [[2026-08-17-web-app-documentation-1af3690]]
 
 <!-- GRAPH:END -->

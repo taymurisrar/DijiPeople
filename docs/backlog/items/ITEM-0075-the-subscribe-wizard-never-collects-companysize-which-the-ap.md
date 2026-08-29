@@ -115,5 +115,6 @@ invented value is worse than a blank one, and the admin record remains editable.
 - Bug — [[BUG-0280]]
 - Referenced by — [[BUG-1884]]
 - Modules — [[landing-architecture]], [[billing]]
+- Implementation — [[EXECPLAN-0024-admin-console-fx-reporting-desktop-agent-settings-and-generic-bulk-delete]]
 
 <!-- GRAPH:END -->

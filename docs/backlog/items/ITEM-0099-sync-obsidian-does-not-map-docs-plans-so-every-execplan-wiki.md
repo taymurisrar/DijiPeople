@@ -3,15 +3,15 @@ ID: ITEM-0099
 aliases: [ITEM-0099]
 Title: sync-obsidian does not map docs/plans, so every ExecPlan wikilink is an orphan
 Type: DOCUMENTATION
-Status: DEFERRED
+Status: DONE
 Priority: P3
 Severity: LOW
 AffectedModules: [scripts]
 Source: ARCHITECT
 OwnerAgent: architect
-ArchitectDisposition: DEFER
+ArchitectDisposition: DONE
 CreatedAt: 2026-08-25
-UpdatedAt: 2026-08-25
+UpdatedAt: 2026-08-29
 RelatedBug: 
 RelatedQA: 
 RelatedADR: 
@@ -104,6 +104,46 @@ than a behaviour.
 
 - [[BUG-1261]] — the task that surfaced this. Unrelated in substance; it is
   simply the first task to run `knowledge:verify` after `42435d59` landed.
+
+
+## Resolution — 2026-08-29
+
+One line in `scripts/lib/obsidian-mappings.mjs`:
+
+```js
+{ from: 'docs/plans', to: '06 - Implementation Plans/Generated/ExecPlans',
+  nodeType: 'exec-plan' },
+```
+
+Seven ExecPlans published on the next sync, and `knowledge:verify` went from
+`FAILED` to `PASS`.
+
+**Undeferred because it stopped being cosmetic.** It was filed as LOW, and the
+reasoning holds for a vault with two ExecPlans in it. What changed is that plans
+are now what other records point at when they explain *why* something was built
+a particular way — EXECPLAN-0024 from a session record, EXECPLAN-0025 from
+ITEM-0034 — so the missing mapping was breaking the links of the artefacts that
+cite it, not just hiding the plans. The graph was missing its most-referenced
+node type.
+
+Published as a **sibling** of `knowledge/implementations` rather than into the
+same folder. An implementation note is written after the fact and describes what
+exists; a plan is written before and describes what is intended. Merging them
+would lose which of the two a reader is looking at.
+
+### Two other unresolved links, fixed while the vault was open
+
+Neither was this record's, and both were the same defect in miniature — a
+wikilink written to a note nobody created.
+
+- An engineering-history record cited
+  `[[trust-the-runtime-invariant-over-a-static-scan]]` and said, two lines
+  later, "No new durable note". The lesson was real and worth keeping, so the
+  note now exists at `docs/knowledge/framework/`.
+- `TASK-0024` was a `GRAPH_ORPHAN`. It declared `AFFECTED_MODULES: [apps/web]`,
+  which is a path rather than a module the graph knows. Adding `employees` —
+  the module it actually changes — gave it the relationship it already had,
+  rather than a link invented to remove a dot.
 
 ## History
 

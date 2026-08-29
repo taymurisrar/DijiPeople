@@ -184,6 +184,7 @@ the register was confirmed to exist, and every suite containing one was run.
 
 - Backlog item — [[ITEM-0075]]
 - Modules — [[platform-admin]], [[billing]]
+- Implementation — [[EXECPLAN-0024-admin-console-fx-reporting-desktop-agent-settings-and-generic-bulk-delete]]
 - Regression — REG-301 (see the regression register)
 
 <!-- GRAPH:END -->

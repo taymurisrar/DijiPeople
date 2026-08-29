@@ -2,7 +2,7 @@
 ID: PLAN-025
 aliases: [PLAN-025, EXECPLAN-0025]
 Title: Browser E2E coverage for apps/web, the tenant product
-Status: AWAITING_OWNER_DECISION
+Status: APPROVED
 Session: SESSION-0069
 Type: TEST_GAP
 Size: LARGE
@@ -30,10 +30,23 @@ Raised because `apps/web` has no browser coverage and, uniquely, no other way to
 get any: `apps/web/jest.config.js` is `testEnvironment: node` with no jsdom, so
 nothing in it can be tested through a DOM by any existing mechanism.
 
-`TODO: Confirm product/business rule.` **Which journeys matter most is a
-product judgement, and this plan does not make it alone.** The slice proposed
-under *Requirements* is the author's recommendation with its reasoning; the
-Definition of Done depends on the owner confirming or replacing it.
+**Decided by the repository owner on 2026-08-29: cover the modules in the
+Growth plan, plus settings and the modules related to it.** That is a better
+answer than the recommendation it replaced, and for a reason worth recording —
+it is not a guess about importance, it is *what a paying tenant actually has*.
+
+`plans.catalog.ts` defines Growth's entitlement exactly:
+
+```
+employees · organization · leave · attendance · timesheets
+projects · recruitment · onboarding · documents · notifications · branding
+```
+
+**Payroll is not in it.** It is Enterprise-only, and the recommendation this
+replaces had a payslip journey in the first slice — a screen a Growth tenant
+cannot open. Checking the catalog rather than reasoning from "what feels
+central" removed a flow that would have tested nothing a Growth customer can
+reach.
 
 ## Existing behavior
 
@@ -82,7 +95,7 @@ The suite this extends, rather than a new one:
 
 ## Requirements
 
-Numbered, testable, and **the slice in 4–8 is the part awaiting confirmation.**
+Numbered and testable. The slice in 4–9 is the owner's, decided 2026-08-29.
 
 1. A `web-session` fixture signs a tenant user in against a named tenant, and
    produces an explicit skip — never a failure — when no tenant is seeded.
@@ -92,32 +105,54 @@ Numbered, testable, and **the slice in 4–8 is the part awaiting confirmation.*
 4. **Flow H — sign in and land.** Tenant login, the workspace picker when an
    identity reaches more than one, and the authenticated shell rendering with
    navigation.
-5. **Flow I — the daily journeys.** Attendance (the most-used screen in the
-   product), leave request submission, and payslip viewing. Read paths asserted
-   for every one; one write path — the leave request — asserted end to end.
-6. **Flow J — the runtime list and record pages.** One metadata-driven module
-   opened as a list, filtered, sorted, and opened as a record. This is the
-   surface `StandardModuleListPage` and `StandardModuleRecordPage` generate for
-   most of the product, so one module's coverage is disproportionately broad.
+5. **Flow I — the Growth modules.** Every entitled module opened and asserted on
+   a real element, not merely on the page having loaded:
+
+   | Feature | Route |
+   |---|---|
+   | `employees` | `/employees` |
+   | `leave` | `/leaves` |
+   | `attendance` | `/attendance` |
+   | `timesheets` | `/timesheets` |
+   | `projects` | `/projects` |
+   | `recruitment` | `/recruitment` |
+   | `onboarding` | `/onboarding` |
+
+   One write path asserted end to end — a leave request, submitted and then
+   removed by its own fixture. One write is enough to prove the runtime's
+   create path works; ten would multiply flake and shared-state risk for no new
+   information.
+6. **Flow J — settings, and the module-facing settings within it.** The settings
+   runtime is its own surface (`app/(authenticated)/settings/_lib`, a
+   `[category]` dynamic route) and the owner named it explicitly. Covered:
+   the settings index, `organization`, `branding` and `notifications` — which
+   are the three Growth entitlements that have no top-level route and live here
+   instead.
 7. **Accessibility and layout across all three**, using Flow E's existing
    helpers and its existing gating policy.
-8. Nothing in the slice depends on payroll being *run*, tenant provisioning, or
-   any state a test would have to create and then reconcile.
+8. **Every module asserted is one Growth entitles.** A flow that opens a screen
+   the plan does not include tests an empty state or a 403, and reports it as
+   coverage. `documents` has no top-level route and is reached from an employee
+   record; it is covered there or not at all, and this plan says which.
+9. Nothing in the slice depends on payroll being *run*, tenant provisioning, or
+   any state a test would have to create and then reconcile. Payroll is out of
+   scope **because Growth does not include it**, not because it is hard.
 
 ## Dependencies
 
 - A seeded tenant with a signed-in-able user. `seed-demo` produces one; the
   fixture must skip rather than fail when it is absent, matching how every other
   flow behaves against a bare environment.
-- **Owner confirmation of the slice.** This is the plan's one true blocker.
+- **Owner confirmation of the slice — received 2026-08-29.** No blocker
+  remains.
 
 ## Files / modules affected
 
 **e2e/** — `playwright.config.ts` (no change expected; `BASE_URLS.web` already
 exists), `fixtures/environment.ts`, `fixtures/web-session.ts` (new),
 `tests/flow-h-tenant-sign-in.spec.ts` (new),
-`tests/flow-i-daily-journeys.spec.ts` (new),
-`tests/flow-j-runtime-module.spec.ts` (new).
+`tests/flow-i-growth-modules.spec.ts` (new),
+`tests/flow-j-tenant-settings.spec.ts` (new).
 
 **.github/workflows/ci.yml** — start `dev:web`, poll 3001. Single-writer file
 for the browser job; no other job's definition is touched.
@@ -235,9 +270,32 @@ The one non-obvious consequence: after WP-B, a broken `apps/web` **fails CI**
 where it previously could not. That is the point, and it is worth saying out
 loud before it surprises somebody mid-branch.
 
+## Knowledge capture
+
+The owner asked, in the same breath as the slice, that **every piece of
+knowledge and information this produces be recorded in the Obsidian vault.**
+That is a requirement of this plan, not an afterthought at the end of it.
+
+It became possible during planning: `docs/plans` was not mapped into the vault
+(ITEM-0099), so every `[[EXECPLAN-nnnn]]` wikilink resolved to nothing. Fixed,
+and `knowledge:verify` now reports `PASS`.
+
+What this plan commits to publishing:
+
+- a module knowledge note for the tenant product's browser surface — what is
+  covered, what is not, and why the boundary is where it is;
+- a QA scenario per flow, and a `REG` entry, so the coverage is reachable from
+  the records that motivated it;
+- **a durable record for every defect the flows surface**, which is where most
+  of the new knowledge will actually come from — a first browser suite over an
+  app that has never had one is a discovery exercise;
+- `npm run knowledge:sync` and `knowledge:verify` run before the task reports
+  complete, with `OBSIDIAN_SYNC_STATUS` recorded rather than assumed.
+
 ## Definition of Done
 
-- [ ] Owner has confirmed or replaced the slice in requirements 4–8
+- [ ] Every module Flow I asserts is one `plans.catalog.ts` grants to Growth —
+      checked against the catalog, not against memory
 - [ ] `apps/web` is started and polled by CI; its absence produces a named skip
 - [ ] Flows H, I and J pass on the exact SHA in the `browser-e2e` job
 - [ ] Each new assertion demonstrated to fail without the behaviour it asserts
@@ -247,4 +305,5 @@ loud before it surprises somebody mid-branch.
 - [ ] ITEM-0034 closed; **ITEM-0001 corrected**
 - [ ] `COVERAGE_BROWSER` moved only on plans this genuinely changes
 - [ ] Browser job wall-clock measured and its timeout still adequate
+- [ ] Knowledge published and `knowledge:verify` reports `OBSIDIAN_SYNC_STATUS = PASS`
 - [ ] No unrelated changes in the diff
