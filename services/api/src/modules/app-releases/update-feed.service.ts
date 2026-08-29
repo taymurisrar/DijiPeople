@@ -68,9 +68,7 @@ export class UpdateFeedService {
     const catalogueAppKey = resolveCatalogueAppKey(appKey);
 
     if (!catalogueAppKey) {
-      this.logger.debug(
-        `Update feed requested for unknown appKey=${appKey}`,
-      );
+      this.logger.debug(`Update feed requested for unknown appKey=${appKey}`);
       return null;
     }
 
