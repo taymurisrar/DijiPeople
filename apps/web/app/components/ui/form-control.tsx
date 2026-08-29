@@ -1253,7 +1253,21 @@ export function LookupField({
     >
       <div className="relative" ref={containerRef}>
         <div
-          aria-controls={listboxId}
+          aria-activedescendant={activeDescendantId(
+            listboxId,
+            isOpen,
+            activeIndex,
+            filteredOptions.length,
+          )}
+          /*
+            BUG-1956 - `aria-controls` only while there is something to control.
+            It named a portalled element that does not exist when the field is
+            closed, and does not exist when the search matches nothing either,
+            so for most of this control's life it was a dangling reference.
+          */
+          aria-controls={
+            isOpen && filteredOptions.length ? listboxId : undefined
+          }
           aria-expanded={isOpen}
           aria-haspopup="listbox"
           className={[
@@ -1267,6 +1281,16 @@ export function LookupField({
             if (event.key === "Enter" || event.key === " ") {
               event.preventDefault();
               handleOpen();
+              return;
+            }
+            if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+              event.preventDefault();
+              handleOpen();
+              return;
+            }
+            if (event.key === "Escape") {
+              setIsOpen(false);
+              setActiveIndex(-1);
             }
           }}
           role="combobox"
@@ -1274,20 +1298,8 @@ export function LookupField({
         >
           <span className="min-w-0 flex-1">
             {selectedOption ? (
-              <span className="block min-w-0">
-                {selectedHref ? (
-                  <a
-                    className="block truncate font-semibold text-accent underline-offset-4 hover:underline"
-                    href={selectedHref}
-                    onClick={(event) => event.stopPropagation()}
-                  >
-                    {lookupOptionDisplay(selectedOption).name}
-                  </a>
-                ) : (
-                  <span className="block truncate font-medium text-foreground">
-                    {lookupOptionDisplay(selectedOption).name}
-                  </span>
-                )}
+              <span className="block truncate font-medium text-foreground">
+                {lookupOptionDisplay(selectedOption).name}
               </span>
             ) : (
               <span className="text-muted">{placeholder}</span>
@@ -1308,6 +1320,23 @@ export function LookupField({
             </span>
           </span>
         </div>
+
+        {/*
+          BUG-1956 - the link to the selected record used to sit inside the
+          combobox. A combobox is a leaf widget and may not own focusable
+          children, so an anchor in there was a `nested-interactive` violation
+          and, worse in practice, a Tab stop inside a control the user was
+          trying to open. It is a sibling now, and it names the record it opens
+          rather than relying on the reader to infer it from the row above.
+        */}
+        {selectedOption && selectedHref ? (
+          <a
+            className="mt-1 inline-block max-w-full truncate text-xs font-semibold text-accent underline-offset-4 hover:underline"
+            href={selectedHref}
+          >
+            Open {lookupOptionDisplay(selectedOption).name}
+          </a>
+        ) : null}
 
         {lookupMenu}
         {false && isOpen ? (
