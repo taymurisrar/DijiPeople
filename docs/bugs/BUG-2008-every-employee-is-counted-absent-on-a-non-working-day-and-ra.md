@@ -13,7 +13,7 @@ AffectedModules: [services/api/src/modules/attendance, services/api/src/modules/
 OwnerAgent: architect
 ArchitectDisposition: DONE
 QAReport: 
-RegressionId: 
+RegressionId: REG-318
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
