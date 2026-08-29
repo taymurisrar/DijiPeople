@@ -493,13 +493,32 @@ async function dispatchApiError(
       .clone()
       .text()
       .catch(() => "");
+
+    /*
+     * BUG-1955 — this used to pass `responseText` as the error's `message`,
+     * so a response the client could not parse as the error contract was
+     * rendered to the customer verbatim: a gateway's whole HTML error page,
+     * `<!DOCTYPE html…`, as the body of a modal.
+     *
+     * The body is diagnostic, not a message. It stays in `details`, which is
+     * what reaches the console and `/api/error-logs/client`, and the user gets
+     * the written sentence for the status instead. `errorCode` is left to
+     * `normalizeApiError`, which maps a status with no envelope to a transport
+     * code rather than to DATABASE_RECORD_NOT_FOUND.
+     */
+    if (typeof console !== "undefined") {
+      console.warn(
+        `[dijipeople] ${requestMethod} ${requestUrl} failed with ${response.status} and an unparsable body`,
+        responseText.slice(0, 4000),
+      );
+    }
+
     window.dispatchEvent(
       new CustomEvent(apiErrorEventName(), {
         detail: {
           error: normalizeApiError(
             {
               statusCode: response.status,
-              message: responseText || response.statusText || "Request failed.",
               path: requestUrl,
               method: requestMethod,
               details: {
