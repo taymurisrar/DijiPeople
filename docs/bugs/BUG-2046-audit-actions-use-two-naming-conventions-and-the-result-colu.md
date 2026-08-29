@@ -280,5 +280,6 @@ follow-up QA work, not blocking this fix.
 ## Related
 
 - Modules — [[audit-and-events]]
+- Regression — REG-356 (see the regression register)
 
 <!-- GRAPH:END -->

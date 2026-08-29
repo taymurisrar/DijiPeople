@@ -34,8 +34,8 @@ _None._
 | [BUG-2003](../../docs/bugs/BUG-2003-the-tenant-users-screen-crashes-into-the-error-boundary-for-.md) | The tenant Users screen requests an entity the data registry does not have, so it never renders | BUG | HIGH | P1 | FIXED | apps/web, api:data | DONE |
 | [BUG-2008](../../docs/bugs/BUG-2008-every-employee-is-counted-absent-on-a-non-working-day-and-ra.md) | Every employee is counted absent on a non-working day and raised as an exception | DATA_INTEGRITY | HIGH | P1 | FIXED | api:attendance, api:dashboard | DONE |
 | [BUG-2013](../../docs/bugs/BUG-2013-the-dashboard-error-boundary-classifies-server-component-fai.md) | The dashboard error boundary classifies server-component failures by a message it can never receive | BUG | HIGH | P1 | FIXED | apps/web | DONE |
-| [BUG-2043](../../docs/bugs/BUG-2043-the-audit-events-screen-reports-the-number-of-rows-it-loaded.md) | The Audit Events screen reports the number of rows it loaded as the tenant's total audit count | BUG | HIGH | P1 | OPEN | apps/web, api:audit | FIX_NOW |
-| [BUG-2044](../../docs/bugs/BUG-2044-no-employee-lifecycle-event-is-audited-including-employee-cr.md) | No employee lifecycle event is audited, including employee creation and reporting-manager assignment | DATA_INTEGRITY | HIGH | P1 | OPEN | api:employees, api:organization, api:leave | PLAN_REQUIRED |
+| [BUG-2043](../../docs/bugs/BUG-2043-the-audit-events-screen-reports-the-number-of-rows-it-loaded.md) | The Audit Events screen reports the number of rows it loaded as the tenant's total audit count | BUG | HIGH | P1 | FIXED | apps/web, api:audit | DONE |
+| [BUG-2044](../../docs/bugs/BUG-2044-no-employee-lifecycle-event-is-audited-including-employee-cr.md) | No employee lifecycle event is audited, including employee creation and reporting-manager assignment | DATA_INTEGRITY | HIGH | P1 | FIXED | api:employees, api:organization, api:leave | DONE |
 
 ## MEDIUM
 
@@ -94,7 +94,7 @@ _None._
 | [BUG-1964](../../docs/bugs/BUG-1964-record-headings-and-dialog-titles-are-singularised-by-stripp.md) | Record headings and dialog titles are singularised by stripping a trailing s | UX | LOW | P3 | OPEN | apps/web | FIX_NOW |
 | [BUG-2010](../../docs/bugs/BUG-2010-the-dashboard-recent-changes-list-renders-unformatted-iso-86.md) | The dashboard Recent changes list renders unformatted ISO-8601 timestamps | UX | LOW | P3 | OPEN | apps/web | FIX_NOW |
 | [BUG-2017](../../docs/bugs/BUG-2017-the-inbox-related-record-column-renders-a-bare-uuid-with-no-.md) | The inbox Related record column renders a bare UUID with no label and no link | UX | LOW | P3 | OPEN | apps/web | FIX_NOW |
-| [BUG-2046](../../docs/bugs/BUG-2046-audit-actions-use-two-naming-conventions-and-the-result-colu.md) | Audit actions use two naming conventions and the Result column is populated only by login events | BUG | LOW | P3 | OPEN | api:audit | PLAN_REQUIRED |
+| [BUG-2046](../../docs/bugs/BUG-2046-audit-actions-use-two-naming-conventions-and-the-result-colu.md) | Audit actions use two naming conventions and the Result column is populated only by login events | BUG | LOW | P3 | FIXED | api:audit | DONE |
 | [ITEM-0049](../../docs/backlog/items/ITEM-0049-register-services-api-environment-reads-or-scope-the-rule.md) | Register services/api environment reads or scope the rule to build inputs | INFRA | LOW | P3 | READY | services/api, turbo.json, docs/deployment | PLAN_REQUIRED |
 | [ITEM-0080](../../docs/backlog/items/ITEM-0080-type-the-remaining-services-api-no-unsafe-warnings-module-by.md) | Type the remaining services/api no-unsafe warnings module by module | TECH_DEBT | LOW | P3 | READY | services/api | FIX_NOW |
 | [ITEM-0093](../../docs/backlog/items/ITEM-0093-link-validation-skips-untracked-files-so-a-new-record-s-brok.md) | Link validation skips untracked files, so a new record's broken links only surface in CI | TECH_DEBT | LOW | P3 | READY | scripts | FIX_NOW |

@@ -51,11 +51,11 @@ see [`README.md`](README.md) for why.
 
 | Status | Count |
 |---|---|
-| OPEN | 14 |
+| OPEN | 11 |
 | BLOCKED | 2 |
 | DEFERRED | 27 |
 | PRODUCT_DECISION | 5 |
-| FIXED | 31 |
+| FIXED | 34 |
 | VERIFIED | 215 |
 | DUPLICATE | 4 |
 | ACCEPTED_RISK | 3 |
@@ -199,8 +199,8 @@ see [`README.md`](README.md) for why.
 | [BUG-2011](../../docs/bugs/BUG-2011-seven-related-list-dialogs-never-send-the-parent-foreign-key.md) | Seven related-list dialogs never send the parent foreign key and one of them creates an orphan | BUG | HIGH | P1 | VERIFIED | apps/web | DONE |
 | [BUG-2013](../../docs/bugs/BUG-2013-the-dashboard-error-boundary-classifies-server-component-fai.md) | The dashboard error boundary classifies server-component failures by a message it can never receive | BUG | HIGH | P1 | FIXED | apps/web | DONE |
 | [BUG-2015](../../docs/bugs/BUG-2015-approving-and-rejecting-leave-is-gated-on-read-permission-an.md) | Approving and rejecting leave is gated on read permission and the dedicated approve keys are never required | AUTHORIZATION | HIGH | P1 | VERIFIED | api:leave | DONE |
-| [BUG-2043](../../docs/bugs/BUG-2043-the-audit-events-screen-reports-the-number-of-rows-it-loaded.md) | The Audit Events screen reports the number of rows it loaded as the tenant's total audit count | BUG | HIGH | P1 | OPEN | apps/web, api:audit | FIX_NOW |
-| [BUG-2044](../../docs/bugs/BUG-2044-no-employee-lifecycle-event-is-audited-including-employee-cr.md) | No employee lifecycle event is audited, including employee creation and reporting-manager assignment | DATA_INTEGRITY | HIGH | P1 | OPEN | api:employees, api:organization, api:leave | PLAN_REQUIRED |
+| [BUG-2043](../../docs/bugs/BUG-2043-the-audit-events-screen-reports-the-number-of-rows-it-loaded.md) | The Audit Events screen reports the number of rows it loaded as the tenant's total audit count | BUG | HIGH | P1 | FIXED | apps/web, api:audit | DONE |
+| [BUG-2044](../../docs/bugs/BUG-2044-no-employee-lifecycle-event-is-audited-including-employee-cr.md) | No employee lifecycle event is audited, including employee creation and reporting-manager assignment | DATA_INTEGRITY | HIGH | P1 | FIXED | api:employees, api:organization, api:leave | DONE |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | DONE | apps/web, e2e | DONE |
@@ -416,7 +416,7 @@ see [`README.md`](README.md) for why.
 | [BUG-2007](../../docs/bugs/BUG-2007-projects-and-customers-can-be-created-but-never-deleted.md) | Projects and customers can be created but never deleted | BUG | LOW | P3 | PRODUCT_DECISION | api:projects | PRODUCT_DECISION |
 | [BUG-2010](../../docs/bugs/BUG-2010-the-dashboard-recent-changes-list-renders-unformatted-iso-86.md) | The dashboard Recent changes list renders unformatted ISO-8601 timestamps | UX | LOW | P3 | OPEN | apps/web | FIX_NOW |
 | [BUG-2017](../../docs/bugs/BUG-2017-the-inbox-related-record-column-renders-a-bare-uuid-with-no-.md) | The inbox Related record column renders a bare UUID with no label and no link | UX | LOW | P3 | OPEN | apps/web | FIX_NOW |
-| [BUG-2046](../../docs/bugs/BUG-2046-audit-actions-use-two-naming-conventions-and-the-result-colu.md) | Audit actions use two naming conventions and the Result column is populated only by login events | BUG | LOW | P3 | OPEN | api:audit | PLAN_REQUIRED |
+| [BUG-2046](../../docs/bugs/BUG-2046-audit-actions-use-two-naming-conventions-and-the-result-colu.md) | Audit actions use two naming conventions and the Result column is populated only by login events | BUG | LOW | P3 | FIXED | api:audit | DONE |
 | [BUG-2149](../../docs/bugs/BUG-2149-every-dashboard-metric-card-offers-a-link-named-only-open.md) | Every dashboard metric card offers a link named only Open | UX | LOW | P3 | DEFERRED | views, dashboard | DEFER |
 | [ITEM-0007](../../docs/backlog/items/ITEM-0007-should-duplicate-website-leads-be-deduplicated.md) | Product decision — should duplicate website leads be deduplicated? | PRODUCT_DECISION | LOW | P3 | DONE | api:leads, apps/landing | DONE |
 | [ITEM-0008](../../docs/backlog/items/ITEM-0008-customeraccount-has-no-origin-channel.md) | Product decision — CustomerAccount carries no origin channel | PRODUCT_DECISION | LOW | P3 | DONE | services/api/prisma, api:super-admin | DONE |

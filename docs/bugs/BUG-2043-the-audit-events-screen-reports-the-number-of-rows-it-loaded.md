@@ -259,5 +259,6 @@ Re-measuring needs the release.
 ## Related
 
 - Modules — [[tenant-application]], [[audit-and-events]]
+- Regression — REG-354 (see the regression register)
 
 <!-- GRAPH:END -->
