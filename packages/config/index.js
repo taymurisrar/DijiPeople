@@ -455,6 +455,13 @@ const {
   resolvePlatformCurrency,
 } = require("./platform-currencies");
 const {
+  INERT_REASONS,
+  INERT_TENANT_SETTING_KEYS,
+  INERT_KEYS_WITH_PENDING_UI_REMOVAL,
+  isInertTenantSettingKey,
+  isTenantSettingControlRenderable,
+} = require("./tenant-setting-dispositions");
+const {
   PLATFORM_ENVIRONMENTS,
   RESERVED_HOST_LABELS,
   buildWorkspaceHostname,
@@ -576,4 +583,9 @@ module.exports = {
   parseWorkspaceHostname,
   resolvePlatformEnvironment,
   suggestWorkspaceSlug,
+  INERT_REASONS,
+  INERT_TENANT_SETTING_KEYS,
+  INERT_KEYS_WITH_PENDING_UI_REMOVAL,
+  isInertTenantSettingKey,
+  isTenantSettingControlRenderable,
 };
