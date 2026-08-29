@@ -224,7 +224,8 @@ centrally by the SESSION-0076 burndown, not by this plan.
   instead of inlining it. No behaviour change.
 - `src/modules/tenant-control-plane/tenant-modules.service.ts` — invalidates the
   entitlement cache after a module override is written.
-- Twenty controllers across ten modules — class-level `@RequireEntitlement(...)`
+- Twenty-seven controllers across thirteen modules — class-level
+  `@RequireEntitlement(...)`
   and `EntitlementGuard` appended to `@UseGuards`.
 
 **`apps/web` (changed)**
@@ -324,7 +325,7 @@ new DTO field, no deploy.
 
 | Feature key | API modules |
 |---|---|
-| `payroll` | `payroll`, `payslips`, `pay-components`, `compensation`, `tax-rules`, `loans`, `claims`, `benefits`, `business-trips`, `time-payroll` |
+| `payroll` | `payroll`, `payslips`, `pay-components`, `compensation`, `tax-rules`, `time-payroll` |
 | `timesheets` | `timesheets` |
 | `projects` | `projects` |
 | `recruitment` | `recruitment` |
@@ -350,6 +351,13 @@ oversight:
   all, and refusing a deployed on-premise gateway is an integration break, not a
   commercial one. `attendance` is enabled on every plan today, so nothing is lost.
 - `agent` — the desktop agent's own surface, same reasoning.
+- `loans`, `claims`, `benefits`, `business-trips` — **changed during
+  implementation.** The plan first put these under the `payroll` key because
+  the settings tree files them under Payroll & Finance. No feature key sells
+  them, and only the Enterprise plan carries `payroll`, so gating them would
+  have silently withdrawn four modules from every Starter and Growth tenant on
+  a key that was never meant to cover them. That is a product decision this
+  record did not make, so they are recorded as ungated instead.
 - Everything with no feature key — `auth`, `users`, `settings*`, `approvals`,
   `dashboard`, `reports`, `super-admin`, `platform-*`, `tenants` and the rest.
 

@@ -2,7 +2,7 @@
 ID: BUG-1952
 aliases: [BUG-1952]
 Title: Plan entitlements gate nothing, so a Starter tenant can use every module it has not bought
-Status: OPEN
+Status: FIXED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -11,7 +11,7 @@ DetectedDate: 2026-08-29
 DetectedInSha: eb457d9d
 AffectedModules: [services/api/src/modules/tenant-settings, apps/web]
 OwnerAgent: architect
-ArchitectDisposition: PLAN_REQUIRED
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
@@ -19,7 +19,7 @@ RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-29
 UpdatedAt: 2026-08-29
-ResolvedAt:
+ResolvedAt: 2026-08-29
 ---
 
 # BUG-1952 — Plan entitlements gate nothing, so a Starter tenant can use every module it has not bought
@@ -207,16 +207,99 @@ UI.
 
 ## Resolution
 
-Open. No fix has been written.
+Fixed on `agent/bugfix-entitle` against the design in
+`docs/plans/EXECPLAN-0028-plan-entitlement-enforcement.md`.
+
+**The premise was confirmed, at moved paths.** `assertFeatureEnabled`
+(`services/api/src/modules/tenant-settings/feature-access.service.ts:78-86`)
+had exactly one occurrence in the repository — its own definition. The UI
+consumer the record cites as `apps/web/lib/navigation.ts` does not exist on
+`develop`; the file is
+`apps/web/app/(authenticated)/_components/navigation.ts`, and all three cited
+behaviours were present there: the privileged-role shortcut returned the item
+at `:273` before the feature check at `:292-295`, and that check treated a null
+list as allow-all, fed by the `.catch(() => null)` at
+`apps/web/app/(authenticated)/layout.tsx:96-98`.
+
+**What was built.** A third declarative gate beside the two permission
+systems, not a branch inside either:
+
+- `services/api/src/common/decorators/require-entitlement.decorator.ts` —
+  `@RequireEntitlement(...)`, typed to the feature-key union.
+- `services/api/src/common/guards/entitlement.guard.ts` — inert without the
+  metadata, exactly as `PermissionsGuard` is. It does **not** consult
+  `hasElevatedTenantRole`, exempts `user.platform` callers, and takes the
+  tenant only from `request.user.tenantId`.
+- `services/api/src/common/security/tenant-entitlement.service.ts` — the
+  resolver, its 60-second cache and the enforcement mode.
+- `services/api/src/common/security/tenant-entitlement.rule.ts` — the
+  plan-AND-override rule, now shared with `FeatureAccessService` so the screen
+  and the gate cannot drift apart.
+- `services/api/src/common/errors/error-catalog.ts` —
+  `TENANT_FEATURE_NOT_ENTITLED` (403) and `TENANT_ENTITLEMENT_UNAVAILABLE`
+  (503, retryable), mirrored into `apps/web/lib/api-error.ts` so a refusal
+  reads as a plan limit rather than as a permissions bug.
+- `services/api/src/common/constants/entitlement-wiring.invariants.spec.ts` —
+  reads real Nest metadata off the loaded controller classes and fails when a
+  controller in a gated module loses the guard or the decorator. Mutation-
+  tested: removing the decorator from `ProjectsController` fails it by name.
+
+**Gated** — 27 controllers across 13 module directories: `payroll`,
+`payslips`, `pay-components`, `compensation`, `tax-rules`, `time-payroll`
+(key `payroll`); `timesheets`; `projects`; `recruitment`; `onboarding`;
+`leave`; `attendance`, `attendance-engine` (key `attendance`).
+
+**Deliberately not gated**, recorded with a reason each in
+`ENTITLEMENT_UNGATED_MODULES`: `employees` and `organization` (on every plan,
+and the substrate everything else reads through); `documents` and
+`notifications` (cross-cutting); `branding` (a settings surface);
+`attendance-integrations` and `agent` (the .NET gateway and desktop-agent
+contracts, two of whose controllers carry no authenticated user at all);
+`loans`, `claims`, `benefits`, `business-trips` (no feature key sells them —
+gating them under `payroll` would have withdrawn four modules from every
+Starter and Growth tenant on a key never meant to cover them).
+
+**Fail-closed decision, in three parts.** A live subscription whose plan
+excludes the module denies. A lookup fault over a warm cache serves the last
+snapshot rather than converting a paying tenant into an unentitled one. A
+lookup fault over a cold cache denies, but as a retryable 503 — the honest
+statement is that the platform could not check, not that the customer did not
+buy it. A missing or lapsed subscription **allows**, logged: refusing there
+would lock a tenant out of its own data over an unpaid invoice, which is a
+dunning decision with its own notice period rather than an entitlement one.
+
+**Rollout caveat — this ships switched off, and that is deliberate.**
+Enforcement is governed by `moduleSettings.entitlementEnforcement` in the
+existing `module-settings` platform setting, and defaults to `REPORT_ONLY`
+when the row or the field is absent. In that mode every refusal is logged as
+`ENTITLEMENT_WOULD_REFUSE` with tenant, feature, route and outcome, and the
+request proceeds unchanged. **Nothing about live tenant behaviour changes
+when this merges.** Switching to `ENFORCE` will cut off tenants currently
+using modules they never bought, and will make data they have already entered
+unreachable — the rows survive, the routes do not. The platform owner should
+read a period of report-only logs to learn which tenants and which modules are
+affected, and decide per tenant, before flipping it through
+`PATCH /api/super-admin/platform-settings`. `OFF` is the kill switch. No
+migration, no environment variable, no deploy is needed to change it.
+
+Whether an un-entitled module should degrade to read-only instead of refusing
+outright is the open product question, and is the same one ITEM-0110 asks.
 
 ## QA Retest
 
-Awaiting a fix — nothing to retest yet.
+Awaiting retest, which must run with `entitlementEnforcement` set to `ENFORCE`
+on the test tenant — under the shipped default the acceptance criteria below
+will all appear to fail, because report-only mode allows by design.
+
+Unit coverage is in place for each criterion: entitled allowed, unentitled
+refused, every elevated tenant role still refused, platform user exempt,
+cold-cache resolver failure denying, and report-only logging and allowing.
 
 ## History
 
 - 2026-08-29 — created from the Starter-plan production QA run (SESSION-0070) at `eb457d9d`; observed against production API `949f461c`.
 - 2026-08-29 — triaged by the Architect for SESSION-0070: ArchitectDisposition PLAN_REQUIRED — needs a designed enforcement layer plus a migration decision for tenants already using non-entitled modules; not a patch.
+- 2026-08-29 — fixed for SESSION-0076 on `agent/bugfix-entitle`. Enforcement layer built and gated behind a platform enforcement mode defaulting to REPORT_ONLY, so the cutover for tenants already using unentitled modules stays the platform owner's decision rather than a side effect of the merge.
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
 
