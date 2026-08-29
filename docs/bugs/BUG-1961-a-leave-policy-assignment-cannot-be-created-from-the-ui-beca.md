@@ -2,7 +2,7 @@
 ID: BUG-1961
 aliases: [BUG-1961]
 Title: A leave policy assignment cannot be created from the UI because the parent id is never sent
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -11,7 +11,7 @@ DetectedDate: 2026-08-29
 DetectedInSha: eb457d9d
 AffectedModules: [apps/web, services/api/src/modules/leave]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-305
 RelatedBacklogItem:

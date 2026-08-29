@@ -13,21 +13,21 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 72 |
+| Open (active work) | 66 |
 | Blocked | 2 |
 | Deferred | 30 |
 | Awaiting a product decision | 4 |
-| Completed / closed | 279 |
+| Completed / closed | 285 |
 | **Open CRITICAL** | **0** |
-| **Open HIGH** | **19** |
+| **Open HIGH** | **14** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
 
 | Severity | Count |
 |---|---|
-| HIGH | 19 |
-| MEDIUM | 43 |
+| HIGH | 14 |
+| MEDIUM | 42 |
 | LOW | 10 |
 
 ## Open by type
@@ -35,8 +35,8 @@ see [`README.md`](README.md) for why.
 | Type | Count |
 |---|---|
 | ARCHITECTURE | 2 |
-| AUTHORIZATION | 2 |
-| BUG | 27 |
+| AUTHORIZATION | 1 |
+| BUG | 22 |
 | DATA_INTEGRITY | 6 |
 | DOCUMENTATION | 1 |
 | FOLLOW_UP | 2 |
@@ -55,8 +55,8 @@ see [`README.md`](README.md) for why.
 | BLOCKED | 2 |
 | DEFERRED | 30 |
 | PRODUCT_DECISION | 4 |
-| FIXED | 7 |
-| VERIFIED | 209 |
+| FIXED | 1 |
+| VERIFIED | 215 |
 | DUPLICATE | 4 |
 | ACCEPTED_RISK | 3 |
 | READY | 24 |
@@ -185,20 +185,20 @@ see [`README.md`](README.md) for why.
 | [BUG-1952](../../docs/bugs/BUG-1952-plan-entitlements-gate-nothing-so-a-starter-tenant-can-use-e.md) | Plan entitlements gate nothing, so a Starter tenant can use every module it has not bought | BUG | HIGH | P1 | OPEN | api:tenant-settings, apps/web | PLAN_REQUIRED |
 | [BUG-1954](../../docs/bugs/BUG-1954-the-starter-annual-price-tile-renders-pkr-120-000-00-for-a-p.md) | The Starter annual price tile renders PKR 120,000.00 for a PKR 3,000 annual price | BUG | HIGH | P1 | OPEN | apps/admin, api:super-admin | FIX_NOW |
 | [BUG-1957](../../docs/bugs/BUG-1957-a-department-with-no-business-unit-cannot-be-listed-opened-e.md) | A department with no business unit cannot be listed, opened, edited or deleted, yet still holds its name | DATA_INTEGRITY | HIGH | P1 | OPEN | api:organization | FIX_NOW |
-| [BUG-1961](../../docs/bugs/BUG-1961-a-leave-policy-assignment-cannot-be-created-from-the-ui-beca.md) | A leave policy assignment cannot be created from the UI because the parent id is never sent | BUG | HIGH | P1 | FIXED | apps/web, api:leave | FIX_NOW |
+| [BUG-1961](../../docs/bugs/BUG-1961-a-leave-policy-assignment-cannot-be-created-from-the-ui-beca.md) | A leave policy assignment cannot be created from the UI because the parent id is never sent | BUG | HIGH | P1 | VERIFIED | apps/web, api:leave | DONE |
 | [BUG-1965](../../docs/bugs/BUG-1965-the-leave-request-form-sends-ownerid-and-status-which-the-ap.md) | The leave request form sends ownerId and status, which the API rejects as forbidden properties | BUG | HIGH | P1 | IN_PROGRESS | apps/web, api:leave | FIX_NOW |
-| [BUG-1966](../../docs/bugs/BUG-1966-a-failed-save-in-the-runtime-form-is-swallowed-with-no-messa.md) | A failed save in the runtime form is swallowed with no message, toast or inline error | UX | HIGH | P1 | FIXED | apps/web | FIX_NOW |
-| [BUG-1967](../../docs/bugs/BUG-1967-leave-entitlement-is-never-allocated-to-a-balance-so-every-l.md) | Leave entitlement is never allocated to a balance, so every leave request is refused | BUG | HIGH | P1 | FIXED | api:leave | FIX_NOW |
-| [BUG-1968](../../docs/bugs/BUG-1968-leave-approval-routing-requires-an-active-reporting-manager-.md) | Leave approval routing rejects the submission unless every rule in the chain resolves to an active approver | BUG | HIGH | P1 | FIXED | api:leave, api:approvals | FIX_NOW |
+| [BUG-1966](../../docs/bugs/BUG-1966-a-failed-save-in-the-runtime-form-is-swallowed-with-no-messa.md) | A failed save in the runtime form is swallowed with no message, toast or inline error | UX | HIGH | P1 | FIXED | apps/web | DONE |
+| [BUG-1967](../../docs/bugs/BUG-1967-leave-entitlement-is-never-allocated-to-a-balance-so-every-l.md) | Leave entitlement is never allocated to a balance, so every leave request is refused | BUG | HIGH | P1 | VERIFIED | api:leave | DONE |
+| [BUG-1968](../../docs/bugs/BUG-1968-leave-approval-routing-requires-an-active-reporting-manager-.md) | Leave approval routing rejects the submission unless every rule in the chain resolves to an active approver | BUG | HIGH | P1 | VERIFIED | api:leave, api:approvals | DONE |
 | [BUG-1970](../../docs/bugs/BUG-1970-the-elevated-role-bypass-precedes-the-self-requester-check-o.md) | The elevated-role bypass precedes the self-requester check on leave approval steps | AUTHORIZATION | HIGH | P1 | OPEN | api:leave | FIX_NOW |
 | [BUG-1974](../../docs/bugs/BUG-1974-246-of-591-tenant-setting-keys-have-no-reader-and-230-of-the.md) | 246 of 591 tenant setting keys have no reader and 230 of them are editable in the UI | BUG | HIGH | P1 | OPEN | api:tenant-settings, apps/web | PLAN_REQUIRED |
 | [BUG-1976](../../docs/bugs/BUG-1976-eight-settings-controls-write-a-key-name-the-resolver-never-.md) | Eight settings controls write a key name the resolver never reads | BUG | HIGH | P1 | OPEN | api:tenant-settings, apps/web | FIX_NOW |
 | [BUG-1986](../../docs/bugs/BUG-1986-tenant-settings-has-four-blocking-accessibility-violations-i.md) | Tenant settings has four blocking accessibility violations including buttons with no name | UX | HIGH | P1 | OPEN | apps/web | FIX_NOW |
 | [BUG-2003](../../docs/bugs/BUG-2003-the-tenant-users-screen-crashes-into-the-error-boundary-for-.md) | The tenant Users screen requests an entity the data registry does not have, so it never renders | BUG | HIGH | P1 | IN_PROGRESS | apps/web, api:data | FIX_NOW |
 | [BUG-2008](../../docs/bugs/BUG-2008-every-employee-is-counted-absent-on-a-non-working-day-and-ra.md) | Every employee is counted absent on a non-working day and raised as an exception | DATA_INTEGRITY | HIGH | P1 | OPEN | api:attendance, api:dashboard | FIX_NOW |
-| [BUG-2011](../../docs/bugs/BUG-2011-seven-related-list-dialogs-never-send-the-parent-foreign-key.md) | Seven related-list dialogs never send the parent foreign key and one of them creates an orphan | BUG | HIGH | P1 | FIXED | apps/web | FIX_NOW |
+| [BUG-2011](../../docs/bugs/BUG-2011-seven-related-list-dialogs-never-send-the-parent-foreign-key.md) | Seven related-list dialogs never send the parent foreign key and one of them creates an orphan | BUG | HIGH | P1 | VERIFIED | apps/web | DONE |
 | [BUG-2013](../../docs/bugs/BUG-2013-the-dashboard-error-boundary-classifies-server-component-fai.md) | The dashboard error boundary classifies server-component failures by a message it can never receive | BUG | HIGH | P1 | OPEN | apps/web | FIX_NOW |
-| [BUG-2015](../../docs/bugs/BUG-2015-approving-and-rejecting-leave-is-gated-on-read-permission-an.md) | Approving and rejecting leave is gated on read permission and the dedicated approve keys are never required | AUTHORIZATION | HIGH | P1 | FIXED | api:leave | FIX_NOW |
+| [BUG-2015](../../docs/bugs/BUG-2015-approving-and-rejecting-leave-is-gated-on-read-permission-an.md) | Approving and rejecting leave is gated on read permission and the dedicated approve keys are never required | AUTHORIZATION | HIGH | P1 | VERIFIED | api:leave | DONE |
 | [BUG-2043](../../docs/bugs/BUG-2043-the-audit-events-screen-reports-the-number-of-rows-it-loaded.md) | The Audit Events screen reports the number of rows it loaded as the tenant's total audit count | BUG | HIGH | P1 | OPEN | apps/web, api:audit | FIX_NOW |
 | [BUG-2044](../../docs/bugs/BUG-2044-no-employee-lifecycle-event-is-audited-including-employee-cr.md) | No employee lifecycle event is audited, including employee creation and reporting-manager assignment | DATA_INTEGRITY | HIGH | P1 | OPEN | api:employees, api:organization, api:leave | PLAN_REQUIRED |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
@@ -325,7 +325,7 @@ see [`README.md`](README.md) for why.
 | [BUG-2014](../../docs/bugs/BUG-2014-users-new-and-users-import-are-shadowed-by-the-user-detail-r.md) | Users new and Users import fall through to the user detail route and report a permissions refusal | BUG | MEDIUM | P2 | OPEN | apps/web | FIX_NOW |
 | [BUG-2016](../../docs/bugs/BUG-2016-cancelling-a-leave-request-leaves-its-needs-approval-notific.md) | Cancelling a leave request leaves its needs-approval notification outstanding in the inbox | BUG | MEDIUM | P2 | OPEN | api:notifications, api:leave | FIX_NOW |
 | [BUG-2026](../../docs/bugs/BUG-2026-the-employee-export-produces-columns-the-employee-import-tem.md) | The employee export produces columns the employee import template does not accept | BUG | MEDIUM | P2 | OPEN | api:employees | FIX_NOW |
-| [BUG-2045](../../docs/bugs/BUG-2045-timesheet-background-job-completions-make-up-71-percent-of-t.md) | Timesheet background-job completions make up 71 percent of the tenant audit trail | BUG | MEDIUM | P2 | FIXED | api:timesheets, api:audit, api:tenant-settings | FIX_NOW |
+| [BUG-2045](../../docs/bugs/BUG-2045-timesheet-background-job-completions-make-up-71-percent-of-t.md) | Timesheet background-job completions make up 71 percent of the tenant audit trail | BUG | MEDIUM | P2 | VERIFIED | api:timesheets, api:audit, api:tenant-settings | DONE |
 | [BUG-2091](../../docs/bugs/BUG-2091-the-canonical-settings-contract-still-describes-attendance-g.md) | The canonical settings contract still describes attendance geolocation as configurable and Remote-Hybrid only | DOCUMENTATION | MEDIUM | P2 | OPEN | docs/architecture | FIX_NOW |
 | [BUG-2148](../../docs/bugs/BUG-2148-dashboard-widget-severity-is-conveyed-by-colour-alone-and-hi.md) | Dashboard widget severity is conveyed by colour alone, and hidden from assistive technology | UX | MEDIUM | P2 | DEFERRED | views, dashboard | DEFER |
 | [BUG-2206](../../docs/bugs/BUG-2206-three-timesheet-audit-toggles-render-on-screen-and-are-read-.md) | Three timesheet audit toggles render on screen and are read by nothing | BUG | MEDIUM | P2 | OPEN | api:timesheets, api:tenant-settings, apps/web | FIX_NOW |
