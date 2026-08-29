@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { LogoutButton } from "../logout-button";
 import { UserAvatar } from "./user-avatar";
@@ -14,6 +14,18 @@ type UserMenuDropdownProps = {
   lastName: string;
   profileHref: string;
   roleLabel: string;
+  /*
+   * The workspace switcher, already rendered on the server and handed in as a
+   * slot rather than fetched here. ITEM-0102 moved it under the avatar, but the
+   * data behind it comes from /workspaces/mine, and this menu must not wait on
+   * a network call to open. It arrives resolved or it does not arrive.
+   *
+   * It draws its own separator, because this component cannot tell an empty
+   * section from a present one: a Suspense boundary is a truthy node whichever
+   * way it resolves, so a divider drawn here would hang in the menu of every
+   * single-workspace user — which is nearly all of them.
+   */
+  workspaceSection?: ReactNode;
 };
 
 export function UserMenuDropdown({
@@ -24,6 +36,7 @@ export function UserMenuDropdown({
   lastName,
   profileHref,
   roleLabel,
+  workspaceSection,
 }: UserMenuDropdownProps) {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
@@ -100,6 +113,8 @@ export function UserMenuDropdown({
               </p>
             </div>
           </div>
+
+          {workspaceSection}
 
           <div className="mt-3 grid gap-1">
             <Link

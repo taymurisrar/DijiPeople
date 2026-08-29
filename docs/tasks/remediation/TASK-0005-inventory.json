@@ -17291,14 +17291,14 @@
       "title": "Move Switch workspace into the avatar menu",
       "severity": "",
       "priority": "P2",
-      "current_status": "DEFERRED",
-      "architect_disposition": "DEFER",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0102-move-switch-workspace-into-the-avatar-menu.md",
         "provenance": "ARCHITECT",
         "detected_in_sha": "",
         "created_at": "2026-08-27",
-        "updated_at": "2026-08-27",
+        "updated_at": "2026-08-29",
         "resolved_at": ""
       },
       "affected_modules": [
