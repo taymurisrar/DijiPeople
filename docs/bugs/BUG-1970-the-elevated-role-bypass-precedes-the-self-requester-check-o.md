@@ -13,7 +13,7 @@ AffectedModules: [services/api/src/modules/leave]
 OwnerAgent: architect
 ArchitectDisposition: DONE
 QAReport: 
-RegressionId: 
+RegressionId: REG-329
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:

@@ -13,7 +13,7 @@ AffectedModules: [services/api/src/modules/approvals]
 OwnerAgent: architect
 ArchitectDisposition: DONE
 QAReport: 
-RegressionId: 
+RegressionId: REG-330
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:

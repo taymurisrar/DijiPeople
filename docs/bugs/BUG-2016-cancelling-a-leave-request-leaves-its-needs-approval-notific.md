@@ -13,7 +13,7 @@ AffectedModules: [services/api/src/modules/notifications, services/api/src/modul
 OwnerAgent: architect
 ArchitectDisposition: DONE
 QAReport: 
-RegressionId: 
+RegressionId: REG-331
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:

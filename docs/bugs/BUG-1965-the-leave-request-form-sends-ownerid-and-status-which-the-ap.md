@@ -13,7 +13,7 @@ AffectedModules: [apps/web, services/api/src/modules/leave]
 OwnerAgent: architect
 ArchitectDisposition: DONE
 QAReport: 
-RegressionId: 
+RegressionId: REG-332
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
@@ -195,9 +195,9 @@ That wider assertion now exists:
 kind of check over every `StandardModuleRuntimeSpec`, and it did find another
 module sending an owner. See Resolution.
 
-The fourth acceptance criterion is now closed too — see Resolution. A REG entry
-is still outstanding, and is allocated centrally for this burndown rather than
-written here; that is the one thing between this record and `VERIFIED`.
+The fourth acceptance criterion is now closed too — see Resolution.
+REG-332 covers both specs: `leave-create-payload.spec.ts` for the payload and
+`record-status-create-payload.spec.ts` for the widget class.
 
 ## Dependencies
 
@@ -276,8 +276,8 @@ Against the acceptance criteria: 1 and 2 met by the read-only flags and the
 payload spec, 3 unchanged (the DTO still declares only its five fields, so it
 still rejects both), 4 met by the sweep.
 
-No regression-register entry is written here — REG ids are allocated centrally
-for this burndown — which is the one thing between this record and `VERIFIED`.
+The register entry is REG-332, drafted in `docs/qa/regressions/_incoming/leave.md`
+for central merge into the register.
 
 ## QA Retest
 
