@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**383 records** — 270 bugs under [`docs/bugs/`](../bugs/), 113 non-bug items under [`items/`](items/).
+**386 records** — 272 bugs under [`docs/bugs/`](../bugs/), 114 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -15,9 +15,9 @@ see [`README.md`](README.md) for why.
 |---|---|
 | Open (active work) | 70 |
 | Blocked | 2 |
-| Deferred | 29 |
-| Awaiting a product decision | 5 |
-| Completed / closed | 277 |
+| Deferred | 30 |
+| Awaiting a product decision | 6 |
+| Completed / closed | 278 |
 | **Open CRITICAL** | **0** |
 | **Open HIGH** | **19** |
 | **Awaiting Architect triage** | **0** |
@@ -53,14 +53,14 @@ see [`README.md`](README.md) for why.
 | OPEN | 36 |
 | IN_PROGRESS | 4 |
 | BLOCKED | 2 |
-| DEFERRED | 29 |
-| PRODUCT_DECISION | 5 |
+| DEFERRED | 30 |
+| PRODUCT_DECISION | 6 |
 | FIXED | 6 |
 | VERIFIED | 209 |
 | DUPLICATE | 4 |
 | ACCEPTED_RISK | 3 |
 | READY | 24 |
-| DONE | 61 |
+| DONE | 62 |
 
 ## All records
 
@@ -327,6 +327,7 @@ see [`README.md`](README.md) for why.
 | [BUG-2026](../../docs/bugs/BUG-2026-the-employee-export-produces-columns-the-employee-import-tem.md) | The employee export produces columns the employee import template does not accept | BUG | MEDIUM | P2 | OPEN | api:employees | FIX_NOW |
 | [BUG-2045](../../docs/bugs/BUG-2045-timesheet-background-job-completions-make-up-71-percent-of-t.md) | Timesheet background-job completions make up 71 percent of the tenant audit trail | BUG | MEDIUM | P2 | PRODUCT_DECISION | api:timesheets, api:audit, api:tenant-settings | PRODUCT_DECISION |
 | [BUG-2091](../../docs/bugs/BUG-2091-the-canonical-settings-contract-still-describes-attendance-g.md) | The canonical settings contract still describes attendance geolocation as configurable and Remote-Hybrid only | DOCUMENTATION | MEDIUM | P2 | OPEN | docs/architecture | FIX_NOW |
+| [BUG-2148](../../docs/bugs/BUG-2148-dashboard-widget-severity-is-conveyed-by-colour-alone-and-hi.md) | Dashboard widget severity is conveyed by colour alone, and hidden from assistive technology | UX | MEDIUM | P2 | DEFERRED | views, dashboard | DEFER |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |
@@ -414,6 +415,7 @@ see [`README.md`](README.md) for why.
 | [BUG-2010](../../docs/bugs/BUG-2010-the-dashboard-recent-changes-list-renders-unformatted-iso-86.md) | The dashboard Recent changes list renders unformatted ISO-8601 timestamps | UX | LOW | P3 | OPEN | apps/web | FIX_NOW |
 | [BUG-2017](../../docs/bugs/BUG-2017-the-inbox-related-record-column-renders-a-bare-uuid-with-no-.md) | The inbox Related record column renders a bare UUID with no label and no link | UX | LOW | P3 | OPEN | apps/web | FIX_NOW |
 | [BUG-2046](../../docs/bugs/BUG-2046-audit-actions-use-two-naming-conventions-and-the-result-colu.md) | Audit actions use two naming conventions and the Result column is populated only by login events | BUG | LOW | P3 | OPEN | api:audit | PLAN_REQUIRED |
+| [BUG-2149](../../docs/bugs/BUG-2149-every-dashboard-metric-card-offers-a-link-named-only-open.md) | Every dashboard metric card offers a link named only Open | UX | LOW | P3 | DEFERRED | views, dashboard | DEFER |
 | [ITEM-0007](../../docs/backlog/items/ITEM-0007-should-duplicate-website-leads-be-deduplicated.md) | Product decision — should duplicate website leads be deduplicated? | PRODUCT_DECISION | LOW | P3 | DONE | api:leads, apps/landing | DONE |
 | [ITEM-0008](../../docs/backlog/items/ITEM-0008-customeraccount-has-no-origin-channel.md) | Product decision — CustomerAccount carries no origin channel | PRODUCT_DECISION | LOW | P3 | DONE | services/api/prisma, api:super-admin | DONE |
 | [ITEM-0011](../../docs/backlog/items/ITEM-0011-framework-validation-should-catch-absence-claims.md) | Framework validation should catch false absence claims in context documents | TECH_DEBT | LOW | P3 | DONE | .agent/context, scripts | DONE |
@@ -446,9 +448,10 @@ see [`README.md`](README.md) for why.
 | [ITEM-0091](../../docs/backlog/items/ITEM-0091-repo-health-blocks-every-release-task-on-its-own-defining-ou.md) | repo:health blocks every RELEASE task on its own defining outcome | INFRA | — | P2 | DONE | framework | DONE |
 | [ITEM-0100](../../docs/backlog/items/ITEM-0100-apps-landing-env-examples-omit-next-public-web-root-domain-a.md) | apps/landing env examples omit NEXT_PUBLIC_WEB_ROOT_DOMAIN and no parity test guards them | INFRA | — | P2 | DONE | apps/landing, pkg:config | DONE |
 | [ITEM-0101](../../docs/backlog/items/ITEM-0101-mailerservice-silently-logs-instead-of-sending-and-nothing-u.md) | MailerService silently logs instead of sending, and nothing uses it | TECH_DEBT | — | P2 | DEFERRED | services/api/src/common/mailer | DEFER |
-| [ITEM-0102](../../docs/backlog/items/ITEM-0102-move-switch-workspace-into-the-avatar-menu.md) | Move Switch workspace into the avatar menu | UX | — | P2 | DEFERRED | views | DEFER |
+| [ITEM-0102](../../docs/backlog/items/ITEM-0102-move-switch-workspace-into-the-avatar-menu.md) | Move Switch workspace into the avatar menu | UX | — | P2 | DONE | views | DONE |
 | [ITEM-0058](../../docs/backlog/items/ITEM-0058-next-env-d-ts-churns-between-dev-and-build-forms-and-the-fou.md) | next-env.d.ts churns between dev and build forms and the four apps disagree | TECH_DEBT | — | P3 | DEFERRED | apps/landing, apps/web, apps/admin | DEFER |
 | [ITEM-0059](../../docs/backlog/items/ITEM-0059-49-tracked-text-files-have-no-final-newline-and-nothing-enfo.md) | 49 tracked text files have no final newline, and nothing enforces one | TECH_DEBT | — | P3 | DEFERRED | apps/admin, apps/web, apps/agent-desktop | DEFER |
+| [ITEM-0114](../../docs/backlog/items/ITEM-0114-the-workspace-shell-states-the-tenant-s-identity-four-times-.md) | The workspace shell states the tenant's identity four times and its purpose twice | UX | — | P3 | PRODUCT_DECISION | views | PRODUCT_DECISION |
 
 ## Views
 

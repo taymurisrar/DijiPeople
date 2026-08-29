@@ -7,7 +7,7 @@
 
 | | |
 |---|---|
-| Active sessions | **3** |
+| Active sessions | **4** |
 | Active parent tasks | 3 |
 | Active work packages | 0 |
 | Blocked work packages | 0 |
@@ -17,7 +17,7 @@
 | Open CRITICAL | **0** |
 | Open HIGH | 19 |
 | Awaiting Architect triage | 0 |
-| Owner decisions pending | 5 |
+| Owner decisions pending | 6 |
 | QA coverage gaps | 120 |
 | Scenarios blocked by infrastructure | 0 |
 
@@ -49,6 +49,7 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 | Session | Task | Title | Status | Branch | Target | Leases | Schema |
 |---|---|---|---|---|---|---|---|
+| [[SESSION-0073-move-switch-workspace-into-the-avatar-menu-item-0102|SESSION-0073]] | — | Move Switch workspace into the avatar menu (ITEM-0102) | ACTIVE | `agent/workspace-switcher-avatar-menu` | `develop` | — | NO |
 | [[SESSION-0072-starter-release-blockers-the-fixes-that-make-leave-and-entit|SESSION-0072]] | — | Starter release blockers: the fixes that make leave and entitlements work | ACTIVE | `agent/starter-blocker-fixes` | `develop` | — | NO |
 | [[SESSION-0071-tenant-workspace-accessibility-the-three-defects-the-browser|SESSION-0071]] | — | Tenant workspace accessibility: the three defects the browser coverage found | ACTIVE | `agent/web-shell-accessibility` | `develop` | — | NO |
 | [[SESSION-0061-unblock-the-production-hosts-for-the-mcp-browser|SESSION-0061]] | — | Production admin E2E QA and invitation delivery visibility | ACTIVE | `agent/invitation-delivery-visibility` | `develop` | — | NO |
@@ -113,6 +114,7 @@ Questions where the engineering is understood and the **product answer is**
 - [[ITEM-0113-the-seeded-leave-approval-chain-cannot-route-on-a-newly-prov|ITEM-0113]] — **The seeded leave approval chain cannot route on a newly provisioned tenant, and the Approval Matrices screen gives no warning**
 - [[ITEM-0108-decide-whether-the-roughly-one-hour-session-lifetime-is-idle|ITEM-0108]] — **Decide whether the roughly one-hour session lifetime is idle or absolute**
 - [[BUG-2007-projects-and-customers-can-be-created-but-never-deleted|BUG-2007]] — **Projects and customers can be created but never deleted**
+- [[ITEM-0114-the-workspace-shell-states-the-tenant-s-identity-four-times-|ITEM-0114]] — **The workspace shell states the tenant's identity four times and its purpose twice**
 
 ## QA Coverage Gaps
 
@@ -248,8 +250,8 @@ gap into scope — or files a `TEST_GAP` item and says so.
 |---|---|
 | Open total | 70 |
 | Blocked | 2 |
-| Deferred | 29 |
-| Awaiting a product decision | 5 |
+| Deferred | 30 |
+| Awaiting a product decision | 6 |
 | Awaiting Architect triage | 0 |
 
 Every ordinary record carries a disposition.

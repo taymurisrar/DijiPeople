@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 251** · automated: 221 · manual: 12 · blocked by infrastructure: 0
+**Scenarios: 252** · automated: 222 · manual: 12 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -263,5 +263,6 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-TENANT-051](../../../docs/qa/scenarios/QA-TENANT-051-a-rejected-stripe-webhook-names-the-check-that-refused-it.md) | A rejected Stripe webhook names the check that refused it | billing | UNIT | MEDIUM | AUTOMATED | `services/api/src/modules/billing/webhook-rejection-diagnostics.spec.ts` | BUG-1543, BUG-1516 | REG-299 |
 | [QA-TENANT-052](../../../docs/qa/scenarios/QA-TENANT-052-the-payment-panel-asks-what-the-payment-is-doing-before-offe.md) | The payment panel asks what the payment is doing before offering to re-check it | billing | UNIT | MEDIUM | AUTOMATED | `services/api/src/modules/billing/services/payment-state.spec.ts` | BUG-1884 | REG-301 |
 | [QA-TENANT-053](../../../docs/qa/scenarios/QA-TENANT-053-the-tenant-product-opens-module-by-module-for-the-plan-a-ten.md) | The tenant product opens, module by module, for the plan a tenant is on | runtime-modules | BROWSER_E2E | HIGH | AUTOMATED | `e2e/tests/flow-i-growth-modules.spec.ts` | BUG-1950, BUG-1951 | REG-302 |
+| [QA-TENANT-054](../../../docs/qa/scenarios/QA-TENANT-054-switching-workspace-is-reached-from-the-avatar-menu-and-name.md) | Switching workspace is reached from the avatar menu and named once | runtime-modules | UNIT | MEDIUM | AUTOMATED | `apps/web/app/components/workspace-switcher-placement.spec.ts` | — | — |
 | [QA-TENANT-055](../../../docs/qa/scenarios/QA-TENANT-055-employee-document-upload-validates-stores-and-returns-the-sa.md) | Employee document upload validates, stores and returns the same bytes | runtime-modules | API | HIGH | MANUAL | — | — | — |
 | [QA-TENANT-056](../../../docs/qa/scenarios/QA-TENANT-056-employee-import-resolves-named-lookups-into-real-foreign-key.md) | Employee import resolves named lookups into real foreign keys | runtime-modules | API | HIGH | MANUAL | — | BUG-2026 | — |

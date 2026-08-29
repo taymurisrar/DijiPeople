@@ -1,7 +1,7 @@
 # Component Index
 
 > **Last verified:** 2026-08-29
-> **Verified against commit:** 660897ae
+> **Verified against commit:** ff779ec9
 >
 > **This file is generated. Do not hand-edit it.**
 > `node scripts/generate-component-index.mjs` rebuilds it;
@@ -137,7 +137,7 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `ModuleShareDialog` | component | 1 | `apps/web/app/components/runtime/module-share-dialog.tsx`:12 | Escape did nothing here and `aria-labelledby` named nothing; the read-only link input carried no accessible name at all. |
 | `SessionExpiredDialog` | component | 1 | `apps/web/app/components/feedback/session-expired-dialog.tsx`:16 | This had no dialog semantics, no focus containment and no Escape at all — which for this one is partly deliberate: there is nothing behind it the user can usefully do. |
 | `WorkspaceEnvironmentBanner` | component | 1 | `apps/web/app/components/workspace-environment-banner.tsx`:38 | A persistent marker on non-production workspaces. |
-| `WorkspaceSwitcher` | component | 1 | `apps/web/app/components/workspace-switcher.tsx`:34 | Moving between the workspaces one person belongs to. |
+| `WorkspaceSwitcher` | component | 1 | `apps/web/app/components/workspace-switcher.tsx`:55 | Moving between the workspaces one person belongs to. |
 | `WorkspaceContextLabel` | component | 0 | `apps/web/app/components/workspace-environment-banner.tsx`:66 | The workspace label for the app shell. |
 | `useDialogBehavior` | function | 16 | `apps/web/app/components/ui/dialog.tsx`:130 | The behaviour half of {@link Dialog}, on its own. |
 | `isVisibleByRules` | function | 3 | `apps/web/lib/runtime/visibility.resolver.ts`:57 | True when every rule passes. |

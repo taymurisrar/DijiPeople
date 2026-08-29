@@ -11,9 +11,9 @@
 | Open HIGH | **19** |
 | Open total | 70 |
 | Blocked | 2 |
-| Awaiting a product decision | 5 |
-| Deferred | 29 |
-| Completed | 277 |
+| Awaiting a product decision | 6 |
+| Deferred | 30 |
+| Completed | 278 |
 | Awaiting Architect triage | 0 |
 
 ## Open Critical Bugs
@@ -53,6 +53,7 @@ _None. Nothing open at CRITICAL._
 | [[ITEM-0113-the-seeded-leave-approval-chain-cannot-route-on-a-newly-prov|ITEM-0113]] | The seeded leave approval chain cannot route on a newly provisioned tenant, and the Approval Matrices screen gives no warning | PRODUCT_DECISION | MEDIUM | PRODUCT_DECISION | services/api/prisma, api:approvals, apps/web | PRODUCT_DECISION |
 | [[ITEM-0108-decide-whether-the-roughly-one-hour-session-lifetime-is-idle|ITEM-0108]] | Decide whether the roughly one-hour session lifetime is idle or absolute | PRODUCT_DECISION | LOW | PRODUCT_DECISION | api:auth | PRODUCT_DECISION |
 | [[BUG-2007-projects-and-customers-can-be-created-but-never-deleted|BUG-2007]] | Projects and customers can be created but never deleted | BUG | LOW | PRODUCT_DECISION | api:projects | PRODUCT_DECISION |
+| [[ITEM-0114-the-workspace-shell-states-the-tenant-s-identity-four-times-|ITEM-0114]] | The workspace shell states the tenant's identity four times and its purpose twice | UX | — | PRODUCT_DECISION | views | PRODUCT_DECISION |
 
 ## Blocked Items
 
@@ -406,8 +407,8 @@ _None. Nothing open at CRITICAL._
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 270 |
-| Backlog items | 113 |
+| Bug records | 272 |
+| Backlog items | 114 |
 | Known bug patterns | 30 |
 | QA runs | 31 |
 | Engineering history records | 58 |
