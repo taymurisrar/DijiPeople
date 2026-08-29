@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 248** · automated: 220 · manual: 10 · blocked by infrastructure: 0
+**Scenarios: 251** · automated: 221 · manual: 12 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -202,6 +202,7 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-RUNTIME-015](../../../docs/qa/scenarios/QA-RUNTIME-015-every-runtime-record-panel-is-mounted-on-a-tab-an-operator-c.md) | Every runtime record panel is mounted on a tab an operator can reach | runtime-modules | UNIT | HIGH | AUTOMATED | `apps/admin/lib/runtime/runtime-record-panels.spec.ts` | BUG-0794 | REG-232 |
 | [QA-RUNTIME-016](../../../docs/qa/scenarios/QA-RUNTIME-016-a-column-added-to-a-module-reaches-operators-who-saved-table.md) | A column added to a module reaches operators who saved table preferences | runtime-modules | UNIT | MEDIUM | AUTOMATED | `apps/admin/lib/runtime/column-preferences.spec.ts` | BUG-0795 | REG-233 |
 | [QA-RUNTIME-017](../../../docs/qa/scenarios/QA-RUNTIME-017-an-unroutable-approval-chain-refuses-the-submission-and-name.md) | An unroutable approval chain refuses the submission and names every step that cannot bind | approvals | UNIT | HIGH | AUTOMATED | `services/api/src/modules/approvals/approval-matrix-resolver.service.spec.ts` | BUG-1968 | REG-304 |
+| [QA-RUNTIME-018](../../../docs/qa/scenarios/QA-RUNTIME-018-a-failed-save-always-tells-the-user-even-when-the-server-nam.md) | A failed save always tells the user, even when the server names fields the form does not render | runtime-modules | UNIT | HIGH | AUTOMATED | `apps/web/lib/runtime/command-failure-visibility.spec.ts` | BUG-1966 | REG-307 |
 | [QA-RUNTIME-020](../../../docs/qa/scenarios/QA-RUNTIME-020-creating-from-a-related-list-attaches-the-record-to-the-pare.md) | Creating from a related list attaches the record to the parent it was opened from | runtime-modules | UNIT | HIGH | AUTOMATED | `apps/web/lib/runtime/related-record-parent-key.spec.ts` | BUG-2011, BUG-1961 | REG-305 |
 | [QA-RUNTIME-021](../../../docs/qa/scenarios/QA-RUNTIME-021-an-employee-covered-by-a-leave-policy-has-the-entitlement-it.md) | An employee covered by a leave policy has the entitlement it grants | leave | UNIT | HIGH | AUTOMATED | `services/api/src/modules/leave/leave-entitlement.service.spec.ts` | BUG-1967 | REG-306 |
 | [QA-SECURITY-001](../../../docs/qa/scenarios/QA-SECURITY-001-a-refused-cors-origin-returns-a-normal-status-and-no-allow-o.md) | A refused CORS origin returns a normal status and no allow-origin header | authorization | SECURITY | HIGH | AUTOMATED | `services/api/src/config/cors-options.spec.ts` | BUG-0976 | REG-240 |
@@ -262,3 +263,5 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-TENANT-051](../../../docs/qa/scenarios/QA-TENANT-051-a-rejected-stripe-webhook-names-the-check-that-refused-it.md) | A rejected Stripe webhook names the check that refused it | billing | UNIT | MEDIUM | AUTOMATED | `services/api/src/modules/billing/webhook-rejection-diagnostics.spec.ts` | BUG-1543, BUG-1516 | REG-299 |
 | [QA-TENANT-052](../../../docs/qa/scenarios/QA-TENANT-052-the-payment-panel-asks-what-the-payment-is-doing-before-offe.md) | The payment panel asks what the payment is doing before offering to re-check it | billing | UNIT | MEDIUM | AUTOMATED | `services/api/src/modules/billing/services/payment-state.spec.ts` | BUG-1884 | REG-301 |
 | [QA-TENANT-053](../../../docs/qa/scenarios/QA-TENANT-053-the-tenant-product-opens-module-by-module-for-the-plan-a-ten.md) | The tenant product opens, module by module, for the plan a tenant is on | runtime-modules | BROWSER_E2E | HIGH | AUTOMATED | `e2e/tests/flow-i-growth-modules.spec.ts` | BUG-1950, BUG-1951 | REG-302 |
+| [QA-TENANT-055](../../../docs/qa/scenarios/QA-TENANT-055-employee-document-upload-validates-stores-and-returns-the-sa.md) | Employee document upload validates, stores and returns the same bytes | runtime-modules | API | HIGH | MANUAL | — | — | — |
+| [QA-TENANT-056](../../../docs/qa/scenarios/QA-TENANT-056-employee-import-resolves-named-lookups-into-real-foreign-key.md) | Employee import resolves named lookups into real foreign keys | runtime-modules | API | HIGH | MANUAL | — | BUG-2026 | — |

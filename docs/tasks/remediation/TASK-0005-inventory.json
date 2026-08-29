@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 381,
+    "total_records": 383,
     "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
@@ -11157,7 +11157,7 @@
       "title": "Assigned On is required by the leave assignment API and rendered as an optional field",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
+      "current_status": "IN_PROGRESS",
       "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-1962-assigned-on-is-required-by-the-leave-assignment-api-and-rend.md",
@@ -11275,7 +11275,7 @@
       "title": "The leave request form sends ownerId and status, which the API rejects as forbidden properties",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
+      "current_status": "IN_PROGRESS",
       "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-1965-the-leave-request-form-sends-ownerid-and-status-which-the-ap.md",
@@ -11315,7 +11315,7 @@
       "title": "A failed save in the runtime form is swallowed with no message, toast or inline error",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
+      "current_status": "FIXED",
       "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-1966-a-failed-save-in-the-runtime-form-is-swallowed-with-no-messa.md",
@@ -11328,8 +11328,12 @@
       "affected_modules": [
         "apps/web"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-307"
+      ],
+      "qa_scenarios": [
+        "QA-RUNTIME-018"
+      ],
       "test_plan": [
         "PLAN-023"
       ],
@@ -11683,11 +11687,11 @@
     {
       "record_id": "BUG-1979",
       "type": "BUG",
-      "title": "Seven attendance settings are overwritten on write and the admin is never told",
+      "title": "Seven mandated attendance settings are still rendered editable and the refusal is never reported",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "PRODUCT_DECISION",
-      "architect_disposition": "PRODUCT_DECISION",
+      "current_status": "OPEN",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-1979-seven-attendance-settings-are-overwritten-on-write-and-the-a.md",
         "provenance": "QA_RUN",
@@ -11724,8 +11728,8 @@
       "title": "One saved attendance policy permanently overrides the attendance settings category",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "PRODUCT_DECISION",
-      "architect_disposition": "PRODUCT_DECISION",
+      "current_status": "OPEN",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-1980-one-saved-attendance-policy-permanently-overrides-the-attend.md",
         "provenance": "QA_RUN",
@@ -11759,11 +11763,11 @@
     {
       "record_id": "BUG-1981",
       "type": "BUG",
-      "title": "resolvePolicy hardcodes seven location values and inverts two AttendancePolicy column defaults",
+      "title": "resolvePolicy hardcodes seven location values and two AttendancePolicy columns are dead",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "PRODUCT_DECISION",
-      "architect_disposition": "PRODUCT_DECISION",
+      "current_status": "OPEN",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-1981-resolvepolicy-hardcodes-seven-location-values-and-inverts-tw.md",
         "provenance": "QA_RUN",
@@ -11838,7 +11842,7 @@
       "title": "The tenant Users screen requests an entity the data registry does not have, so it never renders",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
+      "current_status": "IN_PROGRESS",
       "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-2003-the-tenant-users-screen-crashes-into-the-error-boundary-for-.md",
@@ -11878,7 +11882,7 @@
       "title": "The approvals module emits a New action for a page that does not exist, and the detail route throws on it",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
+      "current_status": "IN_PROGRESS",
       "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-2004-the-approvals-inbox-offers-a-new-action-whose-page-crashes-i.md",
@@ -12438,7 +12442,9 @@
         "services/api/src/modules/employees"
       ],
       "regressions": [],
-      "qa_scenarios": [],
+      "qa_scenarios": [
+        "QA-TENANT-056"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -12607,6 +12613,44 @@
           "services/api/src/modules/audit"
         ],
         "verification_scope": "See docs/bugs/BUG-2046-audit-actions-use-two-naming-conventions-and-the-result-colu.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-2091",
+      "type": "DOCUMENTATION",
+      "title": "The canonical settings contract still describes attendance geolocation as configurable and Remote-Hybrid only",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-2091-the-canonical-settings-contract-still-describes-attendance-g.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "70391242",
+        "created_at": "2026-08-29",
+        "updated_at": "2026-08-29",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "docs/architecture"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "docs/architecture"
+        ],
+        "verification_scope": "See docs/bugs/BUG-2091-the-canonical-settings-contract-still-describes-attendance-g.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],
@@ -17618,6 +17662,44 @@
           "apps/web"
         ],
         "verification_scope": "See docs/backlog/items/ITEM-0111-protected-route-prefixes-omits-twelve-authenticated-route-tr.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0112",
+      "type": "TEST_GAP",
+      "title": "enforceCriticalAttendanceSetting has no test coverage despite enforcing a mandatory integrity control",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "READY",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0112-enforcecriticalattendancesetting-has-no-test-coverage-despit.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-08-29",
+        "updated_at": "2026-08-29",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/tenant-settings"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/tenant-settings"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0112-enforcecriticalattendancesetting-has-no-test-coverage-despit.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],

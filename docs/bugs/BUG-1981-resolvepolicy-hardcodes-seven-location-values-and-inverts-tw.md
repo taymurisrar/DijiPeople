@@ -1,8 +1,8 @@
 ---
 ID: BUG-1981
 aliases: [BUG-1981]
-Title: resolvePolicy hardcodes seven location values and inverts two AttendancePolicy column defaults
-Status: PRODUCT_DECISION
+Title: resolvePolicy hardcodes seven location values and two AttendancePolicy columns are dead
+Status: OPEN
 Severity: MEDIUM
 Priority: P2
 Type: BUG
@@ -10,8 +10,8 @@ Source: QA_RUN
 DetectedDate: 2026-08-29
 DetectedInSha: eb457d9d
 AffectedModules: [services/api/src/modules/attendance]
-OwnerAgent: architect
-ArchitectDisposition: PRODUCT_DECISION
+OwnerAgent: backend-api
+ArchitectDisposition: FIX_NOW
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
@@ -22,16 +22,66 @@ UpdatedAt: 2026-08-29
 ResolvedAt:
 ---
 
-# BUG-1981 — resolvePolicy hardcodes seven location values and inverts two AttendancePolicy column defaults
+# BUG-1981 — resolvePolicy hardcodes seven location values and two AttendancePolicy columns are dead
 
 ## Summary
 
 `resolvePolicy` returns seven location-related values as literals, consulting
 neither the `AttendancePolicy` row nor the attendance settings. Two of the seven
 are `AttendancePolicy` columns with no settings counterpart, and both are
-hardcoded to the **opposite** of their column default — so an administrator
-saving the attendance policy screen writes values the engine will never honour,
-and the columns themselves are dead.
+hardcoded to the opposite polarity from their column default — so an
+administrator saving the attendance policy screen writes values the engine will
+never honour, and the columns themselves are dead.
+
+**This record splits in two.** The SESSION-0072 investigation settled which half
+is which:
+
+- **The seven hardcodes are deliberate and coherent.** They report the location
+  mandate consistently with an enforcement path that is unconditional anyway
+  (see BUG-1979 for the mandate's evidence). Keep them — ideally expressed as
+  one named constant with a comment, so the next reader does not file this
+  again.
+- **The two dead `AttendancePolicy` columns are a genuine leftover** — an
+  unfinished cleanup, safe to fix without answering any product question.
+
+## Correction — the values are not "inverted" by mistake
+
+*Added 2026-08-29. The original wording of this record was wrong and is corrected
+here rather than quietly removed, because a future reader would otherwise hunt
+for a typo that does not exist.*
+
+The record previously described `requireRemoteLocationForRemoteMode: true` and
+`allowRemoteWithoutLocation: false` as "inverted" relative to their column
+defaults, and its Root Cause inferred from that that "the schema and the
+resolver were written against different intentions". **That inference is
+incorrect.**
+
+The two values are **logical complements**, and they have always been consumed
+as complements. Before commit `a8c04f16`, `resolvePolicy` derived them as:
+
+```ts
+requireRemoteLocationForRemoteMode: policy?.X ?? settings.requireRemoteLocationCapture,
+allowRemoteWithoutLocation:         policy?.Y ?? !settings.requireRemoteLocationCapture,
+```
+
+That is `require = X`, `allowWithout = !X`. The column defaults `false` / `true`,
+set in `20260413183000_attendance_advanced_foundation` (2026-04-13, commit
+`b984e570`), are internally consistent with each other and with the then-current
+catalog default `requireRemoteLocationCapture: false`.
+
+`a8c04f16` replaced both derivations with literals that are **also** complements
+— `true` / `false`. The same pair; only the polarity moved, to match the
+mandate. The April 2026 column defaults were simply never revisited, along with
+the DTO, the policy screen and the schema. Nothing was inverted by accident.
+
+One further nuance the original record did not have: **these two columns were
+never read in an enforcement branch, before or after `a8c04f16`.** The mandate
+did not kill them. They have been decorative since 2026-04-13; all they ever did
+was populate `getPolicy().policy.remoteRequiresLocation` for the ESS card, which
+today correctly reports `true`, matching the server.
+
+So the defect is stale schema plus live UI controls over dead columns — not a
+contradiction of intent.
 
 ## Expected Behavior
 
@@ -102,10 +152,27 @@ key consulted — which is the reader-side explanation for BUG-1978.
 
 ## Root Cause
 
-Established as a mechanism: values that the schema models as configurable were
-inlined as constants at the resolve site. Whether the mandate behind them is
-current policy is a product question, and the inverted defaults suggest the schema
-and the resolver were written against different intentions.
+Established, and split.
+
+The seven literals are the **deliberate** location mandate landed by commit
+`a8c04f16` on 2026-07-29, whose migration
+(`20260728234000_attendance_mandatory_location_capture`) opens with
+`-- Attendance location is a mandatory integrity control for all self-service modes.`
+See BUG-1979 for the full evidence. Since the enforcement path
+(`validateAttendanceLocationPayload`) throws unconditionally and reads none of
+these fields, reading them from the policy row instead would change the value
+the client is *told* without changing what the server *does*.
+
+The genuine defect is an **unfinished cleanup**: `a8c04f16` moved the resolve
+site to literals and left the two `AttendancePolicy` columns, their April 2026
+defaults, their DTO fields and their two live checkboxes behind. Those two
+columns were already decorative before the mandate — see the Correction above —
+so nothing about them was ever a contradiction of intent, only a leftover nobody
+swept up.
+
+An earlier draft of this record attributed the leftover to "the schema and the
+resolver written against different intentions". That is withdrawn; see the
+Correction section.
 
 ## Impact
 
@@ -126,11 +193,30 @@ columns.
 
 ## Proposed Resolution
 
-Decide whether the seven values are genuinely mandated. If they are, remove the
-two dead columns from the schema (a destructive change needing an ExecPlan) or
-mark them enforced and stop offering them for editing, and align the remaining
-column defaults with the enforced values so the schema stops contradicting the
-engine. If they are not mandated, read them from the policy row.
+The mandate question is answered — the seven values **are** genuinely mandated
+(BUG-1979). So:
+
+1. **Keep the seven literals.** Extract them into one named, commented constant
+   at the resolve site that points at migration `20260728234000`, so the next
+   reader can see they are the mandate rather than an oversight.
+2. **Remove the two dead columns** — `requireRemoteLocationForRemoteMode` and
+   `allowRemoteWithoutLocation`. Dropping columns is a destructive change and
+   needs an ExecPlan under `PLANS.md` with a backfill and rollback section. If
+   the drop is deferred, the interim step is to align their defaults with the
+   enforced values so the schema stops contradicting the engine.
+3. **Remove the two live checkboxes** (`attendance-policy-card.tsx:85,95`) and
+   the two DTO fields (`update-attendance-policy.dto.ts:32,36`) that accept
+   input which can never take effect. This half needs no ExecPlan and no product
+   input.
+
+Do **not** "restore configurability" by reading the seven from the policy row.
+The enforcement never consults them; that change would alter only what the
+client is told.
+
+Also worth fixing while here, though strictly separate: `apps/web/.../attendance/team/page.tsx:121-131`
+hardcodes a fallback policy object carrying the **pre-mandate** values
+(`allowRemoteWithoutLocation: true`, `captureLocationOnCheckIn: false`,
+`locationRequiredForModes: []`), directly contradicting the server.
 
 ## Acceptance Criteria
 
@@ -146,14 +232,21 @@ attendance engine is actually read would fail today on two columns.
 
 ## Dependencies
 
-Shares its product decision with BUG-1979 and BUG-1980.
+The product decision this record used to share with BUG-1979 and BUG-1980 is
+answered (see BUG-1979). Step 2 of the resolution — dropping the two columns —
+needs an ExecPlan under `PLANS.md`. Steps 1 and 3 need nothing.
 
 ## Related Items
 
-BUG-1979 (seven attendance settings forced on write — a different seven),
-BUG-1980 (a saved policy row overrides the settings category) and BUG-1978 (two
-attendance checkboxes that are not catalog keys, whose reader side is documented
-here).
+BUG-1979 (seven mandated attendance settings still rendered editable — a
+different seven, and the record carrying the mandate's evidence), BUG-1980 (a
+saved policy row overrides the settings category — unrelated to the mandate) and
+BUG-1978 (two attendance checkboxes that are not catalog keys, whose reader side
+is documented here).
+
+BUG-2091 records that the canonical settings contract still describes
+attendance geolocation as configurable, which is the documentation half of the
+same unfinished cleanup.
 
 ## Resolution
 
@@ -167,6 +260,7 @@ Awaiting a fix — nothing to retest yet.
 
 - 2026-08-29 — created from the Starter-plan production QA run (SESSION-0070) at `eb457d9d`.
 - 2026-08-29 — triaged by the Architect for SESSION-0070: ArchitectDisposition PRODUCT_DECISION — depends on the answer to BUG-1979 and BUG-1980.
+- 2026-08-29 — amended by the SESSION-0072 attendance-override investigation. The record **splits**: the seven hardcodes are deliberate and coherent with the location mandate (keep them), while the two dead `AttendancePolicy` columns are a genuine leftover (remove them). Status moves PRODUCT_DECISION -> OPEN and ArchitectDisposition PRODUCT_DECISION -> FIX_NOW. A **Correction** section was added: the record's claim that the two values are "inverted" relative to their column defaults, and the Root Cause inferred from it, were wrong — `require=true` / `allowWithout=false` are logical complements exactly as the pre-mandate `require=X` / `allowWithout=!X` derivation was; only the polarity moved, and the April-2026 column defaults were never revisited. The claim is corrected in place rather than dropped. Title adjusted to stop asserting the inversion.
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
 

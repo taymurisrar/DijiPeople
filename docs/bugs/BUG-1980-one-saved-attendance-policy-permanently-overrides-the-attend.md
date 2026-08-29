@@ -2,7 +2,7 @@
 ID: BUG-1980
 aliases: [BUG-1980]
 Title: One saved attendance policy permanently overrides the attendance settings category
-Status: PRODUCT_DECISION
+Status: OPEN
 Severity: MEDIUM
 Priority: P2
 Type: BUG
@@ -10,8 +10,8 @@ Source: QA_RUN
 DetectedDate: 2026-08-29
 DetectedInSha: eb457d9d
 AffectedModules: [services/api/src/modules/attendance]
-OwnerAgent: architect
-ArchitectDisposition: PRODUCT_DECISION
+OwnerAgent: backend-api
+ArchitectDisposition: FIX_NOW
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
@@ -32,6 +32,15 @@ default, so the fallback fires only when the whole row is absent. The row is not
 seeded — it is created the first time anyone opens and saves the attendance
 policy screen. From that moment, seven attendance settings keys stop having any
 effect on the tenant, for ever, and nothing in the settings UI says so.
+
+**This is a plain bug, unrelated to the attendance location mandate.** The
+SESSION-0072 investigation confirmed that none of the fields this record is
+about — `lateCheckInGraceMinutes`, `requireOfficeLocationForOfficeMode`,
+`allowIpFallback`, `locationTimeoutSeconds`, `storeIpAddress`,
+`storeUserAgent` — is mandated by anything: no commit, comment, test or
+document expresses an intent that they should be frozen. Nothing here waits on
+the product decision that BUG-1979 and BUG-1981 were parked behind, and the
+`??`-on-non-nullable degeneration is the classic mechanical error.
 
 ## Expected Behavior
 
@@ -148,14 +157,35 @@ the tenant settings UI, and the attendance policy screen.
 
 ## Proposed Resolution
 
-Decide the precedence deliberately and implement it once. If the policy is the
-source of truth when it exists, stop offering the superseded settings controls
-and say where the value now lives. If settings are meant to be the fallback per
-field, the policy columns need to be nullable — a schema change requiring an
-ExecPlan with a backfill — so `??` means what it was written to mean.
+**Recommended direction: make the consulted `AttendancePolicy` columns
+nullable**, so `??` means what it was written to mean, rather than declaring the
+policy row supreme.
 
-Separately, `upsertAttendancePolicy` should not write hardcoded defaults for
-fields the caller did not send.
+The one piece of documented intent here is
+`docs/architecture/tenant-settings-attendance-runtime.md:34-35`:
+
+> `AttendancePolicy` stores operational switches that **must survive
+> independently of catalog defaults**. Allowed modes remain in resolved tenant
+> settings.
+
+Read precisely, that is intent for policy-wins-over-**catalog-defaults**. It
+does **not** say the policy should win over a value an administrator explicitly
+saved in Settings — which is what the code does today. Read together with the
+row not being seeded and with `maxAllowedAccuracyMeters Int?` already behaving
+correctly as a per-field override, the intended design looks like "policy is an
+optional per-field override". That points at a schema change — nullable columns,
+an ExecPlan with a backfill mapping current default-valued columns to `NULL`
+where they were never explicitly set — not at removing the settings controls.
+
+The alternative (policy is the source of truth when the row exists) remains
+open, but it costs the tenant a documented, editable settings surface and has no
+evidence behind it. Whichever is chosen, implement it once and say so in both
+UIs.
+
+Separately, and independently fixable today: `upsertAttendancePolicy`
+(`attendance.service.ts:2780-2795`) should not write hardcoded defaults for
+fields the caller did not send. Nobody designs a PATCH that overwrites omitted
+fields with constants; that half is unambiguously accidental.
 
 ## Acceptance Criteria
 
@@ -179,10 +209,15 @@ option.
 
 ## Related Items
 
-BUG-1979 (seven attendance settings overwritten on write), BUG-1981 (hardcoded
-location values at resolve time) and BUG-1978 (two attendance checkboxes that are
-not catalog keys). Together these four determine which attendance settings mean
-anything, and they should be triaged as one.
+BUG-1979 (seven mandated attendance settings still rendered editable), BUG-1981
+(hardcoded location values at resolve time) and BUG-1978 (two attendance
+checkboxes that are not catalog keys). Together these four determine which
+attendance settings mean anything.
+
+They no longer share one triage. The SESSION-0072 investigation separated them:
+BUG-1979 and BUG-1981 turn on the location mandate, which is now settled as
+deliberate; **this record does not touch that mandate at all** and can be fixed
+independently.
 
 ## Resolution
 
@@ -196,6 +231,7 @@ Awaiting a fix — nothing to retest yet.
 
 - 2026-08-29 — created from the Starter-plan production QA run (SESSION-0070) at `eb457d9d`.
 - 2026-08-29 — triaged by the Architect for SESSION-0070: ArchitectDisposition PRODUCT_DECISION — same question — which store is meant to win; answer it once, then fix both.
+- 2026-08-29 — amended by the SESSION-0072 attendance-override investigation. This record is **not** part of the location-mandate question: none of its fields is mandated by any commit, comment, test or document, so it was never blocked on that decision. Status moves PRODUCT_DECISION -> OPEN and ArchitectDisposition PRODUCT_DECISION -> FIX_NOW. Proposed Resolution now carries the documented steer from `tenant-settings-attendance-runtime.md:34-35` — policy survives independently of *catalog defaults*, not of explicitly saved settings — which points at nullable `AttendancePolicy` columns rather than at policy supremacy.
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
 

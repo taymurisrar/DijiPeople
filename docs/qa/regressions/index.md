@@ -3149,3 +3149,18 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | **Configuration can be validated, stored, displayed and reviewed while the thing it configures does not exist.** Nothing about `entitlementDays` looked wrong in isolation; what was missing was a reader, and a missing reader has no code to inspect. Worth carrying to any other configured-number-with-a-consumer in this codebase. The design decision is the part most likely to be got wrong twice: exactly one policy wins per employee by specificity, so allocation re-resolves **per employee** exactly as the balance gate does. Allocating the triggering assignment's own entitlements would write a number no governing policy justifies - worse than the original bug, because uniformly blocking is at least visible. That is why `resolveApplicableLeavePolicy` was extracted to `LeavePolicyResolverService` and shared rather than reimplemented. **Deliberately not done:** no backfill of existing tenants, whose balances stay at zero until the next assignment write. A backfill rewrites balances on live tenants including one configured around this bug, and belongs in a RELEASE task with its own rollback. |
 | **Fixed** | 2026-08-29 |
 | **Active** | yes |
+
+### REG-307 - A save that failed with field errors the form could not render
+
+| | |
+|---|---|
+| **Bug class** | `silent-degradation` |
+| **Module** | `apps/web` |
+| **Bug record** | BUG-1966 |
+| **Root cause** | `ModuleRuntimeCommandHandler` withheld the runtime's technical error dialog whenever a failed command carried field-level errors, assuming each would be rendered inline against its own control. That holds only while the form renders a control for every field the server can name, and it does not. `SubmitLeaveRequestDto` rejects `ownerId` and `status`; both live in the record-status header and appear in no form section, so the inline path had nothing to draw and the dialog had already been suppressed. A 400 produced no toast, no banner, no invalid field and no `[role=alert]` anywhere in `main` — the request was visible only in the network panel. |
+| **Regression test** | `apps/web/lib/runtime/command-failure-visibility.spec.ts` |
+| **Scenario** | `fieldValidationErrorsAreVisible` answers the only question that licenses silence: is at least one errored field actually on the active form? False for the real leave-request pair against a form of leave type, dates and reason; true when one named field is on the form, and true when only some are. Both error shapes are read — the array form the API contract emits and the map form — at the root and under `details`. False when there are no field errors, and false when there is no active form, so a failure with nowhere to render always reaches the dialog. |
+| **Proven to fail without the fix** | The predicate it replaced, `hasFieldValidationErrors(result.data)`, returned true for any field error whatever the form contained. The first spec case is the exact production payload and now returns `false`, the value that lets the dialog through; under the old predicate the same input returned `true`. The function is new, so the proof is that inversion at the call site rather than a revert of the function. |
+| **Note** | Suppressing a dialog "because the errors will render inline" is a claim about the form, made in a component that never looked at the form. The fix does not add an error surface; it stops the runtime asserting something it had not checked. Because the check keys off the active form rather than an exempt-field list, any DTO that grows a field the form does not render now fails loudly rather than silently. |
+| **Fixed** | 2026-08-29, branch `agent/starter-blocker-fixes` |
+| **Active** | yes |

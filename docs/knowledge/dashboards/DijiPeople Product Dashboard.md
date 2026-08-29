@@ -69,9 +69,6 @@ See [[dijipeople-platform-overview|DijiPeople Platform Overview]] for the full p
 Questions where the engineering is understood and the **product answer**
 **is not**. No agent may resolve one by implementing a side of it.
 
-- [[BUG-1979-seven-attendance-settings-are-overwritten-on-write-and-the-a|BUG-1979]] — **Seven attendance settings are overwritten on write and the admin is never told** (MEDIUM)
-- [[BUG-1980-one-saved-attendance-policy-permanently-overrides-the-attend|BUG-1980]] — **One saved attendance policy permanently overrides the attendance settings category** (MEDIUM)
-- [[BUG-1981-resolvepolicy-hardcodes-seven-location-values-and-inverts-tw|BUG-1981]] — **resolvePolicy hardcodes seven location values and inverts two AttendancePolicy column defaults** (MEDIUM)
 - [[BUG-2045-timesheet-background-job-completions-make-up-71-percent-of-t|BUG-2045]] — **Timesheet background-job completions make up 71 percent of the tenant audit trail** (MEDIUM)
 - [[ITEM-0106-an-employee-cannot-use-self-service-until-their-manager-acti|ITEM-0106]] — **An employee cannot use self-service until their manager activates their own account** (MEDIUM)
 - [[ITEM-0113-the-seeded-leave-approval-chain-cannot-route-on-a-newly-prov|ITEM-0113]] — **The seeded leave approval chain cannot route on a newly provisioned tenant, and the Approval Matrices screen gives no warning** (MEDIUM)
@@ -92,7 +89,7 @@ Questions where the engineering is understood and the **product answer**
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
 | [[BUG-1957-a-department-with-no-business-unit-cannot-be-listed-opened-e|BUG-1957]] | A department with no business unit cannot be listed, opened, edited or deleted, yet still holds its name | DATA_INTEGRITY | HIGH | OPEN | api:organization | FIX_NOW |
-| [[BUG-1966-a-failed-save-in-the-runtime-form-is-swallowed-with-no-messa|BUG-1966]] | A failed save in the runtime form is swallowed with no message, toast or inline error | UX | HIGH | OPEN | apps/web | FIX_NOW |
+| [[BUG-1966-a-failed-save-in-the-runtime-form-is-swallowed-with-no-messa|BUG-1966]] | A failed save in the runtime form is swallowed with no message, toast or inline error | UX | HIGH | FIXED | apps/web | FIX_NOW |
 | [[BUG-1986-tenant-settings-has-four-blocking-accessibility-violations-i|BUG-1986]] | Tenant settings has four blocking accessibility violations including buttons with no name | UX | HIGH | OPEN | apps/web | FIX_NOW |
 | [[BUG-2008-every-employee-is-counted-absent-on-a-non-working-day-and-ra|BUG-2008]] | Every employee is counted absent on a non-working day and raised as an exception | DATA_INTEGRITY | HIGH | OPEN | api:attendance, api:dashboard | FIX_NOW |
 | [[BUG-2044-no-employee-lifecycle-event-is-audited-including-employee-cr|BUG-2044]] | No employee lifecycle event is audited, including employee creation and reporting-manager assignment | DATA_INTEGRITY | HIGH | OPEN | api:employees, api:organization, api:leave | PLAN_REQUIRED |
@@ -100,7 +97,7 @@ Questions where the engineering is understood and the **product answer**
 | [[BUG-1951-most-tenant-workspace-pages-render-no-main-landmark-includin|BUG-1951]] | Most tenant workspace pages render no main landmark, including every settings category | UX | MEDIUM | OPEN | apps/web | FIX_NOW |
 | [[BUG-1956-runtime-lookup-comboboxes-expose-no-listbox-or-option-semant|BUG-1956]] | Runtime lookup comboboxes expose no listbox or option semantics to assistive technology | UX | MEDIUM | OPEN | apps/web | PLAN_REQUIRED |
 | [[BUG-1958-deleting-a-department-never-releases-its-name-so-it-can-neve|BUG-1958]] | Deleting a department never releases its name, so it can never be recreated | DATA_INTEGRITY | MEDIUM | OPEN | api:organization | PLAN_REQUIRED |
-| [[BUG-1962-assigned-on-is-required-by-the-leave-assignment-api-and-rend|BUG-1962]] | Assigned On is required by the leave assignment API and rendered as an optional field | UX | MEDIUM | OPEN | apps/web, api:leave | FIX_NOW |
+| [[BUG-1962-assigned-on-is-required-by-the-leave-assignment-api-and-rend|BUG-1962]] | Assigned On is required by the leave assignment API and rendered as an optional field | UX | MEDIUM | IN_PROGRESS | apps/web, api:leave | FIX_NOW |
 | [[BUG-1963-runtime-dialogs-show-the-end-user-the-raw-server-message-and|BUG-1963]] | Runtime dialogs show the end user the raw server message and the HTTP method and path | UX | MEDIUM | OPEN | apps/web | FIX_NOW |
 | [[BUG-2005-manual-attendance-accepts-a-date-arbitrarily-far-in-the-futu|BUG-2005]] | Manual attendance accepts a date arbitrarily far in the future | DATA_INTEGRITY | MEDIUM | OPEN | api:attendance | FIX_NOW |
 | [[BUG-2006-a-successful-save-reports-nothing-to-the-user-on-the-runtime|BUG-2006]] | A successful save reports nothing to the user on the runtime forms and the branding page | UX | MEDIUM | OPEN | apps/web | FIX_NOW |

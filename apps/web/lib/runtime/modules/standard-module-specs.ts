@@ -1104,6 +1104,13 @@ export const leaveRuntimeSpec: StandardModuleRuntimeSpec = {
       displayName: "Owner",
       dataType: "lookup",
       isOwner: true,
+      // Read-only because SubmitLeaveRequestDto whitelists neither owner nor
+      // status: a leave request is always raised for the caller, and its status
+      // is driven by the approval workflow. The record-status header still
+      // displays both; it just no longer serialises them into the create body,
+      // which the API rejected outright — "property ownerId should not exist,
+      // property status should not exist" — failing every submission.
+      isReadOnly: true,
     },
     {
       logicalName: "leaveTypeId",
@@ -1125,6 +1132,13 @@ export const leaveRuntimeSpec: StandardModuleRuntimeSpec = {
       dataType: "optionset",
       options: APPROVAL_STATUS_OPTIONS,
       isStatus: true,
+      // Read-only for the same reason as ownerId above: SubmitLeaveRequestDto
+      // whitelists neither, and the approval workflow owns this value. Marking
+      // only ownerId was not enough — `/leaves/new` seeds the draft with a
+      // literal `record={{ status: "PENDING" }}`, and
+      // `sanitizeStandardMutationValues` keeps any writable field present in the
+      // draft, so `status` still reached the API and still 400'd.
+      isReadOnly: true,
     },
     {
       logicalName: "subStatus",
@@ -2857,6 +2871,12 @@ export const approvalRuntimeSpec: StandardModuleRuntimeSpec = {
   routeBase: "/approvals",
   primaryNameField: "approvalName",
   statusField: "status",
+  // An approval is raised by the module whose record needs approving — leave,
+  // timesheets, claims — and can never be created here. Without this the standard
+  // command set still emitted `system.new`, whose handler resolves to
+  // `/approvals/new`; no page exists at that route, so it fell through to
+  // `approvals/[approvalId]` with the literal id "new" and threw.
+  adapterCapabilities: { disableCreate: true },
   permissions: {
     read: PERMISSION_KEYS.APPROVALS_READ,
   },

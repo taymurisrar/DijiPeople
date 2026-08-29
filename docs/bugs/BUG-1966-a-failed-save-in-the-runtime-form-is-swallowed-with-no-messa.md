@@ -2,7 +2,7 @@
 ID: BUG-1966
 aliases: [BUG-1966]
 Title: A failed save in the runtime form is swallowed with no message, toast or inline error
-Status: OPEN
+Status: FIXED
 Severity: HIGH
 Priority: P1
 Type: UX
@@ -13,7 +13,7 @@ AffectedModules: [apps/web]
 OwnerAgent: architect
 ArchitectDisposition: FIX_NOW
 QAReport: 
-RegressionId: 
+RegressionId: REG-307
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
@@ -77,14 +77,38 @@ The live DOM check above (`main` contains no `[role=alert]` or error nodes after
 the failed save), together with the console 400 and network entry, on the
 production tenant workspace.
 
-No file:line evidence was collected for the form's submit handler; it should be
-located before the fix, since the point of this record is that the handler
-discards the rejection.
+No file:line evidence was collected for the form's submit handler at filing time;
+it should be located before the fix, since the point of this record is that the
+handler discards the rejection.
+
+**Located.** It is
+`apps/web/app/components/runtime/module-runtime-command-handler.tsx:310`, and the
+handler does not discard the rejection — it suppresses the dialog that would have
+shown it. See Root Cause.
 
 ## Root Cause
 
-Not established. The submit path evidently treats a rejected request as a
-non-event rather than surfacing it.
+**Established.** The submit path did not discard the rejection — it deliberately
+suppressed the surface that would have shown it.
+
+`ModuleRuntimeCommandHandler` (`apps/web/app/components/runtime/module-runtime-command-handler.tsx`)
+routed a failed command to the runtime's technical error dialog **only** when the
+failure carried no field-level errors:
+
+```ts
+if (result.status === "failure" && !hasFieldValidationErrors(result.data)) {
+```
+
+The reasoning is sound and is why it survived review: a field error belongs
+against its own control, not in a modal. It is only safe while the form renders
+a control for every field the server can name, and nothing checked that. The
+leave request was rejected with `details.fields: [{field: "ownerId"},
+{field: "status"}]`; both live in the record-status header and appear in no form
+section, so the inline path had nothing to draw and the dialog had already been
+turned off. Neither surface rendered, and the save failed in silence.
+
+This is the `silent-degradation` class: the interface reverted to a weaker
+version of itself — here, to nothing — on an assumption that was never tested.
 
 ## Impact
 
@@ -120,8 +144,19 @@ the message shown is the contract's `description` rather than its raw `message`.
 
 ## Regression Coverage
 
-None yet. A component test that stubs a rejected save and asserts an alert is
-rendered would fail today.
+REG-307 — `apps/web/lib/runtime/command-failure-visibility.spec.ts`, six cases,
+promoted as QA-RUNTIME-018.
+
+The spec pins both directions of the decision: `false` for the exact production
+payload against the real leave form, `true` when any named field is on the form,
+`true` for both supported error shapes, and `false` when there are no field
+errors or no active form at all. Under the predicate it replaced, the first case
+returned `true` — that inversion is the proof.
+
+The coverage is unit-level and deliberately narrow. A component test that mounts
+the form, stubs a rejected save and asserts an announced `role="alert"` with the
+values preserved is still missing, and is what the remaining acceptance criteria
+need.
 
 ## Dependencies
 
@@ -136,21 +171,57 @@ discards a message it was given.
 
 ## Resolution
 
-Open. No fix has been written.
+Fixed on branch `agent/starter-blocker-fixes`, commit `the SESSION-0072 fix commit` — on that branch only, not yet on `develop` or `main`.
+
+The suppression condition now asks whether the errors will actually be seen
+rather than whether they exist. A new pure module,
+`apps/web/lib/runtime/command-failure-visibility.ts`, exports
+`fieldValidationErrorsAreVisible(data, form)`, which reads the named fields from
+either supported error shape — the array form the API contract emits and the map
+form, at the root and under `details` — and returns true only when at least one
+of them is rendered by a section of the active form.
+`module-runtime-command-handler.tsx` calls it in place of
+`hasFieldValidationErrors`, so the dialog is withheld only when something inline
+can take its place.
+
+Files changed: `apps/web/lib/runtime/command-failure-visibility.ts` (new),
+`apps/web/app/components/runtime/module-runtime-command-handler.tsx`,
+`apps/web/lib/runtime/command-failure-visibility.spec.ts` (new).
+
+Two of the four acceptance criteria are met by construction — a failure with
+nothing renderable now reaches the dialog, and a plain failure or a 500 was
+never suppressed in the first place, since neither carries field errors. The
+other two — that the error is announced through `role="alert"` and that the
+form retains the user's input — are properties of the dialog and the form, not
+of this decision, and neither is asserted by a test yet. They are the reason
+this record is `FIXED` rather than `VERIFIED`.
 
 ## QA Retest
 
-Awaiting a fix — nothing to retest yet.
+Not yet performed, and it cannot be performed today: the fix is not on `develop`
+and production runs `main` at `949f461c`, which does not contain it. This task
+did not touch `main`, so **nothing here is verified in production** and the
+demo tenant still reproduces the silent failure exactly as recorded above.
+
+Live verification on the demo tenant is pending a release. When it happens, the
+retest is the Reproduction section, with one correction to the expectation: the
+leave request will still be rejected, because BUG-1965 is only half fixed and
+`status` is still serialised into the create body. The correct outcome after
+this fix is a **visible** 400, not a successful save. Check that `main` contains
+`[role=alert]`, that the message names the failure, and that leave type, dates
+and reason are still populated.
 
 ## History
 
 - 2026-08-29 — created from the Starter-plan production QA run (SESSION-0070) at `eb457d9d`; observed against production API `949f461c`. Split from the leave-request payload finding because the swallow is generic to the runtime form layer.
 - 2026-08-29 — triaged by the Architect for SESSION-0070: ArchitectDisposition FIX_NOW — release blocker and generic to the whole runtime form layer; arguably the highest-leverage single fix in this batch.
+- 2026-08-29 — fixed in SESSION-0072 at `the SESSION-0072 fix commit` on `agent/starter-blocker-fixes`, on `agent/starter-blocker-fixes`. Root Cause rewritten from "not established" to the suppression condition in `module-runtime-command-handler.tsx`; Status OPEN to FIXED; RegressionId REG-307; QA-RUNTIME-018 promoted. Specs re-run locally at `the SESSION-0072 fix commit`: 6 cases, all passing. **Not deployed** — production runs `main` at `949f461c` and this task did not touch `main`, so the record is FIXED and not VERIFIED.
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
 
 ## Related
 
 - Modules — [[tenant-application]]
+- Regression — REG-307 (see the regression register)
 
 <!-- GRAPH:END -->

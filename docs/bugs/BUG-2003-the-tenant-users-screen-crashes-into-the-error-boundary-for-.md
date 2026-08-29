@@ -2,7 +2,7 @@
 ID: BUG-2003
 aliases: [BUG-2003]
 Title: The tenant Users screen requests an entity the data registry does not have, so it never renders
-Status: OPEN
+Status: IN_PROGRESS
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -276,17 +276,77 @@ four Users screens. ITEM-0001 is the missing browser e2e tooling.
 
 ## Resolution
 
-Open. No fix has been written.
+**Code fixed; the record stays open for want of the regression coverage this
+repository requires before a bug may be marked `FIXED`.**
+
+Commit `d3ffb3aa` on `agent/starter-blocker-fixes` — on that branch only, not yet on `develop` or `main`,
+took the second half of the "expensive" option's opposite: rather than
+registering a `users` entity, it deleted the branch that asked for one.
+`apps/web/app/(authenticated)/users/page.tsx` no longer reads
+`USE_ENTITY_DATA_API`; it always uses the REST list endpoint it already had.
+`fetchUsersFromEntityData`, `resolveEntityOrderBy`, the `UserEntityRecord` type
+and their imports are gone — 129 lines removed, one comment added explaining
+why the branch may not come back until `users` is a registered entity that
+projects the relations the screen shows.
+
+This is neither of the two options the record proposed. It is cheaper than
+registering the entity and less final than deleting the page, and it deliberately
+does not pre-empt ITEM-0107, which may still redirect `/users` to the canonical
+settings screen. The page now renders; if ITEM-0107 later deletes it, nothing
+here has to be undone.
+
+Against the acceptance criteria:
+
+- **1, reaches a working list** — met. The only throw site the Evidence section
+  could not eliminate was the entity-data 404, and it is gone.
+- **2, all four dashboard links** — met by the same change; they point at
+  `/users`, which now renders.
+- **3, no client-side request to `/api/data/users`** — met, though indirectly and
+  worth recording. `users-table.tsx:193` still reads
+  `entityLogicalName={useEntityDataApi ? "users" : undefined}`, but the page no
+  longer passes `useEntityDataApi`, so the prop defaults to `false`, the table
+  runs in `mode="client"` and `entityLogicalName` is `undefined`. The dead prop
+  was left in place; it is inert, not correct.
+- **4, a contract test over `buildEntityDataUrl` call sites** — **not done.**
+  Nothing yet fails when a call site names an entity the registry does not hold.
+
+### The three secondary defects are still there
+
+The record noted them as invisible while the page crashed. The page no longer
+crashes, so they are now reachable — which is the point of recording them here:
+
+- `users-table.tsx:104-146` still reads `user.userRoles` and `user.employee`
+  while the REST mapper supplies `roles` and `linkedEmployee`, so the Roles
+  column reads "No roles assigned" and Linked Employee reads "Not linked" for
+  everyone.
+- `GET /users` still takes no query parameters and returns an unpaginated array;
+  `normalizeUserListResponse` still fabricates the `meta` block, so search,
+  status filter and paging do nothing.
+- `UsersFilterBar` is still imported at `page.tsx:24` and never rendered.
+
+None of these is a crash and none was in scope for this commit, but a reviewer
+opening `/users` after the fix will see two empty columns and a pager that does
+not page, and should not read that as a new regression.
 
 ## QA Retest
 
-Awaiting a fix — nothing to retest yet.
+Not yet performed, and it cannot be performed today: the fix is not on `develop` and
+production runs `main` at `949f461c`, which does not contain it. This task did
+not touch `main`, so **nothing here is verified in production** and `/users`
+still renders the error boundary on the demo tenant.
+
+Live verification is pending a release: open `/users` as a tenant administrator
+and confirm a rendered list with no `#441` and no console error; follow all four
+dashboard links; sort and page the table with the network panel open and confirm
+no request to `/api/data/users`. Expect the three secondary defects above to be
+visible, and do not file them again.
 
 ## History
 
 - 2026-08-29 — created from the Starter-plan production QA run (SESSION-0070) at `eb457d9d`; observed against production API `949f461c`.
 - 2026-08-29 — root cause established by static analysis plus read-only HTTP probes; title, Summary, Evidence, Root Cause and Proposed Resolution rewritten from "not established" to the entity-registry mismatch. Disposition set to FIX_NOW by the SESSION-0070 Architect triage.
 - 2026-08-29 — Regression Coverage updated: browser E2E coverage for `apps/web` landed on `origin/develop` (ITEM-0034, 2026-08-29). The claim that no Playwright suite exists was stale; the accurate statement is that the new suite does not open this screen.
+- 2026-08-29 — code fixed in SESSION-0072 at `d3ffb3aa`, on `agent/starter-blocker-fixes`: the `USE_ENTITY_DATA_API` branch and its dead helpers were removed and the page always uses the REST list endpoint. Status OPEN to IN_PROGRESS, **not** FIXED: three of the four acceptance criteria are met, but the fourth — a contract test over `buildEntityDataUrl` call sites — is not, and `backlog:check` requires an active regression entry before a bug may claim `FIXED`. Also recorded that the three secondary defects are now reachable rather than resolved. **Not deployed** — production runs `main` at `949f461c`.
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
 

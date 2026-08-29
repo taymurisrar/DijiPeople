@@ -12,9 +12,6 @@ Each states the question, the options and what each option costs.
 
 | ID | Title | Type | Severity | Priority | Status | Affected | Architect |
 |---|---|---|---|---|---|---|---|
-| [BUG-1979](../../docs/bugs/BUG-1979-seven-attendance-settings-are-overwritten-on-write-and-the-a.md) | Seven attendance settings are overwritten on write and the admin is never told | BUG | MEDIUM | P2 | PRODUCT_DECISION | api:tenant-settings | PRODUCT_DECISION |
-| [BUG-1980](../../docs/bugs/BUG-1980-one-saved-attendance-policy-permanently-overrides-the-attend.md) | One saved attendance policy permanently overrides the attendance settings category | BUG | MEDIUM | P2 | PRODUCT_DECISION | api:attendance | PRODUCT_DECISION |
-| [BUG-1981](../../docs/bugs/BUG-1981-resolvepolicy-hardcodes-seven-location-values-and-inverts-tw.md) | resolvePolicy hardcodes seven location values and inverts two AttendancePolicy column defaults | BUG | MEDIUM | P2 | PRODUCT_DECISION | api:attendance | PRODUCT_DECISION |
 | [BUG-2045](../../docs/bugs/BUG-2045-timesheet-background-job-completions-make-up-71-percent-of-t.md) | Timesheet background-job completions make up 71 percent of the tenant audit trail | BUG | MEDIUM | P2 | PRODUCT_DECISION | api:timesheets, api:audit, api:tenant-settings | PRODUCT_DECISION |
 | [ITEM-0106](../../docs/backlog/items/ITEM-0106-an-employee-cannot-use-self-service-until-their-manager-acti.md) | An employee cannot use self-service until their manager activates their own account | PRODUCT_DECISION | MEDIUM | P2 | PRODUCT_DECISION | api:leave, api:employees | PRODUCT_DECISION |
 | [ITEM-0113](../../docs/backlog/items/ITEM-0113-the-seeded-leave-approval-chain-cannot-route-on-a-newly-prov.md) | The seeded leave approval chain cannot route on a newly provisioned tenant, and the Approval Matrices screen gives no warning | PRODUCT_DECISION | MEDIUM | P2 | PRODUCT_DECISION | services/api/prisma, api:approvals, apps/web | PRODUCT_DECISION |

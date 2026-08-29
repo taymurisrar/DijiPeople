@@ -12,7 +12,7 @@ DetectedInSha: 21032ae
 AffectedModules: [views]
 OwnerAgent: architect
 ArchitectDisposition: DEFER
-QAReport: 
+QAReport: docs/qa/runs/2026-08-29-starter-plan-e2e-pass-2-8ab1cbf.md
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
@@ -158,6 +158,10 @@ two widths.
 ## History
 
 - 2026-08-27 — found in the first responsive pass over a real tenant workspace.
+- 2026-08-29 — re-measured on a **populated** production tenant (SESSION-0072).
+  Dashboard +400px at 390px; the mechanism is a 217px inline sidebar whose
+  collapse control is `hidden … xl:block`. Re-triage out of `DEFERRED`
+  recommended, to `PLAN_REQUIRED`; disposition unchanged pending the Architect.
 
 
 ## Reproduction obtained — 2026-08-29
@@ -188,6 +192,90 @@ needing somebody to remember to re-check. **The disposition is unchanged.** This
 adds evidence, not a decision; whether to fix it now is still the Architect's
 call, and it stays `DEFERRED` until somebody makes it.
 
+
+## Re-measured on a populated tenant, and the mechanism identified — 2026-08-29
+
+Second Starter-plan production pass, SESSION-0072, deployed API `949f461c`,
+tenant `DijiPeople Demo` carrying real data (11 employees, 60 attendance entries,
+4 leave requests). Full run:
+`docs/qa/runs/2026-08-29-starter-plan-e2e-pass-2-8ab1cbf.md`.
+
+Overflow is `max(body.scrollWidth, documentElement.scrollWidth) - innerWidth`.
+
+| Route | Overflow at 390px | Against the earlier figure |
+|---|---|---|
+| `/` (dashboard) | **+400px** | never measured before — `body.scrollWidth` 790 against a 390 viewport |
+| `/employees` | +103px | was +61px on an **empty** tenant; real data widened it |
+| `/leaves` | +95px | not previously measured |
+| `/attendance` | +95px | not previously measured |
+
+At 768px the same dashboard overflows by only **+26px**. This is a phone problem
+specifically, not a general layout failure.
+
+### The mechanism: the sidebar never becomes a drawer
+
+The tenant shell renders its navigation as an inline `<aside>` that is **217px
+wide at every viewport**, with no small-screen treatment at all:
+
+| Viewport | Sidebar | Share of screen | Collapse control |
+|---|---|---|---|
+| 390px | 217px | **56%** | not rendered |
+| 768px | 217px | 28% | not rendered |
+| ≥1280px | 217px | 17% | rendered |
+
+At 390px that leaves roughly 157px of usable width for a dashboard grid that
+measures 529px and cannot reflow into what is left — which is where the 400px
+comes from. There is no drawer pattern anywhere in the shell.
+
+**And there is no escape.** The collapse control exists in the DOM at every
+width, but its ancestor is Tailwind `hidden px-2 pt-2 xl:block`:
+
+```
+button[aria-label="Collapse sidebar"]
+  → hidden by ancestor: div.hidden px-2 pt-2 xl:block   [computed display: none]
+  → getBoundingClientRect() = 0 × 0 at 390px and at 768px
+```
+
+So the sidebar is collapsible only at ≥1280px — the one width at which collapsing
+it saves nothing. On a phone it takes over half the screen permanently and the
+control that would fix it is `display: none`.
+
+This is a **third** cause, distinct from the two the Root Cause section already
+separates. It is not the payroll sub-navigation and it is not the resize handle:
+it is present on every route in the workspace because it is the shell itself, and
+it is the largest single contributor at phone width.
+
+### Recommendation to the Architect: re-triage out of `DEFERRED`
+
+**This is a recommendation, not a decision.** QA does not set disposition, and
+nothing in this section changes `Status` or `ArchitectDisposition` — they remain
+`DEFERRED` / `DEFER` until the Architect rules.
+
+The argument for revisiting:
+
+- The deferral was taken on an **empty** tenant, where the worst case was
+  `/payroll/cycles` at +288 and `/employees` at +61. The landing screen of a
+  populated tenant is **+400**, and the first screen every user sees was never in
+  the measured set.
+- The 2026-08-27 triage note reasoned that this "costs scrolling rather than
+  access". Navigation occupying 56% of a phone screen, with its collapse control
+  unreachable below 1280px, is closer to access than to scrolling.
+- This is an HR product whose **employees** are the primary users — a payslip, a
+  leave request, an attendance check. The phone is not a secondary surface for
+  that audience.
+
+Suggested disposition: **`PLAN_REQUIRED`**, not `FIX_NOW`. A drawer pattern for
+the shell plus a breakpoint for the collapse control is real design and shell
+work with consequences for every route, not a patch — and the third cause found
+here strengthens the original triage note's instinct that the causes want
+separating before anyone opens the shell.
+
+### Scope of this measurement
+
+`/`, `/employees`, `/leaves` and `/attendance`, at 390×844 and 768×1024, signed
+in as the tenant owner. Settings pages, record pages and `apps/admin` were not
+measured at these widths. Layout only: no touch-interaction testing was done, and
+a control being on screen is not the same as it being usable with a thumb.
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
 

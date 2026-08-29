@@ -1,7 +1,7 @@
 # Component Index
 
 > **Last verified:** 2026-08-29
-> **Verified against commit:** 8d83d842
+> **Verified against commit:** 660897ae
 >
 > **This file is generated. Do not hand-edit it.**
 > `node scripts/generate-component-index.mjs` rebuilds it;
@@ -17,7 +17,7 @@ comment beside it is the reasoning; this document is a route to both. Every row
 carries `file`:`line` for that reason — read the source before changing it.
 
 **An export missing from here is undocumented, not absent.** 757 of
-862 exports across these kits carry no
+864 exports across these kits carry no
 doc-comment and are omitted rather than listed as bare names. That ratio is
 itself worth knowing: it is where a UI/UX or Frontend agent is working without
 stated rationale, and where adding one is worth more than a new abstraction.
@@ -122,7 +122,7 @@ re-derived on each run.
 
 Metadata-driven UI is the default. New modules are declared through `lib/runtime/` and rendered by the standard runtime pages; a bespoke page needs a stated reason in the plan.
 
-37 documented export(s); 510 undocumented export(s) omitted.
+39 documented export(s); 510 undocumented export(s) omitted.
 
 | Export | Kind | Used by | Where | What it is |
 |---|---|---|---|---|
@@ -144,9 +144,11 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `commandContextSubtitle` | function | 1 | `apps/web/lib/runtime/command-context-labels.ts`:25 | A shift is only ever called a shift, and a work site only ever a work site. |
 | `commandsForPlacement` | function | 1 | `apps/web/lib/runtime/command-catalog.ts`:191 | Commands that make sense on a given bar, for filtering the picker. |
 | `emptyStateMessage` | function | 1 | `apps/web/app/components/data-table/utils.ts`:274 | Which empty state is true. |
+| `fieldValidationErrorsAreVisible` | function | 1 | `apps/web/lib/runtime/command-failure-visibility.ts`:20 | Whether a failed command's field errors will actually appear somewhere the user can see them. |
 | `useSideToast` | function | 1 | `apps/web/app/components/notifications/use-side-toast.tsx`:19 | Local toast state plus the element that renders it. |
 | `validateDraft` | function | 1 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:191 | Checks a draft before it is sent. |
 | `fieldsFor` | function | 0 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:100 | The fields a given correction type actually uses. |
+| `readFieldErrorNames` | function | 0 | `apps/web/lib/runtime/command-failure-visibility.ts`:39 | Field names from either supported error shape, at the root or under `details`. |
 | `resolveVisibleByRules` | function | 0 | `apps/web/lib/runtime/visibility.resolver.ts`:84 | Filters any list of rule-carrying items. |
 | `ThemeApplier` | value | 1 | `apps/web/app/components/theme/theme-applier.tsx`:18 | Re-asserts the user's theme after hydration, everywhere in the app. |
 | `COMMAND_ICON_CHOICES` | constant | 1 | `apps/web/lib/runtime/command-catalog.ts`:205 | Icons offered in the picker. |
