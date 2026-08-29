@@ -15,6 +15,10 @@ import {
 import { PlanDetailActionBar } from "@/app/_components/plans/plan-detail-action-bar";
 import { TenantStatusBadge } from "@/app/_components/tenant-status-badge";
 import { apiRequestJson } from "@/lib/server-api";
+import {
+  describePlanSchedule,
+  selectPlanHeadlinePrices,
+} from "@/lib/runtime/plan-headline-prices";
 import { RuntimeRecordRoute } from "@/app/_components/runtime/runtime-record-route";
 
 /* Each screen titles itself. 47 of 48 shared one title, so a tab, a
@@ -71,46 +75,41 @@ export default async function PlanDetailPage({
   // another. They now derive from the authoritative PlanPrice rows, which is
   // what a customer is actually billed. A plan with no published price shows
   // "Not configured" rather than a legacy figure nobody charges.
-  const monthlyPrice =
-    plan.prices.find(
-      (price) => price.billingCycle === "MONTHLY" && price.isActive,
-    ) ?? null;
-  const annualPrice =
-    plan.prices.find(
-      (price) => price.billingCycle === "ANNUAL" && price.isActive,
-    ) ?? null;
-
-  const monthlyAnnualized = (monthlyPrice?.unitAmount ?? 0) * 12;
-  const annualSaving =
-    annualPrice && monthlyAnnualized > 0
-      ? Math.max(monthlyAnnualized - annualPrice.unitAmount, 0)
-      : 0;
-  const annualSavingPercent =
-    monthlyAnnualized > 0
-      ? Math.round((annualSaving / monthlyAnnualized) * 100)
-      : 0;
+  //
+  // BUG-1954 — the two cycles used to be looked up independently, with nothing
+  // tying them to one currency and one billing model. On a plan priced in three
+  // currencies across two models that crossed the schedules, and the pair is
+  // now selected together. See `selectPlanHeadlinePrices`.
+  const headline = selectPlanHeadlinePrices(plan.prices);
+  const schedule = describePlanSchedule(headline);
+  const annualSaving = headline.annualSaving;
+  const annualSavingPercent = headline.annualSavingPercent;
 
   const summaryCards = [
     {
-      label: "Monthly price",
-      value: monthlyPrice
-        ? formatCurrency(monthlyPrice.unitAmount, monthlyPrice.currency)
-        : "Not configured",
-      description: monthlyPrice
-        ? "Authoritative price used by checkout."
-        : "No published monthly price. Customers cannot buy this plan monthly.",
+      label: schedule ? `Monthly price · ${schedule}` : "Monthly price",
+      value:
+        headline.monthly !== null
+          ? formatCurrency(headline.monthly, headline.currency)
+          : "Not configured",
+      description:
+        headline.monthly !== null
+          ? "Authoritative price used by checkout."
+          : "No published monthly price. Customers cannot buy this plan monthly.",
       icon: CircleDollarSign,
     },
     {
-      label: "Annual price",
-      value: annualPrice
-        ? formatCurrency(annualPrice.unitAmount, annualPrice.currency)
-        : "Not configured",
-      description: !annualPrice
-        ? "No published annual price."
-        : annualSaving > 0
-          ? `${annualSavingPercent}% saving versus monthly billing.`
-          : "No annual discount configured.",
+      label: schedule ? `Annual price · ${schedule}` : "Annual price",
+      value:
+        headline.annual !== null
+          ? formatCurrency(headline.annual, headline.currency)
+          : "Not configured",
+      description:
+        headline.annual === null
+          ? "No published annual price."
+          : annualSaving > 0
+            ? `${annualSavingPercent}% saving versus monthly billing.`
+            : "No annual discount configured.",
       icon: CalendarDays,
     },
     {
@@ -173,9 +172,15 @@ export default async function PlanDetailPage({
               Pricing posture
             </p>
 
+            {schedule ? (
+              <p className="mt-1 text-xs font-medium text-slate-500">
+                {schedule}
+              </p>
+            ) : null}
+
             <p className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">
-              {monthlyPrice
-                ? formatCurrency(monthlyPrice.unitAmount, monthlyPrice.currency)
+              {headline.monthly !== null
+                ? formatCurrency(headline.monthly, headline.currency)
                 : "Not configured"}
               <span className="text-sm font-medium text-slate-500">
                 {" "}
@@ -184,16 +189,16 @@ export default async function PlanDetailPage({
             </p>
 
             <p className="mt-2 text-sm text-slate-600">
-              {annualPrice
-                ? `${formatCurrency(annualPrice.unitAmount, annualPrice.currency)} / year`
+              {headline.annual !== null
+                ? `${formatCurrency(headline.annual, headline.currency)} / year`
                 : "No published annual price"}
             </p>
 
             <div className="mt-5 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700">
-              {annualSaving > 0 && annualPrice ? (
+              {annualSaving > 0 ? (
                 <>
                   <span className="font-semibold text-slate-950">
-                    {formatCurrency(annualSaving, annualPrice.currency)}
+                    {formatCurrency(annualSaving, headline.currency)}
                   </span>{" "}
                   annual saving for customers.
                 </>
@@ -307,10 +312,10 @@ export default async function PlanDetailPage({
   );
 }
 
-function formatCurrency(value: number, currency: string): string {
+function formatCurrency(value: number, currency: string | null): string {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
-    currency,
+    currency: currency ?? "USD",
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(value);

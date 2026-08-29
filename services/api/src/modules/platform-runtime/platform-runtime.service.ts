@@ -975,7 +975,28 @@ export class PlatformRuntimeService {
       if (key === 'contracts' && body.mode !== 'create') {
         delete validationValues.contentHtml;
       }
-      await dto(Class, validationValues);
+      const validated = await dto(Class, validationValues);
+      /*
+       * The DTO is where validation used to stop, and stopping there is the
+       * defect. `POST .../customer-onboarding/validate` answered success for
+       * payloads the create endpoint then refused with 400 or 409 - an
+       * already-active onboarding for the customer, unmet customer
+       * prerequisites, a tenant slug already taken - because every one of those
+       * rules lives in the service, past the DTO. A form that asks "will this
+       * save?" and is told yes, then is refused, is worse off than one that
+       * never asked (BUG-1548).
+       *
+       * So the module's own create rules run too, against the same rule set the
+       * save will run, throwing the same exceptions with the same messages.
+       * Nothing is written: `assertCustomerOnboardingCreatable` reads and
+       * refuses, and that is all it does.
+       */
+      if (key === 'customer-onboarding' && body.mode === 'create') {
+        await this.superAdmin.assertCustomerOnboardingCreatable(
+          user,
+          validated as CreateCustomerOnboardingRecordDto,
+        );
+      }
       return { success: true };
     } catch (error) {
       return readValidationFailure(error);

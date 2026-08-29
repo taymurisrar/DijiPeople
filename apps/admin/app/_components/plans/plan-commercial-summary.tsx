@@ -7,13 +7,11 @@ import {
   UsersRound,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-
-type PlanPriceLike = {
-  billingCycle?: string;
-  isActive?: boolean;
-  unitAmount?: number;
-  currency?: string;
-};
+import {
+  describePlanSchedule,
+  selectPlanHeadlinePrices,
+  type PlanPriceLike,
+} from "@/lib/runtime/plan-headline-prices";
 
 /**
  * What this plan currently costs and who is on it.
@@ -24,6 +22,13 @@ type PlanPriceLike = {
  * checkout charged something else entirely. A plan with no published price for
  * a cycle reads "Not configured" — which is the true answer, and the one that
  * tells an operator why nobody can buy it.
+ *
+ * The two price tiles are one *pair*, chosen together by
+ * `selectPlanHeadlinePrices`. They used to be looked up independently by
+ * billing cycle, which crossed two schedules and rendered a PKR flat annual
+ * price of 120,000 beside a PKR per-seat monthly price of 300 (BUG-1954). A
+ * plan carries up to twelve active prices, so the tiles also name the schedule
+ * they are showing rather than implying it is the only one.
  */
 export function PlanCommercialSummary({
   prices,
@@ -34,21 +39,14 @@ export function PlanCommercialSummary({
   featureCount: number;
   subscriptionCount: number;
 }) {
-  const monthly = prices.find(
-    (price) => price.billingCycle === "MONTHLY" && price.isActive !== false,
-  );
-  const annual = prices.find(
-    (price) => price.billingCycle === "ANNUAL" && price.isActive !== false,
-  );
-  const monthlyAnnualized = (monthly?.unitAmount ?? 0) * 12;
-  const annualSaving =
-    annual && monthlyAnnualized > 0
-      ? Math.max(monthlyAnnualized - (annual.unitAmount ?? 0), 0)
-      : 0;
-  const annualSavingPercent =
-    monthlyAnnualized > 0
-      ? Math.round((annualSaving / monthlyAnnualized) * 100)
-      : 0;
+  const headline = selectPlanHeadlinePrices(prices);
+  const schedule = describePlanSchedule(headline);
+  const alsoPriced =
+    headline.otherScheduleCount > 0
+      ? ` ${headline.otherScheduleCount} other price schedule${
+          headline.otherScheduleCount === 1 ? " is" : "s are"
+        } configured below.`
+      : "";
 
   const cards: Array<{
     label: string;
@@ -57,25 +55,31 @@ export function PlanCommercialSummary({
     icon: LucideIcon;
   }> = [
     {
-      label: "Monthly price",
-      value: monthly
-        ? money(monthly.unitAmount, monthly.currency)
-        : "Not configured",
-      description: monthly
-        ? "The amount checkout charges for monthly billing."
-        : "No published monthly price, so this plan cannot be bought monthly.",
+      label: schedule ? `Monthly price · ${schedule}` : "Monthly price",
+      value:
+        headline.monthly !== null
+          ? money(headline.monthly, headline.currency)
+          : "Not configured",
+      description:
+        headline.monthly !== null
+          ? `The amount checkout charges for monthly billing.${alsoPriced}`
+          : "No published monthly price, so this plan cannot be bought monthly.",
       icon: CircleDollarSign,
     },
     {
-      label: "Annual price",
-      value: annual
-        ? money(annual.unitAmount, annual.currency)
-        : "Not configured",
-      description: !annual
-        ? "No published annual price."
-        : annualSaving > 0
-          ? `${annualSavingPercent}% below twelve monthly payments.`
-          : "No annual discount against monthly billing.",
+      label: schedule ? `Annual price · ${schedule}` : "Annual price",
+      value:
+        headline.annual !== null
+          ? money(headline.annual, headline.currency)
+          : "Not configured",
+      description:
+        headline.annual === null
+          ? "No published annual price."
+          : headline.monthly === null
+            ? "No monthly price on this schedule to compare it against."
+            : headline.annualSaving > 0
+              ? `${headline.annualSavingPercent}% below twelve monthly payments.`
+              : "No annual discount against monthly billing.",
       icon: CalendarDays,
     },
     {
@@ -123,7 +127,7 @@ export function PlanCommercialSummary({
   );
 }
 
-function money(value: number | undefined, currency: string | undefined) {
+function money(value: number | undefined, currency: string | null | undefined) {
   if (typeof value !== "number" || !Number.isFinite(value))
     return "Not configured";
   try {
