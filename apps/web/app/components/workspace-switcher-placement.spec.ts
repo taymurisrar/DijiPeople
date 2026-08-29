@@ -83,7 +83,16 @@ describe("ITEM-0102 — the workspace switcher lives in the avatar menu", () => 
      * or every single-workspace user carries a rule to nowhere in their menu.
      */
     expect(switcher).toContain("workspaces.length < 2");
-    expect(switcher).toMatch(/if\s*\(!others\.length\)\s*return null;/);
+    /*
+     * Matched on the shape of the guard rather than on one variable name. The
+     * name was `others` when this was written and is `otherWorkspaces` now, and
+     * a rename is not a regression — but it failed this assertion, which is the
+     * standing hazard of a source-reading guard: it fails for the wrong reason
+     * and, worse, could pass for the wrong one.
+     */
+    expect(switcher).toMatch(
+      /if\s*\(!\w*[Oo]ther\w*\.length\)\s*\{?\s*return null;/,
+    );
     expect(menu).not.toMatch(/border-t[\s\S]{0,120}\{workspaceSection\}/);
   });
 
@@ -92,6 +101,11 @@ describe("ITEM-0102 — the workspace switcher lives in the avatar menu", () => 
     // disclosure at all: the menu around it already provides both.
     expect(menu).toContain('type="button"');
     expect(menu).toContain("aria-expanded={isOpen}");
-    expect(menu).toMatch(/event\.key === "Escape"/);
+    /*
+     * Either polarity closes the menu on Escape. The handler is now written as
+     * an early return on `!== "Escape"`, which this asserted the absence of by
+     * accident rather than the behaviour by design.
+     */
+    expect(menu).toMatch(/event\.key\s*[!=]==\s*"Escape"/);
   });
 });

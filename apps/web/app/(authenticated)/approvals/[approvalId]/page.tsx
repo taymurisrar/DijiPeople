@@ -43,11 +43,11 @@ export default async function ApprovalDetailPage({
       error instanceof ApiRequestError &&
       (error.status === 404 || error.status === 400)
     ) {
+      /*
+       * A div, not a main: the authenticated layout owns the single `main`
+       * landmark (BUG-1951), and a second one here would give the page two.
+       */
       return (
-        {/*
-          A div, not a main: the authenticated layout owns the single `main`
-          landmark (BUG-1951), and a second one here would give the page two.
-        */}
         <div className="grid gap-6">
           <RecordNotFoundState
             title="This approval was not found."

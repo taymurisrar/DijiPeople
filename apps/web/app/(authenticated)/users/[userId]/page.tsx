@@ -122,12 +122,12 @@ export default async function UserDetailPage({
      * told an administrator they lacked a permission they hold.
      */
     if (error instanceof ApiRequestError && error.status === 404) {
+      /*
+       * A div, not a main: the authenticated layout owns the single `main`
+       * landmark (BUG-1951). The 403 branch just below already used a div, so
+       * this was the odd one out of the two.
+       */
       return (
-        {/*
-          A div, not a main: the authenticated layout owns the single `main`
-          landmark (BUG-1951). The 403 branch just below already used a div,
-          so this was also the odd one out of the two.
-        */}
         <div className="dp-theme-scope grid gap-6">
           <RecordNotFoundState
             title="This user record was not found."
